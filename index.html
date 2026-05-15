@@ -52,7 +52,36 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .sec-tag { font-size: 10px; background: #e8f0f8; color: #2e6fb0; padding: 2px 8px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
 .sec-tag.g { background: #d4edda; color: #155724; }
 .sec-tag.o { background: #fff3cd; color: #856404; }
+.sec-tag.r { background: #fde8d8; color: #7a2e00; }
 
+/* ── ESTIMAND GUIDE CARD ─────────────────────────────────── */
+.estimand-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; }
+.estimand-hd { background: linear-gradient(135deg, #2e4a6b 0%, #3a6fa8 100%); color: white; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.estimand-hd-left { display: flex; align-items: center; gap: 10px; }
+.estimand-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.3px; }
+.estimand-hd-sub { font-size: 10px; opacity: 0.75; margin-top: 1px; }
+.estimand-hd-badge { font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.estimand-toggle { font-size: 16px; opacity: 0.8; transition: transform 0.2s; }
+.estimand-toggle.open { transform: rotate(180deg); }
+.estimand-body { padding: 14px 16px; display: none; }
+.estimand-body.open { display: block; }
+.estimand-intro { font-size: 12px; color: #3a4f6a; line-height: 1.7; margin-bottom: 14px; border-left: 3px solid #2e6fb0; padding-left: 12px; }
+.estimand-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.estimand-strategy { border-radius: 7px; padding: 11px 13px; border: 1px solid rgba(0,0,0,0.06); }
+.es-name { font-size: 11px; font-weight: 800; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+.es-def { font-size: 10px; color: #5a7a9e; line-height: 1.55; }
+.es-composite { background: #fff8e6; border-top: 3px solid #e8a020; }
+.es-composite .es-name { color: #7a5000; }
+.es-policy { background: #e8f3ff; border-top: 3px solid #2e6fb0; }
+.es-policy .es-name { color: #1a3f6e; }
+.es-hypothetical { background: #f0eaff; border-top: 3px solid #7030a0; }
+.es-hypothetical .es-name { color: #4a1a7a; }
+.es-while { background: #e6f7f0; border-top: 3px solid #2a7a47; }
+.es-while .es-name { color: #1a5030; }
+.estimand-warning { background: #fff8e6; border: 1px solid #f5c842; border-radius: 6px; padding: 10px 13px; font-size: 11px; color: #5a4020; line-height: 1.6; }
+.estimand-warning strong { color: #1a2f50; }
+
+/* ── GRID.JS ─────────────────────────────────────────────── */
 .gridjs-container { border: none !important; box-shadow: none !important; }
 .gridjs-wrapper { border: none !important; border-radius: 0 0 8px 8px !important; overflow: hidden; }
 .gridjs-table { font-size: 12px !important; }
@@ -68,6 +97,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .gridjs-search-input { border: 1px solid #dde3ea !important; border-radius: 5px !important; font-size: 11px !important; padding: 5px 9px !important; width: 200px !important; }
 .gridjs-footer { border: none !important; background: #f5f7fa !important; }
 
+/* ── CHINA CARDS ─────────────────────────────────────────── */
 .china-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 2px; }
 .china-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-top: 3px solid #2e6fb0; padding: 12px 14px; }
 .china-card.licensed { border-top-color: #2a7a47; }
@@ -83,6 +113,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .cc-detail { font-size: 11px; color: #5a7a9e; line-height: 1.55; }
 .cc-deal { font-size: 11px; color: #c45b11; font-weight: 700; margin-top: 5px; }
 
+/* ── INSIGHT BOX ─────────────────────────────────────────── */
 .insight-box { background: linear-gradient(135deg, #f0f5fb 0%, #e5eef8 100%); border-left: 4px solid #2e6fb0; border-radius: 0 8px 8px 0; padding: 16px 18px; font-size: 12px; color: #2a3f5a; line-height: 1.8; }
 .insight-box ul { list-style: none; padding: 0; }
 .insight-box li { padding: 5px 0 5px 18px; position: relative; border-bottom: 1px solid rgba(46,111,176,0.1); }
@@ -91,9 +122,11 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .insight-box li strong { color: #1a2f50; }
 .insight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 8px; }
 
+/* ── CHART ───────────────────────────────────────────────── */
 .chart-wrap { padding: 12px 14px; }
 .chart-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #8a9bb0; margin-bottom: 8px; }
 
+/* ── STAGE BADGES ────────────────────────────────────────── */
 .sb { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 .sb-approved { background: #1a2f50; color: white; }
 .sb-ph3 { background: #d1f5e0; color: #0d5a30; }
@@ -101,12 +134,22 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .sb-ph1 { background: #ede2f7; color: #432874; }
 .sb-pre { background: #fde8d8; color: #7a2e00; }
 
+/* ── ESTIMAND BADGES ─────────────────────────────────────── */
+.eb { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.eb-composite  { background: #fff0c0; color: #7a5000; border: 1px solid #e8c840; }
+.eb-policy     { background: #d6eaff; color: #1a3f6e; border: 1px solid #90bff0; }
+.eb-hypothetical { background: #eaddff; color: #4a1a7a; border: 1px solid #c0a0e0; }
+.eb-while      { background: #d4f0e2; color: #1a5030; border: 1px solid #80c8a0; }
+.eb-tbd-ph1    { background: #f0f0f0; color: #666; border: 1px solid #d0d0d0; }
+.eb-tbd-pre    { background: #f5f5f5; color: #999; border: 1px solid #e0e0e0; }
+
 .footnote { font-size: 10px; color: #9aabb8; padding: 12px 0 0; border-top: 1px solid #e0e8f0; margin-top: 16px; line-height: 1.6; }
 
 @media (max-width: 900px) {
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
   .china-grid { grid-template-columns: 1fr; }
+  .estimand-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
@@ -183,10 +226,52 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     </div>
   </div>
 
+  <!-- ESTIMAND GUIDE: IBD -->
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-tl1a')">
+      <div class="estimand-hd-left">
+        <div>
+          <div class="estimand-hd-title">⚖️ Estimand Intelligence — Why the Same Endpoint Can Mean Different Things</div>
+          <div class="estimand-hd-sub">ICH E9(R1) · Critical for interpreting IBD remission rates across TL1A trials</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="estimand-hd-badge">Essential BD Context</span>
+        <span class="estimand-toggle" id="toggle-est-tl1a">▼</span>
+      </div>
+    </div>
+    <div class="estimand-body" id="est-tl1a">
+      <div class="estimand-intro">
+        An <strong>estimand</strong> defines the exact clinical question a trial is trying to answer — not just the endpoint, but how the trial handles real-world disruptions like rescue medication use, dose changes, discontinuations, and dropouts. Two IBD trials can both report "Week 52 remission" while answering fundamentally different questions. ICH E9(R1) (2019) requires sponsors to pre-specify the estimand before the trial starts.
+      </div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite">
+          <div class="es-name"><span class="eb eb-composite">Composite</span></div>
+          <div class="es-def"><strong>Most common in IBD.</strong> Intercurrent events (rescue steroids, prohibited meds, discontinuation) are incorporated into the outcome — patients who need rescue are counted as non-responders, regardless of their actual Week 52 status. Measures real-world treatment success including tolerability. Industry standard for UC/CD Phase 2b/3.</div>
+        </div>
+        <div class="estimand-strategy es-policy">
+          <div class="es-name"><span class="eb eb-policy">Treatment Policy</span></div>
+          <div class="es-def"><strong>ITT regardless of intercurrent events.</strong> All patients analyzed based on original assignment, whatever happened — rescue meds, dose changes, discontinuation. Measures the drug's effect in practice, not under ideal conditions. More common in respiratory than IBD. Can appear to inflate remission rates if patients received rescue.</div>
+        </div>
+        <div class="estimand-strategy es-hypothetical">
+          <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
+          <div class="es-def"><strong>Ideal efficacy if the intercurrent event hadn't occurred.</strong> Estimates what remission would look like if no patient needed rescue or switched therapy. Useful for mechanism understanding and dose-finding. Rarely used as primary estimand in late-stage IBD; can produce higher, less clinically meaningful efficacy numbers.</div>
+        </div>
+        <div class="estimand-strategy es-while">
+          <div class="es-name"><span class="eb eb-while">While on Treatment</span></div>
+          <div class="es-def"><strong>Outcome measured only while patient stays on therapy.</strong> Excludes post-discontinuation outcomes. Underestimates real-world effectiveness for chronic diseases with high discontinuation; rarely used as primary in IBD.</div>
+        </div>
+      </div>
+      <div class="estimand-warning">
+        <strong>⚠️ BD read-through for IBD:</strong> When comparing TL1A remission rates across tulisokibart (Merck), duvakitug (Teva/Sanofi), and afimkibart (Roche), verify that all three are using a <strong>composite estimand</strong> with the same intercurrent event definition. A composite-based 35% remission rate is not comparable to a treatment-policy-based 45% remission rate — the second number is answering a different, easier question. This is critical when using monotherapy context data to inform bispecific design assumptions. Future TL1A × IL-23p19 Phase 2 trials should pre-specify composite estimands to align with the emerging IBD standard.
+      </div>
+    </div>
+  </div>
+
   <div class="sec-hd"><span class="sec-title">Global TL1A × IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">6 Programs · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-pipe"></div></div>
 
-  <div class="sec-hd"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span></div>
+  <div class="sec-hd"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-mono"></div></div>
 
   <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">4 Chinese Programs</span></div>
@@ -228,10 +313,11 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
       <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
       <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Novamab and Episcience should prioritize partnering timelines now; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
       <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago — this is a strong talking point when discussing deal structure with Chinese biotech clients considering out-licensing.</li>
+      <li><strong>Estimand alignment is a hidden risk in Phase 2 design for bispecifics.</strong> The three lead TL1A monotherapy programs in Phase 3 (tulisokibart, duvakitug, afimkibart) all use composite estimands — rescue steroid use or discontinuation counts as treatment failure. When TL1A×IL-23p19 bispecifics move into Phase 2, sponsors who use a different estimand strategy (e.g. treatment policy) will report higher remission rates that cannot be compared to the Phase 3 monoAb benchmarks. Partners and regulators will scrutinize this. Chinese companies designing their Phase 2 protocols should default to composite estimands to maintain comparability with the established TL1A clinical evidence base.</li>
     </ul>
   </div>
 
-  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases (Simcere HK filing, Qyuns HK exchange filing), ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2). Data as of May 2026.</div>
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases (Simcere HK filing, Qyuns HK exchange filing), ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
@@ -284,10 +370,52 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     </div>
   </div>
 
+  <!-- ESTIMAND GUIDE: Respiratory -->
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-tslp')">
+      <div class="estimand-hd-left">
+        <div>
+          <div class="estimand-hd-title">⚖️ Estimand Intelligence — Why Exacerbation Rates Are Not Always Comparable</div>
+          <div class="estimand-hd-sub">ICH E9(R1) · Critical context for interpreting TSLP and IL-33 respiratory trial data</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="estimand-hd-badge">Essential BD Context</span>
+        <span class="estimand-toggle" id="toggle-est-tslp">▼</span>
+      </div>
+    </div>
+    <div class="estimand-body" id="est-tslp">
+      <div class="estimand-intro">
+        Respiratory trials for TSLP and IL-33 inhibitors predominantly use a <strong>treatment policy estimand</strong> — they count exacerbations regardless of whether patients changed ICS doses, used rescue OCS, or discontinued the study drug. This is why tezepelumab (NAVIGATOR) could demonstrate efficacy across all asthma endotypes even in patients who adjusted background therapy. However, different trials handle <strong>OCS reduction, COPD exacerbation definitions, and hospitalization severity thresholds</strong> differently — making cross-trial comparisons treacherous without understanding the exact estimand.
+      </div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-policy">
+          <div class="es-name"><span class="eb eb-policy">Treatment Policy</span></div>
+          <div class="es-def"><strong>Standard for exacerbation endpoints in asthma/COPD.</strong> Counts all exacerbations regardless of background therapy changes or rescue med use. Pragmatic — reflects real-world use. Most approved TSLP/IL-33 assets use this for primary endpoint. Tezepelumab (NAVIGATOR), itepekimab (QUEST), tozorakimab (RESCUE-COPD), astegolimab all use treatment policy as primary.</div>
+        </div>
+        <div class="estimand-strategy es-composite">
+          <div class="es-name"><span class="eb eb-composite">Composite</span></div>
+          <div class="es-def"><strong>Used for OCS reduction and steroid-sparing endpoints.</strong> If a patient escalates OCS (intercurrent event), it's incorporated into the composite outcome as treatment failure. Common for atopic dermatitis and severe asthma OCS tapering trials. TSLP×IL-33 bispecifics targeting COPD may encounter composite estimands when exacerbation-triggered hospitalization is incorporated into the primary outcome.</div>
+        </div>
+        <div class="estimand-strategy es-hypothetical">
+          <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
+          <div class="es-def"><strong>What would happen if background therapy hadn't changed?</strong> Rarely used as primary in respiratory. Sometimes used as secondary to understand the drug's mechanism independent of ICS/OCS adjustments. Useful for Phase 2 dose-finding in COPD. Can produce optimistic efficacy estimates not replicable in broader populations.</div>
+        </div>
+        <div class="estimand-strategy es-while">
+          <div class="es-name"><span class="eb eb-while">While on Treatment</span></div>
+          <div class="es-def"><strong>Annualized exacerbation rate while receiving study drug.</strong> Used in trials with planned treatment cessation or long wash-out periods. Underestimates benefit if exacerbation risk rebounds post-discontinuation — relevant for long-acting TSLP inhibitors like QX031N, whose extended PK profile may require specific estimand consideration.</div>
+        </div>
+      </div>
+      <div class="estimand-warning">
+        <strong>⚠️ BD read-through for Respiratory:</strong> Tezepelumab's landmark "works across all endotypes" story is only valid under its <strong>treatment policy estimand</strong> — patients whose ICS doses changed mid-trial were still counted, making the result more pragmatic. If a TSLP×IL-33 bispecific uses a hypothetical estimand that excludes patients who escalated ICS, it may report better-looking efficacy numbers that aren't comparable to NAVIGATOR data. Additionally, COPD exacerbation definitions vary significantly (Type 1: antibiotics only; Type 2: OCS; Type 3: hospitalization) — trials using different severity thresholds are not cross-comparable even if both use treatment policy estimands. Chinese companies designing TSLP bispecific Phase 2 protocols for COPD should align their exacerbation definition and estimand with the tezepelumab NAVIGATOR standard to maximize regulatory and partner credibility.
+      </div>
+    </div>
+  </div>
+
   <div class="sec-hd"><span class="sec-title">TSLP × IL-33 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">3 Known Programs · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-pipe"></div></div>
 
-  <div class="sec-hd"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span></div>
+  <div class="sec-hd"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-mono"></div></div>
 
   <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">5+ Chinese Programs</span></div>
@@ -343,10 +471,11 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
       <li><strong>Qyuns has built the definitive Chinese TSLP playbook — and it's transferable.</strong> Three deals across TSLP×IL-33 (Roche), TSLP×IL-13 (Windward), and TL1A×IL-23p19 (Caldera), all retaining China rights. For Chinese biotech clients asking how to approach global partnership strategy, Qyuns is the reference case: build differentiated bispecifics, license global rights early at preclinical stage, retain China, use milestone payments to fund domestic development.</li>
       <li><strong>Roche and Windward Bio are the most active TSLP buyers — and their pipelines are now filling up.</strong> Roche has astegolimab (anti-ST2) + QX031N (TSLP×IL-33). Windward has HBM9378 (anti-TSLP mono) + QX027N (TSLP×IL-13). This means other TSLP bispecific assets may need to find different strategic homes — Pfizer, Lilly, AstraZeneca (which already has tezepelumab), and Sanofi are the most likely next acquirers.</li>
       <li><strong>COPD is the deal-driver, not asthma.</strong> Asthma is well-served by tezepelumab and dupilumab. COPD remains a massive unmet need with no approved biologic targeting TSLP specifically — Qyuns/Roche and Harbour+Kelun/Windward are both explicitly targeting COPD. When pitching TSLP-related assets to clients, the COPD angle drives deal rationale and justifies Phase 3 investment scale.</li>
+      <li><strong>Tezepelumab's "all-endotype" story is estimand-dependent — and it's a BD talking point.</strong> NAVIGATOR used a treatment policy estimand that counted exacerbations even when patients changed background ICS therapy. This pragmatic design is the reason the "works regardless of baseline eosinophils" label held up post-approval. Chinese companies designing TSLP bispecific trials should replicate this estimand choice if they want a similarly broad label. A hypothetical or while-on-treatment estimand might inflate Phase 2 numbers but would undermine the path to a broad approval claim — and sophisticated partners will notice the difference.</li>
     </ul>
   </div>
 
-  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review). Data as of May 2026.</div>
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review), NEJM (tezepelumab NAVIGATOR), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
 </div><!-- /content -->
@@ -354,40 +483,40 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 <script>
 // ── DATA ─────────────────────────────────────────────────────────
 const TL1A_PIPE = [
-  ["Simcere (CN)","SIM0709","IgG bispecific","Preclinical","UC, CD","Boehringer Ingelheim","€42M","€1.05B"],
-  ["Qyuns (CN)","CLD-423 (QX030N)","IgG bispecific","Phase 1","UC, CD","Caldera Therapeutics","$10M + ~25% equity","$545M"],
-  ["Earendil Labs (US)","HXN-1003","AI-designed bispecific","Preclinical","IBD + Skin","Sanofi","$125M","$1.845B"],
-  ["Xencor (US)","XmAb® (TL1A×IL-23p19)","XmAb bispecific","Lead sel. → Ph1 2026","UC, CD","Independent","—","—"],
-  ["Novamab (CN)","LQ080","Ext. half-life VHH","Preclinical","UC, CD","Seeking partner","—","—"],
-  ["Episcience (CN)","ES302","Bispecific","Preclinical","IBD","Seeking partner","—","—"],
+  ["Simcere (CN)","SIM0709","IgG bispecific","Preclinical","UC, CD","Boehringer Ingelheim","€42M","€1.05B","Design TBD"],
+  ["Qyuns (CN)","CLD-423 (QX030N)","IgG bispecific","Phase 1","UC, CD","Caldera Therapeutics","$10M + ~25% equity","$545M","Ph1 Safety Only"],
+  ["Earendil Labs (US)","HXN-1003","AI-designed bispecific","Preclinical","IBD + Skin","Sanofi","$125M","$1.845B","Design TBD"],
+  ["Xencor (US)","XmAb® (TL1A×IL-23p19)","XmAb bispecific","Lead sel. → Ph1 2026","UC, CD","Independent","—","—","Design TBD"],
+  ["Novamab (CN)","LQ080","Ext. half-life VHH","Preclinical","UC, CD","Seeking partner","—","—","Design TBD"],
+  ["Episcience (CN)","ES302","Bispecific","Preclinical","IBD","Seeking partner","—","—","Design TBD"],
 ];
 const TL1A_MONO = [
-  ["Merck","Tulisokibart (MK-7240)","Phase 3","UC, CD","Licensed from Prometheus/Nestlé; ATLAS-UC + ARES-CD ongoing"],
-  ["Teva / Sanofi","Duvakitug (TEV-48574)","Phase 2b → Phase 3","UC, CD","Ph2b RELIEVE UCCD: ~48% UC remission; Ph3 planned H2 2025"],
-  ["Roche","Afimkibart (RG6631)","Phase 3 (UC), Ph2 (CD)","UC, CD","Acquired via Telavant JV ~$7.1B"],
-  ["Xencor","XmAb942","Phase 1 → Ph2 planning","UC, CD","Ph1 positive HV data Apr 2025; extended half-life"],
-  ["Absci","ABS-101","Phase 1","IBD","AI-designed; first subjects May 2025"],
-  ["Spyre","SPY002","Phase 1 → Ph2 planning","UC","Ph1 positive interim Jun 2025; SC extended half-life"],
-  ["Vial","Anti-TL1A (HLE)","Phase 1","IBD","Ph1 interim expected H2 2025"],
-  ["AbbVie / FutureGen","FG-M701","Preclinical","IBD","Licensed by AbbVie 2024"],
+  ["Merck","Tulisokibart (MK-7240)","Phase 3","UC, CD","Composite","Rescue steroid use or discontinuation = non-responder. ATLAS-UC + ARES-CD ongoing. Sets composite estimand standard for TL1A in IBD."],
+  ["Teva / Sanofi","Duvakitug (TEV-48574)","Phase 2b → Phase 3","UC, CD","Composite","RELIEVE UCCD Ph2b: ~48% UC remission under composite estimand (no rescue, no DC). Ph3 planned H2 2025. Rate not comparable to treatment-policy designs."],
+  ["Roche","Afimkibart (RG6631)","Phase 3 (UC), Ph2 (CD)","UC, CD","Composite","Acquired via Telavant JV ~$7.1B. Ph3 UC follows IBD composite standard. Composite results will benchmark bispecific Phase 2 designs."],
+  ["Xencor","XmAb942","Phase 1 → Ph2 planning","UC, CD","Ph1 Safety Only","Ph1 positive HV data Apr 2025; extended half-life. Estimand not yet defined for planned Ph2 efficacy study."],
+  ["Absci","ABS-101","Phase 1","IBD","Ph1 Safety Only","AI-designed; first subjects May 2025. Phase 1 safety/PK only; no efficacy estimand defined yet."],
+  ["Spyre","SPY002","Phase 1 → Ph2 planning","UC","Ph1 Safety Only","Ph1 positive interim Jun 2025; SC extended half-life. Ph2 design with estimand TBD."],
+  ["Vial","Anti-TL1A (HLE)","Phase 1","IBD","Ph1 Safety Only","Ph1 interim expected H2 2025. Long-acting design. Estimand for efficacy studies TBD."],
+  ["AbbVie / FutureGen","FG-M701","Preclinical","IBD","Design TBD","Licensed by AbbVie 2024. Preclinical stage — estimand defined at IND/Phase 2 protocol submission."],
 ];
 const TSLP_PIPE = [
-  ["Qyuns (CN)","QX031N","Long-acting bispecific","Preclinical → Ph1","COPD, Asthma","Roche","$75M","$1.07B"],
-  ["Odyssey Therapeutics (US)","Undisclosed TSLP×IL-33","Bispecific","Preclinical","Asthma, COPD","Independent","—","—"],
-  ["Sinomab Bioscience (CN)","Undisclosed alarmin bsAb","Alarmin bispecific","Patent stage","Asthma, AD","Seeking","—","—"],
+  ["Qyuns (CN)","QX031N","Long-acting bispecific","Preclinical → Ph1","COPD, Asthma","Roche","$75M","$1.07B","Ph1 Safety Only"],
+  ["Odyssey Therapeutics (US)","Undisclosed TSLP×IL-33","Bispecific","Preclinical","Asthma, COPD","Independent","—","—","Design TBD"],
+  ["Sinomab Bioscience (CN)","Undisclosed alarmin bsAb","Alarmin bispecific","Patent stage","Asthma, AD","Seeking","—","—","Design TBD"],
 ];
 const TSLP_MONO = [
-  ["AstraZeneca / Amgen","Tezepelumab (Tezspire)","Approved","Severe Asthma","First approved anti-TSLP; all asthma endotypes"],
-  ["Regeneron / Sanofi","Itepekimab","Approved (asthma); Ph3 COPD","Asthma, COPD","Anti-IL-33; positive Phase 3 COPD data"],
-  ["AstraZeneca","Tozorakimab","Phase 3","COPD, HF","Anti-IL-33; positive RESCUE-COPD exacerbation data"],
-  ["Roche / Genentech","Astegolimab","Phase 3","Asthma, COPD","Anti-ST2/IL-33R; complements QX031N strategy"],
-  ["Biosion / Aclaris","Bosakitug","Phase 1","Asthma, AD, COPD","Long-acting anti-TSLP; BSI-502 (TSLP×IL-4R) also Ph1"],
-  ["Innovent","IBI-3002","Phase 1","Asthma, AD","IL-4Rα × TSLP bispecific; potential out-licensing"],
-  ["Hengrui","HB0056","Phase 1","Asthma, AD, COPD, IPF","TSLP × IL-11; unique fibrotic indication angle"],
-  ["Harbour BioMed + Kelun","HBM9378/SKB378","Phase 2","Asthma, COPD","Anti-TSLP; licensed to Windward $970M; Ph2 asthma"],
+  ["AstraZeneca / Amgen","Tezepelumab (Tezspire)","Approved","Severe Asthma","Treatment Policy","NAVIGATOR (NEJM 2021): treatment policy estimand counted exacerbations regardless of ICS changes. This design WHY it works across all endotypes. The estimand choice is inseparable from the broad label."],
+  ["Regeneron / Sanofi","Itepekimab","Approved (asthma); Ph3 COPD","Asthma, COPD","Treatment Policy","QUEST/LIBERTY asthma trials used treatment policy for annualized exacerbation rate. Ph3 COPD (AERIFY) uses treatment policy. Positive Phase 3 COPD data in ex-smokers."],
+  ["AstraZeneca","Tozorakimab","Phase 3","COPD, HF","Treatment Policy","RESCUE-COPD used treatment policy for exacerbation reduction. Positive data; HF indication adds cardiovascular angle to IL-33 franchise."],
+  ["Roche / Genentech","Astegolimab","Phase 3","Asthma, COPD","Treatment Policy","Anti-ST2/IL-33R; Phase 3 asthma and COPD using treatment policy. Complements QX031N strategic rationale — Roche acquiring dual TSLP+IL-33 pathway blockade."],
+  ["Biosion / Aclaris","Bosakitug","Phase 1","Asthma, AD, COPD","Ph1 Safety Only","Long-acting anti-TSLP; Ph1 safety/PK ongoing. BSI-502 (TSLP×IL-4R) also in Ph1. Expected to follow tezepelumab treatment policy standard for efficacy studies."],
+  ["Innovent","IBI-3002","Phase 1","Asthma, AD","Ph1 Safety Only","IL-4Rα × TSLP bispecific; Phase 1. No efficacy estimand defined yet. Potential out-licensing of global rights."],
+  ["Hengrui","HB0056","Phase 1","Asthma, AD, COPD, IPF","Ph1 Safety Only","TSLP × IL-11; IL-11 angle unique for fibrotic indications. IPF indication may require composite or hypothetical estimand given high dropout rates in fibrotic disease."],
+  ["Harbour BioMed + Kelun","HBM9378/SKB378","Phase 2","Asthma, COPD","Treatment Policy (TBD)","Anti-TSLP monoAb in Phase 2; licensed to Windward $970M. Phase 2 asthma exacerbation endpoint expected to use treatment policy. COPD Ph2 design pending."],
 ];
 
-// ── GRID.JS ───────────────────────────────────────────────────────
+// ── FORMATTERS ────────────────────────────────────────────────────
 function sf(cell) {
   const s = String(cell);
   let c = 'sb-pre';
@@ -397,11 +526,23 @@ function sf(cell) {
   else if (s.includes('Phase 1')||s.includes('Ph1')||s.includes('1a')) c = 'sb-ph1';
   return gridjs.html(`<span class="sb ${c}">${s}</span>`);
 }
+function ef(cell) {
+  const s = String(cell);
+  let c = 'eb-tbd-pre';
+  if (s === 'Composite')             c = 'eb-composite';
+  else if (s.startsWith('Treatment Policy')) c = 'eb-policy';
+  else if (s === 'Hypothetical')     c = 'eb-hypothetical';
+  else if (s === 'While on Treatment') c = 'eb-while';
+  else if (s === 'Ph1 Safety Only')  c = 'eb-tbd-ph1';
+  return gridjs.html(`<span class="eb ${c}">${s}</span>`);
+}
+
+// ── GRIDS ─────────────────────────────────────────────────────────
 function initGrids() {
-  new gridjs.Grid({ columns:[{name:'Company',width:'130px'},{name:'Asset',width:'140px'},{name:'Format',width:'140px'},{name:'Stage',width:'150px',formatter:sf},{name:'Indication',width:'80px'},{name:'Licensee / Partner',width:'160px'},{name:'Upfront',width:'120px'},{name:'Total Value',width:'100px'}], data:TL1A_PIPE, sort:true, search:true }).render(document.getElementById('grid-tl1a-pipe'));
-  new gridjs.Grid({ columns:[{name:'Company',width:'130px'},{name:'Asset',width:'165px'},{name:'Stage',width:'175px',formatter:sf},{name:'Indication',width:'80px'},{name:'Notes',width:'350px'}], data:TL1A_MONO, sort:true, search:true }).render(document.getElementById('grid-tl1a-mono'));
-  new gridjs.Grid({ columns:[{name:'Company',width:'160px'},{name:'Asset',width:'130px'},{name:'Format',width:'150px'},{name:'Stage',width:'150px',formatter:sf},{name:'Indication',width:'120px'},{name:'Licensee / Partner',width:'160px'},{name:'Upfront',width:'90px'},{name:'Total Value',width:'100px'}], data:TSLP_PIPE, sort:true, search:true }).render(document.getElementById('grid-tslp-pipe'));
-  new gridjs.Grid({ columns:[{name:'Company',width:'165px'},{name:'Asset',width:'155px'},{name:'Stage',width:'185px',formatter:sf},{name:'Indication',width:'140px'},{name:'Notes',width:'300px'}], data:TSLP_MONO, sort:true, search:true }).render(document.getElementById('grid-tslp-mono'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'120px'},{name:'Asset',width:'135px'},{name:'Format',width:'130px'},{name:'Stage',width:'145px',formatter:sf},{name:'Indication',width:'70px'},{name:'Licensee / Partner',width:'150px'},{name:'Upfront',width:'110px'},{name:'Total Value',width:'90px'},{name:'Estimand',width:'130px',formatter:ef}], data:TL1A_PIPE, sort:true, search:true }).render(document.getElementById('grid-tl1a-pipe'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'125px'},{name:'Asset',width:'155px'},{name:'Stage',width:'165px',formatter:sf},{name:'Indication',width:'70px'},{name:'Estimand',width:'145px',formatter:ef},{name:'Notes',width:'340px'}], data:TL1A_MONO, sort:true, search:true }).render(document.getElementById('grid-tl1a-mono'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'150px'},{name:'Asset',width:'120px'},{name:'Format',width:'140px'},{name:'Stage',width:'140px',formatter:sf},{name:'Indication',width:'110px'},{name:'Licensee / Partner',width:'150px'},{name:'Upfront',width:'85px'},{name:'Total Value',width:'90px'},{name:'Estimand',width:'130px',formatter:ef}], data:TSLP_PIPE, sort:true, search:true }).render(document.getElementById('grid-tslp-pipe'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'155px'},{name:'Asset',width:'150px'},{name:'Stage',width:'175px',formatter:sf},{name:'Indication',width:'130px'},{name:'Estimand',width:'155px',formatter:ef},{name:'Notes',width:'290px'}], data:TSLP_MONO, sort:true, search:true }).render(document.getElementById('grid-tslp-mono'));
 }
 
 // ── CHARTS ────────────────────────────────────────────────────────
@@ -416,6 +557,14 @@ function initCharts() {
     data:{ labels:['Biosion→Aclaris\n(Nov 2024)','Harbour+Kelun\n→Windward','Qyuns→Windward\n(TSLP×IL-13)','Qyuns→Roche\n(TSLP×IL-33)'], datasets:[{ label:'Total potential (USD)', data:[900,970,700,1070], backgroundColor:['#5a9fd4','#5a9fd4','#2e6fb0','#c45b11'], borderRadius:5, borderSkipped:false }] },
     options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw}M total potential` } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}M`, font:{size:10} }, grid:{color:'#eef1f5'} }, x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
   });
+}
+
+// ── ESTIMAND TOGGLE ───────────────────────────────────────────────
+function toggleEstimand(id) {
+  const body = document.getElementById(id);
+  const toggle = document.getElementById('toggle-' + id);
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
 }
 
 // ── TABS ─────────────────────────────────────────────────────────
