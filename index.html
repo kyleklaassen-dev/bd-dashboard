@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BD Intelligence Dashboard · Bispecific Monitor</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #eef2f7; color: #1a2e4a; font-size: 13px; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #1a2f50 0%, #2e6fb0 100%); color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.header-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+.header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+.header-meta { font-size: 11px; opacity: 0.65; text-align: right; }
+.header-meta strong { opacity: 1; font-weight: 700; }
+
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 24px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; }
+.tab-btn { padding: 13px 20px; cursor: pointer; font-size: 13px; font-weight: 600; color: #6b7c93; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
+.tab-btn:hover { color: #2e6fb0; }
+.tab-btn.active { color: #1a2f50; border-bottom-color: #2e6fb0; }
+.tab-btn .ct { display: inline-block; background: #e8f0f8; color: #2e6fb0; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 10px; margin-left: 5px; }
+.tab-btn.active .ct { background: #2e6fb0; color: white; }
+
+.content { padding: 18px 24px 30px; max-width: 1400px; margin: 0 auto; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.stat-card { background: white; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2e6fb0; }
+.stat-card.g { border-left-color: #2a7a47; }
+.stat-card.o { border-left-color: #c45b11; }
+.stat-card.p { border-left-color: #7030a0; }
+.s-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 5px; }
+.s-val { font-size: 28px; font-weight: 900; color: #1a2f50; line-height: 1; }
+.s-sub { font-size: 11px; color: #8a9bb0; margin-top: 3px; }
+
+.two-col { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 14px; margin-bottom: 18px; }
+.card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+.card-hd { background: #1a2f50; color: white; padding: 9px 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: space-between; }
+.card-hd .tag { font-size: 10px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 10px; }
+
+.dl-grid { display: grid; grid-template-columns: 130px 1fr; }
+.dl-lbl { padding: 7px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #5a7a9e; background: #f5f8fc; border-bottom: 1px solid #e8eef5; }
+.dl-val { padding: 7px 10px; font-size: 12px; color: #1a2e4a; border-bottom: 1px solid #e8eef5; border-left: 1px solid #e8eef5; }
+.dl-val.hi { color: #c45b11; font-weight: 800; font-size: 15px; }
+.dl-note { padding: 10px 12px; background: #fffdf7; border-top: 2px solid #f5c842; font-size: 11px; color: #5a4020; line-height: 1.6; }
+
+.sec-hd { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+.sec-title { font-size: 11px; font-weight: 800; color: #1a2f50; text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.sec-line { flex: 1; height: 1px; background: #d8e0ea; }
+.sec-tag { font-size: 10px; background: #e8f0f8; color: #2e6fb0; padding: 2px 8px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
+.sec-tag.g { background: #d4edda; color: #155724; }
+.sec-tag.o { background: #fff3cd; color: #856404; }
+
+.gridjs-container { border: none !important; box-shadow: none !important; }
+.gridjs-wrapper { border: none !important; border-radius: 0 0 8px 8px !important; overflow: hidden; }
+.gridjs-table { font-size: 12px !important; }
+.gridjs-th { background: #2a3f62 !important; color: white !important; font-size: 10px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.4px !important; padding: 9px 10px !important; border: none !important; }
+.gridjs-th-content { color: white !important; }
+.gridjs-th-sort:focus, .gridjs-th-sort:hover { background: #1a2f50 !important; }
+button.gridjs-sort { color: white !important; }
+button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255,255,0.5) !important; }
+.gridjs-td { font-size: 11px !important; padding: 8px 10px !important; color: #1a2e4a !important; border-bottom: 1px solid #eef1f5 !important; border-left: none !important; border-right: none !important; }
+.gridjs-tr:nth-child(even) td { background: #f8fafc !important; }
+.gridjs-tr:hover td { background: #ebf2fb !important; }
+.gridjs-search { padding: 8px 10px !important; }
+.gridjs-search-input { border: 1px solid #dde3ea !important; border-radius: 5px !important; font-size: 11px !important; padding: 5px 9px !important; width: 200px !important; }
+.gridjs-footer { border: none !important; background: #f5f7fa !important; }
+
+.china-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 2px; }
+.china-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-top: 3px solid #2e6fb0; padding: 12px 14px; }
+.china-card.licensed { border-top-color: #2a7a47; }
+.china-card.seeking { border-top-color: #e8a020; }
+.china-card.ph1 { border-top-color: #7030a0; }
+.cc-name { font-size: 14px; font-weight: 800; color: #1a2f50; }
+.cc-asset { font-size: 11px; color: #5a7a9e; margin: 2px 0 6px; font-weight: 600; }
+.cc-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 7px; }
+.bg-licensed { background: #d4edda; color: #155724; }
+.bg-seeking { background: #fff3cd; color: #7a5a00; }
+.bg-ph1 { background: #e2d9f3; color: #432874; }
+.bg-pre { background: #f0e8ff; color: #5a2890; }
+.cc-detail { font-size: 11px; color: #5a7a9e; line-height: 1.55; }
+.cc-deal { font-size: 11px; color: #c45b11; font-weight: 700; margin-top: 5px; }
+
+.insight-box { background: linear-gradient(135deg, #f0f5fb 0%, #e5eef8 100%); border-left: 4px solid #2e6fb0; border-radius: 0 8px 8px 0; padding: 16px 18px; font-size: 12px; color: #2a3f5a; line-height: 1.8; }
+.insight-box ul { list-style: none; padding: 0; }
+.insight-box li { padding: 5px 0 5px 18px; position: relative; border-bottom: 1px solid rgba(46,111,176,0.1); }
+.insight-box li:last-child { border-bottom: none; }
+.insight-box li::before { content: '›'; position: absolute; left: 0; color: #2e6fb0; font-weight: 800; font-size: 14px; line-height: 1.4; }
+.insight-box li strong { color: #1a2f50; }
+.insight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 8px; }
+
+.chart-wrap { padding: 12px 14px; }
+.chart-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #8a9bb0; margin-bottom: 8px; }
+
+.sb { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.sb-approved { background: #1a2f50; color: white; }
+.sb-ph3 { background: #d1f5e0; color: #0d5a30; }
+.sb-ph2 { background: #cce5ff; color: #003f7f; }
+.sb-ph1 { background: #ede2f7; color: #432874; }
+.sb-pre { background: #fde8d8; color: #7a2e00; }
+
+.footnote { font-size: 10px; color: #9aabb8; padding: 12px 0 0; border-top: 1px solid #e0e8f0; margin-top: 16px; line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .china-grid { grid-template-columns: 1fr; }
+}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">⬡ BD Intelligence Dashboard</div>
+    <div class="header-sub">Bispecific Antibody Deal Monitor · IBD &amp; Respiratory</div>
+  </div>
+  <div class="header-meta">
+    <strong>Data current as of May 2026</strong><br>
+    For internal BD use
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('tl1a',this)">TL1A × IL-23p19 <span class="ct">IBD</span></button>
+  <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP × IL-33 <span class="ct">Respiratory</span></button>
+</div>
+
+<div class="content">
+
+<!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
+<div class="tab-pane active" id="tab-tl1a">
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="s-label">Deals Closed</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Since Apr 2025</div>
+    </div>
+    <div class="stat-card o">
+      <div class="s-label">Total Deal Value</div>
+      <div class="s-val">~$3.4B</div>
+      <div class="s-sub">Combined potential (USD equiv.)</div>
+    </div>
+    <div class="stat-card g">
+      <div class="s-label">Bispecific Programs</div>
+      <div class="s-val">6</div>
+      <div class="s-sub">Global TL1A × IL-23p19</div>
+    </div>
+    <div class="stat-card p">
+      <div class="s-label">Chinese Programs</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Simcere · Qyuns · Novamab</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-hd">🔍 Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span></div>
+      <div class="dl-grid">
+        <div class="dl-lbl">Deal</div>       <div class="dl-val" style="font-weight:700">Simcere → Boehringer Ingelheim</div>
+        <div class="dl-lbl">Asset</div>      <div class="dl-val">SIM0709 (TL1A/IL-23p19 bispecific IgG)</div>
+        <div class="dl-lbl">Stage</div>      <div class="dl-val">Preclinical (IND-enabling)</div>
+        <div class="dl-lbl">Territory</div>  <div class="dl-val">Global excluding Greater China</div>
+        <div class="dl-lbl">Upfront</div>    <div class="dl-val hi">€42M (~$46M)</div>
+        <div class="dl-lbl">Total</div>      <div class="dl-val hi">€1.058B (~$1.16B)</div>
+        <div class="dl-lbl">Royalties</div>  <div class="dl-val">Tiered on ex-Greater China net sales</div>
+        <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700">✓ Retained by Simcere</div>
+      </div>
+      <div class="dl-note">💡 <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal — signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1A×IL-23p19 out-licensing at €42M upfront.</div>
+    </div>
+    <div class="card">
+      <div class="card-hd">📊 Deal Value Comparison (Total Potential)</div>
+      <div class="chart-wrap">
+        <div class="chart-title">USD equivalent · TL1A × IL-23p19 bispecific deals</div>
+        <canvas id="chartTL1A" style="max-height:195px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">Global TL1A × IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">6 Programs · Sortable</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tl1a-pipe"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tl1a-mono"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">4 Chinese Programs</span></div>
+  <div class="china-grid">
+    <div class="china-card licensed">
+      <div class="cc-name">Simcere Pharmaceutical</div>
+      <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
+      <span class="cc-badge bg-licensed">Out-licensed</span>
+      <div class="cc-detail">Retains all Greater China commercialization rights. 5th out-licensing deal, cumulative potential ~$4.6B. Demonstrated superior synergy over mono combo in preclinical IBD models.</div>
+      <div class="cc-deal">🤝 Boehringer Ingelheim — €42M upfront · €1.05B total</div>
+    </div>
+    <div class="china-card licensed">
+      <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
+      <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
+      <span class="cc-badge bg-ph1">Phase 1</span>
+      <div class="cc-detail">First subjects dosed Jan 2026. Retains China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
+      <div class="cc-deal">🤝 Caldera Therapeutics — $10M + ~25% equity · up to $545M</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Novamab Biopharmaceuticals</div>
+      <div class="cc-asset">LQ080 · Extended half-life VHH (nanobody) bispecific</div>
+      <span class="cc-badge bg-seeking">Seeking Partner</span>
+      <div class="cc-detail">Presented at DDW 2025. Extended half-life in NHP enables less-frequent dosing. Also developing an oral TL1A VHH — differentiated for mild-to-moderate IBD. Unique nanobody format vs. IgG competitors.</div>
+      <div class="cc-deal">📋 Partnering window open</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Episcience</div>
+      <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
+      <span class="cc-badge bg-pre">Preclinical</span>
+      <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's strong bispecific antibody engineering depth.</div>
+      <div class="cc-deal">📋 Partnering window open</div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
+  <div class="insight-box">
+    <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
+    <ul>
+      <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
+      <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Novamab and Episcience should prioritize partnering timelines now; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
+      <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago — this is a strong talking point when discussing deal structure with Chinese biotech clients considering out-licensing.</li>
+    </ul>
+  </div>
+
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases (Simcere HK filing, Qyuns HK exchange filing), ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2). Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
+<div class="tab-pane" id="tab-tslp">
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="s-label">Deals Closed</div>
+      <div class="s-val">4</div>
+      <div class="s-sub">TSLP-related, 2024–2025</div>
+    </div>
+    <div class="stat-card o">
+      <div class="s-label">Total Deal Value</div>
+      <div class="s-val">~$3.6B</div>
+      <div class="s-sub">Broad TSLP deal pool</div>
+    </div>
+    <div class="stat-card g">
+      <div class="s-label">TSLP × IL-33 Programs</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Known bispecific programs</div>
+    </div>
+    <div class="stat-card p">
+      <div class="s-label">Chinese Programs</div>
+      <div class="s-val">5+</div>
+      <div class="s-sub">Qyuns · Biosion · Innovent · Hengrui</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-hd">🔍 Deal Spotlight: TSLP × IL-33 Anchor Deal <span class="tag">Oct 2025</span></div>
+      <div class="dl-grid">
+        <div class="dl-lbl">Deal</div>        <div class="dl-val" style="font-weight:700">Qyuns Therapeutics → Roche</div>
+        <div class="dl-lbl">Asset</div>       <div class="dl-val">QX031N (TSLP × IL-33 long-acting bispecific)</div>
+        <div class="dl-lbl">Stage</div>       <div class="dl-val">Preclinical at signing</div>
+        <div class="dl-lbl">Territory</div>   <div class="dl-val">Global (dev, registration, manufacturing, commercial)</div>
+        <div class="dl-lbl">Upfront</div>     <div class="dl-val hi">$75M</div>
+        <div class="dl-lbl">Total</div>       <div class="dl-val hi">Up to $1.07B</div>
+        <div class="dl-lbl">Royalties</div>   <div class="dl-val">Tiered on product sales</div>
+        <div class="dl-lbl">Indications</div> <div class="dl-val">COPD, Asthma ("best-in-disease" goal)</div>
+      </div>
+      <div class="dl-note">💡 <strong>Strategic read:</strong> Roche already holds astegolimab (anti-ST2/IL-33R) and astegolimab Phase 3 data. QX031N adds dual TSLP+IL-33 upstream blockade to Roche's IL-33 franchise — a hedge across the pathway. Qyuns has now completed 3 major out-licensing deals across different bispecific targets, establishing itself as China's most prolific bispecific out-licensor.</div>
+    </div>
+    <div class="card">
+      <div class="card-hd">📊 TSLP Deal Landscape (Total Potential)</div>
+      <div class="chart-wrap">
+        <div class="chart-title">USD · TSLP-related deals (bispecific + monotherapy)</div>
+        <canvas id="chartTSLP" style="max-height:195px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">TSLP × IL-33 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">3 Known Programs · Sortable</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-pipe"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-mono"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">5+ Chinese Programs</span></div>
+  <div class="china-grid">
+    <div class="china-card licensed">
+      <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
+      <div class="cc-asset">QX031N · TSLP × IL-33 &nbsp;|&nbsp; QX027N · TSLP × IL-13</div>
+      <span class="cc-badge bg-licensed">Serial Out-Licensor</span>
+      <div class="cc-detail">China's most prolific bispecific out-licensor across 3 modalities. QX031N → Roche (Oct 2025). QX027N/WIN027 → Windward Bio (Dec 2025). Also QX030N (TL1A×IL-23p19) → Caldera. Retains China rights on all deals.</div>
+      <div class="cc-deal">🤝 Roche (QX031N): $75M upfront · $1.07B &nbsp;|&nbsp; Windward (QX027N): $700M total</div>
+    </div>
+    <div class="china-card licensed">
+      <div class="cc-name">Biosion Inc.</div>
+      <div class="cc-asset">Bosakitug · Long-acting anti-TSLP &nbsp;|&nbsp; BSI-502 · TSLP × IL-4Rα bispecific</div>
+      <span class="cc-badge bg-licensed">Out-licensed</span>
+      <div class="cc-detail">Bosakitug licensed to Aclaris Nov 2024. BSI-502 (TSLP×IL-4R bispecific) IND cleared — Phase 1 initiated. Broader TSLP franchise spanning mono and bispecific formats demonstrates platform depth.</div>
+      <div class="cc-deal">🤝 Aclaris Therapeutics — $40M upfront · up to $900M total</div>
+    </div>
+    <div class="china-card licensed">
+      <div class="cc-name">Harbour BioMed + Kelun Biotech</div>
+      <div class="cc-asset">HBM9378 / SKB378 · Anti-TSLP monoclonal antibody</div>
+      <span class="cc-badge bg-ph1">Phase 2</span>
+      <div class="cc-detail">Phase 2 asthma ongoing; COPD Phase 2 expected 2026. Licensed to Windward Bio (Novo Holdings-backed). Initial Phase 2 readout expected 2026 — could trigger milestone payments and validate China-origin TSLP monoAb quality.</div>
+      <div class="cc-deal">🤝 Windward Bio — $45M upfront · $970M total</div>
+    </div>
+    <div class="china-card ph1">
+      <div class="cc-name">Innovent Biologics (信达生物)</div>
+      <div class="cc-asset">IBI-3002 · IL-4Rα × TSLP bispecific antibody</div>
+      <span class="cc-badge bg-ph1">Phase 1</span>
+      <div class="cc-detail">Internally developed IL-4R×TSLP bispecific in Phase 1 for asthma and atopic dermatitis. Innovent's internal pipeline suggests they may prefer to develop this in-house in China, but global rights remain available.</div>
+      <div class="cc-deal">📋 Potential out-licensing candidate (global rights)</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Hengrui Medicine (恒瑞医药)</div>
+      <div class="cc-asset">HB0056 · TSLP × IL-11 bispecific antibody</div>
+      <span class="cc-badge bg-ph1">Phase 1</span>
+      <div class="cc-detail">Phase 1 for asthma, AD, COPD, and IPF. IL-11 co-targeting is differentiated — IL-11 drives pulmonary fibrosis, making HB0056 potentially the only TSLP bispecific with a fibrotic indication angle.</div>
+      <div class="cc-deal">📋 Potential out-licensing candidate</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Sinomab Bioscience</div>
+      <div class="cc-asset">Undisclosed · Alarmin-targeting bispecific</div>
+      <span class="cc-badge bg-pre">Patent Stage</span>
+      <div class="cc-detail">WO 2023 and CN 2024 patent filings for bispecific proteins targeting two alarmins from the TSLP/IL-33/IL-25 triad. Very early stage — one to watch as data develops.</div>
+      <div class="cc-deal">📋 Early watch list</div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
+  <div class="insight-box">
+    <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
+    <ul>
+      <li><strong>Qyuns has built the definitive Chinese TSLP playbook — and it's transferable.</strong> Three deals across TSLP×IL-33 (Roche), TSLP×IL-13 (Windward), and TL1A×IL-23p19 (Caldera), all retaining China rights. For Chinese biotech clients asking how to approach global partnership strategy, Qyuns is the reference case: build differentiated bispecifics, license global rights early at preclinical stage, retain China, use milestone payments to fund domestic development.</li>
+      <li><strong>Roche and Windward Bio are the most active TSLP buyers — and their pipelines are now filling up.</strong> Roche has astegolimab (anti-ST2) + QX031N (TSLP×IL-33). Windward has HBM9378 (anti-TSLP mono) + QX027N (TSLP×IL-13). This means other TSLP bispecific assets may need to find different strategic homes — Pfizer, Lilly, AstraZeneca (which already has tezepelumab), and Sanofi are the most likely next acquirers.</li>
+      <li><strong>COPD is the deal-driver, not asthma.</strong> Asthma is well-served by tezepelumab and dupilumab. COPD remains a massive unmet need with no approved biologic targeting TSLP specifically — Qyuns/Roche and Harbour+Kelun/Windward are both explicitly targeting COPD. When pitching TSLP-related assets to clients, the COPD angle drives deal rationale and justifies Phase 3 investment scale.</li>
+    </ul>
+  </div>
+
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review). Data as of May 2026.</div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const TL1A_PIPE = [
+  ["Simcere (CN)","SIM0709","IgG bispecific","Preclinical","UC, CD","Boehringer Ingelheim","€42M","€1.05B"],
+  ["Qyuns (CN)","CLD-423 (QX030N)","IgG bispecific","Phase 1","UC, CD","Caldera Therapeutics","$10M + ~25% equity","$545M"],
+  ["Earendil Labs (US)","HXN-1003","AI-designed bispecific","Preclinical","IBD + Skin","Sanofi","$125M","$1.845B"],
+  ["Xencor (US)","XmAb® (TL1A×IL-23p19)","XmAb bispecific","Lead sel. → Ph1 2026","UC, CD","Independent","—","—"],
+  ["Novamab (CN)","LQ080","Ext. half-life VHH","Preclinical","UC, CD","Seeking partner","—","—"],
+  ["Episcience (CN)","ES302","Bispecific","Preclinical","IBD","Seeking partner","—","—"],
+];
+const TL1A_MONO = [
+  ["Merck","Tulisokibart (MK-7240)","Phase 3","UC, CD","Licensed from Prometheus/Nestlé; ATLAS-UC + ARES-CD ongoing"],
+  ["Teva / Sanofi","Duvakitug (TEV-48574)","Phase 2b → Phase 3","UC, CD","Ph2b RELIEVE UCCD: ~48% UC remission; Ph3 planned H2 2025"],
+  ["Roche","Afimkibart (RG6631)","Phase 3 (UC), Ph2 (CD)","UC, CD","Acquired via Telavant JV ~$7.1B"],
+  ["Xencor","XmAb942","Phase 1 → Ph2 planning","UC, CD","Ph1 positive HV data Apr 2025; extended half-life"],
+  ["Absci","ABS-101","Phase 1","IBD","AI-designed; first subjects May 2025"],
+  ["Spyre","SPY002","Phase 1 → Ph2 planning","UC","Ph1 positive interim Jun 2025; SC extended half-life"],
+  ["Vial","Anti-TL1A (HLE)","Phase 1","IBD","Ph1 interim expected H2 2025"],
+  ["AbbVie / FutureGen","FG-M701","Preclinical","IBD","Licensed by AbbVie 2024"],
+];
+const TSLP_PIPE = [
+  ["Qyuns (CN)","QX031N","Long-acting bispecific","Preclinical → Ph1","COPD, Asthma","Roche","$75M","$1.07B"],
+  ["Odyssey Therapeutics (US)","Undisclosed TSLP×IL-33","Bispecific","Preclinical","Asthma, COPD","Independent","—","—"],
+  ["Sinomab Bioscience (CN)","Undisclosed alarmin bsAb","Alarmin bispecific","Patent stage","Asthma, AD","Seeking","—","—"],
+];
+const TSLP_MONO = [
+  ["AstraZeneca / Amgen","Tezepelumab (Tezspire)","Approved","Severe Asthma","First approved anti-TSLP; all asthma endotypes"],
+  ["Regeneron / Sanofi","Itepekimab","Approved (asthma); Ph3 COPD","Asthma, COPD","Anti-IL-33; positive Phase 3 COPD data"],
+  ["AstraZeneca","Tozorakimab","Phase 3","COPD, HF","Anti-IL-33; positive RESCUE-COPD exacerbation data"],
+  ["Roche / Genentech","Astegolimab","Phase 3","Asthma, COPD","Anti-ST2/IL-33R; complements QX031N strategy"],
+  ["Biosion / Aclaris","Bosakitug","Phase 1","Asthma, AD, COPD","Long-acting anti-TSLP; BSI-502 (TSLP×IL-4R) also Ph1"],
+  ["Innovent","IBI-3002","Phase 1","Asthma, AD","IL-4Rα × TSLP bispecific; potential out-licensing"],
+  ["Hengrui","HB0056","Phase 1","Asthma, AD, COPD, IPF","TSLP × IL-11; unique fibrotic indication angle"],
+  ["Harbour BioMed + Kelun","HBM9378/SKB378","Phase 2","Asthma, COPD","Anti-TSLP; licensed to Windward $970M; Ph2 asthma"],
+];
+
+// ── GRID.JS ───────────────────────────────────────────────────────
+function sf(cell) {
+  const s = String(cell);
+  let c = 'sb-pre';
+  if (s.includes('Approved')) c = 'sb-approved';
+  else if (s.includes('Phase 3')||s.includes('Ph3')) c = 'sb-ph3';
+  else if (s.includes('Phase 2')||s.includes('Ph2')||s.includes('2b')) c = 'sb-ph2';
+  else if (s.includes('Phase 1')||s.includes('Ph1')||s.includes('1a')) c = 'sb-ph1';
+  return gridjs.html(`<span class="sb ${c}">${s}</span>`);
+}
+function initGrids() {
+  new gridjs.Grid({ columns:[{name:'Company',width:'130px'},{name:'Asset',width:'140px'},{name:'Format',width:'140px'},{name:'Stage',width:'150px',formatter:sf},{name:'Indication',width:'80px'},{name:'Licensee / Partner',width:'160px'},{name:'Upfront',width:'120px'},{name:'Total Value',width:'100px'}], data:TL1A_PIPE, sort:true, search:true }).render(document.getElementById('grid-tl1a-pipe'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'130px'},{name:'Asset',width:'165px'},{name:'Stage',width:'175px',formatter:sf},{name:'Indication',width:'80px'},{name:'Notes',width:'350px'}], data:TL1A_MONO, sort:true, search:true }).render(document.getElementById('grid-tl1a-mono'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'160px'},{name:'Asset',width:'130px'},{name:'Format',width:'150px'},{name:'Stage',width:'150px',formatter:sf},{name:'Indication',width:'120px'},{name:'Licensee / Partner',width:'160px'},{name:'Upfront',width:'90px'},{name:'Total Value',width:'100px'}], data:TSLP_PIPE, sort:true, search:true }).render(document.getElementById('grid-tslp-pipe'));
+  new gridjs.Grid({ columns:[{name:'Company',width:'165px'},{name:'Asset',width:'155px'},{name:'Stage',width:'185px',formatter:sf},{name:'Indication',width:'140px'},{name:'Notes',width:'300px'}], data:TSLP_MONO, sort:true, search:true }).render(document.getElementById('grid-tslp-mono'));
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function initCharts() {
+  new Chart(document.getElementById('chartTL1A'), {
+    type:'bar',
+    data:{ labels:['Simcere→BI\n(Jan 2026)','Earendil→Sanofi\n(Apr 2025)','Qyuns→Caldera\n(Apr 2025)'], datasets:[{ label:'Total potential (USD equiv.)', data:[1160,1845,545], backgroundColor:['#2e6fb0','#c45b11','#5a9fd4'], borderRadius:5, borderSkipped:false }] },
+    options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw}M total potential` } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}M`, font:{size:10} }, grid:{color:'#eef1f5'} }, x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
+  });
+  new Chart(document.getElementById('chartTSLP'), {
+    type:'bar',
+    data:{ labels:['Biosion→Aclaris\n(Nov 2024)','Harbour+Kelun\n→Windward','Qyuns→Windward\n(TSLP×IL-13)','Qyuns→Roche\n(TSLP×IL-33)'], datasets:[{ label:'Total potential (USD)', data:[900,970,700,1070], backgroundColor:['#5a9fd4','#5a9fd4','#2e6fb0','#c45b11'], borderRadius:5, borderSkipped:false }] },
+    options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw}M total potential` } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}M`, font:{size:10} }, grid:{color:'#eef1f5'} }, x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
+  });
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+window.addEventListener('load', () => { initGrids(); initCharts(); });
+</script>
+</body>
+</html>
