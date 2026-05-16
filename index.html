@@ -3456,13 +3456,13 @@ function initGrids(d) {
   grids.tl1aReadouts = new gridjs.Grid({
     columns:[
       {name:'Program',width:'270px',formatter:readoutProgFmtClean},
-      {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
+      {name:'Phase',width:'58px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'270px'},
       {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:dropCols(d.tl1aReadouts,[0,4]), sort:true
+    data:dropCols(d.tl1aReadouts,[0,4]), sort:{initialConfig:{id:'Primary Completion',direction:'asc'}}
   }).render(document.getElementById('grid-tl1a-readouts'));
 
   // ── TL1A: Competitive Landscape (bispecifics + monotherapy merged) ─
@@ -3502,13 +3502,13 @@ function initGrids(d) {
   grids.tslpReadouts = new gridjs.Grid({
     columns:[
       {name:'Program',width:'265px',formatter:readoutProgFmtClean},
-      {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
+      {name:'Phase',width:'58px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'270px'},
       {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:dropCols(d.tslpReadouts,[0,4]), sort:true
+    data:dropCols(d.tslpReadouts,[0,4]), sort:{initialConfig:{id:'Primary Completion',direction:'asc'}}
   }).render(document.getElementById('grid-tslp-readouts'));
 
   // ── TSLP: Competitive Landscape ──────────────────────────────────
@@ -3530,13 +3530,13 @@ function initGrids(d) {
     grids[prefix+'Readouts'] = new gridjs.Grid({
       columns:[
         {name:'Program',width:'265px',formatter:readoutProgFmtClean},
-        {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
+        {name:'Phase',width:'58px',formatter:sf,sort:phaseSort},
         {name:'Expected Timing',width:'260px'},
         {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
         {name:'_url',hidden:true},
         {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('${prefix}','${esc}',this)">▼ Notes</button>`);}}
       ],
-      data:dropCols(readoutsData,[0,4]), sort:true
+      data:dropCols(readoutsData,[0,4]), sort:{initialConfig:{id:'Primary Completion',direction:'asc'}}
     }).render(document.getElementById('grid-'+prefix+'-readouts'));
 
     grids[prefix+'Landscape'] = new gridjs.Grid({
