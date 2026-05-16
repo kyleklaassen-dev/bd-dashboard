@@ -16,10 +16,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .header-meta { font-size: 12px; opacity: 0.65; text-align: right; }
 .header-meta strong { opacity: 1; font-weight: 700; }
 
-.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 0px; z-index: 190; }
-.tab-btn { padding: 9px 10px; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #6b7c93; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
-.tab-btn:hover { color: #2e6fb0; }
-.tab-btn.active { color: #1a2f50; border-bottom-color: #2e6fb0; border-bottom-width: 3px; background: #deeaf8; font-weight: 800; }
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0px; z-index: 190; min-height: 38px; }
+.tab-btn { display: none; }
+.tab-current-title { display: flex; align-items: center; gap: 9px; }
+.tab-current-name { font-size: 14px; font-weight: 900; color: #1a2f50; letter-spacing: -0.2px; }
+.tab-current-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
 .tab-btn .ct { display: inline-block; background: #e8f0f8; color: #2e6fb0; font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
 .tab-btn.active .ct { background: #2e6fb0; color: white; }
 .tab-btn.home-tab { font-weight: 800; color: #1a2f50; }
@@ -875,16 +876,20 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 </div>
 
 <div class="tab-bar">
- <button class="tab-btn home-tab active" onclick="switchTab('home',this)">Home</button>
- <button class="tab-btn" onclick="switchTab('tl1a',this)">TL1A × IL-23p19 <span class="ct">IBD</span></button>
- <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP × IL-33 <span class="ct">Respiratory</span></button>
- <button class="tab-btn" onclick="switchTab('il4ra-tslp',this)">IL-4Rα × TSLP <span class="ct ct-t2">Type 2</span></button>
- <button class="tab-btn" onclick="switchTab('il4ra-ox40l',this)">IL-4Rα × OX40L <span class="ct ct-t2">AD</span></button>
- <button class="tab-btn" onclick="switchTab('igf1r-tshr',this)">IGF1R × TSHR <span class="ct ct-ted">TED</span></button>
- <button class="tab-btn" onclick="switchTab('fcrn',this)">FcRn Bispecific <span class="ct ct-ai">Autoimmune</span></button>
- <button class="tab-btn" onclick="switchTab('ace',this)">BCMA × CD19 × CD3 <span class="ct ct-ir">Immune Reset</span></button>
- <div style="flex:1"></div>
- <button class="tab-btn" onclick="switchTab('stocks',this)" style="font-size:13px;color:#94a3b8">Market &amp; Learning</button>
+ <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
+ <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
+ <button class="tab-btn" onclick="switchTab('tl1a',this)" style="display:none">TL1A × IL-23p19</button>
+ <button class="tab-btn" onclick="switchTab('tslp',this)" style="display:none">TSLP × IL-33</button>
+ <button class="tab-btn" onclick="switchTab('il4ra-tslp',this)" style="display:none">IL-4Rα × TSLP</button>
+ <button class="tab-btn" onclick="switchTab('il4ra-ox40l',this)" style="display:none">IL-4Rα × OX40L</button>
+ <button class="tab-btn" onclick="switchTab('igf1r-tshr',this)" style="display:none">IGF1R × TSHR</button>
+ <button class="tab-btn" onclick="switchTab('fcrn',this)" style="display:none">FcRn Bispecific</button>
+ <button class="tab-btn" onclick="switchTab('ace',this)" style="display:none">BCMA × CD19 × CD3</button>
+ <button class="tab-btn" onclick="switchTab('stocks',this)" style="display:none">Market &amp; Learning</button>
+ <!-- Centered current page indicator -->
+ <div class="tab-current-title" id="tab-current-title">
+ <span class="tab-current-name" id="tab-current-name">Home</span>
+ </div>
 </div>
 
 
@@ -3625,11 +3630,39 @@ function toggleEstimand(id) {
 }
 
 // ── TABS ─────────────────────────────────────────────────────────
+const TAB_META = {
+ home:         { name: 'Home',                badge: null,            cls: '' },
+ tl1a:         { name: 'TL1A × IL-23p19',     badge: 'IBD',           cls: '' },
+ tslp:         { name: 'TSLP × IL-33',         badge: 'Respiratory',   cls: '' },
+ 'il4ra-tslp': { name: 'IL-4Rα × TSLP',       badge: 'Type 2',        cls: 'ct-t2' },
+ 'il4ra-ox40l':{ name: 'IL-4Rα × OX40L',      badge: 'AD',            cls: 'ct-t2' },
+ 'igf1r-tshr': { name: 'IGF1R × TSHR',         badge: 'TED',           cls: 'ct-ted' },
+ fcrn:         { name: 'FcRn Bispecific',       badge: 'Autoimmune',    cls: 'ct-ai' },
+ ace:          { name: 'BCMA × CD19 × CD3',    badge: 'Immune Reset',  cls: 'ct-ir' },
+ stocks:       { name: 'Market & Learning',     badge: null,            cls: '' },
+};
+function updateTabTitle(id) {
+ const meta = TAB_META[id] || { name: id, badge: null, cls: '' };
+ const nameEl = document.getElementById('tab-current-name');
+ const titleEl = document.getElementById('tab-current-title');
+ if (!nameEl || !titleEl) return;
+ nameEl.textContent = meta.name;
+ // Remove old badge
+ const oldBadge = titleEl.querySelector('.tab-current-badge');
+ if (oldBadge) oldBadge.remove();
+ if (meta.badge) {
+  const badge = document.createElement('span');
+  badge.className = 'tab-current-badge ct ' + meta.cls;
+  badge.textContent = meta.badge;
+  titleEl.appendChild(badge);
+ }
+}
 function switchTab(id, btn) {
  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
  document.getElementById('tab-'+id).classList.add('active');
  btn.classList.add('active');
+ updateTabTitle(id);
  clearGlobalSearch();
  buildToc(id);
  closeToc();
