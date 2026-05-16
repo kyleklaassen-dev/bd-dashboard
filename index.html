@@ -362,6 +362,7 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .meridian-reader-sub { font-size: 13px; color: #6b5a20; line-height: 1.6; margin-bottom: 14px; }
 .meridian-reader-item { padding: 10px 12px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #f5c842; font-size: 13px; color: #1a2e4a; line-height: 1.6; }
 .meridian-reader-item strong { color: #1a2f50; }
+.mr-date { display: inline-block; font-size: 9.5px; font-weight: 700; background: #f1f5f9; color: #64748b; border-radius: 6px; padding: 1px 6px; margin-left: 7px; vertical-align: middle; white-space: nowrap; }
 .home-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
 .home-nav-btn { background: white; border: 1.5px solid #dde3ea; border-radius: 8px; padding: 14px 16px; cursor: pointer; text-align: left; transition: all 0.15s; }
 .home-nav-btn:hover { border-color: #2e6fb0; background: #f0f6ff; }
@@ -819,7 +820,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" data-ts="1778972423" style="font-size:11px;opacity:0.75"></span>
+ <span id="last-updated-ts" data-ts="1778972808" style="font-size:11px;opacity:0.75"></span>
  </div>
  </div>
 </div>
@@ -873,6 +874,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="nav-dd-item" onclick="navTo('ace')"><span class="nav-dd-target">BCMA × CD19 × CD3</span><span class="nav-dd-badge" style="background:#fef2f2;color:#991b1b">Immune Reset</span></div>
  <div class="nav-dd-divider"></div>
  <div class="nav-dd-item nav-dd-mkt" onclick="navTo('stocks')">Market &amp; Learning</div>
+ <div class="nav-dd-item" onclick="navTo('meridian-issue')"><span class="nav-dd-target">Today's Issue</span><span class="nav-dd-badge" style="background:#ede9fe;color:#5b21b6">The Meridian</span></div>
  </div>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
@@ -885,6 +887,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <button class="tab-btn" onclick="switchTab('fcrn',this)" style="display:none">FcRn Bispecific</button>
  <button class="tab-btn" onclick="switchTab('ace',this)" style="display:none">BCMA × CD19 × CD3</button>
  <button class="tab-btn" onclick="switchTab('stocks',this)" style="display:none">Market &amp; Learning</button>
+ <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title">
  <span class="tab-current-name" id="tab-current-name">Home</span>
@@ -902,25 +905,25 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="meridian-reader" id="meridian-reader-anchor">
  <div class="meridian-reader-hd"></div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 (Tulisokibart, Merck) · NCT06052059</a></strong> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor <a class="ct-link" href="https://www.merck.com/research/pipeline/" target="_blank" rel="noopener">Merck pipeline</a> from Q3 2026.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 (Tulisokibart, Merck) · NCT06052059</a></strong><span class="mr-date">Added May 2026</span> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor <a class="ct-link" href="https://www.merck.com/research/pipeline/" target="_blank" rel="noopener">Merck pipeline</a> from Q3 2026.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT07184996" target="_blank" rel="noopener">Duvakitug Ph3 STARSCAPE (Sanofi/Teva) · NCT07184996</a></strong> — Ph3 STARSCAPE (UC) + SUNSCAPE (CD) enrolling. Best-in-class Ph2 signal (48% remission). Ph3 readout ~2028–2029. Enrollment pace and <a class="ct-link" href="https://clinicaltrials.gov/study/NCT07184944" target="_blank" rel="noopener">maintenance trial NCT07184944</a> are the monitoring priorities now.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT07184996" target="_blank" rel="noopener">Duvakitug Ph3 STARSCAPE (Sanofi/Teva) · NCT07184996</a></strong><span class="mr-date">Added May 2026</span> — Ph3 STARSCAPE (UC) + SUNSCAPE (CD) enrolling. Best-in-class Ph2 signal (48% remission). Ph3 readout ~2028–2029. Enrollment pace and <a class="ct-link" href="https://clinicaltrials.gov/study/NCT07184944" target="_blank" rel="noopener">maintenance trial NCT07184944</a> are the monitoring priorities now.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-right:6px">Resp</span><strong> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">QX031N (Roche / Qyuns) TSLP×IL-33</a></strong> — $75M upfront / $1.07B total deal, effective Dec 2025. Ph1 FIH data expected ~2027. Most strategically relevant bispecific in respiratory; track <a class="ct-link" href="https://www.roche.com/solutions/our-pipeline" target="_blank" rel="noopener">Roche pipeline</a> quarterly.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-right:6px">Resp</span><strong> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">QX031N (Roche / Qyuns) TSLP×IL-33</a></strong><span class="mr-date">Dec 2025</span> — $75M upfront / $1.07B total deal, effective Dec 2025. Ph1 FIH data expected ~2027. Most strategically relevant bispecific in respiratory; track <a class="ct-link" href="https://www.roche.com/solutions/our-pipeline" target="_blank" rel="noopener">Roche pipeline</a> quarterly.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-right:6px">Type 2</span><strong> <a class="ct-link" href="https://newsroom.regeneron.com/news-releases/news-release-details/dupixentr-dupilumab-phase-3-trial-confirms-significant/" target="_blank" rel="noopener">Dupixent (IL-4Rα) — 7th indication CSU approved April 2025</a></strong> — FDA-approved for chronic spontaneous urticaria April 2025 (LIBERTY-CSU CUPID Ph3, <a class="ct-link" href="https://clinicaltrials.gov/study/NCT04180488" target="_blank" rel="noopener">NCT04180488</a>). Now covers AD, asthma, CRSwNP, EoE, prurigo nodularis, COPD, CSU. Next frontier: bispecific combinations pairing IL-4Rα with OX40L or TSLP for refractory Type 2 disease.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-right:6px">Type 2</span><strong> <a class="ct-link" href="https://newsroom.regeneron.com/news-releases/news-release-details/dupixentr-dupilumab-phase-3-trial-confirms-significant/" target="_blank" rel="noopener">Dupixent (IL-4Rα) — 7th indication CSU approved April 2025</a></strong><span class="mr-date">Apr 2025</span> — FDA-approved for chronic spontaneous urticaria April 2025 (LIBERTY-CSU CUPID Ph3, <a class="ct-link" href="https://clinicaltrials.gov/study/NCT04180488" target="_blank" rel="noopener">NCT04180488</a>). Now covers AD, asthma, CRSwNP, EoE, prurigo nodularis, COPD, CSU. Next frontier: bispecific combinations pairing IL-4Rα with OX40L or TSLP for refractory Type 2 disease.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-right:6px">TED</span><strong> <a class="ct-link" href="https://www.slingtx.com/2025/01/14/sling-therapeutics-announces-positive-topline-results-from-phase-2b-3-lids-clinical-trial-of-oral-small-molecule-linsitinib-in-patients-with-thyroid-eye-disease/" target="_blank" rel="noopener">Linsitinib (IGF1R) TED Ph2b/3 LIDS — Positive Jan 2025</a></strong> — <a class="ct-link" href="https://clinicaltrials.gov/study/NCT05276063" target="_blank" rel="noopener">NCT05276063</a>. 52% proptosis responder rate at 150mg BID; met primary endpoint. Sling Therapeutics in confirmatory Ph3 discussions with regulators. First oral IGF1R inhibitor — creates oral + injectable differentiation angle for next-gen IGF1R×TSHR bispecifics.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-right:6px">TED</span><strong> <a class="ct-link" href="https://www.slingtx.com/2025/01/14/sling-therapeutics-announces-positive-topline-results-from-phase-2b-3-lids-clinical-trial-of-oral-small-molecule-linsitinib-in-patients-with-thyroid-eye-disease/" target="_blank" rel="noopener">Linsitinib (IGF1R) TED Ph2b/3 LIDS — Positive Jan 2025</a></strong><span class="mr-date">Jan 2025</span> — <a class="ct-link" href="https://clinicaltrials.gov/study/NCT05276063" target="_blank" rel="noopener">NCT05276063</a>. 52% proptosis responder rate at 150mg BID; met primary endpoint. Sling Therapeutics in confirmatory Ph3 discussions with regulators. First oral IGF1R inhibitor — creates oral + injectable differentiation angle for next-gen IGF1R×TSHR bispecifics.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-right:6px">AI</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT04951622" target="_blank" rel="noopener">Nipocalimab (J&amp;J / FcRn) Vivacity-MG · NCT04951622</a></strong> — Positive Ph3 in generalized MG, hemolytic disease of fetus/newborn, warm autoimmune hemolytic anemia. Expanding to IgG4-RD. Subcutaneous formulation in development — key differentiator vs IV-only rozanolixizumab. FDA PDUFA date watch 2026–2027.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-right:6px">AI</span><strong> <a class="ct-link" href="https://clinicaltrials.gov/study/NCT04951622" target="_blank" rel="noopener">Nipocalimab (J&amp;J / FcRn) Vivacity-MG · NCT04951622</a></strong><span class="mr-date">Added May 2026</span> — Positive Ph3 in generalized MG, hemolytic disease of fetus/newborn, warm autoimmune hemolytic anemia. Expanding to IgG4-RD. Subcutaneous formulation in development — key differentiator vs IV-only rozanolixizumab. FDA PDUFA date watch 2026–2027.
  </div>
  <div class="meridian-reader-item">
- <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/sanofi-returns-tces-territory-12b-pact-phase-1-stage-trispecific" target="_blank" rel="noopener">KT501 (Kali Therapeutics / Sanofi) BCMA×CD19×CD3</a></strong> — <a class="ct-link" href="https://www.prnewswire.com/news-releases/kali-therapeutics-announces-worldwide-exclusive-license-agreement-with-sanofi-for-next-generation-tri-specific-t-cell-engager-for-autoimmune-diseases-302719567.html" target="_blank" rel="noopener">$180M upfront · up to $1.23B deal (Mar 2026)</a>. First patient dosed in Ph1a (RA). Goal: deep B-cell + plasma cell depletion as one-time immune reset. Most-watched trispecific TCE in autoimmune. Watch Ph1 expansion into SLE, gMG.
+ <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/sanofi-returns-tces-territory-12b-pact-phase-1-stage-trispecific" target="_blank" rel="noopener">KT501 (Kali Therapeutics / Sanofi) BCMA×CD19×CD3</a></strong><span class="mr-date">Mar 2026</span> — <a class="ct-link" href="https://www.prnewswire.com/news-releases/kali-therapeutics-announces-worldwide-exclusive-license-agreement-with-sanofi-for-next-generation-tri-specific-t-cell-engager-for-autoimmune-diseases-302719567.html" target="_blank" rel="noopener">$180M upfront · up to $1.23B deal (Mar 2026)</a>. First patient dosed in Ph1a (RA). Goal: deep B-cell + plasma cell depletion as one-time immune reset. Most-watched trispecific TCE in autoimmune. Watch Ph1 expansion into SLE, gMG.
  </div>
 
  </div>
@@ -3310,6 +3313,24 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </div>
 </div>
 
+<div class="tab-pane" id="tab-meridian-issue">
+ <div class="content">
+  <div id="meridian-issue-container" style="background:white;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden;min-height:60vh">
+   <iframe id="meridian-issue-frame"
+    src="https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html"
+    style="width:100%;min-height:80vh;border:none;display:block"
+    onload="this.style.height=(this.contentWindow.document.body.scrollHeight+40)+'px'"
+    title="Today's Meridian Issue">
+   </iframe>
+   <div id="meridian-issue-fallback" style="display:none;padding:40px;text-align:center;color:#8a9bb0">
+    <div style="font-size:32px;margin-bottom:12px">◈</div>
+    <div style="font-size:16px;font-weight:700;color:#1a2f50;margin-bottom:8px">Today's issue hasn't been generated yet</div>
+    <div style="font-size:13px">The Meridian runs each morning at 5 AM. Check back after then.</div>
+   </div>
+  </div>
+ </div>
+</div>
+
 <script>
 // ── DATA (loaded from JSON files in /data/) ─────────────────────
 async function loadData() {
@@ -3639,6 +3660,7 @@ const TAB_META = {
  fcrn:         { name: 'FcRn Bispecific',       badge: 'Autoimmune',    cls: 'ct-ai' },
  ace:          { name: 'BCMA × CD19 × CD3',    badge: 'Immune Reset',  cls: 'ct-ir' },
  stocks:       { name: 'Market & Learning',     badge: null,            cls: '' },
+ 'meridian-issue': { name: 'The Meridian',         badge: "Today's Issue",  cls: 'ct-ai' },
 };
 function updateTabTitle(id) {
  const meta = TAB_META[id] || { name: id, badge: null, cls: '' };
