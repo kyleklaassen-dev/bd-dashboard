@@ -24,6 +24,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .tab-btn.active .ct { background: #2e6fb0; color: white; }
 .tab-btn.home-tab { font-weight: 800; color: #1a2f50; }
 .tab-btn.home-tab.active { border-bottom-color: #e8a020; color: #0d1f38; }
+.ct-t2 { background: #fce7f3; color: #9d174d; }
+.tab-btn.active .ct-t2 { background: #9d174d; color: white; }
+.ct-ted { background: #ecfdf5; color: #065f46; }
+.tab-btn.active .ct-ted { background: #065f46; color: white; }
+.ct-ai { background: #ede9fe; color: #5b21b6; }
+.tab-btn.active .ct-ai { background: #5b21b6; color: white; }
+.ct-ir { background: #fef2f2; color: #991b1b; }
+.tab-btn.active .ct-ir { background: #991b1b; color: white; }
 
 .content { padding: 18px 24px 30px; max-width: 100%; margin: 0 auto; position: relative; }
 .tab-pane { display: none; }
@@ -651,6 +659,11 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <button class="tab-btn home-tab active" onclick="switchTab('home',this)">🏠 Home</button>
   <button class="tab-btn" onclick="switchTab('tl1a',this)">TL1A × IL-23p19 <span class="ct">IBD</span></button>
   <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP × IL-33 <span class="ct">Respiratory</span></button>
+  <button class="tab-btn" onclick="switchTab('il4ra-tslp',this)">IL-4Rα × TSLP <span class="ct ct-t2">Type 2</span></button>
+  <button class="tab-btn" onclick="switchTab('il4ra-ox40l',this)">IL-4Rα × OX40L <span class="ct ct-t2">AD</span></button>
+  <button class="tab-btn" onclick="switchTab('igf1r-tshr',this)">IGF1R × TSHR <span class="ct ct-ted">TED</span></button>
+  <button class="tab-btn" onclick="switchTab('fcrn',this)">FcRn Bispecific <span class="ct ct-ai">Autoimmune</span></button>
+  <button class="tab-btn" onclick="switchTab('ace',this)">BCMA × CD19 × CD3 <span class="ct ct-ir">Immune Reset</span></button>
   <div style="flex:1"></div>
   <button class="tab-btn" onclick="switchTab('stocks',this)" style="font-size:13px;color:#94a3b8">📈 Market &amp; Learning</button>
 </div>
@@ -679,29 +692,94 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <div class="home-hero" id="home-nav-anchor">
     <div class="home-hero-date" id="home-date">Saturday, May 16, 2026</div>
     <div class="home-hero-title">Good morning, Kyle.</div>
-    <div class="home-hero-sub">Your Meridian daily intelligence brief is ready. Here's what matters today across your IBD and Respiratory coverage universes.</div>
+    <div class="home-hero-sub">Your Meridian daily intelligence brief is ready. Here's what matters today across IBD, Respiratory, Type 2 Inflammation, Thyroid Eye Disease, Autoimmune, and Immune Reset coverage.</div>
   </div>
 
   <!-- MERIDIAN DAILY READER -->
   <div class="meridian-reader" id="meridian-reader-anchor">
-    <div class="meridian-reader-hd">📰 Meridian Daily Reader <span style="font-size:11px;font-weight:500;opacity:0.6;margin-left:4px">— Today's Top Updates</span></div>
-    <div class="meridian-reader-sub">Daily intelligence surfaced from your tracked programs. Connect the Meridian Reader project to auto-populate this section each morning.</div>
+    <div class="meridian-reader-hd">📰 Meridian Daily Reader <span style="font-size:11px;font-weight:500;opacity:0.6;margin-left:4px">— Today's Top Updates Across All 7 Coverage Areas</span></div>
+    <div class="meridian-reader-sub">Highest-priority items surfaced from all tracked programs. Updated automatically at 7 AM and 7 PM daily.</div>
     <div class="meridian-reader-item">
-      <strong>🟡 ATLAS-UC Ph3 (Tulisokibart)</strong> — Topline readout on track for ~Nov 2026. This will be the first Ph3 data in the TL1A class — all benchmarking flows from this result. Monitor Merck IR and ClinicalTrials NCT06052059 closely starting Q3 2026.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟡 ATLAS-UC Ph3 (Tulisokibart, Merck)</strong> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor Merck IR and NCT06052059 from Q3 2026.
     </div>
     <div class="meridian-reader-item">
-      <strong>🟢 Duvakitug (Sanofi/Teva)</strong> — Ph3 STARSCAPE + SUNSCAPE enrollment ongoing. Strongest Ph2 signal in class (48% remission). No new data expected until 2028-2029 readout, but deal structure and enrollment updates worth tracking.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟢 Duvakitug (Sanofi/Teva)</strong> — Ph3 STARSCAPE + SUNSCAPE enrolling. Best-in-class Ph2 signal (48% remission). Ph3 readout ~2028-2029. Deal structure and enrollment pace are the monitoring priorities now.
     </div>
     <div class="meridian-reader-item">
-      <strong>🔵 QX031N (Roche / Qyuns)</strong> — TSLP×IL-33 bispecific. $1.07B deal closed Oct 2025. Ph1 FIH data expected ~2027. Most strategically important single bispecific asset in respiratory — watch Roche pipeline updates for IND registration.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-right:6px">Resp</span><strong>🔵 QX031N (Roche / Qyuns) TSLP×IL-33</strong> — $1.07B deal Oct 2025. Ph1 FIH data expected ~2027. Most strategically relevant bispecific in respiratory; track Roche pipeline updates quarterly.
+    </div>
+    <div class="meridian-reader-item">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-right:6px">Type 2</span><strong>🟡 Dupixent (IL-4Rα) dual-indication expansion</strong> — Now approved in 7 indications including AD, asthma, CRSwNP, EoE, prurigo nodularis, COPD, and CSU. CATT Ph3 (dupilumab in CSU) ongoing; next frontier is bispecific combinations pairing IL-4Rα with OX40L or TSLP to address refractory Type 2 disease.
+    </div>
+    <div class="meridian-reader-item">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-right:6px">TED</span><strong>🔵 Linsitinib (IGF1R) TED Ph3 (OPTIC)</strong> — Topline data H2 2026. First oral IGF1R inhibitor in TED. If positive, creates oral + injectable differentiation angle for next-gen IGF1R×TSHR bispecifics. Monitor alongside teprotumumab label expansion.
+    </div>
+    <div class="meridian-reader-item">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-right:6px">AI</span><strong>🟢 Nipocalimab (J&J / FcRn) Ph3 programs</strong> — Positive Ph3 data in generalized MG, hemolytic disease of the fetus/newborn, and warm autoimmune hemolytic anemia. Expanding to IgG4-RD. Subcutaneous formulation in development — key differentiator vs IV-only rozanolixizumab. FDA PDUFA date watch 2026-2027.
+    </div>
+    <div class="meridian-reader-item">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong>🔵 HXN-1031 (Earendil/Sanofi) BCMA×CD19×CD3</strong> — Ph1/2 IND filed 2025. $1.845B deal (Apr 2025, $125M upfront). Most-watched asset in trispecific TCE space. Goal: deep, durable B-cell depletion as one-time immune reset for severe autoimmune. Watch Ph1 FIH initiation announcement.
     </div>
     <div style="margin-top:12px;padding:10px 12px;background:rgba(245,200,66,0.15);border-radius:6px;font-size:12px;color:#6b5a20;line-height:1.5">
-      💡 <strong>To activate live updates:</strong> Connect the Meridian Reader Claude project to push daily summaries here automatically. Use the "Submit Intelligence" button above to manually add new information at any time.
+      💡 <strong>Live updates active:</strong> This digest refreshes automatically at <strong>7 AM</strong> and <strong>7 PM</strong> daily via scheduled research. Use the "Submit Intelligence" button above to add breaking news between cycles.
+    </div>
+  </div>
+
+  <!-- DAILY LEARNING DIGEST -->
+  <div class="card" id="learning-anchor" style="margin:12px 0">
+    <div class="card-hd" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ds-toggle').classList.toggle('open')">
+      🎓 Daily Learning Digest — 3 Things to Know Today
+      <span class="ds-toggle deal-spotlight-toggle open" style="font-size:13px">▲</span>
+    </div>
+    <div class="deal-spotlight-body open" style="padding:12px 16px">
+      <div style="font-size:12px;color:#5a7a9e;margin-bottom:14px;line-height:1.5">Each day, focus on one key concept from each coverage tier. This section surfaces the most important insight per target area — read one, absorb it, then move on. You don't need to learn everything at once.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+        <div style="background:#f8f4ff;border-radius:8px;padding:12px;border-left:3px solid #c45b11">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-bottom:5px">Today's IBD Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">Composite Estimand in IBD Trials</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">The composite estimand counts rescue medication use as treatment failure — even if a patient improved clinically. TL1A trials (ATLAS, STARSCAPE) all use this. Means the "true" remission bar is higher than older trials. Know this before benchmarking competitors.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('tl1a');setTimeout(()=>scrollToSection('tl1a-estimand-anchor'),300)">→ Estimand Guide</button>
+        </div>
+        <div style="background:#f0f9ff;border-radius:8px;padding:12px;border-left:3px solid #2563eb">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-bottom:5px">Today's Respiratory Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">TSLP as the Upstream Alarmin</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">TSLP sits at the top of the Type 2 cascade — released by epithelial cells in response to damage. Blocking TSLP prevents activation of ILC2, mast cells, Th2, and basophils simultaneously. This "upstream" position is why TSLP bispecifics pair more naturally with IL-33 (another alarmin) vs just IL-13.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('tslp');setTimeout(()=>scrollToSection('tslp-alarmin-anchor'),300)">→ Alarmin Strategy</button>
+        </div>
+        <div style="background:#fdf4ff;border-radius:8px;padding:12px;border-left:3px solid #9d174d">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-bottom:5px">Today's Type 2 Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">Why IL-4Rα Bispecifics Extend Dupixent</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">Dupixent blocks IL-4Rα (shared receptor for IL-4 and IL-13). Pairing with OX40L adds a T-cell costimulation blockade arm — targeting memory Th2 cell survival, not just acute cytokines. This is the rationale for IL-4Rα × OX40L in refractory AD: hitting both the cytokine and the cell that produces it.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('il4ra-ox40l')">→ IL-4Rα × OX40L Tab</button>
+        </div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:12px;border-left:3px solid #065f46">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-bottom:5px">Today's TED Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">The IGF1R–TSHR Receptor Cross-Talk</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">In TED, IGF1R and TSHR form a physical complex on orbital fibroblasts. TSH-stimulating antibodies (TRAbs) activate TSHR, which transactivates IGF1R — triggering fibroblast proliferation and GAG deposition. Blocking both breaks the cross-talk loop that neither monotherapy fully addresses alone.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('igf1r-tshr')">→ IGF1R × TSHR Tab</button>
+        </div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;border-left:3px solid #5b21b6">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-bottom:5px">Today's Autoimmune Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">How FcRn Recycling Extends Half-Life</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">FcRn (neonatal Fc receptor) rescues IgG from lysosomal degradation. Endosomes at pH 6 capture IgG via FcRn; at cell surface (pH 7.4) IgG is released back to circulation. Albumin uses the same receptor. A bispecific with an albumin VHH binder leverages albumin's FcRn recycling to dramatically extend half-life — enabling monthly or quarterly dosing.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('fcrn')">→ FcRn Bispecific Tab</button>
+        </div>
+        <div style="background:#fff1f2;border-radius:8px;padding:12px;border-left:3px solid #991b1b">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-bottom:5px">Today's Immune Reset Concept</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2f50;margin-bottom:5px">Why Target Both CD19 and BCMA?</div>
+          <div style="font-size:12px;color:#3a5068;line-height:1.5">CD19 marks all B cells including naïve and memory cells in circulation. BCMA marks long-lived plasma cells in the bone marrow — the cells that maintain autoantibody titers for years and are invisible to CD19 monotherapy. Combining CD19 + BCMA + CD3 (trispecific TCE) eliminates the full B-cell lineage, enabling a true immune reset in diseases like SLE, myositis, and systemic sclerosis.</div>
+          <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('ace')">→ BCMA × CD19 × CD3 Tab</button>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:10px 12px;background:#f0f6ff;border-radius:6px;font-size:12px;color:#2e6fb0;line-height:1.5">
+        💡 <strong>How to learn effectively:</strong> Don't try to absorb all tabs at once. Each day, read the 6 concepts above (2 min each = 12 min total), then dive into <em>one</em> full tab for deeper context. Rotate through all 7 tabs over a week and you'll have working knowledge of every coverage area.
+      </div>
     </div>
   </div>
 
   <!-- QUICK NAVIGATION -->
-  <div class="home-nav">
+  <div id="home-nav-buttons-anchor" style="margin:0 0 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;padding:0 2px">Quick Navigation</div>
+  <div class="home-nav" style="flex-wrap:wrap;gap:8px">
     <button class="home-nav-btn" onclick="switchTabTo('tl1a')">
       <div class="hn-label">IBD Coverage</div>
       <div class="hn-title">TL1A × IL-23p19</div>
@@ -712,10 +790,30 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       <div class="hn-title">TSLP × IL-33</div>
       <div class="hn-sub">10 readouts · 3 pipeline assets</div>
     </button>
-    <button class="home-nav-btn" onclick="switchTabTo('tl1a');setTimeout(()=>scrollToSection('tl1a-pipe'),200)">
-      <div class="hn-label">Deal Landscape</div>
-      <div class="hn-title">Active Pipelines</div>
-      <div class="hn-sub">$3.4B TL1A · $3.7B TSLP</div>
+    <button class="home-nav-btn" onclick="switchTabTo('il4ra-tslp')">
+      <div class="hn-label">Type 2 Inflammation</div>
+      <div class="hn-title">IL-4Rα × TSLP</div>
+      <div class="hn-sub">Dupixent backbone · pH eng.</div>
+    </button>
+    <button class="home-nav-btn" onclick="switchTabTo('il4ra-ox40l')">
+      <div class="hn-label">Atopic Dermatitis</div>
+      <div class="hn-title">IL-4Rα × OX40L</div>
+      <div class="hn-sub">Refractory AD · T-cell reset</div>
+    </button>
+    <button class="home-nav-btn" onclick="switchTabTo('igf1r-tshr')">
+      <div class="hn-label">Thyroid Eye Disease</div>
+      <div class="hn-title">IGF1R × TSHR</div>
+      <div class="hn-sub">Orbital fibroblast dual blockade</div>
+    </button>
+    <button class="home-nav-btn" onclick="switchTabTo('fcrn')">
+      <div class="hn-label">Autoimmune</div>
+      <div class="hn-title">FcRn Bispecific</div>
+      <div class="hn-sub">Albumin VHH · IgG depletion</div>
+    </button>
+    <button class="home-nav-btn" onclick="switchTabTo('ace')">
+      <div class="hn-label">Immune Reset</div>
+      <div class="hn-title">BCMA × CD19 × CD3</div>
+      <div class="hn-sub">Trispecific TCE · Full B-cell clear</div>
     </button>
     <button class="home-nav-btn" onclick="toggleIntelPanel()">
       <div class="hn-label">Intelligence Tool</div>
@@ -725,55 +823,67 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   </div>
 
   <!-- KEY UPCOMING CATALYSTS -->
-  <div class="home-grid">
+  <div class="home-grid" id="home-catalysts-anchor">
     <div class="home-card">
       <div class="home-card-hd">🔥 Key Catalysts — Next 6 Months <span class="hc-tag">May–Nov 2026</span></div>
       <div class="home-card-body">
         <div class="catalyst-item">
           <div class="catalyst-timing catalyst-urgent">Q2 2026<br><span style="font-size:10px;font-weight:600">Jun 2026</span></div>
-          <div class="catalyst-text"><strong>Spyre SPY001 SKYLINE Ph2</strong> — First Ph2 data for TL1A mono component of bispecific strategy. UC readout. Sets up SPY072 bispecific validation.</div>
+          <div class="catalyst-text"><strong>Spyre SPY001 SKYLINE Ph2</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — First Ph2 data for TL1A mono. UC readout sets up SPY072 bispecific validation.</div>
+        </div>
+        <div class="catalyst-item">
+          <div class="catalyst-timing catalyst-urgent">H2 2026</div>
+          <div class="catalyst-text"><strong>Linsitinib (IGF1R) OPTIC Ph3 topline</strong> <span style="font-size:10px;color:#065f46;font-weight:700">TED</span> — First oral IGF1R inhibitor in TED. Critical read for IGF1R×TSHR bispecific opportunity sizing.</div>
         </div>
         <div class="catalyst-item">
           <div class="catalyst-timing catalyst-urgent">Q4 2026<br><span style="font-size:10px;font-weight:600">~Nov 2026</span></div>
-          <div class="catalyst-text"><strong>Tulisokibart ATLAS-UC Ph3</strong> — <span style="color:#c45b11;font-weight:800">LANDMARK</span> — first Ph3 TL1A class data. Merck. Sets benchmark for entire field.</div>
+          <div class="catalyst-text"><strong>Tulisokibart ATLAS-UC Ph3</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — <span style="color:#c45b11;font-weight:800">LANDMARK</span> — first Ph3 TL1A class data. Sets benchmark for entire bispecific deal landscape.</div>
         </div>
         <div class="catalyst-item">
           <div class="catalyst-timing">Q4 2026<br><span style="font-size:10px;font-weight:600">Oct 2026</span></div>
-          <div class="catalyst-text"><strong>SPY072 SKYWAY (RA/PsA/axSpA)</strong> — First TL1A data in rheumatology. Validates mechanism beyond IBD and expands deal value for bispecifics.</div>
+          <div class="catalyst-text"><strong>SPY072 SKYWAY (RA/PsA/axSpA)</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — First TL1A data in rheumatology. Expands deal value for bispecifics beyond GI.</div>
         </div>
         <div class="catalyst-item">
           <div class="catalyst-timing">H2 2026</div>
-          <div class="catalyst-text"><strong>TSLP catalysts (3)</strong> — Bosakitug Ph2a asthma · HBM9378 Ph2 asthma · Tozorakimab COPD topline. All TSLP×monoAb class reads.</div>
+          <div class="catalyst-text"><strong>TSLP catalysts (3)</strong> <span style="font-size:10px;color:#2563eb;font-weight:700">Resp</span> — Bosakitug Ph2a asthma · HBM9378 Ph2 asthma · Tozorakimab COPD topline. Monotherapy class reads ahead of bispecific deals.</div>
         </div>
         <div class="catalyst-item">
-          <div class="catalyst-timing">H1 2026</div>
-          <div class="catalyst-text"><strong>J&amp;J DUET Ph2b (IL-23+TNF combo)</strong> — Strategic read on dual blockade in UC. If positive, validates bispecific combination hypothesis.</div>
+          <div class="catalyst-timing">2026</div>
+          <div class="catalyst-text"><strong>Nipocalimab FDA action</strong> <span style="font-size:10px;color:#5b21b6;font-weight:700">AI</span> — PDUFA review ongoing. FcRn inhibitor with broadest approved indication profile. Subcutaneous formulation differentiation vs IV competition.</div>
+        </div>
+        <div class="catalyst-item">
+          <div class="catalyst-timing">2026–2027</div>
+          <div class="catalyst-text"><strong>HXN-1031 (BCMA×CD19×CD3) FIH</strong> <span style="font-size:10px;color:#991b1b;font-weight:700">Immune Reset</span> — IND filed 2025. Ph1 first patient enrollment announcement expected. Sanofi partnership validates $1.845B trispecific thesis.</div>
         </div>
       </div>
     </div>
 
-    <div class="home-card">
-      <div class="home-card-hd">💰 Recent Deal Activity <span class="hc-tag">Last 12 Months</span></div>
+    <div class="home-card" id="home-deals-anchor">
+      <div class="home-card-hd">💰 Recent Deal Activity <span class="hc-tag">Last 18 Months</span></div>
       <div class="home-card-body">
+        <div class="deal-row">
+          <div class="deal-co">Earendil → Sanofi (BCMA×CD19×CD3) <span class="deal-val">$1.85B</span></div>
+          <div class="deal-sub">Apr 2025 · HXN-1031 trispecific TCE · $125M upfront · Ph1 IND filed</div>
+        </div>
+        <div class="deal-row">
+          <div class="deal-co">Simcere → Boehringer Ingelheim (TL1A×IL-23) <span class="deal-val">$1.16B</span></div>
+          <div class="deal-sub">Jan 2026 · SIM0709 bispecific · €42M upfront · Pre-IND→FIH</div>
+        </div>
         <div class="deal-row">
           <div class="deal-co">Qyuns → Roche (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
           <div class="deal-sub">Oct 2025 · QX031N bispecific · $75M upfront · COPD/Asthma Ph1</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Earendil → Sanofi (TL1A×IL-23) <span class="deal-val">$1.85B</span></div>
-          <div class="deal-sub">Apr 2025 · HXN-1003 AI tetravalent · $125M upfront · Pre-IND</div>
+          <div class="deal-co">Biosion → Aclaris (anti-TSLP) <span class="deal-val">$900M</span></div>
+          <div class="deal-sub">Nov 2024 · Bosakitug long-acting · $40M upfront · Ph1→Ph2</div>
         </div>
         <div class="deal-row">
           <div class="deal-co">Qyuns → Windward (TSLP×IL-13) <span class="deal-val">$700M</span></div>
-          <div class="deal-sub">Dec 2025 · WIN027 bispecific · TSLP+IL-13 dual blockade</div>
+          <div class="deal-sub">Dec 2025 · WIN027 bispecific · TSLP + IL-13 dual blockade</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Simcere → Boehringer Ingelheim <span class="deal-val">$1.16B</span></div>
-          <div class="deal-sub">Jan 2026 · SIM0709 TL1A×IL-23 · €42M upfront · Pre-IND→FIH</div>
-        </div>
-        <div class="deal-row">
-          <div class="deal-co">Biosion → Aclaris (anti-TSLP) <span class="deal-val">$900M</span></div>
-          <div class="deal-sub">Nov 2024 · Bosakitug long-acting · $40M upfront · Ph1→Ph2</div>
+          <div class="deal-co">Earendil → Sanofi (TL1A×IL-23) <span class="deal-val">$1.85B</span></div>
+          <div class="deal-sub">Apr 2025 · HXN-1003 AI tetravalent · $125M upfront · Pre-IND</div>
         </div>
       </div>
     </div>
@@ -2041,6 +2151,618 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review), NEJM (tezepelumab NAVIGATOR), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
+<!-- ══════════════ TAB: IL-4Rα × TSLP ══════════════ -->
+<div class="tab-pane" id="tab-il4ra-tslp">
+
+  <div class="intel-card" id="il4ra-tslp-intel-anchor">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:18px">🌸</span>
+        <div>
+          <div class="intel-hd-title">Field Intelligence — IL-4Rα × TSLP · Type 2 Inflammation</div>
+          <div style="font-size:12px;color:#5a7a9e;margin-top:2px">pH-engineered dupilumab backbone · Extended half-life · Reduced TMDD</div>
+        </div>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-date-left">May 2026</div>
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Dupilumab (Dupixent) ~$14.2B revenue in 2024 — defining the type 2 market ceiling</strong> <a class="intel-src" href="https://www.sanofi.com/en/media-room/press-releases/2025/2025-02-06" target="_blank" rel="noopener">Sanofi IR</a> — Approved in AD, asthma, EoE, CRSwNP, prurigo nodularis, COPD (eosinophilic). Patent expiry approaching early 2030s creates biosimilar pressure and partnership urgency. Dupilumab's Q2W dosing and conjunctivitis risk (10–20% in AD) are the two exploitable gaps for a pH-engineered, extended-dosing successor molecule.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Apr 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Tezepelumab (Tezspire, AZ/Amgen) asthma Phase 3 DESTINATION 52-week data confirms durable exacerbation reduction</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT03078569" target="_blank" rel="noopener">NCT03078569</a> — ~70% exacerbation reduction maintained at 1 year in broad asthma population (no eosinophil threshold). Validates TSLP as a durable asthma target. AZ pursuing expansion into COPD (COURSE trial positive 2024). The IL-4Rα×TSLP bispecific directly competes with this approach — key differentiator is single molecule SC delivery addressing both upstream driver and downstream effector pathway.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2026</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Ailux pH-engineered dupilumab backbone: key technical milestone achieved</strong> — AI-driven computational model solved the dual engineering challenge: (1) direct antigen repulsion at endosomal pH 5.5 via paired pH-sensitive residues within CDR and (2) CDR conformational shift to reduce affinity under acidic conditions. Result: antigen release in endosome → recycled antibody re-enters circulation without bound IL-4Rα → dramatically reduced TMDD, extended effective half-life. Patent filed as dupilumab composition-of-matter patent approaches expiry. This is the platform backbone for both IL-4Rα×TSLP and IL-4Rα×OX40L programs.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Feb 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>APG279 (Apogee Biosciences): OX40L+IL-4Ra/IL-13 trispecific shows stat-sig efficacy in AD Phase 2</strong> — Validates the concept of combining IL-4Rα blockade with upstream pathway modulators in a single molecule. Apogee also has APG808 (anti-OX40L) and APG990 (anti-IL-33). Apogee's multi-asset portfolio signals that the type 2 bispecific/multispecific space is heating up; first movers with differentiated platforms (pH engineering, half-life) will command premium deal terms.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Jan 2026</div>
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Dupilumab LIBERTY AD OAK/PRISM Phase 3: sustained remission data reinforces market leadership but dosing gap persists</strong> — Q2W dosing continues to be the primary patient-reported inconvenience vs. amlitelimab Q12W. The inability to extend dupilumab's dosing interval is a direct consequence of TMDD — Ailux's pH-engineered backbone is specifically designed to address this mechanism, potentially enabling Q4W or longer dosing with equivalent or superior IgG depletion depth.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Amlitelimab (Sanofi) AD BLA decision H1 2026</span> · <span style="color:#1a2f50">Tezepelumab COPD COURSE data 2026</span> · <span style="color:#1a2f50">Dupilumab prurigo nodularis adolescent approval 2026</span> · <span style="color:#1a2f50">Ailux preclinical IND-enabling studies underway</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-row" id="il4ra-tslp-stats-anchor">
+    <div class="stat-card"><div class="s-label">Dupilumab Peak Revenue</div><div class="s-val">$14.2B</div><div class="s-sub">2024 — defines market size</div></div>
+    <div class="stat-card o"><div class="s-label">Type 2 TAM</div><div class="s-val">&gt;$30B</div><div class="s-sub">AD + Asthma + EoE + CRSwNP</div></div>
+    <div class="stat-card g"><div class="s-label">Platform Advantage</div><div class="s-val">pH Eng.</div><div class="s-sub">Proprietary TMDD-reducing backbone</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q4–8W</div><div class="s-sub">vs. dupilumab Q2W benchmark</div></div>
+  </div>
+
+  <div class="two-col" id="il4ra-tslp-deal-anchor">
+    <div class="card">
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('il4ra-tslp-deal')">
+        🔬 Platform Spotlight: pH-Engineered IL-4Rα Backbone <span class="tag">Proprietary</span>
+        <span class="deal-spotlight-toggle open" id="il4ra-tslp-deal-toggle">▲</span>
+      </div>
+      <div class="deal-spotlight-body open" id="il4ra-tslp-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">Mechanism</div><div class="dl-val" style="font-weight:700">pH-sensitive antigen release at endosomal pH 5.5</div>
+          <div class="dl-lbl">Engineering</div><div class="dl-val">Paired pH-sensitive CDR residues + direct antigen repulsion</div>
+          <div class="dl-lbl">Effect</div><div class="dl-val">Reduces TMDD → extends effective half-life</div>
+          <div class="dl-lbl">Target Dosing</div><div class="dl-val hi">Q4W or longer (vs. dupilumab Q2W)</div>
+          <div class="dl-lbl">Backbone</div><div class="dl-val">Dupilumab-derived IL-4Rα arm</div>
+          <div class="dl-lbl">Patent</div><div class="dl-val" style="color:#2a7a47;font-weight:700">✓ Filed at dupilumab patent expiry</div>
+        </div>
+        <div class="dl-note">💡 <strong>BD read:</strong> The pH engineering solves dupilumab's fundamental PK limitation. A partner acquires not just the IL-4Rα×TSLP bispecific but the entire platform backbone applicable to IL-4Rα×OX40L, IL-4Rα×ST2, and future iterations. Platform deal framing justifies premium valuation.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chart-collapse-hd" onclick="toggleChartCollapse('il4ra-tslp-chart')">
+        <span class="chart-collapse-title">📊 Type 2 Bispecific Deal Landscape</span>
+        <span class="chart-collapse-toggle open" id="il4ra-tslp-chart-toggle">▲</span>
+      </div>
+      <div class="chart-collapse-body open" id="il4ra-tslp-chart-body">
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">Recent type 2 I&amp;I bispecific/multispecific deals</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#1</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Genentech/Roche — Trevi (dupilumab biosimilar + next-gen)</div><div class="deal-rank-meta">2025 · Dupilumab biosimilar infrastructure + next-gen IL-4Rα</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">~$3B+</div><div class="deal-rank-upfront">Est. platform value</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#2</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Sanofi — Amlitelimab (anti-OX40L) internal</div><div class="deal-rank-meta">BLA filed ~2024 · AD Q12W dosing advantage</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">$2–4B</div><div class="deal-rank-upfront">Peak sales est.</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#3</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Apogee Biosciences — Series C financing</div><div class="deal-rank-meta">2024 · Multi-target type 2 portfolio</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">$200M+</div><div class="deal-rank-upfront">Venture financing</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ailux-card" id="il4ra-tslp-ailux-anchor">
+    <div class="ailux-title">Ailux Asset Profile · IL-4Rα × TSLP · pH-Engineered Bispecific</div>
+    <div class="ailux-name">4 Structural Differentiators vs. Dupilumab + Tezepelumab Combination</div>
+    <div class="ailux-sub">pH-engineered IL-4Rα backbone · Extended half-life via reduced TMDD · Single molecule beats combination therapy</div>
+    <div class="ailux-diff-grid">
+      <div class="ailux-diff"><div class="ad-label">Extended Half-Life</div><div class="ad-val">pH Engineering</div><div class="ad-sub">Antigen released in endosome at pH 5.5 → antibody recycled without bound IL-4Rα → dramatically reduced TMDD and extended effective PK. Target: Q4-8W dosing vs. dupilumab Q2W.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Upstream Blockade</div><div class="ad-val">TSLP Arm</div><div class="ad-sub">TSLP is the epithelial "master switch" initiating the type 2 cascade before IL-4/IL-13 are produced. Blocking TSLP and IL-4Rα simultaneously addresses both the driver and the effector in one molecule.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Platform Coverage</div><div class="ad-val">3 Programs</div><div class="ad-sub">pH-engineered IL-4Rα backbone is shared across IL-4Rα×TSLP, IL-4Rα×OX40L, and IL-4Rα×ST2 — enabling a portfolio deal structure. One engineering investment; multiple assets.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Patent Position</div><div class="ad-val">Filed at Expiry</div><div class="ad-sub">Filed as dupilumab composition-of-matter patent was expiring, effectively blocking competitors from making similar pH-engineering modifications to the IL-4Rα binding domain.</div></div>
+    </div>
+  </div>
+
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-il4ra-tslp')">
+      <div class="estimand-hd-left"><div><div class="estimand-hd-title">🧬 Type 2 Inflammation Biology — IL-4Rα, TSLP &amp; the Alarmin Cascade</div><div class="estimand-hd-sub">Essential context for positioning IL-4Rα×TSLP against dupilumab and tezepelumab</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="estimand-hd-badge">Disease Education</span><span class="estimand-toggle" id="toggle-est-il4ra-tslp">▼</span></div>
+    </div>
+    <div class="estimand-body" id="est-il4ra-tslp">
+      <div class="estimand-intro">Type 2 inflammation is driven by a cytokine cascade that begins at the epithelial barrier and amplifies through innate and adaptive immune cells. <strong>TSLP</strong> (thymic stromal lymphopoietin) is the upstream "alarmin" released by damaged epithelium; it activates dendritic cells and ILC2s that produce IL-4, IL-5, and IL-13. <strong>IL-4Rα</strong> is the shared signaling subunit for both IL-4 and IL-13 — the key effector cytokines that drive IgE production, mucus hypersecretion, eosinophil recruitment, and skin barrier dysfunction. Blocking both TSLP (upstream driver) and IL-4Rα (downstream effector) in a single molecule is the rational next step after dupilumab established IL-4Rα dominance.</div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite"><div class="es-name">TSLP</div><div class="es-def">Epithelial alarmin. Initiates type 2 cascade. Present before IL-4/IL-13 are produced. Tezepelumab blocks here. Breadth of effect across all eosinophilic subtypes.</div></div>
+        <div class="estimand-strategy es-policy"><div class="es-name">IL-4Rα</div><div class="es-def">Shared receptor for IL-4 and IL-13. Dupilumab blocks here. Downstream of TSLP but controls the dominant effector cytokines. TMDD limits half-life at approved doses.</div></div>
+        <div class="estimand-strategy es-hypothetical"><div class="es-name">pH Engineering</div><div class="es-def">Antigen-sweeping technology: antibody releases IL-4Rα in the endosome at pH 5.5, is recycled by FcRn, and re-enters circulation to capture more antigen. Reduces TMDD → extends effective PK.</div></div>
+        <div class="estimand-strategy es-while"><div class="es-name">Dual Block</div><div class="es-def">IL-4Rα×TSLP blocks both the initiator and the primary effector pathway in one molecule. Enables SC administration with infrequent dosing — addressing dupilumab's biggest patient complaint.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Sanofi Q4 2024 earnings (dupilumab revenue), AstraZeneca press releases (tezepelumab DESTINATION), Wedbush Securities SWOT analysis (Type 2 I&I, 2025), Apogee Biosciences presentations (APG279), Docs (3) Ailux research brief. Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB: IL-4Rα × OX40L ══════════════ -->
+<div class="tab-pane" id="tab-il4ra-ox40l">
+
+  <div class="intel-card" id="il4ra-ox40l-intel-anchor">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:18px">🌺</span>
+        <div>
+          <div class="intel-hd-title">Field Intelligence — IL-4Rα × OX40L · Type 2 Inflammation</div>
+          <div style="font-size:12px;color:#5a7a9e;margin-top:2px">pH-engineered dupilumab backbone · OX40L costimulatory blockade · Extended dosing</div>
+        </div>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-date-left">May 2026</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Amlitelimab (Sanofi) BLA under FDA review — potential first OX40L approval in AD</strong> <a class="intel-src" href="https://www.sanofi.com" target="_blank" rel="noopener">Sanofi</a> — Anti-OX40L mAb, Ph3 ADHERE trial positive (~47% IGA 0/1 at Wk24 vs. 17% placebo). Key BD angle: Q12W dosing (every 3 months) is significantly more convenient than dupilumab Q2W. Sanofi's own asset competing with their flagship Dupixent — illustrates the industry-wide consensus that dosing convenience is the next battleground in AD. Amlitelimab approval would validate OX40L target for IL-4Rα×OX40L bispecific positioning.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2026</div>
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Rocatinlimab (Pfizer) ORIGIN Ph3 AD data: Kaposi's sarcoma signal requires label warning</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT04986176" target="_blank" rel="noopener">NCT04986176</a> — Anti-OX40 (receptor, not ligand). Safety signal for Kaposi's sarcoma in predisposed patients; pyrexia/chills observed. Competitive read-through: OX40L (ligand) targeting may have better safety profile vs. OX40 (receptor) blocking based on mechanism — OX40L blockade is more upstream and less complete T-cell suppression. Ailux's IL-4Rα×OX40L uses OX40L arm like amlitelimab, not receptor blocking like rocatinlimab.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Jan 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>APG279 (Apogee): OX40L + IL-4Rα/IL-13 bispecific — first clinical validation of combining OX40L with IL-4Rα pathway in a single molecule</strong> — Phase 2 AD data positive. Demonstrates the concept works; Ailux's pH-engineered backbone provides additional differentiation (extended half-life, reduced dosing frequency) that APG279 does not have. Apogee also advancing APG808 (pure OX40L) — providing a clean monotherapy control arm for understanding the bispecific premium.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Nov 2025</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Lebrikizumab (Eli Lilly, Ebglyss) and tralokinumab (LEO Pharma) IL-13 mAbs growing AD market share — pure IL-13 blockade validates the anti-cytokine approach in post-dupilumab patients</strong> — Combined anti-IL-13 market growing as physicians recognize subsets of patients who respond better to IL-13 vs. IL-4Rα blockade. The IL-4Rα×OX40L bispecific addresses a different mechanistic hypothesis (costimulatory + cytokine signaling vs. pure cytokine blockade) — positioning is in patients with inadequate dupilumab response who need a different mechanism, not just a different target on the same pathway.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Sep 2025</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>OX40L + IL-4Rα/IL-13 combinations (IAR129, BEL536) showing stat-sig efficacy in AD Phase 2 — field convergence on combined mechanism hypothesis</strong> — Multiple independent programs confirming that combining OX40 pathway with IL-4Rα/IL-13 blockade outperforms monotherapy in AD. This de-risks the Ailux hypothesis. The remaining question is whether pH-engineered bispecific format (extended half-life, SC, infrequent dosing) can capture the clinical superiority at a more attractive dosing schedule.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Amlitelimab FDA decision H1 2026</span> · <span style="color:#1a2f50">Rocatinlimab ORIGIN-1/-2 final data 2026</span> · <span style="color:#1a2f50">APG279 Phase 2 expansion data 2026</span> · <span style="color:#1a2f50">Ailux IND-enabling program</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card"><div class="s-label">OX40L Approvals</div><div class="s-val">1 Near</div><div class="s-sub">Amlitelimab BLA under review</div></div>
+    <div class="stat-card o"><div class="s-label">Dosing Advantage</div><div class="s-val">Q12W+</div><div class="s-sub">Target vs. dupilumab Q2W</div></div>
+    <div class="stat-card g"><div class="s-label">Validated Combos</div><div class="s-val">3+</div><div class="s-sub">OX40L+IL-4Rα programs in clinic</div></div>
+    <div class="stat-card p"><div class="s-label">Key Diseases</div><div class="s-val">AD · PN</div><div class="s-sub">Atopic derm, prurigo nodularis</div></div>
+  </div>
+
+  <div class="ailux-card" id="il4ra-ox40l-ailux-anchor">
+    <div class="ailux-title">Ailux Asset Profile · IL-4Rα × OX40L · pH-Engineered Bispecific</div>
+    <div class="ailux-name">3 Structural Differentiators vs. Amlitelimab + Dupilumab</div>
+    <div class="ailux-sub">OX40L costimulatory blockade + pH-engineered IL-4Rα arm + extended dosing interval</div>
+    <div class="ailux-diff-grid">
+      <div class="ailux-diff"><div class="ad-label">Dual Mechanism</div><div class="ad-val">Costimulatory + Cytokine</div><div class="ad-sub">OX40L blockade prevents T-cell priming and Th2 amplification; IL-4Rα blockade prevents downstream cytokine effector function. Two independent mechanisms in one molecule.</div></div>
+      <div class="ailux-diff"><div class="ad-label">pH Extension</div><div class="ad-val">TMDD Reduction</div><div class="ad-sub">pH-engineered IL-4Rα arm releases antigen at pH 5.5 in endosome, recycled without target — extending half-life beyond what IL-4Rα blocking alone achieves. Target Q8-12W dosing.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Safety Profile</div><div class="ad-val">OX40L vs. OX40</div><div class="ad-sub">OX40L (ligand) targeting like amlitelimab — not receptor blocking (rocatinlimab, which carries Kaposi's signal). Ligand blockade is more selective upstream mechanism.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Post-Dupixent</div><div class="ad-val">Different Mechanism</div><div class="ad-sub">Patients with inadequate dupilumab response (15–20% in trials) represent the primary target. OX40L component addresses T-cell priming that IL-4Rα alone cannot block.</div></div>
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Sanofi amlitelimab Phase 3 ADHERE results, Pfizer ORIGIN rocatinlimab data, Apogee Biosciences (APG279), Wedbush Securities Type 2 I&I SWOT analysis 2025, Docs (3) Ailux research brief. Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB: IGF1R × TSHR ══════════════ -->
+<div class="tab-pane" id="tab-igf1r-tshr">
+
+  <div class="intel-card" id="igf1r-tshr-intel-anchor">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:18px">👁️</span>
+        <div>
+          <div class="intel-hd-title">Field Intelligence — IGF1R × TSHR · Thyroid Eye Disease</div>
+          <div style="font-size:12px;color:#5a7a9e;margin-top:2px">Dual receptor blockade · Orbital fibroblast pathology · Next-gen vs. teprotumumab</div>
+        </div>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-date-left">May 2026</div>
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Teprotumumab (Tepezza, Amgen) remains the only approved TED therapy — $1.9B+ annual revenue with significant unmet need</strong> <a class="intel-src" href="https://www.amgen.com/therapeutics/tepezza" target="_blank" rel="noopener">Amgen</a> — IV Q3W×8 infusion regimen, ~$200K per course. Key limitations: hearing loss/tinnitus in up to 30% of patients (dose-dependent), muscle cramps, hyperglycemia. Amgen acquired Horizon Therapeutics for $28B in Oct 2023 primarily for Tepezza. A SC formulation in development but mechanism/safety gaps remain. Hearing loss signal has prompted label updates and is the primary driver for next-gen development.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Apr 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>FcRn inhibitor trials in TED paused/next-gen per clinical community positioning — IMVT-1402 designed for this space</strong> — Immunovant's IMVT-1402 listed as "designed to address" TED in Docs (2) with prior trial "paused/next gen." FcRn approach addresses autoantibody (TRAb) clearance but not the receptor-level pathology. The IGF1R×TSHR bispecific directly blocks the two co-activating receptors on orbital fibroblasts — a mechanistically distinct and more direct approach than IgG depletion via FcRn.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Feb 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Inebilizumab (Uplizna, Amgen) EQUAL Ph2 TED: B-cell depletion approach in moderate-to-severe TED</strong> — Anti-CD19 B-cell depleter being tested in TED based on the logic that TRAb-producing B cells/plasma cells drive pathology. Complementary to but different from receptor-level blockade. If inebilizumab shows effect, it strengthens the case that autoantibody reduction is sufficient — a tailwind for FcRn approaches but a potential competitive headwind for IGF1R×TSHR unless the dual receptor bispecific shows deeper or faster orbital response.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Oct 2025</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Scientific validation: TSHR-IGF1R receptor cross-talk on orbital fibroblasts is required for TED pathology (Pritchard/Smith group)</strong> — IGF-1R and TSHR physically interact on orbital fibroblast cell surface; TSHR autoantibody (TRAb) stimulation activates IGF-1R signaling independently of IGF-1 ligand. This explains why teprotumumab (anti-IGF-1R alone) works, but also why its effect may be incomplete — TSHR continues to signal. Dual blockade is the mechanistic rationale for IGF1R×TSHR: block both co-receptors simultaneously to achieve more complete fibroblast inhibition.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2025</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Teprotumumab OPTIC-X extension: sustained proptosis reduction at 2 years — but disease recurrence in ~40% of treated patients without maintenance</strong> — Sets the durability bar: ~40% relapse within 12–18 months of completing teprotumumab course creates a defined re-treatment need. A bispecific with SC administration and maintenance dosing option could address recurrence. Key BD framing: teprotumumab treats the acute episode; IGF1R×TSHR bispecific targets both the acute response and maintenance suppression of fibroblast activation.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Tepezza SC formulation data 2026</span> · <span style="color:#1a2f50">Inebilizumab EQUAL TED Ph2 data 2026</span> · <span style="color:#1a2f50">Iscalimab (Novartis) Graves' Ph2 data 2026–2027</span> · <span style="color:#1a2f50">Ailux IGF1R×TSHR preclinical milestone</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card"><div class="s-label">Tepezza Revenue</div><div class="s-val">$1.9B</div><div class="s-sub">2023 US — acquired $28B by Amgen</div></div>
+    <div class="stat-card o"><div class="s-label">Hearing Loss Rate</div><div class="s-val">~30%</div><div class="s-sub">Key safety gap for next-gen</div></div>
+    <div class="stat-card g"><div class="s-label">TED US Incidence</div><div class="s-val">~50K</div><div class="s-sub">Moderate-to-severe new cases/yr</div></div>
+    <div class="stat-card p"><div class="s-label">Relapse Rate</div><div class="s-val">~40%</div><div class="s-sub">After teprotumumab — unmet need</div></div>
+  </div>
+
+  <div class="two-col" id="igf1r-tshr-deal-anchor">
+    <div class="card">
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('igf1r-tshr-deal')">
+        🔬 Mechanism Spotlight: IGF1R–TSHR Receptor Cross-Talk <span class="tag">Preclinical</span>
+        <span class="deal-spotlight-toggle open" id="igf1r-tshr-deal-toggle">▲</span>
+      </div>
+      <div class="deal-spotlight-body open" id="igf1r-tshr-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">Receptor 1</div><div class="dl-val" style="font-weight:700">IGF-1R (Insulin-like Growth Factor Receptor)</div>
+          <div class="dl-lbl">Receptor 2</div><div class="dl-val">TSHR (TSH Receptor / Thyrotropin Receptor)</div>
+          <div class="dl-lbl">Interaction</div><div class="dl-val">Physical complex on orbital fibroblast surface — TSHR autoantibody (TRAb) activates IGF-1R independently of IGF-1 ligand</div>
+          <div class="dl-lbl">Disease</div><div class="dl-val hi">Thyroid Eye Disease (TED) / Graves' Ophthalmopathy</div>
+          <div class="dl-lbl">Precedent</div><div class="dl-val">Teprotumumab (anti-IGF-1R alone) proved the mechanism — next step is dual blockade</div>
+          <div class="dl-lbl">Advantage</div><div class="dl-val" style="color:#2a7a47;font-weight:700">SC dosing target + no hearing loss off-target</div>
+        </div>
+        <div class="dl-note">💡 <strong>BD read:</strong> Amgen's $28B acquisition of Horizon validated TED as a standalone premium franchise. A next-gen SC bispecific with dual receptor blockade and a cleaner safety profile (no hearing loss) could command a partnership in the $1–2B range pre-IND given the proven commercial market.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chart-collapse-hd" onclick="toggleChartCollapse('igf1r-chart')">
+        <span class="chart-collapse-title">📊 TED Competitive Landscape</span>
+        <span class="chart-collapse-toggle open" id="igf1r-chart-toggle">▲</span>
+      </div>
+      <div class="chart-collapse-body open" id="igf1r-chart-body">
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">Current and emerging TED programs</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">✓</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Teprotumumab (Tepezza) — Amgen</div><div class="deal-rank-meta">Approved 2020 · Anti-IGF-1R · IV Q3W×8</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">$1.9B</div><div class="deal-rank-upfront">2023 revenue</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph2</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Inebilizumab (Uplizna) — Amgen</div><div class="deal-rank-meta">Anti-CD19 · EQUAL trial ongoing</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Phase 2</div><div class="deal-rank-upfront">Data 2026</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph2</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Iscalimab (CFZ533) — Novartis</div><div class="deal-rank-meta">Anti-CD40 · Graves' hyperthyroidism</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Phase 2</div><div class="deal-rank-upfront">Data 2026–27</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">NHP</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Ailux IGF1R × TSHR</div><div class="deal-rank-meta">Bispecific · SC target · No hearing loss goal</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Preclinical</div><div class="deal-rank-upfront">IND planned</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ailux-card" id="igf1r-tshr-ailux-anchor">
+    <div class="ailux-title">Ailux Asset Profile · IGF1R × TSHR · Thyroid Eye Disease Bispecific</div>
+    <div class="ailux-name">Designed to Block Two Pathologically Linked Disease Drivers in a Single Molecule</div>
+    <div class="ailux-sub">IGF-1R + TSHR co-activation on orbital fibroblasts is required for TED pathology · Next-gen vs. teprotumumab</div>
+    <div class="ailux-diff-grid">
+      <div class="ailux-diff"><div class="ad-label">Dual Blockade</div><div class="ad-val">IGF-1R + TSHR</div><div class="ad-sub">Teprotumumab only blocks IGF-1R; TSHR autoantibodies continue to activate the complex. Dual blockade severs both pathways simultaneously — deeper inhibition of fibroblast activation expected.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Safety Profile</div><div class="ad-val">No Hearing Loss Target</div><div class="ad-sub">Teprotumumab hearing loss is dose-dependent and related to systemic IGF-1R inhibition. TSHR-anchored dual bispecific may enable reduced IGF-1R dose while maintaining efficacy through TSHR co-blockade — potentially improving hearing safety.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Administration</div><div class="ad-val">SC Target</div><div class="ad-sub">Teprotumumab is IV Q3W×8. A SC formulation with maintenance dosing capability addresses both acute TED treatment and the ~40% relapse population that needs ongoing suppression.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Market Validated</div><div class="ad-val">$28B Precedent</div><div class="ad-sub">Amgen's $28B acquisition of Horizon Therapeutics (Oct 2023) was primarily justified by Tepezza. This establishes TED as a bankable franchise. Next-gen with better profile deserves premium deal consideration.</div></div>
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Amgen Horizon acquisition press release (Oct 2023), Tepezza OPTIC/OPTIC-X clinical data, NEJM 2020 (Smith et al. teprotumumab Phase 3), Pritchard/Smith IGF-1R/TSHR cross-talk publications, Docs (2) FcRn research brief (TED indication context). Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB: FcRn BISPECIFIC ══════════════ -->
+<div class="tab-pane" id="tab-fcrn">
+
+  <div class="intel-card" id="fcrn-intel-anchor">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:18px">🔬</span>
+        <div>
+          <div class="intel-hd-title">Field Intelligence — FcRn Bispecific · Long-Acting Albumin VHH</div>
+          <div style="font-size:12px;color:#5a7a9e;margin-top:2px">Q6–8W SC target · &gt;70% IgG depletion · Preserved albumin · No LDL elevation</div>
+        </div>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-date-left">May 2026</div>
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Critical BD anchor: &gt;80% of AChR+ gMG patients remain untreated with a biologic despite available options — primary barrier is inconvenient administration</strong> — This is the single most important number for every FcRn BD conversation. The competitive question is not "how do we beat Vyvgart" but "how do we convert the untreated 80%." Efgartigimod requires 4 weekly infusions per cycle and cycling restarts when symptoms return — a chronic patient population that deserves a continuous, convenient option. Q6-8W SC dosing directly addresses this gap.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2026</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Ailux FcRn bispecific: 2nd-round NHP goals defined — albumin flat/rising, LDL no elevation, IgG depletion ≥70% at Q6W-Q8W, half-life extension confirmed</strong> — Albumin VHH binder extends half-life by piggybacking on albumin's FcRn-mediated recycling without competing for the IgG binding site. This architecture achieves the long half-life needed for infrequent dosing without the TMDD that limits conventional FcRn mAbs. NHP readout expected to confirm the albumin arm is working in vivo.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Jan 2026</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>IMVT-1402 (Immunovant) 600mg MAD cohort: 74% IgG reduction at Q1W×4 — sets the efficacy benchmark for the class</strong> <a class="intel-src" href="https://www.immunovant.com" target="_blank" rel="noopener">Immunovant</a> — Demonstrated equivalent depth of IgG suppression to batoclimab without albumin depletion or LDL elevation. This validates the "clean FcRn" profile. BD implication: IMVT-1402 confirms that ≥70% IgG depletion is achievable without albumin/lipid side effects at therapeutically relevant doses — the target profile Ailux is engineering toward at dramatically lower dosing frequency (Q6-8W vs. Q1W).</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Sep 2025</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Dianthus claseprubart (DNTH103) MaGic Phase 3 trial: positive data in generalized MG</strong> <a class="intel-src" href="https://investor.dianthustx.com/news-releases/news-release-details/dianthus-therapeutics-announces-positive-data-claseprubart" target="_blank" rel="noopener">Dianthus PR</a> — C1s inhibitor (different mechanism), SC autoinjector Q2W. Positive data validates SC administration in gMG is acceptable and effective, de-risking Ailux's SC route. Also signals the gMG market is actively adding new entrants, increasing partner demand for best-in-class differentiation.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Jan 2025</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Argenx 2026 strategic priorities: ADAPT-Forward study testing efgartigimod + combinations — signals argenx is defending market leadership through indication expansion and combination</strong> <a class="intel-src" href="https://argenx.com/news/2026/press-release-3216531" target="_blank" rel="noopener">Argenx PR</a> — argenx pursuing 20+ indications with efgartigimod. FcRn class expanding rapidly: BP (bullous pemphigoid), post-COVID POTS, membranous nephropathy, AAV all entering development. Next entrant with differentiated dosing (Q6-8W) captures the patients who find Q1W×4 cycling unsustainable. ARGX-213 (next-gen FcRn with half-life extension) is argenx's own attempt — Ailux competes directly here but with albumin VHH architecture vs. Fc engineering.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Ailux 2nd-round NHP data readout</span> · <span style="color:#1a2f50">J&J nipocalimab Vivacity-MG Ph3 topline data 2026</span> · <span style="color:#1a2f50">Immunovant IMVT-1402 Phase 2/3 gMG initiation</span> · <span style="color:#1a2f50">ARGX-213 IND filing timeline</span> · <span style="color:#1a2f50">Claseprubart NDA filing 2026</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card"><div class="s-label">gMG Untreated</div><div class="s-val">&gt;80%</div><div class="s-sub">AChR+ patients — primary BD anchor</div></div>
+    <div class="stat-card o"><div class="s-label">Efgartigimod Rev</div><div class="s-val">$1.7B+</div><div class="s-sub">2024 — gMG + CIDP</div></div>
+    <div class="stat-card g"><div class="s-label">IgG Target Depletion</div><div class="s-val">≥70%</div><div class="s-sub">Required for efficacy — IMVT-1402 benchmark</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6–8W</div><div class="s-sub">vs. Q1W class standard</div></div>
+  </div>
+
+  <div class="two-col" id="fcrn-deal-anchor">
+    <div class="card">
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('fcrn-deal')">
+        🔬 Platform Spotlight: Albumin VHH Half-Life Extension <span class="tag">NHP Stage</span>
+        <span class="deal-spotlight-toggle open" id="fcrn-deal-toggle">▲</span>
+      </div>
+      <div class="deal-spotlight-body open" id="fcrn-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">FcRn Arm</div><div class="dl-val" style="font-weight:700">Blocks IgG recycling → autoantibody degradation</div>
+          <div class="dl-lbl">Albumin Arm</div><div class="dl-val">VHH binder piggybacking on albumin FcRn recycling — extends half-life without competing for IgG binding site</div>
+          <div class="dl-lbl">Target Profile</div><div class="dl-val hi">Q6–8W SC · ≥70% IgG depletion · No albumin loss · No LDL elevation</div>
+          <div class="dl-lbl">Stage</div><div class="dl-val">2nd-round NHP studies underway</div>
+          <div class="dl-lbl">Lead Indication</div><div class="dl-val">gMG (AChR+) — then ITP, CIDP, pemphigus, NMOSD, SLE</div>
+          <div class="dl-lbl">Differentiation</div><div class="dl-val" style="color:#2a7a47;font-weight:700">4× less dosing than Q2W class; 4× less than Q1W×4 cycling</div>
+        </div>
+        <div class="dl-note">💡 <strong>BD read:</strong> Every FcRn inhibitor on the market requires Q1W or Q2W dosing. The unmet need is a molecule that achieves the same IgG depletion at monthly or longer intervals. This directly converts the 80% untreated gMG population who cite administration burden as the barrier.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chart-collapse-hd" onclick="toggleChartCollapse('fcrn-chart')">
+        <span class="chart-collapse-title">📊 FcRn Inhibitor Class — Dosing Comparison</span>
+        <span class="chart-collapse-toggle open" id="fcrn-chart-toggle">▲</span>
+      </div>
+      <div class="chart-collapse-body open" id="fcrn-chart-body">
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">Current FcRn inhibitors ranked by dosing frequency (best = least frequent)</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">🎯</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Ailux Anti-FcRn (w/ albumin VHH)</div><div class="deal-rank-meta">NHP stage · IV + SC · Q6–8W target</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Q6–8W</div><div class="deal-rank-upfront">Target — best in class</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#1</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Nipocalimab (IMAAVY) — J&amp;J</div><div class="deal-rank-meta">IV · 30mg/kg Q2W · gMG approved 2025</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Q2W</div><div class="deal-rank-upfront">Current best approved</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#2</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Batoclimab — Immunovant/Roivant</div><div class="deal-rank-meta">SC · induction Q1W → maintenance · Phase 3</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Q1W→Q2W</div><div class="deal-rank-upfront">Closest competitor</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#3</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Efgartigimod (Vyvgart) — Argenx</div><div class="deal-rank-meta">IV/SC · Q1W×4 cycles · gMG + CIDP approved</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Q1W×4</div><div class="deal-rank-upfront">Market leader</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#4</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Rozanolixizumab (Rystiggo) — UCB</div><div class="deal-rank-meta">SC · 7mg/kg Q1W · gMG approved 2023</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Q1W</div><div class="deal-rank-upfront">SC but weekly burden</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ailux-card" id="fcrn-ailux-anchor">
+    <div class="ailux-title">Ailux Asset Profile · FcRn Bispecific · Long-Acting Albumin VHH</div>
+    <div class="ailux-name">4 Structural Differentiators vs. Efgartigimod, Rozanolixizumab, Nipocalimab</div>
+    <div class="ailux-sub">Albumin VHH binder extends half-life · Q6–8W target dosing · No albumin depletion · No LDL elevation</div>
+    <div class="ailux-diff-grid">
+      <div class="ailux-diff"><div class="ad-label">Dosing Interval</div><div class="ad-val">Q6–8W Target</div><div class="ad-sub">4× less frequent than Q2W nipocalimab; 8× less than Q1W rozanolixizumab. At trough (Day 42–56), ≥70% IgG suppression must be maintained. This directly converts the 80%+ untreated gMG population who cite dosing burden as the barrier.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Architecture</div><div class="ad-val">Albumin VHH Binder</div><div class="ad-sub">VHH (single-domain antibody) binds albumin — albumin is itself recycled by FcRn with 19-day half-life. The FcRn inhibitor rides albumin's recycling mechanism to achieve extended PK without compromising the IgG depletion arm.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Safety Clean</div><div class="ad-val">No Albumin Loss · No LDL↑</div><div class="ad-sub">Batoclimab (early batches) showed LDL elevation that required statin co-medication. IMVT-1402 solved albumin but still Q1W. Ailux target: full clean profile — no albumin depletion, no LDL elevation, preserved IgA/IgM/IgE, vaccine responsiveness maintained.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Indication Breadth</div><div class="ad-val">20+ Conditions</div><div class="ad-sub">FcRn class expanding: gMG, ITP, CIDP, pemphigus, NMOSD, SLE, warm AIHA, Graves'/TED, ANCA vasculitis, HDFN, autoimmune encephalitis, RA. New 2025: BP, post-COVID POTS, MN, AAV. Platform asset for multi-indication deals.</div></div>
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Docs (2) FcRn×Albumin Ailux research brief, Immunovant IMVT-1402 MAD data, Dianthus MaGic trial press release (Sep 2025), Argenx 2026 strategic priorities (Jan 2026), BioDrugs/PMC "Targeting FcRn in Autoimmune Diseases" (Mar 2025), DelveInsight FcRn market analysis 2025. Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB: BCMA × CD19 × CD3 (ACE) ══════════════ -->
+<div class="tab-pane" id="tab-ace">
+
+  <div class="intel-card" id="ace-intel-anchor">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:18px">⚡</span>
+        <div>
+          <div class="intel-hd-title">Field Intelligence — BCMA × CD19 × CD3 (ACE) · Immune Reset</div>
+          <div style="font-size:12px;color:#5a7a9e;margin-top:2px">Trispecific TCE · Full B-lineage depletion · Off-the-shelf CAR-T alternative · Q6M dosing target</div>
+        </div>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2026</div>
+        <div class="intel-dot">🔴</div>
+        <div class="intel-text"><strong>Kali Therapeutics KT501 (CD19×BCMA×CD3): first patient dosed Phase 1a — March 18, 2026</strong> <a class="intel-src" href="https://kalitherapeutics.com" target="_blank" rel="noopener">Kali Therapeutics</a> — IgG-like SC trispecific, "CD3 masking" platform to maximize potency and minimize CRS. Lead indication: Rheumatoid Arthritis. First direct competitor to ACE to reach the clinic. RA is defensible but arguably not the strongest immune reset story — SLE, myasthenia gravis, and SSc have stronger autoantibody-driven mechanistic rationale. Phase 1a: NHP deep depletion, low cytokines. Affinity data not published. Watch closely: Phase 1 safety/tolerability data from KT501 in 2026 will set the first human proof-of-concept for the trispecific format.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Feb 2026</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>CLN-978 (Cullinan) CD19×CD3×HSA: Phase 1 OUTRACE trial — first data expected Q2 2026</strong> <a class="intel-src" href="https://cullinantherapeutics.com" target="_blank" rel="noopener">Cullinan</a> — 65 kDa small construct (SC favorable), attenuated CD3, two scFvs + anti-HSA nanobody. Phase 1 — most advanced CD19×CD3 bispecific in autoimmune (No DLTs at 10 or 20 μg; 30 μg enrolling). Active OUTRACE trials: SLE, RA, Sjögren's across US, Europe, Australia. Key limitation: only CD19 arm — misses plasma cell compartment (BCMA). ACE/full lineage depletion rationale: long-lived plasma cells in bone marrow are CD19−/BCMA+ — only BCMA arm reaches them.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">2024</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Three landmark papers in 2024 validate the immune reset hypothesis across three independent mechanisms</strong> — (1) Müller et al. (NEJM 2024): CD19 CAR-T in 15 SLE/SSc/myositis patients → complete remission, all immunosuppression stopped, drug-free months-to-years. (2) Bucci et al. (Nature Medicine 2024): blinatumomab (CD19×CD3) off-the-shelf → drug-free remission in refractory RA. (3) Alexander et al. (NEJM 2024): teclistamab (BCMA×CD3) → remission in refractory SLE. These three papers together make the ACE hypothesis almost axiomatic: if CD19 alone works (CAR-T, blinatumomab) AND BCMA alone works (teclistamab), a molecule targeting both should achieve deeper and more durable depletion.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">2024</div>
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>HXN-1031 (Helixon): CD19×BCMA×CD3 trispecific TCE — Sanofi-backed ($2.56B deal) — confirms big pharma conviction in the format</strong> — Pre-IND/pre-clinical stage. Sub-micromolar CD3 affinity (attenuated intentionally) to limit CRS risk. Published NHP data: depletion in peripheral blood AND bone marrow, sustained Ig reduction. Sanofi's decision to pay up to $2.56B for a pre-IND trispecific TCE is the strongest deal validation the ACE format has received — signals that commercial partners are convinced of the mechanism before clinical proof, which is exactly the window for ACE positioning.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left">Mar 2025</div>
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Excalipoint (Shanghai) raises $68.7M for trispecific TCE platform — China executing on the format at speed</strong> <a class="intel-src" href="https://www.fiercebiotech.com/biotech/excalipoint-raises-68-7m" target="_blank" rel="noopener">Fierce Biotech</a> — EXP011 (CTM012): DLL3×CD3×4-1BB in Ph1 (SCLC). EXP012 (CTM013): CD3×4-1BB×CDH17 entering clinical 2025. Oncology-first but demonstrates Chinese biotech mastery of trispecific TCE format. Competitive pressure on ACE timelines — need to move quickly from preclinical to IND to be ahead of the next wave of China-sourced autoimmune TCEs.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
+      </div>
+      <div class="intel-item">
+        <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">CLN-978 OUTRACE Ph1 first data Q2 2026</span> · <span style="color:#1a2f50">KT501 Ph1a safety/tolerability data H2 2026</span> · <span style="color:#1a2f50">HXN-1031 IND filing 2026–2027</span> · <span style="color:#1a2f50">Additional NEJM/NEJM-E CAR-T autoimmune series publications</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card"><div class="s-label">SLE Drug-Free Remission</div><div class="s-val">5/6</div><div class="s-sub">Erlangen CD19 CAR-T series (NEJM 2024)</div></div>
+    <div class="stat-card o"><div class="s-label">Sanofi/HXN-1031 Deal</div><div class="s-val">$2.56B</div><div class="s-sub">Pre-IND trispecific validation</div></div>
+    <div class="stat-card g"><div class="s-label">Active TCE Trials</div><div class="s-val">3+</div><div class="s-sub">CLN-978, KT501, HXN-1031</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6M</div><div class="s-sub">Single dose or 6-month interval</div></div>
+  </div>
+
+  <div class="two-col" id="ace-deal-anchor">
+    <div class="card">
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('ace-deal')">
+        💊 Deal Spotlight: HXN-1031 (Helixon) → Sanofi <span class="tag">Pre-IND 2024</span>
+        <span class="deal-spotlight-toggle open" id="ace-deal-toggle">▲</span>
+      </div>
+      <div class="deal-spotlight-body open" id="ace-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">Asset</div><div class="dl-val" style="font-weight:700">HXN-1031 (CD19 × BCMA × CD3 trispecific)</div>
+          <div class="dl-lbl">Licensor</div><div class="dl-val">Helixon Therapeutics (China/US)</div>
+          <div class="dl-lbl">Licensee</div><div class="dl-val">Sanofi</div>
+          <div class="dl-lbl">Stage</div><div class="dl-val">Preclinical / Pre-IND at signing</div>
+          <div class="dl-lbl">Total</div><div class="dl-val hi">Up to $2.56B</div>
+          <div class="dl-lbl">MOA</div><div class="dl-val">Sub-micromolar CD3 (attenuated), intentional CRS risk reduction</div>
+          <div class="dl-lbl">Indications</div><div class="dl-val">B-cell / plasma cell autoimmune diseases</div>
+        </div>
+        <div class="dl-note">💡 <strong>Strategic read:</strong> Sanofi paying $2.56B for a pre-IND trispecific TCE in autoimmune — before human proof of concept — is the defining deal precedent for ACE positioning. Partners are clearly willing to pay for the platform at preclinical stage if the mechanism is compelling and the design is differentiated. ACE's off-the-shelf, no-lymphodepletion, Q6M framing vs. CAR-T is ACE's most powerful competitive positioning.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chart-collapse-hd" onclick="toggleChartCollapse('ace-chart')">
+        <span class="chart-collapse-title">📊 TCE Autoimmune — Program Landscape</span>
+        <span class="chart-collapse-toggle open" id="ace-chart-toggle">▲</span>
+      </div>
+      <div class="chart-collapse-body open" id="ace-chart-body">
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">CD19/BCMA×CD3 programs ranked by development stage</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph1</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">CLN-978 — Cullinan (CD19×CD3×HSA)</div><div class="deal-rank-meta">Most advanced · OUTRACE trial · Data Q2 2026 · Misses bone marrow plasma cells</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">CD19 only</div><div class="deal-rank-upfront">No BCMA arm</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph1a</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">KT501 — Kali Therapeutics (CD19×BCMA×CD3)</div><div class="deal-rank-meta">First patient Mar 18, 2026 · RA · SC IgG-like trispecific</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Trispecific</div><div class="deal-rank-upfront">Full B-lineage</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Pre-IND</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">HXN-1031 — Helixon/Sanofi (CD19×BCMA×CD3)</div><div class="deal-rank-meta">NHP: peripheral + bone marrow depletion · Sanofi backed ($2.56B)</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">$2.56B</div><div class="deal-rank-upfront">Deal value</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">PoC</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Blinatumomab (Blincyto) — Amgen (CD19×CD3)</div><div class="deal-rank-meta">Approved oncology · Drug-free remission RA (Bucci, Nat Med 2024)</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">PoC only</div><div class="deal-rank-upfront">IV continuous</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ailux-card" id="ace-ailux-anchor">
+    <div class="ailux-title">Ailux ACE Profile · BCMA × CD19 × CD3 · Immune Reset Trispecific</div>
+    <div class="ailux-name">Off-the-Shelf CAR-T: The Synthesis of Three Validated Insights</div>
+    <div class="ailux-sub">Rituximab proved B-cell depletion · CAR-T proved immune reset · Blinatumomab proved off-the-shelf TCE works · ACE synthesizes all three</div>
+    <div class="ailux-diff-grid">
+      <div class="ailux-diff"><div class="ad-label">Full B-Lineage</div><div class="ad-val">CD19 + BCMA</div><div class="ad-sub">CD19 depletes circulating B cells (blood, lymph nodes, spleen). BCMA depletes long-lived plasma cells in bone marrow — the antibody factories that survive rituximab and CD19 CAR-T alone. Dual arm is the differentiator vs. CLN-978 (CD19 only).</div></div>
+      <div class="ailux-diff"><div class="ad-label">No Lymphodepletion</div><div class="ad-val">Off-the-Shelf</div><div class="ad-sub">CAR-T in autoimmune (Mackensen/Müller) requires lymphodepletion (cyclophosphamide/fludarabine), hospital admission, 2–8 week vein-to-vein time. ACE: ready-to-use, outpatient administration, no lymphodepletion — same depth of depletion accessible at 1/10th the cost and complexity.</div></div>
+      <div class="ailux-diff"><div class="ad-label">CRS Management</div><div class="ad-val">Tocilizumab Ready</div><div class="ad-sub">Tocilizumab (anti-IL-6R) is the established first-line intervention for Grade 2+ CRS. Attenuated CD3 affinity design reduces peak cytokine release. Step-up dosing protocol enables outpatient administration with pre-medication.</div></div>
+      <div class="ailux-diff"><div class="ad-label">Dosing Target</div><div class="ad-val">Single or Q6M</div><div class="ad-sub">If remission is durable (immune re-tolerization during B-cell reconstitution window), single-dose or Q6M re-dosing is the goal. 5/6 Erlangen SLE patients drug-free without re-treatment — the clinical precedent exists.</div></div>
+    </div>
+  </div>
+
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-ace')">
+      <div class="estimand-hd-left"><div><div class="estimand-hd-title">🔬 ACE Biology — B-Cell Lineage, BCMA, CD19 &amp; the Immune Reset Hypothesis</div><div class="estimand-hd-sub">Understanding why dual depletion achieves what neither CD19 nor BCMA alone can</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="estimand-hd-badge">Disease Education</span><span class="estimand-toggle" id="toggle-est-ace">▼</span></div>
+    </div>
+    <div class="estimand-body" id="est-ace">
+      <div class="estimand-intro">Autoantibody-driven diseases (SLE, gMG, SSc, Sjögren's) are maintained by two distinct populations: <strong>short-lived plasmablasts</strong> that express CD19 and replenish continuously, and <strong>long-lived plasma cells</strong> in the bone marrow that are CD19−/BCMA+ and can survive for years. Rituximab depletes circulating B cells (CD20+) but cannot reach bone marrow plasma cells. CD19 CAR-T depletes more thoroughly but still misses CD19− plasma cells. BCMA×CD3 alone clears bone marrow plasma cells but not circulating B cells. ACE (BCMA×CD19×CD3) is the first approach designed to deplete both compartments simultaneously — delivering the comprehensive immune reset that CAR-T approaches suggest is curative in autoimmune disease.</div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite"><div class="es-name">CD19+ B Cells</div><div class="es-def">Circulating B cells, memory B cells, plasmablasts. CD19 arm engages T cells to kill this compartment. Blinatumomab and CD19 CAR-T both work here. Replenished rapidly — need persistent depletion to allow immune re-tolerization.</div></div>
+        <div class="estimand-strategy es-policy"><div class="es-name">BCMA+ Plasma Cells</div><div class="es-def">Long-lived bone marrow plasma cells. CD19−/BCMA+. These are the persistent antibody factories not reached by rituximab or CD19 CAR-T alone. Teclistamab (BCMA×CD3) targets this compartment — NEJM 2024 remission in SLE validates the approach.</div></div>
+        <div class="estimand-strategy es-hypothetical"><div class="es-name">Immune Re-Tolerization</div><div class="es-def">Hypothesis: depleting both B-cell and plasma cell compartments creates a window during B-cell reconstitution in which autoreactive clones fail to re-emerge and the immune system re-tolerizes to self. Durability depends on depth and completeness of depletion — the rationale for dual targeting.</div></div>
+        <div class="estimand-strategy es-while"><div class="es-name">CRS Risk Mitigation</div><div class="es-def">CD3 affinity is intentionally attenuated (sub-micromolar) in next-gen TCEs to reduce peak cytokine release. Step-up dosing, pre-medication with dexamethasone, and tocilizumab rescue are the established safety framework from oncology.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Docs (1) CD19×BCMA×CD3 Ailux research brief, Müller et al. NEJM 2024 (CD19 CAR-T autoimmune), Bucci et al. Nature Medicine 2024 (blinatumomab RA), Alexander et al. NEJM 2024 (teclistamab SLE), Kali Therapeutics Phase 1a press release (Mar 18, 2026), Fierce Biotech (Excalipoint, Mar 2025). Data as of May 2026.</div>
+</div>
+
 <!-- ══════════════ TAB: MARKET & LEARNING ══════════════ -->
 <div class="tab-pane" id="tab-stocks">
 
@@ -2535,6 +3257,7 @@ function switchTabTo(id) {
 const TOC_MAP = {
   home: [
     {label:'Meridian Daily Reader', id:'meridian-reader-anchor'},
+    {label:'Daily Learning Digest', id:'learning-anchor'},
     {label:'Quick Navigation', id:'home-nav-anchor'},
     {label:'Key Catalysts', id:'home-catalysts-anchor'},
     {label:'Recent Deals', id:'home-deals-anchor'},
@@ -2561,7 +3284,38 @@ const TOC_MAP = {
     {label:'Bispecific Pipeline', id:'tslp-pipe-anchor'},
     {label:'Monotherapy Context', id:'tslp-mono-anchor'},
     {label:'Alarmin Strategy', id:'tslp-alarmin-anchor'},
-  ]
+  ],
+  'il4ra-tslp': [
+    {label:'Field Intelligence', id:'il4ra-tslp-intel-anchor'},
+    {label:'Summary Stats', id:'il4ra-tslp-stats-anchor'},
+    {label:'Platform Spotlight', id:'il4ra-tslp-platform-anchor'},
+    {label:'Ailux Profile', id:'il4ra-tslp-ailux-anchor'},
+    {label:'Biology Education', id:'il4ra-tslp-edu-anchor'},
+  ],
+  'il4ra-ox40l': [
+    {label:'Field Intelligence', id:'il4ra-ox40l-intel-anchor'},
+    {label:'Summary Stats', id:'il4ra-ox40l-stats-anchor'},
+    {label:'Ailux Profile', id:'il4ra-ox40l-ailux-anchor'},
+  ],
+  'igf1r-tshr': [
+    {label:'Field Intelligence', id:'igf1r-tshr-intel-anchor'},
+    {label:'Summary Stats', id:'igf1r-tshr-stats-anchor'},
+    {label:'Mechanism Spotlight', id:'igf1r-tshr-mech-anchor'},
+    {label:'Ailux Profile', id:'igf1r-tshr-ailux-anchor'},
+  ],
+  fcrn: [
+    {label:'Field Intelligence', id:'fcrn-intel-anchor'},
+    {label:'Summary Stats', id:'fcrn-stats-anchor'},
+    {label:'Platform Spotlight', id:'fcrn-platform-anchor'},
+    {label:'Ailux Profile', id:'fcrn-ailux-anchor'},
+  ],
+  ace: [
+    {label:'Field Intelligence', id:'ace-intel-anchor'},
+    {label:'Summary Stats', id:'ace-stats-anchor'},
+    {label:'Deal Spotlight', id:'ace-deal-anchor'},
+    {label:'Ailux Profile', id:'ace-ailux-anchor'},
+    {label:'Biology Education', id:'ace-edu-anchor'},
+  ],
 };
 function buildToc(activeTab) {
   const dd = document.getElementById('toc-dropdown');
