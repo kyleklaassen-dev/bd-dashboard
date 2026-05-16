@@ -10,13 +10,13 @@
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #eef2f7; color: #1a2e4a; font-size: 15px; min-height: 100vh; }
 
 .header { background: linear-gradient(135deg, #0d1f38 0%, #1a3a6e 60%, #2e6fb0 100%); color: white; padding: 7px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 200; gap: 12px; }
-.header-title { font-size: 17px; font-weight: 900; letter-spacing: -0.5px; white-space: nowrap; }
+.header-title { font-size: 21px; font-weight: 900; letter-spacing: -0.5px; white-space: nowrap; }
 .header-title span { opacity: 0.55; font-weight: 400; font-size: 14px; margin-left: 8px; vertical-align: middle; }
 .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
 .header-meta { font-size: 12px; opacity: 0.65; text-align: right; }
 .header-meta strong { opacity: 1; font-weight: 700; }
 
-.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 42px; z-index: 190; }
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 0px; z-index: 190; }
 .tab-btn { padding: 9px 10px; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #6b7c93; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
 .tab-btn:hover { color: #2e6fb0; }
 .tab-btn.active { color: #1a2f50; border-bottom-color: #2e6fb0; }
@@ -776,7 +776,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .wtc-task-area { font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; padding: 1px 5px; border-radius: 5px; margin-right: 5px; white-space: nowrap; }
 
 /* ══ HEADER SEARCH BAR ══════════════════════════════════════════ */
-.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; min-width: 0; max-width: 600px; }
+.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 3px 10px; min-width: 0; max-width: 580px; }
 .header-search-wrap:focus-within { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.35); }
 .header-search-input { flex: 1; border: none; background: none; color: white; font-size: 12px; outline: none; font-family: inherit; min-width: 0; }
 .header-search-input::placeholder { color: rgba(255,255,255,0.45); }
@@ -1099,27 +1099,27 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
  <div class="home-card-hd"> Recent Deal Activity <span class="hc-tag">Last 18 Months</span></div>
  <div class="home-card-body">
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Mar 2026</span> Kali Therapeutics → Sanofi (BCMA×CD19×CD3) <span class="deal-val">$1.23B</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Mar 2026</span> <a class="ct-link" href="https://www.prnewswire.com/news-releases/kali-therapeutics-announces-worldwide-exclusive-license-agreement-with-sanofi-for-next-generation-tri-specific-t-cell-engager-for-autoimmune-diseases-302719567.html" target="_blank" rel="noopener">Kali Therapeutics → Sanofi</a> (BCMA×CD19×CD3) <span class="deal-val">$1.23B</span></div>
  <div class="deal-sub">KT501 trispecific TCE · $180M upfront/near-term · Ph1a first patient dosed · Autoimmune immune reset</div>
  </div>
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Jan 2026</span> Simcere → Boehringer Ingelheim (TL1A×IL-23p19) <span class="deal-val">$1.16B</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Jan 2026</span> <a class="ct-link" href="https://www.biospace.com/deals/boehringer-turns-to-china-in-1-26b-ibd-pact-with-simcere" target="_blank" rel="noopener">Simcere → Boehringer Ingelheim</a> (TL1A×IL-23p19) <span class="deal-val">$1.16B</span></div>
  <div class="deal-sub">SIM0709 bispecific · €42M upfront · Pre-IND → FIH H1 2026</div>
  </div>
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Dec 2025</span> Qyuns → Windward (TSLP×IL-13) <span class="deal-val">$700M</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Dec 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/novo-holdings-backed-windward-bio-licenses-chinese-biotechs-bispecific-asthma-candidate" target="_blank" rel="noopener">Qyuns → Windward Bio</a> (TSLP×IL-13) <span class="deal-val">$700M</span></div>
  <div class="deal-sub">WIN027 bispecific · Novo Holdings-backed · TSLP + IL-13 dual blockade · Autoimmune</div>
  </div>
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Oct 2025</span> Qyuns → Roche (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Oct 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">Qyuns → Roche</a> (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
  <div class="deal-sub">QX031N · $75M upfront · Effective Dec 2025 · COPD / Asthma Ph1 planned</div>
  </div>
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Apr 2025</span> Earendil Labs → Sanofi (TL1A×IL-23 + IBD bispecifics) <span class="deal-val">$1.85B</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Apr 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/sanofi-takes-stake-earendil-labs-its-inflammatory-disease-bispecifics" target="_blank" rel="noopener">Earendil Labs → Sanofi</a> (HXN-1002 + HXN-1003 · IBD bispecifics) <span class="deal-val">$1.85B</span></div>
  <div class="deal-sub">HXN-1002 + HXN-1003 bispecifics · $125M upfront · Autoimmune &amp; IBD · Pre-IND</div>
  </div>
  <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Nov 2024</span> Biosion → Aclaris (anti-TSLP) <span class="deal-val">$900M</span></div>
+ <div class="deal-co"><span class="deal-date-badge">Nov 2024</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/aclaris-therapeutics-licenses-long-acting-anti-tslp-antibody-biosion" target="_blank" rel="noopener">Biosion → Aclaris</a> (bosakitug · long-acting anti-TSLP) <span class="deal-val">$900M</span></div>
  <div class="deal-sub">Bosakitug long-acting · $40M upfront · Ph1 → Ph2 · Atopic Dermatitis / Asthma</div>
  </div>
  </div>
@@ -4422,6 +4422,15 @@ window.addEventListener('load', () => {
  // Load data and init grids
  loadData().then(d => { window._dashData = d; initGrids(d); });
 });
+
+// ── Dynamic tab-bar sticky offset ─────────────────────────────
+function fixTabBarTop() {
+  const hdr = document.querySelector('.header');
+  const tb  = document.querySelector('.tab-bar');
+  if (hdr && tb) tb.style.top = hdr.getBoundingClientRect().height + 'px';
+}
+fixTabBarTop();
+window.addEventListener('resize', fixTabBarTop);
 </script>
 </body>
 </html>
