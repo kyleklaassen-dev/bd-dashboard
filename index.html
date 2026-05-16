@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BD Intelligence Dashboard Â· Bispecific Monitor</title>
+<title>BD Intelligence Dashboard · Bispecific Monitor</title>
 <style>
 :root { color-scheme: light; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,7 +54,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .sec-tag.o { background: #fff3cd; color: #856404; }
 .sec-tag.r { background: #fde8d8; color: #7a2e00; }
 
-/* ââ ESTIMAND GUIDE CARD âââââââââââââââââââââââââââââââââââ */
+/* ── ESTIMAND GUIDE CARD ─────────────────────────────────── */
 .estimand-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; }
 .estimand-hd { background: linear-gradient(135deg, #2e4a6b 0%, #3a6fa8 100%); color: white; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
 .estimand-hd-left { display: flex; align-items: center; gap: 10px; }
@@ -81,7 +81,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .estimand-warning { background: #fff8e6; border: 1px solid #f5c842; border-radius: 6px; padding: 10px 13px; font-size: 11px; color: #5a4020; line-height: 1.6; }
 .estimand-warning strong { color: #1a2f50; }
 
-/* ââ GRID.JS âââââââââââââââââââââââââââââââââââââââââââââââ */
+/* ── GRID.JS ─────────────────────────────────────────────── */
 .gridjs-container { border: none !important; box-shadow: none !important; }
 .gridjs-wrapper { border: none !important; border-radius: 0 0 8px 8px !important; overflow: hidden; }
 .gridjs-table { font-size: 12px !important; }
@@ -97,7 +97,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .gridjs-search-input { border: 1px solid #dde3ea !important; border-radius: 5px !important; font-size: 11px !important; padding: 5px 9px !important; width: 200px !important; }
 .gridjs-footer { border: none !important; background: #f5f7fa !important; }
 
-/* ââ CHINA CARDS âââââââââââââââââââââââââââââââââââââââââââ */
+/* ── CHINA CARDS ─────────────────────────────────────────── */
 .china-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 2px; }
 .china-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-top: 3px solid #2e6fb0; padding: 12px 14px; }
 .china-card.licensed { border-top-color: #2a7a47; }
@@ -113,20 +113,20 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .cc-detail { font-size: 11px; color: #5a7a9e; line-height: 1.55; }
 .cc-deal { font-size: 11px; color: #c45b11; font-weight: 700; margin-top: 5px; }
 
-/* ââ INSIGHT BOX âââââââââââââââââââââââââââââââââââââââââââ */
+/* ── INSIGHT BOX ─────────────────────────────────────────── */
 .insight-box { background: linear-gradient(135deg, #f0f5fb 0%, #e5eef8 100%); border-left: 4px solid #2e6fb0; border-radius: 0 8px 8px 0; padding: 16px 18px; font-size: 12px; color: #2a3f5a; line-height: 1.8; }
 .insight-box ul { list-style: none; padding: 0; }
 .insight-box li { padding: 5px 0 5px 18px; position: relative; border-bottom: 1px solid rgba(46,111,176,0.1); }
 .insight-box li:last-child { border-bottom: none; }
-.insight-box li::before { content: 'âº'; position: absolute; left: 0; color: #2e6fb0; font-weight: 800; font-size: 14px; line-height: 1.4; }
+.insight-box li::before { content: '›'; position: absolute; left: 0; color: #2e6fb0; font-weight: 800; font-size: 14px; line-height: 1.4; }
 .insight-box li strong { color: #1a2f50; }
 .insight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 8px; }
 
-/* ââ CHART âââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* ── CHART ───────────────────────────────────────────────── */
 .chart-wrap { padding: 12px 14px; }
 .chart-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #8a9bb0; margin-bottom: 8px; }
 
-/* ââ STAGE BADGES ââââââââââââââââââââââââââââââââââââââââââ */
+/* ── STAGE BADGES ────────────────────────────────────────── */
 .sb { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 .sb-approved { background: #1a2f50; color: white; }
 .sb-ph3 { background: #d1f5e0; color: #0d5a30; }
@@ -134,7 +134,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .sb-ph1 { background: #ede2f7; color: #432874; }
 .sb-pre { background: #fde8d8; color: #7a2e00; }
 
-/* ââ ESTIMAND BADGES âââââââââââââââââââââââââââââââââââââââ */
+/* ── ESTIMAND BADGES ─────────────────────────────────────── */
 .eb { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 .eb-composite  { background: #fff0c0; color: #7a5000; border: 1px solid #e8c840; }
 .eb-policy     { background: #d6eaff; color: #1a3f6e; border: 1px solid #90bff0; }
@@ -145,7 +145,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
 .footnote { font-size: 10px; color: #9aabb8; padding: 12px 0 0; border-top: 1px solid #e0e8f0; margin-top: 16px; line-height: 1.6; }
 
-/* ââ COLLAPSIBLE INFO CARDS âââââââââââââââââââââââââââââââââ */
+/* ── COLLAPSIBLE INFO CARDS ───────────────────────────────── */
 .info-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; }
 .info-hd { background: #1a2f50; color: white; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
 .info-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.3px; }
@@ -155,7 +155,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .info-body { padding: 14px 16px; display: none; }
 .info-body.open { display: block; }
 
-/* ââ AILUX ASSET PROFILE âââââââââââââââââââââââââââââââââââ */
+/* ── AILUX ASSET PROFILE ─────────────────────────────────── */
 .ailux-card { background: linear-gradient(135deg, #0d3b2e 0%, #1a6b4a 100%); border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; color: white; }
 .ailux-title { font-size: 12px; font-weight: 800; letter-spacing: 0.4px; opacity: 0.75; text-transform: uppercase; margin-bottom: 3px; }
 .ailux-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
@@ -166,14 +166,14 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .ad-val { font-size: 12px; font-weight: 800; margin-bottom: 3px; }
 .ad-sub { font-size: 10px; opacity: 0.75; line-height: 1.5; }
 
-/* ââ READOUT CALENDAR BADGES âââââââââââââââââââââââââââââââ */
+/* ── READOUT CALENDAR BADGES ─────────────────────────────── */
 .rb { display: inline-block; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
 .rb-mono { background: #dde8ff; color: #1a3f8e; }
 .rb-bspc { background: #d4f0e2; color: #1a5030; }
 .rb-combo { background: #fff3cd; color: #7a4900; }
 .rb-approved { background: #1a2f50; color: white; }
 
-/* ââ INFO TABLES âââââââââââââââââââââââââââââââââââââââââââ */
+/* ── INFO TABLES ─────────────────────────────────────────── */
 .info-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .info-table th { background: #2a3f62; color: white; padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
 .info-table td { padding: 7px 10px; border-bottom: 1px solid #eef1f5; color: #1a2e4a; vertical-align: top; }
@@ -188,7 +188,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .era-6 { background: #ede2f7; color: #432874; }
 .era-7 { background: #d4f0e2; color: #1a5030; }
 
-/* ââ MARKET STATS ââââââââââââââââââââââââââââââââââââââââââ */
+/* ── MARKET STATS ────────────────────────────────────────── */
 .mkt-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
 .mkt-card { background: #f5f8fc; border-radius: 6px; padding: 10px 12px; border-top: 3px solid #2e6fb0; text-align: center; }
 .mkt-card.g { border-top-color: #2a7a47; }
@@ -198,12 +198,12 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .mkt-label { font-size: 10px; color: #8a9bb0; font-weight: 700; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.3px; }
 .mkt-sub { font-size: 10px; color: #2a7a47; font-weight: 700; margin-top: 2px; }
 
-/* ââ SOC TWO-PANEL âââââââââââââââââââââââââââââââââââââââââ */
+/* ── SOC TWO-PANEL ───────────────────────────────────────── */
 .soc-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .soc-box { background: #f8fafc; border-radius: 6px; overflow: hidden; }
 .soc-title { background: #2a3f62; color: white; padding: 7px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
 
-/* ââ BENCHMARK / THRESHOLD âââââââââââââââââââââââââââââââââ */
+/* ── BENCHMARK / THRESHOLD ───────────────────────────────── */
 .threshold-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
 .threshold-box { background: #fff8e6; border: 1px solid #f5c842; border-radius: 6px; padding: 10px 13px; }
 .tb-drug { font-size: 11px; font-weight: 800; color: #1a2f50; margin-bottom: 2px; }
@@ -211,7 +211,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .tb-rate { font-size: 22px; font-weight: 900; color: #c45b11; }
 .tb-endpoint { font-size: 10px; color: #7a5000; margin-top: 2px; }
 
-/* ââ NEWS ââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* ── NEWS ────────────────────────────────────────────────── */
 .news-item { padding: 10px 0; border-bottom: 1px solid #eef1f5; display: flex; gap: 14px; align-items: flex-start; }
 .news-item:last-child { border-bottom: none; }
 .news-date { min-width: 90px; font-size: 10px; font-weight: 800; color: #2e6fb0; padding-top: 1px; }
@@ -219,7 +219,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .news-content strong { color: #1a2f50; }
 .news-val { font-size: 12px; font-weight: 800; color: #c45b11; }
 
-/* ââ ENDPOINT REFERENCE ââââââââââââââââââââââââââââââââââââ */
+/* ── ENDPOINT REFERENCE ──────────────────────────────────── */
 .endpoint-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .endpoint-box { background: #f0f5fb; border-radius: 6px; padding: 10px 12px; border-left: 3px solid #2e6fb0; }
 .endpoint-box.g { border-left-color: #2a7a47; }
@@ -246,8 +246,8 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
 <div class="header">
   <div>
-    <div class="header-title">â¬¡ BD Intelligence Dashboard</div>
-    <div class="header-sub">Bispecific Antibody Deal Monitor Â· IBD &amp; Respiratory</div>
+    <div class="header-title">⬡ BD Intelligence Dashboard</div>
+    <div class="header-sub">Bispecific Antibody Deal Monitor · IBD &amp; Respiratory</div>
   </div>
   <div class="header-meta">
     <strong>Data current as of May 2026</strong><br>
@@ -256,13 +256,13 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 </div>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('tl1a',this)">TL1A Ã IL-23p19 <span class="ct">IBD</span></button>
-  <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP Ã IL-33 <span class="ct">Respiratory</span></button>
+  <button class="tab-btn active" onclick="switchTab('tl1a',this)">TL1A × IL-23p19 <span class="ct">IBD</span></button>
+  <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP × IL-33 <span class="ct">Respiratory</span></button>
 </div>
 
 <div class="content">
 
-<!-- ââââââââââââââ TAB 1: TL1A Ã IL-23p19 ââââââââââââââ -->
+<!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
 <div class="tab-pane active" id="tab-tl1a">
 
   <div class="stat-row">
@@ -279,34 +279,34 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     <div class="stat-card g">
       <div class="s-label">Bispecific Programs</div>
       <div class="s-val">7</div>
-      <div class="s-sub">Global TL1A Ã IL-23p19</div>
+      <div class="s-sub">Global TL1A × IL-23p19</div>
     </div>
     <div class="stat-card p">
       <div class="s-label">Chinese Programs</div>
       <div class="s-val">3</div>
-      <div class="s-sub">Simcere Â· Qyuns Â· LaNova</div>
+      <div class="s-sub">Simcere · Qyuns · LaNova</div>
     </div>
   </div>
 
   <div class="two-col">
     <div class="card">
-      <div class="card-hd">ð Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span></div>
+      <div class="card-hd">🔍 Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span></div>
       <div class="dl-grid">
-        <div class="dl-lbl">Deal</div>       <div class="dl-val" style="font-weight:700">Simcere â Boehringer Ingelheim</div>
+        <div class="dl-lbl">Deal</div>       <div class="dl-val" style="font-weight:700">Simcere → Boehringer Ingelheim</div>
         <div class="dl-lbl">Asset</div>      <div class="dl-val">SIM0709 (TL1A/IL-23p19 bispecific IgG)</div>
         <div class="dl-lbl">Stage</div>      <div class="dl-val">Preclinical (IND-enabling)</div>
         <div class="dl-lbl">Territory</div>  <div class="dl-val">Global excluding Greater China</div>
-        <div class="dl-lbl">Upfront</div>    <div class="dl-val hi">â¬42M (~$46M)</div>
-        <div class="dl-lbl">Total</div>      <div class="dl-val hi">â¬1.058B (~$1.16B)</div>
+        <div class="dl-lbl">Upfront</div>    <div class="dl-val hi">€42M (~$46M)</div>
+        <div class="dl-lbl">Total</div>      <div class="dl-val hi">€1.058B (~$1.16B)</div>
         <div class="dl-lbl">Royalties</div>  <div class="dl-val">Tiered on ex-Greater China net sales</div>
-        <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700">â Retained by Simcere</div>
+        <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700">✓ Retained by Simcere</div>
       </div>
-      <div class="dl-note">ð¡ <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal â signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1AÃIL-23p19 out-licensing at â¬42M upfront.</div>
+      <div class="dl-note">💡 <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal — signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1A×IL-23p19 out-licensing at €42M upfront.</div>
     </div>
     <div class="card">
-      <div class="card-hd">ð Deal Value Comparison (Total Potential)</div>
+      <div class="card-hd">📊 Deal Value Comparison (Total Potential)</div>
       <div class="chart-wrap">
-        <div class="chart-title">USD equivalent Â· TL1A Ã IL-23p19 bispecific deals</div>
+        <div class="chart-title">USD equivalent · TL1A × IL-23p19 bispecific deals</div>
         <canvas id="chartTL1A" style="max-height:195px"></canvas>
       </div>
     </div>
@@ -314,24 +314,24 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
   <!-- AILUX ASSET PROFILE -->
   <div class="ailux-card">
-    <div class="ailux-title">Ailux Asset Profile Â· TL1A Ã IL-23p19 Bispecific</div>
+    <div class="ailux-title">Ailux Asset Profile · TL1A × IL-23p19 Bispecific</div>
     <div class="ailux-name">Competitive Positioning vs. Field</div>
     <div class="ailux-sub">4 structural differentiators vs. Mirador, Caldera, Xencor, Helixon, and Simcere/BI programs</div>
     <div class="ailux-diff-grid">
       <div class="ailux-diff">
         <div class="ad-label">Mechanism of Action</div>
         <div class="ad-val">Trimer Destabilization</div>
-        <div class="ad-sub">Engineered mutations disrupt TL1A trimer assembly â distinct from all competitors' DR3 blockade. Attacks the target at the source, not just the receptor.</div>
+        <div class="ad-sub">Engineered mutations disrupt TL1A trimer assembly — distinct from all competitors' DR3 blockade. Attacks the target at the source, not just the receptor.</div>
       </div>
       <div class="ailux-diff">
         <div class="ad-label">Half-Life</div>
-        <div class="ad-val">37-Day tÂ½ (Mono)</div>
-        <div class="ad-sub">~37-day monotherapy half-life vs. 14â21 day class average. Extended PK enables less-frequent dosing (monthly or longer), meaningful for patient convenience and payer acceptance.</div>
+        <div class="ad-val">37-Day t½ (Mono)</div>
+        <div class="ad-sub">~37-day monotherapy half-life vs. 14–21 day class average. Extended PK enables less-frequent dosing (monthly or longer), meaningful for patient convenience and payer acceptance.</div>
       </div>
       <div class="ailux-diff">
         <div class="ad-label">Epitope & Immunogenicity</div>
-        <div class="ad-val">Novel Epitope â Low ADA</div>
-        <div class="ad-sub">Binds a novel epitope via stoichiometric mechanism. Low predicted anti-drug antibody (ADA) risk â important for chronic IBD dosing where ADA-driven loss of response is a major clinical issue.</div>
+        <div class="ad-val">Novel Epitope → Low ADA</div>
+        <div class="ad-sub">Binds a novel epitope via stoichiometric mechanism. Low predicted anti-drug antibody (ADA) risk — important for chronic IBD dosing where ADA-driven loss of response is a major clinical issue.</div>
       </div>
       <div class="ailux-diff">
         <div class="ad-label">Formulation</div>
@@ -346,27 +346,27 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     <div class="estimand-hd" onclick="toggleEstimand('est-tl1a')">
       <div class="estimand-hd-left">
         <div>
-          <div class="estimand-hd-title">âï¸ Estimand Intelligence â Why the Same Endpoint Can Mean Different Things</div>
-          <div class="estimand-hd-sub">ICH E9(R1) Â· Critical for interpreting IBD remission rates across TL1A trials</div>
+          <div class="estimand-hd-title">⚖️ Estimand Intelligence — Why the Same Endpoint Can Mean Different Things</div>
+          <div class="estimand-hd-sub">ICH E9(R1) · Critical for interpreting IBD remission rates across TL1A trials</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="estimand-hd-badge">Essential BD Context</span>
-        <span class="estimand-toggle" id="toggle-est-tl1a">â¼</span>
+        <span class="estimand-toggle" id="toggle-est-tl1a">▼</span>
       </div>
     </div>
     <div class="estimand-body" id="est-tl1a">
       <div class="estimand-intro">
-        An <strong>estimand</strong> defines the exact clinical question a trial is trying to answer â not just the endpoint, but how the trial handles real-world disruptions like rescue medication use, dose changes, discontinuations, and dropouts. Two IBD trials can both report "Week 52 remission" while answering fundamentally different questions. ICH E9(R1) (2019) requires sponsors to pre-specify the estimand before the trial starts.
+        An <strong>estimand</strong> defines the exact clinical question a trial is trying to answer — not just the endpoint, but how the trial handles real-world disruptions like rescue medication use, dose changes, discontinuations, and dropouts. Two IBD trials can both report "Week 52 remission" while answering fundamentally different questions. ICH E9(R1) (2019) requires sponsors to pre-specify the estimand before the trial starts.
       </div>
       <div class="estimand-grid">
         <div class="estimand-strategy es-composite">
           <div class="es-name"><span class="eb eb-composite">Composite</span></div>
-          <div class="es-def"><strong>Most common in IBD.</strong> Intercurrent events (rescue steroids, prohibited meds, discontinuation) are incorporated into the outcome â patients who need rescue are counted as non-responders, regardless of their actual Week 52 status. Measures <em>real-world treatment success</em> including tolerability. Industry standard for UC/CD Phase 2b/3.</div>
+          <div class="es-def"><strong>Most common in IBD.</strong> Intercurrent events (rescue steroids, prohibited meds, discontinuation) are incorporated into the outcome — patients who need rescue are counted as non-responders, regardless of their actual Week 52 status. Measures <em>real-world treatment success</em> including tolerability. Industry standard for UC/CD Phase 2b/3.</div>
         </div>
         <div class="estimand-strategy es-policy">
           <div class="es-name"><span class="eb eb-policy">Treatment Policy</span></div>
-          <div class="es-def"><strong>ITT regardless of intercurrent events.</strong> All patients analyzed based on original assignment, whatever happened â rescue meds, dose changes, discontinuation. Measures the drug's effect in practice, not under ideal conditions. More common in respiratory (exacerbation trials) than IBD. Can inflate apparent remission rates if patients got rescue.</div>
+          <div class="es-def"><strong>ITT regardless of intercurrent events.</strong> All patients analyzed based on original assignment, whatever happened — rescue meds, dose changes, discontinuation. Measures the drug's effect in practice, not under ideal conditions. More common in respiratory (exacerbation trials) than IBD. Can inflate apparent remission rates if patients got rescue.</div>
         </div>
         <div class="estimand-strategy es-hypothetical">
           <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
@@ -378,28 +378,28 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
         </div>
       </div>
       <div class="estimand-warning">
-        <strong>â ï¸ BD read-through for IBD:</strong> When comparing TL1A remission rates across tulisokibart (Merck), duvakitug (Teva/Sanofi), and afimkibart (Roche), verify that all three are using a <strong>composite estimand</strong> with the same intercurrent event definition. A composite-based 35% remission rate is not comparable to a treatment-policy-based 45% remission rate â the second number is answering a different, easier question. This is particularly critical when comparing monotherapy context data to inform bispecific design assumptions. Future TL1A Ã IL-23p19 Phase 2 trials should pre-specify composite estimands to align with the emerging IBD standard.
+        <strong>⚠️ BD read-through for IBD:</strong> When comparing TL1A remission rates across tulisokibart (Merck), duvakitug (Teva/Sanofi), and afimkibart (Roche), verify that all three are using a <strong>composite estimand</strong> with the same intercurrent event definition. A composite-based 35% remission rate is not comparable to a treatment-policy-based 45% remission rate — the second number is answering a different, easier question. This is particularly critical when comparing monotherapy context data to inform bispecific design assumptions. Future TL1A × IL-23p19 Phase 2 trials should pre-specify composite estimands to align with the emerging IBD standard.
       </div>
     </div>
   </div>
 
-  <div class="sec-hd"><span class="sec-title">Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">15 Events Â· Sortable</span></div>
+  <div class="sec-hd"><span class="sec-title">Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">15 Events · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-readouts"></div></div>
 
-  <div class="sec-hd"><span class="sec-title">Global TL1A Ã IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">7 Programs Â· Sortable</span></div>
+  <div class="sec-hd"><span class="sec-title">Global TL1A × IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">7 Programs · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-pipe"></div></div>
 
   <div class="sec-hd"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-mono"></div></div>
 
   <!-- TECHNICAL COMPETITOR COMPARISON -->
-  <div class="sec-hd"><span class="sec-title">Bispecific Technical Deep-Dive</span><div class="sec-line"></div><span class="sec-tag">Mechanism Â· Format Â· Differentiators</span></div>
+  <div class="sec-hd"><span class="sec-title">Bispecific Technical Deep-Dive</span><div class="sec-line"></div><span class="sec-tag">Mechanism · Format · Differentiators</span></div>
   <div class="info-card">
     <div class="info-hd" onclick="toggleSection('tech-comp')">
-      <span class="info-hd-title">ð¬ Head-to-Head: Bispecific Platform Comparison (All TL1A Ã IL-23p19 Programs)</span>
+      <span class="info-hd-title">🔬 Head-to-Head: Bispecific Platform Comparison (All TL1A × IL-23p19 Programs)</span>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="info-hd-badge">Click to Expand</span>
-        <span class="info-toggle" id="tech-comp-toggle">â¼</span>
+        <span class="info-toggle" id="tech-comp-toggle">▼</span>
       </div>
     </div>
     <div class="info-body" id="tech-comp-body">
@@ -411,42 +411,42 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
   <div class="china-grid">
     <div class="china-card licensed">
       <div class="cc-name">Simcere Pharmaceutical</div>
-      <div class="cc-asset">SIM0709 Â· TL1A Ã IL-23p19 IgG bispecific</div>
+      <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
       <span class="cc-badge bg-licensed">Out-licensed</span>
       <div class="cc-detail">Retains all Greater China commercialization rights. 5th out-licensing deal, cumulative potential ~$4.6B. Demonstrated superior synergy over mono combo in preclinical IBD models.</div>
-      <div class="cc-deal">ð¤ Boehringer Ingelheim â â¬42M upfront Â· â¬1.05B total</div>
+      <div class="cc-deal">🤝 Boehringer Ingelheim — €42M upfront · €1.05B total</div>
     </div>
     <div class="china-card licensed">
-      <div class="cc-name">Qyuns Therapeutics (èä¿¡çç©)</div>
-      <div class="cc-asset">QX030N / CLD-423 Â· TL1A Ã IL-23p19 bispecific</div>
+      <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
+      <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
       <span class="cc-badge bg-ph1">Phase 1</span>
-      <div class="cc-detail">First subjects dosed Jan 2026. Retains China rights. Serial out-licensor â also licensed QX031N (TSLPÃIL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLPÃIL-13) to Windward Bio.</div>
-      <div class="cc-deal">ð¤ Caldera Therapeutics â $10M + ~25% equity Â· up to $545M</div>
+      <div class="cc-detail">First subjects dosed Jan 2026. Retains China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
+      <div class="cc-deal">🤝 Caldera Therapeutics — $10M + ~25% equity · up to $545M</div>
     </div>
     <div class="china-card seeking">
       <div class="cc-name">LaNova Medicines / Zymeworks</div>
-      <div class="cc-asset">LQ080 Â· Extended half-life VHH (nanobody) bispecific</div>
+      <div class="cc-asset">LQ080 · Extended half-life VHH (nanobody) bispecific</div>
       <span class="cc-badge bg-seeking">Seeking Partner</span>
-      <div class="cc-detail">VHH nanobody format â uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global partnership opportunity open.</div>
-      <div class="cc-deal">ð Partnering window open</div>
+      <div class="cc-detail">VHH nanobody format — uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global partnership opportunity open.</div>
+      <div class="cc-deal">📋 Partnering window open</div>
     </div>
     <div class="china-card seeking">
       <div class="cc-name">Episcience</div>
-      <div class="cc-asset">ES302 Â· TL1A Ã IL-23p19 bispecific</div>
+      <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
       <span class="cc-badge bg-pre">Preclinical</span>
-      <div class="cc-detail">Limited public data. Early-stage preclinical program. One of â¥4 Chinese companies with TL1AÃIL-23p19 assets, reflecting China's strong bispecific antibody engineering depth.</div>
-      <div class="cc-deal">ð Partnering window open</div>
+      <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's strong bispecific antibody engineering depth.</div>
+      <div class="cc-deal">📋 Partnering window open</div>
     </div>
   </div>
 
   <!-- IBD MARKET & STANDARD OF CARE -->
-  <div class="sec-hd"><span class="sec-title">IBD Market &amp; Standard of Care Context</span><div class="sec-line"></div><span class="sec-tag">$30.7B â $41.9B by 2030</span></div>
+  <div class="sec-hd"><span class="sec-title">IBD Market &amp; Standard of Care Context</span><div class="sec-line"></div><span class="sec-tag">$30.7B → $41.9B by 2030</span></div>
   <div class="info-card">
     <div class="info-hd" onclick="toggleSection('ibd-market')">
-      <span class="info-hd-title">ð IBD Market Size, Standard of Care &amp; Efficacy Benchmarks</span>
+      <span class="info-hd-title">📈 IBD Market Size, Standard of Care &amp; Efficacy Benchmarks</span>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="info-hd-badge">Click to Expand</span>
-        <span class="info-toggle" id="ibd-market-toggle">â¼</span>
+        <span class="info-toggle" id="ibd-market-toggle">▼</span>
       </div>
     </div>
     <div class="info-body" id="ibd-market-body">
@@ -475,31 +475,31 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
       <div class="soc-panel">
         <div class="soc-box">
-          <div class="soc-title">UC Â· Treatment Escalation Ladder</div>
+          <div class="soc-title">UC · Treatment Escalation Ladder</div>
           <table class="info-table">
             <tr><th>Line</th><th>Agent(s)</th><th>Class</th><th>Key Endpoint</th></tr>
-            <tr><td>1st</td><td>5-ASA (mesalamine)</td><td>Aminosalicylate</td><td>Stool frequency Â· bleeding</td></tr>
+            <tr><td>1st</td><td>5-ASA (mesalamine)</td><td>Aminosalicylate</td><td>Stool frequency · bleeding</td></tr>
             <tr><td>2nd</td><td>Corticosteroids</td><td>Immunosuppressant</td><td>Short-term remission</td></tr>
-            <tr><td>3rd</td><td>Azathioprine / 6-MP</td><td>Thiopurine</td><td>Steroid-sparing Â· mucosal</td></tr>
-            <tr><td>4th</td><td>Vedolizumab (Entyvio)</td><td>Anti-Î±4Î²7</td><td>Endoscopic remission</td></tr>
-            <tr><td>4th</td><td>Ustekinumab (Stelara)</td><td>Anti-IL-12/23 p40</td><td>Mayo score â¤2</td></tr>
-            <tr><td>5th</td><td>Risankizumab (Skyrizi) Â· Mirikizumab (Omvoh)</td><td>Anti-IL-23p19</td><td>Endoscopic remission (MES â¤1)</td></tr>
-            <tr><td>5th</td><td>Upadacitinib (Rinvoq) Â· Tofacitinib</td><td>JAK inhibitor</td><td>PRO2 remission</td></tr>
-            <tr><td>6th</td><td>Tulisokibart Â· Duvakitug (Ph3)</td><td>Anti-TL1A</td><td>Composite endoscopic + PRO</td></tr>
+            <tr><td>3rd</td><td>Azathioprine / 6-MP</td><td>Thiopurine</td><td>Steroid-sparing · mucosal</td></tr>
+            <tr><td>4th</td><td>Vedolizumab (Entyvio)</td><td>Anti-α4β7</td><td>Endoscopic remission</td></tr>
+            <tr><td>4th</td><td>Ustekinumab (Stelara)</td><td>Anti-IL-12/23 p40</td><td>Mayo score ≤2</td></tr>
+            <tr><td>5th</td><td>Risankizumab (Skyrizi) · Mirikizumab (Omvoh)</td><td>Anti-IL-23p19</td><td>Endoscopic remission (MES ≤1)</td></tr>
+            <tr><td>5th</td><td>Upadacitinib (Rinvoq) · Tofacitinib</td><td>JAK inhibitor</td><td>PRO2 remission</td></tr>
+            <tr><td>6th</td><td>Tulisokibart · Duvakitug (Ph3)</td><td>Anti-TL1A</td><td>Composite endoscopic + PRO</td></tr>
           </table>
         </div>
         <div class="soc-box">
-          <div class="soc-title">CD Â· Treatment Escalation Ladder</div>
+          <div class="soc-title">CD · Treatment Escalation Ladder</div>
           <table class="info-table">
             <tr><th>Line</th><th>Agent(s)</th><th>Class</th><th>Key Endpoint</th></tr>
             <tr><td>1st</td><td>Corticosteroids / Nutritional therapy</td><td>Immunosuppressant</td><td>Short-term remission</td></tr>
             <tr><td>2nd</td><td>Azathioprine / 6-MP / MTX</td><td>Immunomodulator</td><td>Steroid-sparing</td></tr>
-            <tr><td>3rd</td><td>Infliximab Â· Adalimumab</td><td>Anti-TNF</td><td>CDAI / HBI remission</td></tr>
-            <tr><td>4th</td><td>Vedolizumab (Entyvio)</td><td>Anti-Î±4Î²7</td><td>Clinical remission</td></tr>
-            <tr><td>4th</td><td>Ustekinumab (Stelara)</td><td>Anti-IL-12/23 p40</td><td>CDAI â¤150</td></tr>
-            <tr><td>5th</td><td>Risankizumab (Skyrizi) Â· Guselkumab (Tremfya)</td><td>Anti-IL-23p19</td><td>Endoscopic remission (SES-CD)</td></tr>
-            <tr><td>5th</td><td>Upadacitinib (Rinvoq) Â· Filgotinib</td><td>JAK inhibitor</td><td>CDAI remission</td></tr>
-            <tr><td>6th</td><td>Tulisokibart Â· Duvakitug (Ph3)</td><td>Anti-TL1A</td><td>CDAI + endoscopic composite</td></tr>
+            <tr><td>3rd</td><td>Infliximab · Adalimumab</td><td>Anti-TNF</td><td>CDAI / HBI remission</td></tr>
+            <tr><td>4th</td><td>Vedolizumab (Entyvio)</td><td>Anti-α4β7</td><td>Clinical remission</td></tr>
+            <tr><td>4th</td><td>Ustekinumab (Stelara)</td><td>Anti-IL-12/23 p40</td><td>CDAI ≤150</td></tr>
+            <tr><td>5th</td><td>Risankizumab (Skyrizi) · Guselkumab (Tremfya)</td><td>Anti-IL-23p19</td><td>Endoscopic remission (SES-CD)</td></tr>
+            <tr><td>5th</td><td>Upadacitinib (Rinvoq) · Filgotinib</td><td>JAK inhibitor</td><td>CDAI remission</td></tr>
+            <tr><td>6th</td><td>Tulisokibart · Duvakitug (Ph3)</td><td>Anti-TL1A</td><td>CDAI + endoscopic composite</td></tr>
           </table>
         </div>
       </div>
@@ -507,193 +507,399 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
       <div style="margin-bottom:10px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;">IL-23p19 Efficacy Benchmarks (Clinical Bar for TL1A &amp; Bispecifics to Clear)</div>
       <div class="threshold-grid">
         <div class="threshold-box">
-          <div class="tb-drug">Risankizumab (Skyrizi) Â· ÑÙ]]Û\ÜÏH]X[QSÑHÈ0­È[XÝ[ÛÚÌLÙ]]Û\ÜÏH\]H
-IOÙ]]Û\ÜÏHY[Ú[Û[XØ[[Z\ÜÚ[Û
-ÑRH	ÌML
-HËIHXÙXÈ0­ÈÛÛ\ÜÚ]H\Ý[X[Ù]Ù]]Û\ÜÏH\ÚÛXÞ]Û\ÜÏHYYÈÝ\Ù[Ý[XX
-[YXJH0­ÈÑÙ]]Û\ÜÏH]X[ÐSVKLHÌÈ0­ÈÚÌLÙ]]Û\ÜÏH\]H
-x $Í
-OÙ]]Û\ÜÏHY[Ú[Û[XØ[[Z\ÜÚ[ÛË	HXÙXÈ0­ÈÙ]È\ÜÑ[XÝ[ÛÙ]Ù]]Û\ÜÏH\ÚÛXÞ]Û\ÜÏHYYÈZ\ZÚ^[XX
-Û]Ú
-H0­ÈPÏÙ]]Û\ÜÏH]X[PÑSLHÈ0­È[XÝ[ÛÚÌLÙ]]Û\ÜÏH\]HOÙ]]Û\ÜÏHY[Ú[Û[XØ[[Z\ÜÚ[ÛËLËÉHXÙXÈ0­ÈÛÛ\ÜÚ]H\Ý[X[Ù]Ù]]Û\ÜÏH\ÚÛXÞ]Û\ÜÏHYYÈ]ZÚ]YÈ
-UM
-MÍ
-H0­ÈPÏÙ]]Û\ÜÏH]X[SQUHPÐÑ0­ÈLYÈÚÌMÙ]]Û\ÜÏH\]H	OÙ]]Û\ÜÏHY[Ú[YÚ\ÝPHPÈÚYÛ[\ÜY0­ÈÛÛ\ÜÚ]H\Ý[X[0­ÈÈÛÛÚ[ÏÙ]Ù]Ù]]Û\ÜÏH[Ú[YÜY]Û\ÜÏH[Ú[XÞ]Û\ÜÏH\]]HPÈ[X\H[Ú[ÏÙ]]Û\ÜÏH\\ÝÈÝÛÏÛ[XØ[[Z\ÜÚ[ÛÜÝÛÏX^[ÈØÛÜH8¢iÈÝXØÛÜH	ÝÌOÙ]]Û\ÜÏH\\ÝÈÝÛÏÌÜÝÛÏÝÛÛ\]Y[ÞH
-ÈXÝ[YY[ÈÝXØÛÜ\ÈÛÛX[YÙ]]Û\ÜÏH\\ÝÈÝÛÏ[ÜØÛÜXÎÜÝÛÏX^[È[ÜØÛÜXÈÝXØÛÜH8¢iH
-]XÛÜØ[X[[ÊOÙ]]Û\ÜÏH\\ÝÈÝÛÏ\ÝÛÙÚXÎÜÝÛÏÙXÙ\È8¢iËH
-[Y\Ú[ÈÛË\[X\JOÙ]Ù]]Û\ÜÏH[Ú[XÞÈ]Û\ÜÏH\]]HÑ[X\H[Ú[ÏÙ]]Û\ÜÏH\\ÝÈÝÛÏÑRNÜÝÛÏÜÚÜÈ\ÙX\ÙHXÝ]]H[^	ÌML
-[Z\ÜÚ[ÛOÙ]]Û\ÜÏH\\ÝÈÝÛÏNÜÝÛÏ\^KPYÚ]È[^8¢i
-Ù]]Û\ÜÏH\\ÝÈÝÛÏ[ÜØÛÜXÈ\ÜÛÙNÜÝÛÏ8¢iML	HYXÝ[Û[ÑTËPÑÙ]]Û\ÜÏH\\ÝÈÝÛÏÑRTÎÜÝÛÏÑ[ÜØÛÜXÈ[^ÙÙ]\]H8¢iÈ
-[Z\ÜÚ[ÛOÙ]Ù]Ù]Ù]Ù]KKHPTÑUTÕÔHKO]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]HP\Ù]\ÝÜOÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÈ\\È0­ÈÛHÝ\ÚYÈÈPOÜÜ[Ù]]Û\ÜÏH[ËXØ\]Û\ÜÏH[ËZÛÛXÚÏHÙÙÛTÙXÝ[Û	ÚXZ\ÝÜIÊHÜ[Û\ÜÏH[ËZ]]H¼'äæ\ÝÜHÙPYÈ\Ù]Î
-È\\È]XYÈPH0åÈSLÜNOÜÜ[]Ý[OH\Ü^N^Ø[YÛZ][\ÎÙ[\ÙØ\LÜ[Û\ÜÏH[ËZXYÙHÛXÚÈÈ^[ÜÜ[Ü[Û\ÜÏH[Ë]ÙÙÛHYHXZ\ÝÜK]ÙÙÛH¸¥¯ÜÜ[Ù]Ù]]Û\ÜÏH[ËXÙHYHXZ\ÝÜKXÙH]Ý[OHÛ\Ú^NL\ØÛÛÜÌØML
-ÌÛ[KZZYÚKÎÛX\Ú[XÝÛNLØÜ\[YÜÛÛYÌMÜY[Ë[YLÈPH[ÛÜÈÈHÝ\\[Z[H
-ÑMJK^\ÜÙYH[Ý[X[[\][X[Ù[È[[[YYÝ]]XÛÜØK]ÈXÙ\ÜÈ\ÈY\[X[H^\ÜÙYÛ[]H[\ÚYÙ[È[KÕMÈÙ[Ë[\YZ[È]XÛÜØ[[[[X][Û[\Ý[[ÈH\Ù][XYÙH]ÈPH8 %[H\ÜXÚYXÈ\Ú\È8 %[Û[XØ[ÛÛ^Ù]XHÛ\ÜÏH[Ë]XHÝ[OHXK[^[Ý]^YÛÛÜÝ\ÛÛÝ[OHÚYLÛÛÝ[OHÚYÛÛÝ[OHÚYLÛÛÝ[OHÚYMÛÛÝ[OHÚYÌÛÛÝ[OHÚYMÌÛÛÝ[OHÚYMÌØÛÛÜÝ\\OÝ\[ÙÝYÈÛ\ÜÏÝÙ^HYÙ[ÏÝ[XØ][ÛÝÙ^HYXØXÞOÝÚYÛYXØ[ÙOÝÝÜ[Û\ÜÏH\KXYÙH\KLH\HOÜÜ[ÝKLÝÛÛ[[Û[[[][ÜÝ\\ÜØ[ÏÝKPTÐKÛÜXÛÜÝ\ÚYË^][Ü[K
-STUÝPÈÈÑÝ\XXNÈÝ\ÚYÈ	HÚÜ]\H\ÜÛÙH]	HÝ\ÝZ[Y[Z\ÜÚ[ÛÚ]Ý]XZ[[[ÙOÝÝ[\ÙØ\HXÚØÛNÈÝ[\ÙY[ÛÛX[][ÛÈXÚ\Ú[Û\Ù][ËÝÝÜ[Û\ÜÏH\KXYÙH\KL\HÜÜ[ÝNNN8 $ÌLÝ[KU[ÛÙÚXÜÏÝ[^[XX
-[ZXØYJKY[[][XX
-[Z\JKÙ\Û^[XXÛÛ[][XXÝPÈÈÑÝÌ8 $Í	H[Z\ÜÚ[Û]ÚÍLÈ]XÛÜØ[X[[È[Ì	HÑXZÜY[ÙHÝ\[ÜÓÐËÝ\Ý	ÝÉPP[Ú\ÙNÈÜX]YH[ÛÙÚXÈ\H[PXYHZ[ÛØ[PÛZ[[ÙH\KÝÝÜ[Û\ÜÏH\KXYÙH\KLÈ\HÏÜÜ[ÝMÝ[Z[YÜ[ÝYÛ^[XX
-[][ËZÙYJOÝPÈÈÑÝPÎMÉH[Z\ÜÚ[ÛË
-IHXÙXÈ]ÚÍÈÝ]\Ù[XÝ]HYXÚ[\ÛH[\ÝYØY]HËÞ\Ý[ZXÈ[KUÝ[[ÛÝ]YÝ]\Ù[XÝ]H[ÐH\ÈY\[X]Y[ÛK[][ÈXZÈØ[\È
-ËÝÝÜ[Û\ÜÏH\KXYÙH\KM\H
-ÜÜ[ÝM¸ $ÌNOÝ[KRSLLÌÈ
-
-
-OÝ\ÝZÚ[[XX
-Ý[\K[\ÒOÝÑÈPÏÝÑMH[Z\ÜÚ[Û[XÝ[Û
-ÚÍUNÈX[SLLÌÈØÚØYHXHÚ\Y
-ÝX[]Ý[Y]YSLÈ]Ø^H[PÜÝX\Ù]Ú\H\ÈSLÜNK\Ù[XÝ]HYÙ[ÈÝYÝ\\[ÜÝÝÜ[Û\ÜÏH\KXYÙH\KMH\H
-OÜÜ[Ýx $Ü\Ù[Ý[KRSLÜNHÙ[XÝ]OÝ\Ø[Ú^[XX
-ÚÞ\^KXYJKZ\ZÚ^[XX
-Û]Ú[JKÝ\Ù[Ý[XX
-[YXK[\ÒOÝPÈÈÑÝÑ
-
-IH[Z\ÜÚ[Û
-ÚÞ\^HQSÑJK
-
-x $Í
-H
-[YXHÐSVKLJKPÎH
-Û]ÚPÑSLJKSLÜNHÙ[XÝ]H	ÝÈ
-ÝÝ\[Ý[\[ÙXØ\H[ÛÙÚXÜËÚÞ\^HPXZÈÜXØ\Ý	LËÙ^HÛÛ\\]ÜÜ[]ÈPYXÚ[\Û\ËÝÝÜ[Û\ÜÏH\KXYÙH\KM\H
-ÜÜ[Ý¸ $Ü\Ù[ÝRÈ[X]ÜÈ
-ÛX[[ÛXÝ[JOÝ\YXÚ][X
-[ÜKXYJKÙXÚ][X
-[[K[ÛÝ[X
-\Ù[XØJOÝPÈÈÑÝ[ÜHPÎH[Z\ÜÚ[Û]ÚÎ\ÝÛÙ]
-Ü[^\ÈËÙYZÜÊKØY]HÞYØ\[È
-[Ý\ÈÛXÙ[XÛ\ÛKÙ\[Ý\È[XÝ[ÛÊKÝÜ[ÜX]\ÈÝÛÈ]Y[Y\[ÙKØY]HÛÛÙ\È[Z]\ÙHÈZ[Y\]X]H\ÜÛ\Ë[ÛNÛÛXÈÚ]PHÜÜÚXKÝÝÜ[Û\ÜÏH\KXYÙH\KMÈ\H
-ÏÜÜ[Ý8 $Ü\Ù[Ý[KUPH	[\È\ÜXÚYXÜÏÝ[\ÛÚÚX\
-Y\ÚÊK]ZÚ]YÈ
-]KÔØ[ÙJKY[ZÚX\
-ØÚJH8¡¤\ÜXÚYXÜÎULLKÒSL
-ÌKLLÏÝPÈÈÑÝ[\ÛÚÚX\IHPÎÈ]ZÚ]YÎ
-	H
-YÚ\ÝPHÚYÛ[
-NÈY[ZÚX\	H
-È[X\H[Ú[
-KÝÝ\[Ø]H][È	ÝÉË[\ÜXÚYXÈX[Ë\ÜXÚYXÈ\Ú\ÎPH
-ÈSLÜNHX[ØÚØYHÛÝ[^ÙYY[ÛÝ\\HYXØXÞHÜ\]Ë]X]PÝÝÝXOÙ]Ù]KKHSUQUÔÈKO]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]H[]Y]ÜÈ	[\ÈXÙY[[ØXÝ[ÛÏÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÙ^H][ÏÜÜ[Ù]]Û\ÜÏH[ËXØ\]Û\ÜÏH[ËZÛÛXÚÏHÙÙÛTÙXÝ[Û	ÚX[]ÜÉÊHÜ[Û\ÜÏH[ËZ]]H¼'äìPH[ØØ\H]ÜÈ	[\ÈÝ]YÚXÈ[ØXÝ[ÛÏÜÜ[]Ý[OH\Ü^N^Ø[YÛZ][\ÎÙ[\ÙØ\LÜ[Û\ÜÏH[ËZXYÙHÛXÚÈÈ^[ÜÜ[Ü[Û\ÜÏH[Ë]ÙÙÛHYHX[]ÜË]ÙÙÛH¸¥¯ÜÜ[Ù]Ù]]Û\ÜÏH[ËXÙHYHX[]ÜËXÙH]Û\ÜÏH]ÜËZ][H]Û\ÜÏH]ÜËY]HØÝÏÙ]]Û\ÜÏH]ÜËXÛÛ[ÝÛÏØÚHXÜ]Z\\È[][Ü
-ËPÜÝÛÏ8 %[][Ø\ÈH]ÙY[Ú][ØÚY[Ù\È[^\][Ü[ÈY[ZÚX\
-ÍÌJK[[KUPH[ÛØÛÛ[[XÙH[[\ÙH
-TÐÐSKLKØÚHZY
-ËPÈXÜ]Z\H[ÛØ[YÚËÜ[Û\ÜÏH]ÜË][
-ËPÜÜ[XÜ]Z\Ú][ÛÙ]H\Ù\ÝÚ[ÛHPX[ÛXÛÜ[[Y]YHPHYXÚ[\ÛHÛÛ[Y\ÚX[H]X\ÜÚ]HØØ[H8 %YÜH\ÙHÈ]KTÐÐSKL[X\H[Ú[Ø\ÈÝXÙ\]Y[H\ÜY\ÈÝÝ]\ÝXØ[HÚYÛYXØ[[\[[ÈH\ÚÈ][]\ÈX[Ú^KÙ]Ù]]Û\ÜÏH]ÜËZ][H]Û\ÜÏH]ÜËY]H\OÙ]]Û\ÜÏH]ÜËXÛÛ[ÝÛÏX\[[XÈXÙ[Ù\ÈLLÈÈØ[ÙH8 %	LSH\Û	K
-
-PÝ[ÜÝÛÏ8 %RKY\ÚYÛYPH0åÈSLÜNH\ÜXÚYXÈ
-Ì]][[ÜX]
-KKRSÝYÙKØ[ÙIÜÈ[H[ÈH\ÜXÚYXÈPHÜXÙKÜ[Û\ÜÏH]ÜË][LSH\ÛÜÜ[]KRSÝYÙH\\Ù[ÈHYÚ\Ý\Û[HÜXÙH[Ù]ÈHÙZ[[ÈÜX\K\ÝYÙH\ÜXÚYXÈ[X][ÛËÙ]Ù]]Û\ÜÏH]ÜËZ][H]Û\ÜÏH]ÜËY]H\OÙ]]Û\ÜÏH]ÜËXÛÛ[ÝÛÏ^][ÈXÙ[Ù\ÈÓMÈ
-VÌHÈØ[\H\\]]XÜÈ8 %	LH
-ÈIH\]Z]K\È	
-M
-SOÜÝÛÏ8 %\ÝÝXXÝÈÜÙY[Ü[Û\ÜÏH]ÜË][LH
-ÈIH\]Z]OÜÜ[\ÈHY\[ÝXÝ\H[\HØ\Ú\ÛYXÝ[ÈØ[\IÜÈX\K\ÝYÙHÝ]\È\ÈH^][ËXXÚÙYÜ[Ý]Ù]ÈHÛÜÜÝXÝ\YPH\ÜXÚYXÈX[ËÙ]Ù]]Û\ÜÏH]ÜËZ][H]Û\ÜÏH]ÜËY]H[Ù]]Û\ÜÏH]ÜËXÛÛ[ÝÛÏÚ[XÙ\HÝ][XÙ[Ù\ÈÒSL
-ÌHÈÙZ[Ù\[Ù[Z[H8 %8 «
-H\Û8 «K
-PÝ[ÜÝÛÏ8 %ÛËXXÝ[ÈÐÈYÑÈ\ÜXÚYXËKRS8¡¤RHÛØ[^QÜX]\Ú[KÚ[XÙ\H]Z[È[Ú[HYÚËÜ[Û\ÜÏH]ÜË][¸ «
-H\ÛÜÜ[]XÛ[XØ[ÜKRSÝYÙKIÜÈÙXÛÛÚ[K\ÛÝ\ÙYPX[ÚYÛ[ÈÞ\Ý[X]XÈÝ]YÞHÈXØÙ\ÜÈÚ[\ÙH\ÜXÚYXÈ[Ý][ÛÙ]Ù]]Û\ÜÏH]ÜËZ][H]Û\ÜÏH]ÜËY]HX^HÙ]]Û\ÜÏH]ÜËXÛÛ[ÝÛÏ[ÛÜPXLXÛ[XØ[]H\Ù[Y]ÈX^H¸ $ÍKÜÝÛÏ8 %\ÝXXÈPH0åÈSLÜNH\ÜXÚYXÈ]HÛH[ÛÜ]\YÚ[È[8¡(Ö[XÚÛÙÞH
-ÌKY^H0¯H[Y]Y[PXM[ÛÝ\\JK\ÙHHR[Y[\[[ÙÜ[H8 %È\\[Ý[ÙYÈ]KÙ]Ù]Ù]Ù]]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]H[[YÙ[ÙH0­ÈÙ^HZÙX]Ø^\ÏÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈX^HÜÜ[Ù]]Û\ÜÏH[ÚYÚXÞ]Û\ÜÏH[ÚYÚ[X[XÝ[ÛXH[[YÙ[ÙHÜÚ[\ÙHÙ\ÜÚ[Û[ÏÙ][OÝÛÏXÛ[XØ[[ÚX\È\ÈÝÈÙ]]8 «
-x $ÉLSH\ÛÜÛØ[Y^PÚ[HYÚËÜÝÛÏYHX[È]HÛÜÙYÚ[ÙH\H8 %[HÚ[\ÙHÛÛ\[HÚ]HPpåÒSLÜNH\ÜXÚYXÈÚÝ[[ÚÜ\\Ú\\ØÝ\ÜÚ[ÛÈÈ\ÙHÛÛ\\X\ËHÚ[XÙ\KÐHX[
-8 «
-H\ÛXÛ[XØ[
-H[X\[[ÔØ[ÙH
-	LSH\ÛXÛ[XØ[
-HY[HH[ÙH\ÙYÛ\ÜÙ]]X[]H[\\]\YÙKÛOOÝÛÏHÚ[ÝÈÜKT\ÙHHX[È\È\ÝÚ[È\ÝÜÝÛÏ^][ÉÈÓMÈ[\Y\ÙHH[[8 %ÛÙH\ÜXÚYXÜÈÙ[\]H\ÙHHØY]KÔÈ]KX[[X][ÛÈÚ[Y\Ø]HÚ\KÝ[XX[\\ØÚY[ÙHÚÝ[[Ü]^H\\[È[Y[[\ÈÝÎÈØZ][ÈÜ\ÙHH]H\ÈHX\ÛÛXHÝ]YÞHÛHYZ\Y\[X][Û
-ÜX][[YKÝ[ÞJH\ÈÛÛ\[[È[ÝYÚÈÛÛ[X[H[Z][HÝ\^][ËÐØ[\HÛÛ\\X\ËÛOOÝÛÏHÚ[H][[Û^XÛÚÈ\ÈÛÜÚ[È[ÚÝ[HYÚYÚYÈÛY[ËÜÝÛÏ[YHÚ[\ÙHX[È]Z[ÜX]\Ú[HÛÛ[Y\ÚX[^][ÛYÚË\ÈP[ÚY[ÙH\Ù\È[Ú[H[Ú[\ÙH[ÛÙÚXÜÈ[\ÝXÝ\HX]\\Ë\ÙH]Z[YYÚÈ\HÛÜX]\X[H[ÜH[^HÙ\H
-HYX\ÈYÛÈ8 %\È\ÈHÝÛÈ[Ú[ÈÚ[Ú[\ØÝ\ÜÚ[ÈX[ÝXÝ\HÚ]Ú[\ÙH[ÝXÚÛY[ÈÛÛÚY\[ÈÝ][XÙ[Ú[ËÛOOÝÛÏ\Ý[X[[YÛY[\ÈHY[\ÚÈ[\ÙH\ÚYÛÜ\ÜXÚYXÜËÜÝÛÏHYHXYPH[ÛÝ\\HÙÜ[\È[\ÙHÈ
-[\ÛÚÚX\]ZÚ]YËY[ZÚX\
-H[\ÙHÛÛ\ÜÚ]H\Ý[X[È8 %\ØÝYHÝ\ÚY\ÙHÜ\ØÛÛ[X][ÛÛÝ[È\ÈX]Y[Z[\KÚ[PpåÒSLÜNH\ÜXÚYXÜÈ[ÝH[È\ÙHÜÛÛÜÈÚÈ\ÙHHY\[\Ý[X[Ý]YÞH
-KËX]Y[ÛXÞJHÚ[\ÜYÚ\[Z\ÜÚ[Û]\È]Ø[ÝHÛÛ\\YÈH\ÙHÈ[ÛÐX[ÚX\ÜË\\È[YÝ[]ÜÈÚ[ØÜ][^H\ËÚ[\ÙHÛÛ\[Y\È\ÚYÛ[ÈZ\\ÙHÝØÛÛÈÚÝ[Y][ÈÛÛ\ÜÚ]H\Ý[X[ÈÈXZ[Z[ÛÛ\\X[]HÚ]H\ÝX\ÚYPHÛ[XØ[]Y[ÙH\ÙKÛOÝ[Ù]]Û\ÜÏHÛÝÝHÛÝ\Ù\ÎY\ÙH[ÝXÚ[Ô\XH]K[ÔÜXÙKÛÛ\[H\ÜÈ[X\Ù\È
-Ú[XÙ\HÈ[[Ë^][ÈÈ^Ú[ÙH[[ÊKPÐÓËRÐÈHÛÛ\[ÙHXÝXÝËRH
-[\ÛÚÚX\\ÙHKPÒNJJHY[[HÛ\Ý[X[È
-NJK]H\ÈÙX^HÙ]Ù]KKH8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dPÓ0åÈSLÌÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dKO]Û\ÜÏHX\[HYHX]Û]Û\ÜÏHÝ]\ÝÈ]Û\ÜÏHÝ]XØ\]Û\ÜÏHË[X[X[ÈÛÜÙYÙ]]Û\ÜÏHË][Ù]]Û\ÜÏHË\ÝXÓ\[]Y8 $ÌOÙ]Ù]]Û\ÜÏHÝ]XØ\È]Û\ÜÏHË[X[Ý[X[[YOÙ]]Û\ÜÏHË][ËÙ]]Û\ÜÏHË\ÝXØYÓX[ÛÛÙ]Ù]]Û\ÜÏHÝ]XØ\È]Û\ÜÏHË[X[Ó0åÈSLÌÈÙÜ[\ÏÙ]]Û\ÜÏHË][ÏÙ]]Û\ÜÏHË\ÝXÛÝÛ\ÜXÚYXÈÙÜ[\ÏÙ]Ù]]Û\ÜÏHÝ]XØ\]Û\ÜÏHË[X[Ú[\ÙHÙÜ[\ÏÙ]]Û\ÜÏHË][JÏÙ]]Û\ÜÏHË\ÝX^][È0­È[ÜÚ[Û0­È[Ý[0­È[ÜZOÙ]Ù]Ù]]Û\ÜÏHÛËXÛÛ]Û\ÜÏHØ\]Û\ÜÏHØ\Z¼'å#HX[ÜÝYÚÓ0åÈSLÌÈ[ÚÜX[Ü[Û\ÜÏHYÈØÝOÜÜ[Ù]]Û\ÜÏHYÜY]Û\ÜÏH[X[Ù]]Û\ÜÏH][Ý[OHÛ]ÙZYÚÌ^][È\\]]XÜÈ8¡¤ØÚOÙ]]Û\ÜÏH[\ÜÙ]Ù]]Û\ÜÏH][VÌS
-Ó0åÈSLÌÈÛËXXÝ[È\ÜXÚYXÊOÙ]]Û\ÜÏH[ÝYÙOÙ]]Û\ÜÏH][XÛ[XØ[]ÚYÛ[ÏÙ]]Û\ÜÏH[\]ÜOÙ]]Û\ÜÏH][ÛØ[
-]YÚ\Ý][ÛX[YXÝ\[ËÛÛ[Y\ÚX[
-OÙ]]Û\ÜÏH[\ÛÙ]]Û\ÜÏH][H
-ÍSOÙ]]Û\ÜÏH[Ý[Ù]]Û\ÜÏH][H\È	K
-ÐÙ]]Û\ÜÏH[ÞX[Y\ÏÙ]]Û\ÜÏH][Y\YÛÙXÝØ[\ÏÙ]]Û\ÜÏH[[XØ][ÛÏÙ]]Û\ÜÏH][ÓÔ\ÝXH
-\ÝZ[Y\ÙX\ÙHÛØ[
-OÙ]Ù]]Û\ÜÏH[ÝH¼'ä¨HÝÛÏÝ]YÚXÈXYÜÝÛÏØÚH[XYHÛÈ\ÝYÛÛ[XX
-[KTÕÒSLÌÔH[\ÝYÛÛ[XX\ÙHÈ]KVÌSYÈX[Ó
-ÒSLÌÈ\ÝX[HØÚØYHÈØÚIÜÈSLÌÈ[Ú\ÙH8 %HYÙHXÜÜÜÈH]Ø^K^][È\ÈÝÈÛÛ\]YÈXZÜÝ][XÙ[Ú[ÈX[ÈXÜÜÜÈY\[\ÜXÚYXÈ\Ù]Ë\ÝX\Ú[È]Ù[\ÈÚ[IÜÈ[ÜÝÛYXÈ\ÜXÚYXÈÝ][XÙ[ÛÜÙ]Ù]]Û\ÜÏHØ\]Û\ÜÏHØ\Z¼'äâÓX[[ØØ\H
-Ý[Ý[X[
-OÙ]]Û\ÜÏHÚ\]Ü\]Û\ÜÏHÚ\]]HTÑ0­ÈÓ\[]YX[È
-\ÜXÚYXÈ
-È[ÛÝ\\JOÙ]Ø[\ÈYHÚ\ÓÝ[OHX^ZZYÚNM\ØØ[\ÏÙ]Ù]Ù]KKHTÕSPSÕRQN\Ü\]ÜHKO]Û\ÜÏH\Ý[X[XØ\]Û\ÜÏH\Ý[X[ZÛÛXÚÏHÙÙÛQ\Ý[X[
-	Ù\Ý]Û	ÊH]Û\ÜÏH\Ý[X[Z[Y]]Û\ÜÏH\Ý[X[Z]]H¸¦¥»î#È\Ý[X[[[YÙ[ÙH8 %ÚH^XÙ\][Û]\È\HÝ[Ø^\ÈÛÛ\\XOÙ]]Û\ÜÏH\Ý[X[Z\ÝXPÒNJJH0­ÈÜ]XØ[ÛÛ^Ü[\][ÈÓ[SLÌÈ\Ü\]ÜHX[]OÙ]Ù]Ù]]Ý[OH\Ü^N^Ø[YÛZ][\ÎÙ[\ÙØ\LÜ[Û\ÜÏH\Ý[X[ZXYÙH\ÜÙ[X[ÛÛ^ÜÜ[Ü[Û\ÜÏH\Ý[X[]ÙÙÛHYHÙÙÛKY\Ý]Û¸¥¯ÜÜ[Ù]Ù]]Û\ÜÏH\Ý[X[XÙHYH\Ý]Û]Û\ÜÏH\Ý[X[Z[È\Ü\]ÜHX[ÈÜÓ[SLÌÈ[X]ÜÈYÛZ[[H\ÙHHÝÛÏX]Y[ÛXÞH\Ý[X[ÜÝÛÏ8 %^HÛÝ[^XÙ\][ÛÈYØ\\ÜÈÙÚ]\]Y[ÈÚ[ÙYPÔÈÜÙ\Ë\ÙY\ØÝYHÐÔËÜ\ØÛÛ[YYHÝYHYË\È\ÈÚH^\[[XX
-UQÐUÔHÛÝ[[[ÛÝ]HYXØXÞHXÜÜÜÈ[\ÝXH[Ý\\È][[]Y[ÈÚÈY\ÝYXÚÙÜÝ[\\KÝÙ]\Y\[X[È[HÝÛÏÐÔÈYXÝ[ÛÓÔ^XÙ\][ÛY[][ÛË[ÜÜ][^][ÛÙ]\]H\ÚÛÏÜÝÛÏY\[H8 %XZÚ[ÈÜÜÜË]X[ÛÛ\\\ÛÛÈXXÚ\Ý\ÈÚ]Ý][\Ý[[ÈH^XÝ\Ý[X[Ù]]Û\ÜÏH\Ý[X[YÜY]Û\ÜÏH\Ý[X[\Ý]YÞH\Ë\ÛXÞH]Û\ÜÏH\Ë[[YHÜ[Û\ÜÏHXX\ÛXÞHX]Y[ÛXÞOÜÜ[Ù]]Û\ÜÏH\ËYYÝÛÏÝ[\Ü^XÙ\][Û[Ú[È[\ÝXKÐÓÔÜÝÛÏÛÝ[È[^XÙ\][ÛÈYØ\\ÜÈÙXÚÙÜÝ[\\HÚ[Ù\ÈÜ\ØÝYHYY\ÙKYÛX]XÈ8 %YXÝÈX[]ÛÜ\ÙK[ÜÝ\ÝYÓÒSLÌÈ\ÜÙ]È\ÙH\ÈÜ[X\H[Ú[^\[[XX
-UQÐUÔK]\ZÚ[XX
-UQTÕÓPTJKÞÜZÚ[XX
-TÐÕQKPÓÔ
-K\ÝYÛÛ[XX[\ÙHX]Y[ÛXÞH\È[X\KÙ]Ù]]Û\ÜÏH\Ý[X[\Ý]YÞH\ËXÛÛ\ÜÚ]H]Û\ÜÏH\Ë[[YHÜ[Û\ÜÏHXXXÛÛ\ÜÚ]HÛÛ\ÜÚ]OÜÜ[Ù]]Û\ÜÏH\ËYYÝÛÏ\ÙYÜÐÔÈYXÝ[Û[Ý\ÚY\Ü\[È[Ú[ËÜÝÛÏYH]Y[\ØØ[]\ÈÐÔÈ
-[\Ý\[][
-K]	ÜÈ[ÛÜÜ]Y[ÈHÛÛ\ÜÚ]HÝ]ÛÛYH\ÈX]Y[Z[\KÛÛ[[ÛÜ]ÜXÈ\X]]\È[Ù]\H\ÝXHÐÔÈ\\[ÈX[Ë\ÜXÚYXÈÓ0åÒSLÌÈ\ÜÙ]È\Ù][ÈÓÔX^H[ÛÝ[\ÛÛ\ÜÚ]H\Ý[X[ÈÚ[^XÙ\][Û]YÙÙ\YÜÜ][^][Û\È[ÛÜÜ]Y[ÈH[X\HÝ]ÛÛYKÙYÙ]]Û\ÜÏH\Ý[X[\Ý]YÞH\ËZ\Ý]XØ[]Û\ÜÏH\Ë[[YHÜ[Û\ÜÏHXXZ\Ý]XØ[\Ý]XØ[ÜÜ[Ù]]Û\ÜÏH\ËYYÝÛÏÚ]ÛÝ[\[YXÚÙÜÝ[\\HYÝÚ[ÙYÏÜÝÛÏ\[H\ÙY\È[X\H[\Ü\]ÜKÛÛY][Y\È\ÙY\ÈÙXÛÛ\HÈ[\Ý[HYÉÜÈYXÚ[\ÛH[\[[ÙPÔËÓÐÔÈY\ÝY[Ë\ÙY[Ü\ÙHÜÙKY[[È[ÓÔÚ\H]Y[È\]Y[HY\ÝXZ[[[ÙH\\KØ[ÙXÙHÜ[Z\ÝXÈYXØXÞH\Ý[X]\ÈÝ\XØXH[ØY\Ü[][ÛËÙ]Ù]]Û\ÜÏH\Ý[X[\Ý]YÞH\Ë]Ú[H]Û\ÜÏH\Ë[[YHÜ[Û\ÜÏHXX]Ú[HÚ[HÛX]Y[ÜÜ[Ù]]Û\ÜÏH\ËYYÝÛÏ[X[^Y^XÙ\][Û]HÚ[HXÙZ][ÈÝYHYËÜÝÛÏ\ÙY[X[ÈÚ][YX]Y[Ù\ÜØ][ÛÜÛÈØ\Ú[Ý]\[ÙË[\\Ý[X]\È[Y]Y^XÙ\][Û\ÚÈXÝ[ÈÜÝY\ØÛÛ[X][Û
-[][Ü[ÛÙÚXÜÈÚ]^[Y[[]\ËZÙHÛËXXÝ[ÈÓ[X]ÜÊK^][ÉÈÛËXXÝ[È\ÜXÚYXÈVÌSX^H\]Z\HÜXÚYXÈÛÛÚY\][Û\HÚ][]È^[YÈÙ[KÙYÙ]Ù]]Û\ÜÏH\Ý[X[]Ø\[ÈÝÛÏ¸¦¨;î#ÈXY]ÝYÚÜ\Ü\]ÜNÜÝÛÏ^\[[XXÜÈ[X\ÈÛÜÜÈXÜÜÜÈ[[Ý\\ÈÝÜH\ÈÛH[Y[\]ÈÝÛÏX]Y[ÛXÞH\Ý[X[ÜÝÛÏ8 %]Y[ÈÚÜÙHPÔÈÜÙ\ÈÚ[ÙYZY]X[Ù\HÝ[ÛÝ[YXZÚ[ÈH\Ý[[ÜHYÛX]XËYHÓ0åÒSLÌÈ\ÜXÚYXÈ\Ù\ÈHY\[\Ý[X[8 %Ü^[\KH\Ý]XØ[\Ý[X[]^ÛY\È]Y[ÈÚÈ\ØØ[]YPÔÈ8 %]X^H\Ü]\[ÛÚÚ[ÈYXØXÞH[X\È]\[ÝÛÛ\\XHÈ^\[[XXÜÈUQÐUÔ]KY][Û[KÓÔ^XÙ\][ÛY[][ÛÈ\HÚYÛYXØ[H
-\HN[X[ÝXÜÈÛNÈ\HÐÔÎÈ\HÎÜÜ][^][ÛH8 %X[È\Ú[ÈY\[Ù]\]H\ÚÛÈ\HÝÜÜÜËXÛÛ\\XH][YÝ\ÙHX]Y[ÛXÞH\Ý[X[ËÚ[\ÙHÛÛ\[Y\È\ÚYÛ[ÈÓ\ÜXÚYXÈ\ÙHÝØÛÛÈÜÓÔÚÝ[[YÛZ\^XÙ\][ÛY[][Û[\Ý[X[Ú]H^\[[XXUQÐUÔÝ[\ÈX^[Z^HYÝ[]ÜH[\\ÜYX[]KÙ]Ù]Ù]]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]H\Ü\]ÜHÛ[XØ[XYÝ]Ø[[\ÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÈL][È0­ÈÛÜXOÜÜ[Ù]]Û\ÜÏHØ\Ý[OHÝ\ÝÎY[]YHÜY]Û\XYÝ]ÈÙ]Ù]]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]HÓ0åÈSLÌÈ\ÜXÚYXÈ\[[OÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÈÛÝÛÙÜ[\È0­ÈÛÜXOÜÜ[Ù]]Û\ÜÏHØ\Ý[OHÝ\ÝÎY[]YHÜY]Û\\HÙ]Ù]]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]HÓÈSLÌÈ[ÛÝ\\HÛÛ^ÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÈ\ÝY0­ÈÛ[XØ[[Y][ÛÜÜ[Ü[Û\ÜÏHÙXË]YÈÝ[OHX\Ú[[Y\Ý[X[ÛÛ[[XÝ]OÜÜ[Ù]]Û\ÜÏHØ\Ý[OHÝ\ÝÎY[]YHÜY]Û[[ÛÈÙ]Ù]]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]HÚ[HÛY\ÝXÈXYUÝYÚÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÈJÈÚ[\ÙHÙÜ[\ÏÜÜ[Ù]]Û\ÜÏHÚ[KYÜY]Û\ÜÏHÚ[KXØ\XÙ[ÙY]Û\ÜÏHØË[[YH^][È\\]]XÜÈ
-:#`ù/èyå'ùâjJOÙ]]Û\ÜÏHØËX\ÜÙ]VÌS0­ÈÓ0åÈSLÌÈ	Üß	ÜÈVÓ0­ÈÓ0åÈSLLÏÙ]Ü[Û\ÜÏHØËXYÙHË[XÙ[ÙYÙ\X[Ý]SXÙ[ÛÜÜÜ[]Û\ÜÏHØËY]Z[Ú[IÜÈ[ÜÝÛYXÈ\ÜXÚYXÈÝ][XÙ[ÛÜXÜÜÜÈÈ[Ù[]Y\ËVÌS8¡¤ØÚH
-ØÝJKVÓÕÒSÈ8¡¤Ú[Ø\[È
-XÈJK[ÛÈVÌ
-PpåÒSLÜNJH8¡¤Ø[\K]Z[ÈÚ[HYÚÈÛ[X[ËÙ]]Û\ÜÏHØËYX[¼'é'HØÚH
-VÌSN	
-ÍSH\Û0­È	K
-Ð	Üß	ÜÈÚ[Ø\
-VÓN	
-ÌHÝ[Ù]Ù]]Û\ÜÏHÚ[KXØ\XÙ[ÙY]Û\ÜÏHØË[[YH[ÜÚ[Û[ËÙ]]Û\ÜÏHØËX\ÜÙ]ÜØZÚ]YÈ0­ÈÛËXXÝ[È[KUÓ	Üß	ÜÈÒKML0­ÈÓ0åÈSM³¬H\ÜXÚYXÏÙ]Ü[Û\ÜÏHØËXYÙHË[XÙ[ÙYÝ][XÙ[ÙYÜÜ[]Û\ÜÏHØËY]Z[ÜØZÚ]YÈXÙ[ÙYÈXÛ\\ÈÝÒKML
-Ó0åÒSM\ÜXÚYXÊHSÛX\Y8 %\ÙHH[]X]YØY\Ó[Ú\ÙHÜ[[È[ÛÈ[\ÜXÚYXÈÜX]È[[ÛÝ]\È]ÜH\Ù]]Û\ÜÏHØËYX[¼'é'HXÛ\\È\\]]XÜÈ8 %	
-H\Û0­È\È	LHÝ[Ù]Ù]]Û\ÜÏHÚ[KXØ\XÙ[ÙY]Û\ÜÏHØË[[YH\Ý\[ÓYY
-ÈÙ[[[ÝXÚÙ]]Û\ÜÏHØËX\ÜÙ]NLÍÎÈÒÐÍÎ0­È[KUÓ[ÛØÛÛ[[XÙOÙ]Ü[Û\ÜÏHØËXYÙHË\H\ÙHÜÜ[]Û\ÜÏHØËY]Z[\ÙH\ÝXHÛÛÚ[ÎÈÓÔ\ÙH^XÝYXÙ[ÙYÈÚ[Ø\[È
-ÝÈÛ[ÜËXXÚÙY
-K[]X[\ÙHXYÝ]^XÝY8 %ÛÝ[YÙÙ\Z[\ÝÛH^[Y[È[[Y]HÚ[K[ÜYÚ[Ó[ÛÐX]X[]KÙ]]Û\ÜÏHØËYX[¼'é'HÚ[Ø\[È8 %	
-
-SH\Û0­È	MÌHÝ[Ù]Ù]]Û\ÜÏHÚ[KXØ\H]Û\ÜÏHØË[[YH[Ý[[ÛÙÚXÜÈ
-9/èz/¯¹å'ùâjJOÙ]]Û\ÜÏHØËX\ÜÙ]PKLÌ0­ÈSM³¬H0åÈÓ\ÜXÚYXÈ[XÙOÙ]Ü[Û\ÜÏHØËXYÙHË\H\ÙHOÜÜ[]Û\ÜÏHØËY]Z[[\[H][ÜYSM°åÕÓ\ÜXÚYXÈ[\ÙHHÜ\ÝXH[]ÜXÈ\X]]\Ë[Ý[	ÜÈ[\[\[[HÝYÙÙ\ÝÈ^HX^HY\È][Ü\È[ZÝ\ÙH[Ú[K]ÛØ[YÚÈ[XZ[]Z[XKÙ]]Û\ÜÏHØËYX[¼'äâÈÝ[X[Ý][XÙ[Ú[ÈØ[Y]H
-ÛØ[YÚÊOÙ]Ù]]Û\ÜÏHÚ[KXØ\ÙYZÚ[È]Û\ÜÏHØË[[YH[ÜZHYYXÚ[H
-9 d¹äg¹c.ú#kÊOÙ]]Û\ÜÏHØËX\ÜÙ]
-M0­ÈÓ0åÈSLLH\ÜXÚYXÈ[XÙOÙ]Ü[Û\ÜÏHØËXYÙHË\H\ÙHOÜÜ[]Û\ÜÏHØËY]Z[\ÙHHÜ\ÝXKQÓÔ[TSLLHÛË]\Ù][È\ÈY\[X]Y8 %SLLH]\È[[Û\HXÜÚ\ËXZÚ[È
-MÝ[X[HHÛHÓ\ÜXÚYXÈÚ]HXÝXÈ[XØ][Û[ÛKÙ]]Û\ÜÏHØËYX[¼'äâÈÝ[X[Ý][XÙ[Ú[ÈØ[Y]OÙ]Ù]]Û\ÜÏHÚ[KXØ\ÙYZÚ[È]Û\ÜÏHØË[[YHÚ[ÛXX[ÜØÚY[ÙOÙ]]Û\ÜÏHØËX\ÜÙ][\ØÛÜÙY0­È[\Z[]\Ù][È\ÜXÚYXÏÙ]Ü[Û\ÜÏHØËXYÙHË\H][ÝYÙOÜÜ[]Û\ÜÏHØËY]Z[ÓÈÈ[Ó][[[ÜÈÜ\ÜXÚYXÈÝZ[È\Ù][ÈÛÈ[\Z[ÈÛHHÓÒSLÌËÒSLHXY\HX\HÝYÙH8 %ÛHÈØ]Ú\È]H][ÜËÙ]]Û\ÜÏHØËYX[¼'äâÈX\HØ]Ú\ÝÙ]Ù]Ù]KKHTÔTUÔHPTÑU	ÓÐÈKO]Û\ÜÏHÙXËZÜ[Û\ÜÏHÙXË]]H\Ü\]ÜHX\Ù]	[\ÈÝ[\ÙØ\OÜÜ[]Û\ÜÏHÙXË[[HÙ]Ü[Û\ÜÏHÙXË]YÈÌÐ8¡¤	
-LHÌÜÜ[Ù]]Û\ÜÏH[ËXØ\]Û\ÜÏH[ËZÛÛXÚÏHÙÙÛTÙXÝ[Û	Ü\Ü[X\Ù]	ÊHÜ[Û\ÜÏH[ËZ]]H¼'äâ\Ü\]ÜHX\Ù]Ú^KÝ\\\H	[\ÈYXØXÞH[ÚX\ÜÏÜÜ[]Ý[OH\Ü^N^Ø[YÛZ][\ÎÙ[\ÙØ\LÜ[Û\ÜÏH[ËZXYÙHÛXÚÈÈ^[ÜÜ[Ü[Û\ÜÏH[Ë]ÙÙÛHYH\Ü[X\Ù]]ÙÙÛH¸¥¯ÜÜ[Ù]Ù]]Û\ÜÏH[ËXÙHYH\Ü[X\Ù]XÙH]Û\ÜÏHZÝYÜY]Û\ÜÏHZÝXØ\]Û\ÜÏHZÝ][NÙ]]Û\ÜÏHZÝ[X[\ÝXHX\Ù]Ù]]Û\ÜÏHZÝ\ÝXÛØ[[ÛÙÚXÈ
-È[[\Ù]Ù]]Û\ÜÏHZÝXØ\È]Û\ÜÏHZÝ][MPÙ]]Û\ÜÏHZÝ[X[ÓÔX\Ù]Ù]]Û\ÜÏHZÝ\ÝX\Y[ÛÙÚXÈ^[Ú[ÛÙ]Ù]]Û\ÜÏHZÝXØ\È]Û\ÜÏHZÝ][
-LÙ]]Û\ÜÏHZÝ[X[ÛÛX[YHÌÙ]]Û\ÜÏHZÝ\ÝX\ÝXH
-ÈÓÔÙ]Ù]]Û\ÜÏHZÝXØ\]Û\ÜÏHZÝ][
-ÐÏÙ]]Û\ÜÏHZÝ[X[^\[[XXXZÏÙ]]Û\ÜÏHZÝ\ÝXÜXØ\Ý
-VÐ[YÙ[OÙ]Ù]Ù]]Û\ÜÏHÛØË\[[]Û\ÜÏHÛØËXÞ]Û\ÜÏHÛØË]]HÙ]\H\ÝXH0­ÈÝ\\\H
-ÒSJOÙ]XHÛ\ÜÏH[Ë]XHÝ\ÝYÙ[
-ÊOÝÛ\ÜÏÝ[Ý\H\Ù]ÝÝx $ÌÝÐPH0­ÈÝËYÜÙHPÔÏÝÛÚÙ[]ÜÈPÔÏÝ[ÝÝÏÝPÔÈ
-ÈPH
-YY][HÜÙJOÝÛÛX[][Û[[\Ý[ÝÝÝPÔÈ
-ÈPH
-ÈSPH
-YÚÜÙJOÝ\H[[\Ý[ÝÝPOÝÛX[^[XX
-ÛZ\OÝ[KRYÑOÝYÑKZYÚ]ÜXÏÝÝPÝY\Û^[XX
-XØ[JH0­È[[^[XX
-\Ù[JOÝ[KRSMKÍTÝ[ÜÈ8¢iLML8 $ÌÌÙ[Ëó¯ÝÝPÏÝ\[[XX
-\^[
-OÝ[KRSM³¬OÝ[ÜÈ8¢iLÌÜSÈ8¢iLOÝÝQÝ^\[[XX
-^Ü\JOÝ[KUÓÝ[[Ý\\È[ÛÝÈ[ÜÏÝÝÝXOÙ]]Û\ÜÏHÛØËXÞ]Û\ÜÏHÛØË]]HÓÔ0­ÈX]Y[\ØØ[][ÛÙ]XHÛ\ÜÏH[Ë]XHÝ\ÝYÙ[
-ÊOÝÛ\ÜÏÝ]Y[Ù[OÝÝOÝÐPHÈÐSPHÝÚÜXXÝ[ÈÛÚÙ[]ÜÝZ[[\]Y[Þ[\Û\ÏÝÝÝSPH
-[ÝÜ][HÈÛXÛÜ\Û]JOÝÛËXXÝ[È]\ØØ\[XÏÝ[Þ[\ÛX]XÈÓÔÝÝÏÝSPH
-ÈPH
-[ÜË[XÊOÝX[ÛÚÙ[]ÜÝ^XÙ\][Û\ÚÈÜ\ÜXOÝÝÝPÔÈ
-ÈSPH
-ÈPH
-\JOÝ\H\\OÝ[ÜÈ8¢iLÌ0­È\]Y[^XÙ\][ÛÏÝÝOÝ]\ZÚ[XX
-\ÝYÓÔJH0­ÈÞÜZÚ[XX
-ÊOÝ[KRSLÌÈ]Ø^OÝ^\Û[ÚÙ\ÎÈ[ÜÈ8¢iLMLÈ^XÙ\][Û\ÛOÝÝÝXOÙ]Ù]]Ý[OHX\Ú[XÝÛNLÙÛ\Ú^NLÙÛ]ÙZYÚÝ^][ÙÜN\\Ø\ÙNØÛÛÜÎNXÛ]\\ÜXÚ[Î\È\ÝY[ÛÙÚXÈ[ÚX\ÜÈ
-\ÜÓ0åÈSLÌÈ\ÜXÚYXÜÈÈÛX\OÙ]]Û\ÜÏH\ÚÛYÜY]Û\ÜÏH\ÚÛXÞ]Û\ÜÏHYYÈ^\[[XX
-^Ü\JH0­ÈÙ]\H\ÝXOÙ]]Û\ÜÏH]X[UQÐUÔÈ0­È
-LUÙYZÈPQTÙ]]Û\ÜÏH\]HÌ	OÙ]]Û\ÜÏHY[Ú[YXÝ[Û[[X[^Y\ÝXH^XÙ\][Û]HËXÙXÈ0­ÈX]Y[ÛXÞH\Ý[X[Ù]Ù]]Û\ÜÏH\ÚÛXÞ]Û\ÜÏHYYÈ[[^[XX
-\Ù[JH0­È[ÜÈ\ÝXOÙ]]Û\ÜÏH]X[ÒTÐÐÓÈÈ0­È
-UÙYZÈPQTÙ]]Û\ÜÏH\]HLIOÙ]]Û\ÜÏHY[Ú[^XÙ\][ÛYXÝ[Û[[ÜÈ8¢iLÌ0­ÈX]Y[ÛXÞJÀÂ· Anti-IL-5R (biologic benchmark)</div>
+          <div class="tb-drug">Risankizumab (Skyrizi) · CD</div>
+          <div class="tb-trial">ADVANCE Ph3 · Induction Wk12</div>
+          <div class="tb-rate">45%</div>
+          <div class="tb-endpoint">Clinical remission (CDAI &lt;150) vs. 25% placebo · Composite estimand</div>
         </div>
         <div class="threshold-box">
-          <div class="tb-drug">Dupilumab (Dupixent) Â· Moderate-Severe Asthma</div>
-          <div class="tb-trial">QUEST Ph3 Â· 52-Week AAER</div>
+          <div class="tb-drug">Guselkumab (Tremfya) · CD</div>
+          <div class="tb-trial">GALAXI-1 Ph2/3 · Wk12</div>
+          <div class="tb-rate">45–46%</div>
+          <div class="tb-endpoint">Clinical remission vs. ~20% placebo · Sets bar for CD induction</div>
+        </div>
+        <div class="threshold-box">
+          <div class="tb-drug">Mirikizumab (Omvoh) · UC</div>
+          <div class="tb-trial">LUCENT-1 Ph3 · Induction Wk12</div>
+          <div class="tb-rate">24.2%</div>
+          <div class="tb-endpoint">Clinical remission vs. 13.3% placebo · Composite estimand</div>
+        </div>
+        <div class="threshold-box">
+          <div class="tb-drug">Duvakitug (TEV-48574) · UC</div>
+          <div class="tb-trial">RELIEVE UCCD Ph2b · 900mg Wk14</div>
+          <div class="tb-rate">48%</div>
+          <div class="tb-endpoint">Highest TL1A UC signal reported · Composite estimand · Ph3 ongoing</div>
+        </div>
+      </div>
+
+      <div class="endpoint-grid">
+        <div class="endpoint-box">
+          <div class="ep-title">UC Primary Endpoints</div>
+          <div class="ep-row"><strong>Clinical remission:</strong> Mayo score ≤2, no subscore &gt;1</div>
+          <div class="ep-row"><strong>PRO2:</strong> Stool frequency + rectal bleeding subscores combined</div>
+          <div class="ep-row"><strong>Endoscopic:</strong> Mayo endoscopic subscore ≤1 (mucosal healing)</div>
+          <div class="ep-row"><strong>Histologic:</strong> Geboes ≤3.1 (emerging co-primary)</div>
+        </div>
+        <div class="endpoint-box g">
+          <div class="ep-title">CD Primary Endpoints</div>
+          <div class="ep-row"><strong>CDAI:</strong> Crohn's Disease Activity Index &lt;150 (remission)</div>
+          <div class="ep-row"><strong>HBI:</strong> Harvey-Bradshaw Index ≤4</div>
+          <div class="ep-row"><strong>Endoscopic response:</strong> ≥50% reduction in SES-CD</div>
+          <div class="ep-row"><strong>CDEIS:</strong> CD Endoscopic Index of Severity ≤3 (remission)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IBD TARGET HISTORY -->
+  <div class="sec-hd"><span class="sec-title">IBD Target History</span><div class="sec-line"></div><span class="sec-tag">7 Eras · From Steroids to TL1A</span></div>
+  <div class="info-card">
+    <div class="info-hd" onclick="toggleSection('ibd-history')">
+      <span class="info-hd-title">📚 History of IBD Drug Targets: 7 Eras That Lead to TL1A × IL-23p19</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="info-hd-badge">Click to Expand</span>
+        <span class="info-toggle" id="ibd-history-toggle">▼</span>
+      </div>
+    </div>
+    <div class="info-body" id="ibd-history-body">
+      <div style="font-size:11px;color:#3a5070;line-height:1.7;margin-bottom:12px;border-left:3px solid #2e6fb0;padding-left:12px;">TL1A belongs to the TNF superfamily (TNFSF15), expressed by endothelial and epithelial cells in inflamed gut mucosa. Its receptor DR3 is preferentially expressed on innate lymphoid cells and Th9/Th17 T cells, amplifying mucosal inflammation. Understanding the target lineage puts TL1A — and the bispecific thesis — in clinical context.</div>
+      <table class="info-table" style="table-layout:fixed">
+        <colgroup><col style="width:90px"><col style="width:80px"><col style="width:120px"><col style="width:160px"><col style="width:70px"><col style="width:170px"><col style="width:170px"></colgroup>
+        <tr><th>Era</th><th>Period</th><th>Drug Class</th><th>Key Agents</th><th>Indication</th><th>Key Efficacy</th><th>BD Significance</th></tr>
+        <tr>
+          <td><span class="era-badge era-1">Era 1</span></td>
+          <td>Pre-2000</td><td>Conventional immunosuppressants</td>
+          <td>5-ASA, corticosteroids, azathioprine, 6-MP, MTX</td><td>UC / CD</td>
+          <td>Variable; steroids ~60% short-term response but ~0% sustained remission without maintenance</td>
+          <td>Standard of care backbone; still used in combination. No precision targeting.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-2">Era 2</span></td>
+          <td>1998–2010</td><td>Anti-TNF biologics</td>
+          <td>Infliximab (Remicade), adalimumab (Humira), certolizumab, golimumab</td><td>UC / CD</td>
+          <td>~30–40% remission at Wk52; mucosal healing in ~30% CD. Major advance over prior SOC.</td>
+          <td>First &gt;$1B IBD franchise; created the "biologic era" in IBD. AbbVie built global IBD dominance here.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-3">Era 3</span></td>
+          <td>2014</td><td>Anti-integrin</td>
+          <td>Vedolizumab (Entyvio, Takeda)</td><td>UC / CD</td>
+          <td>UC: 17% remission vs. 5% placebo at Wk6; gut-selective mechanism improved safety vs. systemic anti-TNF.</td>
+          <td>Demonstrated gut-selective MoA as differentiated BD angle. Entyvio peak sales ~$4B+.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-4">Era 4</span></td>
+          <td>2016–2019</td><td>Anti-IL-12/23 (p40)</td>
+          <td>Ustekinumab (Stelara, J&amp;J)</td><td>CD / UC</td>
+          <td>CD: ~16% remission induction (Wk6 IV); dual IL-12/23 blockade via shared p40 subunit.</td>
+          <td>Validated IL-23 pathway in IBD. Lost market share as IL-23p19-selective agents proved superior.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-5">Era 5</span></td>
+          <td>2021–present</td><td>Anti-IL-23p19 selective</td>
+          <td>Risankizumab (Skyrizi, AbbVie), mirikizumab (Omvoh, Lilly), guselkumab (Tremfya, J&amp;J)</td><td>UC / CD</td>
+          <td>CD: 45% remission (Skyrizi ADVANCE), 45–46% (Tremfya GALAXI-1). UC: 24.2% (Omvoh LUCENT-1). IL-23p19 selective &gt; p40.</td>
+          <td>Current standard-of-care biologics. Skyrizi IBD peak forecast $12B+. Key comparator for all new IBD mechanisms.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-6">Era 6</span></td>
+          <td>2022–present</td><td>JAK inhibitors (small molecule)</td>
+          <td>Upadacitinib (Rinvoq, AbbVie), tofacitinib (Xeljanz), filgotinib (Jyseleca)</td><td>UC / CD</td>
+          <td>Rinvoq UC: ~26% remission at Wk8. Fast onset (oral, days vs. weeks). Safety boxed warning (venous thromboembolism, serious infections).</td>
+          <td>Oral format is strong patient preference. Safety concerns limit use to TNF-inadequate responders. BD angle: combo with TL1A possible.</td>
+        </tr>
+        <tr>
+          <td><span class="era-badge era-7">Era 7</span></td>
+          <td>2024–present</td><td>Anti-TL1A &amp; Bispecifics</td>
+          <td>Tulisokibart (Merck), duvakitug (Teva/Sanofi), afimkibart (Roche) → bispecifics: MT-251, SIM0709, HXN-1003</td><td>UC / CD</td>
+          <td>Tulisokibart: 26.5% Ph2 UC; Duvakitug: 48% Ph2b (highest TL1A signal); Afimkibart: 24% (NS primary endpoint).</td>
+          <td>Current wave driving &gt;$3.4B in bispecific deals. Bispecific thesis: TL1A + IL-23p19 dual blockade could exceed monotherapy efficacy for hard-to-treat IBD.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- RELATED NEWS -->
+  <div class="sec-hd"><span class="sec-title">Related News &amp; Precedent Transactions</span><div class="sec-line"></div><span class="sec-tag">Key Events</span></div>
+  <div class="info-card">
+    <div class="info-hd" onclick="toggleSection('ibd-news')">
+      <span class="info-hd-title">📰 TL1A Landscape News &amp; Strategic Transactions</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="info-hd-badge">Click to Expand</span>
+        <span class="info-toggle" id="ibd-news-toggle">▼</span>
+      </div>
+    </div>
+    <div class="info-body" id="ibd-news-body">
+      <div class="news-item">
+        <div class="news-date">Oct 2023</div>
+        <div class="news-content"><strong>Roche acquires Telavant for ~$7.1B</strong> — Telavant was a JV between Roivant Sciences and Pfizer developing afimkibart (RG6631), an anti-TL1A monoclonal antibody then in Phase 2b (TUSCANY-2). Roche paid ~$7.1B to acquire full global rights. <span class="news-val">$7.1B</span> acquisition set the largest single IBD deal on record and validated the TL1A mechanism commercially at massive scale — before Phase 3 data. TUSCANY-2 primary endpoint was subsequently reported as not statistically significant, underlining the risk even at this deal size.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Apr 2025</div>
+        <div class="news-content"><strong>Earendil Labs licenses HXN-1003 to Sanofi — $125M upfront, $1.845B total</strong> — AI-designed TL1A × IL-23p19 bispecific (2+2 tetravalent format), Pre-IND stage. Sanofi's entry into the bispecific TL1A space. <span class="news-val">$125M upfront</span> at Pre-IND stage represents the highest upfront in the space and sets the ceiling for early-stage bispecific valuations.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Apr 2025</div>
+        <div class="news-content"><strong>Qyuns licenses CLD-423 (QX030N) to Caldera Therapeutics — $10M + ~25% equity, up to $545M</strong> — First subjects dosed Jan 2026. <span class="news-val">$10M + 25% equity</span> is a different structure than pure cash upfront, reflecting Caldera's early-stage status as a Qyuns-backed spinout. Sets the floor for structured TL1A bispecific deals.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Jan 2026</div>
+        <div class="news-content"><strong>Simcere out-licenses SIM0709 to Boehringer Ingelheim — €42M upfront, €1.05B total</strong> — Long-acting SC IgG bispecific, Pre-IND → FIH H1 2026. Global ex-Greater China. Simcere retains full China rights. <span class="news-val">€42M upfront</span> at preclinical/pre-IND stage. BI's second China-sourced IBD deal signals systematic strategy to access Chinese bispecific innovation.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">May 2026</div>
+        <div class="news-content"><strong>Xencor XmAb412 preclinical data presented at DDW May 2–5, 2026</strong> — First public TL1A × IL-23p19 bispecific data from Xencor, leveraging Xtend™ FcXtend technology (>71-day t½ validated in XmAb942 monotherapy). Phase 1 FIH planned H2 2026. Independent program — no partner announced to date.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
+  <div class="insight-box">
+    <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
+    <ul>
+      <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
+      <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Novamab and Episcience should prioritize partnering timelines now; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
+      <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago — this is a strong talking point when discussing deal structure with Chinese biotech clients considering out-licensing.</li>
+      <li><strong>Estimand alignment is a hidden risk in Phase 2 design for bispecifics.</strong> The three lead TL1A monotherapy programs in Phase 3 (tulisokibart, duvakitug, afimkibart) all use composite estimands — rescue steroid use or discontinuation counts as treatment failure. When TL1A×IL-23p19 bispecifics move into Phase 2, sponsors who use a different estimand strategy (e.g. treatment policy) will report higher remission rates that cannot be compared to the Phase 3 monoAb benchmarks. Partners and regulators will scrutinize this. Chinese companies designing their Phase 2 protocols should default to composite estimands to maintain comparability with the established TL1A clinical evidence base.</li>
+    </ul>
+  </div>
+
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases (Simcere HK filing, Qyuns HK exchange filing), ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
+</div>
+
+<!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
+<div class="tab-pane" id="tab-tslp">
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="s-label">Deals Closed</div>
+      <div class="s-val">4</div>
+      <div class="s-sub">TSLP-related, 2024–2025</div>
+    </div>
+    <div class="stat-card o">
+      <div class="s-label">Total Deal Value</div>
+      <div class="s-val">~$3.6B</div>
+      <div class="s-sub">Broad TSLP deal pool</div>
+    </div>
+    <div class="stat-card g">
+      <div class="s-label">TSLP × IL-33 Programs</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Known bispecific programs</div>
+    </div>
+    <div class="stat-card p">
+      <div class="s-label">Chinese Programs</div>
+      <div class="s-val">5+</div>
+      <div class="s-sub">Qyuns · Biosion · Innovent · Hengrui</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-hd">🔍 Deal Spotlight: TSLP × IL-33 Anchor Deal <span class="tag">Oct 2025</span></div>
+      <div class="dl-grid">
+        <div class="dl-lbl">Deal</div>        <div class="dl-val" style="font-weight:700">Qyuns Therapeutics → Roche</div>
+        <div class="dl-lbl">Asset</div>       <div class="dl-val">QX031N (TSLP × IL-33 long-acting bispecific)</div>
+        <div class="dl-lbl">Stage</div>       <div class="dl-val">Preclinical at signing</div>
+        <div class="dl-lbl">Territory</div>   <div class="dl-val">Global (dev, registration, manufacturing, commercial)</div>
+        <div class="dl-lbl">Upfront</div>     <div class="dl-val hi">$75M</div>
+        <div class="dl-lbl">Total</div>       <div class="dl-val hi">Up to $1.07B</div>
+        <div class="dl-lbl">Royalties</div>   <div class="dl-val">Tiered on product sales</div>
+        <div class="dl-lbl">Indications</div> <div class="dl-val">COPD, Asthma ("best-in-disease" goal)</div>
+      </div>
+      <div class="dl-note">💡 <strong>Strategic read:</strong> Roche already holds astegolimab (anti-ST2/IL-33R) and astegolimab Phase 3 data. QX031N adds dual TSLP+IL-33 upstream blockade to Roche's IL-33 franchise — a hedge across the pathway. Qyuns has now completed 3 major out-licensing deals across different bispecific targets, establishing itself as China's most prolific bispecific out-licensor.</div>
+    </div>
+    <div class="card">
+      <div class="card-hd">📊 TSLP Deal Landscape (Total Potential)</div>
+      <div class="chart-wrap">
+        <div class="chart-title">USD · TSLP-related deals (bispecific + monotherapy)</div>
+        <canvas id="chartTSLP" style="max-height:195px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTIMAND GUIDE: Respiratory -->
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-tslp')">
+      <div class="estimand-hd-left">
+        <div>
+          <div class="estimand-hd-title">⚖️ Estimand Intelligence — Why Exacerbation Rates Are Not Always Comparable</div>
+          <div class="estimand-hd-sub">ICH E9(R1) · Critical context for interpreting TSLP and IL-33 respiratory trial data</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="estimand-hd-badge">Essential BD Context</span>
+        <span class="estimand-toggle" id="toggle-est-tslp">▼</span>
+      </div>
+    </div>
+    <div class="estimand-body" id="est-tslp">
+      <div class="estimand-intro">
+        Respiratory trials for TSLP and IL-33 inhibitors predominantly use a <strong>treatment policy estimand</strong> — they count exacerbations regardless of whether patients changed ICS doses, used rescue OCS, or discontinued the study drug. This is why tezepelumab (NAVIGATOR) could demonstrate efficacy across all asthma endotypes even in patients who adjusted background therapy. However, different trials handle <strong>OCS reduction, COPD exacerbation definitions, and hospitalization severity thresholds</strong> differently — making cross-trial comparisons treacherous without understanding the exact estimand.
+      </div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-policy">
+          <div class="es-name"><span class="eb eb-policy">Treatment Policy</span></div>
+          <div class="es-def"><strong>Standard for exacerbation endpoints in asthma/COPD.</strong> Counts all exacerbations regardless of background therapy changes or rescue med use. Pragmatic — reflects real-world use. Most approved TSLP/IL-33 assets use this for primary endpoint. Tezepelumab (NAVIGATOR), itepekimab (QUEST/LIBERTY), tozorakimab (RESCUE-COPD), astegolimab all use treatment policy as primary.</div>
+        </div>
+        <div class="estimand-strategy es-composite">
+          <div class="es-name"><span class="eb eb-composite">Composite</span></div>
+          <div class="es-def"><strong>Used for OCS reduction and steroid-sparing endpoints.</strong> If a patient escalates OCS (intercurrent event), it's incorporated into the composite outcome as treatment failure. Common for atopic dermatitis and severe asthma OCS tapering trials. Bispecific TSLP×IL-33 assets targeting COPD may encounter composite estimands when exacerbation-triggered hospitalization is incorporated into the primary outcome.</def>
+        </div>
+        <div class="estimand-strategy es-hypothetical">
+          <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
+          <div class="es-def"><strong>What would happen if background therapy hadn't changed?</strong> Rarely used as primary in respiratory. Sometimes used as secondary to understand the drug's mechanism independent of ICS/OCS adjustments. Useful for Phase 2 dose-finding in COPD, where patients frequently adjust maintenance therapy. Can produce optimistic efficacy estimates not replicable in broader populations.</div>
+        </div>
+        <div class="estimand-strategy es-while">
+          <div class="es-name"><span class="eb eb-while">While on Treatment</span></div>
+          <div class="es-def"><strong>Annualized exacerbation rate while receiving study drug.</strong> Used in trials with planned treatment cessation or long wash-out periods. Underestimates benefit if exacerbation risk rebounds post-discontinuation (relevant for biologics with extended half-lives, like long-acting TSLP inhibitors). Qyuns' long-acting bispecific QX031N may require specific consideration here given its extended PK profile.</def>
+        </div>
+      </div>
+      <div class="estimand-warning">
+        <strong>⚠️ BD read-through for Respiratory:</strong> Tezepelumab's landmark "works across all endotypes" story is only valid under its <strong>treatment policy estimand</strong> — patients whose ICS doses changed mid-trial were still counted, making the result more pragmatic. If a TSLP×IL-33 bispecific uses a different estimand — for example, a hypothetical estimand that excludes patients who escalated ICS — it may report better-looking efficacy numbers that aren't comparable to tezepelumab's NAVIGATOR data. Additionally, COPD exacerbation definitions vary significantly (Type 1: antibiotics only; Type 2: OCS; Type 3: hospitalization) — trials using different severity thresholds are not cross-comparable even if both use treatment policy estimands. Chinese companies designing TSLP bispecific Phase 2 protocols for COPD should align their exacerbation definition and estimand with the tezepelumab NAVIGATOR standard to maximize regulatory and partner credibility.
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">Respiratory Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">10 Events · Sortable</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-readouts"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">TSLP × IL-33 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">3 Known Programs · Sortable</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-pipe"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-mono"></div></div>
+
+  <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">5+ Chinese Programs</span></div>
+  <div class="china-grid">
+    <div class="china-card licensed">
+      <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
+      <div class="cc-asset">QX031N · TSLP × IL-33 &nbsp;|&nbsp; QX027N · TSLP × IL-13</div>
+      <span class="cc-badge bg-licensed">Serial Out-Licensor</span>
+      <div class="cc-detail">China's most prolific bispecific out-licensor across 3 modalities. QX031N → Roche (Oct 2025). QX027N/WIN027 → Windward Bio (Dec 2025). Also QX030N (TL1A×IL-23p19) → Caldera. Retains China rights on all deals.</div>
+      <div class="cc-deal">🤝 Roche (QX031N): $75M upfront · $1.07B &nbsp;|&nbsp; Windward (QX027N): $700M total</div>
+    </div>
+    <div class="china-card licensed">
+      <div class="cc-name">Biosion Inc.</div>
+      <div class="cc-asset">Bosakitug · Long-acting anti-TSLP &nbsp;|&nbsp; BSI-502 · TSLP × IL-4Rα bispecific</div>
+      <span class="cc-badge bg-licensed">Out-licensed</span>
+      <div class="cc-detail">Bosakitug licensed to Aclaris Nov 2024. BSI-502 (TSLP×IL-4R bispecific) IND cleared — Phase 1 initiated. Broader TSLP franchise spanning mono and bispecific formats demonstrates platform depth.</div>
+      <div class="cc-deal">🤝 Aclaris Therapeutics — $40M upfront · up to $900M total</div>
+    </div>
+    <div class="china-card licensed">
+      <div class="cc-name">Harbour BioMed + Kelun Biotech</div>
+      <div class="cc-asset">HBM9378 / SKB378 · Anti-TSLP monoclonal antibody</div>
+      <span class="cc-badge bg-ph1">Phase 2</span>
+      <div class="cc-detail">Phase 2 asthma ongoing; COPD Phase 2 expected 2026. Licensed to Windward Bio (Novo Holdings-backed). Initial Phase 2 readout expected 2026 — could trigger milestone payments and validate China-origin TSLP monoAb quality.</div>
+      <div class="cc-deal">🤝 Windward Bio — $45M upfront · $970M total</div>
+    </div>
+    <div class="china-card ph1">
+      <div class="cc-name">Innovent Biologics (信达生物)</div>
+      <div class="cc-asset">IBI-3002 · IL-4Rα × TSLP bispecific antibody</div>
+      <span class="cc-badge bg-ph1">Phase 1</span>
+      <div class="cc-detail">Internally developed IL-4R×TSLP bispecific in Phase 1 for asthma and atopic dermatitis. Innovent's internal pipeline suggests they may prefer to develop this in-house in China, but global rights remain available.</div>
+      <div class="cc-deal">📋 Potential out-licensing candidate (global rights)</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Hengrui Medicine (恒瑞医药)</div>
+      <div class="cc-asset">HB0056 · TSLP × IL-11 bispecific antibody</div>
+      <span class="cc-badge bg-ph1">Phase 1</span>
+      <div class="cc-detail">Phase 1 for asthma, AD, COPD, and IPF. IL-11 co-targeting is differentiated — IL-11 drives pulmonary fibrosis, making HB0056 potentially the only TSLP bispecific with a fibrotic indication angle.</div>
+      <div class="cc-deal">📋 Potential out-licensing candidate</div>
+    </div>
+    <div class="china-card seeking">
+      <div class="cc-name">Sinomab Bioscience</div>
+      <div class="cc-asset">Undisclosed · Alarmin-targeting bispecific</div>
+      <span class="cc-badge bg-pre">Patent Stage</span>
+      <div class="cc-detail">WO 2023 and CN 2024 patent filings for bispecific proteins targeting two alarmins from the TSLP/IL-33/IL-25 triad. Very early stage — one to watch as data develops.</div>
+      <div class="cc-deal">📋 Early watch list</div>
+    </div>
+  </div>
+
+  <!-- RESPIRATORY MARKET & SOC -->
+  <div class="sec-hd"><span class="sec-title">Respiratory Market &amp; Standard of Care</span><div class="sec-line"></div><span class="sec-tag">$33B → $50B by 2030</span></div>
+  <div class="info-card">
+    <div class="info-hd" onclick="toggleSection('resp-market')">
+      <span class="info-hd-title">📈 Respiratory Market Size, Step Therapy &amp; Efficacy Benchmarks</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="info-hd-badge">Click to Expand</span>
+        <span class="info-toggle" id="resp-market-toggle">▼</span>
+      </div>
+    </div>
+    <div class="info-body" id="resp-market-body">
+      <div class="mkt-grid">
+        <div class="mkt-card">
+          <div class="mkt-val">~$18B</div>
+          <div class="mkt-label">Asthma Market 2024</div>
+          <div class="mkt-sub">Global biologic + inhaler</div>
+        </div>
+        <div class="mkt-card g">
+          <div class="mkt-val">~$15B</div>
+          <div class="mkt-label">COPD Market 2024</div>
+          <div class="mkt-sub">Rapid biologic expansion</div>
+        </div>
+        <div class="mkt-card o">
+          <div class="mkt-val">~$50B</div>
+          <div class="mkt-label">Combined by 2030</div>
+          <div class="mkt-sub">Asthma + COPD</div>
+        </div>
+        <div class="mkt-card p">
+          <div class="mkt-val">$7B+</div>
+          <div class="mkt-label">Tezepelumab Peak</div>
+          <div class="mkt-sub">Forecast (AZ/Amgen)</div>
+        </div>
+      </div>
+
+      <div class="soc-panel">
+        <div class="soc-box">
+          <div class="soc-title">Severe Asthma · Step Therapy (GINA)</div>
+          <table class="info-table">
+            <tr><th>Step</th><th>Agent(s)</th><th>Class</th><th>Phenotype Target</th></tr>
+            <tr><td>1–2</td><td>SABA PRN · Low-dose ICS</td><td>Bronchodilator / ICS</td><td>All</td></tr>
+            <tr><td>3</td><td>ICS + LABA (medium dose)</td><td>Combination inhaler</td><td>All</td></tr>
+            <tr><td>4</td><td>ICS + LABA + LAMA (high dose)</td><td>Triple inhaler</td><td>All</td></tr>
+            <tr><td>5A</td><td>Omalizumab (Xolair)</td><td>Anti-IgE</td><td>IgE-high, atopic</td></tr>
+            <tr><td>5B</td><td>Mepolizumab (Nucala) · Benralizumab (Fasenra)</td><td>Anti-IL-5/5R</td><td>Eos ≥150–300 cells/μL</td></tr>
+            <tr><td>5C</td><td>Dupilumab (Dupixent)</td><td>Anti-IL-4Rα</td><td>Th2: eos ≥300 or FeNO ≥25</td></tr>
+            <tr><td>5D</td><td>Tezepelumab (Tezspire)</td><td>Anti-TSLP</td><td>All endotypes incl. low eos</td></tr>
+          </table>
+        </div>
+        <div class="soc-box">
+          <div class="soc-title">COPD · Treatment Escalation</div>
+          <table class="info-table">
+            <tr><th>Step</th><th>Agent(s)</th><th>Class</th><th>Patient Profile</th></tr>
+            <tr><td>1</td><td>SABA / SAMA PRN</td><td>Short-acting bronchodilator</td><td>Mild, infrequent symptoms</td></tr>
+            <tr><td>2</td><td>LAMA (tiotropium / glycopyrrolate)</td><td>Long-acting muscarinic</td><td>All symptomatic COPD</td></tr>
+            <tr><td>3</td><td>LAMA + LABA (Anoro, Ultibro)</td><td>Dual bronchodilator</td><td>Exacerbation risk or dyspnea</td></tr>
+            <tr><td>4</td><td>ICS + LAMA + LABA (triple)</td><td>Triple therapy</td><td>Eos ≥300 · frequent exacerbations</td></tr>
+            <tr><td>5</td><td>Itepekimab (approved COPD 2025) · Tozorakimab (Ph3)</td><td>Anti-IL-33 pathway</td><td>Ex-smokers; Eos ≥150; exacerbation-prone</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;">Approved Biologic Benchmarks (Bar for TSLP × IL-33 Bispecifics to Clear)</div>
+      <div class="threshold-grid">
+        <div class="threshold-box">
+          <div class="tb-drug">Tezepelumab (Tezspire) · Severe Asthma</div>
+          <div class="tb-trial">NAVIGATOR Ph3 · 52-Week AAER</div>
+          <div class="tb-rate">70%</div>
+          <div class="tb-endpoint">Reduction in annualized asthma exacerbation rate vs. placebo · Treatment policy estimand</div>
+        </div>
+        <div class="threshold-box">
+          <div class="tb-drug">Benralizumab (Fasenra) · Eos Asthma</div>
+          <div class="tb-trial">SIROCCO Ph3 · 48-Week AAER</div>
+          <div class="tb-rate">51%</div>
+          <div class="tb-endpoint">Exacerbation reduction in eos ≥300 · treatment policy · Anti-IL-5R (biologic benchmark)</div>
+        </div>
+        <div class="threshold-box">
+          <div class="tb-drug">Dupilumab (Dupixent) · Moderate-Severe Asthma</div>
+          <div class="tb-trial">QUEST Ph3 · 52-Week AAER</div>
           <div class="tb-rate">68%</div>
-          <div class="tb-endpoint">In type-2 inflammation (eos â¥300 or FeNO â¥25) Â· treatment policy Â· FDA approval basis</div>
+          <div class="tb-endpoint">In type-2 inflammation (eos ≥300 or FeNO ≥25) · treatment policy · FDA approval basis</div>
         </div>
         <div class="threshold-box">
-          <div class="tb-drug">Itepekimab (Dupixent) Â· COPD</div>
-          <div class="tb-trial">AERIFY-1 Ph3 Â· 52 Weeks</div>
+          <div class="tb-drug">Itepekimab (Dupixent) · COPD</div>
+          <div class="tb-trial">AERIFY-1 Ph3 · 52 Weeks</div>
           <div class="tb-rate">~25%</div>
-          <div class="tb-endpoint">AECOPD reduction in ex-smokers eos â¥150 Â· positive Ph3 supports COPD biologic market entry</div>
+          <div class="tb-endpoint">AECOPD reduction in ex-smokers eos ≥150 · positive Ph3 supports COPD biologic market entry</div>
         </div>
       </div>
 
@@ -707,42 +913,42 @@ LUÙYZÈPQTÙ]]Û\ÜÏH\]HÌ	OÙ]
         </div>
         <div class="endpoint-box g">
           <div class="ep-title">COPD Primary Endpoints</div>
-          <div class="ep-row"><strong>AECOPD rate:</strong> Annualized exacerbation rate (Type 1â3 by severity)</div>
+          <div class="ep-row"><strong>AECOPD rate:</strong> Annualized exacerbation rate (Type 1–3 by severity)</div>
           <div class="ep-row"><strong>FEV1:</strong> Lung function improvement from baseline</div>
           <div class="ep-row"><strong>SGRQ:</strong> St. George's Respiratory Questionnaire (HRQoL)</div>
-          <div class="ep-row"><strong>Blood eos:</strong> Key enrollment/stratification biomarker (â¥150 or â¥300)</div>
+          <div class="ep-row"><strong>Blood eos:</strong> Key enrollment/stratification biomarker (≥150 or ≥300)</div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- RESPIRATORY TARGET HISTORY -->
-  <div class="sec-hd"><span class="sec-title">Respiratory Target History</span><div class="sec-line"></div><span class="sec-tag">7 Eras Â· From Inhalers to Bispecifics</span></div>
+  <div class="sec-hd"><span class="sec-title">Respiratory Target History</span><div class="sec-line"></div><span class="sec-tag">7 Eras · From Inhalers to Bispecifics</span></div>
   <div class="info-card">
     <div class="info-hd" onclick="toggleSection('resp-history')">
-      <span class="info-hd-title">ð History of Respiratory Drug Targets: 7 Eras That Lead to TSLP Ã IL-33</span>
+      <span class="info-hd-title">📚 History of Respiratory Drug Targets: 7 Eras That Lead to TSLP × IL-33</span>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="info-hd-badge">Click to Expand</span>
-        <span class="info-toggle" id="resp-history-toggle">â¼</span>
+        <span class="info-toggle" id="resp-history-toggle">▼</span>
       </div>
     </div>
     <div class="info-body" id="resp-history-body">
-      <div style="font-size:11px;color:#3a5070;line-height:1.7;margin-bottom:12px;border-left:3px solid #2e6fb0;padding-left:12px;">TSLP (thymic stromal lymphopoietin) is the "master alarm" cytokine: released by airway epithelial cells in response to allergens, pollutants, and pathogens, it activates dendritic cells and ILC2s to drive the entire downstream Th2 cascade â IL-4, IL-5, IL-13, and IgE. IL-33 is released simultaneously from damaged epithelial cells and amplifies ILC2 and mast cell activation. Blocking both upstream alarmins simultaneously is the rationale for TSLP Ã IL-33 bispecifics.</div>
+      <div style="font-size:11px;color:#3a5070;line-height:1.7;margin-bottom:12px;border-left:3px solid #2e6fb0;padding-left:12px;">TSLP (thymic stromal lymphopoietin) is the "master alarm" cytokine: released by airway epithelial cells in response to allergens, pollutants, and pathogens, it activates dendritic cells and ILC2s to drive the entire downstream Th2 cascade — IL-4, IL-5, IL-13, and IgE. IL-33 is released simultaneously from damaged epithelial cells and amplifies ILC2 and mast cell activation. Blocking both upstream alarmins simultaneously is the rationale for TSLP × IL-33 bispecifics.</div>
       <table class="info-table" style="table-layout:fixed">
         <colgroup><col style="width:80px"><col style="width:80px"><col style="width:130px"><col style="width:160px"><col style="width:80px"><col style="width:160px"><col style="width:170px"></colgroup>
         <tr><th>Era</th><th>Period</th><th>Drug Class</th><th>Key Agents</th><th>Indication</th><th>Key Efficacy</th><th>BD Significance</th></tr>
         <tr>
           <td><span class="era-badge era-1">Era 1</span></td>
-          <td>1960sâ1980s</td><td>Bronchodilators (SABA/LABA)</td>
+          <td>1960s–1980s</td><td>Bronchodilators (SABA/LABA)</td>
           <td>Salbutamol, salmeterol, formoterol</td><td>Asthma / COPD</td>
           <td>Rapid symptom relief; no disease modification. ~50% reduction in bronchoconstriction acutely.</td>
-          <td>Foundational; still standard-of-care backbone. No BD opportunity â all off-patent.</td>
+          <td>Foundational; still standard-of-care backbone. No BD opportunity — all off-patent.</td>
         </tr>
         <tr>
           <td><span class="era-badge era-2">Era 2</span></td>
           <td>1990s</td><td>Inhaled corticosteroids (ICS)</td>
           <td>Fluticasone (Flovent), budesonide (Pulmicort), beclomethasone</td><td>Asthma</td>
-          <td>~50â70% reduction in exacerbations vs. no ICS; cornerstone anti-inflammatory therapy.</td>
+          <td>~50–70% reduction in exacerbations vs. no ICS; cornerstone anti-inflammatory therapy.</td>
           <td>Created combination inhaler market ($10B+ SYMBICORT, ADVAIR). All off-patent. LAMA added for COPD.</td>
         </tr>
         <tr>
@@ -754,31 +960,31 @@ LUÙYZÈPQTÙ]]Û\ÜÏH\]HÌ	OÙ]
         </tr>
         <tr>
           <td><span class="era-badge era-4">Era 4</span></td>
-          <td>2015â2017</td><td>Anti-IL-5/5R</td>
+          <td>2015–2017</td><td>Anti-IL-5/5R</td>
           <td>Mepolizumab (Nucala, GSK), benralizumab (Fasenra, AZ), reslizumab (Cinqair, Teva)</td><td>Severe Eosinophilic Asthma</td>
-          <td>47â51% exacerbation reduction in eos â¥300 asthma. Phenotype-specific â only ~40% severe asthma patients.</td>
+          <td>47–51% exacerbation reduction in eos ≥300 asthma. Phenotype-specific — only ~40% severe asthma patients.</td>
           <td>Proved eosinophil-targeting works; created "precision medicine" narrative in asthma. $3B+ market. COPD eos signals emerging.</td>
         </tr>
         <tr>
           <td><span class="era-badge era-5">Era 5</span></td>
-          <td>2018â2021</td><td>Anti-IL-4RÎ± (Th2 broad)</td>
+          <td>2018–2021</td><td>Anti-IL-4Rα (Th2 broad)</td>
           <td>Dupilumab (Dupixent, Sanofi/Regeneron)</td><td>Asthma, AD, CRS, COPD</td>
-          <td>68% AAER reduction in type-2 asthma. Multi-indication (AD, CRS, COPD) â broadest label in class.</td>
+          <td>68% AAER reduction in type-2 asthma. Multi-indication (AD, CRS, COPD) — broadest label in class.</td>
           <td>Most successful respiratory biologic ever; ~$15B+ total revenue. Created the "Th2 broad" franchise concept. Validates IL-4/13 dual targeting.</td>
         </tr>
         <tr>
           <td><span class="era-badge era-6">Era 6</span></td>
           <td>2021</td><td>Anti-TSLP (upstream)</td>
           <td>Tezepelumab (Tezspire, AZ/Amgen)</td><td>Severe Asthma (all endotypes)</td>
-          <td>70% AAER reduction across all eosinophil levels â first biologic effective in low-eosinophil severe asthma (&gt;50% of unmet need).</td>
-          <td>Landmark approval â validated upstream alarmin blockade. Treatment-policy estimand drove the "all-endotype" label. Sets the benchmark for TSLP bispecifics.</td>
+          <td>70% AAER reduction across all eosinophil levels — first biologic effective in low-eosinophil severe asthma (&gt;50% of unmet need).</td>
+          <td>Landmark approval — validated upstream alarmin blockade. Treatment-policy estimand drove the "all-endotype" label. Sets the benchmark for TSLP bispecifics.</td>
         </tr>
         <tr>
           <td><span class="era-badge era-7">Era 7</span></td>
-          <td>2024âpresent</td><td>Anti-IL-33 &amp; Bispecific Alarmins</td>
-          <td>Itepekimab/astegolimab (anti-IL-33), tozorakimab (anti-IL-33R), QX031N/HXN-1003 (TSLPÃIL-33 bispecific)</td><td>COPD / Asthma / HF</td>
-          <td>Itepekimab AERIFY: ~25% AECOPD reduction in ex-smokers. TSLPÃIL-33 bispecifics: preclinical synergy data only.</td>
-          <td>Bispecific thesis: dual upstream TSLP+IL-33 blockade could exceed monotherapy across all endotypes. $1B+ deals (QyunsâRoche $75M/$1.07B) signal partner conviction.</td>
+          <td>2024–present</td><td>Anti-IL-33 &amp; Bispecific Alarmins</td>
+          <td>Itepekimab/astegolimab (anti-IL-33), tozorakimab (anti-IL-33R), QX031N/HXN-1003 (TSLP×IL-33 bispecific)</td><td>COPD / Asthma / HF</td>
+          <td>Itepekimab AERIFY: ~25% AECOPD reduction in ex-smokers. TSLP×IL-33 bispecifics: preclinical synergy data only.</td>
+          <td>Bispecific thesis: dual upstream TSLP+IL-33 blockade could exceed monotherapy across all endotypes. $1B+ deals (Qyuns→Roche $75M/$1.07B) signal partner conviction.</td>
         </tr>
       </table>
     </div>
@@ -788,40 +994,40 @@ LUÙYZÈPQTÙ]]Û\ÜÏH\]HÌ	OÙ]
   <div class="sec-hd"><span class="sec-title">Related News &amp; Precedent Transactions</span><div class="sec-line"></div><span class="sec-tag">Key Events</span></div>
   <div class="info-card">
     <div class="info-hd" onclick="toggleSection('resp-news')">
-      <span class="info-hd-title">ð° TSLP Landscape News &amp; Strategic Transactions</span>
+      <span class="info-hd-title">📰 TSLP Landscape News &amp; Strategic Transactions</span>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="info-hd-badge">Click to Expand</span>
-        <span class="info-toggle" id="resp-news-toggle">â¼</span>
+        <span class="info-toggle" id="resp-news-toggle">▼</span>
       </div>
     </div>
     <div class="info-body" id="resp-news-body">
       <div class="news-item">
         <div class="news-date">Nov 2024</div>
-        <div class="news-content"><strong>Biosion licenses bosakitug (long-acting anti-TSLP) to Aclaris Therapeutics â $40M upfront, up to $900M</strong> â Biosion also has BSI-502 (TSLPÃIL-4RÎ± bispecific) in Phase 1. Demonstrates China-origin anti-TSLP assets attracting significant upfront capital. <span class="news-val">$40M upfront</span> at Phase 1 stage.</div>
+        <div class="news-content"><strong>Biosion licenses bosakitug (long-acting anti-TSLP) to Aclaris Therapeutics — $40M upfront, up to $900M</strong> — Biosion also has BSI-502 (TSLP×IL-4Rα bispecific) in Phase 1. Demonstrates China-origin anti-TSLP assets attracting significant upfront capital. <span class="news-val">$40M upfront</span> at Phase 1 stage.</div>
       </div>
       <div class="news-item">
         <div class="news-date">Oct 2025</div>
-        <div class="news-content"><strong>Qyuns licenses QX031N (TSLP Ã IL-33 bispecific) to Roche â $75M upfront, up to $1.07B</strong> â Preclinical stage at signing. Roche already holds astegolimab (anti-ST2/IL-33R), so QX031N adds dual upstream blockade to complete their alarmin franchise. <span class="news-val">$75M upfront</span> at preclinical â landmark bispecific precedent. Qyuns retains all China rights.</div>
+        <div class="news-content"><strong>Qyuns licenses QX031N (TSLP × IL-33 bispecific) to Roche — $75M upfront, up to $1.07B</strong> — Preclinical stage at signing. Roche already holds astegolimab (anti-ST2/IL-33R), so QX031N adds dual upstream blockade to complete their alarmin franchise. <span class="news-val">$75M upfront</span> at preclinical — landmark bispecific precedent. Qyuns retains all China rights.</div>
       </div>
       <div class="news-item">
         <div class="news-date">Dec 2025</div>
-        <div class="news-content"><strong>Qyuns licenses QX027N (TSLP Ã IL-13 bispecific) to Windward Bio â up to $700M</strong> â Windward Bio (backed by Novo Holdings) already licensed HBM9378/SKB378 (Harbour BioMed + Kelun anti-TSLP) for up to $970M. Windward is systematically building a complete TSLP franchise via China-origin assets. <span class="news-val">$700M total</span>.</div>
+        <div class="news-content"><strong>Qyuns licenses QX027N (TSLP × IL-13 bispecific) to Windward Bio — up to $700M</strong> — Windward Bio (backed by Novo Holdings) already licensed HBM9378/SKB378 (Harbour BioMed + Kelun anti-TSLP) for up to $970M. Windward is systematically building a complete TSLP franchise via China-origin assets. <span class="news-val">$700M total</span>.</div>
       </div>
       <div class="news-item">
-        <div class="news-date">2025â2026</div>
-        <div class="news-content"><strong>Itepekimab receives COPD approval (AERIFY Ph3 positive)</strong> â First anti-IL-33 antibody (Regeneron/Sanofi) approved in COPD for ex-smokers with eos â¥150. Opens COPD biologic market to alarmin-targeting agents. Creates a direct readout context for TSLP Ã IL-33 bispecific COPD positioning â partners will want to know how QX031N/HXN-1003 differentiate from approved itepekimab.</div>
+        <div class="news-date">2025–2026</div>
+        <div class="news-content"><strong>Itepekimab receives COPD approval (AERIFY Ph3 positive)</strong> — First anti-IL-33 antibody (Regeneron/Sanofi) approved in COPD for ex-smokers with eos ≥150. Opens COPD biologic market to alarmin-targeting agents. Creates a direct readout context for TSLP × IL-33 bispecific COPD positioning — partners will want to know how QX031N/HXN-1003 differentiate from approved itepekimab.</div>
       </div>
     </div>
   </div>
 
-  <div class="sec-hd"><span class="sec-title">BD Intelligence Â· Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
+  <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
   <div class="insight-box">
     <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
     <ul>
-      <li><strong>Qyuns has built the definitive Chinese TSLP playbook â and it's transferable.</strong> Three deals across TSLPÃIL-33 (Roche), TSLPÃIL-13 (Windward), and TL1AÃIL-23p19 (Caldera), all retaining China rights. For Chinese biotech clients asking how to approach global partnership strategy, Qyuns is the reference case: build differentiated bispecifics, license global rights early at preclinical stage, retain China, use milestone payments to fund domestic development.</li>
-      <li><strong>Roche and Windward Bio are the most active TSLP buyers â and their pipelines are now filling up.</strong> Roche has astegolimab (anti-ST2) + QX031N (TSLPÃIL-33). Windward has HBM9378 (anti-TSLP mono) + QX027N (TSLPÃIL-13). This means other TSLP bispecific assets may need to find different strategic homes â Pfizer, Lilly, AstraZeneca (which already has tezepelumab), and Sanofi are the most likely next acquirers.</li>
-      <li><strong>COPD is the deal-driver, not asthma.</strong> Asthma is well-served by tezepelumab and dupilumab. COPD remains a massive unmet need with no approved biologic targeting TSLP specifically â Qyuns/Roche and Harbour+Kelun/Windward are both explicitly targeting COPD. When pitching TSLP-related assets to clients, the COPD angle drives deal rationale and justifies Phase 3 investment scale.</li>
-      <li><strong>Tezepelumab's "all-endotype" story is estimand-dependent â and it's a BD talking point.</strong> NAVIGATOR used a treatment policy estimand that counted exacerbations even when patients changed background ICS therapy. This pragmatic design is the reason the "works regardless of baseline eosinophils" label held up post-approval. Chinese companies designing TSLP bispecific trials should replicate this estimand choice if they want a similarly broad label. A hypothetical or while-on-treatment estimand might inflate Phase 2 numbers but would undermine the path to a broad approval claim â and sophisticated partners will notice the difference.</li>
+      <li><strong>Qyuns has built the definitive Chinese TSLP playbook — and it's transferable.</strong> Three deals across TSLP×IL-33 (Roche), TSLP×IL-13 (Windward), and TL1A×IL-23p19 (Caldera), all retaining China rights. For Chinese biotech clients asking how to approach global partnership strategy, Qyuns is the reference case: build differentiated bispecifics, license global rights early at preclinical stage, retain China, use milestone payments to fund domestic development.</li>
+      <li><strong>Roche and Windward Bio are the most active TSLP buyers — and their pipelines are now filling up.</strong> Roche has astegolimab (anti-ST2) + QX031N (TSLP×IL-33). Windward has HBM9378 (anti-TSLP mono) + QX027N (TSLP×IL-13). This means other TSLP bispecific assets may need to find different strategic homes — Pfizer, Lilly, AstraZeneca (which already has tezepelumab), and Sanofi are the most likely next acquirers.</li>
+      <li><strong>COPD is the deal-driver, not asthma.</strong> Asthma is well-served by tezepelumab and dupilumab. COPD remains a massive unmet need with no approved biologic targeting TSLP specifically — Qyuns/Roche and Harbour+Kelun/Windward are both explicitly targeting COPD. When pitching TSLP-related assets to clients, the COPD angle drives deal rationale and justifies Phase 3 investment scale.</li>
+      <li><strong>Tezepelumab's "all-endotype" story is estimand-dependent — and it's a BD talking point.</strong> NAVIGATOR used a treatment policy estimand that counted exacerbations even when patients changed background ICS therapy. This pragmatic design is the reason the "works regardless of baseline eosinophils" label held up post-approval. Chinese companies designing TSLP bispecific trials should replicate this estimand choice if they want a similarly broad label. A hypothetical or while-on-treatment estimand might inflate Phase 2 numbers but would undermine the path to a broad approval claim — and sophisticated partners will notice the difference.</li>
     </ul>
   </div>
 
@@ -831,100 +1037,100 @@ LUÙYZÈPQTÙ]]Û\ÜÏH\]HÌ	OÙ]
 </div><!-- /content -->
 
 <script>
-// ââ DATA âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// TL1A Ã IL-23p19 bispecific pipeline
+// ── DATA ─────────────────────────────────────────────────────────
+// TL1A × IL-23p19 bispecific pipeline
 // Cols: Company, Asset, Format, Stage, Indication, Licensee/Partner, Upfront, Total Value, Estimand
 const TL1A_PIPE = [
-  ["Mirador (US)","MT-251","FcRn-recycling IgG bispecific","Phase 1","UC, CD","Independent","â","â","Ph1 Safety Only"],
+  ["Mirador (US)","MT-251","FcRn-recycling IgG bispecific","Phase 1","UC, CD","Independent","—","—","Ph1 Safety Only"],
   ["Caldera / Qyuns (CN)","CLD-423 (QX030N)","IgG bispecific","Phase 1","UC, CD","Caldera Therapeutics","$10M + ~25% equity","$545M","Ph1 Safety Only"],
   ["Earendil / Helixon (US)","HXN-1003","AI tetravalent (2+2)","Pre-IND","IBD","Sanofi","$125M","$1.845B","Design TBD"],
-  ["Simcere (CN)","SIM0709","Long-acting SC IgG","Pre-IND â FIH H1'26","UC, CD","Boehringer Ingelheim","â¬42M","â¬1.05B","Design TBD"],
-  ["Xencor (US)","XmAb412","Xtendâ¢ FcXtend IgG","Pre-P1 â Ph1 H2'26","UC, CD","Independent","â","â","Design TBD"],
-  ["LaNova / Zymeworks (CN)","LQ080","VHH nanobody bispecific","Preclinical","IBD","Seeking partner","â","â","Design TBD"],
-  ["Episcience (CN)","ES302","Bispecific","Preclinical","IBD","Seeking partner","â","â","Design TBD"],
+  ["Simcere (CN)","SIM0709","Long-acting SC IgG","Pre-IND → FIH H1'26","UC, CD","Boehringer Ingelheim","€42M","€1.05B","Design TBD"],
+  ["Xencor (US)","XmAb412","Xtend™ FcXtend IgG","Pre-P1 → Ph1 H2'26","UC, CD","Independent","—","—","Design TBD"],
+  ["LaNova / Zymeworks (CN)","LQ080","VHH nanobody bispecific","Preclinical","IBD","Seeking partner","—","—","Design TBD"],
+  ["Episcience (CN)","ES302","Bispecific","Preclinical","IBD","Seeking partner","—","—","Design TBD"],
 ];
 
 // TL1A monotherapy context
 // Cols: Company, Asset, Stage, Indication, Estimand, Notes
 const TL1A_MONO = [
   ["Merck","Tulisokibart (MK-7240)","Phase 3","UC, CD","Composite","ARTEMIS-UC Ph2: 26.5% remission vs 1.5% placebo (composite). Ph3 ATLAS-UC topline ~Q4 2026 + ARES-CD. Ph2b HS ongoing. Companion diagnostic (TNFSF15 haplotype) creates precision medicine positioning. Sets composite estimand standard for TL1A."],
-  ["Teva / Sanofi","Duvakitug (TEV-48574)","Phase 2b â Phase 3","UC, CD","Composite","RELIEVE UCCD Ph2b: 48% UC remission at 900mg Wk14 (composite estimand) vs 20% placebo â highest TL1A signal reported to date. CD: 48% endoscopic response. Ph3 UC/CD underway H2 2025. Most commercially formidable â Sanofi's global scale."],
-  ["Roche","Afimkibart (RG6631)","Phase 3 (UC), Ph2 (CD)","UC, CD","Composite","TUSCANY-2 Ph2b: 24% UC remission vs 12% placebo at Wk14 â PRIMARY ENDPOINT NOT STATISTICALLY SIGNIFICANT. Secondary endpoints positive; 43% clinical remission Wk56 biomarker+ subgroup (open-label). Ph3 AMETRINE-1/-2 UC + SIBERITE-1/-2 CD. Acquired via Telavant ~$7.1B."],
-  ["Xencor","XmAb942","Phase 2b","UC, CD","Ph1 Safety Only","XENITH-UC Ph2b ongoing; year-end 2026 readout. Ph1 HV final data presented DDW May 2-5, 2026. Extended half-life >71 days tÂ½ validated. No efficacy estimand defined yet for Ph2."],
-  ["Mirador","MT-501 (oral)","Phase 2","UC, CD","Ph1 Safety Only","Oral anti-TL1A â differentiated route of administration. Phase 2 ongoing. Human PK data in hand. Differentiates from IV/SC formats for mild-to-moderate IBD."],
-  ["Earendil Labs","HVN-1001","Phase 2a","UC","Ph1 Safety Only","Anti-TL1A; Phase 2a UC. Platform asset underpinning Earendil's TL1AÃIL-23p19 bispecific HXN-1003 (Sanofi $125M)."],
-  ["Spyre","SPY001 / SPY002","Phase 2","UC, RA, PsA, axSpA","Ph1 Safety Only","SPY001 (Î±4Î²7+TL1A+IL-23 combo) Ph2 SKYLINE Q2 2026 readout. SPY002 (extended half-life anti-TL1A) Ph2 planning. SPY072 (TL1A+IL-23) Ph2 SKYWAY Q4 2026."],
-  ["AbbVie / FutureGen","FG-M701","Preclinical â Ph2","IBD","Design TBD","Licensed by AbbVie 2024. Studying combos with vedolizumab and Skyrizi. Engineered for extended half-life. Estimand TBD at IND/Ph2 protocol."],
+  ["Teva / Sanofi","Duvakitug (TEV-48574)","Phase 2b → Phase 3","UC, CD","Composite","RELIEVE UCCD Ph2b: 48% UC remission at 900mg Wk14 (composite estimand) vs 20% placebo — highest TL1A signal reported to date. CD: 48% endoscopic response. Ph3 UC/CD underway H2 2025. Most commercially formidable — Sanofi's global scale."],
+  ["Roche","Afimkibart (RG6631)","Phase 3 (UC), Ph2 (CD)","UC, CD","Composite","TUSCANY-2 Ph2b: 24% UC remission vs 12% placebo at Wk14 — PRIMARY ENDPOINT NOT STATISTICALLY SIGNIFICANT. Secondary endpoints positive; 43% clinical remission Wk56 biomarker+ subgroup (open-label). Ph3 AMETRINE-1/-2 UC + SIBERITE-1/-2 CD. Acquired via Telavant ~$7.1B."],
+  ["Xencor","XmAb942","Phase 2b","UC, CD","Ph1 Safety Only","XENITH-UC Ph2b ongoing; year-end 2026 readout. Ph1 HV final data presented DDW May 2-5, 2026. Extended half-life >71 days t½ validated. No efficacy estimand defined yet for Ph2."],
+  ["Mirador","MT-501 (oral)","Phase 2","UC, CD","Ph1 Safety Only","Oral anti-TL1A — differentiated route of administration. Phase 2 ongoing. Human PK data in hand. Differentiates from IV/SC formats for mild-to-moderate IBD."],
+  ["Earendil Labs","HVN-1001","Phase 2a","UC","Ph1 Safety Only","Anti-TL1A; Phase 2a UC. Platform asset underpinning Earendil's TL1A×IL-23p19 bispecific HXN-1003 (Sanofi $125M)."],
+  ["Spyre","SPY001 / SPY002","Phase 2","UC, RA, PsA, axSpA","Ph1 Safety Only","SPY001 (α4β7+TL1A+IL-23 combo) Ph2 SKYLINE Q2 2026 readout. SPY002 (extended half-life anti-TL1A) Ph2 planning. SPY072 (TL1A+IL-23) Ph2 SKYWAY Q4 2026."],
+  ["AbbVie / FutureGen","FG-M701","Preclinical → Ph2","IBD","Design TBD","Licensed by AbbVie 2024. Studying combos with vedolizumab and Skyrizi. Engineered for extended half-life. Estimand TBD at IND/Ph2 protocol."],
 ];
 
-// Clinical Readout Calendar â TL1A
+// Clinical Readout Calendar — TL1A
 // Cols: Category, Program, Phase, Expected Timing, Indication
 const TL1A_READOUTS = [
-  ["TL1A Mono","Merck Tulisokibart ATLAS-UC","Ph3","Q4 2026 â Topline induction ~Nov 2026","UC"],
-  ["TL1A Mono","Merck Tulisokibart ARES-CD","Ph3","2027 â CD induction/maintenance","CD"],
-  ["TL1A Mono","Roche Afimkibart AMETRINE-1/-2","Ph3","2027 â Regulatory filing target (UC)","UC"],
-  ["TL1A Mono","Roche Afimkibart SIBERITE-1/-2","Ph3","~2028 â Regulatory filing target (CD)","CD"],
-  ["TL1A Mono","Sanofi/Teva Duvakitug Ph3","Ph3","~2028 â UC and CD combined","UC / CD"],
-  ["TL1A Mono","Spyre SPY001 SKYLINE Part A","Ph2","Q2 2026 â SPY001 first Ph2 readout","UC"],
-  ["TL1A Mono","Spyre SPY072 SKYWAY (all 3 sub-studies)","Ph2","Q4 2026 â RA Â· PsA Â· axSpA","RA / PsA / axSpA"],
-  ["TL1A Mono","Xencor XmAb942 XENITH-UC","Ph2b","Year-end 2026 â UC Ph2b topline","UC"],
-  ["TL1A Mono","Xencor XmAb942 Ph1 HV final data","Ph1","DDW May 2â5 2026 (complete)","HV â UC"],
-  ["TL1AÃIL-23p19","Mirador MT-251 Ph1 HV SAD/MAD","Ph1","Q1 2027 â 10+ readout events","UC / CD"],
-  ["TL1AÃIL-23p19","Caldera CLD-423 Ph1 HV SAD/MAD","Ph1","Ongoing â P2 timing not disclosed","UC / CD"],
-  ["TL1AÃIL-23p19","Xencor XmAb412 preclinical poster","Pre-Ph1","DDW May 2026 (complete) â FIH H2'26","UC / CD"],
-  ["TL1AÃIL-23p19","Sanofi/Helixon HXN-1003 IND filing","Pre-IND","IND filing ~2026 â FIH TBD","IBD"],
-  ["Combination","J&J Tremfya + Simponi DUET","Ph2b","H1 2026 â IL-23+TNF combo readout","UC"],
-  ["Combination","AbbVie Skyrizi + trosunilimab TARGET-CD","Ph2","H2 2026 â IL-23+TL1A combo","CD"],
+  ["TL1A Mono","Merck Tulisokibart ATLAS-UC","Ph3","Q4 2026 — Topline induction ~Nov 2026","UC"],
+  ["TL1A Mono","Merck Tulisokibart ARES-CD","Ph3","2027 — CD induction/maintenance","CD"],
+  ["TL1A Mono","Roche Afimkibart AMETRINE-1/-2","Ph3","2027 — Regulatory filing target (UC)","UC"],
+  ["TL1A Mono","Roche Afimkibart SIBERITE-1/-2","Ph3","~2028 — Regulatory filing target (CD)","CD"],
+  ["TL1A Mono","Sanofi/Teva Duvakitug Ph3","Ph3","~2028 — UC and CD combined","UC / CD"],
+  ["TL1A Mono","Spyre SPY001 SKYLINE Part A","Ph2","Q2 2026 — SPY001 first Ph2 readout","UC"],
+  ["TL1A Mono","Spyre SPY072 SKYWAY (all 3 sub-studies)","Ph2","Q4 2026 — RA · PsA · axSpA","RA / PsA / axSpA"],
+  ["TL1A Mono","Xencor XmAb942 XENITH-UC","Ph2b","Year-end 2026 — UC Ph2b topline","UC"],
+  ["TL1A Mono","Xencor XmAb942 Ph1 HV final data","Ph1","DDW May 2–5 2026 (complete)","HV → UC"],
+  ["TL1A×IL-23p19","Mirador MT-251 Ph1 HV SAD/MAD","Ph1","Q1 2027 — 10+ readout events","UC / CD"],
+  ["TL1A×IL-23p19","Caldera CLD-423 Ph1 HV SAD/MAD","Ph1","Ongoing — P2 timing not disclosed","UC / CD"],
+  ["TL1A×IL-23p19","Xencor XmAb412 preclinical poster","Pre-Ph1","DDW May 2026 (complete) — FIH H2'26","UC / CD"],
+  ["TL1A×IL-23p19","Sanofi/Helixon HXN-1003 IND filing","Pre-IND","IND filing ~2026 → FIH TBD","IBD"],
+  ["Combination","J&J Tremfya + Simponi DUET","Ph2b","H1 2026 — IL-23+TNF combo readout","UC"],
+  ["Combination","AbbVie Skyrizi + trosunilimab TARGET-CD","Ph2","H2 2026 — IL-23+TL1A combo","CD"],
 ];
 
 // Technical bispecific comparison
 // Cols: Company, Asset, Stage, TL1A Mechanism, IL-23 Mechanism, Key Differentiator, Timeline
 const TL1A_TECH = [
-  ["Mirador","MT-251","Phase 1","pH-sensitive FcRn recycling â human PK validated via MT-501 mono; extended tÂ½","IL-23p19 blockade; exact epitope undisclosed","Most advanced in class; human PK data in hand from oral mono MT-501","Ph1 SAD/MAD completion Q1 2027; both IV and SC formats"],
+  ["Mirador","MT-251","Phase 1","pH-sensitive FcRn recycling — human PK validated via MT-501 mono; extended t½","IL-23p19 blockade; exact epitope undisclosed","Most advanced in class; human PK data in hand from oral mono MT-501","Ph1 SAD/MAD completion Q1 2027; both IV and SC formats"],
   ["Caldera / Qyuns","CLD-423","Phase 1","Standard IgG bispecific; 'best-in-disease PK' claimed; no published human data","Assumed standard DR3 blockade; no structural data published","Licensed from Qyuns CN ($10M + ~25% equity); Ph1 ongoing (Australia)","Ph1 completion not disclosed; first subjects Jan 2026"],
-  ["Xencor","XmAb412","Pre-Ph1 â Ph1 H2'26","Native-like IgG + Xtendâ¢ FcXtend (>71d tÂ½ validated in XmAb942 mono)","Matches approved anti-IL-23p19 in vitro; epitope undisclosed","Simple IgG format; low engineering risk; Xtend tÂ½ de-risked by mono program","FIH H2 2026; preclinical poster DDW May 2026"],
+  ["Xencor","XmAb412","Pre-Ph1 → Ph1 H2'26","Native-like IgG + Xtend™ FcXtend (>71d t½ validated in XmAb942 mono)","Matches approved anti-IL-23p19 in vitro; epitope undisclosed","Simple IgG format; low engineering risk; Xtend t½ de-risked by mono program","FIH H2 2026; preclinical poster DDW May 2026"],
   ["Sanofi / Helixon","HXN-1003","Pre-IND","AI-designed tetravalent (2+2); no published human PK","Anti-IL-23 arm superior vs risankizumab in vitro; binds TL1A trimer + monomer","Preclinical synergy exceeds individual mAb combo; $125M upfront reflects Sanofi's conviction","IND filing ~2026; FIH timing not disclosed"],
-  ["BI / Simcere","SIM0709","Pre-IND â FIH H1'26","Long-acting humanized IgG; SC formulation confirmed; superior vs afimkibart in vitro","scRNAseq-guided IL-23p19 arm; synergy validated in gut organoid models","BI deal â¬42M upfront; largest upfront for Chinese IgG bispecific pre-IND","FIH H1 2026 targeted; no IND filing confirmed post-deal"],
-  ["Ailux","[Program]","Preclinical","Trimer destabilization MoA + engineered mutations â unique vs all DR3-blocking competitors","Novel IL-23p19 epitope; low predicted ADA via stoichiometric mechanism","Only asset combining trimer destabilization + 37d tÂ½ + high-conc SC in one molecule","Pre-IND; seeking partner"],
+  ["BI / Simcere","SIM0709","Pre-IND → FIH H1'26","Long-acting humanized IgG; SC formulation confirmed; superior vs afimkibart in vitro","scRNAseq-guided IL-23p19 arm; synergy validated in gut organoid models","BI deal €42M upfront; largest upfront for Chinese IgG bispecific pre-IND","FIH H1 2026 targeted; no IND filing confirmed post-deal"],
+  ["Ailux","[Program]","Preclinical","Trimer destabilization MoA + engineered mutations — unique vs all DR3-blocking competitors","Novel IL-23p19 epitope; low predicted ADA via stoichiometric mechanism","Only asset combining trimer destabilization + 37d t½ + high-conc SC in one molecule","Pre-IND; seeking partner"],
 ];
 
-// Clinical Readout Calendar â TSLP / Respiratory
+// Clinical Readout Calendar — TSLP / Respiratory
 // Cols: Category, Program, Phase, Expected Timing, Indication
 const TSLP_READOUTS = [
-  ["Anti-TSLP","AZ/Amgen Tezepelumab (NAVIGATOR)","Approved","2021 approval Â· ongoing label expansion studies","Severe Asthma (all endotypes)"],
-  ["Anti-IL-33","Regeneron/Sanofi Itepekimab AERIFY-1/-2","Ph3","H1 2026 â Positive COPD Ph3 data (ex-smokers, eosâ¥150)","COPD"],
-  ["Anti-IL-33R","AZ Tozorakimab RESCUE-COPD","Ph3","H2 2026 â COPD exacerbation topline","COPD / HF"],
-  ["Anti-IL-33R","AZ Astegolimab PACIFIC Ph3 Asthma","Ph3","~2026 â Severe asthma Ph3 readout","Severe Asthma"],
-  ["Anti-TSLP","Biosion Bosakitug Ph1/2 Asthma","Ph1âPh2","H2 2026 â Ph2a data readout","Asthma / AD"],
-  ["Anti-TSLP","Harbour+Kelun HBM9378 / SKB378 Ph2","Ph2","H2 2026 â Phase 2 asthma exacerbation data","Asthma (â COPD Ph2)"],
-  ["TSLPÃIL-13","Qyuns QX027N / Windward WIN027","Ph1","H1 2027 â Ph1 completion","Asthma / AD"],
-  ["TSLPÃIL-33","Qyuns QX031N (Roche) Ph1","Ph1","~2027 â First in human data","COPD / Asthma"],
-  ["IL-4RÎ±ÃTSLP","Innovent IBI-3002 Ph1","Ph1","2026â2027 â Ph1 completion","Asthma / AD"],
-  ["TSLPÃIL-11","Hengrui HB0056 Ph1","Ph1","2026â2027 â Ph1 completion","Asthma / COPD / IPF"],
+  ["Anti-TSLP","AZ/Amgen Tezepelumab (NAVIGATOR)","Approved","2021 approval · ongoing label expansion studies","Severe Asthma (all endotypes)"],
+  ["Anti-IL-33","Regeneron/Sanofi Itepekimab AERIFY-1/-2","Ph3","H1 2026 — Positive COPD Ph3 data (ex-smokers, eos≥150)","COPD"],
+  ["Anti-IL-33R","AZ Tozorakimab RESCUE-COPD","Ph3","H2 2026 — COPD exacerbation topline","COPD / HF"],
+  ["Anti-IL-33R","AZ Astegolimab PACIFIC Ph3 Asthma","Ph3","~2026 — Severe asthma Ph3 readout","Severe Asthma"],
+  ["Anti-TSLP","Biosion Bosakitug Ph1/2 Asthma","Ph1→Ph2","H2 2026 — Ph2a data readout","Asthma / AD"],
+  ["Anti-TSLP","Harbour+Kelun HBM9378 / SKB378 Ph2","Ph2","H2 2026 — Phase 2 asthma exacerbation data","Asthma (→ COPD Ph2)"],
+  ["TSLP×IL-13","Qyuns QX027N / Windward WIN027","Ph1","H1 2027 — Ph1 completion","Asthma / AD"],
+  ["TSLP×IL-33","Qyuns QX031N (Roche) Ph1","Ph1","~2027 — First in human data","COPD / Asthma"],
+  ["IL-4Rα×TSLP","Innovent IBI-3002 Ph1","Ph1","2026–2027 — Ph1 completion","Asthma / AD"],
+  ["TSLP×IL-11","Hengrui HB0056 Ph1","Ph1","2026–2027 — Ph1 completion","Asthma / COPD / IPF"],
 ];
 
-// TSLP Ã IL-33 bispecific pipeline
+// TSLP × IL-33 bispecific pipeline
 // Cols: Company, Asset, Format, Stage, Indication, Licensee/Partner, Upfront, Total Value, Estimand
 const TSLP_PIPE = [
-  ["Qyuns (CN)","QX031N","Long-acting bispecific","Preclinical â Ph1","COPD, Asthma","Roche","$75M","$1.07B","Ph1 Safety Only"],
-  ["Odyssey Therapeutics (US)","Undisclosed TSLPÃIL-33","Bispecific","Preclinical","Asthma, COPD","Independent","â","â","Design TBD"],
-  ["Sinomab Bioscience (CN)","Undisclosed alarmin bsAb","Alarmin bispecific","Patent stage","Asthma, AD","Seeking","â","â","Design TBD"],
+  ["Qyuns (CN)","QX031N","Long-acting bispecific","Preclinical → Ph1","COPD, Asthma","Roche","$75M","$1.07B","Ph1 Safety Only"],
+  ["Odyssey Therapeutics (US)","Undisclosed TSLP×IL-33","Bispecific","Preclinical","Asthma, COPD","Independent","—","—","Design TBD"],
+  ["Sinomab Bioscience (CN)","Undisclosed alarmin bsAb","Alarmin bispecific","Patent stage","Asthma, AD","Seeking","—","—","Design TBD"],
 ];
 
 // TSLP / IL-33 monotherapy context
 // Cols: Company, Asset, Stage, Indication, Estimand, Notes
 const TSLP_MONO = [
-  ["AstraZeneca / Amgen","Tezepelumab (Tezspire)","Approved","Severe Asthma","Treatment Policy","NAVIGATOR trial (NEJM 2021) used treatment policy estimand â exacerbations counted regardless of ICS changes. This pragmatic design is WHY it demonstrated efficacy across all endotypes, including low-eosinophil patients. The estimand choice is inseparable from the broad label."],
+  ["AstraZeneca / Amgen","Tezepelumab (Tezspire)","Approved","Severe Asthma","Treatment Policy","NAVIGATOR trial (NEJM 2021) used treatment policy estimand — exacerbations counted regardless of ICS changes. This pragmatic design is WHY it demonstrated efficacy across all endotypes, including low-eosinophil patients. The estimand choice is inseparable from the broad label."],
   ["Regeneron / Sanofi","Itepekimab","Approved (asthma); Ph3 COPD","Asthma, COPD","Treatment Policy","QUEST/LIBERTY asthma trials used treatment policy for annualized exacerbation rate. Ph3 COPD (AERIFY) uses treatment policy. Positive Phase 3 COPD data for itepekimab in ex-smokers."],
-  ["AstraZeneca","Tozorakimab","Phase 3","COPD, HF","Treatment Policy","RESCUE-COPD used treatment policy estimand for exacerbation reduction â counts events regardless of background therapy changes. Positive exacerbation data; HF indication adds cardiovascular angle."],
-  ["Roche / Genentech","Astegolimab","Phase 3","Asthma, COPD","Treatment Policy","Anti-ST2/IL-33R; Phase 3 asthma and COPD using treatment policy. Complements QX031N (TSLPÃIL-33) strategic rationale â Roche acquiring dual pathway blockade."],
-  ["Biosion / Aclaris","Bosakitug","Phase 1","Asthma, AD, COPD","Ph1 Safety Only","Long-acting anti-TSLP; Ph1 safety/PK ongoing. BSI-502 (TSLPÃIL-4R bispecific) also in Ph1. Estimand for efficacy studies TBD â expected to follow tezepelumab treatment policy standard."],
-  ["Innovent","IBI-3002","Phase 1","Asthma, AD","Ph1 Safety Only","IL-4RÎ± Ã TSLP bispecific; Phase 1 asthma and atopic dermatitis. No efficacy estimand defined yet. Potential out-licensing of global rights."],
-  ["Hengrui","HB0056","Phase 1","Asthma, AD, COPD, IPF","Ph1 Safety Only","TSLP Ã IL-11 bispecific â IL-11 angle unique for fibrotic indications. Phase 1 safety only; IPF indication may require composite or hypothetical estimand given high dropout rates."],
+  ["AstraZeneca","Tozorakimab","Phase 3","COPD, HF","Treatment Policy","RESCUE-COPD used treatment policy estimand for exacerbation reduction — counts events regardless of background therapy changes. Positive exacerbation data; HF indication adds cardiovascular angle."],
+  ["Roche / Genentech","Astegolimab","Phase 3","Asthma, COPD","Treatment Policy","Anti-ST2/IL-33R; Phase 3 asthma and COPD using treatment policy. Complements QX031N (TSLP×IL-33) strategic rationale — Roche acquiring dual pathway blockade."],
+  ["Biosion / Aclaris","Bosakitug","Phase 1","Asthma, AD, COPD","Ph1 Safety Only","Long-acting anti-TSLP; Ph1 safety/PK ongoing. BSI-502 (TSLP×IL-4R bispecific) also in Ph1. Estimand for efficacy studies TBD — expected to follow tezepelumab treatment policy standard."],
+  ["Innovent","IBI-3002","Phase 1","Asthma, AD","Ph1 Safety Only","IL-4Rα × TSLP bispecific; Phase 1 asthma and atopic dermatitis. No efficacy estimand defined yet. Potential out-licensing of global rights."],
+  ["Hengrui","HB0056","Phase 1","Asthma, AD, COPD, IPF","Ph1 Safety Only","TSLP × IL-11 bispecific — IL-11 angle unique for fibrotic indications. Phase 1 safety only; IPF indication may require composite or hypothetical estimand given high dropout rates."],
   ["Harbour BioMed + Kelun","HBM9378/SKB378","Phase 2","Asthma, COPD","Treatment Policy (TBD)","Anti-TSLP monoAb in Phase 2; licensed to Windward $970M. Phase 2 asthma exacerbation endpoint expected to use treatment policy. COPD Ph2 design pending."],
 ];
 
-// ââ FORMATTERS ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── FORMATTERS ────────────────────────────────────────────────────
 // Stage badge formatter
 function sf(cell) {
   const s = String(cell);
@@ -950,7 +1156,7 @@ function ef(cell) {
   return gridjs.html(`<span class="eb ${c}">${label}</span>`);
 }
 
-// ââ GRIDS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── GRIDS ────────────────────────────────────────────────────────
 function initGrids() {
   // TL1A Clinical Readout Calendar
   new gridjs.Grid({
@@ -1009,7 +1215,7 @@ function initGrids() {
 
   // TSLP Clinical Readout Calendar
   new gridjs.Grid({
-    columns:[
+  2 columns:[
       {name:'Category',width:'145px',formatter:rf},
       {name:'Program',width:'250px'},
       {name:'Phase',width:'80px',formatter:sf},
@@ -1049,52 +1255,55 @@ function initGrids() {
   }).render(document.getElementById('grid-tslp-mono'));
 }
 
-// ââ CHARTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CHARTS ────────────────────────────────────────────────────────
 function initCharts() {
   new Chart(document.getElementById('chartTL1A'), {
     type:'bar',
-    data:{ labels:['SimcereâBI\n(Jan 2026)','EarendilâSanofi\n(Apr 2025)','QyunsâCaldera\n(Apr 2025)'], datasets:[{ label:'Total potential (USD equiv.)', data:[1160,1845,545], backgroundColor:['#2e6fb0','#c45b11','#5a9fd4'], borderRadius:5, borderSkipped:false }] },
-    options:{ responsive:true, plugins:{ legend:{^\Ü^N[Ù_KÛÛ\ÈØ[XÚÜÎÈX[ÏO		ØË]ßSHÝ[Ý[X[HHKØØ[\ÎÈNÈYÚ[]\ÎYKXÚÜÎÈØ[XÚÎO		ÝSXÛÜÚ^NLHKÜYØÛÛÜÈÙYYYIßHKÈXÚÜÎÙÛÜÚ^NL_KÜYÙ\Ü^N[Ù_HHHBJNÂ]ÈÚ\
-ØÝ[Y[Ù][[Y[RY
-	ØÚ\Ó	ÊKÂ\NØ\Ë]NÈX[ÎÉÐ[ÜÚ[Û¸¡¤XÛ\\×Ý
-IË	Ò\Ý\ÒÙ[[¸¡¤Ú[Ø\	Ë	Ô^][ø¡¤Ú[Ø\Ó0åÒSLLÊIË	Ô^][ø¡¤ØÚWÓ0åÒSLÌÊI×K]\Ù]ÎÞÈX[ÕÝ[Ý[X[
-TÑ
-IË]NÎLMÌ
-ÌL
-ÌKXÚÙÜÝ[ÛÛÜÉÈÍXNY
-	Ë	ÈÍXNY
-	Ë	ÈÌM	Ë	ÈØÍ
-XLI×KÜ\Y]\ÎKÜ\ÚÚ\Y[ÙHWHKÜ[ÛÎÈ\ÜÛÚ]NYKYÚ[ÎÈYÙ[Ù\Ü^N[Ù_KÛÛ\ÈØ[XÚÜÎÈX[ÏO		ØË]ßSHÝ[Ý[X[HHKØØ[\ÎÈNÈYÚ[]\ÎYKXÚÜÎÈØ[XÚÎO		ÝSXÛÜÚ^NLHKÜYØÛÛÜÈÙYYYIßHKÈXÚÜÎÉÛÜÚ^NL_KÜYÙ\Ü^N[Ù_HHHBJNÂBËÈ8¥ 8¥ PQÕUÐUQÛÔHQÑH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[ÛÙ[
-HÂÛÛÝÈHÝ[ÊÙ[
-NÂ]ÈH	Ü[[ÛÉÎÂY
-Ë[ÛY\Ê	ÒSLÉÊHË[ÛY\Ê	ØÐXÊHË[ÛY\Ê	Ð\ÜXÚYXÉÊHË[ÛY\Ê	ðåÉÊJHÈH	ÜXÜÉÎÂ[ÙHY
-ÈOOH	ÐÛÛX[][ÛÊHÈH	ÜXÛÛXÉÎÂ[ÙHY
-ÈOOH	Ð[KUÓ	ÈÈOOH	Ð[KRSLÌÉÈÈOOH	Ð[KRSLÌÔÊHÈH	Ü[[ÛÉÎÂ]\ÜYË[
-Ü[Û\ÜÏH	ØßHÜßOÜÜ[
-NÂBËÈ8¥ 8¥ ÑSTPÈÓÓTÒPHÑÑÓH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[ÛÙÙÛTÙXÝ[ÛY
-HÂÛÛÝÙHHØÝ[Y[Ù][[Y[RY
-Y
-È	ËXÙIÊNÂÛÛÝÙÙÛHHØÝ[Y[Ù][[Y[RY
-Y
-È	Ë]ÙÙÛIÊNÂY
-ÙJHÙKÛ\ÜÓ\ÝÙÙÛJ	ÛÜ[ÊNÂY
-ÙÙÛJHÙÙÛKÛ\ÜÓ\ÝÙÙÛJ	ÛÜ[ÊNÂBËÈ8¥ 8¥ TÕSPSÑÑÓH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[ÛÙÙÛQ\Ý[X[
-Y
-HÂÛÛÝÙHHØÝ[Y[Ù][[Y[RY
-Y
-NÂÛÛÝÙÙÛHHØÝ[Y[Ù][[Y[RY
-	ÝÙÙÛKIÈ
-ÈY
-NÂÙKÛ\ÜÓ\ÝÙÙÛJ	ÛÜ[ÊNÂÙÙÛKÛ\ÜÓ\ÝÙÙÛJ	ÛÜ[ÊNÂBËÈ8¥ 8¥ PÈ8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[ÛÝÚ]ÚXYHÂØÝ[Y[]Y\TÙ[XÝÜ[
-	ËX\[IÊKÜXXÚ
-OÛ\ÜÓ\Ý[[ÝJ	ØXÝ]IÊJNÂØÝ[Y[]Y\TÙ[XÝÜ[
-	ËXXÊKÜXXÚ
-OÛ\ÜÓ\Ý[[ÝJ	ØXÝ]IÊJNÂØÝ[Y[Ù][[Y[RY
-	ÝXIÊÚY
-KÛ\ÜÓ\ÝY
-	ØXÝ]IÊNÂÛ\ÜÓ\ÝY
-	ØXÝ]IÊNÂBÚ[ÝËY][\Ý[\	ÛØY	Ë
+    data:{ labels:['Simcere→BI\n(Jan 2026)','Earendil→Sanofi\n(Apr 2025)','Qyuns→Caldera\n(Apr 2025)'], datasets:[{ label:'Total potential (USD equiv.)', data:[1160,1845,545], backgroundColor:['#2e6fb0','#c45b11','#5a9fd4'], borderRadius:5, borderSkipped:false }] },
+    options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw}M total potential` } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}M`, font:{size:10} }, grid:{color:'#eef1f5'} }, x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
+  });
+  new Chart(document.getElementById('chartTSLP'), {
+    type:'bar',
+    data:{ labels:['Biosion→Aclaris\n(Nov 2024)','Harbour+Kelun\n→Windward','Qyuns→Windward\n(TSLP×IL-13)','Qyuns→Roche\n(TSLP×IL-33)'], datasets:[{ label:'Total potential (USD)', data:[900,970,700,1070], backgroundColor:['#5a9fd4','#5a9fd4','#2e6fb0','#c45b11'], borderRadius:5, borderSkipped:false }] },
+    options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw}M total potential` } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}M`, font:{size:10} }, grid:{color:'#eef1f5'} }, x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
+  });
+}
 
-HOÈ[]ÜYÊ
-NÈ[]Ú\Ê
-NÈJNÂÜØÜ\ØÙOÚ[
+// ── READOUT CATEGORY BADGE ────────────────────────────────────────
+function rf(cell) {
+  const s = String(cell);
+  let c = 'rb-mono';
+  if (s.includes('IL-23') || s.includes('bsAb') || s.includes('Bispecific') || s.includes('×')) c = 'rb-bspc';
+  else if (s === 'Combination') c = 'rb-combo';
+  else if (s === 'Anti-TSLP' || s === 'Anti-IL-33' || s === 'Anti-IL-33R') c = 'rb-mono';
+  return gridjs.html(`<span class="rb ${c}">${s}</span>`);
+}
+
+// ── GENERIC COLLAPSIBLE TOGGLE ────────────────────────────────────
+function toggleSection(id) {
+  const body = document.getElementById(id + '-body');
+  const toggle = document.getElementById(id + '-toggle');
+  if (body) body.classList.toggle('open');
+  if (toggle) toggle.classList.toggle('open');
+}
+
+// ── ESTIMAND TOGGLE ───────────────────────────────────────────────
+function toggleEstimand(id) {
+  const body = document.getElementById(id);
+  const toggle = document.getElementById('toggle-' + id);
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+window.addEventListener('load', () => { initGrids(); initCharts(); });
+</script>
+</body>
+</html>
