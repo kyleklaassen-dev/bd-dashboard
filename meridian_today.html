@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Meridian · Saturday, May 16, 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: #f7f8fa; color: #1a2f50; line-height: 1.6; }
+  .wrapper { max-width: 720px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* ── MASTHEAD ── */
+  .masthead { border-bottom: 3px solid #1a2f50; padding-bottom: 14px; margin-bottom: 24px; }
+  .masthead-title { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; color: #1a2f50; font-family: 'Georgia', serif; }
+  .masthead-sub { font-size: 12px; color: #6b7c93; margin-top: 4px; letter-spacing: 0.3px; text-transform: uppercase; font-family: Arial, sans-serif; }
+  .masthead-rule { height: 1px; background: #dde3ea; margin-top: 10px; }
+
+  /* ── LEAD SUMMARY ── */
+  .lead-box { background: #1a2f50; color: white; border-radius: 8px; padding: 20px 22px; margin-bottom: 22px; }
+  .lead-box-label { font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #7fb4e8; font-family: Arial, sans-serif; margin-bottom: 10px; }
+  .lead-box p { font-size: 13.5px; line-height: 1.8; color: #e8f0f9; font-family: Arial, sans-serif; }
+
+  /* ── SECTION HEADERS ── */
+  .sec-hd { display: flex; align-items: center; gap: 10px; margin: 26px 0 14px; }
+  .sec-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #6b7c93; font-family: Arial, sans-serif; white-space: nowrap; }
+  .sec-line { flex: 1; height: 1px; background: #dde3ea; }
+  .sec-tag { font-size: 9px; font-weight: 700; background: #eef4fb; color: #2e6fb0; padding: 2px 8px; border-radius: 10px; font-family: Arial, sans-serif; white-space: nowrap; }
+  .sec-tag.o { background: #fef3e2; color: #c45b11; }
+  .sec-tag.g { background: #e6f7ee; color: #1a7a47; }
+  .sec-tag.p { background: #f3effe; color: #6d3eb5; }
+
+  /* ── STORY CARDS ── */
+  .story { background: white; border-radius: 8px; border-left: 4px solid #2e6fb0; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .story.orange { border-left-color: #c45b11; }
+  .story.green { border-left-color: #1a7a47; }
+  .story.purple { border-left-color: #6d3eb5; }
+  .story-eyebrow { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7c93; margin-bottom: 6px; font-family: Arial, sans-serif; }
+  .story-eyebrow.blue { color: #2e6fb0; }
+  .story-eyebrow.orange { color: #c45b11; }
+  .story-eyebrow.green { color: #1a7a47; }
+  .story-eyebrow.purple { color: #6d3eb5; }
+  .story h3 { font-size: 15px; font-weight: 800; color: #1a2f50; margin-bottom: 8px; line-height: 1.3; font-family: Arial, sans-serif; }
+  .story p { font-size: 13px; color: #374151; line-height: 1.8; font-family: Arial, sans-serif; }
+  .story p + p { margin-top: 8px; }
+  .story-meta { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .story-tag { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px; font-family: Arial, sans-serif; }
+  .st-deal { background: #eef4fb; color: #2e6fb0; }
+  .st-fda { background: #e6f7ee; color: #1a7a47; }
+  .st-data { background: #f3effe; color: #6d3eb5; }
+  .st-m-a { background: #fef3e2; color: #c45b11; }
+  .st-src { font-size: 10px; color: #9ca3af; font-family: Arial, sans-serif; }
+  .story a { color: #2e6fb0; text-decoration: none; }
+  .story a:hover { text-decoration: underline; }
+
+  /* ── DEAL TABLE ── */
+  .deal-table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 18px; }
+  .deal-table thead { background: #1a2f50; color: white; }
+  .deal-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .deal-table td { padding: 8px 12px; border-bottom: 1px solid #f0f3f8; color: #374151; }
+  .deal-table tr:last-child td { border-bottom: none; }
+  .deal-table tr:nth-child(even) td { background: #f9fafb; }
+  .val-pos { color: #1a7a47; font-weight: 700; }
+  .val-blue { color: #2e6fb0; font-weight: 700; }
+
+  /* ── CONCEPT BLOCK ── */
+  .concept-card { background: linear-gradient(135deg, #1a2f50 0%, #2e6fb0 100%); color: white; border-radius: 8px; padding: 22px; margin-bottom: 18px; }
+  .concept-label { font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #7fb4e8; font-family: Arial, sans-serif; margin-bottom: 10px; }
+  .concept-title { font-size: 17px; font-weight: 900; margin-bottom: 12px; font-family: Arial, sans-serif; line-height: 1.3; }
+  .concept-body { font-size: 13px; line-height: 1.9; color: #d8e8f8; font-family: Arial, sans-serif; }
+  .concept-body strong { color: white; }
+
+  /* ── CHENGYU BLOCK ── */
+  .chengyu-card { background: white; border-radius: 8px; padding: 20px 22px; margin-bottom: 18px; border: 1px solid #dde3ea; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .chengyu-chars { font-size: 36px; color: #1a2f50; letter-spacing: 6px; margin-bottom: 6px; }
+  .chengyu-pinyin { font-size: 14px; color: #6b7c93; font-style: italic; margin-bottom: 8px; font-family: Arial, sans-serif; }
+  .chengyu-gloss { font-size: 13px; font-weight: 700; color: #2e6fb0; margin-bottom: 10px; font-family: Arial, sans-serif; }
+  .chengyu-body { font-size: 12.5px; color: #374151; line-height: 1.8; font-family: Arial, sans-serif; text-align: left; }
+
+  /* ── STAT CHIPS ── */
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-chip { background: white; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2e6fb0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .stat-chip.o { border-left-color: #c45b11; }
+  .stat-chip.g { border-left-color: #1a7a47; }
+  .stat-val { font-size: 20px; font-weight: 900; color: #1a2f50; line-height: 1.1; font-family: Arial, sans-serif; }
+  .stat-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-top: 3px; font-family: Arial, sans-serif; }
+  .stat-sub { font-size: 10px; color: #8a9bb0; margin-top: 2px; font-family: Arial, sans-serif; }
+
+  /* ── FOOTER ── */
+  .footer { border-top: 1px solid #dde3ea; margin-top: 36px; padding-top: 14px; font-size: 10.5px; color: #9ca3af; font-family: Arial, sans-serif; line-height: 1.7; }
+  .footer strong { color: #6b7c93; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="masthead-title">The Meridian</div>
+    <div class="masthead-sub">Saturday, May 16, 2026 &nbsp;·&nbsp; BD Intelligence Briefing &nbsp;·&nbsp; For: Kyle Klaassen, Ailux Biosciences</div>
+    <div class="masthead-rule"></div>
+  </div>
+
+  <!-- LEAD SUMMARY -->
+  <div class="lead-box">
+    <div class="lead-box-label">Today's Briefing &mdash; Three Things to Know</div>
+    <p><strong>1. The immune reset race heats up:</strong> UCB paid $2.2B for Candid Therapeutics' BCMA&times;CD19 bispecific TCE platform &mdash; the most direct validation yet of Ailux's ACE program thesis. The deal confirms Big Pharma is willing to pay premium prices for off-the-shelf B-cell depletion in autoimmune disease.</p>
+    <p style="margin-top:10px"><strong>2. PROTAC milestone:</strong> The FDA approved vepdegestrant (Veppanu) on May 1 &mdash; the first-ever PROTAC drug approval. Targeted protein degradation is now a validated clinical modality, relevant to Ailux's future pipeline thinking.</p>
+    <p style="margin-top:10px"><strong>3. TL1A&times;IL-23 stays hot:</strong> Caldera/CLD-423 Phase 1 dosing confirmed; Xencor XmAb412 bispecific on track for FIH H2 2026. The bispecific race is tightening &mdash; Ailux's differentiation window (trimer destabilization + extended half-life) remains intact for now.</p>
+  </div>
+
+  <!-- MARKET SNAPSHOT -->
+  <div class="sec-hd"><span class="sec-title">Market Snapshot</span><div class="sec-line"></div><span class="sec-tag">Q1 2026 Deal Pulse</span></div>
+  <div class="stat-row">
+    <div class="stat-chip"><div class="stat-val">$77.3B</div><div class="stat-lbl">Q1 2026 licensing value</div><div class="stat-sub">Announced deal value, all biopharma</div></div>
+    <div class="stat-chip o"><div class="stat-val">66%</div><div class="stat-lbl">China-origin deals</div><div class="stat-sub">Share of global pharma licensing value, Q1 2026</div></div>
+    <div class="stat-chip g"><div class="stat-val">$2.2B</div><div class="stat-lbl">UCB&ndash;Candid</div><div class="stat-sub">Largest autoimmune TCE deal of 2026</div></div>
+  </div>
+
+  <!-- STORY 1: UCB-Candid -->
+  <div class="sec-hd"><span class="sec-title">Lead Story</span><div class="sec-line"></div><span class="sec-tag o">M&amp;A · Immune Reset</span></div>
+  <div class="story orange">
+    <div class="story-eyebrow orange">UCB &mdash; Candid Therapeutics &mdash; $2.2B &mdash; May 3, 2026</div>
+    <h3>UCB Acquires Candid Therapeutics for $2.2B: The Immune Reset Race Is Now a Big Pharma Priority</h3>
+    <p>UCB agreed to acquire Candid Therapeutics for $2B upfront plus $200M in milestones &mdash; the largest autoimmune T-cell engager (TCE) deal of 2026 and a direct validation of the immune reset thesis that underpins Ailux's ACE program. Candid's lead asset, <strong>cizutamig</strong>, is a bispecific TCE targeting B-cells via a BCMA&times;CD19-adjacent mechanism (specifically engaging BCMA on plasma cells to redirect CD3+ T cells for serial killing). It is currently in Phase 1 across 10+ autoimmune indications in 100+ patients.</p>
+    <p>This deal is significant for Ailux for several reasons. First, it validates that established pharma is willing to pay $2B+ for a <em>preclinical/Phase 1</em> off-the-shelf B-cell depletion program &mdash; cizutamig had only preliminary Phase 1 safety data at time of acquisition. Second, UCB joins argenx, J&amp;J, and Kyverna in signaling that durable autoimmune B-cell reset is the next frontier beyond efgartigimod and dupilumab. Third, UCB's rationale explicitly referenced the "immune system reset" framing &mdash; the same clinical narrative Ailux's ACE program targets. The trispecific format (BCMA + CD19 + CD3) that Ailux is pursuing represents the next iteration: instead of a single B-cell target engaged to CD3, Ailux's molecule covers the full B-lineage simultaneously, potentially achieving deeper and more durable depletion than cizutamig's mono-B-cell-target approach.</p>
+    <p><strong>BD takeaway:</strong> This deal sets a valuation floor. If a BCMA-targeted TCE at Phase 1 commands $2.2B, a first-in-class trispecific covering BCMA + CD19 simultaneously should command at least that &mdash; assuming equivalent or superior clinical readouts.</p>
+    <div class="story-meta">
+      <span class="story-tag st-m-a">M&amp;A</span>
+      <span class="story-tag st-deal">Autoimmune TCE</span>
+      <span class="story-tag st-data">ACE Program Relevant</span>
+      <span class="st-src">Source: <a href="https://www.biopharmadive.com/news/ucb-candid-deal-bispecifics-t-cell-engagers-autoimmune-china/819155/" target="_blank">BioPharma Dive</a> &middot; <a href="https://www.ucb.com/newsroom/press-releases/article/ucb-to-acquire-candid-therapeutics-building-upon-its-existing-immunology-pipeline-with-novel-t-cell-engagers" target="_blank">UCB Press Release</a></span>
+    </div>
+  </div>
+
+  <!-- DEAL SNAPSHOT TABLE -->
+  <div class="sec-hd"><span class="sec-title">Recent Deals Digest</span><div class="sec-line"></div><span class="sec-tag">May 2026 · Selected</span></div>
+  <table class="deal-table">
+    <thead>
+      <tr><th>Acquirer / Licensor</th><th>Target / Asset</th><th>Indication</th><th>Value</th><th>Stage at Deal</th><th>Relevance to Ailux</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>UCB</strong></td>
+        <td>Candid Therapeutics (cizutamig)</td>
+        <td>Autoimmune B-cell reset</td>
+        <td class="val-blue">$2.2B ($2B up)</td>
+        <td>Ph1 (10+ indic.)</td>
+        <td>ACE program comparator &mdash; validates TCE immune reset valuation</td>
+      </tr>
+      <tr>
+        <td><strong>Sanofi</strong></td>
+        <td>Sino Biopharm JAK/ROCK inhibitor</td>
+        <td>Hematology &amp; Immunology</td>
+        <td class="val-blue">$1.5B</td>
+        <td>Ph2</td>
+        <td>Dual-target oral approach &mdash; signals Sanofi appetite for combo mechanism assets</td>
+      </tr>
+      <tr>
+        <td><strong>Eli Lilly</strong></td>
+        <td>Ventyx Biosciences (oral I&amp;I)</td>
+        <td>Inflammatory-mediated diseases</td>
+        <td class="val-blue">Undisclosed</td>
+        <td>Ph2</td>
+        <td>Oral SoK2 inhibitors as potential future competition to SC biologics in mild-mod AD</td>
+      </tr>
+      <tr>
+        <td><strong>Caldera Therapeutics</strong></td>
+        <td>CLD-423 (from Qyuns) &mdash; TL1A&times;IL-23p19</td>
+        <td>IBD (UC + CD)</td>
+        <td class="val-blue">$10M + 25% equity</td>
+        <td>Ph1 (ongoing, Jan 2026 FIH)</td>
+        <td>Direct TL1A&times;IL-23 competitor; first Ph1 data expected H2 2026&ndash;2027</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- STORY 2: FIRST PROTAC -->
+  <div class="sec-hd"><span class="sec-title">Regulatory Intelligence</span><div class="sec-line"></div><span class="sec-tag g">FDA Approval &mdash; May 1, 2026</span></div>
+  <div class="story green">
+    <div class="story-eyebrow green">FDA Approval &mdash; Vepdegestrant (Veppanu) &mdash; May 1, 2026</div>
+    <h3>FDA Approves First PROTAC Drug: Vepdegestrant Marks a Modality Milestone for Targeted Protein Degradation</h3>
+    <p>The FDA approved vepdegestrant (Veppanu, Arvinas/Pfizer) on May 1, 2026 for ESR1-mutated, ER+/HER2&minus; advanced breast cancer &mdash; making it the first approved PROTAC (proteolysis-targeting chimera) therapy in history. PROTACs work by recruiting the cell's own ubiquitin-proteasome system (UPS) to tag and destroy disease-causing proteins, rather than simply blocking them with a traditional inhibitor. The drug degrades the estrogen receptor (ER), achieving more complete target suppression than competitive ER antagonists like fulvestrant.</p>
+    <p>Why this matters beyond breast cancer: the approval establishes that protein degradation is a viable regulatory pathway, opening the door for PROTAC strategies in other indications &mdash; including autoimmune disease (degrading transcription factors like ROR&gamma;t or STAT3 that drive inflammatory pathways and are classically considered "undruggable" by conventional antibodies or small molecules). For Ailux, this is a watch-it-closely development: PROTAC-based autoimmune approaches are still 5&ndash;8 years from clinical readout, but the platform's approval legitimization may attract capital and partnership interest in degrader-based I&amp;I assets.</p>
+    <div class="story-meta">
+      <span class="story-tag st-fda">FDA Approval</span>
+      <span class="story-tag st-data">PROTAC First-in-Class</span>
+      <span class="st-src">Source: <a href="https://www.ajmc.com/view/fda-approves-vepdegestrant-for-esr1-mutated-er-positive-her2-negative-advanced-breast-cancer" target="_blank">AJMC</a> &middot; Drugs.com Novel Drug Approvals 2026</span>
+    </div>
+  </div>
+
+  <!-- STORY 3: BCL-2 inhibitor approval -->
+  <div class="story green">
+    <div class="story-eyebrow green">FDA Approval &mdash; Sonrotoclax (Beqalzi) &mdash; May 13, 2026</div>
+    <h3>Sonrotoclax (Beqalzi) Approved for Mantle Cell Lymphoma: Next-Gen BCL-2 Gains Ground</h3>
+    <p>AstraZeneca's sonrotoclax (Beqalzi) received FDA approval on May 13, 2026 for relapsed/refractory mantle cell lymphoma (MCL). This is a next-generation BCL-2 inhibitor with differentiated potency vs. venetoclax, the current BCL-2 standard. It targets the BCL-2 BH3-binding groove with higher selectivity and without the venetoclax-associated thrombocytopenia that requires dose interruption. While directly applicable to hematologic oncology, BCL-2 inhibition has emerging relevance in autoimmune disease: plasma cells &mdash; the drivers of autoantibody production in diseases like SLE, gMG, and pemphigus &mdash; are BCL-2-dependent for survival. BCL-2 inhibitors are being explored in refractory autoimmune plasma cell dyscrasias, and next-gen agents with better tolerability profiles could find a niche in the immune reset space that Ailux's ACE program occupies.</p>
+    <div class="story-meta">
+      <span class="story-tag st-fda">FDA Approval</span>
+      <span class="story-tag st-data">BCL-2 Inhibitor</span>
+      <span class="st-src">Source: FDA Novel Drug Approvals 2026 &middot; Cancer Therapy Advisor</span>
+    </div>
+  </div>
+
+  <!-- TL1A COMPETITIVE UPDATE -->
+  <div class="sec-hd"><span class="sec-title">Pipeline Watch &mdash; TL1A &times; IL-23</span><div class="sec-line"></div><span class="sec-tag o">Ailux Direct Comp Set</span></div>
+  <div class="story">
+    <div class="story-eyebrow blue">TL1A &times; IL-23p19 Competitive Update &mdash; May 2026</div>
+    <h3>CLD-423 Phase 1 Dosing Confirmed; XmAb412 FIH Still Tracking H2 2026 &mdash; The Race Is Real</h3>
+    <p>Caldera Therapeutics confirmed Phase 1 first-subject dosing for CLD-423 (the Qyuns/QX030N-derived TL1A&times;IL-23p19 bispecific) in January 2026, with ongoing enrollment through Q2 2026. If dosing is proceeding on schedule, the first safety/PK data from the inaugural clinical TL1A&times;IL-23 bispecific could emerge H2 2026 to early 2027. Xencor's XmAb412 (TL1A&times;IL-23p19, Xtend extended half-life format) presented preclinical data at DDW 2026 and remains on track for FIH H2 2026.</p>
+    <p>The critical question for Ailux: when CLD-423's first human PK data arrives, what half-life will it show? CLD-423 uses a standard IgG format without engineered half-life extension &mdash; expected t&#189; ~21 days. If that's confirmed, Ailux's ~37-day half-life (trimer destabilization + Fc engineering) and Xencor's Xtend platform (&gt;71-day target) remain the only two programs with a credible long-acting SC differentiation story. First human data from any TL1A&times;IL-23 bispecific will be the most important catalyst event in this space for 2026&ndash;2027. Watch closely.</p>
+    <div class="story-meta">
+      <span class="story-tag st-data">Phase 1 Update</span>
+      <span class="story-tag st-deal">TL1A&times;IL-23 Space</span>
+      <span class="st-src">Source: <a href="https://www.businesswire.com/news/home/20260114598329/en/Caldera-Therapeutics-Launches-with-$112.5-Million-and-Announces-First-Subjects-Dosed-in-Phase-1-Trial-of-First-In-Class-Bispecific-Antibody-CLD-423-for-Inflammatory-Bowel-Disease" target="_blank">Caldera Press Release (Jan 2026)</a> &middot; Xencor DDW 2026 presentation</span>
+    </div>
+  </div>
+
+  <!-- JHU CONCEPT: PROTAC MECHANISM -->
+  <div class="sec-hd"><span class="sec-title">Concept to Hold</span><div class="sec-line"></div><span class="sec-tag p">JHU Pharmacology Module</span></div>
+  <div class="concept-card">
+    <div class="concept-label">Today's Concept &mdash; Triggered by Vepdegestrant Approval</div>
+    <div class="concept-title">PROTACs: Targeted Protein Degradation vs. Inhibition &mdash; Why "Destroy" Beats "Block" in Some Contexts</div>
+    <div class="concept-body">
+      <p>A <strong>PROTAC</strong> (proteolysis-targeting chimera) is a bifunctional molecule with two warheads: one binds the target protein; the other recruits an E3 ubiquitin ligase. The E3 ligase tags the target with ubiquitin chains &mdash; marking it for destruction by the proteasome, the cell's own protein disposal machine. The PROTAC then dissociates and is recycled to degrade more target protein, unlike a conventional inhibitor which must continuously occupy its target.</p>
+      <p style="margin-top:10px">Why does this matter vs. a classic inhibitor? Three reasons: (1) <strong>Catalytic mechanism</strong> &mdash; one PROTAC molecule can degrade many copies of the target; lower drug concentrations are required for effect. (2) <strong>"Undruggable" targets</strong> &mdash; proteins like transcription factors (STAT3, ROR&gamma;t in inflammation) have no obvious active site for a small molecule to block; PROTACs bind any accessible surface region. (3) <strong>Complete target elimination</strong> &mdash; instead of 90% inhibition (leaving 10% active target), degradation achieves &gt;95% protein loss. The tradeoff: linker chemistry is complex, oral bioavailability is challenging, and off-target degradation can create toxicity. Vepdegestrant's approval proves the FDA will accept the modality when benefit/risk is clear. Watch for I&amp;I PROTAC programs targeting ROR&gamma;t (Th17 driver) and STAT3 (JAK/STAT inflammation) in the next wave of platform development.</p>
+    </div>
+  </div>
+
+  <!-- CHENGYU -->
+  <div class="sec-hd"><span class="sec-title">成语 Ch&#233;ngy&#468; of the Day</span><div class="sec-line"></div><span class="sec-tag">Mandarin Practice</span></div>
+  <div class="chengyu-card">
+    <div class="chengyu-chars">先发制人</div>
+    <div class="chengyu-pinyin">xi&#257;n f&#257; zh&#236; r&#233;n</div>
+    <div class="chengyu-gloss">"Strike first to gain the upper hand"</div>
+    <div class="chengyu-body">
+      <strong>Literal meaning:</strong> "First act, control people." The idiom describes a strategic advantage gained by acting before an adversary can move.<br><br>
+      <strong>Origin:</strong> From the <em>Shǐjì</em> (史记, Shǐ j&#236;, "Records of the Grand Historian") &mdash; a general advises that in war, the side that strikes first controls the battle.<br><br>
+      <strong>BD application:</strong> The UCB&ndash;Candid deal is a textbook 先发制人 (xi&#257;n f&#257; zh&#236; r&#233;n) move &mdash; UCB acquired Candid's BCMA TCE platform before clinical proof-of-concept in autoimmune was established, securing the position before competitors could. For Ailux: the same logic applies to partnership timing. A deal signed on preclinical differentiation data commands a better structure than one signed after Phase 1 data is available (when every large pharma company is watching). First movers who define the terms win.
+    </div>
+  </div>
+
+  <!-- FIELD INTELLIGENCE: ROCHE SLE -->
+  <div class="sec-hd"><span class="sec-title">Field Intelligence</span><div class="sec-line"></div><span class="sec-tag">Late-Breaking Items</span></div>
+  <div class="story purple">
+    <div class="story-eyebrow purple">Roche &mdash; SLE &mdash; FDA Review &mdash; Decision Dec 2026</div>
+    <h3>Roche's Gazyva (Obinutuzumab) Under FDA Review for SLE: CD20 Antibody Enters Lupus Race</h3>
+    <p>Roche's Gazyva (obinutuzumab, a glycoengineered anti-CD20 IgG1) has been accepted by FDA for review as a treatment for systemic lupus erythematosus (SLE), with a PDUFA decision expected by December 2026. Obinutuzumab is a next-gen rituximab with type II CD20 binding that drives superior ADCC and direct cell death vs. rituximab. The SLE application is based on Phase 3 NOBILITY extension data showing sustained reductions in lupus nephritis activity.</p>
+    <p>For Ailux's ACE program: approved CD20 antibodies in lupus nephritis establish B-cell depletion as a proven clinical strategy in SLE. But CD20 depletes B-cells without touching BCMA+ plasma cells &mdash; the long-lived autoantibody factories that survive CD20 depletion and drive relapse. Ailux's trispecific covers both. If Gazyva is approved, it validates the market and simultaneously highlights the residual unmet need that CD20-only depletion cannot address.</p>
+    <div class="story-meta">
+      <span class="story-tag st-fda">FDA Review</span>
+      <span class="story-tag st-data">SLE &middot; CD20</span>
+      <span class="st-src">Source: FDA Novel Drug Approvals tracker &middot; Roche NOBILITY data</span>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <strong>The Meridian</strong> is a daily intelligence briefing generated for Kyle Klaassen at Ailux Biosciences. Published Monday&ndash;Saturday at 5 AM ET. Sources: BioPharma Dive, Fierce Biotech, BioSpace, FDA.gov, AJMC, StatNews, UCB Press Releases, BusinessWire, J.P. Morgan Q1 2026 Deal Report. All data as of May 16, 2026.<br><br>
+    The full PDF version of this briefing is saved in your Meridian folder.
+  </div>
+
+</div>
+</body>
+</html>
