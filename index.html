@@ -819,7 +819,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Loading…</span>
+ <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Last updated May 16, 2026 at 10:58 PM</span>
  </div>
  </div>
 </div>
@@ -3998,16 +3998,7 @@ function togglePredict(id) {
  }
 }
 
-// ── LAST UPDATED TIMESTAMP ────────────────────────────────────────
-function setLastUpdated() {
- const el = document.getElementById('last-updated-ts');
- if (!el) return;
- const now = new Date();
- const time = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
- el.textContent = 'Session opened at ' + time;
-}
-// Run independently so a JS error elsewhere can't block it
-document.addEventListener('DOMContentLoaded', setLastUpdated);
+// last-updated-ts is stamped at deploy time by deploy_html.py
 
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
@@ -4458,8 +4449,6 @@ window.addEventListener('load', () => {
  if (hd) hd.textContent = dateStr;
  // Build TOC for default Home tab
  buildToc('home');
- // Set last updated timestamp
- setLastUpdated();
  // Load data and init grids
  loadData().then(d => { window._dashData = d; initGrids(d); });
 });
