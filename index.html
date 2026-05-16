@@ -786,12 +786,15 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .nav-dropdown-wrap { position: relative; flex-shrink: 0; }
 .nav-dropdown-btn { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.35); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; font-family: inherit; }
 .nav-dropdown-btn:hover { background: rgba(255,255,255,0.25); }
-.nav-dropdown-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 210px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
+.nav-dropdown-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 260px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
 .nav-dropdown-menu.open { display: block; }
-.nav-dd-item { padding: 9px 16px; font-size: 12px; font-weight: 600; color: #1a2f50; cursor: pointer; transition: background 0.1s; }
-.nav-dd-item:hover { background: #eef4fb; color: #2e6fb0; }
-.nav-dd-item.nav-dd-home { font-weight: 800; color: #0d1f38; border-bottom: 1px solid #eee; }
-.nav-dd-sep { padding: 5px 16px 2px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #8a9bb0; background: #f8fafc; }
+.nav-dd-item { padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: #1a2f50; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nav-dd-item:hover { background: #eef4fb; }
+.nav-dd-item.nav-dd-home { font-weight: 800; color: #0d1f38; font-size: 13px; }
+.nav-dd-item.nav-dd-mkt { color: #64748b; font-size: 12px; }
+.nav-dd-target { flex: 1; }
+.nav-dd-badge { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.nav-dd-divider { height: 1px; background: #eef0f3; margin: 2px 0; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -807,22 +810,16 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="nav-dropdown-menu" id="nav-dropdown-menu">
  <div class="nav-dd-item nav-dd-home" onclick="navTo('home')">Home</div>
- <div class="nav-dd-sep">IBD</div>
- <div class="nav-dd-item" onclick="navTo('tl1a')">TL1A × IL-23p19</div>
- <div class="nav-dd-sep">Respiratory</div>
- <div class="nav-dd-item" onclick="navTo('tslp')">TSLP × IL-33</div>
- <div class="nav-dd-sep">Type 2</div>
- <div class="nav-dd-item" onclick="navTo('il4ra-tslp')">IL-4R&#945; × TSLP</div>
- <div class="nav-dd-sep">AD</div>
- <div class="nav-dd-item" onclick="navTo('il4ra-ox40l')">IL-4R&#945; × OX40L</div>
- <div class="nav-dd-sep">TED</div>
- <div class="nav-dd-item" onclick="navTo('igf1r-tshr')">IGF1R × TSHR</div>
- <div class="nav-dd-sep">Autoimmune</div>
- <div class="nav-dd-item" onclick="navTo('fcrn')">FcRn Bispecific</div>
- <div class="nav-dd-sep">Immune Reset</div>
- <div class="nav-dd-item" onclick="navTo('ace')">BCMA × CD19 × CD3</div>
- <div class="nav-dd-sep">Learning</div>
- <div class="nav-dd-item" onclick="navTo('stocks')">Market &amp; Learning</div>
+ <div class="nav-dd-divider"></div>
+ <div class="nav-dd-item" onclick="navTo('tl1a')"><span class="nav-dd-target">TL1A × IL-23p19</span><span class="nav-dd-badge" style="background:#e8f0f8;color:#2e6fb0">IBD</span></div>
+ <div class="nav-dd-item" onclick="navTo('tslp')"><span class="nav-dd-target">TSLP × IL-33</span><span class="nav-dd-badge" style="background:#e8f0f8;color:#2e6fb0">Respiratory</span></div>
+ <div class="nav-dd-item" onclick="navTo('il4ra-tslp')"><span class="nav-dd-target">IL-4R&#945; × TSLP</span><span class="nav-dd-badge" style="background:#fce7f3;color:#9d174d">Type 2</span></div>
+ <div class="nav-dd-item" onclick="navTo('il4ra-ox40l')"><span class="nav-dd-target">IL-4R&#945; × OX40L</span><span class="nav-dd-badge" style="background:#fce7f3;color:#9d174d">AD</span></div>
+ <div class="nav-dd-item" onclick="navTo('igf1r-tshr')"><span class="nav-dd-target">IGF1R × TSHR</span><span class="nav-dd-badge" style="background:#ecfdf5;color:#065f46">TED</span></div>
+ <div class="nav-dd-item" onclick="navTo('fcrn')"><span class="nav-dd-target">FcRn Bispecific</span><span class="nav-dd-badge" style="background:#ede9fe;color:#5b21b6">Autoimmune</span></div>
+ <div class="nav-dd-item" onclick="navTo('ace')"><span class="nav-dd-target">BCMA × CD19 × CD3</span><span class="nav-dd-badge" style="background:#fef2f2;color:#991b1b">Immune Reset</span></div>
+ <div class="nav-dd-divider"></div>
+ <div class="nav-dd-item nav-dd-mkt" onclick="navTo('stocks')">Market &amp; Learning</div>
  </div>
  </div>
  </div>
