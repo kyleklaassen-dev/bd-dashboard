@@ -277,6 +277,18 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .intel-next { background: #f5f8fc; border-radius: 5px; padding: 7px 12px; margin-top: 8px; font-size: 10px; color: #5a7a9e; font-weight: 700; }
 .intel-next span { color: #1a2f50; }
 
+/* ── GLOBAL SEARCH BAR ───────────────────────────────────── */
+.gs-wrap { background: white; border-bottom: 2px solid #dde3ea; padding: 10px 24px; }
+.gs-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 10px; background: #f0f5fc; border: 1.5px solid #c8d8ee; border-radius: 8px; padding: 9px 14px; transition: border-color 0.15s; }
+.gs-inner:focus-within { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.12); }
+.gs-icon { font-size: 15px; opacity: 0.45; flex-shrink: 0; }
+.gs-input { flex: 1; border: none; background: none; font-size: 13px; color: #1a2e4a; outline: none; font-family: inherit; }
+.gs-input::placeholder { color: #a0aec0; }
+.gs-count { font-size: 10px; font-weight: 700; color: #5a7a9e; white-space: nowrap; }
+.gs-clear { background: none; border: none; color: #8a9bb0; font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; display: none; flex-shrink: 0; }
+.gs-clear:hover { color: #1a2f50; }
+.gs-no-results { text-align: center; padding: 18px 12px; font-size: 12px; color: #8a9bb0; font-style: italic; }
+
 /* ── COMPETITIVE COMPARISON ──────────────────────────────── */
 .comp-section { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; }
 .comp-hd { background: linear-gradient(135deg, #1a2f50 0%, #2e6fb0 100%); color: white; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
@@ -335,6 +347,17 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('tl1a',this)">TL1A × IL-23p19 <span class="ct">IBD</span></button>
   <button class="tab-btn" onclick="switchTab('tslp',this)">TSLP × IL-33 <span class="ct">Respiratory</span></button>
+</div>
+
+<div class="gs-wrap">
+  <div class="gs-inner">
+    <span class="gs-icon">🔍</span>
+    <input type="text" id="global-search" class="gs-input"
+      placeholder="Search programs, drugs, companies, indications, deals…"
+      oninput="globalSearch(this.value)">
+    <span class="gs-count" id="gs-count" style="display:none"></span>
+    <button class="gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear search">✕</button>
+  </div>
 </div>
 
 <div class="content">
@@ -1454,9 +1477,10 @@ function ef(cell) {
 }
 
 // ── GRIDS ────────────────────────────────────────────────────────
+const grids = {};
 function initGrids(d) {
   // TL1A Clinical Readout Calendar
-  new gridjs.Grid({
+  grids.tl1aReadouts = new gridjs.Grid({
     columns:[
       {name:'Category',width:'130px',formatter:rf},
       {name:'Program',width:'240px',formatter:readoutProgFmt},
@@ -1467,11 +1491,11 @@ function initGrids(d) {
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tl1aReadouts, sort:true, search:true
+    data:d.tl1aReadouts, sort:true
   }).render(document.getElementById('grid-tl1a-readouts'));
 
   // TL1A bispecific pipeline
-  new gridjs.Grid({
+  grids.tl1aPipe = new gridjs.Grid({
     columns:[
       {name:'Company',width:'130px'},
       {name:'Asset',width:'120px'},
@@ -1484,11 +1508,11 @@ function initGrids(d) {
       {name:'Estimand',width:'130px',formatter:ef},
       {name:'_news',hidden:true}
     ],
-    data:d.tl1aPipe, sort:true, search:true
+    data:d.tl1aPipe, sort:true
   }).render(document.getElementById('grid-tl1a-pipe'));
 
   // TL1A monotherapy
-  new gridjs.Grid({
+  grids.tl1aMono = new gridjs.Grid({
     columns:[
       {name:'Company',width:'125px'},
       {name:'Asset',width:'155px'},
@@ -1497,11 +1521,11 @@ function initGrids(d) {
       {name:'Estimand',width:'145px',formatter:ef},
       {name:'Notes',width:'340px'}
     ],
-    data:d.tl1aMono, sort:true, search:true
+    data:d.tl1aMono, sort:true
   }).render(document.getElementById('grid-tl1a-mono'));
 
   // TL1A Technical Comparison
-  new gridjs.Grid({
+  grids.tl1aTech = new gridjs.Grid({
     columns:[
       {name:'Company',width:'110px'},
       {name:'Asset',width:'90px'},
@@ -1511,11 +1535,11 @@ function initGrids(d) {
       {name:'Key Differentiator',width:'200px'},
       {name:'Timeline',width:'175px'}
     ],
-    data:d.tl1aTech, sort:true, search:false
+    data:d.tl1aTech, sort:true
   }).render(document.getElementById('grid-tl1a-tech'));
 
   // TSLP Clinical Readout Calendar
-  new gridjs.Grid({
+  grids.tslpReadouts = new gridjs.Grid({
     columns:[
       {name:'Category',width:'130px',formatter:rf},
       {name:'Program',width:'235px',formatter:readoutProgFmt},
@@ -1526,11 +1550,11 @@ function initGrids(d) {
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tslpReadouts, sort:true, search:true
+    data:d.tslpReadouts, sort:true
   }).render(document.getElementById('grid-tslp-readouts'));
 
   // TSLP bispecific pipeline
-  new gridjs.Grid({
+  grids.tslpPipe = new gridjs.Grid({
     columns:[
       {name:'Company',width:'150px'},
       {name:'Asset',width:'120px'},
@@ -1543,11 +1567,11 @@ function initGrids(d) {
       {name:'Estimand',width:'130px',formatter:ef},
       {name:'_news',hidden:true}
     ],
-    data:d.tslpPipe, sort:true, search:true
+    data:d.tslpPipe, sort:true
   }).render(document.getElementById('grid-tslp-pipe'));
 
   // TSLP monotherapy
-  new gridjs.Grid({
+  grids.tslpMono = new gridjs.Grid({
     columns:[
       {name:'Company',width:'155px'},
       {name:'Asset',width:'150px'},
@@ -1556,7 +1580,7 @@ function initGrids(d) {
       {name:'Estimand',width:'155px',formatter:ef},
       {name:'Notes',width:'290px'}
     ],
-    data:d.tslpMono, sort:true, search:true
+    data:d.tslpMono, sort:true
   }).render(document.getElementById('grid-tslp-mono'));
 }
 
@@ -1606,6 +1630,7 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
+  clearGlobalSearch();
 }
 
 // ── UPDATE BOX TOGGLE ────────────────────────────────────────────
@@ -1686,6 +1711,64 @@ function toggleNote(panelId, text, btn) {
   const r = btn.getBoundingClientRect();
   panel.style.top = (r.bottom + 6) + 'px';
   panel.style.display = 'block';
+}
+
+// ── GLOBAL SEARCH ────────────────────────────────────────────────
+function globalSearch(term) {
+  const t = term.toLowerCase().trim();
+  const d = window._dashData;
+  const clearBtn = document.getElementById('gs-clear');
+  const countEl  = document.getElementById('gs-count');
+  if (clearBtn) clearBtn.style.display = t ? 'inline' : 'none';
+
+  function filt(arr) {
+    if (!t || !arr) return arr || [];
+    return arr.filter(row => row.some(cell => String(cell).toLowerCase().includes(t)));
+  }
+
+  // Update each grid — only if already initialised
+  if (grids.tl1aReadouts)  grids.tl1aReadouts.updateConfig({ data: filt(d && d.tl1aReadouts)  }).forceRender();
+  if (grids.tl1aPipe)      grids.tl1aPipe.updateConfig(     { data: filt(d && d.tl1aPipe)      }).forceRender();
+  if (grids.tl1aMono)      grids.tl1aMono.updateConfig(     { data: filt(d && d.tl1aMono)      }).forceRender();
+  if (grids.tl1aTech)      grids.tl1aTech.updateConfig(     { data: filt(d && d.tl1aTech)      }).forceRender();
+  if (grids.tslpReadouts)  grids.tslpReadouts.updateConfig( { data: filt(d && d.tslpReadouts)  }).forceRender();
+  if (grids.tslpPipe)      grids.tslpPipe.updateConfig(     { data: filt(d && d.tslpPipe)      }).forceRender();
+  if (grids.tslpMono)      grids.tslpMono.updateConfig(     { data: filt(d && d.tslpMono)      }).forceRender();
+
+  // Filter HTML card/item elements
+  ['.news-item', '.china-card', '.intel-item'].forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => {
+      el.style.display = (!t || el.textContent.toLowerCase().includes(t)) ? '' : 'none';
+    });
+  });
+
+  // Close any open note panels on new search
+  document.querySelectorAll('.note-panel').forEach(p => { p.style.display = 'none'; });
+  document.querySelectorAll('.note-btn').forEach(b => b.classList.remove('note-active'));
+
+  // Show result count
+  if (countEl) {
+    if (!t) {
+      countEl.style.display = 'none';
+    } else {
+      // Count visible rows across all grids
+      let total = 0;
+      ['tl1aReadouts','tl1aPipe','tl1aMono','tl1aTech','tslpReadouts','tslpPipe','tslpMono'].forEach(k => {
+        if (d && d[k]) total += filt(d[k]).length;
+      });
+      ['.news-item','.china-card','.intel-item'].forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => { if (el.style.display !== 'none') total++; });
+      });
+      countEl.textContent = total + ' result' + (total !== 1 ? 's' : '');
+      countEl.style.display = 'inline';
+    }
+  }
+}
+
+function clearGlobalSearch() {
+  const inp = document.getElementById('global-search');
+  if (inp) inp.value = '';
+  globalSearch('');
 }
 
 window.addEventListener('load', () => { loadData().then(d => { window._dashData = d; initGrids(d); initCharts(); }); });
