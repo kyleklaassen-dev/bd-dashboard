@@ -22,7 +22,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .tab-btn .ct { display: inline-block; background: #e8f0f8; color: #2e6fb0; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 10px; margin-left: 5px; }
 .tab-btn.active .ct { background: #2e6fb0; color: white; }
 
-.content { padding: 18px 24px 30px; max-width: 1400px; margin: 0 auto; }
+.content { padding: 18px 24px 30px; max-width: 1400px; margin: 0 auto; position: relative; }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
@@ -251,8 +251,8 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .note-btn { background: #e8f0f8; color: #2e6fb0; border: 1px solid #c5d9ef; border-radius: 4px; padding: 3px 9px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.15s; font-family: inherit; }
 .note-btn:hover { background: #c5d9ef; }
 .note-btn.note-active { background: #2e6fb0; color: white; border-color: #1a4a8a; }
-.note-panel { display: none; background: #fffdf5; border: 1px solid #f5c842; border-top: none; padding: 13px 20px; font-size: 12px; color: #3a4f6a; line-height: 1.75; border-radius: 0 0 8px 8px; }
-.note-panel-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a6e1a; margin-bottom: 5px; }
+.note-panel { display: none; position: absolute; left: 0; right: 0; background: #fffdf5; border: 1px solid #f5c842; border-radius: 8px; padding: 13px 20px 14px; font-size: 12px; color: #3a4f6a; line-height: 1.75; z-index: 200; box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+.note-panel-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a6e1a; margin-bottom: 6px; }
 
 /* ── DEAL NEWS LINK ──────────────────────────────────────── */
 a.deal-link { color: #2e6fb0; text-decoration: none; font-weight: 700; }
@@ -1665,23 +1665,30 @@ function crossRef(tab) {
 
 // ── READOUT NOTE TOGGLE ───────────────────────────────────────
 function toggleNote(panelId, text, btn) {
-  const panel = document.getElementById('note-panel-' + panelId);
-  const body  = document.getElementById('note-panel-body-' + panelId);
-  const allBtns = document.querySelectorAll('.note-btn[data-panel="' + panelId + '"]');
-  // Tag this button with its panel so querySelectorAll works
-  btn.setAttribute('data-panel', panelId);
+  const panel   = document.getElementById('note-panel-' + panelId);
+  const body    = document.getElementById('note-panel-body-' + panelId);
+  const content = document.querySelector('.content');
+
   // Toggle off if same button clicked again
   if (btn.classList.contains('note-active')) {
     btn.classList.remove('note-active');
     panel.style.display = 'none';
     return;
   }
-  // Deactivate all buttons for this panel
-  document.querySelectorAll('.note-btn').forEach(b => { if (b.getAttribute('data-panel') === panelId) b.classList.remove('note-active'); });
+
+  // Deactivate all other note buttons
+  document.querySelectorAll('.note-btn').forEach(b => b.classList.remove('note-active'));
+  // Hide both panels before repositioning
+  document.querySelectorAll('.note-panel').forEach(p => { p.style.display = 'none'; });
+
   btn.classList.add('note-active');
   body.textContent = text;
+
+  // Position: absolute within .content div, just below the button
+  const btnRect     = btn.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
+  panel.style.top   = (btnRect.bottom - contentRect.top + 6) + 'px';
   panel.style.display = 'block';
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 window.addEventListener('load', () => { loadData().then(d => { window._dashData = d; initGrids(d); initCharts(); }); });
