@@ -247,6 +247,13 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .update-btn:hover { background: #1a2f50; }
 .update-results { margin-top: 10px; padding: 10px 12px; background: #f8fafc; border-radius: 5px; font-size: 11px; color: #5a7a9e; min-height: 36px; line-height: 1.6; border: 1px solid #e8eef5; }
 
+/* ── READOUT NOTE PANEL ──────────────────────────────────── */
+.note-btn { background: #e8f0f8; color: #2e6fb0; border: 1px solid #c5d9ef; border-radius: 4px; padding: 3px 9px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.15s; font-family: inherit; }
+.note-btn:hover { background: #c5d9ef; }
+.note-btn.note-active { background: #2e6fb0; color: white; border-color: #1a4a8a; }
+.note-panel { display: none; background: #fffdf5; border: 1px solid #f5c842; border-top: none; padding: 13px 20px; font-size: 12px; color: #3a4f6a; line-height: 1.75; border-radius: 0 0 8px 8px; }
+.note-panel-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a6e1a; margin-bottom: 5px; }
+
 /* ── DEAL NEWS LINK ──────────────────────────────────────── */
 a.deal-link { color: #2e6fb0; text-decoration: none; font-weight: 700; }
 a.deal-link:hover { text-decoration: underline; color: #1a2f50; }
@@ -509,6 +516,10 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 
   <div class="sec-hd"><span class="sec-title">Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">15 Events · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-readouts"></div></div>
+  <div class="note-panel" id="note-panel-tl1a">
+    <div class="note-panel-label">📋 Trial Notes</div>
+    <div id="note-panel-body-tl1a"></div>
+  </div>
 
   <div class="sec-hd"><span class="sec-title">Global TL1A × IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">7 Programs · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-pipe"></div></div>
@@ -1073,6 +1084,10 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 
   <div class="sec-hd"><span class="sec-title">Respiratory Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">10 Events · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-readouts"></div></div>
+  <div class="note-panel" id="note-panel-tslp">
+    <div class="note-panel-label">📋 Trial Notes</div>
+    <div id="note-panel-body-tslp"></div>
+  </div>
 
   <div class="sec-hd"><span class="sec-title">TSLP × IL-33 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">3 Known Programs · Sortable</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-pipe"></div></div>
@@ -1443,14 +1458,14 @@ function initGrids(d) {
   // TL1A Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'120px',formatter:rf},
-      {name:'Program',width:'210px',formatter:readoutProgFmt},
-      {name:'Phase',width:'70px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'190px'},
-      {name:'Indication',width:'90px'},
-      {name:'Primary Completion',width:'140px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Category',width:'130px',formatter:rf},
+      {name:'Program',width:'240px',formatter:readoutProgFmt},
+      {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'230px'},
+      {name:'Indication',width:'110px'},
+      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
-      {name:'Notes',width:'310px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#3a5070;line-height:1.55;display:block">${c}</span>`)}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a','${esc}',this)">▼ Notes</button>`);}}
     ],
     data:d.tl1aReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tl1a-readouts'));
@@ -1502,14 +1517,14 @@ function initGrids(d) {
   // TSLP Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'120px',formatter:rf},
-      {name:'Program',width:'210px',formatter:readoutProgFmt},
-      {name:'Phase',width:'78px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'200px'},
-      {name:'Indication',width:'110px'},
-      {name:'Primary Completion',width:'140px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Category',width:'130px',formatter:rf},
+      {name:'Program',width:'235px',formatter:readoutProgFmt},
+      {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'240px'},
+      {name:'Indication',width:'130px'},
+      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
-      {name:'Notes',width:'310px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#3a5070;line-height:1.55;display:block">${c}</span>`)}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
     ],
     data:d.tslpReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tslp-readouts'));
@@ -1646,6 +1661,27 @@ function crossRef(tab) {
         </div>`
       ).join('');
   }
+}
+
+// ── READOUT NOTE TOGGLE ───────────────────────────────────────
+function toggleNote(panelId, text, btn) {
+  const panel = document.getElementById('note-panel-' + panelId);
+  const body  = document.getElementById('note-panel-body-' + panelId);
+  const allBtns = document.querySelectorAll('.note-btn[data-panel="' + panelId + '"]');
+  // Tag this button with its panel so querySelectorAll works
+  btn.setAttribute('data-panel', panelId);
+  // Toggle off if same button clicked again
+  if (btn.classList.contains('note-active')) {
+    btn.classList.remove('note-active');
+    panel.style.display = 'none';
+    return;
+  }
+  // Deactivate all buttons for this panel
+  document.querySelectorAll('.note-btn').forEach(b => { if (b.getAttribute('data-panel') === panelId) b.classList.remove('note-active'); });
+  btn.classList.add('note-active');
+  body.textContent = text;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 window.addEventListener('load', () => { loadData().then(d => { window._dashData = d; initGrids(d); initCharts(); }); });
