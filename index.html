@@ -1152,9 +1152,9 @@ function phaseRank(s) {
 }
 const phaseSort = { compare: (a, b) => phaseRank(a) - phaseRank(b) };
 
-// Readout program link formatter (uses hidden 6th column for URL)
+// Readout program link formatter (uses hidden 7th column for URL)
 function readoutProgFmt(cell, row) {
-  const url = row.cells[5] && row.cells[5].data;
+  const url = row.cells[6] && row.cells[6].data;
   if (url) return gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
   return cell;
 }
@@ -1178,11 +1178,12 @@ function initGrids(d) {
   // TL1A Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'145px',formatter:rf},
-      {name:'Program',width:'255px',formatter:readoutProgFmt},
-      {name:'Phase',width:'75px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'265px'},
-      {name:'Indication',width:'120px'},
+      {name:'Category',width:'130px',formatter:rf},
+      {name:'Program',width:'240px',formatter:readoutProgFmt},
+      {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'230px'},
+      {name:'Indication',width:'110px'},
+      {name:'Primary Completion',width:'155px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#5a7a9e">${c}</span>`)},
       {name:'_url',hidden:true}
     ],
     data:d.tl1aReadouts, sort:true, search:true
@@ -1234,11 +1235,12 @@ function initGrids(d) {
   // TSLP Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'145px',formatter:rf},
-      {name:'Program',width:'245px',formatter:readoutProgFmt},
+      {name:'Category',width:'130px',formatter:rf},
+      {name:'Program',width:'235px',formatter:readoutProgFmt},
       {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'270px'},
-      {name:'Indication',width:'140px'},
+      {name:'Expected Timing',width:'240px'},
+      {name:'Indication',width:'130px'},
+      {name:'Primary Completion',width:'155px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#5a7a9e">${c}</span>`)},
       {name:'_url',hidden:true}
     ],
     data:d.tslpReadouts, sort:true, search:true
