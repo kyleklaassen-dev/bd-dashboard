@@ -247,6 +247,55 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .update-btn:hover { background: #1a2f50; }
 .update-results { margin-top: 10px; padding: 10px 12px; background: #f8fafc; border-radius: 5px; font-size: 11px; color: #5a7a9e; min-height: 36px; line-height: 1.6; border: 1px solid #e8eef5; }
 
+/* ── DEAL NEWS LINK ──────────────────────────────────────── */
+a.deal-link { color: #2e6fb0; text-decoration: none; font-weight: 700; }
+a.deal-link:hover { text-decoration: underline; color: #1a2f50; }
+a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
+
+/* ── LATEST FIELD INTELLIGENCE ───────────────────────────── */
+.intel-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; border-left: 4px solid #2e6fb0; }
+.intel-hd { background: #f0f6ff; color: #1a2f50; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+.intel-hd-left { display: flex; align-items: center; gap: 10px; }
+.intel-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.2px; }
+.intel-hd-date { font-size: 10px; background: #dde8f5; color: #1a4a8a; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.intel-body { padding: 12px 14px; }
+.intel-item { padding: 8px 0 8px 0; border-bottom: 1px solid #eef1f5; display: flex; gap: 12px; align-items: flex-start; }
+.intel-item:last-child { border-bottom: none; padding-bottom: 0; }
+.intel-dot { min-width: 20px; font-size: 14px; padding-top: 1px; line-height: 1; }
+.intel-text { flex: 1; font-size: 11px; color: #1a2e4a; line-height: 1.65; }
+.intel-text strong { color: #1a2f50; font-size: 11.5px; }
+.intel-val { font-weight: 800; color: #c45b11; }
+.intel-pos { font-weight: 800; color: #2a7a47; }
+.intel-warn { font-weight: 800; color: #c45b11; }
+.intel-next { background: #f5f8fc; border-radius: 5px; padding: 7px 12px; margin-top: 8px; font-size: 10px; color: #5a7a9e; font-weight: 700; }
+.intel-next span { color: #1a2f50; }
+
+/* ── COMPETITIVE COMPARISON ──────────────────────────────── */
+.comp-section { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; }
+.comp-hd { background: linear-gradient(135deg, #1a2f50 0%, #2e6fb0 100%); color: white; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.comp-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.3px; }
+.comp-hd-badge { font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.comp-toggle { font-size: 16px; opacity: 0.8; transition: transform 0.2s; }
+.comp-toggle.open { transform: rotate(180deg); }
+.comp-body { padding: 14px 16px; display: none; }
+.comp-body.open { display: block; }
+.comp-sub-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin: 12px 0 7px; }
+.comp-sub-title:first-child { margin-top: 0; }
+.comp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.comp-table th { background: #2a3f62; color: white; padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.comp-table td { padding: 7px 10px; border-bottom: 1px solid #eef1f5; color: #1a2e4a; vertical-align: top; }
+.comp-table tr:last-child td { border-bottom: none; }
+.comp-table tr:nth-child(even) td { background: #f8fafc; }
+.comp-table tr.ailux-row td { background: #fff8e0 !important; font-weight: 700; }
+.comp-table tr.ailux-row td:first-child { border-left: 3px solid #e8a020; }
+.comp-badge-ailux { display: inline-block; background: #fff3cd; color: #7a5000; border: 1px solid #f5c842; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 800; margin-left: 4px; }
+.comp-badge-leader { display: inline-block; background: #fde8d8; color: #7a2e00; border: 1px solid #e8a070; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 800; margin-left: 4px; }
+.comp-val-pos { color: #2a7a47; font-weight: 800; }
+.comp-val-neg { color: #c45b11; font-weight: 800; }
+.comp-val-na { color: #aab4bf; }
+.comp-diff-note { background: #fffdf0; border: 1px solid #f5c842; border-radius: 6px; padding: 10px 13px; font-size: 11px; color: #5a4020; line-height: 1.7; margin-top: 12px; }
+.comp-diff-note strong { color: #1a2f50; }
+
 @media (max-width: 900px) {
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
@@ -285,6 +334,43 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 
 <!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
 <div class="tab-pane active" id="tab-tl1a">
+
+  <!-- LATEST FIELD INTELLIGENCE -->
+  <div class="intel-card">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:16px">📊</span>
+        <span class="intel-hd-title">Latest Field Intelligence — TL1A × IL-23p19 · IBD</span>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Duvakitug (Sanofi/Teva) RELIEVE-UC Ph2b: <span class="intel-pos">48% clinical remission</span> at 900mg Wk14 vs 20% placebo</strong> — highest TL1A efficacy signal reported to date. CD arm: 48% endoscopic response. Using composite estimand (rescue medication = failure). Ph3 <strong>STARSCAPE</strong> (UC) and <strong>SUNSCAPE</strong> (CD) now enrolling. Most commercially formidable asset given Sanofi's global infrastructure and combined Dupixent/Kevzara IBD expertise.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Tulisokibart (Merck) ATLAS-UC Ph3: topline expected ~Nov 2026 (Q4 2026)</strong> — First Ph3 data readout in the TL1A class. Ph2 ARTEMIS-UC: <span class="intel-val">26.5% remission vs 1.5% placebo</span> at Wk12 (composite estimand). Companion diagnostic (TNFSF15 genetic haplotype) creates precision medicine positioning that could enable a label with narrower but more reliable responder profile. All eyes on this readout.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🔴</div>
+        <div class="intel-text"><strong>Afimkibart (Roche) TUSCANY-2 Ph2b: <span class="intel-warn">PRIMARY ENDPOINT MISSED</span></strong> — 24% UC remission vs 12% placebo at Wk14, not statistically significant. Secondary endpoints were positive; 43% clinical remission at Wk56 in biomarker-positive subgroup (open-label). Roche proceeded to Ph3 AMETRINE-1/-2 (UC) + SIBERITE-1/-2 (CD). Regulators and partners will scrutinize the reliance on secondary endpoints and open-label extension data. Acquired via Telavant ~$7.1B (Dec 2023).</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Simcere SIM0709 / Boehringer Ingelheim deal closed Jan 2026: <span class="intel-val">€42M upfront, €1.05B total</span></strong> — Pre-IND preclinical deal for TL1A×IL-23p19 bispecific. FIH dosing H1 2026. Sets the lower bound of preclinical deal precedent alongside Earendil/Sanofi ($125M upfront, Pre-IND). Chinese assets retaining all Greater China rights while licensing global ex-China continues to work. Third Chinese deal in the space in under 12 months.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Xencor XmAb942 Ph1 HV final data at DDW May 2–5, 2026</strong> — Extended half-life >71 days validated (vs ~21 days for standard IgG). XENITH-UC Ph2b readout expected year-end 2026. Xencor also presented XmAb412 (TL1A×IL-23p19 bispecific) preclinical data at DDW; FIH expected H2 2026. Xencor uniquely running both mono (Ph2b) and bispecific (pre-Ph1) in parallel.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Spyre SPY001 SKYLINE Ph2 Q2 2026</span> · <span style="color:#1a2f50">ATLAS-UC Ph3 topline ~Nov 2026</span> · <span style="color:#1a2f50">SPY072 SKYWAY (RA/PsA/axSpA) Q4 2026</span> · <span style="color:#1a2f50">XmAb942 XENITH-UC year-end 2026</span> · <span style="color:#1a2f50">AbbVie TARGET-CD (Skyrizi + TL1A combo) H2 2026</span></div>
+      </div>
+    </div>
+  </div>
 
   <!-- UPDATE & VALIDATION BOX -->
   <div class="update-card">
@@ -442,6 +528,140 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
     </div>
     <div class="info-body" id="tech-comp-body">
       <div id="grid-tl1a-tech"></div>
+    </div>
+  </div>
+
+  <!-- COMPETITIVE COMPARISON SECTION -->
+  <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+  <div class="comp-section">
+    <div class="comp-hd" onclick="toggleSection('comp-tl1a')">
+      <span class="comp-hd-title">⚖️ How Does Our Molecule Compare? — Ailux Asset vs. TL1A Monotherapies &amp; TL1A×IL-23p19 Bispecifics</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="comp-hd-badge">Click to Expand</span>
+        <span class="comp-toggle" id="comp-tl1a-toggle">▼</span>
+      </div>
+    </div>
+    <div class="comp-body" id="comp-tl1a-body">
+      <div class="comp-sub-title">Part 1 — Efficacy Benchmarks: Ailux vs. Leading TL1A Monotherapies (UC Remission Data)</div>
+      <table class="comp-table">
+        <thead>
+          <tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best UC Remission Rate</th><th>Trial / Timepoint</th><th>Estimand</th><th>Primary Endpoint Met?</th></tr>
+        </thead>
+        <tbody>
+          <tr class="ailux-row">
+            <td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td>
+            <td>Ailux</td>
+            <td>Preclinical</td>
+            <td class="comp-val-na">— (efficacy TBD)</td>
+            <td>Phase 1/2 design pending</td>
+            <td>Composite recommended</td>
+            <td class="comp-val-na">—</td>
+          </tr>
+          <tr>
+            <td>Duvakitug <span class="comp-badge-leader">Current leader</span></td>
+            <td>Sanofi / Teva</td>
+            <td>Ph2b → Ph3</td>
+            <td class="comp-val-pos">48% (900mg Wk14)</td>
+            <td>RELIEVE-UC Ph2b; 20% PBO</td>
+            <td>Composite</td>
+            <td class="comp-val-pos">Yes ✓</td>
+          </tr>
+          <tr>
+            <td>Tulisokibart</td>
+            <td>Merck</td>
+            <td>Ph3 (readout ~Nov 2026)</td>
+            <td>26.5% (Wk12)</td>
+            <td>ARTEMIS-UC Ph2; 1.5% PBO</td>
+            <td>Composite</td>
+            <td class="comp-val-pos">Yes ✓</td>
+          </tr>
+          <tr>
+            <td>Afimkibart</td>
+            <td>Roche (ex-Telavant $7.1B)</td>
+            <td>Ph3</td>
+            <td class="comp-val-neg">24% (Wk14) — primary missed</td>
+            <td>TUSCANY-2 Ph2b; 12% PBO</td>
+            <td>Composite</td>
+            <td class="comp-val-neg">No ✗</td>
+          </tr>
+          <tr>
+            <td>XmAb942</td>
+            <td>Xencor</td>
+            <td>Ph2b (readout YE 2026)</td>
+            <td class="comp-val-na">Ph2b ongoing — TBD</td>
+            <td>XENITH-UC; t½ &gt;71 days</td>
+            <td>TBD</td>
+            <td class="comp-val-na">—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="comp-sub-title" style="margin-top:18px">Part 2 — Technical Differentiation: Ailux vs. TL1A×IL-23p19 Bispecific Competitors</div>
+      <table class="comp-table">
+        <thead>
+          <tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>TL1A Mechanism</th><th>Half-life / Dosing</th><th>Formulation</th><th>Key Differentiator</th></tr>
+        </thead>
+        <tbody>
+          <tr class="ailux-row">
+            <td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td>
+            <td>Ailux</td>
+            <td>Preclinical</td>
+            <td><strong>Trimer Destabilization</strong> — novel epitope, not receptor-blocking site</td>
+            <td class="comp-val-pos">~37 days → supports Q4W+ SC dosing</td>
+            <td class="comp-val-pos">High-conc SC formulation</td>
+            <td>Novel epitope = low ADA risk; SC-first design; trimer MoA may offer selectivity advantage over receptor-blocking competitors</td>
+          </tr>
+          <tr>
+            <td>MT-251</td>
+            <td>Mirador</td>
+            <td>Ph1</td>
+            <td>FcRn-recycling IgG bispecific; TL1A epitope TBD</td>
+            <td>Extended (FcRn recycling)</td>
+            <td>IV/SC flexible</td>
+            <td>First-in-class format; FcRn half-life extension technology; well-funded independent US company</td>
+          </tr>
+          <tr>
+            <td>CLD-423 / QX030N</td>
+            <td>Caldera / Qyuns (CN)</td>
+            <td>Ph1</td>
+            <td>IgG bispecific; TL1A epitope TBD</td>
+            <td>Standard IgG (~21 days)</td>
+            <td>TBD</td>
+            <td>First Chinese TL1A bispecific in Ph1. Caldera deal: $10M + 25% equity. Ph1 data expected 2026–2027.</td>
+          </tr>
+          <tr>
+            <td>HXN-1003</td>
+            <td>Earendil / Helixon (Sanofi $125M)</td>
+            <td>Pre-IND</td>
+            <td>AI-designed tetravalent (2+2)</td>
+            <td>TBD</td>
+            <td>TBD</td>
+            <td>Highest-value preclinical deal ($1.845B total). Sanofi's commitment at Pre-IND signals confidence in AI-designed format. Tetravalent design may improve avidity.</td>
+          </tr>
+          <tr>
+            <td>SIM0709</td>
+            <td>Simcere / BI (€42M upfront)</td>
+            <td>Pre-IND → FIH H1'26</td>
+            <td>Long-acting SC IgG bispecific</td>
+            <td>Extended (engineered)</td>
+            <td>SC-optimized</td>
+            <td>BI partnership (€1.05B total) validates SC long-acting approach. FIH H1 2026 puts Simcere ahead on clinical timeline vs. others at Pre-IND.</td>
+          </tr>
+          <tr>
+            <td>XmAb412</td>
+            <td>Xencor</td>
+            <td>Pre-Ph1 → FIH H2'26</td>
+            <td>Xtend™ FcXtend — extended half-life bispecific</td>
+            <td class="comp-val-pos">Extended (&gt;71 days target, like XmAb942)</td>
+            <td>TBD</td>
+            <td>Xencor's validated Xtend platform applied to bispecific. Benefit of XmAb942 (mono) t½ data already in hand. DDW 2026 preclinical poster.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="comp-diff-note">
+        <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>trimer-destabilizing mechanism</strong> — a novel TL1A epitope that disrupts receptor signaling through a different binding interface than most competitors — with (2) <strong>~37-day half-life supporting SC Q4W dosing</strong>, (3) <strong>low ADA risk profile from novel epitope</strong>, and (4) <strong>high-concentration SC-ready formulation</strong> creates a differentiated package. The key clinical argument: if duvakitug's 48% Ph2b UC remission rate is the bar, a bispecific that adds IL-23p19 blockade in the same molecule should theoretically exceed monotherapy ceiling effects — particularly in the ~30–40% of patients who have co-existing Th17/IL-23 pathway activation alongside TL1A-mediated inflammation. No bispecific has yet demonstrated efficacy in UC; the first to show it will set the standard.
+      </div>
     </div>
   </div>
 
@@ -707,6 +927,43 @@ a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
 <div class="tab-pane" id="tab-tslp">
+
+  <!-- LATEST FIELD INTELLIGENCE -->
+  <div class="intel-card">
+    <div class="intel-hd">
+      <div class="intel-hd-left">
+        <span style="font-size:16px">📊</span>
+        <span class="intel-hd-title">Latest Field Intelligence — TSLP × IL-33 · Respiratory</span>
+      </div>
+      <span class="intel-hd-date">Updated May 2026</span>
+    </div>
+    <div class="intel-body">
+      <div class="intel-item">
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Itepekimab (Regeneron/Sanofi) AERIFY Ph3 COPD: <span class="intel-pos">POSITIVE</span> — ~25% AECOPD reduction vs placebo in ex-smokers (eos ≥150 cells/μL)</strong>. First anti-IL-33 biologic approved in COPD. Opens the COPD biologic market to the alarmin-targeting pathway. Direct strategic relevance for TSLP×IL-33 bispecifics: partners will now ask how QX031N and HXN-1003 differentiate from approved itepekimab, and the combined TSLP+IL-33 blockade argument gains urgency.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Windward Bio raises <span class="intel-pos">$165M crossover round</span> (May 2026)</strong> to advance HBM9378/SKB378 (anti-TSLP monoAb, Harbour+Kelun) and WIN027 (TSLP×IL-13 bispecific, from Qyuns $700M deal Dec 2025). Windward now holds a complete TSLP franchise: one monoAb (Ph2 exacerbation data H2 2026) and one bispecific (Ph1). Novo Holdings-backed; strong institutional signal on TSLP asset conviction.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🟢</div>
+        <div class="intel-text"><strong>Qyuns/Roche QX031N deal (Oct 2025): <span class="intel-val">$75M upfront, $1.07B total</span></strong> — TSLP×IL-33 bispecific licensed to Roche at preclinical stage. Roche already has astegolimab (anti-ST2/IL-33R) in Ph3 asthma + COPD, meaning QX031N completes their alarmin blockade franchise. This deal sets the precedent for early-stage TSLP×IL-33 bispecific valuation. FIH ~2027.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🟡</div>
+        <div class="intel-text"><strong>Tozorakimab (AZ) OBERON/MIRANDA COPD Ph3 topline expected H2 2026</strong> — Anti-IL-33R (anti-ST2). If positive, will further validate alarmin pathway in COPD and intensify partner interest in TSLP-targeting combination strategies. Also being studied in Heart Failure (HF), adding a cardiovascular angle unique in this space. Results will directly inform bispecific trial design assumptions.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">🔵</div>
+        <div class="intel-text"><strong>Bosakitug (Biosion/Aclaris) Ph2 asthma: H2 2026 data readout</strong> — Long-acting anti-TSLP monoAb; $40M upfront, >$900M total deal (Nov 2024). Ph2 data will be the first head-to-head proxy for how a long-acting anti-TSLP compares vs. tezepelumab standard dosing. Biosion also has BSI-502 (TSLP×IL-4R bispecific) in Ph1 — dual TSLP franchise similar to Windward's approach.</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-dot">📅</div>
+        <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Tozorakimab COPD Ph3 topline H2 2026</span> · <span style="color:#1a2f50">Bosakitug asthma Ph2 data H2 2026</span> · <span style="color:#1a2f50">HBM9378/SKB378 Ph2 asthma exacerbation data H2 2026</span> · <span style="color:#1a2f50">Astegolimab PACIFIC Ph3 asthma ~2026</span></div>
+      </div>
+    </div>
+  </div>
 
   <!-- UPDATE & VALIDATION BOX -->
   <div class="update-card">
@@ -1150,12 +1407,19 @@ function phaseRank(s) {
   if (v.includes('Preclinical'))                            return 70;
   return 80;
 }
-const phaseSort = { compare: (a, b) => phaseRank(a) - phaseRank(b) };
+const phaseSort = { enabled: true, compare: (a, b) => phaseRank(a) - phaseRank(b) };
 
 // Readout program link formatter (uses hidden 7th column for URL)
 function readoutProgFmt(cell, row) {
   const url = row.cells[6] && row.cells[6].data;
   if (url) return gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
+  return cell;
+}
+
+// Deal partner link formatter (uses hidden 10th column for news URL)
+function dealPartnerFmt(cell, row) {
+  const url = row.cells[9] && row.cells[9].data;
+  if (url) return gridjs.html(`<a class="deal-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
   return cell;
 }
 
@@ -1183,7 +1447,7 @@ function initGrids(d) {
       {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'230px'},
       {name:'Indication',width:'110px'},
-      {name:'Primary Completion',width:'155px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#5a7a9e">${c}</span>`)},
+      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true}
     ],
     data:d.tl1aReadouts, sort:true, search:true
@@ -1197,10 +1461,11 @@ function initGrids(d) {
       {name:'Format',width:'140px'},
       {name:'Stage',width:'150px',formatter:sf},
       {name:'Indication',width:'70px'},
-      {name:'Licensee / Partner',width:'140px'},
+      {name:'Licensee / Partner',width:'140px',formatter:dealPartnerFmt},
       {name:'Upfront',width:'110px'},
       {name:'Total Value',width:'90px'},
-      {name:'Estimand',width:'130px',formatter:ef}
+      {name:'Estimand',width:'130px',formatter:ef},
+      {name:'_news',hidden:true}
     ],
     data:d.tl1aPipe, sort:true, search:true
   }).render(document.getElementById('grid-tl1a-pipe'));
@@ -1240,7 +1505,7 @@ function initGrids(d) {
       {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'240px'},
       {name:'Indication',width:'130px'},
-      {name:'Primary Completion',width:'155px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#5a7a9e">${c}</span>`)},
+      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true}
     ],
     data:d.tslpReadouts, sort:true, search:true
@@ -1254,10 +1519,11 @@ function initGrids(d) {
       {name:'Format',width:'140px'},
       {name:'Stage',width:'140px',formatter:sf},
       {name:'Indication',width:'110px'},
-      {name:'Licensee / Partner',width:'150px'},
+      {name:'Licensee / Partner',width:'150px',formatter:dealPartnerFmt},
       {name:'Upfront',width:'85px'},
       {name:'Total Value',width:'90px'},
-      {name:'Estimand',width:'130px',formatter:ef}
+      {name:'Estimand',width:'130px',formatter:ef},
+      {name:'_news',hidden:true}
     ],
     data:d.tslpPipe, sort:true, search:true
   }).render(document.getElementById('grid-tslp-pipe'));
