@@ -355,23 +355,113 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .home-nav-btn .hn-title { font-size: 14px; font-weight: 800; color: #1a2f50; }
 .home-nav-btn .hn-sub { font-size: 11px; color: #5a7a9e; margin-top: 3px; }
 
-/* ── UPDATED SIZE PATCHES ────────────────────────────────── */
-.sec-title { font-size: 13px; }
+/* ── SIZE + READABILITY PATCHES ──────────────────────────── */
+.sec-title { font-size: 13px; letter-spacing: 0.5px; }
 .intel-hd-title { font-size: 14px; }
 .card-hd { font-size: 14px; }
+.s-val { font-size: 26px; }
 .s-sub { font-size: 12px; }
+.s-label { font-size: 11px; }
 .cc-asset { font-size: 12px; }
-.cc-detail { font-size: 12px; }
+.cc-detail { font-size: 12.5px; line-height: 1.65; }
 .cc-deal { font-size: 12px; }
 .news-date { font-size: 11px; }
-.news-content { font-size: 12px; }
-.dl-val { font-size: 13px; }
+.news-content { font-size: 13px; line-height: 1.7; }
+.dl-val { font-size: 13.5px; line-height: 1.6; }
 .dl-lbl { font-size: 11px; }
-.footnote { font-size: 11px; }
-.update-desc { font-size: 12px; }
-.update-textarea { font-size: 12px; }
-.update-btn { font-size: 12px; }
-.update-results { font-size: 12px; }
+.dl-note { font-size: 12px; line-height: 1.7; }
+.footnote { font-size: 11.5px; line-height: 1.65; }
+.insight-box li { font-size: 13px; line-height: 1.75; }
+.update-desc { font-size: 12.5px; }
+.update-textarea { font-size: 13px; }
+.update-btn { font-size: 13px; padding: 8px 18px; }
+.update-results { font-size: 13px; }
+.estimand-intro { font-size: 13px; line-height: 1.8; }
+.es-def { font-size: 11.5px; line-height: 1.65; }
+.info-table td { font-size: 12.5px; line-height: 1.6; }
+.ad-sub { font-size: 11px; line-height: 1.6; }
+.gridjs-footer { display: none !important; }
+
+/* ── ASSET PROFILE LINK ───────────────────────────────────── */
+.asset-link { color: #1d4ed8; text-decoration: none; font-weight: 700; cursor: pointer; border-bottom: 1px solid rgba(29,78,216,0.3); transition: border-color 0.15s; }
+.asset-link:hover { border-bottom-color: #1d4ed8; color: #1e3a8a; }
+
+/* ── ASSET PROFILE MODAL ─────────────────────────────────── */
+.asset-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.65); z-index: 2000; align-items: flex-start; justify-content: center; padding: 40px 24px 24px; overflow-y: auto; }
+.asset-overlay.open { display: flex; }
+.asset-modal { background: white; border-radius: 12px; width: 100%; max-width: 860px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); margin: auto; overflow: hidden; animation: modalIn 0.2s ease; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.asset-modal-hd { background: linear-gradient(135deg, #0d1f38 0%, #1e3a6e 100%); color: white; padding: 20px 24px 16px; position: relative; }
+.asset-modal-name { font-size: 22px; font-weight: 900; margin-bottom: 2px; }
+.asset-modal-meta { font-size: 13px; opacity: 0.7; line-height: 1.5; }
+.asset-modal-stage { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; margin-top: 8px; }
+.asset-modal-close { position: absolute; top: 16px; right: 18px; background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.asset-modal-close:hover { background: rgba(255,255,255,0.3); }
+.asset-modal-tabs { display: flex; background: #f0f4f8; border-bottom: 1px solid #dde3ea; }
+.asset-modal-tab { padding: 11px 18px; font-size: 13px; font-weight: 600; color: #6b7c93; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; }
+.asset-modal-tab:hover { color: #1d4ed8; }
+.asset-modal-tab.active { color: #0d1f38; border-bottom-color: #1d4ed8; background: white; }
+.asset-modal-body { padding: 20px 24px; max-height: calc(100vh - 280px); overflow-y: auto; }
+.asset-modal-pane { display: none; }
+.asset-modal-pane.active { display: block; }
+.modal-section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #8a9bb0; margin: 18px 0 8px; }
+.modal-section-title:first-child { margin-top: 0; }
+.modal-prose { font-size: 14px; color: #2d3748; line-height: 1.85; margin-bottom: 12px; }
+.modal-highlight { background: #f0f6ff; border-left: 3px solid #1d4ed8; border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 12px; font-size: 14px; color: #1e3a5f; line-height: 1.8; }
+.modal-trial { background: #f8fafc; border-radius: 7px; padding: 12px 15px; margin-bottom: 8px; border-left: 3px solid #2e6fb0; }
+.modal-trial-name { font-size: 13px; font-weight: 800; color: #1a2f50; margin-bottom: 4px; }
+.modal-trial-result { font-size: 13px; color: #374151; line-height: 1.65; }
+.modal-trial-date { font-size: 11px; color: #9ca3af; margin-top: 3px; font-weight: 600; }
+.modal-question { padding: 8px 0 8px 14px; border-left: 2px solid #e2e8f0; font-size: 13px; color: #374151; line-height: 1.65; margin-bottom: 6px; }
+.modal-question::before { content: '?'; color: #e8a020; font-weight: 800; margin-right: 8px; }
+.doc-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 7px; padding: 12px 14px; margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start; transition: border-color 0.15s; }
+.doc-card:hover { border-color: #2e6fb0; }
+.doc-icon { font-size: 20px; min-width: 28px; }
+.doc-info { flex: 1; }
+.doc-title { font-size: 13px; font-weight: 700; color: #1a2f50; margin-bottom: 3px; }
+.doc-meta { font-size: 11px; color: #8a9bb0; margin-bottom: 4px; }
+.doc-desc { font-size: 12px; color: #5a7a9e; line-height: 1.55; }
+.doc-link { color: #1d4ed8; font-size: 12px; font-weight: 700; text-decoration: none; }
+.doc-link:hover { text-decoration: underline; }
+.doc-upload-area { border: 2px dashed #c8d8ee; border-radius: 8px; padding: 20px; text-align: center; font-size: 13px; color: #8a9bb0; margin-top: 12px; cursor: pointer; transition: border-color 0.15s; }
+.doc-upload-area:hover { border-color: #2e6fb0; color: #2e6fb0; }
+.add-doc-btn { background: #f0f6ff; border: 1.5px solid #c8d8ee; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 700; color: #1d4ed8; cursor: pointer; margin-top: 10px; }
+.add-doc-btn:hover { background: #dbeafe; }
+.add-doc-form { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-top: 10px; display: none; }
+.add-doc-form.open { display: block; }
+.add-doc-form input, .add-doc-form select, .add-doc-form textarea { width: 100%; border: 1px solid #dde3ea; border-radius: 5px; padding: 8px 10px; font-size: 13px; font-family: inherit; margin-bottom: 8px; color: #1a2e4a; }
+.add-doc-form input:focus, .add-doc-form select:focus, .add-doc-form textarea:focus { outline: none; border-color: #1d4ed8; }
+.add-doc-save { background: #1d4ed8; color: white; border: none; border-radius: 5px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* ── EDUCATIONAL SECTION ──────────────────────────────────── */
+.edu-section { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 18px; overflow: hidden; border-top: 3px solid #4f46e5; }
+.edu-hd { background: #f5f3ff; color: #1a2f50; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.edu-hd-left { display: flex; align-items: center; gap: 10px; }
+.edu-hd-icon { font-size: 18px; }
+.edu-hd-title { font-size: 14px; font-weight: 800; color: #2e1d6e; }
+.edu-hd-sub { font-size: 11px; color: #7c6fb5; margin-top: 1px; }
+.edu-toggle { font-size: 16px; opacity: 0.7; transition: transform 0.2s; color: #4f46e5; }
+.edu-toggle.open { transform: rotate(180deg); }
+.edu-body { padding: 20px 24px; display: none; background: #fdfcff; }
+.edu-body.open { display: block; }
+.edu-chapter { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid #e8e4f8; }
+.edu-chapter:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.edu-chapter-title { font-size: 15px; font-weight: 800; color: #2e1d6e; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.edu-prose { font-size: 14px; color: #374151; line-height: 1.9; margin-bottom: 10px; }
+.edu-callout { background: #f0eeff; border-left: 4px solid #4f46e5; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0; font-size: 13.5px; color: #2e1d6e; line-height: 1.8; }
+.edu-callout strong { color: #1a0f4a; }
+.edu-bd-lens { background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%); border: 1px solid #f5c842; border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+.edu-bd-lens-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: #92400e; margin-bottom: 8px; }
+.edu-bd-lens-body { font-size: 13.5px; color: #78350f; line-height: 1.8; }
+.edu-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 8px; margin-top: 12px; }
+.edu-link { display: block; padding: 10px 13px; background: white; border: 1.5px solid #e0e0f4; border-radius: 7px; text-decoration: none; color: #2e1d6e; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+.edu-link:hover { background: #f0eeff; border-color: #4f46e5; }
+.edu-link::after { content: ' ↗'; opacity: 0.5; font-size: 11px; }
+
+/* ── INTEL SOURCE LINK ───────────────────────────────────── */
+a.intel-src { display: inline-block; font-size: 11px; font-weight: 700; color: #1d4ed8; text-decoration: none; margin-left: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px; padding: 1px 7px; transition: background 0.15s; vertical-align: middle; }
+a.intel-src:hover { background: #dbeafe; }
+a.intel-src::after { content: ' ↗'; opacity: 0.7; }
 
 /* ── GLOBAL SEARCH BAR ───────────────────────────────────── */
 .gs-wrap { background: white; border-bottom: 2px solid #dde3ea; padding: 10px 24px; }
@@ -605,23 +695,23 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
     <div class="intel-body">
       <div class="intel-item">
         <div class="intel-dot">🟢</div>
-        <div class="intel-text"><strong>Duvakitug (Sanofi/Teva) RELIEVE-UC Ph2b: <span class="intel-pos">48% clinical remission</span> at 900mg Wk14 vs 20% placebo</strong><span class="intel-date-badge">Mar 2025</span> — highest TL1A efficacy signal reported to date. CD arm: 48% endoscopic response. Using composite estimand (rescue medication = failure). Ph3 <strong>STARSCAPE</strong> (UC) and <strong>SUNSCAPE</strong> (CD) now enrolling. Most commercially formidable asset given Sanofi's global infrastructure and combined Dupixent/Kevzara IBD expertise.</div>
+        <div class="intel-text"><strong>Duvakitug (Sanofi/Teva) RELIEVE-UC Ph2b: <span class="intel-pos">48% clinical remission</span> at 900mg Wk14 vs 20% placebo</strong><span class="intel-date-badge">Mar 2025</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT05544760" target="_blank" rel="noopener">Source</a> — highest TL1A efficacy signal reported to date. CD arm: 48% endoscopic response. Using composite estimand (rescue medication = failure). Ph3 <strong>STARSCAPE</strong> (UC) and <strong>SUNSCAPE</strong> (CD) now enrolling. Most commercially formidable asset given Sanofi's global infrastructure.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🟡</div>
-        <div class="intel-text"><strong>Tulisokibart (Merck) ATLAS-UC Ph3: topline expected ~Nov 2026 (Q4 2026)</strong><span class="intel-date-badge">Updated May 2026</span> — First Ph3 data readout in the TL1A class. Ph2 ARTEMIS-UC: <span class="intel-val">26.5% remission vs 1.5% placebo</span> at Wk12 (composite estimand). Companion diagnostic (TNFSF15 genetic haplotype) creates precision medicine positioning that could enable a label with narrower but more reliable responder profile. All eyes on this readout.</div>
+        <div class="intel-text"><strong>Tulisokibart (Merck) ATLAS-UC Ph3: topline expected ~Nov 2026 (Q4 2026)</strong><span class="intel-date-badge">Updated May 2026</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">NCT06052059</a> — First Ph3 data readout in the TL1A class. Ph2 ARTEMIS-UC: <span class="intel-val">26.5% remission vs 1.5% placebo</span> at Wk12 (composite estimand). Companion diagnostic (TNFSF15 genetic haplotype) creates precision medicine positioning that could enable a label with narrower but more reliable responder profile. All eyes on this readout.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🔴</div>
-        <div class="intel-text"><strong>Afimkibart (Roche) TUSCANY-2 Ph2b: <span class="intel-warn">PRIMARY ENDPOINT MISSED</span></strong><span class="intel-date-badge">Oct 2023</span> — 24% UC remission vs 12% placebo at Wk14, not statistically significant. Secondary endpoints were positive; 43% clinical remission at Wk56 in biomarker-positive subgroup (open-label). Roche proceeded to Ph3 AMETRINE-1/-2 (UC) + SIBERITE-1/-2 (CD). Regulators and partners will scrutinize the reliance on secondary endpoints and open-label extension data. Acquired via Telavant ~$7.1B (Dec 2023).</div>
+        <div class="intel-text"><strong>Afimkibart (Roche) TUSCANY-2 Ph2b: <span class="intel-warn">PRIMARY ENDPOINT MISSED</span></strong><span class="intel-date-badge">Oct 2023</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT05129150" target="_blank" rel="noopener">NCT05129150</a> — 24% UC remission vs 12% placebo at Wk14, not statistically significant. Secondary endpoints were positive; 43% clinical remission at Wk56 in biomarker-positive subgroup (open-label). Roche proceeded to Ph3 AMETRINE-1/-2 (UC) + SIBERITE-1/-2 (CD). Regulators and partners will scrutinize the reliance on secondary endpoints and open-label extension data. Acquired via Telavant ~$7.1B (Dec 2023).</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🔵</div>
-        <div class="intel-text"><strong>Simcere SIM0709 / Boehringer Ingelheim deal closed Jan 2026: <span class="intel-val">€42M upfront / €1.05B total ($1.16B)</span></strong><span class="intel-date-badge">Jan 2026</span> — Pre-IND preclinical deal for TL1A×IL-23p19 bispecific. FIH dosing H1 2026. Sets the lower bound of preclinical deal precedent alongside Earendil/Sanofi ($125M upfront, Pre-IND). Chinese assets retaining all Greater China rights while licensing global ex-China continues to work. Third Chinese deal in the space in under 12 months.</div>
+        <div class="intel-text"><strong>Simcere SIM0709 / Boehringer Ingelheim deal closed Jan 2026: <span class="intel-val">€42M upfront / €1.05B total ($1.16B)</span></strong><span class="intel-date-badge">Jan 2026</span><a class="intel-src" href="https://www.biospace.com/deals/boehringer-turns-to-china-in-1-26b-ibd-pact-with-simcere" target="_blank" rel="noopener">Source</a> — Pre-IND preclinical deal for TL1A×IL-23p19 bispecific. FIH dosing H1 2026. Sets the lower bound of preclinical deal precedent alongside Earendil/Sanofi ($125M upfront, Pre-IND). Chinese assets retaining all Greater China rights while licensing global ex-China continues to work. Third Chinese deal in the space in under 12 months.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🔵</div>
-        <div class="intel-text"><strong>Xencor XmAb942 Ph1 HV final data at DDW May 2–5, 2026</strong><span class="intel-date-badge">May 2026</span> — Extended half-life >71 days validated (vs ~21 days for standard IgG). XENITH-UC Ph2b readout expected year-end 2026. Xencor also presented XmAb412 (TL1A×IL-23p19 bispecific) preclinical data at DDW; FIH expected H2 2026. Xencor uniquely running both mono (Ph2b) and bispecific (pre-Ph1) in parallel.</div>
+        <div class="intel-text"><strong>Xencor XmAb942 Ph1 HV final data at DDW May 2–5, 2026</strong><span class="intel-date-badge">May 2026</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT06619990" target="_blank" rel="noopener">NCT06619990</a> — Extended half-life >71 days validated (vs ~21 days for standard IgG). XENITH-UC Ph2b readout expected year-end 2026. Xencor also presented XmAb412 (TL1A×IL-23p19 bispecific) preclinical data at DDW; FIH expected H2 2026. Xencor uniquely running both mono (Ph2b) and bispecific (pre-Ph1) in parallel.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">📅</div>
@@ -1187,7 +1277,63 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
     </ul>
   </div>
 
-  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases (Simcere HK filing, Qyuns HK exchange filing), ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
+  <!-- EDUCATIONAL: TL1A BIOLOGY & IBD -->
+  <div class="edu-section">
+    <div class="edu-hd" onclick="toggleEdu('tl1a-edu')">
+      <div class="edu-hd-left">
+        <span class="edu-hd-icon">🧬</span>
+        <div>
+          <div class="edu-hd-title">Biology Deep-Dive: TL1A / DR3 · IBD Pathophysiology · MOA Framework</div>
+          <div style="font-size:11px;color:#7c6fb5;margin-top:1px">Understand the science behind what you're evaluating — from epithelial alarm signals to T cell activation to why bispecifics have an edge</div>
+        </div>
+      </div>
+      <span class="edu-toggle" id="tl1a-edu-toggle">▼</span>
+    </div>
+    <div class="edu-body" id="tl1a-edu-body">
+
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">🔬 What is TL1A and Why Does It Matter?</div>
+        <div class="edu-prose">TL1A (TNF-like Ligand 1A, also called TNFSF15) is a cytokine belonging to the TNF superfamily. It is expressed primarily by vascular endothelial cells, monocytes, macrophages, and dendritic cells when those cells encounter inflammatory signals such as bacterial products, TLR ligands, or other cytokines. TL1A signals through its cognate receptor, <strong>Death Receptor 3 (DR3, TNFRSF25)</strong>, which is constitutively expressed on T lymphocytes — particularly CD4+ effector T cells, regulatory T cells (Tregs), and memory T cells. This constitutive expression means the system is "always ready" to respond, and even subtle TL1A upregulation in inflamed tissue will trigger T cell activation.</div>
+        <div class="edu-callout"><strong>The key insight:</strong> TL1A is not just another inflammatory cytokine — it is a T cell co-stimulatory signal that amplifies responses to other activating stimuli. When IL-12 or IL-18 activates T cells, TL1A amplifies that signal 10-100x. In the context of IBD, where T cell dysfunction is central, TL1A acts as a "volume knob" for intestinal inflammation.</div>
+        <div class="edu-prose">In the gut mucosa specifically, TL1A-DR3 signaling drives the expansion and activation of <strong>Th9, Th17, Th1, and ILC3</strong> populations — the exact inflammatory cell subsets most relevant in both UC and CD. It also has a complex role in regulatory T cells: TL1A can both suppress Tregs (removing a brake on inflammation) or, in different contexts, promote Treg expansion — which is why patient selection and biomarker strategies are so important in TL1A drug development.</div>
+      </div>
+
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">🧪 TL1A in IBD: Disease Biology</div>
+        <div class="edu-prose">Multiple lines of evidence support TL1A as a causal driver in IBD, not merely a bystander:</div>
+        <div class="edu-prose"><strong>Genetic evidence:</strong> Genome-wide association studies (GWAS) have identified the TNFSF15 locus as one of the strongest genetic risk factors for Crohn's disease. The risk haplotype is associated with TL1A overexpression in response to inflammatory stimuli. Approximately 60% of IBD patients carry a TNFSF15 risk variant — this is the scientific basis for Merck's companion diagnostic strategy with tulisokibart.</div>
+        <div class="edu-prose"><strong>Expression data:</strong> TL1A protein is significantly upregulated in the inflamed mucosa of both UC and CD patients compared to healthy controls and non-inflamed IBD tissue. The level of mucosal TL1A expression correlates with disease severity and histological inflammation scores.</div>
+        <div class="edu-prose"><strong>Functional studies:</strong> TL1A-transgenic mice develop a Th2/Th9-driven colitis with small intestinal fibrosis — importantly capturing fibrotic features of Crohn's disease that are often absent in other models. Anti-TL1A antibodies show efficacy in multiple mouse colitis models including DSS and T-cell transfer models.</div>
+        <div class="edu-callout"><strong>Why this matters for BD:</strong> A target with strong genetic + expression + functional validation is significantly de-risked compared to targets with only one type of evidence. TL1A has all three, which explains why multiple major pharma companies have committed billions in the space.</div>
+      </div>
+
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">🔗 The TL1A × IL-23 Synergy — Why Bispecifics?</div>
+        <div class="edu-prose">IL-23 (specifically the p19 subunit, targeted by risankizumab, guselkumab, and others) is the master driver of Th17 and ILC3 differentiation in the gut. It promotes production of IL-17A, IL-17F, and IL-22 — cytokines that disrupt the epithelial barrier and sustain chronic inflammation in CD. IL-23 is already a validated target: risankizumab (Skyrizi) is approved for both CD and UC with strong efficacy data.</div>
+        <div class="edu-prose">The key mechanistic connection: TL1A and IL-23 act on overlapping populations (DR3 is expressed on Th17 cells, ILC3s, and other IL-23-responsive cells) and co-stimulate in a <strong>synergistic, non-redundant fashion</strong>. Studies show that when both TL1A and IL-23 are present, the inflammatory response is greater than either alone — and that blocking one pathway leaves the other active to maintain inflammation.</div>
+        <div class="edu-bd-lens">
+          <div class="edu-bd-lens-title">🏦 BD Evaluation Lens: Why the Bispecific Premium?</div>
+          <div class="edu-bd-lens-body">The bispecific rationale is straightforward but must be validated clinically: if dual blockade achieves meaningfully higher remission rates than either monoAb alone (and both are approved individually), a bispecific can command a premium label, pricing, and formulary position. The AbbVie TARGET-CD trial (risankizumab + trosunilimab combination, H2 2026 readout) is the most direct validation of this hypothesis — if positive, it would be the strongest endorsement for bispecific programs. When evaluating bispecific programs, ask: (1) What are the expected additive vs. synergistic effects? (2) Which estimand design maximizes the detectable benefit? (3) Is there IND-stage efficacy data showing the bispecific outperforms both monoAbs?</div>
+        </div>
+      </div>
+
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">💊 IBD Drug Development: Endpoints, Estimands & Patient Selection</div>
+        <div class="edu-prose"><strong>Endpoints:</strong> In UC, the standard primary endpoint for pivotal trials is clinical remission, defined by Mayo score (stool frequency, rectal bleeding, endoscopy). Composite remission requires both clinical and endoscopic remission. In CD, endoscopic response/remission and CDAI-based endpoints are used. Regulators increasingly prefer endoscopic endpoints as they reflect mucosal healing and predict long-term outcomes.</div>
+        <div class="edu-prose"><strong>Why estimands matter:</strong> The composite estimand counts patients who required rescue medication as "treatment failures," creating a more rigorous but accurate picture of drug performance in real-world use. The treatment policy estimand counts all events regardless of rescue medication changes — more reflective of real-world outcomes but can make drugs look better. Regulators now favor alignment with ICH E9(R1) guidance. Comparing tulisokibart (26.5%, composite) vs. duvakitug (48%, composite) requires understanding whether both trials defined composite remission identically.</div>
+        <div class="edu-prose"><strong>Patient selection:</strong> Biologic-naive vs. biologic-experienced patients respond very differently to anti-TL1A agents. Biologic-experienced patients (who have failed anti-TNF or anti-integrin) tend to have more refractory disease and lower response rates. Companion diagnostics (TNFSF15 haplotype) can enrich for responders, but a more restrictive label limits commercial opportunity.</div>
+        <div class="edu-links">
+          <a class="edu-link" href="https://www.nejm.org/doi/10.1056/NEJMoa2208598" target="_blank" rel="noopener">Tulisokibart Ph2 (NEJM 2023)</a>
+          <a class="edu-link" href="https://www.ich.org/page/efficacy-guidelines#9-3" target="_blank" rel="noopener">ICH E9(R1) Estimands Guideline</a>
+          <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 Design</a>
+          <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06548542" target="_blank" rel="noopener">AbbVie TARGET-CD (combo trial)</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases, ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
@@ -1205,19 +1351,19 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
     <div class="intel-body">
       <div class="intel-item">
         <div class="intel-dot">🟢</div>
-        <div class="intel-text"><strong>Itepekimab (Regeneron/Sanofi) AERIFY Ph3 COPD: <span class="intel-pos">POSITIVE</span> — ~25% AECOPD reduction vs placebo in ex-smokers (eos ≥150 cells/μL)</strong><span class="intel-date-badge">Apr 2025</span>. First anti-IL-33 biologic approved in COPD. Opens the COPD biologic market to the alarmin-targeting pathway. Direct strategic relevance for TSLP×IL-33 bispecifics: partners will now ask how QX031N and HXN-1003 differentiate from approved itepekimab, and the combined TSLP+IL-33 blockade argument gains urgency.</div>
+        <div class="intel-text"><strong>Itepekimab (Regeneron/Sanofi) AERIFY Ph3 COPD: <span class="intel-pos">POSITIVE</span> — ~25% AECOPD reduction vs placebo in ex-smokers (eos ≥150 cells/μL)</strong><span class="intel-date-badge">Apr 2025</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT04701983" target="_blank" rel="noopener">NCT04701983</a>. First anti-IL-33 biologic approved in COPD. Opens the COPD biologic market to the alarmin-targeting pathway. Direct strategic relevance for TSLP×IL-33 bispecifics: partners will now ask how QX031N and HXN-1003 differentiate from approved itepekimab, and the combined TSLP+IL-33 blockade argument gains urgency.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🟢</div>
-        <div class="intel-text"><strong>Windward Bio raises <span class="intel-pos">$165M crossover round</span> (May 2026)</strong><span class="intel-date-badge">May 2026</span> to advance HBM9378/SKB378 (anti-TSLP monoAb, Harbour+Kelun) and WIN027 (TSLP×IL-13 bispecific, from Qyuns $700M deal Dec 2025). Windward now holds a complete TSLP franchise: one monoAb (Ph2 exacerbation data H2 2026) and one bispecific (Ph1). Novo Holdings-backed; strong institutional signal on TSLP asset conviction.</div>
+        <div class="intel-text"><strong>Windward Bio raises <span class="intel-pos">$165M crossover round</span> (May 2026)</strong><span class="intel-date-badge">May 2026</span><a class="intel-src" href="https://www.biopharmadive.com/news/windward-bio-raises-tslp-asthma/745616/" target="_blank" rel="noopener">Source</a> to advance HBM9378/SKB378 (anti-TSLP monoAb, Harbour+Kelun) and WIN027 (TSLP×IL-13 bispecific, from Qyuns $700M deal Dec 2025). Windward now holds a complete TSLP franchise: one monoAb (Ph2 exacerbation data H2 2026) and one bispecific (Ph1). Novo Holdings-backed; strong institutional signal on TSLP asset conviction.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🟢</div>
-        <div class="intel-text"><strong>Qyuns/Roche QX031N deal (Oct 2025): <span class="intel-val">$75M upfront / $1.07B total</span></strong><span class="intel-date-badge">Oct 2025</span> — TSLP×IL-33 bispecific licensed to Roche at preclinical stage. Roche already has astegolimab (anti-ST2/IL-33R) in Ph3 asthma + COPD, meaning QX031N completes their alarmin blockade franchise. This deal sets the precedent for early-stage TSLP×IL-33 bispecific valuation. FIH ~2027.</div>
+        <div class="intel-text"><strong>Qyuns/Roche QX031N deal (Oct 2025): <span class="intel-val">$75M upfront / $1.07B total</span></strong><span class="intel-date-badge">Oct 2025</span><a class="intel-src" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">Source</a> — TSLP×IL-33 bispecific licensed to Roche at preclinical stage. Roche already has astegolimab (anti-ST2/IL-33R) in Ph3 asthma + COPD, meaning QX031N completes their alarmin blockade franchise. This deal sets the precedent for early-stage TSLP×IL-33 bispecific valuation. FIH ~2027.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🟡</div>
-        <div class="intel-text"><strong>Tozorakimab (AZ) OBERON/MIRANDA COPD Ph3 topline expected H2 2026</strong><span class="intel-date-badge">Updated May 2026</span> — Anti-IL-33R (anti-ST2). If positive, will further validate alarmin pathway in COPD and intensify partner interest in TSLP-targeting combination strategies. Also being studied in Heart Failure (HF), adding a cardiovascular angle unique in this space. Results will directly inform bispecific trial design assumptions.</div>
+        <div class="intel-text"><strong>Tozorakimab (AZ) OBERON/MIRANDA COPD Ph3 topline expected H2 2026</strong><span class="intel-date-badge">Updated May 2026</span><a class="intel-src" href="https://clinicaltrials.gov/study/NCT06040086" target="_blank" rel="noopener">NCT06040086</a> — Anti-IL-33R (anti-ST2). If positive, will further validate alarmin pathway in COPD and intensify partner interest in TSLP-targeting combination strategies. Also being studied in Heart Failure (HF), adding a cardiovascular angle unique in this space. Results will directly inform bispecific trial design assumptions.</div>
       </div>
       <div class="intel-item">
         <div class="intel-dot">🔵</div>
@@ -1615,25 +1761,142 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
     </ul>
   </div>
 
+  <!-- EDUCATIONAL: TSLP BIOLOGY & RESPIRATORY -->
+  <div class="edu-section" style="margin-top:18px">
+    <div class="edu-hd" onclick="toggleEdu('tslp-edu')" style="padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-radius:8px 8px 0 0;">
+      <div class="edu-hd-left" style="display:flex;align-items:center;gap:14px">
+        <span class="edu-hd-icon" style="font-size:22px">🫁</span>
+        <div>
+          <div class="edu-hd-title" style="font-size:14px;font-weight:800;color:#1a2f50">Biology Deep-Dive: TSLP / IL-33 · Respiratory Pathophysiology · MOA Framework</div>
+          <div style="font-size:12px;color:#6b7c93;margin-top:2px">Alarmin biology · Asthma vs COPD · Bispecific rationale · BD evaluation lens · Trial design essentials</div>
+        </div>
+      </div>
+      <span class="edu-toggle" id="tslp-edu-toggle" style="font-size:12px;color:#4f46e5;font-weight:700">▼</span>
+    </div>
+    <div class="edu-body" id="tslp-edu-body">
+
+      <!-- Chapter 1 -->
+      <div class="edu-chapter">
+        <h3 style="font-size:15px;font-weight:800;color:#1a2f50;margin-bottom:10px">1 · What Are TSLP and IL-33 — and Why Do They Matter?</h3>
+        <p class="edu-prose">TSLP (Thymic Stromal Lymphopoietin) and IL-33 are <strong>epithelial alarmins</strong> — danger signals released by barrier tissues (skin, lung, gut mucosa) in response to physical damage, allergens, pollutants, viruses, and cigarette smoke. They act upstream of the adaptive immune response, functioning as a first-line broadcast to the immune system that the epithelial barrier has been breached or stressed.</p>
+        <p class="edu-prose" style="margin-top:8px"><strong>TSLP</strong> is a cytokine of the IL-2 superfamily. It signals through a heterodimeric receptor (TSLPR + IL-7Rα) expressed on dendritic cells, mast cells, basophils, innate lymphoid cells (ILC2s), and T cells. When epithelial cells release TSLP, dendritic cells rapidly upregulate OX40L, a co-stimulatory signal that drives naïve T cells toward a Th2 phenotype — the cellular hallmark of atopic disease. TSLP also directly activates ILC2s, triggering the production of IL-5 and IL-13, which in turn drive eosinophilia and airway remodeling. Because TSLP sits so far upstream — before the Th2 cascade even begins — blocking it should theoretically interrupt all downstream type 2 inflammation, not just one arm of it.</p>
+        <p class="edu-prose" style="margin-top:8px"><strong>IL-33</strong> is a member of the IL-1 family stored as a nuclear chromatin-associated protein. Upon cell death, necrosis, or mechanical stress, IL-33 is released and signals through ST2 (IL1RL1) on mast cells, ILC2s, Th2 cells, eosinophils, and regulatory T cells. Like TSLP, IL-33 robustly activates ILC2s and amplifies type 2 inflammation — but its receptor distribution also gives it effects in cardiac tissue, the gut, and the CNS. Critically, IL-33 and TSLP signal through distinct receptors and partially non-redundant downstream pathways: TSLP preferentially activates dendritic cells and the Th2 polarization axis, while IL-33 most potently activates mast cells and ILC2s in both type 2 and non-type 2 contexts.</p>
+        <div class="edu-callout" style="padding:12px 16px;border-radius:6px;margin-top:14px">
+          <strong style="color:#4f46e5;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Why Block Both?</strong>
+          <p style="font-size:13px;color:#374151;margin-top:6px;line-height:1.8">Single-cytokine blockade leaves escape valves open. Tezepelumab (anti-TSLP mono) delivered landmark results — but its Phase 3 COPD data are pending, and there are still ~40% of patients who don't respond. IL-33 blockade (tozorakimab, itepekimab) adds complementary efficacy, especially in COPD where non-type 2 inflammation driven by IL-33 upon cigarette smoke-induced cell death may be the dominant pathology. A TSLP×IL-33 bispecific should theoretically achieve deeper, broader suppression of alarmin-driven inflammation across both the Th2 and non-Th2 axes simultaneously — with one molecule and one injection.</p>
+        </div>
+      </div>
+
+      <!-- Chapter 2 -->
+      <div class="edu-chapter">
+        <h3 style="font-size:15px;font-weight:800;color:#1a2f50;margin-bottom:10px">2 · Respiratory Disease Biology: Asthma vs. COPD — Why They're Different</h3>
+        <p class="edu-prose">Asthma and COPD are often mentioned in the same breath (literally), but their biology, patient populations, and regulatory paths are fundamentally different. Understanding this distinction is essential for evaluating respiratory biologic programs.</p>
+
+        <p class="edu-prose" style="margin-top:12px"><strong>Asthma</strong> is a heterogeneous inflammatory airway disease characterized by reversible bronchoconstriction and airway hyperresponsiveness. The dominant endotype in severe asthma is <em>type 2 high</em> (T2-high), defined by elevated blood or sputum eosinophils (≥150–300 cells/μL), elevated IgE, periostin, or FeNO >25 ppb. However, ~40–50% of severe asthma is <em>type 2 low</em>, characterized by neutrophilic or paucigranulocytic inflammation — and most existing biologics fail here. Tezepelumab's key differentiation in asthma is that it works <em>regardless of baseline eosinophil count</em>, implying TSLP-driven pathways beyond pure T2 inflammation. Clinical endpoint: annualized asthma exacerbation rate (AAER), with FEV₁ improvement and OCS reduction as key secondaries.</p>
+
+        <p class="edu-prose" style="margin-top:12px"><strong>COPD</strong> is fundamentally different. It is a progressive, largely irreversible obstructive disease caused primarily by cigarette smoke exposure, characterized by emphysema and small airway remodeling. The dominant inflammatory pathology involves macrophages, neutrophils, and CD8+ T cells — a largely <em>non-type 2</em> picture. However, a significant minority of COPD patients have eosinophilic inflammation (blood eos ≥300 is the key threshold for dupilumab's COPD label), and these patients respond to type 2 biologics. IL-33 is especially relevant in COPD because it is released upon cell necrosis from cigarette-smoke-induced epithelial damage, activating mast cells and macrophages in ways that may not depend on type 2 adaptive immunity. This is why itepekimab (anti-IL-33) showed benefit in ex-smoker COPD with eos ≥150, and why TSLP×IL-33 bispecifics may be particularly interesting in this indication. Clinical endpoint: annualized rate of moderate-to-severe AECOPD (acute exacerbations), with FEV₁ and St. George's Respiratory Questionnaire (SGRQ) as key secondaries. Regulatory note: COPD label claims typically require two positive Phase 3 trials across distinct exacerbation-prone populations.</p>
+
+        <div class="edu-callout" style="padding:12px 16px;border-radius:6px;margin-top:14px">
+          <strong style="color:#4f46e5;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Why COPD Is the Market Prize</strong>
+          <p style="font-size:13px;color:#374151;margin-top:6px;line-height:1.8">Asthma is increasingly well-served (dupilumab, tezepelumab, benralizumab, mepolizumab). COPD has ~380 million patients globally, enormous unmet need, limited approved biologics (only dupilumab as of 2024), and peak sales potential estimated at $10B+ per year for a successful entrant. This is why every major respiratory BD deal — QX031N/Roche ($1.07B), Windward/Kelun/Harbour, tozorakimab/Zenith — includes explicit COPD development plans.</p>
+        </div>
+      </div>
+
+      <!-- Chapter 3 -->
+      <div class="edu-chapter">
+        <h3 style="font-size:15px;font-weight:800;color:#1a2f50;margin-bottom:10px">3 · TSLP × IL-33 Bispecifics — The Scientific and Commercial Rationale</h3>
+        <p class="edu-prose">The bispecific hypothesis rests on three observations from the monospecific data: (1) tezepelumab reduces AAER by ~70% in T2-high asthma but has limited demonstrated effect in COPD to date; (2) itepekimab reduces AECOPDs in ex-smoker COPD, suggesting IL-33 drives exacerbation pathology through a different mechanism than TSLP; (3) combination anti-TSLP + anti-IL-33 in animal models shows additive-to-synergistic effects on both epithelial barrier repair and ILC2 suppression.</p>
+
+        <p class="edu-prose" style="margin-top:8px">Mechanistically, the dual blockade approach addresses the two key failure modes of each monospecific. Anti-TSLP alone doesn't adequately suppress IL-33-driven mast cell activation (which contributes to both acute bronchoconstriction and exacerbations). Anti-IL-33 alone doesn't interrupt TSLP-driven Th2 polarization (which is especially important in allergen-triggered asthma and in patients with atopic comorbidity). A single molecule that neutralizes both upstream alarmins should provide broader coverage of the ILC2/mast cell/Th2 axis simultaneously.</p>
+
+        <p class="edu-prose" style="margin-top:8px">From a biology standpoint, there is also a <strong>receptor crosstalk</strong> argument: TSLP and IL-33 both converge on ILC2 activation via NF-κB and GATA3 pathways. Blocking both inputs may be required to achieve full ILC2 quiescence — blocking either one alone may leave residual ILC2 activation. This parallels the dual IL-4/IL-13 blockade rationale for dupilumab vs. mono IL-13 blockade (tralokinumab, lebrikizumab).</p>
+
+        <div class="edu-callout" style="padding:12px 16px;border-radius:6px;margin-top:14px">
+          <strong style="color:#4f46e5;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Key Unknowns Heading Into Phase 2</strong>
+          <p style="font-size:13px;color:#374151;margin-top:6px;line-height:1.8">Does dual blockade actually outperform tezepelumab monotherapy in asthma? The comparator bar is very high — 70% AAER reduction is exceptional. In COPD, does adding TSLP inhibition to IL-33 blockade improve on itepekimab's ~25% AECOPD reduction in ex-smokers? And which biomarker subgroups drive efficacy — high eosinophils, high IgE, ex-smoker status, or FeNO? These questions will define Phase 2/3 trial design and the asset's differentiation story at partnering.</p>
+        </div>
+      </div>
+
+      <!-- Chapter 4 -->
+      <div class="edu-chapter">
+        <h3 style="font-size:15px;font-weight:800;color:#1a2f50;margin-bottom:10px">4 · Respiratory Drug Development: Endpoints, Biomarkers & Trial Design</h3>
+        <p class="edu-prose"><strong>The canonical Phase 3 asthma endpoint</strong> is annualized asthma exacerbation rate (AAER) over 52 weeks in patients with ≥2 exacerbations in the prior year despite medium-to-high dose ICS ± LABA. The primary estimand choice matters enormously. The <strong>treatment policy estimand</strong> counts all exacerbations regardless of rescue medication use or background therapy changes — this is what tezepelumab's NAVIGATOR used, and it underpinned the "all-endotype" label claim. A <strong>hypothetical estimand</strong> (what would happen if patients stayed on treatment without rescue?) might show larger effect sizes but doesn't reflect real-world clinical practice and creates labeling risk.</p>
+
+        <p class="edu-prose" style="margin-top:8px"><strong>Key asthma biomarkers for enrollment and subgroup analysis:</strong></p>
+        <ul style="font-size:13px;color:#374151;line-height:2;margin-top:4px;padding-left:20px">
+          <li><strong>Blood eosinophils</strong> — ≥150 (low-threshold), ≥300 (high T2). Most anti-IL-5/IL-5R biologics require ≥300. Tezepelumab works down to 0.</li>
+          <li><strong>FeNO (fractional exhaled nitric oxide)</strong> — ≥25 ppb indicates airway eosinophilic inflammation; ≥50 ppb = highly correlated with response to anti-IgE and anti-IL-4/13.</li>
+          <li><strong>Total serum IgE</strong> — elevated IgE correlates with atopic phenotype; relevant for dupilumab and omalizumab subgroups.</li>
+          <li><strong>Periostin</strong> — epithelial IL-13-driven marker; used in lebrikizumab trials but less common now.</li>
+          <li><strong>Allergen sensitization</strong> — important for allergen-challenge models and for differentiating allergic from non-allergic asthma.</li>
+        </ul>
+
+        <p class="edu-prose" style="margin-top:12px"><strong>COPD trial design fundamentals:</strong> The primary endpoint is moderate-to-severe AECOPD rate over 52 weeks in patients with GOLD 2-4 severity and ≥2 exacerbations in the prior year (or 1 hospitalization). FEV₁ reversibility is typically ≤12% (fixed obstruction). Key biomarker thresholds: blood eos ≥150 (dupilumab used ≥300; itepekimab used ≥150 in ex-smokers). ICH E9(R1) estimand considerations apply: whether exacerbations during hospitalization are included, how deaths are handled, and whether time-to-first-exacerbation analyses provide supportive evidence all need to be pre-specified.</p>
+
+        <div class="edu-bd-lens" style="padding:14px 18px;border-radius:8px;margin-top:16px">
+          <div style="font-size:12px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">BD Evaluation Lens — Respiratory Programs</div>
+          <p style="font-size:13px;color:#374151;line-height:1.9">When evaluating a TSLP×IL-33 or related alarmin-targeting asset for partnership, the key diligence questions are: (1) <em>Which estimand was used in Phase 2?</em> Treatment policy or hypothetical? How does the effect size hold up under the more conservative assumption? (2) <em>What is the eosinophil distribution in their enrolled cohort?</em> High-eos enrichment inflates Phase 2 results in a way that may not replicate in a broader Phase 3 population. (3) <em>Is there a COPD signal?</em> Given the commercial stakes, an asset that only shows asthma data is substantially less valuable than one with even early COPD signals. (4) <em>How does the bispecific format affect PK?</em> Half-life, dosing interval (Q4W vs Q8W), and SC deliverability all influence patient access and commercial positioning. (5) <em>What happens to TSLP and IL-33 levels post-dosing?</em> Target engagement biomarkers confirm MOA and de-risk later-stage failures. Ask for TSLPR occupancy data and free vs. total cytokine levels. (6) <em>How differentiated is this vs. tezepelumab?</em> The approval bar in asthma is now 70% AAER reduction with broad labeling. A new entrant needs to match that or target a subpopulation (e.g., T2-low, severe COPD) where tezepelumab hasn't demonstrated benefit.</p>
+        </div>
+      </div>
+
+      <div style="padding:12px 0 4px;font-size:12px;color:#9ca3af">
+        <strong style="color:#6b7c93">Further reading:</strong>
+        <a href="https://www.nejm.org/doi/10.1056/NEJMoa2034660" target="_blank" style="color:#4f46e5;margin:0 8px">NAVIGATOR (tezepelumab NEJM 2021)</a> ·
+        <a href="https://clinicaltrials.gov/study/NCT04701983" target="_blank" style="color:#4f46e5;margin:0 8px">AERIFY-1 (itepekimab COPD)</a> ·
+        <a href="https://www.nejm.org/doi/10.1056/NEJMoa2302951" target="_blank" style="color:#4f46e5;margin:0 8px">Dupilumab COPD NEJM 2023</a> ·
+        <a href="https://www.frontiersin.org/articles/10.3389/falgy.2022.859652" target="_blank" style="color:#4f46e5;margin:0 8px">Alarmin biology review (Frontiers 2022)</a>
+      </div>
+
+    </div>
+  </div>
+
   <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review), NEJM (tezepelumab NAVIGATOR), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
 </div><!-- /content -->
 
+<!-- ══════════════ ASSET PROFILE MODAL ══════════════ -->
+<div class="asset-overlay" id="asset-overlay" onclick="closeAssetModal(event)">
+  <div class="asset-modal" id="asset-modal" onclick="event.stopPropagation()">
+    <div class="asset-modal-hd">
+      <button class="asset-modal-close" onclick="closeAssetModal()">✕</button>
+      <div class="asset-modal-name" id="am-name">Asset Profile</div>
+      <div class="asset-modal-meta" id="am-meta"></div>
+      <span class="asset-modal-stage" id="am-stage"></span>
+    </div>
+    <div class="asset-modal-tabs">
+      <button class="asset-modal-tab active" onclick="switchModalTab('overview',this)">Overview</button>
+      <button class="asset-modal-tab" onclick="switchModalTab('science',this)">Science & MOA</button>
+      <button class="asset-modal-tab" onclick="switchModalTab('clinical',this)">Clinical Data</button>
+      <button class="asset-modal-tab" onclick="switchModalTab('documents',this)">Documents</button>
+      <button class="asset-modal-tab" onclick="switchModalTab('bd',this)">BD Lens</button>
+    </div>
+    <div class="asset-modal-body">
+      <div class="asset-modal-pane active" id="amp-overview"></div>
+      <div class="asset-modal-pane" id="amp-science"></div>
+      <div class="asset-modal-pane" id="amp-clinical"></div>
+      <div class="asset-modal-pane" id="amp-documents"></div>
+      <div class="asset-modal-pane" id="amp-bd"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── DATA (loaded from JSON files in /data/) ─────────────────────
 async function loadData() {
   const files = {
-    tl1aPipe:     'data/tl1a_pipe.json',
-    tl1aMono:     'data/tl1a_mono.json',
-    tl1aReadouts: 'data/tl1a_readouts.json',
-    tl1aTech:     'data/tl1a_tech.json',
-    tslpReadouts: 'data/tslp_readouts.json',
-    tslpPipe:     'data/tslp_pipe.json',
-    tslpMono:     'data/tslp_mono.json',
+    tl1aPipe:       'data/tl1a_pipe.json',
+    tl1aMono:       'data/tl1a_mono.json',
+    tl1aReadouts:   'data/tl1a_readouts.json',
+    tl1aTech:       'data/tl1a_tech.json',
+    tslpReadouts:   'data/tslp_readouts.json',
+    tslpPipe:       'data/tslp_pipe.json',
+    tslpMono:       'data/tslp_mono.json',
+    assetProfiles:  'data/asset_profiles.json',
+    assetDocs:      'data/asset_docs.json',
   };
   const keys = Object.keys(files);
-  const results = await Promise.all(keys.map(k => fetch(files[k]).then(r => r.json())));
+  const results = await Promise.all(keys.map(k => fetch(files[k]).then(r => r.json()).catch(()=>null)));
   const d = {};
   keys.forEach((k, i) => d[k] = results[i]);
   return d;
@@ -1946,6 +2209,15 @@ function toggleChartCollapse(id) {
   if (body) { body.classList.toggle('open'); tog.classList.toggle('open'); }
 }
 
+function toggleEdu(id) {
+  const body = document.getElementById(id+'-body');
+  const tog  = document.getElementById(id+'-toggle');
+  if (body) {
+    body.classList.toggle('open');
+    if (tog) tog.textContent = body.classList.contains('open') ? '▲' : '▼';
+  }
+}
+
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
   const panel = document.getElementById('intel-panel-wrap');
@@ -2170,6 +2442,149 @@ function clearGlobalSearch() {
   const inp = document.getElementById('global-search');
   if (inp) inp.value = '';
   globalSearch('');
+}
+
+// ── ASSET PROFILE MODAL ──────────────────────────────────────────
+function openAssetModal(slug) {
+  const d = window._dashData;
+  if (!d || !d.assetProfiles) return;
+  const p = d.assetProfiles[slug];
+  if (!p) return;
+
+  // Populate header
+  document.getElementById('am-name').textContent = p.name + (p.aliases && p.aliases.length ? ' (' + p.aliases.slice(0,2).join(' / ') + ')' : '');
+  document.getElementById('am-meta').innerHTML = `${p.company} &nbsp;·&nbsp; ${p.target} &nbsp;·&nbsp; ${p.indications.join(' / ')}`;
+  const stageEl = document.getElementById('am-stage');
+  stageEl.textContent = p.stage;
+  stageEl.className = 'asset-modal-stage ' + (p.stage.includes('Approved') ? 'sb sb-approved' : p.stage.includes('Phase 3') || p.stage.includes('Ph3') ? 'sb sb-ph3' : p.stage.includes('Phase 2') || p.stage.includes('Ph2') ? 'sb sb-ph2' : 'sb sb-ph1');
+
+  // Overview tab
+  document.getElementById('amp-overview').innerHTML = `
+    <div class="modal-highlight">${p.headline}</div>
+    <div class="modal-section-title">Format &amp; Target</div>
+    <div class="modal-prose"><strong>${p.format}</strong> · Target: ${p.target}</div>
+    <div class="modal-section-title">Mechanism</div>
+    <div class="modal-prose">${p.mechanism_short}</div>
+    ${p.companion_dx ? `<div class="modal-section-title">Companion Diagnostic</div><div class="modal-prose">${p.companion_dx}</div>` : ''}
+  `;
+
+  // Science tab
+  document.getElementById('amp-science').innerHTML = `
+    <div class="modal-section-title">Mechanism of Action — Full Detail</div>
+    <div class="modal-prose">${p.mechanism_detail}</div>
+    ${p.companion_dx ? `<div class="modal-section-title">Biomarker Strategy</div><div class="modal-highlight">${p.companion_dx}</div>` : ''}
+    ${p.educational_links && p.educational_links.length ? `
+      <div class="modal-section-title">Key Scientific References</div>
+      ${p.educational_links.map(l => `<a class="edu-link" href="${l.url}" target="_blank" rel="noopener">${l.title}</a>`).join('')}
+    ` : ''}
+  `;
+
+  // Clinical tab
+  const clinHtml = (p.clinical_summary||[]).map(t => `
+    <div class="modal-trial">
+      <div class="modal-trial-name">${t.trial}</div>
+      <div class="modal-trial-result">${t.result}</div>
+      <div class="modal-trial-date">${t.timing}</div>
+    </div>
+  `).join('');
+  document.getElementById('amp-clinical').innerHTML = `
+    <div class="modal-section-title">Trial Summary</div>
+    ${clinHtml || '<p style="color:#8a9bb0;font-size:13px">No clinical data on record yet.</p>'}
+  `;
+
+  // Documents tab
+  const docs = d.assetDocs && d.assetDocs[slug] || [];
+  const docTypeIcon = {publication:'📄', conference_presentation:'📊', trial_registry:'🔬', press_release:'📰', poster:'🖼️', other:'📁'};
+  const docHtml = docs.map(doc => `
+    <div class="doc-card">
+      <div class="doc-icon">${docTypeIcon[doc.type]||'📁'}</div>
+      <div class="doc-info">
+        <div class="doc-title">${doc.title}</div>
+        <div class="doc-meta">${doc.conference}${doc.date ? ' · ' + doc.date : ''}</div>
+        ${doc.description ? `<div class="doc-desc">${doc.description}</div>` : ''}
+        ${doc.url ? `<a class="doc-link" href="${doc.url}" target="_blank" rel="noopener">View source ↗</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('amp-documents').innerHTML = `
+    <div class="modal-section-title">Conference Posters &amp; Publications</div>
+    ${docHtml || '<p style="color:#8a9bb0;font-size:13px">No documents on file yet.</p>'}
+    <div style="margin-top:14px">
+      <button class="add-doc-btn" onclick="toggleAddDocForm('${slug}')">+ Add Document or Link</button>
+      <div class="add-doc-form" id="add-doc-form-${slug}">
+        <div style="font-size:12px;font-weight:700;color:#5a7a9e;margin-bottom:10px">Add a document, poster, or external link to this asset's profile:</div>
+        <input type="text" id="doc-title-${slug}" placeholder="Title (e.g. NAVIGATOR Ph3 Poster — DDW 2024)">
+        <select id="doc-type-${slug}">
+          <option value="publication">📄 Publication / Paper</option>
+          <option value="conference_presentation">📊 Conference Presentation</option>
+          <option value="poster">🖼️ Conference Poster</option>
+          <option value="trial_registry">🔬 Trial Registry</option>
+          <option value="press_release">📰 Press Release</option>
+        </select>
+        <input type="text" id="doc-conf-${slug}" placeholder="Conference / Source (e.g. DDW 2025)">
+        <input type="text" id="doc-url-${slug}" placeholder="URL (paste link to the document or source)">
+        <textarea id="doc-desc-${slug}" rows="2" placeholder="Brief description (optional)"></textarea>
+        <button class="add-doc-save" onclick="saveAssetDoc('${slug}')">Save</button>
+      </div>
+    </div>
+  `;
+
+  // BD Lens tab
+  const qHtml = (p.key_questions||[]).map(q => `<div class="modal-question">${q}</div>`).join('');
+  document.getElementById('amp-bd').innerHTML = `
+    <div class="modal-section-title">Deal &amp; Partnership Context</div>
+    <div class="modal-prose">${p.deal_context}</div>
+    <div class="modal-section-title">BD Evaluation Lens</div>
+    <div class="modal-highlight">${p.bd_lens}</div>
+    ${qHtml ? `<div class="modal-section-title">Key Questions for BD Evaluation</div>${qHtml}` : ''}
+  `;
+
+  // Reset to overview tab
+  switchModalTab('overview', document.querySelector('.asset-modal-tab'));
+  document.getElementById('asset-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAssetModal(e) {
+  if (e && e.target !== document.getElementById('asset-overlay')) return;
+  document.getElementById('asset-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function switchModalTab(id, btn) {
+  document.querySelectorAll('.asset-modal-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.asset-modal-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('amp-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function toggleAddDocForm(slug) {
+  const f = document.getElementById('add-doc-form-' + slug);
+  if (f) f.classList.toggle('open');
+}
+
+function saveAssetDoc(slug) {
+  const title = document.getElementById('doc-title-'+slug)?.value?.trim();
+  const url   = document.getElementById('doc-url-'+slug)?.value?.trim();
+  const type  = document.getElementById('doc-type-'+slug)?.value;
+  const conf  = document.getElementById('doc-conf-'+slug)?.value?.trim();
+  const desc  = document.getElementById('doc-desc-'+slug)?.value?.trim();
+  if (!title) { alert('Please enter a title.'); return; }
+  // Store in session memory (page refresh will reset — for persistence, deploy to JSON)
+  const d = window._dashData;
+  if (!d.assetDocs) d.assetDocs = {};
+  if (!d.assetDocs[slug]) d.assetDocs[slug] = [];
+  d.assetDocs[slug].unshift({ id:'u'+Date.now(), title, type, conference: conf||'', date: new Date().toISOString().slice(0,7), url: url||'', description: desc||'', uploaded: false });
+  // Re-open modal to refresh documents tab
+  openAssetModal(slug);
+  switchModalTab('documents', null);
+  document.querySelector('.asset-modal-tab:nth-child(4)').classList.add('active');
+}
+
+// Make asset name clickable from grid
+function assetLinkHtml(name, slug) {
+  if (!slug) return name;
+  return `<span class="asset-link" onclick="openAssetModal('${slug}')">${name}</span>`;
 }
 
 window.addEventListener('load', () => {
