@@ -37,13 +37,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
-.stat-card { background: white; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2e6fb0; }
+.stat-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-card { background: white; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2e6fb0; }
 .stat-card.g { border-left-color: #2a7a47; }
 .stat-card.o { border-left-color: #c45b11; }
 .stat-card.p { border-left-color: #7030a0; }
 .s-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 5px; }
-.s-val { font-size: 28px; font-weight: 900; color: #1a2f50; line-height: 1; }
+.s-val { font-size: 19px; font-weight: 900; color: #1a2f50; line-height: 1; }
 .s-sub { font-size: 11px; color: #8a9bb0; margin-top: 3px; }
 
 .two-col { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 14px; margin-bottom: 18px; }
@@ -510,7 +510,7 @@ a.intel-src::after { content: ' ↗'; opacity: 0.7; }
 .comp-diff-note strong { color: #1a2f50; }
 
 @media (max-width: 900px) {
-  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .stat-row { grid-template-columns: repeat(3, 1fr); }
   .two-col { grid-template-columns: 1fr; }
   .china-grid { grid-template-columns: 1fr; }
   .estimand-grid { grid-template-columns: repeat(2, 1fr); }
@@ -680,18 +680,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 /* ══ MOBILE RESPONSIVE ═══════════════════════════════════════════ */
 @media (max-width: 640px) {
   /* Header */
-  .header { padding: 10px 14px; }
-  .header-title { font-size: 15px; }
+  .header { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+  .header-title { font-size: 14px; }
   .header-meta { font-size: 10px; }
-  /* Search / nav bar */
-  .gs-wrap { padding: 8px 12px; }
-  .gs-inner { padding: 7px 10px; gap: 6px; }
-  .asset-jump { min-width: 120px; font-size: 11px; }
+  .header-search-wrap { max-width: 100%; order: 3; flex-basis: 100%; }
+  .header-asset-jump { max-width: 110px; font-size: 10.5px; }
+  .submit-intel-btn { font-size: 10px; padding: 3px 8px; }
   .toc-btn { font-size: 11px; padding: 4px 8px; }
   /* Content */
   .content { padding: 12px 12px 24px; }
   /* Stats */
-  .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .s-val { font-size: 22px; }
   /* 2-col → 1-col */
   .two-col { grid-template-columns: 1fr; }
@@ -727,7 +726,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   .footnote { font-size: 10px; }
 }
 @media (max-width: 400px) {
-  .stat-row { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
   .header-title { font-size: 14px; }
   .gs-inner { flex-wrap: wrap; }
   .gs-input { min-width: 0; width: 100%; }
@@ -770,6 +769,19 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .wtc-task input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: #2e6fb0; width: 15px; height: 15px; cursor: pointer; }
 .wtc-task.done span { text-decoration: line-through; color: #a0aec0; }
 .wtc-task-area { font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; padding: 1px 5px; border-radius: 5px; margin-right: 5px; white-space: nowrap; }
+
+/* ══ HEADER SEARCH BAR ══════════════════════════════════════════ */
+.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.11); border: 1.5px solid rgba(255,255,255,0.18); border-radius: 7px; padding: 5px 10px; min-width: 0; max-width: 540px; }
+.header-search-wrap:focus-within { background: rgba(255,255,255,0.17); border-color: rgba(255,255,255,0.32); }
+.header-search-input { flex: 1; border: none; background: none; color: white; font-size: 12.5px; outline: none; font-family: inherit; min-width: 0; }
+.header-search-input::placeholder { color: rgba(255,255,255,0.45); }
+.header-gs-count { font-size: 11px; color: rgba(255,255,255,0.65); white-space: nowrap; }
+.header-gs-clear { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+.header-gs-clear:hover { color: white; }
+.header-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+.header-asset-jump { border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.8); cursor: pointer; outline: none; max-width: 140px; }
+.header-asset-jump option, .header-asset-jump optgroup { color: #1a2e4a; background: white; }
+.header-toc-wrap { position: relative; flex-shrink: 0; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -777,10 +789,68 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <body>
 
 <div class="header">
-  <div>
+  <div style="flex-shrink:0">
     <div class="header-title">◈ The Meridian</div>
   </div>
-  <div style="display:flex;align-items:center;gap:14px">
+  <div class="header-search-wrap">
+    <div class="header-toc-wrap" id="toc-wrap">
+      <button class="toc-btn" onclick="toggleToc()" id="toc-btn" style="color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)">☰</button>
+      <div class="toc-dropdown" id="toc-dropdown"></div>
+    </div>
+    <span style="font-size:13px;opacity:0.5;flex-shrink:0">🔍</span>
+    <input type="text" id="global-search" class="header-search-input"
+      placeholder="Search programs, drugs, companies, deals…"
+      oninput="globalSearch(this.value)">
+    <span class="header-gs-count gs-count" id="gs-count" style="display:none"></span>
+    <button class="header-gs-clear gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear" style="display:none">✕</button>
+    <div class="header-sep"></div>
+    <select class="header-asset-jump asset-jump" id="asset-jump" onchange="jumpToAsset(this.value)">
+      <option value="">🔗 Jump…</option>
+      <optgroup label="IBD · TL1A × IL-23p19">
+        <option value="tl1a|tl1a-deal-anchor">Deal Spotlight</option>
+        <option value="tl1a|tl1a-ailux-anchor">Ailux Profile</option>
+        <option value="tl1a|tl1a-estimand-anchor">Estimand Guide</option>
+        <option value="tl1a|tl1a-readouts-anchor">Catalyst Calendar</option>
+        <option value="tl1a|tl1a-landscape-anchor">Competitive Landscape</option>
+        <option value="tl1a|tl1a-tech-anchor">Technical Comparison</option>
+        <option value="tl1a|tl1a-china-anchor">Chinese Programs</option>
+      </optgroup>
+      <optgroup label="Respiratory · TSLP × IL-33">
+        <option value="tslp|tslp-ailux-anchor">Ailux Profile</option>
+        <option value="tslp|tslp-readouts-anchor">Catalyst Calendar</option>
+        <option value="tslp|tslp-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Type 2 Inflammation · IL-4Rα × TSLP">
+        <option value="il4ra-tslp|il4ra-tslp-ailux-anchor">Ailux Profile</option>
+        <option value="il4ra-tslp|il4ra-tslp-readouts-anchor">Catalyst Calendar</option>
+        <option value="il4ra-tslp|il4ra-tslp-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Atopic Dermatitis · IL-4Rα × OX40L">
+        <option value="il4ra-ox40l|il4ra-ox40l-deal-anchor">Deal Spotlight</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-ailux-anchor">Ailux Profile</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-readouts-anchor">Catalyst Calendar</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Thyroid Eye Disease · IGF1R × TSHR">
+        <option value="igf1r-tshr|igf1r-tshr-mech-anchor">Mechanism Spotlight</option>
+        <option value="igf1r-tshr|igf1r-tshr-ailux-anchor">Ailux Profile</option>
+        <option value="igf1r-tshr|igf1r-tshr-readouts-anchor">Catalyst Calendar</option>
+        <option value="igf1r-tshr|igf1r-tshr-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Autoimmune · FcRn Bispecific">
+        <option value="fcrn|fcrn-ailux-anchor">Ailux Profile</option>
+        <option value="fcrn|fcrn-readouts-anchor">Catalyst Calendar</option>
+        <option value="fcrn|fcrn-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Immune Reset · BCMA × CD19 × CD3">
+        <option value="ace|ace-deal-anchor">Deal Spotlight</option>
+        <option value="ace|ace-ailux-anchor">Ailux Profile</option>
+        <option value="ace|ace-readouts-anchor">Catalyst Calendar</option>
+        <option value="ace|ace-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+    </select>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
     <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
       ＋ Submit Intel
     </button>
@@ -837,72 +907,20 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <button class="tab-btn" onclick="switchTab('stocks',this)" style="font-size:13px;color:#94a3b8">📈 Market &amp; Learning</button>
 </div>
 
-<div class="gs-wrap">
-  <div class="gs-inner">
-    <!-- TOC Dropdown -->
-    <div class="toc-wrap" id="toc-wrap">
-      <button class="toc-btn" onclick="toggleToc()" id="toc-btn">☰ Navigate</button>
-      <div class="toc-dropdown" id="toc-dropdown"></div>
-    </div>
-    <span class="gs-icon" style="margin-left:4px">🔍</span>
-    <input type="text" id="global-search" class="gs-input"
-      placeholder="Search programs, drugs, companies, indications, deals…"
-      oninput="globalSearch(this.value)">
-    <span class="gs-count" id="gs-count" style="display:none"></span>
-    <button class="gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear search">✕</button>
-    <div style="width:1px;height:22px;background:#d0dce8;flex-shrink:0;margin:0 2px"></div>
-    <select class="asset-jump" id="asset-jump" onchange="jumpToAsset(this.value)" title="Jump to any asset">
-      <option value="">🔗 Jump to asset…</option>
-      <optgroup label="IBD · TL1A × IL-23p19">
-        <option value="tl1a|tl1a-deal-anchor">Deal Spotlight</option>
-        <option value="tl1a|tl1a-ailux-anchor">Ailux Profile</option>
-        <option value="tl1a|tl1a-estimand-anchor">Estimand Guide</option>
-        <option value="tl1a|tl1a-readouts-anchor">Catalyst Calendar</option>
-        <option value="tl1a|tl1a-landscape-anchor">Competitive Landscape</option>
-        <option value="tl1a|tl1a-tech-anchor">Technical Comparison</option>
-        <option value="tl1a|tl1a-china-anchor">Chinese Programs</option>
-      </optgroup>
-      <optgroup label="Respiratory · TSLP × IL-33">
-        <option value="tslp|tslp-ailux-anchor">Ailux Profile</option>
-        <option value="tslp|tslp-readouts-anchor">Catalyst Calendar</option>
-        <option value="tslp|tslp-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-      <optgroup label="Type 2 Inflammation · IL-4Rα × TSLP">
-        <option value="il4ra-tslp|il4ra-tslp-ailux-anchor">Ailux Profile</option>
-        <option value="il4ra-tslp|il4ra-tslp-readouts-anchor">Catalyst Calendar</option>
-        <option value="il4ra-tslp|il4ra-tslp-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-      <optgroup label="Atopic Dermatitis · IL-4Rα × OX40L">
-        <option value="il4ra-ox40l|il4ra-ox40l-deal-anchor">Deal Spotlight</option>
-        <option value="il4ra-ox40l|il4ra-ox40l-ailux-anchor">Ailux Profile</option>
-        <option value="il4ra-ox40l|il4ra-ox40l-readouts-anchor">Catalyst Calendar</option>
-        <option value="il4ra-ox40l|il4ra-ox40l-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-      <optgroup label="Thyroid Eye Disease · IGF1R × TSHR">
-        <option value="igf1r-tshr|igf1r-tshr-mech-anchor">Mechanism Spotlight</option>
-        <option value="igf1r-tshr|igf1r-tshr-ailux-anchor">Ailux Profile</option>
-        <option value="igf1r-tshr|igf1r-tshr-readouts-anchor">Catalyst Calendar</option>
-        <option value="igf1r-tshr|igf1r-tshr-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-      <optgroup label="Autoimmune · FcRn Bispecific">
-        <option value="fcrn|fcrn-ailux-anchor">Ailux Profile</option>
-        <option value="fcrn|fcrn-readouts-anchor">Catalyst Calendar</option>
-        <option value="fcrn|fcrn-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-      <optgroup label="Immune Reset · BCMA × CD19 × CD3">
-        <option value="ace|ace-deal-anchor">Deal Spotlight</option>
-        <option value="ace|ace-ailux-anchor">Ailux Profile</option>
-        <option value="ace|ace-readouts-anchor">Catalyst Calendar</option>
-        <option value="ace|ace-landscape-anchor">Competitive Landscape</option>
-      </optgroup>
-    </select>
-  </div>
-</div>
 
 <div class="content">
 
 <!-- ══════════════ HOME TAB: THE MERIDIAN ══════════════ -->
 <div class="tab-pane active" id="tab-home">
+
+  <div class="stat-row" id="home-stats-anchor" style="grid-template-columns:repeat(6,1fr)">
+    <div class="stat-card"><div class="s-label">Assets Tracked</div><div class="s-val">7</div><div class="s-sub">Across 6 disease areas</div></div>
+    <div class="stat-card o"><div class="s-label">Total Deal Value</div><div class="s-val">~$11B</div><div class="s-sub">Tracked since 2024</div></div>
+    <div class="stat-card g"><div class="s-label">Ph3 Readouts</div><div class="s-val">2026–27</div><div class="s-sub">ATLAS-UC · Vivacity-MG</div></div>
+    <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">Lead programs across 4 axes</div></div>
+    <div class="stat-card"><div class="s-label">China Programs</div><div class="s-val">12+</div><div class="s-sub">Tracked across all assets</div></div>
+    <div class="stat-card o"><div class="s-label">Next Catalyst</div><div class="s-val">CLN-978</div><div class="s-sub">Q2 2026 — ACE Ph1 data</div></div>
+  </div>
 
   <!-- MERIDIAN DAILY READER -->
   <div class="meridian-reader" id="meridian-reader-anchor">
@@ -1062,7 +1080,33 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-tl1a">
 
   <!-- LATEST FIELD INTELLIGENCE -->
-  <div class="intel-card" id="tl1a-intel-anchor">
+<div class="stat-row" id="tl1a-stats-anchor">
+    <div class="stat-card">
+      <div class="s-label">Deals Closed</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Since Apr 2025</div>
+    
+    <div class="stat-card"><div class="s-label">ATLAS-UC Ph3 ETA</div><div class="s-val">~Nov 26</div><div class="s-sub">First Ph3 TL1A data — class signal</div></div>
+    <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">TL1A×IL-23p19 — lead asset</div></div>
+  </div>
+    <div class="stat-card o">
+      <div class="s-label">Total Deal Value</div>
+      <div class="s-val">~$3.4B</div>
+      <div class="s-sub">Combined potential (USD equiv.)</div>
+    </div>
+    <div class="stat-card g">
+      <div class="s-label">Bispecific Programs</div>
+      <div class="s-val">7</div>
+      <div class="s-sub">Global TL1A × IL-23p19</div>
+    </div>
+    <div class="stat-card p">
+      <div class="s-label">Chinese Programs</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Simcere · Qyuns · LaNova</div>
+    </div>
+  </div>
+
+    <div class="intel-card" id="tl1a-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:16px">📊</span>
@@ -1106,29 +1150,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-dot">📅</div>
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Spyre SPY001 SKYLINE Ph2 Q2 2026</span> · <span style="color:#1a2f50">ATLAS-UC Ph3 topline ~Nov 2026</span> · <span style="color:#1a2f50">SPY072 SKYWAY (RA/PsA/axSpA) Q4 2026</span> · <span style="color:#1a2f50">XmAb942 XENITH-UC year-end 2026</span> · <span style="color:#1a2f50">AbbVie TARGET-CD (Skyrizi + TL1A combo) H2 2026</span></div>
       </div>
-    </div>
-  </div>
-
-  <div class="stat-row" id="tl1a-stats-anchor">
-    <div class="stat-card">
-      <div class="s-label">Deals Closed</div>
-      <div class="s-val">3</div>
-      <div class="s-sub">Since Apr 2025</div>
-    </div>
-    <div class="stat-card o">
-      <div class="s-label">Total Deal Value</div>
-      <div class="s-val">~$3.4B</div>
-      <div class="s-sub">Combined potential (USD equiv.)</div>
-    </div>
-    <div class="stat-card g">
-      <div class="s-label">Bispecific Programs</div>
-      <div class="s-val">7</div>
-      <div class="s-sub">Global TL1A × IL-23p19</div>
-    </div>
-    <div class="stat-card p">
-      <div class="s-label">Chinese Programs</div>
-      <div class="s-val">3</div>
-      <div class="s-sub">Simcere · Qyuns · LaNova</div>
     </div>
   </div>
 
@@ -1752,7 +1773,33 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-tslp">
 
   <!-- LATEST FIELD INTELLIGENCE -->
-  <div class="intel-card" id="tslp-intel-anchor">
+<div class="stat-row" id="tslp-stats-anchor">
+    <div class="stat-card">
+      <div class="s-label">Deals Closed</div>
+      <div class="s-val">4</div>
+      <div class="s-sub">TSLP-related, 2024–2025</div>
+    
+    <div class="stat-card"><div class="s-label">QX031N Ph1 ETA</div><div class="s-val">~2027</div><div class="s-sub">Roche/Qyuns TSLP×IL-33 FIH</div></div>
+    <div class="stat-card p"><div class="s-label">Tezepelumab Sales</div><div class="s-val">$1.2B</div><div class="s-sub">2024 — TSLP mono market anchor</div></div>
+  </div>
+    <div class="stat-card o">
+      <div class="s-label">Total Deal Value</div>
+      <div class="s-val">~$3.6B</div>
+      <div class="s-sub">Broad TSLP deal pool</div>
+    </div>
+    <div class="stat-card g">
+      <div class="s-label">TSLP × IL-33 Programs</div>
+      <div class="s-val">3</div>
+      <div class="s-sub">Known bispecific programs</div>
+    </div>
+    <div class="stat-card p">
+      <div class="s-label">Chinese Programs</div>
+      <div class="s-val">5+</div>
+      <div class="s-sub">Qyuns · Biosion · Innovent · Hengrui</div>
+    </div>
+  </div>
+
+    <div class="intel-card" id="tslp-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:16px">📊</span>
@@ -1796,29 +1843,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-dot">📅</div>
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Tozorakimab COPD Ph3 topline H2 2026</span> · <span style="color:#1a2f50">Bosakitug asthma Ph2 data H2 2026</span> · <span style="color:#1a2f50">HBM9378/SKB378 Ph2 asthma exacerbation data H2 2026</span> · <span style="color:#1a2f50">Astegolimab PACIFIC Ph3 asthma ~2026</span></div>
       </div>
-    </div>
-  </div>
-
-  <div class="stat-row" id="tslp-stats-anchor">
-    <div class="stat-card">
-      <div class="s-label">Deals Closed</div>
-      <div class="s-val">4</div>
-      <div class="s-sub">TSLP-related, 2024–2025</div>
-    </div>
-    <div class="stat-card o">
-      <div class="s-label">Total Deal Value</div>
-      <div class="s-val">~$3.6B</div>
-      <div class="s-sub">Broad TSLP deal pool</div>
-    </div>
-    <div class="stat-card g">
-      <div class="s-label">TSLP × IL-33 Programs</div>
-      <div class="s-val">3</div>
-      <div class="s-sub">Known bispecific programs</div>
-    </div>
-    <div class="stat-card p">
-      <div class="s-label">Chinese Programs</div>
-      <div class="s-val">5+</div>
-      <div class="s-sub">Qyuns · Biosion · Innovent · Hengrui</div>
     </div>
   </div>
 
@@ -2313,7 +2337,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <!-- ══════════════ TAB: IL-4Rα × TSLP ══════════════ -->
 <div class="tab-pane" id="tab-il4ra-tslp">
 
-  <div class="intel-card" id="il4ra-tslp-intel-anchor">
+<div class="stat-row" id="il4ra-tslp-stats-anchor">
+    <div class="stat-card"><div class="s-label">Dupilumab Peak Revenue</div><div class="s-val">$14.2B</div><div class="s-sub">2024 — defines market size</div>
+    <div class="stat-card"><div class="s-label">Dupilumab Indications</div><div class="s-val">9</div><div class="s-sub">Broad IL-4Rα validation</div></div>
+    <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">pH-eng. IL-4Rα×TSLP bispecific</div></div>
+  </div>
+    <div class="stat-card o"><div class="s-label">Type 2 TAM</div><div class="s-val">&gt;$30B</div><div class="s-sub">AD + Asthma + EoE + CRSwNP</div></div>
+    <div class="stat-card g"><div class="s-label">Platform Advantage</div><div class="s-val">pH Eng.</div><div class="s-sub">Proprietary TMDD-reducing backbone</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q4–8W</div><div class="s-sub">vs. dupilumab Q2W benchmark</div></div>
+  </div>
+
+    <div class="intel-card" id="il4ra-tslp-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:18px">🌸</span>
@@ -2361,13 +2395,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Amlitelimab (Sanofi) AD BLA decision H1 2026</span> · <span style="color:#1a2f50">Tezepelumab COPD COURSE data 2026</span> · <span style="color:#1a2f50">Dupilumab prurigo nodularis adolescent approval 2026</span> · <span style="color:#1a2f50">Ailux preclinical IND-enabling studies underway</span></div>
       </div>
     </div>
-  </div>
-
-  <div class="stat-row" id="il4ra-tslp-stats-anchor">
-    <div class="stat-card"><div class="s-label">Dupilumab Peak Revenue</div><div class="s-val">$14.2B</div><div class="s-sub">2024 — defines market size</div></div>
-    <div class="stat-card o"><div class="s-label">Type 2 TAM</div><div class="s-val">&gt;$30B</div><div class="s-sub">AD + Asthma + EoE + CRSwNP</div></div>
-    <div class="stat-card g"><div class="s-label">Platform Advantage</div><div class="s-val">pH Eng.</div><div class="s-sub">Proprietary TMDD-reducing backbone</div></div>
-    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q4–8W</div><div class="s-sub">vs. dupilumab Q2W benchmark</div></div>
   </div>
 
   <div class="two-col" id="il4ra-tslp-deal-anchor">
@@ -2458,7 +2485,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <!-- ══════════════ TAB: IL-4Rα × OX40L ══════════════ -->
 <div class="tab-pane" id="tab-il4ra-ox40l">
 
-  <div class="intel-card" id="il4ra-ox40l-intel-anchor">
+<div class="stat-row" id="il4ra-ox40l-stats-anchor">
+    <div class="stat-card"><div class="s-label">OX40L Approvals</div><div class="s-val">1 Near</div><div class="s-sub">Amlitelimab BLA under review</div>
+    <div class="stat-card"><div class="s-label">AD Market Size</div><div class="s-val">~$18B</div><div class="s-sub">2028E global addressable</div></div>
+    <div class="stat-card p"><div class="s-label">Amlitelimab BLA</div><div class="s-val">Under Rev.</div><div class="s-sub">Sanofi OX40L — approval catalyst</div></div>
+  </div>
+    <div class="stat-card o"><div class="s-label">Dosing Advantage</div><div class="s-val">Q12W+</div><div class="s-sub">Target vs. dupilumab Q2W</div></div>
+    <div class="stat-card g"><div class="s-label">Validated Combos</div><div class="s-val">3+</div><div class="s-sub">OX40L+IL-4Rα programs in clinic</div></div>
+    <div class="stat-card p"><div class="s-label">Key Diseases</div><div class="s-val">AD · PN</div><div class="s-sub">Atopic derm, prurigo nodularis</div></div>
+  </div>
+
+    <div class="intel-card" id="il4ra-ox40l-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:18px">🌺</span>
@@ -2506,13 +2543,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Amlitelimab FDA decision H1 2026</span> · <span style="color:#1a2f50">Rocatinlimab ORIGIN-1/-2 final data 2026</span> · <span style="color:#1a2f50">APG279 Phase 2 expansion data 2026</span> · <span style="color:#1a2f50">Ailux IND-enabling program</span></div>
       </div>
     </div>
-  </div>
-
-  <div class="stat-row" id="il4ra-ox40l-stats-anchor">
-    <div class="stat-card"><div class="s-label">OX40L Approvals</div><div class="s-val">1 Near</div><div class="s-sub">Amlitelimab BLA under review</div></div>
-    <div class="stat-card o"><div class="s-label">Dosing Advantage</div><div class="s-val">Q12W+</div><div class="s-sub">Target vs. dupilumab Q2W</div></div>
-    <div class="stat-card g"><div class="s-label">Validated Combos</div><div class="s-val">3+</div><div class="s-sub">OX40L+IL-4Rα programs in clinic</div></div>
-    <div class="stat-card p"><div class="s-label">Key Diseases</div><div class="s-val">AD · PN</div><div class="s-sub">Atopic derm, prurigo nodularis</div></div>
   </div>
 
   <div class="two-col" id="il4ra-ox40l-deal-anchor">
@@ -2608,7 +2638,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <!-- ══════════════ TAB: IGF1R × TSHR ══════════════ -->
 <div class="tab-pane" id="tab-igf1r-tshr">
 
-  <div class="intel-card" id="igf1r-tshr-intel-anchor">
+<div class="stat-row" id="igf1r-tshr-stats-anchor">
+    <div class="stat-card"><div class="s-label">Tepezza Revenue</div><div class="s-val">$1.9B</div><div class="s-sub">2023 US — acquired $28B by Amgen</div>
+    <div class="stat-card"><div class="s-label">SC Tepezza Data</div><div class="s-val">2026</div><div class="s-sub">Amgen SC formulation readout</div></div>
+    <div class="stat-card p"><div class="s-label">Ailux Modality</div><div class="s-val">SC Bisp.</div><div class="s-sub">IGF1R×TSHR — preclinical</div></div>
+  </div>
+    <div class="stat-card o"><div class="s-label">Hearing Loss Rate</div><div class="s-val">~30%</div><div class="s-sub">Key safety gap for next-gen</div></div>
+    <div class="stat-card g"><div class="s-label">TED US Incidence</div><div class="s-val">~50K</div><div class="s-sub">Moderate-to-severe new cases/yr</div></div>
+    <div class="stat-card p"><div class="s-label">Relapse Rate</div><div class="s-val">~40%</div><div class="s-sub">After teprotumumab — unmet need</div></div>
+  </div>
+
+    <div class="intel-card" id="igf1r-tshr-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:18px">👁️</span>
@@ -2656,13 +2696,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Tepezza SC formulation data 2026</span> · <span style="color:#1a2f50">Inebilizumab EQUAL TED Ph2 data 2026</span> · <span style="color:#1a2f50">Iscalimab (Novartis) Graves' Ph2 data 2026–2027</span> · <span style="color:#1a2f50">Ailux IGF1R×TSHR preclinical milestone</span></div>
       </div>
     </div>
-  </div>
-
-  <div class="stat-row">
-    <div class="stat-card"><div class="s-label">Tepezza Revenue</div><div class="s-val">$1.9B</div><div class="s-sub">2023 US — acquired $28B by Amgen</div></div>
-    <div class="stat-card o"><div class="s-label">Hearing Loss Rate</div><div class="s-val">~30%</div><div class="s-sub">Key safety gap for next-gen</div></div>
-    <div class="stat-card g"><div class="s-label">TED US Incidence</div><div class="s-val">~50K</div><div class="s-sub">Moderate-to-severe new cases/yr</div></div>
-    <div class="stat-card p"><div class="s-label">Relapse Rate</div><div class="s-val">~40%</div><div class="s-sub">After teprotumumab — unmet need</div></div>
   </div>
 
   <div class="two-col" id="igf1r-tshr-deal-anchor">
@@ -2758,7 +2791,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <!-- ══════════════ TAB: FcRn BISPECIFIC ══════════════ -->
 <div class="tab-pane" id="tab-fcrn">
 
-  <div class="intel-card" id="fcrn-intel-anchor">
+<div class="stat-row" id="fcrn-stats-anchor">
+    <div class="stat-card"><div class="s-label">gMG Untreated</div><div class="s-val">&gt;80%</div><div class="s-sub">AChR+ patients — primary BD anchor</div>
+    <div class="stat-card"><div class="s-label">Nipocalimab Ph3</div><div class="s-val">2026</div><div class="s-sub">J&J Vivacity-MG topline ETA</div></div>
+    <div class="stat-card p"><div class="s-label">FcRn Market</div><div class="s-val">&gt;$5B</div><div class="s-sub">2028E — gMG, CIDP, BP, IgAN</div></div>
+  </div>
+    <div class="stat-card o"><div class="s-label">Efgartigimod Rev</div><div class="s-val">$1.7B+</div><div class="s-sub">2024 — gMG + CIDP</div></div>
+    <div class="stat-card g"><div class="s-label">IgG Target Depletion</div><div class="s-val">≥70%</div><div class="s-sub">Required for efficacy — IMVT-1402 benchmark</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6–8W</div><div class="s-sub">vs. Q1W class standard</div></div>
+  </div>
+
+    <div class="intel-card" id="fcrn-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:18px">🔬</span>
@@ -2806,13 +2849,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Ailux 2nd-round NHP data readout</span> · <span style="color:#1a2f50">J&J nipocalimab Vivacity-MG Ph3 topline data 2026</span> · <span style="color:#1a2f50">Immunovant IMVT-1402 Phase 2/3 gMG initiation</span> · <span style="color:#1a2f50">ARGX-213 IND filing timeline</span> · <span style="color:#1a2f50">Claseprubart NDA filing 2026</span></div>
       </div>
     </div>
-  </div>
-
-  <div class="stat-row">
-    <div class="stat-card"><div class="s-label">gMG Untreated</div><div class="s-val">&gt;80%</div><div class="s-sub">AChR+ patients — primary BD anchor</div></div>
-    <div class="stat-card o"><div class="s-label">Efgartigimod Rev</div><div class="s-val">$1.7B+</div><div class="s-sub">2024 — gMG + CIDP</div></div>
-    <div class="stat-card g"><div class="s-label">IgG Target Depletion</div><div class="s-val">≥70%</div><div class="s-sub">Required for efficacy — IMVT-1402 benchmark</div></div>
-    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6–8W</div><div class="s-sub">vs. Q1W class standard</div></div>
   </div>
 
   <div class="two-col" id="fcrn-deal-anchor">
@@ -2913,7 +2949,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <!-- ══════════════ TAB: BCMA × CD19 × CD3 (ACE) ══════════════ -->
 <div class="tab-pane" id="tab-ace">
 
-  <div class="intel-card" id="ace-intel-anchor">
+<div class="stat-row" id="ace-stats-anchor">
+    <div class="stat-card"><div class="s-label">SLE Drug-Free Remission</div><div class="s-val">5/6</div><div class="s-sub">Erlangen CD19 CAR-T series (NEJM 2024)</div>
+    <div class="stat-card"><div class="s-label">CLN-978 Data</div><div class="s-val">Q2 26</div><div class="s-sub">OUTRACE Ph1 first read</div></div>
+    <div class="stat-card p"><div class="s-label">KT501 Safety Data</div><div class="s-val">H2 26</div><div class="s-sub">Kali/Sanofi — Ph1a readout</div></div>
+  </div>
+    <div class="stat-card o"><div class="s-label">Sanofi/HXN-1031 Deal</div><div class="s-val">$2.56B</div><div class="s-sub">Pre-IND trispecific validation</div></div>
+    <div class="stat-card g"><div class="s-label">Active TCE Trials</div><div class="s-val">3+</div><div class="s-sub">CLN-978, KT501, HXN-1031</div></div>
+    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6M</div><div class="s-sub">Single dose or 6-month interval</div></div>
+  </div>
+
+    <div class="intel-card" id="ace-intel-anchor">
     <div class="intel-hd">
       <div class="intel-hd-left">
         <span style="font-size:18px">⚡</span>
@@ -2961,13 +3007,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">CLN-978 OUTRACE Ph1 first data Q2 2026</span> · <span style="color:#1a2f50">KT501 Ph1a safety/tolerability data H2 2026</span> · <span style="color:#1a2f50">HXN-1031 IND filing 2026–2027</span> · <span style="color:#1a2f50">Additional NEJM/NEJM-E CAR-T autoimmune series publications</span></div>
       </div>
     </div>
-  </div>
-
-  <div class="stat-row">
-    <div class="stat-card"><div class="s-label">SLE Drug-Free Remission</div><div class="s-val">5/6</div><div class="s-sub">Erlangen CD19 CAR-T series (NEJM 2024)</div></div>
-    <div class="stat-card o"><div class="s-label">Sanofi/HXN-1031 Deal</div><div class="s-val">$2.56B</div><div class="s-sub">Pre-IND trispecific validation</div></div>
-    <div class="stat-card g"><div class="s-label">Active TCE Trials</div><div class="s-val">3+</div><div class="s-sub">CLN-978, KT501, HXN-1031</div></div>
-    <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6M</div><div class="s-sub">Single dose or 6-month interval</div></div>
   </div>
 
   <div class="two-col" id="ace-deal-anchor">
