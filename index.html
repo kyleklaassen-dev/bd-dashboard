@@ -1443,13 +1443,14 @@ function initGrids(d) {
   // TL1A Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'130px',formatter:rf},
-      {name:'Program',width:'240px',formatter:readoutProgFmt},
-      {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'230px'},
-      {name:'Indication',width:'110px'},
-      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
-      {name:'_url',hidden:true}
+      {name:'Category',width:'120px',formatter:rf},
+      {name:'Program',width:'210px',formatter:readoutProgFmt},
+      {name:'Phase',width:'70px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'190px'},
+      {name:'Indication',width:'90px'},
+      {name:'Primary Completion',width:'140px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'_url',hidden:true},
+      {name:'Notes',width:'310px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#3a5070;line-height:1.55;display:block">${c}</span>`)}
     ],
     data:d.tl1aReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tl1a-readouts'));
@@ -1501,13 +1502,14 @@ function initGrids(d) {
   // TSLP Clinical Readout Calendar
   new gridjs.Grid({
     columns:[
-      {name:'Category',width:'130px',formatter:rf},
-      {name:'Program',width:'235px',formatter:readoutProgFmt},
-      {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'240px'},
-      {name:'Indication',width:'130px'},
-      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
-      {name:'_url',hidden:true}
+      {name:'Category',width:'120px',formatter:rf},
+      {name:'Program',width:'210px',formatter:readoutProgFmt},
+      {name:'Phase',width:'78px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'200px'},
+      {name:'Indication',width:'110px'},
+      {name:'Primary Completion',width:'140px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'_url',hidden:true},
+      {name:'Notes',width:'310px',formatter:(c)=>gridjs.html(`<span style="font-size:10px;color:#3a5070;line-height:1.55;display:block">${c}</span>`)}
     ],
     data:d.tslpReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tslp-readouts'));
