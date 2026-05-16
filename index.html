@@ -819,7 +819,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Last updated May 16, 2026 at 10:59 PM</span>
+ <span id="last-updated-ts" data-ts="1778972423" style="font-size:11px;opacity:0.75"></span>
  </div>
  </div>
 </div>
@@ -3998,7 +3998,19 @@ function togglePredict(id) {
  }
 }
 
-// last-updated-ts is stamped at deploy time by deploy_html.py
+// Render last-updated timestamp in browser's local timezone
+(function() {
+  const el = document.getElementById('last-updated-ts');
+  if (!el) return;
+  const ts = parseInt(el.dataset.ts);
+  if (!ts) return;
+  const d = new Date(ts * 1000);
+  const hour = d.getHours() % 12 || 12;
+  const min  = String(d.getMinutes()).padStart(2, '0');
+  const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  el.textContent = `Last updated ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${hour}:${min} ${ampm}`;
+})();
 
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
