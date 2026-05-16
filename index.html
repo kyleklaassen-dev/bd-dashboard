@@ -537,14 +537,17 @@ body { background: #edf1f7; }
 .intel-hd-date { font-size: 11px; background: #d0e5ff; color: #1040a0; padding: 3px 9px; border-radius: 10px; font-weight: 700; }
 .intel-card { border-left-width: 5px; border-left-color: #2563eb; }
 
-/* Card headers — slightly warmer navy, better weight */
-.card-hd { background: #162944; font-size: 14px; padding: 11px 16px; }
-.home-card-hd { background: #162944; padding: 11px 16px; font-size: 13px; }
-.info-hd { background: #162944; }
-.estimand-hd { background: linear-gradient(135deg, #1e3a5c 0%, #2e5f9a 100%); }
-.comp-hd { background: linear-gradient(135deg, #162944 0%, #2560a0 100%); }
-.soc-title { background: #1e3a5c; }
-.chart-collapse-hd { background: #162944; }
+/* Sec-hd dividers removed — cards are self-labelling */
+.sec-hd { display: none !important; }
+
+/* Card headers — medium blue, clearly lighter than before */
+.card-hd  { background: #1e4a82; font-size: 14px; padding: 11px 16px; }
+.home-card-hd { background: #1e4a82; padding: 11px 16px; font-size: 13px; }
+.info-hd  { background: #1e4a82; }
+.estimand-hd { background: linear-gradient(135deg, #1e4a82 0%, #2e6fb0 100%); }
+.comp-hd  { background: linear-gradient(135deg, #1e4a82 0%, #2e6fb0 100%); }
+.soc-title { background: #1e4a82; }
+.chart-collapse-hd { background: #1e4a82; }
 
 /* Stat cards — cleaner, more readable values */
 .s-val { font-size: 30px; }
@@ -2652,8 +2655,10 @@ function globalSearch(term) {
     if (!t || !arr) return arr || [];
     return arr.filter(row => row.some(cell => String(cell).toLowerCase().includes(t)));
   }
+  function matches(el) { return el.textContent.toLowerCase().includes(t); }
+  function vis(el, show) { el.style.display = show ? '' : 'none'; }
 
-  // Update each grid — only if already initialised
+  // ── Grids: filter rows ──────────────────────────────────────────
   if (grids.tl1aReadouts)  grids.tl1aReadouts.updateConfig({ data: filt(d && d.tl1aReadouts)  }).forceRender();
   if (grids.tl1aPipe)      grids.tl1aPipe.updateConfig(     { data: filt(d && d.tl1aPipe)      }).forceRender();
   if (grids.tl1aMono)      grids.tl1aMono.updateConfig(     { data: filt(d && d.tl1aMono)      }).forceRender();
@@ -2662,59 +2667,57 @@ function globalSearch(term) {
   if (grids.tslpPipe)      grids.tslpPipe.updateConfig(     { data: filt(d && d.tslpPipe)      }).forceRender();
   if (grids.tslpMono)      grids.tslpMono.updateConfig(     { data: filt(d && d.tslpMono)      }).forceRender();
 
-  // Filter HTML card/item elements — intel items, news, china cards, stock cards, edu chapters
-  ['.news-item', '.china-card', '.intel-item', '.stock-signal-row', '.predict-rule'].forEach(sel => {
-    document.querySelectorAll(sel).forEach(el => {
-      el.style.display = (!t || el.textContent.toLowerCase().includes(t)) ? '' : 'none';
-    });
+  // ── All content blocks: hide everything that doesn't match ──────
+  // Grid wrapper cards (the chart-collapse / info-card wrapping each grid)
+  const BLOCK_SELS = [
+    '.intel-card', '.info-card', '.chart-collapse', '.estimand-card',
+    '.comp-section', '.ailux-card', '.china-grid', '.two-col',
+    '.stat-row', '.meridian-reader', '.home-card', '.home-nav',
+    '.stock-card', '.predict-card', '.edu-section'
+  ];
+  BLOCK_SELS.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => vis(el, !t || matches(el)));
   });
 
-  // Show/hide entire intel-cards if no children match
-  document.querySelectorAll('.intel-card').forEach(card => {
-    if (!t) { card.style.display = ''; return; }
-    const visItems = card.querySelectorAll('.intel-item');
-    const anyVis = Array.from(visItems).some(el => el.style.display !== 'none');
-    card.style.display = (card.textContent.toLowerCase().includes(t)) ? '' : 'none';
+  // Intel items — individual row filtering within the card
+  document.querySelectorAll('.intel-item').forEach(el => {
+    vis(el, !t || matches(el));
   });
 
-  // Show/hide stock-card blocks
-  document.querySelectorAll('.stock-card').forEach(card => {
-    card.style.display = (!t || card.textContent.toLowerCase().includes(t)) ? '' : 'none';
+  // China cards — individual
+  document.querySelectorAll('.china-card').forEach(el => {
+    vis(el, !t || matches(el));
   });
 
-  // Show/hide edu chapters
+  // Edu chapters inside edu-sections
   document.querySelectorAll('.edu-chapter').forEach(ch => {
-    ch.style.display = (!t || ch.textContent.toLowerCase().includes(t)) ? '' : 'none';
+    vis(ch, !t || matches(ch));
   });
 
-  // If search active, auto-expand relevant edu sections
-  if (t) {
-    document.querySelectorAll('.edu-body').forEach(body => {
-      const visChapters = body.querySelectorAll('.edu-chapter');
-      const anyVis = Array.from(visChapters).some(el => el.style.display !== 'none');
-      if (anyVis) body.classList.add('open');
-    });
-  }
+  // If search active, auto-expand edu sections that have matching chapters
+  document.querySelectorAll('.edu-section').forEach(sec => {
+    if (!t) return;
+    const anyChapter = Array.from(sec.querySelectorAll('.edu-chapter'))
+      .some(ch => ch.style.display !== 'none');
+    if (anyChapter) sec.querySelector('.edu-body')?.classList.add('open');
+  });
 
-  // Close any open note panels on new search
+  // Close note panels
   document.querySelectorAll('.note-panel').forEach(p => { p.style.display = 'none'; });
   document.querySelectorAll('.note-btn').forEach(b => b.classList.remove('note-active'));
 
-  // Show result count
+  // ── Result count ────────────────────────────────────────────────
   if (countEl) {
-    if (!t) {
-      countEl.style.display = 'none';
-    } else {
-      let total = 0;
-      ['tl1aReadouts','tl1aPipe','tl1aMono','tl1aTech','tslpReadouts','tslpPipe','tslpMono'].forEach(k => {
-        if (d && d[k]) total += filt(d[k]).length;
-      });
-      ['.news-item','.china-card','.intel-item','.stock-card','.edu-chapter'].forEach(sel => {
-        document.querySelectorAll(sel).forEach(el => { if (el.style.display !== 'none') total++; });
-      });
-      countEl.textContent = total + ' result' + (total !== 1 ? 's' : '');
-      countEl.style.display = 'inline';
-    }
+    if (!t) { countEl.style.display = 'none'; return; }
+    let total = 0;
+    ['tl1aReadouts','tl1aPipe','tl1aMono','tl1aTech','tslpReadouts','tslpPipe','tslpMono'].forEach(k => {
+      if (d && d[k]) total += filt(d[k]).length;
+    });
+    ['.intel-item','.china-card','.stock-card','.edu-chapter','.predict-rule'].forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => { if (el.style.display !== 'none') total++; });
+    });
+    countEl.textContent = total + ' match' + (total !== 1 ? 'es' : '');
+    countEl.style.display = 'inline';
   }
 }
 
