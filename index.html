@@ -226,6 +226,27 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .ep-title { font-size: 10px; font-weight: 800; color: #1a2f50; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px; }
 .ep-row { font-size: 10px; color: #3a5070; line-height: 1.65; }
 
+/* ── CT TRIAL LINKS ──────────────────────────────────────── */
+a.ct-link { color: #2e6fb0; text-decoration: none; font-weight: 700; }
+a.ct-link:hover { text-decoration: underline; color: #1a2f50; }
+a.ct-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
+
+/* ── UPDATE / VALIDATION BOX ─────────────────────────────── */
+.update-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 18px; overflow: hidden; border-left: 4px solid #e8a020; }
+.update-hd { background: #fffbf0; color: #1a2f50; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; border-bottom: 1px solid #f0e8d0; }
+.update-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.2px; }
+.update-hd-badge { font-size: 10px; background: #fff3cd; color: #856404; border: 1px solid #f5c842; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.update-toggle { font-size: 14px; opacity: 0.6; transition: transform 0.2s; }
+.update-toggle.open { transform: rotate(180deg); }
+.update-body { padding: 12px 14px; display: none; }
+.update-body.open { display: block; }
+.update-desc { font-size: 11px; color: #5a7a9e; margin-bottom: 10px; line-height: 1.5; }
+.update-textarea { width: 100%; height: 110px; border: 1px solid #dde3ea; border-radius: 5px; font-size: 11px; padding: 8px 10px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.5; }
+.update-textarea:focus { outline: none; border-color: #2e6fb0; box-shadow: 0 0 0 2px rgba(46,111,176,0.15); }
+.update-btn { margin-top: 8px; background: #2e6fb0; color: white; border: none; border-radius: 5px; padding: 7px 16px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.update-btn:hover { background: #1a2f50; }
+.update-results { margin-top: 10px; padding: 10px 12px; background: #f8fafc; border-radius: 5px; font-size: 11px; color: #5a7a9e; min-height: 36px; line-height: 1.6; border: 1px solid #e8eef5; }
+
 @media (max-width: 900px) {
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
@@ -250,7 +271,7 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     <div class="header-sub">Bispecific Antibody Deal Monitor · IBD &amp; Respiratory</div>
   </div>
   <div class="header-meta">
-    <strong>Data current as of May 2026</strong><br>
+    <strong>Data current as of May 16, 2026</strong><br>
     For internal BD use
   </div>
 </div>
@@ -264,6 +285,23 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
 <!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
 <div class="tab-pane active" id="tab-tl1a">
+
+  <!-- UPDATE & VALIDATION BOX -->
+  <div class="update-card">
+    <div class="update-hd" onclick="toggleUpdate('tl1a')">
+      <span class="update-hd-title">🔄 Intelligence Update &amp; Validation</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="update-hd-badge">Cross-Reference Tool</span>
+        <span class="update-toggle" id="update-toggle-tl1a">▼</span>
+      </div>
+    </div>
+    <div class="update-body" id="update-body-tl1a">
+      <div class="update-desc">Paste a press release, conference abstract, or news article below. Click <strong>Analyze</strong> to identify which programs in this tab may need updating.</div>
+      <textarea class="update-textarea" id="update-text-tl1a" placeholder="Paste new information here — e.g. a press release, trial result, or news article..."></textarea>
+      <button class="update-btn" onclick="crossRef('tl1a')">Analyze &amp; Cross-Reference</button>
+      <div class="update-results" id="update-results-tl1a">Results will appear here after analysis.</div>
+    </div>
+  </div>
 
   <div class="stat-row">
     <div class="stat-card">
@@ -631,24 +669,24 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     </div>
     <div class="info-body" id="ibd-news-body">
       <div class="news-item">
-        <div class="news-date">Oct 2023</div>
-        <div class="news-content"><strong>Roche acquires Telavant for ~$7.1B</strong> — Telavant was a JV between Roivant Sciences and Pfizer developing afimkibart (RG6631), an anti-TL1A monoclonal antibody then in Phase 2b (TUSCANY-2). Roche paid ~$7.1B to acquire full global rights. <span class="news-val">$7.1B</span> acquisition set the largest single IBD deal on record and validated the TL1A mechanism commercially at massive scale — before Phase 3 data. TUSCANY-2 primary endpoint was subsequently reported as not statistically significant, underlining the risk even at this deal size.</div>
-      </div>
-      <div class="news-item">
-        <div class="news-date">Apr 2025</div>
-        <div class="news-content"><strong>Earendil Labs licenses HXN-1003 to Sanofi — $125M upfront, $1.845B total</strong> — AI-designed TL1A × IL-23p19 bispecific (2+2 tetravalent format), Pre-IND stage. Sanofi's entry into the bispecific TL1A space. <span class="news-val">$125M upfront</span> at Pre-IND stage represents the highest upfront in the space and sets the ceiling for early-stage bispecific valuations.</div>
-      </div>
-      <div class="news-item">
-        <div class="news-date">Apr 2025</div>
-        <div class="news-content"><strong>Qyuns licenses CLD-423 (QX030N) to Caldera Therapeutics — $10M + ~25% equity, up to $545M</strong> — First subjects dosed Jan 2026. <span class="news-val">$10M + 25% equity</span> is a different structure than pure cash upfront, reflecting Caldera's early-stage status as a Qyuns-backed spinout. Sets the floor for structured TL1A bispecific deals.</div>
+        <div class="news-date">May 2026</div>
+        <div class="news-content"><strong>Xencor XmAb412 preclinical data presented at DDW May 2–5, 2026</strong> — First public TL1A × IL-23p19 bispecific data from Xencor, leveraging Xtend™ FcXtend technology (&gt;71-day t½ validated in XmAb942 monotherapy). Phase 1 FIH planned H2 2026. Independent program — no partner announced to date.</div>
       </div>
       <div class="news-item">
         <div class="news-date">Jan 2026</div>
         <div class="news-content"><strong>Simcere out-licenses SIM0709 to Boehringer Ingelheim — €42M upfront, €1.05B total</strong> — Long-acting SC IgG bispecific, Pre-IND → FIH H1 2026. Global ex-Greater China. Simcere retains full China rights. <span class="news-val">€42M upfront</span> at preclinical/pre-IND stage. BI's second China-sourced IBD deal signals systematic strategy to access Chinese bispecific innovation.</div>
       </div>
       <div class="news-item">
-        <div class="news-date">May 2026</div>
-        <div class="news-content"><strong>Xencor XmAb412 preclinical data presented at DDW May 2–5, 2026</strong> — First public TL1A × IL-23p19 bispecific data from Xencor, leveraging Xtend™ FcXtend technology (>71-day t½ validated in XmAb942 monotherapy). Phase 1 FIH planned H2 2026. Independent program — no partner announced to date.</div>
+        <div class="news-date">Apr 2025</div>
+        <div class="news-content"><strong>Qyuns licenses CLD-423 (QX030N) to Caldera Therapeutics — $10M + ~25% equity, up to $545M</strong> — First subjects dosed Jan 2026. <span class="news-val">$10M + 25% equity</span> is a different structure than pure cash upfront, reflecting Caldera's early-stage status as a Qyuns-backed spinout. Sets the floor for structured TL1A bispecific deals.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Apr 2025</div>
+        <div class="news-content"><strong>Earendil Labs licenses HXN-1003 to Sanofi — $125M upfront, $1.845B total</strong> — AI-designed TL1A × IL-23p19 bispecific (2+2 tetravalent format), Pre-IND stage. Sanofi's entry into the bispecific TL1A space. <span class="news-val">$125M upfront</span> at Pre-IND stage represents the highest upfront in the space and sets the ceiling for early-stage bispecific valuations.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Oct 2023</div>
+        <div class="news-content"><strong>Roche acquires Telavant for ~$7.1B</strong> — Telavant was a JV between Roivant Sciences and Pfizer developing afimkibart (RG6631), an anti-TL1A monoclonal antibody then in Phase 2b (TUSCANY-2). Roche paid ~$7.1B to acquire full global rights. <span class="news-val">$7.1B</span> acquisition set the largest single IBD deal on record and validated the TL1A mechanism commercially at massive scale — before Phase 3 data. TUSCANY-2 primary endpoint was subsequently reported as not statistically significant, underlining the risk even at this deal size.</div>
       </div>
     </div>
   </div>
@@ -669,6 +707,23 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
 <div class="tab-pane" id="tab-tslp">
+
+  <!-- UPDATE & VALIDATION BOX -->
+  <div class="update-card">
+    <div class="update-hd" onclick="toggleUpdate('tslp')">
+      <span class="update-hd-title">🔄 Intelligence Update &amp; Validation</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="update-hd-badge">Cross-Reference Tool</span>
+        <span class="update-toggle" id="update-toggle-tslp">▼</span>
+      </div>
+    </div>
+    <div class="update-body" id="update-body-tslp">
+      <div class="update-desc">Paste a press release, conference abstract, or news article below. Click <strong>Analyze</strong> to identify which programs in this tab may need updating.</div>
+      <textarea class="update-textarea" id="update-text-tslp" placeholder="Paste new information here — e.g. a press release, trial result, or news article..."></textarea>
+      <button class="update-btn" onclick="crossRef('tslp')">Analyze &amp; Cross-Reference</button>
+      <div class="update-results" id="update-results-tslp">Results will appear here after analysis.</div>
+    </div>
+  </div>
 
   <div class="stat-row">
     <div class="stat-card">
@@ -1002,20 +1057,20 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
     </div>
     <div class="info-body" id="resp-news-body">
       <div class="news-item">
-        <div class="news-date">Nov 2024</div>
-        <div class="news-content"><strong>Biosion licenses bosakitug (long-acting anti-TSLP) to Aclaris Therapeutics — $40M upfront, up to $900M</strong> — Biosion also has BSI-502 (TSLP×IL-4Rα bispecific) in Phase 1. Demonstrates China-origin anti-TSLP assets attracting significant upfront capital. <span class="news-val">$40M upfront</span> at Phase 1 stage.</div>
-      </div>
-      <div class="news-item">
-        <div class="news-date">Oct 2025</div>
-        <div class="news-content"><strong>Qyuns licenses QX031N (TSLP × IL-33 bispecific) to Roche — $75M upfront, up to $1.07B</strong> — Preclinical stage at signing. Roche already holds astegolimab (anti-ST2/IL-33R), so QX031N adds dual upstream blockade to complete their alarmin franchise. <span class="news-val">$75M upfront</span> at preclinical — landmark bispecific precedent. Qyuns retains all China rights.</div>
+        <div class="news-date">2025–2026</div>
+        <div class="news-content"><strong>Itepekimab receives COPD approval (AERIFY Ph3 positive)</strong> — First anti-IL-33 antibody (Regeneron/Sanofi) approved in COPD for ex-smokers with eos ≥150. Opens COPD biologic market to alarmin-targeting agents. Creates a direct readout context for TSLP × IL-33 bispecific COPD positioning — partners will want to know how QX031N/HXN-1003 differentiate from approved itepekimab.</div>
       </div>
       <div class="news-item">
         <div class="news-date">Dec 2025</div>
         <div class="news-content"><strong>Qyuns licenses QX027N (TSLP × IL-13 bispecific) to Windward Bio — up to $700M</strong> — Windward Bio (backed by Novo Holdings) already licensed HBM9378/SKB378 (Harbour BioMed + Kelun anti-TSLP) for up to $970M. Windward is systematically building a complete TSLP franchise via China-origin assets. <span class="news-val">$700M total</span>.</div>
       </div>
       <div class="news-item">
-        <div class="news-date">2025–2026</div>
-        <div class="news-content"><strong>Itepekimab receives COPD approval (AERIFY Ph3 positive)</strong> — First anti-IL-33 antibody (Regeneron/Sanofi) approved in COPD for ex-smokers with eos ≥150. Opens COPD biologic market to alarmin-targeting agents. Creates a direct readout context for TSLP × IL-33 bispecific COPD positioning — partners will want to know how QX031N/HXN-1003 differentiate from approved itepekimab.</div>
+        <div class="news-date">Oct 2025</div>
+        <div class="news-content"><strong>Qyuns licenses QX031N (TSLP × IL-33 bispecific) to Roche — $75M upfront, up to $1.07B</strong> — Preclinical stage at signing. Roche already holds astegolimab (anti-ST2/IL-33R), so QX031N adds dual upstream blockade to complete their alarmin franchise. <span class="news-val">$75M upfront</span> at preclinical — landmark bispecific precedent. Qyuns retains all China rights.</div>
+      </div>
+      <div class="news-item">
+        <div class="news-date">Nov 2024</div>
+        <div class="news-content"><strong>Biosion licenses bosakitug (long-acting anti-TSLP) to Aclaris Therapeutics — $40M upfront, up to $900M</strong> — Biosion also has BSI-502 (TSLP×IL-4Rα bispecific) in Phase 1. Demonstrates China-origin anti-TSLP assets attracting significant upfront capital. <span class="news-val">$40M upfront</span> at Phase 1 stage.</div>
       </div>
     </div>
   </div>
@@ -1081,6 +1136,29 @@ function sf(cell) {
   return gridjs.html(`<span class="sb ${c}">${s}</span>`);
 }
 
+// Phase rank for custom sort (Pre-Ph1 / Pre-IND sort below Ph1, not above Ph3)
+function phaseRank(s) {
+  const v = String(s).trim();
+  if (v.includes('Approved'))                               return 0;
+  if (v.includes('Ph3'))                                    return 10;
+  if (v.includes('Ph2b') || v.includes('2b'))               return 20;
+  if (v.includes('Ph2'))                                    return 30;
+  if (v.includes('Ph1→Ph2') || v.includes('Ph1 / Ph2') || v.includes('Ph1/2')) return 35;
+  if (v.includes('Ph1'))                                    return 40;
+  if (v.includes('Pre-Ph1') || v.includes('Pre Ph1'))       return 50;
+  if (v.includes('Pre-IND') || v.includes('PreIND'))        return 60;
+  if (v.includes('Preclinical'))                            return 70;
+  return 80;
+}
+const phaseSort = { compare: (a, b) => phaseRank(a) - phaseRank(b) };
+
+// Readout program link formatter (uses hidden 6th column for URL)
+function readoutProgFmt(cell, row) {
+  const url = row.cells[5] && row.cells[5].data;
+  if (url) return gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
+  return cell;
+}
+
 // Estimand badge formatter
 function ef(cell) {
   const s = String(cell);
@@ -1101,10 +1179,11 @@ function initGrids(d) {
   new gridjs.Grid({
     columns:[
       {name:'Category',width:'145px',formatter:rf},
-      {name:'Program',width:'260px'},
-      {name:'Phase',width:'75px',formatter:sf},
-      {name:'Expected Timing',width:'270px'},
-      {name:'Indication',width:'120px'}
+      {name:'Program',width:'255px',formatter:readoutProgFmt},
+      {name:'Phase',width:'75px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'265px'},
+      {name:'Indication',width:'120px'},
+      {name:'_url',hidden:true}
     ],
     data:d.tl1aReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tl1a-readouts'));
@@ -1156,10 +1235,11 @@ function initGrids(d) {
   new gridjs.Grid({
     columns:[
       {name:'Category',width:'145px',formatter:rf},
-      {name:'Program',width:'250px'},
-      {name:'Phase',width:'80px',formatter:sf},
-      {name:'Expected Timing',width:'275px'},
-      {name:'Indication',width:'140px'}
+      {name:'Program',width:'245px',formatter:readoutProgFmt},
+      {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
+      {name:'Expected Timing',width:'270px'},
+      {name:'Indication',width:'140px'},
+      {name:'_url',hidden:true}
     ],
     data:d.tslpReadouts, sort:true, search:true
   }).render(document.getElementById('grid-tslp-readouts'));
@@ -1242,7 +1322,62 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
-window.addEventListener('load', () => { loadData().then(d => { initGrids(d); initCharts(); }); });
+// ── UPDATE BOX TOGGLE ────────────────────────────────────────────
+function toggleUpdate(tab) {
+  const body = document.getElementById('update-body-' + tab);
+  const tog = document.getElementById('update-toggle-' + tab);
+  if (body) body.classList.toggle('open');
+  if (tog) tog.classList.toggle('open');
+}
+
+// ── CROSS-REFERENCE TOOL ─────────────────────────────────────────
+function crossRef(tab) {
+  const textarea = document.getElementById('update-text-' + tab);
+  const resultsEl = document.getElementById('update-results-' + tab);
+  const text = textarea.value.trim();
+  if (!text) {
+    resultsEl.innerHTML = '<span style="color:#8a9bb0">Please paste some text to analyze.</span>';
+    return;
+  }
+  const d = window._dashData;
+  if (!d) { resultsEl.innerHTML = '<span style="color:#c45b11">Data not yet loaded. Please wait and try again.</span>'; return; }
+
+  const lc = text.toLowerCase();
+  const sources = tab === 'tl1a'
+    ? [{label:'Readout Calendar', rows:d.tl1aReadouts}, {label:'Pipeline', rows:d.tl1aPipe}, {label:'Monotherapy Context', rows:d.tl1aMono}]
+    : [{label:'Readout Calendar', rows:d.tslpReadouts}, {label:'Pipeline', rows:d.tslpPipe}, {label:'Monotherapy Context', rows:d.tslpMono}];
+
+  // Extract meaningful search tokens (4+ chars, skip common words)
+  const stopWords = new Set(['with','that','this','from','have','been','will','were','they','their','into','also','when','than','more','after','before','which','about']);
+  const tokens = [...new Set((lc.match(/\b[a-z0-9][a-z0-9\-]{3,}\b/g) || []).filter(t => !stopWords.has(t)))];
+
+  const matches = [];
+  sources.forEach(src => {
+    if (!src.rows) return;
+    src.rows.forEach(row => {
+      const rowStr = row.slice(0, 5).join(' ').toLowerCase();
+      const hits = tokens.filter(t => rowStr.includes(t));
+      if (hits.length >= 1) matches.push({ section: src.label, program: row[1], status: row[2], timing: row[3] || '', hits });
+    });
+  });
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = '<span style="color:#2a7a47;font-weight:700">✓ No existing rows matched.</span> This may be a new program not yet in the dashboard — consider adding it manually.';
+  } else {
+    const deduped = matches.filter((m, i, arr) => arr.findIndex(x => x.program === m.program) === i);
+    resultsEl.innerHTML =
+      `<div style="font-weight:700;color:#1a2f50;margin-bottom:8px">Found <span style="color:#c45b11">${deduped.length}</span> row(s) that may need verification:</div>` +
+      deduped.map(m =>
+        `<div style="padding:6px 10px;margin-bottom:5px;background:#fff8e6;border-left:3px solid #e8a020;border-radius:4px">
+          <div style="font-weight:700;font-size:11px;color:#1a2f50">${m.program}</div>
+          <div style="font-size:10px;color:#5a7a9e;margin-top:2px">${m.section} · Current stage: <strong>${m.status}</strong>${m.timing ? ' · ' + m.timing : ''}</div>
+          <div style="font-size:10px;color:#8a9bb0;margin-top:2px">Matched on: ${m.hits.slice(0,5).join(', ')}</div>
+        </div>`
+      ).join('');
+  }
+}
+
+window.addEventListener('load', () => { loadData().then(d => { window._dashData = d; initGrids(d); initCharts(); }); });
 </script>
 </body>
 </html>
