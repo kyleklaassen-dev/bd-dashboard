@@ -732,6 +732,44 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   .gs-inner { flex-wrap: wrap; }
   .gs-input { min-width: 0; width: 100%; }
 }
+
+/* ══ SUBMIT INTEL HEADER BUTTON ═════════════════════════════════ */
+.submit-intel-btn { background: rgba(255,255,255,0.18); color: white; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
+.submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
+
+/* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
+.intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
+.intel-modal-overlay.open { display: flex; }
+.intel-modal { background: white; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.22); width: 100%; max-width: 640px; overflow: hidden; }
+.intel-modal-hd { background: #1a2f50; color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.intel-modal-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.intel-modal-sub { font-size: 12px; opacity: 0.75; line-height: 1.4; }
+.intel-modal-close { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 6px; width: 28px; height: 28px; font-size: 15px; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+.intel-modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.intel-modal-url { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; font-family: inherit; color: #1a2e4a; outline: none; width: 100%; box-sizing: border-box; }
+.intel-modal-url:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
+.intel-modal-text { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.55; outline: none; width: 100%; box-sizing: border-box; }
+.intel-modal-text:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
+.intel-modal-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.intel-modal-save { background: #2e6fb0; color: white; border: none; border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.intel-modal-save:hover { background: #1a2f50; }
+.intel-modal-copy { background: white; color: #2e6fb0; border: 1.5px solid #c8d8ee; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.intel-modal-copy:hover { background: #f0f5fc; }
+
+/* ══ WEEKLY TASKS CARD ══════════════════════════════════════════ */
+.weekly-tasks-card { margin-top: 14px; background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+.weekly-tasks-hd { background: #1a2f50; color: white; padding: 9px 14px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; }
+.wtc-reset { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 5px; padding: 3px 10px; font-size: 11px; cursor: pointer; }
+.wtc-day { border-bottom: 1px solid #eef2f7; }
+.wtc-day:last-child { border-bottom: none; }
+.wtc-day-hd { padding: 8px 14px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #5a7a9e; background: #f7f9fc; display: flex; align-items: center; gap: 8px; }
+.wtc-day-hd.today { color: #2e6fb0; background: #eef5ff; }
+.wtc-today-badge { background: #2e6fb0; color: white; font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 800; text-transform: uppercase; }
+.wtc-task { display: flex; align-items: flex-start; gap: 10px; padding: 7px 14px 7px 18px; font-size: 12px; color: #1a2e4a; line-height: 1.45; cursor: pointer; }
+.wtc-task:hover { background: #f7f9fc; }
+.wtc-task input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: #2e6fb0; width: 15px; height: 15px; cursor: pointer; }
+.wtc-task.done span { text-decoration: line-through; color: #a0aec0; }
+.wtc-task-area { font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; padding: 1px 5px; border-radius: 5px; margin-right: 5px; white-space: nowrap; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -742,9 +780,47 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <div>
     <div class="header-title">◈ The Meridian</div>
   </div>
-  <div class="header-meta">
-    <strong id="header-date">Saturday, May 16, 2026</strong><br>
-    <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Loading…</span>
+  <div style="display:flex;align-items:center;gap:14px">
+    <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
+      ＋ Submit Intel
+    </button>
+    <div class="header-meta">
+      <strong id="header-date">Saturday, May 16, 2026</strong><br>
+      <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Loading…</span>
+    </div>
+  </div>
+</div>
+
+<!-- INTEL QUICK-SUBMIT MODAL -->
+<div class="intel-modal-overlay" id="intel-modal-overlay" onclick="if(event.target===this)closeIntelModal()">
+  <div class="intel-modal">
+    <div class="intel-modal-hd">
+      <div>
+        <div class="intel-modal-title">📋 Submit Intelligence</div>
+        <div class="intel-modal-sub">Drop anything in here — a link, article text, quote, or note. Claude will review and update the dashboard.</div>
+      </div>
+      <button class="intel-modal-close" onclick="closeIntelModal()">✕</button>
+    </div>
+    <div class="intel-modal-body">
+      <input type="url" class="intel-modal-url" id="im-url" placeholder="Paste a URL  (article · press release · ClinicalTrials.gov · SEC filing · conference abstract…)">
+      <textarea class="intel-modal-text" id="im-text" placeholder="Or just type / paste anything — article excerpt, quote, tweet, observation, rumour you want flagged…" rows="5"></textarea>
+      <div class="intel-modal-row">
+        <select class="intel-intake-tag" id="im-tag">
+          <option value="General">🏷 Tag (optional)</option>
+          <option value="IBD">IBD · TL1A × IL-23</option>
+          <option value="Resp">Respiratory · TSLP × IL-33</option>
+          <option value="Type 2">Type 2 · IL-4Rα × TSLP</option>
+          <option value="AD">AD · IL-4Rα × OX40L</option>
+          <option value="TED">TED · IGF1R × TSHR</option>
+          <option value="AI">Autoimmune · FcRn</option>
+          <option value="Immune Reset">Immune Reset · ACE</option>
+          <option value="General">General</option>
+        </select>
+        <div style="flex:1"></div>
+        <button class="intel-modal-save" onclick="saveFromModal()">📌 Save to Dashboard</button>
+        <button class="intel-modal-copy" onclick="copyFromModal()">📋 Copy for Claude</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -831,7 +907,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <!-- MERIDIAN DAILY READER -->
   <div class="meridian-reader" id="meridian-reader-anchor">
     <div class="meridian-reader-hd">📰 Meridian Daily Reader <span style="font-size:11px;font-weight:500;opacity:0.6;margin-left:4px">— Today's Top Updates Across All 7 Coverage Areas</span></div>
-    <div class="meridian-reader-sub">Highest-priority items surfaced from all tracked programs. Updated automatically at 7 AM and 7 PM daily.</div>
     <div class="meridian-reader-item">
       <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟡 <a class="ct-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 (Tulisokibart, Merck) · NCT06052059</a></strong> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor <a class="ct-link" href="https://www.merck.com/research/pipeline/" target="_blank" rel="noopener">Merck pipeline</a> from Q3 2026.
     </div>
@@ -853,9 +928,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     <div class="meridian-reader-item">
       <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong>🔵 <a class="ct-link" href="https://www.fiercebiotech.com/biotech/sanofi-returns-tces-territory-12b-pact-phase-1-stage-trispecific" target="_blank" rel="noopener">KT501 (Kali Therapeutics / Sanofi) BCMA×CD19×CD3</a></strong> — <a class="ct-link" href="https://www.prnewswire.com/news-releases/kali-therapeutics-announces-worldwide-exclusive-license-agreement-with-sanofi-for-next-generation-tri-specific-t-cell-engager-for-autoimmune-diseases-302719567.html" target="_blank" rel="noopener">$180M upfront · up to $1.23B deal (Mar 2026)</a>. First patient dosed in Ph1a (RA). Goal: deep B-cell + plasma cell depletion as one-time immune reset. Most-watched trispecific TCE in autoimmune. Watch Ph1 expansion into SLE, gMG.
     </div>
-    <div style="margin-top:12px;padding:10px 12px;background:rgba(245,200,66,0.15);border-radius:6px;font-size:12px;color:#6b5a20;line-height:1.5">
-      💡 <strong>Live updates active:</strong> This digest refreshes automatically at <strong>7 AM</strong> and <strong>7 PM</strong> daily via scheduled research. Use the "Submit Intelligence" button above to add breaking news between cycles.
-    </div>
+
   </div>
 
   <!-- INTELLIGENCE INTAKE PANEL -->
@@ -940,8 +1013,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
           <button class="home-nav-btn" style="margin-top:8px;padding:6px 10px;font-size:11px;width:auto" onclick="switchTabTo('ace')">→ BCMA × CD19 × CD3 Tab</button>
         </div>
       </div>
-      <div style="margin-top:14px;padding:10px 12px;background:#f0f6ff;border-radius:6px;font-size:12px;color:#2e6fb0;line-height:1.5">
-        💡 <strong>How to learn effectively:</strong> Don't try to absorb all tabs at once. Each day, read the 6 concepts above (2 min each = 12 min total), then dive into <em>one</em> full tab for deeper context. Rotate through all 7 tabs over a week and you'll have working knowledge of every coverage area.
+      <div class="weekly-tasks-card" id="weekly-tasks-card">
+        <div class="weekly-tasks-hd">
+          <span>📅 This Week's Learning Plan</span>
+          <button class="wtc-reset" onclick="resetWeeklyTasks()" title="Reset all tasks for new week">Reset week</button>
+        </div>
+        <div id="weekly-tasks-body"></div>
       </div>
     </div>
   </div>
@@ -3590,6 +3667,41 @@ function jumpToAsset(val) {
   document.getElementById('asset-jump').value = '';
 }
 
+// ── INTEL QUICK-SUBMIT MODAL (header button) ──────────────────────
+function openIntelModal() {
+  document.getElementById('intel-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('im-text').focus(), 80);
+}
+function closeIntelModal() {
+  document.getElementById('intel-modal-overlay').classList.remove('open');
+}
+function saveFromModal() {
+  const url  = (document.getElementById('im-url')?.value  || '').trim();
+  const text = (document.getElementById('im-text')?.value || '').trim();
+  const tag  = (document.getElementById('im-tag')?.value  || 'General');
+  if (!url && !text) { alert('Please enter a URL or note first.'); return; }
+  const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
+  items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
+  localStorage.setItem('meridian-intel', JSON.stringify(items));
+  document.getElementById('im-url').value  = '';
+  document.getElementById('im-text').value = '';
+  closeIntelModal();
+  renderIntelSubmissions();
+}
+function copyFromModal() {
+  const url  = (document.getElementById('im-url')?.value  || '').trim();
+  const text = (document.getElementById('im-text')?.value || '').trim();
+  const tag  = (document.getElementById('im-tag')?.value  || 'General');
+  if (!url && !text) { alert('Nothing to copy — enter something first.'); return; }
+  const prompt = 'Please review the following intelligence for The Meridian BD dashboard and update any relevant section if warranted:\n\nTarget area: ' + tag + '\n' + (url ? 'URL: ' + url + '\n' : '') + (text ? 'Notes: ' + text : '');
+  navigator.clipboard.writeText(prompt).then(() => {
+    const btn = document.querySelector('.intel-modal-copy');
+    const orig = btn.textContent; btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; closeIntelModal(); }, 1800);
+  });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIntelModal(); });
+
 // ── INTELLIGENCE INTAKE PANEL ─────────────────────────────────────
 const TAG_COLORS = {
   'IBD':'#c45b11','Resp':'#2563eb','Type 2':'#9d174d','AD':'#7c3aed',
@@ -3659,7 +3771,90 @@ function renderIntelSubmissions() {
     }).join('')}`;
 }
 // Run on page load
-document.addEventListener('DOMContentLoaded', renderIntelSubmissions);
+
+// ── WEEKLY LEARNING TASKS ─────────────────────────────────────────
+const WEEKLY_TASKS = [
+  { day: 'Monday',    tasks: [
+    { id:'m1', area:'IBD',          color:'#c45b11', text:'Read TL1A × IL-23 Field Intelligence — focus on deal benchmarks and ATLAS-UC timeline', tab:'tl1a', anchor:'tl1a-intel-anchor' },
+    { id:'m2', area:'IBD',          color:'#c45b11', text:'Review TL1A Catalyst Calendar — identify the 2 most important readouts to monitor', tab:'tl1a', anchor:'tl1a-readouts-anchor' },
+    { id:'m3', area:'General',      color:'#4b5563', text:'Check Recent Deals on Home — is anything new since last week?', tab:'home', anchor:'home-deals-anchor' },
+  ]},
+  { day: 'Tuesday',  tasks: [
+    { id:'t1', area:'Resp',         color:'#2563eb', text:'Read TSLP × IL-33 Field Intelligence — understand the QX031N/Roche deal rationale', tab:'tslp', anchor:'tslp-intel-anchor' },
+    { id:'t2', area:'Resp',         color:'#2563eb', text:'Review TSLP Competitive Landscape — compare FORMAT column: what formats are partners choosing?', tab:'tslp', anchor:'tslp-landscape-anchor' },
+    { id:'t3', area:'Type 2',       color:'#9d174d', text:'Skim IL-4Rα × TSLP tab — understand how dupilumab dominance creates the bispecific opportunity', tab:'il4ra-tslp', anchor:'il4ra-tslp-intel-anchor' },
+  ]},
+  { day: 'Wednesday', tasks: [
+    { id:'w1', area:'AD',           color:'#7c3aed', text:'Read IL-4Rα × OX40L — focus on amlitelimab (Sanofi) as the reference asset for AD immune reset', tab:'il4ra-ox40l', anchor:'il4ra-ox40l-intel-anchor' },
+    { id:'w2', area:'AD',           color:'#7c3aed', text:'Review OX40L Deal Spotlight — understand the deal structure and valuation logic', tab:'il4ra-ox40l', anchor:'il4ra-ox40l-deal-anchor' },
+    { id:'w3', area:'IBD',          color:'#c45b11', text:'Read TL1A Estimand Guide — this is the most important concept for understanding Ph3 data quality', tab:'tl1a', anchor:'tl1a-estimand-anchor' },
+  ]},
+  { day: 'Thursday', tasks: [
+    { id:'th1', area:'TED',         color:'#065f46', text:'Read IGF1R × TSHR Field Intelligence — understand teprotumumab as the reference and linsitinib LIDS results', tab:'igf1r-tshr', anchor:'igf1r-tshr-intel-anchor' },
+    { id:'th2', area:'AI',          color:'#5b21b6', text:'Read FcRn Bispecific tab — focus on how FcRn recycling biology creates the bispecific rationale', tab:'fcrn', anchor:'fcrn-edu-anchor' },
+    { id:'th3', area:'AI',          color:'#5b21b6', text:'Compare FcRn Competitive Landscape — efgartigimod vs nipocalimab vs rozanolixizumab differentiation', tab:'fcrn', anchor:'fcrn-landscape-anchor' },
+  ]},
+  { day: 'Friday',   tasks: [
+    { id:'f1', area:'Immune Reset', color:'#991b1b', text:'Read BCMA × CD19 × CD3 (ACE) tab — understand why dual B-cell lineage depletion is the hypothesis', tab:'ace', anchor:'ace-edu-anchor' },
+    { id:'f2', area:'Immune Reset', color:'#991b1b', text:'Review ACE Competitive Landscape — KT501 vs CLN-978 vs CAR-T: what is Ailux doing differently?', tab:'ace', anchor:'ace-landscape-anchor' },
+    { id:'f3', area:'General',      color:'#4b5563', text:'Review Meridian Daily Reader — are all 7 coverage areas still current? Submit anything new via ＋ Submit Intel', tab:'home', anchor:'meridian-reader-anchor' },
+  ]},
+];
+
+function getWeekKey() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  return `wt-${monday.getFullYear()}-${monday.getMonth()}-${monday.getDate()}`;
+}
+function getWeeklyState() {
+  return JSON.parse(localStorage.getItem(getWeekKey()) || '{}');
+}
+function setTaskDone(id, done) {
+  const state = getWeeklyState();
+  state[id] = done;
+  localStorage.setItem(getWeekKey(), JSON.stringify(state));
+  renderWeeklyTasks();
+}
+function resetWeeklyTasks() {
+  if (!confirm('Reset all tasks for this week?')) return;
+  localStorage.removeItem(getWeekKey());
+  renderWeeklyTasks();
+}
+function renderWeeklyTasks() {
+  const body = document.getElementById('weekly-tasks-body');
+  if (!body) return;
+  const state = getWeeklyState();
+  const todayIdx = new Date().getDay(); // 0=Sun, 1=Mon … 5=Fri, 6=Sat
+  // Map: 1=Mon,2=Tue,3=Wed,4=Thu,5=Fri — idx 0..4 in array
+  const todayTaskIdx = todayIdx >= 1 && todayIdx <= 5 ? todayIdx - 1 : -1;
+  body.innerHTML = WEEKLY_TASKS.map((dayObj, i) => {
+    const isToday = i === todayTaskIdx;
+    const doneCount = dayObj.tasks.filter(t => state[t.id]).length;
+    const totalCount = dayObj.tasks.length;
+    return `<div class="wtc-day">
+      <div class="wtc-day-hd ${isToday ? 'today' : ''}">
+        ${isToday ? '<span class="wtc-today-badge">Today</span>' : ''}
+        ${dayObj.day}
+        <span style="margin-left:auto;font-size:10px;font-weight:600;color:${doneCount===totalCount?'#2a7a47':'#8a9bb0'}">${doneCount}/${totalCount} done</span>
+      </div>
+      ${dayObj.tasks.map(t => {
+        const done = !!state[t.id];
+        return `<label class="wtc-task ${done ? 'done' : ''}" onclick="event.preventDefault();setTaskDone('${t.id}',${!done})">
+          <input type="checkbox" ${done ? 'checked' : ''} onchange="event.stopPropagation();setTaskDone('${t.id}',this.checked)">
+          <span>
+            <span class="wtc-task-area" style="background:${t.color}">${t.area}</span>
+            ${t.text}
+            ${t.tab ? `<a class="ct-link" href="#" onclick="event.stopPropagation();switchTabTo('${t.tab}');setTimeout(()=>scrollToSection('${t.anchor}'),250);return false;" style="font-size:11px;margin-left:4px">→ Go</a>` : ''}
+          </span>
+        </label>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); });
 
 // ── TOC NAVIGATION ────────────────────────────────────────────────
 const TOC_MAP = {
