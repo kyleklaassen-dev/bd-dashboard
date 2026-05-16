@@ -784,7 +784,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .header-toc-wrap { position: relative; flex-shrink: 0; }
 
 /* ══ NAV DROPDOWN ════════════════════════════════════════════════ */
-.nav-dropdown-wrap { position: relative; flex-shrink: 0; }
+.nav-dropdown-wrap { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
 .nav-dropdown-btn { background: #eef4fb; color: #1a2f50; border: 1.5px solid #c8d8ed; border-radius: 6px; padding: 4px 9px; font-size: 16px; line-height: 1; cursor: pointer; transition: background 0.15s; font-family: inherit; }
 .nav-dropdown-btn:hover { background: #deeaf8; }
 .nav-dropdown-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 260px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
@@ -819,7 +819,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Last updated May 16, 2026 at 10:58 PM</span>
+ <span id="last-updated-ts" style="font-size:11px;opacity:0.75">Last updated May 16, 2026 at 10:59 PM</span>
  </div>
  </div>
 </div>
@@ -859,7 +859,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 
 <div class="tab-bar">
  <!-- Nav dropdown — far left -->
- <div class="nav-dropdown-wrap" id="nav-dropdown-wrap" style="flex-shrink:0;margin-right:10px">
+ <div class="nav-dropdown-wrap" id="nav-dropdown-wrap">
  <button class="nav-dropdown-btn" id="nav-dropdown-btn" onclick="toggleNavDropdown()" title="Switch tab">☰</button>
  <div class="nav-dropdown-menu" id="nav-dropdown-menu" style="top:calc(100% + 4px)">
  <div class="nav-dd-item nav-dd-home" onclick="navTo('home')">Home</div>
