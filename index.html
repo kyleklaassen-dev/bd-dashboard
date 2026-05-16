@@ -1104,21 +1104,18 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     </div>
   </div>
 
-  <div class="sec-hd" id="tl1a-readouts-anchor"><span class="sec-title">Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">15 Events · Sortable</span></div>
+  <div class="sec-hd" id="tl1a-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">15 Events · Sort by Completion Date ↑</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-readouts"></div></div>
   <div class="note-panel" id="note-panel-tl1a">
     <div class="note-panel-label">📋 Trial Notes</div>
     <div id="note-panel-body-tl1a"></div>
   </div>
 
-  <div class="sec-hd" id="tl1a-pipe-anchor"><span class="sec-title">Global TL1A × IL-23p19 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">7 Programs · Sortable</span></div>
-  <div class="card" style="overflow:hidden"><div id="grid-tl1a-pipe"></div></div>
-
-  <div class="sec-hd" id="tl1a-mono-anchor"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
-  <div class="card" style="overflow:hidden"><div id="grid-tl1a-mono"></div></div>
-  <div class="note-panel" id="note-panel-tl1a-mono">
-    <div class="note-panel-label">📋 Trial Notes</div>
-    <div id="note-panel-body-tl1a-mono"></div>
+  <div class="sec-hd" id="tl1a-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tl1a-landscape"></div></div>
+  <div class="note-panel" id="note-panel-tl1a-landscape">
+    <div class="note-panel-label">📋 Efficacy Notes</div>
+    <div id="note-panel-body-tl1a-landscape"></div>
   </div>
 
   <!-- TECHNICAL COMPETITOR COMPARISON -->
@@ -1779,21 +1776,18 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     </div>
   </div>
 
-  <div class="sec-hd" id="tslp-readouts-anchor"><span class="sec-title">Respiratory Clinical Readout Calendar</span><div class="sec-line"></div><span class="sec-tag o">10 Events · Sortable</span></div>
+  <div class="sec-hd" id="tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">10 Events · Sort by Completion Date ↑</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-readouts"></div></div>
   <div class="note-panel" id="note-panel-tslp">
     <div class="note-panel-label">📋 Trial Notes</div>
     <div id="note-panel-body-tslp"></div>
   </div>
 
-  <div class="sec-hd" id="tslp-pipe-anchor"><span class="sec-title">TSLP × IL-33 Bispecific Pipeline</span><div class="sec-line"></div><span class="sec-tag">3 Known Programs · Sortable</span></div>
-  <div class="card" style="overflow:hidden"><div id="grid-tslp-pipe"></div></div>
-
-  <div class="sec-hd" id="tslp-mono-anchor"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
-  <div class="card" style="overflow:hidden"><div id="grid-tslp-mono"></div></div>
-  <div class="note-panel" id="note-panel-tslp-mono">
-    <div class="note-panel-label">📋 Trial Notes</div>
-    <div id="note-panel-body-tslp-mono"></div>
+  <div class="sec-hd" id="tslp-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-tslp-landscape"></div></div>
+  <div class="note-panel" id="note-panel-tslp-landscape">
+    <div class="note-panel-label">📋 Efficacy Notes</div>
+    <div id="note-panel-body-tslp-landscape"></div>
   </div>
 
   <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">5+ Chinese Programs</span></div>
@@ -3072,6 +3066,38 @@ function dealPartnerFmt(cell, row) {
   return cell;
 }
 
+// Readout program formatter for clean calendar (URL now at cells[4] after dropping Category+Indication)
+function readoutProgFmtClean(cell, row) {
+  const url = row.cells[4] && row.cells[4].data;
+  if (url) return gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
+  return cell;
+}
+
+// Drop columns by index from a data array (used to strip redundant columns at render time)
+function dropCols(data, indices) {
+  return data.map(row => row.filter((_,i) => !indices.includes(i)));
+}
+
+// Merge bispecific pipeline + monotherapy into one competitive landscape table
+// Pipe cols : [Company, Asset, Format, Stage, Indication, Partner, Upfront, Total, Estimand, _news]
+// Mono cols : [Company, Asset, Stage, Indication, Estimand, Notes]
+// Output    : [Company, Asset, Format, Stage, Partner/Deal, Estimand, Notes]
+function mergeLandscape(pipeData, monoData) {
+  const pRows = pipeData.map(r => {
+    const partner = (r[5] && r[5] !== '—') ? r[5] : '';
+    const upfront = (r[6] && r[6] !== '—') ? r[6] : '';
+    const total   = (r[7] && r[7] !== '—') ? r[7] : '';
+    let deal = '—';
+    if (partner || upfront || total) {
+      const terms = [upfront, total].filter(Boolean).join(' / ');
+      deal = [partner, terms].filter(Boolean).join(' · ');
+    }
+    return [r[0], r[1], r[2], r[3], deal, r[8], ''];
+  });
+  const mRows = monoData.map(r => [r[0], r[1], 'Monotherapy', r[2], '—', r[4], r[5]]);
+  return [...pRows, ...mRows];
+}
+
 // Estimand badge formatter
 function ef(cell) {
   const s = String(cell);
@@ -3089,52 +3115,41 @@ function ef(cell) {
 // ── GRIDS ────────────────────────────────────────────────────────
 const grids = {};
 function initGrids(d) {
-  // TL1A Clinical Readout Calendar
+  // ── TL1A: Catalyst Calendar ──────────────────────────────────────
+  // Purpose: When do things read out? Drop Category (redundant on disease tab)
+  // and Indication (same disease area). Stripped cols: 0=Category, 4=Indication
+  // Resulting order: Program(0), Phase(1), Expected Timing(2), Primary Completion(3), _url(4), Notes(5)
   grids.tl1aReadouts = new gridjs.Grid({
     columns:[
-      {name:'Category',width:'130px',formatter:rf},
-      {name:'Program',width:'240px',formatter:readoutProgFmt},
+      {name:'Program',width:'270px',formatter:readoutProgFmtClean},
       {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'230px'},
-      {name:'Indication',width:'110px'},
-      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Expected Timing',width:'270px'},
+      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tl1aReadouts, sort:true
+    data:dropCols(d.tl1aReadouts,[0,4]), sort:true
   }).render(document.getElementById('grid-tl1a-readouts'));
 
-  // TL1A bispecific pipeline
-  grids.tl1aPipe = new gridjs.Grid({
+  // ── TL1A: Competitive Landscape (bispecifics + monotherapy merged) ─
+  // Purpose: Who are all the players, what format, any deals? FORMAT column
+  // distinguishes monotherapy from each bispecific format type.
+  // Output cols: Company, Asset, Format, Stage, Partner/Deal, Estimand, Notes
+  grids.tl1aLandscape = new gridjs.Grid({
     columns:[
-      {name:'Company',width:'130px'},
-      {name:'Asset',width:'120px'},
-      {name:'Format',width:'140px'},
-      {name:'Stage',width:'150px',formatter:sf,sort:phaseSort},
-      {name:'Indication',width:'70px'},
-      {name:'Licensee / Partner',width:'140px',formatter:dealPartnerFmt},
-      {name:'Upfront',width:'110px'},
-      {name:'Total Value',width:'90px'},
-      {name:'Estimand',width:'130px',formatter:ef},
-      {name:'_news',hidden:true}
-    ],
-    data:d.tl1aPipe, sort:true
-  }).render(document.getElementById('grid-tl1a-pipe'));
-
-  // TL1A monotherapy
-  grids.tl1aMono = new gridjs.Grid({
-    columns:[
-      {name:'Company',width:'125px'},
+      {name:'Company',width:'145px'},
       {name:'Asset',width:'155px'},
-      {name:'Stage',width:'165px',formatter:sf,sort:phaseSort},
-      {name:'Indication',width:'70px'},
+      {name:'Format',width:'175px'},
+      {name:'Stage',width:'160px',formatter:sf,sort:phaseSort},
+      {name:'Partner / Deal Value',width:'240px'},
       {name:'Estimand',width:'145px',formatter:ef},
-      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a-mono','${esc}',this)">▼ Notes</button>`);}}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a-landscape','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tl1aMono, sort:true
-  }).render(document.getElementById('grid-tl1a-mono'));
+    data:mergeLandscape(d.tl1aPipe, d.tl1aMono), sort:true
+  }).render(document.getElementById('grid-tl1a-landscape'));
 
-  // TL1A Technical Comparison
+  // ── TL1A: Technical Comparison ────────────────────────────────────
+  // Purpose: Mechanism & engineering differentiation. Unique — no overlap with above.
   grids.tl1aTech = new gridjs.Grid({
     columns:[
       {name:'Company',width:'110px'},
@@ -3148,50 +3163,33 @@ function initGrids(d) {
     data:d.tl1aTech, sort:true
   }).render(document.getElementById('grid-tl1a-tech'));
 
-  // TSLP Clinical Readout Calendar
+  // ── TSLP: Catalyst Calendar ──────────────────────────────────────
+  // Same logic: drop Category(0) and Indication(4)
   grids.tslpReadouts = new gridjs.Grid({
     columns:[
-      {name:'Category',width:'130px',formatter:rf},
-      {name:'Program',width:'235px',formatter:readoutProgFmt},
+      {name:'Program',width:'265px',formatter:readoutProgFmtClean},
       {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
-      {name:'Expected Timing',width:'240px'},
-      {name:'Indication',width:'130px'},
-      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Expected Timing',width:'270px'},
+      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tslpReadouts, sort:true
+    data:dropCols(d.tslpReadouts,[0,4]), sort:true
   }).render(document.getElementById('grid-tslp-readouts'));
 
-  // TSLP bispecific pipeline
-  grids.tslpPipe = new gridjs.Grid({
+  // ── TSLP: Competitive Landscape ──────────────────────────────────
+  grids.tslpLandscape = new gridjs.Grid({
     columns:[
-      {name:'Company',width:'150px'},
-      {name:'Asset',width:'120px'},
-      {name:'Format',width:'140px'},
-      {name:'Stage',width:'140px',formatter:sf,sort:phaseSort},
-      {name:'Indication',width:'110px'},
-      {name:'Licensee / Partner',width:'150px',formatter:dealPartnerFmt},
-      {name:'Upfront',width:'85px'},
-      {name:'Total Value',width:'90px'},
-      {name:'Estimand',width:'130px',formatter:ef},
-      {name:'_news',hidden:true}
-    ],
-    data:d.tslpPipe, sort:true
-  }).render(document.getElementById('grid-tslp-pipe'));
-
-  // TSLP monotherapy
-  grids.tslpMono = new gridjs.Grid({
-    columns:[
-      {name:'Company',width:'155px'},
+      {name:'Company',width:'160px'},
       {name:'Asset',width:'150px'},
-      {name:'Stage',width:'175px',formatter:sf,sort:phaseSort},
-      {name:'Indication',width:'130px'},
+      {name:'Format',width:'175px'},
+      {name:'Stage',width:'155px',formatter:sf,sort:phaseSort},
+      {name:'Partner / Deal Value',width:'235px'},
       {name:'Estimand',width:'155px',formatter:ef},
-      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp-mono','${esc}',this)">▼ Notes</button>`);}}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp-landscape','${esc}',this)">▼ Notes</button>`);}}
     ],
-    data:d.tslpMono, sort:true
-  }).render(document.getElementById('grid-tslp-mono'));
+    data:mergeLandscape(d.tslpPipe, d.tslpMono), sort:true
+  }).render(document.getElementById('grid-tslp-landscape'));
 }
 
 // ── DEAL SPOTLIGHT TOGGLE ─────────────────────────────────────────
@@ -3268,9 +3266,8 @@ const TOC_MAP = {
     {label:'Deal Spotlight', id:'tl1a-deal-anchor'},
     {label:'Ailux Profile', id:'tl1a-ailux-anchor'},
     {label:'Estimand Guide', id:'tl1a-estimand-anchor'},
-    {label:'Clinical Readout Calendar', id:'tl1a-readouts-anchor'},
-    {label:'Bispecific Pipeline', id:'tl1a-pipe-anchor'},
-    {label:'Monotherapy Context', id:'tl1a-mono-anchor'},
+    {label:'Catalyst Calendar', id:'tl1a-readouts-anchor'},
+    {label:'Competitive Landscape', id:'tl1a-landscape-anchor'},
     {label:'Technical Comparison', id:'tl1a-tech-anchor'},
     {label:'Chinese Programs', id:'tl1a-china-anchor'},
   ],
@@ -3280,9 +3277,8 @@ const TOC_MAP = {
     {label:'Deal Spotlight', id:'tslp-deal-anchor'},
     {label:'Ailux Profile', id:'tslp-ailux-anchor'},
     {label:'Estimand Guide', id:'tslp-estimand-anchor'},
-    {label:'Clinical Readout Calendar', id:'tslp-readouts-anchor'},
-    {label:'Bispecific Pipeline', id:'tslp-pipe-anchor'},
-    {label:'Monotherapy Context', id:'tslp-mono-anchor'},
+    {label:'Catalyst Calendar', id:'tslp-readouts-anchor'},
+    {label:'Competitive Landscape', id:'tslp-landscape-anchor'},
     {label:'Alarmin Strategy', id:'tslp-alarmin-anchor'},
   ],
   'il4ra-tslp': [
