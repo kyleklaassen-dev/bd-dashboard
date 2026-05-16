@@ -4005,9 +4005,10 @@ function setLastUpdated() {
  if (!el) return;
  const now = new Date();
  const time = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
- const date = now.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
- el.textContent = 'Session opened ' + date + ' at ' + time;
+ el.textContent = 'Session opened at ' + time;
 }
+// Run independently so a JS error elsewhere can't block it
+document.addEventListener('DOMContentLoaded', setLastUpdated);
 
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
