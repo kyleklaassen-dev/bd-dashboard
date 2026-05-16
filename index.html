@@ -9,14 +9,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #eef2f7; color: #1a2e4a; font-size: 15px; min-height: 100vh; }
 
-.header { background: linear-gradient(135deg, #0d1f38 0%, #1a3a6e 60%, #2e6fb0 100%); color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.header { background: linear-gradient(135deg, #0d1f38 0%, #1a3a6e 60%, #2e6fb0 100%); color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 200; }
 .header-title { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
 .header-title span { opacity: 0.55; font-weight: 400; font-size: 14px; margin-left: 8px; vertical-align: middle; }
 .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
 .header-meta { font-size: 12px; opacity: 0.65; text-align: right; }
 .header-meta strong { opacity: 1; font-weight: 700; }
 
-.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; }
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 53px; z-index: 190; }
 .tab-btn { padding: 9px 10px; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #6b7c93; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
 .tab-btn:hover { color: #2e6fb0; }
 .tab-btn.active { color: #1a2f50; border-bottom-color: #2e6fb0; }
@@ -646,8 +646,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
 <div class="header">
   <div>
-    <div class="header-title">◈ The Meridian <span>BD Intelligence Platform</span></div>
-    <div class="header-sub">Bispecific Antibody Monitor · IBD &amp; Respiratory · Updated May 2026</div>
+    <div class="header-title">◈ The Meridian</div>
   </div>
   <div class="header-meta">
     <strong id="header-date">May 16, 2026</strong><br>
@@ -665,7 +664,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <button class="tab-btn" onclick="switchTab('fcrn',this)">FcRn Bispecific <span class="ct ct-ai">Autoimmune</span></button>
   <button class="tab-btn" onclick="switchTab('ace',this)">BCMA × CD19 × CD3 <span class="ct ct-ir">Immune Reset</span></button>
   <div style="flex:1"></div>
-  <button class="tab-btn" onclick="switchTab('stocks',this)" style="font-size:13px;color:#94a3b8">📈 Market &amp; Learning</button>
 </div>
 
 <div class="gs-wrap">
@@ -700,25 +698,25 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     <div class="meridian-reader-hd">📰 Meridian Daily Reader <span style="font-size:11px;font-weight:500;opacity:0.6;margin-left:4px">— Today's Top Updates Across All 7 Coverage Areas</span></div>
     <div class="meridian-reader-sub">Highest-priority items surfaced from all tracked programs. Updated automatically at 7 AM and 7 PM daily.</div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟡 ATLAS-UC Ph3 (Tulisokibart, Merck)</strong> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor Merck IR and NCT06052059 from Q3 2026.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟡 <a class="ct-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 (Tulisokibart, Merck)</a></strong> — Topline readout on track for ~Nov 2026. <span style="color:#c45b11;font-weight:700">LANDMARK:</span> first Ph3 data in the TL1A class — all bispecific deal benchmarking flows from this result. Monitor <a class="ct-link" href="https://www.merck.com/investor-relations/sec-filings-and-reports/" target="_blank" rel="noopener">Merck IR</a> from Q3 2026.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟢 Duvakitug (Sanofi/Teva)</strong> — Ph3 STARSCAPE + SUNSCAPE enrolling. Best-in-class Ph2 signal (48% remission). Ph3 readout ~2028-2029. Deal structure and enrollment pace are the monitoring priorities now.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;margin-right:6px">IBD</span><strong>🟢 <a class="ct-link" href="https://clinicaltrials.gov/search?term=duvakitug&cond=ulcerative+colitis" target="_blank" rel="noopener">Duvakitug (Sanofi/Teva)</a></strong> — Ph3 STARSCAPE + SUNSCAPE enrolling. Best-in-class Ph2 signal (48% remission). Ph3 readout ~2028-2029. <a class="ct-link" href="https://www.sanofi.com/en/media-room/press-releases" target="_blank" rel="noopener">Sanofi press releases</a> and enrollment pace are the monitoring priorities now.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-right:6px">Resp</span><strong>🔵 QX031N (Roche / Qyuns) TSLP×IL-33</strong> — $1.07B deal Oct 2025. Ph1 FIH data expected ~2027. Most strategically relevant bispecific in respiratory; track Roche pipeline updates quarterly.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#2563eb;margin-right:6px">Resp</span><strong>🔵 <a class="ct-link" href="https://clinicaltrials.gov/search?term=QX031N" target="_blank" rel="noopener">QX031N (Roche / Qyuns) TSLP×IL-33</a></strong> — $1.07B deal Oct 2025. Ph1 FIH data expected ~2027. Most strategically relevant bispecific in respiratory; track <a class="ct-link" href="https://www.roche.com/investors/updates/inv-update-2025-10.htm" target="_blank" rel="noopener">Roche pipeline updates</a> quarterly.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-right:6px">Type 2</span><strong>🟡 Dupixent (IL-4Rα) dual-indication expansion</strong> — Now approved in 7 indications including AD, asthma, CRSwNP, EoE, prurigo nodularis, COPD, and CSU. CATT Ph3 (dupilumab in CSU) ongoing; next frontier is bispecific combinations pairing IL-4Rα with OX40L or TSLP to address refractory Type 2 disease.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#9d174d;margin-right:6px">Type 2</span><strong>🟡 <a class="ct-link" href="https://www.dupixent.com/about-dupixent/what-is-dupixent" target="_blank" rel="noopener">Dupixent (IL-4Rα) dual-indication expansion</a></strong> — Now approved in 7 indications including AD, asthma, CRSwNP, EoE, prurigo nodularis, COPD, and CSU. <a class="ct-link" href="https://clinicaltrials.gov/search?term=dupilumab+CSU+CATT" target="_blank" rel="noopener">CATT Ph3</a> (dupilumab in CSU) ongoing; next frontier is bispecific combinations pairing IL-4Rα with OX40L or TSLP to address refractory Type 2 disease.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-right:6px">TED</span><strong>🔵 Linsitinib (IGF1R) TED Ph3 (OPTIC)</strong> — Topline data H2 2026. First oral IGF1R inhibitor in TED. If positive, creates oral + injectable differentiation angle for next-gen IGF1R×TSHR bispecifics. Monitor alongside teprotumumab label expansion.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#065f46;margin-right:6px">TED</span><strong>🔵 <a class="ct-link" href="https://clinicaltrials.gov/search?term=linsitinib+thyroid+eye" target="_blank" rel="noopener">Linsitinib (IGF1R) TED Ph3 (OPTIC)</a></strong> — Topline data H2 2026. First oral IGF1R inhibitor in TED. If positive, creates oral + injectable differentiation angle for next-gen IGF1R×TSHR bispecifics. Monitor alongside <a class="ct-link" href="https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo=761229" target="_blank" rel="noopener">teprotumumab label expansion</a>.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-right:6px">AI</span><strong>🟢 Nipocalimab (J&J / FcRn) Ph3 programs</strong> — Positive Ph3 data in generalized MG, hemolytic disease of the fetus/newborn, and warm autoimmune hemolytic anemia. Expanding to IgG4-RD. Subcutaneous formulation in development — key differentiator vs IV-only rozanolixizumab. FDA PDUFA date watch 2026-2027.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#5b21b6;margin-right:6px">AI</span><strong>🟢 <a class="ct-link" href="https://clinicaltrials.gov/search?term=nipocalimab" target="_blank" rel="noopener">Nipocalimab (J&amp;J / FcRn) Ph3 programs</a></strong> — Positive Ph3 data in generalized MG, hemolytic disease of the fetus/newborn, and warm autoimmune hemolytic anemia. Expanding to IgG4-RD. Subcutaneous formulation in development — key differentiator vs IV-only rozanolixizumab. <a class="ct-link" href="https://www.fda.gov/patients/drug-development-process/step-3-clinical-research" target="_blank" rel="noopener">FDA PDUFA date</a> watch 2026–2027.
     </div>
     <div class="meridian-reader-item">
-      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong>🔵 HXN-1031 (Earendil/Sanofi) BCMA×CD19×CD3</strong> — Ph1/2 IND filed 2025. $1.845B deal (Apr 2025, $125M upfront). Most-watched asset in trispecific TCE space. Goal: deep, durable B-cell depletion as one-time immune reset for severe autoimmune. Watch Ph1 FIH initiation announcement.
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#991b1b;margin-right:6px">Immune Reset</span><strong>🔵 <a class="ct-link" href="https://clinicaltrials.gov/search?term=HXN-1031" target="_blank" rel="noopener">HXN-1031 (Earendil/Sanofi) BCMA×CD19×CD3</a></strong> — Ph1/2 IND filed 2025. <a class="ct-link" href="https://www.sanofi.com/en/media-room/press-releases/2025/2025-04-sanofi-earendil" target="_blank" rel="noopener">$1.845B deal (Apr 2025, $125M upfront)</a>. Most-watched asset in trispecific TCE space. Goal: deep, durable B-cell depletion as one-time immune reset for severe autoimmune. Watch Ph1 FIH initiation announcement.
     </div>
     <div style="margin-top:12px;padding:10px 12px;background:rgba(245,200,66,0.15);border-radius:6px;font-size:12px;color:#6b5a20;line-height:1.5">
       💡 <strong>Live updates active:</strong> This digest refreshes automatically at <strong>7 AM</strong> and <strong>7 PM</strong> daily via scheduled research. Use the "Submit Intelligence" button above to add breaking news between cycles.
@@ -775,51 +773,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         💡 <strong>How to learn effectively:</strong> Don't try to absorb all tabs at once. Each day, read the 6 concepts above (2 min each = 12 min total), then dive into <em>one</em> full tab for deeper context. Rotate through all 7 tabs over a week and you'll have working knowledge of every coverage area.
       </div>
     </div>
-  </div>
-
-  <!-- QUICK NAVIGATION -->
-  <div id="home-nav-buttons-anchor" style="margin:0 0 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;padding:0 2px">Quick Navigation</div>
-  <div class="home-nav" style="flex-wrap:wrap;gap:8px">
-    <button class="home-nav-btn" onclick="switchTabTo('tl1a')">
-      <div class="hn-label">IBD Coverage</div>
-      <div class="hn-title">TL1A × IL-23p19</div>
-      <div class="hn-sub">15 readouts · 7 pipeline assets</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('tslp')">
-      <div class="hn-label">Respiratory Coverage</div>
-      <div class="hn-title">TSLP × IL-33</div>
-      <div class="hn-sub">10 readouts · 3 pipeline assets</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('il4ra-tslp')">
-      <div class="hn-label">Type 2 Inflammation</div>
-      <div class="hn-title">IL-4Rα × TSLP</div>
-      <div class="hn-sub">Dupixent backbone · pH eng.</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('il4ra-ox40l')">
-      <div class="hn-label">Atopic Dermatitis</div>
-      <div class="hn-title">IL-4Rα × OX40L</div>
-      <div class="hn-sub">Refractory AD · T-cell reset</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('igf1r-tshr')">
-      <div class="hn-label">Thyroid Eye Disease</div>
-      <div class="hn-title">IGF1R × TSHR</div>
-      <div class="hn-sub">Orbital fibroblast dual blockade</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('fcrn')">
-      <div class="hn-label">Autoimmune</div>
-      <div class="hn-title">FcRn Bispecific</div>
-      <div class="hn-sub">Albumin VHH · IgG depletion</div>
-    </button>
-    <button class="home-nav-btn" onclick="switchTabTo('ace')">
-      <div class="hn-label">Immune Reset</div>
-      <div class="hn-title">BCMA × CD19 × CD3</div>
-      <div class="hn-sub">Trispecific TCE · Full B-cell clear</div>
-    </button>
-    <button class="home-nav-btn" onclick="toggleIntelPanel()">
-      <div class="hn-label">Intelligence Tool</div>
-      <div class="hn-title">Submit Update</div>
-      <div class="hn-sub">Auto cross-reference &amp; validate</div>
-    </button>
   </div>
 
   <!-- KEY UPCOMING CATALYSTS -->
@@ -2911,187 +2864,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
   <div class="footnote">Sources: Docs (1) CD19×BCMA×CD3 Ailux research brief, Müller et al. NEJM 2024 (CD19 CAR-T autoimmune), Bucci et al. Nature Medicine 2024 (blinatumomab RA), Alexander et al. NEJM 2024 (teclistamab SLE), Kali Therapeutics Phase 1a press release (Mar 18, 2026), Fierce Biotech (Excalipoint, Mar 2025). Data as of May 2026.</div>
 </div>
 
-<!-- ══════════════ TAB: MARKET & LEARNING ══════════════ -->
-<div class="tab-pane" id="tab-stocks">
-
-  <!-- Market Prediction Framework -->
-  <div class="meridian-reader" style="margin-bottom:20px">
-    <div class="meridian-reader-hd">📈 Market Signal Framework — How to Predict Moves Before They Happen</div>
-    <div class="meridian-reader-sub">The biotech market is not random. Clinical catalysts, deal precedents, and regulatory signals are learnable patterns. This section teaches you to read them.</div>
-  </div>
-
-  <!-- Collapsible prediction chapters -->
-  <div class="predict-card">
-    <div class="predict-hd" onclick="togglePredict('cat1')">
-      <span class="predict-hd-title">📋 Rule 1: How to Read a Phase 2 Readout Before the Market Does</span>
-      <span class="predict-toggle" id="cat1-toggle">▼</span>
-    </div>
-    <div class="predict-body" id="cat1-body">
-      <div class="predict-rule"><strong>The market prices in 60–70% of expected outcome by the day of readout.</strong> Most of the move happens in the weeks before — driven by conference abstracts, trial enrollment updates, and sell-side analyst previews. If you're waiting for the press release to trade, you're last.</div>
-      <div class="predict-rule"><strong>Read the design, not just the endpoint.</strong> A Phase 2 trial that uses a <em>composite estimand</em> will report higher remission rates than one using a <em>treatment policy estimand</em>. Duvakitug's 48% Ph2b remission (composite) may look very different in Ph3 under a pragmatic treatment policy design. Watch for this translation risk when evaluating readout expectations.</div>
-      <div class="predict-rule"><strong>Primary miss ≠ death.</strong> Afimkibart missed its Ph2b primary endpoint but Roche still advanced to Ph3. Why? Secondary endpoints were positive and biomarker-positive subgroups showed meaningful signal. When a drug misses primary but secondaries hold, watch for: (1) stock selloff on day of miss, (2) gradual recovery as analysts parse subgroup data, (3) re-rating when the company announces Ph3 plans with refined population. This is a common pattern in IBD and respiratory biologics.</div>
-      <div class="predict-rule"><strong>The p-value isn't everything — context is.</strong> A p=0.08 in a noisy indication like COPD with a positive directional trend and a validated biomarker subgroup (eos ≥150) can still advance. A p=0.04 in a clean UC trial with a weak effect size may not. Learn to read the full data package: magnitude of effect, biomarker enrichment, consistency across secondary endpoints, and estimand choice.</div>
-    </div>
-  </div>
-
-  <div class="predict-card">
-    <div class="predict-hd" onclick="togglePredict('cat2')">
-      <span class="predict-hd-title">💰 Rule 2: Deal Economics as a Signal — What Upfronts Tell You</span>
-      <span class="predict-toggle" id="cat2-toggle">▼</span>
-    </div>
-    <div class="predict-body" id="cat2-body">
-      <div class="predict-rule"><strong>Upfront as % of total = partner conviction.</strong> A $125M upfront on a $1.85B deal (Earendil/Sanofi) = 6.7%. A $75M upfront on a $1.07B deal (Qyuns/Roche) = 7.0%. These are preclinical assets — partners are paying real cash up front because the data package (preclinical efficacy, format, IP) is de-risked. Watch this ratio. If upfronts drop below 3-4% at preclinical stage in this class, sentiment is shifting.</div>
-      <div class="predict-rule"><strong>Deal velocity matters.</strong> Three TL1A×IL-23p19 deals in under 12 months (Earendil/Sanofi Apr 2025, Qyuns/Roche Oct 2025, Simcere/BI Jan 2026) signals a supply shortage of high-quality bispecific assets. When partners are racing each other, they overpay. The next deal in this class will likely set a new upfront record — watch for it.</div>
-      <div class="predict-rule"><strong>Who retains China rights tells you who has the leverage.</strong> Every major Chinese biotech in this space is retaining Greater China rights while licensing global ex-China. This is not a negotiating failure — it's a deliberate strategy that is working. If a Chinese company starts licensing global including China, it signals they either need cash urgently or the asset failed domestically.</div>
-      <div class="predict-rule"><strong>Stock impact of deals: upfront is what moves the stock.</strong> Biotech stock algorithms watch for the upfront payment announcement, not the total potential value. A $50M upfront is real money today; $900M in milestones is mostly hypothetical. The market discounts milestones at 80–90%. So when reading a deal announcement, mentally note the upfront and subtract 85% from the biobucks to get the market's likely reaction.</div>
-    </div>
-  </div>
-
-  <div class="predict-card">
-    <div class="predict-hd" onclick="togglePredict('cat3')">
-      <span class="predict-hd-title">🔬 Rule 3: Pipeline Catalysts That Move Adjacent Stocks</span>
-      <span class="predict-toggle" id="cat3-toggle">▼</span>
-    </div>
-    <div class="predict-body" id="cat3-body">
-      <div class="predict-rule"><strong>A positive readout in one drug lifts all ships in the class — briefly.</strong> When tulisokibart ATLAS-UC reads out (~Nov 2026), positive data will lift: Roche (afimkibart), Sanofi (duvakitug), and AstraZeneca broadly. It also validates the bispecific thesis and likely triggers a search for unlicensed bispecific assets. This is when deal velocity in bispecifics will accelerate.</div>
-      <div class="predict-rule"><strong>A Phase 3 failure re-prices the whole class downward.</strong> If ATLAS-UC misses, expect: (1) Sanofi/Teva stock to drop on duvakitug concerns despite better Ph2 data; (2) deal appetite for new TL1A assets to freeze for 3–6 months; (3) analyst rewrites on "TL1A class risk" that will unfairly tar bispecifics. This is when to be patient — the underlying science doesn't change and bispecifics may decouple from monospecifics in the narrative over 6–12 months.</div>
-      <div class="predict-rule"><strong>COPD is the 2026–2027 inflection point for respiratory.</strong> Four readouts coming: Tozorakimab OBERON/MIRANDA (H2 2026), itepekimab AERIFY confirmation data, Bosakitug asthma (H2 2026), tezepelumab SUNRISE COPD (2026–2027). Each positive result reinforces the alarmin pathway story and adds commercial urgency for bispecifics. If SUNRISE (tezepelumab in COPD) is positive, AstraZeneca will have a new $10B product — and it will set the bar that QX031N must beat.</div>
-    </div>
-  </div>
-
-  <div class="predict-card">
-    <div class="predict-hd" onclick="togglePredict('cat4')">
-      <span class="predict-hd-title">🎯 Rule 4: How to Evaluate a Chinese Biotech Asset for BD Potential</span>
-      <span class="predict-toggle" id="cat4-toggle">▼</span>
-    </div>
-    <div class="predict-body" id="cat4-body">
-      <div class="predict-rule"><strong>Look for the bispecific format advantage first.</strong> Monospecific anti-TL1A and anti-TSLP are already licensed or approved. A new Chinese entrant needs to be a bispecific or a long-acting format to command premium deal economics. If the asset is a straight monoAb competing with tezepelumab or tulisokibart, the deal value will be significantly lower.</div>
-      <div class="predict-rule"><strong>Phase 1 HV data is the first real gate.</strong> Before any serious BD conversation, partners want to see: (1) safety profile in humans, (2) PK confirming the expected half-life, (3) target engagement biomarkers (TSLP/IL-33 or TL1A suppression in serum). If a Chinese company doesn't have at least SAD/MAD Phase 1 data, they're in "optionality" territory — deals happen but at lower upfronts with higher milestone back-loading.</div>
-      <div class="predict-rule"><strong>The China-retains-global-licenses pattern has an expiration date.</strong> As more assets get licensed, the remaining unlicensed bispecifics will command higher premiums. The window for Chinese companies to transact at preclinical stage is probably 2–3 more years. After Phase 3 data starts reading out in IBD (2026–2027), partners will have real efficacy data to work with and will demand Ph2 proof-of-concept before paying bispecific premiums.</div>
-    </div>
-  </div>
-
-  <!-- Stocks watchlist -->
-  <div class="stock-section-header" style="margin-top:28px">📊 Pharma Watchlist — Key Companies &amp; Asset Connections</div>
-
-  <div class="stock-card">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">AstraZeneca</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">AZN · NYSE / LSE · Respiratory + Oncology focus</div>
-      </div>
-      <span class="stock-ticker-badge">AZN</span>
-    </div>
-    <div class="stock-body">
-      <div>
-        <div class="stock-col-title">Key Assets (Tracked)</div>
-        <div class="stock-text"><strong>Tezepelumab (Tezspire)</strong> — Approved severe asthma; SUNRISE Ph3 COPD readout 2026–2027 ($10B+ opportunity). <strong>Tozorakimab</strong> — anti-IL-33R (anti-ST2); OBERON/MIRANDA COPD Ph3 data H2 2026. Also in Heart Failure.</div>
-      </div>
-      <div>
-        <div class="stock-col-title">What to Watch</div>
-        <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>SUNRISE COPD:</strong> Positive tezepelumab COPD data would create a new blockbuster and validate TSLP as a COPD mechanism — transformative for AZN respiratory.</div></div>
-        <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>Tozorakimab COPD + HF:</strong> If both indications hit, AZ has a dual-label alarmin asset — unique in the space.</div></div>
-        <div class="stock-signal-row"><span class="sig-down">↓</span><div><strong>Risk:</strong> Both programs read out H2 2026 — a double miss in respiratory would pressure the respiratory franchise thesis.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stock-card">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">Sanofi</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">SNY · NASDAQ · Immunology + Dupixent franchise</div>
-      </div>
-      <span class="stock-ticker-badge">SNY</span>
-    </div>
-    <div class="stock-body">
-      <div>
-        <div class="stock-col-title">Key Assets (Tracked)</div>
-        <div class="stock-text"><strong>Duvakitug</strong> (with Teva) — Strongest Ph2b TL1A signal (48% remission). Ph3 STARSCAPE (UC) + SUNSCAPE (CD) enrolling. <strong>Itepekimab</strong> (Kevzara) (with Regeneron) — approved COPD (AERIFY positive). <strong>HXN-1003</strong> — TL1A×IL-23p19 bispecific from Earendil deal ($125M upfront, $1.85B total, Apr 2025).</div>
-      </div>
-      <div>
-        <div class="stock-col-title">What to Watch</div>
-        <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>Duvakitug Ph3 (2028):</strong> Potential best-in-class TL1A — positive would make Sanofi the dominant IBD biologic player alongside Dupixent.</div></div>
-        <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>Itepekimab COPD expansion:</strong> COPD label extends the Sanofi/Regeneron alarmin franchise into the largest respiratory market.</div></div>
-        <div class="stock-signal-row"><span class="sig-neutral">→</span><div><strong>HXN-1003:</strong> Pre-IND — won't read out until 2028+. Long tail optionality on the bispecific thesis.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stock-card watch">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">Roche / Genentech</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">RHHBY · OTC ADR · Diversified large-cap biopharma</div>
-      </div>
-      <span class="stock-ticker-badge">RHHBY</span>
-    </div>
-    <div class="stock-body">
-      <div>
-        <div class="stock-col-title">Key Assets (Tracked)</div>
-        <div class="stock-text"><strong>Afimkibart</strong> — TL1A mono (acquired via Telavant, $7.1B Dec 2023); Ph3 AMETRINE UC + SIBERITE CD despite Ph2b primary miss. <strong>QX031N</strong> (from Qyuns, $75M/$1.07B Oct 2025) — TSLP×IL-33 bispecific; FIH ~2027. <strong>Astegolimab</strong> — anti-ST2/IL-33R; Ph3 COPD + asthma.</div>
-      </div>
-      <div>
-        <div class="stock-col-title">What to Watch</div>
-        <div class="stock-signal-row"><span class="sig-neutral">→</span><div><strong>Afimkibart Ph3 (AMETRINE 2027):</strong> Controversial advancement — scrutiny on whether positive Ph3 overcomes Ph2 primary miss narrative.</div></div>
-        <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>Roche alarmin portfolio:</strong> If astegolimab + QX031N both deliver data, Roche will have the most complete alarmin blockade pipeline globally.</div></div>
-        <div class="stock-signal-row"><span class="sig-down">↓</span><div><strong>Risk:</strong> Roche paid ~$7.1B for afimkibart post Ph2 miss — if Ph3 fails, this is a significant write-down and will pressure BD team credibility.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stock-card">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">Merck &amp; Co.</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">MRK · NYSE · Keytruda-driven; expanding into immunology</div>
-      </div>
-      <span class="stock-ticker-badge">MRK</span>
-    </div>
-    <div class="stock-full">
-      <div class="stock-col-title">Key Assets (Tracked)</div>
-      <div class="stock-text" style="margin-bottom:10px"><strong>Tulisokibart</strong> — Ph3 ATLAS-UC (topline ~Nov 2026) + ARES-CD. First Ph3 TL1A readout in the class. Companion diagnostic (TNFSF15 haplotype) being co-developed — if validated, positions tulisokibart as a precision IBD biologic.</div>
-      <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>ATLAS-UC positive (~Nov 2026):</strong> First-in-class Ph3 TL1A approval would be a major pipeline win — Merck enters IBD with a blockbuster-potential biologic. Stock catalyst.</div></div>
-      <div class="stock-signal-row"><span class="sig-down">↓</span><div><strong>ATLAS-UC miss:</strong> First major Ph3 TL1A failure — would re-price the entire TL1A class downward; Merck stock impact likely modest (tulisokibart is not yet a core thesis) but class narrative impact is large.</div></div>
-      <div class="stock-signal-row"><span class="sig-neutral">→</span><div><strong>Companion Dx:</strong> TNFSF15 haplotype test adds regulatory complexity but could enable a narrower, cleaner label — watch for FDA feedback on companion Dx co-development strategy.</div></div>
-    </div>
-  </div>
-
-  <div class="stock-card caution">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">Teva Pharmaceutical</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">TEVA · NYSE · Generics + specialty biologics growth story</div>
-      </div>
-      <span class="stock-ticker-badge">TEVA</span>
-    </div>
-    <div class="stock-full">
-      <div class="stock-col-title">Key Asset (Tracked)</div>
-      <div class="stock-text" style="margin-bottom:10px"><strong>Duvakitug</strong> (co-developed with Sanofi) — Ph3 STARSCAPE (UC) and SUNSCAPE (CD). Teva bears shared development costs but has commercialization rights in certain territories. For Teva, duvakitug is a critical piece of their specialty biologic transition story — moving away from pure generics.</div>
-      <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>Duvakitug Ph3 positive (2028):</strong> Would validate Teva's biologics investment and provide a high-margin revenue stream to offset generics erosion.</div></div>
-      <div class="stock-signal-row"><span class="sig-down">↓</span><div><strong>Risk:</strong> Development cost sharing without full pipeline control. If Sanofi deprioritizes duvakitug for any reason, Teva has limited ability to influence the program.</div></div>
-    </div>
-  </div>
-
-  <div class="stock-card">
-    <div class="stock-hd">
-      <div>
-        <div class="stock-company">Regeneron Pharmaceuticals</div>
-        <div style="font-size:12px;opacity:0.65;margin-top:2px">REGN · NASDAQ · Dupixent + antibody platform powerhouse</div>
-      </div>
-      <span class="stock-ticker-badge">REGN</span>
-    </div>
-    <div class="stock-full">
-      <div class="stock-col-title">Context &amp; Connection</div>
-      <div class="stock-text" style="margin-bottom:10px">Regeneron co-develops itepekimab with Sanofi (positive AERIFY COPD Ph3). Dupilumab (Dupixent, IL-4Rα) has a COPD label (2024) and is the dominant respiratory biologic. REGN benefits if the alarmin space expands COPD biologic adoption generally — it de-risks the payer/prescriber pathway for all respiratory biologics including Dupixent. Watch REGN not just for itepekimab but as a proxy for whether the biologic COPD market is growing.</div>
-      <div class="stock-signal-row"><span class="sig-up">↑</span><div><strong>COPD biologic expansion:</strong> More positive alarmin data = larger addressable market for all respiratory biologics. REGN benefits as the category leader.</div></div>
-    </div>
-  </div>
-
-  <div class="footnote" style="margin-top:20px">This watchlist is for educational BD context only. Not investment advice. Company pipeline data from public sources as of May 2026. Stock analysis is directional and speculative — consult financial professionals for investment decisions.</div>
-
-</div>
-
 </div><!-- /content -->
 
 <!-- ══════════════ ASSET PROFILE MODAL ══════════════ -->
@@ -3459,7 +3231,6 @@ const TOC_MAP = {
   home: [
     {label:'Meridian Daily Reader', id:'meridian-reader-anchor'},
     {label:'Daily Learning Digest', id:'learning-anchor'},
-    {label:'Quick Navigation', id:'home-nav-anchor'},
     {label:'Key Catalysts', id:'home-catalysts-anchor'},
     {label:'Recent Deals', id:'home-deals-anchor'},
   ],
