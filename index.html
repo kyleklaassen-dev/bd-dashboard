@@ -1054,7 +1054,7 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
         </div>
         <div class="estimand-strategy es-composite">
           <div class="es-name"><span class="eb eb-composite">Composite</span></div>
-          <div class="es-def"><strong>Used for OCS reduction and steroid-sparing endpoints.</strong> If a patient escalates OCS (intercurrent event), it's incorporated into the composite outcome as treatment failure. Common for atopic dermatitis and severe asthma OCS tapering trials. Bispecific TSLP×IL-33 assets targeting COPD may encounter composite estimands when exacerbation-triggered hospitalization is incorporated into the primary outcome.</def>
+          <div class="es-def"><strong>Used for OCS reduction and steroid-sparing endpoints.</strong> If a patient escalates OCS (intercurrent event), it's incorporated into the composite outcome as treatment failure. Common for atopic dermatitis and severe asthma OCS tapering trials. Bispecific TSLP×IL-33 assets targeting COPD may encounter composite estimands when exacerbation-triggered hospitalization is incorporated into the primary outcome.</div>
         </div>
         <div class="estimand-strategy es-hypothetical">
           <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
@@ -1062,7 +1062,7 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
         </div>
         <div class="estimand-strategy es-while">
           <div class="es-name"><span class="eb eb-while">While on Treatment</span></div>
-          <div class="es-def"><strong>Annualized exacerbation rate while receiving study drug.</strong> Used in trials with planned treatment cessation or long wash-out periods. Underestimates benefit if exacerbation risk rebounds post-discontinuation (relevant for biologics with extended half-lives, like long-acting TSLP inhibitors). Qyuns' long-acting bispecific QX031N may require specific consideration here given its extended PK profile.</def>
+          <div class="es-def"><strong>Annualized exacerbation rate while receiving study drug.</strong> Used in trials with planned treatment cessation or long wash-out periods. Underestimates benefit if exacerbation risk rebounds post-discontinuation (relevant for biologics with extended half-lives, like long-acting TSLP inhibitors). Qyuns' long-acting bispecific QX031N may require specific consideration here given its extended PK profile.</div>
         </div>
       </div>
       <div class="estimand-warning">
@@ -1393,18 +1393,19 @@ function sf(cell) {
   return gridjs.html(`<span class="sb ${c}">${s}</span>`);
 }
 
-// Phase rank for custom sort (Pre-Ph1 / Pre-IND sort below Ph1, not above Ph3)
+// Phase rank for custom sort — handles both "Ph3" and "Phase 3" variants
+// Clinical development order: Approved(0) → Ph3(10) → Ph2b(20) → Ph2(30) → Ph1/2(35) → Ph1(40) → Pre-Ph1(50) → Pre-IND(60) → Preclinical(70)
 function phaseRank(s) {
   const v = String(s).trim();
-  if (v.includes('Approved'))                               return 0;
-  if (v.includes('Ph3'))                                    return 10;
-  if (v.includes('Ph2b') || v.includes('2b'))               return 20;
-  if (v.includes('Ph2'))                                    return 30;
-  if (v.includes('Ph1→Ph2') || v.includes('Ph1 / Ph2') || v.includes('Ph1/2')) return 35;
-  if (v.includes('Ph1'))                                    return 40;
-  if (v.includes('Pre-Ph1') || v.includes('Pre Ph1'))       return 50;
-  if (v.includes('Pre-IND') || v.includes('PreIND'))        return 60;
-  if (v.includes('Preclinical'))                            return 70;
+  if (v.includes('Approved'))                                               return 0;
+  if (v.includes('Ph3') || v.includes('Phase 3'))                          return 10;
+  if (v.includes('Ph2b') || v.includes('2b') || v.includes('Phase 2b'))    return 20;
+  if (v.includes('Ph2') || v.includes('Phase 2'))                          return 30;
+  if (v.includes('Ph1→Ph2') || v.includes('Ph1 / Ph2') || v.includes('Ph1/2') || v.includes('Phase 1/2')) return 35;
+  if (v.includes('Ph1') || v.includes('Phase 1'))                          return 40;
+  if (v.includes('Pre-P1') || v.includes('Pre-Ph1') || v.includes('Pre Ph1') || v.includes('Pre P1')) return 50;
+  if (v.includes('Pre-IND') || v.includes('PreIND') || v.includes('Pre IND')) return 60;
+  if (v.includes('Preclinical') || v.includes('Patent stage'))             return 70;
   return 80;
 }
 const phaseSort = { enabled: true, compare: (a, b) => phaseRank(a) - phaseRank(b) };
@@ -1459,7 +1460,7 @@ function initGrids(d) {
       {name:'Company',width:'130px'},
       {name:'Asset',width:'120px'},
       {name:'Format',width:'140px'},
-      {name:'Stage',width:'150px',formatter:sf},
+      {name:'Stage',width:'150px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'70px'},
       {name:'Licensee / Partner',width:'140px',formatter:dealPartnerFmt},
       {name:'Upfront',width:'110px'},
@@ -1475,7 +1476,7 @@ function initGrids(d) {
     columns:[
       {name:'Company',width:'125px'},
       {name:'Asset',width:'155px'},
-      {name:'Stage',width:'165px',formatter:sf},
+      {name:'Stage',width:'165px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'70px'},
       {name:'Estimand',width:'145px',formatter:ef},
       {name:'Notes',width:'340px'}
@@ -1517,7 +1518,7 @@ function initGrids(d) {
       {name:'Company',width:'150px'},
       {name:'Asset',width:'120px'},
       {name:'Format',width:'140px'},
-      {name:'Stage',width:'140px',formatter:sf},
+      {name:'Stage',width:'140px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'110px'},
       {name:'Licensee / Partner',width:'150px',formatter:dealPartnerFmt},
       {name:'Upfront',width:'85px'},
@@ -1533,7 +1534,7 @@ function initGrids(d) {
     columns:[
       {name:'Company',width:'155px'},
       {name:'Asset',width:'150px'},
-      {name:'Stage',width:'175px',formatter:sf},
+      {name:'Stage',width:'175px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'130px'},
       {name:'Estimand',width:'155px',formatter:ef},
       {name:'Notes',width:'290px'}
