@@ -931,42 +931,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
   </div>
 
-  <!-- INTELLIGENCE INTAKE PANEL -->
-  <div class="intel-intake-card" id="intel-intake-anchor">
-    <div class="intel-intake-hd">
-      <div>
-        <span style="font-size:15px;margin-right:8px">📋</span>
-        <strong>Intelligence Intake</strong>
-        <span style="font-size:12px;font-weight:500;color:#8a9bb0;margin-left:8px">— Drop a link or note and it saves to your dashboard</span>
-      </div>
-      <span class="iic-badge" id="iic-count-badge"></span>
-    </div>
-    <div class="intel-intake-body">
-      <div class="intel-intake-row">
-        <input type="url" class="intel-intake-url" id="intel-url" placeholder="Paste URL — article, press release, ClinicalTrials.gov, SEC filing, conference abstract…">
-        <select class="intel-intake-tag" id="intel-tag">
-          <option value="General">🏷 Tag area</option>
-          <option value="IBD">IBD · TL1A × IL-23</option>
-          <option value="Resp">Respiratory · TSLP × IL-33</option>
-          <option value="Type 2">Type 2 · IL-4Rα × TSLP</option>
-          <option value="AD">AD · IL-4Rα × OX40L</option>
-          <option value="TED">TED · IGF1R × TSHR</option>
-          <option value="AI">Autoimmune · FcRn</option>
-          <option value="Immune Reset">Immune Reset · ACE</option>
-          <option value="General">General</option>
-        </select>
-      </div>
-      <textarea class="intel-intake-text" id="intel-text" placeholder="Paste article text, key quote, or write a note — e.g. &quot;Linsitinib LIDS Ph3 enrollment started, source: Sling IR&quot;…" rows="3"></textarea>
-      <div class="intel-intake-actions">
-        <button class="intel-intake-btn" onclick="submitIntel()">📌 Save to Dashboard</button>
-        <button class="intel-intake-copy" onclick="copyIntelForClaude()">📋 Copy for Claude Analysis</button>
-        <button class="intel-intake-clear" onclick="clearIntelForm()">Clear</button>
-        <span class="intel-intake-hint">Saved automatically · Items persist across visits · Use Copy to get AI analysis</span>
-      </div>
-    </div>
-    <div class="intel-submissions" id="intel-submissions"></div>
-  </div>
-
   <!-- DAILY LEARNING DIGEST -->
   <div class="card" id="learning-anchor" style="margin:12px 0">
     <div class="card-hd" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ds-toggle').classList.toggle('open')">
@@ -3860,7 +3824,6 @@ document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); 
 const TOC_MAP = {
   home: [
     {label:'Meridian Daily Reader', id:'meridian-reader-anchor'},
-    {label:'Intelligence Intake', id:'intel-intake-anchor'},
     {label:'Daily Learning Digest', id:'learning-anchor'},
     {label:'Key Catalysts', id:'home-catalysts-anchor'},
     {label:'Recent Deals', id:'home-deals-anchor'},
