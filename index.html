@@ -604,10 +604,35 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 /* Search highlight */
 .search-hidden { display: none !important; }
 .search-highlight { background: #fef08a; border-radius: 2px; padding: 0 1px; }
+
+/* ── INTEL READ / MINIMIZE BUTTON ────────────────────────────── */
+.intel-read-btn { flex-shrink: 0; background: none; border: 1px solid #d0dbe8; border-radius: 5px; padding: 3px 9px; font-size: 10px; font-weight: 700; color: #8a9bb0; cursor: pointer; white-space: nowrap; transition: all 0.15s; align-self: flex-start; margin-top: 3px; font-family: inherit; }
+.intel-read-btn:hover { background: #f0f6ff; border-color: #2e6fb0; color: #2e6fb0; }
+.intel-item-read .intel-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; opacity: 0.55; }
+.intel-item-read .intel-read-btn { background: #e6f4ea; border-color: #2a7a47; color: #155724; }
+
+/* ── DEAL SPOTLIGHT COLLAPSIBLE ──────────────────────────────── */
+.deal-spotlight-hd { cursor: pointer; user-select: none; }
+.deal-spotlight-toggle { font-size: 13px; opacity: 0.8; transition: transform 0.2s; flex-shrink: 0; }
+.deal-spotlight-toggle.open { transform: rotate(180deg); }
+.deal-spotlight-body { display: none; }
+.deal-spotlight-body.open { display: block; }
+
+/* ── DEAL RANKING LIST (replaces bar chart) ──────────────────── */
+.deal-rank-list { padding: 10px 14px 6px; }
+.deal-rank-hdr { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #eef1f5; }
+.deal-rank-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eef1f5; }
+.deal-rank-item:last-child { border-bottom: none; }
+.deal-rank-num { min-width: 18px; font-size: 12px; font-weight: 900; color: #c0cdd8; margin-top: 1px; }
+.deal-rank-co { flex: 1; min-width: 0; }
+.deal-rank-name { font-size: 13px; font-weight: 700; color: #1a2f50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deal-rank-meta { font-size: 11px; color: #8a9bb0; margin-top: 2px; }
+.deal-rank-val { text-align: right; flex-shrink: 0; }
+.deal-rank-total { font-size: 14px; font-weight: 900; color: #c45b11; }
+.deal-rank-upfront { font-size: 11px; color: #5a7a9e; white-space: nowrap; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -775,26 +800,31 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-date-left">May 2026</div>
         <div class="intel-dot">🟡</div>
         <div class="intel-text"><strong>Tulisokibart (Merck) ATLAS-UC Ph3: topline expected ~Nov 2026 (Q4 2026)</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">NCT06052059</a> — First Ph3 data readout in the TL1A class. Ph2 ARTEMIS-UC: <span class="intel-val">26.5% remission vs 1.5% placebo</span> at Wk12 (composite estimand). Companion diagnostic (TNFSF15 genetic haplotype) creates precision medicine positioning that could enable a label with narrower but more reliable responder profile. All eyes on this readout.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">May 2026</div>
         <div class="intel-dot">🔵</div>
         <div class="intel-text"><strong>Xencor XmAb942 Ph1 HV final data at DDW May 2–5, 2026</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT06619990" target="_blank" rel="noopener">NCT06619990</a> — Extended half-life >71 days validated (vs ~21 days for standard IgG). XENITH-UC Ph2b readout expected year-end 2026. Xencor also presented XmAb412 (TL1A×IL-23p19 bispecific) preclinical data at DDW; FIH expected H2 2026. Xencor uniquely running both mono (Ph2b) and bispecific (pre-Ph1) in parallel.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Jan 2026</div>
         <div class="intel-dot">🔵</div>
         <div class="intel-text"><strong>Simcere SIM0709 / Boehringer Ingelheim deal closed: <span class="intel-val">€42M upfront / €1.05B total ($1.16B)</span></strong> <a class="intel-src" href="https://www.biospace.com/deals/boehringer-turns-to-china-in-1-26b-ibd-pact-with-simcere" target="_blank" rel="noopener">Source</a> — Pre-IND preclinical deal for TL1A×IL-23p19 bispecific. FIH dosing H1 2026. Sets the lower bound of preclinical deal precedent alongside Earendil/Sanofi ($125M upfront, Pre-IND). Chinese assets retaining all Greater China rights while licensing global ex-China continues to work. Third Chinese deal in the space in under 12 months.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Mar 2025</div>
         <div class="intel-dot">🟢</div>
         <div class="intel-text"><strong>Duvakitug (Sanofi/Teva) RELIEVE-UC Ph2b: <span class="intel-pos">48% clinical remission</span> at 900mg Wk14 vs 20% placebo</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT05544760" target="_blank" rel="noopener">Source</a> — highest TL1A efficacy signal reported to date. CD arm: 48% endoscopic response. Using composite estimand (rescue medication = failure). Ph3 <strong>STARSCAPE</strong> (UC) and <strong>SUNSCAPE</strong> (CD) now enrolling. Most commercially formidable asset given Sanofi's global infrastructure.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Oct 2023</div>
         <div class="intel-dot">🔴</div>
         <div class="intel-text"><strong>Afimkibart (Roche) TUSCANY-2 Ph2b: <span class="intel-warn">PRIMARY ENDPOINT MISSED</span></strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT05129150" target="_blank" rel="noopener">NCT05129150</a> — 24% UC remission vs 12% placebo at Wk14, not statistically significant. Secondary endpoints were positive; 43% clinical remission at Wk56 in biomarker-positive subgroup (open-label). Roche proceeded to Ph3 AMETRINE-1/-2 (UC) + SIBERITE-1/-2 (CD). Regulators and partners will scrutinize the reliance on secondary endpoints and open-label extension data. Acquired via Telavant ~$7.1B (Dec 2023).</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
@@ -829,27 +859,66 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
   <div class="two-col" id="tl1a-deal-anchor">
     <div class="card">
-      <div class="card-hd">🔍 Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span></div>
-      <div class="dl-grid">
-        <div class="dl-lbl">Deal</div>       <div class="dl-val" style="font-weight:700">Simcere → Boehringer Ingelheim</div>
-        <div class="dl-lbl">Asset</div>      <div class="dl-val">SIM0709 (TL1A/IL-23p19 bispecific IgG)</div>
-        <div class="dl-lbl">Stage</div>      <div class="dl-val">Preclinical (IND-enabling)</div>
-        <div class="dl-lbl">Territory</div>  <div class="dl-val">Global excluding Greater China</div>
-        <div class="dl-lbl">Upfront</div>    <div class="dl-val hi">€42M (~$46M)</div>
-        <div class="dl-lbl">Total</div>      <div class="dl-val hi">€1.058B (~$1.16B)</div>
-        <div class="dl-lbl">Royalties</div>  <div class="dl-val">Tiered on ex-Greater China net sales</div>
-        <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700">✓ Retained by Simcere</div>
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('tl1a-deal')">
+        🔍 Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span>
+        <span class="deal-spotlight-toggle open" id="tl1a-deal-toggle">▲</span>
       </div>
-      <div class="dl-note">💡 <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal — signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1A×IL-23p19 out-licensing at €42M upfront.</div>
+      <div class="deal-spotlight-body open" id="tl1a-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">Deal</div>       <div class="dl-val" style="font-weight:700">Simcere → Boehringer Ingelheim</div>
+          <div class="dl-lbl">Asset</div>      <div class="dl-val">SIM0709 (TL1A/IL-23p19 bispecific IgG)</div>
+          <div class="dl-lbl">Stage</div>      <div class="dl-val">Preclinical (IND-enabling)</div>
+          <div class="dl-lbl">Territory</div>  <div class="dl-val">Global excluding Greater China</div>
+          <div class="dl-lbl">Upfront</div>    <div class="dl-val hi">€42M (~$46M)</div>
+          <div class="dl-lbl">Total</div>      <div class="dl-val hi">€1.058B (~$1.16B)</div>
+          <div class="dl-lbl">Royalties</div>  <div class="dl-val">Tiered on ex-Greater China net sales</div>
+          <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700">✓ Retained by Simcere</div>
+        </div>
+        <div class="dl-note">💡 <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal — signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1A×IL-23p19 out-licensing at €42M upfront.</div>
+      </div>
     </div>
     <div class="card">
       <div class="chart-collapse-hd" onclick="toggleChartCollapse('tl1a-chart')">
-        <span class="chart-collapse-title">📊 Deal Value Comparison (Total Potential)</span>
+        <span class="chart-collapse-title">📊 TL1A × IL-23p19 Deals by Total Value</span>
         <span class="chart-collapse-toggle open" id="tl1a-chart-toggle">▲</span>
       </div>
       <div class="chart-collapse-body open" id="tl1a-chart-body">
-        <div class="chart-title">USD Billions · TL1A × IL-23p19 bispecific deals</div>
-        <canvas id="chartTL1A" style="max-height:195px"></canvas>
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">Ranked by total potential value (USD equiv.)</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#1</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Earendil Labs → Sanofi</div>
+              <div class="deal-rank-meta">Apr 2025 · Pre-IND bispecific · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">$1.845B</div>
+              <div class="deal-rank-upfront">$125M upfront</div>
+            </div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#2</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Simcere → Boehringer Ingelheim</div>
+              <div class="deal-rank-meta">Jan 2026 · Pre-IND bispecific · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">~$1.16B</div>
+              <div class="deal-rank-upfront">€42M upfront</div>
+            </div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#3</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Qyuns → Caldera</div>
+              <div class="deal-rank-meta">Apr 2025 · Pre-IND bispecific · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">$545M</div>
+              <div class="deal-rank-upfront">Undisclosed upfront</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -937,6 +1006,10 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
   <div class="sec-hd" id="tl1a-mono-anchor"><span class="sec-title">TL1A Monotherapy Context (Clinical De-risking)</span><div class="sec-line"></div><span class="sec-tag g">Validates bispecific thesis</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tl1a-mono"></div></div>
+  <div class="note-panel" id="note-panel-tl1a-mono">
+    <div class="note-panel-label">📋 Trial Notes</div>
+    <div id="note-panel-body-tl1a-mono"></div>
+  </div>
 
   <!-- TECHNICAL COMPETITOR COMPARISON -->
   <div class="sec-hd" id="tl1a-tech-anchor"><span class="sec-title">Bispecific Technical Deep-Dive</span><div class="sec-line"></div><span class="sec-tag">Mechanism · Format · Differentiators</span></div>
@@ -1420,26 +1493,31 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="intel-date-left">May 2026</div>
         <div class="intel-dot">🟢</div>
         <div class="intel-text"><strong>Windward Bio raises <span class="intel-pos">$165M crossover round</span></strong> <a class="intel-src" href="https://www.biopharmadive.com/news/windward-bio-raises-tslp-asthma/745616/" target="_blank" rel="noopener">Source</a> — Advances HBM9378/SKB378 (anti-TSLP monoAb, Harbour+Kelun) and WIN027 (TSLP×IL-13 bispecific, from Qyuns $700M deal Dec 2025). Windward now holds a complete TSLP franchise: one monoAb (Ph2 exacerbation data H2 2026) and one bispecific (Ph1). Novo Holdings-backed; strong institutional signal on TSLP asset conviction.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">May 2026</div>
         <div class="intel-dot">🟡</div>
         <div class="intel-text"><strong>Tozorakimab (AZ) OBERON/MIRANDA COPD Ph3 topline expected H2 2026</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT06040086" target="_blank" rel="noopener">NCT06040086</a> — Anti-IL-33R (anti-ST2). If positive, will further validate alarmin pathway in COPD and intensify partner interest in TSLP-targeting combination strategies. Also being studied in Heart Failure (HF), adding a cardiovascular angle unique in this space. Results will directly inform bispecific trial design assumptions.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Oct 2025</div>
         <div class="intel-dot">🟢</div>
         <div class="intel-text"><strong>Qyuns/Roche QX031N deal: <span class="intel-val">$75M upfront / $1.07B total</span></strong> <a class="intel-src" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">Source</a> — TSLP×IL-33 bispecific licensed to Roche at preclinical stage. Roche already has astegolimab (anti-ST2/IL-33R) in Ph3 asthma + COPD, meaning QX031N completes their alarmin blockade franchise. This deal sets the precedent for early-stage TSLP×IL-33 bispecific valuation. FIH ~2027.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Apr 2025</div>
         <div class="intel-dot">🟢</div>
         <div class="intel-text"><strong>Itepekimab (Regeneron/Sanofi) AERIFY Ph3 COPD: <span class="intel-pos">POSITIVE</span> — ~25% AECOPD reduction vs placebo in ex-smokers (eos ≥150 cells/μL)</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT04701983" target="_blank" rel="noopener">NCT04701983</a> — First anti-IL-33 biologic approved in COPD. Opens the COPD biologic market to the alarmin-targeting pathway. Direct strategic relevance for TSLP×IL-33 bispecifics: partners will now ask how QX031N and HXN-1003 differentiate from approved itepekimab, and the combined TSLP+IL-33 blockade argument gains urgency.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left">Nov 2024</div>
         <div class="intel-dot">🔵</div>
         <div class="intel-text"><strong>Bosakitug (Biosion/Aclaris) Ph2 asthma: H2 2026 data readout</strong> — Long-acting anti-TSLP monoAb; $40M upfront, >$900M total deal. Ph2 data will be the first head-to-head proxy for how a long-acting anti-TSLP compares vs. tezepelumab standard dosing. Biosion also has BSI-502 (TSLP×IL-4R bispecific) in Ph1 — dual TSLP franchise similar to Windward's approach.</div>
+        <button class="intel-read-btn" onclick="markIntelRead(this)">✓ Read</button>
       </div>
       <div class="intel-item">
         <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
@@ -1474,27 +1552,77 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
   <div class="two-col" id="tslp-deal-anchor">
     <div class="card">
-      <div class="card-hd">🔍 Deal Spotlight: TSLP × IL-33 Anchor Deal <span class="tag">Oct 2025</span></div>
-      <div class="dl-grid">
-        <div class="dl-lbl">Deal</div>        <div class="dl-val" style="font-weight:700">Qyuns Therapeutics → Roche</div>
-        <div class="dl-lbl">Asset</div>       <div class="dl-val">QX031N (TSLP × IL-33 long-acting bispecific)</div>
-        <div class="dl-lbl">Stage</div>       <div class="dl-val">Preclinical at signing</div>
-        <div class="dl-lbl">Territory</div>   <div class="dl-val">Global (dev, registration, manufacturing, commercial)</div>
-        <div class="dl-lbl">Upfront</div>     <div class="dl-val hi">$75M</div>
-        <div class="dl-lbl">Total</div>       <div class="dl-val hi">Up to $1.07B</div>
-        <div class="dl-lbl">Royalties</div>   <div class="dl-val">Tiered on product sales</div>
-        <div class="dl-lbl">Indications</div> <div class="dl-val">COPD, Asthma ("best-in-disease" goal)</div>
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('tslp-deal')">
+        🔍 Deal Spotlight: TSLP × IL-33 Anchor Deal <span class="tag">Oct 2025</span>
+        <span class="deal-spotlight-toggle open" id="tslp-deal-toggle">▲</span>
       </div>
-      <div class="dl-note">💡 <strong>Strategic read:</strong> Roche already holds astegolimab (anti-ST2/IL-33R) and astegolimab Phase 3 data. QX031N adds dual TSLP+IL-33 upstream blockade to Roche's IL-33 franchise — a hedge across the pathway. Qyuns has now completed 3 major out-licensing deals across different bispecific targets, establishing itself as China's most prolific bispecific out-licensor.</div>
+      <div class="deal-spotlight-body open" id="tslp-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">Deal</div>        <div class="dl-val" style="font-weight:700">Qyuns Therapeutics → Roche</div>
+          <div class="dl-lbl">Asset</div>       <div class="dl-val">QX031N (TSLP × IL-33 long-acting bispecific)</div>
+          <div class="dl-lbl">Stage</div>       <div class="dl-val">Preclinical at signing</div>
+          <div class="dl-lbl">Territory</div>   <div class="dl-val">Global (dev, registration, manufacturing, commercial)</div>
+          <div class="dl-lbl">Upfront</div>     <div class="dl-val hi">$75M</div>
+          <div class="dl-lbl">Total</div>       <div class="dl-val hi">Up to $1.07B</div>
+          <div class="dl-lbl">Royalties</div>   <div class="dl-val">Tiered on product sales</div>
+          <div class="dl-lbl">Indications</div> <div class="dl-val">COPD, Asthma ("best-in-disease" goal)</div>
+        </div>
+        <div class="dl-note">💡 <strong>Strategic read:</strong> Roche already holds astegolimab (anti-ST2/IL-33R) and astegolimab Phase 3 data. QX031N adds dual TSLP+IL-33 upstream blockade to Roche's IL-33 franchise — a hedge across the pathway. Qyuns has now completed 3 major out-licensing deals across different bispecific targets, establishing itself as China's most prolific bispecific out-licensor.</div>
+      </div>
     </div>
     <div class="card">
       <div class="chart-collapse-hd" onclick="toggleChartCollapse('tslp-chart')">
-        <span class="chart-collapse-title">📊 TSLP Deal Landscape (Total Potential)</span>
+        <span class="chart-collapse-title">📊 TSLP Deals by Total Value</span>
         <span class="chart-collapse-toggle open" id="tslp-chart-toggle">▲</span>
       </div>
       <div class="chart-collapse-body open" id="tslp-chart-body">
-        <div class="chart-title">USD Billions · TSLP-related deals (bispecific + monotherapy)</div>
-        <canvas id="chartTSLP" style="max-height:195px"></canvas>
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">Ranked by total potential value (USD)</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#1</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Qyuns → Roche (QX031N)</div>
+              <div class="deal-rank-meta">Oct 2025 · TSLP×IL-33 bispecific · Global</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">$1.07B</div>
+              <div class="deal-rank-upfront">$75M upfront</div>
+            </div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#2</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Harbour+Kelun → Windward</div>
+              <div class="deal-rank-meta">2024 · Anti-TSLP monoAb · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">~$970M</div>
+              <div class="deal-rank-upfront">Undisclosed upfront</div>
+            </div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#3</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Biosion → Aclaris (Bosakitug)</div>
+              <div class="deal-rank-meta">Nov 2024 · Anti-TSLP monoAb · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">&gt;$900M</div>
+              <div class="deal-rank-upfront">$40M upfront</div>
+            </div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">#4</div>
+            <div class="deal-rank-co">
+              <div class="deal-rank-name">Qyuns → Windward (WIN027)</div>
+              <div class="deal-rank-meta">Dec 2025 · TSLP×IL-13 bispecific · Global ex-China</div>
+            </div>
+            <div class="deal-rank-val">
+              <div class="deal-rank-total">$700M</div>
+              <div class="deal-rank-upfront">Undisclosed upfront</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1553,6 +1681,10 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
   <div class="sec-hd" id="tslp-mono-anchor"><span class="sec-title">TSLP / IL-33 Monotherapy Context</span><div class="sec-line"></div><span class="sec-tag g">2 approved · Clinical validation</span><span class="sec-tag r" style="margin-left:4px">Estimand column active</span></div>
   <div class="card" style="overflow:hidden"><div id="grid-tslp-mono"></div></div>
+  <div class="note-panel" id="note-panel-tslp-mono">
+    <div class="note-panel-label">📋 Trial Notes</div>
+    <div id="note-panel-body-tslp-mono"></div>
+  </div>
 
   <div class="sec-hd"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">5+ Chinese Programs</span></div>
   <div class="china-grid">
@@ -2182,6 +2314,28 @@ function phaseRank(s) {
 }
 const phaseSort = { enabled: true, compare: (a, b) => phaseRank(a) - phaseRank(b) };
 
+// Date sort for Primary Completion column
+function parseDateKey(str) {
+  if (!str) return 999999;
+  const s = String(str).trim();
+  if (/^(tbd|—|-|n\/a)$/i.test(s)) return 999999;
+  const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  // "Nov 2026"
+  const mY = s.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/);
+  if (mY) return parseInt(mY[2]) * 100 + months[mY[1]];
+  // "Q1 2026"
+  const qY = s.match(/^Q([1-4])\s+(\d{4})$/);
+  if (qY) return parseInt(qY[2]) * 100 + [1,4,7,10][parseInt(qY[1])-1];
+  // "H1 2026"
+  const hY = s.match(/^H([12])\s+(\d{4})$/);
+  if (hY) return parseInt(hY[2]) * 100 + (parseInt(hY[1]) === 1 ? 1 : 7);
+  // "2027" bare year
+  const yOnly = s.match(/^(\d{4})$/);
+  if (yOnly) return parseInt(yOnly[1]) * 100;
+  return 999999;
+}
+const dateSort = { enabled: true, compare: (a, b) => parseDateKey(a) - parseDateKey(b) };
+
 // Readout program link formatter (uses hidden 7th column for URL)
 function readoutProgFmt(cell, row) {
   const url = row.cells[6] && row.cells[6].data;
@@ -2221,7 +2375,7 @@ function initGrids(d) {
       {name:'Phase',width:'72px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'230px'},
       {name:'Indication',width:'110px'},
-      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a','${esc}',this)">▼ Notes</button>`);}}
     ],
@@ -2253,7 +2407,7 @@ function initGrids(d) {
       {name:'Stage',width:'165px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'70px'},
       {name:'Estimand',width:'145px',formatter:ef},
-      {name:'Notes',width:'340px'}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a-mono','${esc}',this)">▼ Notes</button>`);}}
     ],
     data:d.tl1aMono, sort:true
   }).render(document.getElementById('grid-tl1a-mono'));
@@ -2280,7 +2434,7 @@ function initGrids(d) {
       {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
       {name:'Expected Timing',width:'240px'},
       {name:'Indication',width:'130px'},
-      {name:'Primary Completion',width:'155px',formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+      {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[6]&&row.cells[6].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
       {name:'_url',hidden:true},
       {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
     ],
@@ -2312,34 +2466,27 @@ function initGrids(d) {
       {name:'Stage',width:'175px',formatter:sf,sort:phaseSort},
       {name:'Indication',width:'130px'},
       {name:'Estimand',width:'155px',formatter:ef},
-      {name:'Notes',width:'290px'}
+      {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp-mono','${esc}',this)">▼ Notes</button>`);}}
     ],
     data:d.tslpMono, sort:true
   }).render(document.getElementById('grid-tslp-mono'));
 }
 
-// ── CHARTS ────────────────────────────────────────────────────────
-function initCharts() {
-  const chartOpts = (extraY) => ({
-    responsive:true,
-    plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>`$${c.raw.toFixed(2)}B total potential` } } },
-    scales:{
-      y:{ beginAtZero:true, ticks:{ callback:v=>`$${v}B`, font:{size:12} }, grid:{color:'#eef1f5'}, ...(extraY||{}) },
-      x:{ ticks:{font:{size:11}}, grid:{display:false} }
-    }
-  });
-  new Chart(document.getElementById('chartTL1A'), {
-    type:'bar',
-    data:{ labels:['Simcere→BI\n(Jan 2026)','Earendil→Sanofi\n(Apr 2025)','Qyuns→Caldera\n(Apr 2025)'],
-           datasets:[{ label:'Total potential (USD equiv.)', data:[1.16,1.845,0.545], backgroundColor:['#2e6fb0','#c45b11','#5a9fd4'], borderRadius:5, borderSkipped:false }] },
-    options: chartOpts()
-  });
-  new Chart(document.getElementById('chartTSLP'), {
-    type:'bar',
-    data:{ labels:['Biosion→Aclaris\n(Nov 2024)','Harbour+Kelun\n→Windward','Qyuns→Windward\n(TSLP×IL-13)','Qyuns→Roche\n(TSLP×IL-33)'],
-           datasets:[{ label:'Total potential (USD)', data:[0.90,0.97,0.70,1.07], backgroundColor:['#5a9fd4','#5a9fd4','#2e6fb0','#c45b11'], borderRadius:5, borderSkipped:false }] },
-    options: chartOpts()
-  });
+// ── DEAL SPOTLIGHT TOGGLE ─────────────────────────────────────────
+function toggleDealSpotlight(id) {
+  const body   = document.getElementById(id + '-body');
+  const toggle = document.getElementById(id + '-toggle');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (toggle) toggle.classList.toggle('open');
+}
+
+// ── INTEL ITEM READ / MINIMIZE ────────────────────────────────────
+function markIntelRead(btn) {
+  const item = btn.closest('.intel-item');
+  if (!item) return;
+  const isRead = item.classList.toggle('intel-item-read');
+  btn.textContent = isRead ? '↩ Expand' : '✓ Read';
 }
 
 // ── READOUT CATEGORY BADGE ────────────────────────────────────────
@@ -2886,7 +3033,7 @@ window.addEventListener('load', () => {
   // Set last updated timestamp
   setLastUpdated();
   // Load data and init grids
-  loadData().then(d => { window._dashData = d; initGrids(d); initCharts(); });
+  loadData().then(d => { window._dashData = d; initGrids(d); });
 });
 </script>
 </body>
