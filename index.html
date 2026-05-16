@@ -2279,6 +2279,14 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     </div>
   </div>
 
+  <div class="sec-hd" id="il4ra-tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-il4ra-tslp-readouts"></div></div>
+  <div class="note-panel" id="note-panel-il4ra-tslp"><div class="note-panel-label">📋 Trial Notes</div><div id="note-panel-body-il4ra-tslp"></div></div>
+
+  <div class="sec-hd" id="il4ra-tslp-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-il4ra-tslp-landscape"></div></div>
+  <div class="note-panel" id="note-panel-il4ra-tslp-landscape"><div class="note-panel-label">📋 Efficacy Notes</div><div id="note-panel-body-il4ra-tslp-landscape"></div></div>
+
   <div class="footnote">Sources: Sanofi Q4 2024 earnings (dupilumab revenue), AstraZeneca press releases (tezepelumab DESTINATION), Wedbush Securities SWOT analysis (Type 2 I&I, 2025), Apogee Biosciences presentations (APG279), Docs (3) Ailux research brief. Data as of May 2026.</div>
 </div>
 
@@ -2335,11 +2343,62 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     </div>
   </div>
 
-  <div class="stat-row">
+  <div class="stat-row" id="il4ra-ox40l-stats-anchor">
     <div class="stat-card"><div class="s-label">OX40L Approvals</div><div class="s-val">1 Near</div><div class="s-sub">Amlitelimab BLA under review</div></div>
     <div class="stat-card o"><div class="s-label">Dosing Advantage</div><div class="s-val">Q12W+</div><div class="s-sub">Target vs. dupilumab Q2W</div></div>
     <div class="stat-card g"><div class="s-label">Validated Combos</div><div class="s-val">3+</div><div class="s-sub">OX40L+IL-4Rα programs in clinic</div></div>
     <div class="stat-card p"><div class="s-label">Key Diseases</div><div class="s-val">AD · PN</div><div class="s-sub">Atopic derm, prurigo nodularis</div></div>
+  </div>
+
+  <div class="two-col" id="il4ra-ox40l-deal-anchor">
+    <div class="card">
+      <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('il4ra-ox40l-deal')">
+        🔬 Mechanism Spotlight: OX40L + IL-4Rα Dual Blockade <span class="tag">Preclinical</span>
+        <span class="deal-spotlight-toggle open" id="il4ra-ox40l-deal-toggle">▲</span>
+      </div>
+      <div class="deal-spotlight-body open" id="il4ra-ox40l-deal-body">
+        <div class="dl-grid">
+          <div class="dl-lbl">OX40L Arm</div><div class="dl-val" style="font-weight:700">Blocks T-cell costimulation → reduces Th2 memory cell priming &amp; survival</div>
+          <div class="dl-lbl">IL-4Rα Arm</div><div class="dl-val">pH-engineered — releases antigen at pH 5.5 → reduced TMDD → extended half-life</div>
+          <div class="dl-lbl">Combined Effect</div><div class="dl-val hi">Inhibit active cytokines (IL-4Rα) + prevent memory Th2 replenishment (OX40L)</div>
+          <div class="dl-lbl">Target Patient</div><div class="dl-val">Inadequate dupilumab responders (~15–20% of AD Ph3 patients)</div>
+          <div class="dl-lbl">Dosing Target</div><div class="dl-val">Q8–12W (pH engineering + OX40L combined PK advantage)</div>
+          <div class="dl-lbl">Safety</div><div class="dl-val" style="color:#2a7a47;font-weight:700">OX40L (ligand) not OX40 (receptor) — avoids Kaposi's signal of rocatinlimab</div>
+        </div>
+        <div class="dl-note">💡 <strong>BD read:</strong> Amlitelimab (BLA filed) validates OX40L at a Q12W schedule. Ailux adds pH-engineered IL-4Rα blockade — the combination addresses both acute cytokine signaling AND upstream T-cell memory replenishment in one molecule with potentially equivalent or longer dosing interval. Partner pays for the platform, not just the AD indication.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chart-collapse-hd" onclick="toggleChartCollapse('ox40l-chart')">
+        <span class="chart-collapse-title">📊 OX40L / IL-4Rα Program Landscape</span>
+        <span class="chart-collapse-toggle open" id="ox40l-chart-toggle">▲</span>
+      </div>
+      <div class="chart-collapse-body open" id="ox40l-chart-body">
+        <div class="deal-rank-list">
+          <div class="deal-rank-hdr">OX40/OX40L and IL-4Rα×OX40L programs — ranked by stage</div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">BLA</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Amlitelimab (Sanofi) — anti-OX40L</div><div class="deal-rank-meta">BLA under FDA review · Q12W · Ph3 ADHERE ~47% IGA 0/1</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">OX40L only</div><div class="deal-rank-upfront">No IL-4Rα arm</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph3</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">Rocatinlimab (Pfizer) — anti-OX40</div><div class="deal-rank-meta">ORIGIN Ph3 · Kaposi's sarcoma signal · OX40 receptor (vs. ligand)</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">OX40 only</div><div class="deal-rank-upfront">Safety risk</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph2</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">APG279 (Apogee) — OX40L+IL-4Rα/IL-13</div><div class="deal-rank-meta">Ph2 positive AD · Trispecific · No pH engineering</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Combo validated</div><div class="deal-rank-upfront">No half-life ext.</div></div>
+          </div>
+          <div class="deal-rank-item">
+            <div class="deal-rank-num">Ph1</div>
+            <div class="deal-rank-co"><div class="deal-rank-name">BEL536 (Bellen Bio) — IL-4Rα × OX40L</div><div class="deal-rank-meta">Bispecific · Phase 1 · Standard IgG scaffold</div></div>
+            <div class="deal-rank-val"><div class="deal-rank-total">Same format</div><div class="deal-rank-upfront">No pH eng.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="ailux-card" id="il4ra-ox40l-ailux-anchor">
@@ -2353,6 +2412,30 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       <div class="ailux-diff"><div class="ad-label">Post-Dupixent</div><div class="ad-val">Different Mechanism</div><div class="ad-sub">Patients with inadequate dupilumab response (15–20% in trials) represent the primary target. OX40L component addresses T-cell priming that IL-4Rα alone cannot block.</div></div>
     </div>
   </div>
+
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-il4ra-ox40l')">
+      <div class="estimand-hd-left"><div><div class="estimand-hd-title">🧬 OX40/OX40L Biology — T-Cell Costimulation &amp; Th2 Memory in Type 2 Disease</div><div class="estimand-hd-sub">Why blocking OX40L addresses what dupilumab cannot — the memory Th2 cell problem</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="estimand-hd-badge">Disease Education</span><span class="estimand-toggle" id="toggle-est-il4ra-ox40l">▼</span></div>
+    </div>
+    <div class="estimand-body" id="est-il4ra-ox40l">
+      <div class="estimand-intro">In Type 2 inflammatory diseases like atopic dermatitis, the disease is not just driven by active cytokines — it is <em>maintained</em> by long-lived memory Th2 cells that are continuously primed and expanded through costimulatory signaling. <strong>OX40</strong> is expressed on activated T cells (particularly Th2); <strong>OX40L</strong> is expressed on antigen-presenting cells, mast cells, and DCs. The OX40–OX40L interaction provides a survival and proliferation signal to Th2 memory cells. Blocking this interaction (with an anti-OX40L antibody) does not just reduce acute inflammation — it interrupts the machinery that creates and maintains immunological memory driving chronic relapsing disease. Dupilumab blocks IL-4Rα (the cytokine effectors IL-4 and IL-13) but does not address OX40L-mediated Th2 memory cell persistence — which is why some patients relapse off dupilumab and why others never achieve full clearance.</div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite"><div class="es-name">OX40L</div><div class="es-def">Expressed on APCs, mast cells, DCs. Binds OX40 on T cells → survival signal for Th2 memory cells. Blocking OX40L prevents Th2 memory amplification — addresses the chronic, relapsing nature of AD that cytokine blockade alone cannot fully control.</div></div>
+        <div class="estimand-strategy es-policy"><div class="es-name">IL-4Rα</div><div class="es-def">Shared receptor for IL-4 and IL-13 — the dominant effector cytokines in AD. Dupilumab blocks here. Reduces inflammation but does not prevent memory Th2 replenishment. pH-engineering in Ailux's backbone addresses the TMDD limitation and extends effective half-life.</div></div>
+        <div class="estimand-strategy es-hypothetical"><div class="es-name">Dual Block</div><div class="es-def">IL-4Rα×OX40L: simultaneously blocks active cytokine signaling (IL-4Rα) + T-cell memory priming and survival (OX40L). Two independent mechanisms. Target: patients with inadequate response to dupilumab alone (~15–20% of Ph3 patients).</div></div>
+        <div class="estimand-strategy es-while"><div class="es-name">pH Engineering</div><div class="es-def">Ailux's IL-4Rα arm releases antigen in endosome at pH 5.5 → reduced TMDD → extended effective PK. Combined with OX40L blockade (amlitelimab validates Q12W for OX40L alone), target dosing: Q8–12W. Superior to both dupilumab Q2W and amlitelimab Q12W if combination efficacy is additive.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd" id="il4ra-ox40l-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-il4ra-ox40l-readouts"></div></div>
+  <div class="note-panel" id="note-panel-il4ra-ox40l"><div class="note-panel-label">📋 Trial Notes</div><div id="note-panel-body-il4ra-ox40l"></div></div>
+
+  <div class="sec-hd" id="il4ra-ox40l-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-il4ra-ox40l-landscape"></div></div>
+  <div class="note-panel" id="note-panel-il4ra-ox40l-landscape"><div class="note-panel-label">📋 Efficacy Notes</div><div id="note-panel-body-il4ra-ox40l-landscape"></div></div>
 
   <div class="footnote">Sources: Sanofi amlitelimab Phase 3 ADHERE results, Pfizer ORIGIN rocatinlimab data, Apogee Biosciences (APG279), Wedbush Securities Type 2 I&I SWOT analysis 2025, Docs (3) Ailux research brief. Data as of May 2026.</div>
 </div>
@@ -2479,6 +2562,30 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       <div class="ailux-diff"><div class="ad-label">Market Validated</div><div class="ad-val">$28B Precedent</div><div class="ad-sub">Amgen's $28B acquisition of Horizon Therapeutics (Oct 2023) was primarily justified by Tepezza. This establishes TED as a bankable franchise. Next-gen with better profile deserves premium deal consideration.</div></div>
     </div>
   </div>
+
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-igf1r-tshr')">
+      <div class="estimand-hd-left"><div><div class="estimand-hd-title">🧬 TED Pathophysiology — IGF1R–TSHR Cross-Talk on Orbital Fibroblasts</div><div class="estimand-hd-sub">Why teprotumumab works, why it's incomplete, and why dual receptor blockade is the rational next step</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="estimand-hd-badge">Disease Education</span><span class="estimand-toggle" id="toggle-est-igf1r-tshr">▼</span></div>
+    </div>
+    <div class="estimand-body" id="est-igf1r-tshr">
+      <div class="estimand-intro">Thyroid Eye Disease (TED) is an autoimmune orbital disorder occurring primarily in patients with Graves' disease. The disease driver is <strong>TSH receptor autoantibodies (TRAbs)</strong> which stimulate the TSHR on orbital fibroblasts. Critically, TSHR and IGF-1R exist in a physical receptor complex on these fibroblasts — TRAb stimulation of TSHR leads to transactivation of IGF-1R, triggering fibroblast proliferation, glycosaminoglycan (GAG) deposition, and the clinical features of TED (proptosis, diplopia, periorbital inflammation, compressive optic neuropathy). <strong>Teprotumumab</strong> proved that blocking IGF-1R alone achieves dramatic clinical benefit, but the TSHR continues to signal through alternative pathways — explaining the ~40% relapse rate. Dual blockade of both IGF-1R and TSHR severs both arms of the co-receptor complex simultaneously.</div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite"><div class="es-name">TSHR</div><div class="es-def">TSH Receptor — expressed on orbital fibroblasts. Bound by TRAbs (pathologic IgG autoantibodies) in Graves' disease. TSHR stimulation initiates the fibroblast activation cascade. Continues to signal even when IGF-1R is blocked by teprotumumab.</div></div>
+        <div class="estimand-strategy es-policy"><div class="es-name">IGF-1R</div><div class="es-def">Insulin-like Growth Factor Receptor — co-expressed with TSHR on orbital fibroblasts. TRAb stimulation of TSHR transactivates IGF-1R independently of IGF-1 ligand. Teprotumumab blocks this arm → dramatic proptosis reduction (83% responders). But TSHR pathway remains open.</div></div>
+        <div class="estimand-strategy es-hypothetical"><div class="es-name">Cross-Talk</div><div class="es-def">The two receptors form a physical complex (Pritchard/Smith group). Blocking only one arm leaves the other available for signaling. This receptor cross-talk explains why: (1) teprotumumab works (IGF-1R contributes meaningfully to fibroblast activation), and (2) ~40% relapse (TSHR continues to drive the fibroblast pool long-term).</div></div>
+        <div class="estimand-strategy es-while"><div class="es-name">Dual Blockade</div><div class="es-def">IGF1R × TSHR bispecific severs both pathways simultaneously. Expected benefit: deeper acute proptosis reduction AND prevention of relapse by blocking the TSHR-driven maintenance signal. SC target + cleaner safety profile (reduced IGF-1R dose enabled by TSHR co-blockade = less systemic IGF-1R inhibition = potentially less hearing loss).</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd" id="igf1r-tshr-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-igf1r-tshr-readouts"></div></div>
+  <div class="note-panel" id="note-panel-igf1r-tshr"><div class="note-panel-label">📋 Trial Notes</div><div id="note-panel-body-igf1r-tshr"></div></div>
+
+  <div class="sec-hd" id="igf1r-tshr-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-igf1r-tshr-landscape"></div></div>
+  <div class="note-panel" id="note-panel-igf1r-tshr-landscape"><div class="note-panel-label">📋 Efficacy Notes</div><div id="note-panel-body-igf1r-tshr-landscape"></div></div>
 
   <div class="footnote">Sources: Amgen Horizon acquisition press release (Oct 2023), Tepezza OPTIC/OPTIC-X clinical data, NEJM 2020 (Smith et al. teprotumumab Phase 3), Pritchard/Smith IGF-1R/TSHR cross-talk publications, Docs (2) FcRn research brief (TED indication context). Data as of May 2026.</div>
 </div>
@@ -2610,6 +2717,30 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       <div class="ailux-diff"><div class="ad-label">Indication Breadth</div><div class="ad-val">20+ Conditions</div><div class="ad-sub">FcRn class expanding: gMG, ITP, CIDP, pemphigus, NMOSD, SLE, warm AIHA, Graves'/TED, ANCA vasculitis, HDFN, autoimmune encephalitis, RA. New 2025: BP, post-COVID POTS, MN, AAV. Platform asset for multi-indication deals.</div></div>
     </div>
   </div>
+
+  <div class="estimand-card">
+    <div class="estimand-hd" onclick="toggleEstimand('est-fcrn')">
+      <div class="estimand-hd-left"><div><div class="estimand-hd-title">🧬 FcRn Biology — How IgG Recycling Works &amp; Why Blocking It Depletes Autoantibodies</div><div class="estimand-hd-sub">The mechanism behind the entire FcRn inhibitor class and how Ailux's albumin VHH extends it</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="estimand-hd-badge">Disease Education</span><span class="estimand-toggle" id="toggle-est-fcrn">▼</span></div>
+    </div>
+    <div class="estimand-body" id="est-fcrn">
+      <div class="estimand-intro">The <strong>neonatal Fc receptor (FcRn)</strong> is expressed on endothelial and hematopoietic cells. It acts as a salvage receptor that rescues IgG antibodies from lysosomal degradation — extending the natural IgG half-life from approximately 7 days to the clinically observed ~21 days. The mechanism: IgG taken up by cells via pinocytosis is captured by FcRn in the acidic endosome (pH 6.0) through high-affinity Fc binding; when the endosome fuses with the cell surface (pH 7.4), the affinity drops and the IgG is released back into circulation. <strong>FcRn inhibitors</strong> block this rescue mechanism — IgG is degraded in the lysosome instead of recycled, reducing total IgG including pathologic autoantibodies by 60–80%. Critically, this mechanism is IgG-specific: IgM, IgA, and IgE use different recycling pathways and are largely unaffected, which is why FcRn inhibitors have a cleaner immune suppression profile than broad immunosuppressants. <strong>Albumin</strong> uses the same FcRn receptor — Ailux's albumin VHH binder hitches the FcRn inhibitor molecule onto albumin's FcRn-mediated recycling, dramatically extending the bispecific's half-life beyond what Fc engineering alone achieves.</div>
+      <div class="estimand-grid">
+        <div class="estimand-strategy es-composite"><div class="es-name">FcRn Recycling</div><div class="es-def">pH 6 endosome: FcRn binds IgG Fc with high affinity → IgG rescued from lysosome. pH 7.4 surface: affinity drops → IgG released to circulation. FcRn inhibitors block this capture → IgG degraded. Result: 60–80% IgG reduction including pathologic autoantibodies.</div></div>
+        <div class="estimand-strategy es-policy"><div class="es-name">IgG Selectivity</div><div class="es-def">FcRn is specific to IgG and albumin. IgM, IgA, IgE are not recycled by FcRn → preserved during FcRn inhibition. This means vaccines (IgG-mediated) are partially impacted but mucosal immunity (IgA) and allergy protection (IgE) are preserved. Cleaner profile than IVIG or plasmapheresis.</div></div>
+        <div class="estimand-strategy es-hypothetical"><div class="es-name">Albumin VHH</div><div class="es-def">Albumin (19-day natural half-life) uses FcRn for its own recycling — same mechanism as IgG. Ailux's VHH binder attaches to albumin → the entire FcRn inhibitor molecule rides albumin's FcRn recycling. This dramatically extends the PK beyond what Fc engineering alone achieves, enabling Q6–8W dosing vs. Q1W for conventional FcRn mAbs.</div></div>
+        <div class="estimand-strategy es-while"><div class="es-name">Target Diseases</div><div class="es-def">Any IgG autoantibody-driven disease. Highest-value: gMG (AChR-IgG), pemphigus vulgaris (DSG1/3-IgG), NMOSD (AQP4-IgG), ITP (anti-platelet IgG), CIDP (anti-nodal IgG), WAIHA, warm AIHA, IgG4-RD, SLE. 20+ active indications across the class.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-hd" id="fcrn-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-fcrn-readouts"></div></div>
+  <div class="note-panel" id="note-panel-fcrn"><div class="note-panel-label">📋 Trial Notes</div><div id="note-panel-body-fcrn"></div></div>
+
+  <div class="sec-hd" id="fcrn-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
+  <div class="card" style="overflow:hidden"><div id="grid-fcrn-landscape"></div></div>
+  <div class="note-panel" id="note-panel-fcrn-landscape"><div class="note-panel-label">📋 Efficacy Notes</div><div id="note-panel-body-fcrn-landscape"></div></div>
 
   <div class="footnote">Sources: Docs (2) FcRn×Albumin Ailux research brief, Immunovant IMVT-1402 MAD data, Dianthus MaGic trial press release (Sep 2025), Argenx 2026 strategic priorities (Jan 2026), BioDrugs/PMC "Targeting FcRn in Autoimmune Diseases" (Mar 2025), DelveInsight FcRn market analysis 2025. Data as of May 2026.</div>
 </div>
@@ -2752,6 +2883,29 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
         <div class="estimand-strategy es-while"><div class="es-name">CRS Risk Mitigation</div><div class="es-def">CD3 affinity is intentionally attenuated (sub-micromolar) in next-gen TCEs to reduce peak cytokine release. Step-up dosing, pre-medication with dexamethasone, and tocilizumab rescue are the established safety framework from oncology.</div></div>
       </div>
     </div>
+  </div>
+
+  <div class="sec-hd" id="ace-readouts-anchor">
+    <span class="sec-title">Catalyst Calendar — When does each program read out?</span>
+    <div class="sec-line"></div>
+    <span class="sec-tag o">6 Events · Sort by Completion Date ↑</span>
+  </div>
+  <div class="card" style="overflow:hidden"><div id="grid-ace-readouts"></div></div>
+  <div class="note-panel" id="note-panel-ace">
+    <div class="note-panel-hd"><strong>Notes</strong><button class="note-close" onclick="closeNote('ace')">✕</button></div>
+    <div class="note-panel-body" id="note-body-ace"></div>
+  </div>
+
+  <div class="sec-hd" id="ace-landscape-anchor">
+    <span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span>
+    <div class="sec-line"></div>
+    <span class="sec-tag">TCEs + CAR-T + Monotherapy · FORMAT column distinguishes asset type</span>
+    <span class="sec-tag g">Estimand active</span>
+  </div>
+  <div class="card" style="overflow:hidden"><div id="grid-ace-landscape"></div></div>
+  <div class="note-panel" id="note-panel-ace-landscape">
+    <div class="note-panel-hd"><strong>Notes</strong><button class="note-close" onclick="closeNote('ace-landscape')">✕</button></div>
+    <div class="note-panel-body" id="note-body-ace-landscape"></div>
   </div>
 
   <div class="footnote">Sources: Docs (1) CD19×BCMA×CD3 Ailux research brief, Müller et al. NEJM 2024 (CD19 CAR-T autoimmune), Bucci et al. Nature Medicine 2024 (blinatumomab RA), Alexander et al. NEJM 2024 (teclistamab SLE), Kali Therapeutics Phase 1a press release (Mar 18, 2026), Fierce Biotech (Excalipoint, Mar 2025). Data as of May 2026.</div>
@@ -2974,11 +3128,26 @@ async function loadData() {
     tl1aMono:       'data/tl1a_mono.json',
     tl1aReadouts:   'data/tl1a_readouts.json',
     tl1aTech:       'data/tl1a_tech.json',
-    tslpReadouts:   'data/tslp_readouts.json',
-    tslpPipe:       'data/tslp_pipe.json',
-    tslpMono:       'data/tslp_mono.json',
-    assetProfiles:  'data/asset_profiles.json',
-    assetDocs:      'data/asset_docs.json',
+    tslpReadouts:       'data/tslp_readouts.json',
+    tslpPipe:           'data/tslp_pipe.json',
+    tslpMono:           'data/tslp_mono.json',
+    il4raTslpReadouts:  'data/il4ra_tslp_readouts.json',
+    il4raTslpPipe:      'data/il4ra_tslp_pipe.json',
+    il4raTslpMono:      'data/il4ra_tslp_mono.json',
+    il4raOx40lReadouts: 'data/il4ra_ox40l_readouts.json',
+    il4raOx40lPipe:     'data/il4ra_ox40l_pipe.json',
+    il4raOx40lMono:     'data/il4ra_ox40l_mono.json',
+    igf1rTshrReadouts:  'data/igf1r_tshr_readouts.json',
+    igf1rTshrPipe:      'data/igf1r_tshr_pipe.json',
+    igf1rTshrMono:      'data/igf1r_tshr_mono.json',
+    fcrnReadouts:       'data/fcrn_readouts.json',
+    fcrnPipe:           'data/fcrn_pipe.json',
+    fcrnMono:           'data/fcrn_mono.json',
+    aceReadouts:        'data/ace_readouts.json',
+    acePipe:            'data/ace_pipe.json',
+    aceMono:            'data/ace_mono.json',
+    assetProfiles:      'data/asset_profiles.json',
+    assetDocs:          'data/asset_docs.json',
   };
   const keys = Object.keys(files);
   const results = await Promise.all(keys.map(k => fetch(files[k]).then(r => r.json()).catch(()=>null)));
@@ -3190,6 +3359,40 @@ function initGrids(d) {
     ],
     data:mergeLandscape(d.tslpPipe, d.tslpMono), sort:true
   }).render(document.getElementById('grid-tslp-landscape'));
+
+  // helper to build a standard 2-table pair for new tabs
+  function makeTabGrids(prefix, readoutsData, pipeData, monoData) {
+    grids[prefix+'Readouts'] = new gridjs.Grid({
+      columns:[
+        {name:'Program',width:'265px',formatter:readoutProgFmtClean},
+        {name:'Phase',width:'80px',formatter:sf,sort:phaseSort},
+        {name:'Expected Timing',width:'260px'},
+        {name:'Primary Completion',width:'155px',sort:dateSort,formatter:(c,row)=>{const url=row.cells[4]&&row.cells[4].data;const txt=`<span style="font-size:10px">${c}</span>`;return url?gridjs.html(`<a class="ct-link" href="${url}" target="_blank" rel="noopener">${txt}</a>`):gridjs.html(txt);}},
+        {name:'_url',hidden:true},
+        {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('${prefix}','${esc}',this)">▼ Notes</button>`);}}
+      ],
+      data:dropCols(readoutsData,[0,4]), sort:true
+    }).render(document.getElementById('grid-'+prefix+'-readouts'));
+
+    grids[prefix+'Landscape'] = new gridjs.Grid({
+      columns:[
+        {name:'Company',width:'160px'},
+        {name:'Asset',width:'155px'},
+        {name:'Format',width:'175px'},
+        {name:'Stage',width:'155px',formatter:sf,sort:phaseSort},
+        {name:'Partner / Deal Value',width:'230px'},
+        {name:'Estimand',width:'150px',formatter:ef},
+        {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('${prefix}-landscape','${esc}',this)">▼ Notes</button>`);}}
+      ],
+      data:mergeLandscape(pipeData, monoData), sort:true
+    }).render(document.getElementById('grid-'+prefix+'-landscape'));
+  }
+
+  if (d.il4raTslpReadouts)  makeTabGrids('il4ra-tslp',  d.il4raTslpReadouts,  d.il4raTslpPipe,  d.il4raTslpMono);
+  if (d.il4raOx40lReadouts) makeTabGrids('il4ra-ox40l', d.il4raOx40lReadouts, d.il4raOx40lPipe, d.il4raOx40lMono);
+  if (d.igf1rTshrReadouts)  makeTabGrids('igf1r-tshr',  d.igf1rTshrReadouts,  d.igf1rTshrPipe,  d.igf1rTshrMono);
+  if (d.fcrnReadouts)       makeTabGrids('fcrn',        d.fcrnReadouts,       d.fcrnPipe,       d.fcrnMono);
+  if (d.aceReadouts)        makeTabGrids('ace',         d.aceReadouts,        d.acePipe,        d.aceMono);
 }
 
 // ── DEAL SPOTLIGHT TOGGLE ─────────────────────────────────────────
@@ -3287,23 +3490,35 @@ const TOC_MAP = {
     {label:'Platform Spotlight', id:'il4ra-tslp-platform-anchor'},
     {label:'Ailux Profile', id:'il4ra-tslp-ailux-anchor'},
     {label:'Biology Education', id:'il4ra-tslp-edu-anchor'},
+    {label:'Catalyst Calendar', id:'il4ra-tslp-readouts-anchor'},
+    {label:'Competitive Landscape', id:'il4ra-tslp-landscape-anchor'},
   ],
   'il4ra-ox40l': [
     {label:'Field Intelligence', id:'il4ra-ox40l-intel-anchor'},
     {label:'Summary Stats', id:'il4ra-ox40l-stats-anchor'},
+    {label:'Deal Spotlight', id:'il4ra-ox40l-deal-anchor'},
     {label:'Ailux Profile', id:'il4ra-ox40l-ailux-anchor'},
+    {label:'Biology Education', id:'il4ra-ox40l-edu-anchor'},
+    {label:'Catalyst Calendar', id:'il4ra-ox40l-readouts-anchor'},
+    {label:'Competitive Landscape', id:'il4ra-ox40l-landscape-anchor'},
   ],
   'igf1r-tshr': [
     {label:'Field Intelligence', id:'igf1r-tshr-intel-anchor'},
     {label:'Summary Stats', id:'igf1r-tshr-stats-anchor'},
     {label:'Mechanism Spotlight', id:'igf1r-tshr-mech-anchor'},
     {label:'Ailux Profile', id:'igf1r-tshr-ailux-anchor'},
+    {label:'Biology Education', id:'igf1r-tshr-edu-anchor'},
+    {label:'Catalyst Calendar', id:'igf1r-tshr-readouts-anchor'},
+    {label:'Competitive Landscape', id:'igf1r-tshr-landscape-anchor'},
   ],
   fcrn: [
     {label:'Field Intelligence', id:'fcrn-intel-anchor'},
     {label:'Summary Stats', id:'fcrn-stats-anchor'},
     {label:'Platform Spotlight', id:'fcrn-platform-anchor'},
     {label:'Ailux Profile', id:'fcrn-ailux-anchor'},
+    {label:'Biology Education', id:'fcrn-edu-anchor'},
+    {label:'Catalyst Calendar', id:'fcrn-readouts-anchor'},
+    {label:'Competitive Landscape', id:'fcrn-landscape-anchor'},
   ],
   ace: [
     {label:'Field Intelligence', id:'ace-intel-anchor'},
@@ -3311,6 +3526,8 @@ const TOC_MAP = {
     {label:'Deal Spotlight', id:'ace-deal-anchor'},
     {label:'Ailux Profile', id:'ace-ailux-anchor'},
     {label:'Biology Education', id:'ace-edu-anchor'},
+    {label:'Catalyst Calendar', id:'ace-readouts-anchor'},
+    {label:'Competitive Landscape', id:'ace-landscape-anchor'},
   ],
 };
 function buildToc(activeTab) {
