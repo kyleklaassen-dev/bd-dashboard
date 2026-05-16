@@ -638,6 +638,100 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .deal-rank-val { text-align: right; flex-shrink: 0; }
 .deal-rank-total { font-size: 14px; font-weight: 900; color: #c45b11; }
 .deal-rank-upfront { font-size: 11px; color: #5a7a9e; white-space: nowrap; }
+
+/* ══ ASSET JUMP DROPDOWN ════════════════════════════════════════ */
+.asset-jump { border: none; background: transparent; font-size: 12px; font-weight: 600; color: #2e6fb0; cursor: pointer; outline: none; min-width: 160px; max-width: 220px; }
+.asset-jump:focus { outline: none; }
+
+/* ══ DEAL DATE BADGE ════════════════════════════════════════════ */
+.deal-date-badge { display: inline-block; background: #e8f0f8; color: #2e6fb0; font-size: 10px; font-weight: 800; padding: 1px 7px; border-radius: 10px; margin-right: 6px; white-space: nowrap; }
+
+/* ══ INTELLIGENCE INTAKE PANEL ═══════════════════════════════════ */
+.intel-intake-card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2e6fb0; margin-bottom: 18px; overflow: hidden; }
+.intel-intake-hd { background: #f5f8fc; border-bottom: 1px solid #dde3ea; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; }
+.intel-intake-hd strong { font-size: 14px; color: #1a2f50; }
+.iic-badge { font-size: 11px; font-weight: 700; background: #2e6fb0; color: white; padding: 2px 9px; border-radius: 10px; }
+.intel-intake-body { padding: 14px 18px 10px; }
+.intel-intake-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.intel-intake-url { flex: 1; border: 1.5px solid #dde3ea; border-radius: 6px; font-size: 13px; padding: 9px 12px; font-family: inherit; color: #1a2e4a; outline: none; transition: border-color 0.15s; }
+.intel-intake-url:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
+.intel-intake-tag { border: 1.5px solid #dde3ea; border-radius: 6px; font-size: 12px; padding: 9px 10px; font-family: inherit; color: #1a2e4a; background: white; cursor: pointer; min-width: 155px; }
+.intel-intake-text { width: 100%; border: 1.5px solid #dde3ea; border-radius: 6px; font-size: 13px; padding: 9px 12px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.55; outline: none; box-sizing: border-box; transition: border-color 0.15s; }
+.intel-intake-text:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
+.intel-intake-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.intel-intake-btn { background: #2e6fb0; color: white; border: none; border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.intel-intake-btn:hover { background: #1a2f50; }
+.intel-intake-copy { background: white; color: #2e6fb0; border: 1.5px solid #c8d8ee; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.intel-intake-copy:hover { background: #f0f5fc; }
+.intel-intake-clear { background: none; color: #8a9bb0; border: 1px solid #dde3ea; border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer; }
+.intel-intake-hint { font-size: 11px; color: #8a9bb0; flex: 1; min-width: 160px; line-height: 1.4; }
+.intel-submissions { padding: 0 18px 14px; }
+.intel-sub-section-hd { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; padding: 10px 0 6px; border-top: 1px solid #eef2f7; margin-top: 4px; display: flex; align-items: center; justify-content: space-between; }
+.intel-sub-item { background: #f7f9fc; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid #c8d8ee; }
+.intel-sub-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.intel-sub-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; color: white; white-space: nowrap; }
+.intel-sub-date { font-size: 11px; color: #8a9bb0; flex: 1; }
+.intel-sub-del { background: none; border: none; color: #c0c8d4; cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; }
+.intel-sub-del:hover { color: #e05252; }
+.intel-sub-url { display: block; font-size: 12px; color: #2e6fb0; margin-bottom: 3px; word-break: break-all; }
+.intel-sub-text { font-size: 12px; color: #3a4f6a; line-height: 1.55; margin-top: 3px; }
+.intel-sub-empty { font-size: 13px; color: #8a9bb0; padding: 8px 0; text-align: center; }
+
+/* ══ MOBILE RESPONSIVE ═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Header */
+  .header { padding: 10px 14px; }
+  .header-title { font-size: 15px; }
+  .header-meta { font-size: 10px; }
+  /* Search / nav bar */
+  .gs-wrap { padding: 8px 12px; }
+  .gs-inner { padding: 7px 10px; gap: 6px; }
+  .asset-jump { min-width: 120px; font-size: 11px; }
+  .toc-btn { font-size: 11px; padding: 4px 8px; }
+  /* Content */
+  .content { padding: 12px 12px 24px; }
+  /* Stats */
+  .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .s-val { font-size: 22px; }
+  /* 2-col → 1-col */
+  .two-col { grid-template-columns: 1fr; }
+  .home-grid { grid-template-columns: 1fr; }
+  /* Ailux grid: 4→1 */
+  .ailux-diff-grid { grid-template-columns: 1fr; }
+  /* Tables — horizontal scroll */
+  .card { overflow-x: auto; }
+  /* Intel items */
+  .intel-item { gap: 8px; }
+  .intel-date-left { display: none; }
+  .intel-text { font-size: 13px; }
+  /* Intake panel */
+  .intel-intake-row { flex-direction: column; }
+  .intel-intake-tag { min-width: unset; }
+  .intel-intake-actions { flex-direction: column; align-items: flex-start; }
+  .intel-intake-hint { min-width: unset; }
+  /* Meridian reader */
+  .meridian-reader-item { font-size: 12px; }
+  /* Sec hd */
+  .sec-hd { flex-wrap: wrap; gap: 6px; }
+  .sec-tag { font-size: 10px; }
+  /* Estimand grid */
+  .estimand-grid { grid-template-columns: 1fr; }
+  /* Deal spotlight */
+  .deal-rank-grid { grid-template-columns: 1fr; }
+  /* Home cards */
+  .home-card-body { padding: 10px 12px; }
+  /* Tab bar: already scrollable, just reduce font */
+  .tab-btn { font-size: 10.5px; padding: 8px 8px; }
+  .tab-btn .ct { font-size: 9px; padding: 1px 4px; }
+  /* Footnote */
+  .footnote { font-size: 10px; }
+}
+@media (max-width: 400px) {
+  .stat-row { grid-template-columns: 1fr; }
+  .header-title { font-size: 14px; }
+  .gs-inner { flex-wrap: wrap; }
+  .gs-input { min-width: 0; width: 100%; }
+}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -680,6 +774,52 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       oninput="globalSearch(this.value)">
     <span class="gs-count" id="gs-count" style="display:none"></span>
     <button class="gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear search">✕</button>
+    <div style="width:1px;height:22px;background:#d0dce8;flex-shrink:0;margin:0 2px"></div>
+    <select class="asset-jump" id="asset-jump" onchange="jumpToAsset(this.value)" title="Jump to any asset">
+      <option value="">🔗 Jump to asset…</option>
+      <optgroup label="IBD · TL1A × IL-23p19">
+        <option value="tl1a|tl1a-deal-anchor">Deal Spotlight</option>
+        <option value="tl1a|tl1a-ailux-anchor">Ailux Profile</option>
+        <option value="tl1a|tl1a-estimand-anchor">Estimand Guide</option>
+        <option value="tl1a|tl1a-readouts-anchor">Catalyst Calendar</option>
+        <option value="tl1a|tl1a-landscape-anchor">Competitive Landscape</option>
+        <option value="tl1a|tl1a-tech-anchor">Technical Comparison</option>
+        <option value="tl1a|tl1a-china-anchor">Chinese Programs</option>
+      </optgroup>
+      <optgroup label="Respiratory · TSLP × IL-33">
+        <option value="tslp|tslp-ailux-anchor">Ailux Profile</option>
+        <option value="tslp|tslp-readouts-anchor">Catalyst Calendar</option>
+        <option value="tslp|tslp-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Type 2 Inflammation · IL-4Rα × TSLP">
+        <option value="il4ra-tslp|il4ra-tslp-ailux-anchor">Ailux Profile</option>
+        <option value="il4ra-tslp|il4ra-tslp-readouts-anchor">Catalyst Calendar</option>
+        <option value="il4ra-tslp|il4ra-tslp-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Atopic Dermatitis · IL-4Rα × OX40L">
+        <option value="il4ra-ox40l|il4ra-ox40l-deal-anchor">Deal Spotlight</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-ailux-anchor">Ailux Profile</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-readouts-anchor">Catalyst Calendar</option>
+        <option value="il4ra-ox40l|il4ra-ox40l-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Thyroid Eye Disease · IGF1R × TSHR">
+        <option value="igf1r-tshr|igf1r-tshr-mech-anchor">Mechanism Spotlight</option>
+        <option value="igf1r-tshr|igf1r-tshr-ailux-anchor">Ailux Profile</option>
+        <option value="igf1r-tshr|igf1r-tshr-readouts-anchor">Catalyst Calendar</option>
+        <option value="igf1r-tshr|igf1r-tshr-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Autoimmune · FcRn Bispecific">
+        <option value="fcrn|fcrn-ailux-anchor">Ailux Profile</option>
+        <option value="fcrn|fcrn-readouts-anchor">Catalyst Calendar</option>
+        <option value="fcrn|fcrn-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+      <optgroup label="Immune Reset · BCMA × CD19 × CD3">
+        <option value="ace|ace-deal-anchor">Deal Spotlight</option>
+        <option value="ace|ace-ailux-anchor">Ailux Profile</option>
+        <option value="ace|ace-readouts-anchor">Catalyst Calendar</option>
+        <option value="ace|ace-landscape-anchor">Competitive Landscape</option>
+      </optgroup>
+    </select>
   </div>
 </div>
 
@@ -716,6 +856,42 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
     <div style="margin-top:12px;padding:10px 12px;background:rgba(245,200,66,0.15);border-radius:6px;font-size:12px;color:#6b5a20;line-height:1.5">
       💡 <strong>Live updates active:</strong> This digest refreshes automatically at <strong>7 AM</strong> and <strong>7 PM</strong> daily via scheduled research. Use the "Submit Intelligence" button above to add breaking news between cycles.
     </div>
+  </div>
+
+  <!-- INTELLIGENCE INTAKE PANEL -->
+  <div class="intel-intake-card" id="intel-intake-anchor">
+    <div class="intel-intake-hd">
+      <div>
+        <span style="font-size:15px;margin-right:8px">📋</span>
+        <strong>Intelligence Intake</strong>
+        <span style="font-size:12px;font-weight:500;color:#8a9bb0;margin-left:8px">— Drop a link or note and it saves to your dashboard</span>
+      </div>
+      <span class="iic-badge" id="iic-count-badge"></span>
+    </div>
+    <div class="intel-intake-body">
+      <div class="intel-intake-row">
+        <input type="url" class="intel-intake-url" id="intel-url" placeholder="Paste URL — article, press release, ClinicalTrials.gov, SEC filing, conference abstract…">
+        <select class="intel-intake-tag" id="intel-tag">
+          <option value="General">🏷 Tag area</option>
+          <option value="IBD">IBD · TL1A × IL-23</option>
+          <option value="Resp">Respiratory · TSLP × IL-33</option>
+          <option value="Type 2">Type 2 · IL-4Rα × TSLP</option>
+          <option value="AD">AD · IL-4Rα × OX40L</option>
+          <option value="TED">TED · IGF1R × TSHR</option>
+          <option value="AI">Autoimmune · FcRn</option>
+          <option value="Immune Reset">Immune Reset · ACE</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+      <textarea class="intel-intake-text" id="intel-text" placeholder="Paste article text, key quote, or write a note — e.g. &quot;Linsitinib LIDS Ph3 enrollment started, source: Sling IR&quot;…" rows="3"></textarea>
+      <div class="intel-intake-actions">
+        <button class="intel-intake-btn" onclick="submitIntel()">📌 Save to Dashboard</button>
+        <button class="intel-intake-copy" onclick="copyIntelForClaude()">📋 Copy for Claude Analysis</button>
+        <button class="intel-intake-clear" onclick="clearIntelForm()">Clear</button>
+        <span class="intel-intake-hint">Saved automatically · Items persist across visits · Use Copy to get AI analysis</span>
+      </div>
+    </div>
+    <div class="intel-submissions" id="intel-submissions"></div>
   </div>
 
   <!-- DAILY LEARNING DIGEST -->
@@ -810,28 +986,28 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
       <div class="home-card-hd">💰 Recent Deal Activity <span class="hc-tag">Last 18 Months</span></div>
       <div class="home-card-body">
         <div class="deal-row">
-          <div class="deal-co">Earendil → Sanofi (BCMA×CD19×CD3) <span class="deal-val">$1.85B</span></div>
-          <div class="deal-sub">Apr 2025 · HXN-1031 trispecific TCE · $125M upfront · Ph1 IND filed</div>
+          <div class="deal-co"><span class="deal-date-badge">Mar 2026</span> Kali Therapeutics → Sanofi (BCMA×CD19×CD3) <span class="deal-val">$1.23B</span></div>
+          <div class="deal-sub">KT501 trispecific TCE · $180M upfront/near-term · Ph1a first patient dosed · Autoimmune immune reset</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Simcere → Boehringer Ingelheim (TL1A×IL-23) <span class="deal-val">$1.16B</span></div>
-          <div class="deal-sub">Jan 2026 · SIM0709 bispecific · €42M upfront · Pre-IND→FIH</div>
+          <div class="deal-co"><span class="deal-date-badge">Jan 2026</span> Simcere → Boehringer Ingelheim (TL1A×IL-23p19) <span class="deal-val">$1.16B</span></div>
+          <div class="deal-sub">SIM0709 bispecific · €42M upfront · Pre-IND → FIH H1 2026</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Qyuns → Roche (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
-          <div class="deal-sub">Oct 2025 · QX031N bispecific · $75M upfront · COPD/Asthma Ph1</div>
+          <div class="deal-co"><span class="deal-date-badge">Dec 2025</span> Qyuns → Windward (TSLP×IL-13) <span class="deal-val">$700M</span></div>
+          <div class="deal-sub">WIN027 bispecific · Novo Holdings-backed · TSLP + IL-13 dual blockade · Autoimmune</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Biosion → Aclaris (anti-TSLP) <span class="deal-val">$900M</span></div>
-          <div class="deal-sub">Nov 2024 · Bosakitug long-acting · $40M upfront · Ph1→Ph2</div>
+          <div class="deal-co"><span class="deal-date-badge">Oct 2025</span> Qyuns → Roche (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
+          <div class="deal-sub">QX031N · $75M upfront · Effective Dec 2025 · COPD / Asthma Ph1 planned</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Qyuns → Windward (TSLP×IL-13) <span class="deal-val">$700M</span></div>
-          <div class="deal-sub">Dec 2025 · WIN027 bispecific · TSLP + IL-13 dual blockade</div>
+          <div class="deal-co"><span class="deal-date-badge">Apr 2025</span> Earendil Labs → Sanofi (TL1A×IL-23 + IBD bispecifics) <span class="deal-val">$1.85B</span></div>
+          <div class="deal-sub">HXN-1002 + HXN-1003 bispecifics · $125M upfront · Autoimmune &amp; IBD · Pre-IND</div>
         </div>
         <div class="deal-row">
-          <div class="deal-co">Earendil → Sanofi (TL1A×IL-23) <span class="deal-val">$1.85B</span></div>
-          <div class="deal-sub">Apr 2025 · HXN-1003 AI tetravalent · $125M upfront · Pre-IND</div>
+          <div class="deal-co"><span class="deal-date-badge">Nov 2024</span> Biosion → Aclaris (anti-TSLP) <span class="deal-val">$900M</span></div>
+          <div class="deal-sub">Bosakitug long-acting · $40M upfront · Ph1 → Ph2 · Atopic Dermatitis / Asthma</div>
         </div>
       </div>
     </div>
@@ -3402,10 +3578,94 @@ function switchTabTo(id) {
   if (btn) switchTab(id, btn);
 }
 
+// ── ASSET JUMP DROPDOWN ───────────────────────────────────────────
+function jumpToAsset(val) {
+  if (!val) return;
+  const [tab, anchor] = val.split('|');
+  const btn = document.querySelector(`.tab-btn[onclick*="'${tab}'"]`);
+  if (btn) {
+    switchTab(tab, btn);
+    if (anchor) setTimeout(() => scrollToSection(anchor), 250);
+  }
+  document.getElementById('asset-jump').value = '';
+}
+
+// ── INTELLIGENCE INTAKE PANEL ─────────────────────────────────────
+const TAG_COLORS = {
+  'IBD':'#c45b11','Resp':'#2563eb','Type 2':'#9d174d','AD':'#7c3aed',
+  'TED':'#065f46','AI':'#5b21b6','Immune Reset':'#991b1b','General':'#4b5563'
+};
+function submitIntel() {
+  const url   = (document.getElementById('intel-url')?.value  || '').trim();
+  const text  = (document.getElementById('intel-text')?.value || '').trim();
+  const tag   = (document.getElementById('intel-tag')?.value  || 'General');
+  if (!url && !text) { alert('Please enter a URL or note before saving.'); return; }
+  const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
+  items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
+  localStorage.setItem('meridian-intel', JSON.stringify(items));
+  document.getElementById('intel-url').value  = '';
+  document.getElementById('intel-text').value = '';
+  renderIntelSubmissions();
+}
+function deleteIntel(id) {
+  let items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
+  items = items.filter(s => s.id !== id);
+  localStorage.setItem('meridian-intel', JSON.stringify(items));
+  renderIntelSubmissions();
+}
+function clearIntelForm() {
+  const u = document.getElementById('intel-url');
+  const t = document.getElementById('intel-text');
+  if (u) u.value = '';
+  if (t) t.value = '';
+}
+function copyIntelForClaude() {
+  const url  = (document.getElementById('intel-url')?.value  || '').trim();
+  const text = (document.getElementById('intel-text')?.value || '').trim();
+  const tag  = (document.getElementById('intel-tag')?.value  || 'General');
+  if (!url && !text) { alert('Nothing to copy — enter a URL or note first.'); return; }
+  const prompt = `Please analyze this intelligence submission for The Meridian BD dashboard and update any relevant sections:\n\nTarget area: ${tag}\n${url ? 'URL: ' + url + '\n' : ''}${text ? 'Notes: ' + text : ''}`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    const btn = document.querySelector('.intel-intake-copy');
+    const orig = btn.textContent; btn.textContent = '✓ Copied to clipboard!';
+    setTimeout(() => btn.textContent = orig, 2500);
+  });
+}
+function renderIntelSubmissions() {
+  const container = document.getElementById('intel-submissions');
+  if (!container) return;
+  const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
+  const badge = document.getElementById('iic-count-badge');
+  if (badge) badge.textContent = items.length ? `${items.length} saved` : '';
+  if (!items.length) { container.innerHTML = ''; return; }
+  container.innerHTML = `
+    <div class="intel-sub-section-hd">
+      <span>Saved Intelligence (${items.length})</span>
+      <button style="background:none;border:none;font-size:11px;color:#8a9bb0;cursor:pointer" onclick="if(confirm('Clear all saved intel?')){localStorage.removeItem('meridian-intel');renderIntelSubmissions();}">Clear all</button>
+    </div>
+    ${items.map(it => {
+      const color = TAG_COLORS[it.tag] || '#4b5563';
+      const urlShort = it.url.length > 75 ? it.url.slice(0,75) + '…' : it.url;
+      const txtShort = it.text.length > 220 ? it.text.slice(0,220) + '…' : it.text;
+      return `<div class="intel-sub-item">
+        <div class="intel-sub-meta">
+          <span class="intel-sub-tag" style="background:${color}">${it.tag}</span>
+          <span class="intel-sub-date">${it.date}</span>
+          <button class="intel-sub-del" onclick="deleteIntel(${it.id})" title="Remove">✕</button>
+        </div>
+        ${it.url ? `<a class="intel-sub-url" href="${it.url}" target="_blank" rel="noopener">${urlShort}</a>` : ''}
+        ${it.text ? `<div class="intel-sub-text">${txtShort}</div>` : ''}
+      </div>`;
+    }).join('')}`;
+}
+// Run on page load
+document.addEventListener('DOMContentLoaded', renderIntelSubmissions);
+
 // ── TOC NAVIGATION ────────────────────────────────────────────────
 const TOC_MAP = {
   home: [
     {label:'Meridian Daily Reader', id:'meridian-reader-anchor'},
+    {label:'Intelligence Intake', id:'intel-intake-anchor'},
     {label:'Daily Learning Digest', id:'learning-anchor'},
     {label:'Key Catalysts', id:'home-catalysts-anchor'},
     {label:'Recent Deals', id:'home-deals-anchor'},
