@@ -820,7 +820,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" data-ts="1778972808" style="font-size:11px;opacity:0.75"></span>
+ <span id="last-updated-ts" data-ts="1778973691" style="font-size:11px;opacity:0.75"></span>
  </div>
  </div>
 </div>
@@ -2325,7 +2325,47 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </div>
  </div>
 
- <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review), NEJM (tezepelumab NAVIGATOR), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-tslp')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. TSLP &amp; IL-33 Monotherapies &amp; TSLP&#215;IL-33 Bispecifics</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-tslp-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-tslp-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending</td><td>Dual alarmin block; treatment policy estimand recommended</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>Tezepelumab (Tezspire) <span class="comp-badge-leader">Current leader</span></td><td>AstraZeneca / Amgen</td><td>Approved (asthma)</td><td><span class="comp-val-pos">~70% AAER reduction (all-endotype)</span></td><td>NAVIGATOR Ph3; 17% PBO</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>Itepekimab (Dupixent combo)</td><td>Sanofi / Regeneron</td><td>Approved (asthma) + COPD Ph3</td><td><span class="comp-val-pos">~42% AAER reduction (eos &#8805;150, ex-smokers)</span></td><td>BOREAS COPD Ph3; 16% PBO</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (COPD ex-smokers)</span></td></tr>
+         <tr><td>Dupilumab (Dupixent)</td><td>Sanofi / Regeneron</td><td>Approved (asthma + COPD)</td><td><span class="comp-val-pos">~46% AAER reduction (eos &#8805;300 asthma)</span></td><td>LIBERTY ASTHMA QUEST Ph3</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>QX031N</td><td>Qyuns / Roche ($75M up)</td><td>Ph1</td><td><span class="comp-val-na">Ph1 &#8212; TBD</span></td><td>FIH 2026</td><td>TBD</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Format &amp; Mechanism</th><th>Half-life / Dosing</th><th>Formulation</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>IgG bispecific &#8212; blocks both TSLP (upstream alarmin) &amp; IL-33 (parallel alarmin)</strong></td><td><span class="comp-val-pos">Extended t&#189; &#8594; Q4&#8211;8W SC target</span></td><td><span class="comp-val-pos">High-conc SC formulation</span></td><td>Dual alarmin block closes the redundant IL-33 escape pathway; SC-first design; pan-endotype coverage</td></tr>
+         <tr><td>QX031N</td><td>Qyuns / Roche ($75M up, Oct 2025)</td><td>Ph1</td><td>IgG TSLP&#215;IL-33 bispecific</td><td>TBD</td><td>TBD</td><td>First ex-China clinical-stage TSLP&#215;IL-33 bispecific. Roche validated space at $75M upfront + $650M total. FIH data expected 2026&#8211;2027.</td></tr>
+         <tr><td>BSI-045B</td><td>Biosion / Aclaris</td><td>Pre-IND</td><td>IgG bispecific</td><td>TBD</td><td>TBD</td><td>Aclaris partnered at undisclosed terms. Pre-IND stage. Biosion has established bispecific engineering platform.</td></tr>
+         <tr><td>Tezepelumab mono</td><td>AstraZeneca / Amgen</td><td>Approved</td><td>Anti-TSLP IgG1</td><td>~26 days (Q4W)</td><td>SC pre-filled syringe</td><td>All-endotype label (unique vs. eos-specific competitors). IL-33 escape pathway remains open &#8212; bispecific has theoretical superiority in IL-33-high patients.</td></tr>
+         <tr><td>Itepekimab mono</td><td>Sanofi / Regeneron</td><td>Approved (asthma + COPD)</td><td>Anti-IL-33 IgG4</td><td>~26 days (Q2W)</td><td>SC auto-injector</td><td>Validated IL-33 blockade. TSLP escape pathway remains open. Approved in asthma and COPD ex-smokers only &#8212; narrower label than TSLP blockade.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>dual alarmin blockade (TSLP + IL-33)</strong> &#8212; closing both the TSLP-driven and IL-33-driven inflammatory pathways simultaneously &#8212; with (2) <strong>extended half-life targeting SC Q4&#8211;8W dosing</strong>, and (3) <strong>pan-endotype coverage</strong> addressing eosinophilic and non-eosinophilic subtypes creates a differentiated respiratory bispecific profile. The key clinical argument: ~30% of patients with severe asthma show inadequate response to tezepelumab (TSLP only). IL-33 is an independent alarmin that can maintain airway inflammation through ILC2 and mast cell activation even when TSLP is blocked. A dual-alarmin bispecific should theoretically outperform either monotherapy in patients with co-elevation of both TSLP and IL-33 &#8212; the highest unmet need in COPD and T2-low asthma.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Fierce Biotech, BioPharma Dive, VCBeat (Qyuns/Roche), BioSpace (Biosion/Aclaris), Windward Bio press releases, Frontiers in Allergy 2025 (alarmin bispecific review), NEJM (tezepelumab NAVIGATOR), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: IL-4Rα × TSLP ══════════════ -->
@@ -2472,7 +2512,46 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="card" style="overflow:hidden"><div id="grid-il4ra-tslp-landscape"></div></div>
  <div class="note-panel" id="note-panel-il4ra-tslp-landscape"><div class="note-panel-label"> Efficacy Notes</div><div id="note-panel-body-il4ra-tslp-landscape"></div></div>
 
- <div class="footnote">Sources: Sanofi Q4 2024 earnings (dupilumab revenue), AstraZeneca press releases (tezepelumab DESTINATION), Wedbush Securities SWOT analysis (Type 2 I&I, 2025), Apogee Biosciences presentations (APG279), Docs (3) Ailux research brief. Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-il4ra-tslp')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. IL-4R&#945; &amp; TSLP Monotherapies &amp; IL-4R&#945;&#215;TSLP Bispecifics</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-il4ra-tslp-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-il4ra-tslp-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending</td><td>pH-engineered IL-4R&#945; arm (TMDD reduction) + TSLP block</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>Dupilumab (Dupixent) <span class="comp-badge-leader">Current leader</span></td><td>Sanofi / Regeneron</td><td>Approved (9 indications)</td><td><span class="comp-val-pos">51% IGA 0/1 at Wk16 (AD); 46% AAER reduction (asthma)</span></td><td>SOLO 1 &amp; 2 (AD), QUEST (asthma)</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (all indications)</span></td></tr>
+         <tr><td>Tezepelumab (Tezspire)</td><td>AstraZeneca / Amgen</td><td>Approved (asthma)</td><td><span class="comp-val-pos">~70% AAER reduction (all-endotype)</span></td><td>NAVIGATOR Ph3</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>APG279</td><td>Apogee Biosciences</td><td>Ph2 (asthma, AD)</td><td><span class="comp-val-na">Ph2 ongoing &#8212; results expected 2026&#8211;2027</span></td><td>ALTITUDE-ASTHMA; ALTITUDE-AD</td><td>TBD</td><td><span class="comp-val-na">Pending</span></td></tr>
+         <tr><td>IBI333</td><td>Innovent / Sanofi ($635M)</td><td>Ph3 (Asia)</td><td><span class="comp-val-na">Ph3 Asia &#8212; limited Western data</span></td><td>Ph3 ongoing (asthma + AD)</td><td>TBD</td><td><span class="comp-val-na">Pending</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>IL-4R&#945; Engineering</th><th>TSLP Arm</th><th>Dosing Target</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>pH-tuned dissociation (TMDD fix)</strong> &#8212; antigen sweeping in endosome &#8594; extended effective PK</td><td>Full TSLP neutralization (upstream alarmin block)</td><td><span class="comp-val-pos">Q4W+ SC vs. dupilumab Q2W</span></td><td>Only IL-4R&#945;&#215;TSLP with validated pH-engineering on IL-4R&#945; arm; dual-mechanism superiority over dupilumab (IL-4R&#945; only) and tezepelumab (TSLP only)</td></tr>
+         <tr><td>APG279</td><td>Apogee Biosciences</td><td>Ph2</td><td>Standard IL-4R&#945; binding</td><td>Anti-TSLP VHH (nanobody)</td><td>Q4W (target)</td><td>First in-class IL-4R&#945;&#215;TSLP bispecific in Ph2. VHH nanobody format for TSLP. Ph2 ALTITUDE results 2026&#8211;2027 will set clinical bar for class.</td></tr>
+         <tr><td>IBI333</td><td>Innovent / Sanofi ($635M)</td><td>Ph3 Asia</td><td>IgG bispecific format</td><td>Full TSLP arm</td><td>Q4W (target)</td><td>Sanofi $635M deal validates clinical potential. Asia-dominant Ph3 &#8212; Western regulatory pathway requires additional trials. Innovent retains Greater China rights.</td></tr>
+         <tr><td>Dupilumab + Tezepelumab combo</td><td>Sanofi / AZ (separate molecules)</td><td>N/A (off-label combo)</td><td>IL-4R&#945; block (dupilumab)</td><td>TSLP block (tezepelumab, separate molecule)</td><td>Q2W + Q4W (two injections)</td><td>Two separate injections, higher cost, PK mismatch. A single bispecific provides mechanistic equivalence with SC convenience. Payer pressure makes combination biologics difficult to reimburse.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>pH-engineered IL-4R&#945; arm</strong> &#8212; antigen-sweeping technology that eliminates TMDD and extends effective half-life beyond standard IL-4R&#945; blockade &#8212; with (2) <strong>upstream TSLP blockade</strong> preventing de novo IL-4/IL-13 re-generation from ILC2s and DCs, and (3) <strong>Q4W+ SC dosing target</strong> vs. dupilumab Q2W creates a meaningful patient compliance advantage. The key clinical argument: dupilumab's biggest limitation is its Q2W dosing requirement and TMDD-driven PK variability. By engineering antigen sweeping into the IL-4R&#945; arm, Ailux's asset can achieve comparable or superior IL-4/IL-13 neutralization at less frequent dosing intervals. The TSLP arm prevents upstream alarmin-driven regeneration of IL-4/IL-13, addressing the primary escape pathway from IL-4R&#945; monotherapy.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Sanofi Q4 2024 earnings (dupilumab revenue), AstraZeneca press releases (tezepelumab DESTINATION), Wedbush Securities SWOT analysis (Type 2 I&I, 2025), Apogee Biosciences presentations (APG279), Docs (3) Ailux research brief. Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: IL-4Rα × OX40L ══════════════ -->
@@ -2624,7 +2703,46 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="card" style="overflow:hidden"><div id="grid-il4ra-ox40l-landscape"></div></div>
  <div class="note-panel" id="note-panel-il4ra-ox40l-landscape"><div class="note-panel-label"> Efficacy Notes</div><div id="note-panel-body-il4ra-ox40l-landscape"></div></div>
 
- <div class="footnote">Sources: Sanofi amlitelimab Phase 3 ADHERE results, Pfizer ORIGIN rocatinlimab data, Apogee Biosciences (APG279), Wedbush Securities Type 2 I&I SWOT analysis 2025, Docs (3) Ailux research brief. Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-il4ra-ox40l')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. IL-4R&#945; &amp; OX40/OX40L Monotherapies &amp; IL-4R&#945;&#215;OX40L Bispecifics</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-il4ra-ox40l-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-il4ra-ox40l-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending; SC formulation</td><td>pH-IL-4R&#945; + OX40L dual block; Q8&#8211;12W target</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>Dupilumab (Dupixent) <span class="comp-badge-leader">IL-4R&#945; Standard of Care</span></td><td>Sanofi / Regeneron</td><td>Approved (AD, 6m+)</td><td><span class="comp-val-pos">51% IGA 0/1 at Wk16; 72% EASI-75 (with TCS)</span></td><td>SOLO 1&amp;2 / CHRONOS Ph3</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>Amlitelimab (Ebglyss) <span class="comp-badge-leader">OX40L validated</span></td><td>Sanofi</td><td>Approved (EU); BLA filed US 2026</td><td><span class="comp-val-pos">47% IGA 0/1 at Wk24; 77% EASI-75 (maintenance)</span></td><td>ADHERE Ph3 (Wk24); Q12W after loading</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (ADHERE primary met)</span></td></tr>
+         <tr><td>Rocatinlimab</td><td>Pfizer (ex-Kyowa Kirin $3B)</td><td>Ph3 (ORIGIN)</td><td><span class="comp-val-pos">~36% IGA 0/1 at Wk24 (150mg Q4W)</span></td><td>ROCKET Ph2b; ORIGIN Ph3 ongoing</td><td>Treatment policy</td><td><span class="comp-val-na">Ph3 ongoing</span></td></tr>
+         <tr><td>APG777</td><td>Apogee Biosciences</td><td>Ph1b (AD + CRSwNP)</td><td><span class="comp-val-na">Ph1b &#8212; TBD (safety/PK primary)</span></td><td>ALTITUDE-AD Ph2 transition planned</td><td>TBD</td><td><span class="comp-val-na">Pending</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>IL-4R&#945; Mechanism</th><th>OX40L Mechanism</th><th>Dosing Target</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>pH-tuned antigen sweeping</strong> &#8212; reduced TMDD &#8594; extended t&#189;, infrequent dosing</td><td><strong>OX40L blockade</strong> &#8212; prevents Th2 memory T-cell survival &amp; re-activation</td><td><span class="comp-val-pos">Q8&#8211;12W SC (target)</span></td><td>pH-engineering advantage on IL-4R&#945; arm not achievable by amlitelimab+dupilumab combo; single molecule blocks acute effector cytokines AND long-lived memory Th2 cell survival</td></tr>
+         <tr><td>APG777</td><td>Apogee Biosciences</td><td>Ph1b</td><td>Standard IL-4R&#945; IgG binding</td><td>OX40L VHH (nanobody)</td><td>Q12W (target)</td><td>First clinical IL-4R&#945;&#215;OX40L bispecific. VHH format for OX40L &#8212; compact, potent. Ph1b data expected 2026. Apogee has two dual-mechanism bispecifics (APG279 &amp; APG777) in clinic simultaneously.</td></tr>
+         <tr><td>Dupilumab + Amlitelimab combo</td><td>Sanofi (both molecules)</td><td>N/A (combo concept)</td><td>IL-4R&#945; block (dupilumab)</td><td>OX40L block (amlitelimab)</td><td>Q2W + Q12W (two injections)</td><td>Sanofi could theoretically combine its own assets, but two-molecule approach has reimbursement and regulatory challenges. A single bispecific eliminates this complexity.</td></tr>
+         <tr><td>Rocatinlimab</td><td>Pfizer</td><td>Ph3</td><td>N/A &#8212; anti-OX40 (receptor, not ligand)</td><td>Anti-OX40 (blocks T-cell OX40 signaling)</td><td>Q4W SC</td><td>Blocks OX40 receptor directly vs. OX40L ligand. Mechanistically similar. Not an IL-4R&#945; bispecific. Pfizer's $3B acquisition signals premium valuation for OX40 pathway in derm.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>pH-engineered IL-4R&#945; arm</strong> for infrequent dosing with reduced TMDD, (2) <strong>OX40L blockade</strong> that interrupts Th2 memory cell survival &#8212; addressing the primary mechanism by which dupilumab-responsive patients relapse off therapy &#8212; and (3) a <strong>Q8&#8211;12W SC dosing target</strong> creates a compelling differentiation profile vs. both dupilumab (IL-4R&#945; only, Q2W) and amlitelimab (OX40L only, Q12W). The key clinical argument: ~15&#8211;20% of AD patients fail to achieve IGA 0/1 on dupilumab, and many who achieve clearance relapse when therapy is interrupted. Dual IL-4R&#945; + OX40L blockade addresses both active inflammation (IL-4/IL-13 effectors) and the immunological memory that drives relapse &#8212; a mechanism no approved agent currently addresses in a single molecule.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Sanofi amlitelimab Phase 3 ADHERE results, Pfizer ORIGIN rocatinlimab data, Apogee Biosciences (APG279), Wedbush Securities Type 2 I&I SWOT analysis 2025, Docs (3) Ailux research brief. Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: IGF1R × TSHR ══════════════ -->
@@ -2776,7 +2894,46 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="card" style="overflow:hidden"><div id="grid-igf1r-tshr-landscape"></div></div>
  <div class="note-panel" id="note-panel-igf1r-tshr-landscape"><div class="note-panel-label"> Efficacy Notes</div><div id="note-panel-body-igf1r-tshr-landscape"></div></div>
 
- <div class="footnote">Sources: Amgen Horizon acquisition press release (Oct 2023), Tepezza OPTIC/OPTIC-X clinical data, NEJM 2020 (Smith et al. teprotumumab Phase 3), Pritchard/Smith IGF-1R/TSHR cross-talk publications, Docs (2) FcRn research brief (TED indication context). Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-igf1r-tshr')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. Teprotumumab &amp; Next-Gen TED Agents</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-igf1r-tshr-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-igf1r-tshr-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending; SC formulation target</td><td>Dual IGF1R+TSHR blockade; reduced systemic IGF-1R dose hypothesized to reduce hearing loss</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>Teprotumumab (Tepezza) <span class="comp-badge-leader">Current SOC</span></td><td>Amgen (Horizon $28B acq.)</td><td>Approved (TED)</td><td><span class="comp-val-pos">83% proptosis responders (&#8805;2mm reduction); 59% complete response</span></td><td>OPTIC Ph3; IV Q3W &#215; 8 infusions</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>Orvepitimab / IMVT-1402 (anti-FcRn in TED)</td><td>Immunovant</td><td>Ph2 (TED)</td><td><span class="comp-val-na">Anti-FcRn &#8594; reduces TRAb IgG; efficacy data pending</span></td><td>Ph2 TED; mechanism: TRAb IgG reduction via FcRn</td><td>Treatment policy</td><td><span class="comp-val-na">Pending</span></td></tr>
+         <tr><td>Linsitinib</td><td>Genentech (Roche)</td><td>Ph2 (TED)</td><td><span class="comp-val-neg">Ph2 missed primary endpoint vs. tepro in active TED</span></td><td>LIDS Ph2; small molecule IGF-1R inhibitor</td><td>Treatment policy</td><td><span class="comp-val-neg">No (vs. active comparator)</span></td></tr>
+         <tr><td>Tepro maintenance / re-treatment</td><td>Amgen</td><td>Approved + real-world</td><td><span class="comp-val-neg">~40% relapse rate after standard 8-infusion course</span></td><td>OPTIC-X extension study</td><td>Relapse definition varies</td><td><span class="comp-val-neg">Significant unmet need post-tepro</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Mechanism</th><th>Hearing Loss Risk</th><th>Formulation &amp; Dosing</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>Dual IGF1R &#215; TSHR blockade</strong> &#8212; severs both arms of the receptor co-complex simultaneously</td><td><span class="comp-val-pos">Lower systemic IGF-1R dose anticipated (TSHR co-blockade compensates) &#8594; potentially lower hearing loss risk</span></td><td><span class="comp-val-pos">SC target &#8212; eliminates IV infusion requirement</span></td><td>Only bispecific severing both IGF-1R and TSHR simultaneously; SC route + lower hearing loss risk = major differentiation vs. teprotumumab; directly addresses 40% relapse by blocking TSHR-driven maintenance signal</td></tr>
+         <tr><td>Teprotumumab (Tepezza)</td><td>Amgen</td><td>Approved</td><td>IGF-1R monoblockade only</td><td><span class="comp-val-neg">~30% incidence hearing loss/tinnitus (dose-dependent, often irreversible)</span></td><td>IV Q3W &#215; 8 infusions (inpatient/clinic visits)</td><td>Market leader &#8212; ~$1.9B 2023 revenue. TSHR pathway remains active &#8594; explains 40% relapse. Hearing loss is its Achilles heel commercially.</td></tr>
+         <tr><td>IMVT-1402 (anti-FcRn)</td><td>Immunovant / Roivant</td><td>Ph2</td><td>FcRn inhibition &#8594; TRAb IgG reduction (indirect mechanism)</td><td>Unknown / not anticipated</td><td>SC Q1W</td><td>Reduces pathologic TRAb IgG broadly. Does not directly block orbital fibroblast receptors. Mechanism complementary to, not directly competitive with, IGF1R&#215;TSHR bispecific.</td></tr>
+         <tr><td>Calcitonin gene-related peptide inhibitors</td><td>Academic / Exploratory</td><td>Preclinical</td><td>Alternative orbital inflammation pathway</td><td>None reported</td><td>SC / IV (hypothetical)</td><td>Early-stage research only. Not directly competitive at current stage.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>dual IGF1R &#215; TSHR blockade</strong> &#8212; severing both pathways of the receptor co-complex that drives orbital fibroblast activation &#8212; with (2) <strong>reduced systemic IGF-1R inhibition</strong> (since TSHR co-blockade provides additive proptosis reduction, the IGF-1R dose can be lower than teprotumumab monotherapy, potentially reducing the ~30% hearing loss risk), and (3) <strong>SC formulation target</strong> eliminating IV infusion creates a strong differentiation package. The key clinical argument: the 40% relapse rate after teprotumumab represents a large validated unmet need. A bispecific that blocks both arms of the receptor complex should produce deeper and more durable responses &#8212; and SC maintenance dosing would allow sustained suppression of the TSHR-driven fibroblast activation that drives relapses. Amgen's $28B Horizon acquisition established TED as a bankable franchise; a next-gen bispecific with a cleaner safety profile commands premium deal consideration.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Amgen Horizon acquisition press release (Oct 2023), Tepezza OPTIC/OPTIC-X clinical data, NEJM 2020 (Smith et al. teprotumumab Phase 3), Pritchard/Smith IGF-1R/TSHR cross-talk publications, Docs (2) FcRn research brief (TED indication context). Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: FcRn BISPECIFIC ══════════════ -->
@@ -2939,7 +3096,47 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="card" style="overflow:hidden"><div id="grid-fcrn-landscape"></div></div>
  <div class="note-panel" id="note-panel-fcrn-landscape"><div class="note-panel-label"> Efficacy Notes</div><div id="note-panel-body-fcrn-landscape"></div></div>
 
- <div class="footnote">Sources: Docs (2) FcRn×Albumin Ailux research brief, Immunovant IMVT-1402 MAD data, Dianthus MaGic trial press release (Sep 2025), Argenx 2026 strategic priorities (Jan 2026), BioDrugs/PMC "Targeting FcRn in Autoimmune Diseases" (Mar 2025), DelveInsight FcRn market analysis 2025. Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-fcrn')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. Approved &amp; Clinical-Stage FcRn Inhibitors</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-fcrn-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-fcrn-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending; Q6&#8211;8W SC target</td><td>Albumin VHH platform &#8594; extended recycling &#8594; infrequent dosing</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>Efgartigimod (Vyvgart/SC Hytrulo) <span class="comp-badge-leader">Class leader</span></td><td>Argenx</td><td>Approved (gMG, ITP, CIDP, PV)</td><td><span class="comp-val-pos">68% MG-ADL responders; &#8805;75% total IgG reduction</span></td><td>ADAPT Ph3 (gMG); 26.5% vs. 14.1% PBO</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (4 approved indications)</span></td></tr>
+         <tr><td>Rozanolixizumab (Rystiggo)</td><td>UCB</td><td>Approved (gMG 2023)</td><td><span class="comp-val-pos">~56% MG-ADL responder rate</span></td><td>MycarinG Ph3</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>Nipocalimab (Imaavy)</td><td>J&amp;J (Momenta $6.5B acq.)</td><td>Approved (gMG 2025)</td><td><span class="comp-val-pos">~71% IgG reduction; 42% MG-ADL response (Wk12)</span></td><td>Vivacity-MG3 Ph3</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes</span></td></tr>
+         <tr><td>IMVT-1402</td><td>Immunovant / Roivant</td><td>Ph2/3 (gMG, WAIHA, TED, BP)</td><td><span class="comp-val-pos">&gt;75% IgG depletion (MAD Ph1); dose-proportional</span></td><td>Multiple Ph2/3 ongoing 2025&#8211;2026</td><td>Treatment policy</td><td><span class="comp-val-na">Ph3 ongoing</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>FcRn Mechanism</th><th>Half-life / Dosing</th><th>Formulation</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>Albumin VHH binder &#8212; rides albumin's own FcRn recycling &#8594; dramatically extended PK</strong></td><td><span class="comp-val-pos">Q6&#8211;8W SC target (vs. Q1W &#215;4 cycles for efgartigimod)</span></td><td><span class="comp-val-pos">SC formulation &#8212; self-administration; eliminates infusion visit</span></td><td>Only FcRn inhibitor leveraging albumin recycling for half-life extension; Q6&#8211;8W vs. cyclic Q1W dosing is a significant compliance and commercial differentiation</td></tr>
+         <tr><td>Efgartigimod SC (Vyvgart Hytrulo)</td><td>Argenx</td><td>Approved</td><td>Fc fragment (not full antibody) binding FcRn</td><td>Q1W &#215; 4 cycles (then assessed); t&#189; ~5 days</td><td>SC autoinjector</td><td>Market leader with 4 approved indications. Cyclic dosing model limits long-term compliance. Argenx developing ARGX-117 (efgartigimod &#215; CD131) for IgA nephropathy &#8212; signals awareness of dosing limitation.</td></tr>
+         <tr><td>Nipocalimab</td><td>J&amp;J</td><td>Approved (gMG)</td><td>Full-length IgG4 FcRn inhibitor (Fc-silent)</td><td>Q2W; t&#189; ~28 days</td><td>IV &amp; SC</td><td>J&amp;J's Momenta acquisition ($6.5B). Q2W better than Q1W but inferior to Q6&#8211;8W target. Fc-silenced antibody preserves FcRn binding while eliminating Fc&#947;R engagement.</td></tr>
+         <tr><td>Rozanolixizumab</td><td>UCB</td><td>Approved (gMG)</td><td>Anti-FcRn IgG4 mAb (Fc-silenced)</td><td>Q1W SC; t&#189; ~22 days</td><td>SC pre-filled syringe</td><td>First approved SC FcRn inhibitor for gMG (with efgartigimod). Weekly SC dosing remains a burden for chronic autoimmune patients.</td></tr>
+         <tr><td>IMVT-1402</td><td>Immunovant</td><td>Ph2/3</td><td>Anti-FcRn IgG4 mAb (Fc-silenced vs. predecessor batoclimab)</td><td>Q2W SC</td><td>SC</td><td>Batoclimab (predecessor) discontinued due to LDL elevation. IMVT-1402 is Fc-silenced to remove that signal. Q2W still inferior to Q6&#8211;8W target.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>albumin VHH technology</strong> &#8212; piggybacking on albumin's own FcRn recycling mechanism to achieve dramatically extended half-life without Fc engineering &#8212; with (2) <strong>Q6&#8211;8W SC dosing target</strong> vs. the Q1W cyclic dosing of efgartigimod and Q2W of nipocalimab, and (3) <strong>broad IgG autoantibody applicability</strong> across 20+ autoimmune indications creates a compelling differentiation case. The key commercial argument: the FcRn inhibitor class is validated ($1.7B+ annual revenue; 4+ approved products) but every approved drug requires frequent dosing that burdens patients with chronic autoimmune disease. An FcRn inhibitor that achieves the same &#8805;70% IgG depletion at Q6&#8211;8W vs. Q1W eliminates the primary adherence and patient quality-of-life limitation of the entire class &#8212; in a validated, growing, multi-indication market.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Docs (2) FcRn×Albumin Ailux research brief, Immunovant IMVT-1402 MAD data, Dianthus MaGic trial press release (Sep 2025), Argenx 2026 strategic priorities (Jan 2026), BioDrugs/PMC "Targeting FcRn in Autoimmune Diseases" (Mar 2025), DelveInsight FcRn market analysis 2025. Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: BCMA × CD19 × CD3 (ACE) ══════════════ -->
@@ -3113,7 +3310,47 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="note-panel-body" id="note-body-ace-landscape"></div>
  </div>
 
- <div class="footnote">Sources: Docs (1) CD19×BCMA×CD3 Ailux research brief, Müller et al. NEJM 2024 (CD19 CAR-T autoimmune), Bucci et al. Nature Medicine 2024 (blinatumomab RA), Alexander et al. NEJM 2024 (teclistamab SLE), Kali Therapeutics Phase 1a press release (Mar 18, 2026), Fierce Biotech (Excalipoint, Mar 2025). Data as of May 2026.</div>
+ 
+ <!-- COMPETITIVE COMPARISON SECTION -->
+ <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
+ <div class="comp-section">
+ <div class="comp-hd" onclick="toggleSection('comp-ace')">
+ <span class="comp-hd-title">How Does Our Molecule Compare? &#8212; Ailux Asset vs. B-cell Depletion Approaches in Immune Reset</span>
+ <div style="display:flex;align-items:center;gap:10px">
+ <span class="comp-hd-badge">Click to Expand</span>
+ <span class="comp-toggle" id="comp-ace-toggle">&#9660;</span>
+ </div>
+ </div>
+ <div class="comp-body" id="comp-ace-body">
+ <div class="comp-sub-title">Part 1 &#8212; Efficacy Benchmarks: Ailux vs. Key Comparators</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best Efficacy Data</th><th>Trial / Timepoint</th><th>Estimand / Notes</th><th>Primary Endpoint Met?</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><span class="comp-val-na">&#8212; (efficacy TBD)</span></td><td>Phase 1/2 design pending; SC Q6M target</td><td>Trispecific BCMA&#215;CD19&#215;CD3 &#8212; complete B-lineage + plasma cell depletion</td><td><span class="comp-val-na">&#8212;</span></td></tr>
+         <tr><td>CD19 CAR-T (Erlangen protocol) <span class="comp-badge-leader">Proof of Concept</span></td><td>Erlangen academic / KYV-101 (Kyverna)</td><td>Ph2 autoimmune</td><td><span class="comp-val-pos">5/6 SLE patients: drug-free remission (median follow-up 17mo); 100% B-cell depletion</span></td><td>NEJM 2024 (M&#252;ller); SLE, SSc, PM</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (SLE proof-of-concept)</span></td></tr>
+         <tr><td>Teclistamab (Tecvayli)</td><td>J&amp;J (Janssen)</td><td>Approved (myeloma) + autoimmune trials</td><td><span class="comp-val-pos">~65% ORR (myeloma); 5/6 drug-free SLE remission (Alexander NEJM 2024, case series)</span></td><td>MAJESTIC-9 Ph2 (myeloma); SLE case series 2024</td><td>Treatment policy (myeloma)</td><td><span class="comp-val-pos">Yes (myeloma); case series SLE</span></td></tr>
+         <tr><td>KT501 (CD19&#215;BCMA&#215;CD3)</td><td>Kali Therapeutics</td><td>Ph1a (RA)</td><td><span class="comp-val-na">Ph1a safety/PK primary &#8212; efficacy TBD (RA setting)</span></td><td>First patient dosed Mar 18, 2026</td><td>TBD</td><td><span class="comp-val-na">Pending</span></td></tr>
+         <tr><td>Blinatumomab (Blincyto)</td><td>Amgen</td><td>Approved (ALL) + autoimmune trials</td><td><span class="comp-val-pos">RA: 75% DAS28 response at 12 weeks (Bucci Nature Medicine 2024)</span></td><td>Nature Medicine 2024 (Bucci et al.) &#8212; RA proof-of-concept</td><td>Treatment policy</td><td><span class="comp-val-pos">Yes (RA proof-of-concept)</span></td></tr>
+ </tbody>
+ </table>
+ <div class="comp-sub-title" style="margin-top:18px">Part 2 &#8212; Technical Differentiation: Ailux vs. Competitors</div>
+ <table class="comp-table">
+ <thead><tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Target Coverage</th><th>Manufacturing / Route</th><th>Dosing Frequency</th><th>Key Differentiator</th></tr></thead>
+ <tbody>
+         <tr class="ailux-row"><td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td><td>Ailux</td><td>Preclinical</td><td><strong>BCMA (plasma cells) + CD19 (all B-cells, pre-B to plasmablast) + CD3 (T-cell engagement)</strong> &#8212; complete B-lineage depletion</td><td><span class="comp-val-pos">Off-the-shelf biologic &#8212; no patient-specific manufacturing; SC injectable</span></td><td><span class="comp-val-pos">Q6M target (semi-annual dosing after B-cell reset)</span></td><td>Only off-the-shelf trispecific covering full B-lineage + plasma cell compartment in SC format; eliminates CAR-T manufacturing bottleneck; Q6M dosing mimics natural B-cell reconstitution kinetics</td></tr>
+         <tr><td>KT501</td><td>Kali Therapeutics</td><td>Ph1a</td><td>CD19 + BCMA + CD3 (similar coverage)</td><td>SC IgG-like trispecific; off-the-shelf</td><td>TBD (RA setting)</td><td>Most direct competitor. First to Ph1a for this trispecific format (Mar 2026). RA indication is pragmatic but not the highest-value autoimmune setting. SLE/MG mechanistic rationale is stronger. Ph1a safety data will set human precedent for CD3-masking platform.</td></tr>
+         <tr><td>CD19 CAR-T (KYV-101, CABA-201, etc.)</td><td>Kyverna / Cabaletta / others</td><td>Ph2 autoimmune</td><td>CD19 only (no BCMA &#8212; misses long-lived plasma cells)</td><td>Patient-specific manufacturing; IV infusion; lymphodepletion required</td><td>Single infusion (hope for durable remission)</td><td>Gold standard efficacy proof-of-concept. Manufacturing bottleneck (6&#8211;8 weeks per patient), lymphodepletion, and hospital administration are major access barriers. No BCMA coverage = misses bone marrow plasma cell compartment.</td></tr>
+         <tr><td>Teclistamab</td><td>J&amp;J</td><td>Ph2 autoimmune (SLE, MG)</td><td>BCMA + CD3 (misses CD19 &#8212; pre-B cells and naive B-cells survive)</td><td>Off-the-shelf; SC Q1W or Q2W</td><td>Q1W or Q2W (chronic dosing for autoimmune)</td><td>BCMA&#215;CD3 bispecific with autoimmune proof-of-concept. Lacks CD19 arm &#8594; incomplete lineage depletion; naive B-cells persist and can reconstitute autoreactive clones. Chronic dosing creates safety exposure concerns in non-malignant indications.</td></tr>
+         <tr><td>Blinatumomab (CD19&#215;CD3)</td><td>Amgen</td><td>Ph2 autoimmune (RA, SLE)</td><td>CD19 + CD3 (misses BCMA &#8212; long-lived plasma cells survive)</td><td>IV continuous infusion or SC formulation in development</td><td>Q4W cycles (complex schedule)</td><td>Nature Medicine 2024 RA proof-of-concept compelling but lacks BCMA arm &#8594; plasma cell reservoir survives and re-seeds autoantibody production. Dosing complexity and CRS risk at CD3-engaging doses limit autoimmune applicability.</td></tr>
+ </tbody>
+ </table>
+ <div class="comp-diff-note">
+ <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>BCMA + CD19 + CD3 trispecific coverage</strong> &#8212; simultaneously engaging long-lived BCMA+ plasma cells, CD19+ B-cells from pre-B to plasmablast, and CD3+ T-cells for serial cytotoxicity &#8212; eliminates the incomplete lineage depletion that allows autoreactive B-cell reconstitution after CD19-only (CAR-T/blinatumomab) or BCMA-only (teclistamab) approaches, with (2) <strong>off-the-shelf SC administration</strong> eliminating CAR-T's manufacturing bottleneck and hospital-based administration barrier, and (3) <strong>Q6M dosing target</strong> based on the ~6-month B-cell reconstitution kinetics observed after CAR-T immune reset creates a uniquely differentiated immune reset biologic. The key clinical argument: CAR-T provides the best efficacy proof-of-concept for immune reset in autoimmune disease, but its manufacturing complexity, lymphodepletion requirement, and single-dose-only approach make it inaccessible for most patients. A trispecific biologic that achieves equivalent B-lineage depletion off-the-shelf, in SC format, with maintenance dosing capability represents the next logical evolution of the immune reset concept.
+ </div>
+ </div>
+ </div>
+
+<div class="footnote">Sources: Docs (1) CD19×BCMA×CD3 Ailux research brief, Müller et al. NEJM 2024 (CD19 CAR-T autoimmune), Bucci et al. Nature Medicine 2024 (blinatumomab RA), Alexander et al. NEJM 2024 (teclistamab SLE), Kali Therapeutics Phase 1a press release (Mar 18, 2026), Fierce Biotech (Excalipoint, Mar 2025). Data as of May 2026.</div>
 </div>
 
 <!-- ══════════════ TAB: MARKET & LEARNING ══════════════ -->
