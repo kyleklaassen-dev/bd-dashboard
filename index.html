@@ -799,62 +799,11 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="header-title">◈ The Meridian</div>
  </div>
  <div class="header-search-wrap">
- <div class="header-toc-wrap" id="toc-wrap">
- <button class="toc-btn" onclick="toggleToc()" id="toc-btn" style="color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)">☰</button>
- <div class="toc-dropdown" id="toc-dropdown"></div>
- </div>
- <span style="font-size:13px;opacity:0.5;flex-shrink:0"></span>
  <input type="text" id="global-search" class="header-search-input"
  placeholder="Search programs, drugs, companies, deals…"
  oninput="globalSearch(this.value)">
  <span class="header-gs-count gs-count" id="gs-count" style="display:none"></span>
  <button class="header-gs-clear gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear" style="display:none"></button>
- <div class="header-sep"></div>
- <select class="header-asset-jump asset-jump" id="asset-jump" onchange="jumpToAsset(this.value)">
- <option value="">Jump to asset…</option>
- <optgroup label="IBD · TL1A × IL-23p19">
- <option value="tl1a|tl1a-deal-anchor">Deal Spotlight</option>
- <option value="tl1a|tl1a-ailux-anchor">Ailux Profile</option>
- <option value="tl1a|tl1a-estimand-anchor">Estimand Guide</option>
- <option value="tl1a|tl1a-readouts-anchor">Catalyst Calendar</option>
- <option value="tl1a|tl1a-landscape-anchor">Competitive Landscape</option>
- <option value="tl1a|tl1a-tech-anchor">Technical Comparison</option>
- <option value="tl1a|tl1a-china-anchor">Chinese Programs</option>
- </optgroup>
- <optgroup label="Respiratory · TSLP × IL-33">
- <option value="tslp|tslp-ailux-anchor">Ailux Profile</option>
- <option value="tslp|tslp-readouts-anchor">Catalyst Calendar</option>
- <option value="tslp|tslp-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- <optgroup label="Type 2 Inflammation · IL-4Rα × TSLP">
- <option value="il4ra-tslp|il4ra-tslp-ailux-anchor">Ailux Profile</option>
- <option value="il4ra-tslp|il4ra-tslp-readouts-anchor">Catalyst Calendar</option>
- <option value="il4ra-tslp|il4ra-tslp-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- <optgroup label="Atopic Dermatitis · IL-4Rα × OX40L">
- <option value="il4ra-ox40l|il4ra-ox40l-deal-anchor">Deal Spotlight</option>
- <option value="il4ra-ox40l|il4ra-ox40l-ailux-anchor">Ailux Profile</option>
- <option value="il4ra-ox40l|il4ra-ox40l-readouts-anchor">Catalyst Calendar</option>
- <option value="il4ra-ox40l|il4ra-ox40l-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- <optgroup label="Thyroid Eye Disease · IGF1R × TSHR">
- <option value="igf1r-tshr|igf1r-tshr-mech-anchor">Mechanism Spotlight</option>
- <option value="igf1r-tshr|igf1r-tshr-ailux-anchor">Ailux Profile</option>
- <option value="igf1r-tshr|igf1r-tshr-readouts-anchor">Catalyst Calendar</option>
- <option value="igf1r-tshr|igf1r-tshr-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- <optgroup label="Autoimmune · FcRn Bispecific">
- <option value="fcrn|fcrn-ailux-anchor">Ailux Profile</option>
- <option value="fcrn|fcrn-readouts-anchor">Catalyst Calendar</option>
- <option value="fcrn|fcrn-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- <optgroup label="Immune Reset · BCMA × CD19 × CD3">
- <option value="ace|ace-deal-anchor">Deal Spotlight</option>
- <option value="ace|ace-ailux-anchor">Ailux Profile</option>
- <option value="ace|ace-readouts-anchor">Catalyst Calendar</option>
- <option value="ace|ace-landscape-anchor">Competitive Landscape</option>
- </optgroup>
- </select>
  </div>
  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
  <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
