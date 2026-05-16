@@ -9,14 +9,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #eef2f7; color: #1a2e4a; font-size: 15px; min-height: 100vh; }
 
-.header { background: linear-gradient(135deg, #0d1f38 0%, #1a3a6e 60%, #2e6fb0 100%); color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 200; }
-.header-title { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+.header { background: linear-gradient(135deg, #0d1f38 0%, #1a3a6e 60%, #2e6fb0 100%); color: white; padding: 7px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 200; gap: 12px; }
+.header-title { font-size: 17px; font-weight: 900; letter-spacing: -0.5px; white-space: nowrap; }
 .header-title span { opacity: 0.55; font-weight: 400; font-size: 14px; margin-left: 8px; vertical-align: middle; }
 .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
 .header-meta { font-size: 12px; opacity: 0.65; text-align: right; }
 .header-meta strong { opacity: 1; font-weight: 700; }
 
-.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 53px; z-index: 190; }
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 12px; display: flex; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; position: sticky; top: 42px; z-index: 190; }
 .tab-btn { padding: 9px 10px; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #6b7c93; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
 .tab-btn:hover { color: #2e6fb0; }
 .tab-btn.active { color: #1a2f50; border-bottom-color: #2e6fb0; }
@@ -38,12 +38,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .tab-pane.active { display: block; }
 
 .stat-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 12px; }
-.stat-card { background: white; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2e6fb0; }
+.stat-card { background: white; border-radius: 7px; padding: 8px 11px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 3px solid #2e6fb0; }
 .stat-card.g { border-left-color: #2a7a47; }
 .stat-card.o { border-left-color: #c45b11; }
 .stat-card.p { border-left-color: #7030a0; }
-.s-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8a9bb0; margin-bottom: 5px; }
-.s-val { font-size: 19px; font-weight: 900; color: #1a2f50; line-height: 1; }
+.s-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #8a9bb0; margin-bottom: 3px; }
+.s-val { font-size: 16px; font-weight: 900; color: #1a2f50; line-height: 1.1; }
 .s-sub { font-size: 11px; color: #8a9bb0; margin-top: 3px; }
 
 .two-col { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 14px; margin-bottom: 18px; }
@@ -776,9 +776,9 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .wtc-task-area { font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; padding: 1px 5px; border-radius: 5px; margin-right: 5px; white-space: nowrap; }
 
 /* ══ HEADER SEARCH BAR ══════════════════════════════════════════ */
-.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.11); border: 1.5px solid rgba(255,255,255,0.18); border-radius: 7px; padding: 5px 10px; min-width: 0; max-width: 540px; }
-.header-search-wrap:focus-within { background: rgba(255,255,255,0.17); border-color: rgba(255,255,255,0.32); }
-.header-search-input { flex: 1; border: none; background: none; color: white; font-size: 12.5px; outline: none; font-family: inherit; min-width: 0; }
+.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; min-width: 0; max-width: 600px; }
+.header-search-wrap:focus-within { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.35); }
+.header-search-input { flex: 1; border: none; background: none; color: white; font-size: 12px; outline: none; font-family: inherit; min-width: 0; }
 .header-search-input::placeholder { color: rgba(255,255,255,0.45); }
 .header-gs-count { font-size: 11px; color: rgba(255,255,255,0.65); white-space: nowrap; }
 .header-gs-clear { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
@@ -919,12 +919,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane active" id="tab-home">
 
  <div class="stat-row" id="home-stats-anchor" style="grid-template-columns:repeat(6,1fr)">
- <div class="stat-card"><div class="s-label">Assets Tracked</div><div class="s-val">7</div><div class="s-sub">Across 6 disease areas</div></div>
- <div class="stat-card o"><div class="s-label">Total Deal Value</div><div class="s-val">~$11B</div><div class="s-sub">Tracked since 2024</div></div>
- <div class="stat-card g"><div class="s-label">Ph3 Readouts</div><div class="s-val">2026–27</div><div class="s-sub">ATLAS-UC · Vivacity-MG</div></div>
- <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">Lead programs across 4 axes</div></div>
- <div class="stat-card"><div class="s-label">China Programs</div><div class="s-val">12+</div><div class="s-sub">Tracked across all assets</div></div>
- <div class="stat-card o"><div class="s-label">Next Catalyst</div><div class="s-val">CLN-978</div><div class="s-sub">Q2 2026 — ACE Ph1 data</div></div>
+ <div class="stat-card"><div class="s-label">Coverage Areas</div><div class="s-val">7</div><div class="s-sub">IBD · Resp · Type 2 · AD · TED · AI · Immune Reset</div></div>
+ <div class="stat-card o"><div class="s-label">Biologic Failure Gap</div><div class="s-val">~40%</div><div class="s-sub">Patients failing 1st-line biologics across all indications</div></div>
+ <div class="stat-card g"><div class="s-label">Combined Patient Pop.</div><div class="s-val">&gt;500M</div><div class="s-sub">Across all 7 tracked disease areas globally</div></div>
+ <div class="stat-card p"><div class="s-label">BD Thesis</div><div class="s-val">Bispecific</div><div class="s-sub">Dual pathway blockade — differentiated from monotherapy</div></div>
+ <div class="stat-card"><div class="s-label">Next Ph3 Readout</div><div class="s-val">~Nov 26</div><div class="s-sub">ATLAS-UC (tulisokibart) — TL1A class signal</div></div>
+ <div class="stat-card o"><div class="s-label">Next Ph1 Data</div><div class="s-val">Q2 26</div><div class="s-sub">CLN-978 OUTRACE — BCMA×CD19×CD3 TCE</div></div>
  </div>
 
  <!-- MERIDIAN DAILY READER -->
@@ -1135,12 +1135,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
  <!-- LATEST FIELD INTELLIGENCE -->
 <div class="stat-row" id="tl1a-stats-anchor">
-  <div class="stat-card"><div class="s-label">Deals Closed</div><div class="s-val">3</div><div class="s-sub">Apr 2025 – Jan 2026</div></div>
-  <div class="stat-card o"><div class="s-label">Total Deal Value</div><div class="s-val">~$3.4B</div><div class="s-sub">Combined potential (USD equiv.)</div></div>
-  <div class="stat-card g"><div class="s-label">TL1A Bispecifics</div><div class="s-val">7</div><div class="s-sub">Global TL1A × IL-23p19 programs</div></div>
-  <div class="stat-card p"><div class="s-label">Chinese Programs</div><div class="s-val">3</div><div class="s-sub">Simcere · Qyuns · LaNova</div></div>
-  <div class="stat-card"><div class="s-label">ATLAS-UC Ph3 ETA</div><div class="s-val">~Nov 26</div><div class="s-sub">First Ph3 TL1A data — class signal</div></div>
-  <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">TL1A×IL-23p19 · lead asset</div></div>
+  <div class="stat-card"><div class="s-label">UC Global Prevalence</div><div class="s-val">~5M</div><div class="s-sub">Worldwide; ~1.5M in US/EU</div></div>
+  <div class="stat-card o"><div class="s-label">CD Global Prevalence</div><div class="s-val">~3M</div><div class="s-sub">Worldwide; ~780K in US</div></div>
+  <div class="stat-card g"><div class="s-label">Biologic Failure Rate</div><div class="s-val">~40%</div><div class="s-sub">UC patients fail 1st-line biologic</div></div>
+  <div class="stat-card p"><div class="s-label">TL1A Expression</div><div class="s-val">Elevated</div><div class="s-sub">IBD mucosa & fibroblasts — chronicity driver</div></div>
+  <div class="stat-card"><div class="s-label">Anti-IL-23 Validated</div><div class="s-val">4 Approved</div><div class="s-sub">Risa · Gusel · Miriki · Uste — class proven</div></div>
+  <div class="stat-card o"><div class="s-label">Bispecific Logic</div><div class="s-val">Dual Path</div><div class="s-sub">TL1A = innate/stromal · IL-23 = Th17 adaptive</div></div>
 </div>
 
  <div class="intel-card" id="tl1a-intel-anchor">
@@ -1811,12 +1811,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 
  <!-- LATEST FIELD INTELLIGENCE -->
 <div class="stat-row" id="tslp-stats-anchor">
-  <div class="stat-card"><div class="s-label">Deals Closed</div><div class="s-val">4</div><div class="s-sub">TSLP-related, 2024–2025</div></div>
-  <div class="stat-card o"><div class="s-label">Total Deal Value</div><div class="s-val">~$3.6B</div><div class="s-sub">Broad TSLP deal pool</div></div>
-  <div class="stat-card g"><div class="s-label">TSLP × IL-33 Programs</div><div class="s-val">3</div><div class="s-sub">Known bispecific programs</div></div>
-  <div class="stat-card p"><div class="s-label">Chinese Programs</div><div class="s-val">5+</div><div class="s-sub">Qyuns · Biosion · Innovent · Hengrui</div></div>
-  <div class="stat-card"><div class="s-label">QX031N Ph1 ETA</div><div class="s-val">~2027</div><div class="s-sub">Roche/Qyuns TSLP×IL-33 FIH</div></div>
-  <div class="stat-card o"><div class="s-label">Tezepelumab Sales</div><div class="s-val">$1.2B</div><div class="s-sub">2024 — TSLP mono market anchor</div></div>
+  <div class="stat-card"><div class="s-label">Severe Asthma Global</div><div class="s-val">~25M</div><div class="s-sub">5–10% of 340M asthma patients</div></div>
+  <div class="stat-card o"><div class="s-label">COPD Global Burden</div><div class="s-val">~390M</div><div class="s-sub">3rd leading cause of death worldwide</div></div>
+  <div class="stat-card g"><div class="s-label">TSLP Biology</div><div class="s-val">Alarmin</div><div class="s-sub">Epithelial — upstream of type 2 AND type 17</div></div>
+  <div class="stat-card p"><div class="s-label">IL-33 Biology</div><div class="s-val">ST2 axis</div><div class="s-sub">Amplifies mast cells, ILC2s, Th2 — separate from TSLP</div></div>
+  <div class="stat-card"><div class="s-label">TSLP Approved</div><div class="s-val">Tezep.</div><div class="s-sub">AZ/Amgen — first anti-TSLP · $1.2B 2024</div></div>
+  <div class="stat-card o"><div class="s-label">Dual Block Logic</div><div class="s-val">No Escape</div><div class="s-sub">IL-33 escapes TSLP mono — dual eliminates bypass</div></div>
 </div>
 
  <div class="intel-card" id="tslp-intel-anchor">
@@ -2358,12 +2358,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-il4ra-tslp">
 
 <div class="stat-row" id="il4ra-tslp-stats-anchor">
-  <div class="stat-card"><div class="s-label">Dupilumab Peak Revenue</div><div class="s-val">$14.2B</div><div class="s-sub">2024 — defines IL-4Rα market size</div></div>
-  <div class="stat-card o"><div class="s-label">Type 2 TAM</div><div class="s-val">&gt;$30B</div><div class="s-sub">AD + Asthma + EoE + CRSwNP</div></div>
-  <div class="stat-card g"><div class="s-label">Platform Advantage</div><div class="s-val">pH Eng.</div><div class="s-sub">TMDD-reducing backbone</div></div>
-  <div class="stat-card p"><div class="s-label">Dupilumab Indications</div><div class="s-val">9</div><div class="s-sub">Broad IL-4Rα clinical validation</div></div>
-  <div class="stat-card"><div class="s-label">SC Dosing Target</div><div class="s-val">Q4W+</div><div class="s-sub">vs. dupilumab Q2W standard</div></div>
-  <div class="stat-card o"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">IL-4Rα×TSLP · pH-eng. bispecific</div></div>
+  <div class="stat-card"><div class="s-label">AD Global Prevalence</div><div class="s-val">~200M</div><div class="s-sub">Worldwide; ~15M moderate-severe US/EU</div></div>
+  <div class="stat-card o"><div class="s-label">Type 2 Diseases TAM</div><div class="s-val">&gt;$30B</div><div class="s-sub">2028E — AD, asthma, EoE, CRSwNP, CSU</div></div>
+  <div class="stat-card g"><div class="s-label">IL-4Rα Validation</div><div class="s-val">9 Labels</div><div class="s-sub">Dupilumab — 9 approved indications · $14.2B 2024</div></div>
+  <div class="stat-card p"><div class="s-label">TSLP Upstream Role</div><div class="s-val">Cascade</div><div class="s-sub">Triggers IL-4/IL-13 — blocking TMDD & upstream escape</div></div>
+  <div class="stat-card"><div class="s-label">pH Engineering</div><div class="s-val">TMDD Fix</div><div class="s-sub">pH-tuned dissociation reduces non-specific IL-4Rα binding</div></div>
+  <div class="stat-card o"><div class="s-label">Dosing Opportunity</div><div class="s-val">Q4W+</div><div class="s-sub">vs. dupilumab Q2W — compliance differentiation</div></div>
 </div>
 
  <div class="intel-card" id="il4ra-tslp-intel-anchor">
@@ -2505,12 +2505,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-il4ra-ox40l">
 
 <div class="stat-row" id="il4ra-ox40l-stats-anchor">
-  <div class="stat-card"><div class="s-label">OX40L Approvals</div><div class="s-val">1 Near</div><div class="s-sub">Amlitelimab BLA under FDA review</div></div>
-  <div class="stat-card o"><div class="s-label">Dosing Target</div><div class="s-val">Q12W+</div><div class="s-sub">vs. dupilumab Q2W</div></div>
-  <div class="stat-card g"><div class="s-label">OX40L+IL-4Rα Programs</div><div class="s-val">3+</div><div class="s-sub">In clinic or pre-IND</div></div>
-  <div class="stat-card p"><div class="s-label">AD Market Size</div><div class="s-val">~$18B</div><div class="s-sub">2028E global addressable</div></div>
-  <div class="stat-card"><div class="s-label">Amlitelimab BLA</div><div class="s-val">Under Rev.</div><div class="s-sub">Sanofi OX40L — near-term catalyst</div></div>
-  <div class="stat-card o"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">IL-4Rα×OX40L bispecific</div></div>
+  <div class="stat-card"><div class="s-label">Moderate-Severe AD</div><div class="s-val">~15M</div><div class="s-sub">US/EU addressable — largest derm market</div></div>
+  <div class="stat-card o"><div class="s-label">OX40L Biology</div><div class="s-val">Memory T</div><div class="s-sub">Costimulatory — sustains Th2/Th17 long-lived memory cells</div></div>
+  <div class="stat-card g"><div class="s-label">Dupilumab Gap</div><div class="s-val">No OX40L</div><div class="s-sub">Dupilumab does not block OX40-OX40L axis — escape route</div></div>
+  <div class="stat-card p"><div class="s-label">OX40L Validated</div><div class="s-val">BLA Filed</div><div class="s-sub">Amlitelimab (Sanofi) — FDA review 2026 · first anti-OX40L</div></div>
+  <div class="stat-card"><div class="s-label">Combo Rationale</div><div class="s-val">Dual Lock</div><div class="s-sub">IL-4Rα blocks acute · OX40L blocks memory re-activation</div></div>
+  <div class="stat-card o"><div class="s-label">Dosing Target</div><div class="s-val">Q12W</div><div class="s-sub">vs. dupilumab Q2W — single injection, extended dosing</div></div>
 </div>
 
  <div class="intel-card" id="il4ra-ox40l-intel-anchor">
@@ -2657,12 +2657,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-igf1r-tshr">
 
 <div class="stat-row" id="igf1r-tshr-stats-anchor">
-  <div class="stat-card"><div class="s-label">Tepezza Revenue</div><div class="s-val">$1.9B</div><div class="s-sub">2023 US — Amgen $28B acquisition</div></div>
-  <div class="stat-card o"><div class="s-label">Hearing Loss Rate</div><div class="s-val">~30%</div><div class="s-sub">Key safety gap for next-gen</div></div>
-  <div class="stat-card g"><div class="s-label">TED US Incidence</div><div class="s-val">~50K</div><div class="s-sub">Moderate-to-severe new cases/yr</div></div>
-  <div class="stat-card p"><div class="s-label">Relapse Rate</div><div class="s-val">~40%</div><div class="s-sub">After tepro — unmet need</div></div>
-  <div class="stat-card"><div class="s-label">SC Tepezza Data</div><div class="s-val">2026</div><div class="s-sub">Amgen SC formulation readout</div></div>
-  <div class="stat-card o"><div class="s-label">Ailux Stage</div><div class="s-val">Preclinical</div><div class="s-sub">IGF1R×TSHR · SC bispecific</div></div>
+  <div class="stat-card"><div class="s-label">TED US Incidence</div><div class="s-val">~50K/yr</div><div class="s-sub">New moderate-severe cases · Graves' in ~3M US</div></div>
+  <div class="stat-card o"><div class="s-label">IGF-1R Biology</div><div class="s-val">Fibroblast</div><div class="s-sub">Overexpressed on orbital fibroblasts — co-activates TSHR</div></div>
+  <div class="stat-card g"><div class="s-label">Receptor Cross-Talk</div><div class="s-val">Complex</div><div class="s-sub">IGF-1R + TSHR form physical dimer on orbital fibroblasts</div></div>
+  <div class="stat-card p"><div class="s-label">Tepro Hearing Loss</div><div class="s-val">~30%</div><div class="s-sub">Key safety gap driving next-gen development</div></div>
+  <div class="stat-card"><div class="s-label">Relapse Rate</div><div class="s-val">~40%</div><div class="s-sub">After tepro course — maintenance unmet need</div></div>
+  <div class="stat-card o"><div class="s-label">Market Validation</div><div class="s-val">$1.9B</div><div class="s-sub">Tepezza 2023 US revenue — Amgen $28B acquisition</div></div>
 </div>
 
  <div class="intel-card" id="igf1r-tshr-intel-anchor">
@@ -2809,12 +2809,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-fcrn">
 
 <div class="stat-row" id="fcrn-stats-anchor">
-  <div class="stat-card"><div class="s-label">gMG Untreated</div><div class="s-val">&gt;80%</div><div class="s-sub">AChR+ patients — primary anchor</div></div>
-  <div class="stat-card o"><div class="s-label">Efgartigimod Rev</div><div class="s-val">$1.7B+</div><div class="s-sub">2024 — gMG + CIDP</div></div>
-  <div class="stat-card g"><div class="s-label">IgG Depletion Target</div><div class="s-val">≥70%</div><div class="s-sub">IMVT-1402 benchmark</div></div>
-  <div class="stat-card p"><div class="s-label">Dosing Target</div><div class="s-val">Q6–8W</div><div class="s-sub">vs. Q1W×4 class standard</div></div>
-  <div class="stat-card"><div class="s-label">Nipocalimab Ph3</div><div class="s-val">2026</div><div class="s-sub">J&J Vivacity-MG topline ETA</div></div>
-  <div class="stat-card o"><div class="s-label">FcRn Market</div><div class="s-val">&gt;$5B</div><div class="s-sub">2028E — gMG, CIDP, BP, IgAN</div></div>
+  <div class="stat-card"><div class="s-label">gMG US Prevalence</div><div class="s-val">~100K</div><div class="s-sub">AChR+ ~85% — primary FcRn indication</div></div>
+  <div class="stat-card o"><div class="s-label">FcRn IgG Biology</div><div class="s-val">Recycling</div><div class="s-sub">FcRn salvages IgG from lysosomal degradation — blockade depletes</div></div>
+  <div class="stat-card g"><div class="s-label">IgG Depletion Target</div><div class="s-val">≥70%</div><div class="s-sub">Required for clinical efficacy — benchmark from IMVT-1402</div></div>
+  <div class="stat-card p"><div class="s-label">Expanding Indications</div><div class="s-val">5+</div><div class="s-sub">gMG · CIDP · BP · IgAN · pSS — all IgG-mediated</div></div>
+  <div class="stat-card"><div class="s-label">Dosing Gap</div><div class="s-val">Q6–8W</div><div class="s-sub">Target vs. efgartigimod Q1W×4 cycles — compliance burden</div></div>
+  <div class="stat-card o"><div class="s-label">Class Validation</div><div class="s-val">$1.7B+</div><div class="s-sub">Efgartigimod (argenx) 2024 gMG + CIDP revenue</div></div>
 </div>
 
  <div class="intel-card" id="fcrn-intel-anchor">
@@ -2966,12 +2966,12 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 <div class="tab-pane" id="tab-ace">
 
 <div class="stat-row" id="ace-stats-anchor">
-  <div class="stat-card"><div class="s-label">SLE Drug-Free Remission</div><div class="s-val">5/6</div><div class="s-sub">Erlangen CD19 CAR-T (NEJM 2024)</div></div>
-  <div class="stat-card o"><div class="s-label">KT501 (Kali→Sanofi)</div><div class="s-val">$1.23B</div><div class="s-sub">Mar 2026 · BCMA×CD19×CD3 TCE</div></div>
-  <div class="stat-card g"><div class="s-label">TCE Programs</div><div class="s-val">3</div><div class="s-sub">CLN-978 (Ph1) · KT501 (Ph1) · HXN-1031 (Pre-IND)</div></div>
-  <div class="stat-card p"><div class="s-label">Ailux Stage</div><div class="s-val">Pre-IND</div><div class="s-sub">BCMA×CD19×CD3 trispecific TCE</div></div>
-  <div class="stat-card"><div class="s-label">CLN-978 Data</div><div class="s-val">Q2 26</div><div class="s-sub">OUTRACE Ph1 first read</div></div>
-  <div class="stat-card o"><div class="s-label">KT501 Safety Data</div><div class="s-val">H2 26</div><div class="s-sub">Kali/Sanofi Ph1a readout</div></div>
+  <div class="stat-card"><div class="s-label">Refractory SLE US</div><div class="s-val">~15K</div><div class="s-sub">Patients failing biologics — immune reset target</div></div>
+  <div class="stat-card o"><div class="s-label">CAR-T Proof of Concept</div><div class="s-val">5/6</div><div class="s-sub">SLE drug-free remission · Erlangen NEJM 2024</div></div>
+  <div class="stat-card g"><div class="s-label">BCMA Target</div><div class="s-val">Plasma Cells</div><div class="s-sub">Survival signal — depleting PCs removes autoantibody source</div></div>
+  <div class="stat-card p"><div class="s-label">CD19 Target</div><div class="s-val">All B-cells</div><div class="s-sub">Pre-B to plasmablast — ensures complete lineage reset</div></div>
+  <div class="stat-card"><div class="s-label">vs. CAR-T</div><div class="s-val">SC Route</div><div class="s-sub">Trispecific avoids manufacturing bottleneck & infusion</div></div>
+  <div class="stat-card o"><div class="s-label">gMG Opportunity</div><div class="s-val">AChR-IgG</div><div class="s-sub">AChR autoantibody-driven — B-cell reset could be curative</div></div>
 </div>
 
  <div class="intel-card" id="ace-intel-anchor">
