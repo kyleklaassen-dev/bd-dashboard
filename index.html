@@ -928,6 +928,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <button class="tab-btn" onclick="switchTab('stocks',this)" style="display:none">Market &amp; Learning</button>
  <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">💊 Drugs to Know</button>
+        <button class="tab-btn" onclick="switchTab('pharma-intel', this)">📊 Pharma Landscape</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title">
  <span class="tab-current-name" id="tab-current-name">Home</span>
@@ -1811,6 +1812,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
  <ul>
  <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
+          <li><a href="#" onclick="navTo('pharma-intel');return false">📊 Pharma Landscape</a></li>
  <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Novamab and Episcience should prioritize partnering timelines now; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
  <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago — this is a strong talking point when discussing deal structure with Chinese biotech clients considering out-licensing.</li>
  <li><strong>Estimand alignment is a hidden risk in Phase 2 design for bispecifics.</strong> The three lead TL1A monotherapy programs in Phase 3 (tulisokibart, duvakitug, afimkibart) all use composite estimands — rescue steroid use or discontinuation counts as treatment failure. When TL1A×IL-23p19 bispecifics move into Phase 2, sponsors who use a different estimand strategy (e.g. treatment policy) will report higher remission rates that cannot be compared to the Phase 3 monoAb benchmarks. Partners and regulators will scrutinize this. Chinese companies designing their Phase 2 protocols should default to composite estimands to maintain comparability with the established TL1A clinical evidence base.</li>
@@ -4358,6 +4360,629 @@ function dknReset() {
 </div>
 
 
+
+<div class="tab-pane" id="tab-pharma-intel">
+<div style="padding:20px 24px 0">
+  <div style="font-size:22px;font-weight:800;color:#1e3a5f;margin-bottom:4px">📊 Pharma Landscape</div>
+  <div style="font-size:13px;color:#64748b;margin-bottom:18px">Global &amp; China pharma rankings · AI biotech platform comparisons · FY2024 data</div>
+</div>
+
+<style>
+  .pi-card {
+    background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);
+    margin:0 24px 24px;overflow:hidden;
+  }
+  .pi-card-hd {
+    background:#1e3a5f;color:#fff;padding:12px 18px;
+    font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;
+  }
+  .pi-card-sub {font-size:11px;color:#93c5fd;font-weight:400}
+  .pi-table {width:100%;border-collapse:collapse;font-size:12px}
+  .pi-table th {
+    background:#f1f5f9;color:#475569;font-weight:700;font-size:10px;
+    text-transform:uppercase;letter-spacing:.04em;padding:7px 10px;
+    border-bottom:2px solid #dde3ea;text-align:left;position:sticky;top:0;z-index:2
+  }
+  .pi-table td {padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  .pi-table tr:hover td {background:#f8fafc}
+  .pi-ta-pill {
+    background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;
+    font-size:10px;font-weight:600;white-space:nowrap;display:inline-block
+  }
+  .pi-ta2 {background:#dcfce7;color:#166534}
+  .text-red {color:#dc2626}
+  .pi-two-col {display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:0 24px 24px;}
+  @media(max-width:900px){.pi-two-col{grid-template-columns:1fr;margin:0 12px 16px}}
+  .pi-two-col .pi-card {margin:0;}
+  .pi-scroll {max-height:420px;overflow-y:auto}
+  .pi-legend {padding:10px 18px 12px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap}
+  .pi-legend-dot {display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style>
+
+<!-- Two-column: China + US side by side -->
+<div class="pi-two-col">
+
+  <!-- China Pharma Card -->
+  <div class="pi-card">
+    <div class="pi-card-hd">
+      🇨🇳 China Pharma Rankings
+      <span class="pi-card-sub">Top 15 by Market Cap · ~Mid-2025</span>
+    </div>
+    <div class="pi-scroll">
+      <table class="pi-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Company</th><th>Type</th><th>Mkt Cap</th>
+            <th>Revenue</th><th>R&amp;D Spend</th><th>R&amp;D %</th>
+            <th>TA #1</th><th>TA #2</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">1</td>
+          <td><strong>Jiangsu Hengrui</strong><br><span style="color:#64748b;font-size:10px">600276.SS / 1276.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$60B</td>
+          <td>~$3.9B</td>
+          <td>~$1.1B</td>
+          <td><span style="color:inherit;font-weight:400">29%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Cardiovascular</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">2</td>
+          <td><strong>Sinopharm Group</strong><br><span style="color:#64748b;font-size:10px">1099.HK</span></td>
+          <td><span style="background:#7f1d1d;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">State-owned</span></td>
+          <td style="font-weight:600">~$20B</td>
+          <td>~$75B</td>
+          <td>~$0.5B</td>
+          <td><span style="color:inherit;font-weight:400"><1%</span></td>
+          <td><span class="pi-ta-pill">Vaccines</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Distribution</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">3</td>
+          <td><strong>CSPC Pharmaceutical</strong><br><span style="color:#64748b;font-size:10px">1093.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$19B</td>
+          <td>~$4.3B</td>
+          <td>~$0.7B</td>
+          <td><span style="color:inherit;font-weight:400">16%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Cardiovascular</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">4</td>
+          <td><strong>WuXi Biologics</strong><br><span style="color:#64748b;font-size:10px">2269.HK</span></td>
+          <td><span style="background:#166534;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">CDMO</span></td>
+          <td style="font-weight:600">~$18B</td>
+          <td>~$1.7B</td>
+          <td>~$0.2B</td>
+          <td><span style="color:inherit;font-weight:400">12%</span></td>
+          <td><span class="pi-ta-pill">Biologics CMO</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">5</td>
+          <td><strong>BeOne Medicines</strong><br><span style="color:#64748b;font-size:10px">BGNE (NASDAQ)</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$17B</td>
+          <td>~$3.8B</td>
+          <td>~$2.0B</td>
+          <td><span style="color:#dc2626;font-weight:700">52%</span></td>
+          <td><span class="pi-ta-pill">Hematology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">6</td>
+          <td><strong>Sino Biopharmaceutical</strong><br><span style="color:#64748b;font-size:10px">1177.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$9B</td>
+          <td>~$3.0B</td>
+          <td>~$0.5B</td>
+          <td><span style="color:inherit;font-weight:400">17%</span></td>
+          <td><span class="pi-ta-pill">Hepatology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">7</td>
+          <td><strong>Yunnan Baiyao</strong><br><span style="color:#64748b;font-size:10px">000538.SZ</span></td>
+          <td><span style="background:#5b21b6;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">TCM</span></td>
+          <td style="font-weight:600">~$11B</td>
+          <td>~$5.3B</td>
+          <td>~$0.2B</td>
+          <td><span style="color:inherit;font-weight:400">4%</span></td>
+          <td><span class="pi-ta-pill">TCM / Wound Care</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Cardiovascular</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">8</td>
+          <td><strong>Hansoh Pharma</strong><br><span style="color:#64748b;font-size:10px">3692.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$10B</td>
+          <td>~$1.8B</td>
+          <td>~$0.4B</td>
+          <td><span style="color:inherit;font-weight:400">22%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">CNS</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">9</td>
+          <td><strong>Innovent Biologics</strong><br><span style="color:#64748b;font-size:10px">1801.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$7B</td>
+          <td>~$1.0B</td>
+          <td>~$0.4B</td>
+          <td><span style="color:#dc2626;font-weight:700">40%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Immunology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">10</td>
+          <td><strong>Fosun Pharma</strong><br><span style="color:#64748b;font-size:10px">600196.SS / 2196.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$5B</td>
+          <td>~$3.5B</td>
+          <td>~$0.5B</td>
+          <td><span style="color:inherit;font-weight:400">14%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Anti-infectives</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">11</td>
+          <td><strong>HUTCHMED (China)</strong><br><span style="color:#64748b;font-size:10px">0013.HK / HCML</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$3B</td>
+          <td>~$0.5B</td>
+          <td>~$0.3B</td>
+          <td><span style="color:#dc2626;font-weight:700">~60%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Immunology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">12</td>
+          <td><strong>Zai Lab</strong><br><span style="color:#64748b;font-size:10px">ZLAB (NASDAQ) / 9688.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$3B</td>
+          <td>~$0.4B</td>
+          <td>~$0.4B</td>
+          <td><span style="color:#dc2626;font-weight:700">>100%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">CNS / Autoimmune</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">13</td>
+          <td><strong>Shanghai Pharma</strong><br><span style="color:#64748b;font-size:10px">601607.SS / 2607.HK</span></td>
+          <td><span style="background:#4b5563;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Distribution</span></td>
+          <td style="font-weight:600">~$6B</td>
+          <td>~$35B</td>
+          <td>~$0.3B</td>
+          <td><span style="color:inherit;font-weight:400"><1%</span></td>
+          <td><span class="pi-ta-pill">Distribution</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Manufacturing</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">14</td>
+          <td><strong>Zhangzhou Pien Tze Huang</strong><br><span style="color:#64748b;font-size:10px">600436.SS</span></td>
+          <td><span style="background:#5b21b6;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">TCM</span></td>
+          <td style="font-weight:600">~$9B</td>
+          <td>~$1.1B</td>
+          <td>~$0.05B</td>
+          <td><span style="color:inherit;font-weight:400">5%</span></td>
+          <td><span class="pi-ta-pill">TCM / Liver</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">15</td>
+          <td><strong>RemeGen</strong><br><span style="color:#64748b;font-size:10px">9995.HK</span></td>
+          <td><span style="background:#1e3a5f;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">Innovative</span></td>
+          <td style="font-weight:600">~$2B</td>
+          <td>~$0.3B</td>
+          <td>~$0.2B</td>
+          <td><span style="color:#dc2626;font-weight:700">~67%</span></td>
+          <td><span class="pi-ta-pill">Autoimmune</span></td>
+          <td><span class="pi-ta-pill pi-ta2">ADC / Oncology</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div class="pi-legend">
+      <span><span class="pi-legend-dot" style="background:#1e3a5f"></span>Innovative</span>
+      <span><span class="pi-legend-dot" style="background:#166534"></span>CDMO</span>
+      <span><span class="pi-legend-dot" style="background:#7f1d1d"></span>State-owned</span>
+      <span><span class="pi-legend-dot" style="background:#5b21b6"></span>TCM</span>
+      <span><span class="pi-legend-dot" style="background:#4b5563"></span>Distribution</span>
+      <span style="color:#dc2626">Red R&amp;D% = &gt;35% intensity</span>
+    </div>
+  </div>
+
+  <!-- US/Global Pharma Card -->
+  <div class="pi-card">
+    <div class="pi-card-hd">
+      🇺🇸 Global Big Pharma Rankings
+      <span class="pi-card-sub">Top 20 · FY2024 Financials</span>
+    </div>
+    <div class="pi-scroll">
+      <table class="pi-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Company</th><th>Mkt Cap</th><th>Revenue</th>
+            <th>R&amp;D</th><th>R&amp;D %</th><th>TA #1</th><th>TA #2</th><th>Key Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">1</td>
+          <td><strong>Eli Lilly</strong><br><span style="color:#64748b;font-size:10px">LLY</span></td>
+          <td style="font-weight:600">$700B</td>
+          <td>$45.0B</td>
+          <td>$9.3B</td>
+          <td><span style="color:inherit;font-weight:400">21%</span></td>
+          <td><span class="pi-ta-pill">Diabetes/Obesity</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Mounjaro/Zepbound GLP-1 dominant; +32% YoY revenue</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">2</td>
+          <td><strong>J&J</strong><br><span style="color:#64748b;font-size:10px">JNJ</span></td>
+          <td style="font-weight:600">$380B</td>
+          <td>$88.8B</td>
+          <td>$17.2B</td>
+          <td><span style="color:inherit;font-weight:400">19%</span></td>
+          <td><span class="pi-ta-pill">Immunology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Pharma segment ~$57B; Darzalex $11.7B; Skyrizi/Rinvoq driving growth</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">3</td>
+          <td><strong>Novartis</strong><br><span style="color:#64748b;font-size:10px">NVS</span></td>
+          <td style="font-weight:600">$310B</td>
+          <td>$50.3B</td>
+          <td>$11.4B</td>
+          <td><span style="color:inherit;font-weight:400">23%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Cardiovascular</span></td>
+          <td style="font-size:10px;color:#475569">Cosentyx + Kesimpta + Kisqali key growth drivers</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">4</td>
+          <td><strong>AbbVie</strong><br><span style="color:#64748b;font-size:10px">ABBV</span></td>
+          <td style="font-weight:600">$310B</td>
+          <td>$56.3B</td>
+          <td>$7.7B</td>
+          <td><span style="color:inherit;font-weight:400">14%</span></td>
+          <td><span class="pi-ta-pill">Immunology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Skyrizi $11.7B (+51%); Rinvoq $6.0B; navigating Humira biosimilar erosion</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">5</td>
+          <td><strong>Novo Nordisk</strong><br><span style="color:#64748b;font-size:10px">NVO</span></td>
+          <td style="font-weight:600">$350B</td>
+          <td>$47.3B</td>
+          <td>$6.2B</td>
+          <td><span style="color:inherit;font-weight:400">13%</span></td>
+          <td><span class="pi-ta-pill">Diabetes/Obesity</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Endocrinology</span></td>
+          <td style="font-size:10px;color:#475569">Ozempic $17.5B (+26%); Wegovy $8.4B; ~55% global GLP-1 share</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">6</td>
+          <td><strong>AstraZeneca</strong><br><span style="color:#64748b;font-size:10px">AZN</span></td>
+          <td style="font-weight:600">$260B</td>
+          <td>$54.1B</td>
+          <td>$10.9B</td>
+          <td><span style="color:inherit;font-weight:400">20%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">CVRM</span></td>
+          <td style="font-size:10px;color:#475569">Tagrisso $6.6B; Farxiga $7.7B; aggressive oncology pipeline</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">7</td>
+          <td><strong>Merck & Co.</strong><br><span style="color:#64748b;font-size:10px">MRK</span></td>
+          <td style="font-weight:600">$250B</td>
+          <td>$64.2B</td>
+          <td>$17.9B</td>
+          <td><span style="color:inherit;font-weight:400">28%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Vaccines</span></td>
+          <td style="font-size:10px;color:#475569">Keytruda $29.5B (+18%); ~46% of total revenue; patent cliff 2028</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">8</td>
+          <td><strong>Roche</strong><br><span style="color:#64748b;font-size:10px">ROG</span></td>
+          <td style="font-weight:600">$230B</td>
+          <td>$62.3B</td>
+          <td>$14.4B</td>
+          <td><span style="color:inherit;font-weight:400">23%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Diagnostics</span></td>
+          <td style="font-size:10px;color:#475569">Pharma ~$41B; strong oncology/heme franchise; diagnostics integrated</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">9</td>
+          <td><strong>Amgen</strong><br><span style="color:#64748b;font-size:10px">AMGN</span></td>
+          <td style="font-weight:600">$175B</td>
+          <td>$33.4B</td>
+          <td>$5.9B</td>
+          <td><span style="color:inherit;font-weight:400">18%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Inflammation</span></td>
+          <td style="font-size:10px;color:#475569">Horizon Therapeutics integrated; MariTide (obesity) key pipeline catalyst</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">10</td>
+          <td><strong>Pfizer</strong><br><span style="color:#64748b;font-size:10px">PFE</span></td>
+          <td style="font-weight:600">$150B</td>
+          <td>$63.6B</td>
+          <td>$10.7B</td>
+          <td><span style="color:inherit;font-weight:400">17%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Vaccines</span></td>
+          <td style="font-size:10px;color:#475569">Post-COVID stabilization; Eliquis $7.4B; stock -25% over 5yr</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">11</td>
+          <td><strong>BMS</strong><br><span style="color:#64748b;font-size:10px">BMY</span></td>
+          <td style="font-weight:600">$120B</td>
+          <td>$47.6B</td>
+          <td>$9.3B</td>
+          <td><span style="color:inherit;font-weight:400">20%</span></td>
+          <td><span class="pi-ta-pill">Oncology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Hematology</span></td>
+          <td style="font-size:10px;color:#475569">LOE headwinds (Revlimid); Opdivo + Eliquis backbone</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">12</td>
+          <td><strong>Sanofi</strong><br><span style="color:#64748b;font-size:10px">SNY</span></td>
+          <td style="font-weight:600">$120B</td>
+          <td>$47.3B</td>
+          <td>$9.1B</td>
+          <td><span style="color:inherit;font-weight:400">19%</span></td>
+          <td><span class="pi-ta-pill">Immunology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Vaccines</span></td>
+          <td style="font-size:10px;color:#475569">Dupixent global ~$13.5B; Beyfortus RSV strong vaccine performer</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">13</td>
+          <td><strong>Gilead Sciences</strong><br><span style="color:#64748b;font-size:10px">GILD</span></td>
+          <td style="font-weight:600">$105B</td>
+          <td>$28.7B</td>
+          <td>$5.3B</td>
+          <td><span style="color:inherit;font-weight:400">18%</span></td>
+          <td><span class="pi-ta-pill">Virology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">HIV franchise dominant; Trodelvy + oncology expanding</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">14</td>
+          <td><strong>Vertex</strong><br><span style="color:#64748b;font-size:10px">VRTX</span></td>
+          <td style="font-weight:600">$105B</td>
+          <td>$10.8B</td>
+          <td>$3.5B</td>
+          <td><span style="color:#dc2626;font-weight:700">32%</span></td>
+          <td><span class="pi-ta-pill">Cystic Fibrosis</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Gene Editing</span></td>
+          <td style="font-size:10px;color:#475569">CFTR franchise (Trikafta); Casgevy first approved gene editing therapy</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">15</td>
+          <td><strong>GSK</strong><br><span style="color:#64748b;font-size:10px">GSK</span></td>
+          <td style="font-weight:600">$90B</td>
+          <td>$38.4B</td>
+          <td>$8.1B</td>
+          <td><span style="color:inherit;font-weight:400">21%</span></td>
+          <td><span class="pi-ta-pill">Vaccines</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Shingrix + respiratory vaccines; specialty medicines growing</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">16</td>
+          <td><strong>Regeneron</strong><br><span style="color:#64748b;font-size:10px">REGN</span></td>
+          <td style="font-weight:600">$80B</td>
+          <td>$14.2B</td>
+          <td>$4.7B</td>
+          <td><span style="color:#dc2626;font-weight:700">33%</span></td>
+          <td><span class="pi-ta-pill">Immunology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Ophthalmology</span></td>
+          <td style="font-size:10px;color:#475569">Dupixent global $14.2B (+22%); EYLEA HD launch; broad pipeline</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">17</td>
+          <td><strong>Takeda</strong><br><span style="color:#64748b;font-size:10px">TAK</span></td>
+          <td style="font-weight:600">$65B</td>
+          <td>$30.9B</td>
+          <td>$4.5B</td>
+          <td><span style="color:inherit;font-weight:400">15%</span></td>
+          <td><span class="pi-ta-pill">GI</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Rare Disease</span></td>
+          <td style="font-size:10px;color:#475569">Entyvio ~$5.4B; rare disease (ATTR) growing</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">18</td>
+          <td><strong>Bayer</strong><br><span style="color:#64748b;font-size:10px">BAYN</span></td>
+          <td style="font-weight:600">$30B</td>
+          <td>$19.8B</td>
+          <td>$3.1B</td>
+          <td><span style="color:inherit;font-weight:400">16%</span></td>
+          <td><span class="pi-ta-pill">Cardiovascular</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Pharma segment only; Xarelto LOE; mkt cap depressed by litigation</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">19</td>
+          <td><strong>Biogen</strong><br><span style="color:#64748b;font-size:10px">BIIB</span></td>
+          <td style="font-weight:600">$27B</td>
+          <td>$9.7B</td>
+          <td>$2.5B</td>
+          <td><span style="color:inherit;font-weight:400">26%</span></td>
+          <td><span class="pi-ta-pill">Neurology</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Rare Disease</span></td>
+          <td style="font-size:10px;color:#475569">Leqembi (Alzheimer's) launch; MS franchise declining</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:#1e3a5f;text-align:center">20</td>
+          <td><strong>Moderna</strong><br><span style="color:#64748b;font-size:10px">MRNA</span></td>
+          <td style="font-weight:600">$17B</td>
+          <td>$3.2B</td>
+          <td>$4.7B</td>
+          <td><span style="color:#dc2626;font-weight:700">>100%</span></td>
+          <td><span class="pi-ta-pill">mRNA Vaccines</span></td>
+          <td><span class="pi-ta-pill pi-ta2">Oncology</span></td>
+          <td style="font-size:10px;color:#475569">Post-COVID contraction; R&D burn exceeds revenue</td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div class="pi-legend">
+      <span>Sources: FY2024 annual reports / 8-Ks · Drug Discovery &amp; Development Pharma 50 2025 · PharmaShots Top 20 R&amp;D 2025</span>
+      <span style="color:#dc2626">Red R&amp;D% = &gt;30% intensity</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- AI Biotech Full-width Card -->
+<div class="pi-card" style="margin:0 24px 32px">
+  <div class="pi-card-hd">
+    🤖 AI Biotech Platform Companies — Competitive Landscape
+    <span class="pi-card-sub">Ranked by Ailux overlap · May 2025</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="pi-table" style="min-width:1100px">
+      <thead>
+        <tr>
+          <th style="min-width:160px">Company</th>
+          <th style="min-width:220px">Platform Core</th>
+          <th>Modality</th>
+          <th style="min-width:220px">Lead Internal Programs</th>
+          <th style="min-width:180px">Key Pharma Partners</th>
+          <th>Est. Val / Mkt Cap</th>
+          <th style="min-width:260px">Ailux Relevance / Signal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fef2f2">
+          <td>
+            <strong style="font-size:13px">Absci</strong><br>
+            <span style="color:#64748b;font-size:10px">Vancouver, WA · 2011</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">ABSI (NASDAQ) · Public</span>
+          </td>
+          <td style="font-size:11px">Generative AI de novo antibody design + reverse immunology target discovery. Wet-lab integrated; trains on synthetic biology data loop.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Antibody / biologic</span></td>
+          <td style="font-size:11px">ABS-101 (anti-TL1A, IBD) — Phase 1 ✓ (dosed May 2025)<br>ABS-201 (anti-PRLR, alopecia) — Phase 1 planned H1 2026<br>ABS-501 (anti-HER2 ADC) — preclinical</td>
+          <td style="font-size:11px">AstraZeneca ($247M, oncology Ab)<br>Merck &amp; Co.<br>Almirall ($610M, derm)<br>Denali (BBB)</td>
+          <td style="font-weight:700;color:#1e3a5f">~$400M mkt cap</td>
+          <td style="font-size:11px">
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            <strong class="text-red">HIGHEST OVERLAP.</strong> ABS-101 = anti-TL1A (same target as Ailux TL1A program). Identical platform strategy (AI design + internal pipeline). AZ deal mirrors Ailux-AbbVie pilot model.
+          </td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>
+            <strong style="font-size:13px">Generate:Biomedicines</strong><br>
+            <span style="color:#64748b;font-size:10px">Somerville, MA · 2018 (Flagship)</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">GENB (NASDAQ) · IPO Feb 2026</span>
+          </td>
+          <td style="font-size:11px">Chroma diffusion model for de novo protein design. Design–build–test–learn loop with Cryo-EM core and high-throughput biohardware.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Protein / Ab / TCE / ADC</span></td>
+          <td style="font-size:11px">GB-0895 (anti-TSLP, asthma) — <strong>Phase 3 ✓</strong> (Jan 2026)<br>GB-4362 (anti-MMAE mAb, urothelial ca.) — Phase 1 planned 2026<br>GB-5267 (MUC16 CAR-T, ovarian ca.) — Phase 1 planned 2026</td>
+          <td style="font-size:11px">Amgen (5 programs)<br>Novartis</td>
+          <td style="font-weight:700;color:#1e3a5f">~$2B mkt cap</td>
+          <td style="font-size:11px">
+            <span style="background:#d97706;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Medium Overlap</span><br>
+            First AI biotech in Phase 3 — validates platform + pipeline model. TCE and ADC programs overlap Ailux modalities. Sets investor valuation benchmarks for the AI biotech category.
+          </td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>
+            <strong style="font-size:13px">Insilico Medicine</strong><br>
+            <span style="color:#64748b;font-size:10px">Hong Kong · 2014</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">3696 (HKEX) · IPO Dec 2025</span>
+          </td>
+          <td style="font-size:11px">Pharma.AI: end-to-end platform (PandaOmics target ID, Chemistry42 generative chemistry, inClinico). Licensed to 13 of top-20 pharma.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Small molecule</span></td>
+          <td style="font-size:11px">Rentosertib / ISM001-055 (TNIK inhib., IPF) — Phase 2a ✓ (positive, Nature Med 2025)<br>ISM3091 (PD-L1×VEGF bispecific) — Phase 1<br>7 clinical-stage assets; 30+ total programs</td>
+          <td style="font-size:11px">Eli Lilly ($100M+)<br>Sanofi<br>Fosun Pharma<br>13 top-20 pharma licensees</td>
+          <td style="font-weight:700;color:#1e3a5f">~$4B at IPO</td>
+          <td style="font-size:11px">
+            <span style="background:#d97706;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Medium Overlap</span><br>
+            Primarily small molecule. ISM3091 (PD-L1×VEGF bispecific) overlaps Ailux bispecific programs. $4B IPO valuation = benchmark for platform + clinical pipeline with strategic Lilly investment.
+          </td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>
+            <strong style="font-size:13px">Recursion + Exscientia</strong><br>
+            <span style="color:#64748b;font-size:10px">Salt Lake City / Oxford · Merged Nov 2024</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">RXRX (NASDAQ) · Public</span>
+          </td>
+          <td style="font-size:11px">Phenomics (60+ PB imaging data) + Exscientia precision chemistry + QM/MM atomistic modeling. Biology-first platform. Building toward "virtual cell."</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Small molecule</span></td>
+          <td style="font-size:11px">REC-617 (CDK7 inhib., solid tumors) — Phase 1/2<br>REC-1245 (RBM39 degrader, lymphoma) — Phase 1<br>6 active programs post-Q1 2025 trim (3 programs cut)</td>
+          <td style="font-size:11px">Roche/Genentech ($150M)<br>Sanofi<br>Bayer<br>$20B+ total potential milestones</td>
+          <td style="font-weight:700;color:#1e3a5f">~$1.5B mkt cap</td>
+          <td style="font-size:11px">
+            <span style="background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Low Overlap</span><br>
+            Small molecule — limited direct Ab/biologic overlap with Ailux. Key as valuation comp and partner model. Pipeline trimming in Q1 2025 = cautionary tale for overextending program breadth.
+          </td>
+        </tr>
+        <tr style="background:#fef2f2">
+          <td>
+            <strong style="font-size:13px">BigHat Biosciences</strong><br>
+            <span style="color:#64748b;font-size:10px">San Mateo, CA · 2019</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Private · ~$500M est.</span>
+          </td>
+          <td style="font-size:11px">Milliner platform: ML + synthetic biology for multi-parameter antibody optimization (potency, developability, immunogenicity). Adding ADC/TCE science via Synaffix.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Antibody / ADC / TCE</span></td>
+          <td style="font-size:11px">GI cancer ADC (undisclosed target) — IND-enabling; Phase 1 expected 2026<br>TCE programs (undisclosed) — preclinical</td>
+          <td style="font-size:11px">AbbVie ($30M up + $325M milestones)<br>Eli Lilly<br>J&amp;J<br>Amgen<br>MSD</td>
+          <td style="font-weight:700;color:#1e3a5f">~$500M est.</td>
+          <td style="font-size:11px">
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            <strong>AbbVie overlap is direct.</strong> BigHat = doing for AbbVie today what Ailux pilot aims to prove. Both building ADC + TCE internal programs. BigHat entering clinic 2026 raises bar Ailux must clear.
+          </td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>
+            <strong style="font-size:13px">Xaira Therapeutics</strong><br>
+            <span style="color:#64748b;font-size:10px">South San Francisco · 2023</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Private · ~$4B est.</span>
+          </td>
+          <td style="font-size:11px">RFdiffusion + RFantibody (David Baker lab). Foundation models for de novo protein and antibody design. Building proprietary biology datasets.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Protein / Ab foundation model</span></td>
+          <td style="font-size:11px">Internal programs (undisclosed) — pre-IND<br>No clinical programs disclosed yet</td>
+          <td style="font-size:11px">No disclosed pharma partnerships yet</td>
+          <td style="font-weight:700;color:#1e3a5f">~$4B est. ($1B war chest)</td>
+          <td style="font-size:11px">
+            <span style="background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Low Overlap</span><br>
+            Future threat, not current. $1B raise + best foundation models in the field. Will enter BD market in 2–3 years with validated programs — competitive pressure on Ailux intensifies significantly.
+          </td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>
+            <strong style="font-size:13px">Schrödinger</strong><br>
+            <span style="color:#64748b;font-size:10px">New York · 1990</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">SDGR (NASDAQ) · Public</span>
+          </td>
+          <td style="font-size:11px">FEP+ physics-based free energy perturbation + ML. Gold standard for structure-based small molecule design. LiveDesign platform licensed broadly to pharma.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Small molecule (physics-ML)</span></td>
+          <td style="font-size:11px">SGR-1505 (MALT1 inhib., B-cell malignancies) — Phase 1<br>SGR-2921 (CDC7 inhib.) — Phase 1<br>Zasocitinib (TYK2 inhib., via Takeda) — Phase 3</td>
+          <td style="font-size:11px">AbbVie, BMS, Pfizer<br>Novartis, Takeda, Lilly</td>
+          <td style="font-weight:700;color:#1e3a5f">~$1.8B mkt cap</td>
+          <td style="font-size:11px">
+            <span style="background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Low Overlap</span><br>
+            Small molecule physics platform — minimal direct Ab/biologic overlap with Ailux. Relevant as AbbVie partner landscape context and AI drug design valuation benchmark.
+          </td>
+        </tr></tbody>
+    </table>
+  </div>
+  <div class="pi-legend">
+    <span><span style="background:#fef2f2;border:1px solid #fca5a5;padding:2px 8px;border-radius:4px;font-size:10px">High Overlap</span> Direct competitor / same target or platform</span>
+    <span><span style="background:#fefce8;border:1px solid #fde68a;padding:2px 8px;border-radius:4px;font-size:10px">Medium Overlap</span> Overlapping modality or indication</span>
+    <span><span style="background:#f0fdf4;border:1px solid #86efac;padding:2px 8px;border-radius:4px;font-size:10px">Low Overlap</span> Relevant as valuation comp; limited direct competition</span>
+  </div>
+</div>
+
+</div><!-- end tab-pharma-intel -->
+
 <div class="tab-pane" id="tab-meridian-issue">
  <div class="content">
   <div id="meridian-issue-container" style="background:white;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden;min-height:60vh">
@@ -4882,7 +5507,37 @@ const WEEKLY_TASKS = [
  { id:'f1', area:'Immune Reset', color:'#991b1b', text:'Read BCMA × CD19 × CD3 (ACE) tab — understand why dual B-cell lineage depletion is the hypothesis', tab:'ace', anchor:'ace-edu-anchor' },
  { id:'f2', area:'Immune Reset', color:'#991b1b', text:'Review ACE Competitive Landscape — KT501 vs CLN-978 vs CAR-T: what is Ailux doing differently?', tab:'ace', anchor:'ace-landscape-anchor' },
  { id:'f3', area:'General', color:'#4b5563', text:'Review Meridian Daily Reader — are all 7 coverage areas still current? Submit anything new via ＋ Submit Intel', tab:'home', anchor:'meridian-reader-anchor' },
- ]},
+ ]},,
+  {id:75,company:"Mirador Therapeutics",brand:"",generic:"MT-251",name:"MT-251",target:"TL1A×IL-23p19",cls:"TL1A×IL-23p19 bispecific (FcRn-recycling)",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK; early efficacy signals",trials:"Phase 1 active",diff:"FcRn-recycling format extends half-life; most direct clinical-stage bispecific competitor to Ailux",risk:"Very early; no efficacy data",notes:"Direct bispecific competitor in IBD space"},
+  {id:76,company:"Xencor",brand:"",generic:"XmAb412",name:"XmAb412",target:"TL1A",cls:"TL1A bispecific (XTEND-Fc)",category:"Pipeline",stage:"Preclinical",indication:"IBD (pre-Phase 1, FIH ~H2 2026)",endpoints:"FIH safety",trials:"IND-enabling; FIH planned H2 2026",diff:"XTEND-Fc half-life extension; different from XmAb942 (TL1A×IL-23)",risk:"Preclinical; no human data",notes:"Second Xencor TL1A asset in the pipeline"},
+  {id:77,company:"Simcere / Boehringer Ingelheim",brand:"",generic:"SIM0709",name:"SIM0709",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1 active; €1.05B BI partnership (Dec 2024)",diff:"Well-funded direct bispecific competitor backed by major pharma",risk:"Very early; no efficacy data",notes:"BI partnership signals strong commercial validation of this MOA"},
+  {id:78,company:"Earendil Bio / Helixon / Sanofi",brand:"",generic:"HXN-1003",name:"HXN-1003",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1; $1.845B Sanofi deal",diff:"Sanofi validation signals high commercial conviction in TL1A×IL-23 bispecific space",risk:"Early stage; major pharma competition",notes:"Largest deal in TL1A×IL-23 bispecific space to date"},
+  {id:79,company:"LaNova Medicines / Zymeworks",brand:"",generic:"LQ080",name:"LQ080 / ZW191",target:"TL1A×IL-23",cls:"TL1A×IL-23 VHH bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1",diff:"Nanobody (VHH) format — compact, potentially better tissue penetration",risk:"VHH tissue penetration in IBD unproven vs. IgG format",notes:"First VHH-based TL1A×IL-23 bispecific in clinical trials"},
+  {id:80,company:"Caldera Therapeutics / Qyuns",brand:"",generic:"CLD-423",name:"CLD-423 / QX030N",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1",diff:"Direct bispecific competitor; multiple Ph1 entrants signals crowding in this class",risk:"Late entrant; differentiation on PK or dosing interval needed",notes:"Category crowding signals differentiation will matter"},
+  {id:81,company:"Qyuns Therapeutics / Roche ($7.25B deal)",brand:"",generic:"QX031N",name:"QX031N",target:"TSLP×IL-33",cls:"TSLP×IL-33 bispecific",category:"Pipeline",stage:"Phase 1",indication:"Asthma; AD (Phase 1, FIH 2026)",endpoints:"Safety; PK",trials:"Phase 1 FIH 2026; partnered with Roche",diff:"Roche’s $7.25B deal validates TSLP×IL-33 bispecific commercial opportunity",risk:"Very early; Roche resources = fierce competition",notes:"Most direct Ailux TSLP×IL-33 competitor with major pharma backing"},
+  {id:82,company:"Biosion / Aclaris Therapeutics",brand:"",generic:"BSI-045B",name:"BSI-045B",target:"TSLP×IL-33",cls:"TSLP×IL-33 bispecific",category:"Pipeline",stage:"Phase 1",indication:"Asthma; AD (Phase 1/2)",endpoints:"Safety; PK; early efficacy",trials:"Phase 1/2; >$900M Aclaris licensing deal",diff:"Most advanced TSLP×IL-33 bispecific in class; earliest data readout expected",risk:"Limited data; high competition from QX031N/Roche",notes:"First-in-class TSLP×IL-33 bispecific to report clinical data"},
+  {id:83,company:"Windward Bio",brand:"",generic:"WIN027",name:"WIN027",target:"TSLP×IL-13",cls:"TSLP×IL-13 bispecific",category:"Pipeline",stage:"Phase 1",indication:"AD; asthma (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1 active",diff:"Different cytokine pair (IL-13 vs. IL-33) as TSLP anchor; competes for same atopic disease patients",risk:"Early; TSLP×IL-13 vs. TSLP×IL-33 efficacy unknown",notes:"Key question: which cytokine pair wins in AD vs. asthma"},
+  {id:84,company:"Windward Bio",brand:"",generic:"WIN378",name:"WIN378",target:"TSLP",cls:"Long-acting anti-TSLP mAb",category:"Pipeline",stage:"Phase 3",indication:"Severe asthma (Ph2/3); COPD",endpoints:"FEV1; exacerbation rate; AQLQ",trials:"Ph2/3 ongoing; $165M crossover (2025)",diff:"Twice-yearly dosing vs. monthly tezepelumab — convenience differentiation in asthma",risk:"Not a bispecific; TSLP mono-blockade only",notes:"Long dosing interval is primary commercial differentiator vs. tezepelumab"},
+  {id:85,company:"Innovent / Sanofi ($635M deal)",brand:"",generic:"IBI333",name:"IBI333",target:"IL-4Rα×TSLP",cls:"IL-4Rα×TSLP IgG bispecific",category:"Pipeline",stage:"Phase 3",indication:"AD; asthma (Phase 3, Asia)",endpoints:"IGA; EASI-75; FEV1",trials:"Phase 3 in Asia; Sanofi $635M licensing deal",diff:"Most advanced IL-4Rα×TSLP bispecific; Asia Phase 3 data incoming",risk:"Asia-first strategy; US/EU registration path unclear",notes:"Sanofi validation: first major pharma to license IL-4Rα×TSLP bispecific"},
+  {id:86,company:"Apogee Biosciences",brand:"",generic:"APG777",name:"APG777",target:"IL-4Rα×OX40L",cls:"IL-4Rα×OX40L bispecific (VHH)",category:"Pipeline",stage:"Phase 1",indication:"AD; CRSwNP (Phase 1b)",endpoints:"Safety; PK; early EASI signals",trials:"Phase 1b in AD and CRSwNP",diff:"Most direct bispecific competitor to Ailux in IL-4Rα×OX40L space; VHH Nanobody format",risk:"Very early; VHH tissue penetration unproven vs. IgG in skin",notes:"Apogee building bispecific franchise across multiple atopic targets"},
+  {id:87,company:"Regeneron (ex-AstraZeneca)",brand:"",generic:"Cendakimab",name:"Cendakimab",target:"IL-33",cls:"Anti-IL-33 IgG",category:"Immunology",stage:"Phase 2",indication:"AD; EoE (Phase 2)",endpoints:"EASI-75; DBI dysphagia burden",trials:"Phase 2 in AD and EoE",diff:"Blocks IL-33 upstream of OX40L pathway; complementary mechanism in AD",risk:"IL-33 mono-blockade may be insufficient vs. dual-target bispecific",notes:"Validates IL-33 as a target; watch for combination potential"},
+  {id:88,company:"Pfizer (ex-Kyowa Kirin $3B)",brand:"",generic:"Rocatinlimab",name:"Rocatinlimab",target:"OX40",cls:"Anti-OX40 mAb",category:"Immunology",stage:"Phase 3",indication:"AD (Phase 3 ROCKET program)",endpoints:"IGA; EASI-75; duration of response",trials:"Phase 3 ROCKET; $3B Pfizer licensing deal",diff:"Blocks OX40 receptor (not OX40L) — may offer more durable T-cell suppression",risk:"Targets receptor vs. ligand; different durability and safety profile vs. OX40L mAb",notes:"OX40 vs. OX40L: key mechanistic question for AD market"},
+  {id:89,company:"Immunovant / Roivant",brand:"",generic:"IMVT-1402",name:"IMVT-1402",target:"FcRn",cls:"Anti-FcRn mAb (albumin-sparing)",category:"Pipeline",stage:"Phase 3",indication:"gMG; WAIHA; TED; BP; Graves’ (Ph2/3)",endpoints:"Proptosis reduction; MG-ADL; TSHR-Ab titers",trials:"Ph2/3 active across multiple conditions; Ph2 in TED",diff:"Next-gen FcRn inhibitor: Fc-silenced for improved albumin-sparing vs. batoclimab; no LDL elevation",risk:"Batoclimab predecessor discontinued for LDL issues; must prove cleaner safety in trials",notes:"Successor to discontinued batoclimab with improved safety profile"},
+  {id:90,company:"Immunovant",brand:"",generic:"Batoclimab",name:"Batoclimab (IMVT-1401)",target:"FcRn",cls:"Anti-FcRn mAb (discontinued)",category:"Pipeline",stage:"Phase 2",indication:"Graves’ disease (Ph2); MG (Ph2 — discontinued)",endpoints:"TSHR-Ab reduction; CAS score in TED",trials:"Ph2 active in Graves’ only; discontinued in MG (LDL elevation AE)",diff:"FcRn inhibitor in Graves’ and TED — FcRn reduces TSHR autoantibody titers",risk:"Discontinued in MG for LDL elevation; safety concern for long-term autoimmune use",notes:"Predecessor to IMVT-1402; LDL AE led to reformulation"},
+  {id:91,company:"Novartis",brand:"",generic:"Iscalimab",name:"Iscalimab (CFZ533)",target:"CD40",cls:"Anti-CD40 mAb",category:"Immunology",stage:"Phase 2",indication:"TED; Sjögren’s; Immune thrombocytopenia",endpoints:"CAS score; proptosis mm; orbital volume",trials:"Phase 2 in TED (CFZ533-C01)",diff:"CD40/CD40L modulates orbital fibroblast activation — different upstream target from IGF-1R×TSHR",risk:"Limited TED efficacy data so far; proptosis response unclear vs. teprotumumab",notes:"Different upstream mechanism; could complement IGF-1R×TSHR bispecific"},
+  {id:92,company:"Genentech / Roche → Dorc / Eledon",brand:"",generic:"Linsitinib",name:"Linsitinib",target:"IGF-1R",cls:"Oral IGF-1R small-molecule kinase inhibitor",category:"Small Molecule",stage:"Phase 2",indication:"TED (Phase 2 — missed primary endpoint)",endpoints:"Proptosis ≤2mm improvement; CAS score",trials:"INDRA trial Ph2; primary endpoint missed",diff:"Oral IGF-1R inhibition: same receptor target as Ailux bispecific but orally; missed TED Ph2 primary",risk:"Failed TED Phase 2 primary endpoint; small molecule off-target kinase toxicity risk",notes:"Oral IGF-1R failure validates biologic approach (teprotumumab, Ailux bispecific) over small molecule"},
+  {id:93,company:"argenx",brand:"",generic:"ARGX-117",name:"ARGX-117",target:"FcRn×CD131",cls:"FcRn×CD131 bispecific",category:"Pipeline",stage:"Phase 2",indication:"CIDP; IgAN; pemphigus (Phase 2)",endpoints:"IgG reduction; NfL; PGA",trials:"Phase 2 in multiple autoimmune conditions",diff:"Next-gen bispecific: FcRn + common beta chain (IL-3/5/GM-CSF) — dual IgG reduction + eosinophil suppression",risk:"Novel MOA — additive benefit of CD131 arm unproven",notes:"argenx extending beyond efgartigimod into bispecific territory"},
+  {id:94,company:"AstraZeneca",brand:"Ultomiris",generic:"Ravulizumab",name:"Ravulizumab (Ultomiris)",target:"C5 complement",cls:"Anti-C5 mAb (Q8W long-acting)",category:"Immunology",stage:"Approved",indication:"gMG (2022); PNH; aHUS",endpoints:"MG-ADL; QMG; MGFA-PIS",trials:"CHAMPION-MG Phase 3",diff:"8-week dosing interval is commercial advantage vs. monthly FcRn inhibitors in gMG",risk:"Complement mechanism misses FcRn-driven IgG pathology in some gMG patients",notes:"Long dosing interval key competitive differentiator in gMG"},
+  {id:95,company:"Sanofi",brand:"",generic:"Riliprubart",name:"Riliprubart",target:"C1q complement",cls:"Anti-C1q mAb",category:"Immunology",stage:"Phase 3",indication:"CIDP (Phase 3); MMN",endpoints:"I-RODS score; nerve conduction",trials:"Phase 3 in CIDP (ADHERE trial)",diff:"C1q blockade prevents complement deposition on myelin — different mechanism from FcRn inhibitors in CIDP",risk:"CIDP is different indication from gMG; head-to-head vs. FcRn inhibitors unclear",notes:"Sanofi complement franchise strategy expanding; C1q vs. FcRn head-to-head will be decisive"},
+  {id:96,company:"Kali Therapeutics",brand:"",generic:"KT501",name:"KT501",target:"CD19×BCMA×CD3",cls:"CD19×BCMA×CD3 trispecific TCE (CD3-masked)",category:"Pipeline",stage:"Phase 1",indication:"RA (Phase 1a); SLE (planned)",endpoints:"Safety; cytokine release; DLT",trials:"Phase 1a first patient dosed May 2025",diff:"Most direct competitor to Ailux ACE — CD19×BCMA×CD3 trispecific with CD3-masking for safety",risk:"CD3-directed TCEs carry CRS/ICANS risk; masking unproven in humans",notes:"First CD19×BCMA×CD3 trispecific in clinical trials"},
+  {id:97,company:"Kyverna Therapeutics",brand:"",generic:"KYV-101",name:"KYV-101",target:"CD19 (CAR-T)",cls:"CD19-targeted autologous CAR-T",category:"Pipeline",stage:"Phase 2",indication:"SLE; NMOSD; MS; MG (Phase 2)",endpoints:"SLEDAI-2K; BILAG; deep B-cell depletion",trials:"Phase 2 in multiple autoimmune conditions; well-funded",diff:"Potential durable remission via deep B-cell depletion; Phase 2 autoimmune data incoming",risk:"Autologous manufacturing complexity; CRS/ICANS risk; one-time treatment (access/payor challenge)",notes:"Strong autoimmune CAR-T competitor with multiple Ph2 readouts expected 2025-2026"},
+  {id:98,company:"Zenas BioPharma",brand:"",generic:"Obexelimab",name:"Obexelimab (ZB002)",target:"CD19×FcγRIIb",cls:"CD19×FcγRIIb bispecific mAb",category:"Pipeline",stage:"Phase 2",indication:"IgG4-RD; SLE (Phase 2/3)",endpoints:"IgG4-RD RI; SLEDAI; B-cell counts",trials:"Phase 2/3 in IgG4-RD; Phase 2 in SLE",diff:"Novel suppression: bridges CD19+ B cells to inhibitory FcγRIIb receptor without full depletion",risk:"Mechanistically unproven in humans — suppression without depletion may be insufficient",notes:"Different mechanism from CAR-T depletion; watch for durability data"},
+  {id:99,company:"Novartis",brand:"",generic:"Ianalumab",name:"Ianalumab (VAY736)",target:"BAFF-R",cls:"Anti-BAFF-R mAb",category:"Immunology",stage:"Phase 3",indication:"SLE (Phase 3 SIRIUS); SS; ITP",endpoints:"SLEDAI-2K; BICLA; flare rate",trials:"Phase 3 SIRIUS in SLE",diff:"BAFF-R depletion eliminates naïve and transitional B cells upstream of BAFF/APRIL; long dosing interval",risk:"SLE Phase 3 primary endpoint previously challenging for many assets",notes:"Phase 3 SLE data will shape B-cell depletion competitive narrative"},
+  {id:100,company:"J&J",brand:"Darzalex",generic:"Daratumumab",name:"Daratumumab (Darzalex)",target:"CD38",cls:"Anti-CD38 mAb",category:"Immunology",stage:"Approved",indication:"R/R MM (approved); SLE; MG (Ph2 autoimmune)",endpoints:"SLEDAI; MG-ADL; long-lived plasma cells",trials:"Ph2 investigator-led trials in autoimmune",diff:"CD38 targets long-lived plasma cells that B-cell depletion (CD19) misses — complementary mechanism",risk:"Autoimmune evidence still early; ISG burden in MM setting",notes:"CD38+CD19 combination could outperform single-target depletion in autoimmune"},
+  {id:101,company:"Kite / Gilead",brand:"Yescarta",generic:"Axicabtagene ciloleucel",name:"Yescarta (axicabtagene ciloleucel)",target:"CD19 (CAR-T)",cls:"CD19-targeted autologous CAR-T",category:"Oncology",stage:"Approved",indication:"R/R DLBCL; FL (approved); SLE (Ph2 autoimmune)",endpoints:"SLEDAI; B-cell depletion; clinical remission",trials:"Erlangen NEJM 2024 (5/6 SLE remission); Ph2 autoimmune ongoing",diff:"Approved oncology CAR-T showing dramatic proof-of-concept in autoimmune (SLE) at academic centers",risk:"Manufacturing complexity; CRS/ICANS toxicity; very high cost ($400K+)",notes:"Erlangen data is the most compelling proof-of-concept for CAR-T in autoimmune to date"},
+  {id:102,company:"Aurinia Pharmaceuticals",brand:"Lupkynis",generic:"Voclosporin",name:"Voclosporin (Lupkynis)",target:"Calcineurin",cls:"Calcineurin inhibitor (oral)",category:"Small Molecule",stage:"Approved",indication:"Lupus nephritis (2021)",endpoints:"PCR (protein:creatinine); eGFR",trials:"AURORA-1/2 Phase 3",diff:"Oral calcineurin inhibitor as add-on for lupus nephritis — standard-of-care comparator in ACE space",risk:"eGFR toxicity with prolonged use; small molecule not target-selective",notes:"Standard-of-care in lupus nephritis; defines clinical bar ACE bispecifics must beat"},
+  {id:103,company:"Novartis / Roche",brand:"Xolair",generic:"Omalizumab",name:"Xolair (omalizumab)",target:"IgE",cls:"Anti-IgE mAb",category:"Immunology",stage:"Approved",indication:"Allergic asthma (2003); CRSwNP; CSU",endpoints:"FEV1; exacerbation rate; NRS",trials:"Pivotal trials 1999-2002",diff:"IgE-targeted therapy — effective only in IgE-driven (allergic) endotype; TSLP is upstream of IgE",risk:"Endotype-limited: ineffective in non-allergic asthma where TSLP still active",notes:"Original biologic in asthma; TSLP bispecific must show benefit beyond allergic endotype"},
+  {id:104,company:"Roche",brand:"Actemra",generic:"Tocilizumab",name:"Actemra (tocilizumab)",target:"IL-6R",cls:"Anti-IL-6R mAb",category:"Immunology",stage:"Approved",indication:"RA (approved); TED off-label (Ph2); Castleman’s",endpoints:"CAS score; proptosis; CDAI",trials:"Phase 2 in TED off-label",diff:"Anti-IL-6R used off-label in TED — IL-6 contributes to orbital inflammation in some patients",risk:"Limited efficacy in TED; off-label use with regulatory risk",notes:"IL-6 as complementary pathway in TED; validates orbital inflammation is multi-cytokine"}
 ];
 
 function getWeekKey() {
