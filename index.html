@@ -5568,7 +5568,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 </div><!-- /dkn-master-wrap -->
 
 <style>
-.dkn-master-wrap { display:flex; flex-direction:column; height:calc(100vh - 52px); background:#f1f5f9; }
+.dkn-master-wrap { display:flex; flex-direction:column; position:fixed; left:0; right:0; bottom:0; top:90px; background:#f1f5f9; z-index:50; }
 
 .dkn-filter-bar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
   padding:4px 16px 8px; background:#1a2f50; border-bottom:2px solid #2e4a7a; flex-wrap:wrap; }
@@ -7944,9 +7944,9 @@ function fixTabBarTop() {
   const hdrH = hdr.getBoundingClientRect().height;
   const tbH  = tb.getBoundingClientRect().height;
   tb.style.top = hdrH + 'px';
-  // Size dkn-master-wrap to fill remaining viewport (header + tabbar)
+  // Pin dkn-master-wrap directly below header+tabbar using fixed positioning
   const wrap = document.querySelector('.dkn-master-wrap');
-  if (wrap) wrap.style.height = (window.innerHeight - hdrH - tbH) + 'px';
+  if (wrap) wrap.style.top = (hdrH + tbH) + 'px';
 }
 fixTabBarTop();
 window.addEventListener('resize', fixTabBarTop);
