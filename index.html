@@ -5604,7 +5604,7 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .dkn-show-removed { background:rgba(239,68,68,0.15); border-color:#ef4444; color:#fca5a5; }
 
 .dkn-table-wrap { flex:1; overflow:auto; }
-@media(max-width:640px){.dkn-th-cls,.dkn-th-diff,.dkn-th-risk,.dkn-th-notes{display:none!important;}#dkn-tbody td:nth-child(6),#dkn-tbody td:nth-child(8),#dkn-tbody td:nth-child(9),#dkn-tbody td:nth-child(10){display:none!important;}}
+@media(max-width:768px){.dkn-th-cls,.dkn-th-diff,.dkn-th-risk,.dkn-th-notes,.dkn-col-cls,.dkn-col-diff,.dkn-col-risk,.dkn-col-notes{display:none!important;}}
 .dkn-master-table { width:100%; border-collapse:collapse; font-size:11.5px; }
 .dkn-master-table thead { position:sticky; top:0; z-index:10; }
 .dkn-master-table th { background:#1e3a6e; color:#cbd5e1; padding:7px 9px;
@@ -5849,16 +5849,16 @@ function dknRow(d) {
   const rowStyle = isRemoved ? ' style="opacity:0.4;background:#fff8f8;"' : '';
   const notesHtml = d.notes ? `<span class="dkn-notes-tag" title="${d.notes.replace(/"/g,'&quot;')}">★ Note</span>` : '';
   return `<tr data-id="${d.id}"${rowStyle}>
-  <td style="text-align:center">${removeOrRestore}</td>
-  <td><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.name}</span></td>
-  <td style="font-size:11px;color:#374151">${d.company}</td>
-  <td><span class="dkn-stage-pill ${stageCls}">${d.stage}</span></td>
-  <td style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target}</td>
-  <td style="font-size:10.5px;color:#475569">${d.cls}</td>
-  <td style="font-size:11px">${d.indication}</td>
-  <td style="font-size:11px;color:#1e293b">${d.diff}</td>
-  <td style="font-size:11px;color:#64748b">${d.risk}</td>
-  <td style="font-size:11px">${notesHtml}</td>
+  <td class="dkn-col-act" style="text-align:center">${removeOrRestore}</td>
+  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.name}</span></td>
+  <td class="dkn-col-co" style="font-size:11px;color:#374151">${d.company}</td>
+  <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage}</span></td>
+  <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target}</td>
+  <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls}</td>
+  <td class="dkn-col-ind" style="font-size:11px">${d.indication}</td>
+  <td class="dkn-col-diff" style="font-size:11px;color:#1e293b">${d.diff}</td>
+  <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${d.risk}</td>
+  <td class="dkn-col-notes" style="font-size:11px">${notesHtml}</td>
 </tr>`;
 }
 function dknRemove(id) {
