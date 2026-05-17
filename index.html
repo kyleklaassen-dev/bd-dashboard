@@ -7118,7 +7118,10 @@ function rf(cell) {
 function toggleSection(id) {
  const body = document.getElementById(id + '-body');
  const toggle = document.getElementById(id + '-toggle');
- if (body) body.classList.toggle('open');
+ if (body) {
+   const isOpen = body.style.display === 'block';
+   body.style.display = isOpen ? 'none' : 'block';
+ }
  if (toggle) toggle.classList.toggle('open');
 }
 
