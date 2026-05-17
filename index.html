@@ -5536,6 +5536,17 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
       <button class="dkn-chip stage-ph1" onclick="dknSetStage(this,'Phase 1')">Phase 1</button>
       <button class="dkn-chip stage-pre" onclick="dknSetStage(this,'Preclinical')">Preclinical</button>
     </div>
+    <div class="dkn-chips" id="dkn-target-chips" style="border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;margin-top:2px;">
+      <span style="font-size:10px;color:rgba(255,255,255,0.45);padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Target area:</span>
+      <button class="dkn-chip active" onclick="dknSetTarget(this,'')">All</button>
+      <button class="dkn-chip tgt-tl1a"    onclick="dknSetTarget(this,'tl1a')">TL1A × IL-23p19</button>
+      <button class="dkn-chip tgt-tslp"    onclick="dknSetTarget(this,'tslp-il33')">TSLP × IL-33</button>
+      <button class="dkn-chip tgt-il4tslp" onclick="dknSetTarget(this,'il4ra-tslp')">IL-4Rα × TSLP</button>
+      <button class="dkn-chip tgt-il4ox40" onclick="dknSetTarget(this,'il4ra-ox40l')">IL-4Rα × OX40L</button>
+      <button class="dkn-chip tgt-igf1r"   onclick="dknSetTarget(this,'igf1r-tshr')">IGF1R × TSHR</button>
+      <button class="dkn-chip tgt-fcrn"    onclick="dknSetTarget(this,'fcrn')">FcRn</button>
+      <button class="dkn-chip tgt-bcma"    onclick="dknSetTarget(this,'bcma-cd19')">BCMA × CD19 × CD3</button>
+    </div>
   </div>
   <div class="dkn-filter-right">
     <span class="dkn-count" id="dkn-count">— drugs</span>
@@ -5601,6 +5612,13 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .dkn-chip.stage-ph2.active  { background:#ede9fe; color:#5b21b6; border-color:#7c3aed; }
 .dkn-chip.stage-ph1.active  { background:#fce7f3; color:#9d174d; border-color:#db2777; }
 .dkn-chip.stage-pre.active  { background:#f1f5f9; color:#475569; border-color:#94a3b8; }
+.dkn-chip.tgt-tl1a.active     { background:#e8f0f8; color:#1a5fa8; border-color:#2e6fb0; }
+.dkn-chip.tgt-tslp.active     { background:#dbeafe; color:#1d4ed8; border-color:#3b82f6; }
+.dkn-chip.tgt-il4tslp.active  { background:#fce7f3; color:#9d174d; border-color:#db2777; }
+.dkn-chip.tgt-il4ox40.active  { background:#fdf2f8; color:#86198f; border-color:#c026d3; }
+.dkn-chip.tgt-igf1r.active    { background:#ecfdf5; color:#065f46; border-color:#059669; }
+.dkn-chip.tgt-fcrn.active     { background:#ede9fe; color:#5b21b6; border-color:#7c3aed; }
+.dkn-chip.tgt-bcma.active     { background:#fef2f2; color:#991b1b; border-color:#ef4444; }
 .dkn-filter-right { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; padding-top:2px; }
 .dkn-count { color:rgba(255,255,255,0.6); font-size:12px; white-space:nowrap; }
 .dkn-reset-btn, .dkn-undo-btn, .dkn-show-removed {
@@ -5786,6 +5804,16 @@ let dknStageFilter = '';
 let dknRemovedIds = [];
 let dknUndoStack = [];
 let dknShowRemoved = false;
+let dknTargetFilter = '';
+const DKN_TARGET_MAP = {
+  'tl1a':        ['TL1A', 'IL-23p19', 'IL-23', 'IL-12/23'],
+  'tslp-il33':   ['TSLP', 'IL-33'],
+  'il4ra-tslp':  ['IL-4R', 'TSLP'],
+  'il4ra-ox40l': ['IL-4R', 'OX40'],
+  'igf1r-tshr':  ['IGF-1R', 'IGF1R', 'TSHR'],
+  'fcrn':        ['FcRn'],
+  'bcma-cd19':   ['BCMA', 'CD19', 'CD3']
+};
 
 function dknSetCat(btn, val) {
   dknCatFilter = val;
@@ -5796,6 +5824,12 @@ function dknSetCat(btn, val) {
 function dknSetStage(btn, val) {
   dknStageFilter = val;
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  dknRender();
+}
+function dknSetTarget(btn, val) {
+  dknTargetFilter = val;
+  document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   dknRender();
 }
@@ -5819,6 +5853,11 @@ function dknRender() {
     if (dknCatFilter && d.category !== dknCatFilter) return false;
     if (dknStageFilter && d.stage !== dknStageFilter) return false;
     if (!dknShowRemoved && dknRemovedIds.includes(d.id)) return false;
+    if (dknTargetFilter) {
+      const keywords = DKN_TARGET_MAP[dknTargetFilter] || [];
+      const tgt = d.target.toLowerCase();
+      if (!keywords.some(k => tgt.includes(k.toLowerCase()))) return false;
+    }
     if (q) {
       const haystack = [d.name,d.company,d.target,d.cls,d.indication,d.diff,d.risk,d.notes,d.trials].join(' ').toLowerCase();
       if (!haystack.includes(q)) return false;
@@ -5903,10 +5942,11 @@ function dknRenderRemovedPanel() {
   ).join('');
 }
 function dknReset() {
-  dknCatFilter = ''; dknStageFilter = '';
+  dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = '';
   document.getElementById('dkn-search-input').value = '';
   document.querySelectorAll('#dkn-cat-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
 }
 // Auto-init when tab becomes active
