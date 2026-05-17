@@ -786,11 +786,12 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 
 /* ══ NAV ICON STRIP ════════════════════════════════════════════════ */
 .nav-icon-strip { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+.nav-icon-right { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
 .nav-icon-btn { background: #eef4fb; color: #1a2f50; border: 1.5px solid #c8d8ed; border-radius: 6px; padding: 5px 8px; font-size: 17px; line-height: 1; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .nav-icon-btn:hover { background: #deeaf8; border-color: #2e6fb0; }
 .nav-icon-btn.active { background: #1a2f50; border-color: #1a2f50; }
 .mol-dd-wrap { position: relative; }
-.mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 240px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
+.mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 310px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
 .mol-dd-menu.open { display: block; }
 .nav-dd-item { padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: #1a2f50; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .nav-dd-item:hover { background: #eef4fb; }
@@ -994,7 +995,6 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-drugs" onclick="navTo('drugs-know')" title="Drugs to Know">💊</button>
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
-   <button class="nav-icon-btn" id="nav-icon-market" onclick="navTo('stocks')" title="Market &amp; Learning">📊</button>
    <!-- Molecule dropdown -->
    <div class="mol-dd-wrap" id="mol-dd-wrap">
      <button class="nav-icon-btn" id="mol-dd-btn" onclick="toggleMolDropdown()" title="Drug Molecules">🧬</button>
@@ -1008,6 +1008,10 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
        <div class="nav-dd-item" onclick="navTo('ace')"><span class="nav-dd-target">BCMA × CD19 × CD3</span><span class="nav-dd-badge" style="background:#fef2f2;color:#991b1b">Immune Reset</span></div>
      </div>
    </div>
+ </div>
+ <!-- Market & Learning — far right -->
+ <div class="nav-icon-right">
+   <button class="nav-icon-btn" id="nav-icon-market" onclick="navTo('stocks')" title="Market &amp; Learning">📊</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
