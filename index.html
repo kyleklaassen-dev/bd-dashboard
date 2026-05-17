@@ -34,7 +34,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .ct-ir { background: #fef2f2; color: #991b1b; }
 .tab-btn.active .ct-ir { background: #991b1b; color: white; }
 
-.content { padding: 0 24px 30px; max-width: 100%; margin: 0 auto; position: relative; }
+.content { padding: 0 24px 30px; max-width: 100%; margin: 0 auto; position: relative; } #tab-drugs-know { padding: 0 !important; }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
@@ -1024,37 +1024,6 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  <div class="tab-current-title" id="tab-current-title">
  <span class="tab-current-name" id="tab-current-name">Home</span>
  </div>
-</div>
-
-<div id="dkn-tab-filter" style="display:none;position:sticky;z-index:189;background:#1a2f50;">
-<div class="dkn-filter-bar">
-  <div class="dkn-filter-left">
-    <input class="dkn-search" id="dkn-search-input" type="text" placeholder="&#128269; Search any field — drug, target, company, indication..." oninput="dknRender()">
-    <div class="dkn-chips" id="dkn-cat-chips">
-      <button class="dkn-chip active" onclick="dknSetCat(this,'')">All</button>
-      <button class="dkn-chip cat-imm" onclick="dknSetCat(this,'Immunology')">Immunology</button>
-      <button class="dkn-chip cat-onc" onclick="dknSetCat(this,'Oncology')">Oncology</button>
-      <button class="dkn-chip cat-sm" onclick="dknSetCat(this,'Small Molecule')">Small Mol</button>
-      <button class="dkn-chip cat-pip" onclick="dknSetCat(this,'Pipeline')">Pipeline</button>
-      <button class="dkn-chip cat-met" onclick="dknSetCat(this,'Metabolic')">Metabolic</button>
-      <button class="dkn-chip cat-cmb" onclick="dknSetCat(this,'Combo Study')">Combo Study</button>
-    </div>
-    <div class="dkn-chips" id="dkn-stage-chips">
-      <button class="dkn-chip active" onclick="dknSetStage(this,'')">All Stages</button>
-      <button class="dkn-chip stage-appr" onclick="dknSetStage(this,'Approved')">Approved</button>
-      <button class="dkn-chip stage-ph3" onclick="dknSetStage(this,'Phase 3')">Phase 3</button>
-      <button class="dkn-chip stage-ph2" onclick="dknSetStage(this,'Phase 2')">Phase 2</button>
-      <button class="dkn-chip stage-ph1" onclick="dknSetStage(this,'Phase 1')">Phase 1</button>
-      <button class="dkn-chip stage-pre" onclick="dknSetStage(this,'Preclinical')">Preclinical</button>
-    </div>
-  </div>
-  <div class="dkn-filter-right">
-    <span class="dkn-count" id="dkn-count">— drugs</span>
-    <button class="dkn-undo-btn" id="dkn-undo-btn" onclick="dknUndo()" style="display:none">&#8635; Undo Remove</button>
-    <button class="dkn-show-removed" id="dkn-show-removed" onclick="dknToggleRemoved()" style="display:none">&#128065; Removed (<span id="dkn-removed-count">0</span>)</button>
-    <button class="dkn-reset-btn" onclick="dknReset()">&#8635; Reset All</button>
-  </div>
-</div>
 </div>
 
 <div class="content">
@@ -5539,6 +5508,36 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 <div class="tab-pane" id="tab-drugs-know" style="padding:0">
 <div class="dkn-master-wrap">
 
+<!-- FILTER BAR -->
+<div id="dkn-tab-filter" class="dkn-filter-bar">
+  <div class="dkn-filter-left">
+    <input class="dkn-search" id="dkn-search-input" type="text" placeholder="&#128269; Search any field — drug, target, company, indication..." oninput="dknRender()">
+    <div class="dkn-chips" id="dkn-cat-chips">
+      <button class="dkn-chip active" onclick="dknSetCat(this,'')">All</button>
+      <button class="dkn-chip cat-imm" onclick="dknSetCat(this,'Immunology')">Immunology</button>
+      <button class="dkn-chip cat-onc" onclick="dknSetCat(this,'Oncology')">Oncology</button>
+      <button class="dkn-chip cat-sm" onclick="dknSetCat(this,'Small Molecule')">Small Mol</button>
+      <button class="dkn-chip cat-pip" onclick="dknSetCat(this,'Pipeline')">Pipeline</button>
+      <button class="dkn-chip cat-met" onclick="dknSetCat(this,'Metabolic')">Metabolic</button>
+      <button class="dkn-chip cat-cmb" onclick="dknSetCat(this,'Combo Study')">Combo Study</button>
+    </div>
+    <div class="dkn-chips" id="dkn-stage-chips">
+      <button class="dkn-chip active" onclick="dknSetStage(this,'')">All Stages</button>
+      <button class="dkn-chip stage-appr" onclick="dknSetStage(this,'Approved')">Approved</button>
+      <button class="dkn-chip stage-ph3" onclick="dknSetStage(this,'Phase 3')">Phase 3</button>
+      <button class="dkn-chip stage-ph2" onclick="dknSetStage(this,'Phase 2')">Phase 2</button>
+      <button class="dkn-chip stage-ph1" onclick="dknSetStage(this,'Phase 1')">Phase 1</button>
+      <button class="dkn-chip stage-pre" onclick="dknSetStage(this,'Preclinical')">Preclinical</button>
+    </div>
+  </div>
+  <div class="dkn-filter-right">
+    <span class="dkn-count" id="dkn-count">— drugs</span>
+    <button class="dkn-undo-btn" id="dkn-undo-btn" onclick="dknUndo()" style="display:none">&#8635; Undo Remove</button>
+    <button class="dkn-show-removed" id="dkn-show-removed" onclick="dknToggleRemoved()" style="display:none">&#128065; Removed (<span id="dkn-removed-count">0</span>)</button>
+    <button class="dkn-reset-btn" onclick="dknReset()">&#8635; Reset All</button>
+  </div>
+</div>
+
 <!-- TABLE -->
 <div class="dkn-table-wrap">
 <table class="dkn-master-table" id="dkn-master-table">
@@ -7117,8 +7116,6 @@ function switchTab(id, btn) {
  clearGlobalSearch();
  buildToc(id);
  closeToc();
- const dknFilter = document.getElementById('dkn-tab-filter');
- if (dknFilter) dknFilter.style.display = (id === 'drugs-know') ? 'block' : 'none';
   if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
 }
 // Helper for programmatic tab switching (used by home nav buttons)
@@ -7943,19 +7940,13 @@ document.addEventListener('click', function(e) {
 function fixTabBarTop() {
   const hdr = document.querySelector('.header');
   const tb  = document.querySelector('.tab-bar');
-  const flt = document.getElementById('dkn-tab-filter');
   if (!hdr || !tb) return;
   const hdrH = hdr.getBoundingClientRect().height;
   const tbH  = tb.getBoundingClientRect().height;
   tb.style.top = hdrH + 'px';
-  // Position the sticky filter bar right below the tab bar
-  if (flt) flt.style.top = (hdrH + tbH) + 'px';
-  // Size dkn-master-wrap to fill remaining viewport
+  // Size dkn-master-wrap to fill remaining viewport (header + tabbar)
   const wrap = document.querySelector('.dkn-master-wrap');
-  if (wrap) {
-    const fltH = (flt && flt.style.display !== 'none') ? flt.getBoundingClientRect().height : 0;
-    wrap.style.height = (window.innerHeight - hdrH - tbH - fltH) + 'px';
-  }
+  if (wrap) wrap.style.height = (window.innerHeight - hdrH - tbH) + 'px';
 }
 fixTabBarTop();
 window.addEventListener('resize', fixTabBarTop);
