@@ -8708,11 +8708,11 @@ const TL1A_PROGRAMS = [
     {nct:'NCT06672718',name:'SPY002-091 — Phase 1 HV PK/safety',phase:'Phase 1',status:'Complete/Reported',n:56,pcd:'Reported Jun 2025',primary:'Safety/tolerability + PK characterization with YTE modification'},
    ],
    deals:[
-    {date:'Feb 2024',desc:'Agenus IBD spinout — Agenus contributed SPY001, SPY002, SPY003 programs and exclusive YTE Fc platform IP to Spyre; Agenus retained equity ownership (~25%) and tiered royalties on future net sales across all Spyre programs',url:'https://ir.spyre.com/'},
+    {date:'2025',desc:'Pre-partnering phase — advancing all 7 programs to Phase 2 readouts before BD discussions; SKYLINE 2027 combination data is primary partnering catalyst window'},
+    {date:'2024',desc:'YTE platform CMO partnerships — GMP manufacturing agreements for clinical supply of SPY001/002/003/072 across SKYLINE and SKYWAY trials'},
+    {date:'2024',desc:'NASDAQ listing (SYRE) — public listing via Agenus shareholder distribution; ATM equity offering facility established'},
     {date:'Feb 2024',desc:'$720M Series A financing — led by Farallon Capital Management, Foresite Capital, RA Capital, and other institutional healthcare investors; covers all 7 programs through Phase 2 readouts; cash runway into H2 2028',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-announces-positive-interim-phase-1-results'},
-    {date:'2024',desc:'NASDAQ listing (SYRE) — Spyre became independently publicly traded; Agenus distributed Spyre shares to Agenus stockholders; established ATM (at-the-money) equity offering facility for supplemental capital access'},
-    {date:'2024',desc:'YTE platform manufacturing partnership — CMO agreements for GMP production of YTE-modified antibodies (SPY001/002/003/072) to support Phase 1 and Phase 2 clinical supply across SKYLINE and SKYWAY trials'},
-    {date:'2025',desc:'No Big Pharma licensing deals announced as of 2025 — company strategy is to advance all 7 programs independently to Phase 2 proof-of-concept readouts (2026–2027) before entering partnership discussions; SKYLINE 2027 combo data expected to be primary BD catalyst'},
+    {date:'Feb 2024',desc:'Agenus IBD spinout — Agenus contributed SPY001, SPY002, SPY003 programs and exclusive YTE Fc platform IP to Spyre; Agenus retained equity ownership (~25%) and tiered royalties on future net sales across all Spyre programs',url:'https://ir.spyre.com/'},
    ],
    risk:'7-program pipeline execution risk (3 Ph2 trials simultaneously). SKYLINE Part B combination vs. mono data (2027) could show mono suffices, reducing value of combination assets. YTE safety profile still being established in IBD populations.',
    diff:'Only company with YTE-modified antibodies across all three major IBD pathways (TL1A, α4β7, IL-23) + TL1A in rheumatic diseases. SKYLINE directly tests combination vs. mono — the most informative head-to-head IBD platform study ever designed. SPY001 April 2026 data already shows best-in-class potential vs. vedolizumab.' },
@@ -9089,7 +9089,7 @@ async function piResearchValidate(programId, field, oldVal, newVal) {
    statusLabel = '❌ Research database error';
   }
  } else {
-  statusLabel = '🔒 Supabase not connected — connect to enable live research validation';
+  statusLabel = 'Research validation unavailable';
  }
 
  panel.className = 'pi-edit-validation ' + statusClass;
@@ -9432,11 +9432,10 @@ const tl1aPI = {
  async _loadSpyreStock() {
   const priceEl = document.getElementById('spyre-price');
   const chgEl   = document.getElementById('spyre-chg');
-  if (!priceEl || !chgEl) return;
-  if (!window._sb) { chgEl.textContent = '(connect Supabase)'; return; }
+  if (!priceEl || !chgEl || !window._sb) return;
   try {
-   const { data, error } = await _sb.from('companies').select('stock_price,stock_change').eq('ticker','SYRE').maybeSingle();
-   if (error || !data || !data.stock_price) { chgEl.textContent = ''; return; }
+   const { data, error } = await _sb.from('companies').select('stock_price,stock_change').eq('id','spyre').maybeSingle();
+   if (error || !data || !data.stock_price) { priceEl.textContent = '—'; chgEl.textContent = ''; return; }
    priceEl.textContent = `$${data.stock_price.toFixed(2)}`;
    const chg = data.stock_change;
    if (chg != null) {
@@ -9447,7 +9446,7 @@ const tl1aPI = {
    } else {
     chgEl.textContent = '';
    }
-  } catch(e) { chgEl.textContent = ''; }
+  } catch(e) { priceEl.textContent = '—'; chgEl.textContent = ''; }
  },
 
  async _loadIntelStatus() {
@@ -9490,7 +9489,7 @@ const tl1aPI = {
 // ── TL1A LIVE INTEL FEED ──────────────────────────────────────────
 async function loadTL1AIntelFeed() {
  const body = document.getElementById('tl1a-intel-feed-body');
- if (!body || !window._sb) { if(body) body.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Connect Supabase to load live intelligence.</div>'; return; }
+ if (!body || !window._sb) { return; }
  try {
   const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').eq('area_id','tl1a').limit(100);
   const tl1aIds = (iaRows||[]).map(r=>r.intel_id);
