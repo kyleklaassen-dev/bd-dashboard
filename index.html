@@ -985,9 +985,9 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .spyre-drug-btn { position:relative;padding:9px 9px 7px;border-radius:9px;border:2px solid;background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1.3;width:86px;min-height:64px;text-align:center;flex-shrink:0;box-sizing:border-box; }
 .spyre-drug-btn:hover { box-shadow:0 4px 12px rgba(0,0,0,0.18); }
 .spyre-drug-btn.spy-popup-active { outline:2.5px solid currentColor;outline-offset:1px;box-shadow:0 6px 18px rgba(0,0,0,0.22) !important; }
-.spyre-drug-btn::after { content:'';position:absolute;bottom:-20px;left:-10px;right:-10px;height:20px;background:transparent; }
+.spyre-drug-btn::after { content:'';position:absolute;bottom:-14px;left:-10px;right:-10px;height:14px;background:transparent; }
 .spyre-phase-badge { position:absolute;top:3px;right:4px;font-size:7.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,0.9);line-height:1.4;letter-spacing:0.2px; }
-.spyre-drug-popup { display:none;position:absolute;z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:560px;max-width:90vw;text-align:left;max-height:68vh;overflow-y:auto; }
+.spyre-drug-popup { display:none;position:absolute;top:calc(100% + 12px);left:0;z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:560px;max-width:90vw;text-align:left;max-height:68vh;overflow-y:auto; }
 .spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
 .spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
 .spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
@@ -8585,15 +8585,7 @@ let _spyrePopupTimer = null;
 let _spyreActiveId = null;
 function showSpyrePopup(id) {
   clearTimeout(_spyrePopupTimer);
-  // Hide and restore all open popups back to their buttons
-  document.querySelectorAll('.spyre-drug-popup').forEach(p => {
-    p.style.display = 'none';
-    const ownerId = p.dataset.btn;
-    if (ownerId && p.parentElement === document.body) {
-      const ownerBtn = document.getElementById(ownerId);
-      if (ownerBtn) ownerBtn.appendChild(p);
-    }
-  });
+  document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
   document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
   _spyreActiveId = id;
   const btn = document.getElementById(id);
@@ -8601,44 +8593,32 @@ function showSpyrePopup(id) {
   btn.classList.add('spy-popup-active');
   const popup = btn.querySelector('.spyre-drug-popup');
   if (!popup) return;
-  // Tag popup with its owner id so we can find it after reparenting
-  popup.dataset.btn = id;
-  // Move popup to document.body to escape any CSS filter/transform on ancestors
-  document.body.appendChild(popup);
-  popup.style.position = 'fixed';
-  popup.style.left = '-9999px';
-  popup.style.top = '-9999px';
+  // Show with default left so we can measure popup width
+  popup.style.left = '0';
+  popup.style.transform = 'none';
   popup.style.display = 'block';
+  // Clamp horizontal position to viewport after paint
   requestAnimationFrame(() => {
     const btnR = btn.getBoundingClientRect();
     const popW = popup.offsetWidth;
-    const popH = popup.offsetHeight;
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
     const margin = 10;
-    // Center on button, clamp to viewport edges
-    let left = btnR.left + btnR.width / 2 - popW / 2;
-    left = Math.max(margin, Math.min(left, vw - popW - margin));
-    // 16px below button bottom; flip above if not enough room below
-    let top = btnR.bottom + 16;
-    if (top + popH > vh - margin) top = btnR.top - popH - 16;
-    top = Math.max(margin, top);
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
+    // Ideal viewport left: centered on button
+    let vpLeft = btnR.left + btnR.width / 2 - popW / 2;
+    vpLeft = Math.max(margin, Math.min(vpLeft, vw - popW - margin));
+    // Convert to CSS left relative to button's top-left corner
+    popup.style.left = (vpLeft - btnR.left) + 'px';
   });
 }
 function hideSpyrePopup(id) {
   _spyrePopupTimer = setTimeout(() => {
     if (_spyreActiveId !== id) return;
     const btn = document.getElementById(id);
-    // Find popup — may be in body if it was moved there
-    const p = btn ? btn.querySelector('.spyre-drug-popup') : document.body.querySelector(`.spyre-drug-popup[data-btn="${id}"]`);
-    if (p) {
-      p.style.display = 'none';
-      // Move popup back into its button so it's ready for next hover
-      if (btn && p.parentElement === document.body) btn.appendChild(p);
+    if (btn) {
+      btn.classList.remove('spy-popup-active');
+      const p = btn.querySelector('.spyre-drug-popup');
+      if (p) p.style.display = 'none';
     }
-    if (btn) btn.classList.remove('spy-popup-active');
     _spyreActiveId = null;
   }, 200);
 }
