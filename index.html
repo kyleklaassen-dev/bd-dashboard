@@ -944,7 +944,10 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
 .pi-stage-pre { background:#f1f5f9;color:#475569; }
 .pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
-.pi-expand-icon.open { transform:rotate(180deg); }
+.pi-expand-icon.open { transform:rotate(180deg);color:#2563eb; }
+.pi-main.expanded > td:last-child { position:relative; }
+.pi-main.expanded { background:#f0f7ff !important; }
+.pi-collapse-hint { font-size:8.5px;color:#93c5fd;font-weight:600;display:block;margin-top:1px;text-align:right; }
 tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdbfe; }
 .pi-detail-inner { padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
 .pi-detail-section { background:white;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0; }
@@ -970,11 +973,11 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .spyre-stock-up { color:#16a34a; }
 .spyre-stock-dn { color:#dc2626; }
 .spyre-pipeline-row { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
-.spyre-drug-btn { position:relative;padding:6px 12px;border-radius:8px;border:2px solid;background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1.3; }
-.spyre-drug-btn:hover { filter:brightness(0.95);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.12); }
-.spyre-drug-popup { display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.16);padding:14px;width:340px;max-width:90vw;text-align:left;max-height:80vh;overflow-y:auto; }
-.spyre-drug-btn:hover .spyre-drug-popup,
-.spyre-drug-btn:focus-within .spyre-drug-popup { display:block; }
+.spyre-drug-btn { position:relative;padding:9px 9px 7px;border-radius:9px;border:2px solid;background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1.3;width:86px;min-height:64px;text-align:center;flex-shrink:0;box-sizing:border-box; }
+.spyre-drug-btn:hover { filter:brightness(0.95);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.14); }
+.spyre-drug-btn::after { content:'';position:absolute;bottom:-8px;left:0;right:0;height:8px;background:transparent; }
+.spyre-phase-badge { position:absolute;top:3px;right:4px;font-size:7.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,0.9);line-height:1.4;letter-spacing:0.2px; }
+.spyre-drug-popup { display:none;position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 0px);z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:14px;width:490px;max-width:92vw;text-align:left;max-height:82vh;overflow-y:auto; }
 .spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
 .spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
 .spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
@@ -1007,13 +1010,17 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-edit-discard-btn:hover { border-color:#94a3b8; }
 .pi-edit-hint { font-size:9.5px; color:#94a3b8; margin-top:4px; font-style:italic; }
 
-/* ── TL1A 3-COLUMN LAYOUT ── */
+/* ── TL1A LAYOUT ── */
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
-.tl1a-layout { display:grid;grid-template-columns:148px 1fr 148px;gap:18px;align-items:start;max-width:1440px;margin:0 auto; }
+.tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
 .tl1a-center-col { min-width:0; }
-.tl1a-pills-col { display:flex;flex-direction:column;gap:7px;padding-top:6px;position:sticky;top:62px; }
-.tl1a-pill-btn { background:white;border:1.5px solid #dde3ea;border-radius:20px;padding:8px 10px;font-size:10.5px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:center;transition:all 0.15s;width:100%;line-height:1.3; }
+.tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:70px;z-index:50;width:148px; }
+.tl1a-pills-col.tl1a-pills-visible { display:flex; }
+#tl1a-pills-left { left:14px; }
+#tl1a-pills-right { right:14px; }
+.tl1a-pill-btn { background:white;border:1.5px solid #dde3ea;border-radius:20px;padding:8px 10px;font-size:10.5px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:center;transition:all 0.15s;width:100%;line-height:1.3;position:relative;display:flex;align-items:center;justify-content:center;gap:4px; }
 .tl1a-pill-btn:hover { background:#1e3a5f;color:white;border-color:#1e3a5f;box-shadow:0 3px 10px rgba(30,58,95,0.2); }
+.tl1a-pill-new-dot { display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pi-dot-blink 2.8s ease-in-out infinite;flex-shrink:0; }
 .tl1a-modal-overlay { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:901;align-items:flex-start;justify-content:center;padding:28px 16px;overflow-y:auto; }
 .tl1a-modal-overlay.open { display:flex; }
 .tl1a-modal-panel { background:white;border-radius:12px;width:100%;max-width:900px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;max-height:calc(100vh - 56px);overflow:hidden; }
@@ -2995,20 +3002,29 @@ function loadMoleculeTab(tabId) {
   </div>
 </div>
 
-<div class="tl1a-layout">
- <!-- LEFT: floating pill buttons -->
- <div class="tl1a-pills-col">
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-intel')">📡 Intel Feed</button>
+<!-- LEFT fixed pill column -->
+<div class="tl1a-pills-col" id="tl1a-pills-left">
+  <button class="tl1a-pill-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
+  <button class="tl1a-pill-btn" id="pill-intel" onclick="openTl1aModal('tl1a-modal-intel')">📡 Intel Feed</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-catalysts')">📅 Catalyst Calendar</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-estimand')">📐 Estimand Guide</button>
- </div>
+</div>
+<!-- RIGHT fixed pill column -->
+<div class="tl1a-pills-col" id="tl1a-pills-right">
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')">🧬 Ailux Profile</button>
+  <button class="tl1a-pill-btn" id="pill-market" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
+  <button class="tl1a-pill-btn" id="pill-soc" onclick="openTl1aModal('tl1a-modal-soc')">🏥 Standard of Care</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🔬 China Programs</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-takeaways')">🎯 BD Takeaways</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-history')">📖 IBD History</button>
+</div>
 
+<div class="tl1a-layout">
  <!-- CENTER: Program Intelligence -->
  <div class="tl1a-center-col">
 <!-- UNIFIED PROGRAM INTELLIGENCE TABLE -->
 <div class="pi-card" id="tl1a-pi-card">
   <div class="pi-hd">
-    <button class="bio-dd-btn" onclick="openBioDD('tl1a-bio-dd')" style="margin-right:4px">⚗ Biology Deep Dive</button>
     <div class="pi-filters">
       <div class="pi-pill-group" data-filter="cls">
         <span class="pi-pill-lbl">Class</span>
@@ -3043,14 +3059,7 @@ function loadMoleculeTab(tabId) {
 </div>
  </div>
 
- <!-- RIGHT: floating pill buttons -->
- <div class="tl1a-pills-col">
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🔬 China Programs</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-takeaways')">🎯 BD Takeaways</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-history')">📖 IBD History</button>
- </div>
+ </div><!-- /tl1a-center-col -->
 </div><!-- /tl1a-layout -->
 
 <div class="tl1a-modal-overlay" id="tl1a-modal-intel" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -3208,29 +3217,38 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <div class="tl1a-modal-overlay" id="tl1a-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
- <div class="tl1a-modal-panel" style="max-width:1000px">
+ <div class="tl1a-modal-panel" style="max-width:900px">
   <div class="tl1a-modal-hd">
-   <span>💊 IBD Market & Standard of Care</span>
+   <span>💊 IBD Market Intelligence</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('tl1a-modal-market'))">✕</button>
   </div>
   <div class="tl1a-modal-body">
-<!-- IBD MARKET & STANDARD OF CARE -->
- <div class="sec-hd"><span class="sec-title">IBD Market &amp; Standard of Care Context</span><div class="sec-line"></div><span class="sec-tag">$30.7B → $41.9B by 2030</span></div>
- <div class="info-card">
- <div class="info-hd" onclick="toggleSection('ibd-market')">
- <span class="info-hd-title">IBD Market Size, Standard of Care &amp; Efficacy Benchmarks</span>
- <div style="display:flex;align-items:center;gap:10px">
- <span class="info-hd-badge">Click to Expand</span>
- <span class="info-toggle" id="ibd-market-toggle">▼</span>
- </div>
- </div>
- <div class="info-body" id="ibd-market-body">
+ <div class="sec-hd"><span class="sec-title">IBD Market Size &amp; Competitive Landscape</span><div class="sec-line"></div><span class="sec-tag">$30.7B → $41.9B by 2030</span></div>
  <div class="mkt-grid">
  <div class="mkt-card"><div class="mkt-val">$30.7B</div><div class="mkt-label">IBD Market 2024</div><div class="mkt-sub">Global revenue</div></div>
  <div class="mkt-card g"><div class="mkt-val">$41.9B</div><div class="mkt-label">IBD Market 2030</div><div class="mkt-sub">+36% CAGR growth</div></div>
  <div class="mkt-card o"><div class="mkt-val">44%</div><div class="mkt-label">AbbVie Share 2030</div><div class="mkt-sub">Up from 31% in 2024</div></div>
  <div class="mkt-card p"><div class="mkt-val">$12B+</div><div class="mkt-label">Skyrizi Peak Sales</div><div class="mkt-sub">IBD + derm combined</div></div>
  </div>
+ <div style="margin-top:16px;margin-bottom:10px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;">IL-23p19 Efficacy Benchmarks — Bar TL1A &amp; Bispecifics Must Clear</div>
+ <div class="threshold-grid">
+ <div class="threshold-box"><div class="tb-drug">Risankizumab (Skyrizi) · CD</div><div class="tb-trial">ADVANCE Ph3 · Induction Wk12</div><div class="tb-rate">45%</div><div class="tb-endpoint">Clinical remission (CDAI &lt;150) vs. 25% placebo · Composite estimand</div></div>
+ <div class="threshold-box"><div class="tb-drug">Guselkumab (Tremfya) · CD</div><div class="tb-trial">GALAXI-1 Ph2/3 · Wk12</div><div class="tb-rate">45–46%</div><div class="tb-endpoint">Clinical remission vs. ~20% placebo · Sets bar for CD induction</div></div>
+ <div class="threshold-box"><div class="tb-drug">Mirikizumab (Omvoh) · UC</div><div class="tb-trial">LUCENT-1 Ph3 · Induction Wk12</div><div class="tb-rate">24.2%</div><div class="tb-endpoint">Clinical remission vs. 13.3% placebo · Composite estimand</div></div>
+ <div class="threshold-box"><div class="tb-drug">Duvakitug (TEV-48574) · UC</div><div class="tb-trial">RELIEVE UCCD Ph2b · 900mg Wk14</div><div class="tb-rate">48%</div><div class="tb-endpoint">Highest TL1A UC signal reported · Composite estimand · Ph3 ongoing</div></div>
+ </div>
+  </div>
+ </div>
+</div>
+
+<div class="tl1a-modal-overlay" id="tl1a-modal-soc" onclick="if(this===event.target)closeTl1aModal(this)">
+ <div class="tl1a-modal-panel" style="max-width:1050px">
+  <div class="tl1a-modal-hd">
+   <span>🏥 Standard of Care — UC &amp; CD Treatment Ladders</span>
+   <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('tl1a-modal-soc'))">✕</button>
+  </div>
+  <div class="tl1a-modal-body">
+ <div class="sec-hd"><span class="sec-title">Current Treatment Paradigm</span><div class="sec-line"></div><span class="sec-tag">UC + CD Escalation Pathways</span></div>
  <div class="soc-panel">
  <div class="soc-box">
  <div class="soc-title">UC · Treatment Escalation Ladder</div>
@@ -3261,18 +3279,10 @@ function loadMoleculeTab(tabId) {
  </table>
  </div>
  </div>
- <div style="margin-bottom:10px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;">IL-23p19 Efficacy Benchmarks (Clinical Bar for TL1A &amp; Bispecifics to Clear)</div>
- <div class="threshold-grid">
- <div class="threshold-box"><div class="tb-drug">Risankizumab (Skyrizi) · CD</div><div class="tb-trial">ADVANCE Ph3 · Induction Wk12</div><div class="tb-rate">45%</div><div class="tb-endpoint">Clinical remission (CDAI &lt;150) vs. 25% placebo · Composite estimand</div></div>
- <div class="threshold-box"><div class="tb-drug">Guselkumab (Tremfya) · CD</div><div class="tb-trial">GALAXI-1 Ph2/3 · Wk12</div><div class="tb-rate">45–46%</div><div class="tb-endpoint">Clinical remission vs. ~20% placebo · Sets bar for CD induction</div></div>
- <div class="threshold-box"><div class="tb-drug">Mirikizumab (Omvoh) · UC</div><div class="tb-trial">LUCENT-1 Ph3 · Induction Wk12</div><div class="tb-rate">24.2%</div><div class="tb-endpoint">Clinical remission vs. 13.3% placebo · Composite estimand</div></div>
- <div class="threshold-box"><div class="tb-drug">Duvakitug (TEV-48574) · UC</div><div class="tb-trial">RELIEVE UCCD Ph2b · 900mg Wk14</div><div class="tb-rate">48%</div><div class="tb-endpoint">Highest TL1A UC signal reported · Composite estimand · Ph3 ongoing</div></div>
- </div>
+ <div style="margin-top:16px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;margin-bottom:10px;">Primary Endpoints Reference</div>
  <div class="endpoint-grid">
  <div class="endpoint-box"><div class="ep-title">UC Primary Endpoints</div><div class="ep-row"><strong>Clinical remission:</strong> Mayo score ≤2, no subscore &gt;1</div><div class="ep-row"><strong>PRO2:</strong> Stool frequency + rectal bleeding subscores combined</div><div class="ep-row"><strong>Endoscopic:</strong> Mayo endoscopic subscore ≤1 (mucosal healing)</div><div class="ep-row"><strong>Histologic:</strong> Geboes ≤3.1 (emerging co-primary)</div></div>
  <div class="endpoint-box g"><div class="ep-title">CD Primary Endpoints</div><div class="ep-row"><strong>CDAI:</strong> Crohn's Disease Activity Index &lt;150 (remission)</div><div class="ep-row"><strong>HBI:</strong> Harvey-Bradshaw Index ≤4</div><div class="ep-row"><strong>Endoscopic response:</strong> ≥50% reduction in SES-CD</div><div class="ep-row"><strong>CDEIS:</strong> CD Endoscopic Index of Severity ≤3 (remission)</div></div>
- </div>
- </div>
  </div>
   </div>
  </div>
@@ -8155,6 +8165,13 @@ function switchTab(id, btn) {
   if (id === 'tl1a') {
     if (typeof tl1aPI !== 'undefined' && !tl1aPI._initialized) { tl1aPI.init(); tl1aPI._initialized = true; }
     loadTL1AIntelFeed();
+    document.getElementById('tl1a-pills-left').classList.add('tl1a-pills-visible');
+    document.getElementById('tl1a-pills-right').classList.add('tl1a-pills-visible');
+  } else {
+    const pl = document.getElementById('tl1a-pills-left');
+    const pr = document.getElementById('tl1a-pills-right');
+    if (pl) pl.classList.remove('tl1a-pills-visible');
+    if (pr) pr.classList.remove('tl1a-pills-visible');
   }
 }
 // Helper for programmatic tab switching (used by home nav buttons)
@@ -8552,6 +8569,21 @@ document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
 function closeBioDD(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
+
+/* ── Spyre drug popup hover persistence ── */
+let _spyrePopupTimer = null;
+function showSpyrePopup(id) {
+  clearTimeout(_spyrePopupTimer);
+  const btn = document.getElementById(id);
+  if (btn) { const p = btn.querySelector('.spyre-drug-popup'); if (p) p.style.display='block'; }
+}
+function hideSpyrePopup(id) {
+  _spyrePopupTimer = setTimeout(() => {
+    const btn = document.getElementById(id);
+    if (btn) { const p = btn.querySelector('.spyre-drug-popup'); if (p) p.style.display='none'; }
+  }, 130);
+}
+function cancelHideSpyrePopup() { clearTimeout(_spyrePopupTimer); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.bio-dd-overlay.open').forEach(el => el.classList.remove('open')); }});
 
 // ── TL1A PROGRAM INTELLIGENCE TABLE ──────────────────────────────
@@ -8815,7 +8847,13 @@ const SPYRE_PIPELINE = [
 function openTl1aModal(id) {
   document.querySelectorAll('.tl1a-modal-overlay').forEach(m => m.classList.remove('open'));
   const el = document.getElementById(id);
-  if (el) { el.classList.add('open'); document.body.style.overflow='hidden'; }
+  if (el) {
+    el.classList.add('open');
+    document.body.style.overflow='hidden';
+    // Auto-expand any collapsed sections inside this modal
+    el.querySelectorAll('.info-body').forEach(b => { b.style.display = 'block'; });
+    el.querySelectorAll('.info-toggle').forEach(t => { t.textContent = '▲'; });
+  }
 }
 function closeTl1aModal(el) {
   el.classList.remove('open');
@@ -8827,6 +8865,15 @@ document.addEventListener('keydown', e => {
     document.querySelectorAll('.bio-dd-overlay.open').forEach(m => m.classList.remove('open'));
   }
 });
+/* Show TL1A pills if that tab is already active on load */
+(function() {
+  if (document.getElementById('tab-tl1a') && document.getElementById('tab-tl1a').classList.contains('active')) {
+    const pl = document.getElementById('tl1a-pills-left');
+    const pr = document.getElementById('tl1a-pills-right');
+    if (pl) pl.classList.add('tl1a-pills-visible');
+    if (pr) pr.classList.add('tl1a-pills-visible');
+  }
+})();
 
 // ── PI TABLE INLINE EDIT + RESEARCH VALIDATION ────────────────────
 async function piStartEdit(event, td, programId, field) {
@@ -9040,11 +9087,17 @@ const tl1aPI = {
   const isAdj = d => (!d.tl1a && d.ibd) || (d.tl1a && !d.ibd);
 
   const makeDrugBtn = (d) => {
-   const scope = isTl1aIbd(d) ? 'full' : isAdj(d) ? 'adj' : 'dim';
-   const scale = scope === 'full' ? '' : scope === 'adj' ? 'opacity:0.72;transform:scale(0.88);' : 'opacity:0.55;transform:scale(0.76);';
-   const comboTarget = d.isCombo ? `<div style="font-size:8.5px;font-weight:700;color:${d.color};margin-top:1px;opacity:0.9;white-space:nowrap">${d.target.replace(' + ',' +\n')}</div>` : '';
-   const phaseLabel = !d.isCombo ? `<div style="font-size:8.5px;font-weight:600;color:#94a3b8;margin-top:1px">${d.phase}</div>` : '';
-   const ibdTag = !d.ibd ? `<div style="font-size:7.5px;background:#fff7ed;color:#c2410c;border-radius:8px;padding:0px 4px;margin-top:2px;font-weight:700">RA/PsA</div>` : '';
+   /* Disease-area color scheme */
+   const diseaseColor = d.ibd ? '#2563eb' : '#9333ea';
+   const diseaseLightBg = d.ibd ? '#eff6ff' : '#f5f3ff';
+   /* Phase badge abbreviation */
+   const phaseMap = {'Phase 1':'P1','Phase 2':'P2','Phase 3':'P3','IND':'IND','Pre-IND':'Pre','Preclinical':'Pre','Phase 1/2':'P1/2','Phase 2/3':'P2/3'};
+   const phaseBadge = phaseMap[d.phase] || d.phase || '';
+   /* Unique button ID for hover persistence */
+   const btnId = 'spy-btn-' + d.code.replace(/[^a-z0-9]/gi,'');
+   /* Target display — multi-line for combos */
+   const targetLines = d.target.split(' + ').map(t=>`<div style="font-size:8px;font-weight:700;color:${diseaseColor};opacity:0.9;line-height:1.3">${t}</div>`).join('');
+   const areaTag = !d.ibd ? `<div style="font-size:7px;background:#fdf4ff;color:#7e22ce;border-radius:8px;padding:0 4px;margin-top:2px;font-weight:800">RA/PsA</div>` : '';
 
    /* Trials rows */
    let trialRows = '';
@@ -9064,23 +9117,19 @@ const tl1aPI = {
      </div>`;
    }
    const trialsSection = trialRows
-    ? `<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.4px;margin-bottom:3px">${d.trials&&d.trials.length?'Active Trials':'Reference / Proxy'}</div>
+    ? `<div style="border:1.5px solid #dbeafe;border-radius:8px;padding:10px 11px;background:#f8fbff">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1d4ed8;letter-spacing:0.5px;margin-bottom:6px">🔬 ${d.trials&&d.trials.length?'Active Clinical Trials':'Combination Reference'}</div>
         ${trialRows}
        </div>`
-    : `<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:6px;font-size:10px;color:#94a3b8;font-style:italic">Enrollment pending Part B opening</div>`;
+    : `<div style="border:1.5px dashed #e2e8f0;border-radius:8px;padding:8px 11px;font-size:10px;color:#94a3b8;font-style:italic">No trials open yet — enrollment pending Part B opening</div>`;
 
-   /* Sources */
-   const srcsSection = (d.sources && d.sources.length)
-    ? `<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:6px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.4px;margin-bottom:3px">🔗 Verified Sources</div>
-        ${d.sources.map(s=>`<div style="margin-bottom:2px"><a href="${s.url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8;text-decoration:none">${s.label} ↗</a></div>`).join('')}
-       </div>` : '';
+   /* Sources — now embedded inline in mechanism text, not shown separately */
 
-   return `<button class="spyre-drug-btn" style="border-color:${d.color};color:${d.color};background:${d.lightBg};transition:all 0.15s;${scale}">
-    <div style="font-size:11.5px;font-weight:900">${d.code}</div>
-    ${comboTarget}${phaseLabel}${ibdTag}
-    <div class="spyre-drug-popup" style="width:340px">
+   return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${diseaseColor};color:${diseaseColor};background:${diseaseLightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup('${btnId}')">
+    <div class="spyre-phase-badge" style="color:${diseaseColor};border:1px solid ${diseaseColor}55">${phaseBadge}</div>
+    <div style="font-size:11.5px;font-weight:900;margin-top:2px">${d.code}</div>
+    ${targetLines}${areaTag}
+    <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup('${btnId}')">
      <!-- Summary card -->
      <div style="background:${d.lightBg};border:1.5px solid ${d.color}44;border-radius:8px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
@@ -9091,8 +9140,10 @@ const tl1aPI = {
       </div>
       <div style="font-size:10.5px;color:#475569;line-height:1.5">📍 <strong>${d.indication}</strong></div>
      </div>
+     <!-- Active Trials (top priority) -->
+     ${trialsSection}
      <!-- 2-col detail grid -->
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;margin-top:10px">
       <div style="background:#f8fafc;border-radius:7px;padding:9px 10px">
        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Drug Details</div>
        <div style="display:flex;flex-direction:column;gap:4px">
@@ -9103,9 +9154,9 @@ const tl1aPI = {
         <div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Target</span><span style="color:#1e3a5f;font-weight:700">${d.target}</span></div>
        </div>
       </div>
-      <div style="background:#f8fafc;border-radius:7px;padding:9px 10px;overflow-y:auto;max-height:200px">
-       <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Mechanism & Context</div>
-       <div style="font-size:10.5px;color:#475569;line-height:1.55">${d.mech}</div>
+      <div style="background:#f8fafc;border-radius:7px;padding:9px 10px;overflow-y:auto;max-height:220px">
+       <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Mechanism &amp; Context</div>
+       <div style="font-size:10.5px;color:#475569;line-height:1.6">${d.mech}${d.sources&&d.sources.length?` <span style="white-space:nowrap">${d.sources.map(s=>`<a href="${s.url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:0 4px;margin-left:2px">${s.label.split(' ')[0]}↗</a>`).join('')}</span>`:''}</div>
       </div>
      </div>
      <!-- Ailux BD Lens -->
@@ -9113,8 +9164,6 @@ const tl1aPI = {
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#a16207;letter-spacing:0.5px;margin-bottom:3px">🎯 Ailux BD Lens</div>
       <div style="font-size:10.5px;color:#78350f;line-height:1.5">${d.vsAilux}</div>
      </div>
-     ${trialsSection}
-     ${srcsSection}
     </div>
    </button>`;
   };
@@ -9127,12 +9176,11 @@ const tl1aPI = {
   const allBtns = [...primaryDrugs, ...adjacentDrugs, ...otherDrugs].map(makeDrugBtn).join('');
 
   /* Section dividers in pipeline row */
-  const pipelineRow = `<div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:6px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
+  const pipelineRow = `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:8px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
    <div style="width:100%;font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;text-align:center;margin-bottom:4px">
-    Spyre Full Pipeline — hover each bubble for details ·
-    <span style="color:#7c3aed">TL1A+IBD programs</span> ·
-    <span style="opacity:0.65">IBD non-TL1A</span> ·
-    <span style="color:#ea580c;opacity:0.6">TL1A/Rheumatic</span>
+    Full Spyre Pipeline — hover each pill for details ·
+    <span style="color:#2563eb">■ IBD programs</span> ·
+    <span style="color:#9333ea">■ Rheumatic (RA/PsA)</span>
    </div>
    ${allBtns}
   </div>`;
@@ -9238,7 +9286,7 @@ const tl1aPI = {
     <td class="pi-editable" title="Double-click to edit" style="font-size:11px;color:#475569" ondblclick="piStartEdit(event,this,'${p.id}','Target')">${p.target}</td>
     <td class="pi-editable" title="Double-click to edit classification" ondblclick="piStartEdit(event,this,'${p.id}','Class')">${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(p.stageKey)}</td>
-    <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+    <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span>${isExp?'<span class="pi-collapse-hint">click to close</span>':''}</td>
    </tr>`;
    const trialsHTML = (p.trials||[]).map(t => {
     const statusCls = t.status.includes('Recruiting') ? 'pi-trial-recruiting' : t.status.includes('not recruiting') ? 'pi-trial-anr' : t.status.includes('Completed') ? 'pi-trial-done' : 'pi-trial-planned';
