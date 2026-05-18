@@ -910,8 +910,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .stock-fbtn:hover { border-color:#2e6fb0; color:#2e6fb0; }
 .stock-fbtn.active { background:#1a2f50; border-color:#1a2f50; color:white; }
 .stock-cards-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; }
-.stock-card { background:white; border-radius:9px; box-shadow:0 1px 4px rgba(0,0,0,0.07); border:1px solid #e8eef5; overflow:hidden; cursor:pointer; transition:box-shadow 0.15s,transform 0.1s; }
-.stock-card:hover { box-shadow:0 4px 14px rgba(0,0,0,0.11); transform:translateY(-1px); }
+.stock-card { background:white; border-radius:9px; box-shadow:0 1px 4px rgba(0,0,0,0.07); border:1px solid #e8eef5; overflow:visible; cursor:default; position:relative; z-index:1; transition:box-shadow 0.18s,z-index 0s; }
+.stock-card:hover { box-shadow:0 6px 22px rgba(0,0,0,0.14); z-index:50; }
 .stock-tile-hd { display:flex; align-items:flex-start; justify-content:space-between; padding:11px 13px 7px; }
 .stock-tile-left { flex:1; min-width:0; }
 .stock-tile-name { font-size:13px; font-weight:800; color:#0d1f38; }
@@ -931,9 +931,12 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .stock-insight .si-up   { color:#059669; font-weight:700; }
 .stock-insight .si-down { color:#dc2626; font-weight:700; }
 .stock-insight .si-neut { color:#d97706; font-weight:700; }
-.stock-body, .stock-full { display:none; border-top:1.5px solid #eef2f7; padding:12px 13px; }
-.stock-card.expanded .stock-body,
-.stock-card.expanded .stock-full { display:block; }
+.stock-body { display:none; position:absolute; left:-1px; right:-1px; top:calc(100% - 2px); z-index:100; background:#fff; border:1px solid #c8d6e5; border-top:none; border-radius:0 0 9px 9px; box-shadow:0 8px 28px rgba(0,0,0,.16); padding:10px 13px 13px; }
+.stock-card:hover .stock-body { display:block; }
+.stock-card.expanded .stock-body { display:block; }
+.stock-full { display:none; }
+.sc-new-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#16a34a; margin-left:5px; vertical-align:middle; flex-shrink:0; animation:sc-blink 1.6s ease-in-out infinite; }
+@keyframes sc-blink { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(22,163,74,.5)} 50%{opacity:.5;box-shadow:0 0 0 4px rgba(22,163,74,0)} }
 .stock-card-hidden { display:none !important; }
 .cw-hd{background:#1e3a5f;color:#fff;padding:11px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .cw-hd-title{font-size:13px;font-weight:700}
@@ -991,7 +994,9 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .rdt-hd-sub { font-size:11px; color:#94a3b8; }
 .rdt-scroll { overflow-x:auto; border-radius:10px; border:1px solid #e2e8f0; }
 .rdt-table { width:100%; border-collapse:collapse; font-size:11.5px; }
-.rdt-table th { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; padding:9px 12px; border-bottom:2px solid #e2e8f0; text-align:left; background:#f8fafc; white-space:nowrap; }
+.rdt-table th { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; padding:9px 12px; border-bottom:2px solid #e2e8f0; text-align:left; background:#f8fafc; white-space:nowrap; position:relative; user-select:none; }
+.rdt-col-handle { position:absolute; right:0; top:0; bottom:0; width:6px; cursor:col-resize; background:transparent; z-index:2; border-right:2px solid transparent; transition:border-color .15s; }
+.rdt-col-handle:hover, .rdt-col-handle.dragging { border-right-color:#1e3a5f; background:rgba(30,58,95,.08); }
 .rdt-table td { padding:9px 12px; border-bottom:1px solid #f0f4f8; vertical-align:top; line-height:1.4; }
 .rdt-table tr:last-child td { border-bottom:none; }
 .rdt-table tr:hover td { background:#f8faff; }
@@ -1077,7 +1082,7 @@ const AREA_TAG = {
 };
 
 // ── Company card renderer ────────────────────────────────────────────────────
-function buildStockCard(company, areas, signals) {
+function buildStockCard(company, areas, signals, newIntelSet) {
   const areaKeys = areas.map(a => a.area_id);
   const areaStr  = areaKeys.join(' ');
 
@@ -1105,6 +1110,9 @@ function buildStockCard(company, areas, signals) {
     ? `<span style="font-size:10px;font-weight:600;color:#94a3b8;">${company.ticker}</span>`
     : `<span style="font-size:10px;font-weight:600;color:#94a3b8;">Private</span>`;
 
+  const hasNew = newIntelSet && newIntelSet.has(company.id);
+  const newDot = hasNew ? `<span class="sc-new-dot" title="New intel available in last 7 days"></span>` : '';
+
   const ailuxAngleHtml = company.ailux_angle
     ? `<div style="font-size:11px;color:#2563eb;background:#eff6ff;padding:6px 10px;border-radius:5px;margin-top:6px;line-height:1.5;"><strong>Ailux BD Lens:</strong> ${company.ailux_angle}</div>`
     : '';
@@ -1123,16 +1131,15 @@ function buildStockCard(company, areas, signals) {
     : '';
 
   return `
-<div class="stock-card" data-areas="${areaStr}" data-company-id="${company.id}" onclick="toggleStockCard(this)">
+<div class="stock-card" data-areas="${areaStr}" data-company-id="${company.id}">
   <div class="stock-tile-hd">
     <div class="stock-tile-left">
-      <div class="stock-tile-name">${company.name} ${tickerHtml}</div>
+      <div class="stock-tile-name" style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;">${company.name} ${tickerHtml}${newDot}</div>
       <div class="stock-tile-sub">${exchangeLabel || ''}${company.tagline ? ' · ' + company.tagline : ''}</div>
       <div class="stock-tile-tags">${tags}</div>
     </div>
     <div class="stock-tile-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
       ${priceHtml}
-      <span class="stock-expand-icon">＋</span>
     </div>
   </div>
   <div class="stock-insight"><span class="${dirClass}">${dirArrow}</span> ${insightText}</div>
@@ -1150,11 +1157,14 @@ async function loadStockCards() {
   if (!grid) return;
 
   try {
-    // Parallel fetch: companies + company_areas + company_signals
-    const [compRes, areaRes, sigRes] = await Promise.all([
-      _sb.from('companies').select('*').order('name'),
+    // Parallel fetch: companies + areas + signals + intel relevance
+    const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
+    const [compRes, areaRes, sigRes, recentIntelRes, intelCosRes] = await Promise.all([
+      _sb.from('companies').select('*'),
       _sb.from('company_areas').select('*'),
       _sb.from('company_signals').select('*').order('sort_order'),
+      _sb.from('intel').select('id').gte('intel_date', sevenDaysAgo),
+      _sb.from('intel_companies').select('company_id,intel_id'),
     ]);
 
     if (compRes.error) throw compRes.error;
@@ -1163,12 +1173,31 @@ async function loadStockCards() {
     const allAreas  = areaRes.data  || [];
     const allSigs   = sigRes.data   || [];
 
-    grid.innerHTML = '';   // clear loading spinner
+    // Build relevance maps
+    const recentIntelIds = new Set((recentIntelRes.data||[]).map(r => r.id));
+    const companyIntelCount = {}; // company_id → total intel count
+    const companyNewIntel   = new Set(); // company_ids with new intel (last 7d)
+    (intelCosRes.data||[]).forEach(ic => {
+      companyIntelCount[ic.company_id] = (companyIntelCount[ic.company_id]||0) + 1;
+      if (recentIntelIds.has(ic.intel_id)) companyNewIntel.add(ic.company_id);
+    });
 
+    // Sort: new intel first → most intel overall → alphabetical
+    companies.sort((a, b) => {
+      const aNew = companyNewIntel.has(a.id) ? 1 : 0;
+      const bNew = companyNewIntel.has(b.id) ? 1 : 0;
+      if (bNew !== aNew) return bNew - aNew;
+      const aCnt = companyIntelCount[a.id] || 0;
+      const bCnt = companyIntelCount[b.id] || 0;
+      if (bCnt !== aCnt) return bCnt - aCnt;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+
+    grid.innerHTML = '';
     companies.forEach(company => {
       const areas = allAreas.filter(a => a.company_id === company.id);
       const sigs  = allSigs.filter(s  => s.company_id === company.id);
-      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs));
+      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs, companyNewIntel));
     });
 
     // Re-apply any active filter after render
@@ -2132,7 +2161,7 @@ function loadMoleculeTab(tabId) {
     <span class="rdt-hd-sub">Reverse chronological · broad pharma + Ailux focus areas</span>
    </div>
    <div class="rdt-scroll">
-    <table class="rdt-table">
+    <table class="rdt-table" id="rdt-main-table">
      <thead>
       <tr>
        <th>Date</th><th>Partner</th><th>Counterparty</th><th>Focus / Asset</th><th>Modality</th><th>Economics</th><th>Strategic Rationale</th>
@@ -8558,6 +8587,42 @@ function rdtFmtEcon(d) {
   return parts.join('; ') || 'Not disclosed';
 }
 
+function rdtFmtDate(d) {
+  if (!d) return '';
+  try {
+    const dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  } catch(e) { return d; }
+}
+
+function rdtInitResize() {
+  var table = document.getElementById('rdt-main-table');
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach(function(th) {
+    var handle = document.createElement('div');
+    handle.className = 'rdt-col-handle';
+    th.appendChild(handle);
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      handle.classList.add('dragging');
+      var startX = e.pageX;
+      var startW = th.getBoundingClientRect().width;
+      function onMove(e2) {
+        var newW = Math.max(48, startW + e2.pageX - startX);
+        th.style.minWidth = newW + 'px';
+        th.style.width    = newW + 'px';
+      }
+      function onUp() {
+        handle.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
 async function loadRollingDeals() {
   const tbody = document.getElementById('rdt-tbody');
   if (!tbody) return;
@@ -8566,6 +8631,7 @@ async function loadRollingDeals() {
     if (error) throw error;
     _rdtAll = data || [];
     renderRollingDeals();
+    rdtInitResize();
   } catch(e) {
     if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color:#dc2626;font-size:12px;padding:14px;">Error: ${e.message}</td></tr>`;
   }
@@ -8584,7 +8650,7 @@ function renderRollingDeals() {
     const rat  = (d.detail || d.ailux_signal || '').replace(/<[^>]+>/g,'');
     const ratShort = rat.length > 120 ? rat.slice(0,120)+'…' : rat;
     return `<tr>
-<td class="rdt-date">${d.deal_date_label||''}</td>
+<td class="rdt-date">${rdtFmtDate(d.deal_date)||d.deal_date_label||''}</td>
 <td><span class="rdt-co ${fromCls}">${d.from_company||''}</span></td>
 <td><span class="rdt-co ${toCls}">${d.to_company||''}</span></td>
 <td class="rdt-focus">${d.headline||''}</td>
