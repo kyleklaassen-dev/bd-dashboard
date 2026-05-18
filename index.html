@@ -1990,6 +1990,40 @@ async function loadAreaCompetitors(tabId) {
   </div>`;
 }
 
+// ── Area Companies Loader (placeholder — renders into tabId+'-companies' if present) ──
+async function loadAreaCompanies(tabId) {
+  const el = document.getElementById(tabId + '-companies');
+  if (!el || !window._sb) return;
+  const areas = TAB_AREA_MAP[tabId];
+  if (!areas) return;
+  try {
+    const { data: rows, error } = await _sb.from('companies').select('id,name,ticker,stage,insight_text,ailux_angle')
+      .in('area_id', areas).order('name').limit(20);
+    if (error || !rows || !rows.length) return;
+    el.innerHTML = rows.map(c => `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
+      <strong>${c.name}</strong>${c.ticker ? ` <span style="color:#94a3b8;font-size:11px">(${c.ticker})</span>` : ''}
+      ${c.insight_text ? `<div style="font-size:11px;color:#4b5563;margin-top:2px">${c.insight_text}</div>` : ''}
+    </div>`).join('');
+  } catch(e) { console.warn('loadAreaCompanies', tabId, e); }
+}
+
+// ── Area Drugs Loader (placeholder — renders into tabId+'-drugs' if present) ──
+async function loadAreaDrugs(tabId) {
+  const el = document.getElementById(tabId + '-drugs');
+  if (!el || !window._sb) return;
+  const areaId = TAB_AREA[tabId];
+  if (!areaId) return;
+  try {
+    const { data: rows, error } = await _sb.from('drug_areas').select('drug_id, drugs(id,name,brand_name,stage,mechanism)')
+      .eq('area_id', areaId).limit(20);
+    if (error || !rows || !rows.length) return;
+    const drugs = rows.map(r => r.drugs).filter(Boolean);
+    el.innerHTML = drugs.map(d => `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
+      <strong>${d.name}</strong>${d.brand_name ? ` (${d.brand_name})` : ''} · <span style="color:#64748b;font-size:11px">${d.stage||''}</span>
+    </div>`).join('');
+  } catch(e) { console.warn('loadAreaDrugs', tabId, e); }
+}
+
 function loadMoleculeTab(tabId) {
   if (_molTabLoaded[tabId]) return; // already loaded
   _molTabLoaded[tabId] = true;
