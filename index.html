@@ -942,6 +942,13 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-detail-section li { margin-bottom:3px; }
 .pi-detail-cat-item { display:flex;gap:6px;margin-bottom:5px;font-size:11px; }
 .pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px; }
+.pi-trial-row { padding:8px 10px;background:#f8fafc;border-radius:6px;margin-bottom:7px;border:1px solid #e2e8f0; }
+.pi-trial-row:last-child { margin-bottom:0; }
+.pi-trial-status { display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700; }
+.pi-trial-recruiting { background:#dcfce7;color:#166534; }
+.pi-trial-anr { background:#fef9c3;color:#854d0e; }
+.pi-trial-done { background:#f1f5f9;color:#475569; }
+.pi-trial-planned { background:#ede9fe;color:#5b21b6; }
 .col-resize { position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent; }
 .col-resize:hover { background:rgba(99,102,241,0.3); }
 .pi-sort-arrow { font-size:8px;margin-left:3px;color:#94a3b8; }
@@ -8382,84 +8389,151 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.q
 
 // ── TL1A PROGRAM INTELLIGENCE TABLE ──────────────────────────────
 const TL1A_PROGRAMS = [
- { id:'roche', co:'Roche / Telavant', ticker:'ROG', drug:'Afimkibart', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
-   summary:'Roche acquired Telavant for $7.1B in 2023. Phase 3 OVERVIEW program (AMETRINE-1/-2 UC + SIBERITE-1/-2 CD) enrolling. Expanding into atopic dermatitis (Ph2) and MASH (Ph1).',
-   catalysts:[{date:'2026 H2',event:'AMETRINE-1/-2 Ph3 interim (UC)'},{date:'2027',event:'SIBERITE-1/-2 Ph3 primary (CD)'}],
-   deals:[{date:'Dec 2023',desc:'Roche acquires Telavant ~$7.1B — full global rights to afimkibart'}],
-   risk:'TUSCANY-2 Ph2b missed primary endpoint (24% vs 12% PBO); Phase 3 relies on secondary endpoint extrapolation. Could reset class expectations negatively.',
-   diff:'First anti-TL1A mAb to Phase 3 — sets the monotherapy efficacy bar bispecifics must beat. $7.1B acquisition validates the target at scale.' },
- { id:'merck', co:'Merck & Co.', ticker:'MRK', drug:'Tulisokibart (MK-7240)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
-   summary:'Phase 3 ATLAS-UC + ARES-CD enrolling. Phase 2 ARTEMIS-UC: 26% remission vs 1.5% PBO. Ph3 topline ~Nov 2026. Companion diagnostic (TNFSF15 haplotype). Expanding to HS, axSpA, RA in Phase 2b.',
-   catalysts:[{date:'~Nov 2026',event:'ATLAS-UC Ph3 topline (first Ph3 TL1A dataset)'},{date:'2027',event:'ARES-CD Ph3 readout'}],
-   deals:[],
-   risk:'First Phase 3 TL1A readout — if it misses, the entire class takes a hit. Narrow companion Dx label could limit commercial ceiling.',
-   diff:'ATLAS-UC topline Nov 2026 will be the first Phase 3 TL1A dataset — could reset the field\'s expectations for TL1A mono and set the efficacy bar for bispecifics.' },
+ { id:'roche', co:'Roche / Telavant', ticker:'ROG', drug:'Afimkibart (RO7790121)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
+   summary:'Roche acquired Telavant for $7.1B (Dec 2023) — the largest TL1A-only acquisition on record. Phase 3 program spans UC (AMETRINE) and CD (SIBERITE). AMETRINE-2 (N=400 UC, treat-through) is now ACTIVE NOT RECRUITING with primary completion Jan 2027, making it the earliest Roche Ph3 readout. AMETRINE-1 (N=350 induction-only) runs parallel. SIBERITE-1 (N=600 CD) and SIBERITE-2 (N=425 CD induction) are recruiting with PCD Dec 2028. Expansion: Phase 2 in atopic dermatitis (N=160, primary endpoint EASI-75, PCD Jul 2026) and dedicated pediatric Phase 3 trials in both UC and CD (N=100 each). Caution: Ph2b TUSCANY-2 missed its primary endpoint (24% vs 12% PBO) — the Phase 3 program relies on secondary endpoint extrapolation.',
+   catalysts:[{date:'Jan 2027',event:'AMETRINE-2 Ph3 primary readout — UC clinical remission at Wk 52 (NCT06589986)'},{date:'Jan 2027',event:'AMETRINE-1 Ph3 induction readout — UC remission at Wk 12 (NCT06588855)'},{date:'Jul 2026',event:'Atopic Dermatitis Ph2 primary (EASI-75) — NCT06863961'},{date:'Dec 2028',event:'SIBERITE-1 Ph3 CD primary (remission per CDAI + endoscopic response)'}],
+   trials:[
+    {nct:'NCT06589986',name:'AMETRINE-2 — UC induction + maintenance (treat-through)',phase:'Phase 3',status:'Active, not recruiting',n:400,pcd:'Jan 2027',primary:'% clinical remission (modified Mayo) at Wk 12 AND Wk 52'},
+    {nct:'NCT06588855',name:'AMETRINE-1 — UC induction only',phase:'Phase 3',status:'Recruiting',n:350,pcd:'Jan 2027',primary:'% clinical remission at Wk 12 (modified Mayo)'},
+    {nct:'NCT06819878',name:'SIBERITE-1 — CD induction + maintenance',phase:'Phase 3',status:'Recruiting',n:600,pcd:'Dec 2028',primary:'% remission per CDAI + % endoscopic response'},
+    {nct:'NCT06819891',name:'SIBERITE-2 — CD induction',phase:'Phase 3',status:'Recruiting',n:425,pcd:'Dec 2028',primary:'% remission per CDAI'},
+    {nct:'NCT06863961',name:'Atopic Dermatitis expansion',phase:'Phase 2',status:'Active, not recruiting',n:160,pcd:'Jul 2026',primary:'EASI-75 response at Wk 16'},
+    {nct:'NCT07158242',name:'Pediatric UC induction + maintenance',phase:'Phase 3',status:'Recruiting',n:100,pcd:'Mar 2030',primary:'% clinical remission at Wk 12 and Wk 52'},
+    {nct:'NCT07298421',name:'Pediatric CD induction + maintenance',phase:'Phase 3',status:'Recruiting',n:100,pcd:'May 2030',primary:'% remission per PCDAI + % endoscopic response'},
+   ],
+   deals:[{date:'Dec 2023',desc:'Roche acquires Telavant from Roivant/Pfizer — ~$7.1B upfront · Full global rights to afimkibart across all indications'}],
+   risk:'TUSCANY-2 Phase 2b missed primary endpoint (24% vs 12% PBO on modified Mayo remission). Phase 3 powered on secondary endpoints — regulatory risk if FDA requires primary endpoint success. Could negatively reset class expectations.',
+   diff:'First anti-TL1A mAb to reach Phase 3 — sets the monotherapy ceiling bispecifics must clear. $7.1B acquisition is the class validation event. AMETRINE-2 readout (Jan 2027) will be the first large Phase 3 TL1A dataset.' },
+
+ { id:'merck', co:'Merck & Co.', ticker:'MRK', drug:'Tulisokibart (MK-7240/PRA023)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
+   summary:'Acquired via Prometheus Biosciences ($10.8B, Apr 2023). ATLAS-UC Phase 3 (NCT06052059, N=1020) is now ACTIVE NOT RECRUITING — enrollment closed, with primary completion August 2026, making topline data expected ~Nov 2026. This will be the FIRST Phase 3 TL1A dataset to read out. Ph2 ARTEMIS-UC showed 26.5% remission vs 1.5% PBO (p<0.001). ARES-CD Phase 3 (N=1200) is recruiting with PCD Oct 2028. Long-term extension study (NCT06651281, N=1380) already enrolling through 2037. Companion Dx: TNFSF15 haplotype for patient stratification. Broad pipeline expansion: HS (Ph2b, N=147), systemic sclerosis (Ph2, N=154), RA (Ph2, N=182), psoriatic arthritis (Ph2, N=140).',
+   catalysts:[{date:'~Nov 2026',event:'ATLAS-UC Ph3 topline — FIRST Phase 3 TL1A readout, N=1020 (NCT06052059, PCD Aug 2026)'},{date:'Oct 2028',event:'ARES-CD Ph3 primary readout (NCT06430801)'},{date:'2026',event:'HS Ph2b readout (NCT06956235, N=147)'},{date:'2027',event:'RA Ph2b readout (NCT07176390, N=182)'}],
+   trials:[
+    {nct:'NCT06052059',name:'ATLAS-UC — UC induction + maintenance',phase:'Phase 3',status:'Active, not recruiting',n:1020,pcd:'Aug 2026',primary:'% clinical remission per modified Mayo Score (MMS) at Wk 12 AND Wk 52'},
+    {nct:'NCT06430801',name:'ARES-CD — CD induction + maintenance',phase:'Phase 3',status:'Recruiting',n:1200,pcd:'Oct 2028',primary:'% remission per CDAI (Wk 52) and endoscopic response'},
+    {nct:'NCT06651281',name:'Long-term extension — CD and UC',phase:'Phase 3',status:'Recruiting',n:1380,pcd:'Dec 2037',primary:'Long-term safety (AEs) · Secondary: sustained remission'},
+    {nct:'NCT06956235',name:'Hidradenitis Suppurativa (HS) expansion',phase:'Phase 2',status:'Active, not recruiting',n:147,pcd:'2026',primary:'HiSCR response at Wk 16'},
+    {nct:'NCT07176390',name:'Rheumatoid Arthritis (RA) expansion',phase:'Phase 2',status:'Recruiting',n:182,pcd:'Mar 2027',primary:'ACR20 response at Wk 12'},
+    {nct:'NCT05270668',name:'Systemic Sclerosis expansion',phase:'Phase 2',status:'Active, not recruiting',n:154,pcd:'Apr 2026',primary:'Safety + ILD progression endpoints'},
+   ],
+   deals:[{date:'Apr 2023',desc:'Merck acquires Prometheus Biosciences — $10.8B · Full rights to tulisokibart + companion Dx TNFSF15 haplotype platform'}],
+   risk:'First Phase 3 TL1A readout carries class-defining risk — a miss would hit the entire TL1A sector. Companion Dx requirement (TNFSF15 haplotype ~30% prevalence) may limit addressable population.',
+   diff:'ATLAS-UC (N=1020, PCD Aug 2026) will be the first large-scale Phase 3 TL1A dataset — sets the clinical and deal benchmark for every subsequent program. $10.8B Prometheus acquisition is the largest validation bet in the space.' },
+
  { id:'sanofi', co:'Sanofi / Teva', ticker:'SNY/TEVA', drug:'Duvakitug (TEV-48574)', target:'TL1A + IL-23p19', cls:'Direct', stageKey:'Phase 3', overlap:'high',
-   summary:'Leads the TL1A class with 48% UC remission in Ph2b (highest TL1A signal reported). Ph3 STARSCAPE (UC) and SUNSCAPE (CD) now enrolling. Co-dosed dual mAb targeting both TL1A and IL-23p19. Best-in-class candidate.',
-   catalysts:[{date:'2027–2028',event:'STARSCAPE Ph3 primary (UC)'},{date:'2028',event:'SUNSCAPE Ph3 primary (CD)'}],
-   deals:[{date:'N/A',desc:'Teva / Sanofi co-development — details not publicly disclosed'}],
-   risk:'Highest efficacy data in class creates a very high bar that bispecific formats must clear to claim differentiation.',
-   diff:'48% Ph2b UC remission (composite) at 900mg Wk14 vs 20% PBO — highest TL1A efficacy signal reported to date. Sets the benchmark Ailux bispecific must beat.' },
+   summary:'Duvakitug is a co-dosed regimen of two mAbs (anti-TL1A + anti-IL-23p19) targeting both pathways simultaneously. Phase 2b showed 48% UC clinical remission (composite) at 900mg Week 14 vs 20% PBO — the highest TL1A efficacy signal reported in the class. Phase 3 is the largest TL1A program: UC (STARSCAPE) induction N=980 + maintenance N=671; CD (SUNSCAPE) induction N=980 + maintenance N=751 — total ~3,382 patients across 4 trials. Co-developed between Sanofi and Teva. Phase 3 program has no companion Dx requirement.',
+   catalysts:[{date:'May 2028',event:'STARSCAPE UC induction Ph3 primary (NCT07184996, N=980)'},{date:'Sep 2028',event:'STARSCAPE UC maintenance Ph3 primary (NCT07185009, N=671)'},{date:'May 2029',event:'SUNSCAPE CD induction Ph3 primary (NCT07184931, N=980)'},{date:'Aug 2029',event:'SUNSCAPE CD maintenance Ph3 primary (NCT07184944, N=751)'}],
+   trials:[
+    {nct:'NCT07184996',name:'STARSCAPE UC — induction',phase:'Phase 3',status:'Recruiting',n:980,pcd:'May 2028',primary:'% clinical remission per modified Mayo at Wk 12'},
+    {nct:'NCT07185009',name:'STARSCAPE UC — maintenance',phase:'Phase 3',status:'Recruiting',n:671,pcd:'Sep 2028',primary:'% clinical remission per mMS at maintenance Wk 40'},
+    {nct:'NCT07184931',name:'SUNSCAPE CD — induction',phase:'Phase 3',status:'Recruiting',n:980,pcd:'May 2029',primary:'% CDAI remission + endoscopic response at Wk 12'},
+    {nct:'NCT07184944',name:'SUNSCAPE CD — maintenance',phase:'Phase 3',status:'Recruiting',n:751,pcd:'Aug 2029',primary:'% CDAI remission + SES-CD endoscopic response at Wk 40'},
+    {nct:'NCT05499130',name:'Phase 2b UC + CD (COMPLETED — 48% remission data)',phase:'Phase 2',status:'Completed',n:290,pcd:'Nov 2024',primary:'% UC remission per composite score at Wk 14'},
+   ],
+   deals:[{date:'Ongoing',desc:'Sanofi / Teva co-development and co-commercialization — split economics; financial terms not disclosed publicly'},{date:'Apr 2025',desc:'Sanofi second TL1A deal — Earendil/Helixon HXN-1003 ($125M upfront, $1.845B total) signals Sanofi doubling down on TL1A×IL-23p19'}],
+   risk:'Largest Phase 3 program in the class but latest readouts (UC primary: Sep 2028, CD: Aug 2029). Merck ATLAS-UC data (Nov 2026) will land 2+ years earlier and could shift market positioning.',
+   diff:'48% Phase 2b UC remission — highest TL1A efficacy ever reported. No companion Dx. Dual TL1A+IL-23 mechanism is the most direct analog to Ailux bispecific approach. ~3,382-patient Phase 3 program signals full commercial conviction.' },
+
  { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 2', overlap:'watch',
-   summary:'Spyre (Agenus IBD spinout) has SPY002 anti-TL1A mAb in Phase 2 UC and a bispecific pipeline (SPY003 TL1A×IL-23, SPY004 IL-6×IL-23). $720M raised in 2024. Watch for Ph2 UC efficacy data.',
-   catalysts:[{date:'2026',event:'SPY002 SKYLINE Ph2 UC efficacy data'},{date:'2026–2027',event:'SPY003 (TL1A×IL-23) Phase 1 initiation'}],
-   deals:[{date:'2024',desc:'$720M financing round to fund IBD bispecific pipeline'}],
-   risk:'Clinical-stage spinout with limited public efficacy data; must demonstrate differentiation vs. Roche/Merck/Sanofi mono programs.',
-   diff:'Agenus heritage with validated Ab engineering; SPY002 Ph2 data will help calibrate monospecific bar vs. the bispecific hypothesis.' },
- { id:'xencor-942', co:'Xencor', ticker:'XNCR', drug:'XmAb942 (XTEND)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'high',
-   summary:'XmAb942 achieved 74-day half-life in Ph1 HV study (April 2025) supporting quarterly dosing. XENITH-UC Ph2b enrolling; interim YE2026; full readout H2 2027. Platform: XTEND-Fc technology that extends half-life via FcRn binding enhancement.',
-   catalysts:[{date:'YE 2026',event:'XENITH-UC Ph2b interim data'},{date:'H2 2027',event:'XENITH-UC Ph2b full readout'}],
-   deals:[],
-   risk:'Ph2b data still pending — if efficacy is modest, the extended PK advantage alone may not be sufficient to differentiate from standard IgG competitors.',
-   diff:'Half-life >71 days — enables quarterly (Q13W) or longer dosing. If Phase 2b data hold, sets the convenience bar for the entire TL1A class. Xtend platform is clinically de-risked.' },
+   summary:'Spyre Therapeutics (Agenus IBD spinout, 2024) raised $720M to fund a 4-program IBD pipeline: SPY001 (anti-IL-23p19), SPY002 (anti-TL1A), SPY003 (TL1A×IL-23 bispecific), SPY004 (IL-6×IL-23 bispecific). SPY002 Phase 2 SKYLINE study (NCT07012395, N=645) is a platform trial comparing antibodies alone and in combinations in moderate-severe UC. Primary completion June 2026 for Part A (histopathology endpoint), with clinical remission endpoint in Part B. Companion Phase 1 study (NCT06672718, N=56 HV) is ongoing. The SKYLINE platform design will likely generate head-to-head combination vs. monotherapy data — extremely informative for the bispecific hypothesis.',
+   catalysts:[{date:'Jun 2026',event:'SKYLINE Part A primary data — histopathology endpoint (NCT07012395)'},{date:'Late 2026',event:'SKYLINE Part B clinical remission data'},{date:'2026–2027',event:'SPY003 (TL1A×IL-23) IND + FIH initiation'}],
+   trials:[
+    {nct:'NCT07012395',name:'SKYLINE — Ph2 platform study UC (mono + combinations)',phase:'Phase 2',status:'Recruiting',n:645,pcd:'Jun 2026',primary:'Part A: Change in Robarts Histopathology Index · Part B: % clinical remission'},
+    {nct:'NCT06672718',name:'SPY002-091 Phase 1 — healthy volunteers PK/safety',phase:'Phase 1',status:'Recruiting',n:56,pcd:'Feb 2026',primary:'Safety/tolerability (AEs) + PK characterization'},
+   ],
+   deals:[{date:'2024',desc:'$720M Series A financing — Agenus IBD spinout · Investors include leading biotech funds; funds all 4 pipeline programs through Phase 2 readouts'}],
+   risk:'SKYLINE design tests combinations vs. mono — could validate the bispecific concept (SPY003) but could also show mono is sufficient, undermining bispecific rationale. Readout June 2026.',
+   diff:'The SKYLINE platform study provides a rare head-to-head test of mono vs. combination TL1A+IL-23 blockade in the same patients — directly relevant to the bispecific thesis. SPY002 Ph2 data calibrates the TL1A monotherapy ceiling.' },
+
+ { id:'xencor-942', co:'Xencor', ticker:'XNCR', drug:'XmAb942 (XTEND-Fc)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'high',
+   summary:'XmAb942 is an XTEND-Fc anti-TL1A mAb engineered for ultra-long half-life via enhanced FcRn binding. Phase 1 HV study (reported Apr 2025) demonstrated ~74-day half-life, supporting quarterly (Q13W) or longer SC dosing — a major convenience advantage. XENITH-UC study (NCT06619990) combines Phase 1 HV safety/PK (Parts A+B) with a Phase 2b efficacy cohort in UC (Part C, primary endpoint: modified Mayo clinical remission). N=270 total, start Oct 2024, primary completion Apr 2028. Xencor is running BOTH XmAb942 (mono, Ph2b) and XmAb412 (TL1A×IL-23 bispecific, FIH planned Q3 2026) simultaneously — unique dual-track strategy.',
+   catalysts:[{date:'YE 2026',event:'XENITH-UC Phase 2b interim data (Part C UC cohort)'},{date:'Apr 2028',event:'XENITH-UC Phase 2b full readout (NCT06619990)'},{date:'Q3 2026',event:'XmAb412 (bispecific) Phase 1 FIH initiation'}],
+   trials:[
+    {nct:'NCT06619990',name:'XENITH-UC — Ph1 HV + Ph2b UC (combined study)',phase:'Phase 1/2',status:'Recruiting',n:270,pcd:'Apr 2028',primary:'Part A/B: TEAEs/SAEs in HV · Part C: % clinical remission per MMS in UC'},
+   ],
+   deals:[{date:'No deal',desc:'No partner announced — Xencor self-funding mono (XmAb942 Ph2b) and bispecific (XmAb412 FIH) programs in parallel'}],
+   risk:'If Ph2b efficacy is modest, the ~74-day half-life PK advantage alone may not justify premium pricing or partnering interest over standard IgG TL1A mAbs (Roche, Merck). Capital allocation between two simultaneous programs adds risk.',
+   diff:'74-day half-life (April 2025 Ph1 data) — longest in the TL1A class. Supports Q13W+ dosing schedule. XTEND platform is clinically validated. Running both mono + bispecific gives unique optionality across TL1A class evolution.' },
+
  { id:'mirador', co:'Mirador Therapeutics', ticker:'Private', drug:'MT-251', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
-   summary:'Most clinically advanced TL1A × IL-23p19 bispecific. FcRn-recycling format for extended half-life. Phase 1 active in IBD. Backed by A16z Bio and top-tier investors.',
-   catalysts:[{date:'2026',event:'MT-251 Ph1 safety/PK data readout'},{date:'H2 2026–2027',event:'Ph1 dose escalation completion'}],
-   deals:[{date:'2023–2024',desc:'Series A + B financing — A16z Bio, Foresite Capital, Atlas Venture'}],
-   risk:'First-in-human — Phase 1 safety and PK are unknown. FcRn-recycling format adds bispecific complexity. No partner announced yet.',
-   diff:'Most direct clinical-stage bispecific competitor. FcRn half-life extension technology. First Ph1 data will be closely watched by deal-makers.' },
+   summary:'MT-251 is the most clinically advanced TL1A × IL-23p19 bispecific antibody. FcRn-recycling format engineered for extended half-life. Phase 1 FIH study (NCT07423299) is recruiting healthy volunteers — SAD/MAD design, N=70, started Jan 2026, primary completion March 2027. Primary endpoint: safety/tolerability (SAEs and non-SAEs). Mirador is backed by A16z Bio, Foresite Capital, and Atlas Venture. No big-pharma partner announced — actively seeking. A Phase 1 safety/PK readout in 2026–2027 could trigger a major licensing deal given the precedent set by Simcere/BI (€42M upfront at pre-IND) and Earendil/Sanofi ($125M upfront at pre-IND).',
+   catalysts:[{date:'2026–2027',event:'MT-251 Ph1 safety + PK data (NCT07423299, N=70 HV, PCD Mar 2027)'},{date:'2027',event:'Ph1 dose escalation in IBD patients expected post-HV safety data'}],
+   trials:[
+    {nct:'NCT07423299',name:'MT-251 Phase 1 FIH — SAD/MAD in healthy volunteers',phase:'Phase 1',status:'Recruiting',n:70,pcd:'Mar 2027',primary:'Safety and tolerability (SAEs and non-SAEs) across all dose cohorts'},
+   ],
+   deals:[{date:'2023–2024',desc:'Series A + B venture financing — A16z Bio, Foresite Capital, Atlas Venture · No pharma partner disclosed yet'},{date:'Benchmark',desc:'Pre-IND deal comps: Simcere→BI €42M upfront; Earendil→Sanofi $125M upfront — sets Ph1 deal floor at $50–150M+ upfront'}],
+   risk:'First-in-human — Phase 1 safety and PK entirely unknown. FcRn-recycling bispecific format adds regulatory and manufacturing complexity vs. standard IgG. No pharma partner backing (capital risk).',
+   diff:'Most advanced TL1A×IL-23p19 bispecific in the clinic. Phase 1 data (2027) will set the first human PK/safety benchmark for this exact bispecific format — making Mirador a primary deal-watch target.' },
+
  { id:'simcere', co:'Simcere / Boehringer Ingelheim', ticker:'Private/BI', drug:'SIM0709', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
-   summary:'Long-acting SC IgG bispecific. Licensed to BI in a €1.05B deal (Dec 2024). Phase 1 active in IBD. BI\'s deep IBD infrastructure makes this a formidable competitor upon positive Ph1 safety/PK data.',
-   catalysts:[{date:'H2 2026',event:'SIM0709 Ph1 safety/PK data (FIH H1 2026)'},{date:'2027',event:'Phase 1 dose escalation + Ph2 initiation decision'}],
-   deals:[{date:'Jan 2026',desc:'Simcere → Boehringer Ingelheim: €42M upfront, €1.05B total · Global ex-Greater China'}],
-   risk:'BI deal means full Phase 1+ development is funded and de-risked from a capital perspective. Timeline acceleration probable.',
-   diff:'€1.05B BI partnership (€42M upfront at Pre-IND) validates SC long-acting approach. Simcere retains all Greater China rights.' },
+   summary:'SIM0709 is a long-acting SC IgG bispecific targeting TL1A × IL-23p19. Licensed to Boehringer Ingelheim in a landmark deal (€42M upfront, €1.05B total, Jan 2026) before first-in-human dosing — the deal was executed on pre-clinical data alone. FIH expected H1 2026. No ClinicalTrials.gov registration found as of May 2026 (likely registered under BI sponsorship upon IND approval). BI brings deep IBD infrastructure (>10 ongoing IBD trials), global manufacturing scale, and commercial reach. Simcere retains all Greater China rights. This deal established the "floor" valuation for pre-IND TL1A×IL-23p19 bispecifics.',
+   catalysts:[{date:'H2 2026',event:'SIM0709 Phase 1 FIH initiation (first human dosing under BI sponsorship)'},{date:'2027',event:'Phase 1 safety/PK interim data readout'},{date:'2027',event:'Phase 2 go-no-go decision by BI'}],
+   trials:[
+    {nct:'Pending',name:'Phase 1 FIH under BI sponsorship — not yet registered on CT.gov as of May 2026',phase:'Phase 1',status:'Planned — FIH H2 2026',n:null,pcd:'~H1 2027',primary:'Safety, tolerability, PK/PD in healthy volunteers'},
+   ],
+   deals:[{date:'Jan 2026',desc:'Simcere → Boehringer Ingelheim: €42M upfront · €1.05B total · Global rights ex-Greater China · Pre-IND deal (executed on preclinical data)'}],
+   risk:'BI deal fully funds the program — low capital risk. However BI\'s deal at pre-IND sets a high market comp ($42M floor) for Ailux bispecific deal entry. BI\'s IBD experience means they will push the program aggressively.',
+   diff:'Sets the pre-IND deal floor for TL1A×IL-23p19 bispecifics at €42M upfront. BI partnership signals institutional conviction. Simcere retaining China rights means a China-specific partner could still emerge.' },
+
  { id:'caldera', co:'Caldera / Qyuns Therapeutics', ticker:'Private', drug:'CLD-423 / QX030N', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
-   summary:'First subjects dosed Jan 2026. Caldera is a Qyuns-backed US spinout. $545M total potential deal. Retains China rights.',
-   catalysts:[{date:'2026–2027',event:'CLD-423 Ph1 safety/PK data'},{date:'2027',event:'Phase 1 dose escalation completion'}],
-   deals:[{date:'Apr 2025',desc:'Qyuns → Caldera: $10M + ~25% equity, up to $545M · Global ex-China'}],
-   risk:'Caldera is an early-stage company with limited capital vs. BI/Sanofi-backed programs. Ph1 data expected 2026–2027.',
-   diff:'First Chinese TL1A bispecific to enter Phase 1. Deal structure ($10M + 25% equity) sets a floor for structured early-stage bispecific deals.' },
+   summary:'CLD-423 (also known as QX030N) is the US development vehicle for Qyuns Therapeutics\' TL1A × IL-23p19 bispecific. Caldera is a Qyuns-backed US spinout that holds ex-China rights. First subjects were dosed in January 2026, making this one of the first TL1A bispecifics to enter clinical trials. Deal structure: Qyuns sold global ex-China rights to Caldera for $10M + ~25% equity, with up to $545M in potential milestones. No ClinicalTrials.gov registration found as of May 2026. Note: "QX031N" is Roche\'s internal compound code for afimkibart, not related to QX030N.',
+   catalysts:[{date:'2026–2027',event:'CLD-423 Phase 1 safety/PK data (FIH Jan 2026)'},{date:'2027',event:'Phase 1 dose escalation completion — potential out-licensing window'}],
+   trials:[
+    {nct:'Pending',name:'Phase 1 FIH — first subjects dosed Jan 2026; not yet registered on CT.gov',phase:'Phase 1',status:'Ongoing',n:null,pcd:'~2027',primary:'Safety, tolerability, PK in healthy volunteers and/or IBD patients'},
+   ],
+   deals:[{date:'Apr 2025',desc:'Qyuns Therapeutics → Caldera Therapeutics: $10M cash + ~25% equity in Caldera · Up to $545M milestones · Global ex-China rights'}],
+   risk:'Caldera is a small company with limited capital and no big-pharma backing vs. BI-backed SIM0709. Ph1 data quality and timeline are the key unknowns.',
+   diff:'Deal structure ($10M + equity, $545M total) illustrates how Chinese companies are monetizing TL1A bispecifics globally while retaining China rights. First human dosing Jan 2026 puts it ahead of most pre-IND competitors.' },
+
  { id:'earendil', co:'Earendil / Helixon (Sanofi)', ticker:'Private', drug:'HXN-1003', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
-   summary:'AI-designed tetravalent (2+2) bispecific. Licensed to Sanofi in the highest-value preclinical deal in the space ($125M upfront, $1.845B total, Apr 2025).',
-   catalysts:[{date:'2026',event:'IND filing expected'},{date:'2026–2027',event:'FIH Phase 1 initiation'}],
-   deals:[{date:'Apr 2025',desc:'Earendil → Sanofi: $125M upfront, $1.845B total · Global ex-China · AI-designed tetravalent format'}],
-   risk:'Tetravalent (2+2) format adds manufacturing and regulatory complexity. Pre-IND stage — no human safety data.',
-   diff:'Highest-value preclinical deal ($1.845B total, $125M upfront). Sanofi\'s second TL1A commitment signals strong conviction in dual TL1A+IL-23p19 blockade.' },
+   summary:'HXN-1003 is an AI-designed tetravalent (2+2 format) bispecific antibody targeting TL1A and IL-23p19. Earendil (formerly Helixon) licensed HXN-1003 to Sanofi in April 2025 for $125M upfront and $1.845B total potential — the highest-value preclinical TL1A deal to date and one of the largest preclinical deals ever for an IBD asset. The 2+2 tetravalent format binds two epitopes on each target, potentially increasing avidity and functional activity. IND filing expected 2026; FIH Phase 1 expected 2026–2027. This represents Sanofi\'s SECOND major TL1A investment (alongside duvakitug), demonstrating exceptional conviction in the TL1A×IL-23 combination approach.',
+   catalysts:[{date:'2026',event:'IND filing for HXN-1003 (Sanofi sponsorship)'},{date:'2026–2027',event:'FIH Phase 1 initiation under Sanofi'},{date:'2027',event:'Phase 1 safety/PK data from HV study'}],
+   trials:[
+    {nct:'Pending',name:'Phase 1 FIH — IND filing expected 2026; not yet registered on CT.gov',phase:'Phase 1',status:'Pre-IND',n:null,pcd:'~2027',primary:'Safety, tolerability, PK/PD of tetravalent (2+2) format in HV'},
+   ],
+   deals:[{date:'Apr 2025',desc:'Earendil (Helixon) → Sanofi: $125M upfront · $1.845B total milestone potential · Global ex-China rights · AI-designed tetravalent (2+2) bispecific format'}],
+   risk:'Tetravalent (2+2) format — more complex manufacturing and potentially higher immunogenicity vs. standard bispecific formats. Pre-IND stage — no human data. Manufacturing scale-up for 2+2 biologics is a real risk.',
+   diff:'$125M upfront at preclinical stage — highest-value preclinical deal in TL1A. Sanofi\'s second TL1A commitment ($125M + $1.845B) on top of duvakitug is the strongest institutional signal of conviction in dual TL1A+IL-23 blockade.' },
+
  { id:'xencor-412', co:'Xencor (XmAb412)', ticker:'XNCR', drug:'XmAb412', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
-   summary:'TL1A × IL-23p19 bispecific using Xencor\'s Xtend platform. Preclinical data at DDW 2026. FIH in healthy volunteers planned Q3 2026. Xencor uniquely running both mono (XmAb942, Ph2b) and bispecific in parallel.',
-   catalysts:[{date:'Q3 2026',event:'XmAb412 FIH Phase 1 initiation (HV study)'},{date:'2027',event:'First human PK/safety data'}],
-   deals:[],
-   risk:'No partner announced — Xencor funding both mono and bispecific programs independently. Capital allocation risk.',
-   diff:'Xtend platform already de-risked by XmAb942 Ph1 data (>71-day t½). Bispecific version targets >71-day half-life. First preclinical poster at DDW 2026.' },
- { id:'lanova', co:'LaNova / Zymeworks', ticker:'Private', drug:'LQ080 / ZW191', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
-   summary:'VHH nanobody-based bispecific with compact format. Extended half-life in NHP. Presented at DDW 2025. Retains China rights.',
-   catalysts:[{date:'2026–2027',event:'Ph1 safety/PK data'},{date:'2027',event:'Phase 1 dose escalation completion'}],
-   deals:[{date:'Ongoing',desc:'LaNova / Zymeworks partnering — no global deal announced; seeking partner'}],
-   risk:'VHH nanobody format — unvalidated in IBD clinically. Tissue penetration and immunogenicity vs. standard IgG are open questions.',
-   diff:'Uniquely compact format vs. IgG bispecific competitors. Extended half-life in NHP. Seeking global partner — potential acquisition target.' },
+   summary:'XmAb412 is Xencor\'s TL1A × IL-23p19 bispecific, utilizing the same XTEND-Fc half-life extension technology validated in XmAb942 (74-day t½ in Phase 1). Preclinical data were presented at DDW 2026. FIH in healthy volunteers is planned for Q3 2026. Xencor\'s strategy is to run both programs in parallel: XmAb942 (mono, Ph2b, N=270) generating near-term efficacy data while XmAb412 builds toward Phase 1. No pharma partner has been announced. If XmAb942 Ph2b data (YE 2026 interim) are strong, Xencor is positioned to partner both assets or advance XmAb412 on the coattails of validated mono efficacy + bispecific platform credibility.',
+   catalysts:[{date:'Q3 2026',event:'XmAb412 FIH Phase 1 initiation — HV SAD/MAD study'},{date:'2027',event:'First XmAb412 human PK/safety data'},{date:'YE 2026',event:'XmAb942 Ph2b interim (could catalyze XmAb412 deal interest)'}],
+   trials:[
+    {nct:'Pending',name:'Phase 1 FIH (HV) — planned Q3 2026; no CT.gov registration yet',phase:'Phase 1',status:'Planned Q3 2026',n:null,pcd:'~2027',primary:'Safety, tolerability, PK — XTEND half-life confirmation in bispecific format'},
+   ],
+   deals:[{date:'No deal',desc:'No partner announced — Xencor self-funding. XTEND-Fc platform licensed in several existing deals (AstraZeneca, Amgen) — potential to add TL1A bispecific to existing relationships'}],
+   risk:'No partner backing — Xencor funding both XmAb942 (Ph2b) and XmAb412 (pre-clinical/FIH) independently. Capital allocation tension. If no deal is announced by FIH, market may question commercial conviction.',
+   diff:'XTEND platform already yielding 74-day t½ in XmAb942 Ph1 — strongest half-life data in TL1A class. Bispecific version targets same ultra-long PK advantage, potentially Q13W+ dosing for TL1A×IL-23 combination.' },
+
+ { id:'lanova', co:'LaNova / Zymeworks', ticker:'Private/ZYME', drug:'LQ080 / ZW191', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
+   summary:'LQ080 (partnered to Zymeworks as ZW191) is a VHH nanobody-based TL1A × IL-23p19 bispecific. VHH (single-domain antibody) format results in a much smaller molecule than conventional IgG bispecifics — potential advantages in tissue penetration. Extended half-life was demonstrated in non-human primates (NHP). Preclinical data were presented at DDW 2025. Phase 1 appears active (status: likely ongoing in China under LaNova sponsorship) but no IBD-specific ClinicalTrials.gov registration was found for the TL1A program. Zymeworks holds global ex-China rights. LaNova and Zymeworks are seeking a global pharma partner.',
+   catalysts:[{date:'2026–2027',event:'Phase 1 safety/PK data in healthy volunteers'},{date:'2027',event:'Phase 1 dose escalation completion in IBD patients'},{date:'Ongoing',event:'Global partnering process — seeking big-pharma licensee'}],
+   trials:[
+    {nct:'Pending/China',name:'Phase 1 FIH — likely registered in China (CDE); no CT.gov (US) registration found as of May 2026',phase:'Phase 1',status:'Ongoing — exact status unclear',n:null,pcd:'~2027',primary:'Safety, tolerability, PK/PD of VHH nanobody bispecific format'},
+   ],
+   deals:[{date:'Ongoing',desc:'LaNova / Zymeworks partnership — Zymeworks holds global ex-China rights · No big-pharma deal announced · Actively seeking global licensee'}],
+   risk:'VHH nanobody format is clinically unvalidated in IBD — unknown immunogenicity risk vs. standard IgG (potential for anti-drug antibodies). Tissue penetration advantage is theoretical in IBD context.',
+   diff:'Smallest molecular format in TL1A class — VHH nanobody bispecific. Potential tissue penetration and manufacturing cost advantage. Seeking global partner — could be acquired before Ph2 at significant premium if Ph1 data are clean.' },
+
  { id:'spyre-003', co:'Spyre (SPY003)', ticker:'SYRE', drug:'SPY003 (TL1A × IL-23p19)', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'watch',
-   summary:'Spyre\'s TL1A × IL-23p19 bispecific program. FIH planned after SPY002 mono data. Part of $720M funded pipeline.',
-   catalysts:[{date:'2026–2027',event:'SPY003 FIH initiation (pending SPY002 Ph2 data)'}],
-   deals:[{date:'2024',desc:'Part of $720M Spyre financing round'}],
-   risk:'Development timeline contingent on SPY002 mono data readout. Late-stage relative to Mirador/Simcere bispecifics.',
-   diff:'Full pipeline company — could develop both mono and bispecific assets to maximize optionality or seek partnership at inflection.' },
+   summary:'SPY003 is Spyre\'s TL1A × IL-23p19 bispecific program. Development is intentionally sequenced after SPY002 (anti-TL1A mono) — the SKYLINE Ph2 platform study will generate head-to-head combination vs. mono data that informs SPY003\'s clinical design. FIH expected 2026–2027. Unlike independent bispecific-only companies, Spyre can run a hypothesis-testing monotherapy program (SPY002) to build the bispecific rationale before committing SPY003 to full Phase 1. $720M financing (2024) funds all 4 programs. SPY004 (IL-6×IL-23) provides an additional differentiated asset.',
+   catalysts:[{date:'Jun 2026',event:'SPY002 SKYLINE Ph2 data — informs SPY003 clinical strategy (combo vs. mono data)'},{date:'2026–2027',event:'SPY003 IND filing + FIH initiation'},{date:'2027',event:'SPY003 Phase 1 safety/PK in HV'}],
+   trials:[
+    {nct:'Pending',name:'Phase 1 FIH — IND planned after SKYLINE SPY002 Ph2 data (Jun 2026)',phase:'Phase 1',status:'Pre-IND',n:null,pcd:'~2027–2028',primary:'Safety, tolerability, PK/PD — informed by SPY002 monotherapy data'},
+   ],
+   deals:[{date:'2024',desc:'$720M Series A financing — Agenus IBD spinout · Covers SPY001, SPY002, SPY003, SPY004 through Phase 2 readouts'}],
+   risk:'SPY003 timeline is contingent on SPY002 Phase 2 readout (Jun 2026). If SKYLINE data suggest mono is sufficient, SPY003 bispecific rationale weakens. Late vs. Mirador/Simcere bispecifics.',
+   diff:'$720M fully-funded pipeline with mono and bispecific in parallel. SKYLINE platform will generate head-to-head combination vs. mono data — first direct evidence for bispecific hypothesis in IBD. Full-pipeline optionality.' },
+
  { id:'episcience', co:'Episcience', ticker:'Private', drug:'ES302', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Preclinical', overlap:'watch',
-   summary:'Limited public data. Early-stage preclinical TL1A × IL-23p19 bispecific. One of ≥4 Chinese companies with this exact target pair.',
-   catalysts:[{date:'2026–2027',event:'IND-enabling studies expected'},{date:'2027',event:'Potential out-licensing window'}],
-   deals:[],
-   risk:'Very early stage; limited public differentiation data vs. more advanced Chinese competitors (Simcere, Qyuns).',
-   diff:'Partnering window open — if pre-IND data show differentiation, could license before the pre-IND valuation window closes (set at €42M–$125M upfront by Simcere/Earendil comps).' }
+   summary:'Episcience is developing ES302, a preclinical-stage TL1A × IL-23p19 bispecific. Very limited public data available. One of ≥4 Chinese companies with this exact target combination. IND-enabling studies are expected 2026–2027. Episcience represents the earlier end of the Chinese TL1A bispecific wave — the Simcere/BI (€42M upfront at pre-IND) and Earendil/Sanofi ($125M upfront at pre-IND) deals have established a compelling valuation framework for Chinese pre-IND TL1A bispecifics, but also intensified competition for global pharma attention.',
+   catalysts:[{date:'2026–2027',event:'IND-enabling study completion'},{date:'2027',event:'IND filing — potential out-licensing window before first human dosing'}],
+   trials:[
+    {nct:'Pending',name:'No clinical trials registered as of May 2026 — IND-enabling preclinical stage',phase:'Preclinical',status:'IND-enabling studies',n:null,pcd:'N/A',primary:'N/A'},
+   ],
+   deals:[{date:'No deal',desc:'No partnership announced. Benchmark: Simcere→BI (€42M upfront, pre-IND) and Earendil→Sanofi ($125M upfront, pre-IND) — market sets floor at $40–125M for credentialed pre-IND TL1A bispecifics'}],
+   risk:'Very early stage with limited differentiation data vs. more advanced Chinese competitors (SIM0709 already in Phase 1, CLD-423 already in Phase 1). Window for big-pharma interest may narrow as Phase 1 programs provide human data.',
+   diff:'Differentiation window: if preclinical data show unique format (e.g., novel bispecific architecture or superior potency), could out-license before FIH at $40–125M upfront comp. Timing and data package are everything at this stage.' }
 ];
 
 const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Preclinical':4};
@@ -8561,8 +8635,24 @@ const tl1aPI = {
     <td>${this._stagePill(p.stageKey)}</td>
     <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
    </tr>`;
+   const trialsHTML = (p.trials||[]).map(t => {
+    const statusCls = t.status.includes('Recruiting') ? 'pi-trial-recruiting' : t.status.includes('not recruiting') ? 'pi-trial-anr' : t.status.includes('Completed') ? 'pi-trial-done' : 'pi-trial-planned';
+    const nctLink = t.nct && t.nct !== 'Pending' && t.nct !== 'Pending/China' ? `<a href="https://clinicaltrials.gov/study/${t.nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${t.nct}</a>` : `<span style="color:#94a3b8;font-size:11px">${t.nct||'Not yet registered'}</span>`;
+    const nSize = t.n ? `N=${t.n}` : '';
+    const pcd = t.pcd ? `PCD: ${t.pcd}` : '';
+    return `<div class="pi-trial-row">
+     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      ${nctLink}
+      <span class="pi-trial-status ${statusCls}">${t.status}</span>
+      <span style="font-size:10px;color:#64748b">${[t.phase, nSize, pcd].filter(Boolean).join(' · ')}</span>
+     </div>
+     <div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${t.name}</div>
+     <div style="font-size:11px;color:#475569"><strong>Primary endpoint:</strong> ${t.primary||'—'}</div>
+    </div>`;
+   }).join('');
    const detail = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-inner">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${(p.trials&&p.trials.length)?trialsHTML:'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov as of May 2026</p>'}</div>
     <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${p.catalysts.length?p.catalysts.map(c=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join(''):'<p>No catalysts on record</p>'}</div>
     <div class="pi-detail-section"><h5>Deal History</h5>${p.deals.length?p.deals.map(d=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join(''):'<p>No deal history</p>'}</div>
     <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
