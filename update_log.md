@@ -1,5 +1,44 @@
 
 ---
+## 2026-05-18 Async Supabase-fed company detail rows + enrichment pipeline — commits 41a73e9b / 9afb22d1
+
+### Architecture: Dynamic expanded rows for all TL1A PI table companies
+
+**Frontend — async Supabase loader (index.html commit 41a73e9b):**
+- `toggle()` now fires async `_loadDynamicDetail(id, prog)` for any non-Spyre company being expanded
+- Expanded rows show a loading spinner placeholder immediately; replaced with live Supabase data once fetched
+- `_genericDetailHTML(prog, sbData)` renderer mirrors the Spyre layout: Platform Summary, BD Summary, Catalysts, Deal History, Active Clinical Trials, Key Risk, Why It Matters — in 2-column grid
+- Falls back gracefully to static TL1A_PROGRAMS data if Supabase is unavailable
+- `_profileCache` prevents repeat fetches when table re-renders (sort/filter)
+- "🤖 YYYY-MM-DD" enrichment badge shows when data was last updated by the Claude API pipeline
+- All Spyre rows unchanged — still use `_spyreDetailHTML()` with drug pill bubbles
+
+**Backend — schema migration (schema_migration_v2.sql commit 9afb22d1):**
+- New `company_profiles (company_id, area_id)` PK table: platform_summary, bd_summary, key_risk, why_it_matters, pipeline_url, research_sources, last_enriched_at
+- ALTER `drugs`: added route, dosing_type, drug_format, is_combo, dosing_schedule, indication_short, phase_display, half_life_note, vs_ailux, color_hex, light_bg_hex, sort_order, sources_json
+- ALTER `trials`: added trial_name, n_enrollment, pcd_label
+- ALTER `deals`: added company_id FK + index
+- `company_area_detail` helper view joining companies + company_profiles
+- Seeded company_profiles for all 10 TL1A PI table companies from verified TL1A_PROGRAMS data
+- RLS policies extended to new table
+
+**Enrichment pipeline (scripts/company_enrichment.py commit e1ed36b3):**
+- `python scripts/company_enrichment.py --area tl1a [--company sanofi] [--dry-run]`
+- Per-company loop: fetch Supabase context → enrich trials via ClinicalTrials.gov v2 API → call Claude Sonnet → upsert results
+- Outputs structured JSON: company_profile narrative, drug_updates, trial_updates, catalysts
+- Writes to: company_profiles, drugs (detail cols), trials (display fields), catalysts (upcoming events)
+- Estimated cost: ~$0.05 per company (~$0.50 per full TL1A area run)
+
+**GitHub Actions — company-enrichment.yml (commit ec825e05):**
+- Runs Sunday 2 AM ET (after weekday research.py runs)
+- Manual trigger: choose area, optional company filter, dry-run flag
+- Uses ANTHROPIC_API_KEY + SUPABASE_SERVICE_KEY secrets (already configured)
+
+**To activate tonight:**
+1. Run `schema_migration_v2.sql` in Supabase SQL editor to create tables + seed data
+2. Trigger `company-enrichment.yml` manually in GitHub Actions → area: `tl1a`
+
+---
 ## 2026-05-18 Critical Spyre data fix, inline edit + research validation — commit 27473ba2
 
 ### Critical data corrections (all verified against SEC 8-K Jan 2026 and ClinicalTrials.gov)
@@ -866,3 +905,37 @@ Removed the dead `grids.tl1aLandscape` and `grids.tl1aTech` initialization block
 - No console errors on fresh page load
 - `grid-tslp-readouts`, `grid-tslp-landscape`, `grid-tl1a-readouts` all render ✓  
 - Drugs to Know tab activates correctly with 118 rows ✓
+
+## 2026-05-18 — Commit d5f01cfa58cd (Task #125)
+### TL1A Tab UX Overhaul (12 improvements)
+**Layout / Navigation:**
+- Side pill buttons moved to `position:fixed` — left and right columns no longer scroll with page
+- Removed pills from CSS grid; `tl1a-layout` simplified to single centered column
+- Pills auto-show when TL1A tab is active, hide on all other tabs
+- Biology Deep Dive moved from inside PI card header to left pill column
+
+**New pills:**
+- "🏥 Standard of Care" added as separate pill (right column)
+- "IBD Market" pill now opens market-only modal (size, benchmarks, AbbVie/Skyrizi data)
+- Standard of Care modal has UC + CD escalation ladders + endpoint reference tables
+
+**Modals:**
+- All modals auto-expand collapsed sections when opened (no extra click needed)
+
+**Drug pills redesign:**
+- All pills equal size (86×64px) — removed opacity/scale differences
+- Phase badge (P1/P2/P3/IND) in top-right corner of each pill
+- Disease-area color: IBD = blue (#2563eb), Rheumatic/RA = purple (#9333ea)
+- Target name(s) shown inside each pill (multi-line for combos)
+
+**Hover cards:**
+- Fixed disappearing card: replaced CSS :hover with JS mouseenter/mouseleave + 130ms debounce
+- Active Clinical Trials section moved to top of card (highest priority info)
+- Popup widened to 490px
+- Sources removed as separate section — embedded as inline link chips in mechanism text
+- Trials section styled with blue border for prominence
+
+**Company row:**
+- Expanded row highlighted blue background
+- Chevron turns blue when open
+- "click to close" hint text appears in last cell when expanded
