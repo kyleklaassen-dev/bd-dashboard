@@ -790,6 +790,45 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .gs-sb-meta { font-size: 10px; color: rgba(255,255,255,0.42); display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
 .gs-sb-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; }
 .gs-sb-empty { padding: 18px 12px; font-size: 11px; color: rgba(255,255,255,0.38); text-align: center; }
+/* ── BD ACTIVITY ───────────────────────────────────────────────── */
+.bda-section { background:white; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.07); margin-bottom:18px; overflow:hidden; border-left:5px solid #7c3aed; }
+.bda-hd { display:flex; align-items:center; gap:10px; padding:14px 18px 12px; cursor:pointer; user-select:none; }
+.bda-hd:hover { background:#fafafa; }
+.bda-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#7c3aed; background:#f5f3ff; padding:3px 10px; border-radius:10px; }
+.bda-meta { font-size:11px; color:#94a3b8; display:flex; gap:14px; margin-left:auto; align-items:center; flex-wrap:wrap; }
+.bda-meta strong { color:#0d1f38; }
+.bda-toggle { font-size:11px; color:#94a3b8; flex-shrink:0; transition:transform 0.2s; }
+.bda-toggle.collapsed { transform:rotate(-90deg); }
+.bda-body { padding:0 18px 12px; }
+.bda-summary-bar { display:flex; gap:20px; padding:6px 0 12px; border-bottom:1px solid #f0f4f8; margin-bottom:8px; flex-wrap:wrap; }
+.bda-sum-item { font-size:11px; color:#6b7280; }
+.bda-sum-item strong { font-size:13px; color:#0d1f38; font-weight:700; }
+.bda-filters { display:flex; gap:6px; align-items:center; padding:0 0 10px; flex-wrap:wrap; }
+.bda-filter-btn { font-size:10px; font-weight:700; text-transform:uppercase; padding:3px 10px; border-radius:8px; border:1.5px solid #e2e8f0; background:white; color:#6b7280; cursor:pointer; transition:all 0.12s; line-height:1.6; }
+.bda-filter-btn:hover { border-color:#7c3aed; color:#7c3aed; }
+.bda-filter-btn.active { border-color:#7c3aed; background:#f5f3ff; color:#7c3aed; }
+.bda-search { flex:1; min-width:100px; max-width:180px; border:1.5px solid #e2e8f0; border-radius:6px; padding:4px 10px; font-size:11px; outline:none; font-family:inherit; color:#0d1f38; }
+.bda-search:focus { border-color:#7c3aed; }
+.bda-rows { }
+.bda-row { border-bottom:1px solid #f5f7fa; }
+.bda-row:last-child { border-bottom:none; }
+.bda-compact { display:flex; align-items:center; gap:8px; padding:9px 4px; cursor:pointer; flex-wrap:wrap; border-radius:4px; }
+.bda-compact:hover { background:#f9fafb; }
+.bda-year { font-size:11px; color:#94a3b8; width:38px; flex-shrink:0; }
+.bda-parties { font-size:12px; font-weight:600; color:#0d1f38; flex:1; min-width:110px; line-height:1.35; }
+.bda-parties .bda-arrow { color:#94a3b8; font-weight:400; margin:0 3px; }
+.bda-drug-tag { font-size:10px; color:#2e6fb0; font-weight:700; background:#eff6ff; padding:2px 7px; border-radius:6px; white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+.bda-type { font-size:9px; font-weight:800; text-transform:uppercase; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
+.bda-value { font-size:12px; font-weight:700; color:#065f46; white-space:nowrap; flex-shrink:0; }
+.bda-stage-tag { font-size:10px; color:#6b7280; background:#f5f7fa; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
+.bda-chevron { font-size:10px; color:#94a3b8; flex-shrink:0; transition:transform 0.15s; margin-left:auto; }
+.bda-row.bda-open .bda-chevron { transform:rotate(90deg); }
+.bda-detail { display:none; padding:2px 8px 14px 46px; }
+.bda-row.bda-open .bda-detail { display:block; animation:bdaIn 0.14s ease; }
+@keyframes bdaIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
+.bda-detail-text { font-size:12px; color:#4b5563; line-height:1.65; margin-bottom:7px; }
+.bda-ailux-box { font-size:12px; font-weight:600; color:#1d4ed8; padding:8px 12px; background:#eff6ff; border-radius:5px; border-left:3px solid #2e6fb0; line-height:1.5; margin-top:4px; }
+.bda-empty { padding:18px 4px; font-size:12px; color:#94a3b8; }
 .header-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
 .header-asset-jump { border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.8); cursor: pointer; outline: none; max-width: 140px; }
 .header-asset-jump option, .header-asset-jump optgroup { color: #1a2e4a; background: white; }
@@ -1397,6 +1436,139 @@ async function loadAreaDeals(tabId) {
   }
 }
 
+// ── BD ACTIVITY TABLE ────────────────────────────────────────────────────────
+const _BDA_TYPE_COLOR = { acquisition:'#7c3aed', license:'#1d4ed8', collab:'#065f46', option:'#b45309' };
+const _bdaState = {}; // per-section filter state
+
+async function loadAreaBDActivity(tabId) {
+  const areas = TAB_AREA_MAP[tabId];
+  if (!areas) return;
+  const el = document.getElementById(tabId + '-bd-activity');
+  if (!el) return;
+  try {
+    const { data: rows, error } = await _sb.from('deals')
+      .select('*').in('area_id', areas)
+      .order('deal_date', { ascending: false });
+    if (error) throw error;
+    _bdaState[tabId] = { rows: rows || [], filter: 'all', search: '' };
+    _bdaRender(tabId);
+  } catch(e) {
+    const el2 = document.getElementById(tabId + '-bd-activity');
+    if (el2) el2.innerHTML = '<div class="bda-empty">BD activity unavailable.</div>';
+    console.error('loadAreaBDActivity', e);
+  }
+}
+
+function _bdaRender(tabId) {
+  const el = document.getElementById(tabId + '-bd-activity');
+  if (!el) return;
+  const s = _bdaState[tabId];
+  if (!s) return;
+  const { rows, filter, search } = s;
+
+  // Filter rows
+  const q = search.toLowerCase().trim();
+  const visible = rows.filter(d => {
+    if (filter !== 'all' && d.deal_type !== filter) return false;
+    if (q) {
+      const hay = [d.headline, d.from_company, d.to_company, d.detail, d.deal_date_label].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Summary stats (across all rows, not filtered)
+  const totalDealVal = rows.reduce((sum, d) => sum + (d.total_usd_m || 0), 0);
+  const acquisitions = rows.filter(d => d.deal_type === 'acquisition').length;
+  const licenses     = rows.filter(d => d.deal_type === 'license').length;
+  const minYear = rows.length ? rows[rows.length-1].deal_date?.slice(0,4) : '';
+  const maxYear = rows.length ? rows[0].deal_date?.slice(0,4) : '';
+
+  // Build filter types present
+  const types = [...new Set(rows.map(d => d.deal_type).filter(Boolean))];
+
+  el.innerHTML = `
+    <div class="bda-section">
+      <div class="bda-hd" onclick="_bdaToggle('${tabId}')">
+        <span class="bda-title">◈ BD Activity</span>
+        <div class="bda-meta">
+          <span><strong>${rows.length}</strong> deals</span>
+          ${totalDealVal > 0 ? `<span><strong>$${(totalDealVal/1000).toFixed(1)}B+</strong> disclosed value</span>` : ''}
+          ${minYear && maxYear ? `<span>${minYear}–${maxYear}</span>` : ''}
+        </div>
+        <span class="bda-toggle" id="${tabId}-bda-toggle">▼</span>
+      </div>
+      <div class="bda-body" id="${tabId}-bda-body">
+        <div class="bda-summary-bar">
+          ${acquisitions ? `<div class="bda-sum-item"><strong>${acquisitions}</strong> acquisition${acquisitions>1?'s':''}</div>` : ''}
+          ${licenses ? `<div class="bda-sum-item"><strong>${licenses}</strong> license${licenses>1?'s':''}</div>` : ''}
+          ${totalDealVal > 0 ? `<div class="bda-sum-item">Disclosed total: <strong>$${totalDealVal >= 1000 ? (totalDealVal/1000).toFixed(1)+'B' : totalDealVal.toFixed(0)+'M'}</strong></div>` : ''}
+        </div>
+        <div class="bda-filters">
+          <button class="bda-filter-btn ${filter==='all'?'active':''}" onclick="_bdaFilter('${tabId}','all')">All (${rows.length})</button>
+          ${types.map(t => `<button class="bda-filter-btn ${filter===t?'active':''}" onclick="_bdaFilter('${tabId}','${t}')">${t[0].toUpperCase()+t.slice(1)} (${rows.filter(d=>d.deal_type===t).length})</button>`).join('')}
+          <input class="bda-search" type="text" placeholder="Search parties, drug…" value="${search.replace(/"/g,'&quot;')}" oninput="_bdaSearch('${tabId}',this.value)">
+        </div>
+        <div class="bda-rows" id="${tabId}-bda-rows">
+          ${visible.length ? visible.map((d,i) => _bdaRowHtml(tabId, d, i)).join('') : '<div class="bda-empty">No deals match your filter.</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+function _bdaRowHtml(tabId, d, i) {
+  const tc = _BDA_TYPE_COLOR[d.deal_type] || '#6b7280';
+  const year = (d.deal_date || '').slice(0,4);
+  const val = d.upfront_usd_m
+    ? `$${d.upfront_usd_m >= 1000 ? (d.upfront_usd_m/1000).toFixed(1)+'B' : d.upfront_usd_m+'M'} up${d.total_usd_m ? ` / $${d.total_usd_m >= 1000 ? (d.total_usd_m/1000).toFixed(1)+'B' : d.total_usd_m+'M'}` : ''}`
+    : d.total_usd_m ? `$${d.total_usd_m >= 1000 ? (d.total_usd_m/1000).toFixed(1)+'B' : d.total_usd_m+'M'} total` : '';
+
+  // Extract stage-at-deal from detail field
+  const stageMatch = (d.detail || '').match(/Stage at signing:\s*([^.·]+)/i);
+  const stageLabel = stageMatch ? stageMatch[1].trim() : '';
+
+  const rowId = `${tabId}-bda-row-${i}`;
+  return `<div class="bda-row" id="${rowId}">
+    <div class="bda-compact" onclick="_bdaToggleRow('${rowId}')">
+      <span class="bda-year">${year}</span>
+      <span class="bda-parties">${(d.from_company||'').replace(' Sciences','').replace(' Biosciences','').replace(' Biopharmaceutical','').replace(' Pharmaceutical','')} <span class="bda-arrow">→</span> ${(d.to_company||'').replace(' Sciences','')}</span>
+      ${d.drug_id ? `<span class="bda-drug-tag">${d.headline.match(/(?:tulisokibart|duvakitug|afimkibart|SIM0709|HXN-1003|QX030N|HBM2001|PF-07261271|FG-M701|[A-Z0-9]+-\d+|[A-Z][a-z]+kibart|[A-Z][a-z]+umab|[A-Z][a-z]+elumab)/)?.[0] || d.drug_id}</span>` : ''}
+      <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type||'deal'}</span>
+      ${val ? `<span class="bda-value">${val}</span>` : ''}
+      ${stageLabel ? `<span class="bda-stage-tag">${stageLabel}</span>` : ''}
+      <span class="bda-chevron">▶</span>
+    </div>
+    <div class="bda-detail">
+      <div class="bda-detail-text"><strong>${d.headline}</strong></div>
+      ${d.detail ? `<div class="bda-detail-text">${d.detail}</div>` : ''}
+      ${d.ailux_signal ? `<div class="bda-ailux-box">◈ Ailux Lens: ${d.ailux_signal}</div>` : ''}
+      ${d.source_url ? `<div style="margin-top:7px;font-size:11px"><a href="${d.source_url}" target="_blank" rel="noopener" style="color:#6b7280;text-decoration:none">↗ Source</a></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function _bdaToggleRow(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.classList.toggle('bda-open');
+}
+
+function _bdaToggle(tabId) {
+  const body = document.getElementById(tabId + '-bda-body');
+  const tog  = document.getElementById(tabId + '-bda-toggle');
+  if (!body) return;
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  if (tog) tog.classList.toggle('collapsed', !collapsed);
+}
+
+function _bdaFilter(tabId, type) {
+  if (_bdaState[tabId]) { _bdaState[tabId].filter = type; _bdaRender(tabId); }
+}
+
+function _bdaSearch(tabId, val) {
+  if (_bdaState[tabId]) { _bdaState[tabId].search = val; _bdaRender(tabId); }
+}
+
 // ── Molecule Tab Orchestrator (lazy-loads on first visit) ─────────────────────
 // ── Tab → area_id map (some tabs share an area_id) ──────────────────────────
 const TAB_AREA = {
@@ -1496,6 +1668,9 @@ function loadMoleculeTab(tabId) {
   loadAreaCatalysts(tabId);
   loadAreaDeals(tabId);
   loadAreaCompetitors(tabId);
+  loadAreaCompanies(tabId);
+  loadAreaDrugs(tabId);
+  loadAreaBDActivity(tabId);
 }
 
 </script>
@@ -1521,7 +1696,7 @@ function loadMoleculeTab(tabId) {
  </button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" data-ts="1779112306" style="font-size:11px;opacity:0.75"></span>
+ <span id="last-updated-ts" data-ts="1779113380" style="font-size:11px;opacity:0.75"></span>
  </div>
  </div>
 </div>
@@ -2655,6 +2830,8 @@ function loadMoleculeTab(tabId) {
   </div>
   <div id="tl1a-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
 </div>
+
+<div id="tl1a-bd-activity"><div style="background:white;border-radius:8px;border-left:5px solid #7c3aed;padding:14px 18px;margin-bottom:18px;color:#94a3b8;font-size:12px">Loading BD activity…</div></div>
 
 <div class="intel-card" id="tl1a-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
