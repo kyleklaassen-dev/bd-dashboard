@@ -1,5 +1,37 @@
 
 ---
+## 2026-05-18 Critical Spyre data fix, inline edit + research validation — commit 27473ba2
+
+### Critical data corrections (all verified against SEC 8-K Jan 2026 and ClinicalTrials.gov)
+
+**Spyre pipeline was substantially wrong — now corrected:**
+- SPY001: was "Anti-IL-23p19" → corrected to **Anti-α4β7** (same mechanism as vedolizumab/Entyvio but 3× longer half-life via YTE modification). Part A data April 2026: RHI -9.2pts primary endpoint met.
+- SPY002: Anti-TL1A ✅ (name correct) but **cls changed 1st Gen → 2nd Gen** (YTE Fc modification = extended half-life engineering, same class as Xencor XmAb technology — user correctly flagged this)
+- SPY003: was "TL1A × IL-23p19 bispecific" → corrected to **Anti-IL-23 monoclonal** (Phase 2, SKYLINE)
+- SPY004: doesn't exist → removed
+- Added **SPY072**: Anti-TL1A for RA/PsA/axSpA (Phase 2 SKYWAY trial NCT07148414; RA data Q3 2026, PsA/axSpA Q4 2026)
+- Added **SPY120** (α4β7+TL1A), **SPY130** (α4β7+IL-23), **SPY230** (TL1A+IL-23) — all in SKYLINE Part B
+- `spyre-003` table entry (TL1A bispecific — completely wrong) → replaced with **`spyre-230`** representing SPY230 TL1A+IL-23 combination arm
+
+**Website URL corrected:** spyretherapeutics.com → **www.spyre.com/pipeline**
+
+**Pipeline display in Spyre expanded row:**
+- All 7 drugs shown as bubbles centered across top of card
+- Full size: TL1A+IBD drugs (SPY002, SPY120, SPY230)
+- Smaller/dimmed: IBD-only (SPY001, SPY003, SPY130) and Rheumatic-only (SPY072) — still fully hoverable
+- Divider labels: "TL1A+IBD programs", "IBD non-TL1A", "TL1A/Rheumatic"
+- Each bubble popup: summary card, 2-col detail grid, Ailux BD Lens, trials/proxy ref, verified sources
+
+**Inline edit + Supabase research validation:**
+- Double-click Drug, Target, or Class cell → inline input appears
+- On Enter: row auto-expands; research panel slides in at top of expanded section
+- Panel queries Supabase `companies` (insight_text, ailux_angle) and `intel_companies` for stored intel
+- Text-match validation: if proposed new value found in stored intel → "✅ Consistent"; else → "⚠️ Queued for deep research"
+- Proposed edit written to Supabase `pi_user_edits` table (async) for overnight research pipeline pickup
+- "Apply Change Locally" button updates TL1A_PROGRAMS in-memory and re-renders table
+- CSS: `.pi-editable` hover hint (✏), `.pi-edit-validation` panel with pending/supported/conflict states
+
+---
 ## 2026-05-18 TL1A tab: blinking intel dot, 3-col layout, redesigned Spyre hover cards — commit 46a77ab2
 
 ### What was changed
