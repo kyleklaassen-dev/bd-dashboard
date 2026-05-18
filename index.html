@@ -970,6 +970,32 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .ii-stat-lbl { font-size:10px; color:#64748b; text-transform:uppercase; }
 .ii-monthly-summary { background:#fffbeb; border-left:4px solid #f59e0b; padding:12px 18px; margin:8px 0; font-size:12px; }
 .ii-monthly-summary li { padding:3px 0; color:#374151; }
+
+/* ── Market Watchlist (compact live view) ──────────────────────────────────── */
+.mw-company-card { background:#1e293b; border:1px solid #334155; border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+.mw-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+.mw-name { font-size:14px; font-weight:700; color:#f1f5f9; }
+.mw-ticker { font-size:11px; color:#64748b; margin-left:6px; text-transform:uppercase; }
+.mw-price-wrap { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.mw-price { font-size:13px; font-weight:600; color:#e2e8f0; }
+.mw-change { font-size:12px; font-weight:600; }
+.mw-mktcap { font-size:11px; color:#64748b; }
+.mw-insight { font-size:12px; color:#94a3b8; line-height:1.5; margin-bottom:6px; }
+.mw-signals { display:flex; flex-direction:column; gap:3px; }
+.mw-signal { font-size:11px; color:#94a3b8; }
+.mw-signal-up span { color:#10b981; }
+.mw-signal-down span { color:#ef4444; }
+.mw-signal-neutral span { color:#64748b; }
+/* ── Past Catalysts (home tab) ─────────────────────────────────────────────── */
+.past-cat-item { padding: 8px 0; border-bottom: 1px solid #1e293b; }
+.past-cat-item:last-child { border-bottom: none; }
+.pci-meta { display:flex; gap:8px; align-items:center; margin-bottom:3px; }
+.pci-date { font-size:11px; color:#64748b; }
+.pci-area { font-size:10px; color:#6366f1; background:#1e1b4b; padding:1px 6px; border-radius:8px; }
+.pci-resolved { font-size:10px; color:#10b981; }
+.pci-label { font-size:12px; color:#e2e8f0; font-weight:500; }
+.pci-note { font-size:11px; color:#94a3b8; margin-top:2px; }
+
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1097,6 +1123,71 @@ async function loadStockCards() {
     </div>`;
     console.error('Supabase load error:', err);
   }
+}
+
+// ── Market Watchlist (compact live renderer for top of Market tab) ────────────
+async function loadMarketWatchlist() {
+  const el = document.getElementById('market-watchlist-live');
+  if (!el) return;
+  try {
+    const { data: companies } = await _sb.from('companies')
+      .select('*, company_signals(*)')
+      .order('market_cap', { ascending: false });
+    if (!companies || !companies.length) { el.innerHTML = ''; return; }
+
+    el.innerHTML = companies.map(c => {
+      const changeNum = parseFloat(c.stock_change) || 0;
+      const changeColor = changeNum > 0 ? '#10b981' : changeNum < 0 ? '#ef4444' : '#64748b';
+      const changeSign = changeNum > 0 ? '+' : '';
+      const sigs = (c.company_signals || []).sort((a,b) => (a.sort_order||99)-(b.sort_order||99));
+      const sigHtml = sigs.map(s =>
+        `<div class="mw-signal mw-signal-${s.dir}"><span>${s.dir==='up'?'▲':s.dir==='down'?'▼':'—'}</span> ${s.signal_text}</div>`
+      ).join('');
+      return `<div class="mw-company-card">
+        <div class="mw-card-top">
+          <div>
+            <span class="mw-name">${c.name}</span>
+            ${c.ticker ? `<span class="mw-ticker">${c.ticker}</span>` : ''}
+          </div>
+          <div class="mw-price-wrap">
+            ${c.stock_price ? `<span class="mw-price">$${c.stock_price}</span>` : ''}
+            ${c.stock_change ? `<span class="mw-change" style="color:${changeColor}">${changeSign}${c.stock_change}%</span>` : ''}
+            ${c.market_cap ? `<span class="mw-mktcap">${c.market_cap}</span>` : ''}
+          </div>
+        </div>
+        ${c.insight_text ? `<div class="mw-insight">${c.insight_text}</div>` : ''}
+        ${sigHtml ? `<div class="mw-signals">${sigHtml}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('loadMarketWatchlist error:', e); el.innerHTML = ''; }
+}
+
+// ── Past Catalysts (home tab — resolved readouts) ─────────────────────────────
+async function loadPastCatalysts() {
+  const el = document.getElementById('past-catalysts-list');
+  if (!el) return;
+  try {
+    const { data: rows } = await _sb.from('catalysts')
+      .select('*')
+      .eq('resolved', true)
+      .order('sort_date', { ascending: false })
+      .limit(10);
+    if (!rows || !rows.length) {
+      el.innerHTML = '<div style="color:#475569;font-size:12px;padding:8px 0;">No resolved catalysts yet.</div>';
+      return;
+    }
+    const areaNames = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
+    el.innerHTML = rows.map(r => `
+      <div class="past-cat-item">
+        <div class="pci-meta">
+          <span class="pci-date">${r.catalyst_date || r.sort_date || ''}</span>
+          <span class="pci-area">${areaNames[r.area_id] || r.area_id || ''}</span>
+          <span class="pci-resolved">✓ Resolved</span>
+        </div>
+        <div class="pci-label">${r.label}</div>
+        ${r.resolved_note ? `<div class="pci-note">${r.resolved_note}</div>` : ''}
+      </div>`).join('');
+  } catch(e) { console.error('loadPastCatalysts error:', e); el.innerHTML = ''; }
 }
 
 // ── Intel / Catalysts loader (for future sections) ───────────────────────────
@@ -1710,6 +1801,16 @@ function loadMoleculeTab(tabId) {
   </div>
   <div class="home-card-body" id="deals-list">
    <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading deals…</div>
+  </div>
+ </div>
+
+ <div class="home-card">
+  <div class="home-card-hd">
+    <span>Past Catalysts</span>
+    <span style="font-size:11px;color:#475569;font-weight:400;">Resolved readouts &amp; events</span>
+  </div>
+  <div class="home-card-body" id="past-catalysts-list">
+    <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading…</div>
   </div>
  </div>
 
@@ -5841,6 +5942,9 @@ function loadMoleculeTab(tabId) {
 <!-- ══════════════ TAB: MARKET & LEARNING ══════════════ -->
 <div class="tab-pane" id="tab-stocks">
 
+ <!-- Live company watchlist from Supabase -->
+ <div id="market-watchlist-live" style="margin-bottom:16px;"></div>
+
  <!-- Prediction Rules — compact chips -->
  <div class="rules-grid">
 
@@ -7864,7 +7968,7 @@ function renderWeeklyTasks() {
  }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadPastCatalysts(); });
 
 // ── TOC NAVIGATION ────────────────────────────────────────────────
 const TOC_MAP = {
@@ -8510,6 +8614,10 @@ function navTo(tabId) {
   // Lazy-load molecule tab data on first visit
   if (typeof loadMoleculeTab === 'function' && TAB_AREA_MAP && TAB_AREA_MAP[tabId]) {
     loadMoleculeTab(tabId);
+  }
+  // Load market watchlist when visiting Market & Learning tab
+  if (tabId === 'stocks' && typeof loadMarketWatchlist === 'function') {
+    loadMarketWatchlist();
   }
 }
 // Close molecule dropdown when clicking outside
