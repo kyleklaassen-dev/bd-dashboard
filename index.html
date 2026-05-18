@@ -843,6 +843,16 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .cv-sub { font-size: 10px; color: #94a3b8; margin-top: 3px; }
 .cv-inflection { font-size: 12px; color: #cbd5e1; line-height: 1.8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
 .cv-inflection strong { color: #fbbf24; }
+
+/* ── Live Drug Cards (Supabase-driven) ───────────────────────────── */
+.live-drugs-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.drug-card-live { background: var(--card-bg, #1e293b); border: 1px solid var(--border, #334155); border-radius: 6px; padding: 10px 12px; }
+.dcl-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.dcl-name { font-weight: 600; font-size: 13px; color: var(--text, #f1f5f9); }
+.dcl-company { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.dcl-stage { font-size: 10px; font-weight: 600; color: #fff; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
+.dcl-mech { font-size: 11px; color: #7dd3fc; margin-bottom: 2px; }
+.dcl-detail { font-size: 12px; color: #94a3b8; line-height: 1.4; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -1564,7 +1574,50 @@ function loadMoleculeTab(tabId) {
   loadAreaCatalysts(tabId);
   loadAreaDeals(tabId);
   loadAreaCompanies(tabId);
+  loadAreaDrugs(tabId);
 }
+
+// ── Live Drug Cards ─────────────────────────────────────────────────────────
+async function loadAreaDrugs(tabId) {
+  const areaMap = { 'tl1a':['tl1a'],'tslp':['tslp'],'il4ra-tslp':['il4ra','tslp'],
+    'il4ra-ox40l':['il4ra'],'igf1r-tshr':['igf1r'],'fcrn':['fcrn'],'ace':['tcell'] };
+  const areas = areaMap[tabId];
+  if (!areas) return;
+  const el = document.getElementById(tabId + '-live-drugs');
+  if (!el) return;
+  try {
+    const { data: daRows } = await _sb.from('drug_areas').select('drug_id').in('area_id', areas);
+    const allIds = [...new Set((daRows || []).map(r => r.drug_id))];
+    if (!allIds.length) { el.innerHTML = ''; return; }
+    const { data: drugs } = await _sb.from('drugs').select('*').in('id', allIds).order('stage').order('name');
+    if (!drugs || !drugs.length) { el.innerHTML = ''; return; }
+
+    const stageColor = s => {
+      if (!s) return '#64748b';
+      if (s.includes('Approved') || s.includes('approved')) return '#10b981';
+      if (s.includes('Ph3') || s.includes('Phase 3')) return '#6366f1';
+      if (s.includes('Ph2') || s.includes('Phase 2')) return '#3b82f6';
+      if (s.includes('Ph1') || s.includes('Phase 1')) return '#0ea5e9';
+      if (s.includes('Pre-IND') || s.includes('Preclinical')) return '#94a3b8';
+      return '#64748b';
+    };
+
+    el.innerHTML = '<div class="live-drugs-grid">' + drugs.map(d => `
+      <div class="drug-card-live">
+        <div class="dcl-header">
+          <span class="dcl-name">${d.name}</span>
+          ${d.company_id ? `<span class="dcl-company">${d.company_id}</span>` : ''}
+          <span class="dcl-stage" style="background:${stageColor(d.stage)}">${d.stage || 'Unknown'}</span>
+        </div>
+        ${d.mechanism ? `<div class="dcl-mech">${d.mechanism}</div>` : ''}
+        ${d.stage_detail ? `<div class="dcl-detail">${d.stage_detail}</div>` : ''}
+      </div>`).join('') + '</div>';
+  } catch(e) {
+    console.error('loadAreaDrugs error:', e);
+    el.innerHTML = '';
+  }
+}
+
 
 </script>
 
@@ -2085,6 +2138,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="tl1a-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -2956,6 +3010,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="tslp-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -3734,6 +3789,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="il4ra-tslp-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -4072,6 +4128,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="il4ra-ox40l-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -4397,6 +4454,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="igf1r-tshr-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -4759,6 +4817,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="fcrn-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
@@ -5155,6 +5214,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
 </div>
+<div id="ace-live-drugs"></div>
 <div class="dkn-card">
  <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
  <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
