@@ -1,4 +1,64 @@
 <!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  CLAUDE_CONTEXT — Ailux BD Intelligence Platform                             ║
+║  Read this block before every edit. This drives all design and code choices. ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+PRODUCT
+  Ailux BD Intelligence Platform — high-density biotech BD terminal.
+  Ailux lead asset: TL1A×IL-23p19 bispecific for UC + CD.
+  Live: https://kyleklaassen-dev.github.io/bd-dashboard/
+
+CLAUDE ROLES
+  Senior product designer · Senior frontend engineer · UX strategist · Information architect
+  → Interpret product intent, not literal instructions. Infer UX issues. Propose + implement.
+
+DESIGN PRINCIPLES
+  1. Dense information is GOOD when clearly organized — this is a terminal, not a landing page
+  2. Signal over decoration — executive readability, no generic SaaS aesthetics
+  3. Modular/scalable — each tab and target area is fully self-contained
+  4. Users think strategically — fast scanning, mechanism comparison, BD workflows
+  5. Preserve the existing design system — extend it, don't rewrite it
+  6. This platform will expand significantly. Build extensible patterns now.
+
+INFORMATION HIERARCHY
+  Tab → Section Cards → Data Rows → Expandable Detail → Drug Pills → Popup Modal
+  Each level renders independently. A broken popup must NEVER crash the row.
+  A broken row must NEVER crash the tab. A broken tab must NEVER crash the app.
+
+THE SPYRE STANDARD
+  The Spyre expanded row in the TL1A PI table is the gold standard for company detail.
+  All companies across ALL target tabs must mirror this structure:
+    · Drug pipeline row (clickable pills → hover popups with trial + mechanism detail)
+    · 2-col grid: Platform Summary | BD Summary | Catalysts | Deals
+    · Full-width: Active Clinical Trials
+    · Full-width: Key Risk | Why It Matters
+    · Enrichment badge: 🤖 YYYY-MM-DD = last Claude API research update
+
+CLASS × RELEVANCE FRAMEWORK (every company in every PI table)
+  CLASS (therapeutic sophistication):
+    1st Gen  = mono antibody, standard IV                → pi-cls-1st  (blue)
+    2nd Gen  = engineered/SC, optimized PK               → pi-cls-2nd  (green)
+    Next Gen = bispecific, dual-pathway, novel mechanism → pi-cls-next (purple)
+  RELEVANCE (strategic overlap with Ailux):
+    Direct     = same target(s) + same indication(s) → pi-overlap-direct   (red)
+    Adjacent   = overlapping mechanism or indication  → pi-overlap-adjacent (orange)
+    Same-Space = same disease, different mechanism    → pi-overlap-same     (teal)
+    Watch      = different mech/indication, monitor   → pi-overlap-watch    (yellow)
+  CLASS and RELEVANCE are independent dimensions — Next Gen can still be Watch.
+
+ARCHITECTURE
+  · Frontend: single index.html on GitHub Pages (kyleklaassen-dev/bd-dashboard)
+  · Backend:  Supabase project tghntyofptvfhmtchwcv — anon key read-only in frontend
+  · Pipeline: GitHub Actions → scripts/company_enrichment.py → Claude API → Supabase writes
+  · Tab isolation: TAB_REGISTRY pattern — registerTab(id, {onEnter, onLeave})
+                   All tab hooks wrapped in try/catch. Errors logged, never propagated.
+  · Deploy: Python base64 → GitHub Contents API PUT (never raw curl for large files)
+
+AFTER EVERY INDEX.HTML DEPLOY
+  Update update_log.md with commit hash + summary of what changed.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8168,34 +8228,61 @@ function _setMeridianIframeSrc() {
   const v = new Date().toISOString().slice(0,10); // YYYY-MM-DD — changes daily, busts cache
   frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + v;
 }
-function switchTab(id, btn) {
- document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
- document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
- document.getElementById('tab-'+id).classList.add('active');
- btn.classList.add('active');
- updateTabTitle(id);
- clearGlobalSearch();
- buildToc(id);
- closeToc();
-  if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
-  if (id === 'meridian-issue') _setMeridianIframeSrc();
-  if (id === 'industry-insights') { loadRollingDeals(); loadLiveIntel(); }
-  if (id === 'tl1a') {
+// ── TAB REGISTRY ─────────────────────────────────────────────────────
+// Isolated per-tab lifecycle hooks. Errors in one tab never affect others.
+// To add a new tab: registerTab('my-tab', { onEnter() {...}, onLeave() {...} })
+// Never edit switchTab to add new tabs — use registerTab instead.
+const TAB_REGISTRY = {};
+function registerTab(id, hooks = {}) { TAB_REGISTRY[id] = hooks; }
+
+// Core tab registrations — add new target tabs here as the platform grows
+registerTab('meridian-issue', {
+  onEnter() { _setMeridianIframeSrc(); }
+});
+registerTab('industry-insights', {
+  onEnter() { loadRollingDeals(); loadLiveIntel(); }
+});
+registerTab('tl1a', {
+  onEnter() {
     if (typeof tl1aPI !== 'undefined' && !tl1aPI._initialized) { tl1aPI.init(); tl1aPI._initialized = true; }
     loadTL1AIntelFeed();
-    document.getElementById('tl1a-pills-left').classList.add('tl1a-pills-visible');
-    document.getElementById('tl1a-pills-right').classList.add('tl1a-pills-visible');
-  } else {
-    const pl = document.getElementById('tl1a-pills-left');
-    const pr = document.getElementById('tl1a-pills-right');
-    if (pl) pl.classList.remove('tl1a-pills-visible');
-    if (pr) pr.classList.remove('tl1a-pills-visible');
+    document.getElementById('tl1a-pills-left')?.classList.add('tl1a-pills-visible');
+    document.getElementById('tl1a-pills-right')?.classList.add('tl1a-pills-visible');
+  },
+  onLeave() {
+    document.getElementById('tl1a-pills-left')?.classList.remove('tl1a-pills-visible');
+    document.getElementById('tl1a-pills-right')?.classList.remove('tl1a-pills-visible');
+  }
+});
+// Future tabs: tslp, il4ra-tslp, il4ra-ox40l, igf1r-tshr, fcrn, ace — register below when built
+
+function switchTab(id, btn) {
+  // Fire onLeave for the departing tab — isolated so errors don't block navigation
+  const prevId = document.querySelector('.tab-pane.active')?.id?.replace(/^tab-/, '');
+  if (prevId && prevId !== id && TAB_REGISTRY[prevId]?.onLeave) {
+    try { TAB_REGISTRY[prevId].onLeave(); }
+    catch(e) { console.warn(`[TAB:${prevId}:onLeave]`, e); }
+  }
+  // Swap active pane + button
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id)?.classList.add('active');
+  btn?.classList.add('active');
+  updateTabTitle(id);
+  clearGlobalSearch();
+  buildToc(id);
+  closeToc();
+  if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
+  // Fire onEnter for the arriving tab — isolated so errors don't break the UI
+  if (TAB_REGISTRY[id]?.onEnter) {
+    try { TAB_REGISTRY[id].onEnter(); }
+    catch(e) { console.warn(`[TAB:${id}:onEnter]`, e); }
   }
 }
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
- const btn = document.querySelector(`.tab-btn[onclick*="'${id}'"]`);
- if (btn) switchTab(id, btn);
+  const btn = document.querySelector(`.tab-btn[onclick*="'${id}'"]`);
+  if (btn) switchTab(id, btn);
 }
 
 // ── ASSET JUMP DROPDOWN ───────────────────────────────────────────
