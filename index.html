@@ -913,10 +913,18 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-title { font-size:12px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.4px; }
 .pi-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
 .pi-pill-group { display:flex;gap:3px;align-items:center; }
+.pi-pill-lbl { font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:3px;white-space:nowrap; }
 .pi-pill { padding:3px 10px;border-radius:10px;border:1.5px solid #dde3ea;background:white;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;line-height:1.4; }
-.pi-pill:hover { border-color:#2e6fb0;color:#2e6fb0; }
-.pi-pill.active { background:#1e3a5f;border-color:#1e3a5f;color:white; }
-.pi-pill-divider { width:1px;height:16px;background:#e2e8f0;margin:0 4px; }
+/* Class group — blue */
+.pi-pill-group[data-filter="cls"] .pi-pill:hover:not(.active) { border-color:#2563eb;color:#2563eb; }
+.pi-pill-group[data-filter="cls"] .pi-pill.active { background:#2563eb;border-color:#2563eb;color:white; }
+/* Stage group — purple */
+.pi-pill-group[data-filter="stage"] .pi-pill:hover:not(.active) { border-color:#7c3aed;color:#7c3aed; }
+.pi-pill-group[data-filter="stage"] .pi-pill.active { background:#7c3aed;border-color:#7c3aed;color:white; }
+/* Relevance group — crimson */
+.pi-pill-group[data-filter="overlap"] .pi-pill:hover:not(.active) { border-color:#dc2626;color:#dc2626; }
+.pi-pill-group[data-filter="overlap"] .pi-pill.active { background:#dc2626;border-color:#dc2626;color:white; }
+.pi-pill-divider { width:1px;height:16px;background:#e2e8f0;margin:0 6px; }
 .pi-table-wrap { overflow-x:auto; }
 .pi-table { width:100%;border-collapse:collapse;table-layout:fixed;min-width:620px; }
 .pi-table th { background:#f1f5f9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#64748b;padding:6px 8px;border-bottom:2px solid #e2e8f0;white-space:nowrap;position:relative;user-select:none;cursor:pointer; }
@@ -2908,14 +2916,6 @@ function loadMoleculeTab(tabId) {
 
 <div class="tab-pane" id="tab-tl1a">
 
-<!-- TOP BAR -->
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
-  <div>
-    <div style="font-size:14px;font-weight:800;color:#1e3a5f;margin-bottom:3px">TL1A × IL-23p19 · IBD (UC / CD)</div>
-    <div style="font-size:11px;color:#64748b">Competitive intelligence · Live from Supabase · Updated May 2026</div>
-  </div>
-  <button class="bio-dd-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
-</div>
 
 <!-- BIOLOGY DEEP DIVE MODAL -->
 <div class="bio-dd-overlay" id="tl1a-bio-dd" onclick="closeBioDD('tl1a-bio-dd')">
@@ -2964,9 +2964,10 @@ function loadMoleculeTab(tabId) {
 <!-- UNIFIED PROGRAM INTELLIGENCE TABLE -->
 <div class="pi-card" id="tl1a-pi-card">
   <div class="pi-hd">
-    <span class="pi-title">⚔ Program Intelligence · All TL1A Companies &amp; Drugs</span>
+    <button class="bio-dd-btn" onclick="openBioDD('tl1a-bio-dd')" style="margin-right:4px">⚗ Biology Deep Dive</button>
     <div class="pi-filters">
       <div class="pi-pill-group" data-filter="cls">
+        <span class="pi-pill-lbl">Class</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('cls','',this)">All</button>
         <button class="pi-pill" data-val="1st Gen" onclick="piPillClick('cls','1st Gen',this)">1st Gen</button>
         <button class="pi-pill" data-val="2nd Gen" onclick="piPillClick('cls','2nd Gen',this)">2nd Gen</button>
@@ -2974,6 +2975,7 @@ function loadMoleculeTab(tabId) {
       </div>
       <div class="pi-pill-divider"></div>
       <div class="pi-pill-group" data-filter="stage">
+        <span class="pi-pill-lbl">Stage</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('stage','',this)">All</button>
         <button class="pi-pill" data-val="Phase 3" onclick="piPillClick('stage','Phase 3',this)">Ph 3</button>
         <button class="pi-pill" data-val="Phase 2" onclick="piPillClick('stage','Phase 2',this)">Ph 2</button>
@@ -2983,6 +2985,7 @@ function loadMoleculeTab(tabId) {
       </div>
       <div class="pi-pill-divider"></div>
       <div class="pi-pill-group" data-filter="overlap">
+        <span class="pi-pill-lbl">Relevance</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('overlap','',this)">All</button>
         <button class="pi-pill" data-val="high" onclick="piPillClick('overlap','high',this)">High Overlap</button>
         <button class="pi-pill" data-val="watch" onclick="piPillClick('overlap','watch',this)">Watch</button>
@@ -8463,12 +8466,12 @@ const TL1A_PROGRAMS = [
 
  { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 2', overlap:'watch',
    summary:'Spyre Therapeutics (Agenus IBD spinout, 2024) raised $720M to fund a 4-program IBD pipeline: SPY001 (anti-IL-23p19), SPY002 (anti-TL1A), SPY003 (TL1A×IL-23 bispecific), SPY004 (IL-6×IL-23 bispecific). SPY002 Phase 2 SKYLINE study (NCT07012395, N=645) is a platform trial comparing antibodies alone and in combinations in moderate-severe UC. Primary completion June 2026 for Part A (histopathology endpoint), with clinical remission endpoint in Part B. Companion Phase 1 study (NCT06672718, N=56 HV) is ongoing. The SKYLINE platform design will likely generate head-to-head combination vs. monotherapy data — extremely informative for the bispecific hypothesis.',
-   catalysts:[{date:'Jun 2026',event:'SKYLINE Part A primary data — histopathology endpoint (NCT07012395)'},{date:'Late 2026',event:'SKYLINE Part B clinical remission data'},{date:'2026–2027',event:'SPY003 (TL1A×IL-23) IND + FIH initiation'}],
+   catalysts:[{date:'Jun 2026',event:'SKYLINE Part A primary data — histopathology endpoint (NCT07012395)',url:'https://clinicaltrials.gov/study/NCT07012395'},{date:'Late 2026',event:'SKYLINE Part B clinical remission data — % clinical remission in UC',url:'https://clinicaltrials.gov/study/NCT07012395'},{date:'2026–2027',event:'SPY003 (TL1A×IL-23) IND filing + first-in-human initiation',url:'https://spyretherapeutics.com/pipeline'}],
    trials:[
     {nct:'NCT07012395',name:'SKYLINE — Ph2 platform study UC (mono + combinations)',phase:'Phase 2',status:'Recruiting',n:645,pcd:'Jun 2026',primary:'Part A: Change in Robarts Histopathology Index · Part B: % clinical remission'},
     {nct:'NCT06672718',name:'SPY002-091 Phase 1 — healthy volunteers PK/safety',phase:'Phase 1',status:'Recruiting',n:56,pcd:'Feb 2026',primary:'Safety/tolerability (AEs) + PK characterization'},
    ],
-   deals:[{date:'2024',desc:'$720M Series A financing — Agenus IBD spinout · Investors include leading biotech funds; funds all 4 pipeline programs through Phase 2 readouts'}],
+   deals:[{date:'2024',desc:'$720M Series A financing — Agenus IBD spinout · Investors include leading biotech funds; funds all 4 pipeline programs through Phase 2 readouts',url:'https://spyretherapeutics.com'}],
    risk:'SKYLINE design tests combinations vs. mono — could validate the bispecific concept (SPY003) but could also show mono is sufficient, undermining bispecific rationale. Readout June 2026.',
    diff:'The SKYLINE platform study provides a rare head-to-head test of mono vs. combination TL1A+IL-23 blockade in the same patients — directly relevant to the bispecific thesis. SPY002 Ph2 data calibrates the TL1A monotherapy ceiling.' },
 
@@ -8567,21 +8570,34 @@ const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Precl
 
 const SPYRE_PIPELINE = [
  { code:'SPY001', name:'Anti-IL-23p19', target:'IL-23p19', format:'Long-acting mAb', phase:'Phase 2', halflife:'~28d', dosing:'Q4W SC',
-   color:'#2563eb', lightBg:'#eff6ff',
-   mech:'Selective IL-23p19 blockade targeting the TH17/TH1 pathway in IBD. Extended half-life engineering enables Q4W SC dosing. Phase 2 SKYLINE data (Apr 2025): 9.2-pt RHI reduction in UC at Wk12, 40% clinical remission, 51% endoscopic improvement — claimed best-in-class profile vs. Entyvio.',
+   color:'#2563eb', lightBg:'#eff6ff', isCombo:false,
+   indication:'Ulcerative Colitis (UC)',
+   trials:[
+    {nct:'NCT07012395',name:'SKYLINE — Ph2 platform study (IL-23 mono + combination arms)',status:'Recruiting',phase:'Phase 2',n:645,pcd:'Jun 2026'}
+   ],
+   mech:'Selective IL-23p19 blockade targeting the TH17/TH1 pathway in IBD. Extended half-life engineering enables Q4W SC dosing. SKYLINE data (Apr 2025): 9.2-pt RHI reduction in UC at Wk12, 40% clinical remission, 51% endoscopic improvement — claimed best-in-class vs. Entyvio.',
    vsAilux:'Not a TL1A competitor, but SKYLINE data directly tests whether IL-23 adds value over TL1A monotherapy — critical context for the bispecific thesis.' },
  { code:'SPY002', name:'Anti-TL1A', target:'TL1A', format:'Long-acting mAb', phase:'Phase 2', halflife:'~24d', dosing:'Q3–6M SC potential',
-   color:'#7c3aed', lightBg:'#f5f3ff',
-   mech:'1st-gen monospecific anti-TL1A mAb with extended half-life via Agenus HALE® platform. SKYLINE platform study (N=645, NCT07012395) tests SPY002 mono + in combination with SPY001. Part A primary endpoint: Robarts Histopathology Index change (PCD Jun 2026). Part B: % clinical remission (Late 2026).',
-   vsAilux:'Direct TL1A monotherapy competitor. SKYLINE readout Jun 2026 is the key benchmark — sets the ceiling for TL1A mono in UC and informs whether a bispecific is needed.' },
- { code:'SPY003', name:'TL1A × IL-23 Bispecific', target:'TL1A + IL-23p19', format:'Bispecific mAb', phase:'Pre-IND', halflife:'TBD', dosing:'TBD',
-   color:'#dc2626', lightBg:'#fef2f2',
-   mech:'Dual-blockade bispecific targeting TL1A and IL-23p19 simultaneously on a single molecule. Hypothesis: combinatorial pathway suppression provides superior efficacy vs. mono. IND filing targeted 2026–2027. SKYLINE combination arm data (Jun 2026) will directly test whether dual blockade outperforms mono.',
-   vsAilux:'Directly relevant competitive profile to any Ailux bispecific ambitions. Watch SKYLINE combo vs. mono magnitude — a large delta validates the bispecific concept and accelerates SPY003.' },
- { code:'SPY004', name:'IL-6 × IL-23 Bispecific', target:'IL-6 + IL-23p19', format:'Bispecific mAb', phase:'Preclinical', halflife:'TBD', dosing:'TBD',
-   color:'#059669', lightBg:'#ecfdf5',
-   mech:'Dual-blockade targeting IL-6 and IL-23p19 — designed for CD where IL-6 drives fibrosis and T-cell survival. IND planned ~2027. Distinct from SPY003 in target biology and likely indication (CD focus vs. UC). Represents Spyre\'s broader IBD platform ambition beyond TL1A.',
-   vsAilux:'Different target set — not a direct Ailux TL1A competitor. Signals Spyre\'s intent to build a multi-asset IBD platform that could compete across multiple pathways.' }
+   color:'#7c3aed', lightBg:'#f5f3ff', isCombo:false,
+   indication:'Ulcerative Colitis (UC)',
+   trials:[
+    {nct:'NCT07012395',name:'SKYLINE — Ph2 platform study (TL1A mono + combination arms)',status:'Recruiting',phase:'Phase 2',n:645,pcd:'Jun 2026'},
+    {nct:'NCT06672718',name:'SPY002-091 — Phase 1 healthy volunteer PK/safety',status:'Recruiting',phase:'Phase 1',n:56,pcd:'Feb 2026'}
+   ],
+   mech:'1st-gen monospecific anti-TL1A mAb with extended half-life via Agenus HALE platform. SKYLINE platform study (N=645, NCT07012395) tests SPY002 mono + in combination with SPY001. Part A endpoint: Robarts Histopathology Index change (PCD Jun 2026). Part B: % clinical remission (Late 2026).',
+   vsAilux:'Direct TL1A monotherapy competitor to Ailux. SKYLINE Jun 2026 readout sets the ceiling for TL1A mono in UC — key benchmark for whether a bispecific adds meaningful incremental benefit.' },
+ { code:'SPY003', name:'TL1A x IL-23p19', target:'TL1A + IL-23p19', format:'Bispecific mAb (combo)', phase:'Pre-IND', halflife:'TBD', dosing:'TBD',
+   color:'#dc2626', lightBg:'#fef2f2', isCombo:true,
+   indication:'UC / CD (planned)',
+   trials:[],
+   mech:'Dual-blockade bispecific targeting TL1A and IL-23p19 on a single molecule. Hypothesis: combinatorial pathway suppression provides superior efficacy vs. mono. IND filing targeted 2026-2027. SKYLINE combination arm data (Jun 2026) directly tests whether dual blockade outperforms mono.',
+   vsAilux:'Directly relevant competitive profile to any Ailux bispecific ambitions. Watch SKYLINE combo vs. mono magnitude — a large delta validates the bispecific concept and accelerates SPY003 development.' },
+ { code:'SPY004', name:'IL-6 x IL-23p19', target:'IL-6 + IL-23p19', format:'Bispecific mAb (combo)', phase:'Preclinical', halflife:'TBD', dosing:'TBD',
+   color:'#059669', lightBg:'#ecfdf5', isCombo:true,
+   indication:"Crohn's Disease (CD)",
+   trials:[],
+   mech:"Dual-blockade targeting IL-6 and IL-23p19 — designed for CD where IL-6 drives fibrosis and T-cell survival. IND planned ~2027. Distinct from SPY003 in target biology. Represents Spyre's ambition to build a multi-asset IBD platform beyond TL1A.",
+   vsAilux:"Different target set — not a direct Ailux TL1A competitor. Signals Spyre's intent to compete across multiple IBD pathways and expand total addressable market beyond UC." }
 ];
 
 function piPillClick(filter, val, btn) {
@@ -8643,42 +8659,64 @@ const tl1aPI = {
  },
 
  _spyreDetailHTML(p) {
-  /* Pipeline drug buttons */
-  const drugBtns = SPYRE_PIPELINE.map(d => `
-   <button class="spyre-drug-btn" style="border-color:${d.color};color:${d.color};background:${d.lightBg}">
-    ${d.code}
+  /* Pipeline drug buttons — with trial info and indication in popup */
+  const drugBtns = SPYRE_PIPELINE.map(d => {
+   const comboTag = d.isCombo ? '<span style="font-size:8px;font-weight:800;background:#fef2f2;color:#dc2626;border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle">COMBO</span>' : '';
+   const trialRows = (d.trials||[]).map(t =>
+    `<div style="background:#f8fafc;border-radius:5px;padding:5px 7px;margin-top:4px;font-size:10px;color:#475569">
+      <a href="https://clinicaltrials.gov/study/${t.nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700">${t.nct}</a>
+      <span style="margin-left:4px;color:#16a34a;font-weight:600">${t.status}</span>
+      <span style="margin-left:4px;color:#64748b">${t.phase} · N=${t.n}${t.pcd?' · PCD: '+t.pcd:''}</span>
+      <div style="margin-top:2px;color:#64748b">${t.name}</div>
+     </div>`).join('');
+   const trialsSection = d.trials && d.trials.length
+    ? `<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.4px;margin-bottom:3px">Active Trials</div>${trialRows}</div>`
+    : '';
+   return `<button class="spyre-drug-btn" style="border-color:${d.color};color:${d.color};background:${d.lightBg}">
+    <div style="display:flex;align-items:center;gap:2px">${d.code}${comboTag}</div>
     <div style="font-size:9px;font-weight:600;color:#94a3b8;margin-top:1px">${d.phase}</div>
     <div class="spyre-drug-popup">
      <div class="spyre-popup-code" style="color:${d.color}">${d.code} · ${d.name}</div>
      <div class="spyre-popup-name">${d.target}</div>
+     <div style="font-size:10px;color:#64748b;margin-bottom:6px">📍 ${d.indication}</div>
      <div class="spyre-popup-row">
       <span class="spyre-popup-tag">${d.format}</span>
       <span class="spyre-popup-tag">${d.phase}</span>
-      <span class="spyre-popup-tag">t½ ${d.halflife}</span>
-      <span class="spyre-popup-tag">${d.dosing}</span>
+      ${d.halflife!=='TBD'?`<span class="spyre-popup-tag">t½ ${d.halflife}</span>`:''}
+      ${d.dosing!=='TBD'?`<span class="spyre-popup-tag">${d.dosing}</span>`:''}
      </div>
      <div class="spyre-popup-body">${d.mech}</div>
      <div class="spyre-popup-lens"><strong>🎯 Ailux BD Lens:</strong> ${d.vsAilux}</div>
+     ${trialsSection}
     </div>
-   </button>`).join('');
+   </button>`;
+  }).join('');
 
-  /* Catalysts */
-  const cats = p.catalysts.map(c =>
-   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join('');
+  /* Catalysts — with links */
+  const cats = p.catalysts.map(c => {
+   const evtHtml = c.url
+    ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;font-weight:500">${c.event} ↗</a>`
+    : `<span>${c.event}</span>`;
+   return `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span>${evtHtml}</div>`;
+  }).join('');
 
-  /* Deals */
-  const deals = p.deals.map(d =>
-   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join('');
+  /* Deals — with links */
+  const deals = p.deals.map(d => {
+   const descHtml = d.url
+    ? `<a href="${d.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.desc} ↗</a>`
+    : `<span>${d.desc}</span>`;
+   return `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span>${descHtml}</div>`;
+  }).join('');
 
   /* Trials */
   const trialsHTML = (p.trials||[]).map(t => {
    const statusCls = t.status.includes('Recruiting') ? 'pi-trial-recruiting' : t.status.includes('not recruiting') ? 'pi-trial-anr' : t.status.includes('Completed') ? 'pi-trial-done' : 'pi-trial-planned';
-   const nctLink = t.nct ? `<a href="https://clinicaltrials.gov/study/${t.nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${t.nct}</a>` : '';
    const nSize = t.n ? `N=${t.n}` : '';
    const pcd = t.pcd ? `PCD: ${t.pcd}` : '';
    return `<div class="pi-trial-row">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-     ${nctLink}<span class="pi-trial-status ${statusCls}">${t.status}</span>
+     <a href="https://clinicaltrials.gov/study/${t.nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${t.nct}</a>
+     <span class="pi-trial-status ${statusCls}">${t.status}</span>
      <span style="font-size:10px;color:#64748b">${[t.phase,nSize,pcd].filter(Boolean).join(' · ')}</span>
     </div>
     <div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${t.name}</div>
@@ -8687,20 +8725,20 @@ const tl1aPI = {
   }).join('');
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
-   <!-- Header: stock chip + pipeline buttons -->
+   <!-- Header: stock chip + website link -->
    <div class="spyre-hd">
     <div class="spyre-stock-chip" id="spyre-stock-chip">
      <span class="spyre-stock-ticker">SYRE</span>
      <span class="spyre-stock-price" id="spyre-price">—</span>
      <span class="spyre-stock-chg" id="spyre-chg">loading…</span>
     </div>
-    <div style="font-size:12px;color:#64748b">4-program IBD platform (2024 Agenus spinout) · $720M Series A</div>
+    <div style="font-size:12px;color:#64748b">4-program IBD platform · 2024 Agenus spinout · $720M Series A</div>
+    <a href="https://spyretherapeutics.com" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:600;text-decoration:none;margin-left:auto;white-space:nowrap">spyretherapeutics.com ↗</a>
    </div>
    <!-- Pipeline -->
-   <div class="spyre-section-lbl">Pipeline — hover each drug to explore</div>
    <div class="spyre-pipeline-row">${drugBtns}</div>
    <!-- 2-col grid for details -->
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px">
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section"><h5>Summary</h5><p>${p.summary}</p></div>
     <div class="pi-detail-section"><h5>🔬 Active & Planned Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
     <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${cats}</div>
@@ -8711,7 +8749,7 @@ const tl1aPI = {
   </div>`;
  },
 
- _detailHTML(p) {
+  _detailHTML(p) {
   const cats = p.catalysts.length ? p.catalysts.map(c =>
    `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join('') : '<p>No catalysts on record</p>';
   const deals = p.deals.length ? p.deals.map(d =>
