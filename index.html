@@ -9299,12 +9299,11 @@ const tl1aPI = {
   }).join('');
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
-   <!-- Header: pipeline link only -->
-   <div class="spyre-hd" style="justify-content:flex-end">
-    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;white-space:nowrap;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">Spyre Pipeline ↗</a>
-   </div>
    <!-- All pipeline drugs centered -->
    ${pipelineRow}
+   <div style="text-align:right;margin-top:-4px;margin-bottom:8px">
+    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;white-space:nowrap;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">Spyre Pipeline ↗</a>
+   </div>
    <!-- Company-level detail -->
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
