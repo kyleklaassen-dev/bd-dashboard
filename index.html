@@ -984,10 +984,10 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .spyre-pipeline-row { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
 .spyre-drug-btn { position:relative;padding:9px 9px 7px;border-radius:9px;border:2px solid;background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1.3;width:86px;min-height:64px;text-align:center;flex-shrink:0;box-sizing:border-box; }
 .spyre-drug-btn:hover { filter:brightness(0.92);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.14); }
-.spyre-drug-btn.spy-popup-active { filter:brightness(0.75) !important;transform:translateY(-2px) !important;box-shadow:0 0 0 2.5px currentColor,0 6px 18px rgba(0,0,0,0.22) !important; }
+.spyre-drug-btn.spy-popup-active { box-shadow:inset 0 0 0 1000px rgba(0,0,0,0.12),0 0 0 2.5px currentColor,0 6px 18px rgba(0,0,0,0.22) !important;transform:translateY(-2px) !important; }
 .spyre-drug-btn::after { content:'';position:absolute;bottom:-8px;left:0;right:0;height:8px;background:transparent; }
 .spyre-phase-badge { position:absolute;top:3px;right:4px;font-size:7.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,0.9);line-height:1.4;letter-spacing:0.2px; }
-.spyre-drug-popup { display:none;position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 0px);z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:640px;max-width:94vw;text-align:left;max-height:84vh;overflow-y:auto; }
+.spyre-drug-popup { display:none;position:fixed;z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:640px;max-width:94vw;text-align:left;max-height:84vh;overflow-y:auto; }
 .spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
 .spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
 .spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
@@ -8594,21 +8594,28 @@ function showSpyrePopup(id) {
   btn.classList.add('spy-popup-active');
   const popup = btn.querySelector('.spyre-drug-popup');
   if (!popup) return;
-  popup.style.left = '';
-  popup.style.right = '';
-  popup.style.transform = 'translateX(-50%)';
+  // Show first so we can measure popup width
+  popup.style.left = '0';
+  popup.style.top = '0';
   popup.style.display = 'block';
-  // Clamp to viewport after paint
   requestAnimationFrame(() => {
-    const r = popup.getBoundingClientRect();
+    const btnR = btn.getBoundingClientRect();
+    const popW = popup.offsetWidth;
+    const popH = popup.offsetHeight;
     const vw = window.innerWidth;
-    if (r.right > vw - 8) {
-      const shift = r.right - (vw - 8);
-      popup.style.transform = `translateX(calc(-50% - ${shift}px))`;
-    } else if (r.left < 8) {
-      const shift = 8 - r.left;
-      popup.style.transform = `translateX(calc(-50% + ${shift}px))`;
+    const vh = window.innerHeight;
+    const margin = 10;
+    // Center popup horizontally on button, clamped to viewport
+    let left = btnR.left + btnR.width / 2 - popW / 2;
+    left = Math.max(margin, Math.min(left, vw - popW - margin));
+    // Place popup 16px below the button, flip up if not enough space below
+    let top = btnR.bottom + 16;
+    if (top + popH > vh - margin) {
+      top = btnR.top - popH - 16;
     }
+    top = Math.max(margin, top);
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
   });
 }
 function hideSpyrePopup(id) {
