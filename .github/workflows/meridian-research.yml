@@ -2,8 +2,8 @@ name: Meridian Research
 
 on:
   schedule:
-    # 4:00 AM ET = 09:00 UTC (Mon–Sat)
-    - cron: "0 9 * * 1-6"
+    # 2:00 AM ET = 06:00 UTC (Mon–Sat) — deep research pass, after enrichment completes
+    - cron: "0 6 * * 1-6"
   workflow_dispatch:   # allow manual trigger
 
 jobs:
