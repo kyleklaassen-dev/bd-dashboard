@@ -8829,11 +8829,12 @@ document.addEventListener('keydown', e => {
 });
 
 // ── PI TABLE INLINE EDIT + RESEARCH VALIDATION ────────────────────
-async function piStartEdit(event, td, programId, field, currentVal) {
+async function piStartEdit(event, td, programId, field) {
  event.stopPropagation();
  if (td.dataset.editing === 'true') return;
  td.dataset.editing = 'true';
 
+ const currentVal = td.textContent.trim();
  const origHTML = td.innerHTML;
  const input = document.createElement('input');
  input.type = 'text';
@@ -9233,9 +9234,9 @@ const tl1aPI = {
    const isExp = this.expanded.has(p.id);
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${p.id}')">
     <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${this._noIntelTickers.has(p.ticker)?'<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>':''}</strong><div style="font-size:10px;color:#94a3b8">${p.ticker}</div></td>
-    <td class="pi-editable" title="Double-click to edit" style="font-size:12px" ondblclick="piStartEdit(event,this,'${p.id}','Drug','${p.drug.replace(/'/g,\"&#39;\")}')">${p.drug}</td>
-    <td class="pi-editable" title="Double-click to edit" style="font-size:11px;color:#475569" ondblclick="piStartEdit(event,this,'${p.id}','Target','${p.target.replace(/'/g,\"&#39;\")}')">${p.target}</td>
-    <td class="pi-editable" title="Double-click to edit classification" ondblclick="piStartEdit(event,this,'${p.id}','Class','${p.cls}')">${this._clsPill(p.cls)}</td>
+    <td class="pi-editable" title="Double-click to edit" style="font-size:12px" ondblclick="piStartEdit(event,this,'${p.id}','Drug')">${p.drug}</td>
+    <td class="pi-editable" title="Double-click to edit" style="font-size:11px;color:#475569" ondblclick="piStartEdit(event,this,'${p.id}','Target')">${p.target}</td>
+    <td class="pi-editable" title="Double-click to edit classification" ondblclick="piStartEdit(event,this,'${p.id}','Class')">${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(p.stageKey)}</td>
     <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
    </tr>`;
