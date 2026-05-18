@@ -729,6 +729,136 @@ async function sbFetch(table, opts = {}) {
   if (error) throw error;
   return data || [];
 }
+
+// ── Area label maps ─────────────────────────────────────────────────────────
+const AREA_LABELS = {
+  tl1a: 'TL1A · IBD', tslp: 'TSLP · Respiratory', il4ra: 'IL-4Rα · Atopy',
+  igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
+};
+
+// ── Deal Tracker ─────────────────────────────────────────────────────────────
+let _allDeals = [];
+
+function fmtMoney(m) {
+  if (!m) return '';
+  return m >= 1000 ? `$${(m/1000).toFixed(2).replace(/\.?0+$/,'')}B` : `$${m}M`;
+}
+
+function renderDeals(deals) {
+  const list = document.getElementById('deals-list');
+  if (!list) return;
+  if (!deals.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
+  list.innerHTML = deals.map(d => {
+    const val     = fmtMoney(d.total_usd_m);
+    const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
+    const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
+    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ Source</a>` : '';
+    const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
+    return `<div class="deal-row" data-area="${d.area_id||''}">
+  <div class="deal-co">
+    <span class="deal-date-badge">${d.deal_date_label||''}</span>
+    ${d.from_company||''} → ${d.to_company||''}
+    ${val ? `<span class="deal-val">${val}</span>` : ''}
+    ${srcLink}
+  </div>
+  <div class="deal-sub">${upfront}${areaTag} · ${d.headline}</div>
+  ${d.detail ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;">${d.detail}</div>` : ''}
+  ${ailux}
+</div>`;
+  }).join('');
+}
+
+async function loadDeals() {
+  const list = document.getElementById('deals-list');
+  if (!list) return;
+  try {
+    const { data, error } = await _sb.from('deals').select('*').order('deal_date', { ascending: false });
+    if (error) throw error;
+    _allDeals = data || [];
+    renderDeals(_allDeals);
+  } catch(err) {
+    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading deals: ${err.message}</div>`;
+  }
+}
+
+function dealFilter(btn, area) {
+  document.querySelectorAll('#home-deals-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = area ? _allDeals.filter(d => d.area_id === area) : _allDeals;
+  document.getElementById('deals-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
+  renderDeals(filtered);
+}
+
+// ── Catalysts Feed ───────────────────────────────────────────────────────────
+let _allCatalysts = [];
+
+const SIG_STYLE = {
+  high:   { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'High' },
+  medium: { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706', label: 'Medium' },
+  low:    { bg: '#f0fdf4', border: '#86efac', dot: '#16a34a', label: 'Low' },
+};
+const CAT_TYPE_ICON = {
+  readout: '📊', filing: '📋', approval: '✅', conference: '🎤', deal: '🤝', default: '📌'
+};
+
+function renderCatalysts(cats) {
+  const list = document.getElementById('catalysts-list');
+  if (!list) return;
+  if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
+
+  const open = cats.filter(c => !c.resolved);
+  const resolved = cats.filter(c => c.resolved);
+
+  const renderGroup = (items, isResolved) => items.map(c => {
+    const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
+    const icon = CAT_TYPE_ICON[c.catalyst_type] || CAT_TYPE_ICON.default;
+    const area = AREA_LABELS[c.area_id] || c.area_id || '';
+    const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
+    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
+      display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.6':'1'};
+    ">
+  <div style="flex-shrink:0;text-align:center;min-width:54px;">
+    <div style="font-size:14px;">${icon}</div>
+    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:1px;line-height:1.2;">${c.catalyst_date||''}</div>
+  </div>
+  <div style="flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};">${c.label||''}</span>
+      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;">${sig.label}</span>
+      ${area ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;padding:1px 5px;border-radius:8px;">${area}</span>` : ''}
+    </div>
+    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
+    ${resolvedNote}
+  </div>
+</div>`;
+  }).join('');
+
+  list.innerHTML = (open.length ? renderGroup(open, false) : '') +
+    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">Resolved</div>` + renderGroup(resolved, true) : '');
+}
+
+async function loadCatalysts() {
+  const list = document.getElementById('catalysts-list');
+  if (!list) return;
+  try {
+    const { data, error } = await _sb.from('catalysts').select('*').order('sort_date', { ascending: true });
+    if (error) throw error;
+    _allCatalysts = data || [];
+    renderCatalysts(_allCatalysts);
+  } catch(err) {
+    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading catalysts: ${err.message}</div>`;
+  }
+}
+
+function catFilter(btn, area) {
+  document.querySelectorAll('#home-catalysts-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = area ? _allCatalysts.filter(c => c.area_id === area) : _allCatalysts;
+  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'Key Readouts & Events';
+  renderCatalysts(filtered);
+}
+
 </script>
 
 .predict-rule:last-child { margin-bottom: 0; }
@@ -1372,36 +1502,43 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
  </div>
  </div>
 
+ <div class="home-card" id="home-catalysts-anchor">
+  <div class="home-card-hd">
+   Upcoming Catalysts
+   <span class="hc-tag" id="cats-area-label">Key Readouts &amp; Events</span>
+   <span style="margin-left:auto;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+    <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
+   </span>
+  </div>
+  <div class="home-card-body" id="catalysts-list">
+   <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading catalysts…</div>
+  </div>
+ </div>
+
  <div class="home-card" id="home-deals-anchor">
- <div class="home-card-hd"> Recent Deal Activity <span class="hc-tag">Last 18 Months</span></div>
- <div class="home-card-body">
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Mar 2026</span> <a class="ct-link" href="https://www.prnewswire.com/news-releases/kali-therapeutics-announces-worldwide-exclusive-license-agreement-with-sanofi-for-next-generation-tri-specific-t-cell-engager-for-autoimmune-diseases-302719567.html" target="_blank" rel="noopener">Kali Therapeutics → Sanofi</a> (BCMA×CD19×CD3) <span class="deal-val">$1.23B</span></div>
- <div class="deal-sub">KT501 trispecific TCE · $180M upfront/near-term · Ph1a first patient dosed · Autoimmune immune reset</div>
+  <div class="home-card-hd">
+   Recent Deal Activity
+   <span class="hc-tag" id="deals-area-label">All Areas</span>
+   <span style="margin-left:auto;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+    <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'')">All</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tl1a')">TL1A</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tslp')">TSLP</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'il4ra')">IL-4Rα</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'fcrn')">FcRn</button>
+    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tcell')">T-cell</button>
+   </span>
+  </div>
+  <div class="home-card-body" id="deals-list">
+   <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading deals…</div>
+  </div>
  </div>
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Jan 2026</span> <a class="ct-link" href="https://www.biospace.com/deals/boehringer-turns-to-china-in-1-26b-ibd-pact-with-simcere" target="_blank" rel="noopener">Simcere → Boehringer Ingelheim</a> (TL1A×IL-23p19) <span class="deal-val">$1.16B</span></div>
- <div class="deal-sub">SIM0709 bispecific · €42M upfront · Pre-IND → FIH H1 2026</div>
- </div>
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Dec 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/novo-holdings-backed-windward-bio-licenses-chinese-biotechs-bispecific-asthma-candidate" target="_blank" rel="noopener">Qyuns → Windward Bio</a> (TSLP×IL-13) <span class="deal-val">$700M</span></div>
- <div class="deal-sub">WIN027 bispecific · Novo Holdings-backed · TSLP + IL-13 dual blockade · Autoimmune</div>
- </div>
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Oct 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/roche-pens-1b-biobucks-deal-chinese-companys-respiratory-disease-bispecific" target="_blank" rel="noopener">Qyuns → Roche</a> (TSLP×IL-33) <span class="deal-val">$1.07B</span></div>
- <div class="deal-sub">QX031N · $75M upfront · Effective Dec 2025 · COPD / Asthma Ph1 planned</div>
- </div>
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Apr 2025</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/sanofi-takes-stake-earendil-labs-its-inflammatory-disease-bispecifics" target="_blank" rel="noopener">Earendil Labs → Sanofi</a> (HXN-1002 + HXN-1003 · IBD bispecifics) <span class="deal-val">$1.85B</span></div>
- <div class="deal-sub">HXN-1002 + HXN-1003 bispecifics · $125M upfront · Autoimmune &amp; IBD · Pre-IND</div>
- </div>
- <div class="deal-row">
- <div class="deal-co"><span class="deal-date-badge">Nov 2024</span> <a class="ct-link" href="https://www.fiercebiotech.com/biotech/aclaris-therapeutics-licenses-long-acting-anti-tslp-antibody-biosion" target="_blank" rel="noopener">Biosion → Aclaris</a> (bosakitug · long-acting anti-TSLP) <span class="deal-val">$900M</span></div>
- <div class="deal-sub">Bosakitug long-acting · $40M upfront · Ph1 → Ph2 · Atopic Dermatitis / Asthma</div>
- </div>
- </div>
- </div>
- </div>
+
 
  <div class="footnote" style="margin-top:8px">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last updated May 2026.</div>
 
@@ -7493,7 +7630,7 @@ function renderWeeklyTasks() {
  }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); });
 
 // ── TOC NAVIGATION ────────────────────────────────────────────────
 const TOC_MAP = {
