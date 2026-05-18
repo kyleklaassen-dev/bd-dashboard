@@ -1388,12 +1388,104 @@ async function loadAreaDeals(tabId) {
 }
 
 // ── Molecule Tab Orchestrator (lazy-loads on first visit) ─────────────────────
+// ── Tab → area_id map (some tabs share an area_id) ──────────────────────────
+const TAB_AREA = {
+  'tl1a': 'tl1a', 'tslp': 'tslp',
+  'il4ra-tslp': 'il4ra', 'il4ra-ox40l': 'il4ra',
+  'igf1r-tshr': 'igf1r', 'fcrn': 'fcrn', 'ace': 'tcell'
+};
+
+// ── Phase ordering for competitive table ─────────────────────────────────────
+const PHASE_ORDER = {
+  'Approved': 0, 'BLA Filed': 1, 'BLA filed': 1,
+  'Phase 3': 2, 'Phase 2': 3, 'Phase 2/3': 2,
+  'Phase 1/2': 4, 'Phase 1 (deprioritized)': 6,
+  'Phase 1': 4, 'Phase 1b': 4, 'Preclinical': 5
+};
+const PHASE_COLOR = {
+  'Approved':   '#dcfce7:#166534',
+  'BLA Filed':  '#ede9fe:#5b21b6', 'BLA filed': '#ede9fe:#5b21b6',
+  'Phase 3':    '#dbeafe:#1d4ed8',
+  'Phase 2/3':  '#dbeafe:#1d4ed8',
+  'Phase 2':    '#fef9c3:#854d0e',
+  'Phase 1/2':  '#fce7f3:#9d174d',
+  'Phase 1b':   '#fce7f3:#9d174d',
+  'Phase 1':    '#fce7f3:#9d174d',
+  'Phase 1 (deprioritized)': '#f1f5f9:#94a3b8',
+  'Preclinical':'#f1f5f9:#64748b'
+};
+
+async function loadAreaCompetitors(tabId) {
+  const areaId = TAB_AREA[tabId];
+  const elId = tabId + '-live-competitive';
+  const el = document.getElementById(elId);
+  if (!el || !areaId) return;
+
+  // Fetch drug_areas join drug details
+  const { data: daRows, error: daErr } = await _sb
+    .from('drug_areas')
+    .select('drug_id, drugs(id, name, brand_name, company_id, mechanism, stage, ailux_angle, ailux_competes_directly, key_data, companies(name))')
+    .eq('area_id', areaId);
+
+  if (daErr || !daRows || !daRows.length) {
+    el.innerHTML = '<div style="color:#94a3b8;font-size:12px">No competitive programs found.</div>';
+    return;
+  }
+
+  // Deduplicate (drug can appear multiple times if multiple area_ids)
+  const seen = new Set();
+  const drugs = daRows
+    .map(r => r.drugs).filter(d => d && !seen.has(d.id) && seen.add(d.id))
+    .sort((a, b) => {
+      const ao = PHASE_ORDER[a.stage] ?? 7, bo = PHASE_ORDER[b.stage] ?? 7;
+      if (ao !== bo) return ao - bo;
+      return (b.ailux_competes_directly ? 1 : 0) - (a.ailux_competes_directly ? 1 : 0);
+    });
+
+  function phasePill(stage) {
+    const colors = (PHASE_COLOR[stage] || '#f1f5f9:#64748b').split(':');
+    return `<span style="background:${colors[0]};color:${colors[1]};padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;white-space:nowrap">${stage || '?'}</span>`;
+  }
+
+  const rows = drugs.map(d => {
+    const threat = d.ailux_competes_directly
+      ? '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">Direct</span>'
+      : '<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">Monitor</span>';
+    const coName = d.companies ? d.companies.name : (d.company_id || '');
+    const mech = (d.mechanism || '').replace(/\(.*?\)/g,'').trim().slice(0,55) + ((d.mechanism||'').length > 55 ? '…' : '');
+    const angle = (d.ailux_angle || d.key_data || '').slice(0, 90) + ((d.ailux_angle || d.key_data || '').length > 90 ? '…' : '');
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap">${d.name}${d.brand_name ? `<br><span style="font-size:10px;font-weight:400;color:#64748b">${d.brand_name}</span>` : ''}</td>
+      <td style="padding:7px 10px;font-size:11px;color:#374151;white-space:nowrap">${coName}</td>
+      <td style="padding:7px 10px">${phasePill(d.stage)}</td>
+      <td style="padding:7px 10px;font-size:10px;color:#475569">${mech}</td>
+      <td style="padding:7px 10px">${threat}</td>
+      <td style="padding:7px 10px;font-size:10px;color:#1e3a5f;line-height:1.4">${angle}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f8fafc">
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Drug</th>
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Company</th>
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Stage</th>
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Mechanism</th>
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Threat</th>
+        <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #dde3ea">Ailux Signal</th>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 function loadMoleculeTab(tabId) {
   if (_molTabLoaded[tabId]) return; // already loaded
   _molTabLoaded[tabId] = true;
   loadAreaIntel(tabId);
   loadAreaCatalysts(tabId);
   loadAreaDeals(tabId);
+  loadAreaCompetitors(tabId);
 }
 
 </script>
@@ -2545,6 +2637,14 @@ function loadMoleculeTab(tabId) {
  </div>
  </div>
 
+<div class="intel-card" id="tl1a-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · TL1A</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="tl1a-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
+
 <div class="intel-card" id="tl1a-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
     <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
@@ -3412,6 +3512,14 @@ function loadMoleculeTab(tabId) {
  </div>
  </div>
 
+<div class="intel-card" id="tslp-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · TSLP</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="tslp-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
+
 <div class="intel-card" id="tslp-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
     <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
@@ -4188,6 +4296,14 @@ function loadMoleculeTab(tabId) {
  </div>
  </div>
 
+<div class="intel-card" id="il4ra-tslp-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · IL-4Rα</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="il4ra-tslp-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
+
 <div class="intel-card" id="il4ra-tslp-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
     <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
@@ -4526,6 +4642,14 @@ function loadMoleculeTab(tabId) {
  </div>
  </div>
 
+<div class="intel-card" id="il4ra-ox40l-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · IL-4Rα × OX40L</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="il4ra-ox40l-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
+
 <div class="intel-card" id="il4ra-ox40l-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
     <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
@@ -4848,6 +4972,14 @@ function loadMoleculeTab(tabId) {
  </table>
  </div>
  </div>
+
+<div class="intel-card" id="igf1r-tshr-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · IGF1R · TED</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="igf1r-tshr-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
 
 <div class="intel-card" id="igf1r-tshr-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -5212,6 +5344,14 @@ function loadMoleculeTab(tabId) {
  </table>
  </div>
  </div>
+
+<div class="intel-card" id="fcrn-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · FcRn</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="fcrn-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
 
 <div class="intel-card" id="fcrn-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -5606,6 +5746,14 @@ function loadMoleculeTab(tabId) {
  </table>
  </div>
  </div>
+
+<div class="intel-card" id="ace-live-competitive-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · T-cell Engineering</span>
+    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
+  </div>
+  <div id="ace-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
+</div>
 
 <div class="intel-card" id="ace-live-intel-card">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
