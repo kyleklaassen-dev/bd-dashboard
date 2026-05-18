@@ -931,7 +931,12 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-table th:hover { background:#e2e8f0; }
 .pi-table td { font-size:12px;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
 .pi-table tr.pi-main:hover td { background:#f8fafc;cursor:pointer; }
-.pi-table tr.pi-main.expanded td { background:#eff6ff;border-bottom:none; }
+.pi-table tr.pi-main.expanded td { background:#1e3a5f !important;color:white;border-bottom:none; }
+.pi-table tr.pi-main.expanded td strong { color:white; }
+.pi-table tr.pi-main.expanded .pi-expand-icon { color:#93c5fd; }
+.pi-table tr.pi-main.expanded .pi-cls-pill,
+.pi-table tr.pi-main.expanded .pi-stage-pill,
+.pi-table tr.pi-main.expanded .pi-overlap-badge { filter:brightness(1.2); }
 .pi-cls-pill { display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700; }
 .pi-cls-1st { background:#dbeafe;color:#1d4ed8; }
 .pi-cls-direct { background:#fee2e2;color:#991b1b; }
@@ -946,8 +951,6 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
 .pi-expand-icon.open { transform:rotate(180deg);color:#2563eb; }
 .pi-main.expanded > td:last-child { position:relative; }
-.pi-main.expanded { background:#f0f7ff !important; }
-.pi-collapse-hint { font-size:8.5px;color:#93c5fd;font-weight:600;display:block;margin-top:1px;text-align:right; }
 tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdbfe; }
 .pi-detail-inner { padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
 .pi-detail-section { background:white;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0; }
@@ -9094,8 +9097,8 @@ const tl1aPI = {
 
   const makeDrugBtn = (d) => {
    /* Disease-area color scheme */
-   const diseaseColor = d.ibd ? '#2563eb' : '#9333ea';
-   const diseaseLightBg = d.ibd ? '#eff6ff' : '#f5f3ff';
+   const diseaseColor = d.ibd ? '#0d9488' : '#9333ea';
+   const diseaseLightBg = d.ibd ? '#f0fdfa' : '#f5f3ff';
    /* Phase badge abbreviation */
    const phaseMap = {'Phase 1':'P1','Phase 2':'P2','Phase 3':'P3','IND':'IND','Pre-IND':'Pre','Preclinical':'Pre','Phase 1/2':'P1/2','Phase 2/3':'P2/3'};
    const phaseBadge = phaseMap[d.phase] || d.phase || '';
@@ -9291,7 +9294,7 @@ const tl1aPI = {
     <td class="pi-editable" title="Double-click to edit" style="font-size:11px;color:#475569" ondblclick="piStartEdit(event,this,'${p.id}','Target')">${p.target}</td>
     <td class="pi-editable" title="Double-click to edit classification" ondblclick="piStartEdit(event,this,'${p.id}','Class')">${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(p.stageKey)}</td>
-    <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span>${isExp?'<span class="pi-collapse-hint">click to close</span>':''}</td>
+    <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
    </tr>`;
    const trialsHTML = (p.trials||[]).map(t => {
     const statusCls = t.status.includes('Recruiting') ? 'pi-trial-recruiting' : t.status.includes('not recruiting') ? 'pi-trial-anr' : t.status.includes('Completed') ? 'pi-trial-done' : 'pi-trial-planned';
