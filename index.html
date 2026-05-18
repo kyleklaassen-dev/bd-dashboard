@@ -7774,37 +7774,8 @@ function initGrids(d) {
  data:dropCols(d.tl1aReadouts,[0,4]).sort((a,b)=>phaseRank(a[1])-phaseRank(b[1])||parseDateKey(a[3])-parseDateKey(b[3])), sort:true
  }).render(document.getElementById('grid-tl1a-readouts'));
 
- // ── TL1A: Competitive Landscape (bispecifics + monotherapy merged) ─
- // Purpose: Who are all the players, what format, any deals? FORMAT column
- // distinguishes monotherapy from each bispecific format type.
- // Output cols: Company, Asset, Format, Stage, Partner/Deal, Estimand, Notes
- grids.tl1aLandscape = new gridjs.Grid({
- columns:[
- {name:'Company',width:'145px'},
- {name:'Asset',width:'155px'},
- {name:'Format',width:'175px'},
- {name:'Stage',width:'160px',formatter:sf,sort:phaseSort},
- {name:'Partner / Deal Value',width:'240px'},
- {name:'Estimand',width:'145px',formatter:ef},
- {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tl1a-landscape','${esc}',this)">▼ Notes</button>`);}}
- ],
- data:mergeLandscape(d.tl1aPipe, d.tl1aMono).sort((a,b)=>phaseRank(a[3])-phaseRank(b[3])), sort:true
- }).render(document.getElementById('grid-tl1a-landscape'));
-
- // ── TL1A: Technical Comparison ────────────────────────────────────
- // Purpose: Mechanism & engineering differentiation. Unique — no overlap with above.
- grids.tl1aTech = new gridjs.Grid({
- columns:[
- {name:'Company',width:'110px'},
- {name:'Asset',width:'90px'},
- {name:'Stage',width:'130px',formatter:sf},
- {name:'TL1A Mechanism',width:'200px'},
- {name:'IL-23 Mechanism',width:'180px'},
- {name:'Key Differentiator',width:'200px'},
- {name:'Timeline',width:'175px'}
- ],
- data:d.tl1aTech, sort:true
- }).render(document.getElementById('grid-tl1a-tech'));
+ // NOTE: TL1A Competitive Landscape and Technical Comparison grids removed —
+ // superseded by the tl1aPI Program Intelligence table in the redesigned TL1A tab.
 
  // ── TSLP: Catalyst Calendar ──────────────────────────────────────
  // Same logic: drop Category(0) and Indication(4)
