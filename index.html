@@ -9395,27 +9395,164 @@ const tl1aPI = {
   }
  },
 
+ // ── Dynamic drug pill builder (Supabase drug row or static fallback object) ─
+ _makeDynamicDrugBtn(d, trialsForDrug, companyId) {
+  // Resolve color by target class
+  const isBispecific = (d.target||d.mechanism||'').includes('×') || (d.drug_format||'').includes('bispecific') || (d.is_combo===false && (d.target||'').includes('×'));
+  const isCombo      = d.is_combo === true;
+  const accentColor  = d.color_hex || (isBispecific ? '#7c3aed' : '#0891b2');
+  const lightBg      = d.light_bg_hex || (isBispecific ? '#f5f3ff' : '#ecfeff');
+
+  // Short code for pill label — first word of name, or use name directly if short
+  const fullName  = d.name || d.drug_name || '';
+  const shortCode = fullName.length <= 10 ? fullName : fullName.split(/[\s(]/)[0];
+  const phase     = d.phase_display || d.stage || '';
+  const phaseMap  = {'Phase 1':'P1','Phase 2':'P2','Phase 3':'P3','Pre-IND':'Pre','Preclinical':'Pre','Phase 1/2':'P1/2','Phase 2/3':'P2/3'};
+  const phaseBadge = phaseMap[phase] || phase || '';
+  const btnId = `dyn-btn-${companyId}-${(d.id||fullName).replace(/[^a-z0-9]/gi,'')}`;
+
+  // Target display — show "×" for bispecific, "+" for co-administered combos
+  const targetStr = d.mechanism || d.target || '';
+  const targetDisplay = targetStr.length > 20 ? targetStr.replace(' × ', '\n× ') : targetStr;
+  const indShort = (d.indication_short || '').split(/[·,]/)[0].trim();
+
+  // Trials rows in popup
+  let trialRows = '';
+  if (trialsForDrug && trialsForDrug.length) {
+   trialRows = trialsForDrug.map(t => {
+    const nct = t.id || '';
+    const tname = t.trial_name || t.name || '';
+    const tstatus = t.status || '';
+    const n = t.n_enrollment || t.n || '';
+    const pcd = t.pcd_label || t.readout_date || t.pcd || '';
+    return `<div style="background:#f8fafc;border-radius:6px;padding:6px 8px;margin-top:4px;font-size:10px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+       ${nct.startsWith('NCT')?`<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700;font-size:10.5px">${nct}</a>`:`<span style="color:#94a3b8;font-size:10px">${nct||'Pending'}</span>`}
+       <span style="color:#16a34a;font-weight:600;font-size:9.5px">${tstatus}</span>
+       ${n?`<span style="color:#64748b;font-size:9.5px">N=${n}</span>`:''}
+       ${pcd?`<span style="color:#64748b;font-size:9.5px">PCD: ${pcd}</span>`:''}
+      </div>
+      ${tname?`<div style="color:#475569;font-size:10px">${tname}</div>`:''}
+     </div>`;
+   }).join('');
+  }
+  const trialsSection = trialRows
+   ? `<div style="border:1.5px solid #dbeafe;border-radius:8px;padding:10px 11px;background:#f8fbff;margin-bottom:10px">
+       <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1d4ed8;letter-spacing:0.5px;margin-bottom:6px">🔬 Active Clinical Trials</div>
+       ${trialRows}
+      </div>`
+   : `<div style="border:1.5px dashed #e2e8f0;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:10px;color:#94a3b8;font-style:italic">Trial data loading — run enrichment pipeline to populate</div>`;
+
+  return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${accentColor};color:${accentColor};background:${lightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup()">
+   <div style="font-size:11px;font-weight:900;margin-top:4px;color:#1e3a5f;line-height:1.2">${shortCode}</div>
+   <div style="font-size:8px;font-weight:700;color:#334155;line-height:1.4;margin-top:2px">${targetDisplay}</div>
+   ${indShort?`<div style="font-size:7.5px;font-weight:600;color:#64748b;margin-top:1px;line-height:1.2">${indShort}</div>`:''}
+   ${phaseBadge?`<div style="font-size:8px;font-weight:800;color:${accentColor};margin-top:2px">${phaseBadge}</div>`:''}
+   <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup()">
+    <!-- Summary card -->
+    <div style="background:${lightBg};border:1.5px solid ${accentColor}44;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+      <span style="font-size:13px;font-weight:900;color:${accentColor}">${shortCode}</span>
+      ${fullName!==shortCode?`<span style="font-size:11px;font-weight:700;color:#1e3a5f">${fullName}</span>`:''}
+      ${phaseBadge?`<span style="font-size:10px;background:white;border:1px solid ${accentColor}44;border-radius:10px;padding:1px 7px;color:${accentColor};font-weight:700">${phase}</span>`:''}
+      ${isBispecific?`<span style="font-size:10px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:10px;padding:1px 7px;color:#7c3aed;font-weight:700">Bispecific</span>`:''}
+      ${isCombo?`<span style="font-size:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1px 7px;color:#92400e;font-weight:700">Combo</span>`:''}
+      ${d.route?`<span style="font-size:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:1px 7px;color:#166534;font-weight:700">💉 ${d.route}</span>`:''}
+      ${d.dosing_type?`<span style="font-size:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:1px 7px;color:#475569;font-weight:700">${d.dosing_type}</span>`:''}
+     </div>
+     ${d.indication_short?`<div style="font-size:10.5px;color:#475569;line-height:1.5">📍 <strong>${d.indication_short}</strong></div>`:''}
+    </div>
+    <!-- Trials -->
+    ${trialsSection}
+    <!-- 2-col detail -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+     <div style="background:#f8fafc;border-radius:7px;padding:9px 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Drug Details</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+       ${d.drug_format?`<div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Format</span><span style="color:#1e3a5f;font-weight:700">${d.drug_format}</span></div>`:''}
+       ${phase?`<div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Stage</span><span style="color:#1e3a5f;font-weight:700">${phase}</span></div>`:''}
+       ${d.half_life_note?`<div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Half-life</span><span style="color:#1e3a5f;font-weight:700">${d.half_life_note}</span></div>`:''}
+       ${d.dosing_schedule?`<div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Dosing</span><span style="color:#1e3a5f;font-weight:700">${d.dosing_schedule}</span></div>`:''}
+       <div style="font-size:10.5px"><span style="color:#94a3b8;font-weight:600;min-width:58px;display:inline-block">Target</span><span style="color:#1e3a5f;font-weight:700">${targetStr}</span></div>
+      </div>
+     </div>
+     <div style="background:#f8fafc;border-radius:7px;padding:9px 10px;overflow-y:auto;max-height:200px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Mechanism &amp; Context</div>
+      <div style="font-size:10.5px;color:#475569;line-height:1.6">${d.mechanism||d.ailux_angle||d.key_data||'<span style="color:#cbd5e1;font-style:italic">Mechanism detail loading — run enrichment pipeline</span>'}</div>
+      ${d.vs_ailux?`<div style="margin-top:8px;padding:6px 8px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;font-size:10px;color:#92400e"><strong>vs Ailux:</strong> ${d.vs_ailux}</div>`:''}
+     </div>
+    </div>
+   </div>
+  </button>`;
+ },
+
+ // ── Build drug pipeline row from Supabase drugs or static fallback ─────────
+ _buildDrugPipelineRow(prog, sbDrugs, sbTrials, companyId) {
+  // If Supabase has enriched drug rows for this company, use them
+  // Otherwise synthesize minimal pills from TL1A_PROGRAMS static data
+  let drugsToRender = [];
+
+  if (sbDrugs && sbDrugs.length) {
+   drugsToRender = sbDrugs
+    .sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
+  } else {
+   // Fallback: synthesize one pill per drug named in prog.drug
+   // prog.drug looks like: "Duvakitug (TEV-48574)" or "MT-251"
+   const drugNames = (prog.drug||'').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+   drugsToRender = drugNames.map((dn, i) => ({
+    id: `static-${companyId}-${i}`,
+    name: dn.replace(/\s*\(.*\)/, '').trim(),   // strip alias in parens for display
+    mechanism: prog.target || '',
+    stage: prog.stageKey || '',
+    phase_display: prog.stageKey || '',
+    indication_short: 'UC · CD',
+    drug_format: null, route: null, dosing_type: null, half_life_note: null,
+    dosing_schedule: null, color_hex: null, light_bg_hex: null,
+    is_combo: (prog.target||'').includes('+'),
+    vs_ailux: null,
+   }));
+  }
+
+  if (!drugsToRender.length) return '';
+
+  const buttons = drugsToRender.map(d => {
+   const drugsTrials = sbTrials ? sbTrials.filter(t => t.drug_id === d.id) : [];
+   return this._makeDynamicDrugBtn(d, drugsTrials, companyId);
+  }).join('');
+
+  return `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:8px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
+   <div style="width:100%;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:center;margin-bottom:4px;color:#64748b">
+    Pipeline — hover for details
+   </div>
+   ${buttons}
+  </div>`;
+ },
+
  // ── Generic rich detail renderer (Supabase-fed, falls back to static) ────
  _genericDetailHTML(prog, sbData) {
-  const profile = sbData?.profile || {};
-  const sbCats  = sbData?.catalysts || [];
-  const sbDeals = sbData?.deals || [];
-  const sbTrials= sbData?.trials || [];
+  const profile  = sbData?.profile || {};
+  const sbCats   = sbData?.catalysts || [];
+  const sbDeals  = sbData?.deals || [];
+  const sbTrials = sbData?.trials || [];
+  const sbDrugs  = sbData?.drugs || [];
 
-  // Narrative fields — Supabase first, fallback to static TL1A_PROGRAMS data
+  // ── Narrative fields (Supabase first, fallback to static) ───────────────
   const platformSummary = profile.platform_summary || prog.summary || '';
   const bdSummary       = profile.bd_summary || '';
   const keyRisk         = profile.key_risk || prog.risk || '';
   const whyMatters      = profile.why_it_matters || prog.diff || '';
   const pipelineUrl     = profile.pipeline_url || null;
 
-  // Catalysts — Supabase if available, else static
+  // ── Drug pipeline row ───────────────────────────────────────────────────
+  const drugPipelineRow = this._buildDrugPipelineRow(prog, sbDrugs, sbTrials, prog.id);
+
+  // ── Catalysts ───────────────────────────────────────────────────────────
   let catsHTML;
   if (sbCats.length) {
    catsHTML = sbCats.map(c =>
     `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${c.catalyst_date||c.date||''}</span>
-      <span>${c.label||c.event||''}</span>
+      <span class="pi-detail-cat-date">${c.catalyst_date||''}</span>
+      <span>${c.label||''}</span>
      </div>`).join('');
   } else if (prog.catalysts && prog.catalysts.length) {
    catsHTML = prog.catalysts.map(c =>
@@ -9425,7 +9562,7 @@ const tl1aPI = {
      </div>`).join('');
   } else { catsHTML = '<p style="color:#94a3b8;font-size:12px">No upcoming catalysts on record</p>'; }
 
-  // Deals — Supabase if available, else static
+  // ── Deals ───────────────────────────────────────────────────────────────
   let dealsHTML;
   if (sbDeals.length) {
    dealsHTML = sbDeals.map(d =>
@@ -9441,49 +9578,51 @@ const tl1aPI = {
      </div>`).join('');
   } else { dealsHTML = '<p style="color:#94a3b8;font-size:12px">No deal history on record</p>'; }
 
-  // Trials — Supabase if available, else static TL1A_PROGRAMS trials
+  // ── Clinical Trials ─────────────────────────────────────────────────────
   const trialsSource = sbTrials.length ? sbTrials : (prog.trials||[]);
   let trialsHTML = '';
   if (trialsSource.length) {
    trialsHTML = trialsSource.map(t => {
-    const nct     = t.id || t.nct;
-    const name    = t.trial_name || t.name || '';
-    const status  = t.status || '';
-    const phase   = t.phase || '';
-    const n       = t.n_enrollment || t.n;
-    const pcd     = t.pcd_label || t.readout_date || t.pcd;
-    const primary = t.primary_endpoint || t.primary || '';
-    const statusCls = status.includes('ecruit') ? 'pi-trial-recruiting'
-                    : status.includes('ompleted')||status.includes('omplete') ? 'pi-trial-done'
-                    : status.includes('not recruit') ? 'pi-trial-anr'
-                    : 'pi-trial-planned';
-    const nctLink = nct&&nct.startsWith('NCT')
+    const nct    = t.id || t.nct || '';
+    const name   = t.trial_name || t.name || '';
+    const status = t.status || '';
+    const n      = t.n_enrollment || t.n;
+    const pcd    = t.pcd_label || t.readout_date || t.pcd || '';
+    const ep     = t.primary_endpoint || t.primary || '';
+    const cls    = status.includes('ecruit') ? 'pi-trial-recruiting'
+                 : status.includes('omplete') ? 'pi-trial-done'
+                 : status.includes('not recruit') ? 'pi-trial-anr'
+                 : 'pi-trial-planned';
+    const nctLink = nct.startsWith('NCT')
      ? `<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${nct}</a>`
      : `<span style="color:#94a3b8;font-size:11px">${nct||'Not registered'}</span>`;
     return `<div class="pi-trial-row">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       ${nctLink}
-      <span class="pi-trial-status ${statusCls}">${status}</span>
-      <span style="font-size:10px;color:#64748b">${[phase, n?`N=${n}`:'', pcd?`PCD: ${pcd}`:''].filter(Boolean).join(' · ')}</span>
+      <span class="pi-trial-status ${cls}">${status}</span>
+      <span style="font-size:10px;color:#64748b">${[t.phase||'',n?`N=${n}`:'',pcd?`PCD: ${pcd}`:''].filter(Boolean).join(' · ')}</span>
      </div>
      ${name?`<div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${name}</div>`:''}
-     ${primary?`<div style="font-size:11px;color:#475569"><strong>Primary:</strong> ${primary}</div>`:''}
+     ${ep?`<div style="font-size:11px;color:#475569"><strong>Primary:</strong> ${ep}</div>`:''}
     </div>`;
    }).join('');
   }
 
-  // Enrichment badge
+  // ── Enrichment badge ────────────────────────────────────────────────────
   const enrichedAt = profile.last_enriched_at
    ? `<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1px 6px;margin-left:6px" title="Last enriched by Claude API">🤖 ${profile.last_enriched_at.slice(0,10)}</span>`
-   : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px" title="Enrichment pending">⏳ pending enrichment</span>`;
+   : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px" title="Enrichment pending — run company_enrichment.py">⏳ pending enrichment</span>`;
 
   const pipelineLink = pipelineUrl
-   ? `<div style="text-align:right;margin-bottom:8px">
+   ? `<div style="text-align:right;margin-top:-4px;margin-bottom:8px">
        <a href="${pipelineUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">${prog.co} Pipeline ↗</a>
       </div>` : '';
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
+   <!-- Drug pipeline bubbles (hover for detail) -->
+   ${drugPipelineRow}
    ${pipelineLink}
+   <!-- Company detail grid -->
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
     <div class="pi-detail-section" style="grid-column:1/-1">
      <h5>Platform Summary ${enrichedAt}</h5>
