@@ -6523,7 +6523,7 @@ function loadMoleculeTab(tabId) {
     <div class="dkn-chips" id="dkn-target-chips" style="border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;margin-top:2px;">
       <span style="font-size:10px;color:rgba(255,255,255,0.45);padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Target area:</span>
       <button class="dkn-chip active" id="dkn-focus-chip" onclick="dknSetTarget(this,'ailux-focus')" style="background:#e8a020;color:#0d1f38;border-color:#e8a020;">◈ Ailux Focus</button>
-      <button class="dkn-chip" onclick="dknSetTarget(this,'')">All (104)</button>
+      <button class="dkn-chip" onclick="dknSetTarget(this,'')">All</button>
       <button class="dkn-chip tgt-tl1a"    onclick="dknSetTarget(this,'tl1a')">TL1A × IL-23p19</button>
       <button class="dkn-chip tgt-tslp"    onclick="dknSetTarget(this,'tslp-il33')">TSLP × IL-33</button>
       <button class="dkn-chip tgt-il4tslp" onclick="dknSetTarget(this,'il4ra-tslp')">IL-4Rα × TSLP</button>
@@ -6531,6 +6531,24 @@ function loadMoleculeTab(tabId) {
       <button class="dkn-chip tgt-igf1r"   onclick="dknSetTarget(this,'igf1r-tshr')">IGF1R × TSHR</button>
       <button class="dkn-chip tgt-fcrn"    onclick="dknSetTarget(this,'fcrn')">FcRn</button>
       <button class="dkn-chip tgt-bcma"    onclick="dknSetTarget(this,'bcma-cd19')">BCMA × CD19 × CD3</button>
+    </div>
+    <div class="dkn-chips" id="dkn-extra-filters" style="border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;margin-top:2px;align-items:center;">
+      <span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;align-self:center;padding-right:4px;">Class:</span>
+      <select class="dkn-select" id="dkn-class-select" onchange="dknSetClass(this)">
+        <option value="">All Classes</option>
+      </select>
+      <span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;align-self:center;padding:0 4px 0 10px;">Indication:</span>
+      <select class="dkn-select" id="dkn-ind-select" onchange="dknSetInd(this)">
+        <option value="">All Indications</option>
+        <option value="IBD / GI">IBD / GI</option>
+        <option value="Rheumatology">Rheumatology</option>
+        <option value="Dermatology">Dermatology</option>
+        <option value="Respiratory">Respiratory</option>
+        <option value="Neurology">Neurology</option>
+        <option value="Ophthalmology">Ophthalmology (TED)</option>
+        <option value="Oncology">Oncology</option>
+        <option value="Hematology">Hematology</option>
+      </select>
     </div>
   </div>
   <div class="dkn-filter-right">
@@ -6546,16 +6564,15 @@ function loadMoleculeTab(tabId) {
 <table class="dkn-master-table" id="dkn-master-table">
 <thead>
 <tr>
-  <th class="dkn-th-act"></th>
   <th class="dkn-th-drug sortable" onclick="dknSort('name')">Drug &#9661;</th>
   <th class="dkn-th-co sortable" onclick="dknSort('company')">Company &#9661;</th>
-  <th class="dkn-th-stage" onclick="dknSort('stage')">Stage &#9661;</th>
+  <th class="dkn-th-stage sortable" onclick="dknSort('stage')">Stage &#9661;</th>
   <th class="dkn-th-target sortable" onclick="dknSort('target')">Target &#9661;</th>
   <th class="dkn-th-cls">Class / MOA</th>
   <th class="dkn-th-ind sortable" onclick="dknSort('indication')">Indication</th>
   <th class="dkn-th-diff">Differentiation / Why It Matters</th>
   <th class="dkn-th-risk">Key Risk</th>
-  <th class="dkn-th-notes">Notes</th>
+  <th class="dkn-th-del"></th>
 </tr>
 </thead>
 <tbody id="dkn-tbody"></tbody>
@@ -6613,7 +6630,10 @@ function loadMoleculeTab(tabId) {
 .dkn-show-removed { background:rgba(239,68,68,0.15); border-color:#ef4444; color:#fca5a5; }
 
 .dkn-table-wrap { flex:1; overflow:auto; }
-@media(max-width:768px){.dkn-th-cls,.dkn-th-diff,.dkn-th-risk,.dkn-th-notes,.dkn-col-cls,.dkn-col-diff,.dkn-col-risk,.dkn-col-notes{display:none!important;}}
+@media(max-width:768px){.dkn-th-cls,.dkn-th-diff,.dkn-th-risk,.dkn-col-cls,.dkn-col-diff,.dkn-col-risk{display:none!important;}}
+.dkn-select { padding:3px 8px; border-radius:6px; border:none; font-size:11px; background:rgba(255,255,255,0.12); color:white; cursor:pointer; outline:none; max-width:200px; }
+.dkn-select option { background:#1a2f50; color:white; }
+.dkn-select:focus { background:rgba(255,255,255,0.2); }
 .dkn-master-table { width:100%; border-collapse:collapse; font-size:11.5px; }
 .dkn-master-table thead { position:sticky; top:0; z-index:10; }
 .dkn-master-table th { background:#1e3a6e; color:#cbd5e1; padding:7px 9px;
@@ -6624,7 +6644,6 @@ function loadMoleculeTab(tabId) {
 .sortable:hover { color:white; background:#2a4f8a; }
 th.sort-asc::after { content:' ▲'; color:#fbbf24; }
 th.sort-desc::after { content:' ▼'; color:#fbbf24; }
-.dkn-th-act { width:32px; }
 .dkn-th-drug { min-width:160px; }
 .dkn-th-co { min-width:90px; }
 .dkn-th-stage { min-width:80px; cursor:pointer; }
@@ -6633,7 +6652,11 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-th-ind { min-width:120px; }
 .dkn-th-diff { min-width:220px; }
 .dkn-th-risk { min-width:150px; }
-.dkn-th-notes { min-width:120px; }
+.dkn-th-del { width:34px; }
+.dkn-trash-btn { width:26px; height:26px; border-radius:5px; border:1px solid #fca5a5;
+  background:#fff1f2; color:#dc2626; cursor:pointer; font-size:14px; line-height:1;
+  display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; }
+.dkn-trash-btn:hover { background:#fee2e2; border-color:#ef4444; transform:scale(1.15); }
 
 .dkn-master-table tbody tr { border-bottom:1px solid #e2e8f0; transition:background 0.1s; }
 .dkn-master-table tbody tr:nth-child(even) { background:#f8fafc; }
@@ -6657,12 +6680,6 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .sp-Phase1 { background:#fce7f3; color:#9d174d; }
 .sp-Preclinical { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 .sp-Research { background:#f1f5f9; color:#64748b; }
-.dkn-remove-btn { width:22px; height:22px; border-radius:4px; border:1px solid #e2e8f0;
-  background:transparent; color:#94a3b8; cursor:pointer; font-size:14px; line-height:1;
-  display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
-.dkn-remove-btn:hover { background:#fee2e2; color:#ef4444; border-color:#ef4444; }
-.dkn-notes-tag { display:inline-block; background:#fffbeb; color:#92400e;
-  border:1px solid #fde68a; border-radius:4px; font-size:9px; padding:1px 5px; }
 .dkn-removed-panel { background:#fff8f8; border-top:2px solid #ef4444; padding:12px 16px; max-height:180px; overflow:auto; }
 .dkn-removed-hd { font-size:12px; font-weight:700; color:#ef4444; margin-bottom:8px; }
 .dkn-removed-item { display:flex; align-items:center; gap:8px; padding:4px 0;
@@ -6815,10 +6832,25 @@ let dknSortCol = '';
 let dknSortDir = 1;
 let dknCatFilter = '';
 let dknStageFilter = '';
+let dknClassFilter = '';
+let dknIndFilter = '';
 let dknRemovedIds = [];
 let dknUndoStack = [];
 let dknShowRemoved = false;
 let dknTargetFilter = 'ailux-focus';
+
+const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
+
+const DKN_IND_MAP = {
+  'IBD / GI':       ['CD','UC','IBD','Crohn','colitis'],
+  'Rheumatology':   ['RA','PsA',' AS','axSpA','SLE','lupus','SSc','sclerosis','myositis'],
+  'Dermatology':    ['PsO','AD','CSU','urticaria','alopecia','eczema','derm'],
+  'Respiratory':    ['asthma','COPD','IPF','ILD','pulmonary','respiratory'],
+  'Neurology':      ['MG','CIDP','NMO','MS ','myasthenia','neuromyelitis'],
+  'Ophthalmology':  ['TED','uveitis','thyroid eye'],
+  'Oncology':       ['cancer','lymphoma','leukemia','myeloma','tumor','carcinoma','sarcoma','oncol'],
+  'Hematology':     ['hemolytic','ITP','AIHA','thrombocytopenia','hemophilia','anemia'],
+};
 const DKN_TARGET_MAP = {
   // ── Ailux focus areas (default view — all 6 pillars) ──
   'ailux-focus': ['TL1A','IL-23p19','IL-23','TSLP','IL-33','IL-4R','OX40','IGF-1R','IGF1R','TSHR','FcRn','BCMA','CD19','CD3','neonatal Fc','efgartigimod','batoclimab','nipocalimab','rozanolixizumab','duvakitug','tulisokibart','afimkibart','teprotumumab','tepezza','amlitelimab','dupilumab','tezepelumab'],
@@ -6850,21 +6882,43 @@ function dknSetTarget(btn, val) {
   btn.classList.add('active');
   dknRender();
 }
+function dknSetClass(sel) {
+  dknClassFilter = sel.value;
+  dknRender();
+}
+function dknSetInd(sel) {
+  dknIndFilter = sel.value;
+  dknRender();
+}
+function dknPopulateSelects() {
+  // Class select — unique sorted values from DRUGS_ALL
+  const sel = document.getElementById('dkn-class-select');
+  if (sel && sel.options.length <= 1) {
+    const classes = [...new Set(DRUGS_ALL.map(d => d.cls).filter(Boolean))].sort();
+    classes.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  }
+}
 function dknSort(col) {
   if (dknSortCol === col) dknSortDir *= -1;
   else { dknSortCol = col; dknSortDir = 1; }
   document.querySelectorAll('.dkn-master-table th').forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
   });
-  const colMap = {name:1,company:2,stage:3,target:4,indication:6};
+  // colMap: indices in new header order (Drug=0, Company=1, Stage=2, Target=3, Class=4, Indication=5, Diff=6, Risk=7, Del=8)
+  const colMap = {name:0,company:1,stage:2,target:3,indication:5};
   const thIdx = colMap[col];
   if (thIdx !== undefined) {
     const ths = document.querySelectorAll('.dkn-master-table th');
-    ths[thIdx].classList.add(dknSortDir===1?'sort-asc':'sort-desc');
+    ths[thIdx]?.classList.add(dknSortDir===1?'sort-asc':'sort-desc');
   }
   dknRender();
 }
 function dknRender() {
+  dknPopulateSelects();
   const q = document.getElementById('dkn-search-input').value.toLowerCase().trim();
   let data = DRUGS_ALL.filter(d => {
     if (dknCatFilter && d.category !== dknCatFilter) return false;
@@ -6875,6 +6929,12 @@ function dknRender() {
       const tgt = d.target.toLowerCase();
       if (!keywords.some(k => tgt.includes(k.toLowerCase()))) return false;
     }
+    if (dknClassFilter && d.cls !== dknClassFilter) return false;
+    if (dknIndFilter) {
+      const kws = DKN_IND_MAP[dknIndFilter] || [];
+      const ind = d.indication.toLowerCase();
+      if (!kws.some(k => ind.includes(k.toLowerCase()))) return false;
+    }
     if (q) {
       const haystack = [d.name,d.company,d.target,d.cls,d.indication,d.diff,d.risk,d.notes,d.trials].join(' ').toLowerCase();
       if (!haystack.includes(q)) return false;
@@ -6883,6 +6943,11 @@ function dknRender() {
   });
   if (dknSortCol) {
     data.sort((a,b) => {
+      if (dknSortCol === 'stage') {
+        const sa = STAGE_ORDER[a.stage] ?? 9;
+        const sb = STAGE_ORDER[b.stage] ?? 9;
+        return dknSortDir * (sa - sb);
+      }
       const av = (a[dknSortCol]||'').toLowerCase();
       const bv = (b[dknSortCol]||'').toLowerCase();
       return dknSortDir * av.localeCompare(bv);
@@ -6890,10 +6955,14 @@ function dknRender() {
   }
   const tbody = document.getElementById('dkn-tbody');
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
+  // Update dynamic "All" count
+  const totalActive = DRUGS_ALL.filter(d => !dknRemovedIds.includes(d.id)).length;
+  const allBtn = document.querySelector('#dkn-target-chips .dkn-chip:not([class*="tgt-"]):not([id="dkn-focus-chip"])');
+  if (allBtn) allBtn.textContent = `All (${totalActive})`;
   document.getElementById('dkn-count').textContent = data.length + ' drug' + (data.length!==1?'s':'') + ' shown';
   const remCount = dknRemovedIds.length;
   document.getElementById('dkn-removed-count').textContent = remCount;
@@ -7003,10 +7072,9 @@ function dknRow(d) {
   const catBarCls = 'cat-bar-' + d.category.replace(/\s/g,'.');
   const removeOrRestore = isRemoved
     ? `<button class="dkn-restore-btn" onclick="event.stopPropagation();dknRestoreInline(${d.id})" title="Restore">↩</button>`
-    : `<button class="dkn-remove-btn" onclick="event.stopPropagation();dknRemove(${d.id})" title="Remove">✕</button>`;
+    : `<button class="dkn-trash-btn" onclick="event.stopPropagation();dknRemove(${d.id})" title="Remove drug">🗑</button>`;
   const rowStyle = isRemoved ? ' style="opacity:0.4;background:#fff8f8;"' : '';
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${d.id})"${rowStyle}>
-  <td class="dkn-col-act" style="text-align:center">${removeOrRestore}</td>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.name}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co" style="font-size:11px;color:#374151">${d.company}</td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage}</span></td>
@@ -7015,10 +7083,10 @@ function dknRow(d) {
   <td class="dkn-col-ind" style="font-size:11px">${d.indication}</td>
   <td class="dkn-col-diff" style="font-size:11px;color:#1e293b">${(d.diff||'').length > 90 ? d.diff.slice(0,90)+'…' : (d.diff||'')}</td>
   <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${(d.risk||'').length > 70 ? d.risk.slice(0,70)+'…' : (d.risk||'')}</td>
-  <td class="dkn-col-notes" style="font-size:11px"></td>
+  <td class="dkn-col-del" style="text-align:center;white-space:nowrap">${removeOrRestore}</td>
 </tr>
 <tr id="dkn-dr-${d.id}" class="dkn-detail-row">
-  <td colspan="10" class="dkn-detail-td">
+  <td colspan="9" class="dkn-detail-td">
     <div class="dkn-detail-panel"></div>
   </td>
 </tr>`;
@@ -7060,7 +7128,12 @@ function dknRenderRemovedPanel() {
 }
 function dknReset() {
   dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = 'ailux-focus';
+  dknClassFilter = ''; dknIndFilter = '';
   document.getElementById('dkn-search-input').value = '';
+  const cs = document.getElementById('dkn-class-select');
+  if (cs) cs.value = '';
+  const is = document.getElementById('dkn-ind-select');
+  if (is) is.value = '';
   document.querySelectorAll('#dkn-cat-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach(b => b.classList.remove('active'));
@@ -7977,6 +8050,89 @@ function dknReset() {
 <li class="pi-dr-pr"><span class="pi-dr-pr-date">2025-02</span><a href="https://ir.schrodinger.com/news-releases" target="_blank" rel="noopener" class="pi-dr-pr-link">Schrodinger FY2024: software revenue $165M (+18%); drug discovery revenue growing; cash flow neutral</a></li>
 <li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-11</span><a href="https://ir.schrodinger.com/news-releases" target="_blank" rel="noopener" class="pi-dr-pr-link">SGR-1505 (MALT1 inhibitor) Phase 1 B-cell malignancies: 33% ORR at RP2D — Phase 2 opening</a></li>
 </ul></div></td></tr>
+        <tr class="pi-main-row" onclick="piToggle('ai-chai')" style="background:#fefce8">
+          <td>
+            <strong style="font-size:13px">Chai Discovery</strong><span class="pi-chevron" id="pi-ch-ai-chai">&#9660;</span><br>
+            <span style="color:#64748b;font-size:10px">San Francisco · 2023</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Private · ~$400M est.</span>
+          </td>
+          <td style="font-size:11px">Chai-1: multi-modal foundation model for molecular structure prediction (proteins, ligands, nucleic acids, ions, cofactors simultaneously). Open-weights release Oct 2024; commercial API and wet-lab integration services.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Structure prediction / Ab design</span></td>
+          <td style="font-size:11px">No disclosed internal pipeline — pure platform model.<br>API partnerships with pharma discovery teams.</td>
+          <td style="font-size:11px">Undisclosed pharma API customers</td>
+          <td style="font-weight:700;color:#1e3a5f">~$400M est.</td>
+          <td style="font-size:11px">
+            <span style="background:#d97706;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Medium Overlap</span><br>
+            Chai-1 outperforms AlphaFold3 on antibody-antigen docking — the core structural task for Ailux's bispecific design workflow. If pharma licenses Chai directly, reduces differentiation of AI-native design partners like Ailux.
+          </td>
+        </tr>
+<tr id="pi-dr-ai-chai" class="pi-dr-row"><td colspan="7"><div class="pi-dr-body"><p class="pi-dr-summary">Chai Discovery (founded 2023 by ex-Adept AI engineers) released Chai-1 in Oct 2024 — a multi-modal structure prediction model covering proteins, small molecules, nucleic acids, ions, and cofactors simultaneously. Benchmarks show Chai-1 outperforms AlphaFold3 on antibody-antigen interface prediction. Pure platform play: no internal pipeline. BD relevance: if top pharma licenses Chai-1 as a commodity tool, it reduces the structural prediction moat of AI-native antibody design companies including Ailux.</p><div class="pi-dr-hd">Recent Press Releases &amp; Updates</div><ul class="pi-dr-prs">
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2025-Q2</span><a href="https://www.chaidiscovery.com/news" target="_blank" rel="noopener" class="pi-dr-pr-link">Chai Discovery raises $100M Series B — expanding wet-lab integration and commercial API program with pharma partners</a></li>
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-10</span><a href="https://www.chaidiscovery.com/blog/introducing-chai-1" target="_blank" rel="noopener" class="pi-dr-pr-link">Chai-1 released: open-weights foundation model outperforms AlphaFold3 on antibody-antigen docking benchmarks</a></li>
+</ul></div></td></tr>
+
+        <tr class="pi-main-row" onclick="piToggle('ai-boltz')" style="background:#f0fdf4">
+          <td>
+            <strong style="font-size:13px">Boltz (MIT CSAIL)</strong><span class="pi-chevron" id="pi-ch-ai-boltz">&#9660;</span><br>
+            <span style="color:#64748b;font-size:10px">Cambridge, MA · 2024</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Academic / Open-source · Non-commercial</span>
+          </td>
+          <td style="font-size:11px">Boltz-1: fully open-source biomolecular structure prediction model (MIT license). Parity with AlphaFold3 on PoseBusters benchmark. No commercial restrictions — can be used freely by any company.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Structure prediction (open-source)</span></td>
+          <td style="font-size:11px">No pipeline — open-source research model only.</td>
+          <td style="font-size:11px">MIT CSAIL — academic research release</td>
+          <td style="font-weight:700;color:#1e3a5f">Non-commercial</td>
+          <td style="font-size:11px">
+            <span style="background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Low Overlap</span><br>
+            Open-source commoditisation of structure prediction. Ailux and competitors can freely deploy Boltz-1, lowering the structural modelling cost floor across the industry. Not a direct competitor but raises baseline capabilities.
+          </td>
+        </tr>
+<tr id="pi-dr-ai-boltz" class="pi-dr-row"><td colspan="7"><div class="pi-dr-body"><p class="pi-dr-summary">Boltz-1 (released Nov 2024 by MIT CSAIL) is the first fully open-source biomolecular structure prediction model with performance matching AlphaFold3 on PoseBusters v2 benchmarks. MIT-licensed, meaning any company including Ailux competitors can deploy it without restriction. Impact on landscape: commoditises structure prediction, removes the moat of "access to AlphaFold3/Chai-1" and pushes differentiation toward proprietary data, wet-lab integration, and novel model architectures rather than structure prediction alone.</p><div class="pi-dr-hd">Recent Press Releases &amp; Updates</div><ul class="pi-dr-prs">
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-11</span><a href="https://github.com/jwohlwend/boltz" target="_blank" rel="noopener" class="pi-dr-pr-link">Boltz-1 released on GitHub — MIT license; matches AlphaFold3 on PoseBusters benchmark; immediately adopted by drug discovery teams</a></li>
+</ul></div></td></tr>
+
+        <tr class="pi-main-row" onclick="piToggle('ai-nabla')" style="background:#fef2f2">
+          <td>
+            <strong style="font-size:13px">Nabla Bio</strong><span class="pi-chevron" id="pi-ch-ai-nabla">&#9660;</span><br>
+            <span style="color:#64748b;font-size:10px">Cambridge, MA · 2021</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Private · ~$100M est.</span>
+          </td>
+          <td style="font-size:11px">ML-guided antibody engineering: generative models for developability, immunogenicity, and affinity optimization. Focus on bispecific and multi-specific formats with proprietary wet-lab validation loop.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Antibody / Bispecific engineering</span></td>
+          <td style="font-size:11px">Internal bispecific programs — pre-IND (undisclosed targets)<br>Partnered optimization programs for pharma clients</td>
+          <td style="font-size:11px">Undisclosed pharma optimization partnerships</td>
+          <td style="font-weight:700;color:#1e3a5f">~$100M est.</td>
+          <td style="font-size:11px">
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            Direct platform overlap: Nabla builds AI-designed bispecific antibodies — the same core modality as Ailux. Bispecific format expertise + pharma BD model mirrors Ailux strategy. Closest stealth competitor in the bispecific-specific AI design space.
+          </td>
+        </tr>
+<tr id="pi-dr-ai-nabla" class="pi-dr-row"><td colspan="7"><div class="pi-dr-body"><p class="pi-dr-summary">Nabla Bio (Cambridge, MA, 2021) uses generative ML models for multi-parameter antibody optimization — targeting affinity, developability, and immunogenicity simultaneously. Specialises in bispecific and multi-specific antibody formats, which directly overlaps Ailux's core modality. Has internal pre-IND programs and pharma partnership optimization business. BD relevance: most direct AI-native bispecific competitor; their fundraising and deal terms are the closest benchmark for Ailux partnership deal structure discussions.</p><div class="pi-dr-hd">Recent Press Releases &amp; Updates</div><ul class="pi-dr-prs">
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-09</span><a href="https://www.nabla.bio/news" target="_blank" rel="noopener" class="pi-dr-pr-link">Nabla Bio raises $60M Series A — multi-specific antibody design platform; internal bispecific pipeline entering IND-enabling studies</a></li>
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-03</span><a href="https://www.nabla.bio/news" target="_blank" rel="noopener" class="pi-dr-pr-link">Nabla Bio launches with $24M seed — ML-guided bispecific antibody engineering with pharma partnership model</a></li>
+</ul></div></td></tr>
+
+        <tr class="pi-main-row" onclick="piToggle('ai-cradle')" style="background:#fefce8">
+          <td>
+            <strong style="font-size:13px">Cradle</strong><span class="pi-chevron" id="pi-ch-ai-cradle">&#9660;</span><br>
+            <span style="color:#64748b;font-size:10px">Zurich / Amsterdam · 2021</span><br>
+            <span style="color:#475569;font-size:10px;font-style:italic">Private · ~$300M est. (post Series B)</span>
+          </td>
+          <td style="font-size:11px">AI protein engineering platform: language models for sequence design, variant prediction, and directed evolution. Optimises biologics for expression, stability, and function. SaaS + co-development model.</td>
+          <td><span class="pi-ta-pill" style="background:#e0e7ff;color:#3730a3">Protein engineering / Biologic optimisation</span></td>
+          <td style="font-size:11px">No disclosed internal pipeline — co-development partnerships.<br>Optimising client proteins across antibodies, enzymes, and growth factors.</td>
+          <td style="font-size:11px">Genmab, Lonza, Ajinomoto (protein optimisation)<br>Multiple pharma co-development agreements</td>
+          <td style="font-weight:700;color:#1e3a5f">~$300M est.</td>
+          <td style="font-size:11px">
+            <span style="background:#d97706;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Medium Overlap</span><br>
+            Cradle's protein language models compete for pharma optimisation contracts that Ailux's platform also targets. Genmab partnership demonstrates big-biotech willingness to use external AI protein engineering — validates BD model. Raises bar for Ailux platform differentiation.
+          </td>
+        </tr>
+<tr id="pi-dr-ai-cradle" class="pi-dr-row"><td colspan="7"><div class="pi-dr-body"><p class="pi-dr-summary">Cradle (Zurich/Amsterdam, 2021) raised $73M Series B (2024) for AI-guided protein engineering. Platform uses protein language models (ESM-based) to predict optimal variants for stability, expression, and function. Co-development model with pharma: Genmab, Lonza, and Ajinomoto are disclosed partners. No internal pipeline — pure platform + services play. Relevant to Ailux: Cradle competes for the same pharma "AI protein engineering" budget line. Their Genmab partnership validates that top biotech companies pay for external AI protein design services — key evidence for Ailux BD conversations.</p><div class="pi-dr-hd">Recent Press Releases &amp; Updates</div><ul class="pi-dr-prs">
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-10</span><a href="https://www.cradle.bio/news" target="_blank" rel="noopener" class="pi-dr-pr-link">Cradle raises $73M Series B — Genmab and Lonza join as strategic investors; expanding protein engineering platform to antibody optimisation</a></li>
+<li class="pi-dr-pr"><span class="pi-dr-pr-date">2024-04</span><a href="https://www.cradle.bio/news" target="_blank" rel="noopener" class="pi-dr-pr-link">Cradle partners with Genmab for AI-guided antibody engineering — first big-biotech validation of Cradle platform</a></li>
+</ul></div></td></tr>
+
 </tbody>
     </table>
   </div>
@@ -9727,6 +9883,10 @@ document.addEventListener('DOMContentLoaded', function(){
     // AI Biotech
     'absci':        'ai-absci',
     'generatebio':  'ai-generate',
+    'chai':         'ai-chai',
+    'boltz':        'ai-boltz',
+    'nabla':        'ai-nabla',
+    'cradle':       'ai-cradle',
   };
 
   const companyIds = Object.keys(PI_COMPANY_MAP);
