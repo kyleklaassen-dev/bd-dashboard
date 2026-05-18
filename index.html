@@ -1646,37 +1646,70 @@ async function loadAreaDrugs(tabId) {
  </div>
 </div>
 
-<!-- INTEL QUICK-SUBMIT MODAL -->
-<div class="intel-modal-overlay" id="intel-modal-overlay" onclick="if(event.target===this)closeIntelModal()">
- <div class="intel-modal">
- <div class="intel-modal-hd">
- <div>
- <div class="intel-modal-title">Submit Intelligence</div>
- <div class="intel-modal-sub">Drop anything in here — a link, article text, quote, or note. Claude will review and update the dashboard.</div>
- </div>
- <button class="intel-modal-close" onclick="closeIntelModal()"></button>
- </div>
- <div class="intel-modal-body">
- <input type="url" class="intel-modal-url" id="im-url" placeholder="Paste a URL (article · press release · ClinicalTrials.gov · SEC filing · conference abstract…)">
- <textarea class="intel-modal-text" id="im-text" placeholder="Or just type / paste anything — article excerpt, quote, tweet, observation, rumour you want flagged…" rows="5"></textarea>
- <div class="intel-modal-row">
- <select class="intel-intake-tag" id="im-tag">
- <option value="General">Tag (optional)</option>
- <option value="IBD">IBD · TL1A × IL-23</option>
- <option value="Resp">Respiratory · TSLP × IL-33</option>
- <option value="Type 2">Type 2 · IL-4Rα × TSLP</option>
- <option value="AD">AD · IL-4Rα × OX40L</option>
- <option value="TED">TED · IGF1R × TSHR</option>
- <option value="AI">Autoimmune · FcRn</option>
- <option value="Immune Reset">Immune Reset · ACE</option>
- <option value="General">General</option>
- </select>
- <div style="flex:1"></div>
- <button class="intel-modal-save" onclick="saveFromModal()">Save to Dashboard</button>
- <button class="intel-modal-copy" onclick="copyFromModal()">Copy for Claude</button>
- </div>
- </div>
- </div>
+<!-- SUBMIT INTEL MODAL -->
+<div class="intel-submit-overlay" id="intel-submit-overlay" onclick="closeIntelModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div class="intel-submit-modal" onclick="event.stopPropagation()" style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;width:560px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="color:#f1f5f9;font-size:16px;margin:0;">Submit Intel</h3>
+      <button onclick="closeIntelModal()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">&#x2715;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Headline <span style="color:#ef4444">*</span></label>
+        <input id="si-headline" type="text" placeholder="Short factual headline (&#x2264;100 chars)" maxlength="100"
+          style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Detail / Context</label>
+        <textarea id="si-body" rows="3" placeholder="Detailed explanation with BD context"
+          style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Source URL</label>
+          <input id="si-url" type="url" placeholder="https://..." style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Source Name</label>
+          <input id="si-source" type="text" placeholder="e.g. Press Release" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Type</label>
+          <select id="si-type" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;">
+            <option value="news">News / Press Release</option>
+            <option value="data">Clinical Data</option>
+            <option value="deal">BD Deal</option>
+            <option value="regulatory">FDA/EMA Action</option>
+            <option value="conference">Conference Abstract</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Importance</label>
+          <select id="si-importance" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;color:#f1f5f9;font-size:13px;box-sizing:border-box;">
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:6px;">Areas (select all that apply)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="si-areas">
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="tl1a"> TL1A &middot; IBD</label>
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="tslp"> TSLP &middot; Respiratory</label>
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="il4ra"> IL-4R&#945; &middot; Atopy</label>
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="igf1r"> IGF1R &middot; TED</label>
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="fcrn"> FcRn &middot; Autoimmune</label>
+          <label style="display:flex;align-items:center;gap:4px;color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" value="tcell"> T-cell &middot; ACE</label>
+        </div>
+      </div>
+      <div id="si-status" style="font-size:12px;color:#94a3b8;min-height:16px;"></div>
+      <button onclick="submitIntelToSupabase()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;align-self:flex-end;">Submit Intel</button>
+    </div>
+  </div>
 </div>
 
 <div class="tab-bar">
@@ -7315,11 +7348,52 @@ function jumpToAsset(val) {
 
 // ── INTEL QUICK-SUBMIT MODAL (header button) ──────────────────────
 function openIntelModal() {
- document.getElementById('intel-modal-overlay').classList.add('open');
- setTimeout(() => document.getElementById('im-text').focus(), 80);
+ const overlay = document.getElementById('intel-submit-overlay');
+ if (overlay) overlay.style.display = 'flex';
 }
-function closeIntelModal() {
- document.getElementById('intel-modal-overlay').classList.remove('open');
+function closeIntelModal(e) {
+ if (!e || e.target === document.getElementById('intel-submit-overlay')) {
+   const overlay = document.getElementById('intel-submit-overlay');
+   if (overlay) overlay.style.display = 'none';
+ }
+}
+async function submitIntelToSupabase() {
+ const headline = document.getElementById('si-headline').value.trim();
+ const body = document.getElementById('si-body').value.trim();
+ const sourceUrl = document.getElementById('si-url').value.trim();
+ const sourceName = document.getElementById('si-source').value.trim();
+ const intelType = document.getElementById('si-type').value;
+ const importance = document.getElementById('si-importance').value;
+ const areas = [...document.querySelectorAll('#si-areas input:checked')].map(i => i.value);
+ const statusEl = document.getElementById('si-status');
+ if (!headline) { statusEl.textContent = 'Headline is required.'; statusEl.style.color = '#ef4444'; return; }
+ if (!areas.length) { statusEl.textContent = 'Select at least one area.'; statusEl.style.color = '#ef4444'; return; }
+ statusEl.textContent = 'Submitting…'; statusEl.style.color = '#94a3b8';
+ try {
+   const today = new Date().toISOString().split('T')[0];
+   const { data, error } = await _sb.from('intel').insert([{
+     intel_date: today, headline, body: body || null,
+     source_url: sourceUrl || null, source_name: sourceName || null,
+     verified: false, importance, intel_type: intelType
+   }]).select();
+   if (error) throw error;
+   const newId = data[0].id;
+   for (const areaId of areas) {
+     await _sb.from('intel_areas').insert([{ intel_id: newId, area_id: areaId }]);
+   }
+   statusEl.textContent = '✓ Intel submitted successfully.'; statusEl.style.color = '#10b981';
+   setTimeout(() => {
+     ['si-headline','si-body','si-url','si-source'].forEach(id => document.getElementById(id).value = '');
+     document.querySelectorAll('#si-areas input').forEach(i => i.checked = false);
+     statusEl.textContent = '';
+     closeIntelModal();
+     const activeTab = document.querySelector('.tab-btn.active');
+     if (activeTab) { const tid = activeTab.getAttribute('onclick')?.match(/'([^']+)'/)?.[1]; if(tid && TAB_AREA_MAP[tid]) { window._molTabLoaded[tid]=false; loadMoleculeTab(tid); } }
+   }, 2000);
+ } catch(e) {
+   statusEl.textContent = 'Error: ' + (e.message || 'submission failed');
+   statusEl.style.color = '#ef4444';
+ }
 }
 function saveFromModal() {
  const url = (document.getElementById('im-url')?.value || '').trim();
@@ -7346,7 +7420,7 @@ function copyFromModal() {
  setTimeout(() => { btn.textContent = orig; closeIntelModal(); }, 1800);
  });
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIntelModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeIntelModal(); } });
 
 // ── INTELLIGENCE INTAKE PANEL ─────────────────────────────────────
 const TAG_COLORS = {
@@ -7907,6 +7981,8 @@ function globalSearch(term) {
  });
  countEl.textContent = total + ' match' + (total !== 1 ? 'es' : '');
  countEl.style.display = 'inline';
+ // Also run Supabase search in background
+ supabaseSearch(t);
  }
  }
 
@@ -7955,6 +8031,30 @@ function clearGlobalSearch() {
  if (inp) inp.value = '';
  globalSearch('');
 }
+async function supabaseSearch(query) {
+  if (!query || query.length < 2) return;
+  const q = query.toLowerCase();
+  try {
+    const [{ data: drugs }, { data: companies }, { data: intel }] = await Promise.all([
+      _sb.from('drugs').select('id,name,stage,stage_detail,company_id').ilike('name', '%' + q + '%').limit(5),
+      _sb.from('companies').select('id,name,ticker,insight_text').or('name.ilike.%' + q + '%,ticker.ilike.%' + q + '%').limit(5),
+      _sb.from('intel').select('id,headline,intel_date,source_url').ilike('headline', '%' + q + '%').order('intel_date', {ascending:false}).limit(5)
+    ]);
+    const results = [];
+    (drugs||[]).forEach(d => results.push({ type:'drug', title: d.name, sub: (d.stage||'') + ' · ' + (d.company_id||''), detail: d.stage_detail }));
+    (companies||[]).forEach(c => results.push({ type:'company', title: c.name, sub: c.ticker||'', detail: c.insight_text }));
+    (intel||[]).forEach(i => results.push({ type:'intel', title: i.headline, sub: i.intel_date, url: i.source_url }));
+    const countEl = document.getElementById('gs-count');
+    if (results.length && countEl && countEl.style.display !== 'none') {
+      const existing = countEl.textContent;
+      countEl.textContent = existing + ' (+' + results.length + ' DB)';
+    } else if (results.length && countEl) {
+      countEl.textContent = results.length + ' DB match' + (results.length !== 1 ? 'es' : '');
+      countEl.style.display = 'inline';
+    }
+  } catch(e) { /* silent fail on search errors */ }
+}
+
 
 // ── ASSET PROFILE MODAL ──────────────────────────────────────────
 function openAssetModal(slug) {
