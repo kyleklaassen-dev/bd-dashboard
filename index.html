@@ -985,6 +985,45 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .ii-month { margin:0 24px 24px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); overflow:hidden; background:#fff; max-width:860px; }
 .ii-stats-bar { max-width:860px; }
 .ii-filter-bar { max-width:860px; }
+
+/* ── Rolling Deal Tracker ──────────────────────────────────────────── */
+.rdt-wrap { padding:0 24px 24px; }
+.rdt-hd { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+.rdt-hd-title { font-size:13px; font-weight:800; color:#1e3a5f; }
+.rdt-hd-sub { font-size:11px; color:#94a3b8; }
+.rdt-scroll { overflow-x:auto; border-radius:10px; border:1px solid #e2e8f0; }
+.rdt-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+.rdt-table th { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; padding:9px 12px; border-bottom:2px solid #e2e8f0; text-align:left; background:#f8fafc; white-space:nowrap; }
+.rdt-table td { padding:9px 12px; border-bottom:1px solid #f0f4f8; vertical-align:top; line-height:1.4; }
+.rdt-table tr:last-child td { border-bottom:none; }
+.rdt-table tr:hover td { background:#f8faff; }
+.rdt-date { color:#64748b; white-space:nowrap; font-size:11px; }
+.rdt-co { font-weight:700; white-space:nowrap; font-size:11.5px; }
+.rdt-co.hi-lilly  { color:#b91c1c; background:#fef2f2; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-sanofi { color:#c2410c; background:#fff7ed; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-takeda { color:#92400e; background:#fffbeb; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-abbvie { color:#6d28d9; background:#f5f3ff; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-roche  { color:#1d4ed8; background:#eff6ff; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-gilead { color:#0f766e; background:#f0fdfa; padding:1px 6px; border-radius:4px; }
+.rdt-focus { max-width:200px; color:#1e293b; }
+.rdt-mod { font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; display:inline-block; }
+.rdt-mod-ai    { background:#ede9fe; color:#5b21b6; }
+.rdt-mod-tce   { background:#fce7f3; color:#9d174d; }
+.rdt-mod-bio   { background:#dcfce7; color:#166534; }
+.rdt-mod-cell  { background:#e0f2fe; color:#0c4a6e; }
+.rdt-mod-oral  { background:#fef9c3; color:#713f12; }
+.rdt-mod-area  { background:#dbeafe; color:#1e40af; }
+.rdt-mod-def   { background:#f1f5f9; color:#475569; }
+.rdt-econ  { color:#1e293b; min-width:160px; font-size:11px; }
+.rdt-rat   { color:#475569; max-width:260px; font-size:11px; }
+.rdt-load-btn { margin:10px 0 0; padding:7px 20px; background:#1e3a5f; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition:background 0.15s; }
+.rdt-load-btn:hover { background:#2e5090; }
+
+/* ── II Live Intel Feed ────────────────────────────────────────────── */
+.ii-live-wrap { padding:16px 24px 4px; max-width:860px; }
+.ii-live-hd { font-size:12px; font-weight:800; color:#1e3a5f; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.ii-live-area { font-size:9px; font-weight:700; color:white; padding:2px 7px; border-radius:8px; }
+.ii-archive-hd { padding:12px 24px 0; max-width:860px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; border-top:1px solid #e2e8f0; margin:8px 24px 0; }
 .ii-month-hd { padding:14px 18px; background:#1e3a5f; color:#fff; font-weight:700; font-size:14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
 .ii-month-hd span { font-size:11px; font-weight:400; opacity:0.7; }
 .ii-month-body { padding:0; }
@@ -2082,6 +2121,37 @@ function loadMoleculeTab(tabId) {
 
 <div class="tab-pane" id="tab-industry-insights">
  <div>
+
+  <!-- ── Live Intelligence Feed ──────────────────────────────────────── -->
+  <div class="ii-live-wrap">
+   <div class="ii-live-hd">⚡ Live Intelligence Feed <span style="font-size:10px;color:#94a3b8;font-weight:400">Sourced from Meridian research pipeline · all focus areas</span></div>
+   <div id="ii-live-body" style="color:#94a3b8;font-size:12px;">Loading intelligence…</div>
+  </div>
+
+  <!-- ── Rolling BD Deal Tracker ─────────────────────────────────────── -->
+  <div class="rdt-wrap" style="margin-top:20px;">
+   <div class="rdt-hd">
+    <span class="rdt-hd-title">📋 BD Deal Tracker</span>
+    <span class="rdt-hd-sub">Reverse chronological · broad pharma + Ailux focus areas</span>
+   </div>
+   <div class="rdt-scroll">
+    <table class="rdt-table">
+     <thead>
+      <tr>
+       <th>Date</th><th>Partner</th><th>Counterparty</th><th>Focus / Asset</th><th>Modality</th><th>Economics</th><th>Strategic Rationale</th>
+      </tr>
+     </thead>
+     <tbody id="rdt-tbody">
+      <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;font-size:12px;">Loading deals…</td></tr>
+     </tbody>
+    </table>
+   </div>
+   <button id="rdt-more-btn" class="rdt-load-btn" onclick="rdtLoadMore()" style="display:none">Load 10 more ↓</button>
+  </div>
+
+  <!-- ── Historical Archive divider ──────────────────────────────────── -->
+  <div class="ii-archive-hd" style="margin-top:24px;padding-top:16px;">📂 Historical Archive</div>
+
   <div class="ii-stats-bar">
     <div class="ii-stat"><div class="ii-stat-val">64</div><div class="ii-stat-lbl">Articles</div></div>
     <div class="ii-stat"><div class="ii-stat-val">25</div><div class="ii-stat-lbl">Deal Items</div></div>
@@ -8221,6 +8291,7 @@ function switchTab(id, btn) {
  closeToc();
   if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
   if (id === 'meridian-issue') _setMeridianIframeSrc();
+  if (id === 'industry-insights') { loadRollingDeals(); loadLiveIntel(); }
 }
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
@@ -8425,6 +8496,121 @@ function renderWeeklyTasks() {
  }).join('')}
  </div>`;
  }).join('');
+}
+
+// ── Rolling Deal Tracker ─────────────────────────────────────────────────────
+let _rdtAll = [];
+let _rdtShown = 10;
+
+const RDT_CO_CLASS = {
+  'eli lilly':'hi-lilly','lilly':'hi-lilly',
+  'sanofi':'hi-sanofi','takeda':'hi-takeda',
+  'abbvie':'hi-abbvie','roche':'hi-roche','genentech':'hi-roche',
+  'gilead':'hi-gilead',
+};
+function rdtCoClass(name) {
+  const lc = (name||'').toLowerCase();
+  for (const [k,v] of Object.entries(RDT_CO_CLASS)) if (lc.includes(k)) return v;
+  return '';
+}
+function rdtModClass(dealType, areaId) {
+  const dt = (dealType||'').toLowerCase();
+  if (dt.includes('ai')) return ['rdt-mod-ai', dealType];
+  if (dt.includes('tce')||dt.includes('bispecific')||dt.includes('trispecific')) return ['rdt-mod-tce', dealType];
+  if (dt.includes('cell')||dt.includes('car')||dt.includes('tcr')||dt.includes('rna')) return ['rdt-mod-cell', dealType];
+  if (dt.includes('biolog')||dt.includes('mab')||dt.includes('antibod')) return ['rdt-mod-bio', dealType];
+  if (dt.includes('oral')||dt.includes('small')||dt.includes('iv &')) return ['rdt-mod-oral', dealType];
+  if (areaId && AREA_LABELS[areaId]) return ['rdt-mod-area', AREA_LABELS[areaId]];
+  if (dealType && !['license','acquisition','collab','option'].includes(dealType)) return ['rdt-mod-def', dealType];
+  return ['rdt-mod-def', dealType || '—'];
+}
+function rdtFmtEcon(d) {
+  const fmt = m => m >= 1000 ? `$${(m/1000).toFixed(m%1000===0?0:2).replace(/\.?0+$/,'')}B` : `$${m}M`;
+  const parts = [];
+  if (d.upfront_usd_m) parts.push(`${fmt(d.upfront_usd_m)} upfront`);
+  if (d.total_usd_m && d.total_usd_m !== d.upfront_usd_m) parts.push(`up to ${fmt(d.total_usd_m)}`);
+  return parts.join('; ') || 'Not disclosed';
+}
+
+async function loadRollingDeals() {
+  const tbody = document.getElementById('rdt-tbody');
+  if (!tbody) return;
+  try {
+    const { data, error } = await _sb.from('deals').select('*').order('deal_date', { ascending: false });
+    if (error) throw error;
+    _rdtAll = data || [];
+    renderRollingDeals();
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color:#dc2626;font-size:12px;padding:14px;">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderRollingDeals() {
+  const tbody = document.getElementById('rdt-tbody');
+  const btn   = document.getElementById('rdt-more-btn');
+  if (!tbody) return;
+  const slice = _rdtAll.slice(0, _rdtShown);
+  tbody.innerHTML = slice.map(d => {
+    const fromCls = rdtCoClass(d.from_company);
+    const toCls   = rdtCoClass(d.to_company);
+    const [modCls, modLabel] = rdtModClass(d.deal_type, d.area_id);
+    const econ = rdtFmtEcon(d);
+    const rat  = (d.detail || d.ailux_signal || '').replace(/<[^>]+>/g,'');
+    const ratShort = rat.length > 120 ? rat.slice(0,120)+'…' : rat;
+    return `<tr>
+<td class="rdt-date">${d.deal_date_label||''}</td>
+<td><span class="rdt-co ${fromCls}">${d.from_company||''}</span></td>
+<td><span class="rdt-co ${toCls}">${d.to_company||''}</span></td>
+<td class="rdt-focus">${d.headline||''}</td>
+<td><span class="rdt-mod ${modCls}">${modLabel}</span></td>
+<td class="rdt-econ">${econ}</td>
+<td class="rdt-rat">${ratShort}</td>
+</tr>`;
+  }).join('');
+  if (btn) btn.style.display = _rdtShown >= _rdtAll.length ? 'none' : 'inline-block';
+}
+
+function rdtLoadMore() {
+  _rdtShown += 10;
+  renderRollingDeals();
+}
+
+// ── II Live Intel Feed ────────────────────────────────────────────────────────
+async function loadLiveIntel() {
+  const body = document.getElementById('ii-live-body');
+  if (!body) return;
+  try {
+    const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').limit(200);
+    const { data: rows, error } = await _sb.from('intel')
+      .select('*').order('intel_date', { ascending: false }).limit(20);
+    if (error) throw error;
+    if (!rows || !rows.length) {
+      body.innerHTML = '<div style="color:#94a3b8;font-size:12px;">No intelligence yet — research pipeline runs Mon–Sat at 4 AM ET.</div>';
+      return;
+    }
+    const areaMap = {};
+    (iaRows||[]).forEach(r => { if (!areaMap[r.intel_id]) areaMap[r.intel_id] = []; areaMap[r.intel_id].push(r.area_id); });
+    const AREA_COLORS = { tl1a:'#1a3f8f',tslp:'#0e7490',il4ra:'#7c3aed',igf1r:'#b45309',fcrn:'#15803d',tcell:'#dc2626' };
+    body.innerHTML = rows.map(item => {
+      const dot = item.importance==='high'?'🔴':item.importance==='medium'?'🟡':'⚪';
+      const areas = (areaMap[item.id]||[]).map(a => `<span class="ii-live-area" style="background:${AREA_COLORS[a]||'#4b5563'}">${AREA_LABELS[a]||a}</span>`).join(' ');
+      const typeTag = item.intel_type ? `<span style="font-size:9px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;margin-left:4px;">${item.intel_type}</span>` : '';
+      const src = item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;margin-left:4px;">↗</a>` : '';
+      return `<div style="padding:9px 0;border-bottom:1px solid #f0f4f8">
+<div style="display:flex;align-items:flex-start;gap:8px">
+  <span style="flex-shrink:0;margin-top:2px">${dot}</span>
+  <div style="flex:1;min-width:0">
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px">${areas}${typeTag}</div>
+    <div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.4">${item.headline||''}${src}</div>
+    ${item.body?`<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.5">${item.body}</div>`:''}
+    <div style="font-size:10px;color:#94a3b8;margin-top:3px">${item.intel_date||''} · ${item.source_name||''}</div>
+  </div>
+</div>
+</div>`;
+    }).join('');
+  } catch(e) {
+    if (body) body.innerHTML = `<div style="color:#dc2626;font-size:12px">Error: ${e.message}</div>`;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); dknLoadSbData(); });
