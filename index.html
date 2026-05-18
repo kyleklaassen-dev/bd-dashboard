@@ -3017,15 +3017,15 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-takeaways')">🎯 BD Takeaways</button>
   <button class="tl1a-pill-btn" id="pill-intel" onclick="openTl1aModal('tl1a-modal-intel')">📡 Intel Feed</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-catalysts')">📅 Catalyst Calendar</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-estimand')">📐 Estimand Guide</button>
+  <button class="tl1a-pill-btn" id="pill-market" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🔬 China Programs</button>
 </div>
 <!-- RIGHT fixed pill column -->
 <div class="tl1a-pills-col" id="tl1a-pills-right">
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')">🧬 Ailux Profile</button>
   <button class="tl1a-pill-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" id="pill-market" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-estimand')">📐 Estimand Guide</button>
   <button class="tl1a-pill-btn" id="pill-soc" onclick="openTl1aModal('tl1a-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🔬 China Programs</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-history')">📖 IBD History</button>
 </div>
 
@@ -9175,7 +9175,10 @@ const tl1aPI = {
    /* Unique button ID for hover persistence */
    const btnId = 'spy-btn-' + d.code.replace(/[^a-z0-9]/gi,'');
    /* Target display — multi-line for combos */
-   const targetInline = d.target.split(' + ').join(' <span style="opacity:0.6">×</span> ');
+   // Co-administered combos use "+"; bispecifics use "×" — preserve as-is
+   const targetInline = d.isCombo
+     ? d.target.split(' + ').join(' <span style="font-weight:900;color:#0d9488">+</span> ')
+     : d.target;
    const targetLines = `<div style="font-size:8px;font-weight:700;color:#334155;line-height:1.4;margin-top:1px">${targetInline}</div>`;
    /* Short indication: everything before first " —" or " (" */
    const shortInd = (d.indication||'').split(/\s[—(]/)[0].trim();
@@ -9307,15 +9310,9 @@ const tl1aPI = {
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
     <div class="pi-detail-section" style="grid-column:1/-1">
      <h5>🤝 BD Summary</h5>
-     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-      <span style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:3px 10px;color:#1d4ed8;font-weight:700">7-program platform</span>
-      <span style="font-size:11px;background:#f0fdf4;border:1px solid #86efac;border-radius:20px;padding:3px 10px;color:#166534;font-weight:700">IBD + Rheumatic</span>
-      <span style="font-size:11px;background:#fefce8;border:1px solid #fde68a;border-radius:20px;padding:3px 10px;color:#92400e;font-weight:700">Agenus spinout · Feb 2024</span>
-      <span style="font-size:11px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:20px;padding:3px 10px;color:#6d28d9;font-weight:700">\$783M raised</span>
-      <span style="font-size:11px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:20px;padding:3px 10px;color:#475569;font-weight:700">Cash into H2 2028</span>
-      <span style="font-size:11px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;padding:3px 10px;color:#c2410c;font-weight:700">NASDAQ: SYRE</span>
-      <span style="font-size:11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:20px;padding:3px 10px;color:#7e22ce;font-weight:700">No pharma partners — pre-partnering through Ph2</span>
-     </div>
+     <p>Spyre was spun out of Agenus (Nasdaq: AGEN) in February 2024, with Agenus contributing SPY001, SPY002, and SPY003 alongside exclusive rights to the YTE Fc platform. Agenus retained ~25% equity and tiered royalties on net sales across all programs. Spyre raised $720M in a Series A co-led by Farallon Capital Management, Foresite Capital, and RA Capital Management — subsequently topped up via ATM to approximately $783M total. This capital is designed to fully fund all 7 programs through Phase 2 readouts, with management guiding cash runway into H2 2028.</p>
+     <p>Spyre has taken a deliberate pre-partnering stance: no pharma partnerships have been announced, and the company has publicly stated it intends to wait for Phase 2 data before initiating BD discussions. The primary partnering catalyst window is the 2027 SKYLINE combination data (SPY120 · SPY130 · SPY230), which will provide the first clinical signal for co-administered dual-target blockade vs. monotherapy — directly informing the value of any TL1A×IL-23 bispecific thesis. The 7-program structure creates multiple deal configurations: individual program licensing (e.g., SPY002 TL1A mono or SPY072 for the rheumatic franchise), indication-specific co-development, or whole-platform acquisition. NASDAQ listing (SYRE) and an institutional shareholder base create public market accountability that could pressure a BD timeline if Phase 2 data are strong.</p>
+    </div>
     </div>
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
     <div class="pi-detail-section"><h5>💼 Deal History</h5>${deals}</div>
