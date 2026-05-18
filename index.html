@@ -8610,19 +8610,13 @@ function showSpyrePopup(id) {
     popup.style.left = (vpLeft - btnR.left) + 'px';
   });
 }
-function hideSpyrePopup(id) {
-  _spyrePopupTimer = setTimeout(() => {
-    if (_spyreActiveId !== id) return;
-    const btn = document.getElementById(id);
-    if (btn) {
-      btn.classList.remove('spy-popup-active');
-      const p = btn.querySelector('.spyre-drug-popup');
-      if (p) p.style.display = 'none';
-    }
-    _spyreActiveId = null;
-  }, 200);
+function hideSpyrePopup() {
+  clearTimeout(_spyrePopupTimer);
+  document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
+  document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
+  _spyreActiveId = null;
 }
-function cancelHideSpyrePopup() { clearTimeout(_spyrePopupTimer); }
+function cancelHideSpyrePopup() { /* no-op — kept for compatibility */ }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.bio-dd-overlay.open').forEach(el => el.classList.remove('open')); }});
 
 // ── TL1A PROGRAM INTELLIGENCE TABLE ──────────────────────────────
@@ -9214,10 +9208,10 @@ const tl1aPI = {
 
    /* Sources — now embedded inline in mechanism text, not shown separately */
 
-   return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${diseaseColor};color:${diseaseColor};background:${diseaseLightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup('${btnId}')">
+   return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${diseaseColor};color:${diseaseColor};background:${diseaseLightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup()">
     <div style="font-size:12px;font-weight:900;margin-top:4px;color:#1e3a5f">${d.code}</div>
     ${targetLines}${indLabel}
-    <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup('${btnId}')">
+    <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup()">
      <!-- Summary card -->
      <div style="background:${d.lightBg};border:1.5px solid ${d.color}44;border-radius:8px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
