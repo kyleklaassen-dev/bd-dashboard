@@ -979,12 +979,10 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 
 <style>
 /* Industry Insights Tab */
-.ii-filter-bar { display:flex; gap:8px; flex-wrap:wrap; padding:12px 24px 16px; }
+.ii-filter-bar { display:flex; gap:8px; flex-wrap:wrap; padding:12px 24px 16px; max-width:860px; width:calc(100% - 48px); margin:0 auto; }
 .ii-filter-btn { padding:5px 14px; border-radius:20px; border:1.5px solid #cbd5e1; background:#fff; font-size:11px; font-weight:600; cursor:pointer; color:#475569; transition:all 0.15s; }
 .ii-filter-btn.active, .ii-filter-btn:hover { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
-.ii-month { margin:0 24px 24px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); overflow:hidden; background:#fff; max-width:860px; }
-.ii-stats-bar { max-width:860px; }
-.ii-filter-bar { max-width:860px; }
+.ii-month { margin:0 auto 24px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); overflow:hidden; background:#fff; max-width:860px; width:calc(100% - 48px); }
 
 /* ── Rolling Deal Tracker ──────────────────────────────────────────── */
 .rdt-wrap { padding:0 24px 24px; }
@@ -1020,10 +1018,9 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .rdt-load-btn:hover { background:#2e5090; }
 
 /* ── II Live Intel Feed ────────────────────────────────────────────── */
-.ii-live-wrap { padding:16px 24px 4px; max-width:860px; }
+.ii-live-wrap { padding:16px 24px 4px; }
 .ii-live-hd { font-size:12px; font-weight:800; color:#1e3a5f; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
 .ii-live-area { font-size:9px; font-weight:700; color:white; padding:2px 7px; border-radius:8px; }
-.ii-archive-hd { padding:12px 24px 0; max-width:860px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; border-top:1px solid #e2e8f0; margin:8px 24px 0; }
 .ii-month-hd { padding:14px 18px; background:#1e3a5f; color:#fff; font-weight:700; font-size:14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
 .ii-month-hd span { font-size:11px; font-weight:400; opacity:0.7; }
 .ii-month-body { padding:0; }
@@ -1054,7 +1051,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .ii-img { padding-left:72px; margin-top:8px; }
 .ii-img img { max-width:100%; border-radius:8px; border:1px solid #e2e8f0; }
 .ii-toggle { font-size:10px; color:#6366f1; cursor:pointer; margin-left:72px; margin-top:4px; display:inline-block; }
-.ii-stats-bar { display:flex; gap:24px; padding:12px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; }
+.ii-stats-bar { display:flex; gap:24px; padding:12px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; max-width:860px; width:calc(100% - 48px); margin:0 auto; }
 .ii-stat { text-align:center; }
 .ii-stat-val { font-size:20px; font-weight:800; color:#1e3a5f; }
 .ii-stat-lbl { font-size:10px; color:#64748b; text-transform:uppercase; }
@@ -2150,7 +2147,7 @@ function loadMoleculeTab(tabId) {
   </div>
 
   <!-- ── Historical Archive divider ──────────────────────────────────── -->
-  <div class="ii-archive-hd" style="margin-top:24px;padding-top:16px;">📂 Historical Archive</div>
+  <div style="max-width:860px;width:calc(100% - 48px);margin:24px auto 0;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">📂 Historical Archive</div>
 
   <div class="ii-stats-bar">
     <div class="ii-stat"><div class="ii-stat-val">64</div><div class="ii-stat-lbl">Articles</div></div>
