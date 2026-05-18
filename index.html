@@ -1014,7 +1014,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
 .tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
 .tl1a-center-col { min-width:0; }
-.tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:70px;z-index:50;width:148px; }
+.tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:50;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
 #tl1a-pills-left { left:14px; }
 #tl1a-pills-right { right:14px; }
@@ -10188,6 +10188,9 @@ function fixTabBarTop() {
   // Pin dkn-master-wrap directly below header+tabbar using fixed positioning
   const wrap = document.querySelector('.dkn-master-wrap');
   if (wrap) wrap.style.top = (hdrH + tbH) + 'px';
+  // Pin TL1A side pills just below header+tabbar
+  const pillsOffset = hdrH + tbH + 10;
+  document.querySelectorAll('.tl1a-pills-col').forEach(p => { p.style.top = pillsOffset + 'px'; });
 }
 fixTabBarTop();
 window.addEventListener('resize', fixTabBarTop);
