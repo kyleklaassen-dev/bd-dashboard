@@ -608,258 +608,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .predict-toggle.open { transform: rotate(180deg); }
 .predict-rule { background: #fffbf0; border-left: 4px solid #f59e0b; border-radius: 0 6px 6px 0; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; color: #374151; line-height: 1.78; }
 .predict-rule strong { color: #78350f; }
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-// ── Ailux BD Platform · Supabase Layer ──────────────────────────────────────
-const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-// ── Tag colour map ──────────────────────────────────────────────────────────
-const AREA_TAG = {
-  tl1a:  {cls:'stag-tl1a', label:'TL1A'},
-  tslp:  {cls:'stag-tslp', label:'TSLP'},
-  il4ra: {cls:'stag-il4ra', label:'IL-4Rα'},
-  igf1r: {cls:'stag-igf1r', label:'IGF1R'},
-  fcrn:  {cls:'stag-fcrn',  label:'FcRn'},
-  tcell: {cls:'stag-bcma',  label:'Immune Reset'},
-};
-
-// ── Company card renderer ────────────────────────────────────────────────────
-function buildStockCard(company, areas, signals) {
-  const areaKeys = areas.map(a => a.area_id);
-  const areaStr  = areaKeys.join(' ');
-
-  const tags = areaKeys.map(k => {
-    const t = AREA_TAG[k] || {cls:'', label:k};
-    return `<span class="stag ${t.cls}">${t.label}</span>`;
-  }).join('');
-
-  const insightSignal = signals.find(s => true);   // first signal = insight
-  const insightDir = insightSignal ? insightSignal.dir : 'neutral';
-  const insightText = insightSignal ? insightSignal.signal_text : '';
-  const dirClass = insightDir === 'up' ? 'si-up' : insightDir === 'down' ? 'si-down' : 'si-neut';
-  const dirArrow = insightDir === 'up' ? '↑ Watch:' : insightDir === 'down' ? '↓ Risk:' : '→ Context:';
-
-  const bodySignals = signals.slice(1).map(s => {
-    const dc = s.dir === 'up' ? 'si-up' : s.dir === 'down' ? 'si-down' : 'si-neut';
-    const da = s.dir === 'up' ? '↑' : s.dir === 'down' ? '↓' : '→';
-    return `<div style="font-size:11px;color:#475569;line-height:1.5;padding:3px 0;border-top:1px solid #f8fafc;">
-      <span class="${dc}" style="font-weight:700;">${da}</span> ${s.signal_text}
-    </div>`;
-  }).join('');
-
-  const exchangeLabel = company.exchange && company.exchange !== 'Private' ? company.exchange : company.ticker === 'Private' ? 'Private' : company.exchange;
-  const tickerHtml = company.ticker && company.ticker !== 'Private'
-    ? `<span style="font-size:10px;font-weight:600;color:#94a3b8;">${company.ticker}</span>`
-    : `<span style="font-size:10px;font-weight:600;color:#94a3b8;">Private</span>`;
-
-  const ailuxAngleHtml = company.ailux_angle
-    ? `<div style="font-size:11px;color:#2563eb;background:#eff6ff;padding:6px 10px;border-radius:5px;margin-top:6px;line-height:1.5;"><strong>Ailux BD Lens:</strong> ${company.ailux_angle}</div>`
-    : '';
-
-  return `
-<div class="stock-card" data-areas="${areaStr}" data-company-id="${company.id}" onclick="toggleStockCard(this)">
-  <div class="stock-tile-hd">
-    <div class="stock-tile-left">
-      <div class="stock-tile-name">${company.name} ${tickerHtml}</div>
-      <div class="stock-tile-sub">${exchangeLabel || ''}${company.tagline ? ' · ' + company.tagline : ''}</div>
-      <div class="stock-tile-tags">${tags}</div>
-    </div>
-    <div class="stock-tile-right"><span class="stock-expand-icon">＋</span></div>
-  </div>
-  <div class="stock-insight"><span class="${dirClass}">${dirArrow}</span> ${insightText}</div>
-  <div class="stock-body">
-    ${bodySignals}
-    ${ailuxAngleHtml}
-    ${company.last_verified ? `<div style="font-size:10px;color:#cbd5e1;margin-top:6px;text-align:right;">Verified ${company.last_verified}</div>` : ''}
-  </div>
-</div>`;
-}
-
-// ── Fetch + render stock cards from Supabase ─────────────────────────────────
-async function loadStockCards() {
-  const grid = document.getElementById('stock-cards-grid');
-  if (!grid) return;
-
-  try {
-    // Parallel fetch: companies + company_areas + company_signals
-    const [compRes, areaRes, sigRes] = await Promise.all([
-      _sb.from('companies').select('*').order('name'),
-      _sb.from('company_areas').select('*'),
-      _sb.from('company_signals').select('*').order('sort_order'),
-    ]);
-
-    if (compRes.error) throw compRes.error;
-
-    const companies = compRes.data || [];
-    const allAreas  = areaRes.data  || [];
-    const allSigs   = sigRes.data   || [];
-
-    grid.innerHTML = '';   // clear loading spinner
-
-    companies.forEach(company => {
-      const areas = allAreas.filter(a => a.company_id === company.id);
-      const sigs  = allSigs.filter(s  => s.company_id === company.id);
-      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs));
-    });
-
-    // Re-apply any active filter after render
-    const activeBtn = document.querySelector('.stock-fbtn.active');
-    if (activeBtn) {
-      const area = activeBtn.getAttribute('onclick').match(/'([^']*)'\)/)?.[1] || '';
-      if (area) stockFilter(activeBtn, area);
-    }
-  } catch(err) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc2626;">
-      Error loading data: ${err.message}<br>
-      <small style="color:#94a3b8;">Check console for details</small>
-    </div>`;
-    console.error('Supabase load error:', err);
-  }
-}
-
-// ── Intel / Catalysts loader (for future sections) ───────────────────────────
-async function sbFetch(table, opts = {}) {
-  let q = _sb.from(table).select(opts.select || '*');
-  if (opts.eq)    q = q.eq(opts.eq[0], opts.eq[1]);
-  if (opts.order) q = q.order(opts.order, { ascending: opts.asc ?? false });
-  if (opts.limit) q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
-}
-
-// ── Area label maps ─────────────────────────────────────────────────────────
-const AREA_LABELS = {
-  tl1a: 'TL1A · IBD', tslp: 'TSLP · Respiratory', il4ra: 'IL-4Rα · Atopy',
-  igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
-};
-
-// ── Deal Tracker ─────────────────────────────────────────────────────────────
-let _allDeals = [];
-
-function fmtMoney(m) {
-  if (!m) return '';
-  return m >= 1000 ? `$${(m/1000).toFixed(2).replace(/\.?0+$/,'')}B` : `$${m}M`;
-}
-
-function renderDeals(deals) {
-  const list = document.getElementById('deals-list');
-  if (!list) return;
-  if (!deals.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
-  list.innerHTML = deals.map(d => {
-    const val     = fmtMoney(d.total_usd_m);
-    const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
-    const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
-    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ Source</a>` : '';
-    const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
-    return `<div class="deal-row" data-area="${d.area_id||''}">
-  <div class="deal-co">
-    <span class="deal-date-badge">${d.deal_date_label||''}</span>
-    ${d.from_company||''} → ${d.to_company||''}
-    ${val ? `<span class="deal-val">${val}</span>` : ''}
-    ${srcLink}
-  </div>
-  <div class="deal-sub">${upfront}${areaTag} · ${d.headline}</div>
-  ${d.detail ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;">${d.detail}</div>` : ''}
-  ${ailux}
-</div>`;
-  }).join('');
-}
-
-async function loadDeals() {
-  const list = document.getElementById('deals-list');
-  if (!list) return;
-  try {
-    const { data, error } = await _sb.from('deals').select('*').order('deal_date', { ascending: false });
-    if (error) throw error;
-    _allDeals = data || [];
-    renderDeals(_allDeals);
-  } catch(err) {
-    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading deals: ${err.message}</div>`;
-  }
-}
-
-function dealFilter(btn, area) {
-  document.querySelectorAll('#home-deals-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const filtered = area ? _allDeals.filter(d => d.area_id === area) : _allDeals;
-  document.getElementById('deals-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
-  renderDeals(filtered);
-}
-
-// ── Catalysts Feed ───────────────────────────────────────────────────────────
-let _allCatalysts = [];
-
-const SIG_STYLE = {
-  high:   { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'High' },
-  medium: { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706', label: 'Medium' },
-  low:    { bg: '#f0fdf4', border: '#86efac', dot: '#16a34a', label: 'Low' },
-};
-const CAT_TYPE_ICON = {
-  readout: '📊', filing: '📋', approval: '✅', conference: '🎤', deal: '🤝', default: '📌'
-};
-
-function renderCatalysts(cats) {
-  const list = document.getElementById('catalysts-list');
-  if (!list) return;
-  if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
-
-  const open = cats.filter(c => !c.resolved);
-  const resolved = cats.filter(c => c.resolved);
-
-  const renderGroup = (items, isResolved) => items.map(c => {
-    const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
-    const icon = CAT_TYPE_ICON[c.catalyst_type] || CAT_TYPE_ICON.default;
-    const area = AREA_LABELS[c.area_id] || c.area_id || '';
-    const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
-    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
-      display:flex;align-items:flex-start;gap:10px;padding:8px 0;
-      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.6':'1'};
-    ">
-  <div style="flex-shrink:0;text-align:center;min-width:54px;">
-    <div style="font-size:14px;">${icon}</div>
-    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:1px;line-height:1.2;">${c.catalyst_date||''}</div>
-  </div>
-  <div style="flex:1;min-width:0;">
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-      <span style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};">${c.label||''}</span>
-      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;">${sig.label}</span>
-      ${area ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;padding:1px 5px;border-radius:8px;">${area}</span>` : ''}
-    </div>
-    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
-    ${resolvedNote}
-  </div>
-</div>`;
-  }).join('');
-
-  list.innerHTML = (open.length ? renderGroup(open, false) : '') +
-    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">Resolved</div>` + renderGroup(resolved, true) : '');
-}
-
-async function loadCatalysts() {
-  const list = document.getElementById('catalysts-list');
-  if (!list) return;
-  try {
-    const { data, error } = await _sb.from('catalysts').select('*').order('sort_date', { ascending: true });
-    if (error) throw error;
-    _allCatalysts = data || [];
-    renderCatalysts(_allCatalysts);
-  } catch(err) {
-    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading catalysts: ${err.message}</div>`;
-  }
-}
-
-function catFilter(btn, area) {
-  document.querySelectorAll('#home-catalysts-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const filtered = area ? _allCatalysts.filter(c => c.area_id === area) : _allCatalysts;
-  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'Key Readouts & Events';
-  renderCatalysts(filtered);
-}
-
-</script>
 
 .predict-rule:last-child { margin-bottom: 0; }
 
@@ -1223,6 +971,259 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .ii-monthly-summary { background:#fffbeb; border-left:4px solid #f59e0b; padding:12px 18px; margin:8px 0; font-size:12px; }
 .ii-monthly-summary li { padding:3px 0; color:#374151; }
 </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ── Ailux BD Platform · Supabase Layer ──────────────────────────────────────
+const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── Tag colour map ──────────────────────────────────────────────────────────
+const AREA_TAG = {
+  tl1a:  {cls:'stag-tl1a', label:'TL1A'},
+  tslp:  {cls:'stag-tslp', label:'TSLP'},
+  il4ra: {cls:'stag-il4ra', label:'IL-4Rα'},
+  igf1r: {cls:'stag-igf1r', label:'IGF1R'},
+  fcrn:  {cls:'stag-fcrn',  label:'FcRn'},
+  tcell: {cls:'stag-bcma',  label:'Immune Reset'},
+};
+
+// ── Company card renderer ────────────────────────────────────────────────────
+function buildStockCard(company, areas, signals) {
+  const areaKeys = areas.map(a => a.area_id);
+  const areaStr  = areaKeys.join(' ');
+
+  const tags = areaKeys.map(k => {
+    const t = AREA_TAG[k] || {cls:'', label:k};
+    return `<span class="stag ${t.cls}">${t.label}</span>`;
+  }).join('');
+
+  const insightSignal = signals.find(s => true);   // first signal = insight
+  const insightDir = insightSignal ? insightSignal.dir : 'neutral';
+  const insightText = insightSignal ? insightSignal.signal_text : '';
+  const dirClass = insightDir === 'up' ? 'si-up' : insightDir === 'down' ? 'si-down' : 'si-neut';
+  const dirArrow = insightDir === 'up' ? '↑ Watch:' : insightDir === 'down' ? '↓ Risk:' : '→ Context:';
+
+  const bodySignals = signals.slice(1).map(s => {
+    const dc = s.dir === 'up' ? 'si-up' : s.dir === 'down' ? 'si-down' : 'si-neut';
+    const da = s.dir === 'up' ? '↑' : s.dir === 'down' ? '↓' : '→';
+    return `<div style="font-size:11px;color:#475569;line-height:1.5;padding:3px 0;border-top:1px solid #f8fafc;">
+      <span class="${dc}" style="font-weight:700;">${da}</span> ${s.signal_text}
+    </div>`;
+  }).join('');
+
+  const exchangeLabel = company.exchange && company.exchange !== 'Private' ? company.exchange : company.ticker === 'Private' ? 'Private' : company.exchange;
+  const tickerHtml = company.ticker && company.ticker !== 'Private'
+    ? `<span style="font-size:10px;font-weight:600;color:#94a3b8;">${company.ticker}</span>`
+    : `<span style="font-size:10px;font-weight:600;color:#94a3b8;">Private</span>`;
+
+  const ailuxAngleHtml = company.ailux_angle
+    ? `<div style="font-size:11px;color:#2563eb;background:#eff6ff;padding:6px 10px;border-radius:5px;margin-top:6px;line-height:1.5;"><strong>Ailux BD Lens:</strong> ${company.ailux_angle}</div>`
+    : '';
+
+  return `
+<div class="stock-card" data-areas="${areaStr}" data-company-id="${company.id}" onclick="toggleStockCard(this)">
+  <div class="stock-tile-hd">
+    <div class="stock-tile-left">
+      <div class="stock-tile-name">${company.name} ${tickerHtml}</div>
+      <div class="stock-tile-sub">${exchangeLabel || ''}${company.tagline ? ' · ' + company.tagline : ''}</div>
+      <div class="stock-tile-tags">${tags}</div>
+    </div>
+    <div class="stock-tile-right"><span class="stock-expand-icon">＋</span></div>
+  </div>
+  <div class="stock-insight"><span class="${dirClass}">${dirArrow}</span> ${insightText}</div>
+  <div class="stock-body">
+    ${bodySignals}
+    ${ailuxAngleHtml}
+    ${company.last_verified ? `<div style="font-size:10px;color:#cbd5e1;margin-top:6px;text-align:right;">Verified ${company.last_verified}</div>` : ''}
+  </div>
+</div>`;
+}
+
+// ── Fetch + render stock cards from Supabase ─────────────────────────────────
+async function loadStockCards() {
+  const grid = document.getElementById('stock-cards-grid');
+  if (!grid) return;
+
+  try {
+    // Parallel fetch: companies + company_areas + company_signals
+    const [compRes, areaRes, sigRes] = await Promise.all([
+      _sb.from('companies').select('*').order('name'),
+      _sb.from('company_areas').select('*'),
+      _sb.from('company_signals').select('*').order('sort_order'),
+    ]);
+
+    if (compRes.error) throw compRes.error;
+
+    const companies = compRes.data || [];
+    const allAreas  = areaRes.data  || [];
+    const allSigs   = sigRes.data   || [];
+
+    grid.innerHTML = '';   // clear loading spinner
+
+    companies.forEach(company => {
+      const areas = allAreas.filter(a => a.company_id === company.id);
+      const sigs  = allSigs.filter(s  => s.company_id === company.id);
+      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs));
+    });
+
+    // Re-apply any active filter after render
+    const activeBtn = document.querySelector('.stock-fbtn.active');
+    if (activeBtn) {
+      const area = activeBtn.getAttribute('onclick').match(/'([^']*)'\)/)?.[1] || '';
+      if (area) stockFilter(activeBtn, area);
+    }
+  } catch(err) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc2626;">
+      Error loading data: ${err.message}<br>
+      <small style="color:#94a3b8;">Check console for details</small>
+    </div>`;
+    console.error('Supabase load error:', err);
+  }
+}
+
+// ── Intel / Catalysts loader (for future sections) ───────────────────────────
+async function sbFetch(table, opts = {}) {
+  let q = _sb.from(table).select(opts.select || '*');
+  if (opts.eq)    q = q.eq(opts.eq[0], opts.eq[1]);
+  if (opts.order) q = q.order(opts.order, { ascending: opts.asc ?? false });
+  if (opts.limit) q = q.limit(opts.limit);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Area label maps ─────────────────────────────────────────────────────────
+const AREA_LABELS = {
+  tl1a: 'TL1A · IBD', tslp: 'TSLP · Respiratory', il4ra: 'IL-4Rα · Atopy',
+  igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
+};
+
+// ── Deal Tracker ─────────────────────────────────────────────────────────────
+let _allDeals = [];
+
+function fmtMoney(m) {
+  if (!m) return '';
+  return m >= 1000 ? `$${(m/1000).toFixed(2).replace(/\.?0+$/,'')}B` : `$${m}M`;
+}
+
+function renderDeals(deals) {
+  const list = document.getElementById('deals-list');
+  if (!list) return;
+  if (!deals.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
+  list.innerHTML = deals.map(d => {
+    const val     = fmtMoney(d.total_usd_m);
+    const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
+    const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
+    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ Source</a>` : '';
+    const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
+    return `<div class="deal-row" data-area="${d.area_id||''}">
+  <div class="deal-co">
+    <span class="deal-date-badge">${d.deal_date_label||''}</span>
+    ${d.from_company||''} → ${d.to_company||''}
+    ${val ? `<span class="deal-val">${val}</span>` : ''}
+    ${srcLink}
+  </div>
+  <div class="deal-sub">${upfront}${areaTag} · ${d.headline}</div>
+  ${d.detail ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;">${d.detail}</div>` : ''}
+  ${ailux}
+</div>`;
+  }).join('');
+}
+
+async function loadDeals() {
+  const list = document.getElementById('deals-list');
+  if (!list) return;
+  try {
+    const { data, error } = await _sb.from('deals').select('*').order('deal_date', { ascending: false });
+    if (error) throw error;
+    _allDeals = data || [];
+    renderDeals(_allDeals);
+  } catch(err) {
+    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading deals: ${err.message}</div>`;
+  }
+}
+
+function dealFilter(btn, area) {
+  document.querySelectorAll('#home-deals-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = area ? _allDeals.filter(d => d.area_id === area) : _allDeals;
+  document.getElementById('deals-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
+  renderDeals(filtered);
+}
+
+// ── Catalysts Feed ───────────────────────────────────────────────────────────
+let _allCatalysts = [];
+
+const SIG_STYLE = {
+  high:   { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'High' },
+  medium: { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706', label: 'Medium' },
+  low:    { bg: '#f0fdf4', border: '#86efac', dot: '#16a34a', label: 'Low' },
+};
+const CAT_TYPE_ICON = {
+  readout: '📊', filing: '📋', approval: '✅', conference: '🎤', deal: '🤝', default: '📌'
+};
+
+function renderCatalysts(cats) {
+  const list = document.getElementById('catalysts-list');
+  if (!list) return;
+  if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
+
+  const open = cats.filter(c => !c.resolved);
+  const resolved = cats.filter(c => c.resolved);
+
+  const renderGroup = (items, isResolved) => items.map(c => {
+    const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
+    const icon = CAT_TYPE_ICON[c.catalyst_type] || CAT_TYPE_ICON.default;
+    const area = AREA_LABELS[c.area_id] || c.area_id || '';
+    const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
+    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
+      display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.6':'1'};
+    ">
+  <div style="flex-shrink:0;text-align:center;min-width:54px;">
+    <div style="font-size:14px;">${icon}</div>
+    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:1px;line-height:1.2;">${c.catalyst_date||''}</div>
+  </div>
+  <div style="flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};">${c.label||''}</span>
+      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;">${sig.label}</span>
+      ${area ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;padding:1px 5px;border-radius:8px;">${area}</span>` : ''}
+    </div>
+    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
+    ${resolvedNote}
+  </div>
+</div>`;
+  }).join('');
+
+  list.innerHTML = (open.length ? renderGroup(open, false) : '') +
+    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">Resolved</div>` + renderGroup(resolved, true) : '');
+}
+
+async function loadCatalysts() {
+  const list = document.getElementById('catalysts-list');
+  if (!list) return;
+  try {
+    const { data, error } = await _sb.from('catalysts').select('*').order('sort_date', { ascending: true });
+    if (error) throw error;
+    _allCatalysts = data || [];
+    renderCatalysts(_allCatalysts);
+  } catch(err) {
+    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading catalysts: ${err.message}</div>`;
+  }
+}
+
+function catFilter(btn, area) {
+  document.querySelectorAll('#home-catalysts-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = area ? _allCatalysts.filter(c => c.area_id === area) : _allCatalysts;
+  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'Key Readouts & Events';
+  renderCatalysts(filtered);
+}
+
+</script>
 
 </head>
 <body>
