@@ -894,6 +894,69 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .cv-sub { font-size: 10px; color: #94a3b8; margin-top: 3px; }
 .cv-inflection { font-size: 12px; color: #cbd5e1; line-height: 1.8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
 .cv-inflection strong { color: #fbbf24; }
+
+/* ── BIOLOGY DEEP DIVE MODAL ── */
+.bio-dd-btn { background:#f0fdf4;color:#065f46;border:1.5px solid #6ee7b7;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:background 0.15s; }
+.bio-dd-btn:hover { background:#dcfce7; }
+.bio-dd-overlay { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:900;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto; }
+.bio-dd-overlay.open { display:flex; }
+.bio-dd-panel { background:white;border-radius:12px;width:100%;max-width:860px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;max-height:calc(100vh - 64px);overflow:hidden; }
+.bio-dd-hd { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-shrink:0; }
+.bio-dd-hd span { font-size:13px;font-weight:800;color:#1e3a5f; }
+.bio-dd-close { background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;line-height:1;padding:2px 6px;border-radius:4px; }
+.bio-dd-close:hover { background:#f1f5f9; }
+.bio-dd-body { overflow-y:auto;padding:20px;flex:1; }
+
+/* ── PROGRAM INTELLIGENCE TABLE ── */
+.pi-card { background:white;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden; }
+.pi-hd { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-wrap:wrap;gap:8px; }
+.pi-title { font-size:12px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.4px; }
+.pi-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+.pi-filters select { font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;background:white;color:#334155;cursor:pointer; }
+.pi-table-wrap { overflow-x:auto; }
+.pi-table { width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px; }
+.pi-table th { background:#f1f5f9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#64748b;padding:8px 10px;border-bottom:2px solid #e2e8f0;white-space:nowrap;position:relative;user-select:none;cursor:pointer; }
+.pi-table th:hover { background:#e2e8f0; }
+.pi-table td { font-size:12px;padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
+.pi-table tr.pi-main:hover td { background:#f8fafc;cursor:pointer; }
+.pi-table tr.pi-main.expanded td { background:#eff6ff;border-bottom:none; }
+.pi-cls-pill { display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700; }
+.pi-cls-1st { background:#dbeafe;color:#1d4ed8; }
+.pi-cls-direct { background:#fee2e2;color:#991b1b; }
+.pi-cls-2nd { background:#f0fdf4;color:#166534; }
+.pi-overlap-high { display:inline-block;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
+.pi-overlap-watch { display:inline-block;background:#fef9c3;color:#92400e;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
+.pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
+.pi-stage-ph3 { background:#fef3c7;color:#92400e; }
+.pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
+.pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
+.pi-stage-pre { background:#f1f5f9;color:#475569; }
+.pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
+.pi-expand-icon.open { transform:rotate(180deg); }
+tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdbfe; }
+.pi-detail-inner { padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
+.pi-detail-section { background:white;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0; }
+.pi-detail-section h5 { font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin:0 0 7px 0; }
+.pi-detail-section p, .pi-detail-section li { font-size:11px;color:#334155;line-height:1.55;margin:0; }
+.pi-detail-section ul { margin:0;padding-left:14px; }
+.pi-detail-section li { margin-bottom:3px; }
+.pi-detail-cat-item { display:flex;gap:6px;margin-bottom:5px;font-size:11px; }
+.pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px; }
+.col-resize { position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent; }
+.col-resize:hover { background:rgba(99,102,241,0.3); }
+.pi-sort-arrow { font-size:8px;margin-left:3px;color:#94a3b8; }
+
+/* ── LIVE INTEL FEED ── */
+.live-badge { display:inline-block;background:#dc2626;color:white;font-size:9px;font-weight:800;letter-spacing:0.5px;padding:2px 8px;border-radius:10px; }
+.intel-feed-item { padding:10px 0;border-bottom:1px solid #f1f5f9;display:flex;gap:10px;align-items:flex-start; }
+.intel-feed-item:last-child { border-bottom:none; }
+.intel-feed-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px; }
+.intel-feed-dot.high { background:#dc2626; }
+.intel-feed-dot.medium { background:#f59e0b; }
+.intel-feed-dot.low { background:#94a3b8; }
+.intel-feed-meta { display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px; }
+.intel-feed-type { font-size:9px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;font-weight:600; }
+.intel-feed-date { font-size:10px;color:#94a3b8; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -2770,390 +2833,104 @@ function loadMoleculeTab(tabId) {
       <div class="ii-card-meta"><span class="ii-tag ii-tag-deals">Deals & M&A</span><span class="ii-tag ii-tag-bd">BD Relevant</span></div>
       <div class="ii-bullets"><ul><li>AstraZeneca–CSPC: $1.2B upfront / $18.5B potential for ex-China obesity portfolio (8 programs)</li><li>AbbVie–RemeGen: PD-1×VEGF bispecific licensing (U=$650M; D=$4.95B)</li><li>BI–Simcere: SIM0709 IBD bispecific (U=€42M; D=€1.02B)</li><li>Takeda–Innovent: TAK-928 (PD-1×IL-2, FIC) + TAK-921 (Claudin 18.2 ADC, BIC) = $1.2B total</li><li>Lilly–Repertoire: Autoimmune TCR-antigen pairs (U=$85M; D=$1.85B)</li><li>Lilly–Nvidia: $1B AI co-innovation lab for drug discovery supercomputer</li><li>J&J–Isomorphic Labs: Strategic AI partnership across small molecules, biologics, peptides, molecular glues</li><li>Sanofi–Earendil: Up to $2.5B for multispecific immunology collaboration (TL1A×others)</li><li>AZ pledges $15B China investment; Novartis $480M; Lilly Japan $126M</li><li>Pricing pressure + IRA backdrop + rising M&A momentum set the stage for 2026</li></ul></div>
       
-    </div>
-
-        </div>
-      </div>
-
-      <div class="ii-week">
-        <div class="ii-week-hd">Late January 2026</div>
-        <div class="ii-items">
-
-    <div class="ii-card" data-cats="deals market">
-      <div class="ii-card-hd"><span class="ii-date-badge">Jan 30</span><div><span class="ii-title"><a href="https://endpts.com/" target="_blank" rel="noopener">AstraZeneca Returns to China's CSPC for $18.5B Obesity Deal</a></span></div></div>
-      <div class="ii-card-meta"><span class="ii-source">Endpoints News</span><span class="ii-tag ii-tag-deals">Deals & M&A</span><span class="ii-tag ii-tag-market">Market</span></div>
-      <div class="ii-bullets"><ul><li>$1.2B upfront for ex-China rights to CSPC's weight management portfolio of 8 programs</li><li>Portfolio includes once-monthly injectable GLP-1 candidates</li><li>3rd deal between AZ and CSPC: prior $100M (cardio, 2024) + $110M (oral chronic disease, 2025)</li><li>Jan 2026 China deal flurry: AbbVie, AZ, Servier, Sanofi, Ipsen, Shionogi all active</li></ul></div>
-      
-    </div>
-
-    <div class="ii-card" data-cats="ai-tech deals">
-      <div class="ii-card-hd"><span class="ii-date-badge">Jan 12</span><div><span class="ii-title"><a href="https://endpts.com/lilly-nvidia-tag-on-partnership-with-new-ai-co-innovation-lab/" target="_blank" rel="noopener">Lilly and Nvidia Tag on Partnership with New AI Co-Innovation Lab, $1B Investment</a></span></div></div>
-      <div class="ii-card-meta"><span class="ii-source">Endpoints News</span><span class="ii-tag ii-tag-ai-tech">AI & Tech</span><span class="ii-tag ii-tag-deals">Deals & M&A</span></div>
-      <div class="ii-bullets"><ul><li>Co-innovation lab for 'accelerated, closed-loop discovery and AI models to improve clinical development'</li><li>Builds on existing AI factory: Lilly pharma's largest supercomputer (1,016 Blackwell chips)</li><li>Robotic systems could cut cell therapy manufacturing costs 70% per dose; 100-fold throughput increase</li><li>'Lilly is shifting from using AI as a tool to embracing it as a scientific collaborator' — Lilly Chief AI Officer</li></ul></div>
-      
-    </div>
-
-    <div class="ii-card" data-cats="deals bd">
-      <div class="ii-card-hd"><span class="ii-date-badge">Jan 5</span><div><span class="ii-title"><a href="https://endpts.com/" target="_blank" rel="noopener">Sanofi and Earendil Sign Up to $2.5B Multispecific Immunology Collaboration</a></span></div></div>
-      <div class="ii-card-meta"><span class="ii-source">Endpoints News</span><span class="ii-tag ii-tag-deals">Deals & M&A</span><span class="ii-tag ii-tag-bd">BD Relevant</span></div>
-      <div class="ii-bullets"><ul><li>Earendil: US-headquartered, China-rooted AI biotech; 40+ drug programs</li><li>Deal covers multispecific antibodies across autoimmune/immunology targets</li><li>Earendil lead HXN-1001: anti-TL1A mAb in clinic July 2025</li><li>Planning TSLP mAb, TSLP/IL-33 bispecific, OX-40L mAb INDs in 2026</li></ul></div>
-      
-    </div>
-
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="ii-month">
-    <div class="ii-month-hd" onclick="iiToggleMonth('dec-2025')">
-      📅 December 2025 <span>1 items</span>
-      <span id="ii-micon-dec-2025">▼</span>
-    </div>
-    <div class="ii-month-body" id="ii-month-dec-2025" style="display:none">
-
-      <div class="ii-week">
-        <div class="ii-week-hd">December 2025</div>
-        <div class="ii-items">
-
-    <div class="ii-card" data-cats="market policy">
-      <div class="ii-card-hd"><span class="ii-date-badge">Dec 8</span><div><span class="ii-title"><a href="https://endpts.com/" target="_blank" rel="noopener">Meds from Pfizer, Lilly, J&J and More Secure Spots in China's First Private Insurance Formulary</a></span></div></div>
-      <div class="ii-card-meta"><span class="ii-source">Endpoints News</span><span class="ii-tag ii-tag-market">Market</span><span class="ii-tag ii-tag-policy">Policy</span></div>
-      <div class="ii-bullets"><ul><li>China's first private insurance formulary includes multiple CAR-T therapies and targeted cancer treatments</li><li>BeiGene's Ziihera (HER2 bispecific), Pfizer's Empliciti, BMS's Yervoy, J&J's Talvey all included</li><li>Alzheimer's treatments from Lilly and Eisai/Biogen also on the list</li><li>'Healthy China' initiative: key national priority amid rising cancer and cardiovascular rates</li><li>Strategic importance: formulary inclusion validates commercial viability for foreign drugs in China</li></ul></div>
-      
-    </div>
-
-        </div>
-      </div>
-
-    </div>
-  </div>
-
- </div>
-</div><!-- end tab-industry-insights -->
-
 <div class="tab-pane" id="tab-tl1a">
 
- <!-- LATEST FIELD INTELLIGENCE -->
-<div class="stat-row" id="tl1a-stats-anchor">
-  <div class="stat-card"><div class="s-label">UC Global Prevalence</div><div class="s-val">~5M</div><div class="s-sub">Worldwide; ~1.5M in US/EU</div></div>
-  <div class="stat-card o"><div class="s-label">CD Global Prevalence</div><div class="s-val">~3M</div><div class="s-sub">Worldwide; ~780K in US</div></div>
-  <div class="stat-card g"><div class="s-label">Biologic Failure Rate</div><div class="s-val">~40%</div><div class="s-sub">UC patients fail 1st-line biologic</div></div>
-  <div class="stat-card p"><div class="s-label">TL1A Expression</div><div class="s-val">Elevated</div><div class="s-sub">IBD mucosa & fibroblasts — chronicity driver</div></div>
-  <div class="stat-card"><div class="s-label">Anti-IL-23 Validated</div><div class="s-val">4 Approved</div><div class="s-sub">Risa · Gusel · Miriki · Uste — class proven</div></div>
-  <div class="stat-card o"><div class="s-label">Bispecific Logic</div><div class="s-val">Dual Path</div><div class="s-sub">TL1A = innate/stromal · IL-23 = Th17 adaptive</div></div>
+<!-- TOP BAR -->
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+  <div>
+    <div style="font-size:14px;font-weight:800;color:#1e3a5f;margin-bottom:3px">TL1A × IL-23p19 · IBD (UC / CD)</div>
+    <div style="font-size:11px;color:#64748b">Competitive intelligence · Live from Supabase · Updated May 2026</div>
+  </div>
+  <button class="bio-dd-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
 </div>
 
- 
- <!-- DRUGS TO KNOW -->
- 
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-tl1a')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
+<!-- BIOLOGY DEEP DIVE MODAL -->
+<div class="bio-dd-overlay" id="tl1a-bio-dd" onclick="closeBioDD('tl1a-bio-dd')">
+  <div class="bio-dd-panel" onclick="event.stopPropagation()">
+    <div class="bio-dd-hd">
+      <span>Biology Deep-Dive: TL1A / DR3 · IBD Pathophysiology · MOA Framework</span>
+      <button class="bio-dd-close" onclick="closeBioDD('tl1a-bio-dd')">✕</button>
+    </div>
+    <div class="bio-dd-body">
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">What is TL1A and Why Does It Matter?</div>
+        <div class="edu-prose">TL1A (TNF-like Ligand 1A, also called TNFSF15) is a cytokine belonging to the TNF superfamily. It is expressed primarily by vascular endothelial cells, monocytes, macrophages, and dendritic cells when those cells encounter inflammatory signals such as bacterial products, TLR ligands, or other cytokines. TL1A signals through its cognate receptor, <strong>Death Receptor 3 (DR3, TNFRSF25)</strong>, which is constitutively expressed on T lymphocytes — particularly CD4+ effector T cells, regulatory T cells (Tregs), and memory T cells. This constitutive expression means the system is "always ready" to respond, and even subtle TL1A upregulation in inflamed tissue will trigger T cell activation.</div>
+        <div class="edu-callout"><strong>The key insight:</strong> TL1A is not just another inflammatory cytokine — it is a T cell co-stimulatory signal that amplifies responses to other activating stimuli. When IL-12 or IL-18 activates T cells, TL1A amplifies that signal 10–100x. In the context of IBD, where T cell dysfunction is central, TL1A acts as a "volume knob" for intestinal inflammation.</div>
+        <div class="edu-prose">In the gut mucosa specifically, TL1A-DR3 signaling drives the expansion and activation of <strong>Th9, Th17, Th1, and ILC3</strong> populations — the exact inflammatory cell subsets most relevant in both UC and CD. It also has a complex role in regulatory T cells: TL1A can both suppress Tregs (removing a brake on inflammation) or, in different contexts, promote Treg expansion — which is why patient selection and biomarker strategies are so important in TL1A drug development.</div>
+      </div>
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">TL1A in IBD: Disease Biology</div>
+        <div class="edu-prose">Multiple lines of evidence support TL1A as a causal driver in IBD, not merely a bystander:</div>
+        <div class="edu-prose"><strong>Genetic evidence:</strong> GWAS have identified the TNFSF15 locus as one of the strongest genetic risk factors for Crohn's disease. The risk haplotype is associated with TL1A overexpression. ~60% of IBD patients carry a TNFSF15 risk variant — the basis for Merck's companion diagnostic strategy.</div>
+        <div class="edu-prose"><strong>Expression data:</strong> TL1A protein is significantly upregulated in the inflamed mucosa of both UC and CD patients. Mucosal TL1A expression correlates with disease severity and histological inflammation scores.</div>
+        <div class="edu-prose"><strong>Functional studies:</strong> TL1A-transgenic mice develop a Th2/Th9-driven colitis with small intestinal fibrosis — capturing fibrotic features of Crohn's disease often absent in other models.</div>
+        <div class="edu-callout"><strong>Why this matters for BD:</strong> A target with strong genetic + expression + functional validation is significantly de-risked. TL1A has all three, which explains why multiple major pharma companies have committed billions in the space.</div>
+      </div>
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">The TL1A × IL-23 Synergy — Why Bispecifics?</div>
+        <div class="edu-prose">IL-23 (specifically the p19 subunit) is the master driver of Th17 and ILC3 differentiation in the gut. It promotes IL-17A, IL-17F, and IL-22 — cytokines that disrupt the epithelial barrier and sustain chronic inflammation in CD. IL-23 is already a validated target: risankizumab (Skyrizi) is approved for both CD and UC with strong efficacy data.</div>
+        <div class="edu-prose">The key mechanistic connection: TL1A and IL-23 act on overlapping populations (DR3 is expressed on Th17 cells, ILC3s, and other IL-23-responsive cells) and co-stimulate in a <strong>synergistic, non-redundant fashion</strong>. Studies show that when both TL1A and IL-23 are present, the inflammatory response is greater than either alone — and that blocking one pathway leaves the other active to maintain inflammation.</div>
+        <div class="edu-bd-lens"><div class="edu-bd-lens-title">BD Evaluation Lens: Why the Bispecific Premium?</div><div class="edu-bd-lens-body">The bispecific rationale: if dual blockade achieves meaningfully higher remission rates than either monoAb alone, a bispecific can command a premium label, pricing, and formulary position. The AbbVie TARGET-CD trial (risankizumab + trosunilimab combination, H2 2026 readout) is the most direct validation of this hypothesis. When evaluating bispecific programs, ask: (1) What are the expected additive vs. synergistic effects? (2) Which estimand design maximizes the detectable benefit? (3) Is there IND-stage efficacy data showing the bispecific outperforms both monoAbs?</div></div>
+      </div>
+      <div class="edu-chapter">
+        <div class="edu-chapter-title">IBD Drug Development: Endpoints, Estimands &amp; Patient Selection</div>
+        <div class="edu-prose"><strong>Endpoints:</strong> In UC, the standard primary endpoint for pivotal trials is clinical remission, defined by Mayo score. Composite remission requires both clinical and endoscopic remission. In CD, endoscopic response/remission and CDAI-based endpoints are used. Regulators increasingly prefer endoscopic endpoints as they reflect mucosal healing and predict long-term outcomes.</div>
+        <div class="edu-prose"><strong>Why estimands matter:</strong> The composite estimand counts patients who required rescue medication as "treatment failures," creating a rigorous picture of drug performance in real-world use. Comparing tulisokibart (26.5%, composite) vs. duvakitug (48%, composite) requires confirming both trials defined composite remission identically — a 48% composite result is not the same as a 48% treatment-policy result.</div>
+        <div class="edu-prose"><strong>Patient selection:</strong> Biologic-naive vs. biologic-experienced patients respond very differently to anti-TL1A agents. Companion diagnostics (TNFSF15 haplotype) can enrich for responders, but a more restrictive label limits commercial opportunity.</div>
+        <div class="edu-links">
+          <a class="edu-link" href="https://www.nejm.org/doi/10.1056/NEJMoa2208598" target="_blank" rel="noopener">Tulisokibart Ph2 (NEJM 2023)</a>
+          <a class="edu-link" href="https://www.ich.org/page/efficacy-guidelines#9-3" target="_blank" rel="noopener">ICH E9(R1) Estimands Guideline</a>
+          <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 Design</a>
+          <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06548542" target="_blank" rel="noopener">AbbVie TARGET-CD (combo trial)</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UNIFIED PROGRAM INTELLIGENCE TABLE -->
+<div class="pi-card" id="tl1a-pi-card">
+  <div class="pi-hd">
+    <span class="pi-title">⚔ Program Intelligence · All TL1A Companies &amp; Drugs</span>
+    <div class="pi-filters">
+      <select id="pi-tl1a-cls" onchange="tl1aPI.filter()">
+        <option value="">All Classes</option>
+        <option value="1st Gen">1st Gen (Mono TL1A)</option>
+        <option value="Direct">Direct (TL1A×IL-23p19)</option>
+        <option value="2nd Gen">2nd Gen (Enhanced Mono)</option>
+      </select>
+      <select id="pi-tl1a-stage" onchange="tl1aPI.filter()">
+        <option value="">All Stages</option>
+        <option value="Phase 3">Phase 3</option>
+        <option value="Phase 2">Phase 2</option>
+        <option value="Phase 1">Phase 1</option>
+        <option value="Pre-IND">Pre-IND</option>
+        <option value="Preclinical">Preclinical</option>
+      </select>
+      <select id="pi-tl1a-overlap" onchange="tl1aPI.filter()">
+        <option value="">All Relevance</option>
+        <option value="high">High Overlap</option>
+        <option value="watch">Watch</option>
+      </select>
+      <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:4px"></span>
+    </div>
+  </div>
+  <div class="pi-table-wrap" id="pi-tl1a-wrap">
+    <div style="color:#94a3b8;font-size:12px;padding:14px 18px">Loading program intelligence…</div>
+  </div>
+</div>
+
+<!-- LIVE INTEL FEED -->
+<div class="intel-card" id="tl1a-intel-feed-card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">7 companies tracked</span>
-      <span class="comp-toggle" id="cw-tl1a-toggle">&#9660;</span>
+      <span class="live-badge">LIVE</span>
+      <span style="font-weight:800;font-size:13px;color:#1e3a5f">Intelligence Feed · TL1A × IBD</span>
     </div>
+    <span style="font-size:10px;color:#94a3b8">Deals · Clinical · Regulatory · All in one stream</span>
   </div>
-  <div class="comp-body" id="cw-tl1a-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('roche-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
-            <strong class="cw-co-name">Roche / Telavant</strong>
-            <span class="cw-co-drug">&#8212; Afimkibart</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">ROG</span>
-          <span class="cw-toggle-icon" id="roche-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="roche-tl1a-body" style="display:none">
-          <p class="cw-summary">Roche acquired Telavant for $7.1B in 2023. TUSCANY-2 Ph2b missed primary (24% vs 12% PBO). Now in Phase 3 OVERVIEW program (UC &amp; CD) with pediatric study (AMETRINE-PEDS) added 2024. Expanding into atopic dermatitis (Ph2) and MASH (Ph1). Sets monotherapy efficacy bar bispecifics must beat.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-04</span> <a href="https://www.thelancet.com/journals/langas/article/PIIS2468-1253(25)00129-3/abstract" target="_blank" rel="noopener" class="cw-pr-link">TUSCANY-2 Ph2b full results published — The Lancet Gastroenterology &amp; Hepatology</a></li><li><span class="cw-pr-date">2025-04</span> <a href="https://assets.roche.com/f/176343/x/a04e4301c3/irp250424-a.pdf" target="_blank" rel="noopener" class="cw-pr-link">Roche Q1 2025 investor presentation — afimkibart Ph3 program update</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('merck-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
-            <strong class="cw-co-name">Merck &amp; Co.</strong>
-            <span class="cw-co-drug">&#8212; Tulisokibart (MK-7240)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">MRK</span>
-          <span class="cw-toggle-icon" id="merck-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="merck-tl1a-body" style="display:none">
-          <p class="cw-summary">Tulisokibart in Phase 3 (ATLAS-UC + ARES-CD). Phase 2 ARTEMIS-UC: 26% remission vs 1.5% PBO. Ph3 readout ~Nov 2026. Program expanding to HS, axSpA, and RA in Phase 2b. Long-term data show maintained efficacy at week 50 in induction responders.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-05</span> <a href="https://www.merck.com/news/merck-expands-tulisokibart-clinical-development-program-with-initiation-of-phase-2b-trials-in-three-additional-immune-mediated-inflammatory-diseases/" target="_blank" rel="noopener" class="cw-pr-link">Merck expands tulisokibart to HS, axSpA, RA in new Phase 2b trials</a></li><li><span class="cw-pr-date">2024-10</span> <a href="https://www.merck.com/news/merck-to-present-new-long-term-data-for-tulisokibart-mk-7240-an-investigational-anti-tl1a-monoclonal-antibody-in-inflammatory-bowel-disease-at-ueg-week-2024/" target="_blank" rel="noopener" class="cw-pr-link">Long-term tulisokibart data at UEG Week 2024</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('sanofi-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
-            <strong class="cw-co-name">Sanofi / Teva</strong>
-            <span class="cw-co-drug">&#8212; Duvakitug</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">SNY / TEVA</span>
-          <span class="cw-toggle-icon" id="sanofi-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="sanofi-tl1a-body" style="display:none">
-          <p class="cw-summary">Duvakitug leads the TL1A class with 48% UC remission in Ph2b. Ph2b maintenance data (Feb 2026) confirmed durable efficacy at 44 weeks in UC and CD. Phase 3 program launched H2 2025. Best-in-class candidate — sets the efficacy bar for TL1A monotherapy.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-02</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2026/2026-02-17-11-00-00-3239014" target="_blank" rel="noopener" class="cw-pr-link">Ph2b maintenance data: durable efficacy at 44 weeks in UC and CD</a></li><li><span class="cw-pr-date">2025-02</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2025/2025-02-22-07-30-00-3030764" target="_blank" rel="noopener" class="cw-pr-link">ECCO 2025: new duvakitug data reinforce best-in-class potential</a></li><li><span class="cw-pr-date">2024-12</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2024/2024-12-17-12-30-00-2998154" target="_blank" rel="noopener" class="cw-pr-link">Positive Ph2b induction results — Sanofi press release</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('xencor-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
-            <strong class="cw-co-name">Xencor</strong>
-            <span class="cw-co-drug">&#8212; XmAb942 + XmAb412</span>
-            <span class="cw-stage-pill">Phase 2 / Pre-Ph1</span>
-          </div>
-          <span class="cw-ticker">XNCR</span>
-          <span class="cw-toggle-icon" id="xencor-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="xencor-tl1a-body" style="display:none">
-          <p class="cw-summary">XmAb942 achieved 74-day half-life in Ph1 HV study (April 2025) supporting quarterly dosing. XENITH-UC Ph2b enrolling; interim YE2026; full readout H2 2027. XmAb412 (TL1A x IL-23p19 bispecific) selected as lead in 2025; FIH in UC planned Q3 2026 in healthy volunteers.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-04</span> <a href="https://investors.xencor.com/news-releases/news-release-details/xencor-announces-positive-interim-results-first-human-healthy" target="_blank" rel="noopener" class="cw-pr-link">Positive interim results from XmAb942 Phase 1 healthy volunteer study</a></li><li><span class="cw-pr-date">2025-05</span> <a href="https://investors.xencor.com/news-releases/news-release-details/xencor-highlights-corporate-priorities-and-2026-pipeline" target="_blank" rel="noopener" class="cw-pr-link">2026 pipeline milestones: XmAb412 FIH Q3 2026; XENITH-UC interim YE2026</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('mirador-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
-            <strong class="cw-co-name">Mirador Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; MT-251 (TL1A x IL-23p19 bispecific)</span>
-            <span class="cw-stage-pill">Phase 1</span>
-          </div>
-          <span class="cw-ticker">Private</span>
-          <span class="cw-toggle-icon" id="mirador-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="mirador-tl1a-body" style="display:none">
-          <p class="cw-summary">MT-251 is the most clinically advanced TL1A x IL-23p19 bispecific, using an FcRn-recycling format. Phase 1 active in IBD. Most direct clinical-stage bispecific competitor. Backed by A16z Bio and top-tier investors.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://miradorx.com/pipeline" target="_blank" rel="noopener" class="cw-pr-link">Mirador Therapeutics pipeline — MT-251 Phase 1</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('spyre-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Spyre Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; SPY002 (Anti-TL1A) + SPY003/004 bispecifics</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">SYRE</span>
-          <span class="cw-toggle-icon" id="spyre-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="spyre-tl1a-body" style="display:none">
-          <p class="cw-summary">Spyre (Agenus IBD spinout) has SPY002 anti-TL1A mAb in Phase 2 UC and a bispecific pipeline (SPY003 TL1A x IL-23, SPY004 IL-6 x IL-23). $720M raised in 2024. Watch for Ph2 UC efficacy data and bispecific advancement.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.spyretherapeutics.com" target="_blank" rel="noopener" class="cw-pr-link">Spyre Therapeutics $720M raise and pipeline overview</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('bi-tl1a')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Simcere / Boehringer Ingelheim</strong>
-            <span class="cw-co-drug">&#8212; SIM0709 (TL1A x IL-23 bispecific)</span>
-            <span class="cw-stage-pill">Phase 1</span>
-          </div>
-          <span class="cw-ticker">Private</span>
-          <span class="cw-toggle-icon" id="bi-tl1a-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="bi-tl1a-body" style="display:none">
-          <p class="cw-summary">SIM0709 licensed to Boehringer Ingelheim in a EUR 1.05B deal (Dec 2024). Phase 1 active in IBD. BI's deep IBD infrastructure makes this a formidable competitor upon positive Ph1 safety/PK data.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024-12</span> <a href="https://www.boehringer-ingelheim.com/press-releases" target="_blank" rel="noopener" class="cw-pr-link">Boehringer Ingelheim licenses SIM0709 from Simcere in EUR 1.05B deal</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div id="tl1a-intel-feed-body"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading intelligence feed…</div></div>
 </div>
-<div class="dkn-card">
- <div class="dkn-hd" onclick="(function(el){var b=el.parentElement.querySelector('.dkn-body'),t=el.querySelector('.dkn-toggle');b.classList.toggle('open');t.classList.toggle('open')})(this)">
- <span class="dkn-hd-title">Key Drugs to Know in This Space</span>
- <div class="dkn-hd-right"><span class="dkn-hd-badge">14 drugs &middot; Click to Expand</span><span class="dkn-toggle">&#9660;</span></div>
- </div>
- <div class="dkn-body">
- <table class="dkn-table">
- <thead><tr><th>Drug (Brand)</th><th>Sponsor</th><th>Stage</th><th>Mechanism</th><th>Why It Matters</th></tr></thead>
- <tbody>
-<tr><td><span class="dkn-drug">Duvakitug</span></td><td>Sanofi / Teva</td><td><span class="dkn-stage-pill ph3">Ph2b &#8594; Ph3</span></td><td><span class="dkn-mech">Anti-TL1A IgG + anti-IL-23p19 (separate arms, co-dosed)</span></td><td style="font-size:11px">Current leader in TL1A space &#8212; 48% UC remission (composite) at Ph2b; entering Ph3 as the benchmark Ailux must beat</td></tr>
-<tr><td><span class="dkn-drug">Risankizumab</span><br><span style="font-size:10px;color:#8a9bb0">Skyrizi</span></td><td>AbbVie</td><td><span class="dkn-stage-pill approved">Approved (UC + CD)</span></td><td><span class="dkn-mech">Anti-IL-23p19 IgG (IL-23 subunit blockade)</span></td><td style="font-size:11px">AbbVie&#8217;s crown jewel &#8212; $12B+ peak sales; any TL1A&#215;IL-23 bispecific will be compared to Skyrizi as the IL-23 backbone standard. The question: does adding TL1A to IL-23p19 blockade outperform Skyrizi mono?</td></tr>
-<tr><td><span class="dkn-drug">Vedolizumab</span><br><span style="font-size:10px;color:#8a9bb0">Entyvio</span></td><td>Takeda</td><td><span class="dkn-stage-pill approved">Approved (UC + CD)</span></td><td><span class="dkn-mech">Anti-&#945;4&#946;7 integrin &#8212; gut-selective lymphocyte trafficking inhibitor</span></td><td style="font-size:11px">Second-line IBD standard of care after TNF failure. Gut selectivity is key differentiator from systemic biologics. Biosimilars entering 2025&#8211;2026 will compress pricing &#8212; creates opening for novel mechanisms.</td></tr>
-<tr><td><span class="dkn-drug">Ustekinumab</span><br><span style="font-size:10px;color:#8a9bb0">Stelara</span></td><td>J&amp;J</td><td><span class="dkn-stage-pill approved">Approved (UC + CD)</span></td><td><span class="dkn-mech">Anti-IL-12/23 p40 subunit (blocks both IL-12 and IL-23)</span></td><td style="font-size:11px">Original IL-23 blocker. Biosimilar entry 2023&#8211;2024. Risankizumab (p19-selective) now preferred for IL-23 blockade due to cleaner selectivity. Historical comparator for new IL-23 mechanisms.</td></tr>
-<tr><td><span class="dkn-drug">Tulisokibart</span></td><td>Merck</td><td><span class="dkn-stage-pill ph3">Ph3 (readout ~Nov 2026)</span></td><td><span class="dkn-mech">Anti-TL1A IgG (TL1A monotherapy)</span></td><td style="font-size:11px">Ph3 ARTEMIS-UC readout Nov 2026 will be the first Phase 3 TL1A dataset &#8212; could reset the field&#8217;s expectations for TL1A mono and by extension set the efficacy bar for TL1A-containing bispecifics.</td></tr>
-<tr><td><span class="dkn-drug">Mirikizumab</span><br><span style="font-size:10px;color:#8a9bb0">Omvoh</span></td><td>Eli Lilly</td><td><span class="dkn-stage-pill approved">Approved (UC)</span></td><td><span class="dkn-mech">Anti-IL-23p19 IgG (p19-selective)</span></td><td style="font-size:11px">Third approved p19-selective IL-23 inhibitor (after risankizumab and guselkumab). Validates IL-23p19 as the preferred target within the IL-23 class. Important competitive context for any TL1A&#215;IL-23 bispecific: three IL-23 monos already approved in UC.</td></tr>
-<tr><td><span class="dkn-drug">Infliximab</span><br><span style="font-size:10px;color:#8a9bb0">Remicade</span></td><td>J&amp;J / Multiple biosimilars</td><td><span class="dkn-stage-pill approved">Approved (first-line UC + CD)</span></td><td><span class="dkn-mech">Anti-TNF-&#945; IgG1</span></td><td style="font-size:11px">Original IBD biologic &#8212; now heavily biosimilarized. Defines the first-line standard. ~40&#8211;50% of UC patients lose response or are primary non-responders to anti-TNF, creating the addressable population for TL1A and IL-23 mechanisms.</td></tr>
-<tr><td><span class="dkn-drug">MT-251</span></td><td>Mirador Therapeutics</td><td><span class="dkn-stage-pill ph1">Ph1</span></td><td><span class="dkn-mech">TL1A&#215;IL-23p19 IgG bispecific (FcRn-recycling format)</span></td><td style="font-size:11px">Most direct clinical-stage bispecific competitor. FcRn half-life extension technology. First Ph1 data will be closely watched by deal-makers. Watch: does FcRn-recycling deliver &gt;70-day t&#189; in humans?</td></tr>
-<tr><td colspan="5" style="background:#f1f5f9;padding:6px 12px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;border-top:2px solid #dde3ea">Competitive Pipeline &#8212; Companies &amp; Drugs to Watch</td></tr>
-<tr><td><span class="dkn-drug">Afimkibart</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Roche / Telavant</td><td><span class="dkn-stage-pill ph3">Ph3</span></td><td><span class="dkn-mech">Anti-TL1A mAb</span></td><td style="font-size:11px">Phase 3 OVERVIEW trial (IBD); first anti-TL1A mAb to Ph3 &#8212; sets the monotherapy efficacy bar Ailux bispecific must beat.</td></tr>
-<tr><td><span class="dkn-drug">SIM0709</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Simcere / Boehringer Ingelheim</td><td><span class="dkn-stage-pill ph1">Ph1</span></td><td><span class="dkn-mech">TL1A&times;IL-23 bispecific</span></td><td style="font-size:11px">&#8364;1.05B partnership (Dec 2024). Direct bispecific competitor; watch Phase 1 tox/PK data as first human readout for this exact MOA.</td></tr>
-<tr><td><span class="dkn-drug">HXN-1003</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Earendil Bio / Helixon / Sanofi</td><td><span class="dkn-stage-pill ph1">Ph1</span></td><td><span class="dkn-mech">TL1A&times;IL-23 bispecific</span></td><td style="font-size:11px">$1.845B deal (Sanofi). Well-funded direct competitor; Sanofi validation signals strong commercial conviction in TL1A&times;IL-23 bispecific space.</td></tr>
-<tr><td><span class="dkn-drug">XmAb942</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Xencor</td><td><span class="dkn-stage-pill ph2">Ph2b</span></td><td><span class="dkn-mech">IL-23&times;TL1A bispecific (XTEND-Fc)</span></td><td style="font-size:11px">Half-life >71 days &#8212; enables ultra-long quarterly dosing. If Phase 2b data hold, sets the convenience bar for the class.</td></tr>
-<tr><td><span class="dkn-drug">LQ080 / ZW191</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">LaNova Medicines / Zymeworks</td><td><span class="dkn-stage-pill ph1">Ph1</span></td><td><span class="dkn-mech">TL1A&times;IL-23 VHH bispecific</span></td><td style="font-size:11px">Nanobody-based bispecific with compact format. Watch: can VHH format achieve adequate tissue penetration in IBD?</td></tr>
-<tr><td><span class="dkn-drug">CLD-423 / QX030N</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Caldera Therapeutics / Qyuns</td><td><span class="dkn-stage-pill ph1">Ph1</span></td><td><span class="dkn-mech">TL1A&times;IL-23 bispecific</span></td><td style="font-size:11px">Early-stage direct competitor; multiple Ph1 entrants signals category is crowding &#8212; differentiation on PK, dosing interval, or indication will matter.</td></tr>
-
- </tbody>
- </table>
- </div>
- </div>
-
-<div class="intel-card" id="tl1a-live-competitive-card">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626;background:#fef2f2;padding:3px 10px;border-radius:10px">⚔ Competitive Landscape · TL1A</span>
-    <span style="font-size:11px;color:#94a3b8">All programs · live from Supabase · sorted by phase</span>
-  </div>
-  <div id="tl1a-live-competitive"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading competitive landscape…</div></div>
-</div>
-
-<div id="tl1a-bd-activity"><div style="background:white;border-radius:8px;border-left:5px solid #7c3aed;padding:14px 18px;margin-bottom:18px;color:#94a3b8;font-size:12px">Loading BD activity…</div></div>
-
-<div class="intel-card" id="tl1a-live-intel-card">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
-    <span style="font-size:11px;color:#94a3b8">TL1A · IBD</span>
-  </div>
-  <div id="tl1a-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
-</div>
-<div class="intel-card" id="tl1a-intel-anchor">
- <div class="intel-hd">
- <div class="intel-hd-left">
- <span style="font-size:16px"></span>
- <span class="intel-hd-title">Latest Field Intelligence — TL1A × IL-23p19 · IBD</span>
- </div>
- <span class="intel-hd-date">Updated May 2026</span>
- </div>
- <div class="intel-body">
- <div class="intel-item">
- <div class="intel-date-left">May 2026</div>
- <div class="intel-dot intel-dot-yellow"></div>
- <div class="intel-text"><strong>Tulisokibart (Merck) ATLAS-UC Ph3: topline expected ~Nov 2026 (Q4 2026)</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">NCT06052059</a> — First Ph3 data readout in the TL1A class. Ph2 ARTEMIS-UC: <span class="intel-val">26.5% remission vs 1.5% placebo</span> at Wk12 (composite estimand). Companion diagnostic (TNFSF15 genetic haplotype) creates precision medicine positioning that could enable a label with narrower but more reliable responder profile. All eyes on this readout.</div>
- <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
- </div>
- <div class="intel-item">
- <div class="intel-date-left">May 2026</div>
- <div class="intel-dot intel-dot-blue"></div>
- <div class="intel-text"><strong>Xencor XmAb942 Ph1 HV final data at DDW May 2–5, 2026</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT06619990" target="_blank" rel="noopener">NCT06619990</a> — Extended half-life >71 days validated (vs ~21 days for standard IgG). XENITH-UC Ph2b readout expected year-end 2026. Xencor also presented XmAb412 (TL1A×IL-23p19 bispecific) preclinical data at DDW; FIH expected H2 2026. Xencor uniquely running both mono (Ph2b) and bispecific (pre-Ph1) in parallel.</div>
- <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
- </div>
- <div class="intel-item">
- <div class="intel-date-left">Jan 2026</div>
- <div class="intel-dot intel-dot-blue"></div>
- <div class="intel-text"><strong>Simcere SIM0709 / Boehringer Ingelheim deal closed: <span class="intel-val">€42M upfront / €1.05B total ($1.16B)</span></strong> <a class="intel-src" href="https://www.biospace.com/deals/boehringer-turns-to-china-in-1-26b-ibd-pact-with-simcere" target="_blank" rel="noopener">Source</a> — Pre-IND preclinical deal for TL1A×IL-23p19 bispecific. FIH dosing H1 2026. Sets the lower bound of preclinical deal precedent alongside Earendil/Sanofi ($125M upfront, Pre-IND). Chinese assets retaining all Greater China rights while licensing global ex-China continues to work. Third Chinese deal in the space in under 12 months.</div>
- <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
- </div>
- <div class="intel-item">
- <div class="intel-date-left">Mar 2025</div>
- <div class="intel-dot intel-dot-green"></div>
- <div class="intel-text"><strong>Duvakitug (Sanofi/Teva) RELIEVE-UC Ph2b: <span class="intel-pos">48% clinical remission</span> at 900mg Wk14 vs 20% placebo</strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT05544760" target="_blank" rel="noopener">Source</a> — highest TL1A efficacy signal reported to date. CD arm: 48% endoscopic response. Using composite estimand (rescue medication = failure). Ph3 <strong>STARSCAPE</strong> (UC) and <strong>SUNSCAPE</strong> (CD) now enrolling. Most commercially formidable asset given Sanofi's global infrastructure.</div>
- <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
- </div>
- <div class="intel-item">
- <div class="intel-date-left">Oct 2023</div>
- <div class="intel-dot intel-dot-red"></div>
- <div class="intel-text"><strong>Afimkibart (Roche) TUSCANY-2 Ph2b: <span class="intel-warn">PRIMARY ENDPOINT MISSED</span></strong> <a class="intel-src" href="https://clinicaltrials.gov/study/NCT05129150" target="_blank" rel="noopener">NCT05129150</a> — 24% UC remission vs 12% placebo at Wk14, not statistically significant. Secondary endpoints were positive; 43% clinical remission at Wk56 in biomarker-positive subgroup (open-label). Roche proceeded to Ph3 AMETRINE-1/-2 (UC) + SIBERITE-1/-2 (CD). Regulators and partners will scrutinize the reliance on secondary endpoints and open-label extension data. Acquired via Telavant ~$7.1B (Dec 2023).</div>
- <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
- </div>
- <div class="intel-item">
- <div class="intel-date-left" style="color:#8a9bb0">Upcoming</div>
- <div class="intel-dot intel-dot-gray"></div>
- <div class="intel-text"><strong>Next catalysts:</strong> <span style="color:#1a2f50">Spyre SPY001 SKYLINE Ph2 Q2 2026</span> · <span style="color:#1a2f50">ATLAS-UC Ph3 topline ~Nov 2026</span> · <span style="color:#1a2f50">SPY072 SKYWAY (RA/PsA/axSpA) Q4 2026</span> · <span style="color:#1a2f50">XmAb942 XENITH-UC year-end 2026</span> · <span style="color:#1a2f50">AbbVie TARGET-CD (Skyrizi + TL1A combo) H2 2026</span></div>
- </div>
- </div>
- </div>
-
- <div class="two-col" id="tl1a-deal-anchor">
-  <div id="tl1a-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
- <div class="card">
- <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('tl1a-deal')">
- Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span>
- <span class="deal-spotlight-toggle open" id="tl1a-deal-toggle">▲</span>
- </div>
- <div class="deal-spotlight-body open" id="tl1a-deal-body">
- <div class="dl-grid">
- <div class="dl-lbl">Deal</div> <div class="dl-val" style="font-weight:700">Simcere → Boehringer Ingelheim</div>
- <div class="dl-lbl">Asset</div> <div class="dl-val">SIM0709 (TL1A/IL-23p19 bispecific IgG)</div>
- <div class="dl-lbl">Stage</div> <div class="dl-val">Preclinical (IND-enabling)</div>
- <div class="dl-lbl">Territory</div> <div class="dl-val">Global excluding Greater China</div>
- <div class="dl-lbl">Upfront</div> <div class="dl-val hi">€42M (~$46M)</div>
- <div class="dl-lbl">Total</div> <div class="dl-val hi">€1.058B (~$1.16B)</div>
- <div class="dl-lbl">Royalties</div> <div class="dl-val">Tiered on ex-Greater China net sales</div>
- <div class="dl-lbl">China Rights</div><div class="dl-val" style="color:#2a7a47;font-weight:700"> Retained by Simcere</div>
- </div>
- <div class="dl-note"> <strong>Strategic read:</strong> SIM0709 showed superior synergistic efficacy over mono combo in preclinical IBD models. BI's second China-sourced IBD deal — signals explicit strategy to access Chinese bispecific innovation. Sets the benchmark for preclinical TL1A×IL-23p19 out-licensing at €42M upfront.</div>
- </div>
- </div>
- <div class="card">
- <div class="chart-collapse-hd" onclick="toggleChartCollapse('tl1a-chart')">
- <span class="chart-collapse-title"> TL1A × IL-23p19 Deals by Total Value</span>
- <span class="chart-collapse-toggle open" id="tl1a-chart-toggle">▲</span>
- </div>
- <div class="chart-collapse-body open" id="tl1a-chart-body">
- <div class="deal-rank-list">
- <div class="deal-rank-hdr">Ranked by total potential value (USD equiv.)</div>
- <div class="deal-rank-item">
- <div class="deal-rank-num">#1</div>
- <div class="deal-rank-co">
- <div class="deal-rank-name">Earendil Labs → Sanofi</div>
- <div class="deal-rank-meta">Apr 2025 · Pre-IND bispecific · Global ex-China</div>
- </div>
- <div class="deal-rank-val">
- <div class="deal-rank-total">$1.845B</div>
- <div class="deal-rank-upfront">$125M upfront</div>
- </div>
- </div>
- <div class="deal-rank-item">
- <div class="deal-rank-num">#2</div>
- <div class="deal-rank-co">
- <div class="deal-rank-name">Simcere → Boehringer Ingelheim</div>
- <div class="deal-rank-meta">Jan 2026 · Pre-IND bispecific · Global ex-China</div>
- </div>
- <div class="deal-rank-val">
- <div class="deal-rank-total">~$1.16B</div>
- <div class="deal-rank-upfront">€42M upfront</div>
- </div>
- </div>
- <div class="deal-rank-item">
- <div class="deal-rank-num">#3</div>
- <div class="deal-rank-co">
- <div class="deal-rank-name">Qyuns → Caldera</div>
- <div class="deal-rank-meta">Apr 2025 · Pre-IND bispecific · Global ex-China</div>
- </div>
- <div class="deal-rank-val">
- <div class="deal-rank-total">$545M</div>
- <div class="deal-rank-upfront">Undisclosed upfront</div>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
 
  <!-- AILUX ASSET PROFILE -->
  <div class="ailux-card" id="tl1a-ailux-anchor">
@@ -3172,19 +2949,42 @@ function loadMoleculeTab(tabId) {
  <div class="ad-sub">~37-day monotherapy half-life vs. 14–21 day class average. Extended PK enables less-frequent dosing (monthly or longer), meaningful for patient convenience and payer acceptance.</div>
  </div>
  <div class="ailux-diff">
- <div class="ad-label">Epitope & Immunogenicity</div>
+ <div class="ad-label">Epitope &amp; Immunogenicity</div>
  <div class="ad-val">Novel Epitope → Low ADA</div>
  <div class="ad-sub">Binds a novel epitope via stoichiometric mechanism. Low predicted anti-drug antibody (ADA) risk — important for chronic IBD dosing where ADA-driven loss of response is a major clinical issue.</div>
  </div>
  <div class="ailux-diff">
  <div class="ad-label">Formulation</div>
  <div class="ad-val">High-Conc. SC</div>
- <div class="ad-sub">High-concentration subcutaneous formulation in development. SC delivery is strongly preferred by IBD patients and payers vs. IV infusion (vedolizumab), and commands premium reimbursement.</div>
+ <div class="ad-sub">High-concentration subcutaneous formulation in development. SC delivery is strongly preferred by IBD patients and payers vs. IV infusion, and commands premium reimbursement.</div>
+ </div>
+ </div>
+ <div class="comp-valuation-card" style="margin-top:16px">
+ <div class="cv-hd">Ailux Asset &#8212; Estimated Deal Value &amp; Inflection Points</div>
+ <div class="cv-grid">
+ <div class="cv-item cv-up">
+ <div class="cv-label">Est. Upfront (Today)</div>
+ <div class="cv-val">$30&#8211;75M</div>
+ <div class="cv-sub">Preclinical / pre-IND stage</div>
+ </div>
+ <div class="cv-item cv-bio">
+ <div class="cv-label">Est. Total Deal Value</div>
+ <div class="cv-val">$800M&#8211;1.3B</div>
+ <div class="cv-sub">Upfront + milestones + royalties</div>
+ </div>
+ <div class="cv-item cv-infl">
+ <div class="cv-label">Post&#8211;Phase 1 Upfront</div>
+ <div class="cv-val">$150&#8211;350M</div>
+ <div class="cv-sub">If PK + safety confirmed in humans</div>
+ </div>
+ </div>
+ <div class="cv-inflection">
+ <strong>Key Inflection Points:</strong> Phase 1 PK confirmation of ~37-day t&#189; in humans + free TL1A depletion biomarker (TSLP/DR3 pathway suppression) is the single most value-generative event. Comparable: Simcere SIM0709 (pre-IND &#8594; BI &#8364;42M up / &#8364;1.05B total). The trimer-destabilizing epitope must be confirmed as non-overlapping with receptor-blocking competitors. A positive Phase 2a UC signal — even a biomarker endpoint — would push upfront to $300M+ territory given duvakitug's Ph2b 48% remission bar.
  </div>
  </div>
  </div>
 
- <!-- ESTIMAND GUIDE: IBD -->
+ <!-- ESTIMAND GUIDE -->
  <div class="estimand-card">
  <div class="estimand-hd" onclick="toggleEstimand('est-tl1a')">
  <div class="estimand-hd-left">
@@ -3205,23 +3005,23 @@ function loadMoleculeTab(tabId) {
  <div class="estimand-grid">
  <div class="estimand-strategy es-composite">
  <div class="es-name"><span class="eb eb-composite">Composite</span></div>
- <div class="es-def"><strong>Most common in IBD.</strong> Intercurrent events (rescue steroids, prohibited meds, discontinuation) are incorporated into the outcome — patients who need rescue are counted as non-responders, regardless of their actual Week 52 status. Measures <em>real-world treatment success</em> including tolerability. Industry standard for UC/CD Phase 2b/3.</div>
+ <div class="es-def"><strong>Most common in IBD.</strong> Intercurrent events (rescue steroids, prohibited meds, discontinuation) are incorporated into the outcome — patients who need rescue are counted as non-responders. Measures <em>real-world treatment success</em> including tolerability. Industry standard for UC/CD Phase 2b/3.</div>
  </div>
  <div class="estimand-strategy es-policy">
  <div class="es-name"><span class="eb eb-policy">Treatment Policy</span></div>
- <div class="es-def"><strong>ITT regardless of intercurrent events.</strong> All patients analyzed based on original assignment, whatever happened — rescue meds, dose changes, discontinuation. Measures the drug's effect in practice, not under ideal conditions. More common in respiratory (exacerbation trials) than IBD. Can inflate apparent remission rates if patients got rescue.</div>
+ <div class="es-def"><strong>ITT regardless of intercurrent events.</strong> All patients analyzed based on original assignment, whatever happened. Measures the drug's effect in practice. Can inflate apparent remission rates if patients got rescue.</div>
  </div>
  <div class="estimand-strategy es-hypothetical">
  <div class="es-name"><span class="eb eb-hypothetical">Hypothetical</span></div>
- <div class="es-def"><strong>Ideal efficacy if the intercurrent event hadn't occurred.</strong> Estimates what remission would look like if no patient needed rescue or switched therapy. Useful for mechanism of action understanding and dose-finding. Rarely used as primary estimand in late-stage IBD; can produce higher, less clinically meaningful efficacy numbers.</div>
+ <div class="es-def"><strong>Ideal efficacy if the intercurrent event hadn't occurred.</strong> Estimates what remission would look like if no patient needed rescue. Useful for mechanism understanding but rarely used as primary estimand in late-stage IBD.</div>
  </div>
  <div class="estimand-strategy es-while">
  <div class="es-name"><span class="eb eb-while">While on Treatment</span></div>
- <div class="es-def"><strong>Outcome measured only while patient stays on therapy.</strong> Excludes post-discontinuation outcomes. Relevant for understanding pharmacological effect without confounding from treatment switch. Underestimates real-world effectiveness for chronic diseases with high discontinuation; rarely used as primary in IBD.</div>
+ <div class="es-def"><strong>Outcome measured only while patient stays on therapy.</strong> Excludes post-discontinuation outcomes. Underestimates real-world effectiveness for chronic diseases with high discontinuation.</div>
  </div>
  </div>
  <div class="estimand-warning">
- <strong>BD read-through for IBD:</strong> When comparing TL1A remission rates across tulisokibart (Merck), duvakitug (Teva/Sanofi), and afimkibart (Roche), verify that all three are using a <strong>composite estimand</strong> with the same intercurrent event definition. A composite-based 35% remission rate is not comparable to a treatment-policy-based 45% remission rate — the second number is answering a different, easier question. This is particularly critical when comparing monotherapy context data to inform bispecific design assumptions. Future TL1A × IL-23p19 Phase 2 trials should pre-specify composite estimands to align with the emerging IBD standard.
+ <strong>BD read-through for IBD:</strong> When comparing TL1A remission rates across tulisokibart (Merck), duvakitug (Teva/Sanofi), and afimkibart (Roche), verify that all three are using a <strong>composite estimand</strong> with the same intercurrent event definition. A composite-based 35% remission rate is not comparable to a treatment-policy-based 45% remission rate. Future TL1A × IL-23p19 Phase 2 trials should pre-specify composite estimands to align with the emerging IBD standard.
  </div>
  </div>
  </div>
@@ -3230,227 +3030,15 @@ function loadMoleculeTab(tabId) {
 <div style="padding:0 0 16px" id="tl1a-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-tl1a-readouts"></div></div>
  <div class="note-panel" id="note-panel-tl1a">
- <div class="note-panel-label"> Trial Notes</div>
+ <div class="note-panel-label">Trial Notes</div>
  <div id="note-panel-body-tl1a"></div>
- </div>
-
- <div class="sec-hd" id="tl1a-landscape-anchor"><span class="sec-title">Competitive Landscape — All programs: format, deals &amp; estimands</span><div class="sec-line"></div><span class="sec-tag">Bispecifics + Monotherapy · FORMAT column distinguishes asset type</span><span class="sec-tag g" style="margin-left:4px">Estimand active</span></div>
- <div class="card" style="overflow:hidden"><div id="grid-tl1a-landscape"></div></div>
- <div class="note-panel" id="note-panel-tl1a-landscape">
- <div class="note-panel-label"> Efficacy Notes</div>
- <div id="note-panel-body-tl1a-landscape"></div>
- </div>
-
- <!-- TECHNICAL COMPETITOR COMPARISON -->
- <div class="sec-hd" id="tl1a-tech-anchor"><span class="sec-title">Bispecific Technical Deep-Dive</span><div class="sec-line"></div><span class="sec-tag">Mechanism · Format · Differentiators</span></div>
- <div class="info-card">
- <div class="info-hd" onclick="toggleSection('tech-comp')">
- <span class="info-hd-title">Head-to-Head: Bispecific Platform Comparison (All TL1A × IL-23p19 Programs)</span>
- <div style="display:flex;align-items:center;gap:10px">
- <span class="info-hd-badge">Click to Expand</span>
- <span class="info-toggle" id="tech-comp-toggle">▼</span>
- </div>
- </div>
- <div class="info-body" id="tech-comp-body">
- <div id="grid-tl1a-tech"></div>
- </div>
- </div>
-
- <!-- COMPETITIVE COMPARISON SECTION -->
- <div class="sec-hd"><span class="sec-title">Competitive Analysis</span><div class="sec-line"></div><span class="sec-tag o">Ailux vs. Field</span></div>
- <div class="comp-section">
- <div class="comp-hd" onclick="toggleSection('comp-tl1a')">
- <span class="comp-hd-title">How Does Our Molecule Compare? — Ailux Asset vs. TL1A Monotherapies &amp; TL1A×IL-23p19 Bispecifics</span>
- <div style="display:flex;align-items:center;gap:10px">
- <span class="comp-hd-badge">Click to Expand</span>
- <span class="comp-toggle" id="comp-tl1a-toggle">▼</span>
- </div>
- </div>
- <div class="comp-body" id="comp-tl1a-body">
- <div class="comp-sub-title">Part 1 — Efficacy Benchmarks: Ailux vs. Leading TL1A Monotherapies (UC Remission Data)</div>
- <table class="comp-table">
- <thead>
- <tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>Best UC Remission Rate</th><th>Trial / Timepoint</th><th>Estimand</th><th>Primary Endpoint Met?</th></tr>
- </thead>
- <tbody>
- <tr class="ailux-row">
- <td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td>
- <td>Ailux</td>
- <td>Preclinical</td>
- <td class="comp-val-na">— (efficacy TBD)</td>
- <td>Phase 1/2 design pending</td>
- <td>Composite recommended</td>
- <td class="comp-val-na">—</td>
- </tr>
- <tr>
- <td>Duvakitug <span class="comp-badge-leader">Current leader</span></td>
- <td>Sanofi / Teva</td>
- <td>Ph2b → Ph3</td>
- <td class="comp-val-pos">48% (900mg Wk14)</td>
- <td>RELIEVE-UC Ph2b; 20% PBO</td>
- <td>Composite</td>
- <td class="comp-val-pos">Yes </td>
- </tr>
- <tr>
- <td>Tulisokibart</td>
- <td>Merck</td>
- <td>Ph3 (readout ~Nov 2026)</td>
- <td>26.5% (Wk12)</td>
- <td>ARTEMIS-UC Ph2; 1.5% PBO</td>
- <td>Composite</td>
- <td class="comp-val-pos">Yes </td>
- </tr>
- <tr>
- <td>Afimkibart</td>
- <td>Roche (ex-Telavant $7.1B)</td>
- <td>Ph3</td>
- <td class="comp-val-neg">24% (Wk14) — primary missed</td>
- <td>TUSCANY-2 Ph2b; 12% PBO</td>
- <td>Composite</td>
- <td class="comp-val-neg">No </td>
- </tr>
- <tr>
- <td>XmAb942</td>
- <td>Xencor</td>
- <td>Ph2b (readout YE 2026)</td>
- <td class="comp-val-na">Ph2b ongoing — TBD</td>
- <td>XENITH-UC; t½ &gt;71 days</td>
- <td>TBD</td>
- <td class="comp-val-na">—</td>
- </tr>
- </tbody>
- </table>
-
- <div class="comp-sub-title" style="margin-top:18px">Part 2 — Technical Differentiation: Ailux vs. TL1A×IL-23p19 Bispecific Competitors</div>
- <table class="comp-table">
- <thead>
- <tr><th>Molecule</th><th>Sponsor</th><th>Stage</th><th>TL1A Mechanism</th><th>Half-life / Dosing</th><th>Formulation</th><th>Key Differentiator</th></tr>
- </thead>
- <tbody>
- <tr class="ailux-row">
- <td>Ailux Asset <span class="comp-badge-ailux">Our molecule</span></td>
- <td>Ailux</td>
- <td>Preclinical</td>
- <td><strong>Trimer Destabilization</strong> — novel epitope, not receptor-blocking site</td>
- <td class="comp-val-pos">~37 days → supports Q4W+ SC dosing</td>
- <td class="comp-val-pos">High-conc SC formulation</td>
- <td>Novel epitope = low ADA risk; SC-first design; trimer MoA may offer selectivity advantage over receptor-blocking competitors</td>
- </tr>
- <tr>
- <td>MT-251</td>
- <td>Mirador</td>
- <td>Ph1</td>
- <td>FcRn-recycling IgG bispecific; TL1A epitope TBD</td>
- <td>Extended (FcRn recycling)</td>
- <td>IV/SC flexible</td>
- <td>First-in-class format; FcRn half-life extension technology; well-funded independent US company</td>
- </tr>
- <tr>
- <td>CLD-423 / QX030N</td>
- <td>Caldera / Qyuns (CN)</td>
- <td>Ph1</td>
- <td>IgG bispecific; TL1A epitope TBD</td>
- <td>Standard IgG (~21 days)</td>
- <td>TBD</td>
- <td>First Chinese TL1A bispecific in Ph1. Caldera deal: $10M + 25% equity. Ph1 data expected 2026–2027.</td>
- </tr>
- <tr>
- <td>HXN-1003</td>
- <td>Earendil / Helixon (Sanofi $125M)</td>
- <td>Pre-IND</td>
- <td>AI-designed tetravalent (2+2)</td>
- <td>TBD</td>
- <td>TBD</td>
- <td>Highest-value preclinical deal ($1.845B total). Sanofi's commitment at Pre-IND signals confidence in AI-designed format. Tetravalent design may improve avidity.</td>
- </tr>
- <tr>
- <td>SIM0709</td>
- <td>Simcere / BI (€42M upfront)</td>
- <td>Pre-IND → FIH H1'26</td>
- <td>Long-acting SC IgG bispecific</td>
- <td>Extended (engineered)</td>
- <td>SC-optimized</td>
- <td>BI partnership (€1.05B total) validates SC long-acting approach. FIH H1 2026 puts Simcere ahead on clinical timeline vs. others at Pre-IND.</td>
- </tr>
- <tr>
- <td>XmAb412</td>
- <td>Xencor</td>
- <td>Pre-Ph1 → FIH H2'26</td>
- <td>Xtend™ FcXtend — extended half-life bispecific</td>
- <td class="comp-val-pos">Extended (&gt;71 days target, like XmAb942)</td>
- <td>TBD</td>
- <td>Xencor's validated Xtend platform applied to bispecific. Benefit of XmAb942 (mono) t½ data already in hand. DDW 2026 preclinical poster.</td>
- </tr>
- </tbody>
- </table>
-
- <div class="comp-diff-note">
- <strong>Ailux Differentiation Summary:</strong> The combination of (1) <strong>trimer-destabilizing mechanism</strong> — a novel TL1A epitope that disrupts receptor signaling through a different binding interface than most competitors — with (2) <strong>~37-day half-life supporting SC Q4W dosing</strong>, (3) <strong>low ADA risk profile from novel epitope</strong>, and (4) <strong>high-concentration SC-ready formulation</strong> creates a differentiated package. The key clinical argument: if duvakitug's 48% Ph2b UC remission rate is the bar, a bispecific that adds IL-23p19 blockade in the same molecule should theoretically exceed monotherapy ceiling effects — particularly in the ~30–40% of patients who have co-existing Th17/IL-23 pathway activation alongside TL1A-mediated inflammation. No bispecific has yet demonstrated efficacy in UC; the first to show it will set the standard.
- </div>
-
- <div class="comp-valuation-card">
- <div class="cv-hd">Ailux Asset &#8212; Estimated Deal Value &amp; Inflection Points</div>
- <div class="cv-grid">
- <div class="cv-item cv-up">
- <div class="cv-label">Est. Upfront (Today)</div>
- <div class="cv-val">$30&#8211;75M</div>
- <div class="cv-sub">Preclinical / pre-IND stage</div>
- </div>
- <div class="cv-item cv-bio">
- <div class="cv-label">Est. Total Deal Value</div>
- <div class="cv-val">$800M&#8211;1.3B</div>
- <div class="cv-sub">Upfront + milestones + royalties</div>
- </div>
- <div class="cv-item cv-infl">
- <div class="cv-label">Post&#8211;Phase 1 Upfront</div>
- <div class="cv-val">$150&#8211;350M</div>
- <div class="cv-sub">If PK + safety confirmed in humans</div>
- </div>
- </div>
- <div class="cv-inflection">
- <strong>Key Inflection Points to Increase Value:</strong> Phase 1 PK confirmation of ~37-day t&#189; in humans + free TL1A depletion biomarker (TSLP/DR3 pathway suppression) is the single most value-generative event. Comparable: Simcere SIM0709 (pre-IND &#8594; BI &#8364;42M up / &#8364;1.05B total). The trimer-destabilizing epitope must be confirmed as non-overlapping with receptor-blocking competitors (novel epitope = differentiated safety, lower ADA risk, and potential licensing exclusivity argument). A positive Phase 2a UC signal &#8212; even a biomarker endpoint &#8212; would push upfront to $300M+ territory given duvakitug&#8217;s Ph2b 48% remission bar.
- </div>
- </div>
- </div>
- </div>
-
- <div class="sec-hd" id="tl1a-china-anchor"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">4 Chinese Programs</span></div>
- <div class="china-grid">
- <div class="china-card licensed">
- <div class="cc-name">Simcere Pharmaceutical</div>
- <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
- <span class="cc-badge bg-licensed">Out-licensed</span>
- <div class="cc-detail">Retains all Greater China commercialization rights. 5th out-licensing deal, cumulative potential ~$4.6B. Demonstrated superior synergy over mono combo in preclinical IBD models.</div>
- <div class="cc-deal"> Boehringer Ingelheim — €42M upfront · €1.05B total</div>
- </div>
- <div class="china-card licensed">
- <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
- <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
- <span class="cc-badge bg-ph1">Phase 1</span>
- <div class="cc-detail">First subjects dosed Jan 2026. Retains China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
- <div class="cc-deal"> Caldera Therapeutics — $10M + ~25% equity · up to $545M</div>
- </div>
- <div class="china-card seeking">
- <div class="cc-name">LaNova Medicines / Zymeworks</div>
- <div class="cc-asset">LQ080 · Extended half-life VHH (nanobody) bispecific</div>
- <span class="cc-badge bg-seeking">Seeking Partner</span>
- <div class="cc-detail">VHH nanobody format — uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global partnership opportunity open.</div>
- <div class="cc-deal"> Partnering window open</div>
- </div>
- <div class="china-card seeking">
- <div class="cc-name">Episcience</div>
- <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
- <span class="cc-badge bg-pre">Preclinical</span>
- <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's strong bispecific antibody engineering depth.</div>
- <div class="cc-deal"> Partnering window open</div>
- </div>
  </div>
 
  <!-- IBD MARKET & STANDARD OF CARE -->
  <div class="sec-hd"><span class="sec-title">IBD Market &amp; Standard of Care Context</span><div class="sec-line"></div><span class="sec-tag">$30.7B → $41.9B by 2030</span></div>
  <div class="info-card">
  <div class="info-hd" onclick="toggleSection('ibd-market')">
- <span class="info-hd-title"> IBD Market Size, Standard of Care &amp; Efficacy Benchmarks</span>
+ <span class="info-hd-title">IBD Market Size, Standard of Care &amp; Efficacy Benchmarks</span>
  <div style="display:flex;align-items:center;gap:10px">
  <span class="info-hd-badge">Click to Expand</span>
  <span class="info-toggle" id="ibd-market-toggle">▼</span>
@@ -3458,28 +3046,11 @@ function loadMoleculeTab(tabId) {
  </div>
  <div class="info-body" id="ibd-market-body">
  <div class="mkt-grid">
- <div class="mkt-card">
- <div class="mkt-val">$30.7B</div>
- <div class="mkt-label">IBD Market 2024</div>
- <div class="mkt-sub">Global revenue</div>
+ <div class="mkt-card"><div class="mkt-val">$30.7B</div><div class="mkt-label">IBD Market 2024</div><div class="mkt-sub">Global revenue</div></div>
+ <div class="mkt-card g"><div class="mkt-val">$41.9B</div><div class="mkt-label">IBD Market 2030</div><div class="mkt-sub">+36% CAGR growth</div></div>
+ <div class="mkt-card o"><div class="mkt-val">44%</div><div class="mkt-label">AbbVie Share 2030</div><div class="mkt-sub">Up from 31% in 2024</div></div>
+ <div class="mkt-card p"><div class="mkt-val">$12B+</div><div class="mkt-label">Skyrizi Peak Sales</div><div class="mkt-sub">IBD + derm combined</div></div>
  </div>
- <div class="mkt-card g">
- <div class="mkt-val">$41.9B</div>
- <div class="mkt-label">IBD Market 2030</div>
- <div class="mkt-sub">+36% CAGR growth</div>
- </div>
- <div class="mkt-card o">
- <div class="mkt-val">44%</div>
- <div class="mkt-label">AbbVie Share 2030</div>
- <div class="mkt-sub">Up from 31% in 2024</div>
- </div>
- <div class="mkt-card p">
- <div class="mkt-val">$12B+</div>
- <div class="mkt-label">Skyrizi Peak Sales</div>
- <div class="mkt-sub">IBD + derm combined</div>
- </div>
- </div>
-
  <div class="soc-panel">
  <div class="soc-box">
  <div class="soc-title">UC · Treatment Escalation Ladder</div>
@@ -3510,51 +3081,62 @@ function loadMoleculeTab(tabId) {
  </table>
  </div>
  </div>
-
  <div style="margin-bottom:10px;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a9bb0;letter-spacing:0.5px;">IL-23p19 Efficacy Benchmarks (Clinical Bar for TL1A &amp; Bispecifics to Clear)</div>
  <div class="threshold-grid">
- <div class="threshold-box">
- <div class="tb-drug">Risankizumab (Skyrizi) · CD</div>
- <div class="tb-trial">ADVANCE Ph3 · Induction Wk12</div>
- <div class="tb-rate">45%</div>
- <div class="tb-endpoint">Clinical remission (CDAI &lt;150) vs. 25% placebo · Composite estimand</div>
+ <div class="threshold-box"><div class="tb-drug">Risankizumab (Skyrizi) · CD</div><div class="tb-trial">ADVANCE Ph3 · Induction Wk12</div><div class="tb-rate">45%</div><div class="tb-endpoint">Clinical remission (CDAI &lt;150) vs. 25% placebo · Composite estimand</div></div>
+ <div class="threshold-box"><div class="tb-drug">Guselkumab (Tremfya) · CD</div><div class="tb-trial">GALAXI-1 Ph2/3 · Wk12</div><div class="tb-rate">45–46%</div><div class="tb-endpoint">Clinical remission vs. ~20% placebo · Sets bar for CD induction</div></div>
+ <div class="threshold-box"><div class="tb-drug">Mirikizumab (Omvoh) · UC</div><div class="tb-trial">LUCENT-1 Ph3 · Induction Wk12</div><div class="tb-rate">24.2%</div><div class="tb-endpoint">Clinical remission vs. 13.3% placebo · Composite estimand</div></div>
+ <div class="threshold-box"><div class="tb-drug">Duvakitug (TEV-48574) · UC</div><div class="tb-trial">RELIEVE UCCD Ph2b · 900mg Wk14</div><div class="tb-rate">48%</div><div class="tb-endpoint">Highest TL1A UC signal reported · Composite estimand · Ph3 ongoing</div></div>
  </div>
- <div class="threshold-box">
- <div class="tb-drug">Guselkumab (Tremfya) · CD</div>
- <div class="tb-trial">GALAXI-1 Ph2/3 · Wk12</div>
- <div class="tb-rate">45–46%</div>
- <div class="tb-endpoint">Clinical remission vs. ~20% placebo · Sets bar for CD induction</div>
+ <div class="endpoint-grid">
+ <div class="endpoint-box"><div class="ep-title">UC Primary Endpoints</div><div class="ep-row"><strong>Clinical remission:</strong> Mayo score ≤2, no subscore &gt;1</div><div class="ep-row"><strong>PRO2:</strong> Stool frequency + rectal bleeding subscores combined</div><div class="ep-row"><strong>Endoscopic:</strong> Mayo endoscopic subscore ≤1 (mucosal healing)</div><div class="ep-row"><strong>Histologic:</strong> Geboes ≤3.1 (emerging co-primary)</div></div>
+ <div class="endpoint-box g"><div class="ep-title">CD Primary Endpoints</div><div class="ep-row"><strong>CDAI:</strong> Crohn's Disease Activity Index &lt;150 (remission)</div><div class="ep-row"><strong>HBI:</strong> Harvey-Bradshaw Index ≤4</div><div class="ep-row"><strong>Endoscopic response:</strong> ≥50% reduction in SES-CD</div><div class="ep-row"><strong>CDEIS:</strong> CD Endoscopic Index of Severity ≤3 (remission)</div></div>
  </div>
- <div class="threshold-box">
- <div class="tb-drug">Mirikizumab (Omvoh) · UC</div>
- <div class="tb-trial">LUCENT-1 Ph3 · Induction Wk12</div>
- <div class="tb-rate">24.2%</div>
- <div class="tb-endpoint">Clinical remission vs. 13.3% placebo · Composite estimand</div>
- </div>
- <div class="threshold-box">
- <div class="tb-drug">Duvakitug (TEV-48574) · UC</div>
- <div class="tb-trial">RELIEVE UCCD Ph2b · 900mg Wk14</div>
- <div class="tb-rate">48%</div>
- <div class="tb-endpoint">Highest TL1A UC signal reported · Composite estimand · Ph3 ongoing</div>
  </div>
  </div>
 
- <div class="endpoint-grid">
- <div class="endpoint-box">
- <div class="ep-title">UC Primary Endpoints</div>
- <div class="ep-row"><strong>Clinical remission:</strong> Mayo score ≤2, no subscore &gt;1</div>
- <div class="ep-row"><strong>PRO2:</strong> Stool frequency + rectal bleeding subscores combined</div>
- <div class="ep-row"><strong>Endoscopic:</strong> Mayo endoscopic subscore ≤1 (mucosal healing)</div>
- <div class="ep-row"><strong>Histologic:</strong> Geboes ≤3.1 (emerging co-primary)</div>
+ <!-- BD INTEL KEY TAKEAWAYS -->
+ <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
+ <div class="insight-box">
+ <div class="insight-label">Actionable intelligence for BD professionals</div>
+ <ul>
+ <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
+ <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Episcience and Novamab should prioritize partnering timelines; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
+ <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago.</li>
+ <li><strong>Estimand alignment is a hidden risk in Phase 2 design for bispecifics.</strong> The three lead TL1A monotherapy programs in Phase 3 all use composite estimands. When TL1A×IL-23p19 bispecifics move into Phase 2, sponsors who use a different estimand strategy will report higher remission rates that cannot be compared to the Phase 3 monoAb benchmarks. Partners and regulators will scrutinize this.</li>
+ </ul>
  </div>
- <div class="endpoint-box g">
- <div class="ep-title">CD Primary Endpoints</div>
- <div class="ep-row"><strong>CDAI:</strong> Crohn's Disease Activity Index &lt;150 (remission)</div>
- <div class="ep-row"><strong>HBI:</strong> Harvey-Bradshaw Index ≤4</div>
- <div class="ep-row"><strong>Endoscopic response:</strong> ≥50% reduction in SES-CD</div>
- <div class="ep-row"><strong>CDEIS:</strong> CD Endoscopic Index of Severity ≤3 (remission)</div>
+
+ <!-- CHINA DOMESTIC READ-THROUGH -->
+ <div class="sec-hd" id="tl1a-china-anchor"><span class="sec-title">China Domestic Read-Through</span><div class="sec-line"></div><span class="sec-tag o">4 Chinese Programs</span></div>
+ <div class="china-grid">
+ <div class="china-card licensed">
+ <div class="cc-name">Simcere Pharmaceutical</div>
+ <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
+ <span class="cc-badge bg-licensed">Out-licensed</span>
+ <div class="cc-detail">Retains all Greater China commercialization rights. 5th out-licensing deal, cumulative potential ~$4.6B. Demonstrated superior synergy over mono combo in preclinical IBD models.</div>
+ <div class="cc-deal">Boehringer Ingelheim — €42M upfront · €1.05B total</div>
  </div>
+ <div class="china-card licensed">
+ <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
+ <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
+ <span class="cc-badge bg-ph1">Phase 1</span>
+ <div class="cc-detail">First subjects dosed Jan 2026. Retains China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
+ <div class="cc-deal">Caldera Therapeutics — $10M + ~25% equity · up to $545M</div>
  </div>
+ <div class="china-card seeking">
+ <div class="cc-name">LaNova Medicines / Zymeworks</div>
+ <div class="cc-asset">LQ080 · Extended half-life VHH (nanobody) bispecific</div>
+ <span class="cc-badge bg-seeking">Seeking Partner</span>
+ <div class="cc-detail">VHH nanobody format — uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global partnership opportunity open.</div>
+ <div class="cc-deal">Partnering window open</div>
+ </div>
+ <div class="china-card seeking">
+ <div class="cc-name">Episcience</div>
+ <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
+ <span class="cc-badge bg-pre">Preclinical</span>
+ <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's strong bispecific antibody engineering depth.</div>
+ <div class="cc-deal">Partnering window open</div>
  </div>
  </div>
 
@@ -3562,174 +3144,31 @@ function loadMoleculeTab(tabId) {
  <div class="sec-hd"><span class="sec-title">IBD Target History</span><div class="sec-line"></div><span class="sec-tag">7 Eras · From Steroids to TL1A</span></div>
  <div class="info-card">
  <div class="info-hd" onclick="toggleSection('ibd-history')">
- <span class="info-hd-title"> History of IBD Drug Targets: 7 Eras That Lead to TL1A × IL-23p19</span>
+ <span class="info-hd-title">History of IBD Drug Targets: 7 Eras That Lead to TL1A × IL-23p19</span>
  <div style="display:flex;align-items:center;gap:10px">
  <span class="info-hd-badge">Click to Expand</span>
  <span class="info-toggle" id="ibd-history-toggle">▼</span>
  </div>
  </div>
  <div class="info-body" id="ibd-history-body">
- <div style="font-size:11px;color:#3a5070;line-height:1.7;margin-bottom:12px;border-left:3px solid #2e6fb0;padding-left:12px;">TL1A belongs to the TNF superfamily (TNFSF15), expressed by endothelial and epithelial cells in inflamed gut mucosa. Its receptor DR3 is preferentially expressed on innate lymphoid cells and Th9/Th17 T cells, amplifying mucosal inflammation. Understanding the target lineage puts TL1A — and the bispecific thesis — in clinical context.</div>
+ <div style="font-size:11px;color:#3a5070;line-height:1.7;margin-bottom:12px;border-left:3px solid #2e6fb0;padding-left:12px;">TL1A belongs to the TNF superfamily (TNFSF15), expressed by endothelial and epithelial cells in inflamed gut mucosa. Its receptor DR3 is preferentially expressed on innate lymphoid cells and Th9/Th17 T cells, amplifying mucosal inflammation.</div>
  <table class="info-table" style="table-layout:fixed">
  <colgroup><col style="width:90px"><col style="width:80px"><col style="width:120px"><col style="width:160px"><col style="width:70px"><col style="width:170px"><col style="width:170px"></colgroup>
  <tr><th>Era</th><th>Period</th><th>Drug Class</th><th>Key Agents</th><th>Indication</th><th>Key Efficacy</th><th>BD Significance</th></tr>
- <tr>
- <td><span class="era-badge era-1">Era 1</span></td>
- <td>Pre-2000</td><td>Conventional immunosuppressants</td>
- <td>5-ASA, corticosteroids, azathioprine, 6-MP, MTX</td><td>UC / CD</td>
- <td>Variable; steroids ~60% short-term response but ~0% sustained remission without maintenance</td>
- <td>Standard of care backbone; still used in combination. No precision targeting.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-2">Era 2</span></td>
- <td>1998–2010</td><td>Anti-TNF biologics</td>
- <td>Infliximab (Remicade), adalimumab (Humira), certolizumab, golimumab</td><td>UC / CD</td>
- <td>~30–40% remission at Wk52; mucosal healing in ~30% CD. Major advance over prior SOC.</td>
- <td>First &gt;$1B IBD franchise; created the "biologic era" in IBD. AbbVie built global IBD dominance here.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-3">Era 3</span></td>
- <td>2014</td><td>Anti-integrin</td>
- <td>Vedolizumab (Entyvio, Takeda)</td><td>UC / CD</td>
- <td>UC: 17% remission vs. 5% placebo at Wk6; gut-selective mechanism improved safety vs. systemic anti-TNF.</td>
- <td>Demonstrated gut-selective MoA as differentiated BD angle. Entyvio peak sales ~$4B+.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-4">Era 4</span></td>
- <td>2016–2019</td><td>Anti-IL-12/23 (p40)</td>
- <td>Ustekinumab (Stelara, J&amp;J)</td><td>CD / UC</td>
- <td>CD: ~16% remission induction (Wk6 IV); dual IL-12/23 blockade via shared p40 subunit.</td>
- <td>Validated IL-23 pathway in IBD. Lost market share as IL-23p19-selective agents proved superior.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-5">Era 5</span></td>
- <td>2021–present</td><td>Anti-IL-23p19 selective</td>
- <td>Risankizumab (Skyrizi, AbbVie), mirikizumab (Omvoh, Lilly), guselkumab (Tremfya, J&amp;J)</td><td>UC / CD</td>
- <td>CD: 45% remission (Skyrizi ADVANCE), 45–46% (Tremfya GALAXI-1). UC: 24.2% (Omvoh LUCENT-1). IL-23p19 selective &gt; p40.</td>
- <td>Current standard-of-care biologics. Skyrizi IBD peak forecast $12B+. Key comparator for all new IBD mechanisms.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-6">Era 6</span></td>
- <td>2022–present</td><td>JAK inhibitors (small molecule)</td>
- <td>Upadacitinib (Rinvoq, AbbVie), tofacitinib (Xeljanz), filgotinib (Jyseleca)</td><td>UC / CD</td>
- <td>Rinvoq UC: ~26% remission at Wk8. Fast onset (oral, days vs. weeks). Safety boxed warning (venous thromboembolism, serious infections).</td>
- <td>Oral format is strong patient preference. Safety concerns limit use to TNF-inadequate responders. BD angle: combo with TL1A possible.</td>
- </tr>
- <tr>
- <td><span class="era-badge era-7">Era 7</span></td>
- <td>2024–present</td><td>Anti-TL1A &amp; Bispecifics</td>
- <td>Tulisokibart (Merck), duvakitug (Teva/Sanofi), afimkibart (Roche) → bispecifics: MT-251, SIM0709, HXN-1003</td><td>UC / CD</td>
- <td>Tulisokibart: 26.5% Ph2 UC; Duvakitug: 48% Ph2b (highest TL1A signal); Afimkibart: 24% (NS primary endpoint).</td>
- <td>Current wave driving &gt;$3.4B in bispecific deals. Bispecific thesis: TL1A + IL-23p19 dual blockade could exceed monotherapy efficacy for hard-to-treat IBD.</td>
- </tr>
+ <tr><td><span class="era-badge era-1">Era 1</span></td><td>Pre-2000</td><td>Conventional immunosuppressants</td><td>5-ASA, corticosteroids, azathioprine, 6-MP, MTX</td><td>UC / CD</td><td>Variable; steroids ~60% short-term response but ~0% sustained remission without maintenance</td><td>Standard of care backbone; still used in combination. No precision targeting.</td></tr>
+ <tr><td><span class="era-badge era-2">Era 2</span></td><td>1998–2010</td><td>Anti-TNF biologics</td><td>Infliximab (Remicade), adalimumab (Humira), certolizumab, golimumab</td><td>UC / CD</td><td>~30–40% remission at Wk52; mucosal healing in ~30% CD.</td><td>First &gt;$1B IBD franchise; created the "biologic era" in IBD. AbbVie built global IBD dominance here.</td></tr>
+ <tr><td><span class="era-badge era-3">Era 3</span></td><td>2014</td><td>Anti-integrin</td><td>Vedolizumab (Entyvio, Takeda)</td><td>UC / CD</td><td>UC: 17% remission vs. 5% placebo at Wk6; gut-selective mechanism improved safety vs. systemic anti-TNF.</td><td>Demonstrated gut-selective MoA as differentiated BD angle. Entyvio peak sales ~$4B+.</td></tr>
+ <tr><td><span class="era-badge era-4">Era 4</span></td><td>2016–2019</td><td>Anti-IL-12/23 (p40)</td><td>Ustekinumab (Stelara, J&amp;J)</td><td>CD / UC</td><td>CD: ~16% remission induction (Wk6 IV); dual IL-12/23 blockade via shared p40 subunit.</td><td>Validated IL-23 pathway in IBD. Lost market share as IL-23p19-selective agents proved superior.</td></tr>
+ <tr><td><span class="era-badge era-5">Era 5</span></td><td>2021–present</td><td>Anti-IL-23p19 selective</td><td>Risankizumab (Skyrizi, AbbVie), mirikizumab (Omvoh, Lilly), guselkumab (Tremfya, J&amp;J)</td><td>UC / CD</td><td>CD: 45% remission (Skyrizi ADVANCE), 45–46% (Tremfya GALAXI-1). UC: 24.2% (Omvoh LUCENT-1).</td><td>Current standard-of-care biologics. Skyrizi IBD peak forecast $12B+. Key comparator for all new IBD mechanisms.</td></tr>
+ <tr><td><span class="era-badge era-6">Era 6</span></td><td>2022–present</td><td>JAK inhibitors</td><td>Upadacitinib (Rinvoq, AbbVie), tofacitinib (Xeljanz), filgotinib (Jyseleca)</td><td>UC / CD</td><td>Rinvoq UC: ~26% remission at Wk8. Fast onset (oral, days vs. weeks). Safety boxed warning.</td><td>Oral format is strong patient preference. Safety concerns limit use to TNF-inadequate responders.</td></tr>
+ <tr><td><span class="era-badge era-7">Era 7</span></td><td>2024–present</td><td>Anti-TL1A &amp; Bispecifics</td><td>Tulisokibart (Merck), duvakitug (Teva/Sanofi), afimkibart (Roche) → bispecifics: MT-251, SIM0709, HXN-1003</td><td>UC / CD</td><td>Tulisokibart: 26.5% Ph2 UC; Duvakitug: 48% Ph2b (highest TL1A signal); Afimkibart: 24% (NS primary endpoint).</td><td>Current wave driving &gt;$3.4B in bispecific deals. Bispecific thesis: TL1A + IL-23p19 dual blockade could exceed monotherapy efficacy.</td></tr>
  </table>
- </div>
- </div>
-
- <!-- RELATED NEWS -->
- <div class="sec-hd"><span class="sec-title">Related News &amp; Precedent Transactions</span><div class="sec-line"></div><span class="sec-tag">Key Events</span></div>
- <div class="info-card">
- <div class="info-hd" onclick="toggleSection('ibd-news')">
- <span class="info-hd-title"> TL1A Landscape News &amp; Strategic Transactions</span>
- <div style="display:flex;align-items:center;gap:10px">
- <span class="info-hd-badge">Click to Expand</span>
- <span class="info-toggle" id="ibd-news-toggle">▼</span>
- </div>
- </div>
- <div class="info-body" id="ibd-news-body">
- <div class="news-item">
- <div class="news-date">May 2026</div>
- <div class="news-content"><strong>Xencor XmAb412 preclinical data presented at DDW May 2–5, 2026</strong> — First public TL1A × IL-23p19 bispecific data from Xencor, leveraging Xtend™ FcXtend technology (&gt;71-day t½ validated in XmAb942 monotherapy). Phase 1 FIH planned H2 2026. Independent program — no partner announced to date.</div>
- </div>
- <div class="news-item">
- <div class="news-date">Jan 2026</div>
- <div class="news-content"><strong>Simcere out-licenses SIM0709 to Boehringer Ingelheim — €42M upfront, €1.05B total</strong> — Long-acting SC IgG bispecific, Pre-IND → FIH H1 2026. Global ex-Greater China. Simcere retains full China rights. <span class="news-val">€42M upfront</span> at preclinical/pre-IND stage. BI's second China-sourced IBD deal signals systematic strategy to access Chinese bispecific innovation.</div>
- </div>
- <div class="news-item">
- <div class="news-date">Apr 2025</div>
- <div class="news-content"><strong>Qyuns licenses CLD-423 (QX030N) to Caldera Therapeutics — $10M + ~25% equity, up to $545M</strong> — First subjects dosed Jan 2026. <span class="news-val">$10M + 25% equity</span> is a different structure than pure cash upfront, reflecting Caldera's early-stage status as a Qyuns-backed spinout. Sets the floor for structured TL1A bispecific deals.</div>
- </div>
- <div class="news-item">
- <div class="news-date">Apr 2025</div>
- <div class="news-content"><strong>Earendil Labs licenses HXN-1003 to Sanofi — $125M upfront, $1.845B total</strong> — AI-designed TL1A × IL-23p19 bispecific (2+2 tetravalent format), Pre-IND stage. Sanofi's entry into the bispecific TL1A space. <span class="news-val">$125M upfront</span> at Pre-IND stage represents the highest upfront in the space and sets the ceiling for early-stage bispecific valuations.</div>
- </div>
- <div class="news-item">
- <div class="news-date">Oct 2023</div>
- <div class="news-content"><strong>Roche acquires Telavant for ~$7.1B</strong> — Telavant was a JV between Roivant Sciences and Pfizer developing afimkibart (RG6631), an anti-TL1A monoclonal antibody then in Phase 2b (TUSCANY-2). Roche paid ~$7.1B to acquire full global rights. <span class="news-val">$7.1B</span> acquisition set the largest single IBD deal on record and validated the TL1A mechanism commercially at massive scale — before Phase 3 data. TUSCANY-2 primary endpoint was subsequently reported as not statistically significant, underlining the risk even at this deal size.</div>
- </div>
- </div>
- </div>
-
- <div class="sec-hd"><span class="sec-title">BD Intelligence · Key Takeaways</span><div class="sec-line"></div><span class="sec-tag">May 2026</span></div>
- <div class="insight-box">
- <div class="insight-label">Actionable intelligence for Chinese BD professionals</div>
- <ul>
- <li><strong>Preclinical benchmark is now set at €42M–$125M upfront for global-ex-China rights.</strong> Three deals have closed since Apr 2025 — any Chinese company with a TL1A×IL-23p19 bispecific should anchor partnership discussions to these comparables. The Simcere/BI deal (€42M upfront, preclinical) and Earendil/Sanofi ($125M upfront, preclinical) define the range based on asset quality and partner leverage.</li>
-          <li><a href="#" onclick="navTo('pharma-intel');return false">Pharma Landscape</a></li>
- <li><strong>The window for pre-Phase 1 deals is narrowing fast.</strong> Qyuns' CLD-423 entered Phase 1 in Jan 2026 — once bispecifics generate Phase 1 safety/PK data, deal valuations will bifurcate sharply. Novamab and Episcience should prioritize partnering timelines now; waiting for Phase 1 data is a reasonable strategy only if their differentiation (format, half-life, potency) is compelling enough to command a premium over Qyuns/Caldera comparables.</li>
- <li><strong>The China retention playbook is working and should be highlighted to clients.</strong> All three Chinese deals retain Greater China commercialization rights. As IBD incidence rises in China and Chinese biologics infrastructure matures, these retained rights are worth materially more than they were 5 years ago — this is a strong talking point when discussing deal structure with Chinese biotech clients considering out-licensing.</li>
- <li><strong>Estimand alignment is a hidden risk in Phase 2 design for bispecifics.</strong> The three lead TL1A monotherapy programs in Phase 3 (tulisokibart, duvakitug, afimkibart) all use composite estimands — rescue steroid use or discontinuation counts as treatment failure. When TL1A×IL-23p19 bispecifics move into Phase 2, sponsors who use a different estimand strategy (e.g. treatment policy) will report higher remission rates that cannot be compared to the Phase 3 monoAb benchmarks. Partners and regulators will scrutinize this. Chinese companies designing their Phase 2 protocols should default to composite estimands to maintain comparability with the established TL1A clinical evidence base.</li>
- </ul>
- </div>
-
- <!-- EDUCATIONAL: TL1A BIOLOGY & IBD -->
- <div class="edu-section">
- <div class="edu-hd" onclick="toggleEdu('tl1a-edu')">
- <div class="edu-hd-left">
- <span class="edu-hd-icon"></span>
- <div>
- <div class="edu-hd-title">Biology Deep-Dive: TL1A / DR3 · IBD Pathophysiology · MOA Framework</div>
- <div style="font-size:11px;color:#7c6fb5;margin-top:1px">Understand the science behind what you're evaluating — from epithelial alarm signals to T cell activation to why bispecifics have an edge</div>
- </div>
- </div>
- <span class="edu-toggle" id="tl1a-edu-toggle">▼</span>
- </div>
- <div class="edu-body" id="tl1a-edu-body">
-
- <div class="edu-chapter">
- <div class="edu-chapter-title">What is TL1A and Why Does It Matter?</div>
- <div class="edu-prose">TL1A (TNF-like Ligand 1A, also called TNFSF15) is a cytokine belonging to the TNF superfamily. It is expressed primarily by vascular endothelial cells, monocytes, macrophages, and dendritic cells when those cells encounter inflammatory signals such as bacterial products, TLR ligands, or other cytokines. TL1A signals through its cognate receptor, <strong>Death Receptor 3 (DR3, TNFRSF25)</strong>, which is constitutively expressed on T lymphocytes — particularly CD4+ effector T cells, regulatory T cells (Tregs), and memory T cells. This constitutive expression means the system is "always ready" to respond, and even subtle TL1A upregulation in inflamed tissue will trigger T cell activation.</div>
- <div class="edu-callout"><strong>The key insight:</strong> TL1A is not just another inflammatory cytokine — it is a T cell co-stimulatory signal that amplifies responses to other activating stimuli. When IL-12 or IL-18 activates T cells, TL1A amplifies that signal 10-100x. In the context of IBD, where T cell dysfunction is central, TL1A acts as a "volume knob" for intestinal inflammation.</div>
- <div class="edu-prose">In the gut mucosa specifically, TL1A-DR3 signaling drives the expansion and activation of <strong>Th9, Th17, Th1, and ILC3</strong> populations — the exact inflammatory cell subsets most relevant in both UC and CD. It also has a complex role in regulatory T cells: TL1A can both suppress Tregs (removing a brake on inflammation) or, in different contexts, promote Treg expansion — which is why patient selection and biomarker strategies are so important in TL1A drug development.</div>
- </div>
-
- <div class="edu-chapter">
- <div class="edu-chapter-title"> TL1A in IBD: Disease Biology</div>
- <div class="edu-prose">Multiple lines of evidence support TL1A as a causal driver in IBD, not merely a bystander:</div>
- <div class="edu-prose"><strong>Genetic evidence:</strong> Genome-wide association studies (GWAS) have identified the TNFSF15 locus as one of the strongest genetic risk factors for Crohn's disease. The risk haplotype is associated with TL1A overexpression in response to inflammatory stimuli. Approximately 60% of IBD patients carry a TNFSF15 risk variant — this is the scientific basis for Merck's companion diagnostic strategy with tulisokibart.</div>
- <div class="edu-prose"><strong>Expression data:</strong> TL1A protein is significantly upregulated in the inflamed mucosa of both UC and CD patients compared to healthy controls and non-inflamed IBD tissue. The level of mucosal TL1A expression correlates with disease severity and histological inflammation scores.</div>
- <div class="edu-prose"><strong>Functional studies:</strong> TL1A-transgenic mice develop a Th2/Th9-driven colitis with small intestinal fibrosis — importantly capturing fibrotic features of Crohn's disease that are often absent in other models. Anti-TL1A antibodies show efficacy in multiple mouse colitis models including DSS and T-cell transfer models.</div>
- <div class="edu-callout"><strong>Why this matters for BD:</strong> A target with strong genetic + expression + functional validation is significantly de-risked compared to targets with only one type of evidence. TL1A has all three, which explains why multiple major pharma companies have committed billions in the space.</div>
- </div>
-
- <div class="edu-chapter">
- <div class="edu-chapter-title"> The TL1A × IL-23 Synergy — Why Bispecifics?</div>
- <div class="edu-prose">IL-23 (specifically the p19 subunit, targeted by risankizumab, guselkumab, and others) is the master driver of Th17 and ILC3 differentiation in the gut. It promotes production of IL-17A, IL-17F, and IL-22 — cytokines that disrupt the epithelial barrier and sustain chronic inflammation in CD. IL-23 is already a validated target: risankizumab (Skyrizi) is approved for both CD and UC with strong efficacy data.</div>
- <div class="edu-prose">The key mechanistic connection: TL1A and IL-23 act on overlapping populations (DR3 is expressed on Th17 cells, ILC3s, and other IL-23-responsive cells) and co-stimulate in a <strong>synergistic, non-redundant fashion</strong>. Studies show that when both TL1A and IL-23 are present, the inflammatory response is greater than either alone — and that blocking one pathway leaves the other active to maintain inflammation.</div>
- <div class="edu-bd-lens">
- <div class="edu-bd-lens-title"> BD Evaluation Lens: Why the Bispecific Premium?</div>
- <div class="edu-bd-lens-body">The bispecific rationale is straightforward but must be validated clinically: if dual blockade achieves meaningfully higher remission rates than either monoAb alone (and both are approved individually), a bispecific can command a premium label, pricing, and formulary position. The AbbVie TARGET-CD trial (risankizumab + trosunilimab combination, H2 2026 readout) is the most direct validation of this hypothesis — if positive, it would be the strongest endorsement for bispecific programs. When evaluating bispecific programs, ask: (1) What are the expected additive vs. synergistic effects? (2) Which estimand design maximizes the detectable benefit? (3) Is there IND-stage efficacy data showing the bispecific outperforms both monoAbs?</div>
- </div>
- </div>
-
- <div class="edu-chapter">
- <div class="edu-chapter-title">IBD Drug Development: Endpoints, Estimands & Patient Selection</div>
- <div class="edu-prose"><strong>Endpoints:</strong> In UC, the standard primary endpoint for pivotal trials is clinical remission, defined by Mayo score (stool frequency, rectal bleeding, endoscopy). Composite remission requires both clinical and endoscopic remission. In CD, endoscopic response/remission and CDAI-based endpoints are used. Regulators increasingly prefer endoscopic endpoints as they reflect mucosal healing and predict long-term outcomes.</div>
- <div class="edu-prose"><strong>Why estimands matter:</strong> The composite estimand counts patients who required rescue medication as "treatment failures," creating a more rigorous but accurate picture of drug performance in real-world use. The treatment policy estimand counts all events regardless of rescue medication changes — more reflective of real-world outcomes but can make drugs look better. Regulators now favor alignment with ICH E9(R1) guidance. Comparing tulisokibart (26.5%, composite) vs. duvakitug (48%, composite) requires understanding whether both trials defined composite remission identically.</div>
- <div class="edu-prose"><strong>Patient selection:</strong> Biologic-naive vs. biologic-experienced patients respond very differently to anti-TL1A agents. Biologic-experienced patients (who have failed anti-TNF or anti-integrin) tend to have more refractory disease and lower response rates. Companion diagnostics (TNFSF15 haplotype) can enrich for responders, but a more restrictive label limits commercial opportunity.</div>
- <div class="edu-links">
- <a class="edu-link" href="https://www.nejm.org/doi/10.1056/NEJMoa2208598" target="_blank" rel="noopener">Tulisokibart Ph2 (NEJM 2023)</a>
- <a class="edu-link" href="https://www.ich.org/page/efficacy-guidelines#9-3" target="_blank" rel="noopener">ICH E9(R1) Estimands Guideline</a>
- <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06052059" target="_blank" rel="noopener">ATLAS-UC Ph3 Design</a>
- <a class="edu-link" href="https://clinicaltrials.gov/study/NCT06548542" target="_blank" rel="noopener">AbbVie TARGET-CD (combo trial)</a>
- </div>
- </div>
-
  </div>
  </div>
 
  <div class="footnote">Sources: Fierce Biotech, BioPharma Dive, BioSpace, company press releases, ECCO-JCC 2025 conference abstracts, NEJM (tulisokibart Phase 2), ICH E9(R1) Addendum on Estimands (2019). Data as of May 2026.</div>
 </div>
+
 
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
 <div class="tab-pane" id="tab-tslp">
@@ -8527,6 +7966,10 @@ function switchTab(id, btn) {
   if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
   if (id === 'meridian-issue') _setMeridianIframeSrc();
   if (id === 'industry-insights') { loadRollingDeals(); loadLiveIntel(); }
+  if (id === 'tl1a') {
+    if (typeof tl1aPI !== 'undefined' && !tl1aPI._initialized) { tl1aPI.init(); tl1aPI._initialized = true; }
+    loadTL1AIntelFeed();
+  }
 }
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
@@ -8918,7 +8361,261 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadMeridianReader(); dknLoadSbData(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+
+// ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
+function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
+function closeBioDD(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.bio-dd-overlay.open').forEach(el => el.classList.remove('open')); }});
+
+// ── TL1A PROGRAM INTELLIGENCE TABLE ──────────────────────────────
+const TL1A_PROGRAMS = [
+ { id:'roche', co:'Roche / Telavant', ticker:'ROG', drug:'Afimkibart', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
+   summary:'Roche acquired Telavant for $7.1B in 2023. Phase 3 OVERVIEW program (AMETRINE-1/-2 UC + SIBERITE-1/-2 CD) enrolling. Expanding into atopic dermatitis (Ph2) and MASH (Ph1).',
+   catalysts:[{date:'2026 H2',event:'AMETRINE-1/-2 Ph3 interim (UC)'},{date:'2027',event:'SIBERITE-1/-2 Ph3 primary (CD)'}],
+   deals:[{date:'Dec 2023',desc:'Roche acquires Telavant ~$7.1B — full global rights to afimkibart'}],
+   risk:'TUSCANY-2 Ph2b missed primary endpoint (24% vs 12% PBO); Phase 3 relies on secondary endpoint extrapolation. Could reset class expectations negatively.',
+   diff:'First anti-TL1A mAb to Phase 3 — sets the monotherapy efficacy bar bispecifics must beat. $7.1B acquisition validates the target at scale.' },
+ { id:'merck', co:'Merck & Co.', ticker:'MRK', drug:'Tulisokibart (MK-7240)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
+   summary:'Phase 3 ATLAS-UC + ARES-CD enrolling. Phase 2 ARTEMIS-UC: 26% remission vs 1.5% PBO. Ph3 topline ~Nov 2026. Companion diagnostic (TNFSF15 haplotype). Expanding to HS, axSpA, RA in Phase 2b.',
+   catalysts:[{date:'~Nov 2026',event:'ATLAS-UC Ph3 topline (first Ph3 TL1A dataset)'},{date:'2027',event:'ARES-CD Ph3 readout'}],
+   deals:[],
+   risk:'First Phase 3 TL1A readout — if it misses, the entire class takes a hit. Narrow companion Dx label could limit commercial ceiling.',
+   diff:'ATLAS-UC topline Nov 2026 will be the first Phase 3 TL1A dataset — could reset the field\'s expectations for TL1A mono and set the efficacy bar for bispecifics.' },
+ { id:'sanofi', co:'Sanofi / Teva', ticker:'SNY/TEVA', drug:'Duvakitug (TEV-48574)', target:'TL1A + IL-23p19', cls:'Direct', stageKey:'Phase 3', overlap:'high',
+   summary:'Leads the TL1A class with 48% UC remission in Ph2b (highest TL1A signal reported). Ph3 STARSCAPE (UC) and SUNSCAPE (CD) now enrolling. Co-dosed dual mAb targeting both TL1A and IL-23p19. Best-in-class candidate.',
+   catalysts:[{date:'2027–2028',event:'STARSCAPE Ph3 primary (UC)'},{date:'2028',event:'SUNSCAPE Ph3 primary (CD)'}],
+   deals:[{date:'N/A',desc:'Teva / Sanofi co-development — details not publicly disclosed'}],
+   risk:'Highest efficacy data in class creates a very high bar that bispecific formats must clear to claim differentiation.',
+   diff:'48% Ph2b UC remission (composite) at 900mg Wk14 vs 20% PBO — highest TL1A efficacy signal reported to date. Sets the benchmark Ailux bispecific must beat.' },
+ { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 2', overlap:'watch',
+   summary:'Spyre (Agenus IBD spinout) has SPY002 anti-TL1A mAb in Phase 2 UC and a bispecific pipeline (SPY003 TL1A×IL-23, SPY004 IL-6×IL-23). $720M raised in 2024. Watch for Ph2 UC efficacy data.',
+   catalysts:[{date:'2026',event:'SPY002 SKYLINE Ph2 UC efficacy data'},{date:'2026–2027',event:'SPY003 (TL1A×IL-23) Phase 1 initiation'}],
+   deals:[{date:'2024',desc:'$720M financing round to fund IBD bispecific pipeline'}],
+   risk:'Clinical-stage spinout with limited public efficacy data; must demonstrate differentiation vs. Roche/Merck/Sanofi mono programs.',
+   diff:'Agenus heritage with validated Ab engineering; SPY002 Ph2 data will help calibrate monospecific bar vs. the bispecific hypothesis.' },
+ { id:'xencor-942', co:'Xencor', ticker:'XNCR', drug:'XmAb942 (XTEND)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'high',
+   summary:'XmAb942 achieved 74-day half-life in Ph1 HV study (April 2025) supporting quarterly dosing. XENITH-UC Ph2b enrolling; interim YE2026; full readout H2 2027. Platform: XTEND-Fc technology that extends half-life via FcRn binding enhancement.',
+   catalysts:[{date:'YE 2026',event:'XENITH-UC Ph2b interim data'},{date:'H2 2027',event:'XENITH-UC Ph2b full readout'}],
+   deals:[],
+   risk:'Ph2b data still pending — if efficacy is modest, the extended PK advantage alone may not be sufficient to differentiate from standard IgG competitors.',
+   diff:'Half-life >71 days — enables quarterly (Q13W) or longer dosing. If Phase 2b data hold, sets the convenience bar for the entire TL1A class. Xtend platform is clinically de-risked.' },
+ { id:'mirador', co:'Mirador Therapeutics', ticker:'Private', drug:'MT-251', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
+   summary:'Most clinically advanced TL1A × IL-23p19 bispecific. FcRn-recycling format for extended half-life. Phase 1 active in IBD. Backed by A16z Bio and top-tier investors.',
+   catalysts:[{date:'2026',event:'MT-251 Ph1 safety/PK data readout'},{date:'H2 2026–2027',event:'Ph1 dose escalation completion'}],
+   deals:[{date:'2023–2024',desc:'Series A + B financing — A16z Bio, Foresite Capital, Atlas Venture'}],
+   risk:'First-in-human — Phase 1 safety and PK are unknown. FcRn-recycling format adds bispecific complexity. No partner announced yet.',
+   diff:'Most direct clinical-stage bispecific competitor. FcRn half-life extension technology. First Ph1 data will be closely watched by deal-makers.' },
+ { id:'simcere', co:'Simcere / Boehringer Ingelheim', ticker:'Private/BI', drug:'SIM0709', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
+   summary:'Long-acting SC IgG bispecific. Licensed to BI in a €1.05B deal (Dec 2024). Phase 1 active in IBD. BI\'s deep IBD infrastructure makes this a formidable competitor upon positive Ph1 safety/PK data.',
+   catalysts:[{date:'H2 2026',event:'SIM0709 Ph1 safety/PK data (FIH H1 2026)'},{date:'2027',event:'Phase 1 dose escalation + Ph2 initiation decision'}],
+   deals:[{date:'Jan 2026',desc:'Simcere → Boehringer Ingelheim: €42M upfront, €1.05B total · Global ex-Greater China'}],
+   risk:'BI deal means full Phase 1+ development is funded and de-risked from a capital perspective. Timeline acceleration probable.',
+   diff:'€1.05B BI partnership (€42M upfront at Pre-IND) validates SC long-acting approach. Simcere retains all Greater China rights.' },
+ { id:'caldera', co:'Caldera / Qyuns Therapeutics', ticker:'Private', drug:'CLD-423 / QX030N', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
+   summary:'First subjects dosed Jan 2026. Caldera is a Qyuns-backed US spinout. $545M total potential deal. Retains China rights.',
+   catalysts:[{date:'2026–2027',event:'CLD-423 Ph1 safety/PK data'},{date:'2027',event:'Phase 1 dose escalation completion'}],
+   deals:[{date:'Apr 2025',desc:'Qyuns → Caldera: $10M + ~25% equity, up to $545M · Global ex-China'}],
+   risk:'Caldera is an early-stage company with limited capital vs. BI/Sanofi-backed programs. Ph1 data expected 2026–2027.',
+   diff:'First Chinese TL1A bispecific to enter Phase 1. Deal structure ($10M + 25% equity) sets a floor for structured early-stage bispecific deals.' },
+ { id:'earendil', co:'Earendil / Helixon (Sanofi)', ticker:'Private', drug:'HXN-1003', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
+   summary:'AI-designed tetravalent (2+2) bispecific. Licensed to Sanofi in the highest-value preclinical deal in the space ($125M upfront, $1.845B total, Apr 2025).',
+   catalysts:[{date:'2026',event:'IND filing expected'},{date:'2026–2027',event:'FIH Phase 1 initiation'}],
+   deals:[{date:'Apr 2025',desc:'Earendil → Sanofi: $125M upfront, $1.845B total · Global ex-China · AI-designed tetravalent format'}],
+   risk:'Tetravalent (2+2) format adds manufacturing and regulatory complexity. Pre-IND stage — no human safety data.',
+   diff:'Highest-value preclinical deal ($1.845B total, $125M upfront). Sanofi\'s second TL1A commitment signals strong conviction in dual TL1A+IL-23p19 blockade.' },
+ { id:'xencor-412', co:'Xencor (XmAb412)', ticker:'XNCR', drug:'XmAb412', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
+   summary:'TL1A × IL-23p19 bispecific using Xencor\'s Xtend platform. Preclinical data at DDW 2026. FIH in healthy volunteers planned Q3 2026. Xencor uniquely running both mono (XmAb942, Ph2b) and bispecific in parallel.',
+   catalysts:[{date:'Q3 2026',event:'XmAb412 FIH Phase 1 initiation (HV study)'},{date:'2027',event:'First human PK/safety data'}],
+   deals:[],
+   risk:'No partner announced — Xencor funding both mono and bispecific programs independently. Capital allocation risk.',
+   diff:'Xtend platform already de-risked by XmAb942 Ph1 data (>71-day t½). Bispecific version targets >71-day half-life. First preclinical poster at DDW 2026.' },
+ { id:'lanova', co:'LaNova / Zymeworks', ticker:'Private', drug:'LQ080 / ZW191', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
+   summary:'VHH nanobody-based bispecific with compact format. Extended half-life in NHP. Presented at DDW 2025. Retains China rights.',
+   catalysts:[{date:'2026–2027',event:'Ph1 safety/PK data'},{date:'2027',event:'Phase 1 dose escalation completion'}],
+   deals:[{date:'Ongoing',desc:'LaNova / Zymeworks partnering — no global deal announced; seeking partner'}],
+   risk:'VHH nanobody format — unvalidated in IBD clinically. Tissue penetration and immunogenicity vs. standard IgG are open questions.',
+   diff:'Uniquely compact format vs. IgG bispecific competitors. Extended half-life in NHP. Seeking global partner — potential acquisition target.' },
+ { id:'spyre-003', co:'Spyre (SPY003)', ticker:'SYRE', drug:'SPY003 (TL1A × IL-23p19)', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'watch',
+   summary:'Spyre\'s TL1A × IL-23p19 bispecific program. FIH planned after SPY002 mono data. Part of $720M funded pipeline.',
+   catalysts:[{date:'2026–2027',event:'SPY003 FIH initiation (pending SPY002 Ph2 data)'}],
+   deals:[{date:'2024',desc:'Part of $720M Spyre financing round'}],
+   risk:'Development timeline contingent on SPY002 mono data readout. Late-stage relative to Mirador/Simcere bispecifics.',
+   diff:'Full pipeline company — could develop both mono and bispecific assets to maximize optionality or seek partnership at inflection.' },
+ { id:'episcience', co:'Episcience', ticker:'Private', drug:'ES302', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Preclinical', overlap:'watch',
+   summary:'Limited public data. Early-stage preclinical TL1A × IL-23p19 bispecific. One of ≥4 Chinese companies with this exact target pair.',
+   catalysts:[{date:'2026–2027',event:'IND-enabling studies expected'},{date:'2027',event:'Potential out-licensing window'}],
+   deals:[],
+   risk:'Very early stage; limited public differentiation data vs. more advanced Chinese competitors (Simcere, Qyuns).',
+   diff:'Partnering window open — if pre-IND data show differentiation, could license before the pre-IND valuation window closes (set at €42M–$125M upfront by Simcere/Earendil comps).' }
+];
+
+const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Preclinical':4};
+const tl1aPI = {
+ data: TL1A_PROGRAMS,
+ filtered: [...TL1A_PROGRAMS],
+ sortCol: 'stageKey',
+ sortDir: 1,
+ expanded: new Set(),
+ _colWidths: [220, 150, 100, 90, 80, 80],
+
+ init() {
+  this.filtered = [...this.data];
+  this._renderTable();
+  this._initResize();
+ },
+
+ filter() {
+  const cls   = (document.getElementById('pi-tl1a-cls')||{}).value   || '';
+  const stage = (document.getElementById('pi-tl1a-stage')||{}).value || '';
+  const ov    = (document.getElementById('pi-tl1a-overlap')||{}).value|| '';
+  this.filtered = this.data.filter(p =>
+   (!cls   || p.cls === cls) &&
+   (!stage || p.stageKey === stage) &&
+   (!ov    || p.overlap === ov)
+  );
+  const c = document.getElementById('pi-tl1a-count');
+  if (c) c.textContent = `${this.filtered.length} programs`;
+  this._renderTable();
+ },
+
+ sort(col) {
+  if (this.sortCol === col) this.sortDir *= -1;
+  else { this.sortCol = col; this.sortDir = 1; }
+  this._renderTable();
+ },
+
+ toggle(id) {
+  if (this.expanded.has(id)) this.expanded.delete(id);
+  else this.expanded.add(id);
+  this._renderTable();
+  this._initResize();
+ },
+
+ _clsPill(cls) {
+  const m = {'1st Gen':'pi-cls-1st','Direct':'pi-cls-direct','2nd Gen':'pi-cls-2nd'};
+  return `<span class="pi-cls-pill ${m[cls]||''}">${cls}</span>`;
+ },
+ _stagePill(s) {
+  const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre'};
+  return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`;
+ },
+ _ovBadge(o) {
+  return o==='high' ? '<span class="pi-overlap-high">High Overlap</span>' : '<span class="pi-overlap-watch">Watch</span>';
+ },
+
+ _detailHTML(p) {
+  const cats = p.catalysts.length ? p.catalysts.map(c =>
+   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join('') : '<p>No catalysts on record</p>';
+  const deals = p.deals.length ? p.deals.map(d =>
+   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join('') : '<p>No deal history</p>';
+  return `<div class="pi-detail-inner">
+   <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
+   <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${cats}</div>
+   <div class="pi-detail-section"><h5>Deal History</h5>${deals}</div>
+   <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
+   <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+  </div>`;
+ },
+
+ _renderTable() {
+  const wrap = document.getElementById('pi-tl1a-wrap');
+  if (!wrap) return;
+  const sorted = [...this.filtered].sort((a,b) => {
+   if (this.sortCol === 'stageKey') {
+    return this.sortDir * ((TL1A_STAGE_ORDER[a.stageKey]??9) - (TL1A_STAGE_ORDER[b.stageKey]??9));
+   }
+   const av = a[this.sortCol]||'', bv = b[this.sortCol]||'';
+   return this.sortDir * av.localeCompare(bv);
+  });
+  const w = this._colWidths;
+  const sortArrow = col => this.sortCol===col ? (this.sortDir>0?'▲':'▼') : '⇅';
+  const colgroup = w.map(x=>`<col style="width:${x}px">`).join('');
+  const thead = `<thead><tr>
+   <th style="width:${w[0]}px" onclick="tl1aPI.sort('co')">Company<span class="pi-sort-arrow">${sortArrow('co')}</span><div class="col-resize" data-col="0"></div></th>
+   <th style="width:${w[1]}px" onclick="tl1aPI.sort('drug')">Drug(s)<span class="pi-sort-arrow">${sortArrow('drug')}</span><div class="col-resize" data-col="1"></div></th>
+   <th style="width:${w[2]}px" onclick="tl1aPI.sort('target')">Target<span class="pi-sort-arrow">${sortArrow('target')}</span><div class="col-resize" data-col="2"></div></th>
+   <th style="width:${w[3]}px" onclick="tl1aPI.sort('cls')">Class<span class="pi-sort-arrow">${sortArrow('cls')}</span><div class="col-resize" data-col="3"></div></th>
+   <th style="width:${w[4]}px" onclick="tl1aPI.sort('stageKey')">Stage<span class="pi-sort-arrow">${sortArrow('stageKey')}</span><div class="col-resize" data-col="4"></div></th>
+   <th style="width:${w[5]}px" onclick="tl1aPI.sort('overlap')">Relevance<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="5"></div></th>
+  </tr></thead>`;
+  const rows = sorted.map(p => {
+   const isExp = this.expanded.has(p.id);
+   const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${p.id}')">
+    <td><strong style="font-size:12px;color:#1e3a5f">${p.co}</strong><div style="font-size:10px;color:#94a3b8">${p.ticker}</div></td>
+    <td style="font-size:12px">${p.drug}</td>
+    <td style="font-size:11px;color:#475569">${p.target}</td>
+    <td>${this._clsPill(p.cls)}</td>
+    <td>${this._stagePill(p.stageKey)}</td>
+    <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+   </tr>`;
+   const detail = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-inner">
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
+    <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${p.catalysts.length?p.catalysts.map(c=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join(''):'<p>No catalysts on record</p>'}</div>
+    <div class="pi-detail-section"><h5>Deal History</h5>${p.deals.length?p.deals.map(d=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join(''):'<p>No deal history</p>'}</div>
+    <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
+    <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+   </div></td></tr>` : '';
+   return main + detail;
+  }).join('');
+  wrap.innerHTML = `<table class="pi-table"><colgroup>${colgroup}</colgroup>${thead}<tbody>${rows}</tbody></table>`;
+  const c = document.getElementById('pi-tl1a-count');
+  if (c) c.textContent = `${sorted.length} programs`;
+ },
+
+ _initResize() {
+  const wrap = document.getElementById('pi-tl1a-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('.col-resize').forEach(handle => {
+   handle.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    const colIdx = parseInt(handle.dataset.col);
+    const startX = e.clientX;
+    const startW = this._colWidths[colIdx];
+    const onMove = mv => {
+     this._colWidths[colIdx] = Math.max(60, startW + (mv.clientX - startX));
+     const cols = wrap.querySelectorAll('col');
+     if (cols[colIdx]) cols[colIdx].style.width = this._colWidths[colIdx] + 'px';
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+   });
+  });
+ }
+};
+
+// ── TL1A LIVE INTEL FEED ──────────────────────────────────────────
+async function loadTL1AIntelFeed() {
+ const body = document.getElementById('tl1a-intel-feed-body');
+ if (!body || !window._sb) { if(body) body.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Connect Supabase to load live intelligence.</div>'; return; }
+ try {
+  const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').eq('area_id','tl1a').limit(100);
+  const tl1aIds = (iaRows||[]).map(r=>r.intel_id);
+  let rows = [];
+  if (tl1aIds.length) {
+   const { data } = await _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,importance')
+    .in('id', tl1aIds.slice(0,50)).order('intel_date',{ascending:false}).limit(15);
+   rows = data||[];
+  }
+  if (!rows.length) { body.innerHTML = '<div style="color:#94a3b8;font-size:12px;">No TL1A intelligence in Supabase yet — check back after next research update.</div>'; return; }
+  const TYPE_LABEL = {deal:'Deal',clinical:'Clinical',regulatory:'Regulatory',news:'News',conference:'Conference',user_submitted:'User Intel'};
+  body.innerHTML = rows.map(item => {
+   const dotCls = item.importance==='high'?'high':item.importance==='medium'?'medium':'low';
+   const typeTag = item.intel_type ? `<span class="intel-feed-type">${TYPE_LABEL[item.intel_type]||item.intel_type}</span>` : '';
+   const src = item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ Source</a>` : '';
+   return `<div class="intel-feed-item">
+    <div class="intel-feed-dot ${dotCls}"></div>
+    <div style="flex:1;min-width:0">
+     <div class="intel-feed-meta">${typeTag}<span class="intel-feed-date">${item.intel_date||''}</span>${src}</div>
+     <div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.45">${item.headline||''}</div>
+     ${item.body?`<div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.55">${item.body}</div>`:''}
+     <div style="font-size:10px;color:#94a3b8;margin-top:3px">${item.source_name||''}</div>
+    </div>
+   </div>`;
+  }).join('');
+ } catch(e) { if(body) body.innerHTML = `<div style="color:#dc2626;font-size:12px">Feed error: ${e.message}</div>`; }
+}
 
 // ── TOC NAVIGATION ────────────────────────────────────────────────
 const TOC_MAP = {
@@ -8929,14 +8626,12 @@ const TOC_MAP = {
  {label:'Recent Deals', id:'home-deals-anchor'},
  ],
  tl1a: [
- {label:'Field Intelligence', id:'tl1a-intel-anchor'},
- {label:'Summary Stats', id:'tl1a-stats-anchor'},
- {label:'Deal Spotlight', id:'tl1a-deal-anchor'},
+ {label:'Program Intelligence', id:'tl1a-pi-card'},
+ {label:'Intel Feed', id:'tl1a-intel-feed-card'},
  {label:'Ailux Profile', id:'tl1a-ailux-anchor'},
  {label:'Estimand Guide', id:'tl1a-estimand-anchor'},
  {label:'Catalyst Calendar', id:'tl1a-readouts-anchor'},
- {label:'Competitive Landscape', id:'tl1a-landscape-anchor'},
- {label:'Technical Comparison', id:'tl1a-tech-anchor'},
+ {label:'IBD Market & SOC', id:'tl1a-ailux-anchor'},
  {label:'Chinese Programs', id:'tl1a-china-anchor'},
  ],
  tslp: [
