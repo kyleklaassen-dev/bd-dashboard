@@ -7615,7 +7615,7 @@ function dknReset() {
 <div class="tab-pane" id="tab-meridian-issue" style="padding:28px 24px 40px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1800px;margin:0 auto;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
     <iframe id="meridian-issue-frame"
-     src="https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html"
+     src=""
      style="width:100%;height:calc(100vh - 120px);min-height:640px;border:none;display:block;"
      title="Today's Meridian Issue">
     </iframe>
@@ -7976,6 +7976,12 @@ function updateTabTitle(id) {
   titleEl.appendChild(badge);
  }
 }
+function _setMeridianIframeSrc() {
+  const frame = document.getElementById('meridian-issue-frame');
+  if (!frame) return;
+  const v = new Date().toISOString().slice(0,10); // YYYY-MM-DD — changes daily, busts cache
+  frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + v;
+}
 function switchTab(id, btn) {
  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -7986,6 +7992,7 @@ function switchTab(id, btn) {
  buildToc(id);
  closeToc();
   if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
+  if (id === 'meridian-issue') _setMeridianIframeSrc();
 }
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
