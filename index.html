@@ -352,6 +352,12 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .catalyst-urgent { color: #c45b11; }
 .catalyst-text { flex: 1; font-size: 13px; color: #1a2e4a; line-height: 1.5; }
 .catalyst-text strong { color: #1a2f50; }
+.cat-sort-btn { font-size:10px; padding:2px 9px; border:1px solid #d1d5db; border-radius:10px; background:#fff; color:#475569; cursor:pointer; font-weight:600; transition:all .15s; }
+.cat-sort-btn.active { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.cat-sort-btn:hover:not(.active) { background:#f1f5f9; border-color:#94a3b8; }
+.cat-hi-watch { font-size:8.5px; font-weight:800; background:#dc2626; color:white; padding:1px 6px; border-radius:8px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+.cat-item-high { background:linear-gradient(90deg,#fff7f0,#fff); border-left:3px solid #dc2626 !important; padding-left:10px !important; margin-left:-3px; }
+.cat-filter-bar { padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e8edf3; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 .deal-row { padding: 8px 0; border-bottom: 1px solid #eef1f5; font-size: 13px; color: #1a2e4a; }
 .deal-row:last-child { border-bottom: none; }
 .deal-row .deal-co { font-weight: 800; color: #1a2f50; }
@@ -1287,6 +1293,8 @@ function dealFilter(btn, area) {
 
 // ── Catalysts Feed ───────────────────────────────────────────────────────────
 let _allCatalysts = [];
+let _catSortMode  = 'soonest';
+let _catAreaFilter = '';
 
 const SIG_STYLE = {
   high:   { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'High' },
@@ -1296,43 +1304,74 @@ const SIG_STYLE = {
 const CAT_TYPE_ICON = {
   readout: '📊', filing: '📋', approval: '✅', conference: '🎤', deal: '🤝', default: '📌'
 };
+const SIG_ORDER = { high: 0, medium: 1, low: 2 };
+
+function sortCatalysts(cats) {
+  const open = cats.filter(c => !c.resolved);
+  const resolved = cats.filter(c => c.resolved);
+  const sort = (arr) => {
+    const a = [...arr];
+    if (_catSortMode === 'relevance') {
+      return a.sort((x,y) => {
+        const sx = SIG_ORDER[x.significance] ?? 1;
+        const sy = SIG_ORDER[y.significance] ?? 1;
+        if (sx !== sy) return sx - sy;
+        return (x.sort_date||'9999').localeCompare(y.sort_date||'9999');
+      });
+    } else if (_catSortMode === 'recent') {
+      return a.sort((x,y) => (y.sort_date||'0').localeCompare(x.sort_date||'0'));
+    } else { // soonest
+      return a.sort((x,y) => (x.sort_date||'9999').localeCompare(y.sort_date||'9999'));
+    }
+  };
+  return { open: sort(open), resolved: sort(resolved) };
+}
 
 function renderCatalysts(cats) {
   const list = document.getElementById('catalysts-list');
   if (!list) return;
   if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
 
-  const open = cats.filter(c => !c.resolved);
-  const resolved = cats.filter(c => c.resolved);
+  const { open, resolved } = sortCatalysts(cats);
 
-  const renderGroup = (items, isResolved) => items.map(c => {
+  const renderItem = (c, isResolved) => {
     const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
     const icon = CAT_TYPE_ICON[c.catalyst_type] || CAT_TYPE_ICON.default;
     const area = AREA_LABELS[c.area_id] || c.area_id || '';
+    const isHigh = c.significance === 'high' && !isResolved;
+    const rowStyle = isHigh
+      ? 'border-left:3px solid #dc2626;background:linear-gradient(90deg,#fff6f0,#fff);padding-left:10px;margin-left:0;'
+      : 'padding-left:0;';
+    const watchBadge = isHigh ? `<span class="cat-hi-watch">⭐ Key Watch</span>` : '';
     const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
+    const countdown = isResolved
+      ? `<span style="font-size:9px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:1px 5px;border-radius:8px;">✓ Resolved</span>`
+      : catDaysTag(c.sort_date);
     return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
-      display:flex;align-items:flex-start;gap:10px;padding:8px 0;
-      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.6':'1'};
+      display:flex;align-items:flex-start;gap:10px;padding:9px 0 9px 0;
+      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.55':'1'};${rowStyle}
     ">
-  <div style="flex-shrink:0;text-align:center;min-width:54px;">
-    <div style="font-size:14px;">${icon}</div>
-    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:1px;line-height:1.2;">${c.catalyst_date||''}</div>
+  <div style="flex-shrink:0;text-align:center;min-width:52px;">
+    <div style="font-size:15px;line-height:1">${icon}</div>
+    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:2px;line-height:1.2;">${c.catalyst_date||''}</div>
   </div>
   <div style="flex:1;min-width:0;">
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px;">
       <span style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};">${c.label||''}</span>
+      ${watchBadge}
       <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;">${sig.label}</span>
       ${area ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;padding:1px 5px;border-radius:8px;">${area}</span>` : ''}
-      ${isResolved ? '' : catDaysTag(c.sort_date)}
+      ${countdown}
     </div>
-    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
+    ${c.notes ? `<div style="font-size:11px;color:#475569;line-height:1.45;">${c.notes}</div>` : ''}
     ${resolvedNote}
   </div>
 </div>`;
-  }).join('');
+  };
 
-  list.innerHTML = (open.length ? renderGroup(open, false) : '') +
-    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">Resolved</div>` + renderGroup(resolved, true) : '');
+  list.innerHTML =
+    open.map(c => renderItem(c, false)).join('') +
+    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em;border-top:1px dashed #e2e8f0;padding-top:10px;">Resolved</div>` + resolved.map(c => renderItem(c, true)).join('') : '');
 }
 
 async function loadCatalysts() {
@@ -1351,8 +1390,17 @@ async function loadCatalysts() {
 function catFilter(btn, area) {
   document.querySelectorAll('#home-catalysts-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  _catAreaFilter = area;
   const filtered = area ? _allCatalysts.filter(c => c.area_id === area) : _allCatalysts;
-  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'Key Readouts & Events';
+  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
+  renderCatalysts(filtered);
+}
+
+function setCatSort(btn, mode) {
+  document.querySelectorAll('#home-catalysts-anchor .cat-sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _catSortMode = mode;
+  const filtered = _catAreaFilter ? _allCatalysts.filter(c => c.area_id === _catAreaFilter) : _allCatalysts;
   renderCatalysts(filtered);
 }
 
@@ -2043,53 +2091,26 @@ function loadMoleculeTab(tabId) {
   </div>
 
  <div class="home-grid" id="home-catalysts-anchor">
- <div class="home-card">
- <div class="home-card-hd"> Key Catalysts — Next 6 Months <span class="hc-tag">May–Nov 2026</span></div>
- <div class="home-card-body">
- <div class="catalyst-item">
- <div class="catalyst-timing catalyst-urgent">Q2 2026<br><span style="font-size:10px;font-weight:600">Jun 2026</span></div>
- <div class="catalyst-text"><strong>Spyre SPY001 SKYLINE Ph2</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — First Ph2 data for TL1A mono. UC readout sets up SPY072 bispecific validation.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing catalyst-urgent">H2 2026</div>
- <div class="catalyst-text"><strong>Linsitinib (IGF1R) OPTIC Ph3 topline</strong> <span style="font-size:10px;color:#065f46;font-weight:700">TED</span> — First oral IGF1R inhibitor in TED. Critical read for IGF1R×TSHR bispecific opportunity sizing.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing catalyst-urgent">Q4 2026<br><span style="font-size:10px;font-weight:600">~Nov 2026</span></div>
- <div class="catalyst-text"><strong>Tulisokibart ATLAS-UC Ph3</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — <span style="color:#c45b11;font-weight:800">LANDMARK</span> — first Ph3 TL1A class data. Sets benchmark for entire bispecific deal landscape.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing">Q4 2026<br><span style="font-size:10px;font-weight:600">Oct 2026</span></div>
- <div class="catalyst-text"><strong>SPY072 SKYWAY (RA/PsA/axSpA)</strong> <span style="font-size:10px;color:#c45b11;font-weight:700">IBD</span> — First TL1A data in rheumatology. Expands deal value for bispecifics beyond GI.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing">H2 2026</div>
- <div class="catalyst-text"><strong>TSLP catalysts (3)</strong> <span style="font-size:10px;color:#2563eb;font-weight:700">Resp</span> — Bosakitug Ph2a asthma · HBM9378 Ph2 asthma · Tozorakimab COPD topline. Monotherapy class reads ahead of bispecific deals.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing">2026</div>
- <div class="catalyst-text"><strong>Nipocalimab FDA action</strong> <span style="font-size:10px;color:#5b21b6;font-weight:700">AI</span> — PDUFA review ongoing. FcRn inhibitor with broadest approved indication profile. Subcutaneous formulation differentiation vs IV competition.</div>
- </div>
- <div class="catalyst-item">
- <div class="catalyst-timing">2026–2027</div>
- <div class="catalyst-text"><strong>HXN-1031 (BCMA×CD19×CD3) FIH</strong> <span style="font-size:10px;color:#991b1b;font-weight:700">Immune Reset</span> — IND filed 2025. Ph1 first patient enrollment announcement expected. Sanofi partnership validates $1.845B trispecific thesis.</div>
- </div>
- </div>
- </div>
-
- <div class="home-card" id="home-catalysts-anchor">
+ <div class="home-card" style="overflow:visible">
   <div class="home-card-hd">
-   Upcoming Catalysts
-   <span class="hc-tag" id="cats-area-label">Key Readouts &amp; Events</span>
-   <span style="margin-left:auto;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-    <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
-   </span>
+   Key Catalysts &amp; Readouts
+   <span class="hc-tag" id="cats-area-label">All Areas</span>
+  </div>
+  <!-- Sort + Area filter bar -->
+  <div class="cat-filter-bar">
+   <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
+   <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
+   <button class="cat-sort-btn" onclick="setCatSort(this,'relevance')">Most Relevant</button>
+   <button class="cat-sort-btn" onclick="setCatSort(this,'recent')">Most Recent</button>
+   <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
+   <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
+   <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
+   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
   </div>
   <div class="home-card-body" id="catalysts-list">
    <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading catalysts…</div>
