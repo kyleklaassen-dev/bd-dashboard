@@ -931,12 +931,13 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-table th:hover { background:#e2e8f0; }
 .pi-table td { font-size:12px;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
 .pi-table tr.pi-main:hover td { background:#f8fafc;cursor:pointer; }
-.pi-table tr.pi-main.expanded td { background:#1e3a5f !important;color:white;border-bottom:none; }
-.pi-table tr.pi-main.expanded td strong { color:white; }
+.pi-table tr.pi-main.expanded td { background:#2d5282 !important;color:white;border-bottom:none; }
+.pi-table tr.pi-main.expanded td strong { color:white !important; }
+.pi-table tr.pi-main.expanded td div { color:rgba(255,255,255,0.7) !important; }
 .pi-table tr.pi-main.expanded .pi-expand-icon { color:#93c5fd; }
 .pi-table tr.pi-main.expanded .pi-cls-pill,
 .pi-table tr.pi-main.expanded .pi-stage-pill,
-.pi-table tr.pi-main.expanded .pi-overlap-badge { filter:brightness(1.2); }
+.pi-table tr.pi-main.expanded .pi-overlap-badge { filter:brightness(1.25); }
 .pi-cls-pill { display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700; }
 .pi-cls-1st { background:#dbeafe;color:#1d4ed8; }
 .pi-cls-direct { background:#fee2e2;color:#991b1b; }
@@ -969,6 +970,11 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-trial-planned { background:#ede9fe;color:#5b21b6; }
 /* ── SPYRE RICH ROW ── */
 .spyre-hd { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0; }
+/* Hover underline on all links inside drug popups + expanded detail rows */
+.spyre-drug-popup a, .pi-detail-inner a { text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s,color 0.15s; }
+.spyre-drug-popup a:hover, .pi-detail-inner a:hover { border-bottom-color:currentColor; }
+.tl1a-modal-body a { text-decoration:none;border-bottom:1px solid transparent;transition:border-color 0.15s; }
+.tl1a-modal-body a:hover { border-bottom-color:currentColor; }
 .spyre-stock-chip { display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px; }
 .spyre-stock-ticker { font-size:11px;font-weight:800;color:#1e3a5f; }
 .spyre-stock-price { font-size:14px;font-weight:800;color:#0d1f38; }
@@ -9307,7 +9313,7 @@ const tl1aPI = {
      <span class="spyre-stock-chg" id="spyre-chg">loading…</span>
     </div>
     <div style="font-size:11.5px;color:#64748b">7-program IBD + Rheumatic platform · Agenus spinout · $783M raised · Cash into H2 2028</div>
-    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;margin-left:auto;white-space:nowrap">www.spyre.com/pipeline ↗</a>
+    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;margin-left:auto;white-space:nowrap;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">Spyre Pipeline ↗</a>
    </div>
    <!-- All pipeline drugs centered -->
    ${pipelineRow}
