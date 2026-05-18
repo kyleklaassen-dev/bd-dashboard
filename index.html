@@ -1223,6 +1223,172 @@ function catFilter(btn, area) {
   renderCatalysts(filtered);
 }
 
+// ── MOLECULE TAB DYNAMIC LOADERS ──────────────────────────────────────────────
+// Maps each tab ID to one or more Supabase area_ids
+const TAB_AREA_MAP = {
+  'tl1a':       ['tl1a'],
+  'tslp':       ['tslp'],
+  'il4ra-tslp': ['il4ra','tslp'],
+  'il4ra-ox40l':['il4ra'],
+  'igf1r-tshr': ['igf1r'],
+  'fcrn':       ['fcrn'],
+  'ace':        ['tcell'],
+};
+const _molTabLoaded = {}; // lazy-load cache
+
+const STAGE_COLOR = {
+  'Approved':    '#065f46', 'BLA Filed': '#1d4ed8',
+  'Phase 3':     '#1d4ed8', 'Phase 2':   '#7c3aed',
+  'Phase 1/2':   '#7c3aed', 'Phase 1b':  '#b45309',
+  'Phase 1':     '#b45309', 'Preclinical':'#6b7280',
+};
+function stagePill(stage) {
+  const col = STAGE_COLOR[stage] || '#4b5563';
+  return `<span style="background:${col}1a;color:${col};font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;white-space:nowrap">${stage}</span>`;
+}
+function importanceDot(imp) {
+  return imp === 'high' ? '🔴' : imp === 'medium' ? '🟡' : '⚪';
+}
+
+// ── Area Intel Loader ─────────────────────────────────────────────────────────
+async function loadAreaIntel(tabId) {
+  const areas = TAB_AREA_MAP[tabId];
+  if (!areas) return;
+  const containerId = `${tabId}-live-intel`;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  try {
+    // Fetch intel_areas rows for these areas, then get matching intel
+    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
+    const iaRows = await sbFetch('intel_areas', { filter: `or=(${areaFilter})`, select: 'intel_id' });
+    if (!iaRows.length) {
+      el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No Meridian intel yet — updates will appear here after the next morning run.</div>`;
+      return;
+    }
+    const intelIds = [...new Set(iaRows.map(r => r.intel_id))].slice(0, 12);
+    const intelRows = await sbFetch('intel', {
+      filter: `id.in.(${intelIds.join(',')})`,
+      order: 'intel_date.desc',
+      limit: 8
+    });
+    if (!intelRows.length) {
+      el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No Meridian intel yet — updates will appear here after the next morning run.</div>`;
+      return;
+    }
+    el.innerHTML = intelRows.map(item => `
+      <div style="padding:10px 0;border-bottom:1px solid #f0f4f8">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="flex-shrink:0;margin-top:1px">${importanceDot(item.importance)}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${item.headline}</div>
+            ${item.body ? `<div style="font-size:12px;color:#4b5563;margin-top:4px;line-height:1.5">${item.body}</div>` : ''}
+            <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+              <span style="font-size:11px;color:#94a3b8">${item.intel_date}</span>
+              ${item.source_name ? `<span style="font-size:11px;color:#6b7280">· ${item.source_name}</span>` : ''}
+              ${item.intel_type ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:8px;background:#f0f4f8;color:#6b7280">${item.intel_type}</span>` : ''}
+              ${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2e6fb0;text-decoration:none">→ Source</a>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Intel feed unavailable.</div>`;
+  }
+}
+
+// ── Area Catalysts Loader ─────────────────────────────────────────────────────
+async function loadAreaCatalysts(tabId) {
+  const areas = TAB_AREA_MAP[tabId];
+  if (!areas) return;
+  const containerId = `${tabId}-live-catalysts`;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  try {
+    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
+    const rows = await sbFetch('catalysts', {
+      filter: `and=(resolved.eq.false,or=(${areaFilter}))`,
+      order: 'sort_date.asc',
+      limit: 10
+    });
+    if (!rows.length) {
+      el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No upcoming catalysts logged. Meridian will add events here.</div>`;
+      return;
+    }
+    const sigColor = { high:'#dc2626', medium:'#d97706', low:'#6b7280' };
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:0">` +
+      rows.map(c => `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f4f8">
+          <div style="flex-shrink:0;width:80px;text-align:right">
+            <span style="font-size:11px;font-weight:800;color:${sigColor[c.significance]||'#6b7280'}">${c.catalyst_date}</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${c.label}</div>
+            ${c.notes ? `<div style="font-size:12px;color:#6b7280;margin-top:3px">${c.notes}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0">
+            <span style="font-size:9px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${sigColor[c.significance]||'#6b7280'}1a;color:${sigColor[c.significance]||'#6b7280'}">${c.significance}</span>
+          </div>
+        </div>`).join('') + `</div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Catalysts unavailable.</div>`;
+  }
+}
+
+// ── Area Deals Loader ─────────────────────────────────────────────────────────
+async function loadAreaDeals(tabId) {
+  const areas = TAB_AREA_MAP[tabId];
+  if (!areas) return;
+  const containerId = `${tabId}-live-deals`;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  try {
+    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
+    const rows = await sbFetch('deals', {
+      filter: `or=(${areaFilter})`,
+      order: 'deal_date.desc',
+      limit: 6
+    });
+    if (!rows.length) {
+      el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No deals logged for this area yet.</div>`;
+      return;
+    }
+    const typeColor = { acquisition:'#7c3aed', license:'#1d4ed8', collab:'#065f46', option:'#b45309' };
+    el.innerHTML = rows.map(d => {
+      const val = d.upfront_usd_m ? `$${d.upfront_usd_m}M up${d.total_usd_m ? ` / $${d.total_usd_m}M total` : ''}` :
+                  d.total_usd_m ? `$${d.total_usd_m}M` : null;
+      const tc = typeColor[d.deal_type] || '#6b7280';
+      return `<div style="padding:12px 0;border-bottom:1px solid #f0f4f8">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${tc}1a;color:${tc}">${d.deal_type||'deal'}</span>
+              <span style="font-size:11px;color:#94a3b8">${d.deal_date_label||''}</span>
+              ${val ? `<span style="font-size:11px;font-weight:700;color:#065f46">${val}</span>` : ''}
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${d.headline}</div>
+            ${d.detail ? `<div style="font-size:12px;color:#4b5563;margin-top:5px;line-height:1.5">${d.detail}</div>` : ''}
+            ${d.ailux_signal ? `<div style="font-size:12px;font-weight:600;color:#1d4ed8;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:5px;border-left:3px solid #2e6fb0">◈ Ailux Lens: ${d.ailux_signal}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Deals unavailable.</div>`;
+  }
+}
+
+// ── Molecule Tab Orchestrator (lazy-loads on first visit) ─────────────────────
+function loadMoleculeTab(tabId) {
+  if (_molTabLoaded[tabId]) return; // already loaded
+  _molTabLoaded[tabId] = true;
+  loadAreaIntel(tabId);
+  loadAreaCatalysts(tabId);
+  loadAreaDeals(tabId);
+}
+
 </script>
 
 </head>
@@ -2371,6 +2537,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="tl1a-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">TL1A · IBD</span>
+  </div>
+  <div id="tl1a-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="tl1a-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -2419,6 +2592,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="tl1a-deal-anchor">
+  <div id="tl1a-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('tl1a-deal')">
  Deal Spotlight: Most Recent Transaction <span class="tag">Jan 2026</span>
@@ -2555,7 +2729,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="tl1a-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">15 Events · Sort by Completion Date ↑</span></div>
+ <div class="sec-hd" id="tl1a-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="tl1a-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-tl1a-readouts"></div></div>
  <div class="note-panel" id="note-panel-tl1a">
  <div class="note-panel-label"> Trial Notes</div>
@@ -3229,6 +3404,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="tslp-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">TSLP · Respiratory</span>
+  </div>
+  <div id="tslp-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="tslp-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -3277,6 +3459,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="tslp-deal-anchor">
+  <div id="tslp-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('tslp-deal')">
  Deal Spotlight: TSLP × IL-33 Anchor Deal <span class="tag">Oct 2025</span>
@@ -3395,7 +3578,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">10 Events · Sort by Completion Date ↑</span></div>
+ <div class="sec-hd" id="tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-tslp-readouts"></div></div>
  <div class="note-panel" id="note-panel-tslp">
  <div class="note-panel-label"> Trial Notes</div>
@@ -3996,6 +4180,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="il4ra-tslp-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">IL-4Rα · Atopy</span>
+  </div>
+  <div id="il4ra-tslp-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="il4ra-tslp-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -4047,6 +4238,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="il4ra-tslp-deal-anchor">
+  <div id="il4ra-tslp-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('il4ra-tslp-deal')">
  Platform Spotlight: pH-Engineered IL-4Rα Backbone <span class="tag">Proprietary</span>
@@ -4120,7 +4312,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="il4ra-tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+ <div class="sec-hd" id="il4ra-tslp-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="il4ra-tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-il4ra-tslp-readouts"></div></div>
  <div class="note-panel" id="note-panel-il4ra-tslp"><div class="note-panel-label"> Trial Notes</div><div id="note-panel-body-il4ra-tslp"></div></div>
 
@@ -4325,6 +4518,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="il4ra-ox40l-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">IL-4Rα × OX40L · AD</span>
+  </div>
+  <div id="il4ra-ox40l-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="il4ra-ox40l-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -4376,6 +4576,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="il4ra-ox40l-deal-anchor">
+  <div id="il4ra-ox40l-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('il4ra-ox40l-deal')">
  Mechanism Spotlight: OX40L + IL-4Rα Dual Blockade <span class="tag">Preclinical</span>
@@ -4454,7 +4655,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="il4ra-ox40l-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+ <div class="sec-hd" id="il4ra-ox40l-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="il4ra-ox40l-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-il4ra-ox40l-readouts"></div></div>
  <div class="note-panel" id="note-panel-il4ra-ox40l"><div class="note-panel-label"> Trial Notes</div><div id="note-panel-body-il4ra-ox40l"></div></div>
 
@@ -4639,6 +4841,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="igf1r-tshr-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">IGF1R × TSHR · TED</span>
+  </div>
+  <div id="igf1r-tshr-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="igf1r-tshr-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -4690,6 +4899,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="igf1r-tshr-deal-anchor">
+  <div id="igf1r-tshr-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('igf1r-tshr-deal')">
  Mechanism Spotlight: IGF1R–TSHR Receptor Cross-Talk <span class="tag">Preclinical</span>
@@ -4768,7 +4978,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="igf1r-tshr-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+ <div class="sec-hd" id="igf1r-tshr-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="igf1r-tshr-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-igf1r-tshr-readouts"></div></div>
  <div class="note-panel" id="note-panel-igf1r-tshr"><div class="note-panel-label"> Trial Notes</div><div id="note-panel-body-igf1r-tshr"></div></div>
 
@@ -4994,6 +5205,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="fcrn-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">FcRn · Autoimmune IgG</span>
+  </div>
+  <div id="fcrn-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="fcrn-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -5051,6 +5269,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="fcrn-deal-anchor">
+  <div id="fcrn-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('fcrn-deal')">
  Platform Spotlight: Albumin VHH Half-Life Extension <span class="tag">NHP Stage</span>
@@ -5134,7 +5353,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="fcrn-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">6 Events · Sort by Completion ↑</span></div>
+ <div class="sec-hd" id="fcrn-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="fcrn-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-fcrn-readouts"></div></div>
  <div class="note-panel" id="note-panel-fcrn"><div class="note-panel-label"> Trial Notes</div><div id="note-panel-body-fcrn"></div></div>
 
@@ -5379,6 +5599,13 @@ function catFilter(btn, area) {
  </div>
  </div>
 
+<div class="intel-card" id="ace-live-intel-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#2e6fb0;background:#eff6ff;padding:3px 10px;border-radius:10px">LIVE · Meridian Updates</span>
+    <span style="font-size:11px;color:#94a3b8">T-cell · Immune Reset</span>
+  </div>
+  <div id="ace-live-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0">Loading latest intel…</div></div>
+</div>
 <div class="intel-card" id="ace-intel-anchor">
  <div class="intel-hd">
  <div class="intel-hd-left">
@@ -5436,6 +5663,7 @@ function catFilter(btn, area) {
  </div>
 
  <div class="two-col" id="ace-deal-anchor">
+  <div id="ace-live-deals"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading deals…</div></div>
  <div class="card">
  <div class="card-hd deal-spotlight-hd" onclick="toggleDealSpotlight('ace-deal')">
  Deal Spotlight: HXN-1031 (Helixon) → Sanofi <span class="tag">Pre-IND 2024</span>
@@ -5515,11 +5743,8 @@ function catFilter(btn, area) {
  </div>
  </div>
 
- <div class="sec-hd" id="ace-readouts-anchor">
- <span class="sec-title">Catalyst Calendar — When does each program read out?</span>
- <div class="sec-line"></div>
- <span class="sec-tag o">6 Events · Sort by Completion Date ↑</span>
- </div>
+<div class="sec-hd" id="ace-readouts-anchor"><span class="sec-title">Catalyst Calendar — When does each program read out?</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div>
+<div style="padding:0 0 16px" id="ace-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div>
  <div class="card" style="overflow:hidden"><div id="grid-ace-readouts"></div></div>
  <div class="note-panel" id="note-panel-ace">
  <div class="note-panel-hd"><strong>Notes</strong><button class="note-close" onclick="closeNote('ace')"></button></div>
@@ -8274,6 +8499,10 @@ function navTo(tabId) {
   document.getElementById('mol-dd-menu')?.classList.remove('open');
   updateNavIconActive(tabId);
   window.scrollTo({top: 0, behavior: 'smooth'});
+  // Lazy-load molecule tab data on first visit
+  if (typeof loadMoleculeTab === 'function' && TAB_AREA_MAP && TAB_AREA_MAP[tabId]) {
+    loadMoleculeTab(tabId);
+  }
 }
 // Close molecule dropdown when clicking outside
 document.addEventListener('click', function(e) {
