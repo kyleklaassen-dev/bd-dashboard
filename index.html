@@ -8587,7 +8587,6 @@ function showSpyrePopup(id) {
   clearTimeout(_spyrePopupTimer);
   document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
   document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
-  document.body.style.overflow = 'hidden';
   _spyreActiveId = id;
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -8616,7 +8615,6 @@ function hideSpyrePopup() {
   document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
   document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
   _spyreActiveId = null;
-  document.body.style.overflow = '';
 }
 function cancelHideSpyrePopup() { /* no-op — kept for compatibility */ }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.bio-dd-overlay.open').forEach(el => el.classList.remove('open')); }});
@@ -8795,7 +8793,7 @@ const SPYRE_PIPELINE = [
    format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× vedolizumab', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#0891b2', lightBg:'#ecfeff', isCombo:false,
    indication:'UC — SKYLINE Part A ✓ (data April 2026)',
-   trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label α4β7 monotherapy in UC',status:'Part A complete / Part B open',phase:'Phase 2',n:645,pcd:'Part B 2027'}],
+   trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label α4β7 monotherapy in UC',status:'Part A complete / Part B open',phase:'Phase 2',n:645,pcd:'Part A: Apr 2026 (reported) · Part B: 2027'}],
    mech:'Targets α4β7 integrin — same mechanism as vedolizumab (Entyvio) but ~3× longer half-life via YTE Fc modification (enhanced FcRn recycling). Part A data (April 2026): met primary endpoint — RHI reduction 9.2 pts (p<0.0001), statistically significant clinical remission and endoscopic improvement. Claimed best-in-class vs. vedolizumab at Q3M–Q6M dosing.',
    vsAilux:'Not a TL1A competitor — targets gut-integrin trafficking. SPY001 April 2026 Phase 2 data are the first clinical proof-of-concept for the Spyre YTE platform, validating the engineering approach used across all Spyre programs including SPY002 (TL1A).',
    sources:[
@@ -8808,7 +8806,7 @@ const SPYRE_PIPELINE = [
    color:'#7c3aed', lightBg:'#f5f3ff', isCombo:false,
    indication:'UC — SKYLINE Part A (data expected mid-2026)',
    trials:[
-    {nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label TL1A monotherapy in UC',status:'Part A ongoing / Part B Enrolling',phase:'Phase 2',n:645,pcd:'Part B 2027'},
+    {nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label TL1A monotherapy in UC',status:'Part A ongoing / Part B Enrolling',phase:'Phase 2',n:645,pcd:'Part A: Jun 2026 · Part B: 2027'},
     {nct:'NCT06672718',name:'SPY002-091 — Phase 1 HV PK/safety',status:'Complete / Reported Jun 2025',phase:'Phase 1',n:56,pcd:'Reported'}
    ],
    mech:'Monospecific anti-TL1A mAb with extended half-life via YTE Fc modification (same platform as SPY001). TL1A blockade suppresses mucosal inflammation and reduces fibrosis via fibroblast inhibition. Phase 1 HV data (Jun 2025): confirmed extended half-life supporting Q3M–Q6M dosing target. SKYLINE Part A TL1A arm data expected mid-2026. Also tested in combination as SPY120 (α4β7+TL1A) and SPY230 (TL1A+IL-23) in SKYLINE Part B.',
@@ -8823,7 +8821,7 @@ const SPYRE_PIPELINE = [
    format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× risankizumab', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#059669', lightBg:'#ecfdf5', isCombo:false,
    indication:'UC — SKYLINE Part A (data expected Q3 2026)',
-   trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label IL-23 monotherapy in UC',status:'Part A ongoing / Part B Enrolling',phase:'Phase 2',n:645,pcd:'Part B 2027'}],
+   trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label IL-23 monotherapy in UC',status:'Part A ongoing / Part B Enrolling',phase:'Phase 2',n:645,pcd:'Part A: Q3 2026 · Part B: 2027'}],
    mech:'Monospecific anti-IL-23 antibody with YTE-extended half-life. NOTE: SPY003 is a monoclonal anti-IL-23 — NOT a bispecific. Inhibits the IL-23/TH17 pathway. Preclinical potency comparable to risankizumab (Skyrizi). Phase 1 FIH (Q1 2025). Phase 2 UC POC data expected Q3 2026. Also tested in combination with SPY001 (SPY130: α4β7+IL-23) and SPY002 (SPY230: TL1A+IL-23) in SKYLINE Part B.',
    vsAilux:'IL-23 pathway — not a direct TL1A competitor. However, SPY003 data validates the IL-23 component of SPY230 (TL1A+IL-23 combination), which is the most directly relevant Spyre program to any TL1A×IL-23 bispecific thesis.',
    sources:[
@@ -8836,7 +8834,7 @@ const SPYRE_PIPELINE = [
    format:'Combination (SPY001+SPY002)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#7c3aed', lightBg:'#f5f3ff', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
-   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY120 arm (α4β7+TL1A combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
+   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY120 arm (α4β7+TL1A combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027 (W12 primary)'}],
    comboRef:{label:'SKYLINE Part B (NCT07012395): SPY001+SPY002 combination arm; enrollment open 2026',url:'https://clinicaltrials.gov/study/NCT07012395'},
    mech:'Co-administration of SPY001 (α4β7) and SPY002 (TL1A) — dual blockade of gut lymphocyte trafficking + TL1A-driven inflammation/fibrosis. Preclinical TNBS colitis models showed additive-to-superior efficacy vs. either mono. Both antibodies use unified YTE dosing (Q3M–Q6M SC), enabling a single-visit co-administration paradigm.',
    vsAilux:'SPY120 data will show how much α4β7 adds on top of TL1A mono — directly relevant to whether a TL1A×α4β7 bispecific format has a meaningful advantage over sequential mono+combo regimens.',
@@ -8848,7 +8846,7 @@ const SPYRE_PIPELINE = [
    format:'Combination (SPY001+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#0891b2', lightBg:'#ecfeff', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
-   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY130 arm (α4β7+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
+   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY130 arm (α4β7+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027 (W12 primary)'}],
    comboRef:{label:'SKYLINE Part B (NCT07012395): SPY001+SPY003 combination arm; enrollment open',url:'https://clinicaltrials.gov/study/NCT07012395'},
    mech:'Co-administration of SPY001 (α4β7) and SPY003 (IL-23). Analogous to JNJ VEGA study (α4β7+IL-23 approach replacing anti-TNF). VEGA showed ~22 pp additive remission benefit for anti-TNF + anti-IL-23 combination in UC. SPY130 tests whether α4β7 replaces anti-TNF with a safer profile in combination with IL-23 blockade.',
    vsAilux:'No TL1A — less directly competitive. SPY130 data validates the combination therapy approach in IBD and provides the α4β7 vs. TL1A comparison in combination regimens.',
@@ -8860,7 +8858,7 @@ const SPYRE_PIPELINE = [
    format:'Combination (SPY002+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#dc2626', lightBg:'#fef2f2', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
-   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY230 arm (TL1A+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
+   trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY230 arm (TL1A+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027 (W12 primary)'}],
    comboRef:{label:'SKYLINE Part B (NCT07012395): SPY002+SPY003 combination — the most direct proxy for TL1A×IL-23 bispecific concept; data 2027',url:'https://clinicaltrials.gov/study/NCT07012395'},
    mech:'Co-administration of SPY002 (TL1A) and SPY003 (IL-23) — same target pair as all standalone TL1A×IL-23 bispecific programs (Mirador MT-251, Xencor XmAb412, Earendil HXN-1003, Simcere SIM0709). SKYLINE Part B 2027 data provides the first direct clinical test of TL1A+IL-23 dual blockade vs. mono in the same trial — the single most important dataset for validating the bispecific hypothesis.',
    vsAilux:'SPY230 Part B data (2027) = direct validation or refutation of the TL1A×IL-23 bispecific thesis. A large delta over mono is the strongest possible argument for bispecific deal value. If mono suffices, the bispecific premium collapses. This is the most critical catalyst to watch for any TL1A BD strategy.',
@@ -8870,10 +8868,10 @@ const SPYRE_PIPELINE = [
    ] },
  /* ── RHEUMATIC PROGRAM — TL1A but different disease area ── */
  { code:'SPY072', name:'Anti-TL1A (RA/PsA/axSpA)', target:'TL1A', ibd:false, tl1a:true,
-   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
+   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction (W12 RA · W16 PsA/axSpA)',
    color:'#ea580c', lightBg:'#fff7ed', isCombo:false,
    indication:'RA / PsA / axSpA — SKYWAY basket trial (NCT07148414)',
-   trials:[{nct:'NCT07148414',name:'SKYWAY — Ph2 basket trial: RA (N=120, W12 data Q3 2026), PsA (N=90), axSpA (N=75)',status:'RA enrolled / PsA+axSpA enrolling',phase:'Phase 2',n:285,pcd:'RA Q3 2026 · PsA/axSpA Q4 2026'}],
+   trials:[{nct:'NCT07148414',name:'SKYWAY — Ph2 basket trial: RA (N=120, W12 data Q3 2026), PsA (N=90), axSpA (N=75)',status:'RA enrolled / PsA+axSpA enrolling',phase:'Phase 2',n:285,pcd:'Oct 31, 2026 (RA W12: Q3 2026 · PsA/axSpA W16: Q4 2026)'}],
    mech:'Anti-TL1A antibody (same YTE-modified platform as SPY002) being tested in rheumatic diseases. First anti-TL1A antibody in clinical trials for RA, PsA, or axSpA. TL1A is upregulated in synovial tissue and whole blood of RA, PsA, and axSpA patients vs. healthy controls. RA sub-study (N=120) fully enrolled; W12 data expected Q3 2026 (accelerated from Q4). PsA and axSpA data Q4 2026.',
    vsAilux:'Signals TL1A as a potential multi-disease franchise beyond IBD. If SKYWAY succeeds in RA/PsA/axSpA, TL1A blockade becomes relevant to a $30B+ rheumatic disease market — greatly expanding the addressable BD opportunity for any TL1A asset and demonstrating Spyre’s platform breadth.',
    sources:[
