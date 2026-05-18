@@ -2,8 +2,8 @@ name: Evening Research Update
 
 on:
   schedule:
-    # 7:00 PM ET = 23:00 UTC daily — picks up late-day news
-    - cron: "0 23 * * *"
+    # 10:30 PM ET = 02:30 UTC daily — kicks off the overnight pipeline
+    - cron: "30 2 * * *"
   workflow_dispatch:
 
 jobs:
