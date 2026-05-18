@@ -1254,36 +1254,35 @@ function importanceDot(imp) {
 async function loadAreaIntel(tabId) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) return;
-  const containerId = `${tabId}-live-intel`;
-  const el = document.getElementById(containerId);
+  const el = document.getElementById(tabId + '-live-intel');
   if (!el) return;
-
   try {
-    // Fetch intel_areas rows for these areas, then get matching intel
-    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
-    const iaRows = await sbFetch('intel_areas', { filter: `or=(${areaFilter})`, select: 'intel_id' });
-    if (!iaRows.length) {
+    // Step 1: get intel_ids tagged to these areas
+    const { data: iaRows, error: iaErr } = await _sb.from('intel_areas')
+      .select('intel_id').in('area_id', areas);
+    if (iaErr) throw iaErr;
+    if (!iaRows || !iaRows.length) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No Meridian intel yet — updates will appear here after the next morning run.</div>`;
       return;
     }
-    const intelIds = [...new Set(iaRows.map(r => r.intel_id))].slice(0, 12);
-    const intelRows = await sbFetch('intel', {
-      filter: `id.in.(${intelIds.join(',')})`,
-      order: 'intel_date.desc',
-      limit: 8
-    });
-    if (!intelRows.length) {
+    const intelIds = [...new Set(iaRows.map(r => r.intel_id))].slice(0, 15);
+    // Step 2: fetch those intel records
+    const { data: rows, error: iErr } = await _sb.from('intel')
+      .select('*').in('id', intelIds)
+      .order('intel_date', { ascending: false }).limit(8);
+    if (iErr) throw iErr;
+    if (!rows || !rows.length) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No Meridian intel yet — updates will appear here after the next morning run.</div>`;
       return;
     }
-    el.innerHTML = intelRows.map(item => `
+    el.innerHTML = rows.map(item => `
       <div style="padding:10px 0;border-bottom:1px solid #f0f4f8">
         <div style="display:flex;align-items:flex-start;gap:8px">
           <span style="flex-shrink:0;margin-top:1px">${importanceDot(item.importance)}</span>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${item.headline}</div>
             ${item.body ? `<div style="font-size:12px;color:#4b5563;margin-top:4px;line-height:1.5">${item.body}</div>` : ''}
-            <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap">
               <span style="font-size:11px;color:#94a3b8">${item.intel_date}</span>
               ${item.source_name ? `<span style="font-size:11px;color:#6b7280">· ${item.source_name}</span>` : ''}
               ${item.intel_type ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:8px;background:#f0f4f8;color:#6b7280">${item.intel_type}</span>` : ''}
@@ -1294,6 +1293,7 @@ async function loadAreaIntel(tabId) {
       </div>`).join('');
   } catch(e) {
     el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Intel feed unavailable.</div>`;
+    console.error('loadAreaIntel', tabId, e);
   }
 }
 
@@ -1301,38 +1301,34 @@ async function loadAreaIntel(tabId) {
 async function loadAreaCatalysts(tabId) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) return;
-  const containerId = `${tabId}-live-catalysts`;
-  const el = document.getElementById(containerId);
+  const el = document.getElementById(tabId + '-live-catalysts');
   if (!el) return;
-
   try {
-    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
-    const rows = await sbFetch('catalysts', {
-      filter: `and=(resolved.eq.false,or=(${areaFilter}))`,
-      order: 'sort_date.asc',
-      limit: 10
-    });
-    if (!rows.length) {
+    const { data: rows, error } = await _sb.from('catalysts')
+      .select('*').eq('resolved', false).in('area_id', areas)
+      .order('sort_date', { ascending: true }).limit(10);
+    if (error) throw error;
+    if (!rows || !rows.length) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No upcoming catalysts logged. Meridian will add events here.</div>`;
       return;
     }
     const sigColor = { high:'#dc2626', medium:'#d97706', low:'#6b7280' };
-    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:0">` +
-      rows.map(c => `
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f4f8">
-          <div style="flex-shrink:0;width:80px;text-align:right">
-            <span style="font-size:11px;font-weight:800;color:${sigColor[c.significance]||'#6b7280'}">${c.catalyst_date}</span>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${c.label}</div>
-            ${c.notes ? `<div style="font-size:12px;color:#6b7280;margin-top:3px">${c.notes}</div>` : ''}
-          </div>
-          <div style="flex-shrink:0">
-            <span style="font-size:9px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${sigColor[c.significance]||'#6b7280'}1a;color:${sigColor[c.significance]||'#6b7280'}">${c.significance}</span>
-          </div>
-        </div>`).join('') + `</div>`;
+    el.innerHTML = rows.map(c => `
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f4f8">
+        <div style="flex-shrink:0;width:80px;text-align:right">
+          <span style="font-size:11px;font-weight:800;color:${sigColor[c.significance]||'#6b7280'}">${c.catalyst_date}</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${c.label}</div>
+          ${c.notes ? `<div style="font-size:12px;color:#6b7280;margin-top:3px">${c.notes}</div>` : ''}
+        </div>
+        <div style="flex-shrink:0">
+          <span style="font-size:9px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${sigColor[c.significance]||'#6b7280'}1a;color:${sigColor[c.significance]||'#6b7280'}">${c.significance}</span>
+        </div>
+      </div>`).join('');
   } catch(e) {
     el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Catalysts unavailable.</div>`;
+    console.error('loadAreaCatalysts', tabId, e);
   }
 }
 
@@ -1340,18 +1336,14 @@ async function loadAreaCatalysts(tabId) {
 async function loadAreaDeals(tabId) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) return;
-  const containerId = `${tabId}-live-deals`;
-  const el = document.getElementById(containerId);
+  const el = document.getElementById(tabId + '-live-deals');
   if (!el) return;
-
   try {
-    const areaFilter = areas.map(a => `area_id.eq.${a}`).join(',');
-    const rows = await sbFetch('deals', {
-      filter: `or=(${areaFilter})`,
-      order: 'deal_date.desc',
-      limit: 6
-    });
-    if (!rows.length) {
+    const { data: rows, error } = await _sb.from('deals')
+      .select('*').in('area_id', areas)
+      .order('deal_date', { ascending: false }).limit(6);
+    if (error) throw error;
+    if (!rows || !rows.length) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No deals logged for this area yet.</div>`;
       return;
     }
@@ -1361,22 +1353,21 @@ async function loadAreaDeals(tabId) {
                   d.total_usd_m ? `$${d.total_usd_m}M` : null;
       const tc = typeColor[d.deal_type] || '#6b7280';
       return `<div style="padding:12px 0;border-bottom:1px solid #f0f4f8">
-        <div style="display:flex;align-items:flex-start;gap:10px">
-          <div style="flex:1">
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;flex-wrap:wrap">
-              <span style="font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${tc}1a;color:${tc}">${d.deal_type||'deal'}</span>
-              <span style="font-size:11px;color:#94a3b8">${d.deal_date_label||''}</span>
-              ${val ? `<span style="font-size:11px;font-weight:700;color:#065f46">${val}</span>` : ''}
-            </div>
-            <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${d.headline}</div>
-            ${d.detail ? `<div style="font-size:12px;color:#4b5563;margin-top:5px;line-height:1.5">${d.detail}</div>` : ''}
-            ${d.ailux_signal ? `<div style="font-size:12px;font-weight:600;color:#1d4ed8;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:5px;border-left:3px solid #2e6fb0">◈ Ailux Lens: ${d.ailux_signal}</div>` : ''}
+        <div style="flex:1">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;flex-wrap:wrap">
+            <span style="font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${tc}1a;color:${tc}">${d.deal_type||'deal'}</span>
+            <span style="font-size:11px;color:#94a3b8">${d.deal_date_label||''}</span>
+            ${val ? `<span style="font-size:11px;font-weight:700;color:#065f46">${val}</span>` : ''}
           </div>
+          <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${d.headline}</div>
+          ${d.detail ? `<div style="font-size:12px;color:#4b5563;margin-top:5px;line-height:1.5">${d.detail}</div>` : ''}
+          ${d.ailux_signal ? `<div style="font-size:12px;font-weight:600;color:#1d4ed8;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:5px;border-left:3px solid #2e6fb0">◈ Ailux Lens: ${d.ailux_signal}</div>` : ''}
         </div>
       </div>`;
     }).join('');
   } catch(e) {
     el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Deals unavailable.</div>`;
+    console.error('loadAreaDeals', tabId, e);
   }
 }
 
