@@ -938,12 +938,18 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-table tr.pi-main.expanded .pi-cls-pill,
 .pi-table tr.pi-main.expanded .pi-stage-pill,
 .pi-table tr.pi-main.expanded .pi-overlap-badge { filter:brightness(1.25); }
+/* CLASS pills — evolutionary sophistication of the therapeutic strategy */
 .pi-cls-pill { display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700; }
-.pi-cls-1st { background:#dbeafe;color:#1d4ed8; }
-.pi-cls-direct { background:#fee2e2;color:#991b1b; }
-.pi-cls-2nd { background:#f0fdf4;color:#166534; }
-.pi-overlap-high { display:inline-block;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
-.pi-overlap-watch { display:inline-block;background:#fef9c3;color:#92400e;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
+.pi-cls-1st  { background:#dbeafe;color:#1d4ed8; }   /* 1st Gen — blue: foundational monospecifics */
+.pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
+.pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
+
+/* RELEVANCE badges — competitive/strategic overlap with our program */
+.pi-overlap-badge { display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
+.pi-overlap-direct   { background:#fee2e2;color:#991b1b; }  /* Direct — red: same target, head-to-head */
+.pi-overlap-adjacent { background:#ffedd5;color:#9a3412; }  /* Adjacent — orange: related biology */
+.pi-overlap-same     { background:#ccfbf1;color:#134e4a; }  /* Same-Space — teal: same disease area */
+.pi-overlap-watch    { background:#fef9c3;color:#92400e; }  /* Watch — yellow: early/speculative */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
 .pi-stage-ph3 { background:#fef3c7;color:#92400e; }
 .pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
@@ -3039,26 +3045,28 @@ function loadMoleculeTab(tabId) {
       <div class="pi-pill-group" data-filter="cls">
         <span class="pi-pill-lbl">Class</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('cls','',this)">All</button>
-        <button class="pi-pill" data-val="1st Gen" onclick="piPillClick('cls','1st Gen',this)">1st Gen</button>
-        <button class="pi-pill" data-val="2nd Gen" onclick="piPillClick('cls','2nd Gen',this)">2nd Gen</button>
-        <button class="pi-pill" data-val="Direct" onclick="piPillClick('cls','Direct',this)">Direct</button>
+        <button class="pi-pill" data-val="1st Gen"  onclick="piPillClick('cls','1st Gen',this)"  title="Foundational monospecifics validating the biology">1st Gen</button>
+        <button class="pi-pill" data-val="2nd Gen"  onclick="piPillClick('cls','2nd Gen',this)"  title="Engineered monospecifics — extended half-life, improved PK/PD, dosing convenience">2nd Gen</button>
+        <button class="pi-pill" data-val="Next Gen" onclick="piPillClick('cls','Next Gen',this)" title="Bispecifics, dual-pathway, combination-in-one — mechanistic expansion">Next Gen</button>
       </div>
       <div class="pi-pill-divider"></div>
       <div class="pi-pill-group" data-filter="stage">
         <span class="pi-pill-lbl">Stage</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('stage','',this)">All</button>
-        <button class="pi-pill" data-val="Phase 3" onclick="piPillClick('stage','Phase 3',this)">Ph 3</button>
-        <button class="pi-pill" data-val="Phase 2" onclick="piPillClick('stage','Phase 2',this)">Ph 2</button>
-        <button class="pi-pill" data-val="Phase 1" onclick="piPillClick('stage','Phase 1',this)">Ph 1</button>
-        <button class="pi-pill" data-val="Pre-IND" onclick="piPillClick('stage','Pre-IND',this)">Pre-IND</button>
+        <button class="pi-pill" data-val="Phase 3"     onclick="piPillClick('stage','Phase 3',this)">Ph 3</button>
+        <button class="pi-pill" data-val="Phase 2"     onclick="piPillClick('stage','Phase 2',this)">Ph 2</button>
+        <button class="pi-pill" data-val="Phase 1"     onclick="piPillClick('stage','Phase 1',this)">Ph 1</button>
+        <button class="pi-pill" data-val="Pre-IND"     onclick="piPillClick('stage','Pre-IND',this)">Pre-IND</button>
         <button class="pi-pill" data-val="Preclinical" onclick="piPillClick('stage','Preclinical',this)">Preclinical</button>
       </div>
       <div class="pi-pill-divider"></div>
       <div class="pi-pill-group" data-filter="overlap">
         <span class="pi-pill-lbl">Relevance</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('overlap','',this)">All</button>
-        <button class="pi-pill" data-val="high" onclick="piPillClick('overlap','high',this)">High Overlap</button>
-        <button class="pi-pill" data-val="watch" onclick="piPillClick('overlap','watch',this)">Watch</button>
+        <button class="pi-pill" data-val="Direct"     onclick="piPillClick('overlap','Direct',this)"     title="Same target + mechanistic thesis — head-to-head commercial competition">Direct</button>
+        <button class="pi-pill" data-val="Adjacent"   onclick="piPillClick('overlap','Adjacent',this)"   title="Related biology — treatment sequencing, combinations, physician perception">Adjacent</button>
+        <button class="pi-pill" data-val="Same-Space" onclick="piPillClick('overlap','Same-Space',this)" title="Same disease area — shapes SOC, endpoints, pricing, treatment paradigm">Same-Space</button>
+        <button class="pi-pill" data-val="Watch"      onclick="piPillClick('overlap','Watch',this)"      title="Early-stage or differentiated — lower immediate pressure, monitor for shifts">Watch</button>
       </div>
       <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>
     </div>
@@ -8652,7 +8660,7 @@ const TL1A_PROGRAMS = [
    risk:'First Phase 3 TL1A readout carries class-defining risk — a miss would hit the entire TL1A sector. Companion Dx requirement (TNFSF15 haplotype ~30% prevalence) may limit addressable population.',
    diff:'ATLAS-UC (N=1020, PCD Aug 2026) will be the first large-scale Phase 3 TL1A dataset — sets the clinical and deal benchmark for every subsequent program. $10.8B Prometheus acquisition is the largest validation bet in the space.' },
 
- { id:'sanofi', co:'Sanofi / Teva', ticker:'SNY/TEVA', drug:'Duvakitug (TEV-48574)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'high',
+ { id:'sanofi', co:'Sanofi / Teva', ticker:'SNY/TEVA', drug:'Duvakitug (TEV-48574)', target:'TL1A', cls:'1st Gen', stageKey:'Phase 3', overlap:'Direct',
    summary:'Duvakitug is a monospecific anti-TL1A mAb (not a bispecific). Originally developed by Teva, licensed to Sanofi. Phase 2b showed 48% UC clinical remission (composite) at 900mg Week 14 vs 20% PBO — the highest TL1A monotherapy efficacy signal reported. Phase 3 is the largest TL1A program: UC (STARSCAPE) induction N=980 + maintenance N=671; CD (SUNSCAPE) induction N=980 + maintenance N=751 — total ~3,382 patients across 4 trials. No companion Dx required. Note: Sanofi separately licensed Earendil\'s TL1A×IL-23p19 bispecific HXN-1003 ($125M upfront, Apr 2025) — signaling Sanofi is pursuing both mono and dual-target approaches.',
    catalysts:[{date:'May 2028',event:'STARSCAPE UC induction Ph3 primary (NCT07184996, N=980)'},{date:'Sep 2028',event:'STARSCAPE UC maintenance Ph3 primary (NCT07185009, N=671)'},{date:'May 2029',event:'SUNSCAPE CD induction Ph3 primary (NCT07184931, N=980)'},{date:'Aug 2029',event:'SUNSCAPE CD maintenance Ph3 primary (NCT07184944, N=751)'}],
    trials:[
@@ -8666,7 +8674,7 @@ const TL1A_PROGRAMS = [
    risk:'Largest Phase 3 program in the class but latest readouts (UC primary: Sep 2028, CD: Aug 2029). Merck ATLAS-UC data (Nov 2026) will land 2+ years earlier and could shift market positioning. As a mono, duvakitug competes on efficacy vs. Roche/Merck rather than differentiated mechanism.',
    diff:'48% Phase 2b UC remission — highest anti-TL1A monotherapy efficacy ever reported. No companion Dx. ~3,382-patient Phase 3 program is the largest in the class. Sets the mono efficacy ceiling that Ailux and other bispecifics must beat.' },
 
- { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'watch',
+ { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct',
    summary:'Spyre Therapeutics (Agenus IBD spinout, 2024; NASDAQ: SYRE) raised $783M to fund a 7-program IBD + rheumatic disease platform. Correct pipeline: SPY001 (anti-α4β7, Ph2, April 2026 data), SPY002 (anti-TL1A, Ph2), SPY003 (anti-IL-23, Ph2), SPY072 (anti-TL1A for RA/PsA/axSpA, Ph2 SKYWAY), and combination programs SPY120 (α4β7+TL1A), SPY130 (α4β7+IL-23), SPY230 (TL1A+IL-23). All antibodies use YTE Fc modification for extended half-life (target: Q3M–Q6M dosing). SKYLINE Phase 2 platform (NCT07012395) tests all 3 monotherapies + 3 combinations in UC. SPY001 Part A data (April 2026): RHI -9.2 pts, clinical remission and endoscopic improvement met. SPY002 and SPY003 Part A data expected mid-2026 and Q3 2026 respectively.',
    catalysts:[
     {date:'April 2026',event:'SPY001 (α4β7) SKYLINE Part A UC induction data — RHI -9.2 pts, clinical remission, endoscopic improvement ✅ (NCT07012395)',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-announces-potential-best-class-spy001-part-induction'},
@@ -8691,7 +8699,7 @@ const TL1A_PROGRAMS = [
    risk:'7-program pipeline execution risk (3 Ph2 trials simultaneously). SKYLINE Part B combination vs. mono data (2027) could show mono suffices, reducing value of combination assets. YTE safety profile still being established in IBD populations.',
    diff:'Only company with YTE-modified antibodies across all three major IBD pathways (TL1A, α4β7, IL-23) + TL1A in rheumatic diseases. SKYLINE directly tests combination vs. mono — the most informative head-to-head IBD platform study ever designed. SPY001 April 2026 data already shows best-in-class potential vs. vedolizumab.' },
 
- { id:'xencor-942', co:'Xencor', ticker:'XNCR', drug:'XmAb942 (XTEND-Fc)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'high',
+ { id:'xencor-942', co:'Xencor', ticker:'XNCR', drug:'XmAb942 (XTEND-Fc)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct',
    summary:'XmAb942 is an XTEND-Fc anti-TL1A mAb engineered for ultra-long half-life via enhanced FcRn binding. Phase 1 HV study (reported Apr 2025) demonstrated ~74-day half-life, supporting quarterly (Q13W) or longer SC dosing — a major convenience advantage. XENITH-UC study (NCT06619990) combines Phase 1 HV safety/PK (Parts A+B) with a Phase 2b efficacy cohort in UC (Part C, primary endpoint: modified Mayo clinical remission). N=270 total, start Oct 2024, primary completion Apr 2028. Xencor is running BOTH XmAb942 (mono, Ph2b) and XmAb412 (TL1A×IL-23 bispecific, FIH planned Q3 2026) simultaneously — unique dual-track strategy.',
    catalysts:[{date:'YE 2026',event:'XENITH-UC Phase 2b interim data (Part C UC cohort)'},{date:'Apr 2028',event:'XENITH-UC Phase 2b full readout (NCT06619990)'},{date:'Q3 2026',event:'XmAb412 (bispecific) Phase 1 FIH initiation'}],
    trials:[
@@ -8701,7 +8709,7 @@ const TL1A_PROGRAMS = [
    risk:'If Ph2b efficacy is modest, the ~74-day half-life PK advantage alone may not justify premium pricing or partnering interest over standard IgG TL1A mAbs (Roche, Merck). Capital allocation between two simultaneous programs adds risk.',
    diff:'74-day half-life (April 2025 Ph1 data) — longest in the TL1A class. Supports Q13W+ dosing schedule. XTEND platform is clinically validated. Running both mono + bispecific gives unique optionality across TL1A class evolution.' },
 
- { id:'mirador', co:'Mirador Therapeutics', ticker:'Private', drug:'MT-251', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
+ { id:'mirador', co:'Mirador Therapeutics', ticker:'Private', drug:'MT-251', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Phase 1', overlap:'Direct',
    summary:'MT-251 is the most clinically advanced TL1A × IL-23p19 bispecific antibody. FcRn-recycling format engineered for extended half-life. Phase 1 FIH study (NCT07423299) is recruiting healthy volunteers — SAD/MAD design, N=70, started Jan 2026, primary completion March 2027. Primary endpoint: safety/tolerability (SAEs and non-SAEs). Mirador is backed by A16z Bio, Foresite Capital, and Atlas Venture. No big-pharma partner announced — actively seeking. A Phase 1 safety/PK readout in 2026–2027 could trigger a major licensing deal given the precedent set by Simcere/BI (€42M upfront at pre-IND) and Earendil/Sanofi ($125M upfront at pre-IND).',
    catalysts:[{date:'2026–2027',event:'MT-251 Ph1 safety + PK data (NCT07423299, N=70 HV, PCD Mar 2027)'},{date:'2027',event:'Ph1 dose escalation in IBD patients expected post-HV safety data'}],
    trials:[
@@ -8711,7 +8719,7 @@ const TL1A_PROGRAMS = [
    risk:'First-in-human — Phase 1 safety and PK entirely unknown. FcRn-recycling bispecific format adds regulatory and manufacturing complexity vs. standard IgG. No pharma partner backing (capital risk).',
    diff:'Most advanced TL1A×IL-23p19 bispecific in the clinic. Phase 1 data (2027) will set the first human PK/safety benchmark for this exact bispecific format — making Mirador a primary deal-watch target.' },
 
- { id:'simcere', co:'Simcere / Boehringer Ingelheim', ticker:'Private/BI', drug:'SIM0709', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'high',
+ { id:'simcere', co:'Simcere / Boehringer Ingelheim', ticker:'Private/BI', drug:'SIM0709', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Phase 1', overlap:'Direct',
    summary:'SIM0709 is a long-acting SC IgG bispecific targeting TL1A × IL-23p19. Licensed to Boehringer Ingelheim in a landmark deal (€42M upfront, €1.05B total, Jan 2026) before first-in-human dosing — the deal was executed on pre-clinical data alone. FIH expected H1 2026. No ClinicalTrials.gov registration found as of May 2026 (likely registered under BI sponsorship upon IND approval). BI brings deep IBD infrastructure (>10 ongoing IBD trials), global manufacturing scale, and commercial reach. Simcere retains all Greater China rights. This deal established the "floor" valuation for pre-IND TL1A×IL-23p19 bispecifics.',
    catalysts:[{date:'H2 2026',event:'SIM0709 Phase 1 FIH initiation (first human dosing under BI sponsorship)'},{date:'2027',event:'Phase 1 safety/PK interim data readout'},{date:'2027',event:'Phase 2 go-no-go decision by BI'}],
    trials:[
@@ -8721,7 +8729,7 @@ const TL1A_PROGRAMS = [
    risk:'BI deal fully funds the program — low capital risk. However BI\'s deal at pre-IND sets a high market comp ($42M floor) for Ailux bispecific deal entry. BI\'s IBD experience means they will push the program aggressively.',
    diff:'Sets the pre-IND deal floor for TL1A×IL-23p19 bispecifics at €42M upfront. BI partnership signals institutional conviction. Simcere retaining China rights means a China-specific partner could still emerge.' },
 
- { id:'caldera', co:'Caldera / Qyuns Therapeutics', ticker:'Private', drug:'CLD-423 / QX030N', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
+ { id:'caldera', co:'Caldera / Qyuns Therapeutics', ticker:'Private', drug:'CLD-423 / QX030N', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Phase 1', overlap:'Watch',
    summary:'CLD-423 (also known as QX030N) is the US development vehicle for Qyuns Therapeutics\' TL1A × IL-23p19 bispecific. Caldera is a Qyuns-backed US spinout that holds ex-China rights. First subjects were dosed in January 2026, making this one of the first TL1A bispecifics to enter clinical trials. Deal structure: Qyuns sold global ex-China rights to Caldera for $10M + ~25% equity, with up to $545M in potential milestones. No ClinicalTrials.gov registration found as of May 2026. Note: "QX031N" is Roche\'s internal compound code for afimkibart, not related to QX030N.',
    catalysts:[{date:'2026–2027',event:'CLD-423 Phase 1 safety/PK data (FIH Jan 2026)'},{date:'2027',event:'Phase 1 dose escalation completion — potential out-licensing window'}],
    trials:[
@@ -8731,7 +8739,7 @@ const TL1A_PROGRAMS = [
    risk:'Caldera is a small company with limited capital and no big-pharma backing vs. BI-backed SIM0709. Ph1 data quality and timeline are the key unknowns.',
    diff:'Deal structure ($10M + equity, $545M total) illustrates how Chinese companies are monetizing TL1A bispecifics globally while retaining China rights. First human dosing Jan 2026 puts it ahead of most pre-IND competitors.' },
 
- { id:'earendil', co:'Earendil / Helixon (Sanofi)', ticker:'Private', drug:'HXN-1003', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
+ { id:'earendil', co:'Earendil / Helixon (Sanofi)', ticker:'Private', drug:'HXN-1003', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Pre-IND', overlap:'Direct',
    summary:'HXN-1003 is an AI-designed tetravalent (2+2 format) bispecific antibody targeting TL1A and IL-23p19. Earendil (formerly Helixon) licensed HXN-1003 to Sanofi in April 2025 for $125M upfront and $1.845B total potential — the highest-value preclinical TL1A deal to date and one of the largest preclinical deals ever for an IBD asset. The 2+2 tetravalent format binds two epitopes on each target, potentially increasing avidity and functional activity. IND filing expected 2026; FIH Phase 1 expected 2026–2027. This represents Sanofi\'s SECOND major TL1A investment (alongside duvakitug), demonstrating exceptional conviction in the TL1A×IL-23 combination approach.',
    catalysts:[{date:'2026',event:'IND filing for HXN-1003 (Sanofi sponsorship)'},{date:'2026–2027',event:'FIH Phase 1 initiation under Sanofi'},{date:'2027',event:'Phase 1 safety/PK data from HV study'}],
    trials:[
@@ -8741,7 +8749,7 @@ const TL1A_PROGRAMS = [
    risk:'Tetravalent (2+2) format — more complex manufacturing and potentially higher immunogenicity vs. standard bispecific formats. Pre-IND stage — no human data. Manufacturing scale-up for 2+2 biologics is a real risk.',
    diff:'$125M upfront at preclinical stage — highest-value preclinical deal in TL1A. Sanofi\'s second TL1A commitment ($125M + $1.845B) on top of duvakitug is the strongest institutional signal of conviction in dual TL1A+IL-23 blockade.' },
 
- { id:'xencor-412', co:'Xencor (XmAb412)', ticker:'XNCR', drug:'XmAb412', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Pre-IND', overlap:'high',
+ { id:'xencor-412', co:'Xencor (XmAb412)', ticker:'XNCR', drug:'XmAb412', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Pre-IND', overlap:'Direct',
    summary:'XmAb412 is Xencor\'s TL1A × IL-23p19 bispecific, utilizing the same XTEND-Fc half-life extension technology validated in XmAb942 (74-day t½ in Phase 1). Preclinical data were presented at DDW 2026. FIH in healthy volunteers is planned for Q3 2026. Xencor\'s strategy is to run both programs in parallel: XmAb942 (mono, Ph2b, N=270) generating near-term efficacy data while XmAb412 builds toward Phase 1. No pharma partner has been announced. If XmAb942 Ph2b data (YE 2026 interim) are strong, Xencor is positioned to partner both assets or advance XmAb412 on the coattails of validated mono efficacy + bispecific platform credibility.',
    catalysts:[{date:'Q3 2026',event:'XmAb412 FIH Phase 1 initiation — HV SAD/MAD study'},{date:'2027',event:'First XmAb412 human PK/safety data'},{date:'YE 2026',event:'XmAb942 Ph2b interim (could catalyze XmAb412 deal interest)'}],
    trials:[
@@ -8751,7 +8759,7 @@ const TL1A_PROGRAMS = [
    risk:'No partner backing — Xencor funding both XmAb942 (Ph2b) and XmAb412 (pre-clinical/FIH) independently. Capital allocation tension. If no deal is announced by FIH, market may question commercial conviction.',
    diff:'XTEND platform already yielding 74-day t½ in XmAb942 Ph1 — strongest half-life data in TL1A class. Bispecific version targets same ultra-long PK advantage, potentially Q13W+ dosing for TL1A×IL-23 combination.' },
 
- { id:'lanova', co:'LaNova / Zymeworks', ticker:'Private/ZYME', drug:'LQ080 / ZW191', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Phase 1', overlap:'watch',
+ { id:'lanova', co:'LaNova / Zymeworks', ticker:'Private/ZYME', drug:'LQ080 / ZW191', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Phase 1', overlap:'Watch',
    summary:'LQ080 (partnered to Zymeworks as ZW191) is a VHH nanobody-based TL1A × IL-23p19 bispecific. VHH (single-domain antibody) format results in a much smaller molecule than conventional IgG bispecifics — potential advantages in tissue penetration. Extended half-life was demonstrated in non-human primates (NHP). Preclinical data were presented at DDW 2025. Phase 1 appears active (status: likely ongoing in China under LaNova sponsorship) but no IBD-specific ClinicalTrials.gov registration was found for the TL1A program. Zymeworks holds global ex-China rights. LaNova and Zymeworks are seeking a global pharma partner.',
    catalysts:[{date:'2026–2027',event:'Phase 1 safety/PK data in healthy volunteers'},{date:'2027',event:'Phase 1 dose escalation completion in IBD patients'},{date:'Ongoing',event:'Global partnering process — seeking big-pharma licensee'}],
    trials:[
@@ -8761,7 +8769,7 @@ const TL1A_PROGRAMS = [
    risk:'VHH nanobody format is clinically unvalidated in IBD — unknown immunogenicity risk vs. standard IgG (potential for anti-drug antibodies). Tissue penetration advantage is theoretical in IBD context.',
    diff:'Smallest molecular format in TL1A class — VHH nanobody bispecific. Potential tissue penetration and manufacturing cost advantage. Seeking global partner — could be acquired before Ph2 at significant premium if Ph1 data are clean.' },
 
- { id:'spyre-230', co:'Spyre (SPY230)', ticker:'SYRE', drug:'SPY230 (TL1A + IL-23)', target:'TL1A + IL-23', cls:'Direct', stageKey:'Phase 2', overlap:'watch',
+ { id:'spyre-230', co:'Spyre (SPY230)', ticker:'SYRE', drug:'SPY230 (TL1A + IL-23)', target:'TL1A + IL-23', cls:'Next Gen', stageKey:'Phase 2', overlap:'Direct',
    summary:'SPY230 is Spyre\'s TL1A + IL-23 dual-blockade program — the same target pair as the standalone bispecific programs (Mirador MT-251, Xencor XmAb412, Earendil HXN-1003). IMPORTANT DATA CORRECTION: SPY003 is Spyre\'s anti-IL-23 MONOCLONAL (not a bispecific); SPY230 is the TL1A+IL-23 COMBINATION therapy tested in SKYLINE Part B (NCT07012395). SPY230 co-administers SPY002 (anti-TL1A) and SPY003 (anti-IL-23) with unified Q3M–Q6M dosing. Enrollment for SKYLINE Part B opened in 2026. This is a rare direct head-to-head test of combination vs. mono TL1A and IL-23 blockade in the same platform study — the data most relevant to validating the bispecific hypothesis.',
    catalysts:[
     {date:'Mid-2026',event:'SPY002 mono Part A data — establishes TL1A monotherapy ceiling (NCT07012395)',url:'https://clinicaltrials.gov/study/NCT07012395'},
@@ -9154,15 +9162,25 @@ const tl1aPI = {
  },
 
  _clsPill(cls) {
-  const m = {'1st Gen':'pi-cls-1st','Direct':'pi-cls-direct','2nd Gen':'pi-cls-2nd'};
-  return `<span class="pi-cls-pill ${m[cls]||''}">${cls}</span>`;
+  const m = {'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
+  return `<span class="pi-cls-pill ${m[cls]||'pi-cls-1st'}">${cls}</span>`;
  },
  _stagePill(s) {
   const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre'};
   return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`;
  },
  _ovBadge(o) {
-  return o==='high' ? '<span class="pi-overlap-high">High Overlap</span>' : '<span class="pi-overlap-watch">Watch</span>';
+  const m = {
+   'Direct':     'pi-overlap-direct',
+   'Adjacent':   'pi-overlap-adjacent',
+   'Same-Space': 'pi-overlap-same',
+   'Watch':      'pi-overlap-watch',
+   // legacy fallback mappings
+   'high':       'pi-overlap-direct',
+   'watch':      'pi-overlap-watch',
+  };
+  const label = (o==='high')?'Direct':(o==='watch')?'Watch':o;
+  return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${label}</span>`;
  },
 
  _spyreDetailHTML(p) {
