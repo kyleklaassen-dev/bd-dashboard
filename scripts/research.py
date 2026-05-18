@@ -232,7 +232,69 @@ def sb_post(table, record):
     return data[0] if data else None
 
 
-def write_to_supabase(intel_items):
+# ── Company name → ID lookup ─────────────────────────────────────────────────
+# Known aliases that differ from the simple lowercase ID
+COMPANY_ALIASES = {
+    "johnson & johnson":     "jnj",
+    "j&j":                   "jnj",
+    "j & j":                 "jnj",
+    "eli lilly":              "lilly",
+    "roche":                  "roche",
+    "roche/genentech":        "roche",
+    "genentech":              "roche",
+    "boehringer ingelheim":   "boehringer",
+    "boehringer":             "boehringer",
+    "bristol myers squibb":   "bms",
+    "bristol-myers squibb":   "bms",
+    "astrazeneca":            "astrazeneca",
+    "abbvie":                 "abbvie",
+    "merck":                  "merck",
+    "merck & co":             "merck",
+    "merck & co.":            "merck",
+    "generate:biomedicines":  "generate",
+    "harbour biomed":         "harbourbiomed",
+    "santa ana bio":          "santaana",
+    "futuregen biopharmaceutical": "futuregen",
+    "nanjing leads":          "leads",
+    "shandong boan":          "shboan",
+    "novamab":                "novamab",
+}
+
+
+def get_company_map():
+    """Fetch all companies from Supabase. Returns dict: lowercase_name → id."""
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/companies",
+            headers=SB_HEADERS,
+            params={"select": "id,name"},
+        )
+        rows = r.json()
+        cmap = {}
+        for row in rows:
+            cmap[row["id"].lower()] = row["id"]        # id → id (e.g. "argenx" → "argenx")
+            cmap[row["name"].lower()] = row["id"]      # full name → id (e.g. "argenx" → "argenx")
+        # Merge in hardcoded aliases
+        cmap.update(COMPANY_ALIASES)
+        return cmap
+    except Exception as e:
+        log(f"Company map fetch error: {e}")
+        return {}
+
+
+def resolve_company_id(name, company_map):
+    """Try to resolve a company name string to a Supabase company id."""
+    lc = name.strip().lower()
+    if lc in company_map:
+        return company_map[lc]
+    # Partial / substring match
+    for key, cid in company_map.items():
+        if len(lc) >= 4 and (lc in key or key in lc):
+            return cid
+    return None
+
+
+def write_to_supabase(intel_items, company_map=None):
     inserted_intel = 0
     inserted_deals = 0
     inserted_catalysts = 0
@@ -258,6 +320,17 @@ def write_to_supabase(intel_items):
 
         # ── intel_areas junction ──────────────────────────────────────────
         sb_post("intel_areas", {"intel_id": intel_id, "area_id": item["area_id"]})
+
+        # ── intel_companies junction ───────────────────────────────────────
+        company_names = item.get("company_names") or []
+        written_co_ids = set()
+        for co_name in company_names:
+            if not co_name:
+                continue
+            co_id = resolve_company_id(co_name, company_map or {})
+            if co_id and co_id not in written_co_ids:
+                sb_post("intel_companies", {"intel_id": intel_id, "company_id": co_id})
+                written_co_ids.add(co_id)
 
         # ── Deal record ───────────────────────────────────────────────────
         if item.get("is_deal") and item.get("deal_from"):
@@ -312,12 +385,16 @@ def write_to_supabase(intel_items):
             if sb_post("catalysts", cat_rec):
                 inserted_catalysts += 1
 
-    log(f"Wrote → intel: {inserted_intel}, deals: {inserted_deals}, catalysts: {inserted_catalysts}")
+    log(f"Wrote → intel: {inserted_intel}, deals: {inserted_deals}, catalysts: {inserted_catalysts} "
+        f"(company junction rows written inline)")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     log(f"=== Meridian Research Pipeline — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
+
+    company_map = get_company_map()
+    log(f"Loaded {len(company_map)} company name → ID mappings")
 
     articles = fetch_feeds(hours_back=48)
     relevant = filter_relevant(articles)
@@ -332,6 +409,6 @@ if __name__ == "__main__":
         if new_articles:
             intel = extract_intel(new_articles)
             if intel:
-                write_to_supabase(intel)
+                write_to_supabase(intel, company_map=company_map)
 
     log("=== Research complete ===")
