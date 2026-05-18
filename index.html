@@ -1334,37 +1334,48 @@ function renderCatalysts(cats) {
 
   const { open, resolved } = sortCatalysts(cats);
 
+  const catFmtDate = (sd, fallback) => {
+    if (!sd) return fallback || '';
+    try {
+      const [y, m, d] = sd.split('-').map(Number);
+      const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]||'';
+      // day 1 or 15 = month-level placeholder → show "Mon YYYY"
+      if (d === 1 || d === 15) return `${mn} ${y}`;
+      return `${mn} ${d}, ${y}`;
+    } catch(e) { return fallback || sd; }
+  };
+
   const renderItem = (c, isResolved) => {
     const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
-    const icon = CAT_TYPE_ICON[c.catalyst_type] || CAT_TYPE_ICON.default;
     const area = AREA_LABELS[c.area_id] || c.area_id || '';
     const isHigh = c.significance === 'high' && !isResolved;
-    const rowStyle = isHigh
-      ? 'border-left:3px solid #dc2626;background:linear-gradient(90deg,#fff6f0,#fff);padding-left:10px;margin-left:0;'
-      : 'padding-left:0;';
-    const watchBadge = isHigh ? `<span class="cat-hi-watch">⭐ Key Watch</span>` : '';
+    const rowBorder = isHigh ? 'border-left:3px solid #dc2626;background:linear-gradient(90deg,#fff6f0 0%,#fff 60%);padding-left:10px;' : '';
     const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
     const countdown = isResolved
-      ? `<span style="font-size:9px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:1px 5px;border-radius:8px;">✓ Resolved</span>`
+      ? `<span style="font-size:9px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 6px;border-radius:8px;">✓ Done</span>`
       : catDaysTag(c.sort_date);
+    const dateStr = catFmtDate(c.sort_date, c.catalyst_date);
     return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
-      display:flex;align-items:flex-start;gap:10px;padding:9px 0 9px 0;
-      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.55':'1'};${rowStyle}
+      display:flex;align-items:flex-start;gap:0;padding:9px 2px 9px 0;
+      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.55':'1'};${rowBorder}
     ">
-  <div style="flex-shrink:0;text-align:center;min-width:52px;">
-    <div style="font-size:15px;line-height:1">${icon}</div>
-    <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:2px;line-height:1.2;">${c.catalyst_date||''}</div>
+  <div style="flex-shrink:0;width:80px;padding-right:10px;padding-top:1px;">
+    <div style="font-size:10px;font-weight:700;color:#1e3a5f;line-height:1.35;">${dateStr}</div>
   </div>
-  <div style="flex:1;min-width:0;">
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px;">
-      <span style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};">${c.label||''}</span>
-      ${watchBadge}
-      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;">${sig.label}</span>
-      ${area ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;padding:1px 5px;border-radius:8px;">${area}</span>` : ''}
+  <div style="flex:1;min-width:0;padding-right:10px;">
+    <div style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};line-height:1.4;">${c.label||''}</div>
+    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.45;">${c.notes}</div>` : ''}
+    ${resolvedNote}
+  </div>
+  <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:90px;">
+    <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
+      ${isHigh ? `<span class="cat-hi-watch">⭐ Key Watch</span>` : ''}
       ${countdown}
     </div>
-    ${c.notes ? `<div style="font-size:11px;color:#475569;line-height:1.45;">${c.notes}</div>` : ''}
-    ${resolvedNote}
+    <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
+      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;white-space:nowrap;">${sig.label}</span>
+      ${area ? `<span style="font-size:9px;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:1px 5px;border-radius:8px;white-space:nowrap;">${area}</span>` : ''}
+    </div>
   </div>
 </div>`;
   };
