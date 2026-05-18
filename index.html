@@ -960,7 +960,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-detail-section ul { margin:0;padding-left:14px; }
 .pi-detail-section li { margin-bottom:3px; }
 .pi-detail-cat-item { display:flex;gap:6px;margin-bottom:5px;font-size:11px; }
-.pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px; }
+.pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px;min-width:72px;width:72px; }
 .pi-trial-row { padding:8px 10px;background:#f8fafc;border-radius:6px;margin-bottom:7px;border:1px solid #e2e8f0; }
 .pi-trial-row:last-child { margin-bottom:0; }
 .pi-trial-status { display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700; }
@@ -8707,7 +8707,13 @@ const TL1A_PROGRAMS = [
     {nct:'NCT07148414',name:'SKYWAY — Ph2 basket trial: SPY072 in RA (N=120), PsA (N=90), axSpA (N=75)',phase:'Phase 2',status:'Enrolling/Enrolled',n:285,pcd:'RA Q3 2026 · PsA/axSpA Q4 2026',primary:'RA: ΔDAS28-CRP at W12 · PsA: ACR20 at W16 · axSpA: ΔASDAS at W16'},
     {nct:'NCT06672718',name:'SPY002-091 — Phase 1 HV PK/safety',phase:'Phase 1',status:'Complete/Reported',n:56,pcd:'Reported Jun 2025',primary:'Safety/tolerability + PK characterization with YTE modification'},
    ],
-   deals:[{date:'2024',desc:'$720M Series A financing — Agenus IBD spinout · Covers 7 programs through Ph2 readouts · Cash runway into H2 2028',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-announces-positive-interim-phase-1-results'}],
+   deals:[
+    {date:'Feb 2024',desc:'Agenus IBD spinout — Agenus contributed SPY001, SPY002, SPY003 programs and exclusive YTE Fc platform IP to Spyre; Agenus retained equity ownership (~25%) and tiered royalties on future net sales across all Spyre programs',url:'https://ir.spyre.com/'},
+    {date:'Feb 2024',desc:'$720M Series A financing — led by Farallon Capital Management, Foresite Capital, RA Capital, and other institutional healthcare investors; covers all 7 programs through Phase 2 readouts; cash runway into H2 2028',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-announces-positive-interim-phase-1-results'},
+    {date:'2024',desc:'NASDAQ listing (SYRE) — Spyre became independently publicly traded; Agenus distributed Spyre shares to Agenus stockholders; established ATM (at-the-money) equity offering facility for supplemental capital access'},
+    {date:'2024',desc:'YTE platform manufacturing partnership — CMO agreements for GMP production of YTE-modified antibodies (SPY001/002/003/072) to support Phase 1 and Phase 2 clinical supply across SKYLINE and SKYWAY trials'},
+    {date:'2025',desc:'No Big Pharma licensing deals announced as of 2025 — company strategy is to advance all 7 programs independently to Phase 2 proof-of-concept readouts (2026–2027) before entering partnership discussions; SKYLINE 2027 combo data expected to be primary BD catalyst'},
+   ],
    risk:'7-program pipeline execution risk (3 Ph2 trials simultaneously). SKYLINE Part B combination vs. mono data (2027) could show mono suffices, reducing value of combination assets. YTE safety profile still being established in IBD populations.',
    diff:'Only company with YTE-modified antibodies across all three major IBD pathways (TL1A, α4β7, IL-23) + TL1A in rheumatic diseases. SKYLINE directly tests combination vs. mono — the most informative head-to-head IBD platform study ever designed. SPY001 April 2026 data already shows best-in-class potential vs. vedolizumab.' },
 
