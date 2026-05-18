@@ -3014,7 +3014,7 @@ function loadMoleculeTab(tabId) {
 
 <!-- LEFT fixed pill column -->
 <div class="tl1a-pills-col" id="tl1a-pills-left">
-  <button class="tl1a-pill-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-takeaways')">🎯 BD Takeaways</button>
   <button class="tl1a-pill-btn" id="pill-intel" onclick="openTl1aModal('tl1a-modal-intel')">📡 Intel Feed</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-catalysts')">📅 Catalyst Calendar</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-estimand')">📐 Estimand Guide</button>
@@ -3022,10 +3022,10 @@ function loadMoleculeTab(tabId) {
 <!-- RIGHT fixed pill column -->
 <div class="tl1a-pills-col" id="tl1a-pills-right">
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')">🧬 Ailux Profile</button>
+  <button class="tl1a-pill-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
   <button class="tl1a-pill-btn" id="pill-market" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
   <button class="tl1a-pill-btn" id="pill-soc" onclick="openTl1aModal('tl1a-modal-soc')">🏥 Standard of Care</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🔬 China Programs</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-takeaways')">🎯 BD Takeaways</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-history')">📖 IBD History</button>
 </div>
 
@@ -9298,21 +9298,27 @@ const tl1aPI = {
   }).join('');
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
-   <!-- Header: stock + website -->
-   <div class="spyre-hd">
-    <div class="spyre-stock-chip" id="spyre-stock-chip">
-     <span class="spyre-stock-ticker">SYRE</span>
-     <span class="spyre-stock-price" id="spyre-price">—</span>
-     <span class="spyre-stock-chg" id="spyre-chg">loading…</span>
-    </div>
-    <div style="font-size:11.5px;color:#64748b">7-program IBD + Rheumatic platform · Agenus spinout · $783M raised · Cash into H2 2028</div>
-    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;margin-left:auto;white-space:nowrap;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">Spyre Pipeline ↗</a>
+   <!-- Header: pipeline link only -->
+   <div class="spyre-hd" style="justify-content:flex-end">
+    <a href="https://www.spyre.com/pipeline" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;white-space:nowrap;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">Spyre Pipeline ↗</a>
    </div>
    <!-- All pipeline drugs centered -->
    ${pipelineRow}
    <!-- Company-level detail -->
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
+    <div class="pi-detail-section" style="grid-column:1/-1">
+     <h5>🤝 BD Summary</h5>
+     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <span style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:3px 10px;color:#1d4ed8;font-weight:700">7-program platform</span>
+      <span style="font-size:11px;background:#f0fdf4;border:1px solid #86efac;border-radius:20px;padding:3px 10px;color:#166534;font-weight:700">IBD + Rheumatic</span>
+      <span style="font-size:11px;background:#fefce8;border:1px solid #fde68a;border-radius:20px;padding:3px 10px;color:#92400e;font-weight:700">Agenus spinout · Feb 2024</span>
+      <span style="font-size:11px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:20px;padding:3px 10px;color:#6d28d9;font-weight:700">\$783M raised</span>
+      <span style="font-size:11px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:20px;padding:3px 10px;color:#475569;font-weight:700">Cash into H2 2028</span>
+      <span style="font-size:11px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;padding:3px 10px;color:#c2410c;font-weight:700">NASDAQ: SYRE</span>
+      <span style="font-size:11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:20px;padding:3px 10px;color:#7e22ce;font-weight:700">No pharma partners — pre-partnering through Ph2</span>
+     </div>
+    </div>
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
     <div class="pi-detail-section"><h5>💼 Deal History</h5>${deals}</div>
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
