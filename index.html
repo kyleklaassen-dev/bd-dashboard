@@ -914,6 +914,27 @@ mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; paddin
 .cw-pr-link{color:#1d4ed8;text-decoration:none}
 .cw-pr-link:hover{text-decoration:underline}
 .cw-grid{display:flex;flex-direction:column}
+
+/* ── LIVE COMPANY WATCH CARDS (Supabase-rendered) ─────────────────────────── */
+.company-watch-card{background:#fff;border:1px solid #e8eef5;border-radius:8px;margin:8px 12px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.company-watch-card:first-child{margin-top:12px}
+.company-watch-card:last-child{margin-bottom:4px}
+.cw-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.cw-name{font-size:12.5px;font-weight:700;color:#1e3a5f}
+.cw-ticker{font-size:10px;color:#94a3b8;font-family:monospace;background:#f1f5f9;padding:1px 5px;border-radius:4px}
+.cw-mktcap{font-size:10px;color:#64748b;margin-left:2px}
+.cw-dir{font-size:11px;font-weight:700;margin-left:auto}
+.insight-up{color:#059669}
+.insight-down{color:#dc2626}
+.insight-neutral{color:#d97706}
+.cw-insight{font-size:11.5px;color:#334155;line-height:1.6;margin-bottom:6px}
+.cw-signals{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.signal-item{font-size:11px;color:#475569;display:flex;align-items:flex-start;gap:5px;padding:3px 0;border-top:1px solid #f8fafc}
+.signal-item:first-child{border-top:none}
+.signal-item.signal-up .sig-arrow{color:#059669}
+.signal-item.signal-down .sig-arrow{color:#dc2626}
+.signal-item.signal-neutral .sig-arrow{color:#d97706}
+.sig-arrow{font-size:9px;flex-shrink:0;margin-top:2px}
 </style>
 <style>
   .pi-main-row { cursor:pointer; }
@@ -1490,6 +1511,51 @@ async function loadAreaDeals(tabId) {
   }
 }
 
+async function loadAreaCompanies(tabId) {
+  const areaMap = {
+    'tl1a':['tl1a'], 'tslp':['tslp'], 'il4ra-tslp':['il4ra','tslp'],
+    'il4ra-ox40l':['il4ra'], 'igf1r-tshr':['igf1r'], 'fcrn':['fcrn'], 'ace':['tcell']
+  };
+  const areas = areaMap[tabId];
+  if (!areas) return;
+  const el = document.getElementById(tabId + '-live-companies');
+  if (!el) return;
+  try {
+    const { data: caRows, error: caErr } = await _sb.from('company_areas').select('company_id').in('area_id', areas);
+    if (caErr || !caRows || !caRows.length) { el.innerHTML = ''; return; }
+    const companyIds = [...new Set(caRows.map(r => r.company_id))];
+    const [{ data: companies }, { data: signals }] = await Promise.all([
+      _sb.from('companies').select('*').in('id', companyIds).order('name'),
+      _sb.from('company_signals').select('*').in('company_id', companyIds).order('sort_order')
+    ]);
+    if (!companies || !companies.length) { el.innerHTML = ''; return; }
+    const sigMap = {};
+    (signals || []).forEach(s => { if (!sigMap[s.company_id]) sigMap[s.company_id] = []; sigMap[s.company_id].push(s); });
+    el.innerHTML = companies.map(c => {
+      const sigs = sigMap[c.id] || [];
+      const dirClass = c.insight_dir === 'up' ? 'insight-up' : c.insight_dir === 'down' ? 'insight-down' : 'insight-neutral';
+      const dirArrow = c.insight_dir === 'up' ? '▲' : c.insight_dir === 'down' ? '▼' : '—';
+      const sigHtml = sigs.map(s => {
+        const sDir = s.dir === 'up' ? '▲' : s.dir === 'down' ? '▼' : '—';
+        return '<div class="signal-item signal-' + s.dir + '"><span class="sig-arrow">' + sDir + '</span> ' + (s.signal_text || '') + '</div>';
+      }).join('');
+      return '<div class="company-watch-card">' +
+        '<div class="cw-header">' +
+          '<span class="cw-name">' + (c.name || '') + '</span>' +
+          (c.ticker ? '<span class="cw-ticker">' + c.ticker + '</span>' : '') +
+          '<span class="cw-dir ' + dirClass + '">' + dirArrow + '</span>' +
+        '</div>' +
+        (c.insight_text ? '<div class="cw-insight">' + c.insight_text + '</div>' : '') +
+        (c.tagline && !c.insight_text ? '<div class="cw-insight">' + c.tagline + '</div>' : '') +
+        (sigHtml ? '<div class="cw-signals">' + sigHtml + '</div>' : '') +
+        '</div>';
+    }).join('');
+  } catch(e) {
+    console.error('loadAreaCompanies error:', e);
+    el.innerHTML = '';
+  }
+}
+
 // ── Molecule Tab Orchestrator (lazy-loads on first visit) ─────────────────────
 function loadMoleculeTab(tabId) {
   if (_molTabLoaded[tabId]) return; // already loaded
@@ -1497,6 +1563,7 @@ function loadMoleculeTab(tabId) {
   loadAreaIntel(tabId);
   loadAreaCatalysts(tabId);
   loadAreaDeals(tabId);
+  loadAreaCompanies(tabId);
 }
 
 </script>
@@ -1880,6 +1947,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-tl1a-body" style="display:none">
+    <div id="tl1a-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('roche-tl1a')">
@@ -2769,6 +2837,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-tslp-body" style="display:none">
+    <div id="tslp-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('amgen-az-tslp')">
@@ -3546,6 +3615,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-il4ra-tslp-body" style="display:none">
+    <div id="il4ra-tslp-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('sanofi-regen-il4ra')">
@@ -3921,6 +3991,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-il4ra-ox40l-body" style="display:none">
+    <div id="il4ra-ox40l-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('sanofi-amlitel')">
@@ -4264,6 +4335,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-igf1r-tshr-body" style="display:none">
+    <div id="igf1r-tshr-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('amgen-tepezza-igf')">
@@ -4587,6 +4659,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-fcrn-body" style="display:none">
+    <div id="fcrn-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('argenx-fcrn')">
@@ -4963,6 +5036,7 @@ function loadMoleculeTab(tabId) {
     </div>
   </div>
   <div class="comp-body" id="cw-ace-body" style="display:none">
+    <div id="ace-live-companies"></div>
     <div class="cw-grid">
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('cabaletta-ace')">
