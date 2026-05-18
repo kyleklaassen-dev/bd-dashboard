@@ -8572,15 +8572,21 @@ function closeBioDD(id) { const el = document.getElementById(id); if (el) el.cla
 
 /* ── Spyre drug popup hover persistence ── */
 let _spyrePopupTimer = null;
+let _spyreActiveId = null;
 function showSpyrePopup(id) {
   clearTimeout(_spyrePopupTimer);
+  // Close all other open popups immediately
+  document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
+  _spyreActiveId = id;
   const btn = document.getElementById(id);
   if (btn) { const p = btn.querySelector('.spyre-drug-popup'); if (p) p.style.display='block'; }
 }
 function hideSpyrePopup(id) {
   _spyrePopupTimer = setTimeout(() => {
+    if (_spyreActiveId !== id) return; // another popup already took over
     const btn = document.getElementById(id);
     if (btn) { const p = btn.querySelector('.spyre-drug-popup'); if (p) p.style.display='none'; }
+    _spyreActiveId = null;
   }, 130);
 }
 function cancelHideSpyrePopup() { clearTimeout(_spyrePopupTimer); }
