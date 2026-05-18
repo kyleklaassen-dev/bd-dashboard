@@ -778,7 +778,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .wtc-task-area { font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; padding: 1px 5px; border-radius: 5px; margin-right: 5px; white-space: nowrap; }
 
 /* ══ HEADER SEARCH BAR ══════════════════════════════════════════ */
-.header-search-wrap { flex: 1; display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; min-width: 0; max-width: 600px; position: relative; }
+.header-search-wrap { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; width: clamp(280px,36%,540px); }
 .header-search-wrap:focus-within { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.35); }
 .header-search-input { flex: 1; border: none; background: none; color: white; font-size: 11px; outline: none; font-family: inherit; min-width: 0; }
 .header-search-input::placeholder { color: rgba(255,255,255,0.45); }
@@ -8554,14 +8554,44 @@ function openIntelModal() {
 function closeIntelModal() {
  document.getElementById('intel-modal-overlay').classList.remove('open');
 }
+// TAG → Supabase area_id mapping for intel_areas junction table
+const INTEL_TAG_AREA = {
+ 'IBD':'tl1a','Resp':'tslp','Type 2':'il4ra','AD':'il4ra',
+ 'TED':'igf1r','AI':'fcrn','Immune Reset':'tcell'
+};
+async function _saveIntelToSupabase(url, text, tag) {
+ if (!window._sb) return null;
+ try {
+  const today = new Date().toISOString().slice(0,10);
+  const headline = text ? (text.length > 120 ? text.slice(0,117)+'…' : text) : (url || 'User submission');
+  const { data, error } = await _sb.from('intel').insert([{
+   intel_date: today,
+   headline: headline,
+   body: text || null,
+   source_url: url || null,
+   source_name: 'User Submission',
+   intel_type: 'user_submitted',
+   importance: 'medium'
+  }]).select('id').single();
+  if (error) { console.warn('[intel submit] Supabase insert error:', error.message); return null; }
+  const areaId = INTEL_TAG_AREA[tag];
+  if (areaId && data?.id) {
+   await _sb.from('intel_areas').insert([{ intel_id: data.id, area_id: areaId }]);
+  }
+  return data?.id || null;
+ } catch(e) { console.warn('[intel submit] unexpected error:', e); return null; }
+}
 function saveFromModal() {
  const url = (document.getElementById('im-url')?.value || '').trim();
  const text = (document.getElementById('im-text')?.value || '').trim();
  const tag = (document.getElementById('im-tag')?.value || 'General');
  if (!url && !text) { alert('Please enter a URL or note first.'); return; }
+ // Save to localStorage as before
  const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
  items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
  localStorage.setItem('meridian-intel', JSON.stringify(items));
+ // Also persist to Supabase for next research update
+ _saveIntelToSupabase(url, text, tag);
  document.getElementById('im-url').value = '';
  document.getElementById('im-text').value = '';
  closeIntelModal();
@@ -8591,9 +8621,12 @@ function submitIntel() {
  const text = (document.getElementById('intel-text')?.value || '').trim();
  const tag = (document.getElementById('intel-tag')?.value || 'General');
  if (!url && !text) { alert('Please enter a URL or note before saving.'); return; }
+ // Save to localStorage as before
  const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
  items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
  localStorage.setItem('meridian-intel', JSON.stringify(items));
+ // Also persist to Supabase for next research update
+ _saveIntelToSupabase(url, text, tag);
  document.getElementById('intel-url').value = '';
  document.getElementById('intel-text').value = '';
  renderIntelSubmissions();
