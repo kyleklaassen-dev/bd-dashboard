@@ -9102,7 +9102,8 @@ const tl1aPI = {
    /* Unique button ID for hover persistence */
    const btnId = 'spy-btn-' + d.code.replace(/[^a-z0-9]/gi,'');
    /* Target display — multi-line for combos */
-   const targetLines = d.target.split(' + ').map(t=>`<div style="font-size:8px;font-weight:700;color:${diseaseColor};opacity:0.9;line-height:1.3">${t}</div>`).join('');
+   const targetInline = d.target.split(' + ').join(' <span style="opacity:0.6">×</span> ');
+   const targetLines = `<div style="font-size:8px;font-weight:700;color:${diseaseColor};opacity:0.9;line-height:1.4;margin-top:1px">${targetInline}</div>`;
    const areaTag = !d.ibd ? `<div style="font-size:7px;background:#fdf4ff;color:#7e22ce;border-radius:8px;padding:0 4px;margin-top:2px;font-weight:800">RA/PsA</div>` : '';
 
    /* Trials rows */
@@ -9132,8 +9133,7 @@ const tl1aPI = {
    /* Sources — now embedded inline in mechanism text, not shown separately */
 
    return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${diseaseColor};color:${diseaseColor};background:${diseaseLightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup('${btnId}')">
-    <div class="spyre-phase-badge" style="color:${diseaseColor};border:1px solid ${diseaseColor}55">${phaseBadge}</div>
-    <div style="font-size:11.5px;font-weight:900;margin-top:2px">${d.code}</div>
+    <div style="font-size:12px;font-weight:900;margin-top:4px">${d.code}</div>
     ${targetLines}${areaTag}
     <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup('${btnId}')">
      <!-- Summary card -->
@@ -9183,9 +9183,8 @@ const tl1aPI = {
 
   /* Section dividers in pipeline row */
   const pipelineRow = `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:8px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
-   <div style="width:100%;font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;text-align:center;margin-bottom:4px">
-    Full Spyre Pipeline — hover each pill for details ·
-    <span style="color:#2563eb">■ IBD programs</span> ·
+   <div style="width:100%;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:center;margin-bottom:4px">
+    <span style="color:#2563eb">■ IBD</span> &nbsp;
     <span style="color:#9333ea">■ Rheumatic (RA/PsA)</span>
    </div>
    ${allBtns}
