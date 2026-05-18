@@ -908,16 +908,20 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .bio-dd-body { overflow-y:auto;padding:20px;flex:1; }
 
 /* ── PROGRAM INTELLIGENCE TABLE ── */
-.pi-card { background:white;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden; }
+.pi-card { background:white;border-radius:10px;border:1px solid #e2e8f0;margin:0 auto 20px;overflow:hidden;max-width:1100px; }
 .pi-hd { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-wrap:wrap;gap:8px; }
 .pi-title { font-size:12px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.4px; }
 .pi-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
-.pi-filters select { font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;background:white;color:#334155;cursor:pointer; }
+.pi-pill-group { display:flex;gap:3px;align-items:center; }
+.pi-pill { padding:3px 10px;border-radius:10px;border:1.5px solid #dde3ea;background:white;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;line-height:1.4; }
+.pi-pill:hover { border-color:#2e6fb0;color:#2e6fb0; }
+.pi-pill.active { background:#1e3a5f;border-color:#1e3a5f;color:white; }
+.pi-pill-divider { width:1px;height:16px;background:#e2e8f0;margin:0 4px; }
 .pi-table-wrap { overflow-x:auto; }
-.pi-table { width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px; }
-.pi-table th { background:#f1f5f9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#64748b;padding:8px 10px;border-bottom:2px solid #e2e8f0;white-space:nowrap;position:relative;user-select:none;cursor:pointer; }
+.pi-table { width:100%;border-collapse:collapse;table-layout:fixed;min-width:620px; }
+.pi-table th { background:#f1f5f9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#64748b;padding:6px 8px;border-bottom:2px solid #e2e8f0;white-space:nowrap;position:relative;user-select:none;cursor:pointer; }
 .pi-table th:hover { background:#e2e8f0; }
-.pi-table td { font-size:12px;padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
+.pi-table td { font-size:12px;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
 .pi-table tr.pi-main:hover td { background:#f8fafc;cursor:pointer; }
 .pi-table tr.pi-main.expanded td { background:#eff6ff;border-bottom:none; }
 .pi-cls-pill { display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700; }
@@ -949,6 +953,27 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-trial-anr { background:#fef9c3;color:#854d0e; }
 .pi-trial-done { background:#f1f5f9;color:#475569; }
 .pi-trial-planned { background:#ede9fe;color:#5b21b6; }
+/* ── SPYRE RICH ROW ── */
+.spyre-hd { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0; }
+.spyre-stock-chip { display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px; }
+.spyre-stock-ticker { font-size:11px;font-weight:800;color:#1e3a5f; }
+.spyre-stock-price { font-size:14px;font-weight:800;color:#0d1f38; }
+.spyre-stock-chg { font-size:11px;font-weight:700; }
+.spyre-stock-up { color:#16a34a; }
+.spyre-stock-dn { color:#dc2626; }
+.spyre-pipeline-row { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
+.spyre-drug-btn { position:relative;padding:6px 12px;border-radius:8px;border:2px solid;background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1.3; }
+.spyre-drug-btn:hover { filter:brightness(0.95);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+.spyre-drug-popup { display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.16);padding:14px;min-width:280px;max-width:340px;text-align:left; }
+.spyre-drug-btn:hover .spyre-drug-popup,
+.spyre-drug-btn:focus-within .spyre-drug-popup { display:block; }
+.spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
+.spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
+.spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
+.spyre-popup-tag { font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:#f1f5f9;color:#475569; }
+.spyre-popup-body { font-size:11px;color:#334155;line-height:1.55;margin-bottom:7px; }
+.spyre-popup-lens { font-size:11px;color:#1d4ed8;background:#eff6ff;padding:6px 9px;border-radius:6px;line-height:1.5; }
+.spyre-section-lbl { font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:6px; }
 .col-resize { position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent; }
 .col-resize:hover { background:rgba(99,102,241,0.3); }
 .pi-sort-arrow { font-size:8px;margin-left:3px;color:#94a3b8; }
@@ -2941,26 +2966,28 @@ function loadMoleculeTab(tabId) {
   <div class="pi-hd">
     <span class="pi-title">⚔ Program Intelligence · All TL1A Companies &amp; Drugs</span>
     <div class="pi-filters">
-      <select id="pi-tl1a-cls" onchange="tl1aPI.filter()">
-        <option value="">All Classes</option>
-        <option value="1st Gen">1st Gen (Mono TL1A)</option>
-        <option value="Direct">Direct (TL1A×IL-23p19)</option>
-        <option value="2nd Gen">2nd Gen (Enhanced Mono)</option>
-      </select>
-      <select id="pi-tl1a-stage" onchange="tl1aPI.filter()">
-        <option value="">All Stages</option>
-        <option value="Phase 3">Phase 3</option>
-        <option value="Phase 2">Phase 2</option>
-        <option value="Phase 1">Phase 1</option>
-        <option value="Pre-IND">Pre-IND</option>
-        <option value="Preclinical">Preclinical</option>
-      </select>
-      <select id="pi-tl1a-overlap" onchange="tl1aPI.filter()">
-        <option value="">All Relevance</option>
-        <option value="high">High Overlap</option>
-        <option value="watch">Watch</option>
-      </select>
-      <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:4px"></span>
+      <div class="pi-pill-group" data-filter="cls">
+        <button class="pi-pill active" data-val="" onclick="piPillClick('cls','',this)">All</button>
+        <button class="pi-pill" data-val="1st Gen" onclick="piPillClick('cls','1st Gen',this)">1st Gen</button>
+        <button class="pi-pill" data-val="2nd Gen" onclick="piPillClick('cls','2nd Gen',this)">2nd Gen</button>
+        <button class="pi-pill" data-val="Direct" onclick="piPillClick('cls','Direct',this)">Direct</button>
+      </div>
+      <div class="pi-pill-divider"></div>
+      <div class="pi-pill-group" data-filter="stage">
+        <button class="pi-pill active" data-val="" onclick="piPillClick('stage','',this)">All</button>
+        <button class="pi-pill" data-val="Phase 3" onclick="piPillClick('stage','Phase 3',this)">Ph 3</button>
+        <button class="pi-pill" data-val="Phase 2" onclick="piPillClick('stage','Phase 2',this)">Ph 2</button>
+        <button class="pi-pill" data-val="Phase 1" onclick="piPillClick('stage','Phase 1',this)">Ph 1</button>
+        <button class="pi-pill" data-val="Pre-IND" onclick="piPillClick('stage','Pre-IND',this)">Pre-IND</button>
+        <button class="pi-pill" data-val="Preclinical" onclick="piPillClick('stage','Preclinical',this)">Preclinical</button>
+      </div>
+      <div class="pi-pill-divider"></div>
+      <div class="pi-pill-group" data-filter="overlap">
+        <button class="pi-pill active" data-val="" onclick="piPillClick('overlap','',this)">All</button>
+        <button class="pi-pill" data-val="high" onclick="piPillClick('overlap','high',this)">High Overlap</button>
+        <button class="pi-pill" data-val="watch" onclick="piPillClick('overlap','watch',this)">Watch</button>
+      </div>
+      <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>
     </div>
   </div>
   <div class="pi-table-wrap" id="pi-tl1a-wrap">
@@ -8537,13 +8564,38 @@ const TL1A_PROGRAMS = [
 ];
 
 const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Preclinical':4};
+
+const SPYRE_PIPELINE = [
+ { code:'SPY001', name:'Anti-IL-23p19', target:'IL-23p19', format:'Long-acting mAb', phase:'Phase 2', halflife:'~28d', dosing:'Q4W SC',
+   color:'#2563eb', lightBg:'#eff6ff',
+   mech:'Selective IL-23p19 blockade targeting the TH17/TH1 pathway in IBD. Extended half-life engineering enables Q4W SC dosing. Phase 2 SKYLINE data (Apr 2025): 9.2-pt RHI reduction in UC at Wk12, 40% clinical remission, 51% endoscopic improvement — claimed best-in-class profile vs. Entyvio.',
+   vsAilux:'Not a TL1A competitor, but SKYLINE data directly tests whether IL-23 adds value over TL1A monotherapy — critical context for the bispecific thesis.' },
+ { code:'SPY002', name:'Anti-TL1A', target:'TL1A', format:'Long-acting mAb', phase:'Phase 2', halflife:'~24d', dosing:'Q3–6M SC potential',
+   color:'#7c3aed', lightBg:'#f5f3ff',
+   mech:'1st-gen monospecific anti-TL1A mAb with extended half-life via Agenus HALE® platform. SKYLINE platform study (N=645, NCT07012395) tests SPY002 mono + in combination with SPY001. Part A primary endpoint: Robarts Histopathology Index change (PCD Jun 2026). Part B: % clinical remission (Late 2026).',
+   vsAilux:'Direct TL1A monotherapy competitor. SKYLINE readout Jun 2026 is the key benchmark — sets the ceiling for TL1A mono in UC and informs whether a bispecific is needed.' },
+ { code:'SPY003', name:'TL1A × IL-23 Bispecific', target:'TL1A + IL-23p19', format:'Bispecific mAb', phase:'Pre-IND', halflife:'TBD', dosing:'TBD',
+   color:'#dc2626', lightBg:'#fef2f2',
+   mech:'Dual-blockade bispecific targeting TL1A and IL-23p19 simultaneously on a single molecule. Hypothesis: combinatorial pathway suppression provides superior efficacy vs. mono. IND filing targeted 2026–2027. SKYLINE combination arm data (Jun 2026) will directly test whether dual blockade outperforms mono.',
+   vsAilux:'Directly relevant competitive profile to any Ailux bispecific ambitions. Watch SKYLINE combo vs. mono magnitude — a large delta validates the bispecific concept and accelerates SPY003.' },
+ { code:'SPY004', name:'IL-6 × IL-23 Bispecific', target:'IL-6 + IL-23p19', format:'Bispecific mAb', phase:'Preclinical', halflife:'TBD', dosing:'TBD',
+   color:'#059669', lightBg:'#ecfdf5',
+   mech:'Dual-blockade targeting IL-6 and IL-23p19 — designed for CD where IL-6 drives fibrosis and T-cell survival. IND planned ~2027. Distinct from SPY003 in target biology and likely indication (CD focus vs. UC). Represents Spyre\'s broader IBD platform ambition beyond TL1A.',
+   vsAilux:'Different target set — not a direct Ailux TL1A competitor. Signals Spyre\'s intent to build a multi-asset IBD platform that could compete across multiple pathways.' }
+];
+
+function piPillClick(filter, val, btn) {
+  btn.closest('.pi-pill-group').querySelectorAll('.pi-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  tl1aPI.filter();
+}
 const tl1aPI = {
  data: TL1A_PROGRAMS,
  filtered: [...TL1A_PROGRAMS],
  sortCol: 'stageKey',
  sortDir: 1,
  expanded: new Set(),
- _colWidths: [220, 150, 100, 90, 80, 80],
+ _colWidths: [175, 130, 85, 80, 75, 75],
 
  init() {
   this.filtered = [...this.data];
@@ -8552,9 +8604,9 @@ const tl1aPI = {
  },
 
  filter() {
-  const cls   = (document.getElementById('pi-tl1a-cls')||{}).value   || '';
-  const stage = (document.getElementById('pi-tl1a-stage')||{}).value || '';
-  const ov    = (document.getElementById('pi-tl1a-overlap')||{}).value|| '';
+  const cls   = (document.querySelector('.pi-pill-group[data-filter="cls"] .pi-pill.active')||{}).dataset?.val   || '';
+  const stage = (document.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')||{}).dataset?.val || '';
+  const ov    = (document.querySelector('.pi-pill-group[data-filter="overlap"] .pi-pill.active')||{}).dataset?.val|| '';
   this.filtered = this.data.filter(p =>
    (!cls   || p.cls === cls) &&
    (!stage || p.stageKey === stage) &&
@@ -8588,6 +8640,75 @@ const tl1aPI = {
  },
  _ovBadge(o) {
   return o==='high' ? '<span class="pi-overlap-high">High Overlap</span>' : '<span class="pi-overlap-watch">Watch</span>';
+ },
+
+ _spyreDetailHTML(p) {
+  /* Pipeline drug buttons */
+  const drugBtns = SPYRE_PIPELINE.map(d => `
+   <button class="spyre-drug-btn" style="border-color:${d.color};color:${d.color};background:${d.lightBg}">
+    ${d.code}
+    <div style="font-size:9px;font-weight:600;color:#94a3b8;margin-top:1px">${d.phase}</div>
+    <div class="spyre-drug-popup">
+     <div class="spyre-popup-code" style="color:${d.color}">${d.code} · ${d.name}</div>
+     <div class="spyre-popup-name">${d.target}</div>
+     <div class="spyre-popup-row">
+      <span class="spyre-popup-tag">${d.format}</span>
+      <span class="spyre-popup-tag">${d.phase}</span>
+      <span class="spyre-popup-tag">t½ ${d.halflife}</span>
+      <span class="spyre-popup-tag">${d.dosing}</span>
+     </div>
+     <div class="spyre-popup-body">${d.mech}</div>
+     <div class="spyre-popup-lens"><strong>🎯 Ailux BD Lens:</strong> ${d.vsAilux}</div>
+    </div>
+   </button>`).join('');
+
+  /* Catalysts */
+  const cats = p.catalysts.map(c =>
+   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join('');
+
+  /* Deals */
+  const deals = p.deals.map(d =>
+   `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join('');
+
+  /* Trials */
+  const trialsHTML = (p.trials||[]).map(t => {
+   const statusCls = t.status.includes('Recruiting') ? 'pi-trial-recruiting' : t.status.includes('not recruiting') ? 'pi-trial-anr' : t.status.includes('Completed') ? 'pi-trial-done' : 'pi-trial-planned';
+   const nctLink = t.nct ? `<a href="https://clinicaltrials.gov/study/${t.nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${t.nct}</a>` : '';
+   const nSize = t.n ? `N=${t.n}` : '';
+   const pcd = t.pcd ? `PCD: ${t.pcd}` : '';
+   return `<div class="pi-trial-row">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+     ${nctLink}<span class="pi-trial-status ${statusCls}">${t.status}</span>
+     <span style="font-size:10px;color:#64748b">${[t.phase,nSize,pcd].filter(Boolean).join(' · ')}</span>
+    </div>
+    <div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${t.name}</div>
+    <div style="font-size:11px;color:#475569"><strong>Primary endpoint:</strong> ${t.primary||'—'}</div>
+   </div>`;
+  }).join('');
+
+  return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
+   <!-- Header: stock chip + pipeline buttons -->
+   <div class="spyre-hd">
+    <div class="spyre-stock-chip" id="spyre-stock-chip">
+     <span class="spyre-stock-ticker">SYRE</span>
+     <span class="spyre-stock-price" id="spyre-price">—</span>
+     <span class="spyre-stock-chg" id="spyre-chg">loading…</span>
+    </div>
+    <div style="font-size:12px;color:#64748b">4-program IBD platform (2024 Agenus spinout) · $720M Series A</div>
+   </div>
+   <!-- Pipeline -->
+   <div class="spyre-section-lbl">Pipeline — hover each drug to explore</div>
+   <div class="spyre-pipeline-row">${drugBtns}</div>
+   <!-- 2-col grid for details -->
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px">
+    <div class="pi-detail-section"><h5>Summary</h5><p>${p.summary}</p></div>
+    <div class="pi-detail-section"><h5>🔬 Active & Planned Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
+    <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${cats}</div>
+    <div class="pi-detail-section"><h5>Deal History</h5>${deals}</div>
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Key Risk</h5><p>${p.risk}</p></div>
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+   </div>
+  </div>`;
  },
 
  _detailHTML(p) {
@@ -8650,19 +8771,49 @@ const tl1aPI = {
      <div style="font-size:11px;color:#475569"><strong>Primary endpoint:</strong> ${t.primary||'—'}</div>
     </div>`;
    }).join('');
-   const detail = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-inner">
-    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
-    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${(p.trials&&p.trials.length)?trialsHTML:'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov as of May 2026</p>'}</div>
-    <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${p.catalysts.length?p.catalysts.map(c=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join(''):'<p>No catalysts on record</p>'}</div>
-    <div class="pi-detail-section"><h5>Deal History</h5>${p.deals.length?p.deals.map(d=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join(''):'<p>No deal history</p>'}</div>
-    <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
-    <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
-   </div></td></tr>` : '';
+   let detailInner = '';
+   if (isExp) {
+    if (p.id === 'spyre-mono') {
+     detailInner = this._spyreDetailHTML(p);
+    } else {
+     detailInner = `<div class="pi-detail-inner">
+      <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
+      <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${(p.trials&&p.trials.length)?trialsHTML:'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov as of May 2026</p>'}</div>
+      <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${p.catalysts.length?p.catalysts.map(c=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join(''):'<p>No catalysts on record</p>'}</div>
+      <div class="pi-detail-section"><h5>Deal History</h5>${p.deals.length?p.deals.map(d=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join(''):'<p>No deal history</p>'}</div>
+      <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
+      <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+     </div>`;
+    }
+   }
+   const detail = isExp ? `<tr class="pi-detail-row"><td colspan="6">${detailInner}</td></tr>` : '';
    return main + detail;
   }).join('');
   wrap.innerHTML = `<table class="pi-table"><colgroup>${colgroup}</colgroup>${thead}<tbody>${rows}</tbody></table>`;
   const c = document.getElementById('pi-tl1a-count');
   if (c) c.textContent = `${sorted.length} programs`;
+  if (this.expanded.has('spyre-mono')) this._loadSpyreStock();
+ },
+
+ async _loadSpyreStock() {
+  const priceEl = document.getElementById('spyre-price');
+  const chgEl   = document.getElementById('spyre-chg');
+  if (!priceEl || !chgEl) return;
+  if (!window._sb) { chgEl.textContent = '(connect Supabase)'; return; }
+  try {
+   const { data, error } = await _sb.from('companies').select('stock_price,stock_change').eq('ticker','SYRE').maybeSingle();
+   if (error || !data || !data.stock_price) { chgEl.textContent = ''; return; }
+   priceEl.textContent = `$${data.stock_price.toFixed(2)}`;
+   const chg = data.stock_change;
+   if (chg != null) {
+    const isPos = chg > 0, isNeg = chg < 0;
+    const arrow = isPos ? '▲' : isNeg ? '▼' : '—';
+    chgEl.textContent = `${arrow} ${isPos?'+':''}${chg.toFixed(2)}%`;
+    chgEl.className = 'spyre-stock-chg ' + (isPos ? 'spyre-stock-up' : isNeg ? 'spyre-stock-dn' : '');
+   } else {
+    chgEl.textContent = '';
+   }
+  } catch(e) { chgEl.textContent = ''; }
  },
 
  _initResize() {
