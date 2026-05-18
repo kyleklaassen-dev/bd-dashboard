@@ -1,9 +1,9 @@
 name: Company Enrichment Pipeline
 
 on:
-  # Runs nightly Mon–Sat at midnight UTC (8 PM ET) — after the 7 PM evening research pass
+  # Runs nightly Mon–Sat at midnight ET = 04:00 UTC — after the 10:30 PM evening sweep completes
   schedule:
-    - cron: '0 0 * * 1-6'
+    - cron: '0 4 * * 1-6'
 
   # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
