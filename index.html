@@ -987,7 +987,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .spyre-drug-btn.spy-popup-active { outline:2.5px solid currentColor;outline-offset:1px;box-shadow:0 6px 18px rgba(0,0,0,0.22) !important; }
 .spyre-drug-btn::after { content:'';position:absolute;bottom:-20px;left:-10px;right:-10px;height:20px;background:transparent; }
 .spyre-phase-badge { position:absolute;top:3px;right:4px;font-size:7.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,0.9);line-height:1.4;letter-spacing:0.2px; }
-.spyre-drug-popup { display:none;position:absolute;z-index:9999;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:640px;max-width:94vw;text-align:left;max-height:84vh;overflow-y:auto; }
+.spyre-drug-popup { display:none;position:absolute;z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:560px;max-width:90vw;text-align:left;max-height:68vh;overflow-y:auto; }
 .spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
 .spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
 .spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
@@ -1024,7 +1024,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
 .tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
 .tl1a-center-col { min-width:0; }
-.tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:50;width:148px; }
+.tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:300;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
 #tl1a-pills-left { left:14px; }
 #tl1a-pills-right { right:14px; }
@@ -9267,44 +9267,6 @@ const tl1aPI = {
        <div style="font-size:10.5px;color:#475569;line-height:1.6">${d.mech}${d.sources&&d.sources.length?` <span style="white-space:nowrap">${d.sources.map(s=>`<a href="${s.url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:0 4px;margin-left:2px">${s.label.split(' ')[0]}↗</a>`).join('')}</span>`:''}</div>
       </div>
      </div>
-     <!-- Ailux BD Lens -->
-     <div style="background:#fefce8;border:1px solid #fde68a;border-radius:7px;padding:8px 10px;margin-bottom:10px">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#a16207;letter-spacing:0.5px;margin-bottom:3px">🎯 Ailux BD Lens</div>
-      <div style="font-size:10.5px;color:#78350f;line-height:1.5">${d.vsAilux}</div>
-     </div>
-     <!-- Ailux molecule comparison -->
-     ${(()=>{ const ax=getAiluxComparison(d); if(!ax) return ''; return `<div style="border:2px solid ${ax.accentColor}33;border-radius:9px;overflow:hidden">
-      <div style="background:${ax.accentColor}11;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid ${ax.accentColor}22">
-       <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:${ax.accentColor}">⚖️ vs. Ailux</span>
-       <span style="font-size:9px;color:#64748b;font-weight:600">${ax.name}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">
-       <div style="padding:10px 12px;border-right:1px solid #f1f5f9">
-        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:0.4px;margin-bottom:6px;display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:2px;background:${diseaseColor};display:inline-block;flex-shrink:0"></span>${d.code}</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Target</span><span style="color:#1e3a5f;font-weight:700">${d.target}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Format</span><span style="color:#1e3a5f;font-weight:600">${d.format}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Stage</span><span style="color:#1e3a5f;font-weight:700">${d.phase}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">t½</span><span style="color:#1e3a5f;font-weight:600">${d.halflife!=='TBD'?d.halflife:'—'}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Dosing</span><span style="color:#1e3a5f;font-weight:600">${d.dosing!=='TBD'?d.dosing:'—'}</span></div>
-        </div>
-       </div>
-       <div style="padding:10px 12px;background:${ax.lightBg}">
-        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;color:${ax.accentColor};letter-spacing:0.4px;margin-bottom:6px;display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:2px;background:${ax.accentColor};display:inline-block;flex-shrink:0"></span>Ailux</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Target</span><span style="color:#1e3a5f;font-weight:700">${ax.target}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Format</span><span style="color:#1e3a5f;font-weight:600">${ax.format}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Stage</span><span style="color:#1e3a5f;font-weight:700">${ax.phase}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">t½</span><span style="color:#1e3a5f;font-weight:600">${ax.halflife}</span></div>
-         <div style="font-size:10px"><span style="color:#94a3b8;min-width:52px;display:inline-block">Dosing</span><span style="color:#1e3a5f;font-weight:600">${ax.dosing}</span></div>
-        </div>
-       </div>
-      </div>
-      <div style="padding:8px 12px;background:white;border-top:1px solid ${ax.accentColor}22">
-       <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;color:${ax.accentColor};letter-spacing:0.4px;margin-bottom:3px">Ailux differentiation</div>
-       <div style="font-size:10px;color:#334155;line-height:1.55">${ax.keyDiff}</div>
-      </div>
-     </div>`; })()}
     </div>
    </button>`;
   };
@@ -9373,9 +9335,9 @@ const tl1aPI = {
    <!-- Company-level detail -->
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
-    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
     <div class="pi-detail-section"><h5>💼 Deal History</h5>${deals}</div>
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
     <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
     <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
    </div>
