@@ -1,5 +1,253 @@
 
 ---
+## 2026-05-18 TL1A tab: blinking intel dot, 3-col layout, redesigned Spyre hover cards — commit 46a77ab2
+
+### What was changed
+
+**Blinking green dot for companies with no intel:**
+- `_loadIntelStatus()` now called in `tl1aPI.init()` on page load
+- Queries Supabase `intel_companies → companies(ticker)` to find which companies have any intel records
+- Companies not found get a `<span class="pi-no-intel-dot">` — slow green pulse animation next to their name
+- `@keyframes pi-dot-blink` with box-shadow pulse, 2.8s cycle; tooltip: "No intel on record yet — flagged for auto-research"
+
+**TL1A tab 3-column layout (pill buttons + centered PI card):**
+- `.tl1a-layout` CSS grid: `148px 1fr 148px` with sticky side pill columns
+- Left pills: 📡 Intel Feed, 📅 Catalyst Calendar, 📐 Estimand Guide
+- Right pills: 🧬 Ailux Profile, 💊 IBD Market, 🔬 China Programs, 🎯 BD Takeaways, 📖 IBD History
+- Each pill opens a `.tl1a-modal-overlay` with full card content; `openTl1aModal()` / `closeTl1aModal()` JS functions
+- Escape key closes all open modals; clicking overlay backdrop closes panel
+- `#tl1a-pi-card` with `!important` overrides Pharma Intel tab's global `.pi-card` margin conflict
+
+**SPYRE_PIPELINE redesign:**
+- Added `sources[]` array to each drug with labeled verification links
+- SPY001 sources: spyretherapeutics.com/pipeline, NCT07012395, Endpoints News data readout
+- SPY002 sources: spyretherapeutics.com/pipeline, NCT07012395, NCT06672718
+- SPY003 sources: spyretherapeutics.com/pipeline, NCT07012395 (combo arm proxy)
+- SPY004 sources: spyretherapeutics.com/pipeline
+- Added `comboRef` field to SPY003: SKYLINE combination arm as proxy trial data reference
+- Combo drug names now use × symbol: "TL1A × IL-23p19", "IL-6 × IL-23p19"
+
+**Spyre hover popup redesign (per-drug buttons):**
+- Removed "COMBO" badge — combo drugs now show target pair (e.g., "TL1A + IL-23p19") as subtitle under drug code
+- New summary card at top of each popup: drug code, name, phase badge, indication (distinct colored background)
+- 2-column detail grid: left = Drug Details (format/stage/half-life/dosing/target); right = Mechanism & Context
+- Ailux BD Lens section: full-width yellow highlight block
+- Trials section: Active Trials with NCT links for mono drugs; "Proxy data" amber block for SPY003 (SKYLINE combo arm)
+- SPY004 (no trials registered): "No trials registered — IND in progress" note
+- 🔗 Sources section at bottom of each popup with all verification links
+- Popup CSS: fixed 340px width, max-height 80vh with overflow scroll
+
+---
+## 2026-05-18 TL1A tab: polish pass — color pills, clean header, Spyre card enrichment — commit ff124220
+
+### What was changed
+
+**Header cleanup:**
+- Removed TOP BAR div (molecule title "TL1A × IL-23p19 · IBD (UC / CD)" + "Competitive intelligence · Live from Supabase · Updated May 2026")
+- Removed `⚔ Program Intelligence · All TL1A Companies & Drugs` pi-title span
+- Moved Biology Deep Dive button into the pi-hd alongside the filters
+
+**Color-coded filter pills with group labels:**
+- Added `.pi-pill-lbl` (grey uppercase label before each group)
+- Class group: blue (#2563eb active/hover)
+- Stage group: purple (#7c3aed active/hover)
+- Relevance group: crimson (#dc2626 active/hover)
+- Labels: "Class", "Stage", "Relevance"
+
+**Spyre SPYRE_PIPELINE enrichment:**
+- Added `isCombo`, `indication`, `trials[]` fields to each drug entry
+- SPY001/SPY002: `indication: 'Ulcerative Colitis (UC)'`; SPY003: `UC / CD (planned)`; SPY004: `Crohn's Disease (CD)`
+- SPY002 has 2 trials (NCT07012395 SKYLINE + NCT06672718 Phase 1); SPY001 has SKYLINE
+- SPY003/SPY004 flagged `isCombo:true` → show red "COMBO" badge on pipeline button
+
+**Spyre hover card popup improvements:**
+- Shows disease indication (`📍 d.indication`)
+- Shows "Active Trials" sub-section with NCT links, status, phase, N, PCD
+- TBD half-life/dosing tags hidden for Pre-IND/Preclinical drugs
+
+**Links everywhere in Spyre expanded row:**
+- Catalysts: url field added to all 3 entries (CT.gov or spyretherapeutics.com); rendered as `↗` hyperlinks
+- Deals: url field added; rendered as `↗` hyperlink
+- Website: `spyretherapeutics.com ↗` link in expanded row header
+- "hover each drug to explore" label removed
+- Combo drugs (SPY003, SPY004) get a red "COMBO" chip on their pipeline button
+
+---
+## 2026-05-18 TL1A tab: compact PI card, pill filters, Spyre rich row — commit 3ef77a9f
+
+### What was changed
+
+**Program Intelligence card layout:**
+- `.pi-card` now `max-width:1100px;margin:0 auto 20px` — centered and constrained
+- Table `min-width` reduced from 700px → 620px; `_colWidths` from `[220,150,100,90,80,80]` → `[175,130,85,80,75,75]`
+- `.pi-table th` padding: `8px 10px` → `6px 8px`; `.pi-table td` padding: `9px 10px` → `7px 8px`
+
+**Filter pill buttons:**
+- Replaced three `<select>` dropdowns with `.pi-pill-group` + `.pi-pill` button groups
+- Groups: Class (All / 1st Gen / 2nd Gen / Direct), Stage (All / Ph 3 / Ph 2 / Ph 1 / Pre-IND / Preclinical), Relevance (All / High Overlap / Watch)
+- Added `piPillClick()` global function; updated `tl1aPI.filter()` to read active pill `data-val`
+- CSS: `.pi-pill`, `.pi-pill.active`, `.pi-pill:hover`, `.pi-pill-divider`
+
+**Spyre rich expanded row:**
+- `SPYRE_PIPELINE` const: 4 drug entries (SPY001–SPY004) with target, format, phase, half-life, dosing, mechanism, Ailux BD Lens
+- `_spyreDetailHTML(p)`: renders header (SYRE stock chip with live price/arrow from Supabase), pipeline drug buttons with hover popup cards, 2-col grid (summary, trials, catalysts, deals, risk, diff)
+- `_loadSpyreStock()`: async Supabase fetch of `companies` table for SYRE; populates price + direction arrow on expand
+- `_renderTable()`: routes Spyre (id=`spyre-mono`) to `_spyreDetailHTML()`, all others to standard detail
+- CSS: `.spyre-hd`, `.spyre-stock-chip`, `.spyre-drug-btn`, `.spyre-drug-popup`, `.spyre-popup-*`, `.spyre-section-lbl`
+
+---
+## 2026-05-18 Bug fix: loadAreaCompanies / loadAreaDrugs undefined — commit cd5a122
+
+### What was fixed
+
+**Root cause:** `loadMoleculeTab()` called `loadAreaCompanies(tabId)` and `loadAreaDrugs(tabId)` but neither function was defined anywhere in the file. Every molecule tab navigation (TSLP, IL-4Rα, IL-4Rα/OX40L, IGF1R/TSHR, FcRn) threw a `ReferenceError` on load, preventing `loadAreaBDActivity` from running and leaving all molecule tabs blank.
+
+**Fix:** Added both functions as async stubs in the head script block (before `loadMoleculeTab`). Each function checks for its target element (`tabId + '-companies'` / `tabId + '-drugs'`) and returns early if not found — so no visible change on current tabs, but the `ReferenceError` is resolved and all molecule tab content now renders correctly.
+
+---
+## 2026-05-18 Bug fix: dead TL1A Grid.js containers in initGrids — commit 27d653e
+
+### What was fixed
+
+**Root cause:** The TL1A redesign removed `#grid-tl1a-landscape` and `#grid-tl1a-tech` container divs, but `initGrids()` still called `.render()` on both. Grid.js throws `Container element cannot be null` synchronously, halting `initGrids()` before any TSLP, IL-4Rα, or other molecule tab grids could initialize — leaving all Drugs to Know and molecule tabs blank.
+
+**Fix:** Removed both dead grid initialization blocks (`grids.tl1aLandscape` and `grids.tl1aTech`) from `initGrids()`. Replaced with a comment noting they were superseded by the `tl1aPI` Program Intelligence table.
+
+---
+## 2026-05-18 TL1A tab full redesign (Tasks #97–#99) — commit 1ee24b80
+
+### What was changed
+
+**Removed from TL1A tab:**
+- Top stat bar (UC/CD prevalence, biologic failure rate, etc.) — moved biology context to deep dive modal
+- Companies to Watch card (hardcoded 7 companies)
+- Drugs to Know card (hardcoded 14 drugs, now unified)
+- Separate competitive landscape card (tl1a-live-competitive-card)
+- Separate BD activity card (tl1a-bd-activity)
+- Live Meridian Updates card (tl1a-live-intel-card)
+- Static "Latest Field Intelligence" card (tl1a-intel-anchor)
+- Deal Spotlight card (most recent transaction)
+- Deals by Total Value chart
+- Competitive Analysis section (redundant with new table)
+- Bispecific Technical Deep-Dive section (content now in expandable row detail panels)
+- Related News & Precedent Transactions section (now in unified intel feed)
+- Inline Biology Deep-Dive edu-section (moved to modal)
+
+**Added to TL1A tab:**
+- **Biology Deep Dive button** (top-right): small green card-button that opens a full-screen modal with all TL1A biology content (TL1A/DR3 mechanism, IBD disease biology, TL1A×IL-23 synergy, IBD drug dev endpoints). ESC to close.
+- **Unified Program Intelligence Table** (`tl1aPI` object, `#pi-tl1a-wrap`):
+  - 13 companies with full data: Roche, Merck, Sanofi/Teva, Spyre (mono), Xencor (XmAb942), Mirador, Simcere/BI, Caldera/Qyuns, Earendil/Helixon, Xencor (XmAb412), LaNova/Zymeworks, Spyre (SPY003), Episcience
+  - Classifications: **1st Gen** (monospecific TL1A mAb), **Direct** (exact TL1A×IL-23p19 bispecific = direct Ailux competitors), **2nd Gen** (enhanced mono, e.g. Xencor's XTEND extended half-life)
+  - Filter by Classification, Stage, Relevance (High Overlap / Watch)
+  - Sortable columns (Company, Drug, Target, Class, Stage, Relevance)
+  - Resizable columns (drag right edge of any column header)
+  - Expandable rows: click any row to reveal Summary, Upcoming Catalysts, Deal History, Key Risk, Why It Matters/Differentiation
+- **Live Intel Feed** (`loadTL1AIntelFeed()`): queries Supabase `intel_areas` for `area_id='tl1a'`, then fetches matching `intel` rows ordered by date — single unified chronological stream of deals, clinical, regulatory, and news items
+- Tab load: `tl1aPI.init()` and `loadTL1AIntelFeed()` called when TL1A tab is opened via `switchTab()`; also initialized on `DOMContentLoaded`
+- Updated TOC_MAP for `tl1a`: Program Intelligence, Intel Feed, Ailux Profile, Estimand Guide, Catalyst Calendar, IBD Market & SOC, Chinese Programs
+
+**Kept (unchanged or lightly trimmed):**
+- Ailux Asset Profile (with deal valuation estimates)
+- Estimand Intelligence card
+- Catalyst Calendar (live from Supabase, tl1a-live-catalysts)
+- IBD Market & Standard of Care (collapsible)
+- BD Intelligence Key Takeaways (insight-box)
+- China Domestic Read-Through
+- IBD Target History (collapsible)
+
+---
+## 2026-05-18 Supabase intel submission + centered search bar (Tasks #94–#95) — commit 8f01318
+
+### What was changed
+
+**Supabase intel submission (Task #94):**
+- Added `INTEL_TAG_AREA` map: tag label → Supabase `area_id` (IBD→tl1a, Resp→tslp, Type 2→il4ra, AD→il4ra, TED→igf1r, AI→fcrn, Immune Reset→tcell)
+- New `_saveIntelToSupabase(url, text, tag)` async helper: inserts to `intel` table with `intel_type='user_submitted'`, `importance='medium'`, `source_name='User Submission'`; then inserts to `intel_areas` junction table for non-General tags
+- Both `saveFromModal()` (modal submit) and `submitIntel()` (inline panel submit) now call `_saveIntelToSupabase()` alongside the existing localStorage write
+- localStorage retained as a local backup; Supabase is the persistent record for the next research update cycle
+
+**Centered header search bar (Task #95):**
+- `.header-search-wrap` changed from `flex: 1` flow layout to `position: absolute; left: 50%; transform: translateX(-50%)` with `width: clamp(280px,36%,540px)`
+- Search bar is now truly centered in the header regardless of unequal left (title) and right (buttons) column widths
+- Mobile override (line ~694) retains `order: 3; flex-basis: 100%` so the bar drops to its own row on narrow screens
+
+---
+## 2026-05-18 Nav fix + home tab cleanup + dynamic Meridian Reader (Tasks #87–#90) — commit 2674800
+
+### What was changed
+
+**Tab navigation fix (Task #87):**
+- Root cause identified: the home tab HTML block had 1 more `</div>` than `<div>` openers, causing it to consume the `.content` wrapper's closing tag
+- The orphan `</div><!-- end tab-home inner -->` (left over from earlier content removals) was removed
+- Home tab section now perfectly balanced: 48 opens, 48 closes, depth returns to 0
+- All subsequent tabs (`tab-industry-insights`, drug tabs, etc.) are now correctly inside `.content` at the same DOM level as the home tab
+
+**Remove Key Concepts card (Task #88):**
+- Removed the entire "Key Concepts — What to Know Across Coverage Areas" card (`id="learning-anchor"`) from the home page
+- Card contained 6 hardcoded concept mini-cards for IBD, Resp, Type 2, TED, FcRn, Immune Reset
+- Removed stale `learning-anchor` and `ailux-pipeline-anchor` entries from TOC_MAP; replaced with `bd-signal-panel` entry
+
+**Dynamic Meridian Reader card (Task #89):**
+- Yellow top-of-home card now loads live from Supabase `intel` table instead of 7 hardcoded items
+- New `loadMeridianReader()` function: queries top 20 high/medium importance intel by date, joins `intel_areas` for area labels, prioritises `importance = 'high'`, takes top 7
+- Area-aware pill styling: `MR_AREA_STYLE` maps area_id → color/label (IBD, Resp, Type 2, TED, FcRn, Immune Reset); falls back to `MR_TYPE_STYLE` for intel_type (deal, clinical, regulatory, etc.)
+- Called in `DOMContentLoaded` alongside other home tab loaders
+
+**Key Watch pill under date (Task #90):**
+- `KEY WATCH` pill moved from the right-side pill group to below the date text in the left 80px column of catalyst rows
+- High-significance rows now show: date (top-left) → KEY WATCH badge (below date) → label/notes (center) → countdown + significance/area pills (right)
+
+---
+## 2026-05-18 Pharma sort/filter + 8-across stock grid (Tasks #79–#80) — commit 122b5cd
+
+### What was added
+
+**Pharma Landscape table sort + filter (Task #79):**
+- Both China and Global pharma tables now have clickable sortable column headers with ↑/↓ indicators
+- China table: sort by Company (alpha), Mkt Cap, Revenue, R&D Spend, R&D %, TA #1, TA #2
+- Global table: sort by Company (alpha), Mkt Cap, Revenue, R&D, R&D %, TA #1, TA #2
+- Numeric parser handles `~$60B`, `$700B`, `~$3.9B`, `29%`, `<1%` etc.
+- Sort moves paired `pi-main-row` + `pi-dr-row` together as a unit (expanded details follow their row)
+- Filter search bar above each table — searches all visible text (company, TA, type, notes) and hides non-matching row pairs
+
+**Market & Learning stock cards 8-across (Task #80):**
+- Changed `.stock-cards-grid` from `repeat(auto-fill,minmax(310px,1fr))` to `repeat(8,1fr)` for consistent 8-across layout
+- Uniform gap on all sides between cards (no margin/padding asymmetry)
+
+---
+## 2026-05-18 Home tab enhancements + pipeline intel_companies (Tasks #65–#69) — commit d227118
+
+### What was added
+
+**Drugs to Know — rich expandable dropdowns (Task #65):**
+- Every drug row now expands on click to reveal a detail panel: class/mechanism, stage, key trials, primary endpoints, differentiation insight, key risk, and live Supabase data (trial data + Ailux BD signal)
+- `dknLoadSbData()` fetches the Supabase `drugs` table at page load and caches it in `_dknSbMap` for fuzzy matching
+- Default filter changed from "All" to "◈ Ailux Focus" — shows only drugs relevant to Ailux's 6 coverage areas
+
+**BD Signal panel on home tab (Task #66):**
+- New `◈ BD Signal` card between catalysts and deals on the home tab
+- `loadBDSignal()` fetches top 5 recent deals (prioritizing deals with ailux_signal), renders synthesized intelligence cards with area badge, deal value, parties, headline, and the Ailux BD Signal commentary
+
+**Catalyst countdown badges (Task #67):**
+- `catDaysTag(sort_date)` helper added — computes days to each catalyst event
+- Badges auto-color: red "TODAY", red "Nd" (≤7 days), yellow "Nd" (≤30 days), grey "Nd" (>30 days), "Nd ago" for resolved
+- Each open catalyst card now shows the countdown badge inline
+
+**Company watchlist enrichment — Supabase (Task #68):**
+- UCB: full rozanolixizumab/Rystiggo profile + FcRn competitive angle
+- Cullinan: CLN-978 CD19×CD3 TcE detail + dual lineage BCMA differentiation narrative
+- Pfizer: insight_text added (PF-07261271 + Telavant position)
+- Roivant: full Telavant/afimkibart origin story + $7.25B benchmark
+- J&J: nipocalimab expanded; daratumumab autoimmune parallel noted
+- Regeneron: Dupixent $13B benchmark + itepekimab COPD AERIFY read-through
+
+**research.py — intel_companies junction writes (Task #69):**
+- `get_company_map()` fetches all companies from Supabase at startup; builds lowercase name → id lookup with 20+ aliases (J&J, Roche/Genentech, Eli Lilly, etc.)
+- `resolve_company_id()` does exact then substring fuzzy match
+- `write_to_supabase()` now accepts `company_map` and writes `intel_companies` rows for every company Haiku extracts in `company_names`
+- Pharma tab `loadAreaIntel` can now be extended to filter intel by company_id — the data pipeline is ready
+
+---
 ## 2026-05-18 Dashboard audit + fixes (Tasks #61–#64) — commit bc48040
 
 ### What was fixed
@@ -570,3 +818,19 @@ ALTER TABLE companies
 
 ---
 ## 2026-05-18 Market watchlist → Supabase + Past Catalysts history section added — deployed 4eba801044483d8b77a4341ea4e2566e280ead20
+
+---
+
+## 2026-05-18 — Fix: Blank Molecule Tabs and Drugs to Know
+**Commit:** `27d653e`
+
+### Root Cause
+The TL1A tab redesign (commit `1ee24b80`) removed the `#grid-tl1a-landscape` and `#grid-tl1a-tech` Grid.js container elements, replacing them with the new `tl1aPI` program intelligence table. However, the `initGrids()` function still tried to call `.render(document.getElementById('grid-tl1a-landscape'))` — which returned `null` — causing Grid.js to throw `Container element cannot be null`. Since this threw synchronously inside the function, all subsequent grid initializations (TSLP catalyst calendar, TSLP competitive landscape, IL-4Rα, IGF1R, FcRn, ACE grids) never executed. Result: every molecule tab appeared blank.
+
+### Fix
+Removed the dead `grids.tl1aLandscape` and `grids.tl1aTech` initialization blocks from `initGrids()` (lines 7777–7807 in the prior version). These are superseded by the `tl1aPI` Program Intelligence table introduced in the redesign.
+
+### Verified
+- No console errors on fresh page load
+- `grid-tslp-readouts`, `grid-tslp-landscape`, `grid-tl1a-readouts` all render ✓  
+- Drugs to Know tab activates correctly with 118 rows ✓
