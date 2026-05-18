@@ -9111,6 +9111,7 @@ const tl1aPI = {
  expanded: new Set(),
  _noIntelTickers: new Set(),
  _colWidths: [175, 130, 85, 80, 75, 75],
+ _profileCache: {},  // cache Supabase-fetched profiles keyed by company id
 
  init() {
   this.filtered = [...this.data];
@@ -9140,10 +9141,16 @@ const tl1aPI = {
  },
 
  toggle(id) {
+  const expanding = !this.expanded.has(id);
   if (this.expanded.has(id)) this.expanded.delete(id);
   else this.expanded.add(id);
   this._renderTable();
   this._initResize();
+  // Async-load Supabase detail for non-Spyre companies being expanded
+  if (expanding && id !== 'spyre-mono' && id !== 'spyre-230') {
+   const prog = TL1A_PROGRAMS.find(p => p.id === id);
+   if (prog) this._loadDynamicDetail(id, prog);
+  }
  },
 
  _clsPill(cls) {
@@ -9317,6 +9324,181 @@ const tl1aPI = {
   </div>`;
  },
 
+ // ── Async Supabase loader for non-Spyre company rows ─────────────────────
+ async _loadDynamicDetail(id, prog) {
+  // Already cached — nothing to do (re-render already used cache)
+  if (this._profileCache[id]) return;
+  if (!window._sb) {
+   // Supabase not ready — fall back to static data
+   if (!this._profileCache) this._profileCache = {};
+   this._profileCache[id] = null;
+   const target = document.getElementById(`pi-dyn-${id}`);
+   if (target) target.outerHTML = this._genericDetailHTML(prog, null);
+   return;
+  }
+  try {
+   const AREA = 'tl1a';
+   // Fetch company profile narrative
+   const { data: profileRows } = await _sb
+    .from('company_profiles').select('*')
+    .eq('company_id', id).eq('area_id', AREA);
+   const profile = profileRows?.[0] || null;
+
+   // Fetch upcoming catalysts for this company+area
+   const { data: cats } = await _sb
+    .from('catalysts').select('*')
+    .eq('company_id', id).eq('area_id', AREA)
+    .eq('resolved', false).order('sort_date', { ascending: true }).limit(8);
+
+   // Fetch deals with company_id FK first, fall back to string match
+   let { data: deals } = await _sb
+    .from('deals').select('*')
+    .eq('company_id', id).eq('area_id', AREA)
+    .order('deal_date', { ascending: false }).limit(8);
+   if (!deals || !deals.length) {
+    const coName = (prog.co||'').split('/')[0].trim().substring(0,12);
+    const { data: d2 } = await _sb
+     .from('deals').select('*').eq('area_id', AREA)
+     .or(`from_company.ilike.*${coName}*,to_company.ilike.*${coName}*`)
+     .order('deal_date', { ascending: false }).limit(8);
+    deals = d2 || [];
+   }
+
+   // Fetch drugs for this company in this area
+   const { data: drugAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', AREA);
+   const areaIds = (drugAreaRows||[]).map(r => r.drug_id);
+   let drugs = [];
+   if (areaIds.length) {
+    const { data: dd } = await _sb.from('drugs').select('*')
+     .eq('company_id', id).in('id', areaIds);
+    drugs = dd || [];
+   }
+
+   // Fetch trials for those drugs
+   let trials = [];
+   for (const d of drugs.slice(0, 5)) {
+    const { data: tt } = await _sb.from('trials').select('*').eq('drug_id', d.id);
+    if (tt) trials.push(...tt);
+   }
+
+   const sbData = { profile, catalysts: cats||[], deals: deals||[], drugs, trials };
+   this._profileCache[id] = sbData;
+
+   // Replace loading placeholder
+   const target = document.getElementById(`pi-dyn-${id}`);
+   if (target) target.outerHTML = this._genericDetailHTML(prog, sbData);
+  } catch (err) {
+   console.warn('_loadDynamicDetail error:', err);
+   this._profileCache[id] = null;
+   const target = document.getElementById(`pi-dyn-${id}`);
+   if (target) target.outerHTML = this._genericDetailHTML(prog, null);
+  }
+ },
+
+ // ── Generic rich detail renderer (Supabase-fed, falls back to static) ────
+ _genericDetailHTML(prog, sbData) {
+  const profile = sbData?.profile || {};
+  const sbCats  = sbData?.catalysts || [];
+  const sbDeals = sbData?.deals || [];
+  const sbTrials= sbData?.trials || [];
+
+  // Narrative fields — Supabase first, fallback to static TL1A_PROGRAMS data
+  const platformSummary = profile.platform_summary || prog.summary || '';
+  const bdSummary       = profile.bd_summary || '';
+  const keyRisk         = profile.key_risk || prog.risk || '';
+  const whyMatters      = profile.why_it_matters || prog.diff || '';
+  const pipelineUrl     = profile.pipeline_url || null;
+
+  // Catalysts — Supabase if available, else static
+  let catsHTML;
+  if (sbCats.length) {
+   catsHTML = sbCats.map(c =>
+    `<div class="pi-detail-cat-item">
+      <span class="pi-detail-cat-date">${c.catalyst_date||c.date||''}</span>
+      <span>${c.label||c.event||''}</span>
+     </div>`).join('');
+  } else if (prog.catalysts && prog.catalysts.length) {
+   catsHTML = prog.catalysts.map(c =>
+    `<div class="pi-detail-cat-item">
+      <span class="pi-detail-cat-date">${c.date}</span>
+      <span>${c.url?`<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>`:c.event}</span>
+     </div>`).join('');
+  } else { catsHTML = '<p style="color:#94a3b8;font-size:12px">No upcoming catalysts on record</p>'; }
+
+  // Deals — Supabase if available, else static
+  let dealsHTML;
+  if (sbDeals.length) {
+   dealsHTML = sbDeals.map(d =>
+    `<div class="pi-detail-cat-item">
+      <span class="pi-detail-cat-date">${d.deal_date_label||d.deal_date||''}</span>
+      <span style="font-size:11.5px">${d.source_url?`<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.headline} ↗</a>`:d.headline}</span>
+     </div>`).join('');
+  } else if (prog.deals && prog.deals.length) {
+   dealsHTML = prog.deals.map(d =>
+    `<div class="pi-detail-cat-item">
+      <span class="pi-detail-cat-date">${d.date}</span>
+      <span>${d.url?`<a href="${d.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.desc} ↗</a>`:d.desc}</span>
+     </div>`).join('');
+  } else { dealsHTML = '<p style="color:#94a3b8;font-size:12px">No deal history on record</p>'; }
+
+  // Trials — Supabase if available, else static TL1A_PROGRAMS trials
+  const trialsSource = sbTrials.length ? sbTrials : (prog.trials||[]);
+  let trialsHTML = '';
+  if (trialsSource.length) {
+   trialsHTML = trialsSource.map(t => {
+    const nct     = t.id || t.nct;
+    const name    = t.trial_name || t.name || '';
+    const status  = t.status || '';
+    const phase   = t.phase || '';
+    const n       = t.n_enrollment || t.n;
+    const pcd     = t.pcd_label || t.readout_date || t.pcd;
+    const primary = t.primary_endpoint || t.primary || '';
+    const statusCls = status.includes('ecruit') ? 'pi-trial-recruiting'
+                    : status.includes('ompleted')||status.includes('omplete') ? 'pi-trial-done'
+                    : status.includes('not recruit') ? 'pi-trial-anr'
+                    : 'pi-trial-planned';
+    const nctLink = nct&&nct.startsWith('NCT')
+     ? `<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${nct}</a>`
+     : `<span style="color:#94a3b8;font-size:11px">${nct||'Not registered'}</span>`;
+    return `<div class="pi-trial-row">
+     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      ${nctLink}
+      <span class="pi-trial-status ${statusCls}">${status}</span>
+      <span style="font-size:10px;color:#64748b">${[phase, n?`N=${n}`:'', pcd?`PCD: ${pcd}`:''].filter(Boolean).join(' · ')}</span>
+     </div>
+     ${name?`<div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${name}</div>`:''}
+     ${primary?`<div style="font-size:11px;color:#475569"><strong>Primary:</strong> ${primary}</div>`:''}
+    </div>`;
+   }).join('');
+  }
+
+  // Enrichment badge
+  const enrichedAt = profile.last_enriched_at
+   ? `<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1px 6px;margin-left:6px" title="Last enriched by Claude API">🤖 ${profile.last_enriched_at.slice(0,10)}</span>`
+   : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px" title="Enrichment pending">⏳ pending enrichment</span>`;
+
+  const pipelineLink = pipelineUrl
+   ? `<div style="text-align:right;margin-bottom:8px">
+       <a href="${pipelineUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">${prog.co} Pipeline ↗</a>
+      </div>` : '';
+
+  return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
+   ${pipelineLink}
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+    <div class="pi-detail-section" style="grid-column:1/-1">
+     <h5>Platform Summary ${enrichedAt}</h5>
+     <p>${platformSummary}</p>
+    </div>
+    ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}
+    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
+    <div class="pi-detail-section"><h5>💼 Deal History</h5>${dealsHTML}</div>
+    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov</p>'}</div>
+    <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${keyRisk}</p></div>
+    <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${whyMatters}</p></div>
+   </div>
+  </div>`;
+ },
+
 
   _detailHTML(p) {
   const cats = p.catalysts.length ? p.catalysts.map(c =>
@@ -9382,14 +9564,13 @@ const tl1aPI = {
    if (isExp) {
     if (p.id === 'spyre-mono' || p.id === 'spyre-230') {
      detailInner = this._spyreDetailHTML(p);
+    } else if (this._profileCache[p.id]) {
+     // Already fetched — render from cache immediately (no spinner flicker on re-render)
+     detailInner = this._genericDetailHTML(p, this._profileCache[p.id]);
     } else {
-     detailInner = `<div class="pi-detail-inner">
-      <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
-      <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${(p.trials&&p.trials.length)?trialsHTML:'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov as of May 2026</p>'}</div>
-      <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${p.catalysts.length?p.catalysts.map(c=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${c.date}</span><span>${c.event}</span></div>`).join(''):'<p>No catalysts on record</p>'}</div>
-      <div class="pi-detail-section"><h5>Deal History</h5>${p.deals.length?p.deals.map(d=>`<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join(''):'<p>No deal history</p>'}</div>
-      <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
-      <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+     // Loading placeholder — _loadDynamicDetail() will replace this with live data
+     detailInner = `<div class="pi-detail-inner" id="pi-dyn-${p.id}" style="display:block;padding:28px 16px;text-align:center">
+      <span style="color:#94a3b8;font-size:12px;font-style:italic">⟳ Loading company intelligence...</span>
      </div>`;
     }
    }
