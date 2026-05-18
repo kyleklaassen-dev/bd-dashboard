@@ -1381,6 +1381,7 @@ async function loadIndustryInsights() {
                 <div class="ii-item-headline">${item.source_url ? `<a href="${item.source_url}" target="_blank">${item.headline}</a>` : item.headline}</div>
                 ${item.body ? `<div class="ii-item-body">${item.body}</div>` : ''}
                 ${item.source_name ? `<div class="ii-item-source">${item.source_name}</div>` : ''}
+                <div style="margin-top:6px"><button class="intel-read-btn" onclick="openIntelDetailModal('${item.id}')">Read</button></div>
               </div>`;
             }).join('')}
           </div>
@@ -1437,6 +1438,7 @@ async function loadAreaIntel(tabId) {
               ${item.source_name ? `<span style="font-size:11px;color:#6b7280">· ${item.source_name}</span>` : ''}
               ${item.intel_type ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:8px;background:#f0f4f8;color:#6b7280">${item.intel_type}</span>` : ''}
               ${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2e6fb0;text-decoration:none">→ Source</a>` : ''}
+              <button class="intel-read-btn" onclick="openIntelDetailModal('${item.id}')" style="margin-left:auto">Read</button>
             </div>
           </div>
         </div>
@@ -1605,7 +1607,7 @@ async function loadAreaDrugs(tabId) {
     el.innerHTML = '<div class="live-drugs-grid">' + drugs.map(d => `
       <div class="drug-card-live">
         <div class="dcl-header">
-          <span class="dcl-name">${d.name}</span>
+          <span class="dcl-name" onclick="openDrugModal('${d.id}')" style="cursor:pointer;text-decoration:underline dotted #64748b;">${d.name}</span>
           ${d.company_id ? `<span class="dcl-company">${d.company_id}</span>` : ''}
           <span class="dcl-stage" style="background:${stageColor(d.stage)}">${d.stage || 'Unknown'}</span>
         </div>
@@ -1618,6 +1620,75 @@ async function loadAreaDrugs(tabId) {
   }
 }
 
+
+// ── Intel Detail Modal ────────────────────────────────────────────────────────
+function openIntelDetailModal(intelId) {
+  document.getElementById('intel-modal-overlay').style.display = 'flex';
+  document.getElementById('imd-headline').textContent = 'Loading…';
+  document.getElementById('imd-body').textContent = '';
+  document.getElementById('imd-type-badge').textContent = '';
+  document.getElementById('imd-date').textContent = '';
+  document.getElementById('imd-areas').textContent = '';
+  _sb.from('intel').select('*, intel_areas(area_id)').eq('id', intelId).single()
+    .then(({ data, error }) => {
+      if (error || !data) { document.getElementById('imd-headline').textContent = 'Intel not found.'; return; }
+      const areaNames = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
+      document.getElementById('imd-type-badge').textContent = data.intel_type || 'intel';
+      document.getElementById('imd-headline').textContent = data.headline || '';
+      document.getElementById('imd-date').textContent = data.intel_date || '';
+      const impColors = { high:'#ef4444', medium:'#f59e0b', low:'#64748b' };
+      const impEl = document.getElementById('imd-importance');
+      impEl.textContent = (data.importance || '').toUpperCase();
+      impEl.style.color = impColors[data.importance] || '#64748b';
+      const areas = (data.intel_areas || []).map(a => areaNames[a.area_id] || a.area_id).join(' · ');
+      document.getElementById('imd-areas').textContent = areas;
+      document.getElementById('imd-body').textContent = data.body || '';
+      document.getElementById('imd-source-name').textContent = data.source_name || '';
+      const urlEl = document.getElementById('imd-source-url');
+      if (data.source_url) { urlEl.href = data.source_url; urlEl.style.display = 'inline'; }
+      else { urlEl.style.display = 'none'; }
+    });
+}
+function closeIntelDetailModal(e) {
+  if (!e || e.target === document.getElementById('intel-modal-overlay')) {
+    document.getElementById('intel-modal-overlay').style.display = 'none';
+  }
+}
+
+// ── Drug Detail Modal ─────────────────────────────────────────────────────────
+function openDrugModal(drugId) {
+  document.getElementById('drug-detail-overlay').style.display = 'flex';
+  document.getElementById('ddm-name').textContent = 'Loading…';
+  document.getElementById('ddm-stage').textContent = '';
+  document.getElementById('ddm-company').textContent = '';
+  document.getElementById('ddm-detail').textContent = '';
+  _sb.from('drugs').select('*').eq('id', drugId).single()
+    .then(({ data: d, error }) => {
+      if (error || !d) { document.getElementById('ddm-name').textContent = 'Drug not found.'; return; }
+      const stageColors = { 'Approved':'#10b981','Ph3':'#6366f1','Phase 3':'#6366f1','Ph2':'#3b82f6','Phase 2':'#3b82f6','Ph1':'#0ea5e9','Phase 1':'#0ea5e9' };
+      const color = Object.entries(stageColors).find(([k]) => (d.stage||'').includes(k))?.[1] || '#64748b';
+      const stageEl = document.getElementById('ddm-stage');
+      stageEl.textContent = d.stage || '';
+      stageEl.style.color = color;
+      document.getElementById('ddm-name').textContent = d.name || '';
+      document.getElementById('ddm-company').textContent = d.company_id || '';
+      document.getElementById('ddm-target').textContent = d.target || '—';
+      document.getElementById('ddm-format').textContent = d.format || '—';
+      document.getElementById('ddm-moa').textContent = d.moa || '—';
+      document.getElementById('ddm-verified').textContent = d.last_verified || '—';
+      document.getElementById('ddm-detail').textContent = d.stage_detail || '—';
+      const nct = (d.stage_detail || '').match(/NCT\d{8}/)?.[0];
+      const nctWrap = document.getElementById('ddm-nct-wrap');
+      const nctLink = document.getElementById('ddm-nct-link');
+      if (nct) { nctLink.href = `https://clinicaltrials.gov/study/${nct}`; nctWrap.style.display = 'block'; }
+      else { nctWrap.style.display = 'none'; }
+    });
+}
+function closeDrugModal(e) {
+  if (!e || e.target === document.getElementById('drug-detail-overlay')) {
+    document.getElementById('drug-detail-overlay').style.display = 'none';
+  }
+}
 
 </script>
 
@@ -8389,6 +8460,49 @@ document.addEventListener('DOMContentLoaded', function(){
   if(first) first.style.display='block';
 });
 </script>
+
+
+<!-- Intel Detail Modal -->
+<div class="intel-modal-overlay" id="intel-modal-overlay" onclick="closeIntelDetailModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center;">
+  <div class="intel-modal-box" onclick="event.stopPropagation()" style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;width:620px;max-width:92vw;max-height:82vh;overflow-y:auto;position:relative;">
+    <button onclick="closeIntelDetailModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    <div id="imd-type-badge" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#6366f1;margin-bottom:8px;"></div>
+    <h2 id="imd-headline" style="font-size:16px;font-weight:700;color:#f1f5f9;line-height:1.4;margin:0 0 10px;padding-right:24px;"></h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+      <span id="imd-date" style="font-size:12px;color:#64748b;"></span>
+      <span id="imd-importance" style="font-size:11px;font-weight:600;"></span>
+      <span id="imd-areas" style="font-size:11px;color:#818cf8;"></span>
+    </div>
+    <div id="imd-body" style="font-size:13px;color:#cbd5e1;line-height:1.7;margin-bottom:16px;white-space:pre-line;"></div>
+    <div id="imd-source-wrap" style="border-top:1px solid #334155;padding-top:12px;display:flex;align-items:center;gap:10px;">
+      <span id="imd-source-name" style="font-size:12px;color:#64748b;"></span>
+      <a id="imd-source-url" href="#" target="_blank" style="font-size:12px;color:#7dd3fc;text-decoration:none;">View Source →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Drug Detail Modal -->
+<div id="drug-detail-overlay" onclick="closeDrugModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;width:580px;max-width:92vw;max-height:82vh;overflow-y:auto;position:relative;">
+    <button onclick="closeDrugModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>
+    <div id="ddm-stage" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;"></div>
+    <h2 id="ddm-name" style="font-size:18px;font-weight:700;color:#f1f5f9;margin:0 0 4px;padding-right:24px;"></h2>
+    <div id="ddm-company" style="font-size:13px;color:#94a3b8;margin-bottom:14px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Target</div><div id="ddm-target" style="font-size:13px;color:#7dd3fc;"></div></div>
+      <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Format</div><div id="ddm-format" style="font-size:13px;color:#e2e8f0;"></div></div>
+      <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">MoA</div><div id="ddm-moa" style="font-size:13px;color:#e2e8f0;"></div></div>
+      <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Last Verified</div><div id="ddm-verified" style="font-size:12px;color:#64748b;"></div></div>
+    </div>
+    <div style="background:#0f172a;border-radius:6px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Stage Detail</div>
+      <div id="ddm-detail" style="font-size:13px;color:#cbd5e1;line-height:1.6;"></div>
+    </div>
+    <div id="ddm-nct-wrap" style="display:none;">
+      <a id="ddm-nct-link" href="#" target="_blank" style="font-size:12px;color:#7dd3fc;">View on ClinicalTrials.gov →</a>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
