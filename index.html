@@ -987,7 +987,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .spyre-drug-btn.spy-popup-active { outline:2.5px solid currentColor;outline-offset:1px;box-shadow:0 6px 18px rgba(0,0,0,0.22) !important; }
 .spyre-drug-btn::after { content:'';position:absolute;bottom:-14px;left:-10px;right:-10px;height:14px;background:transparent; }
 .spyre-phase-badge { position:absolute;top:3px;right:4px;font-size:7.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,0.9);line-height:1.4;letter-spacing:0.2px; }
-.spyre-drug-popup { display:none;position:absolute;top:calc(100% + 12px);left:0;z-index:200;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:560px;max-width:90vw;text-align:left;max-height:68vh;overflow-y:auto; }
+.spyre-drug-popup { display:none;position:absolute;top:calc(100% + 12px);left:0;z-index:9999;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:16px;width:560px;max-width:90vw;text-align:left;max-height:68vh;overflow-y:auto; }
 .spyre-popup-code { font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:2px; }
 .spyre-popup-name { font-size:11px;color:#64748b;margin-bottom:8px; }
 .spyre-popup-row { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
@@ -8587,6 +8587,7 @@ function showSpyrePopup(id) {
   clearTimeout(_spyrePopupTimer);
   document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
   document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
+  document.body.style.overflow = 'hidden';
   _spyreActiveId = id;
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -8615,6 +8616,7 @@ function hideSpyrePopup() {
   document.querySelectorAll('.spyre-drug-popup').forEach(p => { p.style.display='none'; });
   document.querySelectorAll('.spyre-drug-btn').forEach(b => b.classList.remove('spy-popup-active'));
   _spyreActiveId = null;
+  document.body.style.overflow = '';
 }
 function cancelHideSpyrePopup() { /* no-op — kept for compatibility */ }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.bio-dd-overlay.open').forEach(el => el.classList.remove('open')); }});
@@ -8790,7 +8792,7 @@ const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Precl
 const SPYRE_PIPELINE = [
  /* ── IBD MONOTHERAPIES — full relevance (all have IBD indication) ── */
  { code:'SPY001', name:'Anti-α4β7', target:'α4β7 integrin', ibd:true, tl1a:false,
-   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× vedolizumab', dosing:'Q3M–Q6M SC (target)',
+   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× vedolizumab', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#0891b2', lightBg:'#ecfeff', isCombo:false,
    indication:'UC — SKYLINE Part A ✓ (data April 2026)',
    trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label α4β7 monotherapy in UC',status:'Part A complete / Part B open',phase:'Phase 2',n:645,pcd:'Part B 2027'}],
@@ -8802,7 +8804,7 @@ const SPYRE_PIPELINE = [
     {label:'Spyre Pipeline — www.spyre.com',url:'https://www.spyre.com/pipeline'}
    ] },
  { code:'SPY002', name:'Anti-TL1A', target:'TL1A', ibd:true, tl1a:true,
-   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)',
+   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#7c3aed', lightBg:'#f5f3ff', isCombo:false,
    indication:'UC — SKYLINE Part A (data expected mid-2026)',
    trials:[
@@ -8818,7 +8820,7 @@ const SPYRE_PIPELINE = [
     {label:'Spyre Pipeline — www.spyre.com',url:'https://www.spyre.com/pipeline'}
    ] },
  { code:'SPY003', name:'Anti-IL-23', target:'IL-23', ibd:true, tl1a:false,
-   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× risankizumab', dosing:'Q3M–Q6M SC (target)',
+   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~3× risankizumab', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#059669', lightBg:'#ecfdf5', isCombo:false,
    indication:'UC — SKYLINE Part A (data expected Q3 2026)',
    trials:[{nct:'NCT07012395',name:'SKYLINE Part A — Ph2 open-label IL-23 monotherapy in UC',status:'Part A ongoing / Part B Enrolling',phase:'Phase 2',n:645,pcd:'Part B 2027'}],
@@ -8831,7 +8833,7 @@ const SPYRE_PIPELINE = [
    ] },
  /* ── IBD COMBINATION PROGRAMS — in scope if contain TL1A ── */
  { code:'SPY120', name:'α4β7 + TL1A', target:'α4β7 + TL1A', ibd:true, tl1a:true,
-   format:'Combination (SPY001+SPY002)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)',
+   format:'Combination (SPY001+SPY002)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#7c3aed', lightBg:'#f5f3ff', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
    trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY120 arm (α4β7+TL1A combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
@@ -8843,7 +8845,7 @@ const SPYRE_PIPELINE = [
     {label:'Spyre Jan 2026 Corporate Overview (SEC filing)',url:'https://www.sec.gov/Archives/edgar/data/0001636282/000119312526009894/d28401dex992.htm'}
    ] },
  { code:'SPY130', name:'α4β7 + IL-23', target:'α4β7 + IL-23', ibd:true, tl1a:false,
-   format:'Combination (SPY001+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)',
+   format:'Combination (SPY001+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#0891b2', lightBg:'#ecfeff', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
    trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY130 arm (α4β7+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
@@ -8855,7 +8857,7 @@ const SPYRE_PIPELINE = [
     {label:'VEGA study basis — Lancet Gastroenterol',url:'https://www.thelancet.com/journals/langas/article/PIIS2468-1253(22)00381-8/fulltext'}
    ] },
  { code:'SPY230', name:'TL1A + IL-23', target:'TL1A + IL-23', ibd:true, tl1a:true,
-   format:'Combination (SPY002+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)',
+   format:'Combination (SPY002+SPY003)', phase:'Phase 2 (Part B)', halflife:'TBD', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#dc2626', lightBg:'#fef2f2', isCombo:true,
    indication:'UC — SKYLINE Part B (enrolling)',
    trials:[{nct:'NCT07012395',name:'SKYLINE Part B — SPY230 arm (TL1A+IL-23 combination)',status:'Enrolling',phase:'Phase 2',n:null,pcd:'2027'}],
@@ -8868,7 +8870,7 @@ const SPYRE_PIPELINE = [
    ] },
  /* ── RHEUMATIC PROGRAM — TL1A but different disease area ── */
  { code:'SPY072', name:'Anti-TL1A (RA/PsA/axSpA)', target:'TL1A', ibd:false, tl1a:true,
-   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)',
+   format:'YTE-modified mAb', phase:'Phase 2', halflife:'~24d extended', dosing:'Q3M–Q6M SC (target)', route:'SC', dosingType:'Induction + Maintenance',
    color:'#ea580c', lightBg:'#fff7ed', isCombo:false,
    indication:'RA / PsA / axSpA — SKYWAY basket trial (NCT07148414)',
    trials:[{nct:'NCT07148414',name:'SKYWAY — Ph2 basket trial: RA (N=120, W12 data Q3 2026), PsA (N=90), axSpA (N=75)',status:'RA enrolled / PsA+axSpA enrolling',phase:'Phase 2',n:285,pcd:'RA Q3 2026 · PsA/axSpA Q4 2026'}],
@@ -9219,6 +9221,8 @@ const tl1aPI = {
        <span style="font-size:11px;font-weight:700;color:#1e3a5f">${d.name}</span>
        <span style="font-size:10px;background:white;border:1px solid ${d.color}44;border-radius:10px;padding:1px 7px;color:${d.color};font-weight:700">${d.phase}</span>
        ${!d.ibd?'<span style="font-size:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:1px 7px;color:#c2410c;font-weight:700">Rheumatic</span>':''}
+       ${d.route?`<span style="font-size:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:1px 7px;color:#166534;font-weight:700">💉 ${d.route}</span>`:''}
+       ${d.dosingType?`<span style="font-size:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:1px 7px;color:#475569;font-weight:700">${d.dosingType}</span>`:''}
       </div>
       <div style="font-size:10.5px;color:#475569;line-height:1.5">📍 <strong>${d.indication}</strong></div>
      </div>
