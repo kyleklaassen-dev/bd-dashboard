@@ -116,15 +116,15 @@ def get_companies():
 
 
 def upsert_price(company_id, price, change_pct):
-    """Update stock_price and stock_change_pct on the company row."""
+    """Update stock_price and stock_change on the company row."""
     r = requests.patch(
         f"{SUPABASE_URL}/rest/v1/companies",
         headers={**SB_HEADERS, "Prefer": "return=minimal"},
         params={"id": f"eq.{company_id}"},
         json={
             "stock_price":      price,
-            "stock_change_pct": change_pct,
-            "price_updated_at": datetime.datetime.utcnow().isoformat(),
+            "stock_change":     change_pct,
+            "last_price_update": datetime.datetime.utcnow().isoformat(),
         },
     )
     if r.status_code not in (200, 201, 204):
