@@ -9177,10 +9177,10 @@ const tl1aPI = {
    const btnId = 'spy-btn-' + d.code.replace(/[^a-z0-9]/gi,'');
    /* Target display — multi-line for combos */
    const targetInline = d.target.split(' + ').join(' <span style="opacity:0.6">×</span> ');
-   const targetLines = `<div style="font-size:8px;font-weight:700;color:${diseaseColor};opacity:0.9;line-height:1.4;margin-top:1px">${targetInline}</div>`;
+   const targetLines = `<div style="font-size:8px;font-weight:700;color:#334155;line-height:1.4;margin-top:1px">${targetInline}</div>`;
    /* Short indication: everything before first " —" or " (" */
    const shortInd = (d.indication||'').split(/\s[—(]/)[0].trim();
-   const indLabel = shortInd ? `<div style="font-size:7.5px;font-weight:600;color:${diseaseColor};opacity:0.7;margin-top:1px;line-height:1.2">${shortInd}</div>` : '';
+   const indLabel = shortInd ? `<div style="font-size:7.5px;font-weight:600;color:#64748b;margin-top:1px;line-height:1.2">${shortInd}</div>` : '';
    const areaTag = !d.ibd ? `<div style="font-size:7px;background:#fdf4ff;color:#7e22ce;border-radius:8px;padding:0 4px;margin-top:2px;font-weight:800">RA/PsA</div>` : '';
 
    /* Trials rows */
@@ -9210,7 +9210,7 @@ const tl1aPI = {
    /* Sources — now embedded inline in mechanism text, not shown separately */
 
    return `<button class="spyre-drug-btn" id="${btnId}" style="border-color:${diseaseColor};color:${diseaseColor};background:${diseaseLightBg}" onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup('${btnId}')">
-    <div style="font-size:12px;font-weight:900;margin-top:4px">${d.code}</div>
+    <div style="font-size:12px;font-weight:900;margin-top:4px;color:#1e3a5f">${d.code}</div>
     ${targetLines}${indLabel}${areaTag}
     <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup('${btnId}')">
      <!-- Summary card -->
