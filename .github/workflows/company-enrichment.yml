@@ -1,7 +1,21 @@
-name: Company Enrichment Pipeline
+name: Intelligence Pipeline
+
+# ══════════════════════════════════════════════════════════════════
+# PIPELINE SEQUENCE (per area):
+#   Step 3 — ct_gov_sync.py     → ClinicalTrials.gov structured sync
+#   Steps 1,4,5,6 — company_enrichment.py → Entity discovery, catalyst
+#                                             generation, company enrichment,
+#                                             deal intelligence
+#
+# ct_gov_sync MUST run before company_enrichment so that trial records
+# exist when company_enrichment generates catalysts from PCD dates.
+#
+# For nightly scheduled runs: processes TL1A area only (most active).
+# For manual dispatch: supports any area or "all" (loops through all 6).
+# ══════════════════════════════════════════════════════════════════
 
 on:
-  # Runs nightly Mon–Sat at midnight ET = 04:00 UTC — after the 10:30 PM evening sweep completes
+  # Runs nightly Mon-Sat at midnight ET = 04:00 UTC
   schedule:
     - cron: '0 4 * * 1-6'
 
@@ -9,11 +23,11 @@ on:
   workflow_dispatch:
     inputs:
       area:
-        description: 'Disease area to enrich (e.g. tl1a, tslp, il4ra, fcrn, igf1r, tcell)'
+        description: 'Disease area to process (tl1a | tslp | il4ra | fcrn | igf1r | tcell | all)'
         required: true
         default: 'tl1a'
       company:
-        description: 'Optional: company ID substring filter (e.g. sanofi)'
+        description: 'Optional: company ID substring filter (e.g. sanofi) — ignored when area=all'
         required: false
         default: ''
       dry_run:
@@ -21,11 +35,16 @@ on:
         type: boolean
         required: false
         default: false
+      skip_trial_sync:
+        description: 'Skip ct_gov_sync.py step (use when trials are already fresh)'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
-  enrich:
+  intelligence-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repository
@@ -40,20 +59,46 @@ jobs:
         run: |
           pip install anthropic requests
 
-      - name: Run enrichment — TL1A (scheduled)
+      - name: "[Scheduled] Step 3 — CT.gov trial sync (TL1A)"
         if: github.event_name == 'schedule'
         env:
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/ct_gov_sync.py --area tl1a
+
+      - name: "[Scheduled] Steps 1,4,5,6 — Intelligence pipeline (TL1A)"
+        if: github.event_name == 'schedule'
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           python scripts/company_enrichment.py --area tl1a
 
-      - name: Run enrichment — manual trigger
-        if: github.event_name == 'workflow_dispatch'
+      - name: "[Manual] Step 3 — CT.gov trial sync (single area)"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area != 'all' &&
+          github.event.inputs.skip_trial_sync != 'true'
         env:
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS="--area ${{ github.event.inputs.area }}"
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "Running: python scripts/ct_gov_sync.py $ARGS"
+          python scripts/ct_gov_sync.py $ARGS
+
+      - name: "[Manual] Steps 1,4,5,6 — Intelligence pipeline (single area)"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area != 'all'
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           ARGS="--area ${{ github.event.inputs.area }}"
@@ -65,3 +110,35 @@ jobs:
           fi
           echo "Running: python scripts/company_enrichment.py $ARGS"
           python scripts/company_enrichment.py $ARGS
+
+      - name: "[Manual/All] Step 3 and Steps 1,4,5,6 — Full pipeline (all areas)"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area == 'all'
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          AREAS="tl1a tslp il4ra fcrn igf1r tcell"
+          DRY_FLAG=""
+          SKIP_TRIAL=""
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            DRY_FLAG="--dry-run"
+          fi
+          if [ "${{ github.event.inputs.skip_trial_sync }}" == "true" ]; then
+            SKIP_TRIAL="true"
+          fi
+
+          for AREA in $AREAS; do
+            echo "Processing area: $AREA"
+            if [ "$SKIP_TRIAL" != "true" ]; then
+              echo "Running CT.gov sync"
+              python scripts/ct_gov_sync.py --area $AREA $DRY_FLAG
+            fi
+            echo "Running intelligence pipeline"
+            python scripts/company_enrichment.py --area $AREA $DRY_FLAG
+            echo "Area $AREA complete"
+          done
+          echo "Full pipeline complete — all 6 areas"
+
