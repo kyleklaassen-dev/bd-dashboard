@@ -7034,14 +7034,15 @@ function dknReset() {
   }
   .pi-ta2 {background:#dcfce7;color:#166534}
   .text-red {color:#dc2626}
-  /* Two-col ranking grid — side by side, centered, narrower */
+  /* Two-col ranking grid — side by side, full page width */
   .pi-two-col {
     display:grid;grid-template-columns:1fr 1fr;gap:20px;
-    max-width:1300px;margin:0 auto 24px;
+    margin:0 0 24px;
   }
   @media(max-width:1000px){.pi-two-col{grid-template-columns:1fr;}}
   .pi-two-col .pi-card {margin:0;}
-  .pi-scroll {max-height:460px;overflow-y:auto}
+  .pi-scroll {max-height:460px;overflow-y:auto;overflow-x:hidden}
+  #pi-tbl-cn, #pi-tbl-us {table-layout:fixed;width:100%}
   .pi-scroll::-webkit-scrollbar{width:5px}
   .pi-scroll::-webkit-scrollbar-track{background:#f8fafc}
   .pi-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
@@ -7075,15 +7076,15 @@ function dknReset() {
       <table class="pi-table" id="pi-tbl-cn">
         <thead>
           <tr>
-            <th class="th-center">#</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',1,false)" title="Sort by name">Company</th>
-            <th>Type</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',3,true)" title="Sort by Mkt Cap">Mkt Cap</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',4,true)" title="Sort by Revenue">Revenue</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',5,true)" title="Sort by R&amp;D Spend">R&amp;D Spend</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',6,true)" title="Sort by R&amp;D %">R&amp;D %</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',7,false)" title="Sort by TA">TA #1</th>
-            <th class="sortable" onclick="piSort('pi-tbl-cn',8,false)" title="Sort by TA">TA #2</th>
+            <th class="th-center" style="width:3%">#</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',1,false)" title="Sort by name" style="width:20%">Company</th>
+            <th style="width:10%">Type</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',3,true)" title="Sort by Mkt Cap" style="width:11%">Mkt Cap</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',4,true)" title="Sort by Revenue" style="width:11%">Revenue</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',5,true)" title="Sort by R&amp;D Spend" style="width:11%">R&amp;D Spend</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',6,true)" title="Sort by R&amp;D %" style="width:8%">R&amp;D %</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',7,false)" title="Sort by TA" style="width:13%">TA #1</th>
+            <th class="sortable" onclick="piSort('pi-tbl-cn',8,false)" title="Sort by TA" style="width:13%">TA #2</th>
           </tr>
         </thead>
         <tbody>
@@ -7356,15 +7357,15 @@ function dknReset() {
       <table class="pi-table" id="pi-tbl-us">
         <thead>
           <tr>
-            <th class="th-center">#</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',1,false)" title="Sort by name">Company</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',2,true)" title="Sort by Mkt Cap">Mkt Cap</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',3,true)" title="Sort by Revenue">Revenue</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',4,true)" title="Sort by R&amp;D">R&amp;D</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',5,true)" title="Sort by R&amp;D %">R&amp;D %</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',6,false)" title="Sort by TA">TA #1</th>
-            <th class="sortable" onclick="piSort('pi-tbl-us',7,false)" title="Sort by TA">TA #2</th>
-            <th>Key Notes</th>
+            <th class="th-center" style="width:3%">#</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',1,false)" title="Sort by name" style="width:19%">Company</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',2,true)" title="Sort by Mkt Cap" style="width:10%">Mkt Cap</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',3,true)" title="Sort by Revenue" style="width:10%">Revenue</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',4,true)" title="Sort by R&amp;D" style="width:10%">R&amp;D</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',5,true)" title="Sort by R&amp;D %" style="width:8%">R&amp;D %</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',6,false)" title="Sort by TA" style="width:13%">TA #1</th>
+            <th class="sortable" onclick="piSort('pi-tbl-us',7,false)" title="Sort by TA" style="width:13%">TA #2</th>
+            <th style="width:14%">Key Notes</th>
           </tr>
         </thead>
         <tbody>
@@ -7745,8 +7746,8 @@ function dknReset() {
     🤖 AI Biotech Platform Companies — Competitive Landscape
     <span class="pi-card-sub">Ranked by Ailux overlap · May 2025</span>
   </div>
-  <div style="overflow-x:auto">
-    <table class="pi-table" style="min-width:900px;table-layout:fixed;width:100%">
+  <div>
+    <table class="pi-table" style="table-layout:fixed;width:100%">
       <thead>
         <tr>
           <th style="width:12%">Company</th>
