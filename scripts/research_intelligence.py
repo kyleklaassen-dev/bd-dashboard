@@ -1014,8 +1014,23 @@ def upsert_research_queue(
         print(f"    [dry-run] drugs patch ({len(drugs)} rows): {json.dumps(drug_patch, default=str)[:200]}…")
         return
 
-    # Write research_queue
-    _sb_upsert(sb_url, sb_key, "research_queue", queue_row)
+    # Write research_queue — use explicit on_conflict target because the table's PK is
+    # a generated UUID; without this, PostgREST conflicts on PK and 409s on the
+    # UNIQUE(entity_id, area_id) constraint instead of updating the existing row.
+    rq_headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    rq_resp = requests.post(
+        f"{sb_url}/rest/v1/research_queue",
+        headers=rq_headers,
+        params={"on_conflict": "entity_id,area_id"},
+        json=[queue_row],
+        timeout=30,
+    )
+    rq_resp.raise_for_status()
 
     # Stamp each drug row
     for drug in drugs:
