@@ -102,6 +102,15 @@ jobs:
         run: |
           python scripts/research_intelligence.py --area all
 
+      - name: "[Nightly] Identity health check"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 4 * * 1-6'
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
+
       # ──────────────────────────────────────────────────────────
       # SCHEDULED RUN — weekly all-areas (Sun 05:00 UTC)
       # Full ct_gov + company_enrichment + intelligence for all 6
@@ -128,6 +137,15 @@ jobs:
             python scripts/research_intelligence.py --area $AREA
             echo "  ✓ Area $AREA complete"
           done
+
+      - name: "[Weekly/All] Identity health check"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 5 * * 0'
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — single area (non-"all")
@@ -230,3 +248,13 @@ jobs:
           echo "════════════════════════════════════════"
           echo "  Full pipeline complete — all 6 areas"
           echo "════════════════════════════════════════"
+
+      - name: "[Manual/All] Identity health check"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area == 'all' &&
+          github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
