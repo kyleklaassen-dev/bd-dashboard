@@ -1809,7 +1809,7 @@ async function loadMeridianReader() {
       const dateStr = rdtFmtDate(item.intel_date) || item.intel_date || '';
       const importanceScore = item.importance === 'high' ? 100 : 50;
       feed.push({
-        sortScore: importanceScore + (item.intel_date || '').replace(/-/g,'') * 0.0001,
+        sortScore: importanceScore + new Date(item.intel_date || 0).getTime() / 1e13,
         dateStr: item.intel_date || '',
         html: `<div class="meridian-reader-item">${areaPill}${typePill}${headline}<span class="mr-date">${dateStr}${srcTag}</span>${bodyText}</div>`
       });
@@ -1828,7 +1828,7 @@ async function loadMeridianReader() {
       const bodyText = d.headline ? `<div style="font-size:11px;color:#4a6280;margin-top:3px">${d.headline}</div>` : '';
       const dateStr = rdtFmtDate(d.deal_date) || d.deal_date_label || '';
       feed.push({
-        sortScore: 80 + (d.deal_date || '').replace(/-/g,'') * 0.0001,
+        sortScore: 80 + new Date(d.deal_date || 0).getTime() / 1e13,
         dateStr: d.deal_date || '',
         html: `<div class="meridian-reader-item" style="border-left-color:#1d4ed8">${areaPill}${dealPill}${srcLink}${val}<span class="mr-date">${dateStr}</span>${bodyText}</div>`
       });
@@ -1847,7 +1847,7 @@ async function loadMeridianReader() {
       const notes = c.notes ? `<div style="font-size:11px;color:#4a6280;margin-top:3px">${c.notes}</div>` : '';
       const sigScore = c.significance === 'high' ? 70 : c.significance === 'medium' ? 40 : 20;
       feed.push({
-        sortScore: sigScore + (c.sort_date || '9999').replace(/-/g,'') * -0.000001,
+        sortScore: sigScore - new Date(c.sort_date || '9999-12-31').getTime() / 1e13,
         dateStr: c.sort_date || '',
         html: `<div class="meridian-reader-item" style="border-left-color:#f5c842">${areaPill}${catPill}<strong>${c.label}</strong>${countdown}<span class="mr-date">${c.catalyst_date||''}</span>${notes}</div>`
       });
@@ -1975,7 +1975,7 @@ async function loadIdentityHealth() {
     // 1. Drug coverage: total vs resolved
     const [drugsRes, canonRes, fuzzyRes, orphanRes, errRes] = await Promise.all([
       _sb.from('drugs').select('canonical_drug_id', { count: 'exact', head: false }),
-      _sb.from('canonical_drugs').select('is_active', { count: 'exact', head: false }),
+      _sb.from('canonical_drugs').select('canonical_id,is_active', { count: 'exact', head: false }),
       _sb.from('identity_audit_log').select('id', { count: 'exact' }).eq('operation', 'flag_review'),
       _sb.rpc ? null : null, // placeholder
       _sb.from('resolver_errors').select('id', { count: 'exact' }).is('resolved_at', null),
@@ -1988,9 +1988,11 @@ async function loadIdentityHealth() {
     const fuzzy     = fuzzyRes.count ?? (fuzzyRes.data || []).length;
     const unresErrs = errRes.count  ?? (errRes.data  || []).length;
 
-    // orphans: drugs with a canonical_drug_id that doesn't exist in canonical_drugs
-    // simple proxy: unresolved = total - resolved
+    // unresolved: drugs with no canonical_drug_id set at all
     const unresolved = total - resolved;
+    // true FK orphans: drugs whose canonical_drug_id points to a non-existent canonical
+    const canonIds = new Set((canonRes.data || []).map(c => c.canonical_id).filter(Boolean));
+    const orphanCount = (drugsRes.data || []).filter(d => d.canonical_drug_id && !canonIds.has(d.canonical_drug_id)).length;
 
     const stat = (val, label, okIf) => {
       const cls = okIf(val) ? 'ok' : (val === 0 ? 'ok' : 'bad');
@@ -2002,6 +2004,7 @@ async function loadIdentityHealth() {
 
     const issues = [];
     if (coverage < 100) issues.push(`${unresolved} drug${unresolved !== 1 ? 's' : ''} unresolved`);
+    if (orphanCount > 0) issues.push(`${orphanCount} FK orphan${orphanCount !== 1 ? 's' : ''} (broken reference)`);
     if (fuzzy > 0)      issues.push(`${fuzzy} fuzzy match${fuzzy !== 1 ? 'es' : ''} need review`);
     if (unresErrs > 0)  issues.push(`${unresErrs} resolver error${unresErrs !== 1 ? 's' : ''} unretried`);
 
@@ -2009,6 +2012,8 @@ async function loadIdentityHealth() {
       ${coverageHtml}
       <div class="ih-divider"></div>
       ${stat(active, 'Active Canonicals', v => v > 0)}
+      <div class="ih-divider"></div>
+      ${stat(orphanCount, 'FK Orphans', v => v === 0)}
       <div class="ih-divider"></div>
       ${stat(fuzzy, 'Fuzzy Pending', v => v === 0)}
       <div class="ih-divider"></div>
