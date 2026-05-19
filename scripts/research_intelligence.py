@@ -555,13 +555,14 @@ def score_entity_completeness(ctx: dict) -> dict:
     # ── Stage 4: Catalyst Engine ─────────────────────────────────────────────
     if catalysts:
         populated_fields.append("catalysts_list")
+        # Catalysts table uses sort_date and label (not expected_date / title)
         s4_detail = any(
-            _nonempty(c.get("expected_date")) and _nonempty(c.get("title"))
+            _nonempty(c.get("sort_date")) and _nonempty(c.get("label"))
             for c in catalysts
         )
         s4 = 0.5 + (0.5 if s4_detail else 0.0)
         if not s4_detail:
-            missing_fields.append("catalyst_expected_date_and_title")
+            missing_fields.append("catalyst_sort_date_and_label")
     else:
         missing_fields.append("catalysts_list")
         s4 = 0.0
@@ -696,13 +697,13 @@ def get_next_best_action(ctx: dict, score_result: dict) -> str:
 
     # 5. Catalyst date passed unresolved
     for c in catalysts:
-        exp_date = c.get("expected_date")
+        exp_date = c.get("sort_date")   # was expected_date — catalysts table uses sort_date
         resolved = _nonempty(c.get("outcome")) or _nonempty(c.get("results_url"))
         if exp_date and not resolved:
             try:
                 cd = datetime.fromisoformat(exp_date.replace("Z", "+00:00")).date()
                 if cd < today:
-                    return f"Search for results — catalyst '{c.get('title', 'unknown')}' date has passed"
+                    return f"Search for results — catalyst '{c.get('label', 'unknown')}' date has passed"
             except (ValueError, AttributeError):
                 pass
 
@@ -823,7 +824,7 @@ def check_research_triggers(ctx: dict) -> list[str]:
 
     # ── T4: catalyst date passed unresolved ─────────────────────────────────
     for c in catalysts:
-        exp_date = c.get("expected_date")
+        exp_date = c.get("sort_date")   # was expected_date — catalysts table uses sort_date
         if not exp_date:
             continue
         resolved = _nonempty(c.get("outcome")) or _nonempty(c.get("results_url"))
@@ -995,7 +996,10 @@ def upsert_research_queue(
         "completeness_tier": score_result["completeness_tier"],
         "trigger_events": triggers,
         "last_updated": _now_iso(),
-        "assigned_status": "pending",
+        # NOTE: assigned_status intentionally excluded from this payload.
+        # merge-duplicates would overwrite user-set 'in_progress'/'done' statuses on
+        # every nightly pipeline run. New rows get DEFAULT 'pending' from the schema.
+        # To change status: use the dashboard toggle or update research_queue directly.
     }
 
     drug_patch = {
