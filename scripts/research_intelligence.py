@@ -355,7 +355,9 @@ def score_entity_completeness(ctx: dict) -> dict:
             ds += _check(_nonempty(d.get("target")), f"drug:{d['drug_id']}:target")
             ds += _check(_nonempty(d.get("stage")), f"drug:{d['drug_id']}:stage")
             ds += _check(_nonempty(d.get("differentiation_thesis")), f"drug:{d['drug_id']}:differentiation_thesis")
-            drug_scores.append(ds / 4)
+            # canonical_drug_id: identity spine connecting this drug to the canonical layer
+            ds += _check(_nonempty(d.get("canonical_drug_id")), f"drug:{d['drug_id']}:canonical_drug_id")
+            drug_scores.append(ds / 5)
         stage_scores["stage2_drug_mapping"] = sum(drug_scores) / len(drug_scores)
     else:
         missing_fields.append("drugs_list")
@@ -387,17 +389,24 @@ def score_entity_completeness(ctx: dict) -> dict:
                     (t.get("confidence_score") or 0) >= 80 for t in drug_trials
                 )
                 ds += _check(high_conf, f"drug:{drug_id}:trial_confidence")
+
+                # canonical_drug_id stamped on at least one trial — identity spine intact
+                has_canonical = any(
+                    _nonempty(t.get("canonical_drug_id")) for t in drug_trials
+                )
+                ds += _check(has_canonical, f"drug:{drug_id}:trial_canonical_linked")
             else:
                 missing_fields.extend([
                     f"drug:{drug_id}:trial_detail",
                     f"drug:{drug_id}:trial_confidence",
+                    f"drug:{drug_id}:trial_canonical_linked",
                 ])
 
             # Penalise if explicitly marked missing
             if d.get("trial_data_status") == "missing":
                 ds = max(0.0, ds - 0.5)
 
-            drug_trial_scores.append(ds / 3)
+            drug_trial_scores.append(ds / 4)   # denominator grows by 1 for canonical check
 
         stage_scores["stage3_trial_intelligence"] = (
             sum(drug_trial_scores) / len(drug_trial_scores)
@@ -527,6 +536,10 @@ def get_next_best_action(ctx: dict, score_result: dict) -> str:
         for d in drugs
     ):
         return "Run drug mapping to fill mechanism + target fields"
+
+    # 2b. Any drug missing canonical identity — identity spine broken
+    if any(not _nonempty(d.get("canonical_drug_id")) for d in drugs):
+        return "Run identity resolver to link drug to canonical_drug_id (one_time_migration.py)"
 
     # 3. Any drug with no associated trials
     drug_ids_with_trials = {t["drug_id"] for t in trials}
