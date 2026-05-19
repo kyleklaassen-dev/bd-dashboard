@@ -1034,6 +1034,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-overlap-same     { background:#ccfbf1;color:#134e4a; }   /* Same-Space — teal */
 .pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
+.pi-stage-approved { background:#dcfce7;color:#166534; }
 .pi-stage-ph3 { background:#fef3c7;color:#92400e; }
 .pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
@@ -1062,6 +1063,18 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* Hover underline on all links inside drug popups + expanded detail rows */
 .spyre-drug-popup a, .pi-detail-inner a { text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s,color 0.15s; }
 .spyre-drug-popup a:hover, .pi-detail-inner a:hover { border-bottom-color:currentColor; }
+/* ── ENTITY-GROUPED PI TABLE ── */
+.pi-etype-badge { display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:700;margin-left:5px;vertical-align:middle; }
+.pi-etype-platform    { background:#e0f2fe;color:#0369a1; }
+.pi-etype-partnership { background:#fce7f3;color:#9d174d; }
+.pi-etype-licensed    { background:#fef3c7;color:#92400e; }
+.pi-drug-name-sm { display:inline-block;background:#f1f5f9;border-radius:4px;padding:1px 6px;font-size:10px;color:#1e3a5f;margin:1px 2px 1px 0;font-weight:600; }
+.pi-prog-bubbles { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px; }
+.pi-prog-bubble { background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:180px; }
+.pi-prog-name { font-size:11px;font-weight:700;color:#1e3a5f; }
+.pi-prog-target { font-size:10px;color:#64748b;background:#f1f5f9;border-radius:4px;padding:1px 5px; }
+.pi-detail-body { padding:14px 16px;background:#f0f7ff; }
+
 .tl1a-modal-body a { text-decoration:none;border-bottom:1px solid transparent;transition:border-color 0.15s; }
 .tl1a-modal-body a:hover { border-bottom-color:currentColor; }
 .spyre-stock-chip { display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px; }
@@ -7211,7 +7224,7 @@ function _makeAreaPI(tabId, areaIds) {
 
   return {
     tabId, areaIds,
-    data:[], filtered:[], expanded:new Set(),
+    data:[], entities:[], filteredEntities:[], expanded:new Set(),
     sortCol:'stage', sortDir:1, loaded:false,
 
     async init() {
@@ -7220,24 +7233,31 @@ function _makeAreaPI(tabId, areaIds) {
       try {
         const { data:rows, error } = await _sb
           .from('drug_areas')
-          .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,companies(name,ticker))')
+          .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,companies(name,ticker))')
           .in('area_id', this.areaIds);
         if (error) throw error;
 
         const seen = new Set();
-        this.data = (rows||[]).map(r=>r.drugs).filter(d=>d&&!seen.has(d.id)&&seen.add(d.id)).map(d=>({
-          id:        d.id,
-          co:        d.companies?.name || d.company_id || '—',
-          ticker:    d.companies?.ticker || '',
-          drug:      d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
-          target:    d.target || _piExtractTarget(d.mechanism) || '—',
-          cls:       d.cls || '1st Gen',
-          stageKey:  d.stage || 'Preclinical',
-          overlap:   d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
-          summary:   d.ailux_angle || d.key_data || '',
+        const drugs = (rows||[]).map(r=>r.drugs).filter(d=>d&&!seen.has(d.id)&&seen.add(d.id));
+        this.data = drugs.map(d => ({
+          id:          d.id,
+          entity_id:   d.entity_id || d.company_id || d.id,
+          entity_name: d.entity_name || d.companies?.name || d.company_id || '—',
+          entity_type: d.entity_type || 'standalone',
+          co:          d.companies?.name || d.company_id || '—',
+          ticker:      d.companies?.ticker || '',
+          drug:        d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
+          name:        d.name,
+          target:      d.target || _piExtractTarget(d.mechanism) || '—',
+          mechanism:   d.mechanism || '',
+          cls:         d.cls || '1st Gen',
+          stageKey:    d.stage || 'Preclinical',
+          overlap:     d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
+          summary:     d.ailux_angle || d.key_data || '',
           stageDetail: d.stage_detail || '',
         }));
-        this.filtered = [...this.data];
+        this._buildEntities();
+        this.filteredEntities = [...this.entities];
         this.loaded = true;
         this._renderPills();
         this._renderTable();
@@ -7247,19 +7267,42 @@ function _makeAreaPI(tabId, areaIds) {
       }
     },
 
+    _buildEntities() {
+      const map = new Map();
+      for (const prog of this.data) {
+        const eid = prog.entity_id;
+        if (!map.has(eid)) {
+          map.set(eid, { entity_id:eid, entity_name:prog.entity_name, entity_type:prog.entity_type, co:prog.co, ticker:prog.ticker, programs:[] });
+        }
+        map.get(eid).programs.push(prog);
+      }
+      this.entities = [...map.values()].map(ent => {
+        const progs = ent.programs;
+        const clsOrd = {'1st Gen':2,'2nd Gen':1,'Next Gen':0};
+        const bestStage   = progs.reduce((b,p)=>(STAGE_ORDER_PI[p.stageKey]??9)<(STAGE_ORDER_PI[b]??9)?p.stageKey:b, progs[0]?.stageKey||'Preclinical');
+        const bestCls     = progs.reduce((b,p)=>(clsOrd[p.cls]??3)<(clsOrd[b]??3)?p.cls:b, progs[0]?.cls||'1st Gen');
+        const bestOverlap = progs.reduce((b,p)=>(OV_ORDER[p.overlap]??9)<(OV_ORDER[b]??9)?p.overlap:b, progs[0]?.overlap||'Watch');
+        const leadProg    = progs.find(p=>p.stageKey===bestStage)||progs[0];
+        return { ...ent, bestStage, bestCls, bestOverlap,
+          target: leadProg?.target||'—',
+          summary: progs.map(p=>p.summary).filter(Boolean)[0]||'',
+          stageDetail: leadProg?.stageDetail||'' };
+      });
+    },
+
     filter() {
       const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
       if (!wrap) return;
-      const cls   = wrap.querySelector('.pi-pill-group[data-filter="cls"]   .pi-pill.active')?.dataset?.val || '';
-      const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val || '';
-      const ov    = wrap.querySelector('.pi-pill-group[data-filter="overlap"].pi-pill.active')?.dataset?.val || '';
-      this.filtered = this.data.filter(p =>
-        (!cls   || p.cls === cls) &&
-        (!stage || p.stageKey === stage) &&
-        (!ov    || p.overlap === ov)
+      const cls   = wrap.querySelector('.pi-pill-group[data-filter="cls"]   .pi-pill.active')?.dataset?.val||'';
+      const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val||'';
+      const ov    = wrap.querySelector('.pi-pill-group[data-filter="overlap"].pi-pill.active')?.dataset?.val||'';
+      this.filteredEntities = this.entities.filter(ent=>
+        (!cls   || ent.programs.some(p=>p.cls===cls)) &&
+        (!stage || ent.programs.some(p=>p.stageKey===stage)) &&
+        (!ov    || ent.programs.some(p=>p.overlap===ov))
       );
       const cnt = document.getElementById(this.tabId+'-area-pi-count');
-      if (cnt) cnt.textContent = `${this.filtered.length} programs`;
+      if (cnt) cnt.textContent = `${this.filteredEntities.length} entities`;
       this._renderTable();
     },
 
@@ -7280,10 +7323,7 @@ function _makeAreaPI(tabId, areaIds) {
       const classes  = ['1st Gen','2nd Gen','Next Gen'].filter(c=>this.data.some(p=>p.cls===c));
       const overlaps = ['Direct','Adjacent','Same-Space','Watch'].filter(o=>this.data.some(p=>p.overlap===o));
       const tid = this.tabId;
-
-      const pillBtn = (group, val, label) =>
-        `<button class="pi-pill" data-val="${val}" onclick="_areaPIPill('${tid}','${group}','${val}',this)">${label||val}</button>`;
-
+      const pillBtn = (grp,val,lbl) => `<button class="pi-pill" data-val="${val}" onclick="_areaPIPill('${tid}','${grp}','${val}',this)">${lbl||val}</button>`;
       const pillsEl = wrap.querySelector('.pi-pills-wrap');
       if (!pillsEl) return;
       pillsEl.innerHTML = `
@@ -7310,55 +7350,77 @@ function _makeAreaPI(tabId, areaIds) {
     _clsPill(c)  { const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'}; return `<span class="pi-cls-pill ${m[c]||'pi-cls-1st'}">${c}</span>`; },
     _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre'}; return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`; },
     _ovBadge(o)  { const m={Direct:'pi-overlap-direct',Adjacent:'pi-overlap-adjacent','Same-Space':'pi-overlap-same',Watch:'pi-overlap-watch'}; return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${o||'Watch'}</span>`; },
+    _etypeBadge(t) {
+      if (t==='standalone') return '';
+      const m={platform:'pi-etype-platform',partnership:'pi-etype-partnership',licensed:'pi-etype-licensed'};
+      const l={platform:'Platform',partnership:'Partnership',licensed:'Licensed'};
+      return `<span class="pi-etype-badge ${m[t]||''}">${l[t]||t}</span>`;
+    },
+
+    _entityDetailHTML(ent) {
+      let html = '';
+      if (ent.programs.length > 1) {
+        const bubbles = ent.programs.map(p =>
+          `<div class="pi-prog-bubble">
+            <span class="pi-prog-name">${p.name}</span>
+            ${this._stagePill(p.stageKey)}
+            ${this._clsPill(p.cls)}
+            ${p.target!=='—'?`<span class="pi-prog-target">${p.target}</span>`:''}
+          </div>`
+        ).join('');
+        html += `<div class="pi-prog-bubbles">${bubbles}</div>`;
+      }
+      if (ent.summary)     html += `<p style="font-size:12px;line-height:1.6;color:#1e3a5f;margin:6px 0">${ent.summary}</p>`;
+      if (ent.stageDetail) html += `<p style="font-size:11px;color:#475569;margin:0">${ent.stageDetail}</p>`;
+      return html || '<span style="color:#94a3b8;font-size:11px">No detail available.</span>';
+    },
 
     _renderTable() {
       const el = document.getElementById(this.tabId+'-area-pi');
       if (!el) return;
       const cnt = document.getElementById(this.tabId+'-area-pi-count');
+      const tid = this.tabId;
+      const clsOrd = {'1st Gen':2,'2nd Gen':1,'Next Gen':0};
 
-      const sorted = [...this.filtered].sort((a,b)=>{
+      const sorted = [...this.filteredEntities].sort((a,b)=>{
         let av,bv;
-        if (this.sortCol==='co')      { av=a.co;  bv=b.co; }
-        else if (this.sortCol==='cls')    { av=a.cls; bv=b.cls; }
-        else if (this.sortCol==='stage')  { av=STAGE_ORDER_PI[a.stageKey]??9; bv=STAGE_ORDER_PI[b.stageKey]??9; }
-        else if (this.sortCol==='overlap'){ av=OV_ORDER[a.overlap]??9; bv=OV_ORDER[b.overlap]??9; }
+        if      (this.sortCol==='co')      { av=a.entity_name; bv=b.entity_name; }
+        else if (this.sortCol==='cls')     { av=clsOrd[a.bestCls]??3; bv=clsOrd[b.bestCls]??3; }
+        else if (this.sortCol==='stage')   { av=STAGE_ORDER_PI[a.bestStage]??9; bv=STAGE_ORDER_PI[b.bestStage]??9; }
+        else if (this.sortCol==='overlap') { av=OV_ORDER[a.bestOverlap]??9; bv=OV_ORDER[b.bestOverlap]??9; }
         else { av=a[this.sortCol]||''; bv=b[this.sortCol]||''; }
         if (typeof av==='string') return this.sortDir*av.localeCompare(bv);
         return this.sortDir*(av-bv);
       });
 
-      if (cnt) cnt.textContent = `${sorted.length} programs`;
+      if (cnt) cnt.textContent = `${sorted.length} entities`;
 
       if (!sorted.length) {
         el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">No programs match the current filters.</div>';
         return;
       }
 
-      const tid = this.tabId;
-      const rows = sorted.map(p => {
-        const isExp = this.expanded.has(p.id);
-        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-body">
-          ${p.summary ? `<p style="font-size:12px;line-height:1.6;color:#1e3a5f;margin:0 0 8px">${p.summary}</p>` : ''}
-          ${p.stageDetail ? `<p style="font-size:11px;color:#475569;margin:0 0 8px">${p.stageDetail}</p>` : ''}
-          <div id="${tid}-pi-dd-${p.id}" style="font-size:11px;color:#64748b">
-            <span style="color:#94a3b8">Additional detail loads as research pipeline runs overnight.</span>
-          </div>
-        </div></td></tr>` : '';
-        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${p.id}')">
-          <td><div class="pi-co-wrap"><strong class="pi-co-name">${p.co}</strong>${p.ticker?`<span class="pi-ticker">${p.ticker}</span>`:''}</div></td>
-          <td><span class="pi-drug-name">${p.drug}</span></td>
-          <td><span class="pi-target-text" style="font-size:11px;color:#475569">${p.target}</span></td>
-          <td>${this._clsPill(p.cls)}</td>
-          <td>${this._stagePill(p.stageKey)}</td>
-          <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+      const rows = sorted.map(ent => {
+        const isExp = this.expanded.has(ent.entity_id);
+        const drugDisplay = ent.programs.length > 1
+          ? ent.programs.map(p=>`<span class="pi-drug-name-sm">${p.name}</span>`).join('')
+          : `<span class="pi-drug-name">${ent.programs[0]?.drug||'—'}</span>`;
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
+        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
+          <td><div class="pi-co-wrap"><strong class="pi-co-name">${ent.entity_name}</strong>${ent.ticker?`<span class="pi-ticker">${ent.ticker}</span>`:''}${this._etypeBadge(ent.entity_type)}</div></td>
+          <td>${drugDisplay}</td>
+          <td><span class="pi-target-text" style="font-size:11px;color:#475569">${ent.target}</span></td>
+          <td>${this._clsPill(ent.bestCls)}</td>
+          <td>${this._stagePill(ent.bestStage)}</td>
+          <td>${this._ovBadge(ent.bestOverlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
         </tr>${expRow}`;
       }).join('');
 
       el.innerHTML = `<table class="pi-table">
         <colgroup><col style="width:22%"><col style="width:22%"><col style="width:20%"><col style="width:9%"><col style="width:12%"><col style="width:15%"></colgroup>
         <thead><tr>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Company</th>
-          <th>Drug</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
+          <th>Drug(s)</th>
           <th>Target</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','cls')">Class</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
