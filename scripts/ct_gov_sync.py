@@ -715,7 +715,7 @@ def step3c_update_drug_stage(drug_id: str, synced_nct_ids: list[str],
 # MAIN SYNC FUNCTION — orchestrates Steps 3a + 3b + 3c per drug
 # ══════════════════════════════════════════════════════════════════════════
 
-def sync_drug(drug: dict, dry_run: bool = False) -> dict:
+def sync_drug(drug: dict, dry_run: bool = False, resolver=None) -> dict:
     """
     Run full trial sync for a single drug.
 
@@ -726,19 +726,21 @@ def sync_drug(drug: dict, dry_run: bool = False) -> dict:
       ELIF has existing trial records → Step 3a for those NCT IDs
       ELSE → Step 3b (search discovery)
 
+    Args:
+      resolver: a pre-instantiated DrugIdentityResolver (created once in run_sync).
+                Pass None to skip identity resolution.
+
     Returns: {"synced": [...nct_ids], "status": "ok"|"pending"|"approved"|"no_results"}
     """
     drug_id   = drug["id"]
     drug_name = drug.get("name", drug_id)
 
     # ── Identity resolution (circuit-breaker pattern) ─────────────────────
-    # Resolve drug name → canonical_drug_id before writing any trial record.
-    # On any failure: log and continue with canonical_drug_id=None.
-    # This ensures resolver failures never crash the CT.gov sync.
+    # Resolver is pre-instantiated in run_sync() — one alias-cache load per run,
+    # not once per drug. On any failure: log and continue with canonical_drug_id=None.
     canonical_drug_id = None
-    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
+    if resolver is not None and not dry_run:
         try:
-            resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
             canon_id, conf, method = resolver.resolve(
                 drug_name, source="ct_gov",
                 drug_class=drug.get("drug_class"),
@@ -862,6 +864,18 @@ def run_sync(area_id: str = None, drug_filter: str = None,
 
     log(f"Drugs to sync: {len(drugs)}")
 
+    # ── Instantiate identity resolver once for this run ───────────────────
+    # A single instance loads the alias cache once (one Supabase round-trip),
+    # then each sync_drug() call reuses the cached data.
+    run_resolver = None
+    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
+        try:
+            run_resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
+            run_resolver._load_alias_cache()  # pre-load once; per-drug calls reuse this
+            log(f"Identity resolver ready ({len(run_resolver._alias_cache)} cached aliases)")
+        except Exception as exc:
+            log(f"⚠ Could not initialise identity resolver: {exc} — running without it")
+
     # ── Sync each drug ────────────────────────────────────────────────────
     stats = {"synced": 0, "no_results": 0, "pending": 0, "approved": 0, "total_trials": 0}
 
@@ -871,10 +885,7 @@ def run_sync(area_id: str = None, drug_filter: str = None,
 
         log(f"\n[Drug] {drug_name} ({drug_id}) — {drug.get('stage','?')}", indent=0)
 
-        # Skip search if search_only=False and drug not in NCT_SEED_MAP
-        # (will still do 3b search regardless)
-
-        result = sync_drug(drug, dry_run=dry_run)
+        result = sync_drug(drug, dry_run=dry_run, resolver=run_resolver)
 
         if result["status"] == "ok":
             stats["synced"] += 1
