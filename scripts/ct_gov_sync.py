@@ -60,6 +60,12 @@ from typing import Optional
 
 import requests
 
+try:
+    from identity_resolution import DrugIdentityResolver
+    _IDENTITY_RESOLVER_AVAILABLE = True
+except ImportError:
+    _IDENTITY_RESOLVER_AVAILABLE = False
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # CREDENTIALS + CONSTANTS
@@ -317,7 +323,8 @@ def ct_search_by_name(drug_name: str, indication: str = None, max_results: int =
 
 def parse_ct_study(study: dict, drug_id: str, entity_id: str = None,
                    discovery_status: str = "manual",
-                   confidence_score: int = 100) -> Optional[dict]:
+                   confidence_score: int = 100,
+                   canonical_drug_id: str = None) -> Optional[dict]:
     """
     Parse a raw CT.gov v2 study JSON into a Supabase trials record.
 
@@ -430,6 +437,7 @@ def parse_ct_study(study: dict, drug_id: str, entity_id: str = None,
         "last_synced_date":      NOW_ISO,
         "discovery_status":      discovery_status,
         "confidence_score":      confidence_score,
+        "canonical_drug_id":     canonical_drug_id,
     }
 
 
@@ -520,7 +528,8 @@ def score_search_match(study: dict, drug_id: str, drug_name: str,
 # ══════════════════════════════════════════════════════════════════════════
 
 def step3a_direct_nct_sync(drug: dict, nct_ids: list[str],
-                            dry_run: bool = False) -> list[str]:
+                            dry_run: bool = False,
+                            canonical_drug_id: str = None) -> list[str]:
     """
     Fetch each known NCT ID from CT.gov and upsert into trials table.
 
@@ -541,7 +550,8 @@ def step3a_direct_nct_sync(drug: dict, nct_ids: list[str],
         record = parse_ct_study(
             study, drug_id, entity_id,
             discovery_status="manual",  # known NCT IDs are manually verified
-            confidence_score=100
+            confidence_score=100,
+            canonical_drug_id=canonical_drug_id,
         )
         if not record:
             log(f"  ✗ {nct_id}: parse failed", indent=2)
@@ -567,7 +577,8 @@ def step3a_direct_nct_sync(drug: dict, nct_ids: list[str],
 # For drugs without known NCT IDs: search CT.gov by name + indication
 # ══════════════════════════════════════════════════════════════════════════
 
-def step3b_search_discovery(drug: dict, dry_run: bool = False) -> list[str]:
+def step3b_search_discovery(drug: dict, dry_run: bool = False,
+                             canonical_drug_id: str = None) -> list[str]:
     """
     Search CT.gov for trials matching this drug by name.
 
@@ -622,7 +633,8 @@ def step3b_search_discovery(drug: dict, dry_run: bool = False) -> list[str]:
         record = parse_ct_study(
             study, drug_id, entity_id,
             discovery_status=discovery_status,
-            confidence_score=score
+            confidence_score=score,
+            canonical_drug_id=canonical_drug_id,
         )
         if not record:
             continue
@@ -719,6 +731,25 @@ def sync_drug(drug: dict, dry_run: bool = False) -> dict:
     drug_id   = drug["id"]
     drug_name = drug.get("name", drug_id)
 
+    # ── Identity resolution (circuit-breaker pattern) ─────────────────────
+    # Resolve drug name → canonical_drug_id before writing any trial record.
+    # On any failure: log and continue with canonical_drug_id=None.
+    # This ensures resolver failures never crash the CT.gov sync.
+    canonical_drug_id = None
+    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
+        try:
+            resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
+            canon_id, conf, method = resolver.resolve(
+                drug_name, source="ct_gov",
+                drug_class=drug.get("drug_class"),
+                mechanism=drug.get("mechanism"),
+                target=drug.get("target"),
+            )
+            canonical_drug_id = canon_id
+            log(f"  ↳ Identity: {canon_id} (conf={conf}, method={method})", indent=1)
+        except Exception as exc:
+            log(f"  ⚠ Identity resolver failed for '{drug_name}': {exc} — proceeding without canonical_drug_id", indent=1)
+
     # ── Approved products: simplified handling ────────────────────────────
     if drug_id in APPROVED_DRUGS:
         log(f"  ⊘ {drug_id}: approved product — marking trial_data_status='populated'", indent=1)
@@ -753,7 +784,8 @@ def sync_drug(drug: dict, dry_run: bool = False) -> dict:
     # ── Step 3a: Direct NCT fetch (known IDs) ────────────────────────────
     if known_ncts:
         log(f"  [3a] Direct sync: {len(known_ncts)} known NCT IDs", indent=1)
-        synced = step3a_direct_nct_sync(drug, known_ncts, dry_run=dry_run)
+        synced = step3a_direct_nct_sync(drug, known_ncts, dry_run=dry_run,
+                                         canonical_drug_id=canonical_drug_id)
         all_synced.extend(synced)
 
     # ── Step 3b: Search discovery (unknown IDs) ───────────────────────────
@@ -761,7 +793,8 @@ def sync_drug(drug: dict, dry_run: bool = False) -> dict:
     # (e.g., expansion studies, new indications)
     if not dry_run or not known_ncts:
         log(f"  [3b] Search discovery: '{drug_name}'", indent=1)
-        found = step3b_search_discovery(drug, dry_run=dry_run)
+        found = step3b_search_discovery(drug, dry_run=dry_run,
+                                         canonical_drug_id=canonical_drug_id)
         # Only add IDs not already in all_synced
         all_synced.extend(nct for nct in found if nct not in all_synced)
 
