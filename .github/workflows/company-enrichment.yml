@@ -6,16 +6,19 @@ name: Intelligence Pipeline
 #   Steps 1,4,5,6 — company_enrichment.py → Entity discovery, catalyst
 #                                             generation, company enrichment,
 #                                             deal intelligence
+#   Step 7 — research_intelligence.py → Completeness scoring, trigger
+#                                        detection, research queue update
 #
 # ct_gov_sync MUST run before company_enrichment so that trial records
 # exist when company_enrichment generates catalysts from PCD dates.
+# research_intelligence MUST run last — it audits the final state.
 #
 # For nightly scheduled runs: processes TL1A area only (most active).
 # For manual dispatch: supports any area or "all" (loops through all 6).
 # ══════════════════════════════════════════════════════════════════
 
 on:
-  # Runs nightly Mon-Sat at midnight ET = 04:00 UTC
+  # Runs nightly Mon–Sat at midnight ET = 04:00 UTC
   schedule:
     - cron: '0 4 * * 1-6'
 
@@ -59,6 +62,10 @@ jobs:
         run: |
           pip install anthropic requests
 
+      # ──────────────────────────────────────────────────────────
+      # SCHEDULED RUN — TL1A only
+      # ──────────────────────────────────────────────────────────
+
       - name: "[Scheduled] Step 3 — CT.gov trial sync (TL1A)"
         if: github.event_name == 'schedule'
         env:
@@ -75,6 +82,18 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           python scripts/company_enrichment.py --area tl1a
+
+      - name: "[Scheduled] Step 7 — Research intelligence audit (TL1A)"
+        if: github.event_name == 'schedule'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/research_intelligence.py --area tl1a
+
+      # ──────────────────────────────────────────────────────────
+      # MANUAL DISPATCH — single area (non-"all")
+      # ──────────────────────────────────────────────────────────
 
       - name: "[Manual] Step 3 — CT.gov trial sync (single area)"
         if: |
@@ -111,7 +130,27 @@ jobs:
           echo "Running: python scripts/company_enrichment.py $ARGS"
           python scripts/company_enrichment.py $ARGS
 
-      - name: "[Manual/All] Step 3 and Steps 1,4,5,6 — Full pipeline (all areas)"
+      - name: "[Manual] Step 7 — Research intelligence audit (single area)"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area != 'all'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS="--area ${{ github.event.inputs.area }}"
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "Running: python scripts/research_intelligence.py $ARGS"
+          python scripts/research_intelligence.py $ARGS
+
+      # ──────────────────────────────────────────────────────────
+      # MANUAL DISPATCH — all areas loop
+      # Runs each area sequentially: tl1a → tslp → il4ra → fcrn → igf1r → tcell
+      # ──────────────────────────────────────────────────────────
+
+      - name: "[Manual/All] Step 3 → Steps 1,4,5,6 → Step 7 — Full pipeline (all areas)"
         if: |
           github.event_name == 'workflow_dispatch' &&
           github.event.inputs.area == 'all'
@@ -131,14 +170,25 @@ jobs:
           fi
 
           for AREA in $AREAS; do
-            echo "Processing area: $AREA"
-            if [ "$SKIP_TRIAL" != "true" ]; then
-              echo "Running CT.gov sync"
-              python scripts/ct_gov_sync.py --area $AREA $DRY_FLAG
-            fi
-            echo "Running intelligence pipeline"
-            python scripts/company_enrichment.py --area $AREA $DRY_FLAG
-            echo "Area $AREA complete"
-          done
-          echo "Full pipeline complete — all 6 areas"
+            echo "════════════════════════════════════════"
+            echo "  Processing area: $AREA"
+            echo "════════════════════════════════════════"
 
+            if [ "$SKIP_TRIAL" != "true" ]; then
+              echo "  → Step 3: CT.gov trial sync"
+              python scripts/ct_gov_sync.py --area $AREA $DRY_FLAG
+            else
+              echo "  → Step 3: SKIPPED (skip_trial_sync=true)"
+            fi
+
+            echo "  → Steps 1,4,5,6: Intelligence pipeline"
+            python scripts/company_enrichment.py --area $AREA $DRY_FLAG
+
+            echo "  → Step 7: Research intelligence audit"
+            python scripts/research_intelligence.py --area $AREA $DRY_FLAG
+
+            echo "  ✓ Area $AREA complete"
+          done
+          echo "════════════════════════════════════════"
+          echo "  Full pipeline complete — all 6 areas"
+          echo "════════════════════════════════════════"
