@@ -9434,7 +9434,7 @@ async function _gsSbSearch(term) {
     const tabId = _GS_AREA_TO_TAB[areaIds[0]] || 'industry-insights';
     const tabLbl = _GS_TAB_LABEL[tabId] || tabId;
     const srcBtn = item.source_url ? '<a onclick="event.stopPropagation()" href="'+item.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
-    html += '<div class="gs-sb-item" style="cursor:pointer" onclick="_gsNavigate(''+areaIds[0]+'','intel')">'
+    html += '<div class="gs-sb-item gs-nav-item" data-area="'+(areaIds[0]||'')+'" data-gtype="intel" style="cursor:pointer">'
      + '<div class="gs-sb-headline">' + hl(item.headline) + srcBtn + '</div>'
      + '<div class="gs-sb-meta">'
      + '<span class="gs-sb-badge" style="background:'+tc+'28;color:'+tc+'">'+(item.intel_type||'news')+'</span>'
@@ -9453,7 +9453,7 @@ async function _gsSbSearch(term) {
     const dTabId = _GS_AREA_TO_TAB[d.area_id] || 'industry-insights';
     const dTabLbl = _GS_TAB_LABEL[dTabId] || dTabId;
     const dSrcBtn = d.source_url ? '<a onclick="event.stopPropagation()" href="'+d.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
-    html += '<div class="gs-sb-item" style="cursor:pointer" onclick="_gsNavigate(''+d.area_id+'','deal')">'
+    html += '<div class="gs-sb-item gs-nav-item" data-area="'+(d.area_id||'')+'" data-gtype="deal" style="cursor:pointer">'
      + '<div class="gs-sb-headline">' + hl(d.headline) + dSrcBtn + '</div>'
      + '<div class="gs-sb-meta">'
      + '<span class="gs-sb-badge" style="background:#f59e0b28;color:#f59e0b">deal</span>'
@@ -9470,7 +9470,7 @@ async function _gsSbSearch(term) {
     const sc = c.significance === 'high' ? '#ef4444' : c.significance === 'medium' ? '#f59e0b' : '#6b7280';
     const cTabId = _GS_AREA_TO_TAB[c.area_id] || 'home';
     const cTabLbl = _GS_TAB_LABEL[cTabId] || cTabId;
-    html += '<div class="gs-sb-item" style="cursor:pointer" onclick="_gsNavigate(''+c.area_id+'','catalyst')">'
+    html += '<div class="gs-sb-item gs-nav-item" data-area="'+(c.area_id||'')+'" data-gtype="catalyst" style="cursor:pointer">'
      + '<div class="gs-sb-headline">' + hl(c.label) + '</div>'
      + '<div class="gs-sb-meta">'
      + '<span class="gs-sb-badge" style="background:'+sc+'28;color:'+sc+'">'+(c.significance||'')+'</span>'
@@ -9490,6 +9490,15 @@ async function _gsSbSearch(term) {
 document.addEventListener('click', function(e) {
  const wrap = document.querySelector('.header-search-wrap');
  const panel = document.getElementById('gs-sb-panel');
+ // Delegated navigation click on search results
+ const navItem = e.target.closest('.gs-nav-item');
+ if (navItem && wrap && wrap.contains(navItem)) {
+   if (e.target.closest('.gs-sb-src')) return; // let source link handle itself
+   const area = navItem.dataset.area || '';
+   const gtype = navItem.dataset.gtype || 'intel';
+   _gsNavigate(area, gtype);
+   return;
+ }
  if (panel && wrap && !wrap.contains(e.target)) panel.style.display = 'none';
 });
 
