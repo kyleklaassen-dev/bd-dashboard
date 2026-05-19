@@ -6,11 +6,15 @@ Print-friendly output; safe to run any time (read-only).
 
 USAGE:
     python scripts/identity_health_check.py
+    python scripts/identity_health_check.py --fail-on-orphans
+    python scripts/identity_health_check.py --fail-on-fuzzy-pending
+    python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
     # Or with explicit credentials:
     SUPABASE_URL=... SUPABASE_PAT=... python scripts/identity_health_check.py
 """
 
+import argparse
 import os
 import sys
 import json
@@ -29,7 +33,8 @@ def run_sql(pat: str, query: str) -> list[dict]:
     return resp.json()
 
 
-def health_check(pat: str):
+def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending: bool = False) -> int:
+    """Run the health check. Returns exit code: 0 = healthy, 1 = failure condition triggered."""
     print("═" * 58)
     print("  Identity Resolution Health Check")
     print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
@@ -164,17 +169,41 @@ def health_check(pat: str):
     if orphans > 0:
         issues.append(f"{orphans} orphaned drug records — broken canonical_drug_id FK")
 
+    # ── CI failure conditions ─────────────────────────────────
+    exit_code = 0
+    if fail_on_orphans and orphans > 0:
+        issues.append(f"[CI FAIL] --fail-on-orphans: {orphans} orphaned records found")
+        exit_code = 1
+    if fail_on_fuzzy_pending and pending > 0:
+        issues.append(f"[CI FAIL] --fail-on-fuzzy-pending: {pending} fuzzy review(s) pending")
+        exit_code = 1
+
     print(f"\n{'═' * 58}")
     if not issues:
         print("  ✅  All checks passed — identity layer healthy")
     else:
-        print(f"  ⚠️   {len(issues)} issue(s) to address:")
-        for issue in issues:
-            print(f"      • {issue}")
+        ci_issues  = [i for i in issues if i.startswith("[CI FAIL]")]
+        warn_issues = [i for i in issues if not i.startswith("[CI FAIL]")]
+        if warn_issues:
+            print(f"  ⚠️   {len(warn_issues)} issue(s) to address:")
+            for issue in warn_issues:
+                print(f"      • {issue}")
+        if ci_issues:
+            print(f"\n  ❌  {len(ci_issues)} CI failure condition(s):")
+            for issue in ci_issues:
+                print(f"      • {issue.replace('[CI FAIL] ', '')}")
     print("═" * 58)
+    return exit_code
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Identity layer health check")
+    parser.add_argument("--fail-on-orphans", action="store_true",
+                        help="Exit 1 if any orphaned drug records are found")
+    parser.add_argument("--fail-on-fuzzy-pending", action="store_true",
+                        help="Exit 1 if any fuzzy-match reviews are pending")
+    args = parser.parse_args()
+
     # Credentials: env vars first, then workspace files
     pat = os.environ.get("SUPABASE_PAT", "")
     if not pat:
@@ -188,4 +217,6 @@ if __name__ == "__main__":
                 "ERROR: SUPABASE_PAT env var not set and .supabase_pat file not found."
             )
 
-    health_check(pat)
+    code = health_check(pat, fail_on_orphans=args.fail_on_orphans,
+                        fail_on_fuzzy_pending=args.fail_on_fuzzy_pending)
+    sys.exit(code)
