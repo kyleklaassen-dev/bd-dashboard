@@ -1265,6 +1265,19 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .ii-live-wrap { padding:16px 24px 4px; }
 .ii-live-hd { font-size:12px; font-weight:800; color:#1e3a5f; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
 .ii-live-area { font-size:9px; font-weight:700; color:white; padding:2px 7px; border-radius:8px; }
+/* Collapsed intel rows */
+.ii-item { border-bottom:1px solid #f0f4f8; cursor:pointer; }
+.ii-item:hover .ii-item-row { background:#f8fafc; }
+.ii-item-row { display:flex; align-items:center; gap:7px; padding:7px 4px; }
+.ii-item-dot { flex-shrink:0; font-size:11px; }
+.ii-item-areas { display:flex; gap:3px; flex-shrink:0; flex-wrap:nowrap; }
+.ii-item-headline { flex:1; font-size:12px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.ii-item-date { font-size:10px; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
+.ii-item-chevron { font-size:9px; color:#94a3b8; flex-shrink:0; width:12px; text-align:center; transition:transform .15s; }
+.ii-item-detail { display:none; padding:4px 4px 10px 24px; }
+.ii-item-detail.open { display:block; }
+.ii-item-detail-body { font-size:11px; color:#475569; line-height:1.5; margin-bottom:4px; }
+.ii-item-detail-meta { font-size:10px; color:#94a3b8; }
 .ii-month-hd { padding:14px 18px; background:#1e3a5f; color:#fff; font-weight:700; font-size:14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
 .ii-month-hd span { font-size:11px; font-weight:400; opacity:0.7; }
 .ii-month-body { padding:0; }
@@ -2542,7 +2555,7 @@ function loadMoleculeTab(tabId) {
   <div class="rdt-wrap" style="margin-top:20px;">
    <div class="rdt-hd">
     <span class="rdt-hd-title">📋 BD Deal Tracker</span>
-    <span class="rdt-hd-sub">Reverse chronological · broad pharma + Ailux focus areas</span>
+    <span class="rdt-hd-sub"></span>
    </div>
    <div class="rdt-scroll">
     <table class="rdt-table" id="rdt-main-table">
@@ -8701,13 +8714,21 @@ function rdtLoadMore() {
 }
 
 // ── II Live Intel Feed ────────────────────────────────────────────────────────
+function iiToggle(id) {
+  const detail = document.getElementById('ii-detail-' + id);
+  const chev   = document.getElementById('ii-chev-' + id);
+  if (!detail) return;
+  const open = detail.classList.toggle('open');
+  if (chev) chev.textContent = open ? '▼' : '▶';
+}
+
 async function loadLiveIntel() {
   const body = document.getElementById('ii-live-body');
   if (!body) return;
   try {
     const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').limit(200);
     const { data: rows, error } = await _sb.from('intel')
-      .select('*').order('intel_date', { ascending: false }).limit(20);
+      .select('*').order('intel_date', { ascending: false }).limit(40);
     if (error) throw error;
     if (!rows || !rows.length) {
       body.innerHTML = '<div style="color:#94a3b8;font-size:12px;">No intelligence yet — research pipeline runs Mon–Sat at 4 AM ET.</div>';
@@ -8717,20 +8738,26 @@ async function loadLiveIntel() {
     (iaRows||[]).forEach(r => { if (!areaMap[r.intel_id]) areaMap[r.intel_id] = []; areaMap[r.intel_id].push(r.area_id); });
     const AREA_COLORS = { tl1a:'#1a3f8f',tslp:'#0e7490',il4ra:'#7c3aed',igf1r:'#b45309',fcrn:'#15803d',tcell:'#dc2626' };
     body.innerHTML = rows.map(item => {
-      const dot = item.importance==='high'?'🔴':item.importance==='medium'?'🟡':'⚪';
-      const areas = (areaMap[item.id]||[]).map(a => `<span class="ii-live-area" style="background:${AREA_COLORS[a]||'#4b5563'}">${AREA_LABELS[a]||a}</span>`).join(' ');
-      const typeTag = item.intel_type ? `<span style="font-size:9px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;margin-left:4px;">${item.intel_type}</span>` : '';
-      const src = item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;margin-left:4px;">↗</a>` : '';
-      return `<div style="padding:9px 0;border-bottom:1px solid #f0f4f8">
-<div style="display:flex;align-items:flex-start;gap:8px">
-  <span style="flex-shrink:0;margin-top:2px">${dot}</span>
-  <div style="flex:1;min-width:0">
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px">${areas}${typeTag}</div>
-    <div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.4">${item.headline||''}${src}</div>
-    ${item.body?`<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.5">${item.body}</div>`:''}
-    <div style="font-size:10px;color:#94a3b8;margin-top:3px">${item.intel_date||''} · ${item.source_name||''}</div>
+      const dot   = item.importance==='high'?'🔴':item.importance==='medium'?'🟡':'⚪';
+      const areas = (areaMap[item.id]||[]).map(a =>
+        `<span class="ii-live-area" style="background:${AREA_COLORS[a]||'#4b5563'}">${AREA_LABELS[a]||a}</span>`
+      ).join('');
+      const src = item.source_url
+        ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;margin-left:6px;" onclick="event.stopPropagation()">↗</a>`
+        : '';
+      const hasDetail = item.body || item.source_name;
+      return `<div class="ii-item" onclick="iiToggle('${item.id}')">
+  <div class="ii-item-row">
+    <span class="ii-item-dot">${dot}</span>
+    <span class="ii-item-areas">${areas}</span>
+    <span class="ii-item-headline">${item.headline||''}</span>
+    <span class="ii-item-date">${item.intel_date||''}</span>
+    ${hasDetail ? `<span class="ii-item-chevron" id="ii-chev-${item.id}">▶</span>` : '<span class="ii-item-chevron"></span>'}
   </div>
-</div>
+  ${hasDetail ? `<div class="ii-item-detail" id="ii-detail-${item.id}">
+    ${item.body ? `<div class="ii-item-detail-body">${item.body}</div>` : ''}
+    ${(item.source_name||item.source_url) ? `<div class="ii-item-detail-meta">${item.source_name||''}${src}</div>` : ''}
+  </div>` : ''}
 </div>`;
     }).join('');
   } catch(e) {
