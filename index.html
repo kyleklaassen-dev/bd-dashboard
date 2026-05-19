@@ -8879,7 +8879,11 @@ const tl1aPI = {
 
   const buttons = drugsToRender.map(d => {
    const drugsTrials = sbTrials ? sbTrials.filter(t => t.drug_id === d.id) : [];
-   return this._makeDynamicDrugBtn(d, drugsTrials, companyId);
+   // Fallback to static prog.trials when Supabase trials table not yet populated.
+   // Normalize nct→id so NCT links render correctly in the popup.
+   const staticFallback = (prog.trials || []).map(t => ({...t, id: t.id || t.nct}));
+   const trialsToUse = drugsTrials.length ? drugsTrials : staticFallback;
+   return this._makeDynamicDrugBtn(d, trialsToUse, companyId);
   }).join('');
 
   return `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:8px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
