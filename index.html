@@ -2307,9 +2307,7 @@ function loadMoleculeTab(tabId) {
   loadAreaIntel(tabId);
   loadAreaCatalysts(tabId);
   loadAreaDeals(tabId);
-  loadAreaCompetitors(tabId);
-  loadAreaCompanies(tabId);
-  loadAreaDrugs(tabId);
+  loadAreaPI(tabId);           // replaces loadAreaCompetitors
   loadAreaBDActivity(tabId);
 }
 
@@ -3621,131 +3619,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-tslp">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-tslp')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">6 companies tracked</span>
-      <span class="comp-toggle" id="cw-tslp-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="tslp-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · TSLP × IL-33 · Respiratory</span>
+      <span class="pi-hd-count" id="tslp-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-tslp-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('amgen-az-tslp')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Amgen / AstraZeneca</strong>
-            <span class="cw-co-drug">&#8212; Tezepelumab (Tezspire)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">AMGN / AZN</span>
-          <span class="cw-toggle-icon" id="amgen-az-tslp-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="amgen-az-tslp-body" style="display:none">
-          <p class="cw-summary">Tezepelumab is the only approved anti-TSLP therapy, approved for severe asthma 2021 with ~$1B+ annual sales. NAVIGATOR showed benefit across all phenotypes including non-eosinophilic. Any TSLP bispecific must demonstrate clear added benefit over this approved monotherapy bar.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.astrazeneca.com/our-therapy-areas/respiratory-immunology/tezspire.html" target="_blank" rel="noopener" class="cw-pr-link">Tezspire commercial and pipeline update — AstraZeneca</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('windward-tslp')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Windward Bio</strong>
-            <span class="cw-co-drug">&#8212; WIN378 + WIN027 + QX031N rights</span>
-            <span class="cw-stage-pill">Phase 3 / Phase 1</span>
-          </div>
-          <span class="cw-ticker">Private (IPO planned)</span>
-          <span class="cw-toggle-icon" id="windward-tslp-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="windward-tslp-body" style="display:none">
-          <p class="cw-summary">Windward raised $165M crossover (May 2026), positioning for IPO. WIN378 Ph2/3 (POLARIS) fully recruited; initial data H2 2026; Ph3 start Q4 2026. WIN027 (TSLP x IL-13 bispecific) PoC studies launching Q4 2026. Also acquired Qyuns QX031N TSLP x IL-33 rights in $700M deal, building a dominant TSLP bispecific portfolio.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-05</span> <a href="https://www.globenewswire.com/news-release/2026/05/04/3286605/0/en/windward-bio-announces-165m-crossover-financing" target="_blank" rel="noopener" class="cw-pr-link">$165M crossover financing to advance WIN378 Ph3 and WIN027 bispecific</a></li><li><span class="cw-pr-date">2025-12</span> <a href="https://www.globenewswire.com/news-release/2025/12/22/3208925/0/en/Windward-Bio-Expands-Immunology-Pipeline-With-WIN027" target="_blank" rel="noopener" class="cw-pr-link">WIN027 (TSLP x IL-13 bispecific) pipeline expansion — Windward Bio</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('biosion-tslp')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Biosion / Aclaris Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; BSI-045B (TSLP x IL-33 bispecific)</span>
-            <span class="cw-stage-pill">Phase 1/2</span>
-          </div>
-          <span class="cw-ticker">Private / ACRS</span>
-          <span class="cw-toggle-icon" id="biosion-tslp-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="biosion-tslp-body" style="display:none">
-          <p class="cw-summary">BSI-045B is a TSLP x IL-33 bispecific licensed to Aclaris in a &gt;$900M deal. Most advanced TSLP x IL-33 bispecific in clinical trials; first Phase 1/2 data will be the first-ever clinical readout for this MOA.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.aclaris.com/pipeline" target="_blank" rel="noopener" class="cw-pr-link">Aclaris licenses BSI-045B (TSLP x IL-33 bispecific) from Biosion — &gt;$900M deal</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('qyuns-roche-tslp')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Qyuns Therapeutics / Roche</strong>
-            <span class="cw-co-drug">&#8212; QX031N (TSLP x IL-33 bispecific)</span>
-            <span class="cw-stage-pill">Phase 1</span>
-          </div>
-          <span class="cw-ticker">Private / ROG</span>
-          <span class="cw-toggle-icon" id="qyuns-roche-tslp-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="qyuns-roche-tslp-body" style="display:none">
-          <p class="cw-summary">QX031N (TSLP x IL-33 bispecific) licensed to Roche in a $7.25B deal. FIH in 2026. Roche's deep respiratory and immunology franchises provide major commercial backing. Direct head-to-head comparison vs. BSI-045B same MOA will be definitive.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.roche.com/media/releases" target="_blank" rel="noopener" class="cw-pr-link">Roche licenses QX031N TSLP x IL-33 bispecific from Qyuns in $7.25B deal</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('regen-tslp')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Regeneron / Sanofi</strong>
-            <span class="cw-co-drug">&#8212; Itepekimab (anti-IL-33) + dupilumab combo</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">REGN / SNY</span>
-          <span class="cw-toggle-icon" id="regen-tslp-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="regen-tslp-body" style="display:none">
-          <p class="cw-summary">Itepekimab targets IL-33 (downstream of TSLP) in severe asthma and COPD. Phase 3 AERIFY data in COPD expected 2025-2026. Dupilumab + itepekimab combination studies serve as a proxy for dual TSLP bispecific benefit research.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://investor.regeneron.com" target="_blank" rel="noopener" class="cw-pr-link">Itepekimab Phase 3 program update — Regeneron investor relations</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('roche-astegolimab')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Roche / Genentech</strong>
-            <span class="cw-co-drug">&#8212; Astegolimab (anti-IL-33)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">ROG</span>
-          <span class="cw-toggle-icon" id="roche-astegolimab-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="roche-astegolimab-body" style="display:none">
-          <p class="cw-summary">Astegolimab (anti-IL-33 mAb) is in Phase 3 SOLSTICE for asthma and COPD. Validates IL-33 as a target. Roche has deep IL-33 franchise (astegolimab + QX031N bispecific) — building dominant IL-33 position in respiratory disease.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.roche.com/media/releases" target="_blank" rel="noopener" class="cw-pr-link">Astegolimab Ph3 SOLSTICE asthma/COPD update — Roche</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="tslp-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -3896,131 +3780,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-il4ra-tslp">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-il4ra-tslp')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">6 companies tracked</span>
-      <span class="comp-toggle" id="cw-il4ra-tslp-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="il4ra-tslp-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · IL-4Rα × TSLP · Atopic Disease</span>
+      <span class="pi-hd-count" id="il4ra-tslp-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-il4ra-tslp-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('sanofi-regen-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Sanofi / Regeneron</strong>
-            <span class="cw-co-drug">&#8212; Dupilumab (Dupixent)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">SNY / REGN</span>
-          <span class="cw-toggle-icon" id="sanofi-regen-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="sanofi-regen-il4ra-body" style="display:none">
-          <p class="cw-summary">Dupilumab is the IL-4Ra category leader with $13.5B global net sales FY2024 (+22% YoY). Approved in AD, asthma, CRSwNP, EoE, PN, COPD. Sets the clinical/commercial bar any IL-4Ra bispecific must clear. Key question: does adding TSLP to IL-4Ra blockade meaningfully improve outcomes vs. dupilumab alone?</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.sanofi.com/en/media-room" target="_blank" rel="noopener" class="cw-pr-link">Dupixent FY2024 global net sales $13.5B — Sanofi</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('apogee-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Apogee Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; APG279 (IL-13+OX40L combo) + APG777 (anti-IL-13)</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">APGE</span>
-          <span class="cw-toggle-icon" id="apogee-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="apogee-il4ra-body" style="display:none">
-          <p class="cw-summary">Apogee is building a bispecific franchise in atopic disease. APG777 (anti-IL-13, zumilokibart) showed best-in-class EASI-75 in Ph2 APEX trial (July 2025). APG279 (IL-13+OX40L fixed-dose combo) has Ph1b head-to-head vs. dupilumab readout expected H2 2026 — first direct bispecific vs. SOC head-to-head in AD.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-07</span> <a href="https://investors.apogeetherapeutics.com/news-releases/news-release-details/apogee-therapeutics-announces-positive-16-week-data-phase-2-apex" target="_blank" rel="noopener" class="cw-pr-link">APG777 Phase 2 APEX: highest EASI-75 to date in AD — Apogee</a></li><li><span class="cw-pr-date">2026-01</span> <a href="https://apogeetherapeutics.gcs-web.com/news-releases/news-release-details/apogee-therapeutics-announces-positive-interim-results-phase-0" target="_blank" rel="noopener" class="cw-pr-link">APG777 asthma Phase 1b data: best-in-class dosing profile potential</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('innovent-sanofi-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Innovent / Sanofi</strong>
-            <span class="cw-co-drug">&#8212; IBI333 (IL-4Ra x TSLP bispecific)</span>
-            <span class="cw-stage-pill">Phase 3 (Asia)</span>
-          </div>
-          <span class="cw-ticker">1801.HK / SNY</span>
-          <span class="cw-toggle-icon" id="innovent-sanofi-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="innovent-sanofi-il4ra-body" style="display:none">
-          <p class="cw-summary">IBI333 is the most advanced IL-4Ra x TSLP bispecific, licensed to Sanofi in a $635M deal. Phase 3 in AD/asthma running in Asia. First registrational-level evidence for IL-4Ra x TSLP dual-blockade will come from this program. Sanofi sponsorship enables global filing pathway.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.innoventbio.com" target="_blank" rel="noopener" class="cw-pr-link">Sanofi licenses IBI333 from Innovent in $635M IL-4Ra x TSLP bispecific deal</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('lilly-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Eli Lilly</strong>
-            <span class="cw-co-drug">&#8212; Lebrikizumab (Ebglyss)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">LLY</span>
-          <span class="cw-toggle-icon" id="lilly-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="lilly-il4ra-body" style="display:none">
-          <p class="cw-summary">Lebrikizumab (anti-IL-13) approved for moderate-severe AD in 2023. Lilly aggressively expanding via Almirall partnership (EU commercial). Monthly/quarterly dosing options. Sets the IL-13 mono-blockade benchmark. Ailux IL-4Ra bispecific must demonstrate benefit beyond IL-13 alone.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://investor.lilly.com" target="_blank" rel="noopener" class="cw-pr-link">Ebglyss long-term data and Almirall partnership expansion — Eli Lilly</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('leo-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">LEO Pharma</strong>
-            <span class="cw-co-drug">&#8212; Tralokinumab (Adbry)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">Private</span>
-          <span class="cw-toggle-icon" id="leo-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="leo-il4ra-body" style="display:none">
-          <p class="cw-summary">Tralokinumab (Adbry) is approved for moderate-severe AD (2021). LEO Pharma is a dermatology-focused company with a long-acting SC formulation program under development. Pure IL-13 mono-blockade with strong long-term safety data. Defines the IL-13 class benchmark in AD.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.leo-pharma.com" target="_blank" rel="noopener" class="cw-pr-link">Adbry long-acting formulation program and pipeline update — LEO Pharma</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('galderma-pfizer-il4ra')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Galderma / Pfizer</strong>
-            <span class="cw-co-drug">&#8212; Nemolizumab (Nemluvio)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">Private / PFE</span>
-          <span class="cw-toggle-icon" id="galderma-pfizer-il4ra-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="galderma-pfizer-il4ra-body" style="display:none">
-          <p class="cw-summary">Nemolizumab (anti-IL-31Ra) approved for AD and prurigo nodularis in 2024. Anti-pruritic mechanism complements type-2 cytokine blockade. Galderma/Pfizer co-commercialization gives strong dermatology reach across both indications.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.galderma.com/news" target="_blank" rel="noopener" class="cw-pr-link">Nemluvio FDA approval for AD and prurigo nodularis — Galderma</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="il4ra-tslp-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -4173,93 +3943,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-il4ra-ox40l">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-il4ra-ox40l')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">4 companies tracked</span>
-      <span class="comp-toggle" id="cw-il4ra-ox40l-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="il4ra-ox40l-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · IL-4Rα × OX40L · Atopic Disease</span>
+      <span class="pi-hd-count" id="il4ra-ox40l-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-il4ra-ox40l-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('sanofi-amlitel')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Sanofi</strong>
-            <span class="cw-co-drug">&#8212; Amlitelimab (anti-OX40L)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">SNY</span>
-          <span class="cw-toggle-icon" id="sanofi-amlitel-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="sanofi-amlitel-body" style="display:none">
-          <p class="cw-summary">Amlitelimab targets OX40L — the same target arm as Ailux IL-4Ra x OX40L bispecific. COAST 1 Ph3 met all primary/key secondary endpoints (Sept 2025). SHORE and COAST 2 also delivered robust data. Potential 4x/year dosing. FDA submission planned H2 2026. Sanofi's commercial strength and dupilumab franchise make this the most dangerous OX40L mono-ab threat.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-03</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2026/2026-03-28-15-00-00-3264184" target="_blank" rel="noopener" class="cw-pr-link">AAD 2026: Ph3 SHORE &amp; COAST 2 results — late-breaking session</a></li><li><span class="cw-pr-date">2026-01</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2026/2026-01-23-06-00-00-3224400" target="_blank" rel="noopener" class="cw-pr-link">Amlitelimab confirms Ph3 potential — additional study data</a></li><li><span class="cw-pr-date">2025-09</span> <a href="https://www.sanofi.com/en/media-room/press-releases/2025/2025-09-04-05-00-00-3144170" target="_blank" rel="noopener" class="cw-pr-link">COAST 1 Phase 3: all primary and key secondary endpoints met</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('amgen-kk-ox40')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Amgen / Kyowa Kirin</strong>
-            <span class="cw-co-drug">&#8212; Rocatinlimab (anti-OX40 receptor)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">AMGN / 4151.T</span>
-          <span class="cw-toggle-icon" id="amgen-kk-ox40-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="amgen-kk-ox40-body" style="display:none">
-          <p class="cw-summary">Rocatinlimab blocks OX40 receptor (vs. OX40L ligand). Ph3 ROCKET-IGNITE (42.3% EASI-75) and ROCKET-HORIZON (32.8% EASI-75) both met primary endpoints in 2025. ASCEND long-term extension shows durable benefit at 1 year with Q4W or Q8W dosing. Regulatory filings planned. Key mechanistic question: receptor vs. ligand blockade — does one show better durability?</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-09</span> <a href="https://www.amgen.com/newsroom/press-releases/2025/09/amgen-and-kyowa-kirin-announce-top-line-results-from-rocatinlimab-phase-3-ascend-long-term-extension-study-in-adults-with-moderate-to-severe-atopic-dermatitis" target="_blank" rel="noopener" class="cw-pr-link">ASCEND long-term extension: durable benefit at 1-year Q4W/Q8W dosing</a></li><li><span class="cw-pr-date">2025-03</span> <a href="https://www.amgen.com/newsroom/press-releases/2025/03/amgen-and-kyowa-kirin-provide-top-line-results-from-rocatinlimab-phase-3-ignite-study-in-adults-with-moderate-to-severe-atopic-dermatitis" target="_blank" rel="noopener" class="cw-pr-link">ROCKET-IGNITE Phase 3 top-line results — Amgen/Kyowa Kirin</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('apogee-ox40l')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Apogee Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; APG279 (IL-13+OX40L combo) + APG777</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">APGE</span>
-          <span class="cw-toggle-icon" id="apogee-ox40l-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="apogee-ox40l-body" style="display:none">
-          <p class="cw-summary">APG279 directly combines IL-13+OX40L blockade — mechanistically overlapping with IL-4Ra+OX40L. Ph1b head-to-head vs. dupilumab enrolling 80 patients; readout H2 2026. This will be the first direct bispecific vs. approved standard-of-care head-to-head in AD — landmark data for the entire bispecific class.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-07</span> <a href="https://investors.apogeetherapeutics.com/news-releases/news-release-details/apogee-therapeutics-announces-positive-16-week-data-phase-2-apex" target="_blank" rel="noopener" class="cw-pr-link">APG777 Ph2 APEX 16-week data: highest EASI-75 to date in AD — Apogee</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('lilly-ox40l')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Eli Lilly</strong>
-            <span class="cw-co-drug">&#8212; Lebrikizumab (Ebglyss)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">LLY</span>
-          <span class="cw-toggle-icon" id="lilly-ox40l-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="lilly-ox40l-body" style="display:none">
-          <p class="cw-summary">Lebrikizumab (anti-IL-13) sets the IL-13/IL-4Ra downstream benchmark in AD. Lilly's aggressive dermatology expansion (Almirall partnership EU) signals long-term market commitment. Ailux OX40L bispecific must show benefit beyond Lilly's IL-13/IL-4Ra mono-ab market share.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://investor.lilly.com" target="_blank" rel="noopener" class="cw-pr-link">Ebglyss expansion and Almirall partnership — Eli Lilly IR</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="il4ra-ox40l-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -4413,74 +4107,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-igf1r-tshr">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-igf1r-tshr')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">3 companies tracked</span>
-      <span class="comp-toggle" id="cw-igf1r-tshr-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="igf1r-tshr-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · IGF-1R × TSHR · Thyroid Eye Disease</span>
+      <span class="pi-hd-count" id="igf1r-tshr-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-igf1r-tshr-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('amgen-tepezza-igf')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Amgen / Horizon Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; Teprotumumab (Tepezza)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">AMGN</span>
-          <span class="cw-toggle-icon" id="amgen-tepezza-igf-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="amgen-tepezza-igf-body" style="display:none">
-          <p class="cw-summary">Tepezza is the approved IGF-1R mAb for TED (2020); Amgen acquired Horizon for $28B in 2023. Generates ~$500M+ annually. Defines the proptosis reduction standard (2mm+ at 24 weeks) for TED. Amgen exploring SC formulation and expanded indications. Any TED drug must show non-inferiority or superiority vs. Tepezza.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.amgen.com/newsroom" target="_blank" rel="noopener" class="cw-pr-link">Tepezza commercial performance and SC formulation program — Amgen</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('immunovant-igf')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Immunovant / Roivant</strong>
-            <span class="cw-co-drug">&#8212; Batoclimab (Ph3 TED FAILED) + IMVT-1402 (Ph2/3 Graves)</span>
-            <span class="cw-stage-pill">Phase 3 / Phase 2</span>
-          </div>
-          <span class="cw-ticker">IMVT</span>
-          <span class="cw-toggle-icon" id="immunovant-igf-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="immunovant-igf-body" style="display:none">
-          <p class="cw-summary">Batoclimab Phase 3 in TED missed both primary endpoints (April 2026) — validating biologic IGF-1R blockade (teprotumumab) over FcRn-based indirect approach in TED. IMVT-1402 continues in Graves' disease (topline 2027) and MG/other autoimmune. FcRn TED failure is actually a positive signal for direct IGF-1R targeting like Ailux bispecific.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-04</span> <a href="https://www.globenewswire.com/news-release/2026/04/02/3267162/0/en/Immunovant-Announces-Phase-3-Study-Results-for-Batoclimab-in-Thyroid-Eye-Disease-TED.html" target="_blank" rel="noopener" class="cw-pr-link">Batoclimab Phase 3 TED: primary endpoints missed — both studies failed</a></li><li><span class="cw-pr-date">2025</span> <a href="https://www.immunovant.com/investors/news-events/press-releases/detail/77/immunovant-provides-corporate-updates-and-reports-financial" target="_blank" rel="noopener" class="cw-pr-link">Immunovant IMVT-1402 multi-indication Ph2/3 Q2 2025 update</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('novartis-iscal')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Reference</span>
-            <strong class="cw-co-name">Novartis</strong>
-            <span class="cw-co-drug">&#8212; Iscalimab (CFZ533, anti-CD40)</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">NVS</span>
-          <span class="cw-toggle-icon" id="novartis-iscal-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="novartis-iscal-body" style="display:none">
-          <p class="cw-summary">Iscalimab is an anti-CD40 mAb being tested in TED. CD40/CD40L modulates orbital fibroblast activation — a different upstream target from IGF-1R x TSHR. Limited TED efficacy data published; proptosis response vs. teprotumumab benchmark unclear. Could be a complementary mechanism rather than direct competitor.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.novartis.com/investors" target="_blank" rel="noopener" class="cw-pr-link">Novartis iscalimab TED Phase 2 update — Novartis IR</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="igf1r-tshr-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -4633,112 +4270,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-fcrn">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-fcrn')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">5 companies tracked</span>
-      <span class="comp-toggle" id="cw-fcrn-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="fcrn-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · FcRn · Autoimmune / IgG Reduction</span>
+      <span class="pi-hd-count" id="fcrn-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-fcrn-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('argenx-fcrn')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">argenx</strong>
-            <span class="cw-co-drug">&#8212; Efgartigimod (Vyvgart/Hytrulo) + ARGX-117 bispecific</span>
-            <span class="cw-stage-pill">Approved / Phase 2</span>
-          </div>
-          <span class="cw-ticker">ARGX</span>
-          <span class="cw-toggle-icon" id="argenx-fcrn-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="argenx-fcrn-body" style="display:none">
-          <p class="cw-summary">argenx is the FcRn category leader. Vyvgart generated $4.2B in FY2025 sales (+90% YoY). FDA expanded label to all gMG serotypes (April 2026). TED Phase 3 (UplighTED) discontinued for futility. Graves' disease Ph3 initiating 2026. ARGX-117 (FcRn x CD131 bispecific) in Phase 2 for CIDP and IgAN. Four Phase 3 molecules planned by end of 2026.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-04</span> <a href="https://argenx.com/news/2026/press-release-3291372" target="_blank" rel="noopener" class="cw-pr-link">FDA approves Vyvgart/Hytrulo label expansion to all adult gMG serotypes</a></li><li><span class="cw-pr-date">2026-02</span> <a href="https://argenx.com/news/2026/press-release-3245199" target="_blank" rel="noopener" class="cw-pr-link">FY2025 results: $4.2B Vyvgart sales, +90% YoY — argenx</a></li><li><span class="cw-pr-date">2025-10</span> <a href="https://argenx.com/news/2025/press-release-3205093" target="_blank" rel="noopener" class="cw-pr-link">UplighTED TED Phase 3 discontinued on IDMC futility recommendation</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('jj-nipocalimab')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">J&amp;J / Momenta</strong>
-            <span class="cw-co-drug">&#8212; Nipocalimab (Imaavy)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">JNJ</span>
-          <span class="cw-toggle-icon" id="jj-nipocalimab-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="jj-nipocalimab-body" style="display:none">
-          <p class="cw-summary">Nipocalimab (Imaavy) received FDA approval for gMG in 2025 — first anti-FcRn mAb to full US approval. J&amp;J expanding into HDFN and SLE. Strong commercial infrastructure and immunology franchise. Sets the FcRn approval precedent; Ailux bispecific must clearly differentiate vs. this approved class.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://investor.jnj.com" target="_blank" rel="noopener" class="cw-pr-link">FDA approves Imaavy (nipocalimab) for generalized myasthenia gravis — J&amp;J</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('ucb-fcrn')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">UCB</strong>
-            <span class="cw-co-drug">&#8212; Rozanolixizumab (Rystiggo)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">UCB.BR</span>
-          <span class="cw-toggle-icon" id="ucb-fcrn-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="ucb-fcrn-body" style="display:none">
-          <p class="cw-summary">Rystiggo approved for gMG (2023) and ITP. UCB acquired Candid Bio for $2.2B signaling strong autoimmune commitment. SC formulation and neurological franchise expertise. Expanding FcRn-mediated indications portfolio.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2024</span> <a href="https://www.ucb.com" target="_blank" rel="noopener" class="cw-pr-link">UCB Candid Bio acquisition ($2.2B) — autoimmune pipeline expansion</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('immunovant-fcrn')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Immunovant / Roivant</strong>
-            <span class="cw-co-drug">&#8212; IMVT-1402 (next-gen FcRn inhibitor)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">IMVT</span>
-          <span class="cw-toggle-icon" id="immunovant-fcrn-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="immunovant-fcrn-body" style="display:none">
-          <p class="cw-summary">IMVT-1402 is Immunovant's next-gen FcRn inhibitor with improved albumin-sparing profile vs. batoclimab. Ph2/3 in gMG, WAIHA, Graves', BP. Multiple indication shots on goal. Batoclimab TED Phase 3 failed (April 2026), but IMVT-1402 multi-indication program continues.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2026-04</span> <a href="https://www.immunovant.com/investors/news-events/press-releases/detail/81/immunovant-announces-phase-3-study-results-for-batoclimab" target="_blank" rel="noopener" class="cw-pr-link">Batoclimab Ph3 TED fails; IMVT-1402 multi-indication plans continue</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('az-ravulizumab')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">AstraZeneca</strong>
-            <span class="cw-co-drug">&#8212; Ravulizumab (Ultomiris, anti-C5)</span>
-            <span class="cw-stage-pill">Approved</span>
-          </div>
-          <span class="cw-ticker">AZN</span>
-          <span class="cw-toggle-icon" id="az-ravulizumab-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="az-ravulizumab-body" style="display:none">
-          <p class="cw-summary">Ravulizumab (anti-C5 mAb) approved for gMG with Q8W dosing interval — a commercial advantage vs. monthly FcRn inhibitors. Complement blockade is a different mechanism (targets C5 vs. FcRn-mediated IgG clearance). Competes for the same gMG market with a longer dosing window but misses FcRn-driven pathology in some patients.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.astrazeneca.com" target="_blank" rel="noopener" class="cw-pr-link">Ultomiris gMG commercial performance and label expansion — AstraZeneca</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="fcrn-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -4900,131 +4442,17 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-drugs')">💊 Drugs to Know</button>
 </div>
 <div class="tab-pane" id="tab-ace">
-<div class="cw-card">
-  <div class="cw-hd" onclick="toggleSection('cw-ace')">
-    <span class="cw-hd-title">&#127970; Companies to Watch in This Space</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="cw-hd-badge">6 companies tracked</span>
-      <span class="comp-toggle" id="cw-ace-toggle">&#9660;</span>
+<div class="pi-card" style="margin:0 16px 0" id="ace-area-pi-wrap">
+  <div class="pi-hd">
+    <div class="pi-hd-left">
+      <span class="pi-hd-title">Competitive Landscape · T-Cell / ACE · Immuno-Oncology</span>
+      <span class="pi-hd-count" id="ace-area-pi-count">—</span>
+    </div>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
     </div>
   </div>
-  <div class="comp-body" id="cw-ace-body" style="display:none">
-    <div class="cw-grid">
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('cabaletta-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Cabaletta Bio</strong>
-            <span class="cw-co-drug">&#8212; Rese-cel / CABA-201 (CD19 CAR-T)</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">CABA</span>
-          <span class="cw-toggle-icon" id="cabaletta-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="cabaletta-ace-body" style="display:none">
-          <p class="cw-summary">Rese-cel (CABA-201) showed robust Phase 1/2 results at ACR 2025: 3/4 non-renal SLE patients in remission; all 6 SLE/LN patients off immunosuppressants. No-preconditioning cohort in RESET-SLE initiating; data expected 2026. FDA alignment on registrational designs planned 2025. One of the most compelling autoimmune CAR-T datasets emerging.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-11</span> <a href="https://www.cabalettabio.com/news-media/press-releases/detail/137/cabaletta-bio-presents-positive-clinical-data-and" target="_blank" rel="noopener" class="cw-pr-link">ACR 2025: positive data from RESET-SLE, RESET-Myositis, RESET-SSc</a></li><li><span class="cw-pr-date">2025</span> <a href="https://www.cabalettabio.com/news-media/press-releases/detail/112/cabaletta-bio-reports-positive-initial-clinical-data-from" target="_blank" rel="noopener" class="cw-pr-link">Phase 1/2 positive initial RESET-SLE and RESET-Myositis data</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('kyverna-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Kyverna Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; Miv-cel / KYV-101 (CD19 CAR-T)</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">KYTX</span>
-          <span class="cw-toggle-icon" id="kyverna-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="kyverna-ace-body" style="display:none">
-          <p class="cw-summary">Miv-cel is on track to be the first FDA-approved CAR-T for autoimmune disease. KYSA-8 in stiff person syndrome (SPS): 81% met clinically meaningful improvement; BLA filing H1 2026. KYSA-6 in gMG: 100% (6/6) patients met primary MG-ADL endpoint at 24 weeks. Phase 1 data emerging in MS, RA, and lupus nephritis.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-12</span> <a href="https://ir.kyvernatx.com/news-releases/news-release-details/kyverna-therapeutics-announces-positive-topline-data" target="_blank" rel="noopener" class="cw-pr-link">KYSA-8 positive topline: BLA for SPS planned H1 2026</a></li><li><span class="cw-pr-date">2025-11</span> <a href="https://ir.kyvernatx.com/news-releases/news-release-details/kyverna-therapeutics-announces-positive-interim-phase-2-data" target="_blank" rel="noopener" class="cw-pr-link">KYSA-6 gMG interim data: 100% primary endpoint met — AANEM 2025</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('novartis-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Novartis</strong>
-            <span class="cw-co-drug">&#8212; Ianalumab (VAY736, anti-BAFF-R)</span>
-            <span class="cw-stage-pill">Phase 3</span>
-          </div>
-          <span class="cw-ticker">NVS</span>
-          <span class="cw-toggle-icon" id="novartis-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="novartis-ace-body" style="display:none">
-          <p class="cw-summary">Ianalumab is in Phase 3 for SLE (SIRIUS program) and Sjogren's. BAFF-R depletion eliminates naive and transitional B cells — upstream mechanism vs. CAR-T's deeper depletion. SLE Phase 3 readout will shape the B-cell depletion competitive narrative and validate (or challenge) non-CAR-T B-cell targeting.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.novartis.com/investors" target="_blank" rel="noopener" class="cw-pr-link">Novartis ianalumab SLE Phase 3 SIRIUS update — Novartis IR</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('kali-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
-            <strong class="cw-co-name">Kali Therapeutics</strong>
-            <span class="cw-co-drug">&#8212; KT501 (CD19 x BCMA x CD3 trispecific)</span>
-            <span class="cw-stage-pill">Phase 1</span>
-          </div>
-          <span class="cw-ticker">Private</span>
-          <span class="cw-toggle-icon" id="kali-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="kali-ace-body" style="display:none">
-          <p class="cw-summary">KT501 is the first CD19 x BCMA x CD3 trispecific TCE in clinical trials — the most direct format competitor to Ailux ACE trispecific. First patient dosed May 2025 in RA. CD3-masking technology designed for improved safety. Phase 1 safety data will be the first-ever proof of concept for this exact format.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025-05</span> <a href="https://www.kalitx.com" target="_blank" rel="noopener" class="cw-pr-link">KT501 first patient dosed in Phase 1a RA — Kali Therapeutics</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('zenas-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fef9c3;color:#92400e;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Watch</span>
-            <strong class="cw-co-name">Zenas BioPharma</strong>
-            <span class="cw-co-drug">&#8212; Obexelimab (ZB002, CD19 x FcgRIIb bispecific)</span>
-            <span class="cw-stage-pill">Phase 2</span>
-          </div>
-          <span class="cw-ticker">ZBIO</span>
-          <span class="cw-toggle-icon" id="zenas-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="zenas-ace-body" style="display:none">
-          <p class="cw-summary">Obexelimab bridges CD19+ B cells to inhibitory FcgRIIb receptor — suppression without full depletion. Phase 2/3 in IgG4-RD; Phase 2 in SLE. Durability data critical: if sustained suppression without depletion is durable, this challenges the rationale for aggressive CAR-T elimination.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.zenasbiopharma.com" target="_blank" rel="noopener" class="cw-pr-link">Zenas BioPharma obexelimab IgG4-RD Phase 2/3 update</a></li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="cw-company-card">
-        <div class="cw-co-hd" onclick="cwToggle('jj-dara-ace')">
-          <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Reference</span>
-            <strong class="cw-co-name">J&amp;J</strong>
-            <span class="cw-co-drug">&#8212; Daratumumab (Darzalex, anti-CD38) — autoimmune exploration</span>
-            <span class="cw-stage-pill">Phase 2 (autoimmune)</span>
-          </div>
-          <span class="cw-ticker">JNJ</span>
-          <span class="cw-toggle-icon" id="jj-dara-ace-icon">&#9660;</span>
-        </div>
-        <div class="cw-co-body" id="jj-dara-ace-body" style="display:none">
-          <p class="cw-summary">Daratumumab (approved in R/R MM) targets CD38 on long-lived plasma cells that CD19-targeted B-cell depletion misses. Investigator-led trials in SLE and MG are exploring CD38 as complementary to B-cell targeting. CD38+CD19 combination could outperform single-target approaches in autoimmune.</p>
-          <div class="cw-pr-section">
-            <div class="cw-pr-hd">Recent Press Releases &amp; Updates</div>
-            <ul class="cw-pr-list"><li><span class="cw-pr-date">2025</span> <a href="https://www.jnj.com/latest-news/science" target="_blank" rel="noopener" class="cw-pr-link">Daratumumab autoimmune exploration in SLE/MG — J&amp;J pipeline</a></li></ul>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="pi-table-wrap">
+    <div id="ace-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
 </div>
 </div>
@@ -7308,6 +6736,206 @@ function _hideDrugPills(tid) {
     onLeave() { _hideDrugPills(tid); }
   });
 });
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// AreaPI — Universal Supabase-driven PI table for all drug tabs
+// Reads cls / overlap / target from drugs table (added via schema migration)
+// Falls back gracefully if columns are null
+// ══════════════════════════════════════════════════════════════════════════
+
+const _areaPIs = {};
+
+function _makeAreaPI(tabId, areaIds) {
+  const STAGE_ORDER_PI = {Approved:0,'Phase 3':1,'Phase 2':2,'Phase 1':3,'Pre-IND':4,Preclinical:5};
+  const OV_ORDER = {Direct:0,Adjacent:1,'Same-Space':2,Watch:3};
+
+  return {
+    tabId, areaIds,
+    data:[], filtered:[], expanded:new Set(),
+    sortCol:'stage', sortDir:1, loaded:false,
+
+    async init() {
+      const el = document.getElementById(this.tabId + '-area-pi');
+      if (!el || !window._sb) return;
+      try {
+        const { data:rows, error } = await _sb
+          .from('drug_areas')
+          .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,companies(name,ticker))')
+          .in('area_id', this.areaIds);
+        if (error) throw error;
+
+        const seen = new Set();
+        this.data = (rows||[]).map(r=>r.drugs).filter(d=>d&&!seen.has(d.id)&&seen.add(d.id)).map(d=>({
+          id:        d.id,
+          co:        d.companies?.name || d.company_id || '—',
+          ticker:    d.companies?.ticker || '',
+          drug:      d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
+          target:    d.target || _piExtractTarget(d.mechanism) || '—',
+          cls:       d.cls || '1st Gen',
+          stageKey:  d.stage || 'Preclinical',
+          overlap:   d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
+          summary:   d.ailux_angle || d.key_data || '',
+          stageDetail: d.stage_detail || '',
+        }));
+        this.filtered = [...this.data];
+        this.loaded = true;
+        this._renderPills();
+        this._renderTable();
+      } catch(e) {
+        const el2 = document.getElementById(this.tabId+'-area-pi');
+        if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
+      }
+    },
+
+    filter() {
+      const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
+      if (!wrap) return;
+      const cls   = wrap.querySelector('.pi-pill-group[data-filter="cls"]   .pi-pill.active')?.dataset?.val || '';
+      const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val || '';
+      const ov    = wrap.querySelector('.pi-pill-group[data-filter="overlap"].pi-pill.active')?.dataset?.val || '';
+      this.filtered = this.data.filter(p =>
+        (!cls   || p.cls === cls) &&
+        (!stage || p.stageKey === stage) &&
+        (!ov    || p.overlap === ov)
+      );
+      const cnt = document.getElementById(this.tabId+'-area-pi-count');
+      if (cnt) cnt.textContent = `${this.filtered.length} programs`;
+      this._renderTable();
+    },
+
+    sort(col) {
+      if (this.sortCol===col) this.sortDir*=-1; else { this.sortCol=col; this.sortDir=1; }
+      this._renderTable();
+    },
+
+    toggle(id) {
+      if (this.expanded.has(id)) this.expanded.delete(id); else this.expanded.add(id);
+      this._renderTable();
+    },
+
+    _renderPills() {
+      const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
+      if (!wrap) return;
+      const stages   = [...new Set(this.data.map(p=>p.stageKey))].sort((a,b)=>(STAGE_ORDER_PI[a]??9)-(STAGE_ORDER_PI[b]??9));
+      const classes  = ['1st Gen','2nd Gen','Next Gen'].filter(c=>this.data.some(p=>p.cls===c));
+      const overlaps = ['Direct','Adjacent','Same-Space','Watch'].filter(o=>this.data.some(p=>p.overlap===o));
+      const tid = this.tabId;
+
+      const pillBtn = (group, val, label) =>
+        `<button class="pi-pill" data-val="${val}" onclick="_areaPIPill('${tid}','${group}','${val}',this)">${label||val}</button>`;
+
+      const pillsEl = wrap.querySelector('.pi-pills-wrap');
+      if (!pillsEl) return;
+      pillsEl.innerHTML = `
+        <div class="pi-pill-group" data-filter="cls">
+          <span class="pi-pill-label">Class</span>
+          <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','cls','',this)">All</button>
+          ${classes.map(c=>pillBtn('cls',c)).join('')}
+        </div>
+        <div class="pi-pill-divider"></div>
+        <div class="pi-pill-group" data-filter="stage">
+          <span class="pi-pill-label">Stage</span>
+          <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','stage','',this)">All</button>
+          ${stages.map(s=>pillBtn('stage',s)).join('')}
+        </div>
+        <div class="pi-pill-divider"></div>
+        <div class="pi-pill-group" data-filter="overlap">
+          <span class="pi-pill-label">Relevance</span>
+          <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','overlap','',this)">All</button>
+          ${overlaps.map(o=>pillBtn('overlap',o)).join('')}
+        </div>`;
+    },
+
+    _clsPill(c)  { const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'}; return `<span class="pi-cls-pill ${m[c]||'pi-cls-1st'}">${c}</span>`; },
+    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre'}; return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`; },
+    _ovBadge(o)  { const m={Direct:'pi-overlap-direct',Adjacent:'pi-overlap-adjacent','Same-Space':'pi-overlap-same',Watch:'pi-overlap-watch'}; return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${o||'Watch'}</span>`; },
+
+    _renderTable() {
+      const el = document.getElementById(this.tabId+'-area-pi');
+      if (!el) return;
+      const cnt = document.getElementById(this.tabId+'-area-pi-count');
+
+      const sorted = [...this.filtered].sort((a,b)=>{
+        let av,bv;
+        if (this.sortCol==='co')      { av=a.co;  bv=b.co; }
+        else if (this.sortCol==='cls')    { av=a.cls; bv=b.cls; }
+        else if (this.sortCol==='stage')  { av=STAGE_ORDER_PI[a.stageKey]??9; bv=STAGE_ORDER_PI[b.stageKey]??9; }
+        else if (this.sortCol==='overlap'){ av=OV_ORDER[a.overlap]??9; bv=OV_ORDER[b.overlap]??9; }
+        else { av=a[this.sortCol]||''; bv=b[this.sortCol]||''; }
+        if (typeof av==='string') return this.sortDir*av.localeCompare(bv);
+        return this.sortDir*(av-bv);
+      });
+
+      if (cnt) cnt.textContent = `${sorted.length} programs`;
+
+      if (!sorted.length) {
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">No programs match the current filters.</div>';
+        return;
+      }
+
+      const tid = this.tabId;
+      const rows = sorted.map(p => {
+        const isExp = this.expanded.has(p.id);
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-body">
+          ${p.summary ? `<p style="font-size:12px;line-height:1.6;color:#1e3a5f;margin:0 0 8px">${p.summary}</p>` : ''}
+          ${p.stageDetail ? `<p style="font-size:11px;color:#475569;margin:0 0 8px">${p.stageDetail}</p>` : ''}
+          <div id="${tid}-pi-dd-${p.id}" style="font-size:11px;color:#64748b">
+            <span style="color:#94a3b8">Additional detail loads as research pipeline runs overnight.</span>
+          </div>
+        </div></td></tr>` : '';
+        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${p.id}')">
+          <td><div class="pi-co-wrap"><strong class="pi-co-name">${p.co}</strong>${p.ticker?`<span class="pi-ticker">${p.ticker}</span>`:''}</div></td>
+          <td><span class="pi-drug-name">${p.drug}</span></td>
+          <td><span class="pi-target-text" style="font-size:11px;color:#475569">${p.target}</span></td>
+          <td>${this._clsPill(p.cls)}</td>
+          <td>${this._stagePill(p.stageKey)}</td>
+          <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+        </tr>${expRow}`;
+      }).join('');
+
+      el.innerHTML = `<table class="pi-table">
+        <colgroup><col style="width:22%"><col style="width:22%"><col style="width:20%"><col style="width:9%"><col style="width:12%"><col style="width:15%"></colgroup>
+        <thead><tr>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Company</th>
+          <th>Drug</th>
+          <th>Target</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','cls')">Class</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Relevance</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    },
+  };
+}
+
+function _piExtractTarget(mech) {
+  if (!mech) return null;
+  const m = mech.match(/Anti-([A-Za-z0-9αβγδεζηθιΩÀ-ÿ×\-]+)/i);
+  if (m) return m[1];
+  const bi = mech.match(/([A-Z][A-Za-z0-9α-ω×\-]+\s*[×x]\s*[A-Z][A-Za-z0-9α-ω×\-]+)/);
+  if (bi) return bi[1];
+  return mech.replace(/\(.*?\)/g,'').split(/[\s,]/)[0] || null;
+}
+
+// Global delegation helpers
+function _areaPIPill(tabId, group, val, btn) {
+  const wrap = document.getElementById(tabId+'-area-pi-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll(`.pi-pill-group[data-filter="${group}"] .pi-pill`).forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  _areaPIs[tabId]?.filter();
+}
+function _areaPISort(tabId, col) { _areaPIs[tabId]?.sort(col); }
+function _areaPIToggle(tabId, id) { _areaPIs[tabId]?.toggle(id); }
+
+async function loadAreaPI(tabId) {
+  if (!TAB_AREA_MAP[tabId] || _areaPIs[tabId]?.loaded) return;
+  const pi = _makeAreaPI(tabId, TAB_AREA_MAP[tabId]);
+  _areaPIs[tabId] = pi;
+  await pi.init();
+}
 
 function switchTab(id, btn) {
   // Fire onLeave for the departing tab — isolated so errors don't block navigation
