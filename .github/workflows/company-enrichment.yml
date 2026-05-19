@@ -13,7 +13,8 @@ name: Intelligence Pipeline
 # exist when company_enrichment generates catalysts from PCD dates.
 # research_intelligence MUST run last — it audits the final state.
 #
-# For nightly scheduled runs: processes TL1A area only (most active).
+# For nightly scheduled runs: ct_gov_sync + company_enrichment run TL1A only
+# (most active); research_intelligence audits all 6 areas (fast, no API calls).
 # For manual dispatch: supports any area or "all" (loops through all 6).
 # ══════════════════════════════════════════════════════════════════
 
@@ -83,13 +84,13 @@ jobs:
         run: |
           python scripts/company_enrichment.py --area tl1a
 
-      - name: "[Scheduled] Step 7 — Research intelligence audit (TL1A)"
+      - name: "[Scheduled] Step 7 — Research intelligence audit (all areas)"
         if: github.event_name == 'schedule'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/research_intelligence.py --area tl1a
+          python scripts/research_intelligence.py --area all
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — single area (non-"all")
