@@ -13,15 +13,19 @@ name: Intelligence Pipeline
 # exist when company_enrichment generates catalysts from PCD dates.
 # research_intelligence MUST run last — it audits the final state.
 #
-# For nightly scheduled runs: ct_gov_sync + company_enrichment run TL1A only
-# (most active); research_intelligence audits all 6 areas (fast, no API calls).
-# For manual dispatch: supports any area or "all" (loops through all 6).
+# Nightly (Mon–Sat 04:00 UTC): ct_gov_sync + company_enrichment for TL1A only;
+#   research_intelligence audits all 6 areas (fast, no API calls).
+# Weekly (Sun 05:00 UTC): full pipeline (ct_gov + enrichment + intelligence)
+#   for all 6 areas — keeps non-TL1A drug data fresh.
+# Manual dispatch: any single area or "all".
 # ══════════════════════════════════════════════════════════════════
 
 on:
-  # Runs nightly Mon–Sat at midnight ET = 04:00 UTC
+  # Nightly Mon–Sat at midnight ET = 04:00 UTC (TL1A only — active area)
+  # Weekly Sunday at midnight ET = 05:00 UTC (all areas — full refresh)
   schedule:
     - cron: '0 4 * * 1-6'
+    - cron: '0 5 * * 0'
 
   # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
@@ -64,19 +68,23 @@ jobs:
           pip install anthropic requests
 
       # ──────────────────────────────────────────────────────────
-      # SCHEDULED RUN — TL1A only
+      # SCHEDULED RUN — nightly TL1A (Mon–Sat 04:00 UTC)
       # ──────────────────────────────────────────────────────────
 
-      - name: "[Scheduled] Step 3 — CT.gov trial sync (TL1A)"
-        if: github.event_name == 'schedule'
+      - name: "[Nightly] Step 3 — CT.gov trial sync (TL1A)"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 4 * * 1-6'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           python scripts/ct_gov_sync.py --area tl1a
 
-      - name: "[Scheduled] Steps 1,4,5,6 — Intelligence pipeline (TL1A)"
-        if: github.event_name == 'schedule'
+      - name: "[Nightly] Steps 1,4,5,6 — Intelligence pipeline (TL1A)"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 4 * * 1-6'
         env:
           ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
@@ -84,13 +92,42 @@ jobs:
         run: |
           python scripts/company_enrichment.py --area tl1a
 
-      - name: "[Scheduled] Step 7 — Research intelligence audit (all areas)"
-        if: github.event_name == 'schedule'
+      - name: "[Nightly] Step 7 — Research intelligence audit (all areas)"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 4 * * 1-6'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           python scripts/research_intelligence.py --area all
+
+      # ──────────────────────────────────────────────────────────
+      # SCHEDULED RUN — weekly all-areas (Sun 05:00 UTC)
+      # Full ct_gov + company_enrichment + intelligence for all 6
+      # ──────────────────────────────────────────────────────────
+
+      - name: "[Weekly/All] Step 3 → Steps 1,4,5,6 → Step 7 — Full pipeline (all areas)"
+        if: |
+          github.event_name == 'schedule' &&
+          github.event.schedule == '0 5 * * 0'
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          for AREA in tl1a tslp il4ra fcrn igf1r tcell; do
+            echo "════════════════════════════════════════"
+            echo "  Weekly refresh — area: $AREA"
+            echo "════════════════════════════════════════"
+            echo "  → Step 3: CT.gov trial sync"
+            python scripts/ct_gov_sync.py --area $AREA
+            echo "  → Steps 1,4,5,6: Company enrichment"
+            python scripts/company_enrichment.py --area $AREA
+            echo "  → Step 7: Research intelligence audit"
+            python scripts/research_intelligence.py --area $AREA
+            echo "  ✓ Area $AREA complete"
+          done
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — single area (non-"all")
