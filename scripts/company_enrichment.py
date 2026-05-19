@@ -776,6 +776,17 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
 #   → Connect to entity, company
 # ══════════════════════════════════════════════════════════════════════════
 
+def _deal_signature(headline: str) -> str:
+    """Normalised fingerprint for deal deduplication.
+
+    Strips all non-alphanumeric characters, lowercases, and returns the first
+    100 characters.  Using 100 normalised chars (vs the old raw[:50]) removes
+    punctuation/spacing variance that caused false positives and catches more
+    near-duplicate headlines.
+    """
+    return re.sub(r"[^a-z0-9]", "", headline.lower())[:100]
+
+
 def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
                              company_map: dict, dry_run: bool = False,
                              resolver=None) -> int:
@@ -785,8 +796,8 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
       resolver: a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
                 Pass None to skip canonical identity stamping on deals.
     """
-    existing_headlines = {
-        (d.get("headline") or "").lower()[:50]
+    existing_signatures = {
+        _deal_signature(d.get("headline") or "")
         for d in ctx.get("deals", [])
     }
     new_deals = 0
@@ -822,7 +833,7 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
         headline = (item.get("headline") or "").lower()
         if not any(kw in headline for kw in deal_kws):
             continue
-        if headline[:50] in existing_headlines:
+        if _deal_signature(headline) in existing_signatures:
             continue
 
         deal_date = item.get("intel_date") or TODAY
