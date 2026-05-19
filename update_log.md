@@ -1,5 +1,380 @@
 
 ---
+## 2026-05-19 Full Bug Fix Pass (Bugs #4–10) — SHAs: ba6dfc2 (company_enrichment), 4a5250c (ct_gov_sync), 299d716 (identity_health_check), 0ae7569 (index.html), 803e789 (CODE_REVIEW)
+
+### Updated: `scripts/company_enrichment.py` → `ba6dfc2`
+- **Bug #4 fixed:** `step6_deal_intelligence` dedup replaced `headline[:50]` shallow match with `_deal_signature()` helper — normalizes (lowercase, strip non-alphanumeric), compares first 100 chars. Eliminates false positives from punctuation/spacing differences.
+
+### Updated: `scripts/ct_gov_sync.py` → `4a5250c`
+- **Bug #8 fixed:** `--search-only` flag now actually works. `sync_drug()` accepts `search_only: bool = False`; when True, Step 3a (direct NCT fetch) is skipped and a skip log line is emitted. `run_sync()` passes `search_only=search_only` down to each `sync_drug()` call.
+
+### Updated: `scripts/identity_health_check.py` → `299d716`
+- **Bug #7 fixed:** `unresolved_count = int(r["unresolved"] or 0)` now saved from the first query (before `r` is overwritten by later queries). Summary line now correctly reports actual unresolved drug count instead of always printing "0 drugs unresolved".
+
+### Updated: `index.html` → `0ae7569`
+- **Bug #5 fixed:** Meridian Reader sort secondary key changed from `(date || '').replace(/-/g,'') * 0.0001` (NaN for ISO timestamps) to `new Date(date || 0).getTime() / 1e13` — handles both date-only and full ISO datetime strings. Applied to intel, deals, and catalyst sort expressions.
+- **Bug #6 fixed:** `loadIdentityHealth()` now computes true FK orphan count in JS: fetches `canonical_id` from `canonical_drugs`, builds a Set, counts drugs with a `canonical_drug_id` that isn't in the Set. New `FK Orphans` stat tile added to the panel. The old `total - resolved` proxy (which measured "unresolved" not "orphaned") is preserved as a separate concept.
+
+### Updated: `CODE_REVIEW.md` → `803e789`
+- All 10 bugs marked ✅ FIXED with commit hashes
+- Workflow deploy note added explaining `workflow` token scope requirement for Bugs #9/#10
+
+### Workflow changes (local only — need `workflow` token scope to push)
+- **Bug #9:** `pip install anthropic requests` → `pip install -r scripts/requirements.txt` (pins all deps via existing requirements.txt; also picks up feedparser, yfinance, pynacl)
+- **Bug #10:** Added `[Manual] Identity health check (single area)` step so health check runs after single-area manual dispatches, not just `area=all` runs
+- Apply via GitHub web editor at `.github/workflows/company-enrichment.yml`
+
+---
+## 2026-05-19 DeepSeek Recommendations — SHAs: 406f0ab9e2 (index.html), bc18f94bd5 (health_check), 19c120665a (playbook)
+
+### Updated: `index.html`
+- Research Queue: added **Hide done** checkbox in panel header; `loadResearchQueue()` passes `.neq('assigned_status','done')` when checked
+- New **Identity Layer Health** panel (teal border, home tab below Research Queue): shows Canonical Coverage %, Active Canonicals, Fuzzy Pending, Resolver Errors; auto-loads on DOMContentLoaded; ↻ Refresh button
+- CSS: `.ih-stat`, `.ih-stat-val`, `.ih-stat-lbl`, `.ih-stat.ok/.warn/.bad`, `.ih-divider`, `.ih-issue`
+- `loadIdentityHealth()` JS function queries drugs/canonical_drugs/identity_audit_log/resolver_errors in parallel
+
+### Updated: `scripts/identity_health_check.py`
+- Added `argparse`; new flags: `--fail-on-orphans`, `--fail-on-fuzzy-pending`
+- `health_check()` now returns exit code (0 = healthy, 1 = CI failure)
+- CI failures printed as `[CI FAIL]` lines, separated from warnings in summary
+- `sys.exit(code)` at bottom
+
+### Updated: `.github/workflows/company-enrichment.yml` (local only — needs manual push, token lacks `workflow` scope)
+- Added `[Nightly] Identity health check` step after Step 7 (nightly Mon–Sat)
+- Added `[Weekly/All] Identity health check` step after weekly all-areas loop
+- Added `[Manual/All] Identity health check` step after manual all-areas loop (skipped on dry_run)
+- All use `SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}` — add this secret in GitHub repo settings
+
+### New: `BD_ANALYST_PLAYBOOK.md`
+- Daily operating guide: research queue usage, priority thresholds, next_best_action glossary, pipeline trigger instructions, status override guidance, identity health reference, script quick-reference
+
+### Deferred (DeepSeek recommendation)
+- EntityIdentityResolver (company-level) — defer until 200+ companies show real fragmentation
+- research_queue pipeline auto-trigger — defer until queue proves its value for a few weeks
+
+---
+## 2026-05-19 Research Queue Status Toggle — SHA: 0eabd7de9e
+
+### Updated: `index.html`
+- RLS policies applied to `research_queue` table: `anon_select_research_queue` (SELECT) + `anon_update_research_queue_status` (UPDATE) — anon key can now read and write status
+- `loadResearchQueue()` now selects `assigned_status`; renders a status button per row cycling `pending → in_progress → done → pending`
+- `rqSetStatus(entityId, areaId, currentStatus)` — optimistic UI update + Supabase PATCH; reverts on error
+- CSS: `.rq-status` badge with `.pending` / `.in_progress` / `.done` states; `.rq-row.done-row` fades completed rows
+- `_RQ_STATUS_CYCLE` + `_RQ_STATUS_LABEL` constants drive the toggle logic
+
+---
+## 2026-05-19 resolver_errors Persistence Layer — SHAs: e11b144c85, 02aa6e6069, 29b69c233e, b9f9756933
+
+### New: `schema_migration_v8.sql` (applied ✅)
+- `resolver_errors` table: persists identity resolution failures for retry
+- Fields: `drug_name`, `source`, `source_table`, `source_row_id`, `error_message`, `error_type`, `stack_trace`, `attempt_count`, `last_attempted_at`, `resolved_at`, `resolved_canonical_id`
+- 5 indexes: unresolved (partial), drug_name, source, source_table+row, created_at
+
+### Updated: `scripts/identity_resolution.py`
+- `log_resolver_error(drug_name, source, error, source_table, source_row_id)` — classifies error type (network/supabase/value_error/unknown), persists to resolver_errors with stack trace
+- `retry_errors(limit=50)` — re-attempts all `resolved_at IS NULL` rows; stamps source table on success; increments attempt_count on continued failure; returns `{resolved, failed, skipped}`
+- CLI: `--retry-errors` flag (mutually exclusive with `--name`); `.supabase_service_key` file fallback added
+
+### Updated: `scripts/ct_gov_sync.py`, `scripts/company_enrichment.py`
+- Both circuit-breaker except-blocks now call `resolver.log_resolver_error(...)` after logging the warning
+- Wrapped in try/except so error-logging itself never crashes the pipeline
+
+---
+## 2026-05-19 Full Pipeline Dispatch + research_queue Populated — SHAs: e7791a4ee2, 0ee38a177e
+
+### Pipeline
+- Triggered `company-enrichment.yml` workflow dispatch with `area=all` — runs ct_gov_sync + company_enrichment + research_intelligence across all 6 areas
+- Fixed `research_intelligence.py` `_sb_upsert` for research_queue: added `?on_conflict=entity_id,area_id` query param so PostgREST correctly updates existing rows (previously 409'd because table PK is UUID, not the entity/area composite)
+- Updated workflow Step 7 (scheduled) from `--area tl1a` to `--area all` — research_intelligence.py has no API calls so running all 6 areas is cheap
+
+### research_queue — All 6 Areas Populated (23 entities total)
+| Area  | Entities | Avg Score | Top NBA |
+|-------|----------|-----------|---------|
+| tl1a  | 20       | varies    | varies (already enriched) |
+| tslp  | 5        | 26.4      | Run drug mapping |
+| il4ra | 6        | 26.5      | Run drug mapping |
+| fcrn  | 4        | 24.2      | Run drug mapping |
+| igf1r | 3        | 23.7      | Run drug mapping |
+| tcell | 5        | 21.8      | Run drug mapping |
+
+All non-TL1A areas show thin scores with "Run drug mapping to fill mechanism + target fields" as top action — pipeline dispatch above will fix this.
+
+---
+## 2026-05-19 Canonical-Grouped Completeness Scoring — GitHub SHA: 6e6f330394
+
+### `scripts/research_intelligence.py`
+- **`_group_drugs_by_canonical(drugs)`** — groups drug rows by `canonical_drug_id`; drugs without a canonical each form their own group
+- **`_merge_drug_rows(rows)`** — merges sibling rows into one representative: picks longest/most-populated text for each field, max confidence_score, `trial_data_status='missing'` only if ALL rows say missing; attaches `_all_drug_ids` for trial/catalyst lookups
+- **Stage 2 (Drug Mapping)** — now iterates over canonical groups rather than raw drug rows; `_merge_drug_rows()` picks best values before scoring so two rows for the same canonical program count as one (was: avg of two independent scores)
+- **Stage 3 (Trial Intelligence)** — builds dual lookup maps (by `drug_id` AND `canonical_drug_id`); for each canonical group, unions trials from all constituent `drug_id`s + canonical_drug_id and deduplicates by trial.id; scores the merged program
+- **`load_entity_context()`** — computes `canonical_ids` early; also fetches trials by `canonical_drug_id in (...)` and deals by `canonical_drug_id in (...)`, deduplicates by id to avoid double-counting
+- All tests pass (3 scenarios verified locally before deploy)
+
+### Impact
+- Programs with multiple drug DB rows (e.g. different formulations of the same canonical program) now score as ONE entity rather than averaging inflated/deflated per-row scores
+- Trials written by `ct_gov_sync.py` to a different `drug_id` but same canonical are now correctly counted for the entity's Stage 3 score
+- Deals written by `company_enrichment.py` via `canonical_drug_id` are now correctly counted in Stage 6
+
+---
+## 2026-05-19 Research Queue Panel + Intelligence Layer Completion — GitHub SHA: 01de2d16f4
+
+### Dashboard
+- **Research Queue panel** added to home tab between BD Signal and Deals sections
+- Purple accent (`#7c3aed`), loads top 12 entities from `research_queue` table sorted by `priority_score` desc
+- Shows entity ID, completeness tier badge (thin/partial/strong), area, score, and next best action per entity
+- Wired into `DOMContentLoaded` alongside other home panel loaders
+
+### Backend (prior commits this session)
+- **`identity_resolution.py`** — Fixed alias 409 noise: removed `_add_alias_if_new` from Step 1 exact-match path (alias already in DB by definition); switched to `resolution=ignore-duplicates` Prefer header. SHAs: 6bd2b851f6 → c9d8317904
+- **`schema_migration_v7.sql`** — Added `canonical_drug_id` FK to `catalysts` and `deals` tables with indexes. Applied to Supabase ✅ SHA: 9b011fb134
+- **`ct_gov_sync.py`** — Identity resolver wired in: resolves `canonical_drug_id` per drug before trial sync, circuit-breaker on resolver failure. SHA: aff89a8d2f
+- **`company_enrichment.py`** — Identity resolver wired into step4 (catalysts) and step6 (deals): canonical_drug_id stamped on all new catalyst/deal records. SHA: cb372d33b3
+- **`research_intelligence.py`** — Major schema column fixes (drugs PK=`id`, no `area_id` column on drugs, companies PK=`id`, drug column=`name`); area query now routes through `drug_areas` junction; Stage 2 scoring adds `canonical_drug_id` sub-criterion (denominator 4→5); Stage 3 adds `trial_canonical_linked` (denominator 3→4); NBA engine adds priority 2b for missing canonical identity. Final SHA: beaa868f06
+
+### Identity Spine — COMPLETE
+- `drugs.canonical_drug_id` → 53/53 stamped ✅
+- `trials.canonical_drug_id` → stamped live by ct_gov_sync.py ✅
+- `catalysts.canonical_drug_id` → stamped by company_enrichment.py step4 ✅
+- `deals.canonical_drug_id` → stamped by company_enrichment.py step6 ✅
+- `research_queue` → 20/20 TL1A entities scored, top priority: spyre (score=23, tier=thin, priority=112)
+
+---
+## 2026-05-19 Canonical Drug Identity Layer — schema_migration_v5 + identity_resolution.py + one_time_migration.py
+
+### New Files
+- **`schema_migration_v5.sql`** — Canonical drug identity layer. Creates 3 new tables: `canonical_drugs` (one row per real-world drug program, canonical_id format: `CANON_DRUG_{8-char hash}`), `drug_aliases` (all known name variants mapped to a canonical drug, `UNIQUE(canonical_id, alias_name)`), `identity_audit_log` (immutable append-only audit trail). Adds 3 columns to `drugs`: `canonical_drug_id` (FK), `identity_confidence` (0-100), `identity_method` (`exact`|`normalized`|`fuzzy`|`new`|`unresolved`). 6 indexes. Applied to Supabase ✅ GitHub SHA: f21daf5f50
+- **`scripts/identity_resolution.py`** — DrugIdentityResolver MVP class. 4-step resolution cascade: (1) exact alias match → confidence 100, (2) normalised name match → confidence 90, (3) fuzzy match ≥0.85 (SequenceMatcher) → **flagged for review, NOT auto-merged** → create new canonical, (4) create new canonical → confidence 100. `resolve()`, `resolve_batch()`, `_normalize_name()`, `_create_canonical_drug()`, `_add_alias_if_new()`, `_flag_fuzzy_review()`. In-memory alias cache refreshed per batch. GitHub SHA: 6c7d1d1c1d
+- **`scripts/one_time_migration.py`** — Backfill script for all existing drugs. Iterates all `drugs` rows without `canonical_drug_id`, infers `drug_class` and `target` from mechanism text, resolves via `DrugIdentityResolver`, PATCHes `canonical_drug_id` + `identity_confidence` + `identity_method`. Prints fuzzy review flags at end. Idempotent (skips rows already resolved). GitHub SHA: 999732e1d5
+
+### Architecture Decision (per ChatGPT review)
+- **No auto-merge of fuzzy matches** — false merges are more dangerous than duplicate records
+- Fuzzy near-misses write a `flag_review` entry to `identity_audit_log` and create a new canonical; human must approve merge
+- Backfill first → then wire `ct_gov_sync.py` and `company_enrichment.py` to call `resolve()` before writes (next session)
+
+---
+## 2026-05-19 Intelligence Layer — schema_migration_v4 + research_intelligence.py + ARCHITECTURE_v2.md
+
+### New Files
+- **`schema_migration_v4.sql`** — Adds 8 completeness/trigger fields to `drugs` table (`completeness_score`, `completeness_tier`, `missing_fields`, `missing_stages`, `next_best_action`, `last_scored_at`, `priority_score`, `trigger_flags`). Creates `research_queue` table with `UNIQUE(entity_id, area_id)`, 9 indexes. Applied to Supabase ✅
+- **`scripts/research_intelligence.py`** — Full intelligence layer engine. `load_entity_context()` → `score_entity_completeness()` (0-100 across 6 weighted stages) → `get_next_best_action()` (10-priority decision tree) → `check_research_triggers()` (7 trigger types) → `calculate_priority_score()` (0-200) → `upsert_research_queue()`. CLI: `--area`, `--entity`, `--dry-run`. SHA: ab65db4cf5
+- **`ARCHITECTURE_v2.md`** — Comprehensive architecture specification. Full 7-stage research graph, complete schema tables, all function signatures + decision trees, CLASS×RELEVANCE framework, gap analysis P0/P1/P2. Formatted for feeding into AI model for iterative review. SHA: 1880f00ea8
+- **`schema_migration_v4.sql`** — GitHub SHA: 9f14425443
+
+### Updated Files
+- **`.github/workflows/company-enrichment.yml`** — Added Step 7 (`research_intelligence.py`) after `company_enrichment.py` in all three pipeline sections (scheduled TL1A, manual single-area, manual all-areas loop). Step 7 runs with `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` only (no Anthropic key needed). Committed via GitHub web editor.
+
+### Intelligence Layer Overview
+- **Completeness scoring**: Stage weights sum to 100 — Entity Discovery (10), Drug Mapping (15), Trial Intelligence (20), Catalyst Engine (15), Strategic Positioning (25), Deal Intelligence (15)
+- **Tiers**: `thin` (<40), `partial` (40–69), `strong` (≥70)
+- **7 trigger types**: trial phase ahead of drug stage, trial PCD without catalyst, completed trial without results, catalyst date passed unresolved, profile stale >30 days, new deal since enrichment, strategic entity missing vs_ailux
+- **Priority score**: 0–200 with +30 for strategic entity, +20 for active triggers, +15 for thin tier
+- **Platform turns from database into guided research system** — every entity now answers: What do we know? What is missing? What changed? What should happen next?
+
+---
+## 2026-05-19 Intelligence Pipeline architecture — commits 86a4ca6e / 908640e2 / 68115f5b
+
+### New Files
+- **`schema_migration_v3.sql`** — Full intelligence architecture schema migration. Adds to: `trials` (arms, secondary_endpoints, start_date, primary_completion_date, source_url, sponsor, last_synced_date, discovery_status, confidence_score, entity_id), `drugs` (aliases, differentiation_thesis, discovery_status, confidence_score, trial_data_status, last_synced_date), `company_profiles` (market_cap_usd_m, cash_runway, financing_history, key_investors, strategic_behavior, vs_ailux, hq_country, website), `catalysts` (expected_impact, is_key_watch, related_trial_id, source_url, confidence_source), `deals` (parties, geography_rights, economics_royalties, strategic_signal, ailux_relevance, entity_id). **Must be applied manually in Supabase SQL editor.**
+- **`scripts/ct_gov_sync.py`** — Step 3 of the intelligence pipeline. Direct NCT ID sync (3a), search discovery (3b), drug stage update from trials (3c). `NCT_SEED_MAP` seeds known NCT IDs per drug. Confidence scoring 0-100. Writes to Supabase `trials` table via service role key.
+
+### Updated Files
+- **`scripts/company_enrichment.py`** — Rebuilt as 7-step systematic intelligence pipeline (Step 1: entity discovery, Step 4: catalyst generation from CT.gov PCD dates, Step 5: company enrichment with vs_ailux/strategic_behavior/financing_history, Step 6: deal intelligence). Clear `# ══` section banners throughout. Model updated to `claude-sonnet-4-6`.
+- **`.github/workflows/company-enrichment.yml`** — Renamed to "Intelligence Pipeline". Runs `ct_gov_sync.py` before `company_enrichment.py`. Added `skip_trial_sync` boolean input. Added `area=all` option that loops through all 6 areas. **Note: workflow file requires `workflow` scope token to push — update token at github.com/settings/tokens to push this file.**
+
+### Architecture
+- Central object: **Strategic Competitive Entity** (top-level competitive unit)
+- Data quality tracked via `discovery_status` (`manual | auto | unverified | verified`) and `confidence_score` (0-100) on all trial/drug records
+- Static data is always the fallback; dynamic pipeline takes over as records are populated and verified
+
+---
+## 2026-05-19 Static trial fallback in drug bubble popups — commit bc8fab0f
+
+### Bug Fix — Drug Bubble Popup Trial Data
+- **Root cause**: `_buildDrugPipelineRow` filtered `sbTrials` by `drug_id` but had no fallback when the Supabase `trials` table was empty — showed "Trial data loading" placeholder
+- **Fix**: Added static fallback — when Supabase returns no trials for a drug, `prog.trials` (static data baked into `TL1A_PROGRAMS`) is used instead
+- **Field normalization**: Static trial objects use `nct` field; popup code expects `t.id` for NCT links. Added `id: t.id || t.nct` normalization so `clinicaltrials.gov` links render correctly
+- **Parity**: `_genericDetailHTML` already had this fallback for the expanded row trial section — this change makes the drug bubble popup consistent
+- **Auto-upgrade**: Once the enrichment pipeline populates the `trials` Supabase table, live data takes over automatically (Supabase trials always preferred over static)
+
+---
+## 2026-05-18 Entity-grouped PI tables + Spyre expansion — commit 15026b546c
+
+### Strategic Competitive Entity Architecture
+- Added `entity_id`, `entity_name`, `entity_type` columns to `drugs` table (SQL migration)
+- Seeded all 50 existing drug records with entity data — 39 distinct entities
+- `entity_type` values: `platform` (multi-program company), `partnership` (cross-company deal), `standalone` (single asset), `licensed`
+- Deleted duplicate records: `ro7837195` (= afimkibart INN) and `rese-cel` (= caba-201)
+- Added 3 new Spyre programs: SPY002 (anti-TL1A, Ph2), SPY120 (anti-IL-23p19, Ph2), SPY130 (anti-α4β7, Ph2); SPY002 linked to TL1A area
+
+### PI Table Renderer — `_makeAreaPI` Rebuilt
+- Top-level rows now represent **strategic entities**, not individual drugs
+- Platform/partnership entities show all programs as bubbles in expanded detail row
+- Entity type badge (`Platform`, `Partnership`) appears in company column for multi-drug entities
+- `_buildEntities()` groups drugs by `entity_id`; computes `bestStage`, `bestCls`, `bestOverlap` from most advanced program
+- Filter pills now filter at entity level (entity passes if ANY of its programs match)
+- Sort operates on `entity_name`, `bestStage`, `bestCls`, `bestOverlap`
+- Column header renamed "Company" → "Entity"
+- New CSS: `.pi-etype-badge`, `.pi-prog-bubbles`, `.pi-prog-bubble`, `.pi-drug-name-sm`, `.pi-stage-approved`
+
+### Research Workflow
+- New entities can be added by research team via INSERT into `drugs` with `entity_id/entity_name/entity_type` set — no code changes required
+
+---
+## 2026-05-18 Major platform restructure — commit 70f05dd9c5
+
+### TL1A Tab
+- Overlap badge system refactored: "Direct"/"high" → **High Overlap** (red), new **Indirect** (orange) for same-indication/different-target, **Watch** unchanged (yellow)
+- Filter pills updated: removed "Adjacent"/"Same-Space", added "High Overlap" + "Indirect"
+- `filter()` normalizer maps legacy overlap values to new taxonomy
+- Added 4 Indirect competitors to `TL1A_PROGRAMS`: AbbVie/Skyrizi (IL-23), Lilly/Omvoh (IL-23), Takeda/Entyvio (integrin α4β7), AbbVie/Rinvoq (JAK1)
+- Added "🤝 BD Activity" pill to left column — opens modal that lazy-loads `loadAreaBDActivity('tl1a')` on first open
+
+### CSS Fixes
+- Drug dropdown z-index: `.stock-card:hover { z-index:350 }` — drug popups now appear above fixed pill columns (z-index:300)
+- AI Biotech card: `margin:0 16px 0` — matches side padding of ranking cards
+
+### Drug Tab Restructuring (TSLP, IL-4Rα×TSLP, IL-4Rα×OX40L, IGF-1R×TSHR, FcRn, T-Cell)
+- All 6 tabs now have left/right fixed pill columns matching TL1A layout
+- Company list (cw-card) is primary center content
+- Secondary content extracted to pill-triggered modals: Market Stats, BD Activity, Intel Feed, Drugs to Know
+- Generic `openDrugModal(id)` + `_loadBdIntoModal(tabId, el)` functions
+- `_showDrugPills(tid)` / `_hideDrugPills(tid)` wired into `registerTab` for all 6 tabs
+
+### Search Bar Deep-linking
+- Each search result (intel, deal, catalyst) now shows `→ [Tab]` navigation pill
+- Clicking a result calls `_gsNavigate(areaId, type)` → switches to correct tab + opens relevant modal
+- Source URLs moved to separate `↗` link (doesn't interfere with navigation)
+- Area → tab mapping: `_GS_AREA_TO_TAB` + `_GS_TAB_LABEL` constants
+
+---
+## 2026-05-18 Industry Insights — collapsible intel feed + subtitle cleanup — commit 52c3f7fbfb
+
+- BD Deal Tracker: removed subtitle "Reverse chronological · broad pharma + Ailux focus areas"
+- Live Intelligence Feed: removed subtitle "Sourced from Meridian research pipeline · all focus are"
+- Redesigned intel feed to compact rows: importance dot + area pills + headline + date + chevron
+- Click to expand: `iiToggle(id)` toggles `.ii-item-detail.open` — shows body text + source link
+- `event.stopPropagation()` on source links to prevent row collapse on link click
+- Increased intel fetch limit from 20→40 rows (rows now compact)
+- Added CSS classes: `.ii-item`, `.ii-item-row`, `.ii-item-dot`, `.ii-item-areas`, `.ii-item-headline`, `.ii-item-date`, `.ii-item-chevron`, `.ii-item-detail`, `.ii-item-detail.open`, `.ii-item-detail-body`, `.ii-item-detail-meta`
+
+---
+## 2026-05-18 Pharma Landscape — table width fix — commit e1eb07af6e
+
+- Removed `max-width:1300px` from `.pi-two-col` — ranking tables now expand to full page width
+- Added `table-layout:fixed;width:100%` via CSS to `#pi-tbl-cn` and `#pi-tbl-us` — no more horizontal scroll
+- Added `overflow-x:hidden` to `.pi-scroll` to prevent bleed
+- `#` column set to `width:3%` in both ranking tables — very narrow
+- All other columns given explicit proportional widths so content distributes cleanly
+- AI Biotech table: removed `min-width:900px` and `overflow-x:auto` wrapper — fills full page width cleanly
+
+---
+## 2026-05-18 Pharma Landscape — layout overhaul — commit 38093637
+
+- Added `.pi-page-wrap` (max-width 1700px, centered) wrapping all pharma cards
+- China + Global ranking cards: now side-by-side (`grid-template-columns: 1fr 1fr`), max-width 1300px, centered — tighter and easier to scan across
+- AI Biotech card: `table-layout:fixed;width:100%` with proportional column widths — table fills full container width, rows shorter (less wrapping)
+- `#` column header: `text-align:center` in both ranking tables
+- `.pi-table` padding reduced (7px vs 8px), font 11.5px
+- Thin scrollbar on `.pi-scroll`
+
+---
+## 2026-05-18 Home page — scrollable cards + wider layout + Essential Updates — commit 406ee273
+
+### Card layout
+- All `.home-card-body` elements now have `max-height: 340px; overflow-y: auto` — scroll inside the card, not the page
+- `#bd-signal-body` same treatment
+- `#meridian-reader-items` scrollable at 400px max-height with gold scrollbar
+- `.content` padding reduced `24px → 10px` — cards extend nearly to viewport edges
+- `.home-grid` changed to `grid-template-columns: 1fr` — catalysts full-width
+- Top-5 items in Essential Updates get `.mr-top-item` highlight (faint yellow bg)
+
+### Essential Updates (⚡ Essential Updates card)
+- Now pulls from all 4 overnight pipeline sources in one parallel fetch:
+  - `intel` — high/medium items from 10:30 PM + 2 AM research runs (40 rows)
+  - `deals` — recent deal activity (15 rows, sorted by date)
+  - `catalysts` — upcoming unresolved catalysts with countdown badges (20 rows)
+  - `company_profiles` — today's enrichment updates with 🤖 pill (today only)
+- Unified feed sorted by importance score + recency
+- Top 5 highlighted; divider separates older items with count badge
+- Type pills: IBD/Resp/etc area pill + Intel/Deal/Catalyst/🤖 Enriched type pill per row
+
+---
+## 2026-05-18 Overnight pipeline rescheduled — 10:30 PM → 5:30 AM — commits e3005e0b / 0e1973e9 / 37916f9f
+
+### Full pipeline now runs while you sleep
+
+| Step | Job | Time (ET) | Trigger |
+|------|-----|-----------|---------|
+| 1 | evening-update.yml | 10:30 PM | GH Actions `30 2 * * *` UTC |
+| 2 | company-enrichment.yml | 12:00 AM | GH Actions `0 4 * * 1-6` UTC |
+| 3 | meridian-research.yml | 2:00 AM | GH Actions `0 6 * * 1-6` UTC |
+| 4 | the-meridian (Cowork) | 5:30 AM | Cowork `30 5 * * 1-6` local |
+
+Each job has 60–90 min buffer before the next fires. Meridian writes the article from fresh research data, deploys to the dashboard before you wake up.
+
+---
+## 2026-05-18 Backend prep: schema migration v2 + enrichment pipeline + Meridian update — commit 076d15a2
+
+### Overnight automation set up
+
+**Supabase schema_migration_v2 (complete):**
+- Created `company_profiles` table (company_id × area_id composite PK) with RLS + anon read + updated_at trigger
+- Altered `drugs` (13 new columns), `trials` (3 new columns), `deals` (company_id FK + indexes)
+- Created `company_area_detail` view with GRANT SELECT TO anon
+- Inserted 6 missing program-level company rows (spyre-mono, spyre-230, xencor-942, xencor-412, mirador, lanova)
+- Seeded 10 company_profiles rows for TL1A area
+- Result: Migration v2 complete | 10 profiles seeded | 18 TL1A companies
+
+**company-enrichment.yml schedule change:**
+- Was: Sunday-only at 7 AM UTC (cron: `0 7 * * 0`)
+- Now: Nightly Mon–Sat at midnight UTC (cron: `0 0 * * 1-6`)
+- First manual enrichment run triggered immediately for area=tl1a
+
+**Meridian SKILL.md updated:**
+- Added Step 5: query `company_profiles` table and build `AREA_PROFILES` dict per area
+- Old steps 5-10 renumbered to 6-11
+- Meridian's 6:34 AM run tomorrow will incorporate AI-enriched company narratives
+
+---
+## 2026-05-18 CLAUDE_CONTEXT + TAB_REGISTRY isolation — commit 4c6de2a2
+
+### Architecture guardrails: context embedding + tab isolation
+
+**CLAUDE_CONTEXT block (index.html line 1):**
+- Structured HTML comment at the very top of index.html, version-controlled alongside the code
+- Documents: platform identity, Claude's roles, design principles, information hierarchy, Spyre Standard, CLASS×RELEVANCE framework, architecture rules, deploy conventions
+- Ensures context is always present when the file is read, regardless of conversation history
+
+**TAB_REGISTRY pattern (replaces hardcoded switchTab if-chains):**
+- New `const TAB_REGISTRY = {}` + `registerTab(id, { onEnter, onLeave })` API
+- Each tab self-registers its lifecycle hooks independently — editing one tab never touches `switchTab`
+- `switchTab()` now dispatches through the registry with isolated try/catch per hook
+- Errors in any tab's `onEnter`/`onLeave` are logged as `console.warn('[TAB:id:hook]', e)` — never propagated
+- All DOM lookups use optional chaining (`?.`) — null elements never throw
+- Current registrations: `meridian-issue`, `industry-insights`, `tl1a`
+- Future tabs (tslp, il4ra, igf1r, fcrn, ace) register themselves when built — zero changes to `switchTab`
+
+**Memory system updated:**
+- `user_platform_context.md` — full product intent, Spyre standard, CLASS×RELEVANCE, architecture
+- `feedback_claude_role.md` — working style, response format, code quality standards
+- Both indexed in MEMORY.md so they load in every future session
+
+---
+## 2026-05-18 CLASS × RELEVANCE framework — commit a36d373f
+
+### TL1A competitive table: two-dimensional company classification
+
+**New dimensions:**
+- **CLASS** (evolutionary sophistication): 1st Gen (mono antibody) | 2nd Gen (engineered/SC) | Next Gen (bispecific / dual-pathway)
+- **RELEVANCE** (strategic overlap with Ailux): Direct | Adjacent | Same-Space | Watch
+
+**Frontend changes (index.html):**
+- New CSS pill classes: `pi-cls-1st` (blue), `pi-cls-2nd` (green), `pi-cls-next` (purple), `pi-overlap-direct` (red), `pi-overlap-adjacent` (orange), `pi-overlap-same` (teal), `pi-overlap-watch` (yellow)
+- Filter bar updated: Class filter → All / 1st Gen / 2nd Gen / Next Gen; Relevance filter → All / Direct / Adjacent / Same-Space / Watch
+- `_clsPill()` and `_ovBadge()` helpers rewritten with full 4-value support + legacy `'high'`/`'watch'` fallback
+- All 10 TL1A_PROGRAMS entries reclassified: Sanofi (1st Gen / Direct), Spyre mono (2nd Gen / Direct), Xencor-942 (2nd Gen / Direct), Mirador (Next Gen / Direct), Simcere (Next Gen / Direct), Caldera (Next Gen / Watch), Earendil (Next Gen / Direct), Xencor-412 (Next Gen / Direct), Lanova (Next Gen / Watch), Spyre-230 (Next Gen / Direct)
+
+---
 ## 2026-05-18 Async Supabase-fed company detail rows + enrichment pipeline — commits 41a73e9b / 9afb22d1
 
 ### Architecture: Dynamic expanded rows for all TL1A PI table companies
