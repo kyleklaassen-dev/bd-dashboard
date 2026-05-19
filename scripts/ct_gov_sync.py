@@ -749,6 +749,13 @@ def sync_drug(drug: dict, dry_run: bool = False) -> dict:
             log(f"  ↳ Identity: {canon_id} (conf={conf}, method={method})", indent=1)
         except Exception as exc:
             log(f"  ⚠ Identity resolver failed for '{drug_name}': {exc} — proceeding without canonical_drug_id", indent=1)
+            try:
+                resolver.log_resolver_error(
+                    drug_name=drug_name, source="ct_gov_sync", error=exc,
+                    source_table="drugs", source_row_id=drug_id,
+                )
+            except Exception:
+                pass  # never let error-logging crash the sync
 
     # ── Approved products: simplified handling ────────────────────────────
     if drug_id in APPROVED_DRUGS:
