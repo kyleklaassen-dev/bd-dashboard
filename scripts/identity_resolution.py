@@ -411,6 +411,157 @@ class DrugIdentityResolver:
             print(f"  [identity] WARNING: audit log write failed ({operation}): "
                   f"{resp.status_code}")
 
+    # ── Private: resolver error persistence ─────────────────────────────────
+
+    def log_resolver_error(
+        self,
+        drug_name: str,
+        source: str,
+        error: Exception,
+        source_table: Optional[str] = None,
+        source_row_id: Optional[str] = None,
+    ) -> None:
+        """
+        Persist a resolution failure to resolver_errors for later retry.
+
+        Call this from the circuit-breaker except-block in ct_gov_sync.py,
+        company_enrichment.py, or any other caller that swallows resolver
+        exceptions. Safe to call even if Supabase is the reason it failed
+        (it silently warns rather than raising).
+
+        Parameters
+        ----------
+        drug_name      : the name string that could not be resolved
+        source         : pipeline step label (e.g. 'ct_gov_sync', 'company_enrichment')
+        error          : the caught exception
+        source_table   : table whose row needs canonical_drug_id stamped on retry
+        source_row_id  : PK value of that row
+        """
+        if self.dry_run:
+            print(f"  [DRY RUN] Would log resolver error: '{drug_name}' ({type(error).__name__})")
+            return
+
+        import traceback
+        error_type = type(error).__name__.lower()
+        if "connection" in error_type or "timeout" in error_type or "network" in error_type:
+            etype = "network"
+        elif "supabase" in error_type or "http" in error_type or "requests" in error_type:
+            etype = "supabase"
+        elif "value" in error_type:
+            etype = "value_error"
+        else:
+            etype = "unknown"
+
+        payload = {
+            "drug_name":       drug_name,
+            "source":          source,
+            "source_table":    source_table,
+            "source_row_id":   str(source_row_id) if source_row_id is not None else None,
+            "error_message":   str(error)[:1000],
+            "error_type":      etype,
+            "stack_trace":     traceback.format_exc()[:2000],
+            "attempt_count":   1,
+        }
+        resp = requests.post(
+            f"{self.url}/rest/v1/resolver_errors",
+            headers={**self.headers, "Prefer": "return=minimal"},
+            json=payload,
+        )
+        if resp.status_code not in (200, 201):
+            print(f"  [identity] WARNING: could not write resolver_error for '{drug_name}': "
+                  f"{resp.status_code}")
+
+    def retry_errors(self, limit: int = 50) -> dict[str, int]:
+        """
+        Re-attempt resolution for all unresolved rows in resolver_errors.
+
+        Stamps the source table row with canonical_drug_id on success,
+        marks the error row as resolved. On continued failure, increments
+        attempt_count and updates last_attempted_at.
+
+        Returns dict with keys 'resolved', 'failed', 'skipped'.
+        """
+        resp = requests.get(
+            f"{self.url}/rest/v1/resolver_errors",
+            headers={**self.headers, "Prefer": ""},
+            params={
+                "resolved_at": "is.null",
+                "select": "*",
+                "order": "created_at.asc",
+                "limit": str(limit),
+            },
+        )
+        if resp.status_code != 200:
+            print(f"  [identity] Could not fetch resolver_errors: {resp.status_code}")
+            return {"resolved": 0, "failed": 0, "skipped": 0}
+
+        rows = resp.json()
+        if not rows:
+            print("  [identity] No unresolved errors to retry.")
+            return {"resolved": 0, "failed": 0, "skipped": 0}
+
+        print(f"  [identity] Retrying {len(rows)} unresolved resolver errors...")
+        counts = {"resolved": 0, "failed": 0, "skipped": 0}
+
+        self._load_alias_cache()  # refresh before batch
+
+        for row in rows:
+            drug_name = row["drug_name"]
+            source    = row["source"]
+            error_id  = row["id"]
+            src_table = row.get("source_table")
+            src_row   = row.get("source_row_id")
+
+            try:
+                canonical_id, confidence, method = self.resolve(drug_name, source=source)
+                print(f"    ✓ '{drug_name}' → {canonical_id} (method={method})")
+
+                # Stamp the source table row if we know which one it is
+                if src_table and src_row and not self.dry_run:
+                    patch_resp = requests.patch(
+                        f"{self.url}/rest/v1/{src_table}",
+                        headers={**self.headers, "Prefer": "return=minimal"},
+                        params={"id": f"eq.{src_row}"},
+                        json={
+                            "canonical_drug_id":   canonical_id,
+                            "identity_confidence": confidence,
+                            "identity_method":     method,
+                        },
+                    )
+                    if patch_resp.status_code not in (200, 201, 204):
+                        print(f"    ⚠ Could not stamp {src_table}.{src_row}: {patch_resp.status_code}")
+
+                # Mark error as resolved
+                if not self.dry_run:
+                    requests.patch(
+                        f"{self.url}/rest/v1/resolver_errors",
+                        headers={**self.headers, "Prefer": "return=minimal"},
+                        params={"id": f"eq.{error_id}"},
+                        json={
+                            "resolved_at":           _now_iso(),
+                            "resolved_canonical_id": canonical_id,
+                        },
+                    )
+                counts["resolved"] += 1
+
+            except Exception as exc:
+                print(f"    ✗ '{drug_name}' still failing: {exc}")
+                if not self.dry_run:
+                    requests.patch(
+                        f"{self.url}/rest/v1/resolver_errors",
+                        headers={**self.headers, "Prefer": "return=minimal"},
+                        params={"id": f"eq.{error_id}"},
+                        json={
+                            "attempt_count":      row.get("attempt_count", 1) + 1,
+                            "last_attempted_at":  _now_iso(),
+                            "error_message":      str(exc)[:1000],
+                        },
+                    )
+                counts["failed"] += 1
+
+        print(f"  [identity] Retry complete: {counts}")
+        return counts
+
     # ── Private: helpers ─────────────────────────────────────────────────────
 
     def _fetch_canonical(self, canonical_id: str) -> Optional[dict]:
@@ -426,23 +577,36 @@ class DrugIdentityResolver:
         return None
 
 
-# ─── CLI (quick smoke test) ────────────────────────────────────────────────────
+# ─── CLI ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import argparse
     import os
 
     parser = argparse.ArgumentParser(description="Resolve a drug name to canonical_id")
-    parser.add_argument("--name", required=True, help="Drug name to resolve")
-    parser.add_argument("--source", default="cli_test", help="Source label")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--name",         help="Drug name to resolve")
+    group.add_argument("--retry-errors", action="store_true",
+                       help="Retry all unresolved rows in resolver_errors table")
+    parser.add_argument("--source",  default="cli_test", help="Source label (used with --name)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     sb_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
     if not sb_url or not sb_key:
-        raise SystemExit("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY env vars required")
+        try:
+            with open(".supabase_service_key") as f:
+                sb_key = f.read().strip()
+            sb_url = "https://tghntyofptvfhmtchwcv.supabase.co"
+        except FileNotFoundError:
+            raise SystemExit("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY env vars required")
 
     resolver = DrugIdentityResolver(sb_url, sb_key, dry_run=args.dry_run)
-    canonical_id, confidence, method = resolver.resolve(args.name, source=args.source)
-    print(f"\nResult: canonical_id={canonical_id}  confidence={confidence}  method={method}")
+
+    if args.retry_errors:
+        counts = resolver.retry_errors()
+        print(f"\nRetry summary: {counts}")
+    else:
+        canonical_id, confidence, method = resolver.resolve(args.name, source=args.source)
+        print(f"\nResult: canonical_id={canonical_id}  confidence={confidence}  method={method}")
