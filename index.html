@@ -441,7 +441,68 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .rq-status.pending     { background:#f1f5f9; color:#64748b; }
 .rq-status.in_progress { background:#eff6ff; color:#2563eb; }
 .rq-status.done        { background:#f0fdf4; color:#16a34a; }
-.rq-row.done-row { opacity:0.5; }
+.rq-row.done-row { opacity:0.45; }
+/* ── Research Queue Enhanced ── */
+#rq-body { max-height:480px; overflow-y:auto; padding:0; }
+.rq-row { position:relative; padding:11px 14px 11px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:flex-start; gap:10px; transition:background 0.1s; }
+.rq-row:hover { background:#fafbff; }
+.rq-row:last-child { border-bottom:none; }
+.rq-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:0 2px 2px 0; }
+.rq-row.rq-hi::before  { background:#dc2626; }
+.rq-row.rq-mid::before { background:#d97706; }
+.rq-row.rq-lo::before  { background:#94a3b8; }
+.rq-bar { height:3px; border-radius:2px; background:#f1f5f9; width:72px; margin-top:5px; overflow:hidden; }
+.rq-bar-fill { height:100%; border-radius:2px; }
+.rq-bar-fill.thin    { background:#ef4444; }
+.rq-bar-fill.partial { background:#f59e0b; }
+.rq-bar-fill.strong  { background:#22c55e; }
+.rq-area-pill { display:inline-block; font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; padding:1px 5px; border-radius:3px; margin-right:3px; color:white; }
+.rq-score-val { font-size:10px; font-weight:700; color:#94a3b8; }
+/* ── PI Score Badge ── */
+.pi-score-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; padding:1px 6px 1px 5px; border-radius:10px; margin-left:5px; cursor:pointer; transition:opacity 0.15s; vertical-align:middle; line-height:1.4; }
+.pi-score-chip:hover { opacity:0.75; transform:scale(1.05); }
+.pi-score-chip.thin    { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.pi-score-chip.partial { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.pi-score-chip.strong  { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+.pi-score-chip.unknown { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
+/* ── PI Score Modal ── */
+.pi-modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px); animation:pimodalIn 0.15s ease; }
+@keyframes pimodalIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+.pi-modal-box { background:white; border-radius:12px; padding:24px 26px 20px; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+.pi-modal-hd { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px; }
+.pi-modal-title { font-size:14px; font-weight:900; color:#1a2f50; line-height:1.3; }
+.pi-modal-area  { font-size:10px; color:#64748b; font-weight:700; margin-top:2px; }
+.pi-modal-close { background:none; border:none; font-size:20px; color:#94a3b8; cursor:pointer; padding:0 0 0 8px; line-height:1; flex-shrink:0; }
+.pi-modal-close:hover { color:#475569; }
+.pi-modal-score-wrap { margin:14px 0 4px; }
+.pi-modal-score-label { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.pi-modal-score-num { font-size:28px; font-weight:900; line-height:1; }
+.pi-modal-score-num.thin    { color:#dc2626; }
+.pi-modal-score-num.partial { color:#b45309; }
+.pi-modal-score-num.strong  { color:#15803d; }
+.pi-modal-score-tier { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
+.pi-modal-score-tier.thin    { color:#dc2626; }
+.pi-modal-score-tier.partial { color:#b45309; }
+.pi-modal-score-tier.strong  { color:#15803d; }
+.pi-modal-bar { height:6px; border-radius:3px; background:#f1f5f9; overflow:hidden; }
+.pi-modal-bar-fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
+.pi-modal-bar-fill.thin    { background:#ef4444; }
+.pi-modal-bar-fill.partial { background:#f59e0b; }
+.pi-modal-bar-fill.strong  { background:#22c55e; }
+.pi-modal-divider { height:1px; background:#f1f5f9; margin:14px 0; }
+.pi-modal-action-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:6px; }
+.pi-modal-action-text { font-size:12px; color:#1e3a5f; line-height:1.6; background:#f8fafc; border-radius:6px; padding:10px 12px; border-left:3px solid #e2e8f0; }
+.pi-modal-pri { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; margin-top:10px; color:#64748b; }
+/* ── Identity Health Footer ── */
+#id-footer { position:fixed; bottom:0; left:0; right:0; z-index:8000; height:28px; display:flex; align-items:center; padding:0 18px; gap:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.95); cursor:pointer; transition:background 0.4s, opacity 0.3s; box-shadow:0 -1px 8px rgba(0,0,0,0.15); user-select:none; }
+#id-footer.idf-ok   { background:#15803d; }
+#id-footer.idf-warn { background:#b45309; }
+#id-footer.idf-bad  { background:#dc2626; }
+#id-footer.idf-loading { background:#475569; }
+#id-footer .idf-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.7); flex-shrink:0; }
+#id-footer .idf-sep { opacity:0.35; }
+#id-footer .idf-hint { margin-left:auto; font-size:9.5px; opacity:0.65; font-weight:500; }
+body { padding-bottom:28px; }
 /* ── Identity Health Panel ── */
 .ih-stat { display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px; }
 .ih-stat-val { font-size:22px;font-weight:800;line-height:1; }
@@ -1927,6 +1988,17 @@ async function rqSetStatus(entityId, areaId, currentStatus) {
   }
 }
 
+// Area color map shared across queue + badges
+const _AREA_PILL_COLORS = {
+  tl1a:  { bg:'#1a3f8f', text:'white' },
+  tslp:  { bg:'#0e7490', text:'white' },
+  il4ra: { bg:'#7c3aed', text:'white' },
+  igf1r: { bg:'#b45309', text:'white' },
+  fcrn:  { bg:'#15803d', text:'white' },
+  tcell: { bg:'#dc2626', text:'white' },
+};
+const _AREA_SHORT = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
+
 async function loadResearchQueue() {
   const body = document.getElementById('rq-body');
   if (!body) return;
@@ -1936,33 +2008,45 @@ async function loadResearchQueue() {
       .from('research_queue')
       .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,assigned_status')
       .order('priority_score', { ascending: false })
-      .limit(12);
+      .limit(25);
     if (hideDone) query = query.neq('assigned_status', 'done');
     const { data, error } = await query;
     if (error || !data || !data.length) {
-      body.innerHTML = '<div style="color:#94a3b8;font-size:12px">No research queue data yet.</div>';
+      body.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:14px 18px">No research queue data yet — run the pipeline to populate.</div>';
       return;
     }
     body.innerHTML = data.map(r => {
-      const priClass = r.priority_score >= 100 ? 'high' : r.priority_score >= 70 ? 'mid' : '';
-      const tierClass = r.completeness_tier || 'thin';
-      const areaLabel = (r.area_id || '').toUpperCase();
+      const pri    = r.priority_score || 0;
+      const priCls = pri >= 80 ? 'rq-hi' : pri >= 50 ? 'rq-mid' : 'rq-lo';
+      const tier   = r.completeness_tier || 'thin';
+      const score  = r.completeness_score || 0;
       const status = r.assigned_status || 'pending';
-      const rowId = `rq-row-${r.entity_id}-${r.area_id}`;
-      const btnId = `rq-btn-${r.entity_id}-${r.area_id}`;
+      const rowId  = `rq-row-${r.entity_id}-${r.area_id}`;
+      const btnId  = `rq-btn-${r.entity_id}-${r.area_id}`;
       const doneClass = status === 'done' ? ' done-row' : '';
-      return `<div class="rq-row${doneClass}" id="${rowId}">
-        <div class="rq-pri ${priClass}">${r.priority_score}</div>
+      const ac = _AREA_PILL_COLORS[r.area_id] || { bg:'#64748b', text:'white' };
+      const aShort = _AREA_SHORT[r.area_id] || (r.area_id || '').toUpperCase();
+      const barW = Math.min(100, Math.max(4, score)) + '%';
+      const entityLabel = r.entity_id.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      return `<div class="rq-row ${priCls}${doneClass}" id="${rowId}">
         <div style="flex:1;min-width:0">
-          <div class="rq-entity">${r.entity_id}<span class="rq-tier ${tierClass}" style="margin-left:6px">${r.completeness_tier}</span></div>
-          <div class="rq-meta">${areaLabel} · score ${r.completeness_score}</div>
-          <div class="rq-action">${r.next_best_action || ''}</div>
+          <div class="rq-entity" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+            <span>${entityLabel}</span>
+            <span class="rq-tier ${tier}">${tier}</span>
+            <span class="rq-area-pill" style="background:${ac.bg};color:${ac.text}">${aShort}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <div class="rq-bar"><div class="rq-bar-fill ${tier}" style="width:${barW}"></div></div>
+            <span class="rq-score-val">${score}<span style="color:#cbd5e1">/100</span></span>
+            <span style="font-size:9.5px;font-weight:700;color:${pri >= 80 ? '#dc2626' : pri >= 50 ? '#d97706' : '#94a3b8'}">pri ${pri}</span>
+          </div>
+          ${r.next_best_action ? `<div class="rq-action" style="margin-top:3px">→ ${r.next_best_action}</div>` : ''}
         </div>
         <button id="${btnId}" class="rq-status ${status}" onclick="rqSetStatus('${r.entity_id}','${r.area_id}','${status}')">${_RQ_STATUS_LABEL[status]}</button>
       </div>`;
     }).join('');
   } catch(e) {
-    body.innerHTML = '<div style="color:#ef4444;font-size:12px">Error loading queue.</div>';
+    body.innerHTML = '<div style="color:#ef4444;font-size:12px;padding:14px 18px">Error loading queue.</div>';
   }
 }
 
@@ -2024,6 +2108,140 @@ async function loadIdentityHealth() {
     body.innerHTML = '<div style="color:#ef4444;font-size:12px">Error loading health data.</div>';
   }
 }
+
+// ── Identity Health Footer ────────────────────────────────────────────────────
+async function loadIdentityFooter() {
+  const footer = document.getElementById('id-footer');
+  const txt    = document.getElementById('idf-text');
+  if (!footer || !txt) return;
+  try {
+    const [drugsRes, canonRes, fuzzyRes, errRes] = await Promise.all([
+      _sb.from('drugs').select('canonical_drug_id', { count:'exact', head:false }),
+      _sb.from('canonical_drugs').select('canonical_id,is_active', { count:'exact', head:false }),
+      _sb.from('identity_audit_log').select('id', { count:'exact' }).eq('operation','flag_review'),
+      _sb.from('resolver_errors').select('id', { count:'exact' }).is('resolved_at', null),
+    ]);
+    const total      = (drugsRes.data||[]).length;
+    const resolved   = (drugsRes.data||[]).filter(d=>d.canonical_drug_id).length;
+    const canonIds   = new Set((canonRes.data||[]).map(c=>c.canonical_id).filter(Boolean));
+    const orphans    = (drugsRes.data||[]).filter(d=>d.canonical_drug_id&&!canonIds.has(d.canonical_drug_id)).length;
+    const fuzzy      = fuzzyRes.count ?? (fuzzyRes.data||[]).length;
+    const errs       = errRes.count  ?? (errRes.data||[]).length;
+
+    // Also populate the hidden ih-body for backward compat
+    loadIdentityHealth();
+
+    const parts = [`${resolved}/${total} resolved`];
+    if (fuzzy  > 0) parts.push(`${fuzzy} fuzzy pending`);
+    if (orphans > 0) parts.push(`${orphans} orphans`);
+    if (errs    > 0) parts.push(`${errs} resolver errors`);
+    txt.textContent = parts.join(' · ');
+
+    if (orphans > 0 || errs > 0) {
+      footer.className = 'idf-bad';
+    } else if (fuzzy > 0 || resolved < total) {
+      footer.className = 'idf-warn';
+    } else {
+      footer.className = 'idf-ok';
+      txt.textContent = `✓ ${resolved}/${total} resolved · 0 fuzzy · 0 orphans — identity layer clean`;
+    }
+  } catch(e) {
+    footer.className = 'idf-warn';
+    if (txt) txt.textContent = 'Identity health unavailable';
+  }
+}
+
+// ── PI Score Badge injection ──────────────────────────────────────────────────
+// Called after _makeAreaPI loads; injects colored score chips into the table.
+async function _injPIScores(tabId, areaIds) {
+  if (!areaIds || !areaIds.length) return;
+  try {
+    const { data, error } = await _sb
+      .from('research_queue')
+      .select('entity_id,completeness_score,completeness_tier,next_best_action,priority_score,area_id')
+      .in('area_id', areaIds);
+    if (error || !data || !data.length) return;
+
+    // Build map: entity_id → best record (highest priority)
+    const map = new Map();
+    for (const r of data) {
+      const cur = map.get(r.entity_id);
+      if (!cur || (r.priority_score||0) > (cur.priority_score||0)) map.set(r.entity_id, r);
+    }
+    if (!map.size) return;
+
+    // Find all pi-co-name elements in this tab and inject badges
+    const tableEl = document.getElementById(tabId + '-area-pi');
+    if (!tableEl) return;
+    tableEl.querySelectorAll('.pi-co-name').forEach(el => {
+      const entityName = el.textContent.trim();
+      // Try to match by normalizing: lowercase, remove spaces/special chars
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
+      let matched = null;
+      for (const [eid, r] of map) {
+        if (norm(eid) === norm(entityName) || norm(r.entity_id) === norm(entityName)) {
+          matched = r; break;
+        }
+        // Also try partial match on entity_id
+        if (norm(entityName).includes(norm(eid)) || norm(eid).includes(norm(entityName))) {
+          matched = r; break;
+        }
+      }
+      if (!matched) return;
+      // Don't double-inject
+      if (el.parentNode.querySelector('.pi-score-chip')) return;
+      const tier  = matched.completeness_tier || 'thin';
+      const score = matched.completeness_score || 0;
+      const eid2  = matched.entity_id;
+      const aid   = matched.area_id;
+      const action= (matched.next_best_action || '').replace(/'/g, "\\'");
+      const chip  = document.createElement('span');
+      chip.className = `pi-score-chip ${tier}`;
+      chip.title     = `Completeness: ${score}/100 (${tier})`;
+      chip.innerHTML = `${score}`;
+      chip.onclick   = (e) => {
+        e.stopPropagation();
+        showPIScoreModal(eid2, aid, entityName, score, tier, matched.next_best_action||'', matched.priority_score||0);
+      };
+      el.parentNode.appendChild(chip);
+    });
+  } catch(e) { /* non-critical; silent fail */ }
+}
+
+// ── PI Score Modal ────────────────────────────────────────────────────────────
+function showPIScoreModal(entityId, areaId, entityName, score, tier, action, priority) {
+  const overlay   = document.getElementById('pi-score-modal-overlay');
+  const elName    = document.getElementById('pi-modal-entity');
+  const elArea    = document.getElementById('pi-modal-area');
+  const elScore   = document.getElementById('pi-modal-score-num');
+  const elTier    = document.getElementById('pi-modal-score-tier');
+  const elBarFill = document.getElementById('pi-modal-bar-fill');
+  const elAction  = document.getElementById('pi-modal-action');
+  const elPri     = document.getElementById('pi-modal-pri');
+  if (!overlay) return;
+  const areaLabel = AREA_LABELS[areaId] || areaId || '';
+  elName.textContent    = entityName;
+  elArea.textContent    = areaLabel;
+  elScore.textContent   = score;
+  elTier.textContent    = (tier||'unknown').charAt(0).toUpperCase() + (tier||'').slice(1);
+  [elScore, elTier, elBarFill].forEach(el => {
+    el.className = el.className.replace(/\b(thin|partial|strong)\b/g, '').trim();
+    el.classList.add(tier||'thin');
+  });
+  // Animate bar fill after a tick
+  elBarFill.style.width = '0%';
+  setTimeout(() => { elBarFill.style.width = Math.min(100, score) + '%'; }, 30);
+  elAction.textContent  = action || 'No action specified.';
+  elPri.innerHTML       = priority ? `<span style="color:#94a3b8">Pipeline priority:</span> <strong style="color:#1a2f50">${priority}</strong>` : '';
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closePIModal() {
+  const overlay = document.getElementById('pi-score-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePIModal(); });
 
 // ── BD Signal Panel ───────────────────────────────────────────────────────────
 async function loadBDSignal() {
@@ -2615,18 +2833,6 @@ function loadMoleculeTab(tabId) {
 <div class="tab-pane active" id="tab-home">
 
 
- <!-- MERIDIAN DAILY READER — dynamic, loaded from Supabase -->
- <div class="meridian-reader" id="meridian-reader-anchor">
- <div class="meridian-reader-hd">
-  <span>⚡ Essential Updates</span>
-  <span style="font-size:11px;font-weight:500;color:#8a7020;margin-left:auto">Intel · Deals · Catalysts · Enrichment</span>
- </div>
- <div id="meridian-reader-items">
-  <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
- </div>
- </div>
-
-
  <!-- KEY UPCOMING CATALYSTS -->
 
   <!-- AILUX PIPELINE OVERVIEW removed -->
@@ -2671,13 +2877,30 @@ function loadMoleculeTab(tabId) {
       </div>
   </div>
 
+ <!-- ── RESEARCH QUEUE — primary decision surface ───────────────── -->
+ <div class="home-card" id="research-queue-panel" style="border-left:4px solid #7c3aed">
+  <div class="home-card-hd" style="background:linear-gradient(105deg,#2d1262,#4c1d95,#5b21b6);color:white;">
+   <div>
+    <span style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em">🔬 Research Queue</span>
+    <span style="display:block;font-size:10px;font-weight:500;opacity:0.75;margin-top:1px">What needs attention today</span>
+   </div>
+   <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10.5px;color:rgba(255,255,255,0.8);font-weight:600;user-select:none">
+    <input type="checkbox" id="rq-hide-done" onchange="loadResearchQueue()" style="accent-color:#a78bfa;cursor:pointer">
+    Hide done
+   </label>
+  </div>
+  <div id="rq-body">
+   <div style="color:#94a3b8;font-size:12px;padding:14px 18px">Loading research queue…</div>
+  </div>
+ </div>
+
+ <!-- ── KEY CATALYSTS ──────────────────────────────────────────── -->
  <div class="home-grid" id="home-catalysts-anchor">
  <div class="home-card" style="overflow:visible">
   <div class="home-card-hd">
    Key Catalysts &amp; Readouts
    <span class="hc-tag" id="cats-area-label">All Areas</span>
   </div>
-  <!-- Sort + Area filter bar -->
   <div class="cat-filter-bar">
    <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
    <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
@@ -2699,7 +2922,7 @@ function loadMoleculeTab(tabId) {
  </div>
  </div><!-- end home-grid -->
 
- <!-- ── BD SIGNAL PANEL ──────────────────────────────────────── -->
+ <!-- ── BD SIGNAL ──────────────────────────────────────────────── -->
  <div class="home-card" id="bd-signal-panel" style="border-left:4px solid #1a3f8f">
   <div class="home-card-hd" style="background:linear-gradient(90deg,#1a2f50,#1e3f70);color:white;">
    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">◈ BD Signal</span>
@@ -2710,30 +2933,7 @@ function loadMoleculeTab(tabId) {
   </div>
  </div>
 
- <!-- ── RESEARCH QUEUE PANEL ──────────────────────────────── -->
- <div class="home-card" id="research-queue-panel" style="border-left:4px solid #7c3aed">
-  <div class="home-card-hd" style="background:linear-gradient(90deg,#3b0764,#5b21b6);color:white;">
-   <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">🔬 Research Queue</span>
-   <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10.5px;color:rgba(255,255,255,0.8);font-weight:600;user-select:none">
-    <input type="checkbox" id="rq-hide-done" onchange="loadResearchQueue()" style="accent-color:#a78bfa;cursor:pointer">
-    Hide done
-   </label>
-  </div>
-  <div id="rq-body" style="padding:14px 18px">
-   <div style="color:#94a3b8;font-size:12px">Loading research queue…</div>
-  </div>
- </div>
-
- <div class="home-card" id="identity-health-panel" style="border-left:4px solid #0891b2">
-  <div class="home-card-hd" style="background:linear-gradient(90deg,#164e63,#0e7490);color:white;">
-   <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">🧬 Identity Layer Health</span>
-   <button onclick="loadIdentityHealth()" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;border-radius:4px;color:white;font-size:10px;padding:2px 8px;cursor:pointer">↻ Refresh</button>
-  </div>
-  <div id="ih-body" style="padding:12px 18px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
-   <div style="color:#94a3b8;font-size:12px">Loading…</div>
-  </div>
- </div>
-
+ <!-- ── RECENT DEAL ACTIVITY ───────────────────────────────────── -->
  <div class="home-card" id="home-deals-anchor">
   <div class="home-card-hd">
    Recent Deal Activity
@@ -2752,6 +2952,19 @@ function loadMoleculeTab(tabId) {
   </div>
  </div>
 
+ <!-- ── ESSENTIAL UPDATES (archival intel stream) ──────────────── -->
+ <div class="meridian-reader" id="meridian-reader-anchor">
+  <div class="meridian-reader-hd">
+   <span>⚡ Essential Updates</span>
+   <span style="font-size:11px;font-weight:500;color:#8a7020;margin-left:auto">Intel · Deals · Catalysts · Enrichment</span>
+  </div>
+  <div id="meridian-reader-items">
+   <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
+  </div>
+ </div>
+
+ <!-- hidden identity-health body (data still loads; displayed in footer) -->
+ <div id="ih-body" style="display:none"></div>
 
  <div class="footnote" style="margin-top:8px">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last updated May 2026.</div>
 
@@ -7642,6 +7855,7 @@ async function loadAreaPI(tabId) {
   const pi = _makeAreaPI(tabId, TAB_AREA_MAP[tabId]);
   _areaPIs[tabId] = pi;
   await pi.init();
+  _injPIScores(tabId, TAB_AREA_MAP[tabId]);
 }
 
 function switchTab(id, btn) {
@@ -8071,7 +8285,7 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadIdentityHealth(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
@@ -10497,6 +10711,37 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 })();
 </script>
+
+<!-- ── PI Score Modal ────────────────────────────────────────────────────── -->
+<div id="pi-score-modal-overlay" class="pi-modal-overlay" style="display:none" onclick="if(event.target===this)closePIModal()">
+ <div class="pi-modal-box">
+  <div class="pi-modal-hd">
+   <div>
+    <div class="pi-modal-title" id="pi-modal-entity">—</div>
+    <div class="pi-modal-area" id="pi-modal-area">—</div>
+   </div>
+   <button class="pi-modal-close" onclick="closePIModal()">×</button>
+  </div>
+  <div class="pi-modal-score-wrap">
+   <div class="pi-modal-score-label">
+    <span class="pi-modal-score-num" id="pi-modal-score-num">—</span>
+    <span class="pi-modal-score-tier" id="pi-modal-score-tier">—</span>
+   </div>
+   <div class="pi-modal-bar"><div class="pi-modal-bar-fill" id="pi-modal-bar-fill" style="width:0%"></div></div>
+  </div>
+  <div class="pi-modal-divider"></div>
+  <div class="pi-modal-action-label">Next action</div>
+  <div class="pi-modal-action-text" id="pi-modal-action">—</div>
+  <div class="pi-modal-pri" id="pi-modal-pri"></div>
+ </div>
+</div>
+
+<!-- ── Identity Health Footer ─────────────────────────────────────────────── -->
+<div id="id-footer" class="idf-loading" onclick="navTo('home');setTimeout(()=>document.getElementById('meridian-reader-anchor')?.scrollIntoView({behavior:'smooth'}),200)">
+ <div class="idf-dot" id="idf-dot"></div>
+ <span id="idf-text">Loading identity health…</span>
+ <span class="idf-hint">click to view home tab ↑</span>
+</div>
 
 </body>
 </html>
