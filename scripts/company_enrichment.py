@@ -804,8 +804,15 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
                             target=drug.get("target"),
                         )
                         drug_canonical_map[drug_name.lower()] = canon_id
-                    except Exception:
-                        pass
+                    except Exception as inner_exc:
+                        try:
+                            resolver.log_resolver_error(
+                                drug_name=drug_name, source="company_enrichment",
+                                error=inner_exc, source_table="drugs",
+                                source_row_id=drug.get("id"),
+                            )
+                        except Exception:
+                            pass
         except Exception as exc:
             log(f"  ⚠ Identity resolver unavailable in step6: {exc}", indent=2)
 
