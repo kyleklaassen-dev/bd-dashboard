@@ -3623,11 +3623,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="tslp-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · TSLP × IL-33 · Respiratory</span>
-      <span class="pi-hd-count" id="tslp-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -3788,11 +3784,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="il4ra-tslp-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · IL-4Rα × TSLP · Atopic Disease</span>
-      <span class="pi-hd-count" id="il4ra-tslp-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -3955,11 +3947,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="il4ra-ox40l-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · IL-4Rα × OX40L · Atopic Disease</span>
-      <span class="pi-hd-count" id="il4ra-ox40l-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -4123,11 +4111,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="igf1r-tshr-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · IGF-1R × TSHR · Thyroid Eye Disease</span>
-      <span class="pi-hd-count" id="igf1r-tshr-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -4290,11 +4274,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="fcrn-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · FcRn · Autoimmune / IgG Reduction</span>
-      <span class="pi-hd-count" id="fcrn-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -4466,11 +4446,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="ace-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-hd-left">
-      <span class="pi-hd-title">Competitive Landscape · T-Cell / ACE · Immuno-Oncology</span>
-      <span class="pi-hd-count" id="ace-area-pi-count">—</span>
-    </div>
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px">
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -6868,7 +6844,8 @@ function _makeAreaPI(tabId, areaIds) {
           <span class="pi-pill-label">Relevance</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','overlap','',this)">All</button>
           ${overlaps.map(o=>pillBtn('overlap',o)).join('')}
-        </div>`;
+        </div>
+        <span id="${tid}-area-pi-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>`;
     },
 
     _clsPill(c)  { const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'}; return `<span class="pi-cls-pill ${m[c]||'pi-cls-1st'}">${c}</span>`; },
