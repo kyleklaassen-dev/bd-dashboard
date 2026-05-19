@@ -228,10 +228,9 @@ def load_entity_context(
         "deals": [],
     }
 
-    # -- Drugs for this entity + area
+    # -- Drugs for this entity (area_id is in drug_areas junction, not on drugs directly)
     drugs = _sb_get(sb_url, sb_key, "drugs", {
         "entity_id": f"eq.{entity_id}",
-        "area_id": f"eq.{area_id}",
         "select": "*",
     })
     ctx["drugs"] = drugs
@@ -914,9 +913,20 @@ def run_intelligence_audit(
         print("  DRY RUN — no writes to Supabase")
     print(f"{'═'*60}")
 
-    # Discover all entity_ids for this area from the drugs table
-    params: dict = {
+    # Discover all drug_ids for this area via the drug_areas junction table
+    area_rows = _sb_get(sb_url, sb_key, "drug_areas", {
         "area_id": f"eq.{area_id}",
+        "select": "drug_id",
+    })
+    if not area_rows:
+        print("  No drug_areas rows found for this area.")
+        return
+
+    area_drug_ids = [r["drug_id"] for r in area_rows]
+    drug_id_filter = "in.(" + ",".join(area_drug_ids) + ")"
+
+    params: dict = {
+        "id": drug_id_filter,
         "select": "entity_id,id,name,company_id",
     }
     if entity_filter:
