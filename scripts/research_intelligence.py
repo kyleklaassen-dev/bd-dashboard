@@ -240,7 +240,7 @@ def load_entity_context(
         # Try to find by company + area even if entity_id not set yet
         return ctx
 
-    drug_ids = [d["drug_id"] for d in drugs]
+    drug_ids = [d["id"] for d in drugs]
     drug_ids_filter = "in.(" + ",".join(drug_ids) + ")"
 
     # -- Trials linked to these drugs
@@ -351,12 +351,12 @@ def score_entity_completeness(ctx: dict) -> dict:
         drug_scores = []
         for d in drugs:
             ds = 0.0
-            ds += _check(_nonempty(d.get("mechanism")), f"drug:{d['drug_id']}:mechanism")
-            ds += _check(_nonempty(d.get("target")), f"drug:{d['drug_id']}:target")
-            ds += _check(_nonempty(d.get("stage")), f"drug:{d['drug_id']}:stage")
-            ds += _check(_nonempty(d.get("differentiation_thesis")), f"drug:{d['drug_id']}:differentiation_thesis")
+            ds += _check(_nonempty(d.get("mechanism")), f"drug:{d['id']}:mechanism")
+            ds += _check(_nonempty(d.get("target")), f"drug:{d['id']}:target")
+            ds += _check(_nonempty(d.get("stage")), f"drug:{d['id']}:stage")
+            ds += _check(_nonempty(d.get("differentiation_thesis")), f"drug:{d['id']}:differentiation_thesis")
             # canonical_drug_id: identity spine connecting this drug to the canonical layer
-            ds += _check(_nonempty(d.get("canonical_drug_id")), f"drug:{d['drug_id']}:canonical_drug_id")
+            ds += _check(_nonempty(d.get("canonical_drug_id")), f"drug:{d['id']}:canonical_drug_id")
             drug_scores.append(ds / 5)
         stage_scores["stage2_drug_mapping"] = sum(drug_scores) / len(drug_scores)
     else:
@@ -371,7 +371,7 @@ def score_entity_completeness(ctx: dict) -> dict:
             drug_trial_map.setdefault(t["drug_id"], []).append(t)
 
         for d in drugs:
-            drug_id = d["drug_id"]
+            drug_id = d["id"]
             drug_trials = drug_trial_map.get(drug_id, [])
             ds = 0.0
 
@@ -543,7 +543,7 @@ def get_next_best_action(ctx: dict, score_result: dict) -> str:
 
     # 3. Any drug with no associated trials
     drug_ids_with_trials = {t["drug_id"] for t in trials}
-    if any(d["drug_id"] not in drug_ids_with_trials for d in drugs):
+    if any(d["id"] not in drug_ids_with_trials for d in drugs):
         return "Run CT.gov search to find clinical trials for unmapped drugs"
 
     # 4. Trial has primary_completion_date but no catalyst
@@ -645,7 +645,7 @@ def check_research_triggers(ctx: dict) -> list[str]:
     today = datetime.now(timezone.utc).date()
 
     # Build lookup maps
-    drug_map = {d["drug_id"]: d for d in drugs}
+    drug_map = {d["id"]: d for d in drugs}
     drug_trials: dict[str, list] = {}
     for t in trials:
         drug_trials.setdefault(t["drug_id"], []).append(t)
@@ -881,7 +881,7 @@ def upsert_research_queue(
 
     # Stamp each drug row
     for drug in drugs:
-        _sb_patch(sb_url, sb_key, "drugs", {"drug_id": drug["drug_id"]}, drug_patch)
+        _sb_patch(sb_url, sb_key, "drugs", {"id": drug["id"]}, drug_patch)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -917,7 +917,7 @@ def run_intelligence_audit(
     # Discover all entity_ids for this area from the drugs table
     params: dict = {
         "area_id": f"eq.{area_id}",
-        "select": "entity_id,drug_id,drug_name,company_id",
+        "select": "entity_id,id,name,company_id",
     }
     if entity_filter:
         params["entity_id"] = f"ilike.%{entity_filter}%"
@@ -927,7 +927,8 @@ def run_intelligence_audit(
     # Group by entity_id; entities without entity_id get a fallback key
     entity_map: dict[str, list] = {}
     for d in all_drugs:
-        eid = d.get("entity_id") or f"__no_entity__{d['drug_id']}"
+        # drugs table uses 'id' as primary key, not 'drug_id'
+        eid = d.get("entity_id") or f"__no_entity__{d['id']}"
         entity_map.setdefault(eid, []).append(d)
 
     if not entity_map:
@@ -938,8 +939,8 @@ def run_intelligence_audit(
 
     results = []
     for entity_id, entity_drugs in entity_map.items():
-        real_entity_id = entity_id if not entity_id.startswith("__no_entity__") else entity_drugs[0]["drug_id"]
-        drug_names = ", ".join(d.get("drug_name", "?") for d in entity_drugs[:2])
+        real_entity_id = entity_id if not entity_id.startswith("__no_entity__") else entity_drugs[0]["id"]
+        drug_names = ", ".join(d.get("name", "?") for d in entity_drugs[:2])
         print(f"  ── {real_entity_id} ({drug_names})")
 
         try:
