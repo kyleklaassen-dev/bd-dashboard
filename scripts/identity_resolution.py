@@ -127,15 +127,15 @@ class DrugIdentityResolver:
             self._load_alias_cache()
 
         # Step 1: exact match (case-insensitive, trim)
+        # Alias already exists in DB — no need to re-add; just return the match.
         exact_key = drug_name.strip().lower()
         if exact_key in self._alias_cache:
             canonical_id, _orig_alias, _conf = self._alias_cache[exact_key]
-            self._add_alias_if_new(canonical_id, drug_name, source, EXACT_CONFIDENCE)
             self._log_audit("resolve_drug", canonical_id, drug_name,
                             {"method": "exact"}, source)
             return canonical_id, EXACT_CONFIDENCE, "exact"
 
-        # Step 2: normalised match
+        # Step 2: normalised match — input name may be a novel surface form; add it.
         norm = _normalize_name(drug_name)
         if norm and norm in self._alias_cache:
             canonical_id, _orig_alias, _conf = self._alias_cache[norm]
