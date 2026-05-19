@@ -437,6 +437,11 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .rq-tier.thin    { background:#fef2f2; color:#ef4444; }
 .rq-tier.partial { background:#fffbeb; color:#d97706; }
 .rq-tier.strong  { background:#f0fdf4; color:#16a34a; }
+.rq-status { font-size:9.5px; font-weight:700; border-radius:12px; padding:2px 8px; border:none; cursor:pointer; flex-shrink:0; margin-top:2px; transition:background 0.15s,color 0.15s; }
+.rq-status.pending     { background:#f1f5f9; color:#64748b; }
+.rq-status.in_progress { background:#eff6ff; color:#2563eb; }
+.rq-status.done        { background:#f0fdf4; color:#16a34a; }
+.rq-row.done-row { opacity:0.5; }
 #meridian-reader-items { display: block !important; max-height: 400px; overflow-y: auto; }
 #meridian-reader-items::-webkit-scrollbar { width: 5px; }
 #meridian-reader-items::-webkit-scrollbar-track { background: transparent; }
@@ -1884,13 +1889,42 @@ async function loadMeridianReader() {
 }
 
 // ── Research Queue Panel ──────────────────────────────────────────────────────
+const _RQ_STATUS_CYCLE = { pending: 'in_progress', in_progress: 'done', done: 'pending' };
+const _RQ_STATUS_LABEL = { pending: '○ Pending', in_progress: '● In Progress', done: '✓ Done' };
+
+async function rqSetStatus(entityId, areaId, currentStatus) {
+  const nextStatus = _RQ_STATUS_CYCLE[currentStatus] || 'in_progress';
+  const rowId = `rq-row-${entityId}-${areaId}`;
+  const btnId = `rq-btn-${entityId}-${areaId}`;
+  const btn = document.getElementById(btnId);
+  const row = document.getElementById(rowId);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const { error } = await _sb
+      .from('research_queue')
+      .update({ assigned_status: nextStatus })
+      .eq('entity_id', entityId)
+      .eq('area_id', areaId);
+    if (error) throw error;
+    if (btn) {
+      btn.disabled = false;
+      btn.className = `rq-status ${nextStatus}`;
+      btn.textContent = _RQ_STATUS_LABEL[nextStatus];
+      btn.onclick = () => rqSetStatus(entityId, areaId, nextStatus);
+    }
+    if (row) row.className = `rq-row${nextStatus === 'done' ? ' done-row' : ''}`;
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = _RQ_STATUS_LABEL[currentStatus]; btn.className = `rq-status ${currentStatus}`; }
+  }
+}
+
 async function loadResearchQueue() {
   const body = document.getElementById('rq-body');
   if (!body) return;
   try {
     const { data, error } = await _sb
       .from('research_queue')
-      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action')
+      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,assigned_status')
       .order('priority_score', { ascending: false })
       .limit(12);
     if (error || !data || !data.length) {
@@ -1901,13 +1935,18 @@ async function loadResearchQueue() {
       const priClass = r.priority_score >= 100 ? 'high' : r.priority_score >= 70 ? 'mid' : '';
       const tierClass = r.completeness_tier || 'thin';
       const areaLabel = (r.area_id || '').toUpperCase();
-      return `<div class="rq-row">
+      const status = r.assigned_status || 'pending';
+      const rowId = `rq-row-${r.entity_id}-${r.area_id}`;
+      const btnId = `rq-btn-${r.entity_id}-${r.area_id}`;
+      const doneClass = status === 'done' ? ' done-row' : '';
+      return `<div class="rq-row${doneClass}" id="${rowId}">
         <div class="rq-pri ${priClass}">${r.priority_score}</div>
         <div style="flex:1;min-width:0">
           <div class="rq-entity">${r.entity_id}<span class="rq-tier ${tierClass}" style="margin-left:6px">${r.completeness_tier}</span></div>
           <div class="rq-meta">${areaLabel} · score ${r.completeness_score}</div>
           <div class="rq-action">${r.next_best_action || ''}</div>
         </div>
+        <button id="${btnId}" class="rq-status ${status}" onclick="rqSetStatus('${r.entity_id}','${r.area_id}','${status}')">${_RQ_STATUS_LABEL[status]}</button>
       </div>`;
     }).join('');
   } catch(e) {
