@@ -1704,7 +1704,7 @@ const MR_TYPE_STYLE = {
 
 async function loadMeridianReader() {
   const container = document.getElementById('meridian-reader-items');
-  if (!container || !window._sb) return;
+  if (!container || !_sb) return;
   try {
     // Pull from all four overnight pipeline sources in parallel
     const [intelRes, iaRes, dealsRes, catsRes, profilesRes] = await Promise.all([
@@ -2270,7 +2270,7 @@ async function loadAreaCompetitors(tabId) {
 // ── Area Companies Loader (placeholder — renders into tabId+'-companies' if present) ──
 async function loadAreaCompanies(tabId) {
   const el = document.getElementById(tabId + '-companies');
-  if (!el || !window._sb) return;
+  if (!el || typeof _sb === "undefined") return;
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) return;
   try {
@@ -2287,7 +2287,7 @@ async function loadAreaCompanies(tabId) {
 // ── Area Drugs Loader (placeholder — renders into tabId+'-drugs' if present) ──
 async function loadAreaDrugs(tabId) {
   const el = document.getElementById(tabId + '-drugs');
-  if (!el || !window._sb) return;
+  if (!el || typeof _sb === "undefined") return;
   const areaId = TAB_AREA[tabId];
   if (!areaId) return;
   try {
@@ -3610,6 +3610,7 @@ function loadMoleculeTab(tabId) {
 <!-- ══════════════ TAB 2: TSLP × IL-33 ══════════════ -->
 
 <!-- TSLP fixed pill columns -->
+<div class="tab-pane" id="tab-tslp">
 <div class="tl1a-pills-col" id="tslp-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-bd')">🤝 BD Activity</button>
@@ -3618,7 +3619,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="tslp-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-tslp">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="tslp-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -3631,6 +3633,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="tslp-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="tslp-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -3771,6 +3775,7 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <!-- IL4RA-TSLP fixed pill columns -->
+<div class="tab-pane" id="tab-il4ra-tslp">
 <div class="tl1a-pills-col" id="il4ra-tslp-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-bd')">🤝 BD Activity</button>
@@ -3779,7 +3784,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="il4ra-tslp-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-il4ra-tslp">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="il4ra-tslp-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -3792,6 +3798,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="il4ra-tslp-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="il4ra-tslp-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -3934,6 +3942,7 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <!-- IL4RA-OX40L fixed pill columns -->
+<div class="tab-pane" id="tab-il4ra-ox40l">
 <div class="tl1a-pills-col" id="il4ra-ox40l-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-bd')">🤝 BD Activity</button>
@@ -3942,7 +3951,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="il4ra-ox40l-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-il4ra-ox40l">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="il4ra-ox40l-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -3955,6 +3965,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="il4ra-ox40l-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="il4ra-ox40l-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -4098,6 +4110,7 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <!-- IGF1R-TSHR fixed pill columns -->
+<div class="tab-pane" id="tab-igf1r-tshr">
 <div class="tl1a-pills-col" id="igf1r-tshr-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-bd')">🤝 BD Activity</button>
@@ -4106,7 +4119,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="igf1r-tshr-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-igf1r-tshr">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="igf1r-tshr-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -4119,6 +4133,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="igf1r-tshr-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="igf1r-tshr-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -4261,6 +4277,7 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <!-- FCRN fixed pill columns -->
+<div class="tab-pane" id="tab-fcrn">
 <div class="tl1a-pills-col" id="fcrn-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-bd')">🤝 BD Activity</button>
@@ -4269,7 +4286,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="fcrn-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-fcrn">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="fcrn-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -4282,6 +4300,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="fcrn-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="fcrn-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -4433,6 +4453,7 @@ function loadMoleculeTab(tabId) {
 </div>
 
 <!-- ACE fixed pill columns -->
+<div class="tab-pane" id="tab-ace">
 <div class="tl1a-pills-col" id="ace-pills-left">
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-market')">📊 Market Stats</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-bd')">🤝 BD Activity</button>
@@ -4441,7 +4462,8 @@ function loadMoleculeTab(tabId) {
 <div class="tl1a-pills-col" id="ace-pills-right">
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-drugs')">💊 Drugs to Know</button>
 </div>
-<div class="tab-pane" id="tab-ace">
+<div class="tl1a-layout">
+ <div class="tl1a-center-col">
 <div class="pi-card" style="margin:0 16px 0" id="ace-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-hd-left">
@@ -4454,6 +4476,8 @@ function loadMoleculeTab(tabId) {
   <div class="pi-table-wrap">
     <div id="ace-area-pi"><div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading landscape…</div></div>
   </div>
+</div>
+ </div>
 </div>
 </div>
 <div class="tl1a-modal-overlay" id="ace-modal-market" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -6757,7 +6781,7 @@ function _makeAreaPI(tabId, areaIds) {
 
     async init() {
       const el = document.getElementById(this.tabId + '-area-pi');
-      if (!el || !window._sb) return;
+      if (!el || typeof _sb === "undefined") return;
       try {
         const { data:rows, error } = await _sb
           .from('drug_areas')
@@ -6992,7 +7016,7 @@ const INTEL_TAG_AREA = {
  'TED':'igf1r','AI':'fcrn','Immune Reset':'tcell'
 };
 async function _saveIntelToSupabase(url, text, tag) {
- if (!window._sb) return null;
+ if (!_sb) return null;
  try {
   const today = new Date().toISOString().slice(0,10);
   const headline = text ? (text.length > 120 ? text.slice(0,117)+'…' : text) : (url || 'User submission');
@@ -7843,7 +7867,7 @@ async function piResearchValidate(programId, field, oldVal, newVal) {
  let statusClass = 'pi-edit-val-pending';
  let statusLabel = '🔎 Queued for deep research — no stored intel found yet';
 
- if (window._sb) {
+ if (_sb) {
   try {
    // Get stored company context
    const { data: co } = await _sb.from('companies')
@@ -8166,7 +8190,7 @@ const tl1aPI = {
  async _loadDynamicDetail(id, prog) {
   // Already cached — nothing to do (re-render already used cache)
   if (this._profileCache[id]) return;
-  if (!window._sb) {
+  if (!_sb) {
    // Supabase not ready — fall back to static data
    if (!this._profileCache) this._profileCache = {};
    this._profileCache[id] = null;
@@ -8563,7 +8587,7 @@ const tl1aPI = {
  async _loadSpyreStock() {
   const priceEl = document.getElementById('spyre-price');
   const chgEl   = document.getElementById('spyre-chg');
-  if (!priceEl || !chgEl || !window._sb) return;
+  if (!priceEl || !chgEl || !_sb) return;
   try {
    const { data, error } = await _sb.from('companies').select('stock_price,stock_change').eq('id','spyre').maybeSingle();
    if (error || !data || !data.stock_price) { priceEl.textContent = '—'; chgEl.textContent = ''; return; }
@@ -8583,7 +8607,7 @@ const tl1aPI = {
  async _loadIntelStatus() {
   // Load company tickers that have ANY intel record in Supabase
   // Companies NOT in this set get the blinking green "needs research" dot
-  if (!window._sb) return;
+  if (!_sb) return;
   try {
    const { data } = await _sb.from('intel_companies')
     .select('company_id, companies(ticker)').limit(500);
@@ -8620,7 +8644,7 @@ const tl1aPI = {
 // ── TL1A LIVE INTEL FEED ──────────────────────────────────────────
 async function loadTL1AIntelFeed() {
  const body = document.getElementById('tl1a-intel-feed-body');
- if (!body || !window._sb) { return; }
+ if (!body || !_sb) { return; }
  try {
   const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').eq('area_id','tl1a').limit(100);
   const tl1aIds = (iaRows||[]).map(r=>r.intel_id);
@@ -9709,7 +9733,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const typeIcon = { news:'📰', data:'🔬', deal:'🤝', regulatory:'⚖️', conference:'🎤', other:'📌' };
 
   async function injectPharmaIntel() {
-    if (!window._sb) return;
+    if (!_sb) return;
     const { data, error } = await _sb
       .from('intel_companies')
       .select('company_id, intel!inner(id, intel_date, headline, source_url, importance, intel_type)')
