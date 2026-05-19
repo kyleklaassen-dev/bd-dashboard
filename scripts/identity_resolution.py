@@ -326,7 +326,7 @@ class DrugIdentityResolver:
             f"{self.url}/rest/v1/drug_aliases",
             headers={
                 **self.headers,
-                "Prefer": "resolution=merge-duplicates,return=minimal",
+                "Prefer": "resolution=ignore-duplicates,return=minimal",
             },
             json=payload,
         )
