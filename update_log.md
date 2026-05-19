@@ -1,5 +1,45 @@
 
 ---
+## 2026-05-19 UI Redesign — Decision-Flow Architecture — SHA: d42d542
+
+### Updated: `index.html` → `d42d542`
+
+**Home tab restructured — research queue promoted to primary surface:**
+- Research queue moved to top of home tab with gradient header ("What needs attention today")
+- Card order: Research Queue → Key Catalysts → BD Signal → Recent Deals → Essential Updates → Footnote
+- Old Identity Health card removed (hidden `#ih-body` div retained for JS compat)
+
+**Research Queue enhanced rows:**
+- Left-border priority color coding: red (`rq-hi` >80), amber (`rq-mid` 50–80), slate (`rq-lo` <50)
+- Completeness mini-bar (72px) with tier-colored fill (red/amber/green)
+- Area color pill per row using `_AREA_PILL_COLORS` constants
+- Completeness score + priority score displayed inline
+- `next_best_action` shown as arrow-prefixed action text
+- Entity names prettified (underscore → title case)
+
+**PI score badges on all drug tabs:**
+- `_injPIScores(tabId, areaIds)` post-render injects `.pi-score-chip` into `.pi-co-name` cells
+- Chip color-coded by tier: thin (red), partial (amber), strong (green), unknown (gray)
+- Chip click opens stage score drill-down modal
+
+**Stage score drill-down modal (`#pi-score-modal-overlay`):**
+- Shows entity name, area, completeness score + tier, animated fill bar
+- Displays `next_best_action` and priority score
+- Click-outside or × button to close; ESC key support
+- `showPIScoreModal()` / `closePIModal()` JS functions
+
+**Identity health footer bar (`#id-footer`):**
+- Fixed `position:fixed; bottom:0` bar across all pages (height 28px)
+- Color states: green (ok), amber (warn), red (bad), slate (loading)
+- Dot indicator + status text + "click to view home tab ↑" hint
+- `loadIdentityFooter()` reads orphan/unresolved counts from Supabase at page load
+- `body { padding-bottom:28px }` prevents content overlap
+
+**JS wiring:**
+- `_injPIScores()` called from `loadAreaPI()` after `pi.init()` completes
+- `loadIdentityFooter()` added to `DOMContentLoaded` handler
+
+---
 ## 2026-05-19 Full Bug Fix Pass (Bugs #4–10) — SHAs: ba6dfc2 (company_enrichment), 4a5250c (ct_gov_sync), 299d716 (identity_health_check), 0ae7569 (index.html), 803e789 (CODE_REVIEW)
 
 ### Updated: `scripts/company_enrichment.py` → `ba6dfc2`
