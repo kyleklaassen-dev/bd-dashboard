@@ -996,6 +996,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
 .pi-pill-group { display:flex;gap:3px;align-items:center; }
 .pi-pill-lbl { font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:3px;white-space:nowrap; }
+.pi-pill-label { font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:3px;white-space:nowrap; }
 .pi-pill { padding:3px 10px;border-radius:10px;border:1.5px solid #dde3ea;background:white;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;line-height:1.4; }
 /* Class group — blue */
 .pi-pill-group[data-filter="cls"] .pi-pill:hover:not(.active) { border-color:#2563eb;color:#2563eb; }
@@ -1124,12 +1125,13 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 
 /* ── TL1A LAYOUT ── */
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
+[id$='-area-pi-wrap'] { margin:0 !important;max-width:100% !important; }
 .tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
 .tl1a-center-col { min-width:0; }
 .tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:300;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
-#tl1a-pills-left { left:14px; }
-#tl1a-pills-right { right:14px; }
+[id$='-pills-left']  { left:14px; }
+[id$='-pills-right'] { right:14px; }
 .tl1a-pill-btn { background:white;border:1.5px solid #dde3ea;border-radius:20px;padding:8px 10px;font-size:10.5px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:center;transition:all 0.15s;width:100%;line-height:1.3;position:relative;display:flex;align-items:center;justify-content:center;gap:4px; }
 .tl1a-pill-btn:hover { background:#1e3a5f;color:white;border-color:#1e3a5f;box-shadow:0 3px 10px rgba(30,58,95,0.2); }
 .tl1a-pill-new-dot { display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pi-dot-blink 2.8s ease-in-out infinite;flex-shrink:0; }
@@ -3658,7 +3660,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="tslp-area-pi-wrap">
+<div class="pi-card" id="tslp-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -3891,7 +3893,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="il4ra-tslp-area-pi-wrap">
+<div class="pi-card" id="il4ra-tslp-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -4126,7 +4128,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="il4ra-ox40l-area-pi-wrap">
+<div class="pi-card" id="il4ra-ox40l-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -4362,7 +4364,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="igf1r-tshr-area-pi-wrap">
+<div class="pi-card" id="igf1r-tshr-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -4597,7 +4599,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="fcrn-area-pi-wrap">
+<div class="pi-card" id="fcrn-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -4841,7 +4843,7 @@ function loadMoleculeTab(tabId) {
 </div>
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
-<div class="pi-card" style="margin:0 16px 0" id="ace-area-pi-wrap">
+<div class="pi-card" id="ace-area-pi-wrap">
   <div class="pi-hd">
     <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
@@ -7328,19 +7330,19 @@ function _makeAreaPI(tabId, areaIds) {
       if (!pillsEl) return;
       pillsEl.innerHTML = `
         <div class="pi-pill-group" data-filter="cls">
-          <span class="pi-pill-label">Class</span>
+          <span class="pi-pill-lbl">Class</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','cls','',this)">All</button>
           ${classes.map(c=>pillBtn('cls',c)).join('')}
         </div>
         <div class="pi-pill-divider"></div>
         <div class="pi-pill-group" data-filter="stage">
-          <span class="pi-pill-label">Stage</span>
+          <span class="pi-pill-lbl">Stage</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','stage','',this)">All</button>
           ${stages.map(s=>pillBtn('stage',s)).join('')}
         </div>
         <div class="pi-pill-divider"></div>
         <div class="pi-pill-group" data-filter="overlap">
-          <span class="pi-pill-label">Relevance</span>
+          <span class="pi-pill-lbl">Relevance</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','overlap','',this)">All</button>
           ${overlaps.map(o=>pillBtn('overlap',o)).join('')}
         </div>
