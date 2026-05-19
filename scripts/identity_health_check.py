@@ -53,6 +53,7 @@ def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending:
     """)
     r = rows[0]
     resolved_pct = float(r["pct_resolved"] or 0)
+    unresolved_count = int(r["unresolved"] or 0)  # saved here; r is overwritten by later queries
     status = "✅" if resolved_pct == 100 else ("⚠️ " if resolved_pct >= 80 else "❌")
     print(f"\n  Drug Identity Coverage {status}")
     print(f"    Total drugs      : {r['total_drugs']}")
@@ -161,7 +162,7 @@ def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending:
     # ── Summary ───────────────────────────────────────────────
     issues = []
     if resolved_pct < 100:
-        issues.append(f"{int(r['orphans'] if False else 0)} drugs unresolved — run one_time_migration.py")
+        issues.append(f"{unresolved_count} drug{'' if unresolved_count == 1 else 's'} unresolved — run one_time_migration.py")
     if high_pct < 95:
         issues.append(f"confidence <95% threshold — review low-confidence resolutions")
     if pending > 0:
