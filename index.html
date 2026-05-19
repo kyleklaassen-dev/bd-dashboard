@@ -7008,45 +7008,56 @@ function dknReset() {
 <div class="tab-pane" id="tab-pharma-intel" style="padding:0">
 
 <style>
+  /* ── Pharma Landscape layout wrapper ── */
+  .pi-page-wrap { max-width:1700px; margin:0 auto; padding:20px 16px 32px; }
   .pi-card {
     background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);
-    margin:0 24px 24px;overflow:hidden;
+    margin:0 0 24px;overflow:hidden;
   }
   .pi-card-hd {
     background:#1e3a5f;color:#fff;padding:12px 18px;
     font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;
   }
   .pi-card-sub {font-size:11px;color:#93c5fd;font-weight:400}
-  .pi-table {width:100%;border-collapse:collapse;font-size:12px}
+  .pi-table {width:100%;border-collapse:collapse;font-size:11.5px}
   .pi-table th {
     background:#f1f5f9;color:#475569;font-weight:700;font-size:10px;
-    text-transform:uppercase;letter-spacing:.04em;padding:7px 10px;
+    text-transform:uppercase;letter-spacing:.04em;padding:6px 9px;
     border-bottom:2px solid #dde3ea;text-align:left;position:sticky;top:0;z-index:2
   }
-  .pi-table td {padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  .pi-table th.th-center { text-align:center; }
+  .pi-table td {padding:7px 9px;border-bottom:1px solid #f1f5f9;vertical-align:top}
   .pi-table tr:hover td {background:#f8fafc}
   .pi-ta-pill {
-    background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;
+    background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:10px;
     font-size:10px;font-weight:600;white-space:nowrap;display:inline-block
   }
   .pi-ta2 {background:#dcfce7;color:#166534}
   .text-red {color:#dc2626}
-  .pi-two-col {display:grid;grid-template-columns:1fr;gap:24px;margin:0 24px 24px;}
-  @media(max-width:900px){.pi-two-col{margin:0 12px 16px}}
+  /* Two-col ranking grid — side by side, centered, narrower */
+  .pi-two-col {
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    max-width:1300px;margin:0 auto 24px;
+  }
+  @media(max-width:1000px){.pi-two-col{grid-template-columns:1fr;}}
   .pi-two-col .pi-card {margin:0;}
-  .pi-scroll {max-height:420px;overflow-y:auto}
+  .pi-scroll {max-height:460px;overflow-y:auto}
+  .pi-scroll::-webkit-scrollbar{width:5px}
+  .pi-scroll::-webkit-scrollbar-track{background:#f8fafc}
+  .pi-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
   .pi-legend {padding:10px 18px 12px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap}
   .pi-legend-dot {display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .pi-table th.sortable { cursor:pointer; user-select:none; }
   .pi-table th.sortable:hover { background:#e2e8f0; }
   .pi-table th.pi-sort-asc::after { content:' ↑'; color:#1e3a5f; font-weight:900; }
   .pi-table th.pi-sort-desc::after { content:' ↓'; color:#1e3a5f; font-weight:900; }
-  .pi-search-bar { padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:8px; }
-  .pi-search-bar input { flex:1; padding:5px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:11.5px; outline:none; background:#fff; }
+  .pi-search-bar { padding:7px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:8px; }
+  .pi-search-bar input { flex:1; padding:4px 9px; border:1px solid #d1d5db; border-radius:6px; font-size:11px; outline:none; background:#fff; }
   .pi-search-bar input:focus { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.15); }
   .pi-search-bar label { font-size:10.5px; font-weight:700; color:#64748b; white-space:nowrap; }
 </style>
 
+<div class="pi-page-wrap">
 <!-- Two-column: China + US side by side -->
 <div class="pi-two-col">
 
@@ -7064,7 +7075,7 @@ function dknReset() {
       <table class="pi-table" id="pi-tbl-cn">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="th-center">#</th>
             <th class="sortable" onclick="piSort('pi-tbl-cn',1,false)" title="Sort by name">Company</th>
             <th>Type</th>
             <th class="sortable" onclick="piSort('pi-tbl-cn',3,true)" title="Sort by Mkt Cap">Mkt Cap</th>
@@ -7345,7 +7356,7 @@ function dknReset() {
       <table class="pi-table" id="pi-tbl-us">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="th-center">#</th>
             <th class="sortable" onclick="piSort('pi-tbl-us',1,false)" title="Sort by name">Company</th>
             <th class="sortable" onclick="piSort('pi-tbl-us',2,true)" title="Sort by Mkt Cap">Mkt Cap</th>
             <th class="sortable" onclick="piSort('pi-tbl-us',3,true)" title="Sort by Revenue">Revenue</th>
@@ -7728,23 +7739,23 @@ function dknReset() {
 
 </div>
 
-<!-- AI Biotech Full-width Card -->
-<div class="pi-card" style="margin:0 24px 32px">
+<!-- AI Biotech Full-width Card — wider so rows are shorter -->
+<div class="pi-card" style="margin:0 0 0">
   <div class="pi-card-hd">
     🤖 AI Biotech Platform Companies — Competitive Landscape
     <span class="pi-card-sub">Ranked by Ailux overlap · May 2025</span>
   </div>
   <div style="overflow-x:auto">
-    <table class="pi-table" style="min-width:1100px">
+    <table class="pi-table" style="min-width:900px;table-layout:fixed;width:100%">
       <thead>
         <tr>
-          <th style="min-width:160px">Company</th>
-          <th style="min-width:220px">Platform Core</th>
-          <th>Modality</th>
-          <th style="min-width:220px">Lead Internal Programs</th>
-          <th style="min-width:180px">Key Pharma Partners</th>
-          <th>Est. Val / Mkt Cap</th>
-          <th style="min-width:260px">Ailux Relevance / Signal</th>
+          <th style="width:12%">Company</th>
+          <th style="width:20%">Platform Core</th>
+          <th style="width:9%">Modality</th>
+          <th style="width:20%">Lead Internal Programs</th>
+          <th style="width:16%">Key Pharma Partners</th>
+          <th style="width:8%">Val / Mkt Cap</th>
+          <th style="width:15%">Ailux Relevance / Signal</th>
         </tr>
       </thead>
       <tbody>
@@ -7990,6 +8001,7 @@ function dknReset() {
   </div>
 </div>
 
+</div><!-- end pi-page-wrap -->
 </div><!-- end tab-pharma-intel -->
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:28px 24px 40px;background:#edf1f7;min-height:100vh">
