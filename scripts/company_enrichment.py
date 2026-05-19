@@ -73,6 +73,12 @@ from typing import Optional
 import requests
 import anthropic
 
+try:
+    from identity_resolution import DrugIdentityResolver
+    _IDENTITY_RESOLVER_AVAILABLE = True
+except ImportError:
+    _IDENTITY_RESOLVER_AVAILABLE = False
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # CREDENTIALS + SETUP
@@ -486,11 +492,12 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
         if not sort_date or sort_date < TODAY:
             continue   # past — skip
 
-        trial_id   = trial.get("id", "")
-        trial_name = trial.get("trial_name", trial_id)[:80]
-        drug_id    = trial.get("drug_id", "")
-        phase      = trial.get("phase", "")
-        pcd_label  = trial.get("pcd_label") or pcd_raw
+        trial_id         = trial.get("id", "")
+        trial_name       = trial.get("trial_name", trial_id)[:80]
+        drug_id          = trial.get("drug_id", "")
+        canonical_drug_id = trial.get("canonical_drug_id")   # propagated from ct_gov_sync
+        phase            = trial.get("phase", "")
+        pcd_label        = trial.get("pcd_label") or pcd_raw
 
         significance = ("high"   if "Phase 3" in phase else
                         "medium" if "Phase 2" in phase else "low")
@@ -506,19 +513,20 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
 
         label   = f"{trial_name[:60]} — {phase} primary completion"
         cat_rec = {
-            "catalyst_date":    pcd_label,
-            "sort_date":        sort_date,
-            "label":            label[:200],
-            "company_id":       company_id,
-            "drug_id":          drug_id,
-            "area_id":          area_id,
-            "significance":     significance,
-            "catalyst_type":    "readout",
-            "notes":            f"Auto-generated from ClinicalTrials.gov PCD: {trial_id}",
-            "resolved":         False,
-            "related_trial_id": trial_id,
-            "is_key_watch":     significance == "high",
+            "catalyst_date":     pcd_label,
+            "sort_date":         sort_date,
+            "label":             label[:200],
+            "company_id":        company_id,
+            "drug_id":           drug_id,
+            "area_id":           area_id,
+            "significance":      significance,
+            "catalyst_type":     "readout",
+            "notes":             f"Auto-generated from ClinicalTrials.gov PCD: {trial_id}",
+            "resolved":          False,
+            "related_trial_id":  trial_id,
+            "is_key_watch":      significance == "high",
             "confidence_source": "ctgov-pcd",
+            "canonical_drug_id": canonical_drug_id,   # identity spine from trials table
         }
 
         if dry_run:
@@ -779,6 +787,28 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
     deal_kws   = {"license","acqui","partner","collaborat","deal","invest",
                   "$","million","billion","agreement","merger"}
 
+    # Build a quick lookup: drug name → canonical_drug_id for this company's drugs.
+    # Used to stamp deals with canonical identity when a drug name appears in the headline.
+    drug_canonical_map: dict[str, str] = {}
+    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
+        try:
+            resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
+            for drug in ctx.get("drugs", []):
+                drug_name = drug.get("name") or drug.get("id", "")
+                if drug_name:
+                    try:
+                        canon_id, _, _ = resolver.resolve(
+                            drug_name, source="company_enrichment",
+                            drug_class=drug.get("drug_class"),
+                            mechanism=drug.get("mechanism"),
+                            target=drug.get("target"),
+                        )
+                        drug_canonical_map[drug_name.lower()] = canon_id
+                    except Exception:
+                        pass
+        except Exception as exc:
+            log(f"  ⚠ Identity resolver unavailable in step6: {exc}", indent=2)
+
     for item in ctx.get("recent_intel", []):
         headline = (item.get("headline") or "").lower()
         if not any(kw in headline for kw in deal_kws):
@@ -792,18 +822,27 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
         except Exception:
             deal_date_label = deal_date[:7]
 
+        # Attempt to identify which drug this deal is about (if any)
+        headline_lc = (item.get("headline") or "").lower()
+        deal_canonical_drug_id = None
+        for drug_name_lc, canon_id in drug_canonical_map.items():
+            if drug_name_lc in headline_lc:
+                deal_canonical_drug_id = canon_id
+                break
+
         deal_rec = {
-            "deal_date":       deal_date,
-            "deal_date_label": deal_date_label,
-            "from_company":    ctx["company"].get("name", company_id),
-            "to_company":      "",
-            "company_id":      company_id,
-            "area_id":         area_id,
-            "deal_type":       "license",
-            "headline":        (item.get("headline") or "")[:200],
-            "detail":          (item.get("body") or "")[:1000],
-            "source_url":      item.get("source_url", ""),
-            "ailux_signal":    "",
+            "deal_date":         deal_date,
+            "deal_date_label":   deal_date_label,
+            "from_company":      ctx["company"].get("name", company_id),
+            "to_company":        "",
+            "company_id":        company_id,
+            "area_id":           area_id,
+            "deal_type":         "license",
+            "headline":          (item.get("headline") or "")[:200],
+            "detail":            (item.get("body") or "")[:1000],
+            "source_url":        item.get("source_url", ""),
+            "ailux_signal":      "",
+            "canonical_drug_id": deal_canonical_drug_id,
         }
         if dry_run:
             log(f"  [DRY RUN] Deal: {deal_rec['headline'][:60]}", indent=2)
