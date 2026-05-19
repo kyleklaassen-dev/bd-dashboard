@@ -8859,11 +8859,13 @@ const tl1aPI = {
     .sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
   } else {
    // Fallback: synthesize one pill per drug named in prog.drug
-   // prog.drug looks like: "Duvakitug (TEV-48574)" or "MT-251"
-   const drugNames = (prog.drug||'').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+   // prog.drug looks like: "Duvakitug (TEV-48574)", "MT-251", or "CLD-423 / QX030N" (alias)
+   // Split ONLY on comma — "/" in drug names means "also known as", not a separate drug.
+   // Strip everything after " / " or " (" to get the primary name.
+   const drugNames = (prog.drug||'').split(',').map(s => s.trim()).filter(Boolean);
    drugsToRender = drugNames.map((dn, i) => ({
     id: `static-${companyId}-${i}`,
-    name: dn.replace(/\s*\(.*\)/, '').trim(),   // strip alias in parens for display
+    name: dn.replace(/\s*[/(].*/, '').trim(),   // strip alias suffix: " / QX030N" or " (TEV-...)"
     mechanism: prog.target || '',
     stage: prog.stageKey || '',
     phase_display: prog.stageKey || '',
