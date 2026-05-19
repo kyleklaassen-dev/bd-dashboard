@@ -420,6 +420,23 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 #bd-signal-body::-webkit-scrollbar { width: 5px; }
 #bd-signal-body::-webkit-scrollbar-track { background: #f8fafc; }
 #bd-signal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+/* ── Research Queue Panel ── */
+#rq-body { max-height: 340px; overflow-y: auto; }
+#rq-body::-webkit-scrollbar { width: 5px; }
+#rq-body::-webkit-scrollbar-track { background: #f8fafc; }
+#rq-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.rq-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; }
+.rq-row:last-child { border-bottom:none; }
+.rq-pri { font-size:10px; font-weight:800; min-width:30px; text-align:center; background:#f1f5f9; border-radius:4px; padding:2px 4px; color:#64748b; flex-shrink:0; margin-top:1px; }
+.rq-pri.high { background:#fef2f2; color:#dc2626; }
+.rq-pri.mid  { background:#fffbeb; color:#d97706; }
+.rq-entity { font-size:12.5px; font-weight:700; color:#1a2f50; }
+.rq-meta { font-size:10.5px; color:#94a3b8; margin-top:1px; }
+.rq-action { font-size:11px; color:#475569; margin-top:2px; font-style:italic; }
+.rq-tier { display:inline-block; font-size:9px; font-weight:800; text-transform:uppercase; border-radius:4px; padding:1px 5px; margin-left:5px; }
+.rq-tier.thin    { background:#fef2f2; color:#ef4444; }
+.rq-tier.partial { background:#fffbeb; color:#d97706; }
+.rq-tier.strong  { background:#f0fdf4; color:#16a34a; }
 #meridian-reader-items { display: block !important; max-height: 400px; overflow-y: auto; }
 #meridian-reader-items::-webkit-scrollbar { width: 5px; }
 #meridian-reader-items::-webkit-scrollbar-track { background: transparent; }
@@ -1866,6 +1883,38 @@ async function loadMeridianReader() {
   }
 }
 
+// ── Research Queue Panel ──────────────────────────────────────────────────────
+async function loadResearchQueue() {
+  const body = document.getElementById('rq-body');
+  if (!body) return;
+  try {
+    const { data, error } = await _sb
+      .from('research_queue')
+      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action')
+      .order('priority_score', { ascending: false })
+      .limit(12);
+    if (error || !data || !data.length) {
+      body.innerHTML = '<div style="color:#94a3b8;font-size:12px">No research queue data yet.</div>';
+      return;
+    }
+    body.innerHTML = data.map(r => {
+      const priClass = r.priority_score >= 100 ? 'high' : r.priority_score >= 70 ? 'mid' : '';
+      const tierClass = r.completeness_tier || 'thin';
+      const areaLabel = (r.area_id || '').toUpperCase();
+      return `<div class="rq-row">
+        <div class="rq-pri ${priClass}">${r.priority_score}</div>
+        <div style="flex:1;min-width:0">
+          <div class="rq-entity">${r.entity_id}<span class="rq-tier ${tierClass}" style="margin-left:6px">${r.completeness_tier}</span></div>
+          <div class="rq-meta">${areaLabel} · score ${r.completeness_score}</div>
+          <div class="rq-action">${r.next_best_action || ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    body.innerHTML = '<div style="color:#ef4444;font-size:12px">Error loading queue.</div>';
+  }
+}
+
 // ── BD Signal Panel ───────────────────────────────────────────────────────────
 async function loadBDSignal() {
   const body = document.getElementById('bd-signal-body');
@@ -2548,6 +2597,17 @@ function loadMoleculeTab(tabId) {
   </div>
   <div id="bd-signal-body" style="padding:14px 18px">
    <div style="color:#94a3b8;font-size:12px">Loading BD intelligence…</div>
+  </div>
+ </div>
+
+ <!-- ── RESEARCH QUEUE PANEL ──────────────────────────────── -->
+ <div class="home-card" id="research-queue-panel" style="border-left:4px solid #7c3aed">
+  <div class="home-card-hd" style="background:linear-gradient(90deg,#3b0764,#5b21b6);color:white;">
+   <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">🔬 Research Queue</span>
+   <span class="hc-tag" style="background:rgba(255,255,255,0.15);color:white;margin-left:auto">Top entities needing attention</span>
+  </div>
+  <div id="rq-body" style="padding:14px 18px">
+   <div style="color:#94a3b8;font-size:12px">Loading research queue…</div>
   </div>
  </div>
 
@@ -7888,7 +7948,7 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
