@@ -777,8 +777,14 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
 # ══════════════════════════════════════════════════════════════════════════
 
 def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
-                             company_map: dict, dry_run: bool = False) -> int:
-    """Log new deals found in recent intel. Returns count created."""
+                             company_map: dict, dry_run: bool = False,
+                             resolver=None) -> int:
+    """Log new deals found in recent intel. Returns count created.
+
+    Args:
+      resolver: a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
+                Pass None to skip canonical identity stamping on deals.
+    """
     existing_headlines = {
         (d.get("headline") or "").lower()[:50]
         for d in ctx.get("deals", [])
@@ -788,33 +794,29 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
                   "$","million","billion","agreement","merger"}
 
     # Build a quick lookup: drug name → canonical_drug_id for this company's drugs.
-    # Used to stamp deals with canonical identity when a drug name appears in the headline.
+    # Resolver pre-instantiated by caller — no per-company Supabase round-trip here.
     drug_canonical_map: dict[str, str] = {}
-    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
-        try:
-            resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
-            for drug in ctx.get("drugs", []):
-                drug_name = drug.get("name") or drug.get("id", "")
-                if drug_name:
+    if resolver is not None and not dry_run:
+        for drug in ctx.get("drugs", []):
+            drug_name = drug.get("name") or drug.get("id", "")
+            if drug_name:
+                try:
+                    canon_id, _, _ = resolver.resolve(
+                        drug_name, source="company_enrichment",
+                        drug_class=drug.get("drug_class"),
+                        mechanism=drug.get("mechanism"),
+                        target=drug.get("target"),
+                    )
+                    drug_canonical_map[drug_name.lower()] = canon_id
+                except Exception as inner_exc:
                     try:
-                        canon_id, _, _ = resolver.resolve(
-                            drug_name, source="company_enrichment",
-                            drug_class=drug.get("drug_class"),
-                            mechanism=drug.get("mechanism"),
-                            target=drug.get("target"),
+                        resolver.log_resolver_error(
+                            drug_name=drug_name, source="company_enrichment",
+                            error=inner_exc, source_table="drugs",
+                            source_row_id=drug.get("id"),
                         )
-                        drug_canonical_map[drug_name.lower()] = canon_id
-                    except Exception as inner_exc:
-                        try:
-                            resolver.log_resolver_error(
-                                drug_name=drug_name, source="company_enrichment",
-                                error=inner_exc, source_table="drugs",
-                                source_row_id=drug.get("id"),
-                            )
-                        except Exception:
-                            pass
-        except Exception as exc:
-            log(f"  ⚠ Identity resolver unavailable in step6: {exc}", indent=2)
+                    except Exception:
+                        pass
 
     for item in ctx.get("recent_intel", []):
         headline = (item.get("headline") or "").lower()
@@ -867,8 +869,12 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
 # ══════════════════════════════════════════════════════════════════════════
 
 def enrich_company(company_id: str, area_id: str, company_map: dict,
-                   dry_run: bool = False) -> bool:
-    """Run Steps 4-6 for one company."""
+                   dry_run: bool = False, resolver=None) -> bool:
+    """Run Steps 4-6 for one company.
+
+    Args:
+      resolver: a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
+    """
     log(f"\n{'='*56}")
     log(f"Enriching: {company_id} / {area_id}")
     log(f"{'='*56}")
@@ -919,7 +925,8 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
 
     # STEP 6: Deal intelligence
     log("STEP 6 — Deal intelligence...", indent=1)
-    deals = step6_deal_intelligence(company_id, area_id, ctx, company_map, dry_run)
+    deals = step6_deal_intelligence(company_id, area_id, ctx, company_map, dry_run,
+                                    resolver=resolver)
     log(f"  {deals} new deals", indent=1)
 
     return True
@@ -948,6 +955,18 @@ def run_intelligence_pipeline(area_id: str,
     company_map = get_company_map()
     log(f"Loaded {len(company_map)} company name→ID mappings")
 
+    # Instantiate identity resolver once per pipeline run.
+    # A single instance loads the alias cache once (one Supabase round-trip),
+    # then every enrich_company → step6 call reuses it.
+    run_resolver = None
+    if _IDENTITY_RESOLVER_AVAILABLE and not dry_run:
+        try:
+            run_resolver = DrugIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
+            run_resolver._load_alias_cache()  # pre-load once; per-company calls reuse this
+            log(f"Identity resolver ready ({len(run_resolver._alias_cache)} cached aliases)")
+        except Exception as exc:
+            log(f"⚠ Could not initialise identity resolver: {exc} — running without it")
+
     # STEP 1: Entity Discovery
     new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run)
     log(f"Step 1 complete: {new_entities} new entities")
@@ -974,7 +993,8 @@ def run_intelligence_pipeline(area_id: str,
     results = {"success": 0, "failed": 0}
     for cid in company_ids:
         try:
-            ok = enrich_company(cid, area_id, company_map, dry_run=dry_run)
+            ok = enrich_company(cid, area_id, company_map, dry_run=dry_run,
+                                resolver=run_resolver)
             results["success" if ok else "failed"] += 1
         except Exception as e:
             log(f"FATAL: {cid}: {e}")
