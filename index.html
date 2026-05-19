@@ -1021,11 +1021,11 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 
 /* RELEVANCE badges — competitive/strategic overlap with our program */
 .pi-overlap-badge { display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
-.pi-overlap-direct   { background:#fee2e2;color:#991b1b; }   /* High Overlap — red: same exact target as Ailux */
-.pi-overlap-indirect { background:#ffedd5;color:#9a3412; }   /* Indirect — orange: same indication, different target */
-.pi-overlap-adjacent { background:#ffedd5;color:#9a3412; }   /* Adjacent — alias for indirect */
-.pi-overlap-same     { background:#ccfbf1;color:#134e4a; }   /* Same-Space — teal: same disease area */
-.pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow: mAbs/programs in space, monitoring */
+.pi-overlap-direct   { background:#fee2e2;color:#991b1b; }   /* Direct — red */
+.pi-overlap-indirect { background:#ffedd5;color:#9a3412; }   /* Adjacent alias (legacy) */
+.pi-overlap-adjacent { background:#ffedd5;color:#9a3412; }   /* Adjacent — orange */
+.pi-overlap-same     { background:#ccfbf1;color:#134e4a; }   /* Same-Space — teal */
+.pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
 .pi-stage-ph3 { background:#fef3c7;color:#92400e; }
 .pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
@@ -3246,9 +3246,10 @@ function loadMoleculeTab(tabId) {
       <div class="pi-pill-group" data-filter="overlap">
         <span class="pi-pill-lbl">Relevance</span>
         <button class="pi-pill active" data-val="" onclick="piPillClick('overlap','',this)">All</button>
-        <button class="pi-pill" data-val="High Overlap" onclick="piPillClick('overlap','High Overlap',this)" title="Same exact target combination as Ailux — head-to-head commercial competition">High Overlap</button>
-        <button class="pi-pill" data-val="Indirect"     onclick="piPillClick('overlap','Indirect',this)"     title="Same indication (IBD/UC/CD) but different target — shapes SOC, endpoints, pricing">Indirect</button>
-        <button class="pi-pill" data-val="Watch"        onclick="piPillClick('overlap','Watch',this)"        title="mAbs or programs in the same space, not direct target competitors — monitor for shifts">Watch</button>
+        <button class="pi-pill" data-val="Direct"     onclick="piPillClick('overlap','Direct',this)"     title="Same target + same mechanistic thesis — head-to-head commercial competition">Direct</button>
+        <button class="pi-pill" data-val="Adjacent"   onclick="piPillClick('overlap','Adjacent',this)"   title="Biologically or clinically related — influences treatment sequencing, combinations, physician perception">Adjacent</button>
+        <button class="pi-pill" data-val="Same-Space" onclick="piPillClick('overlap','Same-Space',this)" title="Same disease area — shapes SOC, endpoints, market expectations, pricing">Same-Space</button>
+        <button class="pi-pill" data-val="Watch"      onclick="piPillClick('overlap','Watch',this)"      title="Early-stage, speculative, or strategically interesting — monitor for future shifts">Watch</button>
       </div>
       <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>
     </div>
@@ -3633,7 +3634,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('amgen-az-tslp')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Amgen / AstraZeneca</strong>
             <span class="cw-co-drug">&#8212; Tezepelumab (Tezspire)</span>
             <span class="cw-stage-pill">Approved</span>
@@ -3652,7 +3653,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('windward-tslp')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Windward Bio</strong>
             <span class="cw-co-drug">&#8212; WIN378 + WIN027 + QX031N rights</span>
             <span class="cw-stage-pill">Phase 3 / Phase 1</span>
@@ -3671,7 +3672,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('biosion-tslp')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Biosion / Aclaris Therapeutics</strong>
             <span class="cw-co-drug">&#8212; BSI-045B (TSLP x IL-33 bispecific)</span>
             <span class="cw-stage-pill">Phase 1/2</span>
@@ -3690,7 +3691,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('qyuns-roche-tslp')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Qyuns Therapeutics / Roche</strong>
             <span class="cw-co-drug">&#8212; QX031N (TSLP x IL-33 bispecific)</span>
             <span class="cw-stage-pill">Phase 1</span>
@@ -3908,7 +3909,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('sanofi-regen-il4ra')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Sanofi / Regeneron</strong>
             <span class="cw-co-drug">&#8212; Dupilumab (Dupixent)</span>
             <span class="cw-stage-pill">Approved</span>
@@ -3927,7 +3928,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('apogee-il4ra')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Apogee Therapeutics</strong>
             <span class="cw-co-drug">&#8212; APG279 (IL-13+OX40L combo) + APG777 (anti-IL-13)</span>
             <span class="cw-stage-pill">Phase 2</span>
@@ -3946,7 +3947,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('innovent-sanofi-il4ra')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Innovent / Sanofi</strong>
             <span class="cw-co-drug">&#8212; IBI333 (IL-4Ra x TSLP bispecific)</span>
             <span class="cw-stage-pill">Phase 3 (Asia)</span>
@@ -4185,7 +4186,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('sanofi-amlitel')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Sanofi</strong>
             <span class="cw-co-drug">&#8212; Amlitelimab (anti-OX40L)</span>
             <span class="cw-stage-pill">Phase 3</span>
@@ -4204,7 +4205,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('amgen-kk-ox40')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Amgen / Kyowa Kirin</strong>
             <span class="cw-co-drug">&#8212; Rocatinlimab (anti-OX40 receptor)</span>
             <span class="cw-stage-pill">Phase 3</span>
@@ -4223,7 +4224,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('apogee-ox40l')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Apogee Therapeutics</strong>
             <span class="cw-co-drug">&#8212; APG279 (IL-13+OX40L combo) + APG777</span>
             <span class="cw-stage-pill">Phase 2</span>
@@ -4425,7 +4426,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('amgen-tepezza-igf')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Amgen / Horizon Therapeutics</strong>
             <span class="cw-co-drug">&#8212; Teprotumumab (Tepezza)</span>
             <span class="cw-stage-pill">Approved</span>
@@ -4645,7 +4646,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('argenx-fcrn')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">argenx</strong>
             <span class="cw-co-drug">&#8212; Efgartigimod (Vyvgart/Hytrulo) + ARGX-117 bispecific</span>
             <span class="cw-stage-pill">Approved / Phase 2</span>
@@ -4664,7 +4665,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('jj-nipocalimab')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">J&amp;J / Momenta</strong>
             <span class="cw-co-drug">&#8212; Nipocalimab (Imaavy)</span>
             <span class="cw-stage-pill">Approved</span>
@@ -4683,7 +4684,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('ucb-fcrn')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">UCB</strong>
             <span class="cw-co-drug">&#8212; Rozanolixizumab (Rystiggo)</span>
             <span class="cw-stage-pill">Approved</span>
@@ -4702,7 +4703,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('immunovant-fcrn')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Immunovant / Roivant</strong>
             <span class="cw-co-drug">&#8212; IMVT-1402 (next-gen FcRn inhibitor)</span>
             <span class="cw-stage-pill">Phase 3</span>
@@ -4912,7 +4913,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('cabaletta-ace')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Cabaletta Bio</strong>
             <span class="cw-co-drug">&#8212; Rese-cel / CABA-201 (CD19 CAR-T)</span>
             <span class="cw-stage-pill">Phase 2</span>
@@ -4931,7 +4932,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('kyverna-ace')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Kyverna Therapeutics</strong>
             <span class="cw-co-drug">&#8212; Miv-cel / KYV-101 (CD19 CAR-T)</span>
             <span class="cw-stage-pill">Phase 2</span>
@@ -4969,7 +4970,7 @@ function loadMoleculeTab(tabId) {
       <div class="cw-company-card">
         <div class="cw-co-hd" onclick="cwToggle('kali-ace')">
           <div class="cw-co-left">
-            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">High Overlap</span>
+            <span class="cw-overlap-badge" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">Direct</span>
             <strong class="cw-co-name">Kali Therapeutics</strong>
             <span class="cw-co-drug">&#8212; KT501 (CD19 x BCMA x CD3 trispecific)</span>
             <span class="cw-stage-pill">Phase 1</span>
@@ -6661,7 +6662,7 @@ function dknReset() {
           <td style="font-size:11px">AstraZeneca ($247M, oncology Ab)<br>Merck &amp; Co.<br>Almirall ($610M, derm)<br>Denali (BBB)</td>
           <td style="font-weight:700;color:#1e3a5f">~$400M mkt cap</td>
           <td style="font-size:11px">
-            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Direct</span><br>
             <strong class="text-red">HIGHEST OVERLAP.</strong> ABS-101 = anti-TL1A (same target as Ailux TL1A program). Identical platform strategy (AI design + internal pipeline). AZ deal mirrors Ailux-AbbVie pilot model.
           </td>
         </tr>
@@ -6749,7 +6750,7 @@ function dknReset() {
           <td style="font-size:11px">AbbVie ($30M up + $325M milestones)<br>Eli Lilly<br>J&amp;J<br>Amgen<br>MSD</td>
           <td style="font-weight:700;color:#1e3a5f">~$500M est.</td>
           <td style="font-size:11px">
-            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Direct</span><br>
             <strong>AbbVie overlap is direct.</strong> BigHat = doing for AbbVie today what Ailux pilot aims to prove. Both building ADC + TCE internal programs. BigHat entering clinic 2026 raises bar Ailux must clear.
           </td>
         </tr>
@@ -6851,7 +6852,7 @@ function dknReset() {
           <td style="font-size:11px">Undisclosed pharma optimization partnerships</td>
           <td style="font-weight:700;color:#1e3a5f">~$100M est.</td>
           <td style="font-size:11px">
-            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">High Overlap</span><br>
+            <span style="background:#dc2626;color:#fff;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;display:inline-block;margin-bottom:4px">Direct</span><br>
             Direct platform overlap: Nabla builds AI-designed bispecific antibodies — the same core modality as Ailux. Bispecific format expertise + pharma BD model mirrors Ailux strategy. Closest stealth competitor in the bispecific-specific AI design space.
           </td>
         </tr>
@@ -6885,7 +6886,7 @@ function dknReset() {
     </table>
   </div>
   <div class="pi-legend">
-    <span><span style="background:#fef2f2;border:1px solid #fca5a5;padding:2px 8px;border-radius:4px;font-size:10px">High Overlap</span> Direct competitor / same target or platform</span>
+    <span><span style="background:#fef2f2;border:1px solid #fca5a5;padding:2px 8px;border-radius:4px;font-size:10px">Direct</span> Direct competitor / same target or platform</span>
     <span><span style="background:#fefce8;border:1px solid #fde68a;padding:2px 8px;border-radius:4px;font-size:10px">Medium Overlap</span> Overlapping modality or indication</span>
     <span><span style="background:#f0fdf4;border:1px solid #86efac;padding:2px 8px;border-radius:4px;font-size:10px">Low Overlap</span> Relevant as valuation comp; limited direct competition</span>
   </div>
@@ -7947,7 +7948,7 @@ const TL1A_PROGRAMS = [
 
  /* ── INDIRECT COMPETITORS — same indication (IBD/UC/CD), different target ── */
  /* These define the SOC bar, treatment paradigm, endpoint standards, and pricing floor */
- { id:'abbvie-skyrizi', co:'AbbVie', ticker:'ABBV', drug:'Risankizumab (Skyrizi)', target:'IL-23p19', cls:'1st Gen', stageKey:'Phase 3', overlap:'Indirect',
+ { id:'abbvie-skyrizi', co:'AbbVie', ticker:'ABBV', drug:'Risankizumab (Skyrizi)', target:'IL-23p19', cls:'1st Gen', stageKey:'Phase 3', overlap:'Adjacent',
    summary:'Risankizumab (anti-IL-23p19) is approved for Crohn\'s disease (2022) and UC (2023), with $5.5B+ in 2024 revenue across dermatology and IBD. In CD, ADVANCE/MOTIVATE Ph3 showed 45% clinical remission vs. 25% PBO at Wk 12. In UC, INSPIRE Ph3 showed 20.3% remission vs. 6.2% PBO. Risankizumab sets the clinical efficacy floor that TL1A×IL-23 bispecifics must beat to justify a new therapy. Key BD signal: AbbVie\'s $21B Allergan acquisition and continued investment in IL-23 signals that pharma is willing to pay a premium for IBD assets with proven mechanisms.',
    catalysts:[{date:'Ongoing',event:'Annual IBD revenue growth — tracking IL-23 market sizing for TL1A bispecific positioning'}],
    trials:[{nct:'Approved',name:'CD and UC — approved in both indications',phase:'Phase 3',status:'Approved',n:null,pcd:'Approved',primary:'Clinical remission per CDAI/MMS'}],
@@ -7955,7 +7956,7 @@ const TL1A_PROGRAMS = [
    risk:'Sets the efficacy/safety benchmark in IL-23-mediated IBD. TL1A bispecific must show superior or complementary profile.',
    diff:'IL-23p19 is the second target in many TL1A bispecifics (including most likely Ailux). Risankizumab defines the monotherapy efficacy ceiling for IL-23 blockade — the bispecific argument is to show that combining TL1A+IL-23 blockade exceeds what either mono can achieve.' },
 
- { id:'lilly-omvoh', co:'Eli Lilly', ticker:'LLY', drug:'Mirikizumab (Omvoh)', target:'IL-23p19', cls:'1st Gen', stageKey:'Phase 3', overlap:'Indirect',
+ { id:'lilly-omvoh', co:'Eli Lilly', ticker:'LLY', drug:'Mirikizumab (Omvoh)', target:'IL-23p19', cls:'1st Gen', stageKey:'Phase 3', overlap:'Adjacent',
    summary:'Mirikizumab (anti-IL-23p19) is approved for UC (2023) with EU+US launch ongoing. LUCENT-3 long-term extension shows sustained remission at 2 years. CD Ph3 (VIVID-1) showed positive results — FDA submission in progress. Lilly\'s first major IBD approval; expanding into CD and other indications. Direct comparator to risankizumab in market share battle. Mirikizumab data establishes the clinical response rates that define physician/payer expectations before a TL1A bispecific reaches pivotal trials.',
    catalysts:[{date:'2026',event:'CD approval expected pending FDA review of VIVID-1 NDA'}],
    trials:[{nct:'Approved UC',name:'LUCENT-1/2 (UC approved) + VIVID-1 (CD, NDA filed)',phase:'Phase 3',status:'Approved UC / NDA filed CD',n:null,pcd:'Approved',primary:'Clinical remission per MMS (UC) + CDAI (CD)'}],
@@ -7963,7 +7964,7 @@ const TL1A_PROGRAMS = [
    risk:'Entrenched market position in UC; potential CD approval creates a dominant IL-23 competitor across both IBD indications.',
    diff:'Omvoh\'s UC data is the closest approved comparator to what TL1A bispecific trials will use as endpoint benchmarks. Lilly may be a BD partner candidate given their growing IBD franchise ambition.' },
 
- { id:'takeda-entyvio', co:'Takeda', ticker:'TAK', drug:'Vedolizumab (Entyvio)', target:'Integrin α4β7', cls:'1st Gen', stageKey:'Phase 3', overlap:'Indirect',
+ { id:'takeda-entyvio', co:'Takeda', ticker:'TAK', drug:'Vedolizumab (Entyvio)', target:'Integrin α4β7', cls:'1st Gen', stageKey:'Phase 3', overlap:'Same-Space',
    summary:'Vedolizumab (anti-integrin α4β7) is approved in UC+CD and remains the gut-selective biologic market leader with ~$4.5B in 2024 revenue. Gut-selective mechanism (no systemic immunosuppression) is a major safety advantage. Long-term safety and real-world data are best in class. Biosimilar entry began in 2023–2024 (US/EU), compressing pricing. Key BD angle: vedolizumab sets patient and payer expectations for safety profile — any TL1A program will be benchmarked against Entyvio\'s safety record and used in treatment sequences.',
    catalysts:[{date:'2024–2026',event:'Biosimilar erosion tracking — affects pricing model for all new IBD entrants including TL1A programs'}],
    trials:[{nct:'Approved',name:'GEMINI 1+2+3 (UC+CD) — approved both indications',phase:'Phase 3',status:'Approved',n:null,pcd:'Approved',primary:'Clinical remission + mucosal healing'}],
@@ -7971,7 +7972,7 @@ const TL1A_PROGRAMS = [
    risk:'Gut selectivity gives Entyvio a class-unique safety profile. Biosimilar pressure creates pricing headwinds for all IBD biologics.',
    diff:'Entyvio is the safety reference standard in IBD. If TL1A bispecific shows superior efficacy and comparable safety, can position as step-up or combination option. Takeda may seek licensing to diversify IBD portfolio as Entyvio biosimilar revenue erodes.' },
 
- { id:'abbvie-rinvoq', co:'AbbVie', ticker:'ABBV', drug:'Upadacitinib (Rinvoq)', target:'JAK1', cls:'1st Gen', stageKey:'Phase 3', overlap:'Indirect',
+ { id:'abbvie-rinvoq', co:'AbbVie', ticker:'ABBV', drug:'Upadacitinib (Rinvoq)', target:'JAK1', cls:'1st Gen', stageKey:'Phase 3', overlap:'Same-Space',
    summary:'Upadacitinib (selective JAK1 inhibitor) is approved for UC (2022) and CD (2023) — the first oral biologic to gain both IBD approvals. UC3 Ph3: 26% vs 5% PBO clinical remission; U-EXCEED CD Ph3: 39% vs 11% remission. Fastest-growing IBD asset in AbbVie\'s portfolio. Black-box warning on thrombosis/malignancy risk limits use in older patients and those with CV risk. Oral dosing is a major convenience advantage. BD angle: JAK inhibitor success validates that non-biologic mechanisms can succeed in advanced IBD, broadening partner appetite for novel MOA assets.',
    catalysts:[{date:'Ongoing',event:'JAK1 safety surveillance — adverse event updates affect competitive positioning of biologics'}],
    trials:[{nct:'Approved',name:'U-ACHIEVE (UC) + U-EXCEED/U-EXCEL (CD) — approved both',phase:'Phase 3',status:'Approved',n:null,pcd:'Approved',primary:'Clinical remission'}],
@@ -8327,11 +8328,10 @@ const tl1aPI = {
   const cls   = (document.querySelector('.pi-pill-group[data-filter="cls"] .pi-pill.active')||{}).dataset?.val   || '';
   const stage = (document.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')||{}).dataset?.val || '';
   const ov    = (document.querySelector('.pi-pill-group[data-filter="overlap"] .pi-pill.active')||{}).dataset?.val|| '';
-  const normOv = o => (o==='Direct'||o==='high') ? 'High Overlap' : (o==='Adjacent'||o==='Same-Space') ? 'Indirect' : (o==='watch') ? 'Watch' : o;
   this.filtered = this.data.filter(p =>
    (!cls   || p.cls === cls) &&
    (!stage || p.stageKey === stage) &&
-   (!ov    || normOv(p.overlap) === ov)
+   (!ov    || p.overlap === ov)
   );
   const c = document.getElementById('pi-tl1a-count');
   if (c) c.textContent = `${this.filtered.length} programs`;
@@ -8367,18 +8367,12 @@ const tl1aPI = {
  },
  _ovBadge(o) {
   const m = {
-   'High Overlap': 'pi-overlap-direct',
-   'Indirect':     'pi-overlap-indirect',
-   'Watch':        'pi-overlap-watch',
-   // legacy fallback mappings
-   'Direct':       'pi-overlap-direct',
-   'Adjacent':     'pi-overlap-indirect',
-   'Same-Space':   'pi-overlap-indirect',
-   'high':         'pi-overlap-direct',
-   'watch':        'pi-overlap-watch',
+   'Direct':     'pi-overlap-direct',
+   'Adjacent':   'pi-overlap-adjacent',
+   'Same-Space': 'pi-overlap-same',
+   'Watch':      'pi-overlap-watch',
   };
-  const displayLabel = (o==='high'||o==='Direct')?'High Overlap':(o==='watch')?'Watch':(o==='Adjacent'||o==='Same-Space')?'Indirect':o;
-  return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${displayLabel}</span>`;
+  return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${o||'Watch'}</span>`;
  },
 
  _spyreDetailHTML(p) {
