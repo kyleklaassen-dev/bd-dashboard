@@ -65,7 +65,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install anthropic requests
+          pip install -r scripts/requirements.txt
 
       # ──────────────────────────────────────────────────────────
       # SCHEDULED RUN — nightly TL1A (Mon–Sat 04:00 UTC)
@@ -200,6 +200,16 @@ jobs:
           fi
           echo "Running: python scripts/research_intelligence.py $ARGS"
           python scripts/research_intelligence.py $ARGS
+
+      - name: "[Manual] Identity health check (single area)"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.area != 'all' &&
+          github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — all areas loop
