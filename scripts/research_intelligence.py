@@ -260,7 +260,7 @@ def load_entity_context(
     company_id = drugs[0].get("company_id") if drugs else None
     if company_id:
         companies = _sb_get(sb_url, sb_key, "companies", {
-            "company_id": f"eq.{company_id}",
+            "id": f"eq.{company_id}",   # companies PK is 'id', not 'company_id'
             "select": "*",
             "limit": "1",
         })
