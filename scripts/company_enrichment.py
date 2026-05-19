@@ -494,20 +494,27 @@ def enrich_company(company_id: str, area_id: str, dry_run: bool = False):
     log("Calling Claude Sonnet for enrichment...")
     prompt = build_enrichment_prompt(company_id, area_id, ctx, dry_run)
 
-    try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=4096,
-            system=ENRICHMENT_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = resp.content[0].text
-        cost_in  = resp.usage.input_tokens  / 1_000_000 * 3.0   # Sonnet input: $3/M
-        cost_out = resp.usage.output_tokens / 1_000_000 * 15.0  # Sonnet output: $15/M
-        log(f"  Tokens: {resp.usage.input_tokens} in / {resp.usage.output_tokens} out "
-            f"(est. ${cost_in+cost_out:.4f})")
-    except Exception as e:
-        log(f"  Claude API error: {e}")
+    text = None
+    for attempt in range(1, 4):  # up to 3 attempts
+        try:
+            resp = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                system=ENRICHMENT_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = resp.content[0].text
+            cost_in  = resp.usage.input_tokens  / 1_000_000 * 3.0
+            cost_out = resp.usage.output_tokens / 1_000_000 * 15.0
+            log(f"  Tokens: {resp.usage.input_tokens} in / {resp.usage.output_tokens} out "
+                f"(est. ${cost_in+cost_out:.4f})")
+            break
+        except Exception as e:
+            log(f"  Claude API error (attempt {attempt}/3): {e}")
+            if attempt < 3:
+                time.sleep(10 * attempt)  # 10s, 20s back-off
+    if text is None:
+        log("  All Claude API attempts failed — skipping company")
         return False
 
     # 4. Parse response
