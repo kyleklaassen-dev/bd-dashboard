@@ -715,7 +715,8 @@ def step3c_update_drug_stage(drug_id: str, synced_nct_ids: list[str],
 # MAIN SYNC FUNCTION — orchestrates Steps 3a + 3b + 3c per drug
 # ══════════════════════════════════════════════════════════════════════════
 
-def sync_drug(drug: dict, dry_run: bool = False, resolver=None) -> dict:
+def sync_drug(drug: dict, dry_run: bool = False, resolver=None,
+              search_only: bool = False) -> dict:
     """
     Run full trial sync for a single drug.
 
@@ -727,8 +728,11 @@ def sync_drug(drug: dict, dry_run: bool = False, resolver=None) -> dict:
       ELSE → Step 3b (search discovery)
 
     Args:
-      resolver: a pre-instantiated DrugIdentityResolver (created once in run_sync).
-                Pass None to skip identity resolution.
+      resolver:     a pre-instantiated DrugIdentityResolver (created once in run_sync).
+                    Pass None to skip identity resolution.
+      search_only:  if True, skip Step 3a (direct NCT fetch) and only run Step 3b
+                    (search discovery). Useful for testing search paths without
+                    direct CT.gov NCT lookups.
 
     Returns: {"synced": [...nct_ids], "status": "ok"|"pending"|"approved"|"no_results"}
     """
@@ -791,11 +795,13 @@ def sync_drug(drug: dict, dry_run: bool = False, resolver=None) -> dict:
     all_synced = []
 
     # ── Step 3a: Direct NCT fetch (known IDs) ────────────────────────────
-    if known_ncts:
+    if known_ncts and not search_only:
         log(f"  [3a] Direct sync: {len(known_ncts)} known NCT IDs", indent=1)
         synced = step3a_direct_nct_sync(drug, known_ncts, dry_run=dry_run,
                                          canonical_drug_id=canonical_drug_id)
         all_synced.extend(synced)
+    elif known_ncts and search_only:
+        log(f"  [3a] Skipped (--search-only): {len(known_ncts)} known NCT IDs", indent=1)
 
     # ── Step 3b: Search discovery (unknown IDs) ───────────────────────────
     # Run search even when we have seed NCT IDs — may find additional trials
@@ -885,7 +891,8 @@ def run_sync(area_id: str = None, drug_filter: str = None,
 
         log(f"\n[Drug] {drug_name} ({drug_id}) — {drug.get('stage','?')}", indent=0)
 
-        result = sync_drug(drug, dry_run=dry_run, resolver=run_resolver)
+        result = sync_drug(drug, dry_run=dry_run, resolver=run_resolver,
+                           search_only=search_only)
 
         if result["status"] == "ok":
             stats["synced"] += 1
