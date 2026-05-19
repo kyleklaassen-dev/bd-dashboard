@@ -493,6 +493,38 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .pi-modal-action-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:6px; }
 .pi-modal-action-text { font-size:12px; color:#1e3a5f; line-height:1.6; background:#f8fafc; border-radius:6px; padding:10px 12px; border-left:3px solid #e2e8f0; }
 .pi-modal-pri { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; margin-top:10px; color:#64748b; }
+/* ── Area Pulse Strip ── */
+#rq-area-pulse { display:flex; gap:7px; padding:10px 14px 9px; background:rgba(0,0,0,0.12); border-bottom:1px solid rgba(255,255,255,0.1); overflow-x:auto; scrollbar-width:none; }
+#rq-area-pulse::-webkit-scrollbar { display:none; }
+.rq-ap-tile { flex-shrink:0; background:rgba(255,255,255,0.1); border-radius:8px; padding:7px 10px; min-width:68px; cursor:default; transition:background 0.15s; }
+.rq-ap-tile:hover { background:rgba(255,255,255,0.18); }
+.rq-ap-area { font-size:8.5px; font-weight:900; text-transform:uppercase; letter-spacing:0.07em; color:rgba(255,255,255,0.65); }
+.rq-ap-score { font-size:17px; font-weight:900; color:white; line-height:1.1; margin:2px 0 4px; }
+.rq-ap-bar { height:3px; border-radius:2px; background:rgba(255,255,255,0.18); width:100%; margin-bottom:4px; overflow:hidden; }
+.rq-ap-bar-fill { height:100%; border-radius:2px; }
+.rq-ap-count { font-size:8.5px; color:rgba(255,255,255,0.5); font-weight:600; }
+/* ── Queue row missing-fields expansion ── */
+.rq-expand-btn { font-size:9px; font-weight:700; color:#7c3aed; background:#f5f3ff; border:1px solid #ddd6fe; border-radius:4px; padding:2px 6px; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background 0.1s; }
+.rq-expand-btn:hover { background:#ede9fe; }
+.rq-expand-btn.open { background:#ede9fe; color:#5b21b6; }
+.rq-gaps-body { display:none; padding:8px 0 0; margin-top:6px; border-top:1px solid #f1f5f9; }
+.rq-gaps-body.open { display:block; }
+.rq-gap-group { margin-bottom:7px; }
+.rq-gap-group-label { font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:4px; }
+.rq-gap-field { display:inline-block; font-size:9px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:3px; padding:1px 5px; margin:1px 2px 1px 0; }
+/* ── BD Signal unified feed ── */
+.bds-item { padding:9px 0; border-bottom:1px solid #f0f4f8; }
+.bds-item:last-child { border-bottom:none; }
+.bds-item-type { font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; padding:1px 6px; border-radius:10px; margin-right:5px; }
+.bds-item-type.deal  { background:#eff6ff; color:#2563eb; }
+.bds-item-type.intel { background:#f0fdf4; color:#15803d; }
+.bds-item-signal { margin-top:5px; padding:6px 9px; background:linear-gradient(135deg,#eff6ff,#f0f3fa); border-left:3px solid #1a3f8f; border-radius:0 5px 5px 0; font-size:10.5px; color:#1e3a5f; line-height:1.5; }
+/* ── Company freshness badge ── */
+.sc-freshness { display:inline-block; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:10px; margin-left:4px; vertical-align:middle; }
+.sc-freshness.fresh  { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+.sc-freshness.recent { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.sc-freshness.stale  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.sc-freshness.unknown { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
 /* ── Identity Health Footer ── */
 #id-footer { position:fixed; bottom:0; left:0; right:0; z-index:8000; height:28px; display:flex; align-items:center; padding:0 18px; gap:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.95); cursor:pointer; transition:background 0.4s, opacity 0.3s; box-shadow:0 -1px 8px rgba(0,0,0,0.15); user-select:none; }
 #id-footer.idf-ok   { background:#15803d; }
@@ -1451,8 +1483,20 @@ const AREA_TAG = {
   tcell: {cls:'stag-bcma',  label:'Immune Reset'},
 };
 
+// ── Enrichment freshness helper ───────────────────────────────────────────────
+function _freshnessBadge(isoDate) {
+  if (!isoDate) return '<span class="sc-freshness unknown">not enriched</span>';
+  const d = new Date(isoDate);
+  const hours = (Date.now() - d.getTime()) / 3600000;
+  if (hours < 24) return '<span class="sc-freshness fresh">enriched today</span>';
+  const days = Math.floor(hours / 24);
+  if (days <= 7)  return `<span class="sc-freshness fresh">${days}d ago</span>`;
+  if (days <= 21) return `<span class="sc-freshness recent">${days}d ago</span>`;
+  return `<span class="sc-freshness stale">${days}d ago</span>`;
+}
+
 // ── Company card renderer ────────────────────────────────────────────────────
-function buildStockCard(company, areas, signals, newIntelSet) {
+function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt) {
   const areaKeys = areas.map(a => a.area_id);
   const areaStr  = areaKeys.join(' ');
 
@@ -1482,6 +1526,7 @@ function buildStockCard(company, areas, signals, newIntelSet) {
 
   const hasNew = newIntelSet && newIntelSet.has(company.id);
   const newDot = hasNew ? `<span class="sc-new-dot" title="New intel available in last 7 days"></span>` : '';
+  const freshnessHtml = _freshnessBadge(lastEnrichedAt);
 
   const ailuxAngleHtml = company.ailux_angle
     ? `<div style="font-size:11px;color:#2563eb;background:#eff6ff;padding:6px 10px;border-radius:5px;margin-top:6px;line-height:1.5;"><strong>Ailux BD Lens:</strong> ${company.ailux_angle}</div>`
@@ -1516,7 +1561,10 @@ function buildStockCard(company, areas, signals, newIntelSet) {
   <div class="stock-body">
     ${bodySignals}
     ${ailuxAngleHtml}
-    ${company.last_verified ? `<div style="font-size:10px;color:#cbd5e1;margin-top:6px;text-align:right;">Verified ${company.last_verified}</div>` : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+      ${company.last_verified ? `<span style="font-size:10px;color:#cbd5e1;">Verified ${company.last_verified}</span>` : '<span></span>'}
+      ${freshnessHtml}
+    </div>
   </div>
 </div>`;
 }
@@ -1543,6 +1591,10 @@ async function loadStockCards() {
     const allAreas  = areaRes.data  || [];
     const allSigs   = sigRes.data   || [];
 
+    // Build enrichment freshness map: company_id (slug) → last_enriched_at
+    const enrichedMap = {};
+    (profRes.data || []).forEach(p => { if (p.company_id) enrichedMap[p.company_id] = p.last_enriched_at; });
+
     // Build relevance maps
     const recentIntelIds = new Set((recentIntelRes.data||[]).map(r => r.id));
     const companyIntelCount = {}; // company_id → total intel count
@@ -1567,7 +1619,10 @@ async function loadStockCards() {
     companies.forEach(company => {
       const areas = allAreas.filter(a => a.company_id === company.id);
       const sigs  = allSigs.filter(s  => s.company_id === company.id);
-      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs, companyNewIntel));
+      // Look up freshness by company slug (name lowercased + stripped) or direct id match
+      const slug = (company.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const lastEnriched = enrichedMap[company.id] || enrichedMap[slug] || null;
+      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs, companyNewIntel, lastEnriched));
     });
 
     // Re-apply any active filter after render
@@ -1962,6 +2017,80 @@ async function loadMeridianReader() {
 const _RQ_STATUS_CYCLE = { pending: 'in_progress', in_progress: 'done', done: 'pending' };
 const _RQ_STATUS_LABEL = { pending: '○ Pending', in_progress: '● In Progress', done: '✓ Done' };
 
+// ── Missing fields: stage grouping map ───────────────────────────────────────
+const _STAGE_PREFIX = [
+  { key:'s2', label:'Stage 2 · Drug Mapping',      match: f => /^drug:.*:(target|mechanism|differentiation_thesis)$/.test(f) },
+  { key:'s3', label:'Stage 3 · Trial Intelligence', match: f => /^drug:.*:(has_trials|trial_)/.test(f) },
+  { key:'s4', label:'Stage 4 · Catalysts',          match: f => f === 'catalysts_list' },
+  { key:'s5', label:'Stage 5 · Strategic Position', match: f => ['company_profile_exists','competitive_position','vs_ailux','key_differentiators'].includes(f) },
+  { key:'s6', label:'Stage 6 · Deal Intelligence',  match: f => f === 'deals_list' },
+];
+function _humanField(f) {
+  if (f.startsWith('drug:')) {
+    const parts = f.split(':');
+    const drug = parts[1]; const field = parts.slice(2).join(':');
+    const fieldLabel = field.replace(/_/g,' ').replace('differentiation thesis','diff. thesis').replace('canonical linked','canonical link');
+    return `${drug}:${fieldLabel}`;
+  }
+  return f.replace(/_/g,' ');
+}
+function _groupMissingFields(missingArr) {
+  if (!missingArr || !missingArr.length) return [];
+  const groups = {};
+  missingArr.forEach(f => {
+    const stage = _STAGE_PREFIX.find(s => s.match(f));
+    const key = stage ? stage.key : 'other';
+    const label = stage ? stage.label : 'Other';
+    if (!groups[key]) groups[key] = { label, fields:[] };
+    groups[key].fields.push(f);
+  });
+  return Object.values(groups);
+}
+
+// ── Area Pulse Strip ──────────────────────────────────────────────────────────
+async function loadAreaPulse() {
+  const el = document.getElementById('rq-area-pulse');
+  if (!el) return;
+  try {
+    const { data, error } = await _sb
+      .from('research_queue')
+      .select('area_id,completeness_score,completeness_tier');
+    if (error || !data || !data.length) { el.innerHTML = ''; return; }
+
+    const byArea = {};
+    data.forEach(r => {
+      if (!byArea[r.area_id]) byArea[r.area_id] = { scores:[], tiers:{thin:0,partial:0,strong:0} };
+      byArea[r.area_id].scores.push(r.completeness_score || 0);
+      const t = r.completeness_tier || 'thin';
+      byArea[r.area_id].tiers[t] = (byArea[r.area_id].tiers[t]||0) + 1;
+    });
+
+    const areaOrder = ['tl1a','tslp','il4ra','fcrn','igf1r','tcell'];
+    el.innerHTML = areaOrder.map(aId => {
+      const d = byArea[aId];
+      if (!d) return '';
+      const avg  = Math.round(d.scores.reduce((s,v) => s+v, 0) / d.scores.length);
+      const cnt  = d.scores.length;
+      const short = _AREA_SHORT[aId] || aId.toUpperCase();
+      const barColor = avg >= 70 ? '#4ade80' : avg >= 40 ? '#fbbf24' : '#f87171';
+      const tierStr = [
+        d.tiers.strong ? `${d.tiers.strong}✓` : '',
+        d.tiers.partial ? `${d.tiers.partial}~` : '',
+        d.tiers.thin    ? `${d.tiers.thin}✗`   : '',
+      ].filter(Boolean).join(' ');
+      return `<div class="rq-ap-tile" title="${cnt} entities · ${tierStr}">
+        <div class="rq-ap-area">${short}</div>
+        <div class="rq-ap-score">${avg}<span style="font-size:10px;font-weight:600;opacity:0.6">%</span></div>
+        <div class="rq-ap-bar"><div class="rq-ap-bar-fill" style="width:${avg}%;background:${barColor}"></div></div>
+        <div class="rq-ap-count">${cnt} entity${cnt!==1?'s':''}</div>
+      </div>`;
+    }).filter(Boolean).join('');
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[rq-area-pulse]', e);
+  }
+}
+
 async function rqSetStatus(entityId, areaId, currentStatus) {
   const nextStatus = _RQ_STATUS_CYCLE[currentStatus] || 'in_progress';
   const rowId = `rq-row-${entityId}-${areaId}`;
@@ -2006,7 +2135,7 @@ async function loadResearchQueue() {
     const hideDone = document.getElementById('rq-hide-done')?.checked ?? false;
     let query = _sb
       .from('research_queue')
-      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,assigned_status')
+      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,missing_fields,assigned_status')
       .order('priority_score', { ascending: false })
       .limit(25);
     if (hideDone) query = query.neq('assigned_status', 'done');
@@ -2023,17 +2152,38 @@ async function loadResearchQueue() {
       const status = r.assigned_status || 'pending';
       const rowId  = `rq-row-${r.entity_id}-${r.area_id}`;
       const btnId  = `rq-btn-${r.entity_id}-${r.area_id}`;
+      const gapId  = `rq-gaps-${r.entity_id}-${r.area_id}`;
+      const expId  = `rq-exp-${r.entity_id}-${r.area_id}`;
       const doneClass = status === 'done' ? ' done-row' : '';
       const ac = _AREA_PILL_COLORS[r.area_id] || { bg:'#64748b', text:'white' };
       const aShort = _AREA_SHORT[r.area_id] || (r.area_id || '').toUpperCase();
       const barW = Math.min(100, Math.max(4, score)) + '%';
       const entityLabel = r.entity_id.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+      // Missing fields expansion
+      const mf = Array.isArray(r.missing_fields) ? r.missing_fields : [];
+      const gapCount = mf.length;
+      const gapGroups = _groupMissingFields(mf);
+      const expandBtn = gapCount > 0
+        ? `<button id="${expId}" class="rq-expand-btn" onclick="rqToggleGaps('${gapId}','${expId}')">▸ ${gapCount} gap${gapCount!==1?'s':''}</button>`
+        : '';
+      const gapsHtml = gapGroups.map(g =>
+        `<div class="rq-gap-group">
+           <div class="rq-gap-group-label">${g.label}</div>
+           ${g.fields.map(f => `<span class="rq-gap-field">${_humanField(f)}</span>`).join('')}
+         </div>`
+      ).join('');
+      const gapsBody = gapCount > 0
+        ? `<div class="rq-gaps-body" id="${gapId}">${gapsHtml}</div>`
+        : '';
+
       return `<div class="rq-row ${priCls}${doneClass}" id="${rowId}">
         <div style="flex:1;min-width:0">
           <div class="rq-entity" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
             <span>${entityLabel}</span>
             <span class="rq-tier ${tier}">${tier}</span>
             <span class="rq-area-pill" style="background:${ac.bg};color:${ac.text}">${aShort}</span>
+            ${expandBtn}
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <div class="rq-bar"><div class="rq-bar-fill ${tier}" style="width:${barW}"></div></div>
@@ -2041,12 +2191,25 @@ async function loadResearchQueue() {
             <span style="font-size:9.5px;font-weight:700;color:${pri >= 80 ? '#dc2626' : pri >= 50 ? '#d97706' : '#94a3b8'}">pri ${pri}</span>
           </div>
           ${r.next_best_action ? `<div class="rq-action" style="margin-top:3px">→ ${r.next_best_action}</div>` : ''}
+          ${gapsBody}
         </div>
         <button id="${btnId}" class="rq-status ${status}" onclick="rqSetStatus('${r.entity_id}','${r.area_id}','${status}')">${_RQ_STATUS_LABEL[status]}</button>
       </div>`;
     }).join('');
   } catch(e) {
     body.innerHTML = '<div style="color:#ef4444;font-size:12px;padding:14px 18px">Error loading queue.</div>';
+    console.warn('[loadResearchQueue]', e);
+  }
+}
+
+function rqToggleGaps(gapId, expId) {
+  const gap = document.getElementById(gapId);
+  const btn = document.getElementById(expId);
+  if (!gap) return;
+  const open = gap.classList.toggle('open');
+  if (btn) {
+    btn.classList.toggle('open', open);
+    btn.textContent = (open ? '▾ ' : '▸ ') + btn.textContent.replace(/^[▸▾]\s*/,'');
   }
 }
 
@@ -2248,48 +2411,98 @@ async function loadBDSignal() {
   const body = document.getElementById('bd-signal-body');
   if (!body) return;
   try {
-    const { data: deals, error } = await _sb.from('deals')
-      .select('*').order('deal_date', { ascending: false }).limit(10);
-    if (error) throw error;
-    if (!deals || !deals.length) {
-      body.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:8px 0">No BD deals recorded yet.</div>`;
-      return;
-    }
-    const withSignal = deals.filter(d => d.ailux_signal);
-    const top = (withSignal.length >= 3 ? withSignal : deals).slice(0, 5);
+    const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
+    const [dealsRes, intelRes] = await Promise.all([
+      _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(10),
+      _sb.from('intel').select('id,headline,summary,intel_date,importance,area_id,source_url,ailux_angle')
+        .eq('importance','high').gte('intel_date', sevenDaysAgo)
+        .order('intel_date', { ascending: false }).limit(6),
+    ]);
+    if (dealsRes.error) throw dealsRes.error;
+
     const AREA_COLORS = {
       tl1a:'#1a3f8f', tslp:'#0e7490', il4ra:'#7c3aed',
       igf1r:'#b45309', fcrn:'#15803d', tcell:'#dc2626',
     };
-    const cards = top.map(d => {
-      const areaColor = AREA_COLORS[d.area_id] || '#4b5563';
-      const areaLabel = AREA_LABELS[d.area_id] || d.area_id || '';
-      const val = d.total_usd_m
-        ? `<span style="font-weight:800;color:#0d1f38">${fmtMoney(d.total_usd_m)}</span>` : '';
-      const upfront = d.upfront_usd_m
-        ? `<span style="font-size:10px;color:#64748b"> · ${fmtMoney(d.upfront_usd_m)} upfront</span>` : '';
-      const srcLink = d.source_url
-        ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗</a>` : '';
-      const ailuxHtml = d.ailux_signal ? `
-        <div style="margin-top:6px;padding:7px 10px;background:linear-gradient(135deg,#eff6ff,#f0f3fa);border-left:3px solid #1a3f8f;border-radius:0 5px 5px 0;font-size:10.5px;color:#1e3a5f;line-height:1.5;">
-          <span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1a3f8f;display:block;margin-bottom:2px;">◈ Ailux BD Signal</span>
-          ${d.ailux_signal}
-        </div>` : '';
-      return `<div style="padding:10px 0;border-bottom:1px solid #f0f4f8;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
-          ${areaLabel ? `<span style="font-size:9px;font-weight:700;color:white;background:${areaColor};padding:2px 7px;border-radius:8px;">${areaLabel}</span>` : ''}
-          <span style="font-size:9px;color:#94a3b8;">${rdtFmtDate(d.deal_date)||d.deal_date_label||''}</span>
-          ${val}${upfront}${srcLink}
-        </div>
-        <div style="font-size:11.5px;font-weight:600;color:#1e293b;line-height:1.4;">${d.from_company || ''} → ${d.to_company || ''}</div>
-        <div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${d.headline || ''}</div>
-        ${ailuxHtml}
-      </div>`;
+
+    // Build unified feed items with type + sort date
+    const feedItems = [];
+
+    // Deals: prefer ones with ailux_signal, take top 3
+    const deals = dealsRes.data || [];
+    const dealsWithSignal = deals.filter(d => d.ailux_signal);
+    const topDeals = (dealsWithSignal.length >= 2 ? dealsWithSignal : deals).slice(0, 3);
+    topDeals.forEach(d => {
+      feedItems.push({ type: 'deal', sortDate: d.deal_date || '0000-00-00', data: d });
+    });
+
+    // Intel: high-importance last 7d
+    const intel = intelRes.data || [];
+    intel.slice(0, 3).forEach(i => {
+      feedItems.push({ type: 'intel', sortDate: i.intel_date || '0000-00-00', data: i });
+    });
+
+    // Sort by date desc
+    feedItems.sort((a, b) => b.sortDate.localeCompare(a.sortDate));
+
+    if (!feedItems.length) {
+      body.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:8px 0">No recent signals — run the pipeline to generate intelligence.</div>`;
+      return;
+    }
+
+    const cards = feedItems.map(item => {
+      const areaColor = AREA_COLORS[item.data.area_id] || '#4b5563';
+      const areaLabel = AREA_LABELS[item.data.area_id] || item.data.area_id || '';
+      const areaPill  = areaLabel
+        ? `<span style="font-size:9px;font-weight:700;color:white;background:${areaColor};padding:2px 7px;border-radius:8px;">${areaLabel}</span>`
+        : '';
+
+      if (item.type === 'deal') {
+        const d = item.data;
+        const val = d.total_usd_m ? `<span style="font-weight:800;color:#0d1f38">${fmtMoney(d.total_usd_m)}</span>` : '';
+        const upfront = d.upfront_usd_m ? `<span style="font-size:10px;color:#64748b"> · ${fmtMoney(d.upfront_usd_m)} upfront</span>` : '';
+        const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗</a>` : '';
+        const signalHtml = d.ailux_signal
+          ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1a3f8f;display:block;margin-bottom:2px;">◈ Ailux BD Signal</span>${d.ailux_signal}</div>`
+          : '';
+        return `<div class="bds-item">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px;">
+            <span class="bds-item-type deal">Deal</span>
+            ${areaPill}
+            <span style="font-size:9px;color:#94a3b8;">${rdtFmtDate(d.deal_date)||d.deal_date_label||''}</span>
+            ${val}${upfront}${srcLink}
+          </div>
+          <div style="font-size:11.5px;font-weight:600;color:#1e293b;line-height:1.4;">${d.from_company||''} → ${d.to_company||''}</div>
+          <div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${d.headline||''}</div>
+          ${signalHtml}
+        </div>`;
+      } else {
+        const i = item.data;
+        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗</a>` : '';
+        const angleHtml = i.ailux_angle
+          ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#15803d;display:block;margin-bottom:2px;">◈ Ailux Angle</span>${i.ailux_angle}</div>`
+          : '';
+        return `<div class="bds-item">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px;">
+            <span class="bds-item-type intel">Intel</span>
+            ${areaPill}
+            <span style="font-size:9px;color:#94a3b8;">${rdtFmtDate(i.intel_date)||''}</span>
+            ${srcLink}
+          </div>
+          <div style="font-size:11.5px;font-weight:600;color:#1e293b;line-height:1.4;">${i.headline||''}</div>
+          ${i.summary ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.4;">${i.summary}</div>` : ''}
+          ${angleHtml}
+        </div>`;
+      }
     }).join('');
-    const summary = `<div style="font-size:10px;color:#64748b;padding-top:8px;border-top:1px solid #f0f4f8;margin-top:4px;">Showing ${top.length} of ${deals.length} recent deals · ${withSignal.length} with Ailux BD signal</div>`;
+
+    const intelCnt = intel.length;
+    const dealCnt  = (dealsRes.data||[]).length;
+    const summary = `<div style="font-size:10px;color:#64748b;padding-top:8px;border-top:1px solid #f0f4f8;margin-top:2px;">${topDeals.length} deals · ${Math.min(3,intelCnt)} high-priority intel (last 7d) · ${dealCnt} total deals on record</div>`;
     body.innerHTML = cards + summary;
   } catch(err) {
     body.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:8px 0">Error loading BD signal: ${err.message}</div>`;
+    console.warn('[loadBDSignal]', err);
   }
 }
 
@@ -2889,6 +3102,7 @@ function loadMoleculeTab(tabId) {
     Hide done
    </label>
   </div>
+  <div id="rq-area-pulse" style="color:rgba(255,255,255,0.5);font-size:11px;padding:10px 14px">Loading…</div>
   <div id="rq-body">
    <div style="color:#94a3b8;font-size:12px;padding:14px 18px">Loading research queue…</div>
   </div>
@@ -8285,7 +8499,7 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadAreaPulse(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
