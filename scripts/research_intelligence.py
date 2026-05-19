@@ -15,7 +15,11 @@ research system. For every Strategic Competitive Entity it answers:
 ARCHITECTURE
 ------------
   load_entity_context()          — pull all data for one entity from Supabase
+                                    (trials + deals fetched by drug_id AND canonical_drug_id)
+  _group_drugs_by_canonical()    — group drug rows by canonical_drug_id for unified scoring
+  _merge_drug_rows()             — merge sibling drug rows into one best-values representative
   score_entity_completeness()    — 0–100 score across 6 weighted research stages
+                                    (Stages 2 + 3 score per canonical program, not per DB row)
   get_next_best_action()         — priority-ordered decision tree → plain-English action
   check_research_triggers()      — detect conditions that require downstream updates
   calculate_priority_score()     — urgency integer (0–200) with human reason
@@ -193,6 +197,74 @@ def _now_iso() -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# CANONICAL GROUPING HELPERS
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _group_drugs_by_canonical(drugs: list[dict]) -> list[list[dict]]:
+    """
+    Group drug rows by canonical_drug_id.
+    Drugs without a canonical_drug_id each form their own single-item group.
+    Returns a list of groups (each group = list of drug rows sharing one canonical).
+    """
+    canon_groups: dict[str, list[dict]] = {}
+    ungrouped: list[list[dict]] = []
+    for d in drugs:
+        cid = d.get("canonical_drug_id")
+        if cid:
+            canon_groups.setdefault(cid, []).append(d)
+        else:
+            ungrouped.append([d])
+    return list(canon_groups.values()) + ungrouped
+
+
+def _merge_drug_rows(rows: list[dict]) -> dict:
+    """
+    Merge multiple drug rows sharing the same canonical_drug_id into one
+    representative row, using the most-populated value for each text field.
+
+    Attaches:
+      _all_drug_ids  — list of all constituent drug.id values (for trial/catalyst lookups)
+    """
+    if len(rows) == 1:
+        merged = dict(rows[0])
+        merged["_all_drug_ids"] = [rows[0]["id"]]
+        return merged
+
+    merged = dict(rows[0])
+    TEXT_FIELDS = [
+        "mechanism", "target", "stage", "differentiation_thesis",
+        "results_summary", "vs_competitor", "drug_class", "name",
+    ]
+    for field in TEXT_FIELDS:
+        best = max((r.get(field) or "" for r in rows), key=len)
+        if best:
+            merged[field] = best
+
+    # Numeric: take max confidence score across all rows
+    merged["confidence_score"] = max((r.get("confidence_score") or 0) for r in rows)
+
+    # canonical_drug_id: take any populated value (all rows should share it)
+    merged["canonical_drug_id"] = next(
+        (r.get("canonical_drug_id") for r in rows if r.get("canonical_drug_id")), None
+    )
+
+    # trial_data_status: 'missing' only if EVERY row explicitly says 'missing'
+    # (None/unset rows are treated as non-missing, so [None, "missing"] → not missing)
+    statuses = [r.get("trial_data_status") for r in rows]
+    if statuses and all(s == "missing" for s in statuses):
+        merged["trial_data_status"] = "missing"
+    else:
+        merged["trial_data_status"] = next(
+            (s for s in statuses if s and s != "missing"),
+            statuses[0] if statuses else None,
+        )
+
+    # Keep all constituent IDs for downstream trial/catalyst lookups
+    merged["_all_drug_ids"] = [r["id"] for r in rows]
+    return merged
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # STEP 0 — LOAD ENTITY CONTEXT
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -242,11 +314,30 @@ def load_entity_context(
     drug_ids = [d["id"] for d in drugs]
     drug_ids_filter = "in.(" + ",".join(drug_ids) + ")"
 
-    # -- Trials linked to these drugs
+    # Collect canonical_drug_ids for this entity's drugs — used to broaden
+    # trial/deal lookups so cross-drug-row records are captured correctly.
+    canonical_ids: list[str] = list({
+        d["canonical_drug_id"] for d in drugs if d.get("canonical_drug_id")
+    })
+
+    # -- Trials linked to these drugs (by drug_id)
     trials = _sb_get(sb_url, sb_key, "trials", {
         "drug_id": drug_ids_filter,
         "select": "*",
     })
+    # Also fetch trials by canonical_drug_id to catch records written by
+    # ct_gov_sync that reference a different drug row sharing the same canonical.
+    if canonical_ids:
+        canon_filter = "in.(" + ",".join(canonical_ids) + ")"
+        canon_trials = _sb_get(sb_url, sb_key, "trials", {
+            "canonical_drug_id": canon_filter,
+            "select": "*",
+        })
+        seen_trial_ids = {t["id"] for t in trials}
+        for t in canon_trials:
+            if t["id"] not in seen_trial_ids:
+                trials.append(t)
+                seen_trial_ids.add(t["id"])
     ctx["trials"] = trials
 
     # -- Catalysts for these drugs
@@ -273,13 +364,27 @@ def load_entity_context(
         })
         ctx["profile"] = profiles[0] if profiles else None
 
-    # -- Deals for this entity
+    # -- Deals for this entity (by entity_id)
+    deals: list[dict] = []
     if entity_id:
         deals = _sb_get(sb_url, sb_key, "deals", {
             "entity_id": f"eq.{entity_id}",
             "select": "*",
         })
-        ctx["deals"] = deals
+    # Also fetch deals by canonical_drug_id to capture deals written by
+    # company_enrichment that may reference the canonical program directly.
+    if canonical_ids:
+        canon_filter = "in.(" + ",".join(canonical_ids) + ")"
+        canon_deals = _sb_get(sb_url, sb_key, "deals", {
+            "canonical_drug_id": canon_filter,
+            "select": "*",
+        })
+        seen_deal_ids = {d["id"] for d in deals}
+        for d in canon_deals:
+            if d["id"] not in seen_deal_ids:
+                deals.append(d)
+                seen_deal_ids.add(d["id"])
+    ctx["deals"] = deals
 
     return ctx
 
@@ -346,16 +451,23 @@ def score_entity_completeness(ctx: dict) -> dict:
     stage_scores["stage1_entity_discovery"] = s1 / 3
 
     # ── Stage 2: Drug Mapping ────────────────────────────────────────────────
+    # Group by canonical_drug_id so multi-row programs score as one program.
+    # _merge_drug_rows() picks the best-populated value across all sibling rows,
+    # so two rows sharing a canonical both contribute to a single score rather
+    # than two separate averaged scores.
     if drugs:
+        canonical_groups = _group_drugs_by_canonical(drugs)
         drug_scores = []
-        for d in drugs:
+        for group in canonical_groups:
+            d = _merge_drug_rows(group)
+            label = d["id"]  # use first/primary drug.id as the field label key
             ds = 0.0
-            ds += _check(_nonempty(d.get("mechanism")), f"drug:{d['id']}:mechanism")
-            ds += _check(_nonempty(d.get("target")), f"drug:{d['id']}:target")
-            ds += _check(_nonempty(d.get("stage")), f"drug:{d['id']}:stage")
-            ds += _check(_nonempty(d.get("differentiation_thesis")), f"drug:{d['id']}:differentiation_thesis")
-            # canonical_drug_id: identity spine connecting this drug to the canonical layer
-            ds += _check(_nonempty(d.get("canonical_drug_id")), f"drug:{d['id']}:canonical_drug_id")
+            ds += _check(_nonempty(d.get("mechanism")), f"drug:{label}:mechanism")
+            ds += _check(_nonempty(d.get("target")), f"drug:{label}:target")
+            ds += _check(_nonempty(d.get("stage")), f"drug:{label}:stage")
+            ds += _check(_nonempty(d.get("differentiation_thesis")), f"drug:{label}:differentiation_thesis")
+            # canonical_drug_id: identity spine — full credit if any sibling has it
+            ds += _check(_nonempty(d.get("canonical_drug_id")), f"drug:{label}:canonical_drug_id")
             drug_scores.append(ds / 5)
         stage_scores["stage2_drug_mapping"] = sum(drug_scores) / len(drug_scores)
     else:
@@ -363,49 +475,76 @@ def score_entity_completeness(ctx: dict) -> dict:
         stage_scores["stage2_drug_mapping"] = 0.0
 
     # ── Stage 3: Trial Intelligence ──────────────────────────────────────────
+    # Score per canonical program (not per DB row) so a program with 3 drug
+    # rows and 6 trials doesn't inflate or deflate the average.
+    # Trials are looked up by both drug_id AND canonical_drug_id.
     if drugs:
+        canonical_groups = _group_drugs_by_canonical(drugs)
         drug_trial_scores = []
+
+        # Build trial lookup maps
         drug_trial_map: dict[str, list] = {}
+        canon_trial_map: dict[str, list] = {}
         for t in trials:
-            drug_trial_map.setdefault(t["drug_id"], []).append(t)
+            if t.get("drug_id"):
+                drug_trial_map.setdefault(t["drug_id"], []).append(t)
+            if t.get("canonical_drug_id"):
+                canon_trial_map.setdefault(t["canonical_drug_id"], []).append(t)
 
-        for d in drugs:
-            drug_id = d["id"]
-            drug_trials = drug_trial_map.get(drug_id, [])
+        for group in canonical_groups:
+            d = _merge_drug_rows(group)
+            all_drug_ids = d.get("_all_drug_ids", [d["id"]])
+            canonical_id = d.get("canonical_drug_id")
+            label = all_drug_ids[0]  # field label key
+
+            # Union trials from all constituent drug_ids + canonical_drug_id,
+            # deduplicated by trial id to avoid double-counting.
+            group_trials: list[dict] = []
+            seen_trial_ids: set = set()
+            for did in all_drug_ids:
+                for t in drug_trial_map.get(did, []):
+                    if t["id"] not in seen_trial_ids:
+                        group_trials.append(t)
+                        seen_trial_ids.add(t["id"])
+            if canonical_id:
+                for t in canon_trial_map.get(canonical_id, []):
+                    if t["id"] not in seen_trial_ids:
+                        group_trials.append(t)
+                        seen_trial_ids.add(t["id"])
+
             ds = 0.0
-
-            has_trials = len(drug_trials) > 0
-            ds += _check(has_trials, f"drug:{drug_id}:has_trials")
+            has_trials = len(group_trials) > 0
+            ds += _check(has_trials, f"drug:{label}:has_trials")
 
             if has_trials:
                 has_detail = any(
                     _nonempty(t.get("arms")) or _nonempty(t.get("primary_endpoint"))
-                    for t in drug_trials
+                    for t in group_trials
                 )
-                ds += _check(has_detail, f"drug:{drug_id}:trial_detail")
+                ds += _check(has_detail, f"drug:{label}:trial_detail")
 
                 high_conf = any(
-                    (t.get("confidence_score") or 0) >= 80 for t in drug_trials
+                    (t.get("confidence_score") or 0) >= 80 for t in group_trials
                 )
-                ds += _check(high_conf, f"drug:{drug_id}:trial_confidence")
+                ds += _check(high_conf, f"drug:{label}:trial_confidence")
 
                 # canonical_drug_id stamped on at least one trial — identity spine intact
                 has_canonical = any(
-                    _nonempty(t.get("canonical_drug_id")) for t in drug_trials
+                    _nonempty(t.get("canonical_drug_id")) for t in group_trials
                 )
-                ds += _check(has_canonical, f"drug:{drug_id}:trial_canonical_linked")
+                ds += _check(has_canonical, f"drug:{label}:trial_canonical_linked")
             else:
                 missing_fields.extend([
-                    f"drug:{drug_id}:trial_detail",
-                    f"drug:{drug_id}:trial_confidence",
-                    f"drug:{drug_id}:trial_canonical_linked",
+                    f"drug:{label}:trial_detail",
+                    f"drug:{label}:trial_confidence",
+                    f"drug:{label}:trial_canonical_linked",
                 ])
 
-            # Penalise if explicitly marked missing
+            # Penalise if merged row says trial data is explicitly absent
             if d.get("trial_data_status") == "missing":
                 ds = max(0.0, ds - 0.5)
 
-            drug_trial_scores.append(ds / 4)   # denominator grows by 1 for canonical check
+            drug_trial_scores.append(ds / 4)
 
         stage_scores["stage3_trial_intelligence"] = (
             sum(drug_trial_scores) / len(drug_trial_scores)
