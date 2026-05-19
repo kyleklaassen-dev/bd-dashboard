@@ -442,6 +442,15 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .rq-status.in_progress { background:#eff6ff; color:#2563eb; }
 .rq-status.done        { background:#f0fdf4; color:#16a34a; }
 .rq-row.done-row { opacity:0.5; }
+/* ── Identity Health Panel ── */
+.ih-stat { display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px; }
+.ih-stat-val { font-size:22px;font-weight:800;line-height:1; }
+.ih-stat-lbl { font-size:10px;color:#64748b;font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:0.04em; }
+.ih-stat.ok   .ih-stat-val { color:#16a34a; }
+.ih-stat.warn .ih-stat-val { color:#d97706; }
+.ih-stat.bad  .ih-stat-val { color:#dc2626; }
+.ih-divider { width:1px;height:40px;background:#e2e8f0;flex-shrink:0; }
+.ih-issue { font-size:11px;color:#dc2626;font-style:italic;width:100%; }
 #meridian-reader-items { display: block !important; max-height: 400px; overflow-y: auto; }
 #meridian-reader-items::-webkit-scrollbar { width: 5px; }
 #meridian-reader-items::-webkit-scrollbar-track { background: transparent; }
@@ -1922,11 +1931,14 @@ async function loadResearchQueue() {
   const body = document.getElementById('rq-body');
   if (!body) return;
   try {
-    const { data, error } = await _sb
+    const hideDone = document.getElementById('rq-hide-done')?.checked ?? false;
+    let query = _sb
       .from('research_queue')
       .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,assigned_status')
       .order('priority_score', { ascending: false })
       .limit(12);
+    if (hideDone) query = query.neq('assigned_status', 'done');
+    const { data, error } = await query;
     if (error || !data || !data.length) {
       body.innerHTML = '<div style="color:#94a3b8;font-size:12px">No research queue data yet.</div>';
       return;
@@ -1951,6 +1963,60 @@ async function loadResearchQueue() {
     }).join('');
   } catch(e) {
     body.innerHTML = '<div style="color:#ef4444;font-size:12px">Error loading queue.</div>';
+  }
+}
+
+// ── Identity Health Panel ────────────────────────────────────────────────────
+async function loadIdentityHealth() {
+  const body = document.getElementById('ih-body');
+  if (!body) return;
+  body.innerHTML = '<div style="color:#94a3b8;font-size:12px">Loading…</div>';
+  try {
+    // 1. Drug coverage: total vs resolved
+    const [drugsRes, canonRes, fuzzyRes, orphanRes, errRes] = await Promise.all([
+      _sb.from('drugs').select('canonical_drug_id', { count: 'exact', head: false }),
+      _sb.from('canonical_drugs').select('is_active', { count: 'exact', head: false }),
+      _sb.from('identity_audit_log').select('id', { count: 'exact' }).eq('operation', 'flag_review'),
+      _sb.rpc ? null : null, // placeholder
+      _sb.from('resolver_errors').select('id', { count: 'exact' }).is('resolved_at', null),
+    ]);
+
+    const total     = (drugsRes.data || []).length;
+    const resolved  = (drugsRes.data || []).filter(d => d.canonical_drug_id).length;
+    const coverage  = total > 0 ? Math.round((resolved / total) * 100) : 0;
+    const active    = (canonRes.data || []).filter(d => d.is_active).length;
+    const fuzzy     = fuzzyRes.count ?? (fuzzyRes.data || []).length;
+    const unresErrs = errRes.count  ?? (errRes.data  || []).length;
+
+    // orphans: drugs with a canonical_drug_id that doesn't exist in canonical_drugs
+    // simple proxy: unresolved = total - resolved
+    const unresolved = total - resolved;
+
+    const stat = (val, label, okIf) => {
+      const cls = okIf(val) ? 'ok' : (val === 0 ? 'ok' : 'bad');
+      return `<div class="ih-stat ${cls}"><div class="ih-stat-val">${val}</div><div class="ih-stat-lbl">${label}</div></div>`;
+    };
+
+    const coverageCls = coverage === 100 ? 'ok' : coverage >= 90 ? 'warn' : 'bad';
+    const coverageHtml = `<div class="ih-stat ${coverageCls}"><div class="ih-stat-val">${coverage}%</div><div class="ih-stat-lbl">Canonical Coverage</div></div>`;
+
+    const issues = [];
+    if (coverage < 100) issues.push(`${unresolved} drug${unresolved !== 1 ? 's' : ''} unresolved`);
+    if (fuzzy > 0)      issues.push(`${fuzzy} fuzzy match${fuzzy !== 1 ? 'es' : ''} need review`);
+    if (unresErrs > 0)  issues.push(`${unresErrs} resolver error${unresErrs !== 1 ? 's' : ''} unretried`);
+
+    body.innerHTML = `
+      ${coverageHtml}
+      <div class="ih-divider"></div>
+      ${stat(active, 'Active Canonicals', v => v > 0)}
+      <div class="ih-divider"></div>
+      ${stat(fuzzy, 'Fuzzy Pending', v => v === 0)}
+      <div class="ih-divider"></div>
+      ${stat(unresErrs, 'Resolver Errors', v => v === 0)}
+      ${issues.length ? `<div class="ih-issue" style="margin-top:6px">⚠ ${issues.join(' · ')}</div>` : '<div class="ih-issue" style="color:#16a34a;margin-top:6px">✅ All checks passing</div>'}
+    `;
+  } catch(e) {
+    body.innerHTML = '<div style="color:#ef4444;font-size:12px">Error loading health data.</div>';
   }
 }
 
@@ -2643,10 +2709,23 @@ function loadMoleculeTab(tabId) {
  <div class="home-card" id="research-queue-panel" style="border-left:4px solid #7c3aed">
   <div class="home-card-hd" style="background:linear-gradient(90deg,#3b0764,#5b21b6);color:white;">
    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">🔬 Research Queue</span>
-   <span class="hc-tag" style="background:rgba(255,255,255,0.15);color:white;margin-left:auto">Top entities needing attention</span>
+   <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10.5px;color:rgba(255,255,255,0.8);font-weight:600;user-select:none">
+    <input type="checkbox" id="rq-hide-done" onchange="loadResearchQueue()" style="accent-color:#a78bfa;cursor:pointer">
+    Hide done
+   </label>
   </div>
   <div id="rq-body" style="padding:14px 18px">
    <div style="color:#94a3b8;font-size:12px">Loading research queue…</div>
+  </div>
+ </div>
+
+ <div class="home-card" id="identity-health-panel" style="border-left:4px solid #0891b2">
+  <div class="home-card-hd" style="background:linear-gradient(90deg,#164e63,#0e7490);color:white;">
+   <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">🧬 Identity Layer Health</span>
+   <button onclick="loadIdentityHealth()" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;border-radius:4px;color:white;font-size:10px;padding:2px 8px;cursor:pointer">↻ Refresh</button>
+  </div>
+  <div id="ih-body" style="padding:12px 18px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+   <div style="color:#94a3b8;font-size:12px">Loading…</div>
   </div>
  </div>
 
@@ -7987,7 +8066,7 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadIdentityHealth(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
