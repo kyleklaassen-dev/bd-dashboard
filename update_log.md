@@ -1,5 +1,48 @@
 
 ---
+## 2026-05-19 Dashboard Intelligence Upgrades — SHA: a906bce
+
+### Updated: `index.html` → `a906bce`
+
+**Area Completeness Pulse Strip (`#rq-area-pulse`):**
+- Compact 6-tile strip rendered inside the Research Queue card header area
+- Each tile shows area short name, average completeness %, mini fill bar (red/amber/green), entity count
+- Tile tooltips show tier breakdown (strong ✓ / partial ~ / thin ✗)
+- `loadAreaPulse()` queries research_queue grouped by area_id; added to `DOMContentLoaded`
+
+**Expandable Missing Fields in Queue Rows:**
+- Added `missing_fields` to the research_queue select query
+- Each queue row with gaps shows a purple `▸ N gaps` expand button
+- Click toggles inline grouped breakdown by intelligence stage:
+  - Stage 2 · Drug Mapping (mechanism, target, differentiation_thesis)
+  - Stage 3 · Trial Intelligence (has_trials, trial fields)
+  - Stage 4 · Catalysts (catalysts_list)
+  - Stage 5 · Strategic Position (company_profile, competitive_position, vs_ailux)
+  - Stage 6 · Deal Intelligence (deals_list)
+- Fields rendered as small red chips with human-readable labels
+- `rqToggleGaps()` function handles open/close state
+
+**BD Signal Panel Upgraded to Unified Signal Feed:**
+- `loadBDSignal()` now fetches both deals AND high-importance intel (last 7d) in parallel
+- Feed items sorted by date descending, blended from both sources
+- Intel items show "Intel" green pill type badge; deals show "Deal" blue pill badge
+- Intel items display `ailux_angle` commentary in a green-accented signal box
+- Footer summary shows counts of each type
+- Falls back gracefully if intel table has no recent high-importance items
+
+**Company Enrichment Freshness Badges:**
+- `loadStockCards()` now fetches `company_profiles.last_enriched_at` as 6th parallel query
+- `_freshnessBadge(isoDate)` helper formats relative age: "enriched today" (<24h), "Nd ago" (≤7d fresh, ≤21d recent, >21d stale)
+- Badge rendered at bottom-right of each stock card body, color-coded:
+  - Green: enriched today or ≤7d ago
+  - Amber: 8–21d ago
+  - Red: >21d ago or "not enriched" if no profile exists
+
+**Pipeline dispatch:**
+- GitHub Actions `company-enrichment.yml` triggered for `area=all` via workflow_dispatch API
+- Run queued at 2026-05-19T20:23:00Z — will populate missing strategic fields across all 43 entities
+
+---
 ## 2026-05-19 UI Redesign — Decision-Flow Architecture — SHA: d42d542
 
 ### Updated: `index.html` → `d42d542`
