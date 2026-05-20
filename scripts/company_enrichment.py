@@ -756,7 +756,40 @@ OUTPUT RULES:
 - Key Risk: the SINGLE most important risk specific to THIS company's program.
 - vs_ailux: how this company/drug compares to Ailux — mechanism, stage, format, differentiation.
 - Do not fabricate. If uncertain, use "expected", "anticipated", "estimated".
-- Return ONLY valid JSON — no markdown fences, no explanation."""
+- Return ONLY valid JSON — no markdown fences, no explanation.
+
+DATA QUALITY STANDARDS (mandatory — these prevent downstream display errors):
+
+TARGET NOTATION:
+- IL-23 inhibitors: ALWAYS specify "IL-23p19" (not "IL-23" alone). The p19 subunit is the
+  specific target of all modern IL-23 inhibitors. IL-23p40 inhibitors are a different class.
+- Bispecifics use "×" separator: "TL1A × IL-23p19" (NOT "TL1A/IL-23" or "anti-TL1A × IL-23")
+- Rational combinations (two separate co-administered mAbs) use "+" separator: "IL-23p19 + TL1A"
+- Monospecific mAbs: do NOT prefix with "Anti-" in the target field (use in mechanism field only)
+
+DRUG NAME FORMAT:
+- If a drug has an approved brand name (e.g., Skyrizi, Rinvoq, Entyvio):
+  → name field = "BrandName (INN)" e.g. "Skyrizi (Risankizumab)"
+  → The pill will show "BrandName" — do NOT use the numbered code (e.g. NOT "BI 765063")
+- If a drug has INN but no brand name: name field = "INN (NumberCode)" if code is meaningful,
+  otherwise just "INN" (e.g. "Afimkibart" not "Afimkibart (RO7790121)")
+- If only a code name exists (no INN yet): use code name (e.g. "XmAb942", "SPY002")
+
+PCD / DATE GRANULARITY:
+- Primary completion dates must include the SPECIFIC DAY when known: "April 28, 2028" NOT "Apr 2028"
+- For catalyst dates where only month/quarter is known, use "Q3 2026" or "H2 2026" — never just a year
+- Always pull PCD from the actual CT.gov filing (primary_completion_date) — include the day
+
+VALIDATED REFERENCES:
+- Every catalyst must include a source_url (CT.gov NCT link, press release, SEC filing, or company IR)
+- Every deal must include a source_url — at minimum the company press release or SEC 8-K
+- Every news item / recent development should reference its source
+- Do not fabricate URLs. If you cannot find a verified URL, omit the field rather than guess.
+
+CHINA CDE AWARENESS:
+- Many China-based programs are registered on China's Clinical Trial Registry (www.chinadrugtrials.org.cn)
+  but NOT on CT.gov. When researching Chinese biotech or programs with China CDE registry entries,
+  note this explicitly in mechanism_detail (e.g., "Phase 1 registered on China CDE registry; NCT pending")."""
 
 
 def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
@@ -767,9 +800,9 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
 
     drugs_text = json.dumps([{
         k: v for k, v in d.items()
-        if k in ("id","name","mechanism","stage","stage_detail","key_data","route",
-                 "dosing_type","drug_format","half_life_note","indication_short",
-                 "target","cls","overlap","entity_type")
+        if k in ("id","name","mechanism","mechanism_detail","drug_summary","stage","stage_detail",
+                 "key_data","route","dosing_type","drug_format","half_life_note","indication_short",
+                 "target","cls","overlap","entity_type","aliases")
     } for d in ctx["drugs"]], indent=2)
 
     trials_text = json.dumps([{
@@ -869,7 +902,8 @@ Return JSON with EXACTLY these fields:
     "stage_detail": "null or e.g. Phase 2b (ARTEMIS-CD)",
     "phase_display": "null or e.g. Phase 3",
     "half_life_note": "null or e.g. ~74 days",
-    "mechanism_detail": "null or 1-2 sentences: specific mechanism, format, any structural notes",
+    "mechanism_detail": "null or 1-2 sentences: specific mechanism, format, any structural notes (platform tech, half-life, engineering)",
+    "drug_summary": "null or 2-3 sentences: the most important facts about THIS molecule — what makes it noteworthy (platform tech, clinical differentiation, half-life, conference presentations, Phase readout highlights). This is displayed as the first thing a user reads about the drug.",
     "key_data": "null or most important recent clinical data point in one sentence",
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "confidence_level": "confirmed|supported|inferred",
@@ -877,13 +911,14 @@ Return JSON with EXACTLY these fields:
     "aliases": []
   }}],
   "catalysts": [{{
-    "catalyst_date": "e.g. Nov 2026",
+    "catalyst_date": "Include specific day when known: 'April 28, 2028'. Use 'Q3 2026' or 'H2 2026' when only quarter/half known. Never just a year.",
     "sort_date_approx": "YYYY-MM-DD best estimate",
     "label": "concise event label ≤120 chars",
     "catalyst_type": "readout|filing|approval|conference|deal|partnership",
     "significance": "high|medium|low",
     "is_key_watch": true or false,
     "confidence_level": "confirmed (company filing/PDUFA)|supported (multiple sources)|inferred (derived from trial dates or guidance)",
+    "source_url": "REQUIRED — CT.gov NCT link, press release URL, SEC filing, or company IR page. Omit field if no verified URL found (never fabricate).",
     "notes": "1 sentence context — include evidence source (e.g. 'Company-guided Q3 2026 per ECCO 2025 presentation')"
   }}],
   "deal_updates": [{{
@@ -891,7 +926,8 @@ Return JSON with EXACTLY these fields:
     "geography_rights": "null or e.g. Global ex-China",
     "economics_royalties": "null or e.g. tiered royalties 8-15%",
     "strategic_signal": "1 sentence: what this deal signals",
-    "ailux_relevance": "1 sentence: how this affects Ailux's BD strategy"
+    "ailux_relevance": "1 sentence: how this affects Ailux's BD strategy",
+    "source_url": "REQUIRED — press release URL, SEC 8-K, or company IR page. Omit if not verified (never fabricate)."
   }}]
 }}
 
@@ -899,7 +935,8 @@ RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id)
 - catalysts: only upcoming events (after {TODAY})
 - deal_updates: only match to EXISTING DEALS
-- Return ONLY valid JSON. No markdown."""
+- Return ONLY valid JSON. No markdown.
+- ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs."""
 
 
 def parse_enrichment_response(text: str) -> Optional[dict]:
@@ -970,6 +1007,9 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             "resolved":         False,
             "confidence_source": "company-disclosed",
         }
+        # RULE: Always persist source_url when provided — required for validated references
+        if cat.get("source_url"):
+            cat_rec["source_url"] = cat["source_url"]
         result = sb_upsert("catalysts", cat_rec)
         log(f"  catalyst '{cat_rec['label'][:40]}': {'✓' if result else '✗'}", indent=1)
 
@@ -977,6 +1017,7 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         headline = du.get("headline", "")
         if not headline:
             continue
+        # RULE: source_url is a validated reference field — always persist if provided
         update_fields = {k: v for k, v in du.items()
                         if k != "headline" and v is not None}
         if update_fields:
