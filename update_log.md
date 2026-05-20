@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-20 IBD Indication Group — Disease-Based Drug Display — SHA: 61e5d62 / da48112 / 74ed99f
+
+### Design change
+Previously, expanded rows in the TL1A PI table showed only drugs tagged to `drug_areas.area_id='tl1a'`. This incorrectly hid IBD-mechanism drugs that weren't TL1A-targeted (e.g. Spyre's SPY120 IL-23 and SPY130 α4β7 programs). The correct filter is **indication** (IBD), not **target** (TL1A).
+
+### What changed
+
+**Schema — `scripts/schema_migration_v8.sql` → `93da492`**
+- Added `indication_group TEXT` column to `disease_areas` table
+- Populated: `tl1a→ibd`, `tslp→respiratory`, `il4ra→atopy`, `igf1r→ted`, `fcrn→autoimmune`, `tcell→autoimmune`
+- Added `ibd` as a formal `disease_areas` entry (id='ibd', sort_order=10)
+- This column drives which area_id is used for drug display in expanded PI rows
+
+**Data — 38 IBD drugs seeded to `drug_areas.area_id='ibd'`**
+- All 36 existing `tl1a`-tagged drugs copied to `ibd`
+- Plus 6 additional IBD-mechanism drugs not previously in tl1a: `spy120` (IL-23), `spy130` (α4β7), `risankizumab` (IL-23/Skyrizi), `upadacitinib` (JAK1/Rinvoq), `mirikizumab` (IL-23/Omvoh), `vedolizumab` (α4β7/Entyvio)
+
+**Frontend — `index.html` → `61e5d62`**
+- `_loadIndicationGroup()` — new async method on `tl1aPI.init()`. Reads `disease_areas.indication_group` for `tl1a` from Supabase, stores as `this._drugDisplayArea`. Defaults to `'tl1a'` if fetch fails.
+- `_loadDynamicDetail` updated — drug fetch now uses `this._drugDisplayArea` ('ibd') as the area filter instead of 'tl1a'. TL1A-targeted drugs sorted first within the IBD set; other IBD drugs (IL-23, JAK, integrin) follow.
+- This is data-driven: if `indication_group` changes in Supabase, the frontend adapts without a code deploy.
+
+**Pipeline — `scripts/company_enrichment.py` → `da48112`**
+- Step 1 now reads `indication_group` for the current area at runtime
+- Newly discovered drugs are tagged to BOTH `area_id` (e.g. `tl1a`) AND `indication_group` (e.g. `ibd`) in `drug_areas`
+- `seed_tl1a_companies.py` → `74ed99f` — also seeds `drug_areas` for `ibd` when seeding each drug
+
+---
 ## 2026-05-20 Fix: Show All Company Drugs in Expanded Row — SHA: 3de2ce6
 
 ### Updated: `index.html` → `3de2ce6`
