@@ -3785,7 +3785,7 @@ function loadMoleculeTab(tabId) {
         <button class="pi-pill" data-val="Same-Space" onclick="piPillClick('overlap','Same-Space',this)" title="Same disease area — shapes SOC, endpoints, market expectations, pricing">Same-Space</button>
         <button class="pi-pill" data-val="Watch"      onclick="piPillClick('overlap','Watch',this)"      title="Early-stage, speculative, or strategically interesting — monitor for future shifts">Watch</button>
       </div>
-      <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>
+      <span id="pi-tl1a-count" style="font-size:11px;color:#64748b;padding-left:6px;white-space:nowrap;flex-shrink:0"></span>
     </div>
   </div>
   <div class="pi-table-wrap" id="pi-tl1a-wrap">
@@ -7850,7 +7850,7 @@ function _makeAreaPI(tabId, areaIds) {
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','overlap','',this)">All</button>
           ${overlaps.map(o=>pillBtn('overlap',o)).join('')}
         </div>
-        <span id="${tid}-area-pi-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>`;
+        <span id="${tid}-area-pi-count" style="font-size:11px;color:#64748b;padding-left:6px;white-space:nowrap;flex-shrink:0"></span>`;
     },
 
     _clsPill(c)  {
