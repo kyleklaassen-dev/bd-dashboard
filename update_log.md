@@ -1,5 +1,101 @@
 
 ---
+## 2026-05-20 Data quality pass: Xencor fixes + notation standards — SHA: pending
+
+### What changed
+Multi-layer data quality fixes addressing target notation precision, display priority bugs, enrichment standards, and seed script correctness.
+
+**Supabase (patched in previous session):**
+- XmAb412: target corrected to "TL1A × IL-23p19" (was "Anti-TL1A × IL-23"); modality="bispecific"; mechanism_detail added with XTEND-Fc + DDW 2026 preclinical data + FIH Q3 2026 timeline
+- XmAb942: name corrected to "XmAb942" (Vudalimab alias removed — Vudalimab=XmAb20717 is a separate PD-1×CTLA-4 bispecific for oncology, completely unrelated); modality corrected to "mAb"; mechanism_detail added with XTEND-Fc ~74-day half-life, XENITH-UC trial details
+
+**index.html display fixes:**
+- `_makeDynamicDrugBtn` line ~9120: target priority fixed to `d.target || d.mechanism` (was `d.mechanism || d.target`). RULE: target field always shows clean notation (e.g. "TL1A × IL-23p19"); mechanism is for detail panel only.
+- Mechanism & Context panel: now shows `d.mechanism_detail || d.mechanism` (was just `d.mechanism`). Richer clinical narrative now surfaces in popup.
+- Drug popup: `drug_summary` field now rendered as highlighted summary block below indication — first thing user reads about the molecule.
+- Brand name display comment added: if `name` = "BrandName (INN)", pill shows brand name; numbered codes suppressed.
+
+**seed_tl1a_companies.py fixes:**
+- XmAb412: target="TL1A × IL-23p19", stageKey="Pre-IND", mechanismDetail updated with XTEND-Fc + FIH timeline
+- XmAb942: drug name = "XmAb942" (Vudalimab removed), modality = "mAb", mechanismDetail updated with XTEND-Fc half-life details and explicit note that Vudalimab is unrelated
+- spyre-spy003: target corrected to "IL-23p19" (was "IL-23")
+- spyre-spy230: target corrected to "IL-23p19 + TL1A" (was "IL-23 + TL1A")
+- spyre-spy130: target corrected to "α4β7 + IL-23p19" (was "α4β7 + IL-23")
+- abbvie-skyrizi, lilly-omvoh: target corrected to "IL-23p19" (was "IL-23 (p19)")
+- Mechanism auto-generation bug fixed: was blindly prepending "Anti-" to all targets. Now modality-aware: bispecific → "{target} bispecific"; combination → "{target} combination"; mAb → "Anti-{target} mAb"
+
+**company_enrichment.py — DATA QUALITY STANDARDS added to ENRICHMENT_SYSTEM:**
+- TARGET NOTATION: Always use "IL-23p19" not "IL-23"; "×" for bispecifics; "+" for rational combos; no "Anti-" prefix in target field
+- DRUG NAME FORMAT: Brand name first ("Skyrizi (Risankizumab)"); suppress numbered codes; pill auto-shows brand name
+- PCD GRANULARITY: Must include specific day when known ("April 28, 2028" not "Apr 2028")
+- VALIDATED REFERENCES: Every catalyst and deal must include source_url (CT.gov, press release, SEC 8-K); fabrication prohibited
+- CHINA CDE AWARENESS: Programs registered on China CDE (chinadrugtrials.org.cn) but not CT.gov must be noted explicitly
+- drug_summary field added to drug_updates schema: 2-3 sentence highlight of the most important molecule-level facts
+- source_url added to catalysts and deal_updates schema; persisted to Supabase on write
+- drug context sent to Claude now includes mechanism_detail, drug_summary, and aliases
+
+---
+## 2026-05-20 Spyre 7-drug pipeline correction — SHA: c0626b97
+
+### What changed
+Full correction of Spyre Therapeutics drug data across all layers (Supabase, seed script, index.html).
+
+**CRITICAL CORRECTION — Spyre has NO bispecifics:**
+- "+" in target = rational combination (two separate mAbs co-administered): SPY120, SPY130, SPY230
+- "×" in target = bispecific (single molecule, two targets) — Spyre does NOT use this
+- Previous errors: SPY002 labeled as "TL1A × IL-23 bispecific" (WRONG — it's anti-TL1A monospecific mAb); SPY230 labeled as "TL1A × FcRn bispecific" (WRONG — it's IL-23 + TL1A combination)
+
+**Supabase — all 7 Spyre drugs correctly seeded:**
+- spy001: anti-α4β7 mAb, Phase 2, Adjacent overlap, sort_order=6
+- spy002: anti-TL1A mAb, Phase 2, Direct, sort_order=1
+- spy003: anti-IL-23 mAb, Phase 2, Direct, sort_order=2
+- spy072: anti-TL1A mAb (RA/PsA/axSpA rheumatic), Phase 2, Adjacent, sort_order=5
+- spy120: α4β7 + TL1A combination (SPY001+SPY002), Phase 2, Direct, is_combo=true, sort_order=3
+- spy130: α4β7 + IL-23 combination (SPY001+SPY003), Phase 2, Direct, is_combo=true, sort_order=4
+- spy230: IL-23 + TL1A combination (SPY003+SPY002), Phase 2, Direct, is_combo=true, sort_order=5
+- All 7 drugs tagged in drug_areas for both area_id='tl1a' AND area_id='ibd' (14 tags total)
+
+**seed_tl1a_companies.py — Spyre entries corrected:**
+- Replaced wrong `spyre-mono` (SPY002 as "TL1A × IL-23 bispecific") and removed old `spyre-230` entry
+- Now has 7 correct entries: spyre-spy002/003/230/120/130 (Direct) + spyre-spy001/072 (Adjacent)
+- Each entry has correct modality ('mAb' or 'combination'), route ('SC'), and mechanismDetail
+
+**index.html TL1A_PROGRAMS — Spyre entries corrected:**
+- Replaced 2 wrong entries with 7 correct entries grouped under groupId='spyre'
+- Primary entry: spyre-spy230 (IL-23 + TL1A combination) — most directly relevant to Ailux TL1A×IL-23p19 bispecific
+- Outer row now shows "SPY230 +6 more" with correct target display
+- All SPYRE_PIPELINE drug button hover cards already had correct data (unchanged)
+- Expanded view loads from Supabase → shows all 7 drugs correctly
+
+---
+## 2026-05-20 Schema v9 + Drug Characterisation + Truth State — SHA: scripts pushed
+
+### What changed
+Major schema and pipeline update to support competitive characterisation against Ailux's TL1A×IL-23p19 bispecific.
+
+**schema_migration_v9.sql — applied to Supabase**
+- Added `modality`, `route`, `drug_format`, `dosing_type`, `dosing_schedule`, `half_life_note`, `mechanism_detail`, `stage_detail`, `key_data`, `is_combo`, `aliases` to `drugs` table
+- Added `confidence_level` TEXT (default 'inferred') and `data_source` TEXT (default 'claude_inferred') to `drugs` — Truth State framework
+- Added `expected_evidence_stage` INTEGER to `drugs` — calibrates completeness scoring so preclinical companies aren't penalised for missing trial data; back-filled from existing stage values (Preclinical=1, Phase 1=2, Phase 2=3, Phase 3=4, Approved=5)
+- Added `confidence_level` to `catalysts`; back-filled CT.gov-sourced catalysts to 'confirmed'
+- All columns added with IF NOT EXISTS guards (migration is re-runnable)
+
+**seed_tl1a_companies.py — all 18 TL1A programs re-seeded**
+- All entries now carry `modality`, `route`, `mechanismDetail`, `confidence_level='confirmed'`, `data_source='manual'`, `expected_evidence_stage`
+- Bispecifics (SPY002, XmAb412, SPY230) sorted first — highest overlap with Ailux asset
+- Phase 3 monospecifics (Tulisokibart, Afimkibart, Duvakitug) next; oral small molecule (Upadacitinib) correctly typed
+
+**company_enrichment.py — enrichment prompt updated**
+- Step 5 `drug_updates` schema now requests: `modality`, `mechanism_detail`, `key_data`, `stage_detail`, `confidence_level`, `data_source` per drug
+- Catalyst schema now requests `confidence_level` per catalyst event
+- Step 1 discovery prompt now requests `modality` and `route` for newly found entities
+- New drugs seeded in Step 1 now write `expected_evidence_stage` computed from stage field
+
+**Pipeline triggered** — GitHub Actions dispatch fired for TL1A area; new fields will be enriched on the next pipeline run.
+
+**Architecture doc updated to v2.1** (`BD_Platform_Architecture_v2.1.docx`) — minor corrections: Stage Cap (renamed from Floor), Phase A/B single-call note, Stage 0–5 clarification, vs_ailux gap description improved.
+
+---
 ## 2026-05-20 IBD-Based Company Eligibility + Tulisokibart Fix — SHA: 43cc2c3 / cbcc78f / a898729
 
 ### Design change
