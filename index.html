@@ -1284,6 +1284,16 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-results-btn:hover{background:#ede9fe}
 .pi-tr-results-body{display:none;margin-top:7px;padding:9px 10px;background:white;border:1px solid #e0d9ff;border-radius:4px;font-size:11.5px;line-height:1.7;color:#374151}
 .pi-tr-results-body.open{display:block}
+/* Approved drug profile */
+.pi-da-approved{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:7px;padding:12px 14px;margin-bottom:10px}
+.pi-da-approved-hd{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.pi-da-approved-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-bottom:10px}
+.pi-da-appr-field{display:flex;flex-direction:column;gap:2px}
+.pi-da-appr-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#4ade80;color:#166534;opacity:0.7}
+.pi-da-appr-val{font-size:12px;font-weight:800;color:#14532d}
+.pi-da-appr-section{margin-top:8px;border-top:1px solid #bbf7d0;padding-top:7px}
+.pi-da-appr-section .pi-da-appr-lbl{display:block;margin-bottom:3px}
+.pi-da-appr-body{font-size:11.5px;color:#166534;line-height:1.6}
 /* Hover underline on all links inside drug popups + expanded detail rows */
 .spyre-drug-popup a, .pi-detail-inner a { text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s,color 0.15s; }
 .spyre-drug-popup a:hover, .pi-detail-inner a:hover { border-bottom-color:currentColor; }
@@ -9581,16 +9591,17 @@ const tl1aPI = {
      <div class="pi-tr-results-btn" onclick="piToggleTrialResults(this)">📊 Study Results ▾</div>
      <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
 
+    // Study name hidden by default — only shown in expanded detail on click
     return `<div class="pi-tr-item">
      <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       ${nctLink}
-      <span class="pi-tr-name" title="${name}">${name||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-phase-cell">${phase}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       <span class="pi-tr-chev">▼</span>
      </div>
      <div class="pi-tr-detail">
+      ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
       <div class="pi-tr-grid">${detailFields||'<span style="color:#94a3b8;font-size:11px">Detail not yet enriched</span>'}</div>
       ${resultsSection}
      </div>
@@ -9602,6 +9613,28 @@ const tl1aPI = {
     ? `<div class="pi-tr-hd-label">Clinical Trials (${trialCount})</div><div>${trialRowsHTML}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
+   // Approved drug profile section — shown when stage is Approved
+   const isApproved = /approv/i.test(drugPhase);
+   const approvedSection = isApproved ? (() => {
+    const fields = [
+     d.approval_date    ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Approval Date</span><span class="pi-da-appr-val">${d.approval_date}</span></div>` : '',
+     d.annual_revenue   ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
+     d.patient_population ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Patients Treated</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
+    ].filter(Boolean).join('');
+    const extraSections = [
+     d.final_endpoints ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Pivotal Endpoints</span><div class="pi-da-appr-body">${d.final_endpoints}</div></div>` : '',
+     d.differentiation_thesis ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Differentiation</span><div class="pi-da-appr-body">${d.differentiation_thesis}</div></div>` : '',
+     d.drug_summary ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Summary</span><div class="pi-da-appr-body">${d.drug_summary}</div></div>` : '',
+     d.mechanism_detail ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Mechanism &amp; Context</span><div class="pi-da-appr-body">${d.mechanism_detail}</div></div>` : '',
+    ].filter(Boolean).join('');
+    if (!fields && !extraSections) return '';
+    return `<div class="pi-da-approved">
+     <div class="pi-da-approved-hd">✓ Approved Drug Profile</div>
+     ${fields?`<div class="pi-da-approved-grid">${fields}</div>`:''}
+     ${extraSections}
+    </div>`;
+   })() : '';
+
    return `<div class="pi-da-row">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
@@ -9612,7 +9645,8 @@ const tl1aPI = {
      ${overlapTag}
     </div>
     <div class="pi-da-body">
-     ${d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
+     ${approvedSection}
+     ${!isApproved && d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
      ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
      ${trialsSection}
     </div>
