@@ -1,5 +1,12 @@
 
 ---
+## 2026-05-20 Layout Bug Fixes — SHA: d9fc75b
+
+### Updated: `index.html` → `d9fc75b`
+- **Fix: molecule dropdown z-index** — Raised `.tab-bar` z-index from 190 → 400. The tab-bar `position: sticky` was creating a stacking context at z-index 190, causing the molecule dropdown (z-index 600 within that context) to render below the fixed pill columns (z-index 300). Now dropdown correctly paints on top.
+- **Fix: pill column overlap at narrow viewports** — Added `@media (max-width: 1440px) { .tl1a-pills-col { display: none !important; } }`. Pills are 148px wide + 14px gap = 162px each side; content is max 1100px, requiring ~1424px+ viewport for no overlap. Below this threshold pills now hide cleanly instead of bleeding over the PI table.
+
+---
 ## 2026-05-20 BD Intelligence Command Center — SHA: 3d02814 + 7e615e0
 
 ### New File: `intelligence.html` → `3d02814`
