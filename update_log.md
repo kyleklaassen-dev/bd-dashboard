@@ -1,6 +1,44 @@
 
 ---
-## 2026-05-20 Trial display redesign + Spyre route fix — index.html: pending
+## 2026-05-20 Related News panel + deal discovery broadening — index.html: pending
+
+### What changed
+
+**Root cause of Mirador Series B missing:** Step 6 keyword filter excluded financing/press-release events ("series b", "raises", "financing"). Fixed by expanding `deal_kws` to ~30 keywords covering financing rounds, regulatory events, clinical milestones, and PR markers.
+
+**"Deal History" → "Related News" (all 3 renderer locations):**
+- `_genericDetailHTML`: "Deal History" → "📰 Related News"
+- `_detailHTML` (static fallback): same rename
+- Spyre static renderer: same rename
+- All "Upcoming Catalysts" sections now also use "📅 Upcoming Catalysts" consistently
+
+**Frontend — scrollable 5+ item cap (both panels):**
+- Catalysts: `max-height:210px; overflow-y:auto` when >5 items; count badge shows total
+- Related News: same scroll behavior; count badge ("N items · scroll for more")
+
+**Frontend — intel table merged into Related News:**
+- `_loadDynamicDetail` now also queries `intel_companies` junction + `intel` table for company news
+- Merges deals + intel items, deduplicates by headline prefix, sorts newest first
+- Merged set passed to `_genericDetailHTML` as `sbData.deals`
+
+**deal_type badge display added (Related News panel):**
+- 💰 Funding, 📋 License, 🤝 Partnership, 🏢 Acquisition, 📰 News
+- Type inferred from headline keywords in Step 6 (no longer always "license")
+- Dollar amounts shown inline when `upfront_usd_m` is set
+
+**company_enrichment.py Step 6 — broadened deal discovery:**
+- `deal_kws` expanded: added "series a/b/c/d", "financing", "raises", "ipo", "offering", "approval", "clearance", "pdufa", "readout", "announces", "closes" etc.
+- `deal_type` now inferred from headline: financing → "financing", merger → "acquisition", partner → "partnership", clinical → "clinical", approval → "regulatory", default → "news"
+- RULE documented in code: "Related News = any notable company event, not just formal BD deals"
+
+**Mirador $250M Series B seeded manually:**
+- company_id='mirador', deal_type='financing', deal_date='2026-01-12', $250M
+- Investors: T. Rowe Price, Adage Capital, Fidelity + existing
+- Detail: 10+ clinical readouts expected by YE 2027; CD, UC, RA, IPF programs
+- source_url: miradortx.com press releases
+
+---
+## 2026-05-20 Trial display redesign + Spyre route fix — index.html: 7a1710d0 | seed: b847e930
 
 ### What changed
 
