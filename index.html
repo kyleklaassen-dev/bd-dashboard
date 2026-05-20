@@ -1177,13 +1177,14 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 
 /* ── PROGRAM INTELLIGENCE TABLE ── */
 .pi-card { background:white;border-radius:10px;border:1px solid #e2e8f0;margin:0 auto 20px;overflow:hidden;max-width:1100px; }
-.pi-hd { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-wrap:wrap;gap:8px; }
+.pi-hd { display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;gap:8px;overflow:hidden; }
 .pi-title { font-size:12px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.4px; }
-.pi-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
-.pi-pill-group { display:flex;gap:3px;align-items:center; }
-.pi-pill-lbl { font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:3px;white-space:nowrap; }
-.pi-pill-label { font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:3px;white-space:nowrap; }
-.pi-pill { padding:3px 10px;border-radius:10px;border:1.5px solid #dde3ea;background:white;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;line-height:1.4; }
+.pi-filters { display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none; }
+.pi-filters::-webkit-scrollbar { display:none; }
+.pi-pill-group { display:flex;gap:2px;align-items:center;flex-shrink:0; }
+.pi-pill-lbl { font-size:8.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:2px;white-space:nowrap; }
+.pi-pill-label { font-size:8.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-right:2px;white-space:nowrap; }
+.pi-pill { padding:2px 8px;border-radius:10px;border:1.5px solid #dde3ea;background:white;color:#64748b;font-size:10.5px;font-weight:600;cursor:pointer;transition:all 0.12s;line-height:1.4;white-space:nowrap;flex-shrink:0; }
 /* Class group — blue */
 .pi-pill-group[data-filter="cls"] .pi-pill:hover:not(.active) { border-color:#2563eb;color:#2563eb; }
 .pi-pill-group[data-filter="cls"] .pi-pill.active { background:#2563eb;border-color:#2563eb;color:white; }
