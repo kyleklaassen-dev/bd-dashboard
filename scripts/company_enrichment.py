@@ -541,11 +541,103 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# STEP 5 — COMPANY ENRICHMENT (Claude Sonnet)
+# STEP 5 — COMPANY ENRICHMENT (Claude Sonnet + web_search)
 #
-# Generates all narrative + structured fields via Claude.
-# Writes to: company_profiles, drugs, catalysts, deals
+# Phase A: Web intelligence gathering — live search for clinical data, financing,
+#           deals, catalyst timing (web_search_20250305 tool).
+# Phase B: Claude synthesis — structured enrichment using Supabase context +
+#           web intelligence → company_profiles, drugs, catalysts, deals.
 # ══════════════════════════════════════════════════════════════════════════
+
+AREA_LABELS_MAP = {
+    "tl1a": "TL1A (anti-TL1A antibodies, IBD)",
+    "tslp": "TSLP (anti-TSLP antibodies, asthma/atopic disease)",
+    "il4ra": "IL-4Rα (anti-IL-4Rα, atopic dermatitis/asthma)",
+    "igf1r": "IGF1R (anti-IGF1R, oncology)",
+    "fcrn": "FcRn (anti-FcRn, autoimmune/IgG-mediated disease)",
+    "tcell": "T-cell engagers (oncology)",
+}
+
+WEB_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
+Use web_search to gather current, specific facts about the target company.
+Extract actual numbers, dates, partner names, dollar amounts — not general descriptions.
+Prioritize press releases, SEC filings, ClinicalTrials.gov, conference abstracts, and IR pages.
+Summarize findings in dense factual paragraphs. Do not fabricate — if you can't find something, say so."""
+
+
+def gather_web_intelligence(company_name: str, area_id: str,
+                             drugs: list, ticker: str = "") -> str:
+    """
+    Phase A of Step 5: use Claude with web_search to gather live intelligence.
+
+    Runs 4 targeted searches:
+      1. Clinical data — trial results, efficacy endpoints, conference readouts
+      2. Financing — funding rounds, investors, cash runway, IPO/SPAC details
+      3. BD activity — partnerships, licensing deals, M&A, collaborations
+      4. Catalyst timeline — company-guided data windows, PDUFA dates, filings
+
+    Returns a structured text block to inject into the Phase B enrichment prompt.
+    Falls back to empty string on any failure (Phase B continues with Supabase context only).
+    """
+    area_label = AREA_LABELS_MAP.get(area_id, area_id)
+    drug_names = ", ".join(d.get("name", "") for d in drugs[:4] if d.get("name"))
+    ticker_str = f" (Ticker: {ticker})" if ticker and ticker.upper() not in ("PRIVATE", "N/A", "") else ""
+    year = datetime.datetime.utcnow().year
+
+    prompt = f"""Research {company_name}{ticker_str} for a competitive intelligence database.
+Area of focus: {area_label}
+Key programs to research: {drug_names or 'see company pipeline'}
+
+Use web_search to find and extract SPECIFIC facts on all four topics:
+
+TOPIC 1 — CLINICAL DATA
+Search for the most recent trial results, efficacy endpoints, safety data, and conference presentations.
+What endpoints did they hit? What were the response rates, p-values, or biomarker results?
+Which conferences (ECCO, DDW, ACR, ASCO, NEJM, Lancet, NEJM Evidence)?
+Any Phase 3 readouts, POC data, dose-selection results in the last 24 months?
+
+TOPIC 2 — FINANCING & COMPANY STATUS
+All funding rounds with amounts, dates, and lead investors.
+IPO, SPAC, or public listing details if applicable.
+Current cash position or runway guidance if disclosed.
+Key shareholders or strategic investors.
+
+TOPIC 3 — BD ACTIVITY
+Any licensing deals, partnerships, co-development agreements, M&A.
+Deal terms where disclosed: upfront, milestones, royalties, geography.
+Any stated partnering strategy or BD timeline guidance from management.
+
+TOPIC 4 — CATALYST TIMELINE
+Company-guided data readout windows for each program.
+Any upcoming PDUFA dates, regulatory filings, or NDA/BLA submissions.
+Expected enrollment completion or primary completion dates from company guidance (not just CT.gov).
+
+Search year range: {year - 1}–{year}.
+Be specific. Extract actual numbers and dates. Indicate uncertainty where present."""
+
+    try:
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
+            system=WEB_SEARCH_SYSTEM,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        # Extract all text content blocks (tool_use and tool_result blocks are intermediate)
+        parts = []
+        for block in resp.content:
+            if hasattr(block, "text") and block.text:
+                parts.append(block.text.strip())
+        result = "\n\n".join(parts)
+        tokens_in  = resp.usage.input_tokens
+        tokens_out = resp.usage.output_tokens
+        cost = (tokens_in / 1e6 * 3.0) + (tokens_out / 1e6 * 15.0)
+        log(f"  Web search: {tokens_in}in / {tokens_out}out (${cost:.4f})", indent=2)
+        return result if result else ""
+    except Exception as e:
+        log(f"  Web search failed (non-fatal): {e}", indent=2)
+        return ""
+
 
 ENRICHMENT_SYSTEM = """You are a senior biopharma business development analyst for Ailux Biotherapeutics,
 a biotech developing a TL1A×IL-23p19 bispecific antibody for IBD. You synthesize clinical, competitive,
@@ -563,7 +655,8 @@ OUTPUT RULES:
 - Return ONLY valid JSON — no markdown fences, no explanation."""
 
 
-def build_step5_prompt(company_id: str, area_id: str, ctx: dict) -> str:
+def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
+                       web_intel: str = "") -> str:
     co      = ctx["company"]
     profile = ctx["profile"]
     is_public = (co.get("ticker") or "").upper() not in ("PRIVATE", "", "N/A")
@@ -614,6 +707,19 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict) -> str:
         '"key_investors": ["name1", "name2"],'
     )
 
+    # Build web intelligence section separately to avoid f-string nesting issues
+    if web_intel:
+        web_intel_section = (
+            "\nWEB INTELLIGENCE (live research - highest priority source):\n"
+            + web_intel
+            + "\n\nINSTRUCTION: Use WEB INTELLIGENCE as your primary source for clinical endpoints, "
+            "financing amounts, deal terms, and catalyst timing. It contains current data retrieved "
+            "directly from press releases, SEC filings, and company IR pages. Cross-reference with "
+            "TRIALS/DEALS above; prefer web data where it is more specific or more recent.\n"
+        )
+    else:
+        web_intel_section = ""
+
     return f"""Enrich company: {co.get('name', company_id)} (ID: {company_id})
 Area: {area_id}  |  Public: {is_public}  |  Today: {TODAY}
 
@@ -634,7 +740,7 @@ EXISTING DEALS:
 
 RECENT INTEL:
 {recent_intel}
-
+{web_intel_section}
 Return JSON with EXACTLY these fields:
 {{
   "company_profile": {{
@@ -903,7 +1009,24 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
 
     # STEP 5: Claude narrative enrichment
     log("STEP 5 — Claude enrichment...", indent=1)
-    prompt = build_step5_prompt(company_id, area_id, ctx)
+
+    # Phase A: Web intelligence gathering (live search, non-fatal)
+    co = ctx["company"]
+    log("  Phase A — Web intelligence search...", indent=1)
+    web_intel = gather_web_intelligence(
+        company_name=co.get("name", company_id),
+        area_id=area_id,
+        drugs=ctx["drugs"],
+        ticker=co.get("ticker", ""),
+    )
+    if web_intel:
+        log(f"  Web intelligence gathered ({len(web_intel)} chars)", indent=1)
+    else:
+        log("  No web intelligence (continuing with Supabase context only)", indent=1)
+
+    # Phase B: Claude synthesis with web context injected
+    log("  Phase B — Claude synthesis...", indent=1)
+    prompt = build_step5_prompt(company_id, area_id, ctx, web_intel=web_intel)
 
     text = None
     for attempt in range(1, 4):
