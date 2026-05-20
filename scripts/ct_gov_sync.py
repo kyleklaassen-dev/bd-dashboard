@@ -422,11 +422,17 @@ def parse_ct_study(study: dict, drug_id: str, entity_id: str = None,
     # ── Source URL ───────────────────────────────────────────────────────
     source_url = f"https://clinicaltrials.gov/study/{nct_id}"
 
+    # Study acronym: the branded program name companies give their trials
+    # e.g. "SKYLINE-UC" (Spyre), "U-ACHIEVE" (AbbVie), "PURSUIT" (J&J)
+    # Lives in identificationModule.acronym on CT.gov
+    study_acronym = id_mod.get("acronym") or None
+
     return {
         "id":                    nct_id,
         "drug_id":               drug_id,
         "entity_id":             entity_id,
         "trial_name":            id_mod.get("briefTitle", "")[:300],
+        "study_acronym":         study_acronym,
         "phase":                 phase,
         "status":                status,
         "indication":            indication[:200] if indication else None,
