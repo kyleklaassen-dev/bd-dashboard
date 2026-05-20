@@ -9038,19 +9038,24 @@ const tl1aPI = {
     deals = d2 || [];
    }
 
-   // Fetch drugs for this company in this area
+   // Fetch ALL drugs for this company (not filtered by area).
+   // Area-tagged drugs appear first so TL1A programs are at the top;
+   // other programs (e.g. Spyre's SPY120/SPY130 IL-23/integrin drugs) follow.
    const { data: drugAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', AREA);
-   const areaIds = (drugAreaRows||[]).map(r => r.drug_id);
-   let drugs = [];
-   if (areaIds.length) {
-    const { data: dd } = await _sb.from('drugs').select('*')
-     .eq('company_id', id).in('id', areaIds);
-    drugs = dd || [];
-   }
+   const areaIds = new Set((drugAreaRows||[]).map(r => r.drug_id));
+   const { data: allCoDrugs } = await _sb.from('drugs').select('*')
+    .eq('company_id', id).order('sort_order', { ascending: true }).limit(20);
+   // Sort: area-tagged drugs first, then others
+   const drugs = (allCoDrugs||[]).sort((a, b) => {
+    const aIn = areaIds.has(a.id) ? 0 : 1;
+    const bIn = areaIds.has(b.id) ? 0 : 1;
+    if (aIn !== bIn) return aIn - bIn;
+    return (a.sort_order||99) - (b.sort_order||99);
+   });
 
    // Fetch trials for those drugs
    let trials = [];
-   for (const d of drugs.slice(0, 5)) {
+   for (const d of drugs.slice(0, 8)) {
     const { data: tt } = await _sb.from('trials').select('*').eq('drug_id', d.id);
     if (tt) trials.push(...tt);
    }
