@@ -1,5 +1,12 @@
 
 ---
+## 2026-05-20 Fix: Show All Company Drugs in Expanded Row — SHA: 3de2ce6
+
+### Updated: `index.html` → `3de2ce6`
+- **Fix: `_loadDynamicDetail` drug filter was too narrow** — previously filtered drugs to only those tagged in `drug_areas` for the current area (`tl1a`). This caused Spyre's `spy120` (IL-23) and `spy130` (α4β7) to be invisible in the expanded row even though they exist in Supabase, because they weren't in `drug_areas` for `tl1a`.
+- **New behavior: fetch all drugs for the company, area-tagged first.** Area-matched drugs appear at the top (TL1A programs for a TL1A-area entry), then the rest of the company's pipeline follows. Drug fetch limit raised from 5 to 8 for trial hydration. Area filtering correctly belongs at the company-level table row (which companies appear), not at the drug level inside a company's expanded panel.
+
+---
 ## 2026-05-20 Dynamic PI Table + Supabase Seeding Architecture — SHA: 4106c42 / 1988da9 / c247b42
 
 ### Updated: `index.html` → `4106c42`
