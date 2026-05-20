@@ -4,6 +4,9 @@ identity_health_check.py — Identity Resolution Health Report
 Runs a quick status check on the canonical drug identity layer.
 Print-friendly output; safe to run any time (read-only).
 
+Uses SUPABASE_URL + SUPABASE_SERVICE_KEY — same credentials as the enrichment
+pipeline; no separate PAT required.
+
 USAGE:
     python scripts/identity_health_check.py
     python scripts/identity_health_check.py --fail-on-orphans
@@ -11,29 +14,52 @@ USAGE:
     python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
     # Or with explicit credentials:
-    SUPABASE_URL=... SUPABASE_PAT=... python scripts/identity_health_check.py
+    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python scripts/identity_health_check.py
 """
 
 import argparse
 import os
 import sys
-import json
-import requests
+from collections import Counter
 from datetime import datetime, timezone
 
-
-def run_sql(pat: str, query: str) -> list[dict]:
-    resp = requests.post(
-        "https://api.supabase.com/v1/projects/tghntyofptvfhmtchwcv/database/query",
-        headers={"Authorization": f"Bearer {pat}", "Content-Type": "application/json"},
-        json={"query": query},
-    )
-    if resp.status_code not in (200, 201):
-        raise RuntimeError(f"Query failed ({resp.status_code}): {resp.text[:200]}")
-    return resp.json()
+from supabase import create_client
 
 
-def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending: bool = False) -> int:
+# ── Credentials ───────────────────────────────────────────────────────────────
+
+def get_supabase():
+    url = os.environ.get("SUPABASE_URL", "")
+    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
+    if not url or not key:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        workspace  = os.path.dirname(script_dir)
+        if not url:
+            try:
+                with open(os.path.join(workspace, ".supabase_url")) as f:
+                    url = f.read().strip()
+            except FileNotFoundError:
+                pass
+        if not key:
+            try:
+                with open(os.path.join(workspace, ".supabase_service_key")) as f:
+                    key = f.read().strip()
+            except FileNotFoundError:
+                pass
+
+    if not url or not key:
+        raise SystemExit(
+            "ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set "
+            "(env vars or .supabase_url / .supabase_service_key files)."
+        )
+
+    return create_client(url, key)
+
+
+# ── Health check ──────────────────────────────────────────────────────────────
+
+def health_check(sb, fail_on_orphans: bool = False, fail_on_fuzzy_pending: bool = False) -> int:
     """Run the health check. Returns exit code: 0 = healthy, 1 = failure condition triggered."""
     print("═" * 58)
     print("  Identity Resolution Health Check")
@@ -41,130 +67,97 @@ def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending:
     print("═" * 58)
 
     # ── 1. Drug identity coverage ─────────────────────────────
-    rows = run_sql(pat, """
-        SELECT
-            COUNT(*)                                          AS total_drugs,
-            COUNT(canonical_drug_id)                          AS resolved,
-            COUNT(*) - COUNT(canonical_drug_id)               AS unresolved,
-            ROUND(
-                COUNT(canonical_drug_id)::numeric / NULLIF(COUNT(*),0) * 100, 1
-            )                                                 AS pct_resolved
-        FROM drugs
-    """)
-    r = rows[0]
-    resolved_pct = float(r["pct_resolved"] or 0)
-    unresolved_count = int(r["unresolved"] or 0)  # saved here; r is overwritten by later queries
+    drug_rows = sb.table("drugs").select(
+        "canonical_drug_id, identity_confidence, identity_method"
+    ).execute().data
+
+    total_drugs     = len(drug_rows)
+    resolved_rows   = [r for r in drug_rows if r.get("canonical_drug_id")]
+    resolved        = len(resolved_rows)
+    unresolved_count = total_drugs - resolved
+    resolved_pct    = round(resolved / total_drugs * 100, 1) if total_drugs > 0 else 0.0
+
     status = "✅" if resolved_pct == 100 else ("⚠️ " if resolved_pct >= 80 else "❌")
     print(f"\n  Drug Identity Coverage {status}")
-    print(f"    Total drugs      : {r['total_drugs']}")
-    print(f"    Resolved         : {r['resolved']}")
-    print(f"    Unresolved       : {r['unresolved']}")
+    print(f"    Total drugs      : {total_drugs}")
+    print(f"    Resolved         : {resolved}")
+    print(f"    Unresolved       : {unresolved_count}")
     print(f"    Coverage         : {resolved_pct}%  (target: 100%)")
 
     # ── 2. Identity confidence distribution ──────────────────
-    rows = run_sql(pat, """
-        SELECT
-            COUNT(*) FILTER (WHERE identity_confidence >= 85)  AS high_confidence,
-            COUNT(*) FILTER (WHERE identity_confidence BETWEEN 70 AND 84) AS medium,
-            COUNT(*) FILTER (WHERE identity_confidence < 70)   AS low_confidence,
-            COUNT(*) FILTER (WHERE canonical_drug_id IS NOT NULL) AS total_resolved
-        FROM drugs
-    """)
-    r = rows[0]
-    total_res = int(r["total_resolved"] or 0)
-    high = int(r["high_confidence"] or 0)
-    high_pct = round(high / total_res * 100, 1) if total_res > 0 else 0
+    high   = sum(1 for r in resolved_rows if (r.get("identity_confidence") or 0) >= 85)
+    medium = sum(1 for r in resolved_rows if 70 <= (r.get("identity_confidence") or 0) < 85)
+    low    = sum(1 for r in resolved_rows if (r.get("identity_confidence") or 0) < 70)
+    high_pct = round(high / resolved * 100, 1) if resolved > 0 else 0.0
+
     conf_status = "✅" if high_pct >= 95 else ("⚠️ " if high_pct >= 80 else "❌")
     print(f"\n  Identity Confidence {conf_status}")
     print(f"    High (≥85)       : {high}  ({high_pct}%  — target: 95%)")
-    print(f"    Medium (70–84)   : {r['medium']}")
-    print(f"    Low (<70)        : {r['low_confidence']}")
+    print(f"    Medium (70–84)   : {medium}")
+    print(f"    Low (<70)        : {low}")
 
     # ── 3. Resolution method breakdown ───────────────────────
-    rows = run_sql(pat, """
-        SELECT identity_method, COUNT(*) AS count
-        FROM drugs
-        WHERE canonical_drug_id IS NOT NULL
-        GROUP BY identity_method
-        ORDER BY count DESC
-    """)
-    if rows:
+    method_counts = Counter(r.get("identity_method") or "unknown" for r in resolved_rows)
+    if method_counts:
         print(f"\n  Resolution Methods")
-        for row in rows:
-            method = row["identity_method"] or "unknown"
-            print(f"    {method:<18}: {row['count']}")
+        for method, count in sorted(method_counts.items(), key=lambda x: -x[1]):
+            print(f"    {method:<18}: {count}")
 
     # ── 4. Canonical drug table ───────────────────────────────
-    rows = run_sql(pat, """
-        SELECT
-            COUNT(*) FILTER (WHERE is_active = TRUE)   AS active,
-            COUNT(*) FILTER (WHERE is_active = FALSE)  AS inactive,
-            COUNT(*) FILTER (WHERE merged_into IS NOT NULL) AS merged
-        FROM canonical_drugs
-    """)
-    r = rows[0]
+    canon_rows = sb.table("canonical_drugs").select(
+        "canonical_id, is_active, merged_into"
+    ).execute().data
+
+    active = sum(1 for r in canon_rows if r.get("is_active") is True)
+    merged = sum(1 for r in canon_rows if r.get("merged_into") is not None)
     print(f"\n  Canonical Drug Table")
-    print(f"    Active canonicals: {r['active']}")
-    print(f"    Merged/retired   : {r['merged']}")
+    print(f"    Active canonicals: {active}")
+    print(f"    Merged/retired   : {merged}")
 
     # ── 5. Alias table ────────────────────────────────────────
-    rows = run_sql(pat, """
-        SELECT COUNT(*) AS total_aliases,
-               COUNT(DISTINCT canonical_id) AS drugs_with_aliases
-        FROM drug_aliases
-    """)
-    r = rows[0]
+    alias_rows = sb.table("drug_aliases").select("canonical_id").execute().data
+    total_aliases      = len(alias_rows)
+    drugs_with_aliases = len(set(r["canonical_id"] for r in alias_rows if r.get("canonical_id")))
     print(f"\n  Alias Coverage")
-    print(f"    Total aliases    : {r['total_aliases']}")
-    print(f"    Drugs with aliases: {r['drugs_with_aliases']}")
+    print(f"    Total aliases    : {total_aliases}")
+    print(f"    Drugs with aliases: {drugs_with_aliases}")
 
     # ── 6. Fuzzy review flags (need human attention) ─────────
-    rows = run_sql(pat, """
-        SELECT COUNT(*) AS pending_reviews
-        FROM identity_audit_log
-        WHERE operation = 'flag_review'
-    """)
-    r = rows[0]
-    pending = int(r["pending_reviews"] or 0)
+    fuzzy_rows = (
+        sb.table("identity_audit_log")
+        .select("related_id, canonical_id, new_value, performed_at")
+        .eq("operation", "flag_review")
+        .order("performed_at", desc=True)
+        .execute()
+        .data
+    )
+    pending = len(fuzzy_rows)
     review_status = "✅" if pending == 0 else "⚠️ "
     print(f"\n  Fuzzy Review Queue {review_status}")
     print(f"    Pending reviews  : {pending}  (target: 0 — merge or dismiss manually)")
-
     if pending > 0:
-        rows = run_sql(pat, """
-            SELECT related_id AS input_name,
-                   canonical_id AS near_match,
-                   new_value->>'fuzzy_ratio' AS ratio,
-                   performed_at
-            FROM identity_audit_log
-            WHERE operation = 'flag_review'
-            ORDER BY performed_at DESC
-            LIMIT 10
-        """)
         print(f"\n    Top pending ({min(pending, 10)} shown):")
-        for row in rows:
-            print(f"      '{row['input_name']}' ~ {row['near_match']}  ratio={row['ratio']}")
+        for row in fuzzy_rows[:10]:
+            ratio = (row.get("new_value") or {}).get("fuzzy_ratio", "?")
+            print(f"      '{row.get('related_id')}' ~ {row.get('canonical_id')}  ratio={ratio}")
 
     # ── 7. Orphaned drugs (broken FK) ────────────────────────
-    rows = run_sql(pat, """
-        SELECT COUNT(*) AS orphans
-        FROM drugs d
-        LEFT JOIN canonical_drugs c ON d.canonical_drug_id = c.canonical_id
-        WHERE d.canonical_drug_id IS NOT NULL
-          AND c.canonical_id IS NULL
-    """)
-    r = rows[0]
-    orphans = int(r["orphans"] or 0)
-    orphan_status = "✅" if orphans == 0 else "❌"
+    drug_canon_ids  = {r["canonical_drug_id"] for r in drug_rows if r.get("canonical_drug_id")}
+    valid_canon_ids = {r["canonical_id"] for r in canon_rows if r.get("canonical_id")}
+    orphans         = len(drug_canon_ids - valid_canon_ids)
+    orphan_status   = "✅" if orphans == 0 else "❌"
     print(f"\n  Orphaned Records {orphan_status}")
     print(f"    Broken FK refs   : {orphans}  (target: 0)")
 
     # ── Summary ───────────────────────────────────────────────
-    issues = []
+    issues: list[str] = []
     if resolved_pct < 100:
-        issues.append(f"{unresolved_count} drug{'' if unresolved_count == 1 else 's'} unresolved — run one_time_migration.py")
+        issues.append(
+            f"{unresolved_count} drug{'' if unresolved_count == 1 else 's'} unresolved "
+            "— run one_time_migration.py"
+        )
     if high_pct < 95:
-        issues.append(f"confidence <95% threshold — review low-confidence resolutions")
+        issues.append("confidence <95% threshold — review low-confidence resolutions")
     if pending > 0:
         issues.append(f"{pending} fuzzy matches awaiting human review")
     if orphans > 0:
@@ -183,7 +176,7 @@ def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending:
     if not issues:
         print("  ✅  All checks passed — identity layer healthy")
     else:
-        ci_issues  = [i for i in issues if i.startswith("[CI FAIL]")]
+        ci_issues   = [i for i in issues if i.startswith("[CI FAIL]")]
         warn_issues = [i for i in issues if not i.startswith("[CI FAIL]")]
         if warn_issues:
             print(f"  ⚠️   {len(warn_issues)} issue(s) to address:")
@@ -197,6 +190,8 @@ def health_check(pat: str, fail_on_orphans: bool = False, fail_on_fuzzy_pending:
     return exit_code
 
 
+# ── Entry point ───────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Identity layer health check")
     parser.add_argument("--fail-on-orphans", action="store_true",
@@ -205,19 +200,7 @@ if __name__ == "__main__":
                         help="Exit 1 if any fuzzy-match reviews are pending")
     args = parser.parse_args()
 
-    # Credentials: env vars first, then workspace files
-    pat = os.environ.get("SUPABASE_PAT", "")
-    if not pat:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace = os.path.dirname(script_dir)
-        try:
-            with open(os.path.join(workspace, ".supabase_pat")) as f:
-                pat = f.read().strip()
-        except FileNotFoundError:
-            raise SystemExit(
-                "ERROR: SUPABASE_PAT env var not set and .supabase_pat file not found."
-            )
-
-    code = health_check(pat, fail_on_orphans=args.fail_on_orphans,
+    sb   = get_supabase()
+    code = health_check(sb, fail_on_orphans=args.fail_on_orphans,
                         fail_on_fuzzy_pending=args.fail_on_fuzzy_pending)
     sys.exit(code)
