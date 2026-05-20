@@ -416,6 +416,124 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .home-card-body::-webkit-scrollbar { width: 5px; }
 .home-card-body::-webkit-scrollbar-track { background: #f8fafc; }
 .home-card-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Home launcher buttons ── */
+#home-launchers {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 18px;
+  padding: 48px 24px 40px;
+  flex-wrap: wrap;
+}
+.home-launcher {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1.5px solid #e8eef5;
+  padding: 28px 24px 22px;
+  width: 190px;
+  cursor: pointer;
+  text-align: center;
+  transition: box-shadow 0.18s, transform 0.15s, border-color 0.15s;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.home-launcher::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--lc, #2e6fb0);
+  border-radius: 14px 14px 0 0;
+  opacity: 0.85;
+}
+.home-launcher:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  transform: translateY(-2px);
+  border-color: var(--lc, #2e6fb0);
+}
+.home-launcher.active {
+  border-color: var(--lc, #2e6fb0);
+  box-shadow: 0 0 0 3px rgba(30,74,130,0.12), 0 8px 28px rgba(0,0,0,0.13);
+}
+.hl-icon  { font-size: 28px; margin-bottom: 10px; line-height: 1; }
+.hl-title { font-size: 14px; font-weight: 800; color: #1a2f50; margin-bottom: 5px; letter-spacing: -0.1px; }
+.hl-sub   { font-size: 11px; color: #7a8fa8; line-height: 1.4; }
+
+/* ── Home overlay ── */
+#home-overlay-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,40,0.45);
+  z-index: 1200;
+  backdrop-filter: blur(2px);
+}
+#home-overlay-backdrop.open { display: block; }
+#home-overlay-card {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.97);
+  width: 92%;
+  max-width: 1180px;
+  max-height: 82vh;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+  z-index: 1201;
+  overflow: hidden;
+  flex-direction: column;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  opacity: 0;
+}
+#home-overlay-card.open {
+  display: flex;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+#home-overlay-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #1e4a82;
+  color: white;
+  flex-shrink: 0;
+  border-radius: 14px 14px 0 0;
+}
+#home-overlay-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+#home-overlay-close {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 9px 3px;
+  line-height: 1.4;
+  transition: background 0.12s;
+}
+#home-overlay-close:hover { background: rgba(255,255,255,0.28); }
+#home-overlay-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+#home-overlay-body::-webkit-scrollbar { width: 6px; }
+#home-overlay-body::-webkit-scrollbar-track { background: #f8fafc; }
+#home-overlay-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.home-panel { padding: 16px 20px; }
 #bd-signal-body { max-height: 340px; overflow-y: auto; }
 #bd-signal-body::-webkit-scrollbar { width: 5px; }
 #bd-signal-body::-webkit-scrollbar-track { background: #f8fafc; }
@@ -2853,125 +2971,109 @@ function loadMoleculeTab(tabId) {
 <!-- ══════════════ HOME TAB: THE MERIDIAN ══════════════ -->
 <div class="tab-pane active" id="tab-home">
 
-
- <!-- KEY UPCOMING CATALYSTS -->
-
-  <!-- AILUX PIPELINE OVERVIEW removed -->
-  <div style="display:none">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-
-        <div style="border:1.5px solid #dde3ea;border-radius:8px;padding:12px 14px;border-top:3px solid #2e6fb0">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;margin-bottom:4px">Lead Asset · IBD</div>
-          <div style="font-size:14px;font-weight:800;color:#1a2f50;margin-bottom:2px">TL1A × IL-23p19</div>
-          <div style="margin-bottom:8px"><span class="sb sb-pre">Pre-IND</span></div>
-          <div style="font-size:11px;color:#4a6280;line-height:1.5">Bispecific antibody targeting TL1A and IL-23p19 for IBD. Proprietary format. IND-enabling studies ongoing.</div>
-          <div style="margin-top:8px;font-size:10px;color:#8a9bb0;font-weight:700">Next milestone: IND filing 2026–2027</div>
-        </div>
-
-        <div style="border:1.5px solid #dde3ea;border-radius:8px;padding:12px 14px;border-top:3px solid #c45b11">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;margin-bottom:4px">Asset · Type 2 Inflammation</div>
-          <div style="font-size:14px;font-weight:800;color:#1a2f50;margin-bottom:2px">IL-4Rα × TSLP</div>
-          <div style="margin-bottom:8px"><span class="sb sb-pre">Pre-IND</span></div>
-          <div style="font-size:11px;color:#4a6280;line-height:1.5">pH-engineered bispecific with TMDD-reducing backbone. Targets AD, asthma, EoE. Competes in the post-dupilumab era.</div>
-          <div style="margin-top:8px;font-size:10px;color:#8a9bb0;font-weight:700">Next milestone: Lead candidate selection</div>
-        </div>
-
-        <div style="border:1.5px solid #dde3ea;border-radius:8px;padding:12px 14px;border-top:3px solid #7030a0">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;margin-bottom:4px">Asset · Autoimmune / FcRn</div>
-          <div style="font-size:14px;font-weight:800;color:#1a2f50;margin-bottom:2px">FcRn Bispecific</div>
-          <div style="margin-bottom:8px"><span class="sb sb-pre">Preclinical</span></div>
-          <div style="font-size:11px;color:#4a6280;line-height:1.5">Albumin VHH × FcRn-blocking arm. Extended half-life design targets Q6–8W dosing for gMG, CIDP, and IgG-mediated autoimmune.</div>
-          <div style="margin-top:8px;font-size:10px;color:#8a9bb0;font-weight:700">Next milestone: NHP PK/PD data</div>
-        </div>
-
-        <div style="border:1.5px solid #dde3ea;border-radius:8px;padding:12px 14px;border-top:3px solid #2a7a47">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#8a9bb0;margin-bottom:4px">Asset · Immune Reset</div>
-          <div style="font-size:14px;font-weight:800;color:#1a2f50;margin-bottom:2px">BCMA × CD19 × CD3</div>
-          <div style="margin-bottom:8px"><span class="sb sb-pre">Pre-IND</span></div>
-          <div style="font-size:11px;color:#4a6280;line-height:1.5">Trispecific TCE for deep B-cell depletion and durable immune reset in refractory autoimmune (SLE, MG, SSc). Differentiated from KT501 by SC format goal.</div>
-          <div style="margin-top:8px;font-size:10px;color:#8a9bb0;font-weight:700">Next milestone: IND-enabling studies</div>
-        </div>
-
-      </div>
-      <div style="margin-top:10px;padding:8px 12px;background:#f7f9fc;border-radius:6px;font-size:11px;color:#5a7a9e;line-height:1.5">
-        <strong style="color:#1a2f50">Ailux BD Thesis:</strong> Bispecific and trispecific formats offer durable differentiation in high-competition disease areas where monotherapy markets are established. Each Ailux asset pairs a validated mechanism with a proprietary format advantage (pH-engineering, VHH-albumin, trispecific TCE) to justify first-in-class or best-in-class positioning for future deal structuring.
-      </div>
+ <!-- ── 4 launcher buttons ─────────────────────────────────────── -->
+ <div id="home-launchers">
+  <div class="home-launcher" data-panel="catalysts" style="--lc:#1e4a82" onclick="openHomePanel('catalysts')">
+   <div class="hl-icon">📅</div>
+   <div class="hl-title">Key Catalysts</div>
+   <div class="hl-sub">Upcoming readouts &amp; milestones</div>
   </div>
-
-
- <!-- ── KEY CATALYSTS ──────────────────────────────────────────── -->
- <div class="home-grid" id="home-catalysts-anchor">
- <div class="home-card" style="overflow:visible">
-  <div class="home-card-hd">
-   Key Catalysts &amp; Readouts
-   <span class="hc-tag" id="cats-area-label">All Areas</span>
+  <div class="home-launcher" data-panel="bdsignal" style="--lc:#1a3f8f" onclick="openHomePanel('bdsignal')">
+   <div class="hl-icon">◈</div>
+   <div class="hl-title">BD Signal</div>
+   <div class="hl-sub">What the deals are saying</div>
   </div>
-  <div class="cat-filter-bar">
-   <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
-   <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
-   <button class="cat-sort-btn" onclick="setCatSort(this,'relevance')">Most Relevant</button>
-   <button class="cat-sort-btn" onclick="setCatSort(this,'recent')">Most Recent</button>
-   <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
-   <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
-   <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
-   <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
+  <div class="home-launcher" data-panel="deals" style="--lc:#1a5c2e" onclick="openHomePanel('deals')">
+   <div class="hl-icon">💼</div>
+   <div class="hl-title">Deal Activity</div>
+   <div class="hl-sub">Recent transactions &amp; partnerships</div>
   </div>
-  <div class="home-card-body" id="catalysts-list">
-   <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading catalysts…</div>
-  </div>
- </div>
- </div><!-- end home-grid -->
-
- <!-- ── BD SIGNAL ──────────────────────────────────────────────── -->
- <div class="home-card" id="bd-signal-panel" style="border-left:4px solid #1a3f8f">
-  <div class="home-card-hd" style="background:linear-gradient(90deg,#1a2f50,#1e3f70);color:white;">
-   <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em">◈ BD Signal</span>
-   <span class="hc-tag" style="background:rgba(255,255,255,0.15);color:white;margin-left:auto">What the deals are saying</span>
-  </div>
-  <div id="bd-signal-body" style="padding:14px 18px">
-   <div style="color:#94a3b8;font-size:12px">Loading BD intelligence…</div>
+  <div class="home-launcher" data-panel="updates" style="--lc:#c45b11" onclick="openHomePanel('updates')">
+   <div class="hl-icon">⚡</div>
+   <div class="hl-title">Essential Updates</div>
+   <div class="hl-sub">Intel · Deals · Catalysts</div>
   </div>
  </div>
 
- <!-- ── RECENT DEAL ACTIVITY ───────────────────────────────────── -->
- <div class="home-card" id="home-deals-anchor">
-  <div class="home-card-hd">
-   Recent Deal Activity
-   <span class="hc-tag" id="deals-area-label">All Areas</span>
-   <span style="margin-left:auto;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-    <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'')">All</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tl1a')">TL1A</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tslp')">TSLP</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'il4ra')">IL-4Rα</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'fcrn')">FcRn</button>
-    <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tcell')">T-cell</button>
-   </span>
-  </div>
-  <div class="home-card-body" id="deals-list">
-   <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading deals…</div>
-  </div>
- </div>
+ <!-- ── Overlay backdrop ───────────────────────────────────────── -->
+ <div id="home-overlay-backdrop" onclick="closeHomePanel()"></div>
 
- <!-- ── ESSENTIAL UPDATES (archival intel stream) ──────────────── -->
- <div class="meridian-reader" id="meridian-reader-anchor">
-  <div class="meridian-reader-hd">
-   <span>⚡ Essential Updates</span>
-   <span style="font-size:11px;font-weight:500;color:#8a7020;margin-left:auto">Intel · Deals · Catalysts · Enrichment</span>
+ <!-- ── Overlay card ───────────────────────────────────────────── -->
+ <div id="home-overlay-card">
+  <div id="home-overlay-hd">
+   <span id="home-overlay-title">—</span>
+   <button id="home-overlay-close" onclick="closeHomePanel()">✕</button>
   </div>
-  <div id="meridian-reader-items">
-   <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
-  </div>
- </div>
+  <div id="home-overlay-body">
+
+   <!-- Panel: Key Catalysts -->
+   <div class="home-panel" id="home-panel-catalysts" style="display:none">
+    <div id="home-catalysts-anchor">
+     <div class="cat-filter-bar" style="padding:4px 0 12px">
+      <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
+      <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
+      <button class="cat-sort-btn" onclick="setCatSort(this,'relevance')">Most Relevant</button>
+      <button class="cat-sort-btn" onclick="setCatSort(this,'recent')">Most Recent</button>
+      <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
+      <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
+      <span id="cats-area-label" style="display:none">All Areas</span>
+      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
+     </div>
+     <div id="catalysts-list">
+      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading catalysts…</div>
+     </div>
+    </div>
+   </div>
+
+   <!-- Panel: BD Signal -->
+   <div class="home-panel" id="home-panel-bdsignal" style="display:none">
+    <div id="bd-signal-panel">
+     <div id="bd-signal-body">
+      <div style="color:#94a3b8;font-size:12px">Loading BD intelligence…</div>
+     </div>
+    </div>
+   </div>
+
+   <!-- Panel: Deal Activity -->
+   <div class="home-panel" id="home-panel-deals" style="display:none">
+    <div id="home-deals-anchor">
+     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:12px">
+      <span id="deals-area-label" style="font-size:10px;font-weight:700;color:#64748b;margin-right:4px">All Areas</span>
+      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'')">All</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tl1a')">TL1A</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tslp')">TSLP</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'il4ra')">IL-4Rα</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'fcrn')">FcRn</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tcell')">T-cell</button>
+     </div>
+     <div id="deals-list">
+      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading deals…</div>
+     </div>
+    </div>
+   </div>
+
+   <!-- Panel: Essential Updates -->
+   <div class="home-panel" id="home-panel-updates" style="display:none">
+    <div id="meridian-reader-anchor">
+     <div id="meridian-reader-items">
+      <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
+     </div>
+    </div>
+   </div>
+
+  </div><!-- end overlay-body -->
+ </div><!-- end overlay-card -->
 
  <!-- hidden identity-health body (data still loads; displayed in footer) -->
  <div id="ih-body" style="display:none"></div>
 
- <div class="footnote" style="margin-top:8px">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last updated May 2026.</div>
+ <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last updated May 2026.</div>
 
 </div><!-- end tab-home -->
 
@@ -8323,6 +8425,48 @@ async function loadLiveIntel() {
     if (body) body.innerHTML = `<div style="color:#dc2626;font-size:12px">Error: ${e.message}</div>`;
   }
 }
+
+// ── Home panel overlay ────────────────────────────────────────────────────────
+const HOME_PANEL_META = {
+  catalysts: { title: '📅 Key Catalysts & Readouts', color: '#1e4a82' },
+  bdsignal:  { title: '◈ BD Signal',                 color: '#1a3f8f' },
+  deals:     { title: '💼 Recent Deal Activity',      color: '#1a5c2e' },
+  updates:   { title: '⚡ Essential Updates',          color: '#b84e10' },
+};
+function openHomePanel(panel) {
+  const meta = HOME_PANEL_META[panel];
+  if (!meta) return;
+  // Hide all panels, show target
+  document.querySelectorAll('.home-panel').forEach(p => { p.style.display = 'none'; });
+  const pEl = document.getElementById(`home-panel-${panel}`);
+  if (pEl) pEl.style.display = 'block';
+  // Update header
+  const hd = document.getElementById('home-overlay-hd');
+  if (hd) hd.style.background = `linear-gradient(90deg,${meta.color},${meta.color}cc)`;
+  const title = document.getElementById('home-overlay-title');
+  if (title) title.textContent = meta.title;
+  // Mark active launcher
+  document.querySelectorAll('.home-launcher').forEach(l => l.classList.remove('active'));
+  const launcher = document.querySelector(`.home-launcher[data-panel="${panel}"]`);
+  if (launcher) launcher.classList.add('active');
+  // Show overlay
+  const backdrop = document.getElementById('home-overlay-backdrop');
+  const card = document.getElementById('home-overlay-card');
+  if (backdrop) backdrop.classList.add('open');
+  if (card) card.classList.add('open');
+  // Prevent page scroll while overlay is open
+  document.body.style.overflow = 'hidden';
+}
+function closeHomePanel() {
+  const backdrop = document.getElementById('home-overlay-backdrop');
+  const card = document.getElementById('home-overlay-card');
+  if (backdrop) backdrop.classList.remove('open');
+  if (card) card.classList.remove('open');
+  document.querySelectorAll('.home-launcher').forEach(l => l.classList.remove('active'));
+  document.body.style.overflow = '';
+}
+// Close overlay on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
 document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
