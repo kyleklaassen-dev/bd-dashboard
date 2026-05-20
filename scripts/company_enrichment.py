@@ -296,6 +296,12 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
     })
     existing_ids = {r["company_id"] for r in existing_cos}
 
+    # Fetch indication_group for this area (e.g. tl1a → 'ibd').
+    # New drugs are tagged to BOTH the specific area AND the indication_group area,
+    # so the frontend's expanded drug row (filtered by indication_group) picks them up.
+    area_meta = sb_get("disease_areas", {"id": f"eq.{area_id}", "select": "indication_group"})
+    indication_group = (area_meta[0].get("indication_group") if area_meta else None) or area_id
+
     # ── Phase A: live web search for current landscape ──────────────────────
     log("  Phase A — Web landscape search...", indent=1)
     landscape_text = gather_landscape_intel(area_id)
@@ -437,7 +443,11 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
                     "sort_order": 99,
                 })
                 sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": area_id})
-                log(f"    + Drug: {drug_slug}", indent=2)
+                # Also tag to indication_group area (e.g. 'ibd') so drug shows in
+                # expanded rows for any company in that broader indication bucket.
+                if indication_group != area_id:
+                    sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": indication_group})
+                log(f"    + Drug: {drug_slug} (areas: {area_id}, {indication_group})", indent=2)
 
         created += 1
 
