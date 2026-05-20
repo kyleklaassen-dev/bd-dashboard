@@ -52,10 +52,8 @@ SB_HEADERS = {
 # Each entry: id, co, ticker, drug (comma-sep for multi-drug), target,
 #             stageKey, overlap, groupId, partnerCo (optional), trials (optional)
 TL1A_PROGRAMS = [
-    dict(id="tulisokibart",  co="Spyre Therapeutics", ticker="SYRE",
-         drug="Tulisokibart (SPY001)",
-         target="TL1A", stageKey="Phase 3", overlap="Direct",
-         groupId="spyre", partnerCo=None),
+    # NOTE: Tulisokibart (MK-7240/PRA023) is Merck's drug, acquired via Prometheus Biosciences.
+    # It is listed under groupId='merck' below. Do not add it under spyre.
 
     dict(id="spyre-mono",    co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY002",
@@ -128,8 +126,8 @@ TL1A_PROGRAMS = [
          groupId="episcience", partnerCo=None),
 
     dict(id="merck",         co="Merck & Co.", ticker="MRK",
-         drug="MK-1718",
-         target="TL1A", stageKey="Phase 2", overlap="Direct",
+         drug="Tulisokibart (MK-7240/PRA023)",
+         target="TL1A", stageKey="Phase 3", overlap="Direct",
          groupId="merck", partnerCo=None),
 
     dict(id="mirador",       co="Mirador Therapeutics", ticker="Private",
@@ -226,12 +224,13 @@ def seed(dry_run=False):
 
     print()
 
-    # 2. Upsert company_areas
+    # 2. Upsert company_areas — tag to BOTH specific area (tl1a) AND indication_group (ibd).
+    # Company eligibility for the TL1A tab is IBD-based: any company with an IBD drug qualifies.
     print("── company_areas ───────────────────────────────────────")
     for gid in seen_groups:
-        record = {"company_id": gid, "area_id": "tl1a"}
-        print(f"  → {gid} × tl1a")
-        sb_upsert("company_areas", record, dry_run=dry_run)
+        print(f"  → {gid} × tl1a + ibd")
+        sb_upsert("company_areas", {"company_id": gid, "area_id": "tl1a"}, dry_run=dry_run)
+        sb_upsert("company_areas", {"company_id": gid, "area_id": "ibd"},  dry_run=dry_run)
 
     print()
 
