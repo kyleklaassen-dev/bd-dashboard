@@ -1,5 +1,13 @@
 
 ---
+## 2026-05-20 Fix: Catalyst Deduplication — SHA: 667e51b
+
+### Updated: `scripts/company_enrichment.py` → `667e51b`
+- **Root cause:** Step 4 idempotency check was keyed on `related_trial_id` — one catalyst per trial record. Drugs with multiple NCT IDs sharing the same primary completion date (e.g. Afimkibart AD: adult/pediatric/site cohorts) each created a separate catalyst row, producing 6+ identical entries.
+- **Fix:** Changed dedup key to `(company_id, canonical_drug_id OR drug_id, sort_date)`. Multiple trials for the same drug on the same date now collapse to one catalyst.
+- **Data cleanup:** Deleted 291 duplicate catalyst rows from Supabase directly via REST API. 209 canonical rows remain.
+
+---
 ## 2026-05-20 Step 1 Entity Discovery — Proactive Web Search — SHA: 552c01e
 
 ### Updated: `scripts/company_enrichment.py` → `552c01e`
