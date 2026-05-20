@@ -60,26 +60,76 @@ TL1A_PROGRAMS = [
     # TL1A × IL-23 bispecifics are listed first (highest relevance to Ailux asset).
 
     # ── Direct: TL1A × IL-23 / TL1A × other bispecifics ────────────────────
-    dict(id="spyre-mono",    co="Spyre Therapeutics", ticker="SYRE",
+    # SPYRE THERAPEUTICS — full 7-drug rational combination platform
+    # IMPORTANT: Spyre does NOT have a bispecific. Their strategy is monospecific mAbs
+    # that are then combined as two-antibody combinations (+), not fused into bispecifics (×).
+    # SPY002 = anti-TL1A mAb (monospecific)
+    # SPY003 = anti-IL-23p19 mAb (monospecific)
+    # SPY001 = anti-α4β7 mAb (monospecific)
+    # SPY072 = anti-TL1A mAb for rheumatology (monospecific)
+    # SPY120 = SPY001 + SPY002 (α4β7 + TL1A combination, two separate mAbs)
+    # SPY130 = SPY001 + SPY003 (α4β7 + IL-23 combination, two separate mAbs)
+    # SPY230 = SPY003 + SPY002 (IL-23 + TL1A combination, two separate mAbs)
+    dict(id="spyre-spy002",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY002",
-         target="TL1A × IL-23", stageKey="Phase 1", overlap="Direct",
+         target="TL1A", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="bispecific", route="SC",
-         mechanismDetail="Dual-variable domain bispecific targeting TL1A and IL-23p19; Spyre next-gen IBD candidate"),
+         modality="mAb", route="SC",
+         mechanismDetail="Selective anti-TL1A monoclonal antibody (monospecific). SKYLINE-UC Part A topline expected mid-2026."),
+
+    dict(id="spyre-spy003",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY003",
+         # RULE: Always specify p19 subunit for IL-23 inhibitors — distinguishes from p40 class
+         target="IL-23p19", stageKey="Phase 2", overlap="Direct",
+         groupId="spyre", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Selective anti-IL-23p19 monoclonal antibody (monospecific). SKYLINE Part A topline expected Q3 2026."),
+
+    dict(id="spyre-spy230",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY230",
+         # RULE: "+" = co-administered combination; "×" = bispecific. Spyre has NO bispecifics.
+         # RULE: Always specify IL-23p19 (not just IL-23)
+         target="IL-23p19 + TL1A", stageKey="Phase 2", overlap="Direct",
+         groupId="spyre", partnerCo=None,
+         modality="combination", route="SC",
+         mechanismDetail="Rational combination of SPY003 (IL-23p19) + SPY002 (TL1A) — two separate mAbs co-administered, NOT a bispecific. Same dual-target rationale as Ailux TL1A × IL-23p19 bispecific. Part B expected 2027."),
+
+    dict(id="spyre-spy120",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY120",
+         target="α4β7 + TL1A", stageKey="Phase 2", overlap="Direct",
+         groupId="spyre", partnerCo=None,
+         modality="combination", route="SC",
+         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY002 (TL1A) — two separate mAbs, NOT a bispecific. SKYLINE Part B expected 2027."),
+
+    dict(id="spyre-spy130",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY130",
+         # RULE: Always specify IL-23p19 (not just IL-23)
+         target="α4β7 + IL-23p19", stageKey="Phase 2", overlap="Direct",
+         groupId="spyre", partnerCo=None,
+         modality="combination", route="SC",
+         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY003 (IL-23p19) — two separate mAbs, NOT a bispecific. SKYLINE Part B expected 2027."),
+
+    dict(id="spyre-spy001",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY001",
+         target="α4β7", stageKey="Phase 2", overlap="Adjacent",
+         groupId="spyre", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Selective anti-α4β7 integrin mAb (monospecific); gut-restricted mechanism. SKYLINE-UC Part A topline reported Q2 2026."),
+
+    dict(id="spyre-spy072",  co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY072",
+         target="TL1A", stageKey="Phase 2", overlap="Adjacent",
+         groupId="spyre", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Selective anti-TL1A mAb for rheumatologic indications (PsA, axSpA) — adjacent to IBD programs by indication. SKYWAY-RD trial."),
 
     dict(id="xencor-412",   co="Xencor", ticker="XNCR",
          drug="XmAb412",
-         target="TL1A × IL-23", stageKey="Phase 1", overlap="Direct",
+         # RULE: Bispecific targets use "×" separator. Always specify IL-23p19 (not just IL-23).
+         target="TL1A × IL-23p19", stageKey="Pre-IND", overlap="Direct",
          groupId="xencor", partnerCo=None,
          modality="bispecific", route=None,
-         mechanismDetail="XmAb bispecific platform targeting TL1A and IL-23; Xencor next-gen IBD program"),
-
-    dict(id="spyre-230",     co="Spyre Therapeutics", ticker="SYRE",
-         drug="SPY230",
-         target="TL1A × FcRn", stageKey="Phase 1", overlap="Direct",
-         groupId="spyre", partnerCo=None,
-         modality="bispecific", route="SC",
-         mechanismDetail="Bispecific targeting TL1A and FcRn; extended half-life design for SC convenience dosing"),
+         mechanismDetail="XTEND-Fc bispecific simultaneously blocking TL1A and IL-23p19. XTEND technology (enhanced FcRn binding) engineered for ultra-long half-life analogous to XmAb942 (~74 days in Phase 1). Preclinical data at DDW 2026. FIH in healthy volunteers planned Q3 2026. Xencor runs both XmAb942 (mono, Ph2b) and XmAb412 (bispecific, FIH) in parallel — unique dual-track strategy. No pharma partner announced as of May 2026."),
 
     # ── Direct: TL1A monospecifics (Phase 3 leaders first) ──────────────────
     dict(id="merck",         co="Merck & Co.", ticker="MRK",
@@ -111,11 +161,13 @@ TL1A_PROGRAMS = [
          mechanismDetail="Anti-TL1A monoclonal antibody; AbbVie internal TL1A program; Phase 2 in IBD"),
 
     dict(id="xencor-942",   co="Xencor", ticker="XNCR",
-         drug="XmAb942 (Vudalimab)",
+         # IMPORTANT: XmAb942 is a monospecific XTEND-Fc anti-TL1A mAb (NOT a bispecific).
+         # Vudalimab = XmAb20717, a PD-1×CTLA-4 bispecific for oncology. Completely unrelated.
+         drug="XmAb942",
          target="TL1A", stageKey="Phase 2", overlap="Direct",
          groupId="xencor", partnerCo=None,
-         modality="bispecific", route=None,
-         mechanismDetail="XmAb bispecific antibody; TL1A program in Phase 2 IBD; Xencor platform asset"),
+         modality="mAb", route="SC",
+         mechanismDetail="Monospecific XTEND-Fc anti-TL1A mAb engineered for ultra-long half-life via enhanced FcRn binding. Phase 1 HV study (reported April 2025): ~74-day half-life — longest in the TL1A class — supports Q13W+ SC dosing vs Q8W for standard IgG mAbs. XENITH-UC (NCT06619990): Ph1 HV + Ph2b UC, N=270, primary completion April 28, 2028; YE 2026 interim expected. NOTE: Vudalimab (XmAb20717) is a completely separate Xencor drug (PD-1×CTLA-4 bispecific, oncology) — not related to XmAb942."),
 
     dict(id="simcere",       co="Simcere", ticker="Private",
          drug="SIM0500",
@@ -162,7 +214,8 @@ TL1A_PROGRAMS = [
     # ── Adjacent: IBD-space approved/late-stage competitors ─────────────────
     dict(id="abbvie-skyrizi", co="AbbVie", ticker="ABBV",
          drug="Risankizumab (Skyrizi)",
-         target="IL-23 (p19)", stageKey="Approved", overlap="Adjacent",
+         # RULE: Use "IL-23p19" not "IL-23 (p19)" — consistent subunit notation throughout
+         target="IL-23p19", stageKey="Approved", overlap="Adjacent",
          groupId="abbvie", partnerCo=None,
          modality="mAb", route="SC",
          mechanismDetail="Anti-IL-23p19 monoclonal antibody; approved for UC and CD; SC maintenance after IV induction"),
@@ -176,7 +229,8 @@ TL1A_PROGRAMS = [
 
     dict(id="lilly-omvoh",   co="Eli Lilly", ticker="LLY",
          drug="Mirikizumab (Omvoh)",
-         target="IL-23 (p19)", stageKey="Approved", overlap="Adjacent",
+         # RULE: Use "IL-23p19" not "IL-23 (p19)" — consistent subunit notation throughout
+         target="IL-23p19", stageKey="Approved", overlap="Adjacent",
          groupId="lilly", partnerCo=None,
          modality="mAb", route="SC",
          mechanismDetail="Anti-IL-23p19 monoclonal antibody; approved for UC; IV induction then SC maintenance"),
@@ -305,7 +359,18 @@ def seed(dry_run=False):
                 "entity_type":            "partnership" if prog.get("partnerCo") else "standalone",
                 "stage":                  prog["stageKey"],
                 "target":                 prog["target"],
-                "mechanism":              f"Anti-{prog['target']}" if prog["target"] else None,
+                # RULE: Do NOT auto-prefix "Anti-" blindly. Derive mechanism from modality:
+                #   bispecific  → "{target} bispecific"  (e.g. "TL1A × IL-23p19 bispecific")
+                #   combination → "{target} combination" (e.g. "IL-23p19 + TL1A combination")
+                #   mAb / other → "Anti-{target} mAb"   (e.g. "Anti-TL1A mAb")
+                # This ensures the mechanism label is accurate regardless of target complexity.
+                # "Anti-" prefix ONLY applies to monospecific mAbs, NOT to bispecifics or combos.
+                "mechanism": (
+                    f"{prog['target']} bispecific"   if prog.get("modality") == "bispecific"
+                    else f"{prog['target']} combination" if prog.get("modality") == "combination"
+                    else f"Anti-{prog['target']} mAb" if prog["target"]
+                    else None
+                ),
                 "modality":               prog.get("modality"),
                 "drug_format":            prog.get("modality"),      # keep in sync
                 "route":                  prog.get("route"),
