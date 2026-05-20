@@ -8532,6 +8532,14 @@ const TL1A_PROGRAMS = [
    risk:'Very early stage with limited differentiation data vs. more advanced Chinese competitors (SIM0709 already in Phase 1, CLD-423 already in Phase 1). Window for big-pharma interest may narrow as Phase 1 programs provide human data.',
    diff:'Differentiation window: if preclinical data show unique format (e.g., novel bispecific architecture or superior potency), could out-license before FIH at $40–125M upfront comp. Timing and data package are everything at this stage.' },
 
+ { id:'abbvie', co:'AbbVie', ticker:'ABBV', drug:'FG-M701', target:'TL1A', cls:'1st Gen', stageKey:'Phase 1', overlap:'Direct',
+   summary:'AbbVie licensed FG-M701 (anti-TL1A mAb) from FutureGen Biopharmaceutical in June 2024 for $150M upfront / $1.71B total — the fourth major TL1A licensing transaction within 18 months. FG-M701 is a monospecific TL1A mAb currently in Phase 1 development. AbbVie\'s entry as a direct TL1A competitor signals conviction that TL1A monotherapy has commercial value alongside their existing IL-23 and JAK1 IBD portfolio. Whether AbbVie runs FG-M701 independently or as a combination backbone alongside Skyrizi (creating a TL1A×IL-23 functional combination) defines the competitive dynamic for Ailux\'s bispecific strategy.',
+   catalysts:[{date:'2026–2027',event:'FG-M701 Phase 1 dose escalation completion; SAD/MAD safety readout'},{date:'2027',event:'Phase 1b IBD proof-of-concept cohort — first IBD efficacy signal expected'}],
+   trials:[{nct:'Pending',name:'Phase 1 FIH — FG-M701 (anti-TL1A mAb); licensed from FutureGen June 2024',phase:'Phase 1',status:'Recruiting',n:null,pcd:'2026–2027',primary:'Safety, tolerability, PK/PD'}],
+   deals:[{date:'Jun 2024',desc:'AbbVie licenses FG-M701 TL1A mAb from FutureGen Biopharmaceutical — $150M upfront / $1.71B total including milestones'}],
+   risk:'Phase 1 — no IBD efficacy data yet. AbbVie\'s IBD pipeline prioritizes Skyrizi (approved) and Rinvoq (approved). FG-M701 must prove TL1A monotherapy adds meaningful value above these existing assets, or risk being deprioritized. Competes directly with Merck/Roche/Sanofi mono data already in Phase 3.',
+   diff:'AbbVie\'s entry legitimizes TL1A as a commercial priority for large pharma. With Skyrizi (IL-23), Rinvoq (JAK1), and FG-M701 (TL1A) AbbVie could cover all major IBD mechanisms. BD read-through: if FG-M701 advances, Ailux bispecific combining TL1A+IL-23 directly competes with the combination of AbbVie\'s two approved drugs — a clear value proposition narrative for a single molecule.' },
+
  /* ── INDIRECT COMPETITORS — same indication (IBD/UC/CD), different target ── */
  /* These define the SOC bar, treatment paradigm, endpoint standards, and pricing floor */
  { id:'abbvie-skyrizi', co:'AbbVie', ticker:'ABBV', drug:'Risankizumab (Skyrizi)', target:'IL-23p19', cls:'1st Gen', stageKey:'Phase 3', overlap:'Adjacent',
@@ -9212,8 +9220,12 @@ const tl1aPI = {
    : s.includes('not recruit') ? 'pi-trial-anr' : 'pi-trial-planned';
 
   // ── Build trials index by drug_id ───────────────────────────────────────
+  // IMPORTANT: Only fall back to static prog.trials when there are NO Supabase drugs.
+  // If Supabase drugs are loaded but trials haven't synced yet, use an empty list —
+  // never spill static trials across all drug rows of a multi-drug entity.
   const trialsByDrug = {};
-  const allTrials = sbTrials.length ? sbTrials : (prog.trials||[]).map(t=>({...t, id:t.id||t.nct}));
+  const allTrials = sbTrials.length ? sbTrials
+    : (!sbDrugs.length ? (prog.trials||[]).map(t=>({...t, id:t.id||t.nct})) : []);
   allTrials.forEach(t => {
    const key = t.drug_id || t.canonical_drug_id || '__all__';
    (trialsByDrug[key] = trialsByDrug[key] || []).push(t);
@@ -9235,7 +9247,9 @@ const tl1aPI = {
   }
 
   const drugRowsHTML = drugsToRender.map(d => {
-   const drugTrials = trialsByDrug[d.id] || trialsByDrug[d.canonical_drug_id] || trialsByDrug['__all__'] || [];
+   // Use __all__ only when there's a single drug (no ambiguity about ownership)
+   const drugTrials = trialsByDrug[d.id] || trialsByDrug[d.canonical_drug_id]
+     || (drugsToRender.length <= 1 ? (trialsByDrug['__all__'] || []) : []);
    const mechStr = [d.mechanism, d.target].filter((x,i,a)=>x&&a.indexOf(x)===i).join(' · ') || prog.target || '—';
    const tags = [d.route, d.dosing_type, d.indication_short].filter(Boolean)
     .map(t=>`<span class="pi-da-tag">${t}</span>`).join('');
