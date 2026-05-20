@@ -1,5 +1,27 @@
 
 ---
+## 2026-05-20 IBD-Based Company Eligibility + Tulisokibart Fix — SHA: 43cc2c3 / cbcc78f / a898729
+
+### Design change
+A company belongs in the TL1A tab if it has **any drug in the IBD disease space**, not only if it has a TL1A-targeted program. IL-23, JAK1, α4β7, and future IBD mechanism entrants all qualify. This is now enforced at every layer: Supabase data, pipeline seeding, and frontend discovery.
+
+### Tulisokibart data fix
+- **Supabase `drugs` table**: `tulisokibart` was incorrectly seeded with `company_id='spyre'` — reassigned to `company_id='merck'`, `entity_id='merck'`, `entity_name='Merck & Co.'`. Drug name corrected from `"Tulisokibart (SPY001)"` to `"Tulisokibart (MK-7240/PRA023)"`. Tulisokibart was acquired by Merck via the $10.8B Prometheus Biosciences acquisition (Apr 2023) — it is not a Spyre asset.
+- **`seed_tl1a_companies.py`**: Removed the incorrect Spyre-tulisokibart entry from `TL1A_PROGRAMS`. Merck's entry corrected to `drug="Tulisokibart (MK-7240/PRA023)"` at `stageKey="Phase 3"`. Added comment clarifying the attribution.
+
+### Company eligibility — `index.html` → `43cc2c3`
+- **`_loadSbDiscoveredRows()`** now queries `company_areas.area_id = this._drugDisplayArea` (resolves to `'ibd'`) instead of hardcoded `'tl1a'`. Any company with an IBD drug seeded to `company_areas.area_id='ibd'` will appear as a row in the TL1A tab automatically.
+
+### Supabase data — company_areas for ibd
+- All 21 companies already in `company_areas.area_id='tl1a'` also seeded to `company_areas.area_id='ibd'` (one-time backfill). Future companies discovered by the pipeline now land in both areas.
+
+### Pipeline — `scripts/company_enrichment.py` → `cbcc78f`
+- Step 1 now seeds `company_areas` for BOTH the specific target area (`tl1a`) AND the indication_group area (`ibd`) when creating a new entity. Ensures newly discovered IBD companies (regardless of mechanism) appear in the TL1A tab immediately.
+
+### Seed script — `scripts/seed_tl1a_companies.py` → `a898729`
+- All company groups seeded to both `company_areas.area_id='tl1a'` and `company_areas.area_id='ibd'`
+
+---
 ## 2026-05-20 IBD Indication Group — Disease-Based Drug Display — SHA: 61e5d62 / da48112 / 74ed99f
 
 ### Design change
