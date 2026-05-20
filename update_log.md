@@ -1,5 +1,21 @@
 
 ---
+## 2026-05-20 BD Intelligence Command Center — SHA: 3d02814 + 7e615e0
+
+### New File: `intelligence.html` → `3d02814`
+- Standalone two-panel command center at `/intelligence.html` on GitHub Pages
+- Left panel (380px fixed): ranked research queue with area filter pills, hide-done toggle, completeness bars, status cycle buttons (Pending → Active → Done), expandable gap chips grouped by stage
+- Right panel: entity detail view with 6-stage completeness breakdown, missing field chips, next best action, five expanders: Drugs table, Clinical Trials, Upcoming Catalysts, BD Deals, Strategic Profile
+- Stage analysis derived from `missing_fields` JSONB array — infers per-stage coverage % by matching field name patterns; counts unique drug prefixes for dynamic field totals
+- Header: `◈ Intelligence` brand mark, identity health mini-stat, `← Dashboard` back link
+- Same Supabase anon key as main dashboard; all reads via RLS-protected SELECT
+
+### Updated: `index.html` → `7e615e0`
+- Added `⚡ Intelligence` nav button to dashboard header (right side, before Submit Intel)
+- Purple-accented styling (`.intel-cmd-btn`) consistent with the intelligence layer theme
+- Links directly to `intelligence.html` for one-click access from main dashboard
+
+---
 ## 2026-05-19 Dashboard Intelligence Upgrades — SHA: a906bce
 
 ### Updated: `index.html` → `a906bce`
