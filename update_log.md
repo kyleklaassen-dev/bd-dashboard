@@ -1,5 +1,20 @@
 
 ---
+## 2026-05-20 Drug Accordion Rows + Remove Intelligence Button — SHA: d97caef
+
+### Updated: `index.html` → `d97caef`
+- **Redesign: entity expanded row** — Replaced card-based drug display in `_genericDetailHTML` with accordion row layout. Applies to all non-Spyre entities across all drug area tabs.
+  - Drug rows: name | stage pill | mechanism (truncated) | route/dosing/indication tags — all in a single scannable row
+  - Click to expand drug: shows differentiation thesis + trial sub-rows
+  - Trial rows: NCT# (hyperlinked to `clinicaltrials.gov/study/NCTXXXX`) | trial name | status badge | phase pill | enrollment | PCD
+  - Click to expand trial: condition, enrollment, dosing type, route, primary endpoint in a 3-col grid
+  - Results sub-dropdown: shown for completed/reported trials with `results_summary`
+  - Drug section renders at TOP of expanded row, above platform summary / BD summary / catalysts / deals
+- **Added CSS classes:** `.pi-da-*` (drug accordion), `.pi-tr-*` (trial rows)
+- **Added JS functions:** `piToggleDrugRow()`, `piToggleTrialRow()`, `piToggleTrialResults()`
+- **Removed: ⚡ Intelligence nav button** — Removed `<a href="intelligence.html" class="intel-cmd-btn">` from header and its associated CSS rules (`.intel-cmd-btn`, `.intel-cmd-btn:hover`). Intelligence page link no longer exposed in the nav.
+
+---
 ## 2026-05-20 Fix: Catalyst Deduplication — SHA: 667e51b
 
 ### Updated: `scripts/company_enrichment.py` → `667e51b`
