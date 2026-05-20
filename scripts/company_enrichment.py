@@ -229,18 +229,62 @@ def resolve_company_id(name: str, company_map: dict) -> Optional[str]:
 #   → Tag discovery_status='auto', confidence_score
 #   → Link to disease area
 #
-# Called once per area per run. Uses Claude Haiku on recent intel.
+# Phase A: Live web search for current competitive landscape (web_search_20250305)
+# Phase B: Claude Haiku compares landscape against existing DB, extracts new entities
+# Secondary: recent Supabase intel used as supplemental signal if available
 # ══════════════════════════════════════════════════════════════════════════
 
 DISCOVERY_SYSTEM = """You are a biopharma competitive intelligence analyst for Ailux Biotherapeutics.
 Identify NEW companies or drug programs that are relevant to the given disease area but not yet in our
 database. Return ONLY valid JSON — no markdown, no explanation."""
 
+LANDSCAPE_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
+Use web_search to find ALL companies with active clinical-stage programs in the given target area.
+Include large pharma (Pfizer, Roche, AZ, Lilly, etc.) as well as small/mid-cap biotechs.
+Focus on programs that are Phase 1 or later. Be comprehensive — missing a player is worse than
+a false positive. Return a structured text report: company name, drug name/ID, mechanism, stage,
+indication, any partnership info."""
+
+
+def gather_landscape_intel(area_id: str) -> str:
+    """
+    Phase A of Step 1: live web search for current competitive landscape.
+    Returns free-text summary or empty string on failure.
+    """
+    area_label = AREA_LABELS_MAP.get(area_id, area_id)
+    year = datetime.datetime.utcnow().year
+
+    prompt = (
+        f"Search for ALL companies with active clinical-stage drug programs targeting {area_label} "
+        f"as of {year-1}-{year}. Include:\n"
+        "1. Large pharma (Pfizer, Roche, AstraZeneca, Lilly, Sanofi, AbbVie, etc.) with relevant programs\n"
+        "2. Mid-cap and small-cap biotechs\n"
+        "3. Academic spinouts with IND-stage programs\n"
+        "For each, find: company name, drug name/compound ID, mechanism of action, clinical phase, "
+        "indication (UC, CD, asthma, etc.), partnership details if any.\n"
+        "Search multiple angles: clinical trial registries, conference abstracts, pipeline pages, press releases."
+    )
+
+    try:
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2500,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
+            system=LANDSCAPE_SEARCH_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        parts = [block.text for block in resp.content if hasattr(block, "text") and block.text]
+        return "\n\n".join(parts)
+    except Exception as e:
+        log(f"  Landscape search error: {e}", indent=1)
+        return ""
+
 
 def step1_discover_new_entities(area_id: str, company_map: dict,
                                   dry_run: bool = False) -> int:
     """
-    Search recent intel for new competitors not yet in the database.
+    Proactively discover new competitors via live web search, then diff against
+    the existing Supabase entity list. Supplemented by recent in-DB intel.
     Returns count of new entities created.
     """
     log(f"\n{'─'*50}")
@@ -252,14 +296,18 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
     })
     existing_ids = {r["company_id"] for r in existing_cos}
 
-    # Pull recent intel for this area (last 14 days)
+    # ── Phase A: live web search for current landscape ──────────────────────
+    log("  Phase A — Web landscape search...", indent=1)
+    landscape_text = gather_landscape_intel(area_id)
+    if landscape_text:
+        log(f"  Landscape search returned {len(landscape_text)} chars", indent=1)
+    else:
+        log("  Landscape search returned nothing — will rely on local intel", indent=1)
+
+    # ── Secondary: recent Supabase intel (last 14 days) ─────────────────────
     fourteen_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).strftime("%Y-%m-%d")
     intel_areas = sb_get("intel_areas", {"area_id": f"eq.{area_id}", "select": "intel_id"})
     intel_ids   = [r["intel_id"] for r in intel_areas[:20]]
-    if not intel_ids:
-        log("  No recent intel — skipping discovery", indent=1)
-        return 0
-
     recent_intel = []
     for iid in intel_ids:
         rows = sb_get("intel", {
@@ -269,38 +317,46 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         })
         recent_intel.extend(rows)
 
-    if not recent_intel:
-        log("  No intel in date range — skipping discovery", indent=1)
+    if not landscape_text and not recent_intel:
+        log("  No web results and no local intel — skipping discovery", indent=1)
         return 0
 
-    intel_text   = "\n\n".join(
+    intel_text = "\n\n".join(
         f"HEADLINE: {i['headline']}\nBODY: {(i.get('body') or '')[:300]}"
         for i in recent_intel[:10]
+    ) if recent_intel else "(none)"
+
+    existing_list = ", ".join(sorted(existing_ids)[:40])
+
+    # Build landscape section safely (no nested f-string with special chars)
+    landscape_section = ""
+    if landscape_text:
+        landscape_section = (
+            "\nCURRENT LANDSCAPE (live web search — primary signal):\n"
+            + landscape_text[:3000]
+        )
+
+    prompt = (
+        f"Disease area: {area_id}  |  Today: {TODAY}\n"
+        f"Already tracked IDs: {existing_list}\n"
+        f"{landscape_section}\n"
+        f"\nSUPPLEMENTAL INTEL (recent Supabase intel, last 14 days):\n{intel_text}\n\n"
+        "Find NEW companies or drugs in this space NOT already tracked above.\n"
+        "Include large pharma subsidiaries/programs if their compound is not yet tracked.\n"
+        "Return only genuine competitive entries (not CROs, service providers, etc.).\n\n"
+        '{"new_entities": [{'
+        '"company_name": "...", "drug_name": "... or null", "target": "...",'
+        '"stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",'
+        '"entity_type": "platform|partnership|standalone|licensed",'
+        '"confidence": 60-100,'
+        '"reason": "one sentence"'
+        "}]}\n\n"
+        'IF none found: {"new_entities": []}'
     )
-    existing_list = ", ".join(sorted(existing_ids)[:30])
-
-    prompt = f"""Disease area: {area_id}  |  Today: {TODAY}
-Already tracked: {existing_list}
-
-Recent news:
-{intel_text}
-
-Find NEW companies or drugs in the {area_id} space NOT in the tracked list.
-Return only genuine competitive entries (not CROs, service providers, etc.).
-
-{{"new_entities": [{{
-  "company_name": "...", "drug_name": "... or null", "target": "...",
-  "stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",
-  "entity_type": "platform|partnership|standalone|licensed",
-  "confidence": 60-100,
-  "reason": "one sentence"
-}}]}}
-
-IF none found: {{"new_entities": []}}"""
 
     try:
         resp = client.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=1024,
+            model="claude-haiku-4-5-20251001", max_tokens=1500,
             system=DISCOVERY_SYSTEM,
             messages=[{"role": "user", "content": prompt}]
         )
