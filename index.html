@@ -7964,9 +7964,21 @@ function _makeAreaPI(tabId, areaIds) {
         <span id="${tid}-area-pi-count" style="font-size:11px;color:#64748b;padding-left:6px"></span>`;
     },
 
-    _clsPill(c)  { const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'}; return `<span class="pi-cls-pill ${m[c]||'pi-cls-1st'}">${c}</span>`; },
+    _clsPill(c)  {
+      // Normalize: accept any casing/alias → canonical label
+      const norm={'1st gen':'1st Gen','2nd gen':'2nd Gen','next gen':'Next Gen','1stgen':'1st Gen','2ndgen':'2nd Gen','nextgen':'Next Gen'};
+      const canon = norm[(c||'').toLowerCase()] || c || '1st Gen';
+      const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
+      return `<span class="pi-cls-pill ${m[canon]||'pi-cls-1st'}">${canon}</span>`;
+    },
     _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre'}; return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`; },
-    _ovBadge(o)  { const m={Direct:'pi-overlap-direct',Adjacent:'pi-overlap-adjacent','Same-Space':'pi-overlap-same',Watch:'pi-overlap-watch'}; return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${o||'Watch'}</span>`; },
+    _ovBadge(o)  {
+      // Normalize: accept any casing → canonical label
+      const norm={direct:'Direct',adjacent:'Adjacent','same-space':'Same-Space','same_space':'Same-Space',samespace:'Same-Space',watch:'Watch'};
+      const canon = norm[(o||'').toLowerCase()] || o || 'Watch';
+      const m={Direct:'pi-overlap-direct',Adjacent:'pi-overlap-adjacent','Same-Space':'pi-overlap-same',Watch:'pi-overlap-watch'};
+      return `<span class="pi-overlap-badge ${m[canon]||'pi-overlap-watch'}">${canon}</span>`;
+    },
     _etypeBadge(t) {
       if (t==='standalone') return '';
       const m={platform:'pi-etype-platform',partnership:'pi-etype-partnership',licensed:'pi-etype-licensed'};
