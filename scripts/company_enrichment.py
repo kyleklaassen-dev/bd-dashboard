@@ -348,6 +348,8 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         '"company_name": "...", "drug_name": "... or null", "target": "...",'
         '"stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",'
         '"entity_type": "platform|partnership|standalone|licensed",'
+        '"partner_co": "name of licensor/partner company or null",'
+        '"overlap": "Direct|Adjacent|Same-Space|Watch",'
         '"confidence": 60-100,'
         '"reason": "one sentence"'
         "}]}\n\n"
@@ -394,14 +396,23 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         co_id = resolve_company_id(co_name, company_map)
         if not co_id:
             co_id = re.sub(r'[^a-z0-9]', '', co_name.lower())[:20]
+            # group_id defaults to co_id for newly discovered standalone entities.
+            # partner_co is set if the entity is a partnership (entity_type field from Claude).
+            partner_co = ent.get("partner_co") or ent.get("partner") or None
             sb_upsert("companies", {
-                "id": co_id, "name": co_name, "ticker": "Private",
+                "id":           co_id,
+                "name":         co_name,
+                "ticker":       "Private",
                 "company_type": "small_cap",
+                "group_id":     co_id,           # self-group by default
+                "display_co":   co_name,          # can be overridden manually later
+                "partner_co":   partner_co,       # populated if Claude finds a partner
+                "overlap":      ent.get("overlap", "Watch"),  # default Watch until enriched
                 "ailux_angle":  f"Newly discovered: {ent.get('reason','')}",
                 "last_verified": TODAY,
             })
             company_map[co_name.lower()] = co_id
-            log(f"    + Company: {co_id}", indent=2)
+            log(f"    + Company: {co_id} (group_id={co_id}, partner={partner_co})", indent=2)
 
         existing_link = sb_get("company_areas", {
             "company_id": f"eq.{co_id}", "area_id": f"eq.{area_id}", "select": "company_id"
