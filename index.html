@@ -9108,7 +9108,9 @@ const tl1aPI = {
   const accentColor  = d.color_hex || (isBispecific ? '#7c3aed' : '#0891b2');
   const lightBg      = d.light_bg_hex || (isBispecific ? '#f5f3ff' : '#ecfeff');
 
-  // Short code for pill label — first word of name, or use name directly if short
+  // RULE: If drug has a brand name, name field is stored as "BrandName (INN)"
+  // → pill shows brand name (first token), popup header shows both
+  // → Never show numbered codes (e.g. "BI 765063") — use brand or INN only
   const fullName  = d.name || d.drug_name || '';
   const shortCode = fullName.length <= 10 ? fullName : fullName.split(/[\s(]/)[0];
   const phase     = d.phase_display || d.stage || '';
@@ -9117,7 +9119,9 @@ const tl1aPI = {
   const btnId = `dyn-btn-${companyId}-${(d.id||fullName).replace(/[^a-z0-9]/gi,'')}`;
 
   // Target display — show "×" for bispecific, "+" for co-administered combos
-  const targetStr = d.mechanism || d.target || '';
+  // RULE: Always prefer d.target (clean notation e.g. "TL1A × IL-23p19") over d.mechanism
+  // (verbose description like "Anti-TL1A × IL-23 bispecific"). Mechanism is for the detail panel only.
+  const targetStr = d.target || d.mechanism || '';
   const targetDisplay = targetStr.length > 20 ? targetStr.replace(' × ', '\n× ') : targetStr;
   const indShort = (d.indication_short || '').split(/[·,]/)[0].trim();
 
@@ -9166,6 +9170,8 @@ const tl1aPI = {
       ${d.dosing_type?`<span style="font-size:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:1px 7px;color:#475569;font-weight:700">${d.dosing_type}</span>`:''}
      </div>
      ${d.indication_short?`<div style="font-size:10.5px;color:#475569;line-height:1.5">📍 <strong>${d.indication_short}</strong></div>`:''}
+     <!-- drug_summary: 2-3 sentence highlight of the most important facts about this molecule -->
+     ${d.drug_summary?`<div style="margin-top:6px;font-size:10.5px;color:#334155;line-height:1.6;border-top:1px solid ${accentColor}22;padding-top:6px">${d.drug_summary}</div>`:''}
     </div>
     <!-- Trials -->
     ${trialsSection}
@@ -9183,7 +9189,8 @@ const tl1aPI = {
      </div>
      <div style="background:#f8fafc;border-radius:7px;padding:9px 10px;overflow-y:auto;max-height:200px">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;margin-bottom:6px">Mechanism &amp; Context</div>
-      <div style="font-size:10.5px;color:#475569;line-height:1.6">${d.mechanism||d.ailux_angle||d.key_data||'<span style="color:#cbd5e1;font-style:italic">Mechanism detail loading — run enrichment pipeline</span>'}</div>
+      <!-- RULE: Prefer mechanism_detail (rich narrative with clinical context) over mechanism (short label) -->
+      <div style="font-size:10.5px;color:#475569;line-height:1.6">${d.mechanism_detail||d.mechanism||d.ailux_angle||d.key_data||'<span style="color:#cbd5e1;font-style:italic">Mechanism detail loading — run enrichment pipeline</span>'}</div>
       ${d.vs_ailux?`<div style="margin-top:8px;padding:6px 8px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;font-size:10px;color:#92400e"><strong>vs Ailux:</strong> ${d.vs_ailux}</div>`:''}
      </div>
     </div>
