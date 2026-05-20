@@ -1,5 +1,61 @@
 
 ---
+## 2026-05-20 Dynamic PI Table + Supabase Seeding Architecture — SHA: 4106c42 / 1988da9 / c247b42
+
+### Updated: `index.html` → `4106c42`
+- **`_loadSbDiscoveredRows()` added** — new async method called on `tl1aPI.init()`. Fetches all `company_areas` rows for `tl1a` from Supabase, identifies companies **not** in the static `TL1A_PROGRAMS` array (matched by `group_id`), synthesizes program entries for them, and merges into `this.data`. Pipeline-discovered companies now appear in the TL1A PI table automatically without any HTML edits.
+- **`toggle()` updated** — now searches `this.data` (includes dynamically merged rows) instead of just `TL1A_PROGRAMS`. Supabase-discovered companies can be expanded and their detail loaded like any static entry.
+- **`_loadIntelStatus()` updated** — uses `this.data` (includes merged rows) when computing the no-intel dot set, so pipeline-discovered companies also get the blinking green research dot.
+
+### Updated: `scripts/company_enrichment.py` → `c247b42`
+- **Step 1 now writes `group_id`, `partner_co`, `display_co`, `overlap`** — newly discovered entities get `group_id = co_id` (self-group by default), `display_co = co_name`, `partner_co` from Claude's JSON output (new field in discovery schema), `overlap` from Claude's classification (new field; defaults to `Watch`).
+- **Discovery JSON schema extended** — two new fields added to the entity JSON Claude returns: `partner_co` (licensor/partner company name or null) and `overlap` (Direct / Adjacent / Same-Space / Watch classification).
+
+### Updated: `scripts/seed_tl1a_companies.py` → `1988da9` *(new file)*
+- **One-time (re-runnable) seeding script** — seeds all 14 TL1A companies + 19 drugs to Supabase with `partner_co`, `group_id`, `display_co`, `overlap` populated. Idempotent via upsert with merge-duplicates. Ensures Episcience, Caldera, Earendil, LaNova, Mirador, and all others are in Supabase so the pipeline can enrich them going forward.
+- **Run result:** All 14 companies × `tl1a` area links + 19 drugs seeded successfully.
+
+### New: `scripts/schema_migration_v7.sql` → `1e829ac`
+- **Added `partner_co TEXT`, `group_id TEXT`, `display_co TEXT`, `overlap TEXT`** columns to `companies` table via Supabase Management API. Index added on `group_id`. Migration applied successfully.
+
+---
+## 2026-05-20 Drug Row Redesign + Spyre Standard Format + Episcience Fixes — SHA: ef5b8c8
+
+### Updated: `index.html` → `ef5b8c8`
+- **Drug row header redesigned** — Drug accordion rows now show: Drug Name | Target | Phase Pill | Indication tag. Partner company (Telavant, Teva, BI, etc.) shown as a blue "w/ [Partner]" tag inline with the drug name. All route/dosing/other detail stays in the expanded sub-row. Removes the "AbbVie TL1A mAb" style naming — shows just the drug name itself.
+- **Spyre converted to standard accordion format** — Removed `_spyreDetailHTML` special case. Spyre now uses `_genericDetailHTML` like all other companies. SPY002 and SPY230 each appear as their own drug accordion rows with target/phase/indication. Supabase queries use `company_id='spyre'`.
+- **Spyre toggle no longer excluded** from `_loadDynamicDetail` — all companies go through the same path. Toggle now uses `gid` (groupId) as the Supabase company_id for all queries, fixing the Supabase lookup mismatch for grouped companies.
+- **Cache and DOM keys normalized** — `_profileCache` and placeholder div ids now keyed by `gid` (groupId) throughout `_renderTable` and `toggle`.
+- **Partner subtext removed from company column** — No more "w/ [Partner]" italic text under the company name in the table row. Partner info now lives in the drug row header only.
+- **Episcience static entry fixed** — `cls:'Direct'` → `'Next Gen'`; `overlap:'watch'` → `'Watch'`. Previously these wrong values caused the class pill and relevance badge to render incorrectly.
+
+---
+## 2026-05-20 Consolidate PI Table — One Row Per Company — SHA: e8d59b6
+
+### Updated: `index.html` → `e8d59b6`
+- **Consolidated PI table by lead company** — Each company now appears once in the table. Multiple programs from the same company (AbbVie × 3, Xencor × 2, Spyre × 2) collapse into a single row. Clicking expands to show all drugs under that company.
+- **Added `groupId` field to all 18 `TL1A_PROGRAMS` entries** — Groups: `abbvie` (FG-M701 + Skyrizi + Rinvoq), `xencor` (XmAb942 + XmAb412), `spyre` (SPY002 + SPY230). All other entries have `groupId` = their own singleton.
+- **Updated `co` display names** — Removed partner company from company name column. Partner company now shown as small italic "w/ [Partner]" subtext. Changes: Roche/Telavant→Roche, Sanofi/Teva→Sanofi, Simcere/BI→Simcere, Caldera/Qyuns→Caldera, LaNova/Zymeworks→LaNova, Earendil/Helixon(Sanofi)→Earendil/Helixon, Xencor(XmAb412)→Xencor, Spyre(SPY230)→Spyre Therapeutics. New `partnerCo` field added where applicable.
+- **Drug column shows primary drug + "+N more" badge** for multi-drug groups (purple pill badge).
+- **Stage + Relevance show best value across group** — most advanced stage, most direct overlap.
+- **`_renderTable` rewritten** to group sorted entries by `groupId`, build one row per group with aggregate display values.
+- **`toggle(gid)` updated** — toggle key is now `groupId`. Builds `combinedProg` with `_groupEntries` (all programs in group) for static drug fallback.
+- **`_genericDetailHTML` static fallback updated** — when Supabase has no drugs, iterates `_groupEntries` to build one drug accordion row per program entry (with per-entry `_staticTrials`). Resolves trial spillover for multi-program statics.
+- **Counter updated** — now shows "N companies" (unique group count) not "N programs".
+
+---
+## 2026-05-20 Fix: Trial Spillover + AbbVie FG-M701 Entry + Duvakitug NCT Seeds — SHA: 7ce41ac / c534d5b
+
+### Updated: `index.html` → `7ce41ac`
+- **Fix: trial spillover in multi-drug entities** — `_genericDetailHTML` was falling back to static `prog.trials` even when Supabase drugs had loaded but trials hadn't synced yet. All static trials had no `drug_id` so they fell into `trialsByDrug['__all__']`, which every drug row consumed, producing duplicate trial lists.
+  - **Fix 1 (allTrials fallback):** Only use `prog.trials` when `sbDrugs.length === 0` (fully static mode). If Supabase drugs are present but trials are empty, use `[]` rather than spilling static trials across all drug rows.
+  - **Fix 2 (`__all__` bucket):** Restrict `trialsByDrug['__all__']` lookup to single-drug entities only (`drugsToRender.length <= 1`). Multi-drug entities never fall back to `__all__`.
+- **Added: AbbVie Direct TL1A entry (FG-M701)** — New `TL1A_PROGRAMS` entry `{ id:'abbvie', co:'AbbVie', drug:'FG-M701', overlap:'Direct', stageKey:'Phase 1' }` inserted before indirect competitors. Maps to Supabase `company_id='abbvie'` where `fg-m701` and `abbvie-tl1a` both exist. Fixes FG-M701 not appearing even though a deal row referenced it — root cause was prior `'abbvie-skyrizi'` entry ID not matching Supabase.
+
+### Updated: `scripts/ct_gov_sync.py` → `c534d5b`
+- **Added Duvakitug to NCT_SEED_MAP** — 5 NCT IDs now hardcoded: STARSCAPE-UC induction (NCT07184996), STARSCAPE-UC maintenance (NCT07185009), SUNSCAPE-CD induction (NCT07184931), SUNSCAPE-CD maintenance (NCT07184944), Phase 2b UC+CD completed (NCT05499130). Previously used search path ("use search: duvakitug") which failed to populate trials in Supabase.
+
+---
 ## 2026-05-20 Cleanup: Remove Research Queue + Inline Edit — SHA: 6cf3ccc
 
 ### Updated: `index.html` → `6cf3ccc`
