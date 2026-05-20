@@ -9516,7 +9516,7 @@ const tl1aPI = {
   // RULE: "Related News" = any notable company event — formal deals, financing rounds,
   // pipeline milestones, press releases. Sourced from deals table + intel table.
   let dealsHTML;
-  const newsItems = sbDealsAll.length ? sbDealsAll : (prog.deals || []);
+  const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
   if (newsItems.length) {
    const newsRows = newsItems.map(d => {
     const date  = d.deal_date_label || (d.deal_date||'').slice(0,10) || d.date || '';
