@@ -8414,15 +8414,20 @@ const TL1A_PROGRAMS = [
    risk:'Largest Phase 3 program in the class but latest readouts (UC primary: Sep 2028, CD: Aug 2029). Merck ATLAS-UC data (Nov 2026) will land 2+ years earlier and could shift market positioning. As a mono, duvakitug competes on efficacy vs. Roche/Merck rather than differentiated mechanism.',
    diff:'48% Phase 2b UC remission — highest anti-TL1A monotherapy efficacy ever reported. No companion Dx. ~3,382-patient Phase 3 program is the largest in the class. Sets the mono efficacy ceiling that Ailux and other bispecifics must beat.' },
 
- { id:'spyre-mono', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY002 (Anti-TL1A)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct',
-   summary:'Spyre Therapeutics (Agenus IBD spinout, 2024; NASDAQ: SYRE) raised $783M to fund a 7-program IBD + rheumatic disease platform. Correct pipeline: SPY001 (anti-α4β7, Ph2, April 2026 data), SPY002 (anti-TL1A, Ph2), SPY003 (anti-IL-23, Ph2), SPY072 (anti-TL1A for RA/PsA/axSpA, Ph2 SKYWAY), and combination programs SPY120 (α4β7+TL1A), SPY130 (α4β7+IL-23), SPY230 (TL1A+IL-23). All antibodies use YTE Fc modification for extended half-life (target: Q3M–Q6M dosing). SKYLINE Phase 2 platform (NCT07012395) tests all 3 monotherapies + 3 combinations in UC. SPY001 Part A data (April 2026): RHI -9.2 pts, clinical remission and endoscopic improvement met. SPY002 and SPY003 Part A data expected mid-2026 and Q3 2026 respectively.',
+ // ── SPYRE THERAPEUTICS — 7-program platform ──────────────────────────────
+ // NOTE on naming convention:
+ //   "+" = rational combination (two separate mAbs co-administered, e.g. SPY002 + SPY003)
+ //   "×" = bispecific (single molecule, two targets — Spyre has NO bispecifics)
+ // SPY230 is listed first (primary): same dual-target as Ailux TL1A × IL-23p19, but as combo not bispecific.
+ { id:'spyre-spy230', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY230', target:'IL-23 + TL1A', cls:'Next Gen', stageKey:'Phase 2', overlap:'Direct',
+   summary:'Spyre Therapeutics (Agenus IBD spinout, 2024; NASDAQ: SYRE) raised $783M to advance a 7-program IBD + rheumatic disease platform built on YTE Fc modification for extended half-life. IMPORTANT: Spyre has NO bispecifics — all programs are monospecific mAbs or rational two-antibody combinations (+). Pipeline: SPY001 (anti-α4β7 mAb, Ph2, Part A data Apr 2026 ✅), SPY002 (anti-TL1A mAb, Ph2, Part A data mid-2026), SPY003 (anti-IL-23 mAb, Ph2, Part A data Q3 2026), SPY072 (anti-TL1A mAb for RA/PsA/axSpA, Ph2 SKYWAY), and combinations SPY120 (α4β7 + TL1A), SPY130 (α4β7 + IL-23), SPY230 (IL-23 + TL1A). SPY230 (= SPY003 + SPY002) targets the same dual pathway as all standalone TL1A×IL-23 bispecifics — the 2027 SKYLINE Part B data is the most critical test for the bispecific hypothesis.',
    catalysts:[
     {date:'April 2026',event:'SPY001 (α4β7) SKYLINE Part A UC induction data — RHI -9.2 pts, clinical remission, endoscopic improvement ✅ (NCT07012395)',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-announces-potential-best-class-spy001-part-induction'},
-    {date:'Mid-2026',event:'SPY002 (TL1A) SKYLINE Part A UC induction POC data',url:'https://clinicaltrials.gov/study/NCT07012395'},
-    {date:'Q3 2026',event:'SPY003 (IL-23) SKYLINE Part A UC induction POC data',url:'https://clinicaltrials.gov/study/NCT07012395'},
-    {date:'Q3 2026',event:'SPY072 (TL1A) SKYWAY Phase 2 RA sub-study W12 topline data (NCT07148414)',url:'https://clinicaltrials.gov/study/NCT07148414'},
+    {date:'Mid-2026',event:'SPY002 (anti-TL1A mAb) SKYLINE Part A UC induction POC data',url:'https://clinicaltrials.gov/study/NCT07012395'},
+    {date:'Q3 2026',event:'SPY003 (anti-IL-23 mAb) SKYLINE Part A UC induction POC data',url:'https://clinicaltrials.gov/study/NCT07012395'},
+    {date:'Q3 2026',event:'SPY072 (anti-TL1A mAb) SKYWAY Phase 2 RA sub-study W12 topline data (NCT07148414)',url:'https://clinicaltrials.gov/study/NCT07148414'},
     {date:'Q4 2026',event:'SPY072 SKYWAY Phase 2 PsA and axSpA W16 topline data',url:'https://clinicaltrials.gov/study/NCT07148414'},
-    {date:'2027',event:'SKYLINE Part B combination data (SPY120, SPY130, SPY230)',url:'https://clinicaltrials.gov/study/NCT07012395'}
+    {date:'2027',event:'SKYLINE Part B combination data — SPY120 (α4β7+TL1A), SPY130 (α4β7+IL-23), SPY230 (IL-23+TL1A) vs. mono',url:'https://clinicaltrials.gov/study/NCT07012395'}
    ],
    trials:[
     {nct:'NCT07012395',name:'SKYLINE — Ph2 platform trial UC: SPY001/SPY002/SPY003 mono + SPY120/SPY130/SPY230 combos',phase:'Phase 2',status:'Part A ongoing / Part B Enrolling',n:645,pcd:'Part B 2027',primary:'Part A: ΔRHI at W12 (open-label) · Part B: % clinical remission (placebo-controlled)'},
@@ -8437,7 +8442,16 @@ const TL1A_PROGRAMS = [
     {date:'Feb 2024',desc:'Agenus IBD spinout — Agenus contributed SPY001, SPY002, SPY003 programs and exclusive YTE Fc platform IP to Spyre; Agenus retained equity ownership (~25%) and tiered royalties on future net sales across all Spyre programs',url:'https://ir.spyre.com/'},
    ],
    risk:'7-program pipeline execution risk (3 Ph2 trials simultaneously). SKYLINE Part B combination vs. mono data (2027) could show mono suffices, reducing value of combination assets. YTE safety profile still being established in IBD populations.',
-   diff:'Only company with YTE-modified antibodies across all three major IBD pathways (TL1A, α4β7, IL-23) + TL1A in rheumatic diseases. SKYLINE directly tests combination vs. mono — the most informative head-to-head IBD platform study ever designed. SPY001 April 2026 data already shows best-in-class potential vs. vedolizumab.' },
+   diff:'SPY230 (IL-23 + TL1A combination) directly tests the same dual-target hypothesis as all TL1A×IL-23 bispecific programs — 2027 SKYLINE Part B data will be the first direct clinical test. Only company with YTE-modified antibodies across TL1A, α4β7, and IL-23 pathways. SPY001 April 2026 data already demonstrates best-in-class potential vs. vedolizumab.' },
+ // Additional Spyre entries — Direct competitors
+ { id:'spyre-spy002', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY002', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct' },
+ { id:'spyre-spy003', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY003', target:'IL-23', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct' },
+ { id:'spyre-spy120', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY120', target:'α4β7 + TL1A', cls:'Next Gen', stageKey:'Phase 2', overlap:'Direct' },
+ { id:'spyre-spy130', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY130', target:'α4β7 + IL-23', cls:'Next Gen', stageKey:'Phase 2', overlap:'Direct' },
+ // Additional Spyre entries — Adjacent (different mechanism or indication)
+ { id:'spyre-spy001', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY001', target:'α4β7', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Adjacent' },
+ { id:'spyre-spy072', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY072', target:'TL1A (RA/PsA)', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Adjacent' },
+ // ─────────────────────────────────────────────────────────────────────────────
 
  { id:'xencor-942', co:'Xencor', ticker:'XNCR', groupId:'xencor', drug:'XmAb942 (XTEND-Fc)', target:'TL1A', cls:'2nd Gen', stageKey:'Phase 2', overlap:'Direct',
    summary:'XmAb942 is an XTEND-Fc anti-TL1A mAb engineered for ultra-long half-life via enhanced FcRn binding. Phase 1 HV study (reported Apr 2025) demonstrated ~74-day half-life, supporting quarterly (Q13W) or longer SC dosing — a major convenience advantage. XENITH-UC study (NCT06619990) combines Phase 1 HV safety/PK (Parts A+B) with a Phase 2b efficacy cohort in UC (Part C, primary endpoint: modified Mayo clinical remission). N=270 total, start Oct 2024, primary completion Apr 2028. Xencor is running BOTH XmAb942 (mono, Ph2b) and XmAb412 (TL1A×IL-23 bispecific, FIH planned Q3 2026) simultaneously — unique dual-track strategy.',
@@ -8509,19 +8523,6 @@ const TL1A_PROGRAMS = [
    risk:'VHH nanobody format is clinically unvalidated in IBD — unknown immunogenicity risk vs. standard IgG (potential for anti-drug antibodies). Tissue penetration advantage is theoretical in IBD context.',
    diff:'Smallest molecular format in TL1A class — VHH nanobody bispecific. Potential tissue penetration and manufacturing cost advantage. Seeking global partner — could be acquired before Ph2 at significant premium if Ph1 data are clean.' },
 
- { id:'spyre-230', co:'Spyre Therapeutics', ticker:'SYRE', groupId:'spyre', drug:'SPY230 (TL1A + IL-23)', target:'TL1A + IL-23', cls:'Next Gen', stageKey:'Phase 2', overlap:'Direct',
-   summary:'SPY230 is Spyre\'s TL1A + IL-23 dual-blockade program — the same target pair as the standalone bispecific programs (Mirador MT-251, Xencor XmAb412, Earendil HXN-1003). IMPORTANT DATA CORRECTION: SPY003 is Spyre\'s anti-IL-23 MONOCLONAL (not a bispecific); SPY230 is the TL1A+IL-23 COMBINATION therapy tested in SKYLINE Part B (NCT07012395). SPY230 co-administers SPY002 (anti-TL1A) and SPY003 (anti-IL-23) with unified Q3M–Q6M dosing. Enrollment for SKYLINE Part B opened in 2026. This is a rare direct head-to-head test of combination vs. mono TL1A and IL-23 blockade in the same platform study — the data most relevant to validating the bispecific hypothesis.',
-   catalysts:[
-    {date:'Mid-2026',event:'SPY002 mono Part A data — establishes TL1A monotherapy ceiling (NCT07012395)',url:'https://clinicaltrials.gov/study/NCT07012395'},
-    {date:'Q3 2026',event:'SPY003 mono Part A data — establishes IL-23 monotherapy ceiling',url:'https://clinicaltrials.gov/study/NCT07012395'},
-    {date:'2027',event:'SPY230 combination Part B induction POC data (TL1A+IL-23 vs. mono)',url:'https://clinicaltrials.gov/study/NCT07012395'}
-   ],
-   trials:[
-    {nct:'NCT07012395',name:'SKYLINE Part B — SPY230 combination arm (SPY002+SPY003, TL1A+IL-23) in UC',phase:'Phase 2',status:'Enrolling (Part B)',n:null,pcd:'2027',primary:'% clinical remission (modified Mayo Score) vs. placebo at W12'},
-   ],
-   deals:[{date:'2024',desc:'$783M total financing — covers SPY230 and all SKYLINE Part B combination arms through Ph2 readouts',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-announces-positive-interim-phase-1-results'}],
-   risk:'SPY230 Part B data (2027) is the critical test: if TL1A mono (SPY002) alone delivers sufficient remission, the combination adds cost/complexity with minimal delta — reducing bispecific rationale. This dataset directly impacts the value proposition of all TL1A×IL-23 bispecific programs.',
-   diff:'The only TL1A+IL-23 combination program with direct head-to-head vs. mono in the same trial (SKYLINE). Part B data in 2027 is uniquely informative — testing the exact same hypothesis as Mirador/Simcere bispecifics with a co-administered regimen rather than a single bispecific molecule. Outcome determines whether dual blockade deserves the bispecific premium.' },
  { id:'episcience', co:'Episcience', ticker:'Private', groupId:'episcience', drug:'ES302', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Preclinical', overlap:'Watch',
    summary:'Episcience is developing ES302, a preclinical-stage TL1A × IL-23p19 bispecific. Very limited public data available. One of ≥4 Chinese companies with this exact target combination. IND-enabling studies are expected 2026–2027. Episcience represents the earlier end of the Chinese TL1A bispecific wave — the Simcere/BI (€42M upfront at pre-IND) and Earendil/Sanofi ($125M upfront at pre-IND) deals have established a compelling valuation framework for Chinese pre-IND TL1A bispecifics, but also intensified competition for global pharma attention.',
    catalysts:[{date:'2026–2027',event:'IND-enabling study completion'},{date:'2027',event:'IND filing — potential out-licensing window before first human dosing'}],
