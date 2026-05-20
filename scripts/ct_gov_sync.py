@@ -170,7 +170,13 @@ NCT_SEED_MAP: dict[str, list[str]] = {
     "mt-251": [
         "NCT07423299",   # Phase 1 FIH — healthy volunteers (N=70)
     ],
-    # Duvakitug — NCT IDs not hardcoded (use search: "duvakitug")
+    "duvakitug": [
+        "NCT07184996",   # STARSCAPE UC — induction (N=980, PCD May 2028)
+        "NCT07185009",   # STARSCAPE UC — maintenance (N=671, PCD Sep 2028)
+        "NCT07184931",   # SUNSCAPE CD — induction (N=980, PCD May 2029)
+        "NCT07184944",   # SUNSCAPE CD — maintenance (N=751, PCD Aug 2029)
+        "NCT05499130",   # Phase 2b UC + CD — completed (N=290, PCD Nov 2024)
+    ],
     # Izokibep — use search: "izokibep"
     # FG-M701  — use search: "fg-m701" or "FG-M701"
     # SIM0709  — pre-IND, no trial yet (trial_data_status='pending')
