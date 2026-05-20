@@ -1,6 +1,26 @@
 
 ---
-## 2026-05-20 Data quality pass: Xencor fixes + notation standards — SHA: pending
+## 2026-05-20 Trial display redesign + Spyre route fix — index.html: pending
+
+### What changed
+
+**index.html — trial row redesign in drug popup:**
+- Trial name now shown inline next to NCT number (linked) — no more redundant label text
+- Compact badge row: Phase badge (blue) · Status (green/amber) · N=xxx · PCD date
+- Primary endpoint shown as snippet in collapsed view
+- Click anywhere on trial row to expand full details: indication, full endpoint, sponsor, CT.gov link
+- Chevron (▼/▲) indicates expand state; click uses stopPropagation so popup stays open
+- Status color-coded: green = recruiting/active, amber = completed/closed, grey = other
+
+**Supabase + seed_tl1a_companies.py — Spyre route fix:**
+- SKYLINE-UC (NCT07012395) explicitly states IV induction + SC maintenance
+- All 6 SKYLINE platform drugs now show route="IV/SC", dosing_type="Induction + Maintenance"
+  - SPY001, SPY002, SPY003 (monotherapies) + SPY120, SPY130, SPY230 (combinations)
+- SPY072 (SKYWAY-RD rheumatology trial) unchanged — SC only, separate trial
+- Patched directly in Supabase + updated seed script comments with NCT07012395 reference
+
+---
+## 2026-05-20 Data quality pass: Xencor fixes + notation standards — index.html: 734cfaa7 | seed: 4c0945cd | enrichment: 4f57c053
 
 ### What changed
 Multi-layer data quality fixes addressing target notation precision, display priority bugs, enrichment standards, and seed script correctness.
