@@ -7302,12 +7302,29 @@ function dknReset() {
 </div><!-- end tab-pharma-intel -->
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 40px;background:#edf1f7;min-height:100vh">
-  <div style="max-width:1200px;margin:0 auto;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
-    <iframe id="meridian-issue-frame"
-     src=""
-     style="width:100%;height:calc(100vh - 120px);min-height:640px;border:none;display:block;"
-     title="Today's Meridian Issue">
-    </iframe>
+  <div style="max-width:1200px;margin:0 auto;">
+    <!-- Archive header bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:white;border-radius:10px 10px 0 0;border-bottom:2.5px solid #1a3f8f;">
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;color:#1a3f8f;">
+        📰 The Meridian
+        <span style="font-size:11px;font-weight:700;color:#64748b;margin-left:10px;font-family:Calibri,Helvetica,sans-serif;letter-spacing:1.2px;text-transform:uppercase;">Issue Archive</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="meridian-issue-count" style="font-size:11px;color:#94a3b8;font-family:Calibri,Helvetica,sans-serif;"></span>
+        <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
+          style="font-size:13px;border:1px solid #cbd5e1;border-radius:6px;padding:6px 12px;color:#1a2e4a;background:white;cursor:pointer;min-width:240px;">
+          <option>Loading issues…</option>
+        </select>
+      </div>
+    </div>
+    <!-- Issue viewer -->
+    <div style="background:white;border-radius:0 0 10px 10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
+      <iframe id="meridian-issue-frame"
+       srcdoc="<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading issue…</p>"
+       style="width:100%;height:calc(100vh - 170px);min-height:600px;border:none;display:block;"
+       title="The Meridian">
+      </iframe>
+    </div>
   </div>
 </div>
 
@@ -7640,11 +7657,66 @@ function updateTabTitle(id) {
  titleEl.classList.toggle('is-drug', isDrug);
  if (!isDrug) closeCenterDrugDD();
 }
-function _setMeridianIframeSrc() {
+// ── Meridian Archive ──────────────────────────────────────────────────────────
+let _meridianLoaded = false;
+
+async function loadMeridianIssue() {
+  if (_meridianLoaded) return;
+  _meridianLoaded = true;
+
+  const picker  = document.getElementById('meridian-issue-picker');
+  const counter = document.getElementById('meridian-issue-count');
+  const frame   = document.getElementById('meridian-issue-frame');
+  if (!picker || !frame || !_sb) return;
+
+  try {
+    const { data: issues } = await _sb
+      .from('meridian_issues')
+      .select('id, issue_date, title')
+      .order('issue_date', { ascending: false });
+
+    if (!issues || issues.length === 0) {
+      // No archive yet — fall back to GitHub Pages live file
+      frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+      picker.innerHTML = '<option>Today\'s Issue</option>';
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    picker.innerHTML = issues.map(issue => {
+      const d     = new Date(issue.issue_date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      const tag   = issue.issue_date === today ? ' — Today' : '';
+      return `<option value="${issue.id}">${label}${tag}</option>`;
+    }).join('');
+
+    if (counter) counter.textContent = `${issues.length} issue${issues.length !== 1 ? 's' : ''}`;
+
+    // Load the most recent issue
+    await renderMeridianIssue(issues[0].id);
+
+  } catch(e) {
+    console.warn('[MERIDIAN:load]', e);
+    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+  }
+}
+
+async function renderMeridianIssue(issueId) {
   const frame = document.getElementById('meridian-issue-frame');
-  if (!frame) return;
-  const v = new Date().toISOString().slice(0,10); // YYYY-MM-DD — changes daily, busts cache
-  frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + v;
+  if (!frame || !_sb) return;
+  frame.srcdoc = "<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading…</p>";
+  try {
+    const { data } = await _sb
+      .from('meridian_issues')
+      .select('body_html')
+      .eq('id', issueId)
+      .single();
+    if (data?.body_html) {
+      frame.srcdoc = data.body_html;
+    }
+  } catch(e) {
+    console.warn('[MERIDIAN:render]', e);
+  }
 }
 // ── TAB REGISTRY ─────────────────────────────────────────────────────
 // Isolated per-tab lifecycle hooks. Errors in one tab never affect others.
@@ -7655,7 +7727,7 @@ function registerTab(id, hooks = {}) { TAB_REGISTRY[id] = hooks; }
 
 // Core tab registrations — add new target tabs here as the platform grows
 registerTab('meridian-issue', {
-  onEnter() { _setMeridianIframeSrc(); }
+  onEnter() { loadMeridianIssue(); }
 });
 registerTab('industry-insights', {
   onEnter() { loadRollingDeals(); loadLiveIntel(); }
