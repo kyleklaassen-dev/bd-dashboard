@@ -1,5 +1,76 @@
 
 ---
+## 2026-05-20 Study acronym support — full stack (Task #308)
+
+### What changed
+
+**schema_migration_v10.sql (run in Supabase SQL editor):**
+- `trials.study_acronym TEXT` — branded program acronym (e.g. SKYLINE-UC, U-ACHIEVE, PURSUIT)
+- `drugs.approval_date TEXT` — regulatory approval date + indication
+- `drugs.annual_revenue TEXT` — latest reported annual revenue with year
+- `drugs.patient_population TEXT` — estimated patients on therapy globally
+- `drugs.final_endpoints TEXT` — pivotal trial primary endpoint results narrative
+- Index: `trials_study_acronym_idx` on `trials(study_acronym)`
+
+**scripts/ct_gov_sync.py:**
+- `parse_ct_study()` now extracts `id_mod.get("acronym")` as `study_acronym`
+- Included in the returned record dict and upserted to Supabase trials table
+
+**scripts/company_enrichment.py:**
+- `build_step5_prompt()` now includes `study_acronym` in trials context passed to Claude
+- Added `trial_updates` output section to JSON schema: `trial_id` + `study_acronym` per trial
+- Added approved drug fields to `drug_updates` schema: `approval_date`, `annual_revenue`, `patient_population`, `final_endpoints`
+- Added STUDY ACRONYM GUIDANCE and APPROVED DRUG GUIDANCE to prompt RULES section
+- `write_step5()` now handles `trial_updates` — patches `trials` table with `study_acronym`
+
+**index.html — trial row UI:**
+- Added `.pi-tr-acronym` CSS class: navy blue pill badge, small caps, blue tint background
+- Trial rows now read `t.study_acronym` and render acronym badge between NCT link and status pill
+- When present (e.g., SKYLINE, U-ACHIEVE), shows as compact `[ACRONYM]` badge in collapsed row
+- Full study name still only appears in expanded detail on click
+
+---
+## 2026-05-20 Home tab redesign — 4 launcher buttons + overlay card — index.html: deployed 2a3d52e
+
+### What changed
+
+**Home tab layout (entire tab replaced):**
+- Removed stacked full-width cards (Key Catalysts, BD Signal, Deal Activity, Essential Updates)
+- Added 4 centered launcher buttons in a horizontal row: 📅 Key Catalysts, ◈ BD Signal, 💼 Deal Activity, ⚡ Essential Updates
+- Each button: white card, 190px, accent top border, hover lift animation, accent color highlight on active
+
+**Overlay card:**
+- Click any launcher → full-width overlay (92%, max 1180px) appears centered with backdrop blur
+- Colored header bar matching launcher accent (blue/navy/green/orange) with panel title + ✕ close
+- Scrollable body (max-height 82vh, thin scrollbar)
+- Click backdrop or press Escape to dismiss
+- All existing IDs preserved: `#home-catalysts-anchor`, `#bd-signal-panel`, `#home-deals-anchor`, `#meridian-reader-anchor`, `#catalysts-list`, `#deals-list`, `#bd-signal-body`, `#meridian-reader-items`
+- All existing JS load functions + filters continue working unchanged
+
+**JS:** `openHomePanel(panel)` / `closeHomePanel()` with Escape key listener
+
+---
+## 2026-05-20 Fix target display in drug accordion + Drugs to Know — index.html: deployed 7457be5
+
+### What changed
+
+**Drug accordion (`_genericDetailHTML` line ~9397):**
+- `const drugTarget = d.mechanism || d.target` → `d.target || d.mechanism`
+- Ensures clean notation ("TL1A", "IL-23p19") appears in accordion headers, not verbose mechanism strings
+
+**Drugs to Know table (line ~2661):**
+- Was: `(d.mechanism || '').replace(...)` — showed "Anti-TL1A mAb", "Anti-IL-23p19 mAb" etc.
+- Now: `const targetDisplay = d.target || d.mechanism` — shows "TL1A", "IL-23p19"
+
+This completes the 3-location target display standardisation (pill, accordion, table all now prefer d.target).
+
+**Supabase data fixes (same session):**
+- Deleted ghost `abbvie-tl1a` drug record (stale record with no target, showing "AbbVie TL1A mAb")
+- Patched risankizumab: target="IL-23p19", mechanism="Anti-IL-23p19 mAb"
+- Patched upadacitinib: mechanism="JAK1 inhibitor (oral small molecule)"
+- Patched fg-m701: mechanism="Anti-TL1A mAb"
+
+---
 ## 2026-05-20 Related News panel + deal discovery broadening — index.html: pending
 
 ### What changed
