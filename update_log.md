@@ -1,5 +1,30 @@
 
 ---
+## 2026-05-20 Company card polish — exact dates, drug news, pipeline link removed (Tasks #313–315)
+
+### What changed
+
+**Exact dates everywhere:**
+- Added `fmtExactDate()` helper: converts `YYYY-MM-DD` → "May 19, 2026"; passes through already-formatted strings (e.g. "Q3 2026", "April 28, 2028")
+- Related News items now show exact date from `deal_date` field instead of `deal_date_label` (month-year only)
+- Catalyst dates unchanged — already stored as formatted strings from enrichment prompt
+
+**Catalyst + Related News scroll cap reduced to 5:**
+- Scroll trigger was already >5; `max-height` adjusted from 210px → 165px (≈5 items @ ~33px each)
+- Count note ("N upcoming · scroll for more") remains above the scroll container
+
+**Drug-specific Related News in accordion:**
+- Each drug row in the accordion now has a "📰 Related News" section at the bottom of its expanded body
+- Filtered from `sbDeals` by `canonical_drug_id === drug.id` — only news linked to that specific drug
+- Shows 3 items visible (78px max-height), scrollable to 10 total
+- Single-line layout: date | type badge | title (clickable ↗ link, ellipsis if overflow)
+- Populated as the enrichment pipeline links deals to canonical drug IDs via Step 6
+- Added `renderNewsItem(d, singleLine)` helper used by both company-level and drug-level news sections
+
+**Full Pipeline link removed:**
+- Removed the `Full Pipeline ↗` link from the "Drug Pipeline" section header in every company card
+
+---
 ## 2026-05-20 Study acronym support — full stack (Task #308)
 
 ### What changed
