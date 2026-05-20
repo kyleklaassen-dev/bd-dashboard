@@ -8522,7 +8522,7 @@ const TL1A_PROGRAMS = [
    deals:[{date:'2024',desc:'$783M total financing — covers SPY230 and all SKYLINE Part B combination arms through Ph2 readouts',url:'https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-announces-positive-interim-phase-1-results'}],
    risk:'SPY230 Part B data (2027) is the critical test: if TL1A mono (SPY002) alone delivers sufficient remission, the combination adds cost/complexity with minimal delta — reducing bispecific rationale. This dataset directly impacts the value proposition of all TL1A×IL-23 bispecific programs.',
    diff:'The only TL1A+IL-23 combination program with direct head-to-head vs. mono in the same trial (SKYLINE). Part B data in 2027 is uniquely informative — testing the exact same hypothesis as Mirador/Simcere bispecifics with a co-administered regimen rather than a single bispecific molecule. Outcome determines whether dual blockade deserves the bispecific premium.' },
- { id:'episcience', co:'Episcience', ticker:'Private', groupId:'episcience', drug:'ES302', target:'TL1A × IL-23p19', cls:'Direct', stageKey:'Preclinical', overlap:'watch',
+ { id:'episcience', co:'Episcience', ticker:'Private', groupId:'episcience', drug:'ES302', target:'TL1A × IL-23p19', cls:'Next Gen', stageKey:'Preclinical', overlap:'Watch',
    summary:'Episcience is developing ES302, a preclinical-stage TL1A × IL-23p19 bispecific. Very limited public data available. One of ≥4 Chinese companies with this exact target combination. IND-enabling studies are expected 2026–2027. Episcience represents the earlier end of the Chinese TL1A bispecific wave — the Simcere/BI (€42M upfront at pre-IND) and Earendil/Sanofi ($125M upfront at pre-IND) deals have established a compelling valuation framework for Chinese pre-IND TL1A bispecifics, but also intensified competition for global pharma attention.',
    catalysts:[{date:'2026–2027',event:'IND-enabling study completion'},{date:'2027',event:'IND filing — potential out-licensing window before first human dosing'}],
    trials:[
@@ -8803,17 +8803,18 @@ const tl1aPI = {
   else this.expanded.add(gid);
   this._renderTable();
   this._initResize();
-  // Async-load Supabase detail for non-Spyre companies being expanded
-  if (expanding && gid !== 'spyre') {
+  // Async-load Supabase detail for all companies being expanded
+  if (expanding) {
    const group = TL1A_PROGRAMS.filter(p => (p.groupId||p.id) === gid);
    if (!group.length) return;
-   // Sort group: Direct first, then most-advanced stage, then by id
+   // Sort group: Direct first, then most-advanced stage
    const OV = { Direct:0, Adjacent:1, 'Same-Space':2, Watch:3 };
    group.sort((a,b) => (OV[a.overlap]??9)-(OV[b.overlap]??9) || (TL1A_STAGE_ORDER[a.stageKey]??9)-(TL1A_STAGE_ORDER[b.stageKey]??9));
    const primary = group[0];
    // Build combinedProg: primary entry with _groupEntries for static drug fallback
    const combinedProg = { ...primary, _groupEntries: group };
-   this._loadDynamicDetail(primary.id, combinedProg);
+   // Use gid as the Supabase company_id — gid matches Supabase companies.id
+   this._loadDynamicDetail(gid, combinedProg);
   }
  },
 
@@ -9258,6 +9259,8 @@ const tl1aPI = {
      route: null, dosing_type: null, indication_short: 'UC · CD',
      differentiation_thesis: null, vs_ailux: null,
      _staticTrials: entry.trials || [],   // per-entry trials for static fallback
+     _partnerCo: entry.partnerCo || null, // partner company (Telavant, Teva, BI, etc.)
+     _overlap: entry.overlap || null,     // per-drug relevance badge
     }));
    });
   }
@@ -9270,9 +9273,14 @@ const tl1aPI = {
      || (d._staticTrials ? d._staticTrials.map(t=>({...t,id:t.id||t.nct})) : []);
    const resolvedTrials = drugTrials.length ? drugTrials
      : (d._staticTrials ? d._staticTrials.map(t=>({...t,id:t.id||t.nct})) : []);
-   const mechStr = [d.mechanism, d.target].filter((x,i,a)=>x&&a.indexOf(x)===i).join(' · ') || prog.target || '—';
-   const tags = [d.route, d.dosing_type, d.indication_short].filter(Boolean)
-    .map(t=>`<span class="pi-da-tag">${t}</span>`).join('');
+   // Drug row header fields: Name | Target | Phase | Indication | [partner tag]
+   const drugTarget   = d.mechanism || d.target || prog.target || '—';
+   const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
+   const drugInd      = d.indication_short || 'UC · CD';
+   const partnerTag   = d._partnerCo
+    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap">w/ ${d._partnerCo}</span>`
+    : '';
+   const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
    // Trial rows
    const trialRowsHTML = resolvedTrials.map(t => {
@@ -9321,20 +9329,23 @@ const tl1aPI = {
     </div>`;
    }).join('');
 
-   const trialsSection = drugTrials.length
-    ? `<div class="pi-tr-hd-label">Clinical Trials (${drugTrials.length})</div><div>${trialRowsHTML}</div>`
+   const trialCount = resolvedTrials.length;
+   const trialsSection = trialCount
+    ? `<div class="pi-tr-hd-label">Clinical Trials (${trialCount})</div><div>${trialRowsHTML}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
    return `<div class="pi-da-row">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name">${d.name||'—'}</span>
-     ${this._stagePill(d.stage||d.phase_display||prog.stageKey)}
-     <span class="pi-da-mech">${mechStr}</span>
-     ${tags}
+     <span class="pi-da-name">${d.name||'—'}</span>${partnerTag}
+     <span class="pi-da-mech" style="color:#475569;font-size:11px">${drugTarget}</span>
+     ${this._stagePill(drugPhase)}
+     <span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>
+     ${overlapTag}
     </div>
     <div class="pi-da-body">
      ${d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
+     ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
      ${trialsSection}
     </div>
    </div>`;
@@ -9463,9 +9474,8 @@ const tl1aPI = {
   const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay }) => {
    const isExp = this.expanded.has(gid);
    const noIntelDot = this._noIntelTickers.has(p.ticker) ? '<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>' : '';
-   const partnerLine = p.partnerCo ? `<div style="font-size:9px;color:#94a3b8;font-style:italic;margin-top:1px">w/ ${p.partnerCo}</div>` : '';
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${gid}')">
-    <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8">${p.ticker}</div>${partnerLine}</td>
+    <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8">${p.ticker}</div></td>
     <td style="font-size:12px">${drugDisplay}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
     <td>${this._clsPill(p.cls)}</td>
@@ -9475,17 +9485,13 @@ const tl1aPI = {
 
    let detailInner = '';
    if (isExp) {
-    if (gid === 'spyre') {
-     // Use spyre-mono entry for Spyre's custom renderer (covers all SPYRE_PIPELINE drugs)
-     const spyrePrimary = entries.find(e=>e.id==='spyre-mono') || entries[0];
-     detailInner = this._spyreDetailHTML(spyrePrimary);
-    } else if (this._profileCache[p.id]) {
+    const combinedProg = { ...p, _groupEntries: entries };
+    if (this._profileCache[gid]) {
      // Already fetched — render from cache immediately (no spinner flicker on re-render)
-     const combinedProg = { ...p, _groupEntries: entries };
-     detailInner = this._genericDetailHTML(combinedProg, this._profileCache[p.id]);
+     detailInner = this._genericDetailHTML(combinedProg, this._profileCache[gid]);
     } else {
      // Loading placeholder — _loadDynamicDetail() will replace this with live data
-     detailInner = `<div class="pi-detail-inner" id="pi-dyn-${p.id}" style="display:block;padding:28px 16px;text-align:center">
+     detailInner = `<div class="pi-detail-inner" id="pi-dyn-${gid}" style="display:block;padding:28px 16px;text-align:center">
       <span style="color:#94a3b8;font-size:12px;font-style:italic">⟳ Loading company intelligence...</span>
      </div>`;
     }
