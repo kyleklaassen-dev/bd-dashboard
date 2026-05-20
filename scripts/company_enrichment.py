@@ -1060,8 +1060,22 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
         for d in ctx.get("deals", [])
     }
     new_deals = 0
-    deal_kws   = {"license","acqui","partner","collaborat","deal","invest",
-                  "$","million","billion","agreement","merger"}
+    # RULE: "Related News" = any notable company event, not just formal BD deals.
+    # Keywords expanded to capture financing rounds, press releases, regulatory news, and pipeline milestones.
+    # Financing rounds (Series A/B/C, IPO, SPAC) are critical competitive signals and must be captured.
+    deal_kws   = {
+        # Formal BD
+        "license","acqui","partner","collaborat","deal","agreement","merger",
+        # Financing
+        "series a","series b","series c","series d","financing","raises","raised",
+        "ipo","spac","public offering","oversubscribed","valuation",
+        "million","billion","$",
+        # Company milestones
+        "invest","phase","readout","data","approval","clearance","fda","ema","cde",
+        "breakthrough","fast track","orphan","pdufa",
+        # Press release markers
+        "announces","announced","today announced","reports","closes","completes",
+    }
 
     # Build a quick lookup: drug name → canonical_drug_id for this company's drugs.
     # Resolver pre-instantiated by caller — no per-company Supabase round-trip here.
@@ -1109,6 +1123,24 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
                 deal_canonical_drug_id = canon_id
                 break
 
+        # Infer deal_type from headline content — displayed as badge in "Related News" panel
+        # RULE: financing rounds, press releases, and clinical milestones all belong in Related News
+        hl = (item.get("headline") or "").lower()
+        if any(w in hl for w in ["series","financing","raises","raised","ipo","offering","valuation","oversubscribed"]):
+            inferred_type = "financing"
+        elif any(w in hl for w in ["acqui","merger","acquisition"]):
+            inferred_type = "acquisition"
+        elif any(w in hl for w in ["partner","collaborat","co-develop"]):
+            inferred_type = "partnership"
+        elif any(w in hl for w in ["license","licens"]):
+            inferred_type = "licensing"
+        elif any(w in hl for w in ["approval","approved","clearance","pdufa","fda","ema","cde"]):
+            inferred_type = "regulatory"
+        elif any(w in hl for w in ["readout","data","phase","trial","endpoint"]):
+            inferred_type = "clinical"
+        else:
+            inferred_type = "news"
+
         deal_rec = {
             "deal_date":         deal_date,
             "deal_date_label":   deal_date_label,
@@ -1116,7 +1148,7 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
             "to_company":        "",
             "company_id":        company_id,
             "area_id":           area_id,
-            "deal_type":         "license",
+            "deal_type":         inferred_type,
             "headline":          (item.get("headline") or "")[:200],
             "detail":            (item.get("body") or "")[:1000],
             "source_url":        item.get("source_url", ""),
