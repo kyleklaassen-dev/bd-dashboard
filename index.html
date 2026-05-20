@@ -946,6 +946,10 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .submit-intel-btn { background: rgba(255,255,255,0.18); color: white; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
 .submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
 
+/* ══ INTELLIGENCE COMMAND CENTER LINK ════════════════════════════ */
+.intel-cmd-btn { background: rgba(124,77,255,0.22); color: #c4a6ff; border: 1.5px solid rgba(124,77,255,0.5); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s, border-color 0.15s; }
+.intel-cmd-btn:hover { background: rgba(124,77,255,0.38); border-color: rgba(124,77,255,0.75); color: #d8bfff; }
+
 /* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
 .intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
 .intel-modal-overlay.open { display: flex; }
@@ -2941,6 +2945,7 @@ function loadMoleculeTab(tabId) {
  <div id="gs-sb-panel" class="gs-sb-panel"></div>
  </div>
  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+ <a href="intelligence.html" class="intel-cmd-btn" title="BD Intelligence Command Center — research queue, entity detail, completeness scores">⚡ Intelligence</a>
  <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
  ＋ Submit Intel
  </button>
