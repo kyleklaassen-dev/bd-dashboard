@@ -9125,23 +9125,67 @@ const tl1aPI = {
   const targetDisplay = targetStr.length > 20 ? targetStr.replace(' × ', '\n× ') : targetStr;
   const indShort = (d.indication_short || '').split(/[·,]/)[0].trim();
 
-  // Trials rows in popup
+  // Trials rows in popup — compact header + click-to-expand details
   let trialRows = '';
   if (trialsForDrug && trialsForDrug.length) {
-   trialRows = trialsForDrug.map(t => {
-    const nct = t.id || '';
-    const tname = t.trial_name || t.name || '';
-    const tstatus = t.status || '';
-    const n = t.n_enrollment || t.n || '';
-    const pcd = t.pcd_label || t.readout_date || t.pcd || '';
-    return `<div style="background:#f8fafc;border-radius:6px;padding:6px 8px;margin-top:4px;font-size:10px">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
-       ${nct.startsWith('NCT')?`<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700;font-size:10.5px">${nct}</a>`:`<span style="color:#94a3b8;font-size:10px">${nct||'Pending'}</span>`}
-       <span style="color:#16a34a;font-weight:600;font-size:9.5px">${tstatus}</span>
-       ${n?`<span style="color:#64748b;font-size:9.5px">N=${n}</span>`:''}
-       ${pcd?`<span style="color:#64748b;font-size:9.5px">PCD: ${pcd}</span>`:''}
+   trialRows = trialsForDrug.map((t, ti) => {
+    const nct      = t.id || '';
+    const tname    = t.trial_name || t.name || '';
+    const tstatus  = t.status || '';
+    const tphase   = t.phase || '';
+    const n        = t.n_enrollment || t.n || '';
+    const pcd      = t.pcd_label || t.primary_completion_date || t.readout_date || t.pcd || '';
+    const endpoint = t.primary_endpoint || '';
+    const indica   = t.indication || '';
+    const sponsor  = t.sponsor || '';
+    const detailId = `${btnId}-trial-${ti}`;
+
+    // Status colour: green=recruiting/active, amber=completed/closed, grey=other
+    const statusCol = /recruiting|active/i.test(tstatus) ? '#16a34a'
+                    : /complet/i.test(tstatus)            ? '#d97706'
+                    : '#94a3b8';
+
+    const nctLink = nct.startsWith('NCT')
+      ? `<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener"
+            onclick="event.stopPropagation()"
+            style="color:#1d4ed8;font-weight:800;font-size:10.5px;text-decoration:none;white-space:nowrap">${nct}</a>`
+      : `<span style="color:#94a3b8;font-size:10px">Pending NCT</span>`;
+
+    // Compact badge row — phase, status, N, PCD
+    const phasePart  = tphase ? `<span style="background:#e0f2fe;color:#0369a1;font-weight:700;font-size:8.5px;border-radius:4px;padding:1px 5px">${tphase}</span>` : '';
+    const statusPart = tstatus ? `<span style="color:${statusCol};font-weight:700;font-size:9px">${tstatus}</span>` : '';
+    const nPart      = n ? `<span style="color:#64748b;font-size:9px">· N=${n}</span>` : '';
+    const pcdPart    = pcd ? `<span style="color:#475569;font-weight:600;font-size:9px">· ${pcd}</span>` : '';
+
+    // Endpoint snippet (shown in collapsed view, truncated)
+    const endSnip = endpoint.length > 90 ? endpoint.slice(0, 88) + '…' : endpoint;
+
+    // Expanded details block
+    const expandDetails = `
+     <div id="${detailId}" style="display:none;margin-top:7px;padding-top:7px;border-top:1px solid #e2e8f0;font-size:9.5px;color:#475569;line-height:1.6">
+      ${indica  ? `<div><span style="color:#94a3b8;font-weight:600;min-width:70px;display:inline-block">Indication</span>${indica}</div>` : ''}
+      ${endpoint ? `<div style="margin-top:3px"><span style="color:#94a3b8;font-weight:600;min-width:70px;display:inline-block;vertical-align:top">Endpoint</span><span style="display:inline-block;max-width:220px">${endpoint}</span></div>` : ''}
+      ${sponsor  ? `<div style="margin-top:2px"><span style="color:#94a3b8;font-weight:600;min-width:70px;display:inline-block">Sponsor</span>${sponsor}</div>` : ''}
+      ${nct.startsWith('NCT') ? `<div style="margin-top:5px"><a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#1d4ed8;font-size:9px;font-weight:700">↗ View on ClinicalTrials.gov</a></div>` : ''}
+     </div>`;
+
+    return `<div style="background:#f8fafc;border-radius:7px;padding:8px 10px;margin-top:5px;cursor:pointer"
+                 onclick="event.stopPropagation();(function(el){const d=document.getElementById('${detailId}');const open=d.style.display!=='none';d.style.display=open?'none':'block';el.querySelector('.trial-chevron').textContent=open?'▼':'▲';})(this)">
+      <!-- Header: NCT + study name + chevron -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px">
+       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;min-width:0">
+        ${nctLink}
+        ${tname ? `<span style="color:#334155;font-weight:600;font-size:9.5px;line-height:1.3">${tname}</span>` : ''}
+       </div>
+       <span class="trial-chevron" style="color:#94a3b8;font-size:9px;flex-shrink:0;margin-top:1px">▼</span>
       </div>
-      ${tname?`<div style="color:#475569;font-size:10px">${tname}</div>`:''}
+      <!-- Badge row: phase · status · N · PCD -->
+      <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+       ${phasePart}${statusPart}${nPart}${pcdPart}
+      </div>
+      <!-- Endpoint snippet -->
+      ${endSnip ? `<div style="margin-top:4px;font-size:9px;color:#64748b;line-height:1.4">${endSnip}</div>` : ''}
+      ${expandDetails}
      </div>`;
    }).join('');
   }
