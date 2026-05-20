@@ -266,8 +266,11 @@ def seed(dry_run=False):
             print(f"  → {drug_slug} ({co_id})")
             sb_upsert("drugs", record, dry_run=dry_run)
 
-            # drug_areas
+            # drug_areas — tag to specific target area AND the broader indication_group area.
+            # 'ibd' is the indication_group for tl1a: drugs tagged here show in the
+            # expanded row for any IBD-tab company, not just TL1A-specific drugs.
             sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": "tl1a"}, dry_run=dry_run)
+            sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": "ibd"}, dry_run=dry_run)
 
     print()
     print("Done.")
