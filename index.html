@@ -9642,6 +9642,25 @@ const tl1aPI = {
     </div>`;
    })() : '';
 
+   // ── Drug-specific Related News ──────────────────────────────────────────
+   // Filter sbDeals by canonical_drug_id matching this drug. Show 3 visible,
+   // scrollable to 10. Single-line with exact date + clickable verified links.
+   const drugNewsItems = sbDeals
+    .filter(n => n.canonical_drug_id && (n.canonical_drug_id === d.id || n.canonical_drug_id === d.canonical_drug_id))
+    .slice(0, 10);
+   const drugNewsSection = drugNewsItems.length ? (() => {
+    const rows = drugNewsItems.map(n => renderNewsItem(n, true)).join('');
+    const scrollStyle = drugNewsItems.length > 3
+     ? 'max-height:78px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+     : '';
+    const moreNote = drugNewsItems.length > 3
+     ? `<span style="font-size:9px;color:#94a3b8;float:right">${drugNewsItems.length} items · scroll</span>` : '';
+    return `<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:8px">
+     <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:5px">📰 Related News${moreNote}</div>
+     <div style="${scrollStyle}">${rows}</div>
+    </div>`;
+   })() : '';
+
    return `<div class="pi-da-row">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
@@ -9656,24 +9675,34 @@ const tl1aPI = {
      ${!isApproved && d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
      ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
      ${trialsSection}
+     ${drugNewsSection}
     </div>
    </div>`;
   }).join('');
 
   const drugSection = drugsToRender.length
    ? `<div class="pi-da-wrap">
-      <div class="pi-da-label">Drug Pipeline${pipelineUrl?` — <a href="${pipelineUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:9px;font-weight:700;text-decoration:none">Full Pipeline ↗</a>`:''}</div>
+      <div class="pi-da-label">Drug Pipeline</div>
       ${drugRowsHTML}
      </div>`
    : '';
 
-  // ── Catalysts — show first 5 visible, scroll for more ───────────────────
+  // ── Date formatter: YYYY-MM-DD → "May 19, 2026", pass-through otherwise ──
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtExactDate = iso => {
+   if (!iso) return '';
+   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+   if (m) return `${MONTHS[parseInt(m[2])-1]} ${parseInt(m[3])}, ${m[1]}`;
+   return iso; // already formatted (e.g. "Q3 2026", "April 28, 2028")
+  };
+
+  // ── Catalysts — first 5 visible, scroll for more, exact dates ────────────
   let catsHTML;
   const catItems = sbCats.length ? sbCats : (prog.catalysts || []);
   if (catItems.length) {
-   const catRows = catItems.map((c, ci) => {
+   const catRows = catItems.map(c => {
     const isFromSb = sbCats.length > 0;
-    const date  = isFromSb ? (c.catalyst_date||'') : (c.date||'');
+    const date  = isFromSb ? (c.catalyst_date||'') : fmtExactDate(c.date||'');
     const label = isFromSb ? (c.label||'') : (c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>` : (c.event||''));
     const srcUrl = isFromSb ? (c.source_url||'') : '';
     const sigBadge = isFromSb && c.significance === 'high'
@@ -9681,14 +9710,14 @@ const tl1aPI = {
     const labelHtml = isFromSb && srcUrl
      ? `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${label} ↗</a>${sigBadge}`
      : `${label}${sigBadge}`;
-    return `<div class="pi-detail-cat-item" style="${ci>=5?'':''}">
+    return `<div class="pi-detail-cat-item">
       <span class="pi-detail-cat-date">${date}</span>
       <span style="font-size:11.5px">${labelHtml}</span>
      </div>`;
    }).join('');
-   // Scrollable wrapper: first 5 visible (~175px), scroll for rest
+   // 5 items ≈ 165px (each ~33px tall); scroll reveals rest
    const scrollStyle = catItems.length > 5
-    ? 'max-height:210px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    ? 'max-height:165px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
    const countNote = catItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${catItems.length} upcoming · scroll for more</div>` : '';
@@ -9700,29 +9729,40 @@ const tl1aPI = {
   // ── Related News (deals + financing + press releases + intel) ────────────
   // RULE: "Related News" = any notable company event — formal deals, financing rounds,
   // pipeline milestones, press releases. Sourced from deals table + intel table.
+  const typeMap = {financing:'💰 Funding', licensing:'📋 License', partnership:'🤝 Partnership',
+                   acquisition:'🏢 Acquisition', news:'📰 News', collaboration:'🤝 Collab',
+                   regulatory:'🏥 Regulatory', clinical:'🔬 Clinical'};
+  const renderNewsItem = (d, singleLine=false) => {
+   // Prefer exact deal_date over deal_date_label (month-year only)
+   const date  = fmtExactDate(d.deal_date) || d.deal_date_label || d.date || '';
+   const title = d.headline || d.desc || '';
+   const url   = d.source_url || d.url || '';
+   const typeBadge = d.deal_type && typeMap[d.deal_type]
+    ? `<span style="font-size:8px;background:#f0fdf4;color:#166534;border-radius:3px;padding:1px 4px;margin-right:4px;font-weight:700;white-space:nowrap;flex-shrink:0">${typeMap[d.deal_type]}</span>` : '';
+   const upfront = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px;white-space:nowrap;flex-shrink:0">$${d.upfront_usd_m}M</span>` : '';
+   const titleEl = url
+    ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;${singleLine?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0':''}">${title} ↗</a>`
+    : `<span style="${singleLine?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0':''}">${title}</span>`;
+   if (singleLine) {
+    return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f1f5f9;overflow:hidden;min-height:22px">
+     <span style="font-size:9px;color:#64748b;white-space:nowrap;flex-shrink:0;font-weight:600;min-width:70px">${date}</span>
+     ${typeBadge}
+     <span style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${url?`<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`:title}</span>
+     ${upfront}
+    </div>`;
+   }
+   return `<div class="pi-detail-cat-item">
+    <span class="pi-detail-cat-date">${date}</span>
+    <span style="font-size:11.5px">${typeBadge}${titleEl}${upfront}</span>
+   </div>`;
+  };
+
   let dealsHTML;
   const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
   if (newsItems.length) {
-   const newsRows = newsItems.map(d => {
-    const date  = d.deal_date_label || (d.deal_date||'').slice(0,10) || d.date || '';
-    const title = d.headline || d.desc || '';
-    const url   = d.source_url || d.url || '';
-    // Type badge: financing, licensing, partnership, news, etc.
-    const typeMap = {financing:'💰 Funding', licensing:'📋 License', partnership:'🤝 Partnership',
-                     acquisition:'🏢 Acquisition', news:'📰 News', collaboration:'🤝 Collab'};
-    const typeBadge = d.deal_type && typeMap[d.deal_type]
-     ? `<span style="font-size:8.5px;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;margin-right:4px;font-weight:700;white-space:nowrap">${typeMap[d.deal_type]}</span>` : '';
-    const titleHtml = url
-     ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`
-     : title;
-    const upfront = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px">$${d.upfront_usd_m}M</span>` : '';
-    return `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${date}</span>
-      <span style="font-size:11.5px">${typeBadge}${titleHtml}${upfront}</span>
-     </div>`;
-   }).join('');
+   const newsRows = newsItems.map(d => renderNewsItem(d)).join('');
    const scrollStyle = newsItems.length > 5
-    ? 'max-height:210px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    ? 'max-height:165px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
    const countNote = newsItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${newsItems.length} items · scroll for more</div>` : '';
