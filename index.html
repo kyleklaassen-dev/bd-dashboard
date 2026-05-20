@@ -9560,16 +9560,19 @@ const tl1aPI = {
  },
 
  async _loadSbDiscoveredRows() {
-  // Fetch companies from Supabase company_areas for tl1a.
+  // Fetch companies from Supabase company_areas for the INDICATION GROUP (e.g. 'ibd').
+  // A company qualifies for the TL1A tab if it has ANY drug in the IBD disease space —
+  // not just TL1A-targeted programs. This includes IL-23, JAK, integrin, and future entrants.
   // Any company in Supabase but NOT in the static TL1A_PROGRAMS array
-  // (matched by company_id / group_id) gets synthesized as a new row.
-  // This makes pipeline-discovered entities appear automatically.
+  // (matched by company_id / group_id) gets synthesized as a new row automatically.
   if (!_sb) return;
   try {
+   // Use indication_group area ('ibd') — set by _loadIndicationGroup(); default 'tl1a' fallback.
+   const eligibilityArea = this._drugDisplayArea || 'tl1a';
    const { data: caRows, error } = await _sb
     .from('company_areas')
     .select('company_id, companies(id,name,ticker,group_id,display_co,partner_co,overlap,company_type)')
-    .eq('area_id', 'tl1a')
+    .eq('area_id', eligibilityArea)
     .limit(200);
    if (error || !caRows) return;
 
