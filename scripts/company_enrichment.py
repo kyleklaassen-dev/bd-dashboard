@@ -808,7 +808,8 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
     trials_text = json.dumps([{
         k: v for k, v in t.items()
         if k in ("id","trial_name","phase","status","indication","n_enrollment",
-                 "primary_endpoint","pcd_label","primary_completion_date","sponsor")
+                 "primary_endpoint","pcd_label","primary_completion_date","sponsor",
+                 "study_acronym")
     } for t in ctx["trials"][:12]], indent=2)
 
     existing_cats = json.dumps([{
@@ -908,7 +909,15 @@ Return JSON with EXACTLY these fields:
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "confidence_level": "confirmed|supported|inferred",
     "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
-    "aliases": []
+    "aliases": [],
+    "approval_date": "null or string: regulatory approval date and indication — e.g. 'May 2023 (UC); Jan 2024 (CD)'. ONLY populate for drugs where stage contains 'Approved'.",
+    "annual_revenue": "null or string: latest reported annual revenue with year — e.g. '$10.4B (2024)'. ONLY for approved drugs.",
+    "patient_population": "null or string: estimated patients on therapy globally — e.g. '~250,000 patients on therapy'. ONLY for approved drugs.",
+    "final_endpoints": "null or string: pivotal trial primary endpoint results narrative in 1-3 sentences. ONLY for approved drugs."
+  }}],
+  "trial_updates": [{{
+    "trial_id": "exact trial id from TRIALS list (the 'id' field, not the NCT number)",
+    "study_acronym": "null or string: the branded program acronym this company uses for the trial — e.g. 'SKYLINE-UC' (Spyre), 'U-ACHIEVE' (AbbVie), 'PURSUIT' (J&J), 'ARTEMIS-CD'. Search the company's press releases and IR materials for how they brand this study. If the TRIALS list already shows a non-null study_acronym, confirm or correct it. Only include if you find a specific acronym — never fabricate."
   }}],
   "catalysts": [{{
     "catalyst_date": "Include specific day when known: 'April 28, 2028'. Use 'Q3 2026' or 'H2 2026' when only quarter/half known. Never just a year.",
@@ -933,10 +942,17 @@ Return JSON with EXACTLY these fields:
 
 RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id)
+- trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you find a study acronym. Skip trials where no branded acronym exists.
 - catalysts: only upcoming events (after {TODAY})
 - deal_updates: only match to EXISTING DEALS
 - Return ONLY valid JSON. No markdown.
-- ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs."""
+- ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs.
+
+STUDY ACRONYM GUIDANCE:
+Companies brand their clinical programs with memorable acronyms shown on their IR pages, ECCO/DDW posters, and press releases (e.g., Spyre uses "SKYLINE" for their TL1A program, AbbVie uses "U-ACHIEVE" for upadacitinib UC trials, J&J uses "PURSUIT" for guselkumab CD). Search the WEB INTELLIGENCE and known sources. ClinicalTrials.gov sometimes includes them in identificationModule.acronym — cross-reference if present in TRIALS list.
+
+APPROVED DRUG GUIDANCE:
+For any drug where stage contains "Approved", populate approval_date, annual_revenue, patient_population, and final_endpoints. Revenue figures come from company earnings reports; patient population from analyst estimates or company disclosures; pivotal endpoints from the registrational trial publication or FDA label."""
 
 
 def parse_enrichment_response(text: str) -> Optional[dict]:
@@ -986,6 +1002,16 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         if update_fields:
             ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
             log(f"  drug {drug_id}: {'✓' if ok else '✗'}", indent=1)
+
+    for tu in data.get("trial_updates", []):
+        trial_id = tu.get("trial_id")
+        if not trial_id:
+            continue
+        update_fields = {k: v for k, v in tu.items()
+                        if k != "trial_id" and v is not None}
+        if update_fields:
+            ok = sb_patch("trials", update_fields, {"id": f"eq.{trial_id}"})
+            log(f"  trial {trial_id}: {'✓' if ok else '✗'}", indent=1)
 
     for cat in data.get("catalysts", []):
         sort_date = _parse_sort_date(
