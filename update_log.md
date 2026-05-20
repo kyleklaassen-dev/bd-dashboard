@@ -1,5 +1,15 @@
 
 ---
+## 2026-05-20 Cleanup: Remove Research Queue + Inline Edit — SHA: 6cf3ccc
+
+### Updated: `index.html` → `6cf3ccc`
+- **Removed: Research Queue home panel** (`#research-queue-panel`) — entire `home-card` block removed from home tab. Panel was premature; backend pipeline needs more work before surfacing to UI.
+- **Removed: Inline edit on entity classifications** — stripped `class="pi-editable"`, `title="Double-click to edit"`, and `ondblclick="piStartEdit(...)"` from Drug, Target, and Class columns in `_renderTable`. Columns now display read-only.
+- **Removed JS:** `piStartEdit()`, `piResearchValidate()`, `piApplyEdit()`, `loadResearchQueue()`, `loadAreaPulse()`, `rqSetStatus()`, `rqToggleGaps()` — all edit and queue functions deleted.
+- **Removed CSS:** `.pi-editable`, `.pi-edit-*`, `.pi-cell-input`, `.rq-*`, `#rq-body`, `#rq-area-pulse`, area pulse strip, and queue gaps expansion classes.
+- **Updated DOMContentLoaded:** Removed `loadResearchQueue()` and `loadAreaPulse()` call sites.
+
+---
 ## 2026-05-20 Drug Accordion Rows + Remove Intelligence Button — SHA: d97caef
 
 ### Updated: `index.html` → `d97caef`
