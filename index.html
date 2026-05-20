@@ -946,9 +946,6 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .submit-intel-btn { background: rgba(255,255,255,0.18); color: white; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
 .submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
 
-/* ══ INTELLIGENCE COMMAND CENTER LINK ════════════════════════════ */
-.intel-cmd-btn { background: rgba(124,77,255,0.22); color: #c4a6ff; border: 1.5px solid rgba(124,77,255,0.5); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s, border-color 0.15s; }
-.intel-cmd-btn:hover { background: rgba(124,77,255,0.38); border-color: rgba(124,77,255,0.75); color: #d8bfff; }
 
 /* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
 .intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
@@ -1189,6 +1186,43 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-trial-planned { background:#ede9fe;color:#5b21b6; }
 /* ── SPYRE RICH ROW ── */
 .spyre-hd { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0; }
+/* ── Drug accordion rows in expanded entity detail ── */
+.pi-da-wrap{margin-bottom:12px}
+.pi-da-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;padding:0 0 6px 0}
+.pi-da-row{border:1px solid #e2e8f0;border-radius:7px;margin-bottom:6px;overflow:hidden;background:white}
+.pi-da-hd{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-hd:hover{background:#f8fafc}
+.pi-da-toggle{font-size:9px;color:#94a3b8;width:11px;flex-shrink:0;transition:transform 0.15s;display:inline-block}
+.pi-da-toggle.open{transform:rotate(90deg)}
+.pi-da-name{font-size:12px;font-weight:800;color:#1e293b;min-width:100px}
+.pi-da-mech{font-size:11px;color:#64748b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-da-tag{font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
+.pi-da-body{display:none;border-top:1px solid #f0f4f8;background:#f8fafc;padding:10px 12px 12px 34px}
+.pi-da-body.open{display:block}
+.pi-da-thesis{font-size:11.5px;color:#475569;line-height:1.6;margin-bottom:10px;padding:7px 10px;background:white;border-radius:5px;border:1px solid #e8edf3}
+/* ── Trial rows within drug accordion ── */
+.pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
+.pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
+.pi-tr-row{display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+.pi-tr-row:hover{background:#f8fafc}
+.pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap;flex-shrink:0;width:88px;display:inline-block}
+.pi-nct-a:hover{text-decoration:underline}
+.pi-tr-name{font-size:11px;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pi-tr-phase-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:55px}
+.pi-tr-n-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:45px;text-align:right}
+.pi-tr-pcd-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:65px;text-align:right}
+.pi-tr-chev{font-size:9px;color:#94a3b8;flex-shrink:0;transition:transform 0.15s}
+.pi-tr-chev.open{transform:rotate(180deg)}
+.pi-tr-detail{display:none;border-top:1px solid #f1f5f9;padding:10px 11px;background:#fafbff;font-size:11px;line-height:1.6;color:#334155}
+.pi-tr-detail.open{display:block}
+.pi-tr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 16px;margin-bottom:8px}
+.pi-tr-field{display:flex;flex-direction:column;gap:1px}
+.pi-tr-field-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8}
+.pi-tr-field-val{font-size:11px;color:#1e293b;font-weight:600}
+.pi-tr-results-btn{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;font-weight:700;color:#7c3aed;padding:3px 9px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:4px;margin-top:4px;user-select:none}
+.pi-tr-results-btn:hover{background:#ede9fe}
+.pi-tr-results-body{display:none;margin-top:7px;padding:9px 10px;background:white;border:1px solid #e0d9ff;border-radius:4px;font-size:11.5px;line-height:1.7;color:#374151}
+.pi-tr-results-body.open{display:block}
 /* Hover underline on all links inside drug popups + expanded detail rows */
 .spyre-drug-popup a, .pi-detail-inner a { text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s,color 0.15s; }
 .spyre-drug-popup a:hover, .pi-detail-inner a:hover { border-bottom-color:currentColor; }
@@ -2946,8 +2980,7 @@ function loadMoleculeTab(tabId) {
  <div id="gs-sb-panel" class="gs-sb-panel"></div>
  </div>
  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
- <a href="intelligence.html" class="intel-cmd-btn" title="BD Intelligence Command Center — research queue, entity detail, completeness scores">⚡ Intelligence</a>
- <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
+<button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
  ＋ Submit Intel
  </button>
  <div class="header-meta">
@@ -8082,6 +8115,28 @@ function _areaPIPill(tabId, group, val, btn) {
 function _areaPISort(tabId, col) { _areaPIs[tabId]?.sort(col); }
 function _areaPIToggle(tabId, id) { _areaPIs[tabId]?.toggle(id); }
 
+// ── Drug accordion + trial row toggle helpers ──────────────────────────────
+function piToggleDrugRow(hd) {
+  event.stopPropagation();
+  const body = hd.nextElementSibling;
+  const tog  = hd.querySelector('.pi-da-toggle');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (tog) tog.classList.toggle('open');
+}
+function piToggleTrialRow(hd) {
+  event.stopPropagation();
+  const body = hd.nextElementSibling;
+  const chev = hd.querySelector('.pi-tr-chev');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
+}
+function piToggleTrialResults(btn) {
+  event.stopPropagation();
+  btn.nextElementSibling.classList.toggle('open');
+}
+
 async function loadAreaPI(tabId) {
   if (!TAB_AREA_MAP[tabId] || _areaPIs[tabId]?.loaded) return;
   const pi = _makeAreaPI(tabId, TAB_AREA_MAP[tabId]);
@@ -9533,15 +9588,123 @@ const tl1aPI = {
   const sbTrials = sbData?.trials || [];
   const sbDrugs  = sbData?.drugs || [];
 
-  // ── Narrative fields (Supabase first, fallback to static) ───────────────
+  // ── Narrative fields ────────────────────────────────────────────────────
   const platformSummary = profile.platform_summary || prog.summary || '';
   const bdSummary       = profile.bd_summary || '';
   const keyRisk         = profile.key_risk || prog.risk || '';
   const whyMatters      = profile.why_it_matters || prog.diff || '';
   const pipelineUrl     = profile.pipeline_url || null;
 
-  // ── Drug pipeline row ───────────────────────────────────────────────────
-  const drugPipelineRow = this._buildDrugPipelineRow(prog, sbDrugs, sbTrials, prog.id);
+  const enrichedAt = profile.last_enriched_at
+   ? `<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1px 6px;margin-left:6px">🤖 ${profile.last_enriched_at.slice(0,10)}</span>`
+   : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px">⏳ pending enrichment</span>`;
+
+  // ── Trial status helper ─────────────────────────────────────────────────
+  const trialStatusCls = s => s.includes('ecruit') ? 'pi-trial-recruiting'
+   : s.includes('omplete') ? 'pi-trial-done'
+   : s.includes('not recruit') ? 'pi-trial-anr' : 'pi-trial-planned';
+
+  // ── Build trials index by drug_id ───────────────────────────────────────
+  const trialsByDrug = {};
+  const allTrials = sbTrials.length ? sbTrials : (prog.trials||[]).map(t=>({...t, id:t.id||t.nct}));
+  allTrials.forEach(t => {
+   const key = t.drug_id || t.canonical_drug_id || '__all__';
+   (trialsByDrug[key] = trialsByDrug[key] || []).push(t);
+  });
+
+  // ── Build drug accordion rows ───────────────────────────────────────────
+  let drugsToRender = [];
+  if (sbDrugs.length) {
+   drugsToRender = [...sbDrugs].sort((a,b) => (a.sort_order||0)-(b.sort_order||0));
+  } else {
+   const drugNames = (prog.drug||'').split(',').map(s=>s.trim()).filter(Boolean);
+   drugsToRender = drugNames.map((dn,i) => ({
+    id: `static-${prog.id}-${i}`,
+    name: dn.replace(/\s*[/(].*/, '').trim(),
+    mechanism: prog.target||'', stage: prog.stageKey||'',
+    route: null, dosing_type: null, indication_short: 'UC · CD',
+    differentiation_thesis: null, vs_ailux: null,
+   }));
+  }
+
+  const drugRowsHTML = drugsToRender.map(d => {
+   const drugTrials = trialsByDrug[d.id] || trialsByDrug[d.canonical_drug_id] || trialsByDrug['__all__'] || [];
+   const mechStr = [d.mechanism, d.target].filter((x,i,a)=>x&&a.indexOf(x)===i).join(' · ') || prog.target || '—';
+   const tags = [d.route, d.dosing_type, d.indication_short].filter(Boolean)
+    .map(t=>`<span class="pi-da-tag">${t}</span>`).join('');
+
+   // Trial rows
+   const trialRowsHTML = drugTrials.map(t => {
+    const nct    = t.id || t.nct || '';
+    const name   = t.trial_name || t.name || '';
+    const status = t.status || '';
+    const phase  = t.phase || '';
+    const n      = t.n_enrollment || t.enrollment || t.n;
+    const pcd    = t.pcd_label || t.primary_completion_date?.slice(0,7) || t.pcd || '';
+    const ind    = t.indication || t.condition || '';
+    const route  = t.route || d.route || '';
+    const dosing = t.dosing_type || d.dosing_type || '';
+    const ep     = t.primary_endpoint || t.primary || '';
+    const results= t.results_summary || '';
+    const hasResults = results || status.toLowerCase().includes('complet');
+
+    const nctLink = nct.startsWith('NCT')
+     ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
+     : `<span style="font-size:10px;color:#94a3b8;width:88px;display:inline-block;flex-shrink:0">${nct||'—'}</span>`;
+
+    const detailFields = [
+     ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
+     n      ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Enrollment</span><span class="pi-tr-field-val">N=${n}</span></div>` : '',
+     route  ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Route</span><span class="pi-tr-field-val">${route}</span></div>` : '',
+     dosing ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Dosing Type</span><span class="pi-tr-field-val">${dosing}</span></div>` : '',
+     ep     ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Primary Endpoint</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${ep}</span></div>` : '',
+    ].filter(Boolean).join('');
+
+    const resultsSection = hasResults ? `
+     <div class="pi-tr-results-btn" onclick="piToggleTrialResults(this)">📊 Study Results ▾</div>
+     <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
+
+    return `<div class="pi-tr-item">
+     <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
+      ${nctLink}
+      <span class="pi-tr-name" title="${name}">${name||'—'}</span>
+      <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
+      <span class="pi-tr-phase-cell">${phase}</span>
+      <span class="pi-tr-pcd-cell">${pcd}</span>
+      <span class="pi-tr-chev">▼</span>
+     </div>
+     <div class="pi-tr-detail">
+      <div class="pi-tr-grid">${detailFields||'<span style="color:#94a3b8;font-size:11px">Detail not yet enriched</span>'}</div>
+      ${resultsSection}
+     </div>
+    </div>`;
+   }).join('');
+
+   const trialsSection = drugTrials.length
+    ? `<div class="pi-tr-hd-label">Clinical Trials (${drugTrials.length})</div><div>${trialRowsHTML}</div>`
+    : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
+
+   return `<div class="pi-da-row">
+    <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
+     <span class="pi-da-toggle">▶</span>
+     <span class="pi-da-name">${d.name||'—'}</span>
+     ${this._stagePill(d.stage||d.phase_display||prog.stageKey)}
+     <span class="pi-da-mech">${mechStr}</span>
+     ${tags}
+    </div>
+    <div class="pi-da-body">
+     ${d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
+     ${trialsSection}
+    </div>
+   </div>`;
+  }).join('');
+
+  const drugSection = drugsToRender.length
+   ? `<div class="pi-da-wrap">
+      <div class="pi-da-label">Drug Pipeline${pipelineUrl?` — <a href="${pipelineUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:9px;font-weight:700;text-decoration:none">Full Pipeline ↗</a>`:''}</div>
+      ${drugRowsHTML}
+     </div>`
+   : '';
 
   // ── Catalysts ───────────────────────────────────────────────────────────
   let catsHTML;
@@ -9551,7 +9714,7 @@ const tl1aPI = {
       <span class="pi-detail-cat-date">${c.catalyst_date||''}</span>
       <span>${c.label||''}</span>
      </div>`).join('');
-  } else if (prog.catalysts && prog.catalysts.length) {
+  } else if (prog.catalysts?.length) {
    catsHTML = prog.catalysts.map(c =>
     `<div class="pi-detail-cat-item">
       <span class="pi-detail-cat-date">${c.date}</span>
@@ -9567,7 +9730,7 @@ const tl1aPI = {
       <span class="pi-detail-cat-date">${d.deal_date_label||d.deal_date||''}</span>
       <span style="font-size:11.5px">${d.source_url?`<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.headline} ↗</a>`:d.headline}</span>
      </div>`).join('');
-  } else if (prog.deals && prog.deals.length) {
+  } else if (prog.deals?.length) {
    dealsHTML = prog.deals.map(d =>
     `<div class="pi-detail-cat-item">
       <span class="pi-detail-cat-date">${d.date}</span>
@@ -9575,62 +9738,18 @@ const tl1aPI = {
      </div>`).join('');
   } else { dealsHTML = '<p style="color:#94a3b8;font-size:12px">No deal history on record</p>'; }
 
-  // ── Clinical Trials ─────────────────────────────────────────────────────
-  const trialsSource = sbTrials.length ? sbTrials : (prog.trials||[]);
-  let trialsHTML = '';
-  if (trialsSource.length) {
-   trialsHTML = trialsSource.map(t => {
-    const nct    = t.id || t.nct || '';
-    const name   = t.trial_name || t.name || '';
-    const status = t.status || '';
-    const n      = t.n_enrollment || t.n;
-    const pcd    = t.pcd_label || t.readout_date || t.pcd || '';
-    const ep     = t.primary_endpoint || t.primary || '';
-    const cls    = status.includes('ecruit') ? 'pi-trial-recruiting'
-                 : status.includes('omplete') ? 'pi-trial-done'
-                 : status.includes('not recruit') ? 'pi-trial-anr'
-                 : 'pi-trial-planned';
-    const nctLink = nct.startsWith('NCT')
-     ? `<a href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;font-size:11px">${nct}</a>`
-     : `<span style="color:#94a3b8;font-size:11px">${nct||'Not registered'}</span>`;
-    return `<div class="pi-trial-row">
-     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      ${nctLink}
-      <span class="pi-trial-status ${cls}">${status}</span>
-      <span style="font-size:10px;color:#64748b">${[t.phase||'',n?`N=${n}`:'',pcd?`PCD: ${pcd}`:''].filter(Boolean).join(' · ')}</span>
-     </div>
-     ${name?`<div style="font-size:12px;color:#1e3a5f;font-weight:500;margin-bottom:3px">${name}</div>`:''}
-     ${ep?`<div style="font-size:11px;color:#475569"><strong>Primary:</strong> ${ep}</div>`:''}
-    </div>`;
-   }).join('');
-  }
-
-  // ── Enrichment badge ────────────────────────────────────────────────────
-  const enrichedAt = profile.last_enriched_at
-   ? `<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1px 6px;margin-left:6px" title="Last enriched by Claude API">🤖 ${profile.last_enriched_at.slice(0,10)}</span>`
-   : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px" title="Enrichment pending — run company_enrichment.py">⏳ pending enrichment</span>`;
-
-  const pipelineLink = pipelineUrl
-   ? `<div style="text-align:right;margin-top:-4px;margin-bottom:8px">
-       <a href="${pipelineUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;font-weight:700;text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s" onmouseover="this.style.borderBottomColor='#1d4ed8'" onmouseout="this.style.borderBottomColor='transparent'">${prog.co} Pipeline ↗</a>
-      </div>` : '';
-
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
-   <!-- Drug pipeline bubbles (hover for detail) -->
-   ${drugPipelineRow}
-   ${pipelineLink}
-   <!-- Company detail grid -->
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+   ${drugSection}
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'}">
     <div class="pi-detail-section" style="grid-column:1/-1">
      <h5>Platform Summary ${enrichedAt}</h5>
-     <p>${platformSummary}</p>
+     <p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p>
     </div>
     ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
     <div class="pi-detail-section"><h5>💼 Deal History</h5>${dealsHTML}</div>
-    <div class="pi-detail-section" style="grid-column:1/-1"><h5>🔬 Active & Planned Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8;font-size:12px">No trials registered on ClinicalTrials.gov</p>'}</div>
-    <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${keyRisk}</p></div>
-    <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${whyMatters}</p></div>
+    ${keyRisk?`<div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${keyRisk}</p></div>`:''}
+    ${whyMatters?`<div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${whyMatters}</p></div>`:''}
    </div>
   </div>`;
  },
