@@ -74,16 +74,20 @@ TL1A_PROGRAMS = [
          drug="SPY002",
          target="TL1A", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="mAb", route="SC",
-         mechanismDetail="Selective anti-TL1A monoclonal antibody (monospecific). SKYLINE-UC Part A topline expected mid-2026."),
+         modality="mAb",
+         # SKYLINE-UC (NCT07012395): IV induction loading doses then SC maintenance
+         route="IV/SC",
+         mechanismDetail="Selective anti-TL1A monoclonal antibody (monospecific). SKYLINE-UC (NCT07012395): IV induction + SC maintenance platform trial. Part A topline expected mid-2026."),
 
     dict(id="spyre-spy003",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY003",
          # RULE: Always specify p19 subunit for IL-23 inhibitors — distinguishes from p40 class
          target="IL-23p19", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="mAb", route="SC",
-         mechanismDetail="Selective anti-IL-23p19 monoclonal antibody (monospecific). SKYLINE Part A topline expected Q3 2026."),
+         modality="mAb",
+         # SKYLINE-UC (NCT07012395): IV induction + SC maintenance
+         route="IV/SC",
+         mechanismDetail="Selective anti-IL-23p19 monoclonal antibody (monospecific). SKYLINE-UC (NCT07012395): IV induction + SC maintenance platform trial. Part A topline expected Q3 2026."),
 
     dict(id="spyre-spy230",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY230",
@@ -91,30 +95,38 @@ TL1A_PROGRAMS = [
          # RULE: Always specify IL-23p19 (not just IL-23)
          target="IL-23p19 + TL1A", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="combination", route="SC",
-         mechanismDetail="Rational combination of SPY003 (IL-23p19) + SPY002 (TL1A) — two separate mAbs co-administered, NOT a bispecific. Same dual-target rationale as Ailux TL1A × IL-23p19 bispecific. Part B expected 2027."),
+         modality="combination",
+         # SKYLINE-UC: IV induction + SC maintenance
+         route="IV/SC",
+         mechanismDetail="Rational combination of SPY003 (IL-23p19) + SPY002 (TL1A) — two separate mAbs co-administered, NOT a bispecific. SKYLINE-UC (NCT07012395): IV induction + SC maintenance. Part B expected 2027."),
 
     dict(id="spyre-spy120",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY120",
          target="α4β7 + TL1A", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="combination", route="SC",
-         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY002 (TL1A) — two separate mAbs, NOT a bispecific. SKYLINE Part B expected 2027."),
+         modality="combination",
+         # SKYLINE-UC: IV induction + SC maintenance platform trial
+         route="IV/SC",
+         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY002 (TL1A) — two separate mAbs, NOT a bispecific. SKYLINE-UC (NCT07012395): IV induction + SC maintenance. Part B expected 2027."),
 
     dict(id="spyre-spy130",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY130",
          # RULE: Always specify IL-23p19 (not just IL-23)
          target="α4β7 + IL-23p19", stageKey="Phase 2", overlap="Direct",
          groupId="spyre", partnerCo=None,
-         modality="combination", route="SC",
-         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY003 (IL-23p19) — two separate mAbs, NOT a bispecific. SKYLINE Part B expected 2027."),
+         modality="combination",
+         # SKYLINE-UC: IV induction + SC maintenance platform trial
+         route="IV/SC",
+         mechanismDetail="Rational combination of SPY001 (α4β7) + SPY003 (IL-23p19) — two separate mAbs, NOT a bispecific. SKYLINE-UC (NCT07012395): IV induction + SC maintenance. Part B expected 2027."),
 
     dict(id="spyre-spy001",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY001",
          target="α4β7", stageKey="Phase 2", overlap="Adjacent",
          groupId="spyre", partnerCo=None,
-         modality="mAb", route="SC",
-         mechanismDetail="Selective anti-α4β7 integrin mAb (monospecific); gut-restricted mechanism. SKYLINE-UC Part A topline reported Q2 2026."),
+         modality="mAb",
+         # SKYLINE-UC: IV induction + SC maintenance platform trial
+         route="IV/SC",
+         mechanismDetail="Selective anti-α4β7 integrin mAb (monospecific); gut-restricted mechanism. SKYLINE-UC (NCT07012395): IV induction + SC maintenance. Part A topline reported Q2 2026."),
 
     dict(id="spyre-spy072",  co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY072",
