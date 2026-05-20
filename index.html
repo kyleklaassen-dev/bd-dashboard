@@ -2658,7 +2658,9 @@ async function loadAreaCompetitors(tabId) {
       ? '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">Direct</span>'
       : '<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">Monitor</span>';
     const coName = d.companies ? d.companies.name : (d.company_id || '');
-    const mech = (d.mechanism || '').replace(/\(.*?\)/g,'').trim().slice(0,55) + ((d.mechanism||'').length > 55 ? '…' : '');
+    // RULE: Show target (clean notation) not mechanism (verbose). Mechanism shown in expanded detail only.
+    const targetDisplay = d.target || d.mechanism || '';
+    const mech = targetDisplay.slice(0,55) + (targetDisplay.length > 55 ? '…' : '');
     const angle = (d.ailux_angle || d.key_data || '').slice(0, 90) + ((d.ailux_angle || d.key_data || '').length > 90 ? '…' : '');
     return `<tr style="border-bottom:1px solid #f1f5f9">
       <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap">${d.name}${d.brand_name ? `<br><span style="font-size:10px;font-weight:400;color:#64748b">${d.brand_name}</span>` : ''}</td>
@@ -9394,7 +9396,9 @@ const tl1aPI = {
    const resolvedTrials = drugTrials.length ? drugTrials
      : (d._staticTrials ? d._staticTrials.map(t=>({...t,id:t.id||t.nct})) : []);
    // Drug row header fields: Name | Target | Phase | Indication | [partner tag]
-   const drugTarget   = d.mechanism || d.target || prog.target || '—';
+   // RULE: Always prefer d.target (clean notation e.g. "TL1A", "IL-23p19") over d.mechanism
+   // (verbose description like "Anti-TL1A mAb"). Mechanism belongs in the expanded detail only.
+   const drugTarget   = d.target || d.mechanism || prog.target || '—';
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
    const drugInd      = d.indication_short || 'UC · CD';
    const partnerTag   = d._partnerCo
