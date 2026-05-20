@@ -1,5 +1,14 @@
 
 ---
+## 2026-05-20 Step 1 Entity Discovery — Proactive Web Search — SHA: 552c01e
+
+### Updated: `scripts/company_enrichment.py` → `552c01e`
+- **Root cause fixed:** Step 1 previously only scanned intel already in Supabase to find new entities. If a company (e.g. Pfizer's PF-07261271 TL1A bispecific) had never appeared in the intel table, it was invisible to the pipeline.
+- **Added `gather_landscape_intel(area_id)`** — Phase A of Step 1. Uses `web_search_20250305` (Sonnet) to proactively search for ALL companies with clinical-stage programs in the target area, including large pharma. Returns free-text landscape report.
+- **Upgraded `step1_discover_new_entities()`** — now runs landscape web search first; falls back to local intel as secondary signal only. Claude Haiku diffs the web results against existing Supabase `company_areas` and creates records for new entities with `discovery_status='auto'`. Hard "No recent intel — skipping" failure removed.
+- **Effect:** Pfizer (and any other large pharma/biotech) with relevant programs will now be auto-discovered and seeded on the next nightly/weekly pipeline run without any manual intervention.
+
+---
 ## 2026-05-20 Layout Bug Fixes — SHA: d9fc75b
 
 ### Updated: `index.html` → `d9fc75b`
