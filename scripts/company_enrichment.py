@@ -353,6 +353,8 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         '{"new_entities": [{'
         '"company_name": "...", "drug_name": "... or null", "target": "...",'
         '"stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",'
+        '"modality": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein|unknown",'
+        '"route": "SC|IV|oral|unknown|null",'
         '"entity_type": "platform|partnership|standalone|licensed",'
         '"partner_co": "name of licensor/partner company or null",'
         '"overlap": "Direct|Adjacent|Same-Space|Watch",'
@@ -434,16 +436,26 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             drug_slug = re.sub(r'[^a-z0-9]', '-', drug_name.lower()).strip('-')
             existing_drug = sb_get("drugs", {"id": f"eq.{drug_slug}", "select": "id"})
             if not existing_drug:
+                _stage_to_expected = {
+                    "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
+                    "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
+                }
                 sb_upsert("drugs", {
                     "id": drug_slug, "name": drug_name, "company_id": co_id,
                     "entity_id": co_id, "entity_name": co_name,
                     "entity_type": ent.get("entity_type", "standalone"),
                     "stage": stage, "target": target,
                     "mechanism": f"Anti-{target}" if target else None,
+                    "modality": ent.get("modality") or None,
+                    "drug_format": ent.get("modality") or None,
+                    "route": ent.get("route") or None,
                     "cls": "Next Gen" if "×" in (target or "") else "1st Gen",
                     "overlap": "Direct",
                     "discovery_status": "auto",
                     "confidence_score": confidence,
+                    "confidence_level": "inferred",
+                    "data_source": "claude_inferred",
+                    "expected_evidence_stage": _stage_to_expected.get(stage, 2),
                     "sort_order": 99,
                 })
                 sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": area_id})
@@ -847,15 +859,21 @@ Return JSON with EXACTLY these fields:
   }},
   "drug_updates": [{{
     "drug_id": "exact drug id from DRUGS list",
-    "route": "SC|IV|SC/IV|null",
+    "modality": "anti-TL1A mAb|TL1A×IL-23p19 bispecific|JAK1 inhibitor (oral small molecule)|anti-α4β7 integrin mAb|etc — full descriptive label",
+    "drug_format": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein",
+    "route": "SC|IV|SC/IV|oral|null",
     "dosing_type": "Induction|Maintenance|Induction + Maintenance|null",
-    "drug_format": "mAb|bispecific|nanobody|YTE-modified mAb|small molecule|null",
     "is_combo": false,
     "dosing_schedule": "null or e.g. Q3M SC",
     "indication_short": "null or e.g. UC · CD",
+    "stage_detail": "null or e.g. Phase 2b (ARTEMIS-CD)",
     "phase_display": "null or e.g. Phase 3",
     "half_life_note": "null or e.g. ~74 days",
-    "vs_ailux": "null or 1 sentence comparison to Ailux's asset",
+    "mechanism_detail": "null or 1-2 sentences: specific mechanism, format, any structural notes",
+    "key_data": "null or most important recent clinical data point in one sentence",
+    "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
+    "confidence_level": "confirmed|supported|inferred",
+    "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
     "aliases": []
   }}],
   "catalysts": [{{
@@ -865,7 +883,8 @@ Return JSON with EXACTLY these fields:
     "catalyst_type": "readout|filing|approval|conference|deal|partnership",
     "significance": "high|medium|low",
     "is_key_watch": true or false,
-    "notes": "1 sentence context"
+    "confidence_level": "confirmed (company filing/PDUFA)|supported (multiple sources)|inferred (derived from trial dates or guidance)",
+    "notes": "1 sentence context — include evidence source (e.g. 'Company-guided Q3 2026 per ECCO 2025 presentation')"
   }}],
   "deal_updates": [{{
     "headline": "match to existing deal headline",
@@ -947,6 +966,7 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             "catalyst_type":    cat.get("catalyst_type", "readout"),
             "notes":            cat.get("notes", ""),
             "is_key_watch":     bool(cat.get("is_key_watch", False)),
+            "confidence_level": cat.get("confidence_level", "inferred"),
             "resolved":         False,
             "confidence_source": "company-disclosed",
         }
