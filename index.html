@@ -8773,6 +8773,7 @@ const tl1aPI = {
   this._renderTable();
   this._initResize();
   this._loadIntelStatus();
+  this._loadSbDiscoveredRows();  // async — merges pipeline-discovered companies from Supabase
  },
 
  filter() {
@@ -8805,7 +8806,9 @@ const tl1aPI = {
   this._initResize();
   // Async-load Supabase detail for all companies being expanded
   if (expanding) {
-   const group = TL1A_PROGRAMS.filter(p => (p.groupId||p.id) === gid);
+   // Check static array first, then fall back to runtime data (includes Supabase-discovered rows)
+   const allData = this.data;
+   const group = allData.filter(p => (p.groupId||p.id) === gid);
    if (!group.length) return;
    // Sort group: Direct first, then most-advanced stage
    const OV = { Direct:0, Adjacent:1, 'Same-Space':2, Watch:3 };
@@ -9526,6 +9529,84 @@ const tl1aPI = {
   } catch(e) { priceEl.textContent = '—'; chgEl.textContent = ''; }
  },
 
+ async _loadSbDiscoveredRows() {
+  // Fetch companies from Supabase company_areas for tl1a.
+  // Any company in Supabase but NOT in the static TL1A_PROGRAMS array
+  // (matched by company_id / group_id) gets synthesized as a new row.
+  // This makes pipeline-discovered entities appear automatically.
+  if (!_sb) return;
+  try {
+   const { data: caRows, error } = await _sb
+    .from('company_areas')
+    .select('company_id, companies(id,name,ticker,group_id,display_co,partner_co,overlap,company_type)')
+    .eq('area_id', 'tl1a')
+    .limit(200);
+   if (error || !caRows) return;
+
+   // Build a set of all groupIds already in static data
+   const staticGroups = new Set(TL1A_PROGRAMS.map(p => p.groupId || p.id));
+
+   // Fetch drugs for any new companies we'll add
+   const newCoIds = caRows
+    .map(r => r.companies)
+    .filter(c => c && !staticGroups.has(c.group_id || c.id))
+    .map(c => c.id);
+
+   if (!newCoIds.length) return;  // nothing new — skip
+
+   // Fetch drugs for these companies
+   const { data: drugRows } = await _sb
+    .from('drugs')
+    .select('id,name,company_id,stage,target,cls,overlap,mechanism,indication_short')
+    .in('company_id', newCoIds)
+    .limit(200);
+   const drugsByCompany = {};
+   for (const d of (drugRows || [])) {
+    if (!drugsByCompany[d.company_id]) drugsByCompany[d.company_id] = [];
+    drugsByCompany[d.company_id].push(d);
+   }
+
+   // Synthesize TL1A_PROGRAMS-style entries for each new company
+   let added = 0;
+   for (const coId of newCoIds) {
+    const sbCo = caRows.find(r => r.companies?.id === coId)?.companies;
+    if (!sbCo) continue;
+    const gid      = sbCo.group_id || sbCo.id;
+    const drugs    = drugsByCompany[coId] || [];
+    const repDrug  = drugs[0];
+    const drugName = drugs.map(d => d.name).join(', ') || '(Unknown drug)';
+    const target   = repDrug?.target || '—';
+    const stage    = repDrug?.stage || 'Preclinical';
+    const cls      = repDrug?.cls || '1st Gen';
+    const overlap  = sbCo.overlap || repDrug?.overlap || 'Watch';
+
+    // Build a synthetic entry matching TL1A_PROGRAMS shape
+    const synth = {
+     id:         coId,
+     co:         sbCo.display_co || sbCo.name,
+     ticker:     sbCo.ticker || 'Private',
+     drug:       drugName,
+     target:     target,
+     stageKey:   stage,
+     cls:        cls,
+     overlap:    overlap,
+     groupId:    gid,
+     partnerCo:  sbCo.partner_co || null,
+     trials:     [],
+     _fromSupabase: true,  // flag: purely pipeline-discovered
+    };
+
+    this.data.push(synth);
+    added++;
+   }
+
+   if (added > 0) {
+    // Re-apply current filter + re-render with new rows visible
+    this.filter();
+   }
+  } catch(e) { /* silent — table still works from static data */ }
+ },
+
  async _loadIntelStatus() {
   // Load company tickers that have ANY intel record in Supabase
   // Companies NOT in this set get the blinking green "needs research" dot
@@ -9535,7 +9616,7 @@ const tl1aPI = {
     .select('company_id, companies(ticker)').limit(500);
    const tickers = new Set((data||[]).map(r => r.companies?.ticker).filter(Boolean));
    this._noIntelTickers = new Set(
-    TL1A_PROGRAMS.map(p => p.ticker).filter(t => !tickers.has(t))
+    this.data.map(p => p.ticker).filter(t => t && !tickers.has(t))
    );
    if (this._noIntelTickers.size > 0) this._renderTable();
   } catch(e) { /* silent fail */ }
