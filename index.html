@@ -420,44 +420,6 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 #bd-signal-body::-webkit-scrollbar { width: 5px; }
 #bd-signal-body::-webkit-scrollbar-track { background: #f8fafc; }
 #bd-signal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-/* ── Research Queue Panel ── */
-#rq-body { max-height: 340px; overflow-y: auto; }
-#rq-body::-webkit-scrollbar { width: 5px; }
-#rq-body::-webkit-scrollbar-track { background: #f8fafc; }
-#rq-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-.rq-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; }
-.rq-row:last-child { border-bottom:none; }
-.rq-pri { font-size:10px; font-weight:800; min-width:30px; text-align:center; background:#f1f5f9; border-radius:4px; padding:2px 4px; color:#64748b; flex-shrink:0; margin-top:1px; }
-.rq-pri.high { background:#fef2f2; color:#dc2626; }
-.rq-pri.mid  { background:#fffbeb; color:#d97706; }
-.rq-entity { font-size:12.5px; font-weight:700; color:#1a2f50; }
-.rq-meta { font-size:10.5px; color:#94a3b8; margin-top:1px; }
-.rq-action { font-size:11px; color:#475569; margin-top:2px; font-style:italic; }
-.rq-tier { display:inline-block; font-size:9px; font-weight:800; text-transform:uppercase; border-radius:4px; padding:1px 5px; margin-left:5px; }
-.rq-tier.thin    { background:#fef2f2; color:#ef4444; }
-.rq-tier.partial { background:#fffbeb; color:#d97706; }
-.rq-tier.strong  { background:#f0fdf4; color:#16a34a; }
-.rq-status { font-size:9.5px; font-weight:700; border-radius:12px; padding:2px 8px; border:none; cursor:pointer; flex-shrink:0; margin-top:2px; transition:background 0.15s,color 0.15s; }
-.rq-status.pending     { background:#f1f5f9; color:#64748b; }
-.rq-status.in_progress { background:#eff6ff; color:#2563eb; }
-.rq-status.done        { background:#f0fdf4; color:#16a34a; }
-.rq-row.done-row { opacity:0.45; }
-/* ── Research Queue Enhanced ── */
-#rq-body { max-height:480px; overflow-y:auto; padding:0; }
-.rq-row { position:relative; padding:11px 14px 11px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:flex-start; gap:10px; transition:background 0.1s; }
-.rq-row:hover { background:#fafbff; }
-.rq-row:last-child { border-bottom:none; }
-.rq-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:0 2px 2px 0; }
-.rq-row.rq-hi::before  { background:#dc2626; }
-.rq-row.rq-mid::before { background:#d97706; }
-.rq-row.rq-lo::before  { background:#94a3b8; }
-.rq-bar { height:3px; border-radius:2px; background:#f1f5f9; width:72px; margin-top:5px; overflow:hidden; }
-.rq-bar-fill { height:100%; border-radius:2px; }
-.rq-bar-fill.thin    { background:#ef4444; }
-.rq-bar-fill.partial { background:#f59e0b; }
-.rq-bar-fill.strong  { background:#22c55e; }
-.rq-area-pill { display:inline-block; font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; padding:1px 5px; border-radius:3px; margin-right:3px; color:white; }
-.rq-score-val { font-size:10px; font-weight:700; color:#94a3b8; }
 /* ── PI Score Badge ── */
 .pi-score-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; padding:1px 6px 1px 5px; border-radius:10px; margin-left:5px; cursor:pointer; transition:opacity 0.15s; vertical-align:middle; line-height:1.4; }
 .pi-score-chip:hover { opacity:0.75; transform:scale(1.05); }
@@ -493,25 +455,6 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .pi-modal-action-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:6px; }
 .pi-modal-action-text { font-size:12px; color:#1e3a5f; line-height:1.6; background:#f8fafc; border-radius:6px; padding:10px 12px; border-left:3px solid #e2e8f0; }
 .pi-modal-pri { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; margin-top:10px; color:#64748b; }
-/* ── Area Pulse Strip ── */
-#rq-area-pulse { display:flex; gap:7px; padding:10px 14px 9px; background:rgba(0,0,0,0.12); border-bottom:1px solid rgba(255,255,255,0.1); overflow-x:auto; scrollbar-width:none; }
-#rq-area-pulse::-webkit-scrollbar { display:none; }
-.rq-ap-tile { flex-shrink:0; background:rgba(255,255,255,0.1); border-radius:8px; padding:7px 10px; min-width:68px; cursor:default; transition:background 0.15s; }
-.rq-ap-tile:hover { background:rgba(255,255,255,0.18); }
-.rq-ap-area { font-size:8.5px; font-weight:900; text-transform:uppercase; letter-spacing:0.07em; color:rgba(255,255,255,0.65); }
-.rq-ap-score { font-size:17px; font-weight:900; color:white; line-height:1.1; margin:2px 0 4px; }
-.rq-ap-bar { height:3px; border-radius:2px; background:rgba(255,255,255,0.18); width:100%; margin-bottom:4px; overflow:hidden; }
-.rq-ap-bar-fill { height:100%; border-radius:2px; }
-.rq-ap-count { font-size:8.5px; color:rgba(255,255,255,0.5); font-weight:600; }
-/* ── Queue row missing-fields expansion ── */
-.rq-expand-btn { font-size:9px; font-weight:700; color:#7c3aed; background:#f5f3ff; border:1px solid #ddd6fe; border-radius:4px; padding:2px 6px; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background 0.1s; }
-.rq-expand-btn:hover { background:#ede9fe; }
-.rq-expand-btn.open { background:#ede9fe; color:#5b21b6; }
-.rq-gaps-body { display:none; padding:8px 0 0; margin-top:6px; border-top:1px solid #f1f5f9; }
-.rq-gaps-body.open { display:block; }
-.rq-gap-group { margin-bottom:7px; }
-.rq-gap-group-label { font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:4px; }
-.rq-gap-field { display:inline-block; font-size:9px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:3px; padding:1px 5px; margin:1px 2px 1px 0; }
 /* ── BD Signal unified feed ── */
 .bds-item { padding:9px 0; border-bottom:1px solid #f0f4f8; }
 .bds-item:last-child { border-bottom:none; }
@@ -1264,26 +1207,6 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .col-resize:hover { background:rgba(99,102,241,0.3); }
 .pi-sort-arrow { font-size:8px;margin-left:3px;color:#94a3b8; }
 
-/* ── PI TABLE INLINE EDIT ── */
-.pi-editable { cursor:default; position:relative; }
-.pi-editable:hover { background:#f0f9ff !important; border-radius:3px; }
-.pi-editable:hover::after { content:'✏'; font-size:8px; color:#93c5fd; margin-left:3px; vertical-align:middle; }
-.pi-cell-input { border:none; outline:2px solid #2563eb; border-radius:4px; padding:2px 6px; font-size:inherit; font-family:inherit; background:white; width:100%; box-sizing:border-box; min-width:60px; }
-.pi-research-host { margin-bottom:0; }
-.pi-edit-validation { border-radius:9px; padding:12px 16px; margin-bottom:12px; border:1.5px solid #e2e8f0; background:#f8fafc; }
-.pi-edit-val-pending { border-color:#d97706; background:#fffbeb; }
-.pi-edit-val-supported { border-color:#16a34a; background:#f0fdf4; }
-.pi-edit-val-conflict { border-color:#dc2626; background:#fef2f2; }
-.pi-edit-val-hd { font-size:11px; font-weight:800; color:#1e3a5f; margin-bottom:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-.pi-edit-val-body { font-size:11px; color:#475569; line-height:1.5; }
-.pi-edit-finding { margin-bottom:6px; padding:6px 8px; background:white; border-radius:5px; border:1px solid #e2e8f0; }
-.pi-edit-finding-lbl { font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:2px; }
-.pi-edit-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.pi-edit-apply-btn { background:#1e3a5f; color:white; border:none; border-radius:6px; padding:5px 14px; font-size:11px; font-weight:700; cursor:pointer; }
-.pi-edit-apply-btn:hover { background:#2563eb; }
-.pi-edit-discard-btn { background:white; color:#64748b; border:1.5px solid #dde3ea; border-radius:6px; padding:5px 14px; font-size:11px; font-weight:700; cursor:pointer; }
-.pi-edit-discard-btn:hover { border-color:#94a3b8; }
-.pi-edit-hint { font-size:9.5px; color:#94a3b8; margin-top:4px; font-style:italic; }
 
 /* ── TL1A LAYOUT ── */
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
@@ -2052,9 +1975,6 @@ async function loadMeridianReader() {
   }
 }
 
-// ── Research Queue Panel ──────────────────────────────────────────────────────
-const _RQ_STATUS_CYCLE = { pending: 'in_progress', in_progress: 'done', done: 'pending' };
-const _RQ_STATUS_LABEL = { pending: '○ Pending', in_progress: '● In Progress', done: '✓ Done' };
 
 // ── Missing fields: stage grouping map ───────────────────────────────────────
 const _STAGE_PREFIX = [
@@ -2086,75 +2006,6 @@ function _groupMissingFields(missingArr) {
   return Object.values(groups);
 }
 
-// ── Area Pulse Strip ──────────────────────────────────────────────────────────
-async function loadAreaPulse() {
-  const el = document.getElementById('rq-area-pulse');
-  if (!el) return;
-  try {
-    const { data, error } = await _sb
-      .from('research_queue')
-      .select('area_id,completeness_score,completeness_tier');
-    if (error || !data || !data.length) { el.innerHTML = ''; return; }
-
-    const byArea = {};
-    data.forEach(r => {
-      if (!byArea[r.area_id]) byArea[r.area_id] = { scores:[], tiers:{thin:0,partial:0,strong:0} };
-      byArea[r.area_id].scores.push(r.completeness_score || 0);
-      const t = r.completeness_tier || 'thin';
-      byArea[r.area_id].tiers[t] = (byArea[r.area_id].tiers[t]||0) + 1;
-    });
-
-    const areaOrder = ['tl1a','tslp','il4ra','fcrn','igf1r','tcell'];
-    el.innerHTML = areaOrder.map(aId => {
-      const d = byArea[aId];
-      if (!d) return '';
-      const avg  = Math.round(d.scores.reduce((s,v) => s+v, 0) / d.scores.length);
-      const cnt  = d.scores.length;
-      const short = _AREA_SHORT[aId] || aId.toUpperCase();
-      const barColor = avg >= 70 ? '#4ade80' : avg >= 40 ? '#fbbf24' : '#f87171';
-      const tierStr = [
-        d.tiers.strong ? `${d.tiers.strong}✓` : '',
-        d.tiers.partial ? `${d.tiers.partial}~` : '',
-        d.tiers.thin    ? `${d.tiers.thin}✗`   : '',
-      ].filter(Boolean).join(' ');
-      return `<div class="rq-ap-tile" title="${cnt} entities · ${tierStr}">
-        <div class="rq-ap-area">${short}</div>
-        <div class="rq-ap-score">${avg}<span style="font-size:10px;font-weight:600;opacity:0.6">%</span></div>
-        <div class="rq-ap-bar"><div class="rq-ap-bar-fill" style="width:${avg}%;background:${barColor}"></div></div>
-        <div class="rq-ap-count">${cnt} entity${cnt!==1?'s':''}</div>
-      </div>`;
-    }).filter(Boolean).join('');
-  } catch(e) {
-    el.innerHTML = '';
-    console.warn('[rq-area-pulse]', e);
-  }
-}
-
-async function rqSetStatus(entityId, areaId, currentStatus) {
-  const nextStatus = _RQ_STATUS_CYCLE[currentStatus] || 'in_progress';
-  const rowId = `rq-row-${entityId}-${areaId}`;
-  const btnId = `rq-btn-${entityId}-${areaId}`;
-  const btn = document.getElementById(btnId);
-  const row = document.getElementById(rowId);
-  if (btn) { btn.disabled = true; btn.textContent = '…'; }
-  try {
-    const { error } = await _sb
-      .from('research_queue')
-      .update({ assigned_status: nextStatus })
-      .eq('entity_id', entityId)
-      .eq('area_id', areaId);
-    if (error) throw error;
-    if (btn) {
-      btn.disabled = false;
-      btn.className = `rq-status ${nextStatus}`;
-      btn.textContent = _RQ_STATUS_LABEL[nextStatus];
-      btn.onclick = () => rqSetStatus(entityId, areaId, nextStatus);
-    }
-    if (row) row.className = `rq-row${nextStatus === 'done' ? ' done-row' : ''}`;
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = _RQ_STATUS_LABEL[currentStatus]; btn.className = `rq-status ${currentStatus}`; }
-  }
-}
 
 // Area color map shared across queue + badges
 const _AREA_PILL_COLORS = {
@@ -2167,90 +2018,6 @@ const _AREA_PILL_COLORS = {
 };
 const _AREA_SHORT = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
 
-async function loadResearchQueue() {
-  const body = document.getElementById('rq-body');
-  if (!body) return;
-  try {
-    const hideDone = document.getElementById('rq-hide-done')?.checked ?? false;
-    let query = _sb
-      .from('research_queue')
-      .select('entity_id,area_id,priority_score,completeness_score,completeness_tier,next_best_action,missing_fields,assigned_status')
-      .order('priority_score', { ascending: false })
-      .limit(25);
-    if (hideDone) query = query.neq('assigned_status', 'done');
-    const { data, error } = await query;
-    if (error || !data || !data.length) {
-      body.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:14px 18px">No research queue data yet — run the pipeline to populate.</div>';
-      return;
-    }
-    body.innerHTML = data.map(r => {
-      const pri    = r.priority_score || 0;
-      const priCls = pri >= 80 ? 'rq-hi' : pri >= 50 ? 'rq-mid' : 'rq-lo';
-      const tier   = r.completeness_tier || 'thin';
-      const score  = r.completeness_score || 0;
-      const status = r.assigned_status || 'pending';
-      const rowId  = `rq-row-${r.entity_id}-${r.area_id}`;
-      const btnId  = `rq-btn-${r.entity_id}-${r.area_id}`;
-      const gapId  = `rq-gaps-${r.entity_id}-${r.area_id}`;
-      const expId  = `rq-exp-${r.entity_id}-${r.area_id}`;
-      const doneClass = status === 'done' ? ' done-row' : '';
-      const ac = _AREA_PILL_COLORS[r.area_id] || { bg:'#64748b', text:'white' };
-      const aShort = _AREA_SHORT[r.area_id] || (r.area_id || '').toUpperCase();
-      const barW = Math.min(100, Math.max(4, score)) + '%';
-      const entityLabel = r.entity_id.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-
-      // Missing fields expansion
-      const mf = Array.isArray(r.missing_fields) ? r.missing_fields : [];
-      const gapCount = mf.length;
-      const gapGroups = _groupMissingFields(mf);
-      const expandBtn = gapCount > 0
-        ? `<button id="${expId}" class="rq-expand-btn" onclick="rqToggleGaps('${gapId}','${expId}')">▸ ${gapCount} gap${gapCount!==1?'s':''}</button>`
-        : '';
-      const gapsHtml = gapGroups.map(g =>
-        `<div class="rq-gap-group">
-           <div class="rq-gap-group-label">${g.label}</div>
-           ${g.fields.map(f => `<span class="rq-gap-field">${_humanField(f)}</span>`).join('')}
-         </div>`
-      ).join('');
-      const gapsBody = gapCount > 0
-        ? `<div class="rq-gaps-body" id="${gapId}">${gapsHtml}</div>`
-        : '';
-
-      return `<div class="rq-row ${priCls}${doneClass}" id="${rowId}">
-        <div style="flex:1;min-width:0">
-          <div class="rq-entity" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
-            <span>${entityLabel}</span>
-            <span class="rq-tier ${tier}">${tier}</span>
-            <span class="rq-area-pill" style="background:${ac.bg};color:${ac.text}">${aShort}</span>
-            ${expandBtn}
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-            <div class="rq-bar"><div class="rq-bar-fill ${tier}" style="width:${barW}"></div></div>
-            <span class="rq-score-val">${score}<span style="color:#cbd5e1">/100</span></span>
-            <span style="font-size:9.5px;font-weight:700;color:${pri >= 80 ? '#dc2626' : pri >= 50 ? '#d97706' : '#94a3b8'}">pri ${pri}</span>
-          </div>
-          ${r.next_best_action ? `<div class="rq-action" style="margin-top:3px">→ ${r.next_best_action}</div>` : ''}
-          ${gapsBody}
-        </div>
-        <button id="${btnId}" class="rq-status ${status}" onclick="rqSetStatus('${r.entity_id}','${r.area_id}','${status}')">${_RQ_STATUS_LABEL[status]}</button>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    body.innerHTML = '<div style="color:#ef4444;font-size:12px;padding:14px 18px">Error loading queue.</div>';
-    console.warn('[loadResearchQueue]', e);
-  }
-}
-
-function rqToggleGaps(gapId, expId) {
-  const gap = document.getElementById(gapId);
-  const btn = document.getElementById(expId);
-  if (!gap) return;
-  const open = gap.classList.toggle('open');
-  if (btn) {
-    btn.classList.toggle('open', open);
-    btn.textContent = (open ? '▾ ' : '▸ ') + btn.textContent.replace(/^[▸▾]\s*/,'');
-  }
-}
 
 // ── Identity Health Panel ────────────────────────────────────────────────────
 async function loadIdentityHealth() {
@@ -3129,23 +2896,6 @@ function loadMoleculeTab(tabId) {
       </div>
   </div>
 
- <!-- ── RESEARCH QUEUE — primary decision surface ───────────────── -->
- <div class="home-card" id="research-queue-panel" style="border-left:4px solid #7c3aed">
-  <div class="home-card-hd" style="background:linear-gradient(105deg,#2d1262,#4c1d95,#5b21b6);color:white;">
-   <div>
-    <span style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em">🔬 Research Queue</span>
-    <span style="display:block;font-size:10px;font-weight:500;opacity:0.75;margin-top:1px">What needs attention today</span>
-   </div>
-   <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10.5px;color:rgba(255,255,255,0.8);font-weight:600;user-select:none">
-    <input type="checkbox" id="rq-hide-done" onchange="loadResearchQueue()" style="accent-color:#a78bfa;cursor:pointer">
-    Hide done
-   </label>
-  </div>
-  <div id="rq-area-pulse" style="color:rgba(255,255,255,0.5);font-size:11px;padding:10px 14px">Loading…</div>
-  <div id="rq-body">
-   <div style="color:#94a3b8;font-size:12px;padding:14px 18px">Loading research queue…</div>
-  </div>
- </div>
 
  <!-- ── KEY CATALYSTS ──────────────────────────────────────────── -->
  <div class="home-grid" id="home-catalysts-anchor">
@@ -8572,7 +8322,7 @@ async function loadLiveIntel() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadResearchQueue(); loadAreaPulse(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
@@ -8994,149 +8744,6 @@ document.addEventListener('keydown', e => {
   }
 })();
 
-// ── PI TABLE INLINE EDIT + RESEARCH VALIDATION ────────────────────
-async function piStartEdit(event, td, programId, field) {
- event.stopPropagation();
- if (td.dataset.editing === 'true') return;
- td.dataset.editing = 'true';
-
- const currentVal = td.textContent.trim();
- const origHTML = td.innerHTML;
- const input = document.createElement('input');
- input.type = 'text';
- input.value = currentVal;
- input.className = 'pi-cell-input';
- td.innerHTML = '';
- td.appendChild(input);
- input.focus();
- input.select();
-
- let committed = false;
- const commit = async () => {
-  if (committed) return; committed = true;
-  td.dataset.editing = 'false';
-  const newVal = input.value.trim();
-  td.innerHTML = origHTML; // restore display
-  if (newVal && newVal !== currentVal) {
-   // Expand the row so the research panel is visible
-   if (!tl1aPI.expanded.has(programId)) tl1aPI.toggle(programId);
-   setTimeout(() => piResearchValidate(programId, field, currentVal, newVal), 60);
-  }
- };
- input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); commit(); }
-  if (e.key === 'Escape') { committed = true; td.dataset.editing = 'false'; td.innerHTML = origHTML; }
- });
- input.addEventListener('blur', commit);
-}
-
-async function piResearchValidate(programId, field, oldVal, newVal) {
- const prog = TL1A_PROGRAMS.find(p => p.id === programId);
- if (!prog) return;
-
- const host = document.getElementById('pi-research-host-' + programId);
- if (!host) return;
-
- // Remove old panel
- host.querySelectorAll('.pi-edit-validation').forEach(el => el.remove());
-
- const panel = document.createElement('div');
- panel.className = 'pi-edit-validation pi-edit-val-pending';
- panel.innerHTML = `<div class="pi-edit-val-hd">🔍 Research Check: <strong>${field}</strong> &nbsp;·&nbsp; <span style="color:#d97706">"${oldVal}"</span> → <span style="color:#2563eb">"${newVal}"</span></div>
-  <div class="pi-edit-val-body" id="pi-val-body-${programId}"><em>Querying research database…</em></div>`;
- host.insertBefore(panel, host.firstChild);
- panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
-
- let findings = [];
- let statusClass = 'pi-edit-val-pending';
- let statusLabel = '🔎 Queued for deep research — no stored intel found yet';
-
- if (_sb) {
-  try {
-   // Get stored company context
-   const { data: co } = await _sb.from('companies')
-    .select('insight_text, ailux_angle, name')
-    .eq('ticker', prog.ticker).maybeSingle();
-
-   // Get recent intel submissions for this company
-   const { data: coRow } = await _sb.from('companies').select('id').eq('ticker', prog.ticker).maybeSingle();
-   let intelItems = [];
-   if (coRow?.id) {
-    const { data: icRows } = await _sb.from('intel_companies')
-     .select('intel_submissions(title, summary, source_url)')
-     .eq('company_id', coRow.id).limit(4);
-    intelItems = (icRows || []).map(r => r.intel_submissions).filter(Boolean);
-   }
-
-   if (co?.insight_text) findings.push({ label:'Company Profile', text: co.insight_text });
-   if (co?.ailux_angle)  findings.push({ label:'Ailux Lens',      text: co.ailux_angle });
-   intelItems.forEach(i => findings.push({ label:'Intel: ' + (i.title || 'Note'), text: i.summary || '', url: i.source_url }));
-
-   // Basic text-match validation
-   const corpus = findings.map(f => f.text).join(' ').toLowerCase();
-   const needle = newVal.toLowerCase();
-
-   if (findings.length === 0) {
-    statusClass = 'pi-edit-val-pending';
-    statusLabel = '🔎 No stored intel for ' + prog.co + ' yet — change queued for research pipeline';
-   } else if (corpus.includes(needle)) {
-    statusClass = 'pi-edit-val-supported';
-    statusLabel = '✅ Consistent with stored research — proposed value found in our intel';
-   } else {
-    statusClass = 'pi-edit-val-pending';
-    statusLabel = '⚠️ Not confirmed in stored intel — queued for deep research validation';
-   }
-
-   // Write proposed edit to Supabase for async research pickup
-   try {
-    await _sb.from('pi_user_edits').upsert({
-     company_ticker: prog.ticker,
-     field_name: field,
-     old_value: oldVal,
-     new_value: newVal,
-     validation_status: 'pending'
-    }, { onConflict: 'company_ticker,field_name' });
-   } catch(e) { /* table may not exist — silent fail */ }
-
-  } catch(e) {
-   findings = [{ label:'Error', text: 'Could not query Supabase: ' + e.message }];
-   statusLabel = '❌ Research database error';
-  }
- } else {
-  statusLabel = 'Research validation unavailable';
- }
-
- panel.className = 'pi-edit-validation ' + statusClass;
-
- const findingsHTML = findings.length
-  ? findings.map(f =>
-   `<div class="pi-edit-finding">
-    <div class="pi-edit-finding-lbl">${f.label}</div>
-    <div style="font-size:11px;color:#475569">${(f.text||'').slice(0,280)}${(f.text||'').length>280?'…':''}</div>
-    ${f.url ? `<a href="${f.url}" target="_blank" rel="noopener" style="font-size:9.5px;color:#1d4ed8">Source ↗</a>` : ''}
-   </div>`).join('')
-  : `<div style="color:#94a3b8;font-style:italic;font-size:11px">No stored intel found for ${prog.co}. Research pipeline will validate overnight.</div>`;
-
- document.getElementById('pi-val-body-' + programId).innerHTML = `
-  <div style="font-weight:700;margin-bottom:8px">${statusLabel}</div>
-  <div style="font-size:10px;color:#64748b;margin-bottom:8px">
-   <strong>Proposed change:</strong> ${prog.co} · ${field}: "${oldVal}" → "${newVal}"
-  </div>
-  ${findingsHTML}
-  <div class="pi-edit-hint">🔬 The nightly research pipeline will run a deep validation against ClinicalTrials.gov, SEC filings, and literature. Results will update automatically.</div>
-  <div class="pi-edit-actions">
-   <button class="pi-edit-apply-btn" onclick="piApplyEdit('${programId}','${field}','${newVal}');this.closest('.pi-edit-validation').remove()">Apply Change Locally</button>
-   <button class="pi-edit-discard-btn" onclick="this.closest('.pi-edit-validation').remove()">Discard</button>
-  </div>`;
-}
-
-function piApplyEdit(programId, field, newVal) {
- const prog = TL1A_PROGRAMS.find(p => p.id === programId);
- if (!prog) return;
- const keyMap = { 'Drug':'drug', 'Target':'target', 'Class':'cls', 'Stage':'stageKey', 'Relevance':'overlap' };
- const key = keyMap[field] || field;
- if (key in prog) { prog[key] = newVal; tl1aPI.filter(); }
-}
 
 function piPillClick(filter, val, btn) {
   btn.closest('.pi-pill-group').querySelectorAll('.pi-pill').forEach(b => b.classList.remove('active'));
@@ -9794,9 +9401,9 @@ const tl1aPI = {
    const isExp = this.expanded.has(p.id);
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${p.id}')">
     <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${this._noIntelTickers.has(p.ticker)?'<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>':''}</strong><div style="font-size:10px;color:#94a3b8">${p.ticker}</div></td>
-    <td class="pi-editable" title="Double-click to edit" style="font-size:12px" ondblclick="piStartEdit(event,this,'${p.id}','Drug')">${p.drug}</td>
-    <td class="pi-editable" title="Double-click to edit" style="font-size:11px;color:#475569" ondblclick="piStartEdit(event,this,'${p.id}','Target')">${p.target}</td>
-    <td class="pi-editable" title="Double-click to edit classification" ondblclick="piStartEdit(event,this,'${p.id}','Class')">${this._clsPill(p.cls)}</td>
+    <td style="font-size:12px">${p.drug}</td>
+    <td style="font-size:11px;color:#475569">${p.target}</td>
+    <td>${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(p.stageKey)}</td>
     <td>${this._ovBadge(p.overlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
    </tr>`;
