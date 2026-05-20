@@ -8768,12 +8768,29 @@ const tl1aPI = {
  _colWidths: [175, 130, 85, 80, 75, 75],
  _profileCache: {},  // cache Supabase-fetched profiles keyed by company id
 
+ _drugDisplayArea: 'tl1a',  // updated async on init from disease_areas.indication_group
+
  init() {
   this.filtered = [...this.data];
   this._renderTable();
   this._initResize();
+  this._loadIndicationGroup();  // async — sets _drugDisplayArea from disease_areas
   this._loadIntelStatus();
-  this._loadSbDiscoveredRows();  // async — merges pipeline-discovered companies from Supabase
+  this._loadSbDiscoveredRows();
+ },
+
+ async _loadIndicationGroup() {
+  // Fetch indication_group for 'tl1a' from disease_areas.
+  // This drives which area_id is used when loading drugs in the expanded row.
+  // For tl1a → 'ibd', so all IBD drugs (TL1A, IL-23, JAK, integrin) show up.
+  if (!_sb) return;
+  try {
+   const { data } = await _sb.from('disease_areas')
+    .select('indication_group').eq('id', 'tl1a').maybeSingle();
+   if (data?.indication_group) {
+    this._drugDisplayArea = data.indication_group;
+   }
+  } catch(e) { /* keep default */ }
  },
 
  filter() {
@@ -9038,18 +9055,26 @@ const tl1aPI = {
     deals = d2 || [];
    }
 
-   // Fetch ALL drugs for this company (not filtered by area).
-   // Area-tagged drugs appear first so TL1A programs are at the top;
-   // other programs (e.g. Spyre's SPY120/SPY130 IL-23/integrin drugs) follow.
-   const { data: drugAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', AREA);
-   const areaIds = new Set((drugAreaRows||[]).map(r => r.drug_id));
+   // Fetch drugs for this company filtered by the indication_group area (e.g. 'ibd').
+   // This is broader than the specific target area (e.g. 'tl1a') so a Spyre expansion
+   // shows all IBD programs — TL1A, IL-23, α4β7 — not just TL1A-tagged drugs.
+   // Within results: target-area-tagged drugs appear first (e.g. TL1A programs at top),
+   // then other IBD drugs (IL-23, JAK, integrin) follow.
+   const DRUG_AREA = this._drugDisplayArea || AREA;  // 'ibd' for TL1A tab
+   const { data: drugAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', DRUG_AREA);
+   const ibdIds = new Set((drugAreaRows||[]).map(r => r.drug_id));
+   // Also get target-specific area ids to sort TL1A drugs first within IBD set
+   const { data: targetAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', AREA);
+   const targetIds = new Set((targetAreaRows||[]).map(r => r.drug_id));
+   // Fetch all company drugs that are in the IBD set
    const { data: allCoDrugs } = await _sb.from('drugs').select('*')
     .eq('company_id', id).order('sort_order', { ascending: true }).limit(20);
-   // Sort: area-tagged drugs first, then others
-   const drugs = (allCoDrugs||[]).sort((a, b) => {
-    const aIn = areaIds.has(a.id) ? 0 : 1;
-    const bIn = areaIds.has(b.id) ? 0 : 1;
-    if (aIn !== bIn) return aIn - bIn;
+   const ibdDrugs = (allCoDrugs||[]).filter(d => ibdIds.has(d.id));
+   // Sort: target-specific (TL1A) first, then other IBD drugs
+   const drugs = ibdDrugs.sort((a, b) => {
+    const aTarget = targetIds.has(a.id) ? 0 : 1;
+    const bTarget = targetIds.has(b.id) ? 0 : 1;
+    if (aTarget !== bTarget) return aTarget - bTarget;
     return (a.sort_order||99) - (b.sort_order||99);
    });
 
