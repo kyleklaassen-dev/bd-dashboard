@@ -76,7 +76,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .header-meta { font-size: 12px; opacity: 0.65; text-align: right; }
 .header-meta strong { opacity: 1; font-weight: 700; }
 
-.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0px; z-index: 190; min-height: 38px; }
+.tab-bar { background: white; border-bottom: 2px solid #dde3ea; padding: 0 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0px; z-index: 400; min-height: 38px; }
 .tab-btn { display: none; }
 .tab-current-title { display: flex; align-items: center; gap: 6px; position: relative; }
 .tab-current-title.is-drug { cursor: pointer; user-select: none; }
@@ -1258,6 +1258,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .tl1a-center-col { min-width:0; }
 .tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:300;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
+@media (max-width: 1440px) { .tl1a-pills-col { display:none !important; } }
 [id$='-pills-left']  { left:14px; }
 [id$='-pills-right'] { right:14px; }
 .tl1a-pill-btn { background:white;border:1.5px solid #dde3ea;border-radius:20px;padding:8px 10px;font-size:10.5px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:center;transition:all 0.15s;width:100%;line-height:1.3;position:relative;display:flex;align-items:center;justify-content:center;gap:4px; }
