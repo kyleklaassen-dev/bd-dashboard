@@ -425,6 +425,10 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         })
         if not existing_link:
             sb_upsert("company_areas", {"company_id": co_id, "area_id": area_id})
+            # Also tag to indication_group area (e.g. 'ibd' for 'tl1a').
+            # Company eligibility for the TL1A tab is IBD-based, not TL1A-specific.
+            if indication_group != area_id:
+                sb_upsert("company_areas", {"company_id": co_id, "area_id": indication_group})
 
         if drug_name:
             drug_slug = re.sub(r'[^a-z0-9]', '-', drug_name.lower()).strip('-')
