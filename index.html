@@ -1284,6 +1284,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-results-btn:hover{background:#ede9fe}
 .pi-tr-results-body{display:none;margin-top:7px;padding:9px 10px;background:white;border:1px solid #e0d9ff;border-radius:4px;font-size:11.5px;line-height:1.7;color:#374151}
 .pi-tr-results-body.open{display:block}
+.pi-tr-acronym{font-size:9px;font-weight:800;color:#1e4a82;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;text-transform:uppercase}
 /* Approved drug profile */
 .pi-da-approved{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:7px;padding:12px 14px;margin-bottom:10px}
 .pi-da-approved-hd{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:5px}
@@ -9562,22 +9563,26 @@ const tl1aPI = {
 
    // Trial rows
    const trialRowsHTML = resolvedTrials.map(t => {
-    const nct    = t.id || t.nct || '';
-    const name   = t.trial_name || t.name || '';
-    const status = t.status || '';
-    const phase  = t.phase || '';
-    const n      = t.n_enrollment || t.enrollment || t.n;
-    const pcd    = t.pcd_label || t.primary_completion_date?.slice(0,7) || t.pcd || '';
-    const ind    = t.indication || t.condition || '';
-    const route  = t.route || d.route || '';
-    const dosing = t.dosing_type || d.dosing_type || '';
-    const ep     = t.primary_endpoint || t.primary || '';
-    const results= t.results_summary || '';
+    const nct     = t.id || t.nct || '';
+    const name    = t.trial_name || t.name || '';
+    const acronym = t.study_acronym || '';
+    const status  = t.status || '';
+    const phase   = t.phase || '';
+    const n       = t.n_enrollment || t.enrollment || t.n;
+    const pcd     = t.pcd_label || t.primary_completion_date?.slice(0,7) || t.pcd || '';
+    const ind     = t.indication || t.condition || '';
+    const route   = t.route || d.route || '';
+    const dosing  = t.dosing_type || d.dosing_type || '';
+    const ep      = t.primary_endpoint || t.primary || '';
+    const results = t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
     const nctLink = nct.startsWith('NCT')
      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
      : `<span style="font-size:10px;color:#94a3b8;width:88px;display:inline-block;flex-shrink:0">${nct||'—'}</span>`;
+
+    // Study acronym pill — shown in collapsed row when available (short label like SKYLINE, U-ACHIEVE)
+    const acronymBadge = acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : '';
 
     const detailFields = [
      ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
@@ -9592,9 +9597,11 @@ const tl1aPI = {
      <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
 
     // Study name hidden by default — only shown in expanded detail on click
+    // Study acronym (e.g. SKYLINE, U-ACHIEVE) shown as compact badge in collapsed row
     return `<div class="pi-tr-item">
      <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       ${nctLink}
+      ${acronymBadge}
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-phase-cell">${phase}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
