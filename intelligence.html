@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligence — Ailux BD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; background: #f1f5f9; color: #1e293b; }
+
+/* ── Layout ── */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Header ── */
+.hd { background: #0d1f38; color: white; padding: 0 18px; height: 44px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.hd-brand { font-size: 13px; font-weight: 900; letter-spacing: -0.02em; color: white; display: flex; align-items: center; gap: 7px; }
+.hd-brand-mark { font-size: 16px; color: #a78bfa; }
+.hd-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.12); }
+.hd-sub { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0.04em; text-transform: uppercase; }
+.hd-spacer { flex: 1; }
+.hd-health { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,0.65); }
+.hd-health-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.hd-back { font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,0.5); text-decoration: none; padding: 4px 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 5px; transition: all 0.15s; }
+.hd-back:hover { color: white; border-color: rgba(255,255,255,0.4); }
+
+/* ── Filter bar ── */
+.filter-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 0 14px; height: 38px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+.filter-bar::-webkit-scrollbar { display: none; }
+.f-pill { font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; white-space: nowrap; transition: all 0.12s; letter-spacing: 0.03em; }
+.f-pill:hover { border-color: #7c3aed; color: #7c3aed; }
+.f-pill.active { background: #7c3aed; border-color: #7c3aed; color: white; }
+.f-pill.area-tl1a.active  { background: #1a3f8f; border-color: #1a3f8f; }
+.f-pill.area-tslp.active  { background: #0e7490; border-color: #0e7490; }
+.f-pill.area-il4ra.active { background: #7c3aed; border-color: #7c3aed; }
+.f-pill.area-igf1r.active { background: #b45309; border-color: #b45309; }
+.f-pill.area-fcrn.active  { background: #15803d; border-color: #15803d; }
+.f-pill.area-tcell.active { background: #dc2626; border-color: #dc2626; }
+.f-sep { width: 1px; height: 18px; background: #e2e8f0; flex-shrink: 0; margin: 0 2px; }
+.f-hide-done { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: #64748b; cursor: pointer; white-space: nowrap; margin-left: auto; flex-shrink: 0; user-select: none; }
+.f-hide-done input { accent-color: #7c3aed; cursor: pointer; }
+.f-count { font-size: 10px; font-weight: 700; color: #94a3b8; margin-left: 4px; }
+
+/* ── Queue panel (left) ── */
+.queue-panel { width: 380px; flex-shrink: 0; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+.queue-hd { padding: 10px 14px 8px; border-bottom: 1px solid #f1f5f9; }
+.queue-hd-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+.queue-body { flex: 1; overflow-y: auto; }
+.queue-body::-webkit-scrollbar { width: 4px; }
+.queue-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+.queue-empty { padding: 32px 16px; text-align: center; color: #94a3b8; font-size: 12px; }
+
+/* ── Queue row ── */
+.q-row { position: relative; padding: 10px 14px 10px 18px; border-bottom: 1px solid #f8fafc; cursor: pointer; transition: background 0.1s; display: flex; align-items: flex-start; gap: 10px; }
+.q-row:hover { background: #f8fafc; }
+.q-row.active { background: #f5f3ff; }
+.q-row.done-row { opacity: 0.4; }
+.q-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 0 2px 2px 0; }
+.q-row.pri-hi::before  { background: #dc2626; }
+.q-row.pri-mid::before { background: #d97706; }
+.q-row.pri-lo::before  { background: #cbd5e1; }
+.q-row.active::before  { width: 4px; }
+
+.q-rank { font-size: 9.5px; font-weight: 800; color: #cbd5e1; min-width: 18px; flex-shrink: 0; padding-top: 1px; }
+.q-body { flex: 1; min-width: 0; }
+.q-name { font-size: 12.5px; font-weight: 700; color: #0d1f38; line-height: 1.3; margin-bottom: 3px; }
+.q-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
+.q-area-pill { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px; color: white; flex-shrink: 0; }
+.q-tier { font-size: 8.5px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
+.q-tier.thin    { background: #fef2f2; color: #dc2626; }
+.q-tier.partial { background: #fffbeb; color: #b45309; }
+.q-tier.strong  { background: #f0fdf4; color: #15803d; }
+.q-score-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.q-bar { height: 3px; width: 80px; background: #f1f5f9; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.q-bar-fill { height: 100%; border-radius: 2px; }
+.q-bar-fill.thin    { background: #ef4444; }
+.q-bar-fill.partial { background: #f59e0b; }
+.q-bar-fill.strong  { background: #22c55e; }
+.q-score-num { font-size: 10px; font-weight: 700; color: #94a3b8; }
+.q-pri-num { font-size: 9px; font-weight: 700; }
+.q-action { font-size: 10.5px; color: #64748b; line-height: 1.4; }
+.q-action::before { content: '→ '; color: #7c3aed; font-weight: 800; }
+.q-status-btn { font-size: 9px; font-weight: 700; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 7px; cursor: pointer; background: white; white-space: nowrap; flex-shrink: 0; transition: all 0.1s; }
+.q-status-btn.pending     { color: #64748b; }
+.q-status-btn.in_progress { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+.q-status-btn.done        { color: #15803d; border-color: #bbf7d0; background: #f0fdf4; }
+.q-status-btn:hover { opacity: 0.8; }
+
+/* ── Detail panel (right) ── */
+.detail-panel { flex: 1; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; }
+.detail-panel::-webkit-scrollbar { width: 5px; }
+.detail-panel::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+.detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #cbd5e1; }
+.detail-empty-icon { font-size: 36px; }
+.detail-empty-text { font-size: 12px; font-weight: 600; }
+
+/* ── Detail header ── */
+.det-hd { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 20px 14px; flex-shrink: 0; }
+.det-hd-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.det-name { font-size: 18px; font-weight: 900; color: #0d1f38; line-height: 1.2; }
+.det-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.det-area-pill { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 4px; color: white; }
+.det-tier { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; }
+.det-tier.thin    { background: #fef2f2; color: #dc2626; }
+.det-tier.partial { background: #fffbeb; color: #b45309; }
+.det-tier.strong  { background: #f0fdf4; color: #15803d; }
+.det-pri { font-size: 10px; font-weight: 700; color: #94a3b8; }
+.det-score-block { background: #f8fafc; border-radius: 8px; padding: 12px 14px; border: 1px solid #f1f5f9; }
+.det-score-num { font-size: 28px; font-weight: 900; color: #0d1f38; line-height: 1; }
+.det-score-label { font-size: 10px; font-weight: 600; color: #94a3b8; margin-left: 4px; }
+.det-score-bar { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.det-score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+/* ── Stage breakdown ── */
+.det-section { background: white; border-bottom: 1px solid #f1f5f9; padding: 14px 20px; }
+.det-section-title { font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.07em; color: #94a3b8; margin-bottom: 12px; }
+.stage-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.stage-row:last-child { margin-bottom: 0; }
+.stage-label { font-size: 10.5px; font-weight: 600; color: #475569; min-width: 140px; flex-shrink: 0; }
+.stage-bar-wrap { flex: 1; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.stage-bar-fill { height: 100%; border-radius: 3px; }
+.stage-pct { font-size: 10px; font-weight: 700; color: #64748b; min-width: 32px; text-align: right; }
+.stage-status { font-size: 9px; min-width: 44px; text-align: center; }
+.stage-gap-count { font-size: 9px; color: #94a3b8; font-weight: 600; }
+
+/* ── Next best action ── */
+.det-action { background: white; border-bottom: 1px solid #f1f5f9; padding: 12px 20px; display: flex; align-items: flex-start; gap: 10px; }
+.det-action-arrow { font-size: 14px; color: #7c3aed; font-weight: 900; flex-shrink: 0; }
+.det-action-text { font-size: 12px; color: #1e293b; line-height: 1.5; font-weight: 500; }
+
+/* ── Missing fields ── */
+.gap-group { margin-bottom: 10px; }
+.gap-group:last-child { margin-bottom: 0; }
+.gap-group-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 5px; }
+.gap-chip { display: inline-block; font-size: 9px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 3px; padding: 1px 5px; margin: 1px 2px 1px 0; }
+
+/* ── Expanders ── */
+.expander { background: white; border-bottom: 1px solid #f1f5f9; }
+.exp-hd { display: flex; align-items: center; gap: 8px; padding: 11px 20px; cursor: pointer; user-select: none; transition: background 0.1s; }
+.exp-hd:hover { background: #f8fafc; }
+.exp-toggle { font-size: 10px; color: #94a3b8; transition: transform 0.2s; width: 14px; }
+.exp-toggle.open { transform: rotate(90deg); }
+.exp-title { font-size: 11px; font-weight: 800; color: #1e293b; }
+.exp-count { font-size: 9.5px; font-weight: 700; background: #f1f5f9; color: #64748b; border-radius: 10px; padding: 1px 7px; }
+.exp-body { display: none; padding: 0 20px 14px; }
+.exp-body.open { display: block; }
+
+/* ── Data tables ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+.data-table th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; padding: 4px 8px 6px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+.data-table td { padding: 7px 8px; border-bottom: 1px solid #f8fafc; color: #334155; vertical-align: top; line-height: 1.4; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #fafbff; }
+.pill-stage { font-size: 8.5px; font-weight: 800; padding: 1px 6px; border-radius: 3px; display: inline-block; }
+.pill-ph3  { background: #dbeafe; color: #1d4ed8; }
+.pill-ph2  { background: #ede9fe; color: #6d28d9; }
+.pill-ph1  { background: #fef3c7; color: #92400e; }
+.pill-pre  { background: #f1f5f9; color: #475569; }
+.pill-app  { background: #dcfce7; color: #15803d; }
+.pill-sig-high { background: #fef2f2; color: #dc2626; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
+.pill-sig-med  { background: #fffbeb; color: #b45309; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
+.data-empty { font-size: 11px; color: #94a3b8; padding: 10px 0; }
+
+/* ── Profile section ── */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.profile-block { background: #f8fafc; border-radius: 6px; padding: 10px 12px; border: 1px solid #f1f5f9; }
+.profile-block.full { grid-column: 1 / -1; }
+.profile-block-label { font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 6px; }
+.profile-block-text { font-size: 11px; color: #334155; line-height: 1.6; }
+.profile-vs-ailux { background: linear-gradient(135deg,#eff6ff,#f0f3fa); border-left: 3px solid #1a3f8f; border-radius: 0 6px 6px 0; padding: 10px 12px; margin-top: 8px; }
+.profile-vs-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #1a3f8f; margin-bottom: 4px; }
+.profile-vs-text { font-size: 11px; color: #1e3a5f; line-height: 1.6; }
+
+/* ── Loading ── */
+.loading { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #94a3b8; padding: 16px; }
+.spinner { width: 14px; height: 14px; border: 2px solid #e2e8f0; border-top-color: #7c3aed; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Status bar (bottom) ── */
+.status-bar { background: #0d1f38; color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600; height: 24px; display: flex; align-items: center; padding: 0 16px; gap: 16px; flex-shrink: 0; }
+.status-bar span { display: flex; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="hd">
+    <div class="hd-brand">
+      <span class="hd-brand-mark">◈</span>
+      Intelligence
+    </div>
+    <div class="hd-sep"></div>
+    <div class="hd-sub">Ailux BD Platform</div>
+    <div class="hd-spacer"></div>
+    <div class="hd-health" id="hd-health" title="Identity health">
+      <div class="hd-health-dot" id="hd-health-dot"></div>
+      <span id="hd-health-text">Loading…</span>
+    </div>
+    <div class="hd-sep"></div>
+    <a href="index.html" class="hd-back">← Dashboard</a>
+  </header>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <button class="f-pill active" data-area="" onclick="setArea(this,'')">All Areas</button>
+    <button class="f-pill area-tl1a"  data-area="tl1a"  onclick="setArea(this,'tl1a')">TL1A</button>
+    <button class="f-pill area-tslp"  data-area="tslp"  onclick="setArea(this,'tslp')">TSLP</button>
+    <button class="f-pill area-il4ra" data-area="il4ra" onclick="setArea(this,'il4ra')">IL-4Rα</button>
+    <button class="f-pill area-igf1r" data-area="igf1r" onclick="setArea(this,'igf1r')">IGF1R</button>
+    <button class="f-pill area-fcrn"  data-area="fcrn"  onclick="setArea(this,'fcrn')">FcRn</button>
+    <button class="f-pill area-tcell" data-area="tcell" onclick="setArea(this,'tcell')">T-cell</button>
+    <div class="f-sep"></div>
+    <label class="f-hide-done">
+      <input type="checkbox" id="hide-done-chk" onchange="loadQueue()"> Hide done
+    </label>
+    <span class="f-count" id="queue-count"></span>
+  </div>
+
+  <!-- Main two-panel layout -->
+  <div class="main">
+
+    <!-- Left: Queue -->
+    <div class="queue-panel">
+      <div class="queue-hd">
+        <div class="queue-hd-title">Research Queue · Priority Ranked</div>
+      </div>
+      <div class="queue-body" id="queue-body">
+        <div class="loading"><div class="spinner"></div> Loading queue…</div>
+      </div>
+    </div>
+
+    <!-- Right: Detail -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-empty">
+        <div class="detail-empty-icon">◈</div>
+        <div class="detail-empty-text">Select an entity from the queue</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="status-bar">
+    <span id="sb-queue">—</span>
+    <span id="sb-enriched">—</span>
+    <span id="sb-pipeline">—</span>
+  </div>
+
+</div>
+
+<script>
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SB_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
+const _sb = supabase.createClient(SB_URL, SB_ANON);
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const AREA_COLORS = {
+  tl1a:'#1a3f8f', tslp:'#0e7490', il4ra:'#7c3aed',
+  igf1r:'#b45309', fcrn:'#15803d', tcell:'#dc2626',
+};
+const AREA_SHORT = {
+  tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell'
+};
+const STAGE_DEFS = [
+  { key:'s1', label:'Entity Discovery',    weight:10,
+    match: f => false /* always assumed present */ },
+  { key:'s2', label:'Drug Mapping',        weight:15,
+    match: f => /^drug:.*:(target|mechanism|differentiation_thesis)$/.test(f) },
+  { key:'s3', label:'Trial Intelligence',  weight:20,
+    match: f => /^drug:.*:(has_trials|trial_detail|trial_confidence|trial_canonical_linked)$/.test(f) },
+  { key:'s4', label:'Catalysts',           weight:15,
+    match: f => f === 'catalysts_list' },
+  { key:'s5', label:'Strategic Position',  weight:25,
+    match: f => ['company_profile_exists','competitive_position','vs_ailux','key_differentiators'].includes(f) },
+  { key:'s6', label:'Deal Intelligence',   weight:15,
+    match: f => f === 'deals_list' },
+];
+const STATUS_CYCLE = { pending:'in_progress', in_progress:'done', done:'pending' };
+const STATUS_LABEL = { pending:'○ Pending', in_progress:'● Active', done:'✓ Done' };
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let _currentArea   = '';
+let _activeEntity  = null; // { entity_id, area_id }
+let _queueData     = [];
+
+// ── Area filter ───────────────────────────────────────────────────────────────
+function setArea(btn, area) {
+  document.querySelectorAll('.f-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  _currentArea = area;
+  loadQueue();
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US', { month:'short', year:'numeric' }); }
+  catch { return d; }
+}
+function fmtMoney(m) {
+  if (!m) return '';
+  return m >= 1000 ? `$${(m/1000).toFixed(1)}B` : `$${Math.round(m)}M`;
+}
+function stagePillClass(stage) {
+  if (!stage) return 'pill-pre';
+  const s = stage.toLowerCase();
+  if (s.includes('phase 3') || s.includes('phase iii')) return 'pill-ph3';
+  if (s.includes('phase 2') || s.includes('phase ii'))  return 'pill-ph2';
+  if (s.includes('phase 1') || s.includes('phase i'))   return 'pill-ph1';
+  if (s.includes('approved')) return 'pill-app';
+  return 'pill-pre';
+}
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function entityLabel(id) {
+  return (id||'').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── Stage analysis from missing_fields ───────────────────────────────────────
+function analyzeStages(missingFields) {
+  const mf = Array.isArray(missingFields) ? missingFields : [];
+  // Count unique drug prefixes to estimate stage totals
+  const drugPrefixes = new Set(mf.filter(f => f.startsWith('drug:')).map(f => f.split(':')[1]));
+  const numDrugs = Math.max(1, drugPrefixes.size);
+
+  const STAGE_TOTALS = { s1:1, s2: numDrugs*3, s3: numDrugs*4, s4:1, s5:4, s6:1 };
+
+  return STAGE_DEFS.map(sd => {
+    if (sd.key === 's1') return { ...sd, missing:0, total:1, pct:100 };
+    const stageMissing = mf.filter(sd.match);
+    const total  = STAGE_TOTALS[sd.key];
+    const missing = stageMissing.length;
+    const pct = Math.max(0, Math.round(((total - missing) / total) * 100));
+    return { ...sd, missing, total, pct, fields: stageMissing };
+  });
+}
+
+// ── Load queue ────────────────────────────────────────────────────────────────
+async function loadQueue() {
+  const body = document.getElementById('queue-body');
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Loading…</div>';
+
+  try {
+    const hideDone = document.getElementById('hide-done-chk').checked;
+    let q = _sb.from('research_queue')
+      .select('entity_id,entity_name,area_id,priority_score,completeness_score,completeness_tier,next_best_action,missing_fields,assigned_status')
+      .order('priority_score', { ascending: false })
+      .limit(50);
+    if (_currentArea) q = q.eq('area_id', _currentArea);
+    if (hideDone)     q = q.neq('assigned_status', 'done');
+
+    const { data, error } = await q;
+    if (error) throw error;
+    _queueData = data || [];
+
+    document.getElementById('queue-count').textContent = `${_queueData.length} items`;
+    document.getElementById('sb-queue').textContent = `Queue: ${_queueData.length} entities`;
+
+    if (!_queueData.length) {
+      body.innerHTML = '<div class="queue-empty">No entities match this filter.</div>';
+      return;
+    }
+
+    body.innerHTML = _queueData.map((r, i) => {
+      const pri    = r.priority_score || 0;
+      const priCls = pri >= 80 ? 'pri-hi' : pri >= 50 ? 'pri-mid' : 'pri-lo';
+      const tier   = r.completeness_tier || 'thin';
+      const score  = r.completeness_score || 0;
+      const status = r.assigned_status || 'pending';
+      const ac     = AREA_COLORS[r.area_id] || '#64748b';
+      const aShort = AREA_SHORT[r.area_id]  || (r.area_id||'').toUpperCase();
+      const name   = r.entity_name || entityLabel(r.entity_id);
+      const barW   = Math.min(100, Math.max(3, score));
+      const priCol = pri >= 80 ? '#dc2626' : pri >= 50 ? '#d97706' : '#94a3b8';
+      const rowId  = `qr-${r.entity_id}-${r.area_id}`;
+      const btnId  = `qb-${r.entity_id}-${r.area_id}`;
+      const active = _activeEntity?.entity_id === r.entity_id && _activeEntity?.area_id === r.area_id;
+      const doneClass = status === 'done' ? ' done-row' : '';
+
+      return `<div class="q-row ${priCls}${doneClass}${active?' active':''}" id="${rowId}"
+          onclick="selectEntity('${escHtml(r.entity_id)}','${r.area_id}','${rowId}')">
+        <div class="q-rank">#${i+1}</div>
+        <div class="q-body">
+          <div class="q-name">${escHtml(name)}</div>
+          <div class="q-meta">
+            <span class="q-area-pill" style="background:${ac}">${aShort}</span>
+            <span class="q-tier ${tier}">${tier}</span>
+            <span class="q-pri-num" style="color:${priCol};font-size:9px;font-weight:700">pri ${pri}</span>
+          </div>
+          <div class="q-score-bar">
+            <div class="q-bar"><div class="q-bar-fill ${tier}" style="width:${barW}%"></div></div>
+            <span class="q-score-num">${score}<span style="color:#e2e8f0">/100</span></span>
+          </div>
+          ${r.next_best_action ? `<div class="q-action">${escHtml(r.next_best_action)}</div>` : ''}
+        </div>
+        <button id="${btnId}" class="q-status-btn ${status}"
+          onclick="event.stopPropagation();rqCycle('${escHtml(r.entity_id)}','${r.area_id}','${status}','${btnId}','${rowId}')">${STATUS_LABEL[status]}</button>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    body.innerHTML = `<div class="queue-empty" style="color:#dc2626">Error: ${e.message}</div>`;
+    console.error('[loadQueue]', e);
+  }
+}
+
+// ── Status cycle ──────────────────────────────────────────────────────────────
+async function rqCycle(entityId, areaId, current, btnId, rowId) {
+  const next = STATUS_CYCLE[current] || 'pending';
+  const btn  = document.getElementById(btnId);
+  const row  = document.getElementById(rowId);
+  if (btn) { btn.className = `q-status-btn ${next}`; btn.textContent = STATUS_LABEL[next]; }
+  if (next === 'done' && document.getElementById('hide-done-chk').checked) {
+    row?.classList.add('done-row');
+  }
+  try {
+    await _sb.from('research_queue').update({ assigned_status: next })
+      .eq('entity_id', entityId).eq('area_id', areaId);
+    // Update onclick for next cycle
+    if (btn) btn.setAttribute('onclick',
+      `event.stopPropagation();rqCycle('${entityId}','${areaId}','${next}','${btnId}','${rowId}')`);
+  } catch(e) {
+    // Revert on error
+    if (btn) { btn.className = `q-status-btn ${current}`; btn.textContent = STATUS_LABEL[current]; }
+    console.warn('[rqCycle]', e);
+  }
+}
+
+// ── Select entity → load detail ───────────────────────────────────────────────
+async function selectEntity(entityId, areaId, rowId) {
+  // Highlight active row
+  document.querySelectorAll('.q-row').forEach(r => r.classList.remove('active'));
+  document.getElementById(rowId)?.classList.add('active');
+  _activeEntity = { entity_id: entityId, area_id: areaId };
+
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div> Loading entity detail…</div>';
+
+  try {
+    // Find this entity in queue data
+    const rqRow = _queueData.find(r => r.entity_id === entityId && r.area_id === areaId)
+      || _queueData.find(r => r.entity_id === entityId);
+
+    if (!rqRow) throw new Error('Entity not found in queue');
+
+    const name = rqRow.entity_name || entityLabel(entityId);
+    const companyId = entityId; // entity_id == company_id by convention
+
+    // Parallel fetch entity data
+    const [drugsRes, trialsRes, catalystsRes, dealsRes, profileRes] = await Promise.all([
+      _sb.from('drugs').select('name,stage,mechanism,target,differentiation_thesis')
+        .eq('entity_id', entityId).order('stage'),
+      _sb.from('trials').select('trial_name,phase,indication,status,primary_completion_date,n_enrollment,source_url')
+        .eq('entity_id', entityId).order('phase'),
+      _sb.from('catalysts').select('label,catalyst_date,sort_date,significance,catalyst_type,notes,is_key_watch,resolved')
+        .eq('company_id', companyId).order('sort_date'),
+      _sb.from('deals').select('deal_date,deal_date_label,from_company,to_company,headline,deal_type,total_usd_m,upfront_usd_m,ailux_signal')
+        .or(`from_company.ilike.%${name}%,to_company.ilike.%${name}%,entity_id.eq.${entityId}`)
+        .order('deal_date', { ascending: false }).limit(10),
+      _sb.from('company_profiles').select('platform_summary,bd_summary,key_risk,why_it_matters,strategic_behavior,vs_ailux,last_enriched_at')
+        .eq('company_id', companyId).eq('area_id', areaId).maybeSingle(),
+    ]);
+
+    const drugs      = drugsRes.data     || [];
+    const trials     = trialsRes.data    || [];
+    const catalysts  = catalystsRes.data || [];
+    const deals      = dealsRes.data     || [];
+    const profile    = profileRes.data   || null;
+
+    // Stage analysis
+    const stages = analyzeStages(rqRow.missing_fields);
+    const mf     = Array.isArray(rqRow.missing_fields) ? rqRow.missing_fields : [];
+
+    // Score styling
+    const score = rqRow.completeness_score || 0;
+    const tier  = rqRow.completeness_tier || 'thin';
+    const barColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+    const ac = AREA_COLORS[areaId] || '#64748b';
+    const aShort = AREA_SHORT[areaId] || areaId.toUpperCase();
+
+    // ── Render stage rows ──
+    const stageHtml = stages.map(s => {
+      const pct = s.pct;
+      const barCol = pct >= 80 ? '#22c55e' : pct >= 40 ? '#f59e0b' : pct > 0 ? '#f97316' : '#f1f5f9';
+      const statusIcon = pct === 100 ? '✓' : pct === 0 ? '✗' : '~';
+      const statusColor = pct === 100 ? '#15803d' : pct === 0 ? '#dc2626' : '#d97706';
+      const gapNote = s.missing > 0 ? `<span class="stage-gap-count">${s.missing} gap${s.missing!==1?'s':''}</span>` : '';
+      return `<div class="stage-row">
+        <div class="stage-label">${s.label}</div>
+        <div class="stage-bar-wrap"><div class="stage-bar-fill" style="width:${pct}%;background:${barCol}"></div></div>
+        <div class="stage-pct" style="color:${statusColor}">${pct}%</div>
+        ${gapNote}
+        <div class="stage-status" style="color:${statusColor};font-weight:800">${statusIcon}</div>
+      </div>`;
+    }).join('');
+
+    // ── Render missing fields by stage ──
+    const gapGroups = [];
+    STAGE_DEFS.slice(1).forEach(sd => {
+      const fields = mf.filter(sd.match);
+      if (!fields.length) return;
+      const chips = fields.map(f => {
+        let label = f;
+        if (f.startsWith('drug:')) {
+          const parts = f.split(':');
+          label = `${parts[1]}:${parts.slice(2).join(':').replace(/_/g,' ')}`;
+        } else label = f.replace(/_/g,' ');
+        return `<span class="gap-chip">${label}</span>`;
+      }).join('');
+      gapGroups.push(`<div class="gap-group"><div class="gap-group-label">${sd.label}</div>${chips}</div>`);
+    });
+
+    // ── Render drugs table ──
+    const drugsHtml = drugs.length
+      ? `<table class="data-table">
+          <thead><tr><th>Drug</th><th>Stage</th><th>Mechanism</th></tr></thead>
+          <tbody>${drugs.map(d => `<tr>
+            <td style="font-weight:700;color:#0d1f38">${escHtml(d.name||'')}</td>
+            <td><span class="pill-stage ${stagePillClass(d.stage)}">${escHtml(d.stage||'—')}</span></td>
+            <td style="color:#64748b">${escHtml((d.mechanism||'').slice(0,80))}${(d.mechanism||'').length>80?'…':''}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<div class="data-empty">No drugs on record for this entity.</div>';
+
+    // ── Render trials table ──
+    const trialsHtml = trials.length
+      ? `<table class="data-table">
+          <thead><tr><th>Trial</th><th>Phase</th><th>Status</th><th>Indication</th><th>PCD</th><th>N</th></tr></thead>
+          <tbody>${trials.map(t => `<tr>
+            <td style="font-weight:600;color:#0d1f38">${t.source_url
+              ? `<a href="${escHtml(t.source_url)}" target="_blank" style="color:#2563eb;text-decoration:none">${escHtml(t.trial_name||'—')} ↗</a>`
+              : escHtml(t.trial_name||'—')}</td>
+            <td><span class="pill-stage ${stagePillClass(t.phase)}">${escHtml(t.phase||'—')}</span></td>
+            <td>${escHtml(t.status||'—')}</td>
+            <td>${escHtml((t.indication||'').slice(0,30))}${(t.indication||'').length>30?'…':''}</td>
+            <td style="white-space:nowrap">${escHtml(t.primary_completion_date||'—')}</td>
+            <td>${t.n_enrollment||'—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<div class="data-empty">No trial records found.</div>';
+
+    // ── Render catalysts table ──
+    const activeCats = catalysts.filter(c => !c.resolved);
+    const catsHtml = activeCats.length
+      ? `<table class="data-table">
+          <thead><tr><th>Event</th><th>Date</th><th>Type</th><th>Significance</th></tr></thead>
+          <tbody>${activeCats.map(c => `<tr>
+            <td style="font-weight:600;color:#0d1f38">${c.is_key_watch?'⚑ ':''}${escHtml(c.label||'')}</td>
+            <td style="white-space:nowrap;color:#64748b">${escHtml(c.catalyst_date||'')}</td>
+            <td>${escHtml(c.catalyst_type||'')}</td>
+            <td>${c.significance==='high'
+              ? '<span class="pill-sig-high">High</span>'
+              : c.significance==='medium' ? '<span class="pill-sig-med">Med</span>' : escHtml(c.significance||'')}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<div class="data-empty">No upcoming catalysts on record.</div>';
+
+    // ── Render deals ──
+    const dealsHtml = deals.length
+      ? `<table class="data-table">
+          <thead><tr><th>Date</th><th>Deal</th><th>Value</th><th>Type</th></tr></thead>
+          <tbody>${deals.map(d => `<tr>
+            <td style="white-space:nowrap;color:#64748b">${escHtml(d.deal_date||d.deal_date_label||'')}</td>
+            <td>
+              <div style="font-weight:600;color:#0d1f38">${escHtml(d.from_company||'')} → ${escHtml(d.to_company||'')}</div>
+              <div style="font-size:10px;color:#64748b;margin-top:2px">${escHtml((d.headline||'').slice(0,70))}${(d.headline||'').length>70?'…':''}</div>
+              ${d.ailux_signal ? `<div style="font-size:10px;color:#1a3f8f;margin-top:3px;font-style:italic">${escHtml((d.ailux_signal||'').slice(0,80))}…</div>` : ''}
+            </td>
+            <td style="white-space:nowrap;font-weight:700">${fmtMoney(d.total_usd_m)}</td>
+            <td style="color:#64748b">${escHtml(d.deal_type||'')}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<div class="data-empty">No deals on record for this entity.</div>';
+
+    // ── Render profile ──
+    const profileHtml = profile
+      ? `<div class="profile-grid">
+          ${profile.platform_summary ? `<div class="profile-block"><div class="profile-block-label">Platform Summary</div><div class="profile-block-text">${escHtml(profile.platform_summary)}</div></div>` : ''}
+          ${profile.bd_summary ? `<div class="profile-block"><div class="profile-block-label">BD Profile</div><div class="profile-block-text">${escHtml(profile.bd_summary)}</div></div>` : ''}
+          ${profile.key_risk ? `<div class="profile-block"><div class="profile-block-label">Key Risk</div><div class="profile-block-text">${escHtml(profile.key_risk)}</div></div>` : ''}
+          ${profile.strategic_behavior ? `<div class="profile-block"><div class="profile-block-label">Strategic Behavior</div><div class="profile-block-text">${escHtml(profile.strategic_behavior)}</div></div>` : ''}
+          ${profile.why_it_matters ? `<div class="profile-block full"><div class="profile-block-label">Why It Matters</div><div class="profile-block-text">${escHtml(profile.why_it_matters)}</div></div>` : ''}
+        </div>
+        ${profile.vs_ailux ? `<div class="profile-vs-ailux"><div class="profile-vs-label">◈ vs. Ailux</div><div class="profile-vs-text">${escHtml(profile.vs_ailux)}</div></div>` : ''}
+        ${profile.last_enriched_at ? `<div style="font-size:9.5px;color:#cbd5e1;margin-top:10px;text-align:right">Enriched ${fmtDate(profile.last_enriched_at)}</div>` : ''}`
+      : '<div class="data-empty">No company profile yet — run the enrichment pipeline for this entity.</div>';
+
+    // ── Assemble full detail panel ──
+    panel.innerHTML = `
+      <!-- Header -->
+      <div class="det-hd">
+        <div class="det-hd-top">
+          <div>
+            <div class="det-name">${escHtml(name)}</div>
+            <div class="det-meta">
+              <span class="det-area-pill" style="background:${ac}">${aShort}</span>
+              <span class="det-tier ${tier}">${tier}</span>
+              <span class="det-pri">Priority ${rqRow.priority_score || 0}</span>
+            </div>
+          </div>
+          <div class="det-score-block" style="text-align:right">
+            <div><span class="det-score-num">${score}</span><span class="det-score-label">/100</span></div>
+            <div class="det-score-bar"><div class="det-score-bar-fill" style="width:${score}%;background:${barColor}"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage breakdown -->
+      <div class="det-section">
+        <div class="det-section-title">Completeness by Stage</div>
+        ${stageHtml}
+      </div>
+
+      <!-- Next best action -->
+      ${rqRow.next_best_action ? `
+      <div class="det-action">
+        <div class="det-action-arrow">→</div>
+        <div>
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:3px">Next Best Action</div>
+          <div class="det-action-text">${escHtml(rqRow.next_best_action)}</div>
+        </div>
+      </div>` : ''}
+
+      <!-- Missing fields (if any) -->
+      ${gapGroups.length ? `
+      <div class="det-section">
+        <div class="det-section-title">Missing Fields (${mf.length} total)</div>
+        ${gapGroups.join('')}
+      </div>` : ''}
+
+      <!-- Drugs expander -->
+      <div class="expander">
+        <div class="exp-hd" onclick="toggleExp('exp-drugs')">
+          <span class="exp-toggle" id="exp-drugs-arrow">▶</span>
+          <span class="exp-title">Drugs</span>
+          <span class="exp-count">${drugs.length}</span>
+        </div>
+        <div class="exp-body" id="exp-drugs">${drugsHtml}</div>
+      </div>
+
+      <!-- Trials expander -->
+      <div class="expander">
+        <div class="exp-hd" onclick="toggleExp('exp-trials')">
+          <span class="exp-toggle" id="exp-trials-arrow">▶</span>
+          <span class="exp-title">Clinical Trials</span>
+          <span class="exp-count">${trials.length}</span>
+        </div>
+        <div class="exp-body" id="exp-trials">${trialsHtml}</div>
+      </div>
+
+      <!-- Catalysts expander -->
+      <div class="expander">
+        <div class="exp-hd" onclick="toggleExp('exp-cats')">
+          <span class="exp-toggle" id="exp-cats-arrow">▶</span>
+          <span class="exp-title">Upcoming Catalysts</span>
+          <span class="exp-count">${activeCats.length}</span>
+        </div>
+        <div class="exp-body" id="exp-cats">${catsHtml}</div>
+      </div>
+
+      <!-- Deals expander -->
+      <div class="expander">
+        <div class="exp-hd" onclick="toggleExp('exp-deals')">
+          <span class="exp-toggle" id="exp-deals-arrow">▶</span>
+          <span class="exp-title">BD Deals</span>
+          <span class="exp-count">${deals.length}</span>
+        </div>
+        <div class="exp-body" id="exp-deals">${dealsHtml}</div>
+      </div>
+
+      <!-- Strategic Profile expander -->
+      <div class="expander">
+        <div class="exp-hd" onclick="toggleExp('exp-profile')">
+          <span class="exp-toggle" id="exp-profile-arrow">▶</span>
+          <span class="exp-title">Strategic Profile</span>
+          <span class="exp-count">${profile ? 'enriched' : 'empty'}</span>
+        </div>
+        <div class="exp-body" id="exp-profile">${profileHtml}</div>
+      </div>
+
+      <div style="height:40px"></div>
+    `;
+
+  } catch(e) {
+    panel.innerHTML = `<div class="detail-empty"><div class="detail-empty-text" style="color:#dc2626">Error: ${e.message}</div></div>`;
+    console.error('[selectEntity]', e);
+  }
+}
+
+// ── Toggle expander ───────────────────────────────────────────────────────────
+function toggleExp(id) {
+  const body  = document.getElementById(id);
+  const arrow = document.getElementById(id + '-arrow');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (arrow) {
+    arrow.textContent = open ? '▼' : '▶';
+    arrow.classList.toggle('open', open);
+  }
+}
+
+// ── Identity health ───────────────────────────────────────────────────────────
+async function loadHealthBar() {
+  try {
+    const [drugsRes, canonRes, errRes] = await Promise.all([
+      _sb.from('drugs').select('canonical_drug_id'),
+      _sb.from('canonical_drugs').select('canonical_id,is_active'),
+      _sb.from('resolver_errors').select('id', { count:'exact', head:true }).is('resolved_at', null),
+    ]);
+    const drugs    = drugsRes.data  || [];
+    const canons   = canonRes.data  || [];
+    const total    = drugs.length;
+    const resolved = drugs.filter(d => d.canonical_drug_id).length;
+    const canonIds = new Set(canons.map(c => c.canonical_id));
+    const orphans  = drugs.filter(d => d.canonical_drug_id && !canonIds.has(d.canonical_drug_id)).length;
+    const errors   = errRes.count   || 0;
+
+    const ok = resolved === total && orphans === 0 && errors === 0;
+    const dot = document.getElementById('hd-health-dot');
+    const txt = document.getElementById('hd-health-text');
+    if (dot) dot.style.background = ok ? '#4ade80' : orphans > 0 ? '#f87171' : '#fbbf24';
+    if (txt) txt.textContent = `${resolved}/${total} resolved${orphans>0?` · ${orphans} orphans`:''}${errors>0?` · ${errors} errors`:''}`;
+
+    // Status bar
+    const enrichedRes = await _sb.from('company_profiles').select('last_enriched_at', { count:'exact', head:false });
+    const enriched = (enrichedRes.data||[]).filter(p => p.last_enriched_at).length;
+    document.getElementById('sb-enriched').textContent = `Profiles: ${enriched} enriched`;
+    document.getElementById('sb-pipeline').textContent = `Identity: ${resolved}/${total} resolved`;
+  } catch(e) {
+    console.warn('[loadHealthBar]', e);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadQueue();
+  loadHealthBar();
+});
+</script>
+</body>
+</html>
