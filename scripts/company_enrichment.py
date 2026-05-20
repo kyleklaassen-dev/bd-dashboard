@@ -558,13 +558,24 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
         significance = ("high"   if "Phase 3" in phase else
                         "medium" if "Phase 2" in phase else "low")
 
-        # Idempotency: check if we already have a catalyst for this trial
-        existing = sb_get("catalysts", {
-            "related_trial_id": f"eq.{trial_id}",
-            "company_id":       f"eq.{company_id}",
-            "select":           "id",
-        })
-        if existing:
+        # Idempotency: dedup by drug × date, NOT by trial_id.
+        # A drug may have multiple NCT IDs (cohorts, arms, sites) all sharing
+        # the same primary_completion_date — those should collapse to ONE catalyst.
+        if canonical_drug_id:
+            dedup_q = {
+                "company_id":        f"eq.{company_id}",
+                "canonical_drug_id": f"eq.{canonical_drug_id}",
+                "sort_date":         f"eq.{sort_date}",
+                "select":            "id",
+            }
+        else:
+            dedup_q = {
+                "company_id": f"eq.{company_id}",
+                "drug_id":    f"eq.{drug_id}",
+                "sort_date":  f"eq.{sort_date}",
+                "select":     "id",
+            }
+        if sb_get("catalysts", dedup_q):
             continue
 
         label   = f"{trial_name[:60]} — {phase} primary completion"
