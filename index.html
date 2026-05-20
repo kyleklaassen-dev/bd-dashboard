@@ -9007,8 +9007,8 @@ const tl1aPI = {
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
     <div class="pi-detail-section"><h5>🤝 BD Summary</h5><p>Agenus spinout (Feb 2024); Agenus retained ~25% equity + tiered royalties. $783M raised (Series A: Farallon, Foresite, RA Capital + ATM) — cash runway into H2 2028. No pharma partners; deliberate pre-partnering strategy through Phase 2 data. Primary BD window: 2027 SKYLINE combination readouts (SPY120 · SPY130 · SPY230). Deal optionality: single-program licensing, indication-specific co-development, or full platform acquisition.</p></div>
-    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
-    <div class="pi-detail-section"><h5>💼 Deal History</h5>${deals}</div>
+    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5><div style="${p.catalysts.length>5?'max-height:210px;overflow-y:auto;scrollbar-width:thin':''}"> ${cats}</div></div>
+    <div class="pi-detail-section"><h5>📰 Related News</h5><div style="${p.deals.length>5?'max-height:210px;overflow-y:auto;scrollbar-width:thin':''}">${deals}</div></div>
     <div class="pi-detail-section"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
     <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
     <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
@@ -9036,25 +9036,58 @@ const tl1aPI = {
     .eq('company_id', id).eq('area_id', AREA);
    const profile = profileRows?.[0] || null;
 
-   // Fetch upcoming catalysts for this company+area
+   // Fetch upcoming catalysts for this company+area — no hard limit; UI caps visible at 5
    const { data: cats } = await _sb
     .from('catalysts').select('*')
     .eq('company_id', id).eq('area_id', AREA)
-    .eq('resolved', false).order('sort_date', { ascending: true }).limit(8);
+    .eq('resolved', false).order('sort_date', { ascending: true }).limit(20);
 
-   // Fetch deals with company_id FK first, fall back to string match
+   // Fetch deals/news — company_id FK first, fall back to name match
+   // "Related News" = deals + financing rounds + press releases, sorted newest first
    let { data: deals } = await _sb
     .from('deals').select('*')
-    .eq('company_id', id).eq('area_id', AREA)
-    .order('deal_date', { ascending: false }).limit(8);
+    .eq('company_id', id)
+    .order('deal_date', { ascending: false }).limit(20);
    if (!deals || !deals.length) {
-    const coName = (prog.co||'').split('/')[0].trim().substring(0,12);
+    const coName = (prog.co||'').split('/')[0].trim().substring(0,14);
     const { data: d2 } = await _sb
-     .from('deals').select('*').eq('area_id', AREA)
+     .from('deals').select('*')
      .or(`from_company.ilike.*${coName}*,to_company.ilike.*${coName}*`)
-     .order('deal_date', { ascending: false }).limit(8);
+     .order('deal_date', { ascending: false }).limit(20);
     deals = d2 || [];
    }
+
+   // Also pull recent intel items for this company from the intel_companies junction
+   // These are research-generated news summaries that may not be formal deals
+   let intelNews = [];
+   try {
+    const { data: icRows } = await _sb
+     .from('intel_companies').select('intel_id').eq('company_id', id).limit(20);
+    if (icRows?.length) {
+     const intelIds = icRows.map(r => r.intel_id);
+     const { data: intelRows } = await _sb
+      .from('intel').select('id,intel_date,headline,body,source_url')
+      .in('id', intelIds).order('intel_date', { ascending: false }).limit(10);
+     intelNews = (intelRows || []).map(i => ({
+      _source: 'intel',
+      deal_date: i.intel_date,
+      deal_date_label: i.intel_date ? i.intel_date.slice(0,10) : '',
+      headline: i.headline,
+      detail: (i.body||'').slice(0,200),
+      source_url: i.source_url,
+      deal_type: 'news',
+     }));
+    }
+   } catch(_) {}
+
+   // Merge deals + intel news, deduplicate by headline, sort newest first
+   const allNews = [...(deals||[]), ...intelNews]
+    .filter((item, idx, arr) =>
+     arr.findIndex(x => (x.headline||'').slice(0,40) === (item.headline||'').slice(0,40)) === idx
+    )
+    .sort((a,b) => (b.deal_date||'').localeCompare(a.deal_date||''));
+   // Replace 'deals' with merged set for rendering below
+   const sbDealsAll = allNews;
 
    // Fetch drugs for this company filtered by the indication_group area (e.g. 'ibd').
    // This is broader than the specific target area (e.g. 'tl1a') so a Spyre expansion
@@ -9086,7 +9119,9 @@ const tl1aPI = {
     if (tt) trials.push(...tt);
    }
 
-   const sbData = { profile, catalysts: cats||[], deals: deals||[], drugs, trials };
+   // Pass merged news (deals + intel items) as the "deals" array to the renderer
+   // sbDealsAll = deals + financing rounds + press releases from intel table, sorted newest first
+   const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials };
    this._profileCache[id] = sbData;
 
    // Replace loading placeholder
@@ -9443,37 +9478,69 @@ const tl1aPI = {
      </div>`
    : '';
 
-  // ── Catalysts ───────────────────────────────────────────────────────────
+  // ── Catalysts — show first 5 visible, scroll for more ───────────────────
   let catsHTML;
-  if (sbCats.length) {
-   catsHTML = sbCats.map(c =>
-    `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${c.catalyst_date||''}</span>
-      <span>${c.label||''}</span>
-     </div>`).join('');
-  } else if (prog.catalysts?.length) {
-   catsHTML = prog.catalysts.map(c =>
-    `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${c.date}</span>
-      <span>${c.url?`<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>`:c.event}</span>
-     </div>`).join('');
-  } else { catsHTML = '<p style="color:#94a3b8;font-size:12px">No upcoming catalysts on record</p>'; }
+  const catItems = sbCats.length ? sbCats : (prog.catalysts || []);
+  if (catItems.length) {
+   const catRows = catItems.map((c, ci) => {
+    const isFromSb = sbCats.length > 0;
+    const date  = isFromSb ? (c.catalyst_date||'') : (c.date||'');
+    const label = isFromSb ? (c.label||'') : (c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>` : (c.event||''));
+    const srcUrl = isFromSb ? (c.source_url||'') : '';
+    const sigBadge = isFromSb && c.significance === 'high'
+     ? `<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Key</span>` : '';
+    const labelHtml = isFromSb && srcUrl
+     ? `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${label} ↗</a>${sigBadge}`
+     : `${label}${sigBadge}`;
+    return `<div class="pi-detail-cat-item" style="${ci>=5?'':''}">
+      <span class="pi-detail-cat-date">${date}</span>
+      <span style="font-size:11.5px">${labelHtml}</span>
+     </div>`;
+   }).join('');
+   // Scrollable wrapper: first 5 visible (~175px), scroll for rest
+   const scrollStyle = catItems.length > 5
+    ? 'max-height:210px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    : '';
+   const countNote = catItems.length > 5
+    ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${catItems.length} upcoming · scroll for more</div>` : '';
+   catsHTML = `${countNote}<div style="${scrollStyle}">${catRows}</div>`;
+  } else {
+   catsHTML = '<p style="color:#94a3b8;font-size:12px">No upcoming catalysts on record</p>';
+  }
 
-  // ── Deals ───────────────────────────────────────────────────────────────
+  // ── Related News (deals + financing + press releases + intel) ────────────
+  // RULE: "Related News" = any notable company event — formal deals, financing rounds,
+  // pipeline milestones, press releases. Sourced from deals table + intel table.
   let dealsHTML;
-  if (sbDeals.length) {
-   dealsHTML = sbDeals.map(d =>
-    `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${d.deal_date_label||d.deal_date||''}</span>
-      <span style="font-size:11.5px">${d.source_url?`<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.headline} ↗</a>`:d.headline}</span>
-     </div>`).join('');
-  } else if (prog.deals?.length) {
-   dealsHTML = prog.deals.map(d =>
-    `<div class="pi-detail-cat-item">
-      <span class="pi-detail-cat-date">${d.date}</span>
-      <span>${d.url?`<a href="${d.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${d.desc} ↗</a>`:d.desc}</span>
-     </div>`).join('');
-  } else { dealsHTML = '<p style="color:#94a3b8;font-size:12px">No deal history on record</p>'; }
+  const newsItems = sbDealsAll.length ? sbDealsAll : (prog.deals || []);
+  if (newsItems.length) {
+   const newsRows = newsItems.map(d => {
+    const date  = d.deal_date_label || (d.deal_date||'').slice(0,10) || d.date || '';
+    const title = d.headline || d.desc || '';
+    const url   = d.source_url || d.url || '';
+    // Type badge: financing, licensing, partnership, news, etc.
+    const typeMap = {financing:'💰 Funding', licensing:'📋 License', partnership:'🤝 Partnership',
+                     acquisition:'🏢 Acquisition', news:'📰 News', collaboration:'🤝 Collab'};
+    const typeBadge = d.deal_type && typeMap[d.deal_type]
+     ? `<span style="font-size:8.5px;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;margin-right:4px;font-weight:700;white-space:nowrap">${typeMap[d.deal_type]}</span>` : '';
+    const titleHtml = url
+     ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`
+     : title;
+    const upfront = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px">$${d.upfront_usd_m}M</span>` : '';
+    return `<div class="pi-detail-cat-item">
+      <span class="pi-detail-cat-date">${date}</span>
+      <span style="font-size:11.5px">${typeBadge}${titleHtml}${upfront}</span>
+     </div>`;
+   }).join('');
+   const scrollStyle = newsItems.length > 5
+    ? 'max-height:210px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    : '';
+   const countNote = newsItems.length > 5
+    ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${newsItems.length} items · scroll for more</div>` : '';
+   dealsHTML = `${countNote}<div style="${scrollStyle}">${newsRows}</div>`;
+  } else {
+   dealsHTML = '<p style="color:#94a3b8;font-size:12px">No news on record — enrichment pipeline will populate</p>';
+  }
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${drugSection}
@@ -9484,7 +9551,7 @@ const tl1aPI = {
     </div>
     ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
-    <div class="pi-detail-section"><h5>💼 Deal History</h5>${dealsHTML}</div>
+    <div class="pi-detail-section"><h5>📰 Related News</h5>${dealsHTML}</div>
     ${keyRisk?`<div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${keyRisk}</p></div>`:''}
     ${whyMatters?`<div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${whyMatters}</p></div>`:''}
    </div>
@@ -9499,10 +9566,10 @@ const tl1aPI = {
    `<div class="pi-detail-cat-item"><span class="pi-detail-cat-date">${d.date}</span><span>${d.desc}</span></div>`).join('') : '<p>No deal history</p>';
   return `<div class="pi-detail-inner">
    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
-   <div class="pi-detail-section"><h5>Upcoming Catalysts</h5>${cats}</div>
-   <div class="pi-detail-section"><h5>Deal History</h5>${deals}</div>
-   <div class="pi-detail-section"><h5>Key Risk</h5><p>${p.risk}</p></div>
-   <div class="pi-detail-section"><h5>Why It Matters / Differentiation</h5><p>${p.diff}</p></div>
+   <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
+   <div class="pi-detail-section"><h5>📰 Related News</h5>${deals}</div>
+   <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
+   <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
   </div>`;
  },
 
