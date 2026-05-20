@@ -54,96 +54,139 @@ SB_HEADERS = {
 TL1A_PROGRAMS = [
     # NOTE: Tulisokibart (MK-7240/PRA023) is Merck's drug, acquired via Prometheus Biosciences.
     # It is listed under groupId='merck' below. Do not add it under spyre.
+    #
+    # Each entry includes: modality, route, mechanismDetail where known.
+    # Uncertain fields are set to None — pipeline enrichment will populate them.
+    # TL1A × IL-23 bispecifics are listed first (highest relevance to Ailux asset).
 
+    # ── Direct: TL1A × IL-23 / TL1A × other bispecifics ────────────────────
     dict(id="spyre-mono",    co="Spyre Therapeutics", ticker="SYRE",
          drug="SPY002",
          target="TL1A × IL-23", stageKey="Phase 1", overlap="Direct",
-         groupId="spyre", partnerCo=None),
-
-    dict(id="spyre-230",     co="Spyre Therapeutics", ticker="SYRE",
-         drug="SPY230",
-         target="TL1A × FcRn", stageKey="Phase 1", overlap="Direct",
-         groupId="spyre", partnerCo=None),
-
-    dict(id="roche",         co="Roche", ticker="ROG",
-         drug="Afimkibart (RO7790121)",
-         target="TL1A", stageKey="Phase 3", overlap="Direct",
-         groupId="roche", partnerCo="Telavant (Roivant)"),
-
-    dict(id="abbvie",        co="AbbVie", ticker="ABBV",
-         drug="FG-M701",
-         target="TL1A", stageKey="Phase 2", overlap="Direct",
-         groupId="abbvie", partnerCo=None),
-
-    dict(id="abbvie-skyrizi", co="AbbVie", ticker="ABBV",
-         drug="Risankizumab (Skyrizi)",
-         target="IL-23 (p19)", stageKey="Approved", overlap="Adjacent",
-         groupId="abbvie", partnerCo=None),
-
-    dict(id="abbvie-rinvoq", co="AbbVie", ticker="ABBV",
-         drug="Upadacitinib (Rinvoq)",
-         target="JAK1", stageKey="Approved", overlap="Adjacent",
-         groupId="abbvie", partnerCo=None),
-
-    dict(id="sanofi",        co="Sanofi", ticker="SNY",
-         drug="Duvakitug (SAR447029)",
-         target="TL1A", stageKey="Phase 3", overlap="Direct",
-         groupId="sanofi", partnerCo="Teva"),
-
-    dict(id="xencor-942",   co="Xencor", ticker="XNCR",
-         drug="XmAb942 (Vudalimab)",
-         target="TL1A", stageKey="Phase 2", overlap="Direct",
-         groupId="xencor", partnerCo=None),
+         groupId="spyre", partnerCo=None,
+         modality="bispecific", route="SC",
+         mechanismDetail="Dual-variable domain bispecific targeting TL1A and IL-23p19; Spyre next-gen IBD candidate"),
 
     dict(id="xencor-412",   co="Xencor", ticker="XNCR",
          drug="XmAb412",
          target="TL1A × IL-23", stageKey="Phase 1", overlap="Direct",
-         groupId="xencor", partnerCo=None),
+         groupId="xencor", partnerCo=None,
+         modality="bispecific", route=None,
+         mechanismDetail="XmAb bispecific platform targeting TL1A and IL-23; Xencor next-gen IBD program"),
+
+    dict(id="spyre-230",     co="Spyre Therapeutics", ticker="SYRE",
+         drug="SPY230",
+         target="TL1A × FcRn", stageKey="Phase 1", overlap="Direct",
+         groupId="spyre", partnerCo=None,
+         modality="bispecific", route="SC",
+         mechanismDetail="Bispecific targeting TL1A and FcRn; extended half-life design for SC convenience dosing"),
+
+    # ── Direct: TL1A monospecifics (Phase 3 leaders first) ──────────────────
+    dict(id="merck",         co="Merck & Co.", ticker="MRK",
+         drug="Tulisokibart (MK-7240/PRA023)",
+         target="TL1A", stageKey="Phase 3", overlap="Direct",
+         groupId="merck", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Anti-TL1A monoclonal antibody; acquired via $10.8B Prometheus Biosciences acquisition (Apr 2023); Phase 3 leader in UC"),
+
+    dict(id="roche",         co="Roche", ticker="ROG",
+         drug="Afimkibart (RO7790121)",
+         target="TL1A", stageKey="Phase 3", overlap="Direct",
+         groupId="roche", partnerCo="Telavant (Roivant)",
+         modality="mAb", route="SC",
+         mechanismDetail="Anti-TL1A monoclonal antibody; in-licensed from Telavant (Roivant); Phase 3 in UC and CD"),
+
+    dict(id="sanofi",        co="Sanofi", ticker="SNY",
+         drug="Duvakitug (SAR447029)",
+         target="TL1A", stageKey="Phase 3", overlap="Direct",
+         groupId="sanofi", partnerCo="Teva",
+         modality="mAb", route="SC",
+         mechanismDetail="Anti-TL1A monoclonal antibody co-developed with Teva; Phase 3 in UC and CD (RELEGATE, CELESTIA programs)"),
+
+    dict(id="abbvie",        co="AbbVie", ticker="ABBV",
+         drug="FG-M701",
+         target="TL1A", stageKey="Phase 2", overlap="Direct",
+         groupId="abbvie", partnerCo=None,
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A monoclonal antibody; AbbVie internal TL1A program; Phase 2 in IBD"),
+
+    dict(id="xencor-942",   co="Xencor", ticker="XNCR",
+         drug="XmAb942 (Vudalimab)",
+         target="TL1A", stageKey="Phase 2", overlap="Direct",
+         groupId="xencor", partnerCo=None,
+         modality="bispecific", route=None,
+         mechanismDetail="XmAb bispecific antibody; TL1A program in Phase 2 IBD; Xencor platform asset"),
 
     dict(id="simcere",       co="Simcere", ticker="Private",
          drug="SIM0500",
          target="TL1A", stageKey="Phase 1", overlap="Direct",
-         groupId="simcere", partnerCo="Boehringer Ingelheim"),
+         groupId="simcere", partnerCo="Boehringer Ingelheim",
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; co-developed with Boehringer Ingelheim; Phase 1 (China CDE registry — may not appear on CT.gov)"),
 
     dict(id="caldera",       co="Caldera", ticker="Private",
          drug="CLDR-001",
          target="TL1A", stageKey="Phase 1", overlap="Direct",
-         groupId="caldera", partnerCo="Qyuns Therapeutics"),
+         groupId="caldera", partnerCo="Qyuns Therapeutics",
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; partnership with Qyuns Therapeutics; Phase 1"),
 
     dict(id="earendil",      co="Earendil / Helixon", ticker="Private",
          drug="EAR-2001",
          target="TL1A", stageKey="Phase 1", overlap="Direct",
-         groupId="earendil", partnerCo="Sanofi"),
+         groupId="earendil", partnerCo="Sanofi",
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; partnered with Sanofi; Phase 1"),
 
     dict(id="lanova",        co="LaNova", ticker="Private",
          drug="LM-302",
          target="TL1A", stageKey="Phase 1", overlap="Direct",
-         groupId="lanova", partnerCo="Zymeworks"),
-
-    dict(id="episcience",    co="Episcience", ticker="Private",
-         drug="EPI-001",
-         target="TL1A", stageKey="Preclinical", overlap="Watch",
-         groupId="episcience", partnerCo=None),
-
-    dict(id="merck",         co="Merck & Co.", ticker="MRK",
-         drug="Tulisokibart (MK-7240/PRA023)",
-         target="TL1A", stageKey="Phase 3", overlap="Direct",
-         groupId="merck", partnerCo=None),
+         groupId="lanova", partnerCo="Zymeworks",
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; co-development with Zymeworks; Phase 1 (CDE China registry)"),
 
     dict(id="mirador",       co="Mirador Therapeutics", ticker="Private",
          drug="MDR-018",
          target="TL1A", stageKey="Phase 1", overlap="Direct",
-         groupId="mirador", partnerCo=None),
+         groupId="mirador", partnerCo=None,
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; Mirador lead program; Phase 1 in IBD"),
+
+    dict(id="episcience",    co="Episcience", ticker="Private",
+         drug="EPI-001",
+         target="TL1A", stageKey="Preclinical", overlap="Watch",
+         groupId="episcience", partnerCo=None,
+         modality="mAb", route=None,
+         mechanismDetail="Anti-TL1A antibody; Preclinical; watch for IND filing"),
+
+    # ── Adjacent: IBD-space approved/late-stage competitors ─────────────────
+    dict(id="abbvie-skyrizi", co="AbbVie", ticker="ABBV",
+         drug="Risankizumab (Skyrizi)",
+         target="IL-23 (p19)", stageKey="Approved", overlap="Adjacent",
+         groupId="abbvie", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Anti-IL-23p19 monoclonal antibody; approved for UC and CD; SC maintenance after IV induction"),
+
+    dict(id="abbvie-rinvoq", co="AbbVie", ticker="ABBV",
+         drug="Upadacitinib (Rinvoq)",
+         target="JAK1", stageKey="Approved", overlap="Adjacent",
+         groupId="abbvie", partnerCo=None,
+         modality="small molecule", route="oral",
+         mechanismDetail="Selective JAK1 inhibitor; oral small molecule; approved for moderate-to-severe UC and CD"),
 
     dict(id="lilly-omvoh",   co="Eli Lilly", ticker="LLY",
          drug="Mirikizumab (Omvoh)",
          target="IL-23 (p19)", stageKey="Approved", overlap="Adjacent",
-         groupId="lilly", partnerCo=None),
+         groupId="lilly", partnerCo=None,
+         modality="mAb", route="SC",
+         mechanismDetail="Anti-IL-23p19 monoclonal antibody; approved for UC; IV induction then SC maintenance"),
 
     dict(id="takeda-entyvio", co="Takeda", ticker="TAK",
          drug="Vedolizumab (Entyvio)",
          target="α4β7", stageKey="Approved", overlap="Adjacent",
-         groupId="takeda", partnerCo=None),
+         groupId="takeda", partnerCo=None,
+         modality="mAb", route="IV/SC",
+         mechanismDetail="Anti-α4β7 integrin monoclonal antibody; gut-selective mechanism; IV or SC; approved for UC and CD"),
 ]
 
 # Map stageKey → company_type (rough heuristic for pipeline)
@@ -247,20 +290,33 @@ def seed(dry_run=False):
             if not drug_slug:
                 continue
 
+            # expected_evidence_stage: max completeness stage to expect given drug phase.
+            # Preclinical = 1 (no trials expected); Phase 3 = 4; Approved = 5.
+            _stage_to_expected = {
+                "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
+                "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
+            }
             record = {
-                "id":                drug_slug,
-                "name":              raw_name,
-                "company_id":        co_id,
-                "entity_id":         co_id,
-                "entity_name":       prog["co"],
-                "entity_type":       "partnership" if prog.get("partnerCo") else "standalone",
-                "stage":             prog["stageKey"],
-                "target":            prog["target"],
-                "mechanism":         f"Anti-{prog['target']}" if prog["target"] else None,
-                "cls":               "Next Gen" if "×" in (prog["target"] or "") else "1st Gen",
-                "overlap":           prog["overlap"],
-                "discovery_status":  "seeded",
-                "sort_order":        1 if prog["overlap"] == "Direct" else 5,
+                "id":                     drug_slug,
+                "name":                   raw_name,
+                "company_id":             co_id,
+                "entity_id":              co_id,
+                "entity_name":            prog["co"],
+                "entity_type":            "partnership" if prog.get("partnerCo") else "standalone",
+                "stage":                  prog["stageKey"],
+                "target":                 prog["target"],
+                "mechanism":              f"Anti-{prog['target']}" if prog["target"] else None,
+                "modality":               prog.get("modality"),
+                "drug_format":            prog.get("modality"),      # keep in sync
+                "route":                  prog.get("route"),
+                "mechanism_detail":       prog.get("mechanismDetail"),
+                "cls":                    "Next Gen" if "×" in (prog["target"] or "") else "1st Gen",
+                "overlap":                prog["overlap"],
+                "discovery_status":       "seeded",
+                "confidence_level":       "confirmed",               # seeded from known public data
+                "data_source":            "manual",
+                "expected_evidence_stage": _stage_to_expected.get(prog["stageKey"], 2),
+                "sort_order":             1 if prog["overlap"] == "Direct" else 5,
             }
             print(f"  → {drug_slug} ({co_id})")
             sb_upsert("drugs", record, dry_run=dry_run)
