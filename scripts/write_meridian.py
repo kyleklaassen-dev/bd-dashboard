@@ -246,6 +246,33 @@ def generate_html(intel, deals, catalysts):
     return html
 
 
+# ── Persist issue to Supabase archive ────────────────────────────────────────
+def save_to_supabase(html_content: str, intel: list, date_str: str):
+    """Upsert the generated issue into meridian_issues for the archive."""
+    title    = f"The Meridian — {datetime.datetime.utcnow().strftime('%B %-d, %Y')}"
+    intel_ids = [it["id"] for it in intel if it.get("id")]
+
+    payload = {
+        "issue_date": date_str,
+        "title":      title,
+        "body_html":  html_content,
+        "intel_ids":  intel_ids,
+        "updated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/meridian_issues",
+            headers={**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
+            json=payload,
+        )
+        if r.status_code in (200, 201):
+            log(f"Saved issue {date_str} to Supabase meridian_issues ✓")
+        else:
+            log(f"Supabase save warning {r.status_code}: {r.text[:120]}")
+    except Exception as e:
+        log(f"Supabase save error (non-fatal): {e}")
+
+
 # ── Commit HTML to GitHub Pages via blob API ─────────────────────────────────
 def deploy_to_github(html_content, filename="meridian_today.html"):
     api = f"https://api.github.com/repos/{GITHUB_REPO}"
@@ -314,5 +341,7 @@ if __name__ == "__main__":
     else:
         html = generate_html(intel, deals, catalysts)
 
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    save_to_supabase(html, intel, today)
     deploy_to_github(html)
     log("=== Write complete ===")
