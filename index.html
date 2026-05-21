@@ -1262,7 +1262,9 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-stage{display:flex;align-items:flex-start;justify-content:flex-start}
 .pi-da-tag{font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
 .pi-da-pills{display:flex;gap:5px;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}
-.pi-da-row.pi-da-direct>.pi-da-hd{border-left:3px solid #f97316;padding-left:9px}
+.pi-da-row.pi-da-direct>.pi-da-hd{border-left:3px solid #ef4444;padding-left:9px}
+.pi-da-row.pi-da-adjacent>.pi-da-hd{border-left:3px solid #3b82f6;padding-left:9px}
+.pi-da-row.pi-da-watch>.pi-da-hd{border-left:3px solid #94a3b8;padding-left:9px}
 .pi-da-body{display:none;border-top:1px solid #f0f4f8;background:#f8fafc;padding:10px 12px 12px 34px}
 .pi-da-body.open{display:block}
 .pi-da-thesis{font-size:11.5px;color:#475569;line-height:1.6;margin-bottom:10px;padding:7px 10px;background:white;border-radius:5px;border:1px solid #e8edf3}
@@ -9847,11 +9849,41 @@ const tl1aPI = {
    return m ? m[0].trim() : (txt.length > 140 ? txt.slice(0, 140).trim() + '…' : txt.trim());
   };
 
-  // ── Merge drugs + combos, sort together by overlap relevance ─────────────
-  const allItems = [
+  // ── Group drugs + combos into three portfolio tiers ───────────────────────
+  // Tier is determined by drug.overlap (DB field), combo.overlap (DB field), or static _overlap.
+  // Display order: Direct → Adjacent → Same-Space (Watch in DB).
+  const getItemTier = item => {
+   const raw = item._isCombo
+    ? (item.overlap || item.overlap_category || 'adjacent')
+    : (item.overlap || item._overlap || '');
+   const v = (raw||'').toLowerCase().replace(/[-_\s]/g,'');
+   if (v === 'direct')            return 'direct';
+   if (v === 'adjacent')          return 'adjacent';
+   if (v === 'watch'||v==='samespace'||v==='same') return 'watch';
+   return 'adjacent'; // default for unlabelled drugs
+  };
+  // Sort within each tier: most advanced stage first
+  const stageSortScore = item => {
+   const s = (item.stage||item.stageKey||item.phase_display||'').toLowerCase();
+   if (s.includes('approv')) return 100;
+   if (s.includes('3'))      return 80;
+   if (s.includes('2'))      return 60;
+   if (s.includes('1'))      return 40;
+   return 20;
+  };
+  const allItemsFlat = [
    ...drugsToRender.map(d => ({...d, _isCombo: false})),
-   ...sbCombos.map(c => ({...c, _isCombo: true, _overlap: c.overlap_category || 'adjacent', name: c.label || c.name})),
-  ].sort((a, b) => drugRelevance(b) - drugRelevance(a));
+   ...sbCombos.map(c => ({...c, _isCombo: true, name: c.label || c.name})),
+  ];
+  const tierBuckets = { direct: [], adjacent: [], watch: [] };
+  allItemsFlat.forEach(item => {
+   tierBuckets[getItemTier(item)].push(item);
+  });
+  ['direct','adjacent','watch'].forEach(t => {
+   tierBuckets[t].sort((a,b) => stageSortScore(b) - stageSortScore(a));
+  });
+  // Flat ordered list for legacy rendering (keeps allItems API for drugSection length check)
+  const allItems = [...tierBuckets.direct, ...tierBuckets.adjacent, ...tierBuckets.watch];
 
   // ── renderNewsItem defined HERE so it is available inside allItemsHTML.map()
   // (const is NOT hoisted — defining after the map causes ReferenceError)
@@ -10171,10 +10203,10 @@ const tl1aPI = {
    const descStrip = descText
     ? `<div class="pi-da-desc-strip">${descText}</div>` : '';
 
-   // isDirect: only flag when the DRUG itself is explicitly 'direct' — don't inherit company-level overlap.
-   // (DB drugs without overlap_category would otherwise all inherit prog.overlap='Direct' incorrectly.)
-   const isDirect = (d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'') === 'direct';
-   return `<div class="pi-da-row${isDirect?' pi-da-direct':''}">
+   // Tier class: driven by drug.overlap (DB) or _overlap (static). Never inherits company-level.
+   const _tierVal = (d.overlap||d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'');
+   const _tierCls = _tierVal==='direct' ? ' pi-da-direct' : _tierVal==='adjacent' ? ' pi-da-adjacent' : (_tierVal==='watch'||_tierVal==='samespace') ? ' pi-da-watch' : '';
+   return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
      <div style="display:flex;align-items:center;gap:5px;min-width:0;flex-shrink:1"><span class="pi-da-name">${d.display_name||d.name||'—'}</span>${partnerTag}</div>
@@ -10198,10 +10230,49 @@ const tl1aPI = {
    </div>`;
   }).join('');
 
+  // ── Three-tier portfolio view ────────────────────────────────────────────
+  // Each tier renders only if it has items. Items are pre-sorted into tierBuckets above.
+  const tierCfg = {
+   direct:   { label: 'Direct',      note: 'mechanistic threat to Ailux', color: '#ef4444', dotColor: '#fef2f2', border: '#fecaca' },
+   adjacent: { label: 'Adjacent',    note: 'validates biology · combination potential', color: '#3b82f6', dotColor: '#eff6ff', border: '#bfdbfe' },
+   watch:    { label: 'Same-Space',  note: 'same patients · different pathway', color: '#94a3b8', dotColor: '#f8fafc', border: '#e2e8f0' },
+  };
+
+  // allItemsHTML is now keyed to allItems (Direct→Adjacent→Watch order) — slice per tier
+  let _htmlIdx = 0;
+  const _htmlArr = allItems.map((item,i) => allItemsHTML.split('').length ? allItemsHTML : ''); // allItemsHTML is already one big string; re-map per bucket
+
+  // Re-render per tier so we can inject headers between them
+  const renderTierItems = (items) => items.map(item => {
+   const pos = allItems.indexOf(item);
+   // Extract the rendered HTML for this item by finding its block in allItemsHTML
+   // Simpler: just re-use the same render by filtering allItemsHTML by index
+   // Actually we compute this by splitting on item boundaries — instead, just rebuild the subset
+   return allItemsHTML; // placeholder — replaced below
+  });
+
+  // Cleanest approach: split allItemsHTML per item count using the pi-da-row boundary
+  const _rowSplitRe = /(?=<div class="pi-da-row)/g;
+  const _allRows = allItemsHTML.split(_rowSplitRe).filter(Boolean);
+  let _rowIdx = 0;
+  const tierSections = ['direct','adjacent','watch'].map(tier => {
+   const items = tierBuckets[tier];
+   if (!items.length) return '';
+   const cfg = tierCfg[tier];
+   const rows = items.map(() => _allRows[_rowIdx++] || '').join('');
+   return `<div style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+     <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${cfg.color};background:${cfg.dotColor};border:1px solid ${cfg.border};border-radius:10px;padding:2px 8px">${cfg.label}</span>
+     <span style="font-size:9px;color:#94a3b8;font-style:italic">${cfg.note}</span>
+    </div>
+    ${rows}
+   </div>`;
+  }).join('');
+
   const drugSection = allItems.length
    ? `<div class="pi-da-wrap">
-      <div class="pi-da-label">Drug Pipeline</div>
-      ${allItemsHTML}
+      <div class="pi-da-label">IBD Portfolio</div>
+      ${tierSections}
      </div>`
    : '';
 
