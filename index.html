@@ -10658,13 +10658,13 @@ const tl1aPI = {
   const assessCardHtml = _renderAssessmentCard(platformIntel, bdIntel);
   const intelSections = (() => {
    if (piHtml && bdHtml) {
-    // Left: Platform Intelligence full height.
-    // Right: Assessment stacked above BD Intelligence, both filling the column height.
-    return `<div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>Platform Intelligence</h5>${piHtml}</div>
-            <div style="display:flex;flex-direction:column;gap:10px">
+    // Left: Assessment stacked above BD Intelligence, both filling the column height.
+    // Right: Platform Intelligence full height.
+    return `<div style="display:flex;flex-direction:column;gap:10px">
              ${assessCardHtml}
              <div class="pi-detail-section" style="display:flex;flex-direction:column;flex:1"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>
-            </div>`;
+            </div>
+            <div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>Platform Intelligence</h5>${piHtml}</div>`;
    } else if (piHtml) {
     return `${assessCardHtml?`<div style="grid-column:1/-1">${assessCardHtml}</div>`:''}
             <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
