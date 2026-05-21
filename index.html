@@ -9410,8 +9410,6 @@ const tl1aPI = {
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5><div style="${p.catalysts.length>5?'max-height:120px;overflow-y:auto;scrollbar-width:thin':''}"> ${cats}</div></div>
     <div class="pi-detail-section"><h5>📰 Related News</h5><div style="${p.deals.length>5?'max-height:120px;overflow-y:auto;scrollbar-width:thin':''}">${deals}</div></div>
     <div class="pi-detail-section"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
-    <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
-    <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
    </div>
   </div>`;
  },
@@ -10529,8 +10527,6 @@ const tl1aPI = {
     ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
     <div class="pi-detail-section"><h5>📰 Related News</h5>${dealsHTML}</div>
-    ${keyRisk?`<div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${keyRisk}</p></div>`:''}
-    ${whyMatters?`<div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${whyMatters}</p></div>`:''}
    </div>
   </div>`;
  },
@@ -10545,8 +10541,6 @@ const tl1aPI = {
    <div class="pi-detail-section" style="grid-column:1/-1"><h5>Summary</h5><p>${p.summary}</p></div>
    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats}</div>
    <div class="pi-detail-section"><h5>📰 Related News</h5>${deals}</div>
-   <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
-   <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
   </div>`;
  },
 
