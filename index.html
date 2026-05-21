@@ -1265,10 +1265,19 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 7-column grid: NCT | Acronym | Status | Phase | PCD | Relevance bar | Chevron */
-.pi-tr-row{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px 14px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 6-column grid: NCT | Acronym | Status | Phase | PCD | Relevance bar */
+.pi-tr-row{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px 14px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+/* Drug insight panel (right side of drug accordion body) */
+.pi-da-drug-insight{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:11px 13px;align-self:start}
+.pi-da-di-hd{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.pi-da-di-sect{margin-bottom:9px}
+.pi-da-di-sect:last-child{margin-bottom:0}
+.pi-da-di-label{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:3px}
+.pi-da-di-text{font-size:10.5px;color:#334155;line-height:1.6;margin:0}
+.pi-da-di-summary{font-size:11px;color:#1e293b;font-weight:600;line-height:1.5;margin:0 0 9px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}
+.pi-da-di-empty{font-size:10.5px;color:#94a3b8;font-style:italic;margin:0}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
 .pi-nct-a:hover{text-decoration:underline}
 .pi-tr-acronym-cell{display:flex;align-items:center;min-width:0}
@@ -9689,9 +9698,11 @@ const tl1aPI = {
   };
 
   // ── Trial relevance score (0–100) for sorting + bar ────────────────────
-  const trialRelevance = t => {
+  // overlap = drug-level competitive overlap with Ailux ('direct'|'adjacent'|'same'|'watch')
+  const trialRelevance = (t, overlap = '') => {
    const ph = (t.phase||'').toLowerCase();
    const st = (t.status||'').toLowerCase();
+   const ov = overlap.toLowerCase();
    let score = 0;
    if      (ph.includes('3'))              score += 50;
    else if (ph.includes('2/3') || ph.includes('2b')) score += 40;
@@ -9703,6 +9714,9 @@ const tl1aPI = {
    else if (st.includes('recruit') && !st.includes('not'))       score += 25;
    else if (st.includes('not yet'))                               score += 10;
    else if (st.includes('complet'))                               score += 5;
+   // Competitive overlap boost — direct competitors (same targets + indications) always score high
+   if      (ov === 'direct')   score += 28;
+   else if (ov === 'adjacent') score += 14;
    return Math.min(100, score);
   };
 
@@ -9779,7 +9793,7 @@ const tl1aPI = {
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span>NCT</span><span>Acronym</span><span>Status</span><span>Phase</span><span>PCD</span><span>Relevance</span><span></span>
+    <span>NCT</span><span>Acronym</span><span>Status</span><span>Phase</span><span>PCD</span><span>Relevance</span>
    </div>` : '';
 
    // Trial rows
@@ -9800,7 +9814,8 @@ const tl1aPI = {
     const results = t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
-    const score    = trialRelevance(t);
+    const drugOverlap = (d._overlap || prog.overlap || '');
+    const score    = trialRelevance(t, drugOverlap);
     const barColor = relBarColor(score);
     const relBar   = `<div class="pi-tr-rel-bar">
      <div class="pi-tr-rel-track"><div class="pi-tr-rel-fill" style="width:${score}%;background:${barColor}"></div></div>
@@ -9833,7 +9848,6 @@ const tl1aPI = {
       <span class="pi-tr-phase-cell">${phase}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${relBar}
-      <span class="pi-tr-chev">▼</span>
      </div>
      <div class="pi-tr-detail">
       ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
@@ -9889,6 +9903,25 @@ const tl1aPI = {
     </div>`;
    })() : '';
 
+   // ── Drug insight panel (right column) ─────────────────────────────────
+   const sciText = d.differentiation_thesis || d.key_data || '';
+   const bdText  = d.strategic_role || '';
+   const overviewText = d.drug_summary || '';
+   const hasInsight = overviewText || sciText || bdText;
+   const drugInsightPanel = `<div class="pi-da-drug-insight">
+    <div class="pi-da-di-hd">💡 Drug Intel</div>
+    ${overviewText ? `<p class="pi-da-di-summary">${overviewText}</p>` : ''}
+    ${sciText ? `<div class="pi-da-di-sect">
+     <div class="pi-da-di-label">🔬 Science</div>
+     <p class="pi-da-di-text">${sciText}</p>
+    </div>` : ''}
+    ${bdText ? `<div class="pi-da-di-sect">
+     <div class="pi-da-di-label">💼 Business</div>
+     <p class="pi-da-di-text">${bdText}</p>
+    </div>` : ''}
+    ${!hasInsight ? `<p class="pi-da-di-empty">Run enrichment to generate drug-level analysis.</p>` : ''}
+   </div>`;
+
    return `<div class="pi-da-row">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
@@ -9899,10 +9932,14 @@ const tl1aPI = {
      ${overlapTag}
     </div>
     <div class="pi-da-body">
-     ${approvedSection}
-     ${!isApproved && d.differentiation_thesis?`<div class="pi-da-thesis">${d.differentiation_thesis}</div>`:''}
-     ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
-     ${trialsSection}
+     <div style="display:grid;grid-template-columns:1fr 260px;gap:14px;align-items:start">
+      <div>
+       ${approvedSection}
+       ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
+       ${trialsSection}
+      </div>
+      ${drugInsightPanel}
+     </div>
      ${drugNewsSection}
     </div>
    </div>`;
