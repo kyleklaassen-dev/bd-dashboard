@@ -412,6 +412,13 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         "Find NEW companies or drugs in this space NOT already tracked above.\n"
         "Include large pharma subsidiaries/programs if their compound is not yet tracked.\n"
         "Return only genuine competitive entries (not CROs, service providers, etc.).\n\n"
+        "SCOPE — THINK INDICATION-FIRST, NOT JUST MECHANISM:\n"
+        "Do not limit discovery to exact-mechanism matches. Include companies that compete\n"
+        "for the SAME PATIENTS in the SAME INDICATION even if their mechanism differs.\n"
+        "Examples: for IBD/TL1A, include IL-23 inhibitors, IL-23+TNF combo programs, JAKs\n"
+        "with active UC/CD trials. For atopic disease, include OX40L, IL-31, IL-13 programs.\n"
+        "A company running a Phase 3 combo study in UC belongs in the IBD competitive map\n"
+        "even if their drug doesn't target TL1A directly. Assign overlap='Adjacent' for these.\n\n"
         "CRITICAL ACQUISITION RULE: If a company was wholly acquired and its drug now belongs to\n"
         "the acquirer (e.g., Prometheus Biosciences was acquired by Merck — tulisokibart is now\n"
         "Merck's program), DO NOT list the acquired company as a new_entity. The drug lives under\n"
@@ -1026,22 +1033,52 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
 # ══════════════════════════════════════════════════════════════════════════
 
 AREA_LABELS_MAP = {
-    # Monospecifics
-    "tl1a":       "TL1A (anti-TL1A antibodies, IBD)",
-    "tslp":       "TSLP (anti-TSLP antibodies, asthma/atopic disease)",
-    "il4ra":      "IL-4Rα (anti-IL-4Rα, atopic dermatitis/asthma)",
-    "igf1r":      "IGF1R (anti-IGF1R, oncology)",
-    "fcrn":       "FcRn (anti-FcRn, autoimmune/IgG-mediated disease)",
-    "tcell":      "T-cell engagers (oncology)",
+    # Monospecifics — include indication + patient population context so discovery
+    # catches adjacent-mechanism companies competing for the SAME patients
+    "tl1a": (
+        "TL1A (anti-TL1A antibodies, IBD — UC/CD). "
+        "ALSO include: IL-23 inhibitors, IL-23+TNF combo programs (e.g. VEGA/DUET), "
+        "JAK inhibitors, and integrin inhibitors with active Phase 2+ IBD programs. "
+        "These compete for the same biologic-naive and biologic-experienced UC/CD patients."
+    ),
+    "tslp": (
+        "TSLP (anti-TSLP antibodies, severe asthma/atopic disease). "
+        "ALSO include: IL-33, IL-25/TSLP pathway inhibitors, and companies with "
+        "active Phase 2+ programs in severe asthma, CRSwNP, or atopic dermatitis "
+        "that compete in the same patient population."
+    ),
+    "il4ra": (
+        "IL-4Rα (anti-IL-4Rα or IL-4/IL-13 pathway, atopic dermatitis/asthma). "
+        "ALSO include: OX40/OX40L inhibitors, IL-13 inhibitors, IL-31 inhibitors, "
+        "and any company with active Phase 2+ programs in moderate-to-severe AD "
+        "competing against dupilumab-class agents."
+    ),
+    "igf1r": (
+        "IGF1R (anti-IGF1R, thyroid eye disease / oncology). "
+        "ALSO include: TSHR-targeting programs, TSH receptor antibody-targeting approaches, "
+        "and any Phase 2+ programs in thyroid eye disease (TED/Graves' orbitopathy)."
+    ),
+    "fcrn": (
+        "FcRn (anti-FcRn, autoimmune/IgG-mediated disease). "
+        "ALSO include: programs for CIDP, myasthenia gravis, ITP, pemphigus, NMOSD, "
+        "lupus nephritis, and other IgG-mediated autoimmune diseases where FcRn "
+        "inhibition or IgG reduction is the mechanism."
+    ),
+    "tcell": (
+        "T-cell engagers / bispecific T-cell redirectors (oncology — hematologic malignancies). "
+        "ALSO include: CAR-T programs, CD19/CD20/BCMA-targeted bispecifics, and "
+        "any Phase 1+ programs in B-cell malignancies, multiple myeloma, or "
+        "autoimmune disease using T-cell redirection."
+    ),
     # Bispecifics
-    "il4ra_tslp": "IL-4Rα×TSLP bispecific (atopic dermatitis/asthma)",
-    "il4ra_ox40l":"IL-4Rα×OX40L bispecific (atopic dermatitis/asthma)",
-    "igf1r_tshr": "IGF1R×TSHR bispecific (thyroid eye disease / oncology)",
+    "il4ra_tslp":  "IL-4Rα×TSLP bispecific (atopic dermatitis/asthma)",
+    "il4ra_ox40l": "IL-4Rα×OX40L bispecific (atopic dermatitis/asthma)",
+    "igf1r_tshr":  "IGF1R×TSHR bispecific (thyroid eye disease / oncology)",
     # Other
-    "ace":        "ACE2-based programs (respiratory/cardiometabolic)",
+    "ace":         "ACE2-based programs (respiratory/cardiometabolic)",
     # Broad groupings (used as indication_group fallback)
-    "ibd":        "IBD (inflammatory bowel disease — UC/CD)",
-    "atopic":     "Atopic disease (AD, asthma, EoE)",
+    "ibd":         "IBD (inflammatory bowel disease — UC/CD)",
+    "atopic":      "Atopic disease (AD, asthma, EoE)",
 }
 
 WEB_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
