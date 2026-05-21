@@ -9839,10 +9839,19 @@ const tl1aPI = {
      </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
     }).join('');
     const isPlannedStage = (combo.stage||'').startsWith('Planned');
+    const plannedSrcLink = combo.source_url
+      ? `<a href="${combo.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#0369a1;font-weight:700;font-style:normal;text-decoration:underline;margin-left:6px">Source ↗</a>`
+      : `<span style="color:#f97316;font-weight:700;font-style:normal;margin-left:6px" title="No source URL on file — data quality risk">⚠ No source</span>`;
+    const anticipatedStr = combo.anticipated_start
+      ? `<span style="font-style:normal;color:#475569"> · Anticipated: <strong>${combo.anticipated_start}</strong></span>`
+      : '';
+    const prereqNote = combo.prerequisite_note
+      ? `<div style="font-size:11px;color:#92400e;background:#fef9c3;border:1px solid #fde68a;border-radius:4px;padding:4px 10px;margin-top:6px;display:inline-block">⚠ Prerequisite: ${combo.prerequisite_note}</div>`
+      : '';
     const comboTrialSection = comboTrials.length
      ? `<div class="pi-tr-hd-label">Clinical Trials (${comboTrials.length})</div>${comboTrialHeader}<div>${comboTrialRowsHTML}</div>`
      : isPlannedStage
-       ? `<div style="font-size:11px;color:#0369a1;padding:4px 0;font-style:italic">Study planned — no trial registration yet</div>`
+       ? `<div style="font-size:11px;color:#0369a1;padding:4px 0;font-style:italic">Study planned — no trial registration yet${anticipatedStr}${plannedSrcLink}</div>${prereqNote}`
        : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
     const comboInd  = combo.indication_short || 'UC · CD';
