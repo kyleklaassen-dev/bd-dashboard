@@ -820,12 +820,26 @@ OUTPUT RULES:
 
 DATA QUALITY STANDARDS (mandatory — these prevent downstream display errors):
 
-TARGET NOTATION:
+TARGET NOTATION (CRITICAL — target field must be targets ONLY, never include company or modality annotations):
 - IL-23 inhibitors: ALWAYS specify "IL-23p19" (not "IL-23" alone). The p19 subunit is the
   specific target of all modern IL-23 inhibitors. IL-23p40 inhibitors are a different class.
 - Bispecifics use "×" separator: "TL1A × IL-23p19" (NOT "TL1A/IL-23" or "anti-TL1A × IL-23")
 - Rational combinations (two separate co-administered mAbs) use "+" separator: "IL-23p19 + TL1A"
 - Monospecific mAbs: do NOT prefix with "Anti-" in the target field (use in mechanism field only)
+- NEVER include modality labels in target: NOT "TL1A × IL-23p19 bispecific" — just "TL1A × IL-23p19"
+- NEVER include company annotations in target: NOT "IL-23p40 × TL1A bispecific, Roche/Pfizer co-dev"
+  The dashboard will display the "bispecific" modality from drug_format and the partner from partner_company.
+  Target field = molecular targets only.
+
+CO-DEVELOPMENT PARTNERSHIP DETECTION:
+If you see text like "Company/Company co-dev" or "co-developed with Company" anywhere in the literature:
+1. Extract the partner company name and put it in partner_company
+2. Set partnership_type = "co_developed"
+3. Set partnership_verified = false (mark as inferred — needs confirmation from official source)
+4. Leave it OUT of the target field entirely
+Confirmed co-development vs. inferred: only set partnership_verified = true when you find an explicit
+official press release, ClinicalTrials.gov sponsor field, or SEC filing confirming the partnership.
+If the partnership is from secondary sources (news articles, databases), set partnership_verified = false.
 
 DRUG NAME FORMAT:
 - If a drug has an approved brand name (e.g., Skyrizi, Rinvoq, Entyvio):
@@ -988,6 +1002,7 @@ Return JSON with EXACTLY these fields:
     "licensor_name": "null or full legal name of the originating company — e.g. 'FutureGen Biopharmaceutical Co., Ltd.'. Only for in-licensed assets.",
     "licensor_code": "null or original code/name used by licensor — e.g. 'FG-M701'. Only when drug was renamed by licensee.",
     "partner_company": "REQUIRED for any non-self deal — short display name of the originating/partner company, NO legal suffixes (e.g. 'FutureGen Biopharmaceutical', 'Simcere', 'Teva', 'Prometheus Biosciences'). This is what appears in the dashboard pill next to the drug name. Must be null only when partnership_type is 'self' or null.",
+    "partnership_verified": "null | false | true. Set false when partnership is inferred from secondary sources (news, databases). Set true ONLY when confirmed from an official source (press release, SEC filing, ClinicalTrials.gov sponsor field). Default null when partnership_type is 'self' or no partner.",
     "modality": "anti-TL1A mAb|TL1A×IL-23p19 bispecific|JAK1 inhibitor (oral small molecule)|anti-α4β7 integrin mAb|etc — full descriptive label",
     "drug_format": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein",
     "route": "SC|IV|SC/IV|oral|null",
