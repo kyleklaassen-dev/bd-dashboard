@@ -53,12 +53,32 @@ FOCUS_AREAS = {
 
 # ── RSS feed list ────────────────────────────────────────────────────────────
 # Primary sources first — fetched first, always full-text, always pass relevance filter
+# ── Tier 1: Primary trade press — fetched first, full-text always, pass relevance filter ──
 PRIMARY_FEEDS = [
     "https://endpts.com/feed/",
     "https://www.fiercebiotech.com/rss/xml",
 ]
 
-# Secondary sources — full-text only for high-priority articles
+# ── Tier 2: Direct company IR / press release feeds — fetched second, full-text always ──
+# News straight from company websites is high-signal and often breaks before trade press.
+COMPANY_FEEDS = [
+    "https://investors.abbvie.com/rss/news-releases",              # AbbVie
+    "https://www.roche.com/media/releases/med-cor-rss.xml",        # Roche
+    "https://investor.lilly.com/rss/news-releases",                # Eli Lilly
+    "https://investor.regeneron.com/rss/news-releases",            # Regeneron
+    "https://investor.jnj.com/rss/news-releases",                  # J&J
+    "https://www.astrazeneca.com/media-centre/press-releases.rss", # AstraZeneca
+    "https://www.sanofi.com/en/media-room/press-releases.rss",     # Sanofi
+    "https://www.novartis.com/news/media-releases/rss",            # Novartis
+    "https://www.ucb.com/media/press-releases/rss",                # UCB
+    "https://www.bmsstories.com/feed/",                            # BMS
+    "https://news.pfizer.com/press-releases/rss",                  # Pfizer
+    "https://www.merck.com/news/rss/press-releases/",              # Merck US
+    "https://www.teva.com/media-room/press-releases/rss",          # Teva
+    "https://www.boehringer-ingelheim.com/media/press-releases.rss", # BI
+]
+
+# ── Tier 3: Broader secondary sources ──
 SECONDARY_FEEDS = [
     "https://www.biopharmadive.com/feeds/news/",
     "https://www.statnews.com/feed/",
@@ -70,15 +90,22 @@ SECONDARY_FEEDS = [
     "https://www.businesswire.com/rss/home/?rss=G7",
 ]
 
-RSS_FEEDS = PRIMARY_FEEDS + SECONDARY_FEEDS
+RSS_FEEDS = PRIMARY_FEEDS + COMPANY_FEEDS + SECONDARY_FEEDS
 
 # Canonical source name substrings for matching — used for full-text and priority logic
 PRIMARY_SOURCE_NAMES = {"endpoints news", "fierce biotech"}
+COMPANY_SOURCE_DOMAINS = {
+    "abbvie", "roche", "lilly", "regeneron", "jnj", "janssen",
+    "astrazeneca", "sanofi", "novartis", "ucb", "bms", "pfizer",
+    "merck", "teva", "boehringer",
+}
 
 # Sources that are worth fetching full-text for (paywalls aside)
 FULL_TEXT_SOURCES = {
     "endpoints news", "fierce biotech",
-    "stat news", "biopharmadive",
+    "abbvie", "roche", "lilly", "regeneron", "johnson", "astrazeneca",
+    "sanofi", "novartis", "ucb", "bristol", "pfizer", "merck", "teva",
+    "boehringer", "stat news", "biopharmadive",
     "nature medicine", "new england journal of medicine", "prnewswire",
 }
 
@@ -111,9 +138,20 @@ def log(msg):
 
 # ── Full-text fetching ───────────────────────────────────────────────────────
 def is_primary_source(article):
-    """Return True if this article is from a primary source (Endpoints News or Fierce Biotech)."""
+    """Return True if this article is from Endpoints News or Fierce Biotech."""
     source_lower = (article.get("source", "")).lower()
     return any(s in source_lower for s in PRIMARY_SOURCE_NAMES)
+
+def is_company_source(article):
+    """Return True if this article comes directly from a tracked company's IR/news feed."""
+    source_lower = (article.get("source", "")).lower()
+    url_lower    = (article.get("url", "")).lower()
+    combined     = source_lower + " " + url_lower
+    return any(d in combined for d in COMPANY_SOURCE_DOMAINS)
+
+def is_direct_source(article):
+    """Return True if article is from any top-tier source (trade press or direct company news)."""
+    return is_primary_source(article) or is_company_source(article)
 
 def is_high_priority(article):
     """Return True if this article warrants full-text fetching."""
@@ -170,40 +208,53 @@ def fetch_full_text(url, timeout=10):
         return None
 
 
-def enrich_with_full_text(articles, max_fetches=30):
+def enrich_with_full_text(articles, max_fetches=40):
     """
-    For high-priority articles, fetch full text and store as article['full_text'].
-    Primary sources (Endpoints News, Fierce Biotech) are fetched first and are not
-    subject to the cap — all primary source articles get full text.
-    Secondary sources are fetched up to the remaining cap.
+    Full-text enrichment with three-pass priority:
+
+    Pass 1 — Tier 1 (Endpoints News, Fierce Biotech): always fetched, no cap.
+    Pass 2 — Tier 2 (direct company IR feeds): always fetched, no cap.
+    Pass 3 — Secondary sources: fetched up to remaining cap for high-priority articles.
+
+    Articles tagged with ['full_text'] = text string on success.
     """
     fetched = 0
 
-    # Pass 1: all primary source articles — no cap
+    # Pass 1: primary trade press — no cap
     for article in articles:
         if is_primary_source(article):
             text = fetch_full_text(article["url"])
             if text:
                 article["full_text"] = text
                 fetched += 1
-                log(f"  [PRIMARY] Full text: {article['url'][:70]}… ({len(text)} chars)")
-            time.sleep(0.5)
+                log(f"  [ENDPOINTS/FIERCE] {article['url'][:70]}… ({len(text)} chars)")
+            time.sleep(0.4)
 
-    # Pass 2: remaining high-priority articles up to cap
+    # Pass 2: direct company IR news — no cap
+    for article in articles:
+        if is_company_source(article) and "full_text" not in article:
+            text = fetch_full_text(article["url"])
+            if text:
+                article["full_text"] = text
+                fetched += 1
+                log(f"  [COMPANY IR] {article['url'][:70]}… ({len(text)} chars)")
+            time.sleep(0.4)
+
+    # Pass 3: secondary sources up to cap
     for article in articles:
         if fetched >= max_fetches:
             break
-        if is_primary_source(article):
+        if is_direct_source(article):
             continue  # already handled
         if is_high_priority(article) and "full_text" not in article:
             text = fetch_full_text(article["url"])
             if text:
                 article["full_text"] = text
                 fetched += 1
-                log(f"  [SECONDARY] Full text: {article['url'][:70]}… ({len(text)} chars)")
-            time.sleep(0.5)
+                log(f"  [SECONDARY] {article['url'][:70]}… ({len(text)} chars)")
+            time.sleep(0.4)
 
-    log(f"Full-text enrichment: {fetched} articles fetched")
+    log(f"Full-text enrichment complete: {fetched} articles fetched")
 
 
 # ── Step 1: Fetch feeds ──────────────────────────────────────────────────────
@@ -259,7 +310,7 @@ def filter_relevant(articles):
     filter dropping legitimate biopharma coverage just because it misses a keyword.
     """
     relevant = []
-    primary_passthrough = 0
+    passthrough = 0
     for a in articles:
         text = (a["title"] + " " + a["summary"]).lower()
         matched = [area for area, kws in FOCUS_AREAS.items()
@@ -267,13 +318,14 @@ def filter_relevant(articles):
         if matched:
             a["areas"] = matched
             relevant.append(a)
-        elif is_primary_source(a):
-            # Pass through without area tag — LLM will filter if truly irrelevant
+        elif is_direct_source(a):
+            # Direct sources (Endpoints, Fierce, company IR) always pass through.
+            # The extraction LLM will discard truly irrelevant articles.
             a["areas"] = []
             relevant.append(a)
-            primary_passthrough += 1
+            passthrough += 1
     log(f"Relevant: {len(relevant)} / {len(articles)} articles "
-        f"({primary_passthrough} primary-source passthrough)")
+        f"({passthrough} direct-source passthrough, no keyword match)")
     return relevant
 
 
