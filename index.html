@@ -10327,7 +10327,7 @@ const tl1aPI = {
     })() : null;
     // ── Stat cards ────────────────────────────────────────────────
     const statCards = [
-     approvalDateContent ? `<div class="pi-da-appr-stat stat-approval" style="${d.approval_date&&d.approval_date.includes(';')?'grid-column:1/-1':''}"><span class="pi-da-appr-lbl">📅 Approval Dates</span>${approvalDateContent}</div>` : '',
+     approvalDateContent ? `<div class="pi-da-appr-stat stat-approval"><span class="pi-da-appr-lbl">📅 Approval Dates</span>${approvalDateContent}</div>` : '',
      d.annual_revenue    ? `<div class="pi-da-appr-stat stat-revenue"><span class="pi-da-appr-lbl">💰 Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
      d.patient_population? `<div class="pi-da-appr-stat stat-patients"><span class="pi-da-appr-lbl">👥 Patients on Therapy</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
     ].filter(Boolean).join('');
@@ -10349,8 +10349,9 @@ const tl1aPI = {
      ? `<div class="pi-da-appr-card card-diff"><span class="pi-da-appr-card-lbl">⚡ Differentiation</span><div class="pi-da-appr-card-body">${d.differentiation_thesis}</div></div>` : '';
     if (!statCards && !endpointsCard && !summaryCard && !mechCard && !diffCard) return '';
     return `<div class="pi-da-approved">
+     ${summaryCard}
      ${statCards?`<div class="pi-da-appr-stats">${statCards}</div>`:''}
-     ${endpointsCard}${summaryCard}${mechCard}${diffCard}
+     ${endpointsCard}${mechCard}${diffCard}
     </div>`;
    })() : '';
 
