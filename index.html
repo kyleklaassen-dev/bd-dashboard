@@ -1227,6 +1227,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
 .pi-stage-pre { background:#f1f5f9;color:#475569; }
 .pi-stage-planned { background:#f0f9ff;color:#0369a1;border:1px dashed #7dd3fc; }
+.pi-stage-obs  { background:#ecfeff;color:#164e63; }   /* Observational — cyan */
+.pi-stage-comp { background:#fff1f2;color:#9f1239; }   /* Compassionate Use — rose */
 .pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
 .pi-expand-icon.open { transform:rotate(180deg);color:#2563eb; }
 .pi-main.expanded > td:last-child { position:relative; }
@@ -8010,7 +8012,7 @@ function _makeAreaPI(tabId, areaIds) {
       const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
       return `<span class="pi-cls-pill ${m[canon]||'pi-cls-1st'}">${canon}</span>`;
     },
-    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned'}; return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${s||'—'}</span>`; },
+    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'}; const lbl={'Observational':'Obs.','Expanded Access':'Comp. Use'}; const cls=m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre'); return `<span class="pi-stage-pill ${cls}">${lbl[s]||s||'—'}</span>`; },
     _ovBadge(o)  {
       // Normalize: accept any casing → canonical label
       const norm={direct:'Direct',adjacent:'Adjacent','same-space':'Same-Space','same_space':'Same-Space',samespace:'Same-Space',watch:'Watch'};
@@ -9239,8 +9241,9 @@ const tl1aPI = {
   return `<span class="pi-cls-pill ${m[cls]||'pi-cls-1st'}">${cls}</span>`;
  },
  _stagePill(s) {
-  const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned'};
-  return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${s||'—'}</span>`;
+  const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'};
+  const lbl = {'Observational':'Obs.','Expanded Access':'Comp. Use'};
+  return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${lbl[s]||s||'—'}</span>`;
  },
  _ovBadge(o) {
   const m = {
@@ -9613,7 +9616,10 @@ const tl1aPI = {
       : `<span style="color:#94a3b8;font-size:10px">Pending NCT</span>`;
 
     // Compact badge row — phase, status, N, PCD
-    const phasePart  = tphase ? `<span style="background:#e0f2fe;color:#0369a1;font-weight:700;font-size:8.5px;border-radius:4px;padding:1px 5px">${tphase}</span>` : '';
+    const _phaseStyle = {'Observational':['#ecfeff','#164e63'],'Expanded Access':['#fff1f2','#9f1239']};
+    const _phaseLabel = {'Observational':'Obs.','Expanded Access':'Comp. Use'};
+    const [_pBg,_pFg] = _phaseStyle[tphase] || ['#e0f2fe','#0369a1'];
+    const phasePart  = tphase ? `<span style="background:${_pBg};color:${_pFg};font-weight:700;font-size:8.5px;border-radius:4px;padding:1px 5px">${_phaseLabel[tphase]||tphase}</span>` : '';
     const statusPart = tstatus ? `<span style="color:${statusCol};font-weight:700;font-size:9px">${tstatus}</span>` : '';
     const nPart      = n ? `<span style="color:#64748b;font-size:9px">· N=${n}</span>` : '';
     const pcdPart    = pcd ? `<span style="color:#475569;font-weight:600;font-size:9px">· ${pcd}</span>` : '';
