@@ -9569,6 +9569,7 @@ const tl1aPI = {
    if (target) {
     try {
      target.outerHTML = this._genericDetailHTML(prog, sbData);
+     requestAnimationFrame(() => this._equalizeIntelColumns(prog.id || id));
     } catch(renderErr) {
      console.error('_genericDetailHTML render error:', renderErr);
      target.innerHTML = `<div style="padding:16px;color:#dc2626;font-family:monospace;font-size:11px"><b>Render error:</b> ${renderErr.message}<br><pre style="white-space:pre-wrap;font-size:10px">${renderErr.stack||''}</pre></div>`;
@@ -9581,6 +9582,7 @@ const tl1aPI = {
    if (target) {
     try {
      target.outerHTML = this._genericDetailHTML(prog, null);
+     requestAnimationFrame(() => this._equalizeIntelColumns(prog.id || id));
     } catch(err2) {
      console.warn('_genericDetailHTML fallback error:', err2);
      const errEl = document.getElementById(`pi-dyn-${id}`);
@@ -10649,38 +10651,63 @@ const tl1aPI = {
    dealsHTML = '<p style="color:#94a3b8;font-size:12px">No news on record — enrichment pipeline will populate</p>';
   }
 
+  const piHtml = _renderPlatformIntel(platformIntel);
+  const bdHtml = _renderBdIntel(bdIntel);
+  const intelSections = (() => {
+   if (piHtml && bdHtml) {
+    return `<div class="pi-detail-section"><h5>Platform Intelligence</h5>${piHtml}</div>
+            <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
+   } else if (piHtml) {
+    return `<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
+   } else if (bdHtml) {
+    return `<div class="pi-detail-section"><h5>Platform Summary</h5><p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p></div>
+            <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
+   } else {
+    return `<div class="pi-detail-section" style="grid-column:1/-1">
+             <h5>Platform Summary</h5>
+             <p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p>
+            </div>
+            ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}`;
+   }
+  })();
+
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${_renderAssessmentCard(platformIntel, bdIntel)}
    ${drugSection}
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'}">
-    ${(() => {
-     const piHtml = _renderPlatformIntel(platformIntel);
-     const bdHtml = _renderBdIntel(bdIntel);
-     if (piHtml && bdHtml) {
-      // Both structured — side by side
-      return `<div class="pi-detail-section"><h5>Platform Intelligence</h5>${piHtml}</div>
-              <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
-     } else if (piHtml) {
-      return `<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
-     } else if (bdHtml) {
-      // Structured BD only — show prose platform alongside
-      return `<div class="pi-detail-section"><h5>Platform Summary</h5><p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p></div>
-              <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
-     } else {
-      // Legacy prose fallback
-      return `<div class="pi-detail-section" style="grid-column:1/-1">
-               <h5>Platform Summary</h5>
-               <p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p>
-              </div>
-              ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}`;
-     }
-    })()}
+   <div data-intel-grid="${prog.id||''}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'};margin-bottom:10px">
+    ${intelSections}
+   </div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
     <div class="pi-detail-section"><h5>📰 Related News</h5>${dealsHTML}</div>
    </div>
   </div>`;
  },
 
+
+  // ── Equalize intel column widths post-render ────────────────────────────
+  // After the dropdown HTML is injected, measure both intel section heights and
+  // binary-search for the grid-template-columns ratio that makes them equal.
+  // Only runs when both structured intelligence cards are present.
+  _equalizeIntelColumns(entityId) {
+   const grid = document.querySelector(`[data-intel-grid="${entityId}"]`);
+   if (!grid) return;
+   const sections = grid.querySelectorAll(':scope > .pi-detail-section');
+   if (sections.length !== 2) return;
+   const [left, right] = sections;
+   // Skip if one is full-width (single-column fallback)
+   if (left.style.gridColumn === '1 / -1' || left.getAttribute('style')?.includes('grid-column:1/-1')) return;
+   // Try discrete ratios from 50/50 up to 72/28 — find the one that minimises height diff
+   const ratios = [0.50, 0.54, 0.58, 0.62, 0.66, 0.70, 0.72];
+   let bestRatio = 0.50, bestDiff = Infinity;
+   for (const r of ratios) {
+    grid.style.gridTemplateColumns = `${(r*100).toFixed(0)}% ${((1-r)*100).toFixed(0)}%`;
+    const diff = Math.abs(left.scrollHeight - right.scrollHeight);
+    if (diff < bestDiff) { bestDiff = diff; bestRatio = r; }
+    if (diff <= 4) break; // good enough
+   }
+   grid.style.gridTemplateColumns = `${(bestRatio*100).toFixed(0)}% ${((1-bestRatio)*100).toFixed(0)}%`;
+  },
 
   _detailHTML(p) {
   const cats = p.catalysts.length ? p.catalysts.map(c =>
