@@ -940,14 +940,16 @@ Return JSON with EXACTLY these fields:
     "label": "Short name for this combination — e.g. 'Skyrizi + ABBV-382 (α4β7 + IL-23p19)'",
     "component_drug_ids": ["exact drug_id from DRUGS list", "..."],
     "combination_type": "backbone_addon (established drug + add-on) | rational_combo (two investigational drugs) | sequential (drugs used in sequence, not simultaneously)",
-    "stage": "Phase 1|Phase 2|Phase 3|Preclinical|Concept",
-    "phase_display": "null or e.g. 'Phase 2 (ongoing)'",
+    "stage": "Phase 1|Phase 2|Phase 3|Planned Ph1|Planned Ph2|Planned Ph2b|Preclinical|Concept — use 'Planned Phx' for disclosed but not yet initiated studies (no NCT registered)",
+    "phase_display": "null or e.g. 'Phase 2b (anticipated initiation H2 2026)'",
+    "anticipated_start": "null or company-guided start timing for planned studies — e.g. 'H2 2026'. REQUIRED when stage starts with 'Planned'.",
+    "prerequisite_note": "null or what must happen before this study can begin — e.g. 'Awaiting Phase 1 monotherapy completion for ABBV-701'. REQUIRED when stage starts with 'Planned' and there is a known dependency.",
     "indication_short": "e.g. 'UC · CD'",
     "strategic_significance": "high|medium|low",
     "mechanism_detail": "1-2 sentences: rationale for combining these mechanisms, what complementary biology is targeted",
     "drug_summary": "2-3 sentences: what is known about this combination program — trial data, company guidance, strategic rationale",
     "notes": "1 sentence: source or confidence note",
-    "source_url": "null or URL to press release, trial registration, or IR page — never fabricate"
+    "source_url": "null or URL to press release, trial registration, or IR page — never fabricate. REQUIRED when stage starts with 'Planned'."
   }}],
   "trial_updates": [{{
     "trial_id": "exact trial id from TRIALS list (the 'id' field, not the NCT number)",
@@ -1002,9 +1004,13 @@ Every drug must receive a strategic_role. Think about it from Ailux's BD perspec
 - platform_expansion: an early or future program that extends the company's franchise into new mechanisms
 - watch: early-stage or uncertain relevance
 
-DISPLAY NAME GUIDANCE:
-Set display_name when the drug has a licensee-assigned code different from the drug_id (e.g., AbbVie calls FG-M701 "ABBV-701"), or when the brand name should be shown. Format: "LicenseeCode (OriginalCode)" or "BrandName (INN)".
-Populate licensor_name and licensor_code when the drug was in-licensed.
+DISPLAY NAME GUIDANCE (CRITICAL — apply to every acquired/licensed drug):
+- If a drug was acquired or in-licensed, the acquiring company assigns a new code. You MUST set display_name to the acquirer's code.
+- Format: "AcquirerCode (OriginalCode)" — e.g. "ABBV-701 (FG-M701)", "JNJ-2113 (OriginalCode)".
+- If the brand name exists, use: "BrandName (INN)" — e.g. "Skyrizi (Risankizumab)".
+- licensor_name: the originating company (e.g. "FutureGen Biopharmaceutical Co., Ltd.")
+- licensor_code: the original code used by the licensor (e.g. "FG-M701")
+- NEVER leave display_name null or equal to the drug_id when the drug has a licensor — this creates inaccurate data.
 
 COMBINATION PROGRAM GUIDANCE:
 Identify ALL known combination programs for this company in this area. Include:
@@ -1103,20 +1109,34 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
 
+            # ── Acquired-drug display_name guard ─────────────────────────────
+            # If drug has a licensor but display_name wasn't set (or equals drug_id),
+            # this is a data quality failure — log a hard warning so it's visible in CI logs.
+            licensor_code_written = update_fields.get("licensor_code") or du.get("licensor_code")
+            display_name_written  = update_fields.get("display_name") or ""
+            if licensor_code_written and (not display_name_written or display_name_written == drug_id):
+                log(f"  ⚠ DATA QUALITY: drug '{drug_id}' has licensor_code='{licensor_code_written}' "
+                    f"but display_name='{display_name_written or 'null'}' — acquirer code not set. "
+                    f"Set display_name to 'AcquirerCode ({licensor_code_written})'.", indent=1)
+
     # Write combination programs
     for combo in data.get("combination_programs", []):
         label = (combo.get("label") or "").strip()
         if not label:
             continue
         component_ids = combo.get("component_drug_ids") or []
+        stage_val = combo.get("stage") or "Concept"
+        is_planned = stage_val.startswith("Planned")
         combo_rec = {
             "company_id":            company_id,
             "area_id":               area_id,
             "label":                 label[:300],
             "component_drug_ids":    component_ids,
             "combination_type":      combo.get("combination_type") or "rational_combo",
-            "stage":                 combo.get("stage") or "Concept",
+            "stage":                 stage_val,
             "phase_display":         combo.get("phase_display"),
+            "anticipated_start":     combo.get("anticipated_start"),
+            "prerequisite_note":     combo.get("prerequisite_note"),
             "indication_short":      combo.get("indication_short"),
             "strategic_significance": combo.get("strategic_significance") or "medium",
             "mechanism_detail":      combo.get("mechanism_detail"),
@@ -1126,6 +1146,8 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         }
         if combo.get("source_url"):
             combo_rec["source_url"] = combo["source_url"]
+        elif is_planned:
+            log(f"  ⚠ combo '{label[:45]}': stage is Planned but source_url missing — data quality risk", indent=1)
         # Upsert by company + label (idempotent)
         existing = sb_get("drug_combinations", {
             "company_id": f"eq.{company_id}",
