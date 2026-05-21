@@ -8822,7 +8822,7 @@ const TL1A_PROGRAMS = [
    risk:'Very early stage with limited differentiation data vs. more advanced Chinese competitors (SIM0709 already in Phase 1, CLD-423 already in Phase 1). Window for big-pharma interest may narrow as Phase 1 programs provide human data.',
    diff:'Differentiation window: if preclinical data show unique format (e.g., novel bispecific architecture or superior potency), could out-license before FIH at $40–125M upfront comp. Timing and data package are everything at this stage.' },
 
- { id:'abbvie', co:'AbbVie', ticker:'ABBV', groupId:'abbvie', drug:'FG-M701', target:'TL1A', cls:'1st Gen', stageKey:'Phase 1', overlap:'Direct',
+ { id:'abbvie', co:'AbbVie', ticker:'ABBV', groupId:'abbvie', drug:'ABBV-701', target:'TL1A', cls:'1st Gen', stageKey:'Phase 1', overlap:'Direct',
    summary:'AbbVie licensed FG-M701 (anti-TL1A mAb) from FutureGen Biopharmaceutical in June 2024 for $150M upfront / $1.71B total — the fourth major TL1A licensing transaction within 18 months. FG-M701 is a monospecific TL1A mAb currently in Phase 1 development. AbbVie\'s entry as a direct TL1A competitor signals conviction that TL1A monotherapy has commercial value alongside their existing IL-23 and JAK1 IBD portfolio. Whether AbbVie runs FG-M701 independently or as a combination backbone alongside Skyrizi (creating a TL1A×IL-23 functional combination) defines the competitive dynamic for Ailux\'s bispecific strategy.',
    catalysts:[{date:'2026–2027',event:'FG-M701 Phase 1 dose escalation completion; SAD/MAD safety readout'},{date:'2027',event:'Phase 1b IBD proof-of-concept cohort — first IBD efficacy signal expected'}],
    trials:[{nct:'Pending',name:'Phase 1 FIH — FG-M701 (anti-TL1A mAb); licensed from FutureGen June 2024',phase:'Phase 1',status:'Recruiting',n:null,pcd:'2026–2027',primary:'Safety, tolerability, PK/PD'}],
@@ -9416,7 +9416,15 @@ const tl1aPI = {
      .from('drug_combinations').select('*')
      .eq('company_id', id).eq('area_id', AREA)
      .order('strategic_significance', { ascending: true }); // high first
-    combos = comboRows || [];
+    // Deduplicate combos by normalised label (handles enrichment writing duplicates with minor label variants)
+    const rawCombos = comboRows || [];
+    const comboSeen = new Set();
+    combos = rawCombos.filter(c => {
+     const key = (c.label||'').toLowerCase().replace(/\s*[\(\[].*?[\)\]]/g,'').replace(/\s+/g,' ').trim();
+     if (comboSeen.has(key)) return false;
+     comboSeen.add(key);
+     return true;
+    });
    } catch(_) {}
 
    // Pass merged news (deals + intel items) as the "deals" array to the renderer
@@ -10291,10 +10299,11 @@ const tl1aPI = {
    const bestStage = ge.reduce((b,e)=>(TL1A_STAGE_ORDER[e.stageKey]??9)<(TL1A_STAGE_ORDER[b.stageKey]??9)?e:b, ge[0]).stageKey;
    // Best overlap = most direct
    const bestOverlap = ge.reduce((b,e)=>(OV_ORDER[e.overlap]??9)<(OV_ORDER[b.overlap]??9)?e:b, ge[0]).overlap;
-   // Drug display: primary drug + "+N more" if multi-entry.
-   // Use ge.length (not -1) so count includes combos loaded from DB at expand time.
-   const drugDisplay = ge.length > 1
-    ? `${primary.drug} <span style="font-size:10px;color:#7c3aed;font-weight:700;background:#f5f3ff;border-radius:8px;padding:1px 5px">+${ge.length} more</span>`
+   // Drug display: show primary drug name + "+N more" count for additional static entries.
+   // Count = ge.length - 1 (accurate for the static programmes listed; DB combos reveal on expand).
+   const extraCount = ge.length - 1;
+   const drugDisplay = extraCount > 0
+    ? `${primary.drug} <span style="font-size:10px;color:#7c3aed;font-weight:700;background:#f5f3ff;border-radius:8px;padding:1px 5px">+${extraCount} more</span>`
     : primary.drug;
    // Target: show primary if all same, else "Multiple"
    const allSameTarget = ge.every(e=>e.target===primary.target);
