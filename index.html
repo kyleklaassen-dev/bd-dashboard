@@ -1228,6 +1228,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
 .pi-stage-pre { background:#f1f5f9;color:#475569; }
 .pi-stage-planned { background:#f0f9ff;color:#0369a1;border:1px dashed #7dd3fc; }
+.pi-stage-terminated { background:#f8fafc;color:#94a3b8;border:1px solid #cbd5e1;font-style:italic; }
 .pi-stage-obs  { background:#ecfeff;color:#164e63; }   /* Observational — cyan */
 .pi-stage-comp { background:#fff1f2;color:#9f1239; }   /* Compassionate Use — rose */
 .pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
@@ -8013,7 +8014,7 @@ function _makeAreaPI(tabId, areaIds) {
       const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
       return `<span class="pi-cls-pill ${m[canon]||'pi-cls-1st'}">${canon}</span>`;
     },
-    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'}; const lbl={'Observational':'Obs.','Expanded Access':'Comp. Use'}; const cls=m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre'); return `<span class="pi-stage-pill ${cls}">${lbl[s]||s||'—'}</span>`; },
+    _stagePill(s){ if(s==='Terminated') return `<span class="pi-stage-pill pi-stage-terminated">Terminated</span>`; const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'}; const lbl={'Observational':'Obs.','Expanded Access':'Comp. Use'}; const cls=m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre'); return `<span class="pi-stage-pill ${cls}">${lbl[s]||s||'—'}</span>`; },
     _ovBadge(o)  {
       // Normalize: accept any casing → canonical label
       const norm={direct:'Direct',adjacent:'Adjacent','same-space':'Same-Space','same_space':'Same-Space',samespace:'Same-Space',watch:'Watch'};
@@ -8968,10 +8969,20 @@ const TL1A_PROGRAMS = [
    trials:[{nct:'Approved',name:'U-ACHIEVE (UC) + U-EXCEED/U-EXCEL (CD) — approved both',phase:'Phase 3',status:'Approved',n:null,pcd:'Approved',primary:'Clinical remission'}],
    deals:[{date:'2023',desc:'Upadacitinib CD approval makes AbbVie the only company with approved UC+CD+RA+PsA+AD coverage across JAK1'}],
    risk:'Safety box warning creates prescriber hesitation in biologics-naive patients. Oral convenience is a significant competitive advantage over all injectable biologics.',
-   diff:'Rinvoq\'s IBD success has intensified pressure on biologic developers to show meaningful efficacy advantages. TL1A bispecific needs to show it can succeed where oral JAKi cannot be used (older patients, CV risk) or where the biologic mechanism offers distinct biology.' }
+   diff:'Rinvoq\'s IBD success has intensified pressure on biologic developers to show meaningful efficacy advantages. TL1A bispecific needs to show it can succeed where oral JAKi cannot be used (older patients, CV risk) or where the biologic mechanism offers distinct biology.' },
+
+ /* ── TERMINATED PROGRAMS — single drug, discontinued; kept for competitive context ── */
+ { id:'gossamer', co:'Gossamer Bio', ticker:'GOSS', groupId:'gossamer', drug:'GB004', target:'PHD1 / HIF-1α', cls:'', stageKey:'Terminated', overlap:'Same-Space',
+   summary:'GB004 was an oral selective prolyl hydroxylase domain 1 (PHD1) inhibitor designed to stabilize HIF-1α in intestinal epithelial cells, promoting mucosal healing by upregulating barrier-protective and anti-inflammatory genes. Gossamer Bio ran the JOCELYN Phase 2b trial (NCT04697966, N=110) in moderate-to-severe UC. JOCELYN failed to meet its primary endpoint (clinical remission at Week 8 per modified Mayo Score) and Gossamer discontinued GB004 in 2022. Gossamer Bio was subsequently acquired by Idorsia in 2023. The program\'s failure was attributed to insufficient epithelial HIF-1α pathway activity as a standalone mechanism for achieving immune-mediated remission — consistent with the emerging thesis that UC requires upstream immune modulation (e.g., TL1A, IL-23) rather than mucosal healing augmentation alone. BD read-through: GB004 supports the case that single-pathway approaches to mucosal repair without addressing the primary inflammatory driver are insufficient. Validates multi-mechanism strategies, including TL1A × IL-23 bispecifics, as the required path for durable remission.',
+   trials:[
+    {nct:'NCT04697966',name:'JOCELYN — Phase 2b GB004 in Moderate-to-Severe Ulcerative Colitis',phase:'Phase 2',status:'Terminated',n:110,pcd:'2022',primary:'Clinical remission at Week 8 (modified Mayo Score ≤2, no subscore >1)'},
+   ],
+   deals:[{date:'2023',desc:'Gossamer Bio acquired by Idorsia — GB004 discontinued post-JOCELYN failure; Gossamer pivoted to pulmonary/rare disease assets (GB002, GB001) pre-acquisition'}],
+   risk:'Program terminated — no remaining BD angle for GB004.',
+   diff:'JOCELYN failure is a cautionary data point: HIF-1α stabilization via PHD1 inhibition provides insufficient remission depth without immune pathway suppression. The TL1A × IL-23 bispecific approach addresses the upstream immune driver directly — the mechanistic lesson Gossamer\'s failure underscores.' },
 ];
 
-const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Preclinical':4};
+const TL1A_STAGE_ORDER = {'Phase 3':0,'Phase 2':1,'Phase 1':2,'Pre-IND':3,'Preclinical':4,'Terminated':10};
 
 const SPYRE_PIPELINE = [
  /* ── IBD MONOTHERAPIES — full relevance (all have IBD indication) ── */
@@ -9242,6 +9253,7 @@ const tl1aPI = {
   return `<span class="pi-cls-pill ${m[cls]||'pi-cls-1st'}">${cls}</span>`;
  },
  _stagePill(s) {
+  if (s === 'Terminated') return `<span class="pi-stage-pill pi-stage-terminated">Terminated</span>`;
   if (s && /^approv/i.test(s)) return `<span class="pi-stage-pill pi-stage-approved">✓ Approved</span>`;
   const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'};
   const lbl = {'Observational':'Obs.','Expanded Access':'Comp. Use'};
@@ -10604,7 +10616,14 @@ const tl1aPI = {
    const allSameTarget = ge.every(e=>e.target===primary.target);
    const rawTarget = allSameTarget ? primary.target : (primary.target.length > 18 ? primary.target.substring(0,18)+'…' : primary.target);
    const targetDisplay = normTarget(rawTarget);
-   return { gid, primary, entries: ge, bestStage, bestOverlap, drugDisplay, targetDisplay };
+   const isTerminated = ge.every(e => e.stageKey === 'Terminated');
+   return { gid, primary, entries: ge, bestStage, bestOverlap, drugDisplay, targetDisplay, isTerminated };
+  });
+
+  // Terminated companies always sort to the bottom, preserving relative order within each group
+  groups.sort((a, b) => {
+   if (a.isTerminated !== b.isTerminated) return a.isTerminated ? 1 : -1;
+   return 0;
   });
 
   const w = this._colWidths;
@@ -10653,8 +10672,10 @@ const tl1aPI = {
     ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700">${indScope}</span>`
     : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
 
-   // Threat cell: threat tier badge only
-   const threatCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}</div>`;
+   // Threat cell: blank for terminated companies, badge otherwise
+   const threatCell = isTerminated
+    ? `<span style="color:#cbd5e1">—</span>`
+    : `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}</div>`;
 
    // Catalyst cell (rightmost): exact date + expand chevron pinned to far right
    const catFmt = (() => {
@@ -10675,7 +10696,7 @@ const tl1aPI = {
     <td>${pipelineCell}</td>
     <td>${indCell}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
-    <td>${this._clsPill(p.cls)}</td>
+    <td>${isTerminated ? '' : this._clsPill(p.cls)}</td>
     <td>${this._stagePill(bestStage)}</td>
     <td>${threatCell}</td>
     <td>${catCell}</td>
