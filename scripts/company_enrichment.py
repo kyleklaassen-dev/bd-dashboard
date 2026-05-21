@@ -1094,8 +1094,19 @@ Return JSON with EXACTLY these fields:
     "source_url": "null or URL to press release, trial registration, or IR page — never fabricate. REQUIRED when stage starts with 'Planned'."
   }}],
   "trial_updates": [{{
-    "trial_id": "exact trial id from TRIALS list (the 'id' field, not the NCT number)",
+    "trial_id": "exact trial id from TRIALS list (the 'id' field, e.g. 'NCT06895343')",
     "study_acronym": "null or string: the branded program acronym this company uses for the trial — e.g. 'SKYLINE-UC' (Spyre), 'U-ACHIEVE' (AbbVie), 'PURSUIT' (J&J), 'ARTEMIS-CD'. Search the company's press releases and IR materials for how they brand this study. If the TRIALS list already shows a non-null study_acronym, confirm or correct it. Only include if you find a specific acronym — never fabricate."
+  }}],
+  "new_trials": [{{
+    "id": "NCT number — e.g. 'NCT06895343'. REQUIRED. Never fabricate. Only include if you have verified this NCT ID exists on ClinicalTrials.gov.",
+    "drug_id": "exact drug_id from DRUGS list — the drug this trial is studying",
+    "trial_name": "official full study title from ClinicalTrials.gov",
+    "phase": "Phase 1 | Phase 1/Phase 2 | Phase 2 | Phase 2/Phase 3 | Phase 3 | Phase 4",
+    "status": "Recruiting | Active, not recruiting | Completed | Not yet recruiting | Enrolling by invitation | Terminated | Withdrawn",
+    "indication": "short condition/indication — e.g. 'Ulcerative Colitis' or 'Crohn Disease'",
+    "primary_completion_date": "YYYY-MM-DD if known, else null",
+    "study_acronym": "null or branded program acronym if known — e.g. 'U-ACHIEVE'",
+    "source_url": "https://clinicaltrials.gov/study/NCTXXXXXXXX — always include the CTgov URL"
   }}],
   "catalysts": [{{
     "catalyst_date": "Include specific day when known: 'April 28, 2028'. Use 'Q3 2026' or 'H2 2026' when only quarter/half known. Never just a year.",
@@ -1130,6 +1141,7 @@ Return JSON with EXACTLY these fields:
 RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id). EVERY drug in the DRUGS list must have an entry.
 - trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you find a study acronym. Skip trials where no branded acronym exists.
+- new_trials: use this to seed trials that are NOT already in the TRIALS list above. Only include trials you are confident exist on ClinicalTrials.gov (verified NCT ID). drug_id must exactly match a drug_id in the DRUGS list. If TRIALS already contains all known trials for these drugs, return []. Never fabricate NCT IDs.
 - catalysts: only upcoming events (after {TODAY}). ONE entry per distinct event — do NOT duplicate: if multiple trials share the same primary completion date, create ONE catalyst entry for that readout, not one per trial. Deduplicate by event type + approximate date.
 - deal_updates: only match to EXISTING DEALS
 - combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
@@ -1338,6 +1350,37 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         else:
             result = sb_upsert("drug_combinations", combo_rec)
             log(f"  combo '{label[:45]}': {'✓ inserted' if result else '✗ insert failed'}", indent=1)
+
+    # ── Insert net-new trials discovered by Claude ────────────────────────────
+    # These are trials Claude found (via web intelligence or knowledge) that are
+    # not yet in the trials table. We upsert on id (NCT number) so re-runs are safe.
+    new_trials = data.get("new_trials", [])
+    if new_trials:
+        log(f"  new_trials to seed: {len(new_trials)}", indent=1)
+    for nt in new_trials:
+        nct_id = (nt.get("id") or "").strip()
+        drug_id = (nt.get("drug_id") or "").strip()
+        if not nct_id or not nct_id.startswith("NCT") or not drug_id:
+            log(f"  ✗ skipping new_trial — missing/invalid id or drug_id: {nt}", indent=2)
+            continue
+        if drug_id not in db_drug_ids:
+            log(f"  ✗ skipping new_trial {nct_id} — drug_id '{drug_id}' not in DB", indent=2)
+            continue
+        trial_rec = {
+            "id":                     nct_id,
+            "drug_id":                drug_id,
+            "trial_name":             nt.get("trial_name") or None,
+            "phase":                  nt.get("phase") or None,
+            "status":                 nt.get("status") or None,
+            "indication":             nt.get("indication") or None,
+            "primary_completion_date": nt.get("primary_completion_date") or None,
+            "study_acronym":          nt.get("study_acronym") or None,
+            "source_url":             nt.get("source_url") or None,
+        }
+        # Strip None values — only send fields with actual data
+        trial_rec = {k: v for k, v in trial_rec.items() if v is not None}
+        ok = sb_upsert("trials", trial_rec)
+        log(f"  new trial {nct_id} ({drug_id}): {'✓ inserted' if ok else '✗ failed'}", indent=2)
 
     for tu in data.get("trial_updates", []):
         trial_id = tu.get("trial_id")
