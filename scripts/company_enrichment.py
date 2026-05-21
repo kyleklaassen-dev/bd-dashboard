@@ -409,6 +409,12 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         "Find NEW companies or drugs in this space NOT already tracked above.\n"
         "Include large pharma subsidiaries/programs if their compound is not yet tracked.\n"
         "Return only genuine competitive entries (not CROs, service providers, etc.).\n\n"
+        "CRITICAL ACQUISITION RULE: If a company was wholly acquired and its drug now belongs to\n"
+        "the acquirer (e.g., Prometheus Biosciences was acquired by Merck — tulisokibart is now\n"
+        "Merck's program), DO NOT list the acquired company as a new_entity. The drug lives under\n"
+        "the acquirer. If the acquirer is NOT yet tracked, list the acquirer as the entity.\n"
+        "Only set acquired_by if you are adding the company AND know it was acquired — this\n"
+        "is rare (most of the time just skip the acquired company entirely).\n\n"
         '{"new_entities": [{'
         '"company_name": "...", "drug_name": "... or null", "target": "...",'
         '"stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",'
@@ -416,6 +422,7 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         '"route": "SC|IV|oral|unknown|null",'
         '"entity_type": "platform|partnership|standalone|licensed",'
         '"partner_co": "name of licensor/partner company or null",'
+        '"acquired_by": "company_id of the acquirer if this entity was wholly acquired and no longer independent, else null",'
         '"overlap": "Direct|Adjacent|Same-Space|Watch",'
         '"confidence": 60-100,'
         '"reason": "one sentence"'
@@ -465,7 +472,9 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             co_id = re.sub(r'[^a-z0-9]', '', co_name.lower())[:20]
             # group_id defaults to co_id for newly discovered standalone entities.
             # partner_co is set if the entity is a partnership (entity_type field from Claude).
-            partner_co = ent.get("partner_co") or ent.get("partner") or None
+            partner_co   = ent.get("partner_co") or ent.get("partner") or None
+            acquired_by  = ent.get("acquired_by") or None   # set by discovery when company was wholly acquired
+            co_status    = "acquired" if acquired_by else "active"
             sb_upsert("companies", {
                 "id":           co_id,
                 "name":         co_name,
@@ -477,9 +486,15 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
                 "overlap":      ent.get("overlap", "Watch"),  # default Watch until enriched
                 "ailux_angle":  f"Newly discovered: {ent.get('reason','')}",
                 "last_verified": TODAY,
+                "status":       co_status,        # 'active' | 'acquired' — acquired hides from dashboard
+                "acquired_by":  acquired_by,      # company_id of the acquirer (e.g. 'merck')
             })
             company_map[co_name.lower()] = co_id
-            log(f"    + Company: {co_id} (group_id={co_id}, partner={partner_co})", indent=2)
+            log(f"    + Company: {co_id} status={co_status} partner={partner_co} acquired_by={acquired_by}", indent=2)
+            if co_status == "acquired":
+                log(f"    ⚠ {co_name} marked ACQUIRED by {acquired_by} — will not appear as dashboard entity", indent=2)
+                # Skip drug/trial creation — drug lives under acquirer's record
+                continue
 
         existing_link = sb_get("company_areas", {
             "company_id": f"eq.{co_id}", "area_id": f"eq.{area_id}", "select": "company_id"
@@ -1339,7 +1354,9 @@ Return JSON with EXACTLY these fields:
   }}],
   "trial_updates": [{{
     "trial_id": "exact trial id from TRIALS list (the 'id' field, e.g. 'NCT06895343')",
-    "study_acronym": "null or string: the branded program acronym this company uses for the trial — e.g. 'SKYLINE-UC' (Spyre), 'U-ACHIEVE' (AbbVie), 'PURSUIT' (J&J), 'ARTEMIS-CD'. Search the company's press releases and IR materials for how they brand this study. If the TRIALS list already shows a non-null study_acronym, confirm or correct it. Only include if you find a specific acronym — never fabricate."
+    "study_acronym": "null or string: the branded program acronym this company uses for the trial — e.g. 'SKYLINE-UC' (Spyre), 'U-ACHIEVE' (AbbVie), 'PURSUIT' (J&J), 'ARTEMIS-CD'. Search the company's press releases and IR materials for how they brand this study. If the TRIALS list already shows a non-null study_acronym, confirm or correct it. Only include if you find a specific acronym — never fabricate.",
+    "estimand": "null or string: the ICH E9(R1) estimand strategy used in this trial's primary analysis. Describes how intercurrent events (rescue medication use, discontinuation, study drug change) are handled. Examples: 'Composite estimand — rescue medication use or discontinuation counted as treatment failure', 'Treatment policy estimand — all post-randomisation data included regardless of intercurrent events', 'Hypothetical estimand — data after rescue medication censored'. Search clinical trial registry, protocol, and publications for the statistical analysis plan estimand definition. Return null if not publicly specified.",
+    "results_note": "null or string: key primary endpoint results for Completed or Terminated trials — 2-4 sentences. Include: primary endpoint name, response/remission rate for drug vs placebo (with p-value or CI if reported), and any headline safety signal. Source from publications (NEJM, Lancet, Gut), conference abstracts (DDW, ECCO, UEG), or ClinicalTrials.gov results postings. Example: 'GEMINI 1 (UC induction): vedolizumab achieved 47.1% clinical response vs 25.5% PBO at Wk 6 (p<0.001); 16.9% vs 5.4% clinical remission at Wk 6. GEMINI 1 (UC maintenance): 44.8% remission at Wk 52 vs 15.9% PBO (p<0.001). Well-tolerated; nasopharyngitis most common AE.' Return null for ongoing or not-yet-recruiting trials, or if no results are publicly available."
   }}],
   "new_trials": [{{
     "id": "NCT number — e.g. 'NCT06895343'. REQUIRED. Never fabricate. Only include if you have verified this NCT ID exists on ClinicalTrials.gov.",
@@ -1350,7 +1367,8 @@ Return JSON with EXACTLY these fields:
     "indication": "short condition/indication — e.g. 'Ulcerative Colitis' or 'Crohn Disease'",
     "primary_completion_date": "YYYY-MM-DD if known, else null",
     "study_acronym": "null or branded program acronym if known — e.g. 'U-ACHIEVE'",
-    "source_url": "https://clinicaltrials.gov/study/NCTXXXXXXXX — always include the CTgov URL"
+    "source_url": "https://clinicaltrials.gov/study/NCTXXXXXXXX — always include the CTgov URL",
+    "estimand": "null or string: ICH E9(R1) estimand strategy for the primary endpoint — how intercurrent events are handled. Examples: 'Composite estimand — rescue medication or discontinuation = treatment failure', 'Treatment policy estimand'. Return null if not publicly specified."
   }}],
   "catalysts": [{{
     "catalyst_date": "Include specific day when known: 'April 28, 2028'. Use 'Q3 2026' or 'H2 2026' when only quarter/half known. Never just a year.",
@@ -1620,6 +1638,7 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             "primary_completion_date": nt.get("primary_completion_date") or None,
             "study_acronym":          nt.get("study_acronym") or None,
             "source_url":             nt.get("source_url") or None,
+            "estimand":               nt.get("estimand") or None,
         }
         # Strip None values — only send fields with actual data
         trial_rec = {k: v for k, v in trial_rec.items() if v is not None}
