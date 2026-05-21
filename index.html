@@ -10272,8 +10272,9 @@ const tl1aPI = {
     const ind     = t.indication || t.condition || '';
     const route   = t.route || d.route || '';
     const dosing  = t.dosing_type || d.dosing_type || '';
-    const ep      = t.primary_endpoint || t.primary || '';
-    const results = t.results_note || t.results_summary || '';
+    const ep       = t.primary_endpoint || t.primary || '';
+    const estimand = t.estimand || '';
+    const results  = t.results_note || t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
     const countdownCell = _pcdCountdown(t, status);
@@ -10290,7 +10291,8 @@ const tl1aPI = {
      n      ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Enrollment</span><span class="pi-tr-field-val">N=${n}</span></div>` : '',
      route  ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Route</span><span class="pi-tr-field-val">${route}</span></div>` : '',
      dosing ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Dosing Type</span><span class="pi-tr-field-val">${dosing}</span></div>` : '',
-     ep     ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Primary Endpoint</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${ep}</span></div>` : '',
+     ep       ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Primary Endpoint</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${ep}</span></div>` : '',
+     estimand ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Estimand</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${estimand}</span></div>` : '',
     ].filter(Boolean).join('');
 
     const resultsSection = hasResults ? `
