@@ -961,7 +961,7 @@ Return JSON with EXACTLY these fields:
     "route": "SC|IV|SC/IV|oral|null",
     "dosing_type": "Induction|Maintenance|Induction + Maintenance|null",
     "dosing_schedule": "null or e.g. Q3M SC",
-    "indication_short": "null or e.g. UC · CD",
+    "indication_short": "null or abbreviated indication list using standard clinical abbreviations separated by ' · ' — e.g. 'UC · CD', 'AD · RA', 'AD'. ALWAYS abbreviate: Ulcerative Colitis→UC, Crohn's Disease→CD, Atopic Dermatitis→AD, Rheumatoid Arthritis→RA, Psoriatic Arthritis→PsA, Psoriasis→Ps, Ankylosing Spondylitis→AS, Hidradenitis Suppurativa→HS, Eosinophilic Esophagitis→EoE, Alopecia Areata→AA, SLE, MS, TED, gMG, COPD, NASH, MASH, IBD. Never write full disease names.",
     "stage_detail": "null or e.g. Phase 2b (ARTEMIS-CD)",
     "phase_display": "null or e.g. Phase 3",
     "half_life_note": "null or e.g. ~74 days",
