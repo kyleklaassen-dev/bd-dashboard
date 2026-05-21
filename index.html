@@ -10512,19 +10512,19 @@ const tl1aPI = {
     return 'UC+CD'; // TL1A programs are exclusively IBD — safe default
    })();
 
-   // Pipeline cell: drug count only
-   const pipelineCell = `<span style="font-size:12px;font-weight:700;color:#1e3a5f">${drugCount}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${drugCount!==1?'s':''}</span>`;
+   // Pipeline cell: drug count + active trials count side by side
+   const trialsToken = activeTrials != null
+    ? `<span style="font-size:10px;color:#475569;white-space:nowrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:1px 5px;margin-left:4px">${activeTrials} trial${activeTrials!==1?'s':''}</span>`
+    : '';
+   const pipelineCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px"><span style="font-size:12px;font-weight:700;color:#1e3a5f">${drugCount}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${drugCount!==1?'s':''}</span>${trialsToken}</div>`;
 
    // Indication cell: UC / CD / UC+CD badge (own column)
    const indCell = indScope
     ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700">${indScope}</span>`
     : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
 
-   // Threat cell: threat tier badge + active trials count (no chevron — moved to far-right)
-   const trialsToken = activeTrials != null
-    ? `<span style="font-size:10px;color:#475569;white-space:nowrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:1px 5px">${activeTrials} trial${activeTrials!==1?'s':''}</span>`
-    : '';
-   const threatCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}${trialsToken}</div>`;
+   // Threat cell: threat tier badge only
+   const threatCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}</div>`;
 
    // Catalyst cell (rightmost): exact date + expand chevron pinned to far right
    const catFmt = (() => {
