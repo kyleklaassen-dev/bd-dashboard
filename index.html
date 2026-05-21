@@ -9897,12 +9897,18 @@ const tl1aPI = {
   // Always fall back to static prog.trials when DB trials are empty.
   // When sbTrials is empty and static trials key as '__all__', the drugTrials
   // assignment below pins them to the first drug to avoid cross-row spillage.
-  const trialsByDrug = {};
+  const trialsByDrug  = {};
+  const trialsByCombo = {};
   const allTrials = sbTrials.length ? sbTrials
     : (prog.trials||[]).map(t=>({...t, id:t.id||t.nct}));
   allTrials.forEach(t => {
-   const key = t.drug_id || t.canonical_drug_id || '__all__';
-   (trialsByDrug[key] = trialsByDrug[key] || []).push(t);
+   if (t.combination_id) {
+    // Combination trial — index by combination_id so combo accordion sections can find it
+    (trialsByCombo[t.combination_id] = trialsByCombo[t.combination_id] || []).push(t);
+   } else {
+    const key = t.drug_id || t.canonical_drug_id || '__all__';
+    (trialsByDrug[key] = trialsByDrug[key] || []).push(t);
+   }
   });
 
   // ── Build drug accordion rows ───────────────────────────────────────────
@@ -10051,7 +10057,7 @@ const tl1aPI = {
    // ── Combination program branch ─────────────────────────────────────────
    if (item._isCombo) {
     const combo = item;
-    const comboTrials = [...(trialsByDrug[combo.id] || [])].sort((a,b) => trialRelevance(b, 'adjacent') - trialRelevance(a, 'adjacent'));
+    const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => trialRelevance(b, 'adjacent') - trialRelevance(a, 'adjacent'));
     const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Relevance</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.id || t.nct || '';
