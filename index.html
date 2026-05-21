@@ -7707,10 +7707,9 @@ async function loadMeridianIssue() {
   if (_meridianLoaded) return;
   _meridianLoaded = true;
 
-  const picker  = document.getElementById('meridian-issue-picker');
-  const counter = document.getElementById('meridian-issue-count');
-  const frame   = document.getElementById('meridian-issue-frame');
-  if (!picker || !frame || !_sb) return;
+  const list  = document.getElementById('meridian-archive-list');
+  const frame = document.getElementById('meridian-issue-frame');
+  if (!frame || !_sb) return;
 
   try {
     const { data: issues } = await _sb
@@ -7718,37 +7717,38 @@ async function loadMeridianIssue() {
       .select('id, issue_date, title')
       .order('issue_date', { ascending: false });
 
-    const today = new Date().toISOString().slice(0, 10);
-    const todayInDb = issues && issues.length > 0 && issues[0].issue_date === today;
-
-    // Build picker options — always offer archived past issues
+    const today         = new Date().toISOString().slice(0, 10);
+    const todayInDb     = issues && issues.length > 0 && issues[0].issue_date === today;
     const archiveIssues = (issues || []).filter(i => i.issue_date !== today);
-    const archiveOptions = archiveIssues.map(issue => {
-      const d     = new Date(issue.issue_date + 'T12:00:00');
-      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-      return `<option value="${issue.id}">${label}</option>`;
-    }).join('');
+
+    // Build the popover list
+    if (list) {
+      const mkItem = (id, label, shortLabel, isToday) =>
+        `<div class="mr-arch-item${isToday ? ' mr-arch-today' : ''}" onclick="selectMeridianIssue('${id}','${shortLabel.replace(/'/g,"&#39;")}')">` +
+        `${isToday ? '📰 ' : ''}${label}</div>`;
+
+      const todayId   = todayInDb ? issues[0].id : '__live__';
+      const archItems = archiveIssues.map(issue => {
+        const d   = new Date(issue.issue_date + 'T12:00:00');
+        const full = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const sht  = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return mkItem(issue.id, full, sht, false);
+      }).join('');
+
+      list.innerHTML =
+        mkItem(todayId, "Today's Issue", 'today', true) +
+        (archItems || '<div style="padding:10px 16px;font-size:12px;color:#94a3b8;font-style:italic">No archived issues yet</div>');
+    }
 
     if (!issues || issues.length === 0) {
-      // No archive at all — load live file, show empty picker
       frame.removeAttribute('srcdoc'); frame.srcdoc = '';
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
-      picker.innerHTML = '<option value="__live__">Today\'s Issue (Live)</option>';
       return;
     }
 
     if (todayInDb) {
-      // Today is in DB — today's option is first, rest are archive
-      const todayIssue = issues[0];
-      const d = new Date(todayIssue.issue_date + 'T12:00:00');
-      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-      picker.innerHTML = `<option value="${todayIssue.id}">${label} — Today</option>${archiveOptions}`;
-      if (counter) counter.textContent = `${archiveIssues.length} archived`;
-      await renderMeridianIssue(todayIssue.id);
+      await renderMeridianIssue(issues[0].id, 'today');
     } else {
-      // Today not in DB yet — load live file; archived issues available in picker
-      picker.innerHTML = `<option value="__live__">Today's Issue (Live)</option>${archiveOptions}`;
-      if (counter) counter.textContent = `${archiveIssues.length} archived`;
       frame.removeAttribute('srcdoc'); frame.srcdoc = '';
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
     }
@@ -7760,24 +7760,15 @@ async function loadMeridianIssue() {
   }
 }
 
-async function renderMeridianIssue(issueId) {
+async function renderMeridianIssue(issueId, label) {
   const frame = document.getElementById('meridian-issue-frame');
   if (!frame) return;
 
-  // Sync the tab badge to the selected issue
+  // Sync tab badge to reflect selected issue
   try {
-    const picker = document.getElementById('meridian-issue-picker');
-    const badge  = document.querySelector('#tab-current-title .tab-current-badge');
-    if (badge && picker && picker.options.length) {
-      const sel = picker.options[picker.selectedIndex];
-      const txt = sel ? sel.textContent : '';
-      if (issueId === '__live__' || txt.includes('Today')) {
-        badge.textContent = "Today's Issue";
-      } else {
-        // "Thursday, May 21, 2026" → "May 21, 2026"
-        const m = txt.match(/(\w+ \d+, \d{4})/);
-        badge.textContent = m ? m[1] : txt.slice(0, 18);
-      }
+    const badge = document.querySelector('#tab-current-title .tab-current-badge');
+    if (badge) {
+      badge.textContent = (!label || label === 'today' || issueId === '__live__') ? "Today's Issue" : label;
     }
   } catch(_) {}
 
@@ -7801,6 +7792,25 @@ async function renderMeridianIssue(issueId) {
   } catch(e) {
     console.warn('[MERIDIAN:render]', e);
   }
+}
+function toggleMeridianArchive(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('meridian-archive-dd');
+  const ch = document.getElementById('meridian-archive-chevron');
+  const isOpen = dd && dd.style.display !== 'none';
+  if (dd) dd.style.display = isOpen ? 'none' : 'block';
+  if (ch) ch.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) setTimeout(() => document.addEventListener('click', closeMeridianArchive, { once: true }), 0);
+}
+function closeMeridianArchive() {
+  const dd = document.getElementById('meridian-archive-dd');
+  const ch = document.getElementById('meridian-archive-chevron');
+  if (dd) dd.style.display = 'none';
+  if (ch) ch.style.transform = '';
+}
+function selectMeridianIssue(id, label) {
+  closeMeridianArchive();
+  renderMeridianIssue(id, label === 'today' ? 'today' : label);
 }
 // ── TAB REGISTRY ─────────────────────────────────────────────────────
 // Isolated per-tab lifecycle hooks. Errors in one tab never affect others.
