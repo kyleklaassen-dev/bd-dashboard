@@ -1265,10 +1265,12 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 6-column grid: NCT | Acronym | Status | Phase | PCD | Relevance bar */
-.pi-tr-row{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 7-column grid: NCT | Acronym | Status | Phase | PCD | Relevance bar | Chevron */
+.pi-tr-row{display:grid;grid-template-columns:92px 108px 148px 50px 76px 38px 14px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:92px 108px 148px 50px 76px 38px 14px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+/* Drug description strip — full-width bar shown when drug accordion opens */
+.pi-da-desc-strip{font-size:11px;color:#475569;line-height:1.55;padding:8px 12px 10px;border-bottom:1px solid #e8edf3;background:#fafbfc;margin-bottom:10px;border-radius:4px}
 /* Drug insight panel (right side of drug accordion body) */
 .pi-da-drug-insight{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:11px 13px;align-self:start}
 .pi-da-di-hd{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:9px;display:flex;align-items:center;gap:5px}
@@ -1276,7 +1278,6 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-di-sect:last-child{margin-bottom:0}
 .pi-da-di-label{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:3px}
 .pi-da-di-text{font-size:10.5px;color:#334155;line-height:1.6;margin:0}
-.pi-da-di-summary{font-size:11px;color:#1e293b;font-weight:600;line-height:1.5;margin:0 0 9px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}
 .pi-da-di-empty{font-size:10.5px;color:#94a3b8;font-style:italic;margin:0}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
 .pi-nct-a:hover{text-decoration:underline}
@@ -9714,8 +9715,8 @@ const tl1aPI = {
    else if (st.includes('recruit') && !st.includes('not'))       score += 25;
    else if (st.includes('not yet'))                               score += 10;
    else if (st.includes('complet'))                               score += 5;
-   // Competitive overlap boost — direct competitors (same targets + indications) always score high
-   if      (ov === 'direct')   score += 28;
+   // Competitive overlap: direct = same exact targets → always high relevance regardless of phase
+   if      (ov === 'direct')   score = Math.max(score + 15, 82);
    else if (ov === 'adjacent') score += 14;
    return Math.min(100, score);
   };
@@ -9793,7 +9794,7 @@ const tl1aPI = {
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span>NCT</span><span>Acronym</span><span>Status</span><span>Phase</span><span>PCD</span><span>Relevance</span>
+    <span>NCT</span><span>Acronym</span><span>Status</span><span>Phase</span><span>PCD</span><span>Relevance</span><span></span>
    </div>` : '';
 
    // Trial rows
@@ -9848,6 +9849,7 @@ const tl1aPI = {
       <span class="pi-tr-phase-cell">${phase}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${relBar}
+      <span class="pi-tr-chev">▼</span>
      </div>
      <div class="pi-tr-detail">
       ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
@@ -9904,13 +9906,17 @@ const tl1aPI = {
    })() : '';
 
    // ── Drug insight panel (right column) ─────────────────────────────────
-   const sciText = d.differentiation_thesis || d.key_data || '';
-   const bdText  = d.strategic_role || '';
-   const overviewText = d.drug_summary || '';
-   const hasInsight = overviewText || sciText || bdText;
+   // First-sentence extractor: clips at first . ! ? or 140 chars
+   const firstSentence = txt => {
+    if (!txt) return '';
+    const m = txt.match(/^.+?[.!?](?:\s|$)/);
+    return m ? m[0].trim() : (txt.length > 140 ? txt.slice(0, 140).trim() + '…' : txt.trim());
+   };
+   const sciText = firstSentence(d.differentiation_thesis || d.key_data || '');
+   const bdText  = firstSentence(d.strategic_role || '');
+   const hasInsight = sciText || bdText;
    const drugInsightPanel = `<div class="pi-da-drug-insight">
     <div class="pi-da-di-hd">💡 Drug Intel</div>
-    ${overviewText ? `<p class="pi-da-di-summary">${overviewText}</p>` : ''}
     ${sciText ? `<div class="pi-da-di-sect">
      <div class="pi-da-di-label">🔬 Science</div>
      <p class="pi-da-di-text">${sciText}</p>
@@ -9922,6 +9928,11 @@ const tl1aPI = {
     ${!hasInsight ? `<p class="pi-da-di-empty">Run enrichment to generate drug-level analysis.</p>` : ''}
    </div>`;
 
+   // Brief drug description shown across top of expanded body
+   const descText = d.drug_summary || d.differentiation_thesis || '';
+   const descStrip = descText
+    ? `<div class="pi-da-desc-strip">${descText}</div>` : '';
+
    return `<div class="pi-da-row">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
@@ -9932,7 +9943,8 @@ const tl1aPI = {
      ${overlapTag}
     </div>
     <div class="pi-da-body">
-     <div style="display:grid;grid-template-columns:1fr 260px;gap:14px;align-items:start">
+     ${descStrip}
+     <div style="display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start">
       <div>
        ${approvedSection}
        ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
