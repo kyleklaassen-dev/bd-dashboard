@@ -1252,12 +1252,12 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-wrap{margin-bottom:12px}
 .pi-da-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;padding:0 0 6px 0}
 .pi-da-row{border:1px solid #e2e8f0;border-radius:7px;margin-bottom:6px;overflow:hidden;background:white}
-.pi-da-hd{display:grid;grid-template-columns:11px 140px 110px 1fr;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 1fr;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
 .pi-da-hd:hover{background:#f8fafc}
 .pi-da-toggle{font-size:9px;color:#94a3b8;width:11px;flex-shrink:0;transition:transform 0.15s;display:inline-block}
 .pi-da-toggle.open{transform:rotate(90deg)}
-.pi-da-name{font-size:12px;font-weight:800;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pi-da-mech{font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-da-name{font-size:12px;font-weight:800;color:#1e293b;min-width:0;line-height:1.3;word-break:break-word}
+.pi-da-mech{font-size:11px;color:#64748b;min-width:0;line-height:1.3;word-break:break-word}
 .pi-da-tag{font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
 .pi-da-pills{display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .pi-da-row.pi-da-direct>.pi-da-hd{border-left:3px solid #f97316;padding-left:9px}
@@ -9842,6 +9842,9 @@ const tl1aPI = {
      : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
     const comboInd  = combo.indication_short || 'UC · CD';
+    // Extract target info from label parenthetical e.g. "FG-M701 + Skyrizi (TL1A × IL-23p19)" → "TL1A × IL-23p19"
+    const comboTargetMatch = (combo.label||'').match(/\(([^)]+)\)\s*$/);
+    const comboTarget = comboTargetMatch ? comboTargetMatch[1] : (combo.combination_type ? combo.combination_type.replace(/_/g,' ') : '');
     const srcLink   = combo.source_url
      ? `<a href="${combo.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#1d4ed8;font-size:9px;font-weight:700;text-decoration:none">↗</a>` : '';
     const hasBody   = combo.mechanism_detail || combo.drug_summary || comboTrials.length;
@@ -9852,7 +9855,7 @@ const tl1aPI = {
      <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
       <span class="pi-da-toggle" style="${hasBody?'':'visibility:hidden'}">▶</span>
       <span class="pi-da-name">${combo.label||'—'}</span>
-      <span class="pi-da-mech"></span>
+      <span class="pi-da-mech">${comboTarget}</span>
       <div class="pi-da-pills">${stagePill}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${comboInd}</span><span class="pi-da-tag">+</span>${srcLink}</div>
      </div>
      ${hasBody?`<div class="pi-da-body">
@@ -10033,7 +10036,7 @@ const tl1aPI = {
    return `<div class="pi-da-row${isDirect?' pi-da-direct':''}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name">${d.name||'—'}</span>
+     <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-pills">${this._stagePill(drugPhase)}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${partnerTag}${overlapTag}</div>
     </div>
@@ -10217,9 +10220,10 @@ const tl1aPI = {
    const bestStage = ge.reduce((b,e)=>(TL1A_STAGE_ORDER[e.stageKey]??9)<(TL1A_STAGE_ORDER[b.stageKey]??9)?e:b, ge[0]).stageKey;
    // Best overlap = most direct
    const bestOverlap = ge.reduce((b,e)=>(OV_ORDER[e.overlap]??9)<(OV_ORDER[b.overlap]??9)?e:b, ge[0]).overlap;
-   // Drug display: primary drug + "+N more" if multi-entry
+   // Drug display: primary drug + "+N more" if multi-entry.
+   // Use ge.length (not -1) so count includes combos loaded from DB at expand time.
    const drugDisplay = ge.length > 1
-    ? `${primary.drug} <span style="font-size:10px;color:#7c3aed;font-weight:700;background:#f5f3ff;border-radius:8px;padding:1px 5px">+${ge.length-1} more</span>`
+    ? `${primary.drug} <span style="font-size:10px;color:#7c3aed;font-weight:700;background:#f5f3ff;border-radius:8px;padding:1px 5px">+${ge.length} more</span>`
     : primary.drug;
    // Target: show primary if all same, else "Multiple"
    const allSameTarget = ge.every(e=>e.target===primary.target);
