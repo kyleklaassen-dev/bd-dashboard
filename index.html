@@ -1226,6 +1226,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
 .pi-stage-pre { background:#f1f5f9;color:#475569; }
+.pi-stage-planned { background:#f0f9ff;color:#0369a1;border:1px dashed #7dd3fc; }
 .pi-expand-icon { font-size:10px;color:#94a3b8;float:right;transition:transform 0.2s; }
 .pi-expand-icon.open { transform:rotate(180deg);color:#2563eb; }
 .pi-main.expanded > td:last-child { position:relative; }
@@ -7978,7 +7979,7 @@ function _makeAreaPI(tabId, areaIds) {
       const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
       return `<span class="pi-cls-pill ${m[canon]||'pi-cls-1st'}">${canon}</span>`;
     },
-    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre'}; return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`; },
+    _stagePill(s){ const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned'}; return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${s||'—'}</span>`; },
     _ovBadge(o)  {
       // Normalize: accept any casing → canonical label
       const norm={direct:'Direct',adjacent:'Adjacent','same-space':'Same-Space','same_space':'Same-Space',samespace:'Same-Space',watch:'Watch'};
@@ -9112,8 +9113,8 @@ const tl1aPI = {
   return `<span class="pi-cls-pill ${m[cls]||'pi-cls-1st'}">${cls}</span>`;
  },
  _stagePill(s) {
-  const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre'};
-  return `<span class="pi-stage-pill ${m[s]||'pi-stage-pre'}">${s}</span>`;
+  const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned'};
+  return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${s||'—'}</span>`;
  },
  _ovBadge(o) {
   const m = {
@@ -9837,9 +9838,12 @@ const tl1aPI = {
       <span class="pi-tr-pcd-cell">${pcd}</span>${relBar}
      </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
     }).join('');
+    const isPlannedStage = (combo.stage||'').startsWith('Planned');
     const comboTrialSection = comboTrials.length
      ? `<div class="pi-tr-hd-label">Clinical Trials (${comboTrials.length})</div>${comboTrialHeader}<div>${comboTrialRowsHTML}</div>`
-     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
+     : isPlannedStage
+       ? `<div style="font-size:11px;color:#0369a1;padding:4px 0;font-style:italic">Study planned — no trial registration yet</div>`
+       : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
     const comboInd  = combo.indication_short || 'UC · CD';
     // Extract target info from label parenthetical e.g. "FG-M701 + Skyrizi (TL1A × IL-23p19)" → "TL1A × IL-23p19"
