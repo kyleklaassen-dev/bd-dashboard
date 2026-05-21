@@ -9569,7 +9569,6 @@ const tl1aPI = {
    if (target) {
     try {
      target.outerHTML = this._genericDetailHTML(prog, sbData);
-     requestAnimationFrame(() => this._equalizeIntelColumns(prog.id || id));
     } catch(renderErr) {
      console.error('_genericDetailHTML render error:', renderErr);
      target.innerHTML = `<div style="padding:16px;color:#dc2626;font-family:monospace;font-size:11px"><b>Render error:</b> ${renderErr.message}<br><pre style="white-space:pre-wrap;font-size:10px">${renderErr.stack||''}</pre></div>`;
@@ -9582,7 +9581,6 @@ const tl1aPI = {
    if (target) {
     try {
      target.outerHTML = this._genericDetailHTML(prog, null);
-     requestAnimationFrame(() => this._equalizeIntelColumns(prog.id || id));
     } catch(err2) {
      console.warn('_genericDetailHTML fallback error:', err2);
      const errEl = document.getElementById(`pi-dyn-${id}`);
@@ -9892,10 +9890,12 @@ const tl1aPI = {
     return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45"><span style="font-size:8px;font-weight:800;text-transform:uppercase;color:#6d28d9;background:#ede9fe;border-radius:3px;padding:0 4px;margin-right:4px;vertical-align:middle">Inferred</span>${clean}</li>`;
    }).join('');
    // Assessment is rendered at the top of the dropdown — omitted here
-   return `<div>
-    ${facts?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Facts</div><ul style="margin:0 0 8px 0;padding-left:14px">${facts}</ul>`:''}
-    ${direction?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Direction</div><ul style="margin:0 0 8px 0;padding-left:14px">${direction}</ul>`:''}
-    <div style="text-align:right;margin-top:2px">${_confBadge(pi.confidence)}</div>
+   return `<div style="flex:1;display:flex;flex-direction:column">
+    <div>
+     ${facts?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Facts</div><ul style="margin:0 0 8px 0;padding-left:14px">${facts}</ul>`:''}
+     ${direction?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Direction</div><ul style="margin:0 0 0 0;padding-left:14px">${direction}</ul>`:''}
+    </div>
+    <div style="margin-top:auto;padding-top:8px;text-align:right">${_confBadge(pi.confidence)}</div>
    </div>`;
   };
 
@@ -9920,11 +9920,13 @@ const tl1aPI = {
     const clean = a.replace(/^\[ASSESSED\]\s*/i,'');
     return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${clean}</li>`;
    }).join('');
-   return `<div>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${profilePill}</div>
-    ${txRows?`<div style="margin-bottom:8px">${txRows}</div>`:''}
-    ${assessLines?`<ul style="margin:0 0 6px 0;padding-left:14px">${assessLines}</ul>`:''}
-    <div style="text-align:right;margin-top:2px">${_confBadge(bd.confidence)}</div>
+   return `<div style="flex:1;display:flex;flex-direction:column">
+    <div>
+     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${profilePill}</div>
+     ${txRows?`<div style="margin-bottom:8px">${txRows}</div>`:''}
+     ${assessLines?`<ul style="margin:0;padding-left:14px">${assessLines}</ul>`:''}
+    </div>
+    <div style="margin-top:auto;padding-top:8px;text-align:right">${_confBadge(bd.confidence)}</div>
    </div>`;
   };
 
@@ -10655,8 +10657,8 @@ const tl1aPI = {
   const bdHtml = _renderBdIntel(bdIntel);
   const intelSections = (() => {
    if (piHtml && bdHtml) {
-    return `<div class="pi-detail-section"><h5>Platform Intelligence</h5>${piHtml}</div>
-            <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
+    return `<div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>Platform Intelligence</h5>${piHtml}</div>
+            <div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
    } else if (piHtml) {
     return `<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
    } else if (bdHtml) {
