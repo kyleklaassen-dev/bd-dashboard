@@ -953,8 +953,9 @@ Return JSON with EXACTLY these fields:
     "drug_id": "exact drug id from DRUGS list",
     "strategic_role": "REQUIRED — classify this drug's role for this company in this area: 'direct_competitor' (same mechanism as Ailux TL1A×IL-23p19), 'franchise_anchor' (dominant commercial asset the company's IBD strategy is built on), 'combination_asset' (designed to be used in combo with another drug), 'same_space_defense' (same indication, different mechanism, commercially important), 'platform_expansion' (future programs extending the franchise), or 'watch' (early/uncertain relevance)",
     "display_name": "null or override display name — use when company uses a different code than the drug_id. Format: 'CompanyCode (OriginalCode)' e.g. 'ABBV-701 (FG-M701)' or 'Skyrizi (Risankizumab)'. Only set when the canonical displayed name differs from what the drug_id implies.",
-    "licensor_name": "null or name of company this was licensed/acquired from — e.g. 'FutureGen Biosciences'. Only for in-licensed assets.",
+    "licensor_name": "null or full legal name of the originating company — e.g. 'FutureGen Biopharmaceutical Co., Ltd.'. Only for in-licensed assets.",
     "licensor_code": "null or original code/name used by licensor — e.g. 'FG-M701'. Only when drug was renamed by licensee.",
+    "partner_company": "REQUIRED for any non-self deal — short display name of the originating/partner company, NO legal suffixes (e.g. 'FutureGen Biopharmaceutical', 'Simcere', 'Teva', 'Prometheus Biosciences'). This is what appears in the dashboard pill next to the drug name. Must be null only when partnership_type is 'self' or null.",
     "modality": "anti-TL1A mAb|TL1A×IL-23p19 bispecific|JAK1 inhibitor (oral small molecule)|anti-α4β7 integrin mAb|etc — full descriptive label",
     "drug_format": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein",
     "route": "SC|IV|SC/IV|oral|null",
@@ -965,7 +966,7 @@ Return JSON with EXACTLY these fields:
     "phase_display": "null or e.g. Phase 3",
     "half_life_note": "null or e.g. ~74 days",
     "mechanism_detail": "null or 1-2 sentences: specific mechanism, format, any structural notes (platform tech, half-life, engineering)",
-    "drug_summary": "REQUIRED — 2-3 sentences: the most important facts about THIS molecule — mechanism, clinical stage, what makes it noteworthy (platform tech, differentiation, conference data, pivotal readouts). Never return null; use training knowledge + web intel. For approved drugs include sales and approval status.",
+    "drug_summary": "REQUIRED — 1-2 sentences MAX. Written for PhD scientists and BD professionals: dense, factual, zero filler. Lead with the most clinically or commercially significant fact. Include mechanism, stage, and one differentiating detail (e.g. key data point, platform, deal structure). For approved drugs: include revenue and approval status. Never use phrases like 'noteworthy', 'important', 'significant' — show the fact, not the adjective. Never return null.",
     "key_data": "REQUIRED for approved/late-stage drugs — most important clinical data point in one sentence (e.g. primary endpoint result, pivotal trial outcome). For early-stage with no public data: brief mechanism note. Never leave null if drug_summary is populated.",
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "overlap": "REQUIRED — Direct | Adjacent | Watch. Use AILUX COMPETITIVE ANCHOR rules above. Direct = same molecular target as Ailux (TL1A) or combo that includes TL1A. Adjacent = same disease, different mechanism, validates biology or is a combination candidate. Watch = same patients, completely different pathway.",
@@ -1151,6 +1152,14 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
+
+            # ── partner_company guard — must be set for all non-self deals ──────
+            pt_written = update_fields.get("partnership_type") or du.get("partnership_type")
+            pc_written = update_fields.get("partner_company") or du.get("partner_company")
+            if pt_written and pt_written != 'self' and not pc_written:
+                log(f"  ⚠ DATA QUALITY: drug '{drug_id}' has partnership_type='{pt_written}' "
+                    f"but partner_company is null — pill will not render. "
+                    f"Set partner_company to the short originator name (e.g. 'Simcere', 'FutureGen Biopharmaceutical').", indent=1)
 
             # ── Acquired-drug display_name guard ─────────────────────────────
             # If drug has a licensor but display_name wasn't set (or equals drug_id),
