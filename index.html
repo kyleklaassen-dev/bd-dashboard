@@ -10717,13 +10717,19 @@ const tl1aPI = {
     .limit(200);
    if (error || !caRows) return;
 
-   // Build a set of all groupIds already in static data
-   const staticGroups = new Set(TL1A_PROGRAMS.map(p => p.groupId || p.id));
+   // Build deduplication sets against static data:
+   // (1) groupIds already represented, (2) tickers already represented.
+   // Both checks are needed — enrichment can create ghost sub-entities with null group_id
+   // but the same ticker as an existing static row (e.g. spyre-mono / spyre-230 for SYRE).
+   const staticGroups  = new Set(TL1A_PROGRAMS.map(p => p.groupId || p.id));
+   const staticTickers = new Set(TL1A_PROGRAMS.map(p => p.ticker).filter(Boolean));
 
    // Fetch drugs for any new companies we'll add
    const newCoIds = caRows
     .map(r => r.companies)
-    .filter(c => c && !staticGroups.has(c.group_id || c.id))
+    .filter(c => c
+      && !staticGroups.has(c.group_id || c.id)    // not already in static by groupId
+      && !staticTickers.has(c.ticker))             // not already in static by ticker
     .map(c => c.id);
 
    if (!newCoIds.length) return;  // nothing new — skip
