@@ -10894,7 +10894,7 @@ const tl1aPI = {
    const eligibilityArea = this._drugDisplayArea || 'tl1a';
    const { data: caRows, error } = await _sb
     .from('company_areas')
-    .select('company_id, companies(id,name,ticker,group_id,display_co,partner_co,overlap,company_type)')
+    .select('company_id, companies(id,name,ticker,group_id,display_co,partner_co,overlap,company_type,status,acquired_by)')
     .eq('area_id', eligibilityArea)
     .limit(200);
    if (error || !caRows) return;
@@ -10910,6 +10910,7 @@ const tl1aPI = {
    const newCoIds = caRows
     .map(r => r.companies)
     .filter(c => c
+      && c.status !== 'acquired'                   // exclude wholly-acquired entities (drug folds into acquirer)
       && !staticGroups.has(c.group_id || c.id)    // not already in static by groupId
       && !staticTickers.has(c.ticker))             // not already in static by ticker
     .map(c => c.id);
