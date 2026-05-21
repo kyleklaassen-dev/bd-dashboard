@@ -2919,6 +2919,15 @@ function loadMoleculeTab(tabId) {
 <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
  ＋ Submit Intel
  </button>
+ <!-- Meridian archive picker — only visible when on the meridian-issue tab -->
+ <div id="meridian-header-archive" style="display:none;align-items:center;gap:6px;border-left:1px solid rgba(255,255,255,0.2);padding-left:10px;">
+   <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Archive</span>
+   <span id="meridian-issue-count" style="font-size:10px;color:rgba(255,255,255,0.4);flex-shrink:0"></span>
+   <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
+     style="font-size:12px;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:3px 8px;color:#1a2e4a;background:white;cursor:pointer;min-width:190px;max-width:240px;">
+     <option>Loading…</option>
+   </select>
+ </div>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
  <span id="last-updated-ts" data-ts="1778974468" style="font-size:11px;opacity:0.75"></span>
@@ -7341,17 +7350,8 @@ function dknReset() {
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 40px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1200px;margin:0 auto;">
-    <!-- Archive control bar — compact, right-aligned only -->
-    <div style="display:flex;align-items:center;justify-content:flex-end;padding:8px 16px;background:white;border-radius:10px 10px 0 0;border-bottom:2.5px solid #1a3f8f;gap:8px;">
-      <span style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;flex-shrink:0">Archive</span>
-      <span id="meridian-issue-count" style="font-size:10px;color:#b0bec5;font-family:Calibri,Helvetica,sans-serif;flex-shrink:0"></span>
-      <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
-        style="font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;color:#1a2e4a;background:white;cursor:pointer;min-width:190px;max-width:260px;">
-        <option>Loading…</option>
-      </select>
-    </div>
     <!-- Issue viewer -->
-    <div style="background:white;border-radius:0 0 10px 10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
+    <div style="background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
       <iframe id="meridian-issue-frame"
        srcdoc="<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading issue…</p>"
        style="width:100%;height:calc(100vh - 170px);min-height:600px;border:none;display:block;"
@@ -7783,7 +7783,15 @@ function registerTab(id, hooks = {}) { TAB_REGISTRY[id] = hooks; }
 
 // Core tab registrations — add new target tabs here as the platform grows
 registerTab('meridian-issue', {
-  onEnter() { loadMeridianIssue(); }
+  onEnter() {
+    loadMeridianIssue();
+    const arc = document.getElementById('meridian-header-archive');
+    if (arc) arc.style.display = 'flex';
+  },
+  onLeave() {
+    const arc = document.getElementById('meridian-header-archive');
+    if (arc) arc.style.display = 'none';
+  }
 });
 registerTab('industry-insights', {
   onEnter() { loadRollingDeals(); loadLiveIntel(); }
