@@ -9916,10 +9916,14 @@ const tl1aPI = {
       <span style="color:#1e293b">${t.asset||''}${t.partner?`<span style="color:#94a3b8"> · ${t.partner}</span>`:''}</span>
       <span style="color:#059669;font-weight:700;white-space:nowrap;font-size:10px">${t.total||t.upfront||''}</span>
      </div>`).join('');
-   // BD assessment bullets are rendered in the top assessment card — omitted here
+   const assessLines = (bd.assessment||[]).map(a => {
+    const clean = a.replace(/^\[ASSESSED\]\s*/i,'');
+    return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${clean}</li>`;
+   }).join('');
    return `<div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${profilePill}</div>
     ${txRows?`<div style="margin-bottom:8px">${txRows}</div>`:''}
+    ${assessLines?`<ul style="margin:0 0 6px 0;padding-left:14px">${assessLines}</ul>`:''}
     <div style="text-align:right;margin-top:2px">${_confBadge(bd.confidence)}</div>
    </div>`;
   };
@@ -9927,7 +9931,7 @@ const tl1aPI = {
   // ── Top-level assessment card ────────────────────────────────────────────
   const _renderAssessmentCard = (pi, bd) => {
    const piAssess = (pi?.assessment||'').replace(/^\[ASSESSED\]\s*/i,'');
-   const bdAssess = (bd?.assessment||[]).map(a => a.replace(/^\[ASSESSED\]\s*/i,''));
+   if (!piAssess) return '';
    const profileCfg = {
     acquirer:         {label:'Acquirer',          bg:'#fef2f2',color:'#991b1b',border:'#fecaca'},
     licensor:         {label:'Licensor',           bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
@@ -9939,16 +9943,12 @@ const tl1aPI = {
    const profilePill = pcfg
     ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${pcfg.bg};color:${pcfg.color};border:1px solid ${pcfg.border};border-radius:8px;padding:2px 8px">${pcfg.label}</span>`
     : '';
-   if (!piAssess && !bdAssess.length) return '';
-   const bdBullets = bdAssess.map(a =>
-    `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${a}</li>`).join('');
    return `<div style="background:#faf9ff;border:1px solid #e9e5fb;border-radius:7px;padding:10px 12px;margin-bottom:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${piAssess||bdBullets?'7px':'0'}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
      <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed">Assessment</span>
      ${profilePill}
     </div>
-    ${piAssess?`<p style="font-size:11.5px;color:#0f172a;font-weight:600;line-height:1.5;margin:0 0 ${bdBullets?'7px':'0'} 0;border-left:2px solid #7c3aed;padding-left:8px">${piAssess}</p>`:''}
-    ${bdBullets?`<ul style="margin:0;padding-left:14px">${bdBullets}</ul>`:''}
+    <p style="font-size:11.5px;color:#0f172a;font-weight:600;line-height:1.5;margin:0;border-left:2px solid #7c3aed;padding-left:8px">${piAssess}</p>
    </div>`;
   };
 
