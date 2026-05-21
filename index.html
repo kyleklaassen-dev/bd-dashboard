@@ -1274,10 +1274,10 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 6-column grid: Chevron | NCT | Acronym | Status | PCD | Relevance bar */
-.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 140px 70px 36px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 6-column grid: Chevron | NCT | Acronym | Status | PCD | Days left */
+.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 140px 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 140px 70px 36px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 140px 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 /* Drug description strip — full-width bar shown when drug accordion opens */
 .pi-da-desc-strip{font-size:11px;color:#475569;line-height:1.55;padding:8px 12px 10px;border-bottom:1px solid #e8edf3;background:#fafbfc;margin-bottom:10px;border-radius:4px}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
@@ -10057,17 +10057,13 @@ const tl1aPI = {
    // ── Combination program branch ─────────────────────────────────────────
    if (item._isCombo) {
     const combo = item;
-    const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => trialRelevance(b, 'adjacent') - trialRelevance(a, 'adjacent'));
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Relevance</span></div>` : '';
+    const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => _parsePcdTs(b) - _parsePcdTs(a));
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Days Left</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.id || t.nct || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
-     const phase  = t.phase || '';
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
-     const score  = trialRelevance(t, 'adjacent');
-     const barColor = relBarColor(score);
-     const relBar = `<div class="pi-tr-rel-bar"><div class="pi-tr-rel-track"><div class="pi-tr-rel-fill" style="width:${score}%;background:${barColor}"></div></div></div>`;
      const nctLink = nct.startsWith('NCT')
       ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
       : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
@@ -10075,7 +10071,7 @@ const tl1aPI = {
      return `<div class="pi-tr-item"><div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>${nctLink}${acronymCell}
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
-      <span class="pi-tr-pcd-cell">${pcd}</span>${relBar}
+      <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
      </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
     }).join('');
     const isPlannedStage = (combo.stage||'').startsWith('Planned');
@@ -10192,12 +10188,36 @@ const tl1aPI = {
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
-   // Sort trials by relevance (highest first)
-   const sortedTrials = [...resolvedTrials].sort((a,b) => trialRelevance(b) - trialRelevance(a));
+   // Parse PCD to timestamp for sorting/countdown
+   const _parsePcdTs = t => {
+    const raw = t.primary_completion_date || t.pcd_label || t.pcd || '';
+    if (!raw) return 0;
+    const d = new Date(raw + (raw.length === 10 ? 'T12:00:00Z' : ''));
+    if (!isNaN(d)) return d.getTime();
+    const qm = raw.match(/Q([1-4])\s*(\d{4})/i);
+    if (qm) return Date.UTC(+qm[2], (+qm[1]-1)*3+2, 15);
+    const hm = raw.match(/H([12])\s*(\d{4})/i);
+    if (hm) return Date.UTC(+hm[2], hm[1]==='1'?2:8, 15);
+    const ym = raw.match(/\b(\d{4})\b/);
+    if (ym) return Date.UTC(+ym[1], 6, 1);
+    return 0;
+   };
+   const _pcdCountdown = (t, status) => {
+    const isOngoing = /recruit|active|enrolling|not yet/i.test(status) && !/complet|terminat/i.test(status);
+    if (!isOngoing) return '<span></span>';
+    const ts = _parsePcdTs(t);
+    if (!ts) return '<span></span>';
+    const days = Math.ceil((ts - Date.now()) / 86400000);
+    if (days <= 0) return '<span style="font-size:9px;color:#94a3b8;text-align:right">past PCD</span>';
+    const col = days < 180 ? '#dc2626' : days < 365 ? '#d97706' : '#64748b';
+    return `<span style="font-size:9px;font-weight:700;color:${col};text-align:right;white-space:nowrap">${days}d</span>`;
+   };
+   // Sort trials reverse-chronological by PCD (latest PCD first)
+   const sortedTrials = [...resolvedTrials].sort((a,b) => _parsePcdTs(b) - _parsePcdTs(a));
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Relevance</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Days Left</span>
    </div>` : '';
 
    // Trial rows
@@ -10218,12 +10238,7 @@ const tl1aPI = {
     const results = t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
-    const drugOverlap = (d._overlap || prog.overlap || '');
-    const score    = trialRelevance(t, drugOverlap);
-    const barColor = relBarColor(score);
-    const relBar   = `<div class="pi-tr-rel-bar">
-     <div class="pi-tr-rel-track"><div class="pi-tr-rel-fill" style="width:${score}%;background:${barColor}"></div></div>
-    </div>`;
+    const countdownCell = _pcdCountdown(t, status);
 
     const nctLink = nct.startsWith('NCT')
      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
@@ -10251,7 +10266,7 @@ const tl1aPI = {
       ${acronymCell}
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
-      ${relBar}
+      ${countdownCell}
      </div>
      <div class="pi-tr-detail">
       ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
