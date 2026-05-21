@@ -130,14 +130,17 @@ def sb_get(table: str, params: dict) -> list:
         return []
 
 
-def sb_upsert(table: str, records: list | dict) -> list:
+def sb_upsert(table: str, records: list | dict,
+              on_conflict: str | None = None) -> list:
     if isinstance(records, dict):
         records = [records]
     if not records:
         return []
     try:
-        r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}",
-                          headers=SB_UPSERT_HEADERS, json=records, timeout=15)
+        url = f"{SUPABASE_URL}/rest/v1/{table}"
+        if on_conflict:
+            url += f"?on_conflict={on_conflict}"
+        r = requests.post(url, headers=SB_UPSERT_HEADERS, json=records, timeout=15)
         if r.status_code not in (200, 201):
             log(f"[sb_upsert {table}] {r.status_code}: {r.text[:300]}", indent=1)
             return []
@@ -1442,11 +1445,43 @@ Return JSON with EXACTLY these fields:
     "source_name": "Publication or company IR name — e.g. 'AbbVie Press Release', 'FDA', 'NEJM', 'Fierce Biotech'",
     "importance": "high (pivotal readout, major deal, approval) | medium (Phase 2 data, financing, partnership) | low (minor update, conference abstract)",
     "intel_type": "data | deal | regulatory | financing | conference | partnership | management"
+  }}],
+  "molecule_updates": [{{
+    "drug_id": "exact drug_id from DRUGS list — one entry per drug",
+    "format": "REQUIRED — e.g. 'monoclonal antibody', 'bispecific IgG1', 'nanobody', 'small molecule', 'fusion protein'",
+    "valency": "e.g. 'monospecific bivalent', '2+2 (bivalent both arms)', '1+1'. null if unknown.",
+    "modality": "REQUIRED — 'antibody', 'small molecule', 'biologic', 'cell therapy', 'oligonucleotide'",
+    "igg_subclass": "IgG1 | IgG2 | IgG4 | other | null — infer from class/mechanism if not stated",
+    "fc_engineering": "Any known Fc modifications — e.g. 'S228P hinge stabilization (IgG4)', 'YTE half-life extension', 'LALA effector silencing', 'none known'. null if no data.",
+    "epitope": "Binding epitope or region if publicly disclosed — e.g. 'receptor-binding domain of TL1A'. Use 'not publicly disclosed' if absent from literature. Never null — use 'not publicly disclosed'.",
+    "affinity_kd": "KD value with units if known — e.g. '0.4 nM (SPR, 37C)'. Use 'not publicly disclosed' if not reported. Never null.",
+    "lowest_active_dose": null or number (mg/kg),
+    "lowest_active_dose_unit": "null or 'mg/kg' | 'mg' | 'ug/kg'",
+    "safety_observations": "Key safety signals from available clinical data. 'No clinical data available — preclinical stage' for pre-IND assets. Never null.",
+    "differentiation_claim": "REQUIRED — 1-2 sentences. What makes this molecule structurally or mechanistically distinct from other agents in this area? Be specific: format advantage, engineering feature, epitope differentiation, dosing, CDx strategy. This is the molecule-level competitive thesis — not restating the company's BD profile.",
+    "field_status": {{
+      "format": "confirmed | inferred | unknown",
+      "modality": "confirmed | inferred | unknown",
+      "igg_subclass": "confirmed | inferred | unknown",
+      "fc_engineering": "confirmed | inferred | unknown",
+      "epitope": "confirmed | inferred | unknown",
+      "affinity_kd": "confirmed | inferred | unknown",
+      "differentiation_claim": "confirmed | inferred | unknown"
+    }},
+    "confidence": "high (published papers, CT.gov) | medium (press release, conference abstract) | low (analyst report, inference)",
+    "source_url": "Primary source URL for molecule data. null if no citable source."
   }}]
 }}
 
+MOLECULE FIELD STATUS RULES (CRITICAL — read before writing field_status):
+- 'confirmed': field value sourced from a peer-reviewed paper, patent, CT.gov protocol, or official press release with explicit data.
+- 'inferred': field value logically deduced from drug class, mechanism, or analogous compounds — NOT directly stated in a source. Example: IgG4 subclass inferred from anti-inflammatory mechanism when subclass not publicly stated.
+- 'unknown': no information available from any source, public or inferred.
+NEVER write 'confirmed' for a value that is inferred from class effects. If IgG subclass or Fc engineering is not explicitly stated in a public source, use 'inferred'. This is enforced — the dashboard will display the status badge prominently.
+
 RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id). EVERY drug in the DRUGS list must have an entry.
+- molecule_updates: one entry per drug in the DRUGS list. REQUIRED fields: format, modality, differentiation_claim, field_status (all keys present). field_status must accurately reflect whether each value is confirmed/inferred/unknown — never write 'confirmed' for inferred values.
 - trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you can provide at least one non-null field — a study acronym, updated status, updated primary_completion_date, estimand, or results_note. Skip a trial only if you have nothing new to add for any of those fields.
 - new_trials: use this to seed trials that are NOT already in the TRIALS list above. Only include trials you are confident exist on ClinicalTrials.gov (verified NCT ID). drug_id must exactly match a drug_id in the DRUGS list. Never fabricate NCT IDs. IMPORTANT: Do NOT assume the TRIALS list is complete. Actively search for earlier Phase 1 and Phase 2 trials (including completed and terminated studies) that preceded the current program — a drug in Phase 3 almost certainly ran a Phase 1 and/or Phase 2 first, and those trials may have published results that are not yet in the TRIALS list. The presence of active Phase 3 trials does NOT mean earlier trials have been captured. Only return [] if you have verified through web search that no additional trials exist for these drugs.
 - catalysts: only upcoming events (after {TODAY}). ONE entry per distinct event — do NOT duplicate: if multiple trials share the same primary completion date, create ONE catalyst entry for that readout, not one per trial. Deduplicate by event type + approximate date.
@@ -1820,6 +1855,98 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
     if news_written:
         log(f"  → {news_written} new intel item(s) saved for {company_id}", indent=1)
 
+    # ── Molecule Intelligence ────────────────────────────────────────────
+    mol_written = write_molecule_intelligence(company_id, area_id, data, ctx, dry_run)
+    if mol_written:
+        log(f"  → {mol_written} molecule_intelligence row(s) upserted", indent=1)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# MOLECULE INTELLIGENCE WRITER
+# ══════════════════════════════════════════════════════════════════════════
+
+def write_molecule_intelligence(company_id: str, area_id: str,
+                                 data: dict, ctx: dict,
+                                 dry_run: bool = False) -> int:
+    """Upsert molecule_intelligence rows for each drug in molecule_updates.
+
+    Keyed on canonical_drug_id (UNIQUE) — one row per molecule, area-agnostic.
+    field_status JSONB distinguishes confirmed / inferred / unknown per field.
+    Returns count of rows upserted.
+    """
+    mol_updates = data.get("molecule_updates") or []
+    if not mol_updates:
+        return 0
+
+    # Build a quick lookup: drug_id → canonical_drug_id from context drugs
+    canon_map = {d["id"]: d.get("canonical_drug_id") for d in ctx.get("drugs", []) if d.get("id")}
+
+    written = 0
+    for mu in mol_updates:
+        drug_id = mu.get("drug_id") or ""
+        if not drug_id:
+            log("  ⚠ molecule_update missing drug_id — skipped", indent=2)
+            continue
+
+        canonical_drug_id = canon_map.get(drug_id)
+        if not canonical_drug_id:
+            log(f"  ⚠ no canonical_drug_id for {drug_id} — skipping molecule write", indent=2)
+            continue
+
+        # Validate field_status values
+        VALID_STATUS = {"confirmed", "inferred", "unknown"}
+        raw_fs = mu.get("field_status") or {}
+        field_status = {}
+        for k, v in raw_fs.items():
+            if v in VALID_STATUS:
+                field_status[k] = v
+            else:
+                log(f"  ⚠ field_status[{k}]={v!r} invalid — defaulting to 'unknown'", indent=2)
+                field_status[k] = "unknown"
+
+        rec = {
+            "canonical_drug_id":       canonical_drug_id,
+            "drug_id":                 drug_id,
+            "format":                  mu.get("format")                or None,
+            "valency":                 mu.get("valency")               or None,
+            "modality":                mu.get("modality")              or None,
+            "igg_subclass":            mu.get("igg_subclass")          or None,
+            "fc_engineering":          mu.get("fc_engineering")        or None,
+            "epitope":                 mu.get("epitope")               or None,
+            "affinity_kd":             mu.get("affinity_kd")           or None,
+            "lowest_active_dose":      mu.get("lowest_active_dose")    or None,
+            "lowest_active_dose_unit": mu.get("lowest_active_dose_unit") or None,
+            "safety_observations":     mu.get("safety_observations")   or None,
+            "differentiation_claim":   mu.get("differentiation_claim") or None,
+            "field_status":            field_status,
+            "confidence":              mu.get("confidence")            or None,
+            "source_url":              mu.get("source_url")            or None,
+            "last_enriched_at":        NOW_ISO,
+            "enriched_by":             "company_enrichment.py",
+        }
+        # Strip Nones except field_status (always present)
+        rec = {k: v for k, v in rec.items() if v is not None or k == "field_status"}
+
+        if dry_run:
+            log(f"  [dry] molecule {drug_id}: format={rec.get('format')} "
+                f"modality={rec.get('modality')} "
+                f"status_keys={list(field_status.keys())}", indent=2)
+            written += 1
+            continue
+
+        ok = sb_upsert("molecule_intelligence", rec,
+                        on_conflict="canonical_drug_id")
+        if ok:
+            inferred_fields = [k for k, v in field_status.items() if v == "inferred"]
+            unknown_fields  = [k for k, v in field_status.items() if v == "unknown"]
+            log(f"  molecule {drug_id}: ✓ upserted | "
+                f"inferred={inferred_fields} unknown={unknown_fields}", indent=2)
+            written += 1
+        else:
+            log(f"  molecule {drug_id}: ✗ upsert failed", indent=2)
+
+    return written
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # STEP 6 — DEAL INTELLIGENCE
@@ -2104,6 +2231,34 @@ def _score_company_completeness(company_id: str, area_id: str,
             score += 5
     else:
         score += 5   # no Direct drugs → requirement doesn't apply
+
+    # ── 9. Molecule-level fields (tracked in missing_fields, no score impact) ─
+    # Required: format, modality, differentiation_claim
+    # Desired:  epitope, affinity_kd, fc_engineering, lowest_active_dose
+    # These don't change the 0-100 company score — molecule completeness is a
+    # separate dimension surfaced via research_queue.
+    mol_updates_by_id = {}
+    for mu in (data.get("molecule_updates") or []):
+        did = mu.get("drug_id") or ""
+        if did:
+            mol_updates_by_id[did] = mu
+
+    MOL_REQUIRED = ["format", "modality", "differentiation_claim"]
+    MOL_DESIRED  = ["epitope", "affinity_kd", "fc_engineering", "lowest_active_dose"]
+
+    for drug in drugs:
+        did = drug.get("id", "")
+        mu  = mol_updates_by_id.get(did, {})
+        # Check required molecule fields
+        for field in MOL_REQUIRED:
+            val = (mu.get(field) or "").strip() if isinstance(mu.get(field), str) else mu.get(field)
+            if not val:
+                missing.append(f"molecule_intelligence.{field}[{did}]")
+        # Check desired molecule fields (only flag if field_status shows 'unknown')
+        fs = mu.get("field_status") or {}
+        for field in MOL_DESIRED:
+            if fs.get(field) == "unknown" or (field not in fs and not mu.get(field)):
+                missing.append(f"molecule_intelligence.{field}[{did}]")
 
     tier = "strong" if score >= 70 else ("partial" if score >= 40 else "thin")
     return {"score": score, "tier": tier, "missing": list(dict.fromkeys(missing))}
