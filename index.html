@@ -9875,18 +9875,29 @@ const tl1aPI = {
    return iso; // already formatted (e.g. "Q3 2026", "April 28, 2028")
   };
 
-  // ── Catalysts — first 5 visible, scroll for more, exact dates ────────────
+  // ── Catalysts — first 3 visible, scroll for more, exact dates ────────────
   let catsHTML;
-  const catItems = sbCats.length ? sbCats : (prog.catalysts || []);
+  const catItemsRaw = sbCats.length ? sbCats : (prog.catalysts || []);
+  // Deduplicate: same normalized label + same date = one entry (prefer version with source_url)
+  const _catSeen = new Map();
+  catItemsRaw.forEach(c => {
+   const isFromSb = sbCats.length > 0;
+   const date     = isFromSb ? (c.catalyst_date||'') : (c.date||'');
+   const labelRaw = isFromSb ? (c.label||'') : (c.event||'');
+   const key      = labelRaw.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,55) + '|' + date;
+   const prev     = _catSeen.get(key);
+   if (!prev || (!prev.source_url && c.source_url)) _catSeen.set(key, c);
+  });
+  const catItems = [..._catSeen.values()];
   if (catItems.length) {
    const catRows = catItems.map(c => {
     const isFromSb = sbCats.length > 0;
     const date  = isFromSb ? (c.catalyst_date||'') : fmtExactDate(c.date||'');
     const label = isFromSb ? (c.label||'') : (c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>` : (c.event||''));
-    const srcUrl = isFromSb ? (c.source_url||'') : '';
+    const srcUrl = isFromSb ? (c.source_url||'') : (c.url||'');
     const sigBadge = isFromSb && c.significance === 'high'
      ? `<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Key</span>` : '';
-    const labelHtml = isFromSb && srcUrl
+    const labelHtml = srcUrl
      ? `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${label} ↗</a>${sigBadge}`
      : `${label}${sigBadge}`;
     return `<div class="pi-detail-cat-item">
@@ -9894,11 +9905,11 @@ const tl1aPI = {
       <span style="font-size:11.5px">${labelHtml}</span>
      </div>`;
    }).join('');
-   // 5 items ≈ 165px (each ~33px tall); scroll reveals rest
-   const scrollStyle = catItems.length > 5
-    ? 'max-height:165px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+   // 3 items visible (~99px), scroll reveals rest
+   const scrollStyle = catItems.length > 3
+    ? 'max-height:105px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
-   const countNote = catItems.length > 5
+   const countNote = catItems.length > 3
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${catItems.length} upcoming · scroll for more</div>` : '';
    catsHTML = `${countNote}<div style="${scrollStyle}">${catRows}</div>`;
   } else {
@@ -9940,10 +9951,11 @@ const tl1aPI = {
   const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
   if (newsItems.length) {
    const newsRows = newsItems.map(d => renderNewsItem(d)).join('');
-   const scrollStyle = newsItems.length > 5
-    ? 'max-height:165px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+   // 3 items visible (~99px), scroll reveals rest
+   const scrollStyle = newsItems.length > 3
+    ? 'max-height:105px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
-   const countNote = newsItems.length > 5
+   const countNote = newsItems.length > 3
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${newsItems.length} items · scroll for more</div>` : '';
    dealsHTML = `${countNote}<div style="${scrollStyle}">${newsRows}</div>`;
   } else {
