@@ -8073,13 +8073,19 @@ function _makeAreaPI(tabId, areaIds) {
         // totalPortfolioCount = standalone drugs + combo programs (from drug_combinations).
         // Fetched live from Supabase so it automatically reflects any DB additions.
         const total = ent.totalPortfolioCount || ent.programs.length;
-        const drugDisplay = total > 1
-          ? `<span class="pi-drug-name-sm">${ent.programs[0].name}</span><span class="pi-drug-name-sm" style="color:#64748b;font-style:italic;background:#f8fafc">+${total - 1} more</span>`
-          : `<span class="pi-drug-name">${ent.programs[0]?.drug||'—'}</span>`;
+        // Derive indication scope from programs
+        const inds = ent.programs.map(p => (p.indication_short||p.ind||'').toUpperCase()).join(' ');
+        const hasUC = inds.includes('UC') || inds.includes('ULCERATIVE');
+        const hasCD = inds.includes(' CD') || inds.includes('CROHN');
+        const indScope = hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+        const indBadge = indScope
+          ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:1px 6px;font-weight:700;margin-left:5px">${indScope}</span>`
+          : '';
+        const pipelineCell = `<span style="font-size:12px;font-weight:700;color:#1e3a5f">${total}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${total!==1?'s':''}</span>${indBadge}`;
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
           <td><div class="pi-co-wrap"><strong class="pi-co-name">${ent.entity_name}</strong>${ent.ticker?`<span class="pi-ticker">${ent.ticker}</span>`:''}${this._etypeBadge(ent.entity_type)}</div></td>
-          <td>${drugDisplay}</td>
+          <td>${pipelineCell}</td>
           <td><span class="pi-target-text" style="font-size:11px;color:#475569">${ent.target}</span></td>
           <td>${this._clsPill(ent.bestCls)}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
@@ -8088,14 +8094,14 @@ function _makeAreaPI(tabId, areaIds) {
       }).join('');
 
       el.innerHTML = `<table class="pi-table">
-        <colgroup><col style="width:22%"><col style="width:22%"><col style="width:20%"><col style="width:9%"><col style="width:12%"><col style="width:15%"></colgroup>
+        <colgroup><col style="width:22%"><col style="width:16%"><col style="width:20%"><col style="width:9%"><col style="width:12%"><col style="width:21%"></colgroup>
         <thead><tr>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
-          <th>Drug(s)</th>
+          <th>Pipeline</th>
           <th>Target</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','cls')">Class</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Relevance</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Threat</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -9066,8 +9072,9 @@ const tl1aPI = {
  sortDir: 1,
  expanded: new Set(),
  _noIntelTickers: new Set(),
- _colWidths: [175, 130, 85, 80, 75, 75],
+ _colWidths: [175, 115, 90, 82, 82, 140],
  _profileCache: {},  // cache Supabase-fetched profiles keyed by company id
+ _entityMeta:   {},  // bulk meta: drugCount, indScope, activeTrials, nextCatalyst keyed by company_id
 
  _drugDisplayArea: 'tl1a',  // updated async on init from disease_areas.indication_group
 
@@ -9078,6 +9085,7 @@ const tl1aPI = {
   this._loadIndicationGroup();  // async — sets _drugDisplayArea from disease_areas
   this._loadIntelStatus();
   this._loadSbDiscoveredRows();
+  this._loadEntityMeta();
  },
 
  async _loadIndicationGroup() {
@@ -10255,7 +10263,7 @@ const tl1aPI = {
      <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${overlapTag}</div>
+     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${this._clsPill(d.cls||d.class_level||p.cls||'')}</div>
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
     <div class="pi-da-body">
@@ -10469,23 +10477,52 @@ const tl1aPI = {
   const colgroup = w.map(x=>`<col style="width:${x}px">`).join('');
   const thead = `<thead><tr>
    <th style="width:${w[0]}px" onclick="tl1aPI.sort('co')">Company<span class="pi-sort-arrow">${sortArrow('co')}</span><div class="col-resize" data-col="0"></div></th>
-   <th style="width:${w[1]}px" onclick="tl1aPI.sort('drug')">Drug(s)<span class="pi-sort-arrow">${sortArrow('drug')}</span><div class="col-resize" data-col="1"></div></th>
-   <th style="width:${w[2]}px" onclick="tl1aPI.sort('target')">Target<span class="pi-sort-arrow">${sortArrow('target')}</span><div class="col-resize" data-col="2"></div></th>
+   <th style="width:${w[1]}px" onclick="tl1aPI.sort('drug')">Pipeline<span class="pi-sort-arrow">${sortArrow('drug')}</span><div class="col-resize" data-col="1"></div></th>
+   <th style="width:${w[2]}px" onclick="tl1aPI.sort('target')">Lead Target<span class="pi-sort-arrow">${sortArrow('target')}</span><div class="col-resize" data-col="2"></div></th>
    <th style="width:${w[3]}px" onclick="tl1aPI.sort('cls')">Class<span class="pi-sort-arrow">${sortArrow('cls')}</span><div class="col-resize" data-col="3"></div></th>
    <th style="width:${w[4]}px" onclick="tl1aPI.sort('stageKey')">Stage<span class="pi-sort-arrow">${sortArrow('stageKey')}</span><div class="col-resize" data-col="4"></div></th>
-   <th style="width:${w[5]}px" onclick="tl1aPI.sort('overlap')">Relevance<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="5"></div></th>
+   <th style="width:${w[5]}px" onclick="tl1aPI.sort('overlap')">Threat · Activity<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="5"></div></th>
   </tr></thead>`;
 
   const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay }) => {
    const isExp = this.expanded.has(gid);
    const noIntelDot = this._noIntelTickers.has(p.ticker) ? '<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>' : '';
+
+   // ── Entity meta (loaded async via _loadEntityMeta; graceful fallback to static) ──
+   const meta        = this._entityMeta?.[p.id] || {};
+   const drugCount   = meta.drugCount   != null ? meta.drugCount   : entries.length;
+   const activeTrials = meta.activeTrials != null ? meta.activeTrials : null;
+   const nextCat     = meta.nextCatalyst || null;
+   // Indication scope: prefer DB-derived; fall back to static indication_short on entries
+   const indScope = meta.indScope || (() => {
+    const inds = entries.map(e => (e.indication_short||'').toUpperCase()).join(' ');
+    const hasUC = inds.includes('UC') || inds.includes('ULCERATIVE');
+    const hasCD = inds.includes(' CD') || inds.includes('CROHN');
+    return hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+   })();
+
+   // Pipeline cell: drug count + indication scope badge
+   const indBadge = indScope
+    ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:1px 6px;font-weight:700;margin-left:5px">${indScope}</span>`
+    : '';
+   const pipelineCell = `<span style="font-size:12px;font-weight:700;color:#1e3a5f">${drugCount}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${drugCount!==1?'s':''}</span>${indBadge}`;
+
+   // Intel cell: threat tier badge + active trials count + next catalyst date + expand chevron
+   const trialsToken = activeTrials != null
+    ? `<span style="font-size:10px;color:#475569;white-space:nowrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:1px 6px">${activeTrials} trial${activeTrials!==1?'s':''}</span>`
+    : '';
+   const catToken = nextCat
+    ? `<span style="font-size:9px;color:#b45309;font-weight:700;white-space:nowrap;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:1px 6px" title="Next catalyst PCD">⚡ ${nextCat.slice(0,7)}</span>`
+    : '';
+   const intelCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}${trialsToken}${catToken}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
+
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${gid}')">
     <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
-    <td style="font-size:12px">${drugDisplay}</td>
+    <td>${pipelineCell}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
     <td>${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(bestStage)}</td>
-    <td>${this._ovBadge(bestOverlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+    <td>${intelCell}</td>
    </tr>`;
 
    let detailInner = '';
@@ -10529,6 +10566,90 @@ const tl1aPI = {
     chgEl.textContent = '';
    }
   } catch(e) { priceEl.textContent = '—'; chgEl.textContent = ''; }
+ },
+
+ // ── Bulk-fetch entity-level meta (drug count, indication scope, active trials, next catalyst) ──
+ // Runs once on init; re-renders table when data lands so entity rows gain the new tokens.
+ async _loadEntityMeta() {
+  if (!_sb) return;
+  try {
+   const companyIds = [...new Set(this.data.map(p => p.id).filter(Boolean))];
+   if (!companyIds.length) return;
+   const today = new Date().toISOString().slice(0, 10);
+
+   // Fetch drugs (for count + indication scope) and upcoming catalysts in parallel
+   const [drugRes, catRes] = await Promise.all([
+    _sb.from('drugs')
+       .select('id,company_id,indication_short')
+       .in('company_id', companyIds)
+       .limit(500),
+    _sb.from('catalysts')
+       .select('company_id,catalyst_date')
+       .in('company_id', companyIds)
+       .eq('resolved', false)
+       .gte('catalyst_date', today)
+       .order('catalyst_date', { ascending: true })
+       .limit(300),
+   ]);
+
+   const drugs = drugRes.data || [];
+   const cats  = catRes.data  || [];
+
+   // Active trial counts — join through drug_id
+   const drugIds = drugs.map(d => d.id);
+   let trialRows = [];
+   if (drugIds.length) {
+    const { data: tr } = await _sb
+     .from('clinical_trials')
+     .select('drug_id,status')
+     .in('drug_id', drugIds)
+     .ilike('status', '%recruit%')
+     .limit(500);
+    trialRows = tr || [];
+   }
+
+   const meta = {};
+   const drugToCompany = {};
+   drugs.forEach(d => { drugToCompany[d.id] = d.company_id; });
+
+   // Drug count + indication scope per company
+   drugs.forEach(d => {
+    if (!meta[d.company_id]) meta[d.company_id] = { drugCount: 0, indUC: false, indCD: false };
+    meta[d.company_id].drugCount++;
+    const ind = (d.indication_short || '').toUpperCase();
+    if (ind.includes('UC') || ind.includes('ULCERATIVE')) meta[d.company_id].indUC = true;
+    if (ind.includes(' CD') || ind.includes('CROHN'))      meta[d.company_id].indCD = true;
+   });
+
+   // Active trial counts per company
+   trialRows.forEach(t => {
+    const cid = drugToCompany[t.drug_id];
+    if (!cid) return;
+    if (!meta[cid]) meta[cid] = {};
+    meta[cid].activeTrials = (meta[cid].activeTrials || 0) + 1;
+   });
+
+   // Next catalyst per company (cats already sorted ASC — first occurrence wins)
+   const catSeen = new Set();
+   cats.forEach(c => {
+    if (!catSeen.has(c.company_id)) {
+     catSeen.add(c.company_id);
+     if (!meta[c.company_id]) meta[c.company_id] = {};
+     meta[c.company_id].nextCatalyst = c.catalyst_date;
+    }
+   });
+
+   // Resolve indScope string per company
+   Object.keys(meta).forEach(cid => {
+    const m = meta[cid];
+    if (m.indUC && m.indCD) m.indScope = 'UC+CD';
+    else if (m.indUC)       m.indScope = 'UC';
+    else if (m.indCD)       m.indScope = 'CD';
+   });
+
+   this._entityMeta = meta;
+   this._renderTable();
+  } catch(e) { /* silent — entity rows render without meta tokens if fetch fails */ }
  },
 
  async _loadSbDiscoveredRows() {
