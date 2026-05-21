@@ -9754,6 +9754,16 @@ const tl1aPI = {
   // Bar color: orange for high (Phase 3), blue for medium (Phase 2), gray for low
   const relBarColor = score => score >= 75 ? '#f97316' : score >= 45 ? '#3b82f6' : '#94a3b8';
 
+  // ── Date helpers — defined HERE (before fmtPcd + renderNewsItem that use them)
+  // (const is NOT hoisted — defining after the callers causes ReferenceError in TDZ)
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtExactDate = iso => {
+   if (!iso) return '';
+   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+   if (m) return `${MONTHS[parseInt(m[2])-1]} ${parseInt(m[3])}, ${m[1]}`;
+   return iso; // already formatted (e.g. "Q3 2026", "April 28, 2028")
+  };
+
   // ── PCD full-date formatter ─────────────────────────────────────────────
   const fmtPcd = raw => {
    if (!raw) return '';
@@ -10158,14 +10168,7 @@ const tl1aPI = {
      </div>`
    : '';
 
-  // ── Date formatter: YYYY-MM-DD → "May 19, 2026", pass-through otherwise ──
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fmtExactDate = iso => {
-   if (!iso) return '';
-   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-   if (m) return `${MONTHS[parseInt(m[2])-1]} ${parseInt(m[3])}, ${m[1]}`;
-   return iso; // already formatted (e.g. "Q3 2026", "April 28, 2028")
-  };
+  // (MONTHS + fmtExactDate moved above fmtPcd to fix temporal dead zone — see date helpers block)
 
   // ── Catalysts — first 3 visible, scroll for more, exact dates ────────────
   let catsHTML;
