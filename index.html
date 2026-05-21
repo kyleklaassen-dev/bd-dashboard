@@ -8154,6 +8154,89 @@ function piToggleTrialResults(btn) {
   btn.nextElementSibling.classList.toggle('open');
 }
 
+// ── Partner pill confirm/deny popover ────────────────────────────────────────
+function piConfirmPartner(pillEl, evt) {
+  evt.stopPropagation();
+  const existing = document.getElementById('pi-partner-pop');
+  if (existing) {
+    // If clicking the same pill, toggle off
+    if (existing.dataset.forPill === pillEl.dataset.drugId + pillEl.dataset.partner) {
+      existing.remove(); return;
+    }
+    existing.remove();
+  }
+  const drugId   = pillEl.dataset.drugId;
+  const partner  = pillEl.dataset.partner;
+  const shortP   = pillEl.textContent.replace(/^w\/ /,'').replace(/ \?$/,'').trim();
+  const isConf   = pillEl.dataset.pv === 'true';
+
+  const pop = document.createElement('div');
+  pop.id = 'pi-partner-pop';
+  pop.dataset.forPill = drugId + partner;
+  pop.innerHTML = `
+    <div style="font-size:10px;font-weight:700;color:#1e3a5f;margin-bottom:7px;line-height:1.3">w/ ${shortP}</div>
+    <div style="display:flex;gap:6px">
+      <button data-action="confirm" data-drug-id="${drugId}" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:6px;border:none;background:#1d4ed8;color:#fff;cursor:pointer;white-space:nowrap">✓ Confirm</button>
+      <button data-action="remove"  data-drug-id="${drugId}" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;white-space:nowrap">✗ Remove</button>
+    </div>`;
+  pop.querySelectorAll('button[data-action]').forEach(b => {
+    b.addEventListener('click', e => { e.stopPropagation(); piPartnerAction(b.dataset.action, b.dataset.drugId, b); });
+  });
+  pop.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;box-shadow:0 4px 20px rgba(0,0,0,0.14);min-width:160px';
+
+  document.body.appendChild(pop);
+
+  // Position near pill
+  const rect = pillEl.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  if (left + 180 > window.innerWidth) left = window.innerWidth - 190;
+  if (top + 80 > window.innerHeight) top = rect.top - 80;
+  pop.style.top  = top  + 'px';
+  pop.style.left = left + 'px';
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function _close(e) {
+      if (!pop.contains(e.target) && e.target !== pillEl) { pop.remove(); }
+      document.removeEventListener('click', _close);
+    });
+  }, 0);
+}
+
+async function piPartnerAction(action, drugId, btn) {
+  if (!drugId) return;
+  const pop = document.getElementById('pi-partner-pop');
+  const origText = btn.textContent;
+  btn.textContent = '…'; btn.disabled = true;
+
+  try {
+    const patch = action === 'confirm'
+      ? { partnership_verified: true }
+      : { partnership_verified: false, partner_company: null };
+
+    const res = await _sb.from('drugs').update(patch).eq('id', drugId);
+    if (res.error) throw res.error;
+
+    // Update all matching pills in the DOM
+    document.querySelectorAll(`.pi-partner-pill[data-drug-id="${drugId}"]`).forEach(pill => {
+      if (action === 'confirm') {
+        pill.style.color = '#1d4ed8'; pill.style.background = '#eff6ff'; pill.style.borderColor = '#bfdbfe';
+        pill.title = 'Confirmed partnership — click to manage';
+        pill.dataset.pv = 'true';
+        pill.textContent = 'w/ ' + pill.textContent.replace(/^w\/ /,'').replace(/ \?$/,'').trim();
+      } else {
+        pill.style.display = 'none';
+      }
+    });
+
+    if (pop) pop.remove();
+  } catch(e) {
+    console.error('piPartnerAction error:', e);
+    btn.textContent = origText; btn.disabled = false;
+  }
+}
+
 async function loadAreaPI(tabId) {
   if (!TAB_AREA_MAP[tabId] || _areaPIs[tabId]?.loaded) return;
   const pi = _makeAreaPI(tabId, TAB_AREA_MAP[tabId]);
@@ -10087,11 +10170,14 @@ const tl1aPI = {
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
     || null;
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
-   // partnership_verified: TRUE = confirmed; FALSE = inferred/needs review; NULL = not evaluated
-   // Show "?" indicator when explicitly marked false (LLM-inferred, not yet confirmed from official source)
-   const _pvUnverified = d.partnership_verified === false;
-   const partnerTag   = _partnerShort
-    ? `<span style="font-size:9px;color:${_pvUnverified?'#92400e':'#1d4ed8'};background:${_pvUnverified?'#fffbeb':'#eff6ff'};border:1px solid ${_pvUnverified?'#fcd34d':'#bfdbfe'};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvUnverified?'Partnership not yet confirmed from official source — run enrichment to verify':'Partnership confirmed'}">w/ ${_partnerShort}${_pvUnverified?' ?':''}</span>`
+   // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
+   const _pv = d.partnership_verified;
+   const _pvColor   = _pv === true  ? {c:'#1d4ed8',bg:'#eff6ff',br:'#bfdbfe',lbl:'Confirmed partnership — click to manage'}
+                    : _pv === false ? {c:'#92400e',bg:'#fffbeb',br:'#fcd34d',lbl:'Flagged unconfirmed by enrichment — click to confirm or remove'}
+                    :                 {c:'#64748b',bg:'#f8fafc',br:'#cbd5e1',lbl:'Partnership not yet verified — click to confirm or remove'};
+   const _pvMark    = _pv === true ? '' : ' ?';
+   const partnerTag = _partnerShort
+    ? `<span class="pi-partner-pill" data-drug-id="${d.id||''}" data-partner="${(_partnerCo||'').replace(/"/g,'&quot;')}" data-pv="${_pv}" onclick="piConfirmPartner(this,event)" style="font-size:9px;cursor:pointer;color:${_pvColor.c};background:${_pvColor.bg};border:1px solid ${_pvColor.br};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvColor.lbl}">w/ ${_partnerShort}${_pvMark}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
