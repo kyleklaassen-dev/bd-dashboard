@@ -10060,7 +10060,7 @@ const tl1aPI = {
    if (item._isCombo) {
     const combo = item;
     const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => _parsePcdTs(b) - _parsePcdTs(a));
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Days Left</span></div>` : '';
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.id || t.nct || '';
      const acronym = t.study_acronym || '';
@@ -10210,16 +10210,16 @@ const tl1aPI = {
     const ts = _parsePcdTs(t);
     if (!ts) return '<span></span>';
     const days = Math.ceil((ts - Date.now()) / 86400000);
-    if (days <= 0) return '<span style="font-size:9px;color:#94a3b8;text-align:right">past PCD</span>';
+    if (days <= 0) return '<span style="font-size:9px;color:#94a3b8;text-align:center;display:block">past PCD</span>';
     const col = days < 180 ? '#dc2626' : days < 365 ? '#d97706' : '#64748b';
-    return `<span style="font-size:9px;font-weight:700;color:${col};text-align:right;white-space:nowrap">${days}d</span>`;
+    return `<span style="font-size:9px;font-weight:700;color:${col};text-align:center;white-space:nowrap;display:block">${days}d</span>`;
    };
    // Sort trials reverse-chronological by PCD (latest PCD first)
    const sortedTrials = [...resolvedTrials].sort((a,b) => _parsePcdTs(b) - _parsePcdTs(a));
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span>Days Left</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
    // Trial rows
