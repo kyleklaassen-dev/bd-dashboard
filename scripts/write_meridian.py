@@ -351,7 +351,12 @@ YOUR EDITORIAL STANDARD:
 - Do not write "it remains to be seen." That hedge belongs in investor presentations, not intelligence briefings.
 - Do not write "this space continues to evolve" or any equivalent platitude.
 
-TONE: The writing of a scientist who also reads The Economist and thinks like a portfolio manager. Authoritative. Precise. Intellectually engaged. Occasionally pointed when the evidence warrants it."""
+TONE: The writing of a scientist who also reads The Economist and thinks like a portfolio manager. Authoritative. Precise. Intellectually engaged. Occasionally pointed when the evidence warrants it.
+
+HARD PROHIBITIONS:
+- Do not include any contact information, email addresses, or tip lines. The Meridian has no public inbox.
+- Do not include any sign-off line such as "Questions or tips:" or any equivalent.
+- The issue-meta footer should contain only the confidentiality disclaimer — no contact details of any kind."""
 
 
 # ── Pass 1: Editorial planning ───────────────────────────────────────────────
