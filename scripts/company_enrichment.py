@@ -160,6 +160,23 @@ def sb_post(table: str, record: dict) -> Optional[dict]:
         return None
 
 
+def sb_delete(table: str, match_params: dict) -> int:
+    """DELETE rows matching match_params. Returns count of deleted rows."""
+    try:
+        headers = {**SB_HEADERS, "Prefer": "return=representation"}
+        r = requests.delete(f"{SUPABASE_URL}/rest/v1/{table}",
+                            headers=headers, params=match_params, timeout=15)
+        if r.status_code in (200, 204):
+            deleted = r.json() if r.text and r.text.strip() not in ("", "[]") else []
+            return len(deleted) if isinstance(deleted, list) else 0
+        else:
+            log(f"[sb_delete {table}] HTTP {r.status_code}: {r.text[:200]}", indent=2)
+            return 0
+    except Exception as e:
+        log(f"[sb_delete {table}] {e}", indent=1)
+        return 0
+
+
 def sb_patch(table: str, record: dict, match_params: dict) -> bool:
     try:
         r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}",
@@ -203,13 +220,25 @@ COMPANY_ALIASES = {
 
 
 def get_company_map() -> dict[str, str]:
-    """Fetch all companies from Supabase → dict: name/alias → id."""
+    """Fetch all companies from Supabase → dict: name/alias/ticker/group_id → id.
+
+    Including ticker and group_id means that if enrichment discovers a variant
+    name like 'Spyre Therapeutics (TL1A mono)', it can still resolve to the
+    canonical 'spyre' company_id via ticker or group_id match — preventing
+    ghost sub-entity creation.
+    """
     try:
-        rows = sb_get("companies", {"select": "id,name"})
+        rows = sb_get("companies", {"select": "id,name,ticker,group_id"})
         cmap = {}
         for row in rows:
-            cmap[row["id"].lower()]   = row["id"]
+            cmap[row["id"].lower()] = row["id"]
             cmap[row["name"].lower()] = row["id"]
+            if row.get("group_id"):
+                cmap[row["group_id"].lower()] = row["id"]
+            # Ticker-based lookup (skip generic placeholders)
+            ticker = (row.get("ticker") or "").strip()
+            if ticker and ticker.upper() not in ("PRIVATE", ""):
+                cmap[ticker.lower()] = row["id"]
         cmap.update(COMPANY_ALIASES)
         return cmap
     except Exception as e:
@@ -218,14 +247,35 @@ def get_company_map() -> dict[str, str]:
 
 
 def resolve_company_id(name: str, company_map: dict) -> Optional[str]:
+    """Resolve a company name to its canonical company_id.
+
+    Resolution order:
+    1. Exact lowercase match
+    2. Strip parenthetical qualifier (e.g. 'Spyre (TL1A mono)' → 'Spyre') then exact match
+    3. Substring match (either direction)
+
+    The parenthetical strip prevents enrichment from creating ghost sub-entities
+    when Claude qualifies a known company with a program descriptor.
+    """
     lc = (name or "").strip().lower()
     if not lc:
         return None
+    # 1. Exact match
     if lc in company_map:
         return company_map[lc]
+    # 2. Strip trailing parenthetical qualifier, try again
+    base = re.sub(r'\s*\([^)]*\)\s*$', '', lc).strip()
+    if base and base != lc and base in company_map:
+        return company_map[base]
+    # 3. Substring match (both directions)
     for key, cid in company_map.items():
         if len(lc) >= 4 and (lc in key or key in lc):
             return cid
+    # 4. Base-name substring match
+    if base and base != lc:
+        for key, cid in company_map.items():
+            if len(base) >= 4 and (base in key or key in base):
+                return cid
     return None
 
 
@@ -1613,6 +1663,101 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# RECONCILIATION — post-run cleanup for an area
+#
+# Runs after all enrichment is complete. Two jobs:
+#
+# Job A — Stale removal:
+#   Any company in company_areas that has ZERO drugs (in drug_areas) AND
+#   ZERO combo programs (in drug_combinations) for this area gets removed
+#   from company_areas. They disappear from the PI table automatically.
+#   Safe: company + drug records are NOT deleted — only the area link.
+#
+# Job B — Ghost entity detection:
+#   Companies in this area with the same ticker but different IDs are flagged.
+#   This catches any sub-entities that slipped past the improved resolver.
+#   Logs them clearly so they can be merged manually or auto-merged in future.
+#
+# Skipped when company_filter is set (targeted runs don't reconcile the whole area).
+# ══════════════════════════════════════════════════════════════════════════
+
+def reconcile_company_areas(area_id: str, dry_run: bool = False) -> dict:
+    """Post-run reconciliation for a disease area."""
+    log(f"\n── Reconciliation: area={area_id} ──")
+    results = {"stale_removed": 0, "ghost_flagged": 0}
+
+    # All companies currently linked to this area
+    ca_rows = sb_get("company_areas", {"area_id": f"eq.{area_id}", "select": "company_id"})
+    all_company_ids = [r["company_id"] for r in ca_rows]
+    if not all_company_ids:
+        log("  No companies in area — nothing to reconcile", indent=1)
+        return results
+
+    # Which companies have drugs in this area (via drug_areas)?
+    da_rows = sb_get("drug_areas", {"area_id": f"eq.{area_id}", "select": "drug_id"})
+    drug_ids_in_area = {r["drug_id"] for r in da_rows}
+    companies_with_drugs: set[str] = set()
+    if drug_ids_in_area:
+        chunk = list(drug_ids_in_area)[:300]
+        drug_rows = sb_get("drugs", {
+            "id": f"in.({','.join(chunk)})",
+            "select": "id,company_id",
+        })
+        companies_with_drugs = {d["company_id"] for d in drug_rows}
+
+    # Which companies have combo programs in this area?
+    combo_rows = sb_get("drug_combinations", {
+        "area_id": f"eq.{area_id}",
+        "select": "company_id",
+    })
+    companies_with_combos = {r["company_id"] for r in combo_rows}
+
+    companies_with_programs = companies_with_drugs | companies_with_combos
+
+    # ── Job A: remove stale company_areas links ──────────────────────────
+    stale = [cid for cid in all_company_ids if cid not in companies_with_programs]
+    if stale:
+        log(f"  Stale companies (no programs in '{area_id}'): {stale}", indent=1)
+        for cid in stale:
+            if dry_run:
+                log(f"    [DRY RUN] Would remove {cid} from company_areas", indent=2)
+            else:
+                n = sb_delete("company_areas", {
+                    "company_id": f"eq.{cid}",
+                    "area_id":    f"eq.{area_id}",
+                })
+                log(f"    ✓ Removed {cid} from company_areas ({n} rows)", indent=2)
+                results["stale_removed"] += 1
+    else:
+        log("  Job A: no stale companies", indent=1)
+
+    # ── Job B: detect ghost entities (same ticker, multiple company IDs) ──
+    if all_company_ids:
+        co_details = sb_get("companies", {
+            "id":     f"in.({','.join(all_company_ids[:150])})",
+            "select": "id,name,ticker,group_id",
+        })
+        ticker_to_ids: dict[str, list[str]] = {}
+        for co in co_details:
+            t = (co.get("ticker") or "").strip().upper()
+            if not t or t == "PRIVATE":
+                continue
+            ticker_to_ids.setdefault(t, []).append(co["id"])
+
+        for ticker, ids in ticker_to_ids.items():
+            if len(ids) > 1:
+                log(f"  ⚠ Ghost entities — ticker '{ticker}' → {ids}", indent=1)
+                log(f"    Action: set group_id on sub-entities to canonical ID, then re-run.", indent=2)
+                results["ghost_flagged"] += 1
+
+        if results["ghost_flagged"] == 0:
+            log("  Job B: no ghost entities", indent=1)
+
+    log(f"  Done — stale_removed={results['stale_removed']}  ghost_flagged={results['ghost_flagged']}")
+    return results
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # MAIN PIPELINE ORCHESTRATION — all 7 steps for one area
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -1685,6 +1830,13 @@ def run_intelligence_pipeline(area_id: str,
     log(f"\n{'='*60}")
     log(f"Complete: {results['success']} success, {results['failed']} failed")
     log(f"{'='*60}")
+
+    # Reconciliation — runs only on full-area runs (not targeted --company filters).
+    # Removes stale company_areas links and flags any remaining ghost entities.
+    if not company_filter:
+        reconcile_company_areas(area_id, dry_run=dry_run)
+    else:
+        log(f"\n── Reconciliation skipped (targeted run: {company_filter}) ──")
 
 
 # ══════════════════════════════════════════════════════════════════════════
