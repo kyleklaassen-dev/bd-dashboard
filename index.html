@@ -1264,15 +1264,16 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-.pi-tr-row{display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+.pi-tr-row{display:grid;grid-template-columns:92px 118px 1fr 58px 68px 16px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap;flex-shrink:0;width:88px;display:inline-block}
+.pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
 .pi-nct-a:hover{text-decoration:underline}
-.pi-tr-name{font-size:11px;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.pi-tr-phase-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:55px}
-.pi-tr-n-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:45px;text-align:right}
-.pi-tr-pcd-cell{font-size:10px;color:#64748b;flex-shrink:0;white-space:nowrap;min-width:65px;text-align:right}
-.pi-tr-chev{font-size:9px;color:#94a3b8;flex-shrink:0;transition:transform 0.15s}
+.pi-tr-acronym-cell{display:flex;align-items:center;min-width:0}
+.pi-tr-name{font-size:11px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pi-tr-phase-cell{font-size:10px;color:#64748b;white-space:nowrap}
+.pi-tr-n-cell{font-size:10px;color:#64748b;white-space:nowrap;text-align:right}
+.pi-tr-pcd-cell{font-size:10px;color:#64748b;white-space:nowrap;text-align:right}
+.pi-tr-chev{font-size:9px;color:#94a3b8;transition:transform 0.15s;text-align:right}
 .pi-tr-chev.open{transform:rotate(180deg)}
 .pi-tr-detail{display:none;border-top:1px solid #f1f5f9;padding:10px 11px;background:#fafbff;font-size:11px;line-height:1.6;color:#334155}
 .pi-tr-detail.open{display:block}
@@ -1284,7 +1285,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-results-btn:hover{background:#ede9fe}
 .pi-tr-results-body{display:none;margin-top:7px;padding:9px 10px;background:white;border:1px solid #e0d9ff;border-radius:4px;font-size:11.5px;line-height:1.7;color:#374151}
 .pi-tr-results-body.open{display:block}
-.pi-tr-acronym{font-size:9px;font-weight:800;color:#1e4a82;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;text-transform:uppercase}
+.pi-tr-acronym{font-size:9px;font-weight:800;color:#1e4a82;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap;letter-spacing:0.03em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* Approved drug profile */
 .pi-da-approved{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:7px;padding:12px 14px;margin-bottom:10px}
 .pi-da-approved-hd{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:5px}
@@ -9737,8 +9738,8 @@ const tl1aPI = {
      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
      : `<span style="font-size:10px;color:#94a3b8;width:88px;display:inline-block;flex-shrink:0">${nct||'—'}</span>`;
 
-    // Study acronym pill — shown in collapsed row when available (short label like SKYLINE, U-ACHIEVE)
-    const acronymBadge = acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : '';
+    // Acronym cell always present (empty span keeps grid alignment when no acronym)
+    const acronymBadge = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
     const detailFields = [
      ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
