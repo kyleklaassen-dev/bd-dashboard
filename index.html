@@ -10655,17 +10655,28 @@ const tl1aPI = {
 
   const piHtml = _renderPlatformIntel(platformIntel);
   const bdHtml = _renderBdIntel(bdIntel);
+  const assessCardHtml = _renderAssessmentCard(platformIntel, bdIntel);
   const intelSections = (() => {
    if (piHtml && bdHtml) {
+    // Left: Platform Intelligence full height.
+    // Right: Assessment stacked above BD Intelligence, both filling the column height.
     return `<div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>Platform Intelligence</h5>${piHtml}</div>
-            <div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
+            <div style="display:flex;flex-direction:column;gap:10px">
+             ${assessCardHtml}
+             <div class="pi-detail-section" style="display:flex;flex-direction:column;flex:1"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>
+            </div>`;
    } else if (piHtml) {
-    return `<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
+    return `${assessCardHtml?`<div style="grid-column:1/-1">${assessCardHtml}</div>`:''}
+            <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
    } else if (bdHtml) {
     return `<div class="pi-detail-section"><h5>Platform Summary</h5><p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p></div>
-            <div class="pi-detail-section"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>`;
+            <div style="display:flex;flex-direction:column;gap:10px">
+             ${assessCardHtml}
+             <div class="pi-detail-section" style="display:flex;flex-direction:column;flex:1"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>
+            </div>`;
    } else {
-    return `<div class="pi-detail-section" style="grid-column:1/-1">
+    return `${assessCardHtml?`<div style="grid-column:1/-1">${assessCardHtml}</div>`:''}
+            <div class="pi-detail-section" style="grid-column:1/-1">
              <h5>Platform Summary</h5>
              <p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p>
             </div>
@@ -10674,7 +10685,6 @@ const tl1aPI = {
   })();
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
-   ${_renderAssessmentCard(platformIntel, bdIntel)}
    ${drugSection}
    <div data-intel-grid="${prog.id||''}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'};margin-bottom:10px">
     ${intelSections}
