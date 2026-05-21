@@ -1005,11 +1005,10 @@ Every drug must receive a strategic_role. Think about it from Ailux's BD perspec
 - watch: early-stage or uncertain relevance
 
 DISPLAY NAME GUIDANCE (CRITICAL — apply to every acquired/licensed drug):
-- If a drug was acquired or in-licensed, the acquiring company assigns a new code. You MUST set display_name to the acquirer's code.
-- Format: "AcquirerCode (OriginalCode)" — e.g. "ABBV-701 (FG-M701)", "JNJ-2113 (OriginalCode)".
-- If the brand name exists, use: "BrandName (INN)" — e.g. "Skyrizi (Risankizumab)".
-- licensor_name: the originating company (e.g. "FutureGen Biopharmaceutical Co., Ltd.")
-- licensor_code: the original code used by the licensor (e.g. "FG-M701")
+- If a drug was acquired or in-licensed, display_name MUST be ONLY the acquirer's current name — no parentheticals, no old name.
+- Format: "AcquirerCode" ONLY — e.g. "ABBV-701", "JNJ-2113". Do NOT write "ABBV-701 (FG-M701)".
+- If the brand name exists: "BrandName (INN)" — e.g. "Skyrizi (risankizumab)".
+- The old name belongs in licensor_code (e.g. "FG-M701") and licensor_name (originating company, e.g. "FutureGen Biopharmaceutical Co., Ltd."). The dashboard uses these fields to surface "formerly [licensor_code]" in the detail view automatically — never repeat the old name in display_name.
 - NEVER leave display_name null or equal to the drug_id when the drug has a licensor — this creates inaccurate data.
 
 COMBINATION PROGRAM GUIDANCE:
@@ -1117,7 +1116,12 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             if licensor_code_written and (not display_name_written or display_name_written == drug_id):
                 log(f"  ⚠ DATA QUALITY: drug '{drug_id}' has licensor_code='{licensor_code_written}' "
                     f"but display_name='{display_name_written or 'null'}' — acquirer code not set. "
-                    f"Set display_name to 'AcquirerCode ({licensor_code_written})'.", indent=1)
+                    f"Set display_name to the acquirer's name ONLY (e.g. 'ABBV-701', not 'ABBV-701 ({licensor_code_written})').", indent=1)
+            # Also warn if display_name looks like "AcquirerCode (OldCode)" — old format
+            elif licensor_code_written and licensor_code_written in (display_name_written or ''):
+                log(f"  ⚠ DATA QUALITY: drug '{drug_id}' display_name='{display_name_written}' "
+                    f"still contains the old licensor code '{licensor_code_written}'. "
+                    f"Update to acquirer name only (strip the '({licensor_code_written})' suffix).", indent=1)
 
     # Write combination programs
     for combo in data.get("combination_programs", []):
