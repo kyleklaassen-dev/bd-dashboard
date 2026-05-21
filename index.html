@@ -8282,7 +8282,20 @@ function _makeAreaPI(tabId, areaIds) {
           }
         } catch(_) {}
 
-        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos };
+        // Molecule intelligence — keyed by drug_id, area-agnostic
+        let moleculeIntel = {};
+        try {
+          const drugIds = drugs.map(d => d.id).filter(Boolean);
+          if (drugIds.length) {
+            const { data: molRows } = await _sb.from('molecule_intelligence')
+              .select('*').in('drug_id', drugIds);
+            if (molRows?.length) {
+              molRows.forEach(m => { moleculeIntel[m.drug_id] = m; });
+            }
+          }
+        } catch(_) {}
+
+        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel };
         this._profileCache[entityId] = sbData;
 
         // Replace loading placeholder with full rendering
@@ -9842,9 +9855,22 @@ const tl1aPI = {
     }
    } catch(e) { console.warn('[combo-trials] catch:', e); }
 
+   // Molecule intelligence — keyed by drug_id, area-agnostic
+   let moleculeIntel = {};
+   try {
+    const drugIds = drugs.map(d => d.id).filter(Boolean);
+    if (drugIds.length) {
+     const { data: molRows } = await _sb.from('molecule_intelligence')
+      .select('*').in('drug_id', drugIds);
+     if (molRows?.length) {
+      molRows.forEach(m => { moleculeIntel[m.drug_id] = m; });
+     }
+    }
+   } catch(_) {}
+
    // Pass merged news (deals + intel items) as the "deals" array to the renderer
    // sbDealsAll = deals + financing rounds + press releases from intel table, sorted newest first
-   const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials, combos };
+   const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials, combos, moleculeIntel };
    this._profileCache[id] = sbData;
 
    // Replace loading placeholder
@@ -10139,12 +10165,13 @@ const tl1aPI = {
 
  // ── Generic rich detail renderer (Supabase-fed, falls back to static) ────
  _genericDetailHTML(prog, sbData) {
-  const profile  = sbData?.profile || {};
-  const sbCats   = sbData?.catalysts || [];
-  const sbDeals  = sbData?.deals || [];
-  const sbTrials = sbData?.trials || [];
-  const sbDrugs  = sbData?.drugs || [];
-  const sbCombos = sbData?.combos || [];
+  const profile       = sbData?.profile || {};
+  const sbCats        = sbData?.catalysts || [];
+  const sbDeals       = sbData?.deals || [];
+  const sbTrials      = sbData?.trials || [];
+  const sbDrugs       = sbData?.drugs || [];
+  const sbCombos      = sbData?.combos || [];
+  const moleculeIntel = sbData?.moleculeIntel || {};
 
   // ── Narrative fields ────────────────────────────────────────────────────
   const platformSummary   = profile.platform_summary || prog.summary || '';
@@ -10162,6 +10189,74 @@ const tl1aPI = {
                c === 'medium' ? {bg:'#fffbeb',color:'#b45309',border:'#fde68a',label:'Medium confidence'} :
                                 {bg:'#f8fafc',color:'#64748b',border:'#e2e8f0',label:'Low confidence'};
    return `<span style="font-size:8px;font-weight:700;text-transform:uppercase;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};border-radius:8px;padding:1px 6px">${cfg.label}</span>`;
+  };
+
+  const _renderMoleculeIntel = (drugs, moleculeIntel) => {
+   // Collect all molecule rows for the drugs shown in this card
+   const mols = (drugs||[]).map(d => moleculeIntel[d.id]).filter(Boolean);
+   if (!mols.length) return null;
+
+   const _statusBadge = (field, fs) => {
+    const status = (fs||{})[field];
+    if (!status || status === 'confirmed') return '';  // confirmed = no badge needed
+    const cfg = status === 'inferred'
+     ? {bg:'#fffbeb',color:'#b45309',border:'#fde68a',label:'Inferred'}
+     : {bg:'#f8fafc',color:'#94a3b8',border:'#e2e8f0',label:'Not disclosed'};
+    return `<span style="font-size:7.5px;font-weight:700;text-transform:uppercase;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};border-radius:5px;padding:1px 5px;white-space:nowrap;flex-shrink:0">${cfg.label}</span>`;
+   };
+
+   const _fieldRow = (label, value, fieldKey, fs) => {
+    if (!value) return '';
+    const badge = _statusBadge(fieldKey, fs);
+    return `<div style="display:flex;align-items:baseline;gap:6px;padding:2px 0;border-bottom:1px solid #f8fafc;font-size:10.5px">
+     <span style="color:#64748b;font-weight:600;white-space:nowrap;min-width:100px">${label}</span>
+     <span style="color:#1e293b;flex:1">${value}</span>
+     ${badge}
+    </div>`;
+   };
+
+   const rows = mols.map(mol => {
+    const fs = mol.field_status || {};
+    const drugLabel = drugs.find(d => d.id === mol.drug_id)?.name || mol.drug_id;
+    const header = mols.length > 1
+     ? `<div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#7c3aed;letter-spacing:0.05em;margin-bottom:4px;padding-bottom:2px;border-bottom:1px solid #ede9fe">${drugLabel}</div>`
+     : '';
+    const structRows = [
+     _fieldRow('Format',         mol.format,       'format',      fs),
+     _fieldRow('Modality',       mol.modality,     'modality',    fs),
+     _fieldRow('IgG subclass',   mol.igg_subclass, 'igg_subclass',fs),
+     _fieldRow('Fc engineering', mol.fc_engineering,'fc_engineering',fs),
+     _fieldRow('Epitope',        mol.epitope,      'epitope',     fs),
+     _fieldRow('Affinity (KD)',  mol.affinity_kd,  'affinity_kd', fs),
+    ].filter(Boolean).join('');
+
+    const safetySection = mol.safety_observations
+     ? `<div style="margin-top:6px;padding-top:4px;border-top:1px solid #f1f5f9">
+         <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:3px">Safety observations</div>
+         <p style="font-size:10.5px;color:#334155;margin:0;line-height:1.4">${mol.safety_observations}</p>
+        </div>` : '';
+
+    const thesisSection = mol.differentiation_claim
+     ? `<div style="margin-top:7px;padding:7px 9px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed">
+         <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#7c3aed;margin-bottom:3px">Differentiation thesis ${_statusBadge('differentiation_claim', fs)}</div>
+         <p style="font-size:11px;color:#1e293b;margin:0;line-height:1.45;font-style:italic">${mol.differentiation_claim}</p>
+        </div>` : '';
+
+    const srcNote = mol.source_url
+     ? `<div style="margin-top:5px;text-align:right"><a href="${mol.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#1d4ed8">Source ↗</a></div>`
+     : '';
+
+    return `${header}<div style="display:flex;flex-direction:column;gap:0">${structRows}</div>${thesisSection}${safetySection}${srcNote}`;
+   }).join('<hr style="margin:8px 0;border:none;border-top:1px solid #f1f5f9">');
+
+   const confBadge = mols[0]?.confidence
+    ? `<span style="font-size:8px;font-weight:700;text-transform:uppercase;background:${mols[0].confidence==='high'?'#f0fdf4':mols[0].confidence==='medium'?'#fffbeb':'#f8fafc'};color:${mols[0].confidence==='high'?'#15803d':mols[0].confidence==='medium'?'#b45309':'#64748b'};border:1px solid ${mols[0].confidence==='high'?'#bbf7d0':mols[0].confidence==='medium'?'#fde68a':'#e2e8f0'};border-radius:8px;padding:1px 6px">${mols[0].confidence.charAt(0).toUpperCase()+mols[0].confidence.slice(1)} confidence</span>`
+    : '';
+
+   return `<div style="flex:1;display:flex;flex-direction:column">
+    <div>${rows}</div>
+    <div style="margin-top:auto;padding-top:8px;text-align:right">${confBadge}</div>
+   </div>`;
   };
 
   const _renderPlatformIntel = pi => {
@@ -10936,13 +11031,16 @@ const tl1aPI = {
    dealsHTML = '<p style="color:#94a3b8;font-size:12px">No news on record — enrichment pipeline will populate</p>';
   }
 
-  const piHtml = _renderPlatformIntel(platformIntel);
-  const bdHtml = _renderBdIntel(bdIntel);
+  const piHtml  = _renderPlatformIntel(platformIntel);
+  const bdHtml  = _renderBdIntel(bdIntel);
+  const molHtml = _renderMoleculeIntel(sbDrugs.length ? sbDrugs : drugsToRender, moleculeIntel);
   const assessCardHtml = _renderAssessmentCard(platformIntel, bdIntel);
+
+  // Intelligence grid layout:
+  // - If molecule data exists, add it as a full-width card below the 2-col intel grid
+  // - Otherwise layout is unchanged
   const intelSections = (() => {
    if (piHtml && bdHtml) {
-    // Left: Assessment stacked above BD Intelligence, both filling the column height.
-    // Right: Platform Intelligence full height.
     return `<div style="display:flex;flex-direction:column;gap:10px">
              ${assessCardHtml}
              <div class="pi-detail-section" style="display:flex;flex-direction:column;flex:1"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>
@@ -10967,10 +11065,21 @@ const tl1aPI = {
    }
   })();
 
+  const moleculeSection = molHtml
+   ? `<div class="pi-detail-section" style="grid-column:1/-1;margin-top:2px">
+       <h5 style="display:flex;align-items:center;gap:6px">
+        🔬 Molecule Intelligence
+        <span style="font-size:9px;font-weight:400;color:#94a3b8;font-style:italic">Structural · Mechanistic · Competitive</span>
+       </h5>
+       ${molHtml}
+      </div>`
+   : '';
+
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${drugSection}
    <div data-intel-grid="${prog.id||''}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'};margin-bottom:10px">
     ${intelSections}
+    ${moleculeSection}
    </div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
