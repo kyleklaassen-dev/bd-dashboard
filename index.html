@@ -9262,7 +9262,8 @@ const tl1aPI = {
    // Fetch company profile narrative
    const { data: profileRows } = await _sb
     .from('company_profiles').select('*')
-    .eq('company_id', id).eq('area_id', AREA);
+    .eq('company_id', id).eq('area_id', AREA)
+    .order('updated_at', { ascending: false }).limit(1);
    const profile = profileRows?.[0] || null;
 
    // Fetch upcoming catalysts for this company+area — no hard limit; UI caps visible at 5

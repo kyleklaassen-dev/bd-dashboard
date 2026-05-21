@@ -485,7 +485,17 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
     })
     profile = profiles[0] if profiles else {}
 
-    drug_area_rows = sb_get("drug_areas", {"area_id": f"eq.{area_id}", "select": "drug_id"})
+    # Fetch the indication_group for this area (e.g. tl1a → 'ibd').
+    # The frontend shows drugs tagged with the indication_group (broader IBD set),
+    # not just the specific area. We must mirror this so the enrichment context
+    # includes the same drugs the dashboard displays (e.g. risankizumab + upadacitinib
+    # for AbbVie in the TL1A tab, even though they're tagged 'ibd' not 'tl1a').
+    area_meta = sb_get("disease_areas", {"id": f"eq.{area_id}", "select": "indication_group"})
+    indication_group = (area_meta[0].get("indication_group") if area_meta else None) or area_id
+    fetch_areas = list({area_id, indication_group})  # deduplicate
+    drug_area_rows = sb_get("drug_areas", {
+        "area_id": f"in.({','.join(fetch_areas)})", "select": "drug_id"
+    })
     area_drug_ids  = {r["drug_id"] for r in drug_area_rows}
     all_co_drugs   = sb_get("drugs", {"company_id": f"eq.{company_id}", "select": "*"})
     drugs = [d for d in all_co_drugs if d["id"] in area_drug_ids]
@@ -904,8 +914,8 @@ Return JSON with EXACTLY these fields:
     "phase_display": "null or e.g. Phase 3",
     "half_life_note": "null or e.g. ~74 days",
     "mechanism_detail": "null or 1-2 sentences: specific mechanism, format, any structural notes (platform tech, half-life, engineering)",
-    "drug_summary": "null or 2-3 sentences: the most important facts about THIS molecule — what makes it noteworthy (platform tech, clinical differentiation, half-life, conference presentations, Phase readout highlights). This is displayed as the first thing a user reads about the drug.",
-    "key_data": "null or most important recent clinical data point in one sentence",
+    "drug_summary": "REQUIRED — 2-3 sentences: the most important facts about THIS molecule — mechanism, clinical stage, what makes it noteworthy (platform tech, differentiation, conference data, pivotal readouts). Never return null; use training knowledge + web intel. For approved drugs include sales and approval status.",
+    "key_data": "REQUIRED for approved/late-stage drugs — most important clinical data point in one sentence (e.g. primary endpoint result, pivotal trial outcome). For early-stage with no public data: brief mechanism note. Never leave null if drug_summary is populated.",
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "confidence_level": "confirmed|supported|inferred",
     "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
@@ -991,8 +1001,20 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
                       "market_cap_usd_m","cash_runway","financing_history","key_investors"]:
             if cp.get(field) is not None:
                 profile_rec[field] = cp[field]
-        result = sb_upsert("company_profiles", profile_rec)
-        log(f"  company_profiles: {'✓' if result else '✗'}", indent=1)
+        # Patch-or-insert: avoid duplicate rows (no UNIQUE constraint in DB yet)
+        existing = sb_get("company_profiles", {
+            "company_id": f"eq.{company_id}",
+            "area_id":    f"eq.{area_id}",
+            "select":     "company_id",
+            "limit":      "1",
+        })
+        if existing:
+            ok = sb_patch("company_profiles", profile_rec,
+                          {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"})
+            log(f"  company_profiles: {'✓ patched' if ok else '✗ patch failed'}", indent=1)
+        else:
+            result = sb_upsert("company_profiles", profile_rec)
+            log(f"  company_profiles: {'✓ inserted' if result else '✗ insert failed'}", indent=1)
 
     for du in data.get("drug_updates", []):
         drug_id = du.pop("drug_id", None)
