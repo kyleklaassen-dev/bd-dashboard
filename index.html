@@ -9539,11 +9539,13 @@ const tl1aPI = {
    // Fetch combination trials (trials linked to a drug_combination, not a single drug)
    try {
     const comboIds = combos.map(c => c.id).filter(Boolean);
+    console.log('[combo-trials] combo ids:', comboIds);
     if (comboIds.length) {
-     const { data: comboTrialRows } = await _sb.from('trials').select('*').in('combination_id', comboIds);
+     const { data: comboTrialRows, error: comboTrialErr } = await _sb.from('trials').select('*').in('combination_id', comboIds);
+     console.log('[combo-trials] rows:', comboTrialRows, 'err:', comboTrialErr);
      if (comboTrialRows && comboTrialRows.length) trials.push(...comboTrialRows);
     }
-   } catch(_) {}
+   } catch(e) { console.warn('[combo-trials] catch:', e); }
 
    // Pass merged news (deals + intel items) as the "deals" array to the renderer
    // sbDealsAll = deals + financing rounds + press releases from intel table, sorted newest first
