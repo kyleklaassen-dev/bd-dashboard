@@ -1023,12 +1023,22 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
 # ══════════════════════════════════════════════════════════════════════════
 
 AREA_LABELS_MAP = {
-    "tl1a": "TL1A (anti-TL1A antibodies, IBD)",
-    "tslp": "TSLP (anti-TSLP antibodies, asthma/atopic disease)",
-    "il4ra": "IL-4Rα (anti-IL-4Rα, atopic dermatitis/asthma)",
-    "igf1r": "IGF1R (anti-IGF1R, oncology)",
-    "fcrn": "FcRn (anti-FcRn, autoimmune/IgG-mediated disease)",
-    "tcell": "T-cell engagers (oncology)",
+    # Monospecifics
+    "tl1a":       "TL1A (anti-TL1A antibodies, IBD)",
+    "tslp":       "TSLP (anti-TSLP antibodies, asthma/atopic disease)",
+    "il4ra":      "IL-4Rα (anti-IL-4Rα, atopic dermatitis/asthma)",
+    "igf1r":      "IGF1R (anti-IGF1R, oncology)",
+    "fcrn":       "FcRn (anti-FcRn, autoimmune/IgG-mediated disease)",
+    "tcell":      "T-cell engagers (oncology)",
+    # Bispecifics
+    "il4ra_tslp": "IL-4Rα×TSLP bispecific (atopic dermatitis/asthma)",
+    "il4ra_ox40l":"IL-4Rα×OX40L bispecific (atopic dermatitis/asthma)",
+    "igf1r_tshr": "IGF1R×TSHR bispecific (thyroid eye disease / oncology)",
+    # Other
+    "ace":        "ACE2-based programs (respiratory/cardiometabolic)",
+    # Broad groupings (used as indication_group fallback)
+    "ibd":        "IBD (inflammatory bowel disease — UC/CD)",
+    "atopic":     "Atopic disease (AD, asthma, EoE)",
 }
 
 WEB_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
@@ -1063,11 +1073,12 @@ Key programs to research: {drug_names or 'see company pipeline'}
 
 Use web_search to find and extract SPECIFIC facts on all four topics:
 
-TOPIC 1 — CLINICAL DATA
-Search for the most recent trial results, efficacy endpoints, safety data, and conference presentations.
+TOPIC 1 — CLINICAL DATA (current AND historical)
+Search for trial results across ALL phases — not just the most recent.
 What endpoints did they hit? What were the response rates, p-values, or biomarker results?
 Which conferences (ECCO, DDW, ACR, ASCO, NEJM, Lancet, NEJM Evidence)?
 Any Phase 3 readouts, POC data, dose-selection results in the last 24 months?
+CRITICAL: Also search for earlier Phase 1 and Phase 2 proof-of-concept or dose-finding trials that preceded the current Phase 3 program. These are often the scientific foundation for Phase 3 and may have published results (even if the trial completed 2-4 years ago). Search specifically for: "[drug name] Phase 1 results", "[drug name] Phase 2 results", "[drug name] proof of concept", "[drug name] dose escalation". A completed Phase 2b that missed its primary endpoint is MORE important to capture than a currently-recruiting Phase 3, because it carries the key risk data.
 
 TOPIC 2 — FINANCING & COMPANY STATUS
 All funding rounds with amounts, dates, and lead investors.
@@ -1214,11 +1225,16 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
     } for i in ctx["recent_intel"][:6]], indent=2)
 
     current_profile = json.dumps({
-        "platform_summary": profile.get("platform_summary", ""),
-        "bd_summary":       profile.get("bd_summary", ""),
+        # Structured intelligence (primary) — shown so model can update/refine existing analysis
+        "platform_intelligence": profile.get("platform_intelligence"),
+        "bd_intelligence":       profile.get("bd_intelligence"),
+        # Scalar fields
         "key_risk":         profile.get("key_risk", ""),
         "why_it_matters":   profile.get("why_it_matters", ""),
         "vs_ailux":         profile.get("vs_ailux", ""),
+        # LEGACY TEXT — for context only; do NOT return platform_summary or bd_summary in output
+        "_legacy_platform_summary": (profile.get("platform_summary") or "")[:400] or None,
+        "_legacy_bd_summary":       (profile.get("bd_summary") or "")[:400] or None,
     }, indent=2)
 
     financial_fields = (
@@ -1293,10 +1309,34 @@ RECENT INTEL:
 {web_intel_section}
 {ailux_block}
 Return JSON with EXACTLY these fields:
+
+⚠ CRITICAL SCHEMA REQUIREMENT:
+- "platform_intelligence" and "bd_intelligence" are REQUIRED structured objects — NEVER return null for these.
+- DO NOT return "platform_summary" or "bd_summary" as text strings — those fields are DEPRECATED. If you return them, they will be ignored. The only accepted format is the structured objects below.
+- If existing structured intelligence is shown in CURRENT PROFILE above, refine or extend it — do not regress to plain text.
+
 {{
   "company_profile": {{
-    "platform_summary": "2-4 sentences: current clinical status, key data, program scope.",
-    "bd_summary": "2-4 sentences: financing, deal history, partnering strategy, timing window.",
+    "platform_intelligence": {{
+      "facts": [
+        "Array of 3-5 tight fact bullets. Each ≤15 words. ONLY directly verifiable statements about the clinical platform — asset name, stage, mechanism, approval status, key data readouts. No BD deals, no financing, no interpretations. Examples: 'ABBV-701 (TL1A mAb, licensed FutureGen Jun 2024): Phase 1 SAD, est. completion Oct 2026', 'Skyrizi (IL-23p19): approved UC+CD; $17.6B FY2025 revenue', 'XENITH-UC Phase 2b (~220 pts): enrolling, primary completion Apr 2028'."
+      ],
+      "direction": [
+        "Array of 2-3 interpretation bullets. Each ≤15 words. Logical conclusions about the PLATFORM STRATEGY derived from the facts — not restatements, not BD behavior. Label each [INFERRED]. Examples: '[INFERRED] ABBV-701 positioned as SKYRIZI combination backbone, not TL1A monotherapy', '[INFERRED] Dual-track strategy hedges monospecific and bispecific formats simultaneously'."
+      ],
+      "assessment": "[ASSESSED] 1 sentence. A UNIQUE forward-looking strategic read specifically for Ailux — what does this company's platform trajectory mean for Ailux's competitive positioning or partnering opportunity? This must NOT repeat facts or BD deal details already in the other cards. Focus on: how does this change Ailux's competitive landscape, timing pressure, or partner audience? Be specific and direct.",
+      "confidence": "high | medium | low — based on volume and quality of public disclosures, trial activity, and deal history"
+    }},
+    "bd_intelligence": {{
+      "profile": "One of: acquirer | licensor | collaborator | partner-friendly | internal-focused — classify the company's dominant BD behavior in this area",
+      "transactions": [
+        {{"date": "Mon YYYY", "asset": "asset name / target — BD deals and financing only, NOT clinical milestones", "partner": "counterparty short name", "upfront": "$XM or null", "total": "$XM or null"}}
+      ],
+      "assessment": [
+        "Array of 2-3 short [ASSESSED] bullets. Each ≤15 words. BD-specific conclusions ONLY — deal structure, partnering likelihood, pricing benchmarks, timing of BD window. Must NOT repeat platform science facts from platform_intelligence. Examples: '[ASSESSED] Unlikely licensing target — executing TL1A in-house; no external partnership expected', '[ASSESSED] FutureGen deal sets $1.71B floor for Phase 1 TL1A asset pricing'."
+      ],
+      "confidence": "high | medium | low"
+    }},
     "key_risk": "1-2 sentences: single most important risk.",
     "why_it_matters": "1-2 sentences: why this competitor matters for Ailux's BD strategy.",
     "vs_ailux": "1-2 sentences: how this program compares to Ailux's TL1A×IL-23p19 bispecific.",
@@ -1355,6 +1395,9 @@ Return JSON with EXACTLY these fields:
   "trial_updates": [{{
     "trial_id": "exact trial id from TRIALS list (the 'id' field, e.g. 'NCT06895343')",
     "study_acronym": "null or string: the branded program acronym this company uses for the trial — e.g. 'SKYLINE-UC' (Spyre), 'U-ACHIEVE' (AbbVie), 'PURSUIT' (J&J), 'ARTEMIS-CD'. Search the company's press releases and IR materials for how they brand this study. If the TRIALS list already shows a non-null study_acronym, confirm or correct it. Only include if you find a specific acronym — never fabricate.",
+    "status": "null or current trial status from ClinicalTrials.gov — one of: Recruiting | Active, not recruiting | Completed | Not yet recruiting | Enrolling by invitation | Terminated | Withdrawn | Suspended. Update if the current status differs from the TRIALS list. Return null only if you cannot verify the current status.",
+    "primary_completion_date": "null or YYYY-MM-DD: the current primary completion date from ClinicalTrials.gov. Update if the date has changed or was previously null. Return null only if not listed on CT.gov.",
+    "area_fit": "REQUIRED — classify this trial's relevance to the current area: 'primary' = trial tests in the exact target indication for this area (e.g. UC or CD trial in the tl1a area), 'secondary' = same disease family but broader (e.g. IBD maintenance in a UC-focused area), 'off_target' = entirely different indication (e.g. psoriasis trial for a drug tracked in the IBD area), 'exclude' = basket/umbrella or observational study.",
     "estimand": "null or string: the ICH E9(R1) estimand strategy used in this trial's primary analysis. Describes how intercurrent events (rescue medication use, discontinuation, study drug change) are handled. Examples: 'Composite estimand — rescue medication use or discontinuation counted as treatment failure', 'Treatment policy estimand — all post-randomisation data included regardless of intercurrent events', 'Hypothetical estimand — data after rescue medication censored'. Search clinical trial registry, protocol, and publications for the statistical analysis plan estimand definition. Return null if not publicly specified.",
     "results_note": "null or string: key primary endpoint results for Completed or Terminated trials — 2-4 sentences. Include: primary endpoint name, response/remission rate for drug vs placebo (with p-value or CI if reported), and any headline safety signal. Source from publications (NEJM, Lancet, Gut), conference abstracts (DDW, ECCO, UEG), or ClinicalTrials.gov results postings. Example: 'GEMINI 1 (UC induction): vedolizumab achieved 47.1% clinical response vs 25.5% PBO at Wk 6 (p<0.001); 16.9% vs 5.4% clinical remission at Wk 6. GEMINI 1 (UC maintenance): 44.8% remission at Wk 52 vs 15.9% PBO (p<0.001). Well-tolerated; nasopharyngitis most common AE.' Return null for ongoing or not-yet-recruiting trials, or if no results are publicly available."
   }}],
@@ -1368,7 +1411,9 @@ Return JSON with EXACTLY these fields:
     "primary_completion_date": "YYYY-MM-DD if known, else null",
     "study_acronym": "null or branded program acronym if known — e.g. 'U-ACHIEVE'",
     "source_url": "https://clinicaltrials.gov/study/NCTXXXXXXXX — always include the CTgov URL",
-    "estimand": "null or string: ICH E9(R1) estimand strategy for the primary endpoint — how intercurrent events are handled. Examples: 'Composite estimand — rescue medication or discontinuation = treatment failure', 'Treatment policy estimand'. Return null if not publicly specified."
+    "estimand": "null or string: ICH E9(R1) estimand strategy for the primary endpoint — how intercurrent events are handled. Examples: 'Composite estimand — rescue medication or discontinuation = treatment failure', 'Treatment policy estimand'. Return null if not publicly specified.",
+    "results_note": "null or string: key primary endpoint results — REQUIRED for any Completed or Terminated trial. 2-4 sentences. Include endpoint name, response/remission rate vs placebo with p-value if reported, and headline safety signal. Source from publications, conference abstracts, or ClinicalTrials.gov results posting."
+    "area_fit": "REQUIRED — same classification as trial_updates: 'primary' | 'secondary' | 'off_target' | 'exclude'",
   }}],
   "catalysts": [{{
     "catalyst_date": "Include specific day when known: 'April 28, 2028'. Use 'Q3 2026' or 'H2 2026' when only quarter/half known. Never just a year.",
@@ -1402,8 +1447,8 @@ Return JSON with EXACTLY these fields:
 
 RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id). EVERY drug in the DRUGS list must have an entry.
-- trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you find a study acronym. Skip trials where no branded acronym exists.
-- new_trials: use this to seed trials that are NOT already in the TRIALS list above. Only include trials you are confident exist on ClinicalTrials.gov (verified NCT ID). drug_id must exactly match a drug_id in the DRUGS list. If TRIALS already contains all known trials for these drugs, return []. Never fabricate NCT IDs.
+- trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you can provide at least one non-null field — a study acronym, updated status, updated primary_completion_date, estimand, or results_note. Skip a trial only if you have nothing new to add for any of those fields.
+- new_trials: use this to seed trials that are NOT already in the TRIALS list above. Only include trials you are confident exist on ClinicalTrials.gov (verified NCT ID). drug_id must exactly match a drug_id in the DRUGS list. Never fabricate NCT IDs. IMPORTANT: Do NOT assume the TRIALS list is complete. Actively search for earlier Phase 1 and Phase 2 trials (including completed and terminated studies) that preceded the current program — a drug in Phase 3 almost certainly ran a Phase 1 and/or Phase 2 first, and those trials may have published results that are not yet in the TRIALS list. The presence of active Phase 3 trials does NOT mean earlier trials have been captured. Only return [] if you have verified through web search that no additional trials exist for these drugs.
 - catalysts: only upcoming events (after {TODAY}). ONE entry per distinct event — do NOT duplicate: if multiple trials share the same primary completion date, create ONE catalyst entry for that readout, not one per trial. Deduplicate by event type + approximate date.
 - deal_updates: only match to EXISTING DEALS
 - combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
@@ -1496,13 +1541,47 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
 
     cp = data.get("company_profile", {})
     if cp:
+        # Validate structured intelligence fields are present
+        pi = cp.get("platform_intelligence") or {}
+        bi = cp.get("bd_intelligence") or {}
+
+        if not pi:
+            log("  ⚠ WARNING: platform_intelligence is null — model did not follow structured schema. "
+                "Check model output. Falling back to legacy text if present.", indent=1)
+        else:
+            # Evidence label compliance — direction bullets must start with [INFERRED],
+            # assessment must start with [ASSESSED]. Log warnings, don't block writes.
+            direction = pi.get("direction") or []
+            for i, bullet in enumerate(direction):
+                if isinstance(bullet, str) and not bullet.strip().startswith("[INFERRED]"):
+                    log(f"  ⚠ DATA QUALITY: platform_intelligence.direction[{i}] missing [INFERRED] label: "
+                        f"'{bullet[:80]}'", indent=1)
+            assessment = pi.get("assessment") or ""
+            if assessment and isinstance(assessment, str) and not assessment.strip().startswith("[ASSESSED]"):
+                log(f"  ⚠ DATA QUALITY: platform_intelligence.assessment missing [ASSESSED] label: "
+                    f"'{assessment[:80]}'", indent=1)
+            facts = pi.get("facts") or []
+            if not facts:
+                log("  ⚠ DATA QUALITY: platform_intelligence.facts is empty — no factual bullets written", indent=1)
+
+        if not bi:
+            log("  ⚠ WARNING: bd_intelligence is null — model did not follow structured schema. "
+                "Check model output.", indent=1)
+        else:
+            bd_assessments = bi.get("assessment") or []
+            for i, bullet in enumerate(bd_assessments):
+                if isinstance(bullet, str) and not bullet.strip().startswith("[ASSESSED]"):
+                    log(f"  ⚠ DATA QUALITY: bd_intelligence.assessment[{i}] missing [ASSESSED] label: "
+                        f"'{bullet[:80]}'", indent=1)
+
         profile_rec = {
             "company_id":       company_id,
             "area_id":          area_id,
             "last_enriched_at": NOW_ISO,
             "enriched_by":      "claude-intelligence-v2",
         }
-        for field in ["platform_summary","bd_summary","key_risk","why_it_matters",
+        for field in ["platform_intelligence","bd_intelligence",
+                      "platform_summary","bd_summary","key_risk","why_it_matters",
                       "vs_ailux","strategic_behavior","pipeline_url",
                       "market_cap_usd_m","cash_runway","financing_history","key_investors"]:
             if cp.get(field) is not None:
@@ -1639,6 +1718,8 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             "study_acronym":          nt.get("study_acronym") or None,
             "source_url":             nt.get("source_url") or None,
             "estimand":               nt.get("estimand") or None,
+            "results_note":           nt.get("results_note") or None,
+            "area_fit":               nt.get("area_fit") or None,
         }
         # Strip None values — only send fields with actual data
         trial_rec = {k: v for k, v in trial_rec.items() if v is not None}
@@ -1879,6 +1960,155 @@ def step6_deal_intelligence(company_id: str, area_id: str, ctx: dict,
     return new_deals
 
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# POST-ENRICHMENT COMPLETENESS SCORING
+#
+# Called after write_step5 completes. Computes a 0-100 score per company×area
+# based on the actual state of data after this enrichment run, and writes:
+#   company_profiles.completeness_score  — integer 0-100
+#   company_profiles.missing_fields      — jsonb list of field paths that are empty
+#   company_profiles.completeness_checked_at — timestamp of this scoring run
+#
+# Rubric (stage-aware, weights sum to 100):
+#   platform_intelligence present + non-empty  → 20 pts  (always)
+#   bd_intelligence present + non-empty        → 20 pts  (always)
+#   drugs[*].drug_summary all populated        → 15 pts  (always)
+#   drugs[*].key_data for Phase 2+ drugs       → 10 pts  (stage-gated)
+#   drugs[*].mechanism_detail all populated    → 10 pts  (always)
+#   ≥1 catalyst with source_url               → 10 pts  (always)
+#   key_risk + why_it_matters populated        → 10 pts  (always)
+#   overlap_rationale for Direct drugs         →  5 pts  (Direct competitors only)
+# ══════════════════════════════════════════════════════════════════════════
+
+def _score_company_completeness(company_id: str, area_id: str,
+                                 data: dict, ctx: dict) -> dict:
+    """
+    Compute completeness score and missing_fields for a company×area.
+    Merges newly-written data (from Claude's output) with pre-enrichment
+    context (ctx) to reflect the true post-run state without an extra DB read.
+    Returns {"score": int, "missing": list[str]}.
+    """
+    score = 0
+    missing = []
+
+    cp = data.get("company_profile", {}) or {}
+    existing_profile = ctx.get("profile", {}) or {}
+
+    # Prefer newly-written values; fall back to pre-run values
+    pi           = cp.get("platform_intelligence") or existing_profile.get("platform_intelligence") or {}
+    bi           = cp.get("bd_intelligence")       or existing_profile.get("bd_intelligence")       or {}
+    key_risk     = (cp.get("key_risk")       or existing_profile.get("key_risk")       or "").strip()
+    why_matters  = (cp.get("why_it_matters") or existing_profile.get("why_it_matters") or "").strip()
+
+    # ── 1. platform_intelligence (20 pts) ───────────────────────────────
+    pi_has_content = bool(pi.get("facts") or pi.get("direction") or pi.get("assessment"))
+    if pi_has_content:
+        score += 20
+    else:
+        missing.append("company_profiles.platform_intelligence")
+
+    # ── 2. bd_intelligence (20 pts) ─────────────────────────────────────
+    bi_has_content = bool(bi.get("transactions") or bi.get("assessment") or bi.get("profile"))
+    if bi_has_content:
+        score += 20
+    else:
+        missing.append("company_profiles.bd_intelligence")
+
+    # ── 3-5. Drug-level fields ───────────────────────────────────────────
+    # Build merged drug state: apply drug_updates on top of existing ctx drugs
+    drug_updates_by_id = {}
+    for du in data.get("drug_updates", []):
+        did = du.get("drug_id") or ""
+        if did:
+            drug_updates_by_id[did] = du
+
+    drugs = ctx.get("drugs", [])
+    LATE_STAGE_KEYS = {"Phase 2", "Phase 2/Phase 3", "Phase 3", "Approved"}
+
+    all_have_summary   = bool(drugs)   # false if no drugs at all
+    all_have_mechanism = bool(drugs)
+    late_stage_drugs   = []
+
+    for drug in drugs:
+        did   = drug.get("id", "")
+        du    = drug_updates_by_id.get(did, {})
+        stage = drug.get("stage") or ""
+
+        drug_summary    = (du.get("drug_summary")    or drug.get("drug_summary")    or "").strip()
+        mechanism_detail= (du.get("mechanism_detail") or drug.get("mechanism_detail") or "").strip()
+
+        if not drug_summary:
+            all_have_summary = False
+            missing.append(f"drugs.drug_summary[{did}]")
+        if not mechanism_detail:
+            all_have_mechanism = False
+            missing.append(f"drugs.mechanism_detail[{did}]")
+
+        if any(p in stage for p in LATE_STAGE_KEYS):
+            late_stage_drugs.append((did, du, drug))
+
+    # 3. drug_summary (15 pts)
+    if all_have_summary:
+        score += 15
+
+    # 4. key_data for Phase 2+ drugs (10 pts) — stage-gated
+    if late_stage_drugs:
+        all_have_key_data = True
+        for (did, du, drug) in late_stage_drugs:
+            key_data = (du.get("key_data") or drug.get("key_data") or "").strip()
+            if not key_data:
+                all_have_key_data = False
+                missing.append(f"drugs.key_data[{did}]")
+        if all_have_key_data:
+            score += 10
+    else:
+        score += 10  # no late-stage drugs; stage doesn't require key_data
+
+    # 5. mechanism_detail (10 pts)
+    if all_have_mechanism:
+        score += 10
+
+    # ── 6. Catalyst with source_url (10 pts) ────────────────────────────
+    existing_cats_with_url = [c for c in ctx.get("catalysts", []) if c.get("source_url")]
+    new_cats_with_url      = [c for c in data.get("catalysts", [])  if c.get("source_url")]
+    if existing_cats_with_url or new_cats_with_url:
+        score += 10
+    else:
+        missing.append("catalysts.source_url")
+
+    # ── 7. key_risk + why_it_matters (10 pts) ───────────────────────────
+    if key_risk and why_matters:
+        score += 10
+    else:
+        if not key_risk:
+            missing.append("company_profiles.key_risk")
+        if not why_matters:
+            missing.append("company_profiles.why_it_matters")
+
+    # ── 8. overlap_rationale for Direct drugs (5 pts) ───────────────────
+    direct_drugs = [
+        d for d in drugs
+        if (drug_updates_by_id.get(d.get("id",""), {}).get("overlap") or d.get("overlap")) == "Direct"
+    ]
+    if direct_drugs:
+        all_have_rationale = True
+        for drug in direct_drugs:
+            did = drug.get("id", "")
+            du  = drug_updates_by_id.get(did, {})
+            rationale = (du.get("overlap_rationale") or drug.get("overlap_rationale") or "").strip()
+            if not rationale:
+                all_have_rationale = False
+                missing.append(f"drugs.overlap_rationale[{did}]")
+        if all_have_rationale:
+            score += 5
+    else:
+        score += 5   # no Direct drugs → requirement doesn't apply
+
+    tier = "strong" if score >= 70 else ("partial" if score >= 40 else "thin")
+    return {"score": score, "tier": tier, "missing": list(dict.fromkeys(missing))}
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # PER-COMPANY ORCHESTRATION — Steps 4, 5, 6
 # ══════════════════════════════════════════════════════════════════════════
@@ -1958,6 +2188,26 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         return False
 
     write_step5(company_id, area_id, data, dry_run)
+
+    # POST-ENRICHMENT COMPLETENESS SCORING
+    log("  Completeness scoring...", indent=1)
+    cs = _score_company_completeness(company_id, area_id, data, ctx)
+    c_score  = cs["score"]
+    c_tier   = cs["tier"]
+    c_missing = cs["missing"]
+    log(f"  Score: {c_score}/100 ({c_tier}) | {len(c_missing)} missing field(s)", indent=1)
+    if c_missing:
+        log(f"    Missing: {', '.join(c_missing[:8])}", indent=2)
+    if not dry_run:
+        # Write score + missing_fields to company_profiles
+        # Profile row must exist (just written above) — safe to patch
+        ok = sb_patch("company_profiles", {
+            "completeness_score":      c_score,
+            "missing_fields":          c_missing,
+            "completeness_checked_at": NOW_ISO,
+        }, {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"})
+        if not ok:
+            log("  ⚠ completeness score patch failed — profile row may not exist yet", indent=1)
 
     # STEP 6: Deal intelligence
     log("STEP 6 — Deal intelligence...", indent=1)
