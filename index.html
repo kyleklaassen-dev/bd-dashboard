@@ -7878,16 +7878,28 @@ function _makeAreaPI(tabId, areaIds) {
       const el = document.getElementById(this.tabId + '-area-pi');
       if (!el || typeof _sb === "undefined") return;
       try {
-        const { data:rows, error } = await _sb
-          .from('drug_areas')
-          .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,companies(name,ticker))')
-          .in('area_id', this.areaIds);
+        // Fetch drugs and combo counts in parallel — both needed for accurate portfolio count
+        const [{ data:rows, error }, { data:comboRows }] = await Promise.all([
+          _sb.from('drug_areas')
+            .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,companies(name,ticker))')
+            .in('area_id', this.areaIds),
+          _sb.from('drug_combinations')
+            .select('company_id')
+            .in('area_id', this.areaIds),
+        ]);
         if (error) throw error;
+
+        // Build per-company combo count map so the collapsed row pill can show the real total
+        this.comboCountByCompany = {};
+        (comboRows||[]).forEach(c => {
+          this.comboCountByCompany[c.company_id] = (this.comboCountByCompany[c.company_id]||0) + 1;
+        });
 
         const seen = new Set();
         const drugs = (rows||[]).map(r=>r.drugs).filter(d=>d&&!seen.has(d.id)&&seen.add(d.id));
         this.data = drugs.map(d => ({
           id:          d.id,
+          company_id:  d.company_id,
           entity_id:   d.entity_id || d.company_id || d.id,
           entity_name: d.entity_name || d.companies?.name || d.company_id || '—',
           entity_type: d.entity_type || 'standalone',
@@ -7919,7 +7931,7 @@ function _makeAreaPI(tabId, areaIds) {
       for (const prog of this.data) {
         const eid = prog.entity_id;
         if (!map.has(eid)) {
-          map.set(eid, { entity_id:eid, entity_name:prog.entity_name, entity_type:prog.entity_type, co:prog.co, ticker:prog.ticker, programs:[] });
+          map.set(eid, { entity_id:eid, company_id:prog.company_id, entity_name:prog.entity_name, entity_type:prog.entity_type, co:prog.co, ticker:prog.ticker, programs:[] });
         }
         map.get(eid).programs.push(prog);
       }
@@ -7930,10 +7942,14 @@ function _makeAreaPI(tabId, areaIds) {
         const bestCls     = progs.reduce((b,p)=>(clsOrd[p.cls]??3)<(clsOrd[b]??3)?p.cls:b, progs[0]?.cls||'1st Gen');
         const bestOverlap = progs.reduce((b,p)=>(OV_ORDER[p.overlap]??9)<(OV_ORDER[b]??9)?p.overlap:b, progs[0]?.overlap||'Watch');
         const leadProg    = progs.find(p=>p.stageKey===bestStage)||progs[0];
+        // totalPortfolioCount = standalone drugs + combo programs — drives the "+N more" pill
+        const comboCount = this.comboCountByCompany?.[ent.company_id || ent.entity_id] || 0;
+        const totalPortfolioCount = progs.length + comboCount;
         return { ...ent, bestStage, bestCls, bestOverlap,
           target: leadProg?.target||'—',
           summary: progs.map(p=>p.summary).filter(Boolean)[0]||'',
-          stageDetail: leadProg?.stageDetail||'' };
+          stageDetail: leadProg?.stageDetail||'',
+          totalPortfolioCount };
       });
     },
 
@@ -8061,11 +8077,11 @@ function _makeAreaPI(tabId, areaIds) {
 
       const rows = sorted.map(ent => {
         const isExp = this.expanded.has(ent.entity_id);
-        // extraCount = programs.length (not -1): shows total additional programs including combos from DB.
-        // For a 3-program company with 1 combo → "+3 more" (FG-M701 shown + 3 additional = 4 total).
-        const extraCount = ent.programs.length;
-        const drugDisplay = ent.programs.length > 1
-          ? `<span class="pi-drug-name-sm">${ent.programs[0].name}</span><span class="pi-drug-name-sm" style="color:#64748b;font-style:italic;background:#f8fafc">+${extraCount} more</span>`
+        // totalPortfolioCount = standalone drugs + combo programs (from drug_combinations).
+        // Fetched live from Supabase so it automatically reflects any DB additions.
+        const total = ent.totalPortfolioCount || ent.programs.length;
+        const drugDisplay = total > 1
+          ? `<span class="pi-drug-name-sm">${ent.programs[0].name}</span><span class="pi-drug-name-sm" style="color:#64748b;font-style:italic;background:#f8fafc">+${total - 1} more</span>`
           : `<span class="pi-drug-name">${ent.programs[0]?.drug||'—'}</span>`;
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="6"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
