@@ -10244,7 +10244,7 @@ const tl1aPI = {
     const route   = t.route || d.route || '';
     const dosing  = t.dosing_type || d.dosing_type || '';
     const ep      = t.primary_endpoint || t.primary || '';
-    const results = t.results_summary || '';
+    const results = t.results_note || t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
     const countdownCell = _pcdCountdown(t, status);
