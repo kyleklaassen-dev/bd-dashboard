@@ -9432,13 +9432,6 @@ const tl1aPI = {
    const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials, combos };
    this._profileCache[id] = sbData;
 
-   // Fill partner pill in collapsed row (if span placeholder still exists)
-   const firstPartner = drugs?.[0]?.partner_company || null;
-   if (firstPartner) {
-    const pSpan = document.getElementById(`pi-partner-${id}`);
-    if (pSpan) pSpan.outerHTML = `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:6px;white-space:nowrap;vertical-align:middle">co-dev w/ ${firstPartner}</span>`;
-   }
-
    // Replace loading placeholder
    const target = document.getElementById(`pi-dyn-${id}`);
    if (target) target.outerHTML = this._genericDetailHTML(prog, sbData);
@@ -10368,15 +10361,9 @@ const tl1aPI = {
   const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay }) => {
    const isExp = this.expanded.has(gid);
    const noIntelDot = this._noIntelTickers.has(p.ticker) ? '<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>' : '';
-   // Partner pill in collapsed row — reads from DB cache if already loaded, else sets a placeholder span filled by _loadDynamicDetail
-   const _cachedPartner = this._profileCache[gid]?.drugs?.[0]?.partner_company || null;
-   const _partnerPillStyle = 'font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:6px;white-space:nowrap;vertical-align:middle';
-   const collapsedPartnerPill = _cachedPartner
-    ? `<span style="${_partnerPillStyle}">co-dev w/ ${_cachedPartner}</span>`
-    : `<span id="pi-partner-${gid}"></span>`;
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${gid}')">
     <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
-    <td style="font-size:12px">${drugDisplay}${collapsedPartnerPill}</td>
+    <td style="font-size:12px">${drugDisplay}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
     <td>${this._clsPill(p.cls)}</td>
     <td>${this._stagePill(bestStage)}</td>
