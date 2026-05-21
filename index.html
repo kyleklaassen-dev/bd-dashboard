@@ -9981,8 +9981,9 @@ const tl1aPI = {
    const drugTarget   = d.target || d.mechanism || prog.target || '—';
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
    const drugInd      = d.indication_short || 'UC · CD';
-   const partnerTag   = d._partnerCo
-    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap">co-dev w/ ${d._partnerCo}</span>`
+   const _partnerCo   = d._partnerCo || prog.partnerCo || null;
+   const partnerTag   = _partnerCo
+    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap">co-dev w/ ${_partnerCo}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
