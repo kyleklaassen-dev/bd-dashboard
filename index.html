@@ -9889,11 +9889,10 @@ const tl1aPI = {
     const clean = d.replace(/^\[INFERRED\]\s*/i,'');
     return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45"><span style="font-size:8px;font-weight:800;text-transform:uppercase;color:#6d28d9;background:#ede9fe;border-radius:3px;padding:0 4px;margin-right:4px;vertical-align:middle">Inferred</span>${clean}</li>`;
    }).join('');
-   const assessment = (pi.assessment||'').replace(/^\[ASSESSED\]\s*/i,'');
+   // Assessment is rendered at the top of the dropdown — omitted here
    return `<div>
     ${facts?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Facts</div><ul style="margin:0 0 8px 0;padding-left:14px">${facts}</ul>`:''}
     ${direction?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Direction</div><ul style="margin:0 0 8px 0;padding-left:14px">${direction}</ul>`:''}
-    ${assessment?`<div style="font-size:11px;color:#0f172a;font-weight:600;border-left:2px solid #7c3aed;padding-left:7px;margin-bottom:6px"><span style="font-size:8px;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-right:4px">Assessment</span>${assessment}</div>`:''}
     <div style="text-align:right;margin-top:2px">${_confBadge(pi.confidence)}</div>
    </div>`;
   };
@@ -9915,15 +9914,39 @@ const tl1aPI = {
       <span style="color:#1e293b">${t.asset||''}${t.partner?`<span style="color:#94a3b8"> · ${t.partner}</span>`:''}</span>
       <span style="color:#059669;font-weight:700;white-space:nowrap;font-size:10px">${t.total||t.upfront||''}</span>
      </div>`).join('');
-   const assessLines = (bd.assessment||[]).map(a => {
-    const clean = a.replace(/^\[ASSESSED\]\s*/i,'');
-    return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${clean}</li>`;
-   }).join('');
+   // BD assessment bullets are rendered in the top assessment card — omitted here
    return `<div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${profilePill}</div>
     ${txRows?`<div style="margin-bottom:8px">${txRows}</div>`:''}
-    ${assessLines?`<ul style="margin:0 0 6px 0;padding-left:14px">${assessLines}</ul>`:''}
     <div style="text-align:right;margin-top:2px">${_confBadge(bd.confidence)}</div>
+   </div>`;
+  };
+
+  // ── Top-level assessment card ────────────────────────────────────────────
+  const _renderAssessmentCard = (pi, bd) => {
+   const piAssess = (pi?.assessment||'').replace(/^\[ASSESSED\]\s*/i,'');
+   const bdAssess = (bd?.assessment||[]).map(a => a.replace(/^\[ASSESSED\]\s*/i,''));
+   const profileCfg = {
+    acquirer:         {label:'Acquirer',          bg:'#fef2f2',color:'#991b1b',border:'#fecaca'},
+    licensor:         {label:'Licensor',           bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+    collaborator:     {label:'Collaborator',       bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+    'partner-friendly':{label:'Partner-Friendly', bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+    'internal-focused':{label:'Internal-Focused', bg:'#f8fafc',color:'#475569',border:'#e2e8f0'},
+   };
+   const pcfg = bd?.profile ? (profileCfg[bd.profile] || {label:bd.profile,bg:'#f8fafc',color:'#475569',border:'#e2e8f0'}) : null;
+   const profilePill = pcfg
+    ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${pcfg.bg};color:${pcfg.color};border:1px solid ${pcfg.border};border-radius:8px;padding:2px 8px">${pcfg.label}</span>`
+    : '';
+   if (!piAssess && !bdAssess.length) return '';
+   const bdBullets = bdAssess.map(a =>
+    `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${a}</li>`).join('');
+   return `<div style="background:#faf9ff;border:1px solid #e9e5fb;border-radius:7px;padding:10px 12px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${piAssess||bdBullets?'7px':'0'}">
+     <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed">Assessment</span>
+     ${profilePill}
+    </div>
+    ${piAssess?`<p style="font-size:11.5px;color:#0f172a;font-weight:600;line-height:1.5;margin:0 0 ${bdBullets?'7px':'0'} 0;border-left:2px solid #7c3aed;padding-left:8px">${piAssess}</p>`:''}
+    ${bdBullets?`<ul style="margin:0;padding-left:14px">${bdBullets}</ul>`:''}
    </div>`;
   };
 
@@ -10627,6 +10650,7 @@ const tl1aPI = {
   }
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
+   ${_renderAssessmentCard(platformIntel, bdIntel)}
    ${drugSection}
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'}">
     ${(() => {
