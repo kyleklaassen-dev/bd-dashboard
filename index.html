@@ -9973,7 +9973,7 @@ const tl1aPI = {
     const comboTypeLabel = (combo.combination_type||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
     const hasBody   = combo.mechanism_detail || combo.drug_summary || comboTrials.length || combo.source_url;
     const comboDesc = combo.drug_summary || combo.mechanism_detail || '';
-    const comboDescStrip = comboDesc ? `<div class="pi-da-desc-strip">${comboDesc}</div>` : '';
+    const comboDescStrip = comboDesc ? `<div class="pi-da-desc-strip">${firstSentence(comboDesc)}</div>` : '';
     const comboSciText = firstSentence(combo.mechanism_detail || '');
     return `<div class="pi-da-row">
      <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
@@ -10021,9 +10021,13 @@ const tl1aPI = {
    const drugTarget   = cleanTarget(d.target || d.mechanism || prog.target || '—');
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
    const drugInd      = d.indication_short || 'UC · CD';
-   // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback
-   // prog.partnerCo is no longer the primary source — DB is authoritative
-   const _partnerCo   = d.partner_company || d._partnerCo || null;
+   // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
+   // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name
+   // (strips common legal suffixes so the pill stays concise).
+   const _trimLegal = s => s ? s.replace(/[,\s]+(Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim() : null;
+   const _partnerCo   = d.partner_company || d._partnerCo
+    || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
+    || null;
    const partnerTag   = _partnerCo
     ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap">co-dev w/ ${_partnerCo}</span>`
     : '';
@@ -10198,10 +10202,15 @@ const tl1aPI = {
     ${!hasInsight ? `<p class="pi-da-di-empty">Run enrichment to generate drug-level analysis.</p>` : ''}
    </div>`;
 
-   // Brief drug description shown across top of expanded body
+   // Brief drug description shown across top of expanded body — capped at first 2 sentences
    const descText = d.drug_summary || d.differentiation_thesis || '';
+   const _twoSentences = txt => {
+    if (!txt) return '';
+    const m = txt.match(/^(?:.+?[.!?](?:\s|$)){1,2}/);
+    return m ? m[0].trim() : (txt.length > 200 ? txt.slice(0,200).trim()+'…' : txt.trim());
+   };
    const descStrip = descText
-    ? `<div class="pi-da-desc-strip">${descText}</div>` : '';
+    ? `<div class="pi-da-desc-strip">${_twoSentences(descText)}</div>` : '';
 
    // Tier class: driven by drug.overlap (DB) or _overlap (static). Never inherits company-level.
    const _tierVal = (d.overlap||d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'');
