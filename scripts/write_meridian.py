@@ -52,7 +52,7 @@ AREA_NAMES = {
 
 
 # ── Fetch intel from Supabase ────────────────────────────────────────────────
-def fetch_recent_intel(hours_back=30):
+def fetch_recent_intel(hours_back=48):
     """Pull intel + area tags written in the last N hours."""
     cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours_back)).strftime("%Y-%m-%d")
     try:
@@ -170,23 +170,67 @@ def fetch_ailux_position():
         return []
 
 
-def fetch_recent_meridian_issues(n=3):
-    """Fetch recent Meridian issue titles to give the writer editorial continuity."""
+def fetch_recent_meridian_issues(n=7):
+    """Fetch recent Meridian issues for editorial continuity.
+    Returns title + intel_ids so we can surface what was covered and avoid repetition.
+    Skips today's issue if already present."""
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     try:
         r = requests.get(
             f"{SUPABASE_URL}/rest/v1/meridian_issues",
             headers=SB_HEADERS,
             params={
-                "select": "issue_date,title",
+                "select": "issue_date,title,intel_ids",
                 "order": "issue_date.desc",
-                "limit": str(n),
+                "limit": str(n + 1),
             },
         )
-        issues = r.json()
-        log(f"Fetched {len(issues)} recent Meridian issues for continuity")
+        issues = [i for i in r.json() if i.get("issue_date") != today][:n]
+        log(f"Fetched {len(issues)} prior Meridian issues for continuity")
         return issues
     except Exception as e:
         log(f"Recent issues fetch error: {e}")
+        return []
+
+
+def fetch_company_signals():
+    """Fetch current company-level intelligence bullets from the dashboard."""
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/company_signals",
+            headers=SB_HEADERS,
+            params={
+                "select": "company_id,signal_type,signal_text,sort_order",
+                "order": "company_id,sort_order",
+            },
+        )
+        signals = r.json()
+        log(f"Fetched {len(signals)} company signals")
+        return signals
+    except Exception as e:
+        log(f"Company signals fetch error: {e}")
+        return []
+
+
+def fetch_recent_trials():
+    """Fetch clinical trial records updated in the last 30 days."""
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/trials",
+            headers=SB_HEADERS,
+            params={
+                "select": "drug_id,nct_id,phase,status,enrollment,primary_completion,sponsor,indication,updated_at",
+                "updated_at": f"gte.{cutoff}T00:00:00",
+                "order": "updated_at.desc",
+                "limit": "60",
+            },
+        )
+        trials = r.json() if r.status_code == 200 else []
+        log(f"Fetched {len(trials)} recent trial records")
+        return trials
+    except Exception as e:
+        log(f"Trials fetch error: {e}")
         return []
 
 
@@ -329,15 +373,62 @@ BD PRIORITIES — what would actually move the needle for Ailux:
 
 
 def build_prior_coverage_block(recent_issues):
-    """Give the writer a sense of what was covered recently to avoid repetition."""
+    """Give the writer a sense of what was covered in prior issues for continuity."""
     if not recent_issues:
-        return "(No prior issue history available)"
-    lines = [f"  {i['issue_date']}: {i['title']}" for i in recent_issues]
-    return "Recent issues (avoid repeating without new development):\n" + "\n".join(lines)
+        return "(No prior issue history available — this is the first issue.)"
+    lines = []
+    for i in recent_issues:
+        intel_count = len(i.get("intel_ids") or [])
+        lines.append(f"  {i['issue_date']}: {i['title']} ({intel_count} intel items)")
+    return (
+        "PRIOR ISSUE HISTORY (build on themes; connect to new developments; don't repeat without new signal):\n"
+        + "\n".join(lines)
+    )
+
+
+def build_company_signals_block(signals):
+    """Format current company intelligence bullets for the writer.
+    Groups by company so the writer sees the full competitive posture of each player."""
+    if not signals:
+        return "(No company signals available)"
+    by_company = {}
+    for s in signals:
+        cid = s.get("company_id", "?")
+        by_company.setdefault(cid, []).append(s)
+    lines = ["CURRENT COMPANY INTELLIGENCE (from live dashboard company cards):"]
+    for company in sorted(by_company):
+        lines.append(f"\n{company.upper()}:")
+        for s in by_company[company]:
+            stype = s.get("signal_type", "?").upper()
+            lines.append(f"  [{stype}] {s.get('signal_text', '')}")
+    return "\n".join(lines)
+
+
+def build_trials_block(trials):
+    """Format recent trial updates for editorial context."""
+    if not trials:
+        return "(No recent trial updates)"
+    lines = ["RECENT CLINICAL TRIAL UPDATES (from dashboard trial tracker):"]
+    for t in trials[:30]:  # cap at 30 to avoid prompt bloat
+        drug   = t.get("drug_id", "?")
+        phase  = t.get("phase", "?")
+        status = t.get("status", "?")
+        ind    = t.get("indication", "")
+        nct    = t.get("nct_id", "")
+        comp   = t.get("primary_completion", "")
+        line   = f"  {drug} | Phase {phase} | {status} | {ind}"
+        if comp:
+            line += f" | completion: {comp}"
+        if nct:
+            line += f" | {nct}"
+        lines.append(line)
+    return "\n".join(lines)
 
 
 # ── System prompt (editorial identity) ──────────────────────────────────────
 SYSTEM_PROMPT = """You are the founding editor of The Meridian, a Monday–Saturday morning intelligence briefing published exclusively for the BD and strategy leadership of Ailux, an AI-native antibody design company.
+
+YOUR ROLE: The Meridian is the daily consolidation layer of the Ailux BD intelligence platform. Every piece of information flowing through the dashboard — company signals, clinical trial updates, deal activity, catalyst tracking, live intel — converges here. Your job is to synthesize all of it into a single coherent argument about what the competitive landscape looked like this morning, and what it means for Ailux's next 18 months.
 
 YOUR READERS: PhD scientists who have published in Nature and NEJM. BD professionals who have closed nine-figure deals. They have already read the press releases. They do not need definitions of mechanisms, trial designs, or deal structures. They need the interpretive layer — the argument beneath the news.
 
@@ -346,10 +437,14 @@ YOUR EDITORIAL STANDARD:
 - Never summarize what happened. Explain what it means and why it matters in the next 18 months.
 - The BD Lens is not "this is relevant to Ailux." It is the specific implication for positioning, deal optionality, combination thesis, asset pricing, or clinical strategy — written at deal-room precision.
 - When two stories connect non-obviously, make the connection explicit and argue it. That is where the value lives.
+- Draw threads across issues. If Monday covered a deal and today brings data from the same program, say so explicitly — this is how the briefing builds a living model of the landscape.
 - When the news is quiet, say what is conspicuously absent and why that itself is signal. A mechanism with no news for three weeks when competitors are typically active is information.
+- Company signals and trial status from the dashboard are primary inputs — they represent the accumulated intelligence state, not just today's news. Use them.
 - Be precise about mechanism. "IL-23 inhibition" is not acceptable. Specify the subunit, the pathway, the cell type, the downstream effect.
 - Do not write "it remains to be seen." That hedge belongs in investor presentations, not intelligence briefings.
 - Do not write "this space continues to evolve" or any equivalent platitude.
+
+SOURCE HIERARCHY: Endpoints News and Fierce Biotech are the primary trade sources. Direct company press releases are equally authoritative. When these sources conflict with secondary sources, prefer Endpoints/Fierce/company-direct. All factual claims must be hyperlinked to their source.
 
 TONE: The writing of a scientist who also reads The Economist and thinks like a portfolio manager. Authoritative. Precise. Intellectually engaged. Occasionally pointed when the evidence warrants it.
 
@@ -362,13 +457,16 @@ HARD PROHIBITIONS:
 # ── Pass 1: Editorial planning ───────────────────────────────────────────────
 PLAN_PROMPT = """Today is {date_long}.
 
-You are planning today's issue of The Meridian before writing it. Read all available intelligence carefully, then produce a tight editorial plan.
+You are planning today's issue of The Meridian before writing it. The Meridian is the daily consolidation layer of the Ailux BD intelligence platform — every signal flowing through the dashboard feeds this issue. Read all available intelligence carefully, then produce a tight editorial plan.
 
 INTELLIGENCE AVAILABLE:
 {intel_block}
 
 RECENT DEALS:
 {deals_block}
+
+COMPANY INTELLIGENCE (live dashboard state):
+{signals_block}
 
 PRIOR COVERAGE:
 {prior_block}
@@ -377,23 +475,26 @@ AILUX CONTEXT:
 {ailux_block}
 
 Your editorial plan must answer:
-1. THESIS: In one sentence, what is the single most important thing today's news collectively reveals about the competitive landscape? This becomes the editorial spine of the lede.
+1. THESIS: In one sentence, what is the single most important thing today's full intelligence picture reveals about the competitive landscape? This becomes the editorial spine of the lede.
 2. SIGNAL vs. NOISE: Which 3–5 items are genuinely significant and deserve analysis? Which are noise (announcements without substance, recycled data, obvious moves)?
-3. CONNECTIONS: Identify 1–3 non-obvious connections between separate items. What do they point to together that neither suggests alone?
+3. CONNECTIONS: Identify 1–3 non-obvious connections between separate items — including connections to prior issue themes. What do they point to together that neither suggests alone?
 4. BD IMPLICATIONS: What are the 2–3 most specific implications for Ailux's BD strategy — not "this is relevant" but the actual tactical or positional inference?
 5. ABSENCES: What notable development is conspicuously NOT in today's news that is worth flagging?
-6. SECTION PLAN: Which sections should appear today? (Lead is always present. Others: Mechanism Intelligence / Clinical Inflection Points / BD & Deal Watch / Regulatory Watch.) Omit sections with nothing substantive to say.
+6. CONTINUITY: Are there threads from prior issues that today's intelligence advances, resolves, or complicates? Name them.
+7. SECTION PLAN: Which sections should appear today? (Lead is always present. Others: Mechanism Intelligence / Clinical Inflection Points / BD & Deal Watch / Regulatory Watch.) Omit sections with nothing substantive to say.
 
-Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), sections (list of section names)."""
+Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), continuity_threads (list of strings), sections (list of section names)."""
 
 
 # ── Pass 2: Full draft ───────────────────────────────────────────────────────
 DRAFT_PROMPT = """Today is {date_long}. Write today's complete issue of The Meridian as a self-contained HTML document.
 
+The Meridian is the daily consolidation layer of the Ailux BD intelligence platform. It synthesizes every signal the platform has captured — live intel, company signals, trial updates, deals, catalysts — into a single coherent morning briefing. Use all of the data below.
+
 EDITORIAL PLAN (developed before writing — follow it):
 {plan_block}
 
-INTELLIGENCE:
+INTELLIGENCE (last 48 hours — primary sources: Endpoints News, Fierce Biotech, direct company press releases):
 {intel_block}
 
 RECENT DEALS (last 7 days):
@@ -401,6 +502,12 @@ RECENT DEALS (last 7 days):
 
 UPCOMING CATALYSTS:
 {catalysts_block}
+
+COMPANY INTELLIGENCE (live state from dashboard company cards):
+{signals_block}
+
+CLINICAL TRIAL TRACKER (recent updates from dashboard trial panel):
+{trials_block}
 
 AILUX CONTEXT:
 {ailux_block}
@@ -475,14 +582,16 @@ Return ONLY the HTML document. No markdown. No explanation outside the HTML."""
 
 
 # ── Generate HTML with Claude Opus (two passes) ──────────────────────────────
-def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block, prior_block):
+def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
+                             prior_block, signals_block=""):
     """Pass 1: produce a tight editorial plan before writing a word of prose."""
     prompt = PLAN_PROMPT.format(
-        date_long   = date_long,
-        intel_block  = intel_block,
-        deals_block  = deals_block,
-        ailux_block  = ailux_block,
-        prior_block  = prior_block,
+        date_long     = date_long,
+        intel_block   = intel_block,
+        deals_block   = deals_block,
+        ailux_block   = ailux_block,
+        prior_block   = prior_block,
+        signals_block = signals_block,
     )
     log("Pass 1 — generating editorial plan (Opus)…")
     resp = client.messages.create(
@@ -527,12 +636,17 @@ def format_plan_block(plan):
             lines.append(f"  • {imp}")
     if plan.get("absences"):
         lines.append(f"\nNOTABLE ABSENCE: {plan['absences']}")
+    if plan.get("continuity_threads"):
+        lines.append("\nCONTINUITY THREADS (connect today's issue to prior coverage):")
+        for t in plan["continuity_threads"]:
+            lines.append(f"  • {t}")
     if plan.get("sections"):
         lines.append(f"\nSECTIONS TO INCLUDE: {', '.join(plan['sections'])}")
     return "\n".join(lines)
 
 
-def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, recent_issues):
+def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
+                  recent_issues, company_signals, trials):
     now = datetime.datetime.utcnow()
     date_long     = now.strftime("%A, %B %-d, %Y")
     week_num      = now.isocalendar()[1]
@@ -546,9 +660,12 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, re
     catalysts_block = build_catalysts_block(catalysts)
     ailux_block     = build_ailux_block(ailux_positions)
     prior_block     = build_prior_coverage_block(recent_issues)
+    signals_block   = build_company_signals_block(company_signals)
+    trials_block    = build_trials_block(trials)
 
-    # Pass 1: editorial plan
-    plan = generate_editorial_plan(date_long, intel_block, deals_block, ailux_block, prior_block)
+    # Pass 1: editorial plan — includes company signals for landscape context
+    plan = generate_editorial_plan(date_long, intel_block, deals_block,
+                                   ailux_block, prior_block, signals_block)
     plan_block = format_plan_block(plan)
 
     # Pass 2: full draft
@@ -560,6 +677,8 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, re
         deals_block     = deals_block,
         catalysts_block = catalysts_block,
         ailux_block     = ailux_block,
+        signals_block   = signals_block,
+        trials_block    = trials_block,
     )
 
     log("Pass 2 — generating full Meridian draft (Opus)…")
@@ -680,25 +799,31 @@ def deploy_to_github(html_content, filename="meridian_today.html"):
 if __name__ == "__main__":
     log(f"=== Meridian Writer — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
 
-    # Fetch all data sources in parallel-ish order
-    intel          = fetch_recent_intel(hours_back=30)
-    deals          = fetch_recent_deals(days_back=7)
-    catalysts      = fetch_upcoming_catalysts()
+    # Fetch all data sources — the full dashboard state feeds the Meridian
+    intel            = fetch_recent_intel(hours_back=48)
+    deals            = fetch_recent_deals(days_back=7)
+    catalysts        = fetch_upcoming_catalysts()
     drugs, companies = fetch_drug_context()
     ailux_positions  = fetch_ailux_position()
-    recent_issues    = fetch_recent_meridian_issues(n=4)
+    recent_issues    = fetch_recent_meridian_issues(n=7)
+    company_signals  = fetch_company_signals()
+    trials           = fetch_recent_trials()
+
+    log(f"Data assembled: {len(intel)} intel · {len(deals)} deals · {len(catalysts)} catalysts · "
+        f"{len(company_signals)} signals · {len(trials)} trials · {len(recent_issues)} prior issues")
 
     if not intel:
         log("No intel found — writing placeholder issue.")
         html = (
             "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>The Meridian</title></head>"
             "<body><h1 style='color:#1a3f8f;font-family:Georgia,serif'>The Meridian</h1>"
-            f"<p style='font-family:Georgia,serif'>No significant biopharma intelligence collected in the last 24 hours "
+            f"<p style='font-family:Georgia,serif'>No significant biopharma intelligence collected in the last 48 hours "
             f"for today, {datetime.datetime.utcnow().strftime('%B %-d, %Y')}. "
             "Check back tomorrow.</p></body></html>"
         )
     else:
-        html = generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, recent_issues)
+        html = generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
+                             recent_issues, company_signals, trials)
 
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     save_to_supabase(html, intel, today)
