@@ -9855,26 +9855,34 @@ const tl1aPI = {
        : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
     const comboInd  = combo.indication_short || 'UC · CD';
-    // Extract target info from label parenthetical e.g. "FG-M701 + Skyrizi (TL1A × IL-23p19)" → "TL1A × IL-23p19"
+    // Display name: strip parenthetical so only drug names show e.g. "FG-M701 + Skyrizi"
+    const comboDisplayName = (combo.label||'').replace(/\s*\([^)]*\)\s*$/, '').trim() || combo.label || '—';
+    // Extract target from parenthetical e.g. "(TL1A × IL-23p19)" — strip trailing " combo" word if present
     const comboTargetMatch = (combo.label||'').match(/\(([^)]+)\)\s*$/);
-    const comboTarget = comboTargetMatch ? comboTargetMatch[1] : (combo.combination_type ? combo.combination_type.replace(/_/g,' ') : '');
-    const srcLink   = combo.source_url
-     ? `<a href="${combo.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#1d4ed8;font-size:9px;font-weight:700;text-decoration:none">↗</a>` : '';
-    const hasBody   = combo.mechanism_detail || combo.drug_summary || comboTrials.length;
+    const comboTargetRaw = comboTargetMatch ? comboTargetMatch[1] : (combo.combination_type ? combo.combination_type.replace(/_/g,' ') : '');
+    const comboTarget = comboTargetRaw.replace(/\s*combo\s*$/i, '').trim();
+    // Source link lives only in the accordion body, not the header
+    const comboBodySrcLink = combo.source_url
+     ? `<a href="${combo.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:11px;font-weight:700;text-decoration:none">Source ↗</a>` : '';
+    const comboTypeLabel = (combo.combination_type||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const hasBody   = combo.mechanism_detail || combo.drug_summary || comboTrials.length || combo.source_url;
     const comboDesc = combo.drug_summary || combo.mechanism_detail || '';
     const comboDescStrip = comboDesc ? `<div class="pi-da-desc-strip">${comboDesc}</div>` : '';
     const comboSciText = firstSentence(combo.mechanism_detail || '');
     return `<div class="pi-da-row">
      <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
       <span class="pi-da-toggle" style="${hasBody?'':'visibility:hidden'}">▶</span>
-      <span class="pi-da-name">${combo.label||'—'}</span>
+      <span class="pi-da-name">${comboDisplayName}</span>
       <span class="pi-da-mech">${comboTarget}</span>
-      <div class="pi-da-pills">${stagePill}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${comboInd}</span><span class="pi-da-tag">+</span>${srcLink}</div>
+      <div class="pi-da-pills">${stagePill}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${comboInd}</span></div>
      </div>
      ${hasBody?`<div class="pi-da-body">
       ${comboDescStrip}
       <div style="display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start">
-       <div>${comboTrialSection}</div>
+       <div>
+        ${comboTypeLabel?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:8px">${comboTypeLabel}${comboBodySrcLink?` · ${comboBodySrcLink}`:''}</div>`:(comboBodySrcLink?`<div style="margin-bottom:8px">${comboBodySrcLink}</div>`:'')}
+        ${comboTrialSection}
+       </div>
        <div class="pi-da-drug-insight">
         <div class="pi-da-di-hd">💡 Drug Intel</div>
         ${comboSciText?`<div class="pi-da-di-sect"><div class="pi-da-di-label">🔬 Science</div><p class="pi-da-di-text">${comboSciText}</p></div>`:`<p class="pi-da-di-empty">Combination program — no drug-level intel yet.</p>`}
