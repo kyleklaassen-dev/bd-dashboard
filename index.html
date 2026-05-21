@@ -9536,6 +9536,15 @@ const tl1aPI = {
     });
    } catch(_) {}
 
+   // Fetch combination trials (trials linked to a drug_combination, not a single drug)
+   try {
+    const comboIds = combos.map(c => c.id).filter(Boolean);
+    if (comboIds.length) {
+     const { data: comboTrialRows } = await _sb.from('trials').select('*').in('combination_id', comboIds);
+     if (comboTrialRows && comboTrialRows.length) trials.push(...comboTrialRows);
+    }
+   } catch(_) {}
+
    // Pass merged news (deals + intel items) as the "deals" array to the renderer
    // sbDealsAll = deals + financing rounds + press releases from intel table, sorted newest first
    const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials, combos };
