@@ -9402,8 +9402,8 @@ const tl1aPI = {
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
     <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${p.summary}</p></div>
     <div class="pi-detail-section"><h5>🤝 BD Summary</h5><p>Agenus spinout (Feb 2024); Agenus retained ~25% equity + tiered royalties. $783M raised (Series A: Farallon, Foresite, RA Capital + ATM) — cash runway into H2 2028. No pharma partners; deliberate pre-partnering strategy through Phase 2 data. Primary BD window: 2027 SKYLINE combination readouts (SPY120 · SPY130 · SPY230). Deal optionality: single-program licensing, indication-specific co-development, or full platform acquisition.</p></div>
-    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5><div style="${p.catalysts.length>5?'max-height:210px;overflow-y:auto;scrollbar-width:thin':''}"> ${cats}</div></div>
-    <div class="pi-detail-section"><h5>📰 Related News</h5><div style="${p.deals.length>5?'max-height:210px;overflow-y:auto;scrollbar-width:thin':''}">${deals}</div></div>
+    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5><div style="${p.catalysts.length>5?'max-height:120px;overflow-y:auto;scrollbar-width:thin':''}"> ${cats}</div></div>
+    <div class="pi-detail-section"><h5>📰 Related News</h5><div style="${p.deals.length>5?'max-height:120px;overflow-y:auto;scrollbar-width:thin':''}">${deals}</div></div>
     <div class="pi-detail-section"><h5>🔬 Active Clinical Trials</h5>${trialsHTML||'<p style="color:#94a3b8">No trials registered</p>'}</div>
     <div class="pi-detail-section"><h5>⚠️ Key Risk</h5><p>${p.risk}</p></div>
     <div class="pi-detail-section"><h5>💡 Why It Matters</h5><p>${p.diff}</p></div>
@@ -10324,7 +10324,7 @@ const tl1aPI = {
    const drugNewsSection = drugNewsItems.length ? (() => {
     const rows = drugNewsItems.map(n => renderNewsItem(n, true)).join('');
     const scrollStyle = drugNewsItems.length > 5
-     ? 'max-height:130px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+     ? 'max-height:120px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
      : '';
     const moreNote = drugNewsItems.length > 5
      ? `<span style="font-size:9px;color:#94a3b8;float:right">${drugNewsItems.length} items · scroll</span>` : '';
@@ -10452,7 +10452,7 @@ const tl1aPI = {
    }).join('');
    // 5 items visible, scroll reveals rest
    const scrollStyle = catItems.length > 5
-    ? 'max-height:175px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    ? 'max-height:120px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
    const countNote = catItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${catItems.length} upcoming · scroll for more</div>` : '';
@@ -10472,7 +10472,7 @@ const tl1aPI = {
    const newsRows = newsItems.map(d => renderNewsItem(d, true)).join('');
    // 5 items visible, scroll reveals rest
    const scrollStyle = newsItems.length > 5
-    ? 'max-height:145px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    ? 'max-height:120px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
    const countNote = newsItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${newsItems.length} items · scroll for more</div>` : '';
