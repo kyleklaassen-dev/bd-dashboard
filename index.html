@@ -632,6 +632,11 @@ body { padding-bottom:28px; }
 .meridian-reader-item { padding: 10px 12px; background: white; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #f5c842; font-size: 13px; color: #1a2e4a; line-height: 1.6; }
 .mr-top-item { background: #fffef5; box-shadow: 0 1px 3px rgba(245,200,66,0.15); }
 .meridian-reader-item strong { color: #1a2f50; }
+.mr-arch-item { padding:10px 16px; font-size:13px; color:#1a2e4a; cursor:pointer; transition:background 0.12s; border-bottom:1px solid #f1f5f9; line-height:1.4; }
+.mr-arch-item:last-child { border-bottom:none; }
+.mr-arch-item:hover { background:#f1f5f9; color:#2e6fb0; }
+.mr-arch-today { font-weight:700; color:#1a2f50; background:#fffbf0; border-bottom:2px solid #f5c842 !important; }
+.mr-arch-today:hover { background:#fff8e0 !important; color:#1a2f50 !important; }
 .mr-date { display: inline-block; font-size: 9.5px; font-weight: 700; background: #f1f5f9; color: #64748b; border-radius: 6px; padding: 1px 6px; margin-left: 7px; vertical-align: middle; white-space: nowrap; }
 .home-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
 .home-nav-btn { background: white; border: 1.5px solid #dde3ea; border-radius: 8px; padding: 14px 16px; cursor: pointer; text-align: left; transition: all 0.15s; }
@@ -3003,14 +3008,19 @@ function loadMoleculeTab(tabId) {
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-name" id="tab-current-name">Home</span>
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
- <!-- Meridian archive picker — shown only when on the meridian-issue tab -->
- <div id="meridian-tab-archive" style="display:none;align-items:center;gap:6px;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;" onclick="event.stopPropagation()">
-   <span style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Archive</span>
-   <span id="meridian-issue-count" style="display:none"></span>
-   <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
-     style="font-size:12px;border:1px solid #dde3ea;border-radius:6px;padding:3px 8px;color:#1a2e4a;background:white;cursor:pointer;min-width:180px;max-width:220px;">
-     <option>Loading…</option>
-   </select>
+ <!-- Meridian archive — shown only when on the meridian-issue tab -->
+ <div id="meridian-tab-archive" style="display:none;align-items:center;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;position:relative;" onclick="event.stopPropagation()">
+   <button id="meridian-archive-btn" onclick="toggleMeridianArchive(event)"
+     style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap;transition:all 0.15s;"
+     onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
+     onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">
+     Archive <span id="meridian-archive-chevron" style="font-size:8px;transition:transform 0.15s;display:inline-block;opacity:0.6">▾</span>
+   </button>
+   <div id="meridian-archive-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:300px;max-height:340px;overflow-y:auto;z-index:700;border:1px solid #dde3ea;">
+     <div id="meridian-archive-list" style="padding:4px 0">
+       <div class="mr-arch-item" style="color:#94a3b8;font-style:italic">Loading…</div>
+     </div>
+   </div>
  </div>
  <div class="center-drug-dd" id="center-drug-dd" onclick="event.stopPropagation()">
    <div class="nav-dd-item" onclick="navTo('tl1a')"><span class="nav-dd-target">TL1A × IL-23p19</span><span class="nav-dd-badge" style="background:#e8f0f8;color:#2e6fb0">IBD</span></div>
@@ -7896,15 +7906,16 @@ function _makeAreaPI(tabId, areaIds) {
     tabId, areaIds,
     data:[], entities:[], filteredEntities:[], expanded:new Set(),
     sortCol:'stage', sortDir:1, loaded:false,
+    _entityMeta: {},    // bulk meta: drugCount, indScope, activeTrials, nextCatalyst keyed by company_id
+    _profileCache: {},  // company_profiles keyed by entity_id — populated on expand (Stage 3)
 
     async init() {
       const el = document.getElementById(this.tabId + '-area-pi');
       if (!el || typeof _sb === "undefined") return;
       try {
-        // Fetch drugs and combo counts in parallel — both needed for accurate portfolio count
         const [{ data:rows, error }, { data:comboRows }] = await Promise.all([
           _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker))')
+            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker,status))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
@@ -7912,37 +7923,49 @@ function _makeAreaPI(tabId, areaIds) {
         ]);
         if (error) throw error;
 
-        // Build per-company combo count map so the collapsed row pill can show the real total
         this.comboCountByCompany = {};
         (comboRows||[]).forEach(c => {
           this.comboCountByCompany[c.company_id] = (this.comboCountByCompany[c.company_id]||0) + 1;
         });
 
         const seen = new Set();
-        const drugs = (rows||[]).map(r=>r.drugs).filter(d=>d&&!seen.has(d.id)&&seen.add(d.id));
+        const drugs = (rows||[]).map(r=>r.drugs).filter(d => {
+          if (!d || seen.has(d.id)) return false;
+          seen.add(d.id);
+          if (d.companies?.status === 'acquired') return false;
+          return true;
+        });
         this.data = drugs.map(d => ({
-          id:          d.id,
-          company_id:  d.company_id,
-          entity_id:   d.entity_id || d.company_id || d.id,
-          entity_name: d.entity_name || d.companies?.name || d.company_id || '—',
-          entity_type: d.entity_type || 'standalone',
-          co:          d.companies?.name || d.company_id || '—',
-          ticker:      d.companies?.ticker || '',
-          drug:        d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
-          name:        d.name,
-          target:      d.target || _piExtractTarget(d.mechanism) || '—',
-          mechanism:   d.mechanism || '',
-          cls:         d.cls || '1st Gen',
-          stageKey:    d.stage || 'Preclinical',
-          overlap:     d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
-          summary:     d.ailux_angle || d.key_data || '',
-          stageDetail: d.stage_detail || '',
+          id:                   d.id,
+          company_id:           d.company_id,
+          entity_id:            d.entity_id || d.company_id || d.id,
+          entity_name:          d.entity_name || d.companies?.name || d.company_id || '—',
+          entity_type:          d.entity_type || 'standalone',
+          co:                   d.companies?.name || d.company_id || '—',
+          ticker:               d.companies?.ticker || '',
+          drug:                 d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
+          name:                 d.name,
+          target:               d.target || _piExtractTarget(d.mechanism) || '—',
+          mechanism:            d.mechanism || '',
+          cls:                  d.cls || '1st Gen',
+          stageKey:             d.stage || 'Preclinical',
+          overlap:              d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
+          summary:              d.ailux_angle || d.key_data || '',
+          stageDetail:          d.stage_detail || '',
+          indication_short:     d.indication_short || '',
+          drug_summary:         d.drug_summary || '',
+          partner_company:      d.partner_company || null,
+          partnership_type:     d.partnership_type || null,
+          partnership_verified: d.partnership_verified ?? null,
+          licensor_name:        d.licensor_name || null,
+          licensor_code:        d.licensor_code || null,
         }));
         this._buildEntities();
         this.filteredEntities = [...this.entities];
         this.loaded = true;
         this._renderPills();
         this._renderTable();
+        this._loadEntityMeta(); // async — adds trials + catalysts + accurate counts
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -7965,15 +7988,81 @@ function _makeAreaPI(tabId, areaIds) {
         const bestCls     = progs.reduce((b,p)=>(clsOrd[p.cls]??3)<(clsOrd[b]??3)?p.cls:b, progs[0]?.cls||'1st Gen');
         const bestOverlap = progs.reduce((b,p)=>(OV_ORDER[p.overlap]??9)<(OV_ORDER[b]??9)?p.overlap:b, progs[0]?.overlap||'Watch');
         const leadProg    = progs.find(p=>p.stageKey===bestStage)||progs[0];
-        // totalPortfolioCount = standalone drugs + combo programs — drives the "+N more" pill
-        const comboCount = this.comboCountByCompany?.[ent.company_id || ent.entity_id] || 0;
+        const comboCount  = this.comboCountByCompany?.[ent.company_id || ent.entity_id] || 0;
         const totalPortfolioCount = progs.length + comboCount;
-        return { ...ent, bestStage, bestCls, bestOverlap,
+        const isTerminated = progs.every(p => p.stageKey === 'Terminated');
+        return { ...ent, bestStage, bestCls, bestOverlap, isTerminated,
           target: leadProg?.target||'—',
           summary: progs.map(p=>p.summary).filter(Boolean)[0]||'',
           stageDetail: leadProg?.stageDetail||'',
           totalPortfolioCount };
       });
+      this.entities.sort((a,b) => { if (a.isTerminated!==b.isTerminated) return a.isTerminated?1:-1; return 0; });
+    },
+
+    async _loadEntityMeta() {
+      if (!_sb) return;
+      try {
+        const companyIds = [...new Set(this.data.map(p => p.company_id).filter(Boolean))];
+        if (!companyIds.length) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const companySet = new Set(companyIds);
+
+        const [drugAreaRes, comboRes, catRes] = await Promise.all([
+          _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
+          _sb.from('drug_combinations').select('company_id').in('area_id', this.areaIds).limit(300),
+          _sb.from('catalysts').select('company_id,catalyst_date,sort_date').in('company_id', companyIds).eq('resolved', false).gte('sort_date', today).order('sort_date', { ascending: true }).limit(300),
+        ]);
+
+        const areaDrugs = (drugAreaRes.data||[]).map(r=>r.drugs).filter(d=>d && companySet.has(d.company_id));
+        const combos = (comboRes.data||[]).filter(c=>companySet.has(c.company_id));
+        const cats   = catRes.data || [];
+
+        const drugIds = areaDrugs.map(d=>d.id);
+        let trialRows = [];
+        if (drugIds.length) {
+          const { data: tr } = await _sb.from('trials').select('drug_id,status').in('drug_id', drugIds).ilike('status', '%recruit%').limit(500);
+          trialRows = tr || [];
+        }
+
+        const meta = {};
+        const drugToCompany = {};
+        areaDrugs.forEach(d => { drugToCompany[d.id] = d.company_id; });
+
+        areaDrugs.forEach(d => {
+          if (!meta[d.company_id]) meta[d.company_id] = { drugCount:0, indUC:false, indCD:false };
+          meta[d.company_id].drugCount++;
+          const ind = (d.indication_short||'').toUpperCase();
+          if (/\bUC\b/.test(ind)||ind.includes('ULCERATIVE')) meta[d.company_id].indUC = true;
+          if (/\bCD\b/.test(ind)||ind.includes('CROHN'))      meta[d.company_id].indCD = true;
+        });
+        combos.forEach(c => {
+          if (!meta[c.company_id]) meta[c.company_id] = { drugCount:0, indUC:false, indCD:false };
+          meta[c.company_id].drugCount++;
+        });
+        trialRows.forEach(t => {
+          const cid = drugToCompany[t.drug_id];
+          if (!cid) return;
+          if (!meta[cid]) meta[cid] = {};
+          meta[cid].activeTrials = (meta[cid].activeTrials||0) + 1;
+        });
+        const catSeen = new Set();
+        cats.forEach(c => {
+          if (!catSeen.has(c.company_id)) {
+            catSeen.add(c.company_id);
+            if (!meta[c.company_id]) meta[c.company_id] = {};
+            meta[c.company_id].nextCatalyst = c.sort_date || c.catalyst_date;
+          }
+        });
+        Object.keys(meta).forEach(cid => {
+          const m = meta[cid];
+          if (m.indUC && m.indCD) m.indScope = 'UC+CD';
+          else if (m.indUC)       m.indScope = 'UC';
+          else if (m.indCD)       m.indScope = 'CD';
+        });
+        this._entityMeta = meta;
+        this._renderTable();
+      } catch(e) { /* silent — rows render without meta tokens if fetch fails */ }
     },
 
     filter() {
@@ -8034,7 +8123,6 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     _clsPill(c)  {
-      // Normalize: accept any casing/alias → canonical label
       const norm={'1st gen':'1st Gen','2nd gen':'2nd Gen','next gen':'Next Gen','1stgen':'1st Gen','2ndgen':'2nd Gen','nextgen':'Next Gen'};
       const canon = norm[(c||'').toLowerCase()] || c || '1st Gen';
       const m={'1st Gen':'pi-cls-1st','2nd Gen':'pi-cls-2nd','Next Gen':'pi-cls-next'};
@@ -8042,7 +8130,6 @@ function _makeAreaPI(tabId, areaIds) {
     },
     _stagePill(s){ if(s==='Terminated') return `<span class="pi-stage-pill pi-stage-terminated">Terminated</span>`; const m={Approved:'pi-stage-approved','Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre',Preclinical:'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'}; const lbl={'Observational':'Obs.','Expanded Access':'Comp. Use'}; const cls=m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre'); return `<span class="pi-stage-pill ${cls}">${lbl[s]||s||'—'}</span>`; },
     _ovBadge(o)  {
-      // Normalize: accept any casing → canonical label
       const norm={direct:'Direct',adjacent:'Adjacent','same-space':'Same-Space','same_space':'Same-Space',samespace:'Same-Space',watch:'Watch'};
       const canon = norm[(o||'').toLowerCase()] || o || 'Watch';
       const m={Direct:'pi-overlap-direct',Adjacent:'pi-overlap-adjacent','Same-Space':'pi-overlap-same',Watch:'pi-overlap-watch'};
@@ -8055,6 +8142,7 @@ function _makeAreaPI(tabId, areaIds) {
       return `<span class="pi-etype-badge ${m[t]||''}">${l[t]||t}</span>`;
     },
 
+    // Stage 2 will replace this with the full drug accordion (trials, intel cards, etc.)
     _entityDetailHTML(ent) {
       let html = '';
       if (ent.programs.length > 1) {
@@ -8090,9 +8178,9 @@ function _makeAreaPI(tabId, areaIds) {
         if (typeof av==='string') return this.sortDir*av.localeCompare(bv);
         return this.sortDir*(av-bv);
       });
+      sorted.sort((a,b) => { if (a.isTerminated!==b.isTerminated) return a.isTerminated?1:-1; return 0; });
 
       if (cnt) cnt.textContent = `${sorted.length} entities`;
-
       if (!sorted.length) {
         el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">No programs match the current filters.</div>';
         return;
@@ -8100,41 +8188,68 @@ function _makeAreaPI(tabId, areaIds) {
 
       const rows = sorted.map(ent => {
         const isExp = this.expanded.has(ent.entity_id);
-        // totalPortfolioCount = standalone drugs + combo programs (from drug_combinations).
-        // Fetched live from Supabase so it automatically reflects any DB additions.
-        const total = ent.totalPortfolioCount || ent.programs.length;
-        // Pipeline cell: drug count only
-        const pipelineCell = `<span style="font-size:12px;font-weight:700;color:#1e3a5f">${total}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${total!==1?'s':''}</span>`;
-        // Indication cell: derive scope from programs
-        const inds = ent.programs.map(p => (p.indication_short||p.ind||'').toUpperCase()).join(' ');
-        const hasUC = inds.includes('UC') || inds.includes('ULCERATIVE');
-        const hasCD = inds.includes(' CD') || inds.includes('CROHN');
-        const indScope = hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+        const meta         = this._entityMeta?.[ent.company_id] || this._entityMeta?.[ent.entity_id] || {};
+        const drugCount    = meta.drugCount    != null ? meta.drugCount    : ent.totalPortfolioCount || ent.programs.length;
+        const activeTrials = meta.activeTrials != null ? meta.activeTrials : null;
+        const nextCat      = meta.nextCatalyst || null;
+
+        const indScope = meta.indScope || (() => {
+          const inds = ent.programs.map(p=>(p.indication_short||'').toUpperCase()).join(' ');
+          const hasUC = /\bUC\b/.test(inds)||inds.includes('ULCERATIVE');
+          const hasCD = /\bCD\b/.test(inds)||inds.includes('CROHN');
+          return hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+        })();
+
+        const trialsToken = activeTrials != null
+          ? `<span style="font-size:10px;color:#475569;white-space:nowrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:1px 5px;margin-left:4px">${activeTrials} trial${activeTrials!==1?'s':''}</span>`
+          : '';
+        const pipelineCell = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px"><span style="font-size:12px;font-weight:700;color:#1e3a5f">${drugCount}</span><span style="font-size:10px;color:#94a3b8;font-weight:400"> drug${drugCount!==1?'s':''}</span>${trialsToken}</div>`;
+
         const indCell = indScope
           ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700">${indScope}</span>`
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
-        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
+
+        const threatCell = ent.isTerminated
+          ? `<span style="color:#cbd5e1">—</span>`
+          : `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(ent.bestOverlap)}</div>`;
+
+        const catFmt = (() => {
+          if (!nextCat) return null;
+          if (/^\d{4}-\d{2}-\d{2}/.test(nextCat)) {
+            const d = new Date(nextCat + 'T12:00:00Z');
+            if (!isNaN(d)) return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          }
+          return nextCat;
+        })();
+        const catContent = catFmt
+          ? `<span style="font-size:9px;color:#b45309;font-weight:700;white-space:nowrap;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:2px 6px">${catFmt}</span>`
+          : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
+        const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
+
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="8"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><div class="pi-co-wrap"><strong class="pi-co-name">${ent.entity_name}</strong>${ent.ticker?`<span class="pi-ticker">${ent.ticker}</span>`:''}${this._etypeBadge(ent.entity_type)}</div></td>
+          <td><strong style="font-size:12px;color:#1e3a5f">${ent.entity_name}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
-          <td><span class="pi-target-text" style="font-size:11px;color:#475569">${ent.target}</span></td>
-          <td>${this._clsPill(ent.bestCls)}</td>
+          <td style="font-size:11px;color:#475569">${ent.target}</td>
+          <td>${ent.isTerminated ? '' : this._clsPill(ent.bestCls)}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
-          <td>${this._ovBadge(ent.bestOverlap)}<span class="pi-expand-icon${isExp?' open':''}">▼</span></td>
+          <td>${threatCell}</td>
+          <td>${catCell}</td>
         </tr>${expRow}`;
       }).join('');
 
       el.innerHTML = `<table class="pi-table">
-        <colgroup><col style="width:21%"><col style="width:11%"><col style="width:9%"><col style="width:18%"><col style="width:9%"><col style="width:11%"><col style="width:21%"></colgroup>
+        <colgroup><col style="width:19%"><col style="width:11%"><col style="width:8%"><col style="width:17%"><col style="width:8%"><col style="width:10%"><col style="width:13%"><col style="width:14%"></colgroup>
         <thead><tr>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
           <th>Pipeline</th>
           <th>Indication</th>
-          <th>Target</th>
+          <th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','cls')">Class</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Threat</th>
+          <th>Catalyst</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
