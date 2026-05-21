@@ -1236,7 +1236,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-detail-section p, .pi-detail-section li { font-size:11px;color:#334155;line-height:1.55;margin:0; }
 .pi-detail-section ul { margin:0;padding-left:14px; }
 .pi-detail-section li { margin-bottom:3px; }
-.pi-detail-cat-item { display:flex;gap:6px;margin-bottom:5px;font-size:11px; }
+.pi-detail-cat-item { display:flex;gap:6px;margin-bottom:5px;font-size:11px;overflow:hidden;align-items:center; }
 .pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px;min-width:72px;width:72px; }
 .pi-trial-row { padding:8px 10px;background:#f8fafc;border-radius:6px;margin-bottom:7px;border:1px solid #e2e8f0; }
 .pi-trial-row:last-child { margin-bottom:0; }
@@ -9861,13 +9861,14 @@ const tl1aPI = {
    // scrollable to 10. Single-line with exact date + clickable verified links.
    const drugNewsItems = sbDeals
     .filter(n => n.canonical_drug_id && (n.canonical_drug_id === d.id || n.canonical_drug_id === d.canonical_drug_id))
+    .filter(n => n.source_url || n.url)
     .slice(0, 10);
    const drugNewsSection = drugNewsItems.length ? (() => {
     const rows = drugNewsItems.map(n => renderNewsItem(n, true)).join('');
-    const scrollStyle = drugNewsItems.length > 3
-     ? 'max-height:78px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+    const scrollStyle = drugNewsItems.length > 5
+     ? 'max-height:130px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
      : '';
-    const moreNote = drugNewsItems.length > 3
+    const moreNote = drugNewsItems.length > 5
      ? `<span style="font-size:9px;color:#94a3b8;float:right">${drugNewsItems.length} items · scroll</span>` : '';
     return `<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:8px">
      <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:5px">📰 Related News${moreNote}</div>
@@ -9945,28 +9946,28 @@ const tl1aPI = {
    const prev     = _catSeen.get(key);
    if (!prev || (!prev.source_url && c.source_url)) _catSeen.set(key, c);
   });
-  const catItems = [..._catSeen.values()];
+  // Filter to items that have a hyperlink — every catalyst must be linkable
+  const catItems = [..._catSeen.values()].filter(c => c.source_url || c.url);
   if (catItems.length) {
    const catRows = catItems.map(c => {
     const isFromSb = sbCats.length > 0;
-    const date  = isFromSb ? (c.catalyst_date||'') : fmtExactDate(c.date||'');
-    const label = isFromSb ? (c.label||'') : (c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${c.event} ↗</a>` : (c.event||''));
-    const srcUrl = isFromSb ? (c.source_url||'') : (c.url||'');
+    const date     = fmtExactDate(isFromSb ? (c.catalyst_date||'') : (c.date||''));
+    const labelRaw = isFromSb ? (c.label||'') : (c.event||'');
+    const srcUrl   = isFromSb ? (c.source_url||'') : (c.url||'');
     const sigBadge = isFromSb && c.significance === 'high'
-     ? `<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Key</span>` : '';
-    const labelHtml = srcUrl
-     ? `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${label} ↗</a>${sigBadge}`
-     : `${label}${sigBadge}`;
-    return `<div class="pi-detail-cat-item">
+     ? `<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700;flex-shrink:0">Key</span>` : '';
+    const tooltipText = (c.notes||c.label||c.event||'').replace(/"/g,'&quot;');
+    const labelHtml = `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${labelRaw} ↗</a>${sigBadge}`;
+    return `<div class="pi-detail-cat-item" title="${tooltipText}" style="cursor:default">
       <span class="pi-detail-cat-date">${date}</span>
-      <span style="font-size:11.5px">${labelHtml}</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${labelHtml}</span>
      </div>`;
    }).join('');
-   // 3 items visible (~99px), scroll reveals rest
-   const scrollStyle = catItems.length > 3
-    ? 'max-height:105px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+   // 5 items visible, scroll reveals rest
+   const scrollStyle = catItems.length > 5
+    ? 'max-height:175px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
-   const countNote = catItems.length > 3
+   const countNote = catItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${catItems.length} upcoming · scroll for more</div>` : '';
    catsHTML = `${countNote}<div style="${scrollStyle}">${catRows}</div>`;
   } else {
@@ -9981,38 +9982,41 @@ const tl1aPI = {
                    regulatory:'🏥 Regulatory', clinical:'🔬 Clinical'};
   const renderNewsItem = (d, singleLine=false) => {
    // Prefer exact deal_date over deal_date_label (month-year only)
-   const date  = fmtExactDate(d.deal_date) || d.deal_date_label || d.date || '';
-   const title = d.headline || d.desc || '';
-   const url   = d.source_url || d.url || '';
-   const typeBadge = d.deal_type && typeMap[d.deal_type]
+   const date       = fmtExactDate(d.deal_date) || d.deal_date_label || d.date || '';
+   const title      = d.headline || d.desc || '';
+   const url        = d.source_url || d.url || '';
+   const tooltipRaw = d.body || d.headline || d.desc || '';
+   const tooltip    = tooltipRaw.replace(/"/g,'&quot;');
+   const typeBadge  = d.deal_type && typeMap[d.deal_type]
     ? `<span style="font-size:8px;background:#f0fdf4;color:#166534;border-radius:3px;padding:1px 4px;margin-right:4px;font-weight:700;white-space:nowrap;flex-shrink:0">${typeMap[d.deal_type]}</span>` : '';
-   const upfront = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px;white-space:nowrap;flex-shrink:0">$${d.upfront_usd_m}M</span>` : '';
-   const titleEl = url
-    ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;${singleLine?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0':''}">${title} ↗</a>`
-    : `<span style="${singleLine?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0':''}">${title}</span>`;
+   const upfront    = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px;white-space:nowrap;flex-shrink:0">$${d.upfront_usd_m}M</span>` : '';
    if (singleLine) {
-    return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f1f5f9;overflow:hidden;min-height:22px">
+    return `<div title="${tooltip}" style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f1f5f9;overflow:hidden;min-height:22px;cursor:default">
      <span style="font-size:9px;color:#64748b;white-space:nowrap;flex-shrink:0;font-weight:600;min-width:70px">${date}</span>
      ${typeBadge}
      <span style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${url?`<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`:title}</span>
      ${upfront}
     </div>`;
    }
-   return `<div class="pi-detail-cat-item">
+   const titleEl = url
+    ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title} ↗</a>`
+    : `<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title}</span>`;
+   return `<div class="pi-detail-cat-item" title="${tooltip}" style="cursor:default">
     <span class="pi-detail-cat-date">${date}</span>
-    <span style="font-size:11.5px">${typeBadge}${titleEl}${upfront}</span>
+    <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${typeBadge}${titleEl}${upfront}</span>
    </div>`;
   };
 
   let dealsHTML;
-  const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
+  // Filter to items with a hyperlink — every news item must be linkable
+  const newsItems = (sbDeals.length ? sbDeals : (prog.deals || [])).filter(d => d.source_url || d.url);
   if (newsItems.length) {
-   const newsRows = newsItems.map(d => renderNewsItem(d)).join('');
-   // 3 items visible (~99px), scroll reveals rest
-   const scrollStyle = newsItems.length > 3
-    ? 'max-height:105px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
+   const newsRows = newsItems.map(d => renderNewsItem(d, true)).join('');
+   // 5 items visible, scroll reveals rest
+   const scrollStyle = newsItems.length > 5
+    ? 'max-height:145px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
     : '';
-   const countNote = newsItems.length > 3
+   const countNote = newsItems.length > 5
     ? `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:4px">${newsItems.length} items · scroll for more</div>` : '';
    dealsHTML = `${countNote}<div style="${scrollStyle}">${newsRows}</div>`;
   } else {
