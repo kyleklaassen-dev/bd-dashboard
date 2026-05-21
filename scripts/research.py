@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
 Meridian Research Pipeline — GitHub Actions edition
-Fetches biopharma news from RSS feeds, extracts structured intel using
-Claude Haiku, writes to Supabase. Runs 4 AM ET Mon–Sat.
+Fetches biopharma news from RSS feeds, enriches high-priority articles with
+full-text content, extracts structured intel using Claude Sonnet (grounded in
+Ailux competitive context), and writes to Supabase.
+Runs 2:00 AM ET Mon–Sat (06:00 UTC).
 """
 
-import os, json, hashlib, datetime, time
+import os, json, hashlib, datetime, time, re
 import feedparser
 import requests
 import anthropic
+from bs4 import BeautifulSoup
 
 # ── Credentials ─────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
@@ -62,10 +65,112 @@ RSS_FEEDS = [
     "https://www.businesswire.com/rss/home/?rss=G7",
 ]
 
+# Sources that are worth fetching full-text for (paywalls aside)
+FULL_TEXT_SOURCES = {
+    "endpoints news", "stat news", "biopharmadive", "fierce biotech",
+    "nature medicine", "new england journal of medicine", "prnewswire",
+}
+
+# Title keywords that flag an article as high-priority for full-text fetch
+HIGH_PRIORITY_TITLE_KEYWORDS = [
+    "phase 3", "phase iii", "phase 2", "phase ii", "phase 1", "phase i",
+    "trial results", "data readout", "primary endpoint", "topline", "pivotal",
+    "approval", "approved", "fda", "ema", "bla", "nda", "breakthrough",
+    "acquisition", "acquires", "acquired", "merger",
+    "billion", "million deal", "license", "partnership", "co-develop",
+    "bispecific", "tl1a", "il-23", "tslp", "il-4r", "fcrn", "igf1r",
+]
+
+# Compact Ailux context for extraction — keeps the model grounded without
+# overloading the prompt (full context lives in write_meridian.py)
+AILUX_CONTEXT_COMPACT = """
+AILUX STRATEGIC CONTEXT (use to make body analysis specific, not generic):
+- Ailux lead asset: SPY002, TL1A × IL-23p19 bispecific antibody for IBD (UC + CD)
+- TL1A class: tulisokibart (Merck, Ph3 ATLAS-UC ~Nov 2026 readout) + afimkibart (Roche, Ph3 Jan 2027) are the class-defining monospecifics. Merck reads out first.
+- IL-23p19 class: risankizumab (AbbVie, approved), mirikizumab (Lilly, approved), guselkumab (J&J, CD Ph3). Proven SOC.
+- RO7837195 (Roche/Pfizer): IL-23p40 × TL1A bispecific — most direct competitor to SPY002; targets p40 (blocks both IL-12 + IL-23), unlike SPY002's p19 selectivity.
+- BD priorities: combination data showing bispecific superiority; deal structures signaling asset valuations; early-entry signals in less-crowded Ailux areas (IGF1R/TED, FcRn, TSLP, Treg).
+""".strip()
+
 
 def log(msg):
     ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
     print(f"[{ts}] {msg}")
+
+
+# ── Full-text fetching ───────────────────────────────────────────────────────
+def is_high_priority(article):
+    """Return True if this article warrants full-text fetching."""
+    title_lower = (article.get("title", "")).lower()
+    source_lower = (article.get("source", "")).lower()
+    title_hit = any(kw in title_lower for kw in HIGH_PRIORITY_TITLE_KEYWORDS)
+    source_hit = any(s in source_lower for s in FULL_TEXT_SOURCES)
+    return title_hit or source_hit
+
+
+def fetch_full_text(url, timeout=10):
+    """
+    Fetch and extract the main body text from an article URL.
+    Returns cleaned text string, or None on failure.
+    Caps output at 4000 chars to keep extraction prompts reasonable.
+    """
+    try:
+        resp = requests.get(
+            url,
+            headers={"User-Agent": "MeridianBot/2.0 (research pipeline; not archiving)"},
+            timeout=timeout,
+            allow_redirects=True,
+        )
+        if resp.status_code != 200:
+            return None
+        content_type = resp.headers.get("content-type", "")
+        if "html" not in content_type:
+            return None
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Remove noise elements
+        for tag in soup(["script", "style", "nav", "header", "footer",
+                         "aside", "form", "iframe", "noscript", "button"]):
+            tag.decompose()
+
+        # Try common article body selectors first
+        body_text = ""
+        for selector in ["article", '[class*="article-body"]', '[class*="content-body"]',
+                         "main", '[role="main"]', ".post-content", ".entry-content"]:
+            el = soup.select_one(selector)
+            if el:
+                body_text = el.get_text(separator=" ", strip=True)
+                break
+
+        if not body_text:
+            body_text = soup.get_text(separator=" ", strip=True)
+
+        # Clean whitespace
+        body_text = re.sub(r"\s+", " ", body_text).strip()
+        return body_text[:4000] if body_text else None
+
+    except Exception as e:
+        return None
+
+
+def enrich_with_full_text(articles, max_fetches=15):
+    """
+    For high-priority articles, fetch full text and store as article['full_text'].
+    Caps at max_fetches to keep the pipeline fast.
+    """
+    fetched = 0
+    for article in articles:
+        if fetched >= max_fetches:
+            break
+        if is_high_priority(article):
+            text = fetch_full_text(article["url"])
+            if text:
+                article["full_text"] = text
+                fetched += 1
+                log(f"  Full text fetched: {article['url'][:70]}… ({len(text)} chars)")
+            time.sleep(0.5)
+    log(f"Full-text enrichment: {fetched} articles fetched")
 
 
 # ── Step 1: Fetch feeds ──────────────────────────────────────────────────────
@@ -142,26 +247,34 @@ def get_existing_urls():
         return set()
 
 
-# ── Step 4: Extract intel with Claude Haiku ──────────────────────────────────
-EXTRACT_PROMPT = """You are an analyst for a biopharma BD intelligence platform tracking 6 focus areas:
+# ── Step 4: Extract intel with Claude Sonnet ─────────────────────────────────
+EXTRACT_PROMPT = """You are an analyst for a biopharma BD intelligence platform. Your extractions feed a daily briefing read by PhD scientists and senior BD professionals at Ailux — they already know the mechanisms and deal structures. The value you add is precision and strategic inference, not description.
+
+FOCUS AREAS:
 - tl1a: TL1A antibodies for IBD (UC + Crohn's)
 - tslp: TSLP antibodies for severe asthma / COPD
 - il4ra: IL-4Rα antibodies for atopic dermatitis / atopy
-- igf1r: IGF1R antibodies for thyroid eye disease
-- fcrn: FcRn inhibitors for autoimmune IgG diseases
-- tcell: T-cell engineering / Treg therapy for immune reset (SLE, myositis)
+- igf1r: IGF1R antibodies for thyroid eye disease (TED / Graves' orbitopathy)
+- fcrn: FcRn inhibitors for autoimmune IgG diseases (MG, pemphigus, CIDP)
+- tcell: T-cell engineering / Treg therapy for immune reset
 
-Analyze the articles below. For each that contains meaningful new intelligence relevant to one of these areas, extract a structured record.
+{ailux_context}
 
-ARTICLES:
+ARTICLES TO ANALYZE:
 {articles}
 
-Return a JSON array. Each object must have EXACTLY these fields:
+For each article with meaningful intelligence relevant to a focus area, extract one record.
+
+FIELD INSTRUCTIONS:
 - "area_id": one of: tl1a | tslp | il4ra | igf1r | fcrn | tcell
-- "intel_type": one of: news | data | deal | regulatory | conference
-- "importance": one of: high | medium | low
-- "headline": single sentence ≤120 chars — what happened
-- "body": 2-4 sentences — what happened, why it matters for BD strategy, what to watch
+- "intel_type": news | data | deal | regulatory | conference
+- "importance": high (Ph3 data/approval/major deal) | medium (Ph2/IND/partnership) | low (preclinical/minor)
+- "headline": ≤120 chars — state what happened, be specific (drug name, company, data readout, deal size)
+- "body": 3–5 sentences. Do NOT summarize the article. Instead:
+    (1) State the mechanistic or clinical fact precisely (which target, which endpoint, which patient population, what effect size if available).
+    (2) Explain what this changes in the competitive landscape — what was true before, what is now different.
+    (3) State the specific implication for the TL1A/bispecific/Ailux competitive thesis, or for the relevant Ailux focus area.
+    Write for readers who do not need definitions. Be precise. Be direct. No hedging language.
 - "source_url": exact article URL
 - "source_name": publication name
 - "intel_date": YYYY-MM-DD or null
@@ -172,54 +285,68 @@ Return a JSON array. Each object must have EXACTLY these fields:
 - "deal_to": licensor/target company name if is_deal else null
 - "deal_upfront_usd_m": upfront payment in USD millions (number or null)
 - "deal_total_usd_m": total deal value in USD millions including milestones (number or null)
-- "deal_type": one of acquisition | license | collab | option — or null
-- "has_catalyst": true if article mentions an upcoming clinical/regulatory event with a date
-- "catalyst_label": brief label for the catalyst event or null
+- "deal_type": acquisition | license | collab | option — or null
+- "has_catalyst": true if article mentions an upcoming clinical/regulatory event with a specific timeframe
+- "catalyst_label": specific label — drug name + event type + timeframe (e.g. "tulisokibart ATLAS-UC Ph3 primary ~Nov 2026")
 - "catalyst_date": approximate date string like "Q3 2026" or "Nov 2026" or null
-- "significance": high | medium | low (same as importance)
+- "significance": high | medium | low
 
-Importance guide: high=major deal/approval/Ph3 data, medium=Ph2/partnership/IND, low=preclinical/minor news
-Only include articles clearly relevant to the focus areas. Skip earnings/macro news unless it directly affects a focus area program.
-Return ONLY a valid JSON array, no markdown, no explanation."""
+Skip earnings calls, macro news, and speculative commentary with no new factual content.
+Skip articles where the focus-area relevance is tangential (e.g., a general immunology paper with no clinical or commercial implications for these programs).
+
+Return ONLY a valid JSON array. No markdown, no explanation, no wrapper text."""
 
 
 def extract_intel(articles):
     all_intel = []
-    batch_size = 8
+    batch_size = 6  # Smaller batches — Sonnet writes richer body text, needs more headroom
 
     for i in range(0, len(articles), batch_size):
         batch = articles[i:i + batch_size]
         batch_text = "\n\n---\n\n".join(
-            f"TITLE: {a['title']}\nURL: {a['url']}\nSOURCE: {a['source']}\n"
-            f"DATE: {a['published'] or 'unknown'}\nAREAS MATCHED: {', '.join(a['areas'])}\n"
-            f"SUMMARY: {a['summary']}"
-            for a in batch
+            _format_article_for_extraction(a) for a in batch
         )
 
         try:
             resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=4096,
-                messages=[{"role": "user", "content": EXTRACT_PROMPT.format(articles=batch_text)}],
+                model="claude-sonnet-4-6",
+                max_tokens=6000,
+                messages=[{"role": "user", "content": EXTRACT_PROMPT.format(
+                    articles=batch_text,
+                    ailux_context=AILUX_CONTEXT_COMPACT,
+                )}],
             )
             text = resp.content[0].text.strip()
             # Strip markdown fencing if present
             if "```" in text:
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
+                text = re.sub(r"^```[a-z]*\n?", "", text, flags=re.MULTILINE)
+                text = text.replace("```", "").strip()
             intel = json.loads(text)
             all_intel.extend(intel)
             log(f"  Batch {i // batch_size + 1}: extracted {len(intel)} items "
-                f"(${resp.usage.input_tokens/1e6*1:.4f} in / ${resp.usage.output_tokens/1e6*5:.4f} out)")
+                f"({resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out)")
         except json.JSONDecodeError as e:
             log(f"  JSON parse error batch {i // batch_size + 1}: {e}")
         except Exception as e:
             log(f"  Extraction error batch {i // batch_size + 1}: {e}")
-        time.sleep(0.5)
+        time.sleep(0.8)
 
     log(f"Total extracted: {len(all_intel)} intel items")
     return all_intel
+
+
+def _format_article_for_extraction(a):
+    """Format one article for the extraction prompt, preferring full_text over summary."""
+    content_label = "FULL TEXT" if a.get("full_text") else "SUMMARY"
+    content = a.get("full_text") or a.get("summary", "")
+    return (
+        f"TITLE: {a['title']}\n"
+        f"URL: {a['url']}\n"
+        f"SOURCE: {a['source']}\n"
+        f"DATE: {a['published'] or 'unknown'}\n"
+        f"AREAS MATCHED: {', '.join(a['areas'])}\n"
+        f"{content_label}: {content}"
+    )
 
 
 # ── Step 5: Write to Supabase ────────────────────────────────────────────────
@@ -407,6 +534,8 @@ if __name__ == "__main__":
         log(f"New (not in Supabase): {len(new_articles)} articles")
 
         if new_articles:
+            # Enrich high-priority articles with full body text before extraction
+            enrich_with_full_text(new_articles, max_fetches=15)
             intel = extract_intel(new_articles)
             if intel:
                 write_to_supabase(intel, company_map=company_map)
