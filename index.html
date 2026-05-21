@@ -7309,19 +7309,14 @@ function dknReset() {
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 40px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1200px;margin:0 auto;">
-    <!-- Archive header bar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:white;border-radius:10px 10px 0 0;border-bottom:2.5px solid #1a3f8f;">
-      <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;color:#1a3f8f;">
-        📰 The Meridian
-        <span style="font-size:11px;font-weight:700;color:#64748b;margin-left:10px;font-family:Calibri,Helvetica,sans-serif;letter-spacing:1.2px;text-transform:uppercase;">Issue Archive</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span id="meridian-issue-count" style="font-size:11px;color:#94a3b8;font-family:Calibri,Helvetica,sans-serif;"></span>
-        <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
-          style="font-size:13px;border:1px solid #cbd5e1;border-radius:6px;padding:6px 12px;color:#1a2e4a;background:white;cursor:pointer;min-width:240px;">
-          <option>Loading issues…</option>
-        </select>
-      </div>
+    <!-- Archive control bar — compact, right-aligned only -->
+    <div style="display:flex;align-items:center;justify-content:flex-end;padding:8px 16px;background:white;border-radius:10px 10px 0 0;border-bottom:2.5px solid #1a3f8f;gap:8px;">
+      <span style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;flex-shrink:0">Archive</span>
+      <span id="meridian-issue-count" style="font-size:10px;color:#b0bec5;font-family:Calibri,Helvetica,sans-serif;flex-shrink:0"></span>
+      <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
+        style="font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;color:#1a2e4a;background:white;cursor:pointer;min-width:190px;max-width:260px;">
+        <option>Loading…</option>
+      </select>
     </div>
     <!-- Issue viewer -->
     <div style="background:white;border-radius:0 0 10px 10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
@@ -7681,25 +7676,38 @@ async function loadMeridianIssue() {
       .select('id, issue_date, title')
       .order('issue_date', { ascending: false });
 
+    const today = new Date().toISOString().slice(0, 10);
+    const todayInDb = issues && issues.length > 0 && issues[0].issue_date === today;
+
+    // Build picker options — always offer archived past issues
+    const archiveIssues = (issues || []).filter(i => i.issue_date !== today);
+    const archiveOptions = archiveIssues.map(issue => {
+      const d     = new Date(issue.issue_date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      return `<option value="${issue.id}">${label}</option>`;
+    }).join('');
+
     if (!issues || issues.length === 0) {
-      // No archive yet — fall back to GitHub Pages live file
+      // No archive at all — load live file, show empty picker
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
-      picker.innerHTML = '<option>Today\'s Issue</option>';
+      picker.innerHTML = '<option value="__live__">Today\'s Issue (Live)</option>';
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    picker.innerHTML = issues.map(issue => {
-      const d     = new Date(issue.issue_date + 'T12:00:00');
+    if (todayInDb) {
+      // Today is in DB — today's option is first, rest are archive
+      const todayIssue = issues[0];
+      const d = new Date(todayIssue.issue_date + 'T12:00:00');
       const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-      const tag   = issue.issue_date === today ? ' — Today' : '';
-      return `<option value="${issue.id}">${label}${tag}</option>`;
-    }).join('');
-
-    if (counter) counter.textContent = `${issues.length} issue${issues.length !== 1 ? 's' : ''}`;
-
-    // Load the most recent issue
-    await renderMeridianIssue(issues[0].id);
+      picker.innerHTML = `<option value="${todayIssue.id}">${label} — Today</option>${archiveOptions}`;
+      if (counter) counter.textContent = `${archiveIssues.length} archived`;
+      await renderMeridianIssue(todayIssue.id);
+    } else {
+      // Today not in DB yet — load live file; archived issues available in picker
+      picker.innerHTML = `<option value="__live__">Today's Issue (Live)</option>${archiveOptions}`;
+      if (counter) counter.textContent = `${archiveIssues.length} archived`;
+      frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+    }
 
   } catch(e) {
     console.warn('[MERIDIAN:load]', e);
@@ -7709,7 +7717,13 @@ async function loadMeridianIssue() {
 
 async function renderMeridianIssue(issueId) {
   const frame = document.getElementById('meridian-issue-frame');
-  if (!frame || !_sb) return;
+  if (!frame) return;
+  // '__live__' means today's issue isn't in DB yet — load live file
+  if (issueId === '__live__') {
+    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+    return;
+  }
+  if (!_sb) return;
   frame.srcdoc = "<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading…</p>";
   try {
     const { data } = await _sb
