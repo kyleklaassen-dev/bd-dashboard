@@ -2919,15 +2919,6 @@ function loadMoleculeTab(tabId) {
 <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
  ＋ Submit Intel
  </button>
- <!-- Meridian archive picker — only visible when on the meridian-issue tab -->
- <div id="meridian-header-archive" style="display:none;align-items:center;gap:6px;border-left:1px solid rgba(255,255,255,0.2);padding-left:10px;">
-   <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Archive</span>
-   <span id="meridian-issue-count" style="font-size:10px;color:rgba(255,255,255,0.4);flex-shrink:0"></span>
-   <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
-     style="font-size:12px;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:3px 8px;color:#1a2e4a;background:white;cursor:pointer;min-width:190px;max-width:240px;">
-     <option>Loading…</option>
-   </select>
- </div>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
  <span id="last-updated-ts" data-ts="1778974468" style="font-size:11px;opacity:0.75"></span>
@@ -3012,6 +3003,15 @@ function loadMoleculeTab(tabId) {
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-name" id="tab-current-name">Home</span>
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
+ <!-- Meridian archive picker — shown only when on the meridian-issue tab -->
+ <div id="meridian-tab-archive" style="display:none;align-items:center;gap:6px;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;" onclick="event.stopPropagation()">
+   <span style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Archive</span>
+   <span id="meridian-issue-count" style="display:none"></span>
+   <select id="meridian-issue-picker" onchange="renderMeridianIssue(this.value)"
+     style="font-size:12px;border:1px solid #dde3ea;border-radius:6px;padding:3px 8px;color:#1a2e4a;background:white;cursor:pointer;min-width:180px;max-width:220px;">
+     <option>Loading…</option>
+   </select>
+ </div>
  <div class="center-drug-dd" id="center-drug-dd" onclick="event.stopPropagation()">
    <div class="nav-dd-item" onclick="navTo('tl1a')"><span class="nav-dd-target">TL1A × IL-23p19</span><span class="nav-dd-badge" style="background:#e8f0f8;color:#2e6fb0">IBD</span></div>
    <div class="nav-dd-item" onclick="navTo('tslp')"><span class="nav-dd-target">TSLP × IL-33</span><span class="nav-dd-badge" style="background:#e8f0f8;color:#2e6fb0">Respiratory</span></div>
@@ -7753,6 +7753,24 @@ async function loadMeridianIssue() {
 async function renderMeridianIssue(issueId) {
   const frame = document.getElementById('meridian-issue-frame');
   if (!frame) return;
+
+  // Sync the tab badge to the selected issue
+  try {
+    const picker = document.getElementById('meridian-issue-picker');
+    const badge  = document.querySelector('#tab-current-title .tab-current-badge');
+    if (badge && picker && picker.options.length) {
+      const sel = picker.options[picker.selectedIndex];
+      const txt = sel ? sel.textContent : '';
+      if (issueId === '__live__' || txt.includes('Today')) {
+        badge.textContent = "Today's Issue";
+      } else {
+        // "Thursday, May 21, 2026" → "May 21, 2026"
+        const m = txt.match(/(\w+ \d+, \d{4})/);
+        badge.textContent = m ? m[1] : txt.slice(0, 18);
+      }
+    }
+  } catch(_) {}
+
   // '__live__' means today's issue isn't in DB yet — load live file
   if (issueId === '__live__') {
     frame.removeAttribute('srcdoc'); frame.srcdoc = '';
@@ -7785,11 +7803,11 @@ function registerTab(id, hooks = {}) { TAB_REGISTRY[id] = hooks; }
 registerTab('meridian-issue', {
   onEnter() {
     loadMeridianIssue();
-    const arc = document.getElementById('meridian-header-archive');
+    const arc = document.getElementById('meridian-tab-archive');
     if (arc) arc.style.display = 'flex';
   },
   onLeave() {
-    const arc = document.getElementById('meridian-header-archive');
+    const arc = document.getElementById('meridian-tab-archive');
     if (arc) arc.style.display = 'none';
   }
 });
