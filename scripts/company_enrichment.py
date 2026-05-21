@@ -971,6 +971,15 @@ Return JSON with EXACTLY these fields:
     "strategic_signal": "1 sentence: what this deal signals",
     "ailux_relevance": "1 sentence: how this affects Ailux's BD strategy",
     "source_url": "REQUIRED — press release URL, SEC 8-K, or company IR page. Omit if not verified (never fabricate)."
+  }}],
+  "news_items": [{{
+    "intel_date": "YYYY-MM-DD — date of the news item. Use exact date from article; estimate from context if needed.",
+    "headline": "Concise factual headline ≤120 chars — what happened, who, and key number/outcome if applicable.",
+    "body": "2-4 sentences: what happened, key data or terms, and why it matters for Ailux's BD strategy. Include the pivotal stat or outcome if a readout.",
+    "source_url": "REQUIRED — exact URL of press release, IR page, or primary source. Never fabricate. Omit item if no verifiable URL.",
+    "source_name": "Publication or company IR name — e.g. 'AbbVie Press Release', 'FDA', 'NEJM', 'Fierce Biotech'",
+    "importance": "high (pivotal readout, major deal, approval) | medium (Phase 2 data, financing, partnership) | low (minor update, conference abstract)",
+    "intel_type": "data | deal | regulatory | financing | conference | partnership | management"
   }}]
 }}
 
@@ -980,6 +989,7 @@ RULES:
 - catalysts: only upcoming events (after {TODAY})
 - deal_updates: only match to EXISTING DEALS
 - combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
+- news_items: extract the 3-6 most significant recent news items from WEB INTELLIGENCE. Only include items with a verified source_url. If WEB INTELLIGENCE is empty, return []. Never fabricate articles. Prefer items from the past 12 months. Each item must have a real URL.
 - Return ONLY valid JSON. No markdown.
 - ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs.
 
@@ -1007,7 +1017,17 @@ STUDY ACRONYM GUIDANCE:
 Companies brand their clinical programs with memorable acronyms shown on their IR pages, ECCO/DDW posters, and press releases (e.g., Spyre uses "SKYLINE" for their TL1A program, AbbVie uses "U-ACHIEVE" for upadacitinib UC trials, J&J uses "PURSUIT" for guselkumab CD). Search the WEB INTELLIGENCE and known sources. ClinicalTrials.gov sometimes includes them in identificationModule.acronym — cross-reference if present in TRIALS list.
 
 APPROVED DRUG GUIDANCE:
-For any drug where stage contains "Approved", populate approval_date, annual_revenue, patient_population, and final_endpoints. Revenue figures come from company earnings reports; patient population from analyst estimates or company disclosures; pivotal endpoints from the registrational trial publication or FDA label."""
+For any drug where stage contains "Approved", populate approval_date, annual_revenue, patient_population, and final_endpoints. Revenue figures come from company earnings reports; patient population from analyst estimates or company disclosures; pivotal endpoints from the registrational trial publication or FDA label.
+
+NEWS ITEMS GUIDANCE:
+Extract 3-6 of the most significant recent news items found in WEB INTELLIGENCE. Prioritize:
+- Phase 2/3 trial readouts with data (always high importance)
+- New deals, partnerships, or licensing agreements (high if >$100M, else medium)
+- FDA/regulatory approvals, BTD, Priority Review, REMS (high importance)
+- New financings (medium, include amount)
+- Major conference presentations with data (medium)
+- Management changes, pipeline updates (low)
+Only include items with a real, verifiable URL you found in WEB INTELLIGENCE. Never fabricate URLs or articles. If WEB INTELLIGENCE is empty or contains no news with verifiable links, return []."""
 
 
 def parse_enrichment_response(text: str) -> Optional[dict]:
@@ -1169,6 +1189,51 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
                           {"headline": f"ilike.*{headline[:30]}*",
                            "company_id": f"eq.{company_id}"})
             log(f"  deal '{headline[:40]}': {'✓' if ok else '✗'}", indent=1)
+
+    # Write news items to intel + intel_companies junction
+    # Deduplicate by source_url — skip if already in DB
+    news_written = 0
+    for item in data.get("news_items", []):
+        source_url = (item.get("source_url") or "").strip()
+        headline   = (item.get("headline") or "").strip()
+        if not source_url or not headline:
+            continue  # require both — no unverified articles
+
+        # Deduplicate: skip if source_url already exists in intel
+        existing = sb_get("intel", {
+            "source_url": f"eq.{source_url}",
+            "select": "id",
+            "limit": "1",
+        })
+        if existing:
+            log(f"  news '{headline[:45]}': already in DB — skip", indent=1)
+            continue
+
+        intel_rec = {
+            "intel_date":  (item.get("intel_date") or TODAY),
+            "headline":    headline[:255],
+            "body":        (item.get("body") or "")[:2000],
+            "source_url":  source_url,
+            "source_name": (item.get("source_name") or "")[:100],
+            "importance":  item.get("importance") or "medium",
+            "intel_type":  item.get("intel_type") or "data",
+            "verified":    True,
+        }
+        result = sb_upsert("intel", intel_rec)
+        if result and isinstance(result, list) and result:
+            intel_id = result[0].get("id")
+            if intel_id:
+                # Tag to company via junction table
+                sb_upsert("intel_companies", {"intel_id": intel_id, "company_id": company_id})
+                news_written += 1
+                log(f"  news '{headline[:45]}': ✓ saved (id={intel_id})", indent=1)
+            else:
+                log(f"  news '{headline[:45]}': ✗ insert returned no id", indent=1)
+        else:
+            log(f"  news '{headline[:45]}': ✗ insert failed", indent=1)
+
+    if news_written:
+        log(f"  → {news_written} new intel item(s) saved for {company_id}", indent=1)
 
 
 # ══════════════════════════════════════════════════════════════════════════
