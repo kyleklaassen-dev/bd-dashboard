@@ -858,14 +858,21 @@ def run_sync(area_id: str = None, drug_filter: str = None,
 
     # ── Fetch drugs ───────────────────────────────────────────────────────
     if area_id:
-        # Get drug IDs linked to this area
+        # Fetch the indication_group for this area (e.g. tl1a → 'ibd').
+        # The frontend shows drugs tagged with the indication_group (e.g. all IBD drugs
+        # in the TL1A tab, not just TL1A-tagged ones). We mirror this so the trial sync
+        # covers the same drug set the dashboard displays.
+        area_meta = sb_get("disease_areas", {"id": f"eq.{area_id}", "select": "indication_group"})
+        indication_group = (area_meta[0].get("indication_group") if area_meta else None) or area_id
+        fetch_areas = list({area_id, indication_group})  # deduplicate
+
         drug_area_rows = sb_get("drug_areas", {
-            "area_id": f"eq.{area_id}",
+            "area_id": f"in.({','.join(fetch_areas)})",
             "select":  "drug_id",
         })
         drug_ids = [r["drug_id"] for r in drug_area_rows]
         if not drug_ids:
-            log(f"No drugs found for area '{area_id}'")
+            log(f"No drugs found for area '{area_id}' (+ ig='{indication_group}')")
             return
 
         drug_id_filter = ",".join(drug_ids)
