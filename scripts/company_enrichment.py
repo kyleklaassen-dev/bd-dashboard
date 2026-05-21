@@ -347,7 +347,18 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
     """
     Proactively discover new competitors via live web search, then diff against
     the existing Supabase entity list. Supplemented by recent in-DB intel.
-    Returns count of new entities created.
+
+    IMPORTANT: Discovered entities are NO LONGER auto-inserted into production tables.
+    Instead they are written to discovery_queue (status='pending') for manual review.
+    Only after human approval are they promoted to companies/drugs/company_areas.
+
+    Relevance scoring (1-10):
+      9-10 → Critical (Direct Mechanism or major Clinical Competition) → priority review
+      7-8  → Important (Layer 2/3, late-stage) → standard review
+      5-6  → Watch (early stage, emerging mechanism)
+      <5   → Low relevance → auto-archived, no queue notification
+
+    Returns count of items written to discovery_queue.
     """
     log(f"\n{'─'*50}")
     log(f"STEP 1 — Entity Discovery (area: {area_id})")
@@ -425,17 +436,30 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         "the acquirer. If the acquirer is NOT yet tracked, list the acquirer as the entity.\n"
         "Only set acquired_by if you are adding the company AND know it was acquired — this\n"
         "is rare (most of the time just skip the acquired company entirely).\n\n"
+        "COMPETITION LAYERS:\n"
+        "  layer 1 = Direct Mechanism (same target/class as the lead asset)\n"
+        "  layer 2 = Direct Clinical Competition (same indication/patient population, different mechanism)\n"
+        "  layer 3 = Strategic Threat (adjacent indication, platform breadth, or deal activity)\n\n"
+        "RELEVANCE SCORING (1-10):\n"
+        "  9-10 = Critical competitor (Direct Mechanism or major late-stage Clinical Competition)\n"
+        "  7-8  = Important (Layer 2/3 with Phase 2+ data in same patient population)\n"
+        "  5-6  = Watch (early stage, emerging mechanism, or adjacent indication)\n"
+        "  1-4  = Low relevance (very early, different patient population)\n\n"
         '{"new_entities": [{'
         '"company_name": "...", "drug_name": "... or null", "target": "...",'
         '"stage": "Phase 1|Phase 2|Phase 3|Pre-IND|Preclinical",'
         '"modality": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein|unknown",'
         '"route": "SC|IV|oral|unknown|null",'
-        '"entity_type": "platform|partnership|standalone|licensed",'
+        '"entity_type": "company|molecule|trial|deal|catalyst|article|evidence_item",'
         '"partner_co": "name of licensor/partner company or null",'
         '"acquired_by": "company_id of the acquirer if this entity was wholly acquired and no longer independent, else null",'
         '"overlap": "Direct|Adjacent|Same-Space|Watch",'
+        '"competition_layer": 1|2|3,'
+        '"relevance_score": 1-10,'
+        '"relevance_rationale": "why this score — patient population overlap, stage, mechanism",'
         '"confidence": 60-100,'
-        '"reason": "one sentence"'
+        '"reason": "one sentence — why this entity matters for this area",'
+        '"suggested_dest": "new_company|molecule_update|trial_update|deal_update|catalyst_update|evidence_update"'
         "}]}\n\n"
         'IF none found: {"new_entities": []}'
     )
@@ -461,129 +485,138 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         log("  No new entities found", indent=1)
         return 0
 
-    created = 0
+    queued = 0
     for ent in new_entities:
-        co_name    = ent.get("company_name", "")
-        drug_name  = ent.get("drug_name")
-        confidence = ent.get("confidence", 60)
-        stage      = ent.get("stage", "Preclinical")
-        target     = ent.get("target", "")
+        co_name          = ent.get("company_name", "")
+        drug_name        = ent.get("drug_name")
+        confidence       = int(ent.get("confidence", 60))
+        relevance_score  = int(ent.get("relevance_score", 5))
+        relevance_rat    = ent.get("relevance_rationale", "")
+        competition_lay  = ent.get("competition_layer") or None
+        overlap          = ent.get("overlap", "Watch")
+        entity_type      = ent.get("entity_type", "company")
+        reason           = ent.get("reason", "")
+        suggested_dest   = ent.get("suggested_dest", "new_company")
+        partner_co       = ent.get("partner_co") or None
+        acquired_by      = ent.get("acquired_by") or None
 
-        log(f"  → {co_name}/{drug_name} (conf={confidence}): {ent.get('reason','')}", indent=1)
+        # Normalize entity_type to discovery_queue CHECK constraint values
+        _valid_etypes = {"company","molecule","trial","deal","catalyst","article","evidence_item","poster"}
+        if entity_type not in _valid_etypes:
+            entity_type = "company"
+
+        log(
+            f"  → {co_name}/{drug_name} "
+            f"(conf={confidence} rel={relevance_score} layer={competition_lay}): {reason}",
+            indent=1
+        )
+
         if confidence < 70:
-            log(f"    ↷ Low confidence — skip", indent=2)
-            continue
-        if dry_run:
-            log(f"    [DRY RUN] Would create entity for {co_name}", indent=2)
+            log(f"    ↷ Low confidence ({confidence}) — skip", indent=2)
             continue
 
-        co_id = resolve_company_id(co_name, company_map)
-        if not co_id:
-            co_id = re.sub(r'[^a-z0-9]', '', co_name.lower())[:20]
-            # group_id defaults to co_id for newly discovered standalone entities.
-            # partner_co is set if the entity is a partnership (entity_type field from Claude).
-            partner_co   = ent.get("partner_co") or ent.get("partner") or None
-            acquired_by  = ent.get("acquired_by") or None   # set by discovery when company was wholly acquired
-            co_status    = "acquired" if acquired_by else "active"
-            sb_upsert("companies", {
-                "id":           co_id,
-                "name":         co_name,
-                "ticker":       "Private",
-                "company_type": "small_cap",
-                "group_id":     co_id,           # self-group by default
-                "display_co":   co_name,          # can be overridden manually later
-                "partner_co":   partner_co,       # populated if Claude finds a partner
-                "overlap":      ent.get("overlap", "Watch"),  # default Watch until enriched
-                "ailux_angle":  f"Newly discovered: {ent.get('reason','')}",
-                "last_verified": TODAY,
-                "status":       co_status,        # 'active' | 'acquired' — acquired hides from dashboard
-                "acquired_by":  acquired_by,      # company_id of the acquirer (e.g. 'merck')
+        if relevance_score < 5:
+            log(f"    ↷ Low relevance ({relevance_score}) — auto-archive", indent=2)
+            if not dry_run:
+                # Still record it so we have a history, but mark archived immediately
+                sb_post("discovery_queue", {
+                    "company_name":       co_name,
+                    "company_id_suggested": re.sub(r'[^a-z0-9]', '', co_name.lower())[:20],
+                    "drug_name":          drug_name,
+                    "target":             ent.get("target", ""),
+                    "stage":              ent.get("stage", "Preclinical"),
+                    "modality":           ent.get("modality") or None,
+                    "route":              ent.get("route") or None,
+                    "entity_type":        entity_type,
+                    "partner_co":         partner_co,
+                    "acquired_by":        acquired_by,
+                    "area_id":            area_id,
+                    "overlap":            overlap,
+                    "competition_layer":  competition_lay,
+                    "confidence_score":   confidence,
+                    "relevance_score":    relevance_score,
+                    "relevance_rationale": relevance_rat,
+                    "reason":             reason,
+                    "suggested_dest":     suggested_dest,
+                    "discovered_by":      "step1_discovery",
+                    "status":             "archived",
+                })
+            continue
+
+        # Check if this entity is already in the queue (pending or approved) to avoid duplicates
+        co_id_suggested = re.sub(r'[^a-z0-9]', '', co_name.lower())[:20]
+
+        # Check if already a first-class entity in the database
+        already_exists = bool(resolve_company_id(co_name, company_map))
+        if already_exists:
+            existing_area = sb_get("company_areas", {
+                "company_id": f"eq.{resolve_company_id(co_name, company_map)}",
+                "area_id":    f"eq.{area_id}",
+                "select":     "company_id"
             })
-            company_map[co_name.lower()] = co_id
-            log(f"    + Company: {co_id} status={co_status} partner={partner_co} acquired_by={acquired_by}", indent=2)
-            if co_status == "acquired":
-                log(f"    ⚠ {co_name} marked ACQUIRED by {acquired_by} — will not appear as dashboard entity", indent=2)
-                # Skip drug/trial creation — drug lives under acquirer's record
+            if existing_area:
+                log(f"    ↷ Already in DB as {resolve_company_id(co_name, company_map)} — skip queue", indent=2)
                 continue
 
-        existing_link = sb_get("company_areas", {
-            "company_id": f"eq.{co_id}", "area_id": f"eq.{area_id}", "select": "company_id"
+        # Check for duplicate pending entry in discovery_queue
+        dq_existing = sb_get("discovery_queue", {
+            "company_id_suggested": f"eq.{co_id_suggested}",
+            "area_id":              f"eq.{area_id}",
+            "status":               "in.(pending,approved)",
+            "select":               "id"
         })
-        if not existing_link:
-            sb_upsert("company_areas", {"company_id": co_id, "area_id": area_id})
-            # Also tag to indication_group area (e.g. 'ibd' for 'tl1a').
-            # Company eligibility for the TL1A tab is IBD-based, not TL1A-specific.
-            if indication_group != area_id:
-                sb_upsert("company_areas", {"company_id": co_id, "area_id": indication_group})
+        if dq_existing:
+            log(f"    ↷ Already in discovery_queue (pending/approved) — skip", indent=2)
+            continue
 
-        if drug_name:
-            drug_slug = re.sub(r'[^a-z0-9]', '-', drug_name.lower()).strip('-')
-            existing_drug = sb_get("drugs", {"id": f"eq.{drug_slug}", "select": "id"})
+        if dry_run:
+            log(f"    [DRY RUN] Would queue: {co_name} rel={relevance_score} layer={competition_lay}", indent=2)
+            queued += 1
+            continue
 
-            # ── Cross-company canonical collision check ──────────────────────
-            # Before creating a new drug, ask the identity resolver if this drug name
-            # already exists under a DIFFERENT company (e.g. PF-07261271 = afimkibart
-            # at Roche — same molecule, just renamed after acquisition).
-            # If a collision is detected, skip creation and log a warning.
-            if not existing_drug and resolver is not None:
-                try:
-                    resolved_canon, _conf, method = resolver.resolve(
-                        drug_name, source="step1_discovery"
-                    )
-                    if method in ("exact", "normalized"):
-                        # Canonical already exists — find which drug row owns it
-                        canon_drugs = sb_get("drugs", {
-                            "canonical_drug_id": f"eq.{resolved_canon}",
-                            "select": "id,company_id,name"
-                        })
-                        # Filter to drugs NOT belonging to the company we're processing
-                        collisions = [d for d in canon_drugs if d.get("company_id") != co_id]
-                        if collisions:
-                            existing_names = ", ".join(
-                                f"{d['id']} ({d.get('company_id','')})" for d in collisions
-                            )
-                            log(f"    ⚠ CROSS-COMPANY DUPLICATE DETECTED: '{drug_name}' resolves "
-                                f"to canonical {resolved_canon} (method={method}), already in DB as: "
-                                f"{existing_names}. This looks like a renamed/acquired drug. "
-                                f"Skipping — add licensor_code + partner_company to the lead drug "
-                                f"record manually or via enrichment.", indent=2)
-                            continue  # skip creating the duplicate drug
-                except Exception as e:
-                    log(f"    ↷ Resolver error during collision check: {e}", indent=2)
+        # Determine queue status based on relevance
+        # 9-10 → priority (still pending — needs human review but flagged urgent)
+        # 7-8  → standard pending
+        # 5-6  → watch
+        queue_status = "pending"
 
-            if not existing_drug:
-                _stage_to_expected = {
-                    "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
-                    "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
-                }
-                sb_upsert("drugs", {
-                    "id": drug_slug, "name": drug_name, "company_id": co_id,
-                    "entity_id": co_id, "entity_name": co_name,
-                    "entity_type": ent.get("entity_type", "standalone"),
-                    "stage": stage, "target": target,
-                    "mechanism": f"Anti-{target}" if target else None,
-                    "modality": ent.get("modality") or None,
-                    "drug_format": ent.get("modality") or None,
-                    "route": ent.get("route") or None,
-                    "cls": "Next Gen" if "×" in (target or "") else "1st Gen",
-                    "overlap": "Direct",
-                    "discovery_status": "auto",
-                    "confidence_score": confidence,
-                    "confidence_level": "inferred",
-                    "data_source": "claude_inferred",
-                    "expected_evidence_stage": _stage_to_expected.get(stage, 2),
-                    "sort_order": 99,
-                })
-                sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": area_id})
-                # Also tag to indication_group area (e.g. 'ibd') so drug shows in
-                # expanded rows for any company in that broader indication bucket.
-                if indication_group != area_id:
-                    sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": indication_group})
-                log(f"    + Drug: {drug_slug} (areas: {area_id}, {indication_group})", indent=2)
+        sb_post("discovery_queue", {
+            "company_name":         co_name,
+            "company_id_suggested": co_id_suggested,
+            "drug_name":            drug_name,
+            "target":               ent.get("target", ""),
+            "stage":                ent.get("stage", "Preclinical"),
+            "modality":             ent.get("modality") or None,
+            "route":                ent.get("route") or None,
+            "entity_type":          entity_type,
+            "partner_co":           partner_co,
+            "acquired_by":          acquired_by,
+            "area_id":              area_id,
+            "overlap":              overlap,
+            "competition_layer":    competition_lay,
+            "confidence_score":     confidence,
+            "relevance_score":      relevance_score,
+            "relevance_rationale":  relevance_rat,
+            "reason":               reason,
+            "suggested_dest":       suggested_dest,
+            "discovered_by":        "step1_discovery",
+            "status":               queue_status,
+        })
 
-        created += 1
+        priority_flag = " ⚡ PRIORITY" if relevance_score >= 9 else ""
+        log(
+            f"    → Queued in discovery_queue: {co_name} "
+            f"(rel={relevance_score} conf={confidence} layer={competition_lay}){priority_flag}",
+            indent=2
+        )
+        queued += 1
 
-    return created
+    if queued:
+        log(f"  Step 1 complete: {queued} candidates added to discovery_queue (pending review)", indent=1)
+    else:
+        log(f"  Step 1 complete: no new candidates queued", indent=1)
+
+    return queued
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -2543,7 +2576,7 @@ def run_intelligence_pipeline(area_id: str,
     # STEP 1: Entity Discovery (resolver passed for cross-company collision check)
     new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run,
                                                resolver=run_resolver)
-    log(f"Step 1 complete: {new_entities} new entities")
+    log(f"Step 1 complete: {new_entities} candidates queued to discovery_queue (pending review)")
 
     if discover_only:
         log("--discover-only: stopping after Step 1")
