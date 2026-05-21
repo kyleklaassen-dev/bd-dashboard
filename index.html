@@ -10155,12 +10155,20 @@ const tl1aPI = {
        : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
     const comboInd  = _abbrevInd(combo.indication_short) || 'UC · CD';
-    // Display name: strip parenthetical so only drug names show e.g. "FG-M701 + Skyrizi"
-    const comboDisplayName = (combo.label||'').replace(/\s*\([^)]*\)\s*$/, '').trim() || combo.label || '—';
-    // Extract target from parenthetical e.g. "(TL1A × IL-23p19)" — strip trailing " combo" word if present
-    const comboTargetMatch = (combo.label||'').match(/\(([^)]+)\)\s*$/);
-    const comboTargetRaw = comboTargetMatch ? comboTargetMatch[1] : (combo.combination_type ? combo.combination_type.replace(/_/g,' ') : '');
-    const comboTarget = comboTargetRaw.replace(/\s*combo\s*$/i, '').trim();
+    // Display name: drug names only — strip em-dash suffix, parenthetical targets, and leading "CODE: " prefix
+    // e.g. "SPY230: SPY002 + SPY003 (TL1A + IL-23p19) — SKYLINE Part B" → "SPY002 + SPY003"
+    const comboDisplayName = (combo.label||'')
+      .replace(/\s+[—–-]{1,2}\s+.*$/, '')  // strip " — SKYLINE Part B" and similar
+      .replace(/\s*\([^)]*\)\s*$/, '')      // strip trailing "(targets)"
+      .replace(/^[A-Za-z0-9]+:\s+/, '')     // strip "SPY230: " or "CODE: " prefix
+      .trim() || combo.label || '—';
+    // Extract targets from ANY parenthetical in label — not just trailing, handles "(...) — suffix" format
+    const comboTargetMatch = (combo.label||'').match(/\(([^)]+)\)/);
+    const comboTargetRaw = comboTargetMatch ? comboTargetMatch[1] : '';
+    const comboTarget = comboTargetRaw
+      .replace(/\s*(?:sequential\s+)?combo\s*$/i, '')
+      .replace(/\s+sequential\s*$/i, '')
+      .trim();
     // Source link lives only in the accordion body, not the header
     const comboBodySrcLink = combo.source_url
      ? `<a href="${combo.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:11px;font-weight:700;text-decoration:none">Source ↗</a>` : '';
@@ -10434,7 +10442,7 @@ const tl1aPI = {
      <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div style="display:flex;align-items:flex-start">${this._clsPill(d.cls||d.class_level||p.cls||'')}</div>
+     <div style="display:flex;align-items:flex-start">${this._clsPill(d.cls||d.class_level||'')}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
