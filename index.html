@@ -7699,6 +7699,7 @@ async function loadMeridianIssue() {
 
     if (!issues || issues.length === 0) {
       // No archive at all — load live file, show empty picker
+      frame.removeAttribute('srcdoc'); frame.srcdoc = '';
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
       picker.innerHTML = '<option value="__live__">Today\'s Issue (Live)</option>';
       return;
@@ -7716,11 +7717,13 @@ async function loadMeridianIssue() {
       // Today not in DB yet — load live file; archived issues available in picker
       picker.innerHTML = `<option value="__live__">Today's Issue (Live)</option>${archiveOptions}`;
       if (counter) counter.textContent = `${archiveIssues.length} archived`;
+      frame.removeAttribute('srcdoc'); frame.srcdoc = '';
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
     }
 
   } catch(e) {
     console.warn('[MERIDIAN:load]', e);
+    frame.removeAttribute('srcdoc'); frame.srcdoc = '';
     frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
   }
 }
@@ -7730,6 +7733,7 @@ async function renderMeridianIssue(issueId) {
   if (!frame) return;
   // '__live__' means today's issue isn't in DB yet — load live file
   if (issueId === '__live__') {
+    frame.removeAttribute('srcdoc'); frame.srcdoc = '';
     frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
     return;
   }
@@ -9735,12 +9739,12 @@ const tl1aPI = {
   };
 
   // ── Build trials index by drug_id ───────────────────────────────────────
-  // IMPORTANT: Only fall back to static prog.trials when there are NO Supabase drugs.
-  // If Supabase drugs are loaded but trials haven't synced yet, use an empty list —
-  // never spill static trials across all drug rows of a multi-drug entity.
+  // Always fall back to static prog.trials when DB trials are empty.
+  // When sbTrials is empty and static trials key as '__all__', the drugTrials
+  // assignment below pins them to the first drug to avoid cross-row spillage.
   const trialsByDrug = {};
   const allTrials = sbTrials.length ? sbTrials
-    : (!sbDrugs.length ? (prog.trials||[]).map(t=>({...t, id:t.id||t.nct})) : []);
+    : (prog.trials||[]).map(t=>({...t, id:t.id||t.nct}));
   allTrials.forEach(t => {
    const key = t.drug_id || t.canonical_drug_id || '__all__';
    (trialsByDrug[key] = trialsByDrug[key] || []).push(t);
@@ -9774,7 +9778,8 @@ const tl1aPI = {
    // Use __all__ only when there's a single drug (no ambiguity about ownership).
    // For static fallback rows, prefer the per-entry _staticTrials if set.
    const drugTrials = trialsByDrug[d.id] || trialsByDrug[d.canonical_drug_id]
-     || (drugsToRender.length <= 1 ? (trialsByDrug['__all__'] || []) : [])
+     || ((drugsToRender.length <= 1 || (!sbTrials.length && drugsToRender.indexOf(d) === 0))
+       ? (trialsByDrug['__all__'] || []) : [])
      || (d._staticTrials ? d._staticTrials.map(t=>({...t,id:t.id||t.nct})) : []);
    const resolvedTrials = drugTrials.length ? drugTrials
      : (d._staticTrials ? d._staticTrials.map(t=>({...t,id:t.id||t.nct})) : []);
