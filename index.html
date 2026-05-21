@@ -10184,10 +10184,10 @@ const tl1aPI = {
    return `<div class="pi-da-row${isDirect?' pi-da-direct':''}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
+     <div style="display:flex;align-items:center;gap:5px;min-width:0;flex-shrink:1"><span class="pi-da-name">${d.display_name||d.name||'—'}</span>${partnerTag}</div>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${partnerTag}${overlapTag}</div>
+     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${overlapTag}</div>
     </div>
     <div class="pi-da-body">
      ${descStrip}
