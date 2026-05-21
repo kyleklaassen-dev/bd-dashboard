@@ -1278,14 +1278,6 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 140px 48px 70px 36px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 /* Drug description strip — full-width bar shown when drug accordion opens */
 .pi-da-desc-strip{font-size:11px;color:#475569;line-height:1.55;padding:8px 12px 10px;border-bottom:1px solid #e8edf3;background:#fafbfc;margin-bottom:10px;border-radius:4px}
-/* Drug insight panel (right side of drug accordion body) */
-.pi-da-drug-insight{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:11px 13px;align-self:start}
-.pi-da-di-hd{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:9px;display:flex;align-items:center;gap:5px}
-.pi-da-di-sect{margin-bottom:9px}
-.pi-da-di-sect:last-child{margin-bottom:0}
-.pi-da-di-label{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:3px}
-.pi-da-di-text{font-size:10.5px;color:#334155;line-height:1.6;margin:0}
-.pi-da-di-empty{font-size:10.5px;color:#94a3b8;font-style:italic;margin:0}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
 .pi-nct-a:hover{text-decoration:underline}
 .pi-tr-acronym-cell{display:flex;align-items:center;min-width:0}
@@ -10011,7 +10003,7 @@ const tl1aPI = {
     const hasBody   = combo.mechanism_detail || combo.drug_summary || comboTrials.length || combo.source_url;
     const comboDesc = combo.drug_summary || combo.mechanism_detail || '';
     const comboDescStrip = comboDesc ? `<div class="pi-da-desc-strip">${firstSentence(comboDesc)}</div>` : '';
-    const comboSciText = firstSentence(combo.mechanism_detail || '');
+
     return `<div class="pi-da-row">
      <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
       <span class="pi-da-toggle" style="${hasBody?'':'visibility:hidden'}">▶</span>
@@ -10023,15 +10015,9 @@ const tl1aPI = {
      </div>
      ${hasBody?`<div class="pi-da-body">
       ${comboDescStrip}
-      <div style="display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start">
-       <div>
-        ${comboTypeLabel?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:8px">${comboTypeLabel}${comboBodySrcLink?` · ${comboBodySrcLink}`:''}</div>`:(comboBodySrcLink?`<div style="margin-bottom:8px">${comboBodySrcLink}</div>`:'')}
-        ${comboTrialSection}
-       </div>
-       <div class="pi-da-drug-insight">
-        <div class="pi-da-di-hd">💡 Drug Intel</div>
-        ${comboSciText?`<div class="pi-da-di-sect"><div class="pi-da-di-label">🔬 Science</div><p class="pi-da-di-text">${comboSciText}</p></div>`:`<p class="pi-da-di-empty">Combination program — no drug-level intel yet.</p>`}
-       </div>
+      <div>
+       ${comboTypeLabel?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:8px">${comboTypeLabel}${comboBodySrcLink?` · ${comboBodySrcLink}`:''}</div>`:(comboBodySrcLink?`<div style="margin-bottom:8px">${comboBodySrcLink}</div>`:'')}
+       ${comboTrialSection}
       </div>
      </div>`:''}
     </div>`;
@@ -10243,22 +10229,6 @@ const tl1aPI = {
     </div>`;
    })() : '';
 
-   // ── Drug insight panel (right column) ─────────────────────────────────
-   const sciText = firstSentence(d.differentiation_thesis || d.key_data || '');
-   const bdText  = firstSentence(d.strategic_role || '');
-   const hasInsight = sciText || bdText;
-   const drugInsightPanel = `<div class="pi-da-drug-insight">
-    <div class="pi-da-di-hd">💡 Drug Intel</div>
-    ${sciText ? `<div class="pi-da-di-sect">
-     <div class="pi-da-di-label">🔬 Science</div>
-     <p class="pi-da-di-text">${sciText}</p>
-    </div>` : ''}
-    ${bdText ? `<div class="pi-da-di-sect">
-     <div class="pi-da-di-label">💼 Business</div>
-     <p class="pi-da-di-text">${bdText}</p>
-    </div>` : ''}
-    ${!hasInsight ? `<p class="pi-da-di-empty">Run enrichment to generate drug-level analysis.</p>` : ''}
-   </div>`;
 
    // Brief drug description shown across top of expanded body — capped at first 2 sentences
    const descText = d.drug_summary || d.differentiation_thesis || '';
@@ -10284,14 +10254,11 @@ const tl1aPI = {
     </div>
     <div class="pi-da-body">
      ${descStrip}
-     <div style="display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start">
-      <div>
-       ${acquisitionNote}${altCodeNote}
-       ${approvedSection}
-       ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
-       ${trialsSection}
-      </div>
-      ${drugInsightPanel}
+     <div>
+      ${acquisitionNote}${altCodeNote}
+      ${approvedSection}
+      ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
+      ${trialsSection}
      </div>
      ${drugNewsSection}
     </div>
