@@ -1306,15 +1306,34 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-results-body.open{display:block}
 .pi-tr-acronym{font-size:9px;font-weight:800;color:#1e4a82;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap;letter-spacing:0.03em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* Approved drug profile */
-.pi-da-approved{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:7px;padding:12px 14px;margin-bottom:10px}
-.pi-da-approved-hd{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:5px}
-.pi-da-approved-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-bottom:10px}
-.pi-da-appr-field{display:flex;flex-direction:column;gap:2px}
-.pi-da-appr-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#4ade80;color:#166534;opacity:0.7}
-.pi-da-appr-val{font-size:12px;font-weight:800;color:#14532d}
-.pi-da-appr-section{margin-top:8px;border-top:1px solid #bbf7d0;padding-top:7px}
-.pi-da-appr-section .pi-da-appr-lbl{display:block;margin-bottom:3px}
-.pi-da-appr-body{font-size:11.5px;color:#166534;line-height:1.6}
+/* ── Approved Drug Profile — redesigned ─────────────────────────── */
+.pi-da-approved{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.pi-da-approved-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.pi-da-approved-badge{background:#dcfce7;color:#166534;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:900;letter-spacing:0.06em;text-transform:uppercase}
+/* Stat cards row */
+.pi-da-appr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.pi-da-appr-stat{background:#f8fafc;border-radius:6px;padding:10px 12px;border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:3px}
+.pi-da-appr-stat.stat-approval{border-left:3px solid #3b82f6}
+.pi-da-appr-stat.stat-revenue{border-left:3px solid #10b981}
+.pi-da-appr-stat.stat-patients{border-left:3px solid #8b5cf6}
+.pi-da-appr-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-da-appr-val{font-size:12px;font-weight:800;color:#1e293b;line-height:1.3}
+/* Section cards */
+.pi-da-appr-card{border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.pi-da-appr-card-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:5px}
+.pi-da-appr-card-body{font-size:11.5px;line-height:1.65}
+.pi-da-appr-card.card-endpoints{background:#fffbeb;border:1px solid #fde68a}
+.pi-da-appr-card.card-endpoints .pi-da-appr-card-lbl{color:#92400e}
+.pi-da-appr-card.card-endpoints .pi-da-appr-card-body{color:#78350f}
+.pi-da-appr-card.card-summary{background:#fff;border:1px solid #e2e8f0}
+.pi-da-appr-card.card-summary .pi-da-appr-card-lbl{color:#64748b}
+.pi-da-appr-card.card-summary .pi-da-appr-card-body{color:#334155}
+.pi-da-appr-card.card-mech{background:#f0f9ff;border:1px solid #bae6fd}
+.pi-da-appr-card.card-mech .pi-da-appr-card-lbl{color:#0369a1}
+.pi-da-appr-card.card-mech .pi-da-appr-card-body{color:#0c4a6e}
+.pi-da-appr-card.card-diff{background:#faf5ff;border:1px solid #e9d5ff}
+.pi-da-appr-card.card-diff .pi-da-appr-card-lbl{color:#7e22ce}
+.pi-da-appr-card.card-diff .pi-da-appr-card-body{color:#581c87}
 /* Hover underline on all links inside drug popups + expanded detail rows */
 .spyre-drug-popup a, .pi-detail-inner a { text-decoration:none;border-bottom:1.5px solid transparent;transition:border-color 0.15s,color 0.15s; }
 .spyre-drug-popup a:hover, .pi-detail-inner a:hover { border-bottom-color:currentColor; }
@@ -9812,6 +9831,38 @@ const tl1aPI = {
    ...sbCombos.map(c => ({...c, _isCombo: true, _overlap: c.overlap_category || 'adjacent', name: c.label || c.name})),
   ].sort((a, b) => drugRelevance(b) - drugRelevance(a));
 
+  // ── renderNewsItem defined HERE so it is available inside allItemsHTML.map()
+  // (const is NOT hoisted — defining after the map causes ReferenceError)
+  const typeMap = {financing:'💰 Funding', licensing:'📋 License', partnership:'🤝 Partnership',
+                   acquisition:'🏢 Acquisition', news:'📰 News', collaboration:'🤝 Collab',
+                   regulatory:'🏥 Regulatory', clinical:'🔬 Clinical'};
+  const renderNewsItem = (d, singleLine=false) => {
+   // Prefer exact deal_date over deal_date_label (month-year only)
+   const date       = fmtExactDate(d.deal_date) || d.deal_date_label || d.date || '';
+   const title      = d.headline || d.desc || '';
+   const url        = d.source_url || d.url || '';
+   const tooltipRaw = d.body || d.headline || d.desc || '';
+   const tooltip    = tooltipRaw.replace(/"/g,'&quot;');
+   const typeBadge  = d.deal_type && typeMap[d.deal_type]
+    ? `<span style="font-size:8px;background:#f0fdf4;color:#166534;border-radius:3px;padding:1px 4px;margin-right:4px;font-weight:700;white-space:nowrap;flex-shrink:0">${typeMap[d.deal_type]}</span>` : '';
+   const upfront    = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px;white-space:nowrap;flex-shrink:0">$${d.upfront_usd_m}M</span>` : '';
+   if (singleLine) {
+    return `<div title="${tooltip}" style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f1f5f9;overflow:hidden;min-height:22px;cursor:default">
+     <span style="font-size:9px;color:#64748b;white-space:nowrap;flex-shrink:0;font-weight:600;min-width:70px">${date}</span>
+     ${typeBadge}
+     <span style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${url?`<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`:title}</span>
+     ${upfront}
+    </div>`;
+   }
+   const titleEl = url
+    ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title} ↗</a>`
+    : `<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title}</span>`;
+   return `<div class="pi-detail-cat-item" title="${tooltip}" style="cursor:default">
+    <span class="pi-detail-cat-date">${date}</span>
+    <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${typeBadge}${titleEl}${upfront}</span>
+   </div>`;
+  };
+
   const allItemsHTML = allItems.map(item => {
 
    // ── Combination program branch ─────────────────────────────────────────
@@ -9993,22 +10044,26 @@ const tl1aPI = {
    // Approved drug profile section — shown when stage is Approved
    const isApproved = /approv/i.test(drugPhase);
    const approvedSection = isApproved ? (() => {
-    const fields = [
-     d.approval_date    ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Approval Date</span><span class="pi-da-appr-val">${d.approval_date}</span></div>` : '',
-     d.annual_revenue   ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
-     d.patient_population ? `<div class="pi-da-appr-field"><span class="pi-da-appr-lbl">Patients Treated</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
+    // ── Stat cards ────────────────────────────────────────────────
+    const statCards = [
+     d.approval_date      ? `<div class="pi-da-appr-stat stat-approval"><span class="pi-da-appr-lbl">📅 Approval Date</span><span class="pi-da-appr-val">${d.approval_date}</span></div>` : '',
+     d.annual_revenue     ? `<div class="pi-da-appr-stat stat-revenue"><span class="pi-da-appr-lbl">💰 Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
+     d.patient_population ? `<div class="pi-da-appr-stat stat-patients"><span class="pi-da-appr-lbl">👥 Patients on Therapy</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
     ].filter(Boolean).join('');
-    const extraSections = [
-     d.final_endpoints ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Pivotal Endpoints</span><div class="pi-da-appr-body">${d.final_endpoints}</div></div>` : '',
-     d.differentiation_thesis ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Differentiation</span><div class="pi-da-appr-body">${d.differentiation_thesis}</div></div>` : '',
-     d.drug_summary ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Summary</span><div class="pi-da-appr-body">${d.drug_summary}</div></div>` : '',
-     d.mechanism_detail ? `<div class="pi-da-appr-section"><span class="pi-da-appr-lbl">Mechanism &amp; Context</span><div class="pi-da-appr-body">${d.mechanism_detail}</div></div>` : '',
-    ].filter(Boolean).join('');
-    if (!fields && !extraSections) return '';
+    // ── Section cards — each with distinct color ──────────────────
+    const endpointsCard = d.final_endpoints
+     ? `<div class="pi-da-appr-card card-endpoints"><span class="pi-da-appr-card-lbl">⚗ Pivotal Endpoints</span><div class="pi-da-appr-card-body">${d.final_endpoints}</div></div>` : '';
+    const summaryCard = d.drug_summary
+     ? `<div class="pi-da-appr-card card-summary"><span class="pi-da-appr-card-lbl">📋 Summary</span><div class="pi-da-appr-card-body">${d.drug_summary}</div></div>` : '';
+    const mechCard = d.mechanism_detail
+     ? `<div class="pi-da-appr-card card-mech"><span class="pi-da-appr-card-lbl">🔬 Mechanism &amp; Context</span><div class="pi-da-appr-card-body">${d.mechanism_detail}</div></div>` : '';
+    const diffCard = d.differentiation_thesis
+     ? `<div class="pi-da-appr-card card-diff"><span class="pi-da-appr-card-lbl">⚡ Differentiation</span><div class="pi-da-appr-card-body">${d.differentiation_thesis}</div></div>` : '';
+    if (!statCards && !endpointsCard && !summaryCard && !mechCard && !diffCard) return '';
     return `<div class="pi-da-approved">
-     <div class="pi-da-approved-hd">✓ Approved Drug Profile</div>
-     ${fields?`<div class="pi-da-approved-grid">${fields}</div>`:''}
-     ${extraSections}
+     <div class="pi-da-approved-hd"><span class="pi-da-approved-badge">✓ Approved</span></div>
+     ${statCards?`<div class="pi-da-appr-stats">${statCards}</div>`:''}
+     ${endpointsCard}${summaryCard}${mechCard}${diffCard}
     </div>`;
    })() : '';
 
@@ -10140,35 +10195,7 @@ const tl1aPI = {
   // ── Related News (deals + financing + press releases + intel) ────────────
   // RULE: "Related News" = any notable company event — formal deals, financing rounds,
   // pipeline milestones, press releases. Sourced from deals table + intel table.
-  const typeMap = {financing:'💰 Funding', licensing:'📋 License', partnership:'🤝 Partnership',
-                   acquisition:'🏢 Acquisition', news:'📰 News', collaboration:'🤝 Collab',
-                   regulatory:'🏥 Regulatory', clinical:'🔬 Clinical'};
-  const renderNewsItem = (d, singleLine=false) => {
-   // Prefer exact deal_date over deal_date_label (month-year only)
-   const date       = fmtExactDate(d.deal_date) || d.deal_date_label || d.date || '';
-   const title      = d.headline || d.desc || '';
-   const url        = d.source_url || d.url || '';
-   const tooltipRaw = d.body || d.headline || d.desc || '';
-   const tooltip    = tooltipRaw.replace(/"/g,'&quot;');
-   const typeBadge  = d.deal_type && typeMap[d.deal_type]
-    ? `<span style="font-size:8px;background:#f0fdf4;color:#166534;border-radius:3px;padding:1px 4px;margin-right:4px;font-weight:700;white-space:nowrap;flex-shrink:0">${typeMap[d.deal_type]}</span>` : '';
-   const upfront    = d.upfront_usd_m ? `<span style="font-size:9px;color:#166534;font-weight:700;margin-left:4px;white-space:nowrap;flex-shrink:0">$${d.upfront_usd_m}M</span>` : '';
-   if (singleLine) {
-    return `<div title="${tooltip}" style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f1f5f9;overflow:hidden;min-height:22px;cursor:default">
-     <span style="font-size:9px;color:#64748b;white-space:nowrap;flex-shrink:0;font-weight:600;min-width:70px">${date}</span>
-     ${typeBadge}
-     <span style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${url?`<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${title} ↗</a>`:title}</span>
-     ${upfront}
-    </div>`;
-   }
-   const titleEl = url
-    ? `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title} ↗</a>`
-    : `<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${title}</span>`;
-   return `<div class="pi-detail-cat-item" title="${tooltip}" style="cursor:default">
-    <span class="pi-detail-cat-date">${date}</span>
-    <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${typeBadge}${titleEl}${upfront}</span>
-   </div>`;
-  };
+  // typeMap and renderNewsItem are defined above (before allItemsHTML.map) to avoid hoisting bug.
 
   let dealsHTML;
   const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
