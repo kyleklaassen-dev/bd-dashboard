@@ -1259,7 +1259,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-name{font-size:12px;font-weight:800;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pi-da-mech{font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pi-da-tag{font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
-.pi-da-pills{display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:nowrap}
+.pi-da-pills{display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .pi-da-row.pi-da-direct>.pi-da-hd{border-left:3px solid #f97316;padding-left:9px}
 .pi-da-body{display:none;border-top:1px solid #f0f4f8;background:#f8fafc;padding:10px 12px 12px 34px}
 .pi-da-body.open{display:block}
@@ -8038,7 +8038,9 @@ function _makeAreaPI(tabId, areaIds) {
 
       const rows = sorted.map(ent => {
         const isExp = this.expanded.has(ent.entity_id);
-        const extraCount = ent.programs.length - 1;
+        // extraCount = programs.length (not -1): shows total additional programs including combos from DB.
+        // For a 3-program company with 1 combo → "+3 more" (FG-M701 shown + 3 additional = 4 total).
+        const extraCount = ent.programs.length;
         const drugDisplay = ent.programs.length > 1
           ? `<span class="pi-drug-name-sm">${ent.programs[0].name}</span><span class="pi-drug-name-sm" style="color:#64748b;font-style:italic;background:#f8fafc">+${extraCount} more</span>`
           : `<span class="pi-drug-name">${ent.programs[0]?.drug||'—'}</span>`;
@@ -9779,11 +9781,19 @@ const tl1aPI = {
 
   // ── Drug relevance score for sorting (0–100) ────────────────────────────
   const drugRelevance = item => {
-   const ov = ((item._overlap || item.overlap_category || prog.overlap || '')).toLowerCase().replace(/[-_\s]/g,'');
-   if (ov === 'direct')    return 100;
-   if (ov === 'adjacent')  return 70;
-   if (ov === 'samespace') return 40;
-   if (ov === 'watch')     return 20;
+   // Use per-drug overlap first; fall back to company-level only as a soft signal (not override).
+   const perDrug = ((item._overlap || item.overlap_category || '')).toLowerCase().replace(/[-_\s]/g,'');
+   const coLevel = (prog.overlap || '').toLowerCase().replace(/[-_\s]/g,'');
+   // Per-drug score: definitive if set
+   if (perDrug === 'direct')    return 100;
+   if (perDrug === 'adjacent')  return 70;
+   if (perDrug === 'samespace') return 40;
+   if (perDrug === 'watch')     return 20;
+   // No per-drug overlap: use company-level as a soft signal (score capped at 65 to stay below explicit adjacent)
+   if (coLevel === 'direct')    return 65;
+   if (coLevel === 'adjacent')  return 55;
+   if (coLevel === 'samespace') return 35;
+   if (coLevel === 'watch')     return 15;
    return 30;
   };
 
@@ -9842,8 +9852,8 @@ const tl1aPI = {
      <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
       <span class="pi-da-toggle" style="${hasBody?'':'visibility:hidden'}">▶</span>
       <span class="pi-da-name">${combo.label||'—'}</span>
-      <span class="pi-da-mech">${comboInd}</span>
-      <div class="pi-da-pills">${stagePill}<span class="pi-da-tag">+</span>${srcLink}</div>
+      <span class="pi-da-mech"></span>
+      <div class="pi-da-pills">${stagePill}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${comboInd}</span><span class="pi-da-tag">+</span>${srcLink}</div>
      </div>
      ${hasBody?`<div class="pi-da-body">
       ${comboDescStrip}
@@ -10017,13 +10027,15 @@ const tl1aPI = {
    const descStrip = descText
     ? `<div class="pi-da-desc-strip">${descText}</div>` : '';
 
-   const isDirect = (d._overlap||d.overlap_category||prog.overlap||'').toLowerCase().replace(/[-_\s]/g,'') === 'direct';
+   // isDirect: only flag when the DRUG itself is explicitly 'direct' — don't inherit company-level overlap.
+   // (DB drugs without overlap_category would otherwise all inherit prog.overlap='Direct' incorrectly.)
+   const isDirect = (d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'') === 'direct';
    return `<div class="pi-da-row${isDirect?' pi-da-direct':''}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name">${d.name||'—'}${partnerTag}</span>
+     <span class="pi-da-name">${d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
-     <div class="pi-da-pills">${this._stagePill(drugPhase)}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${overlapTag}</div>
+     <div class="pi-da-pills">${this._stagePill(drugPhase)}<span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${partnerTag}${overlapTag}</div>
     </div>
     <div class="pi-da-body">
      ${descStrip}
