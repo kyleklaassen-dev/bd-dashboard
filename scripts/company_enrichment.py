@@ -903,11 +903,14 @@ Return JSON with EXACTLY these fields:
   }},
   "drug_updates": [{{
     "drug_id": "exact drug id from DRUGS list",
+    "strategic_role": "REQUIRED — classify this drug's role for this company in this area: 'direct_competitor' (same mechanism as Ailux TL1A×IL-23p19), 'franchise_anchor' (dominant commercial asset the company's IBD strategy is built on), 'combination_asset' (designed to be used in combo with another drug), 'same_space_defense' (same indication, different mechanism, commercially important), 'platform_expansion' (future programs extending the franchise), or 'watch' (early/uncertain relevance)",
+    "display_name": "null or override display name — use when company uses a different code than the drug_id. Format: 'CompanyCode (OriginalCode)' e.g. 'ABBV-701 (FG-M701)' or 'Skyrizi (Risankizumab)'. Only set when the canonical displayed name differs from what the drug_id implies.",
+    "licensor_name": "null or name of company this was licensed/acquired from — e.g. 'FutureGen Biosciences'. Only for in-licensed assets.",
+    "licensor_code": "null or original code/name used by licensor — e.g. 'FG-M701'. Only when drug was renamed by licensee.",
     "modality": "anti-TL1A mAb|TL1A×IL-23p19 bispecific|JAK1 inhibitor (oral small molecule)|anti-α4β7 integrin mAb|etc — full descriptive label",
     "drug_format": "mAb|bispecific|small molecule|ADC|nanobody|fusion protein",
     "route": "SC|IV|SC/IV|oral|null",
     "dosing_type": "Induction|Maintenance|Induction + Maintenance|null",
-    "is_combo": false,
     "dosing_schedule": "null or e.g. Q3M SC",
     "indication_short": "null or e.g. UC · CD",
     "stage_detail": "null or e.g. Phase 2b (ARTEMIS-CD)",
@@ -924,6 +927,19 @@ Return JSON with EXACTLY these fields:
     "annual_revenue": "null or string: latest reported annual revenue with year — e.g. '$10.4B (2024)'. ONLY for approved drugs.",
     "patient_population": "null or string: estimated patients on therapy globally — e.g. '~250,000 patients on therapy'. ONLY for approved drugs.",
     "final_endpoints": "null or string: pivotal trial primary endpoint results narrative in 1-3 sentences. ONLY for approved drugs."
+  }}],
+  "combination_programs": [{{
+    "label": "Short name for this combination — e.g. 'Skyrizi + ABBV-382 (α4β7 + IL-23p19)'",
+    "component_drug_ids": ["exact drug_id from DRUGS list", "..."],
+    "combination_type": "backbone_addon (established drug + add-on) | rational_combo (two investigational drugs) | sequential (drugs used in sequence, not simultaneously)",
+    "stage": "Phase 1|Phase 2|Phase 3|Preclinical|Concept",
+    "phase_display": "null or e.g. 'Phase 2 (ongoing)'",
+    "indication_short": "e.g. 'UC · CD'",
+    "strategic_significance": "high|medium|low",
+    "mechanism_detail": "1-2 sentences: rationale for combining these mechanisms, what complementary biology is targeted",
+    "drug_summary": "2-3 sentences: what is known about this combination program — trial data, company guidance, strategic rationale",
+    "notes": "1 sentence: source or confidence note",
+    "source_url": "null or URL to press release, trial registration, or IR page — never fabricate"
   }}],
   "trial_updates": [{{
     "trial_id": "exact trial id from TRIALS list (the 'id' field, not the NCT number)",
@@ -951,12 +967,33 @@ Return JSON with EXACTLY these fields:
 }}
 
 RULES:
-- drug_updates: only drugs from DRUGS list (exact drug_id)
+- drug_updates: only drugs from DRUGS list (exact drug_id). EVERY drug in the DRUGS list must have an entry.
 - trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you find a study acronym. Skip trials where no branded acronym exists.
 - catalysts: only upcoming events (after {TODAY})
 - deal_updates: only match to EXISTING DEALS
+- combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
 - Return ONLY valid JSON. No markdown.
 - ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs.
+
+STRATEGIC ROLE GUIDANCE (apply to every drug in drug_updates):
+Every drug must receive a strategic_role. Think about it from Ailux's BD perspective:
+- direct_competitor: mechanistically overlaps with Ailux's TL1A×IL-23p19 bispecific (e.g., another anti-TL1A, another TL1A-based bispecific)
+- franchise_anchor: the dominant approved or late-stage asset the company's IBD/disease-area revenue strategy is built around (e.g., Skyrizi is AbbVie's IBD anchor)
+- combination_asset: a drug specifically being evaluated in combination with another drug in the same disease area
+- same_space_defense: same indication as Ailux's target space but mechanistically unrelated — commercially important but not a direct mechanistic threat (e.g., Rinvoq for AbbVie)
+- platform_expansion: an early or future program that extends the company's franchise into new mechanisms
+- watch: early-stage or uncertain relevance
+
+DISPLAY NAME GUIDANCE:
+Set display_name when the drug has a licensee-assigned code different from the drug_id (e.g., AbbVie calls FG-M701 "ABBV-701"), or when the brand name should be shown. Format: "LicenseeCode (OriginalCode)" or "BrandName (INN)".
+Populate licensor_name and licensor_code when the drug was in-licensed.
+
+COMBINATION PROGRAM GUIDANCE:
+Identify ALL known combination programs for this company in this area. Include:
+- Ongoing combination trials (two drugs being studied together)
+- Company-disclosed combination development plans
+- Rational combinations the company is known to be building toward (clearly stated in press releases or investor materials)
+Do NOT include speculative combos. If no combinations exist, return []. Combinations appear in the dashboard alongside standalone drugs — the label should be clear and short enough to read in a dropdown (e.g., "Skyrizi + ABBV-382 combo").
 
 STUDY ACRONYM GUIDANCE:
 Companies brand their clinical programs with memorable acronyms shown on their IR pages, ECCO/DDW posters, and press releases (e.g., Spyre uses "SKYLINE" for their TL1A program, AbbVie uses "U-ACHIEVE" for upadacitinib UC trials, J&J uses "PURSUIT" for guselkumab CD). Search the WEB INTELLIGENCE and known sources. ClinicalTrials.gov sometimes includes them in identificationModule.acronym — cross-reference if present in TRIALS list.
@@ -1021,9 +1058,51 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         if not drug_id:
             continue
         update_fields = {k: v for k, v in du.items() if v is not None}
+        # strategic_role must always be written, even if it's the first enrichment
+        if "strategic_role" in du and du["strategic_role"] is None:
+            update_fields.pop("strategic_role", None)  # skip null roles
         if update_fields:
             ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
-            log(f"  drug {drug_id}: {'✓' if ok else '✗'}", indent=1)
+            role = update_fields.get("strategic_role", "")
+            log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'}", indent=1)
+
+    # Write combination programs
+    for combo in data.get("combination_programs", []):
+        label = (combo.get("label") or "").strip()
+        if not label:
+            continue
+        component_ids = combo.get("component_drug_ids") or []
+        combo_rec = {
+            "company_id":            company_id,
+            "area_id":               area_id,
+            "label":                 label[:300],
+            "component_drug_ids":    component_ids,
+            "combination_type":      combo.get("combination_type") or "rational_combo",
+            "stage":                 combo.get("stage") or "Concept",
+            "phase_display":         combo.get("phase_display"),
+            "indication_short":      combo.get("indication_short"),
+            "strategic_significance": combo.get("strategic_significance") or "medium",
+            "mechanism_detail":      combo.get("mechanism_detail"),
+            "drug_summary":          combo.get("drug_summary"),
+            "notes":                 combo.get("notes"),
+            "updated_at":            NOW_ISO,
+        }
+        if combo.get("source_url"):
+            combo_rec["source_url"] = combo["source_url"]
+        # Upsert by company + label (idempotent)
+        existing = sb_get("drug_combinations", {
+            "company_id": f"eq.{company_id}",
+            "label":      f"eq.{label}",
+            "select":     "id",
+            "limit":      "1",
+        })
+        if existing:
+            combo_id = existing[0].get("id")
+            ok = sb_patch("drug_combinations", combo_rec, {"id": f"eq.{combo_id}"})
+            log(f"  combo '{label[:45]}': {'✓ patched' if ok else '✗ patch failed'}", indent=1)
+        else:
+            result = sb_upsert("drug_combinations", combo_rec)
+            log(f"  combo '{label[:45]}': {'✓ inserted' if result else '✗ insert failed'}", indent=1)
 
     for tu in data.get("trial_updates", []):
         trial_id = tu.get("trial_id")

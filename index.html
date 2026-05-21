@@ -9349,9 +9349,19 @@ const tl1aPI = {
     if (tt) trials.push(...tt);
    }
 
+   // Fetch combination programs for this company (shown in pill row alongside drugs)
+   let combos = [];
+   try {
+    const { data: comboRows } = await _sb
+     .from('drug_combinations').select('*')
+     .eq('company_id', id).eq('area_id', AREA)
+     .order('strategic_significance', { ascending: true }); // high first
+    combos = comboRows || [];
+   } catch(_) {}
+
    // Pass merged news (deals + intel items) as the "deals" array to the renderer
    // sbDealsAll = deals + financing rounds + press releases from intel table, sorted newest first
-   const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials };
+   const sbData = { profile, catalysts: cats||[], deals: sbDealsAll, drugs, trials, combos };
    this._profileCache[id] = sbData;
 
    // Replace loading placeholder
@@ -9373,10 +9383,22 @@ const tl1aPI = {
   const accentColor  = d.color_hex || (isBispecific ? '#7c3aed' : '#0891b2');
   const lightBg      = d.light_bg_hex || (isBispecific ? '#f5f3ff' : '#ecfeff');
 
-  // RULE: If drug has a brand name, name field is stored as "BrandName (INN)"
-  // → pill shows brand name (first token), popup header shows both
-  // → Never show numbered codes (e.g. "BI 765063") — use brand or INN only
-  const fullName  = d.name || d.drug_name || '';
+  // Strategic role badge config
+  const ROLE_CFG = {
+   direct_competitor:  { label: 'DIRECT',  bg: '#fef2f2', color: '#dc2626' },
+   franchise_anchor:   { label: 'ANCHOR',  bg: '#eef2ff', color: '#4f46e5' },
+   combination_asset:  { label: 'COMBO ↗', bg: '#fffbeb', color: '#d97706' },
+   same_space_defense: { label: 'DEFENSE', bg: '#f8fafc', color: '#475569' },
+   platform_expansion: { label: 'EXPAND',  bg: '#ecfdf5', color: '#059669' },
+   watch:              { label: 'WATCH',   bg: '#f1f5f9', color: '#94a3b8' },
+  };
+  const role    = d.strategic_role && ROLE_CFG[d.strategic_role] ? d.strategic_role : null;
+  const roleCfg = role ? ROLE_CFG[role] : null;
+
+  // RULE: Use display_name when set (e.g. "ABBV-701 (FG-M701)"), else fall back to name.
+  // display_name is set by enrichment when company uses a different code than drug_id,
+  // or when the brand name + INN combination needs a specific format.
+  const fullName  = d.display_name || d.name || d.drug_name || '';
   const shortCode = fullName.length <= 10 ? fullName : fullName.split(/[\s(]/)[0];
   const phase     = d.phase_display || d.stage || '';
   const phaseMap  = {'Phase 1':'P1','Phase 2':'P2','Phase 3':'P3','Pre-IND':'Pre','Preclinical':'Pre','Phase 1/2':'P1/2','Phase 2/3':'P2/3'};
@@ -9466,6 +9488,7 @@ const tl1aPI = {
    <div style="font-size:8px;font-weight:700;color:#334155;line-height:1.4;margin-top:2px">${targetDisplay}</div>
    ${indShort?`<div style="font-size:7.5px;font-weight:600;color:#64748b;margin-top:1px;line-height:1.2">${indShort}</div>`:''}
    ${phaseBadge?`<div style="font-size:8px;font-weight:800;color:${accentColor};margin-top:2px">${phaseBadge}</div>`:''}
+   ${roleCfg?`<div style="font-size:7px;font-weight:800;letter-spacing:0.04em;margin-top:3px;border-radius:3px;padding:1px 4px;background:${roleCfg.bg};color:${roleCfg.color}">${roleCfg.label}</div>`:''}
    <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup()">
     <!-- Summary card -->
     <div style="background:${lightBg};border:1.5px solid ${accentColor}44;border-radius:8px;padding:10px 12px;margin-bottom:10px">
@@ -9473,12 +9496,14 @@ const tl1aPI = {
       <span style="font-size:13px;font-weight:900;color:${accentColor}">${shortCode}</span>
       ${fullName!==shortCode?`<span style="font-size:11px;font-weight:700;color:#1e3a5f">${fullName}</span>`:''}
       ${phaseBadge?`<span style="font-size:10px;background:white;border:1px solid ${accentColor}44;border-radius:10px;padding:1px 7px;color:${accentColor};font-weight:700">${phase}</span>`:''}
+      ${roleCfg?`<span style="font-size:9.5px;border-radius:10px;padding:1px 7px;font-weight:800;background:${roleCfg.bg};color:${roleCfg.color};border:1px solid ${roleCfg.color}33">${roleCfg.label}</span>`:''}
       ${isBispecific?`<span style="font-size:10px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:10px;padding:1px 7px;color:#7c3aed;font-weight:700">Bispecific</span>`:''}
       ${isCombo?`<span style="font-size:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1px 7px;color:#92400e;font-weight:700">Combo</span>`:''}
       ${d.route?`<span style="font-size:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:1px 7px;color:#166534;font-weight:700">💉 ${d.route}</span>`:''}
       ${d.dosing_type?`<span style="font-size:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:1px 7px;color:#475569;font-weight:700">${d.dosing_type}</span>`:''}
      </div>
      ${d.indication_short?`<div style="font-size:10.5px;color:#475569;line-height:1.5">📍 <strong>${d.indication_short}</strong></div>`:''}
+     ${(d.licensor_name||d.licensor_code)?`<div style="font-size:10px;color:#64748b;margin-top:3px">🔗 Licensed from <strong>${d.licensor_name||''}</strong>${d.licensor_code?` (orig. ${d.licensor_code})`:''}</div>`:''}
      <!-- drug_summary: 2-3 sentence highlight of the most important facts about this molecule -->
      ${d.drug_summary?`<div style="margin-top:6px;font-size:10.5px;color:#334155;line-height:1.6;border-top:1px solid ${accentColor}22;padding-top:6px">${d.drug_summary}</div>`:''}
     </div>
@@ -9507,8 +9532,53 @@ const tl1aPI = {
   </button>`;
  },
 
+ // ── Combination program pill builder ────────────────────────────────────────
+ _makeComboBtn(combo, companyId) {
+  const btnId  = `combo-btn-${companyId}-${(combo.id||combo.label).replace(/[^a-z0-9]/gi,'')}`;
+  const label  = combo.label || '';
+  const shortLabel = label.length <= 22 ? label : label.slice(0, 20) + '…';
+  const phase  = combo.phase_display || combo.stage || '';
+  const sig    = combo.strategic_significance || 'medium';
+  const sigColor = sig === 'high' ? '#b45309' : sig === 'medium' ? '#6d28d9' : '#475569';
+  const sigBg    = sig === 'high' ? '#fffbeb' : sig === 'medium' ? '#f5f3ff' : '#f8fafc';
+
+  const comboTypeLabel = {
+   backbone_addon:  'backbone + add-on',
+   rational_combo:  'rational combo',
+   sequential:      'sequential',
+  }[combo.combination_type] || combo.combination_type || 'combination';
+
+  const sourceLink = combo.source_url
+   ? `<a href="${combo.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#1d4ed8;font-size:9px;font-weight:700;text-decoration:none">↗ Source</a>`
+   : '';
+
+  return `<button class="spyre-drug-btn" id="${btnId}"
+    style="border-color:#7c3aed55;color:#7c3aed;background:#faf5ff;border-style:dashed"
+    onmouseenter="showSpyrePopup('${btnId}')" onmouseleave="hideSpyrePopup()">
+   <div style="font-size:9.5px;font-weight:900;margin-top:4px;color:#6d28d9;line-height:1.3">${shortLabel}</div>
+   <div style="font-size:7px;font-weight:700;color:#7c3aed;margin-top:2px">⊕ COMBINATION</div>
+   ${phase?`<div style="font-size:7.5px;font-weight:800;color:#7c3aed;margin-top:2px">${phase}</div>`:''}
+   <div style="font-size:7px;font-weight:800;letter-spacing:0.04em;margin-top:3px;border-radius:3px;padding:1px 4px;background:${sigBg};color:${sigColor}">${sig.toUpperCase()}</div>
+   <div class="spyre-drug-popup" onmouseenter="cancelHideSpyrePopup()" onmouseleave="hideSpyrePopup()">
+    <div style="background:#faf5ff;border:1.5px solid #7c3aed44;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:900;color:#6d28d9">⊕ Combination Program</span>
+      ${phase?`<span style="font-size:10px;background:white;border:1px solid #7c3aed44;border-radius:10px;padding:1px 7px;color:#7c3aed;font-weight:700">${phase}</span>`:''}
+      <span style="font-size:9.5px;border-radius:10px;padding:1px 7px;font-weight:800;background:${sigBg};color:${sigColor};border:1px solid ${sigColor}33">${sig} significance</span>
+     </div>
+     <div style="font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:4px">${label}</div>
+     <div style="font-size:9.5px;color:#64748b;margin-bottom:6px">${comboTypeLabel}${combo.indication_short?' · '+combo.indication_short:''}</div>
+     ${combo.mechanism_detail?`<div style="font-size:10.5px;color:#334155;line-height:1.6;border-top:1px solid #7c3aed22;padding-top:6px">${combo.mechanism_detail}</div>`:''}
+     ${combo.drug_summary?`<div style="margin-top:6px;font-size:10.5px;color:#475569;line-height:1.6">${combo.drug_summary}</div>`:''}
+     ${combo.notes?`<div style="margin-top:6px;font-size:9px;color:#94a3b8;font-style:italic">${combo.notes}</div>`:''}
+     ${sourceLink?`<div style="margin-top:6px">${sourceLink}</div>`:''}
+    </div>
+   </div>
+  </button>`;
+ },
+
  // ── Build drug pipeline row from Supabase drugs or static fallback ─────────
- _buildDrugPipelineRow(prog, sbDrugs, sbTrials, companyId) {
+ _buildDrugPipelineRow(prog, sbDrugs, sbTrials, companyId, combos) {
   // If Supabase has enriched drug rows for this company, use them
   // Otherwise synthesize minimal pills from TL1A_PROGRAMS static data
   let drugsToRender = [];
@@ -9536,7 +9606,7 @@ const tl1aPI = {
    }));
   }
 
-  if (!drugsToRender.length) return '';
+  if (!drugsToRender.length && !(combos && combos.length)) return '';
 
   const buttons = drugsToRender.map(d => {
    const drugsTrials = sbTrials ? sbTrials.filter(t => t.drug_id === d.id) : [];
@@ -9547,11 +9617,23 @@ const tl1aPI = {
    return this._makeDynamicDrugBtn(d, trialsToUse, companyId);
   }).join('');
 
+  // Combination program pills — dashed purple border, appended after standalone drugs
+  const comboButtons = (combos && combos.length)
+   ? combos.map(c => this._makeComboBtn(c, companyId)).join('')
+   : '';
+
+  // Divider only shown when both standalone drugs AND combos exist
+  const comboDivider = (buttons && comboButtons)
+   ? `<div style="width:100%;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:center;margin:2px 0;color:#a78bfa">⊕ Combination Programs</div>`
+   : '';
+
   return `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:8px;margin-bottom:10px;padding:10px 0;border-bottom:1px solid #f1f5f9">
    <div style="width:100%;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:center;margin-bottom:4px;color:#64748b">
     Pipeline — hover for details
    </div>
    ${buttons}
+   ${comboDivider}
+   ${comboButtons}
   </div>`;
  },
 
@@ -9562,6 +9644,7 @@ const tl1aPI = {
   const sbDeals  = sbData?.deals || [];
   const sbTrials = sbData?.trials || [];
   const sbDrugs  = sbData?.drugs || [];
+  const sbCombos = sbData?.combos || [];
 
   // ── Narrative fields ────────────────────────────────────────────────────
   const platformSummary = profile.platform_summary || prog.summary || '';
@@ -9753,10 +9836,32 @@ const tl1aPI = {
    </div>`;
   }).join('');
 
-  const drugSection = drugsToRender.length
+  // ── Combination programs accordion rows ───────────────────────────────────
+  const comboRowsHTML = sbCombos.map(combo => {
+   const srcLink = combo.source_url
+    ? `<a href="${combo.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:10px;font-weight:700;text-decoration:none;margin-left:6px">↗ Source</a>`
+    : '';
+   const sigBadge = `<span style="font-size:9px;border-radius:4px;padding:1px 5px;margin-left:6px;font-weight:700;${combo.strategic_significance==='high'?'background:#fef9c3;color:#92400e':'background:#f5f3ff;color:#6d28d9'}">${combo.strategic_significance||'medium'}</span>`;
+   return `<div class="pi-da-drug" style="border-left:3px solid #7c3aed55;background:#faf5ff">
+    <div class="pi-da-drug-header">
+     <span style="font-size:9.5px;font-weight:800;color:#7c3aed;margin-right:4px">⊕</span>
+     <span style="font-weight:800;color:#6d28d9">${combo.label}</span>
+     ${sigBadge}
+     <span style="font-size:9px;color:#94a3b8;margin-left:6px">${combo.combination_type||'combo'} · ${combo.stage||''}</span>
+     ${srcLink}
+    </div>
+    ${combo.mechanism_detail||combo.drug_summary?`<div class="pi-da-drug-body" style="display:block">
+     ${combo.mechanism_detail?`<p style="margin:0 0 6px 0;font-size:11px;color:#475569">${combo.mechanism_detail}</p>`:''}
+     ${combo.drug_summary?`<p style="margin:0;font-size:11px;color:#334155">${combo.drug_summary}</p>`:''}
+    </div>`:''}
+   </div>`;
+  }).join('');
+
+  const drugSection = (drugsToRender.length || sbCombos.length)
    ? `<div class="pi-da-wrap">
       <div class="pi-da-label">Drug Pipeline</div>
       ${drugRowsHTML}
+      ${sbCombos.length?`<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#7c3aed;padding:4px 0 2px 0;margin-top:6px">⊕ Combination Programs</div>${comboRowsHTML}`:''}
      </div>`
    : '';
 
