@@ -7874,7 +7874,7 @@ function _makeAreaPI(tabId, areaIds) {
         // Fetch drugs and combo counts in parallel — both needed for accurate portfolio count
         const [{ data:rows, error }, { data:comboRows }] = await Promise.all([
           _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,companies(name,ticker))')
+            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
@@ -10037,10 +10037,13 @@ const tl1aPI = {
    // RULE: Always prefer d.target (clean notation e.g. "TL1A", "IL-23p19") over d.mechanism
    // (verbose description like "Anti-TL1A mAb"). Mechanism belongs in the expanded detail only.
    // cleanTarget: strips everything after first semicolon (company credits), parentheticals,
-   // modality suffixes ("bispecific antibody", "mAb", co-dev notes), then normalises × / + spacing.
+   // modality suffixes ("bispecific antibody", "mAb"), ALL co-dev/company patterns,
+   // then normalises × / + spacing. Target col = targets only, no annotations.
    const cleanTarget = s => (s||'')
-    .replace(/;.*/g, '')                                                          // strip "; Company co-dev" notes
-    .replace(/,?\s*[A-Za-z0-9\s/]+\s+co-dev\b.*/gi, '')                         // strip "Roche/Pfizer co-dev" inline
+    .replace(/;.*/g, '')                                                          // strip "; anything after semicolon"
+    .replace(/,\s*[^,×+]+co-dev[^,]*/gi, '')                                    // strip ", Company/Company co-dev" variants
+    .replace(/\s+co-dev\b.*/gi, '')                                              // strip trailing "co-dev" and anything after
+    .replace(/\s*[-–—]\s*[A-Za-z][^×+,;]*(co-?developed|co-?dev|originated)[^×+,;]*/gi, '') // strip "– Roche-originated; co-developed with X"
     .replace(/\s*\([^)]*\)\s*/g, ' ')                                            // strip parenthetical notes
     .replace(/\s*(bi-?specific\s*antibody|bi-?specific|antibody|mAb)\s*/gi, ' ')
     .replace(/\s*[×x]\s*/g, ' × ')
@@ -10072,8 +10075,11 @@ const tl1aPI = {
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
     || null;
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
+   // partnership_verified: TRUE = confirmed; FALSE = inferred/needs review; NULL = not evaluated
+   // Show "?" indicator when explicitly marked false (LLM-inferred, not yet confirmed from official source)
+   const _pvUnverified = d.partnership_verified === false;
    const partnerTag   = _partnerShort
-    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;white-space:nowrap">w/ ${_partnerShort}</span>`
+    ? `<span style="font-size:9px;color:${_pvUnverified?'#92400e':'#1d4ed8'};background:${_pvUnverified?'#fffbeb':'#eff6ff'};border:1px solid ${_pvUnverified?'#fcd34d':'#bfdbfe'};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvUnverified?'Partnership not yet confirmed from official source — run enrichment to verify':'Partnership confirmed'}">w/ ${_partnerShort}${_pvUnverified?' ?':''}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
@@ -10443,7 +10449,9 @@ const tl1aPI = {
    // Target: show primary if all same, else "Multiple". Matches cleanTarget logic above.
    const normTarget = s => (s||'')
     .replace(/;.*/g, '')
-    .replace(/,?\s*[A-Za-z0-9\s/]+\s+co-dev\b.*/gi, '')
+    .replace(/,\s*[^,×+]+co-dev[^,]*/gi, '')
+    .replace(/\s+co-dev\b.*/gi, '')
+    .replace(/\s*[-–—]\s*[A-Za-z][^×+,;]*(co-?developed|co-?dev|originated)[^×+,;]*/gi, '')
     .replace(/\s*\([^)]*\)\s*/g, ' ')
     .replace(/\s*(bi-?specific\s*antibody|bi-?specific|antibody|mAb)\s*/gi, ' ')
     .replace(/\s*[×x]\s*/g, ' × ')
