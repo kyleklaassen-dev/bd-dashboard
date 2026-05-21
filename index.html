@@ -10617,11 +10617,11 @@ const tl1aPI = {
        .eq('area_id', areaId)
        .limit(300),
     _sb.from('catalysts')
-       .select('company_id,catalyst_date')
+       .select('company_id,catalyst_date,sort_date')
        .in('company_id', companyIds)
        .eq('resolved', false)
-       .gte('catalyst_date', today)
-       .order('catalyst_date', { ascending: true })
+       .gte('sort_date', today)
+       .order('sort_date', { ascending: true })
        .limit(300),
    ]);
 
@@ -10635,12 +10635,13 @@ const tl1aPI = {
 
    const cats = catRes.data || [];
 
-   // Active trial counts — scoped to area-specific drug IDs only
+   // Active trial counts — scoped to area-specific drug IDs only.
+   // NOTE: ct_gov_sync.py writes to the 'trials' table (not 'clinical_trials').
    const drugIds = drugs.map(d => d.id);
    let trialRows = [];
    if (drugIds.length) {
     const { data: tr } = await _sb
-     .from('clinical_trials')
+     .from('trials')
      .select('drug_id,status')
      .in('drug_id', drugIds)
      .ilike('status', '%recruit%')
@@ -10675,13 +10676,14 @@ const tl1aPI = {
     meta[cid].activeTrials = (meta[cid].activeTrials || 0) + 1;
    });
 
-   // Next catalyst per company (cats already sorted ASC — first occurrence wins)
+   // Next catalyst per company (cats already sorted by sort_date ASC — first occurrence wins)
+   // Prefer sort_date (ISO) for display; fall back to catalyst_date (text label like "H2 2026")
    const catSeen = new Set();
    cats.forEach(c => {
     if (!catSeen.has(c.company_id)) {
      catSeen.add(c.company_id);
      if (!meta[c.company_id]) meta[c.company_id] = {};
-     meta[c.company_id].nextCatalyst = c.catalyst_date;
+     meta[c.company_id].nextCatalyst = c.sort_date || c.catalyst_date;
     }
    });
 
