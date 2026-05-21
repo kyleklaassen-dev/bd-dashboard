@@ -616,7 +616,17 @@ def _pre_sync_trials_from_ctgov(drugs: list) -> int:
         status = STATUS_MAP.get(raw_status, raw_status.replace("_", " ").title())
 
         phases = de_mod.get("phases", [])
-        phase_str = " / ".join(p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases) if phases else None
+        if phases:
+            phase_str = " / ".join(p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases)
+        else:
+            # No phases → use studyType to determine non-interventional label
+            study_type = (de_mod.get("studyType") or "").upper()
+            if study_type == "OBSERVATIONAL":
+                phase_str = "Observational"
+            elif study_type == "EXPANDED_ACCESS":
+                phase_str = "Expanded Access"
+            else:
+                phase_str = None
 
         pcd_struct = st_mod.get("primaryCompletionDateStruct", {})
         pcd = pcd_struct.get("date") or None  # YYYY-MM-DD or YYYY-MM
@@ -722,9 +732,16 @@ def _refresh_existing_trials_from_ctgov(trials: list) -> int:
         status = STATUS_MAP.get(raw_status, raw_status.replace("_", " ").title())
 
         phases = de_mod.get("phases", [])
-        phase_str = " / ".join(
-            p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases
-        ) if phases else None
+        if phases:
+            phase_str = " / ".join(p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases)
+        else:
+            study_type = (de_mod.get("studyType") or "").upper()
+            if study_type == "OBSERVATIONAL":
+                phase_str = "Observational"
+            elif study_type == "EXPANDED_ACCESS":
+                phase_str = "Expanded Access"
+            else:
+                phase_str = None
 
         pcd = (st_mod.get("primaryCompletionDateStruct", {}) or {}).get("date") or None
 
