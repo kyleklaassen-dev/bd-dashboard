@@ -986,7 +986,7 @@ Return JSON with EXACTLY these fields:
 RULES:
 - drug_updates: only drugs from DRUGS list (exact drug_id). EVERY drug in the DRUGS list must have an entry.
 - trial_updates: only trials from TRIALS list (exact trial id). Include an entry for EVERY trial where you find a study acronym. Skip trials where no branded acronym exists.
-- catalysts: only upcoming events (after {TODAY})
+- catalysts: only upcoming events (after {TODAY}). ONE entry per distinct event — do NOT duplicate: if multiple trials share the same primary completion date, create ONE catalyst entry for that readout, not one per trial. Deduplicate by event type + approximate date.
 - deal_updates: only match to EXISTING DEALS
 - combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
 - news_items: extract the 3-6 most significant recent news items from WEB INTELLIGENCE. Only include items with a verified source_url. If WEB INTELLIGENCE is empty, return []. Never fabricate articles. Prefer items from the past 12 months. Each item must have a real URL.
