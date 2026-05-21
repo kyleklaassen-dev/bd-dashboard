@@ -165,7 +165,15 @@ def sb_patch(table: str, record: dict, match_params: dict) -> bool:
         r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}",
                            headers=SB_HEADERS, params=match_params,
                            json=record, timeout=15)
-        return r.status_code in (200, 204)
+        if r.status_code in (200, 204):
+            # With return=representation, 200 + empty body means 0 rows matched
+            if r.status_code == 200 and r.text and r.text.strip() in ("[]", ""):
+                log(f"[sb_patch {table}] WARNING: 0 rows matched {match_params}", indent=2)
+                return False
+            return True
+        else:
+            log(f"[sb_patch {table}] HTTP {r.status_code}: {r.text[:300]}", indent=2)
+            return False
     except Exception as e:
         log(f"[sb_patch {table}] {e}", indent=1)
         return False
@@ -1053,9 +1061,17 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             result = sb_upsert("company_profiles", profile_rec)
             log(f"  company_profiles: {'✓ inserted' if result else '✗ insert failed'}", indent=1)
 
+    # Pre-validate drug IDs: fetch actual IDs in DB so we catch Claude hallucinating non-existent ones
+    db_drug_ids = {d["id"] for d in sb_get("drugs", {"company_id": f"eq.{company_id}", "select": "id"})}
+
     for du in data.get("drug_updates", []):
         drug_id = du.pop("drug_id", None)
         if not drug_id:
+            log("  drug_updates entry missing drug_id — skipping", indent=1)
+            continue
+        if drug_id not in db_drug_ids:
+            log(f"  WARNING: Claude returned unknown drug_id '{drug_id}' (not in DB for {company_id}) — skipping", indent=1)
+            log(f"    Valid IDs are: {sorted(db_drug_ids)}", indent=2)
             continue
         update_fields = {k: v for k, v in du.items() if v is not None}
         # strategic_role must always be written, even if it's the first enrichment
@@ -1064,7 +1080,8 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
         if update_fields:
             ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
             role = update_fields.get("strategic_role", "")
-            log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'}", indent=1)
+            summary_preview = (update_fields.get("drug_summary") or "")[:60]
+            log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
 
     # Write combination programs
     for combo in data.get("combination_programs", []):
