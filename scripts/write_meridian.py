@@ -428,6 +428,16 @@ BD LENS FORMAT — use this HTML for every BD Lens callout:
 </div>
 
 ─────────────────────────────────────────────
+SOURCE LINKING — MANDATORY:
+Every factual claim drawn from an intel item MUST be hyperlinked to its source_url using an inline anchor tag. This is non-negotiable.
+- Format: <a href="SOURCE_URL">linked text</a>
+- Link on the most specific noun — drug name, trial name, company name, or the key phrase — not generic words like "reported" or "announced"
+- When Endpoints News or Fierce Biotech is the source, prefer those links over others covering the same story
+- Aim for at minimum one hyperlink per paragraph. Dense sourcing is a feature, not clutter.
+- If two sources cover the same claim, link both: "Endpoints <a href="...">reported</a> and Fierce <a href="...">confirmed</a>"
+- Do NOT write "(Source: X)" footnotes. Links are inline, in context.
+
+─────────────────────────────────────────────
 HTML INSTRUCTIONS:
 Return ONLY valid, complete HTML starting with <!DOCTYPE html>. Use this exact CSS verbatim:
 
