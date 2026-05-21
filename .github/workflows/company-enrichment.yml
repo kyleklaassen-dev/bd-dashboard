@@ -13,19 +13,28 @@ name: Intelligence Pipeline
 # exist when company_enrichment generates catalysts from PCD dates.
 # research_intelligence MUST run last — it audits the final state.
 #
-# Nightly (Mon–Sat 04:00 UTC): ct_gov_sync + company_enrichment for TL1A only;
-#   research_intelligence audits all 6 areas (fast, no API calls).
-# Weekly (Sun 05:00 UTC): full pipeline (ct_gov + enrichment + intelligence)
-#   for all 6 areas — keeps non-TL1A drug data fresh.
+# ALL AREAS run nightly — each area gets its own scheduled run so they
+# execute in parallel rather than sequentially. Schedule staggers by
+# 10 minutes to avoid Anthropic API burst limits:
+#   04:00 UTC — tl1a   (Mon–Sun)
+#   04:10 UTC — tslp   (Mon–Sun)
+#   04:20 UTC — il4ra  (Mon–Sun)
+#   04:30 UTC — fcrn   (Mon–Sun)
+#   04:40 UTC — igf1r  (Mon–Sun)
+#   04:50 UTC — tcell  (Mon–Sun)
+# Each run targets a single area and completes in ~30–90 min.
 # Manual dispatch: any single area or "all".
 # ══════════════════════════════════════════════════════════════════
 
 on:
-  # Nightly Mon–Sat at midnight ET = 04:00 UTC (TL1A only — active area)
-  # Weekly Sunday at midnight ET = 05:00 UTC (all areas — full refresh)
+  # All 6 areas run nightly — staggered 10 min apart to avoid API bursts
   schedule:
-    - cron: '0 4 * * 1-6'
-    - cron: '0 5 * * 0'
+    - cron: '0 4 * * *'    # tl1a   — 04:00 UTC daily
+    - cron: '10 4 * * *'   # tslp   — 04:10 UTC daily
+    - cron: '20 4 * * *'   # il4ra  — 04:20 UTC daily
+    - cron: '30 4 * * *'   # fcrn   — 04:30 UTC daily
+    - cron: '40 4 * * *'   # igf1r  — 04:40 UTC daily
+    - cron: '50 4 * * *'   # tcell  — 04:50 UTC daily
 
   # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
@@ -68,82 +77,54 @@ jobs:
           pip install -r scripts/requirements.txt
 
       # ──────────────────────────────────────────────────────────
-      # SCHEDULED RUN — nightly TL1A (Mon–Sat 04:00 UTC)
+      # SCHEDULED RUNS — all 6 areas, nightly, parallel
+      # Each area is triggered by its own cron (staggered 10 min)
+      # so all 6 run as parallel GitHub Actions jobs.
       # ──────────────────────────────────────────────────────────
 
-      - name: "[Nightly] Step 3 — CT.gov trial sync (TL1A)"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 4 * * 1-6'
+      - name: "[Nightly] Determine scheduled area"
+        if: github.event_name == 'schedule'
+        id: area_select
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 4 * * *")   echo "area=tl1a"  >> $GITHUB_OUTPUT ;;
+            "10 4 * * *")  echo "area=tslp"  >> $GITHUB_OUTPUT ;;
+            "20 4 * * *")  echo "area=il4ra" >> $GITHUB_OUTPUT ;;
+            "30 4 * * *")  echo "area=fcrn"  >> $GITHUB_OUTPUT ;;
+            "40 4 * * *")  echo "area=igf1r" >> $GITHUB_OUTPUT ;;
+            "50 4 * * *")  echo "area=tcell" >> $GITHUB_OUTPUT ;;
+            *)             echo "area=tl1a"  >> $GITHUB_OUTPUT ;;
+          esac
+
+      - name: "[Nightly] Step 3 — CT.gov trial sync"
+        if: github.event_name == 'schedule'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/ct_gov_sync.py --area tl1a
+          echo "Running CT.gov sync for area: ${{ steps.area_select.outputs.area }}"
+          python scripts/ct_gov_sync.py --area ${{ steps.area_select.outputs.area }}
 
-      - name: "[Nightly] Steps 1,4,5,6 — Intelligence pipeline (TL1A)"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 4 * * 1-6'
+      - name: "[Nightly] Steps 1,4,5,6 — Intelligence pipeline"
+        if: github.event_name == 'schedule'
         env:
           ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/company_enrichment.py --area tl1a
+          echo "Running enrichment for area: ${{ steps.area_select.outputs.area }}"
+          python scripts/company_enrichment.py --area ${{ steps.area_select.outputs.area }}
 
-      - name: "[Nightly] Step 7 — Research intelligence audit (all areas)"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 4 * * 1-6'
+      - name: "[Nightly] Step 7 — Research intelligence audit"
+        if: github.event_name == 'schedule'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/research_intelligence.py --area all
+          python scripts/research_intelligence.py --area ${{ steps.area_select.outputs.area }}
 
       - name: "[Nightly] Identity health check"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 4 * * 1-6'
-        continue-on-error: true
-        env:
-          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
-
-      # ──────────────────────────────────────────────────────────
-      # SCHEDULED RUN — weekly all-areas (Sun 05:00 UTC)
-      # Full ct_gov + company_enrichment + intelligence for all 6
-      # ──────────────────────────────────────────────────────────
-
-      - name: "[Weekly/All] Step 3 → Steps 1,4,5,6 → Step 7 — Full pipeline (all areas)"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 5 * * 0'
-        env:
-          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
-          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          for AREA in tl1a tslp il4ra fcrn igf1r tcell; do
-            echo "════════════════════════════════════════"
-            echo "  Weekly refresh — area: $AREA"
-            echo "════════════════════════════════════════"
-            echo "  → Step 3: CT.gov trial sync"
-            python scripts/ct_gov_sync.py --area $AREA
-            echo "  → Steps 1,4,5,6: Company enrichment"
-            python scripts/company_enrichment.py --area $AREA
-            echo "  → Step 7: Research intelligence audit"
-            python scripts/research_intelligence.py --area $AREA
-            echo "  ✓ Area $AREA complete"
-          done
-
-      - name: "[Weekly/All] Identity health check"
-        if: |
-          github.event_name == 'schedule' &&
-          github.event.schedule == '0 5 * * 0'
+        if: github.event_name == 'schedule'
         continue-on-error: true
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
