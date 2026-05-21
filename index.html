@@ -1253,7 +1253,8 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-wrap{margin-bottom:12px}
 .pi-da-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;padding:0 0 6px 0}
 .pi-da-row{border:1px solid #e2e8f0;border-radius:7px;margin-bottom:6px;overflow:hidden;background:white}
-.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 104px 1fr;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 104px 1fr 72px;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-partner{display:flex;align-items:flex-start;justify-content:flex-end}
 .pi-da-hd:hover{background:#f8fafc}
 .pi-da-toggle{font-size:9px;color:#94a3b8;width:11px;flex-shrink:0;transition:transform 0.15s;display:inline-block}
 .pi-da-toggle.open{transform:rotate(90deg)}
@@ -9998,6 +9999,7 @@ const tl1aPI = {
       <span class="pi-da-mech">${comboTarget}</span>
       <div class="pi-da-stage">${stagePill}</div>
       <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${comboInd}</span></div>
+      <div class="pi-da-partner"></div>
      </div>
      ${hasBody?`<div class="pi-da-body">
       ${comboDescStrip}
@@ -10038,14 +10040,28 @@ const tl1aPI = {
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
    const drugInd      = d.indication_short || 'UC · CD';
    // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
-   // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name
-   // (strips common legal suffixes so the pill stays concise).
+   // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name.
+   // _shortenPartner: known abbreviations first, then strip bio/pharma suffixes for a clean pill label.
+   const _shortenPartner = name => {
+    if (!name) return name;
+    const _MAP = {
+     'Boehringer Ingelheim': 'BI', 'Simcere Pharmaceutical': 'Simcere', 'Simcere': 'Simcere',
+     'Prometheus Biosciences': 'Prometheus', 'FutureGen Biopharmaceutical': 'FutureGen',
+     'FutureGen Biopharmaceutical Co., Ltd.': 'FutureGen', 'Teva Pharmaceutical': 'Teva',
+     'Telavant Holdings': 'Telavant', 'Qyuns Therapeutics': 'Qyuns', 'Earendil Pharmaceuticals': 'Earendil',
+     'Zymeworks Inc.': 'Zymeworks', 'Novamab': 'Novamab',
+    };
+    if (_MAP[name]) return _MAP[name];
+    // Strip common legal/pharma suffixes for the pill
+    return name.replace(/[,\s]+(Biosciences?|Biopharmaceutical|Pharmaceutical(s)?|Pharma|Therapeutics?|Holdings?|Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim();
+   };
    const _trimLegal = s => s ? s.replace(/[,\s]+(Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim() : null;
    const _partnerCo   = d.partner_company || d._partnerCo
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
     || null;
-   const partnerTag   = _partnerCo
-    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap">co-dev w/ ${_partnerCo}</span>`
+   const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
+   const partnerTag   = _partnerShort
+    ? `<span style="font-size:9px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1px 6px;white-space:nowrap">w/ ${_partnerShort}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
@@ -10234,10 +10250,11 @@ const tl1aPI = {
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <div style="display:flex;align-items:center;gap:5px;min-width:0;flex-shrink:1"><span class="pi-da-name">${d.display_name||d.name||'—'}</span>${partnerTag}</div>
+     <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${overlapTag}</div>
+     <div class="pi-da-partner">${partnerTag}</div>
     </div>
     <div class="pi-da-body">
      ${descStrip}
