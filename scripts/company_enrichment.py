@@ -1125,6 +1125,11 @@ Identify ALL known combination programs for this company in this area. Include:
 - Rational combinations the company is known to be building toward (clearly stated in press releases or investor materials)
 Do NOT include speculative combos. If no combinations exist, return []. Combinations appear in the dashboard alongside standalone drugs — the label should be clear and short enough to read in a dropdown (e.g., "Skyrizi + ABBV-382 combo").
 
+CRITICAL DISTINCTION — bispecific ≠ combination:
+A bispecific antibody (e.g., RO7837195: IL-23p40 × TL1A) is a SINGLE MOLECULE that hits two targets simultaneously. It is NOT a combination program. Write it as a standalone drug_updates entry with its bispecific target notation. Do NOT put it in combination_programs.
+A combination program involves two or more SEPARATE drugs administered together (e.g., Skyrizi + ABBV-382).
+A co-developed drug (two companies developing one molecule) is also a standalone drug — put the partner in partner_company, NOT in combination_programs.
+
 STUDY ACRONYM GUIDANCE:
 Companies brand their clinical programs with memorable acronyms shown on their IR pages, ECCO/DDW posters, and press releases (e.g., Spyre uses "SKYLINE" for their TL1A program, AbbVie uses "U-ACHIEVE" for upadacitinib UC trials, J&J uses "PURSUIT" for guselkumab CD). Search the WEB INTELLIGENCE and known sources. ClinicalTrials.gov sometimes includes them in identificationModule.acronym — cross-reference if present in TRIALS list.
 
