@@ -10362,7 +10362,6 @@ const tl1aPI = {
      <div>
       ${acquisitionNote}${altCodeNote}
       ${approvedSection}
-      ${d.route||d.dosing_type?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${[d.route,d.dosing_type].filter(Boolean).map(t=>`<span class="pi-da-tag">${t}</span>`).join('')}</div>`:''}
       ${trialsSection}
      </div>
      ${drugNewsSection}
