@@ -9566,12 +9566,27 @@ const tl1aPI = {
 
    // Replace loading placeholder
    const target = document.getElementById(`pi-dyn-${id}`);
-   if (target) target.outerHTML = this._genericDetailHTML(prog, sbData);
+   if (target) {
+    try {
+     target.outerHTML = this._genericDetailHTML(prog, sbData);
+    } catch(renderErr) {
+     console.error('_genericDetailHTML render error:', renderErr);
+     target.innerHTML = `<div style="padding:16px;color:#dc2626;font-family:monospace;font-size:11px"><b>Render error:</b> ${renderErr.message}<br><pre style="white-space:pre-wrap;font-size:10px">${renderErr.stack||''}</pre></div>`;
+    }
+   }
   } catch (err) {
    console.warn('_loadDynamicDetail error:', err);
    this._profileCache[id] = null;
    const target = document.getElementById(`pi-dyn-${id}`);
-   if (target) target.outerHTML = this._genericDetailHTML(prog, null);
+   if (target) {
+    try {
+     target.outerHTML = this._genericDetailHTML(prog, null);
+    } catch(err2) {
+     console.warn('_genericDetailHTML fallback error:', err2);
+     const errEl = document.getElementById(`pi-dyn-${id}`);
+     if (errEl) errEl.innerHTML = `<div style="padding:16px;color:#dc2626;font-family:monospace;font-size:11px"><b>Load error:</b> ${err.message}<br><b>Fallback error:</b> ${err2.message}</div>`;
+    }
+   }
   }
  },
 
