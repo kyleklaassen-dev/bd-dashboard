@@ -10498,12 +10498,16 @@ const tl1aPI = {
    const drugCount   = meta.drugCount   != null ? meta.drugCount   : entries.length;
    const activeTrials = meta.activeTrials != null ? meta.activeTrials : null;
    const nextCat     = meta.nextCatalyst || null;
-   // Indication scope: prefer DB-derived; fall back to static indication_short on entries
+   // Indication scope: prefer DB-derived; fall back to static ind/indication_short on entries;
+   // final default 'UC+CD' since every program in this PI table is IBD (UC and/or CD).
    const indScope = meta.indScope || (() => {
-    const inds = entries.map(e => (e.indication_short||'').toUpperCase()).join(' ');
-    const hasUC = inds.includes('UC') || inds.includes('ULCERATIVE');
-    const hasCD = inds.includes(' CD') || inds.includes('CROHN');
-    return hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+    const inds = entries.map(e => (e.indication_short||e.ind||'').toUpperCase()).join(' ');
+    const hasUC = /\bUC\b/.test(inds) || inds.includes('ULCERATIVE');
+    const hasCD = /\bCD\b/.test(inds) || inds.includes('CROHN');
+    if (hasUC && hasCD) return 'UC+CD';
+    if (hasUC) return 'UC';
+    if (hasCD) return 'CD';
+    return 'UC+CD'; // TL1A programs are exclusively IBD — safe default
    })();
 
    // Pipeline cell: drug count only
@@ -10653,8 +10657,8 @@ const tl1aPI = {
     if (!meta[d.company_id]) meta[d.company_id] = { drugCount: 0, indUC: false, indCD: false };
     meta[d.company_id].drugCount++;
     const ind = (d.indication_short || '').toUpperCase();
-    if (ind.includes('UC') || ind.includes('ULCERATIVE')) meta[d.company_id].indUC = true;
-    if (ind.includes(' CD') || ind.includes('CROHN'))      meta[d.company_id].indCD = true;
+    if (/\bUC\b/.test(ind) || ind.includes('ULCERATIVE')) meta[d.company_id].indUC = true;
+    if (/\bCD\b/.test(ind) || ind.includes('CROHN'))      meta[d.company_id].indCD = true;
    });
 
    // Add combo program counts (stored separately in drug_combinations, displayed in pipeline)
