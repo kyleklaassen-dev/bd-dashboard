@@ -52,22 +52,33 @@ FOCUS_AREAS = {
 }
 
 # ── RSS feed list ────────────────────────────────────────────────────────────
-RSS_FEEDS = [
+# Primary sources first — fetched first, always full-text, always pass relevance filter
+PRIMARY_FEEDS = [
     "https://endpts.com/feed/",
-    "https://www.biospace.com/rss/news",
     "https://www.fiercebiotech.com/rss/xml",
+]
+
+# Secondary sources — full-text only for high-priority articles
+SECONDARY_FEEDS = [
     "https://www.biopharmadive.com/feeds/news/",
     "https://www.statnews.com/feed/",
     "https://www.genengnews.com/feed/",
+    "https://www.biospace.com/rss/news",
     "https://www.nature.com/nm/rss/current",
     "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss",
     "https://www.prnewswire.com/rss/news-releases-list.rss",
     "https://www.businesswire.com/rss/home/?rss=G7",
 ]
 
+RSS_FEEDS = PRIMARY_FEEDS + SECONDARY_FEEDS
+
+# Canonical source name substrings for matching — used for full-text and priority logic
+PRIMARY_SOURCE_NAMES = {"endpoints news", "fierce biotech"}
+
 # Sources that are worth fetching full-text for (paywalls aside)
 FULL_TEXT_SOURCES = {
-    "endpoints news", "stat news", "biopharmadive", "fierce biotech",
+    "endpoints news", "fierce biotech",
+    "stat news", "biopharmadive",
     "nature medicine", "new england journal of medicine", "prnewswire",
 }
 
@@ -99,6 +110,11 @@ def log(msg):
 
 
 # ── Full-text fetching ───────────────────────────────────────────────────────
+def is_primary_source(article):
+    """Return True if this article is from a primary source (Endpoints News or Fierce Biotech)."""
+    source_lower = (article.get("source", "")).lower()
+    return any(s in source_lower for s in PRIMARY_SOURCE_NAMES)
+
 def is_high_priority(article):
     """Return True if this article warrants full-text fetching."""
     title_lower = (article.get("title", "")).lower()
@@ -154,22 +170,39 @@ def fetch_full_text(url, timeout=10):
         return None
 
 
-def enrich_with_full_text(articles, max_fetches=15):
+def enrich_with_full_text(articles, max_fetches=30):
     """
     For high-priority articles, fetch full text and store as article['full_text'].
-    Caps at max_fetches to keep the pipeline fast.
+    Primary sources (Endpoints News, Fierce Biotech) are fetched first and are not
+    subject to the cap — all primary source articles get full text.
+    Secondary sources are fetched up to the remaining cap.
     """
     fetched = 0
+
+    # Pass 1: all primary source articles — no cap
     for article in articles:
-        if fetched >= max_fetches:
-            break
-        if is_high_priority(article):
+        if is_primary_source(article):
             text = fetch_full_text(article["url"])
             if text:
                 article["full_text"] = text
                 fetched += 1
-                log(f"  Full text fetched: {article['url'][:70]}… ({len(text)} chars)")
+                log(f"  [PRIMARY] Full text: {article['url'][:70]}… ({len(text)} chars)")
             time.sleep(0.5)
+
+    # Pass 2: remaining high-priority articles up to cap
+    for article in articles:
+        if fetched >= max_fetches:
+            break
+        if is_primary_source(article):
+            continue  # already handled
+        if is_high_priority(article) and "full_text" not in article:
+            text = fetch_full_text(article["url"])
+            if text:
+                article["full_text"] = text
+                fetched += 1
+                log(f"  [SECONDARY] Full text: {article['url'][:70]}… ({len(text)} chars)")
+            time.sleep(0.5)
+
     log(f"Full-text enrichment: {fetched} articles fetched")
 
 
@@ -219,7 +252,14 @@ def fetch_feeds(hours_back=48):
 
 # ── Step 2: Filter for focus-area relevance ──────────────────────────────────
 def filter_relevant(articles):
+    """
+    Keep articles that match focus-area keywords.
+    Primary source articles (Endpoints News, Fierce Biotech) always pass through —
+    the extraction LLM will discard irrelevant ones, but we don't want the keyword
+    filter dropping legitimate biopharma coverage just because it misses a keyword.
+    """
     relevant = []
+    primary_passthrough = 0
     for a in articles:
         text = (a["title"] + " " + a["summary"]).lower()
         matched = [area for area, kws in FOCUS_AREAS.items()
@@ -227,7 +267,13 @@ def filter_relevant(articles):
         if matched:
             a["areas"] = matched
             relevant.append(a)
-    log(f"Relevant: {len(relevant)} / {len(articles)} articles matched focus areas")
+        elif is_primary_source(a):
+            # Pass through without area tag — LLM will filter if truly irrelevant
+            a["areas"] = []
+            relevant.append(a)
+            primary_passthrough += 1
+    log(f"Relevant: {len(relevant)} / {len(articles)} articles "
+        f"({primary_passthrough} primary-source passthrough)")
     return relevant
 
 
