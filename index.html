@@ -9922,7 +9922,6 @@ const tl1aPI = {
    }).join('');
    return `<div style="flex:1;display:flex;flex-direction:column">
     <div>
-     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${profilePill}</div>
      ${txRows?`<div style="margin-bottom:8px">${txRows}</div>`:''}
      ${assessLines?`<ul style="margin:0;padding-left:14px">${assessLines}</ul>`:''}
     </div>
@@ -9945,7 +9944,7 @@ const tl1aPI = {
    const profilePill = pcfg
     ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${pcfg.bg};color:${pcfg.color};border:1px solid ${pcfg.border};border-radius:8px;padding:2px 8px">${pcfg.label}</span>`
     : '';
-   return `<div style="background:#faf9ff;border:1px solid #e9e5fb;border-radius:7px;padding:10px 12px;margin-bottom:10px">
+   return `<div style="background:#faf9ff;border:1px solid #e9e5fb;border-radius:7px;padding:10px 12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
      <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed">Assessment</span>
      ${profilePill}
