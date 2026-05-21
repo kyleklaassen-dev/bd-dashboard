@@ -1231,7 +1231,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-main.expanded > td:last-child { position:relative; }
 tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdbfe; }
 .pi-detail-inner { padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
-.pi-detail-section { background:white;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0; }
+.pi-detail-section { background:white;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;min-width:0;overflow:hidden; }
 .pi-detail-section h5 { font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin:0 0 7px 0; }
 .pi-detail-section p, .pi-detail-section li { font-size:11px;color:#334155;line-height:1.55;margin:0; }
 .pi-detail-section ul { margin:0;padding-left:14px; }
@@ -9875,7 +9875,6 @@ const tl1aPI = {
    // scrollable to 10. Single-line with exact date + clickable verified links.
    const drugNewsItems = sbDeals
     .filter(n => n.canonical_drug_id && (n.canonical_drug_id === d.id || n.canonical_drug_id === d.canonical_drug_id))
-    .filter(n => n.source_url || n.url)
     .slice(0, 10);
    const drugNewsSection = drugNewsItems.length ? (() => {
     const rows = drugNewsItems.map(n => renderNewsItem(n, true)).join('');
@@ -9909,23 +9908,27 @@ const tl1aPI = {
    </div>`;
   }).join('');
 
-  // ── Combination programs accordion rows ───────────────────────────────────
+  // ── Combination programs — same accordion row style as drug rows ──────────
   const comboRowsHTML = sbCombos.map(combo => {
-   const srcLink = combo.source_url
-    ? `<a href="${combo.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:10px;font-weight:700;text-decoration:none;margin-left:6px">↗ Source</a>`
-    : '';
-   const sigBadge = `<span style="font-size:9px;border-radius:4px;padding:1px 5px;margin-left:6px;font-weight:700;${combo.strategic_significance==='high'?'background:#fef9c3;color:#92400e':'background:#f5f3ff;color:#6d28d9'}">${combo.strategic_significance||'medium'}</span>`;
-   return `<div class="pi-da-drug" style="border-left:3px solid #7c3aed55;background:#faf5ff">
-    <div class="pi-da-drug-header">
-     <span style="font-size:9.5px;font-weight:800;color:#7c3aed;margin-right:4px">⊕</span>
-     <span style="font-weight:800;color:#6d28d9">${combo.label}</span>
+   const stagePill  = this._stagePill(combo.stage || '');
+   const sigBadge   = combo.strategic_significance === 'high'
+    ? `<span class="pi-da-tag" style="background:#fef9c3;color:#92400e;border-color:#fde68a;margin-left:4px">Key</span>` : '';
+   const comboType  = combo.combination_type ? `<span class="pi-da-mech" style="color:#7c3aed;font-size:10px">⊕ ${combo.combination_type}</span>` : `<span class="pi-da-mech" style="color:#7c3aed;font-size:10px">⊕ Combination</span>`;
+   const srcLink    = combo.source_url
+    ? `<a href="${combo.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;font-size:10px;font-weight:700;text-decoration:none;margin-left:auto;white-space:nowrap">↗ Source</a>` : '';
+   const hasBody    = combo.mechanism_detail || combo.drug_summary;
+   return `<div class="pi-da-row">
+    <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
+     <span class="pi-da-toggle" style="${hasBody?'':'visibility:hidden'}">▶</span>
+     <span class="pi-da-name" style="color:#6d28d9">${combo.label}</span>
+     ${comboType}
+     ${stagePill}
      ${sigBadge}
-     <span style="font-size:9px;color:#94a3b8;margin-left:6px">${combo.combination_type||'combo'} · ${combo.stage||''}</span>
      ${srcLink}
     </div>
-    ${combo.mechanism_detail||combo.drug_summary?`<div class="pi-da-drug-body" style="display:block">
-     ${combo.mechanism_detail?`<p style="margin:0 0 6px 0;font-size:11px;color:#475569">${combo.mechanism_detail}</p>`:''}
-     ${combo.drug_summary?`<p style="margin:0;font-size:11px;color:#334155">${combo.drug_summary}</p>`:''}
+    ${hasBody?`<div class="pi-da-body">
+     ${combo.mechanism_detail?`<div class="pi-da-thesis">${combo.mechanism_detail}</div>`:''}
+     ${combo.drug_summary?`<p style="font-size:11px;color:#334155;margin:6px 0 0 0;line-height:1.55">${combo.drug_summary}</p>`:''}
     </div>`:''}
    </div>`;
   }).join('');
@@ -9934,7 +9937,7 @@ const tl1aPI = {
    ? `<div class="pi-da-wrap">
       <div class="pi-da-label">Drug Pipeline</div>
       ${drugRowsHTML}
-      ${sbCombos.length?`<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#7c3aed;padding:4px 0 2px 0;margin-top:6px">⊕ Combination Programs</div>${comboRowsHTML}`:''}
+      ${comboRowsHTML}
      </div>`
    : '';
 
@@ -9960,8 +9963,7 @@ const tl1aPI = {
    const prev     = _catSeen.get(key);
    if (!prev || (!prev.source_url && c.source_url)) _catSeen.set(key, c);
   });
-  // Filter to items that have a hyperlink — every catalyst must be linkable
-  const catItems = [..._catSeen.values()].filter(c => c.source_url || c.url);
+  const catItems = [..._catSeen.values()];
   if (catItems.length) {
    const catRows = catItems.map(c => {
     const isFromSb = sbCats.length > 0;
@@ -9971,10 +9973,12 @@ const tl1aPI = {
     const sigBadge = isFromSb && c.significance === 'high'
      ? `<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700;flex-shrink:0">Key</span>` : '';
     const tooltipText = (c.notes||c.label||c.event||'').replace(/"/g,'&quot;');
-    const labelHtml = `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${labelRaw} ↗</a>${sigBadge}`;
+    const linkEl = srcUrl
+     ? `<a href="${srcUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${labelRaw} ↗</a>`
+     : `<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${labelRaw}</span>`;
     return `<div class="pi-detail-cat-item" title="${tooltipText}" style="cursor:default">
       <span class="pi-detail-cat-date">${date}</span>
-      <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${labelHtml}</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:3px;overflow:hidden;min-width:0;flex:1">${linkEl}${sigBadge}</span>
      </div>`;
    }).join('');
    // 5 items visible, scroll reveals rest
@@ -10022,8 +10026,7 @@ const tl1aPI = {
   };
 
   let dealsHTML;
-  // Filter to items with a hyperlink — every news item must be linkable
-  const newsItems = (sbDeals.length ? sbDeals : (prog.deals || [])).filter(d => d.source_url || d.url);
+  const newsItems = sbDeals.length ? sbDeals : (prog.deals || []);
   if (newsItems.length) {
    const newsRows = newsItems.map(d => renderNewsItem(d, true)).join('');
    // 5 items visible, scroll reveals rest
