@@ -1240,11 +1240,12 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-detail-cat-date { color:#94a3b8;flex-shrink:0;font-size:10px;padding-top:1px;min-width:72px;width:72px; }
 .pi-trial-row { padding:8px 10px;background:#f8fafc;border-radius:6px;margin-bottom:7px;border:1px solid #e2e8f0; }
 .pi-trial-row:last-child { margin-bottom:0; }
-.pi-trial-status { display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700; }
-.pi-trial-recruiting { background:#dcfce7;color:#166534; }
-.pi-trial-anr { background:#fef9c3;color:#854d0e; }
-.pi-trial-done { background:#f1f5f9;color:#475569; }
-.pi-trial-planned { background:#ede9fe;color:#5b21b6; }
+.pi-trial-status { display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;justify-self:start;white-space:nowrap; }
+.pi-trial-recruiting { background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; }
+.pi-trial-anr      { background:#fff7ed;color:#9a3412;border:1px solid #fed7aa; }
+.pi-trial-done     { background:#f8fafc;color:#64748b;border:1px solid #e2e8f0; }
+.pi-trial-planned  { background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd; }
+.pi-trial-stopped  { background:#fef2f2;color:#b91c1c;border:1px solid #fecaca; }
 /* ── SPYRE RICH ROW ── */
 .spyre-hd { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0; }
 /* ── Drug accordion rows in expanded entity detail ── */
@@ -1264,15 +1265,19 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-.pi-tr-row{display:grid;grid-template-columns:92px 118px 1fr 58px 68px 16px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 7-column grid: NCT | Acronym | Status | Phase | PCD | Relevance bar | Chevron */
+.pi-tr-row{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px 14px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
+.pi-tr-header{display:grid;grid-template-columns:92px 112px 152px 52px 82px 44px 14px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
 .pi-nct-a:hover{text-decoration:underline}
 .pi-tr-acronym-cell{display:flex;align-items:center;min-width:0}
 .pi-tr-name{font-size:11px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.pi-tr-phase-cell{font-size:10px;color:#64748b;white-space:nowrap}
-.pi-tr-n-cell{font-size:10px;color:#64748b;white-space:nowrap;text-align:right}
-.pi-tr-pcd-cell{font-size:10px;color:#64748b;white-space:nowrap;text-align:right}
+.pi-tr-phase-cell{font-size:10px;color:#475569;font-weight:600;white-space:nowrap}
+.pi-tr-pcd-cell{font-size:10px;color:#64748b;white-space:nowrap}
+.pi-tr-rel-bar{display:flex;flex-direction:column;justify-content:center;gap:2px}
+.pi-tr-rel-track{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+.pi-tr-rel-fill{height:100%;border-radius:3px;transition:width 0.3s}
 .pi-tr-chev{font-size:9px;color:#94a3b8;transition:transform 0.15s;text-align:right}
 .pi-tr-chev.open{transform:rotate(180deg)}
 .pi-tr-detail{display:none;border-top:1px solid #f1f5f9;padding:10px 11px;background:#fafbff;font-size:11px;line-height:1.6;color:#334155}
@@ -9659,9 +9664,46 @@ const tl1aPI = {
    : `<span style="font-size:9px;color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:1px 6px;margin-left:6px">⏳ pending enrichment</span>`;
 
   // ── Trial status helper ─────────────────────────────────────────────────
-  const trialStatusCls = s => s.includes('ecruit') ? 'pi-trial-recruiting'
-   : s.includes('omplete') ? 'pi-trial-done'
-   : s.includes('not recruit') ? 'pi-trial-anr' : 'pi-trial-planned';
+  const trialStatusCls = s => {
+   const sl = (s||'').toLowerCase();
+   if (sl.includes('terminat') || sl.includes('withdrawn') || sl.includes('suspend')) return 'pi-trial-stopped';
+   if (sl.includes('not yet recruit')) return 'pi-trial-planned';
+   if (sl.includes('active') && sl.includes('not recruit')) return 'pi-trial-anr';
+   if (sl.includes('recruit')) return 'pi-trial-recruiting';
+   if (sl.includes('complet')) return 'pi-trial-done';
+   return 'pi-trial-planned';
+  };
+
+  // ── Trial relevance score (0–100) for sorting + bar ────────────────────
+  const trialRelevance = t => {
+   const ph = (t.phase||'').toLowerCase();
+   const st = (t.status||'').toLowerCase();
+   let score = 0;
+   if      (ph.includes('3'))              score += 50;
+   else if (ph.includes('2/3') || ph.includes('2b')) score += 40;
+   else if (ph.includes('2'))              score += 28;
+   else if (ph.includes('1/2'))            score += 18;
+   else if (ph.includes('1'))              score += 10;
+   // "Active, not recruiting" = enrollment done, data imminent
+   if      (st.includes('active') && st.includes('not recruit')) score += 35;
+   else if (st.includes('recruit') && !st.includes('not'))       score += 25;
+   else if (st.includes('not yet'))                               score += 10;
+   else if (st.includes('complet'))                               score += 5;
+   return Math.min(100, score);
+  };
+
+  // Bar color: orange for high (Phase 3), blue for medium (Phase 2), gray for low
+  const relBarColor = score => score >= 75 ? '#f97316' : score >= 45 ? '#3b82f6' : '#94a3b8';
+
+  // ── PCD full-date formatter ─────────────────────────────────────────────
+  const fmtPcd = raw => {
+   if (!raw) return '';
+   const full = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+   if (full) { const d=new Date(raw+'T00:00:00Z'); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`; }
+   const mo = raw.match(/^(\d{4})-(\d{2})$/);
+   if (mo) return `${MONTHS[parseInt(mo[2])-1]} ${mo[1]}`;
+   return raw;
+  };
 
   // ── Build trials index by drug_id ───────────────────────────────────────
   // IMPORTANT: Only fall back to static prog.trials when there are NO Supabase drugs.
@@ -9718,15 +9760,25 @@ const tl1aPI = {
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
+   // Sort trials by relevance (highest first)
+   const sortedTrials = [...resolvedTrials].sort((a,b) => trialRelevance(b) - trialRelevance(a));
+
+   // Column header row (rendered once above the trial items)
+   const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
+    <span>NCT</span><span>Acronym</span><span>Status</span><span>Phase</span><span>PCD</span><span>Relevance</span><span></span>
+   </div>` : '';
+
    // Trial rows
-   const trialRowsHTML = resolvedTrials.map(t => {
+   const trialRowsHTML = sortedTrials.map(t => {
     const nct     = t.id || t.nct || '';
     const name    = t.trial_name || t.name || '';
     const acronym = t.study_acronym || '';
     const status  = t.status || '';
     const phase   = t.phase || '';
     const n       = t.n_enrollment || t.enrollment || t.n;
-    const pcd     = t.pcd_label || t.primary_completion_date?.slice(0,7) || t.pcd || '';
+    // Prefer full YYYY-MM-DD from primary_completion_date; pcd_label as fallback
+    const pcdRaw  = t.primary_completion_date || t.pcd_label || t.pcd || '';
+    const pcd     = fmtPcd(pcdRaw);
     const ind     = t.indication || t.condition || '';
     const route   = t.route || d.route || '';
     const dosing  = t.dosing_type || d.dosing_type || '';
@@ -9734,12 +9786,18 @@ const tl1aPI = {
     const results = t.results_summary || '';
     const hasResults = results || status.toLowerCase().includes('complet');
 
+    const score    = trialRelevance(t);
+    const barColor = relBarColor(score);
+    const relBar   = `<div class="pi-tr-rel-bar">
+     <div class="pi-tr-rel-track"><div class="pi-tr-rel-fill" style="width:${score}%;background:${barColor}"></div></div>
+    </div>`;
+
     const nctLink = nct.startsWith('NCT')
      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
-     : `<span style="font-size:10px;color:#94a3b8;width:88px;display:inline-block;flex-shrink:0">${nct||'—'}</span>`;
+     : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
 
-    // Acronym cell always present (empty span keeps grid alignment when no acronym)
-    const acronymBadge = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
+    // Acronym cell always present — keeps grid column count constant
+    const acronymCell = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
     const detailFields = [
      ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
@@ -9753,15 +9811,14 @@ const tl1aPI = {
      <div class="pi-tr-results-btn" onclick="piToggleTrialResults(this)">📊 Study Results ▾</div>
      <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
 
-    // Study name hidden by default — only shown in expanded detail on click
-    // Study acronym (e.g. SKYLINE, U-ACHIEVE) shown as compact badge in collapsed row
     return `<div class="pi-tr-item">
      <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       ${nctLink}
-      ${acronymBadge}
+      ${acronymCell}
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-phase-cell">${phase}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
+      ${relBar}
       <span class="pi-tr-chev">▼</span>
      </div>
      <div class="pi-tr-detail">
@@ -9774,7 +9831,7 @@ const tl1aPI = {
 
    const trialCount = resolvedTrials.length;
    const trialsSection = trialCount
-    ? `<div class="pi-tr-hd-label">Clinical Trials (${trialCount})</div><div>${trialRowsHTML}</div>`
+    ? `<div class="pi-tr-hd-label">Clinical Trials (${trialCount})</div>${trialHeader}<div>${trialRowsHTML}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
    // Approved drug profile section — shown when stage is Approved
