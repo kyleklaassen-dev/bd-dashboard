@@ -589,9 +589,10 @@ def _pre_sync_trials_from_ctgov(drugs: list) -> int:
     }
 
     def _ctgov_search(drug_name: str, indication: str = None, max_results: int = 8) -> list:
+        # Note: query.cond is intentionally omitted — our indication_short strings
+        # (e.g. "UC · CD") use abbreviations CT.gov doesn't parse, which returns 0
+        # results. The drug name intervention search is specific enough on its own.
         params = {"format": "json", "pageSize": max_results, "query.intr": drug_name}
-        if indication:
-            params["query.cond"] = indication
         try:
             r = requests.get(f"{CT_GOV_BASE}/studies", params=params, timeout=20)
             if r.status_code == 200:
