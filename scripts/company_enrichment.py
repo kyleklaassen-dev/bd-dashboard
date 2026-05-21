@@ -669,6 +669,99 @@ def _pre_sync_trials_from_ctgov(drugs: list) -> int:
     return total_new
 
 
+def _refresh_existing_trials_from_ctgov(trials: list) -> int:
+    """
+    For each trial row that already exists in the DB, re-fetch its CT.gov record
+    directly by NCT ID and upsert the latest status, phase, PCD, and acronym.
+    Returns the count of successfully refreshed rows.
+    """
+    import time as _time
+
+    STATUS_MAP = {
+        "RECRUITING":              "Recruiting",
+        "ACTIVE_NOT_RECRUITING":   "Active, not recruiting",
+        "COMPLETED":               "Completed",
+        "NOT_YET_RECRUITING":      "Not yet recruiting",
+        "ENROLLING_BY_INVITATION": "Enrolling by invitation",
+        "TERMINATED":              "Terminated",
+        "WITHDRAWN":               "Withdrawn",
+        "SUSPENDED":               "Suspended",
+    }
+
+    def _fetch_study(nct_id: str) -> dict | None:
+        try:
+            r = requests.get(f"{CT_GOV_BASE}/studies/{nct_id}", params={"format": "json"}, timeout=20)
+            if r.status_code == 200:
+                return r.json()
+        except Exception as e:
+            log(f"    CT.gov fetch error for {nct_id}: {e}", indent=3)
+        return None
+
+    refreshed = 0
+    for trial in trials:
+        nct_id  = (trial.get("id") or "").strip()
+        drug_id = (trial.get("drug_id") or "").strip()
+        if not nct_id.startswith("NCT") or not drug_id:
+            continue
+
+        study = _fetch_study(nct_id)
+        if not study:
+            log(f"      ✗ {nct_id} — not found on CT.gov", indent=3)
+            _time.sleep(0.2)
+            continue
+
+        ps     = study.get("protocolSection", {})
+        id_mod = ps.get("identificationModule", {})
+        st_mod = ps.get("statusModule", {})
+        de_mod = ps.get("designModule", {})
+        co_mod = ps.get("conditionsModule", {})
+        en_mod = ps.get("designModule", {}).get("enrollmentInfo", {}) or {}
+
+        raw_status = (st_mod.get("overallStatus") or "").upper()
+        status = STATUS_MAP.get(raw_status, raw_status.replace("_", " ").title())
+
+        phases = de_mod.get("phases", [])
+        phase_str = " / ".join(
+            p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases
+        ) if phases else None
+
+        pcd = (st_mod.get("primaryCompletionDateStruct", {}) or {}).get("date") or None
+
+        conditions = co_mod.get("conditions", [])
+        indication = " · ".join(conditions[:3]) if conditions else None
+
+        n_enrollment = en_mod.get("count") or None  # integer enrollment count
+
+        update_rec = {
+            "id":                     nct_id,
+            "drug_id":                drug_id,
+            "status":                 status,
+            "last_synced_date":       NOW_ISO,
+        }
+        if phase_str:
+            update_rec["phase"] = phase_str
+        if pcd:
+            update_rec["primary_completion_date"] = pcd
+        if indication:
+            update_rec["indication"] = indication[:200]
+        if id_mod.get("acronym"):
+            update_rec["study_acronym"] = id_mod["acronym"]
+        if n_enrollment is not None:
+            update_rec["n_enrollment"] = n_enrollment
+        update_rec["source_url"] = f"https://clinicaltrials.gov/study/{nct_id}"
+
+        ok = sb_upsert("trials", update_rec)
+        if ok:
+            log(f"      ↻ {nct_id} | {status} | pcd={pcd or '—'}", indent=3)
+            refreshed += 1
+        else:
+            log(f"      ✗ {nct_id} — upsert failed", indent=3)
+
+        _time.sleep(0.25)
+
+    return refreshed
+
+
 def fetch_company_context(company_id: str, area_id: str) -> dict:
     """Pull all Supabase data for a company × area."""
     companies = sb_get("companies", {"id": f"eq.{company_id}", "select": "*"})
@@ -714,6 +807,20 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
                 t_rows = sb_get("trials", {"drug_id": f"eq.{d['id']}", "select": "*"})
                 trials.extend(t_rows)
             log(f"  Pre-sync complete — {newly_synced} new trial rows added")
+
+    # ── Refresh existing trials via CT.gov direct fetch ───────────────────
+    # For drugs that already have trial rows, re-fetch each NCT ID from CT.gov
+    # so status, PCD, enrollment, and phase stay current.
+    if trials:
+        log(f"  Refreshing {len(trials)} existing trial(s) from CT.gov…")
+        refreshed = _refresh_existing_trials_from_ctgov(trials)
+        log(f"  Refresh complete — {refreshed}/{len(trials)} trial(s) updated")
+        # Re-fetch updated rows so Claude sees the latest values
+        if refreshed:
+            trials = []
+            for d in drugs:
+                t_rows = sb_get("trials", {"drug_id": f"eq.{d['id']}", "select": "*"})
+                trials.extend(t_rows)
 
     ninety_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).strftime("%Y-%m-%d")
     intel_co   = sb_get("intel_companies", {"company_id": f"eq.{company_id}", "select": "intel_id"})
