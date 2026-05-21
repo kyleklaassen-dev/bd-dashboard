@@ -9866,6 +9866,26 @@ const tl1aPI = {
    return m ? m[0].trim() : (txt.length > 140 ? txt.slice(0, 140).trim() + '…' : txt.trim());
   };
 
+  // ── Indication abbreviator — maps full disease names to standard clinical abbreviations ──
+  // Applied at render time to all indication_short values; no DB changes required.
+  const _abbrevInd = str => {
+   if (!str) return str;
+   const _IM = [
+    ['Ulcerative Colitis','UC'],['Crohn\'s Disease','CD'],['Crohn Disease','CD'],
+    ['Atopic Dermatitis','AD'],['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
+    ['Psoriasis','Ps'],['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],
+    ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
+    ['Alopecia Areata','AA'],['Systemic Lupus Erythematosus','SLE'],
+    ['Multiple Sclerosis','MS'],['Thyroid Eye Disease','TED'],
+    ['Graves\'s Disease','GD'],['Graves\' Disease','GD'],['Graves Disease','GD'],['Myasthenia Gravis','gMG'],
+    ['Inflammatory Bowel Disease','IBD'],['Chronic Obstructive Pulmonary Disease','COPD'],
+    ['Nonalcoholic Steatohepatitis','NASH'],['Systemic Sclerosis','SSc'],['Scleroderma','SSc'],
+   ];
+   let r = str;
+   _IM.forEach(([long, abbr]) => { r = r.replace(new RegExp(long, 'gi'), abbr); });
+   return r;
+  };
+
   // ── Group drugs + combos into three portfolio tiers ───────────────────────
   // Tier is determined by drug.overlap (DB field), combo.overlap (DB field), or static _overlap.
   // Display order: Direct → Adjacent → Same-Space (Watch in DB).
@@ -9977,7 +9997,7 @@ const tl1aPI = {
        ? `<div style="font-size:11px;color:#0369a1;padding:4px 0;font-style:italic">Study planned — no trial registration yet${anticipatedStr}${plannedSrcLink}</div>${prereqNote}`
        : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
-    const comboInd  = combo.indication_short || 'UC · CD';
+    const comboInd  = _abbrevInd(combo.indication_short) || 'UC · CD';
     // Display name: strip parenthetical so only drug names show e.g. "FG-M701 + Skyrizi"
     const comboDisplayName = (combo.label||'').replace(/\s*\([^)]*\)\s*$/, '').trim() || combo.label || '—';
     // Extract target from parenthetical e.g. "(TL1A × IL-23p19)" — strip trailing " combo" word if present
@@ -10030,15 +10050,21 @@ const tl1aPI = {
    // Drug row header fields: Name | Target | Phase | Indication | [partner tag]
    // RULE: Always prefer d.target (clean notation e.g. "TL1A", "IL-23p19") over d.mechanism
    // (verbose description like "Anti-TL1A mAb"). Mechanism belongs in the expanded detail only.
-   // cleanTarget: strips modality suffixes ("bispecific antibody", "mAb", etc.) and normalises × / + spacing
+   // cleanTarget: strips everything after first semicolon (company credits), parentheticals,
+   // modality suffixes ("bispecific antibody", "mAb", co-dev notes), then normalises × / + spacing.
    const cleanTarget = s => (s||'')
+    .replace(/;.*/g, '')                                                          // strip "; Company co-dev" notes
+    .replace(/,?\s*[A-Za-z0-9\s/]+\s+co-dev\b.*/gi, '')                         // strip "Roche/Pfizer co-dev" inline
+    .replace(/\s*\([^)]*\)\s*/g, ' ')                                            // strip parenthetical notes
     .replace(/\s*(bi-?specific\s*antibody|bi-?specific|antibody|mAb)\s*/gi, ' ')
     .replace(/\s*[×x]\s*/g, ' × ')
     .replace(/\s*\+\s*/g, ' + ')
+    .replace(/\s+/g, ' ')
     .trim();
+
    const drugTarget   = cleanTarget(d.target || d.mechanism || prog.target || '—');
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
-   const drugInd      = d.indication_short || 'UC · CD';
+   const drugInd      = _abbrevInd(d.indication_short) || 'UC · CD';
    // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
    // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name.
    // _shortenPartner: known abbreviations first, then strip bio/pharma suffixes for a clean pill label.
@@ -10447,11 +10473,15 @@ const tl1aPI = {
    const drugDisplay = extraCount > 0
     ? `${primary.drug} <span style="font-size:10px;color:#7c3aed;font-weight:700;background:#f5f3ff;border-radius:8px;padding:1px 5px">+${extraCount} more</span>`
     : primary.drug;
-   // Target: show primary if all same, else "Multiple". Strip modality suffixes; normalise × / + spacing.
+   // Target: show primary if all same, else "Multiple". Matches cleanTarget logic above.
    const normTarget = s => (s||'')
+    .replace(/;.*/g, '')
+    .replace(/,?\s*[A-Za-z0-9\s/]+\s+co-dev\b.*/gi, '')
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
     .replace(/\s*(bi-?specific\s*antibody|bi-?specific|antibody|mAb)\s*/gi, ' ')
     .replace(/\s*[×x]\s*/g, ' × ')
     .replace(/\s*\+\s*/g, ' + ')
+    .replace(/\s+/g, ' ')
     .trim();
    const allSameTarget = ge.every(e=>e.target===primary.target);
    const rawTarget = allSameTarget ? primary.target : (primary.target.length > 18 ? primary.target.substring(0,18)+'…' : primary.target);
