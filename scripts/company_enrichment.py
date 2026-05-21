@@ -56,7 +56,8 @@ USAGE:
   python scripts/company_enrichment.py --area tl1a --dry-run
 
 DEPENDS ON:
-  ct_gov_sync.py must run FIRST (populates trials table for Step 3 context)
+  ct_gov_sync.py is optional — enrichment now auto-syncs missing trials from CT.gov
+  before calling Claude, so it is self-contained for drugs with zero trial rows.
 
 ENVIRONMENT:
   ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
@@ -565,6 +566,109 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
 # (Step 3 trials are pre-populated by ct_gov_sync.py)
 # ══════════════════════════════════════════════════════════════════════════
 
+CT_GOV_BASE = "https://clinicaltrials.gov/api/v2"
+
+def _pre_sync_trials_from_ctgov(drugs: list) -> int:
+    """
+    For each drug in `drugs`, search ClinicalTrials.gov by drug name and upsert
+    any found trials into the trials table.  Returns the count of new rows inserted.
+    Only runs for drugs that currently have zero trial rows — acts as a lightweight
+    ct_gov_sync substitute so the enrichment step is self-contained.
+    """
+    import time as _time
+
+    STATUS_MAP = {
+        "RECRUITING":              "Recruiting",
+        "ACTIVE_NOT_RECRUITING":   "Active, not recruiting",
+        "COMPLETED":               "Completed",
+        "NOT_YET_RECRUITING":      "Not yet recruiting",
+        "ENROLLING_BY_INVITATION": "Enrolling by invitation",
+        "TERMINATED":              "Terminated",
+        "WITHDRAWN":               "Withdrawn",
+        "SUSPENDED":               "Suspended",
+    }
+
+    def _ctgov_search(drug_name: str, indication: str = None, max_results: int = 8) -> list:
+        params = {"format": "json", "pageSize": max_results, "query.intr": drug_name}
+        if indication:
+            params["query.cond"] = indication
+        try:
+            r = requests.get(f"{CT_GOV_BASE}/studies", params=params, timeout=20)
+            if r.status_code == 200:
+                return r.json().get("studies", [])
+        except Exception as e:
+            log(f"    CT.gov search error for '{drug_name}': {e}", indent=2)
+        return []
+
+    def _parse_study(study: dict, drug_id: str) -> dict | None:
+        ps = study.get("protocolSection", {})
+        id_mod  = ps.get("identificationModule", {})
+        st_mod  = ps.get("statusModule", {})
+        de_mod  = ps.get("designModule", {})
+        co_mod  = ps.get("conditionsModule", {})
+
+        nct_id = id_mod.get("nctId", "")
+        if not nct_id.startswith("NCT"):
+            return None
+
+        raw_status = (st_mod.get("overallStatus") or "").upper()
+        status = STATUS_MAP.get(raw_status, raw_status.replace("_", " ").title())
+
+        phases = de_mod.get("phases", [])
+        phase_str = " / ".join(p.replace("PHASE", "Phase ").replace("_", " ").strip() for p in phases) if phases else None
+
+        pcd_struct = st_mod.get("primaryCompletionDateStruct", {})
+        pcd = pcd_struct.get("date") or None  # YYYY-MM-DD or YYYY-MM
+
+        conditions = co_mod.get("conditions", [])
+        indication = " · ".join(conditions[:3]) if conditions else None
+
+        return {
+            "id":                     nct_id,
+            "drug_id":                drug_id,
+            "trial_name":             (id_mod.get("briefTitle") or "")[:300] or None,
+            "study_acronym":          id_mod.get("acronym") or None,
+            "phase":                  phase_str,
+            "status":                 status,
+            "indication":             indication[:200] if indication else None,
+            "primary_completion_date": pcd,
+            "source_url":             f"https://clinicaltrials.gov/study/{nct_id}",
+            "last_synced_date":       NOW_ISO,
+            "discovery_status":       "auto",
+        }
+
+    total_new = 0
+    for drug in drugs:
+        drug_id   = drug["id"]
+        drug_name = drug.get("name") or drug_id
+        indication = drug.get("indication_short") or None
+
+        log(f"    CT.gov pre-sync: '{drug_name}' ({drug_id})", indent=2)
+        studies = _ctgov_search(drug_name, indication=indication)
+
+        inserted = 0
+        for study in studies:
+            rec = _parse_study(study, drug_id)
+            if not rec:
+                continue
+            # Skip trials that already exist
+            existing = sb_get("trials", {"id": f"eq.{rec['id']}", "select": "id"})
+            if existing:
+                continue
+            rec_clean = {k: v for k, v in rec.items() if v is not None}
+            result = sb_upsert("trials", rec_clean)
+            if result:
+                log(f"      ✓ {rec['id']} | {rec.get('phase','?')} | {rec.get('status','?')}", indent=3)
+                inserted += 1
+            _time.sleep(0.3)
+
+        if not inserted:
+            log(f"      no new trials found", indent=3)
+        total_new += inserted
+
+    return total_new
+
+
 def fetch_company_context(company_id: str, area_id: str) -> dict:
     """Pull all Supabase data for a company × area."""
     companies = sb_get("companies", {"id": f"eq.{company_id}", "select": "*"})
@@ -590,11 +694,26 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
     all_co_drugs   = sb_get("drugs", {"company_id": f"eq.{company_id}", "select": "*"})
     drugs = [d for d in all_co_drugs if d["id"] in area_drug_ids]
 
-    # Trials already populated by ct_gov_sync (Step 3)
+    # Trials: fetch existing rows, then pre-sync any drugs that have none
     trials = []
     for d in drugs:
         t_rows = sb_get("trials", {"drug_id": f"eq.{d['id']}", "select": "*"})
         trials.extend(t_rows)
+
+    # ── Pre-sync missing trials via CT.gov API ────────────────────────────
+    # For drugs with zero trial rows, search ClinicalTrials.gov directly and
+    # upsert what we find so the TRIALS block Claude sees is already populated.
+    drug_ids_with_trials = {t["drug_id"] for t in trials}
+    drugs_needing_trials = [d for d in drugs if d["id"] not in drug_ids_with_trials]
+    if drugs_needing_trials:
+        log(f"  Pre-syncing CT.gov trials for {len(drugs_needing_trials)} drugs with no trial rows…")
+        newly_synced = _pre_sync_trials_from_ctgov(drugs_needing_trials)
+        if newly_synced:
+            # Re-fetch trials so they appear in the TRIALS block sent to Claude
+            for d in drugs_needing_trials:
+                t_rows = sb_get("trials", {"drug_id": f"eq.{d['id']}", "select": "*"})
+                trials.extend(t_rows)
+            log(f"  Pre-sync complete — {newly_synced} new trial rows added")
 
     ninety_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).strftime("%Y-%m-%d")
     intel_co   = sb_get("intel_companies", {"company_id": f"eq.{company_id}", "select": "intel_id"})
