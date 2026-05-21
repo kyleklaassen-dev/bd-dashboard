@@ -10657,7 +10657,7 @@ const tl1aPI = {
    <th style="width:${w[7]}px">Catalyst<div class="col-resize" data-col="7"></div></th>
   </tr></thead>`;
 
-  const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay }) => {
+  const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay, isTerminated }) => {
    const isExp = this.expanded.has(gid);
    const noIntelDot = this._noIntelTickers.has(p.ticker) ? '<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>' : '';
 
