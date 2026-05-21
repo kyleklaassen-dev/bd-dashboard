@@ -8097,8 +8097,15 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     toggle(id) {
+      const expanding = !this.expanded.has(id);
       if (this.expanded.has(id)) this.expanded.delete(id); else this.expanded.add(id);
       this._renderTable();
+      if (expanding) {
+        const ent = this.entities.find(e => e.entity_id === id);
+        if (ent && !this._profileCache[id] && this._profileCache[id] !== null) {
+          this._loadDynamicDetail(id, ent);
+        }
+      }
     },
 
     _renderPills() {
@@ -8152,23 +8159,146 @@ function _makeAreaPI(tabId, areaIds) {
       return `<span class="pi-etype-badge ${m[t]||''}">${l[t]||t}</span>`;
     },
 
-    // Stage 2 will replace this with the full drug accordion (trials, intel cards, etc.)
     _entityDetailHTML(ent) {
+      const eid = ent.entity_id;
+      // If already cached, render full detail inline (no flicker on re-render)
+      if (this._profileCache[eid] !== undefined) {
+        const compatProg = this._makeCompatProg(ent);
+        if (this._profileCache[eid] !== null && typeof tl1aPI !== 'undefined') {
+          try { return tl1aPI._genericDetailHTML.call(tl1aPI, compatProg, this._profileCache[eid]); }
+          catch(e) { console.error('[areaPI] cached render error:', e); }
+        }
+        // null cache = load failed, show fallback
+        return this._entityDetailFallback(ent);
+      }
+      // Loading placeholder — _loadDynamicDetail() replaces this div with live data
+      return `<div class="pi-detail-inner" id="pi-dyn-${eid}" style="display:block;padding:28px 16px;text-align:center">
+        <span style="color:#94a3b8;font-size:12px;font-style:italic">⟳ Loading company intelligence...</span>
+      </div>`;
+    },
+
+    _makeCompatProg(ent) {
+      const leadProg = ent.programs.reduce((b,p) => {
+        const ord = {Approved:0,'Phase 3':1,'Phase 2':2,'Phase 1':3,'Pre-IND':4,Preclinical:5};
+        return (ord[p.stageKey]??9) < (ord[b.stageKey]??9) ? p : b;
+      }, ent.programs[0] || {});
+      return { ...leadProg, id: ent.company_id || ent.entity_id,
+        co: ent.entity_name, ticker: ent.ticker,
+        company_id: ent.company_id || ent.entity_id, _groupEntries: ent.programs };
+    },
+
+    _entityDetailFallback(ent) {
       let html = '';
       if (ent.programs.length > 1) {
         const bubbles = ent.programs.map(p =>
-          `<div class="pi-prog-bubble">
-            <span class="pi-prog-name">${p.name}</span>
-            ${this._stagePill(p.stageKey)}
-            ${this._clsPill(p.cls)}
+          `<div class="pi-prog-bubble"><span class="pi-prog-name">${p.name}</span>
+            ${this._stagePill(p.stageKey)} ${this._clsPill(p.cls)}
             ${p.target!=='—'?`<span class="pi-prog-target">${p.target}</span>`:''}
-          </div>`
-        ).join('');
+          </div>`).join('');
         html += `<div class="pi-prog-bubbles">${bubbles}</div>`;
       }
       if (ent.summary)     html += `<p style="font-size:12px;line-height:1.6;color:#1e3a5f;margin:6px 0">${ent.summary}</p>`;
       if (ent.stageDetail) html += `<p style="font-size:11px;color:#475569;margin:0">${ent.stageDetail}</p>`;
       return html || '<span style="color:#94a3b8;font-size:11px">No detail available.</span>';
+    },
+
+    async _loadDynamicDetail(entityId, ent) {
+      if (!_sb) { this._profileCache[entityId] = null; return; }
+      const companyId = ent.company_id || entityId;
+      const AREA = this.areaIds[0] || 'tslp';
+      try {
+        // Company profile for this area
+        const { data: profileRows } = await _sb.from('company_profiles').select('*')
+          .eq('company_id', companyId).eq('area_id', AREA)
+          .order('updated_at', { ascending: false }).limit(1);
+        const profile = profileRows?.[0] || null;
+
+        // Catalysts
+        const { data: cats } = await _sb.from('catalysts').select('*')
+          .eq('company_id', companyId).eq('area_id', AREA)
+          .eq('resolved', false).order('sort_date', { ascending: true }).limit(20);
+
+        // Deals + intel news
+        let { data: deals } = await _sb.from('deals').select('*')
+          .eq('company_id', companyId)
+          .order('deal_date', { ascending: false }).limit(20);
+        if (!deals || !deals.length) {
+          const coName = (ent.entity_name||'').split('/')[0].trim().substring(0,14);
+          const { data: d2 } = await _sb.from('deals').select('*')
+            .or(`from_company.ilike.*${coName}*,to_company.ilike.*${coName}*`)
+            .order('deal_date', { ascending: false }).limit(20);
+          deals = d2 || [];
+        }
+        let intelNews = [];
+        try {
+          const { data: icRows } = await _sb.from('intel_companies').select('intel_id').eq('company_id', companyId).limit(20);
+          if (icRows?.length) {
+            const intelIds = icRows.map(r => r.intel_id);
+            const { data: intelRows } = await _sb.from('intel').select('id,intel_date,headline,body,source_url')
+              .in('id', intelIds).order('intel_date', { ascending: false }).limit(10);
+            intelNews = (intelRows||[]).map(i => ({
+              _source: 'intel', deal_date: i.intel_date,
+              deal_date_label: i.intel_date ? i.intel_date.slice(0,10) : '',
+              headline: i.headline, detail: (i.body||'').slice(0,200),
+              source_url: i.source_url, deal_type: 'news',
+            }));
+          }
+        } catch(_) {}
+        const allNews = [...(deals||[]), ...intelNews]
+          .filter((item, idx, arr) => arr.findIndex(x => (x.headline||'').slice(0,40) === (item.headline||'').slice(0,40)) === idx)
+          .sort((a,b) => (b.deal_date||'').localeCompare(a.deal_date||''));
+
+        // Drugs for this company in this area
+        const { data: drugAreaRows } = await _sb.from('drug_areas').select('drug_id').eq('area_id', AREA);
+        const areaSet = new Set((drugAreaRows||[]).map(r => r.drug_id));
+        const { data: allCoDrugs } = await _sb.from('drugs').select('*')
+          .eq('company_id', companyId).order('sort_order', { ascending: true }).limit(20);
+        const drugs = (allCoDrugs||[]).filter(d => areaSet.has(d.id));
+
+        // Trials
+        let trials = [];
+        for (const d of drugs.slice(0, 8)) {
+          const { data: tt } = await _sb.from('trials').select('*').eq('drug_id', d.id);
+          if (tt) trials.push(...tt);
+        }
+
+        // Combos + combo trials
+        let combos = [];
+        try {
+          const { data: comboRows } = await _sb.from('drug_combinations').select('*')
+            .eq('company_id', companyId).eq('area_id', AREA)
+            .order('strategic_significance', { ascending: true });
+          const comboSeen = new Set();
+          combos = (comboRows||[]).filter(c => {
+            const key = (c.label||'').toLowerCase().replace(/\s*[\(\[].*?[\)\]]/g,'').replace(/\s+/g,' ').trim();
+            if (comboSeen.has(key)) return false; comboSeen.add(key); return true;
+          });
+          const comboIds = combos.map(c => c.id).filter(Boolean);
+          if (comboIds.length) {
+            const { data: ctr } = await _sb.from('trials').select('*').in('combination_id', comboIds);
+            if (ctr?.length) trials.push(...ctr);
+          }
+        } catch(_) {}
+
+        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos };
+        this._profileCache[entityId] = sbData;
+
+        // Replace loading placeholder with full rendering
+        const target = document.getElementById(`pi-dyn-${entityId}`);
+        if (target && typeof tl1aPI !== 'undefined') {
+          try {
+            target.outerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, this._makeCompatProg(ent), sbData);
+          } catch(renderErr) {
+            console.error('[areaPI] render error:', renderErr);
+            target.outerHTML = `<div class="pi-detail-inner" style="display:block;padding:14px 16px">${this._entityDetailFallback(ent)}</div>`;
+          }
+        }
+      } catch(err) {
+        console.warn('[areaPI] _loadDynamicDetail error:', err);
+        this._profileCache[entityId] = null;
+        const target = document.getElementById(`pi-dyn-${entityId}`);
+        if (target) target.outerHTML = `<div class="pi-detail-inner" style="display:block;padding:14px 16px">${this._entityDetailFallback(ent)}</div>`;
+      }
     },
 
     _renderTable() {
@@ -8236,7 +8366,7 @@ function _makeAreaPI(tabId, areaIds) {
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
-        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="8"><div class="pi-detail-body">${this._entityDetailHTML(ent)}</div></td></tr>` : '';
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="8"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
           <td><strong style="font-size:12px;color:#1e3a5f">${ent.entity_name}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
           <td>${pipelineCell}</td>
