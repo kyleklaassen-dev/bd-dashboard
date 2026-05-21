@@ -289,7 +289,7 @@ def gather_landscape_intel(area_id: str) -> str:
 
 
 def step1_discover_new_entities(area_id: str, company_map: dict,
-                                  dry_run: bool = False) -> int:
+                                  dry_run: bool = False, resolver=None) -> int:
     """
     Proactively discover new competitors via live web search, then diff against
     the existing Supabase entity list. Supplemented by recent in-DB intel.
@@ -443,6 +443,38 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         if drug_name:
             drug_slug = re.sub(r'[^a-z0-9]', '-', drug_name.lower()).strip('-')
             existing_drug = sb_get("drugs", {"id": f"eq.{drug_slug}", "select": "id"})
+
+            # ── Cross-company canonical collision check ──────────────────────
+            # Before creating a new drug, ask the identity resolver if this drug name
+            # already exists under a DIFFERENT company (e.g. PF-07261271 = afimkibart
+            # at Roche — same molecule, just renamed after acquisition).
+            # If a collision is detected, skip creation and log a warning.
+            if not existing_drug and resolver is not None:
+                try:
+                    resolved_canon, _conf, method = resolver.resolve(
+                        drug_name, source="step1_discovery"
+                    )
+                    if method in ("exact", "normalized"):
+                        # Canonical already exists — find which drug row owns it
+                        canon_drugs = sb_get("drugs", {
+                            "canonical_drug_id": f"eq.{resolved_canon}",
+                            "select": "id,company_id,name"
+                        })
+                        # Filter to drugs NOT belonging to the company we're processing
+                        collisions = [d for d in canon_drugs if d.get("company_id") != co_id]
+                        if collisions:
+                            existing_names = ", ".join(
+                                f"{d['id']} ({d.get('company_id','')})" for d in collisions
+                            )
+                            log(f"    ⚠ CROSS-COMPANY DUPLICATE DETECTED: '{drug_name}' resolves "
+                                f"to canonical {resolved_canon} (method={method}), already in DB as: "
+                                f"{existing_names}. This looks like a renamed/acquired drug. "
+                                f"Skipping — add licensor_code + partner_company to the lead drug "
+                                f"record manually or via enrichment.", indent=2)
+                            continue  # skip creating the duplicate drug
+                except Exception as e:
+                    log(f"    ↷ Resolver error during collision check: {e}", indent=2)
+
             if not existing_drug:
                 _stage_to_expected = {
                     "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
@@ -1056,6 +1088,21 @@ DISPLAY NAME GUIDANCE (CRITICAL — apply to every acquired/licensed drug):
 - The old name belongs in licensor_code (e.g. "FG-M701") and licensor_name (originating company, e.g. "FutureGen Biopharmaceutical Co., Ltd."). The dashboard uses these fields to surface "formerly [licensor_code]" in the detail view automatically — never repeat the old name in display_name.
 - NEVER leave display_name null or equal to the drug_id when the drug has a licensor — this creates inaccurate data.
 
+ACQUIRED / RENAMED DRUG DETECTION (CRITICAL — prevents cross-company duplicates):
+A drug may appear in the literature under two completely different names when one company acquires a program from another and renames it. Classic patterns:
+- Pharma code → INN: "PF-07261271" → "afimkibart" (Pfizer originated; Roche renamed after Telavant acquisition)
+- Licensor code → acquirer code: "FG-M701" → "ABBV-701" (FutureGen originated; AbbVie in-licensed and re-coded)
+- Partnership/JV rename: "RVT-3101" (Telavant JV) = "RO7790121" = "afimkibart" (Roche INN)
+
+When you identify such a renaming event for a drug belonging to this company:
+1. Set licensor_code = the ORIGINAL code used by the prior owner (e.g. "PF-07261271")
+2. Set licensor_name = the full legal name of the originating company (e.g. "Pfizer / Telavant Holdings (Roivant Sciences JV)")
+3. Set partner_company = the SHORT recognizable name of the originating company (e.g. "Pfizer") — this is what renders in the "w/ X" pill on the dashboard
+4. Set partnership_type = "licensed_in" for in-licensing, "acquired" for outright acquisition
+5. Set display_name = the CURRENT acquirer code ONLY (no old name in parentheses)
+
+IMPORTANT: If you find that a drug in this company's portfolio is a renamed/acquired version of a drug that another company already has in the database, do NOT create a second entry for the originating company. The lead developer (the company running the trials) is the canonical owner; the originating company's code goes in licensor_code.
+
 COMBINATION PROGRAM GUIDANCE:
 Identify ALL known combination programs for this company in this area. Include:
 - Ongoing combination trials (two drugs being studied together)
@@ -1580,8 +1627,9 @@ def run_intelligence_pipeline(area_id: str,
         except Exception as exc:
             log(f"⚠ Could not initialise identity resolver: {exc} — running without it")
 
-    # STEP 1: Entity Discovery
-    new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run)
+    # STEP 1: Entity Discovery (resolver passed for cross-company collision check)
+    new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run,
+                                               resolver=run_resolver)
     log(f"Step 1 complete: {new_entities} new entities")
 
     if discover_only:
