@@ -10663,10 +10663,10 @@ const tl1aPI = {
              ${assessCardHtml}
              <div class="pi-detail-section" style="display:flex;flex-direction:column;flex:1"><h5>🤝 BD Intelligence</h5>${bdHtml}</div>
             </div>
-            <div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>Platform Intelligence</h5>${piHtml}</div>`;
+            <div class="pi-detail-section" style="display:flex;flex-direction:column"><h5>🧬 Platform Intelligence</h5>${piHtml}</div>`;
    } else if (piHtml) {
     return `${assessCardHtml?`<div style="grid-column:1/-1">${assessCardHtml}</div>`:''}
-            <div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Intelligence</h5>${piHtml}</div>`;
+            <div class="pi-detail-section" style="grid-column:1/-1"><h5>🧬 Platform Intelligence</h5>${piHtml}</div>`;
    } else if (bdHtml) {
     return `<div class="pi-detail-section"><h5>Platform Summary</h5><p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p></div>
             <div style="display:flex;flex-direction:column;gap:10px">
