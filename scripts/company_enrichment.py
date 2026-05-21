@@ -542,10 +542,20 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
                 "select": "*", "order": "deal_date.desc"
             })
 
+    # Fetch ailux_positions for this area (or its indication_group) so enrichment can
+    # classify every drug against Ailux's competitive anchor — without hardcoded rules.
+    # Try area_id first (e.g. 'tl1a'), then indication_group (e.g. 'ibd') as fallback.
+    ailux_pos = {}
+    _pos_rows = sb_get("ailux_positions", {"area_id": f"eq.{area_id}", "select": "*"})
+    if not _pos_rows and indication_group:
+        _pos_rows = sb_get("ailux_positions", {"area_id": f"eq.{indication_group}", "select": "*"})
+    if _pos_rows:
+        ailux_pos = _pos_rows[0]
+
     return {
         "company": company, "profile": profile, "drugs": drugs,
         "trials": trials, "catalysts": catalysts, "deals": deals,
-        "recent_intel": recent_intel,
+        "recent_intel": recent_intel, "ailux_pos": ailux_pos,
     }
 
 
@@ -812,8 +822,9 @@ CHINA CDE AWARENESS:
 
 def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
                        web_intel: str = "") -> str:
-    co      = ctx["company"]
-    profile = ctx["profile"]
+    co        = ctx["company"]
+    profile   = ctx["profile"]
+    ailux_pos = ctx.get("ailux_pos", {})
     is_public = (co.get("ticker") or "").upper() not in ("PRIVATE", "", "N/A")
 
     drugs_text = json.dumps([{
@@ -863,6 +874,34 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
         '"key_investors": ["name1", "name2"],'
     )
 
+    # Build Ailux competitive anchor block — fetched from ailux_positions table.
+    # This is the reference the LLM uses to classify every drug as Direct/Adjacent/Watch.
+    # If no position row exists for this area, the block is omitted and the LLM uses
+    # its own judgment (acceptable for new areas, but adding a row is strongly preferred).
+    if ailux_pos:
+        ailux_block = (
+            "\nAILUX COMPETITIVE ANCHOR (read this before classifying any drug):\n"
+            f"Ailux drug: {ailux_pos.get('ailux_drug','SPY002')} | "
+            f"Targets: {ailux_pos.get('ailux_targets','')} | "
+            f"Modality: {ailux_pos.get('ailux_modality','')} | "
+            f"Stage: {ailux_pos.get('ailux_stage','')}\n"
+            f"Ailux angle: {ailux_pos.get('ailux_angle','')}\n\n"
+            "TIER CLASSIFICATION RULES (apply to EVERY drug and combo you write):\n"
+            f"DIRECT — {ailux_pos.get('direct_criteria','')}\n"
+            f"  Examples: {ailux_pos.get('direct_examples','')}\n\n"
+            f"ADJACENT — {ailux_pos.get('adjacent_criteria','')}\n"
+            f"  Examples: {ailux_pos.get('adjacent_examples','')}\n\n"
+            f"WATCH (Same-Space) — {ailux_pos.get('watch_criteria','')}\n"
+            f"  Examples: {ailux_pos.get('watch_examples','')}\n\n"
+            f"NOTES: {ailux_pos.get('notes','')}\n"
+        )
+    else:
+        ailux_block = (
+            "\nNOTE: No ailux_positions row found for this area. "
+            "Use your best judgment to classify overlap as Direct (same molecular target as Ailux), "
+            "Adjacent (same disease, validating/complementary biology), or Watch (same patients, different pathway).\n"
+        )
+
     # Build web intelligence section separately to avoid f-string nesting issues
     if web_intel:
         web_intel_section = (
@@ -897,6 +936,7 @@ EXISTING DEALS:
 RECENT INTEL:
 {recent_intel}
 {web_intel_section}
+{ailux_block}
 Return JSON with EXACTLY these fields:
 {{
   "company_profile": {{
@@ -928,6 +968,8 @@ Return JSON with EXACTLY these fields:
     "drug_summary": "REQUIRED — 2-3 sentences: the most important facts about THIS molecule — mechanism, clinical stage, what makes it noteworthy (platform tech, differentiation, conference data, pivotal readouts). Never return null; use training knowledge + web intel. For approved drugs include sales and approval status.",
     "key_data": "REQUIRED for approved/late-stage drugs — most important clinical data point in one sentence (e.g. primary endpoint result, pivotal trial outcome). For early-stage with no public data: brief mechanism note. Never leave null if drug_summary is populated.",
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
+    "overlap": "REQUIRED — Direct | Adjacent | Watch. Use AILUX COMPETITIVE ANCHOR rules above. Direct = same molecular target as Ailux (TL1A) or combo that includes TL1A. Adjacent = same disease, different mechanism, validates biology or is a combination candidate. Watch = same patients, completely different pathway.",
+    "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this drug is classified in this tier relative to Ailux's TL1A position. Be specific about the mechanism.",
     "confidence_level": "confirmed|supported|inferred",
     "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
     "aliases": [],
@@ -948,6 +990,8 @@ Return JSON with EXACTLY these fields:
     "strategic_significance": "high|medium|low",
     "mechanism_detail": "1-2 sentences: rationale for combining these mechanisms, what complementary biology is targeted",
     "drug_summary": "2-3 sentences: what is known about this combination program — trial data, company guidance, strategic rationale",
+    "overlap": "REQUIRED — Direct | Adjacent | Watch. A combo that includes a TL1A component = Direct. A multi-mechanism IBD combo without TL1A = Adjacent. Use AILUX COMPETITIVE ANCHOR rules above.",
+    "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this combination program is classified in this tier.",
     "notes": "1 sentence: source or confidence note",
     "source_url": "null or URL to press release, trial registration, or IR page — never fabricate. REQUIRED when stage starts with 'Planned'."
   }}],
@@ -1145,6 +1189,8 @@ def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False
             "strategic_significance": combo.get("strategic_significance") or "medium",
             "mechanism_detail":      combo.get("mechanism_detail"),
             "drug_summary":          combo.get("drug_summary"),
+            "overlap":               combo.get("overlap"),
+            "overlap_rationale":     combo.get("overlap_rationale"),
             "notes":                 combo.get("notes"),
             "updated_at":            NOW_ISO,
         }
