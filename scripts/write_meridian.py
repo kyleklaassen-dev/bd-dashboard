@@ -567,27 +567,50 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, re
 
 # ── Persist issue to Supabase archive ────────────────────────────────────────
 def save_to_supabase(html_content: str, intel: list, date_str: str):
-    """Upsert the generated issue into meridian_issues for the archive."""
-    title    = f"The Meridian — {datetime.datetime.utcnow().strftime('%B %-d, %Y')}"
-    intel_ids = [it["id"] for it in intel if it.get("id")]
+    """Upsert the generated issue into meridian_issues for the archive.
 
-    payload = {
-        "issue_date": date_str,
-        "title":      title,
-        "body_html":  html_content,
-        "intel_ids":  intel_ids,
-        "updated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
+    Uses check-then-patch/insert to avoid PostgREST merge-duplicates ambiguity
+    (default conflict resolution is on primary key, not issue_date).
+    """
+    title     = f"The Meridian — {datetime.datetime.utcnow().strftime('%B %-d, %Y')}"
+    intel_ids = [it["id"] for it in intel if it.get("id")]
+    now_str   = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
     try:
-        r = requests.post(
+        # Check whether a row already exists for today
+        chk = requests.get(
             f"{SUPABASE_URL}/rest/v1/meridian_issues",
-            headers={**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-            json=payload,
+            params={"select": "id", "issue_date": f"eq.{date_str}"},
+            headers=SB_HEADERS,
         )
-        if r.status_code in (200, 201):
-            log(f"Saved issue {date_str} to Supabase meridian_issues ✓")
+        existing = chk.json() if chk.status_code == 200 else []
+
+        if existing:
+            # PATCH the existing row in-place
+            row_id = existing[0]["id"]
+            r = requests.patch(
+                f"{SUPABASE_URL}/rest/v1/meridian_issues",
+                params={"id": f"eq.{row_id}"},
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                json={"title": title, "body_html": html_content,
+                      "intel_ids": intel_ids, "updated_at": now_str},
+            )
+            verb = "Updated"
         else:
-            log(f"Supabase save warning {r.status_code}: {r.text[:120]}")
+            # INSERT brand-new row
+            r = requests.post(
+                f"{SUPABASE_URL}/rest/v1/meridian_issues",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                json={"issue_date": date_str, "title": title,
+                      "body_html": html_content, "intel_ids": intel_ids,
+                      "updated_at": now_str},
+            )
+            verb = "Inserted"
+
+        if r.status_code in (200, 201, 204):
+            log(f"{verb} issue {date_str} in Supabase meridian_issues ✓")
+        else:
+            log(f"Supabase save warning {r.status_code}: {r.text[:200]}")
     except Exception as e:
         log(f"Supabase save error (non-fatal): {e}")
 
