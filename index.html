@@ -10498,10 +10498,12 @@ const tl1aPI = {
 
   const drugSection = allItems.length
    ? `<div class="pi-da-wrap">
-      <div class="pi-da-label">IBD Portfolio</div>
+      <div class="pi-da-label" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px"><span>IBD Portfolio</span>${enrichedAt}</div>
       ${tierSections}
      </div>`
-   : '';
+   : `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="pi-da-label" style="padding:0">IBD Portfolio</div>${enrichedAt}
+     </div>`;
 
   // (MONTHS + fmtExactDate moved above fmtPcd to fix temporal dead zone — see date helpers block)
 
@@ -10571,7 +10573,7 @@ const tl1aPI = {
    ${drugSection}
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'}">
     <div class="pi-detail-section" style="grid-column:1/-1">
-     <h5>Platform Summary ${enrichedAt}</h5>
+     <h5>Platform Summary</h5>
      <p>${platformSummary||'<span style="color:#94a3b8">Not yet enriched</span>'}</p>
     </div>
     ${bdSummary?`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🤝 BD Summary</h5><p>${bdSummary}</p></div>`:''}
