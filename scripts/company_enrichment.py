@@ -1426,14 +1426,18 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
     for attempt in range(1, 4):
         try:
             resp = client.messages.create(
-                model="claude-sonnet-4-6", max_tokens=4096,
+                model="claude-sonnet-4-6", max_tokens=8192,
                 system=ENRICHMENT_SYSTEM,
                 messages=[{"role": "user", "content": prompt}]
             )
             text = resp.content[0].text
             cost = (resp.usage.input_tokens / 1e6 * 3.0 +
                     resp.usage.output_tokens / 1e6 * 15.0)
-            log(f"  {resp.usage.input_tokens}in / {resp.usage.output_tokens}out (${cost:.4f})", indent=1)
+            finish = getattr(resp, 'stop_reason', None)
+            log(f"  {resp.usage.input_tokens}in / {resp.usage.output_tokens}out (${cost:.4f}) stop={finish}", indent=1)
+            # Detect truncation — if stop_reason is max_tokens, the JSON is incomplete
+            if finish == 'max_tokens':
+                log("  WARNING: response truncated at max_tokens — JSON will be incomplete, retrying is unlikely to help. Increase max_tokens or shorten prompt.", indent=1)
             break
         except Exception as e:
             log(f"  Claude error (attempt {attempt}/3): {e}", indent=1)
