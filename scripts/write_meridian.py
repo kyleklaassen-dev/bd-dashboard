@@ -567,6 +567,10 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions, re
         html = re.sub(r"^```[a-z]*\n?", "", html, flags=re.MULTILINE)
         html = html.replace("```", "")
 
+    # Ensure all links open in a new tab (iframe navigation guard)
+    if "<base " not in html:
+        html = html.replace("<head>", '<head>\n<base target="_blank" rel="noopener">', 1)
+
     return html
 
 
