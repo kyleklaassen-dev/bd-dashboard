@@ -1222,6 +1222,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
 .pi-stage-approved { background:#dcfce7;color:#166534; }
+.pi-stage-approved { background:#dcfce7;color:#166534;border:1px solid #86efac; }
 .pi-stage-ph3 { background:#fef3c7;color:#92400e; }
 .pi-stage-ph2 { background:#ede9fe;color:#5b21b6; }
 .pi-stage-ph1 { background:#dbeafe;color:#1d4ed8; }
@@ -1308,13 +1309,13 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-approved-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .pi-da-approved-badge{background:#dcfce7;color:#166534;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:900;letter-spacing:0.06em;text-transform:uppercase}
 /* Stat cards row */
-.pi-da-appr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.pi-da-appr-stat{background:#f8fafc;border-radius:6px;padding:10px 12px;border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:3px}
+.pi-da-appr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.pi-da-appr-stat{background:#f8fafc;border-radius:6px;padding:5px 10px;border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:2px}
 .pi-da-appr-stat.stat-approval{border-left:3px solid #3b82f6}
 .pi-da-appr-stat.stat-revenue{border-left:3px solid #10b981}
 .pi-da-appr-stat.stat-patients{border-left:3px solid #8b5cf6}
 .pi-da-appr-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
-.pi-da-appr-val{font-size:12px;font-weight:800;color:#1e293b;line-height:1.3}
+.pi-da-appr-val{font-size:11px;font-weight:800;color:#1e293b;line-height:1.3}
 /* Section cards */
 .pi-da-appr-card{border-radius:6px;padding:10px 12px;margin-bottom:8px}
 .pi-da-appr-card-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:5px}
@@ -9241,6 +9242,7 @@ const tl1aPI = {
   return `<span class="pi-cls-pill ${m[cls]||'pi-cls-1st'}">${cls}</span>`;
  },
  _stagePill(s) {
+  if (s && /^approv/i.test(s)) return `<span class="pi-stage-pill pi-stage-approved">✓ Approved</span>`;
   const m = {'Phase 3':'pi-stage-ph3','Phase 2':'pi-stage-ph2','Phase 1':'pi-stage-ph1','Pre-IND':'pi-stage-pre','Preclinical':'pi-stage-pre','Planned Ph2b':'pi-stage-planned','Planned Ph1':'pi-stage-planned','Planned Phase 2':'pi-stage-planned','Planned Phase 1':'pi-stage-planned',Observational:'pi-stage-obs','Expanded Access':'pi-stage-comp'};
   const lbl = {'Observational':'Obs.','Expanded Access':'Comp. Use'};
   return `<span class="pi-stage-pill ${m[s]||(s&&s.startsWith('Planned')?'pi-stage-planned':'pi-stage-pre')}">${lbl[s]||s||'—'}</span>`;
@@ -10316,15 +10318,29 @@ const tl1aPI = {
    // Approved drug profile section — shown when stage is Approved
    const isApproved = /approv/i.test(drugPhase);
    const approvedSection = isApproved ? (() => {
+    // ── Approval date: two-column bullet list if multiple entries ─
+    const approvalDateContent = d.approval_date ? (() => {
+     const entries = d.approval_date.split(';').map(s => s.trim()).filter(Boolean);
+     if (entries.length <= 1) return `<span class="pi-da-appr-val">${d.approval_date}</span>`;
+     const items = entries.map(e => `<li>${e}</li>`).join('');
+     return `<ul style="margin:3px 0 0;padding-left:14px;list-style:disc;display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;font-size:10.5px;font-weight:600;color:#1e293b;line-height:1.5">${items}</ul>`;
+    })() : null;
     // ── Stat cards ────────────────────────────────────────────────
     const statCards = [
-     d.approval_date      ? `<div class="pi-da-appr-stat stat-approval"><span class="pi-da-appr-lbl">📅 Approval Date</span><span class="pi-da-appr-val">${d.approval_date}</span></div>` : '',
-     d.annual_revenue     ? `<div class="pi-da-appr-stat stat-revenue"><span class="pi-da-appr-lbl">💰 Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
-     d.patient_population ? `<div class="pi-da-appr-stat stat-patients"><span class="pi-da-appr-lbl">👥 Patients on Therapy</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
+     approvalDateContent ? `<div class="pi-da-appr-stat stat-approval" style="${d.approval_date&&d.approval_date.includes(';')?'grid-column:1/-1':''}"><span class="pi-da-appr-lbl">📅 Approval Dates</span>${approvalDateContent}</div>` : '',
+     d.annual_revenue    ? `<div class="pi-da-appr-stat stat-revenue"><span class="pi-da-appr-lbl">💰 Annual Revenue</span><span class="pi-da-appr-val">${d.annual_revenue}</span></div>` : '',
+     d.patient_population? `<div class="pi-da-appr-stat stat-patients"><span class="pi-da-appr-lbl">👥 Patients on Therapy</span><span class="pi-da-appr-val">${d.patient_population}</span></div>` : '',
     ].filter(Boolean).join('');
-    // ── Section cards — each with distinct color ──────────────────
-    const endpointsCard = d.final_endpoints
-     ? `<div class="pi-da-appr-card card-endpoints"><span class="pi-da-appr-card-lbl">⚗ Pivotal Endpoints</span><div class="pi-da-appr-card-body">${d.final_endpoints}</div></div>` : '';
+    // ── Endpoints as bullet list ───────────────────────────────────
+    const endpointsContent = d.final_endpoints ? (() => {
+     const entries = d.final_endpoints.split(/;\s*|\.\s+(?=[A-Z])/).map(s=>s.trim()).filter(Boolean);
+     if (entries.length <= 1) return `<div class="pi-da-appr-card-body">${d.final_endpoints}</div>`;
+     const items = entries.map(e=>`<li style="margin-bottom:3px">${e.replace(/\.$/,'')}</li>`).join('');
+     return `<ul style="margin:0;padding-left:16px;list-style:disc" class="pi-da-appr-card-body">${items}</ul>`;
+    })() : null;
+    // ── Section cards ─────────────────────────────────────────────
+    const endpointsCard = endpointsContent
+     ? `<div class="pi-da-appr-card card-endpoints"><span class="pi-da-appr-card-lbl">⚗ Pivotal Endpoints</span>${endpointsContent}</div>` : '';
     const summaryCard = d.drug_summary
      ? `<div class="pi-da-appr-card card-summary"><span class="pi-da-appr-card-lbl">📋 Summary</span><div class="pi-da-appr-card-body">${d.drug_summary}</div></div>` : '';
     const mechCard = d.mechanism_detail
@@ -10333,7 +10349,6 @@ const tl1aPI = {
      ? `<div class="pi-da-appr-card card-diff"><span class="pi-da-appr-card-lbl">⚡ Differentiation</span><div class="pi-da-appr-card-body">${d.differentiation_thesis}</div></div>` : '';
     if (!statCards && !endpointsCard && !summaryCard && !mechCard && !diffCard) return '';
     return `<div class="pi-da-approved">
-     <div class="pi-da-approved-hd"><span class="pi-da-approved-badge">✓ Approved</span></div>
      ${statCards?`<div class="pi-da-appr-stats">${statCards}</div>`:''}
      ${endpointsCard}${summaryCard}${mechCard}${diffCard}
     </div>`;
@@ -10383,7 +10398,6 @@ const tl1aPI = {
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
     <div class="pi-da-body">
-     ${descStrip}
      <div>
       ${acquisitionNote}${altCodeNote}
       ${approvedSection}
