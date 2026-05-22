@@ -1726,12 +1726,13 @@ async function loadStockCards() {
   try {
     // Parallel fetch: companies + areas + signals + intel relevance
     const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
-    const [compRes, areaRes, sigRes, recentIntelRes, intelCosRes] = await Promise.all([
+    const [compRes, areaRes, sigRes, recentIntelRes, intelCosRes, profRes] = await Promise.all([
       _sb.from('companies').select('*'),
       _sb.from('company_areas').select('*'),
       _sb.from('company_signals').select('*').order('sort_order'),
       _sb.from('intel').select('id').gte('intel_date', sevenDaysAgo),
       _sb.from('intel_companies').select('company_id,intel_id'),
+      _sb.from('company_profiles').select('company_id,last_enriched_at'),
     ]);
 
     if (compRes.error) throw compRes.error;
@@ -6394,7 +6395,7 @@ function dknRow(d) {
   const stageCls  = 'sp-' + (d.stage || '').replace(' ','');
   const cat       = d.catalog_category || 'Pipeline';
   const catBarCls = 'cat-bar-' + cat.replace(/\s/g,'.');
-  const eid       = JSON.stringify(d.id); // safely-quoted text slug for inline onclick
+  const eid       = `'${d.id}'`; // single-quoted for inline onclick — JSON.stringify produces double-quotes which break HTML attributes
   const removeOrRestore = isRemoved
     ? `<button class="dkn-restore-btn" onclick="event.stopPropagation();dknRestoreInline(${eid})" title="Restore">↩</button>`
     : `<button class="dkn-trash-btn" onclick="event.stopPropagation();dknRemove(${eid})" title="Remove drug">🗑</button>`;
