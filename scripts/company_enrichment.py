@@ -1643,7 +1643,7 @@ def parse_enrichment_response(text: str) -> Optional[dict]:
         return None
 
 
-def write_step5(company_id: str, area_id: str, data: dict, dry_run: bool = False):
+def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: bool = False):
     """Write Claude enrichment results to Supabase."""
     if dry_run:
         log(f"  [DRY RUN] {json.dumps(data, indent=2)[:400]}...", indent=1)
@@ -2417,7 +2417,7 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         log("  Parse failed — skipping", indent=1)
         return False
 
-    write_step5(company_id, area_id, data, dry_run)
+    write_step5(company_id, area_id, data, ctx, dry_run)
 
     # POST-ENRICHMENT COMPLETENESS SCORING
     log("  Completeness scoring...", indent=1)
