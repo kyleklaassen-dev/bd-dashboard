@@ -8702,7 +8702,7 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
   if (drugs.length)
     sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>💊 Pipeline</h5><div style="margin-top:4px">${drugs.map(d => {
       const dn = (d.display_name||d.name||'').replace(/'/g,"\\'");
-      return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
+      return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
     }).join(' ')}</div></div>`);
 
   // Clinical trials table
@@ -8737,7 +8737,7 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
 }
 
 /* ─── Drug modal ─────────────────────────────────────────────────────────── */
-async function openDrugModal(drugId, drugName, evt) {
+async function openDrugEntityModal(drugId, drugName, evt) {
   if (evt) { evt.stopPropagation(); evt.preventDefault(); }
   const overlay  = document.getElementById('entity-modal-overlay');
   const titleEl  = document.getElementById('entity-modal-title');
@@ -12226,7 +12226,7 @@ const tl1aPI = {
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name pi-entity-name" onclick="event.stopPropagation();openDrugModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
+     <span class="pi-da-name pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
