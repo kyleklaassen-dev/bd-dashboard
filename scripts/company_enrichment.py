@@ -1757,6 +1757,12 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
     # Pre-validate drug IDs: fetch actual IDs in DB so we catch Claude hallucinating non-existent ones
     db_drug_ids = {d["id"] for d in sb_get("drugs", {"company_id": f"eq.{company_id}", "select": "id"})}
 
+    # canonical_drug_id lookup for drug_area_scores parallel write (P1-D)
+    _canon_map: dict = {d["id"]: d.get("canonical_drug_id") for d in ctx.get("drugs", []) if d.get("id")}
+
+    # Area-specific fields that belong in drug_area_scores (in addition to drugs table)
+    _AREA_SCORE_FIELDS = {"overlap", "overlap_rationale", "cls", "vs_ailux", "area_fit"}
+
     for du in data.get("drug_updates", []):
         drug_id = du.pop("drug_id", None)
         if not drug_id:
@@ -1775,6 +1781,36 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
+
+            # ── P1-D: Parallel write to drug_area_scores ──────────────────────
+            # Write area-specific competitive fields to the normalised table so
+            # multi-area drugs accumulate per-area scores without overwriting.
+            _das_payload = {
+                k: update_fields[k] for k in _AREA_SCORE_FIELDS if k in update_fields
+            }
+            if _das_payload:
+                _das_rec = {
+                    "drug_id":            drug_id,
+                    "canonical_drug_id":  _canon_map.get(drug_id),
+                    "area_id":            area_id,
+                    "last_enriched_at":   NOW_ISO,
+                }
+                # Map vs_ailux → vs_ailux_positioning (column name differs in drug_area_scores)
+                if "vs_ailux" in _das_payload:
+                    _das_rec["vs_ailux_positioning"] = _das_payload.pop("vs_ailux")
+                _das_rec.update(_das_payload)
+                _das_existing = sb_get("drug_area_scores", {
+                    "drug_id": f"eq.{drug_id}",
+                    "area_id": f"eq.{area_id}",
+                    "select":  "drug_id",
+                    "limit":   "1",
+                })
+                if _das_existing:
+                    sb_patch("drug_area_scores", _das_rec,
+                             {"drug_id": f"eq.{drug_id}", "area_id": f"eq.{area_id}"})
+                else:
+                    sb_upsert("drug_area_scores", _das_rec)
+                log(f"    drug_area_scores [{area_id}]: overlap={_das_rec.get('overlap','—')} cls={_das_rec.get('cls','—')}", indent=2)
 
             # ── partner_company guard — must be set for all non-self deals ──────
             pt_written = update_fields.get("partnership_type") or du.get("partnership_type")
