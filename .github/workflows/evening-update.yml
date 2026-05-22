@@ -1,33 +1,26 @@
-name: Evening Research Update
+# RETIRED 2026-05-21
+#
+# This workflow ran research.py at 02:30 UTC daily, duplicating the
+# meridian-research.yml run at 06:00 UTC Mon–Sat. Both ran identical code;
+# source_url dedup prevented double rows but both incurred Anthropic API costs
+# for minimal incremental coverage (articles published in a 3.5-hour window).
+#
+# CONSOLIDATION: meridian-research.yml now runs daily at 06:00 UTC.
+# This file is kept for reference but the schedule trigger is removed.
+# The 02:30 UTC slot is reserved for future signal_monitor.py (Tier 1 — heuristic,
+# no LLM, writes to signals table for targeted enrichment dispatch).
+#
+# To restore: re-add the schedule trigger below and uncomment the job body.
+
+name: Evening Research Update (RETIRED)
 
 on:
-  schedule:
-    # 10:30 PM ET = 02:30 UTC daily — kicks off the overnight pipeline
-    - cron: "30 2 * * *"
-  workflow_dispatch:
+  workflow_dispatch:   # manual only — scheduled trigger removed
 
 jobs:
   evening-research:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: scripts/requirements.txt
-
-      - name: Install dependencies
-        run: pip install -r scripts/requirements.txt
-
-      - name: Run evening research sweep
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/research.py
+      - name: Retired
+        run: echo "This workflow is retired. research.py now runs daily via meridian-research.yml at 06:00 UTC."
