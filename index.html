@@ -540,6 +540,19 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 #bd-signal-body::-webkit-scrollbar { width: 5px; }
 #bd-signal-body::-webkit-scrollbar-track { background: #f8fafc; }
 #bd-signal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+/* Signals panel */
+#signals-list { max-height: 380px; overflow-y: auto; }
+#signals-list::-webkit-scrollbar { width: 5px; }
+#signals-list::-webkit-scrollbar-track { background: #f8fafc; }
+#signals-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.sig-item { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f1f5f9; }
+.sig-item:last-child { border-bottom:none; }
+.sig-score { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; border-radius:4px; font-size:10px; font-weight:800; flex-shrink:0; margin-top:1px; }
+.sig-score.high   { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; }
+.sig-score.notable{ background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.sig-score.watch  { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+.sig-type { display:inline-block; font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
+.sig-group-hd { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; margin:10px 0 4px; padding-bottom:4px; border-bottom:1px solid #f1f5f9; }
 /* ── PI Score Badge ── */
 .pi-score-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; padding:1px 6px 1px 5px; border-radius:10px; margin-left:5px; cursor:pointer; transition:opacity 0.15s; vertical-align:middle; line-height:1.4; }
 .pi-score-chip:hover { opacity:0.75; transform:scale(1.05); }
@@ -2486,6 +2499,113 @@ async function loadBDSignal() {
   }
 }
 
+// ── Signals Panel ─────────────────────────────────────────────────────────────
+let _allSignals = [];
+let _sigAreaFilter = '';
+
+const SIG_TYPE_STYLE = {
+  press_release:   { label: 'Press Release',   bg: '#eff6ff', color: '#1d4ed8' },
+  trial_update:    { label: 'Trial Update',     bg: '#f0fdf4', color: '#15803d' },
+  deal:            { label: 'Deal',             bg: '#f0fdf4', color: '#065f46' },
+  abstract:        { label: 'Abstract',         bg: '#faf5ff', color: '#6d28d9' },
+  financing:       { label: 'Financing',        bg: '#ecfdf5', color: '#047857' },
+  pipeline_change: { label: 'Pipeline',         bg: '#fff7ed', color: '#c2410c' },
+  fda:             { label: 'FDA',              bg: '#fef2f2', color: '#b91c1c' },
+};
+
+function _sigScoreClass(score) {
+  if (score >= 8) return 'high';
+  if (score >= 6) return 'notable';
+  return 'watch';
+}
+
+function _sigGroupLabel(dateStr) {
+  if (!dateStr) return 'Earlier';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays <= 0) return 'Today';
+  if (diffDays <= 7) return 'This Week';
+  return 'Earlier';
+}
+
+function renderSignals(rows) {
+  const list = document.getElementById('signals-list');
+  if (!list) return;
+  const filtered = _sigAreaFilter ? rows.filter(r => r.area_id === _sigAreaFilter) : rows;
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">No signals found.</div>';
+    return;
+  }
+  // Group by recency
+  const groups = {};
+  filtered.forEach(r => {
+    const g = _sigGroupLabel(r.event_date);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(r);
+  });
+  const ORDER = ['Today', 'This Week', 'Earlier'];
+  let html = '';
+  ORDER.forEach(grp => {
+    if (!groups[grp] || !groups[grp].length) return;
+    html += `<div class="sig-group-hd">${grp}</div>`;
+    groups[grp].forEach(r => {
+      const scoreClass = _sigScoreClass(r.relevance_score || 0);
+      const typeStyle = SIG_TYPE_STYLE[r.signal_type] || { label: r.signal_type || '—', bg: '#f8fafc', color: '#64748b' };
+      const coName = r.companies?.name || r.company_id || '—';
+      const areaLabel = AREA_LABELS[r.area_id] || r.area_id || '';
+      const areaTag = areaLabel ? `<span style="font-size:9px;color:#94a3b8;margin-left:4px;">· ${areaLabel}</span>` : '';
+      const srcName = r.source_name ? `<span style="font-size:10px;color:#94a3b8">${r.source_name}</span>` : '';
+      const dateStr = r.event_date ? `<span style="font-size:10px;color:#cbd5e1;margin-left:4px;">${r.event_date}</span>` : '';
+      const headline = r.source_url
+        ? `<a href="${r.source_url}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</a>`
+        : `<span style="color:#0f172a;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</span>`;
+      html += `
+        <div class="sig-item">
+          <div class="sig-score ${scoreClass}" title="Relevance score: ${r.relevance_score}">${r.relevance_score || 0}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px;">
+              <span class="sig-type" style="background:${typeStyle.bg};color:${typeStyle.color};">${typeStyle.label}</span>
+              <span style="font-size:11px;font-weight:700;color:#1e293b;">${coName}</span>${areaTag}
+            </div>
+            <div style="margin-bottom:3px;">${headline}</div>
+            <div style="display:flex;align-items:center;gap:0;">${srcName}${dateStr}</div>
+          </div>
+        </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+async function loadSignals(force = false) {
+  const list = document.getElementById('signals-list');
+  if (!list) return;
+  if (_allSignals.length && !force) { renderSignals(_allSignals); return; }
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading signals…</div>';
+  try {
+    const since = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
+    const { data, error } = await _sb.from('signals')
+      .select('*,companies(name)')
+      .gte('event_date', since)
+      .order('relevance_score', { ascending: false })
+      .order('event_date', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    _allSignals = data || [];
+    renderSignals(_allSignals);
+  } catch(err) {
+    list.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:8px 0">Error loading signals: ${err.message}</div>`;
+    console.warn('[loadSignals]', err);
+  }
+}
+
+function sigFilter(btn, area) {
+  document.querySelectorAll('#home-panel-signals .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _sigAreaFilter = area;
+  renderSignals(_allSignals);
+}
+
 // ── MOLECULE TAB DYNAMIC LOADERS ──────────────────────────────────────────────
 // Maps each tab ID to one or more Supabase area_ids
 const TAB_AREA_MAP = {
@@ -3064,6 +3184,11 @@ function loadMoleculeTab(tabId) {
    <div class="hl-title">Essential Updates</div>
    <div class="hl-sub">Intel · Deals · Catalysts</div>
   </div>
+  <div class="home-launcher" data-panel="signals" style="--lc:#5b21b6" onclick="openHomePanel('signals')">
+   <div class="hl-icon">📡</div>
+   <div class="hl-title">Signals</div>
+   <div class="hl-sub">Detected events · last 48h</div>
+  </div>
  </div>
 
  <!-- ── Top Opportunities ───────────────────────────────────────── -->
@@ -3149,6 +3274,26 @@ function loadMoleculeTab(tabId) {
     <div id="meridian-reader-anchor">
      <div id="meridian-reader-items">
       <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
+     </div>
+    </div>
+   </div>
+
+   <!-- Panel: Signals -->
+   <div class="home-panel" id="home-panel-signals" style="display:none">
+    <div>
+     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:4px;">
+      <span style="font-size:10px;font-weight:700;color:#64748b;margin-right:2px">Area:</span>
+      <button class="stock-fbtn active" id="sig-filter-all" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'')">All</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tl1a')">TL1A</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tslp')">TSLP</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'il4ra')">IL-4Rα</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'fcrn')">FcRn</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'igf1r')">IGF1R</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tcell')">T-cell</button>
+      <button onclick="loadSignals(true)" style="margin-left:auto;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer">↻</button>
+     </div>
+     <div id="signals-list">
+      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading signals…</div>
      </div>
     </div>
    </div>
@@ -9680,6 +9825,7 @@ const HOME_PANEL_META = {
   bdsignal:  { title: '◈ BD Signal',                 color: '#1a3f8f' },
   deals:     { title: '💼 Recent Deal Activity',      color: '#1a5c2e' },
   updates:   { title: '⚡ Essential Updates',          color: '#b84e10' },
+  signals:   { title: '📡 Signals',                   color: '#5b21b6' },
 };
 function openHomePanel(panel) {
   const meta = HOME_PANEL_META[panel];
@@ -9716,7 +9862,7 @@ function closeHomePanel() {
 // Close overlay on Escape key
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; loadTopOpps(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadSignals(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
