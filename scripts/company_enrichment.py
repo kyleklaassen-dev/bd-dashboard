@@ -462,8 +462,22 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         '"relevance_rationale": "why this score — patient population overlap, stage, mechanism",'
         '"confidence": 60-100,'
         '"reason": "one sentence — why this entity matters for this area",'
-        '"suggested_dest": "new_company|molecule_update|trial_update|deal_update|catalyst_update|evidence_update"'
+        '"suggested_dest": "new_company|molecule_update|trial_update|deal_update|catalyst_update|evidence_update",'
+        '"relationship_type": "peer_competitor|licensor|licensee|partner|parent_subsidiary|asset_owner|co_developer|direct_competitor|adjacent_competitor|unknown",'
+        '"relationship_confidence": "confirmed|inferred|suggested",'
+        '"why_discovered": "brief explanation of what search query / criteria matched this entity"'
         "}]}\n\n"
+        "RELATIONSHIP CLASSIFICATION RULES (critical — read before writing relationship_type):\n"
+        "- Default: relationship_type = 'peer_competitor', relationship_confidence = 'inferred'\n"
+        "  Use this when the entity is in the same competitive landscape but there is NO explicit deal.\n"
+        "- Only use 'licensor' or 'licensee' if you can cite a specific licensing agreement (press release,\n"
+        "  SEC filing, ClinicalTrials.gov record, or official announcement). Do NOT infer licensing from\n"
+        "  market proximity alone.\n"
+        "- Use 'confirmed' only for relationships stated explicitly in a primary source.\n"
+        "- Use 'inferred' for logical deductions (same target/indication, overlapping geography).\n"
+        "- Use 'suggested' for speculative associations that need human verification.\n"
+        "- why_discovered: explain the specific search criteria that surfaced this entity\n"
+        "  (e.g. 'IL-4Ra antibody in atopic dermatitis Phase 3 — same target and indication').\n"
         'IF none found: {"new_entities": []}'
     )
 
@@ -502,6 +516,15 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         suggested_dest   = ent.get("suggested_dest", "new_company")
         partner_co       = ent.get("partner_co") or None
         acquired_by      = ent.get("acquired_by") or None
+        # Relationship classification (v10 fields — require migration v10)
+        relationship_type = ent.get("relationship_type") or "peer_competitor"
+        relationship_conf = ent.get("relationship_confidence") or "inferred"
+        why_discovered    = ent.get("why_discovered") or None
+        # Enforce: never write licensor/licensee without explicit evidence
+        if relationship_type in ("licensor", "licensee") and relationship_conf != "confirmed":
+            log(f"    ⚠ relationship_type={relationship_type} requires confirmed evidence — downgrading to peer_competitor/inferred", indent=2)
+            relationship_type = "peer_competitor"
+            relationship_conf = "inferred"
 
         # Normalize entity_type to discovery_queue CHECK constraint values
         _valid_etypes = {"company","molecule","trial","deal","catalyst","article","evidence_item","poster"}
@@ -522,29 +545,39 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             log(f"    ↷ Low relevance ({relevance_score}) — auto-archive", indent=2)
             if not dry_run:
                 # Still record it so we have a history, but mark archived immediately
-                sb_post("discovery_queue", {
-                    "company_name":       co_name,
-                    "company_id_suggested": re.sub(r'[^a-z0-9]', '', co_name.lower())[:20],
-                    "drug_name":          drug_name,
-                    "target":             ent.get("target", ""),
-                    "stage":              ent.get("stage", "Preclinical"),
-                    "modality":           ent.get("modality") or None,
-                    "route":              ent.get("route") or None,
-                    "entity_type":        entity_type,
-                    "partner_co":         partner_co,
-                    "acquired_by":        acquired_by,
-                    "area_id":            area_id,
-                    "overlap":            overlap,
-                    "competition_layer":  competition_lay,
-                    "confidence_score":   confidence,
-                    "relevance_score":    relevance_score,
-                    "relevance_rationale": relevance_rat,
-                    "reason":             reason,
-                    "suggested_dest":     suggested_dest,
-                    "discovered_by":      "step1_discovery",
-                    "discovery_run_id":   run_id,
-                    "status":             "archived",
-                })
+                _dq_archived = {
+                    "company_name":           co_name,
+                    "company_id_suggested":   re.sub(r'[^a-z0-9]', '', co_name.lower())[:20],
+                    "drug_name":              drug_name,
+                    "target":                 ent.get("target", ""),
+                    "stage":                  ent.get("stage", "Preclinical"),
+                    "modality":               ent.get("modality") or None,
+                    "route":                  ent.get("route") or None,
+                    "entity_type":            entity_type,
+                    "partner_co":             partner_co,
+                    "acquired_by":            acquired_by,
+                    "area_id":                area_id,
+                    "overlap":                overlap,
+                    "competition_layer":      competition_lay,
+                    "confidence_score":       confidence,
+                    "relevance_score":        relevance_score,
+                    "relevance_rationale":    relevance_rat,
+                    "reason":                 reason,
+                    "suggested_dest":         suggested_dest,
+                    "discovered_by":          "step1_discovery",
+                    "discovery_run_id":       run_id,
+                    "status":                 "archived",
+                    "relationship_type":      relationship_type,
+                    "relationship_confidence": relationship_conf,
+                    "why_discovered":         why_discovered,
+                }
+                ok = sb_post("discovery_queue", _dq_archived)
+                if not ok:
+                    # Fallback: retry without v10 columns (migration not yet applied)
+                    _dq_archived.pop("relationship_type", None)
+                    _dq_archived.pop("relationship_confidence", None)
+                    _dq_archived.pop("why_discovered", None)
+                    sb_post("discovery_queue", _dq_archived)
             continue
 
         # Check if this entity is already in the queue (pending or approved) to avoid duplicates
@@ -584,29 +617,39 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         # 5-6  → watch
         queue_status = "pending"
 
-        sb_post("discovery_queue", {
-            "company_name":         co_name,
-            "company_id_suggested": co_id_suggested,
-            "drug_name":            drug_name,
-            "target":               ent.get("target", ""),
-            "stage":                ent.get("stage", "Preclinical"),
-            "modality":             ent.get("modality") or None,
-            "route":                ent.get("route") or None,
-            "entity_type":          entity_type,
-            "partner_co":           partner_co,
-            "acquired_by":          acquired_by,
-            "area_id":              area_id,
-            "overlap":              overlap,
-            "competition_layer":    competition_lay,
-            "confidence_score":     confidence,
-            "relevance_score":      relevance_score,
-            "relevance_rationale":  relevance_rat,
-            "reason":               reason,
-            "suggested_dest":       suggested_dest,
-            "discovered_by":        "step1_discovery",
-            "discovery_run_id":     run_id,
-            "status":               queue_status,
-        })
+        _dq_pending = {
+            "company_name":            co_name,
+            "company_id_suggested":    co_id_suggested,
+            "drug_name":               drug_name,
+            "target":                  ent.get("target", ""),
+            "stage":                   ent.get("stage", "Preclinical"),
+            "modality":                ent.get("modality") or None,
+            "route":                   ent.get("route") or None,
+            "entity_type":             entity_type,
+            "partner_co":              partner_co,
+            "acquired_by":             acquired_by,
+            "area_id":                 area_id,
+            "overlap":                 overlap,
+            "competition_layer":       competition_lay,
+            "confidence_score":        confidence,
+            "relevance_score":         relevance_score,
+            "relevance_rationale":     relevance_rat,
+            "reason":                  reason,
+            "suggested_dest":          suggested_dest,
+            "discovered_by":           "step1_discovery",
+            "discovery_run_id":        run_id,
+            "status":                  queue_status,
+            "relationship_type":       relationship_type,
+            "relationship_confidence": relationship_conf,
+            "why_discovered":          why_discovered,
+        }
+        ok = sb_post("discovery_queue", _dq_pending)
+        if not ok:
+            # Fallback: retry without v10 columns (migration not yet applied)
+            _dq_pending.pop("relationship_type", None)
+            _dq_pending.pop("relationship_confidence", None)
+            _dq_pending.pop("why_discovered", None)
+            ok = sb_post("discovery_queue", _dq_pending)
 
         priority_flag = " ⚡ PRIORITY" if relevance_score >= 9 else ""
         log(
@@ -1904,6 +1947,16 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             log(f"  news '{headline[:45]}': already in DB — skip", indent=1)
             continue
 
+        # Normalize intel_type: 'financing' and 'pipeline' not yet in DB check constraint.
+        # Map to nearest valid value until constraint is updated via Supabase dashboard.
+        # TODO: ALTER TABLE intel DROP CONSTRAINT intel_intel_type_check;
+        #       ALTER TABLE intel ADD CONSTRAINT intel_intel_type_check
+        #         CHECK (intel_type IN ('data','deal','regulatory','financing',
+        #                               'conference','partnership','management','pipeline'));
+        _INTEL_TYPE_NORM = {"financing": "deal", "pipeline": "data"}
+        _raw_type = item.get("intel_type") or "data"
+        _norm_type = _INTEL_TYPE_NORM.get(_raw_type, _raw_type)
+
         intel_rec = {
             "intel_date":  (item.get("intel_date") or TODAY),
             "headline":    headline[:255],
@@ -1911,7 +1964,7 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             "source_url":  source_url,
             "source_name": (item.get("source_name") or "")[:100],
             "importance":  item.get("importance") or "medium",
-            "intel_type":  item.get("intel_type") or "data",
+            "intel_type":  _norm_type,
             "verified":    True,
         }
         result = sb_upsert("intel", intel_rec)
