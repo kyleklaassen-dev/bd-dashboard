@@ -721,6 +721,121 @@ def compute_evidence_tier(research: dict) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# STRATEGIC VALUE SCORE — BD importance, orthogonal to coverage + evidence tier
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Core areas for Ailux's bispecific program — overlap here is highest priority
+_CORE_AREAS = {"tl1a", "tslp", "il4ra"}
+
+# Major pharma / active BD companies (Meridian company_ids)
+_MAJOR_PHARMA = {
+    "astrazeneca", "abbvie", "roche", "pfizer", "jnj", "lilly", "merck",
+    "sanofi", "novartis", "gsk", "amgen", "bms", "boehringer", "gilead",
+    "regeneron", "biogen", "takeda", "astellas", "astellas", "vertex",
+}
+
+
+def compute_strategic_value_score(
+    overlap:       str,
+    area_id:       str,
+    stage:         str | None,
+    catalysts:     list,
+    deals:         list,
+    evidence_tier: dict | None,
+    company_id:    str | None,
+) -> int:
+    """
+    Score BD importance 0–10.
+
+    Scoring model (max ~10 before rounding):
+      Overlap × Area Primacy   0–4.0   Direct in core area = 4; Watch = 0.5
+      Stage Maturity           0–2.0   Phase 3 / Approved = 2; Discovery = 0
+      Catalyst Proximity       0–1.5   Catalyst within 90 days = 1.5
+      Evidence Confidence      0–1.0   Confirmed = 1; Hypothesis = 0.1
+      Deal Activity            0–0.75  Has deals = 0.75
+      Company Importance       0–0.5   Major pharma = 0.5
+
+    Principle: a 30%-coverage Direct competitor in a core area scores higher than
+    a 95%-coverage Watch drug. Coverage = how complete; strategic_value = how important.
+    """
+    score = 0.0
+    stage_str    = (stage or "").strip()
+    is_core      = area_id in _CORE_AREAS
+
+    # ── 1. Overlap × Area Primacy (0–4) ──────────────────────────────────────
+    _overlap_base = {
+        "Direct":       4.0 if is_core else 3.5,
+        "Adjacent":     3.0 if is_core else 2.0,
+        "Same-Space":   1.5,
+        "Same-patient": 1.5,
+        "Watch":        0.5,
+        "Watchlist":    0.5,
+    }
+    score += _overlap_base.get(overlap, 0.5)
+
+    # ── 2. Stage Maturity (0–2) ──────────────────────────────────────────────
+    _stage_score = {
+        "Approved":      2.0,
+        "Phase 3":       2.0,
+        "Phase 2/3":     1.75,
+        "Phase 2":       1.5,
+        "Phase 1/2":     1.0,
+        "Phase 1":       1.0,
+        "IND-enabling":  0.5,
+        "IND Enabling":  0.5,
+        "Preclinical":   0.25,
+        "Discovery":     0.0,
+        "Undisclosed":   0.0,
+    }
+    score += _stage_score.get(stage_str, 0.5)
+
+    # ── 3. Catalyst Proximity (0–1.5) ────────────────────────────────────────
+    # catalysts are already filtered to future dates in fetch_graph_state
+    if catalysts:
+        nearest_days: int | None = None
+        for c in catalysts:
+            date_str = c.get("catalyst_date") or c.get("sort_date")
+            if date_str:
+                try:
+                    from datetime import datetime, timezone
+                    cd = datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
+                    # Ensure aware datetime for comparison
+                    if cd.tzinfo is None:
+                        cd = cd.replace(tzinfo=timezone.utc)
+                    days = (cd - datetime.now(timezone.utc)).days
+                    if nearest_days is None or days < nearest_days:
+                        nearest_days = days
+                except Exception:
+                    pass
+        if nearest_days is not None:
+            if nearest_days <= 90:
+                score += 1.5
+            elif nearest_days <= 180:
+                score += 1.0
+            elif nearest_days <= 365:
+                score += 0.5
+        else:
+            score += 0.25  # catalysts exist but no parseable date
+
+    # ── 4. Evidence Confidence (0–1) ─────────────────────────────────────────
+    tier_name = (evidence_tier or {}).get("tier", "Emerging")
+    _tier_score = {"Confirmed": 1.0, "Likely": 0.8, "Emerging": 0.4, "Hypothesis": 0.1}
+    score += _tier_score.get(tier_name, 0.4)
+
+    # ── 5. Deal Activity (0–0.75) ────────────────────────────────────────────
+    if deals:
+        score += 0.75
+
+    # ── 6. Company Importance (0–0.5) ────────────────────────────────────────
+    if company_id and company_id.lower() in _MAJOR_PHARMA:
+        score += 0.5
+    elif company_id:
+        score += 0.25
+
+    return min(10, max(0, int(score + 0.5)))  # standard rounding (not banker's)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COMBO COMPONENT VALIDATION
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -860,6 +975,7 @@ def _print_routing_decision(
     resolution: dict,
     evidence_tier: dict | None = None,
     combo_warnings: list[dict] | None = None,
+    area_scores: list[dict] | None = None,
 ):
     drug_info = research.get("drug", {})
     rtype     = resolution.get("resolution_type", "candidate_new")
@@ -891,9 +1007,13 @@ def _print_routing_decision(
         print("  ⚪ No areas meet the minimum evidence threshold.")
         print("  This drug may not be in scope for active Meridian areas.")
     else:
+        # Build score lookup if provided
+        score_lookup = {s["area_id"]: s["strategic_value_score"] for s in (area_scores or [])}
         for area in relevant_areas:
-            conf_bar  = "█" * int(area["confidence"] * 10) + "░" * (10 - int(area["confidence"] * 10))
-            print(f"  {area['relevance']:<15} {area['area_label']}")
+            conf_bar = "█" * int(area["confidence"] * 10) + "░" * (10 - int(area["confidence"] * 10))
+            svs      = score_lookup.get(area["area_id"])
+            svs_str  = f"  Strategic Value: {svs}/10" if svs is not None else ""
+            print(f"  {area['relevance']:<15} {area['area_label']}{svs_str}")
             print(f"  Confidence  [{conf_bar}] {area['confidence']:.0%}")
             print(f"  Rationale   {area['rationale'][:120]}")
             if area["evidence"]:
@@ -1120,12 +1240,14 @@ def write_drug_queue_rows(
     run_id:        str,
     dry_run:       bool = False,
     evidence_tier: dict | None = None,
-) -> list[str]:
+    graph_state:   dict | None = None,
+) -> tuple[list[str], list[dict]]:
     """
     Write one discovery_queue row per relevant area.
     Returns list of area_ids successfully written.
     """
     drug_info = research.get("drug", {})
+    drug_row  = resolution.get("drug_row") or {}
     canonical_name = drug_info.get("canonical_name") or drug_name
     resolved_company_id = company_id or drug_info.get("company_id_hint")
     resolved_company_name = drug_info.get("company") or ""
@@ -1136,6 +1258,7 @@ def write_drug_queue_rows(
 
     promotion = build_promotion_payload(drug_name, drug_id, research, relevant_areas, {})
     written   = []
+    area_score_rows: list[dict] = []  # per-area {area_id, strategic_value_score} for Output A
 
     completeness_gaps_json = {
         k: (str(v) if v is not None else "n/a")
@@ -1175,19 +1298,34 @@ def write_drug_queue_rows(
             "source":                  "drug_intake",
             # Evidence tier — makes uncertainty explicit for reviewer
             "evidence_tier":           evidence_tier["tier"] if evidence_tier else None,
+            # Strategic value — BD importance (computed below)
+            "strategic_value_score":   svs,
         }
+        area_score_rows.append({"area_id": area_id, "strategic_value_score": svs})
+
+        # Compute strategic value score for this area
+        svs = compute_strategic_value_score(
+            overlap       = _map_relevance_to_overlap(area["relevance"]),
+            area_id       = area_id,
+            stage         = drug_info.get("stage") or (drug_row.get("stage") if drug_row else None),
+            catalysts     = graph_state.get("catalysts") or [] if isinstance(graph_state, dict) else [],
+            deals         = graph_state.get("deals") or [] if isinstance(graph_state, dict) else [],
+            evidence_tier = evidence_tier,
+            company_id    = resolved_company_id,
+        )
 
         if dry_run:
-            print(f"  [DRY RUN] Would write queue row: {area_id} / {area['relevance']} / confidence={area['confidence']:.2f}")
-            written.append(area_id)
+            print(f"  [DRY RUN] Would write queue row: {area_id} / {area['relevance']} / confidence={area['confidence']:.2f} / strategic_value={svs}/10")
+            written.append(area_id + f"(svs={svs})")
             continue
 
-        # Attempt full row with new columns (migration v23)
+        # Attempt full row with new columns (migration v23 + v24)
         row_full = {
             **row,
-            "coverage_score":    coverage["coverage_score"],
-            "completeness_gaps": json.dumps(completeness_gaps_json),
-            "promotion_payload": json.dumps(promotion),
+            "coverage_score":         coverage["coverage_score"],
+            "completeness_gaps":      json.dumps(completeness_gaps_json),
+            "promotion_payload":      json.dumps(promotion),
+            "strategic_value_score":  svs,
         }
 
         try:
@@ -1199,11 +1337,12 @@ def write_drug_queue_rows(
             )
             if resp.status_code in (200, 201):
                 written.append(area_id)
-                print(f"  ✅ {area_id}: queued ({area['relevance']}, confidence={area['confidence']:.0%}, coverage={coverage['coverage_score']}%)")
+                print(f"  ✅ {area_id}: queued ({area['relevance']}, confidence={area['confidence']:.0%}, "
+                      f"coverage={coverage['coverage_score']}%, strategic_value={svs}/10)")
             elif resp.status_code == 409:
                 print(f"  ⏭️  {area_id}: conflict (row already exists)")
             else:
-                # Fallback: try without new columns (migration v23 not yet applied)
+                # Fallback: try without new columns (migrations not yet applied)
                 resp2 = requests.post(
                     f"{SUPABASE_URL}/rest/v1/discovery_queue",
                     headers=_sb_headers,
@@ -1212,13 +1351,14 @@ def write_drug_queue_rows(
                 )
                 if resp2.status_code in (200, 201):
                     written.append(area_id)
-                    print(f"  ✅ {area_id}: queued ({area['relevance']}, confidence={area['confidence']:.0%}) [apply migration v23 for coverage/payload columns]")
+                    print(f"  ✅ {area_id}: queued ({area['relevance']}, confidence={area['confidence']:.0%}) "
+                          f"[apply migrations v23/v24 for coverage/payload/strategic_value columns]")
                 else:
                     print(f"  ❌ {area_id}: write failed {resp2.status_code} — {resp2.text[:200]}")
         except Exception as e:
             print(f"  ❌ {area_id}: exception — {e}")
 
-    return written
+    return written, area_score_rows
 
 
 def _check_existing_drug_queue_rows(drug_name_or_id: str, area_ids: list[str]) -> set[str]:
@@ -1375,9 +1515,10 @@ def run_drug_intake(
     coverage = compute_coverage_score(resolution, graph_state, research)
     print(f"  Coverage: {coverage['coverage_score']}%")
 
-    written = []
+    written      = []
+    area_scores  = []
     if relevant_areas:
-        written = write_drug_queue_rows(
+        written, area_scores = write_drug_queue_rows(
             drug_name      = drug_name,
             drug_id        = drug_id,
             company_id     = company_id,
@@ -1386,13 +1527,15 @@ def run_drug_intake(
             relevant_areas = relevant_areas,
             coverage       = coverage,
             evidence_tier  = evidence_tier,
+            graph_state    = graph_state,
             run_id         = run_id,
             dry_run        = dry_run,
         )
 
     # ── Outputs ───────────────────────────────────────────────────────────────
     _print_routing_decision(drug_name, research, relevant_areas, resolution,
-                            evidence_tier=evidence_tier, combo_warnings=combo_warnings)
+                            evidence_tier=evidence_tier, combo_warnings=combo_warnings,
+                            area_scores=area_scores)
     _print_completeness_audit(drug_name, coverage, research, graph_state)
 
     if written and not dry_run:
