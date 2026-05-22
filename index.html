@@ -3066,6 +3066,21 @@ function loadMoleculeTab(tabId) {
   </div>
  </div>
 
+ <!-- ── Top Opportunities ───────────────────────────────────────── -->
+ <div id="top-opps-card" style="margin:16px 0 4px;background:white;border-radius:12px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow:hidden">
+   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid #f1f5f9">
+     <div style="display:flex;align-items:center;gap:8px">
+       <span style="font-size:15px">🎯</span>
+       <span style="font-weight:800;font-size:13px;color:#0f172a;letter-spacing:-0.2px">Top Competitive Developments</span>
+       <span id="top-opps-period" style="font-size:11px;color:#94a3b8">· loading…</span>
+     </div>
+     <button onclick="loadTopOpps()" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer">↻</button>
+   </div>
+   <div id="top-opps-body" style="padding:0">
+     <div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading…</div>
+   </div>
+ </div>
+
  <!-- ── Overlay backdrop ───────────────────────────────────────── -->
  <div id="home-overlay-backdrop" onclick="closeHomePanel()"></div>
 
@@ -8232,6 +8247,183 @@ function selectMeridianIssue(id, label) {
 }
 // ── TAB REGISTRY ─────────────────────────────────────────────────────
 // Isolated per-tab lifecycle hooks. Errors in one tab never affect others.
+// ══════════════════════════════════════════════════════════════════════════
+// TOP OPPORTUNITIES — "Top Competitive Developments" card on Home tab
+// Merges: discovery_queue (high relevance), upcoming catalysts, recent intel
+// ══════════════════════════════════════════════════════════════════════════
+
+const _TOP_OPPS_TYPE = {
+  discovery: { label: 'New Discovery', color: '#7c3aed', bg: '#f5f3ff' },
+  catalyst:  { label: 'Upcoming Readout', color: '#d97706', bg: '#fffbeb' },
+  intel:     { label: 'Market Intel', color: '#0369a1', bg: '#f0f9ff' },
+  update:    { label: 'Profile Updated', color: '#059669', bg: '#f0fdf4' },
+};
+
+async function loadTopOpps() {
+  const body   = document.getElementById('top-opps-body');
+  const period = document.getElementById('top-opps-period');
+  if (!body) return;
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading…</div>';
+
+  const cutoff14  = new Date(Date.now() - 14*864e5).toISOString().slice(0,10);
+  const cutoff30  = new Date(Date.now() - 30*864e5).toISOString().slice(0,10);
+  const todayISO  = new Date().toISOString().slice(0,10);
+  const in180days = new Date(Date.now() + 180*864e5).toISOString().slice(0,10);
+
+  const [dqRes, catRes, intelRes, profRes] = await Promise.allSettled([
+    // High-relevance discovery candidates (pending + approved, last 30 days)
+    _sb.from('discovery_queue')
+      .select('id,company_name,drug_name,area_id,relevance_score,competition_layer,overlap,reason,relevance_rationale,discovered_at,status')
+      .gte('relevance_score', 7)
+      .in('status', ['pending','approved'])
+      .gte('discovered_at', cutoff30 + 'T00:00:00Z')
+      .order('relevance_score', { ascending: false })
+      .limit(8),
+
+    // Upcoming catalysts (next 6 months, not resolved, key watches first)
+    _sb.from('catalysts')
+      .select('id,company_id,drug_id,label,catalyst_type,catalyst_date,area_id,significance,is_key_watch,expected_impact')
+      .eq('resolved', false)
+      .gte('catalyst_date', todayISO.slice(0,4))   // year >= current year
+      .order('is_key_watch', { ascending: false })
+      .order('catalyst_date', { ascending: true })
+      .limit(8),
+
+    // Recent high-importance intel
+    _sb.from('intel')
+      .select('id,headline,intel_date,source_url,importance,intel_type')
+      .gte('intel_date', cutoff14)
+      .order('intel_date', { ascending: false })
+      .limit(6),
+
+    // Recently enriched companies with strong scores
+    _sb.from('company_profiles')
+      .select('company_id,area_id,completeness_score,last_enriched_at,why_it_matters')
+      .gte('last_enriched_at', cutoff14 + 'T00:00:00Z')
+      .gte('completeness_score', 85)
+      .order('last_enriched_at', { ascending: false })
+      .limit(5),
+  ]);
+
+  // Build unified item list
+  const items = [];
+
+  // Discovery queue candidates
+  (dqRes.value?.data || []).forEach(r => {
+    items.push({
+      type:      'discovery',
+      priority:  r.relevance_score || 0,
+      company:   r.company_name,
+      drug:      r.drug_name,
+      area:      r.area_id,
+      headline:  r.reason || r.relevance_rationale || '',
+      sub:       r.relevance_rationale || '',
+      date:      r.discovered_at?.slice(0,10),
+      badge:     r.overlap,
+      layer:     r.competition_layer,
+      status:    r.status === 'approved' ? '✓ approved' : '⏳ pending review',
+      link_tab:  'discovery-queue',
+    });
+  });
+
+  // Upcoming catalysts
+  (catRes.value?.data || []).forEach(r => {
+    items.push({
+      type:      'catalyst',
+      priority:  r.is_key_watch ? 9 : 7,
+      company:   r.company_id,
+      drug:      r.drug_id,
+      area:      r.area_id,
+      headline:  r.label || r.catalyst_type || '',
+      sub:       r.expected_impact || '',
+      date:      r.catalyst_date,
+      badge:     r.catalyst_type,
+      status:    r.is_key_watch ? '⭐ Key Watch' : '',
+      link_tab:  null,
+    });
+  });
+
+  // Recent intel
+  (intelRes.value?.data || []).forEach(r => {
+    items.push({
+      type:      'intel',
+      priority:  r.importance === 'high' ? 8 : r.importance === 'medium' ? 6 : 5,
+      company:   '',
+      drug:      '',
+      area:      '',
+      headline:  r.headline || '',
+      sub:       '',
+      date:      r.intel_date,
+      badge:     r.intel_type,
+      url:       r.source_url,
+      status:    '',
+      link_tab:  null,
+    });
+  });
+
+  // Recent profile updates
+  (profRes.value?.data || []).forEach(r => {
+    items.push({
+      type:      'update',
+      priority:  5,
+      company:   r.company_id,
+      drug:      '',
+      area:      r.area_id,
+      headline:  r.why_it_matters ? r.why_it_matters.slice(0,90) + (r.why_it_matters.length>90?'…':'') : `Profile enriched · score ${r.completeness_score}`,
+      sub:       `Completeness: ${r.completeness_score}/100`,
+      date:      r.last_enriched_at?.slice(0,10),
+      badge:     '',
+      status:    `Score ${r.completeness_score}`,
+      link_tab:  null,
+    });
+  });
+
+  if (!items.length) {
+    body.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">No recent developments found. Enrichment runs will populate this card.</div>';
+    if (period) period.textContent = '· no data';
+    return;
+  }
+
+  // Sort by priority desc, then date desc
+  items.sort((a,b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return (b.date||'') > (a.date||'') ? 1 : -1;
+  });
+
+  const shown = items.slice(0, 10);
+  if (period) period.textContent = `· ${shown.length} developments`;
+
+  body.innerHTML = shown.map((item, idx) => {
+    const t = _TOP_OPPS_TYPE[item.type] || _TOP_OPPS_TYPE.intel;
+    const areaTag = item.area ? `<span style="font-size:9px;font-weight:700;background:#f1f5f9;color:#64748b;padding:1px 5px;border-radius:8px;margin-left:4px">${item.area}</span>` : '';
+    const layerTag = item.layer ? `<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#f5f3ff;padding:1px 5px;border-radius:8px;margin-left:3px">L${item.layer}</span>` : '';
+    const co = item.company ? `<span style="font-weight:700;color:#0f172a">${item.company}</span>${item.drug ? ` <span style="color:#64748b">/ ${item.drug}</span>` : ''}${areaTag}${layerTag}` : '';
+    const dateStr = item.date ? `<span style="color:#cbd5e1;font-size:10px;margin-left:auto;padding-left:8px;white-space:nowrap">${item.date}</span>` : '';
+    const statusStr = item.status ? `<span style="font-size:10px;color:#94a3b8;margin-top:2px">${item.status}</span>` : '';
+    const navClick = item.link_tab ? `onclick="switchTabTo('${item.link_tab}')" style="cursor:pointer"` : item.url ? `onclick="window.open('${item.url}','_blank')" style="cursor:pointer"` : '';
+
+    return `<div ${navClick} style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f8fafc;${idx===0?'border-top:0':''}${item.priority>=9?'background:#fffbeb':''}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:26px;margin-top:1px">
+        <span style="font-size:11px;font-weight:900;color:${item.priority>=9?'#dc2626':item.priority>=7?'#d97706':'#94a3b8'}">${item.priority}</span>
+        <div style="width:3px;height:3px;border-radius:50%;background:${t.color};opacity:0.5"></div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:${t.color};background:${t.bg};padding:1px 6px;border-radius:8px">${t.label}</span>
+          ${co}
+          ${dateStr}
+        </div>
+        <div style="font-size:11px;color:#374151;line-height:1.4">${item.headline}</div>
+        ${item.sub ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">${item.sub}</div>` : ''}
+        ${statusStr}
+      </div>
+    </div>`;
+  }).join('') + `<div style="padding:8px 16px;background:#f8fafc;text-align:right">
+    <span style="font-size:10px;color:#94a3b8">Updated on page load · </span>
+    <a href="#" onclick="loadTopOpps();return false" style="font-size:10px;color:#2563eb;text-decoration:none">Refresh</a>
+  </div>`;
+}
+
 // To add a new tab: registerTab('my-tab', { onEnter() {...}, onLeave() {...} })
 // Never edit switchTab to add new tabs — use registerTab instead.
 const TAB_REGISTRY = {};
@@ -9430,7 +9622,7 @@ function closeHomePanel() {
 // Close overlay on Escape key
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); tl1aPI.init(); tl1aPI._initialized = true; loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
