@@ -8696,9 +8696,10 @@ async function loadTopOpps() {
     const co = item.company ? `<span style="font-weight:700;color:#0f172a">${item.company}</span>${item.drug ? ` <span style="color:#64748b">/ ${item.drug}</span>` : ''}${areaTag}${layerTag}` : '';
     const dateStr = item.date ? `<span style="color:#cbd5e1;font-size:10px;margin-left:auto;padding-left:8px;white-space:nowrap">${item.date}</span>` : '';
     const statusStr = item.status ? `<span style="font-size:10px;color:#94a3b8;margin-top:2px">${item.status}</span>` : '';
-    const navClick = item.link_tab ? `onclick="switchTabTo('${item.link_tab}')" style="cursor:pointer"` : item.url ? `onclick="window.open('${item.url}','_blank')" style="cursor:pointer"` : '';
+    const navClick = item.link_tab ? `onclick="switchTabTo('${item.link_tab}')"` : item.url ? `onclick="window.open('${item.url}','_blank')"` : '';
+    const clickCursor = (item.link_tab || item.url) ? 'cursor:pointer;' : '';
 
-    return `<div ${navClick} style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f8fafc;${idx===0?'border-top:0':''}${item.priority>=9?'background:#fffbeb':''}">
+    return `<div ${navClick} style="${clickCursor}display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f8fafc;${idx===0?'border-top:0':''}${item.priority>=9?'background:#fffbeb':''}">
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:26px;margin-top:1px">
         <span style="font-size:11px;font-weight:900;color:${item.priority>=9?'#dc2626':item.priority>=7?'#d97706':'#94a3b8'}">${item.priority}</span>
         <div style="width:3px;height:3px;border-radius:50%;background:${t.color};opacity:0.5"></div>
