@@ -5987,113 +5987,9 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 </style>
 
 <script>
-const DRUGS_ALL = [
-  {id:1,company:"J&J",brand:"Remicade",generic:"infliximab",name:"Remicade (infliximab)",target:"TNF\u03b1",cls:"TNF inhibitor",category:"Immunology",stage:"Approved",indication:"CD (1998); RA (1999); UC (2005); PsO (2006)",endpoints:"CDAI response @W30; ACR20 @W30; PASI75 @W10",trials:"ACCENT I; ATTRACT; EXPRESS",diff:"First anti-TNF in autoimmunity; established TNF blockade as therapeutic backbone across IMIDs",risk:"Biosimilar erosion; mechanism eclipsed by selective agents",notes:""},
-  {id:2,company:"AbbVie",brand:"Humira",generic:"adalimumab",name:"Humira (adalimumab)",target:"TNF\u03b1",cls:"TNF inhibitor",category:"Immunology",stage:"Approved",indication:"RA (2002); axSpA (2006)",endpoints:"ACR20 @W24 + mTSS",trials:"PREMIER; DE019",diff:"First major TNF after infliximab; structural damage inhibition",risk:"Biosimilar erosion; broad class competition",notes:""},
-  {id:3,company:"J&J",brand:"Simponi",generic:"golimumab",name:"Simponi (golimumab)",target:"TNF\u03b1",cls:"TNF inhibitor",category:"Immunology",stage:"Approved",indication:"RA (2009); PsA (2009); AS (2009); UC (2013)",endpoints:"ACR20 @W14",trials:"GO-FORWARD; GO-REVEAL; GO-RAISE; PURSUIT-SC",diff:"Once-monthly SC TNF inhibitor; human antibody; broad IMID coverage including UC",risk:"Class crowding; largely pre-IL-23 era",notes:""},
-  {id:4,company:"J&J",brand:"Stelara",generic:"ustekinumab",name:"Stelara (ustekinumab)",target:"IL-12/23p40",cls:"IL-12/23 inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2009); PsA (2013)",endpoints:"PASI75 @W12",trials:"PHOENIX 1&2",diff:"Upstream Th1/Th17 modulation; durable dosing",risk:"p19-selective agents show deeper skin clearance",notes:""},
-  {id:5,company:"J&J",brand:"Tremfya",generic:"guselkumab",name:"Tremfya (guselkumab)",target:"IL-23p19",cls:"IL-23 inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2017); PsA (2020); CD (2023)",endpoints:"PASI90 @W16; ACR20 @W24; Clinical remission @W12",trials:"VOYAGE 1&2; DISCOVER 1&2; GALAXI",diff:"Selective IL-23p19 blockade sparing IL-12; expanding IBD franchise",risk:"Later IBD entry; heavy class competition",notes:""},
-  {id:6,company:"AbbVie",brand:"Skyrizi",generic:"risankizumab",name:"Skyrizi (risankizumab)",target:"IL-23p19",cls:"IL-23 inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2019); CD; UC",endpoints:"PASI90 + sPGA 0/1 @W16; Clin remission",trials:"UltIMMa-1&2; SEQUENCE",diff:"Established IBD franchise; superior endoscopic remission vs vedolizumab (SEQUENCE CD)",risk:"Incremental differentiation vs peers",notes:""},
-  {id:7,company:"Eli Lilly",brand:"Omvoh",generic:"mirikizumab",name:"Omvoh (mirikizumab)",target:"IL-23p19",cls:"IL-23 inhibitor",category:"Immunology",stage:"Approved",indication:"UC (2023); CD (2024)",endpoints:"Clinical remission @W12; Endoscopic response",trials:"LUCENT-1&2; VIVID-1",diff:"Selective IL-23p19; steroid-free remission; durable maintenance; IBD-focused",risk:"Class crowding; slower onset vs TNF",notes:""},
-  {id:8,company:"Novartis",brand:"Cosentyx",generic:"secukinumab",name:"Cosentyx (secukinumab)",target:"IL-17A",cls:"IL-17A inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2015); PsA; AS",endpoints:"PASI75 @W12",trials:"ERASURE; FIXTURE",diff:"Rapid onset; deeper clearance vs TNF",risk:"Candida risk; IL-17A/F agents show higher PASI100",notes:""},
-  {id:9,company:"Eli Lilly",brand:"Taltz",generic:"ixekizumab",name:"Taltz (ixekizumab)",target:"IL-17A",cls:"IL-17A inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2016); PsA (2017); AS (2019); nr-axSpA (2020)",endpoints:"PASI90 @W12; ACR20 @W24; ASAS40 @W16",trials:"UNCOVER 1-3; SPIRIT-P1; COAST-V",diff:"Rapid onset; high PASI100 rates; deep skin clearance within IL-17 class",risk:"Candida signal; dual A/F agents gaining ground",notes:""},
-  {id:10,company:"UCB",brand:"Bimzelx",generic:"bimekizumab",name:"Bimzelx (bimekizumab)",target:"IL-17A/F",cls:"Dual IL-17A/F inhibitor",category:"Immunology",stage:"Approved",indication:"PsO (2021 EU / 2023 US); axSpA (2024)",endpoints:"PASI90 + IGA 0/1 @W16",trials:"BE VIVID; BE READY; BE RADIANT",diff:"Higher PASI100 rates vs IL-17A alone; dual A/F blockade",risk:"Candida signal; crowded IL-17 class",notes:""},
-  {id:11,company:"Sanofi/Regeneron",brand:"Dupixent",generic:"dupilumab",name:"Dupixent (dupilumab)",target:"IL-4R\u03b1",cls:"IL-4/13 pathway inhibitor",category:"Immunology",stage:"Approved",indication:"AD (2017); asthma; CRSwNP",endpoints:"EASI-75 + IGA 0/1 @W16",trials:"LIBERTY AD SOLO 1&2",diff:"First broad Type-2 immune blockade; multi-indication expansion",risk:"Conjunctivitis risk; injection frequency",notes:""},
-  {id:12,company:"Eli Lilly",brand:"Ebglyss",generic:"lebrikizumab",name:"Ebglyss (lebrikizumab)",target:"IL-13",cls:"IL-13 inhibitor",category:"Immunology",stage:"Approved",indication:"AD (2023)",endpoints:"EASI-75 + IGA 0/1 @W16",trials:"ADvocate 1&2; ADhere",diff:"Selective IL-13 blockade preserving IL-4 signaling; high EASI-90; durable Q4W maintenance",risk:"Narrower than dupilumab; class competition",notes:""},
-  {id:13,company:"Takeda",brand:"Entyvio",generic:"vedolizumab",name:"Entyvio (vedolizumab)",target:"\u03b14\u03b27 integrin",cls:"Gut-selective integrin inhibitor",category:"Immunology",stage:"Approved",indication:"UC/CD (2014)",endpoints:"Clinical remission; endoscopic improvement",trials:"GEMINI I; GEMINI II&III",diff:"Gut-selective lymphocyte trafficking blockade; favorable systemic safety vs systemic biologics",risk:"Slower onset; efficacy ceiling vs newer classes",notes:""},
-  {id:14,company:"Galderma",brand:"Nemluvio",generic:"nemolizumab",name:"Nemluvio (nemolizumab)",target:"IL-31RA",cls:"IL-31 receptor inhibitor",category:"Immunology",stage:"Approved",indication:"AD; prurigo nodularis",endpoints:"IGA response; EASI reduction; PP-NRS itch reduction",trials:"OLYMPIA-1&2; OLYMPIA-NP",diff:"First-in-class IL-31 pathway inhibitor targeting neuroimmune itch pathway",risk:"Narrower MoA; complementary not standalone vs dupilumab",notes:""},
-  {id:15,company:"Amgen/AstraZeneca",brand:"Tezspire",generic:"tezepelumab",name:"Tezspire (tezepelumab)",target:"TSLP",cls:"Epithelial cytokine inhibitor",category:"Immunology",stage:"Approved",indication:"Severe asthma (approved)",endpoints:"Exacerbation reduction; FEV1",trials:"NAVIGATOR",diff:"Upstream blockade; efficacy across all biomarker subgroups",risk:"Positioning vs IL-4/13 agents still evolving",notes:"Reference mol for Ailux TSLP \u00d7 IL-33 program"},
-  {id:16,company:"AstraZeneca",brand:"Fasenra",generic:"benralizumab",name:"Fasenra (benralizumab)",target:"IL-5R\u03b1",cls:"IL-5 receptor inhibitor",category:"Immunology",stage:"Approved",indication:"Severe eosinophilic asthma",endpoints:"Exacerbation reduction; OCS reduction",trials:"SIROCCO; CALIMA; ZONDA",diff:"Direct eosinophil depletion via ADCC; rapid eosinophil reduction",risk:"Biomarker-dependent; narrower population",notes:""},
-  {id:17,company:"GSK",brand:"Nucala",generic:"mepolizumab",name:"Nucala (mepolizumab)",target:"IL-5",cls:"IL-5 inhibitor",category:"Immunology",stage:"Approved",indication:"Severe eosinophilic asthma; EGPA",endpoints:"Exacerbation reduction",trials:"MENSA; SIRIUS",diff:"Reduces exacerbations in eosinophilic phenotype; steroid-sparing",risk:"Biomarker-dependent; narrower than TSLP agents",notes:""},
-  {id:18,company:"Amgen",brand:"",generic:"bemarituzumab",name:"bemarituzumab",target:"FGFR2b",cls:"Anti-FGFR2b mAb",category:"Oncology",stage:"Phase 3",indication:"Gastric cancer (Phase 3)",endpoints:"OS, PFS",trials:"FORTITUDE-101",diff:"First-in-class FGFR2b-targeted mAb; strong OS signal in FGFR2b-overexpressing gastric cancer",risk:"On-target corneal toxicity",notes:""},
-  {id:19,company:"Amgen",brand:"Blincyto",generic:"blinatumomab",name:"Blincyto (blinatumomab)",target:"CD19 \u00d7 CD3",cls:"BiTE (bispecific T-cell engager)",category:"Oncology",stage:"Approved",indication:"B-cell ALL",endpoints:"OS; CR rate; MRD negativity",trials:"TOWER (Ph3); BLAST (Ph2)",diff:"First-in-class CD19\u00d7CD3 BiTE; chemo-free option with deep MRD responses and OS benefit",risk:"Complex administration; CRS risk",notes:""},
-  {id:20,company:"J&J",brand:"Tecvayli",generic:"teclistamab",name:"Tecvayli (teclistamab)",target:"BCMA \u00d7 CD3",cls:"BiTE",category:"Oncology",stage:"Approved",indication:"R/R multiple myeloma",endpoints:"ORR; DOR",trials:"MajesTEC-1 (Ph1/2)",diff:"First approved off-the-shelf BCMA\u00d7CD3 bispecific; SC dosing with durable responses",risk:"Infection risk; CRS; step-up dosing required",notes:""},
-  {id:21,company:"Regeneron",brand:"",generic:"linvoseltamab",name:"linvoseltamab",target:"BCMA \u00d7 CD3",cls:"BiTE",category:"Oncology",stage:"Phase 3",indication:"R/R multiple myeloma",endpoints:"ORR; DOR",trials:"LINKER-MM1 (Ph1/2)",diff:"BCMA\u00d7CD3 TCE with step-up dosing; strong ORR; manageable CRS profile",risk:"Competitive BCMA/CD3 class",notes:""},
-  {id:22,company:"Genentech/Biogen",brand:"Rituxan",generic:"rituximab",name:"Rituxan (rituximab)",target:"CD20",cls:"Anti-CD20 mAb",category:"Oncology",stage:"Approved",indication:"NHL; CLL; RA",endpoints:"ORR; PFS; OS",trials:"GELA LNH-98.5",diff:"First-in-class anti-CD20 mAb; established chemoimmunotherapy backbone",risk:"Biosimilars; displaced in MS by newer CD20s",notes:""},
-  {id:23,company:"Roche/Genentech",brand:"Ocrevus",generic:"ocrelizumab",name:"Ocrevus (ocrelizumab)",target:"CD20",cls:"Humanized anti-CD20 mAb",category:"Oncology",stage:"Approved",indication:"RRMS; PPMS",endpoints:"ARR reduction; disability progression",trials:"OPERA I&II; ORATORIO",diff:"First therapy approved for primary progressive MS",risk:"Infusion reactions; infection risk",notes:""},
-  {id:24,company:"Roche/Genentech",brand:"Gazyva",generic:"obinutuzumab",name:"Gazyva (obinutuzumab)",target:"CD20",cls:"Glycoengineered type II anti-CD20 mAb",category:"Oncology",stage:"Approved",indication:"Lupus nephritis; NHL; CLL",endpoints:"Renal response; ORR",trials:"NOBILITY; REGENCY",diff:"Enhanced ADCC via glycoengineering",risk:"Narrow approved population; infusion reactions",notes:""},
-  {id:25,company:"Novartis",brand:"Kesimpta",generic:"ofatumumab",name:"Kesimpta (ofatumumab)",target:"CD20",cls:"Fully human anti-CD20 mAb",category:"Oncology",stage:"Approved",indication:"Relapsing MS",endpoints:"ARR reduction",trials:"ASCLEPIOS I&II",diff:"First self-administered monthly SC CD20 therapy",risk:"Competitive MS space",notes:""},
-  {id:26,company:"Amgen",brand:"Uplizna",generic:"inebilizumab",name:"Uplizna (inebilizumab)",target:"CD19",cls:"Anti-CD19 mAb",category:"Oncology",stage:"Approved",indication:"NMOSD",endpoints:"Time to relapse",trials:"N-MOmentum",diff:"CD19 targeting depletes broader B-cell lineage including plasmablasts",risk:"Narrow indication",notes:""},
-  {id:27,company:"Roche",brand:"Columvi",generic:"glofitamab",name:"Columvi (glofitamab)",target:"CD20 \u00d7 CD3",cls:"2:1 CD20\u00d7CD3 bispecific T-cell engager",category:"Oncology",stage:"Approved",indication:"R/R DLBCL",endpoints:"CR rate; ORR; DOR",trials:"NP30179 (Ph1/2)",diff:"2:1 CD20 binding; fixed-duration therapy; high CR rates in aggressive lymphoma",risk:"CRS risk; inpatient step-up",notes:""},
-  {id:28,company:"Roche",brand:"Lunsumio",generic:"mosunetuzumab",name:"Lunsumio (mosunetuzumab)",target:"CD20 \u00d7 CD3",cls:"Bispecific T-cell engager",category:"Oncology",stage:"Approved",indication:"R/R follicular lymphoma",endpoints:"CR rate; ORR; DOR",trials:"GO29781 (Ph2)",diff:"Fixed-duration, off-the-shelf CD20\u00d7CD3; outpatient step-up dosing",risk:"Competitive lymphoma space",notes:""},
-  {id:29,company:"Merck",brand:"Keytruda",generic:"pembrolizumab",name:"Keytruda (pembrolizumab)",target:"PD-1",cls:"Anti-PD-1 mAb",category:"Oncology",stage:"Approved",indication:"Multiple solid tumors",endpoints:"OS; PFS; ORR",trials:"KEYNOTE program",diff:"Broadest IO label portfolio; tumor-agnostic MSI-H approval; backbone of many combos",risk:"Resistance mechanisms; competing PD-L1 agents",notes:""},
-  {id:30,company:"Roche/Genentech",brand:"Tecentriq",generic:"atezolizumab",name:"Tecentriq (atezolizumab)",target:"PD-L1",cls:"Anti-PD-L1 mAb",category:"Oncology",stage:"Approved",indication:"NSCLC; HCC; TNBC; SCLC",endpoints:"OS; PFS; ORR",trials:"IMpower trials",diff:"PD-L1 checkpoint inhibitor enabling durable immune activation",risk:"Multiple indications lost post-trial failures",notes:""},
-  {id:31,company:"Akeso/Summit",brand:"",generic:"ivonescimab",name:"ivonescimab",target:"PD-1 \u00d7 VEGF",cls:"Bispecific antibody",category:"Oncology",stage:"Phase 3",indication:"NSCLC; multiple solid tumors",endpoints:"PFS; OS; ORR",trials:"HARMONi-2 (Phase 3)",diff:"First-in-class PD-1\u00d7VEGF bispecific combining checkpoint and anti-angiogenesis in one molecule",risk:"Manufacturing complexity; early clinical stage globally",notes:""},
-  {id:32,company:"Roche/Genentech",brand:"Avastin",generic:"bevacizumab",name:"Avastin (bevacizumab)",target:"VEGF-A",cls:"Anti-VEGF mAb",category:"Oncology",stage:"Approved",indication:"CRC; NSCLC; RCC; HCC; glioblastoma",endpoints:"OS; PFS",trials:"AVF2107g; AVAiL",diff:"First anti-angiogenic therapy targeting VEGF",risk:"Biosimilar erosion; no IO synergy alone",notes:""},
-  {id:33,company:"Merck",brand:"Welireg",generic:"belzutifan",name:"Welireg (belzutifan)",target:"HIF-2\u03b1",cls:"Small molecule HIF-2\u03b1 inhibitor",category:"Oncology",stage:"Approved",indication:"VHL-associated RCC; advanced RCC",endpoints:"ORR; PFS",trials:"LITESPARK-004&005",diff:"First-in-class HIF-2\u03b1 inhibitor; targets hypoxia pathway distinct from VEGF or IO",risk:"Anemia; niche indication",notes:""},
-  {id:34,company:"Eisai/Merck",brand:"Lenvima",generic:"lenvatinib",name:"Lenvima (lenvatinib)",target:"VEGFR1-3; FGFR1-4; PDGFR\u03b1; RET; KIT",cls:"Multikinase TKI",category:"Oncology",stage:"Approved",indication:"HCC; RCC; endometrial cancer; thyroid cancer",endpoints:"OS; PFS",trials:"REFLECT; CLEAR; KEYNOTE-775",diff:"Broad RTK inhibition; strong IO backbone in combo with PD-1 inhibitors",risk:"Toxicity profile; GI AEs",notes:""},
-  {id:35,company:"Novartis",brand:"Kymriah",generic:"tisagenlecleucel",name:"Kymriah (tisagenlecleucel)",target:"CD19",cls:"CAR-T (autologous)",category:"Oncology",stage:"Approved",indication:"B-cell ALL; DLBCL",endpoints:"ORR; CR rate; DOR",trials:"ELIANA; JULIET",diff:"First FDA-approved CAR-T; autologous CD19-targeted T-cell therapy; deep B-cell depletion",risk:"Manufacturing time; cost; CRS/neurotoxicity",notes:""},
-  {id:36,company:"J&J/Legend Biotech",brand:"Carvykti",generic:"ciltacabtagene autoleucel",name:"Carvykti (ciltacabtagene autoleucel)",target:"BCMA",cls:"CAR-T (autologous)",category:"Oncology",stage:"Approved",indication:"R/R multiple myeloma",endpoints:"ORR; CR rate; MRD negativity",trials:"CARTITUDE-1&4",diff:"Dual-epitope BCMA CAR-T; very high response rates; deep MRD-negative remissions",risk:"Manufacturing bottleneck; CRS; movement disorders",notes:""},
-  {id:37,company:"AbbVie",brand:"Rinvoq",generic:"upadacitinib",name:"Rinvoq (upadacitinib)",target:"JAK1",cls:"Selective JAK1 inhibitor",category:"Small Molecule",stage:"Approved",indication:"RA (2019); PsA; AD; UC; CD; AS; nr-axSpA",endpoints:"ACR20; EASI-75; Clinical remission; ASAS40",trials:"SELECT program; Measure Up 1&2; AD Up; U-ACHIEVE; U-EXCEL",diff:"Oral selective JAK1 inhibitor; rapid onset and high efficacy across multiple IMIDs including IBD",risk:"JAK class warnings (CV, malignancy, thrombosis); black box",notes:""},
-  {id:38,company:"Pfizer",brand:"Cibinqo",generic:"abrocitinib",name:"Cibinqo (abrocitinib)",target:"JAK1",cls:"Selective JAK1 inhibitor",category:"Small Molecule",stage:"Approved",indication:"AD (2022)",endpoints:"EASI-75; IGA 0/1 @W12",trials:"JADE MONO-1&2; JADE COMPARE",diff:"Oral selective JAK1; rapid itch reduction and strong skin clearance",risk:"JAK class warnings; competitive AD field",notes:""},
-  {id:39,company:"Incyte",brand:"Opzelura",generic:"ruxolitinib (topical)",name:"Opzelura (ruxolitinib (topical))",target:"JAK1/2",cls:"Topical JAK1/2 inhibitor",category:"Small Molecule",stage:"Approved",indication:"AD (2021); vitiligo (2022)",endpoints:"EASI-75; IGA 0/1 @W8",trials:"TRuE-AD1&2",diff:"First topical JAK inhibitor for AD; local delivery limits systemic exposure",risk:"Limited to mild-moderate; not systemic IMIDs",notes:""},
-  {id:40,company:"Lynk Pharma",brand:"",generic:"zemprocitinib",name:"zemprocitinib",target:"JAK1",cls:"Highly selective JAK1 inhibitor",category:"Small Molecule",stage:"Phase 2",indication:"AD (Phase 2, in development)",endpoints:"EASI-75; IGA 0/1 (expected)",trials:"Phase 2 (ongoing)",diff:"Greater JAK1 selectivity vs first-gen JAKs; aims to preserve efficacy with reduced off-target AEs",risk:"Pre-commercial; class regulatory headwinds",notes:""},
-  {id:41,company:"Merck",brand:"",generic:"tulisokibart",name:"tulisokibart",target:"TL1A",cls:"TL1A inhibitor",category:"Pipeline",stage:"Phase 3",indication:"UC (Phase 3)",endpoints:"Clinical remission",trials:"Phase 3",diff:"Advanced TL1A entrant; ~12d half-life; Q4W dosing",risk:"Crowded TL1A class; late mover vs Roche/Sanofi",notes:"Competing Merck mol vs Ailux TL1A; HS/IBD"},
-  {id:42,company:"Roche",brand:"",generic:"afimkibart",name:"afimkibart",target:"TL1A",cls:"TL1A inhibitor",category:"Pipeline",stage:"Phase 3",indication:"UC (Phase 3)",endpoints:"Clinical remission (Mayo) + endoscopic improvement",trials:"TUSCANY-2",diff:"Potential fibrosis modification; upstream T-cell amplification control; ~7-10d half-life; Q4W",risk:"Differentiation from pure remission endpoints unproven at scale",notes:""},
-  {id:43,company:"Sanofi/Teva",brand:"",generic:"duvakitug",name:"duvakitug",target:"TL1A",cls:"TL1A inhibitor",category:"Pipeline",stage:"Phase 3",indication:"UC/CD (Phase 3)",endpoints:"Clinical remission",trials:"Phase 3",diff:"T-cell costimulation modulation; ~3d half-life; Q2W dosing",risk:"Short half-life requires more frequent dosing",notes:""},
-  {id:44,company:"Spyre",brand:"",generic:"SPY002",name:"SPY002",target:"TL1A",cls:"TL1A inhibitor",category:"Pipeline",stage:"Phase 2",indication:"UC (Phase 2)",endpoints:"Clinical remission",trials:"SKYLINE (Phase 2, ongoing)",diff:"Best-in-class IL-23 potency and exposure claim; ~24d half-life; Q3-6M dosing",risk:"Phase 2 only; unproven at scale",notes:""},
-  {id:45,company:"Xencor",brand:"",generic:"XmAb942",name:"XmAb942",target:"TL1A",cls:"TL1A inhibitor (LS Fc)",category:"Pipeline",stage:"Phase 2",indication:"IBD (Phase 1)",endpoints:"Safety / PK",trials:"Phase 1",diff:"LS mutations for half-life extension; ~23d half-life; Q12W dosing potential",risk:"Phase 1 only; safety profile immature",notes:""},
-  {id:46,company:"AbSci",brand:"",generic:"ABS-101",name:"ABS-101",target:"TL1A",cls:"TL1A inhibitor (LS Fc)",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety / PK",trials:"Phase 1",diff:"Extended-interval LS Fc TL1A; Q8-12W dosing",risk:"Phase 1 only; half-life not disclosed",notes:""},
-  {id:47,company:"Ailux",brand:"",generic:"Anti-TL1A (XPF005 arm)",name:"Anti-TL1A (XPF005 arm)",target:"TL1A",cls:"TL1A inhibitor (YTE + proprietary MoA)",category:"Pipeline",stage:"Preclinical",indication:"IBD (Preclinical)",endpoints:"Preclinical efficacy",trials:"Preclinical",diff:"Longest exposure (~37d half-life); ~Q6M dosing potential; mechanistic differentiation; YTE + proprietary MoA",risk:"Preclinical stage; clinical risk remains",notes:"TL1A arm of XPF005 TL1A\u00d7IL-23p19 bispecific; PCC Q3 2026"},
-  {id:48,company:"Sanofi",brand:"",generic:"amlitelimab",name:"amlitelimab",target:"OX40L",cls:"Anti-OX40L mAb",category:"Pipeline",stage:"Phase 3",indication:"AD (Phase 2/3)",endpoints:"EASI-75; IGA",trials:"Ongoing",diff:"OX40L blockade; lower pyrexia signal vs rocatinlimab",risk:"Regulatory risk given rocatinlimab safety events",notes:""},
-  {id:49,company:"ImageneBio",brand:"IMG-007",generic:"\u2014",name:"IMG-007 (\u2014)",target:"OX40",cls:"Non-depleting OX40 mAb",category:"Pipeline",stage:"Phase 2",indication:"AD (Phase 2)",endpoints:"EASI-75; IGA",trials:"Phase 2",diff:"Engineered Fc to reduce agonism and cytokine effects",risk:"Elevated regulatory risk post-rocatinlimab",notes:""},
-  {id:50,company:"Apogee",brand:"",generic:"APG279",name:"APG279",target:"IL-13 + OX40L",cls:"Coformulated dual mAbs",category:"Pipeline",stage:"Phase 2",indication:"AD (Early clinical)",endpoints:"EASI-75; IGA",trials:"Early development",diff:"Dual IL-13 + OX40L targeting; flexible induction strategy",risk:"Early-stage; complex combination product",notes:""},
-  {id:51,company:"Apogee",brand:"",generic:"zumilokibart",name:"zumilokibart",target:"IL-13",cls:"IL-13 inhibitor",category:"Pipeline",stage:"Phase 2",indication:"AD (Phase 2)",endpoints:"EASI-75; IGA",trials:"Phase 2",diff:"High potency IL-13 blockade; core lead asset",risk:"Competitive IL-13 class (lebrikizumab approved)",notes:""},
-  {id:52,company:"MoonLake",brand:"",generic:"sonelokimab",name:"sonelokimab",target:"IL-17A/F",cls:"Dual IL-17A/F inhibitor (nanobody)",category:"Pipeline",stage:"Phase 3",indication:"HS (Ph3); PsA (Ph3); axSpA (Ph2); PsO (Ph2)",endpoints:"HiSCR @W16; ACR50/MDA; ASAS40; PASI90",trials:"VELA-1&2; IZAR-1&2; S-OLARIS",diff:"Dual IL-17A/F nanobody; strong skin & joint efficacy; potential deeper suppression vs IL-17A alone",risk:"Not yet approved; Candida risk",notes:""},
-  {id:53,company:"Newsoara",brand:"HY-6725",generic:"\u2014",name:"HY-6725 (\u2014)",target:"TSLP",cls:"TSLP inhibitor",category:"Pipeline",stage:"Phase 1",indication:"COPD/asthma (Phase 1)",endpoints:"Safety / PK",trials:"Phase 1",diff:"Competitive reference molecule for Ailux TSLP \u00d7 IL-33 program",risk:"Phase 1 only",notes:"Competitor to Ailux TSLP\u00d7IL-33 bispecific"},
-  {id:54,company:"J&J",brand:"VEGA",generic:"guselkumab + golimumab",name:"VEGA (guselkumab + golimumab)",target:"IL-23p19 + TNF\u03b1",cls:"Dual cytokine combo",category:"Combo Study",stage:"Phase 2",indication:"UC (mod-sev) \u2014 Phase 2a (~214pt)",endpoints:"Clinical response @W12",trials:"VEGA (Ph2a)",diff:"TNF + IL-23 layering; combo induction \u2192 IL-23 backbone maintenance; \u2191MH remission; safety aligned",risk:"Phase 2a only; not confirmatory",notes:""},
-  {id:55,company:"J&J",brand:"DUET",generic:"guselkumab + golimumab",name:"DUET (guselkumab + golimumab)",target:"IL-23p19 + TNF\u03b1",cls:"Dual cytokine combo (confirmatory)",category:"Combo Study",stage:"Phase 3",indication:"UC (mod-sev) \u2014 Phase 2b (~400+pt)",endpoints:"Clinical response",trials:"DUET (Ph2b, ongoing)",diff:"Confirms VEGA; tests combo ind \u2192 IL-23 maint model at larger scale",risk:"Ongoing; data pending",notes:""},
-  {id:56,company:"AbbVie",brand:"TARGET-CD (M24-885)",generic:"risankizumab + lutikizumab or trosunilimab",name:"TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab)",target:"IL-23p19 + IL-1\u03b1/\u03b2 or TL1A",cls:"IL-23 backbone + add-on combo",category:"Combo Study",stage:"Phase 2",indication:"CD (mod-sev) \u2014 Phase 2a (~540pt)",endpoints:"Clinical remission",trials:"TARGET-CD (Ph2a, ongoing)",diff:"Tests IL-23 backbone + distinct inflammatory drivers; platform combo strategy in CD",risk:"Ongoing; data expected 2026",notes:"AbbVie TARGET-CD includes TL1A arm (trosunilimab) \u2014 relevant to Ailux XPF005"},
-  {id:57,company:"AbbVie",brand:"SEQUENCE",generic:"risankizumab vs vedolizumab",name:"SEQUENCE (risankizumab vs vedolizumab)",target:"IL-23p19 vs \u03b14\u03b27 integrin",cls:"Head-to-head active-controlled",category:"Combo Study",stage:"Phase 3",indication:"CD (mod-sev) \u2014 Phase 3 (~520pt)",endpoints:"Clinical remission @W24",trials:"SEQUENCE (Ph3)",diff:"Skyrizi superior on endoscopic remission; non-inferior \u2192 superior clinical remission; supports frontline IL-23 strategy",risk:"Biologic-experienced population only",notes:""},
-  {id:58,company:"Novo Nordisk",brand:"Ozempic",generic:"semaglutide",name:"Ozempic (semaglutide)",target:"GLP-1R",cls:"GLP-1 receptor agonist",category:"Metabolic",stage:"Approved",indication:"T2D (approved)",endpoints:"A1c reduction; CV benefit",trials:"SUSTAIN program",diff:"Strong A1c reduction; CV benefit; weekly dosing",risk:"GI effects; heavy class competition",notes:""},
-  {id:59,company:"Novo Nordisk",brand:"Wegovy",generic:"semaglutide",name:"Wegovy (semaglutide)",target:"GLP-1R",cls:"GLP-1 receptor agonist",category:"Metabolic",stage:"Approved",indication:"Obesity (approved)",endpoints:"Weight loss; CV outcomes",trials:"SELECT; STEP program",diff:"Leading weight loss (~15%+); CV outcomes data",risk:"GI tolerability; pricing pressure",notes:""},
-  {id:60,company:"Eli Lilly",brand:"Mounjaro",generic:"tirzepatide",name:"Mounjaro (tirzepatide)",target:"GLP-1R + GIPR",cls:"Dual incretin agonist",category:"Metabolic",stage:"Approved",indication:"T2D (approved)",endpoints:"A1c; weight loss",trials:"SURPASS program",diff:"Superior A1c and weight loss vs GLP-1 alone",risk:"GI tolerability; premium pricing",notes:""},
-  {id:61,company:"Eli Lilly",brand:"Zepbound",generic:"tirzepatide",name:"Zepbound (tirzepatide)",target:"GLP-1R + GIPR",cls:"Dual incretin agonist",category:"Metabolic",stage:"Approved",indication:"Obesity (approved)",endpoints:"Weight loss; CV outcomes",trials:"SURMOUNT program",diff:"Best-in-class weight loss (~20%+)",risk:"GI side effects; escalating competition",notes:""},
-  {id:62,company:"Eli Lilly",brand:"",generic:"retatrutide",name:"retatrutide",target:"GLP-1R + GIPR + GCGR",cls:"Triple incretin agonist",category:"Metabolic",stage:"Phase 3",indication:"Obesity (Phase 3)",endpoints:"Weight loss; metabolic parameters",trials:"Phase 3 ongoing",diff:"Triple-axis metabolic control; very high weight loss potential",risk:"Early stage; glucagon-related safety monitoring",notes:""},
-  {id:63,company:"Novo Nordisk (licensed)",brand:"",generic:"UBT251 (Triple G)",name:"UBT251 (Triple G)",target:"GLP-1R + GIPR + GCGR",cls:"Triple incretin agonist",category:"Metabolic",stage:"Phase 2",indication:"Obesity; T2D (Phase 2)",endpoints:"Weight loss",trials:"Phase 2 ongoing",diff:"Broad metabolic engagement; strong early weight loss signal",risk:"Early-stage; competitive pressure",notes:""},
-  {id:64,company:"Amgen/Horizon",brand:"Tepezza",generic:"teprotumumab",name:"Tepezza (teprotumumab)",target:"IGF-1R",cls:"Anti-IGF-1R mAb",category:"Oncology",stage:"Approved",indication:"Thyroid Eye Disease (2020)",endpoints:"Proptosis response @W24; CAS reduction",trials:"OPTIC; OPTIC-X",diff:"First-in-class for TED; 83% proptosis responders; established TED as a bankable $1.9B franchise",risk:"Hearing loss ~30%; IV infusion; 40% relapse rate; Amgen $28B acquisition price sets high bar",notes:"Benchmark for Ailux IGF1R\u00d7TSHR bispecific program"},
-  {id:65,company:"argenx",brand:"Vyvgart / Vyvgart Hytrulo",generic:"efgartigimod",name:"Vyvgart (efgartigimod)",target:"FcRn",cls:"FcRn inhibitor (anti-FcRn mAb)",category:"Immunology",stage:"Approved",indication:"gMG (2021); ITP; CIDP (2024); PV (2024)",endpoints:"MG-ADL responder rate; SRI4; sustained ITP resp; I-RODS",trials:"ADAPT; ADAPT-NXT; ADAPT-SC+; ADHERE; ADDRESS",diff:"First-in-class FcRn inhibitor; broad IgG-driven autoimmune franchise; SC formulation (ADAPT-SC+)",risk:"Albumin reduction; frequent dosing; IgG-selective (no IgA/IgM)",notes:"Class reference for Ailux FcRn bispecific program"},
-  {id:66,company:"J&J / Momenta",brand:"Imaavy",generic:"nipocalimab",name:"Imaavy (nipocalimab)",target:"FcRn",cls:"Anti-FcRn mAb",category:"Immunology",stage:"Approved",indication:"gMG (2025); hemolytic disease of fetus/newborn; SLE",endpoints:"MG-ADL responder; disease control",trials:"Vivacity-MG; Vivacity-MG3",diff:"Albumin-neutral FcRn inhibitor; MFN2 HDF approval is unique differentiator vs class",risk:"Newer entrant vs efgartigimod; crowded FcRn space",notes:"Direct competitor in FcRn space; Ailux must differentiate on bispecific MOA"},
-  {id:67,company:"UCB",brand:"Rystiggo",generic:"rozanolixizumab",name:"Rystiggo (rozanolixizumab)",target:"FcRn",cls:"Anti-FcRn mAb",category:"Immunology",stage:"Approved",indication:"gMG (2023); ITP (Ph3)",endpoints:"MG-ADL improvement; platelet count",trials:"MycarinG; RIDGET",diff:"SC weekly FcRn inhibitor; UCB neurology franchise; Candid Bio $2.2B acquisition expands IMID pipeline",risk:"SC weekly dosing (frequent); gMG market crowding",notes:"UCB-Candid $2.2B deal signals autoimmune expansion; FcRn competitive reference"},
-  {id:68,company:"Regeneron",brand:"\u2014",generic:"itepekimab",name:"itepekimab (REGN3500)",target:"IL-33",cls:"Anti-IL-33 mAb",category:"Immunology",stage:"Phase 3",indication:"Severe asthma (Ph3); COPD",endpoints:"Exacerbation reduction; FEV1",trials:"PATHWAY; AERIFY-1&2",diff:"Upstream IL-33 blockade; designed for dupilumab complement or competitor in eosinophilic asthma",risk:"Tepezza-like positioning vs established TSLP agents; narrower biomarker profile",notes:"IL-33 arm reference for Ailux TSLP\u00d7IL-33 bispecific"},
-  {id:69,company:"Roche/Genentech",brand:"\u2014",generic:"astegolimab",name:"astegolimab",target:"IL-33",cls:"Anti-IL-33 mAb",category:"Pipeline",stage:"Phase 3",indication:"Moderate-severe asthma (Ph3); COPD",endpoints:"Exacerbation reduction; FEV1; COPD exacerbations",trials:"SOLSTICE; EXPLORE",diff:"IL-33 isoform-selective blockade; potential COPD approval would be novel in class",risk:"SOLSTICE primary endpoint narrowly missed; COPD as pivot; Roche already approved in PsO/GU",notes:"IL-33 competitor; Roche IL-33 commitment validates target for Ailux bispecific"},
-  {id:70,company:"LEO Pharma",brand:"Adbry",generic:"tralokinumab",name:"Adbry (tralokinumab)",target:"IL-13",cls:"Anti-IL-13 mAb",category:"Immunology",stage:"Approved",indication:"Moderate-severe AD (2021)",endpoints:"IGA 0/1 + EASI-75 @W16",trials:"ECZTRA 1-3; ECZTEND",diff:"Pure IL-13 blockade with durable long-term data; LEO dermatology focus; Q2W\u2192Q4W maintenance",risk:"Narrower label than dupilumab; IL-13 only; competing with lebrikizumab and dupilumab",notes:"AD approved IL-13 inhibitor; benchmark for IL-4R\u03b1\u00d7TSLP program indication"},
-  {id:71,company:"GSK",brand:"Benlysta",generic:"belimumab",name:"Benlysta (belimumab)",target:"BAFF",cls:"Anti-BAFF mAb",category:"Immunology",stage:"Approved",indication:"SLE (2011); Lupus Nephritis (2020)",endpoints:"SRI-4 @W52; Renal response",trials:"BLISS-52&76; BLISS-LN",diff:"First approved biologic for SLE; BAFF pathway B-cell survival blockade; SC option",risk:"Modest magnitude; BAFF-R depletion (ianalumab) and CAR-T approaches may show superior efficacy",notes:"SLE approved reference; relevant to ACE/BCMA\u00d7CD19\u00d7CD3 program rationale"},
-  {id:72,company:"AstraZeneca",brand:"Saphnelo",generic:"anifrolumab",name:"Saphnelo (anifrolumab)",target:"IFNAR1",cls:"Anti-type I interferon receptor mAb",category:"Immunology",stage:"Approved",indication:"Moderate-severe SLE (2021)",endpoints:"BICLA response @W52",trials:"TULIP-1&2",diff:"First-in-class type I IFN blockade in SLE; strong skin/musculoskeletal response",risk:"TULIP-1 primary endpoint miss; narrower responder profile in non-high-IFN patients",notes:"SLE approved biologic; IFN pathway complement to B-cell depletion approaches in ACE tab"},
-  {id:73,company:"Cabaletta Bio",brand:"\u2014",generic:"CABA-201",name:"CABA-201",target:"CD19",cls:"CD19 CAR-T (autologous)",category:"Pipeline",stage:"Phase 2",indication:"SLE; MG (Ph2)",endpoints:"SRI-4; MG-ADL; steroid-free remission",trials:"RESET-myasthenia; RESET-SLE",diff:"CD19 CAR-T in autoimmune \u2014 potentially curative single-course reset; deep durable B-cell depletion",risk:"CRS/ICANS risk; manufacturing time; autologous constraints; reimbursement unclear",notes:"Direct competitor in ACE/CD19\u00d7CD3 space; watch for SLE remission data"},
-  {id:74,company:"Windward Bio",brand:"\u2014",generic:"WIN378",name:"WIN378",target:"TSLP",cls:"Long-acting anti-TSLP mAb",category:"Pipeline",stage:"Phase 3",indication:"Severe asthma (Ph2/3 planned); COPD",endpoints:"Exacerbation reduction; FEV1",trials:"Phase 2 ongoing",diff:"Extended-interval anti-TSLP; twice-yearly dosing potential vs tezepelumab monthly; $165M crossover round",risk:"Monotherapy vs tezepelumab \u2014 differentiation from already-approved TSLP agent unclear",notes:"TSLP competitor in same space as Ailux TSLP\u00d7IL-33 bispecific program"},
-  {id:75,company:"Mirador Therapeutics",brand:"",generic:"MT-251",name:"MT-251",target:"TL1A×IL-23p19",cls:"TL1A×IL-23p19 bispecific (FcRn-recycling)",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK; early efficacy signals",trials:"Phase 1 active",diff:"FcRn-recycling format extends half-life; most direct clinical-stage bispecific competitor to Ailux",risk:"Very early; no efficacy data",notes:"Direct bispecific competitor in IBD space"},
-  {id:76,company:"Xencor",brand:"",generic:"XmAb412",name:"XmAb412",target:"TL1A",cls:"TL1A bispecific (XTEND-Fc)",category:"Pipeline",stage:"Preclinical",indication:"IBD (pre-Phase 1, FIH ~H2 2026)",endpoints:"FIH safety",trials:"IND-enabling; FIH planned H2 2026",diff:"XTEND-Fc half-life extension; different from XmAb942 (TL1A×IL-23)",risk:"Preclinical; no human data",notes:"Second Xencor TL1A asset in the pipeline"},
-  {id:77,company:"Simcere / Boehringer Ingelheim",brand:"",generic:"SIM0709",name:"SIM0709",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1 active; €1.05B BI partnership (Dec 2024)",diff:"Well-funded direct bispecific competitor backed by major pharma",risk:"Very early; no efficacy data",notes:"BI partnership signals strong commercial validation of this MOA"},
-  {id:78,company:"Earendil Bio / Helixon / Sanofi",brand:"",generic:"HXN-1003",name:"HXN-1003",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1; $1.845B Sanofi deal",diff:"Sanofi validation signals high commercial conviction in TL1A×IL-23 bispecific space",risk:"Early stage; major pharma competition",notes:"Largest deal in TL1A×IL-23 bispecific space to date"},
-  {id:79,company:"LaNova Medicines / Zymeworks",brand:"",generic:"LQ080",name:"LQ080 / ZW191",target:"TL1A×IL-23",cls:"TL1A×IL-23 VHH bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1",diff:"Nanobody (VHH) format — compact, potentially better tissue penetration",risk:"VHH tissue penetration in IBD unproven vs. IgG format",notes:"First VHH-based TL1A×IL-23 bispecific in clinical trials"},
-  {id:80,company:"Caldera Therapeutics / Qyuns",brand:"",generic:"CLD-423",name:"CLD-423 / QX030N",target:"TL1A×IL-23",cls:"TL1A×IL-23 bispecific",category:"Pipeline",stage:"Phase 1",indication:"IBD (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1",diff:"Direct bispecific competitor; multiple Ph1 entrants signals crowding in this class",risk:"Late entrant; differentiation on PK or dosing interval needed",notes:"Category crowding signals differentiation will matter"},
-  {id:81,company:"Qyuns Therapeutics / Roche ($7.25B deal)",brand:"",generic:"QX031N",name:"QX031N",target:"TSLP×IL-33",cls:"TSLP×IL-33 bispecific",category:"Pipeline",stage:"Phase 1",indication:"Asthma; AD (Phase 1, FIH 2026)",endpoints:"Safety; PK",trials:"Phase 1 FIH 2026; partnered with Roche",diff:"Roche’s $7.25B deal validates TSLP×IL-33 bispecific commercial opportunity",risk:"Very early; Roche resources = fierce competition",notes:"Most direct Ailux TSLP×IL-33 competitor with major pharma backing"},
-  {id:82,company:"Biosion / Aclaris Therapeutics",brand:"",generic:"BSI-045B",name:"BSI-045B",target:"TSLP×IL-33",cls:"TSLP×IL-33 bispecific",category:"Pipeline",stage:"Phase 1",indication:"Asthma; AD (Phase 1/2)",endpoints:"Safety; PK; early efficacy",trials:"Phase 1/2; >$900M Aclaris licensing deal",diff:"Most advanced TSLP×IL-33 bispecific in class; earliest data readout expected",risk:"Limited data; high competition from QX031N/Roche",notes:"First-in-class TSLP×IL-33 bispecific to report clinical data"},
-  {id:83,company:"Windward Bio",brand:"",generic:"WIN027",name:"WIN027",target:"TSLP×IL-13",cls:"TSLP×IL-13 bispecific",category:"Pipeline",stage:"Phase 1",indication:"AD; asthma (Phase 1)",endpoints:"Safety; PK",trials:"Phase 1 active",diff:"Different cytokine pair (IL-13 vs. IL-33) as TSLP anchor; competes for same atopic disease patients",risk:"Early; TSLP×IL-13 vs. TSLP×IL-33 efficacy unknown",notes:"Key question: which cytokine pair wins in AD vs. asthma"},
-  {id:84,company:"Windward Bio",brand:"",generic:"WIN378",name:"WIN378",target:"TSLP",cls:"Long-acting anti-TSLP mAb",category:"Pipeline",stage:"Phase 3",indication:"Severe asthma (Ph2/3); COPD",endpoints:"FEV1; exacerbation rate; AQLQ",trials:"Ph2/3 ongoing; $165M crossover (2025)",diff:"Twice-yearly dosing vs. monthly tezepelumab — convenience differentiation in asthma",risk:"Not a bispecific; TSLP mono-blockade only",notes:"Long dosing interval is primary commercial differentiator vs. tezepelumab"},
-  {id:85,company:"Innovent / Sanofi ($635M deal)",brand:"",generic:"IBI333",name:"IBI333",target:"IL-4Rα×TSLP",cls:"IL-4Rα×TSLP IgG bispecific",category:"Pipeline",stage:"Phase 3",indication:"AD; asthma (Phase 3, Asia)",endpoints:"IGA; EASI-75; FEV1",trials:"Phase 3 in Asia; Sanofi $635M licensing deal",diff:"Most advanced IL-4Rα×TSLP bispecific; Asia Phase 3 data incoming",risk:"Asia-first strategy; US/EU registration path unclear",notes:"Sanofi validation: first major pharma to license IL-4Rα×TSLP bispecific"},
-  {id:86,company:"Apogee Biosciences",brand:"",generic:"APG777",name:"APG777",target:"IL-4Rα×OX40L",cls:"IL-4Rα×OX40L bispecific (VHH)",category:"Pipeline",stage:"Phase 1",indication:"AD; CRSwNP (Phase 1b)",endpoints:"Safety; PK; early EASI signals",trials:"Phase 1b in AD and CRSwNP",diff:"Most direct bispecific competitor to Ailux in IL-4Rα×OX40L space; VHH Nanobody format",risk:"Very early; VHH tissue penetration unproven vs. IgG in skin",notes:"Apogee building bispecific franchise across multiple atopic targets"},
-  {id:87,company:"Regeneron (ex-AstraZeneca)",brand:"",generic:"Cendakimab",name:"Cendakimab",target:"IL-33",cls:"Anti-IL-33 IgG",category:"Immunology",stage:"Phase 2",indication:"AD; EoE (Phase 2)",endpoints:"EASI-75; DBI dysphagia burden",trials:"Phase 2 in AD and EoE",diff:"Blocks IL-33 upstream of OX40L pathway; complementary mechanism in AD",risk:"IL-33 mono-blockade may be insufficient vs. dual-target bispecific",notes:"Validates IL-33 as a target; watch for combination potential"},
-  {id:88,company:"Pfizer (ex-Kyowa Kirin $3B)",brand:"",generic:"Rocatinlimab",name:"Rocatinlimab",target:"OX40",cls:"Anti-OX40 mAb",category:"Immunology",stage:"Phase 3",indication:"AD (Phase 3 ROCKET program)",endpoints:"IGA; EASI-75; duration of response",trials:"Phase 3 ROCKET; $3B Pfizer licensing deal",diff:"Blocks OX40 receptor (not OX40L) — may offer more durable T-cell suppression",risk:"Targets receptor vs. ligand; different durability and safety profile vs. OX40L mAb",notes:"OX40 vs. OX40L: key mechanistic question for AD market"},
-  {id:89,company:"Immunovant / Roivant",brand:"",generic:"IMVT-1402",name:"IMVT-1402",target:"FcRn",cls:"Anti-FcRn mAb (albumin-sparing)",category:"Pipeline",stage:"Phase 3",indication:"gMG; WAIHA; TED; BP; Graves’ (Ph2/3)",endpoints:"Proptosis reduction; MG-ADL; TSHR-Ab titers",trials:"Ph2/3 active across multiple conditions; Ph2 in TED",diff:"Next-gen FcRn inhibitor: Fc-silenced for improved albumin-sparing vs. batoclimab; no LDL elevation",risk:"Batoclimab predecessor discontinued for LDL issues; must prove cleaner safety in trials",notes:"Successor to discontinued batoclimab with improved safety profile"},
-  {id:90,company:"Immunovant",brand:"",generic:"Batoclimab",name:"Batoclimab (IMVT-1401)",target:"FcRn",cls:"Anti-FcRn mAb (discontinued)",category:"Pipeline",stage:"Phase 2",indication:"Graves’ disease (Ph2); MG (Ph2 — discontinued)",endpoints:"TSHR-Ab reduction; CAS score in TED",trials:"Ph2 active in Graves’ only; discontinued in MG (LDL elevation AE)",diff:"FcRn inhibitor in Graves’ and TED — FcRn reduces TSHR autoantibody titers",risk:"Discontinued in MG for LDL elevation; safety concern for long-term autoimmune use",notes:"Predecessor to IMVT-1402; LDL AE led to reformulation"},
-  {id:91,company:"Novartis",brand:"",generic:"Iscalimab",name:"Iscalimab (CFZ533)",target:"CD40",cls:"Anti-CD40 mAb",category:"Immunology",stage:"Phase 2",indication:"TED; Sjögren’s; Immune thrombocytopenia",endpoints:"CAS score; proptosis mm; orbital volume",trials:"Phase 2 in TED (CFZ533-C01)",diff:"CD40/CD40L modulates orbital fibroblast activation — different upstream target from IGF-1R×TSHR",risk:"Limited TED efficacy data so far; proptosis response unclear vs. teprotumumab",notes:"Different upstream mechanism; could complement IGF-1R×TSHR bispecific"},
-  {id:92,company:"Genentech / Roche → Dorc / Eledon",brand:"",generic:"Linsitinib",name:"Linsitinib",target:"IGF-1R",cls:"Oral IGF-1R small-molecule kinase inhibitor",category:"Small Molecule",stage:"Phase 2",indication:"TED (Phase 2 — missed primary endpoint)",endpoints:"Proptosis ≤2mm improvement; CAS score",trials:"INDRA trial Ph2; primary endpoint missed",diff:"Oral IGF-1R inhibition: same receptor target as Ailux bispecific but orally; missed TED Ph2 primary",risk:"Failed TED Phase 2 primary endpoint; small molecule off-target kinase toxicity risk",notes:"Oral IGF-1R failure validates biologic approach (teprotumumab, Ailux bispecific) over small molecule"},
-  {id:93,company:"argenx",brand:"",generic:"ARGX-117",name:"ARGX-117",target:"FcRn×CD131",cls:"FcRn×CD131 bispecific",category:"Pipeline",stage:"Phase 2",indication:"CIDP; IgAN; pemphigus (Phase 2)",endpoints:"IgG reduction; NfL; PGA",trials:"Phase 2 in multiple autoimmune conditions",diff:"Next-gen bispecific: FcRn + common beta chain (IL-3/5/GM-CSF) — dual IgG reduction + eosinophil suppression",risk:"Novel MOA — additive benefit of CD131 arm unproven",notes:"argenx extending beyond efgartigimod into bispecific territory"},
-  {id:94,company:"AstraZeneca",brand:"Ultomiris",generic:"Ravulizumab",name:"Ravulizumab (Ultomiris)",target:"C5 complement",cls:"Anti-C5 mAb (Q8W long-acting)",category:"Immunology",stage:"Approved",indication:"gMG (2022); PNH; aHUS",endpoints:"MG-ADL; QMG; MGFA-PIS",trials:"CHAMPION-MG Phase 3",diff:"8-week dosing interval is commercial advantage vs. monthly FcRn inhibitors in gMG",risk:"Complement mechanism misses FcRn-driven IgG pathology in some gMG patients",notes:"Long dosing interval key competitive differentiator in gMG"},
-  {id:95,company:"Sanofi",brand:"",generic:"Riliprubart",name:"Riliprubart",target:"C1q complement",cls:"Anti-C1q mAb",category:"Immunology",stage:"Phase 3",indication:"CIDP (Phase 3); MMN",endpoints:"I-RODS score; nerve conduction",trials:"Phase 3 in CIDP (ADHERE trial)",diff:"C1q blockade prevents complement deposition on myelin — different mechanism from FcRn inhibitors in CIDP",risk:"CIDP is different indication from gMG; head-to-head vs. FcRn inhibitors unclear",notes:"Sanofi complement franchise strategy expanding; C1q vs. FcRn head-to-head will be decisive"},
-  {id:96,company:"Kali Therapeutics",brand:"",generic:"KT501",name:"KT501",target:"CD19×BCMA×CD3",cls:"CD19×BCMA×CD3 trispecific TCE (CD3-masked)",category:"Pipeline",stage:"Phase 1",indication:"RA (Phase 1a); SLE (planned)",endpoints:"Safety; cytokine release; DLT",trials:"Phase 1a first patient dosed May 2025",diff:"Most direct competitor to Ailux ACE — CD19×BCMA×CD3 trispecific with CD3-masking for safety",risk:"CD3-directed TCEs carry CRS/ICANS risk; masking unproven in humans",notes:"First CD19×BCMA×CD3 trispecific in clinical trials"},
-  {id:97,company:"Kyverna Therapeutics",brand:"",generic:"KYV-101",name:"KYV-101",target:"CD19 (CAR-T)",cls:"CD19-targeted autologous CAR-T",category:"Pipeline",stage:"Phase 2",indication:"SLE; NMOSD; MS; MG (Phase 2)",endpoints:"SLEDAI-2K; BILAG; deep B-cell depletion",trials:"Phase 2 in multiple autoimmune conditions; well-funded",diff:"Potential durable remission via deep B-cell depletion; Phase 2 autoimmune data incoming",risk:"Autologous manufacturing complexity; CRS/ICANS risk; one-time treatment (access/payor challenge)",notes:"Strong autoimmune CAR-T competitor with multiple Ph2 readouts expected 2025-2026"},
-  {id:98,company:"Zenas BioPharma",brand:"",generic:"Obexelimab",name:"Obexelimab (ZB002)",target:"CD19×FcγRIIb",cls:"CD19×FcγRIIb bispecific mAb",category:"Pipeline",stage:"Phase 2",indication:"IgG4-RD; SLE (Phase 2/3)",endpoints:"IgG4-RD RI; SLEDAI; B-cell counts",trials:"Phase 2/3 in IgG4-RD; Phase 2 in SLE",diff:"Novel suppression: bridges CD19+ B cells to inhibitory FcγRIIb receptor without full depletion",risk:"Mechanistically unproven in humans — suppression without depletion may be insufficient",notes:"Different mechanism from CAR-T depletion; watch for durability data"},
-  {id:99,company:"Novartis",brand:"",generic:"Ianalumab",name:"Ianalumab (VAY736)",target:"BAFF-R",cls:"Anti-BAFF-R mAb",category:"Immunology",stage:"Phase 3",indication:"SLE (Phase 3 SIRIUS); SS; ITP",endpoints:"SLEDAI-2K; BICLA; flare rate",trials:"Phase 3 SIRIUS in SLE",diff:"BAFF-R depletion eliminates naïve and transitional B cells upstream of BAFF/APRIL; long dosing interval",risk:"SLE Phase 3 primary endpoint previously challenging for many assets",notes:"Phase 3 SLE data will shape B-cell depletion competitive narrative"},
-  {id:100,company:"J&J",brand:"Darzalex",generic:"Daratumumab",name:"Daratumumab (Darzalex)",target:"CD38",cls:"Anti-CD38 mAb",category:"Immunology",stage:"Approved",indication:"R/R MM (approved); SLE; MG (Ph2 autoimmune)",endpoints:"SLEDAI; MG-ADL; long-lived plasma cells",trials:"Ph2 investigator-led trials in autoimmune",diff:"CD38 targets long-lived plasma cells that B-cell depletion (CD19) misses — complementary mechanism",risk:"Autoimmune evidence still early; ISG burden in MM setting",notes:"CD38+CD19 combination could outperform single-target depletion in autoimmune"},
-  {id:101,company:"Kite / Gilead",brand:"Yescarta",generic:"Axicabtagene ciloleucel",name:"Yescarta (axicabtagene ciloleucel)",target:"CD19 (CAR-T)",cls:"CD19-targeted autologous CAR-T",category:"Oncology",stage:"Approved",indication:"R/R DLBCL; FL (approved); SLE (Ph2 autoimmune)",endpoints:"SLEDAI; B-cell depletion; clinical remission",trials:"Erlangen NEJM 2024 (5/6 SLE remission); Ph2 autoimmune ongoing",diff:"Approved oncology CAR-T showing dramatic proof-of-concept in autoimmune (SLE) at academic centers",risk:"Manufacturing complexity; CRS/ICANS toxicity; very high cost ($400K+)",notes:"Erlangen data is the most compelling proof-of-concept for CAR-T in autoimmune to date"},
-  {id:102,company:"Aurinia Pharmaceuticals",brand:"Lupkynis",generic:"Voclosporin",name:"Voclosporin (Lupkynis)",target:"Calcineurin",cls:"Calcineurin inhibitor (oral)",category:"Small Molecule",stage:"Approved",indication:"Lupus nephritis (2021)",endpoints:"PCR (protein:creatinine); eGFR",trials:"AURORA-1/2 Phase 3",diff:"Oral calcineurin inhibitor as add-on for lupus nephritis — standard-of-care comparator in ACE space",risk:"eGFR toxicity with prolonged use; small molecule not target-selective",notes:"Standard-of-care in lupus nephritis; defines clinical bar ACE bispecifics must beat"},
-  {id:103,company:"Novartis / Roche",brand:"Xolair",generic:"Omalizumab",name:"Xolair (omalizumab)",target:"IgE",cls:"Anti-IgE mAb",category:"Immunology",stage:"Approved",indication:"Allergic asthma (2003); CRSwNP; CSU",endpoints:"FEV1; exacerbation rate; NRS",trials:"Pivotal trials 1999-2002",diff:"IgE-targeted therapy — effective only in IgE-driven (allergic) endotype; TSLP is upstream of IgE",risk:"Endotype-limited: ineffective in non-allergic asthma where TSLP still active",notes:"Original biologic in asthma; TSLP bispecific must show benefit beyond allergic endotype"},
-  {id:104,company:"Roche",brand:"Actemra",generic:"Tocilizumab",name:"Actemra (tocilizumab)",target:"IL-6R",cls:"Anti-IL-6R mAb",category:"Immunology",stage:"Approved",indication:"RA (approved); TED off-label (Ph2); Castleman’s",endpoints:"CAS score; proptosis; CDAI",trials:"Phase 2 in TED off-label",diff:"Anti-IL-6R used off-label in TED — IL-6 contributes to orbital inflammation in some patients",risk:"Limited efficacy in TED; off-label use with regulatory risk",notes:"IL-6 as complementary pathway in TED; validates orbital inflammation is multi-cytokine"}
-
-];
+// ── DKN state ─────────────────────────────────────────────────────────────────
+let _dknData    = null;   // array of drug records from Supabase (null = not yet loaded)
+let _dknLoading = false;
 
 let dknSortCol = '';
 let dknSortDir = 1;
@@ -6119,9 +6015,7 @@ const DKN_IND_MAP = {
   'Hematology':     ['hemolytic','ITP','AIHA','thrombocytopenia','hemophilia','anemia'],
 };
 const DKN_TARGET_MAP = {
-  // ── Ailux focus areas (default view — all 6 pillars) ──
   'ailux-focus': ['TL1A','IL-23p19','IL-23','TSLP','IL-33','IL-4R','OX40','IGF-1R','IGF1R','TSHR','FcRn','BCMA','CD19','CD3','neonatal Fc','efgartigimod','batoclimab','nipocalimab','rozanolixizumab','duvakitug','tulisokibart','afimkibart','teprotumumab','tepezza','amlitelimab','dupilumab','tezepelumab'],
-  // ── Individual area filters ──
   'tl1a':        ['TL1A', 'IL-23p19', 'IL-23', 'IL-12/23'],
   'tslp-il33':   ['TSLP', 'IL-33'],
   'il4ra-tslp':  ['IL-4R', 'TSLP'],
@@ -6131,6 +6025,47 @@ const DKN_TARGET_MAP = {
   'bcma-cd19':   ['BCMA', 'CD19', 'CD3']
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _dknRisk(drug_summary) {
+  if (!drug_summary) return '';
+  const m = drug_summary.match(/^Risk:\s*(.+?)(?:\s*\|\s*.*)?$/);
+  return m ? m[1].trim() : '';
+}
+function _dknNotes(drug_summary) {
+  if (!drug_summary) return '';
+  const idx = drug_summary.indexOf(' | ');
+  return idx >= 0 ? drug_summary.slice(idx + 3).trim() : '';
+}
+function _dknCoName(d) {
+  return d.company_display || d.company_id || '—';
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function dknLoadData() {
+  if (_dknData !== null || _dknLoading) return;
+  _dknLoading = true;
+  const tbody = document.getElementById('dkn-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
+  try {
+    const { data, error } = await _sb
+      .from('drugs')
+      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly')
+      .eq('data_source', 'catalog')
+      .order('catalog_category')
+      .order('stage');
+    if (error) throw error;
+    _dknData = data || [];
+    _dknLoading = false;
+    dknRender();
+    _dknUpdateSnap();
+  } catch(e) {
+    console.warn('dknLoadData', e);
+    _dknLoading = false;
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
+  }
+}
+
+// ── Filter setters ────────────────────────────────────────────────────────────
 function dknSetCat(btn, val) {
   dknCatFilter = val;
   document.querySelectorAll('#dkn-cat-chips .dkn-chip').forEach(b => b.classList.remove('active'));
@@ -6158,10 +6093,10 @@ function dknSetInd(sel) {
   dknRender();
 }
 function dknPopulateSelects() {
-  // Class select — unique sorted values from DRUGS_ALL
+  const drugs = _dknData || [];
   const sel = document.getElementById('dkn-class-select');
   if (sel && sel.options.length <= 1) {
-    const classes = [...new Set(DRUGS_ALL.map(d => d.cls).filter(Boolean))].sort();
+    const classes = [...new Set(drugs.map(d => d.cls).filter(Boolean))].sort();
     classes.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c; opt.textContent = c;
@@ -6175,7 +6110,6 @@ function dknSort(col) {
   document.querySelectorAll('.dkn-master-table th').forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
   });
-  // colMap: indices in new header order (Drug=0, Company=1, Stage=2, Target=3, Class=4, Indication=5, Diff=6, Risk=7, Del=8)
   const colMap = {name:0,company:1,stage:2,target:3,indication:5};
   const thIdx = colMap[col];
   if (thIdx !== undefined) {
@@ -6184,26 +6118,33 @@ function dknSort(col) {
   }
   dknRender();
 }
+
+// ── Main render ───────────────────────────────────────────────────────────────
 function dknRender() {
+  if (!_dknData) return; // still loading — dknLoadData() will call dknRender() when ready
   dknPopulateSelects();
   const q = document.getElementById('dkn-search-input').value.toLowerCase().trim();
-  let data = DRUGS_ALL.filter(d => {
-    if (dknCatFilter && d.category !== dknCatFilter) return false;
+  let data = _dknData.filter(d => {
+    if (dknCatFilter && d.catalog_category !== dknCatFilter) return false;
     if (dknStageFilter && d.stage !== dknStageFilter) return false;
     if (!dknShowRemoved && dknRemovedIds.includes(d.id)) return false;
     if (dknTargetFilter) {
       const keywords = DKN_TARGET_MAP[dknTargetFilter] || [];
-      const tgt = d.target.toLowerCase();
+      const tgt = (d.target || '').toLowerCase();
       if (!keywords.some(k => tgt.includes(k.toLowerCase()))) return false;
     }
     if (dknClassFilter && d.cls !== dknClassFilter) return false;
     if (dknIndFilter) {
       const kws = DKN_IND_MAP[dknIndFilter] || [];
-      const ind = d.indication.toLowerCase();
+      const ind = (d.indication_short || '').toLowerCase();
       if (!kws.some(k => ind.includes(k.toLowerCase()))) return false;
     }
     if (q) {
-      const haystack = [d.name,d.company,d.target,d.cls,d.indication,d.diff,d.risk,d.notes,d.trials].join(' ').toLowerCase();
+      const risk  = _dknRisk(d.drug_summary);
+      const notes = _dknNotes(d.drug_summary);
+      const haystack = [d.display_name, _dknCoName(d), d.target, d.cls,
+        d.indication_short, d.differentiation_thesis, risk, notes, d.trial_names
+      ].join(' ').toLowerCase();
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -6215,8 +6156,10 @@ function dknRender() {
         const sb = STAGE_ORDER[b.stage] ?? 9;
         return dknSortDir * (sa - sb);
       }
-      const av = (a[dknSortCol]||'').toLowerCase();
-      const bv = (b[dknSortCol]||'').toLowerCase();
+      const fieldMap = {name:'display_name', company:'company_display', indication:'indication_short'};
+      const f = fieldMap[dknSortCol] || dknSortCol;
+      const av = (a[f]||'').toLowerCase();
+      const bv = (b[f]||'').toLowerCase();
       return dknSortDir * av.localeCompare(bv);
     });
   }
@@ -6226,8 +6169,7 @@ function dknRender() {
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
-  // Update dynamic "All" count
-  const totalActive = DRUGS_ALL.filter(d => !dknRemovedIds.includes(d.id)).length;
+  const totalActive = _dknData.filter(d => !dknRemovedIds.includes(d.id)).length;
   const allBtn = document.querySelector('#dkn-target-chips .dkn-chip:not([class*="tgt-"]):not([id="dkn-focus-chip"])');
   if (allBtn) allBtn.textContent = `All (${totalActive})`;
   document.getElementById('dkn-count').textContent = data.length + ' drug' + (data.length!==1?'s':'') + ' shown';
@@ -6237,37 +6179,8 @@ function dknRender() {
   document.getElementById('dkn-show-removed').style.display = remCount ? '' : 'none';
   if (dknShowRemoved) dknRenderRemovedPanel();
 }
-// ── Drug detail panel — Supabase live cache ───────────────────────
-let _dknSbMap = null;
 
-async function dknLoadSbData() {
-  if (_dknSbMap !== null) return;
-  _dknSbMap = {};
-  try {
-    const { data } = await _sb.from('drugs').select('*');
-    if (!data) return;
-    data.forEach(drug => {
-      // Index by multiple keys for fuzzy match
-      const keys = [drug.id, drug.name, drug.brand_name].filter(Boolean);
-      keys.forEach(k => { _dknSbMap[k.toLowerCase()] = drug; });
-    });
-  } catch(e) { console.warn('dknLoadSbData', e); }
-}
-
-function dknGetSbMatch(d) {
-  if (!_dknSbMap) return null;
-  const candidates = [d.generic, d.brand, d.name].filter(Boolean);
-  for (const c of candidates) {
-    const lc = c.toLowerCase();
-    if (_dknSbMap[lc]) return _dknSbMap[lc];
-    // Partial match: e.g. "duvakitug" in "Duvakitug (SAR441566)"
-    for (const key of Object.keys(_dknSbMap)) {
-      if (lc.includes(key) || key.includes(lc)) return _dknSbMap[key];
-    }
-  }
-  return null;
-}
-
+// ── Detail panel ──────────────────────────────────────────────────────────────
 function dknToggleDetail(id) {
   const mainRow   = document.querySelector(`.dkn-drug-row[data-id="${id}"]`);
   const detailRow = document.getElementById(`dkn-dr-${id}`);
@@ -6281,47 +6194,44 @@ function dknToggleDetail(id) {
 }
 
 function _renderDetailPanel(id, detailRow) {
-  const d = DRUGS_ALL.find(x => x.id === id);
+  const d = (_dknData || []).find(x => x.id === id);
   if (!d) return;
   const panel = detailRow.querySelector('.dkn-detail-panel');
   if (!panel) return;
-  const sb = dknGetSbMatch(d);
   panel.dataset.loaded = 'true';
 
-  // Top 3-column grid: Mechanism | Status | Trial IDs
+  const risk  = _dknRisk(d.drug_summary);
+  const notes = _dknNotes(d.drug_summary);
+
   const gridCells = [
     { label: 'Class / Mechanism', val: d.cls || '—' },
-    { label: 'Stage', val: (sb?.stage_detail || d.stage) },
-    { label: 'Key Trials', val: d.trials || (sb?.key_data ? 'See data below' : '—') },
+    { label: 'Stage', val: d.stage_detail || d.phase_display || d.stage || '—' },
+    { label: 'Key Trials', val: d.trial_names || (d.key_data ? 'See data below' : '—') },
   ].map(c => `<div class="dkn-dp-cell"><div class="dkn-dp-label">${c.label}</div><div class="dkn-dp-val">${c.val}</div></div>`).join('');
 
-  // Endpoints row (if present)
   const endpointsHtml = d.endpoints
     ? `<div class="dkn-dp-full"><div class="dkn-dp-label">Primary Endpoints</div><div class="dkn-dp-val">${d.endpoints}</div></div>`
     : '';
 
-  // Diff and Risk
-  const diffHtml = d.diff
-    ? `<div class="dkn-dp-diff"><strong>💡 Why It Matters:</strong> ${d.diff}</div>` : '';
-  const riskHtml = d.risk
-    ? `<div class="dkn-dp-risk"><strong>⚠️ Key Risk:</strong> ${d.risk}</div>` : '';
+  const diffHtml = d.differentiation_thesis
+    ? `<div class="dkn-dp-diff"><strong>💡 Why It Matters:</strong> ${d.differentiation_thesis}</div>` : '';
+  const riskHtml = risk
+    ? `<div class="dkn-dp-risk"><strong>⚠️ Key Risk:</strong> ${risk}</div>` : '';
 
-  // Supabase live section
   let liveHtml = '';
-  if (sb) {
-    const competesTag = sb.ailux_competes_directly
+  if (d.key_data || d.ailux_angle) {
+    const competesTag = d.ailux_competes_directly
       ? `<span class="dkn-dp-competes">⚔ Directly Competes with Ailux</span>` : '';
-    if (sb.key_data) {
-      liveHtml += `<div class="dkn-dp-live"><div class="dkn-dp-live-label">📊 Trial Data ${competesTag}</div><div class="dkn-dp-live-text">${sb.key_data}</div></div>`;
+    if (d.key_data) {
+      liveHtml += `<div class="dkn-dp-live"><div class="dkn-dp-live-label">📊 Trial Data ${competesTag}</div><div class="dkn-dp-live-text">${d.key_data}</div></div>`;
     }
-    if (sb.ailux_angle) {
-      liveHtml += `<div class="dkn-dp-ailux"><div class="dkn-dp-ailux-label">◈ Ailux BD Signal</div><div class="dkn-dp-ailux-text">${sb.ailux_angle}</div></div>`;
+    if (d.ailux_angle) {
+      liveHtml += `<div class="dkn-dp-ailux"><div class="dkn-dp-ailux-label">◈ Ailux BD Signal</div><div class="dkn-dp-ailux-text">${d.ailux_angle}</div></div>`;
     }
   }
 
-  // Notes
-  const notesHtml = d.notes
-    ? `<div class="dkn-dp-full" style="margin-top:6px"><div class="dkn-dp-label">Notes</div><div class="dkn-dp-val">${d.notes}</div></div>` : '';
+  const notesHtml = notes
+    ? `<div class="dkn-dp-full" style="margin-top:6px"><div class="dkn-dp-label">Notes</div><div class="dkn-dp-val">${notes}</div></div>` : '';
 
   panel.innerHTML = `
     <div class="dkn-dp-grid">${gridCells}</div>
@@ -6333,23 +6243,28 @@ function _renderDetailPanel(id, detailRow) {
   `;
 }
 
+// ── Row renderer ──────────────────────────────────────────────────────────────
 function dknRow(d) {
   const isRemoved = dknRemovedIds.includes(d.id);
-  const stageCls = 'sp-' + d.stage.replace(' ','');
-  const catBarCls = 'cat-bar-' + d.category.replace(/\s/g,'.');
+  const stageCls  = 'sp-' + (d.stage || '').replace(' ','');
+  const cat       = d.catalog_category || 'Pipeline';
+  const catBarCls = 'cat-bar-' + cat.replace(/\s/g,'.');
+  const eid       = JSON.stringify(d.id); // safely-quoted text slug for inline onclick
   const removeOrRestore = isRemoved
-    ? `<button class="dkn-restore-btn" onclick="event.stopPropagation();dknRestoreInline(${d.id})" title="Restore">↩</button>`
-    : `<button class="dkn-trash-btn" onclick="event.stopPropagation();dknRemove(${d.id})" title="Remove drug">🗑</button>`;
+    ? `<button class="dkn-restore-btn" onclick="event.stopPropagation();dknRestoreInline(${eid})" title="Restore">↩</button>`
+    : `<button class="dkn-trash-btn" onclick="event.stopPropagation();dknRemove(${eid})" title="Remove drug">🗑</button>`;
   const rowStyle = isRemoved ? ' style="opacity:0.4;background:#fff8f8;"' : '';
-  return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${d.id})"${rowStyle}>
-  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.name}</span><span class="dkn-chevron">▶</span></td>
-  <td class="dkn-col-co" style="font-size:11px;color:#374151">${d.company}</td>
-  <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage}</span></td>
-  <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target}</td>
-  <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls}</td>
-  <td class="dkn-col-ind" style="font-size:11px">${d.indication}</td>
-  <td class="dkn-col-diff" style="font-size:11px;color:#1e293b">${(d.diff||'').length > 90 ? d.diff.slice(0,90)+'…' : (d.diff||'')}</td>
-  <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${(d.risk||'').length > 70 ? d.risk.slice(0,70)+'…' : (d.risk||'')}</td>
+  const diff = d.differentiation_thesis || '';
+  const risk = _dknRisk(d.drug_summary);
+  return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
+  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.display_name || d.id}</span><span class="dkn-chevron">▶</span></td>
+  <td class="dkn-col-co" style="font-size:11px;color:#374151">${_dknCoName(d)}</td>
+  <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
+  <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
+  <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls || '—'}</td>
+  <td class="dkn-col-ind" style="font-size:11px">${d.indication_short || '—'}</td>
+  <td class="dkn-col-diff" style="font-size:11px;color:#1e293b">${diff.length > 90 ? diff.slice(0,90)+'…' : diff}</td>
+  <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${risk.length > 70 ? risk.slice(0,70)+'…' : risk}</td>
   <td class="dkn-col-del" style="text-align:center;white-space:nowrap">${removeOrRestore}</td>
 </tr>
 <tr id="dkn-dr-${d.id}" class="dkn-detail-row">
@@ -6358,6 +6273,8 @@ function dknRow(d) {
   </td>
 </tr>`;
 }
+
+// ── Remove / restore / undo ───────────────────────────────────────────────────
 function dknRemove(id) {
   if (!dknRemovedIds.includes(id)) {
     dknRemovedIds.push(id);
@@ -6367,7 +6284,7 @@ function dknRemove(id) {
 }
 function dknRestoreInline(id) {
   dknRemovedIds = dknRemovedIds.filter(x => x !== id);
-  dknUndoStack = dknUndoStack.filter(x => x !== id);
+  dknUndoStack  = dknUndoStack.filter(x => x !== id);
   dknRender();
 }
 function dknUndo() {
@@ -6384,12 +6301,12 @@ function dknToggleRemoved() {
   dknRender();
 }
 function dknRenderRemovedPanel() {
-  const removedData = DRUGS_ALL.filter(d => dknRemovedIds.includes(d.id));
+  const removedData = (_dknData || []).filter(d => dknRemovedIds.includes(d.id));
   const list = document.getElementById('dkn-removed-list');
   list.innerHTML = removedData.map(d =>
     `<div class="dkn-removed-item">
-      <button class="dkn-restore-btn" onclick="dknRestoreInline(${d.id})">↩ Restore</button>
-      <strong>${d.name}</strong> <span style="color:#94a3b8">${d.company} · ${d.target}</span>
+      <button class="dkn-restore-btn" onclick="dknRestoreInline(${JSON.stringify(d.id)})">↩ Restore</button>
+      <strong>${d.display_name || d.id}</strong> <span style="color:#94a3b8">${_dknCoName(d)} · ${d.target || '—'}</span>
     </div>`
   ).join('');
 }
@@ -6408,16 +6325,51 @@ function dknReset() {
   if (focusChip) focusChip.classList.add('active');
   dknRender();
 }
-// Auto-init when tab becomes active
+
+// ── Snap / changelog (runs after Supabase data loads) ─────────────────────────
+function _dknUpdateSnap() {
+  var SNAP_KEY = 'dkn_snap_v4';  // bump key — old integer IDs incompatible with text slugs
+  var drugs    = _dknData || [];
+  var currentMap = {};
+  drugs.forEach(function(d){ currentMap[d.id] = d.display_name || d.id; });
+  var currentIds = Object.keys(currentMap);
+  var stored = null;
+  try { stored = JSON.parse(localStorage.getItem(SNAP_KEY)); } catch(e) {}
+  if (stored && stored.ids) {
+    var storedSet  = new Set(stored.ids);
+    var currentSet = new Set(currentIds);
+    var added   = currentIds.filter(function(id){ return !storedSet.has(id); });
+    var removed = stored.ids.filter(function(id){ return !currentSet.has(id); });
+    if (added.length || removed.length) {
+      var badge   = document.getElementById('dkn-change-badge');
+      var countEl = document.getElementById('dkn-badge-count');
+      if (badge)   badge.style.display = 'block';
+      if (countEl) countEl.textContent = added.length + removed.length;
+      window._dknCL = {
+        added:   added.map(function(id){ return currentMap[id] || id; }),
+        removed: removed.map(function(id){ return (stored.nameMap && stored.nameMap[id]) || id; }),
+        date: new Date().toLocaleDateString()
+      };
+    }
+  }
+  var snap = { ids: currentIds, nameMap: currentMap, date: new Date().toISOString().split('T')[0] };
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify(snap)); } catch(e) {}
+}
+
+// ── Backward compat — dknLoadSbData now just calls dknLoadData ────────────────
+function dknLoadSbData() { return dknLoadData(); }
+
+// ── Auto-init when DKN tab becomes active ─────────────────────────────────────
 (function() {
   const observer = new MutationObserver(() => {
     const pane = document.getElementById('tab-drugs-know');
-    if (pane && pane.classList.contains('active')) dknRender();
+    if (pane && pane.classList.contains('active')) {
+      if (_dknData) dknRender(); else dknLoadData();
+    }
   });
   const pane = document.getElementById('tab-drugs-know');
   if (pane) observer.observe(pane, {attributes:true, attributeFilter:['class']});
-  // Also init immediately if active
-  if (pane && pane.classList.contains('active')) dknRender();
+  if (pane && pane.classList.contains('active')) dknLoadData();
 })();
 </script>
 
@@ -13182,34 +13134,7 @@ function cwToggle(cid){
 }
 </script>
 <script>
-(function(){
-  var SNAP_KEY='dkn_snap_v3';
-  if(typeof DRUGS_ALL==='undefined') return;
-  var currentMap={};
-  DRUGS_ALL.forEach(function(d){ currentMap[String(d.id)]=d.name; });
-  var currentIds=Object.keys(currentMap);
-  var stored=null;
-  try{ stored=JSON.parse(localStorage.getItem(SNAP_KEY)); }catch(e){}
-  if(stored && stored.ids){
-    var storedSet=new Set(stored.ids.map(String));
-    var currentSet=new Set(currentIds);
-    var added=currentIds.filter(function(id){ return !storedSet.has(id); });
-    var removed=stored.ids.filter(function(id){ return !currentSet.has(String(id)); });
-    if(added.length||removed.length){
-      var badge=document.getElementById('dkn-change-badge');
-      var countEl=document.getElementById('dkn-badge-count');
-      if(badge) badge.style.display='block';
-      if(countEl) countEl.textContent=added.length+removed.length;
-      window._dknCL={
-        added:added.map(function(id){ return currentMap[id]||('Drug #'+id); }),
-        removed:removed.map(function(id){ return (stored.nameMap&&stored.nameMap[id])||('Drug #'+id); }),
-        date:new Date().toLocaleDateString()
-      };
-    }
-  }
-  var snap={ids:currentIds,nameMap:currentMap,date:new Date().toISOString().split('T')[0]};
-  try{ localStorage.setItem(SNAP_KEY,JSON.stringify(snap)); }catch(e){}
-})();
+// Snap IIFE moved into _dknUpdateSnap() — called after Supabase data loads
 function dknShowChangelog(){
   var modal=document.getElementById('dkn-changelog-modal');
   var body=document.getElementById('dkn-changelog-body');
