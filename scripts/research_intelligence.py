@@ -1285,7 +1285,7 @@ def rescore_molecule(
     })
     if cp_rows:
         _sb_patch(sb_url, sb_key, "company_profiles",
-                  {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"},
+                  {"company_id": company_id, "area_id": area_id},
                   profile_patch)
         print(f"  ✓ company_profiles updated: score={completeness_score} "
               f"missing={len(missing_fields)}")
@@ -1310,7 +1310,7 @@ def rescore_molecule(
     }
     if rq_rows:
         _sb_patch(sb_url, sb_key, "research_queue",
-                  {"entity_id": f"eq.{entity_id}", "area_id": f"eq.{area_id}"},
+                  {"entity_id": entity_id, "area_id": area_id},
                   rq_patch)
         print(f"  ✓ research_queue updated: priority={priority_score}")
     else:
