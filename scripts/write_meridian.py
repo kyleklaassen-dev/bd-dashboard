@@ -204,9 +204,15 @@ def fetch_company_signals():
                 "order": "company_id,sort_order",
             },
         )
-        signals = r.json()
-        log(f"Fetched {len(signals)} company signals")
-        return signals
+        if r.status_code != 200:
+            log(f"Company signals unavailable ({r.status_code}) — skipping")
+            return []
+        data = r.json()
+        if not isinstance(data, list):
+            log(f"Company signals unexpected response shape — skipping")
+            return []
+        log(f"Fetched {len(data)} company signals")
+        return data
     except Exception as e:
         log(f"Company signals fetch error: {e}")
         return []
