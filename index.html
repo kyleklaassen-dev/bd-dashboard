@@ -7582,6 +7582,12 @@ function dknLoadSbData() { return dknLoadData(); }
           <option value="igf1r">IGF1R</option>
           <option value="tcell">T-Cell</option>
         </select>
+        <!-- Source filter -->
+        <select id="dq-source-filter" onchange="dqRender()" style="font-size:11px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:white;color:#374151">
+          <option value="">All Sources</option>
+          <option value="user_intake">🔍 User Intake</option>
+          <option value="signal_monitoring">📡 Signal Monitor</option>
+        </select>
         <!-- Sort -->
         <select id="dq-sort" onchange="dqRender()" style="font-size:11px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:white;color:#374151">
           <option value="relevance">Sort: Relevance ↓</option>
@@ -7724,12 +7730,17 @@ function dqRender() {
   const loading = document.getElementById('dq-loading');
   if (!tbody) return;
 
-  const areaF  = document.getElementById('dq-area-filter')?.value || '';
-  const sortV  = document.getElementById('dq-sort')?.value || 'relevance';
+  const areaF   = document.getElementById('dq-area-filter')?.value  || '';
+  const sourceF = document.getElementById('dq-source-filter')?.value || '';
+  const sortV   = document.getElementById('dq-sort')?.value          || 'relevance';
 
   let rows = _dqData.filter(r => {
     if (_dqStatus !== 'all' && r.status !== _dqStatus) return false;
     if (areaF && r.area_id !== areaF) return false;
+    if (sourceF) {
+      const rowSource = r.source || (r.discovered_by === 'company_intake' ? 'user_intake' : 'signal_monitoring');
+      if (rowSource !== sourceF) return false;
+    }
     return true;
   });
 
@@ -7761,14 +7772,39 @@ function dqRender() {
     const priority = rel >= 9 ? '⚡ ' : '';
     const date = r.discovered_at ? new Date(r.discovered_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
 
-    const isPending = r.status === 'pending';
+    const isPending  = r.status === 'pending';
     const isApproved = r.status === 'approved';
     const isRejected = r.status === 'rejected';
     const isWatch    = r.status === 'watch';
 
-    return `<tr style="border-bottom:1px solid #f1f5f9;${rel>=9?'background:#fff7f7':''}">
+    // ── Source badge ─────────────────────────────────────────────────────────
+    // Detect user_intake from source column (post-migration) or discovered_by field (fallback)
+    const isUserIntake = r.source === 'user_intake' || r.discovered_by === 'company_intake';
+    const isSignal     = !isUserIntake && (r.source === 'signal_monitoring' || r.discovered_by?.startsWith('step'));
+    const sourceBadge  = isUserIntake
+      ? `<span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:1px 6px;border-radius:8px;margin-top:3px;display:inline-block">🔍 User Intake</span>`
+      : isSignal
+      ? `<span style="font-size:9px;font-weight:700;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-top:3px;display:inline-block">📡 Signal Monitor</span>`
+      : '';
+
+    // ── Intelligence display ──────────────────────────────────────────────────
+    // For user intake rows: show why_discovered prominently (area routing context)
+    // For signal rows: show reason + rationale as before
+    const intelligenceCell = isUserIntake
+      ? `<div style="font-size:11px;color:#374151;line-height:1.4;font-weight:600">${_esc(r.overlap||'')} relevance to ${_esc(r.area_id||'')}</div>
+         ${r.relevance_rationale ? `<div style="font-size:11px;color:#374151;line-height:1.4;margin-top:3px">${_esc(r.relevance_rationale.slice(0,150))}${(r.relevance_rationale||'').length>150?'…':''}</div>` : ''}
+         ${r.why_discovered ? `<div style="font-size:10px;color:#64748b;margin-top:4px;padding:4px 7px;background:#fffbeb;border-left:2px solid #f59e0b;border-radius:0 4px 4px 0;line-height:1.4">${_esc(r.why_discovered.slice(0,200))}${(r.why_discovered||'').length>200?'…':''}</div>` : ''}`
+      : `<div style="font-size:11px;color:#374151;line-height:1.4">${_esc(r.reason||'')}</div>
+         ${r.relevance_rationale ? `<div style="font-size:10px;color:#94a3b8;margin-top:3px;font-style:italic">${_esc(r.relevance_rationale.slice(0,120))}${(r.relevance_rationale||'').length>120?'…':''}</div>` : ''}
+         ${r.source_url ? `<a href="${_esc(r.source_url)}" target="_blank" style="font-size:10px;color:#2563eb;text-decoration:none">↗ source</a>` : ''}`;
+
+    // ── Row highlight ─────────────────────────────────────────────────────────
+    const rowBg = isUserIntake ? 'background:#fffdf5' : rel >= 9 ? 'background:#fff7f7' : '';
+
+    return `<tr style="border-bottom:1px solid #f1f5f9;${rowBg}">
       <td style="padding:10px 14px;max-width:220px">
         <div style="font-weight:700;color:#0f172a;font-size:12px">${priority}${_esc(r.company_name)}</div>
+        ${sourceBadge}
         ${r.drug_name ? `<div style="font-size:11px;color:#64748b;margin-top:2px">${_esc(r.drug_name)}${r.target ? ` · ${_esc(r.target)}` : ''}</div>` : ''}
         ${r.stage ? `<div style="font-size:10px;color:#94a3b8;margin-top:1px">${_esc(r.stage)}</div>` : ''}
         <div style="font-size:10px;color:#cbd5e1;margin-top:2px">${date}</div>
@@ -7788,10 +7824,8 @@ function dqRender() {
       <td style="padding:10px;text-align:center">
         <span style="font-size:11px;color:#64748b">${r.confidence_score||'—'}</span>
       </td>
-      <td style="padding:10px 14px;max-width:260px">
-        <div style="font-size:11px;color:#374151;line-height:1.4">${_esc(r.reason||'')}</div>
-        ${r.relevance_rationale ? `<div style="font-size:10px;color:#94a3b8;margin-top:3px;font-style:italic">${_esc(r.relevance_rationale.slice(0,120))}${r.relevance_rationale.length>120?'…':''}</div>` : ''}
-        ${r.source_url ? `<a href="${_esc(r.source_url)}" target="_blank" style="font-size:10px;color:#2563eb;text-decoration:none">↗ source</a>` : ''}
+      <td style="padding:10px 14px;max-width:280px">
+        ${intelligenceCell}
       </td>
       <td style="padding:10px 14px">
         <span style="font-size:10px;font-weight:700;color:#374151;background:#f8fafc;padding:2px 7px;border-radius:6px;border:1px solid #e2e8f0">${_esc(destLbl)}</span>
