@@ -107,6 +107,44 @@ NOW_ISO  = datetime.datetime.utcnow().isoformat()
 
 CT_API = "https://clinicaltrials.gov/api/v2"
 
+# ── Valid area IDs — must match TAB_AREA_MAP keys in the frontend ────────────
+VALID_AREA_IDS = {"tl1a", "tslp", "il4ra", "fcrn", "igf1r", "tcell"}
+
+# Area-ID normalization: fix common LLM/typo variants before any validation
+_AREA_ID_ALIASES: dict[str, str] = {
+    "tll1a":   "tl1a",   # extra 'l' typo
+    "tl1":     "tl1a",
+    "il4r":    "il4ra",
+    "il-4ra":  "il4ra",
+    "il4-ra":  "il4ra",
+    "fcrna":   "fcrn",
+    "fcRn":    "fcrn",
+    "igf-1r":  "igf1r",
+    "igf1":    "igf1r",
+    "t-cell":  "tcell",
+}
+
+def normalize_area_id(raw: str) -> str:
+    """Lowercase, strip whitespace, apply alias map.  Returns '' if unrecognised."""
+    cleaned = raw.strip().lower()
+    resolved = _AREA_ID_ALIASES.get(cleaned, cleaned)
+    return resolved if resolved in VALID_AREA_IDS else ""
+
+# ── Known drug-alias table (prevents LLM confusing similar assets) ───────────
+KNOWN_DRUG_TARGETS: dict[str, dict] = {
+    # Akeso bispecifics — do NOT mix up
+    "AK104":  {"target": "PD-1/CTLA-4",  "stage": "Approved",  "note": "cadonilimab; China approved 2022 for cervical cancer"},
+    "AK112":  {"target": "PD-1/VEGF",    "stage": "Phase 3",   "note": "ivonescimab"},
+    "AK129":  {"target": "PD-1/TIM-3",   "stage": "Phase 1",   "note": "distinct from AK104; do NOT conflate"},
+    # JAK inhibitors — selectivity matters
+    "SHR0302":   {"target": "JAK1-selective", "stage": "Phase 3",   "note": "ivarmacitinib; JAK1-selective, NOT dual JAK1/JAK2"},
+    "baricitinib":{"target": "JAK1/JAK2",    "stage": "Approved",  "note": "dual JAK1/JAK2 inhibitor"},
+    "ruxolitinib":{"target": "JAK1/JAK2",    "stage": "Approved",  "note": "dual JAK1/JAK2 inhibitor"},
+    "upadacitinib":{"target": "JAK1-selective","stage":"Approved",  "note": "rinvoq; JAK1-selective"},
+    "filgotinib": {"target": "JAK1-selective","stage": "Approved",  "note": "JAK1-selective"},
+    "abrocitinib":{"target": "JAK1-selective","stage": "Approved",  "note": "cibinqo; JAK1-selective"},
+}
+
 
 def log(msg: str, indent: int = 0):
     ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
@@ -360,6 +398,15 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
 
     Returns count of items written to discovery_queue.
     """
+    # ── Normalize + validate area_id before anything else ────────────────────
+    _raw_area = area_id
+    area_id = normalize_area_id(area_id)
+    if not area_id:
+        log(f"[ERROR] Invalid area_id '{_raw_area}' — not in VALID_AREA_IDS {VALID_AREA_IDS}. Aborting.", indent=0)
+        return 0
+    if area_id != _raw_area:
+        log(f"[WARN] area_id normalized '{_raw_area}' → '{area_id}'", indent=0)
+
     # Run ID ties every row in this batch to a specific discovery run — critical for debugging
     run_id = f"{area_id}_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M')}"
 
@@ -423,9 +470,15 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         f"Already tracked IDs: {existing_list}\n"
         f"{landscape_section}\n"
         f"\nSUPPLEMENTAL INTEL (recent Supabase intel, last 14 days):\n{intel_text}\n\n"
-        "Find NEW companies or drugs in this space NOT already tracked above.\n"
+        f"Find NEW companies or drugs in THIS SPECIFIC AREA ({area_id}) NOT already tracked above.\n"
         "Include large pharma subsidiaries/programs if their compound is not yet tracked.\n"
         "Return only genuine competitive entries (not CROs, service providers, etc.).\n\n"
+        f"CRITICAL — AREA-SPECIFIC DRUG ASSIGNMENT:\n"
+        f"Each entity you return must have drug_name set to the drug RELEVANT TO {area_id.upper()},\n"
+        "NOT a different drug from the same company's pipeline in a different area.\n"
+        "Example: if Hengrui has HR7044 (TSLP) AND SHR0817 (IL-4Rα), and you are discovering\n"
+        "for area_id=il4ra, set drug_name='SHR0817'. Do NOT set drug_name='HR7044'.\n"
+        "If the company has no area-specific drug, omit drug_name (null).\n\n"
         "SCOPE — THINK INDICATION-FIRST, NOT JUST MECHANISM:\n"
         "Do not limit discovery to exact-mechanism matches. Include companies that compete\n"
         "for the SAME PATIENTS in the SAME INDICATION even if their mechanism differs.\n"
@@ -477,7 +530,23 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         "- Use 'inferred' for logical deductions (same target/indication, overlapping geography).\n"
         "- Use 'suggested' for speculative associations that need human verification.\n"
         "- why_discovered: explain the specific search criteria that surfaced this entity\n"
-        "  (e.g. 'IL-4Ra antibody in atopic dermatitis Phase 3 — same target and indication').\n"
+        "  (e.g. 'IL-4Ra antibody in atopic dermatitis Phase 3 — same target and indication').\n\n"
+        "DRUG DISAMBIGUATION — KNOWN ASSET TABLE (authoritative; do not override):\n"
+        "These drug→target mappings are ground truth. If a source contradicts them, trust this table.\n"
+        + "".join(
+            f"  {drug}: target={info['target']}, stage={info['stage']} — {info['note']}\n"
+            for drug, info in KNOWN_DRUG_TARGETS.items()
+        )
+        + "\nIMPORTANT: AK104 (cadonilimab) targets PD-1/CTLA-4 — NOT PD-1/TIM-3. "
+        "AK129 targets PD-1/TIM-3 and is a completely separate program. Never conflate them.\n\n"
+        "JAK INHIBITOR CLASSIFICATION RULES:\n"
+        "Always specify selectivity explicitly — do NOT write 'JAK1/JAK2' unless the drug is\n"
+        "a confirmed dual JAK1/JAK2 inhibitor (e.g. baricitinib, ruxolitinib).\n"
+        "  JAK1-selective  = upadacitinib, filgotinib, abrocitinib, SHR0302/ivarmacitinib\n"
+        "  JAK1/JAK2 dual  = baricitinib, ruxolitinib\n"
+        "  JAK1/2/3 pan    = tofacitinib\n"
+        "If uncertain about selectivity profile, set target = 'JAK1-selective (unconfirmed)' and\n"
+        "relationship_confidence = 'suggested' — never assume JAK1/JAK2 dual by default.\n\n"
         'IF none found: {"new_entities": []}'
     )
 
@@ -501,6 +570,22 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
     if not new_entities:
         log("  No new entities found", indent=1)
         return 0
+
+    # ── Post-processing: validate drug targets against known-drug table ───────
+    for ent in new_entities:
+        drug = (ent.get("drug_name") or "").strip()
+        if drug and drug in KNOWN_DRUG_TARGETS:
+            known = KNOWN_DRUG_TARGETS[drug]
+            llm_target = (ent.get("target") or "").strip()
+            if llm_target != known["target"]:
+                log(f"  ⚠ Drug target mismatch for {drug}: LLM said '{llm_target}', "
+                    f"overriding with authoritative '{known['target']}'", indent=1)
+                ent["target"] = known["target"]
+            llm_stage = (ent.get("stage") or "").strip()
+            if llm_stage != known["stage"]:
+                log(f"  ⚠ Drug stage mismatch for {drug}: LLM said '{llm_stage}', "
+                    f"overriding with authoritative '{known['stage']}'", indent=1)
+                ent["stage"] = known["stage"]
 
     queued = 0
     for ent in new_entities:
@@ -611,11 +696,22 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             queued += 1
             continue
 
-        # Determine queue status based on relevance
-        # 9-10 → priority (still pending — needs human review but flagged urgent)
+        # Determine queue status based on confidence + relevance
+        # ≥90 confidence → auto-approve (bypass queue — high-signal, skip manual review)
+        # 9-10 relevance → priority pending (needs human review but flagged urgent)
         # 7-8  → standard pending
         # 5-6  → watch
-        queue_status = "pending"
+        AUTO_APPROVE_THRESHOLD = 90
+        _now_iso = datetime.datetime.utcnow().isoformat() + "Z"
+        if confidence >= AUTO_APPROVE_THRESHOLD:
+            queue_status  = "approved"
+            _reviewed_by  = "auto"
+            _reviewed_at  = _now_iso
+            log(f"    ⚡ conf={confidence} ≥ {AUTO_APPROVE_THRESHOLD} → AUTO-APPROVED", indent=2)
+        else:
+            queue_status  = "pending"
+            _reviewed_by  = None
+            _reviewed_at  = None
 
         _dq_pending = {
             "company_name":            co_name,
@@ -639,10 +735,14 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             "discovered_by":           "step1_discovery",
             "discovery_run_id":        run_id,
             "status":                  queue_status,
+            "reviewed_by":             _reviewed_by,
+            "reviewed_at":             _reviewed_at,
             "relationship_type":       relationship_type,
             "relationship_confidence": relationship_conf,
             "why_discovered":          why_discovered,
         }
+        # Strip None fields to avoid Supabase rejecting nulls for non-nullable columns
+        _dq_pending = {k: v for k, v in _dq_pending.items() if v is not None}
         ok = sb_post("discovery_queue", _dq_pending)
         if not ok:
             # Fallback: retry without v10 columns (migration not yet applied)
@@ -652,9 +752,10 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             ok = sb_post("discovery_queue", _dq_pending)
 
         priority_flag = " ⚡ PRIORITY" if relevance_score >= 9 else ""
+        status_flag   = " [AUTO-APPROVED]" if queue_status == "approved" else ""
         log(
             f"    → Queued in discovery_queue: {co_name} "
-            f"(rel={relevance_score} conf={confidence} layer={competition_lay}){priority_flag}",
+            f"(rel={relevance_score} conf={confidence} layer={competition_lay}){priority_flag}{status_flag}",
             indent=2
         )
         queued += 1
@@ -1371,6 +1472,14 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
     # If no position row exists for this area, the block is omitted and the LLM uses
     # its own judgment (acceptable for new areas, but adding a row is strongly preferred).
     if ailux_pos:
+        # Build same-space block only if the column exists in the row
+        _ss_criteria = ailux_pos.get('same_space_criteria', '')
+        _ss_examples = ailux_pos.get('same_space_examples', '')
+        _same_space_block = (
+            f"SAME-SPACE — {_ss_criteria}\n"
+            f"  Examples: {_ss_examples}\n\n"
+        ) if _ss_criteria else ""
+
         ailux_block = (
             "\nAILUX COMPETITIVE ANCHOR (read this before classifying any drug):\n"
             f"Ailux drug: {ailux_pos.get('ailux_drug','SPY002')} | "
@@ -1378,20 +1487,27 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
             f"Modality: {ailux_pos.get('ailux_modality','')} | "
             f"Stage: {ailux_pos.get('ailux_stage','')}\n"
             f"Ailux angle: {ailux_pos.get('ailux_angle','')}\n\n"
-            "TIER CLASSIFICATION RULES (apply to EVERY drug and combo you write):\n"
+            "FOUR-TIER CLASSIFICATION RULES (apply to EVERY drug and combo you write):\n"
             f"DIRECT — {ailux_pos.get('direct_criteria','')}\n"
             f"  Examples: {ailux_pos.get('direct_examples','')}\n\n"
             f"ADJACENT — {ailux_pos.get('adjacent_criteria','')}\n"
             f"  Examples: {ailux_pos.get('adjacent_examples','')}\n\n"
-            f"WATCH (Same-Space) — {ailux_pos.get('watch_criteria','')}\n"
+            + _same_space_block +
+            f"WATCH — {ailux_pos.get('watch_criteria','')}\n"
             f"  Examples: {ailux_pos.get('watch_examples','')}\n\n"
             f"NOTES: {ailux_pos.get('notes','')}\n"
         )
     else:
         ailux_block = (
             "\nNOTE: No ailux_positions row found for this area. "
-            "Use your best judgment to classify overlap as Direct (same molecular target as Ailux), "
-            "Adjacent (same disease, validating/complementary biology), or Watch (same patients, different pathway).\n"
+            "Use your best judgment to classify overlap using this FOUR-TIER hierarchy:\n"
+            "  DIRECT = same molecular target as Ailux, or combo that includes Ailux's primary target\n"
+            "  ADJACENT = same disease/patient population with different mechanism that validates biology "
+            "or is an explicit combination candidate (e.g. IL-23, α4β7 in IBD)\n"
+            "  SAME-SPACE = approved SOC in the same disease area via a fundamentally different pathway "
+            "(competes for patients, defines efficacy bar, but not a mechanistic threat)\n"
+            "  WATCH = same patient population but entirely different mechanism (JAK, S1P, RIPK1, TNF), "
+            "or early-stage with unconfirmed relevance to this area\n"
         )
 
     # Build web intelligence section separately to avoid f-string nesting issues
@@ -1486,7 +1602,7 @@ Return JSON with EXACTLY these fields:
     "drug_summary": "REQUIRED — 1-2 sentences MAX. Written for PhD scientists and BD professionals: dense, factual, zero filler. Lead with the most clinically or commercially significant fact. Include mechanism, stage, and one differentiating detail (e.g. key data point, platform, deal structure). For approved drugs: include revenue and approval status. Never use phrases like 'noteworthy', 'important', 'significant' — show the fact, not the adjective. Never return null.",
     "key_data": "REQUIRED for approved/late-stage drugs — most important clinical data point in one sentence (e.g. primary endpoint result, pivotal trial outcome). For early-stage with no public data: brief mechanism note. Never leave null if drug_summary is populated.",
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
-    "overlap": "REQUIRED — Direct | Adjacent | Watch. Use AILUX COMPETITIVE ANCHOR rules above. Direct = same molecular target as Ailux (TL1A) or combo that includes TL1A. Adjacent = same disease, different mechanism, validates biology or is a combination candidate. Watch = same patients, completely different pathway.",
+    "overlap": "REQUIRED — Direct | Adjacent | Same-Space | Watch. Use AILUX COMPETITIVE ANCHOR four-tier rules above. Direct = same molecular target as Ailux or combo including Ailux's target. Adjacent = same disease, different mechanism, validates biology or is a combination candidate (e.g. IL-23, α4β7). Same-Space = approved SOC in the same indication via a fundamentally different pathway (integrin blockers, older biologics — compete for patients, define efficacy bar). Watch = same patients but entirely different mechanism (JAK, S1P, RIPK1, TNF), or early-stage with unconfirmed relevance.",
     "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this drug is classified in this tier relative to Ailux's TL1A position. Be specific about the mechanism.",
     "confidence_level": "confirmed|supported|inferred",
     "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
@@ -1508,7 +1624,7 @@ Return JSON with EXACTLY these fields:
     "strategic_significance": "high|medium|low",
     "mechanism_detail": "1-2 sentences: rationale for combining these mechanisms, what complementary biology is targeted",
     "drug_summary": "2-3 sentences: what is known about this combination program — trial data, company guidance, strategic rationale",
-    "overlap": "REQUIRED — Direct | Adjacent | Watch. A combo that includes a TL1A component = Direct. A multi-mechanism IBD combo without TL1A = Adjacent. Use AILUX COMPETITIVE ANCHOR rules above.",
+    "overlap": "REQUIRED — Direct | Adjacent | Same-Space | Watch. A combo that includes a TL1A component = Direct. A multi-mechanism IBD combo without TL1A but in same indication = Adjacent (e.g. IL-23+α4β7). Use AILUX COMPETITIVE ANCHOR four-tier rules above.",
     "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this combination program is classified in this tier.",
     "notes": "1 sentence: source or confidence note",
     "source_url": "null or URL to press release, trial registration, or IR page — never fabricate. REQUIRED when stage starts with 'Planned'."
