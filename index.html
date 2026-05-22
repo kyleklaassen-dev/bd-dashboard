@@ -8618,18 +8618,18 @@ function _openEntityByEl(el) {
 
 /* ─── Company slide-over panel ──────────────────────────────────────────────── */
 async function openCompanySlideOver(companyId, companyName, sourceTabId) {
-  const panel   = document.getElementById('co-slideover');
-  const overlay = document.getElementById('co-slideover-overlay');
-  const titleEl = document.getElementById('co-slideover-title');
-  const subEl   = document.getElementById('co-slideover-sub');
-  const bodyEl  = document.getElementById('co-slideover-body');
-  if (!panel) return;
+  const titleEl = document.getElementById('entity-modal-title');
+  const subEl   = document.getElementById('entity-modal-sub');
+  const bodyEl  = document.getElementById('entity-modal-body');
+  const overlay = document.getElementById('entity-modal-overlay');
+  const footerEl = document.getElementById('entity-modal-footer');
+  if (!overlay) return;
 
   titleEl.textContent = companyName || 'Company';
   subEl.textContent   = 'Company Profile';
   bodyEl.innerHTML    = '<div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
+  if (footerEl) footerEl.style.display = 'none';
   overlay.classList.add('open');
-  panel.classList.add('open');
 
   if (!_sb) {
     bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Database not connected.</div>';
@@ -8762,14 +8762,12 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
 }
 
 function closeCoSlideOver() {
-  document.getElementById('co-slideover')?.classList.remove('open');
-  document.getElementById('co-slideover-overlay')?.classList.remove('open');
+  closeEntityModal();
 }
 
-// Close slide-over on Escape key
+// Close modals on Escape key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    closeCoSlideOver();
     closeEntityModal();
   }
 });
