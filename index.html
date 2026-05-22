@@ -7663,6 +7663,9 @@ function dknLoadSbData() { return dknLoadData(); }
           <option value="area">Sort: Area</option>
           <option value="recent">Sort: Newest</option>
         </select>
+        <button onclick="dqBulkApproveHighConf()" id="dq-bulk-approve-btn" style="font-size:11px;padding:5px 11px;border-radius:6px;border:none;background:#059669;color:white;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px" title="Auto-approve all pending items with confidence ≥ 80">
+          ⚡ Approve ≥80 conf
+        </button>
         <button onclick="dqLoad()" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;cursor:pointer;display:flex;align-items:center;gap:4px">
           <span>↻</span> Refresh
         </button>
@@ -7993,6 +7996,52 @@ function dqShowApprovedNote(row) {
   });
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 4500);
+}
+
+async function dqBulkApproveHighConf() {
+  const THRESHOLD = 80;
+  const candidates = _dqData.filter(r => r.status === 'pending' && (r.confidence_score || 0) >= THRESHOLD);
+  if (!candidates.length) {
+    alert(`No pending items with confidence ≥ ${THRESHOLD} found.`);
+    return;
+  }
+  const btn = document.getElementById('dq-bulk-approve-btn');
+  if (btn) { btn.disabled = true; btn.textContent = `Approving ${candidates.length}…`; }
+
+  let approved = 0, failed = 0;
+  const now = new Date().toISOString();
+  for (const row of candidates) {
+    try {
+      const { error } = await _sb.from('discovery_queue').update({
+        status:      'approved',
+        reviewed_at: now,
+        reviewed_by: 'kyle',
+      }).eq('id', row.id);
+      if (error) throw error;
+      row.status = 'approved';
+      row.reviewed_at = now;
+      approved++;
+    } catch(e) {
+      console.error('bulk approve error:', row.id, e);
+      failed++;
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '⚡ Approve ≥80 conf'; }
+  dqRenderStats();
+  dqRender();
+
+  // Toast
+  const toast = document.createElement('div');
+  toast.textContent = `✓ ${approved} item${approved !== 1 ? 's' : ''} approved${failed ? ` · ${failed} failed` : ''} — run enrichment to promote to dashboard`;
+  Object.assign(toast.style, {
+    position:'fixed', bottom:'24px', left:'50%', transform:'translateX(-50%)',
+    background: failed ? '#dc2626' : '#059669', color:'white', padding:'10px 20px', borderRadius:'8px',
+    fontSize:'12px', fontWeight:'700', zIndex:'99999', boxShadow:'0 4px 12px rgba(0,0,0,0.2)',
+    maxWidth:'540px', textAlign:'center'
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
 }
 
 // Relationship type display config
