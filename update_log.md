@@ -1,5 +1,561 @@
 
 ---
+## 2026-05-22 (Session 2) — 4-tier overlap classification + TL1A data audit fixes
+
+**`ailux_positions` table (Supabase):**
+- Added `same_space_criteria` + `same_space_examples` columns to schema
+- Updated `ibd-tl1a` row with full 4-tier criteria: Direct → Adjacent → Same-Space → Watch
+- `same_space_criteria`: approved SOC in IBD via fundamentally different pathway (not active combo target)
+- Moved vedolizumab out of same_space_examples (it's Adjacent, listed in adjacent_examples)
+
+**`scripts/company_enrichment.py` — overlap classification improvements:**
+- `build_step5_prompt()`: ailux_block now renders Same-Space tier when column exists in DB
+- Fallback prompt updated from 3-tier to 4-tier (Direct / Adjacent / Same-Space / Watch) with explicit definitions
+- Both `drug_updates.overlap` and `combination_programs.overlap` field descriptions updated to reference 4-tier system
+
+**TL1A drug data fixes (Supabase `drugs` table) — 28 total patches:**
+- Overlap corrected from Watch → Direct: afimkibart, duvakitug, LQ080, SPY002, SPY072, SPX-306
+- Overlap corrected from Watch → Adjacent: guselkumab, guselkumab+golimumab, risankizumab, mirikizumab, vedolizumab, SPY001, SPY003
+- Overlap corrected from Adjacent → Same-Space: ustekinumab (IL-12/23p40, broader subunit, less active combo target)
+- Null targets filled from mechanism fields: HXN-1003, HY8931, QX030N, HBM2001, SAB06, PR203, Generate-UC, Cantai-TL1A, ES302, SPX-306 → all `TL1A×IL-23p19`; LBL-053 → `TL1A×IL-12/23p40`; LQ082 → `TL1A×IL-23p19×α4β7`
+- LM-302 target fixed: `TL1A` → `CLDN18.2` (oncology ADC, not TL1A-related)
+- GB004 fixed: target `TL1A` → `PHD1/HIF-1α`, stage → `Terminated` (Gossamer Bio)
+
+**Final TL1A drug tier breakdown (50 drugs):**
+- Direct: 33 (TL1A mAbs and bispecifics)
+- Adjacent: 8 (IL-23p19, α4β7 — combination candidates)
+- Same-Space: 1 (ustekinumab)
+- Watch: 8 (JAK, RIPK1, IL-1, CLDN18.2 ADC, terminated)
+
+---
+## 2026-05-22 — Discovery queue error fixes + enrichment hardening
+
+**Data fixes (Supabase discovery_queue):**
+- AK104 (Akeso): corrected target `PD-1/TIM-3` → `PD-1/CTLA-4`, stage `Phase 2` → `Approved` (cadonilimab; China approved 2022 for cervical cancer). Root cause: drug disambiguation failure confused AK104 with AK129.
+- SHR0302 (Hengrui): corrected target `JAK1/JAK2` → `JAK1-selective` (ivarmacitinib). Root cause: mechanism misidentification conflated with dual JAK1/2 inhibitors.
+
+**`scripts/company_enrichment.py` — prevention layer:**
+- Added `VALID_AREA_IDS` set + `_AREA_ID_ALIASES` map (fixes tll1a→tl1a, il4r→il4ra, etc.)
+- Added `normalize_area_id()` utility; called at top of `step1_discover_new_entities` — logs warning and aborts if unrecognised area_id
+- Added `KNOWN_DRUG_TARGETS` table (AK104/112/129, SHR0302, JAK inhibitors) injected into discovery prompt as authoritative override
+- Prompt now includes explicit JAK selectivity classification rules (JAK1-selective vs JAK1/2 dual vs pan-JAK)
+- Added post-processing validation loop: if LLM returns a drug in `KNOWN_DRUG_TARGETS`, override target/stage with authoritative values and log the correction
+
+**`index.html` — Discovery Queue UI (previous session):**
+- Added ⚡ "Approve ≥80 conf" bulk button: approves all pending items with confidence_score ≥ 80 in one click
+- Auto-approve threshold in enrichment script: items with confidence ≥ 90 now write status='approved' directly (skip queue)
+
+---
+## 2026-05-22 — Phase 3: Slide-over company card (commit 444007732aac)
+
+**Changes:**
+- Replaced centered `entity-modal-overlay` company modal with a right-side slide-over panel (`#co-slideover`, 560px, slides in via CSS `right` transition)
+- New `openCompanySlideOver(companyId, companyName, sourceTabId)`: async function that fetches company data (profile, catalysts, deals, intel news, drugs, trials, combos, molecule intel) and renders via `tl1aPI._genericDetailHTML.call(tl1aPI, prog, sbData)` — the exact same rich card as the PI landscape inline expansion
+- Area is determined from `sourceTabId` via `TAB_AREA_MAP`; drug area uses `tl1aPI._drugDisplayArea` for TL1A, area itself for other tabs
+- Cache reuse: checks `piObj._profileCache[companyId]` before fetching; if cached from inline expansion, renders instantly
+- `_openEntityByEl` now calls `openCompanySlideOver` instead of `openEntityModal`
+- `closeCoSlideOver()` + Escape key listener (closes both slide-over and drug modal)
+- New CSS: `.co-slideover`, `.co-slideover-overlay`, `.co-slideover-hd`, `.co-slideover-title`, `.co-slideover-sub`, `.co-slideover-close`, `.co-slideover-body`
+
+---
+## 2026-05-22 — Phase 2: Full entity modals — company all-areas + drug modal (commit fbf51b96e684)
+
+**Changes:**
+- `openEntityModal`: now fetches ALL `company_profiles` rows (removed area filter). Each profile rendered with a colored area label pill (TL1A, TSLP, IL-4Rα, etc.) and its Platform/BD Summary text
+- Added `trials` fetch to company modal: pulls all trials for all company drug IDs via `IN` query, renders clinical trials table (Drug, Trial, Phase, Indication, PCD, Status)
+- Pipeline pills in company modal are now clickable → open drug modal
+- New `openDrugModal(drugId, drugName, evt)`: fetches drug record, `drug_areas` (overlap/overlap_rationale/strategic_role), trials. Renders Mechanism, Summary, Competitive Positioning (per area), Clinical Trials table. Footer shows disease area tabs.
+- New `_phasePill(phase)` helper: colored inline badges for Phase 1/2/3 in modal tables
+- New `_drugModalBodyHTML(drug, areas, trials)`: full drug card renderer
+- Shared area/tab color constants (`_AREA_CLS`, `_AREA_LABEL`, `_TAB_CLS`) extracted as module-level consts — no more local `TAB_CLS` object duplication
+- `pi-da-name` spans in drug accordion (`_genericDetailHTML`) wired to `openDrugModal` with `event.stopPropagation()` so accordion toggle doesn't also fire
+
+---
+## 2026-05-22 — Fix Indication column for non-IBD PI tabs (commit 0b64789)
+
+**Changes:**
+- Entity-level Indication column was showing `—` for all non-IBD tabs (TSLP, FcRn, TED, AD, ACE) because `indScope` derivation only checked UC/CD keywords
+- Extended `indScope` fallback in `_makeAreaPI._renderTable()`: after UC/CD check fails, abbreviates first program's `indication_short` using a disease abbreviation map (COPD, AD, RA, gMG, TED, SLE, Asthma, CSU, EoE, AA, HS, PN, CRS)
+- Extended `_makeAreaPI._loadEntityMeta()`: stores `_firstInd` (first non-null `indication_short` per company) during drug loop; uses same abbreviation map when resolving `indScope` at the end of async fetch
+- TL1A tab unaffected (already defaults to `UC+CD` for all IBD programs)
+
+---
+## 2026-05-22 — Discovery Queue: BD PRI column + SVS badges; migration v24 applied (commit d64668683b)
+
+**Changes:**
+- Migration v24 applied to Supabase: `strategic_value_score INT` added to both `discovery_queue` and `drug_area_scores` (verified via information_schema)
+- Discovery Queue table header: REL → BD PRI
+- Row rendering: numeric relevance_score replaced with SVS badge (⚡ Critical 9–10 / ↑ High 7–8 / Med 5–6 / Low 1–4) + faint score below
+- Row highlight: critical rows (`svs >= 9`) get red tint `#fff7f7`; user intake rows retain amber tint `#fffdf5`
+- Default sort already set to "BD Priority ↓" (strategic_value_score DESC → relevance DESC → newest)
+- Stats counters already using SVS for Critical/High/Medium/Low badge tallies
+
+---
+## 2026-05-22 — strategic_value_score: compute_strategic_value_score() in drug_intake.py (commits 98b3cd0de65b, 81951c65eab0)
+
+**What it is:** Third enrichment metric alongside coverage_score and evidence_tier. Answers "how much should Kyle care?" from a BD perspective. Orthogonal to coverage — a 40%-coverage Direct competitor in a core area can outscore a 95%-coverage Watch drug.
+
+**Scoring model (0-10):**
+- Overlap × Area Primacy: 0–4 (Direct in tl1a/tslp/il4ra core = 4; Watch = 0.5)
+- Stage Maturity: 0–2 (Phase 3/Approved = 2; Discovery = 0)
+- Catalyst Proximity: 0–1.5 (catalyst within 90 days = 1.5)
+- Evidence Confidence: 0–1 (Confirmed = 1; Hypothesis = 0.1)
+- Deal Activity: 0–0.75 (has deals = 0.75)
+- Company Importance: 0–0.5 (major pharma = 0.5)
+
+**Calibration (validated):**
+- Tulisokibart (Direct TL1A, Phase 3, catalyst, J&J, deals, Confirmed): 10/10
+- Tozorakimab (Direct TSLP, Phase 3, catalyst, AZ, deals, Confirmed): 10/10
+- Amlitelimab (Direct IL-4Rα, Phase 3, Sanofi, no fetched data): 8/10
+- QX031N (Adjacent IL-4Rα, Preclinical, small company): 4/10
+
+**Persisted in:** `discovery_queue.strategic_value_score` (review prioritization) + `drug_area_scores.strategic_value_score` (dashboard prioritization, via migration v24).
+
+**Migration v24 SQL** (apply in Supabase SQL Editor):
+```sql
+ALTER TABLE discovery_queue ADD COLUMN IF NOT EXISTS strategic_value_score INT DEFAULT NULL;
+ALTER TABLE drug_area_scores ADD COLUMN IF NOT EXISTS strategic_value_score INT DEFAULT NULL;
+```
+
+---
+## 2026-05-22 — drug_intake.py: evidence_tier + combo component validator (commit 4b53fb464bd2)
+
+**Evidence tier** (`compute_evidence_tier`): all drugs route through the same pipeline, but the reviewer now sees explicit confidence:
+- `Confirmed` — named molecule + company + clinical stage (Phase 1–Approved), high data quality
+- `Likely` — named molecule + company + preclinical/IND-enabling, or medium quality clinical
+- `Emerging` — low data quality or Discovery/Undisclosed stage; manual verification required before promotion
+- `Hypothesis` — no named molecule or no company anchor; stays as signal, no production row without manual approval
+
+**Combo component validator** (`check_combo_components`): when a combination drug is area-linked, each component is checked for `drug_areas` and `drug_area_scores`. Missing links surface as warnings in Output A. Triggered this work: `guselkumab-golimumab` was in `drug_areas.tl1a` but `golimumab` mono was not.
+
+**Golimumab mono patched** (Supabase, no deploy): added `drug_areas` (tl1a, ibd) and `drug_area_scores` (Same-Space, TNF inhibitor) with rationale. J&J now shows: golimumab · ustekinumab · guselkumab · guselkumab-golimumab in both TL1A and IBD tabs.
+
+**Architecture rule captured**: if combo drug is in an area, check each component for existence, drug_areas, drug_area_scores, DKN visibility, molecule_intelligence.
+
+---
+## 2026-05-22 — Fix P0: entity_id/company_id split — ticker + profile identity for co-developed drugs (commit 39e021e6e98b)
+
+**Root cause:** Co-developed drugs (e.g. tezepelumab) have `entity_id='astrazeneca'` (display entity) but `company_id='amgen'` (commercialization partner). Two rendering paths used `company_id` instead of `entity_id`, causing Amgen's intelligence data (rocatinlimab, MariTide, Horizon acquisition) and AMGN ticker to appear under the AstraZeneca profile.
+
+**Three fixes applied to index.html:**
+1. Added `companies` table as 4th parallel fetch in `_makeAreaPI.init()` — full company lookup by id
+2. Built `companiesMap` from the fetch result; updated ticker assignment to `companiesMap.get(d.entity_id || d.company_id)?.ticker` — resolves via display entity first
+3. `_loadDynamicDetail`: changed `const companyId = ent.company_id || entityId` → `const companyId = entityId` — profile queries now always use the display entity, never the partner company
+
+**Architecture rule reinforced:** `entity_id` = who to display; `company_id` = commercialization/partnership structure. All profile, ticker, and catalyst lookups must use `entity_id`.
+
+---
+## 2026-05-22 — Build drug_intake.py — Drug-First Entity Graph Entry Point (commits b4f500f63ed3, 13e3e4f525ce)
+
+**What was built:**
+- `scripts/drug_intake.py` — 5-step drug intake pipeline: identity resolution → graph state fetch → Sonnet research → area scoring → coverage score + queue write
+- `migrations/schema_migration_v23_drug_intake_queue.sql` — adds `coverage_score` INT, `completeness_gaps` JSONB, `promotion_payload` JSONB to `discovery_queue`
+
+**Two outputs per run:**
+- Output A: Routing Decision (areas + overlap tiers per drug)
+- Output B: Completeness Audit (8-dimension coverage score: identity/company/target/trials/catalysts/MI/conference/deals)
+
+**Coverage scoring:** 0/50/100 per dimension → numeric % that makes completeness prioritization objective
+
+**Model-tier guard:** Haiku blocked for live writes (same rule as company_intake.py) — Sonnet required
+
+**Validated:** Tozorakimab dry-run: identity 100% · 11 trials · 24 catalysts · MI exists · 87% coverage · Conference Intel correctly flagged as only gap
+
+---
+## 2026-05-22 — company_intake.py: model-tier guard + max_tokens fix (commits f7201eaeaae4, 42408034158d)
+
+- `max_tokens` 4096 → 8192: prevents JSON truncation on large-pipeline companies (Akeso 8 drugs, Hengrui 10 drugs)
+- Haiku blocked for live writes in `run_intake()`: clear error message + early exit if INTAKE_MODEL=haiku and --dry-run not set
+- Root cause: Haiku fabricated Zenas BioPharma's pipeline (invented "ZEN3694" as TL1A inhibitor; Sonnet correctly found obexelimab/FcRn Direct 92%)
+
+---
+## 2026-05-22 — Fix _makeAreaPI: prefer drug_area_scores per-area overlap (commit c11cafc53356)
+
+**Root cause fixed:** `_makeAreaPI` was reading `drugs.overlap` (global field) instead of `drug_area_scores.overlap` (area-specific competitive classification). The `drug_area_scores` table existed and was populated correctly but was orphaned from the rendering pipeline.
+
+**What changed:**
+- Added third fetch to `init()` Promise.all: `drug_area_scores(drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning)` for current `areaIds`
+- Built `areaScoreMap` keyed by `drug_id` (best tier per drug when tab spans multiple areas)
+- Drug data mapping now prefers: `score.overlap`, `score.cls`, `score.overlap_rationale`, `score.vs_ailux_positioning`; falls back to `drugs.*` globals when no area score exists
+
+**Design principle enforced:**
+- `drugs` = global molecule facts
+- `drug_area_scores` = area-specific competitive interpretation
+- `_makeAreaPI` now renders area-specific overlap when available
+
+**Validation:** tozorakimab Watch→Direct in TSLP tab ✓ · tezepelumab/astegolimab/itepekimab Watch in both sources (consistent, correct) · IL-4Rα/FcRn/IGF-1R/T-cell tabs: zero regressions ✓
+
+---
+## 2026-05-22 — Fix DKN false "Removed" alerts (commit 8127f10c7f2b)
+
+**Root cause:** DKN query was filtering on `data_source='catalog'` but 13 drugs had `catalog_category` populated with `data_source='press_release'`/`'conference'`. They were in the localStorage snapshot but excluded from the live query → false "Removed" badges on every load.
+
+**Fix:** Changed DKN Supabase query from `.eq('data_source','catalog')` to `.not('catalog_category','is',null)`. `catalog_category` is the correct intent signal for catalog membership; `data_source` is provenance only.
+
+**Affected drugs now restored:** Imaavy (nipocalimab), Rystiggo (rozanolixizumab), Ebglyss (lebrikizumab), Tepezza (teprotumumab), Tezepelumab, Itepekimab, Astegolimab, Tulisokibart, APG279, QX031N, XmAb942, Sim0709, XmAb412
+
+**DKN drug count:** 87 → 100
+
+---
+## 2026-05-22 — Tozorakimab data fix (Supabase patch, no deploy)
+
+**Root cause of TSLP tab gap:** `drugs.overlap='Watch'` for tozorakimab while `drug_area_scores.overlap='Direct'` for tslp — `_makeAreaPI` reads `drugs.overlap` globally, not per-area scores. Also `drugs.target=null`.
+
+**Fix:** PATCH `drugs SET target='IL-33 (anti-ST2)', overlap='Direct' WHERE id='tozorakimab'`
+
+---
+## 2026-05-22 — Company Intake (Add Company of Interest) — Phase 1 (commits 8ba83e13f066 + scripts)
+
+**New: `company_intake.py` CLI script**
+- `python scripts/company_intake.py --company "Akeso"` — research a company and route it to discovery_queue
+- Full workflow: identity resolution → open-ended Claude research → area scoring → queue write
+- Respects minimum evidence threshold (confidence ≥ 0.5), 30-day dedup, never auto-promotes
+- Flags: `--dry-run`, `--verbose`, `--force` (for existing companies or fuzzy conflict override)
+
+**Extended `CompanyIdentityResolver`**
+- New `resolve_with_detail()` method: returns structured dict with `resolution_type`
+- Types: `resolved_existing` | `alias_match` | `candidate_new` | `unresolved`
+- Backward-compatible: `resolve()` unchanged
+
+**New: `migrations/schema_migration_v22_discovery_source.sql`**
+- Adds `source TEXT DEFAULT 'signal_monitoring'` column to `discovery_queue`
+- Run in Supabase Dashboard: https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
+
+**Discovery Queue UI updates (commit 8ba83e13)**
+- Source badge: "🔍 User Intake" (amber) or "📡 Signal Monitor" (blue) per row
+- Intake row intelligence cell: shows overlap tier + rationale + why_discovered context box (amber left-border)
+- Source filter dropdown: filter queue by All Sources / User Intake / Signal Monitor
+- Intake rows: subtle amber `#fffdf5` row background to distinguish from signal rows
+
+---
+## 2026-05-22 — J&J added to TL1A entity table (commit faec7a265db4)
+
+**TL1A Program Intelligence — J&J now present (17 companies):**
+- Root cause discovered: TL1A tab uses a static `TL1A_PROGRAMS` JS array (not `_makeAreaPI`), so Supabase `drug_areas` inserts alone had no effect
+- Added three `groupId:'jnj'` entries: Tremfya/guselkumab (Adjacent, IL-23p19 Approved CD+UC), guselkumab-golimumab combo (Adjacent, Phase 3 UC), Stelara/ustekinumab (Same-Space, IL-12/23 Approved CD+UC)
+- Added `company_areas` row for jnj/tl1a (Market & Learning card filter)
+- Supabase `drug_areas` + `drug_area_scores` entries for guselkumab/ustekinumab retained (serve other area tabs via `_makeAreaPI`)
+
+---
+## 2026-05-22 — Signals Panel (commit 8edacaad)
+
+**Home Tab — Signals Panel (5th launcher):**
+- Added 📡 Signals launcher button to home tab grid (purple `#5b21b6`)
+- Panel loads from `signals` Supabase table — last 7 days, sorted by `relevance_score DESC`
+- Includes company name (via `companies(name)` join), signal type pill, headline with source URL link, source name + event date
+- Relevance score badge: ≥8 = purple/high, 6–7 = blue/notable, ≤5 = gray/watch
+- Area filter bar (All / TL1A / TSLP / IL-4Rα / FcRn / IGF1R / T-cell) + ↻ force-refresh
+- Items grouped by Today / This Week / Earlier
+- Loaded at DOMContentLoaded (cached; force-reload on ↻ button)
+- `HOME_PANEL_META` updated; CSS classes: `.sig-item`, `.sig-score`, `.sig-type`, `.sig-group-hd`
+
+---
+## 2026-05-21 — Company Database Phase 1 + Tiered Enrichment Architecture (commit 3af406730150)
+
+**Company Database — Slide-over Profile Panel:**
+- Added right-side slide-over panel for BD company profiles, opening from Pharma Landscape rows
+- "⎘ Profile" button injected into PI table rows for all companies in PI_SLUG_TO_ID map (~33 companies)
+- Panel header: company name, ticker, mkt cap/revenue/R&D (read from DOM), area pills, Ailux Angle
+- Overview tab: molecules table with stage/overlap badges, upcoming catalysts, deals, BD assessment summary
+- Per-area tabs (one per company_profiles row): completeness score bar, missing fields, platform intel JSONB, BD intel JSONB
+- URL-addressable hash routing: `#/company/{id}` — persists on reload, browser back button closes panel
+- Supabase queries fetched in parallel on panel open; financials from existing DOM (no extra API call)
+
+**Tiered Enrichment Architecture:**
+- New doc: `docs/tiered_enrichment_architecture.md`
+- 4-tier design: Tier 1 (4hr signal monitoring, no LLM), Tier 2 (daily enrichment — current pipeline), Tier 3 (weekly strategic reassessment), Tier 4 (quarterly reference refresh)
+- Specifies `signals` + `enrichment_queue` tables, signal relevance scoring algorithm, dedup strategy, alerting criteria
+- Maps all 5 existing workflows to their tiers; flags `meridian-research.yml` + `evening-update.yml` as potentially duplicative
+
+---
+## 2026-05-21 Phase 4: UI cleanup — ticker inline, co-dev partner pill, drug name normalization (commit 8ce4c7f)
+
+**Changes:**
+- Ticker moved inline with company name (same line, lighter weight) — no more separate row below company name
+- Removed dual-ticker display (`SNY/TEVA` → `SNY`; `Private/BI` → `Private`) — only lead entity ticker shown
+- Partner pill label updated from `"w/ X"` to `"co-dev w/ X"` to match Spyre standard
+- Static drug name cleanup across TL1A_PROGRAMS: stripped Fc-engineering suffixes (e.g., "(Xtend-Fc)"), enforced brand-first format for approved drugs, removed redundant coded suffixes
+- `partnerCo` shorthands: Telavant (Roivant) → Telavant; Boehringer Ingelheim → BI; Qyuns Therapeutics → Qyuns
+
+---
+## 2026-05-21 Critical fix: MONTHS + fmtExactDate TDZ hoisting bug in _genericDetailHTML (commit dc6e5e0)
+
+**Root cause**: `_genericDetailHTML` defined `MONTHS` and `fmtExactDate` at line ~10162, but both were called at lines ~9758/9851 inside `fmtPcd` and `renderNewsItem` — hundreds of lines before their declarations executed. JavaScript `const` is NOT hoisted (temporal dead zone), so every call to `_loadDynamicDetail` crashed inside `_genericDetailHTML`, the catch block fired, and the function fell back to fully static data. This is why drug names showed "Risankizumab" (not Skyrizi), stages showed Phase 3 (not Approved), no combo row, and no "formerly FG-M701" note — despite the Supabase queries returning correct data.
+
+**Diagnosed via**: Chrome DevTools console log showed `ReferenceError: Cannot access 'MONTHS' before initialization` in `fmtPcd ← Array.map ← _genericDetailHTML ← _loadDynamicDetail`. Confirmed by inspecting `tl1aPI._profileCache['abbvie'] === null` (failed load).
+
+**Fix (`index.html`, commit dc6e5e0):**
+- Moved `const MONTHS` and `const fmtExactDate` to immediately before `const fmtPcd` (now declared in the correct execution order)
+- Removed the duplicate declarations at old location, replaced with a comment noting the move
+
+**Verified in browser (all pass):**
+- ABBV-701 in accordion header (not FG-M701) ✓
+- Skyrizi (risankizumab) / Rinvoq (upadacitinib) both Approved ✓
+- ABBV-701 + Skyrizi combo row with Planned Ph2b ✓
+- "formerly FG-M701 · acquired from FutureGen…" in expanded ABBV-701 detail ✓
+- `tl1aPI._profileCache['abbvie']` → 3 drugs, profile loaded, not null ✓
+
+---
+## 2026-05-21 Acquired drug naming — show current name only, formerly-known-as in detail (commit d1054f6)
+
+**Rule**: When a drug is acquired/licensed and renamed by the acquirer, the dashboard shows ONLY the current/acquirer name. The original name is surfaced contextually in the expanded detail view, not in the accordion header.
+
+**Supabase DB updates:**
+- `drugs.fg-m701`: `display_name` → `'ABBV-701'` (was `'ABBV-701 (FG-M701)'`)
+- `canonical_drugs.CANON_DRUG_D7BA258E`: `canonical_name` → `'ABBV-701'`
+
+**`index.html` (commit d1054f6):**
+- Added `acquisitionNote` block in `_genericDetailHTML`: when `licensor_code` is set and differs from `display_name`, a small pill renders at the top of the drug detail body: `formerly FG-M701 · acquired from FutureGen Biopharmaceutical Co., Ltd.`. Appears PI dashboard-wide for any acquired drug.
+- Applies automatically to any future drug where `licensor_code` is populated.
+
+**`company_enrichment.py` (commit 8d985c9):**
+- **DISPLAY NAME GUIDANCE** rewritten: `display_name` = acquirer's name ONLY (e.g. `"ABBV-701"`, NOT `"ABBV-701 (FG-M701)"`). Old name belongs in `licensor_code` + `licensor_name`.
+- **Post-write guard** extended: now also warns if `display_name` still contains the old `licensor_code` in parentheses (catches previously-written stale entries).
+
+---
+## 2026-05-21 Critical fix: renderNewsItem hoisting bug + approved drug profile redesign (commit f913584)
+
+**Root cause of three simultaneous regressions (combo disappeared, approved drugs showed "Phase 3", catalysts/news truncated):**
+- `const renderNewsItem` was defined at ~line 10169 inside `_genericDetailHTML`, but called at ~line 10045 inside the `allItemsHTML.map()` callback for drug-level news.
+- JS `const` is NOT hoisted — when any drug had news items with a matching `canonical_drug_id`, it threw `ReferenceError: Cannot access 'renderNewsItem' before initialization`.
+- The `try/catch` in `_loadDynamicDetail` caught this and called `_genericDetailHTML(prog, null)`, discarding all DB data (`sbCombos=[]`, real drug stages gone, catalyst/news count reset to static fallback).
+
+**`index.html` fixes (commit f913584):**
+- **renderNewsItem hoisting fix**: Moved `typeMap` and `renderNewsItem` to just before `const allItemsHTML = allItems.map(...)` (line 9834 → now 9836). One canonical definition, always in scope.
+- **Approved drug profile redesign**: Replaced monochrome green block with distinct colored section cards:
+  - 3-column stat bar: Approval Date (blue left-border), Annual Revenue (green), Patients on Therapy (purple)
+  - Pivotal Endpoints card (amber/yellow background)
+  - Summary card (white/neutral)
+  - Mechanism & Context card (light blue)
+  - Differentiation card (light purple)
+  - Each section has an uppercase label + body with independent color scheme for scannability
+- **Stage column**: Fixed from `auto` to `104px` so stage pills always start at the same x-position regardless of pill text width
+- All changes apply via `_genericDetailHTML` — PI dashboard-wide
+
+---
+## 2026-05-21 Fix: FG-M701 acquired-drug naming + Phase 1 trial insertion (enrichment 7ee85b3)
+
+**Root causes found and fixed:**
+- `fg-m701` had `display_name: "FG-M701"` — licensor fields were populated but acquirer code was never written. Drug `stage` was incorrectly "Phase 2" (that's the planned combo; the monotherapy is Phase 1).
+- No trials existed in DB for AbbVie / fg-m701 — ct_gov_sync had never run for this entity.
+
+**Supabase data fixes:**
+- `drugs.fg-m701`: `display_name` → "ABBV-701 (FG-M701)", `stage` → "Phase 1"
+- `canonical_drugs.CANON_DRUG_D7BA258E`: `canonical_name` → "ABBV-701 (FG-M701)"
+- Trial inserted: NCT06895343 — Phase 1 SAD/MAD safety/PK study in healthy volunteers, AbbVie sponsor, Active Not Recruiting, PCD Nov 2026. `drug_id=fg-m701`, `canonical_drug_id=CANON_DRUG_D7BA258E`, `entity_id=abbvie`.
+
+**`company_enrichment.py` (commit 7ee85b3):**
+- **Display name guidance rewritten** as CRITICAL rule: acquired/licensed drugs must ALWAYS have `display_name` set to "AcquirerCode (OriginalCode)" — never null or equal to drug_id when a licensor exists.
+- **Post-write guard added**: after patching each drug, if `licensor_code` is written but `display_name` is null or equals drug_id, script logs a hard `⚠ DATA QUALITY` warning visible in CI/GitHub Actions logs — catches the failure class before it reaches the dashboard.
+
+---
+## 2026-05-21 Fix: Drug accordion — dedicated stage column, indication wrapping fix (commit 0257662)
+
+**`index.html`:**
+- **Stage pill gets its own grid column**: `.pi-da-hd` grid changed from `11px minmax(0,200px) 100px 1fr` (4 cols) to `11px minmax(0,200px) 100px auto 1fr` (5 cols). The new `auto` column holds only the stage pill — it sizes to the widest pill across all rows (e.g. "Planned Ph2b") and is consistent for every drug row.
+- **New `.pi-da-stage` wrapper**: Stage pill extracted from `pi-da-pills` flex container into its own `.pi-da-stage` grid cell for both regular drug rows and combo rows. Now indication tags can wrap freely in the `1fr` column without ever displacing the stage pill.
+- **Indication tags left-aligned**: `.pi-da-pills` changed to `justify-content:flex-start` and `align-items:flex-start` — tags flow left and wrap naturally without pushing stage out of column.
+- **Applies to all companies**: Logic is in `_genericDetailHTML`, the single shared renderer for all expanded rows across the entire PI dashboard.
+
+---
+## 2026-05-21 Fix: Combo row cleanup — name, + pill, source link, column alignment (commit 3cbf8b3)
+
+**`index.html`:**
+- **Name stripped of targets**: Combo header now shows only drug names (e.g. "FG-M701 + Skyrizi") — parenthetical target info stripped from display name via regex. Target column still shows the mechanism (e.g. "TL1A + IL-23p19").
+- **Target cleaned**: Trailing " combo" word stripped from extracted target so the mech column shows "TL1A + IL-23p19" not "TL1A + IL-23p19 combo".
+- **`[+]` pill removed**: The `+` badge has been removed from the combo header pill row — it was redundant given the name already uses `+`.
+- **Source link moved to body**: `srcLink` removed from the header row entirely. Source now appears inside the accordion body as "BACKBONE ADDON · Source ↗" label, keeping the header clean.
+- **Column alignment**: All drug rows (combo and regular) share the same `.pi-da-hd` grid — no structural difference, so names, targets, and pills all align in columns across the full list.
+
+**Supabase `drug_combinations`:**
+- Label cleaned: "FG-M701 + Skyrizi (TL1A + IL-23p19 combo)" → "FG-M701 + Skyrizi (TL1A + IL-23p19)"
+
+---
+## 2026-05-21 Feat: Planned combo accuracy — source link, prerequisite, anticipated start (commit a010a0d)
+
+**Schema (`drug_combinations`):**
+- Added `prerequisite_note TEXT` — what must happen before the study can begin (e.g. "Awaiting Phase 1 monotherapy completion")
+- Added `anticipated_start TEXT` — company-guided start timing (e.g. "H2 2026")
+
+**Supabase data — AbbVie combo:**
+- `prerequisite_note`: "Awaiting FG-M701 Phase 1 monotherapy completion — data not yet reported"
+- `anticipated_start`: "H2 2026"
+
+**`index.html` — planned combo trial section:**
+- Source link: planned combos now show a clickable "Source ↗" link (required field per enrichment rules); missing source renders as orange "⚠ No source" warning instead
+- Anticipated start: shown inline as "· Anticipated: H2 2026"
+- Prerequisite note: shown below as amber callout "⚠ Prerequisite: ..." when `prerequisite_note` is set
+
+**`company_enrichment.py`:**
+- Prompt schema for `combination_programs` updated: `stage` now accepts `Planned Ph1/Ph2/Ph2b` values; `anticipated_start`, `prerequisite_note`, and `source_url` all marked REQUIRED for planned studies
+- Write path: `anticipated_start` and `prerequisite_note` now written to DB on every combo upsert/patch
+- Logs a data quality warning if a planned combo has no `source_url`
+
+---
+## 2026-05-21 Fix: Planned Ph2b stage — dashed pill + accurate no-trials message (commit d268cb5)
+
+**`index.html`:**
+- **New `pi-stage-planned` CSS**: light blue dashed-border pill (`background:#f0f9ff;color:#0369a1;border:1px dashed #7dd3fc`) visually distinguishes planned/future studies from active phase pills.
+- **Both `_stagePill` methods updated**: `"Planned Ph2b"`, `"Planned Ph1"`, `"Planned Phase 2"`, `"Planned Phase 1"` all map to `pi-stage-planned`. Any string starting with "Planned" also falls to the planned style as a catch-all.
+- **Combo trial section contextual message**: combos with a "Planned" stage and no linked trials now show "Study planned — no trial registration yet" (in blue italic) instead of the generic "No trials linked yet" in gray.
+
+**Supabase `drug_combinations`:**
+- AbbVie FG-M701 + Skyrizi combo `stage` updated from `"Phase 2"` → `"Planned Ph2b"` (accurate — study disclosed but not yet initiated; anticipated H2 2026 per AbbVie investor comms).
+
+---
+## 2026-05-20 Fix: Drug names, combo targets, +N more count, display_name (commit be6e549)
+
+**`index.html`:**
+- **Drug name column widened, no truncation**: `.pi-da-hd` grid changed to `minmax(0,200px)` for the name column. `.pi-da-name` and `.pi-da-mech` now use `word-break:break-word` with no `white-space:nowrap`/`text-overflow` — full drug names always visible.
+- **Combo target column fixed**: Combo rows now extract the mechanism from the label parenthetical (e.g. "FG-M701 + Skyrizi (TL1A × IL-23p19)" → "TL1A × IL-23p19") via regex instead of showing the indication there.
+- **TL1A static table "+N more" corrected**: `_renderTable` for TL1A was still using `ge.length-1` (off by one). Changed to `ge.length` so AbbVie's "+2 more" and similar counts are accurate.
+- **`display_name` used in drug accordion**: Drug name column now prefers `d.display_name` from DB over `d.name` — picks up AbbVie-assigned names once enrichment populates that field.
+
+---
+## 2026-05-20 Feat: Drug pipeline UX overhaul (commit dd0a30c)
+
+**`index.html`:**
+- **Drug accordion grid alignment**: `.pi-da-hd` changed from `display:flex` to `display:grid` with fixed columns (`11px | 140px | 110px | 1fr`). Drug name and target now align in consistent columns across all rows. Pills grouped into `.pi-da-pills` wrapper (flex, right-aligned) for stage pill + indication tag + overlap badge.
+- **Combination rows normalized**: Combo accordion rows now look identical to drug rows — normal name color (no purple), indication shown in target column, small `+` badge in pills area, `+` sign is the only combo indicator. Verbose type label (e.g. "backbone + add-on") removed. Full accordion body with drug summary, intel panel, and linked clinical trials.
+- **Drugs + combos sorted by relevance**: Drugs and combos merged into one unified list sorted by competitive overlap score (direct=100, adjacent=70, same-space=40, watch=20). Highest-relevance drugs appear first.
+- **Direct competitor highlight**: Rows with `overlap='direct'` get a subtle orange left border (`3px solid #f97316`) to stand out visually.
+- **Trial chevron moved to left**: Chevron `▼` is now the first column of every trial row (before the NCT number). Trial grid updated: `14px 88px 100px 140px 48px 70px 36px` (chev | NCT | acr | status | phase | PCD | relevance). Tighter right-side columns give more room for the drug intel panel.
+- **"+N more" drug count**: PI table drug column now shows first drug name + `+N more` label for companies with multiple drugs (e.g., "+2 more"), instead of showing all drug names inline.
+- **firstSentence hoisted**: Moved out of the per-drug map loop so it's accessible to both drug and combo rendering branches.
+
+---
+## 2026-05-20 Fix: AbbVie trials fallback + Meridian srcdoc/src conflict (commit b6f0ed8)
+
+**`index.html`:**
+- **AbbVie clinical trials restored**: Removed `!sbDrugs.length` guard from `allTrials` fallback — static `prog.trials` is now always used when `sbTrials` is empty, even if DB drugs exist for the company. Previously, AbbVie's enrichment (which created risankizumab/upadacitinib in the DB) caused the static FG-M701 Phase 1 trial to be silently suppressed.
+- **`drugTrials` assignment updated**: When `sbTrials` is empty (static fallback in use), `__all__` keyed trials are now assigned to the first drug in `drugsToRender` (not just when there's a single drug). Prevents cross-row spillage while ensuring the static trial always renders.
+- **Meridian iframe srcdoc/src conflict fixed**: When the iframe has an existing `srcdoc` attribute, browsers prioritize it over a JS-set `frame.src`. All four live-load paths now call `frame.removeAttribute('srcdoc'); frame.srcdoc = '';` before setting `frame.src`, ensuring today's live issue actually loads.
+
+---
+## 2026-05-20 Feat: hyperlinks required, hover tooltips, 5-item scroll threshold, 1-line items (commit ba333cc)
+
+**`index.html`:**
+- **Hyperlinks enforced**: Upcoming Catalysts and Related News now filter to only items with a verified `source_url` or `url`. Items without a link are hidden — every visible item is clickable.
+- **Hover tooltips**: Hovering any catalyst or news item shows a brief summary via the native `title` attribute — `c.notes`/`c.label` for catalysts, `d.body`/`d.headline` for news. No click required.
+- **Scroll threshold raised to 5**: Both Upcoming Catalysts and Related News show 5 items before scrolling (was 3). Drug-level Related News inside drug accordions also raised to 5.
+- **1-line per item**: Catalyst label spans now get `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` via flex layout — long event names truncate cleanly with `…` rather than wrapping.
+- **Company-level news now single-line**: `renderNewsItem` called with `singleLine=true` in the company detail Related News section for consistency with drug-level news.
+- **CSS**: `.pi-detail-cat-item` updated to `align-items:center;overflow:hidden` so all items in both catalysts and news sections are visually consistent.
+- Applied across entire drug PI dashboard (both company-level and drug-level sections of `_genericDetailHTML`).
+
+---
+## 2026-05-21 Fix: clinical trial rows aligned with CSS grid (commit 32e73b9)
+
+**`index.html`:**
+- `.pi-tr-row` switched from `display:flex` to `display:grid` with fixed column widths: `92px 118px 1fr 58px 68px 16px` (NCT · Acronym · Status · Phase · Date · Chevron). All rows now align in straight columns regardless of content length.
+- Acronym cell always rendered as `.pi-tr-acronym-cell` wrapper (even when empty) so grid column count stays constant across rows.
+- `.pi-tr-acronym` updated: removed `flex-shrink:0`, added `overflow:hidden;text-overflow:ellipsis` so long acronyms don't overflow their column.
+
+---
+## 2026-05-21 Feat: enrichment now persists found news to intel table (commit db6819a)
+
+### What changed
+
+**`scripts/company_enrichment.py`:**
+- Added `news_items[]` to the Claude enrichment prompt output schema. Claude now extracts 3-6 significant recent news items found during web research (readouts, deals, approvals, financings) and returns them with `intel_date`, `headline`, `body`, `source_url`, `source_name`, `importance`, `intel_type`.
+- `write_step5()` now writes those items to the `intel` table and creates `intel_companies` junction rows. Deduplication by `source_url` — existing articles are skipped.
+- This means the "Related News" section in the dashboard self-populates every time enrichment runs for a company, with no separate Meridian pipeline required.
+- Items without a verified `source_url` are skipped (no fabricated articles).
+
+### Before
+- Enrichment found news articles during web research but discarded them — the intel/intel_companies tables were only populated by the separate Meridian research pipeline, meaning most companies had no Related News.
+
+### Now
+- Every enrichment run for any company automatically discovers and persists 3-6 news items. Runs for AbbVie will populate Skyrizi approval, Rinvoq data, FG-M701 deal, etc.
+
+---
+## 2026-05-21 Fix: drug_summary missing column + sb_patch error logging (commit dbb0e45)
+
+### Root cause
+Every drug PATCH during enrichment was silently failing. The `drugs` table was missing the `drug_summary` column, so PostgREST returned HTTP 400 (code 42703) for every drug update. The old `sb_patch` treated only status 200/204 as success and logged `✗` but swallowed the actual error message — making it invisible in logs.
+
+### What changed
+
+**Schema (applied directly to Supabase — v13 migration):**
+- `drugs` table: added `drug_summary TEXT` column (was missing; blocked all drug PATCHes)
+
+**`scripts/company_enrichment.py`:**
+- `sb_patch()`: now logs full HTTP status + response body when status is not 200/204. Also detects 0-row matches (200 + empty `[]` body with `return=representation` header) and logs a WARNING.
+- `write_step5()`: pre-validates every drug_id Claude returns against the actual DB drug IDs for that company. Logs a WARNING with the valid ID list if Claude returns an unknown ID, preventing silent no-ops.
+- Drug log line now includes a preview of `drug_summary` so success is visually verifiable in logs.
+
+### Next step
+Re-run AbbVie enrichment (GitHub Actions → `area=tl1a`, `company=abbvie`). All three drugs (fg-m701, risankizumab, upadacitinib) should now populate drug_summary, key_data, strategic_role, approval_date, annual_revenue, patient_population, final_endpoints.
+
+---
+## 2026-05-21 Strategic intelligence layer — roles, combos, display names (commit 047ea46)
+
+### What changed
+
+**Schema (applied directly to Supabase):**
+- `drugs` table: added `strategic_role`, `display_name`, `licensor_name`, `licensor_code`, `is_combination`, `combination_label`
+- New `drug_combinations` table: models multi-drug combination programs with `label`, `component_drug_ids[]`, `combination_type`, `stage`, `strategic_significance`, `mechanism_detail`, `drug_summary`, `source_url`. RLS: anon SELECT.
+
+**`scripts/company_enrichment.py`:**
+- Enrichment prompt now asks Claude to classify every drug with a `strategic_role` (direct_competitor · franchise_anchor · combination_asset · same_space_defense · platform_expansion · watch)
+- `display_name` populated when company uses a different code (e.g. "ABBV-701 (FG-M701)") or brand+INN format
+- `licensor_name` / `licensor_code` populated for in-licensed assets
+- New `combination_programs[]` section in Claude response — identifies all known multi-drug combos
+- `write_step5()` now writes combination programs to `drug_combinations` table (patch-or-insert by company+label)
+
+**`index.html`:**
+- Drug pills show a color-coded strategic role badge at the bottom (DIRECT/ANCHOR/COMBO↗/DEFENSE/EXPAND/WATCH)
+- Drug names use `display_name` when enrichment has set it
+- Popup header shows role badge + licensor info ("🔗 Licensed from FutureGen (orig. FG-M701)")
+- `_makeComboBtn()`: combination programs render as dashed-purple pills in the pipeline row, with their own popup showing mechanism, drug_summary, stage, significance, and source link
+- `_buildDrugPipelineRow()` now accepts `combos` and appends them after standalone drugs with a "⊕ Combination Programs" divider
+- `_genericDetailHTML` accordion also shows combo rows in the Drug Pipeline section
+- `_loadDynamicDetail` fetches `drug_combinations` from Supabase and passes them through
+
+### Next step
+Re-run AbbVie enrichment (GitHub Actions → `area=tl1a`, `company=abbvie`) to populate all new fields. Every future enrichment run for any company will auto-populate strategic roles and combination programs.
+
+---
+## 2026-05-21 v12: Indication group completeness — full platform hardening (commit 0c12155)
+
+### Root cause (full analysis)
+The TL1A company tab uses `area_id='ibd'` (the indication_group) to fetch both eligible companies and the drug list. This is intentional: the TL1A tab shows ALL IBD-mechanism drugs (IL-23 inhibitors, JAK inhibitors, integrin antibodies), not just TL1A-specific ones. But the enrichment script and trial sync script both fetched drugs using only the specific `area_id='tl1a'`, missing the broader `ibd`-tagged set.
+
+### Code changes (deployed commit 0c12155)
+- **`scripts/ct_gov_sync.py`**: Mirrored the same `fetch_areas = [area_id, indication_group]` IN-query fix applied to `company_enrichment.py` in commit `00e2147`. Trial sync now covers all drugs the dashboard displays, including approved IBD drugs tagged `ibd`.
+
+### Database migration (apply manually via Supabase SQL editor)
+**File: `migrations/schema_migration_v12_indication_group_sync.sql`**
+
+Three parts:
+1. **Add grouping rows to `disease_areas`**: Inserts `respiratory`, `atopy`, `ted`, `autoimmune` as hidden grouping rows (sort_order 11-14). These mirror the `ibd` row that already exists. They satisfy the FK constraint so `drug_areas` can be tagged with these area_ids.
+2. **Backfill `drug_areas`**: Inserts the 29 missing indication_group tags for existing drugs (TSLP, IL-4Rα, IGF1R, FcRn, T-cell areas). Idempotent via ON CONFLICT DO NOTHING.
+3. **DB triggers**: Creates `trg_drug_areas_sync_ig` and `trg_company_areas_sync_ig` — whenever a drug or company is tagged with a specific area, the trigger auto-inserts the indication_group tag. Prevents the gap from ever recurring, including for manually-added entries.
+
+### Audit results (as of May 21)
+- `company_areas`: 25 TL1A companies all have `ibd` tag ✓
+- `drug_areas`: 29 drugs across 5 areas missing IG tag → fixed by migration SQL
+- Trigger makes future inserts self-healing
+
+---
+## 2026-05-21 Drug enrichment fix — indication_group drug fetch + mandatory drug_summary (commit 00e2147)
+
+### What changed
+
+**Root cause identified**: `fetch_company_context()` fetched drugs using only the specific `area_id` (e.g. `tl1a`), but the frontend fetches using the `indication_group` (`ibd`). AbbVie's approved drugs `risankizumab` and `upadacitinib` are tagged `ibd` in `drug_areas`, not `tl1a`, so they were invisible to the enrichment pipeline.
+
+**Fix 1 — `scripts/company_enrichment.py` (`fetch_company_context`)**:
+- Now fetches drugs using both `area_id` AND `indication_group` (e.g. `tl1a` + `ibd`) to mirror exactly what the dashboard displays
+- Uses `in.(tl1a,ibd)` query so approved IBD drugs (Skyrizi, Rinvoq) are included in the Claude enrichment context
+
+**Fix 2 — Enrichment prompt (`build_step5_prompt`)**:
+- `drug_summary` changed from "null or 2-3 sentences" to REQUIRED — Claude must always populate this field; never return null
+- `key_data` similarly made required for approved/late-stage drugs
+
+**Fix 3 — `index.html`** (`company_profiles` query):
+- Profile fetch now uses `.order('updated_at', { ascending: false }).limit(1)` to always get the most recent enrichment row
+
+---
 ## 2026-05-20 Company card polish — exact dates, drug news, pipeline link removed (Tasks #313–315)
 
 ### What changed
@@ -1825,3 +2381,8 @@ Removed the dead `grids.tl1aLandscape` and `grids.tl1aTech` initialization block
 - Expanded row highlighted blue background
 - Chevron turns blue when open
 - "click to close" hint text appears in last cell when expanded
+
+## 2026-05-21 — commit 420c46a8974bd60afb465e9bdde4cd3c7d833d65
+- Moved Meridian Archive picker (label + issue count + select dropdown) from above the iframe in the tab pane into the header bar, right of the Submit Intel button
+- Archive bar is hidden by default; shown via `onEnter` / hidden via `onLeave` in the meridian-issue registerTab hooks
+- Iframe wrapper border-radius updated from `0 0 10px 10px` to `10px` now that the control bar above it is gone
