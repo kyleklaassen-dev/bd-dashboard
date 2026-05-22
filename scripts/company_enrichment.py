@@ -360,8 +360,11 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
 
     Returns count of items written to discovery_queue.
     """
+    # Run ID ties every row in this batch to a specific discovery run — critical for debugging
+    run_id = f"{area_id}_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M')}"
+
     log(f"\n{'─'*50}")
-    log(f"STEP 1 — Entity Discovery (area: {area_id})")
+    log(f"STEP 1 — Entity Discovery (area: {area_id}, run_id: {run_id})")
     log(f"{'─'*50}")
 
     existing_cos = sb_get("company_areas", {
@@ -539,6 +542,7 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
                     "reason":             reason,
                     "suggested_dest":     suggested_dest,
                     "discovered_by":      "step1_discovery",
+                    "discovery_run_id":   run_id,
                     "status":             "archived",
                 })
             continue
@@ -600,6 +604,7 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             "reason":               reason,
             "suggested_dest":       suggested_dest,
             "discovered_by":        "step1_discovery",
+            "discovery_run_id":     run_id,
             "status":               queue_status,
         })
 
