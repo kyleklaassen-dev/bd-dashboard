@@ -8992,15 +8992,17 @@ async function openDrugEntityModal(drugId, drugName, evt) {
   try {
     // Primary lookup by ID; if ID is a static placeholder (starts with "static-") skip it
     const isStaticId = !drugId || String(drugId).startsWith('static-');
-    const [drugRes, areaRes0, trialRes0] = await Promise.all([
+    const [drugRes, areaRes0, trialRes0, molRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id,overlap,overlap_rationale,strategic_role').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
-    let drug   = drugRes.data?.[0]  || null;
-    let areas  = areaRes0.data      || [];
-    let trials = trialRes0.data     || [];
+    let drug    = drugRes.data?.[0]  || null;
+    let areas   = areaRes0.data      || [];
+    let trials  = trialRes0.data     || [];
+    let molData = molRes0.data?.[0]  || null;
 
     // If no drug found by ID (static placeholder or stale ID), fall back to name search
     if (!drug && drugName) {
@@ -9012,14 +9014,16 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         drug = r2?.[0] || null;
       }
       if (drug) {
-        // Re-fetch areas + trials using resolved DB id
+        // Re-fetch areas + trials + molecule intel using resolved DB id
         const rid = drug.id;
-        const [ar, tr] = await Promise.all([
+        const [ar, tr, mr] = await Promise.all([
           _sb.from('drug_areas').select('area_id,overlap,overlap_rationale,strategic_role').eq('drug_id', rid),
           _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
+          _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
-        areas  = ar.data || [];
-        trials = tr.data || [];
+        areas   = ar.data    || [];
+        trials  = tr.data    || [];
+        molData = mr.data?.[0] || null;
       }
     }
 
@@ -9031,7 +9035,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
-    bodyEl.innerHTML  = _drugModalBodyHTML(drug, areas, trials);
+    bodyEl.innerHTML  = _drugModalBodyHTML(drug, areas, trials, molData);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
@@ -9060,7 +9064,7 @@ function _phasePill(phase) {
   return `<span style="display:inline-block;font-size:10px;font-weight:800;background:${bg};color:${co};padding:2px 7px;border-radius:6px;white-space:nowrap">${phase}</span>`;
 }
 
-function _drugModalBodyHTML(drug, areas, trials) {
+function _drugModalBodyHTML(drug, areas, trials, molData) {
   if (!drug) return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">Drug data not available.</p>';
   const sections = [];
 
@@ -9117,6 +9121,51 @@ function _drugModalBodyHTML(drug, areas, trials) {
         <tbody>${trialRows}</tbody>
       </table></div>
       ${firstEp ? `<div style="margin-top:10px;font-size:11px;color:#475569;line-height:1.4"><span style="font-weight:700;color:#64748b">Primary Endpoint:</span> ${firstEp}</div>` : ''}
+    </div>`);
+  }
+
+  // Molecule Intelligence — structural / mechanistic / competitive data
+  if (molData) {
+    const fs = molData.field_status || {};
+    const _sb = (field) => {
+      const s = fs[field];
+      if (!s || s === 'confirmed') return '';
+      const cfg = s === 'inferred'
+        ? {bg:'#fffbeb',color:'#b45309',border:'#fde68a',label:'Inferred'}
+        : {bg:'#f8fafc',color:'#94a3b8',border:'#e2e8f0',label:'Not disclosed'};
+      return `<span style="font-size:7.5px;font-weight:700;text-transform:uppercase;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};border-radius:5px;padding:1px 5px;white-space:nowrap;margin-left:4px">${cfg.label}</span>`;
+    };
+    const _fr = (label, value, key) => !value ? '' :
+      `<div style="display:flex;align-items:baseline;gap:4px;padding:3px 0;border-bottom:1px solid #f8fafc;font-size:11px">
+        <span style="color:#64748b;font-weight:600;white-space:nowrap;min-width:114px">${label}</span>
+        <span style="color:#1e293b;flex:1">${value}</span>${_sb(key)}
+       </div>`;
+    const structRows = [
+      _fr('Format',         molData.format,        'format'),
+      _fr('Modality',       molData.modality,       'modality'),
+      _fr('IgG Subclass',   molData.igg_subclass,   'igg_subclass'),
+      _fr('Fc Engineering', molData.fc_engineering, 'fc_engineering'),
+      _fr('Epitope',        molData.epitope,        'epitope'),
+      _fr('Affinity (KD)',  molData.affinity_kd,    'affinity_kd'),
+    ].filter(Boolean).join('');
+    const thesisSection = molData.differentiation_claim
+      ? `<div style="margin-top:8px;padding:8px 10px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#7c3aed;margin-bottom:3px">Differentiation${_sb('differentiation_claim')}</div>
+          <p style="font-size:11px;color:#1e293b;margin:0;line-height:1.45;font-style:italic">${molData.differentiation_claim}</p>
+         </div>` : '';
+    const safetySection = molData.safety_observations
+      ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #f1f5f9">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:3px">Safety Observations</div>
+          <p style="font-size:11px;color:#334155;margin:0;line-height:1.4">${molData.safety_observations}</p>
+         </div>` : '';
+    const confBadge = molData.confidence
+      ? `<div style="text-align:right;margin-top:6px"><span style="font-size:8px;font-weight:700;text-transform:uppercase;background:${molData.confidence==='high'?'#f0fdf4':molData.confidence==='medium'?'#fffbeb':'#f8fafc'};color:${molData.confidence==='high'?'#15803d':molData.confidence==='medium'?'#b45309':'#64748b'};border:1px solid ${molData.confidence==='high'?'#bbf7d0':molData.confidence==='medium'?'#fde68a':'#e2e8f0'};border-radius:8px;padding:1px 6px">${molData.confidence.charAt(0).toUpperCase()+molData.confidence.slice(1)} confidence</span></div>` : '';
+    const srcLink = molData.source_url
+      ? `<div style="text-align:right;margin-top:4px"><a href="${molData.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#1d4ed8">Source ↗</a></div>` : '';
+    const molBody = [structRows, thesisSection, safetySection, confBadge, srcLink].filter(Boolean).join('');
+    if (molBody) sections.push(`<div class="pi-detail-section" style="grid-column:1/-1">
+      <h5 style="display:flex;align-items:center;gap:6px">🔬 Molecule Intelligence <span style="font-size:9px;font-weight:400;color:#94a3b8;font-style:italic">Structural · Mechanistic · Competitive</span></h5>
+      ${molBody}
     </div>`);
   }
 
@@ -12475,14 +12524,6 @@ const tl1aPI = {
    const _tierVal = (d.overlap||d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'');
    const _tierCls = _tierVal==='direct' ? ' pi-da-direct' : _tierVal==='adjacent' ? ' pi-da-adjacent' : (_tierVal==='watch'||_tierVal==='samespace') ? ' pi-da-watch' : '';
 
-   // Per-drug molecule intelligence — rendered inside this drug's accordion body
-   const _drugMolHtml = _renderMoleculeIntel([d], moleculeIntel);
-   const drugMolSection = _drugMolHtml
-    ? `<div style="margin-top:10px;border-top:1px solid #ede9fe;padding-top:10px">
-        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#7c3aed;margin-bottom:8px">🔬 Molecule Intelligence <span style="font-weight:400;font-style:italic;text-transform:none;letter-spacing:0;color:#a78bfa">Structural · Mechanistic · Competitive</span></div>
-        ${_drugMolHtml}
-       </div>` : '';
-
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
@@ -12500,7 +12541,6 @@ const tl1aPI = {
       ${trialsSection}
      </div>
      ${drugNewsSection}
-     ${drugMolSection}
     </div>
    </div>`;
   }).join('');
