@@ -1988,6 +1988,7 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             "intel_type":  _norm_type,
             "verified":    True,
         }
+        intel_rec["primary_company_id"] = company_id  # P1-B: spine FK for direct lookups
         result = sb_upsert("intel", intel_rec)
         if result and isinstance(result, list) and result:
             intel_id = result[0].get("id")
