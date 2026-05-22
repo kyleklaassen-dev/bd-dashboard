@@ -1296,7 +1296,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-wrap{margin-bottom:12px}
 .pi-da-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;padding:0 0 6px 0}
 .pi-da-row{border:1px solid #e2e8f0;border-radius:7px;margin-bottom:6px;overflow:hidden;background:white}
-.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 104px 74px 1fr 72px;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 104px 1fr 72px;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
 .pi-da-partner{display:flex;align-items:flex-start;justify-content:flex-end}
 .pi-da-hd:hover{background:#f8fafc}
 .pi-da-toggle{font-size:9px;color:#94a3b8;width:11px;flex-shrink:0;transition:transform 0.15s;display:inline-block}
@@ -3065,7 +3065,7 @@ function loadMoleculeTab(tabId) {
  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
 <button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
  ＋ Submit Intel
- </button>
+ </button><span id="dq-nav-badge" onclick="navTo('discovery-queue')" title="New high-priority discoveries in queue — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;line-height:16px;margin-left:4px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ New</span>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
  <span id="last-updated-ts" data-ts="1778974468" style="font-size:11px;opacity:0.75"></span>
@@ -3167,7 +3167,7 @@ function loadMoleculeTab(tabId) {
  <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
         <button class="tab-btn" onclick="switchTab('pharma-intel', this)">Pharma Landscape</button>
-        <button class="tab-btn" onclick="switchTab('discovery-queue', this)" style="position:relative">Discovery Queue <span id="dq-nav-badge" style="display:none;position:absolute;top:4px;right:4px;background:#dc2626;color:white;font-size:9px;font-weight:800;padding:0 4px;border-radius:8px;line-height:14px">!</span></button>
+        <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -9159,11 +9159,9 @@ function _makeAreaPI(tabId, areaIds) {
     filter() {
       const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
       if (!wrap) return;
-      const cls   = wrap.querySelector('.pi-pill-group[data-filter="cls"]   .pi-pill.active')?.dataset?.val||'';
       const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val||'';
       const ov    = wrap.querySelector('.pi-pill-group[data-filter="overlap"].pi-pill.active')?.dataset?.val||'';
       this.filteredEntities = this.entities.filter(ent=>
-        (!cls   || ent.programs.some(p=>p.cls===cls)) &&
         (!stage || ent.programs.some(p=>p.stageKey===stage)) &&
         (!ov    || ent.programs.some(p=>p.overlap===ov))
       );
@@ -9200,12 +9198,6 @@ function _makeAreaPI(tabId, areaIds) {
       const pillsEl = wrap.querySelector('.pi-pills-wrap');
       if (!pillsEl) return;
       pillsEl.innerHTML = `
-        <div class="pi-pill-group" data-filter="cls">
-          <span class="pi-pill-lbl">Class</span>
-          <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','cls','',this)">All</button>
-          ${classes.map(c=>pillBtn('cls',c)).join('')}
-        </div>
-        <div class="pi-pill-divider"></div>
         <div class="pi-pill-group" data-filter="stage">
           <span class="pi-pill-lbl">Stage</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','stage','',this)">All</button>
@@ -9460,13 +9452,12 @@ function _makeAreaPI(tabId, areaIds) {
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
-        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="8"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
           <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569">${ent.target}</td>
-          <td>${ent.isTerminated ? '' : this._clsPill(ent.bestCls)}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
           <td>${threatCell}</td>
           <td>${catCell}</td>
@@ -9474,13 +9465,12 @@ function _makeAreaPI(tabId, areaIds) {
       }).join('');
 
       el.innerHTML = `<table class="pi-table">
-        <colgroup><col style="width:19%"><col style="width:11%"><col style="width:8%"><col style="width:17%"><col style="width:8%"><col style="width:10%"><col style="width:13%"><col style="width:14%"></colgroup>
+        <colgroup><col style="width:21%"><col style="width:12%"><col style="width:9%"><col style="width:19%"><col style="width:12%"><col style="width:13%"><col style="width:14%"></colgroup>
         <thead><tr>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
           <th>Pipeline</th>
           <th>Indication</th>
           <th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','cls')">Class</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Threat</th>
           <th>Catalyst</th>
@@ -10581,7 +10571,7 @@ const tl1aPI = {
  sortDir: 1,
  expanded: new Set(),
  _noIntelTickers: new Set(),
- _colWidths: [155, 78, 65, 88, 70, 76, 100, 95],
+ _colWidths: [155, 78, 65, 98, 80, 108, 98],
  _profileCache: {},  // cache Supabase-fetched profiles keyed by company id
  _entityMeta:   {},  // bulk meta: drugCount, indScope, activeTrials, nextCatalyst keyed by company_id
 
@@ -11538,7 +11528,7 @@ const tl1aPI = {
      id: `static-${entry.id}-${i}`,
      name: dn.replace(/\s*[/(].*/, '').trim(),
      mechanism: entry.target||'', stage: entry.stageKey||'',
-     route: null, dosing_type: null, indication_short: 'UC · CD',
+     route: null, dosing_type: null, indication_short: entry.indication_short || entry.indication || '',
      differentiation_thesis: null, vs_ailux: null,
      _staticTrials: entry.trials || [],   // per-entry trials for static fallback
      // NOTE: _partnerCo is a legacy static field. DB drugs use partner_company (from Supabase).
@@ -11728,7 +11718,7 @@ const tl1aPI = {
        ? `<div style="font-size:11px;color:#0369a1;padding:4px 0;font-style:italic">Study planned — no trial registration yet${anticipatedStr}${plannedSrcLink}</div>${prereqNote}`
        : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
     const stagePill = this._stagePill(combo.stage || '');
-    const comboInd  = _abbrevInd(combo.indication_short) || 'UC · CD';
+    const comboInd  = _abbrevInd(combo.indication_short) || '—';
     // Display name: drug names only — strip em-dash suffix, parenthetical targets, and leading "CODE: " prefix
     // e.g. "SPY230: SPY002 + SPY003 (TL1A + IL-23p19) — SKYLINE Part B" → "SPY002 + SPY003"
     const comboDisplayName = (combo.label||'')
@@ -11801,7 +11791,7 @@ const tl1aPI = {
 
    const drugTarget   = cleanTarget(d.target || d.mechanism || prog.target || '—');
    const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
-   const drugInd      = _abbrevInd(d.indication_short) || 'UC · CD';
+   const drugInd      = _abbrevInd(d.indication_short) || '—';
    // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
    // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name.
    // _shortenPartner: known abbreviations first, then strip bio/pharma suffixes for a clean pill label.
@@ -12016,7 +12006,6 @@ const tl1aPI = {
      <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div style="display:flex;align-items:flex-start">${this._clsPill(d.cls||d.class_level||'')}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
@@ -12305,10 +12294,9 @@ const tl1aPI = {
    <th style="width:${w[1]}px" onclick="tl1aPI.sort('drug')">Pipeline<span class="pi-sort-arrow">${sortArrow('drug')}</span><div class="col-resize" data-col="1"></div></th>
    <th style="width:${w[2]}px">Indication<div class="col-resize" data-col="2"></div></th>
    <th style="width:${w[3]}px" onclick="tl1aPI.sort('target')">Lead Target<span class="pi-sort-arrow">${sortArrow('target')}</span><div class="col-resize" data-col="3"></div></th>
-   <th style="width:${w[4]}px" onclick="tl1aPI.sort('cls')">Class<span class="pi-sort-arrow">${sortArrow('cls')}</span><div class="col-resize" data-col="4"></div></th>
-   <th style="width:${w[5]}px" onclick="tl1aPI.sort('stageKey')">Stage<span class="pi-sort-arrow">${sortArrow('stageKey')}</span><div class="col-resize" data-col="5"></div></th>
-   <th style="width:${w[6]}px" onclick="tl1aPI.sort('overlap')">Threat<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="6"></div></th>
-   <th style="width:${w[7]}px">Catalyst<div class="col-resize" data-col="7"></div></th>
+   <th style="width:${w[4]}px" onclick="tl1aPI.sort('stageKey')">Stage<span class="pi-sort-arrow">${sortArrow('stageKey')}</span><div class="col-resize" data-col="4"></div></th>
+   <th style="width:${w[5]}px" onclick="tl1aPI.sort('overlap')">Threat<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="5"></div></th>
+   <th style="width:${w[6]}px">Catalyst<div class="col-resize" data-col="6"></div></th>
   </tr></thead>`;
 
   const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay, isTerminated }) => {
@@ -12367,7 +12355,6 @@ const tl1aPI = {
     <td>${pipelineCell}</td>
     <td>${indCell}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
-    <td>${isTerminated ? '' : this._clsPill(p.cls)}</td>
     <td>${this._stagePill(bestStage)}</td>
     <td>${threatCell}</td>
     <td>${catCell}</td>
@@ -12386,7 +12373,7 @@ const tl1aPI = {
      </div>`;
     }
    }
-   const detail = isExp ? `<tr class="pi-detail-row" data-id="${gid}"><td colspan="8"><div class="pi-research-host" id="pi-research-host-${gid}"></div>${detailInner}</td></tr>` : '';
+   const detail = isExp ? `<tr class="pi-detail-row" data-id="${gid}"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${gid}"></div>${detailInner}</td></tr>` : '';
    return main + detail;
   }).join('');
 
