@@ -9689,9 +9689,15 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     toggle(id) {
-      const ent = this.entities.find(e => e.entity_id === id);
-      const name = ent?.entity_name || id;
-      openCompanySlideOver(id, name, this.tabId);
+      const expanding = !this.expanded.has(id);
+      if (this.expanded.has(id)) this.expanded.delete(id); else this.expanded.add(id);
+      this._renderTable();
+      if (expanding) {
+        const ent = this.entities.find(e => e.entity_id === id);
+        if (ent && !this._profileCache[id] && this._profileCache[id] !== null) {
+          this._loadDynamicDetail(id, ent);
+        }
+      }
     },
 
     _renderPills() {
@@ -11145,9 +11151,21 @@ const tl1aPI = {
  },
 
  toggle(gid) {
-  const group = this.data.filter(p => (p.groupId||p.id) === gid);
-  const name = group[0]?.co || gid;
-  openCompanySlideOver(gid, name, 'tl1a');
+  const expanding = !this.expanded.has(gid);
+  if (this.expanded.has(gid)) this.expanded.delete(gid);
+  else this.expanded.add(gid);
+  this._renderTable();
+  this._initResize();
+  if (expanding) {
+   const allData = this.data;
+   const group = allData.filter(p => (p.groupId||p.id) === gid);
+   if (!group.length) return;
+   const OV = { Direct:0, Adjacent:1, 'Same-Space':2, Watch:3 };
+   group.sort((a,b) => (OV[a.overlap]??9)-(OV[b.overlap]??9) || (TL1A_STAGE_ORDER[a.stageKey]??9)-(TL1A_STAGE_ORDER[b.stageKey]??9));
+   const primary = group[0];
+   const combinedProg = { ...primary, _groupEntries: group };
+   this._loadDynamicDetail(gid, combinedProg);
+  }
  },
 
  _clsPill(cls) {
