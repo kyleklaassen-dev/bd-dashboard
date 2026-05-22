@@ -3112,6 +3112,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
    <button class="nav-icon-btn" id="nav-icon-market" onclick="navTo('stocks')" title="Market &amp; Learning">📊</button>
+  <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -9503,7 +9504,7 @@ function switchTab(id, btn) {
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
   const btn = document.querySelector(`.tab-btn[onclick*="'${id}'"]`);
-  if (btn) switchTab(id, btn);
+  switchTab(id, btn);
 }
 
 // ── ASSET JUMP DROPDOWN ───────────────────────────────────────────
@@ -13338,7 +13339,8 @@ const NAV_ICON_MAP = {
   'meridian-issue': 'nav-icon-meridian',
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
-  'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn'
+  'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
+  'discovery-queue': 'nav-icon-queue'
 };
 function updateNavIconActive(tabId) {
   document.querySelectorAll('.nav-icon-btn').forEach(b => b.classList.remove('active'));
@@ -13347,7 +13349,7 @@ function updateNavIconActive(tabId) {
 }
 function navTo(tabId) {
   const btn = document.querySelector(`.tab-btn[onclick*="'${tabId}'"]`);
-  if (btn) { switchTab(tabId, btn); }
+  switchTab(tabId, btn);
   document.getElementById('mol-dd-menu')?.classList.remove('open');
   closeCenterDrugDD();
   updateNavIconActive(tabId);
