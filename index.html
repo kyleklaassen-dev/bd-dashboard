@@ -8807,7 +8807,7 @@ function _makeAreaPI(tabId, areaIds) {
       const el = document.getElementById(this.tabId + '-area-pi');
       if (!el || typeof _sb === "undefined") return;
       try {
-        const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }] = await Promise.all([
+        const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _sb.from('drug_areas')
             .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker,status))')
             .in('area_id', this.areaIds),
@@ -8817,6 +8817,7 @@ function _makeAreaPI(tabId, areaIds) {
           _sb.from('drug_area_scores')
             .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning')
             .in('area_id', this.areaIds),
+          _sb.from('companies').select('id,name,ticker,status'),
         ]);
         if (error) throw error;
 
@@ -8835,6 +8836,10 @@ function _makeAreaPI(tabId, areaIds) {
             areaScoreMap[s.drug_id] = s;
           }
         });
+
+        // Build company lookup by id — used to resolve entity_id → correct ticker/name
+        // (d.companies joins on company_id which may be a partner, not the display entity)
+        const companiesMap = new Map((companiesRows||[]).map(c => [c.id, c]));
 
         const seen = new Set();
         const drugs = (rows||[]).map(r=>r.drugs).filter(d => {
@@ -8855,7 +8860,7 @@ function _makeAreaPI(tabId, areaIds) {
           entity_name:          d.entity_name || d.companies?.name || d.company_id || '—',
           entity_type:          d.entity_type || 'standalone',
           co:                   d.companies?.name || d.company_id || '—',
-          ticker:               d.companies?.ticker || '',
+          ticker:               companiesMap.get(d.entity_id || d.company_id)?.ticker || d.companies?.ticker || '',
           drug:                 d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
           name:                 d.name,
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
@@ -9110,7 +9115,7 @@ function _makeAreaPI(tabId, areaIds) {
 
     async _loadDynamicDetail(entityId, ent) {
       if (!_sb) { this._profileCache[entityId] = null; return; }
-      const companyId = ent.company_id || entityId;
+      const companyId = entityId; // entity_id is the display entity; company_id may be a partner/co-developer
       const AREA = this.areaIds[0] || 'tslp';
       try {
         // Company profile for this area
