@@ -16,12 +16,34 @@ Given a drug name, this script:
        Output A — Routing Decision: which areas does this drug belong in, at what overlap tier?
        Output B — Completeness Audit: what does the graph still need for this drug?
   5. Writes a discovery_queue row with source='drug_intake', coverage_score,
-     completeness_gaps, and promotion_payload for human review
+     completeness_gaps, promotion_payload, and evidence_tier for human review
 
 MODEL TIER RULE
 ---------------
 Live writes require Claude Sonnet. Haiku is blocked for live writes.
 Use --dry-run with INTAKE_MODEL=claude-haiku-4-5-20251001 for fast structural validation.
+
+EVIDENCE TIER
+-------------
+All drugs route through the same pipeline regardless of stage. The evidence_tier field
+makes the confidence level explicit so reviewers can calibrate accordingly.
+
+  Confirmed  — Named molecule + named company + clinical stage (Phase 1–Approved)
+               High data quality. Can be promoted directly.
+  Likely     — Named molecule + company source + preclinical/IND-enabling, OR
+               medium data quality with clinical stage.
+               Promote with standard review.
+  Emerging   — Mechanism known, molecule partially named or stage=Discovery/Undisclosed.
+               Low data quality. Promote only after manual verification.
+  Hypothesis — Strategic inference only. No named molecule or no company anchor.
+               Do NOT create a production drug row without manual approval.
+               Keep as signal unless evidence is subsequently confirmed.
+
+COMBO COMPONENT RULE
+--------------------
+If a combination drug (e.g. guselkumab-golimumab) is linked to an area,
+each component drug is checked for: existence in drugs, drug_areas, drug_area_scores.
+Missing component area links are surfaced as warnings (graph completeness gaps).
 
 USAGE
 -----
@@ -614,6 +636,220 @@ def compute_coverage_score(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# EVIDENCE TIER — explicit confidence for preclinical/emerging programs
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CLINICAL_STAGES = {"Phase 1", "Phase 2", "Phase 3", "Approved", "Phase 1/2", "Phase 2/3"}
+_PRECLINICAL_STAGES = {"Preclinical", "IND-enabling", "IND Enabling"}
+_DISCOVERY_STAGES = {"Discovery", "Undisclosed", "Unknown", ""}
+
+def compute_evidence_tier(research: dict) -> dict:
+    """
+    Assign an evidence tier to characterise how much we can trust this drug's data.
+
+    Tiers:
+      Confirmed  — Named molecule + company source + clinical stage (Phase 1–Approved).
+                   High data quality. Can be promoted directly.
+      Likely     — Named molecule + company source + preclinical/IND-enabling stage,
+                   OR medium data quality with a clinical stage.
+                   Promote with standard review.
+      Emerging   — Low data quality OR stage Discovery/Undisclosed with some evidence.
+                   Promote only after manual verification.
+      Hypothesis — No named molecule OR no company anchor.
+                   Do NOT create a production drug row without manual approval.
+
+    Returns dict: { tier, rationale, can_auto_promote, review_note }
+    """
+    drug_info    = research.get("drug", {})
+    data_quality = (drug_info.get("data_quality") or "low").lower()
+    stage        = drug_info.get("stage") or ""
+    has_name     = bool((drug_info.get("canonical_name") or "").strip())
+    has_company  = bool((drug_info.get("company") or drug_info.get("company_id_hint") or "").strip())
+    has_target   = bool((drug_info.get("target") or "").strip())
+    source_note  = drug_info.get("source_note") or ""
+
+    # Hypothesis: no named molecule or no company anchor
+    if not has_name or not has_company:
+        return {
+            "tier":             "Hypothesis",
+            "rationale":        "No named molecule or no company anchor — strategic inference only.",
+            "can_auto_promote": False,
+            "review_note":      "⚠️  Do NOT create a production drug row without manual approval. "
+                                "Keep as signal or hypothesis until evidence is confirmed.",
+        }
+
+    # Confirmed: high data quality + clinical stage
+    if data_quality == "high" and stage in _CLINICAL_STAGES:
+        return {
+            "tier":             "Confirmed",
+            "rationale":        f"Named molecule + company source + {stage}. High data quality.",
+            "can_auto_promote": True,
+            "review_note":      "✅ Standard review. Evidence quality is high.",
+        }
+
+    # Likely: high quality preclinical OR medium quality clinical
+    if (data_quality == "high" and stage in _PRECLINICAL_STAGES) or \
+       (data_quality == "medium" and stage in _CLINICAL_STAGES):
+        tier_rationale = (
+            f"Named molecule + company source + {stage}." if stage in _PRECLINICAL_STAGES
+            else f"{stage} stage with medium data quality."
+        )
+        return {
+            "tier":             "Likely",
+            "rationale":        tier_rationale,
+            "can_auto_promote": True,
+            "review_note":      "Standard review. Cross-check company pipeline page before promoting.",
+        }
+
+    # Emerging: low data quality OR discovery stage but mechanism known
+    if has_target and (data_quality == "low" or stage in _DISCOVERY_STAGES):
+        return {
+            "tier":             "Emerging",
+            "rationale":        f"Mechanism known ({drug_info.get('target')}) but data quality={data_quality}, stage={stage or 'unknown'}.",
+            "can_auto_promote": False,
+            "review_note":      "⚠️  Manual verification required before promotion. "
+                                "Confirm molecule name + company source from primary evidence.",
+        }
+
+    # Default: Emerging
+    return {
+        "tier":             "Emerging",
+        "rationale":        f"data_quality={data_quality}, stage={stage or 'unknown'}.",
+        "can_auto_promote": False,
+        "review_note":      "⚠️  Manual verification required. Check primary source before promoting.",
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COMBO COMPONENT VALIDATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+def check_combo_components(
+    drug_id:    str | None,
+    drug_name:  str,
+    drug_row:   dict,
+    area_ids:   list[str],
+    all_drugs_cache: list[dict] | None = None,
+    verbose: bool = False,
+) -> list[dict]:
+    """
+    If this drug is a combination, verify each component drug has area links
+    for every area the combination is linked to.
+
+    Rule: if guselkumab-golimumab is in drug_areas.tl1a, then both guselkumab
+    and golimumab should also be in drug_areas.tl1a.
+
+    Detects combinations via:
+      1. drug.target containing '×', '+', or '/'
+      2. drug.name or drug.id containing ' + ' or being in form drugA-drugB
+         where each part matches a known drug
+
+    Returns list of warning dicts: { component, area_id, issue, suggestion }
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return []
+
+    target   = drug_row.get("target") or ""
+    name_raw = drug_row.get("name") or drug_name or ""
+    drug_id  = drug_id or ""
+
+    # Quick exit: if target has no multi-target indicators and name has no combo markers
+    is_likely_combo = (
+        any(sep in target for sep in ("×", "+", "/"))
+        or " + " in name_raw
+        or " + " in drug_id
+    )
+
+    # Also check for dash-joined drug names (e.g. guselkumab-golimumab)
+    # Only trigger if each dash-separated part fuzzy-matches a known drug name
+    candidate_components: list[str] = []
+
+    if not is_likely_combo and "-" in drug_id:
+        # Try to split by dash and see if each part is a known drug
+        parts = drug_id.split("-")
+        if len(parts) >= 2:
+            # Fetch all drug ids for matching
+            try:
+                resp = requests.get(
+                    f"{SUPABASE_URL}/rest/v1/drugs",
+                    headers={**_sb_headers, "Prefer": ""},
+                    params={"select": "id,name", "limit": "2000"},
+                    timeout=10,
+                )
+                known = {d["id"]: d["name"] for d in (resp.json() if resp.status_code == 200 else [])}
+            except Exception:
+                known = {}
+
+            matched_parts = [p for p in parts if p in known]
+            if len(matched_parts) >= 2:
+                candidate_components = matched_parts
+                is_likely_combo = True
+
+    if not is_likely_combo:
+        return []
+
+    # Parse components from name / target
+    if not candidate_components:
+        if " + " in name_raw:
+            candidate_components = [p.strip().lower().replace(" ", "-") for p in name_raw.split("+")]
+        elif any(sep in target for sep in ("×", "+")):
+            sep = "×" if "×" in target else "+"
+            candidate_components = [p.strip().lower().replace(" ", "-") for p in target.split(sep)]
+
+    if not candidate_components:
+        return []
+
+    # For each component, check drug_areas for each area_id
+    warnings = []
+
+    for component in candidate_components:
+        # Try both the raw component and without trailing modifiers
+        component_clean = component.strip().split("(")[0].strip()
+
+        for area_id in area_ids:
+            try:
+                resp = requests.get(
+                    f"{SUPABASE_URL}/rest/v1/drug_areas",
+                    headers={**_sb_headers, "Prefer": ""},
+                    params={"drug_id": f"eq.{component_clean}", "area_id": f"eq.{area_id}", "select": "drug_id"},
+                    timeout=8,
+                )
+                rows = resp.json() if resp.status_code == 200 else []
+            except Exception:
+                rows = []
+
+            if not rows:
+                # Check if component drug even exists
+                try:
+                    drug_exists = requests.get(
+                        f"{SUPABASE_URL}/rest/v1/drugs",
+                        headers={**_sb_headers, "Prefer": ""},
+                        params={"id": f"eq.{component_clean}", "select": "id,name,stage"},
+                        timeout=8,
+                    )
+                    exists_rows = drug_exists.json() if drug_exists.status_code == 200 else []
+                except Exception:
+                    exists_rows = []
+
+                if not exists_rows:
+                    warnings.append({
+                        "component":  component_clean,
+                        "area_id":    area_id,
+                        "issue":      "component_drug_missing",
+                        "suggestion": f"Add drug row for '{component_clean}' — component of '{drug_name}'",
+                    })
+                else:
+                    warnings.append({
+                        "component":  component_clean,
+                        "area_id":    area_id,
+                        "issue":      "component_missing_area_link",
+                        "suggestion": f"Add drug_areas + drug_area_scores for '{component_clean}' in '{area_id}' — component of '{drug_name}'",
+                    })
+
+    return warnings
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # OUTPUT A — ROUTING DECISION
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -622,6 +858,8 @@ def _print_routing_decision(
     research: dict,
     relevant_areas: list[dict],
     resolution: dict,
+    evidence_tier: dict | None = None,
+    combo_warnings: list[dict] | None = None,
 ):
     drug_info = research.get("drug", {})
     rtype     = resolution.get("resolution_type", "candidate_new")
@@ -639,6 +877,14 @@ def _print_routing_decision(
     print(f"  Identity: {rtype}")
     if resolution.get("drug_id"):
         print(f"           → Meridian ID: {resolution['drug_id']}")
+
+    # Evidence tier
+    if evidence_tier:
+        tier = evidence_tier["tier"]
+        tier_icon = {"Confirmed": "✅", "Likely": "🟡", "Emerging": "🟠", "Hypothesis": "🔴"}.get(tier, "")
+        print(f"  Evidence: {tier_icon} {tier} — {evidence_tier['rationale']}")
+        if tier in ("Emerging", "Hypothesis"):
+            print(f"  ⚠️  {evidence_tier['review_note']}")
     print()
 
     if not relevant_areas:
@@ -658,7 +904,16 @@ def _print_routing_decision(
         print(f"  Context: {research['competitive_context'][:200]}")
     if research.get("bd_angle"):
         print(f"  BD Angle: {research['bd_angle'][:200]}")
-    print(f"  Data quality: {research.get('drug', {}).get('data_quality', 'unknown')}")
+    print(f"  Data quality: {drug_info.get('data_quality', 'unknown')}")
+
+    # Combo component warnings
+    if combo_warnings:
+        print()
+        print(f"  ⚠️  COMBO COMPONENT GAPS ({len(combo_warnings)} issue(s)):")
+        for w in combo_warnings:
+            icon = "❌" if w["issue"] == "component_drug_missing" else "⚠️ "
+            print(f"    {icon} {w['component']} / {w['area_id']}: {w['suggestion']}")
+
     print("═" * 65)
 
 
@@ -864,6 +1119,7 @@ def write_drug_queue_rows(
     coverage:      dict,
     run_id:        str,
     dry_run:       bool = False,
+    evidence_tier: dict | None = None,
 ) -> list[str]:
     """
     Write one discovery_queue row per relevant area.
@@ -917,6 +1173,8 @@ def write_drug_queue_rows(
             "relationship_confidence": "high" if area["confidence"] >= 0.8 else "medium" if area["confidence"] >= 0.6 else "inferred",
             "why_discovered":          f"Drug Intake CLI — {drug_name}",
             "source":                  "drug_intake",
+            # Evidence tier — makes uncertainty explicit for reviewer
+            "evidence_tier":           evidence_tier["tier"] if evidence_tier else None,
         }
 
         if dry_run:
@@ -1081,9 +1339,10 @@ def run_drug_intake(
         print("  ❌ Research failed. Cannot proceed.")
         return
 
-    # ── Step 4: Score area relevance ──────────────────────────────────────────
-    print("\n[4/5] Scoring area relevance...")
+    # ── Step 4: Score area relevance + evidence tier ─────────────────────────
+    print("\n[4/5] Scoring area relevance and evidence tier...")
     relevant_areas = get_relevant_areas(research, area_filter)
+    evidence_tier  = compute_evidence_tier(research)
 
     if not relevant_areas:
         if area_filter:
@@ -1094,6 +1353,22 @@ def run_drug_intake(
     else:
         for area in relevant_areas:
             print(f"  • {area['area_id']:<8} {area['relevance']:<15} confidence={area['confidence']:.0%}")
+
+    tier_icon = {"Confirmed": "✅", "Likely": "🟡", "Emerging": "🟠", "Hypothesis": "🔴"}.get(evidence_tier["tier"], "")
+    print(f"  {tier_icon} Evidence tier: {evidence_tier['tier']}")
+    if evidence_tier["tier"] == "Hypothesis" and not dry_run:
+        print(f"\n  🔴 Hypothesis-tier drug: no production drug row will be created without manual approval.")
+        print(f"     Queue row will be written as a reviewable signal with status=pending.")
+
+    # ── Combo component check ─────────────────────────────────────────────────
+    combo_warnings = []
+    if relevant_areas and drug_row:
+        area_ids_for_combo = [a["area_id"] for a in relevant_areas]
+        combo_warnings = check_combo_components(drug_id, drug_name, drug_row, area_ids_for_combo, verbose=verbose)
+        if combo_warnings:
+            print(f"\n  ⚠️  Combo component gaps detected ({len(combo_warnings)}):")
+            for w in combo_warnings:
+                print(f"     {w['component']} / {w['area_id']}: {w['issue']}")
 
     # ── Step 5: Compute coverage + write queue rows ───────────────────────────
     print("\n[5/5] Computing coverage score and writing queue row(s)...")
@@ -1110,12 +1385,14 @@ def run_drug_intake(
             research       = research,
             relevant_areas = relevant_areas,
             coverage       = coverage,
+            evidence_tier  = evidence_tier,
             run_id         = run_id,
             dry_run        = dry_run,
         )
 
     # ── Outputs ───────────────────────────────────────────────────────────────
-    _print_routing_decision(drug_name, research, relevant_areas, resolution)
+    _print_routing_decision(drug_name, research, relevant_areas, resolution,
+                            evidence_tier=evidence_tier, combo_warnings=combo_warnings)
     _print_completeness_audit(drug_name, coverage, research, graph_state)
 
     if written and not dry_run:
