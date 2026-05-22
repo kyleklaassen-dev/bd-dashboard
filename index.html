@@ -9126,6 +9126,8 @@ function _makeAreaPI(tabId, areaIds) {
           const ind = (d.indication_short||'').toUpperCase();
           if (/\bUC\b/.test(ind)||ind.includes('ULCERATIVE')) meta[d.company_id].indUC = true;
           if (/\bCD\b/.test(ind)||ind.includes('CROHN'))      meta[d.company_id].indCD = true;
+          // Store first indication_short for non-IBD fallback
+          if (!meta[d.company_id]._firstInd && d.indication_short) meta[d.company_id]._firstInd = d.indication_short;
         });
         combos.forEach(c => {
           if (!meta[c.company_id]) meta[c.company_id] = { drugCount:0, indUC:false, indCD:false };
@@ -9147,9 +9149,22 @@ function _makeAreaPI(tabId, areaIds) {
         });
         Object.keys(meta).forEach(cid => {
           const m = meta[cid];
-          if (m.indUC && m.indCD) m.indScope = 'UC+CD';
-          else if (m.indUC)       m.indScope = 'UC';
-          else if (m.indCD)       m.indScope = 'CD';
+          if (m.indUC && m.indCD) { m.indScope = 'UC+CD'; return; }
+          if (m.indUC)            { m.indScope = 'UC';    return; }
+          if (m.indCD)            { m.indScope = 'CD';    return; }
+          // Non-IBD: derive from first known indication_short
+          const raw = m._firstInd || '';
+          if (raw) {
+            m.indScope = raw
+              .replace(/Chronic Obstructive Pulmonary Disease/gi,'COPD')
+              .replace(/Atopic Dermatitis/gi,'AD').replace(/Rheumatoid Arthritis/gi,'RA')
+              .replace(/Myasthenia Gravis/gi,'gMG').replace(/Thyroid Eye Disease/gi,'TED')
+              .replace(/Systemic Lupus Erythematosus/gi,'SLE').replace(/Asthma/gi,'Asthma')
+              .replace(/Chronic Spontaneous Urticaria/gi,'CSU').replace(/Eosinophilic Esophagitis/gi,'EoE')
+              .replace(/Alopecia Areata/gi,'AA').replace(/Hidradenitis Suppurativa/gi,'HS')
+              .replace(/Prurigo Nodularis/gi,'PN').replace(/Chronic Rhinosinusitis/gi,'CRS')
+              .split(/[·,;—–]/)[0].trim().slice(0,18) || undefined;
+          }
         });
         this._entityMeta = meta;
         this._renderTable();
@@ -9423,7 +9438,21 @@ function _makeAreaPI(tabId, areaIds) {
           const inds = ent.programs.map(p=>(p.indication_short||'').toUpperCase()).join(' ');
           const hasUC = /\bUC\b/.test(inds)||inds.includes('ULCERATIVE');
           const hasCD = /\bCD\b/.test(inds)||inds.includes('CROHN');
-          return hasUC && hasCD ? 'UC+CD' : hasUC ? 'UC' : hasCD ? 'CD' : null;
+          if (hasUC && hasCD) return 'UC+CD';
+          if (hasUC) return 'UC';
+          if (hasCD) return 'CD';
+          // Non-IBD tabs: abbreviate first program's indication_short
+          const raw = ent.programs.map(p=>p.indication_short).filter(Boolean)[0] || '';
+          if (!raw) return null;
+          return raw
+            .replace(/Chronic Obstructive Pulmonary Disease/gi,'COPD')
+            .replace(/Atopic Dermatitis/gi,'AD').replace(/Rheumatoid Arthritis/gi,'RA')
+            .replace(/Myasthenia Gravis/gi,'gMG').replace(/Thyroid Eye Disease/gi,'TED')
+            .replace(/Systemic Lupus Erythematosus/gi,'SLE').replace(/Asthma/gi,'Asthma')
+            .replace(/Chronic Spontaneous Urticaria/gi,'CSU').replace(/Eosinophilic Esophagitis/gi,'EoE')
+            .replace(/Alopecia Areata/gi,'AA').replace(/Hidradenitis Suppurativa/gi,'HS')
+            .replace(/Prurigo Nodularis/gi,'PN').replace(/Chronic Rhinosinusitis/gi,'CRS')
+            .split(/[·,;—–]/)[0].trim().slice(0,18) || null;
         })();
 
         const trialsToken = activeTrials != null
