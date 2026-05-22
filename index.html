@@ -1028,6 +1028,25 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
 
 
+/* ══ ENTITY NAME — clickable anchor for deep-dive modal ════════ */
+.pi-entity-name { cursor: pointer; transition: color 0.12s; }
+.pi-entity-name:hover { color: #2e6fb0 !important; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ══ ENTITY MODAL — center-screen deep-dive card ═══════════════ */
+.entity-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6); backdrop-filter: blur(5px); z-index: 950; align-items: center; justify-content: center; padding: 20px; }
+.entity-modal-overlay.open { display: flex; }
+.entity-modal-card { background: white; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.32); width: 100%; max-width: 860px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+.entity-modal-hd { background: #0d1f38; color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; border-radius: 12px 12px 0 0; }
+.entity-modal-title { font-size: 18px; font-weight: 900; letter-spacing: -0.3px; }
+.entity-modal-sub { font-size: 11px; opacity: 0.6; margin-top: 3px; }
+.entity-modal-close { background: rgba(255,255,255,0.1); border: none; color: white; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 8px; border-radius: 6px; transition: background 0.15s; flex-shrink: 0; }
+.entity-modal-close:hover { background: rgba(255,255,255,0.22); }
+.entity-modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+.entity-modal-footer { flex-shrink: 0; padding: 10px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; gap: 8px; border-radius: 0 0 12px 12px; }
+.entity-modal-footer-lbl { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+.entity-also-tag { display: inline-block; cursor: pointer; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 8px; margin-right: 4px; transition: opacity 0.15s; }
+.entity-also-tag:hover { opacity: 0.75; }
+
 /* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
 .intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
 .intel-modal-overlay.open { display: flex; }
@@ -3051,6 +3070,26 @@ function loadMoleculeTab(tabId) {
  <strong id="header-date">Saturday, May 16, 2026</strong><br>
  <span id="last-updated-ts" data-ts="1778974468" style="font-size:11px;opacity:0.75"></span>
  </div>
+ </div>
+</div>
+
+<!-- ENTITY DEEP-DIVE MODAL -->
+<div class="entity-modal-overlay" id="entity-modal-overlay" onclick="if(event.target===this)closeEntityModal()">
+ <div class="entity-modal-card">
+  <div class="entity-modal-hd">
+   <div>
+    <div class="entity-modal-title" id="entity-modal-title"></div>
+    <div class="entity-modal-sub" id="entity-modal-sub"></div>
+   </div>
+   <button class="entity-modal-close" onclick="closeEntityModal()" title="Close">✕</button>
+  </div>
+  <div class="entity-modal-body" id="entity-modal-body">
+   <div style="padding:40px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>
+  </div>
+  <div class="entity-modal-footer" id="entity-modal-footer" style="display:none">
+   <span class="entity-modal-footer-lbl">Also tracked in</span>
+   <div id="entity-modal-also-tags"></div>
+  </div>
  </div>
 </div>
 
@@ -8539,6 +8578,113 @@ function selectMeridianIssue(id, label) {
   closeMeridianArchive();
   renderMeridianIssue(id, label === 'today' ? 'today' : label);
 }
+// ── ENTITY DEEP-DIVE MODAL ────────────────────────────────────────────
+// Opens when a company/drug name is clicked (not the row background).
+// Row expansion is preserved — stopPropagation on the name span handles separation.
+
+function _openEntityByEl(el) {
+  const id   = el.dataset.eid;
+  const name = el.dataset.ename || el.textContent.trim();
+  const tab  = el.dataset.tab  || '';
+  openEntityModal('company', id, name, tab);
+}
+
+async function openEntityModal(type, id, name, sourceTabId) {
+  const overlay  = document.getElementById('entity-modal-overlay');
+  const titleEl  = document.getElementById('entity-modal-title');
+  const subEl    = document.getElementById('entity-modal-sub');
+  const bodyEl   = document.getElementById('entity-modal-body');
+  const footerEl = document.getElementById('entity-modal-footer');
+  const tagsEl   = document.getElementById('entity-modal-also-tags');
+  if (!overlay) return;
+
+  titleEl.textContent = name;
+  subEl.textContent   = '';
+  bodyEl.innerHTML    = '<div style="padding:40px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
+  footerEl.style.display = 'none';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (!_sb) {
+    bodyEl.innerHTML = '<p style="padding:20px;color:#dc2626;font-size:13px">Database not available.</p>';
+    return;
+  }
+
+  try {
+    const areaIds = TAB_AREA_MAP[sourceTabId] || [];
+    const AREA    = areaIds[0] || '';
+
+    const [profRes, catRes, drugRes, dealRes] = await Promise.all([
+      AREA ? _sb.from('company_profiles').select('*').eq('company_id', id).eq('area_id', AREA).limit(1) : Promise.resolve({ data: [] }),
+      _sb.from('catalysts').select('label,catalyst_date,sort_date,notes').eq('company_id', id).order('sort_date').limit(8),
+      _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,company_id').eq('company_id', id).limit(12),
+      _sb.from('deals').select('headline,deal_date,deal_type,value_usd,source_url').eq('company_id', id).order('deal_date', {ascending:false}).limit(5),
+    ]);
+
+    const profile = profRes.data?.[0] || null;
+    const cats    = catRes.data  || [];
+    const drugs   = drugRes.data || [];
+    const deals   = dealRes.data || [];
+
+    subEl.textContent = AREA ? AREA.toUpperCase() + ' area context' : 'Company profile';
+    bodyEl.innerHTML  = _entityModalBodyHTML(profile, cats, drugs, deals);
+
+    // "Also tracked in" strip — find areas via drug_areas
+    const drugIds = drugs.map(d => d.id).filter(Boolean);
+    if (drugIds.length) {
+      const { data: daRows } = await _sb.from('drug_areas').select('area_id').in('drug_id', drugIds);
+      if (daRows && daRows.length) {
+        const areaToTabs = {};
+        Object.entries(TAB_AREA_MAP).forEach(([t, as]) => as.forEach(a => { (areaToTabs[a] = areaToTabs[a] || []).push(t); }));
+        const foundAreas = [...new Set(daRows.map(r => r.area_id))];
+        const otherTabs  = [...new Set(foundAreas.flatMap(a => areaToTabs[a] || []).filter(t => t !== sourceTabId))];
+        if (otherTabs.length) {
+          const TAB_CLS = { 'tl1a':'ct','tslp':'ct','il4ra-tslp':'ct-t2','il4ra-ox40l':'ct-t2','igf1r-tshr':'ct-ted','fcrn':'ct-ai','ace':'ct-ir' };
+          tagsEl.innerHTML = otherTabs.map(t => {
+            const label = TAB_META[t]?.badge || TAB_META[t]?.name || t;
+            return `<span class="entity-also-tag ${TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
+          }).join('');
+          footerEl.style.display = 'flex';
+        }
+      }
+    }
+  } catch(e) {
+    console.warn('[entityModal]', e);
+    bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:13px">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function _entityModalBodyHTML(profile, cats, drugs, deals) {
+  const sections = [];
+  if (profile?.platform_summary)
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${profile.platform_summary}</p></div>`);
+  if (profile?.bd_summary)
+    sections.push(`<div class="pi-detail-section"><h5>🤝 BD Summary</h5><p>${profile.bd_summary}</p></div>`);
+  if (cats.length)
+    sections.push(`<div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats.map(c =>
+      `<div class="catalyst-item"><span class="catalyst-timing">${c.catalyst_date||c.sort_date||''}</span><span style="font-size:12px">${c.label||''}</span></div>`
+    ).join('')}</div>`);
+  if (deals.length)
+    sections.push(`<div class="pi-detail-section"><h5>📰 Recent Deals</h5>${deals.map(d => {
+      const val = d.value_usd ? ` <span style="font-weight:700;color:#c45b11;float:right">$${(d.value_usd/1e6).toFixed(0)}M</span>` : '';
+      const src = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#2e6fb0;font-size:11px;font-weight:700;text-decoration:none">↗</a> ` : '';
+      return `<div class="deal-row">${src}<span style="font-size:12px">${d.headline||d.deal_type||'Deal'}</span>${val}<div style="font-size:10px;color:#94a3b8;margin-top:2px;clear:both">${d.deal_date||''}</div></div>`;
+    }).join('')}</div>`);
+  if (drugs.length)
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>💊 Pipeline</h5><div style="margin-top:4px">${drugs.map(d =>
+      `<span style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px">${d.display_name||d.name}</span>`
+    ).join(' ')}</div></div>`);
+  if (!sections.length)
+    return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed profile available for this area yet.</p>';
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sections.join('')}</div>`;
+}
+
+function closeEntityModal() {
+  document.getElementById('entity-modal-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEntityModal(); });
+
 // ── TAB REGISTRY ─────────────────────────────────────────────────────
 // Isolated per-tab lifecycle hooks. Errors in one tab never affect others.
 // ══════════════════════════════════════════════════════════════════════════
@@ -9316,7 +9462,7 @@ function _makeAreaPI(tabId, areaIds) {
 
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="8"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><strong style="font-size:12px;color:#1e3a5f">${ent.entity_name}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
+          <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569">${ent.target}</td>
@@ -12217,7 +12363,7 @@ const tl1aPI = {
    const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
    const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${gid}')">
-    <td><strong style="font-size:12px;color:#1e3a5f">${p.co}${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
+    <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${gid}" data-ename="${p.co.replace(/"/g,'&quot;')}" data-tab="tl1a" onclick="event.stopPropagation();_openEntityByEl(this)">${p.co}</span>${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
     <td>${pipelineCell}</td>
     <td>${indCell}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
