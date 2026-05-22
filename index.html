@@ -8807,12 +8807,15 @@ function _makeAreaPI(tabId, areaIds) {
       const el = document.getElementById(this.tabId + '-area-pi');
       if (!el || typeof _sb === "undefined") return;
       try {
-        const [{ data:rows, error }, { data:comboRows }] = await Promise.all([
+        const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }] = await Promise.all([
           _sb.from('drug_areas')
             .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker,status))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
+            .in('area_id', this.areaIds),
+          _sb.from('drug_area_scores')
+            .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning')
             .in('area_id', this.areaIds),
         ]);
         if (error) throw error;
@@ -8822,6 +8825,17 @@ function _makeAreaPI(tabId, areaIds) {
           this.comboCountByCompany[c.company_id] = (this.comboCountByCompany[c.company_id]||0) + 1;
         });
 
+        // Build per-drug best area score map — prefer highest-tier score across all areaIds
+        // so a multi-area tab (e.g. il4ra-tslp) shows the most relevant classification
+        const _OV_SCORE = {Direct:0, Adjacent:1, 'Same-Space':2, Watch:3};
+        const areaScoreMap = {};
+        (scoreRows||[]).forEach(s => {
+          const ex = areaScoreMap[s.drug_id];
+          if (!ex || (_OV_SCORE[s.overlap]??9) < (_OV_SCORE[ex.overlap]??9)) {
+            areaScoreMap[s.drug_id] = s;
+          }
+        });
+
         const seen = new Set();
         const drugs = (rows||[]).map(r=>r.drugs).filter(d => {
           if (!d || seen.has(d.id)) return false;
@@ -8829,7 +8843,12 @@ function _makeAreaPI(tabId, areaIds) {
           if (d.companies?.status === 'acquired') return false;
           return true;
         });
-        this.data = drugs.map(d => ({
+        this.data = drugs.map(d => {
+          // Prefer area-specific score over global drug fields — this is the source of truth
+          // for competitive tier within this tab's area context. Fall back to drugs table
+          // globals only when no area score exists (e.g. newly added drug before enrichment).
+          const score = areaScoreMap[d.id];
+          return {
           id:                   d.id,
           company_id:           d.company_id,
           entity_id:            d.entity_id || d.company_id || d.id,
@@ -8841,9 +8860,11 @@ function _makeAreaPI(tabId, areaIds) {
           name:                 d.name,
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
           mechanism:            d.mechanism || '',
-          cls:                  d.cls || '1st Gen',
+          cls:                  score?.cls    || d.cls || '1st Gen',
           stageKey:             d.stage || 'Preclinical',
-          overlap:              d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
+          overlap:              score?.overlap || d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
+          overlap_rationale:    score?.overlap_rationale || d.differentiation_thesis || '',
+          vs_ailux:             score?.vs_ailux_positioning || '',
           summary:              d.ailux_angle || d.key_data || '',
           stageDetail:          d.stage_detail || '',
           indication_short:     d.indication_short || '',
@@ -8853,7 +8874,8 @@ function _makeAreaPI(tabId, areaIds) {
           partnership_verified: d.partnership_verified ?? null,
           licensor_name:        d.licensor_name || null,
           licensor_code:        d.licensor_code || null,
-        }));
+          };
+        });
         this._buildEntities();
         this.filteredEntities = [...this.entities];
         this.loaded = true;
