@@ -2,8 +2,11 @@ name: Meridian Research
 
 on:
   schedule:
-    # 2:00 AM ET = 06:00 UTC (Mon–Sat) — deep research pass, after enrichment completes
-    - cron: "0 6 * * 1-6"
+    # 2:00 AM ET = 06:00 UTC daily — RSS intel scan + LLM extraction (Tier 2)
+    # Runs AFTER nightly enrichment pipeline (04:00–04:50 UTC) to pick up new articles.
+    # evening-update.yml retired 2026-05-21 (was a duplicate run at 02:30 UTC Mon–Sat).
+    # 02:30 UTC slot reserved for future signal_monitor.py (Tier 1, heuristic, no LLM).
+    - cron: "0 6 * * *"
   workflow_dispatch:   # allow manual trigger
 
 jobs:
