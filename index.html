@@ -8082,10 +8082,7 @@ function dqCloseDetail(e) {
   document.getElementById('dq-detail-panel').style.display   = 'none';
 }
 
-// Register tab
-registerTab('discovery-queue', {
-  onEnter() { if (!_dqData.length) dqLoad(); }
-});
+
 </script>
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 40px;background:#edf1f7;min-height:100vh">
@@ -8741,6 +8738,9 @@ registerTab('meridian-issue', {
 });
 registerTab('industry-insights', {
   onEnter() { loadRollingDeals(); loadLiveIntel(); }
+});
+registerTab('discovery-queue', {
+  onEnter() { if (!_dqData.length) dqLoad(); }
 });
 registerTab('tl1a', {
   onEnter() {
