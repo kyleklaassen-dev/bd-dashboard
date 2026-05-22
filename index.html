@@ -8666,49 +8666,65 @@ async function openEntityModal(type, id, name, sourceTabId) {
   }
 }
 
-function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
-  const sections = [];
-
-  // Area-labelled profile sections (one per tracked area)
-  profiles.forEach(profile => {
-    const areaId  = profile.area_id || '';
-    const areaLbl = _AREA_LABEL[areaId] || areaId.toUpperCase();
-    const areaCls = _AREA_CLS[areaId]   || 'ct';
-    const areaHdr = areaId
-      ? `<div style="margin-bottom:8px"><span class="entity-also-tag ${areaCls}" style="cursor:default;font-size:10px">${areaLbl}</span></div>` : '';
-    const hasSummary = profile.platform_summary || profile.bd_summary;
-    if (!hasSummary) return;
-    let html = areaHdr;
-    if (profile.platform_summary) html += `<h5 style="margin:0 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">Platform Summary</h5><p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#1e293b">${profile.platform_summary}</p>`;
-    if (profile.bd_summary)       html += `<h5 style="margin:6px 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">BD Summary</h5><p style="margin:0;font-size:12px;line-height:1.5;color:#1e293b">${profile.bd_summary}</p>`;
-    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1">${html}</div>`);
+function _eModalSelectArea(evt, areaId, btn) {
+  evt.stopPropagation();
+  btn.closest('.emodal-area-tabs').querySelectorAll('.emodal-atab').forEach(b => {
+    b.style.background = '#f1f5f9'; b.style.color = '#64748b';
   });
+  btn.style.background = '#0d1f38'; btn.style.color = 'white';
+  btn.closest('.entity-modal-body').querySelectorAll('.emodal-panel').forEach(p => {
+    p.style.display = p.dataset.area === areaId ? 'block' : 'none';
+  });
+}
 
-  // Catalysts
-  if (cats.length)
-    sections.push(`<div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats.map(c =>
-      `<div class="catalyst-item"><span class="catalyst-timing">${c.catalyst_date||c.sort_date||''}</span><span style="font-size:12px">${c.label||''}</span></div>`
-    ).join('')}</div>`);
+function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
+  // ── Brief one-sentence company blurb ────────────────────────────────────
+  const firstSummary = profiles.find(p => p.platform_summary)?.platform_summary || '';
+  const briefBlurb = firstSummary
+    ? (() => { const m = firstSummary.match(/^.+?[.!?](?:\s|$)/); return m ? m[0].trim() : (firstSummary.length > 220 ? firstSummary.slice(0,220)+'…' : firstSummary); })()
+    : '';
 
-  // Deals
-  if (deals.length)
-    sections.push(`<div class="pi-detail-section"><h5>📰 Recent Deals</h5>${deals.map(d => {
-      const val = d.value_usd ? ` <span style="font-weight:700;color:#c45b11;float:right">$${(d.value_usd/1e6).toFixed(0)}M</span>` : '';
-      const src = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#2e6fb0;font-size:11px;font-weight:700;text-decoration:none">↗</a> ` : '';
-      return `<div class="deal-row">${src}<span style="font-size:12px">${d.headline||d.deal_type||'Deal'}</span>${val}<div style="font-size:10px;color:#94a3b8;margin-top:2px;clear:both">${d.deal_date||''}</div></div>`;
-    }).join('')}</div>`);
+  // ── Area tabs ────────────────────────────────────────────────────────────
+  const trackedAreas = profiles.filter(p => p.area_id && (p.platform_summary || p.bd_summary));
+  const multiArea    = trackedAreas.length > 1;
+  const activeStyle  = 'background:#0d1f38;color:white;';
+  const inactiveStyle = 'background:#f1f5f9;color:#64748b;';
+  const tabBase = 'display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;';
 
-  // Pipeline — clickable drug pills
+  const areaTabs = multiArea ? `
+    <div class="emodal-area-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+      <button class="emodal-atab" style="${tabBase}${activeStyle}" onclick="_eModalSelectArea(event,'__overview__',this)">Overview</button>
+      ${trackedAreas.map(p => {
+        const aLbl = _AREA_LABEL[p.area_id] || p.area_id.toUpperCase();
+        const aCls = _AREA_CLS[p.area_id]   || 'ct';
+        return `<button class="emodal-atab" style="${tabBase}${inactiveStyle}" onclick="_eModalSelectArea(event,'${p.area_id}',this)"><span class="entity-also-tag ${aCls}" style="cursor:default;font-size:9px;padding:1px 6px;margin:0">${aLbl}</span></button>`;
+      }).join('')}
+    </div>` : '';
+
+  // ── Drug pill helper ─────────────────────────────────────────────────────
+  const drugPill = d => {
+    const dn = (d.display_name||d.name||'').replace(/'/g,"\\'");
+    return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
+  };
+
+  // ── Overview panel content ───────────────────────────────────────────────
+  let overviewHtml = '';
+  if (briefBlurb)
+    overviewHtml += `<p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:#1e293b">${briefBlurb}</p>`;
+
   if (drugs.length)
-    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>💊 Pipeline</h5><div style="margin-top:4px">${drugs.map(d => {
-      const dn = (d.display_name||d.name||'').replace(/'/g,"\\'");
-      return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
-    }).join(' ')}</div></div>`);
+    overviewHtml += `<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">💊 Pipeline</div><div>${drugs.map(drugPill).join(' ')}</div></div>`;
 
-  // Clinical trials table
+  if (deals.length) {
+    overviewHtml += `<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">📰 Recent Deals</div>${deals.slice(0,5).map(d => {
+      const val = d.value_usd ? `<span style="font-weight:700;color:#c45b11;margin-left:8px">$${(d.value_usd/1e6).toFixed(0)}M</span>` : '';
+      const src = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#2e6fb0;font-size:11px;font-weight:700;text-decoration:none;margin-right:4px">↗</a>` : '';
+      return `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px;overflow:hidden">${src}${d.headline||d.deal_type||'Deal'}${val}<span style="float:right;font-size:10px;color:#94a3b8">${d.deal_date||''}</span></div>`;
+    }).join('')}</div>`;
+  }
+
   if (trials.length) {
-    const drugMap = {};
-    drugs.forEach(d => { drugMap[d.id] = d.display_name || d.name || '—'; });
+    const drugMap = {}; drugs.forEach(d => { drugMap[d.id] = d.display_name||d.name||'—'; });
     const trialRows = trials.map(t => `<tr style="border-bottom:1px solid #f1f5f9">
       <td style="font-size:11px;font-weight:700;color:#1e3a5f;padding:5px 8px">${drugMap[t.drug_id]||'—'}</td>
       <td style="font-size:11px;padding:5px 8px">${t.trial_name||t.id||'—'}</td>
@@ -8717,26 +8733,54 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
       <td style="font-size:11px;color:#64748b;padding:5px 8px">${t.primary_completion_date||'—'}</td>
       <td style="font-size:11px;padding:5px 8px"><span style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;background:${t.status==='Active'||t.status==='Recruiting'?'#dcfce7':'#f1f5f9'};color:${t.status==='Active'||t.status==='Recruiting'?'#15803d':'#64748b'}">${t.status||'—'}</span></td>
     </tr>`).join('');
-    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🧪 Clinical Trials (${trials.length})</h5>
-      <div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse">
+    overviewHtml += `<div><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">🧪 Clinical Trials (${trials.length})</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
           <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Drug</th>
           <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Trial</th>
-          <th style="text-align:center;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Phase</th>
+          <th style="text-align:center;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Ph</th>
           <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Indication</th>
           <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">PCD</th>
           <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Status</th>
-        </tr></thead>
-        <tbody>${trialRows}</tbody>
-      </table></div></div>`);
+        </tr></thead><tbody>${trialRows}</tbody>
+      </table></div></div>`;
   }
 
-  if (!sections.length)
+  if (!overviewHtml && !trackedAreas.length)
     return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed profile available for this company yet.</p>';
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sections.join('')}</div>`;
+
+  // ── Per-area drill-down panels ────────────────────────────────────────────
+  const areaPanelHtml = trackedAreas.map(profile => {
+    const areaId = profile.area_id;
+    let html = '';
+    if (profile.platform_summary)
+      html += `<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px">Platform Summary</div><p style="margin:0;font-size:12px;line-height:1.6;color:#1e293b">${profile.platform_summary}</p></div>`;
+    if (profile.bd_summary)
+      html += `<div style="margin-bottom:14px;padding:12px 14px;background:#f0f6ff;border-radius:8px;border-left:3px solid #2e6fb0"><div style="font-size:10px;font-weight:700;color:#2e6fb0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px">🤝 BD Context</div><p style="margin:0;font-size:12px;line-height:1.6;color:#1e293b">${profile.bd_summary}</p></div>`;
+    const areaCats = cats.filter(c => !c.area_id || c.area_id === areaId);
+    if (areaCats.length)
+      html += `<div><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">📅 Upcoming Catalysts</div>${areaCats.map(c =>
+        `<div class="catalyst-item"><span class="catalyst-timing">${c.catalyst_date||c.sort_date||''}</span><span style="font-size:12px">${c.label||''}</span></div>`
+      ).join('')}</div>`;
+    if (!html) html = `<p style="color:#94a3b8;font-style:italic;font-size:12px">Area-specific detail not yet available.</p>`;
+    return `<div class="emodal-panel" data-area="${areaId}" style="display:none">${html}</div>`;
+  }).join('');
+
+  const overviewPanel = `<div class="emodal-panel" data-area="__overview__" style="display:block">${overviewHtml||'<p style="color:#94a3b8;font-style:italic;font-size:12px">No overview available yet.</p>'}</div>`;
+
+  // Single-area: skip tabs, append BD context directly below overview
+  if (!multiArea && trackedAreas.length === 1) {
+    const p = trackedAreas[0];
+    let direct = overviewHtml;
+    if (p.bd_summary)
+      direct += `<div style="margin-top:16px;padding:12px 14px;background:#f0f6ff;border-radius:8px;border-left:3px solid #2e6fb0"><div style="font-size:10px;font-weight:700;color:#2e6fb0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px">🤝 BD Context</div><p style="margin:0;font-size:12px;line-height:1.6;color:#1e293b">${p.bd_summary}</p></div>`;
+    return direct || '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed profile available for this company yet.</p>';
+  }
+
+  return areaTabs + overviewPanel + areaPanelHtml;
 }
 
-/* ─── Drug modal ─────────────────────────────────────────────────────────── */
+/* ─── Drug modal  ─────────────────────────────────────────────────────────── */
 async function openDrugEntityModal(drugId, drugName, evt) {
   if (evt) { evt.stopPropagation(); evt.preventDefault(); }
   const overlay  = document.getElementById('entity-modal-overlay');
