@@ -88,6 +88,9 @@ COMPANY_FEEDS = [
 ]
 
 # ── Tier 3: Broader secondary sources ──
+# NOTE: PRNewswire removed — too noisy (general press releases contaminate batches).
+# Company IR feeds (COMPANY_FEEDS above) already cover all legit press releases.
+# BusinessWire kept only if it surfaces conference/clinical data; remove if noisy.
 SECONDARY_FEEDS = [
     "https://www.biopharmadive.com/feeds/news/",
     "https://www.statnews.com/feed/",
@@ -95,7 +98,6 @@ SECONDARY_FEEDS = [
     "https://www.biospace.com/rss/news",
     "https://www.nature.com/nm/rss/current",
     "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss",
-    "https://www.prnewswire.com/rss/news-releases-list.rss",
     "https://www.businesswire.com/rss/home/?rss=G7",
 ]
 
@@ -110,12 +112,13 @@ COMPANY_SOURCE_DOMAINS = {
 }
 
 # Sources that are worth fetching full-text for (paywalls aside)
+# prnewswire removed — too noisy to justify fetch budget
 FULL_TEXT_SOURCES = {
     "endpoints news", "fierce biotech",
     "abbvie", "roche", "lilly", "regeneron", "johnson", "astrazeneca",
     "sanofi", "novartis", "ucb", "bristol", "pfizer", "merck", "teva",
     "boehringer", "stat news", "biopharmadive",
-    "nature medicine", "new england journal of medicine", "prnewswire",
+    "nature medicine", "new england journal of medicine",
 }
 
 # Title keywords that flag an article as high-priority for full-text fetch
@@ -399,7 +402,9 @@ FIELD INSTRUCTIONS:
 - "significance": high | medium | low
 
 Skip earnings calls, macro news, and speculative commentary with no new factual content.
-Skip articles where the focus-area relevance is tangential (e.g., a general immunology paper with no clinical or commercial implications for these programs).
+Skip articles where the focus-area relevance is clearly tangential (e.g., a general immunology paper with no clinical or commercial implications for these programs).
+
+PAYWALLED / SHORT CONTENT: If the full text is missing or very brief (< 200 chars) but the headline clearly signals a relevant clinical event (trial data, approval, deal, IND filing), extract a record using the headline and any available summary. Set importance conservatively. Do NOT skip solely because content is short — headline intelligence is still intelligence.
 
 Return ONLY a valid JSON array. No markdown, no explanation, no wrapper text."""
 
