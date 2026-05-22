@@ -7590,6 +7590,7 @@ function dknLoadSbData() { return dknLoadData(); }
         </select>
         <!-- Sort -->
         <select id="dq-sort" onchange="dqRender()" style="font-size:11px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:white;color:#374151">
+          <option value="strategic" selected>Sort: BD Priority ↓</option>
           <option value="relevance">Sort: Relevance ↓</option>
           <option value="layer">Sort: Layer</option>
           <option value="area">Sort: Area</option>
@@ -7614,7 +7615,7 @@ function dknLoadSbData() { return dknLoadData(); }
             <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">AREA</th>
             <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">LAYER</th>
             <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">OVERLAP</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">REL</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">BD PRI</th>
             <th style="padding:10px 10px;text-align:center;font-weight:700;color:#374151;font-size:11px">CONF</th>
             <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px">WHY IT MATTERS</th>
             <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px">DESTINATION</th>
@@ -7698,9 +7699,11 @@ function dqRenderStats() {
   const byRel  = { critical:0, important:0, watch_r:0 };
   _dqData.forEach(r => {
     counts[r.status] = (counts[r.status]||0) + 1;
-    if (r.relevance_score >= 9) byRel.critical++;
-    else if (r.relevance_score >= 7) byRel.important++;
-    else if (r.relevance_score >= 5) byRel.watch_r++;
+    // Use strategic_value_score when available; fall back to relevance_score for older rows
+    const svs = r.strategic_value_score ?? r.relevance_score ?? 0;
+    if (svs >= 9) byRel.critical++;
+    else if (svs >= 7) byRel.important++;
+    else if (svs >= 5) byRel.watch_r++;
   });
   // Update pending badge in tab header
   const badge = document.getElementById('dq-pending-badge');
@@ -7745,6 +7748,15 @@ function dqRender() {
   });
 
   rows.sort((a, b) => {
+    if (sortV === 'strategic') {
+      // BD Priority: strategic_value_score DESC (nulls last → fall back to relevance_score)
+      // then relevance_score DESC, then newest
+      const asvs = a.strategic_value_score ?? a.relevance_score ?? 0;
+      const bsvs = b.strategic_value_score ?? b.relevance_score ?? 0;
+      return bsvs - asvs
+          || (b.relevance_score||0) - (a.relevance_score||0)
+          || new Date(b.discovered_at||0) - new Date(a.discovered_at||0);
+    }
     if (sortV === 'relevance') return (b.relevance_score||0) - (a.relevance_score||0);
     if (sortV === 'layer')     return (a.competition_layer||9) - (b.competition_layer||9);
     if (sortV === 'area')      return (a.area_id||'').localeCompare(b.area_id||'');
@@ -7763,13 +7775,22 @@ function dqRender() {
 
   tbody.innerHTML = rows.map(r => {
     const rel    = r.relevance_score || 0;
-    const relCls = rel >= 9 ? '#dc2626' : rel >= 7 ? '#d97706' : rel >= 5 ? '#2563eb' : '#94a3b8';
+    const svs    = r.strategic_value_score ?? rel;
+    const svsBadge = svs >= 9
+      ? `<span style="font-size:9px;font-weight:800;background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;padding:2px 7px;border-radius:8px;display:inline-block">⚡ Critical</span>`
+      : svs >= 7
+      ? `<span style="font-size:9px;font-weight:800;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;padding:2px 7px;border-radius:8px;display:inline-block">↑ High</span>`
+      : svs >= 5
+      ? `<span style="font-size:9px;font-weight:800;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;padding:2px 7px;border-radius:8px;display:inline-block">Med</span>`
+      : svs >= 1
+      ? `<span style="font-size:9px;font-weight:800;background:#f8fafc;color:#64748b;border:1px solid #cbd5e1;padding:2px 7px;border-radius:8px;display:inline-block">Low</span>`
+      : `<span style="color:#cbd5e1;font-size:11px">—</span>`;
     const layer  = r.competition_layer;
     const layerLbl = layer ? DQ_LAYER_LABEL[layer] || ('L'+layer) : '—';
     const layerCol = layer ? DQ_LAYER_COLOR[layer]  || '#94a3b8'  : '#94a3b8';
     const overlapCol = DQ_OVERLAP_COLOR[r.overlap] || '#94a3b8';
     const destLbl = DQ_DEST_LABEL[r.suggested_dest] || r.suggested_dest || '—';
-    const priority = rel >= 9 ? '⚡ ' : '';
+    const priority = svs >= 9 ? '⚡ ' : '';
     const date = r.discovered_at ? new Date(r.discovered_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
 
     const isPending  = r.status === 'pending';
@@ -7799,7 +7820,7 @@ function dqRender() {
          ${r.source_url ? `<a href="${_esc(r.source_url)}" target="_blank" style="font-size:10px;color:#2563eb;text-decoration:none">↗ source</a>` : ''}`;
 
     // ── Row highlight ─────────────────────────────────────────────────────────
-    const rowBg = isUserIntake ? 'background:#fffdf5' : rel >= 9 ? 'background:#fff7f7' : '';
+    const rowBg = isUserIntake ? 'background:#fffdf5' : svs >= 9 ? 'background:#fff7f7' : '';
 
     return `<tr style="border-bottom:1px solid #f1f5f9;${rowBg}">
       <td style="padding:10px 14px;max-width:220px">
@@ -7819,7 +7840,8 @@ function dqRender() {
         ${r.overlap ? `<span style="font-size:10px;font-weight:700;color:${overlapCol};background:${overlapCol}18;padding:2px 7px;border-radius:10px">${r.overlap}</span>` : '<span style="color:#94a3b8">—</span>'}
       </td>
       <td style="padding:10px;text-align:center">
-        <span style="font-size:14px;font-weight:800;color:${relCls}">${rel}</span>
+        ${svsBadge}
+        <div style="font-size:9px;color:#cbd5e1;margin-top:3px">${svs}</div>
       </td>
       <td style="padding:10px;text-align:center">
         <span style="font-size:11px;color:#64748b">${r.confidence_score||'—'}</span>
