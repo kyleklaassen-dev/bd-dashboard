@@ -1047,6 +1047,18 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .entity-also-tag { display: inline-block; cursor: pointer; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 8px; margin-right: 4px; transition: opacity 0.15s; }
 .entity-also-tag:hover { opacity: 0.75; }
 
+/* ══ COMPANY SLIDE-OVER PANEL ══════════════════════════════════ */
+.co-slideover-overlay { display:none; position:fixed; inset:0; background:rgba(10,20,40,0.45); z-index:940; cursor:pointer; }
+.co-slideover-overlay.open { display:block; }
+.co-slideover { position:fixed; top:0; right:-560px; width:560px; height:100vh; background:white; z-index:945; display:flex; flex-direction:column; box-shadow:-14px 0 56px rgba(0,0,0,0.25); transition:right 0.3s cubic-bezier(0.4,0,0.2,1); overflow:hidden; }
+.co-slideover.open { right:0; }
+.co-slideover-hd { background:#0d1f38; color:white; padding:16px 20px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-shrink:0; }
+.co-slideover-title { font-size:17px; font-weight:900; letter-spacing:-0.3px; line-height:1.25; }
+.co-slideover-sub { font-size:11px; opacity:0.55; margin-top:3px; }
+.co-slideover-close { background:rgba(255,255,255,0.1); border:none; color:white; cursor:pointer; font-size:18px; line-height:1; padding:4px 9px; border-radius:6px; transition:background 0.15s; flex-shrink:0; }
+.co-slideover-close:hover { background:rgba(255,255,255,0.22); }
+.co-slideover-body { flex:1; overflow-y:auto; }
+
 /* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
 .intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
 .intel-modal-overlay.open { display: flex; }
@@ -3090,6 +3102,21 @@ function loadMoleculeTab(tabId) {
    <span class="entity-modal-footer-lbl">Also tracked in</span>
    <div id="entity-modal-also-tags"></div>
   </div>
+ </div>
+</div>
+
+<!-- COMPANY SLIDE-OVER PANEL -->
+<div class="co-slideover-overlay" id="co-slideover-overlay" onclick="closeCoSlideOver()"></div>
+<div class="co-slideover" id="co-slideover">
+ <div class="co-slideover-hd">
+  <div>
+   <div class="co-slideover-title" id="co-slideover-title"></div>
+   <div class="co-slideover-sub" id="co-slideover-sub">Company Profile</div>
+  </div>
+  <button class="co-slideover-close" onclick="closeCoSlideOver()" title="Close">✕</button>
+ </div>
+ <div class="co-slideover-body" id="co-slideover-body">
+  <div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>
  </div>
 </div>
 
@@ -8586,8 +8613,166 @@ function _openEntityByEl(el) {
   const id   = el.dataset.eid;
   const name = el.dataset.ename || el.textContent.trim();
   const tab  = el.dataset.tab  || '';
-  openEntityModal('company', id, name, tab);
+  openCompanySlideOver(id, name, tab);
 }
+
+/* ─── Company slide-over panel ──────────────────────────────────────────────── */
+async function openCompanySlideOver(companyId, companyName, sourceTabId) {
+  const panel   = document.getElementById('co-slideover');
+  const overlay = document.getElementById('co-slideover-overlay');
+  const titleEl = document.getElementById('co-slideover-title');
+  const subEl   = document.getElementById('co-slideover-sub');
+  const bodyEl  = document.getElementById('co-slideover-body');
+  if (!panel) return;
+
+  titleEl.textContent = companyName || 'Company';
+  subEl.textContent   = 'Company Profile';
+  bodyEl.innerHTML    = '<div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
+  overlay.classList.add('open');
+  panel.classList.add('open');
+
+  if (!_sb) {
+    bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Database not connected.</div>';
+    return;
+  }
+
+  try {
+    const AREA      = (sourceTabId && TAB_AREA_MAP[sourceTabId]?.[0]) || 'tl1a';
+    const DRUG_AREA = (AREA === 'tl1a') ? (tl1aPI._drugDisplayArea || 'ibd') : AREA;
+
+    // Reuse existing cache if available (avoids re-fetch when card already loaded inline)
+    const piObj = (AREA === 'tl1a') ? tl1aPI : (_areaPIs[sourceTabId] || null);
+    if (piObj?._profileCache?.[companyId]) {
+      const sbData = piObj._profileCache[companyId];
+      const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
+                       summary: sbData.profile?.platform_summary || '', overlap: '', _groupEntries: [] };
+      try   { bodyEl.innerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, prog, sbData); }
+      catch (e) { bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`; }
+      return;
+    }
+
+    // ── Parallel fetch: profile + catalysts + deals ──
+    const [profileRes, catsRes, dealsRes] = await Promise.all([
+      _sb.from('company_profiles').select('*')
+         .eq('company_id', companyId).eq('area_id', AREA)
+         .order('updated_at', { ascending: false }).limit(1),
+      _sb.from('catalysts').select('*')
+         .eq('company_id', companyId).eq('area_id', AREA)
+         .eq('resolved', false).order('sort_date', { ascending: true }).limit(20),
+      _sb.from('deals').select('*')
+         .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
+    ]);
+    const profile = profileRes.data?.[0] || null;
+    const cats    = catsRes.data || [];
+    let deals     = dealsRes.data || [];
+
+    // Fallback deal name-match
+    if (!deals.length) {
+      const coName = (companyName||'').split('/')[0].trim().substring(0, 14);
+      const { data: d2 } = await _sb.from('deals').select('*')
+        .or(`from_company.ilike.*${coName}*,to_company.ilike.*${coName}*`)
+        .order('deal_date', { ascending: false }).limit(20);
+      deals = d2 || [];
+    }
+
+    // Intel news items
+    let intelNews = [];
+    try {
+      const { data: icRows } = await _sb.from('intel_companies').select('intel_id')
+        .eq('company_id', companyId).limit(20);
+      if (icRows?.length) {
+        const intelIds = icRows.map(r => r.intel_id);
+        const { data: intelRows } = await _sb.from('intel')
+          .select('id,intel_date,headline,body,source_url')
+          .in('id', intelIds).order('intel_date', { ascending: false }).limit(10);
+        intelNews = (intelRows||[]).map(i => ({
+          _source: 'intel', deal_date: i.intel_date,
+          deal_date_label: i.intel_date ? i.intel_date.slice(0, 10) : '',
+          headline: i.headline, detail: (i.body||'').slice(0, 200),
+          source_url: i.source_url, deal_type: 'news',
+        }));
+      }
+    } catch(_) {}
+
+    const allNews = [...deals, ...intelNews]
+      .filter((item, idx, arr) =>
+        arr.findIndex(x => (x.headline||'').slice(0,40) === (item.headline||'').slice(0,40)) === idx)
+      .sort((a, b) => (b.deal_date||'').localeCompare(a.deal_date||''));
+
+    // ── Drugs for this area ──
+    const [drugAreaRes, allCoDrugsRes] = await Promise.all([
+      _sb.from('drug_areas').select('drug_id').eq('area_id', DRUG_AREA),
+      _sb.from('drugs').select('*').eq('company_id', companyId)
+         .order('sort_order', { ascending: true }).limit(20),
+    ]);
+    const areaSet = new Set((drugAreaRes.data||[]).map(r => r.drug_id));
+    const drugs   = (allCoDrugsRes.data||[]).filter(d => areaSet.has(d.id));
+
+    // ── Trials per drug ──
+    let trials = [];
+    for (const d of drugs.slice(0, 8)) {
+      const { data: tt } = await _sb.from('trials').select('*').eq('drug_id', d.id);
+      if (tt) trials.push(...tt);
+    }
+
+    // ── Combos + combo trials ──
+    let combos = [];
+    try {
+      const { data: comboRows } = await _sb.from('drug_combinations').select('*')
+        .eq('company_id', companyId).eq('area_id', AREA)
+        .order('strategic_significance', { ascending: true });
+      const seen = new Set();
+      combos = (comboRows||[]).filter(c => {
+        const key = (c.label||'').toLowerCase().replace(/\s*[\(\[].*?[\)\]]/g,'').replace(/\s+/g,' ').trim();
+        if (seen.has(key)) return false; seen.add(key); return true;
+      });
+      const comboIds = combos.map(c => c.id).filter(Boolean);
+      if (comboIds.length) {
+        const { data: ctr } = await _sb.from('trials').select('*').in('combination_id', comboIds);
+        if (ctr?.length) trials.push(...ctr);
+      }
+    } catch(_) {}
+
+    // ── Molecule intelligence ──
+    let moleculeIntel = {};
+    try {
+      const drugIds = drugs.map(d => d.id).filter(Boolean);
+      if (drugIds.length) {
+        const { data: molRows } = await _sb.from('molecule_intelligence').select('*').in('drug_id', drugIds);
+        if (molRows?.length) molRows.forEach(m => { moleculeIntel[m.drug_id] = m; });
+      }
+    } catch(_) {}
+
+    const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
+                     summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
+    const sbData = { profile, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
+
+    // Cache for future opens
+    if (piObj) piObj._profileCache[companyId] = sbData;
+
+    try   { bodyEl.innerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, prog, sbData); }
+    catch (e) {
+      console.error('[openCompanySlideOver] render error:', e);
+      bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`;
+    }
+  } catch (err) {
+    console.warn('[openCompanySlideOver] fetch error:', err);
+    bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Failed to load company data.</div>';
+  }
+}
+
+function closeCoSlideOver() {
+  document.getElementById('co-slideover')?.classList.remove('open');
+  document.getElementById('co-slideover-overlay')?.classList.remove('open');
+}
+
+// Close slide-over on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeCoSlideOver();
+    closeEntityModal();
+  }
+});
 
 /* ─── Shared area/tab color maps ─────────────────────────────────────────── */
 const _AREA_CLS   = { tl1a:'ct', tslp:'ct', il4ra:'ct-t2', igf1r:'ct-ted', fcrn:'ct-ai', tcell:'ct-ir', ox40l:'ct-t2' };
