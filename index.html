@@ -8589,6 +8589,12 @@ function _openEntityByEl(el) {
   openEntityModal('company', id, name, tab);
 }
 
+/* ─── Shared area/tab color maps ─────────────────────────────────────────── */
+const _AREA_CLS   = { tl1a:'ct', tslp:'ct', il4ra:'ct-t2', igf1r:'ct-ted', fcrn:'ct-ai', tcell:'ct-ir', ox40l:'ct-t2' };
+const _AREA_LABEL = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R/TSHR', fcrn:'FcRn', tcell:'BCMA/CD19/CD3', ox40l:'OX40L' };
+const _TAB_CLS    = { 'tl1a':'ct','tslp':'ct','il4ra-tslp':'ct-t2','il4ra-ox40l':'ct-t2','igf1r-tshr':'ct-ted','fcrn':'ct-ai','ace':'ct-ir' };
+
+/* ─── Company modal ──────────────────────────────────────────────────────── */
 async function openEntityModal(type, id, name, sourceTabId) {
   const overlay  = document.getElementById('entity-modal-overlay');
   const titleEl  = document.getElementById('entity-modal-title');
@@ -8599,9 +8605,10 @@ async function openEntityModal(type, id, name, sourceTabId) {
   if (!overlay) return;
 
   titleEl.textContent = name;
-  subEl.textContent   = '';
+  subEl.textContent   = 'Company Profile';
   bodyEl.innerHTML    = '<div style="padding:40px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
   footerEl.style.display = 'none';
+  tagsEl.innerHTML = '';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 
@@ -8611,26 +8618,32 @@ async function openEntityModal(type, id, name, sourceTabId) {
   }
 
   try {
-    const areaIds = TAB_AREA_MAP[sourceTabId] || [];
-    const AREA    = areaIds[0] || '';
-
     const [profRes, catRes, drugRes, dealRes] = await Promise.all([
-      AREA ? _sb.from('company_profiles').select('*').eq('company_id', id).eq('area_id', AREA).limit(1) : Promise.resolve({ data: [] }),
+      _sb.from('company_profiles').select('*').eq('company_id', id).limit(10),
       _sb.from('catalysts').select('label,catalyst_date,sort_date,notes').eq('company_id', id).order('sort_date').limit(8),
-      _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,company_id').eq('company_id', id).limit(12),
+      _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,overlap,overlap_rationale,strategic_role,company_id').eq('company_id', id).limit(15),
       _sb.from('deals').select('headline,deal_date,deal_type,value_usd,source_url').eq('company_id', id).order('deal_date', {ascending:false}).limit(5),
     ]);
 
-    const profile = profRes.data?.[0] || null;
-    const cats    = catRes.data  || [];
-    const drugs   = drugRes.data || [];
-    const deals   = dealRes.data || [];
+    const profiles = profRes.data || [];
+    const cats     = catRes.data  || [];
+    const drugs    = drugRes.data || [];
+    const deals    = dealRes.data || [];
 
-    subEl.textContent = AREA ? AREA.toUpperCase() + ' area context' : 'Company profile';
-    bodyEl.innerHTML  = _entityModalBodyHTML(profile, cats, drugs, deals);
-
-    // "Also tracked in" strip — find areas via drug_areas
+    // Fetch trials for all company drugs
     const drugIds = drugs.map(d => d.id).filter(Boolean);
+    let trials = [];
+    if (drugIds.length) {
+      const { data: trialRows } = await _sb.from('trials')
+        .select('id,drug_id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,primary_endpoint')
+        .in('drug_id', drugIds).limit(25);
+      trials = trialRows || [];
+    }
+
+    subEl.textContent = profiles.length ? `${profiles.length} area${profiles.length>1?'s':''} tracked` : 'Company profile';
+    bodyEl.innerHTML  = _entityModalBodyHTML(profiles, cats, drugs, deals, trials);
+
+    // "Also tracked in" footer strip
     if (drugIds.length) {
       const { data: daRows } = await _sb.from('drug_areas').select('area_id').in('drug_id', drugIds);
       if (daRows && daRows.length) {
@@ -8639,10 +8652,9 @@ async function openEntityModal(type, id, name, sourceTabId) {
         const foundAreas = [...new Set(daRows.map(r => r.area_id))];
         const otherTabs  = [...new Set(foundAreas.flatMap(a => areaToTabs[a] || []).filter(t => t !== sourceTabId))];
         if (otherTabs.length) {
-          const TAB_CLS = { 'tl1a':'ct','tslp':'ct','il4ra-tslp':'ct-t2','il4ra-ox40l':'ct-t2','igf1r-tshr':'ct-ted','fcrn':'ct-ai','ace':'ct-ir' };
           tagsEl.innerHTML = otherTabs.map(t => {
             const label = TAB_META[t]?.badge || TAB_META[t]?.name || t;
-            return `<span class="entity-also-tag ${TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
+            return `<span class="entity-also-tag ${_TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
           }).join('');
           footerEl.style.display = 'flex';
         }
@@ -8654,28 +8666,210 @@ async function openEntityModal(type, id, name, sourceTabId) {
   }
 }
 
-function _entityModalBodyHTML(profile, cats, drugs, deals) {
+function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
   const sections = [];
-  if (profile?.platform_summary)
-    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>Platform Summary</h5><p>${profile.platform_summary}</p></div>`);
-  if (profile?.bd_summary)
-    sections.push(`<div class="pi-detail-section"><h5>🤝 BD Summary</h5><p>${profile.bd_summary}</p></div>`);
+
+  // Area-labelled profile sections (one per tracked area)
+  profiles.forEach(profile => {
+    const areaId  = profile.area_id || '';
+    const areaLbl = _AREA_LABEL[areaId] || areaId.toUpperCase();
+    const areaCls = _AREA_CLS[areaId]   || 'ct';
+    const areaHdr = areaId
+      ? `<div style="margin-bottom:8px"><span class="entity-also-tag ${areaCls}" style="cursor:default;font-size:10px">${areaLbl}</span></div>` : '';
+    const hasSummary = profile.platform_summary || profile.bd_summary;
+    if (!hasSummary) return;
+    let html = areaHdr;
+    if (profile.platform_summary) html += `<h5 style="margin:0 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">Platform Summary</h5><p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#1e293b">${profile.platform_summary}</p>`;
+    if (profile.bd_summary)       html += `<h5 style="margin:6px 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">BD Summary</h5><p style="margin:0;font-size:12px;line-height:1.5;color:#1e293b">${profile.bd_summary}</p>`;
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1">${html}</div>`);
+  });
+
+  // Catalysts
   if (cats.length)
     sections.push(`<div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${cats.map(c =>
       `<div class="catalyst-item"><span class="catalyst-timing">${c.catalyst_date||c.sort_date||''}</span><span style="font-size:12px">${c.label||''}</span></div>`
     ).join('')}</div>`);
+
+  // Deals
   if (deals.length)
     sections.push(`<div class="pi-detail-section"><h5>📰 Recent Deals</h5>${deals.map(d => {
       const val = d.value_usd ? ` <span style="font-weight:700;color:#c45b11;float:right">$${(d.value_usd/1e6).toFixed(0)}M</span>` : '';
       const src = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#2e6fb0;font-size:11px;font-weight:700;text-decoration:none">↗</a> ` : '';
       return `<div class="deal-row">${src}<span style="font-size:12px">${d.headline||d.deal_type||'Deal'}</span>${val}<div style="font-size:10px;color:#94a3b8;margin-top:2px;clear:both">${d.deal_date||''}</div></div>`;
     }).join('')}</div>`);
+
+  // Pipeline — clickable drug pills
   if (drugs.length)
-    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>💊 Pipeline</h5><div style="margin-top:4px">${drugs.map(d =>
-      `<span style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px">${d.display_name||d.name}</span>`
-    ).join(' ')}</div></div>`);
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>💊 Pipeline</h5><div style="margin-top:4px">${drugs.map(d => {
+      const dn = (d.display_name||d.name||'').replace(/'/g,"\\'");
+      return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
+    }).join(' ')}</div></div>`);
+
+  // Clinical trials table
+  if (trials.length) {
+    const drugMap = {};
+    drugs.forEach(d => { drugMap[d.id] = d.display_name || d.name || '—'; });
+    const trialRows = trials.map(t => `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="font-size:11px;font-weight:700;color:#1e3a5f;padding:5px 8px">${drugMap[t.drug_id]||'—'}</td>
+      <td style="font-size:11px;padding:5px 8px">${t.trial_name||t.id||'—'}</td>
+      <td style="padding:5px 8px;text-align:center">${_phasePill(t.phase)}</td>
+      <td style="font-size:11px;color:#64748b;padding:5px 8px">${t.indication||'—'}</td>
+      <td style="font-size:11px;color:#64748b;padding:5px 8px">${t.primary_completion_date||'—'}</td>
+      <td style="font-size:11px;padding:5px 8px"><span style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;background:${t.status==='Active'||t.status==='Recruiting'?'#dcfce7':'#f1f5f9'};color:${t.status==='Active'||t.status==='Recruiting'?'#15803d':'#64748b'}">${t.status||'—'}</span></td>
+    </tr>`).join('');
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🧪 Clinical Trials (${trials.length})</h5>
+      <div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Drug</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Trial</th>
+          <th style="text-align:center;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Phase</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Indication</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">PCD</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Status</th>
+        </tr></thead>
+        <tbody>${trialRows}</tbody>
+      </table></div></div>`);
+  }
+
   if (!sections.length)
-    return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed profile available for this area yet.</p>';
+    return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed profile available for this company yet.</p>';
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sections.join('')}</div>`;
+}
+
+/* ─── Drug modal ─────────────────────────────────────────────────────────── */
+async function openDrugModal(drugId, drugName, evt) {
+  if (evt) { evt.stopPropagation(); evt.preventDefault(); }
+  const overlay  = document.getElementById('entity-modal-overlay');
+  const titleEl  = document.getElementById('entity-modal-title');
+  const subEl    = document.getElementById('entity-modal-sub');
+  const bodyEl   = document.getElementById('entity-modal-body');
+  const footerEl = document.getElementById('entity-modal-footer');
+  const tagsEl   = document.getElementById('entity-modal-also-tags');
+  if (!overlay) return;
+
+  titleEl.textContent = drugName;
+  subEl.textContent   = 'Drug Profile';
+  bodyEl.innerHTML    = '<div style="padding:40px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
+  footerEl.style.display = 'none';
+  tagsEl.innerHTML = '';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (!_sb) {
+    bodyEl.innerHTML = '<p style="padding:20px;color:#dc2626;font-size:13px">Database not available.</p>';
+    return;
+  }
+
+  try {
+    const [drugRes, areaRes, trialRes] = await Promise.all([
+      _sb.from('drugs').select('*').eq('id', drugId).limit(1),
+      _sb.from('drug_areas').select('area_id,overlap,overlap_rationale,strategic_role').eq('drug_id', drugId),
+      _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
+    ]);
+
+    const drug   = drugRes.data?.[0]  || null;
+    const areas  = areaRes.data       || [];
+    const trials = trialRes.data      || [];
+
+    // Fetch company name
+    let companyName = '';
+    if (drug?.company_id) {
+      const { data: coRows } = await _sb.from('companies').select('name,ticker').eq('id', drug.company_id).limit(1);
+      if (coRows?.[0]) companyName = coRows[0].name + (coRows[0].ticker ? ` (${coRows[0].ticker})` : '');
+    }
+
+    subEl.textContent = companyName || 'Drug Profile';
+    bodyEl.innerHTML  = _drugModalBodyHTML(drug, areas, trials);
+
+    // Footer: disease area tabs this drug appears in
+    if (areas.length) {
+      const areaToTabs = {};
+      Object.entries(TAB_AREA_MAP).forEach(([t, as]) => as.forEach(a => { (areaToTabs[a] = areaToTabs[a] || []).push(t); }));
+      const tabIds = [...new Set(areas.flatMap(a => areaToTabs[a.area_id] || []))];
+      if (tabIds.length) {
+        tagsEl.innerHTML = tabIds.map(t => {
+          const label = TAB_META[t]?.badge || TAB_META[t]?.name || t;
+          return `<span class="entity-also-tag ${_TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
+        }).join('');
+        footerEl.style.display = 'flex';
+      }
+    }
+  } catch(e) {
+    console.warn('[drugModal]', e);
+    bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:13px">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function _phasePill(phase) {
+  if (!phase) return '<span style="font-size:10px;color:#94a3b8">—</span>';
+  const p  = String(phase).toLowerCase();
+  const bg = p.includes('3') ? '#dbeafe' : p.includes('2') ? '#dcfce7' : p.includes('1') ? '#fef9c3' : '#f1f5f9';
+  const co = p.includes('3') ? '#1d4ed8' : p.includes('2') ? '#15803d' : p.includes('1') ? '#854d0e' : '#64748b';
+  return `<span style="display:inline-block;font-size:10px;font-weight:800;background:${bg};color:${co};padding:2px 7px;border-radius:6px;white-space:nowrap">${phase}</span>`;
+}
+
+function _drugModalBodyHTML(drug, areas, trials) {
+  if (!drug) return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">Drug data not available.</p>';
+  const sections = [];
+
+  // Mechanism + summary
+  if (drug.mechanism || drug.drug_summary) {
+    let html = '';
+    if (drug.mechanism)    html += `<h5 style="margin:0 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">Mechanism</h5><p style="margin:0 0 10px;font-size:12px;line-height:1.5;color:#1e293b">${drug.mechanism}</p>`;
+    if (drug.drug_summary) html += `<h5 style="margin:0 0 4px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em">Summary</h5><p style="margin:0;font-size:12px;line-height:1.5;color:#1e293b">${drug.drug_summary}</p>`;
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1">${html}</div>`);
+  }
+
+  // Competitive positioning by area
+  const areaPos = areas.filter(a => a.overlap || a.overlap_rationale || a.strategic_role);
+  if (areaPos.length) {
+    const posRows = areaPos.map(a => {
+      const aLbl = _AREA_LABEL[a.area_id] || (a.area_id||'').toUpperCase();
+      const aCls = _AREA_CLS[a.area_id]   || 'ct';
+      const ov   = (a.overlap||'').toLowerCase();
+      const tierBg = ov==='direct' ? '#fee2e2' : ov==='adjacent' ? '#dbeafe' : '#f1f5f9';
+      const tierCo = ov==='direct' ? '#b91c1c' : ov==='adjacent' ? '#1d4ed8' : '#64748b';
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+          <span class="entity-also-tag ${aCls}" style="cursor:default;font-size:10px">${aLbl}</span>
+          ${a.overlap ? `<span style="font-size:10px;font-weight:800;background:${tierBg};color:${tierCo};padding:2px 8px;border-radius:6px">${a.overlap}</span>` : ''}
+        </div>
+        ${a.overlap_rationale ? `<p style="margin:0 0 4px;font-size:11px;color:#475569;line-height:1.4">${a.overlap_rationale}</p>` : ''}
+        ${a.strategic_role    ? `<p style="margin:0;font-size:11px;color:#64748b;font-style:italic">${a.strategic_role}</p>`    : ''}
+      </div>`;
+    }).join('');
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🎯 Competitive Positioning</h5>${posRows}</div>`);
+  }
+
+  // Clinical trials table
+  if (trials.length) {
+    const trialRows = trials.map(t => `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:6px 8px;text-align:center">${_phasePill(t.phase)}</td>
+      <td style="font-size:11px;font-weight:600;color:#1e293b;padding:6px 8px">${t.trial_name||t.id||'—'}</td>
+      <td style="font-size:11px;color:#64748b;padding:6px 8px">${t.indication||'—'}</td>
+      <td style="font-size:11px;color:#64748b;padding:6px 8px;text-align:center">${t.n_enrollment ? Number(t.n_enrollment).toLocaleString() : '—'}</td>
+      <td style="font-size:11px;color:#64748b;padding:6px 8px">${t.primary_completion_date||'—'}</td>
+      <td style="font-size:11px;padding:6px 8px"><span style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;background:${t.status==='Active'||t.status==='Recruiting'?'#dcfce7':'#f1f5f9'};color:${t.status==='Active'||t.status==='Recruiting'?'#15803d':'#64748b'}">${t.status||'—'}</span></td>
+    </tr>`).join('');
+    const firstEp = trials.find(t => t.primary_endpoint)?.primary_endpoint;
+    sections.push(`<div class="pi-detail-section" style="grid-column:1/-1"><h5>🧪 Clinical Trials (${trials.length})</h5>
+      <div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+          <th style="text-align:center;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Phase</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Trial</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Indication</th>
+          <th style="text-align:center;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">N</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">PCD</th>
+          <th style="text-align:left;padding:5px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Status</th>
+        </tr></thead>
+        <tbody>${trialRows}</tbody>
+      </table></div>
+      ${firstEp ? `<div style="margin-top:10px;font-size:11px;color:#475569;line-height:1.4"><span style="font-weight:700;color:#64748b">Primary Endpoint:</span> ${firstEp}</div>` : ''}
+    </div>`);
+  }
+
+  if (!sections.length)
+    return '<p style="color:#94a3b8;font-style:italic;padding:10px 0">No detailed data available for this drug yet.</p>';
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sections.join('')}</div>`;
 }
 
@@ -12032,7 +12226,7 @@ const tl1aPI = {
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name">${d.display_name||d.name||'—'}</span>
+     <span class="pi-da-name pi-entity-name" onclick="event.stopPropagation();openDrugModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
