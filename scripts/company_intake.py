@@ -614,6 +614,17 @@ def run_intake(company_name: str, dry_run: bool = False, verbose: bool = False, 
 
     company_id = resolution.get("company_id")  # None for new candidates
 
+    # ── Model-tier guard ─────────────────────────────────────────────────────
+    # Haiku hallucinates drug names and fabricates pipeline data.
+    # Live writes to discovery_queue require Sonnet quality.
+    _active_model = os.environ.get("INTAKE_MODEL", "claude-sonnet-4-6")
+    if not dry_run and "haiku" in _active_model.lower():
+        print(f"\n  ❌ Model tier error: INTAKE_MODEL='{_active_model}' cannot be used for live writes.")
+        print(f"     Haiku hallucinates company pipelines — fabricated drug names may enter discovery_queue.")
+        print(f"     Set INTAKE_MODEL=claude-sonnet-4-6 (or unset INTAKE_MODEL) for live runs.")
+        print(f"     Use --dry-run with Haiku for fast structural validation only.")
+        return
+
     # ── Step 2: Research ──────────────────────────────────────────────────────
     print("\n[2/4] Researching company across all Meridian areas...")
     research = research_company(company_name, verbose=verbose)
