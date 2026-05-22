@@ -7,11 +7,20 @@ Ailux competitive context), and writes to Supabase.
 Runs 2:00 AM ET Mon–Sat (06:00 UTC).
 """
 
-import os, json, hashlib, datetime, time, re
+import os, json, hashlib, datetime, time, re, sys
 import feedparser
 import requests
 import anthropic
 from bs4 import BeautifulSoup
+
+# CompanyIdentityResolver — canonical company name → company_id resolution
+# Falls back gracefully if the module isn't available (e.g. first deploy)
+try:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from company_identity_resolver import CompanyIdentityResolver
+    _RESOLVER_AVAILABLE = True
+except ImportError:
+    _RESOLVER_AVAILABLE = False
 
 # ── Credentials ─────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
@@ -519,7 +528,7 @@ def resolve_company_id(name, company_map):
     return None
 
 
-def write_to_supabase(intel_items, company_map=None):
+def write_to_supabase(intel_items, company_map=None, resolver=None):
     inserted_intel = 0
     inserted_deals = 0
     inserted_catalysts = 0
@@ -552,7 +561,10 @@ def write_to_supabase(intel_items, company_map=None):
         for co_name in company_names:
             if not co_name:
                 continue
-            co_id = resolve_company_id(co_name, company_map or {})
+            if resolver:
+                co_id = resolver.resolve(co_name, source="research.py")
+            else:
+                co_id = resolve_company_id(co_name, company_map or {})
             if co_id and co_id not in written_co_ids:
                 sb_post("intel_companies", {"intel_id": intel_id, "company_id": co_id})
                 written_co_ids.add(co_id)
@@ -621,6 +633,15 @@ if __name__ == "__main__":
     company_map = get_company_map()
     log(f"Loaded {len(company_map)} company name → ID mappings")
 
+    # Prefer CompanyIdentityResolver (alias table + audit log) over fragile substring matching
+    resolver = None
+    if _RESOLVER_AVAILABLE:
+        try:
+            resolver = CompanyIdentityResolver(SUPABASE_URL, SUPABASE_KEY)
+            log("CompanyIdentityResolver initialised (alias table + audit logging active)")
+        except Exception as e:
+            log(f"CompanyIdentityResolver init failed, falling back to company_map: {e}")
+
     articles = fetch_feeds(hours_back=48)
     relevant = filter_relevant(articles)
 
@@ -636,6 +657,6 @@ if __name__ == "__main__":
             enrich_with_full_text(new_articles, max_fetches=15)
             intel = extract_intel(new_articles)
             if intel:
-                write_to_supabase(intel, company_map=company_map)
+                write_to_supabase(intel, company_map=company_map, resolver=resolver)
 
     log("=== Research complete ===")
