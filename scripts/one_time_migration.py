@@ -16,11 +16,15 @@ DESIGN CONSTRAINTS:
   - Dry-run mode: prints what would happen, makes no writes.
 
 USAGE:
-    # Dry run first
+    # Dry run first (drug canonical backfill)
     SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python scripts/one_time_migration.py --dry-run
 
-    # Live run
+    # Live run (drug canonical backfill)
     SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python scripts/one_time_migration.py
+
+    # Deals company_id backfill (dry run first, then live)
+    python scripts/one_time_migration.py --backfill-deals --dry-run
+    python scripts/one_time_migration.py --backfill-deals
 
     # From workspace folder (reads credential files)
     python scripts/one_time_migration.py
@@ -233,14 +237,195 @@ def run_backfill(sb_url: str, service_key: str, dry_run: bool = False):
         print(f"  WARNING: could not fetch audit log: {audit_resp.status_code}")
 
 
+# ─── Deals company_id backfill ────────────────────────────────────────────────
+
+def _build_company_map(sb_url: str, headers: dict) -> dict:
+    """
+    Fetch all companies and build a normalised name → company_id lookup.
+    Returns a dict: normalised_name → company_id.
+    Also includes ticker and common abbreviations stored as lowercase keys.
+    """
+    resp = requests.get(
+        f"{sb_url}/rest/v1/companies",
+        headers={**headers, "Prefer": ""},
+        params={"select": "id,name,ticker", "limit": "500"},
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"Failed to fetch companies: {resp.status_code} {resp.text}")
+
+    company_map: dict[str, str] = {}
+    for row in resp.json():
+        cid  = row.get("id", "").strip()
+        name = (row.get("name") or "").strip()
+        tick = (row.get("ticker") or "").strip()
+        if not cid:
+            continue
+        # Index by normalised name (lowercase, strip punctuation)
+        for variant in [name, tick]:
+            if variant:
+                company_map[variant.lower()] = cid
+                # Also strip common suffixes for partial matching
+                for suffix in [" inc", " inc.", " ltd", " ltd.", " plc", " ag",
+                                " gmbh", " co.", " & co", " pharmaceuticals",
+                                " pharma", " biosciences", " therapeutics"]:
+                    if variant.lower().endswith(suffix):
+                        company_map[variant.lower()[:-len(suffix)].strip()] = cid
+    return company_map
+
+
+def _resolve_company_name(name: str, company_map: dict) -> str | None:
+    """
+    Resolve a free-text company name to a company_id using the pre-built map.
+    Strategy: exact → normalised exact → substring scan (longest match wins).
+    Returns company_id or None if unresolved.
+    """
+    if not name:
+        return None
+
+    # 1. Exact match (case-insensitive)
+    key = name.strip().lower()
+    if key in company_map:
+        return company_map[key]
+
+    # 2. Strip common legal suffixes and retry
+    for suffix in [" inc", " inc.", " ltd", " ltd.", " plc", " ag",
+                   " gmbh", " co.", " & co", " pharmaceuticals",
+                   " pharma", " biosciences", " therapeutics"]:
+        if key.endswith(suffix):
+            trimmed = key[:-len(suffix)].strip()
+            if trimmed in company_map:
+                return company_map[trimmed]
+
+    # 3. Substring scan — company map key appears in the input name or vice versa
+    #    Prefer the longest matching key to minimise false positives.
+    best_key   = None
+    best_len   = 0
+    for map_key, cid in company_map.items():
+        if len(map_key) < 4:
+            continue  # skip very short keys (ticker-length) for substring scan
+        if map_key in key or key in map_key:
+            if len(map_key) > best_len:
+                best_key = map_key
+                best_len = len(map_key)
+    if best_key:
+        return company_map[best_key]
+
+    return None
+
+
+def backfill_deals_company_id(sb_url: str, service_key: str, dry_run: bool = False):
+    """
+    Find deals written by research.py (company_id IS NULL, from_company is text),
+    resolve from_company → company_id via name matching, and PATCH deals rows.
+
+    Rationale: research.py writes deals with free-text from_company/to_company and
+    no company_id FK. These deals are invisible in the Company Database profile
+    panel which queries deals WHERE company_id = ?. This backfill makes them visible.
+    """
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+
+    print("Building company name → id map...")
+    company_map = _build_company_map(sb_url, headers)
+    print(f"  {len(company_map)} name variants indexed from companies table")
+
+    print("\nFetching deals without company_id...")
+    resp = requests.get(
+        f"{sb_url}/rest/v1/deals",
+        headers={**headers, "Prefer": ""},
+        params={
+            "select": "id,from_company,to_company,deal_type,deal_date",
+            "company_id": "is.null",
+            "from_company": "not.is.null",
+            "limit": "2000",
+        },
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"Failed to fetch deals: {resp.status_code} {resp.text}")
+
+    deals = resp.json()
+    total = len(deals)
+    print(f"Found {total} deals to backfill.\n")
+
+    if total == 0:
+        print("Nothing to do — all deals already have company_id set.")
+        return
+
+    results = {"patched": 0, "unresolved": 0, "error": 0}
+    unresolved_names: list[str] = []
+
+    for i, deal in enumerate(deals, 1):
+        deal_id     = deal["id"]
+        from_co     = (deal.get("from_company") or "").strip()
+        to_co       = (deal.get("to_company") or "").strip()
+        deal_type   = deal.get("deal_type", "")
+        deal_date   = deal.get("deal_date", "")
+
+        # Primary resolution: from_company (licensor/acquirer is the BD-relevant company)
+        cid = _resolve_company_name(from_co, company_map)
+
+        # Fallback to to_company if from_company doesn't resolve
+        if not cid and to_co:
+            cid = _resolve_company_name(to_co, company_map)
+
+        label = f"'{from_co}'" + (f" / '{to_co}'" if to_co and to_co != from_co else "")
+        print(f"  [{i}/{total}] {label}  ({deal_type}, {deal_date})")
+
+        if not cid:
+            print(f"    → UNRESOLVED")
+            results["unresolved"] += 1
+            unresolved_names.append(from_co)
+            continue
+
+        print(f"    → {cid}")
+
+        if dry_run:
+            print(f"    [DRY RUN] Would PATCH deals id='{deal_id}' with company_id={cid}")
+            results["patched"] += 1
+        else:
+            patch_resp = requests.patch(
+                f"{sb_url}/rest/v1/deals",
+                headers=headers,
+                params={"id": f"eq.{deal_id}"},
+                json={"company_id": cid},
+            )
+            if patch_resp.status_code not in (200, 204):
+                print(f"    WARNING: PATCH failed: {patch_resp.status_code} {patch_resp.text}")
+                results["error"] += 1
+            else:
+                results["patched"] += 1
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    print("\n" + "═" * 60)
+    print(f"  Deals company_id backfill {'(DRY RUN)' if dry_run else 'complete'}")
+    print(f"  Total deals processed : {total}")
+    print(f"  Successfully patched  : {results['patched']}")
+    print(f"  Unresolved            : {results['unresolved']}")
+    print(f"  Errors                : {results['error']}")
+    print("═" * 60)
+
+    if unresolved_names:
+        unique_unresolved = sorted(set(unresolved_names))
+        print(f"\n  ⚠ {len(unique_unresolved)} unique company name(s) could not be resolved:")
+        for name in unique_unresolved:
+            print(f"    '{name}'")
+        print("\n  To fix: add these as aliases in the companies table, then re-run.")
+
+
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Backfill canonical_drug_id for all existing drugs"
+        description="One-time migrations: drug canonical backfill and deals company_id backfill"
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print what would happen without writing to Supabase")
+    parser.add_argument("--backfill-deals", action="store_true",
+                        help="Run deals.company_id backfill instead of drug canonical backfill")
     args = parser.parse_args()
 
     # Credentials: prefer env vars, fall back to workspace credential files
@@ -271,4 +456,7 @@ if __name__ == "__main__":
     print(f"Dry run      : {args.dry_run}")
     print()
 
-    run_backfill(sb_url, sb_key, dry_run=args.dry_run)
+    if args.backfill_deals:
+        backfill_deals_company_id(sb_url, sb_key, dry_run=args.dry_run)
+    else:
+        run_backfill(sb_url, sb_key, dry_run=args.dry_run)
