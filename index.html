@@ -9689,15 +9689,9 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     toggle(id) {
-      const expanding = !this.expanded.has(id);
-      if (this.expanded.has(id)) this.expanded.delete(id); else this.expanded.add(id);
-      this._renderTable();
-      if (expanding) {
-        const ent = this.entities.find(e => e.entity_id === id);
-        if (ent && !this._profileCache[id] && this._profileCache[id] !== null) {
-          this._loadDynamicDetail(id, ent);
-        }
-      }
+      const ent = this.entities.find(e => e.entity_id === id);
+      const name = ent?.entity_name || id;
+      openCompanySlideOver(id, name, this.tabId);
     },
 
     _renderPills() {
@@ -11151,26 +11145,9 @@ const tl1aPI = {
  },
 
  toggle(gid) {
-  const expanding = !this.expanded.has(gid);
-  if (this.expanded.has(gid)) this.expanded.delete(gid);
-  else this.expanded.add(gid);
-  this._renderTable();
-  this._initResize();
-  // Async-load Supabase detail for all companies being expanded
-  if (expanding) {
-   // Check static array first, then fall back to runtime data (includes Supabase-discovered rows)
-   const allData = this.data;
-   const group = allData.filter(p => (p.groupId||p.id) === gid);
-   if (!group.length) return;
-   // Sort group: Direct first, then most-advanced stage
-   const OV = { Direct:0, Adjacent:1, 'Same-Space':2, Watch:3 };
-   group.sort((a,b) => (OV[a.overlap]??9)-(OV[b.overlap]??9) || (TL1A_STAGE_ORDER[a.stageKey]??9)-(TL1A_STAGE_ORDER[b.stageKey]??9));
-   const primary = group[0];
-   // Build combinedProg: primary entry with _groupEntries for static drug fallback
-   const combinedProg = { ...primary, _groupEntries: group };
-   // Use gid as the Supabase company_id — gid matches Supabase companies.id
-   this._loadDynamicDetail(gid, combinedProg);
-  }
+  const group = this.data.filter(p => (p.groupId||p.id) === gid);
+  const name = group[0]?.co || gid;
+  openCompanySlideOver(gid, name, 'tl1a');
  },
 
  _clsPill(cls) {
