@@ -1,0 +1,332 @@
+#!/usr/bin/env python3
+"""
+approve_discovery.py — Promote an approved discovery_queue item to production.
+
+Usage:
+  # Promote a single queue item by ID
+  python scripts/approve_discovery.py --id <uuid>
+
+  # List pending items for an area
+  python scripts/approve_discovery.py --list --area tl1a
+
+  # List all critical (relevance 9-10) pending items
+  python scripts/approve_discovery.py --list --critical
+
+  # Dry-run promotion (shows what would be created, does not write)
+  python scripts/approve_discovery.py --id <uuid> --dry-run
+
+After promotion:
+  - company row created (if suggested_dest = 'new_company' and company doesn't exist)
+  - company_areas row created
+  - drugs row created (if drug_name present)
+  - drug_areas row created
+  - discovery_queue updated: created_company_id, created_drug_id, status='approved'
+  - You should then run enrichment on the new company:
+      python scripts/company_enrichment.py --area <area_id> --company <company_id>
+"""
+
+import os
+import re
+import sys
+import json
+import datetime
+import argparse
+import requests
+
+# ── Supabase credentials ──────────────────────────────────────────────────────
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    # Try loading from local files (for local dev)
+    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        SUPABASE_URL = open(os.path.join(_base, ".supabase_config")).read().split("SUPABASE_URL=")[1].split("\n")[0].strip()
+    except Exception:
+        pass
+    try:
+        SUPABASE_KEY = open(os.path.join(_base, ".supabase_service_key")).read().strip()
+    except Exception:
+        pass
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set (env or .supabase_config / .supabase_service_key)")
+    sys.exit(1)
+
+TODAY = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+
+SB_HEADERS = {
+    "apikey":        SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type":  "application/json",
+    "Prefer":        "return=representation",
+}
+SB_UPSERT_HEADERS = {**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=representation"}
+
+
+def sb_get(table, params=None):
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    r = requests.get(url, headers=SB_HEADERS, params=params or {}, timeout=15)
+    r.raise_for_status()
+    return r.json()
+
+
+def sb_post(table, record):
+    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=SB_HEADERS, json=record, timeout=15)
+    if r.status_code not in (200, 201):
+        raise RuntimeError(f"[sb_post {table}] {r.status_code}: {r.text[:300]}")
+    data = r.json()
+    return data[0] if data else record
+
+
+def sb_upsert(table, record, on_conflict=None):
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    if on_conflict:
+        url += f"?on_conflict={on_conflict}"
+    r = requests.post(url, headers=SB_UPSERT_HEADERS, json=[record], timeout=15)
+    if r.status_code not in (200, 201):
+        raise RuntimeError(f"[sb_upsert {table}] {r.status_code}: {r.text[:300]}")
+    return r.json()
+
+
+def sb_patch(table, match_col, match_val, patch):
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{match_col}=eq.{match_val}"
+    r = requests.patch(url, headers=SB_HEADERS, json=patch, timeout=15)
+    if r.status_code not in (200, 204):
+        raise RuntimeError(f"[sb_patch {table}] {r.status_code}: {r.text[:300]}")
+    return r.json() if r.text else {}
+
+
+def slugify(s):
+    return re.sub(r'[^a-z0-9]', '', (s or '').lower())[:20]
+
+
+def drug_slugify(s):
+    return re.sub(r'[^a-z0-9]', '-', (s or '').lower()).strip('-')
+
+
+# ── List pending items ────────────────────────────────────────────────────────
+def cmd_list(area=None, critical=False):
+    params = {"status": "eq.pending", "order": "relevance_score.desc,discovered_at.desc", "limit": "100"}
+    if area:
+        params["area_id"] = f"eq.{area}"
+    rows = sb_get("discovery_queue", params)
+    if not rows:
+        print("No pending items found.")
+        return
+
+    if critical:
+        rows = [r for r in rows if (r.get("relevance_score") or 0) >= 9]
+
+    print(f"\n{'─'*100}")
+    print(f"{'COMPANY':<25} {'DRUG':<20} {'AREA':<8} {'LYR':<5} {'REL':<5} {'CONF':<5} {'DEST':<18} {'WHY'}")
+    print(f"{'─'*100}")
+    for r in rows:
+        layer = r.get("competition_layer") or "—"
+        print(
+            f"{r['company_name'][:24]:<25} "
+            f"{(r.get('drug_name') or '')[:19]:<20} "
+            f"{r['area_id']:<8} "
+            f"L{layer:<4} "
+            f"{r.get('relevance_score','?'):<5} "
+            f"{r.get('confidence_score','?'):<5} "
+            f"{(r.get('suggested_dest') or '')[:17]:<18} "
+            f"{(r.get('reason') or '')[:60]}"
+        )
+        print(f"  ID: {r['id']}")
+    print(f"{'─'*100}")
+    print(f"Total: {len(rows)} item(s)")
+
+
+# ── Promote a single queue item ────────────────────────────────────────────────
+def cmd_promote(queue_id: str, dry_run: bool = False):
+    rows = sb_get("discovery_queue", {"id": f"eq.{queue_id}"})
+    if not rows:
+        print(f"ERROR: No discovery_queue item found with id={queue_id}")
+        sys.exit(1)
+    row = rows[0]
+
+    print(f"\n{'═'*60}")
+    print(f"  Promoting: {row['company_name']}")
+    if row.get('drug_name'):
+        print(f"  Drug: {row['drug_name']}")
+    print(f"  Area: {row['area_id']}  |  Relevance: {row.get('relevance_score')}  |  Layer: {row.get('competition_layer')}")
+    print(f"  Overlap: {row.get('overlap')}  |  Destination: {row.get('suggested_dest')}")
+    print(f"  Reason: {row.get('reason','')}")
+    print(f"  {'[DRY RUN] ' if dry_run else ''}Processing…")
+    print(f"{'─'*60}")
+
+    co_name    = row["company_name"]
+    drug_name  = row.get("drug_name")
+    area_id    = row["area_id"]
+    overlap    = row.get("overlap", "Watch")
+    suggested  = row.get("suggested_dest", "new_company")
+
+    created_company_id = None
+    created_drug_id    = None
+
+    # ── 1. Resolve or create company ─────────────────────────────────────────
+    co_id_slug = row.get("company_id_suggested") or slugify(co_name)
+
+    existing_co = sb_get("companies", {"id": f"eq.{co_id_slug}", "select": "id,name"})
+    if existing_co:
+        co_id = existing_co[0]["id"]
+        print(f"  ✓ Company exists: {co_id} ({existing_co[0]['name']})")
+    else:
+        co_id = co_id_slug
+        acquired_by = row.get("acquired_by") or None
+        co_status   = "acquired" if acquired_by else "active"
+
+        if dry_run:
+            print(f"  [DRY RUN] Would create company: {co_id} (status={co_status})")
+        else:
+            sb_upsert("companies", {
+                "id":            co_id,
+                "name":          co_name,
+                "ticker":        "Private",
+                "company_type":  "small_cap",
+                "group_id":      co_id,
+                "overlap":       overlap,
+                "ailux_angle":   f"Promoted from discovery: {row.get('reason','')}",
+                "last_verified": TODAY,
+                "status":        co_status,
+                "acquired_by":   acquired_by,
+                "partner_co":    row.get("partner_co"),
+            }, on_conflict="id")
+            print(f"  + Created company: {co_id} (status={co_status})")
+        created_company_id = co_id
+
+        if co_status == "acquired":
+            print(f"  ⚠ Company marked ACQUIRED by {acquired_by} — skipping drug/area creation.")
+            _finalize(queue_id, co_id, None, dry_run)
+            return
+
+    # ── 2. Create company_areas link ──────────────────────────────────────────
+    existing_link = sb_get("company_areas", {
+        "company_id": f"eq.{co_id}", "area_id": f"eq.{area_id}", "select": "company_id"
+    })
+    if existing_link:
+        print(f"  ✓ company_areas link exists: {co_id} → {area_id}")
+    else:
+        if dry_run:
+            print(f"  [DRY RUN] Would create company_areas: {co_id} → {area_id}")
+        else:
+            sb_upsert("company_areas", {"company_id": co_id, "area_id": area_id}, on_conflict="company_id,area_id")
+            print(f"  + company_areas: {co_id} → {area_id}")
+
+    # Fetch indication_group for tagging (e.g. tl1a → ibd)
+    area_meta = sb_get("disease_areas", {"id": f"eq.{area_id}", "select": "indication_group"})
+    indication_group = (area_meta[0].get("indication_group") if area_meta else None) or area_id
+    if indication_group != area_id:
+        ig_link = sb_get("company_areas", {
+            "company_id": f"eq.{co_id}", "area_id": f"eq.{indication_group}", "select": "company_id"
+        })
+        if not ig_link:
+            if dry_run:
+                print(f"  [DRY RUN] Would create company_areas: {co_id} → {indication_group}")
+            else:
+                sb_upsert("company_areas", {"company_id": co_id, "area_id": indication_group}, on_conflict="company_id,area_id")
+                print(f"  + company_areas: {co_id} → {indication_group} (indication group)")
+
+    # ── 3. Create drug row ────────────────────────────────────────────────────
+    if drug_name:
+        drug_slug = drug_slugify(drug_name)
+        existing_drug = sb_get("drugs", {"id": f"eq.{drug_slug}", "select": "id,company_id"})
+        if existing_drug:
+            print(f"  ✓ Drug exists: {drug_slug} (company: {existing_drug[0].get('company_id')})")
+            created_drug_id = drug_slug
+        else:
+            _stage_map = {
+                "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
+                "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
+            }
+            stage = row.get("stage", "Preclinical")
+            target = row.get("target", "")
+
+            if dry_run:
+                print(f"  [DRY RUN] Would create drug: {drug_slug}")
+            else:
+                sb_upsert("drugs", {
+                    "id":                  drug_slug,
+                    "name":                drug_name,
+                    "company_id":          co_id,
+                    "entity_id":           co_id,
+                    "entity_name":         co_name,
+                    "entity_type":         "standalone",
+                    "stage":               stage,
+                    "target":              target,
+                    "mechanism":           f"Anti-{target}" if target else None,
+                    "modality":            row.get("modality"),
+                    "drug_format":         row.get("modality"),
+                    "route":               row.get("route"),
+                    "cls":                 "Next Gen" if "×" in (target or "") else "1st Gen",
+                    "overlap":             "Direct",
+                    "discovery_status":    "promoted",
+                    "confidence_score":    row.get("confidence_score"),
+                    "confidence_level":    "inferred",
+                    "data_source":         "discovery_queue",
+                    "expected_evidence_stage": _stage_map.get(stage, 2),
+                    "sort_order":          99,
+                }, on_conflict="id")
+                print(f"  + Created drug: {drug_slug}")
+
+            created_drug_id = drug_slug
+
+            # Drug areas
+            if not dry_run:
+                sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": area_id}, on_conflict="drug_id,area_id")
+                if indication_group != area_id:
+                    sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": indication_group}, on_conflict="drug_id,area_id")
+                print(f"  + drug_areas: {drug_slug} → {area_id}{', '+indication_group if indication_group!=area_id else ''}")
+
+    # ── 4. Finalize queue row ─────────────────────────────────────────────────
+    _finalize(queue_id, created_company_id, created_drug_id, dry_run)
+
+    print(f"\n  ✓ Promotion complete!")
+    print(f"\n  ► Next step: run enrichment to populate intelligence:")
+    print(f"      python scripts/company_enrichment.py --area {area_id} --company {co_id}")
+    print()
+
+
+def _finalize(queue_id, co_id, drug_id, dry_run):
+    patch = {
+        "status":             "approved",
+        "reviewed_at":        datetime.datetime.utcnow().isoformat(),
+        "reviewed_by":        "approve_discovery.py",
+        "created_company_id": co_id,
+        "created_drug_id":    drug_id,
+    }
+    if dry_run:
+        print(f"  [DRY RUN] Would update discovery_queue id={queue_id}: {patch}")
+    else:
+        sb_patch("discovery_queue", "id", queue_id, patch)
+        print(f"  ✓ discovery_queue updated: status=approved, created_company_id={co_id}")
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
+def main():
+    parser = argparse.ArgumentParser(
+        description="Promote discovery_queue items to production (companies/drugs/company_areas)"
+    )
+    parser.add_argument("--id",       help="UUID of the discovery_queue item to promote")
+    parser.add_argument("--list",     action="store_true", help="List pending items")
+    parser.add_argument("--area",     help="Filter by area_id")
+    parser.add_argument("--critical", action="store_true", help="Show only relevance 9-10 items")
+    parser.add_argument("--dry-run",  action="store_true", help="Preview — do not write to DB")
+    args = parser.parse_args()
+
+    if args.list:
+        cmd_list(area=args.area, critical=args.critical)
+    elif args.id:
+        cmd_promote(args.id, dry_run=args.dry_run)
+    else:
+        parser.print_help()
+        print("\nExamples:")
+        print("  python scripts/approve_discovery.py --list --area tl1a")
+        print("  python scripts/approve_discovery.py --list --critical")
+        print("  python scripts/approve_discovery.py --id <uuid> --dry-run")
+        print("  python scripts/approve_discovery.py --id <uuid>")
+
+
+if __name__ == "__main__":
+    main()
