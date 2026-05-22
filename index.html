@@ -8618,18 +8618,23 @@ function _openEntityByEl(el) {
 
 /* ─── Company slide-over panel ──────────────────────────────────────────────── */
 async function openCompanySlideOver(companyId, companyName, sourceTabId) {
-  const titleEl = document.getElementById('entity-modal-title');
-  const subEl   = document.getElementById('entity-modal-sub');
-  const bodyEl  = document.getElementById('entity-modal-body');
+  console.log('[openCompanySlideOver] called:', companyId, companyName, sourceTabId);
+  // Open overlay FIRST — before any DOM manipulation that could throw
   const overlay = document.getElementById('entity-modal-overlay');
-  const footerEl = document.getElementById('entity-modal-footer');
-  if (!overlay) return;
-
-  titleEl.textContent = companyName || 'Company';
-  subEl.textContent   = 'Company Profile';
-  bodyEl.innerHTML    = '<div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
-  if (footerEl) footerEl.style.display = 'none';
+  if (!overlay) { console.warn('[openCompanySlideOver] overlay not found'); return; }
   overlay.classList.add('open');
+
+  const titleEl  = document.getElementById('entity-modal-title');
+  const subEl    = document.getElementById('entity-modal-sub');
+  const bodyEl   = document.getElementById('entity-modal-body');
+  const footerEl = document.getElementById('entity-modal-footer');
+
+  if (titleEl)  titleEl.textContent = companyName || 'Company';
+  if (subEl)    subEl.textContent   = 'Company Profile';
+  if (bodyEl)   bodyEl.innerHTML    = '<div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
+  if (footerEl) footerEl.style.display = 'none';
+
+  if (!bodyEl) { console.warn('[openCompanySlideOver] bodyEl not found'); return; }
 
   if (!_sb) {
     bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Database not connected.</div>';
