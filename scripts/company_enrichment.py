@@ -2710,6 +2710,33 @@ def run_intelligence_pipeline(area_id: str,
         log(f"No companies for area '{area_id}'")
         return
 
+    # ── Check enrichment_queue for signal-triggered priority items (Tier 1 P2) ──
+    # Signal monitor writes high-relevance signals here. We process queued companies
+    # first so they benefit from latest signal data, then continue with the full sweep.
+    queued_items = sb_get("enrichment_queue", {
+        "area_id": f"eq.{area_id}",
+        "status":  "eq.pending",
+        "select":  "id,company_id,priority,trigger",
+        "order":   "priority.desc",
+        "limit":   "50",
+    })
+    if queued_items:
+        queued_cos = [q["company_id"] for q in queued_items]
+        log(f"\n⚡ enrichment_queue: {len(queued_items)} pending item(s) for {area_id}")
+        for q in queued_items:
+            log(f"  {q['company_id']} (priority={q['priority']}, trigger={q['trigger']})", indent=1)
+        # Mark queued items as dispatched
+        if not dry_run:
+            for q in queued_items:
+                sb_patch("enrichment_queue",
+                         {"status": "dispatched", "dispatched_at": NOW_ISO},
+                         {"id": f"eq.{q['id']}"})
+        # Reorder: queued companies run first, then the rest (deduped)
+        queued_set = set(queued_cos)
+        company_ids = queued_cos + [c for c in company_ids if c not in queued_set]
+    else:
+        log("\n── enrichment_queue: no pending items for this area ──")
+
     log(f"\n{len(company_ids)} companies to enrich: {company_ids}")
     log("Note: Trials pre-populated by ct_gov_sync.py (Step 3)")
 
@@ -2727,6 +2754,14 @@ def run_intelligence_pipeline(area_id: str,
     log(f"\n{'='*60}")
     log(f"Complete: {results['success']} success, {results['failed']} failed")
     log(f"{'='*60}")
+
+    # Mark dispatched enrichment_queue items as complete
+    if not dry_run and queued_items:
+        for q in queued_items:
+            sb_patch("enrichment_queue",
+                     {"status": "complete", "completed_at": NOW_ISO},
+                     {"id": f"eq.{q['id']}"})
+        log(f"enrichment_queue: marked {len(queued_items)} item(s) complete")
 
     # Reconciliation — runs only on full-area runs (not targeted --company filters).
     # Removes stale company_areas links and flags any remaining ghost entities.
