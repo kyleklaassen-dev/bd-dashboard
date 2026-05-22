@@ -555,9 +555,10 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
         # ── intel_areas junction ──────────────────────────────────────────
         sb_post("intel_areas", {"intel_id": intel_id, "area_id": item["area_id"]})
 
-        # ── intel_companies junction ───────────────────────────────────────
+        # ── intel_companies junction + primary_company_id ─────────────────
         company_names = item.get("company_names") or []
         written_co_ids = set()
+        primary_co_id: str | None = None
         for co_name in company_names:
             if not co_name:
                 continue
@@ -568,6 +569,22 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
             if co_id and co_id not in written_co_ids:
                 sb_post("intel_companies", {"intel_id": intel_id, "company_id": co_id})
                 written_co_ids.add(co_id)
+                if primary_co_id is None:
+                    primary_co_id = co_id  # first resolved company = primary
+        # Patch primary_company_id onto the intel row if we resolved at least one
+        if primary_co_id:
+            import requests as _req
+            _req.patch(
+                f"{SUPABASE_URL}/rest/v1/intel?id=eq.{intel_id}",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={"primary_company_id": primary_co_id},
+                timeout=5,
+            )
 
         # ── Deal record ───────────────────────────────────────────────────
         if item.get("is_deal") and item.get("deal_from"):
