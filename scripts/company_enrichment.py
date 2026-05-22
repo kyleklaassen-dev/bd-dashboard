@@ -1895,14 +1895,35 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         ) or TODAY
         if sort_date < TODAY:
             continue
+        drug_id_raw = (cat.get("drug_id") or "").strip() or None
+        cat_type    = cat.get("catalyst_type", "readout")
+
+        # Dedup check: skip if this (company, drug, type, date) already exists
+        # Mirrors the step4 pattern — the unique index uses COALESCE(drug_id,'')
+        # which PostgREST cannot use as an on_conflict target, so we guard here.
+        dedup_params: dict = {
+            "company_id":   f"eq.{company_id}",
+            "catalyst_type": f"eq.{cat_type}",
+            "sort_date":    f"eq.{sort_date}",
+            "select":       "id",
+        }
+        if drug_id_raw:
+            dedup_params["drug_id"] = f"eq.{drug_id_raw}"
+        else:
+            dedup_params["drug_id"] = "is.null"
+        if sb_get("catalysts", dedup_params):
+            log(f"  catalyst '{(cat.get('label') or '')[:40]}': already exists, skipping", indent=1)
+            continue
+
         cat_rec = {
             "catalyst_date":    cat.get("catalyst_date", ""),
             "sort_date":        sort_date,
             "label":            (cat.get("label") or "")[:200],
             "company_id":       company_id,
             "area_id":          area_id,
+            "drug_id":          drug_id_raw,
             "significance":     cat.get("significance", "medium"),
-            "catalyst_type":    cat.get("catalyst_type", "readout"),
+            "catalyst_type":    cat_type,
             "notes":            cat.get("notes", ""),
             "is_key_watch":     bool(cat.get("is_key_watch", False)),
             "confidence_level": cat.get("confidence_level", "inferred"),
