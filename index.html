@@ -6196,7 +6196,7 @@ async function dknLoadData() {
     const { data, error } = await _sb
       .from('drugs')
       .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly')
-      .eq('data_source', 'catalog')
+      .not('catalog_category', 'is', null)
       .order('catalog_category')
       .order('stage');
     if (error) throw error;
