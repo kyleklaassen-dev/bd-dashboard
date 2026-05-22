@@ -7650,13 +7650,14 @@ function _esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function dqAction(id, newStatus) {
+async function dqAction(id, newStatus, extraPatch = null) {
   // Optimistically update local data
   const row = _dqData.find(r => r.id === id);
   if (!row) return;
   const oldStatus = row.status;
   row.status = newStatus;
   row.reviewed_at = new Date().toISOString();
+  if (extraPatch) Object.assign(row, extraPatch);  // optimistic update for overrides
   dqRenderStats();
   dqRender();
 
@@ -7665,6 +7666,7 @@ async function dqAction(id, newStatus) {
       status:      newStatus,
       reviewed_at: new Date().toISOString(),
       reviewed_by: 'kyle',
+      ...(extraPatch || {}),   // merge any overrides (e.g. relationship_type)
     };
     const { error } = await _sb.from('discovery_queue').update(patch).eq('id', id);
     if (error) throw error;
@@ -7675,6 +7677,7 @@ async function dqAction(id, newStatus) {
     // Roll back optimistic update
     row.status = oldStatus;
     row.reviewed_at = null;
+    if (extraPatch) Object.keys(extraPatch).forEach(k => delete row[k]);
     dqRenderStats();
     dqRender();
     console.error('dqAction error:', e);
@@ -7697,6 +7700,37 @@ function dqShowApprovedNote(row) {
   setTimeout(() => toast.remove(), 4500);
 }
 
+// Relationship type display config
+const DQ_REL_TYPE_LABEL = {
+  peer_competitor:    'Peer Competitor',
+  direct_competitor:  'Direct Competitor',
+  adjacent_competitor:'Adjacent Competitor',
+  licensor:           'Licensor',
+  licensee:           'Licensee',
+  partner:            'Partner',
+  co_developer:       'Co-Developer',
+  parent_subsidiary:  'Parent/Subsidiary',
+  asset_owner:        'Asset Owner',
+  unknown:            'Unknown',
+};
+const DQ_REL_TYPE_COLOR = {
+  peer_competitor:    '#2563eb',
+  direct_competitor:  '#dc2626',
+  adjacent_competitor:'#d97706',
+  licensor:           '#7c3aed',
+  licensee:           '#7c3aed',
+  partner:            '#059669',
+  co_developer:       '#059669',
+  parent_subsidiary:  '#64748b',
+  asset_owner:        '#0f172a',
+  unknown:            '#94a3b8',
+};
+const DQ_REL_CONF_COLOR = {
+  confirmed: '#059669',
+  inferred:  '#d97706',
+  suggested: '#94a3b8',
+};
+
 function dqShowDetail(id) {
   const row = _dqData.find(r => r.id === id);
   if (!row) return;
@@ -7708,6 +7742,13 @@ function dqShowDetail(id) {
   const relCls = rel >= 9 ? '#dc2626' : rel >= 7 ? '#d97706' : rel >= 5 ? '#2563eb' : '#94a3b8';
   const layer  = row.competition_layer;
   const date   = row.discovered_at ? new Date(row.discovered_at).toLocaleString() : '—';
+
+  // Relationship fields (v10)
+  const relType  = row.relationship_type || 'unknown';
+  const relConf  = row.relationship_confidence || 'suggested';
+  const relTypeLabel = DQ_REL_TYPE_LABEL[relType] || relType;
+  const relTypeColor = DQ_REL_TYPE_COLOR[relType] || '#94a3b8';
+  const relConfColor = DQ_REL_CONF_COLOR[relConf] || '#94a3b8';
 
   panel.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
@@ -7746,6 +7787,25 @@ function dqShowDetail(id) {
       </div>
     </div>
 
+    <!-- Relationship Classification (v10) -->
+    <div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid ${relTypeColor}">
+      <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Relationship Classification</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:${relTypeColor};background:${relTypeColor}18;padding:3px 8px;border-radius:4px">${_esc(relTypeLabel)}</span>
+        <span style="font-size:11px;color:${relConfColor};font-weight:600">${_esc(relConf)}</span>
+      </div>
+      ${row.why_discovered ? `<div style="font-size:11px;color:#64748b;line-height:1.4;margin-bottom:8px">${_esc(row.why_discovered)}</div>` : ''}
+      ${row.status === 'pending' ? `
+      <div style="margin-top:8px">
+        <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px">Override relationship type:</div>
+        <select id="dq-rel-override-${row.id}" style="font-size:11px;padding:4px 6px;border-radius:5px;border:1px solid #d1d5db;width:100%;background:white">
+          ${Object.entries(DQ_REL_TYPE_LABEL).map(([v,l]) =>
+            `<option value="${v}"${v===relType?' selected':''}>${l}</option>`
+          ).join('')}
+        </select>
+      </div>` : ''}
+    </div>
+
     ${row.reason ? `
       <div style="margin-bottom:14px">
         <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:5px">Why It Matters</div>
@@ -7766,7 +7826,7 @@ function dqShowDetail(id) {
 
     ${row.status === 'pending' ? `
     <div style="display:flex;gap:8px;flex-direction:column">
-      <button onclick="dqAction('${row.id}','approved');dqCloseDetail()" style="padding:10px;border-radius:8px;border:none;background:#059669;color:white;font-size:13px;font-weight:700;cursor:pointer;width:100%">✓ Approve</button>
+      <button onclick="dqApproveWithOverride('${row.id}')" style="padding:10px;border-radius:8px;border:none;background:#059669;color:white;font-size:13px;font-weight:700;cursor:pointer;width:100%">✓ Approve</button>
       <div style="display:flex;gap:8px">
         <button onclick="dqAction('${row.id}','watch');dqCloseDetail()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#7c3aed;color:white;font-size:12px;font-weight:700;cursor:pointer">👁 Watch</button>
         <button onclick="dqAction('${row.id}','rejected');dqCloseDetail()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#dc2626;color:white;font-size:12px;font-weight:700;cursor:pointer">✗ Reject</button>
@@ -7777,6 +7837,14 @@ function dqShowDetail(id) {
 
   overlay.style.display = 'block';
   panel.style.display   = 'block';
+}
+
+// Approve with optional relationship_type override from the detail panel dropdown
+async function dqApproveWithOverride(id) {
+  const sel = document.getElementById(`dq-rel-override-${id}`);
+  const overrideType = sel ? sel.value : null;
+  await dqAction(id, 'approved', overrideType ? { relationship_type: overrideType } : null);
+  dqCloseDetail();
 }
 
 function dqCloseDetail(e) {
