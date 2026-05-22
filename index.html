@@ -13625,7 +13625,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ── Fetch all data ────────────────────────────────────────────────────────────
   async function _fetchData(companyId, piRow) {
-    var sb = window._sb;
+    var sb = (typeof _sb !== 'undefined') ? _sb : window._sb;
     if (!sb) throw new Error('Supabase client not available');
 
     // Read financials from existing PI table DOM row (no extra API call needed)
