@@ -1047,6 +1047,54 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .entity-also-tag { display: inline-block; cursor: pointer; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 8px; margin-right: 4px; transition: opacity 0.15s; }
 .entity-also-tag:hover { opacity: 0.75; }
 
+/* ── ENTITY DOSSIER ─────────────────────────────────────────────────────── */
+/* Header chips row — rendered inside the dark entity-modal-hd */
+.entity-modal-hd-chips { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:8px; min-height:0; }
+.em-hd-chip { font-size:9px; font-weight:800; padding:2px 8px; border-radius:6px; white-space:nowrap; letter-spacing:0.04em; }
+.em-hd-chip-direct   { background:rgba(239,68,68,0.25);  color:#fca5a5; }
+.em-hd-chip-adjacent { background:rgba(96,165,250,0.25); color:#93c5fd; }
+.em-hd-chip-same     { background:rgba(52,211,153,0.22); color:#6ee7b7; }
+.em-hd-chip-watch    { background:rgba(148,163,184,0.22);color:#cbd5e1; }
+.em-hd-chip-score    { background:rgba(34,197,94,0.22);  color:#86efac; }
+.em-hd-chip-score.partial { background:rgba(245,158,11,0.22); color:#fcd34d; }
+.em-hd-chip-score.thin    { background:rgba(239,68,68,0.18);  color:#fca5a5; }
+.em-hd-chip-bd       { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
+/* Dossier body — turns entity-modal-body into a tab container */
+.entity-modal-body.dossier-mode { padding:0; display:flex; flex-direction:column; overflow:hidden; }
+.dossier-tabs { display:flex; gap:0; border-bottom:2px solid #e2e8f0; background:#f8fafc; flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
+.dossier-tabs::-webkit-scrollbar { display:none; }
+.dossier-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:9px 14px 8px; font-size:11px; font-weight:700; color:#64748b; cursor:pointer; transition:color 0.12s,border-color 0.12s; white-space:nowrap; letter-spacing:0.03em; }
+.dossier-tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; }
+.dossier-tab-btn:hover:not(.active) { color:#374151; background:rgba(0,0,0,0.03); border-radius:5px 5px 0 0; }
+.dossier-panels { flex:1; overflow-y:auto; }
+.dossier-panel { display:none; padding:18px 20px 28px; }
+.dossier-panel.active { display:block; }
+/* Dossier content components */
+.dossier-card { background:white; border:1px solid #e8edf4; border-radius:9px; padding:14px 16px; margin-bottom:12px; }
+.dossier-two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:720px) { .dossier-two-col { grid-template-columns:1fr; } }
+.dossier-section-hd { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.09em; color:#94a3b8; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid #f1f5f9; }
+.dossier-kv { display:flex; gap:8px; align-items:baseline; padding:4px 0; border-bottom:1px solid #f8fafc; }
+.dossier-kv:last-child { border-bottom:none; }
+.dossier-kv-k { color:#64748b; font-weight:600; white-space:nowrap; min-width:110px; flex-shrink:0; font-size:10.5px; }
+.dossier-kv-v { color:#1e293b; flex:1; font-size:11.5px; line-height:1.45; }
+.dossier-assess { background:#faf9ff; border:1px solid #e9e5fb; border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+.dossier-assess-lbl { font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#7c3aed; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; }
+.dossier-assess-text { font-size:12px; color:#0f172a; font-weight:600; line-height:1.55; border-left:2.5px solid #7c3aed; padding-left:10px; margin:0; }
+.dossier-cat-item { display:grid; grid-template-columns:68px 1fr auto; gap:8px; align-items:start; padding:6px 0; border-bottom:1px solid #f8fafc; font-size:11px; }
+.dossier-cat-date { color:#64748b; font-weight:600; font-size:10px; padding-top:2px; }
+.dossier-cat-lbl  { color:#1e293b; line-height:1.4; }
+.dossier-cat-type { font-size:8px; font-weight:800; text-transform:uppercase; padding:2px 5px; border-radius:4px; white-space:nowrap; background:#f1f5f9; color:#475569; flex-shrink:0; }
+.dossier-news-item { padding:8px 0; border-bottom:1px solid #f8fafc; }
+.dossier-news-meta { display:flex; align-items:center; gap:6px; margin-bottom:3px; flex-wrap:wrap; }
+.dossier-news-date { font-size:10px; color:#94a3b8; font-weight:600; }
+.dossier-news-hl   { font-size:11.5px; font-weight:700; color:#1e293b; line-height:1.4; }
+.dossier-news-body { font-size:10.5px; color:#475569; margin-top:2px; line-height:1.4; }
+.dossier-news-src a { font-size:9.5px; color:#1d4ed8; text-decoration:none; }
+.dossier-drug-item  { padding:8px 0; border-bottom:1px solid #f8fafc; }
+.dossier-trial-item { padding:8px 0; border-bottom:1px solid #f8fafc; }
+.dossier-empty { color:#94a3b8; font-style:italic; font-size:12px; padding:24px; text-align:center; }
+
 /* ══ COMPANY SLIDE-OVER PANEL ══════════════════════════════════ */
 .co-slideover-overlay { display:none; position:fixed; inset:0; background:rgba(10,20,40,0.45); z-index:940; cursor:pointer; }
 .co-slideover-overlay.open { display:block; }
@@ -3089,9 +3137,10 @@ function loadMoleculeTab(tabId) {
 <div class="entity-modal-overlay" id="entity-modal-overlay" onclick="if(event.target===this)closeEntityModal()">
  <div class="entity-modal-card">
   <div class="entity-modal-hd">
-   <div>
+   <div style="flex:1;min-width:0">
     <div class="entity-modal-title" id="entity-modal-title"></div>
     <div class="entity-modal-sub" id="entity-modal-sub"></div>
+    <div class="entity-modal-hd-chips" id="entity-modal-hd-chips"></div>
    </div>
    <button class="entity-modal-close" onclick="closeEntityModal()" title="Close">✕</button>
   </div>
@@ -6150,7 +6199,8 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .cat-bar-Pipeline { background:#f59e0b; }
 .cat-bar-Metabolic { background:#10b981; }
 .cat-bar-Combo.Study { background:#64748b; }
-.dkn-drug-name { font-weight:700; color:#1a2f50; font-size:12px; }
+.dkn-drug-name { font-weight:700; color:#1a2f50; font-size:12px; cursor:pointer; }
+.dkn-drug-name:hover { color:#1d4ed8; text-decoration:underline; }
 .dkn-drug-generic { color:#64748b; font-size:10px; }
 .dkn-stage-pill { display:inline-block; font-size:9.5px; font-weight:700;
   padding:2px 7px; border-radius:10px; white-space:nowrap; }
@@ -6470,7 +6520,7 @@ function dknRow(d) {
   const diff = d.differentiation_thesis || '';
   const risk = _dknRisk(d.drug_summary);
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
-  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name">${d.display_name || d.id}</span><span class="dkn-chevron">▶</span></td>
+  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${(d.display_name||d.id||'').replace(/'/g,"\\'")}',event)" title="Open dossier">${d.display_name || d.id}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co" style="font-size:11px;color:#374151">${_dknCoName(d)}</td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
@@ -8700,7 +8750,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       const sbData = piObj._profileCache[companyId];
       const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                        summary: sbData.profile?.platform_summary || '', overlap: '', _groupEntries: [] };
-      try   { bodyEl.innerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, prog, sbData); }
+      bodyEl.classList.add('dossier-mode');
+      try   { bodyEl.innerHTML = _buildCompanyDossierBody(prog, sbData, AREA); }
       catch (e) { bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`; }
       return;
     }
@@ -8804,7 +8855,26 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     // Cache for future opens
     if (piObj) piObj._profileCache[companyId] = sbData;
 
-    try   { bodyEl.innerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, prog, sbData); }
+    // ── Also-tracked footer ──
+    if (footerEl && profile) {
+      try {
+        const { data: caRows } = await _sb.from('company_areas').select('area_id').eq('company_id', companyId);
+        const areaToTabs = {};
+        Object.entries(TAB_AREA_MAP).forEach(([t, as]) => as.forEach(a => { (areaToTabs[a] = areaToTabs[a] || []).push(t); }));
+        const tabIds = [...new Set((caRows||[]).flatMap(r => areaToTabs[r.area_id] || []))];
+        if (tabIds.length) {
+          const tagsEl = document.getElementById('entity-modal-also-tags');
+          if (tagsEl) tagsEl.innerHTML = tabIds.map(t => {
+            const label = TAB_META[t]?.badge || TAB_META[t]?.name || t;
+            return `<span class="entity-also-tag ${_TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
+          }).join('');
+          footerEl.style.display = 'flex';
+        }
+      } catch(_) {}
+    }
+
+    bodyEl.classList.add('dossier-mode');
+    try   { bodyEl.innerHTML = _buildCompanyDossierBody(prog, sbData, AREA); }
     catch (e) {
       console.error('[openCompanySlideOver] render error:', e);
       bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`;
@@ -8817,6 +8887,301 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
 
 function closeCoSlideOver() {
   closeEntityModal();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CANONICAL ENTITY DOSSIER
+   The permanent home for all entity intelligence. Every drug and company
+   opens the same modal from any tab. Provenance, confidence, and audit
+   history will slot in here as Phase 4 (Trust) matures.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// Switch between internal dossier tabs
+function _dossierSwitch(panelId) {
+  const body = document.getElementById('entity-modal-body');
+  if (!body) return;
+  body.querySelectorAll('.dossier-tab-btn').forEach(b => b.classList.remove('active'));
+  body.querySelectorAll('.dossier-panel').forEach(p => p.classList.remove('active'));
+  const btn = body.querySelector(`.dossier-tab-btn[data-panel="${panelId}"]`);
+  const panel = body.querySelector(`#${panelId}`);
+  if (btn) btn.classList.add('active');
+  if (panel) panel.classList.add('active');
+}
+
+// Build the tab-nav + panels HTML shell
+function _buildDossierShell(tabs, panels) {
+  const tabBtns = tabs.map((t, i) =>
+    `<button class="dossier-tab-btn${i===0?' active':''}" data-panel="${t.id}" onclick="_dossierSwitch('${t.id}')">${t.label}</button>`
+  ).join('');
+  const panelDivs = panels.map((p, i) =>
+    `<div class="dossier-panel${i===0?' active':''}" id="${p.id}">${p.content}</div>`
+  ).join('');
+  return `<div class="dossier-tabs">${tabBtns}</div><div class="dossier-panels">${panelDivs}</div>`;
+}
+
+// Shared KV row
+function _dossierKV(k, v) {
+  if (!v) return '';
+  return `<div class="dossier-kv"><span class="dossier-kv-k">${k}</span><span class="dossier-kv-v">${v}</span></div>`;
+}
+
+// ── Company dossier renderer ──────────────────────────────────────────────
+function _buildCompanyDossierBody(prog, sbData, areaId) {
+  const profile  = sbData?.profile   || {};
+  const sbCats   = sbData?.catalysts || [];
+  const sbDeals  = sbData?.deals     || [];
+  const sbDrugs  = sbData?.drugs     || [];
+  const sbCombos = sbData?.combos    || [];
+  const pi = profile.platform_intelligence || null;
+  const bd = profile.bd_intelligence      || null;
+
+  // ── Header chips: overlap + score + BD profile ──
+  const chipsEl = document.getElementById('entity-modal-hd-chips');
+  if (chipsEl) {
+    const allProgs = sbData?.drugs || [];
+    // Show best overlap for this area
+    const bestOv = prog.overlap || allProgs[0]?.overlap || '';
+    const ovCls = {Direct:'em-hd-chip-direct',Adjacent:'em-hd-chip-adjacent','Same-Space':'em-hd-chip-same',Watch:'em-hd-chip-watch'}[bestOv] || '';
+    const ovChip = bestOv ? `<span class="em-hd-chip ${ovCls}">${bestOv}</span>` : '';
+    const score = profile.completeness_score;
+    const scoreCls = score >= 80 ? 'em-hd-chip-score' : score >= 50 ? 'em-hd-chip-score partial' : 'em-hd-chip-score thin';
+    const scoreChip = score != null ? `<span class="em-hd-chip ${scoreCls}">Coverage ${score}%</span>` : '';
+    const bdProfile = bd?.profile;
+    const bdLabels = {acquirer:'Acquirer',licensor:'Licensor',collaborator:'Collaborator','partner-friendly':'Partner-Friendly','internal-focused':'Internal-Focused'};
+    const bdChip = bdProfile ? `<span class="em-hd-chip em-hd-chip-bd">${bdLabels[bdProfile]||bdProfile}</span>` : '';
+    const enriched = profile.last_enriched_at ? `<span class="em-hd-chip em-hd-chip-bd">Enriched ${profile.last_enriched_at.slice(0,10)}</span>` : '';
+    chipsEl.innerHTML = [ovChip, scoreChip, bdChip, enriched].filter(Boolean).join('');
+  }
+
+  // ── OVERVIEW tab ──
+  const piAssess = (pi?.assessment||'').replace(/^\[ASSESSED\]\s*/i,'');
+  const profileCfg = {
+    acquirer:{label:'Acquirer',bg:'#fef2f2',color:'#991b1b',border:'#fecaca'},
+    licensor:{label:'Licensor',bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+    collaborator:{label:'Collaborator',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+    'partner-friendly':{label:'Partner-Friendly',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+    'internal-focused':{label:'Internal-Focused',bg:'#f8fafc',color:'#475569',border:'#e2e8f0'},
+  };
+  const bdPcfg = bd?.profile ? (profileCfg[bd.profile] || {label:bd.profile,bg:'#f8fafc',color:'#475569',border:'#e2e8f0'}) : null;
+  const bdPill = bdPcfg ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${bdPcfg.bg};color:${bdPcfg.color};border:1px solid ${bdPcfg.border};border-radius:8px;padding:2px 8px">${bdPcfg.label}</span>` : '';
+  const assessHtml = piAssess ? `<div class="dossier-assess"><div class="dossier-assess-lbl"><span>Assessment</span>${bdPill}</div><p class="dossier-assess-text">${piAssess}</p></div>` : '';
+
+  const platformSummary = profile.platform_summary || prog.summary || '';
+  const bdSummary = profile.bd_summary || '';
+  const vsAilux   = profile.vs_ailux  || '';
+  const keyRisk   = profile.key_risk  || '';
+  const whyMatters= profile.why_it_matters || '';
+
+  const contextRows = [_dossierKV('vs. Ailux', vsAilux), _dossierKV('Key Risk', keyRisk), _dossierKV('Why It Matters', whyMatters)].filter(Boolean).join('');
+
+  const overviewContent = `
+    ${assessHtml}
+    ${platformSummary ? `<div class="dossier-card"><div class="dossier-section-hd">Platform</div><p style="font-size:12px;line-height:1.6;color:#1e293b;margin:0">${platformSummary}</p></div>` : ''}
+    ${bdSummary ? `<div class="dossier-card"><div class="dossier-section-hd">BD Posture</div><p style="font-size:12px;line-height:1.6;color:#1e293b;margin:0">${bdSummary}</p></div>` : ''}
+    ${contextRows ? `<div class="dossier-card"><div class="dossier-section-hd">BD Context</div>${contextRows}</div>` : ''}
+    ${!assessHtml && !platformSummary && !bdSummary && !contextRows ? '<div class="dossier-empty">No overview data yet — run enrichment to populate.</div>' : ''}
+  `;
+
+  // ── BD INTEL tab ──
+  const facts = (pi?.facts||[]).map(f => `<li style="font-size:11.5px;color:#1e293b;padding:2px 0;line-height:1.5">${f}</li>`).join('');
+  const direction = (pi?.direction||[]).map(d => {
+    const clean = d.replace(/^\[INFERRED\]\s*/i,'');
+    return `<li style="font-size:11.5px;color:#334155;padding:2px 0;line-height:1.5"><span style="font-size:8px;font-weight:800;background:#ede9fe;color:#6d28d9;border-radius:3px;padding:0 4px;margin-right:4px">INFERRED</span>${clean}</li>`;
+  }).join('');
+  const txRows = (bd?.transactions||[]).map(t =>
+    `<div style="display:grid;grid-template-columns:60px 1fr auto;gap:6px;align-items:baseline;padding:4px 0;border-bottom:1px solid #f8fafc;font-size:11px">
+      <span style="color:#64748b;font-weight:600">${t.date||''}</span>
+      <span style="color:#1e293b">${t.asset||''}${t.partner?`<span style="color:#94a3b8"> · ${t.partner}</span>`:''}</span>
+      <span style="color:#059669;font-weight:700;font-size:10px;white-space:nowrap">${t.total||t.upfront||''}</span>
+    </div>`).join('');
+  const bdAssess = (bd?.assessment||[]).map(a => `<li style="font-size:11.5px;color:#334155;padding:2px 0;line-height:1.5">${a.replace(/^\[ASSESSED\]\s*/i,'')}</li>`).join('');
+  const bdIntelContent = `
+    ${pi ? `<div class="dossier-card"><div class="dossier-section-hd">Platform Intelligence</div>
+      ${facts ? `<div style="margin-bottom:8px"><div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:4px">FACTS</div><ul style="margin:0;padding-left:14px">${facts}</ul></div>` : ''}
+      ${direction ? `<div><div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:4px">INFERRED DIRECTION</div><ul style="margin:0;padding-left:14px">${direction}</ul></div>` : ''}
+    </div>` : ''}
+    ${bd ? `<div class="dossier-card"><div class="dossier-section-hd">BD Intelligence</div>
+      ${txRows ? `<div style="margin-bottom:10px">${txRows}</div>` : ''}
+      ${bdAssess ? `<ul style="margin:0;padding-left:14px">${bdAssess}</ul>` : ''}
+    </div>` : ''}
+    ${!pi && !bd ? '<div class="dossier-empty">No intelligence data yet. Run enrichment to populate.</div>' : ''}
+  `;
+
+  // ── PIPELINE tab ──
+  const stageStyle = s => {
+    const c = s==='Approved'?['#15803d','#dcfce7']:s?.includes('3')?['#1d4ed8','#dbeafe']:s?.includes('2')?['#0d9488','#ccfbf1']:s?.includes('1')?['#b45309','#fef3c7']:['#64748b','#f1f5f9'];
+    return `background:${c[1]};color:${c[0]}`;
+  };
+  const drugItems = sbDrugs.map(d => `
+    <div class="dossier-drug-item">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:700;color:#1e3a5f;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
+          <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;${stageStyle(d.stage)}">${d.stage||'Preclinical'}</span>
+          ${d.cls?`<span style="font-size:9px;color:#64748b;font-weight:600">${d.cls}</span>`:''}
+        </div>
+        ${d.target?`<div style="font-size:10.5px;color:#2e6fb0;font-weight:600;margin-bottom:2px">${d.target}</div>`:''}
+        ${d.mechanism?`<div style="font-size:11px;color:#475569;line-height:1.4">${d.mechanism.slice(0,140)}${d.mechanism.length>140?'…':''}</div>`:''}
+        ${d.drug_summary?`<div style="font-size:11px;color:#374151;line-height:1.45;margin-top:3px">${d.drug_summary.slice(0,200)}${d.drug_summary.length>200?'…':''}</div>`:''}
+      </div>
+    </div>`).join('');
+  const comboItems = sbCombos.map(c => `
+    <div class="dossier-drug-item">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:700;color:#7c3aed">${c.label||'Combination'}</span>
+          <span style="font-size:9px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:5px;font-weight:800">COMBO</span>
+          ${c.stage?`<span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;${stageStyle(c.stage)}">${c.stage}</span>`:''}
+        </div>
+        ${c.indication?`<div style="font-size:11px;color:#475569">${c.indication}</div>`:''}
+      </div>
+    </div>`).join('');
+  const pipelineContent = (drugItems||comboItems)
+    ? `<div class="dossier-card">${drugItems}${comboItems}</div>`
+    : '<div class="dossier-empty">No pipeline data for this area.</div>';
+
+  // ── CATALYSTS tab ──
+  const catItems = sbCats.map(c => {
+    const d = (c.sort_date||c.catalyst_date||'').slice(0,7) || '—';
+    const detail = c.detail ? `<span style="color:#64748b"> — ${c.detail.slice(0,80)}${c.detail.length>80?'…':''}</span>` : '';
+    return `<div class="dossier-cat-item">
+      <span class="dossier-cat-date">${d}</span>
+      <span class="dossier-cat-lbl">${c.label||'—'}${detail}</span>
+      <span class="dossier-cat-type">${(c.catalyst_type||'').replace(/_/g,' ')}</span>
+    </div>`;
+  }).join('');
+  const catalystsContent = catItems
+    ? `<div class="dossier-card">${catItems}</div>`
+    : '<div class="dossier-empty">No upcoming catalysts.</div>';
+
+  // ── ACTIVITY tab ──
+  const actItems = sbDeals.map(item => {
+    const isIntel = item._source === 'intel';
+    const date = (item.deal_date||'').slice(0,10);
+    const typeTag = isIntel
+      ? `<span style="font-size:8.5px;font-weight:800;background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px">NEWS</span>`
+      : `<span style="font-size:8.5px;font-weight:800;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px">${(item.deal_type||'DEAL').toUpperCase()}</span>`;
+    const headline = item.headline || `${item.from_company||''} → ${item.to_company||''}`;
+    const detail   = item.detail   || item.description || '';
+    const val      = item.total_value || item.deal_value_formatted || '';
+    const src      = item.source_url ? `<div class="dossier-news-src"><a href="${item.source_url}" target="_blank" rel="noopener">Source ↗</a></div>` : '';
+    return `<div class="dossier-news-item">
+      <div class="dossier-news-meta">${typeTag}<span class="dossier-news-date">${date}</span>${val?`<span style="font-size:10px;font-weight:700;color:#059669">${val}</span>`:''}</div>
+      <div class="dossier-news-hl">${headline}</div>
+      ${detail?`<div class="dossier-news-body">${detail.slice(0,220)}${detail.length>220?'…':''}</div>`:''}
+      ${src}
+    </div>`;
+  }).join('');
+  const activityContent = actItems
+    ? `<div class="dossier-card">${actItems}</div>`
+    : '<div class="dossier-empty">No recent deals or news.</div>';
+
+  return _buildDossierShell(
+    [{id:'dos-overview',label:'Overview'},{id:'dos-bdintel',label:'BD Intel'},{id:'dos-pipeline',label:'Pipeline'},{id:'dos-catalysts',label:'Catalysts'},{id:'dos-activity',label:'Activity'}],
+    [{id:'dos-overview',content:overviewContent},{id:'dos-bdintel',content:bdIntelContent},{id:'dos-pipeline',content:pipelineContent},{id:'dos-catalysts',content:catalystsContent},{id:'dos-activity',content:activityContent}]
+  );
+}
+
+// ── Drug dossier renderer ─────────────────────────────────────────────────
+function _buildDrugDossierBody(drug, areas, trials, molData) {
+  const chipsEl = document.getElementById('entity-modal-hd-chips');
+  if (chipsEl && drug) {
+    const st = drug.stage || '';
+    const stBg = st==='Approved'?'rgba(34,197,94,0.22)':st.includes('3')?'rgba(96,165,250,0.25)':st.includes('2')?'rgba(20,184,166,0.22)':'rgba(148,163,184,0.22)';
+    const stCo = st==='Approved'?'#86efac':st.includes('3')?'#93c5fd':st.includes('2')?'#5eead4':'#cbd5e1';
+    const stChip = st ? `<span class="em-hd-chip" style="background:${stBg};color:${stCo}">${st}</span>` : '';
+    const areaChips = areas.map(a => {
+      const ov = (a.overlap||'').toLowerCase();
+      const cls = {direct:'em-hd-chip-direct',adjacent:'em-hd-chip-adjacent','same-space':'em-hd-chip-same',watch:'em-hd-chip-watch'}[ov] || '';
+      const lbl = _AREA_LABEL[a.area_id] || a.area_id || '';
+      return lbl && a.overlap ? `<span class="em-hd-chip ${cls}">${lbl}: ${a.overlap}</span>` : '';
+    }).filter(Boolean).join('');
+    chipsEl.innerHTML = [stChip, areaChips].filter(Boolean).join('');
+  }
+
+  if (!drug) return '<div class="dossier-empty">Drug data not available.</div>';
+
+  // ── OVERVIEW tab ──
+  const mechanism = drug.mechanism || '';
+  const summary   = drug.drug_summary || '';
+  const diff      = drug.differentiation_thesis || '';
+  const areaPos   = areas.filter(a => a.overlap);
+  const posRows   = areaPos.map(a => {
+    const lbl = _AREA_LABEL[a.area_id] || (a.area_id||'').toUpperCase();
+    const ov  = (a.overlap||'').toLowerCase();
+    const [bg,co] = ov==='direct'?['#fee2e2','#b91c1c']:ov==='adjacent'?['#dbeafe','#1d4ed8']:ov==='same-space'?['#dcfce7','#15803d']:['#f1f5f9','#64748b'];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc">
+      <span style="font-size:10px;font-weight:700;color:#475569;min-width:68px">${lbl}</span>
+      <span style="font-size:10px;font-weight:800;background:${bg};color:${co};padding:2px 7px;border-radius:5px">${a.overlap}</span>
+      ${a.overlap_rationale?`<span style="font-size:11px;color:#475569;flex:1">${a.overlap_rationale.slice(0,100)}${a.overlap_rationale.length>100?'…':''}</span>`:''}
+    </div>`;
+  }).join('');
+
+  const overviewContent = `
+    ${mechanism||summary||diff ? `<div class="dossier-card">
+      <div class="dossier-section-hd">Drug Profile</div>
+      ${_dossierKV('Mechanism', mechanism)}
+      ${_dossierKV('Target', drug.target)}
+      ${_dossierKV('Class', drug.cls)}
+      ${_dossierKV('Route', drug.route)}
+      ${_dossierKV('Indication', drug.indication_short)}
+    </div>` : ''}
+    ${summary ? `<div class="dossier-card"><div class="dossier-section-hd">Summary</div><p style="font-size:12px;line-height:1.6;color:#1e293b;margin:0">${summary}</p></div>` : ''}
+    ${diff ? `<div class="dossier-card" style="border-left:3px solid #7c3aed"><div class="dossier-section-hd">Differentiation Thesis</div><p style="font-size:12px;line-height:1.55;color:#1e293b;margin:0;font-weight:600">${diff}</p></div>` : ''}
+    ${posRows ? `<div class="dossier-card"><div class="dossier-section-hd">Competitive Position</div>${posRows}</div>` : ''}
+    ${!mechanism && !summary && !diff && !posRows ? '<div class="dossier-empty">No drug data yet.</div>' : ''}
+  `;
+
+  // ── TRIALS tab ──
+  const trialItems = (trials||[]).map(t => {
+    const ph = t.phase||'';
+    const [phBg,phCo] = ph.includes('3')?['#dbeafe','#1d4ed8']:ph.includes('2')?['#ccfbf1','#0d9488']:['#fef3c7','#92400e'];
+    const stLow = (t.status||'').toLowerCase();
+    const dot = stLow.includes('recruit')&&!stLow.includes('not yet')?'#22c55e':stLow.includes('terminat')||stLow.includes('withdrawn')?'#ef4444':stLow.includes('complet')?'#94a3b8':'#f59e0b';
+    return `<div class="dossier-trial-item">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        ${ph?`<span style="font-size:10px;font-weight:800;background:${phBg};color:${phCo};padding:2px 6px;border-radius:5px">${ph}</span>`:''}
+        <span style="font-size:11px;font-weight:700;color:#1e3a5f">${t.trial_name||'—'}</span>
+        <span style="font-size:10px;color:#94a3b8"><span style="color:${dot}">●</span> ${t.status||''}</span>
+      </div>
+      ${t.n_enrollment?`<div style="font-size:10.5px;color:#64748b;margin-bottom:2px">N = ${t.n_enrollment}${t.primary_completion_date?` · Est. ${t.primary_completion_date.slice(0,7)}`:''}</div>`:''}
+      ${t.primary_endpoint?`<div style="font-size:11px;color:#1e293b;line-height:1.4"><strong>Primary:</strong> ${t.primary_endpoint.slice(0,160)}${t.primary_endpoint.length>160?'…':''}</div>`:''}
+      ${t.results_note?`<div style="font-size:11px;color:#0f172a;line-height:1.4;margin-top:3px;background:#f0fdf4;padding:4px 8px;border-radius:4px">${t.results_note.slice(0,200)}</div>`:''}
+    </div>`;
+  }).join('');
+  const trialsContent = trialItems
+    ? `<div class="dossier-card">${trialItems}</div>`
+    : '<div class="dossier-empty">No trial data found.</div>';
+
+  // ── MOLECULE INTEL tab (if available) ──
+  let molContent = '';
+  if (molData) {
+    const fs = molData.field_status || {};
+    const badge = s => {
+      if (!s||s==='confirmed') return '';
+      const cfg = s==='inferred'?{bg:'#fffbeb',co:'#b45309',bd:'#fde68a',lbl:'Inferred'}:{bg:'#f8fafc',co:'#94a3b8',bd:'#e2e8f0',lbl:'Not disclosed'};
+      return `<span style="font-size:7.5px;font-weight:800;text-transform:uppercase;background:${cfg.bg};color:${cfg.co};border:1px solid ${cfg.bd};border-radius:4px;padding:1px 4px;margin-left:4px">${cfg.lbl}</span>`;
+    };
+    const mRow = (k,v,fk) => v ? `<div class="dossier-kv"><span class="dossier-kv-k">${k}</span><span class="dossier-kv-v">${v}${badge(fs[fk])}</span></div>` : '';
+    molContent = `<div class="dossier-card"><div class="dossier-section-hd">Molecule Intelligence</div>
+      ${mRow('Format',         molData.format,          'format')}
+      ${mRow('Modality',       molData.modality,        'modality')}
+      ${mRow('IgG subclass',   molData.igg_subclass,    'igg_subclass')}
+      ${mRow('Fc engineering', molData.fc_engineering,  'fc_engineering')}
+      ${mRow('Epitope',        molData.epitope,         'epitope')}
+      ${mRow('Affinity (KD)',  molData.affinity_kd,     'affinity_kd')}
+      ${molData.differentiation_claim?`<div style="margin-top:8px;padding:7px 10px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed">
+        <div style="font-size:8.5px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-bottom:3px">Differentiation Thesis ${badge(fs.differentiation_claim)}</div>
+        <p style="font-size:11px;color:#1e293b;margin:0;font-style:italic;line-height:1.45">${molData.differentiation_claim}</p>
+      </div>`:''}
+    </div>`;
+  }
+
+  const tabs = [{id:'ddos-overview',label:'Overview'},{id:'ddos-trials',label:'Trials'}];
+  const panels = [{id:'ddos-overview',content:overviewContent},{id:'ddos-trials',content:trialsContent}];
+  if (molContent) { tabs.push({id:'ddos-molintel',label:'Molecule'}); panels.push({id:'ddos-molintel',content:molContent}); }
+
+  return _buildDossierShell(tabs, panels);
 }
 
 // Close modals on Escape key
@@ -9087,7 +9452,8 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
-    bodyEl.innerHTML  = _drugModalBodyHTML(drug, areas, trials, molData);
+    bodyEl.classList.add('dossier-mode');
+    bodyEl.innerHTML  = _buildDrugDossierBody(drug, areas, trials, molData);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
@@ -9228,6 +9594,12 @@ function _drugModalBodyHTML(drug, areas, trials, molData) {
 
 function closeEntityModal() {
   document.getElementById('entity-modal-overlay')?.classList.remove('open');
+  const bodyEl = document.getElementById('entity-modal-body');
+  if (bodyEl) bodyEl.classList.remove('dossier-mode');
+  const chipsEl = document.getElementById('entity-modal-hd-chips');
+  if (chipsEl) chipsEl.innerHTML = '';
+  const footerEl = document.getElementById('entity-modal-footer');
+  if (footerEl) footerEl.style.display = 'none';
   document.body.style.overflow = '';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEntityModal(); });
