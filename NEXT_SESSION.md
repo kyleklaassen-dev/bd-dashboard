@@ -113,6 +113,16 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
+### ✅ Wrong-Area Audit + Phase 1 Cleanup (Session 7)
+- Full audit of 76 orphaned `drug_area_scores` rows (in scores but not in `drug_areas`)
+- Root cause: early enrichment runs used company-level context → oncology/atopy/IBD crossover artifacts
+- **57 rows deleted**: oncology drugs in IBD/atopy, IBD drugs in atopy, hxn-1003 (merged drug)
+- **19 uncertain rows preserved** pending separate review (see `docs/wrong_area_audit.md`)
+- `drug_area_scores`: 152 → 95 rows
+- Pre-existing data fixes: efgartigimod/fcrn Watch→Direct, mirikizumab Approved, lebrikizumab/il4ra Watch→Adjacent, astegolimab-tslp test expectation corrected
+- **Validation: 64/64 passing** (restored from 60/64)
+- New files: `docs/wrong_area_audit.md`, `migrations/wrong_area_cleanup.sql`
+
 ---
 
 ## Highest Priority for Next Session
@@ -153,12 +163,11 @@ DB (Supabase):
   provenance_events       ← DESIGN ONLY (v17 not designed yet)  
   assertion_history       ← DESIGN ONLY (v18 not designed yet)
   drugs                   ← live; last_enriched_model written on every enrichment (v16)
-  drug_area_scores        ← live; source_url populated for ~31/48 Direct rows (done Session 6)
+  drug_area_scores        ← live; 95 rows (was 152); 57 stale orphans deleted Session 7; 19 uncertain pending review
   company_profiles        ← live; 37/60 enriched
   validation_tests        ← live; 64 tests, all passing
   catalysts               ← live; Roche dedup pending
   molecule_intelligence   ← live; 51 records; ~12 uncovered TL1A drugs remain
-  drug_area_scores        ← live; source_url populated for 31 Direct rows; 16 inferred (null, no public source)
 
 UI (GitHub Pages - commit 577ba0e):
   Entity dossier          ← live; molecule tab + overlap bugs fixed
@@ -173,12 +182,15 @@ UI (GitHub Pages - commit 577ba0e):
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| drug_area_scores.source_url null (16 rows) | Low | All inferred — early-stage/private pipelines with no CT registration; acceptable |
-| fg-m701 area_id='atopy' (should be 'tl1a') | Medium | Not fixed — needs PATCH |
-| Roche catalyst near-duplicates (~10) | Medium | Needs P4 dedup |
+| 19 uncertain `drug_area_scores` orphans | Medium | See `docs/wrong_area_audit.md` Phase 2 — separate review; 5 need drug_areas additions, 6 strategic decision (Novartis autoimmune breadth), 8 individual cases |
+| cld-423 / cldr-001 identity unresolved | Medium | May be same drug; resolve before adding drug_areas rows for cld-423 |
+| drug_area_scores.source_url null (some rows) | Low | Genuinely inferred — early-stage/private pipelines; acceptable |
+| Roche catalyst near-duplicates (~10) | Medium | AMETRINE appears 3×, QX031N appears 4× — needs P4 dedup |
 | ensure_canonical_id() doesn't insert into canonical_drugs | Medium | Workaround applied for 3 drugs; fix in P5 |
 | ~12 TL1A drugs still have no mol_intel | Low | Lower-priority; enrich after P5 fix |
 | Confidence badges all show '?' | Low | Will resolve once enrichment re-run populates source_url |
+| argx-117 target field mislabeled in drugs table | Low | Shows FcRn×CD131 but is actually anti-C2 complement mAb |
+| cendakimab company mislabeled in drugs table | Low | Shows astrazeneca; drug belongs to AbbVie/Receptos |
 
 ---
 

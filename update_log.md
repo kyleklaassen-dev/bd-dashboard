@@ -1,5 +1,45 @@
 
 ---
+## 2026-05-23 (Session 7) — Wrong-Area Audit + Cleanup
+
+**Area integrity audit: `drug_area_scores` vs `drug_areas`**
+
+Full audit of all `drug_area_scores` rows against their `drug_areas` counterparts.  
+Found 76 orphaned rows — rows with no matching `drug_areas` entry — caused by early enrichment runs using company-level classification without drug-level validation.
+
+**Phase 1: 57 safe deletes applied**
+
+| Area | Rows deleted | Examples |
+|------|-------------|---------|
+| atopy | 22 | oncology drugs (daratumumab, teclistamab, blinatumomab), IBD drugs (infliximab, golimumab, risankizumab), nipocalimab, tezepelumab |
+| ibd | 24 | Roche/Merck oncology (atezolizumab, bevacizumab, pembrolizumab, rituximab), atopy drugs (dupilumab, amlitelimab, rocatinlimab), hxn-1003 (merged into erd-1) |
+| tslp | 4 | generate-uc (Direct — TL1A×IL-23 wrongly assigned), anifrolumab, cendakimab, ravulizumab |
+| fcrn | 2 | argx-117 (target mislabeled), bimekizumab (IL-17A, no FcRn connection) |
+| il4ra | 2 | itepekimab (IL-33, not IL-4Rα), linvoseltamab (BCMA×CD3 myeloma drug) |
+| respiratory | 2 | qx030n (Direct — TL1A×IL-23 wrongly assigned), belimumab (BAFF/SLE) |
+| tcell | 1 | nipocalimab (FcRn, not T-cell) |
+| **Total** | **57** | |
+
+`drug_area_scores`: 152 → 95 rows
+
+**19 uncertain rows preserved** (separate review — see `docs/wrong_area_audit.md`):
+- 5 correct-area orphans where `drug_areas` is likely missing (sim0500, abs-101, mt-251, cld-423/ibd+tl1a)
+- 6 Novartis autoimmune Watch rows (strategic decision needed on area breadth)
+- 8 individual cases (upadacitinib/atopy, batoclimab+imvt-1402/fcrn, apg777/il4ra, mepolizumab/respiratory, kyv-101/tcell, benralizumab/tslp)
+
+**Pre-existing data fixes caught during validation:**
+- `efgartigimod/fcrn`: overlap Watch → Direct (efgartigimod IS a leading FcRn drug — data error)
+- `mirikizumab`: stage Phase 3 → Approved (Omvoh approved Oct 2023 UC / Jan 2025 CD)
+- `lebrikizumab/il4ra`: overlap Watch → Adjacent (IL-13 shares IL-4Rα type II receptor — correct classification)
+- `astegolimab-tslp-overlap` test: expected Direct → Watch (IL-33 mAb is Watch in tslp area, not Direct)
+
+**Validation: 64/64 passing** (restored from 60/64 after data fixes above)
+
+**Files produced:**
+- `docs/wrong_area_audit.md` — full classification of all 76 orphans with rationale
+- `migrations/wrong_area_cleanup.sql` — Phase 1 DELETE script (applied) + Phase 2 drug_areas additions (commented, pending review)
+
+---
 ## 2026-05-23 (Session 6) — P0: Source Verification Population
 
 **`scripts/source_verify.py` — new (commit `1e79552`)**
