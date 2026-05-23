@@ -85,6 +85,8 @@ def evaluate_operator(actual: str, expected: str, operator: str) -> bool:
         return not bool(actual and actual.strip() and actual.lower() not in ("null", "none", ""))
     elif operator == "contains":
         return (expected or "").lower() in (actual or "").lower()
+    elif operator == "not_contains":
+        return (expected or "").lower() not in (actual or "").lower()
     elif operator == "gte":
         try:
             return float(actual or 0) >= float(expected or 0)
@@ -116,9 +118,9 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             cache_key = f"drug_area_scores:{area_id}"
             if cache_key not in cache:
                 cache[cache_key] = sb_get("drug_area_scores", {"area_id": f"eq.{area_id}", "select": "drug_id,overlap"})
-            # Also check drugs table directly — include stage so stage_check tests reuse this cache
+            # Also check drugs table directly — include stage+display_name+target so all test types reuse this cache
             if "drugs_all" not in cache:
-                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id"})
+                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target"})
 
             # Find by drug_id in area scores first
             das = cache[cache_key]
@@ -168,7 +170,7 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
         elif test_type in ("drug_exists", "not_hallucinated"):
             # Check that a drug with this ID or name exists (or doesn't)
             if "drugs_all" not in cache:
-                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id"})
+                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target"})
             drug = next((d for d in cache["drugs_all"]
                          if d.get("id","").lower() == entity_id.lower()
                          or d.get("name","").lower() == entity_id.lower()), None)
@@ -181,7 +183,7 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
 
         elif test_type == "stage_check":
             if "drugs_all" not in cache:
-                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id"})
+                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target"})
             drug = next((d for d in cache["drugs_all"]
                          if d.get("id","").lower() == entity_id.lower()
                          or d.get("name","").lower() == entity_id.lower()), None)
@@ -190,6 +192,39 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             actual = drug.get("stage") or ""
             passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual, ""
+
+        elif test_type == "company_check":
+            # Verify a drug belongs to a specific company.
+            # expected_value = company_id string; operator = eq (default).
+            if "drugs_all" not in cache:
+                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target"})
+            drug = next((d for d in cache["drugs_all"]
+                         if d.get("id","").lower() == entity_id.lower()
+                         or d.get("name","").lower() == entity_id.lower()), None)
+            if not drug:
+                return "error", "", f"Drug '{entity_id}' not found"
+            actual = drug.get("company_id") or ""
+            passed = evaluate_operator(actual, expected, operator)
+            return ("pass" if passed else "fail"), actual, ""
+
+        elif test_type == "display_name_check":
+            # Verify a drug's display_name contains (or doesn't contain) a given string.
+            # Use field_name to pick which field to inspect (default: display_name).
+            # Use expected_operator = "not_contains" to assert a string must NOT appear.
+            # Example use case: lq080 display_name must not contain "ZW191".
+            if "drugs_all" not in cache:
+                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target"})
+            drug = next((d for d in cache["drugs_all"]
+                         if d.get("id","").lower() == entity_id.lower()
+                         or d.get("name","").lower() == entity_id.lower()), None)
+            if not drug:
+                return "error", "", f"Drug '{entity_id}' not found"
+            check_field = field or "display_name"
+            actual = str(drug.get(check_field) or "")
+            passed = evaluate_operator(actual, expected, operator)
+            # Show a truncated version of the actual value
+            display_actual = actual[:80] if actual else "(empty)"
+            return ("pass" if passed else "fail"), display_actual, ""
 
         else:
             return "skip", "", f"Unknown test_type: {test_type}"
