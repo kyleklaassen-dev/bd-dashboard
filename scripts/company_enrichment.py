@@ -348,7 +348,16 @@ Use web_search to find ALL companies with active clinical-stage programs in the 
 Include large pharma (Pfizer, Roche, AZ, Lilly, etc.) as well as small/mid-cap biotechs.
 Focus on programs that are Phase 1 or later. Be comprehensive — missing a player is worse than
 a false positive. Return a structured text report: company name, drug name/ID, mechanism, stage,
-indication, any partnership info."""
+indication, any partnership info.
+
+# TRANSACTION_PIPELINE_EXPANSION
+When enriching a company, investigate not only internally discovered assets, but also assets
+acquired through M&A, licensing, partnerships, and platform transactions. The company's pipeline
+should reflect current ownership and control, not merely original invention. Every acquired company
+should be treated as a potential pipeline import event requiring asset discovery and area
+reclassification. When a company has acquired another entity or signed a major licensing deal,
+ingest the ENTIRE acquired pipeline — all stages, not just the headline asset — and re-map
+company areas, competitive landscapes, and strategic relevance accordingly."""
 
 
 def gather_landscape_intel(area_id: str) -> str:
