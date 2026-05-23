@@ -322,11 +322,29 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
 
             created_drug_id = drug_slug
 
-            # Drug areas
+            # Drug areas + Guard E2: always write stub drug_area_scores immediately after drug_areas
+            # Invariant: every drug_areas row must have a matching drug_area_scores row.
+            # Stub uses confidence_level='inferred' — enrichment will overwrite with full classification.
             if not dry_run:
-                sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": area_id}, on_conflict="drug_id,area_id")
-                if indication_group != area_id:
-                    sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": indication_group}, on_conflict="drug_id,area_id")
+                for _aid in ([area_id] + ([indication_group] if indication_group != area_id else [])):
+                    sb_upsert("drug_areas", {"drug_id": drug_slug, "area_id": _aid}, on_conflict="drug_id,area_id")
+                    # [E2 guard] Ensure stub drug_area_scores exists for this pair
+                    _das_existing = sb_get("drug_area_scores", {
+                        "drug_id": f"eq.{drug_slug}", "area_id": f"eq.{_aid}", "select": "drug_id", "limit": "1"
+                    })
+                    if not _das_existing:
+                        _inferred_overlap = "Direct" if row.get("overlap") in ("Direct",) else row.get("overlap") or "Watch"
+                        sb_upsert("drug_area_scores", {
+                            "drug_id":          drug_slug,
+                            "area_id":          _aid,
+                            "overlap":          _inferred_overlap,
+                            "confidence_level": "inferred",
+                            "overlap_rationale": (
+                                f"Stub created at drug intake (approve_discovery.py). "
+                                f"Run company_enrichment.py to classify with full context."
+                            ),
+                        })
+                        print(f"  + drug_area_scores [E2 stub]: {drug_slug} → {_aid} (overlap={_inferred_overlap!r}, inferred)")
                 print(f"  + drug_areas: {drug_slug} → {area_id}{', '+indication_group if indication_group!=area_id else ''}")
 
     # ── 4. Finalize queue row ─────────────────────────────────────────────────

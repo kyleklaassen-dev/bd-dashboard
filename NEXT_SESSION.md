@@ -1,37 +1,51 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-23 (updated after Session 15)  
-**Session focus:** Rule E2 — Drug Area Interpretation Completeness; Drug-area graph now bidirectionally consistent
+**Written:** 2026-05-23 (updated after Session 16)  
+**Session focus:** lm-302/tl1a resolved; write-path guards enforcing E1–E5 at write time
 
 ---
 
-## Session 15 Summary
+## Session 16 Summary
 
-### ✅ Rule E2: Drug Area Interpretation Completeness — Enforced
-- Invariant: every `drug_areas` row must have a matching `drug_area_scores` row
-- New test type `drug_area_interpretation_check` added to `validate_ground_truth.py`
-- 87 gaps found; 86 filled with proper scores; 1 flagged for human review (lm-302/tl1a)
-- 183 Rule E2 tests seeded (183 drug_areas rows)
-- **Validation: 710 → 893 tests — 892 passing, 1 intentional P2 flag (lm-302/tl1a)**
+### ✅ lm-302/tl1a Resolved — Zero P2 Flags
+- Root cause: `drugs.mechanism` was "Anti-TL1A" (wrong) → caused enrichment to add lm-302 to TL1A area
+- Fix: mechanism → "Anti-CLDN18.2 (MMAE-ADC)"; drug_areas/tl1a row deleted; E2 test deleted
+- **Validation: 892/892 passing — no failures, no flags**
 
-### ✅ Drug-Area Graph Bidirectionally Consistent
+### ✅ Write-Path Guards — E2/E3/E4 Enforced at Write Time
 
-| Direction | Rule | Tests | Status |
-|-----------|------|-------|--------|
-| drug_area_scores → drug_areas | E4 `drug_area_score_check` | 96 | ✅ all pass |
-| drug_areas → drug_area_scores | E2 `drug_area_interpretation_check` | 183 | ✅ 182/183 pass (1 P2 flag) |
+| Guard | Script | Invariant | What It Does |
+|-------|--------|-----------|-------------|
+| E3 | `company_enrichment.py` `write_step5()` | company_profiles → company_areas | Upserts company_areas before writing company_profiles |
+| E4 | `company_enrichment.py` `write_step5()` | drug_area_scores → drug_areas | Upserts drug_areas before writing drug_area_scores |
+| E2 | `approve_discovery.py` `cmd_promote()` | drug_areas → drug_area_scores | Writes stub drug_area_scores after drug_areas; confidence_level='inferred' |
+| E3 | `quick_profiles_enrich.py` `enrich()` | company_profiles → company_areas | Upserts company_areas before writing company_profiles |
 
-### ✅ All 5 Structural Invariants Now Enforced
+All guards are idempotent upserts — safe to run against existing data, never break re-runs.
 
-| Rule | Test Type | Tests | Invariant |
-|------|-----------|-------|-----------|
-| E1 | `catalog_visibility` | ~20 | drug in area tab → catalog_category not null |
-| E2 | `drug_area_interpretation_check` | 183 | drug_areas row → drug_area_scores row |
-| E3 | `company_area_check` | 61 | company_profiles row → company_areas row |
-| E4 | `drug_area_score_check` | 96 | drug_area_scores row → drug_areas row |
-| E5 | `drug_identity_check` | 470 | drug in area tab → identity fields complete |
+---
 
-**Total validation tests: 893**
+## Architecture State (as of 2026-05-23 Session 16)
+
+```
+DB (Supabase):
+  drugs                   ← live; 143 rows; all area-linked drugs identity-complete
+  drug_areas              ← live; 182 rows (lm-302/tl1a removed)
+  drug_area_scores        ← live; 181 rows (matching drug_areas exactly — E2+E4 both clean)
+  company_profiles        ← live; 37/60 enriched
+  company_areas           ← live; all profiles have matching company_areas
+  validation_tests        ← live; 892 tests; 892/892 passing; zero flags
+
+Scripts with write-path guards:
+  company_enrichment.py   ← E3 guard (company_areas before profiles) + E4 guard (drug_areas before scores)
+  approve_discovery.py    ← E2 guard (drug_area_scores stub after drug_areas)
+  quick_profiles_enrich   ← E3 guard (company_areas before profiles)
+
+Scripts still unguarded (no writes to critical tables):
+  molecule_enrichment.py  ← Only writes molecule_intelligence (not a graph node)
+  source_verify.py        ← Only patches drug_area_scores.source_url (existing rows only)
+  drug_intake.py          ← Builds discovery_queue payloads only; approve_discovery handles writes
+```
 
 ---
 
@@ -39,42 +53,22 @@
 
 | Priority | Task | Notes |
 |----------|------|-------|
-| **P1** | **lm-302/tl1a human review** | CLDN18.2 ADC drug_areas entry in TL1A tab — likely categorization error; should be removed if no TL1A rationale exists. Will resolve the 1 P2 failure. |
-| **P1** | **Wire E2/E3/E4/E5 into write paths** | `quick_profiles_enrich.py` should assert company_areas before writing profile; `approve_discovery.py` should assert drug_areas before writing score; drug inserts must assert target + stage non-null |
-| **P1** | **Enrich atopy/respiratory drugs properly** | 86 new drug_area_scores rows were created with `confidence_level='inferred'` — the atopy and respiratory ones need targeted enrichment to set accurate overlap_rationale and promote to 'supported' |
-| **P2** | **Run full company_enrichment.py for UCB/tcell** | quick_profiles done; drug-level summaries and mol_intel not yet enriched |
-| **P3** | **24 advisory gaps: canonical_drug_id** | 24 area-linked drugs missing canonical_drug_id; address in entity resolution sprint |
+| **P1** | **Enrichment sprint: atopy/respiratory area drugs** | 86 new drug_area_scores were created with confidence_level='inferred'. The atopy and respiratory drugs need targeted enrichment to set proper overlap, rationale, and promote to 'supported'. Run quick_profiles_enrich.py or company_enrichment.py for the relevant companies in those areas. |
+| **P1** | **Run full company_enrichment.py for UCB/tcell** | quick_profiles done; drug-level summaries, mol_intel, and overlap not yet enriched |
+| **P2** | **24 advisory gaps: canonical_drug_id** | 24 area-linked drugs missing canonical_drug_id; address in entity resolution sprint |
+| **P2** | **Roche catalyst deduplication** | AMETRINE ×3, QX031N ×4 — needs dedup sprint |
 | **P3** | **Migrate tl1aPI static JS to Supabase** | High effort, long-term value |
 
 ---
 
-## Known Intentional Gaps
+## Known Issues
 
-| Gap | Status | Why |
-|-----|--------|-----|
-| `lm-302 / tl1a` — no drug_area_scores | P2 test failing | CLDN18.2 ADC has no TL1A mechanism; drug_areas entry may be wrong. Needs human review before score or removal. |
-| 86 new drug_area_scores with `confidence_level='inferred'` | Acceptable | Created as E2 backfill. Many atopy/respiratory scores need targeted enrichment to strengthen confidence. |
-| 24 drugs missing `canonical_drug_id` | Advisory only | Pre-canonical system drugs; not blocking |
-
----
-
-## Architecture State (as of 2026-05-23 Session 15)
-
-```
-DB (Supabase):
-  drugs                   ← live; 143 rows; all 94 area-linked drugs identity-complete
-  drug_areas              ← live; 183 rows
-  drug_area_scores        ← live; 182 rows (was 96 — +86 E2 backfill, all with rationale)
-  company_profiles        ← live; 37/60 enriched
-  company_areas           ← live; all profiles have matching company_areas (E3)
-  validation_tests        ← live; 893 tests; 892 passing, 1 intentional P2 flag
-  catalysts               ← live; Roche dedup pending
-  molecule_intelligence   ← live; 51 records
-
-UI (GitHub Pages):
-  Entity dossier          ← live; confidence badges active
-  Drug dossier            ← live; will now show area-specific interpretation for all drugs
-```
+| Issue | Severity | Status |
+|-------|----------|--------|
+| 86 new drug_area_scores with `confidence_level='inferred'` | Medium | E2 backfill — atopy/respiratory drugs need enrichment to strengthen |
+| 24 drugs missing `canonical_drug_id` | Low | Advisory; pre-canonical system drugs |
+| Roche catalyst near-duplicates | Medium | Dedup sprint needed |
+| `ensure_canonical_id()` doesn't insert into canonical_drugs | Medium | Workaround applied; fix before next mol_intel run |
 
 ---
 
@@ -86,12 +80,11 @@ cd "/sessions/wonderful-dazzling-pasteur/mnt/BD Platform"
 SUPABASE_SERVICE_KEY=$(cat .supabase_service_key) python3 scripts/validate_ground_truth.py
 ```
 
-**Resolve lm-302/tl1a gap (human review first — remove if no TL1A rationale):**
+**Enrich a company for an area:**
 ```bash
-# If it should be removed:
-curl -s -X DELETE "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1/drug_areas?drug_id=eq.lm-302&area_id=eq.tl1a" \
-  -H "apikey: $(cat .supabase_service_key)" -H "Authorization: Bearer $(cat .supabase_service_key)"
-# Then delete the E2 test: DELETE FROM validation_tests WHERE test_name='e2_lm-302_tl1a_score_exists'
+ANTHROPIC_API_KEY=$(cat .anthropic_api_key) \
+SUPABASE_SERVICE_KEY=$(cat .supabase_service_key) \
+python3 scripts/quick_profiles_enrich.py --area atopy --company LEO_pharma
 ```
 
 **Deploy to GitHub Pages:**
@@ -101,13 +94,4 @@ TMP=$(mktemp -d) && TOKEN=$(cat "$WS/.github_token")
 git clone "https://$TOKEN@github.com/kyleklaassen-dev/bd-dashboard.git" "$TMP" --quiet
 cp "$WS/index.html" "$TMP/index.html"
 cd "$TMP" && git add index.html && git commit -m "..." && git push
-```
-
-**Supabase REST PATCH:**
-```bash
-KEY=$(cat .supabase_service_key)
-curl -s -X PATCH "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1/drugs?id=eq.DRUG_ID" \
-  -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
-  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
-  -d '{"field": "value"}'
 ```

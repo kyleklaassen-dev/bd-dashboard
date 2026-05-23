@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-23 (Session 16) — lm-302/tl1a resolved + Write-Path Guards
+
+**lm-302/tl1a — root cause and fix:**
+- Root cause: `drugs.mechanism` was incorrectly set to "Anti-TL1A" — this caused the enrichment pipeline to classify LM-302 as a TL1A drug and add it to drug_areas/tl1a
+- LM-302 (tecotabart vedotin) is an anti-CLDN18.2 MMAE-ADC for gastric/GEJ cancer with no TL1A biology; its own `vs_ailux` and `mechanism_detail` confirmed zero TL1A/IBD relevance
+- Fixes applied:
+  - `drugs.mechanism` → "Anti-CLDN18.2 (MMAE-ADC)" (was "Anti-TL1A")
+  - `drug_areas` row for lm-302/tl1a → deleted
+  - `validation_tests` E2 test for lm-302/tl1a → deleted
+- lm-302/ibd kept (tracked as BD economics benchmark per existing rationale)
+- **Validation: 892/892 — zero failures, zero P2 flags**
+
+**Write-path guards — E2/E3/E4 invariants now enforced at write time:**
+
+Four guards added across three scripts:
+
+| Guard | Script | Location | Invariant | Implementation |
+|-------|--------|----------|-----------|----------------|
+| E3 | `company_enrichment.py` | `write_step5()` | company_profiles → company_areas | Upsert company_areas before writing company_profiles |
+| E4 | `company_enrichment.py` | `write_step5()` drug_area_scores loop | drug_area_scores → drug_areas | Upsert drug_areas before writing drug_area_scores |
+| E2 | `approve_discovery.py` | `cmd_promote()` drug intake | drug_areas → drug_area_scores | Write stub drug_area_scores immediately after drug_areas; confidence_level='inferred' |
+| E3 | `quick_profiles_enrich.py` | `enrich()` | company_profiles → company_areas | Upsert company_areas before writing company_profiles |
+
+All guards are idempotent upserts — safe to run on existing data. Stub drug_area_scores rows (from approve_discovery.py guard) are explicitly labeled `confidence_level='inferred'` and will be overwritten by full enrichment runs.
+
+**Validation: 892/892 passing** — no regressions introduced by guards.
+
+---
 ## 2026-05-23 (Session 15) — Rule E2: Drug Area Interpretation Completeness
 
 **Rule E2 — drug_area_interpretation_check — fully enforced:**

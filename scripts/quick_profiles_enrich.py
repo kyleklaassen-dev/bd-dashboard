@@ -230,7 +230,13 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
             print(f"    {k}: {str(v)[:120]}")
         return True
 
-    # 6. Upsert into company_profiles
+    # 6. Guard E3: company_areas must exist before company_profiles
+    # Invariant: if company_profiles exists for company×area, company_areas must too.
+    # Upsert is idempotent — safe if row already exists.
+    sb_upsert("company_areas", {"company_id": company_id, "area_id": area_id})
+    print(f"  [E3 guard] company_areas ensured: {company_id} → {area_id}")
+
+    # 7. Upsert into company_profiles
     record = {
         "company_id":         company_id,
         "area_id":            area_id,

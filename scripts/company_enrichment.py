@@ -1952,6 +1952,13 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                       "market_cap_usd_m","cash_runway","financing_history","key_investors"]:
             if cp.get(field) is not None:
                 profile_rec[field] = cp[field]
+        # ── Guard E3: company_areas must exist before company_profiles ──────────
+        # Invariant: if company_profiles exists for company×area, company_areas must too.
+        # Upsert is idempotent — harmless if row already exists.
+        sb_upsert("company_areas", {"company_id": company_id, "area_id": area_id},
+                  on_conflict="company_id,area_id")
+        log(f"  [E3 guard] company_areas ensured: {company_id} → {area_id}", indent=1)
+
         # Patch-or-insert: avoid duplicate rows (no UNIQUE constraint in DB yet)
         existing = sb_get("company_profiles", {
             "company_id": f"eq.{company_id}",
@@ -2034,6 +2041,12 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                 if "vs_ailux" in _das_payload:
                     _das_rec["vs_ailux_positioning"] = _das_payload.pop("vs_ailux")
                 _das_rec.update(_das_payload)
+                # ── Guard E4: drug_areas must exist before drug_area_scores ──────
+                # Invariant: a drug_area_scores row without a matching drug_areas row
+                # violates E4. Upsert drug_areas first — idempotent if already present.
+                sb_upsert("drug_areas", {"drug_id": drug_id, "area_id": area_id},
+                          on_conflict="drug_id,area_id")
+
                 _das_existing = sb_get("drug_area_scores", {
                     "drug_id": f"eq.{drug_id}",
                     "area_id": f"eq.{area_id}",
