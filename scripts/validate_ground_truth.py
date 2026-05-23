@@ -245,6 +245,25 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
                 passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual or "(null)", ""
 
+        elif test_type == "drug_area_score_check":
+            # Rule E4: If drug_area_scores exists for drug×area, drug_areas must also exist.
+            # drug_area_scores = area-specific interpretation (overlap, confidence, source)
+            # drug_areas       = area membership (the drug appears in that area tab)
+            # A score must not exist without membership.
+            # entity_id = "drug_id:area_id"
+            if ":" not in entity_id:
+                return "error", "", f"drug_area_score_check requires entity_id='drug_id:area_id', got '{entity_id}'"
+            drug_id_check, area_id_check = entity_id.split(":", 1)
+            if "drug_areas_all" not in cache:
+                cache["drug_areas_all"] = sb_get("drug_areas", {"select": "drug_id,area_id"})
+            exists = any(
+                r.get("drug_id") == drug_id_check and r.get("area_id") == area_id_check
+                for r in cache["drug_areas_all"]
+            )
+            actual = "true" if exists else "false"
+            passed = evaluate_operator(actual, expected, operator)
+            return ("pass" if passed else "fail"), actual, ""
+
         elif test_type == "company_area_check":
             # Rule E3: If a company_profiles row exists for company×area,
             # then company_areas must also have a row for that pair.
