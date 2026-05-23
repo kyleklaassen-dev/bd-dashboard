@@ -89,6 +89,48 @@ def sb_upsert(table, record, on_conflict=None):
     return r.json()
 
 
+# ── Catalog Category Inference ─────────────────────────────────────────────────
+# Invariant: every drug that receives a drug_areas row must have catalog_category
+# set so it appears in the Drugs to Know tab. Use this helper at all drug inserts.
+_CCat_TCE_TARGETS  = {"bcma", "cd3", "cd19", "cd20", "cd38", "cd33", "cd123",
+                      "her2", "egfr", "pd-1", "pd-l1", "pdl1", "ctla-4", "ctla4",
+                      "tim-3", "lag-3", "cd47", "vegf"}
+_CCat_IMMUNO_KWORDS = {"tl1a", "tnfrsf25", "il-4r", "il4r", "tslp", "fcrn",
+                       "neonatal fc", "il-23", "il23", "il-17", "il17", "tnf",
+                       "il-13", "il13", "il-33", "il33", "il-31", "il31",
+                       "integrin", "α4β7", "a4b7", "rankl", "baff", "april",
+                       "igg4", "ige", "il-5", "il5", "il-6", "il6"}
+_CCat_ONCOLOGY_AREAS = {"tcell", "t_cell"}
+_CCat_IMMUNO_AREAS   = {"tl1a", "fcrn", "il4ra", "tslp", "autoimmune",
+                         "ibd", "respiratory", "ige"}
+_CCat_EARLY_STAGES   = {"preclinical", "phase 1", "phase i", "pre-ind",
+                         "ind-enabling", "discovery"}
+
+
+def infer_catalog_category(target: str = "", modality: str = "",
+                            stage: str = "", area_id: str = "") -> str:
+    """Infer catalog_category from drug attributes. See company_enrichment.py for full docs."""
+    import re as _re
+    tgt  = (target   or "").lower()
+    mod  = (modality or "").lower()
+    stg  = (stage    or "").lower()
+    area = (area_id  or "").lower()
+
+    tgt_parts = {p.strip() for p in _re.split(r"[×x×/]", tgt) if p.strip()}
+    if _CCat_TCE_TARGETS & tgt_parts:
+        return "Oncology"
+    if any(m in mod for m in ("adc", "car-t", "car t", "antibody-drug conjugate")):
+        return "Oncology"
+    if area in _CCat_ONCOLOGY_AREAS:
+        return "Oncology"
+    if "jak" in tgt or "small molecule" in mod or "oral small molecule" in mod:
+        return "Small Molecule"
+    is_immuno = any(kw in tgt for kw in _CCat_IMMUNO_KWORDS) or area in _CCat_IMMUNO_AREAS
+    if is_immuno:
+        return "Pipeline" if any(s in stg for s in _CCat_EARLY_STAGES) else "Immunology"
+    return "Pipeline"
+
+
 def sb_patch(table, match_col, match_val, patch):
     url = f"{SUPABASE_URL}/rest/v1/{table}?{match_col}=eq.{match_val}"
     r = requests.patch(url, headers=SB_HEADERS, json=patch, timeout=15)
@@ -246,6 +288,13 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
             if dry_run:
                 print(f"  [DRY RUN] Would create drug: {drug_slug}")
             else:
+                _modality = row.get("modality") or ""
+                _cat_cat  = infer_catalog_category(
+                    target   = target,
+                    modality = _modality,
+                    stage    = stage,
+                    area_id  = area_id,
+                )
                 sb_upsert("drugs", {
                     "id":                  drug_slug,
                     "name":                drug_name,
@@ -256,11 +305,12 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
                     "stage":               stage,
                     "target":              target,
                     "mechanism":           f"Anti-{target}" if target else None,
-                    "modality":            row.get("modality"),
-                    "drug_format":         row.get("modality"),
+                    "modality":            _modality or None,
+                    "drug_format":         _modality or None,
                     "route":               row.get("route"),
                     "cls":                 "Next Gen" if "×" in (target or "") else "1st Gen",
                     "overlap":             "Direct",
+                    "catalog_category":    _cat_cat,
                     "discovery_status":    "promoted",
                     "confidence_score":    row.get("confidence_score"),
                     "confidence_level":    "inferred",
