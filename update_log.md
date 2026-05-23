@@ -1,5 +1,31 @@
 
 ---
+## 2026-05-23 (Session 7c) — CLD-423/CLDR-001 Identity Resolution + Validation 71/71
+
+**Identity verdict: cld-423 = cldr-001 (same molecule, duplicate record)**
+
+Evidence: `cldr-001.aliases = ['CLD-423', 'QX030N']`; `cldr-001.licensor_code = 'QX030N'`; `licensor_name = 'Qyuns Therapeutics'`; both Caldera Phase 1 TL1A×IL-23 bispecifics with matching drug summaries.
+
+**Qyuns program clarification:**
+- `qx030n` = Qyuns-owned TL1A×IL-23 bispecific → licensed to Caldera as CLD-423 (`cldr-001`). Separate entry correct (Qyuns-perspective vs Caldera-perspective on same molecule).
+- `qx031n` = **Different molecule**: TSLP×IL-33 bispecific → licensed to Roche for respiratory. Confirmed distinct.
+
+**Merge applied (cld-423 → cldr-001):**
+1. Upgraded `cldr-001/tl1a` source_url → `NCT05906563` (CT.gov, more authoritative than ANZCTR); confidence → confirmed
+2. Upgraded `cldr-001` drug source_url → `NCT05906563`
+3. Deleted `cld-423/tl1a` drug_area_scores row
+4. Deleted `cld-423/ibd` drug_area_scores row
+5. Deleted `cld-423` drug record
+
+`drug_area_scores`: 95 → 93 rows; Remaining orphans: 3 (omalizumab, tisagenlecleucel, benralizumab — all intentionally marginal)
+
+**Validation tests updated: 69 → 71/71 passing**
+- Deleted stale `cld-423-tl1a-overlap` test
+- Added `cldr-001-tl1a-overlap` (Direct, P1) — canonical Caldera record
+- Added `cldr-001-ibd-overlap` (Direct, P1)
+- Added `qx031n-tslp-overlap` (Watch, P2) — guards against qx030n/qx031n identity confusion
+
+---
 ## 2026-05-23 (Session 7b) — Identity Fixes + Phase 2 Uncertain Rows + Validation Expansion
 
 **Identity data fixes:**

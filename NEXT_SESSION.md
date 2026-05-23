@@ -113,6 +113,14 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
+### ✅ CLD-423 / CLDR-001 Identity Resolution (Session 7c)
+- Confirmed: cld-423 and cldr-001 are the same molecule (CLD-423/QX030N, Caldera licensed from Qyuns)
+- cldr-001 is canonical; cld-423 deleted (drug record + 2 drug_area_scores)
+- qx030n (Qyuns TL1A×IL-23) and qx031n (Qyuns TSLP×IL-33 → Roche) confirmed distinct
+- cldr-001/tl1a upgraded: source_url → NCT05906563 (CT.gov), confidence_level → confirmed
+- cld-423-tl1a-overlap test replaced with cldr-001-tl1a-overlap + cldr-001-ibd-overlap + qx031n-tslp-overlap
+- **Validation: 71/71 passing**
+
 ### ✅ Wrong-Area Audit + Full Cleanup (Sessions 7 + 7b)
 - Full audit of 76 orphaned `drug_area_scores` rows (in scores but not in `drug_areas`)
 - Root cause: early enrichment runs used company-level context → oncology/atopy/IBD crossover artifacts
@@ -165,10 +173,10 @@ DB (Supabase):
   provenance_events       ← DESIGN ONLY (v17 not designed yet)  
   assertion_history       ← DESIGN ONLY (v18 not designed yet)
   drugs                   ← live; last_enriched_model written on every enrichment (v16)
-  drug_area_scores        ← live; 95 rows (was 152); 57 stale orphans deleted, 14 drug_areas additions; 5 deferred orphans
-  drug_areas              ← live; 174 rows (was 160)
+  drug_area_scores        ← live; 93 rows (was 152); clean — 3 intentionally-deferred orphans remain
+  drug_areas              ← live; 179 rows (was 160)
   company_profiles        ← live; 37/60 enriched
-  validation_tests        ← live; 69 tests, all passing
+  validation_tests        ← live; 71 tests, all passing
   catalysts               ← live; Roche dedup pending
   molecule_intelligence   ← live; 51 records; ~12 uncovered TL1A drugs remain
 
@@ -185,8 +193,7 @@ UI (GitHub Pages - commit 577ba0e):
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| 5 remaining `drug_area_scores` orphans | Low | cld-423 (identity pending), omalizumab+tisagenlecleucel (marginal autoimmune), benralizumab/tslp (downstream) — see `docs/wrong_area_audit.md` |
-| cld-423 / cldr-001 identity unresolved | Medium | May be same drug; resolve before adding drug_areas rows for cld-423 |
+| 3 remaining `drug_area_scores` orphans | Low | omalizumab/autoimmune, tisagenlecleucel/autoimmune (both marginal), benralizumab/tslp (downstream mechanism) — intentionally deferred |
 | drug_area_scores.source_url null (some rows) | Low | Genuinely inferred — early-stage/private pipelines; acceptable |
 | Roche catalyst near-duplicates (~10) | Medium | AMETRINE appears 3×, QX031N appears 4× — needs P4 dedup |
 | ensure_canonical_id() doesn't insert into canonical_drugs | Medium | Workaround applied for 3 drugs; fix in P5 |
