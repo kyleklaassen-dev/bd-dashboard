@@ -69,7 +69,31 @@ import sys
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-import requests
+try:
+    import requests
+except ImportError:
+    import urllib.request as _ur, urllib.parse as _up, urllib.error as _ue, json as _rjson
+    class _Resp:
+        def __init__(self, code, body):
+            self.status_code = code
+            self._body = body
+        def json(self):     return _rjson.loads(self._body)
+        @property
+        def text(self):     return self._body.decode() if isinstance(self._body, bytes) else self._body
+    class _Requests:
+        @staticmethod
+        def _call(method, url, headers=None, params=None, json=None, **kw):
+            if params: url += '?' + _up.urlencode(params)
+            data = _rjson.dumps(json).encode() if json else None
+            req  = _ur.Request(url, data=data, headers=headers or {}, method=method)
+            try:
+                with _ur.urlopen(req) as r: return _Resp(r.status, r.read())
+            except _ue.HTTPError as e:      return _Resp(e.code,   e.read())
+        def get(self,  url, **kw): return self._call('GET',  url, **kw)
+        def post(self, url, **kw): return self._call('POST', url, **kw)
+        def patch(self,url, **kw): return self._call('PATCH',url, **kw)
+    requests = _Requests()
+
 import anthropic
 
 # ── Credential helpers (reuse company_intake pattern) ────────────────────────
@@ -433,9 +457,10 @@ def research_drug(
         print(f"  → Calling Claude ({_model}) for drug research on '{drug_name}'...")
 
     try:
+        _max_tokens = int(os.environ.get("INTAKE_MAX_TOKENS", "8192"))
         resp = _get_ai().messages.create(
             model=_model,
-            max_tokens=8192,
+            max_tokens=_max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = resp.content[0].text.strip()
@@ -1137,6 +1162,49 @@ def _confidence_to_relevance_score(confidence: float, relevance: str) -> int:
     return min(10, int(base + confidence * 2))
 
 
+# ── Catalog Category Inference ─────────────────────────────────────────────────
+# Invariant: every drug that receives a drug_areas row must have catalog_category
+# set so it appears in the Drugs to Know tab. Use this helper at all drug inserts.
+_CCat_TCE_TARGETS   = {"bcma", "cd3", "cd19", "cd20", "cd38", "cd33", "cd123",
+                       "her2", "egfr", "pd-1", "pd-l1", "pdl1", "ctla-4", "ctla4",
+                       "tim-3", "lag-3", "cd47", "vegf"}
+_CCat_IMMUNO_KWORDS = {"tl1a", "tnfrsf25", "il-4r", "il4r", "tslp", "fcrn",
+                       "neonatal fc", "il-23", "il23", "il-17", "il17", "tnf",
+                       "il-13", "il13", "il-33", "il33", "il-31", "il31",
+                       "integrin", "α4β7", "a4b7", "rankl", "baff", "april",
+                       "igg4", "ige", "il-5", "il5", "il-6", "il6"}
+_CCat_ONCOLOGY_AREAS = {"tcell", "t_cell"}
+_CCat_IMMUNO_AREAS   = {"tl1a", "fcrn", "il4ra", "tslp", "autoimmune",
+                         "ibd", "respiratory", "ige"}
+_CCat_EARLY_STAGES   = {"preclinical", "phase 1", "phase i", "pre-ind",
+                         "ind-enabling", "discovery"}
+
+import re as _re_cc
+
+
+def infer_catalog_category(target: str = "", modality: str = "",
+                            stage: str = "", area_id: str = "") -> str:
+    """Infer catalog_category from drug attributes. See company_enrichment.py for full docs."""
+    tgt  = (target   or "").lower()
+    mod  = (modality or "").lower()
+    stg  = (stage    or "").lower()
+    area = (area_id  or "").lower()
+
+    tgt_parts = {p.strip() for p in _re_cc.split(r"[×x×/]", tgt) if p.strip()}
+    if _CCat_TCE_TARGETS & tgt_parts:
+        return "Oncology"
+    if any(m in mod for m in ("adc", "car-t", "car t", "antibody-drug conjugate")):
+        return "Oncology"
+    if area in _CCat_ONCOLOGY_AREAS:
+        return "Oncology"
+    if "jak" in tgt or "small molecule" in mod or "oral small molecule" in mod:
+        return "Small Molecule"
+    is_immuno = any(kw in tgt for kw in _CCat_IMMUNO_KWORDS) or area in _CCat_IMMUNO_AREAS
+    if is_immuno:
+        return "Pipeline" if any(s in stg for s in _CCat_EARLY_STAGES) else "Immunology"
+    return "Pipeline"
+
+
 def build_promotion_payload(
     drug_name: str,
     drug_id:   str | None,
@@ -1152,6 +1220,17 @@ def build_promotion_payload(
     mi_research = research.get("molecule_intelligence") or {}
     upcoming    = research.get("upcoming_catalysts") or []
 
+    _drug_target   = drug_info.get("target") or ""
+    _drug_modality = drug_info.get("modality") or ""
+    _drug_stage    = drug_info.get("stage") or ""
+    _primary_area  = relevant_areas[0]["area_id"] if relevant_areas else ""
+    _inferred_cc   = infer_catalog_category(
+        target   = _drug_target,
+        modality = _drug_modality,
+        stage    = _drug_stage,
+        area_id  = _primary_area,
+    )
+
     drug_node = {
         "id":           drug_id or _slug(drug_info.get("canonical_name") or drug_name),
         "name":         drug_info.get("canonical_name") or drug_name,
@@ -1159,12 +1238,12 @@ def build_promotion_payload(
         "brand_name":   drug_info.get("brand_name"),
         "aliases":      drug_info.get("aliases") or [],
         "company_id":   drug_info.get("company_id_hint"),
-        "target":       drug_info.get("target"),
+        "target":       _drug_target or None,
         "mechanism":    drug_info.get("mechanism"),
-        "modality":     drug_info.get("modality"),
-        "stage":        drug_info.get("stage"),
+        "modality":     _drug_modality or None,
+        "stage":        _drug_stage or None,
         "data_source":  "catalog" if drug_id else "press_release",
-        "catalog_category": relevant_areas[0]["area_id"] if relevant_areas else None,
+        "catalog_category": _inferred_cc,
     }
 
     drug_area_scores = [
@@ -1272,6 +1351,17 @@ def write_drug_queue_rows(
             print(f"  ⏭️  {area_id}: skipped (recent non-rejected row already exists)")
             continue
 
+        # Compute strategic value score for this area (must come before row dict)
+        svs = compute_strategic_value_score(
+            overlap       = _map_relevance_to_overlap(area["relevance"]),
+            area_id       = area_id,
+            stage         = drug_info.get("stage") or (drug_row.get("stage") if drug_row else None),
+            catalysts     = graph_state.get("catalysts") or [] if isinstance(graph_state, dict) else [],
+            deals         = graph_state.get("deals") or [] if isinstance(graph_state, dict) else [],
+            evidence_tier = evidence_tier,
+            company_id    = resolved_company_id,
+        )
+
         row = {
             "company_name":            resolved_company_name or canonical_name,
             "company_id_suggested":    resolved_company_id,
@@ -1295,24 +1385,11 @@ def write_drug_queue_rows(
             "relationship_type":       "drug_entity",
             "relationship_confidence": "high" if area["confidence"] >= 0.8 else "medium" if area["confidence"] >= 0.6 else "inferred",
             "why_discovered":          f"Drug Intake CLI — {drug_name}",
-            "source":                  "drug_intake",
-            # Evidence tier — makes uncertainty explicit for reviewer
+            "source":                  "user_intake",
             "evidence_tier":           evidence_tier["tier"] if evidence_tier else None,
-            # Strategic value — BD importance (computed below)
             "strategic_value_score":   svs,
         }
         area_score_rows.append({"area_id": area_id, "strategic_value_score": svs})
-
-        # Compute strategic value score for this area
-        svs = compute_strategic_value_score(
-            overlap       = _map_relevance_to_overlap(area["relevance"]),
-            area_id       = area_id,
-            stage         = drug_info.get("stage") or (drug_row.get("stage") if drug_row else None),
-            catalysts     = graph_state.get("catalysts") or [] if isinstance(graph_state, dict) else [],
-            deals         = graph_state.get("deals") or [] if isinstance(graph_state, dict) else [],
-            evidence_tier = evidence_tier,
-            company_id    = resolved_company_id,
-        )
 
         if dry_run:
             print(f"  [DRY RUN] Would write queue row: {area_id} / {area['relevance']} / confidence={area['confidence']:.2f} / strategic_value={svs}/10")
@@ -1375,7 +1452,7 @@ def _check_existing_drug_queue_rows(drug_name_or_id: str, area_ids: list[str]) -
                 "status":        "not.eq.rejected",
                 "discovered_at": f"gte.{cutoff}",
                 "select":        "area_id",
-                "source":        "eq.drug_intake",
+                "source":        "eq.user_intake",
             },
             timeout=10,
         )
