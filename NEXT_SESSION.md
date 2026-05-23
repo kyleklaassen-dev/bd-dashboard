@@ -27,11 +27,13 @@
 
 | Priority | Task | Effort |
 |----------|------|--------|
-| P1 | **Run quick_profiles_enrich.py for UCB + Candid** | Low — execute script for tcell area |
 | P1 | **Enrich Lilly, Novartis, Pfizer** — missing from many area tabs | Medium |
-| P2 | **Add company_area consistency validation** (Rule E3) | Low — new test type |
+| P1 | **Add company_area consistency validation** (Rule E3) | Low — new test type |
+| P2 | **Run full company_enrichment.py for UCB/tcell** — quick_profiles done, drug-level summaries/overlap not yet enriched | Medium |
 | P2 | **Run catalog_visibility test after any enrichment run** | Automated via validate_ground_truth.py |
 | P3 | **Migrate tl1aPI static JS object to Supabase** | High effort, high long-term value |
+
+**✅ UCB + Candid profiles done** — quick_profiles_enrich.py run for tcell + autoimmune. Profiles accurately reflect ATG-201 license, Candid acquisition, trispecific pipeline.
 
 ---
 
