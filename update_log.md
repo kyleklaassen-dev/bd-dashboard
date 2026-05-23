@@ -1,5 +1,39 @@
 
 ---
+## 2026-05-23 (Session 9) — Intake Integrity Framework + DKN Gap Fix + UCB/Candid TCE Addition
+
+**Principle established:** The dashboard is the view layer. Supabase is the source of truth. No information should live only in the frontend. All intake must flow through one of four structured paths: Company, Drug, Evidence, or Manual Correction.
+
+**DKN coverage audit (systematic fix):**
+- Root cause: 45 of 91 drugs in area tabs had `catalog_category = null` → invisible in Drugs to Know tab
+- Fixed: 38 legitimate pipeline/immunology drugs given `catalog_category = 'Pipeline'` or appropriate value
+- Deleted duplicates: `batoclimab-fcrn` (null display_name), `imvt1402` (dup of imvt-1402), `abs101` (deprioritized dup of abs-101), `hxn-1003` (Session 5 merge leftover with no drug_areas)
+- Merged `batoclimab_ted` into `batoclimab` (added igf1r+ted to batoclimab.drug_areas; deleted batoclimab_ted)
+- Fixed `ep006.display_name`: "ES302" → "EP006 (Eprovaxia)"
+- Fixed `orilanolimab.company_id`: ucb → astrazeneca (it's an Alexion/AZ asset, not UCB)
+- Intentionally excluded from DKN: `lm-302` (CLDN18.2 oncology), `gb004` (Terminated)
+- Added `catalog_visibility` test type to validate_ground_truth.py — enforces the invariant that all area-tab drugs appear in DKN
+
+**UCB + Candid Therapeutics TCE pipeline added:**
+- Added `candid` company record (UCB acquisition announced May 2026, pending close)
+- Added UCB + Candid to `company_areas` for `tcell` + `autoimmune`
+- Added 4 new drug records with drug_areas + drug_area_scores (all Direct, supported):
+  - `cizutamig` (CND-106, BCMA×CD3, Candid, Phase 1, autoimmune)
+  - `cnd319` (CD19×CD20×CD3 trispecific, Candid, Preclinical, autoimmune)
+  - `cnd460` (BCMA×CD19×CD3 trispecific, Candid, Preclinical, autoimmune)
+  - `atg-201` (CD19×CD3, UCB licensed from Antengene March 2026, Phase 1, autoimmune)
+- Added 2 deal records: UCB/Candid acquisition (May 2026), UCB/Antengene license (March 2026)
+
+**Validation: 78 → 83/83 passing** (net: added 6 new tests, deleted 1 stale)
+- `ucb-tcell-company-area`, `candid-tcell-company-area` (P1)
+- `cizutamig-tcell-overlap`, `atg-201-tcell-overlap` (P1)
+- `cldr-001-dkn-visible` (catalog_visibility, P1) — new test type
+- `orilanolimab-company-astrazeneca` (company_check, P2)
+- Deleted stale: `batoclimab-fcrn-overlap`
+
+**New document:** `docs/intake_integrity_framework.md` — Meridian Intake Integrity Framework v1.0
+
+---
 ## 2026-05-23 (Session 8b) — LQ080/ZW191 Identity Fix + Validation Framework Hardening
 
 **Root cause:** Enrichment runs cross-contaminate drug-company attribution. When enriching LaNova, the LLM found LQ080 in a source comparison table ("LQ080 vs ZW191") and: (1) assigned lanova as company, (2) merged the two drugs into display_name "LQ080 / ZW191". Both errors were invisible because no `company_check` validation existed.
