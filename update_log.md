@@ -1,5 +1,47 @@
 
 ---
+## 2026-05-23 (Session 5) — Drug Identity Audit + Merge
+
+**`docs/drug_identity_audit.md` — new**
+
+Full audit of 4 suspected duplicate pairs surfaced during molecule intelligence gap analysis. Classified each pair, produced merge plans, and applied confirmed merges.
+
+**Supabase: Merge A — `pf-06480605` → `afimkibart` (confirmed duplicate)**
+
+| Table | Action |
+|-------|--------|
+| drugs | Deleted `pf-06480605`. Updated `afimkibart`: display_name='Afimkibart (RO7790121)', cls='1st Gen', partner_company='Roche / Pfizer (originated)' |
+| molecule_intelligence | Inserted afimkibart record (IgG1, high confidence, TUSCANY-2 data) — previously existed only under pf-06480605 ID |
+| trials | All 7 pf-06480605 trials already migrated to afimkibart (13 total now) |
+| catalysts | Deduplicated and migrated: 1 pf-06480605 catalyst merged to afimkibart (2030-12-31); 1 true duplicate deleted (2027-01-30) |
+| drug_area_scores | Added tl1a score to afimkibart (was missing); deleted pf-06480605 rows |
+| drug_areas | Deleted pf-06480605 rows (afimkibart already had ibd+tl1a) |
+
+Rationale: afimkibart is the WHO INN and current Roche-owned asset. PF-06480605 was Pfizer's legacy code before Telavant/Roche acquisition.
+
+**Supabase: Merge B — `hxn1003` → `erd-1` (confirmed duplicate)**
+
+| Table | Action |
+|-------|--------|
+| drugs | Deleted `hxn1003`. Updated `erd-1`: name='ERD-1 / HXN-1003', target='TL1A×IL-23p19' |
+| drug_area_scores | Deleted hxn1003 rows (erd-1 already had ibd+tl1a) |
+| drug_areas | Deleted hxn1003 rows |
+
+Rationale: ERD-1 (Earendil internal code) = HXN-1003 (product name post-Sanofi deal). Same tetravalent TL1A×IL-23p19 bispecific. erd-1 held molecule_intelligence.
+
+**Supabase: Data fix — `ep006` display_name**
+
+| Table | Action |
+|-------|--------|
+| drugs | ep006 display_name: 'ES302' → 'EP006 (Eprovaxia)' |
+
+Rationale: ep006 (Eprovaxia/Episcience) and es302 (Elpiscience Biopharma) are distinct molecules from different companies — naming collision, not a duplicate.
+
+**Not merged: `qx030n` / `qx031n`** — distinct molecules (TL1A×IL-23p19 vs TSLP×IL-33), different partners (Caldera vs Roche), different disease areas. No merge warranted.
+
+Validation: 61/61 tests passing post-merge.
+
+---
 ## 2026-05-23 (Session 4) — P1: Source Evidence Tracking in Enrichment Pipeline
 
 **`company_enrichment.py` — source_url + confidence_level write paths (commit `01141bf`)**
