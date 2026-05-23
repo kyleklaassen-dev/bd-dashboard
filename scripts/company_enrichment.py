@@ -372,6 +372,7 @@ def gather_landscape_intel(area_id: str) -> str:
             tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
             system=LANDSCAPE_SEARCH_SYSTEM,
             messages=[{"role": "user", "content": prompt}],
+            timeout=90.0,  # cap at 90s to avoid infinite hang
         )
         parts = [block.text for block in resp.content if hasattr(block, "text") and block.text]
         return "\n\n".join(parts)
@@ -1327,7 +1328,8 @@ Be specific. Extract actual numbers and dates. Indicate uncertainty where presen
             max_tokens=3000,
             tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
             system=WEB_SEARCH_SYSTEM,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            timeout=90.0,  # web search can be slow — cap at 90s to avoid infinite hang
         )
         # Extract all text content blocks (tool_use and tool_result blocks are intermediate)
         parts = []
@@ -2596,7 +2598,8 @@ def _score_company_completeness(company_id: str, area_id: str,
 # ══════════════════════════════════════════════════════════════════════════
 
 def enrich_company(company_id: str, area_id: str, company_map: dict,
-                   dry_run: bool = False, resolver=None) -> bool:
+                   dry_run: bool = False, resolver=None,
+                   skip_web_search: bool = False) -> bool:
     """Run Steps 4-6 for one company.
 
     Args:
@@ -2621,18 +2624,24 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
     log("STEP 5 — Claude enrichment...", indent=1)
 
     # Phase A: Web intelligence gathering (live search, non-fatal)
+    # Skip when --skip-web-search is set (e.g. source_url re-enrichment runs where
+    # Claude's training data is sufficient and speed matters more than live data).
     co = ctx["company"]
     log("  Phase A — Web intelligence search...", indent=1)
-    web_intel = gather_web_intelligence(
-        company_name=co.get("name", company_id),
-        area_id=area_id,
-        drugs=ctx["drugs"],
-        ticker=co.get("ticker", ""),
-    )
-    if web_intel:
-        log(f"  Web intelligence gathered ({len(web_intel)} chars)", indent=1)
+    web_intel = ""
+    if not skip_web_search:
+        web_intel = gather_web_intelligence(
+            company_name=co.get("name", company_id),
+            area_id=area_id,
+            drugs=ctx["drugs"],
+            ticker=co.get("ticker", ""),
+        )
+        if web_intel:
+            log(f"  Web intelligence gathered ({len(web_intel)} chars)", indent=1)
+        else:
+            log("  No web intelligence (continuing with Supabase context only)", indent=1)
     else:
-        log("  No web intelligence (continuing with Supabase context only)", indent=1)
+        log("  Skipped (--skip-web-search flag set) — using Supabase context only", indent=1)
 
     # Phase B: Claude synthesis with web context injected
     log("  Phase B — Claude synthesis...", indent=1)
@@ -2802,6 +2811,8 @@ def reconcile_company_areas(area_id: str, dry_run: bool = False) -> dict:
 def run_intelligence_pipeline(area_id: str,
                                company_filter: Optional[str] = None,
                                discover_only: bool = False,
+                               skip_discovery: bool = False,
+                               skip_web_search: bool = False,
                                dry_run: bool = False):
     """
     Runs the full intelligence pipeline for one disease area.
@@ -2831,9 +2842,13 @@ def run_intelligence_pipeline(area_id: str,
             log(f"⚠ Could not initialise identity resolver: {exc} — running without it")
 
     # STEP 1: Entity Discovery (resolver passed for cross-company collision check)
-    new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run,
-                                               resolver=run_resolver)
-    log(f"Step 1 complete: {new_entities} candidates queued to discovery_queue (pending review)")
+    # Skip when --skip-discovery is set (e.g. targeted --company re-enrichment runs)
+    if skip_discovery:
+        log("Step 1 skipped (--skip-discovery flag set)")
+    else:
+        new_entities = step1_discover_new_entities(area_id, company_map, dry_run=dry_run,
+                                                   resolver=run_resolver)
+        log(f"Step 1 complete: {new_entities} candidates queued to discovery_queue (pending review)")
 
     if discover_only:
         log("--discover-only: stopping after Step 1")
@@ -2885,7 +2900,8 @@ def run_intelligence_pipeline(area_id: str,
     for cid in company_ids:
         try:
             ok = enrich_company(cid, area_id, company_map, dry_run=dry_run,
-                                resolver=run_resolver)
+                                resolver=run_resolver,
+                                skip_web_search=skip_web_search)
             results["success" if ok else "failed"] += 1
         except Exception as e:
             log(f"FATAL: {cid}: {e}")
@@ -2926,6 +2942,13 @@ if __name__ == "__main__":
                         help="Company ID substring filter")
     parser.add_argument("--discover-only", action="store_true",
                         help="Only run Step 1 (entity discovery)")
+    parser.add_argument("--skip-discovery", action="store_true",
+                        help="Skip Step 1 (entity discovery); go straight to per-company enrichment. "
+                             "Use with --company for fast targeted re-enrichment runs.")
+    parser.add_argument("--skip-web-search", action="store_true",
+                        help="Skip Phase A web intelligence search in Step 5. Claude synthesises "
+                             "from Supabase context + training data only. Fastest option for "
+                             "source_url / confidence_level re-population runs.")
     parser.add_argument("--dry-run",  action="store_true",
                         help="No Supabase writes")
     args = parser.parse_args()
@@ -2934,5 +2957,7 @@ if __name__ == "__main__":
         area_id=args.area,
         company_filter=args.company,
         discover_only=args.discover_only,
+        skip_discovery=args.skip_discovery,
+        skip_web_search=args.skip_web_search,
         dry_run=args.dry_run,
     )
