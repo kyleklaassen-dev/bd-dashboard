@@ -9090,11 +9090,24 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
     const stBg = st==='Approved'?'rgba(34,197,94,0.22)':st.includes('3')?'rgba(96,165,250,0.25)':st.includes('2')?'rgba(20,184,166,0.22)':'rgba(148,163,184,0.22)';
     const stCo = st==='Approved'?'#86efac':st.includes('3')?'#93c5fd':st.includes('2')?'#5eead4':'#cbd5e1';
     const stChip = st ? `<span class="em-hd-chip" style="background:${stBg};color:${stCo}">${st}</span>` : '';
-    const areaChips = areas.map(a => {
+    // Use area-specific overlap if available, else fall back to drug-level overlap
+    const areasWithOverlap = areas.filter(a => a.overlap);
+    const chipsSource = areasWithOverlap.length ? areasWithOverlap
+      : (drug.overlap ? [{ area_id: 'global', overlap: drug.overlap }] : []);
+    // Confidence badge helper
+    const _confBadge = (confLevel, srcUrl) => {
+      if (confLevel === 'confirmed' && srcUrl) return `<span title="Confirmed: source URL on file" style="font-size:8px;margin-left:3px">✓</span>`;
+      if (confLevel === 'supported') return `<span title="Supported: inferred from related evidence" style="font-size:8px;margin-left:3px;opacity:0.7">≈</span>`;
+      if (confLevel === 'inferred') return `<span title="Inferred: no primary source" style="font-size:8px;margin-left:3px;opacity:0.6">~</span>`;
+      return `<span title="Unverified: no source URL on file" style="font-size:8px;margin-left:3px;opacity:0.45">?</span>`;
+    };
+    const areaChips = chipsSource.map(a => {
       const ov = (a.overlap||'').toLowerCase();
       const cls = {direct:'em-hd-chip-direct',adjacent:'em-hd-chip-adjacent','same-space':'em-hd-chip-same',watch:'em-hd-chip-watch'}[ov] || '';
-      const lbl = _AREA_LABEL[a.area_id] || a.area_id || '';
-      return lbl && a.overlap ? `<span class="em-hd-chip ${cls}">${lbl}: ${a.overlap}</span>` : '';
+      const lbl = a.area_id !== 'global' ? (_AREA_LABEL[a.area_id] || a.area_id || '') : '';
+      const conf = _confBadge(a.confidence_level, a.source_url);
+      const tooltip = a.source_url ? `title="Source: ${a.source_url}"` : (a.confidence_level ? `title="${a.confidence_level}"` : '');
+      return a.overlap ? `<span class="em-hd-chip ${cls}" ${tooltip}>${lbl ? lbl + ': ' : ''}${a.overlap}${conf}</span>` : '';
     }).filter(Boolean).join('');
     chipsEl.innerHTML = [stChip, areaChips].filter(Boolean).join('');
   }
@@ -9105,7 +9118,12 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
   const mechanism = drug.mechanism || '';
   const summary   = drug.drug_summary || '';
   const diff      = drug.differentiation_thesis || '';
-  const areaPos   = areas.filter(a => a.overlap);
+  // Fallback: if no area has overlap data, synthesize one row from drugs.overlap
+  let areasForPos = areas.filter(a => a.overlap);
+  if (!areasForPos.length && drug.overlap) {
+    areasForPos = [{ area_id: 'global', overlap: drug.overlap, overlap_rationale: drug.overlap_rationale || drug.vs_ailux || '' }];
+  }
+  const areaPos   = areasForPos;
   const posRows   = areaPos.map(a => {
     const lbl = _AREA_LABEL[a.area_id] || (a.area_id||'').toUpperCase();
     const ov  = (a.overlap||'').toLowerCase();
@@ -9415,13 +9433,13 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     const [drugRes, areaRes0, scoreRes0, trialRes0, molRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls').eq('drug_id', drugId),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
     let drug    = drugRes.data?.[0]  || null;
-    // Merge drug_areas (membership) + drug_area_scores (overlap data)
+    // Merge drug_areas (membership) + drug_area_scores (overlap data + provenance)
     const scoreMap0 = {};
     (scoreRes0.data || []).forEach(s => { scoreMap0[s.area_id] = s; });
     let areas   = (areaRes0.data || []).map(a => ({
@@ -9429,11 +9447,14 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       overlap: scoreMap0[a.area_id]?.overlap || null,
       overlap_rationale: scoreMap0[a.area_id]?.overlap_rationale || null,
       strategic_role: scoreMap0[a.area_id]?.strategic_role || null,
+      confidence_level: scoreMap0[a.area_id]?.confidence_level || null,
+      source_url: scoreMap0[a.area_id]?.source_url || null,
     }));
     // If drug_areas is empty but drug_area_scores has data, use scores directly
     if (!areas.length && scoreRes0.data?.length) {
       areas = (scoreRes0.data || []).map(s => ({
         area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
+        confidence_level: s.confidence_level || null, source_url: s.source_url || null,
       }));
     }
     let trials  = trialRes0.data     || [];
@@ -9453,7 +9474,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         const rid = drug.id;
         const [ar, sr, tr, mr] = await Promise.all([
           _sb.from('drug_areas').select('area_id').eq('drug_id', rid),
-          _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls').eq('drug_id', rid),
+          _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', rid),
           _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
@@ -9464,10 +9485,13 @@ async function openDrugEntityModal(drugId, drugName, evt) {
           overlap: scoreMapR[a.area_id]?.overlap || null,
           overlap_rationale: scoreMapR[a.area_id]?.overlap_rationale || null,
           strategic_role: scoreMapR[a.area_id]?.strategic_role || null,
+          confidence_level: scoreMapR[a.area_id]?.confidence_level || null,
+          source_url: scoreMapR[a.area_id]?.source_url || null,
         }));
         if (!areas.length && sr.data?.length) {
           areas = (sr.data || []).map(s => ({
             area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
+            confidence_level: s.confidence_level || null, source_url: s.source_url || null,
           }));
         }
         trials  = tr.data    || [];
