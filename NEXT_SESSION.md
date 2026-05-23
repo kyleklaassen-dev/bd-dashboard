@@ -113,6 +113,13 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
+### ✅ Intake Integrity Framework + DKN Gap Fix + UCB/Candid TCE (Session 9)
+- **Principle established:** Dashboard = view layer. Supabase = source of truth. 4 intake paths documented in `docs/intake_integrity_framework.md`.
+- **DKN audit:** 45 of 91 area-tab drugs had `catalog_category = null` → invisible in Drugs to Know. Fixed 38 legitimate drugs (Pipeline/Immunology). Deleted 4 duplicate records (batoclimab-fcrn, imvt1402, abs101, hxn-1003). Merged batoclimab_ted into batoclimab. Fixed ep006 display_name + orilanolimab company (ucb → astrazeneca).
+- **catalog_visibility test type** added to validate_ground_truth.py — enforces the DKN coverage invariant going forward.
+- **UCB + Candid TCE pipeline added:** cizutamig (BCMA×CD3), CND319 (CD19×CD20×CD3), CND460 (BCMA×CD19×CD3), ATG-201 (CD19×CD3 licensed from Antengene March 2026). UCB and Candid added to tcell+autoimmune company_areas. 2 deals added.
+- **Validation: 83/83 passing** — 6 new tests, 1 stale deleted
+
 ### ✅ LQ080/ZW191 Identity Fix + Validation Framework Hardening (Session 8b)
 - **Root cause:** enrichment runs assigned lanova as LQ080's company and merged "LQ080 / ZW191" as display_name (slash in comparison table misread as alias)
 - **Data fixes:** lq080.company_id → novamab; display_name → "LQ080"; lq080/ibd overlap → Direct; added lq080/tl1a drug_area_scores row
@@ -151,6 +158,20 @@
 ---
 
 ## Highest Priority for Next Session
+
+### 🟡 P0: Enforce catalog_category in enrichment pipeline writes
+`company_enrichment.py` and `molecule_enrichment.py` never set `catalog_category` when inserting new drug records → drugs become invisible in DKN. Rule: all enrichment drug inserts must write a `catalog_category` value. Simple default logic:
+- Immunology biologic (approved) → `'Immunology'`
+- Clinical pipeline → `'Pipeline'`
+- Small molecule → `'Small Molecule'`
+- Oncology → `'Oncology'`
+
+### 🟡 P1: Run quick_profiles_enrich.py for UCB/Candid
+UCB and Candid now have company_areas entries. Run enrichment to populate company_profiles:
+```bash
+python3 scripts/quick_profiles_enrich.py --area tcell --company ucb
+python3 scripts/quick_profiles_enrich.py --area tcell --company candid
+```
 
 ### 🟡 P1: Enrich Priority Companies (company_coverage_audit.md)
 ✅ Regeneron done (tslp + il4ra, Session 8).  
