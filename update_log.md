@@ -1,5 +1,26 @@
 
 ---
+## 2026-05-23 (Session 11) — Lilly/Novartis/Pfizer Enriched + Rule E3 Validation
+
+**Company profiles enriched (quick_profiles_enrich.py):**
+- `lilly / ibd` — mirikizumab IBD framing + Ailux BD angle
+- `novartis / autoimmune` — 4-drug portfolio (secukinumab, iscalimab, spesolimab, ianalumab)
+- `novartis / ted` — thyroid eye disease positioning
+- `pfizer / ibd` — IBD competitive landscape (etrasimod platform)
+
+**Rule E3 — company_area consistency — fully enforced:**
+- New test type `company_area_check` added to `validate_ground_truth.py`
+- Invariant: if `company_profiles` row exists for company×area, `company_areas` must also exist
+- 14 orphan company_areas gaps discovered and fixed:
+  `abbvie/il4ra`, `amgen/il4ra`, `boehringer/tl1a`, `celgene/tl1a`, `gsk/tslp`,
+  `jnj/tcell`, `novartis/igf1r`, `novartis/tcell`, `pfizer/tl1a`, `regeneron/il4ra`,
+  `roivant/tl1a`, `teva/tl1a`, `xencor-412/tl1a`, `xencor-942/tl1a`
+- 61 Rule E3 tests seeded covering all current company_profiles rows
+- Schema migration v17: added `UNIQUE(test_name)` constraint to `validation_tests` (required for upsert)
+
+**Validation: 83 → 144/144 passing** (+61 Rule E3 tests, 0 failures)
+
+---
 ## 2026-05-23 (Session 10b) — UCB + Candid Company Profiles Enriched
 
 **Profiles generated via quick_profiles_enrich.py:**
