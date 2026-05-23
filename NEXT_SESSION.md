@@ -27,13 +27,15 @@
 
 | Priority | Task | Effort |
 |----------|------|--------|
-| P1 | **Enrich Lilly, Novartis, Pfizer** — missing from many area tabs | Medium |
-| P1 | **Add company_area consistency validation** (Rule E3) | Low — new test type |
-| P2 | **Run full company_enrichment.py for UCB/tcell** — quick_profiles done, drug-level summaries/overlap not yet enriched | Medium |
-| P2 | **Run catalog_visibility test after any enrichment run** | Automated via validate_ground_truth.py |
+| P1 | **Run full company_enrichment.py for UCB/tcell** — quick_profiles done, drug-level summaries/overlap not yet enriched | Medium |
+| P1 | **Add Rule E3 auto-enforcement in quick_profiles_enrich.py** — when writing a profile, ensure company_areas row exists | Low |
+| P2 | **Run catalog_visibility + Rule E3 tests after any enrichment** | Automated via validate_ground_truth.py (144 tests now) |
+| P2 | **Expand area coverage for Lilly/Pfizer** — check if any areas missing company_areas before enriching | Low |
 | P3 | **Migrate tl1aPI static JS object to Supabase** | High effort, high long-term value |
 
-**✅ UCB + Candid profiles done** — quick_profiles_enrich.py run for tcell + autoimmune. Profiles accurately reflect ATG-201 license, Candid acquisition, trispecific pipeline.
+**✅ Lilly, Novartis, Pfizer profiles done** — ibd, autoimmune, ted covered.  
+**✅ Rule E3 live** — 61 tests, 14 orphan gaps fixed, UNIQUE constraint on validation_tests.test_name.  
+**✅ Validation: 144/144 passing.**
 
 ---
 
