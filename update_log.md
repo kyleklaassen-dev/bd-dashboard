@@ -1,5 +1,24 @@
 
 ---
+## 2026-05-23 (Session 13) — Rule E4: Drug Area Score Consistency
+
+**Rule E4 — drug_area_score_check — fully enforced:**
+- Invariant: if `drug_area_scores` exists for drug×area, `drug_areas` must also exist
+- Principle: scores = area-specific interpretation; drug_areas = area membership; no score without membership
+- New test type `drug_area_score_check` added to `validate_ground_truth.py`
+
+**Audit found 3 orphan drug_area_scores rows (scores with no matching drug_areas row):**
+- `benralizumab / tslp` (Watch — TSLP→IL-5 pathway, legitimate) → drug_areas row added
+- `omalizumab / autoimmune` (Watch — anti-IgE, CSU/urticaria) → drug_areas row added
+- `tisagenlecleucel / autoimmune` (Watch — CAR-T, explored for autoimmune) → drug_areas row added
+
+All 3 resolved by adding the missing drug_areas membership rows (not deleting scores).
+
+**96 Rule E4 tests seeded** covering all current drug_area_scores rows.
+
+**Validation: 144 → 240/240 passing** (+96 Rule E4 tests, 0 failures)
+
+---
 ## 2026-05-23 (Session 11) — Lilly/Novartis/Pfizer Enriched + Rule E3 Validation
 
 **Company profiles enriched (quick_profiles_enrich.py):**
