@@ -1574,9 +1574,9 @@ Return JSON with EXACTLY these fields:
       ],
       "confidence": "high | medium | low"
     }},
-    "key_risk": "1-2 sentences: single most important risk.",
-    "why_it_matters": "1-2 sentences: why this competitor matters for Ailux's BD strategy.",
-    "vs_ailux": "1-2 sentences: how this program compares to Ailux's TL1A×IL-23p19 bispecific.",
+    "key_risk": "REQUIRED — 1-2 sentences: the single most important risk or uncertainty for this company/program in this area. Be specific: trial risk (endpoint, enrollment, regulatory), competitive risk (head-to-head data, first-mover), platform risk (technology, execution), or financial risk. Not a generic summary — Ailux needs to know what could go wrong and why it matters.",
+    "why_it_matters": "REQUIRED — 1-2 sentences: why this competitor matters specifically for Ailux's BD strategy. Answer one of: (a) They set a pricing/valuation benchmark we should track, (b) They could be a partner or acquirer, (c) Their clinical data validates or threatens our mechanism, (d) Their deal structure defines what counterparties expect. Never generic — always Ailux-specific BD framing.",
+    "vs_ailux": "REQUIRED — 1-2 sentences: how this program compares to Ailux's TL1A×IL-23p19 bispecific (SPY002). Lead with mechanism difference, then stage, then one specific differentiator (format, data, deal structure, biomarker). If the company IS Ailux/Spyre, describe their full TL1A strategy instead.",
     "strategic_behavior": "1 sentence: acquirer / licensor / partner-seeker / platform builder.",
     "pipeline_url": "URL or null",
     {financial_fields}
@@ -1604,8 +1604,9 @@ Return JSON with EXACTLY these fields:
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "overlap": "REQUIRED — Direct | Adjacent | Same-Space | Watch. Use AILUX COMPETITIVE ANCHOR four-tier rules above. Direct = same molecular target as Ailux or combo including Ailux's target. Adjacent = same disease, different mechanism, validates biology or is a combination candidate (e.g. IL-23, α4β7). Same-Space = approved SOC in the same indication via a fundamentally different pathway (integrin blockers, older biologics — compete for patients, define efficacy bar). Watch = same patients but entirely different mechanism (JAK, S1P, RIPK1, TNF), or early-stage with unconfirmed relevance.",
     "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this drug is classified in this tier relative to Ailux's TL1A position. Be specific about the mechanism.",
-    "confidence_level": "confirmed|supported|inferred",
-    "data_source": "ct_gov|sec_filing|press_release|conference|claude_inferred",
+    "source_url": "REQUIRED when confidence_level is 'confirmed' or 'supported' — the single most authoritative public URL for this drug entry. Use ClinicalTrials.gov study URL (https://clinicaltrials.gov/study/NCTxxxxxxxx) for trial-verified drugs, company IR/pipeline page for pipeline disclosures, or press release URL for deal/approval data. Set null only when genuinely unavailable (early preclinical, undisclosed). Never fabricate URLs.",
+    "confidence_level": "confirmed (primary source verified, e.g. CT.gov or press release) | supported (corroborated by secondary sources) | inferred (LLM derivation, no direct source available)",
+    "data_source": "ct_gov|company_ir|press_release|sec_filing|conference|claude_inferred",
     "aliases": [],
     "approval_date": "null or string: regulatory approval date and indication — e.g. 'May 2023 (UC); Jan 2024 (CD)'. ONLY populate for drugs where stage contains 'Approved'.",
     "annual_revenue": "null or string: latest reported annual revenue with year — e.g. '$10.4B (2024)'. ONLY for approved drugs.",
@@ -2050,21 +2051,39 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         drug_id_raw = (cat.get("drug_id") or "").strip() or None
         cat_type    = cat.get("catalyst_type", "readout")
 
-        # Dedup check: skip if this (company, drug, type, date) already exists
-        # Mirrors the step4 pattern — the unique index uses COALESCE(drug_id,'')
-        # which PostgREST cannot use as an on_conflict target, so we guard here.
-        dedup_params: dict = {
-            "company_id":   f"eq.{company_id}",
+        # Dedup check: skip if this (company, area, label) already exists.
+        # Label is the most stable identifier across LLM runs — two events with the
+        # same label are almost certainly the same catalyst, even if sort_date drifts
+        # slightly between enrichment passes.  This is the fix for the duplicate
+        # accumulation bug identified 2026-05-22 (137 dupes removed across all areas).
+        # The ideal guard is a DB unique index on (company_id, area_id, label) — add
+        # that via Supabase SQL editor: see docs/catalyst_quality_diagnosis.md Step 3.
+        label_truncated = (cat.get("label") or "")[:200]
+        dedup_by_label: dict = {
+            "company_id": f"eq.{company_id}",
+            "area_id":    f"eq.{area_id}",
+            "label":      f"eq.{label_truncated}",
+            "select":     "id",
+        }
+        if sb_get("catalysts", dedup_by_label):
+            log(f"  catalyst '{label_truncated[:40]}': already exists (label match), skipping", indent=1)
+            continue
+
+        # Secondary dedup: also check (company, drug, type, sort_date) to catch
+        # same-event catalysts with slightly different label wording.
+        dedup_by_date: dict = {
+            "company_id":    f"eq.{company_id}",
+            "area_id":       f"eq.{area_id}",
             "catalyst_type": f"eq.{cat_type}",
-            "sort_date":    f"eq.{sort_date}",
-            "select":       "id",
+            "sort_date":     f"eq.{sort_date}",
+            "select":        "id",
         }
         if drug_id_raw:
-            dedup_params["drug_id"] = f"eq.{drug_id_raw}"
+            dedup_by_date["drug_id"] = f"eq.{drug_id_raw}"
         else:
-            dedup_params["drug_id"] = "is.null"
-        if sb_get("catalysts", dedup_params):
-            log(f"  catalyst '{(cat.get('label') or '')[:40]}': already exists, skipping", indent=1)
+            dedup_by_date["drug_id"] = "is.null"
+        if sb_get("catalysts", dedup_by_date):
+            log(f"  catalyst '{label_truncated[:40]}': already exists (date+type match), skipping", indent=1)
             continue
 
         cat_rec = {
