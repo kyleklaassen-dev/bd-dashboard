@@ -113,6 +113,14 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
+### ✅ Regeneron Enrichment + quick_profiles_enrich.py (Session 8)
+- New script: `scripts/quick_profiles_enrich.py` — lightweight company_profiles updater
+  - Drug + deal context only (no trials, no intel); ~5s/company×area; ~$0.003/call
+  - Solves 45s bash timeout constraint: full pipeline fails for companies with 10+ trials
+  - `company_enrichment.py` also got `--skip-trial-refresh` and `--fast` flags for future use
+- Enriched `regeneron/tslp` and `regeneron/il4ra` with Haiku-generated summaries
+- **Validation: 71/71 passing** — no regressions
+
 ### ✅ CLD-423 / CLDR-001 Identity Resolution (Session 7c)
 - Confirmed: cld-423 and cldr-001 are the same molecule (CLD-423/QX030N, Caldera licensed from Qyuns)
 - cldr-001 is canonical; cld-423 deleted (drug record + 2 drug_area_scores)
@@ -138,8 +146,18 @@
 ## Highest Priority for Next Session
 
 ### 🟡 P1: Enrich Priority Companies (company_coverage_audit.md)
-Top unenriched companies: Regeneron, Lilly, Novartis, Pfizer, Gilead, J&J, BMS, Amgen, Takeda, Boehringer Ingelheim  
-Run enrichment for the Critical tier companies first.
+✅ Regeneron done (tslp + il4ra, Session 8).  
+Next: **Lilly, Novartis, Pfizer** — use `scripts/quick_profiles_enrich.py` for each.
+
+**How to run each company:**
+```bash
+# Find which area_ids a company has in company_profiles:
+# GET /company_profiles?company_id=eq.lilly&select=area_id
+python3 scripts/quick_profiles_enrich.py --area tslp --company lilly
+python3 scripts/quick_profiles_enrich.py --area il4ra --company lilly
+# etc per area
+```
+Top remaining unenriched: Lilly, Novartis, Pfizer, Gilead, J&J, BMS, Amgen, Takeda, Boehringer Ingelheim
 
 ### 🟡 P3: Dossier Phase 2 — Coverage + Strategic Value Chips (low effort, high value)
 From `docs/dossier_phase2.md`:
@@ -175,7 +193,7 @@ DB (Supabase):
   drugs                   ← live; last_enriched_model written on every enrichment (v16)
   drug_area_scores        ← live; 93 rows (was 152); clean — 3 intentionally-deferred orphans remain
   drug_areas              ← live; 179 rows (was 160)
-  company_profiles        ← live; 37/60 enriched
+  company_profiles        ← live; 37/60 enriched (regeneron tslp+il4ra freshly populated, Session 8)
   validation_tests        ← live; 71 tests, all passing
   catalysts               ← live; Roche dedup pending
   molecule_intelligence   ← live; 51 records; ~12 uncovered TL1A drugs remain

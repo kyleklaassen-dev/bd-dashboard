@@ -1,5 +1,21 @@
 
 ---
+## 2026-05-23 (Session 8) — Regeneron Enrichment + quick_profiles_enrich.py
+
+**New script: `scripts/quick_profiles_enrich.py`**
+- Lightweight company_profiles updater: drug + deal context only (no trials, no intel items)
+- Uses claude-haiku-4-5-20251001; ~5s per company×area; ~$0.003/call
+- Added to solve 45s bash window constraint: full `company_enrichment.py` with 13+ trials takes >45s even with all skip flags
+- Added `--skip-trial-refresh` and `--fast` (Haiku) flags to `company_enrichment.py` for future use
+
+**Regeneron enriched (tslp + il4ra areas):**
+- `regeneron/tslp`: itepekimab anti-IL-33 Phase 3 profile; AERIFY-2 miss noted as key risk; Sanofi co-dev context
+- `regeneron/il4ra`: Dupixent IL-4Rα franchise; $13B+ revenue; biosimilar risk + label saturation
+- Both rows: `last_enriched_model = claude-haiku-4-5-20251001`
+
+**Validation: 71/71 passing** — no regressions
+
+---
 ## 2026-05-23 (Session 7c) — CLD-423/CLDR-001 Identity Resolution + Validation 71/71
 
 **Identity verdict: cld-423 = cldr-001 (same molecule, duplicate record)**

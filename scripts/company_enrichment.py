@@ -988,7 +988,8 @@ def _refresh_existing_trials_from_ctgov(trials: list) -> int:
     return refreshed
 
 
-def fetch_company_context(company_id: str, area_id: str) -> dict:
+def fetch_company_context(company_id: str, area_id: str,
+                          skip_trial_refresh: bool = False) -> dict:
     """Pull all Supabase data for a company × area."""
     companies = sb_get("companies", {"id": f"eq.{company_id}", "select": "*"})
     company   = companies[0] if companies else {}
@@ -1037,7 +1038,8 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
     # ── Refresh existing trials via CT.gov direct fetch ───────────────────
     # For drugs that already have trial rows, re-fetch each NCT ID from CT.gov
     # so status, PCD, enrollment, and phase stay current.
-    if trials:
+    # Skip with --skip-trial-refresh for fast targeted enrichment runs.
+    if trials and not skip_trial_refresh:
         log(f"  Refreshing {len(trials)} existing trial(s) from CT.gov…")
         refreshed = _refresh_existing_trials_from_ctgov(trials)
         log(f"  Refresh complete — {refreshed}/{len(trials)} trial(s) updated")
@@ -1047,6 +1049,8 @@ def fetch_company_context(company_id: str, area_id: str) -> dict:
             for d in drugs:
                 t_rows = sb_get("trials", {"drug_id": f"eq.{d['id']}", "select": "*"})
                 trials.extend(t_rows)
+    elif trials and skip_trial_refresh:
+        log(f"  Trial refresh skipped (--skip-trial-refresh flag set) — using {len(trials)} cached rows")
 
     ninety_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).strftime("%Y-%m-%d")
     intel_co   = sb_get("intel_companies", {"company_id": f"eq.{company_id}", "select": "intel_id"})
@@ -2599,7 +2603,9 @@ def _score_company_completeness(company_id: str, area_id: str,
 
 def enrich_company(company_id: str, area_id: str, company_map: dict,
                    dry_run: bool = False, resolver=None,
-                   skip_web_search: bool = False) -> bool:
+                   skip_web_search: bool = False,
+                   skip_trial_refresh: bool = False,
+                   fast_model: bool = False) -> bool:
     """Run Steps 4-6 for one company.
 
     Args:
@@ -2610,7 +2616,8 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
     log(f"{'='*56}")
 
     log("Fetching Supabase context...", indent=1)
-    ctx = fetch_company_context(company_id, area_id)
+    ctx = fetch_company_context(company_id, area_id,
+                                skip_trial_refresh=skip_trial_refresh)
     log(f"  {len(ctx['drugs'])} drugs | {len(ctx['trials'])} trials | "
         f"{len(ctx['catalysts'])} catalysts | {len(ctx['deals'])} deals | "
         f"{len(ctx['recent_intel'])} intel items", indent=1)
@@ -2647,11 +2654,16 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
     log("  Phase B — Claude synthesis...", indent=1)
     prompt = build_step5_prompt(company_id, area_id, ctx, web_intel=web_intel)
 
+    _synthesis_model = "claude-haiku-4-5-20251001" if fast_model else "claude-sonnet-4-6"
+    _synthesis_tokens = 4096 if fast_model else 8192
+    if fast_model:
+        log(f"  [fast mode] Using {_synthesis_model} (max_tokens={_synthesis_tokens})", indent=1)
+
     text = None
     for attempt in range(1, 4):
         try:
             resp = client.messages.create(
-                model="claude-sonnet-4-6", max_tokens=8192,
+                model=_synthesis_model, max_tokens=_synthesis_tokens,
                 system=ENRICHMENT_SYSTEM,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -2813,6 +2825,8 @@ def run_intelligence_pipeline(area_id: str,
                                discover_only: bool = False,
                                skip_discovery: bool = False,
                                skip_web_search: bool = False,
+                               skip_trial_refresh: bool = False,
+                               fast_model: bool = False,
                                dry_run: bool = False):
     """
     Runs the full intelligence pipeline for one disease area.
@@ -2901,7 +2915,9 @@ def run_intelligence_pipeline(area_id: str,
         try:
             ok = enrich_company(cid, area_id, company_map, dry_run=dry_run,
                                 resolver=run_resolver,
-                                skip_web_search=skip_web_search)
+                                skip_web_search=skip_web_search,
+                                skip_trial_refresh=skip_trial_refresh,
+                                fast_model=fast_model)
             results["success" if ok else "failed"] += 1
         except Exception as e:
             log(f"FATAL: {cid}: {e}")
@@ -2949,6 +2965,16 @@ if __name__ == "__main__":
                         help="Skip Phase A web intelligence search in Step 5. Claude synthesises "
                              "from Supabase context + training data only. Fastest option for "
                              "source_url / confidence_level re-population runs.")
+    parser.add_argument("--skip-trial-refresh", action="store_true",
+                        help="Skip CT.gov re-fetch for existing trial rows during context fetch. "
+                             "Saves ~1s per trial. Use with --skip-web-search for fastest targeted "
+                             "company_profiles re-enrichment within the 45s bash window.")
+    parser.add_argument("--fast", action="store_true",
+                        help="Use claude-haiku-4-5-20251001 (max_tokens=4096) for synthesis instead "
+                             "of claude-sonnet-4-6. ~3-5x faster. Combine with --skip-trial-refresh "
+                             "and --skip-web-search for targeted company_profiles updates that fit "
+                             "within the 45s bash window. Quality is lower — use for unenriched "
+                             "companies where any data is better than none.")
     parser.add_argument("--dry-run",  action="store_true",
                         help="No Supabase writes")
     args = parser.parse_args()
@@ -2959,5 +2985,7 @@ if __name__ == "__main__":
         discover_only=args.discover_only,
         skip_discovery=args.skip_discovery,
         skip_web_search=args.skip_web_search,
+        skip_trial_refresh=args.skip_trial_refresh,
+        fast_model=args.fast,
         dry_run=args.dry_run,
     )
