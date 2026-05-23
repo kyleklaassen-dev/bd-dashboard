@@ -97,6 +97,16 @@
 - Not merged: `qx030n` / `qx031n` (distinct molecules, different targets/areas/partners)
 - Full audit documented: `docs/drug_identity_audit.md`
 
+### ✅ P0: Source Verification Population (Session 6, commit `1e79552`)
+- `scripts/source_verify.py` — new standalone source_url populator (no web search, ~5s/drug)
+- `company_enrichment.py` — added `--skip-discovery` and `--skip-web-search` flags
+- 48 drug_area_scores rows processed across all areas; 31 confirmed/supported URLs written
+- Hallucinated URL detected + nulled (tozorakimab/tslp NCT05005chips)
+- fg-m701 area_id fixed: atopy → tl1a + ibd
+- risankizumab + upadacitinib stage regression fixed (Phase 3 → Approved)
+- Validation suite: 61 → 64 tests (added 3 approved-drug stage guards)
+- 64/64 passing
+
 ### ✅ Task #127: Molecule Intelligence Enrichment (Session 5b, commit `a4dc837`)
 - `scripts/molecule_enrichment.py` — new standalone targeted enrichment script
 - 20 priority TL1A/IBD drugs enriched: duvakitug, spy002, spy072, spy001, spy003, spy120, spy130, spy230, qx030n, ro7837195, fg-m701, abbv-382, abbv-668, lutikizumab, risankizumab, guselkumab, mirikizumab, upadacitinib, ustekinumab, golimumab
@@ -107,19 +117,7 @@
 
 ## Highest Priority for Next Session
 
-### 🔴 P0: Run enrichment to populate source_url in production
-v16 is applied and the write path is fixed (commit `01141bf`). Now actually run enrichment to populate `drug_area_scores.source_url` for the 42 Direct-overlap drugs that still have `source_url=null`.
-
-Start with caldera (smallest, lowest risk), then spyre, then sanofi/abbvie/roche.
-
-```bash
-cd "$WS" && python3 scripts/company_enrichment.py --company caldera --area tl1a
-```
-
-After each run: verify `drug_area_scores.source_url` is non-null for that company's drugs.  
-All 61 validation tests should continue passing after every run.
-
-### 🟡 P2: Enrich Priority Companies (company_coverage_audit.md)
+### 🟡 P1: Enrich Priority Companies (company_coverage_audit.md)
 Top unenriched companies: Regeneron, Lilly, Novartis, Pfizer, Gilead, J&J, BMS, Amgen, Takeda, Boehringer Ingelheim  
 Run enrichment for the Critical tier companies first.
 
@@ -155,11 +153,12 @@ DB (Supabase):
   provenance_events       ← DESIGN ONLY (v17 not designed yet)  
   assertion_history       ← DESIGN ONLY (v18 not designed yet)
   drugs                   ← live; last_enriched_model written on every enrichment (v16)
-  drug_area_scores        ← live; source_url=0% in prod — enrichment not yet re-run
+  drug_area_scores        ← live; source_url populated for ~31/48 Direct rows (done Session 6)
   company_profiles        ← live; 37/60 enriched
-  validation_tests        ← live; 61 tests, all passing
+  validation_tests        ← live; 64 tests, all passing
   catalysts               ← live; Roche dedup pending
-  molecule_intelligence   ← live; 51 records (31→51 this session); ~12 uncovered TL1A drugs remain
+  molecule_intelligence   ← live; 51 records; ~12 uncovered TL1A drugs remain
+  drug_area_scores        ← live; source_url populated for 31 Direct rows; 16 inferred (null, no public source)
 
 UI (GitHub Pages - commit 577ba0e):
   Entity dossier          ← live; molecule tab + overlap bugs fixed
@@ -174,7 +173,7 @@ UI (GitHub Pages - commit 577ba0e):
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| drug_area_scores.source_url = 0% | High | Write path fixed (01141bf); needs enrichment re-run (P0) |
+| drug_area_scores.source_url null (16 rows) | Low | All inferred — early-stage/private pipelines with no CT registration; acceptable |
 | fg-m701 area_id='atopy' (should be 'tl1a') | Medium | Not fixed — needs PATCH |
 | Roche catalyst near-duplicates (~10) | Medium | Needs P4 dedup |
 | ensure_canonical_id() doesn't insert into canonical_drugs | Medium | Workaround applied for 3 drugs; fix in P5 |
@@ -203,6 +202,11 @@ UI (GitHub Pages - commit 577ba0e):
 - `docs/drug_identity_audit.md` — full audit of 4 duplicate candidates
 - Supabase: Merge A (pf-06480605→afimkibart), Merge B (hxn1003→erd-1), data fix C (ep006)
 - `update_log.md` — Session 5 entry
+
+**Commit `1e79552`** — Source verification + enrichment script flags:
+- `scripts/source_verify.py` — new standalone source_url populator (no web search)
+- `scripts/company_enrichment.py` — `--skip-discovery` and `--skip-web-search` flags
+- `timeout=90s` added to both web search API calls (prevents infinite hang)
 
 **Commit `a4dc837`** on `scripts/molecule_enrichment.py` — new:
 - Standalone targeted molecule enrichment (per-drug, not per-company)

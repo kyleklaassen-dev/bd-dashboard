@@ -1,5 +1,44 @@
 
 ---
+## 2026-05-23 (Session 6) — P0: Source Verification Population
+
+**`scripts/source_verify.py` — new (commit `1e79552`)**
+
+Standalone targeted script to populate `drug_area_scores.source_url` and `confidence_level`.  
+Bypasses the full company_enrichment.py pipeline; calls Claude directly per drug batch (~6 drugs/call, ~5s each). No web search — uses training knowledge + CT.gov familiarity.
+
+**`scripts/company_enrichment.py` — two new flags (commit `1e79552`)**
+- `--skip-discovery`: skip Step 1 (entity discovery / landscape web search)
+- `--skip-web-search`: skip Phase A of Step 5 (company web intelligence gathering)
+
+Both flags enable fast targeted re-enrichment without the full pipeline overhead.
+
+**Source URL population results:**
+
+| Area | Rows processed | Confirmed/Supported | Inferred (null) |
+|------|---------------|---------------------|-----------------|
+| tl1a | 13 | 8 | 5 |
+| ibd | 20 | 11 | 9 |
+| fcrn | 5 | 5 | 0 |
+| tslp | 5 | 4 | 1 |
+| atopy | 1 | 0 | 1 |
+| respiratory | 1 | 0 | 1 |
+| il4ra | 3 | 3 | 0 |
+| **Total** | **48** | **31** | **17** |
+
+**Data quality fixes applied:**
+- `fg-m701`: deleted wrong `atopy` drug_area_score; inserted correct `tl1a` (Direct) and `ibd` (Direct) rows with recovered rationale text
+- `tozorakimab/tslp`: hallucinated NCT05005chips URL detected and nulled (set to inferred)
+- `risankizumab` + `upadacitinib`: stage regressed to 'Phase 3' by enrichment — restored to 'Approved'
+
+**Validation suite expanded: 61 → 64 tests**
+- Added `guselkumab-stage-approved`, `mirikizumab-stage-approved`, `golimumab-stage-approved`
+- 64/64 passing
+
+**Remaining null rows (16):** all genuinely inferred (early-stage, private pipelines, no CT registration):
+`cldr-001/ibd`, `ear-2001` (both areas), `ep006` (both areas), `epi-001`, `erd-1` (both areas), `mk-1718/ibd`, `sim0500/ibd`, `sim0709` (both areas), `fg-m701/ibd`, `qx030n/respiratory`, `xmab412/tl1a`, `abbv-382/atopy`
+
+---
 ## 2026-05-23 (Session 5b) — Molecule Intelligence Enrichment (Task #127)
 
 **`scripts/molecule_enrichment.py` — new (commit `a4dc837`)**
