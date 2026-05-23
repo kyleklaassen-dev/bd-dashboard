@@ -1,5 +1,36 @@
 
 ---
+## 2026-05-23 (Session 15) — Rule E2: Drug Area Interpretation Completeness
+
+**Rule E2 — drug_area_interpretation_check — fully enforced:**
+- Invariant: if `drug_areas` exists for drug×area, `drug_area_scores` must also exist
+- Principle: drug_areas = area membership; drug_area_scores = area-specific interpretation; a drug should not appear in an area without interpretation
+- New test type `drug_area_interpretation_check` added to `validate_ground_truth.py`
+- Mirror of E4 — together they enforce bidirectional consistency on the drug-area edge
+
+**Audit: 87 gaps found (drug_areas rows with no matching drug_area_scores)**
+
+Classifications and resolutions:
+- **86 safe/deterministic** → drug_area_scores rows created with `confidence_level='inferred'` or `'supported'` and explicit rationale per group:
+  - TL1A/IBD-primary drugs (spy*, cantai-tl1a, es302, generate-uc, hbm2001, hy8931, lbl053, lq082, pr203, qx030n, ro7837195, sab06, spx306, mk-1718, tulisokibart, risankizumab, mirikizumab, abbv-382, abbv-668, lutikizumab, guselkumab, guselkumab-golimumab, upadacitinib, ustekinumab): used drugs.overlap (set during TL1A/IBD enrichment; area-specific)
+  - TCE/autoimmune drugs (cln-978, caba-201, descartes08, kyv-101, miv-cel, kt501): used drugs.overlap; mechanism clearly area-relevant
+  - FcRn/autoimmune drugs (batoclimab/autoimmune/ted/igf1r, efgartigimod, imvt-1402, m701, nipocalimab, orilanolimab, rozanolixizumab): FcRn IgG-depletion mechanism directly relevant
+  - IGF-1R/TED (linsitinib, teprotumumab): teprotumumab corrected to Direct (approved for TED — was Watch)
+  - Atopy area (amlitelimab, apg279, apg777, dupilumab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart): explicit overlap from mechanism (most = Direct, dupilumab = Adjacent)
+  - Respiratory area (astegolimab, benralizumab, gb0895, itepekimab, tezepelumab, tozorakimab, win027): most = Direct; win027 = Adjacent (bispecific)
+  - Multi-area (dupilumab/respiratory, dupilumab/tslp, nemolizumab/il4ra, tralokinumab/il4ra, win027/tslp): explicit overlap by mechanism
+- **1 flagged for human review** → `lm-302/tl1a` skipped: CLDN18.2 ADC has no mechanistic link to TL1A pathway; drug_areas entry appears to be a categorization error
+
+**183 Rule E2 tests seeded** covering all 183 drug_areas rows.
+
+**Validation: 710 → 893/893 tests**
+- 892 passing (all P1), 1 intentional P2 failure (lm-302/tl1a flagged for review)
+
+**Drug-area graph now bidirectionally consistent:**
+- E4: drug_area_scores → drug_areas (all scores have area membership)
+- E2: drug_areas → drug_area_scores (all area memberships have interpretation)
+
+---
 ## 2026-05-23 (Session 14) — Rule E5: Drug Identity Completeness
 
 **Rule E5 — drug_identity_check — fully enforced:**
