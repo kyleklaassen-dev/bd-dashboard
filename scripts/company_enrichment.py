@@ -143,6 +143,11 @@ KNOWN_DRUG_TARGETS: dict[str, dict] = {
     "upadacitinib":{"target": "JAK1-selective","stage":"Approved",  "note": "rinvoq; JAK1-selective"},
     "filgotinib": {"target": "JAK1-selective","stage": "Approved",  "note": "JAK1-selective"},
     "abrocitinib":{"target": "JAK1-selective","stage": "Approved",  "note": "cibinqo; JAK1-selective"},
+    # Novamab (Shanghai Novamab Biopharmaceuticals) — LQ-prefix programs
+    # CRITICAL: LQ080 ≠ ZW191. ZW191 is a Zymeworks FRα-targeting ADC for oncology — completely unrelated.
+    # LQ-prefix drugs belong to Novamab (company_id=novamab), NOT LaNova (lanova).
+    "LQ080":  {"target": "TL1A×IL-23p19",       "stage": "Phase 1",      "company": "novamab", "note": "Novamab VHH bispecific for IBD; DO NOT alias with ZW191 (unrelated Zymeworks FRα ADC for oncology)"},
+    "LQ082":  {"target": "TL1A×IL-23p19×α4β7",  "stage": "Preclinical",  "company": "novamab", "note": "Novamab trispecific for IBD; LQ-prefix = Novamab not LaNova"},
 }
 
 
@@ -1747,6 +1752,13 @@ DISPLAY NAME GUIDANCE (CRITICAL — apply to every acquired/licensed drug):
 - If the brand name exists: "BrandName (INN)" — e.g. "Skyrizi (risankizumab)".
 - The old name belongs in licensor_code (e.g. "FG-M701") and licensor_name (originating company, e.g. "FutureGen Biopharmaceutical Co., Ltd."). The dashboard uses these fields to surface "formerly [licensor_code]" in the detail view automatically — never repeat the old name in display_name.
 - NEVER leave display_name null or equal to the drug_id when the drug has a licensor — this creates inaccurate data.
+
+SLASH IN DISPLAY NAME — CRITICAL PROHIBITION:
+- NEVER set display_name to "DrugA / DrugB" where DrugA and DrugB are two different drugs from different programs or companies.
+- A slash in display_name ONLY belongs in a brand/INN pair: "Dupixent (dupilumab)" — NOT for two separate assets.
+- Sources often show comparison tables like "LQ080 vs ZW191" or "Drug A / Drug B (competitor)" — NEVER interpret a slash in a source as meaning the two drugs are the same asset or aliases of each other.
+- If a source lists two drug codes together with a slash and you cannot confirm they are the same molecule with the same target and same company, treat them as SEPARATE DRUGS. Set display_name to just the drug_id's code. Do NOT combine them.
+- Confirmed historical error: "LQ080 / ZW191" was incorrectly set because a comparison source was misread. LQ080 is a Novamab TL1A×IL-23 VHH bispecific; ZW191 is a Zymeworks FRα ADC for oncology — completely unrelated.
 
 ACQUIRED / RENAMED DRUG DETECTION (CRITICAL — prevents cross-company duplicates):
 A drug may appear in the literature under two completely different names when one company acquires a program from another and renames it. Classic patterns:
