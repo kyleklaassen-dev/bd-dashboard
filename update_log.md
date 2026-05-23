@@ -1,5 +1,90 @@
 
 ---
+## 2026-05-23 (Session 4) — P1: Source Evidence Tracking in Enrichment Pipeline
+
+**`company_enrichment.py` — source_url + confidence_level write paths (commit `01141bf`)**
+
+Changes:
+- Added `source_url` and `confidence_level` to `_AREA_SCORE_FIELDS` — both fields now written to `drug_area_scores` on every enrichment run (previously only written to `drugs` table, leaving `drug_area_scores.source_url=null` permanently)
+- Added `enriched_model='claude-sonnet-4-6'` to `drug_area_scores` write record (v16 column)
+- Added `last_enriched_model='claude-sonnet-4-6'` to `company_profiles` write (v16 column)
+- Added `last_enriched_model` stamp to every `drugs` patch (v16 column)
+- Strengthened prompt: `confidence_level` now REQUIRED; when `'inferred'`, `overlap_rationale` MUST explain why (e.g. "No primary source found — inferred from mechanism and published literature")
+- `source_url` priority order now explicit: CT.gov > company IR > press release; NEVER fabricate
+
+Test: write path verified on `caldera/cld-423/tl1a` — all 4 tables received correct values.
+Validation: 61/61 tests passing after change.
+
+---
+## 2026-05-23 (Session 3) — Patch Audit Review + SPY072 Correction
+
+**v16 migration applied to Supabase**
+- Created `enrichment_runs` table (13 columns, 3 indexes)
+- Added `last_enriched_by_run_id`, `last_enriched_model`, `enrichment_history` to `drugs`
+- Added `enriched_by_run_id`, `enriched_model` to `drug_area_scores`
+- Added `last_enriched_by_run_id`, `last_enriched_model` to `company_profiles`
+
+**Patch audit — approved and confirmed (all from Session 2)**
+
+| Table | Row ID | Field | Old Value | New Value | Rationale | Confidence Source |
+|-------|--------|-------|-----------|-----------|-----------|-------------------|
+| `drugs` | dupilumab | `partner_company` | 'Sanofi' | null | Self-referencing partner (dupilumab IS Sanofi/Regeneron) | Ground truth validation audit |
+| `drugs` | nipocalimab | `partner_company` | 'Momenta Pharmaceuticals' | null | Momenta acquired by J&J 2020; no active separate partner | Acquisition public record |
+| `drugs` | tulisokibart | `partner_company` | 'Prometheus Biosciences' | null | Prometheus acquired by Merck 2023; tulisokibart is now Merck's | Acquisition public record |
+| `drug_area_scores` | tulisokibart / ibd | `overlap` | Watch | Direct | Anti-TL1A mAb in active IBD trials (UC/CD); direct IBD competitor | QA audit + CT.gov |
+| `drug_area_scores` | duvakitug / ibd | `overlap` | Watch | Direct | Anti-TL1A mAb (Sanofi/Pfizer); IBD trials ARTEMIS-UC, ARTEMIS-CD | QA audit + CT.gov |
+| `drug_area_scores` | afimkibart / ibd | `overlap` | Watch | Direct | Anti-TL1A mAb (Roche); Phase 2 IBD program | QA audit + CT.gov |
+| `drug_area_scores` | spy002 / ibd | `overlap` | Watch | Direct | Anti-TL1A mAb (Spyre); UC/CD IBD indication | QA audit + CT.gov |
+| `drug_area_scores` | tezepelumab / tslp | `overlap` | Watch | Direct | Approved anti-TSLP mAb (AZ/Amgen); TSLP is the target | QA audit + FDA label |
+| `drug_area_scores` | nipocalimab / fcrn | `overlap` | Watch | Direct | Phase 3 anti-FcRn; direct FcRn inhibitor | QA audit + CT.gov |
+
+**SPY072 revert — IBD area classification corrected**
+
+| Table | Row ID | Field | Old Value | New Value | Rationale | Confidence Source |
+|-------|--------|-------|-----------|-----------|-----------|-------------------|
+| `drug_area_scores` | spy072 / ibd | `overlap` | Direct (incorrect — set in Session 2) | Adjacent | SPY072 is anti-TL1A (same target) but Phase 2 in RA/PsA/axSpA — not IBD. Direct in TL1A biology lens; Adjacent in IBD disease-area lens | Trial NCT data: "Study of SPY072 in Rheumatic Disease"; indication_short = PsA · axSpA |
+
+**Rule encoded:** `Direct` in a disease-area tab = same mechanism/class within same disease context. `Direct` in a target/mechanism tab = same target, even if indication differs. TL1A biology lens ≠ IBD disease-area lens.
+
+---
+## 2026-05-23 (Session 2) — Quality & Trust Sprint
+
+**Validation framework — expanded to 61 tests (28 → 51 → 61)**
+- Added 23 new tests across TSLP (8), FcRn (8), IL-4Rα (7) areas
+- All 51 ground-truth tests passing 51/51
+- Added 10 `not_hallucinated` tests for known fabricated entity names (ZEN3694, GSK-TL1A-001, AIK104, etc.)
+- All 61 tests passing 61/61 — written to `validation_tests` table
+
+**Data fixes — drug_area_scores overlap corrections**
+- Fixed 5 TL1A/IBD Direct drugs: tulisokibart, duvakitug, afimkibart, spy002, spy072 — all corrected from Watch → Direct in `drug_area_scores`
+- Fixed tezepelumab TSLP overlap: Watch → Direct (approved anti-TSLP mAb)
+- Fixed nipocalimab FcRn overlap: Watch → Direct (Phase 3 anti-FcRn)
+- Fixed efgartigimod FcRn overlap: Watch → Direct (approved FcRn blocker)
+- Fixed rozanolixizumab FcRn overlap: Watch → Direct (Phase 3 anti-FcRn)
+- Fixed 4 TSLP drugs: astegolimab + itepekimab corrected Watch → Direct
+- Added 3 IL-4Rα drug_area_scores: dupilumab=Direct, amlitelimab=Adjacent, lebrikizumab=Adjacent
+
+**Data fixes — partner leakage**
+- dupilumab.partner_company: Sanofi (self-ref) → null
+- nipocalimab.partner_company: Momenta Pharmaceuticals (acquired 2020) → null
+- tulisokibart.partner_company: Prometheus Biosciences (acquired 2023) → null
+
+**Dossier bug fixes (index.html, commit 577ba0e)**
+- Drug dossier now always shows Molecule tab (with empty state if no mol intel)
+- Drug overlap now fetched from `drug_area_scores` (correct source) instead of `drug_areas` (no overlap column)
+- Fallback: if no area-specific scores found, uses `drugs.overlap` as global fallback
+- Confidence badges added to drug dossier header chips: ✓ Confirmed / ≈ Supported / ~ Inferred / ? Unverified
+- `drug_area_scores` fetch now includes `confidence_level` and `source_url` fields
+
+**Audit reports (docs/)**
+- `docs/entity_dossier_qa_report.md` — 12-entity QA audit, 9 bugs found, 6 fixed
+- `docs/source_verification_audit.md` — source URL coverage: 0% in drug_area_scores, 96–100% in company_profiles
+- `docs/company_coverage_audit.md` — 23 companies unenriched; top 20 enrichment priority list
+- `docs/provenance_architecture.md` — design for enrichment_runs + provenance_events + assertion_history schema
+- `docs/dossier_phase2.md` — Phase 2 roadmap: coverage score, strategic value, evidence sources, change history
+- `migrations/v16_provenance.sql` — enrichment_runs table + run_id FK additions (ready to apply)
+
+---
 ## 2026-05-23 — Canonical Entity Dossier
 
 **`index.html` — Canonical Entity Modal (Phase 4: Trust)**
