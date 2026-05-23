@@ -1,6 +1,45 @@
-# NEXT SESSION — BD Platform Quality & Trust Sprint
+# NEXT SESSION — BD Platform
 
-**Written:** 2026-05-23  
+**Written:** 2026-05-23 (updated after Session 10)  
+**Session focus:** Systemic DKN visibility fix, transaction intake rule, write-path enforcement
+
+---
+
+## Session 10 Completion Block
+
+### ✅ Transaction Intake Principle Encoded
+- `TRANSACTION_PIPELINE_EXPANSION` rule added to `LANDSCAPE_SEARCH_SYSTEM` prompt in `company_enrichment.py`
+- Transaction Intake (Path 5) added to `docs/intake_integrity_framework.md` with checklists for acquisitions + licensing deals
+- Memory: `project_transaction_intake.md` — company-centric first, asset-centric second
+
+### ✅ infer_catalog_category() — Write-Path Enforcement
+- Shared helper function in `company_enrichment.py`, `approve_discovery.py`, `drug_intake.py`
+- Priority logic: Oncology (TCE/ADC targets) → Small Molecule (JAK, first) → Immunology/Pipeline (by stage) → Pipeline (fallback)
+- Bug fixed in `drug_intake.py`: was setting `catalog_category = area_id` (e.g. "tl1a") — now uses proper inference
+- Auto-stamp in `company_enrichment.py` enrichment loop: patches null values on existing drugs
+- 17/17 spot-checks pass against known drug profiles
+
+### ✅ Validation: 83/83 passing
+
+---
+
+## P0 — Next Session Priorities
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P1 | **Run quick_profiles_enrich.py for UCB + Candid** | Low — execute script for tcell area |
+| P1 | **Enrich Lilly, Novartis, Pfizer** — missing from many area tabs | Medium |
+| P2 | **Add company_area consistency validation** (Rule E3) | Low — new test type |
+| P2 | **Run catalog_visibility test after any enrichment run** | Automated via validate_ground_truth.py |
+| P3 | **Migrate tl1aPI static JS object to Supabase** | High effort, high long-term value |
+
+---
+
+## Previous Sessions (preserved below)
+
+---
+**Previous NEXT_SESSION contents:**
+
 **Session focus:** Quality & Trust Sprint — dossier bugs fixed, QA audit, ground truth expansion, provenance design
 
 ---
