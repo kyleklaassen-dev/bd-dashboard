@@ -1,5 +1,27 @@
 
 ---
+## 2026-05-23 (Session 14) — Rule E5: Drug Identity Completeness
+
+**Rule E5 — drug_identity_check — fully enforced:**
+- Invariant: if a drug has any `drug_areas` row, its core identity fields must be non-null:
+  `display_name` (or `name`), `company_id`, `target`, `stage`, `catalog_category`
+- New test type `drug_identity_check` added to `validate_ground_truth.py`
+- `area_id=None` scope (drug-level invariant, not area-specific)
+
+**Audit: 5 blocking gaps found and patched across 94 area-linked drugs:**
+- `miv-cel` (Kyverna CAR-T): `target` was null → set `CD19`; `catalog_category=Pipeline` → corrected to `Oncology` (CAR-T rule)
+- `cln-978` (Cullinan CD19 TCE): `target` null, `display_name` null → set `CD19`, `CLN-978`, `catalog_category=Oncology`
+- `orilanolimab` (AstraZeneca FcRn mAb): `target` null → set `FcRn` (inferred from modality)
+- `lm-302` (Lanova CLDN18.2 ADC): `catalog_category` null → set `Oncology` (ADC rule)
+- `gb004` (Gossamer Bio HIF-1α inhibitor): `catalog_category` null → set `Small Molecule` (oral small molecule)
+
+**24 advisory gaps noted** (`canonical_drug_id` missing on older drugs) — not seeded as blocking tests; will be addressed when canonical entity resolution sprint runs.
+
+**470 Rule E5 tests seeded** (94 area-linked drugs × 5 required fields).
+
+**Validation: 240 → 710/710 passing** (+470 Rule E5 tests, 0 failures)
+
+---
 ## 2026-05-23 (Session 13) — Rule E4: Drug Area Score Consistency
 
 **Rule E4 — drug_area_score_check — fully enforced:**

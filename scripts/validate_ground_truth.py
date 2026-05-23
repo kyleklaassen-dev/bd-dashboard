@@ -264,6 +264,33 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual, ""
 
+        elif test_type == "drug_identity_check":
+            # Rule E5: If a drug has a drug_areas row, its core identity fields must be complete.
+            # Required fields: display_name (or name), company_id, target, stage,
+            #                  catalog_category, canonical_drug_id (where applicable)
+            # entity_id = drug_id
+            # field_name = which identity field to check
+            # operator   = "not_null" (default) to assert non-empty value
+            if "drugs_identity" not in cache:
+                cache["drugs_identity"] = sb_get("drugs", {
+                    "select": "id,name,display_name,company_id,target,stage,catalog_category,canonical_drug_id,modality"
+                })
+            drug = next((d for d in cache["drugs_identity"]
+                         if d.get("id", "").lower() == entity_id.lower()), None)
+            if not drug:
+                return "error", "", f"Drug '{entity_id}' not found in drugs table"
+            check_field = field or "display_name"
+            # Special case: display_name — accept either display_name or name as fallback
+            if check_field == "display_name":
+                actual = str(drug.get("display_name") or drug.get("name") or "")
+            else:
+                actual = str(drug.get(check_field) or "")
+            if operator == "not_null":
+                passed = bool(actual and actual.strip() and actual.lower() not in ("null", "none", ""))
+            else:
+                passed = evaluate_operator(actual, expected, operator)
+            return ("pass" if passed else "fail"), actual[:80] or "(null)", ""
+
         elif test_type == "company_area_check":
             # Rule E3: If a company_profiles row exists for company×area,
             # then company_areas must also have a row for that pair.
