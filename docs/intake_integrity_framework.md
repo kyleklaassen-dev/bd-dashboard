@@ -211,7 +211,7 @@ Kyle notices issue
 
 | Table | Issue |
 |-------|-------|
-| `drugs` — `catalog_category` | Never set by enrichment pipelines — must be set manually. Causes DKN invisibility. |
+| `drugs` — `catalog_category` | ✅ Fixed 2026-05-23: `infer_catalog_category()` added to all write paths; retrospective batch-fix applied to 38 drugs. |
 | `companies` — `added_by`, `added_at` | No tracking of how/when a company was added |
 | `drug_areas` — `source_url` | Not consistently populated; enrichment doesn't always set this |
 | Manual SQL inserts (all tables) | Bypass all tracking — no `added_by`, no validation test |
@@ -247,12 +247,20 @@ Every company that has drugs in drug_areas for area X must have company_areas(co
 ```
 **Not yet enforced.** Recommend adding check to enrichment pipeline.
 
-### Rule E4: catalog_category must be set at drug creation
-**Implementation:** Update `company_enrichment.py` and `molecule_enrichment.py` to always write `catalog_category` when inserting a new drug record. Suggested defaults:
-- Immunology biologics (mAb, bispecific, protein): `'Pipeline'` (if clinical) or `'Immunology'` (if approved)
-- Small molecules: `'Small Molecule'`
-- Oncology agents: `'Oncology'`
-- Combo studies: `'Combo Study'`
+### Rule E4: catalog_category must be set at drug creation ✅ Implemented 2026-05-23
+**Implementation:** `infer_catalog_category(target, modality, stage, area_id)` helper function added to all three write paths:
+- `company_enrichment.py`: auto-stamps during `drug_updates` patch loop if existing record has null `catalog_category`
+- `approve_discovery.py`: sets at drug upsert (discovery queue promotion)
+- `drug_intake.py`: sets in `build_promotion_payload()` (was previously using area_id string as category — bug fixed)
+
+**Inference rules (in priority order):**
+- T-cell engager / oncology antigen targets (BCMA, CD3, CD19, CD20, etc.) → `Oncology`
+- ADC / CAR-T modality → `Oncology`
+- Area is `tcell` → `Oncology`
+- JAK target or small molecule modality → `Small Molecule` (checked BEFORE immunology area to prevent JAK drugs from being miscategorized)
+- Immunology target (TL1A, FcRn, IL-4Rα, TSLP, etc.) + early stage → `Pipeline`
+- Immunology target + later stage → `Immunology`
+- Fallback → `Pipeline`
 
 ---
 
