@@ -1604,8 +1604,8 @@ Return JSON with EXACTLY these fields:
     "vs_ailux": "null or 1 sentence comparison to Ailux's TL1A×IL-23p19 bispecific — mechanism, stage, differentiation",
     "overlap": "REQUIRED — Direct | Adjacent | Same-Space | Watch. Use AILUX COMPETITIVE ANCHOR four-tier rules above. Direct = same molecular target as Ailux or combo including Ailux's target. Adjacent = same disease, different mechanism, validates biology or is a combination candidate (e.g. IL-23, α4β7). Same-Space = approved SOC in the same indication via a fundamentally different pathway (integrin blockers, older biologics — compete for patients, define efficacy bar). Watch = same patients but entirely different mechanism (JAK, S1P, RIPK1, TNF), or early-stage with unconfirmed relevance.",
     "overlap_rationale": "REQUIRED — 1-2 sentences explaining why this drug is classified in this tier relative to Ailux's TL1A position. Be specific about the mechanism.",
-    "source_url": "REQUIRED when confidence_level is 'confirmed' or 'supported' — the single most authoritative public URL for this drug entry. Use ClinicalTrials.gov study URL (https://clinicaltrials.gov/study/NCTxxxxxxxx) for trial-verified drugs, company IR/pipeline page for pipeline disclosures, or press release URL for deal/approval data. Set null only when genuinely unavailable (early preclinical, undisclosed). Never fabricate URLs.",
-    "confidence_level": "confirmed (primary source verified, e.g. CT.gov or press release) | supported (corroborated by secondary sources) | inferred (LLM derivation, no direct source available)",
+    "source_url": "REQUIRED when confidence_level is 'confirmed' or 'supported' — the single most authoritative public URL for this drug entry. Priority order: (1) ClinicalTrials.gov study URL (https://clinicaltrials.gov/study/NCTxxxxxxxx) for trial-verified drugs, (2) company IR/pipeline page for pipeline disclosures, (3) press release or SEC filing URL for deal/approval data. Set null only when genuinely unavailable. NEVER fabricate URLs — if you cannot verify a URL exists, set null and explain in overlap_rationale.",
+    "confidence_level": "REQUIRED — one of: 'confirmed' (primary source URL available and verified, e.g. CT.gov, FDA label, company press release) | 'supported' (credible secondary sources, e.g. conference abstract, analyst deck, investor materials — no single primary URL but convergent evidence) | 'inferred' (model-derived classification; no direct public source). When confidence_level is 'inferred', overlap_rationale MUST explain why: use phrases like 'No primary source found — inferred from mechanism and published literature', 'Source unavailable — classified from company pipeline disclosure without drug-level detail', or 'Inferred from indication and target class; no CT.gov registration found'.",
     "data_source": "ct_gov|company_ir|press_release|sec_filing|conference|claude_inferred",
     "aliases": [],
     "approval_date": "null or string: regulatory approval date and indication — e.g. 'May 2023 (UC); Jan 2024 (CD)'. ONLY populate for drugs where stage contains 'Approved'.",
@@ -1845,10 +1845,11 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                         f"'{bullet[:80]}'", indent=1)
 
         profile_rec = {
-            "company_id":       company_id,
-            "area_id":          area_id,
-            "last_enriched_at": NOW_ISO,
-            "enriched_by":      "claude-intelligence-v2",
+            "company_id":          company_id,
+            "area_id":             area_id,
+            "last_enriched_at":    NOW_ISO,
+            "enriched_by":         "claude-intelligence-v2",
+            "last_enriched_model": "claude-sonnet-4-6",
         }
         for field in ["platform_intelligence","bd_intelligence",
                       "platform_summary","bd_summary","key_risk","why_it_matters",
@@ -1878,7 +1879,9 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
     _canon_map: dict = {d["id"]: d.get("canonical_drug_id") for d in ctx.get("drugs", []) if d.get("id")}
 
     # Area-specific fields that belong in drug_area_scores (in addition to drugs table)
-    _AREA_SCORE_FIELDS = {"overlap", "overlap_rationale", "cls", "vs_ailux", "area_fit"}
+    # source_url + confidence_level are included so every area score carries provenance
+    _AREA_SCORE_FIELDS = {"overlap", "overlap_rationale", "cls", "vs_ailux", "area_fit",
+                          "source_url", "confidence_level"}
 
     for du in data.get("drug_updates", []):
         drug_id = du.pop("drug_id", None)
@@ -1894,6 +1897,8 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         if "strategic_role" in du and du["strategic_role"] is None:
             update_fields.pop("strategic_role", None)  # skip null roles
         if update_fields:
+            # Stamp model version on every drug write (v16 provenance column)
+            update_fields["last_enriched_model"] = "claude-sonnet-4-6"
             ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
@@ -1911,6 +1916,7 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                     "canonical_drug_id":  _canon_map.get(drug_id),
                     "area_id":            area_id,
                     "last_enriched_at":   NOW_ISO,
+                    "enriched_model":     "claude-sonnet-4-6",
                 }
                 # Map vs_ailux → vs_ailux_positioning (column name differs in drug_area_scores)
                 if "vs_ailux" in _das_payload:
