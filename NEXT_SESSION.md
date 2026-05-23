@@ -113,15 +113,17 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
-### ✅ Wrong-Area Audit + Phase 1 Cleanup (Session 7)
+### ✅ Wrong-Area Audit + Full Cleanup (Sessions 7 + 7b)
 - Full audit of 76 orphaned `drug_area_scores` rows (in scores but not in `drug_areas`)
 - Root cause: early enrichment runs used company-level context → oncology/atopy/IBD crossover artifacts
-- **57 rows deleted**: oncology drugs in IBD/atopy, IBD drugs in atopy, hxn-1003 (merged drug)
-- **19 uncertain rows preserved** pending separate review (see `docs/wrong_area_audit.md`)
-- `drug_area_scores`: 152 → 95 rows
-- Pre-existing data fixes: efgartigimod/fcrn Watch→Direct, mirikizumab Approved, lebrikizumab/il4ra Watch→Adjacent, astegolimab-tslp test expectation corrected
-- **Validation: 64/64 passing** (restored from 60/64)
-- New files: `docs/wrong_area_audit.md`, `migrations/wrong_area_cleanup.sql`
+- **57 rows deleted** (Session 7): oncology drugs in IBD/atopy, IBD drugs in atopy, hxn-1003 (merged drug)
+- **14 missing `drug_areas` rows added** (Session 7b): correct-area orphans where drug_areas was incomplete
+- `drug_area_scores`: 152 → 95 rows; `drug_areas`: 160 → 174 rows
+- 5 remaining orphans deferred: cld-423 (identity pending), omalizumab+tisagenlecleucel (marginal), benralizumab/tslp (downstream)
+- Identity fixes: argx-117 target (C2 complement, not FcRn×CD131); cendakimab company (AbbVie, not AZ) + target (IL-13Rα1) + cls (oral SM, not IgG)
+- Data fixes: efgartigimod/fcrn Watch→Direct, mirikizumab Approved, lebrikizumab/il4ra Watch→Adjacent
+- **Validation: 69/69 passing** (64→69: added imvt-1402, apg777, zumilokibart overlaps; dupilumab+efgartigimod stage guards)
+- Files: `docs/wrong_area_audit.md`, `migrations/wrong_area_cleanup.sql`
 
 ---
 
@@ -163,9 +165,10 @@ DB (Supabase):
   provenance_events       ← DESIGN ONLY (v17 not designed yet)  
   assertion_history       ← DESIGN ONLY (v18 not designed yet)
   drugs                   ← live; last_enriched_model written on every enrichment (v16)
-  drug_area_scores        ← live; 95 rows (was 152); 57 stale orphans deleted Session 7; 19 uncertain pending review
+  drug_area_scores        ← live; 95 rows (was 152); 57 stale orphans deleted, 14 drug_areas additions; 5 deferred orphans
+  drug_areas              ← live; 174 rows (was 160)
   company_profiles        ← live; 37/60 enriched
-  validation_tests        ← live; 64 tests, all passing
+  validation_tests        ← live; 69 tests, all passing
   catalysts               ← live; Roche dedup pending
   molecule_intelligence   ← live; 51 records; ~12 uncovered TL1A drugs remain
 
@@ -182,7 +185,7 @@ UI (GitHub Pages - commit 577ba0e):
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| 19 uncertain `drug_area_scores` orphans | Medium | See `docs/wrong_area_audit.md` Phase 2 — separate review; 5 need drug_areas additions, 6 strategic decision (Novartis autoimmune breadth), 8 individual cases |
+| 5 remaining `drug_area_scores` orphans | Low | cld-423 (identity pending), omalizumab+tisagenlecleucel (marginal autoimmune), benralizumab/tslp (downstream) — see `docs/wrong_area_audit.md` |
 | cld-423 / cldr-001 identity unresolved | Medium | May be same drug; resolve before adding drug_areas rows for cld-423 |
 | drug_area_scores.source_url null (some rows) | Low | Genuinely inferred — early-stage/private pipelines; acceptable |
 | Roche catalyst near-duplicates (~10) | Medium | AMETRINE appears 3×, QX031N appears 4× — needs P4 dedup |

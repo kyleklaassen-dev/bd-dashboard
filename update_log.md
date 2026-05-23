@@ -1,5 +1,44 @@
 
 ---
+## 2026-05-23 (Session 7b) — Identity Fixes + Phase 2 Uncertain Rows + Validation Expansion
+
+**Identity data fixes:**
+- `argx-117`: target `FcRn×CD131` → `C2 complement`; cls → `Anti-C2 complement mAb`; modality/drug_format corrected; indication updated to MMN/complement-mediated diseases (was confusing efgartigimod indications)
+- `cendakimab`: company `astrazeneca` → `abbvie`; target `IL-33` → `IL-13Rα1`; cls `Anti-IL-33 IgG` → `Oral IL-13Rα1 antagonist`; modality → Small molecule (oral drug, not a mAb)
+
+**Phase 2: 14 missing `drug_areas` rows added**
+
+Correct-area orphans resolved (scores were valid; drug_areas was missing):
+
+| Drug | Area | Rationale |
+|------|------|-----------|
+| sim0500 | ibd | TL1A Phase 1 IBD drug |
+| abs-101 | ibd | TL1A Phase 1 IBD drug |
+| mt-251 | ibd | TL1A×IL-23p19 bispecific (Mirador) |
+| batoclimab | fcrn | Immunovant discontinued FcRn mAb (landscape completeness) |
+| imvt-1402 | fcrn | Immunovant next-gen albumin-sparing FcRn mAb (Phase 3) |
+| apg777 | il4ra | Apogee IL-4Rα×OX40L bispecific |
+| zumilokibart | il4ra | Apogee IL-13 inhibitor (IL-13 signals via IL-4Rα type II) |
+| upadacitinib | atopy | JAK1 inhibitor approved in atopic dermatitis (Rinvoq) |
+| mepolizumab | respiratory | IL-5 mAb approved for asthma (Nucala) |
+| kyv-101 | tcell | CD19 CAR-T for autoimmune (SLE/MS) |
+| ianalumab | autoimmune | BAFF-R; Sjögren's/SLE |
+| iscalimab | autoimmune | CD40; Sjögren's |
+| secukinumab | autoimmune | IL-17A; PsA/AS |
+| ofatumumab | autoimmune | CD20; multiple sclerosis |
+
+`drug_areas`: 160 → 174 rows (+14)  
+Remaining orphans: 5 (cld-423 identity pending; omalizumab/tisagenlecleucel marginal; benralizumab/tslp downstream)
+
+**Validation suite expanded: 64 → 69 tests**
+- Added `imvt-1402-fcrn-overlap` (Watch)
+- Added `apg777-il4ra-overlap` (Watch)
+- Added `zumilokibart-il4ra-overlap` (Watch)
+- Added `dupilumab-stage-approved` (P1 regression guard)
+- Added `efgartigimod-stage-approved` (P1 regression guard)
+- **69/69 passing**
+
+---
 ## 2026-05-23 (Session 7) — Wrong-Area Audit + Cleanup
 
 **Area integrity audit: `drug_area_scores` vs `drug_areas`**
