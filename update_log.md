@@ -1,5 +1,36 @@
 
 ---
+## 2026-05-23 (Session 8b) — LQ080/ZW191 Identity Fix + Validation Framework Hardening
+
+**Root cause:** Enrichment runs cross-contaminate drug-company attribution. When enriching LaNova, the LLM found LQ080 in a source comparison table ("LQ080 vs ZW191") and: (1) assigned lanova as company, (2) merged the two drugs into display_name "LQ080 / ZW191". Both errors were invisible because no `company_check` validation existed.
+
+**Data fixes (Supabase):**
+- `lq080.display_name`: "LQ080 / ZW191" → "LQ080"
+- `lq080.company_id`: lanova → novamab (Novamab = Shanghai Novamab Biopharmaceuticals; LQ-prefix drugs)
+- `lq080/ibd.overlap`: Watch → Direct; confidence → supported; overlap_rationale added
+- Added `lq080/tl1a` drug_area_scores row: Direct, supported (TL1A×IL-23p19 bispecific)
+- Clarification: ZW191 = Zymeworks FRα-targeting ADC for oncology — completely unrelated to LQ080
+
+**validate_ground_truth.py — new capabilities:**
+- New operator `not_contains`: asserts expected string does NOT appear in actual value
+- New test type `company_check`: verifies `drugs.company_id` matches expected — catches silent company misattribution
+- New test type `display_name_check`: verifies drug's display_name (or any field) satisfies an operator
+- `drugs_all` cache now fetches `display_name,target` so all test types share one DB call
+
+**company_enrichment.py — hardening:**
+- SLASH PROHIBITION rule added to DISPLAY NAME GUIDANCE: never set display_name to "DrugA / DrugB" combining two distinct drugs; comparison table slashes ≠ same asset alias
+- Added LQ080 + LQ082 to `KNOWN_DRUG_TARGETS` dict: target, stage, company=novamab, explicit note "DO NOT alias with ZW191"
+
+**Validation tests added (71 → 78/78 passing):**
+- `lq080-tl1a-overlap`: overlap_check, Direct, P1
+- `lq080-ibd-overlap`: overlap_check, Direct, P1
+- `zw191-not-hallucinated`: not_hallucinated, P1 — guards against ZW191 being re-created
+- `lq080-display-name-no-zw191`: display_name_check, not_contains "ZW191", P1
+- `lq082-display-name-no-zw191`: display_name_check, not_contains "ZW191", P1
+- `lq080-company-novamab`: company_check, eq "novamab", P1
+- `lq082-company-novamab`: company_check, eq "novamab", P1
+
+---
 ## 2026-05-23 (Session 8) — Regeneron Enrichment + quick_profiles_enrich.py
 
 **New script: `scripts/quick_profiles_enrich.py`**
