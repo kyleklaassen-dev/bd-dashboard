@@ -53,7 +53,7 @@ These rules must hold at all times. Violations are bugs, not features.
 
 ---
 
-## The Four Intake Paths
+## The Five Intake Paths
 
 Every piece of information entering Meridian must flow through one of these paths.
 
@@ -112,6 +112,70 @@ User provides URL or text
 ```
 
 **Source tracking:** Every evidence extraction must write `source_url` to all affected records.
+
+### Path 5: Transaction Intake
+
+**Trigger:** A company acquisition, licensing deal, merger, option exercise, platform collaboration, or spin-in/spin-out is identified.
+
+**Core principle:** Acquisitions and licensing deals are **pipeline import events**, not single-asset additions. When a company acquires another entity or signs a major deal, the correct response is to ingest the entire acquired pipeline — all stages — not just the headline asset.
+
+**Wrong pattern (what many databases do):**
+```
+UCB acquires Candid → add cizutamig → stop
+```
+
+**Correct pattern (what Meridian does):**
+```
+UCB acquires Candid
+→ ingest all Candid assets (cizutamig, CND319, CND460, discovery programs)
+→ ingest all targets and modalities
+→ ingest all trials and catalysts
+→ ingest all deals that transferred
+→ re-map company_areas for UCB
+→ refresh company profile (platform_summary, bd_summary, key_risk)
+→ re-score strategic relevance
+```
+
+```
+Transaction identified
+    → Identify acquired company / licensed asset / deal scope
+    → Company Intake (if new company): companies table + company_areas
+    → Drug Intake (for ALL acquired assets, all stages):
+        drugs table → drug_areas → drug_area_scores → molecule_intelligence
+    → Deals Intake: deals table (deal_type, headline, value, date)
+    → Catalyst Intake: any upcoming readouts or option windows
+    → Acquirer re-enrichment: company_areas re-mapped, company_profiles refreshed
+    → Validation: run catalog_visibility + overlap tests for all new drugs
+    → Log: update_log.md entry documenting scope of pipeline import
+```
+
+**Acquisition intake checklist:**
+1. What assets did the acquired company own? (all stages, not just clinical)
+2. What preclinical / discovery programs existed?
+3. What platform technologies transferred?
+4. What partnerships and rights transferred?
+5. Which disease areas are newly impacted?
+6. Which area tabs should gain the acquirer as a company?
+7. Which drugs should get `partner_company` updated to the acquirer?
+8. Does the acquirer now appear in new competitive landscapes?
+
+**Licensing deal intake checklist:**
+1. Is the licensed asset new to Meridian?
+2. Does the licensor have related follow-on programs?
+3. Is the deal asset-specific or platform-wide?
+4. Are options included (could expand scope later)?
+5. Does this deal move the licensee into a new area?
+6. Update: `drugs`, `company`, `company_areas`, `drug_areas`, `deals`, `catalysts`, `company_profiles`
+
+**Canonical example — UCB acquires Candid Therapeutics (May 2026):**
+- Added: cizutamig (BCMA×CD3), CND319 (CD19×CD20×CD3), CND460 (BCMA×CD19×CD3)
+- UCB added to: `tcell` + `autoimmune` company_areas
+- Deals logged: UCB/Candid acquisition, UCB/Antengene ATG-201 license
+- UCB profile: flagged for refresh to reflect TCE platform addition
+
+**Why this matters:** CND460 (BCMA×CD19×CD3 trispecific) is more strategically interesting than the lead asset cizutamig because it covers the exact target combination of the BCMA×CD19×CD3 area tab. Asset-centric intake would have left CND460 invisible.
+
+---
 
 ### Path 4: Manual Correction Intake
 
