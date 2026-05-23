@@ -9177,9 +9177,12 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
     </div>`;
   }
 
-  const tabs = [{id:'ddos-overview',label:'Overview'},{id:'ddos-trials',label:'Trials'}];
-  const panels = [{id:'ddos-overview',content:overviewContent},{id:'ddos-trials',content:trialsContent}];
-  if (molContent) { tabs.push({id:'ddos-molintel',label:'Molecule'}); panels.push({id:'ddos-molintel',content:molContent}); }
+  const tabs   = [{id:'ddos-overview',label:'Overview'},{id:'ddos-trials',label:'Trials'},{id:'ddos-molintel',label:'Molecule'}];
+  const panels = [
+    {id:'ddos-overview',  content:overviewContent},
+    {id:'ddos-trials',    content:trialsContent},
+    {id:'ddos-molintel',  content:molContent || '<div class="dossier-empty">Not yet profiled — molecule intelligence runs automatically with enrichment.</div>'},
+  ];
 
   return _buildDossierShell(tabs, panels);
 }
@@ -9409,15 +9412,30 @@ async function openDrugEntityModal(drugId, drugName, evt) {
   try {
     // Primary lookup by ID; if ID is a static placeholder (starts with "static-") skip it
     const isStaticId = !drugId || String(drugId).startsWith('static-');
-    const [drugRes, areaRes0, trialRes0, molRes0] = await Promise.all([
+    const [drugRes, areaRes0, scoreRes0, trialRes0, molRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id,overlap,overlap_rationale,strategic_role').eq('drug_id', drugId),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id').eq('drug_id', drugId),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
     let drug    = drugRes.data?.[0]  || null;
-    let areas   = areaRes0.data      || [];
+    // Merge drug_areas (membership) + drug_area_scores (overlap data)
+    const scoreMap0 = {};
+    (scoreRes0.data || []).forEach(s => { scoreMap0[s.area_id] = s; });
+    let areas   = (areaRes0.data || []).map(a => ({
+      area_id: a.area_id,
+      overlap: scoreMap0[a.area_id]?.overlap || null,
+      overlap_rationale: scoreMap0[a.area_id]?.overlap_rationale || null,
+      strategic_role: scoreMap0[a.area_id]?.strategic_role || null,
+    }));
+    // If drug_areas is empty but drug_area_scores has data, use scores directly
+    if (!areas.length && scoreRes0.data?.length) {
+      areas = (scoreRes0.data || []).map(s => ({
+        area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
+      }));
+    }
     let trials  = trialRes0.data     || [];
     let molData = molRes0.data?.[0]  || null;
 
@@ -9433,12 +9451,25 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       if (drug) {
         // Re-fetch areas + trials + molecule intel using resolved DB id
         const rid = drug.id;
-        const [ar, tr, mr] = await Promise.all([
-          _sb.from('drug_areas').select('area_id,overlap,overlap_rationale,strategic_role').eq('drug_id', rid),
+        const [ar, sr, tr, mr] = await Promise.all([
+          _sb.from('drug_areas').select('area_id').eq('drug_id', rid),
+          _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls').eq('drug_id', rid),
           _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
-        areas   = ar.data    || [];
+        const scoreMapR = {};
+        (sr.data || []).forEach(s => { scoreMapR[s.area_id] = s; });
+        areas = (ar.data || []).map(a => ({
+          area_id: a.area_id,
+          overlap: scoreMapR[a.area_id]?.overlap || null,
+          overlap_rationale: scoreMapR[a.area_id]?.overlap_rationale || null,
+          strategic_role: scoreMapR[a.area_id]?.strategic_role || null,
+        }));
+        if (!areas.length && sr.data?.length) {
+          areas = (sr.data || []).map(s => ({
+            area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
+          }));
+        }
         trials  = tr.data    || [];
         molData = mr.data?.[0] || null;
       }
