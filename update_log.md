@@ -1,5 +1,30 @@
 
 ---
+## 2026-05-23 (Session 10) — catalog_category Write-Path Enforcement + Transaction Intake Rule
+
+**Problem closed:** New drugs added via enrichment or discovery promotion landed with `catalog_category = null`, making them invisible in the Drugs to Know tab. Session 9 fixed it retrospectively (38 drugs patched). Session 10 prevents it systemically.
+
+**`infer_catalog_category()` helper — added to all write paths:**
+- Shared deterministic function in `company_enrichment.py`, `approve_discovery.py`, `drug_intake.py`
+- Logic (priority order): T-cell engager / oncology antigens → Oncology | ADC/CAR-T modality → Oncology | tcell area → Oncology | JAK/small molecule (checked BEFORE immunology area) → Small Molecule | immunology target + early stage → Pipeline | immunology target + late stage → Immunology | fallback → Pipeline
+- Bug fixed: `drug_intake.py` was using `relevant_areas[0]["area_id"]` as the category (e.g., "tl1a"), not a valid DKN category value
+- Auto-stamp in `company_enrichment.py`: during `drug_updates` patch loop, if existing drug has `catalog_category = null`, the helper infers and stamps it
+
+**Rule E4 now implemented:** `infer_catalog_category()` fires on every drug INSERT and whenever `catalog_category` is null during a drug PATCH.
+
+**Transaction Intake framework encoded:**
+- `TRANSACTION_PIPELINE_EXPANSION` rule added to `LANDSCAPE_SEARCH_SYSTEM` prompt in `company_enrichment.py`
+- Transaction Intake (Path 5) added to `docs/intake_integrity_framework.md` with full checklist for acquisitions and licensing deals
+- Memory file `project_transaction_intake.md` saved with canonical UCB/Candid example
+
+**Validation: 83/83 passing** — all catalog_visibility tests continue to pass
+
+**Commits this session:**
+- `2ca352e8` — TRANSACTION_PIPELINE_EXPANSION rule in LANDSCAPE_SEARCH_SYSTEM prompt
+- `20555116` — Transaction Intake (Path 5) in intake_integrity_framework.md
+- This commit — infer_catalog_category write-path enforcement across all intake scripts
+
+---
 ## 2026-05-23 (Session 9) — Intake Integrity Framework + DKN Gap Fix + UCB/Candid TCE Addition
 
 **Principle established:** The dashboard is the view layer. Supabase is the source of truth. No information should live only in the frontend. All intake must flow through one of four structured paths: Company, Drug, Evidence, or Manual Correction.
