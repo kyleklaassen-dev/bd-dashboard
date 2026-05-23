@@ -1,5 +1,16 @@
 
 ---
+## 2026-05-23 (Session 10b) — UCB + Candid Company Profiles Enriched
+
+**Profiles generated via quick_profiles_enrich.py:**
+- `ucb / tcell` — ATG-201 + Candid acquisition reflected; BD angle correctly flags UCB as aggressive TCE acquirer
+- `ucb / autoimmune` — ATG-201 license + Rystiggo (FcRn) dual-mechanism platform captured
+- `candid / tcell` — cizutamig Phase 1 + CND319/CND460 trispecific pipeline; acquisition-exit BD note
+- `candid / autoimmune` — B-cell depletion strategy in SLE/myositis; UCB acquisition risk correctly flagged
+
+**Validation: 83/83 passing** — no regressions
+
+---
 ## 2026-05-23 (Session 10) — catalog_category Write-Path Enforcement + Transaction Intake Rule
 
 **Problem closed:** New drugs added via enrichment or discovery promotion landed with `catalog_category = null`, making them invisible in the Drugs to Know tab. Session 9 fixed it retrospectively (38 drugs patched). Session 10 prevents it systemically.
