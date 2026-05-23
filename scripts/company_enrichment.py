@@ -150,6 +150,74 @@ KNOWN_DRUG_TARGETS: dict[str, dict] = {
     "LQ082":  {"target": "TL1A×IL-23p19×α4β7",  "stage": "Preclinical",  "company": "novamab", "note": "Novamab trispecific for IBD; LQ-prefix = Novamab not LaNova"},
 }
 
+# ── Oncology / Immunology target sets for catalog_category inference ──────────
+_CCat_TCE_TARGETS  = {"bcma", "cd3", "cd19", "cd20", "cd38", "cd33", "cd123",
+                      "her2", "egfr", "pd-1", "pd-l1", "pdl1", "ctla-4", "ctla4",
+                      "tim-3", "lag-3", "cd47", "vegf"}
+_CCat_IMMUNO_KWORDS = {"tl1a", "tnfrsf25", "il-4r", "il4r", "tslp", "fcrn",
+                       "neonatal fc", "il-23", "il23", "il-17", "il17", "tnf",
+                       "il-13", "il13", "il-33", "il33", "il-31", "il31",
+                       "integrin", "α4β7", "a4b7", "rankl", "baff", "april",
+                       "igg4", "ige", "il-5", "il5", "il-6", "il6"}
+_CCat_ONCOLOGY_AREAS = {"tcell", "t_cell"}
+_CCat_IMMUNO_AREAS   = {"tl1a", "fcrn", "il4ra", "tslp", "autoimmune",
+                         "ibd", "respiratory", "ige"}
+_CCat_EARLY_STAGES   = {"preclinical", "phase 1", "phase i", "pre-ind",
+                         "ind-enabling", "discovery"}
+
+
+def infer_catalog_category(target: str = "", modality: str = "",
+                            stage: str = "", area_id: str = "") -> str:
+    """
+    Infer catalog_category from drug attributes.
+
+    Priority order (first match wins):
+      1. Target contains a T-cell engager / oncology antigen → 'Oncology'
+      2. Modality is ADC / CAR-T                             → 'Oncology'
+      3. area_id is a known oncology area (tcell)            → 'Oncology'
+      4. Target / area is immunology AND stage is early      → 'Pipeline'
+      5. Target / area is immunology AND stage is later      → 'Immunology'
+      6. Target contains JAK or modality is small molecule   → 'Small Molecule'
+      7. Fallback                                            → 'Pipeline'
+
+    Invariant: any drug with a drug_areas row must have catalog_category set.
+    Call this function at every drug INSERT and whenever catalog_category is NULL
+    on an existing drug being patched.
+    """
+    tgt  = (target   or "").lower()
+    mod  = (modality or "").lower()
+    stg  = (stage    or "").lower()
+    area = (area_id  or "").lower()
+
+    # 1. T-cell engager / oncology antigen targets
+    import re as _re
+    tgt_parts = {p.strip() for p in _re.split(r"[×x×/]", tgt) if p.strip()}
+    if _CCat_TCE_TARGETS & tgt_parts:
+        return "Oncology"
+
+    # 2. Oncology modalities
+    if any(m in mod for m in ("adc", "car-t", "car t", "antibody-drug conjugate")):
+        return "Oncology"
+
+    # 3. Oncology area tab
+    if area in _CCat_ONCOLOGY_AREAS:
+        return "Oncology"
+
+    # 4. JAK / small molecule (checked BEFORE immunology area, since JAK drugs
+    #    often appear in immunology areas but are categorically small molecules)
+    if "jak" in tgt or "small molecule" in mod or "oral small molecule" in mod:
+        return "Small Molecule"
+
+    # 5 & 6. Immunology signal (target keywords or area)
+    is_immuno = any(kw in tgt for kw in _CCat_IMMUNO_KWORDS) or area in _CCat_IMMUNO_AREAS
+    if is_immuno:
+        if any(s in stg for s in _CCat_EARLY_STAGES):
+            return "Pipeline"
+        return "Immunology"
+
+    # 7. Fallback — treat as pipeline asset until enrichment can classify further
+    return "Pipeline"
+
 
 def log(msg: str, indent: int = 0):
     ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
@@ -1905,6 +1973,9 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
     # canonical_drug_id lookup for drug_area_scores parallel write (P1-D)
     _canon_map: dict = {d["id"]: d.get("canonical_drug_id") for d in ctx.get("drugs", []) if d.get("id")}
 
+    # catalog_category lookup — used below to auto-stamp drugs that are missing it
+    _drug_catalog_map: dict = {d["id"]: d.get("catalog_category") for d in ctx.get("drugs", []) if d.get("id")}
+
     # Area-specific fields that belong in drug_area_scores (in addition to drugs table)
     # source_url + confidence_level are included so every area score carries provenance
     _AREA_SCORE_FIELDS = {"overlap", "overlap_rationale", "cls", "vs_ailux", "area_fit",
@@ -1923,6 +1994,20 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         # strategic_role must always be written, even if it's the first enrichment
         if "strategic_role" in du and du["strategic_role"] is None:
             update_fields.pop("strategic_role", None)  # skip null roles
+        # ── catalog_category invariant: stamp if currently null ───────────────
+        # Any drug with a drug_areas row must have catalog_category set so it
+        # appears in the Drugs to Know tab. Infer it here if the DB record is null.
+        existing_cc = _drug_catalog_map.get(drug_id)
+        if not existing_cc and "catalog_category" not in update_fields:
+            ctx_drug = next((d for d in ctx.get("drugs", []) if d.get("id") == drug_id), {})
+            inferred_cc = infer_catalog_category(
+                target   = ctx_drug.get("target", ""),
+                modality = ctx_drug.get("modality", ""),
+                stage    = ctx_drug.get("stage", ""),
+                area_id  = area_id,
+            )
+            update_fields["catalog_category"] = inferred_cc
+            log(f"  catalog_category auto-stamped → '{inferred_cc}' for {drug_id}", indent=2)
         if update_fields:
             # Stamp model version on every drug write (v16 provenance column)
             update_fields["last_enriched_model"] = "claude-sonnet-4-6"
