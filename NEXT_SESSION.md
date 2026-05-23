@@ -113,6 +113,13 @@
 - molecule_intelligence records: 31 → 51 (+20)
 - Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
 
+### ✅ LQ080/ZW191 Identity Fix + Validation Framework Hardening (Session 8b)
+- **Root cause:** enrichment runs assigned lanova as LQ080's company and merged "LQ080 / ZW191" as display_name (slash in comparison table misread as alias)
+- **Data fixes:** lq080.company_id → novamab; display_name → "LQ080"; lq080/ibd overlap → Direct; added lq080/tl1a drug_area_scores row
+- **validate_ground_truth.py:** new `company_check` + `display_name_check` test types; `not_contains` operator; `drugs_all` cache extended with display_name+target
+- **company_enrichment.py:** SLASH PROHIBITION rule in display name guidance; LQ080 + LQ082 added to KNOWN_DRUG_TARGETS (company=novamab, explicit ZW191 do-not-alias note)
+- **Validation: 71 → 78/78 passing**
+
 ### ✅ Regeneron Enrichment + quick_profiles_enrich.py (Session 8)
 - New script: `scripts/quick_profiles_enrich.py` — lightweight company_profiles updater
   - Drug + deal context only (no trials, no intel); ~5s/company×area; ~$0.003/call
