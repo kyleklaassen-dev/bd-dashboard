@@ -245,6 +245,25 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
                 passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual or "(null)", ""
 
+        elif test_type == "company_area_check":
+            # Rule E3: If a company_profiles row exists for company×area,
+            # then company_areas must also have a row for that pair.
+            # Also used as a standalone check: entity_id = "company_id:area_id".
+            # Splits entity_id on ":" to get company_id and area_id.
+            # expected_value should be "true" and operator "eq".
+            if ":" not in entity_id:
+                return "error", "", f"company_area_check requires entity_id='company_id:area_id', got '{entity_id}'"
+            co_id, area_id_check = entity_id.split(":", 1)
+            if "company_areas_all" not in cache:
+                cache["company_areas_all"] = sb_get("company_areas", {"select": "company_id,area_id"})
+            exists = any(
+                r.get("company_id") == co_id and r.get("area_id") == area_id_check
+                for r in cache["company_areas_all"]
+            )
+            actual = "true" if exists else "false"
+            passed = evaluate_operator(actual, expected, operator)
+            return ("pass" if passed else "fail"), actual, ""
+
         else:
             return "skip", "", f"Unknown test_type: {test_type}"
 
