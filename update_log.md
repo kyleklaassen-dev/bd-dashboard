@@ -1,5 +1,29 @@
 
 ---
+## 2026-05-23 — Canonical Entity Dossier
+
+**`index.html` — Canonical Entity Modal (Phase 4: Trust)**
+
+Every company and drug now opens the same unified intelligence dossier from any tab:
+
+- **Company dossier** — 5 internal tabs: Overview · BD Intel · Pipeline · Catalysts · Activity
+  - Overview: Assessment card (purple) + Platform Summary + BD Posture + BD Context (vs Ailux, Key Risk, Why It Matters)
+  - BD Intel: Platform Intelligence (facts + inferred direction) + BD Intelligence (transactions + assessment)
+  - Pipeline: Drug cards with stage, target, mechanism, drug summary + combo entries
+  - Catalysts: Upcoming catalysts calendar
+  - Activity: Deals + intel news feed
+- **Drug dossier** — 3 internal tabs: Overview · Trials · Molecule (if available)
+  - Overview: Drug profile (mechanism, target, cls, route, indication) + Summary + Differentiation Thesis + Competitive Position by area
+  - Trials: Clinical trial cards with phase, status, enrollment, primary endpoint, results note
+  - Molecule: Molecule intelligence (format, modality, IgG subclass, Fc engineering, epitope, affinity) with inferred/confirmed badges
+- **Rich header chips**: Overlap badge (color-coded Direct/Adjacent/Same-Space/Watch) + Coverage score + BD profile pill + Last enriched date — all visible without scrolling
+- **Dossier-mode body**: `entity-modal-body.dossier-mode` turns off padding and uses flexbox column so tab nav is fixed and only the panel content scrolls
+- **"Appears in" footer**: company areas now fetched from `company_areas` table and shown as clickable area tags
+- **Drug names** in Drugs to Know table now open the drug dossier on click (separate from row-expand)
+- **Drug names** in all area PI expanded rows already wired to `openDrugEntityModal` — now show the new dossier
+- Provenance-ready: header chip row (`entity-modal-hd-chips`) designed to accommodate confidence + source + enrichment-run fields as Phase 4 matures
+
+---
 ## 2026-05-22 (Session 2) — 4-tier overlap classification + TL1A data audit fixes
 
 **`ailux_positions` table (Supabase):**
