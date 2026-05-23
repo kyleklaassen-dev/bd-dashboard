@@ -27,15 +27,16 @@
 
 | Priority | Task | Effort |
 |----------|------|--------|
-| P1 | **Run full company_enrichment.py for UCB/tcell** — quick_profiles done, drug-level summaries/overlap not yet enriched | Medium |
-| P1 | **Add Rule E3 auto-enforcement in quick_profiles_enrich.py** — when writing a profile, ensure company_areas row exists | Low |
-| P2 | **Run catalog_visibility + Rule E3 tests after any enrichment** | Automated via validate_ground_truth.py (144 tests now) |
-| P2 | **Expand area coverage for Lilly/Pfizer** — check if any areas missing company_areas before enriching | Low |
+| P1 | **Wire Rule E3/E4 auto-enforcement into write paths** — `quick_profiles_enrich.py` should ensure `company_areas` row exists before writing profile; `approve_discovery.py` should ensure `drug_areas` exists before writing score | Low |
+| P1 | **Run full company_enrichment.py for UCB/tcell** — quick_profiles done; drug-level summaries and overlap not yet enriched | Medium |
+| P2 | **Expand area coverage for Lilly/Pfizer** — verify all company_areas are present, then enrich remaining areas | Low |
 | P3 | **Migrate tl1aPI static JS object to Supabase** | High effort, high long-term value |
 
-**✅ Lilly, Novartis, Pfizer profiles done** — ibd, autoimmune, ted covered.  
-**✅ Rule E3 live** — 61 tests, 14 orphan gaps fixed, UNIQUE constraint on validation_tests.test_name.  
-**✅ Validation: 144/144 passing.**
+**✅ Rules E3 + E4 live** — 240/240 tests passing.  
+**✅ All three core invariants now enforced:**  
+&nbsp;&nbsp;&nbsp;• Drug → DKN (`catalog_visibility`)  
+&nbsp;&nbsp;&nbsp;• Company profile → company_areas (`company_area_check`)  
+&nbsp;&nbsp;&nbsp;• Drug score → drug_areas (`drug_area_score_check`)
 
 ---
 
