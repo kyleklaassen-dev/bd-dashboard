@@ -1886,6 +1886,22 @@ const AREA_LABELS = {
   igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
 };
 
+// ── Canonical area palette — single source of truth for all panels ────────────
+const AREA_COLORS = {
+  tl1a:'#1a3f8f', tslp:'#0e7490', il4ra:'#7c3aed',
+  igf1r:'#b45309', fcrn:'#15803d', tcell:'#dc2626',
+};
+const AREA_BG = {
+  tl1a:'#eff6ff', tslp:'#ecfeff', il4ra:'#f5f3ff',
+  igf1r:'#fffbeb', fcrn:'#f0fdf4', tcell:'#fef2f2',
+};
+
+// Extract domain for source attribution links
+function _srcDomain(url) {
+  if (!url) return 'Source';
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e) { return 'Source'; }
+}
+
 // ── Deal Tracker ─────────────────────────────────────────────────────────────
 let _allDeals = [];
 
@@ -1902,7 +1918,7 @@ function renderDeals(deals) {
     const val     = fmtMoney(d.total_usd_m);
     const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
     const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
-    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ Source</a>` : '';
+    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : '';
     const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
     return `<div class="deal-row" data-area="${d.area_id||''}">
   <div class="deal-co">
@@ -2022,7 +2038,7 @@ function renderCatalysts(cats) {
     </div>
     <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
       <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;white-space:nowrap;">${sig.label}</span>
-      ${area ? `<span style="font-size:9px;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:1px 5px;border-radius:8px;white-space:nowrap;">${area}</span>` : ''}
+      ${area ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[c.area_id]||'#2563eb'};background:${AREA_BG[c.area_id]||'#eff6ff'};padding:1px 5px;border-radius:8px;white-space:nowrap;">${area}</span>` : ''}
     </div>
   </div>
 </div>`;
@@ -2082,15 +2098,15 @@ function catDaysTag(sortDate) {
 
 // ── Meridian Reader — live essential intel ────────────────────────────────────
 const MR_AREA_STYLE = {
-  tl1a:      { label:'IBD',          color:'#c45b11', bg:'#fff7ed' },
-  tslp:      { label:'Resp',         color:'#2563eb', bg:'#eff6ff' },
-  il4ra:     { label:'Type 2',       color:'#9d174d', bg:'#fdf2f8' },
-  il4ra_tslp:{ label:'Type 2',       color:'#9d174d', bg:'#fdf2f8' },
-  il4ra_ox40l:{ label:'Type 2',      color:'#9d174d', bg:'#fdf2f8' },
-  igf1r:     { label:'TED',          color:'#065f46', bg:'#f0fdf4' },
-  fcrn:      { label:'FcRn',         color:'#5b21b6', bg:'#f5f3ff' },
-  tcell:     { label:'Immune Reset', color:'#991b1b', bg:'#fff1f2' },
-  ace:       { label:'Immune Reset', color:'#991b1b', bg:'#fff1f2' },
+  tl1a:        { label:'IBD',          color:'#1a3f8f', bg:'#eff6ff' },
+  tslp:        { label:'Resp',         color:'#0e7490', bg:'#ecfeff' },
+  il4ra:       { label:'Type 2',       color:'#7c3aed', bg:'#f5f3ff' },
+  il4ra_tslp:  { label:'Type 2',       color:'#7c3aed', bg:'#f5f3ff' },
+  il4ra_ox40l: { label:'Type 2',       color:'#7c3aed', bg:'#f5f3ff' },
+  igf1r:       { label:'TED',          color:'#b45309', bg:'#fffbeb' },
+  fcrn:        { label:'FcRn',         color:'#15803d', bg:'#f0fdf4' },
+  tcell:       { label:'Immune Reset', color:'#dc2626', bg:'#fef2f2' },
+  ace:         { label:'Immune Reset', color:'#dc2626', bg:'#fef2f2' },
 };
 const MR_TYPE_STYLE = {
   deal:       { label:'Deal',     color:'#1d4ed8', bg:'#dbeafe' },
@@ -2135,8 +2151,24 @@ async function loadMeridianReader() {
     // Unified feed — each item has { sortScore, dateStr, html }
     const feed = [];
 
-    // ── Intel items (research.py runs at 10:30 PM + 2 AM) ─────────────────
-    (intelRes.data || []).forEach((item, i) => {
+    // ── Intel items — story consolidation: group same company+date+type into one card ──
+    const _impRank = { high: 2, medium: 1, low: 0 };
+    const intelGroups = new Map();
+    (intelRes.data || []).forEach(item => {
+      // Items without a known company stay ungrouped (solo cards)
+      const storyKey = item.primary_company_id
+        ? `${item.primary_company_id}|${item.intel_date||''}|${item.intel_type||''}`
+        : `_solo_${item.id}`;
+      if (!intelGroups.has(storyKey)) intelGroups.set(storyKey, []);
+      intelGroups.get(storyKey).push(item);
+    });
+
+    intelGroups.forEach(group => {
+      // Lead = highest importance; ties broken by insertion order
+      group.sort((a, b) => (_impRank[b.importance] || 0) - (_impRank[a.importance] || 0));
+      const item   = group[0];
+      const extras = group.slice(1);
+
       const areaId = areaMap[item.id] || '';
       const aStyle = MR_AREA_STYLE[areaId];
       const tStyle = MR_TYPE_STYLE[item.intel_type];
@@ -2149,19 +2181,26 @@ async function loadMeridianReader() {
       const headline = item.source_url
         ? `<a class="ct-link" href="${item.source_url}" target="_blank" rel="noopener">${item.headline}</a>`
         : `<strong>${item.headline}</strong>`;
-      const srcTag = item.source_name ? `<span style="font-size:10px;color:#94a3b8;margin-left:4px">· ${item.source_name}</span>` : '';
-      const bodyText = item.body ? `<div style="font-size:11px;color:#4a6280;margin-top:3px;line-height:1.5">${item.body}</div>` : '';
+      const srcTag = item.source_name
+        ? `<span style="font-size:10px;color:#94a3b8;margin-left:4px">· ${item.source_name}</span>`
+        : '';
+      // Consolidated source badge when multiple sources cover the same story
+      const extraSrcs = extras.length
+        ? `<span style="font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;padding:1px 6px;border-radius:8px;margin-left:5px" title="${extras.map(e=>e.source_name||'—').join(', ')}">+${extras.length} source${extras.length>1?'s':''}</span>`
+        : '';
+      const bodyText = item.body
+        ? `<div style="font-size:11px;color:#4a6280;margin-top:3px;line-height:1.5">${item.body}</div>`
+        : '';
       const dateStr = rdtFmtDate(item.intel_date) || item.intel_date || '';
       const importanceScore = item.importance === 'high' ? 100 : 50;
       feed.push({
         sortScore: importanceScore + new Date(item.intel_date || 0).getTime() / 1e13,
         dateStr: item.intel_date || '',
-        html: `<div class="meridian-reader-item">${areaPill}${typePill}${headline}<span class="mr-date">${dateStr}${srcTag}</span>${bodyText}</div>`
+        html: `<div class="meridian-reader-item">${areaPill}${typePill}${headline}<span class="mr-date">${dateStr}${srcTag}${extraSrcs}</span>${bodyText}</div>`
       });
     });
 
     // ── Deal items (research.py + manual seeds) ────────────────────────────
-    const AREA_COLORS_MR = { tl1a:'#1a3f8f',tslp:'#0e7490',il4ra:'#7c3aed',igf1r:'#b45309',fcrn:'#15803d',tcell:'#dc2626' };
     (dealsRes.data || []).forEach(d => {
       const aStyle = MR_AREA_STYLE[d.area_id];
       const areaPill = aStyle
@@ -2493,11 +2532,6 @@ async function loadBDSignal() {
     ]);
     if (dealsRes.error) throw dealsRes.error;
 
-    const AREA_COLORS = {
-      tl1a:'#1a3f8f', tslp:'#0e7490', il4ra:'#7c3aed',
-      igf1r:'#b45309', fcrn:'#15803d', tcell:'#dc2626',
-    };
-
     // Build unified feed items with type + sort date
     const feedItems = [];
 
@@ -2534,7 +2568,7 @@ async function loadBDSignal() {
         const d = item.data;
         const val = d.total_usd_m ? `<span style="font-weight:800;color:#0d1f38">${fmtMoney(d.total_usd_m)}</span>` : '';
         const upfront = d.upfront_usd_m ? `<span style="font-size:10px;color:#64748b"> · ${fmtMoney(d.upfront_usd_m)} upfront</span>` : '';
-        const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗</a>` : '';
+        const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : '';
         const signalHtml = d.ailux_signal
           ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1a3f8f;display:block;margin-bottom:2px;">◈ Ailux BD Signal</span>${d.ailux_signal}</div>`
           : '';
@@ -2551,7 +2585,7 @@ async function loadBDSignal() {
         </div>`;
       } else {
         const i = item.data;
-        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗</a>` : '';
+        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(i.source_url)}</a>` : '';
         const angleHtml = i.ailux_angle
           ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#15803d;display:block;margin-bottom:2px;">◈ Ailux Angle</span>${i.ailux_angle}</div>`
           : '';
@@ -2634,7 +2668,7 @@ function renderSignals(rows) {
       const typeStyle = SIG_TYPE_STYLE[r.signal_type] || { label: r.signal_type || '—', bg: '#f8fafc', color: '#64748b' };
       const coName = r.companies?.name || r.company_id || '—';
       const areaLabel = AREA_LABELS[r.area_id] || r.area_id || '';
-      const areaTag = areaLabel ? `<span style="font-size:9px;color:#94a3b8;margin-left:4px;">· ${areaLabel}</span>` : '';
+      const areaTag = areaLabel ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[r.area_id]||'#64748b'};background:${AREA_BG[r.area_id]||'#f1f5f9'};padding:1px 5px;border-radius:8px;margin-left:4px;">${areaLabel}</span>` : '';
       const srcName = r.source_name ? `<span style="font-size:10px;color:#94a3b8">${r.source_name}</span>` : '';
       const dateStr = r.event_date ? `<span style="font-size:10px;color:#cbd5e1;margin-left:4px;">${r.event_date}</span>` : '';
       const headline = r.source_url
@@ -3341,7 +3375,6 @@ function loadMoleculeTab(tabId) {
       <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
       <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
       <button class="cat-sort-btn" onclick="setCatSort(this,'relevance')">Most Relevant</button>
-      <button class="cat-sort-btn" onclick="setCatSort(this,'recent')">Most Recent</button>
       <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
       <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
       <span id="cats-area-label" style="display:none">All Areas</span>
@@ -9809,7 +9842,7 @@ async function loadTopOpps() {
 
   body.innerHTML = shown.map((item, idx) => {
     const t = _TOP_OPPS_TYPE[item.type] || _TOP_OPPS_TYPE.intel;
-    const areaTag = item.area ? `<span style="font-size:9px;font-weight:700;background:#f1f5f9;color:#64748b;padding:1px 5px;border-radius:8px;margin-left:4px">${item.area}</span>` : '';
+    const areaTag = item.area ? `<span style="font-size:9px;font-weight:700;background:${AREA_BG[item.area]||'#f1f5f9'};color:${AREA_COLORS[item.area]||'#64748b'};padding:1px 5px;border-radius:8px;margin-left:4px">${AREA_LABELS[item.area]||item.area}</span>` : '';
     const layerTag = item.layer ? `<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#f5f3ff;padding:1px 5px;border-radius:8px;margin-left:3px">L${item.layer}</span>` : '';
     const co = item.company ? `<span style="font-weight:700;color:#0f172a">${item.company}</span>${item.drug ? ` <span style="color:#64748b">/ ${item.drug}</span>` : ''}${areaTag}${layerTag}` : '';
     const dateStr = item.date ? `<span style="color:#cbd5e1;font-size:10px;margin-left:auto;padding-left:8px;white-space:nowrap">${item.date}</span>` : '';
@@ -11015,7 +11048,6 @@ async function loadLiveIntel() {
     }
     const areaMap = {};
     (iaRows||[]).forEach(r => { if (!areaMap[r.intel_id]) areaMap[r.intel_id] = []; areaMap[r.intel_id].push(r.area_id); });
-    const AREA_COLORS = { tl1a:'#1a3f8f',tslp:'#0e7490',il4ra:'#7c3aed',igf1r:'#b45309',fcrn:'#15803d',tcell:'#dc2626' };
     body.innerHTML = rows.map(item => {
       const dot   = item.importance==='high'?'🔴':item.importance==='medium'?'🟡':'⚪';
       const areas = (areaMap[item.id]||[]).map(a =>
