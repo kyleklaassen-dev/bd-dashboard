@@ -89,6 +89,20 @@
 - Prompt: `confidence_level` REQUIRED; inferred must explain why in `overlap_rationale`
 - Tested on caldera/cld-423; 61/61 validation tests passing
 
+### ✅ Drug Identity Audit + Merges (Session 5, commit `14df877`)
+- Audited 4 suspected duplicate pairs; confirmed 2 as duplicates
+- Merge A: `pf-06480605` → `afimkibart` (13 trials, 8 catalysts, mol_intel migrated)
+- Merge B: `hxn1003` → `erd-1` (target updated to TL1A×IL-23p19; hxn1003 deleted)
+- Data fix: `ep006` display_name → 'EP006 (Eprovaxia)' (naming collision with es302, not duplicate)
+- Not merged: `qx030n` / `qx031n` (distinct molecules, different targets/areas/partners)
+- Full audit documented: `docs/drug_identity_audit.md`
+
+### ✅ Task #127: Molecule Intelligence Enrichment (Session 5b, commit `a4dc837`)
+- `scripts/molecule_enrichment.py` — new standalone targeted enrichment script
+- 20 priority TL1A/IBD drugs enriched: duvakitug, spy002, spy072, spy001, spy003, spy120, spy130, spy230, qx030n, ro7837195, fg-m701, abbv-382, abbv-668, lutikizumab, risankizumab, guselkumab, mirikizumab, upadacitinib, ustekinumab, golimumab
+- molecule_intelligence records: 31 → 51 (+20)
+- Known limitation: `ensure_canonical_id()` doesn't INSERT into canonical_drugs (FK issue — workaround applied for 3 affected drugs)
+
 ---
 
 ## Highest Priority for Next Session
@@ -122,10 +136,14 @@ Use the same dedup pattern from `docs/catalyst_quality_diagnosis.md`:
 - Delete duplicates keeping highest `id`
 - Add unique constraint on `(company_id, area_id, label)`
 
-### 🟢 P5: Duvakitug Molecule Intelligence
-duvakitug has no `molecule_intelligence` record. Run targeted molecule enrichment:
-- PF-06480101 / duvakitug is an anti-TL1A monoclonal antibody (humanized IgG4)
-- Source: Sanofi/Pfizer co-dev; clinical data from ARTEMIS-UC, ARTEMIS-CD trials
+### 🟡 P5: Fix `ensure_canonical_id` in molecule_enrichment.py
+The function generates a canonical ID and patches drugs table but doesn't INSERT into canonical_drugs, causing FK violations for drugs not already in that table. Fix:
+1. Look up canonical_drugs by name first
+2. If not found, INSERT into canonical_drugs before patching drugs table
+3. Then proceed with mol_intel insert as normal
+
+### 🟢 P6: Remaining ~12 uncovered drugs (lower priority)
+These TL1A drugs still have no mol_intel: cantai-tl1a, generate-uc, hbm2001, hy8931, lbl053, lq080, lq082, pr203, sab06, spx306, es302 (Elpiscience). Run after P5 fix is applied.
 
 ---
 
@@ -141,7 +159,7 @@ DB (Supabase):
   company_profiles        ← live; 37/60 enriched
   validation_tests        ← live; 61 tests, all passing
   catalysts               ← live; Roche dedup pending
-  molecule_intelligence   ← live; duvakitug missing
+  molecule_intelligence   ← live; 51 records (31→51 this session); ~12 uncovered TL1A drugs remain
 
 UI (GitHub Pages - commit 577ba0e):
   Entity dossier          ← live; molecule tab + overlap bugs fixed
@@ -159,7 +177,8 @@ UI (GitHub Pages - commit 577ba0e):
 | drug_area_scores.source_url = 0% | High | Write path fixed (01141bf); needs enrichment re-run (P0) |
 | fg-m701 area_id='atopy' (should be 'tl1a') | Medium | Not fixed — needs PATCH |
 | Roche catalyst near-duplicates (~10) | Medium | Needs P4 dedup |
-| duvakitug has no molecule_intelligence | Low | Needs P5 enrichment |
+| ensure_canonical_id() doesn't insert into canonical_drugs | Medium | Workaround applied for 3 drugs; fix in P5 |
+| ~12 TL1A drugs still have no mol_intel | Low | Lower-priority; enrich after P5 fix |
 | Confidence badges all show '?' | Low | Will resolve once enrichment re-run populates source_url |
 
 ---
@@ -179,6 +198,16 @@ UI (GitHub Pages - commit 577ba0e):
 - `last_enriched_model` written to `drugs` and `company_profiles` on every write (v16 columns)
 - Prompt hardened: `confidence_level` REQUIRED; `inferred` must explain why in `overlap_rationale`
 - `source_url` prompt clarified: priority order CT.gov → company IR → press release; never fabricate
+
+**Commit `14df877`** — Drug identity audit + merges:
+- `docs/drug_identity_audit.md` — full audit of 4 duplicate candidates
+- Supabase: Merge A (pf-06480605→afimkibart), Merge B (hxn1003→erd-1), data fix C (ep006)
+- `update_log.md` — Session 5 entry
+
+**Commit `a4dc837`** on `scripts/molecule_enrichment.py` — new:
+- Standalone targeted molecule enrichment (per-drug, not per-company)
+- 20 priority drugs enriched; mol_intel: 31 → 51
+- delete-then-insert write pattern; canonical_drug_id FK handling
 
 ---
 

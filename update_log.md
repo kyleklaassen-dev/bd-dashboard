@@ -1,5 +1,51 @@
 
 ---
+## 2026-05-23 (Session 5b) — Molecule Intelligence Enrichment (Task #127)
+
+**`scripts/molecule_enrichment.py` — new (commit `a4dc837`)**
+
+Standalone targeted drug-level molecule enrichment script. Enriches 20 priority TL1A/IBD drugs that had no molecule_intelligence record.
+
+**Priority list enriched (in order):**
+
+| Drug | Confidence | Format |
+|------|-----------|--------|
+| duvakitug | medium | Humanized IgG4 mAb (anti-TL1A) |
+| spy002 | low | IgG1 mAb |
+| spy072 | low | IgG1 mAb |
+| spy001 | low | IgG1 mAb |
+| spy003 | low | IgG1 mAb |
+| spy120 | low | Bispecific (TL1A×IL-23p19) |
+| spy130 | low | Bispecific |
+| spy230 | low | Bispecific |
+| qx030n | low | Tetravalent bispecific (TL1A×IL-23p19) |
+| ro7837195 | medium | Bispecific antibody |
+| fg-m701 | low | mAb or bispecific (uncertain) |
+| abbv-382 | low | Anti-TL1A mAb |
+| abbv-668 | medium | Bispecific (TL1A×IL-23p19) |
+| lutikizumab | medium | Anti-IL-1α/β bispecific |
+| risankizumab | high | Humanized IgG1 (anti-IL-23p19) |
+| guselkumab | high | Human IgG1κ (anti-IL-23p19) |
+| mirikizumab | high | Humanized IgG4 (anti-IL-23p19) |
+| upadacitinib | high | JAK1-selective inhibitor (small molecule) |
+| ustekinumab | high | Human IgG1κ (anti-IL-12/23p40) |
+| golimumab | high | Human IgG1κ (anti-TNFα) |
+
+**FK issue resolved:** 3 drugs (guselkumab, ustekinumab, golimumab) lacked canonical_drug_id or had IDs not present in canonical_drugs. Fixed by:
+- Querying canonical_drugs for existing entries
+- Inserting golimumab into canonical_drugs (CANON_DRUG_GOLIMUMAB)
+- PATCHing all 3 drugs.canonical_drug_id before inserting mol_intel
+
+**Known limitation documented:** `ensure_canonical_id()` in molecule_enrichment.py generates canonical IDs but doesn't insert into canonical_drugs (FK constraint). Any drug without canonical_drug_id that's also absent from canonical_drugs will fail. Needs fix in a future session.
+
+**Net result:**
+- molecule_intelligence records: 31 → 51 (+20)
+- Coverage: 20 Direct TL1A competitors now profiled
+- 6 high confidence, 4 medium confidence, 10 low confidence
+
+Validation: 61/61 tests passing.
+
+---
 ## 2026-05-23 (Session 5) — Drug Identity Audit + Merge
 
 **`docs/drug_identity_audit.md` — new**
