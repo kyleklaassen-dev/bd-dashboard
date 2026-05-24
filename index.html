@@ -2069,9 +2069,28 @@ function fmtMoney(m) {
   return m >= 1000 ? `$${(m/1000).toFixed(2).replace(/\.?0+$/,'')}B` : `$${m}M`;
 }
 
+function _dedupeDeals(deals) {
+  const STOP = new Set(['the','a','an','and','or','of','to','in','for','on','with','by','at','from','is','are','was','were','after','before','as','that','this','it','its','be','been','has','have','had','will','would','could','should','not','but','also','than','more','up','into','about','over','under','pays','per','its','after']);
+  function kwds(s) {
+    return (s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+  }
+  function overlap(a, b) {
+    const sa = new Set(a), sb = new Set(b), smaller = Math.min(sa.size, sb.size);
+    if (!smaller) return 0;
+    let n = 0; sa.forEach(w => { if (sb.has(w)) n++; });
+    return n / smaller;
+  }
+  const kept = [], keptKw = [];
+  for (const d of deals) {
+    const kw = kwds(d.headline);
+    if (!keptKw.some(k => overlap(kw, k) > 0.6)) { kept.push(d); keptKw.push(kw); }
+  }
+  return kept;
+}
 function renderDeals(deals) {
   const list = document.getElementById('deals-list');
   if (!list) return;
+  deals = _dedupeDeals(deals);
   if (!deals.length) { list.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
   const renderDeal = (d, idx) => {
     const val       = fmtMoney(d.total_usd_m);
