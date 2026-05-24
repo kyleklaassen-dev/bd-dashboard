@@ -1,5 +1,48 @@
 
 ---
+## 2026-05-24 (Session 32) — Coverage Framework (Migration v30)
+
+**Validation:** 993 pass / 0 fail / 7 skip (no regressions; 2 new coverage_metric tests → skip pending validator support)
+
+### Principle established
+"The graph organizes knowledge. It does not create it."  
+Coverage is the 9th Meridian layer: measuring what the system knows, what it should know, and what is missing.
+
+### coverage_scores table (migration v30)
+New table: `coverage_scores` — one row per company_areas pair (137 at creation)  
+9 diagnostic dimensions per row:
+- `target_mapping_score` — % area drugs with drug_targets
+- `ownership_coverage_score` — % licensed-in drugs with ownership_edges
+- `source_coverage_score` — % drug_area_scores with source_url
+- `confidence_coverage_score` — % drug_area_scores with confidence_level
+- `enrichment_recency_score` — staleness of company_profiles
+- `deal_linkage_score` — % acquisition/license edges with deal_id
+- `molecule_intelligence_score` — % drugs with molecule_intelligence rows
+- `catalyst_coverage_score` — % clinical drugs with ≥1 future catalyst
+- `profile_completeness_score` — % expected profile fields present
+
+### scripts/compute_coverage.py
+- Loads all relevant tables, builds lookup indexes (no N+1 queries)
+- Computes all 9 dimensions deterministically per company/area
+- Produces `overall_score` (weighted average, profile+source weighted 2×)
+- Writes `recommended_actions_json` per row (what to do next)
+- CLI report: platform average, area breakdown, lowest 10, dimension averages
+
+### Initial platform state (first run)
+| Metric | Value |
+|--------|-------|
+| Platform coverage | 71.3 / 100 |
+| Lowest dimension | Catalyst coverage: 43.1 ⚠ |
+| Source coverage | 59.5 ⚠ |
+| Ownership coverage | 57.7 ⚠ |
+| Highest dimension | Molecule intelligence: 99.5 |
+| Best area | TSLP: 80.8 |
+| Weakest area | Autoimmune: 62.3 |
+
+### Validation test
+- `coverage_scores_row_existence` (id=1078) — 137 rows expected after compute runs
+
+---
 ## 2026-05-24 (Session 31) — Target Coverage + ACTIVE_IN Graph Layer
 
 **Validation:** 995 pass / 0 fail / 5 skip (unchanged — no regressions)
