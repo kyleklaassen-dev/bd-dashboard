@@ -8740,7 +8740,20 @@ async function loadMeridianIssue() {
         `<div class="mr-arch-item${isToday ? ' mr-arch-today' : ''}" onclick="selectMeridianIssue('${id}','${shortLabel.replace(/'/g,"&#39;")}')">` +
         `${isToday ? '📰 ' : ''}${label}</div>`;
 
-      const todayId   = todayInDb ? issues[0].id : '__live__';
+      // If today's issue is in DB, show it first; otherwise show most recent issue as the pinned top item
+      let topId, topLabel, topShort;
+      if (todayInDb) {
+        topId = issues[0].id; topLabel = "Today's Issue"; topShort = 'today';
+      } else if (issues && issues.length > 0) {
+        const latest = issues[0];
+        const d = new Date(latest.issue_date + 'T12:00:00');
+        topId    = latest.id;
+        topLabel = '📌 Latest: ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        topShort = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } else {
+        topId = '__live__'; topLabel = "Today's Issue"; topShort = 'today';
+      }
+
       const archItems = archiveIssues.map(issue => {
         const d   = new Date(issue.issue_date + 'T12:00:00');
         const full = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -8749,11 +8762,12 @@ async function loadMeridianIssue() {
       }).join('');
 
       list.innerHTML =
-        mkItem(todayId, "Today's Issue", 'today', true) +
+        mkItem(topId, topLabel, topShort, true) +
         (archItems || '<div style="padding:10px 16px;font-size:12px;color:#94a3b8;font-style:italic">No archived issues yet</div>');
     }
 
     if (!issues || issues.length === 0) {
+      // Absolute last resort: no issues anywhere — load the static live file
       frame.removeAttribute('srcdoc'); frame.srcdoc = '';
       frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
       return;
@@ -8762,8 +8776,11 @@ async function loadMeridianIssue() {
     if (todayInDb) {
       await renderMeridianIssue(issues[0].id, 'today');
     } else {
-      frame.removeAttribute('srcdoc'); frame.srcdoc = '';
-      frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+      // Today's issue not written yet — show the most recent issue instead of a blank page
+      const latest = issues[0];
+      const d = new Date(latest.issue_date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      await renderMeridianIssue(latest.id, label);
     }
 
   } catch(e) {
@@ -8785,8 +8802,22 @@ async function renderMeridianIssue(issueId, label) {
     }
   } catch(_) {}
 
-  // '__live__' means today's issue isn't in DB yet — load live file
+  // '__live__' means no issues in DB at all — try DB one more time, then fall back to static file
   if (issueId === '__live__') {
+    try {
+      const { data: fallbackIssues } = await _sb
+        .from('meridian_issues')
+        .select('id, issue_date')
+        .order('issue_date', { ascending: false })
+        .limit(1);
+      if (fallbackIssues && fallbackIssues.length > 0) {
+        const fi = fallbackIssues[0];
+        const d  = new Date(fi.issue_date + 'T12:00:00');
+        const lb = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        await renderMeridianIssue(fi.id, lb);
+        return;
+      }
+    } catch(_) {}
     frame.removeAttribute('srcdoc'); frame.srcdoc = '';
     frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
     return;
