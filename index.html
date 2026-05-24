@@ -6155,16 +6155,6 @@ function loadMoleculeTab(tabId) {
 <!-- FILTER BAR -->
 <div id="dkn-tab-filter" class="dkn-filter-bar">
   <div class="dkn-filter-left">
-    <input class="dkn-search" id="dkn-search-input" type="text" placeholder="&#128269; Search any field — drug, target, company, indication..." oninput="dknRender()">
-    <div class="dkn-chips" id="dkn-cat-chips">
-      <button class="dkn-chip active" onclick="dknSetCat(this,'')">All</button>
-      <button class="dkn-chip cat-imm" onclick="dknSetCat(this,'Immunology')">Immunology</button>
-      <button class="dkn-chip cat-onc" onclick="dknSetCat(this,'Oncology')">Oncology</button>
-      <button class="dkn-chip cat-sm" onclick="dknSetCat(this,'Small Molecule')">Small Mol</button>
-      <button class="dkn-chip cat-pip" onclick="dknSetCat(this,'Pipeline')">Pipeline</button>
-      <button class="dkn-chip cat-met" onclick="dknSetCat(this,'Metabolic')">Metabolic</button>
-      <button class="dkn-chip cat-cmb" onclick="dknSetCat(this,'Combo Study')">Combo Study</button>
-    </div>
     <div class="dkn-chips" id="dkn-stage-chips">
       <button class="dkn-chip active" onclick="dknSetStage(this,'')">All Stages</button>
       <button class="dkn-chip stage-appr" onclick="dknSetStage(this,'Approved')">Approved</button>
@@ -6175,8 +6165,7 @@ function loadMoleculeTab(tabId) {
     </div>
     <div class="dkn-chips" id="dkn-target-chips" style="border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;margin-top:2px;">
       <span style="font-size:10px;color:rgba(255,255,255,0.45);padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Target area:</span>
-      <button class="dkn-chip active" id="dkn-focus-chip" onclick="dknSetTarget(this,'ailux-focus')" style="background:#e8a020;color:#0d1f38;border-color:#e8a020;">◈ Ailux Focus</button>
-      <button class="dkn-chip" onclick="dknSetTarget(this,'')">All</button>
+      <button class="dkn-chip active" onclick="dknSetTarget(this,'')">All</button>
       <button class="dkn-chip tgt-tl1a"    onclick="dknSetTarget(this,'tl1a')">TL1A × IL-23p19</button>
       <button class="dkn-chip tgt-tslp"    onclick="dknSetTarget(this,'tslp-il33')">TSLP × IL-33</button>
       <button class="dkn-chip tgt-il4tslp" onclick="dknSetTarget(this,'il4ra-tslp')">IL-4Rα × TSLP</button>
@@ -6186,11 +6175,7 @@ function loadMoleculeTab(tabId) {
       <button class="dkn-chip tgt-bcma"    onclick="dknSetTarget(this,'bcma-cd19')">BCMA × CD19 × CD3</button>
     </div>
     <div class="dkn-chips" id="dkn-extra-filters" style="border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;margin-top:2px;align-items:center;">
-      <span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;align-self:center;padding-right:4px;">Class:</span>
-      <select class="dkn-select" id="dkn-class-select" onchange="dknSetClass(this)">
-        <option value="">All Classes</option>
-      </select>
-      <span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;align-self:center;padding:0 4px 0 10px;">Indication:</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;align-self:center;padding-right:4px;">Indication:</span>
       <select class="dkn-select" id="dkn-ind-select" onchange="dknSetInd(this)">
         <option value="">All Indications</option>
         <option value="IBD / GI">IBD / GI</option>
@@ -6225,7 +6210,6 @@ function loadMoleculeTab(tabId) {
   <th class="dkn-th-ind sortable" onclick="dknSort('indication')">Indication</th>
   <th class="dkn-th-diff">Differentiation / Why It Matters</th>
   <th class="dkn-th-risk">Key Risk</th>
-  <th class="dkn-th-del"></th>
 </tr>
 </thead>
 <tbody id="dkn-tbody"></tbody>
@@ -6387,7 +6371,7 @@ let dknIndFilter = '';
 let dknRemovedIds = [];
 let dknUndoStack = [];
 let dknShowRemoved = false;
-let dknTargetFilter = 'ailux-focus';
+let dknTargetFilter = '';
 
 const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
 
@@ -6552,12 +6536,12 @@ function dknRender() {
   }
   const tbody = document.getElementById('dkn-tbody');
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
   const totalActive = _dknData.filter(d => !dknRemovedIds.includes(d.id)).length;
-  const allBtn = document.querySelector('#dkn-target-chips .dkn-chip:not([class*="tgt-"]):not([id="dkn-focus-chip"])');
+  const allBtn = document.querySelector('#dkn-target-chips .dkn-chip:not([class*="tgt-"])');
   if (allBtn) allBtn.textContent = `All (${totalActive})`;
   document.getElementById('dkn-count').textContent = data.length + ' drug' + (data.length!==1?'s':'') + ' shown';
   const remCount = dknRemovedIds.length;
@@ -6652,7 +6636,6 @@ function dknRow(d) {
   <td class="dkn-col-ind" style="font-size:11px">${d.indication_short || '—'}</td>
   <td class="dkn-col-diff" style="font-size:11px;color:#1e293b">${diff.length > 90 ? diff.slice(0,90)+'…' : diff}</td>
   <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${risk.length > 70 ? risk.slice(0,70)+'…' : risk}</td>
-  <td class="dkn-col-del" style="text-align:center;white-space:nowrap">${removeOrRestore}</td>
 </tr>
 <tr id="dkn-dr-${d.id}" class="dkn-detail-row">
   <td colspan="9" class="dkn-detail-td">
@@ -6698,18 +6681,12 @@ function dknRenderRemovedPanel() {
   ).join('');
 }
 function dknReset() {
-  dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = 'ailux-focus';
+  dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = '';
   dknClassFilter = ''; dknIndFilter = '';
-  document.getElementById('dkn-search-input').value = '';
-  const cs = document.getElementById('dkn-class-select');
-  if (cs) cs.value = '';
   const is = document.getElementById('dkn-ind-select');
   if (is) is.value = '';
-  document.querySelectorAll('#dkn-cat-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
-  document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach(b => b.classList.remove('active'));
-  const focusChip = document.getElementById('dkn-focus-chip');
-  if (focusChip) focusChip.classList.add('active');
+  document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
 }
 
