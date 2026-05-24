@@ -8928,24 +8928,57 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       .sort((a, b) => (b.deal_date||'').localeCompare(a.deal_date||''));
 
     // ── Drugs for this area ──
-    // Fetch drugs by originating company_id OR by current_owner_company_id (for acquisitions
-    // like UCB/Candid — CND drugs have company_id='candid' but current_owner='ucb')
-    const [drugAreaRes, allCoDrugsRes] = await Promise.all([
+    // Resolve via ownership_edges CONTROLLED_BY — acquirer shows acquired/licensed drugs.
+    // (e.g. UCB controls Candid's cizutamig/CND319/CND460 after May 2026 acquisition;
+    //  UCB licensed ATG-201 from Antengene — LICENSED_IN edges also resolve as CONTROLLED_BY)
+    const [drugAreaRes, controlledEdgesRes] = await Promise.all([
       _sb.from('drug_areas').select('drug_id').eq('area_id', DRUG_AREA),
-      _sb.from('drugs').select('*')
-         .or(`company_id.eq.${companyId},current_owner_company_id.eq.${companyId}`)
-         .order('sort_order', { ascending: true }).limit(50),
+      _sb.from('ownership_edges').select('subject_id,object_id')
+         .eq('predicate', 'CONTROLLED_BY').eq('subject_type', 'drug')
+         .eq('object_id', companyId).eq('status', 'active'),
     ]);
     const areaSet = new Set((drugAreaRes.data||[]).map(r => r.drug_id));
-    // Deduplicate by drug id (a drug might match both conditions)
+    const controlledDrugIds = (controlledEdgesRes.data||[]).map(r => r.subject_id);
+
+    // Fetch originator IDs for acquired drugs (for the originator pill display)
+    const originatorMap = {}; // drug_id → originator_company_id
+    if (controlledDrugIds.length) {
+      const { data: origEdges } = await _sb.from('ownership_edges').select('subject_id,object_id')
+        .eq('predicate', 'ORIGINATED_BY').eq('subject_type', 'drug')
+        .in('subject_id', controlledDrugIds).eq('status', 'active');
+      (origEdges||[]).forEach(e => { originatorMap[e.subject_id] = e.object_id; });
+    }
+
+    // Resolve originator company display names
+    const originatorNameMap = {}; // company_id → short display name
+    const originatorIds = [...new Set(Object.values(originatorMap))];
+    if (originatorIds.length) {
+      const { data: coRows } = await _sb.from('companies').select('id,name')
+        .in('id', originatorIds);
+      (coRows||[]).forEach(c => {
+        // Use first word of company name as short form (e.g. 'Candid Therapeutics' → 'Candid')
+        originatorNameMap[c.id] = (c.name||'').split(' ')[0] || c.id;
+      });
+    }
+
+    // Build drug fetch: own drugs + all drugs controlled via ownership_edges
+    const idsToFetch = controlledDrugIds.length
+      ? `company_id.eq.${companyId},id.in.(${controlledDrugIds.join(',')})`
+      : `company_id.eq.${companyId}`;
+    const { data: allDrugsData } = await _sb.from('drugs').select('*')
+      .or(idsToFetch).order('sort_order', { ascending: true }).limit(50);
+
     const seen = new Set();
-    const drugs = (allCoDrugsRes.data||[]).filter(d => {
+    const drugs = (allDrugsData||[]).filter(d => {
       if (seen.has(d.id)) return false;
-      // Acquired assets always show in the acquiring company's dossier regardless of area context
-      // (e.g. CND drugs tagged 'tcell' still appear under UCB when opened from the TL1A/IBD tab)
-      const isAcquiredAsset = d.current_owner_company_id === companyId && d.company_id !== companyId;
-      if (!areaSet.has(d.id) && !isAcquiredAsset) return false;
+      // Controlled assets show in the controlling company's dossier regardless of area context
+      const isControlledAsset = controlledDrugIds.includes(d.id) && d.company_id !== companyId;
+      if (!areaSet.has(d.id) && !isControlledAsset) return false;
       seen.add(d.id);
+      // Attach originator display name for the originator pill in rendering
+      if (isControlledAsset && originatorMap[d.id]) {
+        d._originator_name = originatorNameMap[originatorMap[d.id]] || originatorMap[d.id];
+      }
       return true;
     });
 
@@ -9149,11 +9182,13 @@ function _buildCompanyDossierBody(prog, sbData, areaId) {
     return `background:${c[1]};color:${c[0]}`;
   };
   const drugItems = sbDrugs.map(d => {
-    // Originator pill: shown when drug was acquired/licensed from another company
-    const originatorPill = (d.display_partner_name && d.ownership_status && d.ownership_status !== 'originated')
-      ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap">w/ ${d.display_partner_name}</span>`
+    // Originator pill: shown when drug was acquired/licensed from another company.
+    // Priority: ownership_edges ORIGINATED_BY (_originator_name) > partner_company text field.
+    const _origPillStyle = 'font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap';
+    const originatorPill = d._originator_name
+      ? `<span style="${_origPillStyle}" title="Originated by ${d._originator_name}">via ${d._originator_name}</span>`
       : (d.partner_company
-        ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap">w/ ${d.partner_company}</span>`
+        ? `<span style="${_origPillStyle}">w/ ${d.partner_company}</span>`
         : '');
     return `
     <div class="dossier-drug-item">
