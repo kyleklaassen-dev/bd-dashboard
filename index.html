@@ -3288,8 +3288,7 @@ function loadMoleculeTab(tabId) {
  ＋ Submit Intel
  </button><span id="dq-nav-badge" onclick="navTo('discovery-queue')" title="New high-priority discoveries in queue — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;line-height:16px;margin-left:4px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ New</span>
  <div class="header-meta">
- <strong id="header-date">Saturday, May 16, 2026</strong><br>
- <span id="last-updated-ts" data-ts="1778974468" style="font-size:11px;opacity:0.75"></span>
+ <strong id="header-date">Saturday, May 16, 2026</strong>
  </div>
  </div>
 </div>
@@ -12724,19 +12723,6 @@ function stockFilter(btn, area) {
  });
 }
 
-// Render last-updated timestamp in browser's local timezone
-(function() {
-  const el = document.getElementById('last-updated-ts');
-  if (!el) return;
-  const ts = parseInt(el.dataset.ts);
-  if (!ts) return;
-  const d = new Date(ts * 1000);
-  const hour = d.getHours() % 12 || 12;
-  const min  = String(d.getMinutes()).padStart(2, '0');
-  const ampm = d.getHours() < 12 ? 'AM' : 'PM';
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  el.textContent = `Last updated ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${hour}:${min} ${ampm}`;
-})();
 
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
