@@ -10481,11 +10481,12 @@ function _makeAreaPI(tabId, areaIds) {
 
     _entityDetailFallback(ent) {
       let html = '';
-      if (ent.programs.length > 1) {
+      if (ent.programs.length > 0) {
         const bubbles = ent.programs.map(p =>
           `<div class="pi-prog-bubble"><span class="pi-prog-name">${p.name}</span>
             ${this._stagePill(p.stageKey)} ${this._clsPill(p.cls)}
             ${p.target!=='—'?`<span class="pi-prog-target">${p.target}</span>`:''}
+            ${this._ovBadge(p.overlap)}
           </div>`).join('');
         html += `<div class="pi-prog-bubbles">${bubbles}</div>`;
       }
@@ -10715,7 +10716,7 @@ function _makeAreaPI(tabId, areaIds) {
         const relevBadge = this._relevBadge(ent.bestRelevance, ent.bestRelevanceRationale);
         const threatCell = ent.isTerminated
           ? `<span style="color:#cbd5e1">—</span>`
-          : `<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">${relevBadge}${this._ovBadge(ent.bestOverlap)}</div>`;
+          : relevBadge || `<span style="color:#cbd5e1">—</span>`;
 
         const catFmt = (() => {
           if (!nextCat) return null;
