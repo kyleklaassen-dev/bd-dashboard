@@ -34,6 +34,26 @@ After adding: `python3 scripts/run_v31_seed.py` auto-fills Section 5.
 2. Apply v31 landscape model to TL1A, α4β7 areas
 3. Dashboard: wire mechanism_status into competitive landscape tab
 
+### Also completed this session: CND261 + pipeline gap detection
+
+**CND261** (CD20/CD3, Phase 1 autoimmune) added to DB — was missing from UCB/Candid drug list.
+- drugs, drug_areas (tcell/autoimmune), drug_area_scores, ownership_edges, drug_targets all inserted
+- Root cause: drug originally classified as oncology (NHL Phase 1 complete), re-positioned to autoimmune at unknown point
+
+**company_intake.py `--re-audit` flag** — diffs live LLM-researched pipeline against DB for a known company:
+```bash
+python scripts/company_intake.py --company "UCB" --re-audit
+```
+Gaps → `discovery_queue` with `source='re_audit'`
+
+**scripts/pipeline_monitor.py** — hash-based pipeline page change detection for 26 companies:
+```bash
+python3 scripts/pipeline_monitor.py --dry-run
+python3 scripts/pipeline_monitor.py --company ucb
+```
+Changes → `signals` (pipeline_page_change) + `discovery_queue` (source='pipeline_monitor')
+Note: JS-rendered pages return empty shells; `--re-audit` is the reliable fallback for those.
+
 ---
 
 ## Previous: Session 36 Summary — Catalyst Coverage Sprint
