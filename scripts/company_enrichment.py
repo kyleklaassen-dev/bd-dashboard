@@ -2047,6 +2047,15 @@ Return JSON with EXACTLY these fields:
     }},
     "confidence": "high (published papers, CT.gov) | medium (press release, conference abstract) | low (analyst report, inference)",
     "source_url": "Primary source URL for molecule data. null if no citable source."
+  }}],
+  "competitive_signals": [{{
+    "drug_id": "exact drug_id from DRUGS list — null if company-level event (financing, patent portfolio)",
+    "signal_type": "conference | patent | financing | publication | licensing | regulatory | clinical_update",
+    "title": "Concise factual event title ≤120 chars",
+    "description": "2-4 sentences: what happened, key outcome or terms, and why it matters competitively. Include specific numbers/dates where available.",
+    "source_url": "REQUIRED — primary source URL. Omit item if no verified URL exists. Never fabricate.",
+    "source_date": "YYYY-MM-DD — date the event occurred or was publicly disclosed",
+    "confidence": 0.90
   }}]
 }}
 
@@ -2065,6 +2074,7 @@ RULES:
 - deal_updates: only match to EXISTING DEALS
 - combination_programs: include ALL known multi-drug combination programs for this company in this area. If none exist or are being studied, return an empty array [].
 - news_items: extract the 3-6 most significant recent news items from WEB INTELLIGENCE. Only include items with a verified source_url. If WEB INTELLIGENCE is empty, return []. Never fabricate articles. Prefer items from the past 12 months. Each item must have a real URL.
+- competitive_signals: extract 0-5 discrete competitive events from WEB INTELLIGENCE that are PAST (already happened). signal_type must be one of: conference (abstract/poster/oral presentation), patent (filing or grant), financing (round/IPO/ATM), publication (paper/preprint), licensing (deal), regulatory (IND/BLA/approval milestone), clinical_update (data readout/trial initiation/enrollment update). Only include events with a verified source_url. Return [] if none found. Do NOT duplicate events already captured in catalysts (which are future-facing).
 - Return ONLY valid JSON. No markdown.
 - ALWAYS apply DATA QUALITY STANDARDS from the system prompt: IL-23p19 notation, brand name format, PCD specificity, validated URLs.
 
@@ -2562,6 +2572,60 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
 
     if news_written:
         log(f"  → {news_written} new intel item(s) saved for {company_id}", indent=1)
+
+    # ── Competitive Signals ──────────────────────────────────────────────
+    # Past discrete events (conference presentations, financing rounds, patent filings,
+    # regulatory milestones). Dedup by (company_id, drug_id, title) — same title = same event.
+    _VALID_SIGNAL_TYPES = {'conference','patent','financing','publication',
+                           'licensing','regulatory','clinical_update'}
+    signals_written = 0
+    for sig in data.get("competitive_signals", []):
+        sig_title = (sig.get("title") or "").strip()
+        sig_type  = (sig.get("signal_type") or "").strip()
+        if not sig_title or sig_type not in _VALID_SIGNAL_TYPES:
+            log(f"  competitive_signal skipped — missing title or invalid type '{sig_type}'", indent=1)
+            continue
+        if not sig.get("source_url"):
+            log(f"  competitive_signal '{sig_title[:40]}': no source_url — skipping", indent=1)
+            continue
+
+        # Resolve drug_id — must exist in DB for this company
+        sig_drug_id = (sig.get("drug_id") or "").strip() or None
+        if sig_drug_id and sig_drug_id not in db_drug_ids:
+            log(f"  competitive_signal '{sig_title[:40]}': unknown drug_id '{sig_drug_id}' — clearing", indent=1)
+            sig_drug_id = None
+
+        # Dedup: skip if (company_id, title) already exists
+        dedup_q: dict = {
+            "company_id": f"eq.{company_id}",
+            "title":      f"eq.{sig_title[:200]}",
+            "select":     "id",
+            "limit":      "1",
+        }
+        if sb_get("competitive_signals", dedup_q):
+            log(f"  competitive_signal '{sig_title[:45]}': already exists — skip", indent=1)
+            continue
+
+        sig_rec = {
+            "company_id":  company_id,
+            "drug_id":     sig_drug_id,
+            "area_id":     area_id,
+            "signal_type": sig_type,
+            "title":       sig_title[:255],
+            "description": (sig.get("description") or "")[:2000],
+            "source_url":  (sig.get("source_url") or "")[:500],
+            "source_date": sig.get("source_date"),
+            "confidence":  float(sig.get("confidence") or 0.80),
+        }
+        result = sb_upsert("competitive_signals", sig_rec)
+        if result:
+            signals_written += 1
+            log(f"  competitive_signal [{sig_type}] '{sig_title[:45]}': ✓", indent=1)
+        else:
+            log(f"  competitive_signal '{sig_title[:45]}': ✗ insert failed", indent=1)
+
+    if signals_written:
+        log(f"  → {signals_written} competitive_signal(s) saved for {company_id}", indent=1)
 
     # ── Molecule Intelligence ────────────────────────────────────────────
     mol_written = write_molecule_intelligence(company_id, area_id, data, ctx, dry_run)
