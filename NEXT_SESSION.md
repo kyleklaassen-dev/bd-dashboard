@@ -1,145 +1,144 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 41)  
-**Session completed:** Preclinical competitor audit + seed; stale data patch ✅
+**Last updated:** 2026-05-24 (Session 41 — final)
+**Session completed:** Preclinical competitor audit + seed; competitive_relevance column live ✅
 
 ---
 
 ## What Was Done This Session (Session 41)
 
-### Preclinical Competitor Audit — completed ✅
+### Preclinical Competitor Seed ✅
+5 companies + 6 drugs added (Ollin/OLN102, Septerna/SP-1351, Crinetics/CRN12755,
+Alumis/lonigutamab, Minghui/MHB018A, Innovent/ibi311). 11 drug_areas + 11 drug_area_scores.
 
-Audited which preclinical TED × IGF-1R competitors exist in the DB:
+### Data Quality Corrections ✅
+- veligrotug (VRDN-001) = **IV**, BLA Filed, PDUFA June 30 2026 — confirmed via Viridian IR
+- elegrobart (VRDN-003) = **SC** autoinjector, **Phase 3** — REVEAL-1 ✅ (active TED, Mar 2026)
+  and REVEAL-2 ✅ (chronic TED, May 2026) both positive; BLA submission Q1 2027
 
-| Bucket | Company | Drug | Status |
-|--------|---------|------|--------|
-| C (missing both) | Ollin Biosciences | OLN102 | Seeded ✅ |
-| C | Septerna | SP-1351 | Seeded ✅ |
-| C | Crinetics | CRN12755 | Seeded ✅ |
-| C | Alumis | lonigutamab | Seeded ✅ |
-| C | Minghui Pharma | MHB018A | Seeded ✅ |
-| B (company exists, drug missing) | Innovent | ibi311 / SYCUME | Drug seeded ✅ |
-| Already existed | Viridian | veligrotug, elegrobart | — |
-| Already existed | Yarrow | yb-101 | — |
+  > Note: patch_stale_data.py from earlier this session introduced errors — reversed here.
+  > These corrections are now live in DB and verified against Viridian press releases.
 
-Script: `scripts/seed_preclinical_competitors.py`
-
-### Stale Data Patched — completed ✅
-
-- veligrotug: stage Regulatory Review → BLA Filed; route IV → SC
-- elegrobart: stage Phase 3 → Phase 2
-- yb-101: route SC → IV
-- yarrow: name Yarrow Bioscience → Yarrow Biotechnology
-- landscape_expected_competitors: drug_id linked for ibi311 + oln102
-
-Script: `scripts/patch_stale_data.py`
-
-### Coverage Score — stable at 89.75/100
-
-Adding preclinical drugs didn't change the score (expected — they're not in
-landscape_expected_competitors Tier 1 list). Score is limited by:
-- Drug coverage 88.9% (OLN102 Tier 3 pending → will improve when IND confirmed)
-- Staleness 27.3% (3 items needing real-world revalidation in Q3 2026)
+### competitive_relevance Column ✅
+Added `competitive_relevance TEXT` + `relevance_rationale TEXT` to `drug_area_scores`.
+28 rows seeded for TED × IGF-1R landscape.
 
 ---
 
-## TED Coverage State (89.75/100 — live in DB)
+## Current Drug_Area_Scores: competitive_relevance Distribution
 
-| Dimension | Score | Detail |
-|-----------|-------|--------|
-| Drug coverage (×0.35) | 88.9% | 8/9 confirmed. OLN102 Tier 3 pending (IND unconfirmed) |
-| Relationship coverage (×0.25) | 100% | 5/5 edges all populated |
-| Catalyst coverage (×0.20) | 100% | 31/8 capped |
-| Source validation (×0.15) | 100% | 13/13 sourced ← patched this session |
-| Staleness penalty (×−0.05) | 27.3% | TSHR×TED mech, Japan geo, yb-101 edge |
-
-Score ceiling without staleness improvement: ~90.5 (will increase to 100 when OLN102 confirmed + staleness items resolved Q3 2026)
+| Level | Drugs | Rationale |
+|-------|-------|-----------|
+| 🔴 very_high | veligrotug (×igf1r,ted), elegrobart (×igf1r,ted), oln102 (×igf1r,ted) | PDUFA imminent / Phase 3 positive / bispecific disruptor |
+| 🟠 high | yb-101 (×igf1r,ted), sp-1351 (×ted,autoimmune), crn12755 (×ted) | Mechanism differentiation or oral route advantage |
+| 🟡 medium | lonigutamab (×ted,autoimmune), linsitinib (×igf1r,ted), mhb018a (×igf1r,ted) | Adjacent or limited-geography assets |
+| 🔵 low | teprotumumab (×igf1r,ted), ibi311 (×igf1r,ted) | Approved benchmarks; Ailux partners with/around, not against |
+| ⚫ monitor | batoclimab (×fcrn,ted,igf1r,autoimmune), efgartigimod (×fcrn,ted,autoimmune) | Failed FcRn; negative data as signal |
 
 ---
 
-## Drugs Now in DB for TED × IGF-1R Landscape
+## Drugs in DB — Corrected State (2026-05-24)
 
-| Drug | Company | Stage | Target | Mechanism | In drug_areas |
-|------|---------|-------|--------|-----------|---------------|
-| teprotumumab | amgen | Approved | IGF-1R | Anti-IGF-1R mAb | igf1r, ted |
-| ibi311/SYCUME | innovent | Approved | IGF-1R | Anti-IGF-1R mAb | igf1r, ted ← NEW |
-| veligrotug | viridian | BLA Filed | IGF-1R | Anti-IGF-1R mAb SC | igf1r, ted |
-| elegrobart | viridian | Phase 2 | IGF-1R | Anti-IGF-1R mAb SC | igf1r, ted |
-| linsitinib | roche | Phase 2 | IGF-1R | Small molecule oral | igf1r, ted |
-| yb-101 | yarrow | Phase 1 | TSHR | Anti-TSHR mAb | igf1r, ted |
-| batoclimab | immunovant | Discontinued | FcRn | Anti-FcRn | fcrn, ted, autoimmune |
-| efgartigimod | argenx | Discontinued | FcRn | Anti-FcRn | fcrn, autoimmune |
-| oln102 | ollin | Preclinical | TSHR/IGF-1R | Bispecific mAb | igf1r, ted ← NEW |
-| sp-1351 | septerna | Preclinical | TSHR | GPCR small molecule | ted, autoimmune ← NEW |
-| crn12755 | crinetics | Preclinical | SST2 | SST2 agonist oral | ted ← NEW |
-| lonigutamab | alumis | Preclinical | TSHR | Anti-TSHR mAb | ted, autoimmune ← NEW |
-| mhb018a | minghui | Preclinical | IGF-1R | Anti-IGF-1R mAb | igf1r, ted ← NEW |
-
-**Dashboard visibility:** All new drugs will appear under "All" pill on IGF-1R tab.
-No filter change needed — `_makeAreaPI` fetches all drug_areas entries without stage filter.
+| Drug | Company | Stage | Route | competitive_relevance |
+|------|---------|-------|-------|-----------------------|
+| teprotumumab | amgen | Approved | IV | low |
+| ibi311/SYCUME | innovent | Approved | IV | low |
+| veligrotug | viridian | **BLA Filed** | **IV** | very_high |
+| elegrobart | viridian | **Phase 3** | **SC** | very_high |
+| linsitinib | roche | Phase 2 | oral | medium |
+| yb-101 | yarrow | Phase 1 | IV | high |
+| oln102 | ollin | Preclinical | IV | very_high |
+| sp-1351 | septerna | Preclinical | oral | high |
+| crn12755 | crinetics | Preclinical | oral | high |
+| lonigutamab | alumis | Preclinical | IV | medium |
+| mhb018a | minghui | Preclinical | IV | medium |
+| batoclimab | immunovant | Discontinued | IV | monitor |
+| efgartigimod | argenx | Discontinued | SC | monitor |
 
 ---
 
-## P1 Next: competitive_relevance column on drug_area_scores
+## P1 Next: Dashboard sort by competitive_relevance
 
-Add `competitive_relevance TEXT` (enum: very_high / high / medium / low / monitor) to
-`drug_area_scores` as a **second dimension** separate from development stage.
+The data is now in the DB. The UI still sorts by stage (Approved → Phase 3 → ... → Preclinical).
 
-Strategic rationale: Ailux is preclinical. OLN102 (preclinical bispecific) is more
-strategically relevant than teprotumumab (approved, known). Stage ≠ relevance.
+Change needed in `index.html` — `_makeAreaPI` or the rendered drug list:
 
-| Drug | Stage | competitive_relevance | Reason |
-|------|-------|-----------------------|--------|
-| oln102 | Preclinical | very_high | Bispecific → potential class disruption |
-| veligrotug | BLA Filed | very_high | PDUFA June 30; SC route advantage → immediate market threat |
-| elegrobart | Phase 2 | high | Next Viridian asset; SC autoinjector |
-| yb-101 | Phase 1 | high | Upstream TSHR mechanism → changes paradigm if works |
-| sp-1351 | Preclinical | high | Oral TSHR SM → route + mechanism differentiation |
-| linsitinib | Phase 2 | medium | Oral IGF-1R SM; differentiated but Roche not TED-focused |
-| lonigutamab | Preclinical | medium | TSHR mAb crowded (YB-101 ahead); watch space |
-| crn12755 | Preclinical | medium | SST2 adjacent mechanism; watch |
-| mhb018a | Preclinical | low | China IGF-1R; minimal US impact |
-| teprotumumab | Approved | low | Market leader; Ailux would partner with/around, not compete |
-| ibi311 | Approved | low | China-only; reference for Asia market |
-| batoclimab | Discontinued | monitor | Failed FcRn; negative data is signal |
-| efgartigimod | Discontinued | monitor | Failed FcRn; confirms mechanism failure |
+```javascript
+// Current sort order (in STAGE_ORDER_PI or equivalent):
+// Approved > Phase 3 > Phase 2 > Phase 1 > Preclinical
 
-**Implementation:**
-1. `ALTER TABLE drug_area_scores ADD COLUMN competitive_relevance TEXT`
-2. `patch_competitive_relevance.py` — seeds the above values
-3. Dashboard: surface competitive_relevance badge alongside stage pill
+// Desired sort order for Ailux primary view:
+const RELEVANCE_ORDER = { very_high: 0, high: 1, medium: 2, low: 3, monitor: 4 };
+
+// Sort drugs by competitive_relevance DESC, then stage ASC as tiebreaker
+drugs.sort((a, b) => {
+    const ra = RELEVANCE_ORDER[a.competitive_relevance] ?? 5;
+    const rb = RELEVANCE_ORDER[b.competitive_relevance] ?? 5;
+    if (ra !== rb) return ra - rb;
+    return (STAGE_ORDER[a.stage] ?? 99) - (STAGE_ORDER[b.stage] ?? 99);
+});
+```
+
+The `competitive_relevance` field comes from `drug_area_scores` JOIN via the
+`_makeAreaPI` Supabase query — need to add it to the select and join.
+
+**Dashboard goal after P1:**
+```
+VERY HIGH (most strategically relevant to Ailux)
+  · OLN102 (Ollin) — Preclinical, TSHR×IGF-1R bispecific
+  · veligrotug (Viridian) — BLA Filed PDUFA Jun 30, IV IGF-1R
+  · elegrobart (Viridian) — Phase 3 positive ×2, SC autoinjector BLA Q1 2027
+
+HIGH
+  · YB-101 (Yarrow) — Phase 1b, TSHR mAb upstream
+  · SP-1351 (Septerna) — Preclinical, oral TSHR
+  · CRN12755 (Crinetics) — Preclinical, oral SST2
+
+MEDIUM
+  · lonigutamab (Alumis) — Preclinical, TSHR mAb
+  · linsitinib (Roche) — Phase 2, oral IGF-1R
+  · MHB018A (Minghui) — Preclinical, China IGF-1R
+
+LOW (benchmark reference)
+  · Tepezza (Amgen) — Approved US/Japan
+  · SYCUME (Innovent) — Approved China
+
+MONITOR (failed mechanisms)
+  · batoclimab · efgartigimod
+```
 
 ---
 
-## P2 Next: competitive_signals table
+## P2 Later: competitive_signals table
 
-Dedicated table for conference/patent/financing signals per asset. Schema discussed:
+For conference/patent/financing signal tracking. Schema:
 ```sql
 CREATE TABLE competitive_signals (
-    id              BIGSERIAL PRIMARY KEY,
-    company_id      TEXT REFERENCES companies(id),
-    drug_id         TEXT REFERENCES drugs(id),
-    signal_type     TEXT NOT NULL,  -- 'conference', 'patent', 'financing', 'publication', 'licensing'
-    title           TEXT NOT NULL,
-    description     TEXT,
-    source_url      TEXT,
-    source_date     DATE,
-    confidence      NUMERIC(3,2) DEFAULT 0.8,
-    area_id         TEXT REFERENCES drug_areas(area_id),
-    created_at      TIMESTAMPTZ DEFAULT now()
+    id           BIGSERIAL PRIMARY KEY,
+    company_id   TEXT REFERENCES companies(id),
+    drug_id      TEXT REFERENCES drugs(id),
+    signal_type  TEXT NOT NULL,  -- 'conference','patent','financing','publication','licensing'
+    title        TEXT NOT NULL,
+    description  TEXT,
+    source_url   TEXT,
+    source_date  DATE,
+    confidence   NUMERIC(3,2) DEFAULT 0.8,
+    area_id      TEXT,
+    created_at   TIMESTAMPTZ DEFAULT now()
 );
 ```
-Seed with known signals: Viridian ASCO 2025 poster, OLN102 preclinical presentation (if any),
-Crinetics ENDO 2025, etc.
 
 ---
 
-## P3 Later: Re-enrich with area-aware prompt
+## Coverage Score: 89.75/100 (stable)
 
-Run area-aware enrichment for igf1r companies to validate the updated prompt framing:
-```bash
-python3 scripts/company_enrichment.py --company amgen --area igf1r --step 5
-```
+| Dimension | Score |
+|-----------|-------|
+| Drug coverage (×0.35) | 88.9% — OLN102 pending IND |
+| Relationship coverage (×0.25) | 100% |
+| Catalyst coverage (×0.20) | 100% |
+| Source validation (×0.15) | 100% |
+| Staleness penalty (×−0.05) | 27.3% — 3 items need Q3 2026 revalidation |
 
 ---
 
@@ -147,11 +146,11 @@ python3 scripts/company_enrichment.py --company amgen --area igf1r --step 5
 
 | Item | Date | Action |
 |------|------|--------|
-| Veligrotug PDUFA | 2026-06-30 | Update stage → Approved or CRL; update entity_edge basis_tags |
-| OLN102 IND check | 2026-10-01 | CT.gov; if filed, promote to Tier 1 confirmed=TRUE, drug coverage → 100% |
-| TSHR × TED (YB-101 Phase 1b) | 2026-10-01 | Update staleness_status → fresh after data |
-| Tepezza Japan PMDA exact date | 2026-10-01 | Update geographic_approvals staleness_status |
-| yb-101 UPSTREAM_MECHANISM edge | 2026-10-01 | Revalidate after Phase 1b data |
+| Veligrotug PDUFA | 2026-06-30 | Approved or CRL — update stage + entity_edges |
+| Elegrobart BLA | 2026-Q1-2027 | Confirm submission; update stage to BLA Filed |
+| OLN102 IND | 2026-10-01 | CT.gov; if filed → promote to Tier 1 confirmed, drug coverage → 100% |
+| YB-101 Phase 1b | 2026-10-01 | Data → update TSHR×TED mechanism staleness |
+| Tepezza Japan PMDA | 2026-10-01 | Confirm exact date; update geo_approvals staleness |
 
 ---
 
@@ -159,13 +158,14 @@ python3 scripts/company_enrichment.py --company amgen --area igf1r --step 5
 
 | Script | Status | Purpose |
 |--------|--------|---------|
-| `scripts/migrations/v31_competitive_landscape.sql` | ✅ Applied | DDL for 3 new tables + extensions |
-| `scripts/migrations/v32_coverage_diagnostics.sql` | ✅ Applied | Coverage scoring tables + columns |
-| `scripts/run_v31_seed.py` | ✅ Run | TED mechanism/landscape/geo/edges/catalysts |
+| `scripts/migrations/v31_competitive_landscape.sql` | ✅ Applied | DDL for competitive layer |
+| `scripts/migrations/v32_coverage_diagnostics.sql` | ✅ Applied | Coverage scoring schema |
+| `scripts/run_v31_seed.py` | ✅ Run | TED mechanism/landscape/edges/catalysts |
 | `scripts/seed_missing_igf1r_entities.py` | ✅ Run | Viridian + veligrotug/elegrobart/yb-101 |
-| `scripts/seed_ted_expected_competitors.py` | ✅ Run | 9-row Tier 1 list + expected counts |
-| `scripts/compute_landscape_coverage.py` | ✅ Live | Re-run after any enrichment |
-| `scripts/patch_source_validation.py` | ✅ Run | source_url + confidence for 6 drug_area_scores rows |
-| `scripts/seed_preclinical_competitors.py` | ✅ Run | 5 companies + 6 drugs + 11 drug_areas + 11 drug_area_scores |
-| `scripts/patch_stale_data.py` | ✅ Run | veligrotug/elegrobart/yb-101 fields; ibi311+oln102 drug_id links |
+| `scripts/seed_ted_expected_competitors.py` | ✅ Run | 9-row Tier 1 expected list |
+| `scripts/compute_landscape_coverage.py` | ✅ Live | Re-run after enrichment |
+| `scripts/patch_source_validation.py` | ✅ Run | Source URLs for 6 drug_area_scores rows |
+| `scripts/seed_preclinical_competitors.py` | ✅ Run | 5 companies + 6 drugs + drug_areas |
+| `scripts/patch_stale_data.py` | ✅ Run | LEC drug_id links; Yarrow name |
+| `scripts/add_competitive_relevance.py` | ✅ Run | competitive_relevance + relevance_rationale seeded |
 | `scripts/validate_ted_landscape.sql` | ✅ Passed | Acceptance test A–F |
