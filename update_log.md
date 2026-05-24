@@ -1,5 +1,272 @@
 
 ---
+## 2026-05-24 (Session 26) — Pharma Landscape Rebuild + Ownership Model
+
+**Commit:** `95dd91fa`
+
+**Pharma Landscape — All Companies section (Phase 3):**
+- New `Company Repository` block at top of `tab-pharma-intel` — Supabase-driven, renders all active companies
+- CSS: `.all-cos-section`, `.all-cos-hd`, `.all-cos-filters`, `.ac-scroll`, `.ac-table`, `.ac-row`, `.ac-geo-pill`
+- `registerTab('pharma-intel', { onEnter() { _initAllCompanies(); _addRankingDossierBtns(); } })`
+- `_initAllCompanies()`: fetches all active companies + drug count per company from Supabase; renders table with columns Company, Geography, Type, Mkt Cap, TA1, TA2, Drugs
+- `_acFilter()`: search (name/ticker/TA), geography filter (global/china/bd=null geography), company_type filter
+- `_acRender()`: rows call `openCompanySlideOver(id, name, 'pharma-intel')` — click → dossier
+- Geography filter: `geo='bd'` matches null geography (the 47 competitive BD-focus companies)
+
+**Pharma Landscape — DB schema (Phase 2):**
+- Added columns to `companies`: `geography text`, `revenue text`, `r_and_d_spend text`, `r_and_d_pct text`, `ta_focus_1 text`, `ta_focus_2 text`, `last_enriched_at timestamptz`, `market_cap_display text`
+- Backfilled all 35 hardcoded ranking companies: 15 China Pharma + 20 Global Big Pharma
+- Fixed Pfizer `status='acquired'` data error (was acquired with no acquired_by)
+- Normalized `company_type` casing
+
+**Pharma Landscape — dossier buttons (Phase 4):**
+- `_RANKING_ID_MAP`: 35-entry map from piToggle IDs (`cn-hengrui`, `us-lilly`) → Supabase company IDs
+- `_addRankingDossierBtns()`: injects `Profile →` button into each `.pi-main-row` on tab enter
+
+**Ownership Model — Schema (drugs table):**
+- 6 new columns: `current_owner_company_id`, `originator_company_id`, `ownership_status`, `display_partner_name`, `ownership_source_url`, `ownership_confidence_level`
+- `ownership_status` enum: `originated`, `licensed`, `acquired`, `partnered`, `optioned`
+- `ownership_confidence_level` enum: `confirmed`, `supported`, `inferred`
+
+**Ownership Model — Frontend wiring:**
+- `_makeAreaPI` drug select: added all 4 ownership fields to Supabase query
+- Acquired-status filter: `!d.current_owner_company_id` guard — CND drugs pass through under UCB
+- Entity resolution priority: `current_owner_company_id || entity_id || company_id` for `entity_id`, `entity_name`, `co`, `ticker`
+- Partner pill fallback: `display_partner_name` shown when `ownership_status !== 'originated'`
+- `tl1aPI._loadFromSupabase()`: same acquired-status guard + same display entity priority chain
+- tl1aPI drug select: added all 4 ownership fields to Supabase query
+
+**Audit docs:**
+- `docs/industry_landscape_audit.md` — full Pharma Landscape tab audit: 35-company data tables, schema gaps, implementation plan
+- `docs/ownership_control_audit.md` — UCB/Candid ownership model audit: current fields, gap analysis, 6-field schema, backfill SQL
+
+**Validation:** 893/893 tests passing, 0 failures
+
+---
+## 2026-05-23 (Session 25) — tl1aPI Migrated to Live Supabase
+
+**Commit:** `eecfcfc`
+
+**tl1aPI — Static → Supabase migration:**
+- `data: TL1A_PROGRAMS` replaced with `data: []` (populated async)
+- `init()` converted to `async init()` — shows loading spinner while DB fetch runs
+- Added `_loadFromSupabase()` method: fetches `drug_areas?area_id=eq.tl1a` joined with drugs, `drug_area_scores`, and `companies` in parallel
+- Maps DB rows to TL1A_PROGRAMS-compatible field shape (`id`, `groupId`, `co`, `ticker`, `drug`, `target`, `cls`, `stageKey`, `overlap`, `summary`, `indication_short`)
+- `id = displayEntityId` (entity_id || company_id) — matches static data behavior; ensures `_loadEntityMeta` catalyst lookups work correctly for partnerships (e.g. Boehringer/SIM0709)
+- Graceful fallback: if DB fetch fails or returns 0 rows, falls back to static `TL1A_PROGRAMS`
+- `_loadSbDiscoveredRows()` no longer called (DB is now authoritative source; method retained as dead code)
+- Result: 46 DB drugs now render live — includes 9+ companies not previously in static array (newsoara/HY8931, harbourbiomed/HBM2001, santaana/SAB06, leads/LBL-053, shboan/PR203, generate, cantai, sparx/SPX-306, novamab/LQ082 etc.)
+
+---
+## 2026-05-23 (Session 24) — P9 Top Opps Overhaul, Roche Dedup, Strategic Coverage Dashboard
+
+**Commit:** `e3d2ff8`
+
+**P9 — loadTopOpps overhaul:**
+- Replaced 4th data source (company_profiles/profile updates) with companies name lookup — profile updates had low strategic value in the exec briefing feed
+- Added `companies` fetch to build `_coMap` (id→name) for display
+- Intel items now show company name via `primary_company_id` lookup
+- Catalyst items now show company name via `company_id` lookup (was showing raw ID)
+- Catalyst priority now respects `significance` field: high=9, medium=7, low=5 (was flat 7 or 9 for key watch)
+- Catalyst countdown (`catDaysTag`) shown inline for upcoming catalysts
+- Source link + `_noSrcBadge()` added for intel items
+- Hot items (priority≥9) now show amber left border highlight
+- Capped at 7 items (was 10); period shows "N of M" 
+- Removed `update` type from `_TOP_OPPS_TYPE` (no longer used)
+- Catalyst query now uses `sort_date` window filter (today → +180 days) for accurate upcoming readouts
+
+**Roche catalyst deduplication — 8 rows deleted:**
+- AMETRINE dupes deleted: id=8, id=69 (old vague "Roche AMETRINE" format), id=119, id=759 (overlapped with canonical id=940)
+- QX031N dupes deleted: id=44, id=62 (old "Roche QX031N" format, same event as id=279), id=1062, id=1556 (IND submission, overlapped with canonical id=1136)
+- Kept: AMETRINE id=940 (topline, most detailed), id=1364 (completion, distinct), id=942 (BLA/MAA filing, distinct)
+- Kept: QX031N id=279 (Phase 1 safety), id=1136 (IND with ISRCTN), id=1627 (FIH), id=1658 (2028 safety data)
+
+**Strategic Coverage Dashboard:**
+- New live artifact: `strategic-coverage-dashboard`
+- Fetches per-area data from Supabase via bash on open/refresh
+- Shows: avg profile score bar, company/drug counts, confidence breakdown bar (confirmed/supported/inferred/none), open debt items
+- Summary header: total companies, drugs, avg score, % confirmed, open debt
+- Refreshes on demand with ↻ button
+
+---
+## 2026-05-23 (Session 23) — Homepage Phases A-D: Source Quality, Priority Badges, Signals Type Filter, Show More
+
+**Commit:** `3126a15`
+
+**Changes deployed to index.html:**
+
+- **Bug fix**: MR Essential Updates query was missing `primary_company_id` from `intel` select — story consolidation was grouping by undefined. Fixed: `select('id,...,primary_company_id')`.
+- **`_noSrcBadge()` helper**: Returns a small "no source" grey pill for cards without source_url. Applied to: MR intel items, Signals items, Deals items, BD Signal intel items.
+- **`_impBadge(imp)` helper**: Returns a red HIGH badge for `importance='high'` items. Applied to MR Essential Updates cards.
+- **Priority badge on BD Signal intel**: All BD Signal intel cards already filtered to `importance='high'`; now shows explicit `HIGH` badge inline.
+- **Signals type filter bar**: Added second filter row below area filter — "All / Trial Updates / Press Releases / FDA / Pipeline". New `_sigTypeFilter` variable + `sigTypeFilter()` function. Filter bar has `id="sig-type-filter-bar"` and area bar has `id="sig-area-filter-bar"`.
+- **Signals "Show more" collapse**: Top 5 signals shown; rest hidden under "Show N more signals ↓" button. Button replaces itself with the hidden block on click.
+- **Deals "Show more" collapse**: Top 3 deals shown; rest hidden under "Show N more deals ↓" button. Also added `_noSrcBadge()` for deals without source_url.
+- **Catalysts "Show more" collapse**: Top 5 open catalysts shown; rest hidden under "Show N more catalysts ↓" button. Resolved section unchanged.
+
+---
+## 2026-05-23 (Session 22) — intel.primary_company_id Backfill + Validation
+
+**No index.html changes deployed this session.**
+
+**`intel.primary_company_id` backfill — 85 rows patched:**
+- Audit: 583 total intel rows; 88 had null `primary_company_id`; 85 resolvable via `intel_companies`; 3 remain null (Eisai, BioMarin, Incyte — off-platform companies not in companies table)
+- Backfill hierarchy used: intel_companies single-company → multi-company heuristic (highest count) → leave null
+- Special case: `xencor-412` and `xencor-942` are drug-entity sub-IDs in companies table (status=acquired); remapped to parent `xencor` during backfill
+- Data quality fix: deleted wrong intel_companies row (intel_id=418, company_id=xencor-942) — Incyte/Monjuvi story had been mislabeled as Xencor
+- Result: 85/88 resolvable rows patched; 3 remain null by design (off-platform)
+
+**Write-path enforcement (going forward):**
+- `scripts/research.py`: `primary_company_id` now set on intel insert when company context is available
+- `scripts/signal_monitor.py`: `primary_company_id` now set when company is resolved
+- `scripts/company_enrichment.py`: `primary_company_id` now set on intel rows written during enrichment
+
+**New validation test seeded:**
+- Test id=898: `intel-primary-company-attribution` (type: `intel_attribution_check`)
+- Checks that all intel rows with intel_companies entries have `primary_company_id` set
+- Expected: 0 orphans; Result after fix: **0 orphans** ✅
+
+**`validate_ground_truth.py` updated:**
+- Added `intel_attribution_check` test type handler
+
+**Validation suite: 893/893 passing** ✅ (892 prior + 1 new)
+
+**Story consolidation impact:** With `primary_company_id` now set on 85 previously-null rows, the `loadMeridianReader` story grouping logic (deployed in Session 21) is now active for the majority of intel rows.
+
+---
+## 2026-05-23 (Session 21) — Homepage Redesign: Color Unification, Source Attribution, Story Consolidation
+
+**Commit:** `1d61cc8`
+
+**Changes deployed to index.html:**
+
+- **Canonical area color map** (`AREA_COLORS` + `AREA_BG` globals): Single source of truth for all panels. Eliminated 4 duplicate/inconsistent local color definitions (`AREA_COLORS_MR`, two local `AREA_COLORS` blocks, `MR_AREA_STYLE` with wrong hues).
+- **`MR_AREA_STYLE` corrected**: tl1a was orange (#c45b11), tslp was blue (#2563eb), il4ra was pink (#9d174d), igf1r was dark green (#065f46), fcrn was purple (#5b21b6) — all now aligned to canonical palette.
+- **`_srcDomain()` helper**: Extracts domain from any URL for attribution display.
+- **Source attribution fixed across all panels**:
+  - Deals panel: `↗ Source` → `↗ clinicaltrials.gov` (domain shown)
+  - BD Signal deals: `↗` → `↗ {domain}`
+  - BD Signal intel: `↗` → `↗ {domain}`
+  - (Signals panel and MR intel already had source_name — unchanged)
+- **Story consolidation in Essential Updates (Meridian Reader)**: intel rows grouped by `(primary_company_id, intel_date, intel_type)`. Same-company same-day same-type events collapse to one card with `+N sources` badge showing additional source names on hover.
+- **Catalyst area pills**: Changed from hardcoded blue (#2563eb) to per-area canonical color (tl1a=#1a3f8f, tslp=#0e7490, etc.)
+- **Signals area tag**: Upgraded from grey text to colored pill using canonical palette.
+- **`loadTopOpps` area tags**: Were showing raw `area_id` string in grey; now show `AREA_LABELS` display name in canonical color.
+- **Removed "Most Recent" catalyst sort button**: Sorted by `sort_date` descending, which surfaced 2037 placeholder dates as "most recent." Removed. Soonest and Most Relevant remain.
+
+---
+## 2026-05-23 (Session 20) — Intelligence Debt Sprint: Mol Intel + Confidence + Sources
+
+**molecule_intelligence — all 43 missing drugs enriched:**
+- Fixed `ensure_canonical_id()` bug: script was patching `drugs.canonical_drug_id` but never inserting the stub row into `canonical_drugs`, causing FK constraint violations on `molecule_intelligence` inserts
+- Fix: insert stub into `canonical_drugs` first, then patch the drug row
+- Re-ran all 43 previously-failed drugs: 43/43 passed (batches of 8)
+- Confidence range: `high` (approved drugs), `medium` (Phase 2+), `low` (preclinical)
+
+**New script: `scripts/patch_confidence_and_sources.py`:**
+- Targeted patch for `inferred_confidence`, `missing_source_url`, `missing_overlap_rationale` gaps
+- No Claude API needed — uses existing DB data (trials table NCT IDs → CT.gov URLs, drugs.source_url)
+- Logic: approved stage → `confirmed`; has trial/drug URL → `supported`; no source → keep `inferred` but improve rationale
+- Results:
+  - `inferred_confidence` promoted → confirmed: **5** (approved drugs: mirikizumab, guselkumab, risankizumab ×2, tralokinumab)
+  - `inferred_confidence` promoted → supported: **25** (trial URLs found in DB)
+  - Remain inferred: **22** (preclinical / no trial registration yet)
+  - Source URL patched on existing supported rows: **17**
+  - Overlap rationale fixed (stub → meaningful text): **36**
+
+**Debt queue regenerated — post-sprint state:**
+- 134 items auto-resolved (inferred_confidence + source_url + mol_intel + overlap_rationale)
+- **48 open items remaining:**
+
+| Debt Type | Count |
+|-----------|-------|
+| `inferred_confidence` | 22 |
+| `missing_source_url` | 26 |
+| `missing_molecule_intelligence` | 0 ✅ |
+| `missing_overlap_rationale` | 0 ✅ |
+| `missing_company_profile` | 0 ✅ |
+
+**Remaining 22 inferred items** are genuinely hard cases: preclinical bispecifics from Chinese companies (cantai-tl1a, es302, generate-uc, hbm2001, lbl053, pr203, sab06, spx306) with no CT.gov registration, plus spy230/cln-978 (no direct trial URL in DB).
+
+**Validation: 892/892 passing** — no regressions.
+
+---
+## 2026-05-23 (Session 19) — Bulk Enrichment Sprint + Debt Queue Live
+
+**Migration applied — `intelligence_debt_queue` table now live in Supabase:**
+- Applied `scripts/migrations/v18_intelligence_debt_queue.sql` via Supabase SQL Editor
+- `generate_intelligence_debt.py` ran in live mode for the first time: 255 gaps written to DB
+
+**Bulk enrichment sprint — all 72 missing company_profiles populated:**
+- Ran `quick_profiles_enrich.py` across all 72 company×area pairs that had no profile
+- 0 failures across all pairs (platform_summary, bd_summary, key_risk, why_it_matters, vs_ailux written for each)
+- Rule 5 (`missing_company_profile`) gaps: 72 → 0
+
+**UCB/tcell full enrichment completed:**
+- Ran `company_enrichment.py --company ucb --area tcell` — surfaced as #1 priority item
+- ATG-201 (anti-FcRn): classified as Direct, drug_summary written
+- rozanolixizumab: Watch; bimekizumab: Watch
+- `needs_full_enrichment` row for UCB/tcell → patched to resolved in DB
+- `FULL_ENRICHMENT_GAPS = []` in generate_intelligence_debt.py (cleared)
+
+**Debt queue regenerated — post-enrichment state:**
+- 72 `missing_company_profile` items auto-resolved
+- 1 `needs_full_enrichment` item (UCB/tcell) resolved
+- **183 open items remaining:**
+
+| Debt Type | Count |
+|-----------|-------|
+| `missing_source_url` | 73 |
+| `inferred_confidence` | 53 |
+| `missing_molecule_intelligence` | 43 |
+| `missing_overlap_rationale` | 13 |
+| `stale_company_profile` | 1 |
+
+**Validation: 892/892 passing** — no regressions.
+
+---
+## 2026-05-23 (Session 18) — Intelligence Debt Queue
+
+**Intelligence Debt Queue — built, validated via dry run, awaiting migration apply:**
+
+- Created `scripts/migrations/v18_intelligence_debt_queue.sql` — defines `intelligence_debt_queue` table with 7-field priority scoring, severity tier, UNIQUE constraint on (entity_type, entity_id, area_id, debt_type), and indexes for status/priority/company/debt_type queries
+- Created `scripts/generate_intelligence_debt.py` — scans Supabase across 7 debt rules and populates the queue; idempotent upserts + auto-resolves closed gaps on re-run
+- Dry run output: 255 gaps detected; UCB/tcell surfaces at #1 (priority 75, needs_full_enrichment); logic validated against live data
+
+**Debt rules implemented:**
+
+| Rule | Debt Type | Count |
+|------|-----------|-------|
+| 1 | `inferred_confidence` — Direct/Adjacent with confidence_level='inferred' | 53 |
+| 2 | `missing_source_url` — Direct/Adjacent with no source_url | 73 |
+| 3 | `missing_molecule_intelligence` — area-linked drug with no mol_intel row | 43 |
+| 4 | `missing_overlap_rationale` — Direct/Adjacent with no rationale text | 13 |
+| 5 | `missing_company_profile` — company has drug_areas but no profiles row | 72 |
+| 6 | `stale_company_profile` — company_profile >90 days old | 0 |
+| 7 | `needs_full_enrichment` — hardcoded known gaps (UCB/tcell) | 1 |
+
+**⚠ Action required:** Apply `scripts/migrations/v18_intelligence_debt_queue.sql` via Supabase SQL Editor, then run:
+```
+SUPABASE_SERVICE_KEY=$(cat .supabase_service_key) python3 scripts/generate_intelligence_debt.py
+```
+
+**Validation: 892/892 passing** — no regressions.
+
+---
+## 2026-05-23 (Session 17) — Enrichment Sprint: Atopy + Respiratory Areas
+
+**Atopy/respiratory inferred → supported promotion:**
+- Audited all `drug_area_scores` with `confidence_level='inferred'` in atopy and respiratory areas: 3 drugs each (6 total)
+- Atopy drugs: apg279 (Apogee), apg777 (Apogee), zumilokibart (Apogee)
+- Respiratory drugs: gb0895 (Generate), tozorakimab (AstraZeneca), win027 (Windward)
+- Ran `quick_profiles_enrich.py` for all 4 company×area pairs (apogee/atopy, generate/respiratory, windward/respiratory, astrazeneca/respiratory) — all company_profiles created fresh
+- Promoted all 6 drug_area_scores: `confidence_level='inferred'` → `'supported'`; full `overlap_rationale` written for each based on confirmed mechanism
+- Overlap classifications: 5 × Direct, 1 × Adjacent (win027 TSLP×IL-13 bispecific — early stage, mechanism-adjacent not pure respiratory)
+- **0 inferred rows remaining in atopy/respiratory**
+
+**Validation: 892/892 passing** — no regressions.
+
+---
 ## 2026-05-23 (Session 16) — lm-302/tl1a resolved + Write-Path Guards
 
 **lm-302/tl1a — root cause and fix:**
