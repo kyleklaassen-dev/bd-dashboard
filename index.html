@@ -2169,10 +2169,21 @@ function renderCatalysts(items) {
 </div>`;
   };
 
-  // Sort: high-significance first among open items, then by date desc; resolved last
+  // Sort: upcoming catalysts (soonest first) at top; recent signals/intel/deals (newest first) below
+  const today = new Date().toISOString().split('T')[0];
   const open = items.filter(i => !i.resolved).sort((a, b) => {
-    const sa = SIG_ORDER[a.significance] ?? 1, sb = SIG_ORDER[b.significance] ?? 1;
-    if (sa !== sb) return sa - sb;
+    const aUpcoming = a.srcType === 'catalyst' && (a.sortDate || '9999') >= today;
+    const bUpcoming = b.srcType === 'catalyst' && (b.sortDate || '9999') >= today;
+    // Upcoming catalysts always before non-upcoming items
+    if (aUpcoming && !bUpcoming) return -1;
+    if (!aUpcoming && bUpcoming) return 1;
+    if (aUpcoming && bUpcoming) {
+      // Among upcoming catalysts: soonest date first, tie-break by significance
+      const dateCmp = (a.sortDate||'9999').localeCompare(b.sortDate||'9999');
+      if (dateCmp !== 0) return dateCmp;
+      return (SIG_ORDER[a.significance]??1) - (SIG_ORDER[b.significance]??1);
+    }
+    // Among recent events (signals/intel/deals): most recent first
     return (b.sortDate||'0').localeCompare(a.sortDate||'0');
   });
   const resolved = items.filter(i => i.resolved);
