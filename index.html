@@ -11993,7 +11993,7 @@ const tl1aPI = {
      .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status))')
      .eq('area_id', 'tl1a'),
     _sb.from('drug_area_scores')
-     .select('drug_id,overlap,cls')
+     .select('drug_id,overlap,cls,competitive_relevance,relevance_rationale')
      .eq('area_id', 'tl1a'),
     _sb.from('companies').select('id,name,ticker,status'),
    ]);
@@ -12037,12 +12037,14 @@ const tl1aPI = {
       target:           d.target || _piExtractTarget(d.mechanism) || '—',
       cls:              rawCls,
       stageKey:         d.stage || 'Preclinical',
-      overlap:          score?.overlap || d.overlap || 'Watch',
-      summary:          d.ailux_angle || d.key_data || d.drug_summary || '',
-      risk:             '',  // loaded from profile.key_risk on expand via _loadDynamicDetail
-      diff:             '',  // loaded from profile.why_it_matters on expand
-      indication_short: d.indication_short || '',
-      _fromSupabase:    true,
+      overlap:               score?.overlap || d.overlap || 'Watch',
+      competitive_relevance: score?.competitive_relevance || null,
+      relevance_rationale:   score?.relevance_rationale || '',
+      summary:               d.ailux_angle || d.key_data || d.drug_summary || '',
+      risk:                  '',  // loaded from profile.key_risk on expand via _loadDynamicDetail
+      diff:                  '',  // loaded from profile.why_it_matters on expand
+      indication_short:      d.indication_short || '',
+      _fromSupabase:         true,
      };
     });
   } catch(e) {
@@ -12112,6 +12114,19 @@ const tl1aPI = {
    'Watch':      'pi-overlap-watch',
   };
   return `<span class="pi-overlap-badge ${m[o]||'pi-overlap-watch'}">${o||'Watch'}</span>`;
+ },
+ _relevBadge(r, rationale) {
+  if (!r) return '';
+  const cfg = {
+   very_high: { cls:'pi-relev-veryhigh', lbl:'Very High' },
+   high:      { cls:'pi-relev-high',     lbl:'High'      },
+   medium:    { cls:'pi-relev-medium',   lbl:'Medium'    },
+   low:       { cls:'pi-relev-low',      lbl:'Low'       },
+   monitor:   { cls:'pi-relev-monitor',  lbl:'Monitor'   },
+  };
+  const { cls, lbl } = cfg[r] || { cls:'pi-relev-monitor', lbl:r };
+  const tip = rationale ? ` title="${rationale.replace(/"/g,'&quot;')}"` : '';
+  return `<span class="pi-relev-badge ${cls}"${tip}>${lbl}</span>`;
  },
 
  _spyreDetailHTML(p) {
@@ -13759,9 +13774,15 @@ const tl1aPI = {
  _renderTable() {
   const wrap = document.getElementById('pi-tl1a-wrap');
   if (!wrap) return;
+  const _RELEV_ORD_SORT = {very_high:0,high:1,medium:2,low:3,monitor:4};
   const sorted = [...this.filtered].sort((a,b) => {
    if (this.sortCol === 'stageKey') {
     return this.sortDir * ((TL1A_STAGE_ORDER[a.stageKey]??9) - (TL1A_STAGE_ORDER[b.stageKey]??9));
+   }
+   if (this.sortCol === 'relevance') {
+    const av = _RELEV_ORD_SORT[a.competitive_relevance]??6, bv = _RELEV_ORD_SORT[b.competitive_relevance]??6;
+    if (av !== bv) return this.sortDir * (av - bv);
+    return (TL1A_STAGE_ORDER[a.stageKey]??9) - (TL1A_STAGE_ORDER[b.stageKey]??9);
    }
    const av = a[this.sortCol]||'', bv = b[this.sortCol]||'';
    return this.sortDir * av.localeCompare(bv);
@@ -13784,6 +13805,11 @@ const tl1aPI = {
    const bestStage = ge.reduce((b,e)=>(TL1A_STAGE_ORDER[e.stageKey]??9)<(TL1A_STAGE_ORDER[b.stageKey]??9)?e:b, ge[0]).stageKey;
    // Best overlap = most direct
    const bestOverlap = ge.reduce((b,e)=>(OV_ORDER[e.overlap]??9)<(OV_ORDER[b.overlap]??9)?e:b, ge[0]).overlap;
+   // Best relevance = most relevant (lowest tier index) across all entries in group
+   const _RELEV_ORD = {very_high:0,high:1,medium:2,low:3,monitor:4};
+   const bestRelevanceProg = ge.reduce((b,e)=>(_RELEV_ORD[e.competitive_relevance]??9)<(_RELEV_ORD[b?.competitive_relevance]??9)?e:b, ge[0]||{});
+   const bestRelevance = bestRelevanceProg.competitive_relevance || null;
+   const bestRelevanceRationale = bestRelevanceProg.relevance_rationale || '';
    // Drug display: show primary drug name + "+N more" count for additional static entries.
    // Count = ge.length - 1 (accurate for the static programmes listed; DB combos reveal on expand).
    const extraCount = ge.length - 1;
@@ -13806,7 +13832,7 @@ const tl1aPI = {
    const rawTarget = allSameTarget ? primary.target : (primary.target.length > 18 ? primary.target.substring(0,18)+'…' : primary.target);
    const targetDisplay = normTarget(rawTarget);
    const isTerminated = ge.every(e => e.stageKey === 'Terminated');
-   return { gid, primary, entries: ge, bestStage, bestOverlap, drugDisplay, targetDisplay, isTerminated };
+   return { gid, primary, entries: ge, bestStage, bestOverlap, bestRelevance, bestRelevanceRationale, drugDisplay, targetDisplay, isTerminated };
   });
 
   // Terminated companies always sort to the bottom, preserving relative order within each group
@@ -13824,11 +13850,11 @@ const tl1aPI = {
    <th style="width:${w[2]}px">Indication<div class="col-resize" data-col="2"></div></th>
    <th style="width:${w[3]}px" onclick="tl1aPI.sort('target')">Lead Target<span class="pi-sort-arrow">${sortArrow('target')}</span><div class="col-resize" data-col="3"></div></th>
    <th style="width:${w[4]}px" onclick="tl1aPI.sort('stageKey')">Stage<span class="pi-sort-arrow">${sortArrow('stageKey')}</span><div class="col-resize" data-col="4"></div></th>
-   <th style="width:${w[5]}px" onclick="tl1aPI.sort('overlap')">Threat<span class="pi-sort-arrow">${sortArrow('overlap')}</span><div class="col-resize" data-col="5"></div></th>
+   <th style="width:${w[5]}px" onclick="tl1aPI.sort('relevance')">Relevance<span class="pi-sort-arrow">${sortArrow('relevance')}</span><div class="col-resize" data-col="5"></div></th>
    <th style="width:${w[6]}px">Catalyst<div class="col-resize" data-col="6"></div></th>
   </tr></thead>`;
 
-  const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, drugDisplay, targetDisplay, isTerminated }) => {
+  const rows = groups.map(({ gid, primary: p, entries, bestStage, bestOverlap, bestRelevance, bestRelevanceRationale, drugDisplay, targetDisplay, isTerminated }) => {
    const isExp = this.expanded.has(gid);
    const noIntelDot = this._noIntelTickers.has(p.ticker) ? '<span class="pi-no-intel-dot" title="No intel on record yet — flagged for auto-research"></span>' : '';
 
@@ -13860,10 +13886,11 @@ const tl1aPI = {
     ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700">${indScope}</span>`
     : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
 
-   // Threat cell: blank for terminated companies, badge otherwise
+   // Relevance cell: relevance badge (left-border color carries tier signal)
+   const relevBadge = this._relevBadge(bestRelevance, bestRelevanceRationale);
    const threatCell = isTerminated
     ? `<span style="color:#cbd5e1">—</span>`
-    : `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(bestOverlap)}</div>`;
+    : relevBadge || `<span style="color:#cbd5e1">—</span>`;
 
    // Catalyst cell (rightmost): exact date + expand chevron pinned to far right
    const catFmt = (() => {
@@ -13879,7 +13906,9 @@ const tl1aPI = {
     : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
    const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
-   const main = `<tr class="pi-main${isExp?' expanded':''}" onclick="tl1aPI.toggle('${gid}')">
+   const _TL1A_RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#2563eb',monitor:'#94a3b8'};
+   const relevBorder = bestRelevance ? `border-left:3px solid ${_TL1A_RELEV_BORDER[bestRelevance]||'transparent'}` : '';
+   const main = `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="tl1aPI.toggle('${gid}')">
     <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${gid}" data-ename="${p.co.replace(/"/g,'&quot;')}" data-tab="tl1a" onclick="event.stopPropagation();_openEntityByEl(this)">${p.co}</span>${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
     <td>${pipelineCell}</td>
     <td>${indCell}</td>
