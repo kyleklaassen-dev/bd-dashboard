@@ -13766,12 +13766,20 @@ window.addEventListener('load', () => {
      return segs.length > 0 && segs.every(s => genericSeg.test(s) || (s.length <= 5 && !s.includes('-')));
    } catch(e) { return false; }
  }
+ // Build a Google News search URL from any raw link text.
+ // Strips leading arrow/bullet symbols, truncates to 8 words, adds &tbm=nws
+ // so Google returns news results rather than failing to exact-match a long sentence.
+ function _gUrlFromText(raw) {
+   const clean = (raw || '').replace(/^[↗→·•\s↗→·•]+/, '').trim();
+   const q = clean.split(/\s+/).slice(0, 8).join(' ');
+   return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
+ }
  function _fixGenericLinks(root) {
    (root || document).querySelectorAll('a[href]').forEach(function(el) {
      const href = el.getAttribute('href');
      if (!_isGenericHref(href)) return;
      const text = (el.getAttribute('title') || el.textContent || '').trim();
-     if (text.length > 5) el.setAttribute('href', 'https://www.google.com/search?q=' + encodeURIComponent(text));
+     if (text.length > 5) el.setAttribute('href', _gUrlFromText(text));
    });
  }
  _fixGenericLinks(); // initial pass — catches all static HTML links
@@ -13783,7 +13791,7 @@ window.addEventListener('load', () => {
        if (n.tagName === 'A') {
          if (_isGenericHref(n.getAttribute('href'))) {
            const text = (n.getAttribute('title') || n.textContent || '').trim();
-           if (text.length > 5) n.setAttribute('href', 'https://www.google.com/search?q=' + encodeURIComponent(text));
+           if (text.length > 5) n.setAttribute('href', _gUrlFromText(text));
          }
        } else if (n.querySelectorAll) {
          _fixGenericLinks(n);
