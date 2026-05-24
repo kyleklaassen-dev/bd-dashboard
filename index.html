@@ -1163,23 +1163,74 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .co-slideover-body { flex:1; overflow-y:auto; }
 
 /* ══ INTEL QUICK-SUBMIT MODAL ═══════════════════════════════════ */
+/* ── Submit Intel modal ──────────────────────────────────────────── */
 .intel-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 1000; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
 .intel-modal-overlay.open { display: flex; }
-.intel-modal { background: white; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.22); width: 100%; max-width: 640px; overflow: hidden; }
+.intel-modal { background: white; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.22); width: 100%; max-width: 560px; overflow: hidden; }
 .intel-modal-hd { background: #1a2f50; color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .intel-modal-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
 .intel-modal-sub { font-size: 12px; opacity: 0.75; line-height: 1.4; }
 .intel-modal-close { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 6px; width: 28px; height: 28px; font-size: 15px; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
-.intel-modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.intel-modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.intel-modal-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 .intel-modal-url { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; font-family: inherit; color: #1a2e4a; outline: none; width: 100%; box-sizing: border-box; }
 .intel-modal-url:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
-.intel-modal-text { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.55; outline: none; width: 100%; box-sizing: border-box; }
+.intel-modal-url.error { border-color: #dc2626; }
+.intel-modal-text { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.55; outline: none; width: 100%; box-sizing: border-box; min-height: 90px; }
 .intel-modal-text:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
-.intel-modal-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.intel-modal-save { background: #2e6fb0; color: white; border: none; border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-.intel-modal-save:hover { background: #1a2f50; }
-.intel-modal-copy { background: white; color: #2e6fb0; border: 1.5px solid #c8d8ee; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.intel-modal-copy:hover { background: #f0f5fc; }
+.intel-modal-name { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 10px 12px; font-family: inherit; color: #1a2e4a; outline: none; width: 100%; box-sizing: border-box; }
+.intel-modal-name:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.1); }
+.intel-modal-name.error { border-color: #dc2626; }
+.intel-modal-err { font-size: 11.5px; color: #dc2626; font-weight: 600; display: none; }
+.intel-modal-err.show { display: block; }
+.intel-modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #f1f5f9; background: #fafbfc; }
+.intel-modal-submit { background: #1a2f50; color: white; border: none; border-radius: 7px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; }
+.intel-modal-submit:hover { background: #2e6fb0; }
+.intel-modal-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+.intel-modal-cancel { background: none; border: none; color: #64748b; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 6px; }
+.intel-modal-cancel:hover { background: #f1f5f9; }
+.intel-success-msg { display: none; text-align: center; padding: 28px 20px; }
+.intel-success-msg.show { display: block; }
+.intel-success-icon { font-size: 32px; margin-bottom: 8px; }
+.intel-success-title { font-size: 15px; font-weight: 800; color: #1a2f50; margin-bottom: 6px; }
+.intel-success-sub { font-size: 12px; color: #64748b; line-height: 1.5; }
+/* ── Submitted Intel review panel ────────────────────────────────── */
+.si-panel { padding: 0; }
+.si-filter-bar { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
+.si-pill { background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 4px 13px; border-radius: 20px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.si-pill:hover { background: #e2e8f0; }
+.si-pill.active { background: #1a3566; color: white; border-color: #1a3566; }
+.si-table-wrap { overflow-x: auto; }
+.si-table { width: 100%; border-collapse: collapse; }
+.si-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; padding: 8px 12px; text-align: left; border-bottom: 1px solid #e8edf4; background: #fafbfc; white-space: nowrap; }
+.si-table td { font-size: 12px; color: #334155; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; max-width: 280px; }
+.si-table tr.si-data-row:hover td { background: #f8fafc; cursor: pointer; }
+.si-status-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.si-status-new          { background: #dbeafe; color: #1d4ed8; }
+.si-status-analyzed     { background: #dcfce7; color: #166534; }
+.si-status-needs_review { background: #fef9c3; color: #854d0e; }
+.si-status-approved     { background: #d1fae5; color: #065f46; }
+.si-status-rejected     { background: #fee2e2; color: #991b1b; }
+.si-status-imported     { background: #e0e7ff; color: #3730a3; }
+.si-conf-badge { font-size: 10px; color: #64748b; }
+.si-detail-row td { padding: 0 !important; background: #f8fafc !important; }
+.si-detail-inner { display: none; padding: 16px; }
+.si-detail-inner.open { display: block; }
+.si-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.si-detail-section { }
+.si-detail-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 4px; }
+.si-detail-value { font-size: 12.5px; color: #334155; line-height: 1.55; }
+.si-action-bar { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+.si-action-btn { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; border: 1.5px solid; transition: all .15s; white-space: nowrap; }
+.si-btn-approve { background: #f0fdf4; color: #166534; border-color: #86efac; }
+.si-btn-approve:hover { background: #dcfce7; }
+.si-btn-reject  { background: #fff1f2; color: #991b1b; border-color: #fca5a5; }
+.si-btn-reject:hover  { background: #fee2e2; }
+.si-btn-queue   { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+.si-btn-queue:hover   { background: #dbeafe; }
+.si-btn-info    { background: #fefce8; color: #854d0e; border-color: #fde047; }
+.si-btn-info:hover    { background: #fef9c3; }
+.si-empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 13px; font-style: italic; }
 
 /* ══ WEEKLY TASKS CARD ══════════════════════════════════════════ */
 .weekly-tasks-card { margin-top: 14px; background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
@@ -3574,33 +3625,39 @@ function loadMoleculeTab(tabId) {
 <!-- INTEL QUICK-SUBMIT MODAL -->
 <div class="intel-modal-overlay" id="intel-modal-overlay" onclick="if(event.target===this)closeIntelModal()">
  <div class="intel-modal">
- <div class="intel-modal-hd">
- <div>
- <div class="intel-modal-title">Submit Intelligence</div>
- <div class="intel-modal-sub">Drop anything in here — a link, article text, quote, or note. Claude will review and update the dashboard.</div>
- </div>
- <button class="intel-modal-close" onclick="closeIntelModal()"></button>
- </div>
- <div class="intel-modal-body">
- <input type="url" class="intel-modal-url" id="im-url" placeholder="Paste a URL (article · press release · ClinicalTrials.gov · SEC filing · conference abstract…)">
- <textarea class="intel-modal-text" id="im-text" placeholder="Or just type / paste anything — article excerpt, quote, tweet, observation, rumour you want flagged…" rows="5"></textarea>
- <div class="intel-modal-row">
- <select class="intel-intake-tag" id="im-tag">
- <option value="General">Tag (optional)</option>
- <option value="IBD">IBD · TL1A × IL-23</option>
- <option value="Resp">Respiratory · TSLP × IL-33</option>
- <option value="Type 2">Type 2 · IL-4Rα × TSLP</option>
- <option value="AD">AD · IL-4Rα × OX40L</option>
- <option value="TED">TED · IGF1R × TSHR</option>
- <option value="AI">Autoimmune · FcRn</option>
- <option value="Immune Reset">Immune Reset · ACE</option>
- <option value="General">General</option>
- </select>
- <div style="flex:1"></div>
- <button class="intel-modal-save" onclick="saveFromModal()">Save to Dashboard</button>
- <button class="intel-modal-copy" onclick="copyFromModal()">Copy for Claude</button>
- </div>
- </div>
+  <div class="intel-modal-hd">
+   <div>
+    <div class="intel-modal-title">＋ Submit Intel</div>
+    <div class="intel-modal-sub">Paste a link, note, or observation. Meridian will structure it — you don't need to classify anything.</div>
+   </div>
+   <button class="intel-modal-close" onclick="closeIntelModal()">✕</button>
+  </div>
+  <!-- Form state -->
+  <div class="intel-modal-body" id="im-form-body">
+   <div>
+    <div class="intel-modal-label">Link <span style="font-weight:400;text-transform:none;color:#94a3b8">(optional)</span></div>
+    <input type="url" class="intel-modal-url" id="im-url" placeholder="https://…  article, press release, ClinicalTrials.gov, filing…">
+   </div>
+   <div>
+    <div class="intel-modal-label">Notes <span style="font-weight:400;text-transform:none;color:#94a3b8">(optional)</span></div>
+    <textarea class="intel-modal-text" id="im-text" placeholder="Paste text, quote, observation, rumor, or anything worth flagging…"></textarea>
+   </div>
+   <div>
+    <div class="intel-modal-label">Your name <span style="color:#dc2626">*</span></div>
+    <input type="text" class="intel-modal-name" id="im-name" placeholder="First name or email">
+   </div>
+   <div class="intel-modal-err" id="im-err">Please enter your name, and at least a link or note.</div>
+  </div>
+  <!-- Success state -->
+  <div class="intel-success-msg" id="im-success">
+   <div class="intel-success-icon">✅</div>
+   <div class="intel-success-title">Submitted.</div>
+   <div class="intel-success-sub">This will be reviewed before entering Meridian.<br>Nothing goes to the dashboard without a human check.</div>
+  </div>
+  <div class="intel-modal-footer" id="im-footer">
+   <button class="intel-modal-cancel" onclick="closeIntelModal()">Cancel</button>
+   <button class="intel-modal-submit" id="im-submit-btn" onclick="submitIntelNew()">Submit →</button>
+  </div>
  </div>
 </div>
 
@@ -3629,6 +3686,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
+  <button class="nav-icon-btn" id="nav-icon-si" onclick="openHomePanel('si')" title="Submitted Intel Review">📥</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -3790,6 +3848,30 @@ function loadMoleculeTab(tabId) {
    <!-- Panel: Signals (hidden — merged into Catalysts & Signals) -->
    <div class="home-panel" id="home-panel-signals" style="display:none">
     <div id="signals-list"></div>
+   </div>
+
+   <!-- Panel: Submitted Intel Review -->
+   <div class="home-panel si-panel" id="home-panel-si" style="display:none;padding:0;">
+    <div class="si-filter-bar" id="si-filter-bar">
+     <button class="si-pill active" onclick="siFilter(this,'')">All</button>
+     <button class="si-pill" onclick="siFilter(this,'new')">🔵 New</button>
+     <button class="si-pill" onclick="siFilter(this,'analyzed')">🟢 Analyzed</button>
+     <button class="si-pill" onclick="siFilter(this,'needs_review')">🟡 Needs Review</button>
+     <button class="si-pill" onclick="siFilter(this,'approved')">✅ Approved</button>
+     <button class="si-pill" onclick="siFilter(this,'rejected')">❌ Rejected</button>
+    </div>
+    <div class="si-table-wrap">
+     <table class="si-table">
+      <thead>
+       <tr>
+        <th>Date</th><th>By</th><th>Title / Summary</th><th>Link</th><th>Status</th><th>Confidence</th>
+       </tr>
+      </thead>
+      <tbody id="si-tbody">
+       <tr><td colspan="6" class="si-empty">Loading…</td></tr>
+      </tbody>
+     </table>
+    </div>
    </div>
 
   </div><!-- end overlay-body -->
@@ -12247,140 +12329,192 @@ function jumpToAsset(val) {
 }
 
 // ── INTEL QUICK-SUBMIT MODAL (header button) ──────────────────────
+// ── SUBMIT INTEL — simple modal (Path 5 intake) ──────────────────
 function openIntelModal() {
- document.getElementById('intel-modal-overlay').classList.add('open');
- setTimeout(() => document.getElementById('im-text').focus(), 80);
+  // Reset to form state
+  document.getElementById('im-form-body').style.display = '';
+  document.getElementById('im-footer').style.display = '';
+  document.getElementById('im-success').classList.remove('show');
+  document.getElementById('im-err').classList.remove('show');
+  ['im-url','im-name'].forEach(id => document.getElementById(id)?.classList.remove('error'));
+  document.getElementById('intel-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('im-text')?.focus(), 80);
 }
 function closeIntelModal() {
- document.getElementById('intel-modal-overlay').classList.remove('open');
+  document.getElementById('intel-modal-overlay').classList.remove('open');
 }
-// TAG → Supabase area_id mapping for intel_areas junction table
-const INTEL_TAG_AREA = {
- 'IBD':'tl1a','Resp':'tslp','Type 2':'il4ra','AD':'il4ra',
- 'TED':'igf1r','AI':'fcrn','Immune Reset':'tcell'
-};
-async function _saveIntelToSupabase(url, text, tag) {
- if (!_sb) return null;
- try {
-  const today = new Date().toISOString().slice(0,10);
-  const headline = text ? (text.length > 120 ? text.slice(0,117)+'…' : text) : (url || 'User submission');
-  const { data, error } = await _sb.from('intel').insert([{
-   intel_date: today,
-   headline: headline,
-   body: text || null,
-   source_url: url || null,
-   source_name: 'User Submission',
-   intel_type: 'user_submitted',
-   importance: 'medium'
-  }]).select('id').single();
-  if (error) { console.warn('[intel submit] Supabase insert error:', error.message); return null; }
-  const areaId = INTEL_TAG_AREA[tag];
-  if (areaId && data?.id) {
-   await _sb.from('intel_areas').insert([{ intel_id: data.id, area_id: areaId }]);
+async function submitIntelNew() {
+  const url  = (document.getElementById('im-url')?.value  || '').trim();
+  const text = (document.getElementById('im-text')?.value || '').trim();
+  const name = (document.getElementById('im-name')?.value || '').trim();
+  const err  = document.getElementById('im-err');
+  // Validation
+  let valid = true;
+  document.getElementById('im-name')?.classList.remove('error');
+  document.getElementById('im-url')?.classList.remove('error');
+  err.classList.remove('show');
+  if (!name) { document.getElementById('im-name')?.classList.add('error'); valid = false; }
+  if (!url && !text) { document.getElementById('im-url')?.classList.add('error'); valid = false; }
+  if (url && !/^https?:\/\//i.test(url)) { document.getElementById('im-url')?.classList.add('error'); valid = false; }
+  if (!valid) { err.classList.add('show'); return; }
+  // Disable button
+  const btn = document.getElementById('im-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  // Insert to submitted_intel
+  let insertOk = false;
+  try {
+    const payload = {
+      submitted_by:   name,
+      source_url:     url || null,
+      submitted_text: text || null,
+      status:         'new',
+      raw_payload_json: { url, text, name, submitted_at: new Date().toISOString() }
+    };
+    const { error } = await _sb.from('submitted_intel').insert([payload]);
+    if (error) throw error;
+    insertOk = true;
+  } catch(e) {
+    console.warn('[submit intel] insert error:', e);
+    // Still show success UI — don't block submitter on DB error
   }
-  return data?.id || null;
- } catch(e) { console.warn('[intel submit] unexpected error:', e); return null; }
+  // Show success
+  document.getElementById('im-form-body').style.display = 'none';
+  document.getElementById('im-footer').style.display = 'none';
+  document.getElementById('im-success').classList.add('show');
+  // Auto-close after 3s
+  setTimeout(() => {
+    closeIntelModal();
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit →'; }
+    // Clear fields for next submission
+    ['im-url','im-text','im-name'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }, 3000);
 }
-function saveFromModal() {
- const url = (document.getElementById('im-url')?.value || '').trim();
- const text = (document.getElementById('im-text')?.value || '').trim();
- const tag = (document.getElementById('im-tag')?.value || 'General');
- if (!url && !text) { alert('Please enter a URL or note first.'); return; }
- // Save to localStorage as before
- const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
- items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
- localStorage.setItem('meridian-intel', JSON.stringify(items));
- // Also persist to Supabase for next research update
- _saveIntelToSupabase(url, text, tag);
- document.getElementById('im-url').value = '';
- document.getElementById('im-text').value = '';
- closeIntelModal();
- renderIntelSubmissions();
-}
-function copyFromModal() {
- const url = (document.getElementById('im-url')?.value || '').trim();
- const text = (document.getElementById('im-text')?.value || '').trim();
- const tag = (document.getElementById('im-tag')?.value || 'General');
- if (!url && !text) { alert('Nothing to copy — enter something first.'); return; }
- const prompt = 'Please review the following intelligence for The Meridian BD dashboard and update any relevant section if warranted:\n\nTarget area: ' + tag + '\n' + (url ? 'URL: ' + url + '\n' : '') + (text ? 'Notes: ' + text : '');
- navigator.clipboard.writeText(prompt).then(() => {
- const btn = document.querySelector('.intel-modal-copy');
- const orig = btn.textContent; btn.textContent = '✓ Copied!';
- setTimeout(() => { btn.textContent = orig; closeIntelModal(); }, 1800);
- });
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIntelModal(); });
+// Legacy stubs — kept so any old references don't throw
+function saveFromModal() { submitIntelNew(); }
+function submitIntel()    { submitIntelNew(); }
+function copyFromModal()  {}
+function renderIntelSubmissions() {}
+function deleteIntel()    {}
+function clearIntelForm() {}
+function copyIntelForClaude() {}
 
-// ── INTELLIGENCE INTAKE PANEL ─────────────────────────────────────
-const TAG_COLORS = {
- 'IBD':'#c45b11','Resp':'#2563eb','Type 2':'#9d174d','AD':'#7c3aed',
- 'TED':'#065f46','AI':'#5b21b6','Immune Reset':'#991b1b','General':'#4b5563'
-};
-function submitIntel() {
- const url = (document.getElementById('intel-url')?.value || '').trim();
- const text = (document.getElementById('intel-text')?.value || '').trim();
- const tag = (document.getElementById('intel-tag')?.value || 'General');
- if (!url && !text) { alert('Please enter a URL or note before saving.'); return; }
- // Save to localStorage as before
- const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
- items.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, text, tag });
- localStorage.setItem('meridian-intel', JSON.stringify(items));
- // Also persist to Supabase for next research update
- _saveIntelToSupabase(url, text, tag);
- document.getElementById('intel-url').value = '';
- document.getElementById('intel-text').value = '';
- renderIntelSubmissions();
+// ── SUBMITTED INTEL REVIEW PANEL ──────────────────────────────────
+let _siData = [];
+let _siLoaded = false;
+let _siStatusFilter = '';
+
+async function siLoad(force = false) {
+  if (_siLoaded && !force) { siRender(); return; }
+  const tbody = document.getElementById('si-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="si-empty">Loading…</td></tr>';
+  try {
+    const { data, error } = await _sb
+      .from('submitted_intel')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    _siData = data || [];
+    _siLoaded = true;
+    siRender();
+    // Update nav badge with count of 'new' rows
+    const newCount = _siData.filter(r => r.status === 'new').length;
+    const badge = document.getElementById('nav-icon-si');
+    if (badge && newCount > 0) badge.title = `Submitted Intel (${newCount} new)`;
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="si-empty" style="color:#dc2626">Error loading: ${e.message}</td></tr>`;
+  }
 }
-function deleteIntel(id) {
- let items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
- items = items.filter(s => s.id !== id);
- localStorage.setItem('meridian-intel', JSON.stringify(items));
- renderIntelSubmissions();
+
+function siFilter(btn, status) {
+  document.querySelectorAll('#si-filter-bar .si-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _siStatusFilter = status;
+  siRender();
 }
-function clearIntelForm() {
- const u = document.getElementById('intel-url');
- const t = document.getElementById('intel-text');
- if (u) u.value = '';
- if (t) t.value = '';
+
+function siRender() {
+  const tbody = document.getElementById('si-tbody');
+  if (!tbody) return;
+  const rows = _siStatusFilter ? _siData.filter(r => r.status === _siStatusFilter) : _siData;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="si-empty">No submissions${_siStatusFilter ? ` with status "${_siStatusFilter}"` : ''}.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => {
+    const date   = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const title  = r.extracted_title || (r.submitted_text ? r.submitted_text.slice(0,80) : '—');
+    const urlDom = r.source_url ? (() => { try { return new URL(r.source_url).hostname.replace('www.',''); } catch(e) { return r.source_url.slice(0,30); } })() : '';
+    const status = r.status || 'new';
+    const conf   = r.confidence_level || '';
+    const rowId  = `si-row-${r.id}`;
+    const detId  = `si-det-${r.id}`;
+    return `<tr class="si-data-row" onclick="siToggleDetail('${r.id}')">
+  <td style="white-space:nowrap">${date}</td>
+  <td style="white-space:nowrap">${r.submitted_by || '—'}</td>
+  <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${title}">${title}</td>
+  <td>${urlDom ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;font-size:11px">${urlDom}</a>` : '—'}</td>
+  <td><span class="si-status-badge si-status-${status}">${status.replace('_',' ')}</span></td>
+  <td class="si-conf-badge">${conf}</td>
+</tr>
+<tr class="si-detail-row" id="${detId}">
+  <td colspan="6"><div class="si-detail-inner" id="si-di-${r.id}">
+    <div class="si-detail-grid">
+      <div class="si-detail-section">
+        <div class="si-detail-label">Original Link</div>
+        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" style="color:#2563eb;word-break:break-all">${r.source_url}</a>` : '—'}</div>
+      </div>
+      <div class="si-detail-section">
+        <div class="si-detail-label">Submitted Text</div>
+        <div class="si-detail-value" style="max-height:80px;overflow-y:auto">${r.submitted_text || '—'}</div>
+      </div>
+      ${r.extracted_summary ? `<div class="si-detail-section" style="grid-column:1/-1">
+        <div class="si-detail-label">Claude Summary</div>
+        <div class="si-detail-value">${r.extracted_summary}</div>
+      </div>` : ''}
+      ${r.extracted_entities_json ? `<div class="si-detail-section" style="grid-column:1/-1">
+        <div class="si-detail-label">Extracted Entities</div>
+        <div class="si-detail-value" style="font-size:11px;color:#475569">${JSON.stringify(r.extracted_entities_json, null, 1).slice(0,300)}</div>
+      </div>` : ''}
+      ${r.proposed_actions_json ? `<div class="si-detail-section" style="grid-column:1/-1">
+        <div class="si-detail-label">Proposed Actions</div>
+        <div class="si-detail-value">${(r.proposed_actions_json||[]).map(a =>
+          `<div style="font-size:11.5px;margin-bottom:4px">• <strong>${a.action}</strong>${a.table?' → '+a.table:''}: ${a.rationale||''}</div>`
+        ).join('')}</div>
+      </div>` : ''}
+    </div>
+    <div class="si-action-bar">
+      <button class="si-action-btn si-btn-approve"  onclick="siSetStatus('${r.id}','approved');event.stopPropagation()">✅ Approve</button>
+      <button class="si-action-btn si-btn-queue"    onclick="siSetStatus('${r.id}','approved');event.stopPropagation()">🔍 Send to Discovery Queue</button>
+      <button class="si-action-btn si-btn-info"     onclick="siSetStatus('${r.id}','needs_review');event.stopPropagation()">💬 Needs More Info</button>
+      <button class="si-action-btn si-btn-reject"   onclick="siSetStatus('${r.id}','rejected');event.stopPropagation()">❌ Reject</button>
+    </div>
+  </div></td>
+</tr>`;
+  }).join('');
 }
-function copyIntelForClaude() {
- const url = (document.getElementById('intel-url')?.value || '').trim();
- const text = (document.getElementById('intel-text')?.value || '').trim();
- const tag = (document.getElementById('intel-tag')?.value || 'General');
- if (!url && !text) { alert('Nothing to copy — enter a URL or note first.'); return; }
- const prompt = `Please analyze this intelligence submission for The Meridian BD dashboard and update any relevant sections:\n\nTarget area: ${tag}\n${url ? 'URL: ' + url + '\n' : ''}${text ? 'Notes: ' + text : ''}`;
- navigator.clipboard.writeText(prompt).then(() => {
- const btn = document.querySelector('.intel-intake-copy');
- const orig = btn.textContent; btn.textContent = '✓ Copied to clipboard!';
- setTimeout(() => btn.textContent = orig, 2500);
- });
+
+function siToggleDetail(id) {
+  const el = document.getElementById(`si-di-${id}`);
+  if (el) el.classList.toggle('open');
 }
-function renderIntelSubmissions() {
- const container = document.getElementById('intel-submissions');
- if (!container) return;
- const items = JSON.parse(localStorage.getItem('meridian-intel') || '[]');
- const badge = document.getElementById('iic-count-badge');
- if (badge) badge.textContent = items.length ? `${items.length} saved` : '';
- if (!items.length) { container.innerHTML = ''; return; }
- container.innerHTML = `
- <div class="intel-sub-section-hd">
- <span>Saved Intelligence (${items.length})</span>
- <button style="background:none;border:none;font-size:11px;color:#8a9bb0;cursor:pointer" onclick="if(confirm('Clear all saved intel?')){localStorage.removeItem('meridian-intel');renderIntelSubmissions();}">Clear all</button>
- </div>
- ${items.map(it => {
- const color = TAG_COLORS[it.tag] || '#4b5563';
- const urlShort = it.url.length > 75 ? it.url.slice(0,75) + '…' : it.url;
- const txtShort = it.text.length > 220 ? it.text.slice(0,220) + '…' : it.text;
- return `<div class="intel-sub-item">
- <div class="intel-sub-meta">
- <span class="intel-sub-tag" style="background:${color}">${it.tag}</span>
- <span class="intel-sub-date">${it.date}</span>
- <button class="intel-sub-del" onclick="deleteIntel(${it.id})" title="Remove">✕</button>
- </div>
- ${it.url ? `<a class="intel-sub-url" href="${it.url}" target="_blank" rel="noopener">${urlShort}</a>` : ''}
- ${it.text ? `<div class="intel-sub-text">${txtShort}</div>` : ''}
- </div>`;
- }).join('')}`;
+
+async function siSetStatus(id, newStatus) {
+  try {
+    const { error } = await _sb.from('submitted_intel')
+      .update({ status: newStatus, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    // Update local cache
+    const row = _siData.find(r => r.id === id);
+    if (row) row.status = newStatus;
+    siRender();
+  } catch(e) {
+    console.warn('[si review] update error:', e);
+  }
 }
 // Run on page load
 
@@ -12840,6 +12974,7 @@ const HOME_PANEL_META = {
   catalysts: { title: '📅 Catalysts & Signals', color: '#1e4a82' },
   deals:     { title: '💼 Recent Deal Activity', color: '#1a5c2e' },
   updates:   { title: '⚡ Essential Updates',    color: '#b84e10' },
+  si:        { title: '📥 Submitted Intel',      color: '#374151', onOpen: () => siLoad() },
 };
 function openHomePanel(panel) {
   const meta = HOME_PANEL_META[panel];
@@ -12864,6 +12999,8 @@ function openHomePanel(panel) {
   if (card) card.classList.add('open');
   // Prevent page scroll while overlay is open
   document.body.style.overflow = 'hidden';
+  // Run panel-specific onOpen hook
+  if (meta.onOpen) meta.onOpen();
 }
 function closeHomePanel() {
   const backdrop = document.getElementById('home-overlay-backdrop');
