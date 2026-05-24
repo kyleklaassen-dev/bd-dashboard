@@ -1,5 +1,36 @@
 
 ---
+## 2026-05-24 (Session 45) — Migrate tl1aPI into _makeAreaPI
+
+**index.html — commit b4355353**
+
+**Migration: tl1aPI → _makeAreaPI factory (Session 43 backlog, ~2,700 lines removed)**
+- Removed `const TL1A_PROGRAMS` (251-line static array, fallback data now fully superseded by Supabase)
+- Removed `const TL1A_STAGE_ORDER`, `const SPYRE_PIPELINE`, `const AILUX_MOLECULES`
+- Removed `function piPillClick` (standalone TL1A-only pill handler)
+- Removed entire `tl1aPI` object (~1,800 lines: init, filter, sort, toggle, _renderTable, _loadSbDiscoveredRows, _loadEntityMeta, _loadIntelStatus, _initResize, etc.)
+- **Moved** `_genericDetailHTML(prog, sbData, tabId)` (969 lines) from tl1aPI into `_makeAreaPI` factory as a native method — all drug tabs now share one renderer
+- Fixed `_makeAreaPI._entityDetailHTML`: replaced `tl1aPI._genericDetailHTML.call(tl1aPI, ...)` with `this._genericDetailHTML(...)` (2 call sites: cached + async load paths)
+- Removed `typeof tl1aPI !== 'undefined'` guards — now unconditional
+- **TL1A card HTML**: replaced `id="tl1a-pi-card"` + hardcoded piPillClick filter pills → standard `id="tl1a-area-pi-wrap"` + empty `.pi-pills-wrap` (pills auto-injected by `_renderPills`)
+- Added `id="tl1a-area-pi"` inner container so `_makeAreaPI.init()` can find its render target
+- `registerTab('tl1a')`: removed `tl1aPI.init()` call, added `loadAreaPI('tl1a')`
+- `DOMContentLoaded`: removed `tl1aPI.init(); tl1aPI._initialized = true;`
+- Entity modal function: `(AREA==='tl1a') ? tl1aPI : _areaPIs[...]` → `_areaPIs[sourceTabId] || null`; `tl1aPI._drugDisplayArea || 'ibd'` → hardcoded `'ibd'`
+- CSS: `#tl1a-pi-card` → `#tl1a-area-pi-wrap`
+- Anchor config: `tl1a-pi-card` → `tl1a-area-pi-wrap`
+- File size: 15,976 → 14,222 lines (1,754 lines removed)
+- All drug tabs (TL1A, TSLP, IL4RA, IGF1R, FcRn, T-cell, IBD, Atopy, Respiratory) now use identical `_makeAreaPI` architecture
+
+---
+## 2026-05-24 (Session 44) — UI alignment fixes: tab top spacing + IGF1R filter pills
+
+**index.html — commit 0a704446**
+- `.tl1a-layout`: added `padding-top:10px` — all drug tabs now have consistent top gap aligned with BD Takeaways / Ailux Profile side buttons (was flush against tab bar on TL1A tab)
+- IGF1R×TSHR tab `pi-hd`: replaced `id="igf1r-tshr-coverage-pills"` div with standard `class="pi-pills-wrap"` — filter pills (Class/Stage/Relevance) now render identically to all other drug tabs
+- `TAB_LANDSCAPE_MAP`: commented out `igf1r-tshr` entry so `loadLandscapeCoverage` is not called; coverage data kept in DB for future dedicated panel
+
+---
 ## 2026-05-24 (Session 43) — P2: competitive_signals table + seed + enrichment wire-up + UI
 
 **Migration v33 — competitive_signals table (Supabase)**
@@ -4028,3 +4059,57 @@ caused by the 24 newly added ORIGINATED_BY edges with no deal records.
 
 Platform average is now **83.0 / 100** (137 company/area pairs).
 All major ⚠ dimensions resolved except catalyst coverage (53.6).
+
+## 2026-05-24 — Session 46 — HQ Display, Column Widths, No-Resize, TL1A Migration
+
+### Migration v34: hq_city + hq_country columns
+
+Added `hq_city TEXT` and `hq_country TEXT` to `companies` table via Supabase Management API.
+
+### Seed: 95 companies — HQ data + ticker fixes
+
+**Script:** `scripts/seed_company_hq.py`
+
+Seeded `hq_city` and `hq_country` for all 95 companies. Also patched NULL tickers:
+- `pfizer` → `PFE`
+- `roivant` → `ROIV`
+- `chugai` → `4519.T`
+- `antengene` → `6996.HK`
+- All remaining NULL tickers → `'Private'`
+
+Result: 95 updated, 0 errors. Commit: `feef5362c5`
+
+### UI: Company subline — ticker + City, Country
+
+**Files:** `index.html` (commit `cb946667a2`)
+
+Entity rows in all PI tabs now show below the company name:
+- `TICKER — City, Country` for public companies (e.g., `VRDN — Waltham, US`)
+- `Private — City, Country` for private companies (e.g., `Private — Ingelheim, Germany`)
+
+Changes:
+- `_makeAreaPI` drug join: added `hq_city,hq_country` to both `companies!company_id(...)` select and companiesMap select
+- Data model: `hq_city`/`hq_country` threaded through `_buildEntities`, `_makeCompatProg`, entity row IIFE renderer
+- Inline IIFE: `const t=(ent.ticker||'').split('/')[0].trim()||'Private'; const loc=...`
+
+### UI: Column widths, nowrap, no resize, default relevance sort
+
+**Files:** `index.html` (commit `b43553537a` — part of tl1aPI migration)
+
+- `_makeAreaPI` colgroup widened: indication column 9% → 13%; full: `19% 11% 13% 17% 11% 14% 15%`
+- Indication badge: `white-space:nowrap;display:inline-block` added — prevents wrapping to second row
+- Target `<td>`: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` added
+- Default sort: `sortCol:'relevance'` (was `'stage'`)
+- No-resize: `_initResize()` removed; all `col-resize` divs removed from TL1A thead (now unified)
+
+### tl1aPI → _makeAreaPI Migration (Session 45)
+
+Removed ~1,800-line `tl1aPI` object entirely. All 9 drug tabs now use identical `_makeAreaPI` factory.
+- `_genericDetailHTML` (969 lines) moved into `_makeAreaPI` as a native method
+- `TL1A_PROGRAMS`, `TL1A_STAGE_ORDER`, `SPYRE_PIPELINE`, `AILUX_MOLECULES` static arrays removed
+- File: 15,976 → 14,222 lines (−1,754 lines)
+- Commit: `b4355353`
+
+### seed_competitive_signals.py: area_id fix
+
+Rewritten with `area_id='igf1r'` throughout (was `'ted'`). TED tab uses `area_id='igf1r'` per `TAB_AREA_MAP`. Commit: `1d89542ef1`
