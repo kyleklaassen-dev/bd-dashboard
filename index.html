@@ -1484,7 +1484,7 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── TL1A LAYOUT ── */
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
 [id$='-area-pi-wrap'] { margin:0 !important;max-width:100% !important; }
-.tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
+.tl1a-layout { display:block;max-width:1100px;margin:0 auto;padding-top:10px; }
 .tl1a-center-col { min-width:0; }
 .tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:300;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
@@ -5315,8 +5315,7 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" id="igf1r-tshr-area-pi-wrap">
   <div class="pi-hd">
-    <div id="igf1r-tshr-coverage-pills" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-      <span style="color:#94a3b8;font-size:11px">Loading coverage…</span>
+    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -10910,7 +10909,8 @@ async function loadAreaPI(tabId) {
 // igf1r-tshr is the only instrumented landscape as of v32.
 // Extend by adding entries to TAB_LANDSCAPE_MAP as new landscapes are seeded.
 const TAB_LANDSCAPE_MAP = {
-  'igf1r-tshr': { area_id: 'igf1r', pillsId: 'igf1r-tshr-coverage-pills' },
+  // 'igf1r-tshr' coverage panel removed — filter pills restored (v33 UI fix)
+  // Re-enable here when coverage panel gets its own dedicated section below the pills
 };
 
 async function loadLandscapeCoverage(tabId) {
