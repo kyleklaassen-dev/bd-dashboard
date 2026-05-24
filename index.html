@@ -1319,6 +1319,13 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-overlap-adjacent { background:#ffedd5;color:#9a3412; }   /* Adjacent — orange */
 .pi-overlap-same     { background:#ccfbf1;color:#134e4a; }   /* Same-Space — teal */
 .pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow */
+/* Competitive relevance badges — strategic importance independent of clinical stage */
+.pi-relev-badge { display:inline-block;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;cursor:default;white-space:nowrap; }
+.pi-relev-veryhigh { background:#fce7f3;color:#9d174d; }   /* Very High — rose */
+.pi-relev-high     { background:#ffedd5;color:#9a3412; }   /* High — orange */
+.pi-relev-medium   { background:#fef9c3;color:#92400e; }   /* Medium — amber */
+.pi-relev-low      { background:#dbeafe;color:#1e40af; }   /* Low — blue (benchmark) */
+.pi-relev-monitor  { background:#f1f5f9;color:#64748b; }   /* Monitor — slate */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
 .pi-stage-approved { background:#dcfce7;color:#166534; }
 .pi-stage-approved { background:#dcfce7;color:#166534;border:1px solid #86efac; }
@@ -10136,7 +10143,7 @@ function _makeAreaPI(tabId, areaIds) {
   return {
     tabId, areaIds,
     data:[], entities:[], filteredEntities:[], expanded:new Set(),
-    sortCol:'stage', sortDir:1, loaded:false,
+    sortCol:'relevance', sortDir:1, loaded:false,
     _entityMeta: {},    // bulk meta: drugCount, indScope, activeTrials, nextCatalyst keyed by company_id
     _profileCache: {},  // company_profiles keyed by entity_id — populated on expand (Stage 3)
 
@@ -10152,7 +10159,7 @@ function _makeAreaPI(tabId, areaIds) {
             .select('company_id')
             .in('area_id', this.areaIds),
           _sb.from('drug_area_scores')
-            .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning')
+            .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning,competitive_relevance,relevance_rationale')
             .in('area_id', this.areaIds),
           _sb.from('companies').select('id,name,ticker,status'),
         ]);
@@ -10212,6 +10219,8 @@ function _makeAreaPI(tabId, areaIds) {
           overlap:              score?.overlap || d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
           overlap_rationale:    score?.overlap_rationale || d.differentiation_thesis || '',
           vs_ailux:             score?.vs_ailux_positioning || '',
+          competitive_relevance: score?.competitive_relevance || null,
+          relevance_rationale:   score?.relevance_rationale || '',
           summary:              d.ailux_angle || d.key_data || '',
           stageDetail:          d.stage_detail || '',
           indication_short:     d.indication_short || '',
@@ -10258,7 +10267,13 @@ function _makeAreaPI(tabId, areaIds) {
         const comboCount  = this.comboCountByCompany?.[ent.company_id || ent.entity_id] || 0;
         const totalPortfolioCount = progs.length + comboCount;
         const isTerminated = progs.every(p => p.stageKey === 'Terminated');
-        return { ...ent, bestStage, bestCls, bestOverlap, isTerminated,
+        const _RELEV_ORD  = {very_high:0,high:1,medium:2,low:3,monitor:4};
+        const bestRelevanceProg = progs.reduce((b,p) =>
+          (_RELEV_ORD[p.competitive_relevance]??9) < (_RELEV_ORD[b?.competitive_relevance]??9) ? p : b,
+          progs[0] || {});
+        const bestRelevance = bestRelevanceProg.competitive_relevance || null;
+        const bestRelevanceRationale = bestRelevanceProg.relevance_rationale || '';
+        return { ...ent, bestStage, bestCls, bestOverlap, bestRelevance, bestRelevanceRationale, isTerminated,
           target: leadProg?.target||'—',
           summary: progs.map(p=>p.summary).filter(Boolean)[0]||'',
           stageDetail: leadProg?.stageDetail||'',
@@ -10421,6 +10436,19 @@ function _makeAreaPI(tabId, areaIds) {
       const m={platform:'pi-etype-platform',partnership:'pi-etype-partnership',licensed:'pi-etype-licensed'};
       const l={platform:'Platform',partnership:'Partnership',licensed:'Licensed'};
       return `<span class="pi-etype-badge ${m[t]||''}">${l[t]||t}</span>`;
+    },
+    _relevBadge(r, rationale) {
+      if (!r) return '';
+      const cfg = {
+        very_high: { cls:'pi-relev-veryhigh', lbl:'Very High' },
+        high:      { cls:'pi-relev-high',     lbl:'High'      },
+        medium:    { cls:'pi-relev-medium',   lbl:'Medium'    },
+        low:       { cls:'pi-relev-low',      lbl:'Low'       },
+        monitor:   { cls:'pi-relev-monitor',  lbl:'Monitor'   },
+      };
+      const { cls, lbl } = cfg[r] || { cls:'pi-relev-monitor', lbl:r };
+      const tip = rationale ? ` title="${rationale.replace(/"/g,'&quot;')}"` : '';
+      return `<span class="pi-relev-badge ${cls}"${tip}>${lbl}</span>`;
     },
 
     _entityDetailHTML(ent) {
@@ -10621,8 +10649,16 @@ function _makeAreaPI(tabId, areaIds) {
       const tid = this.tabId;
       const clsOrd = {'1st Gen':2,'2nd Gen':1,'Next Gen':0};
 
+      const _RELEV_ORD_SORT = {very_high:0,high:1,medium:2,low:3,monitor:4};
       const sorted = [...this.filteredEntities].sort((a,b)=>{
         let av,bv;
+        if (this.sortCol==='relevance') {
+          // Relevance-first: known values precede nulls; stage as tiebreaker within same tier
+          const ar = a.bestRelevance != null ? (_RELEV_ORD_SORT[a.bestRelevance]??5) : 6;
+          const br = b.bestRelevance != null ? (_RELEV_ORD_SORT[b.bestRelevance]??5) : 6;
+          if (ar !== br) return this.sortDir * (ar - br);
+          return (STAGE_ORDER_PI[a.bestStage]??9) - (STAGE_ORDER_PI[b.bestStage]??9);
+        }
         if      (this.sortCol==='co')      { av=a.entity_name; bv=b.entity_name; }
         else if (this.sortCol==='cls')     { av=clsOrd[a.bestCls]??3; bv=clsOrd[b.bestCls]??3; }
         else if (this.sortCol==='stage')   { av=STAGE_ORDER_PI[a.bestStage]??9; bv=STAGE_ORDER_PI[b.bestStage]??9; }
@@ -10676,9 +10712,10 @@ function _makeAreaPI(tabId, areaIds) {
           ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700">${indScope}</span>`
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
 
+        const relevBadge = this._relevBadge(ent.bestRelevance, ent.bestRelevanceRationale);
         const threatCell = ent.isTerminated
           ? `<span style="color:#cbd5e1">—</span>`
-          : `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px">${this._ovBadge(ent.bestOverlap)}</div>`;
+          : `<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">${relevBadge}${this._ovBadge(ent.bestOverlap)}</div>`;
 
         const catFmt = (() => {
           if (!nextCat) return null;
@@ -10693,8 +10730,10 @@ function _makeAreaPI(tabId, areaIds) {
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
+        const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#2563eb',monitor:'#94a3b8'};
+        const relevBorder = ent.bestRelevance ? `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance]||'transparent'}` : '';
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
-        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
+        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
           <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
@@ -10713,7 +10752,7 @@ function _makeAreaPI(tabId, areaIds) {
           <th>Indication</th>
           <th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','overlap')">Threat</th>
+          <th class="pi-th-sort" onclick="_areaPISort('${tid}','relevance')">Relevance</th>
           <th>Catalyst</th>
         </tr></thead>
         <tbody>${rows}</tbody>
