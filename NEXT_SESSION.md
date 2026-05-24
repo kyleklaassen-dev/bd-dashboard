@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24  
-**Session completed:** v32 Coverage Diagnostics — first live score computed + scripts deployed to GitHub ✅
+**Last updated:** 2026-05-24 (Session 39 cont.)  
+**Session completed:** v32 Coverage Diagnostics — first live score + dashboard coverage panel deployed ✅
 
 ---
 
@@ -54,22 +54,17 @@ Then re-run `compute_landscape_coverage.py` to see score movement.
 
 ---
 
-## P2 Next: Dashboard Coverage Panel
+## ✅ DONE: Dashboard Coverage Panel (Session 39 cont.)
 
-Surface `landscape_dependency_score` in index.html so BD can see the derived score.
+Coverage panel is live on the IGF1R × TSHR tab. Shows above the PI table on tab enter:
+- Score badge: "TED Coverage 82/100" (color-coded green/amber/red)
+- Dimension pills: Drug 89% · Edges 100% · Catalyst 100% · Source 54%
+- Staleness warning: "⚠ 27% stale"
+- Missing drug chips (currently: OLN102)
 
-**What to show per landscape row:**
-```
-TED × IGF-1R_TSHR   82.82/100
-  Drug:          88.9%  (8/9 — missing: oln102 pending)
-  Relationships: 100%   (5/5)
-  Catalysts:     100%   (31 captured)
-  Sources:        53.8%  ← backfill needed
-  Staleness:      27.3%  (3 items → Q3 revalidation)
-```
+Commit: `cbf7de22` (index.html)
 
-Entry point: `competitive_landscapes` now has `landscape_dependency_score` + `coverage_breakdown JSONB`.
-The JSONB has per-dimension detail including drug lists and missing items.
+`TAB_LANDSCAPE_MAP = { 'igf1r-tshr': { area_id: 'igf1r' } }` — extend for future landscapes.
 
 ---
 
