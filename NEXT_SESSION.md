@@ -1,7 +1,18 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 42b)
-**Session completed:** Relevance sort wired into `_makeAreaPI` — competitive_relevance default sort + left-border color indicator ✅
+**Last updated:** 2026-05-24 (Session 43)
+**Session completed:** P2 competitive_signals — DB table + 17 TED seeds + enrichment write + UI card ✅
+
+---
+
+## What Was Done This Session (Session 43)
+
+### competitive_signals — Full Stack ✅
+- **Migration v33**: table created (Supabase) — 12 cols, 5 indexes, 3 CHECK constraints
+- **Seed**: 17 TED landscape signals (veligrotug/elegrobart/OLN102/SP-1351/CRN12755/YB-101/linsitinib/teprotumumab/batoclimab)
+- **Enrichment**: `competitive_signals` array in Step 5 prompt + write block in `write_step5()` with dedup + validation
+- **UI**: `📡 Competitive Signals` card in entity expand panel — date | type badge | linked title | description; scrollable >4; hidden when empty
+- Signal type badge palette: CONF=blue, READOUT=green, REG=red, $=emerald, PATENT=purple, PUB=indigo, DEAL=orange
 
 ---
 
