@@ -1,5 +1,62 @@
 
 ---
+## 2026-05-24 (Session 39) — v32 Coverage Diagnostics: First Live Score
+
+**DB + script session. GitHub deploy: compute_landscape_coverage.py + v32_coverage_diagnostics.sql**
+
+### Coverage Diagnostics — first run
+- `compute_landscape_coverage.py` executed against TED × IGF-1R_TSHR landscape (id=1)
+- `landscape_dependency_score` = **82.82 / 100** (vs. self-reported 87.0)
+- Written live to `competitive_landscapes` + `coverage_computation_log`
+
+### Score breakdown
+| Dimension | Score | Weight | Detail |
+|-----------|-------|--------|--------|
+| Drug coverage | 88.9% | ×0.35 | 8/9 confirmed; IBI311 no drug_id, OLN102 Tier 3 unconfirmed |
+| Relationship coverage | 100.0% | ×0.25 | 5/5 entity_edges in scope |
+| Catalyst coverage | 100.0% | ×0.20 | 31 captured vs 8 expected (capped) |
+| Source validation | 53.85% | ×0.15 | 7/13 drug_area_scores — inferred rows in denominator |
+| Staleness penalty | 27.27% | ×−0.05 | 3 stale: Japan approval, TSHR×TED mechanism, yb-101 edge |
+
+### Scripts deployed to GitHub
+- `scripts/compute_landscape_coverage.py` — new file
+- `scripts/v32_coverage_diagnostics.sql` — new file (DDL documentation)
+
+### P1 next
+Source validation backfill: upgrade `confidence_level` for batoclimab (Apr 2026 Ph3 failure),
+efgartigimod (UplighTED discontinuation Dec 2025), linsitinib (CT.gov NCT). Moves score → ~86.
+
+---
+## 2026-05-24 (Session 38 cont.) — v31 entity_edges Unblock
+
+**DB-only session — no code changes, no GitHub deploy needed**
+
+### Companies added
+- `viridian` — Viridian Therapeutics (ticker: VRDN, US biotech, IGF-1R antibodies for TED)
+- `yarrow` — Yarrow Bioscience (private, US, ex-China YB-101 rights, RTW-backed)
+- `gensci` — GenSci / General Science Corporation (private, China, GS-098 originator)
+
+### Drugs added
+| Drug | ID | Company | Stage | Target | Area |
+|------|----|---------|-------|--------|------|
+| veligrotug (VRDN-001) | veligrotug | viridian | Regulatory Review / PDUFA Jun 30 2026 | IGF-1R | igf1r |
+| elegrobart (VRDN-003) | elegrobart | viridian | Phase 3 (REVEAL-1+2) | IGF-1R | igf1r |
+| YB-101 / GS-098 | yb-101 | yarrow / gensci | Phase 1 | TSHR | igf1r |
+
+Each drug: drug_areas + drug_area_scores + drug_targets + ownership_edges written.
+
+### entity_edges populated (run_v31_seed.py)
+5 edges written for TED competitive landscape (scope_indication=TED, scope_area_id=igf1r):
+- veligrotug COMPETES_WITH teprotumumab [confirmed]
+- teprotumumab COMPETES_WITH veligrotug [confirmed]
+- elegrobart SUBSTITUTES teprotumumab [confirmed]
+- linsitinib SUBSTITUTES teprotumumab [supported]
+- yb-101 UPSTREAM_MECHANISM teprotumumab [supported]
+
+### Coverage
+Platform average: **84.4 / 100** (unchanged — entity_edges not yet in coverage formula; that's v32)
+
+---
 ## 2026-05-24 (Session 38) — Source URL Integrity Sprint
 
 **Commits:** `8ba84275` (audit_sources.py), `a8ee76bf` (company_enrichment.py), `b5353d9e` (validate_ground_truth.py), `5af547f2` (v32 migration)  
