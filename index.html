@@ -2157,7 +2157,10 @@ const UNI_TYPE_STYLE = {
 };
 
 function _gUrl(text) {
-  return 'https://www.google.com/search?q=' + encodeURIComponent(text);
+  // Trim to first 8 words so Google News finds results instead of exact-matching a long sentence
+  const words = (text || '').trim().split(/\s+/);
+  const q = words.slice(0, 8).join(' ');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
 }
 
 function uniTypeFilter(btn, type) {
