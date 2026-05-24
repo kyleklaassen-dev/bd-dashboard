@@ -6416,7 +6416,7 @@ async function dknLoadData() {
   if (_dknData !== null || _dknLoading) return;
   _dknLoading = true;
   const tbody = document.getElementById('dkn-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
   try {
     const { data, error } = await _sb
       .from('drugs')
@@ -6432,7 +6432,7 @@ async function dknLoadData() {
   } catch(e) {
     console.warn('dknLoadData', e);
     _dknLoading = false;
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
   }
 }
 
@@ -6494,7 +6494,7 @@ function dknSort(col) {
 function dknRender() {
   if (!_dknData) return; // still loading — dknLoadData() will call dknRender() when ready
   dknPopulateSelects();
-  const q = document.getElementById('dkn-search-input').value.toLowerCase().trim();
+  const q = '';
   let data = _dknData.filter(d => {
     if (dknCatFilter && d.catalog_category !== dknCatFilter) return false;
     if (dknStageFilter && d.stage !== dknStageFilter) return false;
