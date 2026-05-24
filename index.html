@@ -9747,10 +9747,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEntityM
 // ══════════════════════════════════════════════════════════════════════════
 
 const _TOP_OPPS_TYPE = {
-  discovery: { label: 'New Discovery', color: '#7c3aed', bg: '#f5f3ff' },
+  discovery: { label: 'New Discovery',    color: '#7c3aed', bg: '#f5f3ff' },
   catalyst:  { label: 'Upcoming Readout', color: '#d97706', bg: '#fffbeb' },
-  intel:     { label: 'Market Intel', color: '#0369a1', bg: '#f0f9ff' },
-  update:    { label: 'Profile Updated', color: '#059669', bg: '#f0fdf4' },
+  intel:     { label: 'Market Intel',     color: '#0369a1', bg: '#f0f9ff' },
 };
 
 async function loadTopOpps() {
@@ -9764,7 +9763,7 @@ async function loadTopOpps() {
   const todayISO  = new Date().toISOString().slice(0,10);
   const in180days = new Date(Date.now() + 180*864e5).toISOString().slice(0,10);
 
-  const [dqRes, catRes, intelRes, profRes] = await Promise.allSettled([
+  const [dqRes, catRes, intelRes, coRes] = await Promise.allSettled([
     // High-relevance discovery candidates (pending + approved, last 30 days)
     _sb.from('discovery_queue')
       .select('id,company_name,drug_name,area_id,relevance_score,competition_layer,overlap,reason,relevance_rationale,discovered_at,status')
@@ -9774,30 +9773,31 @@ async function loadTopOpps() {
       .order('relevance_score', { ascending: false })
       .limit(8),
 
-    // Upcoming catalysts (next 6 months, not resolved, key watches first)
+    // Upcoming catalysts (next 6 months, not resolved, key watches + high significance first)
     _sb.from('catalysts')
-      .select('id,company_id,drug_id,label,catalyst_type,catalyst_date,area_id,significance,is_key_watch,expected_impact')
+      .select('id,company_id,drug_id,label,catalyst_type,catalyst_date,sort_date,area_id,significance,is_key_watch,expected_impact')
       .eq('resolved', false)
-      .gte('catalyst_date', todayISO.slice(0,4))   // year >= current year
+      .lte('sort_date', in180days)
+      .gte('sort_date', todayISO)
       .order('is_key_watch', { ascending: false })
-      .order('catalyst_date', { ascending: true })
+      .order('sort_date', { ascending: true })
       .limit(8),
 
-    // Recent high-importance intel
+    // Recent high-importance intel (with company attribution)
     _sb.from('intel')
-      .select('id,headline,intel_date,source_url,importance,intel_type')
+      .select('id,headline,intel_date,source_url,importance,intel_type,primary_company_id')
+      .in('importance', ['high'])
       .gte('intel_date', cutoff14)
       .order('intel_date', { ascending: false })
       .limit(6),
 
-    // Recently enriched companies with strong scores
-    _sb.from('company_profiles')
-      .select('company_id,area_id,completeness_score,last_enriched_at,why_it_matters')
-      .gte('last_enriched_at', cutoff14 + 'T00:00:00Z')
-      .gte('completeness_score', 85)
-      .order('last_enriched_at', { ascending: false })
-      .limit(5),
+    // Companies name lookup
+    _sb.from('companies').select('id,name'),
   ]);
+
+  // Company name lookup map
+  const _coMap = {};
+  (coRes.value?.data || []).forEach(c => { _coMap[c.id] = c.name; });
 
   // Build unified item list
   const items = [];
@@ -9811,7 +9811,7 @@ async function loadTopOpps() {
       drug:      r.drug_name,
       area:      r.area_id,
       headline:  r.reason || r.relevance_rationale || '',
-      sub:       r.relevance_rationale || '',
+      sub:       '',
       date:      r.discovered_at?.slice(0,10),
       badge:     r.overlap,
       layer:     r.competition_layer,
@@ -9820,29 +9820,32 @@ async function loadTopOpps() {
     });
   });
 
-  // Upcoming catalysts
+  // Upcoming catalysts — high significance or key watches in window
   (catRes.value?.data || []).forEach(r => {
+    const coName = _coMap[r.company_id] || r.company_id || '';
+    const sigPriority = r.significance === 'high' ? 9 : r.significance === 'medium' ? 7 : 5;
     items.push({
       type:      'catalyst',
-      priority:  r.is_key_watch ? 9 : 7,
-      company:   r.company_id,
-      drug:      r.drug_id,
+      priority:  r.is_key_watch ? Math.max(sigPriority, 9) : sigPriority,
+      company:   coName,
+      drug:      r.drug_id || '',
       area:      r.area_id,
       headline:  r.label || r.catalyst_type || '',
       sub:       r.expected_impact || '',
-      date:      r.catalyst_date,
+      date:      r.sort_date || r.catalyst_date,
       badge:     r.catalyst_type,
-      status:    r.is_key_watch ? '⭐ Key Watch' : '',
+      status:    r.is_key_watch ? '⭐ Key Watch' : (r.significance === 'high' ? '● High Significance' : ''),
       link_tab:  null,
     });
   });
 
-  // Recent intel
+  // Recent high-importance intel with company attribution
   (intelRes.value?.data || []).forEach(r => {
+    const coName = r.primary_company_id ? (_coMap[r.primary_company_id] || r.primary_company_id) : '';
     items.push({
       type:      'intel',
-      priority:  r.importance === 'high' ? 8 : r.importance === 'medium' ? 6 : 5,
-      company:   '',
+      priority:  8,
+      company:   coName,
       drug:      '',
       area:      '',
       headline:  r.headline || '',
@@ -9851,23 +9854,6 @@ async function loadTopOpps() {
       badge:     r.intel_type,
       url:       r.source_url,
       status:    '',
-      link_tab:  null,
-    });
-  });
-
-  // Recent profile updates
-  (profRes.value?.data || []).forEach(r => {
-    items.push({
-      type:      'update',
-      priority:  5,
-      company:   r.company_id,
-      drug:      '',
-      area:      r.area_id,
-      headline:  r.why_it_matters ? r.why_it_matters.slice(0,90) + (r.why_it_matters.length>90?'…':'') : `Profile enriched · score ${r.completeness_score}`,
-      sub:       `Completeness: ${r.completeness_score}/100`,
-      date:      r.last_enriched_at?.slice(0,10),
-      badge:     '',
-      status:    `Score ${r.completeness_score}`,
       link_tab:  null,
     });
   });
@@ -9884,20 +9870,24 @@ async function loadTopOpps() {
     return (b.date||'') > (a.date||'') ? 1 : -1;
   });
 
-  const shown = items.slice(0, 10);
-  if (period) period.textContent = `· ${shown.length} developments`;
+  const shown = items.slice(0, 7);
+  if (period) period.textContent = `· ${shown.length} of ${items.length}`;
 
   body.innerHTML = shown.map((item, idx) => {
     const t = _TOP_OPPS_TYPE[item.type] || _TOP_OPPS_TYPE.intel;
     const areaTag = item.area ? `<span style="font-size:9px;font-weight:700;background:${AREA_BG[item.area]||'#f1f5f9'};color:${AREA_COLORS[item.area]||'#64748b'};padding:1px 5px;border-radius:8px;margin-left:4px">${AREA_LABELS[item.area]||item.area}</span>` : '';
     const layerTag = item.layer ? `<span style="font-size:9px;font-weight:700;color:#7c3aed;background:#f5f3ff;padding:1px 5px;border-radius:8px;margin-left:3px">L${item.layer}</span>` : '';
-    const co = item.company ? `<span style="font-weight:700;color:#0f172a">${item.company}</span>${item.drug ? ` <span style="color:#64748b">/ ${item.drug}</span>` : ''}${areaTag}${layerTag}` : '';
-    const dateStr = item.date ? `<span style="color:#cbd5e1;font-size:10px;margin-left:auto;padding-left:8px;white-space:nowrap">${item.date}</span>` : '';
+    const co = item.company ? `<span style="font-weight:700;color:#0f172a">${item.company}</span>${item.drug && item.drug !== item.company ? ` <span style="color:#64748b">/ ${item.drug}</span>` : ''}${areaTag}${layerTag}` : '';
+    const countdown = item.type === 'catalyst' ? catDaysTag(item.date) : '';
+    const dateStr = !countdown && item.date ? `<span style="color:#cbd5e1;font-size:10px;margin-left:auto;padding-left:8px;white-space:nowrap">${item.date}</span>` : '';
+    const srcBadge = item.type === 'intel' && !item.url ? _noSrcBadge() : '';
+    const srcLink = item.type === 'intel' && item.url ? `<a href="${item.url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(item.url)}</a>` : '';
     const statusStr = item.status ? `<span style="font-size:10px;color:#94a3b8;margin-top:2px">${item.status}</span>` : '';
     const navClick = item.link_tab ? `onclick="switchTabTo('${item.link_tab}')"` : item.url ? `onclick="window.open('${item.url}','_blank')"` : '';
     const clickCursor = (item.link_tab || item.url) ? 'cursor:pointer;' : '';
+    const isHot = item.priority >= 9;
 
-    return `<div ${navClick} style="${clickCursor}display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f8fafc;${idx===0?'border-top:0':''}${item.priority>=9?'background:#fffbeb':''}">
+    return `<div ${navClick} style="${clickCursor}display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f8fafc;${isHot?'background:#fffbeb;border-left:3px solid #f59e0b;':''}">
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:26px;margin-top:1px">
         <span style="font-size:11px;font-weight:900;color:${item.priority>=9?'#dc2626':item.priority>=7?'#d97706':'#94a3b8'}">${item.priority}</span>
         <div style="width:3px;height:3px;border-radius:50%;background:${t.color};opacity:0.5"></div>
@@ -9906,10 +9896,12 @@ async function loadTopOpps() {
         <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:3px">
           <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:${t.color};background:${t.bg};padding:1px 6px;border-radius:8px">${t.label}</span>
           ${co}
+          ${countdown}
           ${dateStr}
+          ${srcLink}${srcBadge}
         </div>
         <div style="font-size:11px;color:#374151;line-height:1.4">${item.headline}</div>
-        ${item.sub ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">${item.sub}</div>` : ''}
+        ${item.sub ? `<div style="font-size:10px;color:#6b7280;margin-top:2px;line-height:1.35">${item.sub}</div>` : ''}
         ${statusStr}
       </div>
     </div>`;
