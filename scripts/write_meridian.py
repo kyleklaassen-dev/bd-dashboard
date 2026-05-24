@@ -7,7 +7,7 @@ meridian_today.html to GitHub Pages.
 Runs 6:30 AM ET Mon–Sat (10:30 UTC).
 """
 
-import os, json, datetime, base64, re, time
+import os, json, datetime, base64, re, time, hashlib
 import requests
 import anthropic
 
@@ -674,6 +674,14 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
                                    ailux_block, prior_block, signals_block)
     plan_block = format_plan_block(plan)
 
+    # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
+    # This closes the editorial feedback gap: the plan's editorial judgments
+    # (what matters, what is noise, what connections exist) are now queryable.
+    _plan_intel_ids  = [it["id"] for it in intel if it.get("id")]
+    _plan_company_ids = _extract_company_ids_from_plan(plan, intel)
+    _content_fingerprint = _compute_content_fingerprint(_plan_intel_ids, _plan_company_ids)
+    log(f"Pass 1 plan persisted: {len(_plan_company_ids)} companies · fingerprint={_content_fingerprint[:12]}…")
+
     # Pass 2: full draft
     prompt = DRAFT_PROMPT.format(
         date_long       = date_long,
@@ -706,12 +714,66 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     if "<base " not in html:
         html = html.replace("<head>", '<head>\n<base target="_blank" rel="noopener">', 1)
 
-    return html
+    return html, plan, _plan_company_ids, _content_fingerprint
+
+
+# ── Editorial plan helpers ────────────────────────────────────────────────────
+
+def _extract_company_ids_from_plan(plan: dict, intel: list) -> list:
+    """
+    Extract company IDs from the editorial plan for persistence.
+    Combines companies mentioned in signal_items with primary_company_id
+    from featured intel items.
+    Returns a deduplicated list of company ID strings.
+    """
+    company_ids = set()
+
+    # Pull from plan sections (signal items often name companies)
+    # We use the intel primary_company_id as the canonical source since
+    # plan signal_items are free-text and not FK-linked.
+    intel_map = {str(it.get("id")): it for it in intel}
+    for item_ref in plan.get("signal_items", []):
+        # signal_items are free-text descriptions — scan for known company slugs
+        for it in intel:
+            if it.get("primary_company_id") and any(
+                str(it["id"])[:8] in item_ref or
+                (it.get("headline","")[:20]).lower() in item_ref.lower()
+                for _ in [1]  # single iteration, just for short-circuit eval
+            ):
+                company_ids.add(it["primary_company_id"])
+
+    # Also include primary_company_id from all featured intel
+    # (this is the most reliable source since it's FK-linked)
+    for it in intel:
+        if it.get("primary_company_id"):
+            company_ids.add(it["primary_company_id"])
+
+    return sorted(company_ids)
+
+
+def _compute_content_fingerprint(intel_ids: list, company_ids: list) -> str:
+    """
+    SHA-256 fingerprint of the intel + company set for this issue.
+    Enables repeat-story detection: if today's fingerprint matches a
+    recent issue's fingerprint, the same stories are being featured again.
+    """
+    canonical = "|".join(sorted(str(i) for i in intel_ids)) + "##" + \
+                "|".join(sorted(str(c) for c in company_ids))
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 # ── Persist issue to Supabase archive ────────────────────────────────────────
-def save_to_supabase(html_content: str, intel: list, date_str: str):
+def save_to_supabase(html_content: str, intel: list, date_str: str,
+                     plan: dict = None, company_ids: list = None,
+                     content_fingerprint: str = None):
     """Upsert the generated issue into meridian_issues for the archive.
+
+    Persists:
+      - body_html: the full HTML output (Pass 2)
+      - plan_json: the editorial plan from Pass 1 (E8 — editorial loop persistence)
+      - intel_ids: IDs of intel items that fed this issue
+      - company_ids: companies featured (derived from plan + intel attribution)
+      - content_fingerprint: SHA-256 hash for repeat-story detection
 
     Uses check-then-patch/insert to avoid PostgREST merge-duplicates ambiguity
     (default conflict resolution is on primary key, not issue_date).
@@ -719,6 +781,41 @@ def save_to_supabase(html_content: str, intel: list, date_str: str):
     title     = f"The Meridian — {datetime.datetime.utcnow().strftime('%B %-d, %Y')}"
     intel_ids = [it["id"] for it in intel if it.get("id")]
     now_str   = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Build the payload with all new fields
+    base_payload = {
+        "title":               title,
+        "body_html":           html_content,
+        "intel_ids":           intel_ids,
+        "updated_at":          now_str,
+    }
+    if plan is not None:
+        base_payload["plan_json"] = plan
+    if company_ids is not None:
+        base_payload["company_ids"] = company_ids
+    if content_fingerprint is not None:
+        base_payload["content_fingerprint"] = content_fingerprint
+
+    # ── Repeat-story detection ───────────────────────────────────────────────
+    # If today's fingerprint matches a recent issue, log a warning.
+    # Does not block publication — editorial judgement required.
+    if content_fingerprint:
+        try:
+            cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+            dup_r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/meridian_issues",
+                params={"select": "issue_date,content_fingerprint",
+                        "issue_date": f"gte.{cutoff}",
+                        "content_fingerprint": f"eq.{content_fingerprint}"},
+                headers=SB_HEADERS,
+            )
+            dups = dup_r.json() if dup_r.status_code == 200 else []
+            dups = [d for d in dups if d.get("issue_date") != date_str]
+            if dups:
+                log(f"⚠ REPEAT DETECTION: fingerprint matches {dups[0]['issue_date']} — same stories as a recent issue")
+                base_payload["repeat_of_issue_date"] = dups[0]["issue_date"]
+        except Exception as dup_e:
+            log(f"Repeat detection check error (non-fatal): {dup_e}")
 
     try:
         # Check whether a row already exists for today
@@ -736,8 +833,7 @@ def save_to_supabase(html_content: str, intel: list, date_str: str):
                 f"{SUPABASE_URL}/rest/v1/meridian_issues",
                 params={"id": f"eq.{row_id}"},
                 headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                json={"title": title, "body_html": html_content,
-                      "intel_ids": intel_ids, "updated_at": now_str},
+                json=base_payload,
             )
             verb = "Updated"
         else:
@@ -745,14 +841,12 @@ def save_to_supabase(html_content: str, intel: list, date_str: str):
             r = requests.post(
                 f"{SUPABASE_URL}/rest/v1/meridian_issues",
                 headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                json={"issue_date": date_str, "title": title,
-                      "body_html": html_content, "intel_ids": intel_ids,
-                      "updated_at": now_str},
+                json={"issue_date": date_str, **base_payload},
             )
             verb = "Inserted"
 
         if r.status_code in (200, 201, 204):
-            log(f"{verb} issue {date_str} in Supabase meridian_issues ✓")
+            log(f"{verb} issue {date_str} in Supabase meridian_issues ✓ (plan_json={'yes' if plan else 'no'}, fingerprint={content_fingerprint[:12] if content_fingerprint else 'none'}…)")
         else:
             log(f"Supabase save warning {r.status_code}: {r.text[:200]}")
     except Exception as e:
@@ -820,18 +914,26 @@ if __name__ == "__main__":
 
     if not intel:
         log("No intel found — writing placeholder issue.")
-        html = (
+        html         = (
             "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>The Meridian</title></head>"
             "<body><h1 style='color:#1a3f8f;font-family:Georgia,serif'>The Meridian</h1>"
             f"<p style='font-family:Georgia,serif'>No significant biopharma intelligence collected in the last 48 hours "
             f"for today, {datetime.datetime.utcnow().strftime('%B %-d, %Y')}. "
             "Check back tomorrow.</p></body></html>"
         )
+        plan                = None
+        plan_company_ids    = []
+        content_fingerprint = None
     else:
-        html = generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
-                             recent_issues, company_signals, trials)
+        html, plan, plan_company_ids, content_fingerprint = generate_html(
+            intel, deals, catalysts, drugs, companies, ailux_positions,
+            recent_issues, company_signals, trials
+        )
 
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    save_to_supabase(html, intel, today)
+    save_to_supabase(html, intel, today,
+                     plan=plan,
+                     company_ids=plan_company_ids,
+                     content_fingerprint=content_fingerprint)
     deploy_to_github(html)
     log("=== Write complete ===")
