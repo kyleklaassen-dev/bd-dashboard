@@ -1,5 +1,89 @@
 
 ---
+## 2026-05-24 (Session 29) — Relationship Completeness Sprint (Phases 1–3)
+
+**Commits:** `691ccde5` (v26 entity_edges), `f182e2ba`+`84b4636f` (seed_competes_with), `a12da308` (validate), `0791228c` (seed_targets), `5cc7b9c9` (v27), `964fe833` (v28), `84d58dbc` (company_intake)
+
+### Phase 1 — COMPETES_WITH edges (deterministic)
+- **Migration v26:** `entity_edges` universal predicate table — subject/object/predicate graph layer, UNIQUE constraint, 5 indexes, compound index for COMPETES_WITH lookups
+- **Rule:** two drugs compete when both are `overlap='Direct'` in same area, share same normalized target, neither Terminated → bidirectional rows (A→B + B→A)
+- **Seeded:** 600 bidirectional COMPETES_WITH edges across 5 areas (atopy, fcrn, ibd, respiratory, tl1a) — 300 unique drug pairs
+- **Validation:** 172 `competes_with_edge_exists` tests inserted; `validate_ground_truth.py` extended with new test type
+- **Uncertain cases documented:** SPY230, CLN-978, amlitelimab, nemolizumab, benralizumab, APG279 (unmapped or ambiguous bispecific notation)
+
+### Phase 2 — Normalized target nodes
+- **Migration v27:** `targets` table extended with `target_class`, `pathway`, `alt_names`, `notes`, timestamps; `drug_targets` junction table created (drug_id + target_id FK + role + confidence_level); indexed
+- **Targets catalog:** 39 canonical entries (38 original + tl1a_a4b7) — monospecifics + bispecific pairs + trispecific composites
+- **Backfill:** 173 `drug_targets` rows covering 80/95 area-linked drugs (84.2% coverage); 137 `entity_edges TARGETS` rows
+- **Uncertain (documented):** 17 drugs — trispecifics (LQ082, CND319, CND460), genuine dual-inhibitors (JAK1/2, IL-17A/F), combo study entries (guselkumab+golimumab)
+- **Unmapped (niche targets outside BD scope):** 27 drugs — RIPK1, IgE, CLDN18.2, BAFF-R, C5, CD40, etc.
+- **Validation test:** `phase2_target_node_coverage` inserted (id=1076, expected ≥80%, actual 84.2%)
+- **seed_targets.py fix:** `name` → `label` transform before DB insert; tl1a_a4b7 added to BISPECIFIC_COMPONENTS
+
+### Phase 3 — deal_id FK on ownership_edges
+- **Migration v28:** `ownership_edges.deal_id INTEGER REFERENCES deals(id)` + index
+- **Backfill:** 13 edges across 3 known acquisitions:
+  - UCB/Candid (deal 19): 7 edges (ACQUIRED + 3 drugs × ORIGINATED_BY + CONTROLLED_BY)
+  - UCB/Antengene (deal 167): 3 edges (LICENSED_IN + ORIGINATED_BY + LICENSED_FROM)
+  - Merck/Prometheus (deal 28): 3 edges (ACQUIRED + tulisokibart × ORIGINATED_BY + CONTROLLED_BY)
+- **Transaction Intake rule:** `write_acquisition_edges()` + `write_license_edges()` added to company_intake.py — future acquisition writes will auto-set deal_id
+
+### Validation suite
+- **Total tests:** 1000 (up from 828 at sprint start: +172 COMPETES_WITH + 1 coverage_metric)
+- **Result:** 979 pass / 16 fail / 5 skip
+- **Failures:** all pre-existing — company_area_check (12), overlap_check (3), confidence_requires_source (1)
+
+---
+## 2026-05-24 (Session 28b) — Pill Fix + HXN-1002 Addition
+
+**Commit:** `68ed0c16` (index.html), data-only (HXN-1002)
+
+**Originator pill override fix:**
+- Visual QA revealed wrong pills on controlled drugs: cizutamig showing "w/ EpimAb", CND319 showing "w/ WuXi", sim0709 showing "w/ BI", erd-1 showing "w/ Sanofi", CND460 showing "w/ Candid ?"
+- Root cause: legacy `partner_company` / `licensor_name` / `entity_name` fields (set from the originator's perspective) were overriding `display_partner_name` at render time
+- Fix: when `isCtrl=true` at filter time in all three entry points (`openCompanySlideOver`, `_makeAreaPI._loadDynamicDetail`, `tl1aPI._loadDynamicDetail`), override `d.partner_company`, `d.licensor_name`, `d.entity_name`, and set `d.partnership_verified=true`. This ensures pills always show the correct originator from the controller's perspective.
+- The "?" badge (`_pvMark`) no longer appears on any controlled drug.
+
+**HXN-1002 added to database (no code change):**
+- α4β7×TL1A bispecific antibody, licensed from Earendil to Sanofi alongside HXN-1003
+- Drug row: `id='hxn-1002'`, `company_id='earendil'`, `current_owner_company_id='sanofi'`, `stage='Preclinical'`
+- drug_areas: tl1a + ibd (both Direct)
+- ownership_edges: ORIGINATED_BY earendil, CONTROLLED_BY sanofi, LICENSED_FROM earendil
+- Will appear in Sanofi's TL1A and IBD dossiers with "w/ Earendil" pill (no deploy needed — frontend already reads ownership_edges)
+
+---
+## 2026-05-24 (Session 28) — Ownership Model: _loadDynamicDetail fix + licensing backfill
+
+**Commit:** `8d2988cf`
+
+**Root cause fixed — CND drugs not showing under UCB:**
+- `_makeAreaPI._loadDynamicDetail` and `tl1aPI._loadDynamicDetail` both fetched drugs via `company_id = companyId` only — completely ignoring `ownership_edges`. CND drugs (company_id='candid') were never fetched when expanding UCB's row.
+- Fix: both methods now query ownership_edges for `CONTROLLED_BY` edges first, then build an OR query (`company_id.eq.X,id.in.(controlled_ids)`). The area filter uses `isControlledAsset` bypass for controlled drugs.
+- Originator pill resolves via `_originator_name` ← ORIGINATED_BY edge lookup, with `display_partner_name` as DB fallback.
+
+**Sanofi/Earendil — erd-1 (ERD-1/HXN-1003):**
+- Root cause: company_id='earendil' with no CONTROLLED_BY edge → erd-1 was invisible in Sanofi's dossier.
+- Added ownership_edges: ORIGINATED_BY earendil, CONTROLLED_BY sanofi, LICENSED_FROM earendil
+- Updated drugs table: `current_owner_company_id='sanofi'`, `originator_company_id='earendil'`, `ownership_status='licensed'`, `display_partner_name='Earendil'`
+
+**Broad licensing backfill — 4 more drugs updated:**
+
+| Drug | Controller | Originator | Type |
+|---|---|---|---|
+| sim0709 | boehringer | simcere | licensed |
+| afimkibart | roche | telavant | acquired |
+| amlitelimab | sanofi | kymab | acquired |
+| duvakitug | sanofi | teva | licensed |
+
+- sim0709: Added CONTROLLED_BY boehringer + ORIGINATED_BY simcere edges. Updated drugs table. Telavant marked acquired by roche.
+- afimkibart: Added ORIGINATED_BY telavant edge. Updated drugs table.
+- amlitelimab/duvakitug: Updated ownership fields only (company_id already correct, no new edges needed).
+
+**Total CONTROLLED_BY edges: 6** (cizutamig/cnd319/cnd460→ucb, tulisokibart→merck, erd-1→sanofi, sim0709→boehringer)
+
+**HXN-002 note:** Not found in DB. User may be referring to ear-2001 (EAR-2001, Earendil's own anti-TL1A program — separate from the Sanofi-licensed erd-1). No action taken.
+
+---
 ## 2026-05-24 (Session 27) — UCB/Candid Acquisition Backfill
 
 **Commit:** `logs only — data patch, no index.html change`
