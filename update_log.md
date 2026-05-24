@@ -1,5 +1,42 @@
 
 ---
+## 2026-05-24 (Session 43) — P2: competitive_signals table + seed + enrichment wire-up + UI
+
+**Migration v33 — competitive_signals table (Supabase)**
+- New table: `competitive_signals` (12 cols, 5 indexes, 3 check constraints + 2 FK constraints)
+- signal_type ENUM: conference | patent | financing | publication | licensing | regulatory | clinical_update
+- company_id + drug_id both nullable; has_entity CHECK ensures at least one is set
+
+**Seed script — scripts/seed_competitive_signals.py**
+- 17 curated TED landscape signals: 8 clinical_update, 6 conference, 2 regulatory, 1 financing
+- Coverage: veligrotug, elegrobart, OLN102, SP-1351, CRN12755, YB-101, linsitinib, teprotumumab, batoclimab
+
+**Enrichment wire-up — company_enrichment.py**
+- `competitive_signals` array added to Step 5 prompt output schema: 0-5 past events per run
+- Write block in write_step5() after news_items: validates type + source_url + drug_id; dedup by (company_id, title)
+
+**UI — index.html**
+- `_loadDynamicDetail`: fetches competitive_signals for company×area (max 10, desc by source_date)
+- `_genericDetailHTML`: renders `📡 Competitive Signals` card below Catalysts/News grid
+- Per signal: YYYY-MM date | color-coded type badge (CONF/READOUT/REG/$/PATENT/PUB/DEAL) | linked title | 180-char description
+- Scrollable if >4 signals; hidden entirely if no signals for that entity
+
+Commits: b74c1170 (index.html) · a3cde8b6 (enrichment) · c883a595 (seed) · 687c8ed1 (migration)
+
+---
+## 2026-05-24 (Session 42c) — Move overlap badge from company row to drug prog-bubble
+
+**index.html — `_makeAreaPI` factory**
+
+### Changes
+- **Company row (`threatCell`)**: Removed `_ovBadge` (Direct/Adjacent/Same-Space/Watch). The relevance badge ("Very High", "High", etc.) remains. Left-border color already conveys tier visually. Cell degrades to `—` if no relevance data.
+- **Drug prog-bubble (`_entityDetailFallback`)**: Added `_ovBadge(p.overlap)` to each program bubble, placed after the target label. Each drug now shows its own overlap tier inline in the expanded view.
+- **Condition change**: Bubble section now renders for `programs.length > 0` (was `> 1`), so single-drug companies also show their drug in a bubble with the overlap badge when expanded.
+- Applies to all area tabs automatically (shared `_makeAreaPI` renderer).
+
+Commit: 48ee0b0b
+
+---
 ## 2026-05-24 (Session 42b) — Relevance sort: wire competitive_relevance into _makeAreaPI
 
 **index.html — `_makeAreaPI` factory**
