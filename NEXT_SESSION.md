@@ -1,17 +1,17 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-24 (Session 35)  
-**Last work:** Source Coverage Sprint — scoring v1.2 + backfill  
+**Written:** 2026-05-24 (Session 35 cont.)  
+**Last work:** Ownership Coverage Sprint — backfill + deal_linkage scoring fix  
 **Validation:** 993 pass / 0 fail / 7 skip ✅
 
 ---
 
-## Session 35 Summary — Source Coverage Sprint
+## Session 35 Summary — Ownership Coverage Sprint (cont.)
 
 ### What was built
-- `compute_coverage.py` v1.2 — source_coverage denominator = confirmed+supported only
-- `scripts/backfill_sources.py` — Phase 1: drug URL patches; Phase 2: drug→DAS cascade
-- `company_enrichment.py` — E6-R3 warning: supported + no source_url → log warning
+- `scripts/backfill_ownership_edges.py` — 28 new ORIGINATED_BY/LICENSED_IN edges for partner_company drugs
+- `compute_coverage.py` — `score_deal_linkage()` fix: ORIGINATED_BY excluded from deal denominator
+- 4 ownership_edges linked to existing deal records (qx030n, kt501, fg-m701, duvakitug)
 
 ### Coverage result (end of Session 35)
 | Dimension | Score | Change | Flag |
@@ -19,17 +19,32 @@
 | Molecule intelligence | 99.5 | — | ✅ |
 | Deal linkage | 97.1 | — | ✅ |
 | Target mapping | 97.1 | — | ✅ |
-| Source coverage | **89.0** | **+29.5** | ✅ |
+| Source coverage | 89.0 | +29.5 | ✅ |
 | Confidence coverage | 82.7 | — | ✅ |
 | Profile completeness | 73.9 | +5.6 | ok |
 | Enrichment recency | 70.4 | — | ok |
-| Ownership coverage | 57.7 | — | ⚠ |
+| **Ownership coverage** | **100.0** | **+42.3** | ✅ |
 | Catalyst coverage | 53.6 | — | ⚠ |
 
-**Platform average: 79.1 / 100** (was 72.8)
+**Platform average: 83.0 / 100** (was 79.1, +3.9)
+
+### Key insight: ownership sprint
+- 28 drugs had partner_company set but no ownership_edge → backfilled with ORIGINATED_BY/LICENSED_IN
+- Scoring fix was critical: ORIGINATED_BY edges (company invented the drug) excluded from deal_linkage denominator
+- Only LICENSED_IN, ACQUIRED, SPUN_OUT_FROM require deal_id linkage
+- Remaining gap: 24 transactional edges with no matching deal record (foundational historical partnerships)
+
+---
+
+## Session 35 Source Sprint Summary
+
+### What was built
+- `compute_coverage.py` v1.2 — source_coverage denominator = confirmed+supported only
+- `scripts/backfill_sources.py` — Phase 1: drug URL patches; Phase 2: drug→DAS cascade
+- `company_enrichment.py` — E6-R3 warning: supported + no source_url → log warning
 
 ### Key insight: scoring fix vs. backfill
-The 29.5-point jump was primarily the scoring fix (v1.2):
+The 29.5-point source jump was primarily the scoring fix (v1.2):
 - `inferred`/`null` rows were counting against the denominator
 - These represent model inferences, not sourced claims — shouldn't require source_url
 - After fix: denominator = confirmed (50) + supported (74) = 124 rows, ~100% covered
@@ -62,21 +77,17 @@ The Meridian no longer needs to reconstruct competitive structure from LLM memor
 Source coverage: 59.5 → 89.0 (+29.5). Platform average: 72.8 → 79.1 (+6.3).
 compute_coverage.py v1.2: denominator = confirmed+supported only. backfill_sources.py written.
 
-### P1 — Ownership coverage sprint (57.7 → 70 target)
-Licensed-in drugs (drugs.partner_company set) should have ownership_edges.
+### ✅ P2 — Ownership coverage sprint — DONE (Session 35 cont.)
+Ownership coverage: 57.7 → 100.0 (+42.3). Platform average: 79.1 → 83.0 (+3.9).
+28 ORIGINATED_BY/LICENSED_IN edges inserted. deal_linkage scoring fix: ORIGINATED_BY excluded from denominator.
 
-### P3 — Ownership coverage sprint (57.7 → 70 target)
-Licensed-in drugs should have ownership_edges (ORIGINATED_BY / LICENSED_IN).
-- Query: drugs WHERE partner_company IS NOT NULL + LEFT JOIN ownership_edges → gaps
-- Build backfill_ownership_edges.py
-
-### P4 — Wire compute_coverage.py into nightly schedule
+### P1 — Wire compute_coverage.py into nightly schedule
 Add scheduled GitHub Action or Cowork task calling compute_coverage.py nightly.
 
-### P5 — Catalyst coverage (53.6 → 60+)
+### P2 — Catalyst coverage (53.6 → 60+)
 Add catalysts for Phase 2 programs with estimable readout windows.
 
-### P6 — Coverage dashboard
+### P3 — Coverage dashboard
 Surface coverage_scores + recommended_actions_json in Meridian dashboard view.
 
 ---
