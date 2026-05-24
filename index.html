@@ -630,9 +630,24 @@ body { padding-bottom:0; }
 .cat-sort-btn { font-size:10px; padding:2px 9px; border:1px solid #d1d5db; border-radius:10px; background:#fff; color:#475569; cursor:pointer; font-weight:600; transition:all .15s; }
 .cat-sort-btn.active { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
 .cat-sort-btn:hover:not(.active) { background:#f1f5f9; border-color:#94a3b8; }
-.cat-hi-watch { font-size:8.5px; font-weight:800; background:#dc2626; color:white; padding:1px 6px; border-radius:8px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
-.cat-item-high { background:linear-gradient(90deg,#fff7f0,#fff); border-left:3px solid #dc2626 !important; padding-left:10px !important; margin-left:-3px; }
 .cat-filter-bar { padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e8edf3; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+/* ── Unified Catalysts & Signals panel ── */
+.uni-filter-bar { display:flex; flex-wrap:wrap; gap:5px; padding:6px 0 3px; }
+.uni-pill { padding:3px 11px; border-radius:12px; border:1.5px solid #dde3ea; background:white; color:#4b5563; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.uni-pill:hover { background:#f1f5f9; border-color:#94a3b8; }
+.uni-pill.active { background:#1e4a82; color:white; border-color:#1e4a82; }
+.uni-item { padding:10px 0; border-bottom:1px solid #f1f5f9; }
+.uni-item:last-child { border-bottom:none; }
+.uni-item.sig-high { border-left:3px solid #1e4a82; padding-left:10px; margin-left:-2px; background:linear-gradient(to right,#f8fafd,transparent 70%); }
+.uni-meta { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:5px; }
+.uni-type-pill { font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:8px; white-space:nowrap; }
+.uni-headline { font-size:12px; font-weight:600; color:#0f172a; line-height:1.45; text-decoration:none; display:block; }
+.uni-headline:hover { color:#1d4ed8; text-decoration:underline; }
+.uni-notes { font-size:11px; color:#64748b; line-height:1.4; margin-top:3px; }
+.uni-date { font-size:9.5px; color:#94a3b8; white-space:nowrap; }
+.uni-countdown { font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px; white-space:nowrap; margin-left:2px; }
+.uni-section-hd { font-size:9.5px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; padding:10px 0 5px; border-top:1px solid #f1f5f9; margin-top:4px; }
+.uni-section-hd:first-child { border-top:none; padding-top:0; }
 .deal-row { padding: 8px 0; border-bottom: 1px solid #eef1f5; font-size: 13px; color: #1a2e4a; }
 .deal-row:last-child { border-bottom: none; }
 .deal-row .deal-co { font-weight: 800; color: #1a2f50; }
@@ -2065,178 +2080,194 @@ function dealFilter(btn, area) {
   renderDeals(filtered);
 }
 
-// ── Catalysts Feed ───────────────────────────────────────────────────────────
-let _allCatalysts = [];
-let _catSortMode  = 'relevance';
-let _catAreaFilter = '';
+// ── Catalysts & Signals — Unified Feed ───────────────────────────────────────
+let _allCatalysts = []; // raw catalyst rows (backward compat)
+let _allUnified   = []; // merged unified feed
+let _uniTypeFilter = '';
+let _uniAreaFilter = '';
 
-const SIG_STYLE = {
-  high:   { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'High' },
-  medium: { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706', label: 'Medium' },
-  low:    { bg: '#f0fdf4', border: '#86efac', dot: '#16a34a', label: 'Low' },
-};
-const CAT_TYPE_ICON = {
-  readout: '📊', filing: '📋', approval: '✅', conference: '🎤', deal: '🤝', default: '📌'
-};
 const SIG_ORDER = { high: 0, medium: 1, low: 2 };
 
-function sortCatalysts(cats) {
-  const open = cats.filter(c => !c.resolved);
-  const resolved = cats.filter(c => c.resolved);
-  const sort = (arr) => {
-    const a = [...arr];
-    if (_catSortMode === 'relevance') {
-      return a.sort((x,y) => {
-        const sx = SIG_ORDER[x.significance] ?? 1;
-        const sy = SIG_ORDER[y.significance] ?? 1;
-        if (sx !== sy) return sx - sy;
-        return (x.sort_date||'9999').localeCompare(y.sort_date||'9999');
-      });
-    } else if (_catSortMode === 'recent') {
-      return a.sort((x,y) => (y.sort_date||'0').localeCompare(x.sort_date||'0'));
-    } else { // soonest
-      return a.sort((x,y) => (x.sort_date||'9999').localeCompare(y.sort_date||'9999'));
-    }
-  };
-  return { open: sort(open), resolved: sort(resolved) };
+const UNI_TYPE_STYLE = {
+  readout:         { label:'Readout',       bg:'#eff6ff', color:'#1d4ed8' },
+  filing:          { label:'Filing',        bg:'#f0fdf4', color:'#15803d' },
+  approval:        { label:'Approval',      bg:'#dcfce7', color:'#166534' },
+  conference:      { label:'Conference',    bg:'#faf5ff', color:'#6d28d9' },
+  deal:            { label:'Deal',          bg:'#ecfdf5', color:'#047857' },
+  trial_update:    { label:'Trial Update',  bg:'#f0fdf4', color:'#15803d' },
+  press_release:   { label:'Press Release', bg:'#eff6ff', color:'#1d4ed8' },
+  fda:             { label:'FDA',           bg:'#fef2f2', color:'#b91c1c' },
+  pipeline_change: { label:'Pipeline',      bg:'#fff7ed', color:'#c2410c' },
+  abstract:        { label:'Abstract',      bg:'#faf5ff', color:'#6d28d9' },
+  financing:       { label:'Financing',     bg:'#ecfdf5', color:'#047857' },
+  intel:           { label:'Intel',         bg:'#f1f5f9', color:'#475569' },
+};
+
+function _gUrl(text) {
+  return 'https://www.google.com/search?q=' + encodeURIComponent(text);
 }
 
-function renderCatalysts(cats) {
+function uniTypeFilter(btn, type) {
+  document.querySelectorAll('#uni-type-bar .uni-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _uniTypeFilter = type;
+  _applyUniFilters();
+}
+function uniAreaFilter(btn, area) {
+  document.querySelectorAll('#uni-area-bar .uni-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _uniAreaFilter = area;
+  _applyUniFilters();
+}
+function _applyUniFilters() {
+  let items = [..._allUnified];
+  if (_uniTypeFilter) items = items.filter(i => i.catType === _uniTypeFilter);
+  if (_uniAreaFilter) items = items.filter(i => i.area_id === _uniAreaFilter);
+  renderCatalysts(items);
+}
+
+function renderCatalysts(items) {
   const list = document.getElementById('catalysts-list');
   if (!list) return;
-  if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
+  if (!items.length) {
+    list.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:12px;text-align:center;">No items match your filters.</div>';
+    return;
+  }
 
-  // Always sort by significance first (high → medium → low), then date
-  const open     = cats.filter(c => !c.resolved).sort((x,y) => {
-    const sx = (SIG_ORDER[x.significance] ?? 1), sy = (SIG_ORDER[y.significance] ?? 1);
-    if (sx !== sy) return sx - sy;
-    return (x.sort_date||'9999').localeCompare(y.sort_date||'9999');
-  });
-  const resolved = cats.filter(c => c.resolved);
-
-  const catFmtDate = (sd, fallback) => {
-    if (!sd) return fallback || '';
+  const fmtDate = (sd) => {
+    if (!sd) return '';
     try {
       const [y, m, d] = sd.split('-').map(Number);
       const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]||'';
-      if (d === 1 || d === 15) return `${mn} ${y}`;
-      return `${mn} ${d}, ${y}`;
-    } catch(e) { return fallback || sd; }
+      if (!d || d === 1 || d === 15) return `${mn} ${y}`;
+      return `${mn} ${d}`;
+    } catch(e) { return sd; }
   };
 
-  // Pinned HIGH significance items — shown as featured cards at top
-  const pinned = open.filter(c => c.significance === 'high' || c.is_key_watch);
-  const rest   = open.filter(c => c.significance !== 'high' && !c.is_key_watch);
+  const renderItem = (item) => {
+    const ts   = UNI_TYPE_STYLE[item.catType] || { label: item.catType || 'Update', bg:'#f8fafc', color:'#64748b' };
+    const area = AREA_LABELS[item.area_id] || '';
+    const areaColor = AREA_COLORS[item.area_id] || '#64748b';
+    const areaBg    = AREA_BG[item.area_id]    || '#f1f5f9';
+    const areaPill  = area ? `<span class="uni-type-pill" style="background:${areaBg};color:${areaColor};">${area}</span>` : '';
+    const typePill  = `<span class="uni-type-pill" style="background:${ts.bg};color:${ts.color};">${ts.label}</span>`;
+    const countdown = item.srcType === 'catalyst' && !item.resolved ? catDaysTag(item.sortDate) : '';
+    const dateStr   = fmtDate(item.sortDate);
+    const isHigh    = item.significance === 'high';
+    const opacity   = item.resolved ? 'opacity:0.45;' : '';
+    const gLink     = _gUrl(item.label);
 
-  const renderPinned = (c) => {
-    const area = AREA_LABELS[c.area_id] || '';
-    const areaPill = area ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[c.area_id]||'#2563eb'};background:${AREA_BG[c.area_id]||'#eff6ff'};padding:1px 6px;border-radius:8px;">${area}</span>` : '';
-    const countdown = catDaysTag(c.sort_date);
-    const dateStr   = catFmtDate(c.sort_date, c.catalyst_date);
-    return `<div style="padding:9px 0 9px;border-bottom:1px solid #fee2e2;" data-area="${c.area_id||''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
-        <div style="font-size:12.5px;font-weight:800;color:#0d1f38;line-height:1.4;flex:1;">${c.label||''}</div>
-        <div style="flex-shrink:0;text-align:right;">
-          ${countdown}
-          <div style="font-size:9.5px;color:#dc2626;font-weight:700;margin-top:2px;">${dateStr}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:${c.notes?'5px':'0'};">
-        ${areaPill}
-      </div>
-      ${c.notes ? `<div style="font-size:11px;color:#374151;line-height:1.5;background:#fff;border-left:3px solid #fca5a5;padding:5px 9px;border-radius:0 4px 4px 0;">${c.notes}</div>` : ''}
-    </div>`;
-  };
-
-  const renderItem = (c, isResolved) => {
-    const sig  = SIG_STYLE[c.significance] || SIG_STYLE.medium;
-    const area = AREA_LABELS[c.area_id] || c.area_id || '';
-    const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
-    const countdown = isResolved
-      ? `<span style="font-size:9px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 6px;border-radius:8px;">✓ Done</span>`
-      : catDaysTag(c.sort_date);
-    const dateStr = catFmtDate(c.sort_date, c.catalyst_date);
-    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="display:flex;align-items:flex-start;gap:0;padding:8px 2px 8px 0;border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.5':'1'};">
-  <div style="flex-shrink:0;width:72px;padding-right:8px;padding-top:1px;">
-    <div style="font-size:10px;font-weight:700;color:#1e3a5f;line-height:1.35;">${dateStr}</div>
-  </div>
-  <div style="flex:1;min-width:0;padding-right:8px;">
-    <div style="font-size:11.5px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};line-height:1.4;">${c.label||''}</div>
-    ${c.notes ? `<div style="font-size:10.5px;color:#64748b;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
-    ${resolvedNote}
-  </div>
-  <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:80px;">
+    return `<div class="uni-item${isHigh ? ' sig-high' : ''}" style="${opacity}">
+  <div class="uni-meta">
+    ${typePill}${areaPill}
     ${countdown}
-    <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
-      <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;white-space:nowrap;">${sig.label}</span>
-      ${area ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[c.area_id]||'#2563eb'};background:${AREA_BG[c.area_id]||'#eff6ff'};padding:1px 5px;border-radius:8px;white-space:nowrap;">${area}</span>` : ''}
-    </div>
+    <span class="uni-date">${dateStr}</span>
   </div>
+  <a class="uni-headline" href="${gLink}" target="_blank" rel="noopener">${item.label}</a>
+  ${item.notes ? `<div class="uni-notes">${item.notes}</div>` : ''}
+  ${item.resolved && item.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${item.resolved_note}</div>` : ''}
 </div>`;
   };
 
-  let catHtml = '';
+  // Sort: high-significance first among open items, then by date desc; resolved last
+  const open = items.filter(i => !i.resolved).sort((a, b) => {
+    const sa = SIG_ORDER[a.significance] ?? 1, sb = SIG_ORDER[b.significance] ?? 1;
+    if (sa !== sb) return sa - sb;
+    return (b.sortDate||'0').localeCompare(a.sortDate||'0');
+  });
+  const resolved = items.filter(i => i.resolved);
 
-  // ── Pinned "Key Watch" section ────────────────────────────────────────────
-  if (pinned.length) {
-    catHtml += `<div style="margin-bottom:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;padding:4px 12px 2px;">
-      <div style="display:flex;align-items:center;gap:5px;padding:6px 0 4px;border-bottom:1px solid #fee2e2;margin-bottom:2px;">
-        <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#dc2626;">🔴 Key Watch</span>
-        <span style="font-size:9px;color:#ef4444;background:#fef2f2;padding:1px 6px;border-radius:6px;font-weight:700;">High Significance</span>
-      </div>
-      ${pinned.map(renderPinned).join('')}
-    </div>`;
+  const SHOW = 8;
+  const visible = open.slice(0, SHOW);
+  const hidden  = open.slice(SHOW);
+
+  let html = visible.map(renderItem).join('');
+  if (hidden.length) {
+    html += `<div id="catalysts-more" style="display:none">${hidden.map(renderItem).join('')}</div>`;
+    html += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:8px 0 4px;padding:6px 0;font-size:11px;font-weight:600;color:#1e4a82;background:#f0f6ff;border:1.5px solid #bfdbfe;border-radius:8px;cursor:pointer;">Show ${hidden.length} more ↓</button>`;
   }
-
-  // ── Remaining (medium/low) ────────────────────────────────────────────────
-  const CAT_SHOW = 4;
-  const restVisible = rest.slice(0, CAT_SHOW);
-  const restHidden  = rest.slice(CAT_SHOW);
-  if (rest.length) {
-    catHtml += `<div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:6px 0 4px;">On Radar</div>`;
-    catHtml += restVisible.map(c => renderItem(c, false)).join('');
-    if (restHidden.length) {
-      catHtml += `<div id="catalysts-more" style="display:none">${restHidden.map(c => renderItem(c, false)).join('')}</div>`;
-      catHtml += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:6px 0;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${restHidden.length} more ↓</button>`;
-    }
-  }
-
-  // ── Resolved (collapsed) ─────────────────────────────────────────────────
   if (resolved.length) {
-    catHtml += `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em;border-top:1px dashed #e2e8f0;padding-top:10px;">Resolved</div>` + resolved.map(c => renderItem(c, true)).join('');
+    html += `<div class="uni-section-hd">Resolved</div>` + resolved.map(renderItem).join('');
   }
 
-  list.innerHTML = catHtml;
+  list.innerHTML = html;
 }
 
 async function loadCatalysts() {
   const list = document.getElementById('catalysts-list');
   if (!list) return;
   try {
-    const { data, error } = await _sb.from('catalysts').select('*').order('sort_date', { ascending: true });
-    if (error) throw error;
-    _allCatalysts = data || [];
-    renderCatalysts(_allCatalysts);
+    const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
+    const [catsRes, sigsRes, intelRes, dealsRes] = await Promise.all([
+      _sb.from('catalysts').select('*').order('sort_date', { ascending: true }),
+      _sb.from('signals').select('*,companies(name)').gte('event_date', sevenDaysAgo)
+          .order('relevance_score', { ascending: false }).limit(40),
+      _sb.from('intel').select('id,headline,summary,intel_date,importance,area_id,source_url,ailux_angle')
+          .eq('importance','high').gte('intel_date', sevenDaysAgo)
+          .order('intel_date', { ascending: false }).limit(10),
+      _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(10),
+    ]);
+    if (catsRes.error) throw catsRes.error;
+
+    const unified = [];
+
+    // ── Catalysts ──────────────────────────────────────────────────────────
+    (catsRes.data || []).forEach(c => unified.push({
+      srcType:    'catalyst',
+      catType:    c.catalyst_type || 'readout',
+      label:      c.label || '',
+      notes:      c.notes || '',
+      area_id:    c.area_id || '',
+      sortDate:   c.sort_date || '',
+      significance: c.significance || 'medium',
+      resolved:   c.resolved || false,
+      resolved_note: c.resolved_note || '',
+      is_key_watch:  c.is_key_watch || false,
+    }));
+
+    // ── Signals (last 7d, relevance-scored) ────────────────────────────────
+    (sigsRes.data || []).forEach(s => unified.push({
+      srcType:    'signal',
+      catType:    s.signal_type || 'press_release',
+      label:      s.headline || '',
+      notes:      [s.companies?.name, s.ailux_angle].filter(Boolean).join(' · '),
+      area_id:    s.area_id || '',
+      sortDate:   s.event_date || '',
+      significance: (s.relevance_score||0) >= 8 ? 'high' : (s.relevance_score||0) >= 6 ? 'medium' : 'low',
+      resolved:   false,
+    }));
+
+    // ── High-importance Intel ──────────────────────────────────────────────
+    (intelRes.data || []).forEach(i => unified.push({
+      srcType:    'intel',
+      catType:    'intel',
+      label:      i.headline || '',
+      notes:      i.ailux_angle || i.summary || '',
+      area_id:    i.area_id || '',
+      sortDate:   i.intel_date || '',
+      significance: 'high',
+      resolved:   false,
+    }));
+
+    // ── Recent deals with BD signal ────────────────────────────────────────
+    const deals = dealsRes.data || [];
+    deals.filter(d => d.ailux_signal).slice(0, 5).forEach(d => unified.push({
+      srcType:    'deal',
+      catType:    'deal',
+      label:      d.headline || `${d.from_company||''} → ${d.to_company||''}`,
+      notes:      d.ailux_signal || (d.total_usd_m ? fmtMoney(d.total_usd_m) : ''),
+      area_id:    d.area_id || '',
+      sortDate:   d.deal_date || '',
+      significance: 'medium',
+      resolved:   false,
+    }));
+
+    _allCatalysts = catsRes.data || [];
+    _allUnified   = unified;
+    renderCatalysts(unified);
   } catch(err) {
-    list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading catalysts: ${err.message}</div>`;
+    if (list) list.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px;">Error loading: ${err.message}</div>`;
   }
-}
-
-function catFilter(btn, area) {
-  document.querySelectorAll('#home-catalysts-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  _catAreaFilter = area;
-  const filtered = area ? _allCatalysts.filter(c => c.area_id === area) : _allCatalysts;
-  document.getElementById('cats-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
-  renderCatalysts(filtered);
-}
-
-function setCatSort(btn, mode) {
-  document.querySelectorAll('#home-catalysts-anchor .cat-sort-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  _catSortMode = mode;
-  const filtered = _catAreaFilter ? _allCatalysts.filter(c => c.area_id === _catAreaFilter) : _allCatalysts;
-  renderCatalysts(filtered);
 }
 
 // ── Catalyst countdown helper ─────────────────────────────────────────────────
@@ -3503,13 +3534,8 @@ function loadMoleculeTab(tabId) {
  <div id="home-launchers">
   <div class="home-launcher" data-panel="catalysts" style="--lc:#1e4a82" onclick="openHomePanel('catalysts')">
    <div class="hl-icon">📅</div>
-   <div class="hl-title">Key Catalysts</div>
-   <div class="hl-sub">Upcoming readouts &amp; milestones</div>
-  </div>
-  <div class="home-launcher" data-panel="bdsignal" style="--lc:#1a3f8f" onclick="openHomePanel('bdsignal')">
-   <div class="hl-icon">◈</div>
-   <div class="hl-title">BD Signal</div>
-   <div class="hl-sub">What the deals are saying</div>
+   <div class="hl-title">Catalysts & Signals</div>
+   <div class="hl-sub">Readouts · deals · intel</div>
   </div>
   <div class="home-launcher" data-panel="deals" style="--lc:#1a5c2e" onclick="openHomePanel('deals')">
    <div class="hl-icon">💼</div>
@@ -3520,11 +3546,6 @@ function loadMoleculeTab(tabId) {
    <div class="hl-icon">⚡</div>
    <div class="hl-title">Essential Updates</div>
    <div class="hl-sub">Intel · Deals · Catalysts</div>
-  </div>
-  <div class="home-launcher" data-panel="signals" style="--lc:#5b21b6" onclick="openHomePanel('signals')">
-   <div class="hl-icon">📡</div>
-   <div class="hl-title">Signals</div>
-   <div class="hl-sub">Detected events · last 48h</div>
   </div>
  </div>
 
@@ -3539,37 +3560,38 @@ function loadMoleculeTab(tabId) {
   </div>
   <div id="home-overlay-body">
 
-   <!-- Panel: Key Catalysts -->
+   <!-- Panel: Catalysts & Signals (unified) -->
    <div class="home-panel" id="home-panel-catalysts" style="display:none">
     <div id="home-catalysts-anchor">
-     <div class="cat-filter-bar" style="padding:4px 0 12px">
-      <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
-      <button class="cat-sort-btn" onclick="setCatSort(this,'soonest')">Soonest</button>
-      <button class="cat-sort-btn active" onclick="setCatSort(this,'relevance')">Most Relevant</button>
-      <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
-      <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
-      <span id="cats-area-label" style="display:none">All Areas</span>
-      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'')">All</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tl1a')">TL1A</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tslp')">TSLP</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'il4ra')">IL-4Rα</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'igf1r')">IGF1R</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'fcrn')">FcRn</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="catFilter(this,'tcell')">T-cell</button>
+     <!-- Type filter pills -->
+     <div class="uni-filter-bar" id="uni-type-bar">
+      <button class="uni-pill active" onclick="uniTypeFilter(this,'')">All</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'readout')">Readout</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'trial_update')">Trial Update</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'deal')">Deal</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'intel')">Intel</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'fda')">FDA</button>
+      <button class="uni-pill" onclick="uniTypeFilter(this,'press_release')">Press Release</button>
+     </div>
+     <!-- Area filter pills -->
+     <div class="uni-filter-bar" id="uni-area-bar" style="padding-bottom:12px;border-bottom:1px solid #f1f5f9;margin-bottom:4px;">
+      <button class="uni-pill active" onclick="uniAreaFilter(this,'')">All Areas</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'tl1a')">TL1A</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'tslp')">TSLP</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'il4ra')">IL-4Rα</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'igf1r')">IGF1R</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'fcrn')">FcRn</button>
+      <button class="uni-pill" onclick="uniAreaFilter(this,'tcell')">T-cell</button>
      </div>
      <div id="catalysts-list">
-      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading catalysts…</div>
+      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading…</div>
      </div>
     </div>
    </div>
 
-   <!-- Panel: BD Signal -->
+   <!-- Panel: BD Signal (hidden — data merged into Catalysts & Signals) -->
    <div class="home-panel" id="home-panel-bdsignal" style="display:none">
-    <div id="bd-signal-panel">
-     <div id="bd-signal-body">
-      <div style="color:#94a3b8;font-size:12px">Loading BD intelligence…</div>
-     </div>
-    </div>
+    <div id="bd-signal-body"></div>
    </div>
 
    <!-- Panel: Deal Activity -->
@@ -3599,34 +3621,9 @@ function loadMoleculeTab(tabId) {
     </div>
    </div>
 
-   <!-- Panel: Signals -->
+   <!-- Panel: Signals (hidden — merged into Catalysts & Signals) -->
    <div class="home-panel" id="home-panel-signals" style="display:none">
-    <div>
-     <!-- Area filter -->
-     <div id="sig-area-filter-bar" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:6px;">
-      <span style="font-size:10px;font-weight:700;color:#64748b;margin-right:2px">Area:</span>
-      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'')">All</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tl1a')">TL1A</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tslp')">TSLP</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'il4ra')">IL-4Rα</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'fcrn')">FcRn</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'igf1r')">IGF1R</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tcell')">T-cell</button>
-      <button onclick="loadSignals(true)" style="margin-left:auto;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer">↻</button>
-     </div>
-     <!-- Type filter -->
-     <div id="sig-type-filter-bar" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:4px;">
-      <span style="font-size:10px;font-weight:700;color:#64748b;margin-right:2px">Type:</span>
-      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="sigTypeFilter(this,'')">All</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#15803d;" onclick="sigTypeFilter(this,'trial_update')">Trial Updates</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#1d4ed8;" onclick="sigTypeFilter(this,'press_release')">Press Releases</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#b91c1c;" onclick="sigTypeFilter(this,'fda')">FDA</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#c2410c;" onclick="sigTypeFilter(this,'pipeline_change')">Pipeline</button>
-     </div>
-     <div id="signals-list">
-      <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading signals…</div>
-     </div>
-    </div>
+    <div id="signals-list"></div>
    </div>
 
   </div><!-- end overlay-body -->
@@ -12667,11 +12664,9 @@ async function loadLiveIntel() {
 
 // ── Home panel overlay ────────────────────────────────────────────────────────
 const HOME_PANEL_META = {
-  catalysts: { title: '📅 Key Catalysts & Readouts', color: '#1e4a82' },
-  bdsignal:  { title: '◈ BD Signal',                 color: '#1a3f8f' },
-  deals:     { title: '💼 Recent Deal Activity',      color: '#1a5c2e' },
-  updates:   { title: '⚡ Essential Updates',          color: '#b84e10' },
-  signals:   { title: '📡 Signals',                   color: '#5b21b6' },
+  catalysts: { title: '📅 Catalysts & Signals', color: '#1e4a82' },
+  deals:     { title: '💼 Recent Deal Activity', color: '#1a5c2e' },
+  updates:   { title: '⚡ Essential Updates',    color: '#b84e10' },
 };
 function openHomePanel(panel) {
   const meta = HOME_PANEL_META[panel];
@@ -12708,7 +12703,7 @@ function closeHomePanel() {
 // Close overlay on Escape key
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadBDSignal(); loadSignals(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
