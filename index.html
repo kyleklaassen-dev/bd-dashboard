@@ -14609,6 +14609,67 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
 })();
+
+// ── Global link interceptor: replace all external link clicks with Google searches ──────────────
+// Instead of navigating to a specific URL that may 404 or be paywalled, every external link
+// opens a targeted Google search using the link's headline text (or nearest context).
+// Links that already point to google.com (the 🔍 search buttons) pass through unchanged.
+(function() {
+  // Skip these — they're already searches, internal anchors, or mailto
+  const SKIP_RE = /^(https?:\/\/(www\.)?google\.|mailto:|javascript:|#)/i;
+  // Generic link labels that don't make good search queries
+  const GENERIC_RE = /^(source|link|here|↗|→|view|read|more|open|🔍|[\s↗→.]+)$/i;
+
+  function _bestQuery(anchor) {
+    // 1. Use link text if it's a real headline/label
+    const raw = (anchor.textContent || '').trim()
+      .replace(/\s*↗\s*$/, '').replace(/^↗\s*/, '').trim();
+
+    if (raw && raw.length > 10 && !GENERIC_RE.test(raw)) return raw.slice(0, 150);
+
+    // 2. Walk up the DOM looking for a headline or label in the parent card/row
+    const SELECTORS = [
+      '.iif-headline',       // Industry Insights feed card
+      '.ii-title',           // Old intel card
+      '.pi-detail-cat-item', // Catalyst row — grab its full text
+      '.pi-da-name',         // Drug row name
+      '.pi-entity-name',     // Entity name
+      '.deal-title',         // Deal title
+      'strong',              // Any bolded label nearby
+    ];
+    let el = anchor.parentElement;
+    for (let depth = 0; depth < 8 && el; depth++, el = el.parentElement) {
+      for (const sel of SELECTORS) {
+        const found = el.querySelector(sel);
+        if (found) {
+          const t = found.textContent.trim().replace(/\s*↗\s*$/, '').trim();
+          if (t && t.length > 8) return t.slice(0, 150);
+        }
+      }
+    }
+
+    // 3. Fallback to whatever text the link has, or the raw domain from href
+    if (raw && raw.length > 3) return raw;
+    try {
+      const u = new URL(anchor.href);
+      // Extract path segments as a last-resort hint
+      const seg = u.pathname.replace(/[-_/]+/g,' ').trim();
+      return (u.hostname + (seg.length > 3 ? ' ' + seg : '')).slice(0, 120);
+    } catch(_) { return 'pharma biotech news'; }
+  }
+
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a[target="_blank"], a[href^="http"]');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (!href || SKIP_RE.test(href)) return; // already a Google link — let it through
+
+    e.preventDefault();
+
+    const query = _bestQuery(a);
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank', 'noopener,noreferrer');
+  }, true); // capture phase: fires before any stopPropagation in bubble phase
+})();
 </script>
 
 </body>
