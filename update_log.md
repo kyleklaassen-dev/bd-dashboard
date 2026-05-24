@@ -22,6 +22,14 @@
 - `scripts/compute_landscape_coverage.py` — new file
 - `scripts/v32_coverage_diagnostics.sql` — new file (DDL documentation)
 
+### Dashboard coverage panel (added Session 39 cont.)
+- Added `loadLandscapeCoverage(tabId)` function in index.html
+- `TAB_LANDSCAPE_MAP` = `{ 'igf1r-tshr': { area_id: 'igf1r' } }` — extend as new landscapes seeded
+- Panel renders above the PI table in the `pi-pills-wrap` area on the IGF1R×TSHR tab
+- Shows: overall score badge (color-coded), Drug/Edges/Catalyst/Source dimension pills, staleness warning, missing drug chips
+- Wired into `loadMoleculeTab()` — loads on first tab enter
+- **Commit:** `cbf7de22` (index.html)
+
 ### P1 next
 Source validation backfill: upgrade `confidence_level` for batoclimab (Apr 2026 Ph3 failure),
 efgartigimod (UplighTED discontinuation Dec 2025), linsitinib (CT.gov NCT). Moves score → ~86.
