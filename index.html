@@ -653,6 +653,31 @@ body { padding-bottom:0; }
 .deal-row .deal-co { font-weight: 800; color: #1a2f50; }
 .deal-row .deal-val { font-weight: 800; color: #c45b11; float: right; }
 .deal-row .deal-sub { font-size: 11px; color: #8a9bb0; margin-top: 2px; }
+/* Deal accordion cards */
+.deal-card { border: 1px solid #e8edf4; border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: #fff; transition: box-shadow .15s; }
+.deal-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+.deal-card-hd { padding: 11px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; }
+.deal-card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.deal-card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.deal-title-link { font-size: 12.5px; font-weight: 700; color: #1a2f50; text-decoration: none; line-height: 1.4; flex: 1; }
+.deal-title-link:hover { color: #2563eb; text-decoration: underline; }
+.deal-parties { font-size: 11px; color: #64748b; font-weight: 600; }
+.deal-chevron-btn { background: none; border: none; cursor: pointer; font-size: 11px; color: #94a3b8; padding: 0 2px; line-height: 1; flex-shrink: 0; transition: transform .2s; }
+.deal-card.open .deal-chevron-btn { transform: rotate(180deg); }
+.deal-card-val { font-size: 11px; font-weight: 800; color: #c45b11; white-space: nowrap; }
+.deal-card-body { display: none; padding: 0 14px 12px; border-top: 1px solid #f1f5f9; }
+.deal-card.open .deal-card-body { display: block; }
+.deal-card-detail { font-size: 11.5px; color: #475569; line-height: 1.55; margin-top: 8px; }
+.deal-card-ailux { font-size: 11px; color: #1d4ed8; background: #eff6ff; border-radius: 6px; padding: 6px 10px; margin-top: 7px; line-height: 1.5; }
+.deal-card-upfront { font-size: 10.5px; color: #047857; background: #f0fdf4; border-radius: 6px; padding: 4px 9px; margin-top: 6px; display: inline-block; }
+.deal-area-pill { display: inline-block; font-size: 10px; font-weight: 700; color: #fff; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.deal-src-link { font-size: 10px; color: #94a3b8; text-decoration: none; margin-top: 5px; display: inline-block; }
+.deal-src-link:hover { color: #2563eb; }
+/* Deal filter bar */
+.deal-filter-bar { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
+.deal-pill { background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 4px 13px; border-radius: 20px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.deal-pill:hover { background: #e2e8f0; color: #1e293b; }
+.deal-pill.active { background: #1a3566; color: white; border-color: #1a3566; }
 .meridian-reader { background: linear-gradient(135deg, #fffbf0 0%, #fff8e0 100%); border: 2px solid #f5c842; border-radius: 8px; padding: 18px 20px; margin-bottom: 18px; }
 .meridian-reader-hd { font-size: 15px; font-weight: 900; color: #1a2f50; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
 .meridian-reader-sub { font-size: 13px; color: #6b5a20; line-height: 1.6; margin-bottom: 14px; }
@@ -2029,34 +2054,44 @@ function fmtMoney(m) {
 function renderDeals(deals) {
   const list = document.getElementById('deals-list');
   if (!list) return;
-  if (!deals.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
-  const renderDeal = d => {
-    const val     = fmtMoney(d.total_usd_m);
-    const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
-    const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
-    const srcLink = _srcHtml(d.source_url, d.headline, '10px');
-    const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
-    return `<div class="deal-row" data-area="${d.area_id||''}">
-  <div class="deal-co">
-    <span class="deal-date-badge">${rdtFmtDate(d.deal_date)||d.deal_date_label||''}</span>
-    ${d.from_company||''} → ${d.to_company||''}
-    ${val ? `<span class="deal-val">${val}</span>` : ''}
-    ${srcLink}
+  if (!deals.length) { list.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
+  const renderDeal = (d, idx) => {
+    const val       = fmtMoney(d.total_usd_m);
+    const areaColor = AREA_COLORS[d.area_id] || '#64748b';
+    const areaLabel = AREA_LABELS[d.area_id] || d.area_id || '';
+    const dateStr   = rdtFmtDate(d.deal_date) || d.deal_date_label || '';
+    const headline  = d.headline || `${d.from_company||''} / ${d.to_company||''} deal`;
+    const gLink     = _gUrl(headline);
+    const parties   = [d.from_company, d.to_company].filter(Boolean).join(' → ');
+    const cardId    = `deal-card-${idx}`;
+    // Expandable body content
+    const bodyParts = [];
+    if (d.detail)        bodyParts.push(`<div class="deal-card-detail">${d.detail}</div>`);
+    if (d.upfront_usd_m) bodyParts.push(`<div class="deal-card-upfront">💰 ${fmtMoney(d.upfront_usd_m)} upfront</div>`);
+    if (d.ailux_signal)  bodyParts.push(`<div class="deal-card-ailux"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>`);
+    if (d.source_url)    bodyParts.push(`<a class="deal-src-link" href="${d.source_url}" target="_blank" onclick="event.stopPropagation()">↗ Source</a>`);
+    const hasBody = bodyParts.length > 0;
+    return `<div class="deal-card" id="${cardId}" data-area="${d.area_id||''}">
+  <div class="deal-card-hd" onclick="${hasBody ? `toggleDealCard('${cardId}')` : ''}">
+    <div class="deal-card-meta">
+      ${dateStr ? `<span class="deal-date-badge">📅 ${dateStr}</span>` : ''}
+      ${areaLabel ? `<span class="deal-area-pill" style="background:${areaColor}">${areaLabel}</span>` : ''}
+      ${val ? `<span class="deal-card-val">${val}</span>` : ''}
+    </div>
+    <div class="deal-card-title-row">
+      <a class="deal-title-link" href="${gLink}" target="_blank" onclick="event.stopPropagation()">${headline}</a>
+      ${hasBody ? `<button class="deal-chevron-btn" onclick="event.stopPropagation();toggleDealCard('${cardId}')">▾</button>` : ''}
+    </div>
+    ${parties ? `<div class="deal-parties">${parties}</div>` : ''}
   </div>
-  <div class="deal-sub">${upfront}${areaTag} · ${d.headline}</div>
-  ${d.detail ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;">${d.detail}</div>` : ''}
-  ${ailux}
+  ${hasBody ? `<div class="deal-card-body">${bodyParts.join('')}</div>` : ''}
 </div>`;
   };
-  const SHOW = 3;
-  const visible = deals.slice(0, SHOW);
-  const hidden  = deals.slice(SHOW);
-  let html = visible.map(renderDeal).join('');
-  if (hidden.length) {
-    html += `<div id="deals-more" style="display:none">${hidden.map(renderDeal).join('')}</div>`;
-    html += `<button onclick="document.getElementById('deals-more').style.display='';this.style.display='none'" style="width:100%;margin-top:6px;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${hidden.length} more deals ↓</button>`;
-  }
-  list.innerHTML = html;
+  list.innerHTML = deals.map(renderDeal).join('');
+}
+function toggleDealCard(id) {
+  const card = document.getElementById(id);
+  if (card) card.classList.toggle('open');
 }
 
 async function loadDeals() {
@@ -2073,10 +2108,9 @@ async function loadDeals() {
 }
 
 function dealFilter(btn, area) {
-  document.querySelectorAll('#home-deals-anchor .stock-fbtn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.deal-filter-bar .deal-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const filtered = area ? _allDeals.filter(d => d.area_id === area) : _allDeals;
-  document.getElementById('deals-area-label').textContent = area ? (AREA_LABELS[area]||area) : 'All Areas';
   renderDeals(filtered);
 }
 
@@ -3607,18 +3641,18 @@ function loadMoleculeTab(tabId) {
    </div>
 
    <!-- Panel: Deal Activity -->
-   <div class="home-panel" id="home-panel-deals" style="display:none">
+   <div class="home-panel" id="home-panel-deals" style="display:none;padding:0;">
     <div id="home-deals-anchor">
-     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:12px">
-      <span id="deals-area-label" style="font-size:10px;font-weight:700;color:#64748b;margin-right:4px">All Areas</span>
-      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'')">All</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tl1a')">TL1A</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tslp')">TSLP</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'il4ra')">IL-4Rα</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'fcrn')">FcRn</button>
-      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="dealFilter(this,'tcell')">T-cell</button>
+     <div class="deal-filter-bar">
+      <button class="deal-pill active" onclick="dealFilter(this,'')">All</button>
+      <button class="deal-pill" onclick="dealFilter(this,'tl1a')">TL1A · IBD</button>
+      <button class="deal-pill" onclick="dealFilter(this,'tslp')">TSLP · Respiratory</button>
+      <button class="deal-pill" onclick="dealFilter(this,'il4ra')">IL-4Rα · Atopy</button>
+      <button class="deal-pill" onclick="dealFilter(this,'igf1r')">IGF1R · TED</button>
+      <button class="deal-pill" onclick="dealFilter(this,'fcrn')">FcRn · Autoimmune</button>
+      <button class="deal-pill" onclick="dealFilter(this,'tcell')">T-cell Eng.</button>
      </div>
-     <div id="deals-list">
+     <div id="deals-list" style="padding:10px 12px 16px;">
       <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading deals…</div>
      </div>
     </div>
