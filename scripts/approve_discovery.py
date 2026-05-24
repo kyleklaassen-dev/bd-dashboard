@@ -33,6 +33,17 @@ import datetime
 import argparse
 import requests
 
+# Graph consistency: import ACTIVE_IN edge writer
+# (write_active_in_edge must be called after every company_areas write)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from company_intake import write_active_in_edge as _write_active_in_edge
+except ImportError:
+    # Graceful degradation: if company_intake unavailable, log and continue
+    def _write_active_in_edge(company_id, area_id, dry_run=False, created_by="approve_discovery"):
+        print(f"  ⚠ ACTIVE_IN edge skipped (company_intake import failed): {company_id} → {area_id}")
+        return False
+
 # ── Supabase credentials ──────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
@@ -249,12 +260,15 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
     })
     if existing_link:
         print(f"  ✓ company_areas link exists: {co_id} → {area_id}")
+        # Ensure ACTIVE_IN edge exists (idempotent — harmless if already present)
+        _write_active_in_edge(co_id, area_id, dry_run=dry_run, created_by="approve_discovery")
     else:
         if dry_run:
             print(f"  [DRY RUN] Would create company_areas: {co_id} → {area_id}")
         else:
             sb_upsert("company_areas", {"company_id": co_id, "area_id": area_id}, on_conflict="company_id,area_id")
             print(f"  + company_areas: {co_id} → {area_id}")
+            _write_active_in_edge(co_id, area_id, dry_run=dry_run, created_by="approve_discovery")
 
     # Fetch indication_group for tagging (e.g. tl1a → ibd)
     area_meta = sb_get("disease_areas", {"id": f"eq.{area_id}", "select": "indication_group"})
@@ -269,6 +283,7 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
             else:
                 sb_upsert("company_areas", {"company_id": co_id, "area_id": indication_group}, on_conflict="company_id,area_id")
                 print(f"  + company_areas: {co_id} → {indication_group} (indication group)")
+                _write_active_in_edge(co_id, indication_group, dry_run=dry_run, created_by="approve_discovery")
 
     # ── 3. Create drug row ────────────────────────────────────────────────────
     if drug_name:
