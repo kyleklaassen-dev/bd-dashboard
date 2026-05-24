@@ -3174,6 +3174,7 @@ function loadMoleculeTab(tabId) {
   loadAreaDeals(tabId);
   loadAreaPI(tabId);           // replaces loadAreaCompetitors
   loadAreaBDActivity(tabId);
+  if (TAB_LANDSCAPE_MAP?.[tabId]) loadLandscapeCoverage(tabId); // v32 coverage panel
 }
 
 </script>
@@ -5297,7 +5298,8 @@ function loadMoleculeTab(tabId) {
  <div class="tl1a-center-col">
 <div class="pi-card" id="igf1r-tshr-area-pi-wrap">
   <div class="pi-hd">
-    <div class="pi-pills-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+    <div id="igf1r-tshr-coverage-pills" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <span style="color:#94a3b8;font-size:11px">Loading coverage…</span>
     </div>
   </div>
   <div class="pi-table-wrap">
@@ -10841,6 +10843,83 @@ async function loadAreaPI(tabId) {
   _areaPIs[tabId] = pi;
   await pi.init();
   _injPIScores(tabId, TAB_AREA_MAP[tabId]);
+}
+
+// ── Landscape Coverage Panel (v32) ────────────────────────────────────────────
+// Shows landscape_dependency_score + per-dimension bars + missing drugs.
+// igf1r-tshr is the only instrumented landscape as of v32.
+// Extend by adding entries to TAB_LANDSCAPE_MAP as new landscapes are seeded.
+const TAB_LANDSCAPE_MAP = {
+  'igf1r-tshr': { area_id: 'igf1r', pillsId: 'igf1r-tshr-coverage-pills' },
+};
+
+async function loadLandscapeCoverage(tabId) {
+  const cfg = TAB_LANDSCAPE_MAP[tabId];
+  if (!cfg || !_sb) return;
+  const el = document.getElementById(cfg.pillsId);
+  if (!el) return;
+
+  try {
+    // Fetch landscape row
+    const { data: ls, error: lsErr } = await _sb
+      .from('competitive_landscapes')
+      .select('id,disease_name,landscape_dependency_score,drug_coverage_score,relationship_coverage_score,catalyst_coverage_score,source_validation_score,staleness_penalty,expected_drug_count,coverage_computed_at')
+      .eq('area_id', cfg.area_id)
+      .limit(1);
+    if (lsErr || !ls?.length) { el.innerHTML = ''; return; }
+    const L = ls[0];
+
+    // Fetch expected competitors to find missing ones
+    const { data: lec } = await _sb
+      .from('landscape_expected_competitors')
+      .select('drug_name,confirmed,tier,drug_id')
+      .eq('landscape_id', L.id)
+      .order('tier', { ascending: true });
+
+    const score   = Math.round(L.landscape_dependency_score ?? 0);
+    const drug    = Math.round((L.drug_coverage_score ?? 0) * 100);
+    const rel     = Math.round((L.relationship_coverage_score ?? 0) * 100);
+    const cat     = Math.round((L.catalyst_coverage_score ?? 0) * 100);
+    const src     = Math.round((L.source_validation_score ?? 0) * 100);
+    const stale   = Math.round((L.staleness_penalty ?? 0) * 100);
+    const missing = (lec || []).filter(r => !r.confirmed || !r.drug_id).map(r => r.drug_name);
+
+    // Score color: green ≥80, amber ≥60, red <60
+    const scoreCol = score >= 80 ? '#065f46' : score >= 60 ? '#92400e' : '#991b1b';
+    const scoreBg  = score >= 80 ? '#d1fae5' : score >= 60 ? '#fef3c7' : '#fee2e2';
+
+    function dimBar(label, pct, color) {
+      const bg = pct >= 80 ? '#d1fae5' : pct >= 50 ? '#fef3c7' : '#fee2e2';
+      const fg = pct >= 80 ? '#065f46' : pct >= 50 ? '#92400e' : '#991b1b';
+      return `<span title="${label}: ${pct}%" style="display:inline-flex;align-items:center;gap:4px;background:${bg};color:${fg};font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap">
+        ${label} ${pct}%</span>`;
+    }
+
+    const missingChips = missing.length
+      ? `<span style="color:#94a3b8;font-size:10px;margin-left:2px">Missing:</span> ` +
+        missing.map(n => `<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:2px 7px;border-radius:8px">${n}</span>`).join(' ')
+      : '';
+
+    const computedAt = L.coverage_computed_at
+      ? new Date(L.coverage_computed_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })
+      : '';
+
+    el.innerHTML = `
+      <span title="Landscape dependency score — computed from drug, relationship, catalyst, and source coverage. Updated ${computedAt}."
+            style="background:${scoreBg};color:${scoreCol};font-size:12px;font-weight:800;padding:3px 10px;border-radius:10px;cursor:default">
+        ${L.disease_name || 'TED'} Coverage&nbsp;&nbsp;${score}/100
+      </span>
+      ${dimBar('Drug', drug, '#065f46')}
+      ${dimBar('Edges', rel, '#1d4ed8')}
+      ${dimBar('Catalyst', cat, '#7c3aed')}
+      ${dimBar('Source', src, '#b45309')}
+      ${stale > 0 ? `<span title="Staleness penalty: ${stale}% of tracked items flagged needs_revalidation" style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;padding:3px 7px;border-radius:10px">⚠ ${stale}% stale</span>` : ''}
+      ${missingChips}
+    `.trim();
+  } catch(e) {
+    console.warn('[loadLandscapeCoverage]', tabId, e);
+    el.innerHTML = '';
+  }
 }
 
 function switchTab(id, btn) {
