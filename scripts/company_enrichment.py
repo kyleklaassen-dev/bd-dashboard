@@ -558,11 +558,16 @@ Identify NEW companies or drug programs that are relevant to the given disease a
 database. Return ONLY valid JSON — no markdown, no explanation."""
 
 LANDSCAPE_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
-Use web_search to find ALL companies with active clinical-stage programs in the given target area.
-Include large pharma (Pfizer, Roche, AZ, Lilly, etc.) as well as small/mid-cap biotechs.
-Focus on programs that are Phase 1 or later. Be comprehensive — missing a player is worse than
-a false positive. Return a structured text report: company name, drug name/ID, mechanism, stage,
-indication, any partnership info.
+Use web_search to find ALL companies with drug programs in the given target area — at ANY stage,
+from preclinical through approved. Include large pharma (Pfizer, Roche, AZ, Lilly, etc.) as well
+as small/mid-cap biotechs and early-stage companies.
+
+IMPORTANT: Do NOT limit results to clinical-stage programs. Preclinical and IND-enabling programs
+are strategically critical — they represent future competitors and partnership opportunities.
+Be comprehensive — missing a player (especially an early-stage one) is worse than a false positive.
+
+For each program found, report: company name, drug name/compound ID, mechanism of action, stage
+(Preclinical/IND Enabling/Phase 1/Phase 2/Phase 3/Approved), indication, partnership details.
 
 # TRANSACTION_PIPELINE_EXPANSION
 When enriching a company, investigate not only internally discovered assets, but also assets
@@ -583,14 +588,24 @@ def gather_landscape_intel(area_id: str) -> str:
     year = datetime.datetime.utcnow().year
 
     prompt = (
-        f"Search for ALL companies with active clinical-stage drug programs targeting {area_label} "
-        f"as of {year-1}-{year}. Include:\n"
+        f"Search for ALL companies with drug programs targeting {area_label} "
+        f"as of {year-1}-{year}, at ANY stage from preclinical through approved. Include:\n"
         "1. Large pharma (Pfizer, Roche, AstraZeneca, Lilly, Sanofi, AbbVie, etc.) with relevant programs\n"
         "2. Mid-cap and small-cap biotechs\n"
-        "3. Academic spinouts with IND-stage programs\n"
-        "For each, find: company name, drug name/compound ID, mechanism of action, clinical phase, "
-        "indication (UC, CD, asthma, etc.), partnership details if any.\n"
-        "Search multiple angles: clinical trial registries, conference abstracts, pipeline pages, press releases."
+        "3. Early-stage companies with preclinical or IND-enabling programs\n"
+        "4. China-based companies — search ChiCTR registry, Chinese pharma pipeline pages\n\n"
+        "For each program, report: company name, drug name/compound ID, mechanism of action, "
+        "stage (Preclinical / IND Enabling / Phase 1 / Phase 2 / Phase 3 / Approved), "
+        "indication, partnership details.\n\n"
+        "Search ALL of these source types:\n"
+        "- ClinicalTrials.gov for registered trials (Phase 1+)\n"
+        "- Company pipeline pages and IR websites for preclinical/IND-enabling disclosures\n"
+        "- Investor presentations and R&D day slides for pipeline updates\n"
+        "- Conference abstracts (DDW, ECCO, ASCO, ATS, EULAR, ACR, ADA, ESMO) for emerging data\n"
+        "- Press releases and news for company/deal announcements\n\n"
+        "CRITICAL: Do not skip a program just because it is preclinical or has no registered trial. "
+        "A company disclosing a preclinical program on their pipeline page or at a conference is a "
+        "strategically important competitive signal."
     )
 
     try:
