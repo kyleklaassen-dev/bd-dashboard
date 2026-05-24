@@ -8947,7 +8947,11 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     // Deduplicate by drug id (a drug might match both conditions)
     const seen = new Set();
     const drugs = (allCoDrugsRes.data||[]).filter(d => {
-      if (!areaSet.has(d.id) || seen.has(d.id)) return false;
+      if (seen.has(d.id)) return false;
+      // Acquired assets always show in the acquiring company's dossier regardless of area context
+      // (e.g. CND drugs tagged 'tcell' still appear under UCB when opened from the TL1A/IBD tab)
+      const isAcquiredAsset = d.current_owner_company_id === companyId && d.company_id !== companyId;
+      if (!areaSet.has(d.id) && !isAcquiredAsset) return false;
       seen.add(d.id);
       return true;
     });
