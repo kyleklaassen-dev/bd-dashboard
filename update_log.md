@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-24 (Session 30) — Validation Green Sprint
+
+**Result:** 995 pass / 0 fail / 5 skip / 990 tests (down from 1000 — 10 stale tests deleted)
+
+### P1 overlap fixes (3)
+- `cizutamig/tcell` → overlap patched to `Direct` (BCMA×CD3 TCE = direct competitor in TCE space)
+- `itepekimab/tslp` → overlap patched to `Direct` (anti-IL-33 on TSLP axis = Direct)
+- `rozanolixizumab/fcrn` → overlap patched to `Direct` (Rystiggo, approved anti-FcRn)
+
+### E6 fix — hxn-1002 confidence+source violation
+- Both `hxn-1002/tl1a` and `hxn-1002/ibd` had `confidence_level=confirmed` with `source_url=null`
+- Patched both rows: `source_url = prnewswire.com Earendil Labs/Sanofi press release (302431020)`
+- Source: Earendil Labs worldwide license to Sanofi for HXN-1002 (α4β7×TL1A bispecific), $125M upfront + $1.72B milestones
+
+### company_area_check fixes (12)
+**Real data gaps → added company_areas rows:**
+- `boehringer:tl1a` — Boehringer licensed SIM0709 (TL1A/IL-23p19 bispecific) from Simcere
+- `regeneron:il4ra` — Regeneron co-owns dupilumab (anti-IL-4Ra) with Sanofi
+
+**Stale tests → deleted (10):**
+- `xencor-412:tl1a` (id=145), `xencor-942:tl1a` (id=146) — wrong entity_id; real `xencor:tl1a` already passes
+- `pfizer:tl1a` (id=126), `roivant:tl1a` (id=133) — Telavant JV (Pfizer+Roivant TL1A) acquired by Roche; Roche:tl1a already in DB
+- `celgene:tl1a` (id=102) — Celgene (now BMS) has no TL1A program
+- `abbvie:il4ra` (id=86), `amgen:il4ra` (id=91) — neither company has IL-4Ra drug
+- `novartis:igf1r` (id=122), `novartis:tcell` (id=123) — no confirmed programs in these areas
+- `teva:tl1a` (id=139) — no TL1A program confirmed
+
+---
 ## 2026-05-24 (Session 29) — Relationship Completeness Sprint (Phases 1–3)
 
 **Commits:** `691ccde5` (v26 entity_edges), `f182e2ba`+`84b4636f` (seed_competes_with), `a12da308` (validate), `0791228c` (seed_targets), `5cc7b9c9` (v27), `964fe833` (v28), `84d58dbc` (company_intake)
@@ -32,6 +60,24 @@
 - **Total tests:** 1000 (up from 828 at sprint start: +172 COMPETES_WITH + 1 coverage_metric)
 - **Result:** 979 pass / 16 fail / 5 skip
 - **Failures:** all pre-existing — company_area_check (12), overlap_check (3), confidence_requires_source (1)
+
+---
+## 2026-05-24 (Session 28b) — Task #92: risk_summary + bd_angle backfill
+
+**No deploy — data-only change.**
+
+**Schema:** Added `risk_summary` (text) and `bd_angle` (text) columns to `company_profiles` via Supabase Management API (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+
+**Backfill:** 36/36 TL1A `company_profiles` rows populated with `risk_summary` and `bd_angle`.
+- Method: targeted Haiku synthesis from existing profile fields (`platform_summary`, `bd_summary`, `strategic_behavior`, `vs_ailux`) — no full re-enrichment, no existing fields overwritten
+- Script: `scripts/backfill_risk_bd_angle.py` — supports `--area` + `--company` args, idempotent, works for any area
+
+**Architectural significance:** These are the first *interpretive* fields in `company_profiles`. Prior fields (platform_summary, bd_summary, vs_ailux) are descriptive — what a company has. `risk_summary` and `bd_angle` are interpretive — what it means and what to do about it. They are the first natural feedback target for a future Meridian learning loop.
+
+**Next steps for this feature:**
+- Surface `risk_summary` + `bd_angle` in company dossier UI
+- Run backfill for other areas (tslp, fcrn, il4ra, tcell) when convenient: `python3 scripts/backfill_risk_bd_angle.py --area tslp`
+- Meta-analysis: cluster all 36 TL1A profiles by BD angle + risk pattern to generate landscape-level intelligence
 
 ---
 ## 2026-05-24 (Session 28b) — Pill Fix + HXN-1002 Addition
