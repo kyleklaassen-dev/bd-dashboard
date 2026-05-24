@@ -1,5 +1,61 @@
 
 ---
+## 2026-05-24 (Session 36) — Catalyst Coverage Sprint (53.6 → 70.9)
+
+**Validation:** 993 pass / 0 fail / 7 skip ✅  
+**Platform average: 84.4 / 100** (was 83.0)
+
+### Phase 4 — Denominator corrections
+Removed 9 false gaps from catalyst denominator:
+- Stage → Approved: risankizumab, vedolizumab, upadacitinib, lebrikizumab
+- Stage → Discontinued: orilanolimab
+- Removed from wrong disease areas: m701 (autoimmune + fcrn, oncology-only EpCAM×CD3 bispecific by YZY Biopharma), lm-302 (ibd, anti-Claudin18.2 ADC by Lanova — GC/GEJ only)
+- Deleted drug_areas + drug_area_scores for m701/autoimmune, m701/fcrn, lm-302/ibd
+
+### Phase 2+3 — New catalysts added
+31 new unresolved catalysts inserted across 7 areas (ibd=14, autoimmune=7, respiratory=4, atopy=3, il4ra=2, tslp=1, tl1a=1). Key additions:
+- afimkibart/ibd: Jan 2027 (UC Phase 3), Dec 2028 (CD Phase 3)
+- duvakitug/ibd: May 2028 (UC Phase 3), May 2029 (CD Phase 3)
+- tulisokibart/ibd: H1 2027 (UC Phase 3), H1 2028 (CD Phase 3)
+- spy002, spy072, spy230, abbv-382/ibd: H2 2026 / H1 2027 readouts
+- rozanolixizumab/autoimmune: Phase 3 MG/CIDP readouts 2027–2031
+- imvt-1402: 4 Phase 3 readouts across FcRn/autoimmune areas
+
+### Coverage result (end of Session 36)
+| Dimension | Score | Change | Flag |
+|-----------|-------|--------|------|
+| Molecule intelligence | 99.5 | — | ✅ |
+| Deal linkage | 97.1 | — | ✅ |
+| Target mapping | 97.1 | — | ✅ |
+| Source coverage | 89.0 | — | ✅ |
+| Confidence coverage | 82.7 | — | ✅ |
+| Profile completeness | 73.9 | — | ok |
+| Enrichment recency | 70.4 | — | ok |
+| Ownership coverage | 100.0 | — | ✅ |
+| **Catalyst coverage** | **70.9** | **+17.3** | **✅** |
+
+**Script:** `scripts/backfill_catalysts_s36.py`  
+**Stale tests deleted:** 5 (m701/fcrn, m701/autoimmune, lm-302/ibd — correctly removed rows)
+
+---
+## 2026-05-24 (Session 35 cont.) — Ownership Coverage Sprint (57.7 → 100.0)
+
+**Commit:** `d6ab1900` — `scripts/compute_coverage.py` (deal_linkage fix)  
+**Validation:** 993 pass / 0 fail / 7 skip ✅
+
+### What was built
+- `scripts/backfill_ownership_edges.py` — 28 new ORIGINATED_BY/LICENSED_IN edges for partner_company drugs
+- `compute_coverage.py` deal_linkage fix: ORIGINATED_BY excluded from deal denominator (provenance fact, not transactional event)
+- 4 ownership_edges linked to existing deal records (qx030n, kt501, fg-m701, duvakitug)
+
+### Coverage result (end of Session 35 cont.)
+| Dimension | Score | Change | Flag |
+|-----------|-------|--------|------|
+| Ownership coverage | 100.0 | +42.3 | ✅ |
+| Deal linkage | 97.1 | restored | ✅ |
+| Platform average | 83.0 | +3.9 | ✅ |
+
+---
 ## 2026-05-24 (Session 34 cont.) — P4: risk_summary + bd_angle backfill for tslp, fcrn, il4ra
 
 **Validation:** 993 pass / 0 fail / 7 skip ✅ (DB writes to company_profiles only)
