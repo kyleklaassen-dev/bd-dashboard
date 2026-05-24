@@ -219,6 +219,32 @@ def infer_catalog_category(target: str = "", modality: str = "",
     return "Pipeline"
 
 
+def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
+    """
+    Post-LLM invariant enforcement for confidence_level fields. (E6)
+
+    Rule 1: confidence='confirmed' requires source_url IS NOT NULL → demote to 'supported'
+    Rule 2: source_type='inferred' → confidence cannot be 'confirmed' or 'supported' → demote to 'inferred'
+
+    Modifies record in place and returns it. Called before every drug_area_scores write
+    so that LLM-assigned confidence values are sanitised before persistence.
+    """
+    confidence  = record.get("confidence_level") or "inferred"
+    source_url  = (record.get("source_url") or "").strip()
+    source_type = (record.get("source_type") or "").lower().strip()
+
+    if confidence == "confirmed" and not source_url:
+        log(f"  ⚠ E6 [{context}]: confidence='confirmed' but source_url is null → demoting to 'supported'", indent=2)
+        record["confidence_level"] = "supported"
+        confidence = "supported"
+
+    if source_type == "inferred" and confidence in ("confirmed", "supported"):
+        log(f"  ⚠ E6 [{context}]: source_type='inferred' but confidence='{confidence}' → demoting to 'inferred'", indent=2)
+        record["confidence_level"] = "inferred"
+
+    return record
+
+
 def log(msg: str, indent: int = 0):
     ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
     prefix = "  " * indent
@@ -2041,6 +2067,8 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                 if "vs_ailux" in _das_payload:
                     _das_rec["vs_ailux_positioning"] = _das_payload.pop("vs_ailux")
                 _das_rec.update(_das_payload)
+                # ── E6 guard: post-LLM confidence invariant enforcement ───────────
+                enforce_confidence_constraints(_das_rec, context=f"{drug_id}×{area_id}")
                 # ── Guard E4: drug_areas must exist before drug_area_scores ──────
                 # Invariant: a drug_area_scores row without a matching drug_areas row
                 # violates E4. Upsert drug_areas first — idempotent if already present.
