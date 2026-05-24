@@ -1382,10 +1382,10 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 6-column grid: Chevron | NCT | Acronym | Status | PCD | Days left */
-.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 1fr 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 7-column grid: Chevron | NCT | Acronym | Phase | Status | PCD | Days left */
+.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px 1fr 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 1fr 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px 1fr 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 /* Drug description strip — full-width bar shown when drug accordion opens */
 .pi-da-desc-strip{font-size:11px;color:#475569;line-height:1.55;padding:8px 12px 10px;border-bottom:1px solid #e8edf3;background:#fafbfc;margin-bottom:10px;border-radius:4px}
 .pi-nct-a{font-size:10px;font-weight:800;color:#2563eb;text-decoration:none;white-space:nowrap}
@@ -13172,12 +13172,18 @@ const tl1aPI = {
    // ── Combination program branch ─────────────────────────────────────────
    if (item._isCombo) {
     const combo = item;
-    const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => { const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb; });
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
+    const _isTerminalTrial = s => /complet|terminat|withdrawn|suspend/i.test(s||'');
+    const comboTrials = [...(trialsByCombo[combo.id] || [])].sort((a,b) => {
+     const aT=_isTerminalTrial(a.status),bT=_isTerminalTrial(b.status);
+     if (aT!==bT) return aT?1:-1;
+     const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
+    });
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.id || t.nct || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
+     const phase  = (t.phase||'').replace(/Phase\s*/i,'Ph ');
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
      const nctLink = nct.startsWith('NCT')
       ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
@@ -13185,6 +13191,7 @@ const tl1aPI = {
      const acronymCell = `<span class="pi-tr-acronym-cell">${acronym?`<span class="pi-tr-acronym">${acronym}</span>`:''}</span>`;
      return `<div class="pi-tr-item"><div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>${nctLink}${acronymCell}
+      <span class="pi-tr-phase-cell">${phase||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
      </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
@@ -13312,12 +13319,17 @@ const tl1aPI = {
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
-   // Sort trials reverse-chronological by PCD (latest PCD first)
-   const sortedTrials = [...resolvedTrials].sort((a,b) => { const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb; });
+   // Sort: active/recruiting trials first (soonest PCD); completed/terminated/withdrawn to bottom
+   const _isTermTrial = s => /complet|terminat|withdrawn|suspend/i.test(s||'');
+   const sortedTrials = [...resolvedTrials].sort((a,b) => {
+    const aT=_isTermTrial(a.status),bT=_isTermTrial(b.status);
+    if (aT!==bT) return aT?1:-1;
+    const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
+   });
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
    // Trial rows
@@ -13348,6 +13360,10 @@ const tl1aPI = {
     // Acronym cell always present — keeps grid column count constant
     const acronymCell = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
+    // Phase cell — shorten "Phase 1/2" → "Ph 1/2" to fit the narrow column
+    const phaseShort = phase.replace(/Phase\s*/i,'Ph ').trim();
+    const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort||'—'}</span>`;
+
     const detailFields = [
      ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
      n      ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Enrollment</span><span class="pi-tr-field-val">N=${n}</span></div>` : '',
@@ -13366,6 +13382,7 @@ const tl1aPI = {
       <span class="pi-tr-chev">▼</span>
       ${nctLink}
       ${acronymCell}
+      ${phaseCell}
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${countdownCell}
