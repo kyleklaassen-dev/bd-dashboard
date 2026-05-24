@@ -8935,13 +8935,22 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       .sort((a, b) => (b.deal_date||'').localeCompare(a.deal_date||''));
 
     // ── Drugs for this area ──
+    // Fetch drugs by originating company_id OR by current_owner_company_id (for acquisitions
+    // like UCB/Candid — CND drugs have company_id='candid' but current_owner='ucb')
     const [drugAreaRes, allCoDrugsRes] = await Promise.all([
       _sb.from('drug_areas').select('drug_id').eq('area_id', DRUG_AREA),
-      _sb.from('drugs').select('*').eq('company_id', companyId)
-         .order('sort_order', { ascending: true }).limit(20),
+      _sb.from('drugs').select('*')
+         .or(`company_id.eq.${companyId},current_owner_company_id.eq.${companyId}`)
+         .order('sort_order', { ascending: true }).limit(50),
     ]);
     const areaSet = new Set((drugAreaRes.data||[]).map(r => r.drug_id));
-    const drugs   = (allCoDrugsRes.data||[]).filter(d => areaSet.has(d.id));
+    // Deduplicate by drug id (a drug might match both conditions)
+    const seen = new Set();
+    const drugs = (allCoDrugsRes.data||[]).filter(d => {
+      if (!areaSet.has(d.id) || seen.has(d.id)) return false;
+      seen.add(d.id);
+      return true;
+    });
 
     // ── Trials per drug ──
     let trials = [];
@@ -9142,19 +9151,28 @@ function _buildCompanyDossierBody(prog, sbData, areaId) {
     const c = s==='Approved'?['#15803d','#dcfce7']:s?.includes('3')?['#1d4ed8','#dbeafe']:s?.includes('2')?['#0d9488','#ccfbf1']:s?.includes('1')?['#b45309','#fef3c7']:['#64748b','#f1f5f9'];
     return `background:${c[1]};color:${c[0]}`;
   };
-  const drugItems = sbDrugs.map(d => `
+  const drugItems = sbDrugs.map(d => {
+    // Originator pill: shown when drug was acquired/licensed from another company
+    const originatorPill = (d.display_partner_name && d.ownership_status && d.ownership_status !== 'originated')
+      ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap">w/ ${d.display_partner_name}</span>`
+      : (d.partner_company
+        ? `<span style="font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap">w/ ${d.partner_company}</span>`
+        : '');
+    return `
     <div class="dossier-drug-item">
       <div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
           <span style="font-size:12px;font-weight:700;color:#1e3a5f;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
           <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;${stageStyle(d.stage)}">${d.stage||'Preclinical'}</span>
           ${d.cls?`<span style="font-size:9px;color:#64748b;font-weight:600">${d.cls}</span>`:''}
+          ${originatorPill}
         </div>
         ${d.target?`<div style="font-size:10.5px;color:#2e6fb0;font-weight:600;margin-bottom:2px">${d.target}</div>`:''}
         ${d.mechanism?`<div style="font-size:11px;color:#475569;line-height:1.4">${d.mechanism.slice(0,140)}${d.mechanism.length>140?'…':''}</div>`:''}
         ${d.drug_summary?`<div style="font-size:11px;color:#374151;line-height:1.45;margin-top:3px">${d.drug_summary.slice(0,200)}${d.drug_summary.length>200?'…':''}</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const comboItems = sbCombos.map(c => `
     <div class="dossier-drug-item">
       <div>
