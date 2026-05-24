@@ -371,20 +371,110 @@ def _finalize(queue_id, co_id, drug_id, dry_run):
         print(f"  ✓ discovery_queue updated: status=approved, created_company_id={co_id}")
 
 
+# ── Reject a queue item + auto-create not_hallucinated validation test ─────────
+def cmd_reject(queue_id: str, reason: str = "", dry_run: bool = False):
+    """
+    Reject a discovery_queue item and optionally auto-create a not_hallucinated
+    validation test for the rejected drug.
+
+    When a human reviewer marks a drug as hallucinated or wrong, that rejection
+    is the clearest possible signal that the LLM invented something. Recording it
+    as a validation test means the same hallucination will be caught automatically
+    on future enrichment runs without human review.
+
+    Creates:
+      - discovery_queue.status = 'rejected'
+      - validation_tests row (test_type='not_hallucinated') for the drug name + company
+        if the item has a drug_name set
+    """
+    rows = sb_get("discovery_queue", {"id": f"eq.{queue_id}"})
+    if not rows:
+        print(f"ERROR: No discovery_queue item found with id={queue_id}")
+        sys.exit(1)
+    row = rows[0]
+
+    drug_name  = row.get("drug_name") or ""
+    co_name    = row.get("company_name") or ""
+    area_id    = row.get("area_id") or ""
+    why        = row.get("reason") or ""
+    reject_msg = reason or f"Manually rejected during review — hallucinated or incorrect discovery"
+
+    print(f"\n{'═'*60}")
+    print(f"  Rejecting: {co_name}" + (f" / {drug_name}" if drug_name else ""))
+    print(f"  Area: {area_id}  |  Reason: {reject_msg}")
+    print(f"  {'[DRY RUN] ' if dry_run else ''}Processing…")
+    print(f"{'─'*60}")
+
+    # ── 1. Update discovery_queue status to 'rejected' ───────────────────────
+    if dry_run:
+        print(f"  [DRY RUN] Would mark discovery_queue id={queue_id} as rejected")
+    else:
+        sb_patch("discovery_queue", "id", queue_id, {
+            "status":       "rejected",
+            "reviewed_at":  datetime.datetime.utcnow().isoformat(),
+            "reviewed_by":  "approve_discovery.py",
+            "notes":        reject_msg,
+        })
+        print(f"  ✓ discovery_queue id={queue_id} marked as rejected")
+
+    # ── 2. Auto-create not_hallucinated validation test for the drug ─────────
+    if drug_name:
+        test_name = f"not_hallucinated — {drug_name} ({co_name}, {area_id})"
+        # Use drug slug as entity_id — if a drug with this name already exists,
+        # the test will verify it is real. If not, it guards against LLM re-discovery.
+        entity_id = re.sub(r'[^a-z0-9]', '-', drug_name.lower()).strip('-')[:40]
+
+        test_record = {
+            "test_name":         test_name,
+            "test_type":         "not_hallucinated",
+            "entity_type":       "drug",
+            "entity_id":         entity_id,
+            "field_name":        "name",
+            "expected_value":    drug_name,
+            "expected_operator": "neq",  # drug should NOT exist with this name (it was rejected)
+            "priority":          "P2",
+            "area_id":           area_id,
+            "notes":             (
+                f"Auto-created by cmd_reject() on {TODAY}. "
+                f"Drug '{drug_name}' was rejected from discovery_queue for {co_name} ({area_id}). "
+                f"Rejection reason: {reject_msg}. "
+                f"Original discovery reason: {why}"
+            ),
+        }
+
+        if dry_run:
+            print(f"  [DRY RUN] Would create validation test: {test_name}")
+        else:
+            try:
+                created = sb_post("validation_tests", test_record)
+                print(f"  + validation_test created: id={created.get('id')} '{test_name}'")
+            except Exception as e:
+                print(f"  ⚠ validation_test creation failed (non-fatal): {e}")
+    else:
+        print(f"  (No drug_name on queue item — skipping validation test creation)")
+
+    print(f"{'═'*60}")
+    print(f"  Rejection complete{'  [DRY RUN — no writes made]' if dry_run else ''}.")
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(
         description="Promote discovery_queue items to production (companies/drugs/company_areas)"
     )
-    parser.add_argument("--id",       help="UUID of the discovery_queue item to promote")
+    parser.add_argument("--id",       help="UUID of the discovery_queue item to promote or reject")
     parser.add_argument("--list",     action="store_true", help="List pending items")
     parser.add_argument("--area",     help="Filter by area_id")
     parser.add_argument("--critical", action="store_true", help="Show only relevance 9-10 items")
     parser.add_argument("--dry-run",  action="store_true", help="Preview — do not write to DB")
+    parser.add_argument("--reject",   action="store_true", help="Reject this item (creates not_hallucinated validation test)")
+    parser.add_argument("--reason",   default="", help="Rejection reason (used in validation test notes)")
     args = parser.parse_args()
 
     if args.list:
         cmd_list(area=args.area, critical=args.critical)
+    elif args.id and args.reject:
+        cmd_reject(args.id, reason=args.reason, dry_run=args.dry_run)
     elif args.id:
         cmd_promote(args.id, dry_run=args.dry_run)
     else:
@@ -394,6 +484,9 @@ def main():
         print("  python scripts/approve_discovery.py --list --critical")
         print("  python scripts/approve_discovery.py --id <uuid> --dry-run")
         print("  python scripts/approve_discovery.py --id <uuid>")
+        print("  python scripts/approve_discovery.py --id <uuid> --reject")
+        print("  python scripts/approve_discovery.py --id <uuid> --reject --reason 'Drug does not exist'")
+        print("  python scripts/approve_discovery.py --id <uuid> --reject --dry-run")
 
 
 if __name__ == "__main__":
