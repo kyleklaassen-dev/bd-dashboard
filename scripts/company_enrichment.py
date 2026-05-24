@@ -225,6 +225,9 @@ def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
 
     Rule 1: confidence='confirmed' requires source_url IS NOT NULL → demote to 'supported'
     Rule 2: source_type='inferred' → confidence cannot be 'confirmed' or 'supported' → demote to 'inferred'
+    Rule 3: confidence='supported' requires source_url IS NOT NULL → warn (do not demote)
+            Supported rows are in the source_coverage scoring denominator (v1.2+).
+            A supported row without source_url will reduce the source_coverage score.
 
     Modifies record in place and returns it. Called before every drug_area_scores write
     so that LLM-assigned confidence values are sanitised before persistence.
@@ -241,6 +244,11 @@ def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
     if source_type == "inferred" and confidence in ("confirmed", "supported"):
         log(f"  ⚠ E6 [{context}]: source_type='inferred' but confidence='{confidence}' → demoting to 'inferred'", indent=2)
         record["confidence_level"] = "inferred"
+
+    # Rule 3: warn if supported + no source_url (affects source_coverage score)
+    if confidence == "supported" and not source_url:
+        log(f"  ⚠ E6-R3 [{context}]: confidence='supported' but source_url is null — "
+            f"this will reduce source_coverage score. Add source_url or demote to 'inferred'.", indent=2)
 
     return record
 
