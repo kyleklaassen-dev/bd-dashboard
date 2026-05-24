@@ -1,5 +1,25 @@
 
 ---
+## 2026-05-24 (Session 42b) — Relevance sort: wire competitive_relevance into _makeAreaPI
+
+**index.html — `_makeAreaPI` factory**
+
+### Changes
+- `drug_area_scores` Supabase select now includes `competitive_relevance` field
+- Drug data object maps `competitive_relevance: score?.competitive_relevance || null`
+- Default `sortCol` changed from `'stage'` → `'relevance'` (all non-TL1A area PI tabs now open sorted by relevance)
+- `_buildEntities`: computes `bestRelevance` per entity = most relevant (lowest `_RELEV_ORD` index) across all programs
+- `_renderTable` sort: new `'relevance'` branch sorts by relevance tier (`very_high:0, high:1, medium:2, low:3, monitor:4`), nulls last (position 6, graceful for tabs with no relevance data yet), stage as tiebreaker within same tier
+- Each entity `<tr>` gets left-border color indicator: very_high=#dc2626 (red), high=#ea580c (orange), medium=#ca8a04 (amber), low=#2563eb (blue), monitor=#94a3b8 (slate), null=none
+
+### Graceful degradation
+Areas without `competitive_relevance` data (all except TED currently): `bestRelevance=null` for all
+entities → all fall to position 6 → stage tiebreaker kicks in → identical behavior to previous
+default stage sort. No disruption to non-TED tabs.
+
+Commit: a27bff05
+
+---
 ## 2026-05-24 (Session 42) — Preclinical blind spot: audit + prompt fix + Type B data backfill
 
 **company_enrichment.py — preclinical discovery prompt**
