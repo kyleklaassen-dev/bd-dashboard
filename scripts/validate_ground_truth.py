@@ -329,6 +329,45 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual, ""
 
+        elif test_type == "intel_attribution_check":
+            # Checks that intel rows linked via intel_companies have primary_company_id set.
+            # entity_id is ignored (global check). expected_value = "0" (zero orphans).
+            if "intel_attribution" not in cache:
+                ic_rows = sb_get("intel_companies", {"select": "intel_id", "limit": "2000"})
+                ic_ids  = {str(r["intel_id"]) for r in ic_rows}
+                intel_rows = sb_get("intel", {"select": "id,primary_company_id", "limit": "2000"})
+                orphans = sum(
+                    1 for r in intel_rows
+                    if str(r["id"]) in ic_ids and not r.get("primary_company_id")
+                )
+                cache["intel_attribution"] = orphans
+            actual = str(cache["intel_attribution"])
+            passed = evaluate_operator(actual, expected, operator)
+            return ("pass" if passed else "fail"), actual, ""
+
+        elif test_type == "confidence_requires_source":
+            # E6: Any drug_area_scores row with confidence_level='confirmed' must have
+            # source_url populated. entity_id is ignored (global constraint check).
+            # expected_value='0', operator='eq' → zero violations is passing.
+            if "das_confidence_violations" not in cache:
+                das_rows = sb_get("drug_area_scores", {
+                    "select":            "drug_id,area_id,confidence_level,source_url",
+                    "confidence_level":  "eq.confirmed",
+                    "limit":             "2000",
+                })
+                violations = [r for r in das_rows if not (r.get("source_url") or "").strip()]
+                cache["das_confidence_violations"] = violations
+            violations = cache["das_confidence_violations"]
+            count  = len(violations)
+            actual = str(count)
+            passed = evaluate_operator(actual, expected, operator)
+            if violations and not passed:
+                sample     = violations[:3]
+                sample_str = "; ".join(f"{r['drug_id']}×{r['area_id']}" for r in sample)
+                suffix     = f" (e.g. {sample_str})" if sample_str else ""
+                return "fail", f"{actual} violations{suffix}", ""
+            return ("pass" if passed else "fail"), actual, ""
+
         else:
             return "skip", "", f"Unknown test_type: {test_type}"
 
