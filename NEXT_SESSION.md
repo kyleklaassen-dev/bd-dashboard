@@ -1,100 +1,78 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-24 (Session 31)  
-**Last work:** Phase 2 target coverage + ACTIVE_IN edges  
-**Validation:** 995 pass / 0 fail / 5 skip ✅
+**Written:** 2026-05-24 (Session 32)  
+**Last work:** Coverage Framework — migration v30 + compute_coverage.py  
+**Validation:** 993 pass / 0 fail / 7 skip ✅
 
 ---
 
-## Session 31 Summary
+## Session 32 Summary — Coverage Framework
 
-### Phase 2 target coverage (84.2% → 89.5%)
-- 4 new targets: `a4b7_il23p19`, `il1ab`, `cd40`, `ige`
-- 9 drug_targets rows for SPY120, SPY130, Lutikizumab, Iscalimab, Omalizumab
-- 85/95 area-linked drugs now have ≥1 primary target
+### What was built
+- `coverage_scores` table (migration v30) — 137 rows, one per company/area
+- `scripts/compute_coverage.py` — 9 deterministic dimensions + CLI report + recommended actions
+- Validation test `coverage_scores_row_existence` (id=1078)
 
-### ACTIVE_IN edges (migration v29)
-- 137 `entity_edges ACTIVE_IN` rows seeded from all `company_areas` rows
-- Graph now answers "who is active in [area]?" as a single predicate lookup
-- Validation test id=1077
+### Initial platform state (first run: 2026-05-24)
+| Dimension | Score | Flag |
+|-----------|-------|------|
+| Molecule intelligence | 99.5 | ✅ |
+| Deal linkage | 97.1 | ✅ |
+| Target mapping | 91.7 | ✅ |
+| Confidence coverage | 82.7 | ✅ |
+| Enrichment recency | 70.4 | ok |
+| Profile completeness | 68.3 | ok |
+| Source coverage | 59.5 | ⚠ |
+| Ownership coverage | 57.7 | ⚠ |
+| Catalyst coverage | 43.1 | ⚠ |
 
-### entity_edges predicate inventory
-| Predicate | Count |
-|-----------|-------|
-| COMPETES_WITH | 600 |
-| TARGETS | 146 |
-| ACTIVE_IN | 137 |
-| **Total** | **883** |
+**Platform average: 71.3 / 100**
 
----
-
-## Meridian L3 Status
-
-With ACTIVE_IN edges complete, all three relationship gaps from the maturity assessment are now addressed:
-- COMPETES_WITH ✅ (600 edges)
-- drug → TARGETS → target ✅ (146 edges)
-- company → ACTIVE_IN → area ✅ (137 edges)
-
-**Meridian is now at L3.** The graph can answer landscape-level questions from stored relationships, not runtime joins.
+### Three clear system-wide gaps
+1. **Catalyst coverage (43.1)** — most clinical drugs have no catalyst entries
+2. **Source coverage (59.5)** — drug_area_scores rows systematically lack source_url
+3. **Ownership coverage (57.7)** — licensed-in drugs often lack ownership_edges
 
 ---
 
 ## Next Steps (in priority order)
 
-### P1 — Graph consistency: write ACTIVE_IN on new company_areas writes
-`company_intake.py` currently writes to `company_areas` but not `entity_edges`. When a new company is onboarded or a new area added, both tables must stay in sync. Add `write_active_in_edge()` to `company_intake.py` (pattern: same as `write_acquisition_edges()`).
+### P0 — Wire compute_coverage.py into nightly schedule
+The script should run nightly so coverage scores reflect fresh enrichment data.  
+Pattern: add scheduled GitHub Action or scheduled task calling `compute_coverage.py`.
 
-### P2 — Target coverage: resolve remaining 10 unmapped drugs
-Remaining unmapped area-linked drugs (89.5% → ~95%+ potential):
-| Drug | Issue |
-|------|-------|
-| cnd319, cnd460, kt501 | Trispecifics — add trispecific target nodes |
-| guselkumab-golimumab | Combo study — map each component separately |
-| abbv-668 | Verify target; likely IL-13 or related |
-| gb004 | Verify (Gossamer Bio — likely TL1A or S1P related) |
-| ianalumab | BAFF-R — add target node |
-| kyv-101 | CAR-T (CD19) — add cd19 as primary target |
-| linsitinib | IGF-1R — already exists, just map the drug |
-| lm-302 | Verify target |
+### P1 — Wire ACTIVE_IN into company_intake.py
+When `company_intake.py` writes a new `company_areas` row, it must also write the corresponding `entity_edges ACTIVE_IN` row for graph consistency.  
+Pattern: add `write_active_in_edge()` alongside `write_acquisition_edges()`.
 
-linsitinib and kyv-101 look like easy wins (targets already exist).
+### P2 — Close the three system-wide coverage gaps
 
-### P3 — Graph queries as Meridian capabilities
-Now that COMPETES_WITH + TARGETS + ACTIVE_IN are all in `entity_edges`, the graph supports:
-1. "Who is active in IBD?" → ACTIVE_IN WHERE object_id='ibd'
-2. "Which drugs compete with [drug X]?" → COMPETES_WITH WHERE subject_id=X
-3. "What does [drug X] target?" → TARGETS WHERE subject_id=X
-4. "Which companies have TL1A programs?" → ACTIVE_IN WHERE object_id='tl1a'
-5. "Which drugs target IL-23p19?" → TARGETS WHERE object_id='il23p19'
-6. "What are Sanofi's active areas?" → ACTIVE_IN WHERE subject_id='sanofi'
+**Catalyst coverage (43.1) — highest impact**  
+Most clinical drugs have no catalyst entries. This is partially a collection problem (catalysts need manual entry or automated monitoring), but some are addressable by reviewing enrichment output.  
+- Run enrichment for stale company/area pairs with 0 catalysts
+- Review whether catalyst data exists in company_profiles but wasn't extracted
 
-Consider wiring one or more of these into the Meridian research prompt as graph-grounded context.
+**Source coverage (59.5)**  
+Many drug_area_scores rows lack source_url. The enrichment script should be setting this.  
+- Check company_enrichment.py source_url write behavior
+- Consider a backfill script for drug_area_scores rows with `confidence='confirmed'` and no source
 
-### P4 — Maturity docs update
-Update `docs/meridian_maturity_assessment.md` to reflect L3 milestone. The three transitions that completed it, and what L4 would require.
+**Ownership coverage (57.7)**  
+Licensed-in drugs (drugs with partner_company set) should have ownership_edges.  
+- Run `company_intake.py` with `--write-ownership-edges` on companies with gap
+- Or build a backfill script from drugs.partner_company → ownership_edges
 
----
+### P3 — Easy remaining drug target mappings
+- `linsitinib` → `igf1r` (target exists, just add drug_targets row)
+- `kyv-101` → `cd19` (target exists, just add drug_targets row)
+- `ianalumab` → add `baffr` target, then drug_targets row
 
-## Active Uncertain Cases
-
-### drug_targets — easy wins still unmapped
-| Drug | Target | Action |
-|------|--------|--------|
-| linsitinib | IGF-1R (`igf1r` exists) | Just add drug_targets row |
-| kyv-101 | CD19 (`cd19` exists) | Just add drug_targets row |
-| ianalumab | BAFF-R (new target needed) | Add `baffr` target + row |
-
-### COMPETES_WITH — uncertain bispecifics not yet seeded
-| Drug | Target text | Issue |
-|------|-------------|-------|
-| SPY230 | IL-23 + TL1A | Confirm bispecific → maps to tl1a_il23p19 |
-| APG279 | IL-13 + OX40L | Confirm bispecific → new il13_ox40l target |
-| SPY130 | α4β7 + IL-23 | ✅ Now mapped to a4b7_il23p19 |
-| SPY120 | α4β7 + TL1A | ✅ Now mapped to tl1a_a4b7 |
+### P4 — Coverage dashboard (future, not next session)
+Once scores are stable and nightly compute is running, build a coverage view into the Meridian dashboard. The recommended_actions_json already has the data — it just needs a surface.
 
 ---
 
-## DB State (end of Session 31)
+## DB State (end of Session 32)
 | Table | Rows |
 |-------|------|
 | entity_edges (COMPETES_WITH) | 600 |
@@ -102,5 +80,16 @@ Update `docs/meridian_maturity_assessment.md` to reflect L3 milestone. The three
 | entity_edges (ACTIVE_IN) | 137 |
 | drug_targets | 182 |
 | targets | 47 |
-| validation_tests | 992 |
-| validation suite pass rate | 100% (995/995 non-skip) |
+| coverage_scores | 137 |
+| validation_tests | 992+ |
+| validation suite | 993 pass / 0 fail / 7 skip |
+
+---
+
+## Collection Priority Order (Kyle's ranking — future sessions)
+1. FDA regulatory feed
+2. SEC/EDGAR monitoring
+3. Pipeline page change detection
+4. Conference abstract collection (DDW, ACR, EULAR, AAAAI, ATS)
+5. PubMed ingestion
+6. Patents (long-horizon)
