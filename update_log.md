@@ -1,5 +1,26 @@
 
 ---
+## 2026-05-24 (Session 27) — UCB/Candid Acquisition Backfill
+
+**Commit:** `logs only — data patch, no index.html change`
+
+**UCB/Candid ownership backfill:**
+- `companies`: Candid Therapeutics → `status='acquired'`, `acquired_by='ucb'`
+- `drugs` (cizutamig, cnd319, cnd460): `current_owner_company_id='ucb'`, `originator_company_id='candid'`, `ownership_status='acquired'`, `display_partner_name='Candid Therapeutics'`, `ownership_source_url='https://www.ucb.com/stories-from-ucb/ucb-acquires-candid-therapeutics'`, `ownership_confidence_level='confirmed'`
+
+**Ownership Propagation Audit — 15/15 checks passed:**
+- All 3 CND drugs route to UCB via `current_owner_company_id`
+- `company_id='candid'` preserved as identity anchor on all 3 drugs
+- All 6 `drug_areas` entries present (tcell + autoimmune for each drug)
+- All 6 `drug_area_scores` entries present (overlap=Direct)
+- Candid marked acquired; UCB still active
+- Confidence=confirmed, partner pill='Candid Therapeutics' on all 3
+
+**Runtime effect:** cizutamig / CND319 / CND460 now render under UCB's row in the TCell and Autoimmune area tabs, with a "Candid" originator pill. No Candid Therapeutics row appears.
+
+**Validation:** 893/893 tests passing
+
+---
 ## 2026-05-24 (Session 26) — Pharma Landscape Rebuild + Ownership Model
 
 **Commit:** `95dd91fa`
