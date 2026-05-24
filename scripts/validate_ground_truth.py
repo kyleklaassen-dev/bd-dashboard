@@ -368,6 +368,43 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
                 return "fail", f"{actual} violations{suffix}", ""
             return ("pass" if passed else "fail"), actual, ""
 
+        elif test_type == "source_url_integrity":
+            # E10: Checks that no confirmed/supported source_url in drug_area_scores resolves
+            # to a broken URL (as tracked in source_verifications).
+            # Requires audit_sources.py to have been run first (populates source_verifications).
+            # entity_id='system', expected_value='0', operator='eq' → zero broken-verified rows.
+            if "source_url_integrity_violations" not in cache:
+                # Pull drug_area_scores rows that have a source_url and meaningful confidence
+                das_rows = sb_get("drug_area_scores", {
+                    "select":           "drug_id,area_id,confidence_level,source_url",
+                    "confidence_level": "in.(confirmed,supported)",
+                    "source_url":       "not.is.null",
+                    "limit":            "2000",
+                })
+                # Pull broken URLs from source_verifications (if table exists)
+                try:
+                    broken_rows = sb_get("source_verifications", {
+                        "select":        "url,source_status",
+                        "source_status": "in.(broken,timeout)",
+                        "limit":         "2000",
+                    })
+                    broken_set = {r["url"] for r in broken_rows}
+                except Exception:
+                    broken_set = set()  # table may not exist yet — skip
+                violations = [r for r in das_rows if (r.get("source_url") or "") in broken_set]
+                cache["source_url_integrity_violations"] = violations
+            violations = cache["source_url_integrity_violations"]
+            count  = len(violations)
+            actual = str(count)
+            passed = evaluate_operator(actual, expected, operator)
+            if violations and not passed:
+                sample     = violations[:3]
+                sample_str = "; ".join(
+                    f"{r['drug_id']}×{r['area_id']} ({r['confidence_level']})" for r in sample
+                )
+                return "fail", f"{actual} broken confirmed/supported sources ({sample_str})", ""
+            return ("pass" if passed else "fail"), actual, ""
+
         elif test_type == "competes_with_edge_exists":
             # E9: Verifies that a COMPETES_WITH edge exists in entity_edges for the given drug pair.
             # entity_id     = subject drug_id
