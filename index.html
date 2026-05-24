@@ -6410,6 +6410,20 @@ function _dknNotes(drug_summary) {
 function _dknCoName(d) {
   return d.company_display || d.company_id || '—';
 }
+// Strip leading trial-name / study-code prefixes from display names.
+// Handles patterns like "CD-M24-885 risankizumab plus lictuzumab"
+//   and "DUET risankizumab + lictuzumab" → "risankizumab + lictuzumab"
+function _dknCleanName(raw) {
+  if (!raw) return raw;
+  // Strip one or more leading ALL-CAPS/alphanumeric-code tokens (trial names, codes)
+  // A token qualifies if it starts with an uppercase letter and contains no lowercase letters
+  let s = raw.replace(/^(?:[A-Z][A-Z0-9\-]*\s+)+/, '').trim();
+  // Also handle colon separator: "DUET: risankizumab" → strip up to and including ": "
+  s = s.replace(/^[A-Z][A-Z0-9\-]*:\s*/, '').trim();
+  // Normalise " plus " and " / " as drug combinators → " + "
+  s = s.replace(/\s+plus\s+/gi, ' + ');
+  return s || raw; // fall back to original if we stripped everything
+}
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 async function dknLoadData() {
@@ -6621,6 +6635,7 @@ function dknRow(d) {
   const cat       = d.catalog_category || 'Pipeline';
   const catBarCls = 'cat-bar-' + cat.replace(/\s/g,'.');
   const eid       = `'${d.id}'`; // single-quoted for inline onclick — JSON.stringify produces double-quotes which break HTML attributes
+  const dLabel    = _dknCleanName(d.display_name || d.id);
   const removeOrRestore = isRemoved
     ? `<button class="dkn-restore-btn" onclick="event.stopPropagation();dknRestoreInline(${eid})" title="Restore">↩</button>`
     : `<button class="dkn-trash-btn" onclick="event.stopPropagation();dknRemove(${eid})" title="Remove drug">🗑</button>`;
@@ -6628,7 +6643,7 @@ function dknRow(d) {
   const diff = d.differentiation_thesis || '';
   const risk = _dknRisk(d.drug_summary);
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
-  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${(d.display_name||d.id||'').replace(/'/g,"\\'")}',event)" title="Open dossier">${d.display_name || d.id}</span><span class="dkn-chevron">▶</span></td>
+  <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co" style="font-size:11px;color:#374151">${_dknCoName(d)}</td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
