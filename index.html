@@ -11365,11 +11365,10 @@ function _makeAreaPI(tabId, areaIds) {
     const comboInd  = _abbrevInd(combo.indication_short) || '—';
     // Display name: drug names only — strip em-dash suffix, parenthetical targets, and leading "CODE: " prefix
     // e.g. "SPY230: SPY002 + SPY003 (TL1A + IL-23p19) — SKYLINE Part B" → "SPY002 + SPY003"
-    const comboDisplayName = (combo.label||'')
+    const comboDisplayName = _dknCleanName((combo.label||'')
       .replace(/\s+[—–-]{1,2}\s+.*$/, '')  // strip " — SKYLINE Part B" and similar
       .replace(/\s*\([^)]*\)\s*$/, '')      // strip trailing "(targets)"
-      .replace(/^[A-Za-z0-9]+:\s+/, '')     // strip "SPY230: " or "CODE: " prefix
-      .trim() || combo.label || '—';
+      .trim()) || combo.label || '—';
     // Extract targets from ANY parenthetical in label — not just trailing, handles "(...) — suffix" format
     const comboTargetMatch = (combo.label||'').match(/\(([^)]+)\)/);
     const comboTargetRaw = comboTargetMatch ? comboTargetMatch[1] : '';
@@ -11659,7 +11658,7 @@ function _makeAreaPI(tabId, areaIds) {
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span></span>
+     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_dknCleanName(d.display_name||d.name||'')).replace(/'/g,"\\'")}',event)">${_dknCleanName(d.display_name||d.name)||'—'}</span></span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
@@ -14401,7 +14400,7 @@ document.addEventListener('DOMContentLoaded', function(){
         var ovStyle = OVERLAP_STYLE[drug.overlap] || 'background:#f8fafc;color:#475569';
         var stStyle = STAGE_STYLE[drug.stage]   || 'background:#f1f5f9;color:#475569';
         return '<tr>'
-          + '<td class="co-td"><strong>' + _esc(drug.display_name || drug.id) + '</strong>'
+          + '<td class="co-td"><strong>' + _esc(_dknCleanName(drug.display_name || drug.id)) + '</strong>'
           + (drug.target ? '<br><span class="co-sub">' + _esc(drug.target) + '</span>' : '') + '</td>'
           + '<td class="co-td">' + (drug.stage   ? '<span class="co-badge" style="' + stStyle + '">' + _esc(drug.stage)   + '</span>' : '') + '</td>'
           + '<td class="co-td">' + (drug.overlap ? '<span class="co-badge" style="' + ovStyle + '">' + _esc(drug.overlap) + '</span>' : '') + '</td>'
