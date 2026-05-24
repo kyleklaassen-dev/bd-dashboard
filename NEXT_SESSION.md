@@ -1,12 +1,81 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-24 (Session 35 cont.)  
-**Last work:** Ownership Coverage Sprint — backfill + deal_linkage scoring fix  
+**Updated:** 2026-05-24 (Session 37 — v31 Competitive Landscape Layer)
+
+## IMMEDIATE: Unblock entity_edges (competitive relationship graph)
+
+Three drugs not in `drugs` table — prevents Section 5 (entity_edges) from executing:
+- **veligrotug** (Viridian, VRDN-001) — PDUFA June 30 2026, SC IGF-1R mAb
+- **elegrobart** (Viridian, VRDN-003) — Phase 2, SC IGF-1R, route-advantage SUBSTITUTES Tepezza
+- **YB-101 / GS-098** (Yarrow/GenSci) — anti-TSHR mAb Phase 1b
+
+Also add **Viridian** to `companies` (veligrotug catalyst blocked without it).
+After adding: `python3 scripts/run_v31_seed.py` auto-fills Section 5.
+
+## v31 Session 37 Summary
+
+**Migration:** v31_competitive_landscape.sql applied ✅ (3 new tables, 2 extensions)
+
+| Table | Rows written |
+|-------|------|
+| mechanism_status | 5 (IGF-1R/FcRn/TSHR × TED + GD) |
+| competitive_landscapes | 1 (TED × IGF-1R_TSHR, 87.0/100, needs_revalidation) |
+| geographic_approvals | 3 (Tepezza US/Japan, IBI311 China) |
+| deals | 2 (Yarrow/GenSci $1.365B, Sling/Astellas linsitinib) |
+| entity_edges | 0 ← **BLOCKED: add veligrotug + elegrobart first** |
+| catalysts | +2 (batoclimab met, efgartigimod inserted) |
+
+**Section F confirmed:** 5 layers populated (LANDSCAPE, MECHANISM, APPROVAL, CATALYST). FcRn×TED=failed/phase_3 with confirming_failures=[batoclimab, efgartigimod] stored correctly.
+
+**Q3 2026 revalidation flags in DB:** veligrotug PDUFA (Jun 30), OLN102 IND (Oct 1), TSHR Phase 1b (Oct 1), Tepezza Japan PMDA date (Oct 1), FcRn×GD IMVT-1402 (Jan 2027).
+
+**Next priority options:**
+1. Add missing drugs/company → re-run seed → entity_edges Section 5 populated
+2. Apply v31 landscape model to TL1A, α4β7 areas
+3. Dashboard: wire mechanism_status into competitive landscape tab
+
+---
+
+## Previous: Session 36 Summary — Catalyst Coverage Sprint
+
+**Written:** 2026-05-24 (Session 36)
+**Last work:** Catalyst Coverage Sprint — 53.6 → 70.9 (+17.3), platform 83.0 → 84.4
 **Validation:** 993 pass / 0 fail / 7 skip ✅
 
 ---
 
-## Session 35 Summary — Ownership Coverage Sprint (cont.)
+## Session 36 Summary — Catalyst Coverage Sprint
+
+### What was built
+- `scripts/backfill_catalysts_s36.py` — 31 new unresolved catalysts across 7 areas
+- Phase 4 denominator fixes: 5 stage corrections (risankizumab, vedolizumab, upadacitinib, lebrikizumab → Approved; orilanolimab → Discontinued)
+- Wrong-area removals: m701 out of autoimmune+fcrn (oncology-only EpCAM×CD3), lm-302 out of ibd (GC/GEJ ADC)
+- 5 stale validation tests deleted (m701/fcrn, m701/autoimmune, lm-302/ibd row assertions)
+
+### Coverage result (end of Session 36)
+| Dimension | Score | Change | Flag |
+|-----------|-------|--------|------|
+| Molecule intelligence | 99.5 | — | ✅ |
+| Deal linkage | 97.1 | — | ✅ |
+| Target mapping | 97.1 | — | ✅ |
+| Source coverage | 89.0 | — | ✅ |
+| Confidence coverage | 82.7 | — | ✅ |
+| Profile completeness | 73.9 | — | ok |
+| Enrichment recency | 70.4 | — | ok |
+| Ownership coverage | 100.0 | — | ✅ |
+| **Catalyst coverage** | **70.9** | **+17.3** | **✅** |
+
+**Platform average: 84.4 / 100** (was 83.0, +1.4)
+
+### Key insight: catalyst sprint
+- Denominator corrections (approved/discontinued/wrong-area drugs removed) contributed ~5 points
+- 31 new catalysts contributed ~12 points
+- Catalyst coverage crossed the 70 threshold — now in ✅ territory
+- Remaining gap: ~30 Phase 2 programs without catalysts (smaller companies, less well-defined readout windows)
+
+---
+
+## Session 35 cont. Summary — Ownership Coverage Sprint
 
 ### What was built
 - `scripts/backfill_ownership_edges.py` — 28 new ORIGINATED_BY/LICENSED_IN edges for partner_company drugs
@@ -81,11 +150,20 @@ compute_coverage.py v1.2: denominator = confirmed+supported only. backfill_sourc
 Ownership coverage: 57.7 → 100.0 (+42.3). Platform average: 79.1 → 83.0 (+3.9).
 28 ORIGINATED_BY/LICENSED_IN edges inserted. deal_linkage scoring fix: ORIGINATED_BY excluded from denominator.
 
+### ✅ P2 — Catalyst coverage sprint — DONE (Session 36)
+Catalyst coverage: 53.6 → 70.9 (+17.3). Platform average: 83.0 → 84.4 (+1.4).
+31 new unresolved catalysts. 9 denominator corrections (stage fixes + wrong-area removals).
+
 ### P1 — Wire compute_coverage.py into nightly schedule
 Add scheduled GitHub Action or Cowork task calling compute_coverage.py nightly.
 
-### P2 — Catalyst coverage (53.6 → 60+)
-Add catalysts for Phase 2 programs with estimable readout windows.
+### P2 — Continue catalyst coverage (70.9 → 80+ target)
+~30 Phase 2 programs still have no catalysts. Priority targets:
+- connectbiopharma/atopy — what drug? needs research
+- qyuns/respiratory — what drug? needs research
+- upstreambio/respiratory — what drug? needs research
+- Large-company Phase 2 programs: riliprubart/sanofi, rocatinlimab/pfizer, linvoseltamab/regeneron
+- Past-readout catalysts: itepekimab/respiratory (SOLSTICE — readout passed?), astegolimab/respiratory
 
 ### P3 — Coverage dashboard
 Surface coverage_scores + recommended_actions_json in Meridian dashboard view.
