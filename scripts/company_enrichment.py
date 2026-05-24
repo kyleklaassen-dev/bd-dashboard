@@ -1642,6 +1642,59 @@ CHINA CDE AWARENESS:
   note this explicitly in mechanism_detail (e.g., "Phase 1 registered on China CDE registry; NCT pending")."""
 
 
+# ── Disease-area framing for area-aware assessment generation ─────────────────
+# Maps area_id → (disease_label, ailux_in_area, bd_frame)
+# ailux_in_area: True if Ailux directly competes in this area
+# bd_frame: how to frame Ailux implications when NOT a direct competitor
+AREA_DISEASE_CONTEXT = {
+    "tl1a": {
+        "disease": "IBD (UC/CD)",
+        "ailux_in_area": True,
+        "bd_frame": "direct competitor — assess mechanistic, clinical, and partnership threat to Ailux's TL1A×IL-23p19 bispecific program",
+    },
+    "ibd": {
+        "disease": "IBD (UC/CD)",
+        "ailux_in_area": True,
+        "bd_frame": "direct competitor — assess mechanistic, clinical, and partnership threat to Ailux's TL1A×IL-23p19 bispecific program",
+    },
+    "igf1r": {
+        "disease": "Thyroid Eye Disease (TED / Graves' orbitopathy)",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's TED franchise strength, then explain BD relevance to Ailux: valuation benchmarks set by anti-IGF1R deals, whether they are a potential partner/acquirer in the broader autoimmune space, or whether their clinical data informs Ailux's competitive landscape indirectly",
+    },
+    "igf1r_tshr": {
+        "disease": "Thyroid Eye Disease (TED / Graves' orbitopathy)",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's TED franchise strength, then explain BD relevance to Ailux: valuation benchmarks set by anti-IGF1R deals, whether they are a potential partner/acquirer in the broader autoimmune space, or whether their clinical data informs Ailux's competitive landscape indirectly",
+    },
+    "tslp": {
+        "disease": "Severe Asthma / Respiratory",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's respiratory franchise strength, then explain BD relevance to Ailux: deal structures and valuations that benchmark biologics in adjacent autoimmune markets, whether they are a potential BD partner or acquirer across their broader immunology portfolio",
+    },
+    "il4ra": {
+        "disease": "Atopic Dermatitis / Atopic Disease",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's atopic disease franchise strength, then explain BD relevance to Ailux: deal benchmarks from the IL-4Rα/dupilumab competitive set, whether they are a potential BD partner in the broader autoimmune space",
+    },
+    "il4ra_tslp": {
+        "disease": "Atopic Dermatitis / Atopic Disease",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's atopic disease franchise strength, then explain BD relevance to Ailux: deal benchmarks from IL-4Rα/dupilumab competitive set, partnering potential across immunology",
+    },
+    "fcrn": {
+        "disease": "Autoimmune / IgG-mediated Disease (CIDP, MG, ITP, NMOSD, etc.)",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's FcRn/IgG-mediated disease franchise strength, then explain BD relevance to Ailux: deal structures and valuations for broad autoimmune platforms, whether they are a potential BD partner or acquirer",
+    },
+    "tcell": {
+        "disease": "T-Cell Engagers / Oncology",
+        "ailux_in_area": False,
+        "bd_frame": "non-competing area — assess the company's T-cell engager/oncology franchise strength, then explain BD relevance to Ailux: whether they have a broader immunology BD mandate that might include IBD/autoimmune assets",
+    },
+}
+
+
 def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
                        web_intel: str = "") -> str:
     co        = ctx["company"]
@@ -1757,6 +1810,45 @@ def build_step5_prompt(company_id: str, area_id: str, ctx: dict,
     else:
         web_intel_section = ""
 
+    # ── Area-specific framing block ─────────────────────────────────────────────
+    # Tells the LLM which disease area this is and how to frame Ailux implications.
+    # Prevents assessments from being anchored to IBD/TL1A on non-IBD tabs.
+    _area_ctx = AREA_DISEASE_CONTEXT.get(area_id, {})
+    _disease_label = _area_ctx.get("disease", area_id.upper())
+    _ailux_in_area = _area_ctx.get("ailux_in_area", True)
+    _bd_frame = _area_ctx.get("bd_frame", "assess competitive position and BD implications for Ailux")
+
+    if _ailux_in_area:
+        area_framing_block = (
+            f"\nAREA FRAMING — {_disease_label}:\n"
+            f"This is AILUX'S PRIMARY COMPETITIVE AREA. Ailux's TL1A×IL-23p19 bispecific (SPY002) "
+            f"directly competes in {_disease_label}. Frame ALL assessments relative to how this company's "
+            f"programs affect Ailux's competitive positioning, partner audience, and BD timing in this area.\n"
+            f"  • platform_intelligence.assessment: What does this company's trajectory mean for Ailux's "
+            f"position in {_disease_label}?\n"
+            f"  • vs_ailux: Direct mechanism and stage comparison to SPY002 (TL1A×IL-23p19 bispecific).\n"
+            f"  • why_it_matters: Why does this competitor matter to Ailux's BD strategy in {_disease_label}?\n"
+        )
+    else:
+        area_framing_block = (
+            f"\nAREA FRAMING — {_disease_label}:\n"
+            f"THIS IS NOT AILUX'S PRIMARY COMPETITIVE AREA. Ailux does not have a program in {_disease_label}. "
+            f"Do NOT frame assessments as if Ailux competes here. Instead, use a TWO-LAYER structure:\n"
+            f"  LAYER 1 — Disease Assessment: Describe this company's competitive position, pipeline "
+            f"strength, and strategic trajectory IN {_disease_label.upper()} specifically. "
+            f"What is their franchise strategy, stage, and market position in this disease?\n"
+            f"  LAYER 2 — Ailux Implications: {_bd_frame}.\n\n"
+            f"IMPORTANT INSTRUCTION FOR NON-COMPETING AREAS:\n"
+            f"  • platform_intelligence.assessment: '[ASSESSED] In {_disease_label}: [company's position]. "
+            f"Ailux BD angle: [specific implication — benchmark, partner potential, cross-area signal].'\n"
+            f"  • vs_ailux: Do NOT say 'no overlap' as the answer. Instead say: 'Not a direct competitor in "
+            f"{_disease_label}; Ailux monitors [company] as [specific BD reason — acquirer, benchmark-setter, "
+            f"cross-area BD signal].'\n"
+            f"  • why_it_matters: Answer with a specific BD reason — not 'no overlap'. Examples: "
+            f"'Sets $XM licensing benchmark for [mechanism] assets', 'Potential acquirer — broad immunology "
+            f"mandate includes [area]', 'Clinical data validates [shared biology] relevant to Ailux'.\n"
+        )
+
     return f"""Enrich company: {co.get('name', company_id)} (ID: {company_id})
 Area: {area_id}  |  Public: {is_public}  |  Today: {TODAY}
 
@@ -1779,6 +1871,7 @@ RECENT INTEL:
 {recent_intel}
 {web_intel_section}
 {ailux_block}
+{area_framing_block}
 Return JSON with EXACTLY these fields:
 
 ⚠ CRITICAL SCHEMA REQUIREMENT:
@@ -1795,7 +1888,7 @@ Return JSON with EXACTLY these fields:
       "direction": [
         "Array of 2-3 interpretation bullets. Each ≤15 words. Logical conclusions about the PLATFORM STRATEGY derived from the facts — not restatements, not BD behavior. Label each [INFERRED]. Examples: '[INFERRED] ABBV-701 positioned as SKYRIZI combination backbone, not TL1A monotherapy', '[INFERRED] Dual-track strategy hedges monospecific and bispecific formats simultaneously'."
       ],
-      "assessment": "[ASSESSED] 1 sentence. A UNIQUE forward-looking strategic read specifically for Ailux — what does this company's platform trajectory mean for Ailux's competitive positioning or partnering opportunity? This must NOT repeat facts or BD deal details already in the other cards. Focus on: how does this change Ailux's competitive landscape, timing pressure, or partner audience? Be specific and direct.",
+      "assessment": "[ASSESSED] 1 sentence. Framed for {_disease_label} per AREA FRAMING above. Two cases: (1) If this IS Ailux's primary area: 'What does this company's platform trajectory mean for Ailux's competitive positioning or timing in {_disease_label}?' (2) If NOT Ailux's primary area: Lead with the company's position in {_disease_label}, then pivot to the Ailux BD angle — benchmark, partner potential, or cross-area signal. Must NOT repeat facts or BD deal details already in other cards. Be specific, direct, actionable.",
       "confidence": "high | medium | low — based on volume and quality of public disclosures, trial activity, and deal history"
     }},
     "bd_intelligence": {{
@@ -1809,15 +1902,15 @@ Return JSON with EXACTLY these fields:
       "confidence": "high | medium | low"
     }},
     "key_risk": "REQUIRED — 1-2 sentences: the single most important risk or uncertainty for this company/program in this area. Be specific: trial risk (endpoint, enrollment, regulatory), competitive risk (head-to-head data, first-mover), platform risk (technology, execution), or financial risk. Not a generic summary — Ailux needs to know what could go wrong and why it matters.",
-    "why_it_matters": "REQUIRED — 1-2 sentences: why this competitor matters specifically for Ailux's BD strategy. Answer one of: (a) They set a pricing/valuation benchmark we should track, (b) They could be a partner or acquirer, (c) Their clinical data validates or threatens our mechanism, (d) Their deal structure defines what counterparties expect. Never generic — always Ailux-specific BD framing.",
-    "vs_ailux": "REQUIRED — 1-2 sentences: how this program compares to Ailux's TL1A×IL-23p19 bispecific (SPY002). Lead with mechanism difference, then stage, then one specific differentiator (format, data, deal structure, biomarker). If the company IS Ailux/Spyre, describe their full TL1A strategy instead.",
+    "why_it_matters": "REQUIRED — 1-2 sentences: why this company matters for Ailux's BD strategy specifically in the context of {_disease_label}. Answer one of: (a) They set a pricing/valuation benchmark Ailux should track in {_disease_label} or adjacent areas, (b) They are a potential partner or acquirer (explain why — their BD mandate, immunology portfolio scope, deal history), (c) Their clinical data in {_disease_label} validates or informs Ailux's mechanism or competitive position, (d) Their deal structure defines what counterparties expect in this or adjacent disease areas. Never generic — always give a specific Ailux-relevant BD reason tied to {_disease_label}.",
+    "vs_ailux": "REQUIRED — 1-2 sentences. See AREA FRAMING above: if this IS Ailux's primary competitive area ({_disease_label}), lead with mechanism difference vs SPY002 (TL1A×IL-23p19 bispecific). If this is NOT Ailux's primary area, explain why Ailux monitors this company — benchmark-setting, partner/acquirer potential, or cross-area BD signal. Never say only 'no overlap' — always give the positive BD reason. If the company IS Ailux/Spyre, describe their full strategy in {_disease_label} instead.",
     "strategic_behavior": "1 sentence: acquirer / licensor / partner-seeker / platform builder.",
     "pipeline_url": "URL or null",
     {financial_fields}
   }},
   "drug_updates": [{{
     "drug_id": "exact drug id from DRUGS list",
-    "strategic_role": "REQUIRED — classify this drug's role for this company in this area: 'direct_competitor' (same mechanism as Ailux TL1A×IL-23p19), 'franchise_anchor' (dominant commercial asset the company's IBD strategy is built on), 'combination_asset' (designed to be used in combo with another drug), 'same_space_defense' (same indication, different mechanism, commercially important), 'platform_expansion' (future programs extending the franchise), or 'watch' (early/uncertain relevance)",
+    "strategic_role": "REQUIRED — classify this drug's role for this company in this area ({_disease_label}): 'direct_competitor' (same mechanism as Ailux's lead asset in this area), 'franchise_anchor' (dominant commercial asset the company's {_disease_label} strategy is built on), 'combination_asset' (designed to be used in combo with another drug), 'same_space_defense' (same indication, different mechanism, commercially important), 'platform_expansion' (future programs extending the franchise), or 'watch' (early/uncertain relevance)",
     "display_name": "null or override display name — use when company uses a different code than the drug_id. Format: 'CompanyCode (OriginalCode)' e.g. 'ABBV-701 (FG-M701)' or 'Skyrizi (Risankizumab)'. Only set when the canonical displayed name differs from what the drug_id implies.",
     "licensor_name": "null or full legal name of the originating company — e.g. 'FutureGen Biopharmaceutical Co., Ltd.'. Only for in-licensed assets.",
     "licensor_code": "null or original code/name used by licensor — e.g. 'FG-M701'. Only when drug was renamed by licensee.",
