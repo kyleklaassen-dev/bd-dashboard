@@ -2087,7 +2087,6 @@ function renderDeals(deals) {
     if (d.detail)        bodyParts.push(`<div class="deal-card-detail">${d.detail}</div>`);
     if (d.upfront_usd_m) bodyParts.push(`<div class="deal-card-upfront">💰 ${fmtMoney(d.upfront_usd_m)} upfront</div>`);
     if (d.ailux_signal)  bodyParts.push(`<div class="deal-card-ailux"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>`);
-    if (d.source_url)    bodyParts.push(`<a class="deal-src-link" href="${d.source_url}" target="_blank" onclick="event.stopPropagation()">↗ Source</a>`);
     const hasBody = bodyParts.length > 0;
     return `<div class="deal-card" id="${cardId}" data-area="${d.area_id||''}">
   <div class="deal-card-hd" onclick="${hasBody ? `toggleDealCard('${cardId}')` : ''}">
