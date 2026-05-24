@@ -606,15 +606,8 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .sc-freshness.stale  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
 .sc-freshness.unknown { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
 /* ── Identity Health Footer ── */
-#id-footer { position:fixed; bottom:0; left:0; right:0; z-index:8000; height:28px; display:flex; align-items:center; padding:0 18px; gap:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.95); cursor:pointer; transition:background 0.4s, opacity 0.3s; box-shadow:0 -1px 8px rgba(0,0,0,0.15); user-select:none; }
-#id-footer.idf-ok   { background:#15803d; }
-#id-footer.idf-warn { background:#b45309; }
-#id-footer.idf-bad  { background:#dc2626; }
-#id-footer.idf-loading { background:#475569; }
-#id-footer .idf-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.7); flex-shrink:0; }
-#id-footer .idf-sep { opacity:0.35; }
-#id-footer .idf-hint { margin-left:auto; font-size:9.5px; opacity:0.65; font-weight:500; }
-body { padding-bottom:28px; }
+#id-footer { display:none !important; }
+body { padding-bottom:0; }
 /* ── Identity Health Panel ── */
 .ih-stat { display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px; }
 .ih-stat-val { font-size:22px;font-weight:800;line-height:1; }
@@ -8482,13 +8475,13 @@ function dqCloseDetail(e) {
 
 </script>
 
-<div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 40px;background:#edf1f7;min-height:100vh">
+<div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 4px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1200px;margin:0 auto;">
     <!-- Issue viewer -->
     <div style="background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
       <iframe id="meridian-issue-frame"
        srcdoc="<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading issue…</p>"
-       style="width:100%;height:calc(100vh - 170px);min-height:600px;border:none;display:block;"
+       style="width:100%;height:calc(100vh - 102px);min-height:600px;border:none;display:block;"
        title="The Meridian">
       </iframe>
     </div>
