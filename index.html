@@ -12938,16 +12938,20 @@ async function _gsSbSearch(term) {
  panel.innerHTML = '<div class="gs-sb-empty">Searching…</div>';
  panel.style.display = 'block';
  try {
-  const [coRes, intelRes, dealsRes, catsRes] = await Promise.all([
+  const [coRes, drugRes, intelRes, dealsRes, catsRes] = await Promise.all([
    _sb.from('companies')
-    .select('id,name,ticker,type,hq_country,area_id,status')
+    .select('id,name,ticker,company_type,geography,status')
     .neq('status','acquired')
     .or(`name.ilike.%${esc}%,ticker.ilike.%${esc}%`)
     .order('name', { ascending: true }).limit(6),
+   _sb.from('drugs')
+    .select('id,name,display_name,stage,mechanism,company_id')
+    .or(`name.ilike.%${esc}%,display_name.ilike.%${esc}%,mechanism.ilike.%${esc}%`)
+    .order('name', { ascending: true }).limit(5),
    _sb.from('intel')
     .select('id,intel_date,headline,intel_type,importance,source_url,intel_areas(area_id)')
     .or(`headline.ilike.%${esc}%,body.ilike.%${esc}%`)
-    .order('intel_date', { ascending: false }).limit(6),
+    .order('intel_date', { ascending: false }).limit(5),
    _sb.from('deals')
     .select('id,deal_date,headline,from_company,to_company,area_id,deal_type,total_usd_m,source_url')
     .or(`headline.ilike.%${esc}%,detail.ilike.%${esc}%,from_company.ilike.%${esc}%,to_company.ilike.%${esc}%`)
@@ -12959,28 +12963,41 @@ async function _gsSbSearch(term) {
     .order('sort_date', { ascending: true }).limit(4)
   ]);
   const cos   = coRes.data   || [];
+  const drugs = drugRes.data || [];
   const intel = intelRes.data || [];
   const deals = dealsRes.data || [];
   const cats  = catsRes.data  || [];
-  if (!cos.length && !intel.length && !deals.length && !cats.length) {
+  if (!cos.length && !drugs.length && !intel.length && !deals.length && !cats.length) {
    panel.innerHTML = '<div class="gs-sb-empty">No results for "<em>' + term.replace(/</g,'&lt;') + '</em>"</div>';
    return;
   }
   const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
   function hl(s) { return (s||'').replace(/</g,'&lt;').replace(re, m => '<mark class="gs-hl">'+m+'</mark>'); }
   let html = '';
-  // ── Companies first ──────────────────────────────────────────────
+
+  // ── Companies ────────────────────────────────────────────────────
   if (cos.length) {
    html += '<div class="gs-sb-section-hd">Companies (' + cos.length + ')</div>';
    cos.forEach(co => {
-    const aLabel = _AREA_LABEL_GS[co.area_id] || co.area_id || '';
-    const typeTag = co.type ? `<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">${co.type}</span>` : '';
-    const areaTag = aLabel ? `<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">${aLabel}</span>` : '';
-    const ticker  = co.ticker ? `<span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:monospace">${co.ticker}</span>` : '';
-    const hq      = co.hq_country ? `<span>${co.hq_country}</span>` : '';
+    const typeTag = co.company_type ? `<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">${co.company_type}</span>` : '';
+    const geoTag  = co.geography    ? `<span>${co.geography}</span>` : '';
+    const ticker  = co.ticker       ? ` <span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:monospace">${co.ticker}</span>` : '';
     html += `<div class="gs-sb-item gs-nav-item" data-gtype="company" data-company-id="${co.id}" data-company-name="${(co.name||'').replace(/"/g,'&quot;')}" style="cursor:pointer">`
-     + `<div class="gs-sb-headline" style="display:flex;align-items:center;gap:6px;">🏢 ${hl(co.name)} ${ticker}</div>`
-     + `<div class="gs-sb-meta">${typeTag}${areaTag}${hq}</div></div>`;
+     + `<div class="gs-sb-headline">🏢 ${hl(co.name)}${ticker}</div>`
+     + `<div class="gs-sb-meta">${typeTag}${geoTag}</div></div>`;
+   });
+  }
+
+  // ── Drugs ─────────────────────────────────────────────────────────
+  if (drugs.length) {
+   html += '<div class="gs-sb-section-hd">Drugs (' + drugs.length + ')</div>';
+   drugs.forEach(d => {
+    const label    = d.display_name || d.name || '';
+    const mechTag  = d.mechanism ? `<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">${d.mechanism.slice(0,50)}</span>` : '';
+    const stageTag = d.stage ? `<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">${d.stage}</span>` : '';
+    html += `<div class="gs-sb-item gs-nav-item" data-gtype="drug" data-drug-id="${d.id}" data-drug-name="${label.replace(/"/g,'&quot;')}" style="cursor:pointer">`
+     + `<div class="gs-sb-headline">💊 ${hl(label)}${d.name !== label ? ' <span style="font-size:10px;opacity:0.55">('+hl(d.name)+')</span>' : ''}</div>`
+     + `<div class="gs-sb-meta">${stageTag}${mechTag}</div></div>`;
    });
   }
   if (intel.length) {
@@ -13062,6 +13079,15 @@ document.addEventListener('click', function(e) {
      if (panel) panel.style.display = 'none';
      const activeTabId = document.querySelector('.tab-pane.active')?.id?.replace(/^tab-/,'') || 'home';
      if (typeof openCompanySlideOver === 'function') openCompanySlideOver(coId, coName, activeTabId);
+     return;
+   }
+   if (gtype === 'drug') {
+     // Open drug entity modal
+     const drugId   = navItem.dataset.drugId   || '';
+     const drugName = navItem.dataset.drugName || '';
+     const sbPanel  = document.getElementById('gs-sb-panel');
+     if (sbPanel) sbPanel.style.display = 'none';
+     if (typeof openDrugEntityModal === 'function') openDrugEntityModal(drugId, drugName, null);
      return;
    }
    const area = navItem.dataset.area || '';
