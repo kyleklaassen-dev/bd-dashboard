@@ -6845,9 +6845,59 @@ function dknLoadSbData() { return dknLoadData(); }
     vertical-align:middle;opacity:.75;transition:opacity .15s;letter-spacing:.01em;
   }
   .co-profile-btn:hover { opacity:1;background:#1e40ab; }
+
+  /* ── All Companies section ── */
+  .all-cos-section { margin:0 0 28px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden; }
+  .all-cos-hd { background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700; }
+  .all-cos-sub { font-size:11px;color:#93c5fd;font-weight:400;margin-left:auto; }
+  .all-cos-filters { padding:8px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center; }
+  .all-cos-filters input { flex:1;min-width:150px;padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:11.5px;outline:none;background:#fff; }
+  .all-cos-filters input:focus { border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+  .all-cos-filters select { padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:11px;background:#fff;cursor:pointer;outline:none; }
+  .all-cos-filters select:focus { border-color:#3b82f6; }
+  .ac-scroll { max-height:380px;overflow-y:auto;overflow-x:hidden; }
+  .ac-scroll::-webkit-scrollbar { width:5px; }
+  .ac-scroll::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+  .ac-table { width:100%;border-collapse:collapse;font-size:11.5px; }
+  .ac-table th { background:#f1f5f9;color:#475569;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:6px 9px;border-bottom:2px solid #dde3ea;text-align:left;position:sticky;top:0;z-index:2; }
+  .ac-table td { padding:7px 9px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
+  .ac-row:hover td { background:#eff6ff;cursor:pointer; }
+  .ac-geo-pill { display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap; }
 </style>
 
 <div class="pi-page-wrap">
+
+<!-- ── All Companies (Supabase-driven) ── -->
+<div class="all-cos-section" style="margin:16px 16px 24px">
+  <div class="all-cos-hd">
+    <span>🏢 Company Repository</span>
+    <span class="all-cos-sub" id="all-cos-count">Loading…</span>
+  </div>
+  <div class="all-cos-filters">
+    <input type="text" id="all-cos-search" placeholder="🔍 Search by name, ticker, or TA…" oninput="_acFilter()">
+    <select id="all-cos-geo" onchange="_acFilter()">
+      <option value="">All Geographies</option>
+      <option value="global">🌐 Global Big Pharma</option>
+      <option value="china">🇨🇳 China Pharma</option>
+      <option value="bd">BD Focus Companies</option>
+    </select>
+    <select id="all-cos-type" onchange="_acFilter()">
+      <option value="">All Types</option>
+      <option value="large_cap">Large Cap</option>
+      <option value="innovative">Innovative</option>
+      <option value="biotech">Biotech</option>
+      <option value="mid_cap">Mid Cap</option>
+      <option value="small_cap">Small Cap</option>
+      <option value="cdmo">CDMO</option>
+      <option value="state_owned">State-owned</option>
+      <option value="tcm">TCM</option>
+    </select>
+  </div>
+  <div id="all-cos-wrap">
+    <div style="padding:28px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Switch to this tab to load companies…</div>
+  </div>
+</div>
+
 <!-- Two-column: China + US side by side -->
 <div class="pi-two-col">
 
@@ -9928,6 +9978,9 @@ registerTab('meridian-issue', {
     if (arc) arc.style.display = 'none';
   }
 });
+registerTab('pharma-intel', {
+  onEnter() { _initAllCompanies(); _addRankingDossierBtns(); }
+});
 registerTab('industry-insights', {
   onEnter() { loadRollingDeals(); loadLiveIntel(); }
 });
@@ -10025,7 +10078,7 @@ function _makeAreaPI(tabId, areaIds) {
       try {
         const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,companies(name,ticker,status))')
+            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies(name,ticker,status))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
@@ -10061,7 +10114,9 @@ function _makeAreaPI(tabId, areaIds) {
         const drugs = (rows||[]).map(r=>r.drugs).filter(d => {
           if (!d || seen.has(d.id)) return false;
           seen.add(d.id);
-          if (d.companies?.status === 'acquired') return false;
+          // Allow through drugs from acquired companies if current_owner_company_id is set
+          // (e.g. Candid drugs rolling up under UCB after acquisition)
+          if (d.companies?.status === 'acquired' && !d.current_owner_company_id) return false;
           return true;
         });
         this.data = drugs.map(d => {
@@ -10069,14 +10124,17 @@ function _makeAreaPI(tabId, areaIds) {
           // for competitive tier within this tab's area context. Fall back to drugs table
           // globals only when no area score exists (e.g. newly added drug before enrichment).
           const score = areaScoreMap[d.id];
+          // current_owner_company_id takes priority for acquisitions; entity_id for legacy
+          // partnerships; company_id as fallback (the identity anchor, never changed)
+          const ownerCoId = d.current_owner_company_id || d.entity_id || d.company_id;
           return {
           id:                   d.id,
           company_id:           d.company_id,
-          entity_id:            d.entity_id || d.company_id || d.id,
-          entity_name:          d.entity_name || d.companies?.name || d.company_id || '—',
+          entity_id:            ownerCoId || d.id,
+          entity_name:          companiesMap.get(ownerCoId)?.name || d.entity_name || d.companies?.name || d.company_id || '—',
           entity_type:          d.entity_type || 'standalone',
-          co:                   d.companies?.name || d.company_id || '—',
-          ticker:               companiesMap.get(d.entity_id || d.company_id)?.ticker || d.companies?.ticker || '',
+          co:                   companiesMap.get(ownerCoId)?.name || d.companies?.name || d.company_id || '—',
+          ticker:               companiesMap.get(ownerCoId)?.ticker || d.companies?.ticker || '',
           drug:                 d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
           name:                 d.name,
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
@@ -10090,11 +10148,15 @@ function _makeAreaPI(tabId, areaIds) {
           stageDetail:          d.stage_detail || '',
           indication_short:     d.indication_short || '',
           drug_summary:         d.drug_summary || '',
-          partner_company:      d.partner_company || null,
-          partnership_type:     d.partnership_type || null,
-          partnership_verified: d.partnership_verified ?? null,
-          licensor_name:        d.licensor_name || null,
-          licensor_code:        d.licensor_code || null,
+          partner_company:        d.partner_company || null,
+          partnership_type:       d.partnership_type || null,
+          partnership_verified:   d.partnership_verified ?? null,
+          licensor_name:          d.licensor_name || null,
+          licensor_code:          d.licensor_code || null,
+          current_owner_company_id: d.current_owner_company_id || null,
+          originator_company_id:  d.originator_company_id || null,
+          ownership_status:       d.ownership_status || null,
+          display_partner_name:   d.display_partner_name || null,
           };
         });
         this._buildEntities();
@@ -11697,7 +11759,7 @@ const tl1aPI = {
   try {
    const [drugAreaRes, scoreRes, companiesRes] = await Promise.all([
     _sb.from('drug_areas')
-     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,companies(name,ticker,status))')
+     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies(name,ticker,status))')
      .eq('area_id', 'tl1a'),
     _sb.from('drug_area_scores')
      .select('drug_id,overlap,cls')
@@ -11721,13 +11783,15 @@ const tl1aPI = {
     .filter(d => {
      if (!d || seen.has(d.id)) return false;
      seen.add(d.id);
-     if (d.companies?.status === 'acquired') return false;
+     // Allow through drugs from acquired companies if current_owner_company_id is set
+     if (d.companies?.status === 'acquired' && !d.current_owner_company_id) return false;
      return true;
     })
     .map(d => {
      const score = scoreMap[d.id];
-     // entity_id is the display entity for partnerships (e.g. 'boehringer' for SIM0709)
-     const displayEntityId = d.entity_id || d.company_id;
+     // current_owner_company_id wins for acquisitions; entity_id for legacy partnerships;
+     // company_id as identity anchor fallback
+     const displayEntityId = d.current_owner_company_id || d.entity_id || d.company_id;
      const co = companyMap.get(displayEntityId) || d.companies || {};
      // cls: prefer drug.cls (1st Gen / 2nd Gen / Next Gen) over score.cls (which can be free-text)
      const rawCls = d.cls || (score?.cls && !score.cls.includes(' ') ? score.cls : null) || '1st Gen';
@@ -12961,6 +13025,8 @@ const tl1aPI = {
    const _trimLegal = s => s ? s.replace(/[,\s]+(Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim() : null;
    const _partnerCo   = d.partner_company || d._partnerCo
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
+    // ownership model: show originator pill for acquired/licensed assets
+    || ((d.ownership_status && d.ownership_status !== 'originated') ? (d.display_partner_name || null) : null)
     || null;
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
@@ -14778,6 +14844,125 @@ function piFilter(input, tableId) {
     mr.style.display = show ? '' : 'none';
     if (drRow && !show) drRow.style.display = 'none';
   });
+}
+
+// ── Pharma Landscape — inject dossier buttons onto ranking rows ───────────
+var _RANKING_ID_MAP = {
+  'cn-hengrui':'hengrui','cn-sinopharm':'sinopharm','cn-cspc':'cspc','cn-wuxi-bio':'wuxi-bio',
+  'cn-beigene':'beone','cn-sino-biopharma':'sinobiopharma','cn-yunnan-baiyao':'yunnan-baiyao',
+  'cn-hansoh':'hansoh','cn-innovent':'innovent','cn-fosun':'fosun','cn-hutchmed':'hutchmed',
+  'cn-zailab':'zailab','cn-shanghai-pharma':'shanghai-pharma','cn-pien-tze-huang':'pien-tze-huang',
+  'cn-remegen':'remegen',
+  'us-lilly':'lilly','us-jnj':'jnj','us-novartis':'novartis','us-abbvie':'abbvie',
+  'us-novonordisk':'novonordisk','us-astrazeneca':'astrazeneca','us-merck':'merck','us-roche':'roche',
+  'us-amgen':'amgen','us-pfizer':'pfizer','us-bms':'bms','us-sanofi':'sanofi','us-gilead':'gilead',
+  'us-vertex':'vertex','us-gsk':'gsk','us-regeneron':'regeneron','us-takeda':'takeda',
+  'us-bayer':'bayer','us-biogen':'biogen','us-moderna':'moderna'
+};
+function _addRankingDossierBtns() {
+  document.querySelectorAll('.pi-main-row').forEach(function(row) {
+    var m = (row.getAttribute('onclick') || '').match(/piToggle\('([^']+)'\)/);
+    if (!m) return;
+    var sbId = _RANKING_ID_MAP[m[1]];
+    if (!sbId) return;
+    var strong = row.querySelector('strong');
+    if (!strong || strong.querySelector('.pi-dossier-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'co-profile-btn pi-dossier-btn';
+    btn.textContent = 'Profile →';
+    var coName = strong.textContent.replace(/[▼▲↑↓]/g,'').trim();
+    btn.onclick = function(e) { e.stopPropagation(); openCompanySlideOver(sbId, coName, 'pharma-intel'); };
+    strong.appendChild(btn);
+  });
+}
+
+// ── All Companies (Pharma Landscape) ──────────────────────────────────────
+let _acData = [], _acFiltered = [], _acInitialized = false;
+
+async function _initAllCompanies() {
+  if (_acInitialized) return;
+  _acInitialized = true;
+  const wrap = document.getElementById('all-cos-wrap');
+  if (wrap) wrap.innerHTML = '<div style="padding:28px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">⟳ Loading companies…</div>';
+
+  if (typeof _sb === 'undefined' || !_sb) { _acRender(); return; }
+  try {
+    const [coRes, drugRes] = await Promise.all([
+      _sb.from('companies').select('id,name,ticker,company_type,geography,market_cap_display,ta_focus_1,ta_focus_2,status').neq('status','acquired').order('name'),
+      _sb.from('drugs').select('company_id,stage')
+    ]);
+    const drugCounts = {};
+    (drugRes.data || []).forEach(function(d) {
+      if (d.stage !== 'Terminated') drugCounts[d.company_id] = (drugCounts[d.company_id] || 0) + 1;
+    });
+    _acData = (coRes.data || []).map(function(c) { return Object.assign({}, c, { drug_count: drugCounts[c.id] || 0 }); });
+    _acFiltered = _acData.slice();
+  } catch(e) { console.warn('[_initAllCompanies]', e.message); }
+  _acRender();
+}
+
+function _acFilter() {
+  var q = (document.getElementById('all-cos-search') ? document.getElementById('all-cos-search').value : '').toLowerCase().trim();
+  var geo = document.getElementById('all-cos-geo') ? document.getElementById('all-cos-geo').value : '';
+  var type = document.getElementById('all-cos-type') ? document.getElementById('all-cos-type').value : '';
+  _acFiltered = _acData.filter(function(c) {
+    if (q && !c.name.toLowerCase().includes(q) && !(c.ticker||'').toLowerCase().includes(q)
+        && !(c.ta_focus_1||'').toLowerCase().includes(q) && !(c.ta_focus_2||'').toLowerCase().includes(q)) return false;
+    if (geo === 'bd' && c.geography) return false;
+    if (geo && geo !== 'bd' && c.geography !== geo) return false;
+    if (type && c.company_type !== type) return false;
+    return true;
+  });
+  var countEl = document.getElementById('all-cos-count');
+  if (countEl) countEl.textContent = _acFiltered.length + ' of ' + _acData.length + ' companies';
+  _acRender();
+}
+
+function _acRender() {
+  var wrap = document.getElementById('all-cos-wrap');
+  if (!wrap) return;
+  var countEl = document.getElementById('all-cos-count');
+  if (countEl) countEl.textContent = _acFiltered.length + ' of ' + _acData.length + ' companies';
+
+  if (!_acFiltered.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">No companies match the selected filters.</div>';
+    return;
+  }
+  var GEO_LABEL = { china: '🇨🇳', global: '🌐' };
+  var GEO_COLOR = { china: '#dcfce7;color:#166534', global: '#dbeafe;color:#1d4ed8' };
+  var TYPE_LABEL = { large_cap:'Large Cap', biotech:'Biotech', mid_cap:'Mid Cap', small_cap:'Small Cap', innovative:'Innovative', cdmo:'CDMO', state_owned:'State-owned', tcm:'TCM', distribution:'Distribution', pharma:'Pharma', private:'Private' };
+
+  var rows = _acFiltered.map(function(c) {
+    var geoFlag = GEO_LABEL[c.geography] || '';
+    var geoLbl = c.geography ? (geoFlag + ' ' + (c.geography.charAt(0).toUpperCase() + c.geography.slice(1))) : '<span style="color:#94a3b8;font-size:10px">BD Focus</span>';
+    var geoBg = c.geography ? ('background:#' + (GEO_COLOR[c.geography] || 'f1f5f9;color:#475569')) : '';
+    var type = TYPE_LABEL[c.company_type] || c.company_type || '<span style="color:#94a3b8">—</span>';
+    var ticker = c.ticker ? '<br><span style="color:#64748b;font-size:9.5px">' + c.ticker + '</span>' : '';
+    var mktcap = c.market_cap_display || '<span style="color:#94a3b8">—</span>';
+    var ta1 = c.ta_focus_1 ? '<span class="pi-ta-pill" style="font-size:10px">' + c.ta_focus_1 + '</span>' : '<span style="color:#94a3b8">—</span>';
+    var ta2 = c.ta_focus_2 ? '<span class="pi-ta-pill pi-ta2" style="font-size:10px">' + c.ta_focus_2 + '</span>' : '';
+    var drugs = c.drug_count > 0 ? '<span style="font-weight:700;color:#1e3a5f">' + c.drug_count + '</span>' : '<span style="color:#94a3b8">—</span>';
+    var safeName = c.name.replace(/'/g, '\\\'');
+    return '<tr class="ac-row" onclick="openCompanySlideOver(\'' + c.id + '\',\'' + safeName + '\',\'pharma-intel\')" title="Open ' + c.name + ' dossier">'
+      + '<td><strong>' + c.name + '</strong>' + ticker + '</td>'
+      + '<td><span class="ac-geo-pill" style="' + geoBg + '">' + geoLbl + '</span></td>'
+      + '<td style="font-size:10.5px;color:#475569">' + type + '</td>'
+      + '<td style="font-size:10.5px;font-weight:600">' + mktcap + '</td>'
+      + '<td>' + ta1 + '</td>'
+      + '<td>' + ta2 + '</td>'
+      + '<td style="text-align:center">' + drugs + '</td>'
+      + '</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<div class="ac-scroll"><table class="pi-table ac-table"><thead><tr>'
+    + '<th style="width:24%">Company</th>'
+    + '<th style="width:12%">Geography</th>'
+    + '<th style="width:13%">Type</th>'
+    + '<th style="width:10%">Mkt Cap</th>'
+    + '<th style="width:16%">TA #1</th>'
+    + '<th style="width:15%">TA #2</th>'
+    + '<th style="width:8%;text-align:center">Drugs</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 </script>
 
