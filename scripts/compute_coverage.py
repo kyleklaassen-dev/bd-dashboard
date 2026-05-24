@@ -353,10 +353,13 @@ def score_enrichment_recency(company_id, area_id, idx):
 
 
 def score_deal_linkage(company_id, idx):
-    """% of acquisition/license ownership_edges that have deal_id."""
-    edges = idx["company_acquisition_edges"].get(company_id, [])
+    """% of transactional ownership_edges (LICENSED_IN, ACQUIRED, SPUN_OUT_FROM) with deal_id.
+    ORIGINATED_BY and CONTROLLED_BY are provenance facts, not deal events — excluded from denominator."""
+    TRANSACTIONAL_PREDICATES = {"LICENSED_IN", "ACQUIRED", "SPUN_OUT_FROM", "LICENSED_FROM"}
+    all_edges = idx["company_acquisition_edges"].get(company_id, [])
+    edges = [e for e in all_edges if e.get("predicate") in TRANSACTIONAL_PREDICATES]
     if not edges:
-        return 100.0, [], []  # No deals → nothing to link
+        return 100.0, [], []  # No transactional deals → nothing to link
     with_deal = [e for e in edges if e.get("deal_id")]
     missing = [e["subject_id"] + "→" + e["object_id"] for e in edges if not e.get("deal_id")]
     score = len(with_deal) / len(edges) * 100
