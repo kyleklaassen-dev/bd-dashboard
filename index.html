@@ -1885,6 +1885,16 @@ const AREA_LABELS = {
   tl1a: 'TL1A · IBD', tslp: 'TSLP · Respiratory', il4ra: 'IL-4Rα · Atopy',
   igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
 };
+// ── Portfolio section headers — disease-first labels per tab ─────────────────
+const TAB_PORTFOLIO_LABELS = {
+  'tl1a':       'IBD Portfolio',
+  'tslp':       'Respiratory Portfolio',
+  'il4ra-tslp': 'Atopic Disease Portfolio',
+  'il4ra':      'Atopic Disease Portfolio',
+  'igf1r-tshr': 'TED Portfolio',
+  'fcrn':       'Autoimmune Portfolio',
+  'ace':        'T-Cell Engager Portfolio',
+};
 
 // ── Canonical area palette — single source of truth for all panels ────────────
 const AREA_COLORS = {
@@ -10419,7 +10429,7 @@ function _makeAreaPI(tabId, areaIds) {
       if (this._profileCache[eid] !== undefined) {
         const compatProg = this._makeCompatProg(ent);
         if (this._profileCache[eid] !== null && typeof tl1aPI !== 'undefined') {
-          try { return tl1aPI._genericDetailHTML.call(tl1aPI, compatProg, this._profileCache[eid]); }
+          try { return tl1aPI._genericDetailHTML.call(tl1aPI, compatProg, this._profileCache[eid], this.tabId); }
           catch(e) { console.error('[areaPI] cached render error:', e); }
         }
         // null cache = load failed, show fallback
@@ -10590,7 +10600,7 @@ function _makeAreaPI(tabId, areaIds) {
         const target = document.getElementById(`pi-dyn-${entityId}`);
         if (target && typeof tl1aPI !== 'undefined') {
           try {
-            target.outerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, this._makeCompatProg(ent), sbData);
+            target.outerHTML = tl1aPI._genericDetailHTML.call(tl1aPI, this._makeCompatProg(ent), sbData, this.tabId);
           } catch(renderErr) {
             console.error('[areaPI] render error:', renderErr);
             target.outerHTML = `<div class="pi-detail-inner" style="display:block;padding:14px 16px">${this._entityDetailFallback(ent)}</div>`;
@@ -12689,7 +12699,11 @@ const tl1aPI = {
  },
 
  // ── Generic rich detail renderer (Supabase-fed, falls back to static) ────
- _genericDetailHTML(prog, sbData) {
+ _genericDetailHTML(prog, sbData, tabId) {
+  // ── Disease-area portfolio label — disease-first, not mechanism-first ───────
+  const _portfolioLabel = (typeof TAB_PORTFOLIO_LABELS !== 'undefined' && tabId && TAB_PORTFOLIO_LABELS[tabId])
+    ? TAB_PORTFOLIO_LABELS[tabId]
+    : 'IBD Portfolio'; // fallback for tl1aPI native calls
   const profile       = sbData?.profile || {};
   const sbCats        = sbData?.catalysts || [];
   const sbDeals       = sbData?.deals || [];
@@ -13486,11 +13500,11 @@ const tl1aPI = {
 
   const drugSection = allItems.length
    ? `<div class="pi-da-wrap">
-      <div class="pi-da-label" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px"><span>IBD Portfolio</span>${enrichedAt}</div>
+      <div class="pi-da-label" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px"><span>${_portfolioLabel}</span>${enrichedAt}</div>
       ${tierSections}
      </div>`
    : `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div class="pi-da-label" style="padding:0">IBD Portfolio</div>${enrichedAt}
+      <div class="pi-da-label" style="padding:0">${_portfolioLabel}</div>${enrichedAt}
      </div>`;
 
   // (MONTHS + fmtExactDate moved above fmtPcd to fix temporal dead zone — see date helpers block)
