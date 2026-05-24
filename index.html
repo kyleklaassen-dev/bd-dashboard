@@ -1901,6 +1901,14 @@ function _srcDomain(url) {
   if (!url) return 'Source';
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e) { return 'Source'; }
 }
+// Source quality indicators
+function _noSrcBadge() {
+  return '<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;padding:1px 5px;border-radius:8px;margin-left:4px;">no source</span>';
+}
+function _impBadge(imp) {
+  if (imp === 'high') return '<span style="font-size:9px;font-weight:800;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;padding:1px 5px;border-radius:8px;margin-right:3px;">HIGH</span>';
+  return '';
+}
 
 // ── Deal Tracker ─────────────────────────────────────────────────────────────
 let _allDeals = [];
@@ -1914,11 +1922,11 @@ function renderDeals(deals) {
   const list = document.getElementById('deals-list');
   if (!list) return;
   if (!deals.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No deals found.</div>'; return; }
-  list.innerHTML = deals.map(d => {
+  const renderDeal = d => {
     const val     = fmtMoney(d.total_usd_m);
     const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
     const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
-    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : '';
+    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : _noSrcBadge();
     const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
     return `<div class="deal-row" data-area="${d.area_id||''}">
   <div class="deal-co">
@@ -1931,7 +1939,16 @@ function renderDeals(deals) {
   ${d.detail ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;">${d.detail}</div>` : ''}
   ${ailux}
 </div>`;
-  }).join('');
+  };
+  const SHOW = 3;
+  const visible = deals.slice(0, SHOW);
+  const hidden  = deals.slice(SHOW);
+  let html = visible.map(renderDeal).join('');
+  if (hidden.length) {
+    html += `<div id="deals-more" style="display:none">${hidden.map(renderDeal).join('')}</div>`;
+    html += `<button onclick="document.getElementById('deals-more').style.display='';this.style.display='none'" style="width:100%;margin-top:6px;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${hidden.length} more deals ↓</button>`;
+  }
+  list.innerHTML = html;
 }
 
 async function loadDeals() {
@@ -2044,9 +2061,18 @@ function renderCatalysts(cats) {
 </div>`;
   };
 
-  list.innerHTML =
-    open.map(c => renderItem(c, false)).join('') +
-    (resolved.length ? `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em;border-top:1px dashed #e2e8f0;padding-top:10px;">Resolved</div>` + resolved.map(c => renderItem(c, true)).join('') : '');
+  const CAT_SHOW = 5;
+  const openVisible = open.slice(0, CAT_SHOW);
+  const openHidden  = open.slice(CAT_SHOW);
+  let catHtml = openVisible.map(c => renderItem(c, false)).join('');
+  if (openHidden.length) {
+    catHtml += `<div id="catalysts-more" style="display:none">${openHidden.map(c => renderItem(c, false)).join('')}</div>`;
+    catHtml += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:6px 0;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${openHidden.length} more catalysts ↓</button>`;
+  }
+  if (resolved.length) {
+    catHtml += `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em;border-top:1px dashed #e2e8f0;padding-top:10px;">Resolved</div>` + resolved.map(c => renderItem(c, true)).join('');
+  }
+  list.innerHTML = catHtml;
 }
 
 async function loadCatalysts() {
@@ -2123,7 +2149,7 @@ async function loadMeridianReader() {
     // Pull from all four overnight pipeline sources in parallel
     const [intelRes, iaRes, dealsRes, catsRes, profilesRes] = await Promise.all([
       _sb.from('intel')
-        .select('id,intel_date,headline,body,source_url,source_name,intel_type,importance')
+        .select('id,intel_date,headline,body,source_url,source_name,intel_type,importance,primary_company_id')
         .in('importance', ['high', 'medium'])
         .order('intel_date', { ascending: false })
         .limit(40),
@@ -2178,6 +2204,7 @@ async function loadMeridianReader() {
       const typePill = tStyle
         ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${tStyle.color};background:${tStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${tStyle.label}</span>`
         : '';
+      const impBadge = _impBadge(item.importance);
       const headline = item.source_url
         ? `<a class="ct-link" href="${item.source_url}" target="_blank" rel="noopener">${item.headline}</a>`
         : `<strong>${item.headline}</strong>`;
@@ -2188,6 +2215,7 @@ async function loadMeridianReader() {
       const extraSrcs = extras.length
         ? `<span style="font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;padding:1px 6px;border-radius:8px;margin-left:5px" title="${extras.map(e=>e.source_name||'—').join(', ')}">+${extras.length} source${extras.length>1?'s':''}</span>`
         : '';
+      const noSrcBadge = !item.source_url ? _noSrcBadge() : '';
       const bodyText = item.body
         ? `<div style="font-size:11px;color:#4a6280;margin-top:3px;line-height:1.5">${item.body}</div>`
         : '';
@@ -2196,7 +2224,7 @@ async function loadMeridianReader() {
       feed.push({
         sortScore: importanceScore + new Date(item.intel_date || 0).getTime() / 1e13,
         dateStr: item.intel_date || '',
-        html: `<div class="meridian-reader-item">${areaPill}${typePill}${headline}<span class="mr-date">${dateStr}${srcTag}${extraSrcs}</span>${bodyText}</div>`
+        html: `<div class="meridian-reader-item">${areaPill}${typePill}${impBadge}${headline}<span class="mr-date">${dateStr}${srcTag}${extraSrcs}${noSrcBadge}</span>${bodyText}</div>`
       });
     });
 
@@ -2585,13 +2613,14 @@ async function loadBDSignal() {
         </div>`;
       } else {
         const i = item.data;
-        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(i.source_url)}</a>` : '';
+        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(i.source_url)}</a>` : _noSrcBadge();
         const angleHtml = i.ailux_angle
           ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#15803d;display:block;margin-bottom:2px;">◈ Ailux Angle</span>${i.ailux_angle}</div>`
           : '';
         return `<div class="bds-item">
           <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px;">
             <span class="bds-item-type intel">Intel</span>
+            <span style="font-size:9px;font-weight:800;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;padding:1px 5px;border-radius:8px;">HIGH</span>
             ${areaPill}
             <span style="font-size:9px;color:#94a3b8;">${rdtFmtDate(i.intel_date)||''}</span>
             ${srcLink}
@@ -2616,6 +2645,7 @@ async function loadBDSignal() {
 // ── Signals Panel ─────────────────────────────────────────────────────────────
 let _allSignals = [];
 let _sigAreaFilter = '';
+let _sigTypeFilter = '';
 
 const SIG_TYPE_STYLE = {
   press_release:   { label: 'Press Release',   bg: '#eff6ff', color: '#1d4ed8' },
@@ -2646,49 +2676,56 @@ function _sigGroupLabel(dateStr) {
 function renderSignals(rows) {
   const list = document.getElementById('signals-list');
   if (!list) return;
-  const filtered = _sigAreaFilter ? rows.filter(r => r.area_id === _sigAreaFilter) : rows;
+  let filtered = _sigAreaFilter ? rows.filter(r => r.area_id === _sigAreaFilter) : rows;
+  if (_sigTypeFilter) filtered = filtered.filter(r => r.signal_type === _sigTypeFilter);
   if (!filtered.length) {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">No signals found.</div>';
     return;
   }
-  // Group by recency
-  const groups = {};
-  filtered.forEach(r => {
-    const g = _sigGroupLabel(r.event_date);
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(r);
-  });
-  const ORDER = ['Today', 'This Week', 'Earlier'];
-  let html = '';
-  ORDER.forEach(grp => {
-    if (!groups[grp] || !groups[grp].length) return;
-    html += `<div class="sig-group-hd">${grp}</div>`;
-    groups[grp].forEach(r => {
-      const scoreClass = _sigScoreClass(r.relevance_score || 0);
-      const typeStyle = SIG_TYPE_STYLE[r.signal_type] || { label: r.signal_type || '—', bg: '#f8fafc', color: '#64748b' };
-      const coName = r.companies?.name || r.company_id || '—';
-      const areaLabel = AREA_LABELS[r.area_id] || r.area_id || '';
-      const areaTag = areaLabel ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[r.area_id]||'#64748b'};background:${AREA_BG[r.area_id]||'#f1f5f9'};padding:1px 5px;border-radius:8px;margin-left:4px;">${areaLabel}</span>` : '';
-      const srcName = r.source_name ? `<span style="font-size:10px;color:#94a3b8">${r.source_name}</span>` : '';
-      const dateStr = r.event_date ? `<span style="font-size:10px;color:#cbd5e1;margin-left:4px;">${r.event_date}</span>` : '';
-      const headline = r.source_url
-        ? `<a href="${r.source_url}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</a>`
-        : `<span style="color:#0f172a;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</span>`;
-      html += `
-        <div class="sig-item">
-          <div class="sig-score ${scoreClass}" title="Relevance score: ${r.relevance_score}">${r.relevance_score || 0}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px;">
-              <span class="sig-type" style="background:${typeStyle.bg};color:${typeStyle.color};">${typeStyle.label}</span>
-              <span style="font-size:11px;font-weight:700;color:#1e293b;">${coName}</span>${areaTag}
-            </div>
-            <div style="margin-bottom:3px;">${headline}</div>
-            <div style="display:flex;align-items:center;gap:0;">${srcName}${dateStr}</div>
+
+  const renderSigItem = r => {
+    const scoreClass = _sigScoreClass(r.relevance_score || 0);
+    const typeStyle = SIG_TYPE_STYLE[r.signal_type] || { label: r.signal_type || '—', bg: '#f8fafc', color: '#64748b' };
+    const coName = r.companies?.name || r.company_id || '—';
+    const areaLabel = AREA_LABELS[r.area_id] || r.area_id || '';
+    const areaTag = areaLabel ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[r.area_id]||'#64748b'};background:${AREA_BG[r.area_id]||'#f1f5f9'};padding:1px 5px;border-radius:8px;margin-left:4px;">${areaLabel}</span>` : '';
+    const srcName = r.source_name ? `<span style="font-size:10px;color:#94a3b8">${r.source_name}</span>` : '';
+    const noSrc   = !r.source_url ? _noSrcBadge() : '';
+    const dateStr = r.event_date ? `<span style="font-size:10px;color:#cbd5e1;margin-left:4px;">${r.event_date}</span>` : '';
+    const headline = r.source_url
+      ? `<a href="${r.source_url}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</a>`
+      : `<span style="color:#0f172a;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</span>`;
+    return `
+      <div class="sig-item">
+        <div class="sig-score ${scoreClass}" title="Relevance score: ${r.relevance_score}">${r.relevance_score || 0}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px;">
+            <span class="sig-type" style="background:${typeStyle.bg};color:${typeStyle.color};">${typeStyle.label}</span>
+            <span style="font-size:11px;font-weight:700;color:#1e293b;">${coName}</span>${areaTag}
           </div>
-        </div>`;
-    });
-  });
+          <div style="margin-bottom:3px;">${headline}</div>
+          <div style="display:flex;align-items:center;gap:0;">${srcName}${dateStr}${noSrc}</div>
+        </div>
+      </div>`;
+  };
+
+  // Show top 5, collapse rest
+  const SIG_SHOW = 5;
+  const visible = filtered.slice(0, SIG_SHOW);
+  const hidden  = filtered.slice(SIG_SHOW);
+  let html = visible.map(renderSigItem).join('');
+  if (hidden.length) {
+    html += `<div id="signals-more" style="display:none">${hidden.map(renderSigItem).join('')}</div>`;
+    html += `<button onclick="document.getElementById('signals-more').style.display='';this.style.display='none'" style="width:100%;margin-top:6px;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${hidden.length} more signals ↓</button>`;
+  }
   list.innerHTML = html;
+}
+
+function sigTypeFilter(btn, type) {
+  document.querySelectorAll('#sig-type-filter-bar .stock-fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _sigTypeFilter = type;
+  renderSignals(_allSignals);
 }
 
 async function loadSignals(force = false) {
@@ -2714,7 +2751,7 @@ async function loadSignals(force = false) {
 }
 
 function sigFilter(btn, area) {
-  document.querySelectorAll('#home-panel-signals .stock-fbtn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#sig-area-filter-bar .stock-fbtn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _sigAreaFilter = area;
   renderSignals(_allSignals);
@@ -3431,9 +3468,10 @@ function loadMoleculeTab(tabId) {
    <!-- Panel: Signals -->
    <div class="home-panel" id="home-panel-signals" style="display:none">
     <div>
-     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:4px;">
+     <!-- Area filter -->
+     <div id="sig-area-filter-bar" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:6px;">
       <span style="font-size:10px;font-weight:700;color:#64748b;margin-right:2px">Area:</span>
-      <button class="stock-fbtn active" id="sig-filter-all" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'')">All</button>
+      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'')">All</button>
       <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tl1a')">TL1A</button>
       <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tslp')">TSLP</button>
       <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'il4ra')">IL-4Rα</button>
@@ -3441,6 +3479,15 @@ function loadMoleculeTab(tabId) {
       <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'igf1r')">IGF1R</button>
       <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;" onclick="sigFilter(this,'tcell')">T-cell</button>
       <button onclick="loadSignals(true)" style="margin-left:auto;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer">↻</button>
+     </div>
+     <!-- Type filter -->
+     <div id="sig-type-filter-bar" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:4px;">
+      <span style="font-size:10px;font-weight:700;color:#64748b;margin-right:2px">Type:</span>
+      <button class="stock-fbtn active" style="font-size:10px;padding:2px 8px;" onclick="sigTypeFilter(this,'')">All</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#15803d;" onclick="sigTypeFilter(this,'trial_update')">Trial Updates</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#1d4ed8;" onclick="sigTypeFilter(this,'press_release')">Press Releases</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#b91c1c;" onclick="sigTypeFilter(this,'fda')">FDA</button>
+      <button class="stock-fbtn" style="font-size:10px;padding:2px 8px;color:#c2410c;" onclick="sigTypeFilter(this,'pipeline_change')">Pipeline</button>
      </div>
      <div id="signals-list">
       <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">Loading signals…</div>
