@@ -665,6 +665,66 @@ def write_license_edges(
     return ok
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# GRAPH CONSISTENCY — ACTIVE_IN EDGE WRITER
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Rule (v29, 2026-05-24): Every company_areas write must be paired with a
+# corresponding entity_edges ACTIVE_IN row so the graph can answer
+# "who is active in [area]?" as a single predicate lookup.
+#
+# This function is called by approve_discovery.py immediately after each
+# sb_upsert("company_areas", ...) call.
+#
+# Idempotent: uses resolution=ignore-duplicates so re-running is safe.
+
+def write_active_in_edge(
+    company_id: str,
+    area_id: str,
+    dry_run: bool = False,
+    created_by: str = "approve_discovery",
+) -> bool:
+    """
+    Write a single entity_edges ACTIVE_IN row for company → area.
+    Returns True if written (or dry-run), False on error.
+
+    Idempotent — safe to call even if the edge already exists.
+    """
+    edge = {
+        "subject_type":      "company",
+        "subject_id":        company_id,
+        "predicate":         "ACTIVE_IN",
+        "object_type":       "area",
+        "object_id":         area_id,
+        "confidence_level":  "confirmed",
+        "generation_method": "deterministic",
+        "rationale":         "Derived from company_areas table",
+        "status":            "active",
+        "created_by":        created_by,
+    }
+
+    if dry_run:
+        print(f"  [DRY RUN] Would write ACTIVE_IN edge: {company_id} → {area_id}")
+        return True
+
+    try:
+        resp = requests.post(
+            f"{SUPABASE_URL}/rest/v1/entity_edges",
+            headers={**_sb_headers, "Prefer": "resolution=ignore-duplicates,return=minimal"},
+            json=edge,
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            print(f"  + entity_edges ACTIVE_IN: {company_id} → {area_id}")
+            return True
+        else:
+            print(f"  ⚠ ACTIVE_IN edge {company_id}/{area_id}: {resp.status_code} {resp.text[:150]}")
+            return False
+    except Exception as e:
+        print(f"  ❌ ACTIVE_IN edge write error ({company_id}/{area_id}): {e}")
+        return False
+
+
 # ── Overlap/layer/score helpers ───────────────────────────────────────────────
 
 def _map_relevance_to_overlap(relevance: str) -> str:
