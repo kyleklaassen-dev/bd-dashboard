@@ -2174,12 +2174,22 @@ const UNI_TYPE_STYLE = {
   intel:           { label:'Intel',         bg:'#f1f5f9', color:'#475569' },
 };
 
-// Shared query cleaner: takes a headline → returns a clean Google search query string
+// Shared query cleaner: takes a headline → returns a short, findable Google query.
+// Google fails on long exact phrases (>8 words). Strategy: take the most meaningful
+// first clause, keep drug names/numbers, truncate to 7 words, drop trailing filler.
 function _buildGQuery(text) {
   let s = (text || '').replace(/^[↗→·•\s]+/, '').trim();
-  // Strip inline punctuation that breaks search (semicolons become spaces; keep numbers/amounts)
-  s = s.replace(/[;:!?'"()\[\]{}]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return s;
+  // Split at first semicolon or " - " / em-dash to get the primary clause
+  s = s.split(/[;—]|(?:\s+[-–]\s+)/)[0].trim();
+  // Replace punctuation (commas, colons, parens, etc.) with spaces — keep numbers & drug names
+  s = s.replace(/[,;:!?'"()\[\]{}]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Truncate to 7 words
+  let words = s.split(/\s+/);
+  words = words.slice(0, 7);
+  // Drop trailing weak stop/filler words so we don't end on "at" "in" "a" etc.
+  const stops = new Set(['at','in','on','the','a','an','of','for','to','and','or','but','with','by','from','as','after','into','per','via','vs','its']);
+  while (words.length > 3 && stops.has(words[words.length - 1].toLowerCase())) words.pop();
+  return words.join(' ');
 }
 function _gUrl(text) {
   const q = _buildGQuery(text);
