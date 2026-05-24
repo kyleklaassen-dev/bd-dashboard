@@ -3315,7 +3315,6 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
-   <button class="nav-icon-btn" id="nav-icon-market" onclick="navTo('stocks')" title="Market &amp; Learning">📊</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
@@ -3328,7 +3327,6 @@ function loadMoleculeTab(tabId) {
  <button class="tab-btn" onclick="switchTab('igf1r-tshr',this)" style="display:none">IGF1R × TSHR</button>
  <button class="tab-btn" onclick="switchTab('fcrn',this)" style="display:none">FcRn Bispecific</button>
  <button class="tab-btn" onclick="switchTab('ace',this)" style="display:none">BCMA × CD19 × CD3</button>
- <button class="tab-btn" onclick="switchTab('stocks',this)" style="display:none">Market &amp; Learning</button>
  <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
         <button class="tab-btn" onclick="switchTab('pharma-intel', this)">Pharma Landscape</button>
@@ -5988,7 +5986,7 @@ function loadMoleculeTab(tabId) {
   </div>
 </div>
 
-<div class="tab-pane" id="tab-stocks" style="padding:2px 20px 32px">
+<div class="tab-pane" id="tab-stocks-removed" style="display:none">
 
  <!-- Prediction Rules — compact chips -->
  <div class="rules-grid">
@@ -13307,7 +13305,6 @@ const NAV_ICON_MAP = {
   'industry-insights': 'nav-icon-insights',
   'drugs-know': 'nav-icon-drugs',
   'pharma-intel': 'nav-icon-pharma',
-  'stocks': 'nav-icon-market',
   'meridian-issue': 'nav-icon-meridian',
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
