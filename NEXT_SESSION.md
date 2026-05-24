@@ -1,7 +1,30 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 41 — final)
-**Session completed:** Preclinical competitor audit + seed; competitive_relevance column live ✅
+**Last updated:** 2026-05-24 (Session 42)
+**Session completed:** Preclinical blind spot audit + enrichment prompt fix + respiratory/tslp Type B backfill ✅
+
+---
+
+## What Was Done This Session (Session 42)
+
+### Preclinical Blind Spot Audit ✅
+Full audit confirming root cause: `gather_landscape_intel` was hardcoded to "Phase 1 or later" /
+"clinical-stage programs". Preclinical excluded by design across all areas. TL1A exception was
+one-time manual curation. Renderer confirmed clean (no stage filter; Preclinical renders correctly).
+
+### Enrichment Prompt Fix ✅ — company_enrichment.py
+- `LANDSCAPE_SEARCH_SYSTEM`: Removed "Phase 1 or later" restriction
+- `gather_landscape_intel` prompt: All stages from Preclinical through Approved; source matrix
+  expanded to pipeline pages, IR presentations, conference abstracts, ChiCTR registry
+- Next enrichment run for atopy, fcrn, respiratory, tslp will now surface preclinical programs
+
+### Respiratory / TSLP Type B Backfill ✅
+3 drugs in DB with 0 area assignments — fixed:
+- **WIN378** (Windward Bio, Phase 3): drug_areas + drug_area_scores × respiratory, tslp
+- **BSI-045B** (Biosion, Phase 1): Added Biosion company; drug_areas + drug_area_scores × both
+- **APG333** (Apogee, Phase 1): New drug added to DB; drug_areas + drug_area_scores × both
+
+Respiratory/tslp: 11 → 14 drugs; Apogee + Biosion added to company_areas for both areas.
 
 ---
 
