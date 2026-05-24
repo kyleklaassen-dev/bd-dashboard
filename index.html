@@ -433,8 +433,8 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   border: 1.5px solid #e8eef5;
-  padding: 28px 24px 22px;
-  width: 190px;
+  padding: 34px 28px 28px;
+  width: 220px;
   cursor: pointer;
   text-align: center;
   transition: box-shadow 0.18s, transform 0.15s, border-color 0.15s;
@@ -460,9 +460,9 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   border-color: var(--lc, #2e6fb0);
   box-shadow: 0 0 0 3px rgba(30,74,130,0.12), 0 8px 28px rgba(0,0,0,0.13);
 }
-.hl-icon  { font-size: 28px; margin-bottom: 10px; line-height: 1; }
-.hl-title { font-size: 14px; font-weight: 800; color: #1a2f50; margin-bottom: 5px; letter-spacing: -0.1px; }
-.hl-sub   { font-size: 11px; color: #7a8fa8; line-height: 1.4; }
+.hl-icon  { font-size: 34px; margin-bottom: 12px; line-height: 1; }
+.hl-title { font-size: 15px; font-weight: 800; color: #1a2f50; margin-bottom: 6px; letter-spacing: -0.1px; }
+.hl-sub   { font-size: 12px; color: #7a8fa8; line-height: 1.4; }
 
 /* ── Home overlay ── */
 #home-overlay-backdrop {
@@ -2627,7 +2627,14 @@ function closePIModal() {
   if (overlay) overlay.style.display = 'none';
   document.body.style.overflow = '';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePIModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closePIModal();
+    // Close any open drug/area modal overlays
+    document.querySelectorAll('.tl1a-modal-overlay.open').forEach(m => m.classList.remove('open'));
+    if (!document.querySelector('.tl1a-modal-overlay.open')) document.body.style.overflow = '';
+  }
+});
 
 // ── BD Signal Panel ───────────────────────────────────────────────────────────
 async function loadBDSignal() {
@@ -10145,6 +10152,25 @@ function openDrugModal(id) {
   const intelMatch = id.match(/^(tslp|il4ra-tslp|il4ra-ox40l|igf1r-tshr|fcrn|ace)-modal-intel$/);
   if (intelMatch && typeof loadAreaIntel === 'function') loadAreaIntel(intelMatch[1]);
 }
+// TL1A uses its own function names — wire them to the shared open/close logic
+function openTl1aModal(id) {
+  document.querySelectorAll('.tl1a-modal-overlay').forEach(m => m.classList.remove('open'));
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (id === 'tl1a-modal-catalysts' && typeof loadAreaCatalysts === 'function') loadAreaCatalysts('tl1a');
+  if (id === 'tl1a-modal-intel'     && typeof loadAreaIntel     === 'function') loadAreaIntel('tl1a');
+  if (id === 'tl1a-modal-bd-activity') {
+    const bdEl = document.getElementById('tl1a-bd-activity');
+    if (bdEl && !bdEl.dataset.loaded) { _loadBdIntoModal('tl1a', bdEl); bdEl.dataset.loaded = '1'; }
+  }
+}
+function closeTl1aModal(el) {
+  if (!el) return;
+  el.classList.remove('open');
+  if (!document.querySelector('.tl1a-modal-overlay.open')) document.body.style.overflow = '';
+}
 async function _loadBdIntoModal(tabId, el) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) { el.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:12px">No BD data for this area.</div>'; return; }
@@ -12926,31 +12952,51 @@ async function _gsSbSearch(term) {
  panel.innerHTML = '<div class="gs-sb-empty">Searching…</div>';
  panel.style.display = 'block';
  try {
-  const [intelRes, dealsRes, catsRes] = await Promise.all([
+  const [coRes, intelRes, dealsRes, catsRes] = await Promise.all([
+   _sb.from('companies')
+    .select('id,name,ticker,type,hq_country,area_id,status')
+    .neq('status','acquired')
+    .or(`name.ilike.%${esc}%,ticker.ilike.%${esc}%`)
+    .order('name', { ascending: true }).limit(6),
    _sb.from('intel')
     .select('id,intel_date,headline,intel_type,importance,source_url,intel_areas(area_id)')
     .or(`headline.ilike.%${esc}%,body.ilike.%${esc}%`)
-    .order('intel_date', { ascending: false }).limit(8),
+    .order('intel_date', { ascending: false }).limit(6),
    _sb.from('deals')
     .select('id,deal_date,headline,from_company,to_company,area_id,deal_type,total_usd_m,source_url')
     .or(`headline.ilike.%${esc}%,detail.ilike.%${esc}%,from_company.ilike.%${esc}%,to_company.ilike.%${esc}%`)
-    .order('deal_date', { ascending: false }).limit(5),
+    .order('deal_date', { ascending: false }).limit(4),
    _sb.from('catalysts')
     .select('id,catalyst_date,label,company_id,area_id,significance')
     .eq('resolved', false)
     .or(`label.ilike.%${esc}%,notes.ilike.%${esc}%`)
-    .order('sort_date', { ascending: true }).limit(5)
+    .order('sort_date', { ascending: true }).limit(4)
   ]);
+  const cos   = coRes.data   || [];
   const intel = intelRes.data || [];
   const deals = dealsRes.data || [];
   const cats  = catsRes.data  || [];
-  if (!intel.length && !deals.length && !cats.length) {
-   panel.innerHTML = '<div class="gs-sb-empty">No Supabase results for "<em>' + term.replace(/</g,'&lt;') + '</em>"</div>';
+  if (!cos.length && !intel.length && !deals.length && !cats.length) {
+   panel.innerHTML = '<div class="gs-sb-empty">No results for "<em>' + term.replace(/</g,'&lt;') + '</em>"</div>';
    return;
   }
   const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
   function hl(s) { return (s||'').replace(/</g,'&lt;').replace(re, m => '<mark class="gs-hl">'+m+'</mark>'); }
   let html = '';
+  // ── Companies first ──────────────────────────────────────────────
+  if (cos.length) {
+   html += '<div class="gs-sb-section-hd">Companies (' + cos.length + ')</div>';
+   cos.forEach(co => {
+    const aLabel = _AREA_LABEL_GS[co.area_id] || co.area_id || '';
+    const typeTag = co.type ? `<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">${co.type}</span>` : '';
+    const areaTag = aLabel ? `<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">${aLabel}</span>` : '';
+    const ticker  = co.ticker ? `<span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:monospace">${co.ticker}</span>` : '';
+    const hq      = co.hq_country ? `<span>${co.hq_country}</span>` : '';
+    html += `<div class="gs-sb-item gs-nav-item" data-gtype="company" data-company-id="${co.id}" data-company-name="${(co.name||'').replace(/"/g,'&quot;')}" style="cursor:pointer">`
+     + `<div class="gs-sb-headline" style="display:flex;align-items:center;gap:6px;">🏢 ${hl(co.name)} ${ticker}</div>`
+     + `<div class="gs-sb-meta">${typeTag}${areaTag}${hq}</div></div>`;
+   });
+  }
   if (intel.length) {
    html += '<div class="gs-sb-section-hd">Intel (' + intel.length + ')</div>';
    intel.forEach(item => {
@@ -13021,8 +13067,18 @@ document.addEventListener('click', function(e) {
  const navItem = e.target.closest('.gs-nav-item');
  if (navItem && wrap && wrap.contains(navItem)) {
    if (e.target.closest('.gs-sb-src')) return; // let source link handle itself
-   const area = navItem.dataset.area || '';
    const gtype = navItem.dataset.gtype || 'intel';
+   if (gtype === 'company') {
+     // Open company slide-over directly
+     const coId   = navItem.dataset.companyId   || '';
+     const coName = navItem.dataset.companyName || '';
+     const panel  = document.getElementById('gs-sb-panel');
+     if (panel) panel.style.display = 'none';
+     const activeTabId = document.querySelector('.tab-pane.active')?.id?.replace(/^tab-/,'') || 'home';
+     if (typeof openCompanySlideOver === 'function') openCompanySlideOver(coId, coName, activeTabId);
+     return;
+   }
+   const area = navItem.dataset.area || '';
    _gsNavigate(area, gtype);
    return;
  }
