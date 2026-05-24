@@ -1,8 +1,85 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-24 (Session 33)  
-**Last work:** Catalyst Coverage Sprint — scoring fix + backfill + compute  
+**Written:** 2026-05-24 (Session 35)  
+**Last work:** Source Coverage Sprint — scoring v1.2 + backfill  
 **Validation:** 993 pass / 0 fail / 7 skip ✅
+
+---
+
+## Session 35 Summary — Source Coverage Sprint
+
+### What was built
+- `compute_coverage.py` v1.2 — source_coverage denominator = confirmed+supported only
+- `scripts/backfill_sources.py` — Phase 1: drug URL patches; Phase 2: drug→DAS cascade
+- `company_enrichment.py` — E6-R3 warning: supported + no source_url → log warning
+
+### Coverage result (end of Session 35)
+| Dimension | Score | Change | Flag |
+|-----------|-------|--------|------|
+| Molecule intelligence | 99.5 | — | ✅ |
+| Deal linkage | 97.1 | — | ✅ |
+| Target mapping | 97.1 | — | ✅ |
+| Source coverage | **89.0** | **+29.5** | ✅ |
+| Confidence coverage | 82.7 | — | ✅ |
+| Profile completeness | 73.9 | +5.6 | ok |
+| Enrichment recency | 70.4 | — | ok |
+| Ownership coverage | 57.7 | — | ⚠ |
+| Catalyst coverage | 53.6 | — | ⚠ |
+
+**Platform average: 79.1 / 100** (was 72.8)
+
+### Key insight: scoring fix vs. backfill
+The 29.5-point jump was primarily the scoring fix (v1.2):
+- `inferred`/`null` rows were counting against the denominator
+- These represent model inferences, not sourced claims — shouldn't require source_url
+- After fix: denominator = confirmed (50) + supported (74) = 124 rows, ~100% covered
+
+---
+
+## Session 34 Summary — L4-A: Graph Intelligence in Meridian
+
+### What was built
+- `fetch_graph_context()` — fetches ACTIVE_IN, TARGETS, COMPETES_WITH from entity_edges at Meridian generation time
+- `build_graph_block()` — formats three graph layers into prompt-ready intelligence block:
+  - ACTIVE PLAYERS BY AREA (area roster from ACTIVE_IN edges)
+  - MECHANISM CONVERGENCE (contested targets with ≥2 competing entities, from TARGETS edges)
+  - DIRECT COMPETITIVE PAIRS (confirmed COMPETES_WITH, deduplicated, capped at 50)
+- Both PLAN_PROMPT and DRAFT_PROMPT now include `{graph_block}` — graph context feeds both passes
+
+### Why this matters (L4-A unlock)
+The Meridian no longer needs to reconstruct competitive structure from LLM memory. "Who is active in FcRn?" is answered from stored ACTIVE_IN edges. Mechanism convergence is read from TARGETS edges, not hallucinated. BD Lens callouts can now cite graph-grounded relationships.
+
+**Commit:** `1c25ff6` — `scripts/write_meridian.py`
+
+---
+
+## Next Steps (in priority order)
+
+### ✅ P1 — Backfill risk_summary + bd_angle — DONE (Session 34)
+25/25 profiles filled: tslp (10/10), fcrn (6/6), il4ra (9/9). All four main areas now have interpretive intelligence coverage.
+
+### ✅ P1 — Source coverage sprint — DONE (Session 35)
+Source coverage: 59.5 → 89.0 (+29.5). Platform average: 72.8 → 79.1 (+6.3).
+compute_coverage.py v1.2: denominator = confirmed+supported only. backfill_sources.py written.
+
+### P1 — Ownership coverage sprint (57.7 → 70 target)
+Licensed-in drugs (drugs.partner_company set) should have ownership_edges.
+
+### P3 — Ownership coverage sprint (57.7 → 70 target)
+Licensed-in drugs should have ownership_edges (ORIGINATED_BY / LICENSED_IN).
+- Query: drugs WHERE partner_company IS NOT NULL + LEFT JOIN ownership_edges → gaps
+- Build backfill_ownership_edges.py
+
+### P4 — Wire compute_coverage.py into nightly schedule
+Add scheduled GitHub Action or Cowork task calling compute_coverage.py nightly.
+
+### P5 — Catalyst coverage (53.6 → 60+)
+Add catalysts for Phase 2 programs with estimable readout windows.
+
+### P6 — Coverage dashboard
+Surface coverage_scores + recommended_actions_json in Meridian dashboard view.
+
+---
 
 ---
 
