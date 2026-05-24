@@ -1,5 +1,57 @@
 
 ---
+## 2026-05-24 (Session 36 cont.) — CND261 ingestion + pipeline gap detection
+
+**Triggered by:** CND261 (CD20/CD3) missing from UCB drug list — not captured during original Candid intake.
+
+### CND261 added to DB
+
+Manual insertion (drug_intake.py dry-run had wrong target: CD19/CD3 vs actual CD20/CD3):
+- `drugs` row: `cnd261`, stage=Phase 1, target=CD20×CD3, TCE Bispecific, company_id=candid, current_owner=ucb
+- `drug_areas`: tcell (Direct), autoimmune (Direct)
+- `drug_area_scores`: tcell (confirmed), autoimmune (supported)
+- `ownership_edges`: ORIGINATED_BY candid, CONTROLLED_BY ucb
+- `drug_targets`: cd20_cd3 (primary), cd20 (component), cd3 (component)
+
+Root cause: CND261 originally in oncology (NHL Phase 1 completed), re-positioned to autoimmune. Intake LLM classified it as out-of-scope or confused it with CD19/CD3.
+
+### company_intake.py — --re-audit flag
+
+New workflow for diffing a known company's live pipeline against the DB:
+
+```bash
+python scripts/company_intake.py --company "UCB" --re-audit
+python scripts/company_intake.py --company "Candid Therapeutics" --re-audit --dry-run
+```
+
+Logic:
+1. Resolve company_id
+2. Load existing DB drugs (company_id + current_owner_company_id)
+3. Research live pipeline via LLM (same `research_company()` call as intake)
+4. Diff: drugs in LLM output but NOT in DB → push to `discovery_queue` with `source='re_audit'`
+5. Fuzzy name matching: cleaned token comparison to avoid false positives
+
+### scripts/pipeline_monitor.py — page hash change detection
+
+New scheduled script monitoring 26 pipeline pages across key BD-relevant companies:
+
+```bash
+python3 scripts/pipeline_monitor.py --dry-run       # check all
+python3 scripts/pipeline_monitor.py --company ucb   # single company
+```
+
+Logic:
+1. Fetch pipeline page HTML, extract visible text, normalise whitespace
+2. SHA-256 hash of content
+3. Compare vs last stored hash in `signals` table (signal_type='pipeline_page_hash')
+4. On change: fire `pipeline_page_change` signal + write `discovery_queue` row (source='pipeline_monitor')
+5. Reviewer runs `--re-audit` on changed company to find specific new drugs
+
+Limitation: JS-rendered pipeline pages return near-empty HTML shells — hash monitoring works best for static-HTML sites. LLM-based `--re-audit` is the reliable fallback for JS sites.
+
+**Companies covered (26):** candid, cabaletta, kyverna, arcus, immunovant, argenx, ucb, janssen, astrazeneca, upstreambio, apogee, leofarma, roche, sanofi, pfizer, abbvie, merck, amgen, regeneron, lilly, jnj, spyre, connectbiopharma, earendil, windward, aprinoia
+
+---
 ## 2026-05-24 (Session 36) — Catalyst Coverage Sprint (53.6 → 70.9)
 
 **Validation:** 993 pass / 0 fail / 7 skip ✅  
