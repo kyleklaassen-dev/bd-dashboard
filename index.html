@@ -12602,7 +12602,7 @@ function iifRender() {
     ).join('');
     const srcHTML = _iifSrcHTML(item._key, item.sources);
     const hasBody = !!item.body;
-    html += `<div class="iif-card" id="iif-card-${item._key}"${hasBody?' onclick="iifToggleCard(''+item._key+'')"':''}>
+    html += `<div class="iif-card" id="iif-card-${item._key}"${hasBody?' onclick="iifToggleCard(\''+item._key+'\')"':''}>
   <div class="iif-card-top">
     <span class="iif-date">${item.date||''}</span>
     <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${areaPills}
