@@ -38,11 +38,14 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
-SCORE_VERSION = "1.0"
+SCORE_VERSION = "1.1"  # v1.1: catalyst denominator excludes Approved-stage drugs
 STALE_DAYS = 30          # profiles older than this score below 70
 VERY_STALE_DAYS = 60     # profiles older than this score below 30
 CLINICAL_STAGES = {"Phase 1", "Phase 1/2", "Phase 2", "Phase 2/3", "Phase 3",
                    "Phase 3/4", "BLA/NDA", "Approved", "Pre-BLA"}
+# Approved drugs have completed their development catalysts — exclude from
+# catalyst_coverage denominator so they don't artificially inflate the gap.
+ACTIVE_STAGES = CLINICAL_STAGES - {"Approved"}
 
 # Dimension weights for overall_score
 WEIGHTS = {
@@ -86,12 +89,16 @@ def sb_get(path, limit=2000):
         return json.loads(r.read())
 
 
-def sb_upsert(table, rows):
+def sb_upsert(table, rows, on_conflict=None):
+    """Upsert rows into table. on_conflict specifies the conflict target columns."""
     if not rows:
         return []
+    url = f"{SB_URL}/rest/v1/{table}"
+    if on_conflict:
+        url += f"?on_conflict={on_conflict}"
     payload = json.dumps(rows).encode()
     req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}",
+        url,
         data=payload,
         method="POST",
         headers={
@@ -350,10 +357,13 @@ def score_molecule_intelligence(drugs_in_scope, idx):
 
 
 def score_catalyst_coverage(drugs_in_scope, area_id, data, idx):
-    """% of clinical-stage drugs with ≥1 unresolved future catalyst."""
+    """% of active clinical-stage drugs with ≥1 unresolved future catalyst.
+    Denominator uses ACTIVE_STAGES (excludes 'Approved') — approved drugs have
+    completed their development lifecycle and should not count as gaps.
+    """
     clinical_drugs = [
         d for d in drugs_in_scope
-        if data["drugs"].get(d, {}).get("stage", "") in CLINICAL_STAGES
+        if data["drugs"].get(d, {}).get("stage", "") in ACTIVE_STAGES
     ]
     if not clinical_drugs:
         return 100.0, [], []  # No clinical drugs → nothing expected
@@ -502,7 +512,8 @@ def compute_all(data, idx, filter_company=None, filter_area=None, dry_run=False)
         written = 0
         for i in range(0, len(results), BATCH):
             batch = results[i:i+BATCH]
-            out = sb_upsert("coverage_scores", batch)
+            # on_conflict targets the UNIQUE(entity_id, area_id) constraint
+            out = sb_upsert("coverage_scores", batch, on_conflict="entity_id,area_id")
             written += len(out)
         print(f"  Written: {written}")
     else:
