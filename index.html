@@ -2174,29 +2174,16 @@ const UNI_TYPE_STYLE = {
   intel:           { label:'Intel',         bg:'#f1f5f9', color:'#475569' },
 };
 
-// Shared query cleaner: takes a headline → returns a short, clean Google News query
+// Shared query cleaner: takes a headline → returns a clean Google search query string
 function _buildGQuery(text) {
   let s = (text || '').replace(/^[↗→·•\s]+/, '').trim();
-  // Take only the first clause (split at semicolon, em-dash, or " - ")
-  s = s.split(/[;—]|(?:\s+[-–]\s+)/)[0].trim();
-  // Remove financial figures: $39M, €1.2B, $500K, etc.
-  s = s.replace(/[$€£]\s*[\d.,]+\s*[BMKbmk]?\b/gi, '');
-  // Remove bare large numbers with suffixes (39M, 1.2B)
-  s = s.replace(/\b\d+(?:\.\d+)?\s*[BMKbmk]\b/gi, '');
-  // Strip punctuation from word boundaries
-  s = s.replace(/[,;:!?'"()\[\]{}]+/g, ' ').replace(/\s+/g, ' ').trim();
-  // Split into words, drop single-char tokens
-  let words = s.split(/\s+/).filter(w => w.length > 1);
-  // Slice to 6 words
-  words = words.slice(0, 6);
-  // Trim trailing weak stop words (prepositions, articles, conjunctions)
-  const stops = new Set(['at','in','on','the','a','an','of','for','to','and','or','but','with','by','from','as','its','after','before','into','vs','per','via']);
-  while (words.length > 2 && stops.has(words[words.length - 1].toLowerCase())) words.pop();
-  return words.join(' ');
+  // Strip inline punctuation that breaks search (semicolons become spaces; keep numbers/amounts)
+  s = s.replace(/[;:!?'"()\[\]{}]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return s;
 }
 function _gUrl(text) {
   const q = _buildGQuery(text);
-  return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
 }
 
 function uniTypeFilter(btn, type) {
@@ -13784,10 +13771,10 @@ window.addEventListener('load', () => {
      return segs.length > 0 && segs.every(s => genericSeg.test(s) || (s.length <= 5 && !s.includes('-')));
    } catch(e) { return false; }
  }
- // Build a Google News search URL from any raw link text — uses the shared _buildGQuery cleaner.
+ // Build a Google search URL from any raw link text — uses the shared _buildGQuery cleaner.
  function _gUrlFromText(raw) {
    const q = _buildGQuery(raw || '');
-   return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
+   return 'https://www.google.com/search?q=' + encodeURIComponent(q);
  }
  function _fixGenericLinks(root) {
    (root || document).querySelectorAll('a[href]').forEach(function(el) {
