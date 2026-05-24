@@ -3563,18 +3563,18 @@ function loadMoleculeTab(tabId) {
  <div style="flex-shrink:0">
  <div class="header-title">◈ The Meridian</div>
  </div>
- <div class="header-search-wrap">
- <input type="text" id="global-search" class="header-search-input"
- placeholder="Search programs, drugs, companies, deals…"
- oninput="globalSearch(this.value)">
- <span class="header-gs-count gs-count" id="gs-count" style="display:none"></span>
- <button class="header-gs-clear gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear" style="display:none"></button>
- <div id="gs-sb-panel" class="gs-sb-panel"></div>
+ <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;">
+  <div class="header-search-wrap" style="position:static;left:auto;transform:none;">
+   <input type="text" id="global-search" class="header-search-input"
+   placeholder="Search programs, drugs, companies, deals…"
+   oninput="globalSearch(this.value)">
+   <span class="header-gs-count gs-count" id="gs-count" style="display:none"></span>
+   <button class="header-gs-clear gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear" style="display:none"></button>
+   <div id="gs-sb-panel" class="gs-sb-panel"></div>
+  </div>
+  <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review">＋ Submit Intel</button>
  </div>
- <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-<button class="submit-intel-btn" onclick="openIntelModal()" title="Drop in any news, link, or note — Claude reviews it">
- ＋ Submit Intel
- </button><span id="dq-nav-badge" onclick="navTo('discovery-queue')" title="New high-priority discoveries in queue — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;line-height:16px;margin-left:4px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ New</span>
+ <div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><span id="dq-nav-badge" onclick="navTo('discovery-queue')" title="New high-priority discoveries in queue — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;line-height:16px;margin-left:4px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ New</span>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
