@@ -1,11 +1,30 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 39 cont.)  
-**Session completed:** v32 Coverage Diagnostics — first live score + dashboard coverage panel deployed ✅
+**Last updated:** 2026-05-24 (Session 40)  
+**Session completed:** P0 + P1 — Disease-first area framing (portfolio headers + enrichment prompt) ✅
 
 ---
 
-## What Was Done This Session (Sessions 38–39)
+## What Was Done This Session (Session 40)
+
+### P0: Dynamic area portfolio headers — completed ✅
+- `TAB_PORTFOLIO_LABELS` constant added (near `AREA_LABELS`): maps tab IDs to disease-first portfolio section headers
+- `_genericDetailHTML` signature updated to accept optional `tabId` 3rd param
+- `_portfolioLabel` derived inside function: `TAB_PORTFOLIO_LABELS[tabId] || 'IBD Portfolio'`
+- Both `_makeAreaPI` `.call()` sites updated to pass `this.tabId` as 3rd arg
+- Commits: `e7e1d362` (index.html)
+
+### P1: Area-aware enrichment prompt — completed ✅
+- `AREA_DISEASE_CONTEXT` dict added before `build_step5_prompt`: maps each area_id to `{disease, ailux_in_area, bd_frame}`
+- `area_framing_block` injected into prompt before JSON schema:
+  - Primary areas (tl1a/ibd): confirms direct competitor framing vs SPY002
+  - Non-primary areas (igf1r, tslp, il4ra, fcrn, tcell): two-layer instruction (disease assessment + Ailux BD implications)
+- `vs_ailux`, `why_it_matters`, `platform_intelligence.assessment`, `strategic_role` field descriptions updated to reference `{_disease_label}` dynamically
+- Commit: `e3b4504e` (scripts/company_enrichment.py)
+
+---
+
+## What Was Done Previously (Sessions 38–39)
 
 ### v31 (TED × IGF-1R_TSHR competitive layer) — completed ✅
 - Migration applied: mechanism_status, competitive_landscapes, geographic_approvals, entity_edges extensions, catalysts extensions
@@ -35,7 +54,17 @@
 
 ---
 
-## P1 Next: Source Validation Backfill
+## P1 Next: Re-enrich Amgen/igf1r with new area-aware prompt
+
+Now that `company_enrichment.py` has area-aware framing, re-run enrichment for Amgen (or any igf1r company) to validate the new assessment structure:
+```bash
+python3 scripts/company_enrichment.py --company amgen --area igf1r --step 5
+```
+Expected: assessment framed as "In TED: [Amgen's dominant IGF1R/tepezza position]. Ailux BD angle: [benchmark/acquirer signal]."
+
+---
+
+## P2 Next: Source Validation Backfill
 
 Source validation is at 53.8% — the main drag on the score. The unsourced rows are:
 - `batoclimab` drug_area_scores — 4 rows missing source_url (igf1r + ted × 2)
