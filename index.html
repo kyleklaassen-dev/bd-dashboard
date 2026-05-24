@@ -2475,14 +2475,24 @@ async function loadMeridianReader() {
 
     // ── Deal items ─────────────────────────────────────────────────────────
     (dealsRes.data || []).forEach(d => {
+      // Skip incomplete deals — must have a real counterparty OR a descriptive headline
+      const hasCounterparty = d.to_company && d.to_company.trim();
+      const hasHeadline     = d.headline    && d.headline.trim();
+      if (!hasCounterparty && !hasHeadline) return;
+
       const aStyle = MR_AREA_STYLE[d.area_id];
       const areaPill = aStyle ? `<span class="mr-pill" style="color:${aStyle.color};background:${aStyle.bg}">${aStyle.label}</span>` : '';
       const dealPill = `<span class="mr-pill" style="color:#1d4ed8;background:#dbeafe">Deal</span>`;
       const val = d.total_usd_m ? ` · ${fmtMoney(d.total_usd_m)}` : '';
-      const hl  = `${d.from_company || '—'} → ${d.to_company || '—'}${val}`;
+      // Headline: if we have both parties show the arrow format; if only from_company use the DB headline
+      const hl = hasCounterparty
+        ? `${d.from_company || '—'} → ${d.to_company}${val}`
+        : (d.headline || `${d.from_company || '—'} deal`);
       const bodyParts = [];
-      if (d.headline) bodyParts.push(`<div>${d.headline}</div>`);
+      if (d.headline && hasCounterparty) bodyParts.push(`<div>${d.headline}</div>`);
       if (d.upfront_usd_m) bodyParts.push(`<div style="color:#64748b;margin-top:3px">${fmtMoney(d.upfront_usd_m)} upfront</div>`);
+      // Build a meaningful search query from the deal
+      const searchTerms = [d.from_company, d.to_company, 'deal', d.total_usd_m ? fmtMoney(d.total_usd_m) : ''].filter(Boolean).join(' ');
       feed.push({
         sortScore: 80 + new Date(d.deal_date || 0).getTime() / 1e13,
         dateStr:   d.deal_date || '',
@@ -2490,7 +2500,7 @@ async function loadMeridianReader() {
         type: 'deal', areaId: d.area_id || '',
         pills: areaPill + dealPill,
         headline: hl,
-        hlUrl: _gUrl(`${d.from_company || ''} ${d.to_company || ''} deal${d.total_usd_m ? ' ' + fmtMoney(d.total_usd_m) : ''}`),
+        hlUrl: _gUrl(searchTerms),
         body: bodyParts.join(''),
         countdown: '',
       });
