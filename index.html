@@ -1363,16 +1363,16 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-da-wrap{margin-bottom:12px}
 .pi-da-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;padding:0 0 6px 0}
 .pi-da-row{border:1px solid #e2e8f0;border-radius:7px;margin-bottom:6px;overflow:hidden;background:white}
-.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,200px) 100px 104px 1fr 72px;align-items:start;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
-.pi-da-partner{display:flex;align-items:flex-start;justify-content:flex-end}
+.pi-da-hd{display:grid;grid-template-columns:11px minmax(0,1.5fr) minmax(0,1.8fr) 104px minmax(0,0.8fr) 72px;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;user-select:none;transition:background 0.1s}
+.pi-da-partner{display:flex;align-items:center;justify-content:flex-end}
 .pi-da-hd:hover{background:#f8fafc}
 .pi-da-toggle{font-size:9px;color:#94a3b8;width:11px;flex-shrink:0;transition:transform 0.15s;display:inline-block}
 .pi-da-toggle.open{transform:rotate(90deg)}
-.pi-da-name{font-size:12px;font-weight:800;color:#1e293b;min-width:0;line-height:1.3;word-break:break-word}
-.pi-da-mech{font-size:11px;color:#64748b;min-width:0;line-height:1.3;word-break:break-word}
-.pi-da-stage{display:flex;align-items:flex-start;justify-content:flex-start}
+.pi-da-name{font-size:12px;font-weight:800;color:#1e293b;min-width:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-da-mech{font-size:11px;color:#64748b;min-width:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-da-stage{display:flex;align-items:center;justify-content:flex-start}
 .pi-da-tag{font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
-.pi-da-pills{display:flex;gap:5px;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}
+.pi-da-pills{display:flex;gap:5px;align-items:center;justify-content:flex-start;flex-wrap:nowrap}
 .pi-da-row.pi-da-direct>.pi-da-hd{border-left:3px solid #ef4444;padding-left:9px}
 .pi-da-row.pi-da-adjacent>.pi-da-hd{border-left:3px solid #3b82f6;padding-left:9px}
 .pi-da-row.pi-da-watch>.pi-da-hd{border-left:3px solid #94a3b8;padding-left:9px}
