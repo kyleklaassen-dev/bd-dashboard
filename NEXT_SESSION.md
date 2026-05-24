@@ -1,7 +1,55 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 43)
-**Session completed:** P2 competitive_signals — DB table + 17 TED seeds + enrichment write + UI card ✅
+**Last updated:** 2026-05-24 (Session 46)
+**Session completed:** HQ display + column widths + no-resize + default relevance sort ✅
+
+---
+
+## What Was Done This Session (Session 46)
+
+### Company HQ Data + Ticker Fix ✅
+- Migration v34: added `hq_city` + `hq_country` TEXT columns to `companies` table
+- `scripts/seed_company_hq.py`: seeded 95 companies with city/country; fixed NULL tickers (PFE, ROIV, 4519.T, 6996.HK, rest → 'Private')
+- Commits: `feef5362c5` (seed script), `cb946667a2` (UI)
+
+### PI Tab Entity Rows — Ticker + City, Country ✅
+- Every entity subline now shows `TICKER — City, Country` or `Private — City, Country`
+- `hq_city`/`hq_country` threaded through `_makeAreaPI` data model + render
+
+### Column Widths + No-Resize + Default Sort ✅
+- Indication column widened: 9% → 13%; full colgroup: `19% 11% 13% 17% 11% 14% 15%`
+- Indication badge: `white-space:nowrap;display:inline-block` — no second-row wrapping
+- Target td: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`
+- All tabs default to relevance sort (`sortCol:'relevance'`)
+- No column resizing on any tab (col-resize handles fully removed via tl1aPI migration)
+
+### seed_competitive_signals.py: area_id fix ✅
+- Rewritten with `area_id='igf1r'` throughout (was `'ted'`). Commit: `1d89542ef1`
+
+---
+
+## What Was Done This Session (Session 45)
+
+### tl1aPI → _makeAreaPI Migration ✅
+- Removed `TL1A_PROGRAMS`, `TL1A_STAGE_ORDER`, `SPYRE_PIPELINE`, `AILUX_MOLECULES` static data
+- Removed `piPillClick` standalone function and entire `tl1aPI` object (~1,800 lines)
+- Moved `_genericDetailHTML(prog, sbData, tabId)` (969 lines) into `_makeAreaPI` factory as a native method
+- All `tl1aPI._genericDetailHTML.call(tl1aPI, ...)` references → `this._genericDetailHTML(...)`
+- TL1A card HTML rewired: `tl1a-pi-card` → `tl1a-area-pi-wrap` + `tl1a-area-pi` inner target
+- `registerTab('tl1a')`: removed `tl1aPI.init()`, added `loadAreaPI('tl1a')`
+- Removed from DOMContentLoaded: `tl1aPI.init(); tl1aPI._initialized = true;`
+- All 9 drug tabs now use identical `_makeAreaPI` factory architecture
+- File: 15,976 → 14,222 lines (-1,754 lines)
+- Commit: `b4355353`
+
+---
+## What Was Done This Session (Session 44)
+
+### UI Alignment Fixes ✅
+- **`.tl1a-layout` padding-top:10px**: All drug tabs now have consistent 10px gap at top, aligned with BD Takeaways / Ailux Profile pill buttons. Previously TL1A tab was flush against tab bar.
+- **IGF1R×TSHR filter pills**: Replaced coverage panel div (`id="igf1r-tshr-coverage-pills"`) with standard `class="pi-pills-wrap"`. Class/Stage/Relevance filter pills now render correctly, matching all other drug tabs.
+- **`TAB_LANDSCAPE_MAP` igf1r-tshr entry commented out**: Prevents `loadLandscapeCoverage` from overwriting the pills div. Coverage data remains in DB; can be restored to a dedicated panel in a future session.
+- **Commit**: `0a704446`
 
 ---
 
