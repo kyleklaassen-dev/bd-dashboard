@@ -10494,10 +10494,8 @@ function _makeAreaPI(tabId, areaIds) {
       const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
       if (!wrap) return;
       const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val||'';
-      const ov    = wrap.querySelector('.pi-pill-group[data-filter="overlap"].pi-pill.active')?.dataset?.val||'';
       this.filteredEntities = this.entities.filter(ent=>
-        (!stage || ent.programs.some(p=>p.stageKey===stage)) &&
-        (!ov    || ent.programs.some(p=>p.overlap===ov))
+        (!stage || ent.programs.some(p=>p.stageKey===stage))
       );
       const cnt = document.getElementById(this.tabId+'-area-pi-count');
       if (cnt) cnt.textContent = `${this.filteredEntities.length} entities`;
@@ -10524,9 +10522,7 @@ function _makeAreaPI(tabId, areaIds) {
     _renderPills() {
       const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
       if (!wrap) return;
-      const stages   = [...new Set(this.data.map(p=>p.stageKey))].sort((a,b)=>(STAGE_ORDER_PI[a]??9)-(STAGE_ORDER_PI[b]??9));
-      const classes  = ['1st Gen','2nd Gen','Next Gen'].filter(c=>this.data.some(p=>p.cls===c));
-      const overlaps = ['Direct','Adjacent','Same-Space','Watch'].filter(o=>this.data.some(p=>p.overlap===o));
+      const stages = [...new Set(this.data.map(p=>p.stageKey))].sort((a,b)=>(STAGE_ORDER_PI[a]??9)-(STAGE_ORDER_PI[b]??9));
       const tid = this.tabId;
       const pillBtn = (grp,val,lbl) => `<button class="pi-pill" data-val="${val}" onclick="_areaPIPill('${tid}','${grp}','${val}',this)">${lbl||val}</button>`;
       const pillsEl = wrap.querySelector('.pi-pills-wrap');
@@ -10536,12 +10532,6 @@ function _makeAreaPI(tabId, areaIds) {
           <span class="pi-pill-lbl">Stage</span>
           <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','stage','',this)">All</button>
           ${stages.map(s=>pillBtn('stage',s)).join('')}
-        </div>
-        <div class="pi-pill-divider"></div>
-        <div class="pi-pill-group" data-filter="overlap">
-          <span class="pi-pill-lbl">Relevance</span>
-          <button class="pi-pill active" data-val="" onclick="_areaPIPill('${tid}','overlap','',this)">All</button>
-          ${overlaps.map(o=>pillBtn('overlap',o)).join('')}
         </div>
         <span id="${tid}-area-pi-count" style="font-size:11px;color:#64748b;padding-left:6px;white-space:nowrap;flex-shrink:0"></span>`;
     },
@@ -11225,18 +11215,9 @@ function _makeAreaPI(tabId, areaIds) {
 
   // ── Group drugs + combos into three portfolio tiers ───────────────────────
   // Tier is determined by drug.overlap (DB field), combo.overlap (DB field), or static _overlap.
-  // Display order: Direct → Adjacent → Same-Space (Watch in DB).
-  const getItemTier = item => {
-   const raw = item._isCombo
-    ? (item.overlap || item.overlap_category || 'adjacent')
-    : (item.overlap || item._overlap || '');
-   const v = (raw||'').toLowerCase().replace(/[-_\s]/g,'');
-   if (v === 'direct')            return 'direct';
-   if (v === 'adjacent')          return 'adjacent';
-   if (v === 'watch'||v==='samespace'||v==='same') return 'watch';
-   return 'adjacent'; // default for unlabelled drugs
-  };
-  // Sort within each tier: most advanced stage first
+  // Sort by competitive relevance (very_high → high → medium → low → monitor → null),
+  // then by stage within each relevance tier. No tier headers — flat list.
+  const _RELEV_SORT_DA = {very_high:0, high:1, medium:2, low:3, monitor:4};
   const stageSortScore = item => {
    const s = (item.stage||item.stageKey||item.phase_display||'').toLowerCase();
    if (s.includes('approv')) return 100;
@@ -11245,19 +11226,15 @@ function _makeAreaPI(tabId, areaIds) {
    if (s.includes('1'))      return 40;
    return 20;
   };
-  const allItemsFlat = [
+  const allItems = [
    ...drugsToRender.map(d => ({...d, _isCombo: false})),
    ...sbCombos.map(c => ({...c, _isCombo: true, name: c.label || c.name})),
-  ];
-  const tierBuckets = { direct: [], adjacent: [], watch: [] };
-  allItemsFlat.forEach(item => {
-   tierBuckets[getItemTier(item)].push(item);
+  ].sort((a, b) => {
+   const ar = a.competitive_relevance != null ? (_RELEV_SORT_DA[a.competitive_relevance] ?? 5) : 6;
+   const br = b.competitive_relevance != null ? (_RELEV_SORT_DA[b.competitive_relevance] ?? 5) : 6;
+   if (ar !== br) return ar - br;
+   return stageSortScore(b) - stageSortScore(a);
   });
-  ['direct','adjacent','watch'].forEach(t => {
-   tierBuckets[t].sort((a,b) => stageSortScore(b) - stageSortScore(a));
-  });
-  // Flat ordered list for legacy rendering (keeps allItems API for drugSection length check)
-  const allItems = [...tierBuckets.direct, ...tierBuckets.adjacent, ...tierBuckets.watch];
 
   // ── renderNewsItem defined HERE so it is available inside allItemsHTML.map()
   // (const is NOT hoisted — defining after the map causes ReferenceError)
@@ -11677,48 +11654,13 @@ function _makeAreaPI(tabId, areaIds) {
   }).join('');
 
   // ── Three-tier portfolio view ────────────────────────────────────────────
-  // Each tier renders only if it has items. Items are pre-sorted into tierBuckets above.
-  const tierCfg = {
-   direct:   { label: 'Direct',      note: 'mechanistic threat to Ailux', color: '#ef4444', dotColor: '#fef2f2', border: '#fecaca' },
-   adjacent: { label: 'Adjacent',    note: 'validates biology · combination potential', color: '#3b82f6', dotColor: '#eff6ff', border: '#bfdbfe' },
-   watch:    { label: 'Same-Space',  note: 'same patients · different pathway', color: '#94a3b8', dotColor: '#f8fafc', border: '#e2e8f0' },
-  };
-
-  // allItemsHTML is now keyed to allItems (Direct→Adjacent→Watch order) — slice per tier
-  let _htmlIdx = 0;
-  const _htmlArr = allItems.map((item,i) => allItemsHTML.split('').length ? allItemsHTML : ''); // allItemsHTML is already one big string; re-map per bucket
-
-  // Re-render per tier so we can inject headers between them
-  const renderTierItems = (items) => items.map(item => {
-   const pos = allItems.indexOf(item);
-   // Extract the rendered HTML for this item by finding its block in allItemsHTML
-   // Simpler: just re-use the same render by filtering allItemsHTML by index
-   // Actually we compute this by splitting on item boundaries — instead, just rebuild the subset
-   return allItemsHTML; // placeholder — replaced below
-  });
-
-  // Cleanest approach: split allItemsHTML per item count using the pi-da-row boundary
-  const _rowSplitRe = /(?=<div class="pi-da-row)/g;
-  const _allRows = allItemsHTML.split(_rowSplitRe).filter(Boolean);
-  let _rowIdx = 0;
-  const tierSections = ['direct','adjacent','watch'].map(tier => {
-   const items = tierBuckets[tier];
-   if (!items.length) return '';
-   const cfg = tierCfg[tier];
-   const rows = items.map(() => _allRows[_rowIdx++] || '').join('');
-   return `<div style="margin-bottom:12px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-     <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${cfg.color};background:${cfg.dotColor};border:1px solid ${cfg.border};border-radius:10px;padding:2px 8px">${cfg.label}</span>
-     <span style="font-size:9px;color:#94a3b8;font-style:italic">${cfg.note}</span>
-    </div>
-    ${rows}
-   </div>`;
-  }).join('');
+  // Flat list — no tier section headers. Split rendered HTML by row boundary.
+  const _allRows = allItemsHTML.split(/(?=<div class="pi-da-row)/g).filter(Boolean);
 
   const drugSection = allItems.length
    ? `<div class="pi-da-wrap">
       <div class="pi-da-label" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px"><span>${_portfolioLabel}</span>${enrichedAt}</div>
-      ${tierSections}
+      ${_allRows.join('')}
      </div>`
    : `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="pi-da-label" style="padding:0">${_portfolioLabel}</div>${enrichedAt}
