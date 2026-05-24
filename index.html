@@ -8975,9 +8975,15 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       const isControlledAsset = controlledDrugIds.includes(d.id) && d.company_id !== companyId;
       if (!areaSet.has(d.id) && !isControlledAsset) return false;
       seen.add(d.id);
-      // Attach originator display name for the originator pill in rendering
-      if (isControlledAsset && originatorMap[d.id]) {
-        d._originator_name = originatorNameMap[originatorMap[d.id]] || originatorMap[d.id];
+      // Controlled asset: override pill fields so controller's dossier shows originator, not legacy partner_company/licensor fields
+      if (isControlledAsset) {
+        const origName = (originatorMap[d.id] ? originatorNameMap[originatorMap[d.id]] : null)
+          || d.display_partner_name || null;
+        d._originator_name = origName;
+        d.partner_company   = origName;   // takes priority in _partnerCo pill logic
+        d.licensor_name     = null;        // clear legacy fields that would override
+        d.entity_name       = null;
+        d.partnership_verified = true;     // suppress "?" — this relationship is confirmed via ownership_edges
       }
       return true;
     });
@@ -10525,7 +10531,15 @@ function _makeAreaPI(tabId, areaIds) {
         const drugs = (allCoDrugs||[]).filter(d => {
           const isCtrl = controlledDrugIds2.includes(d.id) && d.company_id !== companyId;
           if (!areaSet.has(d.id) && !isCtrl) return false;
-          if (isCtrl && originatorMap2[d.id]) d._originator_name = origNameMap2[originatorMap2[d.id]] || originatorMap2[d.id];
+          if (isCtrl) {
+            const origName2 = (originatorMap2[d.id] ? origNameMap2[originatorMap2[d.id]] : null)
+              || d.display_partner_name || null;
+            d._originator_name = origName2;
+            d.partner_company  = origName2;
+            d.licensor_name    = null;
+            d.entity_name      = null;
+            d.partnership_verified = true;
+          }
           return true;
         });
 
@@ -12232,7 +12246,15 @@ const tl1aPI = {
    const ibdDrugs = (allCoDrugs||[]).filter(d => {
      const isCtrl = controlledDrugIds3.includes(d.id) && d.company_id !== id;
      if (!ibdIds.has(d.id) && !isCtrl) return false;
-     if (isCtrl && originatorMap3[d.id]) d._originator_name = origNameMap3[originatorMap3[d.id]] || originatorMap3[d.id];
+     if (isCtrl) {
+       const origName3 = (originatorMap3[d.id] ? origNameMap3[originatorMap3[d.id]] : null)
+         || d.display_partner_name || null;
+       d._originator_name = origName3;
+       d.partner_company  = origName3;
+       d.licensor_name    = null;
+       d.entity_name      = null;
+       d.partnership_verified = true;
+     }
      return true;
    });
    // Sort: target-specific (TL1A) first, then other IBD/area drugs
