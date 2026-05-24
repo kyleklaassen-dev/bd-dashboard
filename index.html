@@ -617,10 +617,28 @@ body { padding-bottom:0; }
 .ih-stat.bad  .ih-stat-val { color:#dc2626; }
 .ih-divider { width:1px;height:40px;background:#e2e8f0;flex-shrink:0; }
 .ih-issue { font-size:11px;color:#dc2626;font-style:italic;width:100%; }
-#meridian-reader-items { display: block !important; max-height: 400px; overflow-y: auto; }
-#meridian-reader-items::-webkit-scrollbar { width: 5px; }
-#meridian-reader-items::-webkit-scrollbar-track { background: transparent; }
-#meridian-reader-items::-webkit-scrollbar-thumb { background: #f5c842; border-radius: 3px; }
+#meridian-reader-items { display:block !important; max-height:580px; overflow-y:auto; }
+#meridian-reader-items::-webkit-scrollbar { width:5px; }
+#meridian-reader-items::-webkit-scrollbar-track { background:transparent; }
+#meridian-reader-items::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+/* ── Essential Updates — accordion items ── */
+.mr-filter-bar { display:flex; gap:5px; flex-wrap:wrap; padding:6px 0 8px; }
+.mr-pill-btn { padding:3px 11px; border-radius:12px; border:1.5px solid #dde3ea; background:white; color:#4b5563; font-size:10.5px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.mr-pill-btn:hover { background:#f1f5f9; border-color:#94a3b8; }
+.mr-pill-btn.active { background:#1e4a82; color:white; border-color:#1e4a82; }
+.mr-item { border-bottom:1px solid #f1f5f9; }
+.mr-item:last-child { border-bottom:none; }
+.mr-item-hd { display:flex; align-items:center; gap:7px; padding:9px 6px; cursor:pointer; user-select:none; border-radius:6px; }
+.mr-item-hd:hover { background:#f8fafc; }
+.mr-chev { font-size:9px; color:#94a3b8; transition:transform .15s; flex-shrink:0; width:10px; text-align:center; }
+.mr-item.mr-open .mr-chev { transform:rotate(90deg); }
+.mr-pills { display:flex; gap:3px; flex-shrink:0; align-items:center; }
+.mr-pill { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; padding:1px 6px; border-radius:6px; white-space:nowrap; }
+.mr-hl { flex:1; min-width:0; font-size:12px; font-weight:600; color:#0f172a; text-decoration:none; line-height:1.4; }
+.mr-hl:hover { color:#1d4ed8; text-decoration:underline; }
+.mr-date-tag { font-size:10px; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
+.mr-body { font-size:11.5px; color:#475569; line-height:1.55; padding:0 12px 10px 24px; }
+.mr-body a { color:#1d4ed8; }
 .catalyst-item { padding: 8px 0; border-bottom: 1px solid #eef1f5; display: flex; align-items: flex-start; gap: 12px; }
 .catalyst-item:last-child { border-bottom: none; padding-bottom: 0; }
 .catalyst-timing { min-width: 100px; font-size: 11px; font-weight: 800; color: #2e6fb0; line-height: 1.3; }
@@ -2357,7 +2375,6 @@ async function loadMeridianReader() {
   const container = document.getElementById('meridian-reader-items');
   if (!container || !_sb) return;
   try {
-    // Pull from all four overnight pipeline sources in parallel
     const [intelRes, iaRes, dealsRes, catsRes, profilesRes] = await Promise.all([
       _sb.from('intel')
         .select('id,intel_date,headline,body,source_url,source_name,intel_type,importance,primary_company_id')
@@ -2381,18 +2398,15 @@ async function loadMeridianReader() {
         .limit(8),
     ]);
 
-    // Build intel area lookup
     const areaMap = {};
     (iaRes.data || []).forEach(r => { if (!areaMap[r.intel_id]) areaMap[r.intel_id] = r.area_id; });
 
-    // Unified feed — each item has { sortScore, dateStr, html }
     const feed = [];
-
-    // ── Intel items — story consolidation: group same company+date+type into one card ──
     const _impRank = { high: 2, medium: 1, low: 0 };
+
+    // ── Intel items ────────────────────────────────────────────────────────
     const intelGroups = new Map();
     (intelRes.data || []).forEach(item => {
-      // Items without a known company stay ungrouped (solo cards)
       const storyKey = item.primary_company_id
         ? `${item.primary_company_id}|${item.intel_date||''}|${item.intel_type||''}`
         : `_solo_${item.id}`;
@@ -2401,131 +2415,174 @@ async function loadMeridianReader() {
     });
 
     intelGroups.forEach(group => {
-      // Lead = highest importance; ties broken by insertion order
       group.sort((a, b) => (_impRank[b.importance] || 0) - (_impRank[a.importance] || 0));
       const item   = group[0];
       const extras = group.slice(1);
-
       const areaId = areaMap[item.id] || '';
       const aStyle = MR_AREA_STYLE[areaId];
       const tStyle = MR_TYPE_STYLE[item.intel_type];
-      const areaPill = aStyle
-        ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${aStyle.color};background:${aStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${aStyle.label}</span>`
-        : '';
-      const typePill = tStyle
-        ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${tStyle.color};background:${tStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${tStyle.label}</span>`
-        : '';
-      const impBadge = _impBadge(item.importance);
-      const headlineUrl = item.source_url || _srcSearch(item.headline);
-      const headline = `<a class="ct-link" href="${headlineUrl}" target="_blank" rel="noopener">${item.headline}</a>`;
-      const srcTag = item.source_name
-        ? `<span style="font-size:10px;color:#94a3b8;margin-left:4px">· ${item.source_name}</span>`
-        : '';
-      // Consolidated source badge — now expandable to show individual links
-      const extraSrcs = (() => {
-        if (!extras.length) return '';
-        const xid = 'xsrc-' + item.id;
-        const links = extras.map(e => {
-          const eUrl = e.source_url || _srcSearch(e.headline || item.headline);
-          const eLbl = _srcDomain(e.source_url) || e.source_name || 'source';
-          return `<a href="${eUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;display:block;padding:2px 0;text-decoration:none;">↗ ${eLbl}${e.source_name ? ' · ' + e.source_name : ''}</a>`;
+      const areaPill = aStyle ? `<span class="mr-pill" style="color:${aStyle.color};background:${aStyle.bg}">${aStyle.label}</span>` : '';
+      const typePill = tStyle ? `<span class="mr-pill" style="color:${tStyle.color};background:${tStyle.bg}">${tStyle.label}</span>` : '';
+      const impPill  = item.importance === 'high' ? `<span class="mr-pill" style="color:#b91c1c;background:#fef2f2">High</span>` : '';
+      const hl = item.headline || '';
+      const bodyParts = [];
+      if (item.body) bodyParts.push(`<div>${item.body}</div>`);
+      if (extras.length) {
+        const extraLinks = extras.map(e => {
+          const eUrl = e.source_url || _gUrl(e.headline || hl);
+          return `<a href="${eUrl}" target="_blank" rel="noopener" style="color:#2563eb;display:block;padding:1px 0;text-decoration:none;">↗ ${e.headline || _srcDomain(e.source_url) || 'source'}</a>`;
         }).join('');
-        return `<span onclick="var d=document.getElementById('${xid}');d.style.display=d.style.display==='none'?'block':'none';this.textContent=(d.style.display==='none'?'+${extras.length} source${extras.length>1?'s':''}▾':'+${extras.length} ▴')" style="font-size:9px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-left:5px;cursor:pointer">+${extras.length} source${extras.length>1?'s':''}▾</span><div id="${xid}" style="display:none;padding:4px 8px 2px;background:#f8fafc;border-radius:4px;margin-top:3px">${links}</div>`;
-      })();
-      const noSrcBadge = (!item.source_url && !extras.length) ? '' : ''; // search fallback already in headline
-      const bodyText = item.body
-        ? `<div style="font-size:11px;color:#4a6280;margin-top:3px;line-height:1.5">${item.body}</div>`
-        : '';
-      const dateStr = rdtFmtDate(item.intel_date) || item.intel_date || '';
-      const importanceScore = item.importance === 'high' ? 100 : 50;
+        bodyParts.push(`<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px">${extraLinks}</div>`);
+      }
       feed.push({
-        sortScore: importanceScore + new Date(item.intel_date || 0).getTime() / 1e13,
-        dateStr: item.intel_date || '',
-        html: `<div class="meridian-reader-item">${areaPill}${typePill}${impBadge}${headline}<span class="mr-date">${dateStr}${srcTag}${extraSrcs}${noSrcBadge}</span>${bodyText}</div>`
+        sortScore: (item.importance === 'high' ? 100 : 50) + new Date(item.intel_date || 0).getTime() / 1e13,
+        dateStr:   item.intel_date || '',
+        dateLabel: rdtFmtDate(item.intel_date) || item.intel_date || '',
+        type: 'intel', areaId,
+        pills: areaPill + typePill + impPill,
+        headline: hl,
+        hlUrl: _gUrl(hl),
+        body: bodyParts.join(''),
+        countdown: '',
       });
     });
 
-    // ── Deal items (research.py + manual seeds) ────────────────────────────
+    // ── Deal items ─────────────────────────────────────────────────────────
     (dealsRes.data || []).forEach(d => {
       const aStyle = MR_AREA_STYLE[d.area_id];
-      const areaPill = aStyle
-        ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${aStyle.color};background:${aStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${aStyle.label}</span>`
-        : '';
-      const dealPill = `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#1d4ed8;background:#dbeafe;padding:1px 6px;border-radius:6px;margin-right:4px">Deal</span>`;
-      const val = d.total_usd_m ? ` <span style="font-size:10px;font-weight:700;color:#1a3f8f">$${fmtMoney(d.total_usd_m)}</span>` : '';
-      const srcLink = d.source_url ? `<a class="ct-link" href="${d.source_url}" target="_blank" rel="noopener">${d.from_company||''} → ${d.to_company||''}</a>` : `<strong>${d.from_company||''} → ${d.to_company||''}</strong>`;
-      const bodyText = d.headline ? `<div style="font-size:11px;color:#4a6280;margin-top:3px">${d.headline}</div>` : '';
-      const dateStr = rdtFmtDate(d.deal_date) || d.deal_date_label || '';
+      const areaPill = aStyle ? `<span class="mr-pill" style="color:${aStyle.color};background:${aStyle.bg}">${aStyle.label}</span>` : '';
+      const dealPill = `<span class="mr-pill" style="color:#1d4ed8;background:#dbeafe">Deal</span>`;
+      const val = d.total_usd_m ? ` · ${fmtMoney(d.total_usd_m)}` : '';
+      const hl  = `${d.from_company || '—'} → ${d.to_company || '—'}${val}`;
+      const bodyParts = [];
+      if (d.headline) bodyParts.push(`<div>${d.headline}</div>`);
+      if (d.upfront_usd_m) bodyParts.push(`<div style="color:#64748b;margin-top:3px">${fmtMoney(d.upfront_usd_m)} upfront</div>`);
       feed.push({
         sortScore: 80 + new Date(d.deal_date || 0).getTime() / 1e13,
-        dateStr: d.deal_date || '',
-        html: `<div class="meridian-reader-item" style="border-left-color:#1d4ed8">${areaPill}${dealPill}${srcLink}${val}<span class="mr-date">${dateStr}</span>${bodyText}</div>`
+        dateStr:   d.deal_date || '',
+        dateLabel: rdtFmtDate(d.deal_date) || d.deal_date_label || '',
+        type: 'deal', areaId: d.area_id || '',
+        pills: areaPill + dealPill,
+        headline: hl,
+        hlUrl: _gUrl(`${d.from_company || ''} ${d.to_company || ''} deal${d.total_usd_m ? ' ' + fmtMoney(d.total_usd_m) : ''}`),
+        body: bodyParts.join(''),
+        countdown: '',
       });
     });
 
-    // ── Catalyst items (enrichment pipeline at midnight) ───────────────────
-    const today = new Date().toISOString().split('T')[0];
+    // ── Catalyst items ─────────────────────────────────────────────────────
     (catsRes.data || []).slice(0, 12).forEach(c => {
       if (!c.label) return;
       const aStyle = MR_AREA_STYLE[c.area_id];
-      const areaPill = aStyle
-        ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${aStyle.color};background:${aStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${aStyle.label}</span>`
-        : '';
-      const catPill = `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#c45b11;background:#fff7ed;padding:1px 6px;border-radius:6px;margin-right:4px">Catalyst</span>`;
-      const countdown = catDaysTag(c.sort_date);
-      const notes = c.notes ? `<div style="font-size:11px;color:#4a6280;margin-top:3px">${c.notes}</div>` : '';
-      const sigScore = c.significance === 'high' ? 70 : c.significance === 'medium' ? 40 : 20;
+      const areaPill = aStyle ? `<span class="mr-pill" style="color:${aStyle.color};background:${aStyle.bg}">${aStyle.label}</span>` : '';
+      const catPill  = `<span class="mr-pill" style="color:#c45b11;background:#fff7ed">Catalyst</span>`;
+      const bodyParts = c.notes ? [`<div>${c.notes}</div>`] : [];
+      const sigScore  = c.significance === 'high' ? 70 : c.significance === 'medium' ? 40 : 20;
       feed.push({
         sortScore: sigScore - new Date(c.sort_date || '9999-12-31').getTime() / 1e13,
-        dateStr: c.sort_date || '',
-        html: `<div class="meridian-reader-item" style="border-left-color:#f5c842">${areaPill}${catPill}<strong>${c.label}</strong>${countdown}<span class="mr-date">${c.catalyst_date||''}</span>${notes}</div>`
+        dateStr:   c.sort_date || '',
+        dateLabel: c.catalyst_date || c.sort_date || '',
+        type: 'catalyst', areaId: c.area_id || '',
+        pills: areaPill + catPill,
+        headline: c.label,
+        hlUrl: _gUrl(c.label),
+        body: bodyParts.join(''),
+        countdown: catDaysTag(c.sort_date),
       });
     });
 
-    // ── Enrichment items (company_enrichment.py at midnight) ───────────────
+    // ── Enrichment items ───────────────────────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
     (profilesRes.data || []).forEach(p => {
       if (!p.last_enriched_at) return;
       const enrichedDate = p.last_enriched_at.split('T')[0];
-      const isToday = enrichedDate === today;
-      if (!isToday) return; // only show today's enrichment updates
+      if (enrichedDate !== today) return;
       const aStyle = MR_AREA_STYLE[p.area_id];
-      const areaPill = aStyle
-        ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${aStyle.color};background:${aStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${aStyle.label}</span>`
-        : '';
-      const enrichPill = `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#6d28d9;background:#ede9fe;padding:1px 6px;border-radius:6px;margin-right:4px">🤖 Enriched</span>`;
+      const areaPill  = aStyle ? `<span class="mr-pill" style="color:${aStyle.color};background:${aStyle.bg}">${aStyle.label}</span>` : '';
+      const enrichPill = `<span class="mr-pill" style="color:#6d28d9;background:#ede9fe">Enriched</span>`;
       const summary = p.why_it_matters || p.platform_summary || '';
-      const bodyText = summary ? `<div style="font-size:11px;color:#4a6280;margin-top:3px">${summary.slice(0,180)}${summary.length>180?'…':''}</div>` : '';
       feed.push({
         sortScore: 30,
-        dateStr: enrichedDate,
-        html: `<div class="meridian-reader-item" style="border-left-color:#7c3aed">${areaPill}${enrichPill}<strong>${p.company_id}</strong> profile updated<span class="mr-date">${rdtFmtDate(enrichedDate)||enrichedDate}</span>${bodyText}</div>`
+        dateStr:   enrichedDate,
+        dateLabel: rdtFmtDate(enrichedDate) || enrichedDate,
+        type: 'enriched', areaId: p.area_id || '',
+        pills: areaPill + enrichPill,
+        headline: `${p.company_id} profile updated`,
+        hlUrl: _gUrl(p.company_id + ' biotech'),
+        body: summary ? summary.slice(0, 220) + (summary.length > 220 ? '…' : '') : '',
+        countdown: '',
       });
     });
 
     if (!feed.length) {
-      container.innerHTML = '<div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">No essential intel yet — check back after the next Meridian run.</div>';
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;">No essential intel yet — check back after the next Meridian run.</div>';
       return;
     }
 
-    // Sort: highest score first (score = importance + recency weighted)
     feed.sort((a, b) => b.sortScore - a.sortScore);
-
-    // Mark top 5 visually, rest go below divider
-    const markTop = (html) => html.replace(/class="meridian-reader-item(\s*)([^"]*)"/,
-      (m, sp, extra) => `class="meridian-reader-item mr-top-item${sp}${extra}"`);
-    const topHtml  = feed.slice(0, 5).map(f => markTop(f.html)).join('');
-    const restHtml = feed.slice(5).map(f => f.html).join('');
-    const divider  = feed.length > 5
-      ? `<div style="padding:5px 0 3px;font-size:10px;font-weight:700;color:#b8973a;text-transform:uppercase;letter-spacing:0.06em;border-top:1px dashed #e9d66b;margin-top:2px">↓ older updates (${feed.length - 5})</div>`
-      : '';
-    container.innerHTML = topHtml + divider + restHtml;
+    _mrFeed = feed;
+    renderMeridianFeed();
 
   } catch(e) {
     console.error('loadMeridianReader', e);
-    container.innerHTML = '<div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Intel feed unavailable.</div>';
+    container.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:16px;">Intel feed unavailable.</div>';
   }
 }
 
+
+// ── Essential Updates — state + render + filter + toggle ─────────────────────
+let _mrFeed       = [];
+let _mrTypeFilter = '';
+let _mrAreaFilter = '';
+
+function renderMeridianFeed() {
+  const container = document.getElementById('meridian-reader-items');
+  if (!container) return;
+  let items = _mrFeed;
+  if (_mrTypeFilter) items = items.filter(f => f.type === _mrTypeFilter);
+  if (_mrAreaFilter) items = items.filter(f => f.areaId === _mrAreaFilter);
+  if (!items.length) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;">No updates match these filters.</div>';
+    return;
+  }
+  container.innerHTML = items.map(f => {
+    const hasBody = !!f.body;
+    const chev = `<span class="mr-chev" style="${hasBody?'':'visibility:hidden'}">▶</span>`;
+    const bodyBlock = hasBody ? `<div class="mr-body" style="display:none">${f.body}</div>` : '';
+    return `<div class="mr-item" data-type="${f.type}" data-area="${f.areaId}">
+  <div class="mr-item-hd" onclick="mrToggle(this)">
+    ${chev}
+    <div class="mr-pills">${f.pills}</div>
+    <a class="mr-hl" href="${f.hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${f.headline}</a>
+    ${f.countdown || ''}
+    <span class="mr-date-tag">${f.dateLabel}</span>
+  </div>
+  ${bodyBlock}
+</div>`;
+  }).join('');
+}
+
+function mrTypeFilter(btn, type) {
+  document.querySelectorAll('#mr-type-bar .mr-pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _mrTypeFilter = type;
+  renderMeridianFeed();
+}
+function mrAreaFilter(btn, area) {
+  document.querySelectorAll('#mr-area-bar .mr-pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _mrAreaFilter = area;
+  renderMeridianFeed();
+}
+function mrToggle(hd) {
+  const item = hd.closest('.mr-item');
+  if (!item) return;
+  const body = item.querySelector('.mr-body');
+  if (!body) return;
+  const isOpen = body.style.display === 'block';
+  body.style.display = isOpen ? 'none' : 'block';
+  item.classList.toggle('mr-open', !isOpen);
+}
 
 // ── Missing fields: stage grouping map ───────────────────────────────────────
 const _STAGE_PREFIX = [
@@ -3661,8 +3718,25 @@ function loadMoleculeTab(tabId) {
    <!-- Panel: Essential Updates -->
    <div class="home-panel" id="home-panel-updates" style="display:none">
     <div id="meridian-reader-anchor">
+     <!-- Type filter -->
+     <div class="mr-filter-bar" id="mr-type-bar">
+      <button class="mr-pill-btn active" onclick="mrTypeFilter(this,'')">All</button>
+      <button class="mr-pill-btn" onclick="mrTypeFilter(this,'intel')">Intel</button>
+      <button class="mr-pill-btn" onclick="mrTypeFilter(this,'deal')">Deal</button>
+      <button class="mr-pill-btn" onclick="mrTypeFilter(this,'catalyst')">Catalyst</button>
+     </div>
+     <!-- Area filter -->
+     <div class="mr-filter-bar" id="mr-area-bar" style="border-top:1px solid #f1f5f9;padding-top:8px;margin-bottom:6px;">
+      <button class="mr-pill-btn active" onclick="mrAreaFilter(this,'')">All Areas</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'tl1a')">TL1A</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'tslp')">TSLP</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'il4ra')">IL-4Rα</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'igf1r')">IGF1R</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'fcrn')">FcRn</button>
+      <button class="mr-pill-btn" onclick="mrAreaFilter(this,'tcell')">T-cell</button>
+     </div>
      <div id="meridian-reader-items">
-      <div class="meridian-reader-item" style="color:#94a3b8;font-size:12px;">Loading essential intel…</div>
+      <div style="color:#94a3b8;font-size:12px;padding:16px;text-align:center;">Loading essential intel…</div>
      </div>
     </div>
    </div>
