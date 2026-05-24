@@ -10441,7 +10441,7 @@ function _makeAreaPI(tabId, areaIds) {
         const drugIds = areaDrugs.map(d=>d.id);
         let trialRows = [];
         if (drugIds.length) {
-          const { data: tr } = await _sb.from('trials').select('drug_id,status').in('drug_id', drugIds).ilike('status', '%recruit%').limit(500);
+          const { data: tr } = await _sb.from('trials').select('drug_id,status').in('drug_id', drugIds).limit(500);
           trialRows = tr || [];
         }
 
