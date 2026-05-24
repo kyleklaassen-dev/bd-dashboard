@@ -219,6 +219,97 @@ def infer_catalog_category(target: str = "", modality: str = "",
     return "Pipeline"
 
 
+def validate_source_url(url: str, context: str = "", head_check: bool = True) -> Optional[str]:
+    """
+    P0+P1 source URL validation gate. Called before storing any source_url.
+
+    Checks:
+    1. Format validation — must start with http, not obviously truncated
+    2. Generic URL detection — pipeline/homepage URLs don't support specific claims → warn
+    3. HTTP HEAD check (when head_check=True) — reject 404 / timeout; keep 30x redirects
+    4. Hallucination patterns — flag impossible NCT numbers, malformed domains
+
+    Returns:
+      - The original URL if valid
+      - None if the URL is malformed, broken (404), or times out (so caller stores null)
+    Logs a warning in all rejection cases so failures are auditable.
+    """
+    import urllib.request as _urlreq
+    import urllib.error as _urlerr
+
+    if not url:
+        return None
+    url = url.strip()
+
+    # ── 1. Format check ──────────────────────────────────────────────────────
+    if not url.startswith("http"):
+        log(f"  ⚠ E7 [{context}]: source_url rejected — does not start with http: {url[:80]}", indent=2)
+        return None
+
+    # Detect truncated URLs (ends mid-word, common enrichment artifact)
+    if len(url) > 80 and not url.endswith(('/', '.html', '.pdf', '.htm', '.json')) \
+            and url[-1].isalpha() and url[-2].isalpha():
+        log(f"  ⚠ E7 [{context}]: source_url appears truncated → rejecting: {url[:80]}", indent=2)
+        return None
+
+    # ── 2. Hallucination patterns ─────────────────────────────────────────────
+    # NCT numbers must be exactly 8 digits
+    nct_match = re.search(r'NCT(\d+)', url)
+    if nct_match and len(nct_match.group(1)) != 8:
+        log(f"  ⚠ E7 [{context}]: malformed NCT number ({nct_match.group(0)}) → rejecting: {url[:80]}", indent=2)
+        return None
+
+    # ── 3. Generic URL warning (don't reject, but warn loudly) ───────────────
+    GENERIC_PATTERNS = [
+        (r'/pipeline/?$',          "generic pipeline page"),
+        (r'/programs/?$',          "generic programs page"),
+        (r'/news-releases/?$',     "generic news releases index"),
+        (r'/press-releases/?$',    "generic press releases index"),
+        (r'\.com/?$',              "company homepage"),
+        (r'\.com/en/?$',           "company homepage"),
+    ]
+    for pattern, label in GENERIC_PATTERNS:
+        if re.search(pattern, url, re.I):
+            log(f"  ⚠ E7 [{context}]: source_url is a {label} (not claim-specific): {url[:80]}", indent=2)
+            # Don't reject — generic URLs are weak evidence but not false. Caller decides confidence.
+            return url  # return early, skip HTTP check for generic pages
+
+    # ── 4. HTTP HEAD check ───────────────────────────────────────────────────
+    if head_check:
+        ua = {"User-Agent": "Mozilla/5.0 (compatible; BD-Platform-Audit/1.0)"}
+        try:
+            req = _urlreq.Request(url, method="HEAD", headers=ua)
+            with _urlreq.urlopen(req, timeout=6) as r:
+                status = r.status
+        except _urlerr.HTTPError as e:
+            if e.code == 405:
+                # HEAD not allowed — try GET
+                try:
+                    req2 = _urlreq.Request(url, method="GET", headers=ua)
+                    with _urlreq.urlopen(req2, timeout=6) as r2:
+                        status = r2.status
+                except _urlerr.HTTPError as e2:
+                    status = e2.code
+                except Exception:
+                    status = 0
+            else:
+                status = e.code
+        except Exception:
+            status = 0  # timeout or DNS failure
+
+        if status == 404 or status == 410:
+            log(f"  ⚠ E7 [{context}]: source_url returns HTTP {status} → nulling: {url[:80]}", indent=2)
+            return None
+        if status == 0:
+            log(f"  ⚠ E7 [{context}]: source_url unreachable (timeout/DNS) → nulling: {url[:80]}", indent=2)
+            return None
+        if status not in (200, 201, 301, 302, 303, 307, 308, 403, 405):
+            log(f"  ⚠ E7 [{context}]: source_url returned unexpected HTTP {status}: {url[:80]}", indent=2)
+            # Unusual status — warn but don't reject (may be geo-blocked, behind login, etc.)
+
+    return url
+
+
 def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
     """
     Post-LLM invariant enforcement for confidence_level fields. (E6)
@@ -228,6 +319,8 @@ def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
     Rule 3: confidence='supported' requires source_url IS NOT NULL → warn (do not demote)
             Supported rows are in the source_coverage scoring denominator (v1.2+).
             A supported row without source_url will reduce the source_coverage score.
+    Rule 4 (E7): source_url must pass format + HTTP validation before storage.
+            Broken/malformed/truncated URLs are nulled; confidence demoted accordingly.
 
     Modifies record in place and returns it. Called before every drug_area_scores write
     so that LLM-assigned confidence values are sanitised before persistence.
@@ -235,6 +328,25 @@ def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
     confidence  = record.get("confidence_level") or "inferred"
     source_url  = (record.get("source_url") or "").strip()
     source_type = (record.get("source_type") or "").lower().strip()
+
+    # Rule 4 (E7): validate source_url before applying confidence rules
+    # Use head_check=False for CT.gov ct_study URLs (format is already authoritative)
+    # Use head_check=True for all other URLs (press releases, company IR, etc.)
+    if source_url:
+        is_ct_study = bool(re.search(r'clinicaltrials\.gov/study/NCT\d{8}$', source_url))
+        validated_url = validate_source_url(source_url, context=context, head_check=not is_ct_study)
+        if validated_url != source_url:
+            # URL was rejected or modified
+            record["source_url"] = validated_url  # None if rejected
+            source_url = validated_url or ""
+            if not source_url and confidence == "confirmed":
+                log(f"  ⚠ E7→E6 [{context}]: source_url rejected → demoting confirmed→supported", indent=2)
+                record["confidence_level"] = "supported"
+                confidence = "supported"
+            elif not source_url and confidence == "supported":
+                log(f"  ⚠ E7→E6 [{context}]: source_url rejected → demoting supported→inferred", indent=2)
+                record["confidence_level"] = "inferred"
+                confidence = "inferred"
 
     if confidence == "confirmed" and not source_url:
         log(f"  ⚠ E6 [{context}]: confidence='confirmed' but source_url is null → demoting to 'supported'", indent=2)
