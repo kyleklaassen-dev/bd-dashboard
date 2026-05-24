@@ -1,7 +1,20 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 42)
-**Session completed:** Preclinical blind spot audit + enrichment prompt fix + respiratory/tslp Type B backfill ✅
+**Last updated:** 2026-05-24 (Session 42b)
+**Session completed:** Relevance sort wired into `_makeAreaPI` — competitive_relevance default sort + left-border color indicator ✅
+
+---
+
+## What Was Done This Session (Session 42b)
+
+### Relevance Sort — `_makeAreaPI` ✅
+- `drug_area_scores` select includes `competitive_relevance`
+- `bestRelevance` computed per entity (most relevant across programs)
+- Default `sortCol` changed from `'stage'` → `'relevance'`
+- Sort: relevance tier first (very_high→monitor), nulls last, stage as tiebreaker
+- Left-border color on each entity row: red/orange/amber/blue/slate/none
+- Graceful degradation: tabs without `competitive_relevance` data behave identically to previous stage sort
+- Deployed: commit a27bff05
 
 ---
 
@@ -80,55 +93,11 @@ Added `competitive_relevance TEXT` + `relevance_rationale TEXT` to `drug_area_sc
 
 ---
 
-## P1 Next: Dashboard sort by competitive_relevance
+## ✅ DONE: Dashboard sort by competitive_relevance (Session 42b)
 
-The data is now in the DB. The UI still sorts by stage (Approved → Phase 3 → ... → Preclinical).
-
-Change needed in `index.html` — `_makeAreaPI` or the rendered drug list:
-
-```javascript
-// Current sort order (in STAGE_ORDER_PI or equivalent):
-// Approved > Phase 3 > Phase 2 > Phase 1 > Preclinical
-
-// Desired sort order for Ailux primary view:
-const RELEVANCE_ORDER = { very_high: 0, high: 1, medium: 2, low: 3, monitor: 4 };
-
-// Sort drugs by competitive_relevance DESC, then stage ASC as tiebreaker
-drugs.sort((a, b) => {
-    const ra = RELEVANCE_ORDER[a.competitive_relevance] ?? 5;
-    const rb = RELEVANCE_ORDER[b.competitive_relevance] ?? 5;
-    if (ra !== rb) return ra - rb;
-    return (STAGE_ORDER[a.stage] ?? 99) - (STAGE_ORDER[b.stage] ?? 99);
-});
-```
-
-The `competitive_relevance` field comes from `drug_area_scores` JOIN via the
-`_makeAreaPI` Supabase query — need to add it to the select and join.
-
-**Dashboard goal after P1:**
-```
-VERY HIGH (most strategically relevant to Ailux)
-  · OLN102 (Ollin) — Preclinical, TSHR×IGF-1R bispecific
-  · veligrotug (Viridian) — BLA Filed PDUFA Jun 30, IV IGF-1R
-  · elegrobart (Viridian) — Phase 3 positive ×2, SC autoinjector BLA Q1 2027
-
-HIGH
-  · YB-101 (Yarrow) — Phase 1b, TSHR mAb upstream
-  · SP-1351 (Septerna) — Preclinical, oral TSHR
-  · CRN12755 (Crinetics) — Preclinical, oral SST2
-
-MEDIUM
-  · lonigutamab (Alumis) — Preclinical, TSHR mAb
-  · linsitinib (Roche) — Phase 2, oral IGF-1R
-  · MHB018A (Minghui) — Preclinical, China IGF-1R
-
-LOW (benchmark reference)
-  · Tepezza (Amgen) — Approved US/Japan
-  · SYCUME (Innovent) — Approved China
-
-MONITOR (failed mechanisms)
-  · batoclimab · efgartigimod
-```
+TED tab now renders entities sorted by relevance tier with left-border color indicator.
+Left-border colors: very_high=red, high=orange, medium=amber, low=blue, monitor=slate.
+All other tabs degrade gracefully to stage sort (no `competitive_relevance` data yet).
 
 ---
 
