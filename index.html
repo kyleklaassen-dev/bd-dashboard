@@ -12361,31 +12361,34 @@ async function submitIntelNew() {
   const btn = document.getElementById('im-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
   // Insert to submitted_intel
-  let insertOk = false;
   try {
     const payload = {
-      submitted_by:   name,
-      source_url:     url || null,
-      submitted_text: text || null,
-      status:         'new',
+      submitted_by:     name,
+      source_url:       url || null,
+      submitted_text:   text || null,
+      status:           'new',
       raw_payload_json: { url, text, name, submitted_at: new Date().toISOString() }
     };
     const { error } = await _sb.from('submitted_intel').insert([payload]);
     if (error) throw error;
-    insertOk = true;
   } catch(e) {
-    console.warn('[submit intel] insert error:', e);
-    // Still show success UI — don't block submitter on DB error
+    // Show the actual error so we know what's wrong
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit →'; }
+    err.textContent = `Submission failed: ${e?.message || e}. The submitted_intel table may need to be created — see migrations/v33_submitted_intel.sql.`;
+    err.classList.add('show');
+    console.error('[submit intel] insert error:', e);
+    return;
   }
   // Show success
   document.getElementById('im-form-body').style.display = 'none';
   document.getElementById('im-footer').style.display = 'none';
   document.getElementById('im-success').classList.add('show');
+  // Invalidate review panel cache so next open shows fresh data
+  _siLoaded = false;
   // Auto-close after 3s
   setTimeout(() => {
     closeIntelModal();
     if (btn) { btn.disabled = false; btn.textContent = 'Submit →'; }
-    // Clear fields for next submission
     ['im-url','im-text','im-name'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -12425,7 +12428,15 @@ async function siLoad(force = false) {
     const badge = document.getElementById('nav-icon-si');
     if (badge && newCount > 0) badge.title = `Submitted Intel (${newCount} new)`;
   } catch(e) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="si-empty" style="color:#dc2626">Error loading: ${e.message}</td></tr>`;
+    // Don't set _siLoaded on error so next open retries
+    const msg = e?.message || String(e);
+    const hint = msg.includes('does not exist') || msg.includes('relation')
+      ? ' — the <strong>submitted_intel</strong> table needs to be created. Apply <code>migrations/v33_submitted_intel.sql</code> in the Supabase SQL editor.'
+      : '';
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="si-empty" style="color:#dc2626;text-align:left;padding:20px">
+      <strong>Error loading submissions:</strong> ${msg}${hint}<br><br>
+      <button onclick="siLoad(true)" style="font-size:11px;padding:4px 10px;border:1px solid #dc2626;border-radius:5px;background:#fff1f2;color:#dc2626;cursor:pointer">Retry</button>
+    </td></tr>`;
   }
 }
 
