@@ -895,6 +895,58 @@ def deploy_to_github(html_content, filename="meridian_today.html"):
     log(f"Deployed {filename} → commit {new_commit_sha[:7]}")
 
 
+# ── Editorial → Enrichment Priority Bump ─────────────────────────────────────
+def bump_editorial_priority(company_ids: list, boost: int = 10):
+    """
+    Bump priority_score for companies featured in today's Meridian.
+
+    Meridian editorial judgment is the strongest signal for BD relevance.
+    If a company appears in the briefing, it should be among the first to
+    re-enrich. This function finds the company's research_queue row and
+    applies a +boost to priority_score, capped at 100.
+
+    Falls back gracefully: if research_queue doesn't have a row for a company,
+    no error is raised.
+    """
+    if not company_ids:
+        return
+
+    bumped = []
+    errors = []
+    for co_id in company_ids:
+        try:
+            r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/research_queue",
+                headers=SB_HEADERS,
+                params={"company_id": f"eq.{co_id}", "select": "id,company_id,priority_score", "limit": "1"},
+                timeout=10,
+            )
+            rows = r.json() if r.status_code == 200 else []
+            if not rows:
+                continue  # Company not in research_queue — skip silently
+
+            row = rows[0]
+            current_score = row.get("priority_score") or 0
+            new_score     = min(100, current_score + boost)
+
+            patch_r = requests.patch(
+                f"{SUPABASE_URL}/rest/v1/research_queue",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                params={"id": f"eq.{row['id']}"},
+                json={"priority_score": new_score, "updated_at": datetime.datetime.utcnow().isoformat()},
+                timeout=10,
+            )
+            if patch_r.status_code in (200, 204):
+                bumped.append(f"{co_id}:{current_score}→{new_score}")
+        except Exception as e:
+            errors.append(f"{co_id}: {e}")
+
+    if bumped:
+        log(f"Editorial priority bumps (+{boost}): {', '.join(bumped)}")
+    if errors:
+        log(f"Priority bump errors (non-fatal): {'; '.join(errors)}")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     log(f"=== Meridian Writer — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
@@ -935,5 +987,14 @@ if __name__ == "__main__":
                      plan=plan,
                      company_ids=plan_company_ids,
                      content_fingerprint=content_fingerprint)
+
+    # ── Editorial → Enrichment Priority Bump ─────────────────────────────────
+    # Companies featured in today's Meridian are the most BD-relevant right now.
+    # Bump their priority_score in research_queue by +10 so the next enrichment
+    # scheduler run picks them up first. This closes the editorial → enrichment
+    # feedback loop: intelligence output feeds back into intelligence input priority.
+    if plan_company_ids:
+        bump_editorial_priority(plan_company_ids)
+
     deploy_to_github(html)
     log("=== Write complete ===")
