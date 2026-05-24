@@ -10078,7 +10078,7 @@ function _makeAreaPI(tabId, areaIds) {
       try {
         const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies(name,ticker,status))')
+            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
@@ -11759,7 +11759,7 @@ const tl1aPI = {
   try {
    const [drugAreaRes, scoreRes, companiesRes] = await Promise.all([
     _sb.from('drug_areas')
-     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies(name,ticker,status))')
+     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status))')
      .eq('area_id', 'tl1a'),
     _sb.from('drug_area_scores')
      .select('drug_id,overlap,cls')
