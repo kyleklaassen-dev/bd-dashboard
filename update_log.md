@@ -1,5 +1,42 @@
 
 ---
+## 2026-05-24 (Session 34 cont.) — P4: risk_summary + bd_angle backfill for tslp, fcrn, il4ra
+
+**Validation:** 993 pass / 0 fail / 7 skip ✅ (DB writes to company_profiles only)
+
+Ran `backfill_risk_bd_angle.py` for tslp, fcrn, and il4ra. 19 profiles patched, all via Haiku synthesis from existing platform_summary / bd_summary / vs_ailux text.
+
+| Area | Companies patched | Total coverage |
+|------|-------------------|----------------|
+| tslp | 4 (roche, sanofi, upstreambio, windward) | 10/10 ✅ |
+| fcrn | 6 (amgen, argenx, astrazeneca, immunovant, jnj, ucb) | 6/6 ✅ |
+| il4ra | 9 (abbvie, amgen, apogee, connectbiopharma, galderma, leofarma, lilly, regeneron, sanofi) | 9/9 ✅ |
+
+**Interpretive intelligence layer now covers tl1a + tslp + fcrn + il4ra.** risk_summary and bd_angle are now populated for all 25 company×area profiles in these four areas.
+
+---
+## 2026-05-24 (Session 34) — P3: Graph Intelligence wired into Meridian (L4-A unlock)
+
+**Commit:** `1c25ff6` — `scripts/write_meridian.py`  
+**Validation:** 993 pass / 0 fail / 7 skip ✅ (no DB changes, script-only)
+
+### What was built
+
+Added `fetch_graph_context()` + `build_graph_block()` to `write_meridian.py`, injecting entity_edges graph data into both the editorial plan (Pass 1) and full draft (Pass 2) prompts of the Meridian two-pass generation.
+
+**Three graph layers now feed the Meridian:**
+1. **ACTIVE_IN** — "who is in each area" — fetches all company→area edges, groups by area, prints area-by-area roster
+2. **TARGETS** — mechanism convergence — reverses the entity→target map to show which mechanisms have ≥2 competing entities
+3. **COMPETES_WITH** — confirmed competitive pairs — deduplicated, capped at 50 for prompt efficiency
+
+**Impact:** Meridian can now ground BD Lens callouts in stored structural relationships rather than LLM reconstruction. "Who else is in FcRn?" is answered from entity_edges ACTIVE_IN, not hallucinated. This is the L4-A unlock from the maturity assessment.
+
+**New log entry in `generate_html()` main:**
+```
+graph: N ACTIVE_IN / N TARGETS / N COMPETES_WITH
+```
+
+---
 ## 2026-05-24 (Session 33 cont.) — Target Coverage P2 complete + Maturity Doc
 
 **Validation:** 993 pass / 0 fail / 7 skip ✅
@@ -3587,3 +3624,40 @@ Removed the dead `grids.tl1aLandscape` and `grids.tl1aTech` initialization block
 
 Catalyst coverage is now the 2nd-worst dimension (above ownership at 57.7).
 Remaining gap (53.6 → 70 target) requires catalysts for ~35 more Phase 2 programs.
+
+## 2026-05-24 — Session 35 — Source Coverage Sprint
+
+### Coverage score v1.2 — source_coverage denominator = confirmed+supported only
+**File:** `scripts/compute_coverage.py`
+- `score_source_coverage()` now denominates on `confidence IN ('confirmed', 'supported')` only
+- `inferred` and `null` confidence rows represent model-inferred classifications, not sourced claims
+- Rows with no confirmed/supported DAS entries return neutral score (80.0)
+- Bumped `SCORE_VERSION` to `"1.2"`
+
+### Drug-level source URL additions (2 drugs)
+- `lbl053` (Leads Biolabs, preclinical TL1A): `https://www.leadsbiolabs.com/pipeline`
+- `pr203` (Shboan, preclinical TL1A): `https://www.shboan.com/pipeline`
+
+### drug_area_scores source_url cascade (4 rows)
+Copied `drugs.source_url` → `drug_area_scores.source_url` for 4 rows where drug had a URL but drug_area_scores was missing it (lbl053/ibd, lbl053/tl1a, pr203/ibd, pr203/tl1a).
+
+### company_enrichment.py — E6-R3 warning
+Added Rule 3 to `enforce_confidence_constraints()`:
+- If `confidence='supported'` and `source_url IS NULL` → log warning
+- Supported rows are in the scoring denominator (v1.2+); missing source_url will reduce source_coverage score
+- Existing Rule 1 (confirmed→demote to supported if no source) unchanged
+
+### New script: scripts/backfill_sources.py
+- Phase 1: patches drug-level source_url for key clinical-stage drugs with no URL
+- Phase 2: cascades drug.source_url to drug_area_scores rows missing source_url
+- Supports `--dry-run`
+
+### Coverage score improvement
+| Dimension | Before (v1.1) | After (v1.2) | Change |
+|-----------|--------------|-------------|--------|
+| Source coverage | 59.5 | **89.0** | **+29.5** |
+| Profile completeness | 68.3 | 73.9 | +5.6 (Session 34 backfill) |
+| Platform average | 72.8 | **79.1** | **+6.3** |
+
+Source coverage is no longer flagged ⚠ (crossed 70 threshold).
+Remaining gaps: catalyst (53.6) and ownership (57.7).
