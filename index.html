@@ -11234,9 +11234,15 @@ function _makeAreaPI(tabId, areaIds) {
    ...drugsToRender.map(d => ({...d, _isCombo: false})),
    ...sbCombos.map(c => ({...c, _isCombo: true, name: c.label || c.name})),
   ].sort((a, b) => {
+   // Approved drugs always float to the very top
+   const aApp = stageSortScore(a) >= 100 ? 0 : 1;
+   const bApp = stageSortScore(b) >= 100 ? 0 : 1;
+   if (aApp !== bApp) return aApp - bApp;
+   // Then by competitive relevance
    const ar = a.competitive_relevance != null ? (_RELEV_SORT_DA[a.competitive_relevance] ?? 5) : 6;
    const br = b.competitive_relevance != null ? (_RELEV_SORT_DA[b.competitive_relevance] ?? 5) : 6;
    if (ar !== br) return ar - br;
+   // Then by stage (Ph3 → Ph2 → Ph1 → earlier)
    return stageSortScore(b) - stageSortScore(a);
   });
 
