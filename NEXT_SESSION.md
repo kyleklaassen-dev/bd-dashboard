@@ -1,90 +1,106 @@
 # NEXT SESSION — BD Platform
 
-**Written:** 2026-05-24 (Session 30)  
-**Last commits:** `84d58dbc` (company_intake.py), `964fe833` (v28 migration), `0791228c` (seed_targets.py)  
-**Validation:** 995 pass / 0 fail / 5 skip / 990 tests total ✅
+**Written:** 2026-05-24 (Session 31)  
+**Last work:** Phase 2 target coverage + ACTIVE_IN edges  
+**Validation:** 995 pass / 0 fail / 5 skip ✅
 
 ---
 
-## Session 30 Summary — Validation Green Sprint
+## Session 31 Summary
 
-All 16 pre-existing validation failures resolved. Suite is at zero failures.
+### Phase 2 target coverage (84.2% → 89.5%)
+- 4 new targets: `a4b7_il23p19`, `il1ab`, `cd40`, `ige`
+- 9 drug_targets rows for SPY120, SPY130, Lutikizumab, Iscalimab, Omalizumab
+- 85/95 area-linked drugs now have ≥1 primary target
 
-### What was fixed
+### ACTIVE_IN edges (migration v29)
+- 137 `entity_edges ACTIVE_IN` rows seeded from all `company_areas` rows
+- Graph now answers "who is active in [area]?" as a single predicate lookup
+- Validation test id=1077
 
-**3 overlap_check failures (data patches):**
-- `cizutamig/tcell` → `overlap='Direct'` (BCMA×CD3 TCE)
-- `itepekimab/tslp` → `overlap='Direct'` (anti-IL-33, TSLP axis)
-- `rozanolixizumab/fcrn` → `overlap='Direct'` (Rystiggo, approved)
-
-**1 E6 violation (source added):**
-- `hxn-1002/tl1a` and `hxn-1002/ibd` — both had `confidence=confirmed, source_url=null`
-- Patched with Earendil Labs/Sanofi PR Newswire press release URL
-- Drug is HXN-1002: α4β7×TL1A bispecific licensed for $125M upfront + $1.72B milestones
-
-**12 company_area_check failures:**
-- Added `boehringer:tl1a` (SIM0709 licensed from Simcere)
-- Added `regeneron:il4ra` (dupilumab co-owner)
-- Deleted 10 stale tests: xencor-412/942 (wrong IDs), pfizer/roivant (Telavant → Roche), celgene (BMS, no TL1A), abbvie/amgen (no IL-4Ra), novartis×2 (no igf1r/tcell), teva (no TL1A)
+### entity_edges predicate inventory
+| Predicate | Count |
+|-----------|-------|
+| COMPETES_WITH | 600 |
+| TARGETS | 146 |
+| ACTIVE_IN | 137 |
+| **Total** | **883** |
 
 ---
 
-## DB State (end of Session 30)
+## Meridian L3 Status
 
-| Table | Rows |
-|-------|------|
-| entity_edges (COMPETES_WITH) | 600 |
-| entity_edges (TARGETS) | 137 |
-| drug_targets | 173 |
-| targets | 39 |
-| ownership_edges (with deal_id) | 13 |
-| validation_tests | 990 |
-| validation suite pass rate | 100% (995/995 non-skip) |
+With ACTIVE_IN edges complete, all three relationship gaps from the maturity assessment are now addressed:
+- COMPETES_WITH ✅ (600 edges)
+- drug → TARGETS → target ✅ (146 edges)
+- company → ACTIVE_IN → area ✅ (137 edges)
+
+**Meridian is now at L3.** The graph can answer landscape-level questions from stored relationships, not runtime joins.
 
 ---
 
 ## Next Steps (in priority order)
 
-### P0 — Nothing blocking. Suite is green. ✅
+### P1 — Graph consistency: write ACTIVE_IN on new company_areas writes
+`company_intake.py` currently writes to `company_areas` but not `entity_edges`. When a new company is onboarded or a new area added, both tables must stay in sync. Add `write_active_in_edge()` to `company_intake.py` (pattern: same as `write_acquisition_edges()`).
 
-### P1 — Phase 2 coverage gap (15.8% unmapped)
-19 area-linked drugs still have no target node. Easy wins:
-- `SPY120: α4β7 + TL1A` — map to existing `tl1a_a4b7` target
-- `SPY130: α4β7 + IL-23` — add new `a4b7_il23p19` target
-- `Lutikizumab: IL-1α/β` — add new `il1ab` target (class=cytokine)
-- `Iscalimab: CD40` — add `cd40` target
-- `Omalizumab: IgE` — add `ige` target (already noted as niche)
+### P2 — Target coverage: resolve remaining 10 unmapped drugs
+Remaining unmapped area-linked drugs (89.5% → ~95%+ potential):
+| Drug | Issue |
+|------|-------|
+| cnd319, cnd460, kt501 | Trispecifics — add trispecific target nodes |
+| guselkumab-golimumab | Combo study — map each component separately |
+| abbv-668 | Verify target; likely IL-13 or related |
+| gb004 | Verify (Gossamer Bio — likely TL1A or S1P related) |
+| ianalumab | BAFF-R — add target node |
+| kyv-101 | CAR-T (CD19) — add cd19 as primary target |
+| linsitinib | IGF-1R — already exists, just map the drug |
+| lm-302 | Verify target |
 
-Resolve by confirming bispecific format in press releases, then add to `TARGET_TEXT_TO_ID` and `BISPECIFIC_COMPONENTS` in `seed_targets.py`.
+linsitinib and kyv-101 look like easy wins (targets already exist).
 
-### P2 — Meridian maturity: advance to L3
-Remaining bottleneck from the maturity assessment: **company → ACTIVE_IN → area edges**
-- Currently inferred at runtime from `company_areas` table joins
-- Next: seed `entity_edges` with `ACTIVE_IN` predicate so "who is active in IBD?" is a single graph query
+### P3 — Graph queries as Meridian capabilities
+Now that COMPETES_WITH + TARGETS + ACTIVE_IN are all in `entity_edges`, the graph supports:
+1. "Who is active in IBD?" → ACTIVE_IN WHERE object_id='ibd'
+2. "Which drugs compete with [drug X]?" → COMPETES_WITH WHERE subject_id=X
+3. "What does [drug X] target?" → TARGETS WHERE subject_id=X
+4. "Which companies have TL1A programs?" → ACTIVE_IN WHERE object_id='tl1a'
+5. "Which drugs target IL-23p19?" → TARGETS WHERE object_id='il23p19'
+6. "What are Sanofi's active areas?" → ACTIVE_IN WHERE subject_id='sanofi'
 
-This is the last major gap before L3 milestone.
+Consider wiring one or more of these into the Meridian research prompt as graph-grounded context.
 
-### P3 — What Meridian can answer now (new capabilities)
-The graph now supports:
-1. "Which drugs compete with [drug X] in [area Y]?" — entity_edges WHERE predicate='COMPETES_WITH' AND scope_area_id=Y
-2. "What does [drug X] target?" — entity_edges WHERE subject_id=X AND predicate='TARGETS'
-3. "Which drugs target TL1A?" — entity_edges WHERE object_id='tl1a' AND predicate='TARGETS'
-4. "Which UCB drugs came from the Candid acquisition?" — ownership_edges WHERE deal_id=19
+### P4 — Maturity docs update
+Update `docs/meridian_maturity_assessment.md` to reflect L3 milestone. The three transitions that completed it, and what L4 would require.
 
 ---
 
-## Active Uncertain Cases (for future manual review)
+## Active Uncertain Cases
+
+### drug_targets — easy wins still unmapped
+| Drug | Target | Action |
+|------|--------|--------|
+| linsitinib | IGF-1R (`igf1r` exists) | Just add drug_targets row |
+| kyv-101 | CD19 (`cd19` exists) | Just add drug_targets row |
+| ianalumab | BAFF-R (new target needed) | Add `baffr` target + row |
 
 ### COMPETES_WITH — uncertain bispecifics not yet seeded
 | Drug | Target text | Issue |
 |------|-------------|-------|
-| SPY230 | IL-23 + TL1A | `+` notation — maps to tl1a_il23p19 if confirmed bispecific |
-| APG279 | IL-13 + OX40L | `+` notation — maps to new il13_ox40l bispecific |
-| SPY130 | α4β7 + IL-23 | `+` notation — maps to new a4b7_il23p19 |
-| SPY120 | α4β7 + TL1A | `+` notation — maps to tl1a_a4b7 (already exists) |
+| SPY230 | IL-23 + TL1A | Confirm bispecific → maps to tl1a_il23p19 |
+| APG279 | IL-13 + OX40L | Confirm bispecific → new il13_ox40l target |
+| SPY130 | α4β7 + IL-23 | ✅ Now mapped to a4b7_il23p19 |
+| SPY120 | α4β7 + TL1A | ✅ Now mapped to tl1a_a4b7 |
 
-### drug_targets — niche targets outside BD scope (no action needed)
-RIPK1, BAFF-R, IgE, CLDN18.2, C5, C2, C1q, CD40, CD38, HIF-2α, FGFR2b, IGF-1R, GLP-1R, Calcineurin
+---
 
-### Validation skips (5 — pre-existing, not failures)
-Two tests reference `cizutamig/[profile]` and `meridian_issues/[profile]` — `field_present` tests with no matching profile row. Low priority.
+## DB State (end of Session 31)
+| Table | Rows |
+|-------|------|
+| entity_edges (COMPETES_WITH) | 600 |
+| entity_edges (TARGETS) | 146 |
+| entity_edges (ACTIVE_IN) | 137 |
+| drug_targets | 182 |
+| targets | 47 |
+| validation_tests | 992 |
+| validation suite pass rate | 100% (995/995 non-skip) |
