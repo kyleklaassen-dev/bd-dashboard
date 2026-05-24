@@ -13605,6 +13605,50 @@ window.addEventListener('load', () => {
  }
  _tickClocks();
  setInterval(_tickClocks, 1000);
+ // ── Generic-link → specific Google search converter ────────────────
+ // Any link whose href is a bare homepage or generic index page gets replaced
+ // with a Google search for the link's visible text, so every click yields
+ // a result about the specific topic — not a generic company front page.
+ function _isGenericHref(href) {
+   if (!href || !href.startsWith('http')) return false;
+   try {
+     const url = new URL(href);
+     // Never rewrite Google, CDN, or font resources
+     if (/google\.com|cdn\.|cdnjs\.|jsdelivr|fonts\.googleapis/.test(url.hostname)) return false;
+     const p = url.pathname;
+     // Bare domain (no path, or just "/")
+     if (!p || p === '/') return true;
+     // Path exists: generic only if every segment is a short locale/section word
+     const genericSeg = /^(en|zh|us|cn|global|news|media|press|press-releases|news-releases|en-us|zh-cn|about|ir|investors|investor-relations|resources|insights|blog|events|publications|page|archive|company|home|index)$/i;
+     const segs = p.split('/').filter(Boolean);
+     return segs.length > 0 && segs.every(s => genericSeg.test(s) || (s.length <= 5 && !s.includes('-')));
+   } catch(e) { return false; }
+ }
+ function _fixGenericLinks(root) {
+   (root || document).querySelectorAll('a[href]').forEach(function(el) {
+     const href = el.getAttribute('href');
+     if (!_isGenericHref(href)) return;
+     const text = (el.getAttribute('title') || el.textContent || '').trim();
+     if (text.length > 5) el.setAttribute('href', 'https://www.google.com/search?q=' + encodeURIComponent(text));
+   });
+ }
+ _fixGenericLinks(); // initial pass — catches all static HTML links
+ // Watch for links added dynamically (drug cards, PI tables, intel items rendered post-Supabase load)
+ (new MutationObserver(function(muts) {
+   muts.forEach(function(m) {
+     m.addedNodes.forEach(function(n) {
+       if (n.nodeType !== 1) return;
+       if (n.tagName === 'A') {
+         if (_isGenericHref(n.getAttribute('href'))) {
+           const text = (n.getAttribute('title') || n.textContent || '').trim();
+           if (text.length > 5) n.setAttribute('href', 'https://www.google.com/search?q=' + encodeURIComponent(text));
+         }
+       } else if (n.querySelectorAll) {
+         _fixGenericLinks(n);
+       }
+     });
+   });
+ })).observe(document.body, {childList: true, subtree: true});
  // Build TOC for default Home tab
  buildToc('home');
  // Load data and init grids
