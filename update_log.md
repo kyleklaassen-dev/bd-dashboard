@@ -1,5 +1,97 @@
 
 ---
+## 2026-05-24 (Session 33 cont.) — Target Coverage P2 complete + Maturity Doc
+
+**Validation:** 993 pass / 0 fail / 7 skip ✅
+
+### Target coverage: 89.5% → 97.9% (182 → 191 drug_targets; 47 → 49 targets)
+
+New target nodes added:
+- `baffr` — BAFF-R / TNFRSF13C (ianalumab target)
+- `ripk1` — RIPK1 kinase (abbv-668 target)
+
+New drug_targets rows (8 total in this batch):
+| Drug | Target | Role |
+|------|--------|------|
+| ianalumab | baffr | primary |
+| abbv-668 | ripk1 | primary |
+| guselkumab-golimumab | il23p19 | primary |
+| guselkumab-golimumab | tnf | component |
+| cnd319 | cd19_cd20_cd3 | primary |
+| cnd460 | bcma_cd19_cd3 | primary |
+| kt501 | bcma_cd19_cd3 | primary |
+
+**Coverage: 93/95 area-linked drugs = 97.9%.** Remaining 2 (gb004 terminated, lm-302 oncology) are out of scope — coverage is effectively complete.
+
+### docs/meridian_maturity_assessment.md — created
+
+Documents L3 milestone, the three transitions, entity_edges inventory, 97.9% target coverage, ACTIVE_IN write-path fix, and L4 criteria (A-D). Decision test: "stored relationship or runtime reconstruction?" establishes the design rule going forward.
+
+---
+## 2026-05-24 (Session 33) — Graph Consistency P1 + Target Coverage P2
+
+**Validation:** 993 pass / 0 fail / 7 skip ✅ (no regressions)
+
+### P1 — write_active_in_edge() wired into approve_discovery.py (commits 24728434, 9487edfc)
+
+**`scripts/company_intake.py`** — added `write_active_in_edge()`:
+- Writes entity_edges ACTIVE_IN when called with (company_id, area_id)
+- Idempotent: uses `resolution=ignore-duplicates` — safe to call on existing rows
+- Follows exact pattern of `write_acquisition_edges()` already in the file
+- Graceful degradation: if requests fails, logs warning and returns False
+
+**`scripts/approve_discovery.py`** — wired three call sites:
+1. `existing_link` branch (line ~261): calls `_write_active_in_edge()` to retroactively heal companies onboarded before v29
+2. `sb_upsert("company_areas", ...)` for primary area: paired call immediately after
+3. `sb_upsert("company_areas", ...)` for indication_group: paired call immediately after
+
+Import pattern: `from company_intake import write_active_in_edge as _write_active_in_edge` with graceful fallback if import fails.
+
+Every future `approve_discovery.py` run now maintains company_areas ↔ entity_edges ACTIVE_IN sync automatically.
+
+### P2 — Target coverage: 89.5% → 90.6% (182 → 184 drug_targets rows)
+
+Two easy-win drug_targets rows inserted:
+| Drug | Target | Target ID | Confirmed |
+|------|--------|-----------|-----------|
+| linsitinib | IGF-1R | `igf1r` | ✅ id=c902c664 |
+| kyv-101 | CD19 | `cd19` | ✅ id=749a7332 |
+
+Both targets (`igf1r`, `cd19`) already existed in targets table. role=primary, confidence_level=confirmed.
+
+### New file deployed (commit 7e2d783c)
+- `scripts/generate_landscape_briefing.py` — 4-section Opus landscape synthesis pipeline
+
+---
+## 2026-05-24 (Session 28b cont.) — TL1A Landscape Briefing QA + landscape_briefings infrastructure
+
+### Deliverables (Tasks #224–227)
+
+**Task #224 — `docs/tl1a_landscape_briefing.md` cleaned:**
+- Fixed Xencor duplication (#7 and #10 were identical): merged into single clean #7, replaced #10 with AstraZeneca entry
+- Fixed duplicate header and garbled run-on sentence inside #7 Xencor entry
+- Corrected Sanofi deal value ($4.4B → ~$3.3B in disclosed deal value, with deal breakdown)
+- Completed BMS/Celgene truncated sentence
+- Completed AbbVie Risk Theme 2 and Geographic Arbitrage truncated paragraphs
+- Fixed Lilly hallucination (Organovo is a bioprinting company, not IBD) → replaced with Engage $202M + Needs verification flag on Morphic terms
+- Added "Needs Meridian verification" flags: Xencor Ultomiris dispute ($100–120M), Takeda Entyvio biosimilar launch timing 2027, AbbVie/Celsius $1.71B upfront
+
+**Task #225 — `landscape_briefings` table created (no migration version assigned):**
+Schema: id (UUID), area_id, briefing_type, title, summary, source_profile_count, source_company_ids (jsonb), archetypes_json (jsonb), risk_themes_json (jsonb), opportunity_map_json (jsonb), priority_matrix_json (jsonb), full_markdown (text), model_used, confidence_level, needs_review (bool), created_at, updated_at
+
+**Task #226 — `scripts/generate_landscape_briefing.py` written:**
+- `--area` arg, `--dry-run`, `--force` flags
+- 4-section synthesis via claude-opus-4-6 (archetypes → risk themes → opportunity map → priority matrix)
+- Persists structured JSON + full markdown to `landscape_briefings` table
+- Writes `docs/{area_id}_landscape_briefing.md` on disk
+- Idempotent by default (skips if briefing exists for area; `--force` to regenerate)
+
+**Task #227 — TL1A briefing inserted:**
+- id=00536c9a-358b-400a-b634-be2e00f30a37
+- source_profile_count=36, needs_review=true
+- Full cleaned markdown stored in `full_markdown` column
+
+---
 ## 2026-05-24 (Session 32) — Coverage Framework (Migration v30)
 
 **Validation:** 993 pass / 0 fail / 7 skip (no regressions; 2 new coverage_metric tests → skip pending validator support)
@@ -3453,3 +3545,45 @@ Removed the dead `grids.tl1aLandscape` and `grids.tl1aTech` initialization block
 - Moved Meridian Archive picker (label + issue count + select dropdown) from above the iframe in the tab pane into the header bar, right of the Submit Intel button
 - Archive bar is hidden by default; shown via `onEnter` / hidden via `onLeave` in the meridian-issue registerTab hooks
 - Iframe wrapper border-radius updated from `0 0 10px 10px` to `10px` now that the control bar above it is gone
+
+## 2026-05-24 — Session 33 — Catalyst Coverage Sprint
+
+### Coverage score v1.1 — exclude Approved drugs from catalyst denominator
+**File:** `scripts/compute_coverage.py`
+- Added `ACTIVE_STAGES = CLINICAL_STAGES - {"Approved"}` constant
+- `score_catalyst_coverage()` now uses `ACTIVE_STAGES` as denominator
+- Bumped `SCORE_VERSION` to `"1.1"`
+- Fixed `sb_upsert()` — added `on_conflict` URL parameter to properly resolve `UNIQUE(entity_id, area_id)` constraint; was silently dropping all 137 rows on each re-run
+- Rationale: Approved drugs have completed their development lifecycle and should not count as catalyst gaps
+
+### Drug stage corrections (2 drugs)
+- `mirikizumab` stage: `Phase 3` → `Approved`
+  - Omvoh FDA approved for UC (2023) and CD (2024); 47 countries
+- `batoclimab` stage: `Phase 3` → `Discontinued`
+  - Immunovant not seeking BLA in any indication (explicitly stated April 2026)
+  - TED Phase 3 failed primary endpoint (April 2, 2026)
+  - Company concentrating resources on IMVT-1402
+
+### Resolved catalysts added (historical record)
+- `batoclimab/ted` — Phase 3 TED FAILED (April 2026, GO studies, primary endpoint missed)
+- `batoclimab/autoimmune` — Phase 3 MG POSITIVE (ASCEND-MG met primary endpoint; no BLA planned)
+
+### Future catalysts added
+- `imvt-1402/autoimmune` — CLE proof-of-concept topline (H2 2026)
+- `imvt-1402/fcrn` — Graves' disease Phase 3 topline (~2027)
+- `imvt-1402/autoimmune` — MG Phase 3 topline, NCT07039916 (Dec 2027)
+- `lutikizumab/ibd` — risa+luti combo Phase 2 CD readout (~2026)
+
+### New script: scripts/backfill_catalysts.py
+- Idempotent catalyst backfill script
+- Handles stage corrections + resolved catalysts + future catalysts
+- Supports `--dry-run`
+
+### Coverage score improvement
+| Dimension | Before (v1.0) | After (v1.1) | Change |
+|-----------|--------------|-------------|--------|
+| Catalyst coverage | 43.1 | **53.6** | **+10.5** |
+| Platform average | 71.3 | **72.8** | **+1.5** |
+
+Catalyst coverage is now the 2nd-worst dimension (above ownership at 57.7).
+Remaining gap (53.6 → 70 target) requires catalysts for ~35 more Phase 2 programs.
