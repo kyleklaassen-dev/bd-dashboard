@@ -10462,7 +10462,8 @@ function _makeAreaPI(tabId, areaIds) {
           if (!meta[c.company_id]) meta[c.company_id] = { drugCount:0, indUC:false, indCD:false };
           meta[c.company_id].drugCount++;
         });
-        trialRows.forEach(t => {
+        const _isTermMeta = s => /complet|terminat|withdrawn|suspend/i.test(s||'');
+        trialRows.filter(t => !_isTermMeta(t.status)).forEach(t => {
           const cid = drugToCompany[t.drug_id];
           if (!cid) return;
           if (!meta[cid]) meta[cid] = {};
@@ -11457,13 +11458,11 @@ function _makeAreaPI(tabId, areaIds) {
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
-   // Sort: active/recruiting trials first (soonest PCD); completed/terminated/withdrawn to bottom
+   // Show only active trials (exclude completed/terminated/withdrawn/suspended) — matches badge count
    const _isTermTrial = s => /complet|terminat|withdrawn|suspend/i.test(s||'');
-   const sortedTrials = [...resolvedTrials].sort((a,b) => {
-    const aT=_isTermTrial(a.status),bT=_isTermTrial(b.status);
-    if (aT!==bT) return aT?1:-1;
-    const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
-   });
+   const sortedTrials = resolvedTrials
+    .filter(t => !_isTermTrial(t.status))
+    .sort((a,b) => { const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb; });
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
