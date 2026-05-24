@@ -13403,16 +13403,10 @@ function fixTabBarTop() {
   // Pin TL1A side pills just below header+tabbar
   const pillsOffset = hdrH + tbH + 10;
   document.querySelectorAll('.tl1a-pills-col').forEach(p => { p.style.top = pillsOffset + 'px'; });
-  // Align active drug-tab dashboard with pill button tops
-  const activePane = document.querySelector('.tab-pane.active');
-  if (activePane) {
-    const layout = activePane.querySelector('.tl1a-layout');
-    if (layout) {
-      layout.style.paddingTop = '0px';              // reset, forces reflow
-      const gap = pillsOffset - layout.getBoundingClientRect().top;
-      layout.style.paddingTop = (gap > 0 ? gap : 0) + 'px';
-    }
-  }
+  // Align all drug-tab dashboards with pill button tops — fixed 10px gap below tab bar
+  document.querySelectorAll('.tab-pane .tl1a-layout').forEach(l => {
+    l.style.paddingTop = '10px';
+  });
 }
 fixTabBarTop();
 window.addEventListener('resize', fixTabBarTop);
