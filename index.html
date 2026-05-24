@@ -10622,7 +10622,17 @@ function _makeAreaPI(tabId, areaIds) {
           }
         } catch(_) {}
 
-        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel };
+        // Competitive signals for this company × area
+        let competitiveSignals = [];
+        try {
+          const { data: sigRows } = await _sb.from('competitive_signals')
+            .select('id,signal_type,title,description,source_url,source_date,drug_id,confidence')
+            .eq('company_id', companyId).eq('area_id', AREA)
+            .order('source_date', { ascending: false }).limit(10);
+          competitiveSignals = sigRows || [];
+        } catch(_) {}
+
+        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel, competitiveSignals };
         this._profileCache[entityId] = sbData;
 
         // Replace loading placeholder with full rendering
@@ -12750,7 +12760,8 @@ const tl1aPI = {
   const sbTrials      = sbData?.trials || [];
   const sbDrugs       = sbData?.drugs || [];
   const sbCombos      = sbData?.combos || [];
-  const moleculeIntel = sbData?.moleculeIntel || {};
+  const moleculeIntel       = sbData?.moleculeIntel || {};
+  const competitiveSignals  = sbData?.competitiveSignals || [];
 
   // ── Narrative fields ────────────────────────────────────────────────────
   const platformSummary   = profile.platform_summary || prog.summary || '';
@@ -13644,6 +13655,40 @@ const tl1aPI = {
    }
   })();
 
+  // ── Competitive Signals ────────────────────────────────────────────────
+  const _SIG_STYLE = {
+    conference:      { label:'CONF',   bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+    clinical_update: { label:'READOUT',bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+    regulatory:      { label:'REG',    bg:'#fef2f2', color:'#b91c1c', border:'#fecaca' },
+    financing:       { label:'$',      bg:'#f0fdf4', color:'#065f46', border:'#a7f3d0' },
+    patent:          { label:'PATENT', bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe' },
+    publication:     { label:'PUB',    bg:'#f5f3ff', color:'#4338ca', border:'#c7d2fe' },
+    licensing:       { label:'DEAL',   bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
+  };
+  const sigsHTML = (() => {
+    if (!competitiveSignals.length) return '';
+    const rows = competitiveSignals.slice(0, 6).map(s => {
+      const st = _SIG_STYLE[s.signal_type] || { label: s.signal_type||'—', bg:'#f8fafc', color:'#64748b', border:'#e2e8f0' };
+      const badge = `<span style="font-size:8px;font-weight:800;text-transform:uppercase;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:4px;padding:1px 5px;flex-shrink:0">${st.label}</span>`;
+      const date  = (s.source_date||'').slice(0,7); // YYYY-MM
+      const title = s.source_url
+        ? `<a href="${s.source_url}" target="_blank" rel="noopener" style="color:#1e3a5f;font-weight:600;text-decoration:none;border-bottom:1px solid #bfdbfe">${s.title||''}</a>`
+        : `<span style="color:#1e3a5f;font-weight:600">${s.title||''}</span>`;
+      const desc  = s.description ? `<div style="font-size:10px;color:#64748b;margin-top:2px;line-height:1.4">${s.description.slice(0,180)}${s.description.length>180?'…':''}</div>` : '';
+      return `<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #f1f5f9">
+        <span style="color:#94a3b8;font-size:9px;flex-shrink:0;padding-top:2px;min-width:46px">${date}</span>
+        ${badge}
+        <div style="min-width:0">${title}${desc}</div>
+      </div>`;
+    });
+    return `<div style="margin-top:10px"><div class="pi-detail-section" style="grid-column:1/-1">
+      <h5>📡 Competitive Signals</h5>
+      <div style="${competitiveSignals.length>4?'max-height:180px;overflow-y:auto;scrollbar-width:thin':''}">
+        ${rows.join('')}
+      </div>
+    </div></div>`;
+  })();
+
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${drugSection}
    <div data-intel-grid="${prog.id||''}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'};margin-bottom:10px">
@@ -13653,6 +13698,7 @@ const tl1aPI = {
     <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
     <div class="pi-detail-section"><h5>📰 Related News</h5>${dealsHTML}</div>
    </div>
+   ${sigsHTML}
   </div>`;
  },
 
