@@ -368,6 +368,40 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
                 return "fail", f"{actual} violations{suffix}", ""
             return ("pass" if passed else "fail"), actual, ""
 
+        elif test_type == "competes_with_edge_exists":
+            # E9: Verifies that a COMPETES_WITH edge exists in entity_edges for the given drug pair.
+            # entity_id     = subject drug_id
+            # expected_value = object drug_id (the competitor)
+            # area_id        = scope_area_id (optional — empty means any area)
+            # operator       = "eq" (edge exists) or "neq" (edge must NOT exist)
+            if "entity_edges_compete" not in cache:
+                cache["entity_edges_compete"] = sb_get("entity_edges", {
+                    "select":    "subject_id,object_id,scope_area_id,status",
+                    "predicate": "eq.COMPETES_WITH",
+                    "status":    "eq.active",
+                })
+            edges = cache["entity_edges_compete"]
+            if area_id:
+                match = any(
+                    e["subject_id"] == entity_id
+                    and e["object_id"] == expected
+                    and (e.get("scope_area_id") or "") == area_id
+                    for e in edges
+                )
+            else:
+                match = any(
+                    e["subject_id"] == entity_id and e["object_id"] == expected
+                    for e in edges
+                )
+            actual = "exists" if match else "not_found"
+            if operator in ("eq", "not_null"):
+                passed = match
+            elif operator == "neq":
+                passed = not match
+            else:
+                passed = match
+            return ("pass" if passed else "fail"), actual, ""
+
         else:
             return "skip", "", f"Unknown test_type: {test_type}"
 
