@@ -2085,6 +2085,7 @@ let _allCatalysts = []; // raw catalyst rows (backward compat)
 let _allUnified   = []; // merged unified feed
 let _uniTypeFilter = '';
 let _uniAreaFilter = '';
+let _uniVisible    = 8;   // items shown; grows by 8 on each "Load more" click
 
 const SIG_ORDER = { high: 0, medium: 1, low: 2 };
 
@@ -2111,12 +2112,14 @@ function uniTypeFilter(btn, type) {
   document.querySelectorAll('#uni-type-bar .uni-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _uniTypeFilter = type;
+  _uniVisible = 8;
   _applyUniFilters();
 }
 function uniAreaFilter(btn, area) {
   document.querySelectorAll('#uni-area-bar .uni-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _uniAreaFilter = area;
+  _uniVisible = 8;
   _applyUniFilters();
 }
 function _applyUniFilters() {
@@ -2188,14 +2191,14 @@ function renderCatalysts(items) {
   });
   const resolved = items.filter(i => i.resolved);
 
-  const SHOW = 8;
-  const visible = open.slice(0, SHOW);
-  const hidden  = open.slice(SHOW);
+  const BATCH  = 8;
+  const toShow = open.slice(0, _uniVisible);
+  const remaining = open.length - _uniVisible;
 
-  let html = visible.map(renderItem).join('');
-  if (hidden.length) {
-    html += `<div id="catalysts-more" style="display:none">${hidden.map(renderItem).join('')}</div>`;
-    html += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:8px 0 4px;padding:6px 0;font-size:11px;font-weight:600;color:#1e4a82;background:#f0f6ff;border:1.5px solid #bfdbfe;border-radius:8px;cursor:pointer;">Show ${hidden.length} more ↓</button>`;
+  let html = toShow.map(renderItem).join('');
+  if (remaining > 0) {
+    const nextBatch = Math.min(BATCH, remaining);
+    html += `<button onclick="_uniVisible+=${BATCH};_applyUniFilters()" style="width:100%;margin:8px 0 4px;padding:7px 0;font-size:11px;font-weight:600;color:#1e4a82;background:#f0f6ff;border:1.5px solid #bfdbfe;border-radius:8px;cursor:pointer;">Load ${nextBatch} more &nbsp;·&nbsp; ${remaining} remaining ↓</button>`;
   }
   if (resolved.length) {
     html += `<div class="uni-section-hd">Resolved</div>` + resolved.map(renderItem).join('');
@@ -2208,15 +2211,13 @@ async function loadCatalysts() {
   const list = document.getElementById('catalysts-list');
   if (!list) return;
   try {
-    const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
     const [catsRes, sigsRes, intelRes, dealsRes] = await Promise.all([
       _sb.from('catalysts').select('*').order('sort_date', { ascending: true }),
-      _sb.from('signals').select('*,companies(name)').gte('event_date', sevenDaysAgo)
-          .order('relevance_score', { ascending: false }).limit(40),
+      _sb.from('signals').select('*,companies(name)')
+          .order('event_date', { ascending: false }).limit(500),
       _sb.from('intel').select('id,headline,summary,intel_date,importance,area_id,source_url,ailux_angle')
-          .eq('importance','high').gte('intel_date', sevenDaysAgo)
-          .order('intel_date', { ascending: false }).limit(10),
-      _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(10),
+          .order('intel_date', { ascending: false }).limit(500),
+      _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(100),
     ]);
     if (catsRes.error) throw catsRes.error;
 
