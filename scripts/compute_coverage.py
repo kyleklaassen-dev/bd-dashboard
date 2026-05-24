@@ -38,7 +38,7 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
-SCORE_VERSION = "1.1"  # v1.1: catalyst denominator excludes Approved-stage drugs
+SCORE_VERSION = "1.2"  # v1.2: source_coverage denominator = confirmed+supported only (not inferred/null)
 STALE_DAYS = 30          # profiles older than this score below 70
 VERY_STALE_DAYS = 60     # profiles older than this score below 30
 CLINICAL_STAGES = {"Phase 1", "Phase 1/2", "Phase 2", "Phase 2/3", "Phase 3",
@@ -270,7 +270,16 @@ def score_ownership_coverage(company_id, area_id, drugs_in_scope, data, idx):
 
 
 def score_source_coverage(drugs_in_scope, area_id, idx):
-    """% of drug_area_scores rows with source_url."""
+    """% of sourced drug_area_scores rows, denominated on confirmed+supported only.
+
+    Semantic rationale:
+      - 'confirmed' rows are claims backed by primary sources — source_url required (E6)
+      - 'supported' rows have corroborating evidence — source_url strongly expected
+      - 'inferred' rows represent model-inferred classifications, not sourced claims
+      - 'null' rows are legacy data with unassigned confidence
+    Only confirmed+supported rows count against the denominator. Having source_url
+    on inferred/null rows is a bonus (data quality) but should not penalise the score.
+    """
     relevant = [
         idx["das_by_drug_area"][(d, area_id)]
         for d in drugs_in_scope
@@ -279,16 +288,24 @@ def score_source_coverage(drugs_in_scope, area_id, idx):
     if not relevant:
         return 50.0, [], ["No drug_area_scores rows found"]  # unknown state
 
-    with_source = [r for r in relevant if r.get("source_url")]
+    # Denominator: only rows that are expected to have a source
+    SOURCED_CONFIDENCE = {"confirmed", "supported"}
+    scored_rows = [r for r in relevant if (r.get("confidence_level") or "") in SOURCED_CONFIDENCE]
+
+    if not scored_rows:
+        # All rows are inferred/null — not a gap, return neutral
+        return 80.0, [], []
+
+    with_source = [r for r in scored_rows if r.get("source_url")]
     e6_violations = [
-        r["drug_id"] for r in relevant
+        r["drug_id"] for r in scored_rows
         if r.get("confidence_level") == "confirmed" and not r.get("source_url")
     ]
-    score = len(with_source) / len(relevant) * 100
-    # Penalise E6 violations
+    score = len(with_source) / len(scored_rows) * 100
+    # Penalise E6 violations (should never occur — enforced by enrichment invariant)
     if e6_violations:
         score = max(0, score - len(e6_violations) * 10)
-    missing = [r["drug_id"] for r in relevant if not r.get("source_url")]
+    missing = [r["drug_id"] for r in scored_rows if not r.get("source_url")]
     return round(score, 1), missing, [f"E6 violation: {d}" for d in e6_violations]
 
 
