@@ -1,5 +1,39 @@
 
 ---
+## 2026-05-24 (Session 38) — Source URL Integrity Sprint
+
+**Commits:** `8ba84275` (audit_sources.py), `a8ee76bf` (company_enrichment.py), `b5353d9e` (validate_ground_truth.py), `5af547f2` (v32 migration)  
+**Validation:** 993 pass / 0 fail / 7 skip ✅ (E10 test now seeded, requires v32 migration + audit_sources.py run)
+
+### What was found
+Audited 114 unique source_url values in drug_area_scores:
+- 68 ct_study (ClinicalTrials.gov direct links) — solid
+- 18 generic_pipeline/IR homepages — accessible but don't support specific claims
+- 25 broken (HTTP 404 or timeout) — actively harmful, included 3 `confirmed` rows
+
+### What was fixed (immediate DB patches)
+- **25 rows** in drug_area_scores: `source_url → NULL`
+- **3 confirmed → supported** (sim0709/tl1a, qx031n/tslp, mepolizumab/tslp — broken confirmed sources)
+- **13 supported → inferred** (source gone, claim unverifiable)
+- **Replacement URLs found** for 4 rows: CT.gov search/study links for mepolizumab, sim0709, qx031n
+
+### What was built (prevention layer)
+| Component | Purpose |
+|-----------|---------|
+| `validate_source_url()` in company_enrichment.py | Format check + HTTP HEAD at enrichment time (E7 rule) |
+| `scripts/audit_sources.py` | Weekly batch checker — HEAD-checks all stored URLs, writes to source_verifications |
+| `migrations/v32_source_verifications.sql` | New table: URL × http_status × source_type × source_tier × last_checked_at |
+| E10 test in validate_ground_truth.py | Global constraint: 0 broken confirmed/supported URLs (after audit_sources.py run) |
+
+### Broken URL pattern analysis
+1. **Dead press release links** (absci, sanofi, simcere, earendil) — company sites removed/moved pages
+2. **Truncated URLs** (FDA mepolizumab, windward bio) — LLM cut off URL mid-string during enrichment
+3. **Novartis therapeutics pages** (kesimpta, cosentyx) — URL structure changed site-wide
+4. **UCB/Candid acquisition page** — press release removed from ucb.com
+
+### Next: apply v32 migration in Supabase SQL editor, then run `python3 scripts/audit_sources.py`
+
+---
 ## 2026-05-24 (Session 36 cont.) — CND261 ingestion + pipeline gap detection
 
 **Triggered by:** CND261 (CD20/CD3) missing from UCB drug list — not captured during original Candid intake.
