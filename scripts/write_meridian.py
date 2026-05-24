@@ -218,6 +218,87 @@ def fetch_company_signals():
         return []
 
 
+def fetch_graph_context():
+    """
+    Fetch entity_edges for graph-grounded competitive intelligence.
+
+    Returns three structures:
+      active_in:     {area_id: [company_ids]}  — who is in each area
+      targets_edges: {entity_id: [target_ids]} — what each entity targets
+      competes_with: [(subject_id, object_id)] — confirmed competitive pairs
+    """
+    active_in, targets_edges, competes_with = {}, {}, []
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/entity_edges",
+            headers=SB_HEADERS,
+            params={
+                "select": "subject_id,object_id",
+                "predicate": "eq.ACTIVE_IN",
+                "status": "eq.active",
+                "limit": "500",
+            },
+        )
+        if r.status_code == 200:
+            for edge in r.json():
+                area = edge.get("object_id")
+                co   = edge.get("subject_id")
+                if area and co:
+                    active_in.setdefault(area, []).append(co)
+            log(f"Graph: {sum(len(v) for v in active_in.values())} ACTIVE_IN edges across {len(active_in)} areas")
+    except Exception as e:
+        log(f"Graph ACTIVE_IN fetch error: {e}")
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/entity_edges",
+            headers=SB_HEADERS,
+            params={
+                "select": "subject_id,object_id",
+                "predicate": "eq.TARGETS",
+                "status": "eq.active",
+                "limit": "300",
+            },
+        )
+        if r.status_code == 200:
+            for edge in r.json():
+                subj = edge.get("subject_id")
+                obj  = edge.get("object_id")
+                if subj and obj:
+                    targets_edges.setdefault(subj, []).append(obj)
+            log(f"Graph: {len(targets_edges)} entities with TARGETS edges")
+    except Exception as e:
+        log(f"Graph TARGETS fetch error: {e}")
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/entity_edges",
+            headers=SB_HEADERS,
+            params={
+                "select": "subject_id,object_id",
+                "predicate": "eq.COMPETES_WITH",
+                "confidence_level": "eq.confirmed",
+                "status": "eq.active",
+                "limit": "200",
+            },
+        )
+        if r.status_code == 200:
+            seen = set()
+            for e in r.json():
+                subj, obj = e.get("subject_id"), e.get("object_id")
+                if subj and obj:
+                    pair = tuple(sorted([subj, obj]))
+                    if pair not in seen:
+                        seen.add(pair)
+                        competes_with.append(pair)
+            log(f"Graph: {len(competes_with)} unique COMPETES_WITH pairs (confirmed)")
+    except Exception as e:
+        log(f"Graph COMPETES_WITH fetch error: {e}")
+
+    return active_in, targets_edges, competes_with
+
+
 def fetch_recent_trials():
     """Fetch clinical trial records updated in the last 30 days."""
     cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
@@ -431,6 +512,56 @@ def build_trials_block(trials):
     return "\n".join(lines)
 
 
+def build_graph_block(active_in, targets_edges, competes_with):
+    """
+    Format entity_edges data as graph-grounded competitive intelligence.
+
+    The graph supplements the editorial's drug/company context with stored
+    structural relationships — who is where, what they target, and who
+    directly competes. This is the L4-A graph injection layer.
+    """
+    if not active_in and not targets_edges and not competes_with:
+        return "(Graph context unavailable)"
+
+    PRIORITY_AREAS = ["tl1a", "tslp", "il4ra", "fcrn", "igf1r", "tcell", "ibd", "respiratory"]
+    lines = ["GRAPH INTELLIGENCE (stored entity relationships — from entity_edges):"]
+
+    # ── ACTIVE_IN: who is in each area ────────────────────────────────────────
+    if active_in:
+        lines.append("\nACTIVE PLAYERS BY AREA (ACTIVE_IN — confirmed company→area edges):")
+        area_order = PRIORITY_AREAS + [a for a in sorted(active_in) if a not in PRIORITY_AREAS]
+        for area in area_order:
+            companies = active_in.get(area)
+            if not companies:
+                continue
+            label = AREA_NAMES.get(area, area)
+            lines.append(f"  {label}: {', '.join(sorted(companies))}")
+
+    # ── TARGETS: mechanism convergence (which entities target the same mechanism) ──
+    if targets_edges:
+        # Reverse map: target → [entities]
+        by_target = {}
+        for entity, tgts in targets_edges.items():
+            for t in tgts:
+                by_target.setdefault(t, []).append(entity)
+        # Only show contested mechanisms (≥2 entities)
+        contested = {t: sorted(v) for t, v in by_target.items() if len(v) >= 2}
+        if contested:
+            lines.append("\nMECHANISM CONVERGENCE (TARGETS — mechanisms with multiple competing entities):")
+            for target in sorted(contested, key=lambda t: -len(contested[t])):
+                entities = contested[target]
+                lines.append(f"  {target}: {', '.join(entities)} ({len(entities)} entities)")
+
+    # ── COMPETES_WITH: direct competitive pairs ────────────────────────────────
+    if competes_with:
+        lines.append(f"\nDIRECT COMPETITIVE PAIRS (COMPETES_WITH — confirmed, {len(competes_with)} total):")
+        # Group by shared tokens (rough area clustering)
+        for subj, obj in competes_with[:50]:  # cap at 50 to avoid prompt bloat
+            lines.append(f"  {subj} ↔ {obj}")
+
+    return "\n".join(lines)
+
+
 # ── System prompt (editorial identity) ──────────────────────────────────────
 SYSTEM_PROMPT = """You are the founding editor of The Meridian, a Monday–Saturday morning intelligence briefing published exclusively for the BD and strategy leadership of Ailux, an AI-native antibody design company.
 
@@ -474,6 +605,9 @@ RECENT DEALS:
 COMPANY INTELLIGENCE (live dashboard state):
 {signals_block}
 
+GRAPH INTELLIGENCE (stored entity relationships — who is active where, what they target, who competes with whom):
+{graph_block}
+
 PRIOR COVERAGE:
 {prior_block}
 
@@ -511,6 +645,9 @@ UPCOMING CATALYSTS:
 
 COMPANY INTELLIGENCE (live state from dashboard company cards):
 {signals_block}
+
+GRAPH INTELLIGENCE (stored entity relationships — who is active where, mechanism convergence, confirmed competitive pairs):
+{graph_block}
 
 CLINICAL TRIAL TRACKER (recent updates from dashboard trial panel):
 {trials_block}
@@ -589,7 +726,7 @@ Return ONLY the HTML document. No markdown. No explanation outside the HTML."""
 
 # ── Generate HTML with Claude Opus (two passes) ──────────────────────────────
 def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
-                             prior_block, signals_block=""):
+                             prior_block, signals_block="", graph_block=""):
     """Pass 1: produce a tight editorial plan before writing a word of prose."""
     prompt = PLAN_PROMPT.format(
         date_long     = date_long,
@@ -598,6 +735,7 @@ def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
         ailux_block   = ailux_block,
         prior_block   = prior_block,
         signals_block = signals_block,
+        graph_block   = graph_block or "(Graph context unavailable)",
     )
     log("Pass 1 — generating editorial plan (Opus)…")
     resp = client.messages.create(
@@ -652,7 +790,8 @@ def format_plan_block(plan):
 
 
 def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
-                  recent_issues, company_signals, trials):
+                  recent_issues, company_signals, trials,
+                  graph_active_in=None, graph_targets=None, graph_competes=None):
     now = datetime.datetime.utcnow()
     date_long     = now.strftime("%A, %B %-d, %Y")
     week_num      = now.isocalendar()[1]
@@ -668,10 +807,16 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     prior_block     = build_prior_coverage_block(recent_issues)
     signals_block   = build_company_signals_block(company_signals)
     trials_block    = build_trials_block(trials)
+    graph_block     = build_graph_block(
+        graph_active_in or {},
+        graph_targets   or {},
+        graph_competes  or [],
+    )
 
-    # Pass 1: editorial plan — includes company signals for landscape context
+    # Pass 1: editorial plan — includes company signals + graph for landscape context
     plan = generate_editorial_plan(date_long, intel_block, deals_block,
-                                   ailux_block, prior_block, signals_block)
+                                   ailux_block, prior_block, signals_block,
+                                   graph_block=graph_block)
     plan_block = format_plan_block(plan)
 
     # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
@@ -693,6 +838,7 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
         ailux_block     = ailux_block,
         signals_block   = signals_block,
         trials_block    = trials_block,
+        graph_block     = graph_block,
     )
 
     log("Pass 2 — generating full Meridian draft (Opus)…")
@@ -952,17 +1098,20 @@ if __name__ == "__main__":
     log(f"=== Meridian Writer — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
 
     # Fetch all data sources — the full dashboard state feeds the Meridian
-    intel            = fetch_recent_intel(hours_back=48)
-    deals            = fetch_recent_deals(days_back=7)
-    catalysts        = fetch_upcoming_catalysts()
-    drugs, companies = fetch_drug_context()
-    ailux_positions  = fetch_ailux_position()
-    recent_issues    = fetch_recent_meridian_issues(n=7)
-    company_signals  = fetch_company_signals()
-    trials           = fetch_recent_trials()
+    intel                              = fetch_recent_intel(hours_back=48)
+    deals                              = fetch_recent_deals(days_back=7)
+    catalysts                          = fetch_upcoming_catalysts()
+    drugs, companies                   = fetch_drug_context()
+    ailux_positions                    = fetch_ailux_position()
+    recent_issues                      = fetch_recent_meridian_issues(n=7)
+    company_signals                    = fetch_company_signals()
+    trials                             = fetch_recent_trials()
+    graph_active_in, graph_targets, graph_competes = fetch_graph_context()
 
     log(f"Data assembled: {len(intel)} intel · {len(deals)} deals · {len(catalysts)} catalysts · "
-        f"{len(company_signals)} signals · {len(trials)} trials · {len(recent_issues)} prior issues")
+        f"{len(company_signals)} signals · {len(trials)} trials · {len(recent_issues)} prior issues · "
+        f"graph: {sum(len(v) for v in graph_active_in.values())} ACTIVE_IN / "
+        f"{len(graph_targets)} TARGETS / {len(graph_competes)} COMPETES_WITH")
 
     if not intel:
         log("No intel found — writing placeholder issue.")
@@ -979,7 +1128,10 @@ if __name__ == "__main__":
     else:
         html, plan, plan_company_ids, content_fingerprint = generate_html(
             intel, deals, catalysts, drugs, companies, ailux_positions,
-            recent_issues, company_signals, trials
+            recent_issues, company_signals, trials,
+            graph_active_in=graph_active_in,
+            graph_targets=graph_targets,
+            graph_competes=graph_competes,
         )
 
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
