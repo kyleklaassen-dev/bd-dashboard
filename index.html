@@ -1922,6 +1922,25 @@ function _srcDomain(url) {
 function _noSrcBadge() {
   return '<span style="font-size:9px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;padding:1px 5px;border-radius:8px;margin-left:4px;">no source</span>';
 }
+// Returns a Google News search URL filtered to FierceBiotech and Endpoints — always resolves
+function _srcSearch(headline) {
+  const q = encodeURIComponent(((headline||'').slice(0,80)) + ' site:fiercebiotech.com OR site:endpointsnews.com');
+  return 'https://www.google.com/search?q=' + q;
+}
+// Renders source link(s): stored URL if present, plus a reliable search fallback
+function _srcHtml(url, headline, sz) {
+  sz = sz || '9px';
+  let h = '';
+  if (url) h += `<a href="${url}" target="_blank" rel="noopener" style="font-size:${sz};color:#2563eb;margin-left:4px;">↗ ${_srcDomain(url)}</a>`;
+  if (headline) {
+    const su = _srcSearch(headline);
+    const label = url ? '🔍' : '🔍 find on Fierce/Endpoints';
+    const col   = url ? '#cbd5e1' : '#2563eb';
+    const ml    = url ? '3px'    : '4px';
+    h += `<a href="${su}" target="_blank" rel="noopener" title="Search on FierceBiotech / Endpoints" style="font-size:${sz};color:${col};margin-left:${ml};">${label}</a>`;
+  }
+  return h || _noSrcBadge();
+}
 function _impBadge(imp) {
   if (imp === 'high') return '<span style="font-size:9px;font-weight:800;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;padding:1px 5px;border-radius:8px;margin-right:3px;">HIGH</span>';
   return '';
@@ -1943,7 +1962,7 @@ function renderDeals(deals) {
     const val     = fmtMoney(d.total_usd_m);
     const upfront = d.upfront_usd_m ? `${fmtMoney(d.upfront_usd_m)} upfront · ` : '';
     const areaTag = AREA_LABELS[d.area_id] || d.area_id || '';
-    const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" class="ct-link" style="font-size:10px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : _noSrcBadge();
+    const srcLink = _srcHtml(d.source_url, d.headline, '10px');
     const ailux   = d.ailux_signal ? `<div style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border-radius:4px;padding:4px 8px;margin-top:4px;line-height:1.5;"><strong>Ailux lens:</strong> ${d.ailux_signal}</div>` : '';
     return `<div class="deal-row" data-area="${d.area_id||''}">
   <div class="deal-co">
@@ -1991,7 +2010,7 @@ function dealFilter(btn, area) {
 
 // ── Catalysts Feed ───────────────────────────────────────────────────────────
 let _allCatalysts = [];
-let _catSortMode  = 'soonest';
+let _catSortMode  = 'relevance';
 let _catAreaFilter = '';
 
 const SIG_STYLE = {
@@ -2030,46 +2049,67 @@ function renderCatalysts(cats) {
   if (!list) return;
   if (!cats.length) { list.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px;text-align:center;">No catalysts found.</div>'; return; }
 
-  const { open, resolved } = sortCatalysts(cats);
+  // Always sort by significance first (high → medium → low), then date
+  const open     = cats.filter(c => !c.resolved).sort((x,y) => {
+    const sx = (SIG_ORDER[x.significance] ?? 1), sy = (SIG_ORDER[y.significance] ?? 1);
+    if (sx !== sy) return sx - sy;
+    return (x.sort_date||'9999').localeCompare(y.sort_date||'9999');
+  });
+  const resolved = cats.filter(c => c.resolved);
 
   const catFmtDate = (sd, fallback) => {
     if (!sd) return fallback || '';
     try {
       const [y, m, d] = sd.split('-').map(Number);
       const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]||'';
-      // day 1 or 15 = month-level placeholder → show "Mon YYYY"
       if (d === 1 || d === 15) return `${mn} ${y}`;
       return `${mn} ${d}, ${y}`;
     } catch(e) { return fallback || sd; }
   };
 
+  // Pinned HIGH significance items — shown as featured cards at top
+  const pinned = open.filter(c => c.significance === 'high' || c.is_key_watch);
+  const rest   = open.filter(c => c.significance !== 'high' && !c.is_key_watch);
+
+  const renderPinned = (c) => {
+    const area = AREA_LABELS[c.area_id] || '';
+    const areaPill = area ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[c.area_id]||'#2563eb'};background:${AREA_BG[c.area_id]||'#eff6ff'};padding:1px 6px;border-radius:8px;">${area}</span>` : '';
+    const countdown = catDaysTag(c.sort_date);
+    const dateStr   = catFmtDate(c.sort_date, c.catalyst_date);
+    return `<div style="padding:9px 0 9px;border-bottom:1px solid #fee2e2;" data-area="${c.area_id||''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
+        <div style="font-size:12.5px;font-weight:800;color:#0d1f38;line-height:1.4;flex:1;">${c.label||''}</div>
+        <div style="flex-shrink:0;text-align:right;">
+          ${countdown}
+          <div style="font-size:9.5px;color:#dc2626;font-weight:700;margin-top:2px;">${dateStr}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:${c.notes?'5px':'0'};">
+        ${areaPill}
+      </div>
+      ${c.notes ? `<div style="font-size:11px;color:#374151;line-height:1.5;background:#fff;border-left:3px solid #fca5a5;padding:5px 9px;border-radius:0 4px 4px 0;">${c.notes}</div>` : ''}
+    </div>`;
+  };
+
   const renderItem = (c, isResolved) => {
-    const sig = SIG_STYLE[c.significance] || SIG_STYLE.medium;
+    const sig  = SIG_STYLE[c.significance] || SIG_STYLE.medium;
     const area = AREA_LABELS[c.area_id] || c.area_id || '';
-    const isHigh = c.significance === 'high' && !isResolved;
-    const rowBorder = isHigh ? 'border-left:3px solid #dc2626;background:linear-gradient(90deg,#fff6f0 0%,#fff 60%);padding-left:10px;' : '';
     const resolvedNote = c.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${c.resolved_note}</div>` : '';
     const countdown = isResolved
       ? `<span style="font-size:9px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 6px;border-radius:8px;">✓ Done</span>`
       : catDaysTag(c.sort_date);
     const dateStr = catFmtDate(c.sort_date, c.catalyst_date);
-    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="
-      display:flex;align-items:flex-start;gap:0;padding:9px 2px 9px 0;
-      border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.55':'1'};${rowBorder}
-    ">
-  <div style="flex-shrink:0;width:80px;padding-right:10px;padding-top:1px;">
+    return `<div class="catalyst-item" data-area="${c.area_id||''}" style="display:flex;align-items:flex-start;gap:0;padding:8px 2px 8px 0;border-bottom:1px solid #f1f5f9;opacity:${isResolved?'0.5':'1'};">
+  <div style="flex-shrink:0;width:72px;padding-right:8px;padding-top:1px;">
     <div style="font-size:10px;font-weight:700;color:#1e3a5f;line-height:1.35;">${dateStr}</div>
-    ${isHigh ? `<div style="margin-top:4px;"><span class="cat-hi-watch">KEY WATCH</span></div>` : ''}
   </div>
-  <div style="flex:1;min-width:0;padding-right:10px;">
-    <div style="font-size:12px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};line-height:1.4;">${c.label||''}</div>
-    ${c.notes ? `<div style="font-size:11px;color:#475569;margin-top:2px;line-height:1.45;">${c.notes}</div>` : ''}
+  <div style="flex:1;min-width:0;padding-right:8px;">
+    <div style="font-size:11.5px;font-weight:700;color:${isResolved?'#94a3b8':'#0d1f38'};line-height:1.4;">${c.label||''}</div>
+    ${c.notes ? `<div style="font-size:10.5px;color:#64748b;margin-top:2px;line-height:1.4;">${c.notes}</div>` : ''}
     ${resolvedNote}
   </div>
-  <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:90px;">
-    <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
-      ${countdown}
-    </div>
+  <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:80px;">
+    ${countdown}
     <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">
       <span style="font-size:9px;font-weight:700;color:${sig.dot};background:${sig.bg};border:1px solid ${sig.border};padding:1px 5px;border-radius:8px;white-space:nowrap;">${sig.label}</span>
       ${area ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[c.area_id]||'#2563eb'};background:${AREA_BG[c.area_id]||'#eff6ff'};padding:1px 5px;border-radius:8px;white-space:nowrap;">${area}</span>` : ''}
@@ -2078,17 +2118,37 @@ function renderCatalysts(cats) {
 </div>`;
   };
 
-  const CAT_SHOW = 5;
-  const openVisible = open.slice(0, CAT_SHOW);
-  const openHidden  = open.slice(CAT_SHOW);
-  let catHtml = openVisible.map(c => renderItem(c, false)).join('');
-  if (openHidden.length) {
-    catHtml += `<div id="catalysts-more" style="display:none">${openHidden.map(c => renderItem(c, false)).join('')}</div>`;
-    catHtml += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:6px 0;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${openHidden.length} more catalysts ↓</button>`;
+  let catHtml = '';
+
+  // ── Pinned "Key Watch" section ────────────────────────────────────────────
+  if (pinned.length) {
+    catHtml += `<div style="margin-bottom:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;padding:4px 12px 2px;">
+      <div style="display:flex;align-items:center;gap:5px;padding:6px 0 4px;border-bottom:1px solid #fee2e2;margin-bottom:2px;">
+        <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#dc2626;">🔴 Key Watch</span>
+        <span style="font-size:9px;color:#ef4444;background:#fef2f2;padding:1px 6px;border-radius:6px;font-weight:700;">High Significance</span>
+      </div>
+      ${pinned.map(renderPinned).join('')}
+    </div>`;
   }
+
+  // ── Remaining (medium/low) ────────────────────────────────────────────────
+  const CAT_SHOW = 4;
+  const restVisible = rest.slice(0, CAT_SHOW);
+  const restHidden  = rest.slice(CAT_SHOW);
+  if (rest.length) {
+    catHtml += `<div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:6px 0 4px;">On Radar</div>`;
+    catHtml += restVisible.map(c => renderItem(c, false)).join('');
+    if (restHidden.length) {
+      catHtml += `<div id="catalysts-more" style="display:none">${restHidden.map(c => renderItem(c, false)).join('')}</div>`;
+      catHtml += `<button onclick="document.getElementById('catalysts-more').style.display='';this.style.display='none'" style="width:100%;margin:6px 0;padding:5px 0;font-size:10px;font-weight:700;color:#2563eb;background:#f0f6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">Show ${restHidden.length} more ↓</button>`;
+    }
+  }
+
+  // ── Resolved (collapsed) ─────────────────────────────────────────────────
   if (resolved.length) {
     catHtml += `<div style="font-size:10px;font-weight:700;color:#94a3b8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em;border-top:1px dashed #e2e8f0;padding-top:10px;">Resolved</div>` + resolved.map(c => renderItem(c, true)).join('');
   }
+
   list.innerHTML = catHtml;
 }
 
@@ -2222,17 +2282,23 @@ async function loadMeridianReader() {
         ? `<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${tStyle.color};background:${tStyle.bg};padding:1px 6px;border-radius:6px;margin-right:4px">${tStyle.label}</span>`
         : '';
       const impBadge = _impBadge(item.importance);
-      const headline = item.source_url
-        ? `<a class="ct-link" href="${item.source_url}" target="_blank" rel="noopener">${item.headline}</a>`
-        : `<strong>${item.headline}</strong>`;
+      const headlineUrl = item.source_url || _srcSearch(item.headline);
+      const headline = `<a class="ct-link" href="${headlineUrl}" target="_blank" rel="noopener">${item.headline}</a>`;
       const srcTag = item.source_name
         ? `<span style="font-size:10px;color:#94a3b8;margin-left:4px">· ${item.source_name}</span>`
         : '';
-      // Consolidated source badge when multiple sources cover the same story
-      const extraSrcs = extras.length
-        ? `<span style="font-size:9px;font-weight:700;color:#475569;background:#f1f5f9;padding:1px 6px;border-radius:8px;margin-left:5px" title="${extras.map(e=>e.source_name||'—').join(', ')}">+${extras.length} source${extras.length>1?'s':''}</span>`
-        : '';
-      const noSrcBadge = !item.source_url ? _noSrcBadge() : '';
+      // Consolidated source badge — now expandable to show individual links
+      const extraSrcs = (() => {
+        if (!extras.length) return '';
+        const xid = 'xsrc-' + item.id;
+        const links = extras.map(e => {
+          const eUrl = e.source_url || _srcSearch(e.headline || item.headline);
+          const eLbl = _srcDomain(e.source_url) || e.source_name || 'source';
+          return `<a href="${eUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#2563eb;display:block;padding:2px 0;text-decoration:none;">↗ ${eLbl}${e.source_name ? ' · ' + e.source_name : ''}</a>`;
+        }).join('');
+        return `<span onclick="var d=document.getElementById('${xid}');d.style.display=d.style.display==='none'?'block':'none';this.textContent=(d.style.display==='none'?'+${extras.length} source${extras.length>1?'s':''}▾':'+${extras.length} ▴')" style="font-size:9px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-left:5px;cursor:pointer">+${extras.length} source${extras.length>1?'s':''}▾</span><div id="${xid}" style="display:none;padding:4px 8px 2px;background:#f8fafc;border-radius:4px;margin-top:3px">${links}</div>`;
+      })();
+      const noSrcBadge = (!item.source_url && !extras.length) ? '' : ''; // search fallback already in headline
       const bodyText = item.body
         ? `<div style="font-size:11px;color:#4a6280;margin-top:3px;line-height:1.5">${item.body}</div>`
         : '';
@@ -2613,7 +2679,7 @@ async function loadBDSignal() {
         const d = item.data;
         const val = d.total_usd_m ? `<span style="font-weight:800;color:#0d1f38">${fmtMoney(d.total_usd_m)}</span>` : '';
         const upfront = d.upfront_usd_m ? `<span style="font-size:10px;color:#64748b"> · ${fmtMoney(d.upfront_usd_m)} upfront</span>` : '';
-        const srcLink = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(d.source_url)}</a>` : '';
+        const srcLink = _srcHtml(d.source_url, d.headline);
         const signalHtml = d.ailux_signal
           ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#1a3f8f;display:block;margin-bottom:2px;">◈ Ailux BD Signal</span>${d.ailux_signal}</div>`
           : '';
@@ -2630,7 +2696,7 @@ async function loadBDSignal() {
         </div>`;
       } else {
         const i = item.data;
-        const srcLink = i.source_url ? `<a href="${i.source_url}" target="_blank" rel="noopener" style="font-size:9px;color:#2563eb;margin-left:4px;">↗ ${_srcDomain(i.source_url)}</a>` : _noSrcBadge();
+        const srcLink = _srcHtml(i.source_url, i.headline);
         const angleHtml = i.ailux_angle
           ? `<div class="bds-item-signal"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#15803d;display:block;margin-bottom:2px;">◈ Ailux Angle</span>${i.ailux_angle}</div>`
           : '';
@@ -2707,11 +2773,10 @@ function renderSignals(rows) {
     const areaLabel = AREA_LABELS[r.area_id] || r.area_id || '';
     const areaTag = areaLabel ? `<span style="font-size:9px;font-weight:700;color:${AREA_COLORS[r.area_id]||'#64748b'};background:${AREA_BG[r.area_id]||'#f1f5f9'};padding:1px 5px;border-radius:8px;margin-left:4px;">${areaLabel}</span>` : '';
     const srcName = r.source_name ? `<span style="font-size:10px;color:#94a3b8">${r.source_name}</span>` : '';
-    const noSrc   = !r.source_url ? _noSrcBadge() : '';
+    const noSrc   = '';
     const dateStr = r.event_date ? `<span style="font-size:10px;color:#cbd5e1;margin-left:4px;">${r.event_date}</span>` : '';
-    const headline = r.source_url
-      ? `<a href="${r.source_url}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</a>`
-      : `<span style="color:#0f172a;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</span>`;
+    const sigHeadlineUrl = r.source_url || _srcSearch(r.headline);
+    const headline = `<a href="${sigHeadlineUrl}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:12px;line-height:1.4;">${r.headline || '—'}</a>`;
     return `
       <div class="sig-item">
         <div class="sig-score ${scoreClass}" title="Relevance score: ${r.relevance_score}">${r.relevance_score || 0}</div>
@@ -2837,7 +2902,7 @@ async function loadAreaIntel(tabId) {
               <span style="font-size:11px;color:#94a3b8">${rdtFmtDate(item.intel_date)||item.intel_date}</span>
               ${item.source_name ? `<span style="font-size:11px;color:#6b7280">· ${item.source_name}</span>` : ''}
               ${item.intel_type ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:8px;background:#f0f4f8;color:#6b7280">${item.intel_type}</span>` : ''}
-              ${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2e6fb0;text-decoration:none">→ Source</a>` : ''}
+              ${_srcHtml(item.source_url, item.headline, '11px')}
             </div>
           </div>
         </div>
@@ -3411,8 +3476,8 @@ function loadMoleculeTab(tabId) {
     <div id="home-catalysts-anchor">
      <div class="cat-filter-bar" style="padding:4px 0 12px">
       <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Sort:</span>
-      <button class="cat-sort-btn active" onclick="setCatSort(this,'soonest')">Soonest</button>
-      <button class="cat-sort-btn" onclick="setCatSort(this,'relevance')">Most Relevant</button>
+      <button class="cat-sort-btn" onclick="setCatSort(this,'soonest')">Soonest</button>
+      <button class="cat-sort-btn active" onclick="setCatSort(this,'relevance')">Most Relevant</button>
       <div style="width:1px;height:14px;background:#dde3ea;flex-shrink:0;margin:0 2px;"></div>
       <span style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap">Area:</span>
       <span id="cats-area-label" style="display:none">All Areas</span>
