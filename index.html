@@ -1485,7 +1485,6 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 #tl1a-pi-card { margin:0 0 0 !important;max-width:100% !important; }
 [id$='-area-pi-wrap'] { margin:0 !important;max-width:100% !important; }
 .tl1a-layout { display:block;max-width:1100px;margin:0 auto; }
-#tab-tl1a .tl1a-layout { padding-top:10px; } /* align TL1A dashboard with side pill buttons */
 .tl1a-center-col { min-width:0; }
 .tl1a-pills-col { display:none;flex-direction:column;gap:7px;position:fixed;top:110px;z-index:300;width:148px; }
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
@@ -10153,7 +10152,7 @@ function _makeAreaPI(tabId, areaIds) {
       try {
         const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status))')
+            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
             .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
@@ -10161,7 +10160,7 @@ function _makeAreaPI(tabId, areaIds) {
           _sb.from('drug_area_scores')
             .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning,competitive_relevance,relevance_rationale')
             .in('area_id', this.areaIds),
-          _sb.from('companies').select('id,name,ticker,status'),
+          _sb.from('companies').select('id,name,ticker,status,hq_city,hq_country'),
         ]);
         if (error) throw error;
 
@@ -10210,6 +10209,8 @@ function _makeAreaPI(tabId, areaIds) {
           entity_type:          d.entity_type || 'standalone',
           co:                   companiesMap.get(ownerCoId)?.name || d.companies?.name || d.company_id || '—',
           ticker:               companiesMap.get(ownerCoId)?.ticker || d.companies?.ticker || '',
+          hq_city:              companiesMap.get(ownerCoId)?.hq_city  || d.companies?.hq_city  || '',
+          hq_country:           companiesMap.get(ownerCoId)?.hq_country || d.companies?.hq_country || '',
           drug:                 d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
           name:                 d.name,
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
@@ -10253,7 +10254,7 @@ function _makeAreaPI(tabId, areaIds) {
       for (const prog of this.data) {
         const eid = prog.entity_id;
         if (!map.has(eid)) {
-          map.set(eid, { entity_id:eid, company_id:prog.company_id, entity_name:prog.entity_name, entity_type:prog.entity_type, co:prog.co, ticker:prog.ticker, programs:[] });
+          map.set(eid, { entity_id:eid, company_id:prog.company_id, entity_name:prog.entity_name, entity_type:prog.entity_type, co:prog.co, ticker:prog.ticker, hq_city:prog.hq_city, hq_country:prog.hq_country, programs:[] });
         }
         map.get(eid).programs.push(prog);
       }
@@ -10476,6 +10477,7 @@ function _makeAreaPI(tabId, areaIds) {
       }, ent.programs[0] || {});
       return { ...leadProg, id: ent.company_id || ent.entity_id,
         co: ent.entity_name, ticker: ent.ticker,
+        hq_city: ent.hq_city, hq_country: ent.hq_country,
         company_id: ent.company_id || ent.entity_id, _groupEntries: ent.programs };
     },
 
@@ -10745,7 +10747,7 @@ function _makeAreaPI(tabId, areaIds) {
         const relevBorder = ent.bestRelevance ? `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance]||'transparent'}` : '';
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${ent.ticker||''}</div></td>
+          <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569">${ent.target}</td>
@@ -11991,12 +11993,12 @@ const tl1aPI = {
   try {
    const [drugAreaRes, scoreRes, companiesRes] = await Promise.all([
     _sb.from('drug_areas')
-     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status))')
+     .select('drugs(id,name,brand_name,company_id,mechanism,target,cls,overlap,stage,ailux_angle,key_data,drug_summary,indication_short,entity_id,entity_name,entity_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
      .eq('area_id', 'tl1a'),
     _sb.from('drug_area_scores')
      .select('drug_id,overlap,cls,competitive_relevance,relevance_rationale')
      .eq('area_id', 'tl1a'),
-    _sb.from('companies').select('id,name,ticker,status'),
+    _sb.from('companies').select('id,name,ticker,status,hq_city,hq_country'),
    ]);
 
    if (drugAreaRes.error) throw drugAreaRes.error;
@@ -12034,6 +12036,8 @@ const tl1aPI = {
       _companyId:       d.company_id,          // raw DB company_id (for drug count queries)
       co:               (companyMap.get(displayEntityId) || {}).name || d.companies?.name || d.company_id || '—',
       ticker:           (companyMap.get(displayEntityId) || {}).ticker || d.companies?.ticker || '',
+      hq_city:          (companyMap.get(displayEntityId) || {}).hq_city  || d.companies?.hq_city  || '',
+      hq_country:       (companyMap.get(displayEntityId) || {}).hq_country || d.companies?.hq_country || '',
       drug:             d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
       target:           d.target || _piExtractTarget(d.mechanism) || '—',
       cls:              rawCls,
@@ -13910,7 +13914,7 @@ const tl1aPI = {
    const _TL1A_RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#2563eb',monitor:'#94a3b8'};
    const relevBorder = bestRelevance ? `border-left:3px solid ${_TL1A_RELEV_BORDER[bestRelevance]||'transparent'}` : '';
    const main = `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="tl1aPI.toggle('${gid}')">
-    <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${gid}" data-ename="${p.co.replace(/"/g,'&quot;')}" data-tab="tl1a" onclick="event.stopPropagation();_openEntityByEl(this)">${p.co}</span>${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(p.ticker||'').split('/')[0]}</div></td>
+    <td><strong style="font-size:12px;color:#1e3a5f"><span class="pi-entity-name" data-eid="${gid}" data-ename="${p.co.replace(/"/g,'&quot;')}" data-tab="tl1a" onclick="event.stopPropagation();_openEntityByEl(this)">${p.co}</span>${noIntelDot}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(p.ticker||'').split('/')[0].trim()||'Private';const loc=(p.hq_city&&p.hq_country)?` — ${p.hq_city}, ${p.hq_country}`:'';return t+loc;})()}</div></td>
     <td>${pipelineCell}</td>
     <td>${indCell}</td>
     <td style="font-size:11px;color:#475569">${targetDisplay}</td>
@@ -15077,6 +15081,16 @@ function fixTabBarTop() {
   // Pin TL1A side pills just below header+tabbar
   const pillsOffset = hdrH + tbH + 10;
   document.querySelectorAll('.tl1a-pills-col').forEach(p => { p.style.top = pillsOffset + 'px'; });
+  // Align active drug-tab dashboard with pill button tops
+  const activePane = document.querySelector('.tab-pane.active');
+  if (activePane) {
+    const layout = activePane.querySelector('.tl1a-layout');
+    if (layout) {
+      layout.style.paddingTop = '0px';              // reset, forces reflow
+      const gap = pillsOffset - layout.getBoundingClientRect().top;
+      layout.style.paddingTop = (gap > 0 ? gap : 0) + 'px';
+    }
+  }
 }
 fixTabBarTop();
 window.addEventListener('resize', fixTabBarTop);
