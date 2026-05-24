@@ -6309,6 +6309,8 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .cat-bar-Combo.Study { background:#64748b; }
 .dkn-drug-name { font-weight:700; color:#1a2f50; font-size:12px; cursor:pointer; }
 .dkn-drug-name:hover { color:#1d4ed8; text-decoration:underline; }
+.dkn-co-link { font-size:11px; color:#374151; cursor:pointer; }
+.dkn-co-link:hover { color:#1d4ed8; text-decoration:underline; }
 .dkn-drug-generic { color:#64748b; font-size:10px; }
 .dkn-stage-pill { display:inline-block; font-size:9.5px; font-weight:700;
   padding:2px 7px; border-radius:10px; white-space:nowrap; }
@@ -6644,7 +6646,7 @@ function dknRow(d) {
   const risk = _dknRisk(d.drug_summary);
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
-  <td class="dkn-col-co" style="font-size:11px;color:#374151">${_dknCoName(d)}</td>
+  <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanySlideOver('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
   <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls || '—'}</td>
