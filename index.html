@@ -6418,7 +6418,7 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 let _dknData    = null;   // array of drug records from Supabase (null = not yet loaded)
 let _dknLoading = false;
 
-let dknSortCol = '';
+let dknSortCol = 'stage'; // default: approved drugs first
 let dknSortDir = 1;
 let dknCatFilter = '';
 let dknStageFilter = '';
@@ -6564,6 +6564,13 @@ function dknSort(col) {
 function dknRender() {
   if (!_dknData) return; // still loading — dknLoadData() will call dknRender() when ready
   dknPopulateSelects();
+  // Sync column header sort indicators (covers initial render, not just user clicks)
+  document.querySelectorAll('.dkn-master-table th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  if (dknSortCol) {
+    const _cm = {name:0,company:1,stage:2,target:3,indication:5};
+    const _ti = _cm[dknSortCol];
+    if (_ti !== undefined) document.querySelectorAll('.dkn-master-table th')[_ti]?.classList.add(dknSortDir===1?'sort-asc':'sort-desc');
+  }
   const q = '';
   let data = _dknData.filter(d => {
     if (dknCatFilter && d.catalog_category !== dknCatFilter) return false;
