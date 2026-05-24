@@ -8874,17 +8874,10 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     const AREA      = (sourceTabId && TAB_AREA_MAP[sourceTabId]?.[0]) || 'tl1a';
     const DRUG_AREA = (AREA === 'tl1a') ? (tl1aPI._drugDisplayArea || 'ibd') : AREA;
 
-    // Reuse existing cache if available (avoids re-fetch when card already loaded inline)
+    // NOTE: profile cache intentionally disabled — ownership model requires fresh drug fetch
+    // each time to correctly include acquired assets (current_owner_company_id).
+    // Re-enable with proper cache invalidation once ownership changes stabilize.
     const piObj = (AREA === 'tl1a') ? tl1aPI : (_areaPIs[sourceTabId] || null);
-    if (piObj?._profileCache?.[companyId]) {
-      const sbData = piObj._profileCache[companyId];
-      const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
-                       summary: sbData.profile?.platform_summary || '', overlap: '', _groupEntries: [] };
-      bodyEl.classList.add('dossier-mode');
-      try   { bodyEl.innerHTML = _buildCompanyDossierBody(prog, sbData, AREA); }
-      catch (e) { bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`; }
-      return;
-    }
 
     // ── Parallel fetch: profile + catalysts + deals ──
     const [profileRes, catsRes, dealsRes] = await Promise.all([
@@ -8995,8 +8988,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const sbData = { profile, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
 
-    // Cache for future opens
-    if (piObj) piObj._profileCache[companyId] = sbData;
+    // Cache disabled — ownership model requires fresh drug fetch each open
+    // if (piObj) piObj._profileCache[companyId] = sbData;
 
     // ── Also-tracked footer ──
     if (footerEl && profile) {
