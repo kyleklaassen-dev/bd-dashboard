@@ -1602,6 +1602,65 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
   .pi-dr-hd { font-size:10px; font-weight:700; text-transform:uppercase; color:#6366f1; letter-spacing:0.05em; margin-bottom:6px; }
   .pi-chevron { font-size:9px; color:#94a3b8; margin-left:4px; transition:transform 0.2s; display:inline-block; }
   .pi-chevron.open { transform:rotate(180deg); }
+
+/* ── Industry Insights Feed v2 ─────────────────────────────────────────────── */
+#iif-wrap { max-width:900px; margin:0 auto; padding:18px 20px 48px; }
+#iif-filter-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid #f1f5f9; }
+.iif-pill { background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; font-size:12px; font-weight:600; padding:5px 14px; border-radius:20px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.iif-pill:hover { background:#e2e8f0; color:#1e293b; }
+.iif-pill.active { background:#1e3a5f; color:white; border-color:#1e3a5f; }
+.iif-card { background:white; border:1px solid #e8edf2; border-radius:10px; padding:13px 16px 11px; margin-bottom:8px; transition:box-shadow .15s; }
+.iif-card:hover { box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+.iif-card-top { display:flex; align-items:center; gap:7px; margin-bottom:7px; flex-wrap:wrap; }
+.iif-date { font-size:10.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
+.iif-type-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
+.iif-area-pill { font-size:10px; font-weight:600; padding:1px 7px; border-radius:6px; white-space:nowrap; }
+.iif-headline { font-size:13px; font-weight:700; color:#1e293b; line-height:1.45; }
+.iif-body-text { font-size:12px; color:#475569; line-height:1.55; margin-top:9px; padding-top:9px; border-top:1px solid #f1f5f9; display:none; }
+.iif-body-text.open { display:block; }
+.iif-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.iif-sources { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.iif-source-link { font-size:11px; color:#2563eb; text-decoration:none; font-weight:500; }
+.iif-source-link:hover { text-decoration:underline; }
+.iif-source-dd-wrap { position:relative; display:inline-block; }
+.iif-source-dd-btn { font-size:11px; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:3px 9px; cursor:pointer; font-weight:600; }
+.iif-source-dd-btn:hover { background:#f1f5f9; }
+.iif-source-dd { display:none; position:absolute; top:calc(100% + 4px); left:0; background:white; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1); min-width:260px; max-width:360px; z-index:200; padding:4px 0; }
+.iif-source-dd.open { display:block; }
+.iif-source-dd-item { display:flex; align-items:center; gap:8px; padding:7px 12px; font-size:11px; cursor:pointer; text-decoration:none; color:#1e293b; }
+.iif-source-dd-item:hover { background:#f8fafc; }
+.iif-expand-icon { font-size:10px; color:#cbd5e1; margin-left:auto; flex-shrink:0; transition:transform .15s; cursor:pointer; }
+.iif-card.open .iif-expand-icon { transform:rotate(180deg); }
+.iif-day-sep { font-size:10.5px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin:22px 0 9px; padding-bottom:7px; border-bottom:1px solid #f1f5f9; }
+.iif-empty { text-align:center; padding:48px 20px; color:#94a3b8; font-size:13px; }
+.iif-loading { text-align:center; padding:48px 20px; color:#94a3b8; font-size:12px; }
+.iif-archive-wrap { max-width:900px; margin:0 auto; padding:0 20px 40px; }
+.iif-archive-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; padding:12px 0; border-top:1px solid #e2e8f0; color:#64748b; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; user-select:none; list-style:none; }
+.iif-archive-toggle::-webkit-details-marker { display:none; }
+.iif-archive-toggle::after { content:'▾'; font-size:11px; margin-left:4px; transition:transform .15s; }
+details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
+/* Type badge palette */
+.iif-type-clinical { background:#dbeafe; color:#1e40af; }
+.iif-type-catalyst { background:#ede9fe; color:#6d28d9; }
+.iif-type-deal { background:#d1fae5; color:#065f46; }
+.iif-type-regulatory { background:#fef9c3; color:#854d0e; }
+.iif-type-pipeline { background:#e0e7ff; color:#3730a3; }
+.iif-type-financing { background:#cffafe; color:#164e63; }
+.iif-type-conference { background:#fce7f3; color:#9d174d; }
+.iif-type-publication { background:#f1f5f9; color:#334155; }
+.iif-type-patent { background:#f5f3ff; color:#5b21b6; }
+.iif-type-news { background:#f8fafc; color:#64748b; }
+/* Area pill palette */
+.iif-area-tl1a { background:#dbeafe; color:#1d4ed8; }
+.iif-area-tslp { background:#d1fae5; color:#047857; }
+.iif-area-il4ra { background:#e0f2fe; color:#0369a1; }
+.iif-area-igf1r { background:#fde8d8; color:#c2410c; }
+.iif-area-fcrn { background:#ede9fe; color:#7c3aed; }
+.iif-area-ted { background:#fef9c3; color:#78350f; }
+.iif-area-respiratory { background:#d1fae5; color:#047857; }
+.iif-area-ibd { background:#dbeafe; color:#1d4ed8; }
+.iif-area-default { background:#f1f5f9; color:#64748b; }
+
 </style>
 
 <style>
@@ -3580,37 +3639,28 @@ function loadMoleculeTab(tabId) {
 <!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
 
 <div class="tab-pane" id="tab-industry-insights">
- <div>
-
-  <!-- ── Live Intelligence Feed ──────────────────────────────────────── -->
-  <div class="ii-live-wrap">
-   <div class="ii-live-hd">⚡ Live Intelligence Feed</div>
-   <div id="ii-live-body" style="color:#94a3b8;font-size:12px;">Loading intelligence…</div>
+  <!-- ── Unified News Feed ─────────────────────────────────────────────── -->
+  <div id="iif-wrap">
+    <div id="iif-filter-bar">
+      <button class="iif-pill active" data-cat="all" onclick="iifFilter('all')">All</button>
+      <button class="iif-pill" data-cat="clinical" onclick="iifFilter('clinical')">Clinical</button>
+      <button class="iif-pill" data-cat="catalyst" onclick="iifFilter('catalyst')">Catalyst</button>
+      <button class="iif-pill" data-cat="deal" onclick="iifFilter('deal')">BD Deal</button>
+      <button class="iif-pill" data-cat="regulatory" onclick="iifFilter('regulatory')">Regulatory</button>
+      <button class="iif-pill" data-cat="pipeline" onclick="iifFilter('pipeline')">Pipeline</button>
+      <button class="iif-pill" data-cat="financing" onclick="iifFilter('financing')">Financing</button>
+      <button class="iif-pill" data-cat="conference" onclick="iifFilter('conference')">Conference</button>
+      <button class="iif-pill" data-cat="publication" onclick="iifFilter('publication')">Publication</button>
+      <button class="iif-pill" data-cat="patent" onclick="iifFilter('patent')">Patent</button>
+    </div>
+    <div id="iif-feed">
+      <div class="iif-loading">Loading news feed…</div>
+    </div>
   </div>
-
-  <!-- ── Rolling BD Deal Tracker ─────────────────────────────────────── -->
-  <div class="rdt-wrap" style="margin-top:20px;">
-   <div class="rdt-hd">
-    <span class="rdt-hd-title">📋 BD Deal Tracker</span>
-    <span class="rdt-hd-sub"></span>
-   </div>
-   <div class="rdt-scroll">
-    <table class="rdt-table" id="rdt-main-table">
-     <thead>
-      <tr>
-       <th>Date</th><th>Partner</th><th>Counterparty</th><th>Focus / Asset</th><th>Modality</th><th>Economics</th><th>Strategic Rationale</th>
-      </tr>
-     </thead>
-     <tbody id="rdt-tbody">
-      <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;font-size:12px;">Loading deals…</td></tr>
-     </tbody>
-    </table>
-   </div>
-   <button id="rdt-more-btn" class="rdt-load-btn" onclick="rdtLoadMore()" style="display:none">Load 10 more ↓</button>
-  </div>
-
-  <!-- ── Historical Archive divider ──────────────────────────────────── -->
-  <div style="max-width:860px;width:calc(100% - 48px);margin:24px auto 0;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">📂 Historical Archive</div>
+  <!-- ── Historical Archive (collapsed) ────────────────────────────────── -->
+  <div class="iif-archive-wrap">
+  <details>
+  <summary class="iif-archive-toggle">📂 Historical Archive · Dec 2025 – Apr 2026</summary>
 
   <div class="ii-stats-bar">
     <div class="ii-stat"><div class="ii-stat-val">64</div><div class="ii-stat-lbl">Articles</div></div>
@@ -4185,6 +4235,10 @@ function loadMoleculeTab(tabId) {
     </div><!-- /ii-month-body jan-2026 -->
   </div><!-- /ii-month Jan 2026 -->
  </div><!-- /inner wrapper -->
+  </details>
+
+  </div><!-- /iif-archive-wrap -->
+
 </div><!-- /tab-industry-insights -->
 
 <div class="tab-pane" id="tab-tl1a">
@@ -10107,8 +10161,11 @@ registerTab('pharma-intel', {
   onEnter() { _initAllCompanies(); _addRankingDossierBtns(); }
 });
 registerTab('industry-insights', {
-  onEnter() { loadRollingDeals(); loadLiveIntel(); }
+
+  onEnter() { loadIndustryInsightsFeed(); }
+
 });
+
 registerTab('discovery-queue', {
   onEnter() { if (!_dqData.length) dqLoad(); }
 });
@@ -12409,6 +12466,210 @@ function iiToggle(id) {
   const open = detail.classList.toggle('open');
   if (chev) chev.textContent = open ? '▼' : '▶';
 }
+
+
+// ── Industry Insights Feed v2 ─────────────────────────────────────────────────
+const IIF_TYPE_MAP = {
+  // intel_type values
+  'deal':           { cat:'deal',        label:'BD Deal',      cls:'deal' },
+  'clinical':       { cat:'clinical',    label:'Clinical',     cls:'clinical' },
+  'regulatory':     { cat:'regulatory',  label:'Regulatory',   cls:'regulatory' },
+  'conference':     { cat:'conference',  label:'Conference',   cls:'conference' },
+  'pipeline':       { cat:'pipeline',    label:'Pipeline',     cls:'pipeline' },
+  'financing':      { cat:'financing',   label:'Financing',    cls:'financing' },
+  'news':           { cat:'publication', label:'News',         cls:'news' },
+  'user_submitted': { cat:'publication', label:'Submitted',    cls:'news' },
+  // competitive_signals signal_type values
+  'clinical_update':{ cat:'clinical',    label:'Clinical',     cls:'clinical' },
+  'licensing':      { cat:'deal',        label:'BD Deal',      cls:'deal' },
+  'patent':         { cat:'patent',      label:'Patent',       cls:'patent' },
+  'publication':    { cat:'publication', label:'Publication',  cls:'publication' },
+  'financing':      { cat:'financing',   label:'Financing',    cls:'financing' },
+};
+const IIF_AREA_LABELS = {
+  'tl1a':'TL1A','tslp':'TSLP','il4ra':'IL-4Rα','il4ra-tslp':'IL-4Rα×TSLP',
+  'il4ra-ox40l':'IL-4Rα×OX40L','igf1r':'IGF-1R','igf1r-tshr':'IGF-1R×TSHR',
+  'fcrn':'FcRn','ted':'TED','respiratory':'Respiratory','atopy':'Atopy',
+  'ibd':'IBD','autoimmune':'Autoimmune','ace':'ACE','tl1a-ibd':'TL1A×IBD'
+};
+const IIF_AREA_CLS = {
+  'tl1a':'tl1a','tslp':'tslp','il4ra':'il4ra','il4ra-tslp':'il4ra',
+  'igf1r':'igf1r','igf1r-tshr':'igf1r','fcrn':'fcrn','ted':'ted',
+  'respiratory':'respiratory','ibd':'ibd'
+};
+
+let _iifLoaded = false;
+let _iifActive = 'all';
+let _iifItems  = [];
+
+async function loadIndustryInsightsFeed() {
+  if (_iifLoaded) { iifRender(); return; }
+  const feed = document.getElementById('iif-feed');
+  if (!feed) return;
+  feed.innerHTML = '<div class="iif-loading">Loading news feed…</div>';
+  try {
+    const [iaRes, intelRes, sigRes, dealRes] = await Promise.all([
+      _sb.from('intel_areas').select('intel_id,area_id').limit(500),
+      _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,importance')
+         .order('intel_date',{ascending:false}).limit(200),
+      _sb.from('competitive_signals').select('id,signal_type,title,description,source_url,source_date,area_id')
+         .order('source_date',{ascending:false}).limit(200),
+      _sb.from('deals').select('id,deal_date,headline,total_usd_m,upfront_usd_m,source_url,area_id')
+         .order('deal_date',{ascending:false}).limit(100),
+    ]);
+    // Build intel→area map
+    const areaMap = {};
+    (iaRes.data||[]).forEach(r => { (areaMap[r.intel_id]=areaMap[r.intel_id]||[]).push(r.area_id); });
+
+    // Normalise each source into common shape
+    const normalise = (items) => items.filter(x => x.headline||x.title);
+    const intelItems = normalise(intelRes.data||[]).map(x => ({
+      _key:  `intel-${x.id}`,
+      date:  x.intel_date,
+      headline: x.headline,
+      body:  x.body || '',
+      sources: x.source_url ? [{name: x.source_name||'Source', url: x.source_url}] : [],
+      type:  x.intel_type || 'news',
+      areas: areaMap[x.id] || [],
+    }));
+    const sigItems = normalise(sigRes.data||[]).map(x => ({
+      _key:  `sig-${x.id}`,
+      date:  x.source_date,
+      headline: x.title,
+      body:  x.description || '',
+      sources: x.source_url ? [{name:'Source', url: x.source_url}] : [],
+      type:  x.signal_type || 'news',
+      areas: x.area_id ? [x.area_id] : [],
+    }));
+    const dealItems = normalise(dealRes.data||[]).map(x => ({
+      _key:  `deal-${x.id}`,
+      date:  x.deal_date,
+      headline: x.headline,
+      body:  x.total_usd_m ? `Total: $${x.total_usd_m}M${x.upfront_usd_m?` · $${x.upfront_usd_m}M upfront`:''}` : '',
+      sources: x.source_url ? [{name:'Source', url: x.source_url}] : [],
+      type:  'deal',
+      areas: x.area_id ? [x.area_id] : [],
+    }));
+
+    // Merge and deduplicate by normalised headline + date
+    const seen = {};
+    [...intelItems, ...sigItems, ...dealItems].forEach(item => {
+      if (!item.date || !item.headline) return;
+      const key = item.headline.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,60)+'|'+item.date;
+      if (!seen[key]) {
+        seen[key] = {...item, sources:[...item.sources]};
+      } else {
+        item.sources.forEach(s => { if (!seen[key].sources.find(x=>x.url===s.url)) seen[key].sources.push(s); });
+        if (!seen[key].body && item.body) seen[key].body = item.body;
+      }
+    });
+
+    _iifItems = Object.values(seen).sort((a,b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1; if (!b.date) return -1;
+      return b.date > a.date ? 1 : b.date < a.date ? -1 : 0;
+    });
+    _iifLoaded = true;
+    iifRender();
+  } catch(e) {
+    const feed2 = document.getElementById('iif-feed');
+    if (feed2) feed2.innerHTML = `<div class="iif-empty">Error loading feed: ${e.message}</div>`;
+  }
+}
+
+function iifFilter(cat) {
+  _iifActive = cat;
+  document.querySelectorAll('#iif-filter-bar .iif-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.cat === cat));
+  iifRender();
+}
+
+function iifRender() {
+  const feed = document.getElementById('iif-feed');
+  if (!feed) return;
+  const items = _iifActive === 'all' ? _iifItems : _iifItems.filter(item => {
+    const m = IIF_TYPE_MAP[item.type];
+    return m && m.cat === _iifActive;
+  });
+  if (!items.length) { feed.innerHTML = '<div class="iif-empty">No items match this filter.</div>'; return; }
+  let lastDay = ''; let html = '';
+  items.forEach(item => {
+    const dayStr = _iifFormatDay(item.date);
+    if (dayStr !== lastDay) { html += `<div class="iif-day-sep">${dayStr}</div>`; lastDay = dayStr; }
+    const tm = IIF_TYPE_MAP[item.type] || {label: item.type||'News', cls:'news'};
+    const areaPills = (item.areas||[]).map(a =>
+      `<span class="iif-area-pill iif-area-${IIF_AREA_CLS[a]||'default'}">${IIF_AREA_LABELS[a]||a}</span>`
+    ).join('');
+    const srcHTML = _iifSrcHTML(item._key, item.sources);
+    const hasBody = !!item.body;
+    html += `<div class="iif-card" id="iif-card-${item._key}"${hasBody?' onclick="iifToggleCard(''+item._key+'')"':''}>
+  <div class="iif-card-top">
+    <span class="iif-date">${item.date||''}</span>
+    <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${areaPills}
+  </div>
+  <div class="iif-headline">${_iifEsc(item.headline)}</div>
+  <div class="iif-meta">
+    <div class="iif-sources">${srcHTML}</div>
+    ${hasBody?`<span class="iif-expand-icon">▼</span>`:''}
+  </div>
+  ${hasBody?`<div class="iif-body-text" id="iif-body-${item._key}">${_iifEsc(item.body)}</div>`:''}
+</div>`;
+  });
+  feed.innerHTML = html;
+}
+
+function _iifSrcHTML(key, sources) {
+  if (!sources||!sources.length) return '';
+  if (sources.length === 1) {
+    const s = sources[0];
+    return s.url
+      ? `<a class="iif-source-link" href="${s.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(s.name||'Source')} ↗</a>`
+      : `<span style="font-size:11px;color:#94a3b8">${_iifEsc(s.name||'')}</span>`;
+  }
+  const items = sources.map((s,i) => s.url
+    ? `<a class="iif-source-dd-item" href="${s.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(s.name||'Source '+(i+1))}<span style="margin-left:auto;color:#94a3b8;font-size:10px">↗</span></a>`
+    : `<div class="iif-source-dd-item">${_iifEsc(s.name||'Source '+(i+1))}</div>`
+  ).join('');
+  return `<div class="iif-source-dd-wrap">
+  <button class="iif-source-dd-btn" onclick="event.stopPropagation();_iifToggleSrc('${key}')">${sources.length} sources ▾</button>
+  <div class="iif-source-dd" id="iif-src-${key}">${items}</div>
+</div>`;
+}
+
+function _iifToggleSrc(key) {
+  const dd = document.getElementById('iif-src-'+key);
+  if (!dd) return;
+  const open = dd.classList.toggle('open');
+  if (open) {
+    document.querySelectorAll('.iif-source-dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open'); });
+    setTimeout(()=>{
+      document.addEventListener('click', function _c(e){
+        if(!dd.contains(e.target)){ dd.classList.remove('open'); document.removeEventListener('click',_c); }
+      });
+    },0);
+  }
+}
+
+function iifToggleCard(key) {
+  const card = document.getElementById('iif-card-'+key);
+  const body = document.getElementById('iif-body-'+key);
+  if (!body) return;
+  card?.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function _iifFormatDay(d) {
+  if (!d) return 'Unknown date';
+  try {
+    const dt = new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  } catch { return d; }
+}
+function _iifEsc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 
 async function loadLiveIntel() {
   const body = document.getElementById('ii-live-body');
