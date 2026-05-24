@@ -2174,10 +2174,28 @@ const UNI_TYPE_STYLE = {
   intel:           { label:'Intel',         bg:'#f1f5f9', color:'#475569' },
 };
 
+// Shared query cleaner: takes a headline → returns a short, clean Google News query
+function _buildGQuery(text) {
+  let s = (text || '').replace(/^[↗→·•\s]+/, '').trim();
+  // Take only the first clause (split at semicolon, em-dash, or " - ")
+  s = s.split(/[;—]|(?:\s+[-–]\s+)/)[0].trim();
+  // Remove financial figures: $39M, €1.2B, $500K, etc.
+  s = s.replace(/[$€£]\s*[\d.,]+\s*[BMKbmk]?\b/gi, '');
+  // Remove bare large numbers with suffixes (39M, 1.2B)
+  s = s.replace(/\b\d+(?:\.\d+)?\s*[BMKbmk]\b/gi, '');
+  // Strip punctuation from word boundaries
+  s = s.replace(/[,;:!?'"()\[\]{}]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Split into words, drop single-char tokens
+  let words = s.split(/\s+/).filter(w => w.length > 1);
+  // Slice to 6 words
+  words = words.slice(0, 6);
+  // Trim trailing weak stop words (prepositions, articles, conjunctions)
+  const stops = new Set(['at','in','on','the','a','an','of','for','to','and','or','but','with','by','from','as','its','after','before','into','vs','per','via']);
+  while (words.length > 2 && stops.has(words[words.length - 1].toLowerCase())) words.pop();
+  return words.join(' ');
+}
 function _gUrl(text) {
-  // Trim to first 8 words so Google News finds results instead of exact-matching a long sentence
-  const words = (text || '').trim().split(/\s+/);
-  const q = words.slice(0, 8).join(' ');
+  const q = _buildGQuery(text);
   return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
 }
 
@@ -13766,12 +13784,9 @@ window.addEventListener('load', () => {
      return segs.length > 0 && segs.every(s => genericSeg.test(s) || (s.length <= 5 && !s.includes('-')));
    } catch(e) { return false; }
  }
- // Build a Google News search URL from any raw link text.
- // Strips leading arrow/bullet symbols, truncates to 8 words, adds &tbm=nws
- // so Google returns news results rather than failing to exact-match a long sentence.
+ // Build a Google News search URL from any raw link text — uses the shared _buildGQuery cleaner.
  function _gUrlFromText(raw) {
-   const clean = (raw || '').replace(/^[↗→·•\s↗→·•]+/, '').trim();
-   const q = clean.split(/\s+/).slice(0, 8).join(' ');
+   const q = _buildGQuery(raw || '');
    return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&tbm=nws';
  }
  function _fixGenericLinks(root) {
