@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-24 (Session 42) — Preclinical blind spot: audit + prompt fix + Type B data backfill
+
+**company_enrichment.py — preclinical discovery prompt**
+
+### Root cause confirmed
+`gather_landscape_intel` was scoped to "Phase 1 or later" / "clinical-stage programs" — every
+automated discovery run for every area was explicitly excluding preclinical. TL1A's preclinical
+depth came from one-time manual curation never replicated elsewhere.
+
+### Prompt change (company_enrichment.py)
+- `LANDSCAPE_SEARCH_SYSTEM`: Removed "Phase 1 or later" restriction; added explicit instruction
+  to include Preclinical + IND Enabling stages; added pipeline pages / investor decks /
+  conference abstracts / China ChiCTR registry as source types
+- `gather_landscape_intel` prompt: Changed "clinical-stage programs" → "programs at ANY stage
+  from preclinical through approved"; added source type matrix (ClinicalTrials.gov, pipeline
+  pages, IR presentations, conference abstracts, press releases)
+
+### Type B data backfill — respiratory / tslp (3 drugs, all were in DB with 0 area assignments)
+| Drug | Company | Stage | Fix |
+|------|---------|-------|-----|
+| WIN378 | Windward Bio | Phase 3 | Added drug_areas + drug_area_scores × respiratory, tslp |
+| BSI-045B | Biosion (new) | Phase 1 | Added Biosion company; set company_id; drug_areas + scores |
+| APG333 | Apogee | Phase 1 | Added drug to DB; drug_areas + drug_area_scores × respiratory, tslp |
+
+Respiratory/tslp: 11 → 14 drugs (WIN378, BSI-045B, APG333 now visible on dashboard)
+Apogee added to respiratory + tslp company_areas.
+
+---
 ## 2026-05-24 (Session 40) — P0+P1: Disease-first headers + area-aware enrichment
 
 **index.html — commit e7e1d362 | company_enrichment.py — commit e3b4504e**
