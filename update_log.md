@@ -1,5 +1,32 @@
 
 ---
+## 2026-05-24 (Session 31) — Target Coverage + ACTIVE_IN Graph Layer
+
+**Validation:** 995 pass / 0 fail / 5 skip (unchanged — no regressions)
+
+### Phase 2 target coverage (84.2% → 89.5%)
+- 4 new canonical targets added: `a4b7_il23p19`, `il1ab`, `cd40`, `ige`
+- 9 new `drug_targets` rows: SPY120 (tl1a_a4b7 + components), SPY130 (a4b7_il23p19 + components), Lutikizumab (il1ab), Iscalimab (cd40), Omalizumab (ige)
+- 9 matching `entity_edges TARGETS` rows
+- Coverage: 85/95 area-linked drugs now have ≥1 primary target (89.5%)
+- Updated `phase2_target_node_coverage` test notes to reflect new baseline
+- Remaining 10 unmapped: trispecifics, combo studies, niche non-BD targets
+
+### ACTIVE_IN edges — L3 graph layer (migration v29)
+- 137 `entity_edges` rows seeded with `predicate='ACTIVE_IN'` from all `company_areas` rows
+- subject_type='company', object_type='area', generation_method='deterministic'
+- Enables single-query landscape lookups: "who is active in [area]?" without runtime join
+- Migration doc: `scripts/migrations/v29_active_in_edges.sql`
+- Validation test `active_in_edges_coverage` inserted (id=1077, expected=137)
+
+### entity_edges predicate inventory (end of Session 31)
+| Predicate | Count |
+|-----------|-------|
+| COMPETES_WITH | 600 |
+| TARGETS | 146 |
+| ACTIVE_IN | 137 |
+
+---
 ## 2026-05-24 (Session 30) — Validation Green Sprint
 
 **Result:** 995 pass / 0 fail / 5 skip / 990 tests (down from 1000 — 10 stale tests deleted)
