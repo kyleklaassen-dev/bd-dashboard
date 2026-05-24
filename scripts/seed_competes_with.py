@@ -138,22 +138,62 @@ TARGET_ALIASES: dict[str, str] = {
     "tnfrsf17":             "bcma",
     "bcma (tnfrsf17)":      "bcma",
 
-    # T-cell engager targets (composite — kept specific)
+    # IL-13
+    "il-13":                "il13",
+    "il13":                 "il13",
+
+    # IL-31RA
+    "il-31ra":              "il31ra",
+    "il31ra":               "il31ra",
+
+    # IL-5 / IL-5Rα
+    "il-5":                 "il5",
+    "il5":                  "il5",
+    "il-5rα":               "il5ra",
+    "il-5ra":               "il5ra",
+    "il5ra":                "il5ra",
+
+    # OX40 / OX40L
+    "ox40l":                "ox40l",
+    "ox40":                 "ox40",
+
+    # CD19 (standalone — not bispecific)
+    "cd19":                 "cd19",
+
+    # T-cell engager bispecifics (each target pair is its own class)
+    "bcma × cd3":           "bcma_cd3",
     "bcma×cd3":             "bcma_cd3",
     "bcmaXcd3":             "bcma_cd3",
+    "bcma × cd19 × cd3":    "bcma_cd19_cd3",
+    "cd19×bcma×cd3":        "bcma_cd19_cd3",
+    "cd19 × cd3":           "cd19_cd3",
     "cd19×cd3":             "cd19_cd3",
     "cd3×cd19":             "cd19_cd3",
+    "cd20 × cd3":           "cd20_cd3",
     "cd20×cd3":             "cd20_cd3",
+    "cd19 × cd20 × cd3":    "cd19_cd20_cd3",
 
     # TL1A bispecifics (each gets own class — do NOT auto-compete with monospecifics)
+    "tl1a × il-23p19":      "tl1a_il23p19",
     "tl1a×il-23p19":        "tl1a_il23p19",
     "tl1a×il23p19":         "tl1a_il23p19",
     "tl1a/il-23":           "tl1a_il23p19",
     "tl1a×il-23":           "tl1a_il23p19",
-    "tl1a × il-23p19":      "tl1a_il23p19",
+    "il-23p19 × tl1a":      "tl1a_il23p19",  # canonical direction
     "tl1a×il-23p19×α4β7":   "tl1a_il23p19_a4b7",
+    "tl1a×il-12/23p40":     "tl1a_il12_23p40",
+    "il-23p40 × tl1a":      "tl1a_il12_23p40",
 
-    # Other common combos
+    # TSLP bispecifics
+    "tslp×il-13":           "tslp_il13",
+    "tslp×il-33":           "tslp_il33",
+
+    # IL-4Rα bispecifics
+    "il-4rα×ox40l":         "il4ra_ox40l",
+    "il-4rα×tslp":          "il4ra_tslp",
+
+    # Other
+    "pd-1 × vegf":          "pd1_vegf",
     "pd-1×vegf":            "pd1_vegf",
     "pd-1/vegf":            "pd1_vegf",
     "pd-1×ctla-4":          "pd1_ctla4",
@@ -250,16 +290,17 @@ def sb_rpc(func: str, payload: dict) -> dict | None:
 
 def fetch_direct_drugs() -> dict:
     """
-    Returns {drug_id: {name, target, status, canonical_target, is_mapped}}.
+    Returns {drug_id: {name, target, stage, canonical_target, is_mapped}}.
+    Note: drugs table uses `stage` (not `status`) for development status.
     """
-    drugs = sb_get("drugs", {"select": "id,name,target,status"})
+    drugs = sb_get("drugs", {"select": "id,name,target,stage"})
     lookup = {}
     for d in drugs:
         canon, mapped = normalize_target(d.get("target") or "")
         lookup[d["id"]] = {
             "name":             d.get("name") or d["id"],
             "target":           (d.get("target") or "").strip(),
-            "status":           (d.get("status") or "").lower().strip(),
+            "stage":            (d.get("stage") or "").lower().strip(),
             "canonical_target": canon,
             "target_is_mapped": mapped,
         }
@@ -296,7 +337,7 @@ def group_by_area_target(das_rows: list[dict], drug_lookup: dict) -> tuple[dict,
             continue
 
         # Skip terminated drugs — they competed historically but not now
-        if drug["status"] in ("terminated", "discontinued"):
+        if drug["stage"] in ("terminated", "discontinued"):
             continue
 
         canon = drug["canonical_target"]
@@ -433,7 +474,6 @@ def build_validation_tests(safe_edges: list[dict]) -> list[dict]:
                 "area_id":         edge["scope_area_id"],
                 "priority":        "P2",
                 "notes":           f"COMPETES_WITH edge must exist between {edge['subject_id']} and {edge['object_id']} in area {edge['scope_area_id']}",
-                "is_active":       True,
             })
 
     return tests
