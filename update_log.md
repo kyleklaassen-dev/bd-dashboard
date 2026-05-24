@@ -1,5 +1,36 @@
 
 ---
+## 2026-05-24 (Session 40) — P0+P1: Disease-first headers + area-aware enrichment
+
+**index.html — commit e7e1d362 | company_enrichment.py — commit e3b4504e**
+
+### P0: Dynamic area portfolio headers (index.html)
+- Root cause: `tl1aPI._genericDetailHTML` was hardcoding "IBD Portfolio" as the drug section header on all tabs, including non-IBD areas (TED, Respiratory, Atopy, etc.)
+- Fix: Added `TAB_PORTFOLIO_LABELS` constant mapping each tab → disease portfolio label. Modified `_genericDetailHTML` to accept optional `tabId` 3rd param; derived `_portfolioLabel` from lookup with "IBD Portfolio" fallback. Updated both `_makeAreaPI` `.call()` sites to pass `this.tabId`.
+- Mapping: tl1a → IBD Portfolio | igf1r-tshr → TED Portfolio | tslp → Respiratory Portfolio | il4ra/il4ra-tslp → Atopic Disease Portfolio | fcrn → Autoimmune Portfolio | ace → T-Cell Engager Portfolio
+
+### P1: Area-aware enrichment prompt (company_enrichment.py)
+- Root cause: `build_step5_prompt` had no area context — all assessments were framed as if Ailux competes in IBD/TL1A regardless of area_id
+- Fix: Added `AREA_DISEASE_CONTEXT` dict mapping each area_id to: disease label, `ailux_in_area` flag, and `bd_frame` (how to explain Ailux implications in non-competing areas)
+- Added `area_framing_block` injected into the prompt. For primary areas (tl1a/ibd): confirms direct competitor framing. For non-primary areas (igf1r, tslp, il4ra, fcrn, tcell): two-layer instruction — Layer 1 = disease area assessment, Layer 2 = Ailux BD implications (benchmark, partner potential, cross-area signal)
+- Updated `vs_ailux`, `why_it_matters`, `platform_intelligence.assessment`, `strategic_role` field descriptions to reference `{_disease_label}` dynamically
+
+---
+## 2026-05-24 (Session 40) — P0: Disease-first portfolio headers
+
+**index.html deploy — commit e7e1d362**
+
+### Bug fixed
+- `_genericDetailHTML` was hardcoding "IBD Portfolio" as the section header above all drug rows — even on non-IBD tabs (TED, Respiratory, Atopy, etc.)
+
+### Changes
+- Added `TAB_PORTFOLIO_LABELS` constant (near `AREA_LABELS`) mapping each tab ID to its disease-area portfolio label
+- Modified `_genericDetailHTML` to accept optional 3rd `tabId` parameter
+- Derived `_portfolioLabel` from `TAB_PORTFOLIO_LABELS[tabId]` with "IBD Portfolio" fallback for native TL1A calls
+- Updated both `_makeAreaPI` `.call()` sites to pass `this.tabId` as 3rd argument
+- Mapping: tl1a → IBD Portfolio | igf1r-tshr → TED Portfolio | tslp → Respiratory Portfolio | il4ra/il4ra-tslp → Atopic Disease Portfolio | fcrn → Autoimmune Portfolio | ace → T-Cell Engager Portfolio
+
+---
 ## 2026-05-24 (Session 39) — v32 Coverage Diagnostics: First Live Score
 
 **DB + script session. GitHub deploy: compute_landscape_coverage.py + v32_coverage_diagnostics.sql**
