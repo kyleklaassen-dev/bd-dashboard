@@ -12918,7 +12918,7 @@ function _makeAreaPI(tabId, areaIds) {
     ['Developmental Dysplasia of the Hip','DDH'],['Hip Dysplasia','DDH'],
     ['Chronic Exertional Compartment Syndrome','CECS'],['Exertional Compartment Syndrome','ECS'],
     ['Liver Ablation','Liver Abl.'],
-    ['Healthy Subjects or Volunteers','HV'],['Healthy Volunteers','HV'],['Healthy Subjects','HV'],['Healthy Normal Volunteers','HV'],
+    ['Healthy Subjects or Volunteers','HV'],['Healthy Volunteers','HV'],['Healthy Subjects','HV'],['Healthy Normal Volunteers','HV'],['Healthy Volunteer','HV'],['Healthy Adult Volunteers','HV'],['Healthy Adults','HV'],['Normal Healthy Volunteers','HV'],['Normal Volunteers','HV'],
     ['Ventilation','Vent.'],['Lung Function','Lung Fxn.'],['Anesthesia, General','Gen. Anesthesia'],
     // ── Other ──
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
@@ -12937,6 +12937,7 @@ function _makeAreaPI(tabId, areaIds) {
     r = r.replace(/\b(\S+)\s+\(\1\)/gi, '$1');
     // Severity/activity qualifiers → compact prefix
     r = r.replace(/\bPrimary\s+(pSS)\b/gi, '$1');
+    r = r.replace(/\bhealthy\s+(?:adult\s+|normal\s+|male\s+|female\s+)?(?:subjects?|volunteers?)\b/gi, 'HV');
     r = r.replace(/\bModerately\s+to\s+Severely\s+Active\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bModerate\s+to\s+Severe\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bMild\s+to\s+Moderate\s+/gi, 'Mild-Mod ');
