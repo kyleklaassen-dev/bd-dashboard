@@ -132,16 +132,33 @@ window.showPhase4Compare()
 
 ## Next Sprint Priority Order
 
-### P0 — Phase 4B Complete: Advisor sign-off + entity_consistency_checks build
+### P0 — entity_consistency_checks: Execute SQL plan + seed (pending advisor approval)
 
-**Goal:** Phase 4B dual-read is now instrumented across all three blocked paths (IBD tab, TL1A tab, drug modal). The next step is:
-1. Load IBD + TL1A tabs in browser, open 3–5 drug modals for test drugs, run `window.showPhase4Compare()` — confirm expected statuses
-2. Present dual-read results to advisor for Phase 4B sign-off
-3. Build `entity_consistency_checks` table (migration SQL in `docs/evidence_reconciliation_layer.md`)
-4. Seed with 7 known Phase 4A candidates
-5. Unlock `ontology_edges` only after advisor explicitly approves
+**Status:** SQL migration plan drafted — `migrations/entity_consistency_checks_v1.sql`
 
-**Note:** Phase 5 dashboard migration is still blocked until advisor clears Phase 4B.
+**Goal:** Execute the migration plan after advisor approval. All 7 seed rows are ready.
+
+**Migration plan contents:**
+- `CREATE TABLE IF NOT EXISTS entity_consistency_checks` — full schema with severity + status + review_status checks
+- 6 indexes: entity, severity, classification, status, review_status, composite open-high
+- 7 seed `INSERT … ON CONFLICT DO NOTHING` rows: lm-302, sim0500, spy072, epi-001, batoclimab, upadacitinib, gb004
+- 5 verification queries (commented) for post-execution validation
+
+**Advisor approval checklist:**
+- Does not alter existing production tables ✓
+- JSONB evidence fields for both sides ✓
+- classification + review_status stored ✓
+- Tracks resolved and unresolved issues (status field) ✓
+- 6 indexes covering all query dimensions ✓
+- Seed rows for all 7 known Phase 4A candidates ✓
+- Idempotent (ON CONFLICT DO NOTHING + UNIQUE constraint) ✓
+
+**After execution:**
+1. Run verification queries to confirm 7 rows seeded correctly
+2. Update `docs/evidence_reconciliation_layer.md` build order status
+3. Phase 5 migration is still blocked until Phase 4B sign-off + ontology_edges unlock
+
+**Note:** Phase 5 dashboard migration is still blocked until advisor clears Phase 4B dual-read results.
 
 ### P1 — epi-001 Manual Review (Track B)
 
