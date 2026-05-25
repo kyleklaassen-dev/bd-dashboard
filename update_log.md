@@ -1,5 +1,29 @@
 
 ---
+## 2026-05-25 (Session 53j) — Phase 4B Path C: Drug Entity Modal dual-read
+
+**Phase 4B Path C implemented in `index.html`.**
+
+**Changes:**
+- Added `_runPhase4CModalDualRead(drug?.id || drugId, areas)` call at end of `openDrugEntityModal()` (non-blocking, fires after render)
+- Added global `async function _runPhase4CModalDualRead(resolvedDrugId, legacyAreas)` (~160 lines) after modal function
+- Parallel reads: `drug_targets`, `drug_indications`, `trials` → `trial_indications` per drug
+- Per-area gap detection using `AREA_TARGET_MAP` (target views) and `AREA_IND_MAP` (indication views)
+- Classification per gap: `ibd_indication_not_tl1a_target` / `normalized_gap` / `trial_evidence_only` / `new_normalized_value` / `needs_manual_review`
+- Status levels: `match` / `compare_pass_oos_adjusted` / `acceptable_mismatch` / `needs_manual_review` / `cross_table_inconsistency`
+- Record written to `window.__MERIDIAN_PHASE4_COMPARE__` with `path: 'drug_entity_modal'` + full per-drug comparison fields
+- Console: `[Phase4C-Modal] drug=X areas=[...] targets=[...] inds=[...] missing_targets=N missing_inds=N → status`
+
+**Expected behavior per test drug:**
+- `lm-302` (areas: tl1a, ibd) — has no tl1a target, no uc/cd inds → normalized_gap; cross_table_inconsistency
+- `batoclimab` (areas: fcrn, ted, autoimmune) — has fcrn target, gmg + ted inds; ra/sle absent → acceptable_mismatch / new_normalized_value
+- `upadacitinib` (areas: atopy, autoimmune) — has ad ind (missing from drug_indications but may have trial evidence) → trial_evidence_only or acceptable_mismatch
+- `epi-001` (areas: tl1a, ibd) — has no tl1a target, no ibd inds → needs_manual_review
+- `spy072` (areas: tl1a) — has no tl1a target, PsA/axSpA inds only → normalized_gap
+
+**No data changes. No visual changes. ontology_edges remain locked.**
+
+---
 ## 2026-05-25 (Session 53i) — Phase 4B Path B: TL1A target-view dual-read in _makeAreaPI()
 
 **Phase 4B Path B implemented in `index.html`.**
