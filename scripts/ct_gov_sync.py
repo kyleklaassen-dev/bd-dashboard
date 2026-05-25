@@ -326,6 +326,59 @@ def validate_trial_study_acronym(nct_id: str, study_acronym: str, trial_name: st
     return warnings
 
 
+def validate_drug_field_consistency(drug: dict) -> list[str]:
+    """
+    Check for internal contradictions between drug fields:
+      - target says bispecific (×) but drug_format says mAb (monospecific)
+      - mechanism says bispecific but target is a single gene
+      - drug_format says bispecific but target has no × separator
+    Returns list of warning strings (empty = clean).
+    """
+    import re as _re2
+    warnings = []
+    did      = drug.get("id", "")
+    target   = drug.get("target") or ""
+    mechanism = drug.get("mechanism") or ""
+    drug_format = (drug.get("drug_format") or "").lower()
+    is_combo = drug.get("is_combo") or drug.get("is_combination") or False
+
+    if is_combo:
+        return warnings  # combination drugs have intentional mixed fields
+
+    is_target_bispecific  = "×" in target
+    is_format_bispecific  = "bispecific" in drug_format or "trispecific" in drug_format
+    is_format_mono        = drug_format in ("mab", "antibody") and not is_format_bispecific
+    is_mechanism_bispecific = "bispecific" in mechanism.lower() or "trispecific" in mechanism.lower()
+    is_mechanism_mono     = bool(_re2.search(r'\banti-\w+\s+m[Aa][Bb]\b', mechanism)) and not is_mechanism_bispecific
+
+    if is_target_bispecific and is_format_mono:
+        warnings.append(
+            f"[field_conflict] drug '{did}': target='{target}' implies bispecific "
+            f"but drug_format='{drug_format}' implies monospecific."
+        )
+
+    if is_target_bispecific and is_mechanism_mono:
+        warnings.append(
+            f"[field_conflict] drug '{did}': target='{target}' implies bispecific "
+            f"but mechanism='{mechanism[:60]}' implies monospecific."
+        )
+
+    if is_format_bispecific and target and "×" not in target and "/" not in target:
+        warnings.append(
+            f"[field_conflict] drug '{did}': drug_format='{drug_format}' but "
+            f"target='{target}' has no bispecific separator (× or /). "
+            f"Check whether target field is complete."
+        )
+
+    if is_mechanism_bispecific and target and "×" not in target and "/" not in target and target:
+        warnings.append(
+            f"[field_conflict] drug '{did}': mechanism implies bispecific "
+            f"but target='{target}' shows only one target. Add second target to target field."
+        )
+
+    return warnings
+
+
 def run_field_validation(dry_run: bool = False) -> dict:
     """
     Scan all drugs and trials in Supabase for field semantic violations.
@@ -337,18 +390,26 @@ def run_field_validation(dry_run: bool = False) -> dict:
     drug_warnings  = []
     trial_warnings = []
 
-    # Validate drugs.brand_name
+    # Fetch drugs for two checks: brand_name + field consistency
     r = requests.get(
         f"{SUPABASE_URL}/rest/v1/drugs",
         headers=SB_HEADERS,
-        params={"select": "id,name,brand_name", "limit": "500"},
+        params={"select": "id,name,brand_name,target,mechanism,drug_format,is_combo,is_combination", "limit": "500"},
         timeout=15
     )
     for drug in (r.json() if r.ok else []):
+        # Check 1: brand_name semantic validity
         w = validate_drug_brand_name(drug["id"], drug.get("brand_name") or "")
         if w:
             drug_warnings.extend(w)
             for msg in w:
+                log(f"⚠ VALIDATION: {msg}")
+
+        # Check 2: target/mechanism/drug_format internal consistency
+        w2 = validate_drug_field_consistency(drug)
+        if w2:
+            drug_warnings.extend(w2)
+            for msg in w2:
                 log(f"⚠ VALIDATION: {msg}")
 
     # Validate trials.study_acronym vs trial_name
