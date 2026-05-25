@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53k (2026-05-25) — Company Governance Phase  
-**Prior session:** Session 53j — Phase 4B Path C (`openDrugEntityModal()` dual-read)
+**Last session:** Session 53l (2026-05-25) — Freshness Automation + Company Fleet lift to 96/100  
+**Prior session:** Session 53k — Company Governance Phase
 
 ---
 
@@ -13,10 +13,10 @@ Company layer is now structurally sound. Do not revisit manually — freshness i
 |---|---|
 | P0 (blocking) | 0 |
 | P1 (quality) | 2 (intentional orphan signals only) |
-| Fleet average | 91/100 |
-| A-grade companies | 60 |
-| B-grade companies | 39 (all freshness-only gaps) |
-| C-grade companies | 2 (yunnan-baiyao, pien-tze-huang — orphans, correct) |
+| Fleet average | 96/100 (after freshness automation — see below) |
+| A-grade companies | 89 |
+| B-grade companies | 12 (10 need enrichment pipeline; 2 intentional orphans) |
+| C-grade companies | 0 |
 
 **What was built/applied this session:**
 - Acquired-asset rule: `company_id=acquirer`, `company_display="X w/Y"`, `original_company_id`, `acquired_asset=true`
@@ -34,22 +34,25 @@ Add `drug_id` / `program_id` to the `intel` table for structured program-level a
 
 ---
 
-## ⚡ P0 NEXT — Automated last_verified Refresh Workflow
+## Freshness Automation: COMPLETE ✅
 
-**Why:** The B-grade cluster (39 companies at ~83/100) is entirely explained by `freshness=0` — `last_verified` has never been set. Manually patching these would be busywork. Freshness should become an automation problem.
+**Built and deployed (2026-05-25):**
+- `scripts/refresh_company_verified.py` — 3-tier freshness refresh (protected fields list; JSONL log; drug_validation_results)
+- `.github/workflows/refresh-company-verified.yml` — weekly Sunday 06:00 UTC; manual dispatch with --company / --dry-run / --all options
 
-**Build:** A `refresh_company_verified.py` script + GitHub Actions workflow that:
-1. Queries all companies where `last_verified` is null or older than 90 days
-2. Runs a lightweight verification pass (confirm company still exists, basic profile still valid — can use existing data sources or a simple web check)
-3. Updates `last_verified = today` only when verification passes
-4. Does NOT overwrite curated fields (hq_city, company_type, ta_focus, etc.) — freshness update only
-5. Logs source, date, and method to a `company_verification_log` table (or as a JSON note in a `verification_notes` field)
-6. Runs on a weekly schedule (cron: Sundays, off-peak)
-7. Writes a summary to `drug_validation_results` with check_type=`last_verified_refreshed`
+**Result after first run:**
+| Metric | Before | After |
+|---|---|---|
+| Fleet average | 91/100 | **96/100** |
+| A-grade | 60 | **89** |
+| B-grade | 39 | **12** |
+| C-grade | 2 | **0** |
 
-**Expected outcome:** B-grade cluster lifts to A-grade over the next 1–2 automated runs. Fleet average should reach 95+.
+**Remaining B-grade (12 companies):**
+- 10 active companies with `last_verified=null` and no `last_enriched_at` — these are in the enrichment pipeline queue (ailux, aurinia, biosion, imagenebio, incyte, lynkpharma, moonlake, viridian, yarrow, zenas). They will auto-lift to A once enrichment pipeline runs for them.
+- 2 intentional orphans (yunnan-baiyao, pien-tze-huang) — pipeline=0 penalty is correct, do not change.
 
-**Do not manually patch last_verified for the 39 B-grade companies.** Let the workflow do it.
+**Target:** Fleet average 98+ once enrichment pipeline touches the 10 active B-grade companies.
 
 ---
 
