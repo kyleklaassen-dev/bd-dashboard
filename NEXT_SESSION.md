@@ -1,60 +1,43 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 52 (2026-05-25)  
-**Completed:** Wave 2C IBD Backfill Preview · Track B mismatch classification · Track C readiness indicator  
-**Prior milestone:** Phase 4 Comparison Harness (Session 51) · L4 Queryable (Session 50)  
-**Deploy commits:** a9829d58b1 (harness.md) · ff37daa24e (index.html)
+**Last session:** Session 53 (2026-05-25)  
+**Completed:** Wave 2C COMMITTED (63 rows) · Phase 4 harness rerun · tl1a/ibd reclassified  
+**Prior milestone:** Phase 4 Comparison Harness (Session 51) · L4 Queryable (Session 50)
 
 ---
 
 ## State of the Platform
 
-### What Just Happened (Session 52)
-- Wave 2C `--preview` run: run_id `wave2c_ibd_20260525_203134` · 68 rows in backfill_preview
-- 36 missing tl1a/ibd drugs assessed: 32 mapped, 3 excluded (legacy_noise + OOS), 1 held (epi-001, review_required)
-- Expected post-commit match %: ≥97% for both tl1a and ibd (above 95% threshold)
-- Track B: Full mismatch classification added to `docs/phase4_comparison_harness.md` — 6 type taxonomy
-- Track C: Migration readiness badge added to Indication Landscape Card (uc/cd=Blocked, asthma=Ready, ad/ted=Close, gmg/sle=Not Ready)
-- **WAITING:** Advisor approval to commit Wave 2C rows to drug_indications
-
-### What Just Happened (Session 51)
-- Phase 4 Comparison Harness built: `scripts/phase4_compare_legacy_vs_normalized.py` + `docs/phase4_comparison_harness.md`
-- 11 legacy area_id → indication mappings compared; 5 high-risk dashboard functions assessed
-- **Primary gating item identified:** drug_indications covers only 30% of tl1a/ibd legacy drugs (17/50)
-- tcell area: 0% overlap — not_ready; fundamental mapping issue between legacy CAR-T drugs and approved hematology drugs
-- 3 areas at 100% match: il4ra, respiratory, tslp — safe when drug_indications scale is resolved
-
-### What Just Happened (Session 50)
-- Wave 2B trial_indications committed: 315 rows + 4 held rows individually reviewed
-- L4 canonical query validation suite: 5/5 passed
-- ontology_edges count: 25 — **LOCKED until Phase 4 comparison layer proven**
+### What Just Happened (Session 53)
+- Wave 2C committed: 63 rows to drug_indications · 2 held (epi-001, review_required)
+- drug_indications total: **192 rows** (129 pre-Wave 2C + 63 committed)
+- Post-commit V1-V8 validation: all pass
+- Phase 4 harness rerun: tl1a **92.2%** 🟡 · ibd **94.0%** 🟡 (both reclassified from 🔴 migration_blocker → 🟡 acceptable_mismatch)
+- **Gap analysis:** 3 OOS exclusions (lm-302/sim0500/spy072) + 1 held (epi-001) keep raw % below 95%. Effective coverage excluding confirmed OOS = **97.9%**
+- **Pending advisor decision:** does 95% threshold apply to raw or OOS-adjusted (effective) coverage?
+- Readiness indicator: uc=92% blocked, cd=94% blocked — awaiting advisor threshold decision
 
 ### Active Constraints
-1. **Do NOT commit Wave 2C** — advisor approval required first (preview staged in backfill_preview, run_id: wave2c_ibd_20260525_203134)
+1. **epi-001 held** — 2 rows remain in backfill_preview as pending_review / review_required. Do NOT commit without manual review of epi-001 IBD indication evidence.
 2. **Do NOT unlock ontology_edges** — remains at 25 until advisor explicitly approves after Phase 4 dual-read validation
-3. **Do NOT migrate BLOCKED/NEEDS MIGRATION dashboard references** — Phase 4 comparison layer must exist first
+3. **Do NOT migrate BLOCKED dashboard references** — Phase 4 comparison layer must exist first
+4. **tl1a/ibd readiness decision pending** — advisor must rule on raw vs. effective threshold before moving to Phase 4 compare pass
 
 ---
 
 ## Next Sprint Priority Order
 
-### P0 — Wave 2C Commit (Track A) ← AWAITING ADVISOR APPROVAL
-**The preview is complete.** The advisor must review the preview report and approve the commit.
+### P0 — Advisor Decision: 95% threshold (raw vs. effective)
+The commit is done. The gap between projected (97.9% effective) and actual (92.2%/94.0% raw) is explained entirely by 3 confirmed OOS drugs that will NEVER be in drug_indications:
+- `lm-302`: gastric cancer drug, in legacy tl1a area by curation error
+- `sim0500`: RRMM drug, in legacy tl1a area by curation error
+- `spy072`: TL1A-targeting drug for PsA/axSpA (rheumatology), not IBD
 
-Preview report is in the `--preview` terminal output (run_id: wave2c_ibd_20260525_203134). Key metrics:
-- 65 committable rows (32 drugs × UC+CD, minus golimumab which is UC-only)
-- 3 exclusions: lm-302, sim0500, spy072
-- 2 held rows: epi-001 (both uc + cd, conf 76, review_required)
-- Data integrity flag: ep006 + es302 are duplicate drug_ids for ES302
+**Option A:** Accept effective coverage (97.9%) as the threshold metric → tl1a/ibd move to "ready for Phase 4 compare". Update COMPARISON_READINESS in index.html from "blocked" to "close" (or "ready" if advisor approves Phase 4 compare pass).
 
-**To commit once approved:**
-```bash
-python3 scripts/wave2c_drug_indications_ibd_backfill.py --commit
-```
+**Option B:** Commit epi-001 after manual review → raw coverage becomes 49/51 = 96.1% for tl1a, 49/50 = 98% for ibd → both above 95% → tl1a/ibd move to ready.
 
-**Post-commit action required:** Run `--validate` to confirm V1-V8 checks pass.
-
-**After commit:** Run Phase 4 harness script again to confirm tl1a/ibd match % ≥ 95%.
+**Option C:** Keep 95% raw threshold. Accept that 3 permanently excluded OOS drugs create a 2.8%/1% floor on the raw gap. Move on to Phase 4 compare pass with current 92-94% (the actual dashboard migration safety is high since the excluded drugs are confirmed not-IBD).
 
 ### P1 — Phase 4 Dual-Read Validation (Track D)
 **What to build:** For `_makeAreaPI` and `openDrugEntityModal`, add a parallel read path alongside the legacy query. Compare outputs in-browser and log any regressions.
@@ -67,26 +50,25 @@ python3 scripts/wave2c_drug_indications_ibd_backfill.py --commit
 - (c) No dashboard visual regressions
 - (d) Enrichment write-side simultaneously migrated (for drug_area_scores replacement)
 
-### P1 — Portfolio Intelligence Product (Track C)
-Drug → Company joins are now available via `drugs.company_id`. The company portfolio view hasn't been built.
+### P2 — epi-001 Manual Review
+Review EPI-001 clinical evidence:
+- Is there any indication_short available or published trial data for IBD?
+- If confirmed IBD target: commit epi-001 (uc + cd, conf 76, review_required)
+- If uncertain: keep held
+- Drug: anti-TL1A antibody, preclinical stage
 
-**Question it answers:** "What is [company]'s full indication footprint across all areas we track?"
+### P3 — Track B True Missing Rows
+From mismatch classification in `docs/phase4_comparison_harness.md` Part 4:
+- `upadacitinib` → ad: true_missing_row
+- `imvt-1402` → gmg, cidp, waiha: true_missing_row
+- `ep006` → tombstone or merge into es302 (duplicate drug_id data integrity)
 
-**Dependencies:** drugs (company_id), drug_indications (indication_id), drug_targets (target_id), indications
+### P4 — Portfolio Intelligence Product (Track C)
+Drug → Company joins are now available. First intelligence product using completed ontology layer.
+**Question:** "What is [company]'s full indication footprint across all areas we track?"
 
-### P2 — Track B Follow-Up: True Missing Rows
-From the mismatch classification in `docs/phase4_comparison_harness.md` Part 4:
-- `upadacitinib` → ad: true_missing_row (atopy area drug, should be in drug_indications)
-- `imvt-1402` → gmg, cidp, waiha: true_missing_row (FcRn drug missing from drug_indications)
-- `ep006` → tombstone or merge into es302 (duplicate drug_id data integrity issue)
-
-### P3 — Wave 2C: UC/CD Composite Resolution (Track B/E)
-28 UC·CD composite strings were deferred from Wave 2A. These should now be resolved using the composite split logic documented in `normalization_engine.md`.
-
-**Note:** Run dry-run first. These are expected to resolve cleanly via the middle-dot composite splitter.
-
-### P4 — Ontology Edges Unlock (Track B)
-Once Phase 4 comparison layer validates zero regressions, advisor approves ontology_edges expansion. Current lock count: 25. The missing edges (veligrotug/elegrobart for TED × IGF-1R_TSHR) are documented in `project_competitive_landscape_layer.md`.
+### P5 — Wave 2D: FcRn + Autoimmune Backfill (Track A)
+Next largest coverage gaps: fcrn (57.1%) and autoimmune (48%). After advisor clears the tl1a/ibd threshold question.
 
 ---
 
@@ -94,38 +76,34 @@ Once Phase 4 comparison layer validates zero regressions, advisor approves ontol
 
 | Track | Focus | Status |
 |---|---|---|
-| A — Relationship Layer | Wave 2C commit approval · then FcRn/autoimmune backfill | ⏸ WAITING ADVISOR APPROVAL |
-| B — Ontology Quality | True missing rows (upadacitinib→ad, imvt-1402→fcrn); ep006 merge | Queued |
+| A — Relationship Layer | Threshold decision → epi-001 review → Wave 2D | ⏸ AWAITING ADVISOR |
+| B — Ontology Quality | True missing rows (upadacitinib, imvt-1402, ep006 merge) | Queued |
 | C — Intelligence Products | Portfolio intelligence product | Queued |
-| D — Dashboard Architecture | Phase 4 dual-read validation | Queued |
-| E — Data Acquisition | Normalization engine → platform library | Documented; library build deferred |
-
-Resource allocation: A 70% · B 10% · C 10% · D 5% · E 5%
+| D — Dashboard Architecture | Phase 4 dual-read validation | ▶ NEXT |
+| E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
 
 ## Validation Checks Before Starting Work
 
 ```sql
+SELECT count(*) FROM drug_indications;             -- expect 192
 SELECT count(*) FROM trial_indications;            -- expect 319
-SELECT count(*) FROM drug_indications;             -- expect 129 (pre-Wave 2C commit)
 SELECT count(*) FROM drug_targets;                 -- expect 173
 SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
 SELECT count(*) FROM backfill_preview
   WHERE backfill_run_id = 'wave2c_ibd_20260525_203134'
-  AND preview_status = 'pending_review';           -- expect 68 (65 + 3 excluded rows staged)
-```
-
-After Wave 2C commit:
-```sql
-SELECT count(*) FROM drug_indications;             -- expect 129 + 63 = ~192 (65 rows minus 2 review_required)
+  AND preview_status = 'pending_review';           -- expect 2 (epi-001 held)
+SELECT count(*) FROM backfill_preview
+  WHERE backfill_run_id = 'wave2c_ibd_20260525_203134'
+  AND preview_status = 'committed';               -- expect 63
 ```
 
 ---
 
 ## Files to Load at Start of Next Session
 
-1. `docs/phase4_comparison_harness.md` — comparison results + Track B classifications
-2. `docs/normalization_engine.md` — parser reference  
-3. `scripts/wave2c_drug_indications_ibd_backfill.py` — commit with `--commit` flag when approved
+1. `docs/phase4_comparison_harness.md` — current comparison state (rerun 2026-05-25 20:48)
+2. `docs/normalization_engine.md` — parser reference
+3. `scripts/wave2c_drug_indications_ibd_backfill.py` — if epi-001 review needed, use `--commit --run-id wave2c_ibd_20260525_203134`
 4. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`
