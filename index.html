@@ -555,6 +555,38 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 #home-overlay-body::-webkit-scrollbar-track { background: #f8fafc; }
 #home-overlay-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 .home-panel { padding: 16px 20px; }
+
+/* ── Important Articles to Know ── */
+.news-tab-bar { display:flex; gap:6px; padding:14px 20px 0; border-bottom:1.5px solid #e8eef5; margin-bottom:0; }
+.news-tab-btn { padding:6px 18px; border-radius:8px 8px 0 0; border:1.5px solid transparent; font-size:12px; font-weight:700; cursor:pointer; background:transparent; color:#64748b; transition:all .15s; position:relative; bottom:-1.5px; }
+.news-tab-btn:hover { background:#f1f5f9; color:#1e3a5f; }
+.news-tab-btn.active { background:white; border-color:#e8eef5; border-bottom-color:white; color:#1e3a5f; }
+.news-articles-list { padding:14px 20px 20px; display:flex; flex-direction:column; gap:10px; }
+.na-card { background:#fafbfc; border:1.5px solid #e8eef5; border-radius:10px; padding:14px 16px; transition:border-color .15s, box-shadow .15s; }
+.na-card:hover { border-color:#93c5fd; box-shadow:0 2px 8px rgba(30,74,130,0.08); }
+.na-card.na-high { border-left:3px solid #1e4a82; }
+.na-card.na-medium { border-left:3px solid #7c3aed; }
+.na-card.na-standard { border-left:3px solid #94a3b8; }
+.na-headline { font-size:13.5px; font-weight:700; color:#0f172a; line-height:1.4; margin-bottom:6px; }
+.na-headline a { color:inherit; text-decoration:none; }
+.na-headline a:hover { color:#1e4a82; text-decoration:underline; }
+.na-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.na-source { font-size:10.5px; font-weight:700; color:#1e4a82; }
+.na-date { font-size:10.5px; color:#94a3b8; }
+.na-priority { font-size:9.5px; font-weight:800; padding:1px 7px; border-radius:5px; text-transform:uppercase; letter-spacing:0.04em; }
+.na-priority.high { background:#dbeafe; color:#1e40af; }
+.na-priority.medium { background:#ede9fe; color:#5b21b6; }
+.na-priority.standard { background:#f1f5f9; color:#475569; }
+.na-summary { font-size:12px; color:#334155; line-height:1.6; margin-bottom:6px; }
+.na-why { font-size:11.5px; color:#475569; line-height:1.55; font-style:italic; margin-bottom:8px; padding-left:8px; border-left:2px solid #e2e8f0; }
+.na-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+.na-tag { font-size:10px; font-weight:600; padding:1px 8px; border-radius:10px; border:1px solid #e2e8f0; color:#475569; background:white; }
+.na-tag.area { background:#f0f9ff; color:#0369a1; border-color:#bae6fd; }
+.na-tag.company { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+.na-open { font-size:10.5px; font-weight:700; color:#1e4a82; text-decoration:none; }
+.na-open:hover { text-decoration:underline; }
+.na-empty { text-align:center; padding:32px 20px; color:#94a3b8; font-size:12px; }
+.na-count-pill { font-size:10px; font-weight:700; background:#e8eef5; color:#1e4a82; border-radius:8px; padding:1px 7px; margin-left:5px; }
 #bd-signal-body { max-height: 340px; overflow-y: auto; }
 #bd-signal-body::-webkit-scrollbar { width: 5px; }
 #bd-signal-body::-webkit-scrollbar-track { background: #f8fafc; }
@@ -3863,6 +3895,12 @@ function loadMoleculeTab(tabId) {
   </div>
  </div>
 
+  <div class="home-launcher" data-panel="news" style="--lc:#6b21a8" onclick="openHomePanel('news')">
+   <div class="hl-icon">&#128240;</div>
+   <div class="hl-title">Important Articles</div>
+   <div class="hl-sub">Today &middot; This week &middot; Ranked</div>
+  </div>
+
  <!-- ── Overlay backdrop ───────────────────────────────────────── -->
  <div id="home-overlay-backdrop" onclick="closeHomePanel()"></div>
 
@@ -3949,6 +3987,17 @@ function loadMoleculeTab(tabId) {
      <div id="meridian-reader-items">
       <div style="color:#94a3b8;font-size:12px;padding:16px;text-align:center;">Loading essential intel…</div>
      </div>
+    </div>
+   </div>
+
+   <!-- Panel: Important Articles to Know -->
+   <div class="home-panel" id="home-panel-news" style="display:none;padding:0">
+    <div class="news-tab-bar">
+     <button class="news-tab-btn active" id="news-tab-today" onclick="newsTabSwitch('today')">Today <span class="na-count-pill" id="news-count-today">—</span></button>
+     <button class="news-tab-btn" id="news-tab-week" onclick="newsTabSwitch('week')">This Week <span class="na-count-pill" id="news-count-week">—</span></button>
+    </div>
+    <div id="news-articles-body">
+     <div class="na-empty">Loading articles&#8230;</div>
     </div>
    </div>
 
@@ -14862,6 +14911,7 @@ const HOME_PANEL_META = {
   deals:     { title: '💼 Recent Deal Activity', color: '#1a5c2e' },
   updates:   { title: '⚡ Essential Updates',    color: '#b84e10' },
   si:        { title: '📥 Submitted Intel',      color: '#374151', onOpen: () => siLoad() },
+  news:      { title: '📰 Important Articles to Know', color: '#6b21a8', onOpen: () => loadNewsModule() },
 };
 function openHomePanel(panel) {
   const meta = HOME_PANEL_META[panel];
@@ -14889,6 +14939,117 @@ function openHomePanel(panel) {
   // Run panel-specific onOpen hook
   if (meta.onOpen) meta.onOpen();
 }
+// ── Important Articles to Know — News Intelligence Module ────────────────────
+
+let _newsData = null;  // cached {today: [], week: []}
+let _newsTab = 'today';
+
+const AREA_LABELS = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
+
+async function loadNewsModule() {
+  if (_newsData) { renderNewsArticles(); return; }
+  const body = document.getElementById('news-articles-body');
+  if (body) body.innerHTML = '<div class="na-empty">Loading articles…</div>';
+  try {
+    const ANON = (typeof SUPABASE_ANON !== 'undefined') ? SUPABASE_ANON : '';
+    const url = `https://tghntyofptvfhmtchwcv.supabase.co/rest/v1/news_articles?is_this_week=eq.true&source_validation_status=neq.invalid&review_status=neq.suppressed&order=relevance_score.desc&limit=40&select=id,headline,article_url,source_name,published_at,meridian_summary,why_it_matters,relevance_score,priority_level,matched_company_ids,matched_area_ids,is_today,is_this_week`;
+    const resp = await fetch(url, {
+      headers: { 'apikey': ANON, 'Authorization': `Bearer ${ANON}` }
+    });
+    const articles = resp.ok ? await resp.json() : [];
+    const today = articles.filter(a => a.is_today);
+    const week  = articles.filter(a => !a.is_today);
+    _newsData = { today, week };
+    // Update counts
+    const ct = document.getElementById('news-count-today');
+    const cw = document.getElementById('news-count-week');
+    if (ct) ct.textContent = today.length || '0';
+    if (cw) cw.textContent = (today.length + week.length) || '0';
+    renderNewsArticles();
+  } catch(e) {
+    const body = document.getElementById('news-articles-body');
+    if (body) body.innerHTML = `<div class="na-empty">Could not load articles: ${e.message}</div>`;
+  }
+}
+
+function newsTabSwitch(tab) {
+  _newsTab = tab;
+  document.querySelectorAll('.news-tab-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`news-tab-${tab}`);
+  if (btn) btn.classList.add('active');
+  renderNewsArticles();
+}
+
+function _naFormatDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  } catch { return ''; }
+}
+
+function _naSourceIcon(name) {
+  const icons = { 'FierceBiotech': '🔬', 'BioPharma Dive': '📊', 'STAT News': '📰', 'Endpoints': '📡' };
+  return icons[name] || '📄';
+}
+
+function renderNewsArticles() {
+  if (!_newsData) return;
+  const body = document.getElementById('news-articles-body');
+  if (!body) return;
+
+  const list = _newsTab === 'today'
+    ? _newsData.today.slice(0, 5)
+    : [..._newsData.today, ..._newsData.week].slice(0, 10);
+
+  if (!list.length) {
+    const msg = _newsTab === 'today'
+      ? 'No articles fetched today yet. Run <code>fetch_homepage_news.py</code> to populate.'
+      : 'No articles this week. Run <code>fetch_homepage_news.py</code> to populate.';
+    body.innerHTML = `<div class="na-empty">${msg}</div>`;
+    return;
+  }
+
+  const cards = list.map(a => {
+    const pCls = a.priority_level || 'standard';
+    const dateStr = _naFormatDate(a.published_at);
+    const icon = _naSourceIcon(a.source_name);
+
+    // Area tags
+    const areaTags = (a.matched_area_ids || []).map(id =>
+      `<span class="na-tag area">${AREA_LABELS[id] || id}</span>`
+    ).join('');
+
+    // Summary block — prefer AI-generated, fall back to empty
+    const summary = a.meridian_summary
+      ? `<div class="na-summary">${_esc(a.meridian_summary)}</div>`
+      : '';
+
+    // Why it matters block
+    const why = a.why_it_matters
+      ? `<div class="na-why">💡 ${_esc(a.why_it_matters)}</div>`
+      : '';
+
+    // Tags row — only show if any tags
+    const tagsRow = areaTags
+      ? `<div class="na-tags">${areaTags}</div>`
+      : '';
+
+    return `<div class="na-card na-${pCls}">
+      <div class="na-headline"><a href="${_esc(a.article_url)}" target="_blank" rel="noopener">${_esc(a.headline)}</a></div>
+      <div class="na-meta">
+        <span class="na-source">${icon} ${_esc(a.source_name)}</span>
+        <span class="na-date">${dateStr}</span>
+        <span class="na-priority ${pCls}">${pCls}</span>
+      </div>
+      ${summary}${why}${tagsRow}
+      <a class="na-open" href="${_esc(a.article_url)}" target="_blank" rel="noopener">Open article →</a>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div class="news-articles-list">${cards}</div>`;
+}
+
 function closeHomePanel() {
   const backdrop = document.getElementById('home-overlay-backdrop');
   const card = document.getElementById('home-overlay-card');
