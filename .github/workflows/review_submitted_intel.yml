@@ -1,0 +1,60 @@
+name: Meridian — Submitted Intel Auto-Review
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests anthropic
+
+      - name: Check for new submissions
+        id: check
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os, requests, sys
+          url = "https://tghntyofptvfhmtchwcv.supabase.co"
+          key = os.environ["SUPABASE_SERVICE_KEY"]
+          headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+          r = requests.get(
+            f"{url}/rest/v1/submitted_intel?status=eq.new&select=id&limit=1",
+            headers=headers, timeout=10
+          )
+          r.raise_for_status()
+          count = len(r.json())
+          print(f"New submissions found: {count}")
+          # Write output for next step
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"has_new={'true' if count > 0 else 'false'}\n")
+          EOF
+
+      - name: Run screening script
+        if: steps.check.outputs.has_new == 'true'
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
+        run: |
+          python3 scripts/review_submitted_intel.py
+
+      - name: Skip — no new submissions
+        if: steps.check.outputs.has_new == 'false'
+        run: echo "No new submissions to review. Skipping."
