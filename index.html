@@ -13090,6 +13090,7 @@ function _makeAreaPI(tabId, areaIds) {
     ['Ulcerative Colitis','UC'],["Crohn's Disease",'CD'],['Crohn Disease','CD'],
     ['Atopic Dermatitis','AD'],['Atopic Eczema','AD'],['Eczema, Atopic','AD'],['Eczema','AD'],
     ['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
+    ['Papulopustular Rosacea','PPR'],['Erythematotelangiectatic Rosacea','ETR'],['Rosacea','Rosa.'],
     ['Plaque Psoriasis','PsO'],['Psoriasis Vulgaris','PsO'],['Psoriasis','PsO'],
     ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
@@ -13137,6 +13138,9 @@ function _makeAreaPI(tabId, areaIds) {
     ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TAK'],
     ['Eosinophilic Granulomatosis with Polyangiitis','EGPA'],['Granulomatosis with Polyangiitis','GPA'],
     ['ANCA-Associated Vasculitis','AAV'],['Microscopic Polyangiitis','MPA'],
+    ["Behçet's Disease",'BD'],["Behcet's Disease",'BD'],['Behçet Disease','BD'],['Behcet Disease','BD'],
+    ['Behçet Syndrome','BD'],['Behcet Syndrome','BD'],
+    ['Anterior Uveitis','Ant. Uv.'],['Posterior Uveitis','Post. Uv.'],['Pan-Uveitis','Uv.'],['Uveitis','Uv.'],
     ["Primary Sjögren's Syndrome",'pSS'],['Primary Sjögren Syndrome','pSS'],
     ["Sjögren's Syndrome",'pSS'],["Sjögren's Disease",'pSS'],
     ['Sjögren Syndrome','pSS'],['Sjögren Disease','pSS'],['Sjögren','pSS'],
@@ -13186,10 +13190,15 @@ function _makeAreaPI(tabId, areaIds) {
     ['Liver Ablation','Liver Abl.'],
     ['Healthy Subjects or Volunteers','HV'],['Healthy Volunteers','HV'],['Healthy Subjects','HV'],['Healthy Normal Volunteers','HV'],['Healthy Volunteer','HV'],['Healthy Adult Volunteers','HV'],['Healthy Adults','HV'],['Normal Healthy Volunteers','HV'],['Normal Volunteers','HV'],
     ['Ventilation','Vent.'],['Lung Function','Lung Fxn.'],['Anesthesia, General','Gen. Anesthesia'],
-    // ── Other ──
+    // ── Cardiovascular / Metabolic ──
+    // NOTE: "CD" is reserved for Crohn's Disease — Cardiovascular Disease must map to "CVD"
+    ['Cardiovascular Disease','CVD'],['Coronary Artery Disease','CAD'],['Atherosclerotic Cardiovascular Disease','ASCVD'],
+    ['Endothelial Dysfunction','End. Dysf.'],
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
     ['Heart Failure with Reduced Ejection Fraction','HFrEF'],['Heart Failure','HF'],
     ['Hypertrophic Cardiomyopathy','HCM'],['Dilated Cardiomyopathy','DCM'],
+    // ── Generic trial condition qualifiers ──
+    ['Flare Up','Flare'],['Inflammation','Inflam.'],
    ];
    // Split on separators, abbreviate each part, deduplicate
    const _sepRe = /\s*(?:·|•|\bAND\b)\s*/i;
