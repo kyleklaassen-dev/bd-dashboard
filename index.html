@@ -19236,19 +19236,19 @@ document.addEventListener('DOMContentLoaded', function(){
       <div style="background:#1a2a3d;border:1px solid #1e3a5f;border-radius:8px;padding:20px">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
           <div style="text-align:center">
-            <div style="font-size:32px;font-weight:800;color:#4caf76">~20</div>
+            <div style="font-size:32px;font-weight:800;color:#4caf76">68</div>
             <div style="font-size:11px;color:#6b8aad;margin-top:2px">Safe</div>
             <div style="font-size:10px;color:#4a90c4">display/color mappings, docs</div>
           </div>
           <div style="text-align:center">
-            <div style="font-size:32px;font-weight:800;color:#f59e0b">~120</div>
+            <div style="font-size:32px;font-weight:800;color:#f59e0b">94</div>
             <div style="font-size:11px;color:#6b8aad;margin-top:2px">Needs Migration</div>
             <div style="font-size:10px;color:#4a90c4">filters, joins, scoring, enrichment</div>
           </div>
           <div style="text-align:center">
-            <div style="font-size:32px;font-weight:800;color:#ef4444">1</div>
-            <div style="font-size:11px;color:#6b8aad;margin-top:2px">Blocked</div>
-            <div style="font-size:10px;color:#4a90c4">drug_area_scores FK inconsistency</div>
+            <div style="font-size:32px;font-weight:800;color:#f59e0b">15</div>
+            <div style="font-size:11px;color:#6b8aad;margin-top:2px">Phase 4 Queue</div>
+            <div style="font-size:10px;color:#4a90c4">unblocked · dual-read comparison pending</div>
           </div>
         </div>
         <div style="font-size:11px;color:#94a3b8;border-top:1px solid #1e3a5f;padding-top:12px">
@@ -19263,10 +19263,10 @@ document.addEventListener('DOMContentLoaded', function(){
       <div style="font-size:16px;font-style:italic;color:#f0f6ff;line-height:1.6">"Every relationship table should unlock a new intelligence product."</div>
       <div style="font-size:12px;color:#6b8aad;margin-top:8px">If a relationship layer is completed and no new capability appears, we are accumulating structure without harvesting value.</div>
       <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap">
-        <div style="font-size:11px;color:#4caf76">✓ Drug → Target seeded → Target Landscape (ready)</div>
-        <div style="font-size:11px;color:#f59e0b">◐ Drug → Indication (preview) → Indication Landscape (prototype above)</div>
-        <div style="font-size:11px;color:#6b8aad">○ Trial → Indication → Phase/enrollment intelligence</div>
-        <div style="font-size:11px;color:#6b8aad">○ Drug → Company → Portfolio intelligence</div>
+        <div style="font-size:11px;color:#4caf76">✓ Drug → Target (173 rows) → Target Landscape · Q4 crowding query live</div>
+        <div style="font-size:11px;color:#4caf76">✓ Drug → Indication (129 rows) → Indication Landscape · Q1/Q2/Q3 queries live</div>
+        <div style="font-size:11px;color:#4caf76">✓ Trial → Indication (319 rows) → Trial density by indication · Q5 query live</div>
+        <div style="font-size:11px;color:#f59e0b">◐ Drug → Company → Portfolio intelligence (joins available; portfolio view not yet built)</div>
       </div>
     </div>
 
@@ -19278,111 +19278,111 @@ document.addEventListener('DOMContentLoaded', function(){
 let _pbLoaded = false;
 
 const PB_IND_META = {
-  uc:     { label:'Ulcerative Colitis', area:'Gastroenterology · IBD', areaId:'ibd', density:'High', queries:['Show all TL1A drugs in UC','Companies competing in IBD','Targets with no approved drug in UC','Indication overlap with CD'] },
-  cd:     { label:"Crohn's Disease",    area:'Gastroenterology · IBD', areaId:'ibd', density:'High', queries:['Show all IL-23p19 drugs in CD','Phase 3 readouts in CD 2027-2028','Companies active in both UC and CD','Biosimilar threat to TNF franchise'] },
-  ad:     { label:'Atopic Dermatitis',  area:'Dermatology · Atopy',    areaId:'atopy', density:'Very High', queries:['IL-4Rα drugs in AD','TH2 targets in atopy','Phase 3 pipeline density','Next approvals after dupilumab'] },
-  asthma: { label:'Asthma',            area:'Pulmonology · Atopy',    areaId:'atopy', density:'High', queries:['TSLP vs IL-33 in asthma','Oral vs biologic pipeline','Companies active in asthma + AD','Severe asthma vs. moderate target split'] },
-  gmg:    { label:'Generalized Myasthenia Gravis', area:'Neurology · FcRn', areaId:'fcrn', density:'Medium', queries:['FcRn drugs in gMG','Approved vs pipeline in gMG','Companies with both FcRn and complement','Time to approval for Phase 3 assets'] },
-  sle:    { label:'Systemic Lupus Erythematosus', area:'Rheumatology · SLE', areaId:'sle', density:'Medium-High', queries:['Show all SLE drugs by target','Companies with ≥2 SLE assets','Mechanism diversity in SLE pipeline','First-in-class opportunities in SLE'] }
+  uc:     { label:'Ulcerative Colitis',            area:'Gastroenterology · IBD',  density:'MED',  queries:['TL1A drugs in UC','Companies active in both UC and CD','Targets with no approved drug in UC','Indication overlap with CD'] },
+  cd:     { label:"Crohn’s Disease",               area:'Gastroenterology · IBD',  density:'MED',  queries:['IL-23p19 drugs in CD','Phase 3 readouts in CD 2027–2028','Companies active in both UC and CD','TNF franchise biosimilar threat'] },
+  ad:     { label:'Atopic Dermatitis',             area:'Dermatology · Type 2',    density:'HIGH', queries:['IL-4Rα drugs in AD','TH2 targets in atopy','Phase 3 pipeline density','Next approvals after dupilumab'] },
+  asthma: { label:'Asthma',                        area:'Pulmonology · Type 2',    density:'HIGH', queries:['TSLP vs IL-33 in asthma','Oral vs biologic pipeline','Companies in asthma + AD','Severe vs. moderate target split'] },
+  ted:    { label:'Thyroid Eye Disease',           area:'Ophthalmology · IGF-1R',  density:'MED',  queries:['IGF-1R vs TSHR drugs in TED','Companies active in TED','First-line vs second-line assets','Phase 3 competitive landscape'] },
+  gmg:    { label:'Generalized Myasthenia Gravis', area:'Neurology · FcRn',        density:'MED',  queries:['FcRn drugs in gMG','Approved vs pipeline in gMG','Companies with both FcRn and complement','Phase 3 timeline density'] },
+  sle:    { label:'Systemic Lupus Erythematosus',  area:'Rheumatology · SLE',      density:'MED',  queries:['SLE drugs by target class','Companies with ≥2 SLE assets','B-cell vs innate immune targets','First-in-class openings in SLE'] }
 };
 
-const TARGET_LABELS = { tl1a:'TL1A', il23p19:'IL-23p19', a4b7:'α4β7', il12_23p40:'IL-12/23p40', il4ra:'IL-4Rα', il13:'IL-13', tslp:'TSLP', il33:'IL-33', fcrn:'FcRn', cd19:'CD19', bcma:'BCMA', il17a:'IL-17A', tnf:'TNF', il6:'IL-6', b7:'B7', blys:'BLyS', ifnar:'IFNAR', pd1:'PD-1' };
+const TARGET_LABELS = { tl1a:'TL1A', il23p19:'IL-23p19', a4b7:'α4β7', il12_23p40:'IL-12/23p40', il4ra:'IL-4Rα', il13:'IL-13', tslp:'TSLP', il33:'IL-33', fcrn:'FcRn', cd19:'CD19', bcma:'BCMA', cd3:'CD3', cd20:'CD20', cd38:'CD38', igf1r:'IGF-1R', tshr:'TSHR', il17a:'IL-17A', tnf:'TNF', il6:'IL-6', baff:'BAFF', baff_r:'BAFF-R', ifnar1:'IFNAR1', pd1:'PD-1', cd40:'CD40' };
 
 async function pbLoadCard(indId) {
   const meta = PB_IND_META[indId] || {};
-  // Update tab buttons
   document.querySelectorAll('.pb-ind-btn').forEach(b => {
     const active = b.dataset.ind === indId;
     b.style.borderColor = active ? '#0891b2' : '#1e3a5f';
     b.style.background  = active ? '#0c2233' : 'transparent';
     b.style.color       = active ? '#38bdf8' : '#6b8aad';
   });
-  // Update card header
-  document.getElementById('pb-card-area').textContent = meta.area || '—';
-  document.getElementById('pb-card-ind').textContent  = meta.label || indId;
+  document.getElementById('pb-card-area').textContent    = meta.area || '—';
+  document.getElementById('pb-card-ind').textContent     = meta.label || indId;
   document.getElementById('pb-card-density').textContent = meta.density || '—';
-  // Reset metrics
   ['pb-card-assets','pb-card-companies','pb-card-catalysts','pb-card-targets-count'].forEach(id => {
     document.getElementById(id).textContent = '—';
   });
-  document.getElementById('pb-card-targets').innerHTML = '<span style="color:#6b8aad;font-size:11px">loading…</span>';
+  document.getElementById('pb-card-targets').innerHTML  = '<span style="color:#6b8aad;font-size:11px">loading…</span>';
   document.getElementById('pb-card-readouts').innerHTML = '<span style="color:#6b8aad;font-size:11px">loading…</span>';
-  // Update queries
+  document.getElementById('pb-card-source').textContent = 'Loading from relationship tables…';
   if (meta.queries) {
     document.getElementById('pb-card-queries').innerHTML = meta.queries.map(q =>
       `<code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">${q}</code>`
     ).join('');
   }
-
-  const sb = _sb; // Supabase client from main app
+  const sb = _sb;
   if (!sb) return;
-
   try {
-    // 1. Drugs in this indication (from drug_indications, fallback to backfill_preview)
-    const [diRes, previewRes] = await Promise.all([
-      sb.from('drug_indications').select('drug_id').eq('indication_id', indId),
-      sb.from('backfill_preview').select('source_id,source_name').eq('target_id_col', indId)
-    ]);
-    const committedDrugs = (diRes.data || []).map(r => r.drug_id);
-    const previewDrugs   = (previewRes.data || []).map(r => r.source_id);
-    const allDrugs = [...new Set([...committedDrugs, ...previewDrugs])];
-    document.getElementById('pb-card-assets').textContent = allDrugs.length;
-    const hasPreview = previewDrugs.length > 0 && committedDrugs.length < allDrugs.length;
-    document.getElementById('pb-card-assets-sub').textContent = hasPreview
-      ? `${committedDrugs.length} committed + ${previewDrugs.length - committedDrugs.filter(d => previewDrugs.includes(d)).length} in Wave 2A preview`
-      : `${committedDrugs.length} committed`;
-    document.getElementById('pb-card-source').textContent = hasPreview
-      ? `Drug data: includes Wave 2A preview (commit pending advisor approval)`
-      : `Drug data: drug_indications table (committed)`;
+    // 1. Drugs via drug_indications
+    const diRes = await sb.from('drug_indications').select('drug_id,confidence_level,review_status').eq('indication_id', indId);
+    const diRows  = diRes.data || [];
+    const drugIds = [...new Set(diRows.map(r => r.drug_id))];
+    const confA   = diRows.filter(r => r.confidence_level === 'A').length;
+    const confB   = diRows.filter(r => r.confidence_level === 'B').length;
+    const confC   = diRows.filter(r => r.confidence_level === 'C').length;
+    const sampling = diRows.filter(r => r.review_status === 'sampling_queue').length;
+    document.getElementById('pb-card-assets').textContent     = drugIds.length;
+    document.getElementById('pb-card-assets-sub').textContent = `${diRows.length} rows · drug_indications`;
+    document.getElementById('pb-card-source').textContent     = 'L4 active · drug_indications + drug_targets + trial_indications';
 
-    // 2. Targets for drugs in this indication
-    if (allDrugs.length > 0) {
-      const tRes = await sb.from('entity_edges')
-        .select('subject_id,object_id')
-        .eq('predicate', 'TARGETS')
-        .in('subject_id', allDrugs.slice(0, 20));
-      const targetCounts = {};
-      (tRes.data || []).forEach(r => { targetCounts[r.object_id] = (targetCounts[r.object_id] || 0) + 1; });
-      const sortedTargets = Object.entries(targetCounts).sort((a,b) => b[1]-a[1]);
-      document.getElementById('pb-card-targets-count').textContent = sortedTargets.length;
-      document.getElementById('pb-card-targets-sub').textContent = sortedTargets.length > 0 ? 'from stored entity_edges' : 'no TARGETS edges yet';
-      document.getElementById('pb-card-targets').innerHTML = sortedTargets.length > 0
-        ? sortedTargets.map(([tid, n]) => {
-            const label = TARGET_LABELS[tid] || tid;
-            return `<span style="background:#0f1923;border:1px solid #1e3a5f;color:#f0f6ff;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600">${label}<span style="color:#4a90c4;margin-left:4px;font-size:10px">${n}↑</span></span>`;
-          }).join('')
-        : '<span style="color:#6b8aad;font-size:11px">No TARGETS edges for these drugs yet</span>';
+    // 2. Targets via drug_targets
+    let tgtMap = {};
+    if (drugIds.length > 0) {
+      const dtRes = await sb.from('drug_targets').select('drug_id,target_id').in('drug_id', drugIds.slice(0, 50));
+      (dtRes.data || []).forEach(r => { tgtMap[r.target_id] = (tgtMap[r.target_id] || 0) + 1; });
     }
+    const sortedTgts = Object.entries(tgtMap).sort((a,b) => b[1]-a[1]);
+    document.getElementById('pb-card-targets-count').textContent = sortedTgts.length;
+    document.getElementById('pb-card-targets-sub').textContent   = sortedTgts.length > 0 ? 'from drug_targets' : 'no target links yet';
+    document.getElementById('pb-card-targets').innerHTML = sortedTgts.length > 0
+      ? sortedTgts.map(([tid, n]) => {
+          const lbl = TARGET_LABELS[tid] || tid.toUpperCase();
+          return `<span style="background:#0f1923;border:1px solid #1e3a5f;color:#f0f6ff;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600">${lbl}<span style="color:#4a90c4;margin-left:4px;font-size:10px">${n}↑</span></span>`;
+        }).join('')
+      : '<span style="color:#6b8aad;font-size:11px">No drug_targets rows for this indication yet</span>';
 
-    // 3. Companies active in the area
-    const compRes = await sb.from('entity_edges')
-      .select('subject_id')
-      .eq('predicate', 'ACTIVE_IN')
-      .eq('object_id', meta.areaId || indId);
-    const compCount = (compRes.data || []).length;
-    document.getElementById('pb-card-companies').textContent = compCount || '—';
-    document.getElementById('pb-card-companies-sub').textContent = compCount > 0 ? `in ${meta.areaId || indId} from entity_edges` : 'no ACTIVE_IN edges';
+    // 3. Companies via drugs.company_id
+    let compCount = drugIds.length;
+    if (drugIds.length > 0) {
+      const drRes = await sb.from('drugs').select('id,company_id').in('id', drugIds.slice(0, 50));
+      const coIds = new Set((drRes.data || []).map(r => r.company_id).filter(Boolean));
+      if (coIds.size > 0) compCount = coIds.size;
+    }
+    document.getElementById('pb-card-companies').textContent     = compCount;
+    document.getElementById('pb-card-companies-sub').textContent = 'unique companies · drugs table';
 
-    // 4. Catalysts for the area
-    const catRes = await sb.from('catalysts')
-      .select('drug_id,label,catalyst_date,significance')
-      .eq('area_id', meta.areaId || indId)
-      .eq('resolved', false)
-      .order('sort_date');
-    const cats = catRes.data || [];
-    document.getElementById('pb-card-catalysts').textContent = cats.length;
-    document.getElementById('pb-card-catalysts-sub').textContent = cats.length > 0 ? 'unresolved readouts tracked' : 'none tracked';
-    document.getElementById('pb-card-readouts').innerHTML = cats.length > 0
-      ? cats.slice(0, 5).map(c =>
-          `<div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:11px;color:#94a3b8">${c.label || c.drug_id}</span>
-            <span style="font-size:10px;color:#f59e0b;white-space:nowrap;margin-left:8px">${c.catalyst_date || '—'}</span>
-          </div>`
-        ).join('') + (cats.length > 5 ? `<div style="font-size:10px;color:#4a90c4;margin-top:4px">+${cats.length-5} more</div>` : '')
-      : '<span style="color:#6b8aad;font-size:11px">No upcoming catalysts tracked</span>';
+    // 4. Trials via trial_indications
+    const tiRes = await sb.from('trial_indications').select('trial_id').eq('indication_id', indId);
+    const tiCount = new Set((tiRes.data || []).map(r => r.trial_id)).size;
+    document.getElementById('pb-card-catalysts').textContent     = tiCount;
+    document.getElementById('pb-card-catalysts-sub').textContent = 'trials · trial_indications';
+
+    // 5. Confidence mix + held reviews
+    const heldRes = await sb.from('backfill_preview').select('id', { count: 'exact', head: true })
+      .eq('target_id_col', indId).eq('preview_status', 'pending_review').eq('proposed_review_status', 'review_required');
+    const heldCount = heldRes.count || 0;
+    document.getElementById('pb-card-readouts').innerHTML =
+      `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+        <div style="text-align:center;background:#0f1923;border-radius:4px;padding:6px 4px">
+          <div style="font-size:18px;font-weight:800;color:#4caf76">${confA}</div>
+          <div style="font-size:9px;color:#6b8aad;text-transform:uppercase;letter-spacing:1px">Conf A</div>
+        </div>
+        <div style="text-align:center;background:#0f1923;border-radius:4px;padding:6px 4px">
+          <div style="font-size:18px;font-weight:800;color:#f59e0b">${confB}</div>
+          <div style="font-size:9px;color:#6b8aad;text-transform:uppercase;letter-spacing:1px">Conf B</div>
+        </div>
+        <div style="text-align:center;background:#0f1923;border-radius:4px;padding:6px 4px">
+          <div style="font-size:18px;font-weight:800;color:${confC > 0 ? '#ef4444' : '#4a90c4'}">${confC}</div>
+          <div style="font-size:9px;color:#6b8aad;text-transform:uppercase;letter-spacing:1px">Conf C</div>
+        </div>
+      </div>` +
+      (sampling > 0 ? `<div style="font-size:10px;color:#f59e0b;margin-bottom:3px">⚑ ${sampling} row${sampling>1?'s':''} sampling_queue</div>` : '') +
+      (heldCount > 0 ? `<div style="font-size:10px;color:#ef4444">⚠ ${heldCount} held review_required</div>` : '<div style="font-size:10px;color:#4caf76">✓ No held rows</div>');
 
   } catch (e) {
     console.error('pbLoadCard error:', e);
+    document.getElementById('pb-card-source').textContent = 'Error loading — check console';
   }
 }
 
@@ -19391,19 +19391,14 @@ async function pbInit() {
   _pbLoaded = true;
   const ts = document.getElementById('pb-timestamp');
   if (ts) ts.textContent = new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
-  // L4 progress
   const bar  = document.getElementById('pb-l4-bar');
   const pct  = document.getElementById('pb-l4-pct');
   const gate = document.getElementById('pb-di-gate');
-  // Gate 1: drug_targets ✓, Gate 2: drug_indications preview ◐, Gate 3-4: pending
-  const progress = 55; // 2/4 gates, drug_indications in preview counts as partial
-  if (bar) bar.style.width = progress + '%';
-  if (pct) pct.textContent = progress + '% toward L4';
-  if (gate) gate.textContent = '◐ Drug Indications (Wave 2A preview — 124 rows staged)';
-  // Track D summary
+  if (bar) { bar.style.width = '100%'; bar.style.background = 'linear-gradient(90deg,#4caf76,#0891b2)'; }
+  if (pct) { pct.textContent = 'L4 Queryable — ACHIEVED 2026-05-25'; pct.style.color = '#4caf76'; }
+  if (gate) gate.textContent = '✓ Trial Indications (Wave 2B · 319 rows committed 2026-05-25)';
   const dSub = document.getElementById('pb-d-summary');
-  if (dSub) dSub.innerHTML = '~140 references audited · <span style="color:#ef4444">1 blocked</span>';
-  // Load UC card by default
+  if (dSub) dSub.innerHTML = '177 refs audited · 68 safe · 94 needs-migration · <span style="color:#f59e0b">15 → Phase 4 queue</span>';
   await pbLoadCard('uc');
 }
 </script>
