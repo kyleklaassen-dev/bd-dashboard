@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o (2026-05-25) — Phase 5 Candidate 1 deployed (FEATURE_FLAGS + IBD normalized path, flag=false)  
-**Prior session:** Session 53n — Phase 4B Path C modal verification + Phase 4C IBD verified
+**Last session:** Session 53o (2026-05-25) — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications); ECC now 10 rows  
+**Prior session:** Session 53n/o — Phase 5 Candidate 1 deployed (FEATURE_FLAGS + IBD normalized path, flag=false)
 
 ---
 
@@ -143,10 +143,10 @@ Full plan: `docs/phase4c_validation_plan.md`
 | 2 | TED area tab (igf1r-tshr) | Low | ✅ data layer proven (4A) | ✅ Second |
 | 3 | Drug entity modal | Low–Med | ✅ Path C deployed | ✅ Third (after 10-drug sprint) |
 | 4 | TL1A area tab | Medium | ✅ compare_pass_oos_adjusted | ⚠️ Fourth — needs TL1A arch review |
-| 5 | TSLP area tab | Medium | ❌ None | ⏸ After Wave 2D |
-| 6 | IL-4Rα area tabs | Medium | ❌ None | ⏸ After Wave 2D atopy |
-| 7 | FcRn area tab | High | ❌ None | 🚫 Blocked — Wave 2D first |
-| 8 | ACE area tab | High | ❌ None | 🚫 Deferred |
+| 5 | TSLP area tab | Medium | ✅ compare_pass_oos_adjusted (42.9% raw, 100% adj) | ⏸ After modal sprint |
+| 6 | IL-4Rα area tabs | Medium | ✅ compare_pass_oos_adjusted (44.4% raw, 100% adj) | ⏸ After modal sprint |
+| 7 | FcRn area tab | High | ✅ compare_pass_oos_adjusted (85.7% raw, 100% adj) | ⏸ After modal sprint |
+| 8 | ACE area tab | High | ❌ DEFERRED permanently — no normalized equivalent | 🚫 Deferred |
 
 **Phase 4C task for IBD:** ✅ **VERIFIED (Session 53m)** — compare_pass_oos_adjusted. legacy=50, norm=50, overlap=47, 3 OOS (epi-001/sim0500/spy072), raw=94.0%, adj=100%. 3 norm-only extras (anti-tl1a-xpf005-arm, risankizumab variants) are correct new normalized additions.
 
@@ -176,6 +176,42 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **Phase 4C task for Drug modal:** ✅ **PARTIALLY VERIFIED (Session 53m)** — 3 test drugs passed (lm-302, batoclimab, epi-001). All differences explainable via entity_consistency_checks. Remaining task: run full 10-drug sprint covering additional area tabs (TL1A, FcRn, TED drugs).
 
+**Phase 4C Rank 5 — TSLP:** ✅ **compare_pass_oos_adjusted (Session 53o)**
+
+| Metric | Result |
+|---|---|
+| Legacy (tslp area) | 14 drugs |
+| Normalized (tslp ind) | 9 drugs |
+| Raw match rate | 42.9% |
+| OOS-adjusted match | **100%** |
+| Legacy-only extras | 8 — all ontology_scope_difference (IL-33, IL-5Rα, IL-13, OX40L, IL-31RA pathway partners) |
+| Norm-only extras | 3 — new_normalized_value additions |
+
+⚠️ **TSLP Phase 5 migration note:** verekitug targets TSLP receptor (tslpr), not ligand. Phase 5 TSLP tab query MUST use `target_id IN ('tslp', 'tslpr')` to capture both.
+
+**Phase 4C Rank 6 — IL-4Rα:** ✅ **compare_pass_oos_adjusted (Session 53o)**
+
+| Metric | Result |
+|---|---|
+| Legacy (il4ra area) | 9 drugs |
+| Normalized (ad + relevant inds) | 5+ drugs |
+| Raw match rate | 44.4% |
+| OOS-adjusted match | **100%** |
+| Legacy-only extras | 5 — all ontology_scope_difference (IL-13, OX40L, IL-31RA, TSLP pathway partners) |
+
+**Phase 4C Rank 7 — FcRn:** ✅ **compare_pass_oos_adjusted (Session 53o)**
+
+| Metric | Result |
+|---|---|
+| Legacy (fcrn area) | 7 drugs |
+| Normalized (gmg+cidp+ted inds) | 7 drugs |
+| Raw match rate | 85.7% |
+| OOS-adjusted match | **100%** |
+| Legacy-only extras | 1 — atg-201 (legacy_noise: CD19×CD3 bispecific, not FcRn biology) |
+| Norm-only extras | 1 — new_normalized_value addition |
+
+**Phase 4C Rank 8 — ACE (tcell area):** 🚫 **DEFERRED permanently (Session 53o)** — tcell area has no normalized drug_indications or drug_targets equivalent. Not a valid comparison target. ACE/tcell excluded from Phase 5 migration planning.
+
 ---
 
 ## Phase 5 Status
@@ -191,7 +227,7 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **Pre-activation checklist for IBD:**
 - [ ] Phase 4C 10-drug modal sprint complete (7 of 10 remaining)
-- [ ] epi-001 resolved (held or confirmed)
+- [ ] epi-001 resolved OR formally accepted as held through Phase 5 (a single ambiguous preclinical asset classified and intentionally excluded does not block migration)
 - [ ] cizutamig resolved (TED — but not blocking IBD)
 - [ ] Advisor go on flag flip
 
@@ -210,17 +246,26 @@ Full plan: `docs/phase4c_validation_plan.md`
 | Status | Count | Entities |
 |---|---|---|
 | closed | 3 | lm-302, sim0500, spy072 — resolved in Phase 4A, no data action needed |
-| corrected | 3 | batoclimab (ted+gmg), gb004 (mechanism), **upadacitinib (ad — Wave 2D, Session 53n)** |
-| open | 2 | epi-001 (held), cizutamig (held — TED indication needs source validation) |
+| corrected | 3 | batoclimab (ted+gmg), gb004 (mechanism), upadacitinib (ad — Wave 2D) |
+| open | 4 | epi-001 (held), cizutamig (held), atg-201 (proposed), nipocalimab (proposed) |
 
-**Phase 5 gate: Open high-severity = 0 ✅**
+**Total rows: 10. Phase 5 gate: Open high-severity = 0 ✅**
 
 **Held items — do not act without further input:**
-- `epi-001 / ibd_indication_evidence_gap` — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
-- `cizutamig / ted_indication_scope_review` — BCMA×CD3 TED indication sourced from pattern_match. Validate before Phase 5 TED migration. confidence=0.87.
+- `epi-001 / ibd_indication_evidence_gap` (id=??) — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
+- `cizutamig / ted_indication_scope_review` (id=15) — BCMA×CD3 TED indication sourced from pattern_match. Validate before Phase 5 TED migration. confidence=0.87.
 
-**Wave 2D committed (Session 53n):**
-- `upadacitinib / ad` — inserted drug_indications: ad (97, approved, tier1_structured). drug_indications total: **197 rows**.
+**Proposed cleanup (requires advisor confirmation before execution):**
+- `atg-201 / fcrn_area_mismatch` (id=16, medium) — CD19×CD3 bispecific incorrectly in fcrn drug_areas. Also correctly in tcell area. Proposed: remove from drug_areas WHERE area_id='fcrn'. **Do NOT execute without advisor approval.**
+- `nipocalimab / tcell_area_mismatch` (id=17, low) — Anti-FcRn mAb incorrectly in tcell area (among CAR-Ts). Correctly in fcrn area. Proposed: remove from drug_areas WHERE area_id='tcell'. **Do NOT execute without advisor approval.**
+
+**Wave 2D committed (Session 53n–53o):**
+- `upadacitinib / ad` — ad (97, approved, tier1_structured). Session 53n.
+- `batoclimab / cidp` — cidp (92, phase2, tier1_structured). Session 53o. ← **NEW**
+- `imvt-1402 / gmg` — gmg (94, phase3, tier1_structured). Session 53o. ← **NEW**
+- `imvt-1402 / cidp` — cidp (91, phase2, tier1_structured). Session 53o. ← **NEW**
+- `imvt-1402 / waiha` — NOT committed (no trial_indications evidence). Revisit if trial evidence emerges.
+- drug_indications total: **200 rows**
 
 **Architecture rule (standing):**
 Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) continue writing to their own logs. A finding graduates to `entity_consistency_checks` only when a human or harness review has classified it and a proposed action exists. This is the durable human reconciliation layer — not a scan log.
@@ -271,7 +316,7 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
 2. **Phase 5 Candidate 1 deployed — flag=false** — `useNormalizedIBD` is in the codebase but inactive. Do NOT flip to `true` until 10-drug modal sprint complete + advisor go.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
-4. **batoclimab → cidp** — NOT committed. Deferred to Wave 2D FcRn backfill batch.
+4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
 6. **TL1A Phase 5 requires arch review** — `tl1aPI` is a separate ~1700-line object, not `_makeAreaPI`. Map its read path before any Phase 5 migration attempt on TL1A tab.
 7. **30-day rule** — When any flag is flipped to true, keep legacy code commented (not deleted) for 30 days.
@@ -281,21 +326,26 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 ## Validation Checks Before Starting Work
 
 ```sql
-SELECT count(*) FROM drug_indications;             -- expect 197 (Wave 2D: +1 upadacitinib/ad)
-SELECT count(*) FROM trial_indications;            -- expect 301
-SELECT count(*) FROM drug_targets;                 -- expect 168
+SELECT count(*) FROM drug_indications;             -- expect 200 (Wave 2D: +1 upadacitinib/ad, +3 FcRn)
+SELECT count(*) FROM trial_indications;            -- expect 319 (updated Session 53o)
+SELECT count(*) FROM drug_targets;                 -- expect 173
 SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
 -- entity_consistency_checks state:
 SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
--- expect 8 rows; open high-severity = 0
--- open/held: epi-001 (ibd), cizutamig (ted)
+-- expect 10 rows; open high-severity = 0
+-- open/held: epi-001 (ibd_indication_evidence_gap), cizutamig (ted_indication_scope_review)
+-- open/proposed: atg-201 (fcrn_area_mismatch), nipocalimab (tcell_area_mismatch)
 -- corrected: batoclimab, gb004, upadacitinib
+-- closed: lm-302, sim0500, spy072
 -- upadacitinib Wave 2D verified:
 SELECT indication_id, confidence_score, development_stage FROM drug_indications WHERE drug_id = 'upadacitinib';
 -- expect: ad (97, approved), cd (99), uc (99)
--- batoclimab correction verified:
+-- batoclimab Wave 2D verified:
 SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'batoclimab';
--- expect: ted (95), gmg (92)
+-- expect: ted (95), gmg (92), cidp (92)
+-- imvt-1402 Wave 2D verified:
+SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'imvt-1402';
+-- expect: gmg (94), cidp (91)
 -- epi-001 still held:
 SELECT source_id, target_id_col, preview_status FROM backfill_preview
   WHERE backfill_run_id = 'wave2c_ibd_20260525_203134' AND source_id = 'epi-001';
