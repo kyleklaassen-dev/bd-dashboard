@@ -47,6 +47,22 @@ jobs:
           fi
           python scripts/validation_research.py $ARGS
 
+      - name: Run cross-table conflict detection
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          # Run conflict_detector after registry research so any newly resolved
+          # drugs are reflected in the conflict check results.
+          ARGS=""
+          if [ -n "${{ github.event.inputs.drug_filter }}" ]; then
+            ARGS="--drug ${{ github.event.inputs.drug_filter }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/conflict_detector.py $ARGS
+
       - name: Check for newly discovered NCT IDs
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
