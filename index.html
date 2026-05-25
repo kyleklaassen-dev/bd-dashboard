@@ -2038,6 +2038,16 @@ const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// ── Phase 5 Feature Flags ────────────────────────────────────────────────────
+// All flags default false. Flip individually only after validation passes.
+// Acceptance criteria and rollback paths: docs/phase5_migration_plan.md
+const FEATURE_FLAGS = {
+  useNormalizedIBD:       false,  // Candidate 1: IBD area tab from drug_indications (uc,cd)
+  useNormalizedTED:       false,  // Candidate 2: TED area tab from drug_indications (ted)
+  useNormalizedDrugModal: false,  // Candidate 3: drug modal (pending 10-drug sprint)
+  useUnifiedTL1A:         false,  // Candidate 4: TL1A unified engine (do not enable yet)
+};
+
 // ── Tag colour map ──────────────────────────────────────────────────────────
 const AREA_TAG = {
   tl1a:  {cls:'stag-tl1a', label:'TL1A'},
@@ -12343,10 +12353,21 @@ function _makeAreaPI(tabId, areaIds) {
       const el = document.getElementById(this.tabId + '-area-pi');
       if (!el || typeof _sb === "undefined") return;
       try {
-        const [{ data:rows, error }, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
-          _sb.from('drug_areas')
-            .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
-            .in('area_id', this.areaIds),
+        // ── Phase 5 Candidate 1 — IBD normalized source ─────────────────────
+        // When FEATURE_FLAGS.useNormalizedIBD=true: drug membership from
+        // drug_indications (uc,cd) instead of drug_areas (ibd).
+        // Competitive scores (drug_area_scores), combos, companies: unchanged.
+        // Rollback: set FEATURE_FLAGS.useNormalizedIBD = false.
+        const _IBD_NORM = !!(FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd'));
+        this._ibdNorm = _IBD_NORM; // stored for _loadEntityMeta
+
+        // Parallel fetches — query A switches on flag; B/C/D always unchanged
+        const [_memberResult, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
+          _IBD_NORM
+            ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
+            : _sb.from('drug_areas')
+                .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
+                .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
             .in('area_id', this.areaIds),
@@ -12355,6 +12376,25 @@ function _makeAreaPI(tabId, areaIds) {
             .in('area_id', this.areaIds),
           _sb.from('companies').select('id,name,ticker,status,hq_city,hq_country'),
         ]);
+
+        // Normalized path: resolve drug_ids → full drug objects (second fetch)
+        let rows, error;
+        if (_IBD_NORM) {
+          if (_memberResult.error) throw _memberResult.error;
+          const _normIds = [...new Set((_memberResult.data||[]).map(r=>r.drug_id))];
+          if (_normIds.length) {
+            const { data:_normDrugs, error:_normErr } = await _sb.from('drugs')
+              .select('id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country)')
+              .in('id', _normIds);
+            if (_normErr) throw _normErr;
+            rows = (_normDrugs||[]).map(d => ({drugs:d}));
+          } else {
+            rows = [];
+          }
+          error = null;
+        } else {
+          ({ data:rows, error } = _memberResult);
+        }
         if (error) throw error;
 
         this.comboCountByCompany = {};
@@ -12491,7 +12531,9 @@ function _makeAreaPI(tabId, areaIds) {
         const companySet = new Set(companyIds);
 
         const [drugAreaRes, comboRes, catRes] = await Promise.all([
-          _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
+          this._ibdNorm
+            ? _sb.from('drug_indications').select('drug_id,drugs(id,company_id,indication_short)').in('indication_id', ['uc','cd']).limit(500)
+            : _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
           _sb.from('drug_combinations').select('company_id').in('area_id', this.areaIds).limit(300),
           _sb.from('catalysts').select('company_id,catalyst_date,sort_date').in('company_id', companyIds).eq('resolved', false).gte('sort_date', today).order('sort_date', { ascending: true }).limit(300),
         ]);
