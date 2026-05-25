@@ -1584,10 +1584,11 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 8-column grid: Chevron | NCT | Acronym | Phase | Indication | Status | PCD | Days left */
-.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 9-column grid: Chevron | NCT | Acronym | Phase | Indication | Note | Status | PCD | Days left */
+.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.2fr) 88px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.2fr) 88px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-note-cell{font-size:10px;font-weight:500;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pi-tr-ind-cell{font-size:10px;color:#0f172a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Drug description strip — full-width bar shown when drug accordion opens */
 .pi-da-desc-strip{font-size:11px;color:#475569;line-height:1.55;padding:8px 12px 10px;border-bottom:1px solid #e8edf3;background:#fafbfc;margin-bottom:10px;border-radius:4px}
@@ -12510,19 +12511,80 @@ function _makeAreaPI(tabId, areaIds) {
   const _abbrevInd = str => {
    if (!str) return str;
    const _IM = [
+    // Autoimmune / Rheumatology
     ['Ulcerative Colitis','UC'],['Crohn\'s Disease','CD'],['Crohn Disease','CD'],
     ['Atopic Dermatitis','AD'],['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
     ['Psoriasis','Ps'],['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
     ['Alopecia Areata','AA'],['Systemic Lupus Erythematosus','SLE'],
+    ['Lupus Erythematosus, Systemic','SLE'],['Lupus Erythematosus Systemic','SLE'],
     ['Multiple Sclerosis','MS'],['Thyroid Eye Disease','TED'],
-    ['Graves\'s Disease','GD'],['Graves\' Disease','GD'],['Graves Disease','GD'],['Myasthenia Gravis','gMG'],
+    ['Graves\'s Disease','GD'],['Graves\' Disease','GD'],['Graves Disease','GD'],
+    ['Generalized Myasthenia Gravis','gMG'],['Myasthenia Gravis','gMG'],
     ['Inflammatory Bowel Disease','IBD'],['Chronic Obstructive Pulmonary Disease','COPD'],
-    ['Nonalcoholic Steatohepatitis','NASH'],['Systemic Sclerosis','SSc'],['Scleroderma','SSc'],
+    ['Nonalcoholic Steatohepatitis','NASH'],['Non-alcoholic Steatohepatitis','NASH'],
+    ['Systemic Sclerosis','SSc'],['Scleroderma','SSc'],
+    ['Warm Autoimmune Hemolytic Anemia','wAIHA'],['Autoimmune Hemolytic Anemia','AIHA'],
+    ['Chronic Spontaneous Urticaria','CSU'],['Chronic Idiopathic Urticaria','CIU'],
+    ['Immune Thrombocytopenic Purpura','ITP'],['Primary Immune Thrombocytopenia','ITP'],['Immune Thrombocytopenia','ITP'],
+    ['Pemphigus Vulgaris','PV'],['Pemphigus Foliaceus','PF'],['Bullous Pemphigoid','BP'],
+    ['Neuromyelitis Optica Spectrum Disorder','NMOSD'],['Neuromyelitis Optica','NMO'],
+    ['Chronic Inflammatory Demyelinating Polyneuropathy','CIDP'],['Guillain-Barré Syndrome','GBS'],
+    ['Primary Biliary Cholangitis','PBC'],['Primary Sclerosing Cholangitis','PSC'],
+    ['IgA Nephropathy','IgAN'],['Membranous Nephropathy','MN'],['Focal Segmental Glomerulosclerosis','FSGS'],
+    ['Dermatomyositis','DM'],['Polymyositis','PM'],['Antisynthetase Syndrome','ASS'],
+    ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TA'],
+    ['Eosinophilic Granulomatosis with Polyangiitis','EGPA'],['Granulomatosis with Polyangiitis','GPA'],
+    ['ANCA-Associated Vasculitis','AAV'],['Vasculitis','Vasc.'],
+    ['Sjögren\'s Syndrome','pSS'],['Sjögren Syndrome','pSS'],['Sjogren','pSS'],
+    ['Systemic Juvenile Idiopathic Arthritis','sJIA'],['Juvenile Idiopathic Arthritis','JIA'],
+    ['Anti-NMDA Receptor Encephalitis','ANMDARE'],['Autoimmune Encephalitis','AE'],
+    // Respiratory / Allergy
+    ['Severe Asthma','Asthma'],['Eosinophilic Asthma','Eo-Asthma'],['Asthma','Asthma'],
+    ['Chronic Rhinosinusitis with Nasal Polyps','CRSwNP'],['Chronic Rhinosinusitis','CRS'],
+    ['Allergic Rhinitis','AR'],['Food Allergy','FA'],
+    // Hematology / Oncology
+    ['Transthyretin Amyloidosis','ATTR'],['Light-Chain Amyloidosis','AL Amyloidosis'],
+    ['Non-Small Cell Lung Cancer','NSCLC'],['Small Cell Lung Cancer','SCLC'],
+    ['Hepatocellular Carcinoma','HCC'],['Colorectal Cancer','CRC'],
+    ['Diffuse Large B-Cell Lymphoma','DLBCL'],['Follicular Lymphoma','FL'],
+    ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],
+    ['Multiple Myeloma','MM'],['Myelodysplastic Syndrome','MDS'],
+    ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
+    ['Head and Neck Squamous Cell Carcinoma','HNSCC'],
+    ['Triple-Negative Breast Cancer','TNBC'],['Breast Cancer','BC'],
+    ['Ovarian Cancer','OvCa'],['Pancreatic Cancer','PanCa'],['Gastric Cancer','GC'],
+    // Other
+    ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
+    ['Heart Failure with Reduced Ejection Fraction','HFrEF'],['Heart Failure','HF'],
+    ['Hypertrophic Cardiomyopathy','HCM'],['Dilated Cardiomyopathy','DCM'],
    ];
    let r = str;
-   _IM.forEach(([long, abbr]) => { r = r.replace(new RegExp(long, 'gi'), abbr); });
+   _IM.forEach(([long, abbr]) => { r = r.replace(new RegExp(long.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'), abbr); });
+   // Also strip trailing "· Clinical Stage..." and similar suffixes
+   r = r.replace(/\s*[·•]\s*Clinical Stage.*/i,'').replace(/\s*[·•]\s*HPV.*/i,'').trim();
    return r;
+  };
+
+  // ── Trial note: 1-2 word descriptor auto-derived from dosing/route/name ──
+  const _trialNote = t => {
+   // Priority: explicit note field (future), then dosing_type, then route, then trial name excerpt
+   if (t.trial_note) return t.trial_note.slice(0, 20);
+   const dt = (t.dosing_type || '').trim();
+   if (dt) return dt.length > 18 ? dt.slice(0,16) + '…' : dt;
+   const route = (t.route || '').trim();
+   if (route) {
+    const rMap = {subcutaneous:'SC', intravenous:'IV', oral:'PO', intramuscular:'IM', sublingual:'SL', intranasal:'IN', topical:'topical'};
+    for (const [k,v] of Object.entries(rMap)) { if (route.toLowerCase().includes(k)) return v; }
+    return route.length > 12 ? route.slice(0,10)+'…' : route;
+   }
+   // Derive from trial name: strip phase / "study of" boilerplate and take ≤3 remaining words
+   const nm = (t.trial_name || '').replace(/\bphase\s+\d+[\/\d]*/gi,'').replace(/\bstudy\s+of\b/gi,'').replace(/\bopen.label\b/gi,'').replace(/\bmulticenter\b/gi,'').replace(/\brandomized\b/gi,'').trim();
+   if (nm) {
+    const words = nm.split(/\s+/).filter(w => w.length > 2).slice(0, 2);
+    if (words.length) return words.join(' ');
+   }
+   return '';
   };
 
   // ── Group drugs + combos into three portfolio tiers ───────────────────────
@@ -12623,22 +12685,27 @@ function _makeAreaPI(tabId, areaIds) {
      if (aT!==bT) return aT?1:-1;
      const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
     });
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
-     const phase  = (t.phase||'').replace(/Phase\s*/i,'Ph ');
+     const phaseNorm = (t.phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
+     const phaseDisplay = phaseNorm ? `Ph ${phaseNorm}` : '—';
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
-     const nctLink = nct.startsWith('NCT')
-      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
+     const _nctComboMatch = (nct+'').match(/NCT\d{6,}/i);
+     const _nctComboId = _nctComboMatch ? _nctComboMatch[0].toUpperCase() : null;
+     const nctLink = _nctComboId
+      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${_nctComboId}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-trusted="1">${_nctComboId}</a>`
       : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
      const acronymCell = `<span class="pi-tr-acronym-cell">${acronym?`<span class="pi-tr-acronym">${acronym}</span>`:''}</span>`;
      const comboInd = t.indication || t.condition || '';
+     const noteText = _trialNote(t);
      return `<div class="pi-tr-item"><div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>${nctLink}${acronymCell}
-      <span class="pi-tr-phase-cell">${phase||'—'}</span>
+      <span class="pi-tr-phase-cell">${phaseDisplay}</span>
       <span class="pi-tr-ind-cell" title="${comboInd}">${_abbrevInd(comboInd)||comboInd||'—'}</span>
+      <span class="pi-tr-note-cell" title="${noteText}">${noteText||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
      </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
@@ -12773,7 +12840,7 @@ function _makeAreaPI(tabId, areaIds) {
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
    // Trial rows
@@ -12797,16 +12864,19 @@ function _makeAreaPI(tabId, areaIds) {
 
     const countdownCell = _pcdCountdown(t, status);
 
-    const nctLink = nct.startsWith('NCT')
-     ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${nct}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${nct}</a>`
+    const _nctDrugMatch = (nct+'').match(/NCT\d{6,}/i);
+    const _nctDrugId = _nctDrugMatch ? _nctDrugMatch[0].toUpperCase() : null;
+    const nctLink = _nctDrugId
+     ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${_nctDrugId}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-trusted="1">${_nctDrugId}</a>`
      : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
 
     // Acronym cell always present — keeps grid column count constant
     const acronymCell = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
-    // Phase cell — shorten "Phase 1/2" → "Ph 1/2" to fit the narrow column
-    const phaseShort = phase.replace(/Phase\s*/i,'Ph ').trim();
-    const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort||'—'}</span>`;
+    // Phase cell — normalize all "Phase X / Phase Y" → "Ph X/Y"
+    const phaseNorm2 = (phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
+    const phaseShort = phaseNorm2 ? `Ph ${phaseNorm2}` : '—';
+    const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort}</span>`;
 
     const detailFields = [
      ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
@@ -12821,6 +12891,7 @@ function _makeAreaPI(tabId, areaIds) {
      <div class="pi-tr-results-btn" onclick="piToggleTrialResults(this)">📊 Study Results ▾</div>
      <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
 
+    const trialNoteText = _trialNote(t);
     return `<div class="pi-tr-item">
      <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>
@@ -12828,6 +12899,7 @@ function _makeAreaPI(tabId, areaIds) {
       ${acronymCell}
       ${phaseCell}
       <span class="pi-tr-ind-cell" title="${ind}">${_abbrevInd(ind)||ind||'—'}</span>
+      <span class="pi-tr-note-cell" title="${trialNoteText}">${trialNoteText||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${countdownCell}
@@ -15062,6 +15134,7 @@ window.addEventListener('load', () => {
  }
  function _fixGenericLinks(root) {
    (root || document).querySelectorAll('a[href]').forEach(function(el) {
+     if (el.dataset.trusted) return;  // never rewrite explicit trusted links (NCT, clinicaltrials.gov, etc.)
      const href = el.getAttribute('href');
      if (!_isGenericHref(href)) return;
      const text = (el.getAttribute('title') || el.textContent || '').trim();
@@ -15075,7 +15148,7 @@ window.addEventListener('load', () => {
      m.addedNodes.forEach(function(n) {
        if (n.nodeType !== 1) return;
        if (n.tagName === 'A') {
-         if (_isGenericHref(n.getAttribute('href'))) {
+         if (!n.dataset.trusted && _isGenericHref(n.getAttribute('href'))) {
            const text = (n.getAttribute('title') || n.textContent || '').trim();
            if (text.length > 5) n.setAttribute('href', _gUrlFromText(text));
          }
