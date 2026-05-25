@@ -16135,6 +16135,25 @@ document.addEventListener('DOMContentLoaded', function(){
 .au-sec-toggle   { font-size:12px;color:#cbd5e1;transition:transform .2s }
 .au-sec-body     { margin-top:14px }
 .au-sec-body.collapsed { display:none }
+/* Schema browser */
+.au-schema-lyr    { margin:18px 0 10px;padding-top:14px;border-top:2px solid #f1f5f9 }
+.au-schema-lyr-hd { font-size:11px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;margin-bottom:10px }
+.au-schema-grid   { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px }
+.au-schema-card   { background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden }
+.au-schema-thd    { display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9 }
+.au-schema-tname  { font-size:11px;font-weight:800;font-family:monospace;color:#0f172a }
+.au-schema-cnt    { font-size:10px;background:#f1f5f9;color:#64748b;border-radius:10px;padding:1px 8px;font-weight:700 }
+.au-schema-desc   { font-size:10px;color:#64748b;padding:7px 12px 5px;line-height:1.55 }
+.au-schema-cols   { padding:5px 12px 10px;display:flex;flex-wrap:wrap;gap:3px }
+.col-pk  { font-size:9px;font-family:monospace;background:#1e293b;color:white;border-radius:3px;padding:1px 5px }
+.col-fk  { font-size:9px;font-family:monospace;background:#1d4ed8;color:white;border-radius:3px;padding:1px 5px }
+.col-enum{ font-size:9px;font-family:monospace;background:#d97706;color:white;border-radius:3px;padding:1px 5px }
+.col-arr { font-size:9px;font-family:monospace;background:#0891b2;color:white;border-radius:3px;padding:1px 5px }
+.col-ts  { font-size:9px;font-family:monospace;background:#e2e8f0;color:#475569;border-radius:3px;padding:1px 5px }
+.col-json{ font-size:9px;font-family:monospace;background:#7c3aed;color:white;border-radius:3px;padding:1px 5px }
+.col-bool{ font-size:9px;font-family:monospace;background:#059669;color:white;border-radius:3px;padding:1px 5px }
+.col-num { font-size:9px;font-family:monospace;background:#f59e0b;color:white;border-radius:3px;padding:1px 5px }
+.col-text{ font-size:9px;font-family:monospace;background:#f1f5f9;color:#334155;border-radius:3px;padding:1px 5px }
 
 /* Narrative text */
 .au-narrative    { font-size:13px;color:#475569;line-height:1.7;margin-bottom:14px }
@@ -16283,6 +16302,68 @@ document.addEventListener('DOMContentLoaded', function(){
         Supabase is the structured memory of Meridian. It doesn't store articles or documents — it stores <strong>facts in rows and columns, connected by foreign keys</strong> (pointers from one table to another). Here is what the structure actually looks like and why it's organized this way.
       </div>
 
+      <!-- Ontology Hierarchy Definition -->
+      <div style="background:white;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:12px">6-Layer Ontology — Every Level Answers a Unique Question</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th style="text-align:left;padding:8px 10px;color:#475569;font-weight:700;border-bottom:2px solid #e2e8f0;white-space:nowrap">Layer</th>
+                <th style="text-align:left;padding:8px 10px;color:#475569;font-weight:700;border-bottom:2px solid #e2e8f0">Industry Term</th>
+                <th style="text-align:left;padding:8px 10px;color:#475569;font-weight:700;border-bottom:2px solid #e2e8f0">The Question It Answers</th>
+                <th style="text-align:left;padding:8px 10px;color:#475569;font-weight:700;border-bottom:2px solid #e2e8f0">Examples</th>
+                <th style="text-align:left;padding:8px 10px;color:#475569;font-weight:700;border-bottom:2px solid #e2e8f0;white-space:nowrap">DB Table</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f1f5f9">
+                <td style="padding:8px 10px;font-weight:800;color:#7c3aed">① Therapeutic Area</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Therapeutic Area</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">Which clinical specialty owns this disease?</td>
+                <td style="padding:8px 10px;color:#475569">Gastroenterology · Respiratory · Dermatology · Rheumatology · Neurology · Ophthalmology · Oncology</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#7c3aed">disease_areas</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;background:#fafafa">
+                <td style="padding:8px 10px;font-weight:800;color:#3b82f6">② Indication</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Indication</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">What disease is being treated?</td>
+                <td style="padding:8px 10px;color:#475569">Ulcerative Colitis · Crohn's Disease · Asthma · COPD · Atopic Dermatitis · gMG · TED · Multiple Myeloma</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#3b82f6">indications</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9">
+                <td style="padding:8px 10px;font-weight:800;color:#0891b2">③ Biology Tags</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Subtype / Biology Tag</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">Why does the disease occur?</td>
+                <td style="padding:8px 10px;color:#475569">Type 17 · Fibrosis · Autoimmune · Type 2 · Eosinophilic · IGF-1R mediated · B-cell</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#0891b2">indications.biology_tags[]</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;background:#fafafa">
+                <td style="padding:8px 10px;font-weight:800;color:#16a34a">④ Target</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Target</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">What molecule is being manipulated?</td>
+                <td style="padding:8px 10px;color:#475569">TL1A · IL-23p19 · TSLP · IL-4Rα · FcRn · IGF-1R · TSHR · BCMA · CD3</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#16a34a">targets</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9">
+                <td style="padding:8px 10px;font-weight:800;color:#059669">⑤ Target Pair</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Target Pair</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">Which mechanisms are being combined?</td>
+                <td style="padding:8px 10px;color:#475569">TL1A × IL-23p19 · IL-23 × α4β7 · TSLP + IL-33 · IGF-1R + TSHR · BCMA × CD3</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#059669">target_pairs</td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:8px 10px;font-weight:800;color:#d97706">⑥ Modality</td>
+                <td style="padding:8px 10px;font-weight:700;color:#0f172a">Modality</td>
+                <td style="padding:8px 10px;color:#475569;font-style:italic">How is the target being drugged?</td>
+                <td style="padding:8px 10px;color:#475569">mAb · BsAb · TsAb · Small Molecule · ADC · TCE · CAR-T · Fc-fusion · RNA</td>
+                <td style="padding:8px 10px;font-family:monospace;font-size:10px;color:#d97706">modalities</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;font-size:10px;color:#94a3b8;font-style:italic">This terminology matches what biotech BD teams, clinicians, investors, and pharma partners use in practice. Each layer answers a unique question — if two layers answer the same question, they should be merged.</div>
+      </div>
       <!-- ══ LIVE ONTOLOGY EXPLORER ══ -->
       <div style="margin:6px 0 22px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -17541,6 +17622,25 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 
+  <!-- ── SECTION 9: Complete Database Schema ── -->
+  <div class="au-section">
+    <div class="au-sec-hd" onclick="auToggle('s9')">
+      <span class="au-sec-icon">📋</span>
+      <span class="au-sec-title">Complete Database Schema — Every Table &amp; Column</span>
+      <span class="au-sec-toggle" id="s9-tog">▸</span>
+    </div>
+    <div class="au-sec-body" id="s9-body" style="display:none">
+      <div class="au-narrative">
+        Every table that exists in the Supabase database. Row counts load live. Column chips are color-coded: <span class="col-pk" style="display:inline">id</span> primary key &nbsp; <span class="col-fk" style="display:inline">*_id</span> foreign key &nbsp; <span class="col-enum" style="display:inline">status</span> enum &nbsp; <span class="col-arr" style="display:inline">tags[]</span> array &nbsp; <span class="col-json" style="display:inline">*_json</span> JSON &nbsp; <span class="col-bool" style="display:inline">is_*</span> boolean &nbsp; <span class="col-num" style="display:inline">score</span> numeric &nbsp; <span class="col-ts" style="display:inline">*_at</span> timestamp
+      </div>
+      <div id="s9-schema-mount"></div>
+      <div class="au-anno-wrap" style="margin-top:16px">
+        <div class="au-anno-label">Your notes — schema questions, missing tables, columns that need adding</div>
+        <textarea class="au-anno-field" id="anno-s9" placeholder="e.g. drugs table needs a dosing_frequency field. discovery_queue needs a rejection_reason column. Should add a kol_mentions table for conference tracking…" oninput="auSave('anno-s9')"></textarea>
+        <div class="au-anno-saved" id="anno-s9-saved"></div>
+      </div>
+    </div>
+  </div>
 </div><!-- end au-wrap -->
 </div><!-- end tab-audit -->
 
@@ -17556,6 +17656,117 @@ async function auditCount(table, filter) {
   }
   const { count } = await q;
   return count ?? 0;
+}
+
+// ── Schema Browser ────────────────────────────────────────────────────────────
+let _schemaLoaded = false;
+
+function _renderSchemaSection() {
+  const mount = document.getElementById('s9-schema-mount');
+  if (!mount) return;
+
+  // Column type classifier
+  const ct = col => {
+    if (col === 'id') return 'pk';
+    if (/_id$/.test(col)) return 'fk';
+    if (/_at$|_date$/.test(col)) return 'ts';
+    if (/_json$|_payload$|_breakdown$|_history$|_gaps$/.test(col)) return 'json';
+    if (['disease_areas','biology_tags','typical_route','indications','cross_area_relevance',
+         'missing_fields','missing_stages','trigger_flags','trigger_events','parties',
+         'basis_tags','aliases','arms','alt_names','trial_names'].includes(col)) return 'arr';
+    if (/^is_/.test(col) || ['cross_area','ailux_pair','resolved','verified','ailux_competes_directly','partnership_verified'].includes(col)) return 'bool';
+    if (/score$|_count$|_usd_m$|^stock_|^market_cap$|^revenue$|^r_and_d|^sort_order$|^n_enrollment$|pct$|http_status$|failures$|significance$|importance$|area_fit$|affinity_kd$/.test(col)) return 'num';
+    if (['overlap','cls','status','stage','type','confidence_level','confidence','entity_type',
+         'catalyst_type','deal_type','intel_type','pair_type','target_type','company_type',
+         'source_type','predicate','ailux_relevance','staleness_status','assigned_status',
+         'catalog_category','ownership_status','drug_format','dosing_type','field_status',
+         'test_type','generation_method','expected_operator','priority','last_pass_fail',
+         'evidence_tier','completeness_tier','relationship_type','relationship_confidence',
+         'discovery_status','trial_data_status','source_validation_status','catalyst_status',
+         'partnership_type','identity_confidence','ownership_confidence_level'].includes(col)) return 'enum';
+    return 'text';
+  };
+
+  const card = (tbl, desc, cols) => {
+    const chips = cols.map(c=>`<span class="col-${ct(c)}">${c}</span>`).join('');
+    return `<div class="au-schema-card">
+      <div class="au-schema-thd">
+        <span class="au-schema-tname">${tbl}</span>
+        <span class="au-schema-cnt" id="sc-${tbl.replace(/_/g,'-')}">—</span>
+      </div>
+      <div class="au-schema-desc">${desc}</div>
+      <div class="au-schema-cols">${chips}</div>
+    </div>`;
+  };
+
+  const layerHd = (icon, color, label, n) =>
+    `<div class="au-schema-lyr"><div class="au-schema-lyr-hd" style="color:${color}">${icon} ${label} <span style="font-weight:500;font-size:10px;opacity:.7">(${n} tables)</span></div>`;
+
+  mount.innerHTML = `
+  ${layerHd('🧬','#7c3aed','Layer 1 — Biology Ontology',5)}
+    <div class="au-schema-grid">
+      ${card('disease_areas','Therapeutic areas — top-level clinical specialties. 6 dashboard tab areas + 5 grouping filters.',['id','label','description','sort_order','indication_group'])}
+      ${card('indications','Specific diseases mapped to a therapeutic area. Carries biology_tags metadata.',['id','name','abbreviation','disease_area','description','patient_note','regulatory_note','created_at','biology_tags'])}
+      ${card('targets','Normalized biological targets. Gene symbol, family, pathway, cross-area relevance.',['id','label','full_name','gene_symbol','target_type','ailux_relevance','family','pathway','disease_areas','indications','cross_area','cross_area_relevance','alt_names','biology_note','mechanism_note','target_class','ailux_program','ailux_asset','approved_drug','notes','created_at','updated_at'])}
+      ${card('target_pairs','Two targets combined in a therapeutic strategy (bispecific or combination).',['id','pair_symbol','pair_type','target_1_id','target_2_id','ailux_pair','first_drug','rationale','synergy_logic','disease_areas','created_at'])}
+      ${card('modalities','Drug format technology — how the target is being drugged.',['id','name','abbreviation','typical_route','description','typical_dosing','examples','created_at'])}
+    </div>
+  </div>
+  ${layerHd('🏢','#059669','Layer 2 — Entity Registry',4)}
+    <div class="au-schema-grid">
+      ${card('companies','~40 tracked companies. Source of truth for identity, financials, and BD context.',['id','name','ticker','exchange','status','company_type','overlap','geography','hq_city','hq_country','tagline','ailux_angle','insight_text','partner_co','acquired_by','market_cap','market_cap_display','stock_price','stock_change','revenue','r_and_d_spend','r_and_d_pct','ta_focus_1','ta_focus_2','display_co','group_id','last_enriched_at','last_verified','last_price_update','created_at','updated_at'])}
+      ${card('drugs','100+ molecules. Primary enrichment output — mechanism, stage, classification, ownership.',['id','name','brand_name','display_name','canonical_drug_id','company_id','current_owner_company_id','originator_company_id','stage','cls','overlap','overlap_rationale','modality','target','mechanism','mechanism_detail','route','is_combo','is_combination','combination_label','drug_summary','vs_ailux','ailux_angle','ailux_competes_directly','confidence_level','data_source','catalog_category','entity_type','entity_id','entity_name','ownership_status','display_partner_name','partner_company','partnership_type','partnership_verified','licensor_name','licensor_code','strategic_role','differentiation_thesis','patient_population','final_endpoints','endpoints','trial_names','aliases','indication_short','phase_display','dosing_type','drug_format','dosing_schedule','half_life_note','color_hex','light_bg_hex','sort_order','completeness_score','completeness_tier','priority_score','confidence_score','identity_confidence','identity_method','discovery_status','trial_data_status','missing_fields','missing_stages','next_best_action','trigger_flags','approval_date','annual_revenue','expected_evidence_stage','last_enriched_model','last_enriched_by_run_id','enrichment_history','ownership_source_url','ownership_confidence_level','source_url','key_data','sources_json','last_synced_date','last_scored_at','last_verified','created_at','updated_at'])}
+      ${card('company_areas','Junction table — which therapeutic areas each company participates in.',['company_id','area_id'])}
+      ${card('trials','ClinicalTrials.gov data for tracked drugs. Phase, status, readout dates.',['id','drug_id','canonical_drug_id','combination_id','entity_id','trial_name','study_acronym','phase','status','indication','estimand','n_enrollment','arms','primary_endpoint','secondary_endpoints','primary_completion_date','readout_date','start_date','pcd_label','results_note','sponsor','area_fit','discovery_status','confidence_score','source_url','last_synced_date','created_at'])}
+    </div>
+  </div>
+  ${layerHd('🧠','#d97706','Layer 3 — Intelligence Output',6)}
+    <div class="au-schema-grid">
+      ${card('ailux_positions','Classification anchor — the exact Direct/Adjacent/Same-Space/Watch definitions Claude reads before scoring.',['id','area_id','ailux_drug','ailux_targets','ailux_modality','ailux_stage','ailux_angle','direct_criteria','adjacent_criteria','same_space_criteria','watch_criteria','direct_examples','adjacent_examples','same_space_examples','watch_examples','notes','updated_at'])}
+      ${card('drug_area_scores','Primary Claude output per drug per area. Overlap tier, rationale, positioning vs. Ailux.',['id','drug_id','canonical_drug_id','area_id','overlap','cls','overlap_rationale','vs_ailux_positioning','area_fit','area_fit_rationale','competitive_relevance','relevance_rationale','strategic_value_score','confidence_level','enriched_model','enriched_by_run_id','source_url','last_enriched_at','created_at'])}
+      ${card('molecule_intelligence','Per-drug molecular characterization — format, epitope, safety, differentiation claim.',['id','drug_id','canonical_drug_id','modality','format','valency','igg_subclass','fc_engineering','epitope','affinity_kd','lowest_active_dose','lowest_active_dose_unit','safety_observations','differentiation_claim','field_status','confidence','enriched_by','source_url','last_enriched_at','created_at','updated_at'])}
+      ${card('competitive_landscapes','Per-area landscape scoring — how complete and competitive each area is.',['id','area_id','target_pair','disease_name','mechanism_count','drug_count','failed_mechanism_count','expected_drug_count','expected_relationship_count','expected_catalyst_count','drug_coverage_score','relationship_coverage_score','catalyst_coverage_score','source_validation_score','staleness_penalty','landscape_completeness_score','landscape_dependency_score','coverage_breakdown','staleness_status','notes','coverage_computed_at','last_enriched_at','created_at'])}
+      ${card('entity_edges','Relationship graph — competes_with, licensed_from, acquired, partnered_with edges.',['id','subject_type','subject_id','predicate','object_type','object_id','scope_area_id','scope_indication','confidence_level','generation_method','rationale','status','staleness_status','basis_tags','basis_text','notes','source_url','created_by','created_at','updated_at'])}
+      ${card('validation_tests','QA assertions — "drug X should be Direct in area Y." Pass/fail tracking.',['id','test_name','test_type','area_id','entity_type','entity_id','field_name','expected_value','expected_operator','priority','last_pass_fail','last_actual_value','consecutive_failures','last_failure_at','last_checked_at','source','notes','created_at','updated_at'])}
+    </div>
+  </div>
+  ${layerHd('📡','#e11d48','Layer 4 — Signals & Events',4)}
+    <div class="au-schema-grid">
+      ${card('catalysts','Upcoming BD-relevant events — PDUFA dates, conference readouts, data presentations.',['id','label','catalyst_type','catalyst_status','catalyst_date','sort_date','company_id','drug_id','canonical_drug_id','area_id','related_trial_id','significance','expected_impact','is_key_watch','resolved','resolved_note','outcome_text','confidence_level','confidence_score','confidence_source','staleness_status','notes','source_url','created_at'])}
+      ${card('deals','BD transactions — M&A, licenses, collaborations, options.',['id','deal_date','deal_date_label','deal_type','from_company','to_company','company_id','drug_id','canonical_drug_id','entity_id','area_id','upfront_usd_m','total_usd_m','headline','detail','parties','geography_rights','economics_royalties','strategic_signal','ailux_signal','ailux_relevance','source_url','created_at'])}
+      ${card('intel','Curated intelligence items — clinical data, market events, regulatory news.',['id','headline','body','intel_type','intel_date','source_name','source_url','primary_company_id','verified','importance','created_at'])}
+      ${card('submitted_intel','User-submitted intelligence items. Screened by enrichment pipeline before promotion.',['id','submitted_by','submitted_text','status','source_url','source_name','source_type','source_validation_status','source_http_status','extracted_title','extracted_summary','extracted_key_facts_json','extracted_entities_json','proposed_actions_json','raw_payload_json','confidence_level','review_notes','reviewer','reviewed_at','imported_at','analyzed_at','created_at'])}
+    </div>
+  </div>
+  ${layerHd('⚙️','#475569','Layer 5 — Pipeline & Queues',2)}
+    <div class="au-schema-grid">
+      ${card('research_queue','Enrichment backlog — companies and drugs that need to be enriched or re-enriched.',['id','entity_id','entity_name','company_id','area_id','priority_score','reason','next_best_action','missing_stage','missing_fields','strategic_importance','completeness_score','completeness_tier','staleness_score','trigger_events','assigned_status','last_updated','last_action_at','created_at'])}
+      ${card('discovery_queue','Drug intake proposals awaiting human review before promotion to drugs + drug_area_scores.',['id','drug_name','company_name','company_id_suggested','target','stage','modality','route','entity_type','partner_co','acquired_by','area_id','overlap','competition_layer','relevance_score','relevance_rationale','confidence_score','strategic_priority_score','strategic_value_score','evidence_tier','coverage_score','completeness_gaps','relationship_type','relationship_confidence','why_discovered','reason','status','source','source_url','suggested_dest','change_log','promotion_payload','review_notes','reviewer','reviewed_at','discovered_by','discovered_at','created_company_id','created_drug_id','discovery_run_id','last_updated_at'])}
+    </div>
+  </div>`;
+
+  _loadSchemaCounts();
+}
+
+async function _loadSchemaCounts() {
+  const tables = [
+    'disease_areas','indications','targets','target_pairs','modalities',
+    'companies','drugs','company_areas','trials',
+    'ailux_positions','drug_area_scores','molecule_intelligence','competitive_landscapes','entity_edges','validation_tests',
+    'catalysts','deals','intel','submitted_intel',
+    'research_queue','discovery_queue'
+  ];
+  await Promise.all(tables.map(async t => {
+    try {
+      const { count } = await _sb.from(t).select('*', { count:'exact', head:true });
+      const el = document.getElementById('sc-' + t.replace(/_/g,'-'));
+      if (el) el.textContent = (count ?? 0).toLocaleString();
+    } catch(e) {
+      const el = document.getElementById('sc-' + t.replace(/_/g,'-'));
+      if (el) el.textContent = '—';
+    }
+  }));
+  _schemaLoaded = true;
 }
 
 // ── Ontology Explorer ────────────────────────────────────────────────────────
@@ -17590,7 +17801,7 @@ async function _loadOntologyExplorer(force = false) {
     const tabA = areas.filter(a=>a.sort_order<=6), grpA = areas.filter(a=>a.sort_order>6);
     const pDA = `<div style="display:flex;flex-direction:column;height:100%">
       <div style="background:#7c3aed;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">disease_areas</span>
+        <div><div style="font-size:11px;font-weight:800;color:white">Therapeutic Areas</div><div style="font-size:9px;color:rgba(255,255,255,.65);font-family:monospace;margin-top:1px">disease_areas</div></div>
         <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 8px;font-weight:700">${areas.length}</span>
       </div>
       <div style="flex:1;overflow-y:auto;padding:11px 12px;font-size:11px">
@@ -17750,6 +17961,7 @@ async function auditLoad(force = false) {
   auRestoreEdits();
   // Load live ontology explorer
   _loadOntologyExplorer(force);
+  if (_schemaLoaded) _loadSchemaCounts();
 }
 
 // Section toggle
@@ -17757,8 +17969,15 @@ function auToggle(id) {
   const body = document.getElementById(id+'-body');
   const tog  = document.getElementById(id+'-tog');
   if (!body) return;
-  const collapsed = body.classList.toggle('collapsed');
-  if (tog) tog.textContent = collapsed ? '▸' : '▾';
+  const isCollapsed = body.style.display === 'none' || body.classList.contains('collapsed');
+  if (isCollapsed) {
+    body.style.display = ''; body.classList.remove('collapsed');
+    if (tog) tog.textContent = '▾';
+    if (id === 's9' && !_schemaLoaded) _renderSchemaSection();
+  } else {
+    body.style.display = 'none';
+    if (tog) tog.textContent = '▸';
+  }
 }
 
 // Annotation persistence (localStorage)
@@ -17771,7 +17990,7 @@ function auSave(id) {
   if (saved) { saved.textContent = 'saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 1500); }
 }
 function auRestoreAll() {
-  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7','anno-s8',
+  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7','anno-s8','anno-s9',
    'anno-anchor','anno-direct','anno-adjacent','anno-samespace','anno-watch','anno-fields'].forEach(id => {
     const val = localStorage.getItem(AU_PREFIX + id);
     const el  = document.getElementById(id);
