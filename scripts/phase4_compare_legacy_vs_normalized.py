@@ -39,6 +39,32 @@ Difference classification types (per record):
   new_normalized_value        — normalized found a valid relationship legacy missed; improvement
   source_conflict             — record contradicted by drug target, modality, or source evidence
   cross_table_inconsistency   — record disagrees with multiple evidence tables simultaneously
+
+
+Ontology governance — legacy dashboard view types (2026-05-25, advisor):
+  Legacy dashboard "areas" are not a single ontological category.
+  They must be treated as view-type-specific groupings:
+
+    Target views (resolve via drug_targets.target_id):
+      tl1a, fcrn, igf1r, tslp, il4ra
+
+    Indication group views (resolve via drug_indications.indication_id):
+      ibd, atopy, respiratory, autoimmune
+
+    Indication views (near 1:1 with indication ontology):
+      ted
+
+    Platform / modality views (no clean normalized replacement yet):
+      tcell
+
+  TL1A = a biological TARGET.
+  IBD = an indication group (UC + CD).
+  These are not equivalent categories. Do not conflate them in migration logic.
+  The correct normalized replacement paths are different:
+    Legacy tl1a → drug_targets WHERE target_id = 'tl1a'
+    Legacy ibd  → drug_indications WHERE indication_id IN ('uc','cd')
+
+  The LEGACY_VIEW_TYPES constant below encodes this governance distinction.
 """
 
 import argparse
@@ -97,6 +123,39 @@ for area, inds in AREA_TO_IND.items():
     for ind in inds:
         IND_TO_AREA[ind].append(area)
 
+
+# ── Legacy View Type Governance ───────────────────────────────────────────────
+# Governance rule (2026-05-25, advisor):
+#   Legacy dashboard "areas" are not a uniform ontological category.
+#   TL1A is a biological target. IBD is an indication group. These require
+#   different normalized replacement paths and must NOT be conflated.
+#
+#   target_view          — legacy bucket groups drugs by molecular target
+#                          Normalized replacement: drug_targets.target_id
+#   indication_group_view — legacy bucket groups drugs by disease family
+#                          Normalized replacement: drug_indications.indication_id
+#   indication_view      — near 1:1 with a canonical indication node
+#                          Normalized replacement: drug_indications.indication_id
+#   platform_view        — modality/mechanism bucket without clean indication mapping
+#                          Normalized replacement: not yet determined
+LEGACY_VIEW_TYPES: dict[str, str] = {
+    # Target views — normalized replacement via drug_targets
+    "tl1a":        "target_view",
+    "fcrn":        "target_view",
+    "igf1r":       "target_view",
+    "tslp":        "target_view",
+    "il4ra":       "target_view",
+    # Indication group views — normalized replacement via drug_indications
+    "ibd":         "indication_group_view",
+    "atopy":       "indication_group_view",
+    "respiratory": "indication_group_view",
+    "autoimmune":  "indication_group_view",
+    # Indication views — normalized replacement via drug_indications
+    "ted":         "indication_view",
+    # Platform / modality views — no clean normalized path yet
+    "tcell":       "platform_view",
+}
+
 # ── Phase 4 difference classification model ───────────────────────────────────
 # Governance rule (2026-05-25, advisor):
 #   "Do not treat legacy data as ground truth. Treat it as the production baseline."
@@ -125,16 +184,17 @@ DIFFERENCE_CLASSIFICATIONS: dict[tuple, tuple] = {
     # ── tl1a (extra_legacy) ──────────────────────────────────────────────────
     ("tl1a", "lm-302"):    ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "Gastric/GEJ ADC — placed in tl1a legacy area by curation error; "
-                            "not a TL1A/IBD drug."),
+                            "Gastric/GEJ ADC — placed in tl1a legacy target-view area by curation error. "
+                            "Not a TL1A target drug. Target is CLDN18.2; indication is gastric oncology."),
     ("tl1a", "sim0500"):   ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "RRMM trispecific — placed in tl1a legacy area by curation error; "
-                            "not a TL1A/IBD drug."),
+                            "RRMM trispecific — placed in tl1a legacy target-view area by curation error. "
+                            "Not a TL1A target drug. Target is GPRC5D×BCMA×CD3; indication is multiple myeloma."),
     ("tl1a", "spy072"):    ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "TL1A antibody targeting PsA/axSpA (rheumatology); not IBD. "
-                            "Correct exclusion from drug_indications."),
+                            "TL1A target drug (correct mechanism) but indication is PsA/axSpA (rheumatology). "
+                            "Legacy tl1a target-view membership is mechanistically valid; "
+                            "exclusion from IBD indication-group is correct — this is not a UC/CD indication drug."),
     ("tl1a", "epi-001"):   ("needs_manual_review",
                             "Review EPI-001 clinical evidence before committing.",
                             "Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; "
@@ -147,10 +207,12 @@ DIFFERENCE_CLASSIFICATIONS: dict[tuple, tuple] = {
     # ── ibd (extra_legacy) ───────────────────────────────────────────────────
     ("ibd", "lm-302"):     ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "Gastric/GEJ ADC — same error as tl1a area."),
+                            "Gastric/GEJ ADC — same curation error as tl1a target-view area. "
+                            "Not an IBD indication drug. Indication is gastric oncology."),
     ("ibd", "sim0500"):    ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "RRMM trispecific — same error as tl1a area."),
+                            "RRMM trispecific — same curation error as tl1a target-view area. "
+                            "Not an IBD indication drug. Indication is multiple myeloma."),
     ("ibd", "epi-001"):    ("needs_manual_review",
                             "Review EPI-001 clinical evidence before committing.",
                             "Same as tl1a/epi-001 above."),
@@ -502,6 +564,7 @@ def compare_area(area_id: str, data: dict) -> dict:
 
     return {
         "area_id":                    area_id,
+        "view_type":                  LEGACY_VIEW_TYPES.get(area_id, "unknown"),
         "ind_ids":                    ind_ids,
         "legacy_count":               len(legacy_drugs),
         "legacy_score_count":         len(legacy_score_drugs),
@@ -571,49 +634,98 @@ def compare_dashboard_functions(data: dict) -> list[dict]:
         ),
     })
 
-    # 2. _makeAreaPI() — drug_areas.in(area_id) → drug_indications
-    # Check ibd (biggest gap) and tl1a
-    ibd_legacy = data["da_by_area"].get("ibd", set()) | data["da_by_area"].get("tl1a", set())
-    ibd_norm = data["di_by_ind"].get("uc", set()) | data["di_by_ind"].get("cd", set())
-    ibd_overlap = ibd_legacy & ibd_norm
-    ibd_raw_pct = round(len(ibd_overlap)/len(ibd_legacy)*100, 1) if ibd_legacy else 0
-    # Adjusted coverage: classify each extra-legacy drug using DIFFERENCE_CLASSIFICATIONS
-    ibd_noise_removed = sum(
-        1 for drug_id in (ibd_legacy - ibd_norm)
+    # 2a. _makeAreaPI() — TL1A target tab [target_view]
+    # Governance: TL1A is a TARGET, not an indication area.
+    # Normalized replacement path: drug_targets.target_id = 'tl1a' (NOT drug_indications)
+    tl1a_das_drugs = data["das_by_area"].get("tl1a", set())
+    # Drugs with a drug_targets row for tl1a
+    tl1a_target_drugs = {drug for drug, targets in data["dt_by_drug"].items()
+                         if "tl1a" in targets}
+    tl1a_overlap = tl1a_das_drugs & tl1a_target_drugs
+    tl1a_raw_pct = round(len(tl1a_overlap)/len(tl1a_das_drugs)*100, 1) if tl1a_das_drugs else 0
+    tl1a_noise_removed = sum(
+        1 for drug_id in (tl1a_das_drugs - tl1a_target_drugs)
         if DIFFERENCE_CLASSIFICATIONS.get(("tl1a", drug_id), ("",))[0] == "legacy_noise_removed"
-        or DIFFERENCE_CLASSIFICATIONS.get(("ibd",  drug_id), ("",))[0] == "legacy_noise_removed"
+    )
+    tl1a_adj_overlap = len(tl1a_overlap) + tl1a_noise_removed
+    tl1a_adj_pct = (round(tl1a_adj_overlap / len(tl1a_das_drugs) * 100, 1)
+                    if tl1a_das_drugs and tl1a_noise_removed > 0 else None)
+    tl1a_fn_status = "migration_blocker"
+    if tl1a_raw_pct >= MATCH_THRESHOLD:
+        tl1a_fn_status = "match"
+    elif tl1a_adj_pct is not None and tl1a_adj_pct >= MATCH_THRESHOLD:
+        tl1a_fn_status = "compare_pass_oos_adjusted"
+    results.append({
+        "function":       "_makeAreaPI() — TL1A target tab [target_view]",
+        "lines":          "12121–12200",
+        "legacy_source":  "drug_area_scores.area_id = 'tl1a'",
+        "norm_source":    "drug_targets WHERE target_id = 'tl1a'",
+        "legacy_count":   len(tl1a_das_drugs),
+        "norm_count":     len(tl1a_target_drugs),
+        "overlap_count":  len(tl1a_overlap),
+        "match_pct":      tl1a_raw_pct,
+        "extra_legacy":   sorted(tl1a_das_drugs - tl1a_target_drugs),
+        "extra_norm":     sorted(tl1a_target_drugs - tl1a_das_drugs),
+        "status":         tl1a_fn_status,
+        "notes": (
+            "TL1A is a biological TARGET. The legacy tl1a area is a target-view: it groups drugs "
+            "by TL1A mechanism engagement. Normalized replacement path is drug_targets.target_id = 'tl1a', "
+            "NOT drug_indications. Do not conflate this with the IBD indication-group view. "
+            f"Legacy TL1A target-view: {len(tl1a_das_drugs)} drugs. "
+            f"Normalized drug_targets (tl1a): {len(tl1a_target_drugs)} drugs. "
+            f"Overlap: {len(tl1a_overlap)}. Raw coverage: {tl1a_raw_pct}%. "
+            + (f"Adjusted: {tl1a_adj_pct}% after classifying {tl1a_noise_removed} legacy noise record(s). "
+               "Ready for Phase 4B target-view dual-read validation."
+               if tl1a_fn_status in ("compare_pass_oos_adjusted", "match")
+               else f"Gap: {len(tl1a_das_drugs - tl1a_target_drugs)} legacy TL1A target-view drugs "
+                    "missing drug_targets rows. Backfill drug_targets before target-view migration.")
+        ),
+    })
+
+    # 2b. _makeAreaPI() — IBD indication tab [indication_group_view]
+    # Governance: IBD is an INDICATION GROUP (UC + CD), not a target.
+    # Normalized replacement path: drug_indications WHERE indication_id IN ('uc','cd')
+    ibd_das_drugs = data["das_by_area"].get("ibd", set())
+    ibd_norm = data["di_by_ind"].get("uc", set()) | data["di_by_ind"].get("cd", set())
+    ibd_overlap = ibd_das_drugs & ibd_norm
+    ibd_raw_pct = round(len(ibd_overlap)/len(ibd_das_drugs)*100, 1) if ibd_das_drugs else 0
+    ibd_noise_removed = sum(
+        1 for drug_id in (ibd_das_drugs - ibd_norm)
+        if DIFFERENCE_CLASSIFICATIONS.get(("ibd", drug_id), ("",))[0] == "legacy_noise_removed"
     )
     ibd_adj_overlap = len(ibd_overlap) + ibd_noise_removed
-    ibd_adj_denom = len(ibd_legacy)
-    ibd_adj_pct = (round(ibd_adj_overlap / ibd_adj_denom * 100, 1)
-                   if ibd_adj_denom > 0 else None)
+    ibd_adj_pct = (round(ibd_adj_overlap / len(ibd_das_drugs) * 100, 1)
+                   if ibd_das_drugs and ibd_noise_removed > 0 else None)
     ibd_fn_status = "migration_blocker"
-    if ibd_adj_pct is not None and ibd_adj_pct >= MATCH_THRESHOLD:
+    if ibd_raw_pct >= MATCH_THRESHOLD:
+        ibd_fn_status = "match"
+    elif ibd_adj_pct is not None and ibd_adj_pct >= MATCH_THRESHOLD:
         ibd_fn_status = "compare_pass_oos_adjusted"
     results.append({
-        "function":       "_makeAreaPI() — IBD/TL1A tab",
+        "function":       "_makeAreaPI() — IBD indication tab [indication_group_view]",
         "lines":          "12121–12200",
-        "legacy_source":  "drug_areas.in('area_id', ['ibd']) or ['tl1a']",
+        "legacy_source":  "drug_area_scores.area_id = 'ibd'",
         "norm_source":    "drug_indications WHERE indication_id IN ('uc','cd')",
-        "legacy_count":   len(ibd_legacy),
+        "legacy_count":   len(ibd_das_drugs),
         "norm_count":     len(ibd_norm),
         "overlap_count":  len(ibd_overlap),
         "match_pct":      ibd_raw_pct,
-        "extra_legacy":   sorted(ibd_legacy - ibd_norm),
-        "extra_norm":     sorted(ibd_norm - ibd_legacy),
+        "extra_legacy":   sorted(ibd_das_drugs - ibd_norm),
+        "extra_norm":     sorted(ibd_norm - ibd_das_drugs),
         "status":         ibd_fn_status,
         "notes": (
-            f"Legacy ibd+tl1a areas contain {len(ibd_legacy)} drugs. "
-            f"drug_indications covers {len(ibd_norm)} UC+CD drugs ({len(ibd_overlap)} overlap). "
-            f"Raw coverage: {ibd_raw_pct}%. "
-            + (f"Adjusted coverage: {ibd_adj_pct}% after classifying {ibd_noise_removed} "
-               "extra-legacy drug(s) as legacy_noise_removed (confirmed curation errors). "
-               "Governance rule (2026-05-25): legacy noise excluded from readiness denominator. "
-               "Ready for Phase 4 dual-read validation — NOT Phase 5 migration."
-               if ibd_fn_status == "compare_pass_oos_adjusted"
-               else f"Migrating _makeAreaPI now would drop ~{len(ibd_legacy - ibd_norm)} drugs "
-                    "from the IBD/TL1A tab drug list. Classify all extra-legacy records and "
-                    "backfill normalized_gap entries before this path can be cut over.")
+            "IBD is an INDICATION GROUP (UC + CD). The legacy ibd area is an indication-group-view: "
+            "it groups drugs by UC/CD disease indication. Normalized replacement path is "
+            "drug_indications WHERE indication_id IN ('uc','cd'). "
+            "This is a separate migration path from the TL1A target-view above — do not merge them. "
+            f"Legacy IBD indication-group-view: {len(ibd_das_drugs)} drugs. "
+            f"Normalized drug_indications (uc+cd): {len(ibd_norm)} drugs. "
+            f"Overlap: {len(ibd_overlap)}. Raw coverage: {ibd_raw_pct}%. "
+            + (f"Adjusted: {ibd_adj_pct}% after classifying {ibd_noise_removed} legacy noise record(s). "
+               "Ready for Phase 4B indication-group-view dual-read validation."
+               if ibd_fn_status in ("compare_pass_oos_adjusted", "match")
+               else f"Gap: {len(ibd_das_drugs - ibd_norm)} legacy IBD indication-view drugs "
+                    "missing drug_indications rows. Backfill drug_indications before indication-group migration.")
         ),
     })
 
@@ -756,12 +868,19 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("---")
     lines.append("")
 
-    # Part 1: indication-centric comparisons
-    lines.append("## Part 1 — Indication-Centric Drug Population Comparison")
+    # Part 1: legacy area comparisons (target-view and indication-view)
+    lines.append("## Part 1 — Legacy Area Drug Population Comparison")
     lines.append("")
-    lines.append("For each legacy area_id, compare drug populations between:")
-    lines.append("- **Legacy:** `drug_areas.area_id` (what the dashboard currently reads)")
-    lines.append("- **Normalized:** `drug_indications.indication_id` (ontology-based, post-migration)")
+    lines.append("For each legacy area_id, compare drug populations between legacy and normalized tables.")
+    lines.append("")
+    lines.append("> **View-type governance (2026-05-25):** Legacy areas are not a uniform ontological category.")
+    lines.append("> - **Target views** (`tl1a`, `fcrn`, `igf1r`, `tslp`, `il4ra`): normalized via `drug_targets.target_id`")
+    lines.append("> - **Indication group views** (`ibd`, `atopy`, `respiratory`, `autoimmune`): normalized via `drug_indications.indication_id`")
+    lines.append("> - **Indication views** (`ted`): normalized via `drug_indications.indication_id`")
+    lines.append("> - **Platform views** (`tcell`): no clean normalized path yet")
+    lines.append(">")
+    lines.append("> Part 1 compares legacy drug populations against `drug_indications` for coverage assessment.")
+    lines.append("> Part 2 (dashboard function comparisons) uses the **correct view-type-specific normalized path** per area.")
     lines.append("")
     lines.append("Match % = overlap / legacy_count × 100. A low match % means migrating now "
                  "would silently drop drugs from the dashboard.")
@@ -770,8 +889,8 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     # Summary table
     lines.append("### Summary Table")
     lines.append("")
-    lines.append("| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw% | Noise Rmvd | Adj% | Gaps | Scope Diff | NMR | Status |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| Legacy Area | View Type | Normalized Indications | Legacy | Norm | Overlap | Raw% | Noise Rmvd | Adj% | Gaps | Scope Diff | NMR | Status |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in sorted(area_results, key=lambda x: x["match_pct"]):
         icon = STATUS_ICON.get(r["status"], "?")
         inds = ", ".join(r["ind_ids"])
@@ -783,7 +902,8 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
         gaps  = gaps  if gaps  != "0" else "—"
         scope = scope if scope != "0" else "—"
         nmr   = nmr   if nmr   != "0" else "—"
-        lines.append(f"| `{r['area_id']}` | {inds} | {r['legacy_count']} | {r['norm_count']} | "
+        vtype = r.get("view_type", "unknown")
+        lines.append(f"| `{r['area_id']}` | {vtype} | {inds} | {r['legacy_count']} | {r['norm_count']} | "
                      f"{r['overlap_count']} | {r['match_pct']}% | {noise} | {adj} | "
                      f"{gaps} | {scope} | {nmr} | {icon} {r['status']} |")
     lines.append("")
@@ -795,7 +915,8 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("")
     for r in sorted(area_results, key=lambda x: x["match_pct"]):
         icon = STATUS_ICON.get(r["status"], "?")
-        lines.append(f"#### `{r['area_id']}` → `{', '.join(r['ind_ids'])}` {icon} **{r['status']}**")
+        vtype = r.get("view_type", "unknown")
+        lines.append(f"#### `{r['area_id']}` [{vtype}] → `{', '.join(r['ind_ids'])}` {icon} **{r['status']}**")
         lines.append("")
         lines.append(f"| Field | Value |")
         lines.append(f"|---|---|")
@@ -1046,7 +1167,8 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("| Function | Blocking Condition | Resolved? |")
     lines.append("|---|---|---|")
     lines.append("| `openDrugEntityModal()` | drug_indications must have competitive enrichment data (overlap, rationale, cls) | ❌ Not yet — enrichment migration pending |")
-    lines.append("| `_makeAreaPI()` IBD/TL1A | Adjusted coverage ≥ 95% (legacy noise classified) — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (adjusted) |")
+    lines.append("| `_makeAreaPI()` TL1A **[target_view]** | TL1A target-view: drug_targets.target_id = 'tl1a' coverage ≥ 95% | 🟢 Phase 4 compare pass (adjusted) — ready for target-view dual-read |")
+    lines.append("| `_makeAreaPI()` IBD **[indication_group_view]** | IBD indication-group: drug_indications UC+CD coverage ≥ 95% | 🟢 Phase 4 compare pass (adjusted) — ready for indication-group dual-read |")
     lines.append("| `loadAreaDeals()` | deals.indication_id FK must exist | ❌ Column does not exist |")
     lines.append("| `loadAreaCatalysts()` | area_id→indication_id bridge must exist for catalysts | ❌ Bridge not built |")
     lines.append("| Trial + Signal feeds | trials.indication_id must be backfilled from trial_indications | ❌ trials.indication_id is NULL |")
@@ -1089,9 +1211,14 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
         lines.append("**Verdict:** All areas are at match or compare_pass_oos_adjusted. "
                      "Proceed to Phase 4 dual-read validation before Phase 5 migration.")
     lines.append("")
-    lines.append("**Next action (Track D):** Build Phase 4 dual-read layer for `_makeAreaPI` and "
-                 "`openDrugEntityModal` — parallel read paths, assert row count parity, "
-                 "log any visual regressions. Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.")
+    lines.append("**Next action (Track D):** Build Phase 4B dual-read layer for `_makeAreaPI` and "
+                 "`openDrugEntityModal` — two separate parallel read paths:  ")
+    lines.append("- **TL1A target-view dual-read:** legacy `drug_area_scores.area_id = 'tl1a'` "
+                 "vs normalized `drug_targets WHERE target_id = 'tl1a'`  ")
+    lines.append("- **IBD indication-group dual-read:** legacy `drug_area_scores.area_id = 'ibd'` "
+                 "vs normalized `drug_indications WHERE indication_id IN (''uc'',''cd'')`  ")
+    lines.append("Assert row count parity per path. Log any regressions. "
+                 "Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.")
     lines.append("")
 
     return "\n".join(lines)
