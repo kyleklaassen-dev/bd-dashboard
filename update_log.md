@@ -1,5 +1,32 @@
 
 ---
+## 2026-05-25 (Session 53h) — Phase 4B Path B: TL1A target-view gap classification complete
+
+**TL1A target-view coverage gap: all 17 gap drugs classified.**
+
+**Key finding:** Zero gap drugs are true TL1A target drugs missing `drug_targets` rows. The legacy TL1A dashboard area was a **competitive landscape container** that mixed:
+- 35 true TL1A target drugs → already normalized in `drug_targets.target_id='tl1a'`
+- 15 IBD indication competitors → correct normalized path is `drug_indications.indication_id IN ('uc','cd')`
+- 2 legacy noise records (lm-302 gastric, sim0500 RRMM) → wrong area entirely
+
+**Classifications added to `DIFFERENCE_CLASSIFICATIONS` in harness script:**
+- 15 × `ibd_indication_not_tl1a_target`: vedolizumab, risankizumab, mirikizumab, guselkumab, guselkumab-golimumab, golimumab, ustekinumab, upadacitinib, abbv-382, abbv-668, lutikizumab, spy001, spy003, spy130, gb004
+- 2 × `legacy_noise_removed` (already existed): lm-302, sim0500
+- Dashboard function comparison: updated OOS set to include both `legacy_noise_removed` + `ibd_indication_not_tl1a_target`
+
+**`docs/phase4b_tl1a_gap_classification.md`** — new document with full per-drug evidence and classification rationale.
+
+**Data quality flag:** `gb004.drugs.mechanism = 'Anti-TL1A'` is **incorrect**. Actual mechanism: PHD inhibitor (HIF-1α stabilizer, oral small molecule). Requires correction before next enrichment run.
+
+**Harness re-run post-classification:**
+- `tl1a [target_view]`: 🟢 `compare_pass_oos_adjusted` (35/51 raw = 92.2%; 51/51 adj = 100% after excluding all 17 OOS)
+- `ibd [indication_group_view]`: 🟢 `compare_pass_oos_adjusted` — unchanged
+- `_makeAreaPI() TL1A target tab`: 🟢 `compare_pass_oos_adjusted` (was 🔴 migration_blocker)
+- `_makeAreaPI() IBD indication tab`: 🟢 `compare_pass_oos_adjusted` — unchanged
+
+**Phase 4B Path B is now ready for dual-read implementation.**
+
+---
 ## 2026-05-25 (Session 53g) — Phase 4B Path A: IBD dual-read in _makeAreaPI()
 
 **Phase 4B Path A implemented in `index.html`.**
