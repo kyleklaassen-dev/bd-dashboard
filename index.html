@@ -7033,6 +7033,17 @@ function _dknCleanName(raw) {
   return s || raw; // fall back to original if we stripped everything
 }
 
+// ── PI tab drug label: brand name > INN > single code ────────────────────────
+function _piDrugLabel(d) {
+  if (d.brand_name) return d.brand_name;
+  const raw = d.display_name || d.name || '';
+  // Strip code-only parentheticals: "(REGN3500/SAR440340)", "(SAR-XXX)", etc.
+  let s = raw.replace(/\s*\([A-Z][A-Z0-9\-]*(?:\/[A-Z0-9\-]+)+\)/g, '').trim();
+  // Strip slash-separated code aliases after an INN: "Itepekimab/REGN3500" → "Itepekimab"
+  s = s.replace(/^([A-Za-z][a-z]+\w*)\s*\/\s*[A-Z][A-Z0-9\-\/]+$/, '$1').trim();
+  return _dknCleanName(s) || raw;
+}
+
 // ── Data loading ──────────────────────────────────────────────────────────────
 async function dknLoadData() {
   if (_dknData !== null || _dknLoading) return;
@@ -12873,7 +12884,9 @@ function _makeAreaPI(tabId, areaIds) {
     ['Anti-NMDA Receptor Encephalitis','ANMDARE'],['Autoimmune Encephalitis','AE'],
     // ── Respiratory / Allergy ──
     ['Eosinophilic Asthma','Eo-Asthma'],['Severe Asthma','Asthma'],['Asthma','Asthma'],
-    ['Chronic Rhinosinusitis with Nasal Polyps','CRSwNP'],['Chronic Rhinosinusitis','CRS'],
+    ['Chronic Rhinosinusitis with Nasal Polyps','CRSwNP'],
+    ['Chronic Rhinosinusitis Without Nasal Polyps','CRSsNP'],['CRS Without Nasal Polyps','CRSsNP'],
+    ['Chronic Rhinosinusitis','CRS'],
     ['Allergic Rhinitis','AR'],['Food Allergy','FA'],
     // ── Hematology / Oncology ──
     ['Transthyretin Amyloidosis Cardiomyopathy','ATTR-CM'],['Transthyretin Amyloidosis','ATTR'],
@@ -12905,7 +12918,7 @@ function _makeAreaPI(tabId, areaIds) {
     ['Developmental Dysplasia of the Hip','DDH'],['Hip Dysplasia','DDH'],
     ['Chronic Exertional Compartment Syndrome','CECS'],['Exertional Compartment Syndrome','ECS'],
     ['Liver Ablation','Liver Abl.'],
-    ['Healthy Subjects or Volunteers','Healthy Vol.'],['Healthy Volunteers','Healthy Vol.'],['Healthy Subjects','Healthy Vol.'],
+    ['Healthy Subjects or Volunteers','HV'],['Healthy Volunteers','HV'],['Healthy Subjects','HV'],['Healthy Normal Volunteers','HV'],
     ['Ventilation','Vent.'],['Lung Function','Lung Fxn.'],['Anesthesia, General','Gen. Anesthesia'],
     // ── Other ──
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
@@ -13475,7 +13488,7 @@ function _makeAreaPI(tabId, areaIds) {
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_dknCleanName(d.display_name||d.name||'')).replace(/'/g,"\\'")}',event)">${_dknCleanName(d.display_name||d.name)||'—'}</span></span>
+     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_piDrugLabel(d)).replace(/'/g,"\\'")}',event)">${_piDrugLabel(d)||'—'}</span></span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
