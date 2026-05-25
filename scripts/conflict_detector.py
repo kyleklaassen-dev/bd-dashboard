@@ -24,8 +24,12 @@ CHECKS:
 
   company_resolution
     drugs.company_display vs companies + company_aliases.
-    Also flags drugs whose company has status='acquired' and may need
-    re-attribution to the acquiring entity.
+    Acquired-asset aware: drugs with acquired_asset=True are expected to
+    use "Acquirer w/Acquired" display format and company_id=acquirer.
+    Drugs still on an acquired company without acquired_asset=True are
+    flagged as 'company_acquired_unhandled' (medium severity).
+    "/" partnership notation (e.g. "Sanofi/Regeneron") is flagged as
+    low severity only — these are deliberate co-development displays.
 
 SEVERITY:
   high   — target or mechanism conflict between structured tables
@@ -513,46 +517,136 @@ def check_company_resolution(drug: dict,
     """
     Check drugs.company_display and drugs.company_id against companies table.
     Can return multiple conflict records (one per distinct issue found).
+
+    Acquired-asset aware:
+    - If acquired_asset=True, the drug has been reviewed per the acquired asset rule
+      (company_id=acquirer, display='Acquirer w/Acquired', original_company_id=acquired).
+      Skip the company_acquired sub-check; it is not a conflict.
+    - If company_id points to an acquired company AND acquired_asset is NOT True,
+      flag as medium: the acquired asset rule has not been applied yet.
+    - Partnership "Acquirer w/Acquired" display format → not flagged as unresolvable
+      when acquired_asset=True.
+    - "/" partnership notation (e.g. "Sanofi/Regeneron") → LOW severity; these are
+      deliberate co-development display names, not errors.
     """
     did             = drug["id"]
     company_display = drug.get("company_display") or ""
     company_id      = drug.get("company_id") or ""
     confidence      = drug.get("confidence_level") or "inferred"
+    acquired_asset  = drug.get("acquired_asset") or False
     conflicts       = []
 
     display_lower = company_display.strip().lower()
 
-    # ── Sub-check A: does company_id point to an acquired company? ────
+    # ── Sub-check A: company_id points to an acquired company ─────────
+    # Only flag if acquired_asset is NOT already set to True.
+    # If acquired_asset=True, the rule has been applied; the drug now lives
+    # under the acquirer, so company_id won't point to the acquired entity anyway.
     if company_id and company_id in company_by_id:
         co = company_by_id[company_id]
         if co.get("status") == "acquired" and co.get("acquired_by"):
-            conflicts.append(make_conflict_record(
-                drug_id        = did,
-                check_type     = "company_resolution",
-                severity       = "medium",
-                conflict_type  = "company_acquired",
-                drugs_value    = f"company_id='{company_id}' ({co['name']})",
-                related_table  = "companies",
-                related_value  = {
-                    "status":      "acquired",
-                    "acquired_by": co["acquired_by"],
-                    "acquirer_name": (company_by_id.get(co["acquired_by"], {})
-                                     .get("name", co["acquired_by"])),
-                },
-                discrepancy    = (f"Drug is attributed to '{company_id}' ({co['name']}) "
-                                  f"which has status='acquired' (by {co['acquired_by']}). "
-                                  f"Drug attribution may need updating to the acquiring company."),
-                confidence_level = confidence,
-                suggested_action = ("Review whether this drug should now be attributed "
-                                    "to the acquiring company or should keep the original "
-                                    "entity as licensor. Apply acquired company rule."),
-                source_needed    = "Company IR page, acquisition announcement, pipeline page",
-            ))
+            if not acquired_asset:
+                # Acquired asset rule has NOT been applied — this is a real gap
+                acquirer_name = (company_by_id.get(co["acquired_by"], {})
+                                 .get("name", co["acquired_by"]))
+                conflicts.append(make_conflict_record(
+                    drug_id        = did,
+                    check_type     = "company_resolution",
+                    severity       = "medium",
+                    conflict_type  = "company_acquired_unhandled",
+                    drugs_value    = f"company_id='{company_id}' ({co['name']})",
+                    related_table  = "companies",
+                    related_value  = {
+                        "status":        "acquired",
+                        "acquired_by":   co["acquired_by"],
+                        "acquirer_name": acquirer_name,
+                    },
+                    discrepancy    = (f"Drug is attributed to '{company_id}' ({co['name']}) "
+                                      f"which has status='acquired' (by {co['acquired_by']} / "
+                                      f"{acquirer_name}). Acquired asset rule has NOT been applied: "
+                                      f"company_id should be '{co['acquired_by']}', acquired_asset "
+                                      f"should be true, original_company_id='{company_id}'."),
+                    confidence_level = confidence,
+                    suggested_action = (
+                        "Apply acquired asset rule: set company_id='" + co["acquired_by"] + "', "
+                        "company_display='" + acquirer_name + " w/" + co["name"] + "', "
+                        "original_company_id='" + company_id + "', acquired_asset=true, "
+                        "attribution_note='Asset entered pipeline through acquisition "
+                        "of " + co["name"] + "'."
+                    ),
+                    source_needed    = "Acquisition announcement, company IR page",
+                ))
+            # If acquired_asset=True, this is correctly handled — no conflict.
 
     # ── Sub-check B: does company_display resolve to a known company? ─
     if not company_display or display_lower in ("—", "n/a", "unknown", ""):
         return conflicts  # No display name to check
 
+    # ── Partnership "Acquirer w/Acquired" format ──────────────────────
+    # e.g. "UCB w/Candid", "Sanofi w/Kali", "Merck w/Prometheus"
+    # When acquired_asset=True, this is the canonical format — not a conflict.
+    if acquired_asset and " w/" in company_display.lower():
+        # Verify the acquirer portion resolves correctly
+        acquirer_part = company_display.split(" w/")[0].strip()
+        resolved_acquirer = alias_to_company_id.get(acquirer_part.lower())
+        if resolved_acquirer and resolved_acquirer == company_id:
+            return conflicts  # Correctly formatted acquired asset — clean
+        elif resolved_acquirer and resolved_acquirer != company_id:
+            conflicts.append(make_conflict_record(
+                drug_id        = did,
+                check_type     = "company_resolution",
+                severity       = "medium",
+                conflict_type  = "company_id_display_mismatch",
+                drugs_value    = {
+                    "company_display": company_display,
+                    "company_id":      company_id,
+                },
+                related_table  = "company_aliases",
+                related_value  = {
+                    "resolved_acquirer_from_display": resolved_acquirer,
+                },
+                discrepancy    = (f"Acquired-asset display '{company_display}' has acquirer "
+                                  f"portion '{acquirer_part}' resolving to '{resolved_acquirer}', "
+                                  f"but company_id='{company_id}'. These disagree."),
+                confidence_level = confidence,
+                suggested_action = ("Correct company_id to match the acquirer in company_display, "
+                                    "or update company_display to reflect the correct acquirer."),
+                source_needed    = "Acquisition announcement",
+            ))
+        return conflicts  # Either clean or already flagged above
+
+    # ── "/" partnership display (e.g. "Roche/Genentech", "Sanofi/Regeneron") ─
+    # These are deliberate co-development naming conventions — not typos.
+    # Downgrade to LOW severity; just note the display name isn't in aliases.
+    if "/" in company_display and not acquired_asset:
+        resolved_id = alias_to_company_id.get(display_lower)
+        if not resolved_id:
+            # Check if the first part before "/" resolves
+            primary_part = company_display.split("/")[0].strip()
+            primary_resolved = alias_to_company_id.get(primary_part.lower())
+            if primary_resolved and primary_resolved == company_id:
+                return conflicts  # Primary part matches company_id — clean
+            conflicts.append(make_conflict_record(
+                drug_id        = did,
+                check_type     = "company_resolution",
+                severity       = "low",
+                conflict_type  = "partnership_display_notation",
+                drugs_value    = company_display,
+                related_table  = "companies + company_aliases",
+                related_value  = None,
+                discrepancy    = (f"drugs.company_display='{company_display}' uses '/' partnership "
+                                  f"notation which doesn't match a single alias entry. This may be "
+                                  f"intentional for co-development partnerships."),
+                confidence_level = confidence,
+                suggested_action = ("Confirm this is an intentional co-development display name. "
+                                    "If so, verify drugs.company_id correctly reflects primary "
+                                    "development/commercial owner. Add an alias if this display "
+                                    "name is used consistently."),
+                source_needed    = "Company partnership announcement, press release",
+            ))
+        return conflicts
+
+    # ── Standard resolution: does display match any alias? ───────────
     resolved_id = alias_to_company_id.get(display_lower)
 
     if not resolved_id:
@@ -670,7 +764,8 @@ def run(drug_filter: str = None, dry_run: bool = False):
     # Fetch all drugs
     drugs = sb_get("drugs", {
         "select": ("id,name,target,mechanism,indication_short,"
-                   "company_display,company_id,confidence_level,drug_format"),
+                   "company_display,company_id,confidence_level,drug_format,"
+                   "acquired_asset,original_company_id"),
     })
     if drug_filter:
         drugs = [d for d in drugs
