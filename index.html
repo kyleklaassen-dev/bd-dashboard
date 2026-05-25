@@ -12498,10 +12498,10 @@ function siRender() {
       </div>` : ''}
     </div>
     <div class="si-action-bar">
-      <button class="si-action-btn si-btn-approve"  onclick="siSetStatus('${r.id}','approved');event.stopPropagation()">✅ Approve</button>
-      <button class="si-action-btn si-btn-queue"    onclick="siSetStatus('${r.id}','approved');event.stopPropagation()">🔍 Send to Discovery Queue</button>
-      <button class="si-action-btn si-btn-info"     onclick="siSetStatus('${r.id}','needs_review');event.stopPropagation()">💬 Needs More Info</button>
-      <button class="si-action-btn si-btn-reject"   onclick="siSetStatus('${r.id}','rejected');event.stopPropagation()">❌ Reject</button>
+      <button class="si-action-btn si-btn-approve"  onclick="siSetStatus('${r.id}','approved',this);event.stopPropagation()">✅ Approve</button>
+      <button class="si-action-btn si-btn-queue"    onclick="siSendToQueue('${r.id}',this);event.stopPropagation()">🔍 Send to Discovery Queue</button>
+      <button class="si-action-btn si-btn-info"     onclick="siSetStatus('${r.id}','needs_review',this);event.stopPropagation()">💬 Needs More Info</button>
+      <button class="si-action-btn si-btn-reject"   onclick="siSetStatus('${r.id}','rejected',this);event.stopPropagation()">❌ Reject</button>
     </div>
   </div></td>
 </tr>`;
@@ -12513,18 +12513,76 @@ function siToggleDetail(id) {
   if (el) el.classList.toggle('open');
 }
 
-async function siSetStatus(id, newStatus) {
+async function siSetStatus(id, newStatus, btn) {
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
   try {
+    const reviewer = (window._currentUser || 'reviewer');
     const { error } = await _sb.from('submitted_intel')
-      .update({ status: newStatus, reviewed_at: new Date().toISOString() })
+      .update({
+        status:      newStatus,
+        reviewer:    reviewer,
+        reviewed_at: new Date().toISOString(),
+      })
       .eq('id', id);
     if (error) throw error;
-    // Update local cache
     const row = _siData.find(r => r.id === id);
-    if (row) row.status = newStatus;
+    if (row) { row.status = newStatus; row.reviewer = reviewer; }
     siRender();
   } catch(e) {
     console.warn('[si review] update error:', e);
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+}
+
+async function siSendToQueue(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    const row = _siData.find(r => r.id === id);
+    if (!row) throw new Error('Row not found in local cache');
+
+    const entities  = row.extracted_entities_json || {};
+    const companies = entities.companies || [];
+    const drugs     = entities.drugs     || [];
+    const areas     = entities.areas     || [];
+    const targets   = entities.targets   || [];
+
+    const queueRow = {
+      company_name:   companies[0] || null,
+      drug_name:      drugs[0]     || null,
+      area_id:        areas[0]     || null,
+      target:         targets[0]   || null,
+      reason:         row.extracted_summary || row.submitted_text || null,
+      source_url:     row.source_url        || null,
+      source:         'submitted_intel',
+      discovered_by:  row.submitted_by      || null,
+      why_discovered: row.extracted_summary || row.submitted_text || null,
+      review_notes:   row.submitted_text    || null,
+      status:         'pending',
+      discovered_at:  new Date().toISOString(),
+    };
+
+    const { error: qErr } = await _sb.from('discovery_queue').insert([queueRow]);
+    if (qErr) throw qErr;
+
+    // Mark the submission as imported
+    const reviewer = (window._currentUser || 'reviewer');
+    const { error: sErr } = await _sb.from('submitted_intel')
+      .update({
+        status:      'imported',
+        reviewer:    reviewer,
+        reviewed_at: new Date().toISOString(),
+        imported_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (sErr) throw sErr;
+
+    const cached = _siData.find(r => r.id === id);
+    if (cached) { cached.status = 'imported'; cached.reviewer = reviewer; }
+    siRender();
+  } catch(e) {
+    console.warn('[si queue] error:', e);
+    alert(`Failed to send to Discovery Queue: ${e?.message || e}`);
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Send to Discovery Queue'; }
   }
 }
 // Run on page load
