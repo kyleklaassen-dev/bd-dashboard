@@ -17,7 +17,8 @@
 --   No existing tables are altered.
 --   Seed INSERTs use ON CONFLICT DO NOTHING — idempotent.
 --
--- !! DO NOT EXECUTE until advisor approves this plan !!
+-- EXECUTED: 2026-05-25 — advisor approval granted by Kyle on 2026-05-25
+-- Verified: 7 rows seeded, open high-severity = 0, idempotent confirmed.
 -- ============================================================
 
 
