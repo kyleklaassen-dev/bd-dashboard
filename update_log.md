@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-25 (Session 53j·b) — entity_consistency_checks migration plan v1 (advisor-approved)
+
+**Three advisor fixes applied to `migrations/entity_consistency_checks_v1.sql`:**
+1. Added `issue_key TEXT NOT NULL` field — allows multiple issues with same classification per entity (e.g., batoclimab can have `missing_ted_indication` and `missing_gmg_indication` both as `normalized_gap`)
+2. Changed `UNIQUE (entity_type, entity_id, classification)` → `UNIQUE (entity_type, entity_id, issue_key)` and `ON CONFLICT` updated across all 7 seed rows
+3. Added `CHECK` constraints on `check_type` (5 values) and `classification` (8 values) — with ALTER TABLE extension pattern commented in SQL
+4. Fixed upadacitinib seed: `review_status = 'accepted'` (not `proposed`) — gap is real and accepted, correction pending Wave 2D
+
+**issue_key values assigned:**
+- lm-302: `legacy_ibd_tl1a_noise`
+- sim0500: `legacy_ibd_tl1a_noise`
+- spy072: `tl1a_rheumatology_scope`
+- epi-001: `ibd_indication_evidence_gap`
+- batoclimab: `missing_ted_gmg_indications`
+- upadacitinib: `atopy_ad_gap`
+- gb004: `mechanism_field_conflict`
+
+**`scripts/apply_entity_consistency_checks.py`** — migration runner added. Uses same pattern as `apply_submitted_intel_migration.py`. Tries pg-meta endpoint; falls back to printing SQL for Supabase SQL editor if unavailable.
+
+**Execution status:** pg-meta endpoint unavailable on this hosted instance. Manual execution required.
+- Open: https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
+- Paste contents of `migrations/entity_consistency_checks_v1.sql`
+- Click Run
+- Re-run `python3 scripts/apply_entity_consistency_checks.py` to verify 7 rows
+
+**No existing production tables altered. No dashboard changes.**
+
+---
 ## 2026-05-25 (Session 53j) — Phase 4B Path C: Drug Entity Modal dual-read
 
 **Phase 4B Path C implemented in `index.html`.**
