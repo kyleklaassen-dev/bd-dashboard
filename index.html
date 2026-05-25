@@ -3668,7 +3668,7 @@ async function loadAreaDrugs(tabId) {
     if (error || !rows || !rows.length) return;
     const drugs = rows.map(r => r.drugs).filter(Boolean);
     el.innerHTML = drugs.map(d => `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
-      <strong>${d.name}</strong>${d.brand_name ? ` (${d.brand_name})` : ''} · <span style="color:#64748b;font-size:11px">${d.stage||''}</span>
+      <strong>${d.brand_name || d.name}</strong>${d.brand_name && d.name && d.name !== d.brand_name ? '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">'+d.name+'</span>' : ''} · <span style="color:#64748b;font-size:11px">${d.stage||''}</span>
     </div>`).join('');
   } catch(e) { console.warn('loadAreaDrugs', tabId, e); }
 }
@@ -7095,17 +7095,24 @@ function _piDrugLabel(d) {
   s = s.replace(/^([A-Za-z][a-z]+\w*)\s*\/\s*[A-Z][A-Z0-9\-\/]+$/, '$1').trim();
   return _dknCleanName(s) || raw;
 }
+// ── Shared drug name HTML renderer: splits "Primary (Secondary)" → no parens ──
+function _drugNameHTML(str) {
+  if (!str) return '—';
+  const m = str.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (!m) return str;
+  return m[1].trim() + '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">' + m[2].trim() + '</span>';
+}
 // ── PI tab drug label HTML: brand + (molecule) when brand exists ──────────────
 function _piDrugLabelHTML(d) {
-  const brand = d.brand_name;
-  if (!brand) return _piDrugLabel(d) || '—';
-  // Derive molecule INN: clean display_name/name, strip code parentheticals + slash aliases
-  const raw = d.display_name || d.name || '';
-  let mol = raw.replace(/\s*\([A-Z][A-Z0-9\-]*(?:\/[A-Z0-9\-]+)+\)/g, '').trim();
-  mol = mol.replace(/^([A-Za-z][a-z]+\w*)\s*\/\s*[A-Z][A-Z0-9\-\/]+$/, '$1').trim();
-  mol = _dknCleanName(mol) || raw;
-  if (!mol || mol === brand) return brand;
-  return `${brand}<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:4px">(${mol})</span>`;
+  const _sec = s => '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">' + s + '</span>';
+  if (d.brand_name) {
+    // Use d.name (the INN) directly — avoids display_name doubling e.g. "Stelara (ustekinumab)"
+    const mol = _dknCleanName(d.name || '') || '';
+    if (!mol || mol.toLowerCase() === d.brand_name.toLowerCase()) return d.brand_name;
+    return d.brand_name + _sec(mol);
+  }
+  // No brand name: render display_name splitting any "(secondary)" without parens
+  return _drugNameHTML(d.display_name || d.name || '') || '—';
 }
 
 // \u2500\u2500 Stage resolver \u2014 systemic approval detection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -10082,7 +10089,7 @@ function _buildCompanyDossierBody(prog, sbData, areaId) {
     <div class="dossier-drug-item">
       <div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
-          <span style="font-size:12px;font-weight:700;color:#1e3a5f;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name||'—'}</span>
+          <span style="font-size:12px;font-weight:700;color:#1e3a5f;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${_drugNameHTML(d.display_name||d.name||'—')}</span>
           <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;${stageStyle(d.stage)}">${d.stage||'Preclinical'}</span>
           ${d.cls?`<span style="font-size:9px;color:#64748b;font-weight:600">${d.cls}</span>`:''}
           ${originatorPill}
@@ -10901,7 +10908,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
       ${_cemPhasePill(d.stage||d.phase)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-          <span style="font-size:12px;font-weight:600;color:#1d4ed8;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dNameSafe}',event)">${d.display_name||d.name}</span>
+          <span style="font-size:12px;font-weight:600;color:#1d4ed8;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dNameSafe}',event)">${_drugNameHTML(d.display_name||d.name||'—')}</span>
           ${d.overlap ? _cemOverlapPill(d.overlap) : ''}
         </div>
         <div style="font-size:10.5px;color:#64748b">${d.mechanism||d.target||''} ${d.indication_short?'· '+d.indication_short:''}</div>
@@ -10913,7 +10920,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     <div class="cem-det-title">Full pipeline — ${areaLabel} area</div>
     <table class="cem-tbl"><thead><tr><th>Drug</th><th>Target</th><th>Phase</th><th>Overlap</th><th>Indication</th></tr></thead><tbody>
     ${sbDrugs.map(d => `<tr>
-      <td><span style="color:#1d4ed8;cursor:pointer;font-weight:600" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name}</span></td>
+      <td><span style="color:#1d4ed8;cursor:pointer;font-weight:600" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${_drugNameHTML(d.display_name||d.name||'—')}</span></td>
       <td style="color:#64748b">${d.target||d.mechanism||'—'}</td>
       <td>${_cemPhasePill(d.stage||d.phase)}</td>
       <td>${_cemOverlapPill(d.overlap)}</td>
@@ -11464,7 +11471,7 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
   // ── Drug pill helper ─────────────────────────────────────────────────────
   const drugPill = d => {
     const dn = (d.display_name||d.name||'').replace(/'/g,"\\'");
-    return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dn}',event)">${d.display_name||d.name}</span>`;
+    return `<span class="pi-entity-name" style="display:inline-block;font-size:11px;font-weight:700;background:#e8f0f8;color:#1a3a6e;padding:3px 9px;border-radius:8px;margin:2px;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dn}',event)">${_drugNameHTML(d.display_name||d.name||'—')}</span>`;
   };
 
   // ── Overview panel content ───────────────────────────────────────────────
@@ -15770,7 +15777,7 @@ async function _gsSbSearch(term) {
     const mechTag  = d.mechanism ? `<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">${d.mechanism.slice(0,50)}</span>` : '';
     const stageTag = d.stage ? `<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">${d.stage}</span>` : '';
     html += `<div class="gs-sb-item gs-nav-item" data-gtype="drug" data-drug-id="${d.id}" data-drug-name="${label.replace(/"/g,'&quot;')}" style="cursor:pointer">`
-     + `<div class="gs-sb-headline">💊 ${hl(label)}${d.name !== label ? ' <span style="font-size:10px;opacity:0.55">('+hl(d.name)+')</span>' : ''}</div>`
+     + `<div class="gs-sb-headline">💊 ${hl(label)}${d.name !== label ? '<span style="font-size:10px;opacity:0.55;margin-left:5px">'+hl(d.name)+'</span>' : ''}</div>`
      + `<div class="gs-sb-meta">${stageTag}${mechTag}</div></div>`;
    });
   }
@@ -19408,10 +19415,10 @@ const PB_IND_META = {
 const TARGET_LABELS = { tl1a:'TL1A', il23p19:'IL-23p19', a4b7:'α4β7', il12_23p40:'IL-12/23p40', il4ra:'IL-4Rα', il13:'IL-13', tslp:'TSLP', il33:'IL-33', fcrn:'FcRn', cd19:'CD19', bcma:'BCMA', cd3:'CD3', cd20:'CD20', cd38:'CD38', igf1r:'IGF-1R', tshr:'TSHR', il17a:'IL-17A', tnf:'TNF', il6:'IL-6', baff:'BAFF', baff_r:'BAFF-R', ifnar1:'IFNAR1', pd1:'PD-1', cd40:'CD40' };
 
 // Phase 4 Comparison Readiness — sourced from docs/phase4_comparison_harness.md (2026-05-25)
-// status: ready (≥95%), close (70-94%), blocked (active migration blocker), not_ready (<70% or fundamental gap)
+// status: ready (≥95% raw), compare_pass (OOS-adjusted ≥95%), close (70-94%), blocked (active migration blocker), not_ready (<70% or fundamental gap)
 const COMPARISON_READINESS = {
-  uc:     { status:'blocked',   pct:92,  note:'tl1a 92.2% / ibd 94.0% raw · 3 confirmed OOS exclusions (lm-302/sim0500/spy072) · epi-001 held · awaiting advisor 95% threshold decision' },
-  cd:     { status:'blocked',   pct:94,  note:'tl1a 92.2% / ibd 94.0% raw · 3 confirmed OOS exclusions (lm-302/sim0500/spy072) · epi-001 held · awaiting advisor 95% threshold decision' },
+  uc:     { status:'compare_pass', pct:98,  note:'tl1a 92.2% raw / 97.9% OOS-adjusted · 3 confirmed OOS excluded (lm-302=gastric ADC, sim0500=RRMM, spy072=TL1A-PsA/axSpA) · governance rule 2026-05-25: OOS drugs removed from denominator · ready for Phase 4 dual-read — NOT Phase 5 migration' },
+  cd:     { status:'compare_pass', pct:98,  note:'ibd 94.0% raw / 97.9% OOS-adjusted · 2 confirmed OOS excluded (lm-302, sim0500) · governance rule 2026-05-25: OOS drugs removed from denominator · ready for Phase 4 dual-read — NOT Phase 5 migration' },
   ad:     { status:'close',     pct:90,  note:'atopy 90% / il4ra 100% · 1 drug missing (upadacitinib→ad)' },
   asthma: { status:'ready',     pct:100, note:'il4ra 100% / respiratory 100% / tslp 100% · migration safe' },
   ted:    { status:'close',     pct:89,  note:'igf1r 88.9% / ted 91.7% · batoclimab scope mismatch unresolved' },
@@ -19419,10 +19426,11 @@ const COMPARISON_READINESS = {
   sle:    { status:'not_ready', pct:48,  note:'autoimmune 48% · wave 2D multi-portfolio backfill needed' },
 };
 const READINESS_STYLE = {
-  ready:     { icon:'✅', label:'Ready',     color:'#4caf76' },
-  close:     { icon:'🟡', label:'Close',     color:'#f59e0b' },
-  blocked:   { icon:'🔴', label:'Blocked',   color:'#ef4444' },
-  not_ready: { icon:'⛔', label:'Not Ready', color:'#6b8aad' },
+  ready:        { icon:'✅', label:'Ready',        color:'#4caf76' },
+  compare_pass: { icon:'🟢', label:'Compare Pass', color:'#22c55e' },
+  close:        { icon:'🟡', label:'Close',        color:'#f59e0b' },
+  blocked:      { icon:'🔴', label:'Blocked',      color:'#ef4444' },
+  not_ready:    { icon:'⛔', label:'Not Ready',    color:'#6b8aad' },
 };
 
 async function pbLoadCard(indId) {
