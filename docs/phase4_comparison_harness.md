@@ -472,21 +472,48 @@ These paths must NOT be migrated until the blocking conditions are resolved:
 
 ## Part 4 — Mismatch Classification (Track B)
 
-Classifying why each mismatch exists. Types: `coverage_gap` | `alias_gap` | `scope_difference` | `legacy_noise` | `true_missing_row`
+Classifying why each mismatch exists. Full taxonomy: `missing_relationship` | `legacy_noise` | `ontology_scope_mismatch` | `bridge_rule_needed` | `true_migration_blocker` | `coverage_gap` | `alias_gap` | `scope_difference` | `true_missing_row` | `true_data_integrity_issue`
+
+### Wave 2C — TL1A / IBD Mismatch Classifications (2026-05-25)
+
+These are the mismatch types for the 36 legacy tl1a/ibd drugs that were absent from drug_indications. Classified during Wave 2C preview build (run: wave2c_ibd_20260525_203134).
+
+| Drug | Type | Explanation | Action |
+|---|---|---|---|
+| `lm-302` (LM-302) | **legacy_noise** | Anti-CLDN18.2 ADC with ind_short "Gastric · GEJ Adenocarcinoma". Gastric cancer — not IBD. Was placed in tl1a area by legacy curation error. | Exclude permanently. No drug_indications row. |
+| `sim0500` (SIM0500) | **legacy_noise** | GPRC5D×BCMA×CD3 trispecific with ind_short "RRMM". Relapsed/Refractory Multiple Myeloma — not IBD. Legacy area contamination. | Exclude permanently. No drug_indications row. |
+| `spy072` (SPY072) | **ontology_scope_mismatch** | Anti-TL1A mAb with ind_short "PsA · axSpA". All trials are rheumatology (RA, PsA, axSpA) — not UC or CD. Mechanism is TL1A but indication scope is wrong. | Exclude. TL1A≠IBD when target indication is rheumatology. |
+| `ep006` / `es302` | **true_data_integrity_issue** | Two drug_ids for the same molecule (ES302). ep006 maps to the same drug as es302. Both have ind_short pointing to UC/CD, but ep006 is a phantom ID. | Map both for now (ep006 conf penalized to 85). Track B future sprint: tombstone ep006, keep es302 as canonical. |
+| `epi-001` | **missing_relationship** | Anti-TL1A antibody, preclinical stage. No ind_short available in drugs table. Mechanism strongly implies IBD but insufficient source evidence to commit with confidence. | Hold as review_required (conf 76). Manual review needed before commit. |
+| 32 other drugs (abbv-382, abs-101, duvakitug, upadacitinib, etc.) | **coverage_gap** | Legitimate tl1a/ibd-area drugs not yet in drug_indications. Correct indication scope confirmed via ind_short. These are the drugs Wave 2C is designed to backfill. | Map to UC and/or CD per classification table. |
+
+### Area-Level Mismatch Classifications (General Harness)
+
+Classifying why each extra-legacy drug exists per area. Types: `coverage_gap` | `scope_difference` | `legacy_noise` | `true_missing_row`
 
 | Area | Extra-Legacy Drug | Classification | Action |
 |---|---|---|---|
-| `atopy` | `upadacitinib` (Rinvoq (upadacitinib)) | true_missing_row | Add drug_indications row: upadacitinib → ad |
-| `autoimmune` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | FcRn mechanism drug placed in autoimmune legacy catch-all |
+| `atopy` | `upadacitinib` (Rinvoq) | true_missing_row | Add drug_indications row: upadacitinib → ad |
+| `autoimmune` | `batoclimab` (Batoclimab) | scope_difference | FcRn mechanism drug placed in autoimmune legacy catch-all |
 | `autoimmune` | `cnd261` (CND261) | coverage_gap | Wave 2A did not cover CND261; need drug_indications backfill |
 | `autoimmune` | `cnd319` (CND319) | coverage_gap | Wave 2A did not cover CND319; need drug_indications backfill |
-| `autoimmune` | `iscalimab` (Iscalimab (CFZ533)) | coverage_gap | Iscalimab (CD40; gMG-adjacent) missing from drug_indications |
-| `fcrn` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T (tcell area), placed in fcrn legacy; different mechanism |
-| `fcrn` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn-targeting but in legacy igf1r/autoimmune areas; not in gmg/cidp/waiha drug_indications |
-| `fcrn` | `imvt-1402` (IMVT-1402) | true_missing_row | IMVT-1402 is FcRn; add drug_indications rows for gmg/cidp/waiha |
-| `igf1r` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn/IgG pathway, classified in igf1r legacy area; exclude from ted |
-| `tcell` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T targeting GD2; not ALL or MM specifically |
-| `ted` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab is FcRn; legacy igf1r area misclassified it; not TED |
+| `autoimmune` | `iscalimab` (Iscalimab) | coverage_gap | CD40 mechanism; gMG-adjacent; missing from drug_indications |
+| `fcrn` | `atg-201` (ATG-201) | scope_difference | CAR-T (tcell area) placed in fcrn legacy; different mechanism |
+| `fcrn` | `batoclimab` (Batoclimab) | scope_difference | FcRn-targeting but in legacy igf1r/autoimmune areas; not in gmg/cidp/waiha drug_indications |
+| `fcrn` | `imvt-1402` (IMVT-1402) | true_missing_row | FcRn drug; add drug_indications rows for gmg/cidp/waiha |
+| `igf1r` | `batoclimab` (Batoclimab) | scope_difference | FcRn/IgG pathway, misclassified in igf1r legacy; exclude from ted |
+| `tcell` | `atg-201` (ATG-201) | true_migration_blocker | GD2-targeting CAR-T; not ALL or MM specifically. tcell→all/MM mapping is fundamentally broken. |
+| `ted` | `batoclimab` (Batoclimab) | scope_difference | FcRn; legacy igf1r area misclassified it; not TED |
+
+### Dashboard Function Mismatch Classifications
+
+| Function | Classification | Root Cause |
+|---|---|---|
+| `loadAreaDeals()` | **bridge_rule_needed** | deals table has no indication_id FK; area_id→indication_id bridge doesn't exist |
+| `loadAreaCatalysts()` | **bridge_rule_needed** | Catalysts record curated readout dates/notes — not equivalent to trial_indications rows; bridge needed |
+| Trial/Signal feeds | **bridge_rule_needed** | trials.indication_id column exists but is NULL; must be backfilled from trial_indications |
+| `openDrugEntityModal()` | **true_migration_blocker** | drug_area_scores competitive enrichment (overlap, rationale, cls) has no equivalent in drug_indications |
+| `tcell` area | **true_migration_blocker** | 0% overlap; CAR-T drugs and ALL/MM biologics are different drug populations |
 
 ---
 
