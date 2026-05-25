@@ -1194,13 +1194,21 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .cem-conf-date { font-size:9px; color:#94a3b8; }
 .cem-id-pills { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:7px; }
 .cem-id-pill { font-size:9px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap; letter-spacing:.03em; }
-.cem-id-pill-entity { background:#0d1f38; color:#e2e8f0; }
+.cem-id-pill-entity { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
 .cem-id-pill-phase { background:#dbeafe; color:#1e40af; }
 .cem-id-pill-status { background:#fef9c3; color:#854d0e; }
 .cem-id-pill-approved { background:#dcfce7; color:#166534; }
 .cem-id-pill-area { background:#f1f5f9; color:#475569; font-size:8.5px; }
 .cem-id-pill-target { background:#ede9fe; color:#5b21b6; font-size:8.5px; }
 .cem-id-pill-format { background:#f0fdf4; color:#166534; font-size:8.5px; }
+/* Company type pills — distinct color per category */
+.cem-id-pill-large-pharma { background:#1e3a5f; color:#e2e8f0; }
+.cem-id-pill-mid-pharma   { background:#1d4ed8; color:#ffffff; }
+.cem-id-pill-big-biotech  { background:#5b21b6; color:#ffffff; }
+.cem-id-pill-biotech      { background:#0e7490; color:#ffffff; }
+.cem-id-pill-academic     { background:#475569; color:#ffffff; }
+.cem-id-pill-cro          { background:#92400e; color:#ffffff; }
+.cem-id-pill-spinout      { background:#b45309; color:#ffffff; }
 .dossier-tabs { display:flex; gap:0; border-bottom:2px solid #e2e8f0; background:#f8fafc; flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
 .dossier-tabs::-webkit-scrollbar { display:none; }
 .dossier-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:9px 14px 8px; font-size:11px; font-weight:700; color:#64748b; cursor:pointer; transition:color 0.12s,border-color 0.12s; white-space:nowrap; letter-spacing:0.03em; }
@@ -9558,8 +9566,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     // Re-enable with proper cache invalidation once ownership changes stabilize.
     const piObj = _areaPIs[sourceTabId] || null;
 
-    // ── Parallel fetch: profile + catalysts + deals ──
-    const [profileRes, catsRes, dealsRes] = await Promise.all([
+    // ── Parallel fetch: profile + catalysts + deals + company row ──
+    const [profileRes, catsRes, dealsRes, companyRowRes] = await Promise.all([
       _sb.from('company_profiles').select('*')
          .eq('company_id', companyId).eq('area_id', AREA)
          .order('updated_at', { ascending: false }).limit(1),
@@ -9568,8 +9576,10 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
          .eq('resolved', false).order('sort_date', { ascending: true }).limit(20),
       _sb.from('deals').select('*')
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
+      _sb.from('companies').select('id,name,ticker,hq,location,company_type,sector,primary_indication,headquarters').eq('id', companyId).limit(1),
     ]);
-    const profile = profileRes.data?.[0] || null;
+    const profile    = profileRes.data?.[0] || null;
+    const companyRow = companyRowRes.data?.[0] || null;
     const cats    = catsRes.data || [];
     let deals     = dealsRes.data || [];
 
@@ -9704,7 +9714,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
 
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
-    const sbData = { profile, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
     // if (piObj) piObj._profileCache[companyId] = sbData;
@@ -10458,10 +10468,11 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
 
 /* ── Company card renderer ───────────────────────────────────────── */
 function _cemCompanyBody(prog, sbData, areaId) {
-  const profile  = sbData?.profile   || {};
-  const sbCats   = sbData?.catalysts || [];
-  const sbDeals  = sbData?.deals     || [];
-  const sbDrugs  = sbData?.drugs     || [];
+  const profile    = sbData?.profile   || {};
+  const companyRow = sbData?.company   || null;
+  const sbCats     = sbData?.catalysts || [];
+  const sbDeals    = sbData?.deals     || [];
+  const sbDrugs    = sbData?.drugs     || [];
   const pi = profile.platform_intelligence || null;
   const bd = profile.bd_intelligence      || null;
   const companyName = prog?.co || '';
@@ -10473,18 +10484,29 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const confEl  = document.getElementById('entity-modal-conf');
   const subEl2  = document.getElementById('entity-modal-sub');
   if (chipsEl) {
-    const coType   = profile.company_type || '';
+    const coType = companyRow?.company_type || profile.company_type || '';
+    const coTypeCssMap = {
+      'large_pharma':'large-pharma','Large Pharma':'large-pharma',
+      'mid_pharma':'mid-pharma','Mid Pharma':'mid-pharma',
+      'big_biotech':'big-biotech','Big Biotech':'big-biotech',
+      'biotech':'biotech','Biotech':'biotech',
+      'academic':'academic','Academic':'academic',
+      'cro':'cro','CRO':'cro',
+      'spinout':'spinout','Spinout':'spinout',
+    };
+    const coTypeLabel = {'large_pharma':'Large Pharma','mid_pharma':'Mid Pharma','big_biotech':'Big Biotech','biotech':'Biotech','academic':'Academic','cro':'CRO','spinout':'Spinout'}[coType] || coType;
+    const coTypeCss   = coTypeCssMap[coType] || '';
     const typePill = `<span class="cem-id-pill cem-id-pill-entity">Company</span>`;
-    const szPill   = coType ? `<span class="cem-id-pill cem-id-pill-status">${coType}</span>` : '';
+    const szPill   = coTypeCss ? `<span class="cem-id-pill cem-id-pill-${coTypeCss}">${coTypeLabel}</span>` : (coType ? `<span class="cem-id-pill cem-id-pill-status">${coType}</span>` : '');
     const areaPill = areaLabelHd ? `<span class="cem-id-pill cem-id-pill-area">${areaLabelHd}</span>` : '';
     chipsEl.innerHTML = [typePill, szPill, areaPill].filter(Boolean).join('');
   }
   if (subEl2) {
-    const ticker = profile.ticker || '';
-    const sector = profile.sector || profile.primary_indication || '';
-    const hq     = profile.hq || profile.location || '';
+    const ticker = companyRow?.ticker || profile.ticker || '';
+    const sector = companyRow?.sector || profile.sector || companyRow?.primary_indication || profile.primary_indication || '';
+    const hq     = companyRow?.hq || companyRow?.headquarters || companyRow?.location || profile.hq || profile.location || '';
     const parts  = [ticker, sector, hq].filter(Boolean);
-    subEl2.textContent = parts.length ? parts.join(' · ') : 'Company Profile';
+    subEl2.innerHTML = parts.length ? parts.map(p => `<span>${p}</span>`).join(' <span style="color:#cbd5e1">·</span> ') : '';
   }
   if (confEl) {
     const score    = profile.completeness_score;
@@ -10560,9 +10582,11 @@ function _cemCompanyBody(prog, sbData, areaId) {
     <div class="cem-item-row">
       ${_cemPhasePill(d.stage||d.phase)}
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+ ' '+companyName+' drug clinical trial')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+ ' '+companyName+' drug')}</span>
+          ${d.overlap ? _cemOverlapPill(d.overlap) : ''}
+        </div>
         <div style="font-size:10.5px;color:#64748b">${d.mechanism||d.target||''} ${d.indication_short?'· '+d.indication_short:''}</div>
-        ${d.overlap ? `<div style="margin-top:2px">${_cemOverlapPill(d.overlap)}</div>` : ''}
       </div>
     </div>`).join('');
 
@@ -10615,7 +10639,7 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const catSummary = sbCats.slice(0,4).map(c => `
     <div class="cem-item-row">
       <div style="font-size:10px;color:#1d4ed8;font-weight:600;min-width:52px;flex-shrink:0">${c.sort_date?c.sort_date.slice(0,7):'—'}</div>
-      <div style="font-size:12px;color:#1e293b">${_cemLink(c.headline||c.label||c.notes?.slice(0,80)||c.catalyst_type||'Catalyst', (c.headline||c.catalyst_type||'')+ ' '+companyName)}</div>
+      <div style="font-size:12px;color:#1e293b">${_cemLink(c.headline||c.label||c.notes?.slice(0,80)||c.catalyst_type||'Catalyst', [companyName, c.headline||c.label||c.catalyst_type, c.drug_name||'', c.sort_date?c.sort_date.slice(0,4):''].filter(Boolean).join(' '))}</div>
     </div>`).join('');
 
   const catDetail = `<div class="cem-det-inner">
@@ -10623,7 +10647,7 @@ function _cemCompanyBody(prog, sbData, areaId) {
     <table class="cem-tbl"><thead><tr><th>Date</th><th>Catalyst</th><th>Drug</th><th>Type</th></tr></thead><tbody>
     ${sbCats.map(c => `<tr>
       <td style="color:#1d4ed8;font-weight:600">${c.sort_date?c.sort_date.slice(0,10):'—'}</td>
-      <td>${_cemLink(c.headline||c.catalyst_type||'—', (c.headline||c.catalyst_type||'')+' '+companyName)}</td>
+      <td>${_cemLink(c.headline||c.catalyst_type||'—', [companyName, c.headline||c.catalyst_type||'', c.drug_name||'', c.sort_date?c.sort_date.slice(0,4):''].filter(Boolean).join(' '))}</td>
       <td style="color:#64748b;font-size:10px">${c.drug_name||'—'}</td>
       <td style="color:#64748b">${c.catalyst_type||'—'}</td>
     </tr>`).join('')}
