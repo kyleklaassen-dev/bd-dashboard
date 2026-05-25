@@ -17766,6 +17766,11 @@ document.addEventListener('DOMContentLoaded', function(){
 .ont-impact-action{font-size:10px;font-weight:700;color:#14532d;background:#f0fdf4;border-radius:5px;padding:6px 9px;margin-top:6px;line-height:1.55}
 .ont-impact-map{font-size:10px;color:#475569;margin-top:5px;font-family:monospace;background:#f8fafc;padding:3px 8px;border-radius:4px}
 .ont-impact-sh{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin:8px 0 3px}
+.ont-inspect-btn{display:block;width:calc(100% - 28px);margin:0 14px 12px;text-align:center;font-size:10px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px 12px;cursor:pointer;transition:background .1s}
+.ont-inspect-btn:hover{background:#dbeafe}
+.ont-inspect-btn.open{background:#1d4ed8;color:white;border-color:#1d4ed8}
+.ont-inspect-body{display:none;border-top:2px solid #f1f5f9}
+.ont-inspect-body.open{display:block}
 /* Relationship Coverage Scoreboard */
 .ont-cov-entity{background:white;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:14px}
 .ont-cov-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
@@ -18649,7 +18654,7 @@ async function _renderOntImpact(daRows) {
     const id = (r.id||'').toLowerCase();
     const meta = IMPACT_META[id] || { type:'Unclassified', tc:'#94a3b8', risk:'UNKNOWN', tabs:[], tArea:'Needs manual review', action:'Classify manually before including in migration plan.' };
     const cnt  = cMap[id] || { drugs:0, inds:0 };
-    return `<div class="ont-impact-card">
+    return `<div class="ont-impact-card" id="ont-ic-${id}">
       <div class="ont-impact-hd">
         <span class="ont-impact-id">${r.id||id}</span>
         <span class="ont-impact-type" style="background:${meta.tc}22;color:${meta.tc}">${meta.type}</span>
@@ -18667,6 +18672,8 @@ async function _renderOntImpact(daRows) {
         <div class="ont-impact-sh">Migration action</div>
         <div class="ont-impact-action">${meta.action}</div>
       </div>
+      <button class="ont-inspect-btn" id="ont-inspect-btn-${id}" onclick="ontInspectArea('${id}', this)">🔍 Inspect Records →</button>
+      <div class="ont-inspect-body" id="ont-inspect-${id}"></div>
     </div>`;
   });
 
@@ -18847,6 +18854,151 @@ async function _renderOntCoverage() {
       Required relationships → 90%+ before Phase 5 (switch dashboard logic).
       Recommended relationships → 70%+ before Phase 6 (deprecate legacy).
       TABLE MISSING rows are blocked by Phase 2 schema work — required before backfill can begin.
+    </div>`;
+}
+
+// ── H: Per-area click-through inspection ─────────────────────────────────────
+async function ontInspectArea(id, btn) {
+  const body = document.getElementById('ont-inspect-' + id);
+  if (!body) return;
+
+  // Toggle open/close
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (btn) {
+    btn.classList.toggle('open', !isOpen);
+    btn.textContent = isOpen ? '🔍 Inspect Records →' : '✕ Close';
+  }
+  if (isOpen) return;
+
+  // Already loaded — just show
+  if (body.dataset.loaded === 'true') return;
+
+  body.innerHTML = '<div style="padding:16px;text-align:center;color:#94a3b8;font-size:11px">Loading records…</div>';
+
+  // 1. Drugs in this area (drug_area_scores)
+  const { data: dasData } = await _sb.from('drug_area_scores')
+    .select('drug_id, overlap, score')
+    .eq('area_id', id)
+    .order('score', { ascending: false })
+    .limit(60);
+
+  const drugIds = (dasData||[]).map(d => d.drug_id);
+  const overlapMap = {};
+  (dasData||[]).forEach(d => { overlapMap[d.drug_id] = d.overlap; });
+
+  // 2. Drug details
+  let drugRows = [];
+  if (drugIds.length > 0) {
+    const { data } = await _sb.from('drugs')
+      .select('id, name, company, mechanism, modality, stage')
+      .in('id', drugIds);
+    drugRows = data || [];
+    // Preserve drug_area_scores order (by score desc)
+    const order = {};
+    drugIds.forEach((did, i) => { order[did] = i; });
+    drugRows.sort((a,b) => (order[a.id]||99) - (order[b.id]||99));
+  }
+
+  // 3. Trial count for these drugs
+  let trialCount = 0;
+  if (drugIds.length > 0) {
+    const { count } = await _sb.from('trials').select('*',{count:'exact',head:true}).in('drug_id', drugIds);
+    trialCount = count || 0;
+  }
+
+  // 4. Catalysts + signals (area_id field — may not exist, handled gracefully)
+  let catCount = 0, sigCount = 0;
+  const [catRes, sigRes] = await Promise.all([
+    _sb.from('catalysts').select('*',{count:'exact',head:true}).eq('area_id', id),
+    _sb.from('intel').select('*',{count:'exact',head:true}).eq('area_id', id),
+  ]);
+  catCount = catRes.error ? 0 : (catRes.count || 0);
+  sigCount = sigRes.error ? 0 : (sigRes.count || 0);
+
+  // 5. Coverage analysis for these drugs
+  const total = drugRows.length || 1;
+  const withCompany   = drugRows.filter(d => d.company   && d.company.trim()).length;
+  const withMechanism = drugRows.filter(d => d.mechanism && d.mechanism.trim()).length;
+  const withModality  = drugRows.filter(d => d.modality  && d.modality.trim()).length;
+  const withStage     = drugRows.filter(d => d.stage     && d.stage.trim()).length;
+
+  // 6. Overlap distribution
+  const ovCounts = {};
+  (dasData||[]).forEach(d => { if (d.overlap) ovCounts[d.overlap] = (ovCounts[d.overlap]||0)+1; });
+  const ovColors = { Direct:'#ef4444', Adjacent:'#f59e0b', 'Same-Space':'#3b82f6', Watch:'#94a3b8' };
+
+  const pct = (n,d) => d > 0 ? Math.round(n/d*100) : 0;
+  const covChip = (label, n, d) => {
+    const p = pct(n,d);
+    const col = p>=80?'#10b981':p>=50?'#f59e0b':'#ef4444';
+    return `<span style="font-size:10px;font-weight:600;color:#475569">${label}: <strong style="color:${col}">${p}%</strong> <span style="color:#94a3b8">(${n}/${d})</span></span>`;
+  };
+
+  // Drug list rows
+  const drugListHtml = drugRows.slice(0, 25).map(d => {
+    const ov = overlapMap[d.id];
+    const ovCol = ovColors[ov] || '#94a3b8';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px">
+      <span style="flex:1;font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.name||d.id}">${d.name||d.id}</span>
+      <span style="font-size:10px;color:#64748b;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.company||'—'}</span>
+      <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:${ovCol}22;color:${ovCol};flex-shrink:0">${ov||'—'}</span>
+      <span style="font-size:9px;color:#94a3b8;min-width:55px;text-align:right;flex-shrink:0">${d.stage||'—'}</span>
+    </div>`;
+  }).join('');
+
+  const statBox = (n, label, col) => `<div style="text-align:center;background:#f8fafc;border-radius:8px;padding:10px 6px;flex:1">
+    <div style="font-size:22px;font-weight:800;color:${col||'#0f172a'}">${n}</div>
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-top:2px">${label}</div>
+  </div>`;
+
+  body.dataset.loaded = 'true';
+  body.innerHTML = `
+    <div style="padding:16px 16px 18px">
+
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        ${statBox(drugRows.length, 'Drugs', '#0f172a')}
+        ${statBox(trialCount, 'Trials', '#2563eb')}
+        ${statBox(catCount, 'Catalysts', '#f59e0b')}
+        ${statBox(sigCount, 'Signals', '#8b5cf6')}
+      </div>
+
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:6px">Record Coverage (${drugRows.length} drugs)</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;background:#f8fafc;border-radius:8px">
+        ${covChip('Company', withCompany, drugRows.length)}
+        ${covChip('Mechanism', withMechanism, drugRows.length)}
+        ${covChip('Modality', withModality, drugRows.length)}
+        ${covChip('Stage', withStage, drugRows.length)}
+      </div>
+
+      ${Object.keys(ovCounts).length ? `
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:6px">Overlap Tier Distribution</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        ${['Direct','Adjacent','Same-Space','Watch'].filter(t=>ovCounts[t]).map(t =>
+          `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${ovColors[t]}22;color:${ovColors[t]}">${t}: ${ovCounts[t]}</span>`
+        ).join('')}
+      </div>` : ''}
+
+      ${drugRows.length > 0 ? `
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:6px">
+        Drugs in this area${drugRows.length > 25 ? ` — top 25 of ${drugRows.length}` : ` — ${drugRows.length} total`}
+      </div>
+      <div style="max-height:260px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;padding:2px 10px 6px">
+        <div style="display:flex;gap:8px;padding:5px 0 4px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:800;text-transform:uppercase;color:#94a3b8;position:sticky;top:0;background:white">
+          <span style="flex:1">Drug</span><span style="min-width:90px">Company</span><span style="min-width:58px">Overlap</span><span style="min-width:55px;text-align:right">Stage</span>
+        </div>
+        ${drugListHtml}
+      </div>` : '<div style="font-size:11px;color:#94a3b8;text-align:center;padding:12px">No drugs found in drug_area_scores for this area ID.</div>'}
+
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin:14px 0 6px">Missing Relationship Tables (Phase 2)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fee2e2;color:#991b1b">drug_targets</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fee2e2;color:#991b1b">drug_indications</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fee2e2;color:#991b1b">drug_routes</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e">therapeutic_areas</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e">ontology_mappings</span>
+      </div>
+
     </div>`;
 }
 
