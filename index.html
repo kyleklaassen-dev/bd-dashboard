@@ -13252,8 +13252,32 @@ function _makeAreaPI(tabId, areaIds) {
     ['Thrombocytopenia','TCP'],
     ['Chronic Bronchitis','Chr. Bronchitis'],
     // ── Gastric / GI oncology forms ──
+    // Compound GC/GEJ forms — must precede individual matches
     ['Gastric or Esophagogastric Junction Adenocarcinoma','GC/GEJ AdCa'],
     ['Gastric or Gastroesophageal Junction Adenocarcinoma','GC/GEJ AdCa'],
+    ['Gastric or Gastroesophageal Adenocarcinoma','GC/GEJ AdCa'],
+    ['Locally Advanced or Metastatic GC and GCJ Adenocarcinoma','GC/GEJ AdCa (LA/Met.)'],
+    ['Locally Advanced and Metastatic GC and GCJ Adenocarcinoma','GC/GEJ AdCa (LA/Met.)'],
+    // Peritoneal met "From GC" forms — map whole phrase to avoid "From GC" residue
+    ['Peritoneal Metastases From Gastric Cancer','Perit. Met.'],
+    ['Peritoneal Metastases from Gastric Cancer','Perit. Met.'],
+    ['Peritoneal Metastasis From Gastric Cancer','Perit. Met.'],
+    ['Peritoneal Metastasis from Gastric Cancer','Perit. Met.'],
+    // Stage-qualified GC forms
+    ['Gastric Cancer Stage IV','GC (St.IV)'],['Gastric Cancer, Stage IV','GC (St.IV)'],
+    ['Gastric Cancer Stage III','GC (St.III)'],['Gastric Cancer Stage II','GC (St.II)'],
+    // LA/Met GC (already-abbreviated DB values)
+    ['Locally Advanced or Metastatic GC','GC (LA/Met.)'],
+    ['Locally Advanced and Metastatic GC','GC (LA/Met.)'],
+    // Post-substitution "Gastric or GEJ" forms
+    // (GEJ AdCa rule at line ~13217 runs first and converts Gastroesophageal → GEJ,
+    //  so we also catch the intermediate "Gastric or GEJ ..." forms here)
+    ['Gastric or GEJ AdCa','GC/GEJ AdCa'],
+    ['Gastric or GEJ Adenocarcinoma','GC/GEJ AdCa'],
+    ['Gastric or GEJ Cancer','GC/GEJ'],
+    // GCJ forms not otherwise mapped
+    ['GCJ Adenocarcinoma','GC/GEJ AdCa'],['GCJ Cancer','GC/GEJ'],['GCJ','GEJ'],
+    // Standard GEJ
     ['Metastatic Gastro-esophageal Adenocarcinoma','Met. GEJ AdCa'],
     ['Esophagogastric Junction Adenocarcinoma','GEJ AdCa'],
     ['GEJ Adenocarcinoma','GEJ AdCa'],
@@ -13277,6 +13301,13 @@ function _makeAreaPI(tabId, areaIds) {
     ['Pulmonary Embolism','PE'],
     // ── Generic trial condition qualifiers ──
     ['Flare Up','Flare'],['Inflammation','Inflam.'],
+    // ── Generic disease-qualifier prefix (catch-all — must be last) ──
+    // Applied after specific disease names are already abbreviated
+    ['Locally Advanced or Metastatic ','LA/Met. '],
+    ['Locally Advanced and Metastatic ','LA/Met. '],
+    ['Locally Advanced ','LA '],
+    // Fallback: standalone Adenocarcinoma not caught by specific rules above
+    ['Adenocarcinoma','AdCa'],
    ];
    // Split on separators, abbreviate each part, deduplicate
    const _sepRe = /\s*(?:·|•|\bAND\b)\s*/i;
@@ -13314,6 +13345,9 @@ function _makeAreaPI(tabId, areaIds) {
     r = r.replace(/\s*\(p16[^)]*\)/gi, '');
     r = r.replace(/\s*\(Diagnosis\)/gi, '').replace(/\s*\(Only[^)]*\)/gi, '');
     r = r.replace(/\s{2,}/g, ' ').trim();
+    // Strip "from [ABBREV]" suffixes that are redundant when disease appears elsewhere in string
+    // e.g. "Perit. Met. From GC" → "Perit. Met." when GC already shown in another segment
+    r = r.replace(/\s+[Ff]rom\s+[A-Z][A-Z0-9\/]{1,6}\b/g, '');
     // Strip leftover qualifier noise and suffix junk
     r = r.replace(/\s*,\s*Clinical Stage.*/i,'').replace(/\s*·\s*HPV.*/i,'').trim();
     return r;
@@ -13333,6 +13367,19 @@ function _makeAreaPI(tabId, areaIds) {
    if (hasMGSubtype) result = _dropParent(result, 'MG');
    if (hasAsthmaSubtype) result = _dropParent(result, 'Asthma');
    if (hasNHLSubtype) result = _dropParent(result, 'NHL');
+   // GC/GEJ family collapse: if a composite GC/GEJ form is present, drop redundant simpler
+   // GC-only variants (GC, GC Stage..., GC (qualifier), GAdCa, GEJ, GEJ AdCa, LA/Met. GC)
+   // so display shows e.g. "GC/GEJ AdCa · Perit. Met." instead of "GC St.IV · Perit. Met. · GC/GEJ AdCa"
+   const hasGCGEJCombo = /\bGC\/GEJ\b/.test(result);
+   if (hasGCGEJCombo) {
+    result = result.split(' · ').filter(p => {
+     const t = p.trim();
+     if (t === 'GC' || t === 'GAdCa' || t === 'GEJ AdCa' || t === 'GEJ') return false;
+     if (/^GC[\s(]/.test(t)) return false; // "GC Stage IV", "GC (St.IV)", "GC (LA/Met.)"
+     if (/^LA\/Met\.\s+GC\b/.test(t)) return false;
+     return true;
+    }).join(' · ').trim();
+   }
    // Stage 2: collapse intra-part comma duplicates ("TED, TED" → "TED")
    result = result.split(' · ').map(p => {
     const sub = p.split(/\s*,\s*/).map(s => s.trim()).filter(Boolean);
