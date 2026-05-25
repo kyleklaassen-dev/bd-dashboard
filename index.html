@@ -15490,84 +15490,122 @@ document.addEventListener('DOMContentLoaded', function(){
 
       <!-- Visual data model diagram -->
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin:12px 0 16px;overflow-x:auto">
-        <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Meridian Data Model — How Tables Connect</div>
-        <div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap;min-width:600px">
+        <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:16px">Meridian Data Model — Two Parallel Dimensions</div>
 
-          <!-- Column 1: Disease Areas -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-right:0">
-            <div style="background:#dbeafe;border:1.5px solid #3b82f6;border-radius:7px;padding:10px 12px;width:130px">
-              <div style="font-size:11px;font-weight:800;color:#1e40af">disease_areas</div>
-              <div style="font-size:10px;color:#3b82f6;margin-top:3px;line-height:1.5">TL1A, TSLP,<br>IL-4Rα, FcRn,<br>IGF1R, T-cell</div>
+        <!-- ROW 1: Biology Hierarchy -->
+        <div style="font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">① Biology Layer — Disease Area → Indication → Target → Target Pair</div>
+        <div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap;min-width:700px;margin-bottom:20px">
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#ede9fe;border:1.5px solid #7c3aed;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#4c1d95">disease_areas</div>
+              <div style="font-size:10px;color:#6d28d9;margin-top:3px;line-height:1.5">IBD · Respiratory<br>Atopy · TED<br>Autoimmune · Oncology</div>
             </div>
           </div>
 
-          <!-- Arrow -->
-          <div style="display:flex;align-items:center;padding:0 6px;margin-top:16px;color:#94a3b8;font-size:16px">→</div>
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
 
-          <!-- Column 2: Company junction -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-right:0">
-            <div style="background:#f3e8ff;border:1.5px solid #a855f7;border-radius:7px;padding:10px 12px;width:130px">
-              <div style="font-size:11px;font-weight:800;color:#6b21a8">company_areas</div>
-              <div style="font-size:10px;color:#a855f7;margin-top:3px;line-height:1.5">Links companies<br>to areas they<br>operate in</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#dbeafe;border:1.5px solid #3b82f6;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#1e40af">indications <span style="font-weight:500;font-size:9px">NEW</span></div>
+              <div style="font-size:10px;color:#3b82f6;margin-top:3px;line-height:1.5">UC · CD · Severe Asthma<br>AD · TED · gMG<br>CIDP · MM</div>
             </div>
           </div>
 
-          <!-- Arrow -->
-          <div style="display:flex;align-items:center;padding:0 6px;margin-top:16px;color:#94a3b8;font-size:16px">→</div>
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
 
-          <!-- Column 3: Companies + Drugs -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-right:0">
-            <div style="background:#dcfce7;border:1.5px solid #22c55e;border-radius:7px;padding:10px 12px;width:130px">
-              <div style="font-size:11px;font-weight:800;color:#166534">companies</div>
-              <div style="font-size:10px;color:#16a34a;margin-top:3px;line-height:1.5">Name, status,<br>strategy, profile.<br>~40 active cos</div>
-            </div>
-            <div style="background:#dcfce7;border:1.5px solid #22c55e;border-radius:7px;padding:10px 12px;width:130px">
-              <div style="font-size:11px;font-weight:800;color:#166534">drugs</div>
-              <div style="font-size:10px;color:#16a34a;margin-top:3px;line-height:1.5">Name, mechanism,<br>target, phase.<br>100 catalog + enriched</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#dcfce7;border:1.5px solid #22c55e;border-radius:7px;padding:9px 12px;width:140px">
+              <div style="font-size:11px;font-weight:800;color:#166534">targets <span style="font-weight:500;font-size:9px">NEW</span></div>
+              <div style="font-size:10px;color:#16a34a;margin-top:3px;line-height:1.5">TL1A · IL-23p19 · TSLP<br>IL-4Rα · IGF-1R · FcRn<br>gene, type, biology</div>
             </div>
           </div>
 
-          <!-- Arrow -->
-          <div style="display:flex;align-items:center;padding:0 6px;margin-top:16px;color:#94a3b8;font-size:16px">→</div>
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
 
-          <!-- Column 4: Scores + Trials -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-right:0">
-            <div style="background:#fef9c3;border:1.5px solid #f59e0b;border-radius:7px;padding:10px 12px;width:150px">
-              <div style="font-size:11px;font-weight:800;color:#92400e">drug_area_scores</div>
-              <div style="font-size:10px;color:#b45309;margin-top:3px;line-height:1.5"><strong>Claude's output lives here.</strong> Overlap, rationale, vs_ailux positioning. One row per drug per area.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;padding:9px 12px;width:140px">
+              <div style="font-size:11px;font-weight:800;color:#166534">target_pairs <span style="font-weight:500;font-size:9px">NEW</span></div>
+              <div style="font-size:10px;color:#16a34a;margin-top:3px;line-height:1.5">TL1A×IL-23p19 (Ailux)<br>IL-23×α4β7<br>BCMA×CD3</div>
             </div>
-            <div style="background:#fef9c3;border:1.5px solid #f59e0b;border-radius:7px;padding:10px 12px;width:150px">
-              <div style="font-size:11px;font-weight:800;color:#92400e">trials</div>
-              <div style="font-size:10px;color:#b45309;margin-top:3px;line-height:1.5">ClinicalTrials.gov records. NCT ID, phase, status, linked to canonical drug ID.</div>
-            </div>
-            <div style="background:#fef9c3;border:1.5px solid #f59e0b;border-radius:7px;padding:10px 12px;width:150px">
-              <div style="font-size:11px;font-weight:800;color:#92400e">catalysts · deals · intel</div>
-              <div style="font-size:10px;color:#b45309;margin-top:3px;line-height:1.5">Events, transactions, news items. All linked back to company_id or drug_id.</div>
-            </div>
-          </div>
-
-          <!-- Arrow -->
-          <div style="display:flex;align-items:center;padding:0 6px;margin-top:16px;color:#94a3b8;font-size:16px">→</div>
-
-          <!-- Column 5: Dashboard -->
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="background:#fee2e2;border:1.5px solid #ef4444;border-radius:7px;padding:10px 12px;width:130px">
-              <div style="font-size:11px;font-weight:800;color:#991b1b">Dashboard</div>
-              <div style="font-size:10px;color:#dc2626;margin-top:3px;line-height:1.5">Reads from Supabase using these chains. Displays the result. No data lives in the HTML.</div>
+            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;padding:9px 12px;width:140px">
+              <div style="font-size:11px;font-weight:800;color:#166534">modalities <span style="font-weight:500;font-size:9px">NEW</span></div>
+              <div style="font-size:10px;color:#16a34a;margin-top:3px;line-height:1.5">mAb · BsAb · SM<br>ADC · TCE · CAR-T<br>Fc-fusion · VHH</div>
             </div>
           </div>
 
         </div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:12px;font-style:italic">Foreign keys (pointers) connect these tables. drug_area_scores.drug_id → drugs.id → companies.id → company_areas.area_id → disease_areas.id. One chain from area tab to final score.</div>
+
+        <!-- ROW 2: Business/Intelligence Hierarchy -->
+        <div style="font-size:10px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">② Intelligence Layer — Company → Drug → Scores → Events → Dashboard</div>
+        <div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap;min-width:700px">
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#f3e8ff;border:1.5px solid #a855f7;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#6b21a8">company_areas</div>
+              <div style="font-size:10px;color:#a855f7;margin-top:3px;line-height:1.5">Junction: which<br>companies operate<br>in which areas</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#92400e">companies</div>
+              <div style="font-size:10px;color:#b45309;margin-top:3px;line-height:1.5">Name, status,<br>strategy, profile,<br>BD intelligence</div>
+            </div>
+            <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#92400e">drugs</div>
+              <div style="font-size:10px;color:#b45309;margin-top:3px;line-height:1.5">Name, mechanism,<br>modality, phase.<br>Links to targets FK</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#fef9c3;border:1.5px solid #eab308;border-radius:7px;padding:9px 12px;width:150px">
+              <div style="font-size:11px;font-weight:800;color:#713f12">drug_area_scores</div>
+              <div style="font-size:10px;color:#854d0e;margin-top:3px;line-height:1.5"><strong>Claude's output.</strong> Overlap tier, rationale, vs_ailux. One row per drug per disease area.</div>
+            </div>
+            <div style="background:#fef9c3;border:1.5px solid #eab308;border-radius:7px;padding:9px 12px;width:150px">
+              <div style="font-size:11px;font-weight:800;color:#713f12">trials</div>
+              <div style="font-size:10px;color:#854d0e;margin-top:3px;line-height:1.5">ClinicalTrials.gov. NCT ID, phase, status, PCD. Linked to drug_id.</div>
+            </div>
+            <div style="background:#fef9c3;border:1.5px solid #eab308;border-radius:7px;padding:9px 12px;width:150px">
+              <div style="font-size:11px;font-weight:800;color:#713f12">catalysts · deals · intel</div>
+              <div style="font-size:10px;color:#854d0e;margin-top:3px;line-height:1.5">Events, transactions, submitted news. All linked to company_id or drug_id.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding:0 5px;margin-top:14px;color:#94a3b8;font-size:14px">→</div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:#fee2e2;border:1.5px solid #ef4444;border-radius:7px;padding:9px 12px;width:128px">
+              <div style="font-size:11px;font-weight:800;color:#991b1b">Dashboard</div>
+              <div style="font-size:10px;color:#dc2626;margin-top:3px;line-height:1.5">Reads both layers. Assembles the view. No data lives in the HTML.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="font-size:10px;color:#94a3b8;margin-top:14px;font-style:italic;line-height:1.6">
+          <strong style="color:#6366f1">Biology layer:</strong> disease_areas.id → indications.disease_area → targets.disease_areas[] → target_pairs.target_1_id/target_2_id<br>
+          <strong style="color:#f59e0b">Intelligence layer:</strong> drug_area_scores.drug_id → drugs.id → companies.id → company_areas.area_id → disease_areas.id<br>
+          The two layers connect when a drug's target FK points into the targets table — linking the clinical asset to the normalized biology.
+        </div>
       </div>
 
       <div class="au-narrative au-editable">
         The key insight: <strong>Supabase stores facts, not documents.</strong> When you read "cizutamig: Direct competitor in TL1A" on the dashboard, that sentence doesn't exist anywhere in the database. It is assembled on the fly by reading three separate rows — the drug record, the drug_area_scores row, and the company record — and combining them in the browser.
       </div>
 
+      <div class="au-narrative au-editable" style="margin-top:10px">
+        The diagram above also shows a correction to how Meridian originally organized biology. The old <code>disease_areas</code> table listed <em>targets</em> (TL1A, TSLP, FcRn) as if they were the top-level category. That was backwards. <strong>Disease areas are IBD, Respiratory, Atopy.</strong> Targets are what drugs hit inside those areas. The new schema adds <code>indications</code> (UC, CD, Severe Asthma) as the intermediate layer, and <code>targets</code> as normalized biological entities — so one target like JAK1 can correctly belong to multiple disease areas without duplication.
+      </div>
+
       <div class="au-callout">
         <div class="au-callout-hd">💡 Why This Structure Matters</div>
-        Because facts are stored separately and connected by pointers, one fact update fixes the display everywhere at once. If UCB renames a drug, you change one row in <code>drugs</code> and it propagates to every tab, every card, every filter result that references that drug. There is no "document" to update in 12 places.
+        Because facts are stored separately and connected by pointers, one fact update fixes the display everywhere at once. If UCB renames a drug, you change one row in <code>drugs</code> and it propagates to every tab, every card, every filter result. And because targets are now normalized rows (not free text), Meridian can answer questions like "which disease areas share a target?" or "what modality is most common in IBD?" — questions that were structurally impossible before.
       </div>
 
       <div class="au-anno-wrap">
