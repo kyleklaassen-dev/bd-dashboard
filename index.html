@@ -1288,26 +1288,24 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .bda-filter-btn.active { border-color:#7c3aed; background:#f5f3ff; color:#7c3aed; }
 .bda-search { flex:1; min-width:100px; max-width:180px; border:1.5px solid #e2e8f0; border-radius:6px; padding:4px 10px; font-size:11px; outline:none; font-family:inherit; color:#0d1f38; }
 .bda-search:focus { border-color:#7c3aed; }
-.bda-rows { }
+.bda-list { padding:4px 0; }
 .bda-row { border-bottom:1px solid #f1f5f9; }
 .bda-row:last-child { border-bottom:none; }
-/* New headline-first row layout */
-.bda-compact { display:flex; align-items:flex-start; gap:10px; padding:11px 4px 10px; cursor:pointer; border-radius:6px; }
+.bda-compact { display:flex; align-items:flex-start; gap:8px; padding:10px 2px 9px; border-radius:6px; }
 .bda-compact:hover { background:#f9fafb; }
-.bda-date-col { flex-shrink:0; width:68px; padding-top:1px; }
-.bda-date-month { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
-.bda-date-year  { font-size:10px; color:#94a3b8; }
+.bda-no-expand .bda-compact { cursor:default; }
+.bda-no-expand .bda-compact:hover { background:transparent; }
+.bda-row:not(.bda-no-expand) .bda-compact { cursor:pointer; }
 .bda-main-col { flex:1; min-width:0; }
+.bda-meta-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
+.bda-exact-date { font-size:10.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
+.bda-type { font-size:9px; font-weight:800; text-transform:uppercase; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
+.bda-value { font-size:10.5px; font-weight:700; color:#065f46; white-space:nowrap; }
 .bda-hl-link { font-size:12.5px; font-weight:700; color:#0f172a; text-decoration:none; display:block; line-height:1.45; }
 .bda-hl-link:hover { color:#1d4ed8; text-decoration:underline; }
-.bda-sub-row { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
-.bda-parties { font-size:11px; color:#64748b; }
-.bda-parties .bda-arrow { color:#94a3b8; margin:0 2px; }
-.bda-type { font-size:9px; font-weight:800; text-transform:uppercase; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
-.bda-value { font-size:11px; font-weight:700; color:#065f46; white-space:nowrap; }
-.bda-chevron { font-size:9px; color:#cbd5e1; flex-shrink:0; transition:transform 0.15s; margin-left:auto; padding-top:3px; }
+.bda-chevron { font-size:9px; color:#cbd5e1; flex-shrink:0; transition:transform 0.15s; margin-left:auto; padding-top:6px; }
 .bda-row.bda-open .bda-chevron { transform:rotate(90deg); }
-.bda-detail { display:none; padding:2px 4px 14px 78px; }
+.bda-detail { display:none; padding:2px 4px 12px 0; }
 .bda-row.bda-open .bda-detail { display:block; animation:bdaIn 0.14s ease; }
 @keyframes bdaIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
 .bda-detail-text { font-size:11.5px; color:#4b5563; line-height:1.65; margin-bottom:6px; }
@@ -3316,121 +3314,61 @@ function _bdaRender(tabId) {
   if (!el) return;
   const s = _bdaState[tabId];
   if (!s) return;
-  const { rows, filter, search } = s;
 
-  // Deduplicate rows by normalized headline before any further processing
+  // Deduplicate by normalized headline — merge richer fields from duplicates
   const _hlKey = hl => (hl || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 80);
   const deduped = [];
-  const _seenHl = new Map();
-  rows.forEach(d => {
+  const seen = new Map();
+  (s.rows || []).forEach(d => {
     const k = _hlKey(d.headline);
-    if (!k) { deduped.push(d); return; } // no headline — keep as-is
-    if (!_seenHl.has(k)) { _seenHl.set(k, deduped.length); deduped.push({...d}); }
+    if (!k) { deduped.push({...d}); return; }
+    if (!seen.has(k)) { seen.set(k, deduped.length); deduped.push({...d}); }
     else {
-      // Merge: prefer the record with richer data
-      const existing = deduped[_seenHl.get(k)];
-      if (!existing.detail && d.detail)           existing.detail       = d.detail;
-      if (!existing.ailux_signal && d.ailux_signal) existing.ailux_signal = d.ailux_signal;
-      if (!existing.total_usd_m && d.total_usd_m)  existing.total_usd_m  = d.total_usd_m;
-      if (!existing.upfront_usd_m && d.upfront_usd_m) existing.upfront_usd_m = d.upfront_usd_m;
-      if (!existing.to_company && d.to_company)    existing.to_company   = d.to_company;
+      const ex = deduped[seen.get(k)];
+      if (!ex.detail        && d.detail)        ex.detail        = d.detail;
+      if (!ex.ailux_signal  && d.ailux_signal)  ex.ailux_signal  = d.ailux_signal;
+      if (!ex.total_usd_m   && d.total_usd_m)   ex.total_usd_m   = d.total_usd_m;
+      if (!ex.upfront_usd_m && d.upfront_usd_m) ex.upfront_usd_m = d.upfront_usd_m;
+      if (!ex.to_company    && d.to_company)    ex.to_company    = d.to_company;
     }
   });
 
-  // Filter deduplicated rows
-  const q = search.toLowerCase().trim();
-  const visible = deduped.filter(d => {
-    if (filter !== 'all' && d.deal_type !== filter) return false;
-    if (q) {
-      const hay = [d.headline, d.from_company, d.to_company, d.detail, d.deal_date_label].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-
-  // Summary stats (across deduplicated rows, not filtered)
-  const totalDealVal = deduped.reduce((sum, d) => sum + (d.total_usd_m || 0), 0);
-  const acquisitions = deduped.filter(d => d.deal_type === 'acquisition').length;
-  const licenses     = deduped.filter(d => d.deal_type === 'license').length;
-  const minYear = deduped.length ? deduped[deduped.length-1].deal_date?.slice(0,4) : '';
-  const maxYear = deduped.length ? deduped[0].deal_date?.slice(0,4) : '';
-
-  // Build filter types present
-  const types = [...new Set(deduped.map(d => d.deal_type).filter(Boolean))];
-
-  el.innerHTML = `
-    <div class="bda-section">
-      <div class="bda-hd" onclick="_bdaToggle('${tabId}')">
-        <span class="bda-title">◈ BD Activity</span>
-        <div class="bda-meta">
-          <span><strong>${deduped.length}</strong> deals</span>
-          ${totalDealVal > 0 ? `<span><strong>$${(totalDealVal/1000).toFixed(1)}B+</strong> disclosed value</span>` : ''}
-          ${minYear && maxYear ? `<span>${minYear}–${maxYear}</span>` : ''}
-        </div>
-        <span class="bda-toggle" id="${tabId}-bda-toggle">▼</span>
-      </div>
-      <div class="bda-body" id="${tabId}-bda-body">
-        <div class="bda-summary-bar">
-          ${acquisitions ? `<div class="bda-sum-item"><strong>${acquisitions}</strong> acquisition${acquisitions>1?'s':''}</div>` : ''}
-          ${licenses ? `<div class="bda-sum-item"><strong>${licenses}</strong> license${licenses>1?'s':''}</div>` : ''}
-          ${totalDealVal > 0 ? `<div class="bda-sum-item">Disclosed total: <strong>$${totalDealVal >= 1000 ? (totalDealVal/1000).toFixed(1)+'B' : totalDealVal.toFixed(0)+'M'}</strong></div>` : ''}
-        </div>
-        <div class="bda-filters">
-          <button class="bda-filter-btn ${filter==='all'?'active':''}" onclick="_bdaFilter('${tabId}','all')">All (${deduped.length})</button>
-          ${types.map(t => `<button class="bda-filter-btn ${filter===t?'active':''}" onclick="_bdaFilter('${tabId}','${t}')">${t[0].toUpperCase()+t.slice(1)} (${deduped.filter(d=>d.deal_type===t).length})</button>`).join('')}
-          <input class="bda-search" type="text" placeholder="Search parties, drug…" value="${search.replace(/"/g,'&quot;')}" oninput="_bdaSearch('${tabId}',this.value)">
-        </div>
-        <div class="bda-rows" id="${tabId}-bda-rows">
-          ${visible.length ? visible.map((d,i) => _bdaRowHtml(tabId, d, i)).join('') : '<div class="bda-empty">No deals match your filter.</div>'}
-        </div>
-      </div>
-    </div>`;
+  const rows = deduped.filter(d => !!(d.headline || d.from_company));
+  el.innerHTML = rows.length
+    ? `<div class="bda-list">${rows.map((d, i) => _bdaRowHtml(tabId, d, i)).join('')}</div>`
+    : `<div class="bda-empty">No BD activity on record for this area.</div>`;
 }
 
-function _bdaFmtDate(dateStr) {
-  if (!dateStr) return { month: '—', year: '' };
+function _bdaFmtExact(dateStr) {
+  if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
-  if (isNaN(d)) return { month: dateStr.slice(0,7), year: '' };
-  return {
-    month: d.toLocaleString('en-US', { month: 'short' }),
-    year:  d.getFullYear().toString(),
-  };
+  if (isNaN(d)) return dateStr.slice(0, 10);
+  return d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 function _bdaFmtVal(d) {
   const fmt = n => n >= 1000 ? `$${(n/1000).toFixed(1)}B` : `$${n}M`;
-  if (d.upfront_usd_m && d.total_usd_m) return `${fmt(d.upfront_usd_m)} up · ${fmt(d.total_usd_m)} total`;
+  if (d.upfront_usd_m && d.total_usd_m) return `${fmt(d.upfront_usd_m)} upfront · ${fmt(d.total_usd_m)} total`;
   if (d.upfront_usd_m) return `${fmt(d.upfront_usd_m)} upfront`;
   if (d.total_usd_m)   return `${fmt(d.total_usd_m)} total`;
   return '';
 }
 function _bdaRowHtml(tabId, d, i) {
-  const tc  = _BDA_TYPE_COLOR[d.deal_type] || '#6b7280';
-  const dt  = _bdaFmtDate(d.deal_date);
-  const val = _bdaFmtVal(d);
-  const hl  = d.headline || `${d.from_company || ''} × ${d.to_company || ''} deal`;
-  const rowId = `${tabId}-bda-row-${i}`;
+  const tc      = _BDA_TYPE_COLOR[d.deal_type] || '#6b7280';
+  const dateStr = _bdaFmtExact(d.deal_date);
+  const val     = _bdaFmtVal(d);
+  const hl      = d.headline || `${d.from_company || ''} × ${d.to_company || ''} deal`;
+  const rowId   = `${tabId}-bda-row-${i}`;
   const hasDetail = !!(d.detail || d.ailux_signal);
 
-  // Parties line — only show if both exist and are meaningful
-  const from = (d.from_company || '').trim();
-  const to   = (d.to_company   || '').trim();
-  const partiesHtml = (from && to)
-    ? `<span class="bda-parties">${from} <span class="bda-arrow">→</span> ${to}</span>`
-    : (from || to) ? `<span class="bda-parties">${from || to}</span>` : '';
-
-  return `<div class="bda-row" id="${rowId}">
-    <div class="bda-compact" onclick="_bdaToggleRow('${rowId}')">
-      <div class="bda-date-col">
-        <div class="bda-date-month">${dt.month}</div>
-        <div class="bda-date-year">${dt.year}</div>
-      </div>
+  return `<div class="bda-row${hasDetail ? '' : ' bda-no-expand'}" id="${rowId}">
+    <div class="bda-compact"${hasDetail ? ` onclick="_bdaToggleRow('${rowId}')"` : ''}>
       <div class="bda-main-col">
-        <a class="bda-hl-link" href="${_gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
-        <div class="bda-sub-row">
-          ${partiesHtml}
-          <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type||'deal'}</span>
+        <div class="bda-meta-row">
+          ${dateStr ? `<span class="bda-exact-date">${dateStr}</span>` : ''}
+          <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type || 'deal'}</span>
           ${val ? `<span class="bda-value">${val}</span>` : ''}
         </div>
+        <a class="bda-hl-link" href="${_gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
       </div>
       ${hasDetail ? `<span class="bda-chevron">▶</span>` : ''}
     </div>
@@ -3446,22 +3384,6 @@ function _bdaToggleRow(rowId) {
   if (row) row.classList.toggle('bda-open');
 }
 
-function _bdaToggle(tabId) {
-  const body = document.getElementById(tabId + '-bda-body');
-  const tog  = document.getElementById(tabId + '-bda-toggle');
-  if (!body) return;
-  const collapsed = body.style.display === 'none';
-  body.style.display = collapsed ? '' : 'none';
-  if (tog) tog.classList.toggle('collapsed', !collapsed);
-}
-
-function _bdaFilter(tabId, type) {
-  if (_bdaState[tabId]) { _bdaState[tabId].filter = type; _bdaRender(tabId); }
-}
-
-function _bdaSearch(tabId, val) {
-  if (_bdaState[tabId]) { _bdaState[tabId].search = val; _bdaRender(tabId); }
-}
 
 // ── Molecule Tab Orchestrator (lazy-loads on first visit) ─────────────────────
 // ── Tab → area_id map (some tabs share an area_id) ──────────────────────────
