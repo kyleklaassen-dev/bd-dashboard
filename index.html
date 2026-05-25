@@ -12798,8 +12798,12 @@ function _makeAreaPI(tabId, areaIds) {
           const { data: coRows2 } = await _sb.from('companies').select('id,name').in('id', origIds2);
           (coRows2||[]).forEach(c => { origNameMap2[c.id] = (c.name||'').split(' ')[0] || c.id; });
         }
-        const idsToFetch2 = controlledDrugIds2.length
-          ? `company_id.eq.${companyId},id.in.(${controlledDrugIds2.join(',')})`
+        // Anchor on entity's actual programs (matching entity row grouping) + any controlled drugs
+        // This prevents cross-entity bleed (e.g. Simcere's company_id drugs showing under BI's entity)
+        const programIds = (ent?.programs || []).map(p => p.id);
+        const allDrugIds = [...new Set([...programIds, ...controlledDrugIds2])];
+        const idsToFetch2 = allDrugIds.length
+          ? `id.in.(${allDrugIds.join(',')})`
           : `company_id.eq.${companyId}`;
         const { data: allCoDrugs } = await _sb.from('drugs').select('*')
           .or(idsToFetch2).order('sort_order', { ascending: true }).limit(30);
