@@ -197,6 +197,23 @@ SELECT entity_id, issue_key, severity, status, review_status
 
 ---
 
+## BD Usefulness Metrics
+
+Phase 4 proved the data is trustworthy. Phase 5 must prove the platform creates value. These metrics track whether the platform answers the right questions — not whether the database is correct.
+
+| Metric | Question | How to measure |
+|---|---|---|
+| Opportunity surfaced | Did the platform identify a company or asset worth contacting? | Log in `update_log.md` when an outreach or analysis originates from platform output |
+| Intelligence discovered | Did it reveal something the user did not already know? | Note when a competitive signal, catalyst, or drug status changes how a situation is understood |
+| Time saved | Did it reduce manual research effort? | Qualitative — note when a question that would have required manual lookup was answered by the platform in <2 minutes |
+| Action taken | Did a meeting, outreach, or analysis directly result from platform output? | Log in `update_log.md` with date and nature of action |
+
+**Tracking convention:** When any of the above occurs, add a brief note to `update_log.md` under the date it happened, tagged `[BD_VALUE]`. This creates a lightweight audit trail of platform ROI without requiring a formal tracking system.
+
+**Phase 5 success is not measured by validation counts alone.** A platform with zero ECC issues and zero BD intelligence produced is not a success. Phase 5 should produce at least one `[BD_VALUE]` log entry within the first 30 days of Candidate 1 activation.
+
+---
+
 ## Migration Acceptance Criteria
 
 Before any Phase 5 feature flag is flipped to `true`, all of the following must hold. This is the ship / do not ship checklist.
