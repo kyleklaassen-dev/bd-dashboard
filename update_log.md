@@ -1,5 +1,29 @@
 
 ---
+## 2026-05-25 (Session 53e) — Phase 4A Corrections Applied · batoclimab backfilled · ted now 100% match
+
+**Advisor decisions received and corrections applied:**
+- `sim0500` — drug_targets tl1a row already absent from production (Wave 2B error identified by harness but not in live DB). No delete needed. Audit note added to phase4a_reconciliation_review.md.
+- `batoclimab` — Inserted drug_indications: ted (score=95, Ph3, A, review_required) + gmg (score=92, Ph3, A, review_required). cidp deferred to Wave 2D FcRn batch. Source: cross-ref trial_indications (4 TED trials, 1 gMG trial).
+- `epi-001` — Held. Keep in backfill_preview as pending_review. Legacy TL1A/IBD membership insufficient.
+
+**Phase 4 harness re-run post-corrections:**
+- tl1a: 🟢 compare_pass_oos_adjusted (92.2% raw) — UNCHANGED, still passing
+- ibd: 🟢 compare_pass_oos_adjusted (94.0% raw) — UNCHANGED, still passing
+- ted: ✅ **100% match** (NEW — batoclimab ted/gmg backfill resolved the TED normalized gap)
+- No regressions. No duplicate pairs.
+
+**Data state:**
+- drug_indications: **194 rows** (was 192)
+- drug_targets: 168 rows
+- trial_indications: 301 rows
+- ontology_edges: 25 (LOCKED)
+
+**Docs updated:**
+- `docs/phase4a_reconciliation_review.md` — advisor decisions + corrections logged; summary table updated
+- `NEXT_SESSION.md` — Phase 4A complete; Phase 4B (dual-read) is next
+
+---
 ## 2026-05-25 (Session 53d) — Phase 4A Evidence Reconciliation Candidate Review (classification only, no data changes)
 
 **Phase 4A candidate review — COMPLETE:**
