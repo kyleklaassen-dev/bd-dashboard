@@ -2042,7 +2042,7 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // All flags default false. Flip individually only after validation passes.
 // Acceptance criteria and rollback paths: docs/phase5_migration_plan.md
 const FEATURE_FLAGS = {
-  useNormalizedIBD:       false,  // Candidate 1: IBD area tab from drug_indications (uc,cd)
+  useNormalizedIBD:       true,   // Candidate 1: ACTIVATION TEST (2026-05-25) — set false to revert
   useNormalizedTED:       false,  // Candidate 2: TED area tab from drug_indications (ted)
   useNormalizedDrugModal: false,  // Candidate 3: drug modal (pending 10-drug sprint)
   useUnifiedTL1A:         false,  // Candidate 4: TL1A unified engine (do not enable yet)
