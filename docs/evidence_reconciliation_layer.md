@@ -212,11 +212,23 @@ The Phase 4 harness (`scripts/phase4_compare_legacy_vs_normalized.py`) currently
 - Classifies each extra-legacy and extra-norm record (Part 4)
 - Reports reconciliation candidates (Part 4b)
 
-**Phase 4A sequence (before Phase 5 migration):**
-1. ✅ Phase 4 harness — difference detection and classification (current)
-2. 🔲 Phase 4A — Evidence Reconciliation — cross-table consistency checks using `entity_consistency_checks`
-3. 🔲 Phase 4B — Dual-read validation — run legacy + normalized queries in parallel, assert parity
-4. 🔲 Phase 5 — Switch dashboard logic (only after 4A and 4B pass)
+**View-type governance (2026-05-25):**
+Legacy areas are not a uniform ontological category. The harness now distinguishes view types via `LEGACY_VIEW_TYPES`:
+- **Target views** (`tl1a`, `fcrn`, `igf1r`, `tslp`, `il4ra`) — normalized via `drug_targets.target_id`
+- **Indication group views** (`ibd`, `atopy`, `respiratory`, `autoimmune`) — normalized via `drug_indications.indication_id`
+- **Indication views** (`ted`) — normalized via `drug_indications.indication_id`
+- **Platform views** (`tcell`) — no clean normalized path yet
+
+TL1A is a biological **target**. IBD is an **indication group** (UC + CD). These require separate Phase 4B dual-read validation paths. Do not conflate their comparison logic or migration planning.
+
+**Phase 4 sequence (updated 2026-05-25):**
+1. ✅ Phase 4 harness — difference detection and classification
+2. ✅ Phase 4A — Evidence Reconciliation — candidate review + corrections applied (2026-05-25)
+3. ✅ Semantic correction — `LEGACY_VIEW_TYPES` added; TL1A target-view and IBD indication-group-view separated in harness
+4. 🔲 Phase 4B — Dual-read validation:
+   - IBD indication-group path: legacy `drug_area_scores.area_id = 'ibd'` vs `drug_indications WHERE indication_id IN ('uc','cd')`
+   - TL1A target-view path: legacy `drug_area_scores.area_id = 'tl1a'` vs `drug_targets WHERE target_id = 'tl1a'`
+5. 🔲 Phase 5 — Switch dashboard logic (only after 4A and 4B pass)
 
 **Build order for entity_consistency_checks:**
 1. Create table via migration SQL
