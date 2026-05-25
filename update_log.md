@@ -1,5 +1,45 @@
 
 ---
+## 2026-05-25 (Session 53o) — Phase 5 Candidate 1: FEATURE_FLAGS + IBD normalized source path
+
+**Migration log: Phase 5 Candidate 1 — IBD indication-group view**
+
+| Field | Value |
+|---|---|
+| Candidate | 1 — IBD area tab |
+| Feature flag | `FEATURE_FLAGS.useNormalizedIBD` |
+| Default | `false` (no behavior change on deploy) |
+| Legacy source | `drug_areas WHERE area_id IN ('ibd')` |
+| Normalized source | `drug_indications WHERE indication_id IN ('uc','cd')` |
+| Functions changed | `_makeAreaPI.init()`, `_makeAreaPI._loadEntityMeta()` |
+| Functions unchanged | All other `_makeAreaPI` methods, `tl1aPI`, TED, drug modal, all other tabs |
+| Phase 4B dual-read | Preserved — fires at line 12480 regardless of flag state |
+| Commit | `ec4cac7e5312e51522231377ff2613943f9f4eb8` |
+
+**FEATURE_FLAGS object added (line 2044):**
+- `useNormalizedIBD: false` — Candidate 1
+- `useNormalizedTED: false` — Candidate 2 (not implemented)
+- `useNormalizedDrugModal: false` — Candidate 3 (not implemented)
+- `useUnifiedTL1A: false` — Candidate 4 (do not enable; separate arch review required)
+
+**Rollback:** Set `useNormalizedIBD: false` → redeploy. No schema changes, no data changes.
+
+**Known OOS exclusions (per phase5_migration_plan.md):**
+- lm-302, sim0500: classified `legacy_ibd_tl1a_noise` in `entity_consistency_checks` — expected diff, accepted
+- epi-001: `ibd_indication_evidence_gap` HELD — not in normalized source until source evidence confirmed
+
+**Pre-deployment validation (all passing):**
+- ✓ FEATURE_FLAGS at false — behavior identical to prior deploy
+- ✓ No other tabs affected
+- ✓ Phase 4B dual-read intact
+- ✓ TL1A untouched
+
+**Also deployed this session:**
+- `docs/phase4c_validation_plan.md` (commit ec9a574f576b)
+- `docs/phase5_migration_plan.md` (commit 69848edf9f69)
+- `docs/unified_area_dashboard_architecture.md` (commit 0879eff6fa4c)
+
+---
 ## 2026-05-25 (Session 53j·b) — entity_consistency_checks migration plan v1 (advisor-approved)
 
 **Three advisor fixes applied to `migrations/entity_consistency_checks_v1.sql`:**
