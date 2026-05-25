@@ -13697,8 +13697,8 @@ function _makeAreaPI(tabId, areaIds) {
     <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
-   // Trial rows
-   const trialRowsHTML = sortedTrials.map(t => {
+   // Trial rows — built as array so active and completed can be sectioned separately
+   const _allTrialRowsArr = sortedTrials.map(t => {
     const nct     = t.nct_id || t.nct || t.id || '';
     const name    = t.trial_name || t.name || '';
     const acronym = t.study_acronym || '';
@@ -13815,15 +13815,32 @@ function _makeAreaPI(tabId, areaIds) {
       </div>
      </div>
     </div>`;
-   }).join('');
+   });
 
    const trialCount = sortedTrials.length;
    const activeCount = sortedTrials.filter(t => !_isTermTrial(t.status)).length;
-   const trialCountLabel = activeCount < trialCount
-    ? `Clinical Trials (${activeCount} active · ${trialCount - activeCount} completed)`
+   const termCount   = trialCount - activeCount;
+
+   // Active trial rows — always fully visible
+   const activeTrialRowsHTML = _allTrialRowsArr.slice(0, activeCount).join('');
+   // Completed/terminated — show first row only; rest collapse behind a toggle
+   const _termRowsArr = _allTrialRowsArr.slice(activeCount);
+   const termSection = _termRowsArr.length === 0 ? '' : (() => {
+    const first = _termRowsArr[0];
+    const rest  = _termRowsArr.slice(1);
+    if (rest.length === 0) return first; // single completed trial — just show it
+    const tid = 'pi-term-' + d.id.replace(/[^a-zA-Z0-9]/g, '_');
+    const moreLabel = rest.length === 1 ? '1 more completed' : `${rest.length} more completed`;
+    return `${first}<div id="${tid}" style="display:none">${rest.join('')}</div>`
+     + `<div onclick="const e=document.getElementById('${tid}');const o=e.style.display!=='none';e.style.display=o?'none':'block';this.textContent=o?'▾ ${moreLabel}':'▴ hide completed';" `
+     + `style="font-size:10px;color:#94a3b8;cursor:pointer;padding:2px 0 4px;user-select:none;display:inline-block">▾ ${moreLabel}</div>`;
+   })();
+
+   const trialCountLabel = termCount > 0
+    ? `Clinical Trials (${activeCount} active · ${termCount} completed)`
     : `Clinical Trials (${trialCount})`;
    const trialsSection = trialCount
-    ? `<div class="pi-tr-hd-label">${trialCountLabel}</div>${trialHeader}<div>${trialRowsHTML}</div>`
+    ? `<div class="pi-tr-hd-label">${trialCountLabel}</div>${trialHeader}<div>${activeTrialRowsHTML}${termSection}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
    // Acquired drug provenance note — shown when drug was in-licensed / acquired and renamed
@@ -13903,12 +13920,15 @@ function _makeAreaPI(tabId, areaIds) {
    // RSS feed table. All articles already filtered to this company (matched_company_ids).
    // Priority: direct drug-name match (matched_drug_ids contains d.id or d.name) ranked
    // above generic company match. Show max 4, with "Drug match" badge on direct matches.
+   // Only surface articles where matched_drug_ids directly contains this drug's id or name.
+   // Company-level news (matched_company_ids) is intentionally excluded here — it is not
+   // specific enough to be useful at the individual drug row level.
+   // Drug codes like ABBV-382, LBL-053 are in the alias set and will match when they appear
+   // in trade press. Brand names (Skyrizi, Humira) match immediately via existing RSS scoring.
    const sbNewsArticles = sbData?.newsArticles || [];
-   const _drugDirect = sbNewsArticles.filter(a =>
-    (a.matched_drug_ids||[]).some(did => did === d.id || did === d.name));
-   const _drugCo = sbNewsArticles.filter(a => !_drugDirect.includes(a));
-   // 2 direct + fill remaining slots with company news (max 4 total)
-   const drugNewsItems = [..._drugDirect.slice(0,2), ..._drugCo.slice(0, Math.max(0, 4 - Math.min(_drugDirect.length,2)))];
+   const drugNewsItems = sbNewsArticles
+    .filter(a => (a.matched_drug_ids||[]).some(did => did === d.id || did === d.name))
+    .slice(0, 4);
    const drugNewsSection = drugNewsItems.length ? (() => {
     const rows = drugNewsItems.map(a => {
      const isDirect = _drugDirect.includes(a);
