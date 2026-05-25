@@ -17748,6 +17748,36 @@ document.addEventListener('DOMContentLoaded', function(){
 .ont-map-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:10px}
 .ont-map-box{border-radius:10px;padding:12px 8px;text-align:center;border:2px solid}
 .ont-map-arrow{text-align:center;font-size:24px;color:#94a3b8;line-height:1;margin:2px 0}
+/* Impact Analysis */
+.ont-impact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:8px}
+.ont-impact-card{background:white;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;transition:box-shadow .15s}
+.ont-impact-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.09)}
+.ont-impact-hd{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.ont-impact-id{font-size:11px;font-weight:800;font-family:monospace;background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:5px}
+.ont-impact-type{font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em}
+.ont-impact-risk{font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-left:auto}
+.ont-impact-risk.rh{background:#fee2e2;color:#991b1b}
+.ont-impact-risk.rm{background:#fef3c7;color:#92400e}
+.ont-impact-risk.rl{background:#d1fae5;color:#065f46}
+.ont-impact-body{padding:10px 14px 14px;font-size:11px;color:#64748b;line-height:1.6}
+.ont-impact-stat{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px}
+.ont-impact-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:20px;padding:2px 9px}
+.ont-impact-tabs{font-size:10px;color:#1d4ed8;background:#eff6ff;padding:3px 9px;border-radius:5px;margin-bottom:8px;display:inline-block}
+.ont-impact-action{font-size:10px;font-weight:700;color:#14532d;background:#f0fdf4;border-radius:5px;padding:6px 9px;margin-top:6px;line-height:1.55}
+.ont-impact-map{font-size:10px;color:#475569;margin-top:5px;font-family:monospace;background:#f8fafc;padding:3px 8px;border-radius:4px}
+.ont-impact-sh{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin:8px 0 3px}
+/* Relationship Coverage Scoreboard */
+.ont-cov-entity{background:white;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:14px}
+.ont-cov-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ont-cov-table{width:100%;border-collapse:collapse;font-size:11px}
+.ont-cov-table th{text-align:left;padding:5px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;border-bottom:1px solid #e2e8f0}
+.ont-cov-table td{padding:7px 10px;border-bottom:1px solid #f8fafc;color:#475569;vertical-align:middle}
+.ont-cov-bar-wrap{height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;width:120px;display:inline-block;vertical-align:middle}
+.ont-cov-bar{height:100%;border-radius:3px}
+.ont-cov-pct{font-size:11px;font-weight:700;margin-left:8px;display:inline-block;min-width:34px}
+.ont-cov-req{font-size:9px;font-weight:800;padding:1px 6px;border-radius:3px;text-transform:uppercase}
+.ont-cov-req.cov-req{background:#fee2e2;color:#991b1b}
+.ont-cov-req.cov-rec{background:#fef3c7;color:#92400e}
 </style>
 
 <div class="ont-wrap">
@@ -17852,6 +17882,36 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
     <div class="ont-sec-body" id="ont-f-body">
       <div id="ont-migration-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── H: Impact Analysis ────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-h">
+    <div class="ont-sec-hd" onclick="ontToggle('h')">
+      <span class="ont-sec-icon">🎯</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">H — Impact Analysis</div>
+        <div class="ont-sec-sub">What would break if we migrated each legacy ID · live dependency audit per disease_areas record</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-h-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-h-body">
+      <div id="ont-impact-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading impact data…</div></div>
+    </div>
+  </div>
+
+  <!-- ── I: Relationship Coverage ───────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-i">
+    <div class="ont-sec-hd" onclick="ontToggle('i')">
+      <span class="ont-sec-icon">📊</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">I — Relationship Coverage Scoreboard</div>
+        <div class="ont-sec-sub">What % of entities have required and recommended relationships · live quality score</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-i-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-i-body">
+      <div id="ont-coverage-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading coverage data…</div></div>
     </div>
   </div>
 
@@ -18001,6 +18061,10 @@ async function ontologyLoad(force = false) {
   _renderOntFlags(daRows||[]);
   _renderOntGaps({ indRows: indRows||[], daRows: daRows||[], counts });
   _renderOntMigration(daRows||[]);
+
+  // Async sections — load in background, don't block the sync render
+  _renderOntImpact(daRows||[]);
+  _renderOntCoverage();
 
   if (ts) ts.textContent = 'Loaded ' + new Date().toLocaleTimeString();
 }
@@ -18226,9 +18290,9 @@ function _renderOntMatrix() {
 
   // [from][to] = { type, mechanism, note }
   const rels = {
-    'disease_areas→indications': { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each indication belongs to one disease area' },
-    'disease_areas→targets':     { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each target linked to one disease area (crude)' },
-    'disease_areas→target_pairs':{ t:'1:many', m:'FK: area', cls:'cy', note:'Each pair linked to one disease area' },
+    'disease_areas→indications': { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each indication belongs to one therapeutic area' },
+    'disease_areas→targets':     { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each target linked to one therapeutic area (crude — targets should link to indications, not areas directly)' },
+    'disease_areas→target_pairs':{ t:'1:many', m:'FK: area', cls:'cy', note:'Each pair linked to one therapeutic area' },
     'indications→drugs':         { t:'many:many', m:'field text match', cls:'cw', note:'Loose text match — no join table' },
     'indications→trials':        { t:'many:many', m:'field text match', cls:'cw', note:'Loose text match — no join table' },
     'targets→target_pairs':      { t:'many:many', m:'FK: target_1, target_2', cls:'cy', note:'Each pair has two target FKs' },
@@ -18326,6 +18390,34 @@ function _renderOntFlags(daRows) {
     { id:'f-source-coverage', sev:'m', cat:'Relationship Quality',
       title:'Most relationships have no source or confidence field',
       body:'Drug-to-company, drug-to-target, and drug-to-indication links are stored without a source_id, confidence_level, or created_by field. This means Meridian cannot explain WHY a relationship exists. Recommended: add relationship_type, source_id, confidence_level, and review_status to all major join tables.',
+    },
+    { id:'f-no-join-drug-modality', sev:'m', cat:'Missing Join Table · Relationship Gap',
+      title:'No drug_modalities join table — modality is stored as free text',
+      body:'drugs.modality is a text field. While a modalities lookup table exists, there is no drug_modalities join table that formally links a drug to its modality with a FK, confidence level, or source. This means Meridian cannot reliably count "how many bispecifics are in UC?" as a structural query.',
+    },
+    { id:'f-trial-ind-text', sev:'h', cat:'Missing Join Table · Relationship Gap',
+      title:'No trial_indications join table — trial indication is free text',
+      body:'trials.indication stores a text string, not a FK to the indications table. This means a trial for "Ulcerative Colitis" and one for "UC" are different records to a query engine. A trial_indications join table would normalize this link and allow reliable cross-trial indication counts.',
+    },
+    { id:'f-entity-edge-source', sev:'h', cat:'Relationship Quality · Provenance',
+      title:'Entity edges have no source or confidence level',
+      body:'entity_edges connects entities (drug↔company, company↔company, etc.) but stores no source_id or confidence_level. This means Meridian cannot explain where a relationship came from — was it sourced from a press release, a trial, or AI inference? Every edge should have source, confidence, and review_status.',
+    },
+    { id:'f-company-drug-no-type', sev:'m', cat:'Relationship Quality · Completeness',
+      title:'Company-to-drug relationships lack a relationship_type',
+      body:'A company can be an originator, owner, licensee, licensor, co-developer, trial sponsor, or acquirer around a drug. Currently, Meridian stores company-drug links without a relationship_type field. This means "Roche" in a drug record could mean they discovered it, licensed it in, or are running a trial — the relationship is ambiguous.',
+    },
+    { id:'f-no-ontology-versions', sev:'m', cat:'Migration Safety · Versioning',
+      title:'No ontology version tracking',
+      body:'When the disease_areas table is eventually migrated to therapeutic_areas, there will be no way to compare drug counts between ontology versions. A drug counted under "IBD" in v1 might land under "Gastroenterology" in v2 with a different count if indications were also reorganized. An ontology_versions table would make this comparison auditable.',
+    },
+    { id:'f-ind-no-ta', sev:'h', cat:'Missing Relationship · Structural',
+      title:'Indications have no therapeutic_area_id foreign key',
+      body:'The indications table has a disease_area text field pointing to legacy disease_areas IDs (which are targets and biology tags, not therapeutic areas). There is no therapeutic_area_id FK to a normalized therapeutic_areas table. This is the root of the ontology confusion — until indications have a clean therapeutic area parent, the derived chain (Drug → Indication → Therapeutic Area) cannot be traversed.',
+    },
+    { id:'f-tce-correct', sev:'l', cat:'Terminology · Modality',
+      title:'TCE = T-cell Engager, not T-cell Engineering',
+      body:'T-cell Engager (TCE) is a bispecific antibody format designed to redirect cytotoxic T-cells against tumor targets (e.g. BCMA × CD3). If any record or label describes this as "T-cell Engineering," the terminology is incorrect. T-cell Engineering is a broader concept (includes CAR-T, TCR therapy). For Meridian\'s oncology tab, the correct label is T-Cell Therapies (broader) or T-cell Engager (specific modality).',
     },
   ];
 
@@ -18517,6 +18609,244 @@ function _renderOntMigration(daRows) {
       <code style="background:#dcfce7;padding:1px 5px;border-radius:3px">disease_area_id = "ibd"</code> is safe.
       <code style="background:#dcfce7;padding:1px 5px;border-radius:3px">disease_area = "IBD"</code> is fragile.
       If you use ontology_mappings as a translation layer, the dashboard never has to know about the migration — it just reads different rows.
+    </div>`;
+}
+
+// ── H: Impact Analysis ───────────────────────────────────────────────────────
+async function _renderOntImpact(daRows) {
+  const m = document.getElementById('ont-impact-mount');
+  if (!m) return;
+
+  const IMPACT_META = {
+    'tl1a':       { type:'Target',              tc:'#ef4444', risk:'HIGH',   tabs:['TL1A × IL-23p19 tab'],           tArea:'Gastroenterology (via UC / CD)',               action:'Keep as dashboard tab driver. Ensure it exists in targets table. Do NOT use as therapeutic area — it is a molecule.' },
+    'tslp':       { type:'Target',              tc:'#ef4444', risk:'HIGH',   tabs:['TSLP × IL-33 tab'],              tArea:'Respiratory (via Asthma / COPD)',              action:'Keep as dashboard tab driver. Add to targets table if not present. Do NOT use as therapeutic area.' },
+    'il4ra':      { type:'Target',              tc:'#ef4444', risk:'HIGH',   tabs:['IL-4Rα / Atopy tab'],            tArea:'Dermatology + Respiratory (via AD, CSU, Asthma)', action:'Keep as dashboard tab driver. Already in targets table. Do NOT use as therapeutic area.' },
+    'igf1r':      { type:'Target',              tc:'#ef4444', risk:'HIGH',   tabs:['IGF-1R × TSHR / TED tab'],       tArea:'Ophthalmology (via TED)',                      action:'Keep as dashboard tab driver. Already in targets table. Do NOT use as therapeutic area.' },
+    'fcrn':       { type:'Target',              tc:'#ef4444', risk:'HIGH',   tabs:['FcRn Bispecific tab'],            tArea:'Neurology + Rheumatology (via gMG, CIDP, SLE)', action:'Keep as dashboard tab driver. Already in targets table. Do NOT use as therapeutic area.' },
+    'tcell':      { type:'Platform / Modality', tc:'#f59e0b', risk:'MEDIUM', tabs:['T-Cell Therapies tab'],          tArea:'Oncology (via MM, ALL)',                       action:'Keep as dashboard tab driver. Classify as technology platform/modality concept — NOT a therapeutic area.' },
+    'ibd':        { type:'Disease Family',      tc:'#f59e0b', risk:'HIGH',   tabs:['IBD drug filter'],               tArea:'Gastroenterology',                            action:'Map to Gastroenterology via ontology_mappings. Split into UC, CD, EoE at indication level. Do not delete until all FKs migrated.' },
+    'respiratory':{ type:'Therapeutic Area ✓',  tc:'#10b981', risk:'LOW',    tabs:['Respiratory drug filter'],       tArea:'Respiratory',                                 action:'Direct map to Respiratory therapeutic area. Most correctly classified record — lowest migration risk.' },
+    'atopy':      { type:'Biology Tag',         tc:'#8b5cf6', risk:'MEDIUM', tabs:['IL-4Rα tab (Atopy subfilter)'], tArea:'Dermatology / Respiratory (via AD, CSU, Asthma)', action:'Move to biology_tags table. Map to Dermatology + Respiratory through indications — not as a therapeutic area.' },
+    'ted':        { type:'Indication',          tc:'#f59e0b', risk:'HIGH',   tabs:['IGF-1R × TSHR / TED tab'],       tArea:'Ophthalmology',                               action:'Remove from disease_areas. Already in indications table. Map to Ophthalmology therapeutic area via ontology_mappings.' },
+    'autoimmune': { type:'Biology Tag',         tc:'#8b5cf6', risk:'LOW',    tabs:['Cross-area autoimmune filter'],  tArea:'Multiple: Rheumatology, Dermatology, Neurology', action:'Move to biology_tags table. Does not map to one therapeutic area — spans multiple. Remove from disease_areas after mapping.' },
+  };
+
+  const riskCls = r => r === 'HIGH' ? 'rh' : r === 'MEDIUM' ? 'rm' : 'rl';
+
+  // Fetch live counts per area from drug_area_scores and indications
+  const countResults = await Promise.all((daRows||[]).map(async r => {
+    const id = (r.id||'').toLowerCase();
+    const [dasRes, indRes] = await Promise.all([
+      _sb.from('drug_area_scores').select('*',{count:'exact',head:true}).eq('area_id', id),
+      _sb.from('indications').select('*',{count:'exact',head:true}).eq('disease_area', id),
+    ]);
+    return { id, drugs: dasRes.count||0, inds: indRes.count||0 };
+  }));
+  const cMap = {};
+  countResults.forEach(c => { cMap[c.id.toLowerCase()] = c; });
+
+  const cards = (daRows||[]).map(r => {
+    const id = (r.id||'').toLowerCase();
+    const meta = IMPACT_META[id] || { type:'Unclassified', tc:'#94a3b8', risk:'UNKNOWN', tabs:[], tArea:'Needs manual review', action:'Classify manually before including in migration plan.' };
+    const cnt  = cMap[id] || { drugs:0, inds:0 };
+    return `<div class="ont-impact-card">
+      <div class="ont-impact-hd">
+        <span class="ont-impact-id">${r.id||id}</span>
+        <span class="ont-impact-type" style="background:${meta.tc}22;color:${meta.tc}">${meta.type}</span>
+        <span class="ont-impact-risk ${riskCls(meta.risk)}">⚠ ${meta.risk}</span>
+      </div>
+      <div class="ont-impact-body">
+        <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px">${r.name||r.id}</div>
+        <div class="ont-impact-stat">
+          <span class="ont-impact-pill">💊 ${cnt.drugs} drugs (drug_area_scores)</span>
+          <span class="ont-impact-pill">🏷️ ${cnt.inds} linked indications</span>
+        </div>
+        ${meta.tabs.length ? `<div class="ont-impact-tabs">📊 Dashboard: ${meta.tabs.join(' · ')}</div>` : ''}
+        <div class="ont-impact-sh">Correct therapeutic area</div>
+        <div style="font-size:11px;color:#374151;font-weight:600">${meta.tArea}</div>
+        <div class="ont-impact-sh">Migration action</div>
+        <div class="ont-impact-action">${meta.action}</div>
+      </div>
+    </div>`;
+  });
+
+  m.innerHTML = `
+    <div style="font-size:11px;color:#64748b;margin-bottom:14px;line-height:1.7">
+      Every legacy <code>disease_areas</code> record shown with its true classification, live drug count from <code>drug_area_scores</code>,
+      which dashboard tabs depend on it, and the safe migration action.
+      <strong style="color:#991b1b">HIGH</strong> = many drugs / tabs depend on this ID.
+      <strong style="color:#92400e">MEDIUM</strong> = moderate dependencies.
+      <strong style="color:#065f46">LOW</strong> = safe to migrate early.
+    </div>
+    <div class="ont-impact-grid">${cards.join('')}</div>
+    <div style="margin-top:16px;padding:14px 18px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:11px;color:#92400e;line-height:1.8">
+      <strong>⚠ Before changing any legacy ID:</strong> Every table that FKs to <code>disease_areas</code> must be audited first.
+      Known dependents: <code>drug_area_scores.area_id</code> · <code>company_areas.area_id</code> · <code>targets.disease_area</code> · <code>target_pairs.area</code> · <code>indications.disease_area</code>.
+      Each legacy ID must have a row in <code>ontology_mappings</code> before it is removed.
+    </div>`;
+}
+
+// ── I: Relationship Coverage Scoreboard ──────────────────────────────────────
+async function _renderOntCoverage() {
+  const m = document.getElementById('ont-coverage-mount');
+  if (!m) return;
+
+  const qc = async (table, filters) => {
+    let q = _sb.from(table).select('*',{count:'exact',head:true});
+    (filters||[]).forEach(f => {
+      if (f[0] === '!null') q = q.not(f[1],'is',null);
+      else if (f[0] === 'neq')  q = q.neq(f[1], f[2]);
+      else if (f[0] === 'eq')   q = q.eq(f[1], f[2]);
+    });
+    const { count } = await q;
+    return count || 0;
+  };
+
+  const [
+    totalDrugs,
+    drugsWithCompany,
+    drugsWithMechanism,
+    drugsWithArea,
+    drugsWithModality,
+    drugsWithStage,
+    totalTrials,
+    trialsWithDrug,
+    trialsWithPhase,
+    trialsWithIndication,
+    totalDeals,
+    dealsWithCompany,
+    totalCatalysts,
+    catWithSource,
+    totalSignals,
+    sigWithEntity,
+    totalEdges,
+    edgesWithConf,
+  ] = await Promise.all([
+    qc('drugs'),
+    qc('drugs',[['!null','company'],['neq','company','']]),
+    qc('drugs',[['!null','mechanism'],['neq','mechanism','']]),
+    qc('drugs',[['!null','disease_area'],['neq','disease_area','']]),
+    qc('drugs',[['!null','modality'],['neq','modality','']]),
+    qc('drugs',[['!null','stage'],['neq','stage','']]),
+    qc('trials'),
+    qc('trials',[['!null','drug_id']]),
+    qc('trials',[['!null','phase'],['neq','phase','']]),
+    qc('trials',[['!null','indication'],['neq','indication','']]),
+    qc('deals'),
+    qc('deals',[['!null','company_id']]),
+    qc('catalysts'),
+    qc('catalysts',[['!null','source'],['neq','source','']]),
+    qc('intel'),
+    qc('intel',[['!null','entity_id']]),
+    qc('entity_edges'),
+    qc('entity_edges',[['!null','confidence_level']]),
+  ]);
+
+  const pct = (n,d) => d > 0 ? Math.round(n/d*100) : 0;
+  const barHtml = (n, d) => {
+    const p = pct(n,d);
+    const col = p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#ef4444';
+    return `<div class="ont-cov-bar-wrap"><div class="ont-cov-bar" style="width:${p}%;background:${col}"></div></div><span class="ont-cov-pct" style="color:${col}">${p}%</span>`;
+  };
+  const row = (label, n, d, req, note) => `<tr>
+    <td style="font-weight:600;color:#374151">${label}${note?`<div style="font-size:9px;color:#94a3b8;font-weight:400;margin-top:1px">${note}</div>`:''}  </td>
+    <td style="text-align:right;font-weight:700;color:#0f172a;white-space:nowrap">${n.toLocaleString()} / ${d.toLocaleString()}</td>
+    <td style="white-space:nowrap">${barHtml(n,d)}</td>
+    <td><span class="ont-cov-req ${req==='req'?'cov-req':'cov-rec'}">${req==='req'?'REQUIRED':'RECOMMENDED'}</span></td>
+  </tr>`;
+  const rowMissing = (label, note) => `<tr>
+    <td style="color:#94a3b8">${label}<div style="font-size:9px;color:#94a3b8;font-weight:400;margin-top:1px;font-style:italic">${note}</div></td>
+    <td style="text-align:right;color:#cbd5e1">—</td>
+    <td><span style="font-size:9px;background:#f1f5f9;color:#94a3b8;padding:1px 8px;border-radius:3px;font-weight:700">TABLE MISSING</span></td>
+    <td><span class="ont-cov-req cov-req">REQUIRED</span></td>
+  </tr>`;
+
+  m.innerHTML = `
+    <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.7">
+      What percent of entities have each required and recommended relationship?
+      <strong style="color:#10b981">Green 80%+</strong> ·
+      <strong style="color:#92400e">Yellow 50–79%</strong> ·
+      <strong style="color:#991b1b">Red &lt;50%</strong>.
+      Rows marked TABLE MISSING represent relationships that can't exist yet — blocked by Phase 2 schema work.
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">💊 Drugs <span style="font-size:12px;font-weight:600;color:#64748b">${totalDrugs} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Has company', drugsWithCompany, totalDrugs, 'req', 'drugs.company field')}
+          ${row('Has mechanism / target', drugsWithMechanism, totalDrugs, 'req', 'drugs.mechanism field (free text — no join table yet)')}
+          ${row('Has disease area (legacy)', drugsWithArea, totalDrugs, 'req', 'drugs.disease_area field')}
+          ${row('Has modality', drugsWithModality, totalDrugs, 'req', 'drugs.modality field')}
+          ${row('Has stage', drugsWithStage, totalDrugs, 'rec', 'drugs.stage field')}
+          ${rowMissing('Normalized target FK (drug_targets)', 'Create drug_targets join table in Phase 2')}
+          ${rowMissing('Normalized indication FK (drug_indications)', 'Create drug_indications join table in Phase 2')}
+          ${rowMissing('Route of administration (drug_routes)', 'Create routes_of_administration + drug_routes in Phase 1/2')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">🔬 Trials <span style="font-size:12px;font-weight:600;color:#64748b">${totalTrials} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Linked to drug (drug_id FK)', trialsWithDrug, totalTrials, 'req', '')}
+          ${row('Has phase recorded', trialsWithPhase, totalTrials, 'req', '')}
+          ${row('Has indication text', trialsWithIndication, totalTrials, 'rec', 'free text only — no normalized FK')}
+          ${rowMissing('Normalized indication FK (trial_indications)', 'Create trial_indications join table in Phase 2')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">🤝 Deals <span style="font-size:12px;font-weight:600;color:#64748b">${totalDeals} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Has company link', dealsWithCompany, totalDeals, 'req', '')}
+          ${rowMissing('Drug-level link (deal_drugs)', 'Most deals link at company level only — drug_id FK would require deal_drugs join table')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">⚡ Catalysts <span style="font-size:12px;font-weight:600;color:#64748b">${totalCatalysts} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Has source', catWithSource, totalCatalysts, 'req', 'catalysts.source field')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">🧠 Signals (Intel) <span style="font-size:12px;font-weight:600;color:#64748b">${totalSignals} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Has linked entity (entity_id)', sigWithEntity, totalSignals, 'req', '')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ont-cov-entity">
+      <div class="ont-cov-title">🔗 Entity Edges <span style="font-size:12px;font-weight:600;color:#64748b">${totalEdges} total</span></div>
+      <table class="ont-cov-table">
+        <thead><tr><th style="width:40%">Relationship</th><th style="text-align:right">Count</th><th>Coverage</th><th>Type</th></tr></thead>
+        <tbody>
+          ${row('Has confidence level', edgesWithConf, totalEdges, 'req', 'entity_edges.confidence_level field')}
+          ${rowMissing('Has source_id', 'Add source_id FK to entity_edges table in Phase 3')}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:6px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:11px;color:#64748b;line-height:1.7">
+      <strong style="color:#0f172a">Coverage target:</strong>
+      Required relationships → 90%+ before Phase 5 (switch dashboard logic).
+      Recommended relationships → 70%+ before Phase 6 (deprecate legacy).
+      TABLE MISSING rows are blocked by Phase 2 schema work — required before backfill can begin.
     </div>`;
 }
 
