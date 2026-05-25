@@ -310,19 +310,44 @@ def validate_drug_brand_name(drug_id: str, brand_name: str) -> list[str]:
 
 def validate_trial_study_acronym(nct_id: str, study_acronym: str, trial_name: str) -> list[str]:
     """
-    Validate that study_acronym matches what appears in the trial_name.
-    Catches cases where a trial was seeded with the wrong program acronym.
+    Validate that the study_acronym field contains an actual protocol acronym,
+    not a full study title or misplaced value.
+
+    CT.gov brief titles (trial_name) typically do NOT include the protocol
+    name/acronym — checking for its presence there produces only false positives.
+    Instead we flag things that clearly should not be in the acronym field:
+      - Full sentences (> 40 chars) — likely a title was pasted into this field
+      - An NCT or registry ID — registry IDs belong in id/nct_id, not here
+      - A study_type value ('Interventional') that was mistakenly stored here
     """
     warnings = []
-    if not study_acronym or not trial_name:
+    if not study_acronym:
         return warnings
 
-    # If the acronym doesn't appear anywhere in the trial_name, flag it
-    if study_acronym.upper() not in trial_name.upper():
+    acr = study_acronym.strip()
+
+    # Flag if it looks like a full sentence pasted into the acronym field
+    if len(acr) > 40:
         warnings.append(
-            f"[study_acronym] '{study_acronym}' on trial '{nct_id}' does not appear "
-            f"in trial_name: '{trial_name[:80]}'. May be misassigned."
+            f"[study_acronym] trial '{nct_id}': study_acronym is unusually long "
+            f"({len(acr)} chars): '{acr[:60]}...'. Should be a short protocol code."
         )
+
+    # Flag if an NCT ID or registry number ended up here
+    if re.match(r'^NCT\d{8}$', acr) or re.match(r'^ACTRN\d+', acr, re.I):
+        warnings.append(
+            f"[study_acronym] trial '{nct_id}': study_acronym='{acr}' looks like "
+            f"a registry ID, not a protocol name."
+        )
+
+    # Flag if a study_type value was mistakenly stored in the acronym field
+    if acr.lower() in ("interventional", "observational", "expanded access"):
+        warnings.append(
+            f"[study_acronym] trial '{nct_id}': study_acronym='{acr}' is a study "
+            f"type, not a protocol acronym — field was likely populated from the "
+            f"wrong CT.gov attribute."
+        )
+
     return warnings
 
 
@@ -382,44 +407,99 @@ def validate_drug_field_consistency(drug: dict) -> list[str]:
 def run_field_validation(dry_run: bool = False) -> dict:
     """
     Scan all drugs and trials in Supabase for field semantic violations.
-    Logs warnings; if dry_run=False, also logs to stdout for GitHub Actions.
+
+    After each check, results are written to drug_validation_results and
+    a validation_summary JSONB is updated on each drug row.  This makes
+    validation state queryable in Supabase rather than buried in CI logs.
 
     Returns: {"drug_warnings": [...], "trial_warnings": [...]}
     """
-    import requests
     drug_warnings  = []
     trial_warnings = []
 
-    # Fetch drugs for two checks: brand_name + field consistency
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/drugs",
-        headers=SB_HEADERS,
-        params={"select": "id,name,brand_name,target,mechanism,drug_format,is_combo,is_combination", "limit": "500"},
-        timeout=15
-    )
-    for drug in (r.json() if r.ok else []):
+    # ── Fetch drugs for brand_name + field_consistency + stage_trial_match ──
+    r = sb_get("drugs", {
+        "select": ("id,name,brand_name,target,mechanism,drug_format,"
+                   "is_combo,is_combination,stage,trial_data_status"),
+    })
+
+    # Build drug -> trial_count from trials table (one query, not N)
+    trial_rows = sb_get("trials", {"select": "drug_id"})
+    trial_counts: dict[str, int] = {}
+    for t in trial_rows:
+        did = t.get("drug_id") or ""
+        if did:
+            trial_counts[did] = trial_counts.get(did, 0) + 1
+
+    dvr_rows: list[dict] = []   # rows to upsert into drug_validation_results
+
+    for drug in r:
+        did   = drug["id"]
+        stage = drug.get("stage") or ""
+        n_trials = trial_counts.get(did, 0)
+
         # Check 1: brand_name semantic validity
-        w = validate_drug_brand_name(drug["id"], drug.get("brand_name") or "")
-        if w:
-            drug_warnings.extend(w)
-            for msg in w:
-                log(f"⚠ VALIDATION: {msg}")
+        w1 = validate_drug_brand_name(did, drug.get("brand_name") or "")
+        bn_status = "fail" if w1 else "pass"
+        if w1:
+            drug_warnings.extend(w1)
+            for msg in w1:
+                log(f"⚠ VALIDATION [brand_name]: {msg}")
 
         # Check 2: target/mechanism/drug_format internal consistency
         w2 = validate_drug_field_consistency(drug)
+        fc_status = "warning" if w2 else "pass"
         if w2:
             drug_warnings.extend(w2)
             for msg in w2:
-                log(f"⚠ VALIDATION: {msg}")
+                log(f"⚠ VALIDATION [field_consistency]: {msg}")
 
-    # Validate trials.study_acronym vs trial_name
-    r2 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/trials",
-        headers=SB_HEADERS,
-        params={"select": "id,drug_id,study_acronym,trial_name", "limit": "1000"},
-        timeout=15
-    )
-    for trial in (r2.json() if r2.ok else []):
+        # Check 3: stage vs trial data
+        w3: list[str] = []
+        clinical_stages = {"Phase 1","Phase 2","Phase 3","Phase 1/2","Phase 2/3"}
+        if stage in clinical_stages and n_trials == 0:
+            w3.append(
+                f"[stage_trial_match] drug '{did}': stage='{stage}' "
+                f"but 0 CT.gov trials found"
+            )
+        st_status = "warning" if w3 else "pass"
+        if w3:
+            drug_warnings.extend(w3)
+            for msg in w3:
+                log(f"⚠ VALIDATION [stage_trial_match]: {msg}")
+
+        if not dry_run:
+            all_statuses = [bn_status, fc_status, st_status]
+            overall = "fail" if "fail" in all_statuses else ("warning" if "warning" in all_statuses else "pass")
+            for check_type, status, warns in [
+                ("brand_name",        bn_status, w1),
+                ("field_consistency", fc_status, w2),
+                ("stage_trial_match", st_status, w3),
+            ]:
+                dvr_rows.append({
+                    "drug_id":      did,
+                    "check_type":   check_type,
+                    "check_status": status,
+                    "confidence":   "inferred",
+                    "verified_by":  "ct_gov_sync",
+                    "verified_at":  NOW_ISO,
+                    "details":      {"warnings": warns, "trial_count": n_trials},
+                    "updated_at":   NOW_ISO,
+                })
+            # Update validation_summary on drug row (fast dashboard display)
+            sb_patch("drugs",
+                     {"validation_summary": {
+                         "overall":            overall,
+                         "brand_name":         bn_status,
+                         "field_consistency":  fc_status,
+                         "stage_trial_match":  st_status,
+                         "last_validated_at":  NOW_ISO,
+                     }},
+                     {"id": f"eq.{did}"})
+
+    # ── Validate trials.study_acronym vs trial_name ──────────────────────
+    r2 = sb_get("trials", {"select": "id,drug_id,study_acronym,trial_name"})
+    for trial in r2:
         w = validate_trial_study_acronym(
             trial["id"],
             trial.get("study_acronym") or "",
@@ -428,11 +508,46 @@ def run_field_validation(dry_run: bool = False) -> dict:
         if w:
             trial_warnings.extend(w)
             for msg in w:
-                log(f"⚠ VALIDATION: {msg}")
+                log(f"⚠ VALIDATION [study_acronym]: {msg}")
+
+    # ── Write all drug_validation_results in one pass ────────────────────
+    if dvr_rows and not dry_run:
+        # Normalize all rows to identical key set (PostgREST batch requirement)
+        all_keys = sorted({k for row in dvr_rows for k in row.keys()})
+        normalized = [{k: row.get(k) for k in all_keys} for row in dvr_rows]
+        for i in range(0, len(normalized), 200):
+            sb_upsert("drug_validation_results", normalized[i:i+200],
+                      on_conflict="drug_id,check_type")
+        log(f"  → Wrote {len(normalized)} validation results to drug_validation_results")
 
     log(f"Field validation complete: {len(drug_warnings)} drug warnings, "
         f"{len(trial_warnings)} trial warnings")
     return {"drug_warnings": drug_warnings, "trial_warnings": trial_warnings}
+
+
+def update_trial_registries(drug_id: str, synced_ncts: list[str],
+                             dry_run: bool = False) -> None:
+    """
+    Update trial_registries.ct_gov row after a drug is synced.
+    Called from sync_drug() so the table stays current after every run.
+    """
+    if dry_run:
+        return
+    status = "found" if synced_ncts else "not_found"
+    row = {
+        "drug_id":          drug_id,
+        "registry_name":    "ct_gov",
+        "registry_id":      None,
+        "registry_url":     None,
+        "search_status":    status,
+        "trial_count":      len(synced_ncts),
+        "last_searched_at": NOW_ISO,
+        "verified_by":      "ct_gov_sync",
+        "notes":            (f"{len(synced_ncts)} trial(s) found" if synced_ncts
+                             else "Searched; no trials found on CT.gov"),
+        "updated_at":       NOW_ISO,
+    }
+    sb_upsert("trial_registries", [row], on_conflict="drug_id,registry_name")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -462,16 +577,25 @@ def sb_get(table: str, params: dict) -> list:
         return []
 
 
-def sb_upsert(table: str, records: list | dict) -> list:
+def sb_upsert(table: str, records: list | dict,
+              on_conflict: str | None = None) -> list:
+    """
+    Upsert records into a Supabase table.
+
+    on_conflict: comma-separated column names for conflict target (e.g.
+    'drug_id,check_type'). Required when the table has a non-PK unique
+    constraint that should drive ON CONFLICT resolution. If omitted,
+    PostgREST defaults to the primary key.
+    """
     if isinstance(records, dict):
         records = [records]
     if not records:
         return []
+    url    = f"{SUPABASE_URL}/rest/v1/{table}"
+    params = {"on_conflict": on_conflict} if on_conflict else {}
     try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_UPSERT_HEADERS, json=records, timeout=15
-        )
+        r = requests.post(url, headers=SB_UPSERT_HEADERS,
+                          params=params, json=records, timeout=15)
         if r.status_code not in (200, 201):
             log(f"[sb_upsert {table}] {r.status_code}: {r.text[:200]}", indent=1)
             return []
@@ -1106,6 +1230,9 @@ def sync_drug(drug: dict, dry_run: bool = False, resolver=None,
         sb_patch("drugs",
                  {"trial_data_status": trial_status, "last_synced_date": NOW_ISO},
                  {"id": f"eq.{drug_id}"})
+
+    # ── Update trial_registries.ct_gov row for this drug ─────────────────
+    update_trial_registries(drug_id, all_synced, dry_run=dry_run)
 
     return {"synced": all_synced, "status": "ok" if all_synced else "no_results"}
 
