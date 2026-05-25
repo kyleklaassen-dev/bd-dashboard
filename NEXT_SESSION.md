@@ -86,9 +86,9 @@ All Phase 4A work is done. Corrections applied and verified.
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
 | Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 deployed (flag=false)** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 LIVE (IBD flag=true, 2026-05-25)** |
 
-**Phase 5 Candidate 1 (IBD) is deployed with `useNormalizedIBD=false`. No behavior change. Flag must be explicitly set to `true` to activate normalized path. Do NOT do broad dashboard rewiring — migrate one component at a time with feature flags.**
+**Phase 5 Candidate 1 (IBD) is ACTIVE. `useNormalizedIBD=true` — advisor-approved 2026-05-25. All migration acceptance criteria satisfied. Monitoring window: 7–14 days. Rollback: set flag=false and redeploy. Legacy path retained until 2026-06-24 (30-day rule).**
 
 ---
 
@@ -231,19 +231,20 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 | Candidate | Component | Flag | Default | Deployed | Activated |
 |---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | false | ✅ ec4cac7e (2026-05-25) | ❌ not yet — modal sprint ✅, awaiting browser validation + advisor go |
+| 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ **ACTIVE** (2026-05-25) | ✅ **ACTIVATED** — advisor-approved; monitoring window open |
 | 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**To activate Candidate 1:** set `useNormalizedIBD: true` in FEATURE_FLAGS → deploy → verify browser `window.showPhase4Compare()` → update update_log.md.
+**Candidate 1 ACTIVATED 2026-05-25** — `useNormalizedIBD=true`, advisor-approved. Legacy path retained until 2026-06-24.
 
-**Pre-activation checklist for IBD:**
-- [x] Phase 4C 10-drug modal sprint complete — ✅ DONE (Session 53o, docs/phase4c_modal_sprint.md)
-- [x] epi-001 resolved OR formally accepted as held through Phase 5 — ✅ ECC open/held satisfies gate
-- [ ] cizutamig resolved (TED scope — not blocking IBD, but document resolution before TED Candidate 2)
-- [ ] IBD tab loads without console errors with flag=true (browser validation)
-- [ ] IBD drug count matches expected normalized output (~50 drugs, 3 OOS excluded)
+**Monitoring checklist (window: 2026-05-25 → ~2026-06-08):**
+- [ ] IBD tab loads without console errors with flag=true
+- [ ] IBD drug count matches Phase 4C baseline (~50 drugs, 3 OOS excluded)
+- [ ] No new ECC items opened
+- [ ] No unexpected validation deltas in drug_validation_results
+- [ ] First `[BD_VALUE]` entry logged in update_log.md when platform surfaces actionable intelligence
+- [ ] cizutamig resolved before Candidate 2 (TED) — not blocking IBD
 - [ ] Legacy fallback confirmed when flag=false — ✅ current deploy
 - [ ] Advisor go on flag flip
 
@@ -291,16 +292,17 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 **Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
 
-### P1 — Phase 5 Candidate 1 (IBD) Activation
+### P1 — Phase 5 Candidate 1 (IBD) Monitoring ✅ ACTIVE
 
-**Status:** Deployed at flag=false. Activation pending 10-drug modal sprint + advisor go.
+**Status:** `useNormalizedIBD=true` — activated 2026-05-25. Advisor-approved. Monitoring window open (~2026-06-08).
 
-Pre-activation checklist:
-- [ ] 10-drug modal sprint complete (7 of 10 remaining — TL1A, FcRn, TED drugs)
-- [ ] epi-001: resolved or confirmed no_evidence
-- [ ] Advisor go on flag flip
+**Next actions during monitoring window:**
+- Verify IBD tab loads correctly in browser (run `window.showPhase4Compare()`)
+- Watch for any new ECC items or validation deltas
+- Log first `[BD_VALUE]` entry when platform surfaces actionable intelligence
+- At monitoring window close: confirm stable → proceed to Candidate 2 (TED)
 
-**To activate:** Set `useNormalizedIBD: true` in FEATURE_FLAGS → deploy → verify `window.showPhase4Compare()` → update `update_log.md`.
+**Candidate 2 gate:** cizutamig/TED resolved + Candidate 1 stable for 7+ days.
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
