@@ -10809,65 +10809,267 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Deal records</span><span class="cem-pill ${realDeals.length?'cem-p-high':'cem-p-low'}">${realDeals.length?'DB record · High':'Not found'}</span></div>
     <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11.5px;color:#64748b">Catalysts</span><span class="cem-pill ${sbCats.length?'cem-p-high':'cem-p-low'}">${sbCats.length?'DB record · High':'Not found'}</span></div>`;
 
-  return `
-  ${statsHtml}
-  ${interpHtml}
-  <div class="cem-grid">
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-pipe')">
-        <div class="cem-sec-lbl">🔬 Pipeline</div>
-        <div class="cem-sec-hint">${drugCount} drug${drugCount!==1?'s':''} <i id="cem-chev-co-pipe" class="cem-chev">▶</i></div>
+  // ══ TABBED CARD ASSEMBLY ════════════════════════════════════════════════
+
+  // ── Helpers for assessment / BD / platform intel rendering ──────────────
+  const _confBadgeCem = c => {
+    if (!c) return '';
+    const cfg = c==='high'   ? {bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0',label:'High confidence'} :
+                c==='medium' ? {bg:'#fffbeb',color:'#b45309',border:'#fde68a',label:'Medium confidence'} :
+                               {bg:'#f8fafc',color:'#64748b',border:'#e2e8f0',label:'Low confidence'};
+    return `<span style="font-size:8px;font-weight:700;text-transform:uppercase;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};border-radius:8px;padding:1px 6px">${cfg.label}</span>`;
+  };
+
+  const _renderCemAssessCard = (_pi, _bd) => {
+    const _pa = (_pi?.assessment||'').replace(/^\[ASSESSED\]\s*/i,'');
+    if (!_pa) return '';
+    const _pcfgMap = {
+      acquirer:{label:'Acquirer',bg:'#fef2f2',color:'#991b1b',border:'#fecaca'},
+      licensor:{label:'Licensor',bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+      collaborator:{label:'Collaborator',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+      'partner-friendly':{label:'Partner-Friendly',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+      'internal-focused':{label:'Internal-Focused',bg:'#f8fafc',color:'#475569',border:'#e2e8f0'},
+    };
+    const _pc = _bd?.profile ? (_pcfgMap[_bd.profile]||{label:_bd.profile,bg:'#f8fafc',color:'#475569',border:'#e2e8f0'}) : null;
+    const _pp = _pc ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${_pc.bg};color:${_pc.color};border:1px solid ${_pc.border};border-radius:8px;padding:2px 8px">${_pc.label}</span>` : '';
+    return `<div style="background:#faf9ff;border:1px solid #e9e5fb;border-radius:7px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed">Assessment</span>${_pp}
       </div>
-      <div class="cem-sec-body">${pipeSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No pipeline drugs found in this area.</span>'}</div>
-      <div class="cem-det" id="cem-det-co-pipe">${pipeDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-deals')">
-        <div class="cem-sec-lbl">🤝 Partnerships</div>
-        <div class="cem-sec-hint">${dealCount} deal${dealCount!==1?'s':''} <i id="cem-chev-co-deals" class="cem-chev">▶</i></div>
+      <p style="font-size:11.5px;color:#0f172a;font-weight:600;line-height:1.5;margin:0;border-left:2px solid #7c3aed;padding-left:8px">${_pa}</p>
+    </div>`;
+  };
+
+  const _renderCemPlatformIntel = _pi => {
+    if (!_pi) return null;
+    const _facts = (_pi.facts||[]).map(f => `<li style="font-size:11px;color:#1e293b;padding:2px 0;line-height:1.45">${f}</li>`).join('');
+    const _dir   = (_pi.direction||[]).map(d => {
+      const _c = d.replace(/^\[INFERRED\]\s*/i,'');
+      return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45"><span style="font-size:8px;font-weight:800;text-transform:uppercase;color:#6d28d9;background:#ede9fe;border-radius:3px;padding:0 4px;margin-right:4px;vertical-align:middle">Inferred</span>${_c}</li>`;
+    }).join('');
+    return `<div class="pi-detail-section" style="display:flex;flex-direction:column"><h5 style="margin:0 0 8px;font-size:10.5px;font-weight:700;color:#475569">🧬 Platform Intelligence</h5>
+      <div style="flex:1">${_facts?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Facts</div><ul style="margin:0 0 8px;padding-left:14px">${_facts}</ul>`:''
+      }${_dir?`<div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px">Direction</div><ul style="margin:0;padding-left:14px">${_dir}</ul>`:''
+      }${!_facts&&!_dir?`<p style="font-size:11px;color:#94a3b8;font-style:italic;margin:0">Not yet enriched</p>`:''}</div>
+      <div style="margin-top:8px;text-align:right">${_confBadgeCem(_pi.confidence)}</div>
+    </div>`;
+  };
+
+  const _renderCemBdIntel = _bd => {
+    if (!_bd) return null;
+    const _bpcMap = {
+      acquirer:{label:'Acquirer',bg:'#fef2f2',color:'#991b1b',border:'#fecaca'},
+      licensor:{label:'Licensor',bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+      collaborator:{label:'Collaborator',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+      'partner-friendly':{label:'Partner-Friendly',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+      'internal-focused':{label:'Internal-Focused',bg:'#f8fafc',color:'#475569',border:'#e2e8f0'},
+    };
+    const _bpc = _bpcMap[_bd.profile]||{label:_bd.profile||'—',bg:'#f8fafc',color:'#475569',border:'#e2e8f0'};
+    const _txRows = (_bd.transactions||[]).map(t =>
+      `<div style="display:grid;grid-template-columns:56px 1fr auto;gap:6px;align-items:baseline;padding:3px 0;border-bottom:1px solid #f1f5f9;font-size:10.5px">
+        <span style="color:#64748b;font-weight:600;white-space:nowrap">${t.date||''}</span>
+        <span style="color:#1e293b">${t.asset||''}${t.partner?`<span style="color:#94a3b8"> · ${t.partner}</span>`:''}</span>
+        <span style="color:#059669;font-weight:700;white-space:nowrap;font-size:10px">${t.total||t.upfront||''}</span>
+      </div>`).join('');
+    const _asmLines = (_bd.assessment||[]).map(a => {
+      const _cl = a.replace(/^\[ASSESSED\]\s*/i,'');
+      return `<li style="font-size:11px;color:#334155;padding:2px 0;line-height:1.45">${_cl}</li>`;
+    }).join('');
+    return `<div class="pi-detail-section" style="display:flex;flex-direction:column">
+      <h5 style="margin:0 0 8px;font-size:10.5px;font-weight:700;color:#475569">🤝 BD Intelligence</h5>
+      ${_bd.profile?`<div style="margin-bottom:8px"><span style="font-size:9px;font-weight:800;text-transform:uppercase;background:${_bpc.bg};color:${_bpc.color};border:1px solid ${_bpc.border};border-radius:8px;padding:2px 8px">${_bpc.label}</span></div>`:''}
+      <div style="flex:1">${_txRows?`<div style="margin-bottom:8px">${_txRows}</div>`:''
+      }${_asmLines?`<ul style="margin:0;padding-left:14px">${_asmLines}</ul>`:''
+      }${!_txRows&&!_asmLines?`<p style="font-size:11px;color:#94a3b8;font-style:italic;margin:0">Not yet enriched</p>`:''}</div>
+      <div style="margin-top:8px;text-align:right">${_confBadgeCem(_bd.confidence)}</div>
+    </div>`;
+  };
+
+  // ── Area filter setup ────────────────────────────────────────────────────
+  const _filterId    = prog.id || 'co';
+  const _allAreaIds  = extraData?.allAreaIds     || [areaId];
+  const _allAreaProf = extraData?.allAreaProfiles || {};
+  const _allAreaCats = extraData?.allAreaCats    || {};
+  const _currentArea = extraData?.currentArea   || areaId;
+  const _AMAP2 = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L'};
+  const _aLbl = a => _AMAP2[a] || (typeof _AREA_LABEL!=='undefined'?_AREA_LABEL[a]:null) || (a||'').toUpperCase();
+  const _showAF = _allAreaIds.length > 1;
+
+  const _areaFilterHtml = _showAF ? `
+    <div class="cem-area-filter" id="cem-af-${_filterId}">
+      <span class="cem-area-filter-lbl">Area:</span>
+      <button class="cem-area-pill active" data-area="all" onclick="_cemSwitchArea('${_filterId}','all')">All</button>
+      ${_allAreaIds.map(a => `<button class="cem-area-pill" data-area="${a}" onclick="_cemSwitchArea('${_filterId}','${a}')">${_aLbl(a)}</button>`).join('')}
+    </div>` : '';
+
+  // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
+  const _overviewContent = `<div style="padding:18px 20px 28px">
+    ${statsHtml}
+    ${interpHtml}
+    <div class="cem-grid">
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-pipe')"><div class="cem-sec-lbl">🔬 Pipeline</div><div class="cem-sec-hint">${drugCount} drug${drugCount!==1?'s':''} <i id="cem-chev-co-pipe" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${pipeSummary||'<span style="font-size:11px;color:#94a3b8;font-style:italic">No pipeline drugs found in this area.</span>'}</div>
+        <div class="cem-det" id="cem-det-co-pipe">${pipeDetail}</div>
       </div>
-      <div class="cem-sec-body">${dealSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No deal records found.</span>'}</div>
-      <div class="cem-det" id="cem-det-co-deals">${dealDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-cats')">
-        <div class="cem-sec-lbl">📅 Catalysts</div>
-        <div class="cem-sec-hint">${catCount} upcoming <i id="cem-chev-co-cats" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-deals')"><div class="cem-sec-lbl">🤝 Partnerships</div><div class="cem-sec-hint">${dealCount} deal${dealCount!==1?'s':''} <i id="cem-chev-co-deals" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${dealSummary||'<span style="font-size:11px;color:#94a3b8;font-style:italic">No deal records found.</span>'}</div>
+        <div class="cem-det" id="cem-det-co-deals">${dealDetail}</div>
       </div>
-      <div class="cem-sec-body">${catSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts.</span>'}</div>
-      <div class="cem-det" id="cem-det-co-cats">${catDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-sigs')">
-        <div class="cem-sec-lbl">⚡ Strategic signals</div>
-        <div class="cem-sec-hint">${bdFacts.length} signals <i id="cem-chev-co-sigs" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-cats')"><div class="cem-sec-lbl">📅 Catalysts</div><div class="cem-sec-hint">${catCount} upcoming <i id="cem-chev-co-cats" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${catSummary||'<span style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts.</span>'}</div>
+        <div class="cem-det" id="cem-det-co-cats">${catDetail}</div>
       </div>
-      <div class="cem-sec-body">${sigsSummary}</div>
-      <div class="cem-det" id="cem-det-co-sigs">${sigsDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-gaps')">
-        <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
-        <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-co-gaps" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-sigs')"><div class="cem-sec-lbl">⚡ Strategic signals</div><div class="cem-sec-hint">${bdFacts.length} signals <i id="cem-chev-co-sigs" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${sigsSummary}</div>
+        <div class="cem-det" id="cem-det-co-sigs">${sigsDetail}</div>
       </div>
-      <div class="cem-sec-body">${gapsSummary}</div>
-      <div class="cem-det" id="cem-det-co-gaps">${gapsDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('co-src')">
-        <div class="cem-sec-lbl">🛡 Source confidence</div>
-        <div class="cem-sec-hint">per section <i id="cem-chev-co-src" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-gaps')"><div class="cem-sec-lbl">⚠ Knowledge gaps</div><div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-co-gaps" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${gapsSummary}</div>
+        <div class="cem-det" id="cem-det-co-gaps">${gapsDetail}</div>
       </div>
-      <div class="cem-sec-body">${srcSummary}</div>
-      <div class="cem-det" id="cem-det-co-src"><div class="cem-det-inner">
-        <div class="cem-det-title">Source breakdown — ${companyName}</div>
-        <div class="cem-fact"><span class="cem-fact-lbl">Last enriched</span><span class="cem-fact-val">${profile.last_enriched_at?profile.last_enriched_at.slice(0,10):'Not yet'}</span></div>
-        <div class="cem-fact"><span class="cem-fact-lbl">Profile ID</span><span class="cem-fact-val">${profile.id||'—'}</span></div>
-        <div class="cem-fact"><span class="cem-fact-lbl">Area context</span><span class="cem-fact-val">${areaLabel}</span></div>
-      </div></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-src')"><div class="cem-sec-lbl">🛡 Source confidence</div><div class="cem-sec-hint">per section <i id="cem-chev-co-src" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${srcSummary}</div>
+        <div class="cem-det" id="cem-det-co-src"><div class="cem-det-inner">
+          <div class="cem-det-title">Source breakdown — ${companyName}</div>
+          <div class="cem-fact"><span class="cem-fact-lbl">Last enriched</span><span class="cem-fact-val">${profile.last_enriched_at?profile.last_enriched_at.slice(0,10):'Not yet'}</span></div>
+          <div class="cem-fact"><span class="cem-fact-lbl">Profile ID</span><span class="cem-fact-val">${profile.id||'—'}</span></div>
+          <div class="cem-fact"><span class="cem-fact-lbl">Area context</span><span class="cem-fact-val">${areaLabel}</span></div>
+        </div></div>
+      </div>
     </div>
-  </div>
-  `;
+  </div>`;
+
+  // ── ASSESSMENT TAB ───────────────────────────────────────────────────────
+  const _renderAreaAssessBlock = (_aId, _prof) => {
+    const _pi2 = _prof?.platform_intelligence || null;
+    const _bd2 = _prof?.bd_intelligence      || null;
+    const _ac  = _renderCemAssessCard(_pi2, _bd2);
+    const _ph  = _renderCemPlatformIntel(_pi2);
+    const _bh  = _renderCemBdIntel(_bd2);
+    if (!_ac && !_ph && !_bh) return `<p style="font-size:11px;color:#94a3b8;font-style:italic">No assessment data enriched for this area.</p>`;
+    return `${_ac}<div class="cem-assess-intel-grid">
+      ${_bh||'<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:12px 0">BD intelligence not enriched</div>'}
+      ${_ph||'<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:12px 0">Platform intelligence not enriched</div>'}
+    </div>`;
+  };
+
+  const _assessAllHtml = _allAreaIds.map(_aId => `<div class="cem-area-group">
+    <div class="cem-area-group-hd">${_aLbl(_aId)}</div>
+    ${_renderAreaAssessBlock(_aId, _allAreaProf[_aId]||null)}
+  </div>`).join('');
+
+  const _assessmentContent = `<div style="padding:18px 20px 28px">
+    <div class="cem-area-block active" data-fid="${_filterId}" data-area="all">
+      ${_assessAllHtml||'<p style="color:#94a3b8;font-size:12px">No assessment data found.</p>'}
+    </div>
+    ${_allAreaIds.map(_aId => `<div class="cem-area-block" data-fid="${_filterId}" data-area="${_aId}">
+      ${_renderAreaAssessBlock(_aId, _allAreaProf[_aId]||null)}
+    </div>`).join('')}
+  </div>`;
+
+  // ── CATALYSTS TAB ────────────────────────────────────────────────────────
+  const _catMONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const _fmtCatDate = iso => {
+    if (!iso) return '—';
+    const m = iso.match(/^(\d{4})-(\d{2})-?(\d{2})?/);
+    if (m && m[3]) return `${_catMONTHS[parseInt(m[2])-1]} ${parseInt(m[3])}, ${m[1]}`;
+    if (m) return `${_catMONTHS[parseInt(m[2])-1]} ${m[1]}`;
+    return iso;
+  };
+  const _renderCatTable = _cats => {
+    if (!_cats||!_cats.length) return '<p style="color:#94a3b8;font-size:12px;padding:4px 0">No upcoming catalysts on record</p>';
+    const _rows = _cats.map(c => {
+      const _lbl = c.headline||c.label||c.notes?.slice(0,80)||c.catalyst_type||'Catalyst';
+      const _sig = c.significance==='high'?`<span style="font-size:8.5px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Key</span>`:'';
+      const _lnk = c.source_url?`<a href="${c.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${_lbl} ↗</a>${_sig}`:`${_lbl}${_sig}`;
+      return `<tr><td style="color:#1d4ed8;font-weight:600;white-space:nowrap">${_fmtCatDate(c.sort_date)}</td><td style="font-size:11px">${_lnk}</td><td style="color:#64748b;font-size:10px">${c.drug_name||'—'}</td><td style="color:#64748b;font-size:10px">${c.catalyst_type||'—'}</td></tr>`;
+    }).join('');
+    return `<table class="cem-tbl"><thead><tr><th>Date</th><th>Catalyst</th><th>Drug</th><th>Type</th></tr></thead><tbody>${_rows}</tbody></table>`;
+  };
+
+  const _allCatsFlat = [];
+  const _seenCatIds  = new Set();
+  _allAreaIds.forEach(_aId => {
+    (_allAreaCats[_aId]||[]).forEach(c => {
+      const _k = c.id||(c.label||'')+(c.sort_date||'');
+      if (!_seenCatIds.has(_k)) { _seenCatIds.add(_k); _allCatsFlat.push(c); }
+    });
+  });
+  _allCatsFlat.sort((a,b) => (a.sort_date||'').localeCompare(b.sort_date||''));
+  const _totalCatCount = _allCatsFlat.length;
+
+  const _catalystsContent = `<div style="padding:18px 20px 28px">
+    <div class="cem-area-block active" data-fid="${_filterId}" data-area="all">
+      ${_renderCatTable(_allCatsFlat)}
+    </div>
+    ${_allAreaIds.map(_aId => `<div class="cem-area-block" data-fid="${_filterId}" data-area="${_aId}">
+      ${_renderCatTable(_allAreaCats[_aId]||[])}
+    </div>`).join('')}
+  </div>`;
+
+  // ── RELATED NEWS TAB ─────────────────────────────────────────────────────
+  const _newsItems = sbData?.deals || [];
+  const _NMONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const _fmtNewsDate = iso => {
+    if (!iso) return '';
+    const m = iso.match(/^(\d{4})-(\d{2})-?(\d{2})?/);
+    if (m && m[3]) return `${_NMONTHS[parseInt(m[2])-1]} ${parseInt(m[3])}, ${m[1]}`;
+    if (m) return `${_NMONTHS[parseInt(m[2])-1]} ${m[1]}`;
+    return iso.slice(0,10);
+  };
+  const _renderNewsRow = d => {
+    const _typeMap = {acquisition:'M&A',license:'License',collaboration:'Collaboration',option:'Option',financing:'Financing',news:'News',press_release:'News'};
+    const _tl = _typeMap[d.deal_type]||d.deal_type||'News';
+    const _tbg = d.deal_type==='acquisition'?'#fef2f2':d.deal_type==='license'?'#eff6ff':d.deal_type==='collaboration'?'#f0fdf4':d.deal_type==='financing'?'#f0fdf4':'#f8fafc';
+    const _tc  = d.deal_type==='acquisition'?'#991b1b':d.deal_type==='license'?'#1d4ed8':d.deal_type==='collaboration'?'#15803d':d.deal_type==='financing'?'#065f46':'#64748b';
+    const _tb  = d.deal_type==='acquisition'?'#fecaca':d.deal_type==='license'?'#bfdbfe':d.deal_type==='collaboration'?'#bbf7d0':d.deal_type==='financing'?'#a7f3d0':'#e2e8f0';
+    const _tpill = `<span style="font-size:8px;font-weight:800;text-transform:uppercase;background:${_tbg};color:${_tc};border:1px solid ${_tb};border-radius:4px;padding:1px 5px;flex-shrink:0">${_tl}</span>`;
+    const _hl  = d.headline||(d.from_company||d.to_company||companyName)+' · '+_tl;
+    const _lnk = d.source_url
+      ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#1e3a5f;font-weight:600;text-decoration:none;border-bottom:1px solid #bfdbfe;word-break:break-word">${_hl.slice(0,100)}${_hl.length>100?'…':''} ↗</a>`
+      : `<span style="color:#1e3a5f;font-weight:600;word-break:break-word">${_hl.slice(0,100)}${_hl.length>100?'…':''}</span>`;
+    const _u = parseFloat(d.upfront_usd_m), _t = parseFloat(d.total_usd_m);
+    const _fmtV = v => v>=1000?`$${(v/1000).toFixed(1)}B`:`$${Math.round(v)}M`;
+    const _vp = [!isNaN(_u)&&_u>0?`<span class="cem-pill" style="background:#fef3c7;color:#92400e">${_fmtV(_u)} upfront</span>`:'',!isNaN(_t)&&_t>0?`<span class="cem-pill cem-p-high">${_fmtV(_t)} total</span>`:''].filter(Boolean).join(' ');
+    const _det = d.detail?`<div style="font-size:10px;color:#64748b;margin-top:3px;line-height:1.4">${d.detail.slice(0,180)}${d.detail.length>180?'…':''}</div>`:'';
+    return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9">
+      <span style="color:#94a3b8;font-size:9px;flex-shrink:0;padding-top:3px;min-width:70px">${_fmtNewsDate(d.deal_date)}</span>
+      ${_tpill}
+      <div style="min-width:0;flex:1">${_lnk}${_vp?`<div style="margin-top:3px">${_vp}</div>`:''}${_det}</div>
+    </div>`;
+  };
+
+  const _newsContent = `<div style="padding:18px 20px 28px">
+    ${_newsItems.length
+      ? `<div style="${_newsItems.length>10?'max-height:500px;overflow-y:auto;scrollbar-width:thin;padding-right:4px':''}">
+           ${_newsItems.length>10?`<div style="font-size:9.5px;color:#94a3b8;margin-bottom:8px">${_newsItems.length} items · scroll for more</div>`:''}
+           ${_newsItems.map(_renderNewsRow).join('')}
+         </div>`
+      : '<p style="color:#94a3b8;font-size:12px">No news or deals on record — enrichment pipeline will populate.</p>'
+    }
+  </div>`;
+
+  // ── Assemble tabs + panels ────────────────────────────────────────────────
+  const _tabs = [
+    { id:'cem-tab-overview',   label:'Overview' },
+    { id:'cem-tab-assessment', label:'Assessment' },
+    { id:'cem-tab-catalysts',  label:`Catalysts${_totalCatCount?' ('+_totalCatCount+')':''}` },
+    { id:'cem-tab-news',       label:'Related News' },
+  ];
+  const _panels = [
+    { id:'cem-tab-overview',   content: _overviewContent },
+    { id:'cem-tab-assessment', content: _assessmentContent },
+    { id:'cem-tab-catalysts',  content: _catalystsContent },
+    { id:'cem-tab-news',       content: _newsContent },
+  ];
+
+  return _areaFilterHtml + _buildDossierShell(_tabs, _panels);
 }
 
 // Close modals on Escape key
@@ -13393,13 +13595,6 @@ function _makeAreaPI(tabId, areaIds) {
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${drugSection}
-   <div data-intel-grid="${prog.id||''}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:${drugsToRender.length?'12px':'4px'};margin-bottom:10px">
-    ${intelSections}
-   </div>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="pi-detail-section"><h5>📅 Upcoming Catalysts</h5>${catsHTML}</div>
-    <div class="pi-detail-section"><h5>📰 Related News</h5>${dealsHTML}</div>
-   </div>
    ${sigsHTML}
   </div>`;
  },
