@@ -1,8 +1,8 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53i (2026-05-25)  
-**Completed:** Phase 4B Path B — TL1A target-view dual-read in `_makeAreaPI()` · `_runPhase4BTL1ADualRead` added · gb004 mechanism error added to evidence reconciliation backlog  
-**Prior milestones:** Session 53h TL1A gap classification · Session 53g Phase 4B Path A (IBD dual-read) · Session 53f LEGACY_VIEW_TYPES
+**Last session:** Session 53j (2026-05-25)  
+**Completed:** Phase 4B Path C — `openDrugEntityModal()` dual-read · `_runPhase4CModalDualRead` added · all three Phase 4B paths now complete  
+**Prior milestones:** Session 53i TL1A dual-read in `_makeAreaPI()` · Session 53h TL1A gap classification · Session 53g IBD dual-read · Session 53f LEGACY_VIEW_TYPES
 
 ---
 
@@ -48,7 +48,7 @@ All Phase 4A work is done. Corrections applied and verified.
 | Path A | IBD indication-group dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53g)** |
 | Path B | TL1A target-view gap classification | ✅ **COMPLETE (Session 53h)** |
 | Path B → impl | TL1A target-view dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53i)** |
-| Path C | `openDrugEntityModal()` dual-read | ▶ **NEXT** |
+| Path C | `openDrugEntityModal()` dual-read | ✅ **COMPLETE (Session 53j)** |
 
 **Path A verification (run in browser after loading IBD tab):**
 ```javascript
@@ -65,6 +65,19 @@ window.showPhase4Compare()
 // Console: [Phase4B-TL1A] legacy=51 norm=35 overlap=34 raw=66.7% adj=100% oos=17 → compare_pass_oos_adjusted
 ```
 
+**Path C verification (open drug entity modal for a test drug):**
+```javascript
+// After opening any drug modal (e.g., lm-302, batoclimab, epi-001):
+window.showPhase4Compare()
+// Expected: record with component='openDrugEntityModal', path='drug_entity_modal'
+// Console: [Phase4C-Modal] drug=X areas=[...] targets=[...] inds=[...] → status
+
+// Test cases:
+// lm-302 (tl1a, ibd areas) → cross_table_inconsistency (no tl1a target, no ibd inds)
+// epi-001 (tl1a, ibd areas) → needs_manual_review
+// batoclimab (fcrn, ted, autoimmune) → acceptable_mismatch or match
+```
+
 **Data quality backlog:**
 `gb004.drugs.mechanism = 'Anti-TL1A'` is incorrect (actual: PHD inhibitor / HIF-1α stabilizer). Logged in `docs/evidence_reconciliation_layer.md`. Requires separate evidence review — do not fix in Phase 4B work.
 
@@ -72,18 +85,16 @@ window.showPhase4Compare()
 
 ## Next Sprint Priority Order
 
-### P0 — Phase 4B Path C: `openDrugEntityModal()` dual-read
+### P0 — Phase 4B Complete: Advisor sign-off + entity_consistency_checks build
 
-**Goal:** Add dual-read validation for the drug entity modal — the third blocked dashboard path.
+**Goal:** Phase 4B dual-read is now instrumented across all three blocked paths (IBD tab, TL1A tab, drug modal). The next step is:
+1. Load IBD + TL1A tabs in browser, open 3–5 drug modals for test drugs, run `window.showPhase4Compare()` — confirm expected statuses
+2. Present dual-read results to advisor for Phase 4B sign-off
+3. Build `entity_consistency_checks` table (migration SQL in `docs/evidence_reconciliation_layer.md`)
+4. Seed with 7 known Phase 4A candidates
+5. Unlock `ontology_edges` only after advisor explicitly approves
 
-**Context from `docs/dashboard_dependency_inventory.md`:**
-The modal reads from `drug_area_scores` for competitive positioning data (overlap, cls, rationale). This is a `migration_blocker` because `drug_area_scores` has enrichment columns (overlap, rationale, cls, vs_ailux) with no equivalent in `drug_indications`/`drug_targets`. The dual-read here is diagnostic — confirming which drugs appear in modal vs. normalized, not yet switching the source.
-
-**Implementation pattern:**
-- In `openDrugEntityModal()` or `_loadDynamicDetail()`: run parallel reads from `drug_targets` and `drug_indications` for the opened drug
-- Compare against `drug_area_scores` data already fetched
-- Write record to `window.__MERIDIAN_PHASE4_COMPARE__` with `path: 'drug_entity_modal'`
-- No visual changes — modal still reads from legacy source
+**Note:** Phase 5 dashboard migration is still blocked until advisor clears Phase 4B.
 
 ### P1 — epi-001 Manual Review (Track B)
 
