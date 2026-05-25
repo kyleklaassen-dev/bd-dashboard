@@ -1,5 +1,5 @@
 # Phase 4 Comparison Harness — Meridian BD Platform
-**Generated:** 2026-05-25 21:34 UTC  
+**Generated:** 2026-05-25 21:48 UTC  
 **Mode:** Read-only · No production data modified  
 **Script:** `scripts/phase4_compare_legacy_vs_normalized.py`  
 
@@ -42,35 +42,42 @@ Not raw overlap. Accepted legacy corrections count toward the threshold.
 
 ---
 
-## Part 1 — Indication-Centric Drug Population Comparison
+## Part 1 — Legacy Area Drug Population Comparison
 
-For each legacy area_id, compare drug populations between:
-- **Legacy:** `drug_areas.area_id` (what the dashboard currently reads)
-- **Normalized:** `drug_indications.indication_id` (ontology-based, post-migration)
+For each legacy area_id, compare drug populations between legacy and normalized tables.
+
+> **View-type governance (2026-05-25):** Legacy areas are not a uniform ontological category.
+> - **Target views** (`tl1a`, `fcrn`, `igf1r`, `tslp`, `il4ra`): normalized via `drug_targets.target_id`
+> - **Indication group views** (`ibd`, `atopy`, `respiratory`, `autoimmune`): normalized via `drug_indications.indication_id`
+> - **Indication views** (`ted`): normalized via `drug_indications.indication_id`
+> - **Platform views** (`tcell`): no clean normalized path yet
+>
+> Part 1 compares legacy drug populations against `drug_indications` for coverage assessment.
+> Part 2 (dashboard function comparisons) uses the **correct view-type-specific normalized path** per area.
 
 Match % = overlap / legacy_count × 100. A low match % means migrating now would silently drop drugs from the dashboard.
 
 ### Summary Table
 
-| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw% | Noise Rmvd | Adj% | Gaps | Scope Diff | NMR | Status |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `tcell` | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | — | — | — | 1 | 11 | ⛔ not_ready |
-| `autoimmune` | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 25 | 13 | 52.0% | — | — | 4 | 1 | 7 | 🟠 needs_rule_adjustment |
-| `fcrn` | gmg, cidp, waiha | 7 | 11 | 5 | 71.4% | — | — | 1 | 1 | — | 🟡 acceptable_mismatch |
-| `atopy` | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | — | — | 1 | — | — | 🟡 acceptable_mismatch |
-| `tl1a` | uc, cd | 51 | 49 | 47 | 92.2% | 3 | 98.0% | — | — | 1 | 🟢 compare_pass_oos_adjusted |
-| `ibd` | uc, cd | 50 | 49 | 47 | 94.0% | 1 | 96.0% | — | — | 2 | 🟢 compare_pass_oos_adjusted |
-| `igf1r` | ted | 9 | 14 | 9 | 100.0% | — | — | — | — | — | ✅ match |
-| `il4ra` | ad, asthma | 9 | 27 | 9 | 100.0% | — | — | — | — | — | ✅ match |
-| `respiratory` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
-| `ted` | ted | 12 | 14 | 12 | 100.0% | — | — | — | — | — | ✅ match |
-| `tslp` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
+| Legacy Area | View Type | Normalized Indications | Legacy | Norm | Overlap | Raw% | Noise Rmvd | Adj% | Gaps | Scope Diff | NMR | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `tcell` | platform_view | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | — | — | — | 1 | 11 | ⛔ not_ready |
+| `autoimmune` | indication_group_view | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 25 | 13 | 52.0% | — | — | 4 | 1 | 7 | 🟠 needs_rule_adjustment |
+| `fcrn` | target_view | gmg, cidp, waiha | 7 | 11 | 5 | 71.4% | — | — | 1 | 1 | — | 🟡 acceptable_mismatch |
+| `atopy` | indication_group_view | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | — | — | 1 | — | — | 🟡 acceptable_mismatch |
+| `tl1a` | target_view | uc, cd | 51 | 49 | 47 | 92.2% | 3 | 98.0% | — | — | 1 | 🟢 compare_pass_oos_adjusted |
+| `ibd` | indication_group_view | uc, cd | 50 | 49 | 47 | 94.0% | 1 | 96.0% | — | — | 2 | 🟢 compare_pass_oos_adjusted |
+| `igf1r` | target_view | ted | 9 | 14 | 9 | 100.0% | — | — | — | — | — | ✅ match |
+| `il4ra` | target_view | ad, asthma | 9 | 27 | 9 | 100.0% | — | — | — | — | — | ✅ match |
+| `respiratory` | indication_group_view | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
+| `ted` | indication_view | ted | 12 | 14 | 12 | 100.0% | — | — | — | — | — | ✅ match |
+| `tslp` | target_view | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
 
 _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normalized_gap · Scope Diff = ontology_scope_difference · NMR = needs_manual_review_
 
 ### Detail by Area
 
-#### `tcell` → `all, multiple_myeloma` ⛔ **not_ready**
+#### `tcell` [platform_view] → `all, multiple_myeloma` ⛔ **not_ready**
 
 | Field | Value |
 |---|---|
@@ -125,7 +132,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 - `miv-cel`: Drug `miv-cel` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 - `nipocalimab`: Drug `nipocalimab` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
-#### `autoimmune` → `gmg, cidp, ra, sle, waiha, sjogrens` 🟠 **needs_rule_adjustment**
+#### `autoimmune` [indication_group_view] → `gmg, cidp, ra, sle, waiha, sjogrens` 🟠 **needs_rule_adjustment**
 
 | Field | Value |
 |---|---|
@@ -185,7 +192,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 - `sp-1351`: Drug `sp-1351` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 - `tisagenlecleucel`: Drug `tisagenlecleucel` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
-#### `fcrn` → `gmg, cidp, waiha` 🟡 **acceptable_mismatch**
+#### `fcrn` [target_view] → `gmg, cidp, waiha` 🟡 **acceptable_mismatch**
 
 | Field | Value |
 |---|---|
@@ -219,7 +226,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 - `atg-201`: ATG-201 is a CAR-T targeting GD2; placed in fcrn legacy area incorrectly. Different mechanism entirely.
 - `imvt-1402`: IMVT-1402 is FcRn inhibitor in Phase 3 for gMG, CIDP, WAIHA; missed in Wave 2A FcRn backfill.
 
-#### `atopy` → `ad, chronic_urticaria` 🟡 **acceptable_mismatch**
+#### `atopy` [indication_group_view] → `ad, chronic_urticaria` 🟡 **acceptable_mismatch**
 
 | Field | Value |
 |---|---|
@@ -255,7 +262,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 **Notes on extra-legacy records:**
 - `upadacitinib`: Upadacitinib has FDA-approved AD indication; missed in Wave 2A backfill.
 
-#### `tl1a` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
+#### `tl1a` [target_view] → `uc, cd` 🟢 **compare_pass_oos_adjusted**
 
 | Field | Value |
 |---|---|
@@ -287,11 +294,11 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 
 **Notes on extra-legacy records:**
 - `epi-001`: Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; held in backfill_preview as review_required.
-- `lm-302`: Gastric/GEJ ADC — placed in tl1a legacy area by curation error; not a TL1A/IBD drug.
-- `sim0500`: RRMM trispecific — placed in tl1a legacy area by curation error; not a TL1A/IBD drug.
-- `spy072`: TL1A antibody targeting PsA/axSpA (rheumatology); not IBD. Correct exclusion from drug_indications.
+- `lm-302`: Gastric/GEJ ADC — placed in tl1a legacy target-view area by curation error. Not a TL1A target drug. Target is CLDN18.2; indication is gastric oncology.
+- `sim0500`: RRMM trispecific — placed in tl1a legacy target-view area by curation error. Not a TL1A target drug. Target is GPRC5D×BCMA×CD3; indication is multiple myeloma.
+- `spy072`: TL1A target drug (correct mechanism) but indication is PsA/axSpA (rheumatology). Legacy tl1a target-view membership is mechanistically valid; exclusion from IBD indication-group is correct — this is not a UC/CD indication drug.
 
-#### `ibd` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
+#### `ibd` [indication_group_view] → `uc, cd` 🟢 **compare_pass_oos_adjusted**
 
 | Field | Value |
 |---|---|
@@ -322,10 +329,10 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 
 **Notes on extra-legacy records:**
 - `epi-001`: Same as tl1a/epi-001 above.
-- `sim0500`: RRMM trispecific — same error as tl1a area.
+- `sim0500`: RRMM trispecific — same curation error as tl1a target-view area. Not an IBD indication drug. Indication is multiple myeloma.
 - `spy072`: Drug `spy072` is in legacy `ibd` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
-#### `igf1r` → `ted` ✅ **match**
+#### `igf1r` [target_view] → `ted` ✅ **match**
 
 | Field | Value |
 |---|---|
@@ -352,7 +359,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 | `lonigutamab` (lonigutamab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 | `sp-1351` (SP-1351, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
-#### `il4ra` → `ad, asthma` ✅ **match**
+#### `il4ra` [target_view] → `ad, asthma` ✅ **match**
 
 | Field | Value |
 |---|---|
@@ -392,7 +399,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 | `win027` (WIN027, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 | `zemprocitinib` (zemprocitinib, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
-#### `respiratory` → `asthma, copd, crswnp` ✅ **match**
+#### `respiratory` [indication_group_view] → `asthma, copd, crswnp` ✅ **match**
 
 | Field | Value |
 |---|---|
@@ -417,7 +424,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 | `omalizumab` (Xolair (omalizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 | `rademikibart--cbp-201` (Rademikibart (CBP-201), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
-#### `ted` → `ted` ✅ **match**
+#### `ted` [indication_view] → `ted` ✅ **match**
 
 | Field | Value |
 |---|---|
@@ -441,7 +448,7 @@ _Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normaliz
 | `cizutamig` (Cizutamig, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 | `iscalimab` (Iscalimab (CFZ533), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
-#### `tslp` → `asthma, copd, crswnp` ✅ **match**
+#### `tslp` [target_view] → `asthma, copd, crswnp` ✅ **match**
 
 | Field | Value |
 |---|---|
@@ -483,16 +490,27 @@ For each of the 5 high-risk legacy dashboard paths (from `docs/dashboard_depende
 - **Match %:** 97.2%
 - **Notes:** drug_area_scores has competitive enrichment data (overlap, rationale, cls) that has no equivalent column in drug_indications/drug_targets. The competitive positioning modal content CANNOT be replaced until drug_area_scores enrichment is migrated to drug_indications. Separate concern from drug population coverage.
 
-### _makeAreaPI() — IBD/TL1A tab  🟢 **compare_pass_oos_adjusted**
+### _makeAreaPI() — TL1A target tab [target_view]  🔴 **migration_blocker**
 
 - **Lines:** 12121–12200
-- **Legacy source:** drug_areas.in('area_id', ['ibd']) or ['tl1a']
-- **Normalized source:** drug_indications WHERE indication_id IN ('uc','cd')
+- **Legacy source:** drug_area_scores.area_id = 'tl1a'
+- **Normalized source:** drug_targets WHERE target_id = 'tl1a'
 - **Legacy count:** 51
+- **Normalized count:** 35
+- **Overlap:** 34
+- **Match %:** 66.7%
+- **Notes:** TL1A is a biological TARGET. The legacy tl1a area is a target-view: it groups drugs by TL1A mechanism engagement. Normalized replacement path is drug_targets.target_id = 'tl1a', NOT drug_indications. Do not conflate this with the IBD indication-group view. Legacy TL1A target-view: 51 drugs. Normalized drug_targets (tl1a): 35 drugs. Overlap: 34. Raw coverage: 66.7%. Gap: 17 legacy TL1A target-view drugs missing drug_targets rows. Backfill drug_targets before target-view migration.
+
+### _makeAreaPI() — IBD indication tab [indication_group_view]  🟢 **compare_pass_oos_adjusted**
+
+- **Lines:** 12121–12200
+- **Legacy source:** drug_area_scores.area_id = 'ibd'
+- **Normalized source:** drug_indications WHERE indication_id IN ('uc','cd')
+- **Legacy count:** 50
 - **Normalized count:** 49
 - **Overlap:** 47
-- **Match %:** 92.2%
-- **Notes:** Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers 49 UC+CD drugs (47 overlap). Raw coverage: 92.2%. Adjusted coverage: 98.0% after classifying 3 extra-legacy drug(s) as legacy_noise_removed (confirmed curation errors). Governance rule (2026-05-25): legacy noise excluded from readiness denominator. Ready for Phase 4 dual-read validation — NOT Phase 5 migration.
+- **Match %:** 94.0%
+- **Notes:** IBD is an INDICATION GROUP (UC + CD). The legacy ibd area is an indication-group-view: it groups drugs by UC/CD disease indication. Normalized replacement path is drug_indications WHERE indication_id IN ('uc','cd'). This is a separate migration path from the TL1A target-view above — do not merge them. Legacy IBD indication-group-view: 50 drugs. Normalized drug_indications (uc+cd): 49 drugs. Overlap: 47. Raw coverage: 94.0%. Adjusted: 96.0% after classifying 1 legacy noise record(s). Ready for Phase 4B indication-group-view dual-read validation.
 
 ### loadAreaDeals() / _loadBdIntoModal()  ⛔ **not_ready**
 
@@ -530,6 +548,7 @@ These paths must NOT be migrated until the blocking conditions are resolved:
 
 - ⛔ **`tcell`** (0.0% match): Zero overlap — legacy and normalized are pointing at completely different drug populations. Fundamental mapping issue. Do NOT migrate.
 - 🔴 **openDrugEntityModal()**: drug_area_scores has competitive enrichment data (overlap, rationale, cls) that has no equivalent column in drug_indicat...
+- 🔴 **_makeAreaPI() — TL1A target tab [target_view]**: TL1A is a biological TARGET. The legacy tl1a area is a target-view: it groups drugs by TL1A mechanism engagement. Normal...
 - ⛔ **loadAreaDeals() / _loadBdIntoModal()**: 183 deals tagged with area_id across fcrn/igf1r/il4ra/tcell/tl1a/tslp. deals table has no indication_id column. No bridg...
 
 ---
@@ -553,16 +572,16 @@ All classified differences from `DIFFERENCE_CLASSIFICATIONS`. This replaces the 
 | `fcrn` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Keep batoclimab in legacy fcrn view only; do not add to drug_indications via fcrn. | Batoclimab is FcRn-targeting (IgG recycling pathway) but was placed in fcrn legacy area de… |
 | `fcrn` | `imvt-1402` (IMVT-1402) | `normalized_gap` | Backfill drug_indications: imvt-1402 → gmg, cidp, waiha. | IMVT-1402 is FcRn inhibitor in Phase 3 for gMG, CIDP, WAIHA; missed in Wave 2A FcRn backfi… |
 | `ibd` | `epi-001` (EPI-001) | `needs_manual_review` | Review EPI-001 clinical evidence before committing. | Same as tl1a/epi-001 above. |
-| `ibd` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — same error as tl1a area. |
-| `ibd` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — same error as tl1a area. |
+| `ibd` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — same curation error as tl1a target-view area. Not an IBD indication drug… |
+| `ibd` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — same curation error as tl1a target-view area. Not an IBD indication dru… |
 | `igf1r` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Exclude batoclimab from ted/igf1r drug_indications. | Batoclimab is FcRn mechanism; legacy igf1r area misclassified it. Not a TED drug. |
 | `tcell` | `atg-201` (ATG-201) | `ontology_scope_difference` | Investigate ATG-201 indication; may need new indication node. | ATG-201 is CAR-T targeting GD2; legacy tcell area is a broad dashboard bucket. GD2 targets… |
 | `ted` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Exclude from ted drug_indications. | Batoclimab is FcRn mechanism; legacy igf1r area shared with ted. Not a TED drug. |
 | `tl1a` | `epi-001` (EPI-001) | `needs_manual_review` | Review EPI-001 clinical evidence before committing. | Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; held in backfill_previe… |
 | `tl1a` | `es302` (ES302) | `normalized_gap` | Backfill drug_indications: es302 → uc + cd. | ES302 is an IL-23 inhibitor with UC/CD indication; missed in Wave 2C coverage. |
-| `tl1a` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — placed in tl1a legacy area by curation error; not a TL1A/IBD drug. |
-| `tl1a` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — placed in tl1a legacy area by curation error; not a TL1A/IBD drug. |
-| `tl1a` | `spy072` (SPY072) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | TL1A antibody targeting PsA/axSpA (rheumatology); not IBD. Correct exclusion from drug_ind… |
+| `tl1a` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — placed in tl1a legacy target-view area by curation error. Not a TL1A tar… |
+| `tl1a` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — placed in tl1a legacy target-view area by curation error. Not a TL1A ta… |
+| `tl1a` | `spy072` (SPY072) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | TL1A target drug (correct mechanism) but indication is PsA/axSpA (rheumatology). Legacy tl… |
 
 ### Unclassified Extra-Legacy Records (needs_manual_review default)
 
@@ -717,7 +736,8 @@ _🟢 adjusted = passes after classifying legacy_noise_removed records as accept
 | Function | Blocking Condition | Resolved? |
 |---|---|---|
 | `openDrugEntityModal()` | drug_indications must have competitive enrichment data (overlap, rationale, cls) | ❌ Not yet — enrichment migration pending |
-| `_makeAreaPI()` IBD/TL1A | Adjusted coverage ≥ 95% (legacy noise classified) — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (adjusted) |
+| `_makeAreaPI()` TL1A **[target_view]** | TL1A target-view: drug_targets.target_id = 'tl1a' coverage ≥ 95% | 🟢 Phase 4 compare pass (adjusted) — ready for target-view dual-read |
+| `_makeAreaPI()` IBD **[indication_group_view]** | IBD indication-group: drug_indications UC+CD coverage ≥ 95% | 🟢 Phase 4 compare pass (adjusted) — ready for indication-group dual-read |
 | `loadAreaDeals()` | deals.indication_id FK must exist | ❌ Column does not exist |
 | `loadAreaCatalysts()` | area_id→indication_id bridge must exist for catalysts | ❌ Bridge not built |
 | Trial + Signal feeds | trials.indication_id must be backfilled from trial_indications | ❌ trials.indication_id is NULL |
@@ -726,7 +746,7 @@ _🟢 adjusted = passes after classifying legacy_noise_removed records as accept
 
 ## Phase 4 Overall Status
 
-**Comparison date:** 2026-05-25 21:34 UTC
+**Comparison date:** 2026-05-25 21:48 UTC
 **Areas compared:** 11
 - ✅ match: 5
 - 🟢 compare_pass_oos_adjusted: 2
@@ -740,4 +760,7 @@ These areas meet the 95% migration-readiness threshold after removing confirmed 
 
 **Verdict:** Phase 4 migration is **NOT YET SAFE** for all areas. Remaining blockers must be resolved before any dashboard query is switched. See Part 3 for specific blocking conditions.
 
-**Next action (Track D):** Build Phase 4 dual-read layer for `_makeAreaPI` and `openDrugEntityModal` — parallel read paths, assert row count parity, log any visual regressions. Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.
+**Next action (Track D):** Build Phase 4B dual-read layer for `_makeAreaPI` and `openDrugEntityModal` — two separate parallel read paths:  
+- **TL1A target-view dual-read:** legacy `drug_area_scores.area_id = 'tl1a'` vs normalized `drug_targets WHERE target_id = 'tl1a'`  
+- **IBD indication-group dual-read:** legacy `drug_area_scores.area_id = 'ibd'` vs normalized `drug_indications WHERE indication_id IN (''uc'',''cd'')`  
+Assert row count parity per path. Log any regressions. Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.
