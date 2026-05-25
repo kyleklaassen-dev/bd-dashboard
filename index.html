@@ -11061,7 +11061,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         const [ar, sr, tr, mr] = await Promise.all([
           _sb.from('drug_areas').select('area_id').eq('drug_id', rid),
           _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', rid),
-          _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
+          _sb.from('trials').select('id,nct_id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
         const scoreMapR = {};
@@ -12625,7 +12625,7 @@ function _makeAreaPI(tabId, areaIds) {
     });
     const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
-     const nct    = t.id || t.nct || '';
+     const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
      const phase  = (t.phase||'').replace(/Phase\s*/i,'Ph ');
@@ -12778,7 +12778,7 @@ function _makeAreaPI(tabId, areaIds) {
 
    // Trial rows
    const trialRowsHTML = sortedTrials.map(t => {
-    const nct     = t.id || t.nct || '';
+    const nct     = t.nct_id || t.nct || t.id || '';
     const name    = t.trial_name || t.name || '';
     const acronym = t.study_acronym || '';
     const status  = t.status || '';
