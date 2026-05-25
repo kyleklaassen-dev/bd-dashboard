@@ -15092,45 +15092,45 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ═══════════════════════════════════════════════════════════════════
      AUDIT TAB — Hidden system visibility page. Access: click "updated" in home footer.
      ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-pane" id="tab-audit" style="padding:0;background:#0f172a;min-height:100vh;color:#e2e8f0;font-family:'Inter',sans-serif">
+<div class="tab-pane" id="tab-audit" style="padding:0;background:#f1f5f9;min-height:100vh;color:#1e293b;font-family:'Inter',sans-serif">
 
 <style>
 .au-wrap        { max-width:1200px;margin:0 auto;padding:28px 24px 60px }
-.au-header      { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #1e293b }
-.au-title       { font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-.4px }
-.au-subtitle    { font-size:12px;color:#64748b;margin-top:3px }
-.au-badge       { font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#1e293b;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase }
+.au-header      { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #e2e8f0 }
+.au-title       { font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-.4px }
+.au-subtitle    { font-size:12px;color:#94a3b8;margin-top:3px }
+.au-badge       { font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e2e8f0;color:#64748b;letter-spacing:.06em;text-transform:uppercase }
 .au-grid        { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:28px }
-.au-stat        { background:#1e293b;border-radius:8px;padding:14px 16px;border:1px solid #334155 }
-.au-stat-val    { font-size:26px;font-weight:800;color:#f8fafc;line-height:1 }
+.au-stat        { background:white;border-radius:8px;padding:14px 16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.04) }
+.au-stat-val    { font-size:26px;font-weight:800;color:#0f172a;line-height:1 }
 .au-stat-lbl    { font-size:11px;color:#64748b;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em }
-.au-stat-sub    { font-size:10px;color:#475569;margin-top:2px }
+.au-stat-sub    { font-size:10px;color:#94a3b8;margin-top:2px }
 .au-section     { margin-bottom:32px }
-.au-section-hd  { font-size:13px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px }
-.au-section-hd::after { content:'';flex:1;height:1px;background:#1e293b }
-.au-table       { width:100%;border-collapse:collapse;font-size:12px }
-.au-table th    { text-align:left;padding:7px 10px;background:#1e293b;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #334155 }
-.au-table td    { padding:8px 10px;border-bottom:1px solid #1e293b;color:#cbd5e1;vertical-align:top;line-height:1.4 }
+.au-section-hd  { font-size:13px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px }
+.au-section-hd::after { content:'';flex:1;height:1px;background:#e2e8f0 }
+.au-table       { width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0 }
+.au-table th    { text-align:left;padding:8px 12px;background:#f8fafc;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e2e8f0 }
+.au-table td    { padding:9px 12px;border-bottom:1px solid #f1f5f9;color:#334155;vertical-align:top;line-height:1.4 }
 .au-table tr:last-child td { border-bottom:none }
-.au-table tr:hover td { background:#1e293b40 }
+.au-table tr:hover td { background:#f8fafc }
 .au-pill        { display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap }
-.au-pill-green  { background:#14532d;color:#86efac }
-.au-pill-yellow { background:#713f12;color:#fde68a }
-.au-pill-red    { background:#7f1d1d;color:#fca5a5 }
-.au-pill-blue   { background:#1e3a5f;color:#93c5fd }
-.au-pill-gray   { background:#1e293b;color:#94a3b8 }
-.au-pill-purple { background:#3b0764;color:#d8b4fe }
-.au-card        { background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:10px }
-.au-card-title  { font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:6px }
-.au-card-body   { font-size:12px;color:#94a3b8;line-height:1.6 }
-.au-gap-row     { display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #1e293b }
+.au-pill-green  { background:#dcfce7;color:#166534 }
+.au-pill-yellow { background:#fef9c3;color:#854d0e }
+.au-pill-red    { background:#fee2e2;color:#991b1b }
+.au-pill-blue   { background:#dbeafe;color:#1e40af }
+.au-pill-gray   { background:#f1f5f9;color:#64748b }
+.au-pill-purple { background:#f3e8ff;color:#6b21a8 }
+.au-card        { background:white;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04) }
+.au-card-title  { font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px }
+.au-card-body   { font-size:12px;color:#475569;line-height:1.6 }
+.au-gap-row     { display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9 }
 .au-gap-row:last-child { border-bottom:none }
-.au-gap-title   { font-size:12px;font-weight:700;color:#f1f5f9;margin-bottom:3px }
-.au-gap-body    { font-size:11px;color:#94a3b8;line-height:1.5 }
-.au-count       { font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:#0f172a;color:#64748b;white-space:nowrap;min-width:36px;text-align:center }
-.au-refresh     { font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#94a3b8;cursor:pointer }
-.au-refresh:hover { color:#f1f5f9;border-color:#475569 }
-.au-roadmap-item { display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1e293b }
+.au-gap-title   { font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px }
+.au-gap-body    { font-size:11px;color:#64748b;line-height:1.5 }
+.au-count       { font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;white-space:nowrap;min-width:36px;text-align:center }
+.au-refresh     { font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer }
+.au-refresh:hover { color:#0f172a;border-color:#94a3b8 }
+.au-roadmap-item { display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f1f5f9 }
 .au-roadmap-item:last-child { border-bottom:none }
 .au-phase       { font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;margin-top:1px }
 </style>
@@ -15319,49 +15319,49 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="au-section-hd">🗺️ Next Build Priorities</div>
     <div class="au-card" style="padding:4px 16px">
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#1e3a5f;color:#93c5fd">Phase 1</span>
+        <span class="au-phase" style="background:#dbeafe;color:#1e40af">Phase 1</span>
         <div>
           <div class="au-gap-title">Source Expansion — Fierce Biotech, Endpoints, PR Newswire</div>
           <div class="au-gap-body">Structured ingestion pipelines feeding entity-tagged signals. Not news dumps — extract company/drug/area/deal entities at ingest time. Feeds intel table with source attribution.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#14532d;color:#86efac">Phase 1</span>
+        <span class="au-phase" style="background:#dcfce7;color:#166534">Phase 1</span>
         <div>
           <div class="au-gap-title">drug → COMPETES_WITH → drug edge (backfill from drug_area_scores)</div>
           <div class="au-gap-body">Highest leverage / lowest effort. Direct overlap drugs in same area compete. One migration + backfill from existing data. Unlocks competitive clustering queries.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#3b0764;color:#d8b4fe">Phase 2</span>
+        <span class="au-phase" style="background:#f3e8ff;color:#6b21a8">Phase 2</span>
         <div>
           <div class="au-gap-title">targets table — normalize drug targets as queryable nodes</div>
           <div class="au-gap-body">Free-text → structured FK. Unlocks "all drugs targeting TL1A", mechanism crowding, target-level heat maps. Required before reasoning layer is reliable.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#3b0764;color:#d8b4fe">Phase 2</span>
+        <span class="au-phase" style="background:#f3e8ff;color:#6b21a8">Phase 2</span>
         <div>
           <div class="au-gap-title">Conference abstract + poster monitoring</div>
           <div class="au-gap-body">DDW, ECCO, ATS, EADV, AASLD abstract books. Highest-value early signal — days before public coverage. Ingestion pipeline + entity tagging + timeline integration on relevant area tabs.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#713f12;color:#fde68a">Phase 3</span>
+        <span class="au-phase" style="background:#fef9c3;color:#854d0e">Phase 3</span>
         <div>
           <div class="au-gap-title">Coverage diagnostics compute script + dashboard widget</div>
           <div class="au-gap-body">landscape_dependency_score formula exists. Build the compute script + surface as actionable "re-enrich these 5 companies first" queue on audit + home.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#713f12;color:#fde68a">Phase 3</span>
+        <span class="au-phase" style="background:#fef9c3;color:#854d0e">Phase 3</span>
         <div>
           <div class="au-gap-title">Patent monitoring — USPTO/EPO for tracked targets</div>
           <div class="au-gap-body">Weekly patent filing scan for TL1A, TSLP, IL-4Rα, FcRn, IGF1R target terms. Surface as early signal with company/mechanism tagging.</div>
         </div>
       </div>
       <div class="au-roadmap-item">
-        <span class="au-phase" style="background:#7f1d1d;color:#fca5a5">Phase 4</span>
+        <span class="au-phase" style="background:#fee2e2;color:#991b1b">Phase 4</span>
         <div>
           <div class="au-gap-title">Intelligence reasoning layer — "Why does this matter?"</div>
           <div class="au-gap-body">Shift from "what happened" to "who should care / what became more valuable / what threat emerged." Requires Phase 1–3 graph completeness to compute reliably.</div>
@@ -15375,15 +15375,15 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="au-section-hd">📈 Platform Maturity</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
       <div class="au-card">
-        <div class="au-card-title" style="color:#86efac">✅ Complete</div>
+        <div class="au-card-title" style="color:#166534">✅ Complete</div>
         <div class="au-card-body" style="font-size:11px">Company DB · Drugs to Know · Signal Monitor · Discovery Queue · Company Intake · Drug Intake · Ground Truth Validation · Catalyst dedup · drug_area_scores · Unified enrichment · Completeness scoring · Identity spine · Submitted Intel intake pipeline</div>
       </div>
       <div class="au-card">
-        <div class="au-card-title" style="color:#fde68a">🔧 Partial / In Progress</div>
+        <div class="au-card-title" style="color:#854d0e">🔧 Partial / In Progress</div>
         <div class="au-card-body" style="font-size:11px">Strategic Value Score · molecule_intelligence split · Source confidence UI · Canonical entity modal · Competitive landscape (TED+TL1A seeded, others missing) · Interpretive intelligence backfill (TL1A only)</div>
       </div>
       <div class="au-card">
-        <div class="au-card-title" style="color:#fca5a5">🔴 Not Yet Built</div>
+        <div class="au-card-title" style="color:#991b1b">🔴 Not Yet Built</div>
         <div class="au-card-body" style="font-size:11px">Fierce Biotech / Endpoints / PR Newswire ingestion · Conference abstract monitoring · Patent filings · Coverage diagnostics compute · drug→COMPETES_WITH→drug edge · targets table · SEC filing pipeline · Investigator nodes</div>
       </div>
     </div>
