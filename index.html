@@ -1609,6 +1609,28 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .pi-tr-field{display:flex;flex-direction:column;gap:1px}
 .pi-tr-field-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8}
 .pi-tr-field-val{font-size:11px;color:#1e293b;font-weight:600}
+/* ── Redesigned trial detail card ── */
+.pi-td-card{background:#fff;border-radius:8px;overflow:hidden}
+.pi-td-name{font-size:12px;font-weight:700;color:#1e293b;line-height:1.4;padding:10px 12px 8px;border-bottom:1px solid #f1f5f9}
+.pi-td-regimen{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;background:#f0f7ff;border-bottom:1px solid #e0edf8}
+.pi-td-reg-chip{font-size:10px;font-weight:600;color:#1e40af;background:#dbeafe;border-radius:12px;padding:2px 9px;white-space:nowrap}
+.pi-td-reg-chip.route{background:#dcfce7;color:#166534}
+.pi-td-reg-chip.dose{background:#e0e7ff;color:#3730a3}
+.pi-td-reg-chip.freq{background:#f3e8ff;color:#6b21a8}
+.pi-td-reg-chip.comparator{background:#fef3c7;color:#92400e}
+.pi-td-reg-chip.duration{background:#e0f2fe;color:#075985}
+.pi-td-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #f1f5f9}
+.pi-td-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 8px;border-right:1px solid #f1f5f9;text-align:center}
+.pi-td-stat:last-child{border-right:none}
+.pi-td-stat-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:2px}
+.pi-td-stat-val{font-size:11px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pi-td-section{padding:8px 12px;border-bottom:1px solid #f8fafc}
+.pi-td-section:last-child{border-bottom:none}
+.pi-td-sec-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:3px}
+.pi-td-sec-val{font-size:11.5px;color:#334155;line-height:1.55;font-weight:400}
+.pi-td-sec-val.mono{font-family:monospace;font-size:10.5px}
+.pi-td-readout{display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;color:#1d4ed8}
+.pi-td-empty{padding:10px 12px;font-size:11px;color:#94a3b8;font-style:italic}
 .pi-tr-results-btn{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;font-weight:700;color:#7c3aed;padding:3px 9px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:4px;margin-top:4px;user-select:none}
 .pi-tr-results-btn:hover{background:#ede9fe}
 .pi-tr-results-body{display:none;margin-top:7px;padding:9px 10px;background:white;border:1px solid #e0d9ff;border-radius:4px;font-size:11.5px;line-height:1.7;color:#374151}
@@ -12745,7 +12767,7 @@ function _makeAreaPI(tabId, areaIds) {
       <span class="pi-tr-note-cell" title="${noteText}">${noteText||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
-     </div><div class="pi-tr-detail">${t.trial_name||t.name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">${t.trial_name||t.name}</div>`:''}</div></div>`;
+     </div><div class="pi-tr-detail"><div class="pi-td-card">${(t.trial_name||t.name)?`<div class="pi-td-name">${t.trial_name||t.name}${_trialNote(t)?`<span style="margin-left:8px;font-size:9px;font-weight:600;background:#f1f5f9;color:#64748b;border-radius:10px;padding:2px 8px;vertical-align:middle">${_trialNote(t)}</span>`:''}</div>`:''}${(()=>{const chips=[];const _r=(t.route||'').trim();if(_r)chips.push(`<span class="pi-td-reg-chip route">${_r.toUpperCase()}</span>`);const _dl=t.dose_levels||t.dose_amount||'';if(_dl)chips.push(`<span class="pi-td-reg-chip dose">${_dl}</span>`);const _df=t.dosing_frequency||t.dosing_schedule||t.dosing||'';if(_df)chips.push(`<span class="pi-td-reg-chip freq">${_df}</span>`);const _cmp=t.comparator||t.control_arm||'';if(_cmp)chips.push(`<span class="pi-td-reg-chip comparator">vs. ${_cmp}</span>`);return chips.length?`<div class="pi-td-regimen">${chips.join('')}</div>`:'';})()}${(t.enrollment||t.enrollment_count)?`<div class="pi-td-stats"><div class="pi-td-stat"><div class="pi-td-stat-lbl">Enrollment</div><div class="pi-td-stat-val">N=${t.enrollment||t.enrollment_count}</div></div></div>`:''}</div></div></div>`;
     }).join('');
     const isPlannedStage = (combo.stage||'').startsWith('Planned');
     const plannedSrcLink = combo.source_url
@@ -12969,10 +12991,31 @@ function _makeAreaPI(tabId, areaIds) {
       ${countdownCell}
      </div>
      <div class="pi-tr-detail">
-      ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
-      ${trialNoteText?`<div style="font-size:10px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:3px 8px;margin-bottom:8px;display:inline-block">${trialNoteText}</div>`:''}
-      <div class="pi-tr-grid">${detailFields||'<span style="color:#94a3b8;font-size:11px">Detail not yet enriched</span>'}</div>
-      ${resultsSection}
+      <div class="pi-td-card">
+       ${name ? `<div class="pi-td-name">${name}${trialNoteText ? `<span style="margin-left:8px;font-size:9px;font-weight:600;background:#f1f5f9;color:#64748b;border-radius:10px;padding:2px 8px;vertical-align:middle">${trialNoteText}</span>` : ''}</div>` : ''}
+       ${(()=>{
+        const chips = [];
+        if (route) chips.push(`<span class="pi-td-reg-chip route">${route.toUpperCase()}</span>`);
+        if (doseLevel) chips.push(`<span class="pi-td-reg-chip dose">${doseLevel}</span>`);
+        if (dosFreq||dosing) chips.push(`<span class="pi-td-reg-chip freq">${dosFreq||dosing}</span>`);
+        if (comparator) chips.push(`<span class="pi-td-reg-chip comparator">vs. ${comparator}</span>`);
+        if (txDuration) chips.push(`<span class="pi-td-reg-chip duration">${txDuration}</span>`);
+        return chips.length ? `<div class="pi-td-regimen">${chips.join('')}</div>` : '';
+       })()}
+       <div class="pi-td-stats">
+        <div class="pi-td-stat"><div class="pi-td-stat-lbl">Enrollment</div><div class="pi-td-stat-val">${n ? `N=${n}` : '—'}</div></div>
+        <div class="pi-td-stat"><div class="pi-td-stat-lbl">Design</div><div class="pi-td-stat-val">${studyDesign||'—'}</div></div>
+        <div class="pi-td-stat"><div class="pi-td-stat-lbl">Arms</div><div class="pi-td-stat-val">${arms||'—'}</div></div>
+        <div class="pi-td-stat"><div class="pi-td-stat-lbl">Geography</div><div class="pi-td-stat-val">${geoScope||'—'}</div></div>
+       </div>
+       ${population ? `<div class="pi-td-section"><div class="pi-td-sec-lbl">Population</div><div class="pi-td-sec-val">${population}</div></div>` : ''}
+       ${ep ? `<div class="pi-td-section"><div class="pi-td-sec-lbl">Primary Endpoint</div><div class="pi-td-sec-val">${ep}</div></div>` : ''}
+       ${keySec ? `<div class="pi-td-section"><div class="pi-td-sec-lbl">Key Secondary Endpoints</div><div class="pi-td-sec-val">${keySec}</div></div>` : ''}
+       ${estimand ? `<div class="pi-td-section"><div class="pi-td-sec-lbl">Estimand</div><div class="pi-td-sec-val">${estimand}</div></div>` : ''}
+       ${readout ? `<div class="pi-td-section"><div class="pi-td-sec-lbl">Expected Readout</div><div class="pi-td-sec-val"><span class="pi-td-readout">📅 ${readout}</span></div></div>` : ''}
+       ${!population && !ep && !keySec && !estimand && !readout && !(route||doseLevel||dosFreq||dosing||comparator||txDuration) && !n && !studyDesign && !arms && !geoScope ? `<div class="pi-td-empty">Detail not yet enriched — run pipeline to populate</div>` : ''}
+       ${resultsSection}
+      </div>
      </div>
     </div>`;
    }).join('');
