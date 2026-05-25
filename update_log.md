@@ -1,5 +1,43 @@
 
 ---
+## 2026-05-25 (Session 53b) — Advisor Option A · OOS-adjusted governance · compare_pass badges
+
+**Advisor decision — Option A adopted:**
+- OOS-adjusted coverage is the migration-readiness metric for TL1A / IBD
+- Standing governance rule: "Do not contaminate normalized truth to match legacy noise. If a legacy record is proven out-of-scope, remove it from the migration-readiness denominator."
+- 3 confirmed OOS drugs PERMANENTLY excluded from denominator (do NOT add to drug_indications):
+  - `lm-302` — gastric ADC (curation error in tl1a/ibd)
+  - `sim0500` — RRMM trispecific (curation error in tl1a/ibd)
+  - `spy072` — TL1A antibody for PsA/axSpA (rheumatology, not IBD; tl1a area only)
+
+**Phase 4 harness v2 (`scripts/phase4_compare_legacy_vs_normalized.py`):**
+- Added `CONFIRMED_OOS_BY_AREA` constant with governance rule comment
+- `classify_status()` now accepts `oos_adjusted_pct` + `oos_count` params
+- New status `compare_pass_oos_adjusted` (🟢): raw < 95% but OOS-adjusted ≥ 95%
+- `STATUS_ICON` updated: 🟢 for compare_pass_oos_adjusted
+- `compare_area()` computes `oos_count`, `oos_adjusted_pct`, `oos_drugs`, `confirmed_oos_legacy_noise`
+- `_makeAreaPI()` comparison: dynamically sets status to compare_pass_oos_adjusted
+- Summary table: added OOS Excl. + OOS-Adj% columns
+- Detail tables: added confirmed_oos_legacy_noise rows
+- Status legend: added compare_pass_oos_adjusted row + governance rule table
+- Part 5 criteria: added OOS-Adj% column + 🟢 OOS-adj met indicator
+- Overall verdict: updated for OOS-pass areas; next action now Phase 4 dual-read
+
+**Harness rerun results:**
+- `tl1a` → uc,cd: raw 92.2% → OOS-adjusted **97.9%** 🟢 compare_pass_oos_adjusted
+- `ibd` → uc,cd: raw 94.0% → OOS-adjusted **97.9%** 🟢 compare_pass_oos_adjusted
+- `_makeAreaPI() — IBD/TL1A`: 🟢 compare_pass_oos_adjusted
+
+**`docs/phase4_comparison_harness.md`:** regenerated with full OOS-adjusted data
+
+**`index.html` — Program Board readiness badges:**
+- Added `compare_pass` to `READINESS_STYLE` (🟢 green)
+- `uc` / `cd`: `blocked` → `compare_pass` (98%) with governance note
+- Comment updated: status values now include `compare_pass`
+
+**NEXT_SESSION.md:** rewritten — Option A decision recorded, Phase 4 dual-read plan (12 paths), epi-001 still held, workstream status updated
+
+---
 ## 2026-05-25 (Session 53) — Wave 2C COMMITTED · Phase 4 harness rerun
 
 **Wave 2C — IBD Drug Indications Backfill — COMMITTED**
