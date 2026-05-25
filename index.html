@@ -16109,11 +16109,11 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ═══════════════════════════════════════════════════════════════════
      AUDIT TAB — Hidden system visibility page. Access: click "updated" in home footer.
      ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-pane" id="tab-audit" style="padding:0;background:#f8fafc;min-height:100vh;font-family:'Inter',sans-serif">
+<div class="tab-pane" id="tab-audit" style="padding:0;background-color:#edf0f5;background-image:radial-gradient(circle,#b8c4d4 1.2px,transparent 1.2px);background-size:26px 26px;min-height:100vh;font-family:'Inter',sans-serif">
 <style>
 /* ── Audit Tab Styles ─────────────────────────────────────────── */
-.au-wrap         { max-width:960px;margin:0 auto;padding:32px 24px 80px }
-.au-header       { margin-bottom:32px;padding-bottom:18px;border-bottom:2px solid #e2e8f0 }
+.au-wrap         { max-width:1440px;margin:0 auto;padding:32px 36px 80px }
+.au-header       { margin-bottom:28px;padding:20px 24px;background:white;border-radius:10px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.06) }
 .au-title        { font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-.5px;margin:0 0 4px }
 .au-subtitle     { font-size:13px;color:#94a3b8 }
 .au-topbar       { display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
@@ -16128,7 +16128,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .au-stat-l       { font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:2px }
 
 /* Section blocks */
-.au-section      { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04) }
+.au-section      { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.07) }
 .au-sec-hd       { display:flex;align-items:center;gap:10px;margin-bottom:4px;cursor:pointer;user-select:none }
 .au-sec-icon     { font-size:18px;line-height:1 }
 .au-sec-title    { font-size:16px;font-weight:800;color:#0f172a;flex:1 }
@@ -16281,6 +16281,20 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="au-sec-body" id="s1-body">
       <div class="au-narrative au-editable">
         Supabase is the structured memory of Meridian. It doesn't store articles or documents — it stores <strong>facts in rows and columns, connected by foreign keys</strong> (pointers from one table to another). Here is what the structure actually looks like and why it's organized this way.
+      </div>
+
+      <!-- ══ LIVE ONTOLOGY EXPLORER ══ -->
+      <div style="margin:6px 0 22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#0f172a;letter-spacing:-.2px">🧬 Biology Ontology — Every Table, Every Option, Live from Supabase</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">Pulled directly from the database on load · Scroll each panel · Arrows show foreign key relationships</div>
+          </div>
+          <button onclick="_loadOntologyExplorer(true)" style="font-size:11px;font-weight:700;padding:5px 13px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer;white-space:nowrap">↻ Refresh</button>
+        </div>
+        <div id="ont-explorer" style="border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#f8fafc;min-height:100px">
+          <div style="padding:32px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Loading ontology from Supabase…</div>
+        </div>
       </div>
 
       <!-- Visual data model diagram — full 6-layer architecture -->
@@ -17544,6 +17558,168 @@ async function auditCount(table, filter) {
   return count ?? 0;
 }
 
+// ── Ontology Explorer ────────────────────────────────────────────────────────
+let _ontLoaded = false;
+
+async function _loadOntologyExplorer(force = false) {
+  if (_ontLoaded && !force) return;
+  const el = document.getElementById('ont-explorer');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:36px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Loading live data…</div>';
+
+  try {
+    const [r1,r2,r3,r4,r5] = await Promise.all([
+      _sb.from('disease_areas').select('id,label,description,indication_group,sort_order').order('sort_order'),
+      _sb.from('indications').select('id,name,abbreviation,disease_area,biology_tags').order('disease_area,id'),
+      _sb.from('targets').select('id,label,gene_symbol,target_type,family,pathway,ailux_relevance,disease_areas,cross_area_relevance').order('id'),
+      _sb.from('target_pairs').select('id,pair_symbol,pair_type,ailux_pair,disease_areas,first_drug').order('id'),
+      _sb.from('modalities').select('id,name,abbreviation,typical_route,examples').order('name')
+    ]);
+    const areas    = r1.data || [];
+    const inds     = r2.data || [];
+    const tgtsAll  = r3.data || [];
+    const tgts     = tgtsAll.filter(t => t.gene_symbol);
+    const pairs    = r4.data || [];
+    const mods     = r5.data || [];
+
+    // helpers
+    const rBadge = v => { const cfg={primary:['#b91c1c','#fff5f5'],combination:['#7c3aed','#f5f3ff'],adjacent:['#0369a1','#e0f2fe'],benchmark:['#d97706','#fffbeb'],watch:['#475569','#f1f5f9'],monitor:['#94a3b8','#f8fafc']}; const [c,bg]=cfg[v]||['#475569','#f8fafc']; return `<span style="font-size:9px;font-weight:700;color:${c};background:${bg};border:1px solid ${c}25;border-radius:3px;padding:1px 5px;white-space:nowrap">${v}</span>`; };
+    const chip = (t,c,bg) => `<span style="font-size:9px;font-weight:600;color:${c};background:${bg};border-radius:3px;padding:1px 5px;white-space:nowrap">${t}</span>`;
+
+    // ── Panel: disease_areas ──
+    const tabA = areas.filter(a=>a.sort_order<=6), grpA = areas.filter(a=>a.sort_order>6);
+    const pDA = `<div style="display:flex;flex-direction:column;height:100%">
+      <div style="background:#7c3aed;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">disease_areas</span>
+        <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 8px;font-weight:700">${areas.length}</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:11px 12px;font-size:11px">
+        <div style="font-size:9px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #ede9fe">Tab Areas — 6 dashboard tabs</div>
+        ${tabA.map(a=>`<div style="margin-bottom:9px">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-size:9px;font-family:monospace;background:#ede9fe;color:#5b21b6;border-radius:3px;padding:1px 5px;font-weight:700">${a.id}</span>
+            <span style="font-weight:700;color:#3b0764;font-size:10px">${a.label}</span>
+          </div>
+          <div style="color:#6d28d9;font-size:9px;margin-top:2px;line-height:1.4">${(a.description||'').slice(0,62)}…</div>
+        </div>`).join('')}
+        <div style="font-size:9px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.07em;margin:10px 0 7px;padding-top:7px;border-top:1px solid #ede9fe">Grouping Areas — drug-display filters</div>
+        ${grpA.map(a=>`<div style="margin-bottom:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+          <span style="font-size:9px;font-family:monospace;background:#f3f0ff;color:#7c3aed;border-radius:3px;padding:1px 5px;font-weight:700">${a.id}</span>
+          <span style="font-weight:600;color:#5b21b6;font-size:10px">${a.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+    // ── Panel: indications ──
+    const indByA = {}; inds.forEach(i=>{if(!indByA[i.disease_area])indByA[i.disease_area]=[];indByA[i.disease_area].push(i);});
+    const aHdr = {ibd:'#1d4ed8',respiratory:'#0369a1',atopy:'#d97706',ted:'#9333ea',autoimmune:'#059669',oncology:'#dc2626'};
+    const pIND = `<div style="display:flex;flex-direction:column;height:100%">
+      <div style="background:#3b82f6;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">indications</span>
+        <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 8px;font-weight:700">${inds.length}</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:11px 12px;font-size:11px">
+        ${Object.entries(indByA).map(([area,items])=>`<div style="margin-bottom:11px">
+          <div style="font-size:9px;font-weight:800;color:${aHdr[area]||'#475569'};text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #dbeafe">${area}</div>
+          ${items.map(i=>`<div style="margin-bottom:8px;padding-left:8px;border-left:2px solid #bfdbfe">
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span style="font-size:9px;font-weight:800;background:#1d4ed8;color:white;border-radius:3px;padding:1px 6px;min-width:22px;text-align:center">${i.abbreviation}</span>
+              <span style="font-weight:700;color:#1e3a8a;font-size:10px">${i.name}</span>
+            </div>
+            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:2px">${(i.biology_tags||[]).map(t=>chip(t,'#475569','#f1f5f9')).join('')}</div>
+          </div>`).join('')}
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+    // ── Panel: targets ──
+    const relOrd = {primary:0,combination:1,adjacent:2,benchmark:3,watch:4,monitor:5};
+    const sT = [...tgts].sort((a,b)=>(relOrd[a.ailux_relevance]??9)-(relOrd[b.ailux_relevance]??9));
+    const borderC = r => ({primary:'#dc2626',combination:'#7c3aed',adjacent:'#0369a1',benchmark:'#d97706'}[r]||'#86efac');
+    const pTGT = `<div style="display:flex;flex-direction:column;height:100%">
+      <div style="background:#16a34a;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">targets</span>
+        <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 8px;font-weight:700">${tgts.length} enriched</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:11px 12px;font-size:11px">
+        <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #dcfce7">Sorted by ailux_relevance</div>
+        ${sT.map(t=>`<div style="margin-bottom:10px;padding-left:8px;border-left:2.5px solid ${borderC(t.ailux_relevance)}">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-size:9px;font-family:monospace;font-weight:800;background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:3px;padding:1px 5px">${t.gene_symbol}</span>
+            <span style="font-weight:700;color:#14532d;font-size:10px">${t.label}</span>
+            ${rBadge(t.ailux_relevance||'watch')}
+          </div>
+          <div style="color:#475569;margin-top:2px;font-size:9px">${[t.target_type,t.family].filter(Boolean).join(' · ')}</div>
+          ${t.pathway?`<div style="color:#94a3b8;font-size:9px;margin-top:1px">${t.pathway}</div>`:''}
+          <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:2px">
+            ${(t.disease_areas||[]).map(d=>chip(d,'#166534','#f0fdf4')).join('')}
+            ${(t.cross_area_relevance||[]).map(d=>chip(d,'#0369a1','#eff6ff')).join('')}
+          </div>
+        </div>`).join('')}
+        <div style="font-size:9px;color:#94a3b8;margin-top:4px;font-style:italic;padding-top:6px;border-top:1px solid #f0fdf4">+ ${tgtsAll.length - tgts.length} combination/pair targets also in table</div>
+      </div>
+    </div>`;
+
+    // ── Panel: target_pairs ──
+    const pTP = `<div style="border:1.5px solid #0891b2;border-radius:8px;overflow:hidden;margin-bottom:8px">
+      <div style="background:#0891b2;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">target_pairs</span>
+        <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 7px;font-weight:700">${pairs.length}</span>
+      </div>
+      <div style="padding:10px 12px;font-size:11px;background:white">
+        ${pairs.map(p=>`<div style="margin-bottom:9px;padding-left:8px;border-left:2.5px solid ${p.ailux_pair?'#f59e0b':'#a5f3fc'}">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            ${p.ailux_pair?`<span style="color:#d97706;font-size:11px">★</span>`:''}
+            <span style="font-weight:700;color:#164e63;font-size:10px">${p.pair_symbol}</span>
+          </div>
+          <div style="color:#475569;font-size:9px;margin-top:1px">${(p.pair_type||'').replace(/_/g,' ')}</div>
+          <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:2px">${(p.disease_areas||[]).map(d=>chip(d,'#0e7490','#ecfeff')).join('')}</div>
+          ${p.first_drug?`<div style="color:#94a3b8;font-size:9px;margin-top:2px;font-style:italic">${p.first_drug.slice(0,42)}${p.first_drug.length>42?'…':''}</div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+    // ── Panel: modalities ──
+    const pMOD = `<div style="border:1.5px solid #059669;border-radius:8px;overflow:hidden">
+      <div style="background:#059669;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;font-weight:800;color:white;font-family:monospace">modalities</span>
+        <span style="font-size:10px;background:rgba(255,255,255,.25);color:white;border-radius:10px;padding:1px 7px;font-weight:700">${mods.length}</span>
+      </div>
+      <div style="padding:10px 12px;font-size:11px;background:white">
+        ${mods.map(m=>`<div style="margin-bottom:7px;padding-left:8px;border-left:2px solid #d1fae5">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-size:9px;font-family:monospace;font-weight:800;background:#d1fae5;color:#065f46;border-radius:3px;padding:1px 5px">${m.abbreviation}</span>
+            <span style="font-weight:700;color:#14532d;font-size:10px">${m.name}</span>
+            ${(m.typical_route||[]).map(r=>chip(r,'#1d4ed8','#dbeafe')).join('')}
+          </div>
+          ${m.examples?`<div style="color:#94a3b8;font-size:9px;margin-top:2px;line-height:1.4">${m.examples.slice(0,55)}${m.examples.length>55?'…':''}</div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+    // ── Assemble layout ──
+    el.innerHTML = `
+      <div style="display:flex;gap:0;align-items:stretch;padding:14px 14px 0;overflow-x:auto;min-height:380px">
+        <div style="flex:1.1;min-width:190px;background:white;border:1.5px solid #7c3aed;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;max-height:490px">${pDA}</div>
+        <div style="flex-shrink:0;display:flex;align-items:center;padding:0 7px;padding-top:0;font-size:22px;color:#7c3aed;opacity:.7;align-self:center;margin-top:-20px">→</div>
+        <div style="flex:1.2;min-width:200px;background:white;border:1.5px solid #3b82f6;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;max-height:490px">${pIND}</div>
+        <div style="flex-shrink:0;display:flex;align-items:center;padding:0 7px;font-size:22px;color:#3b82f6;opacity:.7;align-self:center;margin-top:-20px">→</div>
+        <div style="flex:1.4;min-width:220px;background:white;border:1.5px solid #16a34a;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;max-height:490px">${pTGT}</div>
+        <div style="flex-shrink:0;display:flex;align-items:center;padding:0 7px;font-size:22px;color:#16a34a;opacity:.7;align-self:center;margin-top:-20px">→</div>
+        <div style="flex:1.1;min-width:195px;display:flex;flex-direction:column;gap:0;max-height:490px;overflow-y:auto">${pTP}${pMOD}</div>
+      </div>
+      <div style="padding:9px 14px 10px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:10px;color:#64748b;line-height:1.9;margin-top:12px">
+        <span style="font-weight:700;color:#7c3aed">Biology chain:</span> disease_areas.id → indications.disease_area → targets.disease_areas[] → target_pairs.target_1/2_id &nbsp;·&nbsp;
+        <span style="font-weight:700;color:#059669">Drug bridge:</span> drugs.target → targets.id · drugs.modality → modalities.id &nbsp;·&nbsp;
+        <span style="font-weight:700;color:#0369a1">Score chain:</span> drug_area_scores.(area_id → disease_areas.id) · (drug_id → drugs.id)
+      </div>`;
+
+    _ontLoaded = true;
+  } catch(e) {
+    if (el) el.innerHTML = `<div style="padding:24px;color:#ef4444;font-size:12px">Error loading ontology: ${e.message}</div>`;
+  }
+}
+
 async function auditLoad(force = false) {
   if (_auditLoaded && !force) return;
   const jobs = [
@@ -17572,6 +17748,8 @@ async function auditLoad(force = false) {
   // Restore all saved annotations
   auRestoreAll();
   auRestoreEdits();
+  // Load live ontology explorer
+  _loadOntologyExplorer(force);
 }
 
 // Section toggle
@@ -17593,7 +17771,7 @@ function auSave(id) {
   if (saved) { saved.textContent = 'saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 1500); }
 }
 function auRestoreAll() {
-  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7',
+  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7','anno-s8',
    'anno-anchor','anno-direct','anno-adjacent','anno-samespace','anno-watch','anno-fields'].forEach(id => {
     const val = localStorage.getItem(AU_PREFIX + id);
     const el  = document.getElementById(id);
