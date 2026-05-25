@@ -12583,7 +12583,17 @@ function _makeAreaPI(tabId, areaIds) {
     ['Allergic Rhinitis','AR'],['Food Allergy','FA'],
     // ── Hematology / Oncology ──
     ['Transthyretin Amyloidosis Cardiomyopathy','ATTR-CM'],['Transthyretin Amyloidosis','ATTR'],
-    ['Non-Small Cell Lung Cancer','NSCLC'],['Small Cell Lung Cancer','SCLC'],
+    ['Glioblastoma WHO Grade IV','GBM'],['Glioblastoma WHO Grade III','GBM'],['Glioblastoma Multiforme','GBM'],['Glioblastoma','GBM'],
+    ['Pancreatic Ductal Adenocarcinoma','PDAC'],
+    ['Malignant Peripheral Nerve Sheath Tumor, Malignant','MPNST'],['Malignant Peripheral Nerve Sheath Tumor','MPNST'],['Peripheral Nerve Sheath Tumor','PNST'],
+    ['Pleural Mesothelioma','Meso.'],['Peritoneal Mesothelioma','Meso.'],['Mesothelioma','Meso.'],
+    ['Advanced Solid Tumor','Adv. Solid Tu.'],['Solid Tumors','Solid Tu.'],['Solid Tumor','Solid Tu.'],
+    ['Advanced Cancer','Adv. Ca.'],['Advanced Malignancy','Adv. Ca.'],
+    ['Castration-Resistant Prostate Cancer','CRPC'],['Metastatic Castration-Resistant Prostate Cancer','mCRPC'],
+    ['Prostate Cancer','PCa'],['Renal Cell Carcinoma','RCC'],['Clear Cell Renal Cell Carcinoma','ccRCC'],
+    ['Bladder Cancer','BlaCa'],['Urothelial Carcinoma','UCa'],['Transitional Cell Carcinoma','TCC'],
+    ['Endometrial Cancer','EndoCa'],['Cervical Cancer','CxCa'],['Esophageal Cancer','EsoCa'],['Gastroesophageal Junction','GEJ'],
+    ['Non-Small Cell Lung Cancer','NSCLC'],['Non-SCLC','NSCLC'],['Non SCLC','NSCLC'],['Small Cell Lung Cancer','SCLC'],
     ['Hepatocellular Carcinoma','HCC'],['Cholangiocarcinoma','CCA'],
     ['Colorectal Cancer','CRC'],['Diffuse Large B-Cell Lymphoma','DLBCL'],['Follicular Lymphoma','FL'],
     ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],['Multiple Myeloma','MM'],
@@ -12748,9 +12758,9 @@ function _makeAreaPI(tabId, areaIds) {
      const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
-     const _pRaw = (t.phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-     const _pAbbr = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label','early phase 1':'EPh 1'};
-     const phaseDisplay = !_pRaw ? '—' : /\d/.test(_pRaw) ? `Ph ${_pRaw}` : (_pAbbr[_pRaw.toLowerCase()] || _pRaw.slice(0,5));
+     const _pRaw = (t.phase||'').replace(/\s*\/\s*/g,'/').trim();
+     const _pAbbr = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label'};
+     const phaseDisplay = !_pRaw ? '—' : /^early\s+(phase\s*)?\d/i.test(_pRaw) ? `EPh ${_pRaw.replace(/^early\s+(phase\s*)?/i,'')}` : (r=>!r?'—':/\d/.test(r)?`Ph ${r}`:(_pAbbr[r.toLowerCase()]||r.slice(0,5)))(_pRaw.replace(/Phase\s*/gi,'').trim());
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
      const _nctComboMatch = (nct+'').match(/NCT\d{6,}/i);
      const _nctComboId = _nctComboMatch ? _nctComboMatch[0].toUpperCase() : null;
@@ -12933,9 +12943,9 @@ function _makeAreaPI(tabId, areaIds) {
     const acronymCell = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
     // Phase cell — normalize all "Phase X / Phase Y" → "Ph X/Y"
-    const _pRaw2 = (phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-    const _pAbbr2 = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label','early phase 1':'EPh 1'};
-    const phaseShort = !_pRaw2 ? '—' : /\d/.test(_pRaw2) ? `Ph ${_pRaw2}` : (_pAbbr2[_pRaw2.toLowerCase()] || _pRaw2.slice(0,5));
+    const _pRaw2 = (phase||'').replace(/\s*\/\s*/g,'/').trim();
+    const _pAbbr2 = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label'};
+    const phaseShort = !_pRaw2 ? '—' : /^early\s+(phase\s*)?\d/i.test(_pRaw2) ? `EPh ${_pRaw2.replace(/^early\s+(phase\s*)?/i,'')}` : (r=>!r?'—':/\d/.test(r)?`Ph ${r}`:(_pAbbr2[r.toLowerCase()]||r.slice(0,5)))(_pRaw2.replace(/Phase\s*/gi,'').trim());
     const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort}</span>`;
 
     // Extended trial fields — new columns auto-populate when added to Supabase
