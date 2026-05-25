@@ -3696,7 +3696,7 @@ function loadMoleculeTab(tabId) {
     <div class="entity-modal-sub" id="entity-modal-sub"></div>
    </div>
    <div id="entity-modal-conf" class="cem-conf"></div>
-   <button class="entity-modal-close" onclick="closeEntityModal()" title="Close">✕</button>
+   <button class="entity-modal-close" onclick="closeEntityModal()" title="Close" style="display:none">✕</button>
   </div>
   <div class="entity-modal-body" id="entity-modal-body">
    <div style="padding:40px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>
@@ -10592,13 +10592,15 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     const typePill = `<span class="cem-id-pill cem-id-pill-entity">Company</span>`;
     const szPill   = coTypeCss ? `<span class="cem-id-pill cem-id-pill-${coTypeCss}">${coTypeLabel}</span>` : (coType ? `<span class="cem-id-pill cem-id-pill-status">${coType}</span>` : '');
     const areaPill = areaLabelHd ? `<span class="cem-id-pill cem-id-pill-area">${areaLabelHd}</span>` : '';
-    chipsEl.innerHTML = [typePill, szPill, areaPill].filter(Boolean).join('');
+    chipsEl.innerHTML = [typePill, szPill].filter(Boolean).join('');
   }
   if (subEl2) {
     const ticker = companyRow?.ticker || profile.ticker || '';
-    const sector = companyRow?.sector || profile.sector || companyRow?.primary_indication || profile.primary_indication || '';
     const hq     = companyRow?.hq || companyRow?.headquarters || companyRow?.location || profile.hq || profile.location || '';
-    const parts  = [ticker, sector, hq].filter(Boolean);
+    const _hdAreaMap = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19',ox40l:'OX40L'};
+    const _hdAreaIds = (extraData?.allAreaIds || [areaId]).filter(a => a !== 'ibd' && a !== 'global');
+    const areaStr    = _hdAreaIds.slice(0,3).map(a => _hdAreaMap[a] || a.toUpperCase()).join(', ');
+    const parts  = [ticker, areaStr, hq].filter(Boolean);
     subEl2.innerHTML = parts.length ? parts.map(p => `<span>${p}</span>`).join(' <span style="color:#cbd5e1">·</span> ') : '';
   }
   if (confEl) {
@@ -10607,14 +10609,15 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     const fillColor = scoreNum >= 80 ? '#4ade80' : scoreNum >= 50 ? '#fb923c' : '#f87171';
     const updDate  = profile.updated_at ? profile.updated_at.slice(0,10) : profile.last_enriched_at ? profile.last_enriched_at.slice(0,10) : '';
     const updLabel = updDate ? (() => { try { const d=new Date(updDate); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return updDate;} })() : '';
-    confEl.innerHTML = scoreNum != null ? `
+    const _confPctColor = scoreNum == null ? '#94a3b8' : fillColor==='#4ade80'?'#15803d':fillColor==='#fb923c'?'#b45309':'#b91c1c';
+    confEl.innerHTML = `
       <div class="cem-conf-lbl">Meridian confidence</div>
       <div class="cem-conf-row">
-        <div class="cem-conf-track"><div class="cem-conf-fill" style="width:${scoreNum}%;background:${fillColor}"></div></div>
-        <span class="cem-conf-pct" style="color:${fillColor==='#4ade80'?'#15803d':fillColor==='#fb923c'?'#b45309':'#b91c1c'}">${scoreNum}%</span>
+        <div class="cem-conf-track"><div class="cem-conf-fill" style="width:${scoreNum||0}%;background:${scoreNum!=null?fillColor:'#e2e8f0'}"></div></div>
+        <span class="cem-conf-pct" style="color:${_confPctColor}">${scoreNum != null ? scoreNum+'%' : '—'}</span>
       </div>
       ${updLabel ? `<div class="cem-conf-date">Updated ${updLabel}</div>` : ''}
-    ` : '';
+    `;
   }
 
   // Summary stats
