@@ -17783,6 +17783,29 @@ document.addEventListener('DOMContentLoaded', function(){
 .ont-cov-req{font-size:9px;font-weight:800;padding:1px 6px;border-radius:3px;text-transform:uppercase}
 .ont-cov-req.cov-req{background:#fee2e2;color:#991b1b}
 .ont-cov-req.cov-rec{background:#fef3c7;color:#92400e}
+/* Migration Roadmap */
+.ont-roadmap{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.ont-rmp-phase{border-radius:10px;border:1.5px solid #e2e8f0;overflow:hidden;background:white}
+.ont-rmp-phase.rmp-active{border-color:#3b82f6;box-shadow:0 0 0 3px #dbeafe}
+.ont-rmp-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}
+.ont-rmp-hd:hover{background:#fafafa}
+.ont-rmp-num{font-size:11px;font-weight:800;font-family:monospace;background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:5px;flex-shrink:0}
+.ont-rmp-title{font-size:13px;font-weight:800;color:#0f172a;flex:1}
+.ont-rmp-status{font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.rmp-s-active{background:#dbeafe;color:#1e40af}
+.rmp-s-next{background:#d1fae5;color:#065f46}
+.rmp-s-pending{background:#f1f5f9;color:#64748b}
+.rmp-s-future{background:#f3e8ff;color:#6b21a8}
+.ont-rmp-body{border-top:1px solid #f1f5f9;padding:16px 18px;display:none}
+.ont-rmp-body.open{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.ont-rmp-body.open{grid-template-columns:1fr}}
+.ont-rmp-col-hd{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #f1f5f9}
+.ont-rmp-item{font-size:11px;color:#475569;padding:3px 0;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+.ont-rmp-item::before{content:'→';color:#94a3b8;flex-shrink:0;font-size:11px}
+.ont-rmp-item.done::before{content:'✓';color:#10b981}
+.ont-rmp-item.block::before{content:'⚠';color:#f59e0b}
+.ont-rmp-next{margin-top:14px;grid-column:1/-1;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:12px 14px;font-size:11px;color:#14532d;line-height:1.7}
+.ont-rmp-next strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;color:#065f46}
 </style>
 
 <div class="ont-wrap">
@@ -17917,6 +17940,21 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
     <div class="ont-sec-body" id="ont-i-body">
       <div id="ont-coverage-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading coverage data…</div></div>
+    </div>
+  </div>
+
+  <!-- ── J: Migration Roadmap ──────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-j">
+    <div class="ont-sec-hd" onclick="ontToggle('j')">
+      <span class="ont-sec-icon">🗺️</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">J — Migration Roadmap</div>
+        <div class="ont-sec-sub">Phase 0–6 · current status · blockers · completion criteria · next safe action</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-j-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-j-body">
+      <div id="ont-roadmap-mount"></div>
     </div>
   </div>
 
@@ -18066,6 +18104,9 @@ async function ontologyLoad(force = false) {
   _renderOntFlags(daRows||[]);
   _renderOntGaps({ indRows: indRows||[], daRows: daRows||[], counts });
   _renderOntMigration(daRows||[]);
+
+  // Sync: roadmap is static — render immediately
+  _renderOntRoadmap();
 
   // Async sections — load in background, don't block the sync render
   _renderOntImpact(daRows||[]);
@@ -18857,6 +18898,277 @@ async function _renderOntCoverage() {
     </div>`;
 }
 
+// ── J: Migration Roadmap ─────────────────────────────────────────────────────
+function _renderOntRoadmap() {
+  const m = document.getElementById('ont-roadmap-mount');
+  if (!m) return;
+
+  const phases = [
+    {
+      num: 'Phase 0', title: 'Audit & Dependency Mapping', status: 'active', statusLbl: 'In Progress',
+      purpose: 'Understand the current structure, risks, dependencies, and gaps before touching anything in production.',
+      left: {
+        hd: 'Completed',
+        items: [
+          { done:true,  text:'Terminology cleanup — "therapeutic area" language adopted in UI' },
+          { done:true,  text:'Quality flags (18 flags: HIGH/MEDIUM/LOW severity)' },
+          { done:true,  text:'Section H: Impact Analysis — per-area dependency cards' },
+          { done:true,  text:'Section I: Relationship Coverage Scoreboard' },
+          { done:true,  text:'Click-through inspection — drugs, trials, overlap distribution' },
+          { done:true,  text:'Relationship evidence layer — source, method, confidence per link' },
+        ]
+      },
+      right: {
+        hd: 'Remaining / Blockers',
+        items: [
+          { block:false, text:'Dependency map for company_areas, targets, target_pairs tables (who else FKs to disease_areas)' },
+          { block:false, text:'Validate that catalysts.area_id and intel.area_id queries resolve correctly' },
+          { block:false, text:'Confirm all 11 legacy IDs have impact cards rendering correctly' },
+        ]
+      },
+      criteria: [
+        'Every legacy disease_areas ID has a mapped true classification',
+        'Every FK dependency to disease_areas is documented',
+        'Coverage scoreboard shows baseline before Phase 1 starts',
+        'No schema changes made yet — all legacy IDs and fields unchanged',
+      ],
+      next: 'Phase 0 is nearly complete. Safe to begin Phase 1 planning in parallel. Next action: create the therapeutic_areas table in Supabase (new table only — no schema changes to existing tables).',
+    },
+    {
+      num: 'Phase 1', title: 'Add New Ontology Tables', status: 'next', statusLbl: 'Next',
+      purpose: 'Create clean new ontology structures alongside the existing ones. Do NOT rename, delete, or modify any legacy field.',
+      left: {
+        hd: 'Tables to Create',
+        items: [
+          { text:'therapeutic_areas (7 rows: Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology)' },
+          { text:'routes_of_administration (6 rows: IV, SC, Oral, Inhaled, Intravitreal, Topical)' },
+          { text:'biology_tags (18 rows: normalized from indications.biology_tags arrays)' },
+          { text:'ontology_mappings (legacy_id → new_therapeutic_area, migration_status, notes)' },
+          { text:'ontology_versions (v1: legacy disease_areas, v2: therapeutic_areas)' },
+        ]
+      },
+      right: {
+        hd: 'Rules & Dependencies',
+        items: [
+          { text:'Add therapeutic_area_id FK to indications table (nullable — do not break existing rows)' },
+          { text:'Do NOT remove or rename disease_area / disease_areas fields' },
+          { text:'Do NOT update any dashboard logic yet' },
+          { text:'Populate ontology_mappings for all 11 legacy IDs before Phase 2' },
+          { text:'Dependency: Phase 0 impact analysis must be complete first' },
+        ]
+      },
+      criteria: [
+        'therapeutic_areas table exists with 7 rows',
+        'routes_of_administration table exists with 6 rows',
+        'ontology_mappings maps all 11 legacy IDs to new therapeutic areas',
+        'indications.therapeutic_area_id is populated for all existing rows',
+        'Legacy dashboard still produces identical output — zero regressions',
+      ],
+      next: 'Start with: CREATE TABLE therapeutic_areas. Then CREATE TABLE ontology_mappings. Then backfill indications.therapeutic_area_id. Verify indications count before and after.',
+    },
+    {
+      num: 'Phase 2', title: 'Add Normalized Relationship Tables', status: 'pending', statusLbl: 'Not Started',
+      purpose: 'Replace free-text matching with queryable FK relationships. All new tables are additive — legacy fields remain.',
+      left: {
+        hd: 'Tables to Create',
+        items: [
+          { text:'drug_targets (drug_id, target_id, relationship_type, confidence_level, source_id, review_status)' },
+          { text:'drug_indications (drug_id, indication_id, relationship_type, confidence_level, source_id)' },
+          { text:'drug_modalities (drug_id, modality_id, confidence_level, source_id)' },
+          { text:'drug_routes (drug_id, route_id, relationship_type, confidence_level, source_id)' },
+          { text:'indication_biology_tags (indication_id, biology_tag_id, relationship_type, confidence_level)' },
+          { text:'drug_company_relationships (drug_id, company_id, relationship_type, territory, start_date)' },
+          { text:'trial_indications (trial_id, indication_id, confidence_level, source_id)' },
+        ]
+      },
+      right: {
+        hd: 'Rules & Dependencies',
+        items: [
+          { text:'Phase 1 must be complete — therapeutic_areas and ontology_mappings must exist first' },
+          { text:'Each join table needs: relationship_type, confidence_level, source_id, review_status, created_at' },
+          { text:'Do NOT remove drugs.mechanism or drugs.disease_area — keep as legacy fallback' },
+          { text:'Coverage Scoreboard (Section I) should show these tables moving from TABLE MISSING to actual %' },
+        ]
+      },
+      criteria: [
+        'All 7 join tables exist with correct FKs',
+        'Every table has confidence_level, source_id, review_status fields',
+        'Coverage Scoreboard shows populated rows (even if partial)',
+        'Legacy fields still in place as fallback',
+      ],
+      next: 'Begin after Phase 1 is verified stable. Start with drug_targets (highest intelligence value) then drug_indications.',
+    },
+    {
+      num: 'Phase 3', title: 'Backfill & Confidence Scoring', status: 'pending', statusLbl: 'Not Started',
+      purpose: 'Populate Phase 2 tables from existing data. Every relationship gets a source, confidence level, and review status.',
+      left: {
+        hd: 'Backfill Strategy',
+        items: [
+          { text:'drug_targets: parse drugs.mechanism + target synonyms → confidence: medium, source: derived' },
+          { text:'drug_indications: trials.indication + drugs.disease_area → use ontology_mappings for area→indication' },
+          { text:'drug_modalities: drugs.modality text → match to modalities table' },
+          { text:'indication_biology_tags: normalize existing indications.biology_tags[] into join table' },
+          { text:'trial_indications: parse trials.indication free text → match to indications table' },
+        ]
+      },
+      right: {
+        hd: 'Confidence Rules',
+        items: [
+          { text:'FK from trial registry: HIGH confidence' },
+          { text:'Text match to canonical name: MEDIUM confidence' },
+          { text:'AI inference only: LOW confidence, review_status = proposed' },
+          { text:'Do NOT treat AI inference as high confidence without human verification' },
+          { text:'Mark all AI-derived rows with created_by = ai_enrichment and review_status = proposed' },
+        ]
+      },
+      criteria: [
+        'drug_targets: 70%+ of drugs have at least one normalized target',
+        'drug_indications: 70%+ of drugs have at least one normalized indication',
+        'All backfilled rows have source, confidence, and review_status',
+        'Coverage Scoreboard shows green or yellow for all required drug relationships',
+        'Uncertain rows flagged as proposed (not accepted)',
+      ],
+      next: 'Build enrichment scripts per table. Run on a staging copy first. Compare Coverage Scoreboard before/after.',
+    },
+    {
+      num: 'Phase 4', title: 'Compare Legacy vs. New Ontology', status: 'pending', statusLbl: 'Not Started',
+      purpose: 'Verify that the new ontology produces the same or better results as the legacy structure. Catch mismatches before any dashboard logic changes.',
+      left: {
+        hd: 'Comparison Checks',
+        items: [
+          { text:'Drug counts: legacy area → new therapeutic area (should match or explain differences)' },
+          { text:'Trials by indication: legacy text match vs. trial_indications FK' },
+          { text:'Targets by drug: legacy mechanism text vs. drug_targets join' },
+          { text:'Modalities by drug: legacy text vs. drug_modalities join' },
+          { text:'Companies by asset: legacy company field vs. drug_company_relationships' },
+        ]
+      },
+      right: {
+        hd: 'Flag & Resolve',
+        items: [
+          { text:'Missing records: drugs in legacy area but not mapped to new therapeutic area' },
+          { text:'Count mismatches: legacy area = 53 drugs, new TA = 48 drugs → investigate 5 gaps' },
+          { text:'Broken joins: drugs with mechanism text that cannot parse to a targets row' },
+          { text:'Unexpected category changes: drugs that move areas in the new ontology' },
+        ]
+      },
+      criteria: [
+        'Mismatch report exists for every major entity type',
+        'All HIGH-risk mismatches resolved before Phase 5',
+        'Count differences < 5% or all differences explained',
+        'No drug loses all of its area/indication/target relationships in the new ontology',
+      ],
+      next: 'Build a comparison query set. Add a "v1 vs v2" view to this audit page showing count deltas.',
+    },
+    {
+      num: 'Phase 5', title: 'Gradually Switch Dashboard Logic', status: 'pending', statusLbl: 'Not Started',
+      purpose: 'Move dashboard queries from legacy fields to normalized relationships, one module at a time. Legacy fallback logic stays in until the end.',
+      left: {
+        hd: 'Switch Order',
+        items: [
+          { text:'Indications panel (uses therapeutic_area_id → therapeutic_areas)' },
+          { text:'Drug count widgets (use drug_indications count instead of disease_area match)' },
+          { text:'Target panels (use drug_targets instead of mechanism text)' },
+          { text:'Modality filters (use drug_modalities instead of modality text)' },
+          { text:'Company panels (use drug_company_relationships instead of company field)' },
+        ]
+      },
+      right: {
+        hd: 'Safety Rules',
+        items: [
+          { text:'Use ontology_mappings as translation layer — dashboard never has to know about migration' },
+          { text:'Validate counts before and after each module switch' },
+          { text:'Keep legacy fields as fallback: if normalized join returns 0, fall back to legacy field' },
+          { text:'Switch one module per session — do not batch multiple changes' },
+          { text:'Do NOT remove legacy fields during this phase' },
+        ]
+      },
+      criteria: [
+        'All major dashboard views read from normalized tables',
+        'Legacy fields still present (no deletes yet)',
+        'Zero count regressions across all dashboard tabs',
+        'All tabs validated with before/after count screenshots',
+      ],
+      next: 'Do not start Phase 5 until Phase 4 comparison is clean. Begin with the lowest-risk module first.',
+    },
+    {
+      num: 'Phase 6', title: 'Deprecate Legacy Semantics', status: 'future', statusLbl: 'Future',
+      purpose: 'Once the new ontology is stable and verified, stop using legacy disease_area semantics. Archive legacy fields rather than deleting.',
+      left: {
+        hd: 'Deprecation Steps',
+        items: [
+          { text:'Stop writing to disease_area / disease_areas fields in enrichment scripts' },
+          { text:'Add deprecated column comments in Supabase schema' },
+          { text:'Remove legacy fallback code from dashboard queries' },
+          { text:'Archive legacy fields (rename to _legacy_disease_area) rather than DROP COLUMN' },
+        ]
+      },
+      right: {
+        hd: 'Gate Criteria (all must pass)',
+        items: [
+          { text:'No dashboard query reads directly from legacy disease_area IDs' },
+          { text:'90%+ of drugs have normalized targets and indications' },
+          { text:'All 7 dashboard area tabs validated against new ontology' },
+          { text:'Coverage Scoreboard shows green for all required relationships' },
+          { text:'Audit page shows zero HIGH-severity migration risk flags unresolved' },
+          { text:'ontology_versions v2 is marked active' },
+        ]
+      },
+      criteria: [
+        'All legacy "disease area" semantics removed from production logic',
+        'Audit page shows zero open HIGH-risk flags',
+        'ontology_versions v2 marked active, v1 archived',
+        'Meridian can answer all 5 Meridian OS questions via normalized relationships',
+      ],
+      next: 'Phase 6 is gated on all prior phases being fully verified. Do not rush — the legacy fields are harmless until then.',
+    },
+  ];
+
+  const statusCls = { active:'rmp-s-active', next:'rmp-s-next', pending:'rmp-s-pending', future:'rmp-s-future' };
+
+  const phaseHtml = phases.map((ph, i) => {
+    const isActive = ph.status === 'active';
+    const bodyItems = side => side.items.map(it =>
+      `<div class="ont-rmp-item${it.done?' done':it.block?' block':''}">${it.text}</div>`
+    ).join('');
+    const criteriaHtml = ph.criteria.map(c => `<div class="ont-rmp-item">${c}</div>`).join('');
+
+    return `<div class="ont-rmp-phase${isActive?' rmp-active':''}">
+      <div class="ont-rmp-hd" onclick="(function(el){const b=el.closest('.ont-rmp-phase').querySelector('.ont-rmp-body');b.classList.toggle('open')})(this)">
+        <span class="ont-rmp-num">${ph.num}</span>
+        <span class="ont-rmp-title">${ph.title}</span>
+        <span class="ont-rmp-status ${statusCls[ph.status]}">${ph.statusLbl}</span>
+      </div>
+      <div class="ont-rmp-body${isActive?' open':''}">
+        <div>
+          <div class="ont-rmp-col-hd">Purpose</div>
+          <div style="font-size:11px;color:#475569;line-height:1.7;margin-bottom:12px">${ph.purpose}</div>
+          <div class="ont-rmp-col-hd">${ph.left.hd}</div>
+          ${bodyItems(ph.left)}
+        </div>
+        <div>
+          <div class="ont-rmp-col-hd">${ph.right.hd}</div>
+          ${bodyItems(ph.right)}
+          <div class="ont-rmp-col-hd" style="margin-top:14px">Completion Criteria</div>
+          ${criteriaHtml}
+        </div>
+        <div class="ont-rmp-next">
+          <strong>→ Next Safe Action</strong>
+          ${ph.next}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  m.innerHTML = `
+    <div style="font-size:11px;color:#64748b;margin-bottom:14px;line-height:1.7">
+      The audit page is the control room, not the endpoint. This roadmap keeps the migration moving forward safely.
+      <strong style="color:#1d4ed8">Phase 0 is open by default</strong> — click any other phase to expand it.
+      Do not begin a phase until all completion criteria for the previous phase are met.
+    </div>
+    <div class="ont-roadmap">${phaseHtml}</div>`;
+}
+
 // ── H: Per-area click-through inspection ─────────────────────────────────────
 async function ontInspectArea(id, btn) {
   const body = document.getElementById('ont-inspect-' + id);
@@ -18952,6 +19264,32 @@ async function ontInspectArea(id, btn) {
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-top:2px">${label}</div>
   </div>`;
 
+  // 7. Build relationship evidence definitions using live counts
+  const evConf = c => {
+    const m = { HIGH:{bg:'#d1fae5',col:'#065f46'}, MEDIUM:{bg:'#fef3c7',col:'#92400e'}, LOW:{bg:'#fee2e2',col:'#991b1b'}, 'LOW–MEDIUM':{bg:'#fef3c7',col:'#92400e'} };
+    return `<span style="font-size:9px;font-weight:800;padding:1px 7px;border-radius:4px;background:${m[c]?.bg||'#f1f5f9'};color:${m[c]?.col||'#64748b'}">${c}</span>`;
+  };
+  const evStat = (txt, col) => `<span style="font-size:9px;font-weight:700;color:${col}">${txt}</span>`;
+  const evidence = [
+    { rel:'Drug → Therapeutic Area', source:'drug_area_scores.area_id',    method:'Structural FK',           conf:'LOW',        stat:evStat('Legacy assignment — needs migration', '#ef4444'),   note:'Area IDs mix targets, indications, and biology tags. FK exists but points to a semantically incorrect table. Correct mapping requires ontology_mappings → therapeutic_areas before this link can be trusted.' },
+    { rel:'Drug → Company',          source:'drugs.company (text)',          method:'Free text',               conf:'MEDIUM',     stat:evStat(`${withCompany}/${drugRows.length} filled (${pct(withCompany,total)}%)`, withCompany/total>=0.8?'#10b981':'#f59e0b'), note:'Text field — not a normalized FK to companies table. No source_id, no relationship_type field. Cannot distinguish originator vs. licensee vs. trial sponsor from this field alone.' },
+    { rel:'Drug → Target',           source:'drugs.mechanism (text)',        method:'Free text / AI enriched', conf:'LOW–MEDIUM',  stat:evStat(`${withMechanism}/${drugRows.length} filled — no join table`, '#f59e0b'), note:'Free-text description of mechanism. Cannot reliably join to targets table as a structural query. Needs drug_targets join table with relationship_type (primary/secondary/inferred) and source_id per relationship.' },
+    { rel:'Drug → Indication',       source:'Inferred via drugs.disease_area', method:'Inferred',             conf:'LOW',        stat:evStat('Inferred only — no direct link', '#ef4444'),         note:'Indication is derived from the disease_area field — the same legacy field being migrated. No drug_indications join table exists. Cannot verify confidence or source for this link.' },
+    { rel:'Drug → Modality',         source:'drugs.modality (text)',         method:'Free text / AI enriched', conf:'MEDIUM',     stat:evStat(`${withModality}/${drugRows.length} filled (${pct(withModality,total)}%)`, withModality/total>=0.8?'#10b981':'#f59e0b'), note:'Text field matching to modalities lookup table. Route of administration is not separated. Needs drug_modalities join table with source_id.' },
+    { rel:'Drug → Trial',            source:'trials.drug_id (FK)',           method:'Direct FK',               conf:'HIGH',       stat:evStat(`${trialCount} trial${trialCount!==1?'s':''} linked`, '#10b981'),           note:'Direct FK exists in trials table. Most reliable structural link in the current schema — this is the pattern all other relationships should follow.' },
+  ];
+
+  const evidenceRows = evidence.map(e => `
+    <tr>
+      <td style="font-weight:700;color:#0f172a;padding:6px 10px;white-space:nowrap;vertical-align:top">${e.rel}</td>
+      <td style="font-family:monospace;font-size:10px;color:#475569;padding:6px 10px;vertical-align:top">${e.source}</td>
+      <td style="font-size:10px;color:#64748b;font-style:italic;padding:6px 10px;vertical-align:top;white-space:nowrap">${e.method}</td>
+      <td style="padding:6px 10px;vertical-align:top">${evConf(e.conf)}</td>
+      <td style="padding:6px 10px;vertical-align:top">${e.stat}</td>
+    </tr>
+    <tr><td colspan="5" style="padding:1px 10px 9px;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;line-height:1.5">${e.note}</td></tr>
+  `).join('');
+
   body.dataset.loaded = 'true';
   body.innerHTML = `
     <div style="padding:16px 16px 18px">
@@ -18961,6 +19299,20 @@ async function ontInspectArea(id, btn) {
         ${statBox(trialCount, 'Trials', '#2563eb')}
         ${statBox(catCount, 'Catalysts', '#f59e0b')}
         ${statBox(sigCount, 'Signals', '#8b5cf6')}
+      </div>
+
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:6px">Relationship Evidence — Source · Method · Confidence</div>
+      <div style="overflow-x:auto;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:600px">
+          <thead><tr style="background:#f8fafc">
+            <th style="text-align:left;padding:6px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Relationship</th>
+            <th style="text-align:left;padding:6px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Source Field</th>
+            <th style="text-align:left;padding:6px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Method</th>
+            <th style="text-align:left;padding:6px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Confidence</th>
+            <th style="text-align:left;padding:6px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Live Status</th>
+          </tr></thead>
+          <tbody>${evidenceRows}</tbody>
+        </table>
       </div>
 
       <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:6px">Record Coverage (${drugRows.length} drugs)</div>
