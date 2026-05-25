@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o (2026-05-25) — Phase 4C reconciliation complete; ECC operationally clean (10 rows, 0 open high-sev); reconciliation summary written  
+**Last session:** Session 53o (2026-05-25) — Phase 4C complete + IBD activation test run (7/8 gates passed); flag reverted to false pending manual IBD dual-read confirmation  
 **Prior session:** Session 53n/o — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications)
 
 ---
@@ -86,9 +86,9 @@ All Phase 4A work is done. Corrections applied and verified.
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
 | Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 LIVE (IBD flag=true, 2026-05-25)** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 activation test complete (7/8 gates); flag=false pending manual IBD dual-read confirm** |
 
-**Phase 5 Candidate 1 (IBD) is ACTIVE. `useNormalizedIBD=true` — advisor-approved 2026-05-25. All migration acceptance criteria satisfied. Monitoring window: 7–14 days. Rollback: set flag=false and redeploy. Legacy path retained until 2026-06-24 (30-day rule).**
+**Phase 5 Candidate 1 (IBD): activation test ran 2026-05-25. 7/8 gates passed. Flag reverted to false (commit d942456). One gate remains: manual navigation to IBD section → `window.showPhase4Compare()` → confirm `compare_pass_oos_adjusted`. Re-enable after that check + advisor go.**
 
 ---
 
@@ -231,22 +231,29 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 | Candidate | Component | Flag | Default | Deployed | Activated |
 |---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ **ACTIVE** (2026-05-25) | ✅ **ACTIVATED** — advisor-approved; monitoring window open |
+| 1 | IBD area tab | `useNormalizedIBD` | **false** | ✅ (code live) | ⏸ **Activation test 7/8 — pending manual IBD dual-read confirm** |
 | 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**Candidate 1 ACTIVATED 2026-05-25** — `useNormalizedIBD=true`, advisor-approved. Legacy path retained until 2026-06-24.
+**Candidate 1 activation test result (2026-05-25):** 7/8 gates passed. Flag reverted to false (commit `d942456`). One gate remaining.
 
-**Monitoring checklist (window: 2026-05-25 → ~2026-06-08):**
-- [ ] IBD tab loads without console errors with flag=true
-- [ ] IBD drug count matches Phase 4C baseline (~50 drugs, 3 OOS excluded)
-- [ ] No new ECC items opened
-- [ ] No unexpected validation deltas in drug_validation_results
-- [ ] First `[BD_VALUE]` entry logged in update_log.md when platform surfaces actionable intelligence
-- [ ] cizutamig resolved before Candidate 2 (TED) — not blocking IBD
-- [ ] Legacy fallback confirmed when flag=false — ✅ current deploy
-- [ ] Advisor go on flag flip
+**⚡ FIRST TASK NEXT SESSION — IBD dual-read manual check:**
+1. Open deployed dashboard (flag is currently `false` — flip to `true` locally or in a test build)
+2. Navigate: TL1A tab → IBD sub-section
+3. Open browser console → run `window.showPhase4Compare()`
+4. Confirm IBD record appears: `compare_pass_oos_adjusted`
+5. Report result → advisor go → set `useNormalizedIBD=true` permanently
+
+**Pre-activation checklist for permanent flip:**
+- [x] 10-drug modal sprint complete (Session 53o)
+- [x] No unexplained modal mismatches (0)
+- [x] epi-001 formally held through Phase 5 (ECC open/held — gate satisfied)
+- [x] IBD tab loads without console errors (activation test confirmed)
+- [x] IBD count matches normalized output (49 legacy = 49 normalized)
+- [x] lm-302/sim0500/spy072/epi-001 excluded from normalized set
+- [x] Legacy fallback confirmed when flag=false
+- [ ] **IBD dual-read record directly observed in browser** ← ONLY REMAINING GATE
 
 ---
 
@@ -292,17 +299,17 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 **Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
 
-### P1 — Phase 5 Candidate 1 (IBD) Monitoring ✅ ACTIVE
+### P1 — Phase 5 Candidate 1 (IBD) — Final Gate
 
-**Status:** `useNormalizedIBD=true` — activated 2026-05-25. Advisor-approved. Monitoring window open (~2026-06-08).
+**Status:** Activation test 7/8 gates passed. Flag reverted to `false` (commit `d942456`). One gate remaining.
 
-**Next actions during monitoring window:**
-- Verify IBD tab loads correctly in browser (run `window.showPhase4Compare()`)
-- Watch for any new ECC items or validation deltas
-- Log first `[BD_VALUE]` entry when platform surfaces actionable intelligence
-- At monitoring window close: confirm stable → proceed to Candidate 2 (TED)
+**Next session first task:**
+1. Open dashboard → TL1A tab → IBD section
+2. Run `window.showPhase4Compare()` in browser console
+3. Confirm IBD record: `compare_pass_oos_adjusted`
+4. Report to advisor → go → set `useNormalizedIBD=true`, deploy, update update_log.md + NEXT_SESSION.md
 
-**Candidate 2 gate:** cizutamig/TED resolved + Candidate 1 stable for 7+ days.
+**After activation confirmed stable (7+ days):** Candidate 2 gate = cizutamig/TED resolved + Candidate 1 stable.
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
@@ -337,7 +344,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 | A — Relationship Layer | Wave 2D complete; imvt-1402/waiha held pending evidence | ✅ Wave 2D done; epi-001 held |
 | B — Ontology Quality | Phase 4C complete; epi-001 + cizutamig held | ✅ Phase 4C done |
 | C — Intelligence Products | Portfolio intelligence product | Queued after Phase 5 Candidate 1 activation |
-| D — Dashboard Architecture | Phase 5 Candidate 1 activation (IBD flag flip) | ▶ **PRIMARY FOCUS** |
+| D — Dashboard Architecture | Phase 5 Candidate 1 — final gate (IBD dual-read manual confirm → permanent flip) | ▶ **PRIMARY FOCUS** |
 | E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
@@ -345,7 +352,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **Phase 5 Candidate 1 deployed — flag=false** — `useNormalizedIBD` is in the codebase but inactive. Do NOT flip to `true` until 10-drug modal sprint complete + advisor go.
+2. **Phase 5 Candidate 1 — flag=false (reverted)** — Activation test ran 2026-05-25. 7/8 gates passed. Flag reverted pending manual IBD dual-read confirm. Do NOT flip to `true` permanently until IBD comparison record directly observed + advisor go.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
