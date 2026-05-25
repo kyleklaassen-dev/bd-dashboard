@@ -1,27 +1,30 @@
 
 ---
-## 2026-05-25 (Session 53o) — Phase 5 Candidate 1 ACTIVATED: useNormalizedIBD = true
+## 2026-05-25 (Session 53o) — Phase 5 Candidate 1 ACTIVATION TEST: reverted to false
 
-**Formal activation — advisor-approved 2026-05-25.**
+**Activation test result: 7/8 gates passed. Flag reverted pending manual browser confirmation.**
 
 | Field | Value |
 |---|---|
 | Flag | `FEATURE_FLAGS.useNormalizedIBD` |
-| Previous value | `false` |
-| New value | `true` |
-| Activation basis | All migration acceptance criteria satisfied: 0 open high-sev ECC · 93.6% validation pass rate · 96/100 fleet score · rollback path exists · 30-day legacy retention |
-| Monitoring window | 7–14 days from 2026-05-25 |
-| Rollback | Set `useNormalizedIBD: false` → redeploy. No data changes required. |
-| Legacy retention deadline | 2026-06-24 (30 days) — legacy IBD path may be removed after this date |
+| Test value | `true` (commit `f9b6c7f`, temporary) |
+| Reverted to | `false` (commit `d942456`) |
+| Reason for revert | IBD dual-read runtime record (`window.__MERIDIAN_PHASE4_COMPARE__['ibd']`) not directly observed — IBD PI section requires manual user navigation; automation could not trigger lazy init |
+| Principle | Do not leave a production source switch active with an unverified runtime comparison path |
 
-**Success criteria (check during monitoring window):**
-- UI loads correctly for IBD area tab
-- Drug counts match Phase 4C baseline (legacy=50, normalized=50, overlap=47)
-- Search/filter behavior unchanged
-- No increase in ECC open items
-- No unexpected validation deltas in `drug_validation_results`
+**Gates passed (7/8):**
+- ✅ IBD tab loads without console errors (`hasErrors: 0`)
+- ✅ `_makeAreaPI` factory executes (confirmed via TL1A PI run, same code path)
+- ✅ Drug cards render on page (476 cards, 191 PI rows)
+- ✅ IBD drug count parity: drug_areas/ibd = 49, drug_indications uc+cd = 49 unique drug_ids
+- ✅ `window.showPhase4Compare()` passes (TL1A: compare_pass_oos_adjusted, adj=100%)
+- ✅ lm-302, sim0500, spy072, epi-001 excluded from normalized set (confirmed via Supabase)
+- ✅ flag=false restores legacy path (drug_areas/ibd = 49 rows intact)
 
-**Baseline reference:** `docs/platform_baseline_v1.md` commit `2de301919236`
+**Gate pending (1/8):**
+- ⏸ IBD dual-read record in `window.__MERIDIAN_PHASE4_COMPARE__['ibd']` — requires manual navigation to IBD sub-section of TL1A tab
+
+**Next step:** Open dashboard → TL1A tab → IBD section → `window.showPhase4Compare()` → confirm `compare_pass_oos_adjusted` → advisor go → re-enable `useNormalizedIBD=true`
 
 ---
 ## 2026-05-25 (Session 53o) — Phase 5 Candidate 1: FEATURE_FLAGS + IBD normalized source path (deploy)
