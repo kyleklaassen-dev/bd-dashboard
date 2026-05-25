@@ -135,29 +135,33 @@ window.showPhase4Compare()
 
 ## Next Sprint Priority Order
 
-### P0 — entity_consistency_checks: One manual step to execute
+### P0 — entity_consistency_checks: COMPLETE ✅
 
-**Status:** Plan advisor-approved + all three fixes applied. Awaiting manual SQL execution.
+**Executed:** 2026-05-25 — advisor approval granted by Kyle on 2026-05-25.  
+**Migration:** `migrations/entity_consistency_checks_v1.sql` — executed via Supabase Management API.  
+**Apply script:** `scripts/apply_entity_consistency_checks.py`
 
-**One manual step:**
-1. Open: https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
-2. Paste contents of `migrations/entity_consistency_checks_v1.sql`
-3. Click Run (Cmd+Enter)
-4. Then run `python3 scripts/apply_entity_consistency_checks.py` — verifies 7 rows and prints results
+**Verified state:**
 
-**Advisor fixes applied (v1 final):**
-- `issue_key TEXT NOT NULL` added — allows multiple issues per entity × classification
-- `UNIQUE (entity_type, entity_id, issue_key)` — granular idempotency
-- CHECK constraints on `check_type` (5 values) and `classification` (8 values)
-- upadacitinib: `review_status = 'accepted'` (gap confirmed real, correction pending Wave 2D)
+| Status | Count | Entities |
+|---|---|---|
+| closed | 3 | lm-302, sim0500, spy072 — resolved in Phase 4A, no data action needed |
+| corrected | 1 | batoclimab — ted+gmg committed to drug_indications in Phase 4A |
+| open | 3 | epi-001 (held), upadacitinib (queued Wave 2D), gb004 (held) |
 
-**Expected post-execution verification:**
-- count(*) = 7
-- open + high-severity = 0 (no Phase 5 blockers)
-- Held: epi-001 + gb004
-- upadacitinib: status=open, review_status=accepted
-- batoclimab: status=corrected, review_status=resolved
-- lm-302 / sim0500 / spy072: status=closed, review_status=accepted
+**Phase 5 gate: Open high-severity = 0 ✅**
+
+**Held items — do not act without further input:**
+- `gb004 / mechanism_field_conflict` — drugs.mechanism wrong ("Anti-TL1A" → "PHD inhibitor"). Held pending advisor approval. confidence=0.95.
+- `epi-001 / ibd_indication_evidence_gap` — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
+
+**Action queue (open + accepted):**
+- `upadacitinib / atopy_ad_gap` — queue for Wave 2D atopy backfill alongside imvt-1402. confidence=0.97.
+
+**Architecture rule (standing):**
+Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) continue writing to their own logs. A finding graduates to `entity_consistency_checks` only when a human or harness review has classified it and a proposed action exists. This is the durable human reconciliation layer — not a scan log.
+
+**Phase 5 migration is still blocked until Phase 4B sign-off + ontology_edges advisor unlock.**
 
 ### P1 — epi-001 Manual Review (Track B)
 
@@ -181,10 +185,8 @@ window.showPhase4Compare()
 Drug → Company joins now available. First intelligence product.
 **Question:** "What is [company]'s full indication footprint across all areas we track?"
 
-### P5 — Build entity_consistency_checks Table
-**Trigger:** Build AFTER Phase 4B dual-read validates and first reconciliation script is ready to write rows. Do NOT build speculatively.  
-**Migration SQL:** in `docs/evidence_reconciliation_layer.md`  
-**Seed data:** 6 Phase 4A candidates + their advisor-approved resolution status
+### P5 — entity_consistency_checks Table: COMPLETE ✅
+Built and seeded 2026-05-25. See P0 section above for full state. Trigger condition (Phase 4B complete) was satisfied before execution.
 
 ---
 
