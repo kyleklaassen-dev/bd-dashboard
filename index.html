@@ -12511,79 +12511,115 @@ function _makeAreaPI(tabId, areaIds) {
   const _abbrevInd = str => {
    if (!str) return str;
    const _IM = [
-    // Autoimmune / Rheumatology
-    ['Ulcerative Colitis','UC'],['Crohn\'s Disease','CD'],['Crohn Disease','CD'],
+    // ── Comma-inverted ICD-style forms (must precede standard forms) ──
+    ['Arthritis, Rheumatoid','RA'],['Arthritis, Psoriatic','PsA'],['Arthritis, Juvenile Idiopathic','JIA'],
+    ['Colitis, Ulcerative','UC'],['Dermatitis, Atopic','AD'],['Colitis, Microscopic','MC'],
+    ['Sclerosis, Systemic','SSc'],['Sclerosis, Multiple','MS'],
+    ['Lupus Erythematosus, Systemic','SLE'],['Lupus Erythematosus Systemic','SLE'],
+    ['Anemia, Hemolytic, Autoimmune','AIHA'],
+    // ── Qualifier-prefixed forms (before base conditions) ──
+    ['Diffuse Cutaneous Systemic Sclerosis','dcSSc'],['Diffuse Cutaneous SSc','dcSSc'],
+    ['Limited Cutaneous Systemic Sclerosis','lcSSc'],['Limited Cutaneous SSc','lcSSc'],
+    ['Radiographic Axial Spondyloarthritis','r-axSpA'],['Radiographic axSpA','r-axSpA'],
+    ['Non-Radiographic Axial Spondyloarthritis','nr-axSpA'],['Nonradiographic axSpA','nr-axSpA'],
+    ['Non-radiographic Axial Spondyloarthritis','nr-axSpA'],
+    ['Interstitial Lung Disease','ILD'],['Pulmonary Arterial Hypertension','PAH'],
+    ['Idiopathic Pulmonary Fibrosis','IPF'],['Pulmonary Fibrosis','PF'],
+    // ── Autoimmune / Rheumatology ──
+    ['Ulcerative Colitis','UC'],["Crohn's Disease",'CD'],['Crohn Disease','CD'],
     ['Atopic Dermatitis','AD'],['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
-    ['Psoriasis','Ps'],['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],
+    ['Plaque Psoriasis','PsO'],['Psoriasis Vulgaris','PsO'],['Psoriasis','PsO'],
+    ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
     ['Alopecia Areata','AA'],['Systemic Lupus Erythematosus','SLE'],
-    ['Lupus Erythematosus, Systemic','SLE'],['Lupus Erythematosus Systemic','SLE'],
     ['Multiple Sclerosis','MS'],['Thyroid Eye Disease','TED'],
-    ['Graves\'s Disease','GD'],['Graves\' Disease','GD'],['Graves Disease','GD'],
-    ['Generalized Myasthenia Gravis','gMG'],['Myasthenia Gravis','gMG'],
+    ["Graves's Disease",'GD'],["Graves' Disease",'GD'],['Graves Disease','GD'],
+    ['Generalized Myasthenia Gravis','gMG'],['Myasthenia Gravis','MG'],
     ['Inflammatory Bowel Disease','IBD'],['Chronic Obstructive Pulmonary Disease','COPD'],
-    ['Nonalcoholic Steatohepatitis','NASH'],['Non-alcoholic Steatohepatitis','NASH'],
+    ['Nonalcoholic Steatohepatitis','NASH'],['Non-alcoholic Steatohepatitis','NASH'],['Non-Alcoholic Steatohepatitis','NASH'],
+    ['Metabolic-associated Steatohepatitis','MASH'],['Metabolic Associated Steatohepatitis','MASH'],
     ['Systemic Sclerosis','SSc'],['Scleroderma','SSc'],
     ['Warm Autoimmune Hemolytic Anemia','wAIHA'],['Autoimmune Hemolytic Anemia','AIHA'],
     ['Chronic Spontaneous Urticaria','CSU'],['Chronic Idiopathic Urticaria','CIU'],
     ['Immune Thrombocytopenic Purpura','ITP'],['Primary Immune Thrombocytopenia','ITP'],['Immune Thrombocytopenia','ITP'],
-    ['Pemphigus Vulgaris','PV'],['Pemphigus Foliaceus','PF'],['Bullous Pemphigoid','BP'],
+    ['Pemphigus Vulgaris','PV'],['Pemphigus Foliaceus','PF'],['Bullous Pemphigoid','BP'],['Pemphigus','PV'],
     ['Neuromyelitis Optica Spectrum Disorder','NMOSD'],['Neuromyelitis Optica','NMO'],
-    ['Chronic Inflammatory Demyelinating Polyneuropathy','CIDP'],['Guillain-Barré Syndrome','GBS'],
+    ['Chronic Inflammatory Demyelinating Polyneuropathy','CIDP'],
+    ['Guillain-Barré Syndrome','GBS'],['Guillain-Barre Syndrome','GBS'],
     ['Primary Biliary Cholangitis','PBC'],['Primary Sclerosing Cholangitis','PSC'],
-    ['IgA Nephropathy','IgAN'],['Membranous Nephropathy','MN'],['Focal Segmental Glomerulosclerosis','FSGS'],
-    ['Dermatomyositis','DM'],['Polymyositis','PM'],['Antisynthetase Syndrome','ASS'],
-    ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TA'],
+    ['IgA Nephropathy','IgAN'],['Membranous Nephropathy','MN'],['Focal Segmental Glomerulosclerosis','FSGS'],['Lupus Nephritis','LN'],
+    ['Dermatomyositis','DM'],['Polymyositis','PM'],['Idiopathic Inflammatory Myopathy','IIM'],
+    ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TAK'],
     ['Eosinophilic Granulomatosis with Polyangiitis','EGPA'],['Granulomatosis with Polyangiitis','GPA'],
-    ['ANCA-Associated Vasculitis','AAV'],['Vasculitis','Vasc.'],
-    ['Sjögren\'s Syndrome','pSS'],['Sjögren Syndrome','pSS'],['Sjogren','pSS'],
+    ['ANCA-Associated Vasculitis','AAV'],['Microscopic Polyangiitis','MPA'],
+    ["Sjögren's Syndrome",'pSS'],['Sjögren Syndrome','pSS'],['Primary Sjögren','pSS'],['Sjogren','pSS'],
     ['Systemic Juvenile Idiopathic Arthritis','sJIA'],['Juvenile Idiopathic Arthritis','JIA'],
     ['Anti-NMDA Receptor Encephalitis','ANMDARE'],['Autoimmune Encephalitis','AE'],
-    // Respiratory / Allergy
-    ['Severe Asthma','Asthma'],['Eosinophilic Asthma','Eo-Asthma'],['Asthma','Asthma'],
+    // ── Respiratory / Allergy ──
+    ['Eosinophilic Asthma','Eo-Asthma'],['Severe Asthma','Asthma'],['Asthma','Asthma'],
     ['Chronic Rhinosinusitis with Nasal Polyps','CRSwNP'],['Chronic Rhinosinusitis','CRS'],
     ['Allergic Rhinitis','AR'],['Food Allergy','FA'],
-    // Hematology / Oncology
-    ['Transthyretin Amyloidosis','ATTR'],['Light-Chain Amyloidosis','AL Amyloidosis'],
+    // ── Hematology / Oncology ──
+    ['Transthyretin Amyloidosis Cardiomyopathy','ATTR-CM'],['Transthyretin Amyloidosis','ATTR'],
     ['Non-Small Cell Lung Cancer','NSCLC'],['Small Cell Lung Cancer','SCLC'],
-    ['Hepatocellular Carcinoma','HCC'],['Colorectal Cancer','CRC'],
-    ['Diffuse Large B-Cell Lymphoma','DLBCL'],['Follicular Lymphoma','FL'],
-    ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],
-    ['Multiple Myeloma','MM'],['Myelodysplastic Syndrome','MDS'],
-    ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
+    ['Hepatocellular Carcinoma','HCC'],['Cholangiocarcinoma','CCA'],
+    ['Colorectal Cancer','CRC'],['Diffuse Large B-Cell Lymphoma','DLBCL'],['Follicular Lymphoma','FL'],
+    ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],['Multiple Myeloma','MM'],
+    ['Myelodysplastic Syndrome','MDS'],['Myelofibrosis','MF'],
     ['Head and Neck Squamous Cell Carcinoma','HNSCC'],
+    ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
     ['Triple-Negative Breast Cancer','TNBC'],['Breast Cancer','BC'],
     ['Ovarian Cancer','OvCa'],['Pancreatic Cancer','PanCa'],['Gastric Cancer','GC'],
-    // Other
+    // ── Other ──
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
     ['Heart Failure with Reduced Ejection Fraction','HFrEF'],['Heart Failure','HF'],
     ['Hypertrophic Cardiomyopathy','HCM'],['Dilated Cardiomyopathy','DCM'],
    ];
-   let r = str;
-   _IM.forEach(([long, abbr]) => { r = r.replace(new RegExp(long.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'), abbr); });
-   // Also strip trailing "· Clinical Stage..." and similar suffixes
-   r = r.replace(/\s*[·•]\s*Clinical Stage.*/i,'').replace(/\s*[·•]\s*HPV.*/i,'').trim();
-   return r;
+   // Split on separators, abbreviate each part, deduplicate
+   const _sepRe = /\s*(?:·|•|\bAND\b)\s*/i;
+   const parts = str.split(_sepRe).map(p => p.trim()).filter(Boolean);
+   const abbrevPart = p => {
+    let r = p;
+    _IM.forEach(([long, abbr]) => {
+     r = r.replace(new RegExp(long.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'), abbr);
+    });
+    // Remove parenthetical that duplicates what precedes: "CRSwNP (CRSwNP)" → "CRSwNP"
+    r = r.replace(/\b(\S+)\s+\(\1\)/gi, '$1');
+    // Strip leftover qualifier noise and suffix junk
+    r = r.replace(/\s*,\s*Clinical Stage.*/i,'').replace(/\s*·\s*HPV.*/i,'').trim();
+    return r;
+   };
+   const abbrevParts = parts.map(abbrevPart);
+   // Deduplicate identical parts after abbreviation (e.g. "EoE · EoE")
+   const seen = new Set();
+   const deduped = abbrevParts.filter(p => { const k = p.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+   return deduped.join(' · ');
   };
 
-  // ── Trial note: 1-2 word descriptor auto-derived from dosing/route/name ──
+  // ── Trial note: meaningful descriptor from design/dosing/route ──
   const _trialNote = t => {
-   // Priority: explicit note field (future), then dosing_type, then route, then trial name excerpt
-   if (t.trial_note) return t.trial_note.slice(0, 20);
+   if (t.trial_note) return t.trial_note.slice(0, 22);
    const dt = (t.dosing_type || '').trim();
-   if (dt) return dt.length > 18 ? dt.slice(0,16) + '…' : dt;
-   const route = (t.route || '').trim();
+   if (dt && dt.length <= 22) return dt;
+   const route = (t.route || '').trim().toLowerCase();
    if (route) {
-    const rMap = {subcutaneous:'SC', intravenous:'IV', oral:'PO', intramuscular:'IM', sublingual:'SL', intranasal:'IN', topical:'topical'};
-    for (const [k,v] of Object.entries(rMap)) { if (route.toLowerCase().includes(k)) return v; }
-    return route.length > 12 ? route.slice(0,10)+'…' : route;
+    if (route.includes('subcutan')) return 'SC';
+    if (route.includes('intraven')) return 'IV';
+    if (route === 'oral' || route === 'po' || route.includes('oral')) return 'Oral';
+    if (route.includes('intramuscul')) return 'IM';
    }
-   // Derive from trial name: strip phase / "study of" boilerplate and take ≤3 remaining words
-   const nm = (t.trial_name || '').replace(/\bphase\s+\d+[\/\d]*/gi,'').replace(/\bstudy\s+of\b/gi,'').replace(/\bopen.label\b/gi,'').replace(/\bmulticenter\b/gi,'').replace(/\brandomized\b/gi,'').trim();
-   if (nm) {
-    const words = nm.split(/\s+/).filter(w => w.length > 2).slice(0, 2);
-    if (words.length) return words.join(' ');
-   }
+   const nm = (t.trial_name || '').toLowerCase();
+   if (/\bole\b|open.label extension|long.term extension/.test(nm)) return 'OLE/Ext.';
+   if (/\bregistry\b/.test(nm)) return 'Registry';
+   if (/dose.rang|dose.find/.test(nm)) return 'Dose-ranging';
+   if (/double.blind/.test(nm)) return 'Double-blind';
+   if (/open.label/.test(nm)) return 'Open-label';
+   if (/pharmacokinetic|\bpk\b/.test(nm)) return 'PK/PD';
+   if (/\bsafety\b/.test(nm)) return 'Safety';
+   if (/\befficacy\b/.test(nm)) return 'Efficacy';
+   const clean = nm.replace(/\b(a |an |the |phase |study |of |in |for |with |and |evaluating |assessing |investigating |examining )/gi,'').trim();
+   const words = clean.split(/\s+/).filter(w => w.length > 2);
+   if (words.length) return words.slice(0,2).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
    return '';
   };
 
@@ -12690,13 +12726,14 @@ function _makeAreaPI(tabId, areaIds) {
      const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
      const status = t.status || '';
-     const phaseNorm = (t.phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-     const phaseDisplay = phaseNorm ? `Ph ${phaseNorm}` : '—';
+     const _pRaw = (t.phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
+     const _pAbbr = {observational:'Obs',expanded:'Exp.','not applicable':'N/A','n/a':'N/A','open label':'Open-label','early phase 1':'EPh 1'};
+     const phaseDisplay = !_pRaw ? '—' : /\d/.test(_pRaw) ? `Ph ${_pRaw}` : (_pAbbr[_pRaw.toLowerCase()] || _pRaw.slice(0,5));
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
      const _nctComboMatch = (nct+'').match(/NCT\d{6,}/i);
      const _nctComboId = _nctComboMatch ? _nctComboMatch[0].toUpperCase() : null;
      const nctLink = _nctComboId
-      ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${_nctComboId}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-trusted="1">${_nctComboId}</a>`
+      ? `<span class="pi-nct-a" style="cursor:pointer" onclick="event.stopPropagation();window.open('https://clinicaltrials.gov/study/${_nctComboId}','_blank')">${_nctComboId}</span>`
       : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
      const acronymCell = `<span class="pi-tr-acronym-cell">${acronym?`<span class="pi-tr-acronym">${acronym}</span>`:''}</span>`;
      const comboInd = t.indication || t.condition || '';
@@ -12867,15 +12904,16 @@ function _makeAreaPI(tabId, areaIds) {
     const _nctDrugMatch = (nct+'').match(/NCT\d{6,}/i);
     const _nctDrugId = _nctDrugMatch ? _nctDrugMatch[0].toUpperCase() : null;
     const nctLink = _nctDrugId
-     ? `<a class="pi-nct-a" href="https://clinicaltrials.gov/study/${_nctDrugId}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-trusted="1">${_nctDrugId}</a>`
+     ? `<span class="pi-nct-a" style="cursor:pointer" onclick="event.stopPropagation();window.open('https://clinicaltrials.gov/study/${_nctDrugId}','_blank')">${_nctDrugId}</span>`
      : `<span style="font-size:10px;color:#94a3b8">${nct||'—'}</span>`;
 
     // Acronym cell always present — keeps grid column count constant
     const acronymCell = `<span class="pi-tr-acronym-cell">${acronym ? `<span class="pi-tr-acronym">${acronym}</span>` : ''}</span>`;
 
     // Phase cell — normalize all "Phase X / Phase Y" → "Ph X/Y"
-    const phaseNorm2 = (phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-    const phaseShort = phaseNorm2 ? `Ph ${phaseNorm2}` : '—';
+    const _pRaw2 = (phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
+    const _pAbbr2 = {observational:'Obs',expanded:'Exp.','not applicable':'N/A','n/a':'N/A','open label':'Open-label','early phase 1':'EPh 1'};
+    const phaseShort = !_pRaw2 ? '—' : /\d/.test(_pRaw2) ? `Ph ${_pRaw2}` : (_pAbbr2[_pRaw2.toLowerCase()] || _pRaw2.slice(0,5));
     const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort}</span>`;
 
     const detailFields = [
@@ -12906,6 +12944,7 @@ function _makeAreaPI(tabId, areaIds) {
      </div>
      <div class="pi-tr-detail">
       ${name?`<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4">${name}</div>`:''}
+      ${trialNoteText?`<div style="font-size:10px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:3px 8px;margin-bottom:8px;display:inline-block">${trialNoteText}</div>`:''}
       <div class="pi-tr-grid">${detailFields||'<span style="color:#94a3b8;font-size:11px">Detail not yet enriched</span>'}</div>
       ${resultsSection}
      </div>
@@ -13029,7 +13068,7 @@ function _makeAreaPI(tabId, areaIds) {
      <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_dknCleanName(d.display_name||d.name||'')).replace(/'/g,"\\'")}',event)">${_dknCleanName(d.display_name||d.name)||'—'}</span></span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
+     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${(()=>{const _dt=(d.dosing_type||'').trim()||(d.route||'').trim();if(!_dt)return '';const _dm={subcutaneous:'SC',intravenous:'IV',oral:'PO',intramuscular:'IM'};let _ds=_dt;for(const[k,v]of Object.entries(_dm)){if(_dt.toLowerCase().includes(k)){_ds=v;break;}}return _ds&&_ds.length<=18?` <span class="pi-da-tag" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">${_ds}</span>`:'';})()} </div>
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
     <div class="pi-da-body">
@@ -17872,6 +17911,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .ont-rmp-num{font-size:11px;font-weight:800;font-family:monospace;background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:5px;flex-shrink:0}
 .ont-rmp-title{font-size:13px;font-weight:800;color:#0f172a;flex:1}
 .ont-rmp-status{font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.rmp-s-done{background:#bbf7d0;color:#14532d}
 .rmp-s-active{background:#dbeafe;color:#1e40af}
 .rmp-s-next{background:#d1fae5;color:#065f46}
 .rmp-s-pending{background:#f1f5f9;color:#64748b}
@@ -19204,7 +19244,7 @@ function _renderOntRoadmap() {
     },
   ];
 
-  const statusCls = { active:'rmp-s-active', next:'rmp-s-next', pending:'rmp-s-pending', future:'rmp-s-future' };
+  const statusCls = { done:'rmp-s-done', active:'rmp-s-active', next:'rmp-s-next', pending:'rmp-s-pending', future:'rmp-s-future' };
 
   const phaseHtml = phases.map((ph, i) => {
     const isActive = ph.status === 'active';
