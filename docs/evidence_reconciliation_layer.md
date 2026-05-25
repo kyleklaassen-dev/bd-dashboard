@@ -195,6 +195,16 @@ CREATE TABLE entity_consistency_checks (
 - **Proposed fix:** Backfill drug_indications: upadacitinib → ad, confidence A.
 - **Confidence:** 0.97
 
+### gb004 — mechanism field data error
+- **Entity:** drug / gb004
+- **Check type:** source_conflict
+- **Severity:** medium
+- **Conflict:** `drugs.mechanism = 'Anti-TL1A'` — this is incorrect. GB004 is a PHD inhibitor (HIF-1α stabilizer, oral small molecule), not an anti-TL1A antibody. The drug targets the PHD1/HIF-1α pathway to reduce inflammation. `drugs.target = 'PHD1/HIF-1α'` and `drugs.modality = 'oral HIF-1α stabilizer (PHD inhibitor, small molecule)'` are both correct — only the mechanism field is wrong.
+- **Evidence for correction:** drugs.target, drugs.modality, and drug indication (UC, terminated) all confirm PHD inhibitor biology. Anti-TL1A antibodies are biologics, not oral small molecules.
+- **Proposed fix:** Update `drugs.mechanism` for gb004 from `'Anti-TL1A'` to `'PHD inhibitor (HIF-1α stabilizer)'`. Requires advisor approval before applying.
+- **Confidence:** 0.95 (high — cross-field evidence is internally consistent; mechanism field is the outlier)
+- **Status:** Backlogged — do NOT fix during Phase 4B dual-read work. Requires separate evidence review and field update approval.
+
 ### ep006 / es302 — duplicate drug_id
 - **Entity:** drug / ep006, es302
 - **Check type:** cross_table_inconsistency
