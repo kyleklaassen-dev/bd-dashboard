@@ -1,222 +1,110 @@
 # NEXT SESSION — BD Platform
 
-**Last updated:** 2026-05-24 (Session 46)
-**Session completed:** HQ display + column widths + no-resize + default relevance sort ✅
+**Last session:** Session 51 (2026-05-25)  
+**Completed:** Phase 4 Comparison Harness — 11 legacy areas vs normalized ontology, 5 dashboard functions  
+**Prior milestone:** L4 Queryable (Session 50) — drug_targets (173) + drug_indications (129) + trial_indications (319)  
+**Deploy commit:** (see below)
 
 ---
 
-## What Was Done This Session (Session 46)
+## State of the Platform
 
-### Company HQ Data + Ticker Fix ✅
-- Migration v34: added `hq_city` + `hq_country` TEXT columns to `companies` table
-- `scripts/seed_company_hq.py`: seeded 95 companies with city/country; fixed NULL tickers (PFE, ROIV, 4519.T, 6996.HK, rest → 'Private')
-- Commits: `feef5362c5` (seed script), `cb946667a2` (UI)
+### What Just Happened (Session 51)
+- Phase 4 Comparison Harness built: `scripts/phase4_compare_legacy_vs_normalized.py` + `docs/phase4_comparison_harness.md`
+- 11 legacy area_id → indication mappings compared; 5 high-risk dashboard functions assessed
+- **Primary gating item identified:** drug_indications covers only 30% of tl1a/ibd legacy drugs (17/50)
+- **tcell area:** 0% overlap — not_ready; fundamental mapping issue between legacy CAR-T drugs and approved hematology drugs
+- **loadAreaDeals:** not_ready — deals.indication_id FK does not exist
+- 3 areas at 100% match: il4ra, respiratory, tslp — safe when drug_indications scale is resolved
 
-### PI Tab Entity Rows — Ticker + City, Country ✅
-- Every entity subline now shows `TICKER — City, Country` or `Private — City, Country`
-- `hq_city`/`hq_country` threaded through `_makeAreaPI` data model + render
+### What Just Happened (Session 50)
+- Wave 2B trial_indications committed: 315 rows + 4 held rows individually reviewed
+- L4 canonical query validation suite: 5/5 passed
+- Program Board updated (Track C), dependency inventory updated (Track D), normalization engine documented (Track E)
+- ontology_edges count: 25 — **LOCKED until Phase 4 comparison layer proven**
 
-### Column Widths + No-Resize + Default Sort ✅
-- Indication column widened: 9% → 13%; full colgroup: `19% 11% 13% 17% 11% 14% 15%`
-- Indication badge: `white-space:nowrap;display:inline-block` — no second-row wrapping
-- Target td: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`
-- All tabs default to relevance sort (`sortCol:'relevance'`)
-- No column resizing on any tab (col-resize handles fully removed via tl1aPI migration)
-
-### seed_competitive_signals.py: area_id fix ✅
-- Rewritten with `area_id='igf1r'` throughout (was `'ted'`). Commit: `1d89542ef1`
-
----
-
-## What Was Done This Session (Session 45)
-
-### tl1aPI → _makeAreaPI Migration ✅
-- Removed `TL1A_PROGRAMS`, `TL1A_STAGE_ORDER`, `SPYRE_PIPELINE`, `AILUX_MOLECULES` static data
-- Removed `piPillClick` standalone function and entire `tl1aPI` object (~1,800 lines)
-- Moved `_genericDetailHTML(prog, sbData, tabId)` (969 lines) into `_makeAreaPI` factory as a native method
-- All `tl1aPI._genericDetailHTML.call(tl1aPI, ...)` references → `this._genericDetailHTML(...)`
-- TL1A card HTML rewired: `tl1a-pi-card` → `tl1a-area-pi-wrap` + `tl1a-area-pi` inner target
-- `registerTab('tl1a')`: removed `tl1aPI.init()`, added `loadAreaPI('tl1a')`
-- Removed from DOMContentLoaded: `tl1aPI.init(); tl1aPI._initialized = true;`
-- All 9 drug tabs now use identical `_makeAreaPI` factory architecture
-- File: 15,976 → 14,222 lines (-1,754 lines)
-- Commit: `b4355353`
-
----
-## What Was Done This Session (Session 44)
-
-### UI Alignment Fixes ✅
-- **`.tl1a-layout` padding-top:10px**: All drug tabs now have consistent 10px gap at top, aligned with BD Takeaways / Ailux Profile pill buttons. Previously TL1A tab was flush against tab bar.
-- **IGF1R×TSHR filter pills**: Replaced coverage panel div (`id="igf1r-tshr-coverage-pills"`) with standard `class="pi-pills-wrap"`. Class/Stage/Relevance filter pills now render correctly, matching all other drug tabs.
-- **`TAB_LANDSCAPE_MAP` igf1r-tshr entry commented out**: Prevents `loadLandscapeCoverage` from overwriting the pills div. Coverage data remains in DB; can be restored to a dedicated panel in a future session.
-- **Commit**: `0a704446`
+### Active Constraints
+1. **Do NOT unlock ontology_edges** — remains at 25 until advisor explicitly approves after Phase 4 dual-read validation
+2. **Do NOT migrate BLOCKED/NEEDS MIGRATION dashboard references** — Phase 4 comparison layer must exist first
+3. **Do NOT commit Wave 2C (UC·CD composites)** or Wave 2D (multi-portfolio) without advisor approval
 
 ---
 
-## What Was Done This Session (Session 43)
+## Next Sprint Priority Order
 
-### competitive_signals — Full Stack ✅
-- **Migration v33**: table created (Supabase) — 12 cols, 5 indexes, 3 CHECK constraints
-- **Seed**: 17 TED landscape signals (veligrotug/elegrobart/OLN102/SP-1351/CRN12755/YB-101/linsitinib/teprotumumab/batoclimab)
-- **Enrichment**: `competitive_signals` array in Step 5 prompt + write block in `write_step5()` with dedup + validation
-- **UI**: `📡 Competitive Signals` card in entity expand panel — date | type badge | linked title | description; scrollable >4; hidden when empty
-- Signal type badge palette: CONF=blue, READOUT=green, REG=red, $=emerald, PATENT=purple, PUB=indigo, DEAL=orange
+### P0 — Expand drug_indications coverage for tl1a/ibd areas (Track A)
+**This is the primary gating item.** The Phase 4 harness found that drug_indications covers only 30% of tl1a/ibd legacy drugs.
 
----
+The comparison harness (`docs/phase4_comparison_harness.md`) lists 36 drugs in the legacy `tl1a` area with no drug_indications counterpart. These are the drugs the IBD/TL1A tab will lose if migrated now.
 
-## What Was Done This Session (Session 42b)
+**Action:** Build Wave 2C drug_indications backfill targeting the specific drugs in `drug_areas.area_id = 'tl1a'` or `'ibd'` that do NOT appear in `drug_indications`. Use the normalization engine pipeline (dry-run → preview → advisor approval → commit).
 
-### Relevance Sort — `_makeAreaPI` ✅
-- `drug_area_scores` select includes `competitive_relevance`
-- `bestRelevance` computed per entity (most relevant across programs)
-- Default `sortCol` changed from `'stage'` → `'relevance'`
-- Sort: relevance tier first (very_high→monitor), nulls last, stage as tiebreaker
-- Left-border color on each entity row: red/orange/amber/blue/slate/none
-- Graceful degradation: tabs without `competitive_relevance` data behave identically to previous stage sort
-- Deployed: commit a27bff05
+**Acceptance criteria:** tl1a+ibd match % ≥ 95% before any _makeAreaPI migration.
 
----
+### P1 — Phase 4 Dual-Read Validation (Track D)
+**What to build:** For _makeAreaPI and openDrugEntityModal, add a parallel read path alongside the legacy query. Compare outputs in-browser and log any regressions.
 
-## What Was Done This Session (Session 42)
+**Starting point:** `docs/phase4_comparison_harness.md` Part 2 and Part 5.
 
-### Preclinical Blind Spot Audit ✅
-Full audit confirming root cause: `gather_landscape_intel` was hardcoded to "Phase 1 or later" /
-"clinical-stage programs". Preclinical excluded by design across all areas. TL1A exception was
-one-time manual curation. Renderer confirmed clean (no stage filter; Preclinical renders correctly).
+**Acceptance criteria (from inventory):**
+- (a) Both old and new read paths run in parallel on production data
+- (b) Row counts match for each indication
+- (c) No dashboard visual regressions
+- (d) Enrichment write-side simultaneously migrated (for drug_area_scores replacement)
 
-### Enrichment Prompt Fix ✅ — company_enrichment.py
-- `LANDSCAPE_SEARCH_SYSTEM`: Removed "Phase 1 or later" restriction
-- `gather_landscape_intel` prompt: All stages from Preclinical through Approved; source matrix
-  expanded to pipeline pages, IR presentations, conference abstracts, ChiCTR registry
-- Next enrichment run for atopy, fcrn, respiratory, tslp will now surface preclinical programs
+### P1 — Portfolio Intelligence Product (Track C)
+Drug → Company joins are now available via `drugs.company_id`. The company portfolio view hasn't been built. This is the first intelligence product that requires the completed ontology layer.
 
-### Respiratory / TSLP Type B Backfill ✅
-3 drugs in DB with 0 area assignments — fixed:
-- **WIN378** (Windward Bio, Phase 3): drug_areas + drug_area_scores × respiratory, tslp
-- **BSI-045B** (Biosion, Phase 1): Added Biosion company; drug_areas + drug_area_scores × both
-- **APG333** (Apogee, Phase 1): New drug added to DB; drug_areas + drug_area_scores × both
+**Question it answers:** "What is [company]'s full indication footprint across all areas we track?"
 
-Respiratory/tslp: 11 → 14 drugs; Apogee + Biosion added to company_areas for both areas.
+**Dependencies:** drugs (company_id), drug_indications (indication_id), drug_targets (target_id), indications
+
+### P2 — Wave 2C: UC/CD Composite Resolution (Track B/E)
+28 UC·CD composite strings were deferred from Wave 2A. These should now be resolved using the composite split logic documented in `normalization_engine.md`.
+
+**Note:** Run dry-run first. These are expected to resolve cleanly via the middle-dot composite splitter.
+
+### P3 — Ontology Edges Unlock (Track B)
+Once Phase 4 comparison layer validates zero regressions, advisor approves ontology_edges expansion. Current lock count: 25. The missing edges (veligrotug/elegrobart for TED × IGF-1R_TSHR) are documented in `project_competitive_landscape_layer.md`.
+
+### P4 — QA Sprint: Catalyst Cleanup (Track B)
+From `project_qa_sprint_roadmap.md`:
+- P1: catalyst cleanup (sources, deduplication)
+- P2: re-enrich verification fields
+- P3: validation_tests table
 
 ---
 
-## What Was Done This Session (Session 41)
+## 5-Track Workstream Status
 
-### Preclinical Competitor Seed ✅
-5 companies + 6 drugs added (Ollin/OLN102, Septerna/SP-1351, Crinetics/CRN12755,
-Alumis/lonigutamab, Minghui/MHB018A, Innovent/ibi311). 11 drug_areas + 11 drug_area_scores.
+| Track | Focus | Status |
+|---|---|---|
+| A — Relationship Layer | Phase 4 comparison layer | ▶ NEXT |
+| B — Ontology Quality | Wave 2C composites; catalyst QA | Queued |
+| C — Intelligence Products | Portfolio intelligence product | Queued |
+| D — Dashboard Architecture | Phase 4 gating; dependency migration | ▶ NEXT (with A) |
+| E — Data Acquisition | Normalization engine → platform library | Documented; library build deferred |
 
-### Data Quality Corrections ✅
-- veligrotug (VRDN-001) = **IV**, BLA Filed, PDUFA June 30 2026 — confirmed via Viridian IR
-- elegrobart (VRDN-003) = **SC** autoinjector, **Phase 3** — REVEAL-1 ✅ (active TED, Mar 2026)
-  and REVEAL-2 ✅ (chronic TED, May 2026) both positive; BLA submission Q1 2027
-
-  > Note: patch_stale_data.py from earlier this session introduced errors — reversed here.
-  > These corrections are now live in DB and verified against Viridian press releases.
-
-### competitive_relevance Column ✅
-Added `competitive_relevance TEXT` + `relevance_rationale TEXT` to `drug_area_scores`.
-28 rows seeded for TED × IGF-1R landscape.
+Resource allocation: A 70% · B 10% · C 10% · D 5% · E 5%
 
 ---
 
-## Current Drug_Area_Scores: competitive_relevance Distribution
+## Files to Load at Start of Next Session
 
-| Level | Drugs | Rationale |
-|-------|-------|-----------|
-| 🔴 very_high | veligrotug (×igf1r,ted), elegrobart (×igf1r,ted), oln102 (×igf1r,ted) | PDUFA imminent / Phase 3 positive / bispecific disruptor |
-| 🟠 high | yb-101 (×igf1r,ted), sp-1351 (×ted,autoimmune), crn12755 (×ted) | Mechanism differentiation or oral route advantage |
-| 🟡 medium | lonigutamab (×ted,autoimmune), linsitinib (×igf1r,ted), mhb018a (×igf1r,ted) | Adjacent or limited-geography assets |
-| 🔵 low | teprotumumab (×igf1r,ted), ibi311 (×igf1r,ted) | Approved benchmarks; Ailux partners with/around, not against |
-| ⚫ monitor | batoclimab (×fcrn,ted,igf1r,autoimmune), efgartigimod (×fcrn,ted,autoimmune) | Failed FcRn; negative data as signal |
+1. `docs/dashboard_dependency_inventory.md` — Phase 4 targets
+2. `docs/normalization_engine.md` — parser reference
+3. `scripts/wave2b_trial_indications_backfill.py` — template for Wave 2C
+4. `MEMORY.md` → `project_meridian_maturity.md`, `project_parallel_workstreams.md`
 
 ---
 
-## Drugs in DB — Corrected State (2026-05-24)
+## Validation Checks Before Starting Work
 
-| Drug | Company | Stage | Route | competitive_relevance |
-|------|---------|-------|-------|-----------------------|
-| teprotumumab | amgen | Approved | IV | low |
-| ibi311/SYCUME | innovent | Approved | IV | low |
-| veligrotug | viridian | **BLA Filed** | **IV** | very_high |
-| elegrobart | viridian | **Phase 3** | **SC** | very_high |
-| linsitinib | roche | Phase 2 | oral | medium |
-| yb-101 | yarrow | Phase 1 | IV | high |
-| oln102 | ollin | Preclinical | IV | very_high |
-| sp-1351 | septerna | Preclinical | oral | high |
-| crn12755 | crinetics | Preclinical | oral | high |
-| lonigutamab | alumis | Preclinical | IV | medium |
-| mhb018a | minghui | Preclinical | IV | medium |
-| batoclimab | immunovant | Discontinued | IV | monitor |
-| efgartigimod | argenx | Discontinued | SC | monitor |
-
----
-
-## ✅ DONE: Dashboard sort by competitive_relevance (Session 42b)
-
-TED tab now renders entities sorted by relevance tier with left-border color indicator.
-Left-border colors: very_high=red, high=orange, medium=amber, low=blue, monitor=slate.
-All other tabs degrade gracefully to stage sort (no `competitive_relevance` data yet).
-
----
-
-## P2 Later: competitive_signals table
-
-For conference/patent/financing signal tracking. Schema:
-```sql
-CREATE TABLE competitive_signals (
-    id           BIGSERIAL PRIMARY KEY,
-    company_id   TEXT REFERENCES companies(id),
-    drug_id      TEXT REFERENCES drugs(id),
-    signal_type  TEXT NOT NULL,  -- 'conference','patent','financing','publication','licensing'
-    title        TEXT NOT NULL,
-    description  TEXT,
-    source_url   TEXT,
-    source_date  DATE,
-    confidence   NUMERIC(3,2) DEFAULT 0.8,
-    area_id      TEXT,
-    created_at   TIMESTAMPTZ DEFAULT now()
-);
 ```
-
----
-
-## Coverage Score: 89.75/100 (stable)
-
-| Dimension | Score |
-|-----------|-------|
-| Drug coverage (×0.35) | 88.9% — OLN102 pending IND |
-| Relationship coverage (×0.25) | 100% |
-| Catalyst coverage (×0.20) | 100% |
-| Source validation (×0.15) | 100% |
-| Staleness penalty (×−0.05) | 27.3% — 3 items need Q3 2026 revalidation |
-
----
-
-## Q3 2026 Revalidation Queue
-
-| Item | Date | Action |
-|------|------|--------|
-| Veligrotug PDUFA | 2026-06-30 | Approved or CRL — update stage + entity_edges |
-| Elegrobart BLA | 2026-Q1-2027 | Confirm submission; update stage to BLA Filed |
-| OLN102 IND | 2026-10-01 | CT.gov; if filed → promote to Tier 1 confirmed, drug coverage → 100% |
-| YB-101 Phase 1b | 2026-10-01 | Data → update TSHR×TED mechanism staleness |
-| Tepezza Japan PMDA | 2026-10-01 | Confirm exact date; update geo_approvals staleness |
-
----
-
-## Script Reference
-
-| Script | Status | Purpose |
-|--------|--------|---------|
-| `scripts/migrations/v31_competitive_landscape.sql` | ✅ Applied | DDL for competitive layer |
-| `scripts/migrations/v32_coverage_diagnostics.sql` | ✅ Applied | Coverage scoring schema |
-| `scripts/run_v31_seed.py` | ✅ Run | TED mechanism/landscape/edges/catalysts |
-| `scripts/seed_missing_igf1r_entities.py` | ✅ Run | Viridian + veligrotug/elegrobart/yb-101 |
-| `scripts/seed_ted_expected_competitors.py` | ✅ Run | 9-row Tier 1 expected list |
-| `scripts/compute_landscape_coverage.py` | ✅ Live | Re-run after enrichment |
-| `scripts/patch_source_validation.py` | ✅ Run | Source URLs for 6 drug_area_scores rows |
-| `scripts/seed_preclinical_competitors.py` | ✅ Run | 5 companies + 6 drugs + drug_areas |
-| `scripts/patch_stale_data.py` | ✅ Run | LEC drug_id links; Yarrow name |
-| `scripts/add_competitive_relevance.py` | ✅ Run | competitive_relevance + relevance_rationale seeded |
-| `scripts/validate_ted_landscape.sql` | ✅ Passed | Acceptance test A–F |
+SELECT count(*) FROM trial_indications;            -- expect 319
+SELECT count(*) FROM drug_indications;             -- expect 129
+SELECT count(*) FROM drug_targets;                 -- expect 173
+SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
+SELECT count(*) FROM backfill_preview
+  WHERE preview_status = 'pending_review';         -- expect 0 (all held rows committed)
+```
