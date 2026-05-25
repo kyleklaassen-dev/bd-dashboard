@@ -3751,6 +3751,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
+  <button class="nav-icon-btn" id="nav-icon-ontology" onclick="switchTabTo('ontology')" title="Ontology Audit">🧬</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -3768,6 +3769,7 @@ function loadMoleculeTab(tabId) {
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
+        <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -17643,6 +17645,808 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>
 </div><!-- end au-wrap -->
 </div><!-- end tab-audit -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     ONTOLOGY AUDIT TAB  #tab-ontology
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-ontology" style="padding:0;background-color:#edf0f5;background-image:radial-gradient(circle,#b8c4d4 1.2px,transparent 1.2px);background-size:26px 26px;min-height:100vh;font-family:'Inter',sans-serif">
+<style>
+/* ── Ontology Audit Tab ─────────────────────────────────────────── */
+.ont-wrap{max-width:1440px;margin:0 auto;padding:32px 36px 80px}
+.ont-section{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.ont-sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:4px;cursor:pointer;user-select:none}
+.ont-sec-icon{font-size:18px;line-height:1}
+.ont-sec-title{font-size:16px;font-weight:800;color:#0f172a;flex:1}
+.ont-sec-sub{font-size:12px;color:#94a3b8;margin-top:2px}
+.ont-sec-body{margin-top:14px}
+.ont-sec-body.collapsed{display:none}
+.ont-sec-tog{font-size:12px;color:#cbd5e1;transition:transform .2s}
+/* Status badges */
+.ont-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:1px 7px}
+.ont-badge-exists{background:#d1fae5;color:#065f46}
+.ont-badge-partial{background:#ede9fe;color:#5b21b6}
+.ont-badge-missing{background:#fee2e2;color:#991b1b}
+.ont-badge-proposed{background:#fef3c7;color:#92400e}
+/* Table cards */
+.ont-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:4px}
+.ont-card{background:white;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.ont-card.c-partial{border-color:#8b5cf6}
+.ont-card.c-missing{border-color:#f87171;background:#fff8f8}
+.ont-card.c-proposed{border-color:#f59e0b;background:#fffdf4}
+.ont-card-hd{padding:11px 14px 9px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:7px}
+.ont-card-tname{font-size:12px;font-weight:800;font-family:monospace;color:#0f172a;flex:1}
+.ont-card-def{font-size:11px;color:#64748b;padding:8px 14px 4px;line-height:1.6}
+.ont-card-section{padding:5px 14px 8px}
+.ont-card-sh{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:5px;padding-top:6px;border-top:1px solid #f8fafc}
+.ont-pills{display:flex;flex-wrap:wrap;gap:3px}
+.ont-pill{display:inline-block;font-size:10px;font-weight:600;background:#f1f5f9;color:#334155;border-radius:20px;padding:2px 9px}
+.ont-pill.issue{background:#fee2e2;color:#991b1b}
+.ont-pill.ok{background:#d1fae5;color:#065f46}
+.ont-pill.warn{background:#fef3c7;color:#92400e}
+.ont-issue-row{font-size:11px;color:#64748b;padding:3px 0;display:flex;gap:6px;align-items:flex-start}
+/* Quality flags */
+.ont-flags{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.ont-flag{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.ont-flag.sev-h{border-left:4px solid #ef4444}
+.ont-flag.sev-m{border-left:4px solid #f59e0b}
+.ont-flag.sev-l{border-left:4px solid #3b82f6}
+.ont-flag-left{flex:1}
+.ont-flag-cat{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:3px}
+.ont-flag-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:4px}
+.ont-flag-body{font-size:11px;color:#64748b;line-height:1.6}
+.ont-flag-sev{font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;text-transform:uppercase;flex-shrink:0;margin-top:2px}
+.ont-flag-sev.h{background:#fee2e2;color:#991b1b}
+.ont-flag-sev.m{background:#fef3c7;color:#92400e}
+.ont-flag-sev.l{background:#dbeafe;color:#1e40af}
+.ont-flag-review{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.ont-rvw-btn{font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px;border:1.5px solid #e2e8f0;background:white;color:#64748b;cursor:pointer;transition:all .1s}
+.ont-rvw-btn.rv-proposed{background:#eff6ff;border-color:#3b82f6;color:#1e40af}
+.ont-rvw-btn.rv-accepted{background:#d1fae5;border-color:#10b981;color:#065f46}
+.ont-rvw-btn.rv-rejected{background:#fee2e2;border-color:#ef4444;color:#991b1b}
+.ont-rvw-btn.rv-discuss{background:#fef3c7;border-color:#f59e0b;color:#92400e}
+/* Relationship matrix */
+.ont-matrix-wrap{overflow-x:auto;margin-top:8px}
+.ont-matrix{border-collapse:collapse;font-size:10px;min-width:700px;width:100%}
+.ont-matrix th{padding:7px 10px;text-align:left;font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.04em;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;white-space:nowrap}
+.ont-matrix td{padding:7px 10px;border:1px solid #e2e8f0;font-size:10px;color:#475569;vertical-align:top}
+.ont-matrix td.cy{background:#d1fae5;color:#065f46;font-weight:700}
+.ont-matrix td.cp{background:#dbeafe;color:#1e40af;font-weight:700}
+.ont-matrix td.cw{background:#fef3c7;color:#92400e;font-weight:700}
+.ont-matrix td.cn{background:#f8fafc;color:#e2e8f0;text-align:center}
+/* Migration */
+.ont-mig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px}
+.ont-mig-col{border-radius:10px;padding:16px 18px}
+.ont-mig-col.cur{background:#fff5f5;border:1.5px solid #fca5a5}
+.ont-mig-col.pro{background:#f0fdf4;border:1.5px solid #86efac}
+.ont-mig-hd{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.ont-mig-hd.cur{color:#dc2626}
+.ont-mig-hd.pro{color:#16a34a}
+.ont-mig-sh{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin:10px 0 4px}
+.ont-mig-item{font-size:11px;padding:2px 0;display:flex;align-items:center;gap:5px}
+.ont-mig-item.bad{color:#dc2626}
+.ont-mig-item.bad::before{content:'✗';font-size:9px;color:#f87171}
+.ont-mig-item.good{color:#16a34a}
+.ont-mig-item.good::before{content:'✓';font-size:9px;color:#34d399}
+.ont-mig-item.neu{color:#374151}
+.ont-mig-item.neu::before{content:'·';font-size:12px;color:#94a3b8}
+/* Phases */
+.ont-phases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px}
+.ont-phase{background:white;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px}
+.ont-phase-num{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:5px}
+.ont-phase-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px}
+.ont-phase-item{font-size:11px;color:#475569;padding:4px 0;border-top:1px dashed #f1f5f9;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+.ont-phase-item::before{content:'→';color:#94a3b8;flex-shrink:0;font-size:11px;margin-top:1px}
+/* Gap finder */
+.ont-gaps{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:8px}
+.ont-gap-card{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:14px 16px}
+.ont-gap-card.gap-h{border-left:4px solid #ef4444}
+.ont-gap-card.gap-m{border-left:4px solid #f59e0b}
+.ont-gap-type{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:4px}
+.ont-gap-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.ont-gap-body{font-size:11px;color:#64748b;line-height:1.6}
+.ont-gap-fix{font-size:10px;font-weight:700;color:#2563eb;margin-top:8px;padding:4px 8px;background:#eff6ff;border-radius:5px;display:inline-block}
+/* Map grid */
+.ont-map-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:10px}
+.ont-map-box{border-radius:10px;padding:12px 8px;text-align:center;border:2px solid}
+.ont-map-arrow{text-align:center;font-size:24px;color:#94a3b8;line-height:1;margin:2px 0}
+</style>
+
+<div class="ont-wrap">
+  <!-- Header -->
+  <div class="au-header">
+    <div class="au-topbar">
+      <div>
+        <div class="au-title">🧬 Ontology Audit</div>
+        <div class="au-subtitle">Knowledge graph structure · category quality · relationship gaps · migration plan</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="au-timestamp" id="ont-timestamp"></span>
+        <button class="au-refreshbtn" onclick="ontologyLoad(true)">↻ Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── A: Ontology Map ──────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-a">
+    <div class="ont-sec-hd" onclick="ontToggle('a')">
+      <span class="ont-sec-icon">🗺️</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">A — Ontology Map</div>
+        <div class="ont-sec-sub">The 7-layer hierarchy and how entity tables hang off it</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-a-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-a-body">
+      <div id="ont-map-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── B: Table Cards ──────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-b">
+    <div class="ont-sec-hd" onclick="ontToggle('b')">
+      <span class="ont-sec-icon">🗃️</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">B — Ontology Table Cards</div>
+        <div class="ont-sec-sub">Core ontology tables: what exists, what's partial, what's missing</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-b-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-b-body">
+      <div id="ont-cards-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── C: Relationship Matrix ──────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-c">
+    <div class="ont-sec-hd" onclick="ontToggle('c')">
+      <span class="ont-sec-icon">🔗</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">C — Relationship Matrix</div>
+        <div class="ont-sec-sub">How every table connects — join type, join mechanism, and gaps</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-c-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-c-body">
+      <div id="ont-matrix-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── D: Quality Flags ────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-d">
+    <div class="ont-sec-hd" onclick="ontToggle('d')">
+      <span class="ont-sec-icon">🚩</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">D — Category Quality Flags</div>
+        <div class="ont-sec-sub">Auto-detected misclassifications, structural gaps, and naming issues</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-d-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-d-body">
+      <div id="ont-flags-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── E: Gap Finder ───────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-e">
+    <div class="ont-sec-hd" onclick="ontToggle('e')">
+      <span class="ont-sec-icon">🔍</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">E — Gap Finder</div>
+        <div class="ont-sec-sub">Missing tables, missing indications, missing relationship infrastructure</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-e-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-e-body">
+      <div id="ont-gaps-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── F: Migration Plan ───────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-f">
+    <div class="ont-sec-hd" onclick="ontToggle('f')">
+      <span class="ont-sec-icon">🚀</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">F — Migration Plan</div>
+        <div class="ont-sec-sub">Current state vs proposed state · 3-phase safe migration strategy</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-f-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-f-body">
+      <div id="ont-migration-mount"></div>
+    </div>
+  </div>
+
+</div><!-- /ont-wrap -->
+</div><!-- /tab-ontology -->
+<script>
+// ── ONTOLOGY AUDIT TAB ────────────────────────────────────────────────────────
+let _ontAuditLoaded = false;
+
+function ontToggle(id) {
+  const body = document.getElementById('ont-' + id + '-body');
+  const tog  = document.getElementById('ont-' + id + '-tog');
+  if (!body) return;
+  const collapsed = body.classList.toggle('collapsed');
+  if (tog) tog.style.transform = collapsed ? 'rotate(-90deg)' : '';
+}
+
+async function ontologyLoad(force = false) {
+  if (_ontAuditLoaded && !force) return;
+  _ontAuditLoaded = true;
+  const ts = document.getElementById('ont-timestamp');
+  if (ts) ts.textContent = 'Loading…';
+
+  const [
+    { data: daRows },
+    { data: indRows },
+    { data: tgtRows },
+    { data: tpRows },
+    { data: modRows },
+    { count: drugCt },
+    { count: coCt },
+    { count: trialCt },
+    { count: dealCt },
+    { count: catCt },
+    { count: intelCt },
+    { count: edgeCt }
+  ] = await Promise.all([
+    _sb.from('disease_areas').select('*').order('name'),
+    _sb.from('indications').select('*').order('name'),
+    _sb.from('targets').select('id,name,family,pathway,cross_area_relevance').order('name'),
+    _sb.from('target_pairs').select('id,name,area').order('name'),
+    _sb.from('modalities').select('*').order('name'),
+    _sb.from('drugs').select('*',{count:'exact',head:true}),
+    _sb.from('companies').select('*',{count:'exact',head:true}),
+    _sb.from('trials').select('*',{count:'exact',head:true}),
+    _sb.from('deals').select('*',{count:'exact',head:true}),
+    _sb.from('catalysts').select('*',{count:'exact',head:true}),
+    _sb.from('intel').select('*',{count:'exact',head:true}),
+    _sb.from('entity_edges').select('*',{count:'exact',head:true})
+  ]);
+
+  const counts = {
+    disease_areas: (daRows||[]).length,
+    indications:   (indRows||[]).length,
+    targets:       (tgtRows||[]).length,
+    target_pairs:  (tpRows||[]).length,
+    modalities:    (modRows||[]).length,
+    drugs: drugCt||0, companies: coCt||0, trials: trialCt||0,
+    deals: dealCt||0, catalysts: catCt||0, intel: intelCt||0, entity_edges: edgeCt||0
+  };
+
+  _renderOntMap(counts);
+  _renderOntCards({ daRows: daRows||[], indRows: indRows||[], tgtRows: tgtRows||[], tpRows: tpRows||[], modRows: modRows||[], counts });
+  _renderOntMatrix();
+  _renderOntFlags(daRows||[]);
+  _renderOntGaps({ indRows: indRows||[], daRows: daRows||[], counts });
+  _renderOntMigration(daRows||[]);
+
+  if (ts) ts.textContent = 'Loaded ' + new Date().toLocaleTimeString();
+}
+
+// ── A: Ontology Map ───────────────────────────────────────────────────────────
+function _renderOntMap(counts) {
+  const m = document.getElementById('ont-map-mount');
+  if (!m) return;
+
+  const sc = {
+    exists:   { b:'#10b981', bg:'white',   bk:'#d1fae5', bt:'#065f46', bl:'EXISTS' },
+    partial:  { b:'#8b5cf6', bg:'#faf5ff', bk:'#ede9fe', bt:'#5b21b6', bl:'PARTIAL' },
+    missing:  { b:'#ef4444', bg:'#fff8f8', bk:'#fee2e2', bt:'#991b1b', bl:'MISSING' },
+  };
+
+  const layers = [
+    { lbl:'Layer 1 · Taxonomy',  name:'Therapeutic Area',        q:'What specialty?',    tbl:'disease_areas',       status:'partial',  cnt:counts.disease_areas },
+    { lbl:'Layer 2 · Disease',   name:'Indication',              q:'What disease?',      tbl:'indications',         status:'exists',   cnt:counts.indications },
+    { lbl:'Layer 3 · Biology',   name:'Biology Tags',            q:'What mechanism?',    tbl:'indications.biology_tags', status:'partial', cnt:null },
+    { lbl:'Layer 4 · Molecular', name:'Target',                  q:'What molecule?',     tbl:'targets',             status:'exists',   cnt:counts.targets },
+    { lbl:'Layer 5 · Strategy',  name:'Target Pair',             q:'What combination?',  tbl:'target_pairs',        status:'exists',   cnt:counts.target_pairs },
+    { lbl:'Layer 6 · Format',    name:'Modality',                q:'What format?',       tbl:'modalities',          status:'exists',   cnt:counts.modalities },
+    { lbl:'Layer 7 · Delivery',  name:'Route of Admin',          q:'How delivered?',     tbl:'routes_of_admin',     status:'missing',  cnt:null },
+  ];
+
+  const entities = [
+    { lbl:'Asset',        name:'Drug',      tbl:'drugs',         cnt:counts.drugs },
+    { lbl:'Org',          name:'Company',   tbl:'companies',     cnt:counts.companies },
+    { lbl:'Study',        name:'Trial',     tbl:'trials',        cnt:counts.trials },
+    { lbl:'Transaction',  name:'Deal',      tbl:'deals',         cnt:counts.deals },
+    { lbl:'Future Event', name:'Catalyst',  tbl:'catalysts',     cnt:counts.catalysts },
+    { lbl:'Intelligence', name:'Signal',    tbl:'intel',         cnt:counts.intel },
+    { lbl:'Relationship', name:'Edge',      tbl:'entity_edges',  cnt:counts.entity_edges },
+  ];
+
+  const layBox = l => {
+    const s = sc[l.status];
+    return `<div style="background:${s.bg};border:2px solid ${s.b};border-radius:10px;padding:12px 8px;text-align:center">
+      <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:3px">${l.lbl}</div>
+      <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:2px">${l.name}</div>
+      <div style="font-size:10px;color:#64748b;font-style:italic;margin-bottom:5px">${l.q}</div>
+      <div style="font-size:9px;font-family:monospace;color:#94a3b8;margin-bottom:5px">${l.tbl}</div>
+      <span style="font-size:9px;font-weight:800;border-radius:4px;padding:1px 7px;background:${s.bk};color:${s.bt}">${s.bl}</span>
+      ${l.cnt !== null ? `<div style="font-size:11px;font-weight:700;color:${l.status==='missing'?'#ef4444':'#10b981'};margin-top:5px">${l.cnt} rows</div>` : `<div style="font-size:10px;color:#94a3b8;margin-top:5px">array field</div>`}
+    </div>`;
+  };
+
+  const entBox = e => `<div style="background:white;border:2px solid #10b981;border-radius:10px;padding:10px 6px;text-align:center">
+    <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:2px">${e.lbl}</div>
+    <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:3px">${e.name}</div>
+    <div style="font-size:9px;font-family:monospace;color:#94a3b8;margin-bottom:4px">${e.tbl}</div>
+    <div style="font-size:11px;font-weight:700;color:#10b981">${e.cnt} rows</div>
+  </div>`;
+
+  m.innerHTML = `
+    <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Core Ontology Layers (classify everything)</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:6px">
+      ${layers.map(layBox).join('')}
+    </div>
+    <div style="text-align:center;font-size:22px;color:#94a3b8;margin:4px 0">↓</div>
+    <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Entity Tables (the things being classified)</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px">
+      ${entities.map(entBox).join('')}
+    </div>
+    <div style="margin-top:16px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:11px;color:#64748b;line-height:1.7">
+      <strong style="color:#0f172a">How to read this:</strong>
+      The top row organizes knowledge — every drug, trial, deal, and signal inherits meaning from these 7 layers.
+      <span style="display:inline-block;width:12px;height:12px;background:#d1fae5;border:1.5px solid #10b981;border-radius:3px;vertical-align:middle;margin:0 4px"></span>EXISTS &nbsp;
+      <span style="display:inline-block;width:12px;height:12px;background:#ede9fe;border:1.5px solid #8b5cf6;border-radius:3px;vertical-align:middle;margin:0 4px"></span>PARTIAL (needs cleanup or normalization) &nbsp;
+      <span style="display:inline-block;width:12px;height:12px;background:#fee2e2;border:1.5px solid #ef4444;border-radius:3px;vertical-align:middle;margin:0 4px"></span>MISSING (should be created)
+    </div>`;
+}
+
+// ── B: Table Cards ────────────────────────────────────────────────────────────
+function _renderOntCards({ daRows, indRows, tgtRows, tpRows, modRows, counts }) {
+  const m = document.getElementById('ont-cards-mount');
+  if (!m) return;
+
+  const esc = s => String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const card = ({ id, tname, status, def, fields, items, issues, connections }) => {
+    const cls = status === 'partial' ? 'c-partial' : status === 'missing' ? 'c-missing' : status === 'proposed' ? 'c-proposed' : '';
+    const bdgCls = `ont-badge-${status === 'exists' ? 'exists' : status === 'partial' ? 'partial' : status === 'missing' ? 'missing' : 'proposed'}`;
+    const cnt = counts[id] ?? '—';
+    return `<div class="ont-card ${cls}">
+      <div class="ont-card-hd">
+        <span class="ont-card-tname">${tname}</span>
+        <span class="ont-badge ${bdgCls}">${status.toUpperCase()}</span>
+        <span style="font-size:10px;font-weight:700;color:#64748b;margin-left:4px">${cnt !== '—' ? cnt+' rows' : ''}</span>
+      </div>
+      <div class="ont-card-def">${def}</div>
+      ${fields ? `<div class="ont-card-section"><div class="ont-card-sh">Key Fields</div><div class="ont-pills">${fields.map(f=>`<span class="ont-pill">${esc(f)}</span>`).join('')}</div></div>` : ''}
+      ${items && items.length ? `<div class="ont-card-section"><div class="ont-card-sh">Current Items</div><div class="ont-pills">${items.map(i=>`<span class="ont-pill ${i.flag||''}">${esc(i.name)}</span>`).join('')}</div></div>` : ''}
+      ${connections ? `<div class="ont-card-section"><div class="ont-card-sh">Connected Tables</div><div class="ont-pills">${connections.map(c=>`<span class="ont-pill ok">${esc(c)}</span>`).join('')}</div></div>` : ''}
+      ${issues && issues.length ? `<div class="ont-card-section"><div class="ont-card-sh">Issues Detected</div>${issues.map(i=>`<div class="ont-issue-row"><span>${i.sev==='h'?'🔴':i.sev==='m'?'🟡':'🔵'}</span><span>${esc(i.text)}</span></div>`).join('')}</div>` : ''}
+    </div>`;
+  };
+
+  // Classify disease_areas rows by known misclassification
+  const TARGETS_IN_DA   = ['tl1a','tslp','il4ra','il-4ra','il4rα','fcrn','igf1r','igf-1r'];
+  const INDICS_IN_DA    = ['ted','thyroid eye disease','eoe'];
+  const BIOTAGS_IN_DA   = ['atopy','autoimmune','t-cell'];
+  const daItems = daRows.map(r => {
+    const id = (r.id||'').toLowerCase();
+    const nm = (r.name||'').toLowerCase();
+    const flag = TARGETS_IN_DA.some(t=>id.includes(t)||nm.includes(t)) ? 'issue' :
+                 INDICS_IN_DA.some(t=>id.includes(t)||nm.includes(t)) ? 'warn' :
+                 BIOTAGS_IN_DA.some(t=>id.includes(t)||nm.includes(t)) ? 'warn' : '';
+    return { name: r.name||r.id, flag };
+  });
+
+  const indByArea = {};
+  indRows.forEach(r => {
+    const a = r.disease_area||'unknown';
+    if (!indByArea[a]) indByArea[a] = [];
+    indByArea[a].push(r.abbreviation || r.name);
+  });
+
+  // Collect all unique biology tags
+  const bioTagSet = new Set();
+  indRows.forEach(r => (r.biology_tags||[]).forEach(t => bioTagSet.add(t)));
+  const bioTags = [...bioTagSet].sort();
+
+  m.innerHTML = `
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;line-height:1.7">
+      <strong style="color:#475569">7 core ontology tables</strong> classify every entity in Meridian.
+      Of these, 5 exist in Supabase today. 2 are missing.
+      The existing <code>disease_areas</code> table needs cleanup — it mixes targets, indications, and biology tags.
+    </div>
+    <div class="ont-cards">
+      ${card({
+        id:'disease_areas', tname:'disease_areas', status:'partial',
+        def:'Intended to be top-level clinical specialty (Gastroenterology, Respiratory…). Currently misused — contains targets (TL1A, TSLP), an indication (TED), and biology concepts (Atopy, Autoimmune). Needs to be cleaned into a proper therapeutic_areas table.',
+        fields:['id','name','description','created_at'],
+        items: daItems.length ? daItems : [{name:'(empty)',flag:''}],
+        connections:['indications (FK: disease_area)','company_areas (FK: area_id)','drug_area_scores (FK: disease_area)'],
+        issues:[
+          {sev:'h', text:'Contains targets (TL1A, TSLP, IL-4Rα, FcRn, IGF-1R) — these are molecules, not specialty areas'},
+          {sev:'h', text:'Contains TED — this is an indication (Thyroid Eye Disease) under Ophthalmology, not a specialty area'},
+          {sev:'m', text:'Contains Atopy and Autoimmune — these are biology tags / phenotypes, not therapeutic areas'},
+          {sev:'m', text:'Contains T-cell Engineering — this is a technology platform concept, not a disease area'},
+          {sev:'l', text:'IBD is a supercategory (should be split into UC and CD as separate indications)'},
+        ]
+      })}
+      ${card({
+        id:'indications', tname:'indications', status:'exists',
+        def:'Specific disease or condition being treated by a drug. The right level of granularity for pipeline analysis — not too broad (Autoimmune), not too specific (IBD flare subtype). Each indication belongs to one therapeutic area.',
+        fields:['id','name','abbreviation','disease_area (FK)','description','biology_tags[]','patient_note','regulatory_note'],
+        items: indRows.map(r => ({ name:`${r.abbreviation} — ${r.name}` })),
+        connections:['disease_areas (FK: disease_area)','drugs (field: disease_area)','trials (field: indication)'],
+        issues:[
+          {sev:'m', text:'disease_area FK still points to disease_areas (messy) — should point to therapeutic_areas once migrated'},
+          {sev:'l', text:'biology_tags stored as TEXT[] array inside indications — could become a separate normalized table if tags are reused across indications'},
+          {sev:'l', text:'RA, SLE, Sjögren\'s, EoE appear in trial text but may not all have indication records yet'},
+        ]
+      })}
+      ${card({
+        id:'biology_tags', tname:'biology_tags (partial)', status:'partial',
+        def:'Mechanism, immune phenotype, or disease biology that cuts across multiple indications and targets. Currently stored as a TEXT[] array inside indications.biology_tags — not a standalone table. Should become its own table to support cross-indication tagging.',
+        fields:['(currently) indications.biology_tags TEXT[]'],
+        items: bioTags.map(t => ({ name: t })),
+        connections:['indications (embedded array)'],
+        issues:[
+          {sev:'m', text:'Not a standalone table — tags cannot have their own definitions, descriptions, or linked records'},
+          {sev:'m', text:'Cannot create a dedicated indication_biology_tags join table without normalizing first'},
+          {sev:'l', text:'Some tags (atopy, autoimmune) exist in disease_areas but should only live here'},
+        ]
+      })}
+      ${card({
+        id:'targets', tname:'targets', status:'exists',
+        def:'Biological molecule being drugged or modulated. The most precise layer of the ontology — a target defines what a drug does at the molecular level. Each target belongs to a disease area and has a family (cytokine, receptor, etc.) and pathway.',
+        fields:['id','name','full_name','disease_area','family','pathway','cross_area_relevance[]','description'],
+        items: tgtRows.map(r => ({ name: r.name })),
+        connections:['disease_areas (FK: disease_area)','target_pairs (FKs: target_1, target_2)','drugs (field: mechanism)'],
+        issues:[
+          {sev:'l', text:'drug→target relationship is stored as free text in drugs.mechanism — no normalized drug_targets join table exists'},
+          {sev:'l', text:'target→indication link is inferred via disease_area, not through a direct target_indications join table'},
+        ]
+      })}
+      ${card({
+        id:'target_pairs', tname:'target_pairs', status:'exists',
+        def:'Intentional paired or combination target strategy. Captures the co-targeting rationale (e.g. TL1A × IL-23p19 for mucosal immunity + systemic inflammation). Not every drug that happens to hit two targets is a target pair — the pairing must be an intentional design decision.',
+        fields:['id','name','area','target_1','target_2','rationale','notes'],
+        items: tpRows.map(r => ({ name: r.name })),
+        connections:['targets (FKs: target_1, target_2)','disease_areas (FK: area)','drugs (field: target_pair)'],
+        issues:[
+          {sev:'l', text:'drug→target_pair link is stored as a field in drugs — not enforced as a FK'},
+        ]
+      })}
+      ${card({
+        id:'modalities', tname:'modalities', status:'exists',
+        def:'Therapeutic format or technology class. Describes how the drug is built (antibody, small molecule, cell therapy). Route of administration is separate from modality — a mAb can be IV or SC.',
+        fields:['id','name','abbreviation','examples','description'],
+        items: modRows.map(r => ({ name: r.name })),
+        connections:['drugs (field: modality)'],
+        issues:[
+          {sev:'m', text:'Route of administration is not captured separately — some modalities imply a route but this is not normalized'},
+          {sev:'l', text:'drug→modality link is free text in drugs.modality — no drug_modalities join table'},
+        ]
+      })}
+      ${card({
+        id:'routes_of_admin', tname:'routes_of_administration', status:'missing',
+        def:'How a drug is physically delivered into the body. Route is independent of modality — a monoclonal antibody can be IV or SC; a small molecule is usually oral. Route data currently lives only in trial arms or is inferred from modality.',
+        fields:['(proposed) id, name, abbreviation, description, typical_modalities[]'],
+        items:[{name:'IV (Intravenous)'},{name:'SC (Subcutaneous)'},{name:'Oral'},{name:'Inhaled'},{name:'Intravitreal'},{name:'Topical'}],
+        connections:['(proposed) drugs (join: drug_routes)','trials (field: arm description)'],
+        issues:[
+          {sev:'h', text:'Table does not exist — route is embedded in trial text or inferred from modality'},
+          {sev:'m', text:'Without this table, Meridian cannot answer: "Which SC injectables are moving to oral?" or "Which drugs compete on route?"'},
+        ]
+      })}
+    </div>`;
+}
+
+// ── C: Relationship Matrix ────────────────────────────────────────────────────
+function _renderOntMatrix() {
+  const m = document.getElementById('ont-matrix-mount');
+  if (!m) return;
+
+  // Rows = FROM tables, Cols = TO tables
+  const tables = ['disease_areas','indications','targets','target_pairs','modalities','drugs','companies','trials','deals','entity_edges'];
+  const labels = ['disease_areas','indications','targets','target_pairs','modalities','drugs','companies','trials','deals','entity_edges'];
+
+  // [from][to] = { type, mechanism, note }
+  const rels = {
+    'disease_areas→indications': { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each indication belongs to one disease area' },
+    'disease_areas→targets':     { t:'1:many', m:'FK: disease_area', cls:'cy', note:'Each target linked to one disease area (crude)' },
+    'disease_areas→target_pairs':{ t:'1:many', m:'FK: area', cls:'cy', note:'Each pair linked to one disease area' },
+    'indications→drugs':         { t:'many:many', m:'field text match', cls:'cw', note:'Loose text match — no join table' },
+    'indications→trials':        { t:'many:many', m:'field text match', cls:'cw', note:'Loose text match — no join table' },
+    'targets→target_pairs':      { t:'many:many', m:'FK: target_1, target_2', cls:'cy', note:'Each pair has two target FKs' },
+    'targets→drugs':             { t:'many:many', m:'drugs.mechanism text', cls:'cw', note:'No drug_targets join table — loose text' },
+    'modalities→drugs':          { t:'1:many', m:'drugs.modality text', cls:'cw', note:'No FK — free text modality field' },
+    'companies→drugs':           { t:'many:many', m:'company_areas table', cls:'cp', note:'Via company_areas join table' },
+    'drugs→trials':              { t:'1:many', m:'trials.drug_id FK', cls:'cy', note:'FK exists' },
+    'drugs→deals':               { t:'many:many', m:'deals.company_id / partner', cls:'cw', note:'Loose company-level link, not drug-level' },
+    'drugs→entity_edges':        { t:'many:many', m:'entity_edges.entity_id', cls:'cy', note:'Edge table links any entity type' },
+    'companies→entity_edges':    { t:'many:many', m:'entity_edges.entity_id', cls:'cy', note:'Edge table links any entity type' },
+    'trials→entity_edges':       { t:'many:many', m:'entity_edges.entity_id', cls:'cy', note:'Edge table links any entity type' },
+  };
+
+  let html = `<div style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
+    <span style="display:inline-block;width:10px;height:10px;background:#d1fae5;border-radius:2px;margin-right:4px;vertical-align:middle"></span><strong>Direct FK</strong> &nbsp;
+    <span style="display:inline-block;width:10px;height:10px;background:#dbeafe;border-radius:2px;margin-right:4px;vertical-align:middle"></span><strong>Join table</strong> &nbsp;
+    <span style="display:inline-block;width:10px;height:10px;background:#fef3c7;border-radius:2px;margin-right:4px;vertical-align:middle"></span><strong>Loose text match (should be normalized)</strong>
+  </div>
+  <div class="ont-matrix-wrap"><table class="ont-matrix">
+    <thead><tr><th>FROM ↓ TO →</th>${tables.map((t,i)=>`<th style="min-width:90px">${labels[i]}</th>`).join('')}</tr></thead>
+    <tbody>`;
+
+  tables.forEach((fromT, fi) => {
+    html += `<tr><th>${fromT}</th>`;
+    tables.forEach((toT, ti) => {
+      if (fi === ti) { html += `<td class="cn">—</td>`; return; }
+      const key = `${fromT}→${toT}`;
+      const rel = rels[key];
+      if (rel) {
+        html += `<td class="${rel.cls}" title="${rel.note}"><div style="font-size:9px;font-weight:700">${rel.t}</div><div style="font-size:9px;opacity:.8">${rel.m}</div></td>`;
+      } else {
+        html += `<td class="cn">·</td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>
+    <div style="margin-top:14px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:11px;color:#92400e;line-height:1.7">
+      <strong>⚠️ Priority normalization work:</strong>
+      The relationships marked yellow are loose text matches — Meridian cannot reliably join these tables.
+      Recommended join tables to create:
+      <code>drug_targets</code>, <code>drug_indications</code>, <code>drug_modalities</code>, <code>drug_routes</code>, <code>indication_biology_tags</code>, <code>trial_indications</code>, <code>deal_drugs</code>.
+    </div>`;
+
+  m.innerHTML = html;
+}
+
+// ── D: Quality Flags ──────────────────────────────────────────────────────────
+function _renderOntFlags(daRows) {
+  const m = document.getElementById('ont-flags-mount');
+  if (!m) return;
+
+  const flags = [
+    { id:'f-tgt-as-area', sev:'h', cat:'Misclassification · Structural',
+      title:'Targets listed as disease areas (4 records)',
+      body:'TL1A, TSLP, IL-4Rα, FcRn, and IGF-1R appear in disease_areas but are biological targets (molecules), not clinical specialty areas. This is the most critical structural issue — it means the ontology can\'t tell the difference between "what is being treated" and "what is being drugged."',
+    },
+    { id:'f-ind-as-area', sev:'h', cat:'Misclassification · Structural',
+      title:'TED listed as a disease area (should be indication)',
+      body:'Thyroid Eye Disease (TED) is a specific disease — an indication — not a clinical specialty. It belongs under Ophthalmology as a therapeutic area. Currently, TED exists in both disease_areas and indications, creating a duplicate.',
+    },
+    { id:'f-biotag-as-area', sev:'m', cat:'Misclassification · Conceptual',
+      title:'Biology concepts listed as disease areas',
+      body:'"Atopy" and "Autoimmune" are biology tags or phenotypes — they describe mechanism and immune biology, not clinical specialty areas. A patient can have an atopic condition (AD, CSU, Asthma) — Atopy is not a therapeutic area. "T-cell Engineering" is a technology platform concept.',
+    },
+    { id:'f-roa-missing', sev:'h', cat:'Missing Table · Structural Gap',
+      title:'No routes_of_administration table',
+      body:'Route of administration (IV, SC, Oral, Inhaled, Intravitreal, Topical) is currently not captured in its own table. Route is sometimes implied by modality but should be independent — a monoclonal antibody can be IV or SC, a nanobody can be inhaled. Without this table, Meridian cannot answer competitive questions about delivery.',
+    },
+    { id:'f-no-join-drug-target', sev:'h', cat:'Missing Join Table · Relationship Gap',
+      title:'No drug_targets join table — drug-to-target relationship is free text',
+      body:'drugs.mechanism is a text field that describes what a drug targets. This means Meridian cannot reliably join drugs to targets, cannot count drugs per target, and cannot detect when a new drug is entering a target space. A drug_targets table with relationship_type (primary/secondary/inferred) would fix this.',
+    },
+    { id:'f-no-join-drug-ind', sev:'h', cat:'Missing Join Table · Relationship Gap',
+      title:'No drug_indications join table — drug-to-indication relationship is loose',
+      body:'Drug-to-indication links are inferred via disease_area text matching. This means Meridian cannot reliably answer "which drugs are in UC?" unless the text matches exactly. A drug_indications table would make this a reliable structural link with confidence levels and sources.',
+    },
+    { id:'f-ibd-supercategory', sev:'m', cat:'Category Granularity',
+      title:'IBD is a supercategory — should resolve to UC and CD',
+      body:'"IBD" appears in disease_areas but is not a specific enough indication. Pipeline drugs target UC or CD specifically. Having IBD as a top-level area mixes drugs that treat UC-only, CD-only, or both. The correct structure: IBD is a biology tag or parent concept, UC and CD are the indications.',
+    },
+    { id:'f-da-dep-display', sev:'m', cat:'Migration Safety · ID vs Label',
+      title:'Dashboard references disease_areas IDs directly',
+      body:'Several dashboard widgets and filter logic depend on disease_areas.id values like "ibd", "ted", "atopy". If these are deleted or renamed without a migration mapping table, the dashboard will silently break. Rule: always migrate by adding new tables first, keeping old ones, then switching logic.',
+    },
+    { id:'f-biotag-array', sev:'l', cat:'Schema Design · Normalization',
+      title:'Biology tags stored as TEXT[] array, not normalized',
+      body:'"biology_tags" is an array inside the indications table. This works but limits what you can do — you can\'t add definitions, usage counts, or linked records to individual tags. A standalone biology_tags table with an indication_biology_tags join would make tags first-class entities.',
+    },
+    { id:'f-modality-route', sev:'m', cat:'Conceptual Mixing · Modality vs Route',
+      title:'TCE means T-cell Engager, not T-cell Engineering',
+      body:'T-cell Engager (TCE) is a format — a bispecific antibody designed to redirect T-cells against tumor antigens (like BCMA × CD3). This is correct. If any records describe it as "T-cell Engineering," that is an incorrect description of the modality.',
+    },
+    { id:'f-source-coverage', sev:'m', cat:'Relationship Quality',
+      title:'Most relationships have no source or confidence field',
+      body:'Drug-to-company, drug-to-target, and drug-to-indication links are stored without a source_id, confidence_level, or created_by field. This means Meridian cannot explain WHY a relationship exists. Recommended: add relationship_type, source_id, confidence_level, and review_status to all major join tables.',
+    },
+  ];
+
+  const html = `<div style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
+    <strong style="color:#475569">${flags.filter(f=>f.sev==='h').length} HIGH</strong> ·
+    <strong style="color:#92400e">${flags.filter(f=>f.sev==='m').length} MEDIUM</strong> ·
+    <strong style="color:#1e40af">${flags.filter(f=>f.sev==='l').length} LOW</strong> severity flags detected.
+    Use the review controls to track which issues have been accepted, rejected, or need discussion.
+  </div>
+  <div class="ont-flags">
+    ${flags.map(flag => {
+      const stored = (localStorage.getItem('ont-flag-' + flag.id) || 'proposed');
+      const sevLbl = flag.sev==='h'?'HIGH':flag.sev==='m'?'MEDIUM':'LOW';
+      return `<div class="ont-flag sev-${flag.sev}" id="ont-flag-${flag.id}">
+        <div class="ont-flag-left">
+          <div class="ont-flag-cat">${flag.cat}</div>
+          <div class="ont-flag-title">${flag.title}</div>
+          <div class="ont-flag-body">${flag.body}</div>
+          <div class="ont-flag-review">
+            ${['proposed','accepted','rejected','discuss'].map(s =>
+              `<button class="ont-rvw-btn${stored===s?' rv-'+s:''}" onclick="_ontFlagReview('${flag.id}','${s}')">${s.charAt(0).toUpperCase()+s.slice(1)}</button>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="ont-flag-sev ${flag.sev}">${sevLbl}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  m.innerHTML = html;
+}
+
+function _ontFlagReview(flagId, status) {
+  localStorage.setItem('ont-flag-' + flagId, status);
+  const flagEl = document.getElementById('ont-flag-' + flagId);
+  if (!flagEl) return;
+  flagEl.querySelectorAll('.ont-rvw-btn').forEach(btn => {
+    btn.className = 'ont-rvw-btn';
+    if (btn.textContent.toLowerCase() === status || btn.textContent.toLowerCase() === 'discuss' && status === 'discuss') {
+      btn.classList.add('rv-' + status);
+    }
+  });
+  // re-set all buttons cleanly
+  flagEl.querySelectorAll('.ont-rvw-btn').forEach(btn => {
+    const s = btn.getAttribute('onclick').match(/'(\w+)'\)$/)[1];
+    btn.className = 'ont-rvw-btn' + (s === status ? ' rv-' + s : '');
+  });
+}
+
+// ── E: Gap Finder ─────────────────────────────────────────────────────────────
+function _renderOntGaps({ indRows, daRows, counts }) {
+  const m = document.getElementById('ont-gaps-mount');
+  if (!m) return;
+
+  const existingIndIds = new Set((indRows||[]).map(r => (r.id||'').toLowerCase()));
+
+  const potentialMissing = [
+    { id:'ra', name:'Rheumatoid Arthritis', area:'rheumatology' },
+    { id:'sle', name:'Systemic Lupus Erythematosus', area:'rheumatology' },
+    { id:'sjogrens', name:'Sjögren\'s Syndrome', area:'rheumatology' },
+    { id:'eoe', name:'Eosinophilic Esophagitis', area:'gastroenterology' },
+    { id:'psc', name:'Primary Sclerosing Cholangitis', area:'gastroenterology' },
+    { id:'nmo', name:'Neuromyelitis Optica Spectrum', area:'neurology' },
+  ].filter(p => !existingIndIds.has(p.id));
+
+  const gaps = [
+    { type:'Missing Table', cls:'gap-h', title:'therapeutic_areas table does not exist',
+      body:'The current disease_areas table is used as a proxy for therapeutic areas but contains misclassified records. The correct structure is a clean therapeutic_areas table with 7 entries (Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology) and a FK from indications.therapeutic_area_id.',
+      fix:'Phase 1: CREATE TABLE therapeutic_areas — populate alongside disease_areas, do not replace yet'
+    },
+    { type:'Missing Table', cls:'gap-h', title:'routes_of_administration table does not exist',
+      body:'IV, SC, Oral, Inhaled, Intravitreal, Topical are currently not stored as structured records. Route appears in trial arm text and is sometimes implied by modality. Without this table, competitive route-of-delivery analysis is impossible.',
+      fix:'CREATE TABLE routes_of_administration (id, name, abbreviation, description)'
+    },
+    { type:'Missing Join Tables', cls:'gap-h', title:'5 critical join tables are missing',
+      body:'drug_targets, drug_indications, drug_modalities, drug_routes, indication_biology_tags — without these, drug-to-ontology relationships are stored as free text and cannot be reliably queried, counted, or validated.',
+      fix:'Phase 2: Create join tables after ontology tables are stable'
+    },
+    ...(potentialMissing.length > 0 ? [{
+      type:'Missing Indications', cls:'gap-m', title:`${potentialMissing.length} common indications may be missing`,
+      body:`These indications appear in trial and signal text but may not have formal indication records: ${potentialMissing.map(p=>p.name).join(', ')}. Without these records, drugs targeting these diseases cannot be properly classified.`,
+      fix:'INSERT INTO indications for each missing indication'
+    }] : []),
+    { type:'Structural Gap', cls:'gap-m', title:'disease_areas.id values are used as foreign keys in 3+ tables',
+      body:'company_areas.area_id, drug_area_scores.disease_area, targets.disease_area, and potentially others FK to disease_areas.id. If disease_areas is cleaned up or replaced, all these FKs will break. An ontology_mappings table (legacy_id → new_id) must exist before any migration.',
+      fix:'CREATE TABLE ontology_mappings (legacy_area, new_therapeutic_area) before touching disease_areas'
+    },
+    { type:'Conceptual Gap', cls:'gap-m', title:'Relationship provenance: no source or confidence on entity-to-ontology links',
+      body:'Meridian cannot currently answer WHY a drug is classified in a given area — the relationship has no source, confidence level, or created_by field. The platform can tell you that SIM0709 is in Gastroenterology but cannot show the chain: SIM0709 → UC/CD → Gastroenterology (sourced from press release, confidence: high).',
+      fix:'Add source_id, confidence_level, relationship_type, and review_status to all major join tables (Phase 3)'
+    },
+    { type:'Version Gap', cls:'gap-m', title:'No ontology version tracking',
+      body:'If the disease_areas table is migrated to therapeutic_areas, there is no way to compare drug counts between ontology versions. A drug counted under "IBD" in v1 might land in "Gastroenterology" in v2 — without version tracking, this change is invisible.',
+      fix:'Add ontology_version field to major tables, or create an ontology_versions audit log'
+    },
+  ];
+
+  m.innerHTML = `<div class="ont-gaps">${gaps.map(g => `
+    <div class="ont-gap-card ${g.cls}">
+      <div class="ont-gap-type">${g.type}</div>
+      <div class="ont-gap-title">${g.title}</div>
+      <div class="ont-gap-body">${g.body}</div>
+      <div class="ont-gap-fix">→ ${g.fix}</div>
+    </div>`).join('')}</div>`;
+}
+
+// ── F: Migration Plan ─────────────────────────────────────────────────────────
+function _renderOntMigration(daRows) {
+  const m = document.getElementById('ont-migration-mount');
+  if (!m) return;
+
+  const TARGET_IDS   = ['tl1a','tslp','il4ra','fcrn','igf1r'];
+  const BAD_AREAS    = ['ted','atopy','autoimmune','t-cell'];
+
+  const currentBad  = daRows.filter(r => {
+    const id = (r.id||'').toLowerCase(), nm = (r.name||'').toLowerCase();
+    return TARGET_IDS.some(t=>id.includes(t)||nm.includes(t)) || BAD_AREAS.some(t=>id.includes(t)||nm.includes(t));
+  }).map(r => r.name||r.id);
+
+  const currentOk   = daRows.filter(r => {
+    const id = (r.id||'').toLowerCase(), nm = (r.name||'').toLowerCase();
+    return !TARGET_IDS.some(t=>id.includes(t)||nm.includes(t)) && !BAD_AREAS.some(t=>id.includes(t)||nm.includes(t));
+  }).map(r => r.name||r.id);
+
+  const proposedTA = ['Gastroenterology','Respiratory','Dermatology','Rheumatology','Neurology','Ophthalmology','Oncology'];
+  const proposedInd = ['UC','CD','EoE','Asthma','COPD','AD','CSU','HS','RA','SLE','Sjögren\'s','gMG','CIDP','TED','MM','ALL'];
+  const proposedBT  = ['autoimmune','atopy','type_2','type_17','fibrosis','eosinophilic','alarmin','complement','b_cell','autoantibody','pruritus','barrier_dysfunction','mast_cell','orbital_fibroblast','gut_microbiome'];
+
+  m.innerHTML = `
+    <div class="ont-mig">
+      <div class="ont-mig-col cur">
+        <div class="ont-mig-hd cur">⚠ Current: disease_areas (mixed)</div>
+        <div class="ont-mig-sh">Items that belong here (correct)</div>
+        ${currentOk.map(n=>`<div class="ont-mig-item good">${n}</div>`).join('') || '<div class="ont-mig-item neu">(none confirmed correct)</div>'}
+        <div class="ont-mig-sh">Items that are MISCLASSIFIED</div>
+        ${currentBad.map(n=>`<div class="ont-mig-item bad">${n}</div>`).join('') || '<div class="ont-mig-item neu">(loading…)</div>'}
+        <div class="ont-mig-sh">What's missing</div>
+        ${proposedTA.map(t=>`<div class="ont-mig-item bad">${t} (not present)</div>`).join('')}
+      </div>
+      <div class="ont-mig-col pro">
+        <div class="ont-mig-hd pro">✓ Proposed: three clean tables</div>
+        <div class="ont-mig-sh">therapeutic_areas (7 rows)</div>
+        ${proposedTA.map(t=>`<div class="ont-mig-item good">${t}</div>`).join('')}
+        <div class="ont-mig-sh">indications (16 rows, already mostly exists)</div>
+        ${proposedInd.map(t=>`<div class="ont-mig-item good">${t}</div>`).join('')}
+        <div class="ont-mig-sh">biology_tags (normalized, 15 rows)</div>
+        ${proposedBT.map(t=>`<div class="ont-mig-item good">${t}</div>`).join('')}
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px">3-Phase Safe Migration</div>
+      <div class="ont-phases">
+        <div class="ont-phase" style="border-top:4px solid #3b82f6">
+          <div class="ont-phase-num">Phase 1 · Add New Structure</div>
+          <div class="ont-phase-title">Create without breaking</div>
+          <div class="ont-phase-item">CREATE TABLE therapeutic_areas (id, name, description)</div>
+          <div class="ont-phase-item">CREATE TABLE routes_of_administration (id, name, abbreviation)</div>
+          <div class="ont-phase-item">CREATE TABLE ontology_mappings (legacy_area, new_therapeutic_area)</div>
+          <div class="ont-phase-item">Populate therapeutic_areas with 7 rows</div>
+          <div class="ont-phase-item">Populate ontology_mappings (ibd→gastroenterology, ted→ophthalmology, atopy→dermatology, autoimmune→rheumatology)</div>
+          <div class="ont-phase-item">Keep disease_areas untouched — dashboard still reads from it</div>
+        </div>
+        <div class="ont-phase" style="border-top:4px solid #f59e0b">
+          <div class="ont-phase-num">Phase 2 · Switch Logic</div>
+          <div class="ont-phase-title">Verify, then migrate</div>
+          <div class="ont-phase-item">Add therapeutic_area_id FK to indications table</div>
+          <div class="ont-phase-item">Run validation: every indication maps to exactly one therapeutic area</div>
+          <div class="ont-phase-item">Update dashboard widgets to read from therapeutic_areas via ontology_mappings</div>
+          <div class="ont-phase-item">Create drug_targets, drug_indications join tables</div>
+          <div class="ont-phase-item">Run coverage report: what % of drugs have proper joins?</div>
+          <div class="ont-phase-item">Verify ontology version v1 vs v2 counts match expectations</div>
+        </div>
+        <div class="ont-phase" style="border-top:4px solid #10b981">
+          <div class="ont-phase-num">Phase 3 · Clean Up</div>
+          <div class="ont-phase-title">Remove legacy structures</div>
+          <div class="ont-phase-item">Remove misclassified records from disease_areas (targets, TED, Atopy, Autoimmune)</div>
+          <div class="ont-phase-item">Deprecate disease_areas in favor of therapeutic_areas</div>
+          <div class="ont-phase-item">Normalize biology_tags into standalone table with indication_biology_tags join</div>
+          <div class="ont-phase-item">Add source_id + confidence_level to all join tables</div>
+          <div class="ont-phase-item">Run full relationship coverage report — target 90%+ drug coverage</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:14px 18px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:12px;color:#14532d;line-height:1.8">
+      <strong>The one rule to follow throughout migration:</strong><br>
+      The dashboard should reference IDs, not display names.
+      <code style="background:#dcfce7;padding:1px 5px;border-radius:3px">disease_area_id = "ibd"</code> is safe.
+      <code style="background:#dcfce7;padding:1px 5px;border-radius:3px">disease_area = "IBD"</code> is fragile.
+      If you use ontology_mappings as a translation layer, the dashboard never has to know about the migration — it just reads different rows.
+    </div>`;
+}
+
+registerTab('ontology', {
+  onEnter() { ontologyLoad(); }
+});
+
+</script>
+
+
+
 
 <script>
 // ── AUDIT TAB ─────────────────────────────────────────────────────────────────
