@@ -12876,7 +12876,10 @@ function _makeAreaPI(tabId, areaIds) {
     // ── Semicolon ICD-style forms (must precede splitting) ──
     ['Asthma; Eosinophilic','Eo-Asthma'],['Asthma; Severe','Sev. Asthma'],
     ['Asthma; Allergic','Allergic Asthma'],['Asthma Acute','Acute Asthma'],
-    ['Bronchial Asthma','Asthma'],
+    ['Bronchial Asthma','Asthma'],['Acute Asthma','Ac. Asthma'],['Asthma Acute','Ac. Asthma'],
+    ['Acute Exacerbation of Chronic Obstructive Pulmonary Disease','AECOPD'],
+    ['Acute Exacerbation of COPD','AECOPD'],['COPD Acute Exacerbation','AECOPD'],
+    ['Acute COPD Exacerbation','AECOPD'],
     ['COVID-19','COVID-19'],['SARS-CoV-2','COVID-19'],['Coronavirus Disease','COVID-19'],
     ['Acute Respiratory Distress Syndrome','ARDS'],['Acute Respiratory Distress','ARDS'],
     ['Acute Respiratory Infection','ARI'],['Viral Lung Infection','VLI'],
@@ -12902,7 +12905,8 @@ function _makeAreaPI(tabId, areaIds) {
     ['Moderately to Severely Active Crohn\'s Disease','Mod-Sev CD'],
     ['Moderately to Severely Active Crohn Disease','Mod-Sev CD'],
     ['Ulcerative Colitis','UC'],["Crohn's Disease",'CD'],['Crohn Disease','CD'],
-    ['Atopic Dermatitis','AD'],['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
+    ['Atopic Dermatitis','AD'],['Atopic Eczema','AD'],['Eczema, Atopic','AD'],['Eczema','AD'],
+    ['Rheumatoid Arthritis','RA'],['Psoriatic Arthritis','PsA'],
     ['Plaque Psoriasis','PsO'],['Psoriasis Vulgaris','PsO'],['Psoriasis','PsO'],
     ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
@@ -12991,6 +12995,7 @@ function _makeAreaPI(tabId, areaIds) {
     ['Cleft Lip and Palate','CL/P'],['Cleft Lip','CL'],['Cleft Palate','CP'],
     ['Crohns Disease','CD'],['Crohn Disease','CD'],
     // ── Musculoskeletal / Other ──
+    ['Spinal Cord Injuries','SCI'],['Spinal Cord Injury','SCI'],
     ['Developmental Dysplasia of the Hip','DDH'],['Hip Dysplasia','DDH'],
     ['Chronic Exertional Compartment Syndrome','CECS'],['Exertional Compartment Syndrome','ECS'],
     ['Liver Ablation','Liver Abl.'],
@@ -13021,6 +13026,7 @@ function _makeAreaPI(tabId, areaIds) {
     // Strip pSS artifact suffixes: "pSS's Syndrome" → "pSS", "pSS Disease" → "pSS"
     r = r.replace(/\bpSS('s)?\s+(Syndrome|Disease|Disorder)\b/gi, 'pSS');
     r = r.replace(/\bhealthy\s+(?:adult\s+|normal\s+|male\s+|female\s+)?(?:subjects?|volunteers?)\b/gi, 'HV');
+    r = r.replace(/\bHealthy\s+Vol\.?\b/g, 'HV');
     r = r.replace(/\bModerately\s+to\s+Severely\s+Active\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bModerate\s+to\s+Severe\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bMild\s+to\s+Moderate\s+/gi, 'Mild-Mod ');
