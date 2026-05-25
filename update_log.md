@@ -1,5 +1,31 @@
 
 ---
+## 2026-05-25 (Session 52) — Wave 2C IBD Preview + Track B/C/D parallel workstreams
+
+**Wave 2C — IBD Drug Indications Backfill — PREVIEW COMPLETE (awaiting advisor approval)**
+- Script: `scripts/wave2c_drug_indications_ibd_backfill.py` run with `--preview`
+- Run ID: `wave2c_ibd_20260525_203134` · 68 rows written to backfill_preview
+- 36 missing tl1a/ibd legacy drugs assessed; 32 mapped; 3 excluded; 1 held review_required
+- Indication breakdown: 32 UC rows · 31 CD rows · 31 UC+CD drugs · 1 UC-only (golimumab)
+- Review status mix: 11 auto_confirmed · 52 sampling_queue · 2 review_required (epi-001)
+- Confidence mix: 11 rows ≥95 (A) · 28 rows 90-94 (A/B) · 20 rows 85-89 (B) · 4 rows 80-84 (B)
+- **Expected post-commit tl1a/ibd match %: ≥97%** (above 95% threshold) ← PENDING ADVISOR APPROVAL
+- Exclusions (3): lm-302 (legacy_noise/gastric cancer) · sim0500 (legacy_noise/RRMM) · spy072 (ontology_scope_mismatch/PsA axSpA)
+- Data integrity flag: ep006 + es302 are duplicate drug_ids for ES302; both mapped, ep006 conf penalized to 85
+
+**Track B — Mismatch Classification enhanced in phase4_comparison_harness.md**
+- Added Wave 2C-specific mismatch classification table (6 categories: missing_relationship / legacy_noise / ontology_scope_mismatch / bridge_rule_needed / true_migration_blocker / coverage_gap)
+- Added Dashboard Function mismatch classifications (loadAreaDeals=bridge_rule_needed, loadAreaCatalysts=bridge_rule_needed, openDrugEntityModal=true_migration_blocker, tcell=true_migration_blocker)
+
+**Track C — Phase 4 Migration Readiness Indicator added to Indication Landscape Card**
+- Added "Migration Readiness" badge to card header (right column, below Competitive Density)
+- Statuses: ✅ Ready (≥95%) · 🟡 Close (70-94%) · 🔴 Blocked (active gating item) · ⛔ Not Ready
+- Current state per indication: asthma=Ready · ad/ted=Close · uc/cd=Blocked (Wave 2C pending) · gmg/sle=Not Ready
+- Source: COMPARISON_READINESS constant in index.html, seeded from phase4_comparison_harness.md data
+
+**Deploy commits:** a9829d58b1 (harness.md) · ff37daa24e (index.html)
+
+---
 ## 2026-05-25 (Session 51) — Phase 4 Comparison Harness built
 
 **Phase 4 Comparison Harness — COMPLETE**
