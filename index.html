@@ -10107,6 +10107,13 @@ function _cemLink(name, query) {
   const url = _cemGq(query || name);
   return `<a class="cem-link" href="${url}" target="_blank" rel="noopener">${name}</a>`;
 }
+/* _cemTrialLink — NCT IDs go directly to clinicaltrials.gov/study/NCTXXXXXX;
+   anything else falls back to a Google search via _cemLink */
+function _cemTrialLink(label, nctId) {
+  const nct = (nctId||'').match(/NCT\d{6,}/i)?.[0] || (label||'').match(/NCT\d{6,}/i)?.[0];
+  if (nct) return `<a class="cem-link" href="https://clinicaltrials.gov/study/${nct.toUpperCase()}" target="_blank" rel="noopener">${label||nct}</a>`;
+  return _cemLink(label, label);
+}
 
 function _cemFmtDate(d) {
   if (!d) return '';
@@ -10206,7 +10213,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
     <div class="cem-item-row">
       ${_cemPhasePill(t.phase)}
       <div>
-        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(t.trial_name||t.indication||'Trial', (t.trial_name||'')+ ' '+drugName+' clinical trial')}</div>
+        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemTrialLink(t.trial_name||t.indication||'Trial', t.nct_id)}</div>
         <div style="font-size:10.5px;color:#64748b">${t.indication||''} ${t.status?'· '+t.status:''}</div>
       </div>
     </div>`).join('');
@@ -10216,14 +10223,14 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
     <table class="cem-tbl"><thead><tr><th>Phase</th><th>Trial</th><th>Indication</th><th>Status</th><th>N</th></tr></thead><tbody>
     ${(trials||[]).map(t => `<tr>
       <td>${_cemPhasePill(t.phase)}</td>
-      <td>${_cemLink(t.trial_name||'—', (t.trial_name||'')+' '+drugName)}</td>
+      <td>${_cemTrialLink(t.trial_name||'—', t.nct_id)}</td>
       <td style="color:#64748b">${t.indication||'—'}</td>
       <td style="color:#64748b">${t.status||'—'}</td>
       <td style="color:#64748b">${t.n_enrollment||'—'}</td>
     </tr>`).join('')}
     </tbody></table>
     ${(trials||[]).filter(t=>t.primary_endpoint).slice(0,3).map(t =>
-      `<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;border:0.5px solid #e2e8f0"><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">${t.trial_name||''} — Primary endpoint</div><div style="font-size:11px;color:#1e293b">${(t.primary_endpoint||'').slice(0,200)}</div></div>`
+      `<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;border:0.5px solid #e2e8f0"><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">${_cemTrialLink(t.trial_name||t.nct_id||'Trial', t.nct_id)} — Primary endpoint</div><div style="font-size:11px;color:#1e293b">${(t.primary_endpoint||'').slice(0,200)}</div></div>`
     ).join('')}
   </div>`;
 
@@ -11013,7 +11020,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,nct_id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
