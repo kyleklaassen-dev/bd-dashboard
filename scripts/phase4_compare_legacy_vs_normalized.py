@@ -19,11 +19,12 @@ Comparison targets:
   - trials (legacy drug_id join) vs trial_indications (normalized)
 
 Status values:
-  match                — legacy and normalized produce equivalent results
-  acceptable_mismatch  — normalized has more/fewer but difference is expected and documented
-  needs_rule_adjustment — mismatch points to missing alias, incomplete coverage, or governance gap
-  migration_blocker    — DO NOT migrate this path; normalized source is not ready
-  not_ready            — fundamental mapping doesn't exist yet
+  match                       — legacy and normalized produce equivalent results
+  compare_pass_oos_adjusted   — raw% < 95% but OOS-adjusted% ≥ 95%; confirmed OOS drugs excluded from denominator
+  acceptable_mismatch         — normalized has more/fewer but difference is expected and documented
+  needs_rule_adjustment       — mismatch points to missing alias, incomplete coverage, or governance gap
+  migration_blocker           — DO NOT migrate this path; normalized source is not ready
+  not_ready                   — fundamental mapping doesn't exist yet
 """
 
 import argparse
@@ -81,6 +82,21 @@ IND_TO_AREA: dict[str, list[str]] = defaultdict(list)
 for area, inds in AREA_TO_IND.items():
     for ind in inds:
         IND_TO_AREA[ind].append(area)
+
+# ── OOS (out-of-scope) governance ─────────────────────────────────────────────
+# Standing governance rule (2026-05-25, advisor decision — Option A):
+# "Do not contaminate normalized truth to match legacy noise."
+# If a legacy drug_areas record is proven out-of-scope for the mapped indication,
+# exclude it from the migration-readiness denominator (OOS-adjusted coverage).
+# These are PERMANENT exclusions — do NOT add them to drug_indications.
+#
+#   lm-302   = gastric ADC — placed in tl1a/ibd legacy areas by curation error
+#   sim0500  = RRMM trispecific — placed in tl1a/ibd legacy areas by curation error
+#   spy072   = TL1A-targeting antibody for PsA/axSpA (rheumatology, not IBD)
+CONFIRMED_OOS_BY_AREA: dict[str, set] = {
+    "tl1a": {"lm-302", "sim0500", "spy072"},
+    "ibd":  {"lm-302", "sim0500"},
+}
 
 # Status classification rules (applied after comparison)
 # Thresholds are conservative — lower bound triggers migration_blocker
@@ -176,10 +192,17 @@ def load_all() -> dict:
 
 # ── Comparison logic ──────────────────────────────────────────────────────────
 def classify_status(match_pct: float, legacy_cnt: int, norm_cnt: int,
-                    extra_legacy: list, extra_norm: list) -> tuple[str, str]:
+                    extra_legacy: list, extra_norm: list,
+                    oos_adjusted_pct: float | None = None,
+                    oos_count: int = 0) -> tuple[str, str]:
     """
     Returns (status, note) based on match percentage and population characteristics.
     Conservative: favour migration_blocker over optimistic assessment.
+
+    oos_adjusted_pct: if provided, the effective coverage after removing confirmed OOS drugs
+                      from the legacy denominator. If this meets MATCH_THRESHOLD but raw
+                      does not, status becomes compare_pass_oos_adjusted.
+    oos_count: number of confirmed OOS drugs removed from the denominator.
     """
     if legacy_cnt == 0 and norm_cnt == 0:
         return "not_ready", "Neither legacy nor normalized has data for this area."
@@ -210,14 +233,24 @@ def classify_status(match_pct: float, legacy_cnt: int, norm_cnt: int,
         )
 
     if match_pct < MATCH_THRESHOLD:
+        # Check OOS-adjusted path before falling through to acceptable_mismatch
+        if oos_adjusted_pct is not None and oos_adjusted_pct >= MATCH_THRESHOLD:
+            return "compare_pass_oos_adjusted", (
+                f"Raw {match_pct:.1f}% < 95% threshold, but OOS-adjusted coverage is "
+                f"{oos_adjusted_pct:.1f}% ≥ 95% after removing {oos_count} confirmed "
+                f"out-of-scope legacy drug(s) from denominator. "
+                "Governance rule (2026-05-25): confirmed OOS drugs excluded from "
+                "migration-readiness denominator. Ready for Phase 4 compare pass — "
+                "NOT Phase 5 migration (requires dual-read validation first)."
+            )
         return "acceptable_mismatch", (
-            f"{match_pct:.0f}% legacy coverage. {len(extra_norm)} extra drugs in normalized "
+            f"{match_pct:.1f}% legacy coverage. {len(extra_norm)} extra drugs in normalized "
             "are expected — the ontology is more complete than the legacy area curation. "
             "Review extra_legacy list for any true missing rows."
         )
 
     return "match", (
-        f"{match_pct:.0f}% of legacy drugs represented in normalized. "
+        f"{match_pct:.1f}% of legacy drugs represented in normalized. "
         "Extra normalized drugs are genuine ontology expansion, not regressions."
     )
 
@@ -251,8 +284,18 @@ def compare_area(area_id: str, data: dict) -> dict:
 
     match_pct = (len(overlap) / len(legacy_drugs) * 100) if legacy_drugs else 0.0
 
+    # OOS-adjusted coverage: remove confirmed OOS drugs from denominator
+    oos_drugs_for_area = CONFIRMED_OOS_BY_AREA.get(area_id, set())
+    oos_in_legacy = legacy_drugs & oos_drugs_for_area   # OOS drugs actually present in legacy
+    oos_count = len(oos_in_legacy)
+    oos_adjusted_denominator = len(legacy_drugs) - oos_count
+    oos_adjusted_pct: float | None = None
+    if oos_count > 0 and oos_adjusted_denominator > 0:
+        oos_adjusted_pct = len(overlap) / oos_adjusted_denominator * 100
+
     status, note = classify_status(
-        match_pct, len(legacy_drugs), len(norm_drugs), extra_legacy, extra_norm
+        match_pct, len(legacy_drugs), len(norm_drugs), extra_legacy, extra_norm,
+        oos_adjusted_pct=oos_adjusted_pct, oos_count=oos_count,
     )
 
     # Deal + catalyst counts (legacy)
@@ -263,23 +306,27 @@ def compare_area(area_id: str, data: dict) -> dict:
         return [(d, drug_names.get(d, d)) for d in sorted(ids)[:limit]]
 
     return {
-        "area_id":          area_id,
-        "ind_ids":          ind_ids,
-        "legacy_count":     len(legacy_drugs),
-        "legacy_score_count": len(legacy_score_drugs),
-        "norm_count":       len(norm_drugs),
-        "overlap_count":    len(overlap),
-        "match_pct":        round(match_pct, 1),
-        "extra_legacy":     extra_legacy,
-        "extra_norm":       extra_norm,
-        "norm_trials":      len(norm_trials),
-        "drugs_with_targets": len(drugs_with_targets),
-        "deal_count":       deal_count,
-        "cat_count":        cat_count,
-        "status":           status,
-        "note":             note,
-        "extra_legacy_names": _names(extra_legacy),
-        "extra_norm_names":   _names(extra_norm),
+        "area_id":              area_id,
+        "ind_ids":              ind_ids,
+        "legacy_count":         len(legacy_drugs),
+        "legacy_score_count":   len(legacy_score_drugs),
+        "norm_count":           len(norm_drugs),
+        "overlap_count":        len(overlap),
+        "match_pct":            round(match_pct, 1),
+        "oos_count":            oos_count,
+        "oos_drugs":            sorted(oos_in_legacy),
+        "oos_adjusted_pct":     round(oos_adjusted_pct, 1) if oos_adjusted_pct is not None else None,
+        "confirmed_oos_legacy_noise": sorted(oos_drugs_for_area),
+        "extra_legacy":         extra_legacy,
+        "extra_norm":           extra_norm,
+        "norm_trials":          len(norm_trials),
+        "drugs_with_targets":   len(drugs_with_targets),
+        "deal_count":           deal_count,
+        "cat_count":            cat_count,
+        "status":               status,
+        "note":                 note,
+        "extra_legacy_names":   _names(extra_legacy),
+        "extra_norm_names":     _names(extra_norm),
     }
 
 
@@ -327,6 +374,16 @@ def compare_dashboard_functions(data: dict) -> list[dict]:
     ibd_legacy = data["da_by_area"].get("ibd", set()) | data["da_by_area"].get("tl1a", set())
     ibd_norm = data["di_by_ind"].get("uc", set()) | data["di_by_ind"].get("cd", set())
     ibd_overlap = ibd_legacy & ibd_norm
+    ibd_raw_pct = round(len(ibd_overlap)/len(ibd_legacy)*100, 1) if ibd_legacy else 0
+    # OOS for combined ibd+tl1a legacy union
+    ibd_oos = (CONFIRMED_OOS_BY_AREA.get("ibd", set()) |
+               CONFIRMED_OOS_BY_AREA.get("tl1a", set())) & ibd_legacy
+    ibd_oos_adj_denom = len(ibd_legacy) - len(ibd_oos)
+    ibd_oos_adj_pct = (round(len(ibd_overlap)/ibd_oos_adj_denom*100, 1)
+                       if ibd_oos_adj_denom > 0 else None)
+    ibd_fn_status = "migration_blocker"
+    if ibd_oos_adj_pct is not None and ibd_oos_adj_pct >= MATCH_THRESHOLD:
+        ibd_fn_status = "compare_pass_oos_adjusted"
     results.append({
         "function":       "_makeAreaPI() — IBD/TL1A tab",
         "lines":          "12121–12200",
@@ -335,16 +392,23 @@ def compare_dashboard_functions(data: dict) -> list[dict]:
         "legacy_count":   len(ibd_legacy),
         "norm_count":     len(ibd_norm),
         "overlap_count":  len(ibd_overlap),
-        "match_pct":      round(len(ibd_overlap)/len(ibd_legacy)*100, 1) if ibd_legacy else 0,
+        "match_pct":      ibd_raw_pct,
         "extra_legacy":   sorted(ibd_legacy - ibd_norm),
         "extra_norm":     sorted(ibd_norm - ibd_legacy),
-        "status":         "migration_blocker",
+        "status":         ibd_fn_status,
         "notes": (
             f"Legacy ibd+tl1a areas contain {len(ibd_legacy)} drugs. "
-            f"drug_indications covers only {len(ibd_norm)} UC+CD drugs ({len(ibd_overlap)} overlap). "
-            f"Migrating _makeAreaPI now would drop ~{len(ibd_legacy - ibd_norm)} drugs "
-            "from the IBD/TL1A tab drug list. drug_indications needs full backfill "
-            "before this path can be cut over."
+            f"drug_indications covers {len(ibd_norm)} UC+CD drugs ({len(ibd_overlap)} overlap). "
+            f"Raw coverage: {ibd_raw_pct}%. "
+            + (f"OOS-adjusted coverage: {ibd_oos_adj_pct}% after removing {len(ibd_oos)} confirmed "
+               f"OOS drugs ({sorted(ibd_oos)}). "
+               "Governance rule (2026-05-25): OOS drugs are legacy curation noise — "
+               "do NOT add them to drug_indications. "
+               "Ready for Phase 4 dual-read comparison — NOT Phase 5 migration."
+               if ibd_fn_status == "compare_pass_oos_adjusted"
+               else f"Migrating _makeAreaPI now would drop ~{len(ibd_legacy - ibd_norm)} drugs "
+                    "from the IBD/TL1A tab drug list. drug_indications needs full backfill "
+                    "before this path can be cut over.")
         ),
     })
 
@@ -429,11 +493,12 @@ def compare_dashboard_functions(data: dict) -> list[dict]:
 
 # ── Formatters ────────────────────────────────────────────────────────────────
 STATUS_ICON = {
-    "match":                "✅",
-    "acceptable_mismatch":  "🟡",
-    "needs_rule_adjustment": "🟠",
-    "migration_blocker":    "🔴",
-    "not_ready":            "⛔",
+    "match":                     "✅",
+    "compare_pass_oos_adjusted": "🟢",
+    "acceptable_mismatch":       "🟡",
+    "needs_rule_adjustment":     "🟠",
+    "migration_blocker":         "🔴",
+    "not_ready":                 "⛔",
 }
 
 def format_report(area_results: list, fn_results: list, data: dict) -> str:
@@ -453,10 +518,26 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("| Status | Icon | Meaning |")
     lines.append("|---|---|---|")
     lines.append("| match | ✅ | Legacy and normalized produce equivalent results |")
+    lines.append("| compare_pass_oos_adjusted | 🟢 | Raw% < 95% but OOS-adjusted% ≥ 95%; confirmed OOS drugs excluded from denominator per governance rule (2026-05-25). Ready for Phase 4 dual-read — NOT Phase 5 migration. |")
     lines.append("| acceptable_mismatch | 🟡 | Normalized has more/different but difference is expected and safe |")
     lines.append("| needs_rule_adjustment | 🟠 | Gap points to a missing alias, incomplete coverage, or governance rule |")
     lines.append("| migration_blocker | 🔴 | Do NOT migrate — normalized source is not ready for production use |")
     lines.append("| not_ready | ⛔ | Fundamental mapping doesn't exist yet |")
+    lines.append("")
+    lines.append("### Governance Rule — OOS Exclusion (2026-05-25)")
+    lines.append("")
+    lines.append("> **Do not contaminate normalized truth to match legacy noise.**")
+    lines.append("> If a legacy `drug_areas` record is proven out-of-scope for the mapped indication,")
+    lines.append("> exclude it from the migration-readiness denominator.")
+    lines.append("> These are permanent exclusions — do NOT add them to `drug_indications`.")
+    lines.append("")
+    lines.append("| Area | Confirmed OOS Drug | Reason |")
+    lines.append("|---|---|---|")
+    lines.append("| tl1a | `lm-302` | Gastric ADC — placed in tl1a/ibd legacy areas by curation error |")
+    lines.append("| tl1a | `sim0500` | RRMM trispecific — placed in tl1a/ibd legacy areas by curation error |")
+    lines.append("| tl1a | `spy072` | TL1A antibody targeting PsA/axSpA (rheumatology, not IBD) |")
+    lines.append("| ibd | `lm-302` | Same as above |")
+    lines.append("| ibd | `sim0500` | Same as above |")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -475,14 +556,17 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     # Summary table
     lines.append("### Summary Table")
     lines.append("")
-    lines.append("| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Match% | Trials | Status |")
-    lines.append("|---|---|---|---|---|---|---|---|")
+    lines.append("| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw Match% | OOS Excl. | OOS-Adj% | Trials | Status |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
     for r in sorted(area_results, key=lambda x: x["match_pct"]):
         icon = STATUS_ICON.get(r["status"], "?")
         inds = ", ".join(r["ind_ids"])
         trials = str(r["norm_trials"]) if r["norm_trials"] is not None else "—"
+        oos_excl = str(r["oos_count"]) if r["oos_count"] else "—"
+        oos_adj = f"{r['oos_adjusted_pct']}%" if r["oos_adjusted_pct"] is not None else "—"
         lines.append(f"| `{r['area_id']}` | {inds} | {r['legacy_count']} | {r['norm_count']} | "
-                     f"{r['overlap_count']} | {r['match_pct']}% | {trials} | {icon} {r['status']} |")
+                     f"{r['overlap_count']} | {r['match_pct']}% | {oos_excl} | {oos_adj} | "
+                     f"{trials} | {icon} {r['status']} |")
     lines.append("")
 
     # Detail per area
@@ -498,7 +582,10 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
         lines.append(f"| Legacy drugs (`drug_area_scores`) | {r['legacy_score_count']} |")
         lines.append(f"| Normalized drugs (`drug_indications`) | {r['norm_count']} |")
         lines.append(f"| Overlap | {r['overlap_count']} |")
-        lines.append(f"| Match % | {r['match_pct']}% |")
+        lines.append(f"| Raw match % | {r['match_pct']}% |")
+        if r["oos_count"]:
+            lines.append(f"| Confirmed OOS excluded (`confirmed_oos_legacy_noise`) | {r['oos_count']} ({', '.join(r['oos_drugs'])}) |")
+            lines.append(f"| OOS-adjusted match % | {r['oos_adjusted_pct']}% |")
         lines.append(f"| Extra in legacy only | {len(r['extra_legacy'])} |")
         lines.append(f"| Extra in normalized only | {len(r['extra_norm'])} |")
         lines.append(f"| Normalized trial count (`trial_indications`) | {r['norm_trials']} |")
@@ -628,20 +715,31 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("")
     lines.append("### Per-Indication Criteria")
     lines.append("")
-    lines.append("| Indication(s) | Required Match % | Current | Criteria Met? |")
-    lines.append("|---|---|---|---|")
+    lines.append("| Indication(s) | Required | Raw% | OOS-Adj% | OOS Excl. | Criteria Met? |")
+    lines.append("|---|---|---|---|---|---|")
     for r in sorted(area_results, key=lambda x: x["match_pct"], reverse=True):
         required = 95
-        met = "✅" if r["match_pct"] >= required else "❌"
+        raw_met = r["match_pct"] >= required
+        oos_met = (r["oos_adjusted_pct"] is not None and r["oos_adjusted_pct"] >= required)
+        if raw_met:
+            met = "✅ raw"
+        elif oos_met:
+            met = "🟢 OOS-adj"
+        else:
+            met = "❌"
         inds = ", ".join(r["ind_ids"])
-        lines.append(f"| `{r['area_id']}` → {inds} | ≥{required}% | {r['match_pct']}% | {met} |")
+        oos_excl = str(r["oos_count"]) if r["oos_count"] else "—"
+        oos_adj = f"{r['oos_adjusted_pct']}%" if r["oos_adjusted_pct"] is not None else "—"
+        lines.append(f"| `{r['area_id']}` → {inds} | ≥{required}% | {r['match_pct']}% | {oos_adj} | {oos_excl} | {met} |")
+    lines.append("")
+    lines.append("_🟢 OOS-adj = passes after removing confirmed OOS drugs from denominator per governance rule (2026-05-25)._")
     lines.append("")
     lines.append("### Dashboard Function Criteria")
     lines.append("")
     lines.append("| Function | Blocking Condition | Resolved? |")
     lines.append("|---|---|---|")
     lines.append("| `openDrugEntityModal()` | drug_indications must have competitive enrichment data (overlap, rationale, cls) | ❌ Not yet — enrichment migration pending |")
-    lines.append("| `_makeAreaPI()` IBD/TL1A | drug_indications must cover all 50 IBD/TL1A drugs | ❌ Only 17/50 covered |")
+    lines.append("| `_makeAreaPI()` IBD/TL1A | OOS-adjusted coverage ≥ 95% — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (OOS-adjusted) |")
     lines.append("| `loadAreaDeals()` | deals.indication_id FK must exist | ❌ Column does not exist |")
     lines.append("| `loadAreaCatalysts()` | area_id→indication_id bridge must exist for catalysts | ❌ Bridge not built |")
     lines.append("| Trial + Signal feeds | trials.indication_id must be backfilled from trial_indications | ❌ trials.indication_id is NULL |")
@@ -651,27 +749,42 @@ def format_report(area_results: list, fn_results: list, data: dict) -> str:
     lines.append("")
     lines.append("## Phase 4 Overall Status")
     lines.append("")
-    n_match = sum(1 for r in area_results if r["status"] == "match")
+    n_match  = sum(1 for r in area_results if r["status"] == "match")
+    n_oos    = sum(1 for r in area_results if r["status"] == "compare_pass_oos_adjusted")
     n_accept = sum(1 for r in area_results if r["status"] == "acceptable_mismatch")
-    n_needs = sum(1 for r in area_results if r["status"] == "needs_rule_adjustment")
-    n_block = sum(1 for r in area_results if r["status"] == "migration_blocker")
+    n_needs  = sum(1 for r in area_results if r["status"] == "needs_rule_adjustment")
+    n_block  = sum(1 for r in area_results if r["status"] == "migration_blocker")
     n_nready = sum(1 for r in area_results if r["status"] == "not_ready")
 
     lines.append(f"**Comparison date:** {now}")
     lines.append(f"**Areas compared:** {len(area_results)}")
     lines.append(f"- ✅ match: {n_match}")
+    lines.append(f"- 🟢 compare_pass_oos_adjusted: {n_oos}")
     lines.append(f"- 🟡 acceptable_mismatch: {n_accept}")
     lines.append(f"- 🟠 needs_rule_adjustment: {n_needs}")
     lines.append(f"- 🔴 migration_blocker: {n_block}")
     lines.append(f"- ⛔ not_ready: {n_nready}")
     lines.append("")
-    lines.append("**Verdict:** Phase 4 migration is **NOT YET SAFE**. "
-                 "Blockers must be resolved before any dashboard query is switched. "
-                 "See Part 3 for specific blocking conditions.")
+
+    oos_pass_areas = [r["area_id"] for r in area_results if r["status"] == "compare_pass_oos_adjusted"]
+    if oos_pass_areas:
+        lines.append(f"**OOS-adjusted pass areas:** {', '.join(oos_pass_areas)}  ")
+        lines.append("These areas meet the 95% migration-readiness threshold after removing confirmed "
+                     "OOS drugs from the legacy denominator. Ready for **Phase 4 dual-read validation**. "
+                     "Do NOT advance to Phase 5 (migration) until dual-read comparison confirms zero regressions.")
+        lines.append("")
+
+    if n_block > 0 or n_nready > 0:
+        lines.append("**Verdict:** Phase 4 migration is **NOT YET SAFE** for all areas. "
+                     "Remaining blockers must be resolved before any dashboard query is switched. "
+                     "See Part 3 for specific blocking conditions.")
+    else:
+        lines.append("**Verdict:** All areas are at match or compare_pass_oos_adjusted. "
+                     "Proceed to Phase 4 dual-read validation before Phase 5 migration.")
     lines.append("")
-    lines.append("**Next action (Track A):** Expand drug_indications coverage "
-                 "for tl1a/ibd area drugs — currently at 30% coverage. "
-                 "This is the primary gating item.")
+    lines.append("**Next action (Track D):** Build Phase 4 dual-read layer for `_makeAreaPI` and "
+                 "`openDrugEntityModal` — parallel read paths, assert row count parity, "
+                 "log any visual regressions. Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.")
     lines.append("")
 
     return "\n".join(lines)
