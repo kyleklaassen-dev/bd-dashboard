@@ -1105,7 +1105,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 /* ══ ENTITY MODAL — center-screen deep-dive card ═══════════════ */
 .entity-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6); backdrop-filter: blur(5px); z-index: 950; align-items: center; justify-content: center; padding: 12px; }
 .entity-modal-overlay.open { display: flex; }
-.entity-modal-card { background: white; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.32); width: 100%; max-width: min(1520px, 96vw); max-height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
+.entity-modal-card { background: white; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.32); width: 100%; max-width: min(980px, 96vw); max-height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
 .entity-modal-hd { background: #0d1f38; color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; border-radius: 12px 12px 0 0; }
 .entity-modal-title { font-size: 18px; font-weight: 900; letter-spacing: -0.3px; }
 .entity-modal-sub { font-size: 11px; opacity: 0.6; margin-top: 3px; }
@@ -1138,7 +1138,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .cem-stat-lbl { font-size:10px; color:#94a3b8; margin-bottom:3px; }
 .cem-stat-val { font-size:16px; font-weight:700; color:#0f172a; }
 .cem-stat-sub { font-size:10px; color:#64748b; margin-top:1px; }
-.cem-interp { margin:14px 20px 0; padding:12px 14px; background:#f5f3ff; border-radius:8px; border-left:3px solid #7c3aed; }
+.cem-interp { margin:14px 20px 0; padding:12px 14px; background:#fafafa; border-radius:8px; border:1px solid #ede9fe; border-left:3px solid #7c3aed; }
 .cem-interp-hd { font-size:10px; font-weight:700; color:#5b21b6; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
 .cem-interp-hd:hover { opacity:.8; }
 .cem-interp-dots { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
@@ -1185,6 +1185,16 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .cem-dot-gry { width:6px; height:6px; border-radius:50%; background:#94a3b8; flex-shrink:0; margin-top:4px; }
 .cem-sig-type { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
 .cem-footer-note { padding:10px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; }
+.cem-conf { text-align:right; flex-shrink:0; min-width:110px; }
+.cem-conf-lbl { font-size:9px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.cem-conf-track { background:rgba(255,255,255,0.18); border-radius:3px; height:4px; margin-bottom:4px; overflow:hidden; }
+.cem-conf-fill { height:4px; border-radius:3px; }
+.cem-conf-pct { font-size:22px; font-weight:800; color:white; line-height:1; }
+.cem-conf-date { font-size:9px; color:rgba(255,255,255,0.4); margin-top:3px; }
+.cem-id-pills { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:7px; }
+.cem-id-pill { font-size:9px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap; letter-spacing:.03em; }
+.cem-id-pill-type { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.9); }
+.cem-id-pill-area { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.65); font-size:8.5px; }
 .dossier-tabs { display:flex; gap:0; border-bottom:2px solid #e2e8f0; background:#f8fafc; flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
 .dossier-tabs::-webkit-scrollbar { display:none; }
 .dossier-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:9px 14px 8px; font-size:11px; font-weight:700; color:#64748b; cursor:pointer; transition:color 0.12s,border-color 0.12s; white-space:nowrap; letter-spacing:0.03em; }
@@ -3630,10 +3640,11 @@ function loadMoleculeTab(tabId) {
  <div class="entity-modal-card">
   <div class="entity-modal-hd">
    <div style="flex:1;min-width:0">
+    <div class="entity-modal-hd-chips" id="entity-modal-hd-chips"></div>
     <div class="entity-modal-title" id="entity-modal-title"></div>
     <div class="entity-modal-sub" id="entity-modal-sub"></div>
-    <div class="entity-modal-hd-chips" id="entity-modal-hd-chips"></div>
    </div>
+   <div id="entity-modal-conf" class="cem-conf"></div>
    <button class="entity-modal-close" onclick="closeEntityModal()" title="Close">✕</button>
   </div>
   <div class="entity-modal-body" id="entity-modal-body">
@@ -10271,6 +10282,46 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
 
   const coQuery = companyName ? companyName + ' ' + drugName + ' pipeline' : drugName + ' clinical trial';
 
+  // Header — identity pills + confidence bar
+  const _cemDrugChipsEl = document.getElementById('entity-modal-hd-chips');
+  const _cemDrugConfEl  = document.getElementById('entity-modal-conf');
+  const _cemDrugSubEl   = document.getElementById('entity-modal-sub');
+  if (_cemDrugChipsEl) {
+    const phaseLabel   = phase ? phase.replace(/^Phase\s*/i,'Ph') : '';
+    const licLabel     = drug.partner_company ? 'Out-licensed' : '';
+    const areaLabelsStr = (areas||[]).map(a=>(window._AREA_LABEL||{})[a.area_id]||a.area_id).filter(Boolean).join(' · ');
+    const pills = [
+      `<span class="cem-id-pill cem-id-pill-type">Drug</span>`,
+      phaseLabel ? `<span class="cem-id-pill cem-id-pill-type">${phaseLabel}</span>` : '',
+      licLabel   ? `<span class="cem-id-pill cem-id-pill-type">${licLabel}</span>` : '',
+      areaLabelsStr ? `<span class="cem-id-pill cem-id-pill-area">${areaLabelsStr}</span>` : '',
+    ].filter(Boolean);
+    _cemDrugChipsEl.innerHTML = pills.join('');
+  }
+  if (_cemDrugSubEl) {
+    const mech  = mechanism || target || '';
+    const ind   = drug.indication_short || '';
+    const fmt   = drug.format || drug.cls || '';
+    const parts = [companyName, fmt||mech, ind].filter(Boolean);
+    _cemDrugSubEl.textContent = parts.length ? parts.join(' · ') : 'Drug Profile';
+  }
+  if (_cemDrugConfEl) {
+    const rawScore = drug.completeness_score;
+    const areaConf = areas?.[0]?.confidence_level;
+    const confMap  = {High:88, Medium:65, Low:40};
+    const scoreNum = rawScore != null ? Math.min(100, Math.max(0, Number(rawScore)))
+                   : areaConf ? (confMap[areaConf] || 65) : null;
+    const fillColor = scoreNum >= 80 ? '#4ade80' : scoreNum >= 50 ? '#fb923c' : '#f87171';
+    const updDate  = drug.updated_at ? drug.updated_at.slice(0,10) : '';
+    const updLabel = updDate ? (() => { try { const d=new Date(updDate); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return updDate;} })() : '';
+    _cemDrugConfEl.innerHTML = scoreNum != null ? `
+      <div class="cem-conf-lbl">Meridian confidence</div>
+      <div class="cem-conf-pct">${scoreNum}%</div>
+      <div class="cem-conf-track"><div class="cem-conf-fill" style="width:${scoreNum}%;background:${fillColor}"></div></div>
+      ${updLabel ? `<div class="cem-conf-date">Updated ${updLabel}</div>` : ''}
+    ` : '';
+  }
+
   return `
   ${statsHtml}
   ${interpHtml}
@@ -10348,16 +10399,36 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const bd = profile.bd_intelligence      || null;
   const companyName = prog?.co || '';
 
-  // Header chips (existing element)
+  // Header — identity pills + confidence bar
   const chipsEl = document.getElementById('entity-modal-hd-chips');
+  const confEl  = document.getElementById('entity-modal-conf');
+  const subEl2  = document.getElementById('entity-modal-sub');
   if (chipsEl) {
-    const bestOv = sbDrugs?.[0]?.overlap || '';
-    const ovCls = {Direct:'em-hd-chip-direct',Adjacent:'em-hd-chip-adjacent','Same-Space':'em-hd-chip-same',Watch:'em-hd-chip-watch'}[bestOv] || '';
-    const ovChip = bestOv ? `<span class="em-hd-chip ${ovCls}">${bestOv}</span>` : '';
-    const score = profile.completeness_score;
-    const scoreCls = score>=80?'em-hd-chip-score':score>=50?'em-hd-chip-score partial':'em-hd-chip-score thin';
-    const scoreChip = score!=null ? `<span class="em-hd-chip ${scoreCls}">Coverage ${score}%</span>` : '';
-    chipsEl.innerHTML = [ovChip, scoreChip].filter(Boolean).join('');
+    const coType   = profile.company_type || '';
+    const typePill = `<span class="cem-id-pill cem-id-pill-type">Company</span>`;
+    const szPill   = coType ? `<span class="cem-id-pill cem-id-pill-type">${coType}</span>` : '';
+    const areaPill = areaLabel ? `<span class="cem-id-pill cem-id-pill-area">${areaLabel}</span>` : '';
+    chipsEl.innerHTML = [typePill, szPill, areaPill].filter(Boolean).join('');
+  }
+  if (subEl2) {
+    const ticker = profile.ticker || '';
+    const sector = profile.sector || profile.primary_indication || '';
+    const hq     = profile.hq || profile.location || '';
+    const parts  = [ticker, sector, hq].filter(Boolean);
+    subEl2.textContent = parts.length ? parts.join(' · ') : 'Company Profile';
+  }
+  if (confEl) {
+    const score    = profile.completeness_score;
+    const scoreNum = score != null ? Math.min(100, Math.max(0, Number(score))) : null;
+    const fillColor = scoreNum >= 80 ? '#4ade80' : scoreNum >= 50 ? '#fb923c' : '#f87171';
+    const updDate  = profile.updated_at ? profile.updated_at.slice(0,10) : profile.last_enriched_at ? profile.last_enriched_at.slice(0,10) : '';
+    const updLabel = updDate ? (() => { try { const d=new Date(updDate); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return updDate;} })() : '';
+    confEl.innerHTML = scoreNum != null ? `
+      <div class="cem-conf-lbl">Meridian confidence</div>
+      <div class="cem-conf-pct">${scoreNum}%</div>
+      <div class="cem-conf-track"><div class="cem-conf-fill" style="width:${scoreNum}%;background:${fillColor}"></div></div>
+      ${updLabel ? `<div class="cem-conf-date">Updated ${updLabel}</div>` : ''}
+    ` : '';
   }
 
   // Summary stats
