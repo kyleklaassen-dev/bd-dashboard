@@ -1131,6 +1131,20 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .em-hd-chip-bd       { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
 /* Dossier body — turns entity-modal-body into a tab container */
 .entity-modal-body.dossier-mode { padding:0; display:flex; flex-direction:column; overflow:hidden; }
+/* ── CEM area filter bar ──────────────────────────────────────────────── */
+.cem-area-filter { display:flex; align-items:center; gap:6px; padding:8px 20px 0; flex-shrink:0; flex-wrap:wrap; border-bottom:0 none; }
+.cem-area-filter-lbl { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.07em; color:#94a3b8; white-space:nowrap; margin-right:2px; }
+.cem-area-pill { font-size:10px; font-weight:700; padding:3px 11px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; cursor:pointer; transition:all 0.12s; white-space:nowrap; letter-spacing:0.02em; }
+.cem-area-pill:hover:not(.active) { background:#f1f5f9; color:#334155; }
+.cem-area-pill.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+/* ── CEM tab panel – Assessment area blocks ─────────────────────────── */
+.cem-area-block { display:none; }
+.cem-area-block.active { display:block; }
+.cem-area-group { margin-bottom:18px; }
+.cem-area-group:last-child { margin-bottom:0; }
+.cem-area-group-hd { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:#7c3aed; background:#f5f3ff; border:1px solid #e9e5fb; border-radius:5px; padding:3px 10px; margin-bottom:10px; display:inline-block; }
+.cem-assess-intel-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:640px) { .cem-assess-intel-grid { grid-template-columns:1fr; } }
 
 /* ══ CANONICAL ENTITY CARD (CEM) ═══════════════════════════════════ */
 .cem-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 20px 0; }
@@ -1584,10 +1598,10 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 9-column grid: Chevron | NCT | Acronym | Phase | Indication | Note | Status | PCD | Days left */
-.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.2fr) 88px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 9-column grid: Chevron | NCT | Acronym | Phase | Note | Indication | Status | PCD | Days left */
+.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px 110px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.2fr) 88px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px 110px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 .pi-tr-note-cell{font-size:10px;font-weight:500;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pi-tr-ind-cell{font-size:10px;color:#0f172a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Drug description strip — full-width bar shown when drug accordion opens */
@@ -9590,8 +9604,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     // Re-enable with proper cache invalidation once ownership changes stabilize.
     const piObj = _areaPIs[sourceTabId] || null;
 
-    // ── Parallel fetch: profile + catalysts + deals + company row ──
-    const [profileRes, catsRes, dealsRes, companyRowRes] = await Promise.all([
+    // ── Parallel fetch: profile + catalysts + deals + company row + all company areas ──
+    const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes] = await Promise.all([
       _sb.from('company_profiles').select('*')
          .eq('company_id', companyId).eq('area_id', AREA)
          .order('updated_at', { ascending: false }).limit(1),
@@ -9601,7 +9615,34 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       _sb.from('deals').select('*')
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
       _sb.from('companies').select('id,name,ticker,hq,location,company_type,sector,primary_indication,headquarters').eq('id', companyId).limit(1),
+      _sb.from('company_areas').select('area_id').eq('company_id', companyId),
     ]);
+
+    // ── Multi-area profiles + catalysts (for Assessment / Catalysts tabs) ──
+    const allAreaIds = [...new Set((allAreaRowsRes.data||[]).map(r => r.area_id).filter(Boolean))];
+    // Ensure the current area is always included
+    if (!allAreaIds.includes(AREA)) allAreaIds.unshift(AREA);
+
+    // Fetch profiles and catalysts for all areas in parallel
+    const [allAreaProfileRows, allAreaCatRows] = await Promise.all([
+      Promise.all(allAreaIds.map(aId =>
+        _sb.from('company_profiles').select('*')
+           .eq('company_id', companyId).eq('area_id', aId)
+           .order('updated_at', { ascending: false }).limit(1)
+           .then(r => ({ areaId: aId, profile: r.data?.[0] || null }))
+      )),
+      Promise.all(allAreaIds.map(aId =>
+        _sb.from('catalysts').select('*')
+           .eq('company_id', companyId).eq('area_id', aId)
+           .eq('resolved', false).order('sort_date', { ascending: true }).limit(30)
+           .then(r => ({ areaId: aId, cats: r.data || [] }))
+      )),
+    ]);
+
+    const allAreaProfiles = {}; // areaId → profile
+    allAreaProfileRows.forEach(({ areaId, profile }) => { allAreaProfiles[areaId] = profile; });
+    const allAreaCats = {}; // areaId → catalysts[]
+    allAreaCatRows.forEach(({ areaId, cats }) => { allAreaCats[areaId] = cats; });
     const profile    = profileRes.data?.[0] || null;
     const companyRow = companyRowRes.data?.[0] || null;
     const cats    = catsRes.data || [];
@@ -9739,17 +9780,17 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
+    const extraData = { allAreaIds, allAreaProfiles, allAreaCats, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
     // if (piObj) piObj._profileCache[companyId] = sbData;
 
-    // ── Also-tracked footer ──
-    if (footerEl && profile) {
+    // ── Also-tracked footer (reuse allAreaIds already fetched) ──
+    if (footerEl) {
       try {
-        const { data: caRows } = await _sb.from('company_areas').select('area_id').eq('company_id', companyId);
         const areaToTabs = {};
         Object.entries(TAB_AREA_MAP).forEach(([t, as]) => as.forEach(a => { (areaToTabs[a] = areaToTabs[a] || []).push(t); }));
-        const tabIds = [...new Set((caRows||[]).flatMap(r => areaToTabs[r.area_id] || []))];
+        const tabIds = [...new Set(allAreaIds.flatMap(a => areaToTabs[a] || []))];
         if (tabIds.length) {
           const tagsEl = document.getElementById('entity-modal-also-tags');
           if (tagsEl) tagsEl.innerHTML = tabIds.map(t => {
@@ -9761,7 +9802,10 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       } catch(_) {}
     }
 
-    try   { bodyEl.innerHTML = _cemCompanyBody(prog, sbData, AREA); }
+    try   {
+      bodyEl.classList.add('dossier-mode');
+      bodyEl.innerHTML = _cemCompanyBody(prog, sbData, AREA, extraData);
+    }
     catch (e) {
       console.error('[openCompanySlideOver] render error:', e);
       bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`;
@@ -9782,6 +9826,18 @@ function closeCoSlideOver() {
    opens the same modal from any tab. Provenance, confidence, and audit
    history will slot in here as Phase 4 (Trust) matures.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+// Switch area filter on the canonical company card
+function _cemSwitchArea(filterId, areaId) {
+  // Update area pills
+  document.querySelectorAll(`#cem-af-${filterId} .cem-area-pill`).forEach(p => {
+    p.classList.toggle('active', p.dataset.area === areaId);
+  });
+  // Show matching area blocks, hide others
+  document.querySelectorAll(`.cem-area-block[data-fid="${filterId}"]`).forEach(b => {
+    b.classList.toggle('active', b.dataset.area === areaId);
+  });
+}
 
 // Switch between internal dossier tabs
 function _dossierSwitch(panelId) {
@@ -10518,7 +10574,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
 }
 
 /* ── Company card renderer ───────────────────────────────────────── */
-function _cemCompanyBody(prog, sbData, areaId) {
+function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const profile    = sbData?.profile   || {};
   const companyRow = sbData?.company   || null;
   const sbCats     = sbData?.catalysts || [];
@@ -12534,6 +12590,8 @@ function _makeAreaPI(tabId, areaIds) {
    if (!str) return str;
    const _IM = [
     // ── Comma-inverted ICD-style forms (must precede standard forms) ──
+    ['Multiple Sclerosis, Primary Progressive','PPMS'],['Multiple Sclerosis, Secondary Progressive','SPMS'],
+    ['Multiple Sclerosis, Relapsing-Remitting','RRMS'],['Multiple Sclerosis, Relapsing','RRMS'],
     ['Arthritis, Rheumatoid','RA'],['Arthritis, Psoriatic','PsA'],['Arthritis, Juvenile Idiopathic','JIA'],
     ['Colitis, Ulcerative','UC'],['Dermatitis, Atopic','AD'],['Colitis, Microscopic','MC'],
     ['Sclerosis, Systemic','SSc'],['Sclerosis, Multiple','MS'],
@@ -12554,6 +12612,9 @@ function _makeAreaPI(tabId, areaIds) {
     ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
     ['Alopecia Areata','AA'],['Systemic Lupus Erythematosus','SLE'],
+    ['Primary Progressive Multiple Sclerosis','PPMS'],['Secondary Progressive Multiple Sclerosis','SPMS'],
+    ['Relapsing-Remitting Multiple Sclerosis','RRMS'],['Relapsing Remitting Multiple Sclerosis','RRMS'],
+    ['Progressive Multiple Sclerosis','Prog. MS'],['Clinically Isolated Syndrome','CIS'],
     ['Multiple Sclerosis','MS'],['Thyroid Eye Disease','TED'],
     ["Graves's Disease",'GD'],["Graves' Disease",'GD'],['Graves Disease','GD'],
     ['Generalized Myasthenia Gravis','gMG'],['Myasthenia Gravis','MG'],
@@ -12569,8 +12630,16 @@ function _makeAreaPI(tabId, areaIds) {
     ['Chronic Inflammatory Demyelinating Polyneuropathy','CIDP'],
     ['Guillain-Barré Syndrome','GBS'],['Guillain-Barre Syndrome','GBS'],
     ['Primary Biliary Cholangitis','PBC'],['Primary Sclerosing Cholangitis','PSC'],
+    ['Lupus Nephritis - World Health Organization (WHO) Class III','LN (III)'],
+    ['Lupus Nephritis - World Health Organization (WHO) Class IV','LN (IV)'],
+    ['Lupus Nephritis - World Health Organization (WHO) Class V','LN (V)'],
+    ['Lupus Nephritis - WHO Class III','LN (III)'],['Lupus Nephritis - WHO Class IV','LN (IV)'],['Lupus Nephritis - WHO Class V','LN (V)'],
+    ['LN - World Health Organization (WHO) Class III','LN (III)'],['LN - World Health Organization (WHO) Class IV','LN (IV)'],
+    ['LN - WHO Class III','LN (III)'],['LN - WHO Class IV','LN (IV)'],['LN - WHO Class V','LN (V)'],
     ['IgA Nephropathy','IgAN'],['Membranous Nephropathy','MN'],['Focal Segmental Glomerulosclerosis','FSGS'],['Lupus Nephritis','LN'],
-    ['Dermatomyositis','DM'],['Polymyositis','PM'],['Idiopathic Inflammatory Myopathy','IIM'],
+    ['Stiff-Person Syndrome','SPS'],['Stiff Person Syndrome','SPS'],
+    ['ANCA-IgG-positive ANCA Associated Vasculitis','AAV'],['ANCA-IgG-positive ANCA-Associated Vasculitis','AAV'],['ANCA-IgG Positive ANCA-Associated Vasculitis','AAV'],
+    ['Dermatomyositis','DM'],['Polymyositis','PM'],['Idiopathic Inflammatory Myopathies','IIM'],['Idiopathic Inflammatory Myopathy','IIM'],
     ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TAK'],
     ['Eosinophilic Granulomatosis with Polyangiitis','EGPA'],['Granulomatosis with Polyangiitis','GPA'],
     ['ANCA-Associated Vasculitis','AAV'],['Microscopic Polyangiitis','MPA'],
@@ -12617,6 +12686,11 @@ function _makeAreaPI(tabId, areaIds) {
     });
     // Remove parenthetical that duplicates what precedes: "CRSwNP (CRSwNP)" → "CRSwNP"
     r = r.replace(/\b(\S+)\s+\(\1\)/gi, '$1');
+    // Strip WHO/AJCC/ICD versioning qualifiers that add no abbreviation value
+    r = r.replace(/\s*[,\-]\s*World\s+Health\s+Organization[^)]*?Class\s+[IVX]+/gi, '');
+    r = r.replace(/\s*\([^)]*\bWHO\b[^)]*\)/gi, '');
+    r = r.replace(/\s*[,\-]\s*AJCC[^,·]*/gi, '');
+    r = r.replace(/\s*\(Diagnosis\)/gi, '').replace(/\s*\(Only[^)]*\)/gi, '');
     // Strip leftover qualifier noise and suffix junk
     r = r.replace(/\s*,\s*Clinical Stage.*/i,'').replace(/\s*·\s*HPV.*/i,'').trim();
     return r;
@@ -12753,7 +12827,7 @@ function _makeAreaPI(tabId, areaIds) {
      if (aT!==bT) return aT?1:-1;
      const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
     });
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Note</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
@@ -12773,8 +12847,8 @@ function _makeAreaPI(tabId, areaIds) {
      return `<div class="pi-tr-item"><div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>${nctLink}${acronymCell}
       <span class="pi-tr-phase-cell">${phaseDisplay}</span>
-      <span class="pi-tr-ind-cell" title="${comboInd}">${_abbrevInd(comboInd)||comboInd||'—'}</span>
       <span class="pi-tr-note-cell" title="${noteText}">${noteText||'—'}</span>
+      <span class="pi-tr-ind-cell" title="${comboInd}">${_abbrevInd(comboInd)||comboInd||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
      </div><div class="pi-tr-detail"><div class="pi-td-card">${(t.trial_name||t.name)?`<div class="pi-td-name">${t.trial_name||t.name}${_trialNote(t)?`<span style="margin-left:8px;font-size:9px;font-weight:600;background:#f1f5f9;color:#64748b;border-radius:10px;padding:2px 8px;vertical-align:middle">${_trialNote(t)}</span>`:''}</div>`:''}${(()=>{const chips=[];const _r=(t.route||'').trim();if(_r)chips.push(`<span class="pi-td-reg-chip route">${_r.toUpperCase()}</span>`);const _dl=t.dose_levels||t.dose_amount||'';if(_dl)chips.push(`<span class="pi-td-reg-chip dose">${_dl}</span>`);const _df=t.dosing_frequency||t.dosing_schedule||t.dosing||'';if(_df)chips.push(`<span class="pi-td-reg-chip freq">${_df}</span>`);const _cmp=t.comparator||t.control_arm||'';if(_cmp)chips.push(`<span class="pi-td-reg-chip comparator">vs. ${_cmp}</span>`);return chips.length?`<div class="pi-td-regimen">${chips.join('')}</div>`:'';})()}${(t.enrollment||t.enrollment_count)?`<div class="pi-td-stats"><div class="pi-td-stat"><div class="pi-td-stat-lbl">Enrollment</div><div class="pi-td-stat-val">N=${t.enrollment||t.enrollment_count}</div></div></div>`:''}</div></div></div>`;
@@ -12909,7 +12983,7 @@ function _makeAreaPI(tabId, areaIds) {
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Note</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
    // Trial rows
@@ -12994,8 +13068,8 @@ function _makeAreaPI(tabId, areaIds) {
       ${nctLink}
       ${acronymCell}
       ${phaseCell}
-      <span class="pi-tr-ind-cell" title="${ind}">${_abbrevInd(ind)||ind||'—'}</span>
       <span class="pi-tr-note-cell" title="${trialNoteText}">${trialNoteText||'—'}</span>
+      <span class="pi-tr-ind-cell" title="${ind}">${_abbrevInd(ind)||ind||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${countdownCell}
