@@ -3821,7 +3821,6 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
-  <button class="nav-icon-btn" id="nav-icon-pb" onclick="switchTabTo('program-board')" title="Program Board">🗺️</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -4013,7 +4012,7 @@ function loadMoleculeTab(tabId) {
  <!-- hidden identity-health body (data still loads; displayed in footer) -->
  <div id="ih-body" style="display:none"></div>
 
- <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('ontology')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
+ <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('program-board')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
 
 </div><!-- end tab-home -->
 
@@ -18577,6 +18576,13 @@ document.addEventListener('DOMContentLoaded', function(){
      ONTOLOGY AUDIT TAB  #tab-ontology
 ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="tab-pane" id="tab-ontology" style="padding:0;background-color:#edf0f5;background-image:radial-gradient(circle,#b8c4d4 1.2px,transparent 1.2px);background-size:26px 26px;background-attachment:fixed;min-height:100vh;font-family:'Inter',sans-serif">
+
+  <!-- Admin sub-tab strip -->
+  <div style="background:#1e2d3d;border-bottom:1px solid #2d4060;padding:0 32px;display:flex;align-items:center;gap:0">
+    <span style="font-size:10px;color:#4a6080;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
+    <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Program Board</button>
+    <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+  </div>
 <style>
 /* ── Ontology Audit Tab ─────────────────────────────────────────── */
 .ont-wrap{max-width:1440px;margin:0 auto;padding:32px 36px 80px}
@@ -18906,6 +18912,13 @@ document.addEventListener('DOMContentLoaded', function(){
      PROGRAM BOARD TAB  #tab-program-board
 ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="tab-pane" id="tab-program-board" style="padding:0;background-color:#0f1923;min-height:100vh;font-family:'Inter',sans-serif">
+
+  <!-- Admin sub-tab strip -->
+  <div style="background:#070e17;border-bottom:1px solid #1e3a5f;padding:0 32px;display:flex;align-items:center;gap:0">
+    <span style="font-size:10px;color:#2d4a6a;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
+    <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Program Board</button>
+    <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#4a6080;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+  </div>
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#0f1923 0%,#1a2a3d 100%);border-bottom:1px solid #1e3a5f;padding:28px 32px 24px">
