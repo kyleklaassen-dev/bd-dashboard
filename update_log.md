@@ -1,5 +1,26 @@
 
 ---
+## 2026-05-25 (Session 53i) — Phase 4B Path B: TL1A target-view dual-read in _makeAreaPI()
+
+**Phase 4B Path B implemented in `index.html`.**
+
+**Changes:**
+- Added `if (this.areaIds.includes('tl1a')) this._runPhase4BTL1ADualRead(scoreRows);` in `init()` after the Path A IBD call
+- Added `_runPhase4BTL1ADualRead(legacyScoreRows)` method to `_makeAreaPI` return object
+- Normalized source: `drug_targets WHERE target_id='tl1a'` (NOT drug_indications)
+- All 17 gap drug classifications embedded: 15 × `ibd_indication_not_tl1a_target`, 2 × `legacy_noise_removed`, 1 × `needs_manual_review` (epi-001)
+- OOS set excludes both `ibd_indication_not_tl1a_target` and `legacy_noise_removed` from adjusted denominator
+- Expected adjusted match: 35/35 = 100% → `compare_pass_oos_adjusted`
+- Console log: `[Phase4B-TL1A] legacy=N norm=N overlap=N raw=X% adj=Y% oos=Z → status`
+- `window.showPhase4Compare()` now shows both `ibd_indication_group_view` and `tl1a_target_view` records
+
+**`docs/evidence_reconciliation_layer.md`** — added gb004 mechanism field data error to backlog:
+- `drugs.mechanism='Anti-TL1A'` is incorrect; actual mechanism is PHD inhibitor (HIF-1α stabilizer)
+- Backlogged — do not fix during Phase 4B work; requires separate evidence review
+
+**No data changes. No visual changes. ontology_edges remain locked.**
+
+---
 ## 2026-05-25 (Session 53h) — Phase 4B Path B: TL1A target-view gap classification complete
 
 **TL1A target-view coverage gap: all 17 gap drugs classified.**
