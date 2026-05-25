@@ -19025,102 +19025,108 @@ function _renderOntRoadmap() {
 
   const phases = [
     {
-      num: 'Phase 0', title: 'Audit & Dependency Mapping', status: 'active', statusLbl: 'In Progress',
+      num: 'Phase 0', title: 'Audit & Dependency Mapping', status: 'done', statusLbl: '✓ Complete',
       purpose: 'Understand the current structure, risks, dependencies, and gaps before touching anything in production.',
       left: {
         hd: 'Completed',
         items: [
-          { done:true,  text:'Terminology cleanup — "therapeutic area" language adopted in UI' },
-          { done:true,  text:'Quality flags (18 flags: HIGH/MEDIUM/LOW severity)' },
-          { done:true,  text:'Section H: Impact Analysis — per-area dependency cards' },
-          { done:true,  text:'Section I: Relationship Coverage Scoreboard' },
-          { done:true,  text:'Click-through inspection — drugs, trials, overlap distribution' },
-          { done:true,  text:'Relationship evidence layer — source, method, confidence per link' },
+          { done:true, text:'Terminology cleanup — "therapeutic area" language adopted in UI' },
+          { done:true, text:'Quality flags expanded to 18 flags (HIGH/MEDIUM/LOW severity)' },
+          { done:true, text:'Section H: Impact Analysis — per-legacy-ID dependency cards with live Supabase counts' },
+          { done:true, text:'Section I: Relationship Coverage Scoreboard — baseline before Phase 1' },
+          { done:true, text:'Click-through inspection — drugs, trials, overlap distribution, evidence layer' },
+          { done:true, text:'Section J: Migration Roadmap with phase gates' },
+          { done:true, text:'Advisor ontology review — therapeutic area model, knowledge graph design, migration safety rules' },
         ]
       },
       right: {
-        hd: 'Remaining / Blockers',
+        hd: 'Phase 0 outcomes',
         items: [
-          { block:false, text:'Dependency map for company_areas, targets, target_pairs tables (who else FKs to disease_areas)' },
-          { block:false, text:'Validate that catalysts.area_id and intel.area_id queries resolve correctly' },
-          { block:false, text:'Confirm all 11 legacy IDs have impact cards rendering correctly' },
+          { done:true, text:'All 11 legacy IDs classified: 5 targets, 2 biology tags, 1 indication, 1 disease family, 1 direct map, 1 platform concept' },
+          { done:true, text:'Clinical Specialty therapeutic area model confirmed (Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology)' },
+          { done:true, text:'ontology_edges architectural role defined: secondary/derived layer; primary truth in structured join tables (Phase 2)' },
+          { done:true, text:'Phase 1 SQL plan reviewed and approved by advisor — execution approved 2026-05-25' },
         ]
       },
       criteria: [
-        'Every legacy disease_areas ID has a mapped true classification',
-        'Every FK dependency to disease_areas is documented',
-        'Coverage scoreboard shows baseline before Phase 1 starts',
-        'No schema changes made yet — all legacy IDs and fields unchanged',
+        '✓ Every legacy disease_areas ID has a mapped true classification (ontology_mappings, 11 rows)',
+        '✓ Every FK dependency to disease_areas is documented (Section H Impact Analysis)',
+        '✓ Coverage Scoreboard shows baseline before Phase 1',
+        '✓ No schema changes made yet — all legacy IDs and fields unchanged at Phase 0 exit',
       ],
-      next: 'Phase 0 is nearly complete. Safe to begin Phase 1 planning in parallel. Next action: create the therapeutic_areas table in Supabase (new table only — no schema changes to existing tables).',
+      next: 'Phase 0 complete 2026-05-25. Phase 1 executed same day.',
     },
     {
-      num: 'Phase 1', title: 'Add New Ontology Tables', status: 'next', statusLbl: 'Next',
-      purpose: 'Create clean new ontology structures alongside the existing ones. Do NOT rename, delete, or modify any legacy field.',
+      num: 'Phase 1', title: 'Add New Ontology Tables', status: 'done', statusLbl: '✓ Complete',
+      purpose: 'Create clean new ontology structures alongside the existing ones. No existing tables, columns, or IDs modified.',
       left: {
-        hd: 'Tables to Create',
+        hd: '6 Tables Created (2026-05-25)',
         items: [
-          { text:'therapeutic_areas (7 rows: Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology)' },
-          { text:'routes_of_administration (6 rows: IV, SC, Oral, Inhaled, Intravitreal, Topical)' },
-          { text:'biology_tags (18 rows: normalized from indications.biology_tags arrays)' },
-          { text:'ontology_mappings (legacy_id → new_therapeutic_area, migration_status, notes)' },
-          { text:'ontology_versions (v1: legacy disease_areas, v2: therapeutic_areas)' },
+          { done:true, text:'therapeutic_areas — 7 rows: Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology' },
+          { done:true, text:'routes_of_administration — 6 rows: IV, SC, Oral, Inhaled, Intravitreal, Topical' },
+          { done:true, text:'biology_tags — 18 rows: immune_axis, cell_type, pathway, pathology, phenotype, anatomical_feature, clinical_feature' },
+          { done:true, text:'ontology_versions — 2 rows: v1-legacy (active), v2-normalized (draft)' },
+          { done:true, text:'ontology_mappings — 11 rows: all legacy disease_areas IDs mapped with type, risk, dashboard tabs affected' },
+          { done:true, text:'ontology_edges — 25 seed rows: knowledge graph backbone; UC cluster queryable; 4 graph traversal indexes' },
+        ]
+      },
+      right: {
+        hd: 'Advisor notes recorded',
+        items: [
+          { done:true, text:'ontology_edges = secondary/derived graph layer; primary truth remains in structured join tables (Phase 2)' },
+          { done:true, text:'relationship_types table enters Phase 3 roadmap (prevents vocabulary drift: targets vs target_of vs acts_on)' },
+          { done:true, text:'mechanism_classes table enters future roadmap (cytokine_blockade, trafficking_inhibition, IgG_reduction, T-cell_engagement)' },
+          { done:true, text:'Step 7 (ALTER indications) deferred to Phase 2 — establish drug_targets and drug_indications first' },
+          { done:true, text:'disease_areas unchanged: 11 rows intact; drug_area_scores: 214 rows intact — zero dashboard regressions' },
+        ]
+      },
+      criteria: [
+        '✓ All 6 new tables exist with correct row counts (7 / 6 / 18 / 2 / 11 / 25)',
+        '✓ Exactly one active ontology version (v1-legacy)',
+        '✓ All 11 legacy IDs mapped in ontology_mappings',
+        '✓ UC knowledge cluster queryable in ontology_edges (5 rows via source_id or target_id = uc)',
+        '✓ Legacy disease_areas and drug_area_scores unchanged — zero dashboard regressions',
+        '✓ 4 graph traversal indexes created on ontology_edges',
+      ],
+      next: 'Phase 1 complete. Begin Phase 2 planning: drug_targets → drug_indications → trial_indications (revised priority order per advisor).',
+    },
+    {
+      num: 'Phase 2', title: 'Add Normalized Relationship Tables', status: 'next', statusLbl: 'Next',
+      purpose: 'Replace free-text matching with queryable FK relationships. Priority order revised: relationships matter more than classification. All tables are additive — legacy fields remain.',
+      left: {
+        hd: 'Priority order (revised per advisor)',
+        items: [
+          { text:'① drug_targets — CRITICAL: drug → molecular target (currently embedded in drugs.mechanism free text)' },
+          { text:'② drug_indications — CRITICAL: drug → indication (currently embedded in drugs.disease_area text)' },
+          { text:'③ trial_indications — CRITICAL: trial → indication (connects ClinicalTrials.gov data to indication chain)' },
+          { text:'④ drug_modalities — IMPORTANT: drug → modality (structured, replaces drugs.modality text)' },
+          { text:'⑤ drug_routes — IMPORTANT: drug → route of administration (new — currently not captured)' },
+          { text:'⑥ indication_biology_tags — USEFUL: indication → biology tag (Phase 1 biology_tags table now ready)' },
+          { text:'⑦ indications.therapeutic_area_id FK — deferred from Phase 1; backfill after drug_indications verified' },
         ]
       },
       right: {
         hd: 'Rules & Dependencies',
         items: [
-          { text:'Add therapeutic_area_id FK to indications table (nullable — do not break existing rows)' },
-          { text:'Do NOT remove or rename disease_area / disease_areas fields' },
-          { text:'Do NOT update any dashboard logic yet' },
-          { text:'Populate ontology_mappings for all 11 legacy IDs before Phase 2' },
-          { text:'Dependency: Phase 0 impact analysis must be complete first' },
-        ]
-      },
-      criteria: [
-        'therapeutic_areas table exists with 7 rows',
-        'routes_of_administration table exists with 6 rows',
-        'ontology_mappings maps all 11 legacy IDs to new therapeutic areas',
-        'indications.therapeutic_area_id is populated for all existing rows',
-        'Legacy dashboard still produces identical output — zero regressions',
-      ],
-      next: 'Start with: CREATE TABLE therapeutic_areas. Then CREATE TABLE ontology_mappings. Then backfill indications.therapeutic_area_id. Verify indications count before and after.',
-    },
-    {
-      num: 'Phase 2', title: 'Add Normalized Relationship Tables', status: 'pending', statusLbl: 'Not Started',
-      purpose: 'Replace free-text matching with queryable FK relationships. All new tables are additive — legacy fields remain.',
-      left: {
-        hd: 'Tables to Create',
-        items: [
-          { text:'drug_targets (drug_id, target_id, relationship_type, confidence_level, source_id, review_status)' },
-          { text:'drug_indications (drug_id, indication_id, relationship_type, confidence_level, source_id)' },
-          { text:'drug_modalities (drug_id, modality_id, confidence_level, source_id)' },
-          { text:'drug_routes (drug_id, route_id, relationship_type, confidence_level, source_id)' },
-          { text:'indication_biology_tags (indication_id, biology_tag_id, relationship_type, confidence_level)' },
-          { text:'drug_company_relationships (drug_id, company_id, relationship_type, territory, start_date)' },
-          { text:'trial_indications (trial_id, indication_id, confidence_level, source_id)' },
-        ]
-      },
-      right: {
-        hd: 'Rules & Dependencies',
-        items: [
-          { text:'Phase 1 must be complete — therapeutic_areas and ontology_mappings must exist first' },
+          { text:'Phase 1 ✓ complete — all 6 tables exist; ontology_edges ready to populate from these join tables' },
           { text:'Each join table needs: relationship_type, confidence_level, source_id, review_status, created_at' },
-          { text:'Do NOT remove drugs.mechanism or drugs.disease_area — keep as legacy fallback' },
-          { text:'Coverage Scoreboard (Section I) should show these tables moving from TABLE MISSING to actual %' },
+          { text:'Do NOT remove drugs.mechanism or drugs.disease_area — keep as legacy fallback throughout Phase 2' },
+          { text:'Populate ontology_edges FROM join tables (not vice versa) — ontology_edges is secondary/derived' },
+          { text:'Coverage Scoreboard (Section I) should show tables moving from TABLE MISSING to actual %' },
         ]
       },
       criteria: [
-        'All 7 join tables exist with correct FKs',
-        'Every table has confidence_level, source_id, review_status fields',
-        'Coverage Scoreboard shows populated rows (even if partial)',
+        'drug_targets, drug_indications, trial_indications all exist and populated (top 3 priority)',
+        'Every join table has confidence_level, source_id, review_status fields',
+        'ontology_edges populated from structured join tables (not manual inserts)',
+        'Coverage Scoreboard shows Drug → Target and Drug → Indication as green or yellow',
         'Legacy fields still in place as fallback',
       ],
-      next: 'Begin after Phase 1 is verified stable. Start with drug_targets (highest intelligence value) then drug_indications.',
+      next: 'Begin Phase 2 planning. Start with drug_targets schema design. Key question: how to parse drugs.mechanism free text → target IDs reliably.',
     },
     {
-      num: 'Phase 3', title: 'Backfill & Confidence Scoring', status: 'pending', statusLbl: 'Not Started',
-      purpose: 'Populate Phase 2 tables from existing data. Every relationship gets a source, confidence level, and review status.',
+      num: 'Phase 3', title: 'Backfill, Confidence Scoring & Governance', status: 'pending', statusLbl: 'Not Started',
+      purpose: 'Populate Phase 2 tables from existing data. Add relationship governance (relationship_types table). Every relationship gets a source, confidence level, and review status.',
       left: {
         hd: 'Backfill Strategy',
         items: [
@@ -19129,16 +19135,16 @@ function _renderOntRoadmap() {
           { text:'drug_modalities: drugs.modality text → match to modalities table' },
           { text:'indication_biology_tags: normalize existing indications.biology_tags[] into join table' },
           { text:'trial_indications: parse trials.indication free text → match to indications table' },
+          { text:'Populate ontology_edges from Phase 2 join tables (derived layer, not hand-inserted)' },
         ]
       },
       right: {
-        hd: 'Confidence Rules',
+        hd: 'Governance additions (new in Phase 3)',
         items: [
-          { text:'FK from trial registry: HIGH confidence' },
-          { text:'Text match to canonical name: MEDIUM confidence' },
-          { text:'AI inference only: LOW confidence, review_status = proposed' },
+          { text:'relationship_types table — canonical vocabulary for ontology_edges.relationship field. Prevents spelling drift (targets vs target_of vs acts_on). Each type gets: id, label, inverse_label, domain, range, description.' },
+          { text:'Confidence rules: FK from trial registry = HIGH; text match to canonical = MEDIUM; AI inference only = LOW (review_status = proposed)' },
           { text:'Do NOT treat AI inference as high confidence without human verification' },
-          { text:'Mark all AI-derived rows with created_by = ai_enrichment and review_status = proposed' },
+          { text:'Mark all AI-derived rows: created_by = ai_enrichment, review_status = proposed' },
         ]
       },
       criteria: [
@@ -19212,8 +19218,8 @@ function _renderOntRoadmap() {
       next: 'Do not start Phase 5 until Phase 4 comparison is clean. Begin with the lowest-risk module first.',
     },
     {
-      num: 'Phase 6', title: 'Deprecate Legacy Semantics', status: 'future', statusLbl: 'Future',
-      purpose: 'Once the new ontology is stable and verified, stop using legacy disease_area semantics. Archive legacy fields rather than deleting.',
+      num: 'Phase 6', title: 'Deprecate Legacy Semantics + Future Layers', status: 'future', statusLbl: 'Future',
+      purpose: 'Once the new ontology is stable and verified, stop using legacy disease_area semantics. Archive legacy fields. Add mechanism_classes and expanded biology tag vocabulary.',
       left: {
         hd: 'Deprecation Steps',
         items: [
@@ -19221,6 +19227,7 @@ function _renderOntRoadmap() {
           { text:'Add deprecated column comments in Supabase schema' },
           { text:'Remove legacy fallback code from dashboard queries' },
           { text:'Archive legacy fields (rename to _legacy_disease_area) rather than DROP COLUMN' },
+          { text:'mechanism_classes table: group targets by mechanism (cytokine_blockade → TNF/TL1A/IL23; trafficking_inhibition → α4β7; IgG_reduction → FcRn; T-cell_engagement → CD3; cell_depletion → BCMA). Enables "show me all trafficking inhibitors" query.' },
         ]
       },
       right: {
