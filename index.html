@@ -12608,7 +12608,24 @@ function _makeAreaPI(tabId, areaIds) {
           competitiveSignals = sigRows || [];
         } catch(_) {}
 
-        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel, competitiveSignals };
+        // Recent news_articles for this company — feeds "Recent Coverage" in drug row dropdowns.
+        // Fetches articles where matched_company_ids contains companyId (set by fetch_homepage_news.py).
+        // 90-day window, relevance ≥ 25, invalid URLs excluded. Up to 20 articles shared across all
+        // drugs for this company; each drug row filters / prioritises its own relevant subset.
+        let newsArticles = [];
+        try {
+          const _90dAgo = new Date(Date.now() - 90*24*60*60*1000).toISOString().slice(0,10);
+          const { data: naRows } = await _sb.from('news_articles')
+            .select('id,headline,source_name,published_at,article_url,matched_company_ids,matched_drug_ids,relevance_score,meridian_summary,why_it_matters')
+            .contains('matched_company_ids', [companyId])
+            .gte('published_at', _90dAgo)
+            .neq('source_validation_status', 'invalid')
+            .order('relevance_score', { ascending: false })
+            .limit(20);
+          newsArticles = naRows || [];
+        } catch(_) {}
+
+        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel, competitiveSignals, newsArticles };
         this._profileCache[entityId] = sbData;
 
         // Replace loading placeholder with full rendering
@@ -13881,22 +13898,40 @@ function _makeAreaPI(tabId, areaIds) {
     </div>`;
    })() : '';
 
-   // ── Drug-specific Related News ──────────────────────────────────────────
-   // Filter sbDeals by canonical_drug_id matching this drug. Show 3 visible,
-   // scrollable to 10. Single-line with exact date + clickable verified links.
-   const drugNewsItems = sbDeals
-    .filter(n => n.canonical_drug_id && (n.canonical_drug_id === d.id || n.canonical_drug_id === d.canonical_drug_id))
-    .slice(0, 10);
+   // ── Drug-specific Related News (from news_articles table) ───────────────
+   // Source: sbData.newsArticles — preloaded on company expansion from the news_articles
+   // RSS feed table. All articles already filtered to this company (matched_company_ids).
+   // Priority: direct drug-name match (matched_drug_ids contains d.id or d.name) ranked
+   // above generic company match. Show max 4, with "Drug match" badge on direct matches.
+   const sbNewsArticles = sbData?.newsArticles || [];
+   const _drugDirect = sbNewsArticles.filter(a =>
+    (a.matched_drug_ids||[]).some(did => did === d.id || did === d.name));
+   const _drugCo = sbNewsArticles.filter(a => !_drugDirect.includes(a));
+   // 2 direct + fill remaining slots with company news (max 4 total)
+   const drugNewsItems = [..._drugDirect.slice(0,2), ..._drugCo.slice(0, Math.max(0, 4 - Math.min(_drugDirect.length,2)))];
    const drugNewsSection = drugNewsItems.length ? (() => {
-    const rows = drugNewsItems.map(n => renderNewsItem(n, true)).join('');
-    const scrollStyle = drugNewsItems.length > 5
-     ? 'max-height:120px;overflow-y:auto;scrollbar-width:thin;padding-right:2px'
-     : '';
-    const moreNote = drugNewsItems.length > 5
-     ? `<span style="font-size:9px;color:#94a3b8;float:right">${drugNewsItems.length} items · scroll</span>` : '';
+    const rows = drugNewsItems.map(a => {
+     const isDirect = _drugDirect.includes(a);
+     const dateStr = (a.published_at||'').slice(0,10);
+     const src = a.source_name ? `<span style="font-weight:500">${a.source_name}</span>` : '';
+     const hl = (a.headline||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+     const headline = a.article_url
+      ? `<a href="${a.article_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#1d4ed8;text-decoration:none;font-weight:500;line-height:1.4">${hl}</a>`
+      : `<span style="font-weight:500">${hl}</span>`;
+     const whyNote = (a.why_it_matters||'').trim();
+     const summaryNote = whyNote
+      ? `<div style="font-size:10px;color:#64748b;line-height:1.4;margin-top:2px">${whyNote.slice(0,140)}${whyNote.length>140?'…':''}</div>` : '';
+     const directBadge = isDirect
+      ? `<span style="font-size:8px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;padding:1px 5px;margin-left:4px">Drug match</span>` : '';
+     return `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9">
+      <div style="font-size:9.5px;color:#94a3b8;margin-bottom:2px">${dateStr}${src?` · ${src}`:''}${directBadge}</div>
+      <div style="font-size:11px;line-height:1.45">${headline}</div>
+      ${summaryNote}
+     </div>`;
+    }).join('');
     return `<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:8px">
-     <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:5px">📰 Related News${moreNote}</div>
-     <div style="${scrollStyle}">${rows}</div>
+     <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:6px">📰 Recent Coverage</div>
+     ${rows}
     </div>`;
    })() : '';
 
