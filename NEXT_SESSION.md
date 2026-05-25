@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53n (2026-05-25) — Phase 4B Path C modal verification complete + Phase 4C IBD verified  
-**Prior session:** Session 53m — Phase 4C validation plan + Phase sequence updated
+**Last session:** Session 53o (2026-05-25) — Phase 5 migration plan + unified dashboard architecture design  
+**Prior session:** Session 53n — Phase 4B Path C modal verification + Phase 4C IBD verified
 
 ---
 
@@ -265,11 +265,12 @@ SELECT source_id, target_id_col, preview_status FROM backfill_preview
 
 ## Files to Load at Start of Next Session
 
-1. `docs/phase4c_validation_plan.md` — **Phase 4C sprint plan (NEW — read first)**
-2. `docs/phase4_comparison_harness.md` — current harness output (tl1a 🟢 · ibd 🟢 · ted ✅)
-3. `docs/phase4a_reconciliation_review.md` — Phase 4A candidate review with advisor decisions
-4. `docs/evidence_reconciliation_layer.md` — entity_consistency_checks design
-5. `docs/dashboard_dependency_inventory.md` — component migration dependency map
-6. `docs/normalization_engine.md` — parser reference
-7. `scripts/phase4_compare_legacy_vs_normalized.py` — harness script (v3)
-8. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`, `project_tl1a_unification.md`
+1. `docs/phase5_migration_plan.md` — **Phase 5 controlled migration plan (read first)**
+2. `docs/unified_area_dashboard_architecture.md` — unified engine design (TL1A unification path)
+3. `docs/phase4c_validation_plan.md` — Phase 4C component ranking + validation criteria
+4. `docs/phase4_comparison_harness.md` — current harness output (tl1a 🟢 · ibd 🟢 · ted ✅)
+5. `docs/phase4a_reconciliation_review.md` — Phase 4A candidate review with advisor decisions
+6. `docs/evidence_reconciliation_layer.md` — entity_consistency_checks design
+7. `docs/dashboard_dependency_inventory.md` — component migration dependency map
+8. `scripts/phase4_compare_legacy_vs_normalized.py` — harness script (v3)
+9. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`, `project_tl1a_unification.md`
