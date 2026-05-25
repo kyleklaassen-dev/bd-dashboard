@@ -1,5 +1,40 @@
 
 ---
+## 2026-05-25 (Session 53) — Wave 2C COMMITTED · Phase 4 harness rerun
+
+**Wave 2C — IBD Drug Indications Backfill — COMMITTED**
+- Advisor approval received with condition: commit 63 rows only, hold epi-001 (review_required)
+- Script fixes: `is_primary_endpoint` → `is_lead_indication`; `extraction_method` mapped to DB enum (tier1/2/3); `source_type` mapped to enum (synonym_match/pattern_match); batch inserts at 50 rows
+- Committed: 63 rows to drug_indications | Held: 2 (epi-001 uc+cd, review_required)
+- `backfill_preview`: 63 rows marked committed · 2 rows remain pending_review (held)
+
+**Post-commit validation (V1-V8):**
+- V1 Total drug_indications rows: **192** (was 129 pre-Wave 2C)
+- V2 Duplicate (drug_id, indication_id) pairs: **0** ✓
+- V3 Invalid indication_ids: **0** ✓
+- V4 Invalid drug_ids: **0** ✓
+- V5 Confidence mix: A=80 rows · B=111 rows · C=1 row
+- V6 UC drugs: **44** · CD drugs: **42**
+- V7 ontology_edges: **25** ✓ (locked)
+- V8 Phase 4 tl1a=**92.2%** · ibd=**94.0%** ✓ (above V8 90% floor)
+
+**Phase 4 harness rerun (2026-05-25 20:48 UTC):**
+- `tl1a` → uc,cd: **92.2%** 🟡 acceptable_mismatch (was 🔴 29.4% migration_blocker)
+- `ibd` → uc,cd: **94.0%** 🟡 acceptable_mismatch (was 🔴 30.0% migration_blocker)
+- All other areas: unchanged from Session 51
+
+**Gap analysis — why 92%/94% not ≥95%:**
+- 3 confirmed OOS exclusions in drug_areas but NOT drug_indications: `lm-302` (gastric cancer), `sim0500` (RRMM), `spy072` (PsA/axSpA)
+- 1 held drug: `epi-001` (2 rows, review_required — not committed per advisor directive)
+- Raw denominator includes all legacy area drugs (51 tl1a / 50 ibd)
+- Effective coverage excluding confirmed OOS: 47/48 = **97.9%** — above 95% threshold
+- **Advisor decision pending:** whether 95% threshold applies to raw or effective (OOS-adjusted) coverage
+
+**Harness reclassification:** tl1a + ibd moved from 🔴 migration_blocker → 🟡 acceptable_mismatch
+**Readiness indicator:** uc/cd remain "blocked" pending advisor decision on threshold metric
+**Exclusions preserved:** lm-302, sim0500, spy072 remain excluded per governance rules
+
+---
 ## 2026-05-25 (Session 52) — Wave 2C IBD Preview + Track B/C/D parallel workstreams
 
 **Wave 2C — IBD Drug Indications Backfill — PREVIEW COMPLETE (awaiting advisor approval)**
