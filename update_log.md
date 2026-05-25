@@ -1,5 +1,38 @@
 
 ---
+## 2026-05-25 (Session 53f) — Ontology Semantic Correction: Legacy View Types · TL1A ≠ IBD in comparison harness
+
+**Governance rule adopted:**
+Legacy dashboard areas are not a uniform ontological category. Three distinct view types now formalized:
+- **Target views** (`tl1a`, `fcrn`, `igf1r`, `tslp`, `il4ra`) — normalized via `drug_targets.target_id`
+- **Indication group views** (`ibd`, `atopy`, `respiratory`, `autoimmune`) — normalized via `drug_indications.indication_id`
+- **Indication views** (`ted`) — normalized via `drug_indications.indication_id`
+- **Platform views** (`tcell`) — no clean normalized path yet
+
+**`scripts/phase4_compare_legacy_vs_normalized.py` (v4):**
+- Added `LEGACY_VIEW_TYPES` constant encoding the view-type governance distinction
+- Added governance docstring explaining: TL1A = target, IBD = indication group, these have different migration paths
+- `compare_area()` return dict now includes `view_type` field from `LEGACY_VIEW_TYPES`
+- Replaced merged `ibd_legacy = ibd | tl1a` dashboard comparison with two separate entries:
+  - `_makeAreaPI() — TL1A target tab [target_view]` → legacy: drug_area_scores.area_id='tl1a' vs normalized: `drug_targets WHERE target_id='tl1a'`
+  - `_makeAreaPI() — IBD indication tab [indication_group_view]` → legacy: drug_area_scores.area_id='ibd' vs normalized: `drug_indications WHERE indication_id IN ('uc','cd')`
+- Fixed DIFFERENCE_CLASSIFICATIONS notes: replaced "not a TL1A/IBD drug" with precise "not a TL1A target drug" / "not an IBD indication drug"
+- Summary table: added View Type column
+- Per-area detail header: now shows `area_id [view_type]`
+- Part 1 header: renamed from "Indication-Centric" to "Legacy Area Drug Population Comparison" with governance callout box
+- Part 5 acceptance criteria: split IBD/TL1A row into two separate rows with correct view types
+- "Next action" section: describes two separate Phase 4B dual-read paths
+
+**New finding from semantic separation:**
+TL1A target-view comparison against `drug_targets.target_id='tl1a'` shows **migration_blocker** — revealing that many drugs in the legacy TL1A area are UC/CD indication drugs placed there for IBD relevance, not confirmed TL1A target drugs. IBD indication-group comparison remains 🟢 compare_pass_oos_adjusted (unchanged).
+
+**`docs/phase4_comparison_harness.md`** regenerated with view-type-separated comparison output.
+
+**`NEXT_SESSION.md`** Phase 4B plan updated: two separate dual-read paths (IBD indication-group ready; TL1A target-view blocked — needs gap classification first).
+
+**`docs/evidence_reconciliation_layer.md`** updated: view-type governance added to Phase 4 sequence.
+
+---
 ## 2026-05-25 (Session 53e) — Phase 4A Corrections Applied · batoclimab backfilled · ted now 100% match
 
 **Advisor decisions received and corrections applied:**
