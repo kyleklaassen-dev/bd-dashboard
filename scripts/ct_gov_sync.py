@@ -725,12 +725,49 @@ def step3a_direct_nct_sync(drug: dict, nct_ids: list[str],
     entity_id = drug.get("entity_id")
     synced    = []
 
+    # Build the full set of names to match against CT.gov interventions
+    drug_name_lc  = drug.get("name", drug_id).lower()
+    drug_aliases  = [a.lower() for a in (drug.get("aliases") or []) if a]
+    drug_all_names = [drug_name_lc] + drug_aliases
+
     for nct_id in nct_ids:
         log(f"  → Fetching {nct_id}...", indent=2)
         study = ct_fetch_by_nct(nct_id)
 
         if not study:
             log(f"  ✗ {nct_id}: no data returned", indent=2)
+            continue
+
+        # ── Sanity check: drug name must appear somewhere in the trial ────────
+        p = study.get("protocolSection", {})
+        interv_module = p.get("armsInterventionsModule", {})
+        interventions_raw = [i.get("name", "") for i in interv_module.get("interventions", [])]
+        ct_title = p.get("identificationModule", {}).get("briefTitle", "")
+        interv_text = (" ".join(interventions_raw) + " " + ct_title).lower()
+
+        name_found = False
+        for name in drug_all_names:
+            if not name or name == "—":
+                continue
+            if name in interv_text:
+                name_found = True
+                break
+            # Word-level match for multi-word or hyphenated names
+            for part in name.replace("-", " ").split():
+                if len(part) > 5 and part in interv_text:
+                    name_found = True
+                    break
+            if name_found:
+                break
+
+        if not name_found and interventions_raw:
+            # Interventions are present but drug not found → likely wrong NCT ID
+            log(
+                f"  ⚠ {nct_id}: SEED VALIDATION FAILED — drug '{drug_name_lc}' "
+                f"not found in CT.gov interventions {interventions_raw[:3]}. "
+                f"Skipping insert. Check NCT_SEED_MAP for wrong ID.",
+                indent=2
+            )
             continue
 
         record = parse_ct_study(
