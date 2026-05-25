@@ -19251,6 +19251,8 @@ document.addEventListener('DOMContentLoaded', function(){
             <div style="text-align:right">
               <div style="font-size:10px;color:#6b8aad;margin-bottom:2px">Competitive Density</div>
               <div style="font-size:16px;font-weight:800;color:#f59e0b" id="pb-card-density">High</div>
+              <div style="margin-top:10px;font-size:10px;color:#6b8aad;margin-bottom:2px">Migration Readiness</div>
+              <div id="pb-card-readiness" style="font-size:12px;font-weight:700;white-space:nowrap">—</div>
             </div>
           </div>
           <!-- Data source note -->
@@ -19371,6 +19373,24 @@ const PB_IND_META = {
 
 const TARGET_LABELS = { tl1a:'TL1A', il23p19:'IL-23p19', a4b7:'α4β7', il12_23p40:'IL-12/23p40', il4ra:'IL-4Rα', il13:'IL-13', tslp:'TSLP', il33:'IL-33', fcrn:'FcRn', cd19:'CD19', bcma:'BCMA', cd3:'CD3', cd20:'CD20', cd38:'CD38', igf1r:'IGF-1R', tshr:'TSHR', il17a:'IL-17A', tnf:'TNF', il6:'IL-6', baff:'BAFF', baff_r:'BAFF-R', ifnar1:'IFNAR1', pd1:'PD-1', cd40:'CD40' };
 
+// Phase 4 Comparison Readiness — sourced from docs/phase4_comparison_harness.md (2026-05-25)
+// status: ready (≥95%), close (70-94%), blocked (active migration blocker), not_ready (<70% or fundamental gap)
+const COMPARISON_READINESS = {
+  uc:     { status:'blocked',   pct:30,  note:'tl1a/ibd 30% match · Wave 2C backfill pending (target ≥95%)' },
+  cd:     { status:'blocked',   pct:30,  note:'tl1a/ibd 30% match · Wave 2C backfill pending (target ≥95%)' },
+  ad:     { status:'close',     pct:90,  note:'atopy 90% / il4ra 100% · 1 drug missing (upadacitinib→ad)' },
+  asthma: { status:'ready',     pct:100, note:'il4ra 100% / respiratory 100% / tslp 100% · migration safe' },
+  ted:    { status:'close',     pct:89,  note:'igf1r 88.9% / ted 91.7% · batoclimab scope mismatch unresolved' },
+  gmg:    { status:'not_ready', pct:57,  note:'fcrn 57.1% / autoimmune 48% · FcRn + complement backfill needed' },
+  sle:    { status:'not_ready', pct:48,  note:'autoimmune 48% · wave 2D multi-portfolio backfill needed' },
+};
+const READINESS_STYLE = {
+  ready:     { icon:'✅', label:'Ready',     color:'#4caf76' },
+  close:     { icon:'🟡', label:'Close',     color:'#f59e0b' },
+  blocked:   { icon:'🔴', label:'Blocked',   color:'#ef4444' },
+  not_ready: { icon:'⛔', label:'Not Ready', color:'#6b8aad' },
+};
+
 async function pbLoadCard(indId) {
   const meta = PB_IND_META[indId] || {};
   document.querySelectorAll('.pb-ind-btn').forEach(b => {
@@ -19382,6 +19402,10 @@ async function pbLoadCard(indId) {
   document.getElementById('pb-card-area').textContent    = meta.area || '—';
   document.getElementById('pb-card-ind').textContent     = meta.label || indId;
   document.getElementById('pb-card-density').textContent = meta.density || '—';
+  const _r = COMPARISON_READINESS[indId] || { status:'not_ready', pct:0, note:'No harness data for this indication' };
+  const _rs = READINESS_STYLE[_r.status] || READINESS_STYLE.not_ready;
+  const _rEl = document.getElementById('pb-card-readiness');
+  if (_rEl) { _rEl.innerHTML = `<span style="color:${_rs.color}">${_rs.icon} ${_rs.label}</span> <span style="font-size:10px;color:#6b8aad">(${_r.pct}%)</span>`; _rEl.title = _r.note; }
   ['pb-card-assets','pb-card-companies','pb-card-catalysts','pb-card-targets-count'].forEach(id => {
     document.getElementById(id).textContent = '—';
   });
