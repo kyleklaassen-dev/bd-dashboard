@@ -1,35 +1,44 @@
 # Phase 4 Comparison Harness — Meridian BD Platform
-**Generated:** 2026-05-25 20:59 UTC  
+**Generated:** 2026-05-25 21:15 UTC  
 **Mode:** Read-only · No production data modified  
 **Script:** `scripts/phase4_compare_legacy_vs_normalized.py`  
 
 ---
 
-## Status Legend
+## Phase 4 Model
+
+> **Phase 4 success = validated parity + justified correction. Not raw parity.**
+> Legacy data is the **production baseline**. Normalized data is the **candidate truth layer**.
+> The purpose of Phase 4 is not to force normalized output to match legacy output.
+> The purpose is to **explain every difference**.
+
+### Area Status
 
 | Status | Icon | Meaning |
 |---|---|---|
-| match | ✅ | Legacy and normalized produce equivalent results |
-| compare_pass_oos_adjusted | 🟢 | Raw% < 95% but OOS-adjusted% ≥ 95%; confirmed OOS drugs excluded from denominator per governance rule (2026-05-25). Ready for Phase 4 dual-read — NOT Phase 5 migration. |
-| acceptable_mismatch | 🟡 | Normalized has more/different but difference is expected and safe |
-| needs_rule_adjustment | 🟠 | Gap points to a missing alias, incomplete coverage, or governance rule |
-| migration_blocker | 🔴 | Do NOT migrate — normalized source is not ready for production use |
-| not_ready | ⛔ | Fundamental mapping doesn't exist yet |
+| match | ✅ | Raw match ≥ 95%. All differences explained. |
+| compare_pass_oos_adjusted | 🟢 | Raw% < 95% but adjusted% ≥ 95% after classifying legacy_noise_removed records. Ready for Phase 4 dual-read — NOT Phase 5 migration. |
+| acceptable_mismatch | 🟡 | 70–94% match with unresolved extra-legacy. Review normalized_gap entries. |
+| needs_rule_adjustment | 🟠 | Gap points to missing alias, incomplete coverage, or scope difference needing a bridge rule. |
+| migration_blocker | 🔴 | Do NOT migrate — unclassified extra-legacy records present, or < 40% raw match. |
+| not_ready | ⛔ | Fundamental mapping doesn't exist yet. |
 
-### Governance Rule — OOS Exclusion (2026-05-25)
+### Difference Classifications
 
-> **Do not contaminate normalized truth to match legacy noise.**
-> If a legacy `drug_areas` record is proven out-of-scope for the mapped indication,
-> exclude it from the migration-readiness denominator.
-> These are permanent exclusions — do NOT add them to `drug_indications`.
+Every extra-legacy or extra-normalized record receives one of these classifications:
 
-| Area | Confirmed OOS Drug | Reason |
-|---|---|---|
-| tl1a | `lm-302` | Gastric ADC — placed in tl1a/ibd legacy areas by curation error |
-| tl1a | `sim0500` | RRMM trispecific — placed in tl1a/ibd legacy areas by curation error |
-| tl1a | `spy072` | TL1A antibody targeting PsA/axSpA (rheumatology, not IBD) |
-| ibd | `lm-302` | Same as above |
-| ibd | `sim0500` | Same as above |
+| Classification | Direction | Meaning | Default Action |
+|---|---|---|---|
+| `legacy_noise_removed` | extra_legacy | Legacy includes a record normalized correctly excludes. | Do not backfill. Exclude from readiness denominator. |
+| `normalized_gap` | extra_legacy | Legacy has a valid record normalized missed. | Backfill or add alias rule. |
+| `ontology_scope_difference` | either | Legacy bucket ≠ normalized bucket semantically. | Bridge rule or keep legacy view. |
+| `needs_manual_review` | extra_legacy | Evidence insufficient to classify. | Hold for human review. |
+| `new_normalized_value` | extra_norm | Normalized found a valid relationship legacy does not have. | Document as improvement. |
+| `source_conflict` | either | Record contradicted by drug target, modality, or source evidence. | Flag for Evidence Reconciliation layer. |
+| `cross_table_inconsistency` | either | Record disagrees with multiple evidence tables simultaneously. | Flag for Evidence Reconciliation layer. |
+
+**Readiness metric:** `(overlap + legacy_noise_removed) / legacy_count × 100`  
+Not raw overlap. Accepted legacy corrections count toward the threshold.
 
 ---
 
@@ -43,19 +52,21 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 
 ### Summary Table
 
-| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw Match% | OOS Excl. | OOS-Adj% | Trials | Status |
-|---|---|---|---|---|---|---|---|---|---|
-| `tcell` | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | — | — | 0 | ⛔ not_ready |
-| `autoimmune` | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 24 | 12 | 48.0% | — | — | 59 | 🟠 needs_rule_adjustment |
-| `fcrn` | gmg, cidp, waiha | 7 | 10 | 4 | 57.1% | — | — | 26 | 🟠 needs_rule_adjustment |
-| `igf1r` | ted | 9 | 13 | 8 | 88.9% | — | — | 33 | 🟡 acceptable_mismatch |
-| `atopy` | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | — | — | 50 | 🟡 acceptable_mismatch |
-| `ted` | ted | 12 | 13 | 11 | 91.7% | — | — | 33 | 🟡 acceptable_mismatch |
-| `tl1a` | uc, cd | 51 | 49 | 47 | 92.2% | 3 | 97.9% | 64 | 🟢 compare_pass_oos_adjusted |
-| `ibd` | uc, cd | 50 | 49 | 47 | 94.0% | 1 | 95.9% | 64 | 🟢 compare_pass_oos_adjusted |
-| `il4ra` | ad, asthma | 9 | 27 | 9 | 100.0% | — | — | 88 | ✅ match |
-| `respiratory` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | 66 | ✅ match |
-| `tslp` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | 66 | ✅ match |
+| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw% | Noise Rmvd | Adj% | Gaps | Scope Diff | NMR | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `tcell` | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | — | — | — | 1 | 11 | ⛔ not_ready |
+| `autoimmune` | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 24 | 12 | 48.0% | — | — | 4 | 2 | 7 | 🟠 needs_rule_adjustment |
+| `fcrn` | gmg, cidp, waiha | 7 | 10 | 4 | 57.1% | — | — | 1 | 2 | — | 🟠 needs_rule_adjustment |
+| `igf1r` | ted | 9 | 13 | 8 | 88.9% | — | — | — | 1 | — | 🟡 acceptable_mismatch |
+| `atopy` | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | — | — | 1 | — | — | 🟡 acceptable_mismatch |
+| `ted` | ted | 12 | 13 | 11 | 91.7% | — | — | — | 1 | — | 🟡 acceptable_mismatch |
+| `tl1a` | uc, cd | 51 | 49 | 47 | 92.2% | 3 | 98.0% | — | — | 1 | 🟢 compare_pass_oos_adjusted |
+| `ibd` | uc, cd | 50 | 49 | 47 | 94.0% | 1 | 96.0% | — | — | 2 | 🟢 compare_pass_oos_adjusted |
+| `il4ra` | ad, asthma | 9 | 27 | 9 | 100.0% | — | — | — | — | — | ✅ match |
+| `respiratory` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
+| `tslp` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | — | — | — | ✅ match |
+
+_Noise Rmvd = legacy_noise_removed · Adj% = adjusted match % · Gaps = normalized_gap · Scope Diff = ontology_scope_difference · NMR = needs_manual_review_
 
 ### Detail by Area
 
@@ -76,28 +87,43 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 
 **Assessment:** Zero overlap — legacy and normalized are pointing at completely different drug populations. Fundamental mapping issue. Do NOT migrate.
 
-**Drugs in legacy only (first 15):**
-- `atg-201`: ATG-201
-- `caba-201`: CABA-201
-- `cizutamig`: Cizutamig
-- `cln-978`: CLN-978
-- `cnd261`: CND261
-- `cnd319`: CND319
-- `cnd460`: CND460
-- `descartes08`: Descartes-08
-- `kt501`: KT501
-- `kyv-101`: KYV-101
-- `miv-cel`: Miv-cel (mivocabtagene autoleucel)
-- `nipocalimab`: Imaavy (nipocalimab)
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `blinatumomab`: Blincyto (blinatumomab) (conf=A)
-- `ciltacabtagene-autoleucel`: Carvykti (ciltacabtagene autoleucel) (conf=A)
-- `daratumumab`: Daratumumab (Darzalex) (conf=B)
-- `linvoseltamab`: linvoseltamab (conf=A)
-- `sim0500`: SIM0500 (conf=A)
-- `teclistamab`: Tecvayli (teclistamab) (conf=A)
-- `tisagenlecleucel`: Kymriah (tisagenlecleucel) (conf=B)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `atg-201` (ATG-201) | extra_legacy | `ontology_scope_difference` | Investigate ATG-201 indication; may need new indication node. |
+| `caba-201` (CABA-201) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `cizutamig` (Cizutamig) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `cln-978` (CLN-978) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `cnd261` (CND261) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `cnd319` (CND319) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `cnd460` (CND460) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `descartes08` (Descartes-08) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `kt501` (KT501) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `kyv-101` (KYV-101) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `miv-cel` (Miv-cel (mivocabtagene autoleucel)) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `nipocalimab` (Imaavy (nipocalimab)) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `blinatumomab` (Blincyto (blinatumomab), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ciltacabtagene-autoleucel` (Carvykti (ciltacabtagene autoleucel), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `daratumumab` (Daratumumab (Darzalex), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `linvoseltamab` (linvoseltamab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `sim0500` (SIM0500, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `teclistamab` (Tecvayli (teclistamab), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `tisagenlecleucel` (Kymriah (tisagenlecleucel), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `atg-201`: ATG-201 is CAR-T targeting GD2; legacy tcell area is a broad dashboard bucket. GD2 targets are not ALL or MM specifically. tcell area lacks a clean indication mapping.
+- `caba-201`: Drug `caba-201` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `cizutamig`: Drug `cizutamig` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `cln-978`: Drug `cln-978` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `cnd261`: Drug `cnd261` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `cnd319`: Drug `cnd319` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `cnd460`: Drug `cnd460` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `descartes08`: Drug `descartes08` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `kt501`: Drug `kt501` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `kyv-101`: Drug `kyv-101` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `miv-cel`: Drug `miv-cel` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `nipocalimab`: Drug `nipocalimab` is in legacy `tcell` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
 #### `autoimmune` → `gmg, cidp, ra, sle, waiha, sjogrens` 🟠 **needs_rule_adjustment**
 
@@ -114,36 +140,52 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 11 |
 
-**Assessment:** 48% match. 13 legacy drugs missing from normalized. Check: (a) missing drug_indications rows, (b) alias gaps, (c) broad area straddling multiple indications.
+**Assessment:** 48.0% raw match. 13 extra-legacy drug(s). Check: (a) normalized_gap → backfill needed, (b) ontology_scope_difference → bridge rule needed, (c) needs_manual_review → hold for review.
 
-**Drugs in legacy only (first 15):**
-- `batoclimab`: Batoclimab (IMVT-1401)
-- `cnd261`: CND261
-- `cnd319`: CND319
-- `cnd460`: CND460
-- `imvt-1402`: IMVT-1402
-- `iscalimab`: Iscalimab (CFZ533)
-- `kyv-101`: KYV-101
-- `lonigutamab`: lonigutamab
-- `ofatumumab`: Kesimpta (ofatumumab)
-- `omalizumab`: Xolair (omalizumab)
-- `secukinumab`: Cosentyx (secukinumab)
-- `sp-1351`: SP-1351
-- `tisagenlecleucel`: Kymriah (tisagenlecleucel)
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `adalimumab`: Humira (adalimumab) (conf=B)
-- `anifrolumab`: Saphnelo (anifrolumab) (conf=B)
-- `belimumab`: Benlysta (belimumab) (conf=B)
-- `daratumumab`: Daratumumab (Darzalex) (conf=B)
-- `obexelimab`: Obexelimab (ZB002) (conf=B)
-- `obinutuzumab`: Gazyva (obinutuzumab) (conf=C)
-- `ravulizumab`: Ravulizumab (Ultomiris) (conf=B)
-- `riliprubart`: Riliprubart (conf=B)
-- `rituximab`: Rituxan (rituximab) (conf=B)
-- `tocilizumab`: Actemra (tocilizumab) (conf=B)
-- `tulisokibart`: Tulisokibart (MK-7240) (conf=B)
-- `voclosporin`: Voclosporin (Lupkynis) (conf=B)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `batoclimab` (Batoclimab (IMVT-1401)) | extra_legacy | `ontology_scope_difference` | Exclude from autoimmune drug_indications. |
+| `cnd261` (CND261) | extra_legacy | `normalized_gap` | Backfill drug_indications: cnd261 — identify indication. |
+| `cnd319` (CND319) | extra_legacy | `normalized_gap` | Backfill drug_indications: cnd319 — identify indication. |
+| `cnd460` (CND460) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `imvt-1402` (IMVT-1402) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `iscalimab` (Iscalimab (CFZ533)) | extra_legacy | `normalized_gap` | Backfill drug_indications: iscalimab — confirm indication. |
+| `kyv-101` (KYV-101) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `lonigutamab` (lonigutamab) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `ofatumumab` (Kesimpta (ofatumumab)) | extra_legacy | `normalized_gap` | Backfill drug_indications: ofatumumab → gmg. |
+| `omalizumab` (Xolair (omalizumab)) | extra_legacy | `ontology_scope_difference` | Exclude from autoimmune drug_indications. |
+| `secukinumab` (Cosentyx (secukinumab)) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `sp-1351` (SP-1351) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `tisagenlecleucel` (Kymriah (tisagenlecleucel)) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `adalimumab` (Humira (adalimumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `anifrolumab` (Saphnelo (anifrolumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `belimumab` (Benlysta (belimumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `daratumumab` (Daratumumab (Darzalex), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `obexelimab` (Obexelimab (ZB002), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `obinutuzumab` (Gazyva (obinutuzumab), conf=C) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ravulizumab` (Ravulizumab (Ultomiris), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `riliprubart` (Riliprubart, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `rituximab` (Rituxan (rituximab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `tocilizumab` (Actemra (tocilizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `tulisokibart` (Tulisokibart (MK-7240), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `voclosporin` (Voclosporin (Lupkynis), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `batoclimab`: FcRn drug placed in autoimmune legacy catch-all; indication is gMG/CIDP, handled via fcrn area.
+- `cnd261`: Wave 2A did not cover CND261; indication unclear, needs classification.
+- `cnd319`: Wave 2A did not cover CND319; indication unclear, needs classification.
+- `cnd460`: Drug `cnd460` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `imvt-1402`: Drug `imvt-1402` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `iscalimab`: Iscalimab (CD40) is gMG-adjacent; needs indication review. Likely gmg or sjogrens.
+- `kyv-101`: Drug `kyv-101` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `lonigutamab`: Drug `lonigutamab` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `ofatumumab`: Ofatumumab (anti-CD20) has gMG indication; missed in Wave 2A autoimmune backfill.
+- `omalizumab`: Omalizumab (anti-IgE) is in autoimmune legacy catch-all; indication is CSU/asthma, not canonical autoimmune. Handled via atopy/tslp areas.
+- `secukinumab`: Drug `secukinumab` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `sp-1351`: Drug `sp-1351` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
+- `tisagenlecleucel`: Drug `tisagenlecleucel` is in legacy `autoimmune` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
 #### `fcrn` → `gmg, cidp, waiha` 🟠 **needs_rule_adjustment**
 
@@ -160,20 +202,26 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 20 |
 | Catalysts tagged to legacy area | 41 |
 
-**Assessment:** 57% match. 3 legacy drugs missing from normalized. Check: (a) missing drug_indications rows, (b) alias gaps, (c) broad area straddling multiple indications.
+**Assessment:** 57.1% raw match. 3 extra-legacy drug(s). Check: (a) normalized_gap → backfill needed, (b) ontology_scope_difference → bridge rule needed, (c) needs_manual_review → hold for review.
 
-**Drugs in legacy only (first 15):**
-- `atg-201`: ATG-201
-- `batoclimab`: Batoclimab (IMVT-1401)
-- `imvt-1402`: IMVT-1402
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `caba-201`: CABA-201 (conf=B)
-- `cizutamig`: Cizutamig (conf=B)
-- `descartes08`: Descartes-08 (conf=B)
-- `miv-cel`: Miv-cel (mivocabtagene autoleucel) (conf=B)
-- `ravulizumab`: Ravulizumab (Ultomiris) (conf=B)
-- `riliprubart`: Riliprubart (conf=B)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `atg-201` (ATG-201) | extra_legacy | `ontology_scope_difference` | Keep atg-201 in legacy tcell view; do not add to drug_indications via fcrn. |
+| `batoclimab` (Batoclimab (IMVT-1401)) | extra_legacy | `ontology_scope_difference` | Keep batoclimab in legacy fcrn view only; do not add to drug_indications via fcrn. |
+| `imvt-1402` (IMVT-1402) | extra_legacy | `normalized_gap` | Backfill drug_indications: imvt-1402 → gmg, cidp, waiha. |
+| `caba-201` (CABA-201, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `cizutamig` (Cizutamig, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `descartes08` (Descartes-08, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `miv-cel` (Miv-cel (mivocabtagene autoleucel), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ravulizumab` (Ravulizumab (Ultomiris), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `riliprubart` (Riliprubart, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `atg-201`: ATG-201 is a CAR-T targeting GD2; placed in fcrn legacy area incorrectly. Different mechanism entirely.
+- `batoclimab`: Batoclimab is FcRn-targeting (IgG recycling pathway) but was placed in fcrn legacy area despite primarily being characterized in igf1r/autoimmune legacy areas. Mechanism overlap ≠ indication.
+- `imvt-1402`: IMVT-1402 is FcRn inhibitor in Phase 3 for gMG, CIDP, WAIHA; missed in Wave 2A FcRn backfill.
 
 #### `igf1r` → `ted` 🟡 **acceptable_mismatch**
 
@@ -190,17 +238,21 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 18 |
 | Catalysts tagged to legacy area | 30 |
 
-**Assessment:** 88.9% legacy coverage. 5 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 88.9% raw legacy coverage. 1 extra-legacy drug(s) unresolved (normalized_gap or needs_review). 5 extra normalized drugs are expected ontology expansion. Review unresolved extra-legacy list before declaring compare-pass.
 
-**Drugs in legacy only (first 15):**
-- `batoclimab`: Batoclimab (IMVT-1401)
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `cizutamig`: Cizutamig (conf=B)
-- `crn12755`: CRN12755 (conf=A)
-- `iscalimab`: Iscalimab (CFZ533) (conf=B)
-- `lonigutamab`: lonigutamab (conf=A)
-- `sp-1351`: SP-1351 (conf=A)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `batoclimab` (Batoclimab (IMVT-1401)) | extra_legacy | `ontology_scope_difference` | Exclude batoclimab from ted/igf1r drug_indications. |
+| `cizutamig` (Cizutamig, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `crn12755` (CRN12755, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `iscalimab` (Iscalimab (CFZ533), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `lonigutamab` (lonigutamab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `sp-1351` (SP-1351, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `batoclimab`: Batoclimab is FcRn mechanism; legacy igf1r area misclassified it. Not a TED drug.
 
 #### `atopy` → `ad, chronic_urticaria` 🟡 **acceptable_mismatch**
 
@@ -217,22 +269,26 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 3 |
 
-**Assessment:** 90.0% legacy coverage. 10 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 90.0% raw legacy coverage. 1 extra-legacy drug(s) unresolved (normalized_gap or needs_review). 10 extra normalized drugs are expected ontology expansion. Review unresolved extra-legacy list before declaring compare-pass.
 
-**Drugs in legacy only (first 15):**
-- `upadacitinib`: Rinvoq (upadacitinib)
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `abrocitinib`: Cibinqo (abrocitinib) (conf=A)
-- `bsi-045b`: Bosakitug (conf=B)
-- `catalog-49`: IMG-007 (conf=A)
-- `cendakimab`: Cendakimab (conf=B)
-- `ibi333`: IBI333 (conf=B)
-- `omalizumab`: Xolair (omalizumab) (conf=B)
-- `rocatinlimab`: Rocatinlimab (conf=A)
-- `ruxolitinib-topical`: Opzelura (ruxolitinib (topical)) (conf=B)
-- `win027`: WIN027 (conf=B)
-- `zemprocitinib`: zemprocitinib (conf=A)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `upadacitinib` (Rinvoq (upadacitinib)) | extra_legacy | `normalized_gap` | Backfill drug_indications: upadacitinib → ad (atopic dermatitis). |
+| `abrocitinib` (Cibinqo (abrocitinib), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `bsi-045b` (Bosakitug, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `catalog-49` (IMG-007, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `cendakimab` (Cendakimab, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ibi333` (IBI333, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `omalizumab` (Xolair (omalizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `rocatinlimab` (Rocatinlimab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ruxolitinib-topical` (Opzelura (ruxolitinib (topical)), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `win027` (WIN027, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `zemprocitinib` (zemprocitinib, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `upadacitinib`: Upadacitinib has FDA-approved AD indication; missed in Wave 2A backfill.
 
 #### `ted` → `ted` 🟡 **acceptable_mismatch**
 
@@ -249,14 +305,18 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 2 |
 
-**Assessment:** 91.7% legacy coverage. 2 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 91.7% raw legacy coverage. 1 extra-legacy drug(s) unresolved (normalized_gap or needs_review). 2 extra normalized drugs are expected ontology expansion. Review unresolved extra-legacy list before declaring compare-pass.
 
-**Drugs in legacy only (first 15):**
-- `batoclimab`: Batoclimab (IMVT-1401)
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `cizutamig`: Cizutamig (conf=B)
-- `iscalimab`: Iscalimab (CFZ533) (conf=B)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `batoclimab` (Batoclimab (IMVT-1401)) | extra_legacy | `ontology_scope_difference` | Exclude from ted drug_indications. |
+| `cizutamig` (Cizutamig, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `iscalimab` (Iscalimab (CFZ533), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `batoclimab`: Batoclimab is FcRn mechanism; legacy igf1r area shared with ted. Not a TED drug.
 
 #### `tl1a` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
 
@@ -267,25 +327,32 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Normalized drugs (`drug_indications`) | 49 |
 | Overlap | 47 |
 | Raw match % | 92.2% |
-| Confirmed OOS excluded (`confirmed_oos_legacy_noise`) | 3 (lm-302, sim0500, spy072) |
-| OOS-adjusted match % | 97.9% |
+| legacy_noise_removed | 3 (lm-302, sim0500, spy072) |
+| Adjusted match % (overlap + noise_removed) / legacy | 98.0% |
 | Extra in legacy only | 4 |
 | Extra in normalized only | 2 |
 | Normalized trial count (`trial_indications`) | 64 |
 | Deals tagged to legacy area | 67 |
 | Catalysts tagged to legacy area | 384 |
 
-**Assessment:** Raw 92.2% < 95% threshold, but OOS-adjusted coverage is 97.9% ≥ 95% after removing 3 confirmed out-of-scope legacy drug(s) from denominator. Governance rule (2026-05-25): confirmed OOS drugs excluded from migration-readiness denominator. Ready for Phase 4 compare pass — NOT Phase 5 migration (requires dual-read validation first).
+**Assessment:** Raw 92.2% < 95% threshold. Adjusted coverage 98.0% ≥ 95% after accepting 3 legacy_noise_removed record(s) as confirmed corrections (not ontology gaps). Governance rule (2026-05-25): legacy noise is excluded from the migration-readiness denominator. Ready for Phase 4 dual-read validation — NOT Phase 5 migration.
 
-**Drugs in legacy only (first 15):**
-- `epi-001`: EPI-001
-- `lm-302`: LM-302
-- `sim0500`: SIM0500
-- `spy072`: SPY072
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
-- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `epi-001` (EPI-001) | extra_legacy | `needs_manual_review` | Review EPI-001 clinical evidence before committing. |
+| `lm-302` (LM-302) | extra_legacy | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. |
+| `sim0500` (SIM0500) | extra_legacy | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. |
+| `spy072` (SPY072) | extra_legacy | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. |
+| `risankizumab-lutikizumab-or-trosunilimab` (TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `risankizumab-vs-vedolizumab` (risankizumab vs vedolizumab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `epi-001`: Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; held in backfill_preview as review_required.
+- `lm-302`: Gastric/GEJ ADC — placed in tl1a legacy area by curation error; not a TL1A/IBD drug.
+- `sim0500`: RRMM trispecific — placed in tl1a legacy area by curation error; not a TL1A/IBD drug.
+- `spy072`: TL1A antibody targeting PsA/axSpA (rheumatology); not IBD. Correct exclusion from drug_indications.
 
 #### `ibd` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
 
@@ -296,24 +363,30 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Normalized drugs (`drug_indications`) | 49 |
 | Overlap | 47 |
 | Raw match % | 94.0% |
-| Confirmed OOS excluded (`confirmed_oos_legacy_noise`) | 1 (sim0500) |
-| OOS-adjusted match % | 95.9% |
+| legacy_noise_removed | 1 (sim0500) |
+| Adjusted match % (overlap + noise_removed) / legacy | 96.0% |
 | Extra in legacy only | 3 |
 | Extra in normalized only | 2 |
 | Normalized trial count (`trial_indications`) | 64 |
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 18 |
 
-**Assessment:** Raw 94.0% < 95% threshold, but OOS-adjusted coverage is 95.9% ≥ 95% after removing 1 confirmed out-of-scope legacy drug(s) from denominator. Governance rule (2026-05-25): confirmed OOS drugs excluded from migration-readiness denominator. Ready for Phase 4 compare pass — NOT Phase 5 migration (requires dual-read validation first).
+**Assessment:** Raw 94.0% < 95% threshold. Adjusted coverage 96.0% ≥ 95% after accepting 1 legacy_noise_removed record(s) as confirmed corrections (not ontology gaps). Governance rule (2026-05-25): legacy noise is excluded from the migration-readiness denominator. Ready for Phase 4 dual-read validation — NOT Phase 5 migration.
 
-**Drugs in legacy only (first 15):**
-- `epi-001`: EPI-001
-- `sim0500`: SIM0500
-- `spy072`: SPY072
+**Difference Classification:**
 
-**Drugs in normalized only (first 15):**
-- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
-- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `epi-001` (EPI-001) | extra_legacy | `needs_manual_review` | Review EPI-001 clinical evidence before committing. |
+| `sim0500` (SIM0500) | extra_legacy | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. |
+| `spy072` (SPY072) | extra_legacy | `needs_manual_review` | Review required — no classification on record. |
+| `risankizumab-lutikizumab-or-trosunilimab` (TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `risankizumab-vs-vedolizumab` (risankizumab vs vedolizumab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+
+**Notes on extra-legacy records:**
+- `epi-001`: Same as tl1a/epi-001 above.
+- `sim0500`: RRMM trispecific — same error as tl1a area.
+- `spy072`: Drug `spy072` is in legacy `ibd` area but absent from normalized. Cause unknown; may be coverage gap, scope difference, or noise.
 
 #### `il4ra` → `ad, asthma` ✅ **match**
 
@@ -330,25 +403,30 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 24 |
 | Catalysts tagged to legacy area | 65 |
 
-**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. All differences explained or negligible. Extra normalized drugs are genuine ontology expansion — not regressions.
 
-**Drugs in normalized only (first 15):**
-- `abrocitinib`: Cibinqo (abrocitinib) (conf=A)
-- `apg333`: APG333 (conf=A)
-- `benralizumab`: Fasenra (benralizumab) (conf=A)
-- `bsi-045b`: Bosakitug (conf=B)
-- `catalog-49`: IMG-007 (conf=A)
-- `cendakimab`: Cendakimab (conf=B)
-- `gb0895`: GB-0895 (conf=B)
-- `ibi333`: IBI333 (conf=B)
-- `mepolizumab`: Nucala (mepolizumab) (conf=B)
-- `omalizumab`: Xolair (omalizumab) (conf=B)
-- `qx031n`: QX031N (conf=B)
-- `rocatinlimab`: Rocatinlimab (conf=A)
-- `ruxolitinib-topical`: Opzelura (ruxolitinib (topical)) (conf=B)
-- `tezepelumab`: Tezspire (tezepelumab) (conf=B)
-- `tozorakimab`: Tozorakimab (conf=B)
-- _(+3 more)_
+**Difference Classification:**
+
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `abrocitinib` (Cibinqo (abrocitinib), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `apg333` (APG333, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `benralizumab` (Fasenra (benralizumab), conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `bsi-045b` (Bosakitug, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `catalog-49` (IMG-007, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `cendakimab` (Cendakimab, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `gb0895` (GB-0895, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ibi333` (IBI333, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `mepolizumab` (Nucala (mepolizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `omalizumab` (Xolair (omalizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `qx031n` (QX031N, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `rocatinlimab` (Rocatinlimab, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `ruxolitinib-topical` (Opzelura (ruxolitinib (topical)), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `tezepelumab` (Tezspire (tezepelumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `tozorakimab` (Tozorakimab, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `verekitug--upb-101` (Verekitug (UPB-101), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `win027` (WIN027, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `zemprocitinib` (zemprocitinib, conf=A) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
 #### `respiratory` → `asthma, copd, crswnp` ✅ **match**
 
@@ -365,12 +443,15 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 4 |
 
-**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. All differences explained or negligible. Extra normalized drugs are genuine ontology expansion — not regressions.
 
-**Drugs in normalized only (first 15):**
-- `ibi333`: IBI333 (conf=B)
-- `omalizumab`: Xolair (omalizumab) (conf=B)
-- `rademikibart--cbp-201`: Rademikibart (CBP-201) (conf=B)
+**Difference Classification:**
+
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `ibi333` (IBI333, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `omalizumab` (Xolair (omalizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `rademikibart--cbp-201` (Rademikibart (CBP-201), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
 #### `tslp` → `asthma, copd, crswnp` ✅ **match**
 
@@ -387,12 +468,15 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Deals tagged to legacy area | 28 |
 | Catalysts tagged to legacy area | 119 |
 
-**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. All differences explained or negligible. Extra normalized drugs are genuine ontology expansion — not regressions.
 
-**Drugs in normalized only (first 15):**
-- `ibi333`: IBI333 (conf=B)
-- `omalizumab`: Xolair (omalizumab) (conf=B)
-- `rademikibart--cbp-201`: Rademikibart (CBP-201) (conf=B)
+**Difference Classification:**
+
+| Drug | Direction | Classification | Recommended Action |
+|---|---|---|---|
+| `ibi333` (IBI333, conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `omalizumab` (Xolair (omalizumab), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
+| `rademikibart--cbp-201` (Rademikibart (CBP-201), conf=B) | extra_norm | `new_normalized_value` | Document as improvement. No legacy backfill needed. |
 
 ---
 
@@ -420,7 +504,7 @@ For each of the 5 high-risk legacy dashboard paths (from `docs/dashboard_depende
 - **Normalized count:** 49
 - **Overlap:** 47
 - **Match %:** 92.2%
-- **Notes:** Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers 49 UC+CD drugs (47 overlap). Raw coverage: 92.2%. OOS-adjusted coverage: 97.9% after removing 3 confirmed OOS drugs (['lm-302', 'sim0500', 'spy072']). Governance rule (2026-05-25): OOS drugs are legacy curation noise — do NOT add them to drug_indications. Ready for Phase 4 dual-read comparison — NOT Phase 5 migration.
+- **Notes:** Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers 49 UC+CD drugs (47 overlap). Raw coverage: 92.2%. Adjusted coverage: 98.0% after classifying 3 extra-legacy drug(s) as legacy_noise_removed (confirmed curation errors). Governance rule (2026-05-25): legacy noise excluded from readiness denominator. Ready for Phase 4 dual-read validation — NOT Phase 5 migration.
 
 ### loadAreaDeals() / _loadBdIntoModal()  ⛔ **not_ready**
 
@@ -462,23 +546,157 @@ These paths must NOT be migrated until the blocking conditions are resolved:
 
 ---
 
-## Part 4 — Mismatch Classification (Track B)
+## Part 4 — Difference Classification Master List (Track B)
 
-Classifying why each mismatch exists. Types: `coverage_gap` | `alias_gap` | `scope_difference` | `legacy_noise` | `true_missing_row`
+All classified differences from `DIFFERENCE_CLASSIFICATIONS`. This replaces the legacy spot-check approach with a formal per-record taxonomy.
 
-| Area | Extra-Legacy Drug | Classification | Action |
+### Classified Extra-Legacy Records (drugs in legacy but NOT normalized)
+
+| Area | Drug | Classification | Action Required | Note |
+|---|---|---|---|---|
+| `atopy` | `upadacitinib` (Rinvoq (upadacitinib)) | `normalized_gap` | Backfill drug_indications: upadacitinib → ad (atopic dermatitis). | Upadacitinib has FDA-approved AD indication; missed in Wave 2A backfill. |
+| `autoimmune` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Exclude from autoimmune drug_indications. | FcRn drug placed in autoimmune legacy catch-all; indication is gMG/CIDP, handled via fcrn … |
+| `autoimmune` | `cnd261` (CND261) | `normalized_gap` | Backfill drug_indications: cnd261 — identify indication. | Wave 2A did not cover CND261; indication unclear, needs classification. |
+| `autoimmune` | `cnd319` (CND319) | `normalized_gap` | Backfill drug_indications: cnd319 — identify indication. | Wave 2A did not cover CND319; indication unclear, needs classification. |
+| `autoimmune` | `iscalimab` (Iscalimab (CFZ533)) | `normalized_gap` | Backfill drug_indications: iscalimab — confirm indication. | Iscalimab (CD40) is gMG-adjacent; needs indication review. Likely gmg or sjogrens. |
+| `autoimmune` | `ofatumumab` (Kesimpta (ofatumumab)) | `normalized_gap` | Backfill drug_indications: ofatumumab → gmg. | Ofatumumab (anti-CD20) has gMG indication; missed in Wave 2A autoimmune backfill. |
+| `autoimmune` | `omalizumab` (Xolair (omalizumab)) | `ontology_scope_difference` | Exclude from autoimmune drug_indications. | Omalizumab (anti-IgE) is in autoimmune legacy catch-all; indication is CSU/asthma, not can… |
+| `fcrn` | `atg-201` (ATG-201) | `ontology_scope_difference` | Keep atg-201 in legacy tcell view; do not add to drug_indications via fcrn. | ATG-201 is a CAR-T targeting GD2; placed in fcrn legacy area incorrectly. Different mechan… |
+| `fcrn` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Keep batoclimab in legacy fcrn view only; do not add to drug_indications via fcrn. | Batoclimab is FcRn-targeting (IgG recycling pathway) but was placed in fcrn legacy area de… |
+| `fcrn` | `imvt-1402` (IMVT-1402) | `normalized_gap` | Backfill drug_indications: imvt-1402 → gmg, cidp, waiha. | IMVT-1402 is FcRn inhibitor in Phase 3 for gMG, CIDP, WAIHA; missed in Wave 2A FcRn backfi… |
+| `ibd` | `epi-001` (EPI-001) | `needs_manual_review` | Review EPI-001 clinical evidence before committing. | Same as tl1a/epi-001 above. |
+| `ibd` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — same error as tl1a area. |
+| `ibd` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — same error as tl1a area. |
+| `igf1r` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Exclude batoclimab from ted/igf1r drug_indications. | Batoclimab is FcRn mechanism; legacy igf1r area misclassified it. Not a TED drug. |
+| `tcell` | `atg-201` (ATG-201) | `ontology_scope_difference` | Investigate ATG-201 indication; may need new indication node. | ATG-201 is CAR-T targeting GD2; legacy tcell area is a broad dashboard bucket. GD2 targets… |
+| `ted` | `batoclimab` (Batoclimab (IMVT-1401)) | `ontology_scope_difference` | Exclude from ted drug_indications. | Batoclimab is FcRn mechanism; legacy igf1r area shared with ted. Not a TED drug. |
+| `tl1a` | `epi-001` (EPI-001) | `needs_manual_review` | Review EPI-001 clinical evidence before committing. | Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; held in backfill_previe… |
+| `tl1a` | `es302` (ES302) | `normalized_gap` | Backfill drug_indications: es302 → uc + cd. | ES302 is an IL-23 inhibitor with UC/CD indication; missed in Wave 2C coverage. |
+| `tl1a` | `lm-302` (LM-302) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | Gastric/GEJ ADC — placed in tl1a legacy area by curation error; not a TL1A/IBD drug. |
+| `tl1a` | `sim0500` (SIM0500) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | RRMM trispecific — placed in tl1a legacy area by curation error; not a TL1A/IBD drug. |
+| `tl1a` | `spy072` (SPY072) | `legacy_noise_removed` | Do not backfill. Exclude from readiness denominator. | TL1A antibody targeting PsA/axSpA (rheumatology); not IBD. Correct exclusion from drug_ind… |
+
+### Unclassified Extra-Legacy Records (needs_manual_review default)
+
+Drugs in legacy areas that have no entry in `DIFFERENCE_CLASSIFICATIONS` and are not in normalized. These are conservative `needs_manual_review` by default.
+
+| Area | Drug | Default Classification |
+|---|---|---|
+| `autoimmune` | `cnd460` (CND460) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `imvt-1402` (IMVT-1402) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `kyv-101` (KYV-101) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `lonigutamab` (lonigutamab) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `secukinumab` (Cosentyx (secukinumab)) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `sp-1351` (SP-1351) | `needs_manual_review` (unclassified) |
+| `autoimmune` | `tisagenlecleucel` (Kymriah (tisagenlecleucel)) | `needs_manual_review` (unclassified) |
+| `ibd` | `spy072` (SPY072) | `needs_manual_review` (unclassified) |
+| `tcell` | `caba-201` (CABA-201) | `needs_manual_review` (unclassified) |
+| `tcell` | `cizutamig` (Cizutamig) | `needs_manual_review` (unclassified) |
+| `tcell` | `cln-978` (CLN-978) | `needs_manual_review` (unclassified) |
+| `tcell` | `cnd261` (CND261) | `needs_manual_review` (unclassified) |
+| `tcell` | `cnd319` (CND319) | `needs_manual_review` (unclassified) |
+| `tcell` | `cnd460` (CND460) | `needs_manual_review` (unclassified) |
+| `tcell` | `descartes08` (Descartes-08) | `needs_manual_review` (unclassified) |
+| `tcell` | `kt501` (KT501) | `needs_manual_review` (unclassified) |
+| `tcell` | `kyv-101` (KYV-101) | `needs_manual_review` (unclassified) |
+| `tcell` | `miv-cel` (Miv-cel (mivocabtagene autoleucel)) | `needs_manual_review` (unclassified) |
+| `tcell` | `nipocalimab` (Imaavy (nipocalimab)) | `needs_manual_review` (unclassified) |
+
+### Extra-Normalized Records (drugs in normalized but NOT legacy)
+
+These are new valid relationships the ontology found that legacy missed. Default: `new_normalized_value`. No dashboard regression — these are improvements.
+
+| Area | Drug | Classification | Confidence |
 |---|---|---|---|
-| `atopy` | `upadacitinib` (Rinvoq (upadacitinib)) | true_missing_row | Add drug_indications row: upadacitinib → ad |
-| `autoimmune` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | FcRn mechanism drug placed in autoimmune legacy catch-all |
-| `autoimmune` | `cnd261` (CND261) | coverage_gap | Wave 2A did not cover CND261; need drug_indications backfill |
-| `autoimmune` | `cnd319` (CND319) | coverage_gap | Wave 2A did not cover CND319; need drug_indications backfill |
-| `autoimmune` | `iscalimab` (Iscalimab (CFZ533)) | coverage_gap | Iscalimab (CD40; gMG-adjacent) missing from drug_indications |
-| `fcrn` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T (tcell area), placed in fcrn legacy; different mechanism |
-| `fcrn` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn-targeting but in legacy igf1r/autoimmune areas; not in gmg/cidp/waiha drug_indications |
-| `fcrn` | `imvt-1402` (IMVT-1402) | true_missing_row | IMVT-1402 is FcRn; add drug_indications rows for gmg/cidp/waiha |
-| `igf1r` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn/IgG pathway, classified in igf1r legacy area; exclude from ted |
-| `tcell` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T targeting GD2; not ALL or MM specifically |
-| `ted` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab is FcRn; legacy igf1r area misclassified it; not TED |
+| `atopy` | `abrocitinib` (Cibinqo (abrocitinib)) | `new_normalized_value` | A |
+| `atopy` | `bsi-045b` (Bosakitug) | `new_normalized_value` | B |
+| `atopy` | `catalog-49` (IMG-007) | `new_normalized_value` | A |
+| `atopy` | `cendakimab` (Cendakimab) | `new_normalized_value` | B |
+| `atopy` | `ibi333` (IBI333) | `new_normalized_value` | B |
+| `atopy` | `omalizumab` (Xolair (omalizumab)) | `new_normalized_value` | B |
+| `atopy` | `rocatinlimab` (Rocatinlimab) | `new_normalized_value` | A |
+| `atopy` | `ruxolitinib-topical` (Opzelura (ruxolitinib (topical))) | `new_normalized_value` | B |
+| `atopy` | `win027` (WIN027) | `new_normalized_value` | B |
+| `atopy` | `zemprocitinib` (zemprocitinib) | `new_normalized_value` | A |
+| `autoimmune` | `adalimumab` (Humira (adalimumab)) | `new_normalized_value` | B |
+| `autoimmune` | `anifrolumab` (Saphnelo (anifrolumab)) | `new_normalized_value` | B |
+| `autoimmune` | `belimumab` (Benlysta (belimumab)) | `new_normalized_value` | B |
+| `autoimmune` | `daratumumab` (Daratumumab (Darzalex)) | `new_normalized_value` | B |
+| `autoimmune` | `obexelimab` (Obexelimab (ZB002)) | `new_normalized_value` | B |
+| `autoimmune` | `obinutuzumab` (Gazyva (obinutuzumab)) | `new_normalized_value` | C |
+| `autoimmune` | `ravulizumab` (Ravulizumab (Ultomiris)) | `new_normalized_value` | B |
+| `autoimmune` | `riliprubart` (Riliprubart) | `new_normalized_value` | B |
+| `autoimmune` | `rituximab` (Rituxan (rituximab)) | `new_normalized_value` | B |
+| `autoimmune` | `tocilizumab` (Actemra (tocilizumab)) | `new_normalized_value` | B |
+| `autoimmune` | `tulisokibart` (Tulisokibart (MK-7240)) | `new_normalized_value` | B |
+| `autoimmune` | `voclosporin` (Voclosporin (Lupkynis)) | `new_normalized_value` | B |
+| `fcrn` | `caba-201` (CABA-201) | `new_normalized_value` | B |
+| `fcrn` | `cizutamig` (Cizutamig) | `new_normalized_value` | B |
+| `fcrn` | `descartes08` (Descartes-08) | `new_normalized_value` | B |
+| `fcrn` | `miv-cel` (Miv-cel (mivocabtagene autoleucel)) | `new_normalized_value` | B |
+| `fcrn` | `ravulizumab` (Ravulizumab (Ultomiris)) | `new_normalized_value` | B |
+| `fcrn` | `riliprubart` (Riliprubart) | `new_normalized_value` | B |
+| `ibd` | `risankizumab-lutikizumab-or-trosunilimab` (TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab)) | `new_normalized_value` | A |
+| `ibd` | `risankizumab-vs-vedolizumab` (risankizumab vs vedolizumab) | `new_normalized_value` | A |
+| `igf1r` | `cizutamig` (Cizutamig) | `new_normalized_value` | B |
+| `igf1r` | `crn12755` (CRN12755) | `new_normalized_value` | A |
+| `igf1r` | `iscalimab` (Iscalimab (CFZ533)) | `new_normalized_value` | B |
+| `igf1r` | `lonigutamab` (lonigutamab) | `new_normalized_value` | A |
+| `igf1r` | `sp-1351` (SP-1351) | `new_normalized_value` | A |
+| `il4ra` | `abrocitinib` (Cibinqo (abrocitinib)) | `new_normalized_value` | A |
+| `il4ra` | `apg333` (APG333) | `new_normalized_value` | A |
+| `il4ra` | `benralizumab` (Fasenra (benralizumab)) | `new_normalized_value` | A |
+| `il4ra` | `bsi-045b` (Bosakitug) | `new_normalized_value` | B |
+| `il4ra` | `catalog-49` (IMG-007) | `new_normalized_value` | A |
+| `il4ra` | `cendakimab` (Cendakimab) | `new_normalized_value` | B |
+| `il4ra` | `gb0895` (GB-0895) | `new_normalized_value` | B |
+| `il4ra` | `ibi333` (IBI333) | `new_normalized_value` | B |
+| `il4ra` | `mepolizumab` (Nucala (mepolizumab)) | `new_normalized_value` | B |
+| `il4ra` | `omalizumab` (Xolair (omalizumab)) | `new_normalized_value` | B |
+| `il4ra` | `qx031n` (QX031N) | `new_normalized_value` | B |
+| `il4ra` | `rocatinlimab` (Rocatinlimab) | `new_normalized_value` | A |
+| `il4ra` | `ruxolitinib-topical` (Opzelura (ruxolitinib (topical))) | `new_normalized_value` | B |
+| `il4ra` | `tezepelumab` (Tezspire (tezepelumab)) | `new_normalized_value` | B |
+| `il4ra` | `tozorakimab` (Tozorakimab) | `new_normalized_value` | B |
+| `il4ra` | `verekitug--upb-101` (Verekitug (UPB-101)) | `new_normalized_value` | B |
+| `il4ra` | `win027` (WIN027) | `new_normalized_value` | B |
+| `il4ra` | `zemprocitinib` (zemprocitinib) | `new_normalized_value` | A |
+| `respiratory` | `ibi333` (IBI333) | `new_normalized_value` | B |
+| `respiratory` | `omalizumab` (Xolair (omalizumab)) | `new_normalized_value` | B |
+| `respiratory` | `rademikibart--cbp-201` (Rademikibart (CBP-201)) | `new_normalized_value` | B |
+| `tcell` | `blinatumomab` (Blincyto (blinatumomab)) | `new_normalized_value` | A |
+| `tcell` | `ciltacabtagene-autoleucel` (Carvykti (ciltacabtagene autoleucel)) | `new_normalized_value` | A |
+| `tcell` | `daratumumab` (Daratumumab (Darzalex)) | `new_normalized_value` | B |
+| `tcell` | `linvoseltamab` (linvoseltamab) | `new_normalized_value` | A |
+| `tcell` | `sim0500` (SIM0500) | `new_normalized_value` | A |
+| `tcell` | `teclistamab` (Tecvayli (teclistamab)) | `new_normalized_value` | A |
+| `tcell` | `tisagenlecleucel` (Kymriah (tisagenlecleucel)) | `new_normalized_value` | B |
+| `ted` | `cizutamig` (Cizutamig) | `new_normalized_value` | B |
+| `ted` | `iscalimab` (Iscalimab (CFZ533)) | `new_normalized_value` | B |
+| `tl1a` | `risankizumab-lutikizumab-or-trosunilimab` (TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab)) | `new_normalized_value` | A |
+| `tl1a` | `risankizumab-vs-vedolizumab` (risankizumab vs vedolizumab) | `new_normalized_value` | A |
+| `tslp` | `ibi333` (IBI333) | `new_normalized_value` | B |
+| `tslp` | `omalizumab` (Xolair (omalizumab)) | `new_normalized_value` | B |
+| `tslp` | `rademikibart--cbp-201` (Rademikibart (CBP-201)) | `new_normalized_value` | B |
+
+---
+
+## Part 4b — Evidence Reconciliation Candidates
+
+These records are flagged as cross-table inconsistencies — they disagree across legacy area assignment, normalized indication, drug target, modality, and/or source evidence. They are the seed set for the Evidence Reconciliation Layer (design: `docs/evidence_reconciliation_layer.md`).
+
+No single table is treated as ground truth here. Truth is evidence-weighted and relationship-validated across all tables.
+
+| Drug | Legacy Area | Conflict Type | Legacy Evidence | Conflicting Evidence | Classification | Proposed Fix | Confidence |
+|---|---|---|---|---|---|---|---|
+| `lm-302` | tl1a, ibd | `cross_table_inconsistency` | drug_areas: tl1a + ibd | target=CLDN18.2, indication=gastric cancer, modality=ADC, no IBD/TL1A biology | `legacy_noise_removed` | Exclude from normalized IBD/TL1A migration denominator. Do not add to drug_indications. | High |
+| `sim0500` | tl1a, ibd | `cross_table_inconsistency` | drug_areas: tl1a + ibd | modality=trispecific, indication=RRMM (multiple myeloma), no IBD/TL1A biology | `legacy_noise_removed` | Exclude from normalized IBD/TL1A migration denominator. Do not add to drug_indications. | High |
+| `spy072` | tl1a | `ontology_scope_difference` | drug_areas: tl1a | target=TL1A, indication=PsA/axSpA (rheumatology, not IBD) | `legacy_noise_removed` | Exclude from IBD/TL1A denominator. Could be valid for future rheumatology area. | High |
+| `epi-001` | tl1a, ibd | `needs_manual_review` | drug_areas: tl1a + ibd | anti-TL1A preclinical; indication_short absent; no trial evidence for UC/CD yet | `needs_manual_review` | Hold in backfill_preview as review_required until source evidence confirms indication. | Medium |
+| `batoclimab` | fcrn, igf1r, autoimmune, ted | `cross_table_inconsistency` | drug_areas: 4 separate legacy areas | target=FcRn (neonatal Fc receptor), mechanism=IgG recycling inhibitor; drug_indications: gmg/cidp/waiha; none of the legacy areas map cleanly to these | `ontology_scope_difference` | Canonical indication is gMG/CIDP/WAIHA via fcrn/autoimmune. Legacy area overcount is a curation artifact; resolve in next fcrn backfill. | High |
+| `upadacitinib` | atopy | `normalized_gap` | drug_areas: atopy | FDA-approved for atopic dermatitis (JAK1 inhibitor); absent from drug_indications | `normalized_gap` | Backfill drug_indications: upadacitinib → ad. High-confidence omission. | High |
+
+_Note: This section is populated from `DIFFERENCE_CLASSIFICATIONS` + manual curation. Future versions will be generated automatically from `entity_consistency_checks` table._
 
 ---
 
@@ -488,28 +706,30 @@ Phase 4 migration is safe when ALL of the following are true:
 
 ### Per-Indication Criteria
 
-| Indication(s) | Required | Raw% | OOS-Adj% | OOS Excl. | Criteria Met? |
-|---|---|---|---|---|---|
-| `il4ra` → ad, asthma | ≥95% | 100.0% | — | — | ✅ raw |
-| `respiratory` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | ✅ raw |
-| `tslp` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | ✅ raw |
-| `ibd` → uc, cd | ≥95% | 94.0% | 95.9% | 1 | 🟢 OOS-adj |
-| `tl1a` → uc, cd | ≥95% | 92.2% | 97.9% | 3 | 🟢 OOS-adj |
-| `ted` → ted | ≥95% | 91.7% | — | — | ❌ |
-| `atopy` → ad, chronic_urticaria | ≥95% | 90.0% | — | — | ❌ |
-| `igf1r` → ted | ≥95% | 88.9% | — | — | ❌ |
-| `fcrn` → gmg, cidp, waiha | ≥95% | 57.1% | — | — | ❌ |
-| `autoimmune` → gmg, cidp, ra, sle, waiha, sjogrens | ≥95% | 48.0% | — | — | ❌ |
-| `tcell` → all, multiple_myeloma | ≥95% | 0.0% | — | — | ❌ |
+Readiness metric: `(overlap + legacy_noise_removed) / legacy_count × 100` ≥ 95%
 
-_🟢 OOS-adj = passes after removing confirmed OOS drugs from denominator per governance rule (2026-05-25)._
+| Indication(s) | Required | Raw% | Noise Rmvd | Adj% | Unresolved Gaps | Criteria Met? |
+|---|---|---|---|---|---|---|
+| `il4ra` → ad, asthma | ≥95% | 100.0% | — | — | — | ✅ raw |
+| `respiratory` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | — | ✅ raw |
+| `tslp` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | — | ✅ raw |
+| `ibd` → uc, cd | ≥95% | 94.0% | 1 | 96.0% | 2 | 🟢 adjusted |
+| `tl1a` → uc, cd | ≥95% | 92.2% | 3 | 98.0% | 1 | 🟢 adjusted |
+| `ted` → ted | ≥95% | 91.7% | — | — | — | ❌ |
+| `atopy` → ad, chronic_urticaria | ≥95% | 90.0% | — | — | 1 | ❌ |
+| `igf1r` → ted | ≥95% | 88.9% | — | — | — | ❌ |
+| `fcrn` → gmg, cidp, waiha | ≥95% | 57.1% | — | — | 1 | ❌ |
+| `autoimmune` → gmg, cidp, ra, sle, waiha, sjogrens | ≥95% | 48.0% | — | — | 11 | ❌ |
+| `tcell` → all, multiple_myeloma | ≥95% | 0.0% | — | — | 11 | ❌ |
+
+_🟢 adjusted = passes after classifying legacy_noise_removed records as accepted corrections._
 
 ### Dashboard Function Criteria
 
 | Function | Blocking Condition | Resolved? |
 |---|---|---|
 | `openDrugEntityModal()` | drug_indications must have competitive enrichment data (overlap, rationale, cls) | ❌ Not yet — enrichment migration pending |
-| `_makeAreaPI()` IBD/TL1A | OOS-adjusted coverage ≥ 95% — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (OOS-adjusted) |
+| `_makeAreaPI()` IBD/TL1A | Adjusted coverage ≥ 95% (legacy noise classified) — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (adjusted) |
 | `loadAreaDeals()` | deals.indication_id FK must exist | ❌ Column does not exist |
 | `loadAreaCatalysts()` | area_id→indication_id bridge must exist for catalysts | ❌ Bridge not built |
 | Trial + Signal feeds | trials.indication_id must be backfilled from trial_indications | ❌ trials.indication_id is NULL |
@@ -518,7 +738,7 @@ _🟢 OOS-adj = passes after removing confirmed OOS drugs from denominator per g
 
 ## Phase 4 Overall Status
 
-**Comparison date:** 2026-05-25 20:59 UTC
+**Comparison date:** 2026-05-25 21:15 UTC
 **Areas compared:** 11
 - ✅ match: 3
 - 🟢 compare_pass_oos_adjusted: 2
