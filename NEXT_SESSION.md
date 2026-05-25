@@ -128,8 +128,8 @@ window.showPhase4Compare()
 
 **Calibration note:** Modal auto-classification differs from entity_consistency_checks human classifications. This is expected — modal produces first-pass automated classifications; entity_consistency_checks holds human-reviewed resolutions. All 3 differences are fully explainable when cross-referenced. No new entity_consistency_checks rows required (batoclimab igf1r/autoimmune documented in existing row's conflict_summary).
 
-**Data quality backlog:**
-`gb004.drugs.mechanism = 'Anti-TL1A'` is incorrect (actual: PHD inhibitor / HIF-1α stabilizer). Logged in `docs/evidence_reconciliation_layer.md`. Requires separate evidence review — do not fix in Phase 4B work.
+**gb004 mechanism patch — APPLIED (Session 53n):**
+`drugs.mechanism` updated: `'Anti-TL1A'` → `'PHD inhibitor (HIF-1α stabilizer)'`. Approved by Kyle 2026-05-25. entity_consistency_checks row → status=corrected, review_status=resolved.
 
 ---
 
@@ -150,7 +150,29 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **Phase 4C task for IBD:** ✅ **VERIFIED (Session 53m)** — compare_pass_oos_adjusted. legacy=50, norm=50, overlap=47, 3 OOS (epi-001/sim0500/spy072), raw=94.0%, adj=100%. 3 norm-only extras (anti-tl1a-xpf005-arm, risankizumab variants) are correct new normalized additions.
 
-**Phase 4C task for TED:** Run `drug_areas WHERE area_id='igf1r'` vs `drug_indications WHERE indication_id='ted'`. Classify all differences. batoclimab must appear in both.
+**Phase 4C task for TED:** ✅ **VERIFIED (Session 53n)** — compare_pass (100% raw, no OOS needed).
+
+| Metric | Result |
+|---|---|
+| Legacy (igf1r area) | 9 drugs |
+| Normalized (ted ind) | 14 drugs |
+| Overlap | 9 drugs (100%) |
+| Extra-legacy | 0 — no legacy igf1r drugs missing from normalized ✅ |
+| Extra-norm | 5 — new normalized additions beyond legacy footprint |
+| Raw match | **100.0%** |
+| Status | **compare_pass ✅** |
+
+**Extra-norm drugs (ted ind, not in igf1r area) — all classified:**
+
+| Drug | Target | Stage | Review | Classification |
+|---|---|---|---|---|
+| crn12755 | SST2 | Preclinical | auto_confirmed | ✅ new_normalized_value — valid SST2 TED drug |
+| lonigutamab | TSHR | Preclinical | auto_confirmed | ✅ new_normalized_value — TSHR mAb |
+| sp-1351 | TSHR | Preclinical | auto_confirmed | ✅ new_normalized_value — TSHR small molecule |
+| iscalimab | CD40 | Phase 2 | sampling_queue | ✅ new_normalized_value — CD40 in TED, Phase 2 trial data |
+| cizutamig | BCMA×CD3 | Phase 1 | sampling_queue | ⚠️ **needs_validation** — pattern_match source; BCMA×CD3 TED biology unusual; validate before Phase 5 |
+
+**cizutamig flag:** drug_indications/ted row has source_type=pattern_match, review_status=sampling_queue, conf=87. Not in drug_areas/igf1r (areas: tcell, autoimmune). The TED indication claim should be confirmed via trial evidence before Phase 5 migration includes it. No action needed now — sampling_queue is the correct holding state.
 
 **Phase 4C task for Drug modal:** ✅ **PARTIALLY VERIFIED (Session 53m)** — 3 test drugs passed (lm-302, batoclimab, epi-001). All differences explainable via entity_consistency_checks. Remaining task: run full 10-drug sprint covering additional area tabs (TL1A, FcRn, TED drugs).
 
@@ -175,13 +197,12 @@ Legacy read path stays active as commented fallback for 30 days post-migration.
 | Status | Count | Entities |
 |---|---|---|
 | closed | 3 | lm-302, sim0500, spy072 — resolved in Phase 4A, no data action needed |
-| corrected | 1 | batoclimab — ted+gmg committed to drug_indications in Phase 4A |
-| open | 3 | epi-001 (held), upadacitinib (queued Wave 2D), gb004 (held) |
+| corrected | 2 | batoclimab — ted+gmg committed; **gb004 — mechanism patched (Session 53n)** |
+| open | 2 | epi-001 (held), upadacitinib (queued Wave 2D) |
 
 **Phase 5 gate: Open high-severity = 0 ✅**
 
 **Held items — do not act without further input:**
-- `gb004 / mechanism_field_conflict` — drugs.mechanism wrong ("Anti-TL1A" → "PHD inhibitor"). Held pending advisor approval. confidence=0.95.
 - `epi-001 / ibd_indication_evidence_gap` — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
 
 **Action queue (open + accepted):**
