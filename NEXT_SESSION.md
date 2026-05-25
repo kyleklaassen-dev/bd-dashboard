@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53l (2026-05-25) — Freshness Automation + Company Fleet lift to 96/100  
-**Prior session:** Session 53k — Company Governance Phase
+**Last session:** Session 53m (2026-05-25) — Phase 4C validation plan + Phase sequence updated  
+**Prior session:** Session 53l — Freshness Automation + Company Fleet lift to 96/100
 
 ---
 
@@ -79,15 +79,16 @@ All Phase 4A work is done. Corrections applied and verified.
 
 ---
 
-## Phase Sequence (updated Session 53e)
+## Phase Sequence (updated Session 53m)
 
 | Phase | Name | Status |
 |---|---|---|
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
-| Phase 4B | Dual-read validation — parallel legacy + normalized reads | ▶ **NEXT** |
-| Phase 5 | Switch dashboard logic | Blocked until 4B clears |
+| Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
+| Phase 4C | Pre-migration classification sprint — explain every difference | ▶ **CURRENT** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | Blocked until 4C clears |
 
-**Do NOT proceed to Phase 5 without completing Phase 4B.**
+**Do NOT proceed to Phase 5 without completing Phase 4C. Do NOT do broad dashboard rewiring — migrate one component at a time with feature flags.**
 
 ---
 
@@ -133,6 +134,35 @@ window.showPhase4Compare()
 
 ---
 
+## Phase 4C Sprint — Component Validation Order
+
+Full plan: `docs/phase4c_validation_plan.md`
+
+| Rank | Component | Risk | Phase 4B Status | Phase 5 Candidate |
+|---|---|---|---|---|
+| 1 | IBD area tab | Low | ✅ compare_pass_oos_adjusted | ✅ First |
+| 2 | TED area tab (igf1r-tshr) | Low | ✅ data layer proven (4A) | ✅ Second |
+| 3 | Drug entity modal | Low–Med | ✅ Path C deployed | ✅ Third (after 10-drug sprint) |
+| 4 | TL1A area tab | Medium | ✅ compare_pass_oos_adjusted | ⚠️ Fourth — needs TL1A arch review |
+| 5 | TSLP area tab | Medium | ❌ None | ⏸ After Wave 2D |
+| 6 | IL-4Rα area tabs | Medium | ❌ None | ⏸ After Wave 2D atopy |
+| 7 | FcRn area tab | High | ❌ None | 🚫 Blocked — Wave 2D first |
+| 8 | ACE area tab | High | ❌ None | 🚫 Deferred |
+
+**Phase 4C task for IBD (do first):** Run browser session → `window.showPhase4Compare()` → confirm `compare_pass_oos_adjusted`. Verify OOS count still matches post-Wave 2C.
+
+**Phase 4C task for TED:** Run `drug_areas WHERE area_id='igf1r'` vs `drug_indications WHERE indication_id='ted'`. Classify all differences. batoclimab must appear in both.
+
+**Phase 4C task for Drug modal:** Open 10 representative drugs. Classify all gaps. Graduate any unclassified `cross_table_inconsistency` entries to `entity_consistency_checks`.
+
+**Phase 5 feature-flag pattern (required for all migrations):**
+```javascript
+const USE_NORMALIZED_IBD = false; // flip to true for Phase 5 migration
+```
+Legacy read path stays active as commented fallback for 30 days post-migration.
+
+---
+
 ## Next Sprint Priority Order
 
 ### P0 — entity_consistency_checks: COMPLETE ✅
@@ -161,7 +191,7 @@ window.showPhase4Compare()
 **Architecture rule (standing):**
 Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) continue writing to their own logs. A finding graduates to `entity_consistency_checks` only when a human or harness review has classified it and a proposed action exists. This is the durable human reconciliation layer — not a scan log.
 
-**Phase 5 migration is still blocked until Phase 4B sign-off + ontology_edges advisor unlock.**
+**Phase 5 migration is blocked until Phase 4C classification sprint complete + ontology_edges advisor unlock.**
 
 ### P1 — epi-001 Manual Review (Track B)
 
@@ -195,20 +225,21 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 | Track | Focus | Status |
 |---|---|---|
 | A — Relationship Layer | Wave 2D FcRn + autoimmune (epi-001 first) | ⏸ epi-001 pending review |
-| B — Ontology Quality | Phase 4B dual-read → true missing rows | ▶ NEXT (with D) |
-| C — Intelligence Products | Portfolio intelligence product | Queued |
-| D — Dashboard Architecture | Phase 4B dual-read validation | ▶ NEXT |
+| B — Ontology Quality | Phase 4C validation sprint → true missing rows | ▶ NEXT (with D) |
+| C — Intelligence Products | Portfolio intelligence product | Queued — begin after Phase 4C |
+| D — Dashboard Architecture | Phase 4C pre-migration classification | ▶ NEXT |
 | E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
 
 ## Active Constraints
 
-1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor approves after Phase 4B.
-2. **No Phase 5 dashboard migration** — Phase 4B dual-read must validate zero regressions first.
+1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
+2. **No Phase 5 dashboard migration** — Phase 4C classification sprint must complete first. Migrate per-component with feature flags, never broad rewiring.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — NOT committed. Deferred to Wave 2D FcRn backfill batch.
-5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4B dual-read is the migration gate.
+5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
+6. **TL1A Phase 5 requires arch review** — `tl1aPI` is a separate ~1700-line object, not `_makeAreaPI`. Map its read path before any Phase 5 migration attempt on TL1A tab.
 
 ---
 
@@ -219,6 +250,9 @@ SELECT count(*) FROM drug_indications;             -- expect 194
 SELECT count(*) FROM trial_indications;            -- expect 301
 SELECT count(*) FROM drug_targets;                 -- expect 168
 SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
+-- entity_consistency_checks state:
+SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
+-- expect 7 rows; open high-severity = 0
 -- batoclimab correction verified:
 SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'batoclimab';
 -- expect: ted (95), gmg (92)
@@ -232,10 +266,11 @@ SELECT source_id, target_id_col, preview_status FROM backfill_preview
 
 ## Files to Load at Start of Next Session
 
-1. `docs/phase4_comparison_harness.md` — current harness output (tl1a 🟢 · ibd 🟢 · ted ✅)
-2. `docs/phase4a_reconciliation_review.md` — Phase 4A candidate review with advisor decisions
-3. `docs/evidence_reconciliation_layer.md` — entity_consistency_checks design
-4. `docs/dashboard_dependency_inventory.md` — 12 blocked paths for Phase 4B dual-read
-5. `docs/normalization_engine.md` — parser reference
-6. `scripts/phase4_compare_legacy_vs_normalized.py` — harness script (v3)
-7. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`
+1. `docs/phase4c_validation_plan.md` — **Phase 4C sprint plan (NEW — read first)**
+2. `docs/phase4_comparison_harness.md` — current harness output (tl1a 🟢 · ibd 🟢 · ted ✅)
+3. `docs/phase4a_reconciliation_review.md` — Phase 4A candidate review with advisor decisions
+4. `docs/evidence_reconciliation_layer.md` — entity_consistency_checks design
+5. `docs/dashboard_dependency_inventory.md` — component migration dependency map
+6. `docs/normalization_engine.md` — parser reference
+7. `scripts/phase4_compare_legacy_vs_normalized.py` — harness script (v3)
+8. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`, `project_tl1a_unification.md`
