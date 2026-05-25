@@ -12532,8 +12532,7 @@ function siRender() {
       </div>` : ''}
     </div>
     <div class="si-action-bar">
-      <button class="si-action-btn si-btn-approve"  onclick="siSetStatus('${r.id}','approved',this);event.stopPropagation()">✅ Approve</button>
-      <button class="si-action-btn si-btn-queue"    onclick="siSendToQueue('${r.id}',this);event.stopPropagation()">🔍 Send to Discovery Queue</button>
+      <button class="si-action-btn si-btn-approve"  onclick="siSendToQueue('${r.id}',this);event.stopPropagation()">✅ Approve → Discovery Queue</button>
       <button class="si-action-btn si-btn-info"     onclick="siSetStatus('${r.id}','needs_review',this);event.stopPropagation()">💬 Needs More Info</button>
       <button class="si-action-btn si-btn-reject"   onclick="siSetStatus('${r.id}','rejected',this);event.stopPropagation()">❌ Reject</button>
     </div>
