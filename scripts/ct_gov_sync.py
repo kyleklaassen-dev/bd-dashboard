@@ -207,6 +207,11 @@ APPROVED_DRUGS = {
     "dupilumab", "tezepelumab", "teprotumumab",
     "abbvie-skyrizi", "abbvie-rinvoq", "takeda-entyvio", "lilly-omvoh",
     "efgartigimod",
+    "mirikizumab",    # Omvoh — approved UC (2023) + CD (2024); trials seeded manually
+    "vedolizumab",    # Entyvio — approved UC + CD
+    "ustekinumab",    # Stelara — approved UC + CD + PsO + PsA
+    "risankizumab",   # Skyrizi — approved UC + CD + PsO
+    "guselkumab",     # Tremfya — approved PsO + PsA
 }
 
 # Drugs that are pre-IND (no trial expected yet — mark as 'pending')
@@ -491,6 +496,10 @@ def score_search_match(study: dict, drug_id: str, drug_name: str,
       +20  if drug name appears in sponsor
       +15  if indication matches condition
       -20  if study is terminated/withdrawn
+      →  0  (hard zero) if drug name does not appear in interventions OR title
+             This prevents false positives where CT.gov returns trials for
+             similarly-named compounds or multi-arm studies. A trial that
+             doesn't mention our drug anywhere cannot be a valid match.
     """
     score = 0
     proto = study.get("protocolSection", {})
@@ -508,6 +517,19 @@ def score_search_match(study: dict, drug_id: str, drug_name: str,
     ).lower()
 
     name_lc = drug_name.lower()
+
+    # HARD GATE: drug name must appear in either interventions or title.
+    # A trial that doesn't mention our drug anywhere is a false positive —
+    # score it 0 immediately rather than accumulating partial credit.
+    # This prevents misassignment of multi-arm trials with similar drug names.
+    name_in_interventions = name_lc in interventions or any(
+        part in interventions for part in name_lc.split() if len(part) > 5
+    )
+    name_in_title = name_lc in title or any(
+        part in title for part in name_lc.split() if len(part) > 5
+    )
+    if not name_in_interventions and not name_in_title:
+        return 0   # hard zero — not our drug
 
     # Name in title
     if name_lc in title:
