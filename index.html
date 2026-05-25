@@ -1132,7 +1132,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 /* Dossier body — turns entity-modal-body into a tab container */
 .entity-modal-body.dossier-mode { padding:0; display:flex; flex-direction:column; overflow:hidden; }
 /* ── CEM area filter bar ──────────────────────────────────────────────── */
-.cem-area-filter { display:flex; align-items:center; gap:6px; padding:8px 20px 0; flex-shrink:0; flex-wrap:wrap; border-bottom:0 none; }
+.cem-area-filter { display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 20px 10px; flex-shrink:0; flex-wrap:wrap; border-bottom:1px solid #e2e8f0; background:#fafbfc; }
 .cem-area-filter-lbl { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.07em; color:#94a3b8; white-space:nowrap; margin-right:2px; }
 .cem-area-pill { font-size:10px; font-weight:700; padding:3px 11px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; cursor:pointer; transition:all 0.12s; white-space:nowrap; letter-spacing:0.02em; }
 .cem-area-pill:hover:not(.active) { background:#f1f5f9; color:#334155; }
@@ -1229,7 +1229,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .dossier-tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; }
 .dossier-tab-btn:hover:not(.active) { color:#374151; background:rgba(0,0,0,0.03); border-radius:5px 5px 0 0; }
 .dossier-panels { flex:1; overflow-y:auto; }
-.dossier-panel { display:none; padding:18px 20px 28px; }
+.dossier-panel { display:none; padding:12px 16px 24px; }
 .dossier-panel.active { display:block; }
 /* Dossier content components */
 .dossier-card { background:white; border:1px solid #e8edf4; border-radius:9px; padding:14px 16px; margin-bottom:12px; }
@@ -9785,22 +9785,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     // Cache disabled — ownership model requires fresh drug fetch each open
     // if (piObj) piObj._profileCache[companyId] = sbData;
 
-    // ── Also-tracked footer (reuse allAreaIds already fetched) ──
-    if (footerEl) {
-      try {
-        const areaToTabs = {};
-        Object.entries(TAB_AREA_MAP).forEach(([t, as]) => as.forEach(a => { (areaToTabs[a] = areaToTabs[a] || []).push(t); }));
-        const tabIds = [...new Set(allAreaIds.flatMap(a => areaToTabs[a] || []))];
-        if (tabIds.length) {
-          const tagsEl = document.getElementById('entity-modal-also-tags');
-          if (tagsEl) tagsEl.innerHTML = tabIds.map(t => {
-            const label = TAB_META[t]?.badge || TAB_META[t]?.name || t;
-            return `<span class="entity-also-tag ${_TAB_CLS[t]||'ct'}" onclick="closeEntityModal();navTo('${t}')">${label}</span>`;
-          }).join('');
-          footerEl.style.display = 'flex';
-        }
-      } catch(_) {}
-    }
+    // ── Also-tracked footer — hidden for company cards (area filter in card replaces this) ──
+    if (footerEl) footerEl.style.display = 'none';
 
     try   {
       bodyEl.classList.add('dossier-mode');
@@ -10897,13 +10883,12 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
 
   const _areaFilterHtml = _showAF ? `
     <div class="cem-area-filter" id="cem-af-${_filterId}">
-      <span class="cem-area-filter-lbl">Area:</span>
-      <button class="cem-area-pill active" data-area="all" onclick="_cemSwitchArea('${_filterId}','all')">All</button>
+      <button class="cem-area-pill active" data-area="all" onclick="_cemSwitchArea('${_filterId}','all')">All areas</button>
       ${_allAreaIds.map(a => `<button class="cem-area-pill" data-area="${a}" onclick="_cemSwitchArea('${_filterId}','${a}')">${_aLbl(a)}</button>`).join('')}
     </div>` : '';
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
-  const _overviewContent = `<div style="padding:18px 20px 28px">
+  const _overviewContent = `<div>
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
@@ -10964,7 +10949,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     ${_renderAreaAssessBlock(_aId, _allAreaProf[_aId]||null)}
   </div>`).join('');
 
-  const _assessmentContent = `<div style="padding:18px 20px 28px">
+  const _assessmentContent = `<div>
     <div class="cem-area-block active" data-fid="${_filterId}" data-area="all">
       ${_assessAllHtml||'<p style="color:#94a3b8;font-size:12px">No assessment data found.</p>'}
     </div>
@@ -11004,7 +10989,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   _allCatsFlat.sort((a,b) => (a.sort_date||'').localeCompare(b.sort_date||''));
   const _totalCatCount = _allCatsFlat.length;
 
-  const _catalystsContent = `<div style="padding:18px 20px 28px">
+  const _catalystsContent = `<div>
     <div class="cem-area-block active" data-fid="${_filterId}" data-area="all">
       ${_renderCatTable(_allCatsFlat)}
     </div>
@@ -11045,7 +11030,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     </div>`;
   };
 
-  const _newsContent = `<div style="padding:18px 20px 28px">
+  const _newsContent = `<div>
     ${_newsItems.length
       ? `<div style="${_newsItems.length>10?'max-height:500px;overflow-y:auto;scrollbar-width:thin;padding-right:4px':''}">
            ${_newsItems.length>10?`<div style="font-size:9.5px;color:#94a3b8;margin-bottom:8px">${_newsItems.length} items · scroll for more</div>`:''}
