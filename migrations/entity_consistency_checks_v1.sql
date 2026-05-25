@@ -33,16 +33,39 @@ CREATE TABLE IF NOT EXISTS entity_consistency_checks (
     -- 'drug' | 'indication' | 'target' | 'trial'
   entity_id             TEXT NOT NULL,
     -- drug_id, indication_id, target_id, trial_id, etc.
+  issue_key             TEXT NOT NULL,
+    -- Stable slug identifying this specific issue within the entity.
+    -- Allows multiple issues with the same classification on one entity.
+    -- Examples: legacy_ibd_noise | legacy_tl1a_noise |
+    --           missing_ted_indication | missing_gmg_indication |
+    --           mechanism_field_conflict | atopy_ad_gap
 
   -- Classification
-  check_type            TEXT NOT NULL,
-    -- detection category: cross_table_inconsistency | source_conflict |
-    -- ontology_scope_difference | normalized_gap | needs_manual_review
-  classification        TEXT NOT NULL,
-    -- resolution label (Phase 4A/4B language):
-    --   legacy_noise_removed | normalized_gap | ontology_scope_difference |
-    --   needs_manual_review | new_normalized_value | source_conflict |
-    --   cross_table_inconsistency | ibd_indication_not_tl1a_target
+  check_type            TEXT NOT NULL
+    CHECK (check_type IN (
+      'cross_table_inconsistency',
+      'source_conflict',
+      'ontology_scope_difference',
+      'normalized_gap',
+      'needs_manual_review'
+    )),
+    -- detection category: how the inconsistency was found
+  classification        TEXT NOT NULL
+    CHECK (classification IN (
+      'legacy_noise_removed',
+      'normalized_gap',
+      'ontology_scope_difference',
+      'needs_manual_review',
+      'new_normalized_value',
+      'source_conflict',
+      'cross_table_inconsistency',
+      'ibd_indication_not_tl1a_target'
+    )),
+    -- resolution label (Phase 4A/4B language)
+    -- To extend: ALTER TABLE entity_consistency_checks
+    --   DROP CONSTRAINT entity_consistency_checks_classification_check,
+    --   ADD CONSTRAINT entity_consistency_checks_classification_check
+    --   CHECK (classification IN (...existing..., 'new_value'));
 
   -- Severity and lifecycle state
   severity              TEXT NOT NULL DEFAULT 'medium'
@@ -95,10 +118,12 @@ CREATE TABLE IF NOT EXISTS entity_consistency_checks (
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   resolved_at           TIMESTAMPTZ,
 
-  -- Idempotency: one row per entity × classification combination
-  -- Prevents duplicate records for the same finding across re-runs
-  CONSTRAINT uq_entity_classification
-    UNIQUE (entity_type, entity_id, classification)
+  -- Idempotency: one row per entity × issue_key combination
+  -- Allows multiple rows with the same classification on one entity
+  -- (e.g., batoclimab missing_ted_indication and missing_gmg_indication
+  --  are both normalized_gap but are distinct issues)
+  CONSTRAINT uq_entity_issue_key
+    UNIQUE (entity_type, entity_id, issue_key)
 
 );
 
@@ -171,7 +196,7 @@ COMMENT ON COLUMN entity_consistency_checks.confidence_score IS
 --   Phase 4A resolution: legacy_noise_removed — accepted
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -179,7 +204,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'lm-302',
+  'drug', 'lm-302', 'legacy_ibd_tl1a_noise',
   'cross_table_inconsistency', 'legacy_noise_removed', 'high', 'closed',
   ARRAY['drug_areas', 'drug_targets', 'drugs'],
   'Legacy drug_areas assigns lm-302 to tl1a and ibd. Three independent sources '
@@ -202,7 +227,7 @@ INSERT INTO entity_consistency_checks (
   0.970,
   'accepted', 'advisor_phase4a',
   '2026-05-25'::timestamptz, '2026-05-25'::timestamptz
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 2: sim0500 — legacy TL1A/IBD membership vs RRMM hematology biology
@@ -210,7 +235,7 @@ INSERT INTO entity_consistency_checks (
 --   Note: drug_targets.tl1a row confirmed absent (Wave 2B error, never committed)
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -218,7 +243,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'sim0500',
+  'drug', 'sim0500', 'legacy_ibd_tl1a_noise',
   'cross_table_inconsistency', 'legacy_noise_removed', 'high', 'closed',
   ARRAY['drug_areas', 'drugs', 'drug_targets'],
   'Legacy drug_areas assigns sim0500 to tl1a and ibd. drugs.indication_short=RRMM '
@@ -241,7 +266,7 @@ INSERT INTO entity_consistency_checks (
   0.970,
   'accepted', 'advisor_phase4a',
   '2026-05-25'::timestamptz, '2026-05-25'::timestamptz
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 3: spy072 — true TL1A target, but rheumatology indication (not IBD)
@@ -249,7 +274,7 @@ INSERT INTO entity_consistency_checks (
 --   drug_targets.tl1a row is legitimate; exclude from IBD denominator only
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -257,7 +282,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'spy072',
+  'drug', 'spy072', 'tl1a_rheumatology_scope',
   'ontology_scope_difference', 'ontology_scope_difference', 'medium', 'closed',
   ARRAY['drug_areas', 'drug_indications', 'drugs'],
   'TL1A mechanism is biologically correct for spy072. drugs.indication_short '
@@ -280,7 +305,7 @@ INSERT INTO entity_consistency_checks (
   0.920,
   'accepted', 'advisor_phase4a',
   '2026-05-25'::timestamptz, '2026-05-25'::timestamptz
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 4: epi-001 — TL1A/IBD legacy membership, insufficient UC/CD evidence
@@ -288,7 +313,7 @@ INSERT INTO entity_consistency_checks (
 --   2 rows in backfill_preview (wave2c_ibd_20260525_203134) as pending_review
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -296,7 +321,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'epi-001',
+  'drug', 'epi-001', 'ibd_indication_evidence_gap',
   'needs_manual_review', 'needs_manual_review', 'medium', 'open',
   ARRAY['drug_areas', 'drug_indications', 'backfill_preview'],
   'Legacy drug_areas assigns epi-001 to tl1a and ibd. Anti-TL1A mechanism class '
@@ -323,7 +348,7 @@ INSERT INTO entity_consistency_checks (
   0.550,
   'held', 'advisor_phase4a',
   '2026-05-25'::timestamptz, NULL
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 5: batoclimab — normalized gap resolved (ted + gmg committed Phase 4A)
@@ -331,7 +356,7 @@ INSERT INTO entity_consistency_checks (
 --   cidp deferred to Wave 2D FcRn batch
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -339,7 +364,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'batoclimab',
+  'drug', 'batoclimab', 'missing_ted_gmg_indications',
   'cross_table_inconsistency', 'normalized_gap', 'high', 'corrected',
   ARRAY['drug_areas', 'drug_indications', 'drug_targets'],
   'Legacy assigned batoclimab to 4 areas (fcrn, igf1r, autoimmune, ted). '
@@ -364,14 +389,16 @@ INSERT INTO entity_consistency_checks (
   0.880,
   'resolved', 'advisor_phase4a',
   '2026-05-25'::timestamptz, '2026-05-25'::timestamptz
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 6: upadacitinib — atopy/AD normalized gap (queued for Wave 2D)
---   Phase 4A resolution: normalized_gap — proposed, approved, pending Wave 2D
+--   Phase 4A resolution: normalized_gap — accepted; correction pending Wave 2D
+--   status=open: issue is real and accepted; ad row not yet committed
+--   review_status=accepted: advisor confirmed this is a genuine gap
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -379,7 +406,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'upadacitinib',
+  'drug', 'upadacitinib', 'atopy_ad_gap',
   'normalized_gap', 'normalized_gap', 'medium', 'open',
   ARRAY['drug_areas', 'drug_indications'],
   'drug_areas assigns upadacitinib to atopy. drug_indications has no row for ad '
@@ -398,9 +425,9 @@ INSERT INTO entity_consistency_checks (
   'Queue for Wave 2D atopy batch alongside imvt-1402 and batoclimab cidp. '
   'Phase 4A classification accepted. Commit pending Wave 2D run.',
   0.970,
-  'proposed', 'advisor_phase4a',
+  'accepted', 'advisor_phase4a',
   '2026-05-25'::timestamptz, NULL
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- SEED 7: gb004 — drugs.mechanism field data error (PHD inhibitor, not Anti-TL1A)
@@ -408,7 +435,7 @@ INSERT INTO entity_consistency_checks (
 --   DO NOT resolve during Phase 4B work
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO entity_consistency_checks (
-  entity_type, entity_id,
+  entity_type, entity_id, issue_key,
   check_type, classification, severity, status,
   conflicting_tables, conflict_summary,
   evidence_for, evidence_against,
@@ -416,7 +443,7 @@ INSERT INTO entity_consistency_checks (
   review_status, reviewed_by,
   created_at, resolved_at
 ) VALUES (
-  'drug', 'gb004',
+  'drug', 'gb004', 'mechanism_field_conflict',
   'source_conflict', 'source_conflict', 'medium', 'open',
   ARRAY['drugs'],
   'drugs.mechanism="Anti-TL1A" is incorrect for gb004. GB004 is a PHD inhibitor '
@@ -446,7 +473,7 @@ INSERT INTO entity_consistency_checks (
   0.950,
   'held', NULL,
   '2026-05-25'::timestamptz, NULL
-) ON CONFLICT (entity_type, entity_id, classification) DO NOTHING;
+) ON CONFLICT (entity_type, entity_id, issue_key) DO NOTHING;
 
 
 -- ── 5. VERIFICATION QUERIES (run after execution to confirm) ─
