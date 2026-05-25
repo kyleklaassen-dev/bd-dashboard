@@ -14943,7 +14943,7 @@ function openHomePanel(panel) {
 let _newsData = null;  // cached {today: [], week: []}
 let _newsTab = 'today';
 
-const AREA_LABELS = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
+const NEWS_AREA_LABELS = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R', fcrn:'FcRn', tcell:'T-cell' };
 
 async function loadNewsModule() {
   if (_newsData) { renderNewsArticles(); return; }
@@ -15016,7 +15016,7 @@ function renderNewsArticles() {
 
     // Area tags
     const areaTags = (a.matched_area_ids || []).map(id =>
-      `<span class="na-tag area">${AREA_LABELS[id] || id}</span>`
+      `<span class="na-tag area">${NEWS_AREA_LABELS[id] || id}</span>`
     ).join('');
 
     // Summary block — prefer AI-generated, fall back to empty
@@ -18699,16 +18699,16 @@ document.addEventListener('DOMContentLoaded', function(){
 .ont-inspect-btn.open{background:#1d4ed8;color:white;border-color:#1d4ed8}
 .ont-inspect-body{display:none;border-top:2px solid #f1f5f9}
 .ont-inspect-body.open{display:block}
-/* Relationship Coverage Scoreboard */
-.ont-cov-entity{background:white;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:14px}
-.ont-cov-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.ont-cov-table{width:100%;border-collapse:collapse;font-size:11px}
-.ont-cov-table th{text-align:left;padding:5px 10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;border-bottom:1px solid #e2e8f0}
-.ont-cov-table td{padding:7px 10px;border-bottom:1px solid #f8fafc;color:#475569;vertical-align:middle}
-.ont-cov-bar-wrap{height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;width:120px;display:inline-block;vertical-align:middle}
+/* Relationship Coverage Scoreboard — compact */
+.ont-cov-entity{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.ont-cov-title{font-size:12px;font-weight:800;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ont-cov-table{width:100%;border-collapse:collapse;font-size:10px}
+.ont-cov-table th{text-align:left;padding:3px 8px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;border-bottom:1px solid #e2e8f0}
+.ont-cov-table td{padding:4px 8px;border-bottom:1px solid #f8fafc;color:#475569;vertical-align:middle}
+.ont-cov-bar-wrap{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle}
 .ont-cov-bar{height:100%;border-radius:3px}
-.ont-cov-pct{font-size:11px;font-weight:700;margin-left:8px;display:inline-block;min-width:34px}
-.ont-cov-req{font-size:9px;font-weight:800;padding:1px 6px;border-radius:3px;text-transform:uppercase}
+.ont-cov-pct{font-size:10px;font-weight:700;margin-left:6px;display:inline-block;min-width:28px}
+.ont-cov-req{font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;text-transform:uppercase}
 .ont-cov-req.cov-req{background:#fee2e2;color:#991b1b}
 .ont-cov-req.cov-rec{background:#fef3c7;color:#92400e}
 /* Migration Roadmap */
@@ -18742,43 +18742,12 @@ document.addEventListener('DOMContentLoaded', function(){
   <div class="au-header">
     <div class="au-topbar">
       <div>
-        <div class="au-title">🧬 Ontology Audit</div>
-        <div class="au-subtitle">Knowledge graph structure · category quality · relationship gaps · migration plan</div>
+        <div class="au-title">⬛ Ontology Audit</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="au-timestamp" id="ont-timestamp"></span>
         <button class="au-refreshbtn" onclick="ontologyLoad(true)">↻ Refresh</button>
       </div>
-    </div>
-  </div>
-
-  <!-- ── A: Ontology Map ──────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-a">
-    <div class="ont-sec-hd" onclick="ontToggle('a')">
-      <span class="ont-sec-icon">🗺️</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">A — Ontology Map</div>
-        <div class="ont-sec-sub">The 7-layer hierarchy and how entity tables hang off it</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-a-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-a-body">
-      <div id="ont-map-mount"></div>
-    </div>
-  </div>
-
-  <!-- ── B: Table Cards ──────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-b">
-    <div class="ont-sec-hd" onclick="ontToggle('b')">
-      <span class="ont-sec-icon">🗃️</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">B — Ontology Table Cards</div>
-        <div class="ont-sec-sub">Core ontology tables: what exists, what's partial, what's missing</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-b-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-b-body">
-      <div id="ont-cards-mount"></div>
     </div>
   </div>
 
@@ -18797,21 +18766,6 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 
-  <!-- ── D: Quality Flags ────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-d">
-    <div class="ont-sec-hd" onclick="ontToggle('d')">
-      <span class="ont-sec-icon">🚩</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">D — Category Quality Flags</div>
-        <div class="ont-sec-sub">Auto-detected misclassifications, structural gaps, and naming issues</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-d-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-d-body">
-      <div id="ont-flags-mount"></div>
-    </div>
-  </div>
-
   <!-- ── E: Gap Finder ───────────────────────────────────────────────── -->
   <div class="ont-section" id="ont-sec-e">
     <div class="ont-sec-hd" onclick="ontToggle('e')">
@@ -18820,40 +18774,10 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="ont-sec-title">E — Gap Finder</div>
         <div class="ont-sec-sub">Missing tables, missing indications, missing relationship infrastructure</div>
       </div>
-      <span class="ont-sec-tog" id="ont-e-tog">▾</span>
+      <span class="ont-sec-tog" id="ont-e-tog" style="transform:rotate(-90deg)">▾</span>
     </div>
-    <div class="ont-sec-body" id="ont-e-body">
+    <div class="ont-sec-body collapsed" id="ont-e-body">
       <div id="ont-gaps-mount"></div>
-    </div>
-  </div>
-
-  <!-- ── F: Migration Plan ───────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-f">
-    <div class="ont-sec-hd" onclick="ontToggle('f')">
-      <span class="ont-sec-icon">🚀</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">F — Migration Plan</div>
-        <div class="ont-sec-sub">Current state vs proposed state · 3-phase safe migration strategy</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-f-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-f-body">
-      <div id="ont-migration-mount"></div>
-    </div>
-  </div>
-
-  <!-- ── H: Impact Analysis ────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-h">
-    <div class="ont-sec-hd" onclick="ontToggle('h')">
-      <span class="ont-sec-icon">🎯</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">H — Impact Analysis</div>
-        <div class="ont-sec-sub">What would break if we migrated each legacy ID · live dependency audit per disease_areas record</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-h-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-h-body">
-      <div id="ont-impact-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading impact data…</div></div>
     </div>
   </div>
 
