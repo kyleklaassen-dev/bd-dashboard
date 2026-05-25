@@ -3318,9 +3318,28 @@ function _bdaRender(tabId) {
   if (!s) return;
   const { rows, filter, search } = s;
 
-  // Filter rows
+  // Deduplicate rows by normalized headline before any further processing
+  const _hlKey = hl => (hl || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 80);
+  const deduped = [];
+  const _seenHl = new Map();
+  rows.forEach(d => {
+    const k = _hlKey(d.headline);
+    if (!k) { deduped.push(d); return; } // no headline — keep as-is
+    if (!_seenHl.has(k)) { _seenHl.set(k, deduped.length); deduped.push({...d}); }
+    else {
+      // Merge: prefer the record with richer data
+      const existing = deduped[_seenHl.get(k)];
+      if (!existing.detail && d.detail)           existing.detail       = d.detail;
+      if (!existing.ailux_signal && d.ailux_signal) existing.ailux_signal = d.ailux_signal;
+      if (!existing.total_usd_m && d.total_usd_m)  existing.total_usd_m  = d.total_usd_m;
+      if (!existing.upfront_usd_m && d.upfront_usd_m) existing.upfront_usd_m = d.upfront_usd_m;
+      if (!existing.to_company && d.to_company)    existing.to_company   = d.to_company;
+    }
+  });
+
+  // Filter deduplicated rows
   const q = search.toLowerCase().trim();
-  const visible = rows.filter(d => {
+  const visible = deduped.filter(d => {
     if (filter !== 'all' && d.deal_type !== filter) return false;
     if (q) {
       const hay = [d.headline, d.from_company, d.to_company, d.detail, d.deal_date_label].join(' ').toLowerCase();
@@ -3329,22 +3348,22 @@ function _bdaRender(tabId) {
     return true;
   });
 
-  // Summary stats (across all rows, not filtered)
-  const totalDealVal = rows.reduce((sum, d) => sum + (d.total_usd_m || 0), 0);
-  const acquisitions = rows.filter(d => d.deal_type === 'acquisition').length;
-  const licenses     = rows.filter(d => d.deal_type === 'license').length;
-  const minYear = rows.length ? rows[rows.length-1].deal_date?.slice(0,4) : '';
-  const maxYear = rows.length ? rows[0].deal_date?.slice(0,4) : '';
+  // Summary stats (across deduplicated rows, not filtered)
+  const totalDealVal = deduped.reduce((sum, d) => sum + (d.total_usd_m || 0), 0);
+  const acquisitions = deduped.filter(d => d.deal_type === 'acquisition').length;
+  const licenses     = deduped.filter(d => d.deal_type === 'license').length;
+  const minYear = deduped.length ? deduped[deduped.length-1].deal_date?.slice(0,4) : '';
+  const maxYear = deduped.length ? deduped[0].deal_date?.slice(0,4) : '';
 
   // Build filter types present
-  const types = [...new Set(rows.map(d => d.deal_type).filter(Boolean))];
+  const types = [...new Set(deduped.map(d => d.deal_type).filter(Boolean))];
 
   el.innerHTML = `
     <div class="bda-section">
       <div class="bda-hd" onclick="_bdaToggle('${tabId}')">
         <span class="bda-title">◈ BD Activity</span>
         <div class="bda-meta">
-          <span><strong>${rows.length}</strong> deals</span>
+          <span><strong>${deduped.length}</strong> deals</span>
           ${totalDealVal > 0 ? `<span><strong>$${(totalDealVal/1000).toFixed(1)}B+</strong> disclosed value</span>` : ''}
           ${minYear && maxYear ? `<span>${minYear}–${maxYear}</span>` : ''}
         </div>
@@ -3357,8 +3376,8 @@ function _bdaRender(tabId) {
           ${totalDealVal > 0 ? `<div class="bda-sum-item">Disclosed total: <strong>$${totalDealVal >= 1000 ? (totalDealVal/1000).toFixed(1)+'B' : totalDealVal.toFixed(0)+'M'}</strong></div>` : ''}
         </div>
         <div class="bda-filters">
-          <button class="bda-filter-btn ${filter==='all'?'active':''}" onclick="_bdaFilter('${tabId}','all')">All (${rows.length})</button>
-          ${types.map(t => `<button class="bda-filter-btn ${filter===t?'active':''}" onclick="_bdaFilter('${tabId}','${t}')">${t[0].toUpperCase()+t.slice(1)} (${rows.filter(d=>d.deal_type===t).length})</button>`).join('')}
+          <button class="bda-filter-btn ${filter==='all'?'active':''}" onclick="_bdaFilter('${tabId}','all')">All (${deduped.length})</button>
+          ${types.map(t => `<button class="bda-filter-btn ${filter===t?'active':''}" onclick="_bdaFilter('${tabId}','${t}')">${t[0].toUpperCase()+t.slice(1)} (${deduped.filter(d=>d.deal_type===t).length})</button>`).join('')}
           <input class="bda-search" type="text" placeholder="Search parties, drug…" value="${search.replace(/"/g,'&quot;')}" oninput="_bdaSearch('${tabId}',this.value)">
         </div>
         <div class="bda-rows" id="${tabId}-bda-rows">
