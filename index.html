@@ -3695,6 +3695,7 @@ function loadMoleculeTab(tabId) {
     <div class="entity-modal-title" id="entity-modal-title"></div>
     <div class="entity-modal-sub" id="entity-modal-sub"></div>
    </div>
+   <div id="entity-modal-area-pills" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;padding:0 16px;flex:1;min-width:0"></div>
    <div id="entity-modal-conf" class="cem-conf"></div>
    <button class="entity-modal-close" onclick="closeEntityModal()" title="Close" style="display:none">✕</button>
   </div>
@@ -9614,7 +9615,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
          .eq('resolved', false).order('sort_date', { ascending: true }).limit(20),
       _sb.from('deals').select('*')
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
-      _sb.from('companies').select('id,name,ticker,hq,location,company_type,sector,primary_indication,headquarters').eq('id', companyId).limit(1),
+      _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2').eq('id', companyId).limit(1),
       _sb.from('company_areas').select('area_id').eq('company_id', companyId),
     ]);
 
@@ -10595,12 +10596,13 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     chipsEl.innerHTML = [typePill, szPill].filter(Boolean).join('');
   }
   if (subEl2) {
-    const ticker = companyRow?.ticker || profile.ticker || '';
-    const hq     = companyRow?.hq || companyRow?.headquarters || companyRow?.location || profile.hq || profile.location || '';
-    const _hdAreaMap = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19',ox40l:'OX40L'};
-    const _hdAreaIds = (extraData?.allAreaIds || [areaId]).filter(a => a !== 'ibd' && a !== 'global');
-    const areaStr    = _hdAreaIds.slice(0,3).map(a => _hdAreaMap[a] || a.toUpperCase()).join(', ');
-    const parts  = [ticker, areaStr, hq].filter(Boolean);
+    const ticker  = companyRow?.ticker || profile.ticker || '';
+    const hqParts = [companyRow?.hq_city, companyRow?.hq_country].filter(Boolean);
+    const hq      = hqParts.join(', ');
+    const ta1     = companyRow?.ta_focus_1 || '';
+    const ta2     = companyRow?.ta_focus_2 || '';
+    const taStr   = [ta1, ta2].filter(Boolean).join(' · ');
+    const parts   = [ticker, taStr, hq].filter(Boolean);
     subEl2.innerHTML = parts.length ? parts.map(p => `<span>${p}</span>`).join(' <span style="color:#cbd5e1">·</span> ') : '';
   }
   if (confEl) {
@@ -10884,11 +10886,20 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const _aLbl = a => _AMAP2[a] || (typeof _AREA_LABEL!=='undefined'?_AREA_LABEL[a]:null) || (a||'').toUpperCase();
   const _showAF = _allAreaIds.length > 1;
 
-  const _areaFilterHtml = _showAF ? `
-    <div class="cem-area-filter" id="cem-af-${_filterId}">
-      <button class="cem-area-pill active" data-area="all" onclick="_cemSwitchArea('${_filterId}','all')">All areas</button>
-      ${_allAreaIds.map(a => `<button class="cem-area-pill" data-area="${a}" onclick="_cemSwitchArea('${_filterId}','${a}')">${_aLbl(a)}</button>`).join('')}
-    </div>` : '';
+  // Populate header area pills slot (center of modal header)
+  const _areaPillsEl = document.getElementById('entity-modal-area-pills');
+  if (_areaPillsEl) {
+    if (_showAF) {
+      _areaPillsEl.id = 'cem-af-' + _filterId; // rename so _cemSwitchArea can find it
+      _areaPillsEl.innerHTML =
+        `<button class="cem-area-pill active" data-area="all" onclick="_cemSwitchArea('${_filterId}','all')">All areas</button>`
+        + _allAreaIds.map(a => `<button class="cem-area-pill" data-area="${a}" onclick="_cemSwitchArea('${_filterId}','${a}')">${_aLbl(a)}</button>`).join('');
+    } else {
+      // Single-area: show one static pill (no filter needed)
+      _areaPillsEl.innerHTML = _allAreaIds.length ? `<span class="cem-area-pill active" style="cursor:default">${_aLbl(_allAreaIds[0])}</span>` : '';
+    }
+  }
+  const _areaFilterHtml = ''; // pills now live in the header, not in the body
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
   const _overviewContent = `<div>
@@ -11521,6 +11532,11 @@ function closeEntityModal() {
   if (chipsEl) chipsEl.innerHTML = '';
   const footerEl = document.getElementById('entity-modal-footer');
   if (footerEl) footerEl.style.display = 'none';
+  // Reset area pills slot back to base id so next open can find it
+  const apEl = document.getElementById('entity-modal-area-pills');
+  const apElAlt = document.querySelector('[id^="cem-af-"]');
+  if (apElAlt) { apElAlt.innerHTML = ''; apElAlt.id = 'entity-modal-area-pills'; }
+  else if (apEl) apEl.innerHTML = '';
   document.body.style.overflow = '';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEntityModal(); });
