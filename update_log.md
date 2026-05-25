@@ -1,5 +1,27 @@
 
 ---
+## 2026-05-25 (Session 53g) — Phase 4B Path A: IBD dual-read in _makeAreaPI()
+
+**Phase 4B Path A implemented in `index.html`.**
+
+**Goal:** Run normalized IBD read in parallel with legacy read. No visual changes. Legacy still drives dashboard.
+
+**Changes to `index.html`:**
+- Added `window.__MERIDIAN_PHASE4_COMPARE__` global array (initialized to `[]`)
+- Added `window.showPhase4Compare()` console helper — prints readable summary of all comparison records
+- Added `_runPhase4BDualRead(legacyScoreRows)` method to `_makeAreaPI` return object
+- Added call to `_runPhase4BDualRead(scoreRows)` in `init()` after `_loadEntityMeta()` — only fires when `this.areaIds.includes('ibd')`
+- Dual-read: legacy = `drug_area_scores.area_id='ibd'`; normalized = `drug_indications.indication_id IN ('uc','cd')`
+- Comparison record includes: component, path, legacy_source, normalized_source, legacy_count, normalized_count, overlap_count, raw_match_pct, adjusted_match_pct, extra_legacy, extra_normalized, difference_classifications, status, timestamp
+- Known IBD OOS classifications embedded: `lm-302` + `sim0500` = legacy_noise_removed; `epi-001` = needs_manual_review
+- Expected status: `compare_pass_oos_adjusted` (adjusted ≥95% after excluding classified OOS records)
+- Console log: `[Phase4B-IBD] legacy=N norm=N overlap=N raw=X% adj=Y% → status`
+
+**TL1A dual-read: NOT implemented.** Blocked pending drug_targets coverage gap classification (Track B task opened).
+
+**No data changes. No visual changes. ontology_edges remain locked.**
+
+---
 ## 2026-05-25 (Session 53f) — Ontology Semantic Correction: Legacy View Types · TL1A ≠ IBD in comparison harness
 
 **Governance rule adopted:**
