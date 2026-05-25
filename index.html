@@ -1598,10 +1598,10 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 /* ── Trial rows within drug accordion ── */
 .pi-tr-hd-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:7px}
 .pi-tr-item{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;overflow:hidden;background:white}
-/* 9-column grid: Chevron | NCT | Acronym | Phase | Note | Indication | Status | PCD | Days left */
-.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px 110px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
+/* 9-column grid: Chevron | NCT | Acronym | Phase | Indication | Note | Status | PCD | Days left */
+.pi-tr-row{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.4fr) 110px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:8px 11px;cursor:pointer;transition:background 0.1s}
 .pi-tr-row:hover{background:#f8fafc}
-.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px 110px minmax(0,1.4fr) minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
+.pi-tr-header{display:grid;grid-template-columns:14px 88px 100px 46px minmax(0,1.4fr) 110px minmax(0,0.9fr) 70px 52px;align-items:center;column-gap:10px;padding:3px 11px 5px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8}
 .pi-tr-note-cell{font-size:10px;font-weight:500;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pi-tr-ind-cell{font-size:10px;color:#0f172a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Drug description strip — full-width bar shown when drug accordion opens */
@@ -12668,6 +12668,8 @@ function _makeAreaPI(tabId, areaIds) {
     ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],['Multiple Myeloma','MM'],
     ['Myelodysplastic Syndrome','MDS'],['Myelofibrosis','MF'],
     ['Head and Neck Squamous Cell Carcinoma','HNSCC'],
+    ['Oropharyngeal Squamous Cell Carcinoma','OPSCC'],['Oropharyngeal Carcinoma','OPC'],
+    ['Nasopharyngeal Carcinoma','NPC'],['Laryngeal Carcinoma','LarCa'],
     ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
     ['Triple-Negative Breast Cancer','TNBC'],['Breast Cancer','BC'],
     ['Ovarian Cancer','OvCa'],['Pancreatic Cancer','PanCa'],['Gastric Cancer','GC'],
@@ -12690,7 +12692,12 @@ function _makeAreaPI(tabId, areaIds) {
     r = r.replace(/\s*[,\-]\s*World\s+Health\s+Organization[^)]*?Class\s+[IVX]+/gi, '');
     r = r.replace(/\s*\([^)]*\bWHO\b[^)]*\)/gi, '');
     r = r.replace(/\s*[,\-]\s*AJCC[^,·]*/gi, '');
+    r = r.replace(/\s+AJCC\s+v?\d+/gi, '');
+    r = r.replace(/\bClinical\s+Stage\s+[IVX]+\s*/gi, '');
+    r = r.replace(/\s*HPV-Mediated\s*\([^)]*\)/gi, ' (HPV+)');
+    r = r.replace(/\s*\(p16[^)]*\)/gi, '');
     r = r.replace(/\s*\(Diagnosis\)/gi, '').replace(/\s*\(Only[^)]*\)/gi, '');
+    r = r.replace(/\s{2,}/g, ' ').trim();
     // Strip leftover qualifier noise and suffix junk
     r = r.replace(/\s*,\s*Clinical Stage.*/i,'').replace(/\s*·\s*HPV.*/i,'').trim();
     return r;
@@ -12827,7 +12834,7 @@ function _makeAreaPI(tabId, areaIds) {
      if (aT!==bT) return aT?1:-1;
      const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
     });
-    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Note</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
+    const comboTrialHeader = comboTrials.length ? `<div class="pi-tr-header"><span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span></div>` : '';
     const comboTrialRowsHTML = comboTrials.map(t => {
      const nct    = t.nct_id || t.nct || t.id || '';
      const acronym = t.study_acronym || '';
@@ -12847,8 +12854,8 @@ function _makeAreaPI(tabId, areaIds) {
      return `<div class="pi-tr-item"><div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>${nctLink}${acronymCell}
       <span class="pi-tr-phase-cell">${phaseDisplay}</span>
-      <span class="pi-tr-note-cell" title="${noteText}">${noteText||'—'}</span>
       <span class="pi-tr-ind-cell" title="${comboInd}">${_abbrevInd(comboInd)||comboInd||'—'}</span>
+      <span class="pi-tr-note-cell" title="${noteText}">${noteText||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>${_pcdCountdown(t, status)}
      </div><div class="pi-tr-detail"><div class="pi-td-card">${(t.trial_name||t.name)?`<div class="pi-td-name">${t.trial_name||t.name}${_trialNote(t)?`<span style="margin-left:8px;font-size:9px;font-weight:600;background:#f1f5f9;color:#64748b;border-radius:10px;padding:2px 8px;vertical-align:middle">${_trialNote(t)}</span>`:''}</div>`:''}${(()=>{const chips=[];const _r=(t.route||'').trim();if(_r)chips.push(`<span class="pi-td-reg-chip route">${_r.toUpperCase()}</span>`);const _dl=t.dose_levels||t.dose_amount||'';if(_dl)chips.push(`<span class="pi-td-reg-chip dose">${_dl}</span>`);const _df=t.dosing_frequency||t.dosing_schedule||t.dosing||'';if(_df)chips.push(`<span class="pi-td-reg-chip freq">${_df}</span>`);const _cmp=t.comparator||t.control_arm||'';if(_cmp)chips.push(`<span class="pi-td-reg-chip comparator">vs. ${_cmp}</span>`);return chips.length?`<div class="pi-td-regimen">${chips.join('')}</div>`:'';})()}${(t.enrollment||t.enrollment_count)?`<div class="pi-td-stats"><div class="pi-td-stat"><div class="pi-td-stat-lbl">Enrollment</div><div class="pi-td-stat-val">N=${t.enrollment||t.enrollment_count}</div></div></div>`:''}</div></div></div>`;
@@ -12983,7 +12990,7 @@ function _makeAreaPI(tabId, areaIds) {
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
-    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Note</span><span>Indication</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
+    <span></span><span>NCT</span><span>Acronym</span><span>Phase</span><span>Indication</span><span>Note</span><span>Status</span><span>PCD</span><span style="text-align:center">Days</span>
    </div>` : '';
 
    // Trial rows
@@ -13068,8 +13075,8 @@ function _makeAreaPI(tabId, areaIds) {
       ${nctLink}
       ${acronymCell}
       ${phaseCell}
-      <span class="pi-tr-note-cell" title="${trialNoteText}">${trialNoteText||'—'}</span>
       <span class="pi-tr-ind-cell" title="${ind}">${_abbrevInd(ind)||ind||'—'}</span>
+      <span class="pi-tr-note-cell" title="${trialNoteText}">${trialNoteText||'—'}</span>
       <span class="pi-trial-status ${trialStatusCls(status)}">${status||'—'}</span>
       <span class="pi-tr-pcd-cell">${pcd}</span>
       ${countdownCell}
