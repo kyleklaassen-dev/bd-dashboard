@@ -10141,8 +10141,9 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
+  const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory'};
 
   const drugName = drug.display_name || drug.name || 'Unknown drug';
   const mechanism = drug.mechanism || '';
@@ -10188,7 +10189,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
     ${drug.route ? `<div class="cem-fact"><span class="cem-fact-lbl">Route</span><span class="cem-fact-val">${drug.route}</span></div>` : ''}
     ${drug.indication_short ? `<div class="cem-fact"><span class="cem-fact-lbl">Indication</span><span class="cem-fact-val">${drug.indication_short}</span></div>` : ''}
     ${areas?.length ? areas.map(a => {
-      const lbl = (window._AREA_LABEL||{})[a.area_id] || a.area_id;
+      const lbl = (_CEM_AMAP[a.area_id]||a.area_id);
       return `<div class="cem-fact"><span class="cem-fact-lbl">${lbl} overlap</span><span class="cem-fact-val">${_cemOverlapPill(a.overlap)} ${a.overlap_rationale ? '— '+a.overlap_rationale.slice(0,120) : ''}</span></div>`;
     }).join('') : ''}
   </div>`;
@@ -10230,7 +10231,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
     <div class="cem-item-row">
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-          <span style="font-size:11px;font-weight:600;color:#0f172a">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span>
+          <span style="font-size:11px;font-weight:600;color:#0f172a">${(_CEM_AMAP[a.area_id]||a.area_id)}</span>
           ${_cemOverlapPill(a.overlap)}
         </div>
         ${a.overlap_rationale ? `<div style="font-size:11px;color:#64748b;line-height:1.4">${a.overlap_rationale.slice(0,100)}</div>` : ''}
@@ -10242,7 +10243,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
     ${(areas||[]).map(a => `
       <div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:11px;font-weight:600">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span>
+          <span style="font-size:11px;font-weight:600">${(_CEM_AMAP[a.area_id]||a.area_id)}</span>
           ${_cemOverlapPill(a.overlap)}
         </div>
         ${a.overlap_rationale ? `<div style="font-size:11px;color:#1e293b;line-height:1.5">${a.overlap_rationale}</div>` : ''}
@@ -10305,7 +10306,8 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
   if (_cemDrugChipsEl) {
     const phaseLabel   = phase ? phase.replace(/^Phase\s*/i,'Ph') : '';
     const licLabel     = drug.partner_company ? 'Out-licensed' : '';
-    const areaLabelsStr = (areas||[]).map(a=>(window._AREA_LABEL||{})[a.area_id]||a.area_id).filter(Boolean).join(' · ');
+    const _cemAMap2 = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory'};
+    const areaLabelsStr = (areas||[]).map(a=>(_cemAMap2[a.area_id]||a.area_id)).filter(Boolean).join(' · ');
     const phaseIsApproved = (phase||'').toLowerCase().includes('approved');
     const pills = [
       `<span class="cem-id-pill cem-id-pill-entity">Drug</span>`,
@@ -10346,40 +10348,58 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
     ` : '';
   }
 
-  // BD Deals section — build from drug fields
+  // BD Deals section — prefer fetched deals table records, fallback to drug fields
+  const _allDeals  = (drugDeals||[]).length ? drugDeals : [];
   const bdPartner  = drug.partner_company || '';
   const bdLicensor = drug.licensor || '';
-  const bdDealType = drug.deal_type || '';
   const bdUpfront  = drug.upfront_usd_m;
   const bdTotal    = drug.total_usd_m;
-  const bdDealDate = drug.deal_date || '';
-  const hasDeal    = bdPartner || bdLicensor || bdUpfront || bdTotal;
+  const hasDrugFieldDeal = bdPartner || bdLicensor || bdUpfront || bdTotal;
+  const hasDeal    = _allDeals.length > 0 || hasDrugFieldDeal;
 
-  const bdDealsSummary = hasDeal ? `
+  const bdDealsSummary = _allDeals.length ? _allDeals.slice(0,3).map(d => {
+    const partner = d.to_company || d.from_company || '';
+    const headline = d.headline || '';
+    const searchQ  = [companyName, headline||partner, drugName, d.deal_date?d.deal_date.slice(0,4):''].filter(Boolean).join(' ');
+    return `<div class="cem-item-row" style="flex-direction:column;gap:3px">
+      <div style="font-size:12px;font-weight:600;color:#0f172a">${headline ? _cemLink(headline.slice(0,90)+(headline.length>90?'…':''), searchQ) : _cemLink(partner||'Deal', searchQ)}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${d.deal_date ? `<span style="font-size:10px;color:#94a3b8">${_cemFmtDate(d.deal_date)}</span>` : ''}
+        ${d.deal_type ? `<span class="cem-pill cem-p-purple">${d.deal_type}</span>` : ''}
+        ${_cemFmtVal(d.upfront_usd_m, d.total_usd_m)}
+      </div>
+    </div>`;
+  }).join('') : hasDrugFieldDeal ? `
     <div class="cem-item-row" style="flex-direction:column;gap:4px">
-      ${bdPartner ? `<div style="font-size:12px;font-weight:600">${_cemLink(bdPartner, bdPartner+' '+drugName+' licensing deal')}</div>` : ''}
-      ${bdLicensor ? `<div style="font-size:11.5px;color:#64748b">Licensor: ${_cemLink(bdLicensor, bdLicensor+' pharma deal')}</div>` : ''}
+      ${bdPartner ? `<div style="font-size:12px;font-weight:600">${_cemLink(bdPartner, [companyName, bdPartner, drugName, 'license deal'].join(' '))}</div>` : ''}
+      ${bdLicensor ? `<div style="font-size:11.5px;color:#64748b">Licensor: ${_cemLink(bdLicensor, [bdLicensor, drugName, 'pharma license'].join(' '))}</div>` : ''}
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">
-        ${bdDealDate ? `<span style="font-size:10px;color:#94a3b8">${_cemFmtDate(bdDealDate)}</span>` : ''}
-        ${bdDealType ? `<span class="cem-pill cem-p-purple">${bdDealType}</span>` : ''}
         ${_cemFmtVal(bdUpfront, bdTotal)}
       </div>
     </div>` : `<span style="font-size:11px;color:#94a3b8;font-style:italic">No BD deal on record.</span>`;
 
   const bdDealsDetail = `<div class="cem-det-inner">
-    <div class="cem-det-title">Deal detail — ${drugName}</div>
-    ${bdPartner ? `<div class="cem-fact"><span class="cem-fact-lbl">Partner</span><span class="cem-fact-val">${_cemLink(bdPartner, bdPartner+' pharma BD deal')}</span></div>` : ''}
-    ${bdLicensor ? `<div class="cem-fact"><span class="cem-fact-lbl">Licensor</span><span class="cem-fact-val">${_cemLink(bdLicensor, bdLicensor+' license deal')}</span></div>` : ''}
-    ${bdDealType ? `<div class="cem-fact"><span class="cem-fact-lbl">Deal type</span><span class="cem-fact-val">${bdDealType}</span></div>` : ''}
-    ${bdDealDate ? `<div class="cem-fact"><span class="cem-fact-lbl">Date</span><span class="cem-fact-val">${_cemFmtDate(bdDealDate)}</span></div>` : ''}
-    ${bdUpfront  ? `<div class="cem-fact"><span class="cem-fact-lbl">Upfront</span><span class="cem-fact-val">${_cemFmtVal(bdUpfront, null)}</span></div>` : ''}
-    ${bdTotal    ? `<div class="cem-fact"><span class="cem-fact-lbl">Total value</span><span class="cem-fact-val">${_cemFmtVal(null, bdTotal)}</span></div>` : ''}
-    ${!hasDeal   ? `<div style="font-size:11px;color:#94a3b8">No deal data in database — enrich drug record to add deal terms.</div>` : ''}
+    <div class="cem-det-title">Deal records — ${drugName}</div>
+    ${_allDeals.length ? _allDeals.map(d => {
+      const partner  = d.to_company||d.from_company||'';
+      const headline = d.headline||'';
+      const searchQ  = [companyName, headline||partner, drugName, d.deal_date?d.deal_date.slice(0,4):''].filter(Boolean).join(' ');
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #e2e8f0">
+        <div style="font-size:12px;font-weight:600;margin-bottom:3px">${headline ? _cemLink(headline, searchQ) : _cemLink(partner||'Deal', searchQ)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          ${d.deal_type?`<span class="cem-pill cem-p-purple">${d.deal_type}</span>`:''}
+          ${_cemFmtVal(d.upfront_usd_m, d.total_usd_m)}
+          <span style="font-size:10px;color:#94a3b8">${_cemFmtDate(d.deal_date)}</span>
+        </div>
+        ${partner ? `<div style="font-size:11px;color:#64748b">Partner: ${_cemLink(partner, partner+' '+companyName+' pharma deal')}</div>` : ''}
+        ${d.detail ? `<div style="font-size:11px;color:#1e293b;margin-top:4px;line-height:1.45">${d.detail.slice(0,200)}</div>` : ''}
+      </div>`;
+    }).join('') : `<div style="font-size:11px;color:#94a3b8">No deal records in database. Add via deals table with drug_name="${drugName}".</div>`}
   </div>`;
 
   // Relationship Intelligence — area overlap as competitive context
   const relSummary = (areas||[]).slice(0,3).map(a => {
-    const lbl = (window._AREA_LABEL||{})[a.area_id] || a.area_id;
+    const lbl = (_CEM_AMAP[a.area_id]||a.area_id);
     return `<div class="cem-item-row">
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
@@ -10394,7 +10414,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
   const relDetail = `<div class="cem-det-inner">
     <div class="cem-det-title">Full competitive landscape — ${drugName}</div>
     ${(areas||[]).map(a => {
-      const lbl = (window._AREA_LABEL||{})[a.area_id] || a.area_id;
+      const lbl = (_CEM_AMAP[a.area_id]||a.area_id);
       return `<div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
           <span style="font-size:11px;font-weight:600">${lbl}</span>
@@ -10459,7 +10479,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
       <div class="cem-sec-body">${srcSummary}</div>
       <div class="cem-det" id="cem-det-dr-src"><div class="cem-det-inner">
         <div class="cem-det-title">Source breakdown</div>
-        ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
+        ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
       </div></div>
     </div>
   </div>
@@ -10530,7 +10550,7 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const totalDealVal = sbDeals.reduce((s,d) => s + (parseFloat(d.total_usd_m)||0), 0);
   const catCount     = sbCats.length;
   const dealValStr   = totalDealVal >= 1000 ? `$${(totalDealVal/1000).toFixed(1)}B` : totalDealVal > 0 ? `$${Math.round(totalDealVal)}M` : '—';
-  const areaLabel    = (window._AREA_LABEL||{})[areaId] || areaId || '';
+  const areaLabel    = _CEMAreaMap[areaId] || (window._AREA_LABEL||{})[areaId] || areaId || '';
 
   const statsHtml = `<div class="cem-stats">
     <div class="cem-stat"><div class="cem-stat-lbl">Pipeline (${areaLabel})</div><div class="cem-stat-val">${drugCount} drug${drugCount!==1?'s':''}</div><div class="cem-stat-sub">${sbDrugs.filter(d=>d.stage&&(d.stage.includes('2')||d.stage.includes('3')||d.stage==='Approved')).length} Phase 2+</div></div>
@@ -10578,23 +10598,25 @@ function _cemCompanyBody(prog, sbData, areaId) {
   </div>`;
 
   // Pipeline section
-  const pipeSummary = sbDrugs.slice(0,4).map(d => `
-    <div class="cem-item-row">
+  const pipeSummary = sbDrugs.slice(0,4).map(d => {
+    const dNameSafe = (d.display_name||d.name||'').replace(/'/g,"\\'");
+    return `<div class="cem-item-row">
       ${_cemPhasePill(d.stage||d.phase)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-          <span style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+ ' '+companyName+' drug')}</span>
+          <span style="font-size:12px;font-weight:600;color:#1d4ed8;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${dNameSafe}',event)">${d.display_name||d.name}</span>
           ${d.overlap ? _cemOverlapPill(d.overlap) : ''}
         </div>
         <div style="font-size:10.5px;color:#64748b">${d.mechanism||d.target||''} ${d.indication_short?'· '+d.indication_short:''}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const pipeDetail = `<div class="cem-det-inner">
     <div class="cem-det-title">Full pipeline — ${areaLabel} area</div>
     <table class="cem-tbl"><thead><tr><th>Drug</th><th>Target</th><th>Phase</th><th>Overlap</th><th>Indication</th></tr></thead><tbody>
     ${sbDrugs.map(d => `<tr>
-      <td>${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+' '+companyName)}</td>
+      <td><span style="color:#1d4ed8;cursor:pointer;font-weight:600" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${d.display_name||d.name}</span></td>
       <td style="color:#64748b">${d.target||d.mechanism||'—'}</td>
       <td>${_cemPhasePill(d.stage||d.phase)}</td>
       <td>${_cemOverlapPill(d.overlap)}</td>
@@ -11055,6 +11077,18 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       }
     }
 
+    // Fetch deals for this drug
+    let drugDeals = [];
+    try {
+      const dId = drug?.id;
+      const dNameQ = (drug?.name || drugName || '').split(/\s+/).slice(0,3).join(' ');
+      const dealQ = dId
+        ? _sb.from('deals').select('*').or(`drug_id.eq.${dId},drug_name.ilike.*${encodeURIComponent(dNameQ)}*`).order('deal_date',{ascending:false}).limit(10)
+        : _sb.from('deals').select('*').ilike('drug_name', `*${dNameQ}*`).order('deal_date',{ascending:false}).limit(10);
+      const { data: dealRows } = await dealQ;
+      drugDeals = (dealRows||[]).filter(d => d.deal_type && d.deal_type !== 'news');
+    } catch(_) {}
+
     // Fetch company name
     let companyName = '';
     if (drug?.company_id) {
@@ -11063,7 +11097,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
