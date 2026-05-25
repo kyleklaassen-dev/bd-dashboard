@@ -11679,9 +11679,171 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         footerEl.style.display = 'flex';
       }
     }
+    // Phase 4B Path C — drug entity modal dual-read (non-blocking, parallel only)
+    _runPhase4CModalDualRead(drug?.id || drugId, areas);
   } catch(e) {
     console.warn('[drugModal]', e);
     bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:13px">Failed to load: ${e.message}</div>`;
+  }
+}
+
+// ── Phase 4B Path C — Drug Entity Modal dual-read ─────────────────────────────
+// Fires after openDrugEntityModal renders. Does NOT change visible output.
+// Reads drug_targets + drug_indications + trial_indications in parallel.
+// Compares against legacy drug_areas membership fetched by the modal.
+// Writes comparison record to window.__MERIDIAN_PHASE4_COMPARE__.
+//
+// Area → normalized path mapping (mirrors LEGACY_VIEW_TYPES in harness):
+//   target_views:          tl1a→tl1a, fcrn→fcrn, igf1r→igf1r, tslp→tslp, il4ra→il4ra
+//   indication_views:      ted→ted
+//   indication_group_views: ibd→[uc,cd], atopy→[ad], respiratory→[asthma,copd], autoimmune→[ra,sle]
+//
+async function _runPhase4CModalDualRead(resolvedDrugId, legacyAreas) {
+  if (!resolvedDrugId || !_sb) return;
+  // Area → expected normalized relationships
+  const AREA_TARGET_MAP = {
+    tl1a: 'tl1a', fcrn: 'fcrn', igf1r: 'igf1r', tslp: 'tslp', il4ra: 'il4ra',
+  };
+  const AREA_IND_MAP = {
+    ibd:         ['uc', 'cd'],
+    ted:         ['ted'],
+    atopy:       ['ad'],
+    respiratory: ['asthma', 'copd', 'crswnp'],
+    autoimmune:  ['ra', 'sle'],
+  };
+
+  try {
+    // Parallel normalized reads — independent of modal rendering
+    const [dtRes, diRes, trialRes] = await Promise.all([
+      _sb.from('drug_targets').select('target_id,confidence_score,review_status').eq('drug_id', resolvedDrugId),
+      _sb.from('drug_indications').select('indication_id,confidence_score,development_stage,review_status').eq('drug_id', resolvedDrugId),
+      _sb.from('trials').select('id').eq('drug_id', resolvedDrugId).limit(50),
+    ]);
+
+    const normTargetIds  = (dtRes.data  || []).map(r => r.target_id);
+    const normIndIds     = (diRes.data  || []).map(r => r.indication_id);
+    const trialIds       = (trialRes.data || []).map(r => r.id);
+
+    // Trial indications (if any trials found)
+    let trialIndIds = [];
+    if (trialIds.length) {
+      const tiRes = await _sb.from('trial_indications')
+        .select('indication_id,confidence_score')
+        .in('trial_id', trialIds.slice(0, 30));
+      trialIndIds = [...new Set((tiRes.data || []).map(r => r.indication_id))];
+    }
+
+    // Legacy area IDs from what the modal already fetched
+    const legacyAreaIds = (legacyAreas || []).map(a => a.area_id);
+
+    // Build per-area comparison
+    const missingNormTargets = [];
+    const missingNormInds    = [];
+    const conflicting        = [];
+    const matchedTargets     = [];
+    const matchedInds        = [];
+
+    legacyAreaIds.forEach(areaId => {
+      const expectedTarget = AREA_TARGET_MAP[areaId];
+      const expectedInds   = AREA_IND_MAP[areaId] || [];
+
+      if (expectedTarget) {
+        if (normTargetIds.includes(expectedTarget)) {
+          matchedTargets.push({ area: areaId, target: expectedTarget });
+        } else {
+          missingNormTargets.push({ area: areaId, expected_target: expectedTarget });
+        }
+      }
+      expectedInds.forEach(indId => {
+        if (normIndIds.includes(indId) || trialIndIds.includes(indId)) {
+          matchedInds.push({ area: areaId, indication: indId });
+        } else {
+          missingNormInds.push({ area: areaId, expected_indication: indId });
+        }
+      });
+    });
+
+    // Normalized relationships not in any legacy area (new_normalized_value)
+    const legacyExpectedTargets = legacyAreaIds.map(a => AREA_TARGET_MAP[a]).filter(Boolean);
+    const legacyExpectedInds    = legacyAreaIds.flatMap(a => AREA_IND_MAP[a] || []);
+    const extraNormTargets = normTargetIds.filter(t => !legacyExpectedTargets.includes(t));
+    const extraNormInds    = normIndIds.filter(i => !legacyExpectedInds.includes(i));
+
+    // Classify each gap
+    const diffClassifications = {};
+    missingNormTargets.forEach(({ area, expected_target }) => {
+      const key = `${area}→target:${expected_target}`;
+      // TL1A-specific: many legacy TL1A drugs are IBD indication competitors
+      if (area === 'tl1a') {
+        const hasIBDInd = normIndIds.some(i => ['uc','cd'].includes(i));
+        diffClassifications[key] = hasIBDInd
+          ? 'ibd_indication_not_tl1a_target'
+          : 'needs_manual_review';
+      } else {
+        diffClassifications[key] = 'normalized_gap';
+      }
+    });
+    missingNormInds.forEach(({ area, expected_indication }) => {
+      const key = `${area}→ind:${expected_indication}`;
+      // Check if trial evidence supports the indication despite missing drug_indications row
+      const hasTrialEvidence = trialIndIds.includes(expected_indication);
+      diffClassifications[key] = hasTrialEvidence ? 'trial_evidence_only' : 'normalized_gap';
+    });
+    extraNormTargets.forEach(t => {
+      diffClassifications[`extra_target:${t}`] = 'new_normalized_value';
+    });
+    extraNormInds.forEach(i => {
+      diffClassifications[`extra_ind:${i}`] = 'new_normalized_value';
+    });
+
+    // Overall status
+    const hasUnresolvedGaps   = missingNormTargets.length + missingNormInds.length > 0;
+    const hasClassifiedOOS    = Object.values(diffClassifications)
+      .some(c => c === 'ibd_indication_not_tl1a_target');
+    const hasManualReview     = Object.values(diffClassifications)
+      .some(c => c === 'needs_manual_review');
+    const hasNormalizedGaps   = Object.values(diffClassifications)
+      .some(c => c === 'normalized_gap');
+
+    let status = 'match';
+    if (hasNormalizedGaps)    status = 'acceptable_mismatch';
+    if (hasManualReview)      status = 'needs_manual_review';
+    if (hasClassifiedOOS)     status = 'compare_pass_oos_adjusted';
+    if (!hasUnresolvedGaps && !hasClassifiedOOS && !hasManualReview) status = 'match';
+    // Degrade to cross_table_inconsistency if both missing targets and missing inds
+    if (missingNormTargets.length > 0 && missingNormInds.length > 0 && hasNormalizedGaps)
+      status = 'cross_table_inconsistency';
+
+    const record = {
+      component:                  'openDrugEntityModal',
+      path:                       'drug_entity_modal',
+      drug_id:                    resolvedDrugId,
+      legacy_sources:             ['drug_areas', 'drug_area_scores'],
+      normalized_sources:         ['drug_targets', 'drug_indications', 'trial_indications'],
+      legacy_area_ids:            legacyAreaIds,
+      normalized_target_ids:      normTargetIds,
+      normalized_indication_ids:  normIndIds,
+      trial_indication_ids:       trialIndIds,
+      missing_normalized_targets: missingNormTargets,
+      missing_normalized_indications: missingNormInds,
+      extra_normalized_targets:   extraNormTargets,
+      extra_normalized_indications: extraNormInds,
+      conflicting_relationships:  conflicting,
+      difference_classifications: diffClassifications,
+      status,
+      timestamp:                  new Date().toISOString(),
+    };
+
+    window.__MERIDIAN_PHASE4_COMPARE__ = window.__MERIDIAN_PHASE4_COMPARE__ || [];
+    window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+    console.log(
+      `[Phase4C-Modal] drug=${resolvedDrugId} areas=[${legacyAreaIds}]` +
+      ` targets=[${normTargetIds}] inds=[${normIndIds}]` +
+      ` missing_targets=${missingNormTargets.length} missing_inds=${missingNormInds.length}` +
+      ` → ${status}`
+    );
+  } catch(err) {
+    console.warn('[Phase4C-Modal] dual-read error:', err.message);
   }
 }
 
