@@ -3821,6 +3821,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
+  <button class="nav-icon-btn" id="nav-icon-pb" onclick="switchTabTo('program-board')" title="Program Board">🗺️</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -3839,6 +3840,7 @@ function loadMoleculeTab(tabId) {
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
+        <button class="tab-btn" onclick="switchTab('program-board', this)" style="display:none">Program Board</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -18899,6 +18901,399 @@ document.addEventListener('DOMContentLoaded', function(){
 
 </div><!-- /ont-wrap -->
 </div><!-- /tab-ontology -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PROGRAM BOARD TAB  #tab-program-board
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-program-board" style="padding:0;background-color:#0f1923;min-height:100vh;font-family:'Inter',sans-serif">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#0f1923 0%,#1a2a3d 100%);border-bottom:1px solid #1e3a5f;padding:28px 32px 24px">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#4a90c4;text-transform:uppercase;margin-bottom:6px">Meridian Intelligence Platform</div>
+          <h1 style="font-size:26px;font-weight:800;color:#f0f6ff;margin:0 0 6px">Program Board</h1>
+          <div style="font-size:13px;color:#6b8aad">Five-track parallel execution model · <span id="pb-timestamp" style="color:#4a90c4">Loading…</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:#4a90c4;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Current Milestone</div>
+          <div style="font-size:14px;font-weight:700;color:#f0f6ff">L4 — Queryable</div>
+          <div style="font-size:11px;color:#6b8aad;margin-top:2px">Trigger: drug_indications commit</div>
+        </div>
+      </div>
+      <!-- L4 Progress Bar -->
+      <div style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:600;color:#6b8aad;letter-spacing:1px;text-transform:uppercase">L4 Progress</span>
+          <span style="font-size:11px;font-weight:700;color:#4a90c4" id="pb-l4-pct">Calculating…</span>
+        </div>
+        <div style="background:#1e3a5f;border-radius:4px;height:8px;overflow:hidden">
+          <div id="pb-l4-bar" style="height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);border-radius:4px;transition:width 1s ease;width:0%"></div>
+        </div>
+        <div style="display:flex;gap:20px;margin-top:8px" id="pb-l4-gates">
+          <span style="font-size:10px;color:#4caf76">✓ Drug Targets seeded</span>
+          <span style="font-size:10px;color:#f59e0b" id="pb-di-gate">◐ Drug Indications (Wave 2A preview)</span>
+          <span style="font-size:10px;color:#6b8aad">○ Trial Indications</span>
+          <span style="font-size:10px;color:#6b8aad">○ Advisor approval</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div style="max-width:1100px;margin:0 auto;padding:28px 32px">
+
+    <!-- ── RESOURCE ALLOCATION ── -->
+    <div style="margin-bottom:28px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#4a90c4;text-transform:uppercase;margin-bottom:12px">Resource Allocation</div>
+      <div style="background:#1a2a3d;border:1px solid #1e3a5f;border-radius:8px;padding:16px">
+        <div style="display:flex;border-radius:4px;overflow:hidden;height:18px;margin-bottom:10px">
+          <div style="width:70%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">A · 70%</div>
+          <div style="width:10%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">B</div>
+          <div style="width:10%;background:#0891b2;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">C</div>
+          <div style="width:5%;background:#d97706;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">D</div>
+          <div style="width:5%;background:#059669;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">E</div>
+        </div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <span style="font-size:11px;color:#94a3b8"><span style="color:#2563eb;font-weight:700">A</span> Relationship Layer <span style="color:#6b8aad">70%</span></span>
+          <span style="font-size:11px;color:#94a3b8"><span style="color:#7c3aed;font-weight:700">B</span> Ontology Quality <span style="color:#6b8aad">10%</span></span>
+          <span style="font-size:11px;color:#94a3b8"><span style="color:#0891b2;font-weight:700">C</span> Intelligence Products <span style="color:#6b8aad">10%</span></span>
+          <span style="font-size:11px;color:#94a3b8"><span style="color:#d97706;font-weight:700">D</span> Dashboard Architecture <span style="color:#6b8aad">5%</span></span>
+          <span style="font-size:11px;color:#94a3b8"><span style="color:#059669;font-weight:700">E</span> Data Acquisition <span style="color:#6b8aad">5%</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FIVE-TRACK TABLE ── -->
+    <div style="margin-bottom:28px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#4a90c4;text-transform:uppercase;margin-bottom:12px">Track Status</div>
+      <div style="background:#1a2a3d;border:1px solid #1e3a5f;border-radius:8px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#0f1923;border-bottom:1px solid #1e3a5f">
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase;width:28px">Track</th>
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase">Name</th>
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase">Status</th>
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase">Current Sprint</th>
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase">Blockers</th>
+              <th style="padding:10px 16px;text-align:left;color:#4a90c4;font-weight:600;letter-spacing:1px;font-size:10px;text-transform:uppercase">Next Milestone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e3a5f">
+              <td style="padding:12px 16px"><div style="width:28px;height:28px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">A</div></td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600">Relationship Layer<div style="font-size:10px;color:#6b8aad;font-weight:400;margin-top:2px">Build the graph</div></td>
+              <td style="padding:12px 16px"><span style="background:#1a3d2b;color:#4caf76;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px">● ACTIVE</span></td>
+              <td style="padding:12px 16px;color:#94a3b8">drug_indications Wave 2A<div style="font-size:10px;color:#4a90c4;margin-top:2px">124 rows in preview</div></td>
+              <td style="padding:12px 16px;color:#4caf76;font-size:11px">—</td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600;font-size:11px">Wave 2A commit<div style="font-size:10px;color:#6b8aad;font-weight:400">→ Wave 2B trial_indications</div></td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e3a5f">
+              <td style="padding:12px 16px"><div style="width:28px;height:28px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">B</div></td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600">Ontology Quality<div style="font-size:10px;color:#6b8aad;font-weight:400;margin-top:2px">Protect trust and consistency</div></td>
+              <td style="padding:12px 16px"><span style="background:#1a2a3d;color:#a78bfa;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;border:1px solid #4c1d95">● ACTIVE</span></td>
+              <td style="padding:12px 16px;color:#94a3b8">Alias coverage audit<div style="font-size:10px;color:#6b8aad;margin-top:2px">82 indication_aliases seeded</div></td>
+              <td style="padding:12px 16px;color:#4caf76;font-size:11px">—</td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600;font-size:11px">Mismatch report<div style="font-size:10px;color:#6b8aad;font-weight:400">alias coverage gaps by indication</div></td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e3a5f">
+              <td style="padding:12px 16px"><div style="width:28px;height:28px;border-radius:50%;background:#0891b2;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">C</div></td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600">Intelligence Products<div style="font-size:10px;color:#6b8aad;font-weight:400;margin-top:2px">Create user-facing intelligence</div></td>
+              <td style="padding:12px 16px"><span style="background:#0c2233;color:#38bdf8;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;border:1px solid #0891b2">◐ PROTOTYPE</span></td>
+              <td style="padding:12px 16px;color:#94a3b8">Indication Landscape Card<div style="font-size:10px;color:#38bdf8;margin-top:2px">UC card live below ↓</div></td>
+              <td style="padding:12px 16px;color:#f59e0b;font-size:11px">Full data pending Wave 2A commit</td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600;font-size:11px">v1 landscape card<div style="font-size:10px;color:#6b8aad;font-weight:400">per-indication intelligence view</div></td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e3a5f">
+              <td style="padding:12px 16px"><div style="width:28px;height:28px;border-radius:50%;background:#d97706;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">D</div></td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600">Dashboard Architecture<div style="font-size:10px;color:#6b8aad;font-weight:400;margin-top:2px">Prepare for future migration</div></td>
+              <td style="padding:12px 16px"><span style="background:#2d1a00;color:#f59e0b;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px">◑ INVENTORY</span></td>
+              <td style="padding:12px 16px;color:#94a3b8">Dependency audit complete<div style="font-size:10px;color:#f59e0b;margin-top:2px" id="pb-d-summary">Loading counts…</div></td>
+              <td style="padding:12px 16px;color:#4caf76;font-size:11px">—</td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600;font-size:11px">Migration map<div style="font-size:10px;color:#6b8aad;font-weight:400">safe/migrate/blocked classification</div></td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px"><div style="width:28px;height:28px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">E</div></td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600">Data Acquisition<div style="font-size:10px;color:#6b8aad;font-weight:400;margin-top:2px">Improve inputs</div></td>
+              <td style="padding:12px 16px"><span style="background:#1a2a3d;color:#34d399;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;border:1px solid #059669">● ACTIVE</span></td>
+              <td style="padding:12px 16px;color:#94a3b8">Normalization engine<div style="font-size:10px;color:#6b8aad;margin-top:2px">wave2a_drug_indications_backfill.py</div></td>
+              <td style="padding:12px 16px;color:#4caf76;font-size:11px">—</td>
+              <td style="padding:12px 16px;color:#f0f6ff;font-weight:600;font-size:11px">Parser library<div style="font-size:10px;color:#6b8aad;font-weight:400">normalizeIndication() + normalizeTarget()</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INDICATION LANDSCAPE CARD (Track C Prototype) ── -->
+    <div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#0891b2;text-transform:uppercase">Track C — Indication Landscape Card · Prototype</div>
+        <div style="font-size:10px;color:#6b8aad">Every relationship table should unlock a new intelligence product.</div>
+      </div>
+
+      <!-- Card grid: select indication -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="pb-ind-tabs">
+        <button onclick="pbLoadCard('uc')" class="pb-ind-btn pb-ind-active" data-ind="uc" style="padding:6px 14px;border-radius:20px;border:1px solid #0891b2;background:#0c2233;color:#38bdf8;font-size:11px;font-weight:600;cursor:pointer">Ulcerative Colitis</button>
+        <button onclick="pbLoadCard('cd')" class="pb-ind-btn" data-ind="cd" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Crohn's Disease</button>
+        <button onclick="pbLoadCard('ad')" class="pb-ind-btn" data-ind="ad" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Atopic Dermatitis</button>
+        <button onclick="pbLoadCard('asthma')" class="pb-ind-btn" data-ind="asthma" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Asthma</button>
+        <button onclick="pbLoadCard('gmg')" class="pb-ind-btn" data-ind="gmg" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">gMG</button>
+        <button onclick="pbLoadCard('sle')" class="pb-ind-btn" data-ind="sle" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">SLE</button>
+      </div>
+
+      <!-- Landscape card -->
+      <div id="pb-landscape-card" style="background:#1a2a3d;border:1px solid #0891b2;border-radius:12px;overflow:hidden">
+        <!-- Card header -->
+        <div style="background:linear-gradient(135deg,#0c2233,#0f2d4a);padding:20px 24px;border-bottom:1px solid #1e3a5f">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#38bdf8;text-transform:uppercase;margin-bottom:4px" id="pb-card-area">Gastroenterology · IBD</div>
+              <div style="font-size:22px;font-weight:800;color:#f0f6ff" id="pb-card-ind">Ulcerative Colitis</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:10px;color:#6b8aad;margin-bottom:2px">Competitive Density</div>
+              <div style="font-size:16px;font-weight:800;color:#f59e0b" id="pb-card-density">High</div>
+            </div>
+          </div>
+          <!-- Data source note -->
+          <div style="margin-top:10px;font-size:10px;color:#4a90c4;background:#0a1929;padding:6px 10px;border-radius:4px;display:inline-block" id="pb-card-source">
+            Drug data: Wave 2A preview (124 rows staged · commit pending)
+          </div>
+        </div>
+
+        <!-- Card metrics grid -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #1e3a5f">
+          <div style="padding:16px 20px;border-right:1px solid #1e3a5f">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Assets in Indication</div>
+            <div style="font-size:28px;font-weight:800;color:#f0f6ff" id="pb-card-assets">—</div>
+            <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-assets-sub">loading…</div>
+          </div>
+          <div style="padding:16px 20px;border-right:1px solid #1e3a5f">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Companies Active</div>
+            <div style="font-size:28px;font-weight:800;color:#f0f6ff" id="pb-card-companies">—</div>
+            <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-companies-sub">loading…</div>
+          </div>
+          <div style="padding:16px 20px;border-right:1px solid #1e3a5f">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Upcoming Catalysts</div>
+            <div style="font-size:28px;font-weight:800;color:#f0f6ff" id="pb-card-catalysts">—</div>
+            <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-catalysts-sub">loading…</div>
+          </div>
+          <div style="padding:16px 20px">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Distinct Targets</div>
+            <div style="font-size:28px;font-weight:800;color:#f0f6ff" id="pb-card-targets-count">—</div>
+            <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-targets-sub">loading…</div>
+          </div>
+        </div>
+
+        <!-- Targets + Catalysts rows -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div style="padding:16px 20px;border-right:1px solid #1e3a5f">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Active Targets</div>
+            <div id="pb-card-targets" style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="color:#6b8aad;font-size:11px">loading…</span>
+            </div>
+          </div>
+          <div style="padding:16px 20px">
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Upcoming Readouts</div>
+            <div id="pb-card-readouts" style="display:flex;flex-direction:column;gap:6px">
+              <span style="color:#6b8aad;font-size:11px">loading…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer: what becomes queryable -->
+        <div style="padding:14px 20px;background:#0f1923;border-top:1px solid #1e3a5f">
+          <div style="font-size:10px;color:#4a90c4;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Queries This Card Enables (at L4)</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap" id="pb-card-queries">
+            <code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">Show all TL1A drugs in UC</code>
+            <code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">Companies competing in IBD</code>
+            <code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">Targets with no approved drug in UC</code>
+            <code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">Indication overlap with CD</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRACK D SUMMARY ── -->
+    <div style="margin-bottom:28px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#d97706;text-transform:uppercase;margin-bottom:12px">Track D — Dependency Inventory (2026-05-25)</div>
+      <div style="background:#1a2a3d;border:1px solid #1e3a5f;border-radius:8px;padding:20px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:800;color:#4caf76">~20</div>
+            <div style="font-size:11px;color:#6b8aad;margin-top:2px">Safe</div>
+            <div style="font-size:10px;color:#4a90c4">display/color mappings, docs</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:800;color:#f59e0b">~120</div>
+            <div style="font-size:11px;color:#6b8aad;margin-top:2px">Needs Migration</div>
+            <div style="font-size:10px;color:#4a90c4">filters, joins, scoring, enrichment</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:800;color:#ef4444">1</div>
+            <div style="font-size:11px;color:#6b8aad;margin-top:2px">Blocked</div>
+            <div style="font-size:10px;color:#4a90c4">drug_area_scores FK inconsistency</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;border-top:1px solid #1e3a5f;padding-top:12px">
+          <strong style="color:#f0f6ff">Critical path:</strong> Therapeutic areas table → drug_area_scores FK update → query layer migration → test across all tabs. Fields audited: <code style="font-size:10px;background:#0f1923;padding:2px 5px;border-radius:3px">disease_area</code> · <code style="font-size:10px;background:#0f1923;padding:2px 5px;border-radius:3px">disease_areas</code> · <code style="font-size:10px;background:#0f1923;padding:2px 5px;border-radius:3px">area_id</code> · <code style="font-size:10px;background:#0f1923;padding:2px 5px;border-radius:3px">drug_area_scores</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STRATEGIC PRINCIPLE ── -->
+    <div style="background:linear-gradient(135deg,#0c1f2e,#0f2d4a);border:1px solid #1e3a5f;border-radius:8px;padding:20px 24px;margin-bottom:28px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#4a90c4;text-transform:uppercase;margin-bottom:8px">Intelligence Harvest Principle</div>
+      <div style="font-size:16px;font-style:italic;color:#f0f6ff;line-height:1.6">"Every relationship table should unlock a new intelligence product."</div>
+      <div style="font-size:12px;color:#6b8aad;margin-top:8px">If a relationship layer is completed and no new capability appears, we are accumulating structure without harvesting value.</div>
+      <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap">
+        <div style="font-size:11px;color:#4caf76">✓ Drug → Target seeded → Target Landscape (ready)</div>
+        <div style="font-size:11px;color:#f59e0b">◐ Drug → Indication (preview) → Indication Landscape (prototype above)</div>
+        <div style="font-size:11px;color:#6b8aad">○ Trial → Indication → Phase/enrollment intelligence</div>
+        <div style="font-size:11px;color:#6b8aad">○ Drug → Company → Portfolio intelligence</div>
+      </div>
+    </div>
+
+  </div><!-- /max-width wrapper -->
+</div><!-- /tab-program-board -->
+
+<script>
+// ── PROGRAM BOARD ────────────────────────────────────────────────────────────
+let _pbLoaded = false;
+
+const PB_IND_META = {
+  uc:     { label:'Ulcerative Colitis', area:'Gastroenterology · IBD', areaId:'ibd', density:'High', queries:['Show all TL1A drugs in UC','Companies competing in IBD','Targets with no approved drug in UC','Indication overlap with CD'] },
+  cd:     { label:"Crohn's Disease",    area:'Gastroenterology · IBD', areaId:'ibd', density:'High', queries:['Show all IL-23p19 drugs in CD','Phase 3 readouts in CD 2027-2028','Companies active in both UC and CD','Biosimilar threat to TNF franchise'] },
+  ad:     { label:'Atopic Dermatitis',  area:'Dermatology · Atopy',    areaId:'atopy', density:'Very High', queries:['IL-4Rα drugs in AD','TH2 targets in atopy','Phase 3 pipeline density','Next approvals after dupilumab'] },
+  asthma: { label:'Asthma',            area:'Pulmonology · Atopy',    areaId:'atopy', density:'High', queries:['TSLP vs IL-33 in asthma','Oral vs biologic pipeline','Companies active in asthma + AD','Severe asthma vs. moderate target split'] },
+  gmg:    { label:'Generalized Myasthenia Gravis', area:'Neurology · FcRn', areaId:'fcrn', density:'Medium', queries:['FcRn drugs in gMG','Approved vs pipeline in gMG','Companies with both FcRn and complement','Time to approval for Phase 3 assets'] },
+  sle:    { label:'Systemic Lupus Erythematosus', area:'Rheumatology · SLE', areaId:'sle', density:'Medium-High', queries:['Show all SLE drugs by target','Companies with ≥2 SLE assets','Mechanism diversity in SLE pipeline','First-in-class opportunities in SLE'] }
+};
+
+const TARGET_LABELS = { tl1a:'TL1A', il23p19:'IL-23p19', a4b7:'α4β7', il12_23p40:'IL-12/23p40', il4ra:'IL-4Rα', il13:'IL-13', tslp:'TSLP', il33:'IL-33', fcrn:'FcRn', cd19:'CD19', bcma:'BCMA', il17a:'IL-17A', tnf:'TNF', il6:'IL-6', b7:'B7', blys:'BLyS', ifnar:'IFNAR', pd1:'PD-1' };
+
+async function pbLoadCard(indId) {
+  const meta = PB_IND_META[indId] || {};
+  // Update tab buttons
+  document.querySelectorAll('.pb-ind-btn').forEach(b => {
+    const active = b.dataset.ind === indId;
+    b.style.borderColor = active ? '#0891b2' : '#1e3a5f';
+    b.style.background  = active ? '#0c2233' : 'transparent';
+    b.style.color       = active ? '#38bdf8' : '#6b8aad';
+  });
+  // Update card header
+  document.getElementById('pb-card-area').textContent = meta.area || '—';
+  document.getElementById('pb-card-ind').textContent  = meta.label || indId;
+  document.getElementById('pb-card-density').textContent = meta.density || '—';
+  // Reset metrics
+  ['pb-card-assets','pb-card-companies','pb-card-catalysts','pb-card-targets-count'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('pb-card-targets').innerHTML = '<span style="color:#6b8aad;font-size:11px">loading…</span>';
+  document.getElementById('pb-card-readouts').innerHTML = '<span style="color:#6b8aad;font-size:11px">loading…</span>';
+  // Update queries
+  if (meta.queries) {
+    document.getElementById('pb-card-queries').innerHTML = meta.queries.map(q =>
+      `<code style="font-size:10px;color:#94a3b8;background:#1a2a3d;padding:3px 8px;border-radius:3px">${q}</code>`
+    ).join('');
+  }
+
+  const sb = _sb; // Supabase client from main app
+  if (!sb) return;
+
+  try {
+    // 1. Drugs in this indication (from drug_indications, fallback to backfill_preview)
+    const [diRes, previewRes] = await Promise.all([
+      sb.from('drug_indications').select('drug_id').eq('indication_id', indId),
+      sb.from('backfill_preview').select('source_id,source_name').eq('target_id_col', indId)
+    ]);
+    const committedDrugs = (diRes.data || []).map(r => r.drug_id);
+    const previewDrugs   = (previewRes.data || []).map(r => r.source_id);
+    const allDrugs = [...new Set([...committedDrugs, ...previewDrugs])];
+    document.getElementById('pb-card-assets').textContent = allDrugs.length;
+    const hasPreview = previewDrugs.length > 0 && committedDrugs.length < allDrugs.length;
+    document.getElementById('pb-card-assets-sub').textContent = hasPreview
+      ? `${committedDrugs.length} committed + ${previewDrugs.length - committedDrugs.filter(d => previewDrugs.includes(d)).length} in Wave 2A preview`
+      : `${committedDrugs.length} committed`;
+    document.getElementById('pb-card-source').textContent = hasPreview
+      ? `Drug data: includes Wave 2A preview (commit pending advisor approval)`
+      : `Drug data: drug_indications table (committed)`;
+
+    // 2. Targets for drugs in this indication
+    if (allDrugs.length > 0) {
+      const tRes = await sb.from('entity_edges')
+        .select('subject_id,object_id')
+        .eq('predicate', 'TARGETS')
+        .in('subject_id', allDrugs.slice(0, 20));
+      const targetCounts = {};
+      (tRes.data || []).forEach(r => { targetCounts[r.object_id] = (targetCounts[r.object_id] || 0) + 1; });
+      const sortedTargets = Object.entries(targetCounts).sort((a,b) => b[1]-a[1]);
+      document.getElementById('pb-card-targets-count').textContent = sortedTargets.length;
+      document.getElementById('pb-card-targets-sub').textContent = sortedTargets.length > 0 ? 'from stored entity_edges' : 'no TARGETS edges yet';
+      document.getElementById('pb-card-targets').innerHTML = sortedTargets.length > 0
+        ? sortedTargets.map(([tid, n]) => {
+            const label = TARGET_LABELS[tid] || tid;
+            return `<span style="background:#0f1923;border:1px solid #1e3a5f;color:#f0f6ff;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600">${label}<span style="color:#4a90c4;margin-left:4px;font-size:10px">${n}↑</span></span>`;
+          }).join('')
+        : '<span style="color:#6b8aad;font-size:11px">No TARGETS edges for these drugs yet</span>';
+    }
+
+    // 3. Companies active in the area
+    const compRes = await sb.from('entity_edges')
+      .select('subject_id')
+      .eq('predicate', 'ACTIVE_IN')
+      .eq('object_id', meta.areaId || indId);
+    const compCount = (compRes.data || []).length;
+    document.getElementById('pb-card-companies').textContent = compCount || '—';
+    document.getElementById('pb-card-companies-sub').textContent = compCount > 0 ? `in ${meta.areaId || indId} from entity_edges` : 'no ACTIVE_IN edges';
+
+    // 4. Catalysts for the area
+    const catRes = await sb.from('catalysts')
+      .select('drug_id,label,catalyst_date,significance')
+      .eq('area_id', meta.areaId || indId)
+      .eq('resolved', false)
+      .order('sort_date');
+    const cats = catRes.data || [];
+    document.getElementById('pb-card-catalysts').textContent = cats.length;
+    document.getElementById('pb-card-catalysts-sub').textContent = cats.length > 0 ? 'unresolved readouts tracked' : 'none tracked';
+    document.getElementById('pb-card-readouts').innerHTML = cats.length > 0
+      ? cats.slice(0, 5).map(c =>
+          `<div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:#94a3b8">${c.label || c.drug_id}</span>
+            <span style="font-size:10px;color:#f59e0b;white-space:nowrap;margin-left:8px">${c.catalyst_date || '—'}</span>
+          </div>`
+        ).join('') + (cats.length > 5 ? `<div style="font-size:10px;color:#4a90c4;margin-top:4px">+${cats.length-5} more</div>` : '')
+      : '<span style="color:#6b8aad;font-size:11px">No upcoming catalysts tracked</span>';
+
+  } catch (e) {
+    console.error('pbLoadCard error:', e);
+  }
+}
+
+async function pbInit() {
+  if (_pbLoaded) return;
+  _pbLoaded = true;
+  const ts = document.getElementById('pb-timestamp');
+  if (ts) ts.textContent = new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  // L4 progress
+  const bar  = document.getElementById('pb-l4-bar');
+  const pct  = document.getElementById('pb-l4-pct');
+  const gate = document.getElementById('pb-di-gate');
+  // Gate 1: drug_targets ✓, Gate 2: drug_indications preview ◐, Gate 3-4: pending
+  const progress = 55; // 2/4 gates, drug_indications in preview counts as partial
+  if (bar) bar.style.width = progress + '%';
+  if (pct) pct.textContent = progress + '% toward L4';
+  if (gate) gate.textContent = '◐ Drug Indications (Wave 2A preview — 124 rows staged)';
+  // Track D summary
+  const dSub = document.getElementById('pb-d-summary');
+  if (dSub) dSub.innerHTML = '~140 references audited · <span style="color:#ef4444">1 blocked</span>';
+  // Load UC card by default
+  await pbLoadCard('uc');
+}
+</script>
+
 <script>
 // ── ONTOLOGY AUDIT TAB ────────────────────────────────────────────────────────
 let _ontAuditLoaded = false;
@@ -20220,6 +20615,9 @@ async function ontInspectArea(id, btn) {
 
 registerTab('ontology', {
   onEnter() { ontologyLoad(); }
+});
+registerTab('program-board', {
+  onEnter() { pbInit(); }
 });
 
 </script>
