@@ -7075,6 +7075,9 @@ function _dknCleanName(raw) {
   // Strip one or more leading ALL-CAPS/alphanumeric-code tokens (trial names, codes)
   // A token qualifies if it starts with an uppercase letter and contains no lowercase letters
   let s = raw.replace(/^(?:[A-Z][A-Z0-9\-]*\s+)+/, '').trim();
+  // Guard: if stripping left a leading '+', the first token was the first drug in a combo
+  // label (e.g. "ABBV-701 + Skyrizi"), not a study prefix — restore the original string.
+  if (s.startsWith('+')) s = raw;
   // Also handle colon separator: "DUET: risankizumab" → strip up to and including ": "
   s = s.replace(/^[A-Z][A-Z0-9\-]*:\s*/, '').trim();
   // Normalise " plus " and " / " as drug combinators → " + "
@@ -13528,11 +13531,15 @@ function _makeAreaPI(tabId, areaIds) {
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
-   // Show only active trials (exclude completed/terminated/withdrawn/suspended) — matches badge count
+   // Show ALL trials — active first (by PCD), then completed/terminated (muted visually).
+   // Filtering out completed trials caused "CLINICAL TRIALS (3)" to show with zero visible rows
+   // whenever all trials for a drug were historical. Now count and rows always match.
    const _isTermTrial = s => /complet|terminat|withdrawn|suspend/i.test(s||'');
-   const sortedTrials = resolvedTrials
-    .filter(t => !_isTermTrial(t.status))
-    .sort((a,b) => { const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb; });
+   const sortedTrials = [...resolvedTrials].sort((a,b) => {
+    const aT = _isTermTrial(a.status), bT = _isTermTrial(b.status);
+    if (aT !== bT) return aT ? 1 : -1; // active trials float to top
+    const ta=_parsePcdTs(a)||Infinity,tb=_parsePcdTs(b)||Infinity; return ta-tb;
+   });
 
    // Column header row (rendered once above the trial items)
    const trialHeader = sortedTrials.length ? `<div class="pi-tr-header">
@@ -13615,7 +13622,9 @@ function _makeAreaPI(tabId, areaIds) {
      <div class="pi-tr-results-body">${results || '<em style="color:#94a3b8">Trial completed — results not yet extracted. Run enrichment pipeline to populate.</em>'}</div>` : '';
 
     const trialNoteText = _trialNote(t);
-    return `<div class="pi-tr-item">
+    const _isTerm = _isTermTrial(status);
+    const termItemStyle = _isTerm ? ' style="opacity:0.55"' : '';
+    return `<div class="pi-tr-item"${termItemStyle}>
      <div class="pi-tr-row" onclick="piToggleTrialRow(this)">
       <span class="pi-tr-chev">▼</span>
       ${nctLink}
@@ -13657,9 +13666,13 @@ function _makeAreaPI(tabId, areaIds) {
     </div>`;
    }).join('');
 
-   const trialCount = resolvedTrials.length;
+   const trialCount = sortedTrials.length;
+   const activeCount = sortedTrials.filter(t => !_isTermTrial(t.status)).length;
+   const trialCountLabel = activeCount < trialCount
+    ? `Clinical Trials (${activeCount} active · ${trialCount - activeCount} completed)`
+    : `Clinical Trials (${trialCount})`;
    const trialsSection = trialCount
-    ? `<div class="pi-tr-hd-label">Clinical Trials (${trialCount})</div>${trialHeader}<div>${trialRowsHTML}</div>`
+    ? `<div class="pi-tr-hd-label">${trialCountLabel}</div>${trialHeader}<div>${trialRowsHTML}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
    // Acquired drug provenance note — shown when drug was in-licensed / acquired and renamed
