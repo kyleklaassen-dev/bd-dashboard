@@ -197,4 +197,26 @@ SELECT entity_id, issue_key, severity, status, review_status
 
 ---
 
-*Frozen 2026-05-25. Do not edit. Create a new versioned snapshot (platform_baseline_v1.1, v2.0, etc.) when a Phase 5 component activates.*
+## Migration Acceptance Criteria
+
+Before any Phase 5 feature flag is flipped to `true`, all of the following must hold. This is the ship / do not ship checklist.
+
+| Metric | Threshold | Current |
+|---|---|---|
+| Open high-severity ECC items | **0** | 0 ✅ |
+| Validation pass rate (drug_validation_results) | **≥ 93%** | 93.6% ✅ |
+| Company fleet health score | **≥ 95 / 100** | 96 / 100 ✅ |
+| Regression in baseline entity counts | **None unless documented** | — |
+| Feature flag rollback available | **Required** (flag=false path retained) | ✅ |
+| Legacy path retained post-activation | **30 days minimum** (commented, not deleted) | — |
+
+**Interpretation:**
+- A candidate passes when all six rows are satisfied for that specific component.
+- The entity count regression rule means: if any count moves in an unexpected direction (e.g., drug_indications drops without a documented deletion), the flag does not ship until the cause is identified.
+- "Documented" means an entry in `update_log.md` with a rationale, not a verbal explanation.
+
+---
+
+*Frozen 2026-05-25 at commit `2de30191923649a469294082a24f0e74ced075f3`.*  
+*v1.1: Added Migration Acceptance Criteria section (2026-05-25).*  
+*Do not edit further. Create a new versioned snapshot (platform_baseline_v2.0, etc.) when the first Phase 5 component activates in production.*
