@@ -1103,15 +1103,15 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .pi-entity-name:hover { color: #2e6fb0 !important; text-decoration: underline; text-underline-offset: 2px; }
 
 /* ══ ENTITY MODAL — center-screen deep-dive card ═══════════════ */
-.entity-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6); backdrop-filter: blur(5px); z-index: 950; align-items: center; justify-content: center; padding: 20px; }
+.entity-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6); backdrop-filter: blur(5px); z-index: 950; align-items: center; justify-content: center; padding: 12px; }
 .entity-modal-overlay.open { display: flex; }
-.entity-modal-card { background: white; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.32); width: 100%; max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.entity-modal-card { background: white; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.32); width: 100%; max-width: min(1520px, 96vw); max-height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
 .entity-modal-hd { background: #0d1f38; color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; border-radius: 12px 12px 0 0; }
 .entity-modal-title { font-size: 18px; font-weight: 900; letter-spacing: -0.3px; }
 .entity-modal-sub { font-size: 11px; opacity: 0.6; margin-top: 3px; }
 .entity-modal-close { background: rgba(255,255,255,0.1); border: none; color: white; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 8px; border-radius: 6px; transition: background 0.15s; flex-shrink: 0; }
 .entity-modal-close:hover { background: rgba(255,255,255,0.22); }
-.entity-modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+.entity-modal-body { flex: 1; overflow-y: auto; padding: 0; }
 .entity-modal-footer { flex-shrink: 0; padding: 10px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; gap: 8px; border-radius: 0 0 12px 12px; }
 .entity-modal-footer-lbl { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
 .entity-also-tag { display: inline-block; cursor: pointer; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 8px; margin-right: 4px; transition: opacity 0.15s; }
@@ -1131,6 +1131,60 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .em-hd-chip-bd       { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
 /* Dossier body — turns entity-modal-body into a tab container */
 .entity-modal-body.dossier-mode { padding:0; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ══ CANONICAL ENTITY CARD (CEM) ═══════════════════════════════════ */
+.cem-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 20px 0; }
+.cem-stat { background:#f8fafc; border-radius:8px; padding:10px 13px; }
+.cem-stat-lbl { font-size:10px; color:#94a3b8; margin-bottom:3px; }
+.cem-stat-val { font-size:16px; font-weight:700; color:#0f172a; }
+.cem-stat-sub { font-size:10px; color:#64748b; margin-top:1px; }
+.cem-interp { margin:14px 20px 0; padding:12px 14px; background:#f5f3ff; border-radius:8px; border-left:3px solid #7c3aed; }
+.cem-interp-hd { font-size:10px; font-weight:700; color:#5b21b6; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+.cem-interp-hd:hover { opacity:.8; }
+.cem-interp-dots { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.cem-interp-dot { display:flex; align-items:flex-start; gap:7px; font-size:11.5px; color:#1e293b; line-height:1.45; }
+.cem-interp-dot a { color:#1d4ed8; text-decoration:none; }
+.cem-interp-dot a:hover { text-decoration:underline; }
+.cem-grid { display:grid; grid-template-columns:1fr 1fr; margin:14px 0 0; }
+.cem-cell { padding:0; border-right:0.5px solid #e2e8f0; border-bottom:0.5px solid #e2e8f0; }
+.cem-cell:nth-child(even) { border-right:none; }
+.cem-cell:last-child,.cem-cell:nth-last-child(2):nth-child(odd) { border-bottom:none; }
+.cem-sec-hdr { cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:11px 16px; transition:background .12s; }
+.cem-sec-hdr:hover { background:#f8fafc; }
+.cem-sec-lbl { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.05em; display:flex; align-items:center; gap:5px; }
+.cem-sec-hint { font-size:10px; color:#94a3b8; display:flex; align-items:center; gap:4px; }
+.cem-chev { display:inline-block; font-style:normal; transition:transform .2s; font-size:9px; color:#94a3b8; }
+.cem-chev.open { transform:rotate(90deg); }
+.cem-sec-body { padding:0 16px 13px; }
+.cem-det { max-height:0; overflow:hidden; transition:max-height .3s ease; }
+.cem-det.open { max-height:900px; }
+.cem-det-inner { margin:0 16px 13px; padding:10px 12px; background:#f8fafc; border-radius:6px; border-left:2px solid #e2e8f0; }
+.cem-det-title { font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+.cem-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+.cem-tbl th { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#94a3b8; padding:3px 8px 5px 0; text-align:left; border-bottom:0.5px solid #e2e8f0; }
+.cem-tbl td { padding:5px 8px 5px 0; border-bottom:0.5px solid #f1f5f9; vertical-align:top; color:#1e293b; font-size:11px; }
+.cem-tbl tr:last-child td { border-bottom:none; }
+.cem-link { color:#1d4ed8; text-decoration:none; }
+.cem-link:hover { text-decoration:underline; }
+.cem-pill { font-size:9px; font-weight:700; padding:1px 6px; border-radius:8px; white-space:nowrap; display:inline-block; }
+.cem-p-direct { background:#fee2e2; color:#b91c1c; }
+.cem-p-adj { background:#dbeafe; color:#1d4ed8; }
+.cem-p-same { background:#dcfce7; color:#15803d; }
+.cem-p-high { background:#dcfce7; color:#15803d; }
+.cem-p-med { background:#fef9c3; color:#854d0e; }
+.cem-p-low { background:#f1f5f9; color:#64748b; }
+.cem-p-blue { background:#dbeafe; color:#1d4ed8; }
+.cem-p-purple { background:#ede9fe; color:#5b21b6; }
+.cem-fact { display:flex; gap:8px; margin-bottom:5px; font-size:11px; }
+.cem-fact-lbl { color:#64748b; min-width:100px; flex-shrink:0; font-weight:600; font-size:10px; }
+.cem-fact-val { color:#1e293b; line-height:1.45; }
+.cem-item-row { display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:0.5px solid #f1f5f9; }
+.cem-item-row:last-child { border-bottom:none; }
+.cem-dot-red { width:6px; height:6px; border-radius:50%; background:#ef4444; flex-shrink:0; margin-top:4px; }
+.cem-dot-amb { width:6px; height:6px; border-radius:50%; background:#f59e0b; flex-shrink:0; margin-top:4px; }
+.cem-dot-gry { width:6px; height:6px; border-radius:50%; background:#94a3b8; flex-shrink:0; margin-top:4px; }
+.cem-sig-type { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
+.cem-footer-note { padding:10px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; }
 .dossier-tabs { display:flex; gap:0; border-bottom:2px solid #e2e8f0; background:#f8fafc; flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
 .dossier-tabs::-webkit-scrollbar { display:none; }
 .dossier-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:9px 14px 8px; font-size:11px; font-weight:700; color:#64748b; cursor:pointer; transition:color 0.12s,border-color 0.12s; white-space:nowrap; letter-spacing:0.03em; }
@@ -9656,8 +9710,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
       } catch(_) {}
     }
 
-    bodyEl.classList.add('dossier-mode');
-    try   { bodyEl.innerHTML = _buildCompanyDossierBody(prog, sbData, AREA); }
+    try   { bodyEl.innerHTML = _cemCompanyBody(prog, sbData, AREA); }
     catch (e) {
       console.error('[openCompanySlideOver] render error:', e);
       bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`;
@@ -9999,6 +10052,549 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
   return _buildDossierShell(tabs, panels);
 }
 
+/* ══ CANONICAL ENTITY MODAL — CEM renderer ═══════════════════════════════
+   Shared expandable card layout for both Company and Drug entities.
+   Replaces the tab-based dossier with a single scrollable canonical card.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function _cemToggle(id) {
+  const det  = document.getElementById('cem-det-' + id);
+  const chev = document.getElementById('cem-chev-' + id);
+  if (!det) return;
+  const open = det.classList.contains('open');
+  det.classList.toggle('open', !open);
+  if (chev) chev.classList.toggle('open', !open);
+}
+
+function _cemGq(text) {
+  if (!text) return 'https://www.google.com/search?q=';
+  let s = (text||'').replace(/^[↗→·•\s]+/, '').replace(/[;—].*/,'').trim();
+  s = s.replace(/[,;:!?'"()\[\]{}]+/g,' ').replace(/\s+/g,' ').trim();
+  const words = s.split(/\s+/).slice(0, 7);
+  return 'https://www.google.com/search?q=' + encodeURIComponent(words.join(' '));
+}
+
+function _cemLink(name, query) {
+  if (!name) return '';
+  const url = _cemGq(query || name);
+  return `<a class="cem-link" href="${url}" target="_blank" rel="noopener">${name}</a>`;
+}
+
+function _cemFmtDate(d) {
+  if (!d) return '';
+  const dt = new Date((d+'').slice(0,10)+'T00:00:00');
+  if (isNaN(dt)) return (d+'').slice(0,10);
+  return dt.toLocaleString('en-US',{month:'short',year:'numeric'});
+}
+
+function _cemFmtVal(upfront, total) {
+  const fmt = v => {
+    if (!v) return '';
+    const n = parseFloat(v);
+    if (isNaN(n)) return '';
+    return n >= 1000 ? `$${(n/1000).toFixed(1)}B` : `$${Math.round(n)}M`;
+  };
+  const u = fmt(upfront), t = fmt(total);
+  return [u ? `<span class="cem-pill" style="background:#fef3c7;color:#92400e">${u} upfront</span>` : '',
+          t ? `<span class="cem-pill cem-p-high">${t} total</span>` : ''].filter(Boolean).join('');
+}
+
+function _cemOverlapPill(overlap) {
+  if (!overlap) return '';
+  const ov = (overlap||'').toLowerCase();
+  const cls = ov==='direct'?'cem-p-direct':ov==='adjacent'?'cem-p-adj':ov.includes('same')?'cem-p-same':'cem-p-low';
+  return `<span class="cem-pill ${cls}">${overlap}</span>`;
+}
+
+function _cemPhasePill(phase) {
+  if (!phase) return '';
+  const p = String(phase).toLowerCase();
+  const cls = p.includes('3')?'cem-p-blue':p.includes('2')?'cem-p-same':p.includes('1')?'cem-p-med':p.includes('approv')?'cem-p-high':'cem-p-low';
+  return `<span class="cem-pill ${cls}">${phase}</span>`;
+}
+
+/* ── DRUG card renderer ──────────────────────────────────────────── */
+function _cemDrugBody(drug, areas, trials, molData, companyName) {
+  if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
+
+  const drugName = drug.display_name || drug.name || 'Unknown drug';
+  const mechanism = drug.mechanism || '';
+  const target    = drug.target    || '';
+  const cls       = drug.cls       || '';
+  const phase     = drug.stage     || drug.phase || '';
+  const overlap   = areas?.[0]?.overlap || drug.overlap || '';
+  const vsAilux   = areas?.[0]?.overlap_rationale || drug.vs_ailux || drug.differentiation_thesis || '';
+  const summary   = drug.drug_summary || '';
+  const diff      = drug.differentiation_thesis || '';
+
+  // Summary stats
+  const trialCount  = (trials||[]).length;
+  const upfront     = drug.upfront_usd_m;
+  const total       = drug.total_usd_m;
+  const overlapTier = overlap || '—';
+
+  const dealValDisplay = upfront ? (parseFloat(upfront)>=1000?`$${(parseFloat(upfront)/1000).toFixed(1)}B`:`$${Math.round(upfront)}M upfront`) : (total ? (parseFloat(total)>=1000?`$${(parseFloat(total)/1000).toFixed(1)}B`:`$${Math.round(total)}M total`) : '—');
+
+  const statsHtml = `<div class="cem-stats">
+    <div class="cem-stat"><div class="cem-stat-lbl">Deal value</div><div class="cem-stat-val">${dealValDisplay}</div><div class="cem-stat-sub">${upfront&&total?`$${parseFloat(total)>=1000?(parseFloat(total)/1000).toFixed(1)+'B':Math.round(total)+'M'} total`:'Best available'}</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">Overlap tier</div><div class="cem-stat-val" style="color:${overlap?.toLowerCase()==='direct'?'#b91c1c':overlap?.toLowerCase()==='adjacent'?'#1d4ed8':'#15803d'}">${overlapTier}</div><div class="cem-stat-sub">vs Ailux strategy</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">Active trials</div><div class="cem-stat-val">${trialCount}</div><div class="cem-stat-sub">${trialCount===1?'1 trial found':`${trialCount} trials found`}</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">Areas tracked</div><div class="cem-stat-val">${(areas||[]).length || 1}</div><div class="cem-stat-sub">disease areas</div></div>
+  </div>`;
+
+  // Meridian Interpretation
+  const interpDots = [];
+  if (vsAilux) interpDots.push({ col:'#dc2626', text: vsAilux.slice(0,180) });
+  if (diff)    interpDots.push({ col:'#7c3aed', text: diff.slice(0,180) });
+  if (summary) interpDots.push({ col:'#059669', text: summary.slice(0,180) });
+  if (mechanism && !interpDots.length) interpDots.push({ col:'#0284c7', text: `Mechanism: ${mechanism}` });
+
+  const interpSummaryHtml = interpDots.map(d =>
+    `<div class="cem-interp-dot"><span style="width:7px;height:7px;border-radius:50%;background:${d.col};flex-shrink:0;margin-top:4px"></span><div>${d.text}</div></div>`
+  ).join('');
+
+  const interpDetailHtml = `<div class="cem-det-inner">
+    <div class="cem-det-title">Facts generating this interpretation</div>
+    ${mechanism ? `<div class="cem-fact"><span class="cem-fact-lbl">Mechanism</span><span class="cem-fact-val">${mechanism}</span></div>` : ''}
+    ${target ? `<div class="cem-fact"><span class="cem-fact-lbl">Target</span><span class="cem-fact-val">${target}</span></div>` : ''}
+    ${cls ? `<div class="cem-fact"><span class="cem-fact-lbl">Class</span><span class="cem-fact-val">${cls}</span></div>` : ''}
+    ${drug.route ? `<div class="cem-fact"><span class="cem-fact-lbl">Route</span><span class="cem-fact-val">${drug.route}</span></div>` : ''}
+    ${drug.indication_short ? `<div class="cem-fact"><span class="cem-fact-lbl">Indication</span><span class="cem-fact-val">${drug.indication_short}</span></div>` : ''}
+    ${areas?.length ? areas.map(a => {
+      const lbl = (window._AREA_LABEL||{})[a.area_id] || a.area_id;
+      return `<div class="cem-fact"><span class="cem-fact-lbl">${lbl} overlap</span><span class="cem-fact-val">${_cemOverlapPill(a.overlap)} ${a.overlap_rationale ? '— '+a.overlap_rationale.slice(0,120) : ''}</span></div>`;
+    }).join('') : ''}
+  </div>`;
+
+  const interpHtml = `<div class="cem-interp">
+    <div class="cem-interp-hd" onclick="_cemToggle('dr-interp')"><span>🧠 Meridian interpretation</span><span style="font-size:9px;color:#7c3aed;margin-left:auto">See underlying data <i id="cem-chev-dr-interp" class="cem-chev">▶</i></span></div>
+    <div class="cem-interp-dots">${interpSummaryHtml}</div>
+    <div class="cem-det" id="cem-det-dr-interp">${interpDetailHtml}</div>
+  </div>`;
+
+  // Trials section
+  const trialSummary = (trials||[]).slice(0,3).map(t => `
+    <div class="cem-item-row">
+      ${_cemPhasePill(t.phase)}
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(t.trial_name||t.indication||'Trial', (t.trial_name||'')+ ' '+drugName+' clinical trial')}</div>
+        <div style="font-size:10.5px;color:#64748b">${t.indication||''} ${t.status?'· '+t.status:''}</div>
+      </div>
+    </div>`).join('');
+
+  const trialDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">Full trial detail</div>
+    <table class="cem-tbl"><thead><tr><th>Phase</th><th>Trial</th><th>Indication</th><th>Status</th><th>N</th></tr></thead><tbody>
+    ${(trials||[]).map(t => `<tr>
+      <td>${_cemPhasePill(t.phase)}</td>
+      <td>${_cemLink(t.trial_name||'—', (t.trial_name||'')+' '+drugName)}</td>
+      <td style="color:#64748b">${t.indication||'—'}</td>
+      <td style="color:#64748b">${t.status||'—'}</td>
+      <td style="color:#64748b">${t.n_enrollment||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+    ${(trials||[]).filter(t=>t.primary_endpoint).slice(0,3).map(t =>
+      `<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;border:0.5px solid #e2e8f0"><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">${t.trial_name||''} — Primary endpoint</div><div style="font-size:11px;color:#1e293b">${(t.primary_endpoint||'').slice(0,200)}</div></div>`
+    ).join('')}
+  </div>`;
+
+  // Competitive position section
+  const compSummary = (areas||[]).slice(0,3).map(a => `
+    <div class="cem-item-row">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="font-size:11px;font-weight:600;color:#0f172a">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span>
+          ${_cemOverlapPill(a.overlap)}
+        </div>
+        ${a.overlap_rationale ? `<div style="font-size:11px;color:#64748b;line-height:1.4">${a.overlap_rationale.slice(0,100)}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  const compDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">Overlap rationale per area</div>
+    ${(areas||[]).map(a => `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:600">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span>
+          ${_cemOverlapPill(a.overlap)}
+        </div>
+        ${a.overlap_rationale ? `<div style="font-size:11px;color:#1e293b;line-height:1.5">${a.overlap_rationale}</div>` : ''}
+        ${a.strategic_role ? `<div style="font-size:11px;color:#64748b;margin-top:3px"><strong>Strategic role:</strong> ${a.strategic_role}</div>` : ''}
+        ${a.source_url ? `<div style="margin-top:4px"><a class="cem-link" href="${a.source_url}" target="_blank" rel="noopener" style="font-size:10px">↗ Source</a></div>` : ''}
+      </div>`).join('')}
+  </div>`;
+
+  // Molecule intel section (signals / bd_angle / risk_summary)
+  const bdAngle    = molData?.bd_angle     || '';
+  const riskSum    = molData?.risk_summary  || '';
+  const sigSummary = (bdAngle || riskSum)
+    ? `<div style="font-size:12px;color:#1e293b;line-height:1.5;margin-bottom:6px">${(bdAngle||riskSum).slice(0,200)}</div>`
+    : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No molecule intelligence enriched yet.</div>';
+
+  const sigDetail = molData ? `<div class="cem-det-inner">
+    <div class="cem-det-title">Molecule intelligence detail</div>
+    ${bdAngle  ? `<div class="cem-fact"><span class="cem-fact-lbl">BD angle</span><span class="cem-fact-val">${bdAngle}</span></div>` : ''}
+    ${riskSum  ? `<div class="cem-fact"><span class="cem-fact-lbl">Risk summary</span><span class="cem-fact-val">${riskSum}</span></div>` : ''}
+    ${molData.format ? `<div class="cem-fact"><span class="cem-fact-lbl">Format</span><span class="cem-fact-val">${molData.format}</span></div>` : ''}
+    ${molData.half_life ? `<div class="cem-fact"><span class="cem-fact-lbl">Half-life</span><span class="cem-fact-val">${molData.half_life}</span></div>` : ''}
+    ${molData.dosing_interval ? `<div class="cem-fact"><span class="cem-fact-lbl">Dosing</span><span class="cem-fact-val">${molData.dosing_interval}</span></div>` : ''}
+  </div>` : '<div class="cem-det-inner"><div style="font-size:11px;color:#94a3b8">No molecule intelligence data yet — run enrichment to populate.</div></div>';
+
+  // Knowledge gaps
+  const gaps = [];
+  if (!trials?.length) gaps.push({ level:'red', text:'No trial data linked — ClinicalTrials.gov lookup needed' });
+  if (!molData)        gaps.push({ level:'red', text:'Molecule intelligence not enriched — run enrichment pipeline' });
+  if (!areas?.some(a=>a.overlap)) gaps.push({ level:'amb', text:'Overlap tier unclassified — manual review or enrichment needed' });
+  if (!drug.differentiation_thesis) gaps.push({ level:'amb', text:'Differentiation thesis missing' });
+  if (!drug.mechanism) gaps.push({ level:'gry', text:'Mechanism not recorded' });
+
+  const gapsSummary = gaps.slice(0,3).map(g => `
+    <div class="cem-item-row">
+      <div class="cem-dot-${g.level}"></div>
+      <div style="font-size:11.5px;color:#1e293b">${g.text}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:4px 0">No critical gaps detected.</div>';
+
+  const gapsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All gaps — priority order</div>
+    ${gaps.length ? gaps.map(g => `
+      <div style="display:flex;gap:8px;margin-bottom:6px;font-size:11px;align-items:flex-start">
+        <div class="cem-dot-${g.level}" style="margin-top:3px"></div>
+        <div style="color:#1e293b">${g.text}</div>
+      </div>`).join('') : '<div style="font-size:11px;color:#94a3b8">Coverage complete across checked dimensions.</div>'}
+  </div>`;
+
+  // Source confidence
+  const srcSummary = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Pipeline / overlap data</span><span class="cem-pill ${areas?.some(a=>a.source_url)?'cem-p-high':'cem-p-med'}">${areas?.some(a=>a.source_url)?'Confirmed · High':'AI enriched · Medium'}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Trial data</span><span class="cem-pill ${trialCount?'cem-p-blue':'cem-p-low'}">${trialCount?'ClinicalTrials.gov · High':'Not found'}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11.5px;color:#64748b">Molecule intelligence</span><span class="cem-pill ${molData?'cem-p-med':'cem-p-low'}">${molData?'AI enrichment · Medium':'Not run'}</span></div>`;
+
+  const coQuery = companyName ? companyName + ' ' + drugName + ' pipeline' : drugName + ' clinical trial';
+
+  return `
+  ${statsHtml}
+  ${interpHtml}
+  <div class="cem-grid">
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-trials')">
+        <div class="cem-sec-lbl">🧪 Clinical trials</div>
+        <div class="cem-sec-hint">${trialCount} found <i id="cem-chev-dr-trials" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${trialSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No trial data linked.</span>'}</div>
+      <div class="cem-det" id="cem-det-dr-trials">${trialDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-comp')">
+        <div class="cem-sec-lbl">⚡ Competitive position</div>
+        <div class="cem-sec-hint">${(areas||[]).length} areas <i id="cem-chev-dr-comp" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${compSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No area overlap data.</span>'}</div>
+      <div class="cem-det" id="cem-det-dr-comp">${compDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
+        <div class="cem-sec-lbl">🔍 Strategic signals</div>
+        <div class="cem-sec-hint">${molData?'Enriched':'Pending'} <i id="cem-chev-dr-sigs" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${sigSummary}</div>
+      <div class="cem-det" id="cem-det-dr-sigs">${sigDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-gaps')">
+        <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
+        <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-dr-gaps" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${gapsSummary}</div>
+      <div class="cem-det" id="cem-det-dr-gaps">${gapsDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
+        <div class="cem-sec-lbl">🛡 Source confidence</div>
+        <div class="cem-sec-hint">per section <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${srcSummary}</div>
+      <div class="cem-det" id="cem-det-dr-src"><div class="cem-det-inner">
+        <div class="cem-det-title">Source breakdown</div>
+        ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(window._AREA_LABEL||{})[a.area_id]||a.area_id}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
+      </div></div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-co')">
+        <div class="cem-sec-lbl">🏢 Company</div>
+        <div class="cem-sec-hint">${companyName||'—'} <i id="cem-chev-dr-co" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${_cemLink(companyName||'—', coQuery)}</div>
+        ${drug.company_display ? `<div style="font-size:11px;color:#64748b">${drug.company_display}</div>` : ''}
+      </div>
+      <div class="cem-det" id="cem-det-dr-co"><div class="cem-det-inner">
+        <div class="cem-fact"><span class="cem-fact-lbl">Company</span><span class="cem-fact-val">${_cemLink(companyName||'—', coQuery)}</span></div>
+        ${drug.company_display && drug.company_display!==companyName ? `<div class="cem-fact"><span class="cem-fact-lbl">Display name</span><span class="cem-fact-val">${drug.company_display}</span></div>` : ''}
+        ${drug.licensor ? `<div class="cem-fact"><span class="cem-fact-lbl">Licensor</span><span class="cem-fact-val">${_cemLink(drug.licensor, drug.licensor+' pharma license deal')}</span></div>` : ''}
+        ${drug.partner_company ? `<div class="cem-fact"><span class="cem-fact-lbl">Partner</span><span class="cem-fact-val">${_cemLink(drug.partner_company, drug.partner_company+' BD deal')}</span></div>` : ''}
+      </div></div>
+    </div>
+  </div>
+  <div class="cem-footer-note">Same card opens from any tab · Powered by Meridian</div>`;
+}
+
+/* ── Company card renderer ───────────────────────────────────────── */
+function _cemCompanyBody(prog, sbData, areaId) {
+  const profile  = sbData?.profile   || {};
+  const sbCats   = sbData?.catalysts || [];
+  const sbDeals  = sbData?.deals     || [];
+  const sbDrugs  = sbData?.drugs     || [];
+  const pi = profile.platform_intelligence || null;
+  const bd = profile.bd_intelligence      || null;
+  const companyName = prog?.co || '';
+
+  // Header chips (existing element)
+  const chipsEl = document.getElementById('entity-modal-hd-chips');
+  if (chipsEl) {
+    const bestOv = sbDrugs?.[0]?.overlap || '';
+    const ovCls = {Direct:'em-hd-chip-direct',Adjacent:'em-hd-chip-adjacent','Same-Space':'em-hd-chip-same',Watch:'em-hd-chip-watch'}[bestOv] || '';
+    const ovChip = bestOv ? `<span class="em-hd-chip ${ovCls}">${bestOv}</span>` : '';
+    const score = profile.completeness_score;
+    const scoreCls = score>=80?'em-hd-chip-score':score>=50?'em-hd-chip-score partial':'em-hd-chip-score thin';
+    const scoreChip = score!=null ? `<span class="em-hd-chip ${scoreCls}">Coverage ${score}%</span>` : '';
+    chipsEl.innerHTML = [ovChip, scoreChip].filter(Boolean).join('');
+  }
+
+  // Summary stats
+  const drugCount    = sbDrugs.length;
+  const dealCount    = sbDeals.filter(d => d.deal_type && d.deal_type !== 'news').length;
+  const totalDealVal = sbDeals.reduce((s,d) => s + (parseFloat(d.total_usd_m)||0), 0);
+  const catCount     = sbCats.length;
+  const dealValStr   = totalDealVal >= 1000 ? `$${(totalDealVal/1000).toFixed(1)}B` : totalDealVal > 0 ? `$${Math.round(totalDealVal)}M` : '—';
+  const areaLabel    = (window._AREA_LABEL||{})[areaId] || areaId || '';
+
+  const statsHtml = `<div class="cem-stats">
+    <div class="cem-stat"><div class="cem-stat-lbl">Pipeline (${areaLabel})</div><div class="cem-stat-val">${drugCount} drug${drugCount!==1?'s':''}</div><div class="cem-stat-sub">${sbDrugs.filter(d=>d.stage&&(d.stage.includes('2')||d.stage.includes('3')||d.stage==='Approved')).length} Phase 2+</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">BD deal value</div><div class="cem-stat-val">${dealValStr}</div><div class="cem-stat-sub">${dealCount} deal${dealCount!==1?'s':''}</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">Upcoming catalysts</div><div class="cem-stat-val">${catCount}</div><div class="cem-stat-sub">in ${areaLabel}</div></div>
+    <div class="cem-stat"><div class="cem-stat-lbl">Coverage score</div><div class="cem-stat-val" style="color:${(profile.completeness_score||0)>=80?'#15803d':(profile.completeness_score||0)>=50?'#b45309':'#94a3b8'}">${profile.completeness_score!=null?profile.completeness_score+'%':'—'}</div><div class="cem-stat-sub">Meridian completeness</div></div>
+  </div>`;
+
+  // Meridian Interpretation
+  const piAssess  = (pi?.assessment||'').replace(/^\[ASSESSED\]\s*/i,'').slice(0,180);
+  const vsAilux   = profile.vs_ailux   || '';
+  const whyMatters= profile.why_it_matters || '';
+  const bdSummary = profile.bd_summary || '';
+  const platSumm  = profile.platform_summary || '';
+  const keyRisk   = profile.key_risk || '';
+
+  const interpDots = [
+    piAssess  ? { col:'#dc2626', text: piAssess } : null,
+    vsAilux   ? { col:'#7c3aed', text: vsAilux.slice(0,180) } : null,
+    whyMatters? { col:'#059669', text: whyMatters.slice(0,180) } : null,
+    bdSummary && !piAssess ? { col:'#0284c7', text: bdSummary.slice(0,180) } : null,
+  ].filter(Boolean);
+
+  if (!interpDots.length && platSumm) interpDots.push({ col:'#0284c7', text: platSumm.slice(0,200) });
+
+  const interpSummHtml = interpDots.length
+    ? `<div class="cem-interp-dots">${interpDots.map(d => `<div class="cem-interp-dot"><span style="width:7px;height:7px;border-radius:50%;background:${d.col};flex-shrink:0;margin-top:4px"></span><div>${d.text}</div></div>`).join('')}</div>`
+    : `<div style="font-size:11px;color:#94a3b8;font-style:italic">Run enrichment to generate Meridian interpretation for this company.</div>`;
+
+  const interpDetailHtml = `<div class="cem-det-inner">
+    <div class="cem-det-title">Facts generating each interpretation</div>
+    ${piAssess   ? `<div class="cem-fact"><span class="cem-fact-lbl" style="color:#dc2626">Assessment</span><span class="cem-fact-val">${piAssess}</span></div>` : ''}
+    ${vsAilux    ? `<div class="cem-fact"><span class="cem-fact-lbl" style="color:#7c3aed">vs Ailux</span><span class="cem-fact-val">${vsAilux}</span></div>` : ''}
+    ${whyMatters ? `<div class="cem-fact"><span class="cem-fact-lbl" style="color:#059669">Why it matters</span><span class="cem-fact-val">${whyMatters}</span></div>` : ''}
+    ${keyRisk    ? `<div class="cem-fact"><span class="cem-fact-lbl">Key risk</span><span class="cem-fact-val">${keyRisk}</span></div>` : ''}
+    ${bdSummary  ? `<div class="cem-fact"><span class="cem-fact-lbl">BD posture</span><span class="cem-fact-val">${bdSummary}</span></div>` : ''}
+    ${platSumm   ? `<div class="cem-fact"><span class="cem-fact-lbl">Platform</span><span class="cem-fact-val">${platSumm.slice(0,250)}</span></div>` : ''}
+    ${!(piAssess||vsAilux||whyMatters||bdSummary||platSumm) ? '<div style="font-size:11px;color:#94a3b8">No enrichment data found — run company enrichment pipeline.</div>' : ''}
+  </div>`;
+
+  const interpHtml = `<div class="cem-interp">
+    <div class="cem-interp-hd" onclick="_cemToggle('co-interp')"><span>🧠 Meridian interpretation</span><span style="font-size:9px;color:#7c3aed;margin-left:auto">See underlying data <i id="cem-chev-co-interp" class="cem-chev">▶</i></span></div>
+    ${interpSummHtml}
+    <div class="cem-det" id="cem-det-co-interp">${interpDetailHtml}</div>
+  </div>`;
+
+  // Pipeline section
+  const pipeSummary = sbDrugs.slice(0,4).map(d => `
+    <div class="cem-item-row">
+      ${_cemPhasePill(d.stage||d.phase)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+ ' '+companyName+' drug clinical trial')}</div>
+        <div style="font-size:10.5px;color:#64748b">${d.mechanism||d.target||''} ${d.indication_short?'· '+d.indication_short:''}</div>
+        ${d.overlap ? `<div style="margin-top:2px">${_cemOverlapPill(d.overlap)}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  const pipeDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">Full pipeline — ${areaLabel} area</div>
+    <table class="cem-tbl"><thead><tr><th>Drug</th><th>Target</th><th>Phase</th><th>Overlap</th><th>Indication</th></tr></thead><tbody>
+    ${sbDrugs.map(d => `<tr>
+      <td>${_cemLink(d.display_name||d.name, (d.display_name||d.name||'')+' '+companyName)}</td>
+      <td style="color:#64748b">${d.target||d.mechanism||'—'}</td>
+      <td>${_cemPhasePill(d.stage||d.phase)}</td>
+      <td>${_cemOverlapPill(d.overlap)}</td>
+      <td style="color:#64748b;font-size:10px">${d.indication_short||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+
+  // Deals section
+  const realDeals = sbDeals.filter(d => d.deal_type && d.deal_type !== 'news');
+  const dealSummary = realDeals.slice(0,3).map(d => {
+    const valHtml = _cemFmtVal(d.upfront_usd_m, d.total_usd_m);
+    const partner = d.to_company || d.from_company || '';
+    return `<div class="cem-item-row" style="flex-direction:column;gap:3px">
+      <div style="font-size:12px;font-weight:600;color:#0f172a">${d.headline ? _cemLink(d.headline.slice(0,80)+(d.headline.length>80?'…':''), d.headline) : _cemLink(partner||'Deal', companyName+' '+d.deal_type+' deal')}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;color:#94a3b8">${_cemFmtDate(d.deal_date)}</span>
+        ${d.deal_type?`<span class="cem-pill cem-p-purple">${d.deal_type}</span>`:''}
+        ${valHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  const dealDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All deals — ${companyName}</div>
+    ${realDeals.length ? realDeals.map(d => {
+      const partner = d.to_company||d.from_company||'';
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #e2e8f0">
+        <div style="font-size:12px;font-weight:600;margin-bottom:3px">${d.headline ? _cemLink(d.headline, d.headline) : _cemLink(partner, companyName+' '+d.deal_type+' '+partner)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          ${d.deal_type?`<span class="cem-pill cem-p-purple">${d.deal_type}</span>`:''}
+          ${_cemFmtVal(d.upfront_usd_m, d.total_usd_m)}
+          <span style="font-size:10px;color:#94a3b8">${_cemFmtDate(d.deal_date)}</span>
+        </div>
+        ${partner ? `<div style="font-size:11px;color:#64748b">Partner: ${_cemLink(partner, partner+' pharma BD')}</div>` : ''}
+        ${d.detail ? `<div style="font-size:11px;color:#1e293b;margin-top:4px">${d.detail.slice(0,200)}</div>` : ''}
+      </div>`;
+    }).join('') : '<div style="font-size:11px;color:#94a3b8">No deal records found.</div>'}
+  </div>`;
+
+  // Catalysts section
+  const catSummary = sbCats.slice(0,4).map(c => `
+    <div class="cem-item-row">
+      <div style="font-size:10px;color:#1d4ed8;font-weight:600;min-width:52px;flex-shrink:0">${c.sort_date?c.sort_date.slice(0,7):'—'}</div>
+      <div style="font-size:12px;color:#1e293b">${_cemLink(c.catalyst_type||c.headline||'Catalyst', (c.catalyst_type||'')+ ' '+companyName+ ' catalyst readout')}</div>
+    </div>`).join('');
+
+  const catDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All upcoming catalysts</div>
+    <table class="cem-tbl"><thead><tr><th>Date</th><th>Catalyst</th><th>Drug</th><th>Type</th></tr></thead><tbody>
+    ${sbCats.map(c => `<tr>
+      <td style="color:#1d4ed8;font-weight:600">${c.sort_date?c.sort_date.slice(0,10):'—'}</td>
+      <td>${_cemLink(c.headline||c.catalyst_type||'—', (c.headline||c.catalyst_type||'')+' '+companyName)}</td>
+      <td style="color:#64748b;font-size:10px">${c.drug_name||'—'}</td>
+      <td style="color:#64748b">${c.catalyst_type||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+
+  // Strategic signals
+  const bdProfile  = bd?.profile || '';
+  const bdFacts    = pi?.facts   || [];
+  const bdDir      = pi?.direction || [];
+  const bdLabels   = {acquirer:'Acquirer',licensor:'Licensor',collaborator:'Collaborator','partner-friendly':'Partner-Friendly','internal-focused':'Internal-Focused'};
+
+  const sigsSummary = bdFacts.slice(0,3).map(f => `
+    <div class="cem-item-row">
+      <div class="cem-dot-gry"></div>
+      <div style="font-size:11.5px;color:#1e293b">${f.slice(0,120)}</div>
+    </div>`).join('') || (bdProfile ? `<div style="font-size:12px;color:#1e293b;font-weight:600">BD Profile: ${bdLabels[bdProfile]||bdProfile}</div>` : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No signal intelligence — run enrichment.</div>');
+
+  const sigsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">Full BD intelligence</div>
+    ${bdProfile ? `<div class="cem-fact"><span class="cem-fact-lbl">BD profile</span><span class="cem-fact-val"><strong>${bdLabels[bdProfile]||bdProfile}</strong></span></div>` : ''}
+    ${bdFacts.length ? bdFacts.map(f => `<div style="display:flex;gap:7px;margin-bottom:5px;font-size:11px"><span style="color:#94a3b8;flex-shrink:0">→</span><span style="color:#1e293b">${f}</span></div>`).join('') : ''}
+    ${bdDir.length ? `<div style="margin-top:8px"><div class="cem-det-title">Direction signals</div>${bdDir.map(d=>`<div style="display:flex;gap:7px;margin-bottom:5px;font-size:11px"><span style="color:#1d4ed8;flex-shrink:0">→</span><span style="color:#1e293b">${d.replace(/^\[INFERRED\]\s*/i,'')}</span></div>`).join('')}</div>` : ''}
+  </div>`;
+
+  // Knowledge gaps
+  const gaps = [];
+  if (!pi) gaps.push({ level:'red', text:'Platform intelligence not enriched' });
+  if (!bd) gaps.push({ level:'red', text:'BD intelligence not enriched' });
+  if (!realDeals.length) gaps.push({ level:'amb', text:'No deal records found — verify company name mapping' });
+  if (!sbCats.length) gaps.push({ level:'amb', text:'No catalyst data for this area' });
+  if (profile.completeness_score < 50) gaps.push({ level:'amb', text: `Coverage score ${profile.completeness_score||0}% — below threshold` });
+  if (!profile.vs_ailux) gaps.push({ level:'gry', text: 'vs. Ailux positioning not written' });
+
+  const gapsSummary = gaps.slice(0,3).map(g => `
+    <div class="cem-item-row">
+      <div class="cem-dot-${g.level}"></div>
+      <div style="font-size:11.5px;color:#1e293b">${g.text}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:4px 0">No critical gaps detected.</div>';
+
+  const gapsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All knowledge gaps</div>
+    ${gaps.map(g=>`<div style="display:flex;gap:8px;margin-bottom:6px;font-size:11px;align-items:flex-start"><div class="cem-dot-${g.level}" style="margin-top:3px"></div><div style="color:#1e293b">${g.text}</div></div>`).join('') || '<div style="font-size:11px;color:#94a3b8">No gaps detected.</div>'}
+  </div>`;
+
+  // Source confidence
+  const srcSummary = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Pipeline data</span><span class="cem-pill cem-p-blue">ClinicalTrials · High</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">BD intelligence</span><span class="cem-pill ${pi?'cem-p-med':'cem-p-low'}">${pi?'AI enrichment · Medium':'Not enriched'}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Deal records</span><span class="cem-pill ${realDeals.length?'cem-p-high':'cem-p-low'}">${realDeals.length?'DB record · High':'Not found'}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11.5px;color:#64748b">Catalysts</span><span class="cem-pill ${sbCats.length?'cem-p-high':'cem-p-low'}">${sbCats.length?'DB record · High':'Not found'}</span></div>`;
+
+  return `
+  ${statsHtml}
+  ${interpHtml}
+  <div class="cem-grid">
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-pipe')">
+        <div class="cem-sec-lbl">🔬 Pipeline</div>
+        <div class="cem-sec-hint">${drugCount} drug${drugCount!==1?'s':''} <i id="cem-chev-co-pipe" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${pipeSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No pipeline drugs found in this area.</span>'}</div>
+      <div class="cem-det" id="cem-det-co-pipe">${pipeDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-deals')">
+        <div class="cem-sec-lbl">🤝 Partnerships</div>
+        <div class="cem-sec-hint">${dealCount} deal${dealCount!==1?'s':''} <i id="cem-chev-co-deals" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${dealSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No deal records found.</span>'}</div>
+      <div class="cem-det" id="cem-det-co-deals">${dealDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-cats')">
+        <div class="cem-sec-lbl">📅 Catalysts</div>
+        <div class="cem-sec-hint">${catCount} upcoming <i id="cem-chev-co-cats" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${catSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts.</span>'}</div>
+      <div class="cem-det" id="cem-det-co-cats">${catDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-sigs')">
+        <div class="cem-sec-lbl">⚡ Strategic signals</div>
+        <div class="cem-sec-hint">${bdFacts.length} signals <i id="cem-chev-co-sigs" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${sigsSummary}</div>
+      <div class="cem-det" id="cem-det-co-sigs">${sigsDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-gaps')">
+        <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
+        <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-co-gaps" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${gapsSummary}</div>
+      <div class="cem-det" id="cem-det-co-gaps">${gapsDetail}</div>
+    </div>
+    <div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('co-src')">
+        <div class="cem-sec-lbl">🛡 Source confidence</div>
+        <div class="cem-sec-hint">per section <i id="cem-chev-co-src" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${srcSummary}</div>
+      <div class="cem-det" id="cem-det-co-src"><div class="cem-det-inner">
+        <div class="cem-det-title">Source breakdown — ${companyName}</div>
+        <div class="cem-fact"><span class="cem-fact-lbl">Last enriched</span><span class="cem-fact-val">${profile.last_enriched_at?profile.last_enriched_at.slice(0,10):'Not yet'}</span></div>
+        <div class="cem-fact"><span class="cem-fact-lbl">Profile ID</span><span class="cem-fact-val">${profile.id||'—'}</span></div>
+        <div class="cem-fact"><span class="cem-fact-lbl">Area context</span><span class="cem-fact-val">${areaLabel}</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="cem-footer-note">Same card opens from any tab · Powered by Meridian · ${companyName}</div>`;
+}
+
 // Close modals on Escape key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
@@ -10301,8 +10897,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
-    bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _buildDrugDossierBody(drug, areas, trials, molData);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
