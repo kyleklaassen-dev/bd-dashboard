@@ -12779,6 +12779,14 @@ function _makeAreaPI(tabId, areaIds) {
   const _abbrevInd = str => {
    if (!str) return str;
    const _IM = [
+    // ── Semicolon ICD-style forms (must precede splitting) ──
+    ['Asthma; Eosinophilic','Eo-Asthma'],['Asthma; Severe','Sev. Asthma'],
+    ['Asthma; Allergic','Allergic Asthma'],['Asthma Acute','Acute Asthma'],
+    ['Bronchial Asthma','Asthma'],
+    ['COVID-19','COVID-19'],['SARS-CoV-2','COVID-19'],['Coronavirus Disease','COVID-19'],
+    ['Acute Respiratory Distress Syndrome','ARDS'],['Acute Respiratory Distress','ARDS'],
+    ['Acute Respiratory Infection','ARI'],['Viral Lung Infection','VLI'],
+    ['Mental Health Disorder','MHD'],['Mental Health Disorders','MHD'],['Mental Health','MH'],
     // ── Comma-inverted ICD-style forms (must precede standard forms) ──
     ['Multiple Sclerosis, Primary Progressive','PPMS'],['Multiple Sclerosis, Secondary Progressive','SPMS'],
     ['Multiple Sclerosis, Relapsing-Remitting','RRMS'],['Multiple Sclerosis, Relapsing','RRMS'],
@@ -12926,7 +12934,13 @@ function _makeAreaPI(tabId, areaIds) {
    const joined = deduped.join(' · ');
    // Collapse MG family: if both "MG" and "gMG"/"oMG" present, drop plain "MG"
    const hasMGSubtype = /\b(gMG|oMG)\b/.test(joined);
-   return hasMGSubtype ? joined.replace(/(?:^|\s·\s)MG(?=\s·|$)/g, m => m === 'MG' ? '' : m.replace('MG · ','')).replace(/^\s*·\s*|\s*·\s*$/g,'').replace(/\s*·\s*·\s*/g,' · ').trim() : joined;
+   // Collapse Asthma family: drop plain "Asthma" when a subtype is present
+   const hasAsthmaSubtype = /\b(Eo-Asthma|Sev\.\s*Asthma|Allergic\s+Asthma|Acute\s+Asthma)\b/.test(joined);
+   const _dropParent = (s, parent) => s.split(' · ').filter(p => p.trim() !== parent).join(' · ').trim();
+   let result = joined;
+   if (hasMGSubtype) result = _dropParent(result, 'MG');
+   if (hasAsthmaSubtype) result = _dropParent(result, 'Asthma');
+   return result;
   };
 
   // ── Trial note: meaningful descriptor from design/dosing/route ──
