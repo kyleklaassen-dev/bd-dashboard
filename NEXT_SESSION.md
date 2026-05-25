@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o (2026-05-25) — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications); ECC now 10 rows  
-**Prior session:** Session 53n/o — Phase 5 Candidate 1 deployed (FEATURE_FLAGS + IBD normalized path, flag=false)
+**Last session:** Session 53o (2026-05-25) — Phase 4C reconciliation complete; ECC operationally clean (10 rows, 0 open high-sev); reconciliation summary written  
+**Prior session:** Session 53n/o — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications)
 
 ---
 
@@ -79,7 +79,7 @@ All Phase 4A work is done. Corrections applied and verified.
 
 ---
 
-## Phase Sequence (updated Session 53m)
+## Phase Sequence (updated Session 53o)
 
 | Phase | Name | Status |
 |---|---|---|
@@ -251,67 +251,80 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 ## Next Sprint Priority Order
 
-### P0 — entity_consistency_checks: COMPLETE ✅
+### P0 — entity_consistency_checks: OPERATIONALLY CLEAN ✅
 
-**Executed:** 2026-05-25 — advisor approval granted by Kyle on 2026-05-25.  
-**Migration:** `migrations/entity_consistency_checks_v1.sql` — executed via Supabase Management API.  
-**Apply script:** `scripts/apply_entity_consistency_checks.py`
-
-**Verified state:**
+**Final state (Session 53o, 2026-05-25):**
 
 | Status | Count | Entities |
 |---|---|---|
-| closed | 3 | lm-302, sim0500, spy072 — resolved in Phase 4A, no data action needed |
-| corrected | 3 | batoclimab (ted+gmg), gb004 (mechanism), upadacitinib (ad — Wave 2D) |
-| open | 4 | epi-001 (held), cizutamig (held), atg-201 (proposed), nipocalimab (proposed) |
+| closed / accepted | 3 | lm-302, sim0500, spy072 — Phase 4A legacy noise, no data action needed |
+| corrected / resolved | 5 | batoclimab (ted+gmg+cidp), gb004 (mechanism), upadacitinib (ad), atg-201 (fcrn area), nipocalimab (tcell area) |
+| open / held | 2 | epi-001 (ibd evidence gap), cizutamig (ted pattern_match source) |
 
-**Total rows: 10. Phase 5 gate: Open high-severity = 0 ✅**
+**Total rows: 10. Phase 5 gate: 0 open high-severity ✅**
 
-**Held items — do not act without further input:**
-- `epi-001 / ibd_indication_evidence_gap` (id=??) — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
-- `cizutamig / ted_indication_scope_review` (id=15) — BCMA×CD3 TED indication sourced from pattern_match. Validate before Phase 5 TED migration. confidence=0.87.
+**Held items — standing rule: do not act without source evidence:**
+- `epi-001 / ibd_indication_evidence_gap` (id=4, medium) — confidence=0.55. No source evidence found. Do NOT commit until publication, trial registry, or company materials confirm IBD indication.
+- `cizutamig / ted_indication_scope_review` (id=15, medium) — BCMA×CD3 TED indication sourced from pattern_match only. confidence=0.87. Validate before Phase 5 TED migration.
 
-**Proposed cleanup (requires advisor confirmation before execution):**
-- `atg-201 / fcrn_area_mismatch` (id=16, medium) — CD19×CD3 bispecific incorrectly in fcrn drug_areas. Also correctly in tcell area. Proposed: remove from drug_areas WHERE area_id='fcrn'. **Do NOT execute without advisor approval.**
-- `nipocalimab / tcell_area_mismatch` (id=17, low) — Anti-FcRn mAb incorrectly in tcell area (among CAR-Ts). Correctly in fcrn area. Proposed: remove from drug_areas WHERE area_id='tcell'. **Do NOT execute without advisor approval.**
-
-**Wave 2D committed (Session 53n–53o):**
-- `upadacitinib / ad` — ad (97, approved, tier1_structured). Session 53n.
-- `batoclimab / cidp` — cidp (92, phase2, tier1_structured). Session 53o. ← **NEW**
-- `imvt-1402 / gmg` — gmg (94, phase3, tier1_structured). Session 53o. ← **NEW**
-- `imvt-1402 / cidp` — cidp (91, phase2, tier1_structured). Session 53o. ← **NEW**
-- `imvt-1402 / waiha` — NOT committed (no trial_indications evidence). Revisit if trial evidence emerges.
+**Wave 2D committed totals (Sessions 53n–53o):**
+- upadacitinib/ad · batoclimab/cidp · imvt-1402/gmg · imvt-1402/cidp
 - drug_indications total: **200 rows**
+- imvt-1402/waiha — NOT committed (no trial_indications evidence)
+
+**ECC Governance Rules (approved Session 53o):**
+
+A proposed cleanup may execute (`open/proposed → corrected/resolved`) only when one of:
+1. **Direct source evidence** — company materials, trial registry, regulatory filing, or publication
+2. **Cross-table contradiction, overwhelming confidence** — target assignment directly contradicts area assignment with no supporting evidence in any table
+3. **Prior accepted pattern** — same error class already reviewed and approved
+
+Future ECC records should be reserved for:
+- Genuine contradictions requiring human judgment
+- Advisor-reviewed reconciliation candidates with proposed action
+- Source-backed correction proposals
+
+Do NOT create ECC records for speculative enrichment opportunities — those belong in `backfill_preview` or `drug_validation_results`.
 
 **Architecture rule (standing):**
-Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) continue writing to their own logs. A finding graduates to `entity_consistency_checks` only when a human or harness review has classified it and a proposed action exists. This is the durable human reconciliation layer — not a scan log.
+Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) write to their own logs. A finding graduates to ECC only after human/harness review has classified it with a proposed action.
 
-**Phase 5 migration is blocked until Phase 4C classification sprint complete + ontology_edges advisor unlock.**
+**Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
 
-### P1 — epi-001 Manual Review (Track B)
+### P1 — Phase 5 Candidate 1 (IBD) Activation
 
-### P1 — epi-001 Manual Review (Track B)
-- Search for published source evidence confirming IBD indication
+**Status:** Deployed at flag=false. Activation pending 10-drug modal sprint + advisor go.
+
+Pre-activation checklist:
+- [ ] 10-drug modal sprint complete (7 of 10 remaining — TL1A, FcRn, TED drugs)
+- [ ] epi-001: resolved or confirmed no_evidence
+- [ ] Advisor go on flag flip
+
+**To activate:** Set `useNormalizedIBD: true` in FEATURE_FLAGS → deploy → verify `window.showPhase4Compare()` → update `update_log.md`.
+
+### P2 — epi-001 Manual Review (Standing Hold)
+
+- Drug: anti-TL1A antibody, preclinical stage. ECC id=4, confidence=0.55.
+- Search for published source evidence confirming IBD indication (publication, trial registry, company pipeline disclosure)
 - If IBD confirmed: commit uc + cd rows from backfill_preview (wave2c run)
-- If no evidence: keep held or set review_status = 'no_evidence'
-- Drug: anti-TL1A antibody, preclinical stage. **Do NOT commit without source evidence.**
+- If no evidence: set review_status = 'no_evidence' and close ECC row
+- **Do NOT commit without source evidence.**
 
-### P2 — Wave 2D: FcRn + Autoimmune Backfill (Track A)
-- fcrn coverage: 57.1% → target: 85%+
-- autoimmune coverage: 52% → target: 80%+
-- Include: upadacitinib → ad (approved), batoclimab → cidp (re-evaluate), imvt-1402 → gmg/cidp/waiha
-- Run standard backfill_preview → validate → commit workflow
+### P3 — Wave 2D Remaining
+
+- `imvt-1402 / waiha` — NOT committed. Revisit if trial_indications evidence emerges.
+- All other Wave 2D items committed. Wave 2D is otherwise complete.
 
 ### P3 — Track B True Missing Rows
 - `imvt-1402` → gmg, cidp, waiha: true_missing_row
 - `ep006` → tombstone or merge into es302 (duplicate drug_id data integrity)
 
 ### P4 — Portfolio Intelligence Product (Track C)
-Drug → Company joins now available. First intelligence product.
+Drug → Company joins now available. First intelligence product. Queued after Phase 5 Candidate 1 activation.
 **Question:** "What is [company]'s full indication footprint across all areas we track?"
 
 ### P5 — entity_consistency_checks Table: COMPLETE ✅
-Built and seeded 2026-05-25. See P0 section above for full state. Trigger condition (Phase 4B complete) was satisfied before execution.
+Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See governance rules in P0 section above.
 
 ---
 
@@ -319,10 +332,10 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 
 | Track | Focus | Status |
 |---|---|---|
-| A — Relationship Layer | Wave 2D FcRn + autoimmune (epi-001 first) | ⏸ epi-001 pending review |
-| B — Ontology Quality | Phase 4C validation sprint → true missing rows | ▶ NEXT (with D) |
-| C — Intelligence Products | Portfolio intelligence product | Queued — begin after Phase 4C |
-| D — Dashboard Architecture | Phase 4C pre-migration classification | ▶ NEXT |
+| A — Relationship Layer | Wave 2D complete; imvt-1402/waiha held pending evidence | ✅ Wave 2D done; epi-001 held |
+| B — Ontology Quality | Phase 4C complete; epi-001 + cizutamig held | ✅ Phase 4C done |
+| C — Intelligence Products | Portfolio intelligence product | Queued after Phase 5 Candidate 1 activation |
+| D — Dashboard Architecture | Phase 5 Candidate 1 activation (IBD flag flip) | ▶ **PRIMARY FOCUS** |
 | E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
@@ -349,10 +362,9 @@ SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
 -- entity_consistency_checks state:
 SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
 -- expect 10 rows; open high-severity = 0
--- open/held: epi-001 (ibd_indication_evidence_gap), cizutamig (ted_indication_scope_review)
--- open/proposed: atg-201 (fcrn_area_mismatch), nipocalimab (tcell_area_mismatch)
--- corrected: batoclimab, gb004, upadacitinib
--- closed: lm-302, sim0500, spy072
+-- open/held (2):      epi-001 (ibd_indication_evidence_gap), cizutamig (ted_indication_scope_review)
+-- corrected/resolved (5): batoclimab, gb004, upadacitinib, atg-201, nipocalimab
+-- closed/accepted (3):    lm-302, sim0500, spy072
 -- upadacitinib Wave 2D verified:
 SELECT indication_id, confidence_score, development_stage FROM drug_indications WHERE drug_id = 'upadacitinib';
 -- expect: ad (97, approved), cd (99), uc (99)
