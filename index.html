@@ -11081,17 +11081,68 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     }
   </div>`;
 
+  // ── COMPETITIVE SIGNALS TAB ─────────────────────────────────────────────
+  const _SIG_STYLE_CEM = {
+    conference:      { label:'CONF',    bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+    clinical_update: { label:'READOUT', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+    regulatory:      { label:'REG',     bg:'#fef2f2', color:'#b91c1c', border:'#fecaca' },
+    financing:       { label:'$',       bg:'#f0fdf4', color:'#065f46', border:'#a7f3d0' },
+    patent:          { label:'PATENT',  bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe' },
+    publication:     { label:'PUB',     bg:'#f5f3ff', color:'#4338ca', border:'#c7d2fe' },
+    licensing:       { label:'DEAL',    bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
+  };
+  const _renderSigRow = s => {
+    const st = _SIG_STYLE_CEM[s.signal_type] || { label: s.signal_type||'—', bg:'#f8fafc', color:'#64748b', border:'#e2e8f0' };
+    const badge = `<span style="font-size:8px;font-weight:800;text-transform:uppercase;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:4px;padding:1px 6px;flex-shrink:0;white-space:nowrap">${st.label}</span>`;
+    const date  = (s.source_date||'').slice(0,7);
+    const title = s.source_url
+      ? `<a href="${s.source_url}" target="_blank" rel="noopener" style="color:#1e3a5f;font-weight:600;text-decoration:none;border-bottom:1px solid #bfdbfe">${s.title||''}</a>`
+      : `<span style="color:#1e3a5f;font-weight:600">${s.title||''}</span>`;
+    const desc  = s.description ? `<div style="font-size:10px;color:#64748b;margin-top:2px;line-height:1.4">${s.description.slice(0,200)}${s.description.length>200?'…':''}</div>` : '';
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f1f5f9">
+      <span style="color:#94a3b8;font-size:9px;flex-shrink:0;padding-top:3px;min-width:46px">${date}</span>
+      ${badge}
+      <div style="min-width:0;flex:1;font-size:11.5px">${title}${desc}</div>
+    </div>`;
+  };
+  const _renderSigTable = _sigs => {
+    if (!_sigs||!_sigs.length) return '<p style="color:#94a3b8;font-size:12px;padding:4px 0">No competitive signals on record for this area.</p>';
+    return `<div style="${_sigs.length>8?'max-height:500px;overflow-y:auto;scrollbar-width:thin;padding-right:4px':''}">${_sigs.map(_renderSigRow).join('')}</div>`;
+  };
+  // Flatten all signals for "All areas" view
+  const _allSigsFlat = [];
+  const _seenSigIds = new Set();
+  _allAreaIds.forEach(_aId => {
+    (_allAreaSigs[_aId]||[]).forEach(s => {
+      const _k = s.id || (s.title||'')+(s.source_date||'');
+      if (!_seenSigIds.has(_k)) { _seenSigIds.add(_k); _allSigsFlat.push({...s, _area: _aId}); }
+    });
+  });
+  _allSigsFlat.sort((a,b) => (b.source_date||'').localeCompare(a.source_date||''));
+  const _totalSigCount = _allSigsFlat.length;
+
+  const _signalsContent = `<div>
+    <div class="cem-area-block active" data-fid="${_filterId}" data-area="all">
+      ${_renderSigTable(_allSigsFlat)}
+    </div>
+    ${_allAreaIds.map(_aId => `<div class="cem-area-block" data-fid="${_filterId}" data-area="${_aId}">
+      ${_renderSigTable(_allAreaSigs[_aId]||[])}
+    </div>`).join('')}
+  </div>`;
+
   // ── Assemble tabs + panels ────────────────────────────────────────────────
   const _tabs = [
     { id:'cem-tab-overview',   label:'Overview' },
     { id:'cem-tab-assessment', label:'Assessment' },
     { id:'cem-tab-catalysts',  label:`Catalysts${_totalCatCount?' ('+_totalCatCount+')':''}` },
+    { id:'cem-tab-signals',    label:`Signals${_totalSigCount?' ('+_totalSigCount+')':''}` },
     { id:'cem-tab-news',       label:'Related News' },
   ];
   const _panels = [
     { id:'cem-tab-overview',   content: _overviewContent },
     { id:'cem-tab-assessment', content: _assessmentContent },
     { id:'cem-tab-catalysts',  content: _catalystsContent },
+    { id:'cem-tab-signals',    content: _signalsContent },
     { id:'cem-tab-news',       content: _newsContent },
   ];
 
@@ -13696,7 +13747,6 @@ function _makeAreaPI(tabId, areaIds) {
 
   return `<div class="pi-detail-inner" style="display:block;padding:14px 16px">
    ${drugSection}
-   ${sigsHTML}
   </div>`;
  },
 
