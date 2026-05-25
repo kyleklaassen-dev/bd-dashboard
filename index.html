@@ -12137,6 +12137,35 @@ function _hideDrugPills(tid) {
 
 const _areaPIs = {};
 
+// ── Phase 4B: Dual-read validation infrastructure ─────────────────────────────
+// Stores runtime comparison records from parallel normalized reads.
+// Access via: window.__MERIDIAN_PHASE4_COMPARE__
+// Print summary via: window.showPhase4Compare()
+window.__MERIDIAN_PHASE4_COMPARE__ = window.__MERIDIAN_PHASE4_COMPARE__ || [];
+window.showPhase4Compare = function() {
+  const records = window.__MERIDIAN_PHASE4_COMPARE__;
+  if (!records.length) { console.log('[Phase4B] No comparison records yet. Trigger an IBD tab load first.'); return; }
+  records.forEach(r => {
+    const icon = r.status === 'compare_pass_oos_adjusted' ? '🟢' :
+                 r.status === 'compare_pass'              ? '✅' :
+                 r.status === 'migration_blocker'         ? '🔴' : '🟠';
+    console.group(`${icon} [Phase4B] ${r.component} — ${r.path}  (${r.timestamp})`);
+    console.log(`  legacy_source:      ${r.legacy_source}`);
+    console.log(`  normalized_source:  ${r.normalized_source}`);
+    console.log(`  legacy_count:       ${r.legacy_count}`);
+    console.log(`  normalized_count:   ${r.normalized_count}`);
+    console.log(`  overlap_count:      ${r.overlap_count}`);
+    console.log(`  raw_match_pct:      ${r.raw_match_pct}%`);
+    console.log(`  adjusted_match_pct: ${r.adjusted_match_pct}%`);
+    console.log(`  status:             ${r.status}`);
+    if (r.extra_legacy.length)     console.log(`  extra_legacy:`, r.extra_legacy);
+    if (r.extra_normalized.length) console.log(`  extra_normalized:`, r.extra_normalized);
+    if (Object.keys(r.difference_classifications).length)
+      console.log(`  classifications:`, r.difference_classifications);
+    console.groupEnd();
+  });
+};
+
 function _makeAreaPI(tabId, areaIds) {
   const STAGE_ORDER_PI = {Approved:0,'Phase 3':1,'Phase 2':2,'Phase 1':3,'Pre-IND':4,Preclinical:5};
   const OV_ORDER = {Direct:0,Adjacent:1,'Same-Space':2,Watch:3};
@@ -12247,6 +12276,8 @@ function _makeAreaPI(tabId, areaIds) {
         this._renderPills();
         this._renderTable();
         this._loadEntityMeta(); // async — adds trials + catalysts + accurate counts
+        // Phase 4B Path A — IBD dual-read (non-blocking, parallel only)
+        if (this.areaIds.includes('ibd')) this._runPhase4BDualRead(scoreRows);
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -14159,6 +14190,96 @@ function _makeAreaPI(tabId, areaIds) {
    ${drugSection}
   </div>`;
  },
+
+  // ── Phase 4B Path A — IBD indication-group dual-read ───────────────────────
+  // Runs after init() rendering is complete. Does NOT modify the dashboard.
+  // Reads drug_indications (uc+cd) in parallel with legacy drug_area_scores (ibd).
+  // Writes comparison record to window.__MERIDIAN_PHASE4_COMPARE__.
+  // Expected status: compare_pass_oos_adjusted (lm-302 + sim0500 are classified OOS).
+  async _runPhase4BDualRead(legacyScoreRows) {
+    // Known OOS classifications for IBD extra-legacy records (mirrors DIFFERENCE_CLASSIFICATIONS in harness)
+    const IBD_DIFF_CLASSIFICATIONS = {
+      'lm-302':  { classification: 'legacy_noise_removed',
+                   note: 'Gastric/GEJ ADC — not an IBD indication drug; wrong legacy area assignment' },
+      'sim0500': { classification: 'legacy_noise_removed',
+                   note: 'RRMM trispecific — not an IBD indication drug; wrong legacy area assignment' },
+      'epi-001': { classification: 'needs_manual_review',
+                   note: 'Anti-TL1A, preclinical — IBD indication not yet confirmed by source evidence' },
+    };
+
+    try {
+      // Legacy set: drugs in drug_area_scores with area_id = 'ibd'
+      const legacySet = new Set(
+        (legacyScoreRows || []).filter(s => s.area_id === 'ibd').map(s => s.drug_id)
+      );
+
+      // Normalized set: drugs in drug_indications with indication_id IN ('uc','cd')
+      const { data: normRows, error: normErr } = await _sb
+        .from('drug_indications')
+        .select('drug_id,indication_id')
+        .in('indication_id', ['uc', 'cd']);
+      if (normErr) throw normErr;
+
+      const normSet = new Set((normRows || []).map(r => r.drug_id));
+
+      // Overlap, extra-legacy, extra-normalized
+      const overlapSet    = new Set([...legacySet].filter(id => normSet.has(id)));
+      const extraLegacy   = [...legacySet].filter(id => !normSet.has(id));
+      const extraNorm     = [...normSet].filter(id => !legacySet.has(id));
+
+      // Classify all differences
+      const diffClassifications = {};
+      extraLegacy.forEach(id => {
+        diffClassifications[id] = IBD_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'needs_manual_review', note: 'Unclassified extra-legacy record' };
+      });
+      extraNorm.forEach(id => {
+        diffClassifications[id] = IBD_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'new_normalized_value', note: 'Drug in normalized not present in legacy' };
+      });
+
+      // Metrics
+      const legacyCount  = legacySet.size;
+      const normCount    = normSet.size;
+      const overlapCount = overlapSet.size;
+      const rawMatchPct  = legacyCount > 0 ? Math.round(overlapCount / legacyCount * 1000) / 10 : 0;
+
+      // Adjusted: legacy_noise_removed records are correct exclusions — add to numerator
+      const noiseRemovedCount = extraLegacy.filter(id =>
+        diffClassifications[id]?.classification === 'legacy_noise_removed'
+      ).length;
+      const adjOverlap  = overlapCount + noiseRemovedCount;
+      const adjMatchPct = legacyCount > 0 ? Math.round(adjOverlap / legacyCount * 1000) / 10 : 0;
+
+      const status = adjMatchPct >= 95 ? 'compare_pass_oos_adjusted' :
+                     rawMatchPct >= 95 ? 'compare_pass' : 'migration_blocker';
+
+      const record = {
+        component:               '_makeAreaPI',
+        path:                    'ibd_indication_group_view',
+        legacy_source:           "drug_area_scores.area_id = 'ibd'",
+        normalized_source:       "drug_indications.indication_id IN ('uc','cd')",
+        legacy_count:            legacyCount,
+        normalized_count:        normCount,
+        overlap_count:           overlapCount,
+        raw_match_pct:           rawMatchPct,
+        adjusted_match_pct:      adjMatchPct,
+        extra_legacy:            extraLegacy,
+        extra_normalized:        extraNorm,
+        difference_classifications: diffClassifications,
+        status,
+        timestamp:               new Date().toISOString(),
+      };
+
+      window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+      console.log(
+        `[Phase4B-IBD] legacy=${legacyCount} norm=${normCount} overlap=${overlapCount}` +
+        ` raw=${rawMatchPct}% adj=${adjMatchPct}% → ${status}`
+      );
+    } catch(err) {
+      console.warn('[Phase4B-IBD] dual-read error:', err.message);
+    }
+  },
 
   };
 }
