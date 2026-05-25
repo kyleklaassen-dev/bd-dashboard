@@ -12940,7 +12940,7 @@ function _makeAreaPI(tabId, areaIds) {
       const rows = sorted.map(ent => {
         const isExp = this.expanded.has(ent.entity_id);
         const meta         = this._entityMeta?.[ent.company_id] || this._entityMeta?.[ent.entity_id] || {};
-        const drugCount    = meta.drugCount    != null ? meta.drugCount    : ent.totalPortfolioCount || ent.programs.length;
+        const drugCount    = ent.programs.length || meta.drugCount || ent.totalPortfolioCount || 0;  // programs.length = actual rendered rows (includes partner drugs grouped under entity)
         const activeTrials = meta.activeTrials != null ? meta.activeTrials : null;
         const nextCat      = meta.nextCatalyst || null;
 
