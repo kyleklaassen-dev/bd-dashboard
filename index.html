@@ -12278,6 +12278,8 @@ function _makeAreaPI(tabId, areaIds) {
         this._loadEntityMeta(); // async — adds trials + catalysts + accurate counts
         // Phase 4B Path A — IBD dual-read (non-blocking, parallel only)
         if (this.areaIds.includes('ibd')) this._runPhase4BDualRead(scoreRows);
+        // Phase 4B Path B — TL1A target-view dual-read (non-blocking, parallel only)
+        if (this.areaIds.includes('tl1a')) this._runPhase4BTL1ADualRead(scoreRows);
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -14278,6 +14280,136 @@ function _makeAreaPI(tabId, areaIds) {
       );
     } catch(err) {
       console.warn('[Phase4B-IBD] dual-read error:', err.message);
+    }
+  },
+
+  // ── Phase 4B Path B — TL1A target-view dual-read ───────────────────────────
+  // Governance: TL1A is a biological TARGET, not an indication group.
+  // Normalized source: drug_targets WHERE target_id='tl1a'
+  // Legacy source:     drug_area_scores.area_id='tl1a'
+  // The legacy TL1A bucket was a competitive landscape container mixing true TL1A
+  // target drugs (35) with IBD indication competitors (15) and legacy noise (2).
+  // All 17 gap drugs are classified — zero are true TL1A target drugs missing rows.
+  // Expected adjusted match: 35/35 = 100% → compare_pass_oos_adjusted.
+  async _runPhase4BTL1ADualRead(legacyScoreRows) {
+    // Mirrors DIFFERENCE_CLASSIFICATIONS in phase4_compare_legacy_vs_normalized.py
+    // Classification (Session 53h): 15 ibd_indication_not_tl1a_target + 2 legacy_noise_removed
+    const TL1A_DIFF_CLASSIFICATIONS = {
+      // Legacy noise — wrong area entirely
+      'lm-302':              { classification: 'legacy_noise_removed',
+                               note: 'CLDN18.2 MMAE-ADC for gastric/GEJ cancer. No TL1A biology.' },
+      'sim0500':             { classification: 'legacy_noise_removed',
+                               note: 'GPRC5D×BCMA×CD3 trispecific for RRMM. No TL1A biology.' },
+      // IBD indication competitors — correct path is drug_indications (uc/cd), not drug_targets (tl1a)
+      'vedolizumab':         { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-α4β7 mAb. Approved UC/CD. No TL1A biology.' },
+      'risankizumab':        { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-IL-23p19. Approved PsO/CD/UC. No TL1A biology.' },
+      'mirikizumab':         { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-IL-23p19. Approved UC/CD. No TL1A biology.' },
+      'guselkumab':          { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-IL-23p19. Approved PsO/PsA/CD. No TL1A biology.' },
+      'guselkumab-golimumab':{ classification: 'ibd_indication_not_tl1a_target',
+                               note: 'IL-23p19+TNFα combo. UC Phase 2b/3. No TL1A biology.' },
+      'golimumab':           { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-TNFα. Approved RA/PsA/AS/UC. No TL1A biology.' },
+      'ustekinumab':         { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-IL-12/23p40. Approved PsO/PsA/CD/UC. No TL1A biology.' },
+      'upadacitinib':        { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'JAK1 inhibitor. Approved RA/PsA/AD/UC/CD. No TL1A biology.' },
+      'abbv-382':            { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-α4β7 mAb. UC/CD Phase 2. No TL1A biology.' },
+      'abbv-668':            { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'RIPK1 inhibitor. CD Phase 2. No TL1A biology.' },
+      'lutikizumab':         { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Dual IL-1α/β inhibitor. CD Phase 3. No TL1A biology.' },
+      'spy001':              { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-α4β7 mAb. UC Phase 2. No TL1A biology.' },
+      'spy003':              { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-IL-23p19. UC/CD Phase 2. No TL1A biology.' },
+      'spy130':              { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'Anti-α4β7+IL-23 combo. UC/CD Phase 2. No TL1A biology.' },
+      'gb004':               { classification: 'ibd_indication_not_tl1a_target',
+                               note: 'PHD1/HIF-1α stabilizer. UC (terminated). No TL1A biology. ⚠️ mechanism field data error.' },
+      // Pending manual review
+      'epi-001':             { classification: 'needs_manual_review',
+                               note: 'Anti-TL1A, preclinical — IBD indication unconfirmed; held in backfill_preview.' },
+    };
+    // OOS classes: both ibd_indication_not_tl1a_target and legacy_noise_removed excluded from adjusted denominator
+    const _TL1A_OOS_CLASSES = new Set(['legacy_noise_removed', 'ibd_indication_not_tl1a_target']);
+
+    try {
+      // Legacy set: drugs in drug_area_scores with area_id='tl1a'
+      const legacySet = new Set(
+        (legacyScoreRows || []).filter(s => s.area_id === 'tl1a').map(s => s.drug_id)
+      );
+
+      // Normalized set: drugs in drug_targets with target_id='tl1a'
+      // NOTE: do NOT use drug_indications here — TL1A is a TARGET, not an indication
+      const { data: normRows, error: normErr } = await _sb
+        .from('drug_targets')
+        .select('drug_id,target_id')
+        .eq('target_id', 'tl1a');
+      if (normErr) throw normErr;
+
+      const normSet = new Set((normRows || []).map(r => r.drug_id));
+
+      // Overlap, extra-legacy, extra-normalized
+      const overlapSet  = new Set([...legacySet].filter(id => normSet.has(id)));
+      const extraLegacy = [...legacySet].filter(id => !normSet.has(id));
+      const extraNorm   = [...normSet].filter(id => !legacySet.has(id));
+
+      // Classify all differences
+      const diffClassifications = {};
+      extraLegacy.forEach(id => {
+        diffClassifications[id] = TL1A_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'needs_manual_review', note: 'Unclassified extra-legacy TL1A record' };
+      });
+      extraNorm.forEach(id => {
+        diffClassifications[id] = TL1A_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'new_normalized_value', note: 'Drug in drug_targets tl1a not present in legacy area' };
+      });
+
+      // Metrics
+      const legacyCount  = legacySet.size;
+      const normCount    = normSet.size;
+      const overlapCount = overlapSet.size;
+      const rawMatchPct  = legacyCount > 0 ? Math.round(overlapCount / legacyCount * 1000) / 10 : 0;
+
+      // Adjusted: exclude ibd_indication_not_tl1a_target + legacy_noise_removed from denominator
+      const oosCount    = extraLegacy.filter(id => _TL1A_OOS_CLASSES.has(
+        diffClassifications[id]?.classification || ''
+      )).length;
+      const adjOverlap  = overlapCount + oosCount;
+      const adjMatchPct = legacyCount > 0 ? Math.round(adjOverlap / legacyCount * 1000) / 10 : 0;
+
+      const status = adjMatchPct >= 95 ? 'compare_pass_oos_adjusted' :
+                     rawMatchPct >= 95 ? 'compare_pass' : 'migration_blocker';
+
+      const record = {
+        component:               '_makeAreaPI',
+        path:                    'tl1a_target_view',
+        legacy_source:           "drug_area_scores.area_id = 'tl1a'",
+        normalized_source:       "drug_targets WHERE target_id = 'tl1a'",
+        legacy_count:            legacyCount,
+        normalized_count:        normCount,
+        overlap_count:           overlapCount,
+        raw_match_pct:           rawMatchPct,
+        adjusted_match_pct:      adjMatchPct,
+        extra_legacy:            extraLegacy,
+        extra_normalized:        extraNorm,
+        difference_classifications: diffClassifications,
+        status,
+        timestamp:               new Date().toISOString(),
+      };
+
+      window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+      console.log(
+        `[Phase4B-TL1A] legacy=${legacyCount} norm=${normCount} overlap=${overlapCount}` +
+        ` raw=${rawMatchPct}% adj=${adjMatchPct}% oos=${oosCount} → ${status}`
+      );
+    } catch(err) {
+      console.warn('[Phase4B-TL1A] dual-read error:', err.message);
     }
   },
 
