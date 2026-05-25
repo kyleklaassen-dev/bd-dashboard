@@ -7041,9 +7041,26 @@ function _piDrugLabel(d) {
   const raw = d.display_name || d.name || '';
   // Strip code-only parentheticals: "(REGN3500/SAR440340)", "(SAR-XXX)", etc.
   let s = raw.replace(/\s*\([A-Z][A-Z0-9\-]*(?:\/[A-Z0-9\-]+)+\)/g, '').trim();
-  // Strip slash-separated code aliases after an INN: "Itepekimab/REGN3500" → "Itepekimab"
+  // Strip slash-separated code aliases after an INN: "Itepekimab/REGN3500" \u2192 "Itepekimab"
   s = s.replace(/^([A-Za-z][a-z]+\w*)\s*\/\s*[A-Z][A-Z0-9\-\/]+$/, '$1').trim();
   return _dknCleanName(s) || raw;
+}
+
+// \u2500\u2500 Stage resolver \u2014 systemic approval detection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Enrichment sets drugs.stage from trial-phase activity; regulatory approvals can be
+// inferred from two strong signals: (a) brand_name is assigned post-approval, and
+// (b) indication_short contains a year-in-parens e.g. "RA (2019)".
+function _resolveStage(d) {
+  const s = (d.stage || '').toLowerCase();
+  // Already flagged as approved
+  if (s.includes('approv')) return 'Approved';
+  // Brand name is only assigned after first regulatory approval
+  if (d.brand_name) return 'Approved';
+  // Year-in-parens in indication_short is an explicit approval annotation,
+  // e.g. "RA (2019); PsA; AD (2017)" means at least two approved indications
+  if (d.indication_short && /\(20\d{2}\)/.test(d.indication_short)) return 'Approved';
+  // Fall back to raw stage from DB
+  return d.stage || 'Preclinical';
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -12131,7 +12148,7 @@ function _makeAreaPI(tabId, areaIds) {
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
           mechanism:            d.mechanism || '',
           cls:                  score?.cls    || d.cls || '1st Gen',
-          stageKey:             d.stage || 'Preclinical',
+          stageKey:             _resolveStage(d),
           overlap:              score?.overlap || d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
           overlap_rationale:    score?.overlap_rationale || d.differentiation_thesis || '',
           vs_ailux:             score?.vs_ailux_positioning || '',
@@ -13223,7 +13240,7 @@ function _makeAreaPI(tabId, areaIds) {
   // then by stage within each relevance tier. No tier headers — flat list.
   const _RELEV_SORT_DA = {very_high:0, high:1, medium:2, low:3, monitor:4};
   const stageSortScore = item => {
-   const s = (item.stage||item.stageKey||item.phase_display||'').toLowerCase();
+   const s = (_resolveStage(item)||item.stageKey||item.phase_display||'').toLowerCase();
    if (s.includes('approv')) return 100;
    if (s.includes('3'))      return 80;
    if (s.includes('2'))      return 60;
@@ -13427,7 +13444,7 @@ function _makeAreaPI(tabId, areaIds) {
     .trim();
 
    const drugTarget   = cleanTarget(d.target || d.mechanism || prog.target || '—');
-   const drugPhase    = d.stage || d.phase_display || prog.stageKey || '';
+   const drugPhase    = _resolveStage(d) || d.phase_display || prog.stageKey || '';
    const drugInd      = _abbrevInd(d.indication_short) || '—';
    // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
    // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name.
