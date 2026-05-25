@@ -1,5 +1,32 @@
 
 ---
+## 2026-05-25 (Session 53d) — Phase 4A Evidence Reconciliation Candidate Review (classification only, no data changes)
+
+**Phase 4A candidate review — COMPLETE:**
+- All 6 known reconciliation candidates classified with structured 13-field records
+- No production data modified. All pending corrections await explicit advisor approval.
+
+**Candidates reviewed:**
+- `lm-302`: cross_table_inconsistency → legacy_noise_removed · conf 0.99 · ✅ approved (no IBD biology; gastric ADC)
+- `sim0500`: cross_table_inconsistency + **normalized_table_error** · conf 0.98 · ⚠️ needs_advisor
+  - Erroneous `drug_targets` row: `drug_id='sim0500', target_id='tl1a'` — Wave 2B commit error; GPRC5D×BCMA×CD3 RRMM drug, not TL1A
+  - SQL pending advisor approval: `DELETE FROM drug_targets WHERE drug_id='sim0500' AND target_id='tl1a'`
+- `spy072`: ontology_scope_difference · conf 0.92 · ✅ approved (TL1A mechanism ok; indication is PsA/axSpA not IBD; legacy_noise_removed for ibd)
+- `epi-001`: needs_manual_review · conf 0.55 · 🔲 pending_human (anti-TL1A preclinical; no indication_short, no trials, no source evidence; hold until human confirms IBD)
+- `batoclimab`: cross_table_inconsistency + **normalized_gap (CRITICAL)** · conf 0.90 · ⚠️ needs_advisor
+  - 0 rows in drug_indications despite 7 Phase 3 trials across TED/gMG/CIDP in trial_indications
+  - Migration risk: batoclimab drops from all tabs if fcrn/ted/autoimmune areas migrate before fix
+  - SQL pending: INSERT into drug_indications (ted conf 0.88, gmg conf 0.92, cidp conf 0.85)
+- `upadacitinib`: normalized_gap (ad) · conf 0.97 · ✅ approved for Wave 2D atopy batch (FDA-approved AD; 3 AD trials)
+
+**New files:**
+- `docs/phase4a_reconciliation_review.md` (new) — full 6-candidate structured review
+- `NEXT_SESSION.md` updated — advisor decisions required + Phase 4A → corrections → Phase 4B sequence
+
+**entity_consistency_checks build decision:**
+- Do NOT build speculatively. Build AFTER first approved correction is ready to write rows.
+
+---
 ## 2026-05-25 (Session 53c) — Difference Classification Model · Evidence Reconciliation Layer design
 
 **New Phase 4 model — advisor refinement:**
