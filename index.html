@@ -3751,7 +3751,6 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
-  <button class="nav-icon-btn" id="nav-icon-ontology" onclick="switchTabTo('ontology')" title="Ontology Audit">🧬</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -3821,11 +3820,6 @@ function loadMoleculeTab(tabId) {
    <div class="hl-icon">⚡</div>
    <div class="hl-title">Essential Updates</div>
    <div class="hl-sub">Intel · Deals · Catalysts</div>
-  </div>
-  <div class="home-launcher" style="--lc:#5b21b6" onclick="switchTabTo('ontology')">
-   <div class="hl-icon">🧬</div>
-   <div class="hl-title">Ontology Audit</div>
-   <div class="hl-sub">Schema · categories · gaps</div>
   </div>
  </div>
 
@@ -3931,7 +3925,7 @@ function loadMoleculeTab(tabId) {
  <!-- hidden identity-health body (data still loads; displayed in footer) -->
  <div id="ih-body" style="display:none"></div>
 
- <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('audit')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
+ <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('ontology')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
 
 </div><!-- end tab-home -->
 
