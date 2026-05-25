@@ -1,5 +1,5 @@
 # Phase 4 Comparison Harness — Meridian BD Platform
-**Generated:** 2026-05-25 20:17 UTC  
+**Generated:** 2026-05-25 20:59 UTC  
 **Mode:** Read-only · No production data modified  
 **Script:** `scripts/phase4_compare_legacy_vs_normalized.py`  
 
@@ -10,10 +10,26 @@
 | Status | Icon | Meaning |
 |---|---|---|
 | match | ✅ | Legacy and normalized produce equivalent results |
+| compare_pass_oos_adjusted | 🟢 | Raw% < 95% but OOS-adjusted% ≥ 95%; confirmed OOS drugs excluded from denominator per governance rule (2026-05-25). Ready for Phase 4 dual-read — NOT Phase 5 migration. |
 | acceptable_mismatch | 🟡 | Normalized has more/different but difference is expected and safe |
 | needs_rule_adjustment | 🟠 | Gap points to a missing alias, incomplete coverage, or governance rule |
 | migration_blocker | 🔴 | Do NOT migrate — normalized source is not ready for production use |
 | not_ready | ⛔ | Fundamental mapping doesn't exist yet |
+
+### Governance Rule — OOS Exclusion (2026-05-25)
+
+> **Do not contaminate normalized truth to match legacy noise.**
+> If a legacy `drug_areas` record is proven out-of-scope for the mapped indication,
+> exclude it from the migration-readiness denominator.
+> These are permanent exclusions — do NOT add them to `drug_indications`.
+
+| Area | Confirmed OOS Drug | Reason |
+|---|---|---|
+| tl1a | `lm-302` | Gastric ADC — placed in tl1a/ibd legacy areas by curation error |
+| tl1a | `sim0500` | RRMM trispecific — placed in tl1a/ibd legacy areas by curation error |
+| tl1a | `spy072` | TL1A antibody targeting PsA/axSpA (rheumatology, not IBD) |
+| ibd | `lm-302` | Same as above |
+| ibd | `sim0500` | Same as above |
 
 ---
 
@@ -27,19 +43,19 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 
 ### Summary Table
 
-| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Match% | Trials | Status |
-|---|---|---|---|---|---|---|---|
-| `tcell` | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | 0 | ⛔ not_ready |
-| `tl1a` | uc, cd | 51 | 17 | 15 | 29.4% | 65 | 🔴 migration_blocker |
-| `ibd` | uc, cd | 50 | 17 | 15 | 30.0% | 65 | 🔴 migration_blocker |
-| `autoimmune` | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 24 | 12 | 48.0% | 59 | 🟠 needs_rule_adjustment |
-| `fcrn` | gmg, cidp, waiha | 7 | 10 | 4 | 57.1% | 26 | 🟠 needs_rule_adjustment |
-| `igf1r` | ted | 9 | 13 | 8 | 88.9% | 33 | 🟡 acceptable_mismatch |
-| `atopy` | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | 50 | 🟡 acceptable_mismatch |
-| `ted` | ted | 12 | 13 | 11 | 91.7% | 33 | 🟡 acceptable_mismatch |
-| `il4ra` | ad, asthma | 9 | 27 | 9 | 100.0% | 88 | ✅ match |
-| `respiratory` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | 66 | ✅ match |
-| `tslp` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | 66 | ✅ match |
+| Legacy Area | Normalized Indications | Legacy | Norm | Overlap | Raw Match% | OOS Excl. | OOS-Adj% | Trials | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| `tcell` | all, multiple_myeloma | 12 | 7 | 0 | 0.0% | — | — | 0 | ⛔ not_ready |
+| `autoimmune` | gmg, cidp, ra, sle, waiha, sjogrens | 25 | 24 | 12 | 48.0% | — | — | 59 | 🟠 needs_rule_adjustment |
+| `fcrn` | gmg, cidp, waiha | 7 | 10 | 4 | 57.1% | — | — | 26 | 🟠 needs_rule_adjustment |
+| `igf1r` | ted | 9 | 13 | 8 | 88.9% | — | — | 33 | 🟡 acceptable_mismatch |
+| `atopy` | ad, chronic_urticaria | 10 | 19 | 9 | 90.0% | — | — | 50 | 🟡 acceptable_mismatch |
+| `ted` | ted | 12 | 13 | 11 | 91.7% | — | — | 33 | 🟡 acceptable_mismatch |
+| `tl1a` | uc, cd | 51 | 49 | 47 | 92.2% | 3 | 97.9% | 64 | 🟢 compare_pass_oos_adjusted |
+| `ibd` | uc, cd | 50 | 49 | 47 | 94.0% | 1 | 95.9% | 64 | 🟢 compare_pass_oos_adjusted |
+| `il4ra` | ad, asthma | 9 | 27 | 9 | 100.0% | — | — | 88 | ✅ match |
+| `respiratory` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | 66 | ✅ match |
+| `tslp` | asthma, copd, crswnp | 14 | 17 | 14 | 100.0% | — | — | 66 | ✅ match |
 
 ### Detail by Area
 
@@ -51,7 +67,7 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 12 |
 | Normalized drugs (`drug_indications`) | 7 |
 | Overlap | 0 |
-| Match % | 0.0% |
+| Raw match % | 0.0% |
 | Extra in legacy only | 12 |
 | Extra in normalized only | 7 |
 | Normalized trial count (`trial_indications`) | 0 |
@@ -83,84 +99,6 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 - `teclistamab`: Tecvayli (teclistamab) (conf=A)
 - `tisagenlecleucel`: Kymriah (tisagenlecleucel) (conf=B)
 
-#### `tl1a` → `uc, cd` 🔴 **migration_blocker**
-
-| Field | Value |
-|---|---|
-| Legacy drugs (`drug_areas`) | 51 |
-| Legacy drugs (`drug_area_scores`) | 51 |
-| Normalized drugs (`drug_indications`) | 17 |
-| Overlap | 15 |
-| Match % | 29.4% |
-| Extra in legacy only | 36 |
-| Extra in normalized only | 2 |
-| Normalized trial count (`trial_indications`) | 65 |
-| Deals tagged to legacy area | 67 |
-| Catalysts tagged to legacy area | 384 |
-
-**Assessment:** Normalized covers only 29% of legacy drug population. 36 legacy drugs have no normalized counterpart. Migrating now would silently drop these drugs from dashboard views.
-
-**Drugs in legacy only (first 15):**
-- `abbv-382`: ABBV-382
-- `abs-101`: ABS-101
-- `cantai-tl1a`: Cantai TL1A×IL-23p19
-- `cldr-001`: CLD-423
-- `duvakitug`: Duvakitug
-- `ear-2001`: HXN-1001
-- `ep006`: ES302
-- `epi-001`: EPI-001
-- `erd-1`: HXN-1003
-- `es302`: ES302
-- `fg-m701`: ABBV-701
-- `generate-uc`: GB-3250
-- `golimumab`: Simponi (golimumab)
-- `hbm2001`: HBM2001
-- `hxn-1002`: HXN-1002
-- _(+21 more)_
-
-**Drugs in normalized only (first 15):**
-- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
-- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
-
-#### `ibd` → `uc, cd` 🔴 **migration_blocker**
-
-| Field | Value |
-|---|---|
-| Legacy drugs (`drug_areas`) | 50 |
-| Legacy drugs (`drug_area_scores`) | 50 |
-| Normalized drugs (`drug_indications`) | 17 |
-| Overlap | 15 |
-| Match % | 30.0% |
-| Extra in legacy only | 35 |
-| Extra in normalized only | 2 |
-| Normalized trial count (`trial_indications`) | 65 |
-| Deals tagged to legacy area | 0 |
-| Catalysts tagged to legacy area | 18 |
-
-**Assessment:** Normalized covers only 30% of legacy drug population. 35 legacy drugs have no normalized counterpart. Migrating now would silently drop these drugs from dashboard views.
-
-**Drugs in legacy only (first 15):**
-- `abbv-382`: ABBV-382
-- `abs-101`: ABS-101
-- `cantai-tl1a`: Cantai TL1A×IL-23p19
-- `cldr-001`: CLD-423
-- `duvakitug`: Duvakitug
-- `ear-2001`: HXN-1001
-- `ep006`: ES302
-- `epi-001`: EPI-001
-- `erd-1`: HXN-1003
-- `es302`: ES302
-- `fg-m701`: ABBV-701
-- `generate-uc`: GB-3250
-- `golimumab`: Simponi (golimumab)
-- `hbm2001`: HBM2001
-- `hxn-1002`: HXN-1002
-- _(+20 more)_
-
-**Drugs in normalized only (first 15):**
-- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
-- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
-
 #### `autoimmune` → `gmg, cidp, ra, sle, waiha, sjogrens` 🟠 **needs_rule_adjustment**
 
 | Field | Value |
@@ -169,7 +107,7 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 25 |
 | Normalized drugs (`drug_indications`) | 24 |
 | Overlap | 12 |
-| Match % | 48.0% |
+| Raw match % | 48.0% |
 | Extra in legacy only | 13 |
 | Extra in normalized only | 12 |
 | Normalized trial count (`trial_indications`) | 59 |
@@ -215,7 +153,7 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 7 |
 | Normalized drugs (`drug_indications`) | 10 |
 | Overlap | 4 |
-| Match % | 57.1% |
+| Raw match % | 57.1% |
 | Extra in legacy only | 3 |
 | Extra in normalized only | 6 |
 | Normalized trial count (`trial_indications`) | 26 |
@@ -245,14 +183,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 9 |
 | Normalized drugs (`drug_indications`) | 13 |
 | Overlap | 8 |
-| Match % | 88.9% |
+| Raw match % | 88.9% |
 | Extra in legacy only | 1 |
 | Extra in normalized only | 5 |
 | Normalized trial count (`trial_indications`) | 33 |
 | Deals tagged to legacy area | 18 |
 | Catalysts tagged to legacy area | 30 |
 
-**Assessment:** 89% legacy coverage. 5 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 88.9% legacy coverage. 5 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
 
 **Drugs in legacy only (first 15):**
 - `batoclimab`: Batoclimab (IMVT-1401)
@@ -272,14 +210,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 10 |
 | Normalized drugs (`drug_indications`) | 19 |
 | Overlap | 9 |
-| Match % | 90.0% |
+| Raw match % | 90.0% |
 | Extra in legacy only | 1 |
 | Extra in normalized only | 10 |
 | Normalized trial count (`trial_indications`) | 50 |
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 3 |
 
-**Assessment:** 90% legacy coverage. 10 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 90.0% legacy coverage. 10 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
 
 **Drugs in legacy only (first 15):**
 - `upadacitinib`: Rinvoq (upadacitinib)
@@ -304,14 +242,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 13 |
 | Normalized drugs (`drug_indications`) | 13 |
 | Overlap | 11 |
-| Match % | 91.7% |
+| Raw match % | 91.7% |
 | Extra in legacy only | 1 |
 | Extra in normalized only | 2 |
 | Normalized trial count (`trial_indications`) | 33 |
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 2 |
 
-**Assessment:** 92% legacy coverage. 2 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
+**Assessment:** 91.7% legacy coverage. 2 extra drugs in normalized are expected — the ontology is more complete than the legacy area curation. Review extra_legacy list for any true missing rows.
 
 **Drugs in legacy only (first 15):**
 - `batoclimab`: Batoclimab (IMVT-1401)
@@ -319,6 +257,63 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 **Drugs in normalized only (first 15):**
 - `cizutamig`: Cizutamig (conf=B)
 - `iscalimab`: Iscalimab (CFZ533) (conf=B)
+
+#### `tl1a` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
+
+| Field | Value |
+|---|---|
+| Legacy drugs (`drug_areas`) | 51 |
+| Legacy drugs (`drug_area_scores`) | 51 |
+| Normalized drugs (`drug_indications`) | 49 |
+| Overlap | 47 |
+| Raw match % | 92.2% |
+| Confirmed OOS excluded (`confirmed_oos_legacy_noise`) | 3 (lm-302, sim0500, spy072) |
+| OOS-adjusted match % | 97.9% |
+| Extra in legacy only | 4 |
+| Extra in normalized only | 2 |
+| Normalized trial count (`trial_indications`) | 64 |
+| Deals tagged to legacy area | 67 |
+| Catalysts tagged to legacy area | 384 |
+
+**Assessment:** Raw 92.2% < 95% threshold, but OOS-adjusted coverage is 97.9% ≥ 95% after removing 3 confirmed out-of-scope legacy drug(s) from denominator. Governance rule (2026-05-25): confirmed OOS drugs excluded from migration-readiness denominator. Ready for Phase 4 compare pass — NOT Phase 5 migration (requires dual-read validation first).
+
+**Drugs in legacy only (first 15):**
+- `epi-001`: EPI-001
+- `lm-302`: LM-302
+- `sim0500`: SIM0500
+- `spy072`: SPY072
+
+**Drugs in normalized only (first 15):**
+- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
+- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
+
+#### `ibd` → `uc, cd` 🟢 **compare_pass_oos_adjusted**
+
+| Field | Value |
+|---|---|
+| Legacy drugs (`drug_areas`) | 50 |
+| Legacy drugs (`drug_area_scores`) | 50 |
+| Normalized drugs (`drug_indications`) | 49 |
+| Overlap | 47 |
+| Raw match % | 94.0% |
+| Confirmed OOS excluded (`confirmed_oos_legacy_noise`) | 1 (sim0500) |
+| OOS-adjusted match % | 95.9% |
+| Extra in legacy only | 3 |
+| Extra in normalized only | 2 |
+| Normalized trial count (`trial_indications`) | 64 |
+| Deals tagged to legacy area | 0 |
+| Catalysts tagged to legacy area | 18 |
+
+**Assessment:** Raw 94.0% < 95% threshold, but OOS-adjusted coverage is 95.9% ≥ 95% after removing 1 confirmed out-of-scope legacy drug(s) from denominator. Governance rule (2026-05-25): confirmed OOS drugs excluded from migration-readiness denominator. Ready for Phase 4 compare pass — NOT Phase 5 migration (requires dual-read validation first).
+
+**Drugs in legacy only (first 15):**
+- `epi-001`: EPI-001
+- `sim0500`: SIM0500
+- `spy072`: SPY072
+
+**Drugs in normalized only (first 15):**
+- `risankizumab-lutikizumab-or-trosunilimab`: TARGET-CD (M24-885) (risankizumab + lutikizumab or trosunilimab) (conf=A)
+- `risankizumab-vs-vedolizumab`: risankizumab vs vedolizumab (conf=A)
 
 #### `il4ra` → `ad, asthma` ✅ **match**
 
@@ -328,14 +323,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 9 |
 | Normalized drugs (`drug_indications`) | 27 |
 | Overlap | 9 |
-| Match % | 100.0% |
+| Raw match % | 100.0% |
 | Extra in legacy only | 0 |
 | Extra in normalized only | 18 |
 | Normalized trial count (`trial_indications`) | 88 |
 | Deals tagged to legacy area | 24 |
 | Catalysts tagged to legacy area | 65 |
 
-**Assessment:** 100% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
 
 **Drugs in normalized only (first 15):**
 - `abrocitinib`: Cibinqo (abrocitinib) (conf=A)
@@ -363,14 +358,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 14 |
 | Normalized drugs (`drug_indications`) | 17 |
 | Overlap | 14 |
-| Match % | 100.0% |
+| Raw match % | 100.0% |
 | Extra in legacy only | 0 |
 | Extra in normalized only | 3 |
 | Normalized trial count (`trial_indications`) | 66 |
 | Deals tagged to legacy area | 0 |
 | Catalysts tagged to legacy area | 4 |
 
-**Assessment:** 100% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
 
 **Drugs in normalized only (first 15):**
 - `ibi333`: IBI333 (conf=B)
@@ -385,14 +380,14 @@ Match % = overlap / legacy_count × 100. A low match % means migrating now would
 | Legacy drugs (`drug_area_scores`) | 14 |
 | Normalized drugs (`drug_indications`) | 17 |
 | Overlap | 14 |
-| Match % | 100.0% |
+| Raw match % | 100.0% |
 | Extra in legacy only | 0 |
 | Extra in normalized only | 3 |
 | Normalized trial count (`trial_indications`) | 66 |
 | Deals tagged to legacy area | 28 |
 | Catalysts tagged to legacy area | 119 |
 
-**Assessment:** 100% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
+**Assessment:** 100.0% of legacy drugs represented in normalized. Extra normalized drugs are genuine ontology expansion, not regressions.
 
 **Drugs in normalized only (first 15):**
 - `ibi333`: IBI333 (conf=B)
@@ -416,16 +411,16 @@ For each of the 5 high-risk legacy dashboard paths (from `docs/dashboard_depende
 - **Match %:** 97.2%
 - **Notes:** drug_area_scores has competitive enrichment data (overlap, rationale, cls) that has no equivalent column in drug_indications/drug_targets. The competitive positioning modal content CANNOT be replaced until drug_area_scores enrichment is migrated to drug_indications. Separate concern from drug population coverage.
 
-### _makeAreaPI() — IBD/TL1A tab  🔴 **migration_blocker**
+### _makeAreaPI() — IBD/TL1A tab  🟢 **compare_pass_oos_adjusted**
 
 - **Lines:** 12121–12200
 - **Legacy source:** drug_areas.in('area_id', ['ibd']) or ['tl1a']
 - **Normalized source:** drug_indications WHERE indication_id IN ('uc','cd')
 - **Legacy count:** 51
-- **Normalized count:** 17
-- **Overlap:** 15
-- **Match %:** 29.4%
-- **Notes:** Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers only 17 UC+CD drugs (15 overlap). Migrating _makeAreaPI now would drop ~36 drugs from the IBD/TL1A tab drug list. drug_indications needs full backfill before this path can be cut over.
+- **Normalized count:** 49
+- **Overlap:** 47
+- **Match %:** 92.2%
+- **Notes:** Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers 49 UC+CD drugs (47 overlap). Raw coverage: 92.2%. OOS-adjusted coverage: 97.9% after removing 3 confirmed OOS drugs (['lm-302', 'sim0500', 'spy072']). Governance rule (2026-05-25): OOS drugs are legacy curation noise — do NOT add them to drug_indications. Ready for Phase 4 dual-read comparison — NOT Phase 5 migration.
 
 ### loadAreaDeals() / _loadBdIntoModal()  ⛔ **not_ready**
 
@@ -444,15 +439,15 @@ For each of the 5 high-risk legacy dashboard paths (from `docs/dashboard_depende
 - **Legacy source:** catalysts.area_id IN (areas)
 - **Normalized source:** trial_indications WHERE indication_id IN (ind_ids)
 - **Legacy count:** 773
-- **Normalized count:** 302
-- **Notes:** 773 catalysts tagged with area_id. trial_indications has 302 rows across 16 indications. These are different record types (catalysts = upcoming readouts, trial_indications = indication-level trial metadata). Catalysts cannot be directly replaced by trial_indications — they contain curated readout dates and notes not in trial_indications. Normalized path should JOIN trials + trial_indications to derive catalyst-like records. Rule needed: area_id → indication_id bridge for catalysts.area_id filter.
+- **Normalized count:** 301
+- **Notes:** 773 catalysts tagged with area_id. trial_indications has 301 rows across 16 indications. These are different record types (catalysts = upcoming readouts, trial_indications = indication-level trial metadata). Catalysts cannot be directly replaced by trial_indications — they contain curated readout dates and notes not in trial_indications. Normalized path should JOIN trials + trial_indications to derive catalyst-like records. Rule needed: area_id → indication_id bridge for catalysts.area_id filter.
 
 ### Trial + Signal feed paths (_loadAreaDrugTabs)  🟠 **needs_rule_adjustment**
 
 - **Lines:** 3337–3460 / 3418 / 3460
 - **Legacy source:** signals.area_id, trials join via drug_id
 - **Normalized source:** trial_indications WHERE indication_id IN (ind_ids)
-- **Normalized count:** 302
+- **Normalized count:** 301
 - **Notes:** trials table has indication_id column but it is NULL for all rows inspected. trial_indications is now populated (319 rows) and provides the canonical trial → indication link. However, the trials table itself does not yet have indication_id backfilled from trial_indications. Migration path: backfill trials.indication_id from trial_indications, then replace area_id filter with indication_id filter. Phase 4 acceptance criteria: trial counts per indication via trial_indications must match or exceed legacy catalyst count per area.
 
 ---
@@ -461,59 +456,29 @@ For each of the 5 high-risk legacy dashboard paths (from `docs/dashboard_depende
 
 These paths must NOT be migrated until the blocking conditions are resolved:
 
-- 🔴 **`ibd`** (30.0% match): Normalized covers only 30% of legacy drug population. 35 legacy drugs have no normalized counterpart. Migrating now would silently drop these drugs from dashboard views.
 - ⛔ **`tcell`** (0.0% match): Zero overlap — legacy and normalized are pointing at completely different drug populations. Fundamental mapping issue. Do NOT migrate.
-- 🔴 **`tl1a`** (29.4% match): Normalized covers only 29% of legacy drug population. 36 legacy drugs have no normalized counterpart. Migrating now would silently drop these drugs from dashboard views.
 - 🔴 **openDrugEntityModal()**: drug_area_scores has competitive enrichment data (overlap, rationale, cls) that has no equivalent column in drug_indicat...
-- 🔴 **_makeAreaPI() — IBD/TL1A tab**: Legacy ibd+tl1a areas contain 51 drugs. drug_indications covers only 17 UC+CD drugs (15 overlap). Migrating _makeAreaPI ...
 - ⛔ **loadAreaDeals() / _loadBdIntoModal()**: 183 deals tagged with area_id across fcrn/igf1r/il4ra/tcell/tl1a/tslp. deals table has no indication_id column. No bridg...
 
 ---
 
 ## Part 4 — Mismatch Classification (Track B)
 
-Classifying why each mismatch exists. Full taxonomy: `missing_relationship` | `legacy_noise` | `ontology_scope_mismatch` | `bridge_rule_needed` | `true_migration_blocker` | `coverage_gap` | `alias_gap` | `scope_difference` | `true_missing_row` | `true_data_integrity_issue`
-
-### Wave 2C — TL1A / IBD Mismatch Classifications (2026-05-25)
-
-These are the mismatch types for the 36 legacy tl1a/ibd drugs that were absent from drug_indications. Classified during Wave 2C preview build (run: wave2c_ibd_20260525_203134).
-
-| Drug | Type | Explanation | Action |
-|---|---|---|---|
-| `lm-302` (LM-302) | **legacy_noise** | Anti-CLDN18.2 ADC with ind_short "Gastric · GEJ Adenocarcinoma". Gastric cancer — not IBD. Was placed in tl1a area by legacy curation error. | Exclude permanently. No drug_indications row. |
-| `sim0500` (SIM0500) | **legacy_noise** | GPRC5D×BCMA×CD3 trispecific with ind_short "RRMM". Relapsed/Refractory Multiple Myeloma — not IBD. Legacy area contamination. | Exclude permanently. No drug_indications row. |
-| `spy072` (SPY072) | **ontology_scope_mismatch** | Anti-TL1A mAb with ind_short "PsA · axSpA". All trials are rheumatology (RA, PsA, axSpA) — not UC or CD. Mechanism is TL1A but indication scope is wrong. | Exclude. TL1A≠IBD when target indication is rheumatology. |
-| `ep006` / `es302` | **true_data_integrity_issue** | Two drug_ids for the same molecule (ES302). ep006 maps to the same drug as es302. Both have ind_short pointing to UC/CD, but ep006 is a phantom ID. | Map both for now (ep006 conf penalized to 85). Track B future sprint: tombstone ep006, keep es302 as canonical. |
-| `epi-001` | **missing_relationship** | Anti-TL1A antibody, preclinical stage. No ind_short available in drugs table. Mechanism strongly implies IBD but insufficient source evidence to commit with confidence. | Hold as review_required (conf 76). Manual review needed before commit. |
-| 32 other drugs (abbv-382, abs-101, duvakitug, upadacitinib, etc.) | **coverage_gap** | Legitimate tl1a/ibd-area drugs not yet in drug_indications. Correct indication scope confirmed via ind_short. These are the drugs Wave 2C is designed to backfill. | Map to UC and/or CD per classification table. |
-
-### Area-Level Mismatch Classifications (General Harness)
-
-Classifying why each extra-legacy drug exists per area. Types: `coverage_gap` | `scope_difference` | `legacy_noise` | `true_missing_row`
+Classifying why each mismatch exists. Types: `coverage_gap` | `alias_gap` | `scope_difference` | `legacy_noise` | `true_missing_row`
 
 | Area | Extra-Legacy Drug | Classification | Action |
 |---|---|---|---|
-| `atopy` | `upadacitinib` (Rinvoq) | true_missing_row | Add drug_indications row: upadacitinib → ad |
-| `autoimmune` | `batoclimab` (Batoclimab) | scope_difference | FcRn mechanism drug placed in autoimmune legacy catch-all |
+| `atopy` | `upadacitinib` (Rinvoq (upadacitinib)) | true_missing_row | Add drug_indications row: upadacitinib → ad |
+| `autoimmune` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | FcRn mechanism drug placed in autoimmune legacy catch-all |
 | `autoimmune` | `cnd261` (CND261) | coverage_gap | Wave 2A did not cover CND261; need drug_indications backfill |
 | `autoimmune` | `cnd319` (CND319) | coverage_gap | Wave 2A did not cover CND319; need drug_indications backfill |
-| `autoimmune` | `iscalimab` (Iscalimab) | coverage_gap | CD40 mechanism; gMG-adjacent; missing from drug_indications |
-| `fcrn` | `atg-201` (ATG-201) | scope_difference | CAR-T (tcell area) placed in fcrn legacy; different mechanism |
-| `fcrn` | `batoclimab` (Batoclimab) | scope_difference | FcRn-targeting but in legacy igf1r/autoimmune areas; not in gmg/cidp/waiha drug_indications |
-| `fcrn` | `imvt-1402` (IMVT-1402) | true_missing_row | FcRn drug; add drug_indications rows for gmg/cidp/waiha |
-| `igf1r` | `batoclimab` (Batoclimab) | scope_difference | FcRn/IgG pathway, misclassified in igf1r legacy; exclude from ted |
-| `tcell` | `atg-201` (ATG-201) | true_migration_blocker | GD2-targeting CAR-T; not ALL or MM specifically. tcell→all/MM mapping is fundamentally broken. |
-| `ted` | `batoclimab` (Batoclimab) | scope_difference | FcRn; legacy igf1r area misclassified it; not TED |
-
-### Dashboard Function Mismatch Classifications
-
-| Function | Classification | Root Cause |
-|---|---|---|
-| `loadAreaDeals()` | **bridge_rule_needed** | deals table has no indication_id FK; area_id→indication_id bridge doesn't exist |
-| `loadAreaCatalysts()` | **bridge_rule_needed** | Catalysts record curated readout dates/notes — not equivalent to trial_indications rows; bridge needed |
-| Trial/Signal feeds | **bridge_rule_needed** | trials.indication_id column exists but is NULL; must be backfilled from trial_indications |
-| `openDrugEntityModal()` | **true_migration_blocker** | drug_area_scores competitive enrichment (overlap, rationale, cls) has no equivalent in drug_indications |
-| `tcell` area | **true_migration_blocker** | 0% overlap; CAR-T drugs and ALL/MM biologics are different drug populations |
+| `autoimmune` | `iscalimab` (Iscalimab (CFZ533)) | coverage_gap | Iscalimab (CD40; gMG-adjacent) missing from drug_indications |
+| `fcrn` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T (tcell area), placed in fcrn legacy; different mechanism |
+| `fcrn` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn-targeting but in legacy igf1r/autoimmune areas; not in gmg/cidp/waiha drug_indications |
+| `fcrn` | `imvt-1402` (IMVT-1402) | true_missing_row | IMVT-1402 is FcRn; add drug_indications rows for gmg/cidp/waiha |
+| `igf1r` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab = FcRn/IgG pathway, classified in igf1r legacy area; exclude from ted |
+| `tcell` | `atg-201` (ATG-201) | scope_difference | ATG-201 is CAR-T targeting GD2; not ALL or MM specifically |
+| `ted` | `batoclimab` (Batoclimab (IMVT-1401)) | scope_difference | Batoclimab is FcRn; legacy igf1r area misclassified it; not TED |
 
 ---
 
@@ -523,26 +488,28 @@ Phase 4 migration is safe when ALL of the following are true:
 
 ### Per-Indication Criteria
 
-| Indication(s) | Required Match % | Current | Criteria Met? |
-|---|---|---|---|
-| `il4ra` → ad, asthma | ≥95% | 100.0% | ✅ |
-| `respiratory` → asthma, copd, crswnp | ≥95% | 100.0% | ✅ |
-| `tslp` → asthma, copd, crswnp | ≥95% | 100.0% | ✅ |
-| `ted` → ted | ≥95% | 91.7% | ❌ |
-| `atopy` → ad, chronic_urticaria | ≥95% | 90.0% | ❌ |
-| `igf1r` → ted | ≥95% | 88.9% | ❌ |
-| `fcrn` → gmg, cidp, waiha | ≥95% | 57.1% | ❌ |
-| `autoimmune` → gmg, cidp, ra, sle, waiha, sjogrens | ≥95% | 48.0% | ❌ |
-| `ibd` → uc, cd | ≥95% | 30.0% | ❌ |
-| `tl1a` → uc, cd | ≥95% | 29.4% | ❌ |
-| `tcell` → all, multiple_myeloma | ≥95% | 0.0% | ❌ |
+| Indication(s) | Required | Raw% | OOS-Adj% | OOS Excl. | Criteria Met? |
+|---|---|---|---|---|---|
+| `il4ra` → ad, asthma | ≥95% | 100.0% | — | — | ✅ raw |
+| `respiratory` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | ✅ raw |
+| `tslp` → asthma, copd, crswnp | ≥95% | 100.0% | — | — | ✅ raw |
+| `ibd` → uc, cd | ≥95% | 94.0% | 95.9% | 1 | 🟢 OOS-adj |
+| `tl1a` → uc, cd | ≥95% | 92.2% | 97.9% | 3 | 🟢 OOS-adj |
+| `ted` → ted | ≥95% | 91.7% | — | — | ❌ |
+| `atopy` → ad, chronic_urticaria | ≥95% | 90.0% | — | — | ❌ |
+| `igf1r` → ted | ≥95% | 88.9% | — | — | ❌ |
+| `fcrn` → gmg, cidp, waiha | ≥95% | 57.1% | — | — | ❌ |
+| `autoimmune` → gmg, cidp, ra, sle, waiha, sjogrens | ≥95% | 48.0% | — | — | ❌ |
+| `tcell` → all, multiple_myeloma | ≥95% | 0.0% | — | — | ❌ |
+
+_🟢 OOS-adj = passes after removing confirmed OOS drugs from denominator per governance rule (2026-05-25)._
 
 ### Dashboard Function Criteria
 
 | Function | Blocking Condition | Resolved? |
 |---|---|---|
 | `openDrugEntityModal()` | drug_indications must have competitive enrichment data (overlap, rationale, cls) | ❌ Not yet — enrichment migration pending |
-| `_makeAreaPI()` IBD/TL1A | drug_indications must cover all 50 IBD/TL1A drugs | ❌ Only 17/50 covered |
+| `_makeAreaPI()` IBD/TL1A | OOS-adjusted coverage ≥ 95% — ready for Phase 4 dual-read | 🟢 Phase 4 compare pass (OOS-adjusted) |
 | `loadAreaDeals()` | deals.indication_id FK must exist | ❌ Column does not exist |
 | `loadAreaCatalysts()` | area_id→indication_id bridge must exist for catalysts | ❌ Bridge not built |
 | Trial + Signal feeds | trials.indication_id must be backfilled from trial_indications | ❌ trials.indication_id is NULL |
@@ -551,14 +518,18 @@ Phase 4 migration is safe when ALL of the following are true:
 
 ## Phase 4 Overall Status
 
-**Comparison date:** 2026-05-25 20:17 UTC
+**Comparison date:** 2026-05-25 20:59 UTC
 **Areas compared:** 11
 - ✅ match: 3
+- 🟢 compare_pass_oos_adjusted: 2
 - 🟡 acceptable_mismatch: 3
 - 🟠 needs_rule_adjustment: 2
-- 🔴 migration_blocker: 2
+- 🔴 migration_blocker: 0
 - ⛔ not_ready: 1
 
-**Verdict:** Phase 4 migration is **NOT YET SAFE**. Blockers must be resolved before any dashboard query is switched. See Part 3 for specific blocking conditions.
+**OOS-adjusted pass areas:** ibd, tl1a  
+These areas meet the 95% migration-readiness threshold after removing confirmed OOS drugs from the legacy denominator. Ready for **Phase 4 dual-read validation**. Do NOT advance to Phase 5 (migration) until dual-read comparison confirms zero regressions.
 
-**Next action (Track A):** Expand drug_indications coverage for tl1a/ibd area drugs — currently at 30% coverage. This is the primary gating item.
+**Verdict:** Phase 4 migration is **NOT YET SAFE** for all areas. Remaining blockers must be resolved before any dashboard query is switched. See Part 3 for specific blocking conditions.
+
+**Next action (Track D):** Build Phase 4 dual-read layer for `_makeAreaPI` and `openDrugEntityModal` — parallel read paths, assert row count parity, log any visual regressions. Starting point: `docs/phase4_comparison_harness.md` Part 2 and Part 5.
