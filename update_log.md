@@ -1,5 +1,429 @@
 
 ---
+## 2026-05-25 (Session 51) — Phase 4 Comparison Harness built
+
+**Phase 4 Comparison Harness — COMPLETE**
+- Script: `scripts/phase4_compare_legacy_vs_normalized.py` (read-only, does not modify production data)
+- Output: `docs/phase4_comparison_harness.md` — regenerable from script at any time
+- Compared 11 legacy area_id mappings against normalized drug_indications + trial_indications
+- Compared 5 high-risk dashboard functions against their proposed normalized replacements
+
+**Comparison results:**
+- ✅ match (3): il4ra, respiratory, tslp — 100% legacy coverage; safe when drug_indications is at scale
+- 🟡 acceptable_mismatch (3): atopy (90%), igf1r/ted (88.9%), ted (91.7%) — within reach of 95% threshold
+- 🟠 needs_rule_adjustment (2): autoimmune (48%, broad catch-all), fcrn (57%, mechanism vs indication mismatch)
+- 🔴 migration_blocker (2): tl1a (29.4%), ibd (30.0%) — drug_indications coverage gap; 50 legacy drugs, 17 normalized
+- ⛔ not_ready (1): tcell (0% overlap) — legacy and normalized drug populations are completely disjoint; fundamental mapping issue
+
+**Dashboard function status:**
+- 🔴 openDrugEntityModal() — competitive enrichment data (overlap, rationale, cls) has no normalized equivalent yet
+- 🔴 _makeAreaPI() IBD/TL1A — 17/50 drugs covered; migrating now would drop 34 drugs from tab
+- ⛔ loadAreaDeals() — deals.indication_id column does not exist; no normalized bridge
+- 🟠 loadAreaCatalysts() — area_id→indication_id bridge not built; trial_indications populated but not joined
+- 🟠 Trial + Signal feeds — trials.indication_id is NULL; needs backfill from trial_indications
+
+**Verdict:** Phase 4 migration is NOT YET SAFE. Primary gating item: expand drug_indications coverage for tl1a/ibd area drugs (Wave 2C IBD backfill).
+
+**Mismatch classification highlights (Track B):**
+- `batoclimab` appears in multiple legacy areas (autoimmune, fcrn, igf1r, ted) → scope_difference: FcRn mechanism drug, correctly excluded from ted drug_indications
+- `upadacitinib` (Rinvoq) in legacy atopy but not drug_indications → true_missing_row; needs drug_indications row for ad
+- `imvt-1402` in legacy fcrn but not drug_indications → true_missing_row; needs gmg/cidp/waiha rows
+- tcell area drugs (KYV-101, CABA-201, CND261-460) → scope_difference; CAR-T cellular therapies, not ALL/MM approved drugs
+
+---
+## 2026-05-25 (Session 50) — L4 QUERYABLE ACHIEVED — Wave 2B committed; 5-track sprint complete
+
+**L4 Queryable Milestone — ACHIEVED 2026-05-25**
+- All three ontology tables now populated: drug_targets (173) · drug_indications (129) · trial_indications (319)
+- Structured joins available across full indication → drug → target → trial graph
+- No text search, no legacy disease_area, no drug_area_scores required for core queries
+
+**Wave 2B — trial_indications COMMITTED**
+- Script: `scripts/wave2b_trial_indications_backfill.py`
+- Run ID: `wave2b_trials_20260525_194209`
+- 315 rows committed (auto_confirmed 247 + sampling_queue 68); 4 Tier C rows held in backfill_preview
+- V1: 319 total rows · V2: 0 duplicates ✓ · V3: 0 unmatched indication_ids ✓ · V4: 0 unmatched trial_ids ✓
+- V5: auto_confirmed=247 · sampling_queue=68 · review_required=4 (held)
+- V6: 16 indications covered — top: UC 50 · AD 48 · asthma 40 · CD 35 · TED 33
+- V7: ontology_edges count = 25 ✓ (locked — do not unlock until Phase 4 comparison layer proven)
+
+**Governance decisions applied in Wave 2B**
+- Added `Crohns Disease → cd` alias (id 142, synonym — spelling variant without apostrophe)
+- Added `crswnp` as canonical indication: Chronic Rhinosinusitis with Nasal Polyps (disease_area: respiratory)
+  - Aliases added: "Chronic Rhinosinusitis With Nasal Polyps" (id 143), "CRSwNP" (id 144), "Nasal Polyps" (id 145)
+  - Governance rule: CRSwNP ≠ asthma — distinct clinical indication despite type 2 biology overlap
+
+**4 held Tier C rows — reviewed and committed individually**
+- "Eosinophilic Esophagitis" → eoe (conf 76, partial scan): committed
+- "Chronic Urticaria" → cu (conf 78, annotation strip edge case): committed
+- "Hidradenitis Suppurativa" → hs (conf 74, partial scan): committed
+- "Sjögren's Syndrome" → sjogrens (conf 71, partial scan): committed
+
+**L4 Canonical Query Validation Suite — PASSED**
+- Q1: TL1A × UC via drug_targets + drug_indications join ✓
+- Q2: FcRn × gMG via same join ✓
+- Q3: Companies in TED via drug_indications + drugs ✓
+- Q4: Crowded targets in SLE via drug_indications + drug_targets ✓
+- Q5: Indication competitive density via drug_indications aggregate + trial_indications ✓
+- All queries use structured joins only — no text search, no drug_area_scores, no legacy disease_area
+
+**Track C — Indication Landscape Card updated to L4 data sources**
+- Program Board pbLoadCard() now queries 5 sources: drug_indications, drug_targets, drugs.company_id, trial_indications, backfill_preview (held count)
+- PB_IND_META updated: TED added, all 7 indications (UC, CD, AD, Asthma, TED, gMG, SLE)
+- L4 progress bar: 100% — "L4 Queryable — ACHIEVED 2026-05-25"
+- Intelligence Harvest Principle: all 3 bullets now green ✓
+
+**Track D — Dashboard Dependency Inventory updated**
+- `docs/dashboard_dependency_inventory.md` — Point 5 updated
+- trial_indications-blocked paths now in Phase 4 Compare Queue (unblocked structurally)
+- Migration sequence: Phase 2 ✓ complete for all three ontology tables
+- Recount: 68 safe · 94 needs-migration · 15 → Phase 4 queue
+
+**Track E — Normalization Engine documented**
+- File: `docs/normalization_engine.md` (new)
+- 5-tier parser documented with regex, confidence scores, review status mapping
+- HV exclusion, OOS classifier, composite split rules, composite penalty floor
+- Known alias gaps from Wave 2B logged (CRSwNP discovery, Crohn's Disease spelling)
+- Standing governance rules (5) documented
+- Planned extension to normalizeTarget/Company/Modality/Route function family
+
+---
+## 2026-05-25 (Session 49i) — Wave 2A committed; migration control document created
+
+**Wave 2A — drug_indications COMMITTED**
+- Run ID: `wave2a_indications_20260525_180044`
+- 124 rows committed → drug_indications now has 129 total rows (incl. 5 pilot rows)
+- V1: 129 rows · V2: 0 duplicates ✓ · V3: 0 unmatched indication_ids ✓ · V4: 0 unmatched drug_ids ✓
+- V5: auto_confirmed=41 · review_required=1 · sampling_queue=87
+- V6: 17 indications covered (AD 18 · SLE 14 · Asthma 14 · TED 13 · UC 12 · COPD 12 · CD 11 · gMG 8 · RA 8 · MM 5 · CIDP 3 · EoE 3 · WAIHA 2 · ALL 2 · CU 2 · Sjögren's 1 · HS 1)
+- V7: ontology_edges count = 25 ✓ (locked pending trial_indications)
+
+**Track D — Migration Control Document created**
+- File: `docs/dashboard_migration_inventory.md`
+- 334 total references audited (area_id 178 · disease_areas 71 · drug_area_scores 52 · disease_area 33)
+- Classification: Safe 94 · Needs Migration 142 · Blocked 68 · Ambiguous 6
+- Top 5 risks documented with line numbers (drug modal merge, deal tab render, tab drug load, TabData.load, unified feed filter)
+- ~12 paths blocked until drug_indications fully scored (complete ✓)
+- ~6 paths blocked until trial_indications complete (next sprint)
+- ~55 references safe as legacy fallback through Phase 5
+- Migration sequence documented: Phase 1 ✓ → Phase 2 active → Phase 3 (dashboard queries) → Phase 4 (comparison) → Phase 5 (archive)
+
+---
+## 2026-05-25 (Session 49h) — Wave 2A preview staged; Program Board deployed
+
+**Wave 2A — drug_indications (preview staged, awaiting commit approval)**
+- Script: `scripts/wave2a_drug_indications_backfill.py` — normalization engine with Tier 1/2/3 parser
+- Run ID: `wave2a_indications_20260525_180044`
+- 124 rows written to `backfill_preview`
+- M2 Rows proposed: 124 · M3 Drugs covered: 85 · M4 Indications: 17 · M5 Duplicates: 0
+- Tier A (≥90): 36 · Tier B (80–89): 87 · Tier C (<80): 1 (obinutuzumab→sle, math floor, not data issue)
+- Tier 1 direct: 25 · Tier 2 annotation-strip: 13 · Tier 3 composite: 86
+- Deferred: 28 UC·CD composites (Wave 2C), 11 multi-portfolio (Wave 2D)
+- Truly unresolved: 17 (primarily oncology-only pipelines not in indication database)
+
+**Program Board tab built and deployed (v50a)**
+- New tab accessible via 🗺️ nav icon or `switchTabTo('program-board')`
+- Five-track command center: status, current sprint, blockers, next milestone per track
+- Resource allocation bar: A 70% · B 10% · C 10% · D 5% · E 5%
+- L4 progress meter showing 55% (drug_targets ✓ + drug_indications preview ◐)
+- Intelligence Harvest Principle embedded: "Every relationship table should unlock a new intelligence product"
+
+**Indication Landscape Card — prototype (Track C)**
+- Live prototype embedded in Program Board tab, UC card loaded by default
+- Queries: drug_indications + backfill_preview (assets), entity_edges TARGETS (targets per drug), entity_edges ACTIVE_IN (companies), catalysts (upcoming readouts)
+- Indication selector: UC, CD, AD, Asthma, gMG, SLE
+- UC data: 12 drugs (Wave 2A preview), targets: TL1A/IL-23p19/α4β7/IL-12/23p40, 36 companies in IBD, 10 upcoming catalysts
+- Queries enabled at L4 shown per card
+
+**Track D — dependency inventory complete (2026-05-25)**
+- ~140 dashboard references audited across disease_area, disease_areas, area_id, drug_area_scores
+- ~20 safe · ~120 needs migration · 1 blocked (drug_area_scores FK inconsistency line 19406)
+- Critical path: therapeutic_areas table → FK update → query layer → test
+
+**Five-track parallel workstream model — resource allocation locked**
+- Advisor: 70/10/10/5/5 allocation; Track A is primary
+- Track E normalization engine to become platform library: normalizeIndication(), normalizeTarget(), normalizeCompany(), normalizeModality(), normalizeRoute()
+
+---
+## 2026-05-25 (Session 49g) — Ontology governance layer complete; drug_indications next
+
+**Governance documents created (no Supabase changes)**
+- `docs/indication_ontology_governance.md` — permanent rule: indications represent diseases, not patient subsets; four-layer hierarchy; standing audit rule (severity / treatment-history / biomarker qualifiers); approved exception framework (gMG, UC, CD, TED, CIDP); canonical decision log
+- `docs/target_ontology_governance.md` — stub: four open questions; resolved examples (TL1A, IL23p19, BCMA×CD3, TL1A×IL23p19, CAR-T/CD19, Autoimmune); combination slug policy; "thing or relationship?" core test
+- Governance layer declared **sufficient** by advisor — no further governance writing before drug_indications
+
+**Master ontology principle locked**
+- "Every ontology concept should answer exactly one question"
+- The moment a concept answers two questions, ontology drift begins
+- Full layer → question table + problematic-concept examples captured in migration pattern memory and both governance docs
+
+**Three-layer architecture formalized**
+- Layer 1 — Governance: rules that define how Meridian thinks
+- Layer 2 — Reference: canonical vocabularies (the nouns)
+- Layer 3 — Relationships: where the graph forms and intelligence is generated
+
+**L4 — Queryable milestone defined (advisor 2026-05-25)**
+- Triggered by: drug_indications complete + advisor-approved
+- Success: five BD questions answerable through structured joins without text search
+- ontology_edges must stay at 25 until Drug→Indication AND Trial→Indication both exist
+
+**Next session: pure execution — drug_indications pipeline**
+- Step 0: severe_asthma → asthma rename + alias seed + severity audit
+- Step 1: Create indication_aliases table
+- Step 2: Add missing indication rows (RA, SLE, Sjögren's if still missing)
+- Step 3: Coverage audit
+- Then: Wave 2A → 2B → 2C → 2D extraction
+
+---
+## 2026-05-25 (Session 49f) — Wave 2B Batch C complete; drug_targets layer closed
+
+**Supabase — drug_targets Wave 2B Batch C committed (3 rows)**
+- Category 1 parser fix: oln102 → tshr (co_primary) + igf1r (co_primary); resolved via new spaced-slash rule `\s+/\s+` in BISPECIFIC_INDICATORS
+- Category 4 CAR-T: axicabtagene-ciloleucel → cd19 (primary); CAR-T modality captured separately in drug_modalities
+- Categories 2/3/5 deferred: dict gaps (IL13RA1/FGFR2b/HIF2A/SST2) = single-asset, out of scope; tri-specifics = future target_pairs; combo study artifacts = future trial_arms
+- 8/8 post-commit validations pass
+
+**Script improvements (wave2b_drug_targets_backfill.py)**
+- BISPECIFIC_INDICATORS: added `\s+/\s+` (spaced slash) for programs like "TSHR / IGF-1R"; inline slashes ("IL-17A/F", "JAK1/2") unaffected
+- BISPECIFIC_SEPARATORS: `[×x]` → `×|\s+x\s+`; prevents splitting target names containing X (e.g. OX40L, FOXP3)
+- resolve_target(): dict lookup now runs before bispecific decomposition; preserves combined-target entries in synonym dict
+
+**Wave 2B final state**
+- drug_targets: **173 rows** (10 Wave 2A pilot + 149 Batch A + 11 Batch B + 3 Batch C)
+- Coverage: 133 / 155 drugs = **85.8%**
+- 0 duplicates | 0 unmatched targets | 0 Tier 3/4 | ontology_edges = 25 (unchanged)
+- 22 remaining zero-target drugs: GLP-1R class (4), complement (3), oncology out-of-scope (5), tri-specifics (3), combo artifacts (2), misc out-of-scope (5)
+- 38 combination slugs preserved in backfill_preview for future drug_target_strategies / target_pairs layer
+- Advisor: drug-target layer is mature enough for current Meridian needs; target extraction work paused
+
+**Strategic pivot**
+- Next: drug_indications full pipeline
+- Sequencing: drug_indications → trial_indications → ontology_edges propagation
+- Rationale: Drug → Indication is the relationship that unlocks therapeutic area intelligence, competitive landscapes, company positioning, trial aggregation, catalyst tracking, and indication-centric dashboards
+
+---
+## 2026-05-25 (Session 49e) — Wave 2B Batches A + B complete; Batch C strategy defined
+
+**Supabase — drug_targets Wave 2B Batch A committed**
+- Backfill source: `drug_targets_legacy` (197 rows)
+- Combination slug policy enforced: 38 slugs (e.g. `tl1a_il23p19`, `bcma_cd3`) skipped → `skipped_superseded_by_components` in backfill_preview; preserved for future `drug_target_pairs` / `target_strategies` layer
+- 4 tri-specific slugs identified among the 38 (`cd19_cd20_cd3`, `bcma_cd19_cd3`×2, `tl1a_il23p19_a4b7`)
+- Bispecific pre-scan: drugs with any combination slug in legacy → all their individual target rows assigned `co_primary`
+- Step 0: added 4 new reference targets to `targets` table: `il6r`, `baff`, `il17af`, `ifnar1`
+- 149 rows committed; 0 duplicates, 0 unmatched targets, 0 Tier 3/4
+- Post-commit: drug_targets = 159 rows; ontology_edges unchanged at 25; 7/7 validations pass
+
+**Supabase — drug_targets Wave 2B Batch B committed**
+- Backfill source: `drugs.target` column for non-legacy drugs
+- 11 rows committed (anifrolumab→ifnar1, belimumab→baff, bimekizumab→il17af, daratumumab→cd38, ibi311→igf1r, lonigutamab→tshr, mhb018a→igf1r, obexelimab→cd19 co_primary, sonelokimab→il17af, sp-1351→tshr, tocilizumab→il6r)
+- Step 0 targets used by 5 Batch B rows; obexelimab FcγRIIb dropped (co-engagement receptor, not therapeutic target)
+- 0 duplicates, 0 unmatched targets, 0 Tier 3/4; ontology_edges unchanged at 25; 8/8 validations pass
+- Post-commit: drug_targets = **170 rows**; zero-target drug count = 24
+
+**Wave 2B cumulative state**
+- drug_targets: 170 rows (10 Wave 2A pilot + 149 Batch A + 11 Batch B)
+- All 170: Tier A, auto_confirmed, extraction_method tier1_structured or tier2_synonym
+- 24 drugs remain without target rows (metabolic/oncology out-of-scope, tri-specifics, parser gaps, missing entries)
+
+**Batch C strategy (advisor 2026-05-25)**
+- Category 1 (parser fix): add "/" to BISPECIFIC_INDICATORS → resolves oln102 (TSHR+IGF-1R → co_primary×2)
+- Category 2 (dict gaps): review list for IL13RA1, FGFR2b, HIF2A, SST2 — add only if approved drug + active development + multi-asset target
+- Category 3 (tri-specifics): hold for future `drug_target_strategies` / `drug_target_compositions` layer
+- Category 4 (CAR-T): axi-cel → cd19 is valid; modality table captures cellular therapy separately
+- Category 5 (combo study artifacts): move risankizumab-vs-vedolizumab etc. to `study_comparisons`/`trial_arms` later
+- Sequencing: Batch C → drug_indications pipeline → trial_indications → ontology_edges propagation
+
+**Deliverables**
+- `scripts/wave2b_drug_targets_backfill.py` — full Batch A/B/C script with combination-slug policy, `--preview` flag, 10-metric M1–M10 report
+
+---
+## 2026-05-25 (Session 49d) — Phase 2 Wave 1 schema execution + Wave 2A pilot commit
+
+**Supabase — Phase 2 Wave 1 complete (schema-only, no data)**
+- 7 new tables created: `drug_targets`, `drug_indications`, `trial_indications`, `drug_modalities`, `drug_routes`, `indication_biology_tags`, `backfill_preview`
+- 5 new ENUMs: `target_role_enum`, `source_type_enum`, `extraction_method_enum`, `confidence_level_enum`, `review_status_enum`
+- 6 triggers: `updated_at` triggers on all 6 Phase 2 relationship tables
+- Pre-existing `drug_targets` (197 rows, different schema) renamed to `drug_targets_legacy` — preserved for Wave 2A migration reference
+- Wave 1 baseline: drugs=155, drug_area_scores=214, ontology_edges=25 (all unchanged)
+- 6/6 Wave 1 validation queries passed
+
+**Phase 2 Wave 2A pilot — 15 rows committed via backfill_preview**
+- Staging insert: 15 rows written to `backfill_preview` with `preview_status='pending'`
+- Preview validated: 9/9 checks passed (count, status, source_text, score ≥ 88, no tier3/4, auto_confirmed, correct split, confidence_level='A')
+- Schema corrections found during commit: `source_type_enum` uses `synonym_match` (not `published_literature`); `drug_indications` column is `is_lead_indication` (not `is_lead`)
+- All 15 rows committed and backfill_preview updated to `preview_status='committed'`
+- Post-commit validations: 15/15 pass — no duplicates, all FKs valid, ontology_edges unchanged at 25
+- `drug_targets`: 10 rows (4 TL1A drugs, 3 IGF-1R drugs, 1 FcRn drug, 1 IL-4Rα drug, 1 bispecific)
+- `drug_indications`: 5 rows (teprotumumab/TED approved, efgartigimod/gMG approved, veligrotug/TED phase3, sim0709/UC+CD phase1)
+
+**Deliverables**
+- `meridian_phase2_implementation_plan.sql` (v2) — full Phase 2 SQL plan; Wave 1 executed
+- `Meridian_Phase2_Implementation_Plan.docx` (v2) — 8 advisor-fix revisions documented
+
+---
+## 2026-05-25 (Session 49b) — Phase 1 ontology schema execution + audit roadmap update
+
+**Supabase — 6 new tables created (Phase 1 complete)**
+- `therapeutic_areas` — 7 rows: Gastroenterology, Respiratory, Dermatology, Rheumatology, Neurology, Ophthalmology, Oncology
+- `routes_of_administration` — 6 rows: IV, SC, Oral, Inhaled, Intravitreal, Topical
+- `biology_tags` — 18 rows across 7 tag types (immune_axis, cell_type, pathway, pathology, phenotype, anatomical_feature, clinical_feature)
+- `ontology_versions` — 2 rows: v1-legacy (active), v2-normalized (draft)
+- `ontology_mappings` — 11 rows: all legacy disease_areas IDs mapped with type, risk level, and dashboard tabs affected
+- `ontology_edges` — 25 seed rows forming UC knowledge cluster; 4 graph traversal indexes (source, target, relationship, status)
+- Validation: all 11 checks passed — disease_areas (11 rows) and drug_area_scores (214 rows) unchanged; UC cluster queryable; zero dashboard regressions
+
+**index.html — Section J roadmap updated**
+- Phase 0 → ✓ Complete (new `done` status with dark green badge)
+- Phase 1 → ✓ Complete: all 6 tables listed with done checkmarks; advisor notes recorded (ontology_edges = secondary layer, relationship_types in Phase 3, mechanism_classes in Phase 6, Step 7 deferred)
+- Phase 2 → Next: priority order revised per advisor (drug_targets → drug_indications → trial_indications → drug_modalities → drug_routes → indication_biology_tags)
+- Phase 3 → updated to include relationship_types governance table
+- Phase 6 → updated to include mechanism_classes future table
+
+**Deliverables**
+- `meridian_phase1_schema_plan.sql` (v2) — updated header with advisor notes, ontology_edges architectural role comment, revised Phase 2 priorities, Step 7 clearly deferred
+- `Meridian_Phase1_Schema_Plan.docx` (v2) — 4 new sections: ontology_edges design, therapeutic area rationale, biology tag expansion roadmap, revised Phase 2 priority order
+
+---
+## 2026-05-25 (Session 49) — Phase 0 ontology audit upgrades (advisor recommendations)
+
+**index.html**
+- **Terminology**: Updated relationship matrix notes — "disease area" → "therapeutic area" in visible ontology text
+- **Section D expanded**: Added 7 new quality flags from advisor review (total flags: 18 HIGH/MEDIUM/LOW):
+  - No drug_modalities join table (MEDIUM)
+  - No trial_indications join table (HIGH)
+  - Entity edges have no source / confidence (HIGH)
+  - Company-to-drug links lack relationship_type (MEDIUM)
+  - No ontology version tracking (MEDIUM)
+  - Indications have no therapeutic_area_id FK (HIGH)
+  - TCE = T-cell Engager not T-cell Engineering (LOW)
+- **Section H — Impact Analysis** (new): Shows every legacy disease_areas ID with live drug count from drug_area_scores, true classification (Target/Indication/Biology Tag/Therapeutic Area/Platform), dependent dashboard tabs, and safe migration action per ID. Async load.
+- **Section I — Relationship Coverage Scoreboard** (new): Live coverage metrics for Drugs (8 relationships), Trials (4), Deals (2), Catalysts (1), Signals (1), Entity Edges (2). Shows % coverage bars (green 80%+, yellow 50-79%, red <50%) and distinguishes TABLE MISSING rows from unfilled-but-possible ones. Async load.
+- Sections H and I added between Migration Plan (F) and Feature Backlog (G)
+
+---
+## 2026-05-25 (Session 48c) — Ontology Audit: hidden-only access + reference document
+
+**index.html**
+- Removed 🧬 nav icon (was added Session 48, removed at user request)
+- Removed 4th home launcher card for Ontology Audit (was added Session 48b, removed at user request)
+- Changed footnote hidden link from `switchTabTo('audit')` → `switchTabTo('ontology')` — clicking the word "updated" in the home page footnote is the sole access point for the Ontology Audit tab
+- `#tab-ontology` remains in HTML; hidden tab button remains for JS compatibility; no nav icon, no home card
+
+**Deliverables**
+- Created `Meridian_Ontology_Reference.docx` (34KB, 718 paragraphs): comprehensive Supabase knowledge graph reference for advisor review — covers all 5 layers, 19+ tables, classification systems, current ontology issues, migration plan, recommended join tables, appendix with live row counts
+
+---
+## 2026-05-25 (Session 48b) — Add Ontology Audit as 4th home launcher
+
+**index.html**
+- Added 4th home launcher button: 🧬 Ontology Audit (purple accent `#5b21b6`) → calls `switchTabTo('ontology')`
+- Fills the previously empty 4th slot referenced in the `<!-- 4 launcher buttons -->` comment
+
+---
+## 2026-05-25 (Session 48) — New Ontology Audit tab + HS indication
+
+**Supabase**
+- `indications`: Added `hs` (Hidradenitis Suppurativa) — disease_area=dermatology, abbreviation=HS, biology_tags=[autoimmune, barrier_dysfunction, mast_cell, type_17]. Total: 12 indications.
+
+**index.html**
+- Added new `#tab-ontology` tab pane — "Ontology Audit" — accessible via 🧬 nav icon
+- Added hidden tab button `switchTab('ontology', this)` in nav
+- **Section A — Ontology Map**: 7-layer hierarchy grid (Therapeutic Area → Indication → Biology Tags → Target → Target Pair → Modality → Route of Admin) + 7 entity tables below (Drug/Company/Trial/Deal/Catalyst/Signal/Edge). Color-coded by status: EXISTS (green), PARTIAL (purple), MISSING (red).
+- **Section B — Ontology Table Cards**: Cards for all 7 core ontology tables — disease_areas (PARTIAL), indications (EXISTS), biology_tags (PARTIAL), targets (EXISTS), target_pairs (EXISTS), modalities (EXISTS), routes_of_administration (MISSING). Each card shows definition, row count, current items (live from Supabase), key fields, connected tables, detected issues.
+- **Section C — Relationship Matrix**: HTML table showing all table-to-table connections with join type (FK/join table/loose text), color-coded by reliability. Highlights 5 relationships that should be normalized.
+- **Section D — Category Quality Flags**: 10 auto-detected ontology issues with severity (HIGH/MEDIUM/LOW), detailed explanations, and localStorage-persisted review controls (Proposed / Accepted / Rejected / Needs Discussion). Includes: targets-as-disease-areas, TED misclassification, biology-tags-as-areas, missing RoA table, missing join tables, IBD supercategory issue, migration safety risk, normalization gaps.
+- **Section E — Gap Finder**: 6+ gap cards for missing tables, missing indications, missing join table infrastructure, structural gaps, versioning gap.
+- **Section F — Migration Plan**: Side-by-side current vs proposed structure view with detected misclassified records from live disease_areas data + 3-phase safe migration roadmap (Phase 1: add new tables, Phase 2: switch logic, Phase 3: clean up).
+- New JS functions: `ontToggle()`, `ontologyLoad()`, `_renderOntMap()`, `_renderOntCards()`, `_renderOntMatrix()`, `_renderOntFlags()`, `_ontFlagReview()`, `_renderOntGaps()`, `_renderOntMigration()`
+- Renamed internal variable `_ontAuditLoaded` (to avoid collision with existing `_ontLoaded` in audit tab)
+
+---
+## 2026-05-25 (Session 47c) — Audit page: complete DB schema browser + ontology terminology
+
+**index.html**
+- Added CSS for schema browser section: `.au-schema-lyr`, `.au-schema-grid`, `.au-schema-card`, `.col-pk/fk/enum/arr/ts/json/bool/num/text` color-coded column chips
+- Section 1 (audit page): Added 6-layer biology ontology hierarchy reference table above the live ontology explorer — Therapeutic Area → Indication → Biology Tags → Target → Target Pair → Modality, each with industry term, question answered, Supabase table, example values
+- Updated `_loadOntologyExplorer()` disease_areas panel header to display "Therapeutic Areas" as label with `disease_areas` as monospace subtitle
+- Added new Section 9: "Complete Database Schema — Every Table & Column" with `<div id="s9-schema-mount">` and annotatable textarea
+- Added `_renderSchemaSection()`: synchronous function building 21 table cards organized across 5 layer groups (Biology Ontology, Entity Registry, Intelligence Output, Signals & Events, Pipeline/Queue); each card shows table name, live row count, purpose, all columns as color-coded type chips
+- Added `_loadSchemaCounts()`: async function fetching live row counts for all 21 tables, populates `sc-{tablename}` elements
+- Updated `auToggle(id)` to call `_renderSchemaSection()` on first open of Section 9
+- Updated `auditLoad(force)` to call `_loadOntologyExplorer(force)` and refresh schema counts if already rendered
+- Added `anno-s9` to `auRestoreAll()` annotation ID array
+
+---
+## 2026-05-25 (Session 47b) — Audit page: expand layout, dot grid background, live ontology explorer
+
+**index.html — commit 2178101e**
+- Expanded `.au-wrap` max-width from 960px → 1440px, padding `32px 24px` → `32px 36px`
+- Added dot grid background to `#tab-audit`: `radial-gradient(circle,#b8c4d4 1.2px,transparent 1.2px)` at `26px 26px`
+- Added `_loadOntologyExplorer(force)` async function: fetches 5 biology ontology tables from Supabase and renders them as side-by-side scrollable panels in `#ont-explorer` div (Section 1 of audit page)
+- Section 1 body now contains: dot-grid dot pattern, 5-panel live ontology explorer (Therapeutic Areas, Indications, Targets, Target Pairs, Modalities)
+- `auditLoad(force)` triggers `_loadOntologyExplorer(force)` on tab open
+
+---
+## 2026-05-25 (Session 47) — Ontology cleanup + filter catalog
+
+**index.html**
+- Renamed "Severe Asthma" → "Asthma" in 3 places (stat card label, SOC modal title, audit narrative)
+- Removed ★ Ailux highlight span from target_pairs box in data model diagram
+- Added Section 8 to audit page: "Every Filter, Category & Sort — The Full Control Panel"
+  - Documents all cross-cutting systems: OVERLAP (Direct/Adjacent/Same-Space/Watch), CLASS (1st/2nd/Next Gen), STAGE (9 values), ENTITY TYPE
+  - Per-view tables: Home (5 panels), Area Pipeline Tabs (9 controls), DKN (8 controls), Meridian Intelligence, Submitted Intel
+  - Ontology reference table: Disease Area → Indication → Target → Target Pair with DB table pointers
+  - Modality reference panel (10 modalities with abbreviations)
+  - Annotatable notes textarea
+
+**Supabase schema (ontology enrichment)**
+- `targets`: Added columns `family`, `pathway`, `cross_area_relevance TEXT[]`; seeded all 12 core enriched targets
+- `indications`: Added column `biology_tags TEXT[]`; seeded all 11 indications (UC, CD, Asthma, COPD, AD, CSU, TED, gMG, CIDP, MM, ALL)
+- `modalities`: Added 2 new rows — `tsab` (Trispecific Antibody) and `rna` (RNA Therapeutic); table now has 10 modalities
+
+---
+## 2026-05-24 (Session 46) — Redesign Industry Insights: unified live news feed
+
+**index.html — commit 24a6de97**
+- Replaced the Industry Insights tab with a fully unified live feed pulling from all data sources: `intel`, `intel_areas`, `competitive_signals`, and `deals` tables via parallel Supabase fetches
+- Feed is reverse-chronological with deduplication by normalised headline+date key (merges duplicate sources into a single card with a source dropdown)
+- Filter pills across the top: All / Clinical / Catalyst / BD Deal / Regulatory / Pipeline / Financing / Conference / Publication / Patent
+- Each card has: type badge (coloured), area pills (which disease area), headline, body excerpt, date, and collapsible source dropdown for multi-source items
+- Old archive content (Dec 2025 – Apr 2026 hardcoded items) wrapped in a `<details>` accordion at the bottom ("Historical Archive")
+- Old BD Deal Tracker table and live intel section removed from this tab (still rendered in their respective area tabs)
+- New CSS classes: `.iif-wrap`, `.iif-pill`, `.iif-card`, `.iif-type-*`, `.iif-area-*`, `.iif-src-*`
+- New JS: `loadIndustryInsightsFeed()`, `iifFilter()`, `iifRender()`, `_iifSrcHTML()`, `_iifToggleSrc()`, `iifToggleCard()`, `_iifFormatDay()`, `_iifEsc()`
+- `registerTab('industry-insights')` updated to call `loadIndustryInsightsFeed()` on tab enter
+
+---
+## 2026-05-24 (Session 46) — Enlarge tab-current-chevron for better discoverability
+
+**index.html — commit 0a5eeb8b**
+- `.tab-current-chevron`: font-size 16px → 20px, color `#94a3b8` → `#64748b`, margin-right 2px → 4px
+- Chevron next to active drug target in all PI dashboards is now clearly visible and signals dropdown availability
+
+---
+## 2026-05-24 — Fix search bar: company/drug results now clickable
+
+**index.html — commit e583e5ec36**
+- Fixed `_gsSbSearch()` company query: corrected field names (`company_type`, `geography`) that were causing Supabase errors with wrong field names (`type`, `hq_country`)
+- Added drug search: queries `drugs` table on `name`, `display_name`, `mechanism`; renders with 💊 icon and stage/mechanism badges
+- Added delegated click handler branch for `data-gtype="drug"` → calls `openDrugEntityModal(drugId, drugName, null)`
+- Companies now appear first (🏢) then drugs (💊) in search dropdown; both types are clickable
+
+---
+## 2026-05-24 (Session 46) — Fix dashboard height alignment (all drug tabs)
+
+**index.html — commit 599d9b10c4**
+- Root cause found via browser inspection: `.content` wrapper (contains tab-home, tab-industry-insights, tab-tl1a) had `padding-bottom:30px`. When its children were all `display:none` (any non-TL1A drug tab active), `.content` still occupied 30px, pushing TSLP, IL4RA, IGF1R, FcRn, ACE tabs down by exactly 30px.
+- Fix: `padding: 0 10px 30px` → `padding: 0 10px 0` on `.content`. All drug tabs now render at identical `layout_top=84, piHd_top=95`.
+- Also: replaced fragile `getBoundingClientRect()` in `fixTabBarTop` with constant `paddingTop='10px'` across all `.tab-pane .tl1a-layout` (commit 367d26fa6b)
+- Also: removed stray `</div><!-- /tl1a-center-col -->` + CSS `padding-top:10px` on `.tl1a-layout` (commit b54e8e6c5e)
+
+**index.html — commit b54e8e6c5e**
+- Removed stray `</div><!-- /tl1a-center-col -->` inside `#tab-tl1a` that was prematurely closing `.tl1a-layout` (leftover from pre-migration card structure)
+- Added `padding-top:10px` to `.tl1a-layout` CSS rule — 10px top gap is now CSS-driven, not JS-measured
+- TL1A tab now sits at identical height to all other drug tabs when clicked
+
+---
 ## 2026-05-24 (Session 45) — Migrate tl1aPI into _makeAreaPI
 
 **index.html — commit b4355353**
@@ -4113,3 +4537,66 @@ Removed ~1,800-line `tl1aPI` object entirely. All 9 drug tabs now use identical 
 ### seed_competitive_signals.py: area_id fix
 
 Rewritten with `area_id='igf1r'` throughout (was `'ted'`). TED tab uses `area_id='igf1r'` per `TAB_AREA_MAP`. Commit: `1d89542ef1`
+2026-05-24 — Meridian tab: show most recent past issue when today's issue not yet written, instead of blank/static fallback. Archive popover now labels top item as '📌 Latest: [date]' when today's not available.
+
+### v34: targets, indications, modalities, target_pairs tables + corrected biology hierarchy (2026-05-24)
+
+Four new/upgraded normalized tables in Supabase backend. Corrects a core architectural flaw: the `disease_areas` table listed targets (TL1A, TSLP, FcRn) as if they were disease areas. The correct 3-tier hierarchy is: Disease Area → Indication → Target → Target Pair.
+
+**targets** (already existed; added gene_symbol, target_type, biology_note, disease_areas[], indications[], cross_area, ailux_relevance, approved_drug): 16 rows fully enriched.
+
+**indications** (new): 11 rows — UC, CD, Severe Asthma, COPD, AD, CSU, TED, gMG, CIDP, MM, ALL. Each row includes description, patient_note, regulatory_note.
+
+**modalities** (new): 8 rows — mAb, BsAb, SM, ADC, VHH, TCE, CAR-T, Fc-fusion. Each row includes route, dosing pattern, examples.
+
+**target_pairs** (new): 5 rows — TL1A×IL-23p19 (ailux_pair=true), IL-23×α4β7, BCMA×CD3, IGF-1R+TSHR, TSLP+IL-33. Includes rationale and synergy_logic columns.
+
+Audit page data model diagram updated to show two parallel dimensions: the Biology Layer (Disease Area → Indication → Target → Target Pair) and the Intelligence Layer (Company → Drug → drug_area_scores → Dashboard).
+
+Commit: `9cee2224f597`
+
+---
+
+## Session — 2026-05-25
+
+### PI tab trial row redesign (multi-commit session)
+
+**Phase column cleanup**: Normalized all phase text — "Phase 2/3" → "Ph 2/3", "Observational" → "Obs", "N/A"/"Not Applicable" → blank dash, "Early Phase 1" → "EPh 1". Phase stored in a constrained `pi-tr-phase-cell` span.
+
+**Indication abbreviation (`_abbrevInd`)**: Split-abbreviate-dedup architecture. Added comma-inverted ICD forms at map top ("Arthritis, Rheumatoid" → "RA", "Colitis, Ulcerative" → "UC"). Added qualifier-prefixed forms ("Diffuse Cutaneous SSc" → "dcSSc", "Radiographic axSpA" → "r-axSpA"). Removes duplication patterns like "CRSwNP (CRSwNP)" → "CRSwNP". Separates multi-indication strings on `·`, `•`, or ` AND `.
+
+**Note column**: Added 9th column to PI trial row grid (`pi-tr-note-cell`). `_trialNote(t)` derives a ≤22-char label from `t.trial_note` → `dosing_type` → route → trial name keywords (OLE, Registry, Dose-ranging, etc.).
+
+**NCT links**: Changed from `<a href>` to `<span onclick="window.open(...,'_blank')">` to bypass `_fixGenericLinks` MutationObserver which was intercepting clinicaltrials.gov URLs (root cause: "study" is a 5-char word, passing the generic-href check).
+
+**Trial `select('*')`**: All trial Supabase queries now use `select('*')` to auto-include new columns without code changes.
+
+**Trial detail card redesign** (this session, commit `1ef569ed`): Replaced old `pi-tr-grid` + `detailFields` layout with new soft card structure:
+- `.pi-td-card` — white card with rounded corners
+- `.pi-td-name` — trial name header with inline note badge
+- `.pi-td-regimen` — color-coded chips: route (green), dose (indigo), frequency (purple), comparator (amber), duration (cyan)
+- `.pi-td-stats` — 4-column bar: Enrollment / Design / Arms / Geography
+- `.pi-td-section` — structured text sections: Population, Primary Endpoint, Key Secondary Endpoints, Estimand, Expected Readout (with 📅 badge)
+- Empty state: "Detail not yet enriched — run pipeline to populate"
+
+Combo trial rows also upgraded to new card structure (previously showed only trial name).
+
+Commit: `1ef569ed`
+
+---
+## 2026-05-25 — Company card tabbed layout + area filter
+
+**Changes:**
+- Company canonical card (_cemCompanyBody) now uses tabbed layout with 4 tabs:
+  - Overview: existing card content unchanged
+  - Assessment: assessment card + BD intelligence + platform intelligence (per area)
+  - Catalysts: full catalyst table (all areas combined, filterable by area)
+  - Related News: full news/deals list
+- Area filter pill bar added above tabs (shown when company is in multiple areas)
+  - Filters: All | [area pills...]
+  - Switching area shows/hides relevant content blocks in Assessment and Catalysts tabs
+  - Related News is company-level and not area-filtered
+- openCompanySlideOver now fetches profiles + catalysts for ALL company areas in parallel
+- PI dashboard company row expansion simplified: removed assessment/BD/platform intel + catalysts + news sections (now live in canonical card tabs only); kept drug rows + competitive signals
+- Added _cemSwitchArea() JS function for area filter interaction
+- Added CSS for .cem-area-filter, .cem-area-pill, .cem-area-block, .cem-assess-intel-grid
