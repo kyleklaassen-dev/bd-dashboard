@@ -1186,7 +1186,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .cem-sig-type { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
 .cem-footer-note { padding:10px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; }
 .cem-conf { text-align:right; flex-shrink:0; min-width:130px; }
-.cem-conf-lbl { font-size:9px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+.cem-conf-lbl { font-size:9px; color:#94a3b8; letter-spacing:.02em; margin-bottom:5px; }
 .cem-conf-row { display:flex; align-items:center; gap:7px; justify-content:flex-end; margin-bottom:3px; }
 .cem-conf-track { background:#e2e8f0; border-radius:3px; height:5px; width:70px; flex-shrink:0; overflow:hidden; }
 .cem-conf-fill { height:5px; border-radius:3px; }
@@ -10453,7 +10453,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName) {
       </div></div>
     </div>
   </div>
-  <div class="cem-footer-note">Same card opens from any tab · Powered by Meridian</div>`;
+  `;
 }
 
 /* ── Company card renderer ───────────────────────────────────────── */
@@ -10467,7 +10467,8 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const companyName = prog?.co || '';
 
   // Header — identity pills + confidence bar (areaLabel needed here, declare first)
-  const areaLabelHd = (window._AREA_LABEL||{})[areaId] || areaId || '';
+  const _CEMAreaMap = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L'};
+  const areaLabelHd = _CEMAreaMap[areaId] || (window._AREA_LABEL||{})[areaId] || areaId || '';
   const chipsEl = document.getElementById('entity-modal-hd-chips');
   const confEl  = document.getElementById('entity-modal-conf');
   const subEl2  = document.getElementById('entity-modal-sub');
@@ -10614,7 +10615,7 @@ function _cemCompanyBody(prog, sbData, areaId) {
   const catSummary = sbCats.slice(0,4).map(c => `
     <div class="cem-item-row">
       <div style="font-size:10px;color:#1d4ed8;font-weight:600;min-width:52px;flex-shrink:0">${c.sort_date?c.sort_date.slice(0,7):'—'}</div>
-      <div style="font-size:12px;color:#1e293b">${_cemLink(c.catalyst_type||c.headline||'Catalyst', (c.catalyst_type||'')+ ' '+companyName+ ' catalyst readout')}</div>
+      <div style="font-size:12px;color:#1e293b">${_cemLink(c.headline||c.label||c.notes?.slice(0,80)||c.catalyst_type||'Catalyst', (c.headline||c.catalyst_type||'')+ ' '+companyName)}</div>
     </div>`).join('');
 
   const catDetail = `<div class="cem-det-inner">
@@ -10733,7 +10734,7 @@ function _cemCompanyBody(prog, sbData, areaId) {
       </div></div>
     </div>
   </div>
-  <div class="cem-footer-note">Same card opens from any tab · Powered by Meridian · ${companyName}</div>`;
+  `;
 }
 
 // Close modals on Escape key
