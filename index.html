@@ -15193,6 +15193,119 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="au-stat"><div class="au-stat-n" id="au-n-dq">—</div><div class="au-stat-l">Queue</div></div>
   </div>
 
+
+  <!-- ── SECTION 0: Plain English Glossary ── -->
+  <div class="au-section">
+    <div class="au-sec-hd" onclick="auToggle('s0')">
+      <span class="au-sec-icon">📖</span>
+      <span class="au-sec-title">Plain English Glossary — Every Term Explained</span>
+      <span class="au-sec-toggle" id="s0-tog">▾</span>
+    </div>
+    <div class="au-sec-body collapsed" id="s0-body">
+      <div class="au-narrative">
+        Every technical term used in Meridian, explained in plain language. If something in the dashboard looks like jargon, find it here.
+      </div>
+
+      <div class="au-items">
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Disease Area / Pillar</div>
+          <div class="au-item-desc">A biological mechanism that Ailux has BD interest in — like TL1A or TSLP. Think of it as a "research theme." Every company, drug, trial, and deal in Meridian is tagged to one or more of these. The tabs in the dashboard correspond to areas.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Overlap Classification — Direct / Adjacent / Same-Space</div>
+          <div class="au-item-desc"><strong>Direct:</strong> this drug competes with Ailux head-to-head — same target, same patient population. <strong>Adjacent:</strong> related but not identical — might be compared in trials or considered as alternatives by physicians. <strong>Same-Space:</strong> same broad disease area but different enough that it's not a direct competitive threat. <em>This is the most important label in Meridian for BD work.</em></div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Enrichment / Enrichment Pipeline</div>
+          <div class="au-item-desc">The automated process that takes a company name and a disease area, then uses Claude (AI) to fill in everything Meridian knows about it — drugs, trials, catalysts, deals, strategy. "Running enrichment on UCB" means asking Claude to research UCB's TL1A program and write structured intelligence into the database.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Completeness Score (0–100)</div>
+          <div class="au-item-desc">A number measuring how thoroughly a company or drug has been researched — not how important it is. A score of 0 means it hasn't been enriched yet. A score of 90 means we have drug records, trial data, catalysts, deals, and strategic analysis. Think of it like a percentage of a research file that has been filled in.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Canonical Drug / Canonical ID</div>
+          <div class="au-item-desc">In the real world, drugs have many names: brand name, generic name, development code, INN. "Omvontis" = "RVT-3101" = tulisokibart. Meridian creates one master record (called a "canonical" record) for each real-world molecule and gives it a unique ID. All trials, deals, and signals that mention any of those names get linked to the same master record.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Catalyst</div>
+          <div class="au-item-desc">A future event that matters for BD — a clinical trial readout, an FDA filing, a conference presentation, or a regulatory decision. Catalysts are stored with dates and drive the timeline view on the home page. They help you know when to expect news from a competitor.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Discovery Queue</div>
+          <div class="au-item-desc">A list of new companies or drugs that Meridian has detected but hasn't fully researched yet. Think of it as Meridian's to-do list. An entity sits in the Discovery Queue until someone (or the enrichment pipeline) processes it and promotes it to a full database record.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Research Queue</div>
+          <div class="au-item-desc">A ranked list of already-known entities that need more enrichment work. Ordered by how incomplete they are and how strategically important they are. Different from the Discovery Queue: these entities are already in the database, they just haven't been fully researched.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Confidence Level — confirmed / supported / inferred / unverified</div>
+          <div class="au-item-desc">How certain Claude is about a data point. <strong>Confirmed:</strong> Claude found a direct source (press release, trial record, investor presentation). <strong>Supported:</strong> multiple indirect sources agree. <strong>Inferred:</strong> Claude reasoned from related facts (e.g. inferred IBD focus from trial portfolio). <strong>Unverified:</strong> Claude made the claim but couldn't find a source. The schema stores this — it just isn't shown in the UI yet.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">drug_area_scores table</div>
+          <div class="au-item-desc">A database table that stores each drug's competitive assessment <em>per disease area</em>. "Database table" = a spreadsheet in the backend with one row per drug per area. This is where overlap (Direct/Adjacent/Same-Space), competitive summary, and positioning notes live. One drug can have multiple rows — one for TL1A, one for TSLP, etc.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">entity_edges / ownership_edges</div>
+          <div class="au-item-desc">Tables that store relationships between entities — not the entities themselves. For example: "UCB CONTROLS cizutamig" or "Roche PARTNERED_WITH Telavant." These edge records capture who is connected to whom, what the relationship type is, and when it started/ended. They are what makes Meridian a knowledge graph rather than just a collection of spreadsheets.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Ground Truth Validation</div>
+          <div class="au-item-desc">A set of hand-verified examples used to test whether the AI is making correct assessments. For TL1A, we have 28 cases where the correct answer is known in advance (e.g. "tozorakimab should be classified as Direct"). After any enrichment run, these cases are automatically checked. If the AI now classifies tozorakimab as Adjacent, the test fails and blocks the release. This is the mechanism that lets Meridian detect when it's wrong.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Prompt / Prompt Engineering</div>
+          <div class="au-item-desc">The exact text instruction you give to Claude (the AI). "Prompt engineering" is the craft of writing better instructions to get better output. In Meridian, the enrichment prompts are the most important text in the entire system — they determine how every drug is classified, how every company is analyzed, and what counts as "confirmed" vs "inferred." Improving the prompt is often the highest-leverage improvement you can make to accuracy.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">GitHub Actions / Scheduled Workflow</div>
+          <div class="au-item-desc">Automated code that runs on a timer — like a robot that wakes up every night and runs the enrichment pipeline. "GitHub Actions" is the system that schedules and runs these automation jobs. If you see "runs every 6 hours" or "runs at midnight," that's a GitHub Actions workflow. You can trigger them manually too (called "workflow_dispatch").</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Supabase</div>
+          <div class="au-item-desc">The cloud database where all Meridian data lives. Think of it like a Google Sheets document in the cloud that the dashboard can read from in real time — but much more powerful and structured. When the dashboard loads company data, it's making a request to Supabase. When enrichment runs, it's writing new rows to Supabase.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Knowledge Graph</div>
+          <div class="au-item-desc">A way of organizing data where everything is a node (company, drug, trial, deal) and every connection between them is an edge (CONTROLS, TARGETS, PARTNERED_WITH). Unlike a spreadsheet, a knowledge graph lets you answer questions like "which companies that have done TL1A deals also have active Phase 2 trials?" by traversing the connections. Meridian is being built toward this — it has the nodes, and is incrementally adding the edges.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">Migration / Schema Migration</div>
+          <div class="au-item-desc">When the database structure changes — like adding a new column or creating a new table — a "migration" file records those changes so they can be applied in order. Meridian has run 21+ migrations (v1 through v21). Each one represents a structural upgrade to what kinds of information the database can store.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">RLS (Row Level Security)</div>
+          <div class="au-item-desc">A database rule that controls who can read or write each row. In Meridian: anyone (including the public dashboard) can <em>read</em> all rows. Only server-side scripts with a special key can <em>write</em> new data or change existing records. This protects the database from being accidentally (or maliciously) modified through the front-end.</div>
+        </div></div>
+      </div>
+
+      <div class="au-anno-wrap">
+        <div class="au-anno-label">Your notes — terms that still confuse you, definitions that seem wrong</div>
+        <textarea class="au-anno-field" id="anno-s0" placeholder="e.g. What's the difference between drug_area_scores and company_areas? What does 'area_fit' mean vs 'overlap'?…" oninput="auSave('anno-s0')"></textarea>
+        <div class="au-anno-saved" id="anno-s0-saved"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── SECTION 1: What Meridian Covers ── -->
   <div class="au-section">
     <div class="au-sec-hd" onclick="auToggle('s1')">
@@ -15311,6 +15424,131 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="au-anno-label">Your notes — scoring logic that seems off, things you'd want scored differently</div>
         <textarea class="au-anno-field" id="anno-s4" placeholder="e.g. The strategic value score should weigh deal activity more heavily for companies actively in-licensing. Should partnership history factor into overlap scoring?…" oninput="auSave('anno-s4')"></textarea>
         <div class="au-anno-saved" id="anno-s4-saved"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── SECTION 8: The AI Engine ── -->
+  <div class="au-section">
+    <div class="au-sec-hd" onclick="auToggle('s8')">
+      <span class="au-sec-icon">🤖</span>
+      <span class="au-sec-title">The AI Engine — How Claude Writes Every Data Point</span>
+      <span class="au-sec-toggle" id="s8-tog">▾</span>
+    </div>
+    <div class="au-sec-body" id="s8-body">
+      <div class="au-narrative">
+        Every data point in Meridian — every overlap classification, every company summary, every strategic positioning note — was written by Claude (the AI model from Anthropic). This is not a search engine or a news aggregator. <strong>Claude is the author of Meridian's intelligence, not just its processor.</strong> Understanding how Claude is instructed helps you understand why the data looks the way it does — and how to improve it.
+      </div>
+
+      <div class="au-callout">
+        <div class="au-callout-hd">🔑 The Central Insight</div>
+        When the enrichment pipeline runs, it doesn't just look up facts — it gives Claude a structured briefing about a company and asks it to make a judgment. The exact words used in that briefing (called a "prompt") directly determine the output. <strong>Change the prompt, and you change every future score, classification, and summary.</strong> This is both the power and the responsibility of the system.
+      </div>
+
+      <div class="au-narrative" style="margin-top:16px"><strong>How Overlap Classification Actually Works</strong></div>
+      <div style="background:#f1f5f9;border-radius:8px;padding:14px 16px;margin:8px 0 16px;font-size:12px;line-height:1.75;color:#334155;border-left:3px solid #6366f1">
+        The enrichment prompt for overlap classification says, in substance:<br><br>
+        <em>"You are evaluating <strong>[DRUG NAME]</strong>, a <strong>[MECHANISM]</strong> in <strong>[PHASE]</strong> for <strong>[INDICATION]</strong>.<br>
+        Ailux is developing a TL1A × IL-23p19 bispecific antibody for IBD.<br><br>
+        Classify this drug as one of:<br>
+        — <strong>Direct:</strong> Same target mechanism AND same patient population. Would directly compete in the same trials and with the same physicians.<br>
+        — <strong>Adjacent:</strong> Related mechanism or overlapping indication. Would be compared by prescribers or in head-to-head trials.<br>
+        — <strong>Same-Space:</strong> Same broad disease area but different mechanism and different patient segment.<br><br>
+        Return ONLY the classification label and a one-sentence rationale."</em>
+      </div>
+      <div class="au-narrative">
+        If you changed the definition of "Direct" to include drugs targeting any part of the TL1A pathway (not just TL1A itself), more drugs would suddenly become Direct competitors. The drugs haven't changed — only the instruction to Claude did. <strong>This is what "prompt tuning" means in practice.</strong>
+      </div>
+
+      <div class="au-items">
+        <div class="au-item"><div class="au-item-dot dot-green"></div><div>
+          <div class="au-item-name">How Fixing a Prompt Fixes a Whole Category of Errors</div>
+          <div class="au-item-desc">In the TL1A QA sprint (May 2026), the validation framework found that CLD-423 (a JAK inhibitor — a completely different mechanism) had been classified as "Direct." The prompt at the time didn't explicitly exclude off-mechanism drugs. The fix: one sentence added — <em>"If the drug's primary mechanism is not TL1A-mediated, it cannot be Direct regardless of shared indication."</em> That single sentence, applied to all future runs, corrects the entire class of errors. <strong>This is the leverage point of prompt engineering.</strong></div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+          <div class="au-item-name">The 6-Step Enrichment Sequence — What Claude Does for Each Company</div>
+          <div class="au-item-desc">For each company, the pipeline runs 6 separate Claude calls in sequence: <strong>(1) BD signals</strong> — what are the most important recent developments? <strong>(2) Company profile</strong> — write a strategic intelligence card: history, focus, BD trajectory. <strong>(3) Drug discovery</strong> — catalog all drugs in this company's pipeline: name, mechanism, target, phase, indication. <strong>(4) Catalyst extraction</strong> — upcoming readouts, filings, conference presentations. <strong>(5) Partnership mapping</strong> — who are they working with, what's the structure? <strong>(6) Deal extraction</strong> — what has been acquired, licensed, out-licensed? Each step is a separate AI reasoning call. This is why enrichment takes time — and why one bad prompt in Step 3 only affects drug records, not company profiles.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">The Confidence Level System — How Claude Grades Its Own Certainty</div>
+          <div class="au-item-desc">When Claude writes a data point, it also assigns a confidence level. <strong>Confirmed:</strong> Claude found a specific direct source (IR presentation, press release, trial registration) that states the fact explicitly. <strong>Supported:</strong> multiple indirect sources agree. <strong>Inferred:</strong> Claude reasoned from related evidence — e.g., inferring a company's IBD focus from their trial portfolio even if they never stated it. <strong>Unverified:</strong> the claim was made but no corroboration was found. The database stores this on every record. The front-end doesn't surface it yet — when it does (Backlog #6), every data point will carry a visible confidence indicator.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-green"></div><div>
+          <div class="au-item-name">The Ground Truth Validation Loop — How Meridian Tests Its Own Accuracy</div>
+          <div class="au-item-desc">The 28 TL1A ground truth cases aren't just a quality check — they're the mechanism for improving prompts over time. The workflow is: <strong>run enrichment → run validation → failures identify prompt weaknesses → fix prompt → re-run validation → all 28 pass → deploy.</strong> Before this system existed, there was no way to know if a prompt change made things better or worse. Now every change is measurable. This is the most important infrastructure investment in the QA sprint — not because it fixes bugs, but because it makes the system self-correcting.</div>
+        </div></div>
+      </div>
+
+      <div class="au-callout">
+        <div class="au-callout-hd">💡 The Sophistication</div>
+        Most "AI-powered" tools use AI to retrieve information. Meridian uses AI to <em>reason</em> about information and write structured intelligence that accumulates over time. The difference: a retrieval system gives you a list of articles about a company. Meridian gives you a structured assessment of that company's competitive position, drug portfolio, and BD trajectory — written by Claude, stored in a queryable database, validated against known ground truth, and updateable by changing a single instruction.
+      </div>
+
+      <div class="au-anno-wrap">
+        <div class="au-anno-label">Your notes — overlap classifications that seem wrong, definitions you'd change, enrichment areas you'd improve</div>
+        <textarea class="au-anno-field" id="anno-s8" placeholder="e.g. I think risankizumab should be Adjacent not Same-Space for TL1A — Crohn's patients overlap even though the mechanism is different. Should bispecifics targeting TL1A + another target be Direct or Adjacent?…" oninput="auSave('anno-s8')"></textarea>
+        <div class="au-anno-saved" id="anno-s8-saved"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 9: What Makes This Sophisticated ── -->
+  <div class="au-section">
+    <div class="au-sec-hd" onclick="auToggle('s9')">
+      <span class="au-sec-icon">💎</span>
+      <span class="au-sec-title">The Intellectual Architecture — Where the IP Actually Lives</span>
+      <span class="au-sec-toggle" id="s9-tog">▾</span>
+    </div>
+    <div class="au-sec-body" id="s9-body">
+      <div class="au-narrative">
+        It is easy to look at Meridian and see a dashboard with data in it. The sophistication is not the dashboard — it is the <strong>architecture that makes the data compound in value over time.</strong> Here is where the intellectual property actually lives.
+      </div>
+
+      <div class="au-items">
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">One Molecule, One Identity — Across All Sources</div>
+          <div class="au-item-desc">Most databases have the same drug listed 4 different ways. Meridian has a canonical drug identity system: every drug has one master record, and all its aliases, development codes, and brand names are linked to that master. When ClinicalTrials.gov uses "RVT-3101" and a press release uses "tulisokibart," both get linked to the same canonical ID — so trials, deals, and intel about the same molecule are always connected. <strong>This is infrastructure work that pays dividends on every query.</strong></div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">The Platform Knows What It Doesn't Know</div>
+          <div class="au-item-desc">The completeness scoring system is not just a quality metric — it makes Meridian self-aware of its own gaps. The research queue is the output of this self-awareness: "here are the 12 most under-researched entities, ranked by how much they matter." Most databases can tell you what's in them. Meridian can tell you what's <em>missing</em> and prioritize the gaps. This is the difference between a record-keeping system and an intelligent research system.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">The Validation Framework — Meridian Can Detect When It's Wrong</div>
+          <div class="au-item-desc">The 28 ground truth cases are the most strategically important thing built in the May 2026 sprint. Before them, improving Meridian was intuitive — you changed something and hoped it got better. Now, every change is measured against known-correct answers. This creates a feedback loop: more validation cases → more accurate detection of errors → better prompts → more accurate data. The framework compounds: each sprint makes future sprints more effective. <em>(The biggest achievement from this sprint is not the catalyst cleanup or scoring fixes — it is that the platform now has a mechanism to detect when it is wrong.)</em></div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">Structured Knowledge That Connects</div>
+          <div class="au-item-desc">Every article about a biotech company disappears into a feed. Every data point in Meridian stays, connects to related records, and becomes queryable. When UCB acquires Candid Therapeutics, that acquisition is stored as a deal row connected to cizutamig's drug record, connected to UCB's company record, connected to the TL1A area. Six months later, when you ask "which companies built their TL1A position through M&A vs. internal development?" — Meridian can compute that from stored structure. A news archive cannot. <strong>This is what makes it a knowledge graph rather than a clipping service.</strong></div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">The CLASS × RELEVANCE Framework</div>
+          <div class="au-item-desc">Every drug in Meridian has two independent assessments: <strong>CLASS</strong> (what is this drug's mechanism, phase, and competitive category — Direct/Adjacent/Same-Space) and <strong>RELEVANCE</strong> (how much should Ailux specifically care about this — area fit, strategic positioning, vs_ailux analysis). These are separate because a drug can be highly relevant to TL1A BD without being a Direct competitor — and vice versa. Keeping them separate lets you query them independently: "all Direct competitors" vs. "all high-relevance watch list entries" are different questions.</div>
+        </div></div>
+
+        <div class="au-item"><div class="au-item-dot dot-purple"></div><div>
+          <div class="au-item-name">The Enrichment Pipeline as a Scientific Method</div>
+          <div class="au-item-desc">The pipeline has an explicit quality hierarchy: the most confident sources (investor presentations, ClinicalTrials.gov registrations, regulatory filings) override less confident sources (press releases, news articles, analyst reports). This is not just data collection — it is a structured epistemology for pharmaceutical intelligence. The confidence levels stored in every record encode that hierarchy, so future reasoning layers can weight confirmed facts more heavily than inferred ones.</div>
+        </div></div>
+      </div>
+
+      <div class="au-callout">
+        <div class="au-callout-hd">💡 The Gap That Still Exists</div>
+        The current limitation is not what the platform can do — the architecture is complete. The limitation is <strong>relationship completeness.</strong> The nodes (companies, drugs, trials, deals) are mostly there. The edges connecting them (drug→COMPETES_WITH→drug, drug→TARGETS→target, deal→RESULTED_IN→ownership change) are mostly missing. Once those edges exist, the queries that are currently "manual reasoning" become one-click lookups. That is Phase 2.
+      </div>
+
+      <div class="au-anno-wrap">
+        <div class="au-anno-label">Your notes — which aspects of the platform feel most valuable to you? What sophistication do you wish existed that doesn't yet?</div>
+        <textarea class="au-anno-field" id="anno-s9" placeholder="e.g. The thing I use most is the competitive overlap classification. I wish I could search by mechanism class. The single most valuable missing feature for me in meetings is being able to ask: 'who else is targeting TL1A and what's their clinical stage?'…" oninput="auSave('anno-s9')"></textarea>
+        <div class="au-anno-saved" id="anno-s9-saved"></div>
       </div>
     </div>
   </div>
@@ -15519,7 +15757,7 @@ function auSave(id) {
   if (saved) { saved.textContent = 'saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 1500); }
 }
 function auRestoreAll() {
-  ['anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7'].forEach(id => {
+  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7','anno-s8','anno-s9'].forEach(id => {
     const val = localStorage.getItem(AU_PREFIX + id);
     const el  = document.getElementById(id);
     if (el && val) el.value = val;
