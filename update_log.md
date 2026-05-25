@@ -1,5 +1,47 @@
 
 ---
+## 2026-05-25 (Session 53c) — Difference Classification Model · Evidence Reconciliation Layer design
+
+**New Phase 4 model — advisor refinement:**
+- Legacy data = production baseline (not ground truth). Normalized data = candidate truth layer.
+- No single table is ground truth. Truth is evidence-weighted and relationship-validated.
+- Phase 4 success = validated parity + justified correction. Not raw parity.
+- Added Phase 4A: Evidence Reconciliation (cross-table consistency checks before Phase 5 migration)
+
+**`scripts/phase4_compare_legacy_vs_normalized.py` (v3):**
+- Replaced `CONFIRMED_OOS_BY_AREA` with `DIFFERENCE_CLASSIFICATIONS` — comprehensive per-record dict
+  - Format: `(area_id, drug_id) → (classification, action, note)`
+  - 20+ explicitly classified records across tl1a, ibd, atopy, fcrn, igf1r, autoimmune, ted, tcell
+- Added 2 new classification types: `source_conflict`, `cross_table_inconsistency`
+- `compare_area()` now: classifies every extra_legacy + extra_norm drug, computes classification counts, `adjusted_overlap`, `adjusted_match_pct`
+- `classify_status()`: signature updated — uses `adjusted_match_pct` + `legacy_noise_removed_count` (no longer OOS-specific)
+- Docstring updated: full Phase 4 model + 7-type classification taxonomy
+- Summary table: Noise Rmvd / Adj% / Gaps / Scope Diff / NMR columns replace old OOS columns
+- Detail tables: per-record difference classification table with action + notes for each drug
+- Part 4: replaced hardcoded spot-check dict with formal DIFFERENCE_CLASSIFICATIONS output
+  - Classified extra-legacy table, unclassified (needs_manual_review default) table, extra-norm table
+- Part 4b (new): Evidence Reconciliation Candidates — 6 seed records with cross-table evidence
+  - lm-302 / sim0500 / spy072 / epi-001 / batoclimab / upadacitinib
+- Part 5 criteria: uses `adjusted_match_pct`; added Unresolved Gaps column
+- Status legend replaced with Phase 4 model definition + full 7-type classification table
+- Readiness formula documented: `(overlap + legacy_noise_removed) / legacy_count × 100`
+
+**`docs/evidence_reconciliation_layer.md` (new):**
+- Full design document for Evidence Reconciliation Layer (not yet built)
+- Core principle: no single table is ground truth
+- `entity_consistency_checks` table schema (16 fields)
+- 7 classification types with auto-fix / auto-propose / human-review rules
+- Self-healing loop (7-step)
+- 7 seed examples: lm-302, sim0500, spy072, epi-001, batoclimab, upadacitinib, ep006/es302
+- Phase 4A/4B/Phase 5 sequence defined
+- Build order for entity_consistency_checks
+
+**Phase 4 sequence updated:**
+- Phase 4A: Evidence Reconciliation (cross-table consistency) — NEXT
+- Phase 4B: Dual-read validation (was Phase 4) — after 4A
+- Phase 5: Dashboard migration — after both 4A and 4B clear
+
+---
 ## 2026-05-25 (Session 53b) — Advisor Option A · OOS-adjusted governance · compare_pass badges
 
 **Advisor decision — Option A adopted:**
