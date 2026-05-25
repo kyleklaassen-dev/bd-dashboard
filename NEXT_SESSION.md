@@ -355,9 +355,9 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 ## Validation Checks Before Starting Work
 
 ```sql
-SELECT count(*) FROM drug_indications;             -- expect 200 (Wave 2D: +1 upadacitinib/ad, +3 FcRn)
-SELECT count(*) FROM trial_indications;            -- expect 319 (updated Session 53o)
-SELECT count(*) FROM drug_targets;                 -- expect 173
+SELECT count(*) FROM drug_indications;             -- expect 198 (verified 2026-05-25)
+SELECT count(*) FROM trial_indications;            -- expect 301 (verified 2026-05-25)
+SELECT count(*) FROM drug_targets;                 -- expect 170 (verified 2026-05-25)
 SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
 -- entity_consistency_checks state:
 SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
