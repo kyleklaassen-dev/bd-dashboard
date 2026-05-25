@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53m (2026-05-25) — Phase 4C validation plan + Phase sequence updated  
-**Prior session:** Session 53l — Freshness Automation + Company Fleet lift to 96/100
+**Last session:** Session 53n (2026-05-25) — Phase 4B Path C modal verification complete + Phase 4C IBD verified  
+**Prior session:** Session 53m — Phase 4C validation plan + Phase sequence updated
 
 ---
 
@@ -116,18 +116,17 @@ window.showPhase4Compare()
 // Console: [Phase4B-TL1A] legacy=51 norm=35 overlap=34 raw=66.7% adj=100% oos=17 → compare_pass_oos_adjusted
 ```
 
-**Path C verification (open drug entity modal for a test drug):**
-```javascript
-// After opening any drug modal (e.g., lm-302, batoclimab, epi-001):
-window.showPhase4Compare()
-// Expected: record with component='openDrugEntityModal', path='drug_entity_modal'
-// Console: [Phase4C-Modal] drug=X areas=[...] targets=[...] inds=[...] → status
+**Path C verification — COMPLETED (Session 53m browser run):**
 
-// Test cases:
-// lm-302 (tl1a, ibd areas) → cross_table_inconsistency (no tl1a target, no ibd inds)
-// epi-001 (tl1a, ibd areas) → needs_manual_review
-// batoclimab (fcrn, ted, autoimmune) → acceptable_mismatch or match
-```
+| Drug | Modal status | entity_consistency_checks | Verdict |
+|---|---|---|---|
+| lm-302 | `needs_manual_review` | closed / legacy_noise_removed | ✅ Explainable — tl1a area is legacy noise (CLDN18.2 ADC, not TL1A biology) |
+| batoclimab | `cross_table_inconsistency` | corrected (ted+gmg fixed) | ✅ Explainable — igf1r/autoimmune = legacy catch-all artifact (documented in conflict_summary) |
+| epi-001 | `acceptable_mismatch` | open / held | ✅ Explainable — IBD inds held pending source evidence |
+
+**Correction from original prediction:** lm-302 is in `drug_areas` for `tl1a` ONLY — not ibd. The "(tl1a, ibd areas)" prediction was wrong. Confirmed via direct Supabase query.
+
+**Calibration note:** Modal auto-classification differs from entity_consistency_checks human classifications. This is expected — modal produces first-pass automated classifications; entity_consistency_checks holds human-reviewed resolutions. All 3 differences are fully explainable when cross-referenced. No new entity_consistency_checks rows required (batoclimab igf1r/autoimmune documented in existing row's conflict_summary).
 
 **Data quality backlog:**
 `gb004.drugs.mechanism = 'Anti-TL1A'` is incorrect (actual: PHD inhibitor / HIF-1α stabilizer). Logged in `docs/evidence_reconciliation_layer.md`. Requires separate evidence review — do not fix in Phase 4B work.
@@ -149,11 +148,11 @@ Full plan: `docs/phase4c_validation_plan.md`
 | 7 | FcRn area tab | High | ❌ None | 🚫 Blocked — Wave 2D first |
 | 8 | ACE area tab | High | ❌ None | 🚫 Deferred |
 
-**Phase 4C task for IBD (do first):** Run browser session → `window.showPhase4Compare()` → confirm `compare_pass_oos_adjusted`. Verify OOS count still matches post-Wave 2C.
+**Phase 4C task for IBD:** ✅ **VERIFIED (Session 53m)** — compare_pass_oos_adjusted. legacy=50, norm=50, overlap=47, 3 OOS (epi-001/sim0500/spy072), raw=94.0%, adj=100%. 3 norm-only extras (anti-tl1a-xpf005-arm, risankizumab variants) are correct new normalized additions.
 
 **Phase 4C task for TED:** Run `drug_areas WHERE area_id='igf1r'` vs `drug_indications WHERE indication_id='ted'`. Classify all differences. batoclimab must appear in both.
 
-**Phase 4C task for Drug modal:** Open 10 representative drugs. Classify all gaps. Graduate any unclassified `cross_table_inconsistency` entries to `entity_consistency_checks`.
+**Phase 4C task for Drug modal:** ✅ **PARTIALLY VERIFIED (Session 53m)** — 3 test drugs passed (lm-302, batoclimab, epi-001). All differences explainable via entity_consistency_checks. Remaining task: run full 10-drug sprint covering additional area tabs (TL1A, FcRn, TED drugs).
 
 **Phase 5 feature-flag pattern (required for all migrations):**
 ```javascript
