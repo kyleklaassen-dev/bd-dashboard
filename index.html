@@ -12804,7 +12804,10 @@ function _makeAreaPI(tabId, areaIds) {
     ['Plaque Psoriasis','PsO'],['Psoriasis Vulgaris','PsO'],['Psoriasis','PsO'],
     ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
-    ['Alopecia Areata','AA'],['Systemic Lupus Erythematosus','SLE'],
+    ['Alopecia Areata','AA'],
+    ['Subacute Cutaneous Lupus Erythematosus','SCLE'],['Cutaneous Lupus Erythematosus','CLE'],
+    ['Discoid Lupus Erythematosus','DLE'],['Neonatal Lupus Erythematosus','NLE'],
+    ['Systemic Lupus Erythematosus','SLE'],
     ['Primary Progressive Multiple Sclerosis','PPMS'],['Secondary Progressive Multiple Sclerosis','SPMS'],
     ['Relapsing-Remitting Multiple Sclerosis','RRMS'],['Relapsing Remitting Multiple Sclerosis','RRMS'],
     ['Progressive Multiple Sclerosis','Prog. MS'],['Clinically Isolated Syndrome','CIS'],
@@ -12840,6 +12843,7 @@ function _makeAreaPI(tabId, areaIds) {
     ['Giant Cell Arteritis','GCA'],['Takayasu Arteritis','TAK'],
     ['Eosinophilic Granulomatosis with Polyangiitis','EGPA'],['Granulomatosis with Polyangiitis','GPA'],
     ['ANCA-Associated Vasculitis','AAV'],['Microscopic Polyangiitis','MPA'],
+    ["Primary Sjögren's Syndrome",'pSS'],['Primary Sjögren Syndrome','pSS'],
     ["Sjögren's Syndrome",'pSS'],['Sjögren Syndrome','pSS'],['Primary Sjögren','pSS'],['Sjogren','pSS'],
     ['Systemic Juvenile Idiopathic Arthritis','sJIA'],['Juvenile Idiopathic Arthritis','JIA'],
     ['Anti-NMDA Receptor Encephalitis','ANMDARE'],['Autoimmune Encephalitis','AE'],
@@ -12895,6 +12899,7 @@ function _makeAreaPI(tabId, areaIds) {
     // Remove parenthetical that duplicates what precedes: "CRSwNP (CRSwNP)" → "CRSwNP"
     r = r.replace(/\b(\S+)\s+\(\1\)/gi, '$1');
     // Severity/activity qualifiers → compact prefix
+    r = r.replace(/\bPrimary\s+(pSS)\b/gi, '$1');
     r = r.replace(/\bModerately\s+to\s+Severely\s+Active\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bModerate\s+to\s+Severe\s+/gi, 'Mod-Sev ');
     r = r.replace(/\bMild\s+to\s+Moderate\s+/gi, 'Mild-Mod ');
