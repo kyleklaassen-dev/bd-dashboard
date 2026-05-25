@@ -1,6 +1,6 @@
 # Phase 4A — Evidence Reconciliation Candidate Review
-**Session 53d · 2026-05-25 · Read-only — NO production data modified**  
-**Status:** Candidate review complete. Awaiting advisor approval before any corrections applied.
+**Session 53d · 2026-05-25 · Updated with advisor decisions**  
+**Status:** Corrections applied. Phase 4A complete. Ready for Phase 4B dual-read validation.
 
 ---
 
@@ -22,7 +22,27 @@
 - [x] Each has a confidence score
 - [x] Each has a review status
 - [x] Dashboard migration impact is stated
-- [x] No production data has been modified
+- [x] No production data modified during review phase
+- [x] Advisor decisions received and corrections applied (Session 53e)
+
+---
+
+## Advisor Decisions — Session 53e (2026-05-25)
+
+| Drug | Decision | Action Taken |
+|---|---|---|
+| `sim0500` | ✅ Approve correction | drug_targets tl1a row was already absent from production (Wave 2B error identified by harness but not actually committed to drug_targets). **No delete needed.** Audit note added. |
+| `batoclimab` | ✅ Approve backfill — ted + gmg only (not cidp) | Inserted drug_indications: ted (score=95, Ph3, A) + gmg (score=92, Ph3, A). Drug_indications total: 192 → 194. |
+| `epi-001` | ⏸ Hold | Keep in backfill_preview as pending_review. Legacy TL1A/IBD membership insufficient without source evidence. |
+
+**Post-correction Phase 4 harness results:**
+- tl1a: 92.2% → 🟢 compare_pass_oos_adjusted (UNCHANGED — still passing)
+- ibd: 94.0% → 🟢 compare_pass_oos_adjusted (UNCHANGED — still passing)
+- ted: 🆕 **100% match** ✅ (batoclimab backfill resolved the ted normalized gap)
+- drug_indications: 194 rows (was 192)
+- No duplicate pairs detected
+- ontology_edges: 25 (LOCKED — unchanged)
+- epi-001: 2 rows still in backfill_preview as pending_review ✅
 
 ---
 
@@ -31,10 +51,10 @@
 | # | Drug | Check Type | Classification | Severity | Confidence | Review Status | Action |
 |---|---|---|---|---|---|---|---|
 | 1 | `lm-302` | cross_table_inconsistency | legacy_noise_removed | High | 0.99 | approved | No backfill. Exclude from denominator. |
-| 2 | `sim0500` | cross_table_inconsistency | legacy_noise_removed + **normalized_table_error** | High | 0.98 | **needs_advisor** | Remove drug_targets tl1a row. Exclude from IBD denominator. |
+| 2 | `sim0500` | cross_table_inconsistency | legacy_noise_removed + **normalized_table_error** | High | 0.98 | ✅ resolved | drug_targets tl1a row was already absent from production. No delete needed. |
 | 3 | `spy072` | ontology_scope_difference | legacy_noise_removed (ibd) + scope_ok (tl1a) | Medium | 0.92 | approved | ibd legacy = noise. tl1a legacy = valid but indication is rheumatology. |
 | 4 | `epi-001` | needs_manual_review | needs_manual_review | Medium | 0.55 | pending_human | Hold uc/cd rows in pending_review. Review source publications. |
-| 5 | `batoclimab` | cross_table_inconsistency | normalized_gap (drug_indications) + source_conflict (indication_short) | High | 0.90 | **needs_advisor** | Backfill drug_indications: gmg, cidp, ted. Update indication_short. |
+| 5 | `batoclimab` | cross_table_inconsistency | normalized_gap (drug_indications) + source_conflict (indication_short) | High | 0.90 | ✅ resolved (ted + gmg) | Inserted ted (score=95) + gmg (score=92). cidp remains pending (not approved this round). |
 | 6 | `upadacitinib` | normalized_gap | normalized_gap (ad missing) | Medium | 0.97 | approved | Backfill drug_indications: upadacitinib → ad. |
 
 > **sim0500 and batoclimab flagged for advisor review** — they involve errors in normalized tables (not just legacy data), which require explicit approval before any correction is applied.
@@ -436,11 +456,10 @@ Upadacitinib is FDA-approved for atopic dermatitis (JAK1 inhibitor). drugs.indic
 - `docs/phase4a_reconciliation_review.md` — this document (read-only review, no production changes)
 - `docs/evidence_reconciliation_layer.md` — design note for future entity_consistency_checks system
 
-## Active Constraints (unchanged)
+## Active Constraints (post-correction)
 
-1. **No production data modified** — this review is classification only
-2. **ontology_edges locked** at 25 — do not unlock
-3. **No dashboard migration** — Phase 4B must follow Phase 4A approval
-4. **epi-001 held** in backfill_preview pending_review — do not commit without human evidence review
-5. **sim0500 drug_targets error** — do not correct without advisor approval
-6. **batoclimab backfill** — do not commit without advisor approval
+1. **ontology_edges locked** at 25 — do not unlock until Phase 4B dual-read completes
+2. **No dashboard migration** — Phase 4B must complete first
+3. **epi-001 held** in backfill_preview pending_review — do not commit without human evidence review
+4. **batoclimab → cidp** — not approved this round; revisit in Wave 2D FcRn backfill
+5. **upadacitinib → ad** — approved for Wave 2D atopy batch; do not commit standalone
