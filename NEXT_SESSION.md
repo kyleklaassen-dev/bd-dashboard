@@ -135,33 +135,29 @@ window.showPhase4Compare()
 
 ## Next Sprint Priority Order
 
-### P0 — entity_consistency_checks: Execute SQL plan + seed (pending advisor approval)
+### P0 — entity_consistency_checks: One manual step to execute
 
-**Status:** SQL migration plan drafted — `migrations/entity_consistency_checks_v1.sql`
+**Status:** Plan advisor-approved + all three fixes applied. Awaiting manual SQL execution.
 
-**Goal:** Execute the migration plan after advisor approval. All 7 seed rows are ready.
+**One manual step:**
+1. Open: https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
+2. Paste contents of `migrations/entity_consistency_checks_v1.sql`
+3. Click Run (Cmd+Enter)
+4. Then run `python3 scripts/apply_entity_consistency_checks.py` — verifies 7 rows and prints results
 
-**Migration plan contents:**
-- `CREATE TABLE IF NOT EXISTS entity_consistency_checks` — full schema with severity + status + review_status checks
-- 6 indexes: entity, severity, classification, status, review_status, composite open-high
-- 7 seed `INSERT … ON CONFLICT DO NOTHING` rows: lm-302, sim0500, spy072, epi-001, batoclimab, upadacitinib, gb004
-- 5 verification queries (commented) for post-execution validation
+**Advisor fixes applied (v1 final):**
+- `issue_key TEXT NOT NULL` added — allows multiple issues per entity × classification
+- `UNIQUE (entity_type, entity_id, issue_key)` — granular idempotency
+- CHECK constraints on `check_type` (5 values) and `classification` (8 values)
+- upadacitinib: `review_status = 'accepted'` (gap confirmed real, correction pending Wave 2D)
 
-**Advisor approval checklist:**
-- Does not alter existing production tables ✓
-- JSONB evidence fields for both sides ✓
-- classification + review_status stored ✓
-- Tracks resolved and unresolved issues (status field) ✓
-- 6 indexes covering all query dimensions ✓
-- Seed rows for all 7 known Phase 4A candidates ✓
-- Idempotent (ON CONFLICT DO NOTHING + UNIQUE constraint) ✓
-
-**After execution:**
-1. Run verification queries to confirm 7 rows seeded correctly
-2. Update `docs/evidence_reconciliation_layer.md` build order status
-3. Phase 5 migration is still blocked until Phase 4B sign-off + ontology_edges unlock
-
-**Note:** Phase 5 dashboard migration is still blocked until advisor clears Phase 4B dual-read results.
+**Expected post-execution verification:**
+- count(*) = 7
+- open + high-severity = 0 (no Phase 5 blockers)
+- Held: epi-001 + gb004
+- upadacitinib: status=open, review_status=accepted
+- batoclimab: status=corrected, review_status=resolved
+- lm-302 / sim0500 / spy072: status=closed, review_status=accepted
 
 ### P1 — epi-001 Manual Review (Track B)
 
