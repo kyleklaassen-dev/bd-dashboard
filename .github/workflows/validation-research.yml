@@ -1,0 +1,119 @@
+name: Validation Research Pass
+
+on:
+  schedule:
+    # Every Sunday at 3 AM ET (7 AM UTC) — after the nightly sync has run
+    - cron: '0 7 * * 0'
+  workflow_dispatch:
+    inputs:
+      drug_filter:
+        description: 'Drug ID substring to research (leave blank for all warnings)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (search but do not write to Supabase)'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  validation-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run validation research pass
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.drug_filter }}" ]; then
+            ARGS="--drug ${{ github.event.inputs.drug_filter }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/validation_research.py $ARGS
+
+      - name: Check for newly discovered NCT IDs
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          # Pull drugs whose stage_trial_match is now 'pass' but weren't 'pass' before
+          # (i.e. newly resolved this run — their trial_registries row was just updated)
+          python3 - <<'EOF'
+          import os, requests, json
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_KEY"]
+          h   = {"apikey": key, "Authorization": f"Bearer {key}"}
+          # Fetch newly found NCT IDs from trial_registries updated today
+          import datetime
+          today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+          r = requests.get(
+              f"{url}/rest/v1/trial_registries",
+              headers=h,
+              params={
+                  "registry_name":    "eq.ct_gov",
+                  "search_status":    "eq.found",
+                  "verified_by":      "eq.validation_research",
+                  "select":           "drug_id,trial_count,notes",
+                  "last_searched_at": f"gte.{today}",
+              },
+              timeout=15
+          )
+          rows = r.json() if r.ok else []
+          if rows:
+              print(f"\n{'='*50}")
+              print(f"NEWLY FOUND TRIALS ({len(rows)} drug(s)):")
+              for row in rows:
+                  print(f"  {row['drug_id']}: {row['trial_count']} trial(s) — {row.get('notes','')}")
+              print(f"{'='*50}")
+              print("ACTION: Add new NCT IDs to NCT_SEED_MAP in ct_gov_sync.py")
+          else:
+              print("No new trials discovered this run.")
+          EOF
+
+      - name: Summary — remaining warnings
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os, requests
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_KEY"]
+          h   = {"apikey": key, "Authorization": f"Bearer {key}"}
+          r = requests.get(
+              f"{url}/rest/v1/drug_validation_results",
+              headers=h,
+              params={
+                  "check_status": "in.(warning,fail,needs_review)",
+                  "select":       "drug_id,check_type,check_status,notes",
+                  "order":        "check_status.desc,drug_id.asc",
+                  "limit":        "100",
+              },
+              timeout=15
+          )
+          rows = r.json() if r.ok else []
+          if rows:
+              print(f"\nRemaining unresolved issues ({len(rows)}):")
+              for row in rows:
+                  status = row['check_status'].upper()
+                  note   = (row.get('notes') or '')[:80]
+                  print(f"  [{status}] {row['drug_id']} / {row['check_type']} — {note}")
+          else:
+              print("All validation checks passing — no issues remaining.")
+          EOF
