@@ -11021,7 +11021,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('id,nct_id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('*').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
@@ -11062,7 +11062,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         const [ar, sr, tr, mr] = await Promise.all([
           _sb.from('drug_areas').select('area_id').eq('drug_id', rid),
           _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', rid),
-          _sb.from('trials').select('id,nct_id,trial_name,status,phase,n_enrollment,primary_completion_date,indication,route,dosing_type,primary_endpoint,estimand,results_note').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
+          _sb.from('trials').select('*').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
         const scoreMapR = {};
@@ -12727,7 +12727,7 @@ function _makeAreaPI(tabId, areaIds) {
      const acronym = t.study_acronym || '';
      const status = t.status || '';
      const _pRaw = (t.phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-     const _pAbbr = {observational:'Obs',expanded:'Exp.','not applicable':'N/A','n/a':'N/A','open label':'Open-label','early phase 1':'EPh 1'};
+     const _pAbbr = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label','early phase 1':'EPh 1'};
      const phaseDisplay = !_pRaw ? '—' : /\d/.test(_pRaw) ? `Ph ${_pRaw}` : (_pAbbr[_pRaw.toLowerCase()] || _pRaw.slice(0,5));
      const pcd    = fmtPcd(t.primary_completion_date || t.pcd_label || t.pcd || '');
      const _nctComboMatch = (nct+'').match(/NCT\d{6,}/i);
@@ -12912,17 +12912,43 @@ function _makeAreaPI(tabId, areaIds) {
 
     // Phase cell — normalize all "Phase X / Phase Y" → "Ph X/Y"
     const _pRaw2 = (phase||'').replace(/Phase\s*/gi,'').replace(/\s*\/\s*/g,'/').trim();
-    const _pAbbr2 = {observational:'Obs',expanded:'Exp.','not applicable':'N/A','n/a':'N/A','open label':'Open-label','early phase 1':'EPh 1'};
+    const _pAbbr2 = {observational:'Obs',expanded:'Exp.','not applicable':'—','n/a':'—','open label':'Open-label','early phase 1':'EPh 1'};
     const phaseShort = !_pRaw2 ? '—' : /\d/.test(_pRaw2) ? `Ph ${_pRaw2}` : (_pAbbr2[_pRaw2.toLowerCase()] || _pRaw2.slice(0,5));
     const phaseCell  = `<span class="pi-tr-phase-cell">${phaseShort}</span>`;
 
+    // Extended trial fields — new columns auto-populate when added to Supabase
+    const doseLevel    = t.dose_levels    || t.dose_amount   || '';
+    const dosFreq      = t.dosing_frequency || t.dosing_schedule || '';
+    const comparator   = t.comparator     || t.control_arm   || '';
+    const txDuration   = t.treatment_duration || t.duration  || '';
+    const keySec       = t.key_secondary_endpoints || t.secondary_endpoints || '';
+    const population   = t.population_criteria || t.inclusion_criteria_note || '';
+    const studyDesign  = t.study_design   || '';
+    const readout      = t.expected_readout || t.data_readout || '';
+    const arms         = t.arms_description || t.arm_count ? (t.arms_description || `${t.arm_count} arms`) : '';
+    const geoScope     = t.geographic_scope || t.regions || '';
+
+    // Build regimen string: route · dose · frequency (combine what's available)
+    const regimenParts = [route, doseLevel, dosFreq || dosing].filter(Boolean);
+    const regimenStr   = regimenParts.join(' · ');
+
+    const _fld = (lbl, val, wide) =>
+     val ? `<div class="pi-tr-field"${wide?' style="grid-column:1/-1"':''}><span class="pi-tr-field-lbl">${lbl}</span><span class="pi-tr-field-val" style="${wide?'font-weight:400;font-size:11px':''}">${val}</span></div>` : '';
+
     const detailFields = [
-     ind    ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Condition</span><span class="pi-tr-field-val">${ind}</span></div>` : '',
-     n      ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Enrollment</span><span class="pi-tr-field-val">N=${n}</span></div>` : '',
-     route  ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Route</span><span class="pi-tr-field-val">${route}</span></div>` : '',
-     dosing ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Dosing Type</span><span class="pi-tr-field-val">${dosing}</span></div>` : '',
-     ep       ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Primary Endpoint</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${ep}</span></div>` : '',
-     estimand ? `<div class="pi-tr-field" style="grid-column:1/-1"><span class="pi-tr-field-lbl">Estimand</span><span class="pi-tr-field-val" style="font-weight:400;font-size:11px">${estimand}</span></div>` : '',
+     _fld('Condition', ind),
+     _fld('Enrollment', n ? `N = ${n}` : ''),
+     _fld('Regimen', regimenStr),
+     _fld('Comparator', comparator),
+     _fld('Treatment Duration', txDuration),
+     _fld('Study Design', studyDesign),
+     _fld('Arms', arms),
+     _fld('Geographic Scope', geoScope),
+     _fld('Population', population, true),
+     _fld('Primary Endpoint', ep, true),
+     _fld('Key Secondary Endpoints', keySec, true),
+     _fld('Estimand', estimand, true),
+     readout ? `<div class="pi-tr-field"><span class="pi-tr-field-lbl">Expected Readout</span><span class="pi-tr-field-val" style="font-weight:700;color:#0369a1">${readout}</span></div>` : '',
     ].filter(Boolean).join('');
 
     const resultsSection = hasResults ? `
