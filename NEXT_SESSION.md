@@ -1,8 +1,55 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53j (2026-05-25)  
-**Completed:** Phase 4B Path C — `openDrugEntityModal()` dual-read · `_runPhase4CModalDualRead` added · all three Phase 4B paths now complete  
-**Prior milestones:** Session 53i TL1A dual-read in `_makeAreaPI()` · Session 53h TL1A gap classification · Session 53g IBD dual-read · Session 53f LEGACY_VIEW_TYPES
+**Last session:** Session 53k (2026-05-25) — Company Governance Phase  
+**Prior session:** Session 53j — Phase 4B Path C (`openDrugEntityModal()` dual-read)
+
+---
+
+## Company Governance Phase: COMPLETE ✅
+
+Company layer is now structurally sound. Do not revisit manually — freshness is the only remaining gap, and it should be automated (see P0 below).
+
+| Metric | Result |
+|---|---|
+| P0 (blocking) | 0 |
+| P1 (quality) | 2 (intentional orphan signals only) |
+| Fleet average | 91/100 |
+| A-grade companies | 60 |
+| B-grade companies | 39 (all freshness-only gaps) |
+| C-grade companies | 2 (yunnan-baiyao, pien-tze-huang — orphans, correct) |
+
+**What was built/applied this session:**
+- Acquired-asset rule: `company_id=acquirer`, `company_display="X w/Y"`, `original_company_id`, `acquired_asset=true`
+- OWNERSHIP ≠ IDENTITY governance rule (Ailux/XtalPi model; parent_company_id + ownership_type)
+- QuantumPharm resolved: former name of XtalPi Holdings (same entity); alias marked 'former'
+- Ghost records deleted: xencor-412, xencor-942 (17 intel rows migrated to xencor)
+- `coverage_status` field: active / reference / planned / orphan
+- 32 no-drug companies classified; 4 acquired companies set to reference
+- 50 companies geography-backfilled from hq_country
+- 71 primary aliases seeded
+- `company_validator.py` deployed: P0/P1/P2 checks + 6-dimension Health Score (0–100)
+
+**Backlog note (do not build now):**
+Add `drug_id` / `program_id` to the `intel` table for structured program-level attribution. Currently intel rolls up to company level; program specificity lives in headline/body text only.
+
+---
+
+## ⚡ P0 NEXT — Automated last_verified Refresh Workflow
+
+**Why:** The B-grade cluster (39 companies at ~83/100) is entirely explained by `freshness=0` — `last_verified` has never been set. Manually patching these would be busywork. Freshness should become an automation problem.
+
+**Build:** A `refresh_company_verified.py` script + GitHub Actions workflow that:
+1. Queries all companies where `last_verified` is null or older than 90 days
+2. Runs a lightweight verification pass (confirm company still exists, basic profile still valid — can use existing data sources or a simple web check)
+3. Updates `last_verified = today` only when verification passes
+4. Does NOT overwrite curated fields (hq_city, company_type, ta_focus, etc.) — freshness update only
+5. Logs source, date, and method to a `company_verification_log` table (or as a JSON note in a `verification_notes` field)
+6. Runs on a weekly schedule (cron: Sundays, off-peak)
+7. Writes a summary to `drug_validation_results` with check_type=`last_verified_refreshed`
+
+**Expected outcome:** B-grade cluster lifts to A-grade over the next 1–2 automated runs. Fleet average should reach 95+.
+
+**Do not manually patch last_verified for the 39 B-grade companies.** Let the workflow do it.
 
 ---
 
