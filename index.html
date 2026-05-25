@@ -3695,7 +3695,7 @@ function loadMoleculeTab(tabId) {
     <div class="entity-modal-title" id="entity-modal-title"></div>
     <div class="entity-modal-sub" id="entity-modal-sub"></div>
    </div>
-   <div id="entity-modal-area-pills" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;padding:0 12px;max-width:340px"></div>
+   <div id="entity-modal-area-pills" style="display:flex;align-items:center;justify-content:center;flex-wrap:nowrap;gap:5px;padding:0 12px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;max-width:420px"></div>
    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
     <div id="entity-modal-conf" class="cem-conf"></div>
     <button class="entity-modal-close" onclick="closeEntityModal()" title="Close" style="display:none">✕</button>
@@ -9578,14 +9578,20 @@ function selectMeridianIssue(id, label) {
 // Row expansion is preserved — stopPropagation on the name span handles separation.
 
 function _openEntityByEl(el) {
-  const id   = el.dataset.eid;
-  const name = el.dataset.ename || el.textContent.trim();
-  const tab  = el.dataset.tab  || '';
-  openCompanySlideOver(id, name, tab);
+  const id     = el.dataset.eid;
+  const cid    = el.dataset.cid   || id;   // company_id — guaranteed to be companies.id
+  const name   = el.dataset.ename || el.textContent.trim();
+  const tab    = el.dataset.tab   || '';
+  const hints  = {
+    ticker:     el.dataset.ticker     || '',
+    hq_city:    el.dataset.hqcity     || '',
+    hq_country: el.dataset.hqcountry  || '',
+  };
+  openCompanySlideOver(id, name, tab, cid, hints);
 }
 
 /* ─── Company slide-over panel ──────────────────────────────────────────────── */
-async function openCompanySlideOver(companyId, companyName, sourceTabId) {
+async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbackCid, rowHints) {
   console.log('[openCompanySlideOver] called:', companyId, companyName, sourceTabId);
   // Open overlay FIRST — before any DOM manipulation that could throw
   const overlay = document.getElementById('entity-modal-overlay');
@@ -9670,7 +9676,22 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId) {
     allAreaSigsRows.forEach(({ areaId, sigs }) => { allAreaSigs[areaId] = sigs; });
 
     const profile    = profileRes.data?.[0] || null;
-    const companyRow = companyRowRes.data?.[0] || null;
+    let companyRow = companyRowRes.data?.[0] || null;
+    // If entity_id ≠ company_id (e.g. acquired asset), retry with company_id
+    if (!companyRow && fallbackCid && fallbackCid !== companyId) {
+      const { data: fbRows } = await _sb.from('companies')
+        .select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2')
+        .eq('id', fallbackCid).limit(1);
+      companyRow = fbRows?.[0] || null;
+    }
+    // Merge hints from PI row as last-resort fallback (ticker/hq already in entity obj)
+    if (!companyRow && rowHints) {
+      companyRow = { ticker: rowHints.ticker||'', hq_city: rowHints.hq_city||'', hq_country: rowHints.hq_country||'', ta_focus_1:'', ta_focus_2:'' };
+    } else if (companyRow && rowHints) {
+      if (!companyRow.ticker     && rowHints.ticker)     companyRow.ticker     = rowHints.ticker;
+      if (!companyRow.hq_city    && rowHints.hq_city)    companyRow.hq_city    = rowHints.hq_city;
+      if (!companyRow.hq_country && rowHints.hq_country) companyRow.hq_country = rowHints.hq_country;
+    }
     console.log('[openCompanySlideOver] companyRow:', companyRow);
     const cats    = catsRes.data || [];
     let deals     = dealsRes.data || [];
@@ -11227,15 +11248,15 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     { id:'cem-tab-overview',   label:'Overview' },
     { id:'cem-tab-assessment', label:'Assessment' },
     { id:'cem-tab-catalysts',  label:`Catalysts${_totalCatCount?' ('+_totalCatCount+')':''}` },
-    { id:'cem-tab-signals',    label:`Signals${_totalSigCount?' ('+_totalSigCount+')':''}` },
     { id:'cem-tab-news',       label:'Related News' },
+    { id:'cem-tab-signals',    label:`Signals${_totalSigCount?' ('+_totalSigCount+')':''}` },
   ];
   const _panels = [
     { id:'cem-tab-overview',   content: _overviewContent },
     { id:'cem-tab-assessment', content: _assessmentContent },
     { id:'cem-tab-catalysts',  content: _catalystsContent },
-    { id:'cem-tab-signals',    content: _signalsContent },
     { id:'cem-tab-news',       content: _newsContent },
+    { id:'cem-tab-signals',    content: _signalsContent },
   ];
 
   return _areaFilterHtml + _buildDossierShell(_tabs, _panels);
@@ -12632,7 +12653,7 @@ function _makeAreaPI(tabId, areaIds) {
         const relevBorder = ent.bestRelevance ? `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance]||'transparent'}` : '';
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
+          <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target}</td>
