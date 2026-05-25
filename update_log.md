@@ -1,6 +1,30 @@
 
 ---
-## 2026-05-25 (Session 53o) — Phase 5 Candidate 1: FEATURE_FLAGS + IBD normalized source path
+## 2026-05-25 (Session 53o) — Phase 5 Candidate 1 ACTIVATED: useNormalizedIBD = true
+
+**Formal activation — advisor-approved 2026-05-25.**
+
+| Field | Value |
+|---|---|
+| Flag | `FEATURE_FLAGS.useNormalizedIBD` |
+| Previous value | `false` |
+| New value | `true` |
+| Activation basis | All migration acceptance criteria satisfied: 0 open high-sev ECC · 93.6% validation pass rate · 96/100 fleet score · rollback path exists · 30-day legacy retention |
+| Monitoring window | 7–14 days from 2026-05-25 |
+| Rollback | Set `useNormalizedIBD: false` → redeploy. No data changes required. |
+| Legacy retention deadline | 2026-06-24 (30 days) — legacy IBD path may be removed after this date |
+
+**Success criteria (check during monitoring window):**
+- UI loads correctly for IBD area tab
+- Drug counts match Phase 4C baseline (legacy=50, normalized=50, overlap=47)
+- Search/filter behavior unchanged
+- No increase in ECC open items
+- No unexpected validation deltas in `drug_validation_results`
+
+**Baseline reference:** `docs/platform_baseline_v1.md` commit `2de301919236`
+
+---
+## 2026-05-25 (Session 53o) — Phase 5 Candidate 1: FEATURE_FLAGS + IBD normalized source path (deploy)
 
 **Migration log: Phase 5 Candidate 1 — IBD indication-group view**
 
