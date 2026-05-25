@@ -15379,6 +15379,19 @@ document.addEventListener('DOMContentLoaded', function(){
 .au-anno-field::placeholder { color:#d97706;opacity:.5 }
 .au-anno-saved   { font-size:10px;color:#d97706;margin-top:4px;height:14px;transition:opacity .3s }
 
+/* Edit mode */
+.au-editable               { cursor:text;border-radius:3px;transition:background .15s }
+.au-edit-active .au-editable { outline:none;border-bottom:1.5px dashed #fde68a }
+.au-edit-active .au-editable:focus { background:#fffbeb;border-bottom-color:#f59e0b;padding:2px 4px }
+.au-user-edit              { color:#d97706 !important }
+.au-user-edit strong, .au-user-edit em { color:#d97706 !important }
+.au-edit-indicator         { color:#f59e0b;font-size:9px;margin-left:4px;vertical-align:middle }
+.au-edit-btn               { font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer }
+.au-edit-btn:hover         { color:#0f172a;border-color:#94a3b8 }
+.au-edit-btn.active        { background:#fef9c3;border-color:#f59e0b;color:#92400e }
+.au-copy-btn               { display:none;font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid #f59e0b;background:#fffbeb;color:#92400e;cursor:pointer }
+.au-copy-btn:hover         { background:#fef9c3 }
+
 /* Backlog */
 .au-backlog-item      { border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px;background:white }
 .au-backlog-item:hover { border-color:#cbd5e1 }
@@ -15412,6 +15425,8 @@ document.addEventListener('DOMContentLoaded', function(){
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <span class="au-timestamp" id="au-ts">—</span>
+        <button class="au-edit-btn" id="au-edit-btn" onclick="auToggleEditMode()">✏️ Edit text</button>
+        <button class="au-copy-btn" id="au-copy-btn" onclick="auCollectEdits()">📋 Copy my edits</button>
         <button class="au-refreshbtn" onclick="auditLoad(true)">↻ Refresh</button>
       </div>
     </div>
@@ -15439,19 +15454,19 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
     <div class="au-sec-body collapsed" id="s0-body">
       <div class="au-items">
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Disease Area / Pillar</div><div class="au-item-desc">A biological mechanism Ailux has BD interest in — TL1A, TSLP, IL-4Rα, FcRn, IGF1R, T-cell. Every record in the database is tagged to one or more areas. The tabs in the dashboard = areas.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Overlap — Direct / Adjacent / Same-Space</div><div class="au-item-desc"><strong>Direct:</strong> same target + same patients — head-to-head competition. <strong>Adjacent:</strong> related mechanism or nearby indication — compared by physicians or in trials. <strong>Same-Space:</strong> same broad disease area, different enough not to be a direct threat. The most important label in Meridian for BD work.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Enrichment</div><div class="au-item-desc">The automated process that takes a company name + area, gives Claude structured context, and uses its output to fill in drugs, trials, catalysts, and deals. "Enriching UCB" = running the pipeline on UCB for TL1A.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Completeness Score (0–100)</div><div class="au-item-desc">How thoroughly a company/drug has been researched — not how important it is. 0 = not enriched yet. 70+ = strong coverage across all 6 research stages.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Canonical Drug / Canonical ID</div><div class="au-item-desc">One master record per real molecule regardless of how many names it has. "Omvontis" = "RVT-3101" = tulisokibart → one canonical ID. All trials and deals link to that ID, not the name.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Catalyst</div><div class="au-item-desc">A future event that matters for BD — trial readout, FDA filing, conference presentation. Stored with a date. Drives the catalyst timeline on the home page.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Discovery Queue</div><div class="au-item-desc">New companies or drugs Meridian found but hasn't fully researched. Meridian's to-do list for new entities.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">drug_area_scores</div><div class="au-item-desc">The database table where Claude's competitive assessments live. One row per drug per area. Stores overlap classification, rationale, vs_ailux positioning. This is the output of enrichment, the input to the dashboard.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Confidence Level — confirmed / supported / inferred</div><div class="au-item-desc"><strong>Confirmed:</strong> Claude found a direct source. <strong>Supported:</strong> multiple indirect sources agree. <strong>Inferred:</strong> Claude reasoned from related evidence. <strong>Unverified:</strong> claimed but not corroborated. Stored in every record — not yet shown in the UI.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Prompt / Prompt Engineering</div><div class="au-item-desc">The exact instruction text given to Claude. Every classification, summary, and score in Meridian is the output of a specific prompt. Changing the prompt changes all future outputs. The prompts are the most important text in the system.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Supabase</div><div class="au-item-desc">The cloud database where all Meridian data lives. The dashboard reads from it in real time. The enrichment scripts write to it. Think: structured cloud spreadsheet with 20+ linked tables.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Knowledge Graph</div><div class="au-item-desc">Data organized as nodes (company, drug, trial, deal) connected by edges (CONTROLS, TARGETS, PARTNERED_WITH). Unlike a spreadsheet, a graph lets you traverse connections — "which companies that did TL1A deals also have Phase 2 trials?" becomes a traversal, not a manual lookup.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Migration</div><div class="au-item-desc">A versioned change to the database structure — adding a column, creating a new table. Meridian has 21+ migrations applied in order (v1–v21). Each represents a structural capability upgrade.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Disease Area / Pillar</div><div class="au-item-desc au-editable">A biological mechanism Ailux has BD interest in — TL1A, TSLP, IL-4Rα, FcRn, IGF1R, T-cell. Every record in the database is tagged to one or more areas. The tabs in the dashboard = areas.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Overlap — Direct / Adjacent / Same-Space</div><div class="au-item-desc au-editable"><strong>Direct:</strong> same target + same patients — head-to-head competition. <strong>Adjacent:</strong> related mechanism or nearby indication — compared by physicians or in trials. <strong>Same-Space:</strong> same broad disease area, different enough not to be a direct threat. The most important label in Meridian for BD work.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Enrichment</div><div class="au-item-desc au-editable">The automated process that takes a company name + area, gives Claude structured context, and uses its output to fill in drugs, trials, catalysts, and deals. "Enriching UCB" = running the pipeline on UCB for TL1A.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Completeness Score (0–100)</div><div class="au-item-desc au-editable">How thoroughly a company/drug has been researched — not how important it is. 0 = not enriched yet. 70+ = strong coverage across all 6 research stages.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Canonical Drug / Canonical ID</div><div class="au-item-desc au-editable">One master record per real molecule regardless of how many names it has. "Omvontis" = "RVT-3101" = tulisokibart → one canonical ID. All trials and deals link to that ID, not the name.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Catalyst</div><div class="au-item-desc au-editable">A future event that matters for BD — trial readout, FDA filing, conference presentation. Stored with a date. Drives the catalyst timeline on the home page.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Discovery Queue</div><div class="au-item-desc au-editable">New companies or drugs Meridian found but hasn't fully researched. Meridian's to-do list for new entities.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">drug_area_scores</div><div class="au-item-desc au-editable">The database table where Claude's competitive assessments live. One row per drug per area. Stores overlap classification, rationale, vs_ailux positioning. This is the output of enrichment, the input to the dashboard.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Confidence Level — confirmed / supported / inferred</div><div class="au-item-desc au-editable"><strong>Confirmed:</strong> Claude found a direct source. <strong>Supported:</strong> multiple indirect sources agree. <strong>Inferred:</strong> Claude reasoned from related evidence. <strong>Unverified:</strong> claimed but not corroborated. Stored in every record — not yet shown in the UI.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Prompt / Prompt Engineering</div><div class="au-item-desc au-editable">The exact instruction text given to Claude. Every classification, summary, and score in Meridian is the output of a specific prompt. Changing the prompt changes all future outputs. The prompts are the most important text in the system.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Supabase</div><div class="au-item-desc au-editable">The cloud database where all Meridian data lives. The dashboard reads from it in real time. The enrichment scripts write to it. Think: structured cloud spreadsheet with 20+ linked tables.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Knowledge Graph</div><div class="au-item-desc au-editable">Data organized as nodes (company, drug, trial, deal) connected by edges (CONTROLS, TARGETS, PARTNERED_WITH). Unlike a spreadsheet, a graph lets you traverse connections — "which companies that did TL1A deals also have Phase 2 trials?" becomes a traversal, not a manual lookup.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-blue"></div><div><div class="au-item-name">Migration</div><div class="au-item-desc au-editable">A versioned change to the database structure — adding a column, creating a new table. Meridian has 21+ migrations applied in order (v1–v21). Each represents a structural capability upgrade.</div></div></div>
       </div>
       <div class="au-anno-wrap">
         <div class="au-anno-label">Terms that still confuse you, definitions that seem wrong</div>
@@ -15469,7 +15484,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s1-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s1-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         Supabase is the structured memory of Meridian. It doesn't store articles or documents — it stores <strong>facts in rows and columns, connected by foreign keys</strong> (pointers from one table to another). Here is what the structure actually looks like and why it's organized this way.
       </div>
 
@@ -15546,7 +15561,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div style="font-size:10px;color:#94a3b8;margin-top:12px;font-style:italic">Foreign keys (pointers) connect these tables. drug_area_scores.drug_id → drugs.id → companies.id → company_areas.area_id → disease_areas.id. One chain from area tab to final score.</div>
       </div>
 
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         The key insight: <strong>Supabase stores facts, not documents.</strong> When you read "cizutamig: Direct competitor in TL1A" on the dashboard, that sentence doesn't exist anywhere in the database. It is assembled on the fly by reading three separate rows — the drug record, the drug_area_scores row, and the company record — and combining them in the browser.
       </div>
 
@@ -15571,7 +15586,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s2-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s2-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         Here is the complete, unabridged sequence of what happens when the enrichment pipeline classifies <strong>cizutamig (UCB)</strong> as a Direct TL1A competitor. Every step, every query, every piece of data that moves.
       </div>
 
@@ -15582,13 +15597,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#6366f1;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">1</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Pipeline starts — reads the work queue from Supabase</div>
-            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:11px;font-family:'Courier New',monospace;color:#334155;line-height:1.7">
-              SELECT c.id, c.name, da.id AS area_id, da.name AS area_name<br>
-              FROM companies c<br>
-              JOIN company_areas ca ON ca.company_id = c.id<br>
-              JOIN disease_areas da ON da.id = ca.area_id<br>
-              WHERE c.status != 'acquired'<br>
-              ORDER BY c.last_enriched_at ASC NULLS FIRST
+            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:12px;color:#334155;line-height:1.7">
+              The pipeline reads from tables <code>companies</code>, <code>company_areas</code>, and <code>disease_areas</code> — asking: which companies are tagged to this area and haven't been enriched recently? Companies with <code>status = acquired</code> are excluded (they've been absorbed into another company). The result is sorted so the least-recently-enriched company goes first.
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">This returns: <em>"UCB, area: TL1A — enriched 3 days ago."</em> UCB moves to the front of the queue because it hasn't been enriched recently.</div>
           </div>
@@ -15600,14 +15610,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#6366f1;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">2</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Pipeline fetches everything Meridian already knows about UCB</div>
-            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:11px;font-family:'Courier New',monospace;color:#334155;line-height:1.7">
-              -- Get existing drugs for UCB<br>
-              SELECT * FROM drugs WHERE company_id = 'ucb-id'<br><br>
-              -- Get existing scores for TL1A area<br>
-              SELECT * FROM drug_area_scores WHERE area_id = 'tl1a-id'<br><br>
-              -- Get recent catalysts<br>
-              SELECT * FROM catalysts WHERE company_id = 'ucb-id'<br>
-              ORDER BY sort_date DESC LIMIT 10
+            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:12px;color:#334155;line-height:1.7">
+              The pipeline reads everything Meridian already knows about UCB — from tables <code>drugs</code>, <code>drug_area_scores</code>, and <code>catalysts</code>. This existing knowledge gets included in what Claude receives, so Claude builds on prior analysis rather than starting from scratch each time.
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">This builds the <strong>context object</strong> — a structured summary of what Meridian already knows. This context gets included in the prompt so Claude doesn't start from scratch.</div>
           </div>
@@ -15619,22 +15623,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#6366f1;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">3</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Pipeline calls Claude — Step 3: Drug Discovery</div>
-            <div style="background:#1e1b4b;border-radius:6px;padding:12px 14px;font-size:11px;font-family:'Courier New',monospace;color:#c7d2fe;line-height:1.75">
-              <span style="color:#818cf8">SYSTEM:</span> You are a pharmaceutical intelligence analyst.<br>
-              Extract all drug pipeline information for the given company.<br><br>
-              <span style="color:#818cf8">USER:</span> Company: UCB<br>
-              Disease area focus: TL1A / IBD<br>
-              Known drugs already in database: [rozanolixizumab, bimekizumab]<br>
-              Recent catalysts: [Phase 2 cizutamig readout Q3 2025]<br><br>
-              For each drug in UCB's TL1A pipeline, return:<br>
-              - drug_name (string)<br>
-              - mechanism (string)<br>
-              - target (string)<br>
-              - current_phase (string)<br>
-              - primary_indication (string)<br>
-              - source_url (string if found)<br>
-              - confidence_level: confirmed | supported | inferred<br><br>
-              Return as JSON array.
+            <div style="background:#f1f5f9;border-radius:6px;padding:12px 14px;font-size:12px;color:#334155;line-height:1.75">
+              Claude receives a brief about UCB: the company name, disease area focus (TL1A / IBD), which drugs are already in the database, and recent catalysts. Claude is asked to identify all drugs in UCB's TL1A pipeline — name, mechanism, target, clinical stage, and indication. It also assigns a <code>confidence_level</code> to each drug: <code>confirmed</code> if it found a direct source, <code>supported</code> if indirect sources agree, or <code>inferred</code> if it reasoned from available evidence.
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:6px">Claude returns structured JSON. The pipeline validates it, checks canonical identity (is "cizutamig" already in the database?), then writes each drug as a row in <code>drugs</code>.</div>
           </div>
@@ -15646,19 +15636,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#6366f1;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">4</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Pipeline calls Claude again — Step 5: Competitive Classification</div>
-            <div style="background:#1e1b4b;border-radius:6px;padding:12px 14px;font-size:11px;font-family:'Courier New',monospace;color:#c7d2fe;line-height:1.75">
-              <span style="color:#818cf8">SYSTEM:</span> You are a BD strategist at Ailux Therapeutics.<br>
-              Ailux is developing a TL1A × IL-23p19 bispecific antibody for IBD.<br><br>
-              <span style="color:#818cf8">USER:</span> Drug: cizutamig<br>
-              Mechanism: anti-TL1A monoclonal antibody<br>
-              Phase: Phase 2<br>
-              Indication: Crohn's disease, UC<br>
-              Company: UCB<br><br>
-              Classify this drug's competitive overlap with Ailux:<br>
-              — Direct: same TL1A target, same IBD patients. Head-to-head competition.<br>
-              — Adjacent: related mechanism or overlapping indication but not direct head-to-head.<br>
-              — Same-Space: same broad disease area, different mechanism or patient segment.<br><br>
-              Return JSON: { overlap, overlap_rationale, vs_ailux_positioning, area_fit, area_fit_rationale }
+            <div style="background:#f1f5f9;border-radius:6px;padding:12px 14px;font-size:12px;color:#334155;line-height:1.75">
+              Claude receives the drug facts for cizutamig (mechanism: anti-TL1A antibody, phase: Phase 2, indication: Crohn's and UC, company: UCB) along with the full four-tier classification definitions from the <code>ailux_positions</code> table — the exact Direct / Adjacent / Same-Space / Watch criteria shown in the "Definitions" section above. Claude applies those definitions and returns: which tier this drug belongs to, a one-sentence rationale explaining why, a direct comparison to SPY002, and a relevance score from 1–10.
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:6px">This is the classification call. The exact wording of Direct/Adjacent/Same-Space definitions determines what Claude decides. <strong>These words are the most important text in the system.</strong></div>
           </div>
@@ -15688,16 +15667,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#6366f1;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">6</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Pipeline writes the conclusion back to Supabase</div>
-            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:11px;font-family:'Courier New',monospace;color:#334155;line-height:1.7">
-              INSERT INTO drug_area_scores<br>
-              &nbsp;&nbsp;(drug_id, area_id, overlap, overlap_rationale,<br>
-              &nbsp;&nbsp;&nbsp;vs_ailux_positioning, area_fit, area_fit_rationale,<br>
-              &nbsp;&nbsp;&nbsp;enrichment_timestamp)<br>
-              VALUES<br>
-              &nbsp;&nbsp;('cizutamig-id', 'tl1a-id', 'Direct', 'anti-TL1A mAb...',<br>
-              &nbsp;&nbsp;&nbsp;'Head-to-head competitor...', 9, 'Core TL1A IBD...',<br>
-              &nbsp;&nbsp;&nbsp;NOW())<br>
-              ON CONFLICT (drug_id, area_id) DO UPDATE SET ...
+            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:12px;color:#334155;line-height:1.7">
+              Claude's output is written into the <code>drug_area_scores</code> table — one row per drug per area. If a score already exists for this drug in this area, it gets overwritten with the new assessment. Fields stored include <code>overlap</code> (the tier), <code>overlap_rationale</code> (the reasoning), <code>vs_ailux</code> (the comparison), and <code>area_fit</code> (a relevance score from 1–10).
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">The <code>ON CONFLICT ... DO UPDATE</code> part means: if this drug already has a score for this area, overwrite it. So re-running enrichment updates existing records rather than creating duplicates.</div>
           </div>
@@ -15709,16 +15680,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <div style="background:#f59e0b;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px">7</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px">Dashboard reads it — and assembles the display</div>
-            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:11px;font-family:'Courier New',monospace;color:#334155;line-height:1.7">
-              SELECT d.name, d.mechanism, d.phase,<br>
-              &nbsp;&nbsp;das.overlap, das.overlap_rationale,<br>
-              &nbsp;&nbsp;das.vs_ailux_positioning, das.area_fit,<br>
-              &nbsp;&nbsp;c.name AS company_name<br>
-              FROM drug_area_scores das<br>
-              JOIN drugs d ON d.id = das.drug_id<br>
-              JOIN companies c ON c.id = d.company_id<br>
-              WHERE das.area_id = 'tl1a-id'<br>
-              ORDER BY das.area_fit DESC, das.overlap
+            <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;font-size:12px;color:#334155;line-height:1.7">
+              When you open the TL1A tab, the dashboard reads from <code>drug_area_scores</code>, joins it with <code>drugs</code> and <code>companies</code> to get the full picture, filters to area TL1A, and sorts by relevance score — highest first. The "Direct" badge, the rationale text, the comparison note — all come from those stored fields. Nothing is calculated live; it all comes from what Claude wrote during enrichment.
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">The browser reads this table join and renders the TL1A drug cards. The "Direct" badge, the rationale text, the vs_ailux note — all assembled from those six columns. <strong>The HTML you see is built from these rows in real time on every page load.</strong></div>
           </div>
@@ -15738,6 +15701,134 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 
+
+  <!-- ── SECTION: The Definitions That Drive Every Classification ── -->
+  <div class="au-section">
+    <div class="au-sec-hd" onclick="auToggle('sd')">
+      <span class="au-sec-icon">📐</span>
+      <span class="au-sec-title">The Definitions That Drive Every Classification</span>
+      <span class="au-sec-toggle" id="sd-tog">▾</span>
+    </div>
+    <div class="au-sec-body" id="sd-body">
+      <div class="au-narrative au-editable">
+        Every drug in Meridian gets classified into one of four tiers. These are the exact definitions Claude reads before making that decision. They live in a database table called <code>ailux_positions</code> — one row per disease area. Changing these definitions changes every future classification. The text below is pulled directly from that table for the IBD / TL1A area.
+      </div>
+
+      <div style="margin:18px 0">
+
+        <!-- AILUX ANCHOR -->
+        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:9px;padding:16px 18px;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Ailux's Drug — The Reference Point for Every Classification</div>
+          <div class="au-narrative au-editable" style="margin-bottom:6px"><strong>Drug:</strong> SPY002 &nbsp;·&nbsp; <strong>Targets:</strong> TL1A × IL-23p19 &nbsp;·&nbsp; <strong>Format:</strong> bispecific antibody, subcutaneous &nbsp;·&nbsp; <strong>Stage:</strong> Phase 2 (UC and CD)</div>
+          <div class="au-narrative au-editable">Spyre Therapeutics is developing SPY002, a bispecific antibody that blocks both TL1A (which drives mucosal inflammation in IBD) and IL-23p19 (which drives the Th17 immune pathway). The idea is that blocking both targets in a single injection is more effective than blocking either alone — and more convenient than taking two separate drugs. Ailux's BD strategy is to track and partner around Spyre's competitive position.</div>
+          <div class="au-anno-wrap" style="margin-top:10px">
+            <div class="au-anno-label">Suggest a clearer way to describe Ailux's drug or strategy</div>
+            <textarea class="au-anno-field" id="anno-anchor" placeholder="e.g. Should mention that SC delivery is a key differentiator vs IV combos…" oninput="auSave('anno-anchor')"></textarea>
+            <div class="au-anno-saved" id="anno-anchor-saved"></div>
+          </div>
+        </div>
+
+        <!-- DIRECT -->
+        <div style="background:#fff;border:1.5px solid #fca5a5;border-radius:9px;padding:16px 18px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px">Direct</span>
+            <span style="font-size:12px;font-weight:700;color:#0f172a">Field name stored in database: <code>overlap = "Direct"</code></span>
+          </div>
+          <div class="au-narrative au-editable"><strong>What it means:</strong> The drug targets TL1A — the same primary target as Ailux — or is a combination program that includes TL1A as one of its components. This is a direct mechanistic threat regardless of what stage the drug is at. Even a preclinical TL1A program counts as Direct.</div>
+          <div class="au-narrative au-editable" style="margin-top:8px"><strong>Real examples:</strong> ABBV-701 (AbbVie's anti-TL1A antibody), tulisokibart / MK-7240 (Merck's anti-TL1A), afimkibart / RO7121 (Roche anti-TL1A), duvakitug / SAR447029 (Sanofi anti-TL1A), SIM0709 (BI / Simcere anti-TL1A), and any TL1A × IL-23 bispecific from a competitor company.</div>
+          <div class="au-anno-wrap" style="margin-top:10px">
+            <div class="au-anno-label">Suggest a change to the Direct definition</div>
+            <textarea class="au-anno-field" id="anno-direct" placeholder="e.g. Should bispecifics with TL1A as the secondary arm still count as Direct? What about drugs that indirectly regulate TL1A expression?…" oninput="auSave('anno-direct')"></textarea>
+            <div class="au-anno-saved" id="anno-direct-saved"></div>
+          </div>
+        </div>
+
+        <!-- ADJACENT -->
+        <div style="background:#fff;border:1.5px solid #fde68a;border-radius:9px;padding:16px 18px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:#fef9c3;color:#854d0e;font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px">Adjacent</span>
+            <span style="font-size:12px;font-weight:700;color:#0f172a">Field name stored in database: <code>overlap = "Adjacent"</code></span>
+          </div>
+          <div class="au-narrative au-editable"><strong>What it means:</strong> The drug treats IBD (UC or Crohn's) but works through a different mechanism than TL1A. These drugs matter because they either validate the same biology Ailux is working in, or they're being tested as combination partners with TL1A inhibitors. They're not head-to-head competitors — but they shape the treatment landscape that Ailux's drug will enter.</div>
+          <div class="au-narrative au-editable" style="margin-top:8px"><strong>Real examples:</strong> Skyrizi / risankizumab (AbbVie's IL-23 blocker, approved for UC and Crohn's), ABBV-382 (AbbVie's α4β7 integrin blocker), vedolizumab / Entyvio (Takeda's α4β7 blocker), mirikizumab / Omvoh (Lilly's IL-23 blocker), ABBV-466 (AbbVie's IL-23 + α4β7 combination program), and any bispecific combining IL-23 with another gut-targeted mechanism.</div>
+          <div class="au-anno-wrap" style="margin-top:10px">
+            <div class="au-anno-label">Suggest a change to the Adjacent definition</div>
+            <textarea class="au-anno-field" id="anno-adjacent" placeholder="e.g. Should risankizumab be Adjacent or Same-Space? It doesn't target TL1A but Ailux's bispecific includes the IL-23 arm…" oninput="auSave('anno-adjacent')"></textarea>
+            <div class="au-anno-saved" id="anno-adjacent-saved"></div>
+          </div>
+        </div>
+
+        <!-- SAME-SPACE -->
+        <div style="background:#fff;border:1.5px solid #bfdbfe;border-radius:9px;padding:16px 18px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:#dbeafe;color:#1e40af;font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px">Same-Space</span>
+            <span style="font-size:12px;font-weight:700;color:#0f172a">Field name stored in database: <code>overlap = "Same-Space"</code></span>
+          </div>
+          <div class="au-narrative au-editable"><strong>What it means:</strong> Approved standard-of-care drugs for IBD that work through a completely different pathway — not TL1A, not IL-23, not α4β7. These drugs treat the same patients Ailux's drug will treat, so they define the efficacy bar that Ailux needs to beat. They're not a mechanistic threat, but they are the commercial benchmark.</div>
+          <div class="au-narrative au-editable" style="margin-top:8px"><strong>Real examples:</strong> Ustekinumab / Stelara (J&J's IL-12/23p40 blocker — approved for UC and Crohn's; uses the older, broader p40 target rather than the more selective IL-23p19).</div>
+          <div class="au-anno-wrap" style="margin-top:10px">
+            <div class="au-anno-label">Suggest a change to the Same-Space definition</div>
+            <textarea class="au-anno-field" id="anno-samespace" placeholder="e.g. Where does vedolizumab sit — Same-Space or Adjacent? It's approved SOC but Ailux's bispecific doesn't include α4β7…" oninput="auSave('anno-samespace')"></textarea>
+            <div class="au-anno-saved" id="anno-samespace-saved"></div>
+          </div>
+        </div>
+
+        <!-- WATCH -->
+        <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;padding:16px 18px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px">Watch</span>
+            <span style="font-size:12px;font-weight:700;color:#0f172a">Field name stored in database: <code>overlap = "Watch"</code></span>
+          </div>
+          <div class="au-narrative au-editable"><strong>What it means:</strong> IBD drugs with entirely different mechanisms — JAK inhibitors, S1P modulators, TNF inhibitors, RIPK1 inhibitors, and others. These compete for the same patients but through biology unrelated to TL1A or its neighbors. Meridian monitors them for patient-share pressure, safety signals that could affect the whole class, and any signs they're being tested in combination with TL1A drugs.</div>
+          <div class="au-narrative au-editable" style="margin-top:8px"><strong>Real examples:</strong> Rinvoq / upadacitinib (AbbVie JAK1), ozanimod (BMS S1P), etrasimod (Pfizer S1P), filgotinib (Galapagos JAK), tofacitinib (Pfizer JAK), TNF inhibitors including Humira, Remicade, and Simponi, lutikizumab (AbbVie IL-1α/β), ABBV-668 (AbbVie RIPK1).</div>
+          <div class="au-anno-wrap" style="margin-top:10px">
+            <div class="au-anno-label">Suggest a change to the Watch definition</div>
+            <textarea class="au-anno-field" id="anno-watch" placeholder="e.g. TNF inhibitors are old standard of care — should they be Same-Space instead of Watch? When does a drug move from Watch to Adjacent?…" oninput="auSave('anno-watch')"></textarea>
+            <div class="au-anno-saved" id="anno-watch-saved"></div>
+          </div>
+        </div>
+
+        <!-- COMPANY PROFILE FIELDS -->
+        <div style="margin-top:22px;margin-bottom:8px;font-size:13px;font-weight:800;color:#0f172a">What Gets Written About Each Company</div>
+        <div class="au-narrative au-editable" style="margin-bottom:12px">For every company in every disease area, Claude writes five specific assessments. These are stored in the database under the company's profile and shown on the dashboard cards. Here is what each one is supposed to capture:</div>
+
+        <div class="au-items">
+          <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+            <div class="au-item-name"><code>vs_ailux</code> — Mechanism comparison</div>
+            <div class="au-item-desc au-editable">One or two sentences directly comparing this company's drug to SPY002 — mechanism difference, stage difference, and what that means for competition. For companies not in Ailux's primary areas, this explains why Ailux watches them instead (benchmark value, potential acquirer, cross-area signal). Claude is instructed never to write "no overlap" — there is always a BD reason to monitor.</div>
+          </div></div>
+
+          <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+            <div class="au-item-name"><code>why_it_matters</code> — BD reason</div>
+            <div class="au-item-desc au-editable">One or two sentences answering: why does this company matter to Ailux's BD strategy specifically? The answer must be one of: they set a pricing benchmark Ailux should track, they are a potential partner or acquirer, their clinical data validates Ailux's mechanism, or their deal structure defines what counterparties expect. Generic answers are rejected by the prompt.</div>
+          </div></div>
+
+          <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+            <div class="au-item-name"><code>key_risk</code> — What could go wrong</div>
+            <div class="au-item-desc au-editable">One or two sentences on the single most important risk for this company's program — trial risk (endpoint design, enrollment problems, regulatory uncertainty), competitive risk (a head-to-head trial coming, a faster competitor), platform risk (the technology itself), or financial risk. Claude is instructed to be specific — not generic summaries.</div>
+          </div></div>
+
+          <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+            <div class="au-item-name"><code>bd_intelligence.profile</code> — BD behavior classification</div>
+            <div class="au-item-desc au-editable">Claude classifies each company's dominant BD behavior as one of five types: acquirer (they buy things), licensor (they sell or out-license programs), collaborator (they prefer co-development), partner-friendly (open to deals, history shows it), or internal-focused (they build and keep everything in-house).</div>
+          </div></div>
+
+          <div class="au-item"><div class="au-item-dot dot-blue"></div><div>
+            <div class="au-item-name"><code>platform_intelligence.assessment</code> — Strategic conclusion</div>
+            <div class="au-item-desc au-editable">A single sentence answering: what does this company's platform trajectory mean for Ailux's competitive positioning or BD timing? For companies in Ailux's primary disease area, this is about competitive threat and timing. For companies in other areas Ailux monitors (FcRn, T-cell, etc.), this is about benchmark value, partnership potential, or cross-area intelligence.</div>
+          </div></div>
+        </div>
+
+        <div class="au-anno-wrap" style="margin-top:16px">
+          <div class="au-anno-label">Your notes — fields that seem missing, descriptions you'd word differently</div>
+          <textarea class="au-anno-field" id="anno-fields" placeholder="e.g. I wish there was a field for 'BD timing window' — when is the optimal moment to approach this company? Also the bd_intelligence.profile categories feel too broad — 'collaborator' vs 'partner-friendly' are almost the same thing…" oninput="auSave('anno-fields')"></textarea>
+          <div class="au-anno-saved" id="anno-fields-saved"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ── SECTION 3: How Scoring Works + How to Change It ── -->
   <div class="au-section">
     <div class="au-sec-hd" onclick="auToggle('s3')">
@@ -15746,7 +15837,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s3-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s3-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         Meridian uses three scoring systems. Each one is an instruction to Claude — not a formula that runs on numbers. Understanding what each prompt asks for makes the scores interpretable. And knowing that the prompt is editable makes the scores improvable.
       </div>
 
@@ -15816,7 +15907,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s4-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s4-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         When you click the TL1A tab, the dashboard doesn't load a pre-built page — it executes a live chain of database queries, filters the results, and renders what you see in real time. Here is that chain.
       </div>
 
@@ -15855,7 +15946,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       </div>
 
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         <strong>What this means for what you see:</strong> If a drug doesn't appear in the TL1A tab, one of these things is true: (1) it has no row in <code>drug_area_scores</code> for TL1A — enrichment hasn't classified it. (2) It has <code>area_fit &lt; 7</code> — Claude scored it as low relevance. (3) The company has <code>status = acquired</code>. These are the three filters between a drug existing in the database and appearing in the tab.
       </div>
 
@@ -15880,15 +15971,15 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s5-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s5-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         These are strategic BD questions that the current data model cannot compute directly — not because the information doesn't exist, but because <strong>the right connections between records haven't been built yet</strong>. Each one is one missing relationship away from being answerable.
       </div>
       <div class="au-items">
-        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"Which drugs directly compete with Ailux's TL1A bispecific?" <span class="au-pill p-red">Blocked</span></div><div class="au-item-desc">Overlap classification exists per drug, but there's no <em>drug → COMPETES_WITH → drug</em> edge. You can see that two drugs are both "Direct" competitors, but the system can't directly link them. Fix: one migration + backfill from existing <code>drug_area_scores</code>. Highest leverage, lowest effort.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"Which mechanism class is most crowded for TL1A?" <span class="au-pill p-red">Blocked</span></div><div class="au-item-desc">Drug targets are stored as free text ("TL1A", "BCMA×CD3"). "Which drugs share TL1A as target" requires a text search, not a database join. Fix: a <code>targets</code> table where each target is a proper node with a drug→TARGETS→target relationship.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">"Which deal brought this drug into this company's portfolio?" <span class="au-pill p-yellow">Partially blocked</span></div><div class="au-item-desc">Ownership records exist, deal records exist — but there's no FK linking them. You can see UCB controls cizutamig (Phase 1) and you can see the UCB/Candid acquisition deal, but the system doesn't know they're connected.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">"Which company's competitive position changed most in the last 6 months?" <span class="au-pill p-yellow">Needs delta view</span></div><div class="au-item-desc">Ownership records have dates, but there's no query that diffs snapshots over time. Cannot auto-surface "UCB went from 0 to 4 TL1A assets in 90 days."</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"What did Company X present at DDW this year?" <span class="au-pill p-red">No conference data</span></div><div class="au-item-desc">No conference nodes, no abstract/poster records, no presentation-to-drug links. Conference data is completely absent from the graph despite being the highest-value early signal source.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"Which drugs directly compete with Ailux's TL1A bispecific?" <span class="au-pill p-red">Blocked</span></div><div class="au-item-desc au-editable">Overlap classification exists per drug, but there's no <em>drug → COMPETES_WITH → drug</em> edge. You can see that two drugs are both "Direct" competitors, but the system can't directly link them. Fix: one migration + backfill from existing <code>drug_area_scores</code>. Highest leverage, lowest effort.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"Which mechanism class is most crowded for TL1A?" <span class="au-pill p-red">Blocked</span></div><div class="au-item-desc au-editable">Drug targets are stored as free text ("TL1A", "BCMA×CD3"). "Which drugs share TL1A as target" requires a text search, not a database join. Fix: a <code>targets</code> table where each target is a proper node with a drug→TARGETS→target relationship.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">"Which deal brought this drug into this company's portfolio?" <span class="au-pill p-yellow">Partially blocked</span></div><div class="au-item-desc au-editable">Ownership records exist, deal records exist — but there's no FK linking them. You can see UCB controls cizutamig (Phase 1) and you can see the UCB/Candid acquisition deal, but the system doesn't know they're connected.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">"Which company's competitive position changed most in the last 6 months?" <span class="au-pill p-yellow">Needs delta view</span></div><div class="au-item-desc au-editable">Ownership records have dates, but there's no query that diffs snapshots over time. Cannot auto-surface "UCB went from 0 to 4 TL1A assets in 90 days."</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-red"></div><div><div class="au-item-name">"What did Company X present at DDW this year?" <span class="au-pill p-red">No conference data</span></div><div class="au-item-desc au-editable">No conference nodes, no abstract/poster records, no presentation-to-drug links. Conference data is completely absent from the graph despite being the highest-value early signal source.</div></div></div>
       </div>
       <div class="au-callout">
         <div class="au-callout-hd">💡 Did you know</div>
@@ -15910,14 +16001,14 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s6-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s6-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         The home page has four information panels. Each one pulls from a different part of the database — here's exactly what logic drives each one and where its current limitations are.
       </div>
       <div class="au-items">
-        <div class="au-item"><div class="au-item-dot dot-green"></div><div><div class="au-item-name">📅 Catalysts &amp; Signals</div><div class="au-item-desc">Pulls from <code>catalysts</code> table sorted by upcoming date. Covers ~595 deduplicated events. <strong>Limitation:</strong> entries are only as current as the last enrichment run — there's no real-time monitoring. Conference dates are included but without abstract content.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-green"></div><div><div class="au-item-name">💼 Deal Activity</div><div class="au-item-desc">Pulls from <code>deals</code> table filtered by area, with accordion cards and Google News links. Deduplication applied client-side (60% keyword overlap threshold). <strong>Limitation:</strong> deals are discovered reactively through company enrichment, not from a dedicated deal-monitoring feed.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">⚡ Essential Updates</div><div class="au-item-desc">Pulls from <code>intel</code> table. <strong>Limitation:</strong> intel is not being refreshed from live sources — no Fierce Biotech, no Endpoints. What you see is what the enrichment script discovered, which may be days or weeks behind.</div></div></div>
-        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">🔬 Research Queue</div><div class="au-item-desc">Shows entities ranked by enrichment priority score. Useful for directing manual research effort. <strong>Limitation:</strong> the scoring only captures completeness (how researched), not strategic importance (how much to care). A thin company with low BD relevance ranks the same as a thin company you should urgently study.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-green"></div><div><div class="au-item-name">📅 Catalysts &amp; Signals</div><div class="au-item-desc au-editable">Pulls from <code>catalysts</code> table sorted by upcoming date. Covers ~595 deduplicated events. <strong>Limitation:</strong> entries are only as current as the last enrichment run — there's no real-time monitoring. Conference dates are included but without abstract content.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-green"></div><div><div class="au-item-name">💼 Deal Activity</div><div class="au-item-desc au-editable">Pulls from <code>deals</code> table filtered by area, with accordion cards and Google News links. Deduplication applied client-side (60% keyword overlap threshold). <strong>Limitation:</strong> deals are discovered reactively through company enrichment, not from a dedicated deal-monitoring feed.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">⚡ Essential Updates</div><div class="au-item-desc au-editable">Pulls from <code>intel</code> table. <strong>Limitation:</strong> intel is not being refreshed from live sources — no Fierce Biotech, no Endpoints. What you see is what the enrichment script discovered, which may be days or weeks behind.</div></div></div>
+        <div class="au-item"><div class="au-item-dot dot-yellow"></div><div><div class="au-item-name">🔬 Research Queue</div><div class="au-item-desc au-editable">Shows entities ranked by enrichment priority score. Useful for directing manual research effort. <strong>Limitation:</strong> the scoring only captures completeness (how researched), not strategic importance (how much to care). A thin company with low BD relevance ranks the same as a thin company you should urgently study.</div></div></div>
       </div>
       <div class="au-callout">
         <div class="au-callout-hd">💡 Did you know</div>
@@ -15939,67 +16030,67 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="au-sec-toggle" id="s7-tog">▾</span>
     </div>
     <div class="au-sec-body" id="s7-body">
-      <div class="au-narrative">
+      <div class="au-narrative au-editable">
         Ordered by impact × feasibility. The first few can be started in a single session. Lower items require multi-session build work. This list updates as we build — check back after each session.
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#1</span><span class="au-backlog-title">drug → COMPETES_WITH → drug edge</span></div>
-        <div class="au-backlog-desc">Backfill from existing drug_area_scores — drugs in the same area with Direct overlap classify as competitors. One migration + script. Unlocks "show me all drugs that compete with X" as a direct query.</div>
+        <div class="au-backlog-desc au-editable">Backfill from existing drug_area_scores — drugs in the same area with Direct overlap classify as competitors. One migration + script. Unlocks "show me all drugs that compete with X" as a direct query.</div>
         <div class="au-backlog-tags"><span class="au-pill p-green">Highest leverage</span><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">Phase 1</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#2</span><span class="au-backlog-title">Fierce Biotech + Endpoints News ingestion pipeline</span></div>
-        <div class="au-backlog-desc">Structured daily feed pulling new articles, extracting company/drug/area/deal entities, writing to intel table with source attribution. Closes the gap between what you read manually and what Meridian knows.</div>
+        <div class="au-backlog-desc au-editable">Structured daily feed pulling new articles, extracting company/drug/area/deal entities, writing to intel table with source attribution. Closes the gap between what you read manually and what Meridian knows.</div>
         <div class="au-backlog-tags"><span class="au-pill p-red">Biggest gap</span><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-blue">Phase 1</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#3</span><span class="au-backlog-title">PR Newswire press release monitoring</span></div>
-        <div class="au-backlog-desc">Daily scan of PR Newswire for press releases from tracked companies and for keywords matching tracked targets. First-pass filter by Claude, then entity-tagged to intel table. High signal-to-noise for BD-relevant announcements.</div>
+        <div class="au-backlog-desc au-editable">Daily scan of PR Newswire for press releases from tracked companies and for keywords matching tracked targets. First-pass filter by Claude, then entity-tagged to intel table. High signal-to-noise for BD-relevant announcements.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-blue">Phase 1</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#4</span><span class="au-backlog-title">targets table — normalize drug targets as queryable nodes</span></div>
-        <div class="au-backlog-desc">Create a targets table. Map existing free-text drug.target values to normalized target nodes. Add drug→TARGETS→target FK. Unlocks mechanism clustering, "all drugs hitting TL1A" as a proper join, target-level competitive heat maps.</div>
+        <div class="au-backlog-desc au-editable">Create a targets table. Map existing free-text drug.target values to normalized target nodes. Add drug→TARGETS→target FK. Unlocks mechanism clustering, "all drugs hitting TL1A" as a proper join, target-level competitive heat maps.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-purple">Phase 2</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#5</span><span class="au-backlog-title">Conference abstract monitoring (DDW, ECCO, ATS, EADV)</span></div>
-        <div class="au-backlog-desc">Monitor abstract submission portals and published abstract books for tracked conferences. Extract drug/company/target mentions. Tag to area. Surface as a "Conference Intelligence" feed on relevant area tabs. Highest-value early signal — days before press coverage.</div>
+        <div class="au-backlog-desc au-editable">Monitor abstract submission portals and published abstract books for tracked conferences. Extract drug/company/target mentions. Tag to area. Surface as a "Conference Intelligence" feed on relevant area tabs. Highest-value early signal — days before press coverage.</div>
         <div class="au-backlog-tags"><span class="au-pill p-yellow">High value</span><span class="au-complexity cx-weeks">2–3 weeks</span><span class="au-pill p-purple">Phase 2</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#6</span><span class="au-backlog-title">Source confidence UI — surface confirmed vs. inferred on every drug</span></div>
-        <div class="au-backlog-desc">Schema already has confidence_level field (confirmed/supported/inferred/unverified). Front-end doesn't show it. Add color-coded indicator on every drug card. Turns Meridian from an information platform into an evidence platform — you can see how solid every claim is.</div>
+        <div class="au-backlog-desc au-editable">Schema already has confidence_level field (confirmed/supported/inferred/unverified). Front-end doesn't show it. Add color-coded indicator on every drug card. Turns Meridian from an information platform into an evidence platform — you can see how solid every claim is.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">QA Sprint</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#7</span><span class="au-backlog-title">Coverage diagnostics compute script + dashboard widget</span></div>
-        <div class="au-backlog-desc">The landscape_dependency_score formula is designed (Drug 35% + Relationship 25% + Catalyst 20% + Source 15% − Staleness 5%). Build the compute script. Surface as a widget on the audit page and home page showing which areas and companies have the weakest coverage.</div>
+        <div class="au-backlog-desc au-editable">The landscape_dependency_score formula is designed (Drug 35% + Relationship 25% + Catalyst 20% + Source 15% − Staleness 5%). Build the compute script. Surface as a widget on the audit page and home page showing which areas and companies have the weakest coverage.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-yellow">Phase 3</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#8</span><span class="au-backlog-title">Canonical entity modal — unified entity card from any entry point</span></div>
-        <div class="au-backlog-desc">Click any drug or company from any tab → one consistent entity card showing everything Meridian knows: trials, deals, signals, catalysts, competitive position, confidence level, source links. Same entity regardless of where you click in from.</div>
+        <div class="au-backlog-desc au-editable">Click any drug or company from any tab → one consistent entity card showing everything Meridian knows: trials, deals, signals, catalysts, competitive position, confidence level, source links. Same entity regardless of where you click in from.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-weeks">1–2 weeks</span><span class="au-pill p-purple">Phase 2</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#9</span><span class="au-backlog-title">Patent monitoring — USPTO/EPO for tracked targets</span></div>
-        <div class="au-backlog-desc">Weekly patent filing scan for TL1A, TSLP, IL-4Rα, FcRn, IGF1R search terms. Surface as early competitive signals with company/mechanism tagging. Patent filings signal mechanism interest before any press release.</div>
+        <div class="au-backlog-desc au-editable">Weekly patent filing scan for TL1A, TSLP, IL-4Rα, FcRn, IGF1R search terms. Surface as early competitive signals with company/mechanism tagging. Patent filings signal mechanism interest before any press release.</div>
         <div class="au-backlog-tags"><span class="au-complexity cx-weeks">2–3 weeks</span><span class="au-pill p-yellow">Phase 3</span></div>
       </div>
 
       <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#10</span><span class="au-backlog-title">Intelligence reasoning layer — "Why does this matter?"</span></div>
-        <div class="au-backlog-desc">Shift from "what happened" to interpretive intelligence: Who should care? What became more valuable? What competitive threat emerged? What licensing opportunity appeared? Requires Phase 1–3 graph completeness to work reliably. This is the end goal.</div>
+        <div class="au-backlog-desc au-editable">Shift from "what happened" to interpretive intelligence: Who should care? What became more valuable? What competitive threat emerged? What licensing opportunity appeared? Requires Phase 1–3 graph completeness to work reliably. This is the end goal.</div>
         <div class="au-backlog-tags"><span class="au-pill p-red">Long-term</span><span class="au-complexity cx-month">Ongoing</span><span class="au-pill p-red">Phase 4</span></div>
       </div>
 
@@ -16055,6 +16146,7 @@ async function auditLoad(force = false) {
   if (ts) ts.textContent = 'Loaded ' + new Date().toLocaleTimeString();
   // Restore all saved annotations
   auRestoreAll();
+  auRestoreEdits();
 }
 
 // Section toggle
@@ -16076,10 +16168,126 @@ function auSave(id) {
   if (saved) { saved.textContent = 'saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 1500); }
 }
 function auRestoreAll() {
-  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7'].forEach(id => {
+  ['anno-s0','anno-s1','anno-s2','anno-s3','anno-s4','anno-s5','anno-s6','anno-s7',
+   'anno-anchor','anno-direct','anno-adjacent','anno-samespace','anno-watch','anno-fields'].forEach(id => {
     const val = localStorage.getItem(AU_PREFIX + id);
     const el  = document.getElementById(id);
     if (el && val) el.value = val;
+  });
+}
+
+// ── Inline edit mode ──────────────────────────────────────────────────────────
+const AU_EDIT_PREFIX = 'meridian_edit_';
+const AU_ORIG_PREFIX = 'meridian_orig_';
+let _auEditMode = false;
+
+function auRestoreEdits() {
+  const els = document.querySelectorAll('#tab-audit .au-editable');
+  els.forEach((el, i) => {
+    if (!el.dataset.auKey) el.dataset.auKey = 'e' + i;
+    const key = el.dataset.auKey;
+    if (!localStorage.getItem(AU_ORIG_PREFIX + key)) {
+      localStorage.setItem(AU_ORIG_PREFIX + key, el.textContent.trim().slice(0, 500));
+    }
+    const saved = localStorage.getItem(AU_EDIT_PREFIX + key);
+    if (saved) {
+      el.textContent = saved;
+      el.classList.add('au-user-edit');
+    }
+  });
+}
+
+function auToggleEditMode() {
+  _auEditMode = !_auEditMode;
+  const btn = document.getElementById('au-edit-btn');
+  const wrap = document.querySelector('#tab-audit .au-wrap');
+  const copyBtn = document.getElementById('au-copy-btn');
+  const els = document.querySelectorAll('#tab-audit .au-editable');
+  if (_auEditMode) {
+    btn.textContent = '✓ Done editing';
+    btn.classList.add('active');
+    wrap && wrap.classList.add('au-edit-active');
+    copyBtn && (copyBtn.style.display = 'inline-block');
+    els.forEach((el, i) => {
+      if (!el.dataset.auKey) el.dataset.auKey = 'e' + i;
+      el.contentEditable = 'true';
+      el.addEventListener('input', function() { auHandleEdit(this); }, {once: false});
+    });
+  } else {
+    btn.textContent = '✏️ Edit text';
+    btn.classList.remove('active');
+    wrap && wrap.classList.remove('au-edit-active');
+    els.forEach(el => { el.contentEditable = 'false'; });
+  }
+}
+
+function auHandleEdit(el) {
+  const key = el.dataset.auKey;
+  if (!key) return;
+  localStorage.setItem(AU_EDIT_PREFIX + key, el.textContent.trim());
+  el.classList.add('au-user-edit');
+  const section = el.closest('.au-section');
+  if (section) {
+    const title = section.querySelector('.au-sec-title');
+    if (title && !title.querySelector('.au-edit-indicator')) {
+      const dot = document.createElement('span');
+      dot.className = 'au-edit-indicator';
+      dot.title = 'This section has your edits';
+      dot.textContent = ' ✎';
+      title.appendChild(dot);
+    }
+  }
+}
+
+function auCollectEdits() {
+  const els = document.querySelectorAll('#tab-audit [data-au-key]');
+  const edits = [];
+  els.forEach(el => {
+    const key = el.dataset.auKey;
+    const original = localStorage.getItem(AU_ORIG_PREFIX + key) || '';
+    const current  = el.textContent.trim();
+    if (original && current !== original) {
+      const section = el.closest('.au-section');
+      const sectionTitle = section?.querySelector('.au-sec-title')?.textContent?.replace(' ✎','')?.trim() || 'Unknown';
+      edits.push({ section: sectionTitle, key, original: original.slice(0,200), current: current.slice(0,500) });
+    }
+  });
+  if (!edits.length) {
+    alert('No inline edits found yet. Click "Edit text", change some text, then click "Done editing" before copying.');
+    return;
+  }
+  let msg = '=== MY AUDIT PAGE EDITS — ' + new Date().toLocaleDateString() + ' ===\n\n';
+  msg += 'These are changes I made directly in the audit page.\n';
+  msg += 'Each edit shows the section, the original text, and what I changed it to.\n\n';
+  edits.forEach((e, i) => {
+    msg += 'EDIT ' + (i+1) + '\n';
+    msg += 'Section: "' + e.section + '"\n';
+    msg += 'Key: ' + e.key + '\n';
+    msg += 'Original: "' + e.original + '..."\n';
+    msg += 'Changed to: "' + e.current + '"\n\n';
+  });
+  msg += '=== END ===\nPlease apply these changes to the corresponding source text.';
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.getElementById('au-copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.style.background = '#dcfce7';
+    btn.style.borderColor = '#86efac';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.style.borderColor = ''; }, 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    ta.style.cssText = 'position:fixed;top:10%;left:10%;width:80%;height:70%;z-index:9999;font-size:11px;padding:12px;border:2px solid #f59e0b;border-radius:8px;font-family:monospace';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998';
+    const close = document.createElement('button');
+    close.textContent = 'Close (select all + copy first)';
+    close.style.cssText = 'position:fixed;bottom:12%;left:50%;transform:translateX(-50%);z-index:10000;padding:10px 20px;background:#0f172a;color:white;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700';
+    close.onclick = () => { document.body.removeChild(ta); document.body.removeChild(overlay); document.body.removeChild(close); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(ta);
+    document.body.appendChild(close);
+    ta.select();
   });
 }
 </script>
