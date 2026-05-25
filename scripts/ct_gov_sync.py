@@ -223,6 +223,158 @@ PENDING_TRIAL_DRUGS = {
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# FIELD SEMANTIC VALIDATION
+# Guards against study acronyms / trial names leaking into molecule identity
+# fields (brand_name, name, display_name). Run after upsert or on demand.
+# ══════════════════════════════════════════════════════════════════════════
+
+# Known study program acronyms — these must never appear as brand_name values.
+# Add to this list whenever a new program acronym is seeded.
+# NOTE: Do NOT add real brand names here — use KNOWN_BRAND_NAMES below instead.
+KNOWN_STUDY_ACRONYMS: set[str] = {
+    # TL1A programs
+    "ATLAS", "ARES", "SKYLINE", "XENITH", "STARSCAPE", "SUNSCAPE",
+    "ARTEMIS", "APOLLO", "DUET",
+    # UC/CD programs
+    "LUCENT", "VIVID", "PURSUIT", "ULTRAVIOLET", "UNIFI", "OCTAVE",
+    "GEMINI", "VARSITY", "CALM",
+    # Head-to-head program names
+    "SEQUENCE",
+    # TSLP / IL-4Ra
+    "NAVIGATOR", "SOLSTICE", "LIBERTY", "SOLO", "CHRONOS",
+    # FcRn
+    "ADAPT", "ADAPT-NXT", "ARGX", "CHAMPION",
+    # T-cell / CAR-T
+    "CARTITUDE", "ZUMA", "JULIET", "ELARA",
+    # Generic patterns caught by regex (see validate_drug_brand_name)
+}
+
+# Known legitimate brand names that look like acronyms (all-caps, short) but are
+# real FDA/EMA/NMPA-approved trade names. Suppress false-positive warnings for these.
+KNOWN_BRAND_NAMES: set[str] = {
+    "TEPEZZA",    # teprotumumab — FDA-approved, thyroid eye disease (Horizon/Amgen)
+    "CARVYKTI",   # ciltacabtagene autoleucel — FDA-approved, multiple myeloma (J&J/Legend)
+    "SYCUME",     # ibi311 — NMPA-approved, thyroid eye disease (Innovent, China)
+}
+
+# Regex pattern for study-acronym-like strings:
+#   - All caps, 3–10 chars, no digits, no spaces  →  likely a study acronym
+#   - OR "WORD-WORD" pattern (e.g. DUET-CD, ATLAS-UC)
+import re as _re
+_STUDY_ACRONYM_RE = _re.compile(r'^[A-Z]{3,10}(-[A-Z0-9]{1,5})?$')
+
+# INN suffix patterns — real brand names typically end in recognisable suffixes
+# or contain mixed case / digits. Study acronyms are pure uppercase short words.
+_INN_SUFFIX_RE = _re.compile(
+    r'(mab|zumab|lumab|tinib|rafenib|lizumab|kibart|figast|lixizumab'
+    r'|setamab|tilimab|golimab|pegol|cept|ximab|mumab|umab|inib|afil'
+    r'|oxib|vastatin|prazole|sartan|parin|tinib|ciclib|sidenib|degib'
+    r'|nib$|mab$|bix$|zib$)', _re.IGNORECASE
+)
+
+
+def validate_drug_brand_name(drug_id: str, brand_name: str) -> list[str]:
+    """
+    Validate that a drug's brand_name field contains an actual trade name,
+    not a study acronym or trial name.
+
+    Returns a list of warning strings (empty = clean).
+    """
+    warnings = []
+    if not brand_name:
+        return warnings
+
+    bn = brand_name.strip()
+
+    # Skip validation for confirmed legitimate brand names that look like acronyms
+    if bn.upper() in {b.upper() for b in KNOWN_BRAND_NAMES}:
+        return warnings
+
+    # Check against known acronym list (case-insensitive)
+    if bn.upper() in {a.upper() for a in KNOWN_STUDY_ACRONYMS}:
+        warnings.append(
+            f"[brand_name] '{bn}' on drug '{drug_id}' matches a known study acronym. "
+            f"Study acronyms belong in trial_names or study_acronym on the trial record, "
+            f"not in brand_name."
+        )
+
+    # Check regex: all-caps 3–10 char word (no INN suffix) → likely acronym
+    if _STUDY_ACRONYM_RE.match(bn) and not _INN_SUFFIX_RE.search(bn):
+        warnings.append(
+            f"[brand_name] '{bn}' on drug '{drug_id}' looks like a study acronym "
+            f"(all-caps, short, no INN suffix). Verify this is an actual trade name."
+        )
+
+    return warnings
+
+
+def validate_trial_study_acronym(nct_id: str, study_acronym: str, trial_name: str) -> list[str]:
+    """
+    Validate that study_acronym matches what appears in the trial_name.
+    Catches cases where a trial was seeded with the wrong program acronym.
+    """
+    warnings = []
+    if not study_acronym or not trial_name:
+        return warnings
+
+    # If the acronym doesn't appear anywhere in the trial_name, flag it
+    if study_acronym.upper() not in trial_name.upper():
+        warnings.append(
+            f"[study_acronym] '{study_acronym}' on trial '{nct_id}' does not appear "
+            f"in trial_name: '{trial_name[:80]}'. May be misassigned."
+        )
+    return warnings
+
+
+def run_field_validation(dry_run: bool = False) -> dict:
+    """
+    Scan all drugs and trials in Supabase for field semantic violations.
+    Logs warnings; if dry_run=False, also logs to stdout for GitHub Actions.
+
+    Returns: {"drug_warnings": [...], "trial_warnings": [...]}
+    """
+    import requests
+    drug_warnings  = []
+    trial_warnings = []
+
+    # Validate drugs.brand_name
+    r = requests.get(
+        f"{SUPABASE_URL}/rest/v1/drugs",
+        headers=SB_HEADERS,
+        params={"select": "id,name,brand_name", "limit": "500"},
+        timeout=15
+    )
+    for drug in (r.json() if r.ok else []):
+        w = validate_drug_brand_name(drug["id"], drug.get("brand_name") or "")
+        if w:
+            drug_warnings.extend(w)
+            for msg in w:
+                log(f"⚠ VALIDATION: {msg}")
+
+    # Validate trials.study_acronym vs trial_name
+    r2 = requests.get(
+        f"{SUPABASE_URL}/rest/v1/trials",
+        headers=SB_HEADERS,
+        params={"select": "id,drug_id,study_acronym,trial_name", "limit": "1000"},
+        timeout=15
+    )
+    for trial in (r2.json() if r2.ok else []):
+        w = validate_trial_study_acronym(
+            trial["id"],
+            trial.get("study_acronym") or "",
+            trial.get("trial_name") or ""
+        )
+        if w:
+            trial_warnings.extend(w)
+            for msg in w:
+                log(f"⚠ VALIDATION: {msg}")
+
+    log(f"Field validation complete: {len(drug_warnings)} drug warnings, "
+        f"{len(trial_warnings)} trial warnings")
+    return {"drug_warnings": drug_warnings, "trial_warnings": trial_warnings}
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # LOGGING
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -955,6 +1107,15 @@ def run_sync(area_id: str = None, drug_filter: str = None,
     log(f"  Pre-IND:    {stats['pending']} drugs (marked 'pending')")
     log(f"  Approved:   {stats['approved']} drugs (marked 'populated')")
     log(f"{'='*60}")
+
+    # ── Field semantic validation (runs after every sync) ─────────────────
+    # Catches study acronyms in brand_name, mismatched study_acronym vs
+    # trial_name, and other identity field contamination introduced during
+    # the sync or by manual seeding. Warnings are printed to stdout so they
+    # appear in GitHub Actions logs without failing the workflow.
+    if not dry_run:
+        log(f"\n[Validation] Running field semantic checks...")
+        run_field_validation(dry_run=dry_run)
 
 
 # ══════════════════════════════════════════════════════════════════════════
