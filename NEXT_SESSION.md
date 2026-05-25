@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o (2026-05-25) — Phase 5 migration plan + unified dashboard architecture design  
+**Last session:** Session 53o (2026-05-25) — Phase 5 Candidate 1 deployed (FEATURE_FLAGS + IBD normalized path, flag=false)  
 **Prior session:** Session 53n — Phase 4B Path C modal verification + Phase 4C IBD verified
 
 ---
@@ -85,10 +85,10 @@ All Phase 4A work is done. Corrections applied and verified.
 |---|---|---|
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
-| Phase 4C | Pre-migration classification sprint — explain every difference | ▶ **CURRENT** |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | Blocked until 4C clears |
+| Phase 4C | Pre-migration classification sprint — explain every difference | ✅ IBD ✅ TED ⏸ modal (7/10 remaining) |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 deployed (flag=false)** |
 
-**Do NOT proceed to Phase 5 without completing Phase 4C. Do NOT do broad dashboard rewiring — migrate one component at a time with feature flags.**
+**Phase 5 Candidate 1 (IBD) is deployed with `useNormalizedIBD=false`. No behavior change. Flag must be explicitly set to `true` to activate normalized path. Do NOT do broad dashboard rewiring — migrate one component at a time with feature flags.**
 
 ---
 
@@ -176,11 +176,24 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **Phase 4C task for Drug modal:** ✅ **PARTIALLY VERIFIED (Session 53m)** — 3 test drugs passed (lm-302, batoclimab, epi-001). All differences explainable via entity_consistency_checks. Remaining task: run full 10-drug sprint covering additional area tabs (TL1A, FcRn, TED drugs).
 
-**Phase 5 feature-flag pattern (required for all migrations):**
-```javascript
-const USE_NORMALIZED_IBD = false; // flip to true for Phase 5 migration
-```
-Legacy read path stays active as commented fallback for 30 days post-migration.
+---
+
+## Phase 5 Status
+
+| Candidate | Component | Flag | Default | Deployed | Activated |
+|---|---|---|---|---|---|
+| 1 | IBD area tab | `useNormalizedIBD` | false | ✅ ec4cac7e (2026-05-25) | ❌ not yet — awaiting 10-drug sprint + advisor go |
+| 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
+| 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
+| 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
+
+**To activate Candidate 1:** set `useNormalizedIBD: true` in FEATURE_FLAGS → deploy → verify browser `window.showPhase4Compare()` → update update_log.md.
+
+**Pre-activation checklist for IBD:**
+- [ ] Phase 4C 10-drug modal sprint complete (7 of 10 remaining)
+- [ ] epi-001 resolved (held or confirmed)
+- [ ] cizutamig resolved (TED — but not blocking IBD)
+- [ ] Advisor go on flag flip
 
 ---
 
@@ -256,11 +269,12 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **No Phase 5 dashboard migration** — Phase 4C classification sprint must complete first. Migrate per-component with feature flags, never broad rewiring.
+2. **Phase 5 Candidate 1 deployed — flag=false** — `useNormalizedIBD` is in the codebase but inactive. Do NOT flip to `true` until 10-drug modal sprint complete + advisor go.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — NOT committed. Deferred to Wave 2D FcRn backfill batch.
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
 6. **TL1A Phase 5 requires arch review** — `tl1aPI` is a separate ~1700-line object, not `_makeAreaPI`. Map its read path before any Phase 5 migration attempt on TL1A tab.
+7. **30-day rule** — When any flag is flipped to true, keep legacy code commented (not deleted) for 30 days.
 
 ---
 
