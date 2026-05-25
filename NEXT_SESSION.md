@@ -197,16 +197,17 @@ Legacy read path stays active as commented fallback for 30 days post-migration.
 | Status | Count | Entities |
 |---|---|---|
 | closed | 3 | lm-302, sim0500, spy072 — resolved in Phase 4A, no data action needed |
-| corrected | 2 | batoclimab — ted+gmg committed; **gb004 — mechanism patched (Session 53n)** |
-| open | 2 | epi-001 (held), upadacitinib (queued Wave 2D) |
+| corrected | 3 | batoclimab (ted+gmg), gb004 (mechanism), **upadacitinib (ad — Wave 2D, Session 53n)** |
+| open | 2 | epi-001 (held), cizutamig (held — TED indication needs source validation) |
 
 **Phase 5 gate: Open high-severity = 0 ✅**
 
 **Held items — do not act without further input:**
 - `epi-001 / ibd_indication_evidence_gap` — held pending source evidence for IBD indication. confidence=0.55. Do NOT commit.
+- `cizutamig / ted_indication_scope_review` — BCMA×CD3 TED indication sourced from pattern_match. Validate before Phase 5 TED migration. confidence=0.87.
 
-**Action queue (open + accepted):**
-- `upadacitinib / atopy_ad_gap` — queue for Wave 2D atopy backfill alongside imvt-1402. confidence=0.97.
+**Wave 2D committed (Session 53n):**
+- `upadacitinib / ad` — inserted drug_indications: ad (97, approved, tier1_structured). drug_indications total: **197 rows**.
 
 **Architecture rule (standing):**
 Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) continue writing to their own logs. A finding graduates to `entity_consistency_checks` only when a human or harness review has classified it and a proposed action exists. This is the durable human reconciliation layer — not a scan log.
@@ -266,13 +267,18 @@ Built and seeded 2026-05-25. See P0 section above for full state. Trigger condit
 ## Validation Checks Before Starting Work
 
 ```sql
-SELECT count(*) FROM drug_indications;             -- expect 194
+SELECT count(*) FROM drug_indications;             -- expect 197 (Wave 2D: +1 upadacitinib/ad)
 SELECT count(*) FROM trial_indications;            -- expect 301
 SELECT count(*) FROM drug_targets;                 -- expect 168
 SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
 -- entity_consistency_checks state:
 SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
--- expect 7 rows; open high-severity = 0
+-- expect 8 rows; open high-severity = 0
+-- open/held: epi-001 (ibd), cizutamig (ted)
+-- corrected: batoclimab, gb004, upadacitinib
+-- upadacitinib Wave 2D verified:
+SELECT indication_id, confidence_score, development_stage FROM drug_indications WHERE drug_id = 'upadacitinib';
+-- expect: ad (97, approved), cd (99), uc (99)
 -- batoclimab correction verified:
 SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'batoclimab';
 -- expect: ted (95), gmg (92)
