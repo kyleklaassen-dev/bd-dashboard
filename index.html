@@ -12879,6 +12879,12 @@ function _makeAreaPI(tabId, areaIds) {
     ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
     ['Triple-Negative Breast Cancer','TNBC'],['Breast Cancer','BC'],
     ['Ovarian Cancer','OvCa'],['Pancreatic Cancer','PanCa'],['Gastric Cancer','GC'],
+    // ── Musculoskeletal / Other ──
+    ['Developmental Dysplasia of the Hip','DDH'],['Hip Dysplasia','DDH'],
+    ['Chronic Exertional Compartment Syndrome','CECS'],['Exertional Compartment Syndrome','ECS'],
+    ['Liver Ablation','Liver Abl.'],
+    ['Healthy Subjects or Volunteers','Healthy Vol.'],['Healthy Volunteers','Healthy Vol.'],['Healthy Subjects','Healthy Vol.'],
+    ['Ventilation','Vent.'],['Lung Function','Lung Fxn.'],['Anesthesia, General','Gen. Anesthesia'],
     // ── Other ──
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
     ['Heart Failure with Reduced Ejection Fraction','HFrEF'],['Heart Failure','HF'],
@@ -12912,7 +12918,10 @@ function _makeAreaPI(tabId, areaIds) {
    // Deduplicate identical parts after abbreviation (e.g. "EoE · EoE")
    const seen = new Set();
    const deduped = abbrevParts.filter(p => { const k = p.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
-   return deduped.join(' · ');
+   const joined = deduped.join(' · ');
+   // Collapse MG family: if both "MG" and "gMG"/"oMG" present, drop plain "MG"
+   const hasMGSubtype = /\b(gMG|oMG)\b/.test(joined);
+   return hasMGSubtype ? joined.replace(/(?:^|\s·\s)MG(?=\s·|$)/g, m => m === 'MG' ? '' : m.replace('MG · ','')).replace(/^\s*·\s*|\s*·\s*$/g,'').replace(/\s*·\s*·\s*/g,' · ').trim() : joined;
   };
 
   // ── Trial note: meaningful descriptor from design/dosing/route ──
@@ -13434,7 +13443,7 @@ function _makeAreaPI(tabId, areaIds) {
      <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_dknCleanName(d.display_name||d.name||'')).replace(/'/g,"\\'")}',event)">${_dknCleanName(d.display_name||d.name)||'—'}</span></span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
-     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span>${(()=>{const _dt=(d.dosing_type||'').trim()||(d.route||'').trim();if(!_dt)return '';const _dm={subcutaneous:'SC',intravenous:'IV',oral:'PO',intramuscular:'IM'};let _ds=_dt;for(const[k,v]of Object.entries(_dm)){if(_dt.toLowerCase().includes(k)){_ds=v;break;}}return _ds&&_ds.length<=18?` <span class="pi-da-tag" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">${_ds}</span>`:'';})()} </div>
+     <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
      <div class="pi-da-partner">${partnerTag}</div>
     </div>
     <div class="pi-da-body">
