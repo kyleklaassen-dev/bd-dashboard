@@ -1,8 +1,8 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53h (2026-05-25)  
-**Completed:** TL1A target-view gap classification — all 17 gap drugs classified · harness now shows TL1A target-view `compare_pass_oos_adjusted` · `docs/phase4b_tl1a_gap_classification.md` written  
-**Prior milestones:** Session 53g Phase 4B Path A (IBD dual-read) · Session 53f ontology semantic correction (LEGACY_VIEW_TYPES) · Session 53e Phase 4A corrections applied
+**Last session:** Session 53i (2026-05-25)  
+**Completed:** Phase 4B Path B — TL1A target-view dual-read in `_makeAreaPI()` · `_runPhase4BTL1ADualRead` added · gb004 mechanism error added to evidence reconciliation backlog  
+**Prior milestones:** Session 53h TL1A gap classification · Session 53g Phase 4B Path A (IBD dual-read) · Session 53f LEGACY_VIEW_TYPES
 
 ---
 
@@ -47,8 +47,8 @@ All Phase 4A work is done. Corrections applied and verified.
 |---|---|---|
 | Path A | IBD indication-group dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53g)** |
 | Path B | TL1A target-view gap classification | ✅ **COMPLETE (Session 53h)** |
-| Path B → impl | TL1A target-view dual-read in `_makeAreaPI()` | ▶ **NEXT** |
-| Path C | `openDrugEntityModal()` dual-read | 🔲 Queued |
+| Path B → impl | TL1A target-view dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53i)** |
+| Path C | `openDrugEntityModal()` dual-read | ▶ **NEXT** |
 
 **Path A verification (run in browser after loading IBD tab):**
 ```javascript
@@ -56,39 +56,34 @@ window.showPhase4Compare()
 // Expected: 🟢 _makeAreaPI — ibd_indication_group_view → compare_pass_oos_adjusted
 ```
 
-**Path B classification result:**
-- Zero gap drugs are true TL1A target drugs missing drug_targets rows
-- 15 × `ibd_indication_not_tl1a_target`: IBD competitors placed in legacy bucket for landscape tracking
-- 2 × `legacy_noise_removed`: lm-302 (gastric), sim0500 (RRMM)
-- Harness adjusted TL1A target-view: **35/35 = compare_pass_oos_adjusted** ✅
-- See: `docs/phase4b_tl1a_gap_classification.md`
+**Path B verification (run in browser after loading TL1A tab):**
+```javascript
+window.showPhase4Compare()
+// Expected: two records —
+//   🟢 _makeAreaPI — ibd_indication_group_view → compare_pass_oos_adjusted
+//   🟢 _makeAreaPI — tl1a_target_view          → compare_pass_oos_adjusted
+// Console: [Phase4B-TL1A] legacy=51 norm=35 overlap=34 raw=66.7% adj=100% oos=17 → compare_pass_oos_adjusted
+```
 
-**Data quality flag (action required before next enrichment):**
-`gb004.drugs.mechanism = 'Anti-TL1A'` is incorrect. Actual: PHD inhibitor (HIF-1α stabilizer). Fix before enrichment rerun.
+**Data quality backlog:**
+`gb004.drugs.mechanism = 'Anti-TL1A'` is incorrect (actual: PHD inhibitor / HIF-1α stabilizer). Logged in `docs/evidence_reconciliation_layer.md`. Requires separate evidence review — do not fix in Phase 4B work.
 
 ---
 
 ## Next Sprint Priority Order
 
-### P0 — Phase 4B Path B Implementation: TL1A target-view dual-read in `_makeAreaPI()`
+### P0 — Phase 4B Path C: `openDrugEntityModal()` dual-read
 
-**Goal:** Add TL1A target-view normalized read in parallel, same pattern as Path A (IBD).
+**Goal:** Add dual-read validation for the drug entity modal — the third blocked dashboard path.
 
-**Normalized source:** `drug_targets WHERE target_id = 'tl1a'`  
-**Legacy source:** `drug_area_scores.area_id = 'tl1a'`
+**Context from `docs/dashboard_dependency_inventory.md`:**
+The modal reads from `drug_area_scores` for competitive positioning data (overlap, cls, rationale). This is a `migration_blocker` because `drug_area_scores` has enrichment columns (overlap, rationale, cls, vs_ailux) with no equivalent in `drug_indications`/`drug_targets`. The dual-read here is diagnostic — confirming which drugs appear in modal vs. normalized, not yet switching the source.
 
-**OOS classifications to embed (mirrors DIFFERENCE_CLASSIFICATIONS):**
-- `ibd_indication_not_tl1a_target`: vedolizumab, risankizumab, mirikizumab, guselkumab, guselkumab-golimumab, golimumab, ustekinumab, upadacitinib, abbv-382, abbv-668, lutikizumab, spy001, spy003, spy130, gb004
-- `legacy_noise_removed`: lm-302, sim0500
-- `needs_manual_review`: epi-001
-- Expected adjusted match: **35/35 = 100%** → status: `compare_pass`
-
-**Implementation pattern (same as Path A):**
-- Add `if (this.areaIds.includes('tl1a')) this._runPhase4BTL1ADualRead(scoreRows);` in `init()` after `_loadEntityMeta()`
-- Add `_runPhase4BTL1ADualRead(legacyScoreRows)` method to `_makeAreaPI` return object
-- Write record to `window.__MERIDIAN_PHASE4_COMPARE__` with path: `tl1a_target_view`
-- No visual changes. Legacy still drives dashboard.
-- `window.showPhase4Compare()` will display both IBD and TL1A records.
+**Implementation pattern:**
+- In `openDrugEntityModal()` or `_loadDynamicDetail()`: run parallel reads from `drug_targets` and `drug_indications` for the opened drug
+- Compare against `drug_area_scores` data already fetched
+- Write record to `window.__MERIDIAN_PHASE4_COMPARE__` with `path: 'drug_entity_modal'`
+- No visual changes — modal still reads from legacy source
 
 ### P1 — epi-001 Manual Review (Track B)
 
