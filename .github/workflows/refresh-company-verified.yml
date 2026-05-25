@@ -1,0 +1,118 @@
+name: Company Freshness Refresh
+
+# ══════════════════════════════════════════════════════════════════
+# Runs every Sunday at 06:00 UTC (off-peak).
+# Sets last_verified on company records that are null or stale
+# WITHOUT overwriting any curated fields.
+#
+# VERIFICATION TIERS (applied per company):
+#   Tier 1 — enrichment_pipeline_bootstrap
+#     last_enriched_at is within 90 days → last_verified = last_enriched_at::date
+#   Tier 2 — reference_entity_auto_verify
+#     reference/planned/orphan status, no recent enrichment → last_verified = today
+#   Tier 3 — skip (needs_manual_review)
+#     Active company, no recent enrichment → flagged in drug_validation_results
+#
+# NEVER TOUCHES: company_type, geography, hq_city, hq_country,
+#   ta_focus_1, ta_focus_2, ownership_type, parent_company_id,
+#   coverage_status, name, ticker, status, acquired_by
+#
+# Expected outcome: B-grade companies (freshness=0) lift toward A-grade
+# once they have been processed by the enrichment pipeline.
+# ══════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'   # Every Sunday at 06:00 UTC
+
+  workflow_dispatch:
+    inputs:
+      company:
+        description: 'Refresh a single company by ID (leave blank for all stale/null companies)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run — show what would happen without writing to DB'
+        type: boolean
+        required: false
+        default: false
+      all_companies:
+        description: 'Process all 101 companies, not just stale/null ones'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  refresh-company-verified:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      # ──────────────────────────────────────────────────────────
+      # SCHEDULED RUN — all stale/null companies
+      # ──────────────────────────────────────────────────────────
+
+      - name: "[Scheduled] Refresh stale/null company last_verified"
+        if: github.event_name == 'schedule'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/refresh_company_verified.py
+
+      - name: "[Scheduled] Company health score summary"
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          pip install -r scripts/requirements.txt -q
+          python scripts/company_validator.py --summary --scores
+
+      # ──────────────────────────────────────────────────────────
+      # MANUAL DISPATCH
+      # ──────────────────────────────────────────────────────────
+
+      - name: "[Manual] Refresh company last_verified"
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.company }}" ]; then
+            ARGS="$ARGS --company ${{ github.event.inputs.company }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ github.event.inputs.all_companies }}" == "true" ]; then
+            ARGS="$ARGS --all"
+          fi
+          echo "Running: python scripts/refresh_company_verified.py $ARGS"
+          python scripts/refresh_company_verified.py $ARGS
+
+      - name: "[Manual] Company health score summary"
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          pip install -r scripts/requirements.txt -q
+          python scripts/company_validator.py --summary --scores
