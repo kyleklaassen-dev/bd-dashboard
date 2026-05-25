@@ -197,6 +197,8 @@ button.gridjs-sort-neutral:after, button.gridjs-sort:after { color: rgba(255,255
 .bg-seeking { background: #fff3cd; color: #7a5a00; }
 .bg-ph1 { background: #e2d9f3; color: #432874; }
 .bg-pre { background: #f0e8ff; color: #5a2890; }
+.cc-badge-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px; }
+.cc-phase-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:0.4px; background:#dbeafe; color:#1e40af; }
 .cc-detail { font-size: 11px; color: #5a7a9e; line-height: 1.55; margin-bottom: 8px; }
 /* Deal cost block — prominent */
 .cc-deal-block { border-top: 1px solid #eef2f7; margin-top: 8px; padding-top: 8px; }
@@ -4795,7 +4797,7 @@ function loadMoleculeTab(tabId) {
  <div class="china-card licensed">
   <div class="cc-name"><a href="https://www.google.com/search?q=Simcere+Pharmaceutical+SIM0709+TL1A+IL-23+Boehringer+Ingelheim" target="_blank" rel="noopener">Simcere Pharmaceutical</a></div>
   <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
-  <span class="cc-badge bg-licensed">Out-Licensed</span>
+  <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Phase 1</span></div>
   <div class="cc-detail">Retains all Greater China commercialization rights. Simcere's 5th out-licensing deal; cumulative out-licensing potential ~$4.6B. Demonstrated superior synergy over mono combination in preclinical IBD models.</div>
   <div class="cc-deal-block">
    <div class="cc-deal-date">October 2024</div>
@@ -4810,7 +4812,7 @@ function loadMoleculeTab(tabId) {
  <div class="china-card licensed">
   <div class="cc-name"><a href="https://www.google.com/search?q=Qyuns+Therapeutics+QX030N+TL1A+IL-23+Caldera+deal" target="_blank" rel="noopener">Qyuns Therapeutics (荃信生物)</a></div>
   <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
-  <span class="cc-badge bg-ph1">Phase 1</span>
+  <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Phase 1</span></div>
   <div class="cc-detail">First subjects dosed January 2026. Retains Greater China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
   <div class="cc-deal-block">
    <div class="cc-deal-date">2025</div>
@@ -4826,7 +4828,7 @@ function loadMoleculeTab(tabId) {
  <div class="china-card seeking">
   <div class="cc-name"><a href="https://www.google.com/search?q=LaNova+Medicines+LQ080+TL1A+IL-23+bispecific+nanobody" target="_blank" rel="noopener">LaNova Medicines / Zymeworks</a></div>
   <div class="cc-asset">LQ080 · Extended half-life VHH nanobody bispecific</div>
-  <span class="cc-badge bg-seeking">Seeking Partner</span>
+  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
   <div class="cc-detail">VHH nanobody format — uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global ex-China partnership opportunity open.</div>
   <div class="cc-no-deal">No deal announced — partnering window open</div>
  </div>
@@ -4834,7 +4836,7 @@ function loadMoleculeTab(tabId) {
  <div class="china-card seeking">
   <div class="cc-name"><a href="https://www.google.com/search?q=Episcience+ES302+TL1A+IL-23+bispecific" target="_blank" rel="noopener">Episcience</a></div>
   <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
-  <span class="cc-badge bg-pre">Preclinical</span>
+  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
   <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's bispecific antibody engineering depth.</div>
   <div class="cc-no-deal">No deal announced — partnering window open</div>
  </div>
