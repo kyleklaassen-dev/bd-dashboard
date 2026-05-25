@@ -18824,63 +18824,81 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="ont-sec-body" id="ont-g-body">
       <div style="padding:4px 0 16px">
 
-      <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#1</span><span class="au-backlog-title">drug → COMPETES_WITH → drug edge</span></div>
-        <div class="au-backlog-desc au-editable">Backfill from existing drug_area_scores — drugs in the same area with Direct overlap classify as competitors. One migration + script. Unlocks "show me all drugs that compete with X" as a direct query.</div>
-        <div class="au-backlog-tags"><span class="au-pill p-green">Highest leverage</span><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">Phase 1</span></div>
+      <div class="au-backlog-item" style="opacity:.55">
+        <div class="au-backlog-hd"><span class="au-backlog-rank" style="background:#d1fae5;color:#065f46">✓</span><span class="au-backlog-title" style="text-decoration:line-through;color:#94a3b8">drug_targets join table — Wave 2B complete</span></div>
+        <div class="au-backlog-desc">173 rows · 133/155 drugs covered · 85.8% coverage · 0 duplicates · ontology_edges locked at 25. Drug → TARGETS → target as a proper FK join. ✅ Session 49f, 2026-05-23.</div>
+        <div class="au-backlog-tags"><span class="au-pill p-green">Done</span><span class="au-pill p-blue">Wave 2B</span></div>
+      </div>
+
+      <div class="au-backlog-item" style="opacity:.55">
+        <div class="au-backlog-hd"><span class="au-backlog-rank" style="background:#d1fae5;color:#065f46">✓</span><span class="au-backlog-title" style="text-decoration:line-through;color:#94a3b8">Catalyst dedup + unique index</span></div>
+        <div class="au-backlog-desc">137 exact duplicate rows deleted (710 → 573). Root cause fixed. Unique index applied. Pipeline converted to label-based guard. ✅ QA Sprint P1, 2026-05-23.</div>
+        <div class="au-backlog-tags"><span class="au-pill p-green">Done</span><span class="au-pill p-blue">QA Sprint P1</span></div>
+      </div>
+
+      <div class="au-backlog-item" style="opacity:.55">
+        <div class="au-backlog-hd"><span class="au-backlog-rank" style="background:#d1fae5;color:#065f46">✓</span><span class="au-backlog-title" style="text-decoration:line-through;color:#94a3b8">Ground truth validation framework — TL1A</span></div>
+        <div class="au-backlog-desc">validation_tests table live · 28 TL1A ground truth cases seeded · validate_ground_truth.py exits 1 on P1 failure · 28/28 passing. Quality gate for every enrichment run. ✅ QA Sprint P3, 2026-05-23.</div>
+        <div class="au-backlog-tags"><span class="au-pill p-green">Done</span><span class="au-pill p-blue">QA Sprint P3</span></div>
       </div>
 
       <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#2</span><span class="au-backlog-title">Fierce Biotech + Endpoints News ingestion pipeline</span></div>
-        <div class="au-backlog-desc au-editable">Structured daily feed pulling new articles, extracting company/drug/area/deal entities, writing to intel table with source attribution. Closes the gap between what you read manually and what Meridian knows.</div>
-        <div class="au-backlog-tags"><span class="au-pill p-red">Biggest gap</span><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-blue">Phase 1</span></div>
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#1</span><span class="au-backlog-title">drug_indications full backfill — Wave 2B</span></div>
+        <div class="au-backlog-desc au-editable">5 pilot rows done (uc, cd, ted, gmg). ~99 drugs remaining. Parse indication_short abbreviations → indication_id FKs. Add missing indications first: sle, ra, sjogrens, eoe, waiha. Unlocks "all drugs in UC" as a proper join. Currently in progress.</div>
+        <div class="au-backlog-tags"><span class="au-pill p-red">In progress</span><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-purple">Wave 2B</span></div>
       </div>
 
       <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#3</span><span class="au-backlog-title">PR Newswire press release monitoring</span></div>
-        <div class="au-backlog-desc au-editable">Daily scan of PR Newswire for press releases from tracked companies and for keywords matching tracked targets. First-pass filter by Claude, then entity-tagged to intel table. High signal-to-noise for BD-relevant announcements.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-blue">Phase 1</span></div>
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#2</span><span class="au-backlog-title">Source confidence UI — confirmed vs. inferred on every drug</span></div>
+        <div class="au-backlog-desc au-editable">Schema has confidence_level (confirmed/supported/inferred/unverified). Front-end doesn't show it. Add color-coded indicator on every drug card. Turns Meridian from information → evidence platform. "Tozorakimab: Direct, SV10 | Confirmed | AZ IR + CT.gov | Last verified 2026-05-23."</div>
+        <div class="au-backlog-tags"><span class="au-pill p-yellow">Next up</span><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">QA Sprint P5</span></div>
       </div>
 
       <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#4</span><span class="au-backlog-title">targets table — normalize drug targets as queryable nodes</span></div>
-        <div class="au-backlog-desc au-editable">Create a targets table. Map existing free-text drug.target values to normalized target nodes. Add drug→TARGETS→target FK. Unlocks mechanism clustering, "all drugs hitting TL1A" as a proper join, target-level competitive heat maps.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-purple">Phase 2</span></div>
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#3</span><span class="au-backlog-title">Canonical entity modal — unified card from any entry point</span></div>
+        <div class="au-backlog-desc au-editable">Click any drug or company from any tab → one consistent entity card showing everything Meridian knows: trials, deals, signals, catalysts, competitive position, confidence level, source links. Same entity regardless of where you click in from. TL1A, TSLP, Drugs to Know, Discovery Queue — all resolve to the same card.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-weeks">1–2 weeks</span><span class="au-pill p-purple">QA Sprint P4</span></div>
       </div>
 
       <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#5</span><span class="au-backlog-title">Conference abstract monitoring (DDW, ECCO, ATS, EADV)</span></div>
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#4</span><span class="au-backlog-title">TSLP ground truth validation — expand beyond TL1A</span></div>
+        <div class="au-backlog-desc au-editable">Second area ground truth: tozorakimab=Direct, benralizumab=Watch, etc. Seed 15–20 tests, run baseline, fix gaps found. Pattern: every enrichment area should have a validation set before it is trusted. TL1A is the model.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-days">~2 days</span><span class="au-pill p-blue">QA Sprint</span></div>
+      </div>
+
+      <div class="au-backlog-item">
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#5</span><span class="au-backlog-title">Entity provenance tracking — "Why do we believe this?"</span></div>
+        <div class="au-backlog-desc au-editable">Add enrichment_run_id, model_version, source_urls[] to drug_area_scores and company_profiles. Every fact should know: who created it, when, from what source, which model. Enables "Why do we believe this?" as a first-class UI element. Diagnostic principle: measure the measuring instrument.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-yellow">Phase 3</span></div>
+      </div>
+
+      <div class="au-backlog-item">
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#6</span><span class="au-backlog-title">Coverage diagnostics compute script + dashboard widget</span></div>
+        <div class="au-backlog-desc au-editable">Formula designed: landscape_dependency_score = Drug 35% + Relationship 25% + Catalyst 20% + Source 15% − Staleness 5%. Build the compute script. Surface as a widget on audit page + home showing which areas and companies have weakest coverage. Design complete — needs build.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-yellow">Phase 3</span></div>
+      </div>
+
+      <div class="au-backlog-item">
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#7</span><span class="au-backlog-title">Intelligence audit scoring per entity</span></div>
+        <div class="au-backlog-desc au-editable">Composite per-entity score: Coverage × Strategic Value × Confidence × Verification. Surfaces in Audit Dashboard as actionable priority queue — "re-enrich these 5 first." Closes the loop between data quality and enrichment priority. Requires entity provenance (#5) first.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-yellow">Phase 3</span></div>
+      </div>
+
+      <div class="au-backlog-item">
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#8</span><span class="au-backlog-title">drug → COMPETES_WITH → drug edges in entity_edges</span></div>
+        <div class="au-backlog-desc au-editable">competitive_landscapes table seeded (2026-05-24). Now backfill entity_edges from it: drugs in the same area with Direct overlap → COMPETES_WITH relationship. Unlocks "show me all drugs that compete with X" as a direct graph query.</div>
+        <div class="au-backlog-tags"><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">Phase 2</span></div>
+      </div>
+
+      <div class="au-backlog-item">
+        <div class="au-backlog-hd"><span class="au-backlog-rank">#9</span><span class="au-backlog-title">Conference abstract monitoring (DDW, ECCO, ATS, EADV)</span></div>
         <div class="au-backlog-desc au-editable">Monitor abstract submission portals and published abstract books for tracked conferences. Extract drug/company/target mentions. Tag to area. Surface as a "Conference Intelligence" feed on relevant area tabs. Highest-value early signal — days before press coverage.</div>
         <div class="au-backlog-tags"><span class="au-pill p-yellow">High value</span><span class="au-complexity cx-weeks">2–3 weeks</span><span class="au-pill p-purple">Phase 2</span></div>
       </div>
 
       <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#6</span><span class="au-backlog-title">Source confidence UI — surface confirmed vs. inferred on every drug</span></div>
-        <div class="au-backlog-desc au-editable">Schema already has confidence_level field (confirmed/supported/inferred/unverified). Front-end doesn't show it. Add color-coded indicator on every drug card. Turns Meridian from an information platform into an evidence platform — you can see how solid every claim is.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-days">~1 day</span><span class="au-pill p-blue">QA Sprint</span></div>
-      </div>
-
-      <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#7</span><span class="au-backlog-title">Coverage diagnostics compute script + dashboard widget</span></div>
-        <div class="au-backlog-desc au-editable">The landscape_dependency_score formula is designed (Drug 35% + Relationship 25% + Catalyst 20% + Source 15% − Staleness 5%). Build the compute script. Surface as a widget on the audit page and home page showing which areas and companies have the weakest coverage.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-week">~1 week</span><span class="au-pill p-yellow">Phase 3</span></div>
-      </div>
-
-      <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#8</span><span class="au-backlog-title">Canonical entity modal — unified entity card from any entry point</span></div>
-        <div class="au-backlog-desc au-editable">Click any drug or company from any tab → one consistent entity card showing everything Meridian knows: trials, deals, signals, catalysts, competitive position, confidence level, source links. Same entity regardless of where you click in from.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-weeks">1–2 weeks</span><span class="au-pill p-purple">Phase 2</span></div>
-      </div>
-
-      <div class="au-backlog-item">
-        <div class="au-backlog-hd"><span class="au-backlog-rank">#9</span><span class="au-backlog-title">Patent monitoring — USPTO/EPO for tracked targets</span></div>
-        <div class="au-backlog-desc au-editable">Weekly patent filing scan for TL1A, TSLP, IL-4Rα, FcRn, IGF1R search terms. Surface as early competitive signals with company/mechanism tagging. Patent filings signal mechanism interest before any press release.</div>
-        <div class="au-backlog-tags"><span class="au-complexity cx-weeks">2–3 weeks</span><span class="au-pill p-yellow">Phase 3</span></div>
-      </div>
-
-      <div class="au-backlog-item">
         <div class="au-backlog-hd"><span class="au-backlog-rank">#10</span><span class="au-backlog-title">Intelligence reasoning layer — "Why does this matter?"</span></div>
-        <div class="au-backlog-desc au-editable">Shift from "what happened" to interpretive intelligence: Who should care? What became more valuable? What competitive threat emerged? What licensing opportunity appeared? Requires Phase 1–3 graph completeness to work reliably. This is the end goal.</div>
+        <div class="au-backlog-desc au-editable">Shift from descriptive to interpretive: Who should care? What became more valuable? What competitive threat emerged? What licensing opportunity appeared? Requires Phase 1–3 graph completeness + entity provenance. The end goal — Meridian as BD advisor, not data dashboard.</div>
         <div class="au-backlog-tags"><span class="au-pill p-red">Long-term</span><span class="au-complexity cx-month">Ongoing</span><span class="au-pill p-red">Phase 4</span></div>
       </div>
 
