@@ -3686,7 +3686,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
-  <button class="nav-icon-btn" id="nav-icon-si" onclick="openHomePanel('si')" title="Submitted Intel Review">📥</button>
+  <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -3702,6 +3702,7 @@ function loadMoleculeTab(tabId) {
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
         <button class="tab-btn" onclick="switchTab('pharma-intel', this)">Pharma Landscape</button>
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
+        <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -3850,29 +3851,7 @@ function loadMoleculeTab(tabId) {
     <div id="signals-list"></div>
    </div>
 
-   <!-- Panel: Submitted Intel Review -->
-   <div class="home-panel si-panel" id="home-panel-si" style="display:none;padding:0;">
-    <div class="si-filter-bar" id="si-filter-bar">
-     <button class="si-pill active" onclick="siFilter(this,'')">All</button>
-     <button class="si-pill" onclick="siFilter(this,'new')">🔵 New</button>
-     <button class="si-pill" onclick="siFilter(this,'analyzed')">🟢 Analyzed</button>
-     <button class="si-pill" onclick="siFilter(this,'needs_review')">🟡 Needs Review</button>
-     <button class="si-pill" onclick="siFilter(this,'approved')">✅ Approved</button>
-     <button class="si-pill" onclick="siFilter(this,'rejected')">❌ Rejected</button>
-    </div>
-    <div class="si-table-wrap">
-     <table class="si-table">
-      <thead>
-       <tr>
-        <th>Date</th><th>By</th><th>Title / Summary</th><th>Link</th><th>Status</th><th>Confidence</th>
-       </tr>
-      </thead>
-      <tbody id="si-tbody">
-       <tr><td colspan="6" class="si-empty">Loading…</td></tr>
-      </tbody>
-     </table>
-    </div>
-   </div>
+   <!-- Panel: Submitted Intel Review — content moved to full tab-submitted-intel page -->
 
   </div><!-- end overlay-body -->
  </div><!-- end overlay-card -->
@@ -8230,6 +8209,52 @@ function dknLoadSbData() { return dknLoadData(); }
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     SUBMITTED INTEL TAB — Human intake queue · review before any promotion
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-submitted-intel" style="padding:0;background:#f8fafc;min-height:100vh">
+  <div style="max-width:1300px;margin:0 auto;padding:24px 20px 48px">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="margin:0;font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">
+          📥 Submitted Intel
+          <span id="si-new-badge" style="display:none;background:#dc2626;color:white;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:8px;vertical-align:middle"></span>
+        </h2>
+        <p style="margin:4px 0 0;font-size:12px;color:#64748b">Human-submitted intelligence · Screened by Claude before any promotion to the dashboard</p>
+      </div>
+      <button onclick="siLoad(true)" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:7px;border:1.5px solid #cbd5e1;background:white;color:#374151;cursor:pointer">↻ Refresh</button>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="si-filter-bar" id="si-filter-bar" style="margin-bottom:14px">
+      <button class="si-pill active" onclick="siFilter(this,'')">All</button>
+      <button class="si-pill" onclick="siFilter(this,'new')">🔵 New</button>
+      <button class="si-pill" onclick="siFilter(this,'analyzed')">🟢 Analyzed</button>
+      <button class="si-pill" onclick="siFilter(this,'needs_review')">🟡 Needs Review</button>
+      <button class="si-pill" onclick="siFilter(this,'approved')">✅ Approved</button>
+      <button class="si-pill" onclick="siFilter(this,'imported')">📤 Sent to Queue</button>
+      <button class="si-pill" onclick="siFilter(this,'rejected')">❌ Rejected</button>
+    </div>
+
+    <!-- Table -->
+    <div class="si-table-wrap" style="background:white;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden">
+      <table class="si-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>By</th><th>Title / Summary</th><th>Link</th><th>Status</th><th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="si-tbody">
+          <tr><td colspan="6" class="si-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════════════════
 // DISCOVERY QUEUE — Review and approve/reject candidates from Step 1
@@ -10424,6 +10449,9 @@ registerTab('industry-insights', {
 registerTab('discovery-queue', {
   onEnter() { if (!_dqData.length) dqLoad(); }
 });
+registerTab('submitted-intel', {
+  onEnter() { siLoad(); }
+});
 registerTab('tl1a', {
   onEnter() {
     loadAreaPI('tl1a');
@@ -12423,10 +12451,16 @@ async function siLoad(force = false) {
     _siData = data || [];
     _siLoaded = true;
     siRender();
-    // Update nav badge with count of 'new' rows
+    // Update badge in tab header
     const newCount = _siData.filter(r => r.status === 'new').length;
-    const badge = document.getElementById('nav-icon-si');
-    if (badge && newCount > 0) badge.title = `Submitted Intel (${newCount} new)`;
+    const badge = document.getElementById('si-new-badge');
+    if (badge) {
+      if (newCount > 0) { badge.textContent = newCount + ' new'; badge.style.display = 'inline-block'; }
+      else { badge.style.display = 'none'; }
+    }
+    // Also update nav icon tooltip
+    const navBtn = document.getElementById('nav-icon-si');
+    if (navBtn) navBtn.title = newCount > 0 ? `Submitted Intel (${newCount} new)` : 'Submitted Intel Review';
   } catch(e) {
     // Don't set _siLoaded on error so next open retries
     const msg = e?.message || String(e);
