@@ -13075,6 +13075,14 @@ function _makeAreaPI(tabId, areaIds) {
     ['Sclerosis, Systemic','SSc'],['Sclerosis, Multiple','MS'],
     ['Lupus Erythematosus, Systemic','SLE'],['Lupus Erythematosus Systemic','SLE'],
     ['Anemia, Hemolytic, Autoimmune','AIHA'],
+    ['Carcinoma, Hepatocellular','HCC'],['Carcinoma, Renal Cell','RCC'],
+    ['Pulmonary Disease, Chronic Obstructive','COPD'],
+    ['Chronic Urticaria, Idiopathic','CIU'],
+    ['Lymphoma, Non-Hodgkin','NHL'],['Lymphoma, Large B-Cell, Diffuse','DLBCL'],
+    ['Lymphocytic Leukemia, Chronic','CLL'],
+    ['Diabetes Mellitus, Type 1','T1D'],['Diabetes Mellitus, Type 2','T2D'],
+    ['Diabetes Mellitus','DM'],['Type1 Diabetes Mellitus','T1D'],
+    ['Myeloma Multiple','MM'],['Plasma Cell Myeloma','MM'],
     // ── Qualifier-prefixed forms (before base conditions) ──
     ['Diffuse Cutaneous Systemic Sclerosis','dcSSc'],['Diffuse Cutaneous SSc','dcSSc'],
     ['Limited Cutaneous Systemic Sclerosis','lcSSc'],['Limited Cutaneous SSc','lcSSc'],
@@ -13094,7 +13102,16 @@ function _makeAreaPI(tabId, areaIds) {
     ['Plaque Psoriasis','PsO'],['Psoriasis Vulgaris','PsO'],['Psoriasis','PsO'],
     ['Ankylosing Spondylitis','AS'],['Axial Spondyloarthritis','axSpA'],['Spondyloarthritis','SpA'],
     ['Hidradenitis Suppurativa','HS'],['Eosinophilic Esophagitis','EoE'],
-    ['Alopecia Areata','AA'],
+    ['Alopecia Areata','AA'],['Prurigo Nodularis','PN'],
+    ['Polymyalgia Rheumatica','PMR'],
+    ['IgG4-Related Disease','IgG4-RD'],['IgG4 Related Disease','IgG4-RD'],
+    ['Psoriatic-arthritis','PsA'],['Atopic Disorders','Atop. Dis.'],
+    ['Chronic Hand Dermatitis','Chr. Hand Derm.'],
+    ['Thyroid-Associated Ophthalmopathy','TAO'],['Thyroid Associated Ophthalmopathy','TAO'],
+    ['Thyroid Associated Ophthalmopathies','TAO'],
+    ["Graves' Orbitopathy",'GO'],['Graves Orbitopathy','GO'],
+    ['Autoimmune Lymphoproliferative Syndrome','ALPS'],
+    ['Childhood-onset Systemic Lupus Erythematous','cSLE'],
     ['Childhood-onset Systemic Lupus Erythematosus','cSLE'],['Childhood Onset Systemic Lupus Erythematosus','cSLE'],
     ['Juvenile Systemic Lupus Erythematosus','cSLE'],['Paediatric SLE','cSLE'],['Pediatric SLE','cSLE'],
     ['Subacute Cutaneous Lupus Erythematosus','SCLE'],['Cutaneous Lupus Erythematosus','CLE'],
@@ -13122,6 +13139,10 @@ function _makeAreaPI(tabId, areaIds) {
     ['Pemphigus Vulgaris','PV'],['Pemphigus Foliaceus','PF'],['Bullous Pemphigoid','BP'],['Pemphigus','PV'],
     ['Neuromyelitis Optica Spectrum Disorder','NMOSD'],['Neuromyelitis Optica','NMO'],
     ['Chronic Inflammatory Demyelinating Polyneuropathy','CIDP'],
+    ['Chronic Inflammatory Demyelinating Polyradiculoneuropathy','CIDP'],
+    ['Multifocal Motor Neuropathy','MMN'],
+    ['Paroxysmal Nocturnal Hemoglobinuria','PNH'],
+    ['Amyotrophic Lateral Sclerosis','ALS'],
     ['Guillain-Barré Syndrome','GBS'],['Guillain-Barre Syndrome','GBS'],
     ['Primary Biliary Cholangitis','PBC'],['Primary Sclerosing Cholangitis','PSC'],
     ['Lupus Nephritis - World Health Organization (WHO) Class III','LN (III)'],
@@ -13170,7 +13191,15 @@ function _makeAreaPI(tabId, areaIds) {
     ['Hepatocellular Carcinoma','HCC'],['Cholangiocarcinoma','CCA'],
     ['Non-Hodgkin Lymphoma, Relapsed, Adult','r/r NHL'],['Non-Hodgkin Lymphoma, Relapsed','r/r NHL'],
     ['Non-Hodgkin Lymphoma, Refractory','r/r NHL'],['Relapsed or Refractory NHL','r/r NHL'],
-    ['Non-Hodgkin Lymphoma','NHL'],["Non-Hodgkin's Lymphoma",'NHL'],['Hodgkin Lymphoma','HL'],
+    ['Peripheral T-Cell Lymphoma, Not Otherwise Specified','PTCL-NOS'],
+    ['Peripheral T-Cell Lymphoma','PTCL'],
+    ['Angioimmunoblastic T-cell Lymphoma','AITL'],['Angioimmunoblastic T-Cell Lymphoma','AITL'],
+    ['Follicular T-Cell Lymphoma','FTCL'],
+    ['B-Cell Acute Lymphoblastic Leukemia','B-cell ALL'],
+    ['Acute Lymphoblastic Leukemia','ALL'],
+    ['Mantle Cell Lymphoma','MCL'],['Marginal Zone Lymphoma','MZL'],
+    ['Diffuse Large B Cell Lymphoma','DLBCL'],
+    ['Non-Hodgkin Lymphoma','NHL'],["Non-Hodgkin's Lymphoma",'NHL'],['Non-Hodgkins Lymphoma','NHL'],['Hodgkin Lymphoma','HL'],
     ['Colorectal Cancer','CRC'],['Diffuse Large B-Cell Lymphoma','DLBCL'],['Follicular Lymphoma','FL'],
     ['Chronic Lymphocytic Leukemia','CLL'],['Acute Myeloid Leukemia','AML'],['Multiple Myeloma','MM'],
     ['Myelodysplastic Syndrome','MDS'],['Myelofibrosis','MF'],
@@ -13180,6 +13209,17 @@ function _makeAreaPI(tabId, areaIds) {
     ['Basaloid Squamous Cell Carcinoma','BSCC'],['Squamous Cell Carcinoma','SCC'],
     ['Triple-Negative Breast Cancer','TNBC'],['Breast Cancer','BC'],
     ['Ovarian Cancer','OvCa'],['Pancreatic Cancer','PanCa'],['Gastric Cancer','GC'],
+    ['Adrenocortical Carcinoma','ACC'],
+    ['Biliary Tract Cancer','BTC'],
+    ['Hematological Malignancies','Hem. Malig.'],['Hematologic Malignancies','Hem. Malig.'],
+    ['Malignant Melanoma','Mel.'],
+    ['Gastric Adenocarcinoma','GAdCa'],['Rectal Adenocarcinoma','RecCa'],
+    ['Gastroesophageal Adenocarcinoma','GEJ AdCa'],
+    ['Relapsed and/or Refractory Multiple Myeloma','R/R MM'],
+    ['Relapsed or Refractory Multiple Myeloma','R/R MM'],
+    ['Relapsed Refractory Multiple Myeloma','R/R MM'],
+    ['Malignant Ascites','Malig. Asc.'],['Malignant Pleural Effusion','MPE'],
+    ['Peritoneal Metastases','Perit. Met.'],['Peritoneal Cancer','Perit. Ca.'],
     // ── Congenital / Surgical / Misc ──
     ['Cleft Lip and Palate','CL/P'],['Cleft Lip','CL'],['Cleft Palate','CP'],
     ['Crohns Disease','CD'],['Crohn Disease','CD'],
@@ -13197,6 +13237,44 @@ function _makeAreaPI(tabId, areaIds) {
     ['Type 1 Diabetes','T1D'],['Type 2 Diabetes','T2D'],
     ['Heart Failure with Reduced Ejection Fraction','HFrEF'],['Heart Failure','HF'],
     ['Hypertrophic Cardiomyopathy','HCM'],['Dilated Cardiomyopathy','DCM'],
+    ['Neovascular Age-related Macular Degeneration','nAMD'],['Age-related Macular Degeneration','AMD'],
+    ['Non-alcoholic Fatty Liver Disease','NAFLD'],['Nonalcoholic Fatty Liver Disease','NAFLD'],
+    ['Metabolic Dysfunction-associated Steatohepatitis','MASH'],
+    ['Paroxysmal Nocturnal Hemoglobinuria','PNH'],
+    ['Allergic Bronchopulmonary Aspergillosis','ABPA'],
+    ['Human Immunodeficiency Virus','HIV'],['Human Immuno-deficiency Virus','HIV'],
+    ['Healthy Participants','HV'],['Healthy Adults','HV'],
+    ['Pulmonary Embolism','PE'],['Pulmonary Hypertension','PH'],
+    ['Cytokine Release Syndrome','CytRS'],
+    ['Kidney Transplantation','Kidney Tx'],['Kidney Transplant','Kidney Tx'],
+    ['Liver Transplant Rejection','Liver Tx Rej.'],
+    ['Knee Osteoarthritis','Knee OA'],['Erosive Hand Osteoarthritis','Erosive Hand OA'],['Osteoarthritis','OA'],
+    ['Thrombocytopenia','TCP'],
+    ['Chronic Bronchitis','Chr. Bronchitis'],
+    // ── Gastric / GI oncology forms ──
+    ['Gastric or Esophagogastric Junction Adenocarcinoma','GC/GEJ AdCa'],
+    ['Gastric or Gastroesophageal Junction Adenocarcinoma','GC/GEJ AdCa'],
+    ['Metastatic Gastro-esophageal Adenocarcinoma','Met. GEJ AdCa'],
+    ['Esophagogastric Junction Adenocarcinoma','GEJ AdCa'],
+    ['GEJ Adenocarcinoma','GEJ AdCa'],
+    ['Non Muscle Invasive Bladder Cancer','NMIBC'],
+    ['Clear Cell Renal Cell Cancer','ccRCC'],
+    ['High Risk Smoldering Multiple Myeloma','HR-SMM'],['Smoldering Multiple Myeloma','SMM'],
+    ['Waldenstrom Macroglobulinaemia','WM'],["Waldenström Macroglobulinemia",'WM'],['Waldenstrom Macroglobulinemia','WM'],
+    ['Leucine-Rich Glioma Inactivated 1 Autoimmune Encephalitis','LGI1-AE'],
+    ['Delayed Graft Function','DGF'],
+    ['Cardiovascular Events','CV Events'],
+    ['Pediatric Autoimmune','Ped. AI'],
+    ['Asthma, Allergic','Allergic Asthma'],
+    ['COPD Exacerbation','COPD Exac.'],['COPD Acute Exacerbation','AECOPD'],
+    ['Acute Respiratory Failure','ARF'],
+    ['COVID-19 Pneumonia','COVID Pneu.'],
+    ['Uncontrolled Asthma','Unctrl. Asthma'],
+    ['Vulvovaginal Candidiasis','VVC'],
+    ['Cognitive Decline','Cog. Dec.'],
+    ['Osteo Arthritis Knee','Knee OA'],
+    ['Malignant Neoplasms of Digestive Organs','Dig. Malig.'],
+    ['Pulmonary Embolism','PE'],
     // ── Generic trial condition qualifiers ──
     ['Flare Up','Flare'],['Inflammation','Inflam.'],
    ];
@@ -19074,6 +19152,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <button onclick="pbLoadCard('cd')" class="pb-ind-btn" data-ind="cd" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Crohn's Disease</button>
         <button onclick="pbLoadCard('ad')" class="pb-ind-btn" data-ind="ad" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Atopic Dermatitis</button>
         <button onclick="pbLoadCard('asthma')" class="pb-ind-btn" data-ind="asthma" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">Asthma</button>
+        <button onclick="pbLoadCard('ted')" class="pb-ind-btn" data-ind="ted" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">TED</button>
         <button onclick="pbLoadCard('gmg')" class="pb-ind-btn" data-ind="gmg" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">gMG</button>
         <button onclick="pbLoadCard('sle')" class="pb-ind-btn" data-ind="sle" style="padding:6px 14px;border-radius:20px;border:1px solid #1e3a5f;background:transparent;color:#6b8aad;font-size:11px;font-weight:600;cursor:pointer">SLE</button>
       </div>
@@ -19111,7 +19190,7 @@ document.addEventListener('DOMContentLoaded', function(){
             <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-companies-sub">loading…</div>
           </div>
           <div style="padding:16px 20px;border-right:1px solid #1e3a5f">
-            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Upcoming Catalysts</div>
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Clinical Trials</div>
             <div style="font-size:28px;font-weight:800;color:#f0f6ff" id="pb-card-catalysts">—</div>
             <div style="font-size:10px;color:#4a90c4;margin-top:2px" id="pb-card-catalysts-sub">loading…</div>
           </div>
@@ -19131,7 +19210,7 @@ document.addEventListener('DOMContentLoaded', function(){
             </div>
           </div>
           <div style="padding:16px 20px">
-            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Upcoming Readouts</div>
+            <div style="font-size:10px;color:#6b8aad;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Confidence Mix · Data Quality</div>
             <div id="pb-card-readouts" style="display:flex;flex-direction:column;gap:6px">
               <span style="color:#6b8aad;font-size:11px">loading…</span>
             </div>
