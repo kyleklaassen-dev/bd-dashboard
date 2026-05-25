@@ -182,19 +182,79 @@ LEGACY_VIEW_TYPES: dict[str, str] = {
 DIFFERENCE_CLASSIFICATIONS: dict[tuple, tuple] = {
 
     # ── tl1a (extra_legacy) ──────────────────────────────────────────────────
+    # Phase 4B gap classification (Session 53h): all 17 gap drugs classified.
+    # KEY FINDING: zero gap drugs are true TL1A target drugs missing drug_targets rows.
+    # The legacy TL1A area was a COMPETITIVE LANDSCAPE CONTAINER mixing TL1A target
+    # drugs (35, already normalized) with IBD indication competitors (15) and noise (2).
+    # Adjusted TL1A target-view match after excluding all 17: 35/35 = 100%.
+
+    # Legacy noise — wrong area entirely (confirmed in IBD gap also)
     ("tl1a", "lm-302"):    ("legacy_noise_removed",
-                            "Do not backfill. Exclude from readiness denominator.",
-                            "Gastric/GEJ ADC — placed in tl1a legacy target-view area by curation error. "
-                            "Not a TL1A target drug. Target is CLDN18.2; indication is gastric oncology."),
+                            "Do not backfill. Exclude from TL1A target-view denominator.",
+                            "CLDN18.2 MMAE-ADC for gastric/GEJ cancer. All trials off_target. "
+                            "No TL1A biology. Wrong legacy area assignment."),
     ("tl1a", "sim0500"):   ("legacy_noise_removed",
-                            "Do not backfill. Exclude from readiness denominator.",
-                            "RRMM trispecific — placed in tl1a legacy target-view area by curation error. "
-                            "Not a TL1A target drug. Target is GPRC5D×BCMA×CD3; indication is multiple myeloma."),
+                            "Do not backfill. Exclude from TL1A target-view denominator.",
+                            "GPRC5D×BCMA×CD3 trispecific for RRMM (multiple myeloma). "
+                            "No TL1A biology. Wrong legacy area assignment."),
+
+    # IBD indication drugs — correct normalized path is drug_indications (uc/cd), NOT drug_targets (tl1a)
+    # These were tracked in legacy TL1A bucket for IBD competitive landscape context only.
+    # Do NOT backfill drug_targets tl1a for any of these.
+    ("tl1a", "vedolizumab"):         ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd.",
+                                      "Anti-α4β7 integrin mAb. Approved UC/CD. No TL1A biology. "
+                                      "Legacy TL1A area used as IBD competitive landscape container."),
+    ("tl1a", "risankizumab"):        ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications cd+uc.",
+                                      "Anti-IL-23p19 mAb. Approved PsO/CD/UC. No TL1A biology."),
+    ("tl1a", "mirikizumab"):         ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd.",
+                                      "Anti-IL-23p19 mAb. Approved UC (2023)/CD (2024). No TL1A biology."),
+    ("tl1a", "guselkumab"):          ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications cd.",
+                                      "Anti-IL-23p19 mAb. Approved PsO/PsA/CD. No TL1A biology."),
+    ("tl1a", "guselkumab-golimumab"):("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc. Combo slug — no drug_targets row.",
+                                      "IL-23p19 + TNFα combination. UC Phase 2b/3. No TL1A biology."),
+    ("tl1a", "golimumab"):           ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc.",
+                                      "Anti-TNFα mAb. Approved RA/PsA/AS/UC. No TL1A biology."),
+    ("tl1a", "ustekinumab"):         ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd.",
+                                      "Anti-IL-12/23p40 mAb. Approved PsO/PsA/CD/UC. No TL1A biology."),
+    ("tl1a", "upadacitinib"):        ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd. Wave 2D: add ad.",
+                                      "JAK1 inhibitor (oral). Approved RA/PsA/AD/UC/CD. No TL1A biology. "
+                                      "Also in atopy area — upadacitinib→ad queued for Wave 2D."),
+    ("tl1a", "abbv-382"):            ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd.",
+                                      "Anti-α4β7 integrin mAb. UC/CD Phase 2. No TL1A biology."),
+    ("tl1a", "abbv-668"):            ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications cd.",
+                                      "RIPK1 inhibitor. CD Phase 2. No TL1A biology."),
+    ("tl1a", "lutikizumab"):         ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications cd.",
+                                      "Dual IL-1α/β inhibitor. CD Phase 3. No TL1A biology."),
+    ("tl1a", "spy001"):              ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc.",
+                                      "Anti-α4β7 integrin mAb. UC Phase 2. No TL1A biology."),
+    ("tl1a", "spy003"):              ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd.",
+                                      "Anti-IL-23p19 mAb. UC/CD Phase 2. No TL1A biology."),
+    ("tl1a", "spy130"):              ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc+cd. Combo slug.",
+                                      "SPY001 (α4β7) + SPY003 (IL-23) combination. UC/CD Phase 2. No TL1A biology."),
+    ("tl1a", "gb004"):               ("ibd_indication_not_tl1a_target",
+                                      "No action. Correct path: drug_indications uc. FLAG: fix drugs.mechanism field.",
+                                      "PHD1/HIF-1α stabilizer (oral). UC — TERMINATED. No TL1A biology. "
+                                      "DATA ERROR: drugs.mechanism='Anti-TL1A' is incorrect; actual: PHD inhibitor."),
+
+    # Previously classified (pre-53h — not gap drugs, kept for completeness)
     ("tl1a", "spy072"):    ("legacy_noise_removed",
                             "Do not backfill. Exclude from readiness denominator.",
-                            "TL1A target drug (correct mechanism) but indication is PsA/axSpA (rheumatology). "
-                            "Legacy tl1a target-view membership is mechanistically valid; "
-                            "exclusion from IBD indication-group is correct — this is not a UC/CD indication drug."),
+                            "TL1A mechanism (correct) but indication is PsA/axSpA (rheumatology). "
+                            "Not a UC/CD indication drug — ontology_scope_difference from IBD view."),
     ("tl1a", "epi-001"):   ("needs_manual_review",
                             "Review EPI-001 clinical evidence before committing.",
                             "Anti-TL1A antibody, preclinical stage. IBD indication unconfirmed; "
@@ -643,9 +703,18 @@ def compare_dashboard_functions(data: dict) -> list[dict]:
                          if "tl1a" in targets}
     tl1a_overlap = tl1a_das_drugs & tl1a_target_drugs
     tl1a_raw_pct = round(len(tl1a_overlap)/len(tl1a_das_drugs)*100, 1) if tl1a_das_drugs else 0
+    # OOS for TL1A target-view: both legacy_noise_removed AND ibd_indication_not_tl1a_target
+    # are valid exclusions — neither should be counted against the normalized path.
+    # Phase 4B classification (Session 53h) confirmed: all 17 gap drugs are classified;
+    # zero are true TL1A target drugs missing drug_targets rows.
+    _TL1A_TARGET_VIEW_OOS_CLASSES = {
+        "legacy_noise_removed",
+        "ibd_indication_not_tl1a_target",
+    }
     tl1a_noise_removed = sum(
         1 for drug_id in (tl1a_das_drugs - tl1a_target_drugs)
-        if DIFFERENCE_CLASSIFICATIONS.get(("tl1a", drug_id), ("",))[0] == "legacy_noise_removed"
+        if DIFFERENCE_CLASSIFICATIONS.get(("tl1a", drug_id), ("",))[0]
+           in _TL1A_TARGET_VIEW_OOS_CLASSES
     )
     tl1a_adj_overlap = len(tl1a_overlap) + tl1a_noise_removed
     tl1a_adj_pct = (round(tl1a_adj_overlap / len(tl1a_das_drugs) * 100, 1)
