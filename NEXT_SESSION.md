@@ -42,9 +42,39 @@
 
 ---
 
+## Phase Sequence (updated Session 53c)
+
+| Phase | Name | Status |
+|---|---|---|
+| Phase 4A | Evidence Reconciliation — cross-table consistency checks | ▶ NEXT |
+| Phase 4B | Dual-read validation — parallel legacy + normalized reads, assert parity | Queued |
+| Phase 5 | Switch dashboard logic | Blocked until 4A + 4B clear |
+
+**Do NOT proceed to Phase 4B or Phase 5 without completing Phase 4A.**  
+Phase 4A ensures every relationship in drug_indications, drug_targets, and trial_indications is cross-checked against drug_targets, drugs.target, drugs.indication_short, trial_indications, and sources before any dashboard query is migrated.
+
+---
+
 ## Next Sprint Priority Order
 
-### P0 — Phase 4 Dual-Read Validation (Track D)
+### P0 — Phase 4A: Evidence Reconciliation (Track D + B)
+
+**What to build:**
+1. Run reconciliation audit for the 7 known conflict candidates:
+   - `lm-302` — gastric ADC in IBD/TL1A legacy (cross_table_inconsistency)
+   - `sim0500` — RRMM drug in IBD/TL1A legacy (cross_table_inconsistency)
+   - `spy072` — TL1A-PsA/axSpA in IBD legacy (ontology_scope_difference)
+   - `epi-001` — anti-TL1A preclinical, IBD unconfirmed (needs_manual_review)
+   - `batoclimab` — FcRn drug in 4 legacy areas (cross_table_inconsistency)
+   - `upadacitinib` — FDA-approved AD, absent from drug_indications (normalized_gap)
+   - `ep006 / es302` — possible duplicate drug_id (cross_table_inconsistency)
+2. For each: show entity, conflicting tables, evidence for/against, proposed fix, confidence
+3. Produce reconciliation audit report (markdown table + proposed corrections)
+4. No DB changes yet — proposal stage only
+
+**Reference:** `docs/evidence_reconciliation_layer.md` — full design, table schema, classification rules
+
+### P1 — Phase 4B: Dual-Read Validation (Track D)
 
 **What to build:** For `_makeAreaPI` and `openDrugEntityModal`, add a parallel read path alongside the legacy query. Compare outputs in-browser and log any regressions.
 
@@ -61,7 +91,7 @@ These paths were identified in `docs/dashboard_dependency_inventory.md` as needi
 5. NO visual changes — dual-read is invisible to end user
 6. Acceptance criteria: (a) both read paths run without error, (b) row counts match for each indication, (c) no dashboard visual regressions, (d) enrichment write-side simultaneously migrated for drug_area_scores replacement
 
-### P1 — epi-001 Manual Review (Track B)
+### P2 — epi-001 Manual Review (Track B)
 Review EPI-001 clinical evidence:
 - Is there any indication_short available or published trial data for IBD?
 - If confirmed IBD target: commit epi-001 (uc + cd, conf 76, review_required)
@@ -69,17 +99,17 @@ Review EPI-001 clinical evidence:
 - Drug: anti-TL1A antibody, preclinical stage
 - Committing epi-001 would push tl1a raw to 96.1% and ibd raw to 98% (both above 95% raw)
 
-### P2 — Track B True Missing Rows
+### P3 — Track B True Missing Rows
 From mismatch classification in `docs/phase4_comparison_harness.md` Part 4:
 - `upadacitinib` → ad: true_missing_row
 - `imvt-1402` → gmg, cidp, waiha: true_missing_row
 - `ep006` → tombstone or merge into es302 (duplicate drug_id data integrity)
 
-### P3 — Portfolio Intelligence Product (Track C)
+### P4 — Portfolio Intelligence Product (Track C)
 Drug → Company joins are now available. First intelligence product using completed ontology layer.
 **Question:** "What is [company]'s full indication footprint across all areas we track?"
 
-### P4 — Wave 2D: FcRn + Autoimmune Backfill (Track A)
+### P5 — Wave 2D: FcRn + Autoimmune Backfill (Track A)
 Next largest coverage gaps: fcrn (57.1%) and autoimmune (48%).
 
 ---
@@ -89,9 +119,9 @@ Next largest coverage gaps: fcrn (57.1%) and autoimmune (48%).
 | Track | Focus | Status |
 |---|---|---|
 | A — Relationship Layer | epi-001 review → Wave 2D FcRn/autoimmune | ⏸ epi-001 pending review |
-| B — Ontology Quality | True missing rows (upadacitinib, imvt-1402, ep006 merge) | Queued |
+| B — Ontology Quality | Phase 4A reconciliation candidates + true missing rows | ▶ NEXT (with D) |
 | C — Intelligence Products | Portfolio intelligence product | Queued |
-| D — Dashboard Architecture | Phase 4 dual-read validation (12 paths) | ▶ NEXT |
+| D — Dashboard Architecture | Phase 4A Evidence Reconciliation → Phase 4B dual-read | ▶ NEXT |
 | E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
