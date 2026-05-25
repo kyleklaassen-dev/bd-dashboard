@@ -1289,24 +1289,29 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .bda-search { flex:1; min-width:100px; max-width:180px; border:1.5px solid #e2e8f0; border-radius:6px; padding:4px 10px; font-size:11px; outline:none; font-family:inherit; color:#0d1f38; }
 .bda-search:focus { border-color:#7c3aed; }
 .bda-rows { }
-.bda-row { border-bottom:1px solid #f5f7fa; }
+.bda-row { border-bottom:1px solid #f1f5f9; }
 .bda-row:last-child { border-bottom:none; }
-.bda-compact { display:flex; align-items:center; gap:8px; padding:9px 4px; cursor:pointer; flex-wrap:wrap; border-radius:4px; }
+/* New headline-first row layout */
+.bda-compact { display:flex; align-items:flex-start; gap:10px; padding:11px 4px 10px; cursor:pointer; border-radius:6px; }
 .bda-compact:hover { background:#f9fafb; }
-.bda-year { font-size:11px; color:#94a3b8; width:38px; flex-shrink:0; }
-.bda-parties { font-size:12px; font-weight:600; color:#0d1f38; flex:1; min-width:110px; line-height:1.35; }
-.bda-parties .bda-arrow { color:#94a3b8; font-weight:400; margin:0 3px; }
-.bda-drug-tag { font-size:10px; color:#2e6fb0; font-weight:700; background:#eff6ff; padding:2px 7px; border-radius:6px; white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+.bda-date-col { flex-shrink:0; width:68px; padding-top:1px; }
+.bda-date-month { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
+.bda-date-year  { font-size:10px; color:#94a3b8; }
+.bda-main-col { flex:1; min-width:0; }
+.bda-hl-link { font-size:12.5px; font-weight:700; color:#0f172a; text-decoration:none; display:block; line-height:1.45; }
+.bda-hl-link:hover { color:#1d4ed8; text-decoration:underline; }
+.bda-sub-row { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
+.bda-parties { font-size:11px; color:#64748b; }
+.bda-parties .bda-arrow { color:#94a3b8; margin:0 2px; }
 .bda-type { font-size:9px; font-weight:800; text-transform:uppercase; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
-.bda-value { font-size:12px; font-weight:700; color:#065f46; white-space:nowrap; flex-shrink:0; }
-.bda-stage-tag { font-size:10px; color:#6b7280; background:#f5f7fa; padding:2px 7px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
-.bda-chevron { font-size:10px; color:#94a3b8; flex-shrink:0; transition:transform 0.15s; margin-left:auto; }
+.bda-value { font-size:11px; font-weight:700; color:#065f46; white-space:nowrap; }
+.bda-chevron { font-size:9px; color:#cbd5e1; flex-shrink:0; transition:transform 0.15s; margin-left:auto; padding-top:3px; }
 .bda-row.bda-open .bda-chevron { transform:rotate(90deg); }
-.bda-detail { display:none; padding:2px 8px 14px 46px; }
+.bda-detail { display:none; padding:2px 4px 14px 78px; }
 .bda-row.bda-open .bda-detail { display:block; animation:bdaIn 0.14s ease; }
 @keyframes bdaIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
-.bda-detail-text { font-size:12px; color:#4b5563; line-height:1.65; margin-bottom:7px; }
-.bda-ailux-box { font-size:12px; font-weight:600; color:#1d4ed8; padding:8px 12px; background:#eff6ff; border-radius:5px; border-left:3px solid #2e6fb0; line-height:1.5; margin-top:4px; }
+.bda-detail-text { font-size:11.5px; color:#4b5563; line-height:1.65; margin-bottom:6px; }
+.bda-ailux-box { font-size:11.5px; font-weight:600; color:#1d4ed8; padding:8px 12px; background:#eff6ff; border-radius:5px; border-left:3px solid #2e6fb0; line-height:1.5; margin-top:6px; }
 .bda-empty { padding:18px 4px; font-size:12px; color:#94a3b8; }
 .header-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
 .header-asset-jump { border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.8); cursor: pointer; outline: none; max-width: 140px; }
@@ -3293,7 +3298,7 @@ async function loadAreaBDActivity(tabId) {
   const el = document.getElementById(tabId + '-bd-activity');
   if (!el) return;
   try {
-    const { data: rows, error } = await _sb.from('deals')
+    let { data: rows, error } = await _sb.from('deals')
       .select('*').in('area_id', areas)
       .order('deal_date', { ascending: false });
     if (error) throw error;
@@ -3363,34 +3368,57 @@ function _bdaRender(tabId) {
     </div>`;
 }
 
+function _bdaFmtDate(dateStr) {
+  if (!dateStr) return { month: '—', year: '' };
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return { month: dateStr.slice(0,7), year: '' };
+  return {
+    month: d.toLocaleString('en-US', { month: 'short' }),
+    year:  d.getFullYear().toString(),
+  };
+}
+function _bdaFmtVal(d) {
+  const fmt = n => n >= 1000 ? `$${(n/1000).toFixed(1)}B` : `$${n}M`;
+  if (d.upfront_usd_m && d.total_usd_m) return `${fmt(d.upfront_usd_m)} up · ${fmt(d.total_usd_m)} total`;
+  if (d.upfront_usd_m) return `${fmt(d.upfront_usd_m)} upfront`;
+  if (d.total_usd_m)   return `${fmt(d.total_usd_m)} total`;
+  return '';
+}
 function _bdaRowHtml(tabId, d, i) {
-  const tc = _BDA_TYPE_COLOR[d.deal_type] || '#6b7280';
-  const year = (d.deal_date || '').slice(0,4);
-  const val = d.upfront_usd_m
-    ? `$${d.upfront_usd_m >= 1000 ? (d.upfront_usd_m/1000).toFixed(1)+'B' : d.upfront_usd_m+'M'} up${d.total_usd_m ? ` / $${d.total_usd_m >= 1000 ? (d.total_usd_m/1000).toFixed(1)+'B' : d.total_usd_m+'M'}` : ''}`
-    : d.total_usd_m ? `$${d.total_usd_m >= 1000 ? (d.total_usd_m/1000).toFixed(1)+'B' : d.total_usd_m+'M'} total` : '';
-
-  // Extract stage-at-deal from detail field
-  const stageMatch = (d.detail || '').match(/Stage at signing:\s*([^.·]+)/i);
-  const stageLabel = stageMatch ? stageMatch[1].trim() : '';
-
+  const tc  = _BDA_TYPE_COLOR[d.deal_type] || '#6b7280';
+  const dt  = _bdaFmtDate(d.deal_date);
+  const val = _bdaFmtVal(d);
+  const hl  = d.headline || `${d.from_company || ''} × ${d.to_company || ''} deal`;
   const rowId = `${tabId}-bda-row-${i}`;
+  const hasDetail = !!(d.detail || d.ailux_signal);
+
+  // Parties line — only show if both exist and are meaningful
+  const from = (d.from_company || '').trim();
+  const to   = (d.to_company   || '').trim();
+  const partiesHtml = (from && to)
+    ? `<span class="bda-parties">${from} <span class="bda-arrow">→</span> ${to}</span>`
+    : (from || to) ? `<span class="bda-parties">${from || to}</span>` : '';
+
   return `<div class="bda-row" id="${rowId}">
     <div class="bda-compact" onclick="_bdaToggleRow('${rowId}')">
-      <span class="bda-year">${year}</span>
-      <span class="bda-parties">${(d.from_company||'').replace(' Sciences','').replace(' Biosciences','').replace(' Biopharmaceutical','').replace(' Pharmaceutical','')} <span class="bda-arrow">→</span> ${(d.to_company||'').replace(' Sciences','')}</span>
-      ${d.drug_id ? `<span class="bda-drug-tag">${d.headline.match(/(?:tulisokibart|duvakitug|afimkibart|SIM0709|HXN-1003|QX030N|HBM2001|PF-07261271|FG-M701|[A-Z0-9]+-\d+|[A-Z][a-z]+kibart|[A-Z][a-z]+umab|[A-Z][a-z]+elumab)/)?.[0] || d.drug_id}</span>` : ''}
-      <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type||'deal'}</span>
-      ${val ? `<span class="bda-value">${val}</span>` : ''}
-      ${stageLabel ? `<span class="bda-stage-tag">${stageLabel}</span>` : ''}
-      <span class="bda-chevron">▶</span>
+      <div class="bda-date-col">
+        <div class="bda-date-month">${dt.month}</div>
+        <div class="bda-date-year">${dt.year}</div>
+      </div>
+      <div class="bda-main-col">
+        <a class="bda-hl-link" href="${_gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
+        <div class="bda-sub-row">
+          ${partiesHtml}
+          <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type||'deal'}</span>
+          ${val ? `<span class="bda-value">${val}</span>` : ''}
+        </div>
+      </div>
+      ${hasDetail ? `<span class="bda-chevron">▶</span>` : ''}
     </div>
-    <div class="bda-detail">
-      <div class="bda-detail-text"><strong>${d.headline}</strong></div>
+    ${hasDetail ? `<div class="bda-detail">
       ${d.detail ? `<div class="bda-detail-text">${d.detail}</div>` : ''}
       ${d.ailux_signal ? `<div class="bda-ailux-box">◈ Ailux Lens: ${d.ailux_signal}</div>` : ''}
-      ${d.source_url ? `<div style="margin-top:7px;font-size:11px"><a href="${d.source_url}" target="_blank" rel="noopener" style="color:#6b7280;text-decoration:none">↗ Source</a></div>` : ''}
-    </div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -10511,8 +10539,20 @@ async function _loadBdIntoModal(tabId, el) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) { el.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:12px">No BD data for this area.</div>'; return; }
   try {
-    const { data: rows, error } = await _sb.from('deals').select('*').in('area_id', areas).order('deal_date', { ascending: false });
+    let { data: rows, error } = await _sb.from('deals').select('*').in('area_id', areas).order('deal_date', { ascending: false });
     if (error) throw error;
+    // Fallback: if area_id filter returns nothing, also try deals with no area_id set
+    // that may still belong here — query all and filter by relevance to the area label
+    if ((!rows || rows.length === 0)) {
+      const { data: allRows } = await _sb.from('deals').select('*').is('area_id', null).order('deal_date', { ascending: false }).limit(200);
+      // Keep only deals where headline mentions any of the area keywords
+      const areaKeywords = { tl1a:['TL1A','tl1a','IL-23','il23'], tslp:['TSLP','tslp'], il4ra:['IL-4','il4','OX40'], igf1r:['IGF-1R','igf1r','TED','thyroid eye'], fcrn:['FcRn','fcrn','neonatal Fc'], tcell:['CAR-T','TCR','T-cell','TIL'] };
+      const kws = areas.flatMap(a => areaKeywords[a] || [a]);
+      rows = (allRows||[]).filter(d => {
+        const hay = ((d.headline||'')+(d.detail||'')+(d.from_company||'')+(d.to_company||'')).toLowerCase();
+        return kws.some(k => hay.includes(k.toLowerCase()));
+      });
+    }
     _bdaState[tabId] = { rows: rows||[], filter:'all', search:'' };
     const tmp = document.createElement('div'); tmp.id = tabId+'-bd-activity'; document.body.appendChild(tmp);
     _bdaRender(tabId);
