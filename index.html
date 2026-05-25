@@ -1722,7 +1722,8 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .iif-date { font-size:10.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
 .iif-type-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
 .iif-area-pill { font-size:10px; font-weight:600; padding:1px 7px; border-radius:6px; white-space:nowrap; }
-.iif-headline { font-size:13px; font-weight:700; color:#1e293b; line-height:1.45; }
+.iif-headline { font-size:13px; font-weight:700; color:#1e293b; line-height:1.45; text-decoration:none; display:block; }
+.iif-headline:hover { color:#1d4ed8; text-decoration:underline; }
 .iif-body-text { font-size:12px; color:#475569; line-height:1.55; margin-top:9px; padding-top:9px; border-top:1px solid #f1f5f9; display:none; }
 .iif-body-text.open { display:block; }
 .iif-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; flex-wrap:wrap; }
@@ -12958,18 +12959,15 @@ function iifRender() {
     const areaPills = (item.areas||[]).map(a =>
       `<span class="iif-area-pill iif-area-${IIF_AREA_CLS[a]||'default'}">${IIF_AREA_LABELS[a]||a}</span>`
     ).join('');
-    const srcHTML = _iifSrcHTML(item._key, item.sources);
     const hasBody = !!item.body;
+    const hlUrl = _gUrl(item.headline || '');
     html += `<div class="iif-card" id="iif-card-${item._key}"${hasBody?' onclick="iifToggleCard(\''+item._key+'\')"':''}>
   <div class="iif-card-top">
     <span class="iif-date">${item.date||''}</span>
     <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${areaPills}
   </div>
-  <div class="iif-headline">${_iifEsc(item.headline)}</div>
-  <div class="iif-meta">
-    <div class="iif-sources">${srcHTML}</div>
-    ${hasBody?`<span class="iif-expand-icon">▼</span>`:''}
-  </div>
+  <a class="iif-headline" href="${hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(item.headline)}</a>
+  ${hasBody?`<div class="iif-meta"><span class="iif-expand-icon">▼</span></div>`:''}
   ${hasBody?`<div class="iif-body-text" id="iif-body-${item._key}">${_iifEsc(item.body)}</div>`:''}
 </div>`;
   });
