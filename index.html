@@ -9473,6 +9473,7 @@ const TAB_META = {
  'drugs-know':        { name: 'Drugs to Know',          badge: null,             cls: '' },
  'pharma-intel':      { name: 'Pharma Landscape',       badge: null,             cls: '' },
  'industry-insights': { name: 'Industry Insights',       badge: null,             cls: '' },
+ ontology:            { name: 'Ontology Audit',           badge: null,             cls: '' },
 };
 function updateTabTitle(id) {
  const fallbackName = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -18738,90 +18739,78 @@ document.addEventListener('DOMContentLoaded', function(){
 </style>
 
 <div class="ont-wrap">
-  <!-- Header -->
-  <div class="au-header">
-    <div class="au-topbar">
-      <div>
-        <div class="au-title">⬛ Ontology Audit</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="au-timestamp" id="ont-timestamp"></span>
-        <button class="au-refreshbtn" onclick="ontologyLoad(true)">↻ Refresh</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- ── C: Relationship Matrix ──────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-c">
-    <div class="ont-sec-hd" onclick="ontToggle('c')">
+  <!-- ── A: Relationship Matrix ──────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-a">
+    <div class="ont-sec-hd" onclick="ontToggle('a')">
       <span class="ont-sec-icon">🔗</span>
       <div style="flex:1">
-        <div class="ont-sec-title">C — Relationship Matrix</div>
+        <div class="ont-sec-title">A — Relationship Matrix</div>
         <div class="ont-sec-sub">How every table connects — join type, join mechanism, and gaps</div>
       </div>
-      <span class="ont-sec-tog" id="ont-c-tog">▾</span>
+      <span class="ont-sec-tog" id="ont-a-tog">▾</span>
     </div>
-    <div class="ont-sec-body" id="ont-c-body">
+    <div class="ont-sec-body" id="ont-a-body">
       <div id="ont-matrix-mount"></div>
     </div>
   </div>
 
-  <!-- ── E: Gap Finder ───────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-e">
-    <div class="ont-sec-hd" onclick="ontToggle('e')">
-      <span class="ont-sec-icon">🔍</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">E — Gap Finder</div>
-        <div class="ont-sec-sub">Missing tables, missing indications, missing relationship infrastructure</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-e-tog" style="transform:rotate(-90deg)">▾</span>
-    </div>
-    <div class="ont-sec-body collapsed" id="ont-e-body">
-      <div id="ont-gaps-mount"></div>
-    </div>
-  </div>
-
-  <!-- ── I: Relationship Coverage ───────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-i">
-    <div class="ont-sec-hd" onclick="ontToggle('i')">
-      <span class="ont-sec-icon">📊</span>
-      <div style="flex:1">
-        <div class="ont-sec-title">I — Relationship Coverage Scoreboard</div>
-        <div class="ont-sec-sub">What % of entities have required and recommended relationships · live quality score</div>
-      </div>
-      <span class="ont-sec-tog" id="ont-i-tog">▾</span>
-    </div>
-    <div class="ont-sec-body" id="ont-i-body">
-      <div id="ont-coverage-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading coverage data…</div></div>
-    </div>
-  </div>
-
-  <!-- ── J: Migration Roadmap ──────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-j">
-    <div class="ont-sec-hd" onclick="ontToggle('j')">
+  <!-- ── B: Migration Roadmap ──────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-b">
+    <div class="ont-sec-hd" onclick="ontToggle('b')">
       <span class="ont-sec-icon">🗺️</span>
       <div style="flex:1">
-        <div class="ont-sec-title">J — Migration Roadmap</div>
+        <div class="ont-sec-title">B — Migration Roadmap</div>
         <div class="ont-sec-sub">Phase 0–6 · current status · blockers · completion criteria · next safe action</div>
       </div>
-      <span class="ont-sec-tog" id="ont-j-tog">▾</span>
+      <span class="ont-sec-tog" id="ont-b-tog">▾</span>
     </div>
-    <div class="ont-sec-body" id="ont-j-body">
+    <div class="ont-sec-body" id="ont-b-body">
       <div id="ont-roadmap-mount"></div>
     </div>
   </div>
 
-  <!-- ── G: Feature Backlog ─────────────────────────────────────────────── -->
-  <div class="ont-section" id="ont-sec-g">
-    <div class="ont-sec-hd" onclick="ontToggle('g')">
+  <!-- ── C: Gap Finder ───────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-c">
+    <div class="ont-sec-hd" onclick="ontToggle('c')">
+      <span class="ont-sec-icon">🔍</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">C — Gap Finder</div>
+        <div class="ont-sec-sub">Missing tables, missing indications, missing relationship infrastructure</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-c-tog" style="transform:rotate(-90deg)">▾</span>
+    </div>
+    <div class="ont-sec-body collapsed" id="ont-c-body">
+      <div id="ont-gaps-mount"></div>
+    </div>
+  </div>
+
+  <!-- ── D: Relationship Coverage ───────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-d">
+    <div class="ont-sec-hd" onclick="ontToggle('d')">
+      <span class="ont-sec-icon">📊</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">D — Relationship Coverage Scoreboard</div>
+        <div class="ont-sec-sub">What % of entities have required and recommended relationships · live quality score</div>
+      </div>
+      <span class="ont-sec-tog" id="ont-d-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-d-body">
+      <div id="ont-coverage-mount"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Loading coverage data…</div></div>
+    </div>
+  </div>
+
+  <!-- ── E: Feature Backlog ─────────────────────────────────────────────── -->
+  <div class="ont-section" id="ont-sec-e">
+    <div class="ont-sec-hd" onclick="ontToggle('e')">
       <span class="ont-sec-icon">🗂️</span>
       <div style="flex:1">
-        <div class="ont-sec-title">G — Feature Backlog — Running Priority List</div>
+        <div class="ont-sec-title">E — Feature Backlog — Running Priority List</div>
         <div class="ont-sec-sub">Platform development roadmap · ordered by leverage and effort</div>
       </div>
-      <span class="ont-sec-tog" id="ont-g-tog">▾</span>
+      <span class="ont-sec-tog" id="ont-e-tog">▾</span>
     </div>
-    <div class="ont-sec-body" id="ont-g-body">
+    <div class="ont-sec-body" id="ont-e-body">
       <div style="padding:4px 0 16px">
 
       <div class="au-backlog-item" style="opacity:.55">
