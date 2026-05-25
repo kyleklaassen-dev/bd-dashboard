@@ -3704,6 +3704,7 @@ function loadMoleculeTab(tabId) {
         <button class="tab-btn" onclick="switchTab('pharma-intel', this)">Pharma Landscape</button>
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
+        <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -3860,7 +3861,7 @@ function loadMoleculeTab(tabId) {
  <!-- hidden identity-health body (data still loads; displayed in footer) -->
  <div id="ih-body" style="display:none"></div>
 
- <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last updated May 2026.</div>
+ <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('audit')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
 
 </div><!-- end tab-home -->
 
@@ -10451,6 +10452,9 @@ registerTab('discovery-queue', {
 registerTab('submitted-intel', {
   onEnter() { siLoad(); }
 });
+registerTab('audit', {
+  onEnter() { auditLoad(); }
+});
 registerTab('tl1a', {
   onEnter() {
     loadAreaPI('tl1a');
@@ -15083,6 +15087,364 @@ document.addEventListener('DOMContentLoaded', function(){
     window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank', 'noopener,noreferrer');
   }, true); // capture phase: fires before any stopPropagation in bubble phase
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     AUDIT TAB — Hidden system visibility page. Access: click "updated" in home footer.
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-audit" style="padding:0;background:#0f172a;min-height:100vh;color:#e2e8f0;font-family:'Inter',sans-serif">
+
+<style>
+.au-wrap        { max-width:1200px;margin:0 auto;padding:28px 24px 60px }
+.au-header      { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #1e293b }
+.au-title       { font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-.4px }
+.au-subtitle    { font-size:12px;color:#64748b;margin-top:3px }
+.au-badge       { font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#1e293b;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase }
+.au-grid        { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:28px }
+.au-stat        { background:#1e293b;border-radius:8px;padding:14px 16px;border:1px solid #334155 }
+.au-stat-val    { font-size:26px;font-weight:800;color:#f8fafc;line-height:1 }
+.au-stat-lbl    { font-size:11px;color:#64748b;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em }
+.au-stat-sub    { font-size:10px;color:#475569;margin-top:2px }
+.au-section     { margin-bottom:32px }
+.au-section-hd  { font-size:13px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px }
+.au-section-hd::after { content:'';flex:1;height:1px;background:#1e293b }
+.au-table       { width:100%;border-collapse:collapse;font-size:12px }
+.au-table th    { text-align:left;padding:7px 10px;background:#1e293b;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #334155 }
+.au-table td    { padding:8px 10px;border-bottom:1px solid #1e293b;color:#cbd5e1;vertical-align:top;line-height:1.4 }
+.au-table tr:last-child td { border-bottom:none }
+.au-table tr:hover td { background:#1e293b40 }
+.au-pill        { display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap }
+.au-pill-green  { background:#14532d;color:#86efac }
+.au-pill-yellow { background:#713f12;color:#fde68a }
+.au-pill-red    { background:#7f1d1d;color:#fca5a5 }
+.au-pill-blue   { background:#1e3a5f;color:#93c5fd }
+.au-pill-gray   { background:#1e293b;color:#94a3b8 }
+.au-pill-purple { background:#3b0764;color:#d8b4fe }
+.au-card        { background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:10px }
+.au-card-title  { font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:6px }
+.au-card-body   { font-size:12px;color:#94a3b8;line-height:1.6 }
+.au-gap-row     { display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #1e293b }
+.au-gap-row:last-child { border-bottom:none }
+.au-gap-title   { font-size:12px;font-weight:700;color:#f1f5f9;margin-bottom:3px }
+.au-gap-body    { font-size:11px;color:#94a3b8;line-height:1.5 }
+.au-count       { font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:#0f172a;color:#64748b;white-space:nowrap;min-width:36px;text-align:center }
+.au-refresh     { font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#94a3b8;cursor:pointer }
+.au-refresh:hover { color:#f1f5f9;border-color:#475569 }
+.au-roadmap-item { display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1e293b }
+.au-roadmap-item:last-child { border-bottom:none }
+.au-phase       { font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;margin-top:1px }
+</style>
+
+<div class="au-wrap">
+
+  <!-- Header -->
+  <div class="au-header">
+    <div>
+      <div class="au-title">⬛ Meridian — System Audit</div>
+      <div class="au-subtitle">Internal visibility layer · Not indexed · Access via home footer</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="au-badge" id="au-last-loaded">—</span>
+      <button class="au-refresh" onclick="auditLoad(true)">↻ Refresh live data</button>
+    </div>
+  </div>
+
+  <!-- Live stats row -->
+  <div class="au-grid" id="au-stats-grid">
+    <div class="au-stat"><div class="au-stat-val" id="au-s-companies">—</div><div class="au-stat-lbl">Companies</div><div class="au-stat-sub">Active in DB</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-drugs">—</div><div class="au-stat-lbl">Drugs</div><div class="au-stat-sub">catalog + enriched</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-trials">—</div><div class="au-stat-lbl">Trials</div><div class="au-stat-sub">ClinicalTrials.gov</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-catalysts">—</div><div class="au-stat-lbl">Catalysts</div><div class="au-stat-sub">Deduped (v18)</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-deals">—</div><div class="au-stat-lbl">Deals</div><div class="au-stat-sub">BD deal log</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-intel">—</div><div class="au-stat-lbl">Intel items</div><div class="au-stat-sub">News + signals</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-submitted">—</div><div class="au-stat-lbl">Submitted Intel</div><div class="au-stat-sub" id="au-s-submitted-sub">in intake queue</div></div>
+    <div class="au-stat"><div class="au-stat-val" id="au-s-queue">—</div><div class="au-stat-lbl">Discovery Queue</div><div class="au-stat-sub">pending review</div></div>
+  </div>
+
+  <!-- Data Architecture -->
+  <div class="au-section">
+    <div class="au-section-hd">📦 Data Architecture — 20 Tables</div>
+    <table class="au-table">
+      <thead><tr><th>Table</th><th>Purpose</th><th>Key Fields</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>companies</strong></td><td>Pharma companies; status=acquired hides from dashboard</td><td>name, status, aliases FK</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>company_areas</strong></td><td>Company ↔ area junction (drives Pharma Landscape)</td><td>company_id, area_id</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>company_aliases</strong></td><td>Canonical name resolution — 89 aliases, 19 companies</td><td>company_id, alias</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>company_signals</strong></td><td>Individual bullet intelligence per company/area</td><td>company_id, area_id, signal_text</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>company_profiles</strong></td><td>Enriched profiles with completeness scoring</td><td>completeness_score, intelligence cards</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>drugs</strong></td><td>Drug records — catalog (100 DKN) + enriched</td><td>data_source, canonical_drug_id, completeness_score</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>drug_area_scores</strong></td><td>Area-specific competitive scores per drug (v20)</td><td>overlap, cls, overlap_rationale, vs_ailux_positioning</td><td><span class="au-pill au-pill-green">Live · 119 rows</span></td></tr>
+        <tr><td><strong>canonical_drugs</strong></td><td>Drug identity spine — one canonical per real-world drug</td><td>canonical_name, mechanism, target</td><td><span class="au-pill au-pill-green">Live · 53 stamped</span></td></tr>
+        <tr><td><strong>drug_aliases</strong></td><td>All known names for each canonical drug</td><td>canonical_id FK, alias_name, alias_type</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>trials</strong></td><td>ClinicalTrials.gov records</td><td>canonical_drug_id, nct_id, phase, area_fit</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>deals</strong></td><td>BD deal log with company FK</td><td>headline, total_usd_m, area_id, canonical_drug_id</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>intel</strong></td><td>News + data items with area/company tagging</td><td>primary_company_id (v19), intel_type, source_url</td><td><span class="au-pill au-pill-green">Live · ~345 rows</span></td></tr>
+        <tr><td><strong>catalysts</strong></td><td>Upcoming readouts/filings — deduplicated v18</td><td>label, catalyst_type, sort_date, company_id</td><td><span class="au-pill au-pill-green">Live · ~595 rows</span></td></tr>
+        <tr><td><strong>molecule_intelligence</strong></td><td>AI-generated per-drug intelligence cards</td><td>drug_id, intelligence_json</td><td><span class="au-pill au-pill-yellow">Partial</span></td></tr>
+        <tr><td><strong>discovery_queue</strong></td><td>Entity candidates from enrichment Step 1</td><td>company_name, drug_name, relevance_score, status</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>submitted_intel</strong></td><td>Human intake queue — Path 5</td><td>submitted_by, source_url, proposed_actions_json, status</td><td><span class="au-pill au-pill-green">Live · v33</span></td></tr>
+        <tr><td><strong>research_queue</strong></td><td>Enrichment backlog by priority score</td><td>entity_id, priority_score, next_best_action</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>competitive_landscapes</strong></td><td>Mechanism × area competitive heat maps (v31)</td><td>area_id, mechanism_class, crowding_score</td><td><span class="au-pill au-pill-yellow">Seeded · TED+TL1A</span></td></tr>
+        <tr><td><strong>identity_audit_log</strong></td><td>Append-only drug identity resolver decisions</td><td>operation, canonical_id, reason</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+        <tr><td><strong>resolver_errors</strong></td><td>Failed identity resolutions with retry tracking</td><td>error_type, stack_trace, resolved</td><td><span class="au-pill au-pill-green">Live</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Ingestion Pipelines -->
+  <div class="au-section">
+    <div class="au-section-hd">⚙️ Ingestion Pipelines</div>
+    <table class="au-table">
+      <thead><tr><th>Script / Workflow</th><th>What it collects</th><th>Cadence</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>company_enrichment.py</strong></td><td>Company intelligence, catalysts, deals, signals per area. 6 steps: signals → profile → drugs → catalysts → partnerships → deals</td><td>GitHub Actions (scheduled)</td><td><span class="au-pill au-pill-green">Active</span></td></tr>
+        <tr><td><strong>ct_gov_sync.py</strong></td><td>ClinicalTrials.gov — fetches trials for all tracked drugs, stamps canonical_drug_id</td><td>GitHub Actions (scheduled)</td><td><span class="au-pill au-pill-green">Active</span></td></tr>
+        <tr><td><strong>review_submitted_intel.py</strong></td><td>Processes submitted_intel rows (status=new) — URL validation, Claude extraction, duplicate detection, entity matching</td><td>GitHub Actions every 6h</td><td><span class="au-pill au-pill-green">Active · v33</span></td></tr>
+        <tr><td><strong>research_intelligence.py</strong></td><td>Completeness scoring + next-best-action per entity. Populates research_queue.</td><td>Wired into enrichment run (Step 7)</td><td><span class="au-pill au-pill-green">Active</span></td></tr>
+        <tr><td><strong>validate_ground_truth.py</strong></td><td>28 TL1A ground-truth cases — runs after enrichment as quality gate</td><td>Post-enrichment gate</td><td><span class="au-pill au-pill-green">28/28 passing</span></td></tr>
+        <tr><td><strong>Fierce Biotech</strong></td><td>Leading biotech news — not yet ingested</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+        <tr><td><strong>Endpoints News</strong></td><td>Clinical/regulatory news — not yet ingested</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+        <tr><td><strong>PR Newswire</strong></td><td>Press releases — not yet ingested</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+        <tr><td><strong>Conference abstracts</strong></td><td>DDW, ECCO, ATS, EADV, AASLD — not yet monitored</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+        <tr><td><strong>Patent monitoring</strong></td><td>USPTO/EPO filings for tracked targets — not yet ingested</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+        <tr><td><strong>SEC filings</strong></td><td>10-K/10-Q pipeline mentions — not yet ingested</td><td>—</td><td><span class="au-pill au-pill-red">Not built</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scoring Layer -->
+  <div class="au-section">
+    <div class="au-section-hd">📊 Scoring Layer</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="au-card">
+        <div class="au-card-title">Completeness Score (0–100)</div>
+        <div class="au-card-body">
+          Weighted across 6 stages per entity:<br>
+          Stage 1 Entity Discovery · 10pts<br>
+          Stage 2 Drug Mapping · 15pts<br>
+          Stage 3 Trial Intelligence · 20pts<br>
+          Stage 4 Catalyst Engine · 15pts<br>
+          Stage 5 Strategic Positioning · 25pts (highest)<br>
+          Stage 6 Deal Intelligence · 15pts<br><br>
+          Tiers: <span class="au-pill au-pill-red">thin</span> &lt;40 · <span class="au-pill au-pill-yellow">partial</span> 40–69 · <span class="au-pill au-pill-green">strong</span> ≥70
+        </div>
+      </div>
+      <div class="au-card">
+        <div class="au-card-title">Overlap Classification (CLASS×RELEVANCE)</div>
+        <div class="au-card-body">
+          Per drug per area in drug_area_scores:<br>
+          <span class="au-pill au-pill-red">Direct</span> Same mechanism, same indication<br>
+          <span class="au-pill au-pill-yellow">Adjacent</span> Related mechanism or indication<br>
+          <span class="au-pill au-pill-blue">Same-Space</span> Broad disease area overlap<br><br>
+          vs_ailux_positioning: how this drug compares to Ailux's TL1A bispecific specifically. Written by Claude during enrichment.
+        </div>
+      </div>
+      <div class="au-card">
+        <div class="au-card-title">Strategic Value Score</div>
+        <div class="au-card-body">
+          Third enrichment metric (after coverage + evidence_tier). Dimensions designed, partial implementation.<br><br>
+          Drives BD-importance prioritization — "how much should Kyle care about this company/drug?"<br><br>
+          <span class="au-pill au-pill-yellow">Partially built</span> — scoring dimensions exist, not surfaced on all entities
+        </div>
+      </div>
+      <div class="au-card">
+        <div class="au-card-title">Coverage / Landscape Dependency Score</div>
+        <div class="au-card-body">
+          Formula: Drug 35% + Relationship 25% + Catalyst 20% + Source 15% − Staleness 5%<br><br>
+          Computable from existing schema but compute script not yet built.<br><br>
+          <span class="au-pill au-pill-red">Not yet computed</span> — design exists in memory
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Knowledge Graph Gaps -->
+  <div class="au-section">
+    <div class="au-section-hd">🕸️ Knowledge Graph — Missing Relationships</div>
+    <div class="au-card" style="padding:4px 16px">
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-red" style="margin-top:2px">P0</span>
+        <div>
+          <div class="au-gap-title">drug → COMPETES_WITH → drug</div>
+          <div class="au-gap-body">Highest BD impact. Currently overlap classification tells you "Direct" vs "Adjacent" but doesn't link drug to drug. "Which drugs directly compete with Ailux's TL1A bispecific?" requires reasoning over text fields. Can be backfilled from drug_area_scores.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-red" style="margin-top:2px">P0</span>
+        <div>
+          <div class="au-gap-title">targets table + drug → TARGETS → target node</div>
+          <div class="au-gap-body">drugs.target is a free-text field. "Which drugs share TL1A as target" requires substring match, not a join. Blocks competitive clustering, mechanism crowding queries, target-agnostic overlap.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-yellow" style="margin-top:2px">P1</span>
+        <div>
+          <div class="au-gap-title">ownership_edges.deal_id → deals.id FK</div>
+          <div class="au-gap-body">Can see UCB controls cizutamig but no pointer to the acquisition deal. "Show every deal that changed competitive positioning in TL1A" is a manual join over coincident dates.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-yellow" style="margin-top:2px">P1</span>
+        <div>
+          <div class="au-gap-title">Temporal ownership chain queries</div>
+          <div class="au-gap-body">ownership_edges has effective_date but no delta view. Cannot auto-surface "UCB went from 0 to 4 TL1A assets in 90 days" as a signal.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-blue" style="margin-top:2px">P2</span>
+        <div>
+          <div class="au-gap-title">conference → presentation → drug nodes</div>
+          <div class="au-gap-body">No conference or poster/abstract entities in the graph. Conference abstracts are the highest-value early signal source — days before others — but not captured at all.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-blue" style="margin-top:2px">P2</span>
+        <div>
+          <div class="au-gap-title">patent → target → company nodes</div>
+          <div class="au-gap-body">No patent ingestion. Patent filings are early signals of mechanism interest / competitive intent. USPTO/EPO filings for tracked targets not monitored.</div>
+        </div>
+      </div>
+      <div class="au-gap-row">
+        <span class="au-pill au-pill-blue" style="margin-top:2px">P2</span>
+        <div>
+          <div class="au-gap-title">company → ENTERED_AREA_VIA → event</div>
+          <div class="au-gap-body">company_areas has no entry reason or date. "How did UCB build its TCE presence?" is a compound query over ownership_edges + company_areas + deals.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roadmap -->
+  <div class="au-section">
+    <div class="au-section-hd">🗺️ Next Build Priorities</div>
+    <div class="au-card" style="padding:4px 16px">
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#1e3a5f;color:#93c5fd">Phase 1</span>
+        <div>
+          <div class="au-gap-title">Source Expansion — Fierce Biotech, Endpoints, PR Newswire</div>
+          <div class="au-gap-body">Structured ingestion pipelines feeding entity-tagged signals. Not news dumps — extract company/drug/area/deal entities at ingest time. Feeds intel table with source attribution.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#14532d;color:#86efac">Phase 1</span>
+        <div>
+          <div class="au-gap-title">drug → COMPETES_WITH → drug edge (backfill from drug_area_scores)</div>
+          <div class="au-gap-body">Highest leverage / lowest effort. Direct overlap drugs in same area compete. One migration + backfill from existing data. Unlocks competitive clustering queries.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#3b0764;color:#d8b4fe">Phase 2</span>
+        <div>
+          <div class="au-gap-title">targets table — normalize drug targets as queryable nodes</div>
+          <div class="au-gap-body">Free-text → structured FK. Unlocks "all drugs targeting TL1A", mechanism crowding, target-level heat maps. Required before reasoning layer is reliable.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#3b0764;color:#d8b4fe">Phase 2</span>
+        <div>
+          <div class="au-gap-title">Conference abstract + poster monitoring</div>
+          <div class="au-gap-body">DDW, ECCO, ATS, EADV, AASLD abstract books. Highest-value early signal — days before public coverage. Ingestion pipeline + entity tagging + timeline integration on relevant area tabs.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#713f12;color:#fde68a">Phase 3</span>
+        <div>
+          <div class="au-gap-title">Coverage diagnostics compute script + dashboard widget</div>
+          <div class="au-gap-body">landscape_dependency_score formula exists. Build the compute script + surface as actionable "re-enrich these 5 companies first" queue on audit + home.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#713f12;color:#fde68a">Phase 3</span>
+        <div>
+          <div class="au-gap-title">Patent monitoring — USPTO/EPO for tracked targets</div>
+          <div class="au-gap-body">Weekly patent filing scan for TL1A, TSLP, IL-4Rα, FcRn, IGF1R target terms. Surface as early signal with company/mechanism tagging.</div>
+        </div>
+      </div>
+      <div class="au-roadmap-item">
+        <span class="au-phase" style="background:#7f1d1d;color:#fca5a5">Phase 4</span>
+        <div>
+          <div class="au-gap-title">Intelligence reasoning layer — "Why does this matter?"</div>
+          <div class="au-gap-body">Shift from "what happened" to "who should care / what became more valuable / what threat emerged." Requires Phase 1–3 graph completeness to compute reliably.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Maturity assessment -->
+  <div class="au-section">
+    <div class="au-section-hd">📈 Platform Maturity</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div class="au-card">
+        <div class="au-card-title" style="color:#86efac">✅ Complete</div>
+        <div class="au-card-body" style="font-size:11px">Company DB · Drugs to Know · Signal Monitor · Discovery Queue · Company Intake · Drug Intake · Ground Truth Validation · Catalyst dedup · drug_area_scores · Unified enrichment · Completeness scoring · Identity spine · Submitted Intel intake pipeline</div>
+      </div>
+      <div class="au-card">
+        <div class="au-card-title" style="color:#fde68a">🔧 Partial / In Progress</div>
+        <div class="au-card-body" style="font-size:11px">Strategic Value Score · molecule_intelligence split · Source confidence UI · Canonical entity modal · Competitive landscape (TED+TL1A seeded, others missing) · Interpretive intelligence backfill (TL1A only)</div>
+      </div>
+      <div class="au-card">
+        <div class="au-card-title" style="color:#fca5a5">🔴 Not Yet Built</div>
+        <div class="au-card-body" style="font-size:11px">Fierce Biotech / Endpoints / PR Newswire ingestion · Conference abstract monitoring · Patent filings · Coverage diagnostics compute · drug→COMPETES_WITH→drug edge · targets table · SEC filing pipeline · Investigator nodes</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── AUDIT TAB ─────────────────────────────────────────────────────────────────
+let _auditLoaded = false;
+
+async function auditCount(table, filter) {
+  let q = _sb.from(table).select('*', { count: 'exact', head: true });
+  if (filter) {
+    for (const [k, v] of Object.entries(filter)) {
+      if (k.startsWith('!')) q = q.neq(k.slice(1), v);
+      else q = q.eq(k, v);
+    }
+  }
+  const { count } = await q;
+  return count ?? 0;
+}
+
+async function auditLoad(force = false) {
+  if (_auditLoaded && !force) return;
+
+  const jobs = [
+    { id: 'au-s-companies', table: 'companies',       filter: { '!status': 'acquired' } },
+    { id: 'au-s-drugs',     table: 'drugs',            filter: null },
+    { id: 'au-s-trials',    table: 'trials',           filter: null },
+    { id: 'au-s-catalysts', table: 'catalysts',        filter: null },
+    { id: 'au-s-deals',     table: 'deals',            filter: null },
+    { id: 'au-s-intel',     table: 'intel',            filter: null },
+    { id: 'au-s-queue',     table: 'discovery_queue',  filter: { status: 'pending' } },
+  ];
+
+  await Promise.all(jobs.map(async j => {
+    try {
+      const n = await auditCount(j.table, j.filter);
+      const el = document.getElementById(j.id);
+      if (el) el.textContent = n.toLocaleString();
+    } catch(e) { const el = document.getElementById(j.id); if (el) el.textContent = '—'; }
+  }));
+
+  // Submitted intel: show new count + total
+  try {
+    const [total, newN] = await Promise.all([
+      auditCount('submitted_intel', null),
+      auditCount('submitted_intel', { status: 'new' }),
+    ]);
+    const el = document.getElementById('au-s-submitted');
+    const sub = document.getElementById('au-s-submitted-sub');
+    if (el) el.textContent = total.toLocaleString();
+    if (sub) sub.textContent = `${newN} new · ${total} total`;
+  } catch(e) {}
+
+  _auditLoaded = true;
+  const badge = document.getElementById('au-last-loaded');
+  if (badge) badge.textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
 </script>
 
 </body>
