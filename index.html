@@ -10527,63 +10527,155 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
     }).join('') || '<div style="font-size:11px;color:#94a3b8">No area overlap records.</div>'}
   </div>`;
 
-  return `
-  ${statsHtml}
-  ${interpHtml}
-  <div class="cem-grid">
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-trials')">
-        <div class="cem-sec-lbl">🧪 Clinical trials</div>
-        <div class="cem-sec-hint">${trialCount} active <i id="cem-chev-dr-trials" class="cem-chev">▶</i></div>
+  // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
+  const _overviewDrugContent = `
+    ${statsHtml}
+    ${interpHtml}
+    <div class="cem-grid">
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-trials')">
+          <div class="cem-sec-lbl">🧪 Clinical trials</div>
+          <div class="cem-sec-hint">${trialCount} active <i id="cem-chev-dr-trials" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${trialSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No trial data linked.</span>'}</div>
+        <div class="cem-det" id="cem-det-dr-trials">${trialDetail}</div>
       </div>
-      <div class="cem-sec-body">${trialSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No trial data linked.</span>'}</div>
-      <div class="cem-det" id="cem-det-dr-trials">${trialDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-deals')">
-        <div class="cem-sec-lbl">🤝 BD deals</div>
-        <div class="cem-sec-hint">${hasDeal?'1 deal':'No deal'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-deals')">
+          <div class="cem-sec-lbl">🤝 BD deals</div>
+          <div class="cem-sec-hint">${hasDeal?'1 deal':'No deal'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${bdDealsSummary}</div>
+        <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
       </div>
-      <div class="cem-sec-body">${bdDealsSummary}</div>
-      <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
-        <div class="cem-sec-lbl">⚡ Strategic signals</div>
-        <div class="cem-sec-hint">${molData?'Enriched':'Pending'} <i id="cem-chev-dr-sigs" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
+          <div class="cem-sec-lbl">⚡ Strategic signals</div>
+          <div class="cem-sec-hint">${molData?'Enriched':'Pending'} <i id="cem-chev-dr-sigs" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${sigSummary}</div>
+        <div class="cem-det" id="cem-det-dr-sigs">${sigDetail}</div>
       </div>
-      <div class="cem-sec-body">${sigSummary}</div>
-      <div class="cem-det" id="cem-det-dr-sigs">${sigDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-rel')">
-        <div class="cem-sec-lbl">🔗 Relationship intelligence</div>
-        <div class="cem-sec-hint">${(areas||[]).length} areas <i id="cem-chev-dr-rel" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-rel')">
+          <div class="cem-sec-lbl">🔗 Relationship intelligence</div>
+          <div class="cem-sec-hint">${(areas||[]).length} areas <i id="cem-chev-dr-rel" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${relSummary}</div>
+        <div class="cem-det" id="cem-det-dr-rel">${relDetail}</div>
       </div>
-      <div class="cem-sec-body">${relSummary}</div>
-      <div class="cem-det" id="cem-det-dr-rel">${relDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-gaps')">
-        <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
-        <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-dr-gaps" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-gaps')">
+          <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
+          <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-dr-gaps" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${gapsSummary}</div>
+        <div class="cem-det" id="cem-det-dr-gaps">${gapsDetail}</div>
       </div>
-      <div class="cem-sec-body">${gapsSummary}</div>
-      <div class="cem-det" id="cem-det-dr-gaps">${gapsDetail}</div>
-    </div>
-    <div class="cem-cell">
-      <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
-        <div class="cem-sec-lbl">🛡 Source confidence</div>
-        <div class="cem-sec-hint">per section <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
+          <div class="cem-sec-lbl">🛡 Source confidence</div>
+          <div class="cem-sec-hint">per section <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${srcSummary}</div>
+        <div class="cem-det" id="cem-det-dr-src"><div class="cem-det-inner">
+          <div class="cem-det-title">Source breakdown</div>
+          ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
+        </div></div>
       </div>
-      <div class="cem-sec-body">${srcSummary}</div>
-      <div class="cem-det" id="cem-det-dr-src"><div class="cem-det-inner">
-        <div class="cem-det-title">Source breakdown</div>
-        ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
-      </div></div>
-    </div>
-  </div>
-  `;
+    </div>`;
+
+  // ── DRUG PROFILE TAB ──────────────────────────────────────────────────────
+  const _isApproved = /approv/i.test(phase);
+  const _SIG_STYLE_DR = {
+    conference:      { label:'CONF',    bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+    clinical_update: { label:'READOUT', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+    regulatory:      { label:'REG',     bg:'#fef2f2', color:'#b91c1c', border:'#fecaca' },
+    financing:       { label:'$',       bg:'#f0fdf4', color:'#065f46', border:'#a7f3d0' },
+    patent:          { label:'PATENT',  bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe' },
+    publication:     { label:'PUB',     bg:'#f5f3ff', color:'#4338ca', border:'#c7d2fe' },
+    licensing:       { label:'DEAL',    bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
+  };
+  const _drugProfileContent = (() => {
+    // Stat cards — approval-specific metrics
+    const _approvalDateContent = drug.approval_date ? (() => {
+      const entries = drug.approval_date.split(';').map(s => s.trim()).filter(Boolean);
+      if (entries.length <= 1) return `<span style="font-size:12px;font-weight:700;color:#0f172a">${drug.approval_date}</span>`;
+      const items = entries.map(e => `<li style="font-size:11px;font-weight:600;color:#1e293b;padding:1px 0">${e}</li>`).join('');
+      return `<ul style="margin:4px 0 0;padding-left:14px;list-style:disc;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px">${items}</ul>`;
+    })() : null;
+    const statCards = [
+      _approvalDateContent ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:4px">📅 Approval Dates</div>${_approvalDateContent}</div>` : '',
+      drug.annual_revenue ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d;margin-bottom:4px">💰 Annual Revenue</div><span style="font-size:13px;font-weight:800;color:#0f172a">${drug.annual_revenue}</span></div>` : '',
+      drug.patient_population ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:4px">👥 Patients on Therapy</div><span style="font-size:12px;font-weight:700;color:#0f172a">${drug.patient_population}</span></div>` : '',
+    ].filter(Boolean).join('');
+
+    // Endpoints as bullet list
+    const _endpointsContent = drug.final_endpoints ? (() => {
+      const entries = drug.final_endpoints.split(/;\s*|\.\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.length > 4);
+      if (entries.length <= 1) return `<p style="font-size:12px;color:#1e293b;line-height:1.6;margin:0">${drug.final_endpoints}</p>`;
+      return `<ul style="margin:0;padding-left:16px;list-style:disc">${entries.map(e => `<li style="font-size:11.5px;color:#1e293b;padding:3px 0;line-height:1.5">${e.replace(/\.$/, '')}</li>`).join('')}</ul>`;
+    })() : null;
+
+    const _cards = [
+      drug.drug_summary ? `<div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:6px">📋 Summary</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.drug_summary}</p></div>` : '',
+      statCards ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${statCards}</div>` : '',
+      _endpointsContent ? `<div style="background:#fffdf0;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin-bottom:8px">⚗ Pivotal Endpoints</div>${_endpointsContent}</div>` : '',
+      drug.mechanism_detail ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0284c7;margin-bottom:6px">🔬 Mechanism &amp; Context</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.mechanism_detail}</p></div>` : '',
+      drug.differentiation_thesis ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">⚡ Differentiation</div><p style="font-size:12px;color:#1e293b;font-weight:600;line-height:1.55;margin:0">${drug.differentiation_thesis}</p></div>` : '',
+    ].filter(Boolean);
+
+    if (!_cards.length) return '<div style="padding:20px 0;color:#94a3b8;font-size:12px;font-style:italic">No drug profile data enriched yet.</div>';
+    return `<div>${_cards.join('')}</div>`;
+  })();
+
+  // ── MOLECULE INTEL TAB ───────────────────────────────────────────────────
+  const _molDrugContent = molData ? (() => {
+    const fs = molData.field_status || {};
+    const _mbadge = s => {
+      if (!s || s === 'confirmed') return '';
+      const cfg = s === 'inferred'
+        ? { bg:'#fffbeb', co:'#b45309', bd:'#fde68a', lbl:'Inferred' }
+        : { bg:'#f8fafc', co:'#94a3b8', bd:'#e2e8f0', lbl:'Not disclosed' };
+      return `<span style="font-size:7.5px;font-weight:800;text-transform:uppercase;background:${cfg.bg};color:${cfg.co};border:1px solid ${cfg.bd};border-radius:4px;padding:1px 4px;margin-left:4px">${cfg.lbl}</span>`;
+    };
+    const mRow = (k, v, fk) => v ? `<div class="cem-fact"><span class="cem-fact-lbl">${k}</span><span class="cem-fact-val">${v}${_mbadge(fs[fk])}</span></div>` : '';
+    return `<div>
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Molecule Characterization</div>
+        ${mRow('Format',         molData.format,          'format')}
+        ${mRow('Modality',       molData.modality,        'modality')}
+        ${mRow('IgG subclass',   molData.igg_subclass,    'igg_subclass')}
+        ${mRow('Fc engineering', molData.fc_engineering,  'fc_engineering')}
+        ${mRow('Epitope',        molData.epitope,         'epitope')}
+        ${mRow('Affinity (KD)',  molData.affinity_kd,     'affinity_kd')}
+        ${mRow('Half-life',      molData.half_life,       'half_life')}
+        ${mRow('Dosing interval',molData.dosing_interval, 'dosing_interval')}
+      </div>
+      ${molData.differentiation_claim ? `<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px">
+        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">Differentiation Claim ${_mbadge(fs.differentiation_claim)}</div>
+        <p style="font-size:12px;color:#1e293b;font-style:italic;line-height:1.5;margin:0">${molData.differentiation_claim}</p>
+      </div>` : ''}
+      ${molData.safety_observations ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-top:10px">
+        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#c2410c;margin-bottom:6px">Safety Observations</div>
+        <p style="font-size:12px;color:#1e293b;line-height:1.5;margin:0">${molData.safety_observations}</p>
+      </div>` : ''}
+    </div>`;
+  })() : '<div style="padding:20px 0;color:#94a3b8;font-size:12px;font-style:italic">Molecule intelligence not yet profiled — runs automatically with enrichment pipeline.</div>';
+
+  // ── Assemble tabs ────────────────────────────────────────────────────────
+  const _profileTabLabel = _isApproved ? 'Approved Drug' : 'Drug Profile';
+  const _drugTabs = [
+    { id:'cem-dtab-overview', label:'Overview' },
+    { id:'cem-dtab-profile',  label:_profileTabLabel },
+    { id:'cem-dtab-molecule', label:'Molecule' },
+  ];
+  const _drugPanels = [
+    { id:'cem-dtab-overview', content: _overviewDrugContent },
+    { id:'cem-dtab-profile',  content: _drugProfileContent },
+    { id:'cem-dtab-molecule', content: _molDrugContent },
+  ];
+  return _buildDossierShell(_drugTabs, _drugPanels);
 }
 
 /* ── Company card renderer ───────────────────────────────────────── */
@@ -11463,6 +11555,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
+    bodyEl.classList.add('dossier-mode');
     bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals);
 
     // Footer: disease area tabs this drug appears in
@@ -12876,7 +12969,7 @@ function _makeAreaPI(tabId, areaIds) {
     // ── Semicolon ICD-style forms (must precede splitting) ──
     ['Asthma; Eosinophilic','Eo-Asthma'],['Asthma; Severe','Sev. Asthma'],
     ['Asthma; Allergic','Allergic Asthma'],['Asthma Acute','Acute Asthma'],
-    ['Bronchial Asthma','Asthma'],['Acute Asthma','Ac. Asthma'],['Asthma Acute','Ac. Asthma'],
+    ['Bronchial Asthma','Asthma'],['Acute Asthma','Asthma'],['Asthma Acute','Asthma'],
     ['Acute Exacerbation of Chronic Obstructive Pulmonary Disease','AECOPD'],
     ['Acute Exacerbation of COPD','AECOPD'],['COPD Acute Exacerbation','AECOPD'],
     ['Acute COPD Exacerbation','AECOPD'],
@@ -13599,7 +13692,6 @@ function _makeAreaPI(tabId, areaIds) {
      ${descStrip}
      <div>
       ${acquisitionNote}${altCodeNote}
-      ${approvedSection}
       ${trialsSection}
      </div>
      ${drugNewsSection}
