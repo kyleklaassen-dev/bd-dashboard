@@ -85,7 +85,7 @@ All Phase 4A work is done. Corrections applied and verified.
 |---|---|---|
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
-| Phase 4C | Pre-migration classification sprint — explain every difference | ✅ IBD ✅ TED ⏸ modal (7/10 remaining) |
+| Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
 | Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 deployed (flag=false)** |
 
 **Phase 5 Candidate 1 (IBD) is deployed with `useNormalizedIBD=false`. No behavior change. Flag must be explicitly set to `true` to activate normalized path. Do NOT do broad dashboard rewiring — migrate one component at a time with feature flags.**
@@ -174,7 +174,20 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **cizutamig flag:** drug_indications/ted row has source_type=pattern_match, review_status=sampling_queue, conf=87. Not in drug_areas/igf1r (areas: tcell, autoimmune). The TED indication claim should be confirmed via trial evidence before Phase 5 migration includes it. No action needed now — sampling_queue is the correct holding state.
 
-**Phase 4C task for Drug modal:** ✅ **PARTIALLY VERIFIED (Session 53m)** — 3 test drugs passed (lm-302, batoclimab, epi-001). All differences explainable via entity_consistency_checks. Remaining task: run full 10-drug sprint covering additional area tabs (TL1A, FcRn, TED drugs).
+**Phase 4C task for Drug modal:** ✅ **COMPLETE (Session 53o)** — All 10 drugs verified. 0 unexplained mismatches. 0 IBD blockers. Full report: `docs/phase4c_modal_sprint.md`.
+
+| Drug | Status | IBD block |
+|---|---|---|
+| sim0709 | compare_pass_oos_adjusted | ❌ |
+| batoclimab | acceptable_mismatch (igf1r catch-all, ECC corrected) | ❌ |
+| lm-302 | needs_manual_review → ECC accepted | ❌ |
+| spy072 | compare_pass_oos_adjusted (OOS classified) | ❌ |
+| epi-001 | acceptable_mismatch (ECC held — gate satisfied) | ❌ |
+| upadacitinib | compare_pass_oos_adjusted | ❌ |
+| teprotumumab | match | ❌ |
+| dupilumab | compare_pass_oos_adjusted (il4ra/tslp OOS) | ❌ |
+| efgartigimod | match | ❌ |
+| risankizumab | compare_pass_oos_adjusted | ❌ |
 
 **Phase 4C Rank 5 — TSLP:** ✅ **compare_pass_oos_adjusted (Session 53o)**
 
@@ -218,7 +231,7 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 | Candidate | Component | Flag | Default | Deployed | Activated |
 |---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | false | ✅ ec4cac7e (2026-05-25) | ❌ not yet — awaiting 10-drug sprint + advisor go |
+| 1 | IBD area tab | `useNormalizedIBD` | false | ✅ ec4cac7e (2026-05-25) | ❌ not yet — modal sprint ✅, awaiting browser validation + advisor go |
 | 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
@@ -226,9 +239,12 @@ Full plan: `docs/phase4c_validation_plan.md`
 **To activate Candidate 1:** set `useNormalizedIBD: true` in FEATURE_FLAGS → deploy → verify browser `window.showPhase4Compare()` → update update_log.md.
 
 **Pre-activation checklist for IBD:**
-- [ ] Phase 4C 10-drug modal sprint complete (7 of 10 remaining)
-- [ ] epi-001 resolved OR formally accepted as held through Phase 5 (a single ambiguous preclinical asset classified and intentionally excluded does not block migration)
-- [ ] cizutamig resolved (TED — but not blocking IBD)
+- [x] Phase 4C 10-drug modal sprint complete — ✅ DONE (Session 53o, docs/phase4c_modal_sprint.md)
+- [x] epi-001 resolved OR formally accepted as held through Phase 5 — ✅ ECC open/held satisfies gate
+- [ ] cizutamig resolved (TED scope — not blocking IBD, but document resolution before TED Candidate 2)
+- [ ] IBD tab loads without console errors with flag=true (browser validation)
+- [ ] IBD drug count matches expected normalized output (~50 drugs, 3 OOS excluded)
+- [ ] Legacy fallback confirmed when flag=false — ✅ current deploy
 - [ ] Advisor go on flag flip
 
 ---
