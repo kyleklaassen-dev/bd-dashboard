@@ -1,5 +1,35 @@
 
 ---
+## 2026-05-26 (Session 66) — Knowledge Graph Integration: Routing Fixes 3A/3B/4/5
+
+**Drug card — news + catalyst sections (Fixes 3A + 3B):**
+- `_cemDrugBody()` now accepts `drugNews` and `drugCatalysts` as params (signature extended)
+- Fix 3A: Fetches `news_articles WHERE matched_drug_ids @> [drugId]`, 90-day window, relevance-ordered, limit 5. Renders "Recent Coverage" cell in overview grid.
+- Fix 3B: Fetches `catalysts WHERE drug_id = drugId AND resolved=false AND sort_date >= today`, limit 5. Renders "Upcoming catalysts" banner row (full-width, above trials) when catalysts exist.
+- Both sections render in the drug card overview. Previously: 0 news, 0 catalysts reachable from drug card. Now: fully wired.
+
+**Company card — intel + news sections (Fix 4):**
+- `openCompanySlideOver()` now fetches two new data sources in parallel before rendering:
+  - `news_articles WHERE matched_company_ids @> [companyId]` — 90-day, relevance-ordered, limit 20 (stored as `coNewsArticles`)
+  - `intel WHERE primary_company_id = companyId` — 90-day, date-ordered, limit 15 (stored as `companyIntelDirect`)
+- `_cemCompanyBody()` now renders a "Recent coverage" cell in the overview grid merging both sources. Intel items shown first (higher BD signal); news articles follow. Deduped by headline.
+- Existing intel_companies junction path preserved; primary_company_id path supplements it.
+
+**Industry Insights feed — area news routing (Fix 5):**
+- `loadIndustryInsightsFeed()` now fetches `news_articles` in the parallel load alongside intel, signals, deals.
+- `matched_area_ids` used to tag each article to relevant areas for area-tab filtering.
+- Articles normalized into the same `{_key, date, headline, body, sources, type, areas}` shape as intel/signal/deal items. Deduped by headline+date.
+
+**Company entity additions:**
+- `ventyx`: Ventyx Biosciences added as `status='acquired', parent_company_id='abbvie'`
+- `vtx002`: VTX002 drug added (S1P1 receptor modulator, Ventyx/AbbVie, Phase 2 UC/CD)
+
+**Audit deliverable:**
+- `docs/company_cleanup_plan.md` — identity violations (0 case dupes, 0 slash compounds), connectivity scorecard for 30 companies, missing entities (Ventyx), depth chains for catalysts/news/intel
+
+Commits: `7fbd801e` (index.html routing fixes) · `4d3248f8` (company_cleanup_plan.md) · `b9e704a7` (NEXT_SESSION.md)
+
+---
 ## 2026-05-26 (Session 65) — Live System Health Audit + P0 Pipeline Fix
 
 **P0 fix — fetch-homepage-news.yml created:**
