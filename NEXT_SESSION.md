@@ -389,20 +389,40 @@ anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not
 
 Pre-flight audit complete (Session 54). Classification report delivered. All differences explained. Adjusted match = 100% (4/4).
 
-**Proceed with Step 3 — Implementation:**
+**Proceed with C5+C6 bundled sprint (`useUnifiedAtopy` flag):**
 
-Add normalized path inside `_makeAreaPI` behind `useNormalizedIL4RA` flag (or similar). Source swap only — no rendering changes. Same pattern as TL1A.
+**Architecture decision (Session 55):** C5 and C6 must be activated together. TAB_AREA_MAP has `'il4ra-tslp': ['il4ra','tslp']` — a combined tab that queries both areas. Migrating only il4ra would require a mixed source query (drug_targets for il4ra + drug_areas for tslp). Bundling is architecturally clean and both candidates are READY.
 
-**Current source:** `drug_areas WHERE area_id='il4ra'`  
-**Target source:** `drug_targets WHERE target_id='il4ra'`  
-**Expected count change:** 9 → 5 (5 OOS drugs correctly excluded — all atopy pathway partners)  
-**Extra-norm:** ibi333 (IL-4Rα×TSLP bispecific — legitimate addition)
+**Flag name:** `useUnifiedAtopy: false`
 
-**Reconciliation items still pending (both small, unambiguous):**
-1. Fix apg333 normalized_gap: INSERT into drug_targets (`drug_id='apg333'`, `target_id='tslp'`, `confidence_score=95`, `source_type='manual'`, `review_status='reviewed_accepted'`, `review_notes='Anti-TSLP IgG confirmed by mechanism field. Apogee Phase 1 program.'`)
-2. Fix riliprubart data quality: UPDATE drugs SET target='FcRn' WHERE id='riliprubart'
+**Query logic (inside `_makeAreaPI`):**
+```javascript
+const _ATOPY_NORM = !!(FEATURE_FLAGS.useUnifiedAtopy && 
+                       (this.areaIds.includes('il4ra') || this.areaIds.includes('tslp')));
+const _atopyTargets = [
+  ...(this.areaIds.includes('il4ra') ? ['il4ra'] : []),
+  ...(this.areaIds.includes('tslp')  ? ['tslp','tslpr'] : [])
+];
+// init() fetch: drug_targets WHERE target_id IN (_atopyTargets)
+// _loadEntityMeta(): same filter
+```
 
-Both fixes unblock TSLP (C5) and FcRn (C7) respectively. Can be applied alongside IL-4Rα implementation.
+**Ternary priority order (critical — same lesson as C4):**
+```
+_ATOPY_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → drug_areas fallback
+```
+Check `_ATOPY_NORM` FIRST in both `init()` and `_loadEntityMeta()`.
+
+**Expected count changes:**
+- il4ra-ox40l tab: 9 → 5 (5 scope_diff excluded)
+- il4ra-tslp tab: ~19 → ~14 (5 scope_diff excluded, 3 new legitimate additions)
+- TSLP tab: 14 → 10 (6 scope_diff excluded, 2 new)
+
+**Reconciliation fixes:** Both already applied. No action needed.
+- apg333 → tslp: ✅ PRESENT in drug_targets (conf=95, reviewed_accepted)
+- riliprubart.drugs.target: ✅ CORRECT (= 'FcRn')
+
+**Full activation package:** `docs/phase5_c6_activation_package.md`
 
 **Candidate 3 — What was built:**
 - `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
