@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 56 (2026-05-26) — **Phase 5 C5+C6 (`useUnifiedAtopy`) code deployed to GitHub (commit `a0ffdec4`). `.nojekyll` added (commit `688d77e6`). GitHub Pages DEGRADED at time of session — build not yet live. Data-layer gates G1-G5+G8 confirmed via console simulation. G6/G7 pending CDN recovery.** First task next session: verify Pages is live with new code, run G6+G7, then request advisor approval before setting `useUnifiedAtopy=true`.  
-**Prior session:** Session 54 — Parallel pre-flight audits complete. TL1A/FcRn/IL-4Rα all READY; TSLP blocked pending apg333 fix.
+**Last session:** Session 57 (2026-05-26) — **GitHub Pages/Actions infrastructure STILL DEGRADED (second consecutive session). Multiple re-deploy attempts failed: Actions build errors on `codeload.github.com` not serving `upload-pages-artifact@v3`; legacy Pages API build stuck/errored. Pages CDN is serving pre-C5+C6 code (`FEATURE_FLAGS` has no `useUnifiedAtopy`). Code is correct in repo (commit `089819dd`). Validation queue fix: obexelimab `fcgriib` target added to targets + drug_targets; now 4 needs_review remain.** First task next session: check `githubstatus.com` — if Actions+Pages operational, deploy once more then run G6+G7. If still degraded, consider switching workflow to a version that avoids `upload-pages-artifact@v3`.  
+**Prior session:** Session 56 — C5+C6 code implemented and pushed. Data-layer gates G1-G5+G8 confirmed via console simulation (IL-4Rα adj_match=100%, TSLP adj_match=100%). Pages degraded at end of session.
 
 ---
 
@@ -391,21 +391,42 @@ The only blocker at end of Session 56 was GitHub Pages / GitHub Actions degraded
 
 ---
 
-### Current state
+### Current state (updated Session 57)
 
 | Item | Status |
 |---|---|
-| useUnifiedAtopy code | Implemented — commit `a0ffdec4` |
+| useUnifiedAtopy code | Implemented — latest commit `089819dd` (re-push to trigger build) |
 | Feature flag default | `false` |
 | `.nojekyll` added | commit `688d77e6` — disables Jekyll, prevents future build errors |
 | Data-layer validation | G1/G2/G3/G4/G5/G8 passed |
-| GitHub Pages CDN | Blocked at session end (degraded_performance) |
+| GitHub Pages CDN | **STILL BLOCKED (Session 57)** — Actions fails on `codeload.github.com/upload-pages-artifact`; Legacy Pages API build errored |
+| GitHub status | `githubstatus.com` shows Actions + Pages both `degraded_performance` as of Session 57 |
 | Activation | Not yet approved |
 | Remaining gates | G6 + G7 browser runtime only |
+| Pre-validated adj_match | IL-4Rα 100% (4/4), TSLP 100% (8/8) |
+
+**Session 57 deploy attempts (all failed):**
+1. Re-push via GitHub Contents API (commit `089819dd`) — triggered Actions run `26448207781` — FAILED: `codeload.github.com` error on `upload-pages-artifact@v3`
+2. Rerun failed Actions job — run `26448276495` — FAILED: same CDN error
+3. Direct Pages API build (POST `/pages/builds`) — STATUS errored
+4. `file://` URL navigation — blocked by Chrome extension security
+5. Root cause: GitHub Actions + Pages both `degraded_performance` at githubstatus.com
 
 ---
 
 ### P0 — Steps to execute
+
+**Step 0 — Check GitHub infrastructure status:**
+```bash
+curl -s "https://www.githubstatus.com/api/v2/components.json" | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+for c in d['components']:
+    if c['status'] != 'operational': print(c['name'], '->', c['status'])
+"
+```
+If Actions + Pages both `operational`: proceed to Step 1.  
+If still degraded: see **Fallback path** below.
 
 **Step 1 — Confirm Pages propagated:**
 ```bash
@@ -417,7 +438,12 @@ content = urllib.request.urlopen(req).read().decode()
 print('live:', 'useUnifiedAtopy' in content)
 "
 ```
-If not live: check `https://www.githubstatus.com` and wait for Pages/Actions to clear.
+
+**⚠️ FALLBACK PATH (if Actions still degraded):**  
+The issue is `actions/upload-pages-artifact@v3` not loading from `codeload.github.com`. Options:
+1. **Wait** for GitHub to resolve the degradation — most likely path
+2. **Switch workflow**: Check if the auto-generated `pages build and deployment` workflow can be replaced with a custom workflow using an older pinned SHA (v2) of `upload-pages-artifact`
+3. **Direct Pages legacy API**: Try `POST /repos/.../pages/builds` again — it was stuck in Session 57 but may work once infra recovers
 
 **Step 2 — Load fresh bust URL in browser:**
 Navigate to: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<new_timestamp>`  
