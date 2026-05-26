@@ -33,7 +33,43 @@ Open the Submitted Intel tab. For each analyzed item:
 
 ---
 
-## Priority 1: Three Routing Fixes (from article_relationship_audit.md)
+## Priority 1: Company Normalization Audit → `company_cleanup_plan.md`
+
+**Do this before routing fixes.** Routing quality depends on entity quality. `news_articles.matched_company_ids` is populated at write time by fuzzy-matching company names against `companies.name`. If "AbbVie", "abbvie", and "ABBVIE" are three different `company_id` values, news articles matched to one variant will not surface on the other company cards. Fix company identity first — every downstream routing improvement depends on it.
+
+```sql
+-- Find likely duplicates (same name, different case)
+SELECT LOWER(name) AS name_lower, array_agg(id ORDER BY id) AS ids, COUNT(*) AS ct
+FROM companies
+GROUP BY LOWER(name)
+HAVING COUNT(*) > 1
+ORDER BY ct DESC;
+
+-- Find company/company patterns (slash-separated)
+SELECT id, name FROM companies WHERE name LIKE '%/%' ORDER BY name;
+
+-- Find lowercase names (should be title case)
+SELECT id, name FROM companies WHERE name != INITCAP(name) AND name = LOWER(name) ORDER BY name;
+
+-- Find acquired companies without parent_company_id
+SELECT id, name, status FROM companies WHERE status = 'acquired' AND parent_company_id IS NULL ORDER BY name;
+
+-- Find parent_company_id relationships (current state)
+SELECT c.id, c.name, p.id AS parent_id, p.name AS parent_name
+FROM companies c JOIN companies p ON c.parent_company_id = p.id
+ORDER BY p.name, c.name;
+```
+
+Output: `docs/company_cleanup_plan.md` — table of violating companies with recommended action (merge, alias, ownership_edge, rename, split).
+
+Execute safe fixes in the same session:
+- Rename clearly misspelled or miscased names (direct UPDATE)
+- Set `parent_company_id` for known acquired companies
+- Do NOT merge row IDs without verifying FK dependencies first (check drugs, partnerships, catalysts, deals, company_areas for each id)
+
+---
+
+## Priority 2: Three Routing Fixes (from article_relationship_audit.md)
 
 These are the three highest-leverage gaps with the lowest implementation cost. Each is a targeted fetch addition — no schema changes required.
 
@@ -91,43 +127,6 @@ Render as the last section in the drug modal, after trials and competitive score
 
 ---
 
-## Priority 2: Company Normalization Audit → `company_cleanup_plan.md`
-
-Query Supabase for every company name and surface violations:
-
-```sql
--- Find likely duplicates (same name, different case)
-SELECT LOWER(name) AS name_lower, array_agg(id ORDER BY id) AS ids, COUNT(*) AS ct
-FROM companies
-GROUP BY LOWER(name)
-HAVING COUNT(*) > 1
-ORDER BY ct DESC;
-
--- Find company/company patterns (slash-separated)
-SELECT id, name FROM companies WHERE name LIKE '%/%' ORDER BY name;
-
--- Find lowercase names (should be title case)
-SELECT id, name FROM companies WHERE name != INITCAP(name) AND name = LOWER(name) ORDER BY name;
-
--- Find acquired companies without parent_company_id
-SELECT id, name, status FROM companies WHERE status = 'acquired' AND parent_company_id IS NULL ORDER BY name;
-
--- Find parent_company_id relationships (current state)
-SELECT c.id, c.name, p.id AS parent_id, p.name AS parent_name
-FROM companies c JOIN companies p ON c.parent_company_id = p.id
-ORDER BY p.name, c.name;
-```
-
-**Output:** `docs/company_cleanup_plan.md`  
-Format: table of violating companies with recommended action (merge, alias, ownership_edge, rename, split).
-
-**Then execute safe fixes:**
-- Rename clearly misspelled or miscased company names (direct UPDATE)
-- Set `parent_company_id` for known acquired companies with no parent set
-- Do NOT merge row IDs without checking FK dependencies first
-
----
-
 ## Priority 3: Catalyst Connectivity Audit → `catalyst_connectivity_audit.md`
 
 ```sql
@@ -155,6 +154,30 @@ From `company_surface_inventory_session64.md`:
 
 Remove dead DOM shell `#co-slideover` (lines 3757–3766 in index.html) and its CSS (lines 1291–1300).  
 No functional impact — confirmed nothing writes to these elements.
+
+---
+
+## New Tracking Metric: UI Coverage %
+
+Starting Session 66, track this per intelligence table:
+
+```
+UI Coverage % = rows visible in UI / rows stored in Supabase
+```
+
+| Table | Stored | Linked (entity FK) | Visible in UI | UI Coverage |
+|---|---|---|---|---|
+| `catalysts` | 790 | ~790 (created by pipeline) | ? (area tab only) | ? |
+| `news_articles` | 55 | 55 (all scored) | 55 (homepage) | ~100% |
+| `intel` | 767 | 767 (via intel_areas) | ? (area tab + global search) | ? |
+| `deals` | 192 | ? (drug_id or company_id) | ? (area tab deals) | ? |
+| `signals` | 51 | 51 (area-tagged) | ? | ? |
+| `ownership_edges` | ? | ? | ? (company card only) | ? |
+
+Fill during catalyst and frontend coverage audits. The target question:
+**How much of our intelligence can users actually access?**
+
+This is a better KPI than enrichment coverage because it measures utilization, not storage.
 
 ---
 
