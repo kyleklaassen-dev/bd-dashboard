@@ -2047,7 +2047,7 @@ const FEATURE_FLAGS = {
   useNormalizedDrugModal: true,   // Candidate 3: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed. Labels clean (IL-23p19, EoE, Chronic Urticaria), confidence display correct (95% not 9500%), CIDP evidence verified (reviewed_by kyle-2026-05-25, NCT07188/NCT05581). Rollback: set false.
   useUnifiedTL1A:         true,   // Candidate 4: ACTIVATED 2026-05-25 — all 8 gates passed. drug_targets(target_id='tl1a') replaces drug_areas. count 50→34 (scope-diff drugs correctly excluded). adjusted_match_pct=100, compare_pass_oos_adjusted. Rollback: set false.
   useUnifiedAtopy:        true,   // Candidates 5+6: ACTIVATED 2026-05-26 — advisor go. TSLP adj=100% (14→10, scopeDiff=6), IL-4Rα adj=100% (9→5, scopeDiff=5). compare_pass_oos_adjusted both. drug_targets(target_id IN il4ra,tslp,tslpr) replaces drug_areas. Rollback: set false.
-  useUnifiedFCRN:         false,  // Candidate 7: NOT YET ACTIVATED. FcRn tab. drug_targets(target_id='fcrn') replaces drug_areas(fcrn). Gains: riliprubart (+1). Drops: atg-201 (scope_diff: CD19×CD3 bispecific, Watch-tier in legacy only). Pre-flight: legacy=7 norm=7 overlap=6 scopeDiff=1 adj=6/6=100%. Rollback: set false.
+  useUnifiedFCRN:         true,   // Candidate 7: ACTIVATED 2026-05-26 — advisor go. All 8 gates passed. legacy=7 norm=7 overlap=6 scopeDiff=1(atg-201=CD19×CD3) adj=100% compare_pass_oos_adjusted. drug_targets(target_id='fcrn') replaces drug_areas(fcrn). riliprubart added, atg-201 correctly excluded. LEGACY READ LAYER ELIMINATION MILESTONE. Rollback: set false.
 };
 
 // ── Tag colour map ──────────────────────────────────────────────────────────
