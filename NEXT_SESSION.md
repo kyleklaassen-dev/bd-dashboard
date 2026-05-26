@@ -312,15 +312,29 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 ### P1 — Phase 5 Candidate 4 (TL1A) — Data Source Migration
 
-**Status:** Not started. Note: `tl1aPI` was already retired in Session 45 (commit `b4355353`) — TL1A rendering already runs through `_makeAreaPI`. Candidate 4 is the *data source* migration inside that engine: swap the TL1A query from `drug_areas WHERE area_id='tl1a'` to `drug_targets WHERE target_id='tl1a'`.
+**Status:** Not started. Smaller scope than previously thought. `tl1aPI` was already retired in Session 45 — TL1A rendering already runs through `_makeAreaPI`. Candidate 4 is a source swap + validation sprint, not an architecture build.
 
-**Architecture is already decided.** One engine, many view configurations. Candidate 4 is execution only.
+**Current source:** `drug_areas WHERE area_id='tl1a'`  
+**Target source:** `drug_targets WHERE target_id='tl1a'`  
+**Flag:** `FEATURE_FLAGS.useUnifiedTL1A`
 
-**Candidate 4 sprint:**
-1. Add TL1A target_view config to `_makeAreaPI` that reads from `drug_targets WHERE target_id='tl1a'` when `useUnifiedTL1A=true`
-2. Shadow-render: run normalized path alongside legacy `drug_areas` path, compare output
-3. Validate via `useUnifiedTL1A` feature flag — same 8-gate pattern as Candidates 1–3
-4. When all gates pass → flip `useUnifiedTL1A=true` permanently (30-day legacy retention applies)
+**Step 1 — Pre-flight audit (do before any implementation):**
+Run the same pre-flight classification used for TED:
+- Count legacy TL1A drugs (from `drug_areas WHERE area_id='tl1a'`)
+- Count normalized TL1A target drugs (from `drug_targets WHERE target_id='tl1a'`)
+- Enumerate overlap, extra_legacy, extra_normalized
+- Classify every difference through `entity_consistency_checks`
+- Confirm adjusted match % (`compare_pass_oos_adjusted` threshold)
+
+Only after classification report is complete should implementation begin.
+
+**Step 2 — Implementation (same 8-gate pattern as Candidates 1–3):**
+1. Add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag
+2. Shadow dual-read — run both paths, compare output
+3. Validate runtime comparison status
+4. Flip `useUnifiedTL1A=true` permanently when all gates pass (30-day legacy retention applies)
+
+**Why this moves fast:** Unified engine ✅ · Feature flag stub ✅ · Dual-read framework ✅ · Comparison harness ✅ · Reconciliation layer ✅. Work is data validation, not infrastructure construction.
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
