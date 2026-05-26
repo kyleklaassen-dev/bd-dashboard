@@ -130,6 +130,10 @@ New modal inconsistencies should be recorded in `entity_consistency_checks` rath
 
 ---
 
-## Candidate 4 — TL1A (Not Started)
+## Candidate 4 — TL1A (Pending Data Source Migration)
 
-TL1A uses `tl1aPI` (~1700-line separate object), not `_makeAreaPI`. Architecture review required before any Phase 5 migration attempt. See `docs/unified_area_dashboard_architecture.md` and memory `project_tl1a_unification.md`.
+**Rendering is already unified.** `tl1aPI` was retired in Session 45 (commit `b4355353`). TL1A already runs through `_makeAreaPI`.
+
+**What Candidate 4 is:** Data source migration inside `_makeAreaPI` for TL1A. When `useUnifiedTL1A=true`, the TL1A query switches from `drug_areas WHERE area_id='tl1a'` to `drug_targets WHERE target_id='tl1a'`.
+
+TL1A ontology semantics ✅, comparison semantics ✅, normalized source data (`drug_targets.target_id='tl1a'`) ✅ are all already correct. Architecture is decided. Candidate 4 is execution only — same 8-gate sprint pattern as Candidates 1–3.
