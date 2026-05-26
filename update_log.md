@@ -1,5 +1,30 @@
 
 ---
+## 2026-05-25 (Session 53o) — Candidate 1 monitoring pass: Gate 8 root cause found + TAB_AREA_MAP fix applied
+
+**Finding:** `useNormalizedIBD=true` was a no-op in production. Root cause: TAB_AREA_MAP['tl1a'] = ['tl1a'] — 'ibd' was missing. The flag condition `_IBD_NORM = FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd')` evaluates to false for every tab. `_runPhase4BDualRead` also requires `areaIds.includes('ibd')` — cannot fire through any normal navigation without this fix.
+
+**Fix applied (Session 53o, monitoring pass):**
+
+| Field | Value |
+|---|---|
+| File | `index.html` line 3314 |
+| Change | `TAB_AREA_MAP['tl1a']`: `['tl1a']` → `['tl1a', 'ibd']` |
+| Behavior in legacy mode (flag=false) | No change — `union(tl1a, ibd) = tl1a` drug set (49 drugs in ibd are all present in tl1a; `lm-302` is only tl1a-only drug) |
+| Behavior when flag=true | `_IBD_NORM=true` → fetches from `drug_indications WHERE indication_id IN ('uc','cd')` |
+| Dual-read | `_runPhase4BDualRead` now fires on TL1A tab load when flag=true |
+
+**Data verified before applying fix:**
+- drug_areas/tl1a = 50 drugs; drug_areas/ibd = 49 drugs; ibd ⊂ tl1a (lm-302 is only tl1a-exclusive drug)
+- drug_area_scores for ibd: 49 rows (well-populated; best-score logic in _makeAreaPI picks most direct across both)
+- drug_combinations for ibd: 0 rows (no new combo entries)
+- Normalized IBD (drug_indications uc+cd): 49 unique drugs — includes anti-tl1a-xpf005-arm, risankizumab-lutikizumab-or-trosunilimab, risankizumab-vs-vedolizumab; excludes sim0500, spy072, epi-001 (OOS/held)
+
+**Status after fix:** TAB_AREA_MAP is correct. Gate 8 is now gated only on browser verification with flag=true. Legacy mode behavior unchanged (same 50-drug TL1A tab).
+
+**Next step:** Deploy this fix → load TL1A tab with flag=true → confirm `window.__MERIDIAN_PHASE4_COMPARE__` has ibd record with `status='compare_pass_oos_adjusted'` → all 8/8 gates pass → formal Candidate 1 activation.
+
+---
 ## 2026-05-25 (Session 53o) — Phase 5 Candidate 1 ACTIVATION TEST: reverted to false
 
 **Activation test result: 7/8 gates passed. Flag reverted pending manual browser confirmation.**
