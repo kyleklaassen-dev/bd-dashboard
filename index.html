@@ -1559,10 +1559,13 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   overflow: visible;   /* allow deeper sub-panels to escape */
 }
 
-/* Show sub-panel when parent .hier-item is hovered.
-   Because .hier-sub-panel is a DOM child of .hier-item, hovering
-   over the sub-panel keeps the parent :hover active — no bridge needed. */
-.hier-item:hover > .hier-sub-panel { display: block; }
+/* Two rules show the sub-panel:
+   1. CSS :hover  — instant appear on entry (no delay)
+   2. .hier-open  — JS-managed grace period on exit (prevents collapse
+      when mouse briefly leaves while navigating between levels).
+   Having EITHER rule active keeps the panel visible. */
+.hier-item:hover > .hier-sub-panel,
+.hier-item.hier-open > .hier-sub-panel { display: block; }
 
 /* Sub-panel header (shows indication name above target list) */
 .hier-sub-hd {
@@ -17752,6 +17755,46 @@ function toggleHierDropdown() {
   }
 }
 
+// ── Grace-period hover management ──────────────────────────
+// Gives the user 200ms of forgiveness when moving between levels.
+// CSS :hover handles instant-show; JS .hier-open handles the delay on hide.
+const HIER_GRACE_MS = 200;
+const _hierTimers = new WeakMap();
+
+function _hierCancelHide(item) {
+  clearTimeout(_hierTimers.get(item));
+  _hierTimers.delete(item);
+}
+
+function _hierScheduleHide(item) {
+  _hierCancelHide(item);
+  _hierTimers.set(item, setTimeout(() => {
+    item.classList.remove('hier-open');
+    // Also close any open children — they lost their ancestor's protection
+    item.querySelectorAll('.hier-item.hier-open').forEach(c => {
+      c.classList.remove('hier-open');
+      _hierCancelHide(c);
+    });
+  }, HIER_GRACE_MS));
+}
+
+function hierAttachHover(item) {
+  item.addEventListener('mouseenter', () => {
+    // Cancel any pending hide for this item and all its open ancestors
+    // (keeps the chain alive when re-entering from a child panel path)
+    _hierCancelHide(item);
+    item.classList.add('hier-open');
+    let ancestor = item.parentElement?.closest('.hier-item');
+    while (ancestor) {
+      _hierCancelHide(ancestor);
+      ancestor = ancestor.parentElement?.closest('.hier-item');
+    }
+  });
+  item.addEventListener('mouseleave', () => {
+    _hierScheduleHide(item);
+  });
+}
+
 // ── Tree builder — nested DOM, hover handled by CSS :hover ──
 function hierBuildTree() {
   const body = document.getElementById('hier-dd-body');
@@ -17810,6 +17853,7 @@ function hierMakeTA(ta) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
@@ -17842,6 +17886,7 @@ function hierMakeDA(ta, da) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
@@ -17897,6 +17942,7 @@ function hierMakeInd(ta, da, ind) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
