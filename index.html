@@ -10183,17 +10183,24 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
       : (drug.overlap ? [{ area_id: 'global', overlap: drug.overlap }] : []);
     // Confidence badge helper
     const _confBadge = (confLevel, srcUrl) => {
-      if (confLevel === 'confirmed' && srcUrl) return `<span title="Confirmed: source URL on file" style="font-size:8px;margin-left:3px">✓</span>`;
-      if (confLevel === 'supported') return `<span title="Supported: inferred from related evidence" style="font-size:8px;margin-left:3px;opacity:0.7">≈</span>`;
-      if (confLevel === 'inferred') return `<span title="Inferred: no primary source" style="font-size:8px;margin-left:3px;opacity:0.6">~</span>`;
+      // Handles both new (A/B/C) and legacy (confirmed/supported) confidence values
+      if ((confLevel === 'A' || confLevel === 'confirmed') && srcUrl)
+        return `<span title="Confirmed: source URL on file" style="font-size:8px;margin-left:3px">✓</span>`;
+      if (confLevel === 'B' || confLevel === 'supported')
+        return `<span title="Supported: inferred from related evidence" style="font-size:8px;margin-left:3px;opacity:0.7">≈</span>`;
+      if (confLevel === 'C')
+        return `<span title="Low confidence: limited evidence" style="font-size:8px;margin-left:3px;opacity:0.5">◦</span>`;
+      if (confLevel === 'inferred')
+        return `<span title="Inferred: no primary source" style="font-size:8px;margin-left:3px;opacity:0.6">~</span>`;
       return `<span title="Unverified: no source URL on file" style="font-size:8px;margin-left:3px;opacity:0.45">?</span>`;
     };
+    const _CONF_LABEL = {A:'Confirmed',B:'Supported',C:'Low confidence',inferred:'Inferred',confirmed:'Confirmed',supported:'Supported'};
     const areaChips = chipsSource.map(a => {
       const ov = (a.overlap||'').toLowerCase();
       const cls = {direct:'em-hd-chip-direct',adjacent:'em-hd-chip-adjacent','same-space':'em-hd-chip-same',watch:'em-hd-chip-watch'}[ov] || '';
       const lbl = a.area_id !== 'global' ? (_AREA_LABEL[a.area_id] || a.area_id || '') : '';
       const conf = _confBadge(a.confidence_level, a.source_url);
-      const tooltip = a.source_url ? `title="Source: ${a.source_url}"` : (a.confidence_level ? `title="${a.confidence_level}"` : '');
+      const tooltip = a.source_url ? `title="Source: ${a.source_url}"` : (a.confidence_level ? `title="${_CONF_LABEL[a.confidence_level] || a.confidence_level}"` : '');
       return a.overlap ? `<span class="em-hd-chip ${cls}" ${tooltip}>${lbl ? lbl + ': ' : ''}${a.overlap}${conf}</span>` : '';
     }).filter(Boolean).join('');
     chipsEl.innerHTML = [stChip, areaChips].filter(Boolean).join('');
@@ -10363,7 +10370,9 @@ function _cemPhasePill(phase) {
 /* ── DRUG card renderer ──────────────────────────────────────────── */
 function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
-  const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory'};
+  const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
+    // drug_competitive_scores indication context_ids (IBD expansion + TED)
+    uc:'UC', cd:'CD', ted:'TED', autoimmune:'Autoimmune'};
   // ── Phase 5 Candidate 3 — normalized relationship label maps ─────────────────
   const _IND_LABEL = {
     uc:'Ulcerative Colitis', cd:"Crohn's Disease", ted:'Thyroid Eye Disease',
@@ -11455,7 +11464,8 @@ document.addEventListener('keydown', function(e) {
 
 /* ─── Shared area/tab color maps ─────────────────────────────────────────── */
 const _AREA_CLS   = { tl1a:'ct', tslp:'ct', il4ra:'ct-t2', igf1r:'ct-ted', fcrn:'ct-ai', tcell:'ct-ir', ox40l:'ct-t2' };
-const _AREA_LABEL = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R/TSHR', fcrn:'FcRn', tcell:'BCMA/CD19/CD3', ox40l:'OX40L' };
+const _AREA_LABEL = { tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', igf1r:'IGF1R/TSHR', fcrn:'FcRn', tcell:'BCMA/CD19/CD3', ox40l:'OX40L',
+  ibd:'IBD', uc:'UC', cd:'CD', ted:'TED', autoimmune:'Autoimmune', respiratory:'Respiratory' };
 const _TAB_CLS    = { 'tl1a':'ct','tslp':'ct','il4ra-tslp':'ct-t2','il4ra-ox40l':'ct-t2','igf1r-tshr':'ct-ted','fcrn':'ct-ai','ace':'ct-ir' };
 
 /* ─── Company modal ──────────────────────────────────────────────────────── */
@@ -11671,33 +11681,66 @@ async function openDrugEntityModal(drugId, drugName, evt) {
   try {
     // Primary lookup by ID; if ID is a static placeholder (starts with "static-") skip it
     const isStaticId = !drugId || String(drugId).startsWith('static-');
-    const [drugRes, areaRes0, scoreRes0, trialRes0, molRes0] = await Promise.all([
+    // C1 — primary fetch: drug_competitive_scores (migrated from drug_area_scores, Session 64)
+    const [drugRes, scoreRes0, trialRes0, molRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_areas').select('area_id').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', drugId),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('*').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
     ]);
 
     let drug    = drugRes.data?.[0]  || null;
-    // Merge drug_areas (membership) + drug_area_scores (overlap data + provenance)
-    const scoreMap0 = {};
-    (scoreRes0.data || []).forEach(s => { scoreMap0[s.area_id] = s; });
-    let areas   = (areaRes0.data || []).map(a => ({
-      area_id: a.area_id,
-      overlap: scoreMap0[a.area_id]?.overlap || null,
-      overlap_rationale: scoreMap0[a.area_id]?.overlap_rationale || null,
-      strategic_role: scoreMap0[a.area_id]?.strategic_role || null,
-      confidence_level: scoreMap0[a.area_id]?.confidence_level || null,
-      source_url: scoreMap0[a.area_id]?.source_url || null,
+    // Build areas[] from drug_competitive_scores; expose context_id as area_id for downstream compat
+    let areas   = (scoreRes0.data || []).map(s => ({
+      area_id: s.context_id,
+      context_type: s.context_type,
+      overlap: s.overlap || null,
+      overlap_rationale: s.overlap_rationale || null,
+      confidence_level: s.confidence_level || null,
+      source_url: s.source_url || null,
+      vs_ailux: s.vs_ailux || null,
     }));
-    // If drug_areas is empty but drug_area_scores has data, use scores directly
-    if (!areas.length && scoreRes0.data?.length) {
-      areas = (scoreRes0.data || []).map(s => ({
-        area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
-        confidence_level: s.confidence_level || null, source_url: s.source_url || null,
-      }));
+
+    // ── DUAL-READ COMPARISON HARNESS (remove after 30-day monitoring window) ───
+    if (drug?.id && !isStaticId) {
+      (async () => {
+        try {
+          const { data: legacyScores } = await _sb
+            .from('drug_area_scores')
+            .select('area_id,overlap,overlap_rationale,confidence_level,source_url')
+            .eq('drug_id', drug.id);
+          const legacyMap = {};
+          (legacyScores || []).forEach(r => { legacyMap[r.area_id] = r; });
+          const newMap = {};
+          (scoreRes0.data || []).forEach(r => { newMap[r.context_id] = r; });
+          const legacyKeys = new Set(Object.keys(legacyMap));
+          const newKeys    = new Set(Object.keys(newMap));
+          const matched    = [...legacyKeys].filter(k => newKeys.has(k));
+          const oldOnly    = [...legacyKeys].filter(k => !newKeys.has(k));
+          const newOnly    = [...newKeys].filter(k => !legacyKeys.has(k));
+          const CONF_MAP   = {confirmed:'A', supported:'B', inferred:'inferred'};
+          const fieldMismatches = [];
+          for (const ctx of matched) {
+            const l = legacyMap[ctx], n = newMap[ctx];
+            const lConf = CONF_MAP[l.confidence_level] || l.confidence_level;
+            if (l.overlap    !== n.overlap)           fieldMismatches.push({ctx, field:'overlap', legacy:l.overlap, new_:n.overlap});
+            if (lConf        !== n.confidence_level)  fieldMismatches.push({ctx, field:'confidence_level', legacy:l.confidence_level, mapped:lConf, new_:n.confidence_level});
+            if (l.source_url !== n.source_url)        fieldMismatches.push({ctx, field:'source_url', legacy:l.source_url, new_:n.source_url});
+          }
+          const report = { drug_id:drug.id, drug_name:drug.name, ts:new Date().toISOString(),
+            old_count:legacyScores?.length||0, new_count:scoreRes0.data?.length||0,
+            matched:matched.length, old_only:oldOnly, new_only:newOnly, field_mismatches:fieldMismatches };
+          window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__ = window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__ || [];
+          window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__.push(report);
+          if (oldOnly.filter(k=>k!=='ibd').length || fieldMismatches.length)
+            console.warn('[MERIDIAN_CMP] Discrepancy for', drug.name, report);
+          else
+            console.debug('[MERIDIAN_CMP] OK:', drug.name, `old=${report.old_count} new=${report.new_count} matched=${report.matched} ibd_expansion=${oldOnly.includes('ibd')}`);
+        } catch(e) { console.warn('[MERIDIAN_CMP] Harness error:', e); }
+      })();
     }
+    // ── END DUAL-READ HARNESS ─────────────────────────────────────────────────
+
     let trials  = trialRes0.data     || [];
     let molData = molRes0.data?.[0]  || null;
 
@@ -11711,30 +11754,23 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         drug = r2?.[0] || null;
       }
       if (drug) {
-        // Re-fetch areas + trials + molecule intel using resolved DB id
+        // C2 — Re-fetch areas + trials + molecule intel using resolved DB id
+        // Reads drug_competitive_scores (migrated from drug_area_scores, Session 64)
         const rid = drug.id;
-        const [ar, sr, tr, mr] = await Promise.all([
-          _sb.from('drug_areas').select('area_id').eq('drug_id', rid),
-          _sb.from('drug_area_scores').select('area_id,overlap,overlap_rationale,strategic_role,cls,confidence_level,source_url').eq('drug_id', rid),
+        const [sr, tr, mr] = await Promise.all([
+          _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', rid),
           _sb.from('trials').select('*').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
-        const scoreMapR = {};
-        (sr.data || []).forEach(s => { scoreMapR[s.area_id] = s; });
-        areas = (ar.data || []).map(a => ({
-          area_id: a.area_id,
-          overlap: scoreMapR[a.area_id]?.overlap || null,
-          overlap_rationale: scoreMapR[a.area_id]?.overlap_rationale || null,
-          strategic_role: scoreMapR[a.area_id]?.strategic_role || null,
-          confidence_level: scoreMapR[a.area_id]?.confidence_level || null,
-          source_url: scoreMapR[a.area_id]?.source_url || null,
+        areas = (sr.data || []).map(s => ({
+          area_id: s.context_id,
+          context_type: s.context_type,
+          overlap: s.overlap || null,
+          overlap_rationale: s.overlap_rationale || null,
+          confidence_level: s.confidence_level || null,
+          source_url: s.source_url || null,
+          vs_ailux: s.vs_ailux || null,
         }));
-        if (!areas.length && sr.data?.length) {
-          areas = (sr.data || []).map(s => ({
-            area_id: s.area_id, overlap: s.overlap, overlap_rationale: s.overlap_rationale, strategic_role: s.strategic_role,
-            confidence_level: s.confidence_level || null, source_url: s.source_url || null,
-          }));
-        }
         trials  = tr.data    || [];
         molData = mr.data?.[0] || null;
       }
