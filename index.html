@@ -17603,73 +17603,75 @@ function toggleMolDropdown() {
 //  CSS :hover propagates through — no JS hover bridge needed.
 // ══════════════════════════════════════════════════════════
 
+// tabId = existing Meridian dashboard to navTo() on click.
+// null  = no dashboard yet; clicking shows a "coming soon" toast.
 const HIER_DATA = [
   {
-    id: 'immunology', name: 'Immunology', color: '#7c3aed', total: 35,
+    id: 'immunology', name: 'Immunology', color: '#7c3aed', total: 35, tabId: 'tl1a',
     das: [
       {
-        id: 'ibd', name: 'IBD', full: 'Inflammatory Bowel Disease', total: 22,
+        id: 'ibd', name: 'IBD', full: 'Inflammatory Bowel Disease', total: 22, tabId: 'tl1a',
         inds: [
-          { id: 'uc', abbr: 'UC', name: 'Ulcerative Colitis', total: 18,
+          { id: 'uc', abbr: 'UC', name: 'Ulcerative Colitis', total: 18, tabId: 'tl1a',
             tgts: [
-              { id: 'tl1a',  name: 'TL1A',     n: 11 },
-              { id: 'il23',  name: 'IL-23p19',  n: 9  },
-              { id: 'a4b7',  name: 'α4β7',      n: 3  },
-              { id: 'tnf',   name: 'TNF',        n: 4  },
-              { id: 'jak',   name: 'JAK',        n: 5  },
+              { id: 'tl1a',  name: 'TL1A',     n: 11, tabId: 'tl1a'  },
+              { id: 'il23',  name: 'IL-23p19',  n: 9,  tabId: 'tl1a'  },
+              { id: 'a4b7',  name: 'α4β7',      n: 3,  tabId: null    },
+              { id: 'tnf',   name: 'TNF',        n: 4,  tabId: null    },
+              { id: 'jak',   name: 'JAK',        n: 5,  tabId: null    },
             ]
           },
-          { id: 'cd', abbr: 'CD', name: "Crohn's Disease", total: 14,
+          { id: 'cd', abbr: 'CD', name: "Crohn's Disease", total: 14, tabId: 'tl1a',
             tgts: [
-              { id: 'tl1a',  name: 'TL1A',     n: 8  },
-              { id: 'il23',  name: 'IL-23p19',  n: 7  },
-              { id: 'tnf',   name: 'TNF',        n: 3  },
+              { id: 'tl1a',  name: 'TL1A',     n: 8,  tabId: 'tl1a'  },
+              { id: 'il23',  name: 'IL-23p19',  n: 7,  tabId: 'tl1a'  },
+              { id: 'tnf',   name: 'TNF',        n: 3,  tabId: null    },
             ]
           },
         ]
       },
       {
-        id: 'atopy', name: 'Atopy', full: 'Atopic Disease', total: 14,
+        id: 'atopy', name: 'Atopy', full: 'Atopic Disease', total: 14, tabId: 'il4ra-tslp',
         inds: [
-          { id: 'ad', abbr: 'AD', name: 'Atopic Dermatitis', total: 11,
+          { id: 'ad', abbr: 'AD', name: 'Atopic Dermatitis', total: 11, tabId: 'il4ra-tslp',
             tgts: [
-              { id: 'il4ra', name: 'IL-4Rα',   n: 7  },
-              { id: 'tslp',  name: 'TSLP',      n: 4  },
-              { id: 'il13',  name: 'IL-13',      n: 3  },
+              { id: 'il4ra', name: 'IL-4Rα',   n: 7,  tabId: 'il4ra-tslp' },
+              { id: 'tslp',  name: 'TSLP',      n: 4,  tabId: 'tslp'       },
+              { id: 'il13',  name: 'IL-13',      n: 3,  tabId: null         },
             ]
           },
-          { id: 'csu', abbr: 'CSU', name: 'Chronic Spontaneous Urticaria', total: 5,
+          { id: 'csu', abbr: 'CSU', name: 'Chronic Spontaneous Urticaria', total: 5, tabId: null,
             tgts: [
-              { id: 'il4ra', name: 'IL-4Rα',   n: 3  },
-              { id: 'ige',   name: 'IgE',        n: 2  },
+              { id: 'il4ra', name: 'IL-4Rα',   n: 3,  tabId: 'il4ra-tslp' },
+              { id: 'ige',   name: 'IgE',        n: 2,  tabId: null         },
             ]
           },
         ]
       },
       {
-        id: 'neuromuscular', name: 'Neuromuscular', full: 'Neuromuscular Disease', total: 13,
+        id: 'neuromuscular', name: 'Neuromuscular', full: 'Neuromuscular Disease', total: 13, tabId: 'fcrn',
         inds: [
-          { id: 'gmg', abbr: 'gMG', name: 'Generalized Myasthenia Gravis', total: 10,
+          { id: 'gmg', abbr: 'gMG', name: 'Generalized Myasthenia Gravis', total: 10, tabId: 'fcrn',
             tgts: [
-              { id: 'fcrn',  name: 'FcRn',      n: 8  },
-              { id: 'achr',  name: 'AChR',       n: 2  },
+              { id: 'fcrn',  name: 'FcRn',      n: 8,  tabId: 'fcrn' },
+              { id: 'achr',  name: 'AChR',       n: 2,  tabId: null   },
             ]
           },
-          { id: 'cidp', abbr: 'CIDP', name: 'CIDP', total: 5,
+          { id: 'cidp', abbr: 'CIDP', name: 'CIDP', total: 5, tabId: 'fcrn',
             tgts: [
-              { id: 'fcrn',  name: 'FcRn',      n: 5  },
+              { id: 'fcrn',  name: 'FcRn',      n: 5,  tabId: 'fcrn' },
             ]
           },
         ]
       },
       {
-        id: 'ophthalmology', name: 'Ophthalmology', full: 'Thyroid & Orbital Disease', total: 9,
+        id: 'ophthalmology', name: 'Ophthalmology', full: 'Thyroid & Orbital Disease', total: 9, tabId: 'igf1r-tshr',
         inds: [
-          { id: 'ted', abbr: 'TED', name: 'Thyroid Eye Disease', total: 9,
+          { id: 'ted', abbr: 'TED', name: 'Thyroid Eye Disease', total: 9, tabId: 'igf1r-tshr',
             tgts: [
-              { id: 'igf1r', name: 'IGF-1R',    n: 5  },
-              { id: 'tshr',  name: 'TSHR',       n: 2  },
-              { id: 'fcrn',  name: 'FcRn',       n: 2  },
+              { id: 'igf1r', name: 'IGF-1R',    n: 5,  tabId: 'igf1r-tshr' },
+              { id: 'tshr',  name: 'TSHR',       n: 2,  tabId: 'igf1r-tshr' },
+              { id: 'fcrn',  name: 'FcRn',       n: 2,  tabId: 'fcrn'       },
             ]
           },
         ]
@@ -17677,34 +17679,34 @@ const HIER_DATA = [
     ]
   },
   {
-    id: 'oncology', name: 'Oncology', color: '#dc2626', total: 28,
+    id: 'oncology', name: 'Oncology', color: '#dc2626', total: 28, tabId: null,
     das: [
       {
-        id: 'lung', name: 'Lung Cancer', full: 'Lung & Thoracic Oncology', total: 19,
+        id: 'lung', name: 'Lung Cancer', full: 'Lung & Thoracic Oncology', total: 19, tabId: null,
         inds: [
-          { id: 'nsclc', abbr: 'NSCLC', name: 'Non-Small Cell Lung Cancer', total: 16,
+          { id: 'nsclc', abbr: 'NSCLC', name: 'Non-Small Cell Lung Cancer', total: 16, tabId: null,
             tgts: [
-              { id: 'pd1',   name: 'PD-1',       n: 12 },
-              { id: 'her2',  name: 'HER2',        n: 6  },
-              { id: 'tigit', name: 'TIGIT',       n: 4  },
-              { id: 'kras',  name: 'KRAS G12C',   n: 3  },
+              { id: 'pd1',   name: 'PD-1',       n: 12, tabId: null },
+              { id: 'her2',  name: 'HER2',        n: 6,  tabId: null },
+              { id: 'tigit', name: 'TIGIT',       n: 4,  tabId: null },
+              { id: 'kras',  name: 'KRAS G12C',   n: 3,  tabId: null },
             ]
           },
-          { id: 'sclc', abbr: 'SCLC', name: 'Small Cell Lung Cancer', total: 3,
+          { id: 'sclc', abbr: 'SCLC', name: 'Small Cell Lung Cancer', total: 3, tabId: null,
             tgts: [
-              { id: 'dll3',  name: 'DLL3',        n: 3  },
+              { id: 'dll3',  name: 'DLL3',        n: 3,  tabId: null },
             ]
           },
         ]
       },
       {
-        id: 'heme', name: 'Hematologic', full: 'Hematologic Malignancies', total: 17,
+        id: 'heme', name: 'Hematologic', full: 'Hematologic Malignancies', total: 17, tabId: 'ace',
         inds: [
-          { id: 'mm', abbr: 'MM', name: 'Multiple Myeloma', total: 17,
+          { id: 'mm', abbr: 'MM', name: 'Multiple Myeloma', total: 17, tabId: 'ace',
             tgts: [
-              { id: 'bcma',    name: 'BCMA',      n: 9  },
-              { id: 'cd38',    name: 'CD38',       n: 5  },
-              { id: 'gprc5d',  name: 'GPRC5D',    n: 3  },
+              { id: 'bcma',   name: 'BCMA',    n: 9,  tabId: 'ace'  },
+              { id: 'cd38',   name: 'CD38',    n: 5,  tabId: null   },
+              { id: 'gprc5d', name: 'GPRC5D', n: 3,  tabId: null   },
             ]
           },
         ]
@@ -17712,15 +17714,15 @@ const HIER_DATA = [
     ]
   },
   {
-    id: 'neurology', name: 'Neurology', color: '#0891b2', total: 7,
+    id: 'neurology', name: 'Neurology', color: '#0891b2', total: 7, tabId: null,
     das: [
       {
-        id: 'neuroimmune', name: 'Neuroimmune', full: 'Neuroimmune Disorders', total: 7,
+        id: 'neuroimmune', name: 'Neuroimmune', full: 'Neuroimmune Disorders', total: 7, tabId: null,
         inds: [
-          { id: 'nmosd', abbr: 'NMOSD', name: 'Neuromyelitis Optica Spectrum Disorder', total: 7,
+          { id: 'nmosd', abbr: 'NMOSD', name: 'Neuromyelitis Optica Spectrum Disorder', total: 7, tabId: null,
             tgts: [
-              { id: 'aqp4',  name: 'AQP4',       n: 4  },
-              { id: 'fcrn',  name: 'FcRn',        n: 3  },
+              { id: 'aqp4', name: 'AQP4', n: 4, tabId: null   },
+              { id: 'fcrn', name: 'FcRn', n: 3, tabId: 'fcrn' },
             ]
           },
         ]
@@ -17766,24 +17768,39 @@ function hierDivider() {
   return d;
 }
 
+// ── Navigation helper ──
+// Navigates to the dashboard and closes the dropdown.
+// If no tabId, shows a "dashboard coming soon" toast instead.
+function hierNav(tabId, label) {
+  if (tabId) {
+    navTo(tabId);
+    document.getElementById('hier-dd-menu')?.classList.remove('open');
+    document.getElementById('hier-dd-btn')?.classList.remove('hier-dd-btn-active');
+  } else {
+    hierShowNoTabToast(label);
+  }
+}
+
 // ── Level 1: Therapeutic Area ──
 function hierMakeTA(ta) {
-  // .hier-item wraps row + sub-panel; CSS :hover on .hier-item reveals sub-panel
   const item = document.createElement('div');
   item.className = 'hier-item';
 
   const row = document.createElement('div');
   row.className = 'hier-row';
+  row.style.cursor = ta.tabId ? 'pointer' : 'default';
   row.innerHTML = `
     <div class="hier-ta-dot" style="background:${ta.color}"></div>
     <div class="hier-row-name hier-ta-name">${ta.name}</div>
     <div class="hier-row-count">${ta.total}</div>
     <div class="hier-row-arrow">▶</div>
   `;
-  // Clicking a TA row sets it as the selection context
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta}); });
+  row.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hierSetSel({ta});
+    hierNav(ta.tabId, ta.name);
+  });
 
-  // Sub-panel: Disease Areas
   const sub = document.createElement('div');
   sub.className = 'hier-sub-panel';
   ta.das.forEach((da, di) => {
@@ -17804,14 +17821,18 @@ function hierMakeDA(ta, da) {
   const row = document.createElement('div');
   row.className = 'hier-row';
   row.title = da.full;
+  row.style.cursor = da.tabId ? 'pointer' : 'default';
   row.innerHTML = `
     <div class="hier-row-name hier-da-name">${da.name}</div>
     <div class="hier-row-count">${da.total}</div>
     <div class="hier-row-arrow">▶</div>
   `;
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta, da}); });
+  row.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hierSetSel({ta, da});
+    hierNav(da.tabId, da.name);
+  });
 
-  // Sub-panel: Indications
   const sub = document.createElement('div');
   sub.className = 'hier-sub-panel';
   da.inds.forEach((ind, ii) => {
@@ -17831,19 +17852,23 @@ function hierMakeInd(ta, da, ind) {
 
   const row = document.createElement('div');
   row.className = 'hier-row';
+  row.style.cursor = ind.tabId ? 'pointer' : 'default';
   row.innerHTML = `
     <span class="hier-ind-abbr">${ind.abbr}</span>
     <div class="hier-row-name hier-ind-name">${ind.name}</div>
     <div class="hier-row-count">${ind.total}</div>
     <div class="hier-row-arrow">▶</div>
   `;
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta, da, ind}); });
+  row.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hierSetSel({ta, da, ind});
+    hierNav(ind.tabId, ind.name);
+  });
 
-  // Sub-panel: Targets (leaf level — no further children)
+  // Sub-panel: Targets (leaf level)
   const sub = document.createElement('div');
   sub.className = 'hier-sub-panel';
 
-  // Panel header shows indication context
   const hd = document.createElement('div');
   hd.className = 'hier-sub-hd';
   hd.innerHTML = `
@@ -17856,6 +17881,7 @@ function hierMakeInd(ta, da, ind) {
     const trow = document.createElement('div');
     const isSel = hierState.sel?.tgt?.id === tgt.id && hierState.sel?.ind?.id === ind.id;
     trow.className = 'hier-row hier-tgt-row' + (isSel ? ' selected-tgt' : '');
+    trow.style.cursor = tgt.tabId ? 'pointer' : 'not-allowed';
     trow.innerHTML = `
       <div class="hier-tgt-dot"></div>
       <div class="hier-row-name hier-tgt-name">${tgt.name}</div>
@@ -17864,8 +17890,7 @@ function hierMakeInd(ta, da, ind) {
     trow.addEventListener('click', (e) => {
       e.stopPropagation();
       hierSetSel({ta, da, ind, tgt});
-      hierShowSelectionToast(tgt.name);
-      // Keep dropdown open so user can see footer update; close on next outside click
+      hierNav(tgt.tabId, tgt.name);
     });
     sub.appendChild(trow);
   });
@@ -17913,18 +17938,26 @@ function hierUpdateFooter() {
   }
 }
 
-function hierShowSelectionToast(name) {
+function hierToast(msg, bg) {
   let t = document.getElementById('hier-toast');
   if (!t) {
     t = document.createElement('div');
     t.id = 'hier-toast';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f1e32;color:white;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);pointer-events:none;transition:opacity 0.3s;';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);pointer-events:none;transition:opacity 0.3s;';
     document.body.appendChild(t);
   }
-  t.textContent = '🎯 ' + name + ' · dashboard filter wires in after UX approval';
+  t.style.background = bg || '#0f1e32';
+  t.style.color = 'white';
+  t.textContent = msg;
   t.style.opacity = '1';
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2400);
+}
+function hierShowSelectionToast(name) {
+  hierToast('🎯 ' + name, '#0f1e32');
+}
+function hierShowNoTabToast(name) {
+  hierToast('⏳ No dashboard yet for ' + name, '#475569');
 }
 function closeCenterDrugDD() {
   const dd = document.getElementById('center-drug-dd');
