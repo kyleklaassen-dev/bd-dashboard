@@ -1,5 +1,29 @@
 
 ---
+## 2026-05-25 (Session 54) — Parallel pre-flight audits: all four Phase 5 remaining candidates classified
+
+**Audit scope:** TL1A (C4), TSLP (C5), IL-4Rα (C6), FcRn (C7) — all audited simultaneously. No code changes. Data only.
+
+| Candidate | Legacy | Norm | Overlap | OOS | Adj match | Verdict |
+|---|---|---|---|---|---|---|
+| TL1A (C4) | 50 | 34 | 33 | 17 scope_diff | **100%** (33/33) | ✅ READY |
+| FcRn (C7) | 6 | 7 | 6 | 0 | **100%** (6/6) | ✅ READY |
+| IL-4Rα (C6) | 9 | 5 | 4 | 5 scope_diff | **100%** (4/4) | ✅ READY |
+| TSLP (C5) | 14 | 9 | 7 | 6 scope_diff | 87.5% → **100%** after fix | ⛔ BLOCKED |
+
+**TSLP block:** apg333 (Anti-TSLP IgG, Apogee Phase 1) is in drug_areas but missing from drug_targets. One INSERT unblocks it.
+
+**Key findings:**
+- TL1A: 17 extra-legacy = non-TL1A-mechanism IBD competitors (α4β7, IL-23p19, JAK1, TNF, PHD, IL-1). All scope_difference. 1 extra-norm = anti-tl1a-xpf005-arm (Ailux bispecific arm, legitimate).
+- FcRn: Clean 100% raw match. riliprubart (Sanofi SAR443765) is new addition — confirmed FcRn in drug_targets review_notes; drugs.target field shows stale "C1q complement" (data quality fix needed).
+- IL-4Rα: 5 extra-legacy = atopy pathway partners (OX40L, IL-13×2, IL-31Rα). All scope_difference. ibi333 (IL-4Rα×TSLP bispecific) is new extra-norm — legitimate.
+- TSLP: ibi333 and catalog-53 are new extra-norm additions (legitimate). 6 of 7 extra-legacy = scope_difference (IL-33, IL-5, IL-5Rα pathway partners). apg333 = normalized_gap.
+
+**Activation lane order:** TL1A → IL-4Rα → FcRn → TSLP (after gap fix). Sequential activations. Parallel preparation continues.
+
+**Commit:** `c9a8dd6f288c` (NEXT_SESSION.md only — audit results + pipeline tracker updated)
+
+---
 ## 2026-05-25 (Session 53r) — Phase 5 Candidate 3 PERMANENTLY ACTIVATED: useNormalizedDrugModal=true
 
 **Third completed Phase 5 migration. Drug entity modal now reads from normalized tables.**
