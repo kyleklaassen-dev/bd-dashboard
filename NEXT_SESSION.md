@@ -1,752 +1,172 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 59 (2026-05-26) — **C5+C6 permanently ACTIVATED (`useUnifiedAtopy: true`, commit `32eeb683`). All 10 post-activation checks PASS. All 5 feature flags now true. P0 ECC-1 fixes applied (apg333.target='TSLP', rocatinlimab.target='OX40L'). Phase 6 Master Plan complete (8 governance docs committed). Session 60 begins Phase 6 execution.**
+**Last session:** Session 60 (2026-05-26)
 
-## Phase 5 Status — ALL CANDIDATES ACTIVATED ✅
-
-| Candidate | Flag | Status |
-|---|---|---|
-| IBD (C1) | `useNormalizedIBD=true` | ✅ ACTIVATED |
-| TED (C2) | `useNormalizedTED=true` | ✅ ACTIVATED |
-| Drug Modal (C3) | `useNormalizedDrugModal=true` | ✅ ACTIVATED |
-| TL1A (C4) | `useUnifiedTL1A=true` | ✅ ACTIVATED |
-| TSLP+IL-4Rα (C5/C6) | `useUnifiedAtopy=true` | ✅ **ACTIVATED 2026-05-26** |
-| FcRn (C7) | `useUnifiedFCRN` | ⏳ Code not yet written |
-
-**drug_areas no longer serves any normalized tab queries for tl1a/ibd/igf1r/atopy/il4ra/tslp. Only autoimmune/respiratory/tcell remain.**
+**Three tracks completed:**
+- **Track A (C7 FcRn):** Infrastructure deployed (flag=false). `_FCRN_NORM` branch + `_runPhase4BFCRNDualRead()` in index.html (commit `4af85431`). riliprubart.mechanism fixed. Awaiting 8-gate browser validation.
+- **Track B (Wave 3):** `scripts/wave3_drug_indications_backfill.py` written + committed to Supabase. 49 rows inserted into drug_indications (197 → 246). 35 drugs backfilled from trial_indications data.
+- **Track C (drug_competitive_scores):** Full implementation package written: `docs/drug_competitive_scores_ddl.sql` + `scripts/migrate_drug_area_scores.py`. **Table does not exist yet** — DDL must be applied via Supabase SQL Editor before migration can run.
 
 ---
 
-## Session 60 Priority Queue (Phase 6 Execution)
+## Phase 5 Status — C7 FcRn PENDING ACTIVATION
 
-### P0 — WS1: Implement C7 FcRn (no Pages needed)
+| Surface | Source | Status |
+|---|---|---|
+| IBD tab | `drug_indications` | ✅ ACTIVATED |
+| TED tab | `drug_indications` | ✅ ACTIVATED |
+| Drug Modal | `drug_targets` + `drug_indications` | ✅ ACTIVATED |
+| TL1A tab | `drug_targets` | ✅ ACTIVATED |
+| TSLP tab | `drug_targets` | ✅ ACTIVATED |
+| IL-4Rα tab | `drug_targets` | ✅ ACTIVATED |
+| FcRn tab | `drug_targets` | ⏳ **C7 — flag=false, awaiting 8-gate validation** |
 
-**File:** `index.html`  
-**Pattern:** Follow `_runPhase4BTL1ADualRead` / `useUnifiedTL1A` exactly.
+`drug_areas` serves NO production biological tab membership queries.
+
+---
+
+## Session 61 — Three Active Work Items
+
+### Item 1 — C7 FcRn: 8-Gate Browser Validation + Activation (HIGHEST PRIORITY)
+
+**Pre-flight metrics (pre-confirmed):**
+- legacy=7 (incl. atg-201), norm=7 (incl. riliprubart), overlap=6, scopeDiff=1, adj=6/6=100%
+- atg-201 classified: scope_difference (CD19×CD3 bispecific, Watch-tier in legacy; not an FcRn drug)
+- riliprubart added: legitimate_target_drug (anti-FcRn mAb, conf=95)
+- drugs.mechanism fixed: riliprubart → "Anti-FcRn monoclonal antibody"
+
+**8-gate playbook (run in browser):**
+
+| Gate | What | Expected |
+|---|---|---|
+| G1 | Legacy FcRn count (drug_areas, area_id='fcrn') | 7 |
+| G2 | Normalized FcRn count (drug_targets, target_id='fcrn') | 7 |
+| G3 | Key drugs present in normalized | riliprubart ✓ batoclimab ✓ efgartigimod ✓ nipocalimab ✓ orilanolimab ✓ rozanolixizumab ✓ imvt-1402 ✓ |
+| G4 | Scope-diff drug absent from normalized | atg-201 ✗ (correct — CD19×CD3, not FcRn) |
+| G5 | FcRn tab renders with flag=false (legacy path) | 7 drugs visible, no errors |
+| G6 | FcRn tab renders with flag=true (norm path) | 7 drugs visible, no errors |
+| G7 | `window.showPhase4Compare()` after loading FcRn tab | `fcrn_target_view → compare_pass_oos_adjusted` |
+| G8 | flag=false rollback: FcRn tab shows original 7 drugs | legacy count restored ✓ |
+
+**Activation sequence:**
+1. Load live dashboard: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<ts>`
+2. Confirm `FEATURE_FLAGS.useUnifiedFCRN === false` in console
+3. Load FcRn tab → run G1/G2/G3/G4/G5 in browser console
+4. `FEATURE_FLAGS.useUnifiedFCRN = true; loadAreaPI('fcrn')` → run G6/G7
+5. `FEATURE_FLAGS.useUnifiedFCRN = false; loadAreaPI('fcrn')` → confirm G8
+6. **Get advisor go before flipping flag permanently**
+7. After approval: set `useUnifiedFCRN: true` in index.html, deploy, confirm live
+
+**Expected post-activation state:**
+- FcRn tab shows 7 drugs (same count, different composition vs legacy)
+- atg-201 no longer appears in FcRn tab (moved to autoimmune area correctly)
+- riliprubart now appears in FcRn tab (new correct addition)
+- All 6 feature flags true → drug_areas retired from all normalized biological tab queries
+
+---
+
+### Item 2 — Apply drug_competitive_scores DDL (PREREQUISITE FOR MIGRATION)
+
+The table does not exist yet. Apply via Supabase SQL Editor:
+
+**File:** `docs/drug_competitive_scores_ddl.sql`
 
 Steps:
-1. Add `useUnifiedFCRN: false` to FEATURE_FLAGS (with comment)
-2. Add `_FCRN_NORM` branch in `_makeAreaPI()` init block (after TSLP/IL-4Rα block)
-3. Build `_runPhase4BFCRNDualRead()` method — reads `drug_targets WHERE target_id='fcrn'` vs legacy `drug_areas WHERE area_id='fcrn'`
-4. Fix `riliprubart.drugs.target`: `'C1q complement'` → `'FcRn'` (Supabase PATCH)
-5. Deploy with flag=false
-6. Run G1–G8 validation gates (see pre-flight audit in this doc: `fcrn: legacy=6, norm=7, overlap=6, adj=100%`)
-7. On all 8 pass: request advisor go → set flag=true → deploy → retest
-
-### P1 — WS2: Wave 3 drug_indications backfill (no Pages needed)
-
-**Script:** `scripts/wave3_drug_indications_backfill.py` — write and run  
-**Plan:** `docs/wave3_enrichment_plan.md`
-
-Tier 1+2 priority (12 rows first):
-- iscalimab → gmg, hs, ra, sjogrens, sle (5 rows)
-- lutikizumab → ad, hs, uc (3 rows)
-- imvt-1402 → ra, ted (2 rows)
-- astegolimab → ad, asthma (2 rows)
-
-Pre-flight: verify indication_ids exist → run dry_run → commit → post-validation
-
-### P2 — WS3: drug_competitive_scores SQL + migration script
-
-**Plan:** `docs/drug_competitive_scores_design.md`
-
-Steps:
-1. Run pre-migration queries: count rows per area_id, identify ted/igf1r duplicates, identify atopy scope
-2. Write `scripts/migrate_drug_area_scores.py`  
-3. Create `drug_competitive_scores` table in Supabase (SQL migration)
-4. Run migration script — verify row count + spot-check 20 rows
-
-### P3 — WS4: company_strategic_views seeding (after WS1 complete)
-
-**Plan:** `docs/strategic_views_architecture.md`  
-Not yet started. Seed autoimmune + respiratory strategic views.
-
----
-
-See `docs/phase6_master_plan.md` for full session sequence and dependency map.
-
----
-
-## Company Governance Phase: COMPLETE ✅
-
-Company layer is now structurally sound. Do not revisit manually — freshness is the only remaining gap, and it should be automated (see P0 below).
-
-| Metric | Result |
-|---|---|
-| P0 (blocking) | 0 |
-| P1 (quality) | 2 (intentional orphan signals only) |
-| Fleet average | 96/100 (after freshness automation — see below) |
-| A-grade companies | 89 |
-| B-grade companies | 12 (10 need enrichment pipeline; 2 intentional orphans) |
-| C-grade companies | 0 |
-
-**What was built/applied this session:**
-- Acquired-asset rule: `company_id=acquirer`, `company_display="X w/Y"`, `original_company_id`, `acquired_asset=true`
-- OWNERSHIP ≠ IDENTITY governance rule (Ailux/XtalPi model; parent_company_id + ownership_type)
-- QuantumPharm resolved: former name of XtalPi Holdings (same entity); alias marked 'former'
-- Ghost records deleted: xencor-412, xencor-942 (17 intel rows migrated to xencor)
-- `coverage_status` field: active / reference / planned / orphan
-- 32 no-drug companies classified; 4 acquired companies set to reference
-- 50 companies geography-backfilled from hq_country
-- 71 primary aliases seeded
-- `company_validator.py` deployed: P0/P1/P2 checks + 6-dimension Health Score (0–100)
-
-**Backlog note (do not build now):**
-Add `drug_id` / `program_id` to the `intel` table for structured program-level attribution. Currently intel rolls up to company level; program specificity lives in headline/body text only.
-
----
-
-## Freshness Automation: COMPLETE ✅
-
-**Built and deployed (2026-05-25):**
-- `scripts/refresh_company_verified.py` — 3-tier freshness refresh (protected fields list; JSONL log; drug_validation_results)
-- `.github/workflows/refresh-company-verified.yml` — weekly Sunday 06:00 UTC; manual dispatch with --company / --dry-run / --all options
-
-**Result after first run:**
-| Metric | Before | After |
-|---|---|---|
-| Fleet average | 91/100 | **96/100** |
-| A-grade | 60 | **89** |
-| B-grade | 39 | **12** |
-| C-grade | 2 | **0** |
-
-**Remaining B-grade (12 companies):**
-- 10 active companies with `last_verified=null` and no `last_enriched_at` — these are in the enrichment pipeline queue (ailux, aurinia, biosion, imagenebio, incyte, lynkpharma, moonlake, viridian, yarrow, zenas). They will auto-lift to A once enrichment pipeline runs for them.
-- 2 intentional orphans (yunnan-baiyao, pien-tze-huang) — pipeline=0 penalty is correct, do not change.
-
-**Target:** Fleet average 98+ once enrichment pipeline touches the 10 active B-grade companies.
-
----
-
-## Phase 4A: COMPLETE ✅
-
-All Phase 4A work is done. Corrections applied and verified.
-
-| Candidate | Status | Result |
-|---|---|---|
-| lm-302 | ✅ approved | legacy_noise_removed — no action needed |
-| sim0500 | ✅ resolved | drug_targets tl1a row already absent from production (Wave 2B error ID'd but never committed) |
-| spy072 | ✅ approved | ontology_scope_difference — no action needed |
-| epi-001 | ⏸ held | needs_manual_review — keep in backfill_preview pending_review |
-| batoclimab | ✅ applied | Inserted drug_indications: ted (95, Ph3) + gmg (92, Ph3). cidp deferred to Wave 2D. |
-| upadacitinib | ✅ approved | normalized_gap — queue for Wave 2D atopy batch |
-
-**Post-correction harness results (re-run Session 53e):**
-- tl1a: 🟢 compare_pass_oos_adjusted (92.2% raw) — UNCHANGED, still passing
-- ibd: 🟢 compare_pass_oos_adjusted (94.0% raw) — UNCHANGED, still passing
-- ted: ✅ **100% match** — batoclimab correction resolved the TED normalized gap
-- drug_indications: **194 rows** (192 + 2 batoclimab)
-- ontology_edges: **25** (LOCKED)
-- epi-001: 2 rows pending_review in backfill_preview — correctly held
-
----
-
-## Phase Sequence (updated Session 53o)
-
-| Phase | Name | Status |
-|---|---|---|
-| Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
-| Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
-| Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidates 1+2 ACTIVATED 2026-05-25** |
-
-**Phase 5 Candidate 1 (IBD): ACTIVATED 2026-05-25. `ibd_indication_group_view=compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24.**
-
-**Phase 5 Candidate 2 (TED): ACTIVATED 2026-05-25 (commit 71974d6). `ted_indication_group_view=compare_pass_oos_adjusted` (legacy=9, norm=13, raw=100%, adj=100%). 4 genuine new TED additions in normalized. 1 data error fixed (cizutamig false positive removed). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24.**
-
-**Phase 5 Candidate 4 (TL1A): ACTIVATED 2026-05-25 (commit 15d07a026275). `tl1a_target_view=compare_pass_oos_adjusted` (legacy=50, norm=34, adj=100%). 17 OOS (scope_diff IBD competitors correctly excluded). 1 extra-norm (anti-tl1a-xpf005-arm — legitimate). Monitoring window → ~2026-06-24. Candidate 6 (IL-4Rα) is next.**
-
----
-
-## Phase 4B Status
-
-| Path | Description | Status |
-|---|---|---|
-| Path A | IBD indication-group dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53g)** |
-| Path B | TL1A target-view gap classification | ✅ **COMPLETE (Session 53h)** |
-| Path B → impl | TL1A target-view dual-read in `_makeAreaPI()` | ✅ **COMPLETE (Session 53i)** |
-| Path C | `openDrugEntityModal()` dual-read | ✅ **COMPLETE (Session 53j)** |
-
-**Path A verification (run in browser after loading IBD tab):**
-```javascript
-window.showPhase4Compare()
-// Expected: 🟢 _makeAreaPI — ibd_indication_group_view → compare_pass_oos_adjusted
-```
-
-**Path B verification (run in browser after loading TL1A tab):**
-```javascript
-window.showPhase4Compare()
-// Expected: two records —
-//   🟢 _makeAreaPI — ibd_indication_group_view → compare_pass_oos_adjusted
-//   🟢 _makeAreaPI — tl1a_target_view          → compare_pass_oos_adjusted
-// Console: [Phase4B-TL1A] legacy=51 norm=35 overlap=34 raw=66.7% adj=100% oos=17 → compare_pass_oos_adjusted
-```
-
-**Path C verification — COMPLETED (Session 53m browser run):**
-
-| Drug | Modal status | entity_consistency_checks | Verdict |
-|---|---|---|---|
-| lm-302 | `needs_manual_review` | closed / legacy_noise_removed | ✅ Explainable — tl1a area is legacy noise (CLDN18.2 ADC, not TL1A biology) |
-| batoclimab | `cross_table_inconsistency` | corrected (ted+gmg fixed) | ✅ Explainable — igf1r/autoimmune = legacy catch-all artifact (documented in conflict_summary) |
-| epi-001 | `acceptable_mismatch` | open / held | ✅ Explainable — IBD inds held pending source evidence |
-
-**Correction from original prediction:** lm-302 is in `drug_areas` for `tl1a` ONLY — not ibd. The "(tl1a, ibd areas)" prediction was wrong. Confirmed via direct Supabase query.
-
-**Calibration note:** Modal auto-classification differs from entity_consistency_checks human classifications. This is expected — modal produces first-pass automated classifications; entity_consistency_checks holds human-reviewed resolutions. All 3 differences are fully explainable when cross-referenced. No new entity_consistency_checks rows required (batoclimab igf1r/autoimmune documented in existing row's conflict_summary).
-
-**gb004 mechanism patch — APPLIED (Session 53n):**
-`drugs.mechanism` updated: `'Anti-TL1A'` → `'PHD inhibitor (HIF-1α stabilizer)'`. Approved by Kyle 2026-05-25. entity_consistency_checks row → status=corrected, review_status=resolved.
-
----
-
-## Phase 4C Sprint — Component Validation Order
-
-Full plan: `docs/phase4c_validation_plan.md`
-
-| Rank | Component | Risk | Phase 4B Status | Phase 5 Candidate |
-|---|---|---|---|---|
-| 1 | IBD area tab | Low | ✅ compare_pass_oos_adjusted | ✅ First |
-| 2 | TED area tab (igf1r-tshr) | Low | ✅ data layer proven (4A) | ✅ Second |
-| 3 | Drug entity modal | Low–Med | ✅ Path C deployed | ✅ Third (after 10-drug sprint) |
-| 4 | TL1A area tab | Medium | ✅ compare_pass_oos_adjusted | ⚠️ Fourth — needs TL1A arch review |
-| 5 | TSLP area tab | Medium | ✅ compare_pass_oos_adjusted (42.9% raw, 100% adj) | ⏸ After modal sprint |
-| 6 | IL-4Rα area tabs | Medium | ✅ compare_pass_oos_adjusted (44.4% raw, 100% adj) | ⏸ After modal sprint |
-| 7 | FcRn area tab | High | ✅ compare_pass_oos_adjusted (85.7% raw, 100% adj) | ⏸ After modal sprint |
-| 8 | ACE area tab | High | ❌ DEFERRED permanently — no normalized equivalent | 🚫 Deferred |
-
-**Phase 4C task for IBD:** ✅ **VERIFIED (Session 53m)** — compare_pass_oos_adjusted. legacy=50, norm=50, overlap=47, 3 OOS (epi-001/sim0500/spy072), raw=94.0%, adj=100%. 3 norm-only extras (anti-tl1a-xpf005-arm, risankizumab variants) are correct new normalized additions.
-
-**Phase 4C task for TED:** ✅ **VERIFIED (Session 53n)** — compare_pass (100% raw, no OOS needed).
-
-| Metric | Result |
-|---|---|
-| Legacy (igf1r area) | 9 drugs |
-| Normalized (ted ind) | 14 drugs |
-| Overlap | 9 drugs (100%) |
-| Extra-legacy | 0 — no legacy igf1r drugs missing from normalized ✅ |
-| Extra-norm | 5 — new normalized additions beyond legacy footprint |
-| Raw match | **100.0%** |
-| Status | **compare_pass ✅** |
-
-**Extra-norm drugs (ted ind, not in igf1r area) — all classified:**
-
-| Drug | Target | Stage | Review | Classification |
-|---|---|---|---|---|
-| crn12755 | SST2 | Preclinical | auto_confirmed | ✅ new_normalized_value — valid SST2 TED drug |
-| lonigutamab | TSHR | Preclinical | auto_confirmed | ✅ new_normalized_value — TSHR mAb |
-| sp-1351 | TSHR | Preclinical | auto_confirmed | ✅ new_normalized_value — TSHR small molecule |
-| iscalimab | CD40 | Phase 2 | sampling_queue | ✅ new_normalized_value — CD40 in TED, Phase 2 trial data |
-| cizutamig | BCMA×CD3 | Phase 1 | sampling_queue | ⚠️ **needs_validation** — pattern_match source; BCMA×CD3 TED biology unusual; validate before Phase 5 |
-
-**cizutamig flag:** drug_indications/ted row has source_type=pattern_match, review_status=sampling_queue, conf=87. Not in drug_areas/igf1r (areas: tcell, autoimmune). The TED indication claim should be confirmed via trial evidence before Phase 5 migration includes it. No action needed now — sampling_queue is the correct holding state.
-
-**Phase 4C task for Drug modal:** ✅ **COMPLETE (Session 53o)** — All 10 drugs verified. 0 unexplained mismatches. 0 IBD blockers. Full report: `docs/phase4c_modal_sprint.md`.
-
-| Drug | Status | IBD block |
-|---|---|---|
-| sim0709 | compare_pass_oos_adjusted | ❌ |
-| batoclimab | acceptable_mismatch (igf1r catch-all, ECC corrected) | ❌ |
-| lm-302 | needs_manual_review → ECC accepted | ❌ |
-| spy072 | compare_pass_oos_adjusted (OOS classified) | ❌ |
-| epi-001 | acceptable_mismatch (ECC held — gate satisfied) | ❌ |
-| upadacitinib | compare_pass_oos_adjusted | ❌ |
-| teprotumumab | match | ❌ |
-| dupilumab | compare_pass_oos_adjusted (il4ra/tslp OOS) | ❌ |
-| efgartigimod | match | ❌ |
-| risankizumab | compare_pass_oos_adjusted | ❌ |
-
-**Phase 4C Rank 5 — TSLP:** ✅ **compare_pass_oos_adjusted (Session 53o)**
-
-| Metric | Result |
-|---|---|
-| Legacy (tslp area) | 14 drugs |
-| Normalized (tslp ind) | 9 drugs |
-| Raw match rate | 42.9% |
-| OOS-adjusted match | **100%** |
-| Legacy-only extras | 8 — all ontology_scope_difference (IL-33, IL-5Rα, IL-13, OX40L, IL-31RA pathway partners) |
-| Norm-only extras | 3 — new_normalized_value additions |
-
-⚠️ **TSLP Phase 5 migration note:** verekitug targets TSLP receptor (tslpr), not ligand. Phase 5 TSLP tab query MUST use `target_id IN ('tslp', 'tslpr')` to capture both.
-
-**Phase 4C Rank 6 — IL-4Rα:** ✅ **compare_pass_oos_adjusted (Session 53o)**
-
-| Metric | Result |
-|---|---|
-| Legacy (il4ra area) | 9 drugs |
-| Normalized (ad + relevant inds) | 5+ drugs |
-| Raw match rate | 44.4% |
-| OOS-adjusted match | **100%** |
-| Legacy-only extras | 5 — all ontology_scope_difference (IL-13, OX40L, IL-31RA, TSLP pathway partners) |
-
-**Phase 4C Rank 7 — FcRn:** ✅ **compare_pass_oos_adjusted (Session 53o)**
-
-| Metric | Result |
-|---|---|
-| Legacy (fcrn area) | 7 drugs |
-| Normalized (gmg+cidp+ted inds) | 7 drugs |
-| Raw match rate | 85.7% |
-| OOS-adjusted match | **100%** |
-| Legacy-only extras | 1 — atg-201 (legacy_noise: CD19×CD3 bispecific, not FcRn biology) |
-| Norm-only extras | 1 — new_normalized_value addition |
-
-**Phase 4C Rank 8 — ACE (tcell area):** 🚫 **DEFERRED permanently (Session 53o)** — tcell area has no normalized drug_indications or drug_targets equivalent. Not a valid comparison target. ACE/tcell excluded from Phase 5 migration planning.
-
----
-
-## Phase 5 Pipeline — Three-Stage Tracker
-
-**One activation at a time. Parallel audits everywhere else.**
-
-### Activated
-| Candidate | Flag | Commit | Notes |
-|---|---|---|---|
-| IBD area tab | `useNormalizedIBD=true` | `522e155` | Monitoring to ~2026-06-08 |
-| TED area tab | `useNormalizedTED=true` | `71974d6` | Monitoring to ~2026-06-08 |
-| Drug modal | `useNormalizedDrugModal=true` | `cc1e0d6e` | Monitoring to ~2026-06-08 |
-| TL1A area tab | `useUnifiedTL1A=true` | `15d07a026275` | ACTIVATED 2026-05-25. Monitoring to ~2026-06-24. count=34, adj_match=100% |
-| TSLP + IL-4Rα (C5+C6) | `useUnifiedAtopy=true` | `32eeb683` | **ACTIVATED 2026-05-26**. TSLP adj=100% (14→10, scopeDiff=6), IL-4Rα adj=100% (9→5, scopeDiff=5). All 10 post-activation checks pass. |
-
-### Implementation-Ready — Next in Activation Lane
-_(All gates pre-cleared, awaiting sequential activation)_
-
-| Candidate | Source swap | Adj match | Notes |
-|---|---|---|---|
-| ~~IL-4Rα (C6)~~ | ~~`drug_areas area_id='il4ra'`~~ | ~~100%~~ | ✅ **ACTIVATED 2026-05-26** — useUnifiedAtopy=true covers IL-4Rα |
-| **FcRn (C7)** | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ **NEXT** — fix drugs.target for riliprubart first. Code not yet written. |
-
-### Blocked (reconciliation required)
-| Candidate | Source swap | Issue | Fix required |
-|---|---|---|---|
-| TSLP area tab | `drug_areas area_id='tslp'` → `drug_targets target_id IN (tslp,tslpr)` | apg333 normalized_gap (TSLP drug confirmed by mechanism, missing from drug_targets) | Add drug_targets row: apg333 → tslp. Then adj match = 8/8 = 100%. |
-
----
-
-## Pre-Flight Audit Results — Session 54 (2026-05-25)
-
-All four candidates audited in parallel. Full classification below.
-
-### CANDIDATE 4 — TL1A ✅ READY
-
-| Metric | Value |
-|---|---|
-| Legacy (`drug_areas area_id='tl1a'`) | 50 |
-| Normalized (`drug_targets target_id='tl1a'`) | 34 |
-| Overlap | 33 |
-| Raw match | 66.0% |
-| Extra-legacy | 17 |
-| Extra-normalized | 1 |
-| OOS (all scope_difference) | 17 |
-| **Adjusted match** | **100%** (33/33) |
-| **Verdict** | **✅ READY — proceed to implementation** |
-
-**Extra-legacy (17) — all `scope_difference` (non-TL1A-mechanism IBD competitors):**
-abbv-382 (α4β7) · abbv-668 (RIPK1) · gb004 (PHD inhibitor) · golimumab (TNF) · guselkumab (IL-23p19) · guselkumab-golimumab (combo) · lm-302 (CLDN18.2, ECC accepted) · lutikizumab (IL-1α/β) · mirikizumab (IL-23p19) · risankizumab (IL-23p19) · sim0500 (BCMA trispecific, ECC accepted) · spy001 (α4β7) · spy003 (IL-23p19) · spy130 (α4β7+IL-23 combo) · upadacitinib (JAK1) · ustekinumab (IL-12/23p40) · vedolizumab (α4β7)
-
-**Extra-normalized (1) — `legitimate_target_drug`:**
-anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not yet in drug_areas (Preclinical), already in drug_targets. Correct new addition.
-
-**Implementation notes:**
-- Source swap inside `_makeAreaPI` only. No rendering changes needed.
-- Flag: `FEATURE_FLAGS.useUnifiedTL1A = true`
-- Query changes: `drug_areas WHERE area_id='tl1a'` → `drug_targets WHERE target_id='tl1a'`
-- Post-migration: tab will show 34 drugs (33 overlap + anti-tl1a-xpf005-arm). The 17 scope_difference drugs remain visible in IBD area tab — they don't disappear, they just move to their correct area.
-
----
-
-### CANDIDATE 5 — TSLP ⛔ BLOCKED
-
-| Metric | Value |
-|---|---|
-| Legacy (`drug_areas area_id='tslp'`) | 14 |
-| Normalized (`drug_targets target_id IN (tslp, tslpr)`) | 9 |
-| Overlap | 7 |
-| Raw match | 50.0% |
-| Extra-legacy | 7 |
-| Extra-normalized | 2 |
-| OOS (scope_difference) | 6 |
-| **Adjusted match (current)** | **87.5%** (7/8) — gap is apg333 |
-| **Adjusted match (after fix)** | **100%** (8/8) |
-| **Verdict** | **⛔ BLOCKED — apg333 normalized_gap must be filled** |
-
-**Extra-legacy (7):**
-- `apg333` — **`normalized_gap`** · Anti-TSLP IgG (Apogee, Phase 1). Mechanism field confirms TSLP target. drug_targets has zero rows for apg333. Must be added before activation.
-- `astegolimab` (IL-33) — `scope_difference` · pathway partner
-- `benralizumab` (IL-5Rα) — `scope_difference` · eosinophil pathway partner
-- `dupilumab` (IL-4Rα) — `scope_difference` · AD competitive context
-- `itepekimab` (IL-33) — `scope_difference` · pathway partner
-- `mepolizumab` (IL-5) — `scope_difference` · eosinophil pathway partner
-- `tozorakimab` (IL-33R/ST2) — `scope_difference` · pathway partner
-
-**Extra-normalized (2) — both `legitimate_target_drug`:**
-- `catalog-53` — TSLP, Phase 1, Newsoara. In drug_targets(tslp). Not yet in drug_areas. Correct new addition.
-- `ibi333` — IL-4Rα×TSLP bispecific, Phase 3, Sanofi. drug_targets has both tslp and il4ra rows. Correct bispecific coverage.
-
-**Fix required:** Insert drug_targets row: `{ drug_id: 'apg333', target_id: 'tslp', confidence_score: 95, source_type: 'manual', review_status: 'reviewed_accepted' }`. Mechanism field is unambiguous — anti-TSLP IgG confirmed.
-
-**Note:** TSLP query must use `target_id IN ('tslp', 'tslpr')` to capture verekitug (targets TSLP receptor). This was established in Phase 4C.
-
----
-
-### CANDIDATE 6 — IL-4Rα ✅ READY
-
-| Metric | Value |
-|---|---|
-| Legacy (`drug_areas area_id='il4ra'`) | 9 |
-| Normalized (`drug_targets target_id='il4ra'`) | 5 |
-| Overlap | 4 |
-| Raw match | 44.4% |
-| Extra-legacy | 5 |
-| Extra-normalized | 1 |
-| OOS (all scope_difference) | 5 |
-| **Adjusted match** | **100%** (4/4) |
-| **Verdict** | **✅ READY — proceed to implementation after TL1A activates** |
-
-**Extra-legacy (5) — all `scope_difference` (atopy pathway partners, not IL-4Rα-targeting):**
-- `amlitelimab` (OX40L) · `lebrikizumab` (IL-13) · `nemolizumab` (IL-31Rα) · `tralokinumab` (IL-13) · `zumilokibart` (IL-13)
-
-**Extra-normalized (1) — `legitimate_target_drug`:**
-- `ibi333` — IL-4Rα×TSLP bispecific (Sanofi, Phase 3). drug_targets has il4ra and tslp rows (conf=95, auto_confirmed). Correct addition — will appear in both IL-4Rα and TSLP tabs post-migration.
-
----
-
-### CANDIDATE 7 — FcRn ✅ READY
-
-| Metric | Value |
-|---|---|
-| Legacy (`drug_areas area_id='fcrn'`) | 6 |
-| Normalized (`drug_targets target_id='fcrn'`) | 7 |
-| Overlap | 6 |
-| Raw match | **100.0%** |
-| Extra-legacy | 0 |
-| Extra-normalized | 1 |
-| OOS | 0 |
-| **Adjusted match** | **100%** (6/6) |
-| **Verdict** | **✅ READY — proceed after TL1A + IL-4Rα activate** |
-
-**Extra-legacy (0):** All 6 legacy FcRn drugs confirmed in normalized. batoclimab · efgartigimod · imvt-1402 · nipocalimab · orilanolimab · rozanolixizumab — all have `target=FcRn` in drugs table and drug_targets rows.
-
-**Extra-normalized (1) — `legitimate_target_drug`:**
-- `riliprubart` (Sanofi, Phase 3) — drug_targets review_notes: "Riliprubart (SAR443765): anti-FcRn monoclonal antibody, Sanofi Phase 3 program in IgAN and CIDP. FcRn primary target confirmed." Confidence 95, reviewed_accepted.
-- ⚠️ **Data quality note:** `drugs.target` field shows "C1q complement" — this is stale/incorrect. Should be updated to "FcRn" before activation. Does not block the migration (drug_targets is authoritative), but should be fixed for dashboard display consistency.
-
----
-
-## Activation Lane — Recommended Order
-
-| Position | Candidate | Status | Prerequisite |
-|---|---|---|---|
-| ✅ Done | TL1A (C4) | **ACTIVATED 2026-05-25** | — |
-| **Next** | IL-4Rα (C6) | ✅ READY | TL1A activated ✅ — implement now |
-| 3rd | FcRn (C7) | ✅ READY | Wait for IL-4Rα; fix drugs.target for riliprubart |
-| 4th | TSLP (C5) | ⛔ BLOCKED | Fix apg333 normalized_gap first; then READY |
-
-**Blocking fix for TSLP (small, well-defined):** Add one drug_targets row for apg333 → tslp. Can be done as reconciliation step before TSLP implementation starts — does not block the activation lane.
-
-**Activation constraint unchanged:** Parallel audits ✅ complete. Now back to sequential: one activation at a time.
-
----
-
-## ⚡ FIRST TASK NEXT SESSION — Runtime verification of useUnifiedAtopy (G6 + G7)
-
-**C5+C6 implementation is complete in the repo. Do not restart implementation. Do not re-audit unless runtime gates fail.**
-
-The only blocker at end of Session 56 was GitHub Pages / GitHub Actions degraded performance (confirmed via githubstatus.com), which prevented CDN propagation and browser runtime verification.
-
----
-
-### Current state (updated Session 57)
-
-| Item | Status |
-|---|---|
-| useUnifiedAtopy code | Implemented — latest commit `089819dd` (re-push to trigger build) |
-| Feature flag default | `false` |
-| `.nojekyll` added | commit `688d77e6` — disables Jekyll, prevents future build errors |
-| Data-layer validation | G1/G2/G3/G4/G5/G8 passed |
-| GitHub Pages CDN | **STILL BLOCKED (Session 57)** — Actions fails on `codeload.github.com/upload-pages-artifact`; Legacy Pages API build errored |
-| GitHub status | `githubstatus.com` shows Actions + Pages both `degraded_performance` as of Session 57 |
-| Activation | Not yet approved |
-| Remaining gates | G6 + G7 browser runtime only |
-| Pre-validated adj_match | IL-4Rα 100% (4/4), TSLP 100% (8/8) |
-
-**Session 57 deploy attempts (all failed):**
-1. Re-push via GitHub Contents API (commit `089819dd`) — triggered Actions run `26448207781` — FAILED: `codeload.github.com` error on `upload-pages-artifact@v3`
-2. Rerun failed Actions job — run `26448276495` — FAILED: same CDN error
-3. Direct Pages API build (POST `/pages/builds`) — STATUS errored
-4. `file://` URL navigation — blocked by Chrome extension security
-5. Root cause: GitHub Actions + Pages both `degraded_performance` at githubstatus.com
-
----
-
-### P0 — Steps to execute
-
-**Step 0 — Check GitHub infrastructure status:**
+1. Open Supabase → SQL Editor → New Query
+2. Paste full DDL from `docs/drug_competitive_scores_ddl.sql`
+3. Run → confirm `drug_competitive_scores` table created
+4. Verify in Table Editor: columns context_type, context_id, overlap, confidence_level, UNIQUE constraint
+
+After DDL applied:
 ```bash
-curl -s "https://www.githubstatus.com/api/v2/components.json" | python3 -c "
-import json,sys
-d = json.load(sys.stdin)
-for c in d['components']:
-    if c['status'] != 'operational': print(c['name'], '->', c['status'])
-"
-```
-If Actions + Pages both `operational`: proceed to Step 1.  
-If still degraded: see **Fallback path** below.
-
-**Step 1 — Confirm Pages propagated:**
-```bash
-python3 -c "
-import urllib.request
-req = urllib.request.Request('https://kyleklaassen-dev.github.io/bd-dashboard/index.html',
-  headers={'Cache-Control':'no-cache'})
-content = urllib.request.urlopen(req).read().decode()
-print('live:', 'useUnifiedAtopy' in content)
-"
+export SUPABASE_URL="https://tghntyo fptv fhmtchwcv.supabase.co".replace(' ','')  # from scripts
+export SUPABASE_KEY="<service_role_key from .supabase_service_key>"
+python3 scripts/migrate_drug_area_scores.py --audit    # preview only — no writes
+python3 scripts/migrate_drug_area_scores.py --dry-run  # confirm row counts
+python3 scripts/migrate_drug_area_scores.py --commit   # execute + validate
 ```
 
-**⚠️ FALLBACK PATH (if Actions still degraded):**  
-The issue is `actions/upload-pages-artifact@v3` not loading from `codeload.github.com`. Options:
-1. **Wait** for GitHub to resolve the degradation — most likely path
-2. **Switch workflow**: Check if the auto-generated `pages build and deployment` workflow can be replaced with a custom workflow using an older pinned SHA (v2) of `upload-pages-artifact`
-3. **Direct Pages legacy API**: Try `POST /repos/.../pages/builds` again — it was stuck in Session 57 but may work once infra recovers
+**Expected migration output:**
+- Source: drug_area_scores — 212 rows, 11 area_ids
+- Target: drug_competitive_scores — ~220+ rows (IBD expansion adds UC+CD rows per drug)
+- Spot-checks: risankizumab/indication/cd, mirikizumab/indication/uc, efgartigimod/target/fcrn, dupilumab/target/il4ra
+- Deduplication: ted+igf1r merged to single (indication,ted) row per drug
 
-**Step 2 — Load fresh bust URL in browser:**
-Navigate to: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<new_timestamp>`  
-Confirm in console: `FEATURE_FLAGS.useUnifiedAtopy === false`
+---
 
-**Step 3 — Run G6:**
-Load the il4ra-ox40l tab and tslp tab with flag=false. Confirm zero console errors.
+### Item 3 — Update memory file: production read layer milestone
 
-**Step 4 — Run G7:**
-```javascript
-// Enable flag, navigate to il4ra-ox40l tab, then:
-FEATURE_FLAGS.useUnifiedAtopy = true;
-loadAreaPI('il4ra-ox40l');
-// wait for load, then:
-window.showPhase4Compare()
-// Confirm both records present:
-// il4ra_target_view = compare_pass_oos_adjusted
-// tslp_target_view  = compare_pass_oos_adjusted
+After C7 activates, update `memory/project_production_read_layer.md` and `memory/project_meridian_maturity.md` to reflect:
+- All 7 biological tabs reading from ontology tables
+- drug_areas retired from all normalized biological tab queries
+- Next inflection: drug_area_scores = read-only (pending drug_competitive_scores migration + consumer swap)
+
+---
+
+## Phase 6 Workstream Status
+
+| WS | Name | Status |
+|---|---|---|
+| WS1 | C5+C6+C7 activation | WS1 = C5+C6 ✅ DONE; C7 ⏳ next |
+| WS2 | Wave 3 +47 drug-indication pairs | ✅ **DONE Session 60** — 49 rows committed |
+| WS3 | drug_competitive_scores | ⏳ **DDL written, table not yet created** |
+| WS4 | Strategic views (autoimmune/respiratory → company_strategic_views) | Not started |
+
+**WS3 remaining work (5–8 sessions per design doc):**
+1. Apply DDL → run migration → validate (Session 61 if DDL applied this session)
+2. Consumer inventory: 8 consumers in index.html need updating
+3. Enable parallel write in company_enrichment.py (dual-write window)
+4. Sequential consumer migration per `docs/drug_competitive_scores_design.md`
+5. drug_area_scores → read-only when all consumers migrated
+6. drug_area_scores → retired after 30-day monitoring
+
+---
+
+## Data Layer State After Session 60
+
+```sql
+SELECT count(*) FROM drug_indications;            -- expect 246 (+49 Wave 3)
+SELECT count(*) FROM drug_targets;                -- expect ~170
+SELECT count(*) FROM trial_indications;           -- expect ~540+
+SELECT count(*) FROM drug_area_scores;            -- expect 212 (unchanged — legacy source)
+-- drug_competitive_scores does NOT exist yet — DDL must be applied
 ```
-
-**Step 5 — If G6 and G7 pass:**
-1. Return full 8-gate results table to user
-2. **Ask for advisor go** — do not flip flag without explicit approval
-3. After approval: set `useUnifiedAtopy: true` in index.html
-4. Deploy to GitHub Pages
-5. Re-test live (load il4ra-ox40l, il4ra-tslp, tslp tabs; check counts)
-6. Update update_log.md + NEXT_SESSION.md
-7. Mark C5+C6 activated
-
----
-
-### Gates already confirmed (do not redo unless runtime fails)
-
-| Gate | Status | Evidence |
-|---|---|---|
-| G1 | ✅ CONFIRMED | Legacy: il4ra=9, tslp=14 (console simulation, Session 56) |
-| G2 | ✅ CONFIRMED | Normalized: il4ra_drug_targets=5, tslp/tslpr=10 (direct Supabase query) |
-| G3 | ✅ CONFIRMED | dupilumab, rademikibart--cbp-201, apg279, apg777, ibi333 all present |
-| G4 | ✅ CONFIRMED | amlitelimab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart all absent |
-| G5 | ✅ CONFIRMED | tezepelumab, apg333, bsi-045b, verekitug--upb-101, gb0895 all present |
-| G6 | ⏳ PENDING | Requires new code live in browser |
-| G7 | ⏳ PENDING | Requires `_runPhase4BAtopyDualRead` to execute in browser |
-| G8 | ✅ CONFIRMED | Current live dashboard = rollback state; 9/14 confirmed |
-
-**Pre-validated adj_match (Session 56):**
-- IL-4Rα: overlap=4, scope_diff=5, adj_denom=4 → **100%** → `compare_pass_oos_adjusted` expected
-- TSLP: overlap=8, scope_diff=6, adj_denom=8 → **100%** → `compare_pass_oos_adjusted` expected
-
----
-
-### Do not do until C5+C6 closed
-
-- Do not start FcRn (C7) activation
-- Do not touch ontology_edges
-- Do not rework the code unless runtime gates fail
-
-**Full activation package:** `docs/phase5_c6_activation_package.md`
-
-**Candidate 3 — What was built:**
-- `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
-- Two new conditional grid cells: 🎯 Targets (Normalized) + 🩺 Indications (Normalized)
-- Trial indication pills on trial rows via `_trialIndMap` keyed by `trial_id`
-- Label maps: `_IND_LABEL`, `_TARGET_LABEL` with 20+ entries each
-- `openDrugEntityModal()` fetches `drug_targets` + `drug_indications` + `trial_indications` in parallel when flag=true
-- Non-blocking: errors fall back to `normData=null`, no normalized cells shown
-- Phase4C dual-read still fires unconditionally via `_runPhase4CModalDualRead()`
-
-**Pre-activation checklist for permanent flip:**
-- [x] 10-drug modal sprint complete (Session 53o)
-- [x] No unexplained modal mismatches (0)
-- [x] epi-001 formally held through Phase 5 (ECC open/held — gate satisfied)
-- [x] IBD tab loads without console errors (activation test confirmed)
-- [x] IBD count matches normalized output (49 legacy = 49 normalized)
-- [x] lm-302/sim0500/spy072/epi-001 excluded from normalized set
-- [x] Legacy fallback confirmed when flag=false
-- [x] **TAB_AREA_MAP fixed** — 'ibd' now in TL1A areaIds; flag path enabled; dual-read can fire
-- [ ] **IBD dual-read record directly observed in browser** ← ONLY REMAINING GATE
-
----
-
-## Next Sprint Priority Order
-
-### P0 — entity_consistency_checks: OPERATIONALLY CLEAN ✅
-
-**Final state (Session 53o, 2026-05-25):**
-
-| Status | Count | Entities |
-|---|---|---|
-| closed / accepted | 3 | lm-302, sim0500, spy072 — Phase 4A legacy noise, no data action needed |
-| corrected / resolved | 5 | batoclimab (ted+gmg+cidp), gb004 (mechanism), upadacitinib (ad), atg-201 (fcrn area), nipocalimab (tcell area) |
-| open / held | 2 | epi-001 (ibd evidence gap), cizutamig (ted pattern_match source) |
-
-**Total rows: 10. Phase 5 gate: 0 open high-severity ✅**
-
-**Held items — standing rule: do not act without source evidence:**
-- `epi-001 / ibd_indication_evidence_gap` (id=4, medium) — confidence=0.55. No source evidence found. Do NOT commit until publication, trial registry, or company materials confirm IBD indication.
-- `cizutamig / ted_indication_scope_review` (id=15, medium) — BCMA×CD3 TED indication sourced from pattern_match only. confidence=0.87. Validate before Phase 5 TED migration.
-
-**Wave 2D committed totals (Sessions 53n–53o):**
-- upadacitinib/ad · batoclimab/cidp · imvt-1402/gmg · imvt-1402/cidp
-- drug_indications total: **200 rows**
-- imvt-1402/waiha — NOT committed (no trial_indications evidence)
-
-**ECC Governance Rules (approved Session 53o):**
-
-A proposed cleanup may execute (`open/proposed → corrected/resolved`) only when one of:
-1. **Direct source evidence** — company materials, trial registry, regulatory filing, or publication
-2. **Cross-table contradiction, overwhelming confidence** — target assignment directly contradicts area assignment with no supporting evidence in any table
-3. **Prior accepted pattern** — same error class already reviewed and approved
-
-Future ECC records should be reserved for:
-- Genuine contradictions requiring human judgment
-- Advisor-reviewed reconciliation candidates with proposed action
-- Source-backed correction proposals
-
-Do NOT create ECC records for speculative enrichment opportunities — those belong in `backfill_preview` or `drug_validation_results`.
-
-**Architecture rule (standing):**
-Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_validator.py`) write to their own logs. A finding graduates to ECC only after human/harness review has classified it with a proposed action.
-
-**Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
-
-### P1 — Phase 5 Candidate 4 (TL1A) — Data Source Migration
-
-**Status:** Pre-flight audit COMPLETE (Session 54). Classification report delivered. Adjusted match = 100% (33/33). All 17 extra-legacy classified as scope_difference. Implementation is next. `tl1aPI` was already retired (Session 45, commit `b4355353`). TL1A rendering already runs through `_makeAreaPI`. This is a source swap + validation sprint.
-
-**Current source:** `drug_areas WHERE area_id='tl1a'`  
-**Target source:** `drug_targets WHERE target_id='tl1a'`  
-**Flag:** `FEATURE_FLAGS.useUnifiedTL1A`
-
-**Step 1 — Pre-Flight Audit (before touching any code)**
-- Legacy TL1A population count (`drug_areas WHERE area_id='tl1a'`)
-- Normalized TL1A population count (`drug_targets WHERE target_id='tl1a'`)
-- Overlap %, extra_legacy list, extra_normalized list
-- Difference classification for every mismatch (legitimate_target_drug / legacy_noise / scope_difference / normalized_gap / source_conflict / manual_review)
-- Adjusted match %
-- **Deliverable: classification report. Nothing proceeds without it.**
-
-**Step 2 — Reconciliation**
-Every difference must be explainable before implementation starts. Unresolved mismatches → `entity_consistency_checks`.
-
-**Step 3 — Implementation**
-After audit clears: add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag. Source swap only — no rendering changes needed. Small code change.
-
-**Step 4 — Validation**
-Same 8-gate playbook as Candidates 1–3. Runtime observation wins over assumptions.
-
-**Step 5 — Activation**
-Flip flag permanently. Monitor to ~2026-06-08. Inconsistencies → `entity_consistency_checks`, not reverts.
-
-**Why this moves fast:** Unified engine ✅ · Feature flag stub ✅ · Dual-read framework ✅ · Comparison harness ✅ · Reconciliation layer ✅. The framework is built. The work is proving the data source swap is correct.
-
-### P2 — epi-001 Manual Review (Standing Hold)
-
-- Drug: anti-TL1A antibody, preclinical stage. ECC id=4, confidence=0.55.
-- Search for published source evidence confirming IBD indication (publication, trial registry, company pipeline disclosure)
-- If IBD confirmed: commit uc + cd rows from backfill_preview (wave2c run)
-- If no evidence: set review_status = 'no_evidence' and close ECC row
-- **Do NOT commit without source evidence.**
-
-### P3 — Wave 2D Remaining
-
-- `imvt-1402 / waiha` — NOT committed. Revisit if trial_indications evidence emerges.
-- All other Wave 2D items committed. Wave 2D is otherwise complete.
-
-### P3 — Track B True Missing Rows
-- `imvt-1402` → gmg, cidp, waiha: true_missing_row
-- `ep006` → tombstone or merge into es302 (duplicate drug_id data integrity)
-
-### P4 — Portfolio Intelligence Product (Track C)
-Drug → Company joins now available. First intelligence product. Queued after Phase 5 Candidate 1 activation.
-**Question:** "What is [company]'s full indication footprint across all areas we track?"
-
-### P5 — entity_consistency_checks Table: COMPLETE ✅
-Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See governance rules in P0 section above.
-
----
-
-## 5-Track Workstream Status
-
-| Track | Focus | Status |
-|---|---|---|
-| A — Relationship Layer | Wave 2D complete; imvt-1402/waiha held pending evidence | ✅ Wave 2D done; epi-001 held |
-| B — Ontology Quality | Pre-flight audits complete; apg333 gap + riliprubart data quality fix pending | ▶ Two small reconciliation fixes before TSLP/FcRn activate |
-| C — Intelligence Products | Portfolio intelligence product | Queued after Phase 5 Candidate 1 activation |
-| D — Dashboard Architecture | TL1A implementation (Step 3) → validate → activate. Then IL-4Rα → FcRn → TSLP. | ▶ **PRIMARY FOCUS — Candidate 4 implementation** |
-| E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
 
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **Phase 5 Candidates 1+2+3+4 — ALL ACTIVATED (flag=true)** — `useNormalizedIBD=true` (commit `522e155`), `useNormalizedTED=true` (commit `71974d6`), `useNormalizedDrugModal=true` (commit `cc1e0d6e`), `useUnifiedTL1A=true` (commit `15d07a026275`). All activated 2026-05-25. Monitoring windows open to ~2026-06-08 (IBD/TED/modal) and ~2026-06-24 (TL1A). Legacy paths retained until deadlines. New inconsistencies → `entity_consistency_checks`, not reverts.
-3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
-4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
-5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
-6. **TL1A Candidate 4 is a data source migration, not a rendering debate** — `tl1aPI` was already retired in Session 45 (commit `b4355353`). TL1A already runs through `_makeAreaPI`. Candidate 4 swaps the query inside that engine from `drug_areas WHERE area_id='tl1a'` to `drug_targets WHERE target_id='tl1a'` via `useUnifiedTL1A` flag. Same 8-gate sprint pattern as Candidates 1–3.
-7. **30-day rule** — When any flag is flipped to true, keep legacy code commented (not deleted) for 30 days.
+2. **All Phase 5 flags except useUnifiedFCRN = true.** C7 FcRn flag=false. Do not flip without 8-gate sign-off + advisor go.
+3. **30-day rule** — Keep legacy code commented (not deleted) for 30 days after any flag flip.
+4. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
+5. **drug_competitive_scores consumers** — Do NOT update consumers in index.html or enrichment scripts until migration is committed and validated. Dual-write window required before cutover.
+6. **area_metadata table** — Formal governance table proposal (advisor-flagged 2026-05-26). Evaluate during WS4 strategic views work; do not block on it.
 
 ---
 
-## Validation Checks Before Starting Work
+## Validation Checks at Session Start
 
 ```sql
-SELECT count(*) FROM drug_indications;             -- expect 198 (verified 2026-05-25)
-SELECT count(*) FROM trial_indications;            -- expect 301 (verified 2026-05-25)
-SELECT count(*) FROM drug_targets;                 -- expect 170 (verified 2026-05-25)
-SELECT count(*) FROM ontology_edges;               -- expect 25 (LOCKED)
--- entity_consistency_checks state:
-SELECT entity_id, issue_key, status, review_status FROM entity_consistency_checks ORDER BY entity_id;
--- expect 10 rows; open high-severity = 0
--- open/held (2):      epi-001 (ibd_indication_evidence_gap), cizutamig (ted_indication_scope_review)
--- corrected/resolved (5): batoclimab, gb004, upadacitinib, atg-201, nipocalimab
--- closed/accepted (3):    lm-302, sim0500, spy072
--- upadacitinib Wave 2D verified:
-SELECT indication_id, confidence_score, development_stage FROM drug_indications WHERE drug_id = 'upadacitinib';
--- expect: ad (97, approved), cd (99), uc (99)
--- batoclimab Wave 2D verified:
-SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'batoclimab';
--- expect: ted (95), gmg (92), cidp (92)
--- imvt-1402 Wave 2D verified:
-SELECT indication_id, confidence_score FROM drug_indications WHERE drug_id = 'imvt-1402';
--- expect: gmg (94), cidp (91)
--- epi-001 still held:
-SELECT source_id, target_id_col, preview_status FROM backfill_preview
-  WHERE backfill_run_id = 'wave2c_ibd_20260525_203134' AND source_id = 'epi-001';
--- expect 2 rows: uc + cd, preview_status = 'pending_review'
+-- drug_indications post-Wave 3:
+SELECT count(*) FROM drug_indications;            -- expect 246
+-- Key backfill verification:
+SELECT indication_id FROM drug_indications WHERE drug_id = 'lutikizumab' ORDER BY indication_id;
+-- expect: ad, hs, uc (+ any previously existing)
+SELECT indication_id FROM drug_indications WHERE drug_id = 'iscalimab' ORDER BY indication_id;
+-- expect: gmg, hs, ra, sjogrens, sle (+ any previously existing)
+-- drug_competitive_scores check (will error if DDL not applied):
+SELECT count(*) FROM drug_competitive_scores;
+-- entity_consistency_checks: 0 open high-severity
+SELECT entity_id, issue_key, status FROM entity_consistency_checks WHERE status = 'open';
 ```
 
 ---
 
-## Files to Load at Start of Next Session
+## Files
 
-1. `docs/phase5_migration_plan.md` — **Phase 5 controlled migration plan (read first)**
-2. `docs/unified_area_dashboard_architecture.md` — unified engine design (TL1A unification path)
-3. `docs/phase4c_validation_plan.md` — Phase 4C component ranking + validation criteria
-4. `docs/phase4_comparison_harness.md` — current harness output (tl1a 🟢 · ibd 🟢 · ted ✅)
-5. `docs/phase4a_reconciliation_review.md` — Phase 4A candidate review with advisor decisions
-6. `docs/evidence_reconciliation_layer.md` — entity_consistency_checks design
-7. `docs/dashboard_dependency_inventory.md` — component migration dependency map
-8. `scripts/phase4_compare_legacy_vs_normalized.py` — harness script (v3)
-9. `MEMORY.md` → `project_parallel_workstreams.md`, `project_meridian_maturity.md`, `project_tl1a_unification.md`
+- `docs/drug_competitive_scores_ddl.sql` — Apply via Supabase SQL Editor
+- `scripts/migrate_drug_area_scores.py` — Run after DDL applied
+- `scripts/wave3_drug_indications_backfill.py` — Complete (Wave 3 committed)
+- `docs/phase6_master_plan.md` — Full session sequence and dependency map
+- `docs/drug_competitive_scores_design.md` — Consumer migration plan, dual-write strategy
