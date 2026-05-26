@@ -1,5 +1,40 @@
 
 ---
+## 2026-05-26 (Session 58) — Ontology Governance Mega-Sprint (Tracks B–F complete)
+
+**GitHub Pages/Actions still degraded. Track A (C5/C6 activation) remains blocked.**
+
+**Six-track governance sprint output — 5 governance documents produced:**
+
+**Track B — Drug Areas Disposition Report** (`docs/drug_areas_disposition_report.md`)
+- Full inventory of all 11 area_ids with lifecycle_state, category, production query path, normalized replacement, retirement recommendation
+- Key findings: 3 Redirected (ibd/igf1r/tl1a), 4 Active-pending-migration (atopy/il4ra/tslp/fcrn), 3 Preserved-strategic (autoimmune/respiratory/tcell), 1 orphaned alias (ted)
+- Retirement sequencing: Phase 5.3→5.6 roadmap defined
+
+**Track C — Redirected Entities Inventory** (`docs/redirected_entities_inventory.md`)
+- All 7 entities where storage ≠ runtime documented (RE-001 to RE-004 active; PR-001 pending; PLR-001 planned)
+- Key finding: `drug_area_scores` NOT safely retirable even after all redirects — it stores enrichment output (overlap/rationale/confidence) with no normalized replacement
+
+**Track D — Strategic View Architecture** (`docs/strategic_views_architecture.md`)
+- Schema proposal: `company_strategic_views` + `company_platform_views` tables
+- Migration plan for autoimmune/respiratory → strategic views; tcell → platform views
+- 8-gate protocol still required for `ace` tab migration (only active tab without redirect path)
+
+**Track E — Ontology Consistency Sweep** (`docs/ontology_consistency_sweep.md`)
+- 7 cross-table checks run against live Supabase data
+- Key findings: apg333 missing drugs.target field (HIGH); 62 trial-indication gaps (P1 backfill sprint needed); iscalimab has 5 missing drug_indications rows; TED/IGF-1R three-way consistency verified
+- P0 fixes: apg333.target='TSLP', rocatinlimab.target='OX40L' (currently 'OX40')
+
+**Track F — Drug Areas Retirement Simulation** (`docs/drug_areas_retirement_simulation.md`)
+- All 8 consumers in index.html + 5 backend scripts mapped and classified
+- Critical finding: `drug_area_scores` has NO replacement for competitive scoring (overlap/rationale/cls). Cannot retire until Phase 5.5 `drug_competitive_scores` migration.
+- Retirement readiness: drug_areas fully retirable after C5/C6/C7 + strategic views. drug_area_scores requires new table design first.
+
+**Track A — BLOCKED (GitHub Pages/Actions both `degraded_performance`):**
+- C5+C6 code committed as `089819dd`, flag=false. G1-G5+G8 pre-validated. G6/G7 await live CDN.
+- No new deploy attempts this session.
+
+---
 ## 2026-05-26 (Session 57) — GitHub Pages still degraded; validation queue fix (obexelimab fcgriib)
 
 **GitHub Pages/Actions infrastructure STILL degraded (second consecutive session). C5+C6 activation remains blocked.**
