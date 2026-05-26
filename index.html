@@ -2042,7 +2042,7 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // All flags default false. Flip individually only after validation passes.
 // Acceptance criteria and rollback paths: docs/phase5_migration_plan.md
 const FEATURE_FLAGS = {
-  useNormalizedIBD:       false,  // Candidate 1: Activation test 2026-05-25 — 7/8 gates passed. IBD dual-read record pending manual browser confirm. Re-enable after confirmation.
+  useNormalizedIBD:       true,   // Candidate 1: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed incl. runtime ibd_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
   useNormalizedTED:       false,  // Candidate 2: TED area tab from drug_indications (ted)
   useNormalizedDrugModal: false,  // Candidate 3: drug modal (pending 10-drug sprint)
   useUnifiedTL1A:         false,  // Candidate 4: TL1A unified engine (do not enable yet)
@@ -3311,7 +3311,7 @@ function sigFilter(btn, area) {
 // ── MOLECULE TAB DYNAMIC LOADERS ──────────────────────────────────────────────
 // Maps each tab ID to one or more Supabase area_ids
 const TAB_AREA_MAP = {
-  'tl1a':       ['tl1a'],
+  'tl1a':       ['tl1a', 'ibd'],  // 'ibd' enables useNormalizedIBD flag path; union(tl1a,ibd)=tl1a in legacy (no display change)
   'tslp':       ['tslp'],
   'il4ra-tslp': ['il4ra','tslp'],
   'il4ra-ox40l':['il4ra'],
@@ -14419,9 +14419,17 @@ function _makeAreaPI(tabId, areaIds) {
 
     try {
       // Legacy set: drugs in drug_area_scores with area_id = 'ibd'
-      const legacySet = new Set(
-        (legacyScoreRows || []).filter(s => s.area_id === 'ibd').map(s => s.drug_id)
-      );
+      // Self-fetch if legacyScoreRows is missing or empty (robustness fix: IBD PI has no
+      // dedicated DOM entry point, so init() may not pass scoreRows in all call paths).
+      let _legacyRows = (legacyScoreRows || []).filter(s => s.area_id === 'ibd');
+      if (!_legacyRows.length) {
+        const { data: fetched } = await _sb
+          .from('drug_area_scores')
+          .select('drug_id,area_id')
+          .eq('area_id', 'ibd');
+        _legacyRows = fetched || [];
+      }
+      const legacySet = new Set(_legacyRows.map(s => s.drug_id));
 
       // Normalized set: drugs in drug_indications with indication_id IN ('uc','cd')
       const { data: normRows, error: normErr } = await _sb
