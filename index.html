@@ -1462,6 +1462,180 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .mol-dd-wrap { position: relative; }
 .mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 310px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
 .mol-dd-menu.open { display: block; }
+
+/* ── HIERARCHY DROPDOWN ──────────────────────────────────────── */
+.hier-dd-wrap { position: relative; }
+.hier-dd-btn-active { background: #1a3a6e !important; color: white !important; }
+.hier-dd-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  width: 340px;
+  z-index: 600;
+  border: 1px solid #dde3ea;
+  overflow: hidden;
+}
+.hier-dd-menu.open { display: block; }
+.hier-dd-header {
+  padding: 9px 14px 7px;
+  background: #0f1e32;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hier-dd-header-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.45);
+}
+.hier-dd-header-hint {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+}
+.hier-dd-body {
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 4px 0 6px;
+}
+.hier-dd-body::-webkit-scrollbar { width: 4px; }
+.hier-dd-body::-webkit-scrollbar-track { background: transparent; }
+.hier-dd-body::-webkit-scrollbar-thumb { background: #d1d9e0; border-radius: 2px; }
+
+/* LEVEL: Therapeutic Area */
+.hier-ta {
+  cursor: pointer;
+  user-select: none;
+}
+.hier-ta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  transition: background 0.1s;
+}
+.hier-ta-row:hover { background: #f1f5f9; }
+.hier-ta-row.open { background: #eef4fb; }
+.hier-ta-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hier-ta-name { font-size: 13px; font-weight: 800; color: #0d1f38; flex: 1; }
+.hier-ta-count { font-size: 10px; color: #94a3b8; font-weight: 600; }
+.hier-ta-chev { font-size: 9px; color: #94a3b8; transition: transform 0.18s; flex-shrink: 0; }
+.hier-ta-row.open .hier-ta-chev { transform: rotate(90deg); }
+.hier-ta-children { display: none; background: #f8fafc; border-top: 1px solid #eef0f3; border-bottom: 1px solid #eef0f3; }
+.hier-ta.expanded > .hier-ta-children { display: block; }
+
+/* LEVEL: Disease Area */
+.hier-da {
+  cursor: pointer;
+  user-select: none;
+}
+.hier-da-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px 6px 30px;
+  transition: background 0.1s;
+}
+.hier-da-row:hover { background: #eef4fb; }
+.hier-da-row.open { background: #e5eef8; }
+.hier-da-name { font-size: 12px; font-weight: 700; color: #1a2f50; flex: 1; }
+.hier-da-count { font-size: 10px; color: #94a3b8; }
+.hier-da-chev { font-size: 8px; color: #b0bec8; transition: transform 0.18s; }
+.hier-da-row.open .hier-da-chev { transform: rotate(90deg); }
+.hier-da-children { display: none; background: #f0f5fb; }
+.hier-da.expanded > .hier-da-children { display: block; }
+
+/* LEVEL: Indication */
+.hier-ind {
+  cursor: pointer;
+  user-select: none;
+}
+.hier-ind-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px 5px 46px;
+  transition: background 0.1s;
+}
+.hier-ind-row:hover { background: #e5eef8; }
+.hier-ind-row.open { background: #dce8f5; }
+.hier-ind-abbr {
+  font-size: 10px;
+  font-weight: 800;
+  color: #2e6fb0;
+  background: #e8f0f8;
+  padding: 1px 6px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+.hier-ind-name { font-size: 11.5px; font-weight: 600; color: #334155; flex: 1; }
+.hier-ind-count { font-size: 10px; color: #94a3b8; }
+.hier-ind-chev { font-size: 8px; color: #b0bec8; transition: transform 0.18s; }
+.hier-ind-row.open .hier-ind-chev { transform: rotate(90deg); }
+.hier-ind-children { display: none; background: #e8f0f8; padding: 3px 0; }
+.hier-ind.expanded > .hier-ind-children { display: block; }
+
+/* LEVEL: Target (leaf) */
+.hier-tgt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 60px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.hier-tgt-row:hover { background: #d1e3f5; }
+.hier-tgt-row.selected { background: #1a3a6e; }
+.hier-tgt-row.selected .hier-tgt-name { color: white; }
+.hier-tgt-row.selected .hier-tgt-count { color: rgba(255,255,255,0.55); }
+.hier-tgt-dot { width: 5px; height: 5px; border-radius: 50%; background: #7ab8f5; flex-shrink: 0; }
+.hier-tgt-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e3a5f;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  flex: 1;
+}
+.hier-tgt-count { font-size: 10px; color: #94a3b8; }
+
+/* Divider between TAs */
+.hier-ta-divider { height: 1px; background: #eef0f3; margin: 2px 0; }
+
+/* Selection breadcrumb at bottom of dropdown */
+.hier-dd-footer {
+  padding: 7px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #eef0f3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+}
+.hier-dd-footer-path {
+  font-size: 11px;
+  color: #64748b;
+  flex: 1;
+  font-style: italic;
+}
+.hier-dd-footer-path.has-sel { color: #1a3a6e; font-style: normal; font-weight: 600; }
+.hier-dd-footer-clear {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: none;
+}
+.hier-dd-footer-clear.visible { display: block; }
+.hier-dd-footer-clear:hover { color: #dc2626; }
 .nav-dd-item { padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: #1a2f50; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .nav-dd-item:hover { background: #eef4fb; }
 .nav-dd-item.nav-dd-home { font-weight: 800; color: #0d1f38; font-size: 13px; }
@@ -3823,6 +3997,23 @@ function loadMoleculeTab(tabId) {
        <div class="nav-dd-item" onclick="navTo('igf1r-tshr')"><span class="nav-dd-target">IGF1R × TSHR</span><span class="nav-dd-badge ct-ted">TED</span></div>
        <div class="nav-dd-item" onclick="navTo('fcrn')"><span class="nav-dd-target">FcRn Bispecific</span><span class="nav-dd-badge ct-ai">Autoimmune</span></div>
        <div class="nav-dd-item" onclick="navTo('ace')"><span class="nav-dd-target">BCMA × CD19 × CD3</span><span class="nav-dd-badge ct-ir">Immune Reset</span></div>
+     </div>
+   </div>
+   <!-- Hierarchy / Ontology dropdown — PROTOTYPE -->
+   <div class="hier-dd-wrap" id="hier-dd-wrap">
+     <button class="nav-icon-btn" id="hier-dd-btn" onclick="toggleHierDropdown()" title="Target Space · Ontology Navigator" style="font-size:15px;">🗂</button>
+     <div class="hier-dd-menu" id="hier-dd-menu" onclick="event.stopPropagation()">
+       <div class="hier-dd-header">
+         <span class="hier-dd-header-label">Target Space Navigator</span>
+         <span class="hier-dd-header-hint">prototype · mock data</span>
+       </div>
+       <div class="hier-dd-body" id="hier-dd-body">
+         <!-- Rendered by hierBuildTree() on first open -->
+       </div>
+       <div class="hier-dd-footer">
+         <span class="hier-dd-footer-path" id="hier-footer-path">Select a therapeutic area, disease, indication, or target</span>
+         <button class="hier-dd-footer-clear" id="hier-footer-clear" onclick="hierClearSelection()">Clear ×</button>
+       </div>
      </div>
    </div>
  </div>
@@ -17439,6 +17630,364 @@ window.addEventListener('load', () => {
 function toggleMolDropdown() {
   document.getElementById('mol-dd-menu').classList.toggle('open');
 }
+
+// ══════════════════════════════════════════════════════════
+//  HIERARCHY / ONTOLOGY DROPDOWN — PROTOTYPE (mock data)
+//  No Supabase connection. Approve UX before wiring live data.
+// ══════════════════════════════════════════════════════════
+
+const HIER_DATA = [
+  {
+    id: 'immunology', name: 'Immunology', color: '#7c3aed', total: 35,
+    das: [
+      {
+        id: 'ibd', name: 'IBD', full: 'Inflammatory Bowel Disease', total: 22,
+        inds: [
+          { id: 'uc', abbr: 'UC', name: 'Ulcerative Colitis', total: 18,
+            tgts: [
+              { id: 'tl1a',  name: 'TL1A',     n: 11 },
+              { id: 'il23',  name: 'IL-23p19',  n: 9  },
+              { id: 'a4b7',  name: 'α4β7',      n: 3  },
+              { id: 'tnf',   name: 'TNF',        n: 4  },
+              { id: 'jak',   name: 'JAK',        n: 5  },
+            ]
+          },
+          { id: 'cd', abbr: 'CD', name: "Crohn's Disease", total: 14,
+            tgts: [
+              { id: 'tl1a',  name: 'TL1A',     n: 8  },
+              { id: 'il23',  name: 'IL-23p19',  n: 7  },
+              { id: 'tnf',   name: 'TNF',        n: 3  },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'atopy', name: 'Atopy', full: 'Atopic Disease', total: 14,
+        inds: [
+          { id: 'ad', abbr: 'AD', name: 'Atopic Dermatitis', total: 11,
+            tgts: [
+              { id: 'il4ra', name: 'IL-4Rα',   n: 7  },
+              { id: 'tslp',  name: 'TSLP',      n: 4  },
+              { id: 'il13',  name: 'IL-13',      n: 3  },
+            ]
+          },
+          { id: 'csu', abbr: 'CSU', name: 'Chronic Spontaneous Urticaria', total: 5,
+            tgts: [
+              { id: 'il4ra', name: 'IL-4Rα',   n: 3  },
+              { id: 'ige',   name: 'IgE',        n: 2  },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'neuromuscular', name: 'Neuromuscular', full: 'Neuromuscular Disease', total: 13,
+        inds: [
+          { id: 'gmg', abbr: 'gMG', name: 'Generalized Myasthenia Gravis', total: 10,
+            tgts: [
+              { id: 'fcrn',  name: 'FcRn',      n: 8  },
+              { id: 'achr',  name: 'AChR',       n: 2  },
+            ]
+          },
+          { id: 'cidp', abbr: 'CIDP', name: 'CIDP', total: 5,
+            tgts: [
+              { id: 'fcrn',  name: 'FcRn',      n: 5  },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'ophthalmology', name: 'Ophthalmology', full: 'Thyroid & Orbital Disease', total: 9,
+        inds: [
+          { id: 'ted', abbr: 'TED', name: 'Thyroid Eye Disease', total: 9,
+            tgts: [
+              { id: 'igf1r', name: 'IGF-1R',    n: 5  },
+              { id: 'tshr',  name: 'TSHR',       n: 2  },
+              { id: 'fcrn',  name: 'FcRn',       n: 2  },
+            ]
+          },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'oncology', name: 'Oncology', color: '#dc2626', total: 28,
+    das: [
+      {
+        id: 'lung', name: 'Lung Cancer', full: 'Lung & Thoracic Oncology', total: 19,
+        inds: [
+          { id: 'nsclc', abbr: 'NSCLC', name: 'Non-Small Cell Lung Cancer', total: 16,
+            tgts: [
+              { id: 'pd1',   name: 'PD-1',       n: 12 },
+              { id: 'her2',  name: 'HER2',        n: 6  },
+              { id: 'tigit', name: 'TIGIT',       n: 4  },
+              { id: 'kras',  name: 'KRAS G12C',   n: 3  },
+            ]
+          },
+          { id: 'sclc', abbr: 'SCLC', name: 'Small Cell Lung Cancer', total: 3,
+            tgts: [
+              { id: 'dll3',  name: 'DLL3',        n: 3  },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'heme', name: 'Hematologic', full: 'Hematologic Malignancies', total: 17,
+        inds: [
+          { id: 'mm', abbr: 'MM', name: 'Multiple Myeloma', total: 17,
+            tgts: [
+              { id: 'bcma',    name: 'BCMA',      n: 9  },
+              { id: 'cd38',    name: 'CD38',       n: 5  },
+              { id: 'gprc5d',  name: 'GPRC5D',    n: 3  },
+            ]
+          },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'neurology', name: 'Neurology', color: '#0891b2', total: 7,
+    das: [
+      {
+        id: 'neuroimmune', name: 'Neuroimmune', full: 'Neuroimmune Disorders', total: 7,
+        inds: [
+          { id: 'nmosd', abbr: 'NMOSD', name: 'Neuromyelitis Optica Spectrum Disorder', total: 7,
+            tgts: [
+              { id: 'aqp4',  name: 'AQP4',       n: 4  },
+              { id: 'fcrn',  name: 'FcRn',        n: 3  },
+            ]
+          },
+        ]
+      },
+    ]
+  },
+];
+
+// Track expansion + selection state
+const hierState = {
+  openTAs: new Set(),
+  openDAs: new Set(),
+  openInds: new Set(),
+  selTA: null, selDA: null, selInd: null, selTgt: null,
+  built: false,
+};
+
+function toggleHierDropdown() {
+  const menu = document.getElementById('hier-dd-menu');
+  const btn  = document.getElementById('hier-dd-btn');
+  const isOpen = menu.classList.contains('open');
+  // Close mol dropdown if open
+  document.getElementById('mol-dd-menu')?.classList.remove('open');
+  if (isOpen) {
+    menu.classList.remove('open');
+    btn.classList.remove('hier-dd-btn-active');
+  } else {
+    if (!hierState.built) { hierBuildTree(); hierState.built = true; }
+    menu.classList.add('open');
+    btn.classList.add('hier-dd-btn-active');
+  }
+}
+
+function hierBuildTree() {
+  const body = document.getElementById('hier-dd-body');
+  body.innerHTML = '';
+  HIER_DATA.forEach((ta, ti) => {
+    if (ti > 0) {
+      const div = document.createElement('div');
+      div.className = 'hier-ta-divider';
+      body.appendChild(div);
+    }
+    body.appendChild(hierMakeTA(ta));
+  });
+}
+
+function hierMakeTA(ta) {
+  const wrap = document.createElement('div');
+  wrap.className = 'hier-ta';
+  wrap.id = 'hier-ta-' + ta.id;
+
+  const row = document.createElement('div');
+  row.className = 'hier-ta-row' + (hierState.openTAs.has(ta.id) ? ' open' : '');
+  row.innerHTML = `
+    <div class="hier-ta-dot" style="background:${ta.color}"></div>
+    <div class="hier-ta-name">${ta.name}</div>
+    <div class="hier-ta-count">${ta.total}</div>
+    <div class="hier-ta-chev">▶</div>
+  `;
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickTA(ta.id); });
+
+  const children = document.createElement('div');
+  children.className = 'hier-ta-children';
+  ta.das.forEach(da => children.appendChild(hierMakeDA(ta.id, da)));
+
+  wrap.appendChild(row);
+  wrap.appendChild(children);
+  if (hierState.openTAs.has(ta.id)) wrap.classList.add('expanded');
+  return wrap;
+}
+
+function hierMakeDA(taId, da) {
+  const wrap = document.createElement('div');
+  wrap.className = 'hier-da';
+  wrap.id = 'hier-da-' + da.id;
+
+  const row = document.createElement('div');
+  row.className = 'hier-da-row' + (hierState.openDAs.has(da.id) ? ' open' : '');
+  row.innerHTML = `
+    <div class="hier-da-chev">▶</div>
+    <div class="hier-da-name">${da.name}</div>
+    <div class="hier-da-count">${da.total}</div>
+  `;
+  row.title = da.full;
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickDA(taId, da.id); });
+
+  const children = document.createElement('div');
+  children.className = 'hier-da-children';
+  da.inds.forEach(ind => children.appendChild(hierMakeInd(taId, da.id, ind)));
+
+  wrap.appendChild(row);
+  wrap.appendChild(children);
+  if (hierState.openDAs.has(da.id)) wrap.classList.add('expanded');
+  return wrap;
+}
+
+function hierMakeInd(taId, daId, ind) {
+  const wrap = document.createElement('div');
+  wrap.className = 'hier-ind';
+  wrap.id = 'hier-ind-' + ind.id;
+
+  const row = document.createElement('div');
+  row.className = 'hier-ind-row' + (hierState.openInds.has(ind.id) ? ' open' : '');
+  row.innerHTML = `
+    <div class="hier-ind-chev">▶</div>
+    <span class="hier-ind-abbr">${ind.abbr}</span>
+    <div class="hier-ind-name">${ind.name}</div>
+    <div class="hier-ind-count">${ind.total}</div>
+  `;
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickInd(taId, daId, ind.id); });
+
+  const children = document.createElement('div');
+  children.className = 'hier-ind-children';
+  ind.tgts.forEach(tgt => {
+    const trow = document.createElement('div');
+    const isSel = hierState.selTgt === tgt.id && hierState.selInd === ind.id;
+    trow.className = 'hier-tgt-row' + (isSel ? ' selected' : '');
+    trow.innerHTML = `
+      <div class="hier-tgt-dot"></div>
+      <div class="hier-tgt-name">${tgt.name}</div>
+      <div class="hier-tgt-count">${tgt.n}</div>
+    `;
+    trow.addEventListener('click', (e) => { e.stopPropagation(); hierClickTgt(taId, daId, ind.id, tgt.id, tgt.name); });
+    children.appendChild(trow);
+  });
+
+  wrap.appendChild(row);
+  wrap.appendChild(children);
+  if (hierState.openInds.has(ind.id)) wrap.classList.add('expanded');
+  return wrap;
+}
+
+// ── Click handlers ──────────────────────────────────────
+
+function hierClickTA(taId) {
+  const already = hierState.openTAs.has(taId);
+  if (already) { hierState.openTAs.delete(taId); }
+  else { hierState.openTAs.add(taId); }
+  hierState.selTA = already ? null : taId;
+  hierState.selDA = null; hierState.selInd = null; hierState.selTgt = null;
+  hierRebuild();
+  hierUpdateFooter();
+}
+
+function hierClickDA(taId, daId) {
+  const already = hierState.openDAs.has(daId);
+  if (already) { hierState.openDAs.delete(daId); }
+  else { hierState.openDAs.add(daId); hierState.openTAs.add(taId); }
+  hierState.selTA = taId; hierState.selDA = already ? null : daId;
+  hierState.selInd = null; hierState.selTgt = null;
+  hierRebuild();
+  hierUpdateFooter();
+}
+
+function hierClickInd(taId, daId, indId) {
+  const already = hierState.openInds.has(indId);
+  if (already) { hierState.openInds.delete(indId); }
+  else { hierState.openInds.add(indId); hierState.openDAs.add(daId); hierState.openTAs.add(taId); }
+  hierState.selTA = taId; hierState.selDA = daId;
+  hierState.selInd = already ? null : indId;
+  hierState.selTgt = null;
+  hierRebuild();
+  hierUpdateFooter();
+}
+
+function hierClickTgt(taId, daId, indId, tgtId, tgtName) {
+  hierState.selTA = taId; hierState.selDA = daId; hierState.selInd = indId; hierState.selTgt = tgtId;
+  hierState.openTAs.add(taId); hierState.openDAs.add(daId); hierState.openInds.add(indId);
+  hierRebuild();
+  hierUpdateFooter();
+  // Prototype-only toast — no dashboard navigation yet
+  hierShowSelectionToast(tgtName);
+}
+
+function hierRebuild() {
+  hierState.built = false;
+  hierBuildTree();
+  hierState.built = true;
+}
+
+function hierClearSelection() {
+  hierState.selTA = null; hierState.selDA = null; hierState.selInd = null; hierState.selTgt = null;
+  hierState.openTAs.clear(); hierState.openDAs.clear(); hierState.openInds.clear();
+  hierRebuild();
+  hierUpdateFooter();
+}
+
+function hierUpdateFooter() {
+  const path  = document.getElementById('hier-footer-path');
+  const clear = document.getElementById('hier-footer-clear');
+  if (!path) return;
+
+  const ta  = HIER_DATA.find(t => t.id === hierState.selTA);
+  const da  = ta?.das.find(d => d.id === hierState.selDA);
+  const ind = da?.inds.find(i => i.id === hierState.selInd);
+  const tgt = ind?.tgts.find(t => t.id === hierState.selTgt);
+
+  if (tgt) {
+    path.textContent = [ta.name, da.name, ind.abbr, tgt.name].join(' › ');
+    path.className = 'hier-dd-footer-path has-sel';
+    clear.className = 'hier-dd-footer-clear visible';
+  } else if (ind) {
+    path.textContent = [ta.name, da.name, ind.abbr].join(' › ');
+    path.className = 'hier-dd-footer-path has-sel';
+    clear.className = 'hier-dd-footer-clear visible';
+  } else if (da) {
+    path.textContent = [ta.name, da.name].join(' › ');
+    path.className = 'hier-dd-footer-path has-sel';
+    clear.className = 'hier-dd-footer-clear visible';
+  } else if (ta) {
+    path.textContent = ta.name;
+    path.className = 'hier-dd-footer-path has-sel';
+    clear.className = 'hier-dd-footer-clear visible';
+  } else {
+    path.textContent = 'Select a therapeutic area, disease, indication, or target';
+    path.className = 'hier-dd-footer-path';
+    clear.className = 'hier-dd-footer-clear';
+  }
+}
+
+function hierShowSelectionToast(name) {
+  // Lightweight prototype feedback — remove when wiring live data
+  let t = document.getElementById('hier-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'hier-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f1e32;color:white;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);pointer-events:none;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = '🎯 ' + name + ' selected · dashboard filter coming after UX approval';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+}
 function closeCenterDrugDD() {
   const dd = document.getElementById('center-drug-dd');
   const title = document.getElementById('tab-current-title');
@@ -17495,6 +18044,11 @@ document.addEventListener('click', function(e) {
   const title = document.getElementById('tab-current-title');
   if (title && !title.contains(e.target)) {
     closeCenterDrugDD();
+  }
+  const hierWrap = document.getElementById('hier-dd-wrap');
+  if (hierWrap && !hierWrap.contains(e.target)) {
+    document.getElementById('hier-dd-menu')?.classList.remove('open');
+    document.getElementById('hier-dd-btn')?.classList.remove('hier-dd-btn-active');
   }
 });
 
