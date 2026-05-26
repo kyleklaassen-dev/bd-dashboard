@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 54 (2026-05-25) — Parallel pre-flight audits complete for all four remaining Phase 5 candidates. TL1A ✅ READY (100% adj, 17 OOS classified). FcRn ✅ READY (100% raw, riliprubart confirmed). IL-4Rα ✅ READY (100% adj, 5 OOS classified). TSLP ⛔ BLOCKED (apg333 normalized_gap — one drug_targets row missing). First task: TL1A Step 3 implementation.  
-**Prior session:** Session 53q — Candidate 2 (TED) permanently activated (useNormalizedTED=true, commit 71974d6)
+**Last session:** Session 55 (2026-05-25) — **Phase 5 Candidate 4 (TL1A) PERMANENTLY ACTIVATED.** All 8 gates passed. `useUnifiedTL1A=true`, commit `15d07a026275`. TL1A tab now reads from `drug_targets(target_id='tl1a')`: count=34, adjusted_match_pct=100%, compare_pass_oos_adjusted. **First task next session: IL-4Rα (C6) implementation.**  
+**Prior session:** Session 54 — Parallel pre-flight audits complete. TL1A/FcRn/IL-4Rα all READY; TSLP blocked pending apg333 fix.
 
 ---
 
@@ -90,7 +90,9 @@ All Phase 4A work is done. Corrections applied and verified.
 
 **Phase 5 Candidate 1 (IBD): ACTIVATED 2026-05-25. `ibd_indication_group_view=compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24.**
 
-**Phase 5 Candidate 2 (TED): ACTIVATED 2026-05-25 (commit 71974d6). `ted_indication_group_view=compare_pass_oos_adjusted` (legacy=9, norm=13, raw=100%, adj=100%). 4 genuine new TED additions in normalized. 1 data error fixed (cizutamig false positive removed). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24. Candidate 3 (Drug modal) is next.**
+**Phase 5 Candidate 2 (TED): ACTIVATED 2026-05-25 (commit 71974d6). `ted_indication_group_view=compare_pass_oos_adjusted` (legacy=9, norm=13, raw=100%, adj=100%). 4 genuine new TED additions in normalized. 1 data error fixed (cizutamig false positive removed). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24.**
+
+**Phase 5 Candidate 4 (TL1A): ACTIVATED 2026-05-25 (commit 15d07a026275). `tl1a_target_view=compare_pass_oos_adjusted` (legacy=50, norm=34, adj=100%). 17 OOS (scope_diff IBD competitors correctly excluded). 1 extra-norm (anti-tl1a-xpf005-arm — legitimate). Monitoring window → ~2026-06-24. Candidate 6 (IL-4Rα) is next.**
 
 ---
 
@@ -239,15 +241,15 @@ Full plan: `docs/phase4c_validation_plan.md`
 | IBD area tab | `useNormalizedIBD=true` | `522e155` | Monitoring to ~2026-06-08 |
 | TED area tab | `useNormalizedTED=true` | `71974d6` | Monitoring to ~2026-06-08 |
 | Drug modal | `useNormalizedDrugModal=true` | `cc1e0d6e` | Monitoring to ~2026-06-08 |
+| TL1A area tab | `useUnifiedTL1A=true` | `15d07a026275` | ACTIVATED 2026-05-25. Monitoring to ~2026-06-24. count=34, adj_match=100% |
 
-### Implementation-Ready
-_(Classification report complete, differences explained, awaiting activation lane)_
+### Implementation-Ready — Next in Activation Lane
+_(All gates pre-cleared, awaiting sequential activation)_
 
 | Candidate | Source swap | Adj match | Notes |
 |---|---|---|---|
-| TL1A target-view | `drug_areas area_id='tl1a'` → `drug_targets target_id='tl1a'` | **100%** (33/33) | ✅ READY — 17 OOS (scope_difference), 1 extra-norm (legitimate) |
-| FcRn area tab | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ READY — 0 extra-legacy, 1 extra-norm (riliprubart — confirmed FcRn; data quality fix: drugs.target field stale) |
-| IL-4Rα area tab | `drug_areas area_id='il4ra'` → `drug_targets target_id='il4ra'` | **100%** (4/4) | ✅ READY — 5 OOS (scope_difference), 1 extra-norm (ibi333 bispecific — legitimate) |
+| **IL-4Rα (C6)** | `drug_areas area_id='il4ra'` → `drug_targets target_id='il4ra'` | **100%** (4/4) | ✅ **NEXT** — 5 OOS (scope_difference), 1 extra-norm (ibi333 bispecific — legitimate) |
+| FcRn area tab | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ READY after IL-4Rα — fix drugs.target for riliprubart first |
 
 ### Blocked (reconciliation required)
 | Candidate | Source swap | Issue | Fix required |
@@ -370,8 +372,8 @@ anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not
 
 | Position | Candidate | Status | Prerequisite |
 |---|---|---|---|
-| Next | TL1A (C4) | ✅ READY | None — implement now |
-| 2nd | IL-4Rα (C6) | ✅ READY | Wait for TL1A activation |
+| ✅ Done | TL1A (C4) | **ACTIVATED 2026-05-25** | — |
+| **Next** | IL-4Rα (C6) | ✅ READY | TL1A activated ✅ — implement now |
 | 3rd | FcRn (C7) | ✅ READY | Wait for IL-4Rα; fix drugs.target for riliprubart |
 | 4th | TSLP (C5) | ⛔ BLOCKED | Fix apg333 normalized_gap first; then READY |
 
@@ -381,19 +383,26 @@ anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not
 
 ---
 
-## ⚡ FIRST TASK NEXT SESSION — Candidate 4 (TL1A) Implementation
+## ⚡ FIRST TASK NEXT SESSION — Candidate 6 (IL-4Rα) Implementation
 
-Pre-flight audit complete. Classification report delivered. All differences explained. Adjusted match = 100%.
+**TL1A (C4) is permanently activated as of 2026-05-25. IL-4Rα is next in the activation lane.**
+
+Pre-flight audit complete (Session 54). Classification report delivered. All differences explained. Adjusted match = 100% (4/4).
 
 **Proceed with Step 3 — Implementation:**
 
-Add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag. Source swap only — no rendering changes. The engine is already unified (Session 45).
+Add normalized path inside `_makeAreaPI` behind `useNormalizedIL4RA` flag (or similar). Source swap only — no rendering changes. Same pattern as TL1A.
 
-**Reconciliation items to handle this session (before/alongside TL1A implementation):**
+**Current source:** `drug_areas WHERE area_id='il4ra'`  
+**Target source:** `drug_targets WHERE target_id='il4ra'`  
+**Expected count change:** 9 → 5 (5 OOS drugs correctly excluded — all atopy pathway partners)  
+**Extra-norm:** ibi333 (IL-4Rα×TSLP bispecific — legitimate addition)
+
+**Reconciliation items still pending (both small, unambiguous):**
 1. Fix apg333 normalized_gap: INSERT into drug_targets (`drug_id='apg333'`, `target_id='tslp'`, `confidence_score=95`, `source_type='manual'`, `review_status='reviewed_accepted'`, `review_notes='Anti-TSLP IgG confirmed by mechanism field. Apogee Phase 1 program.'`)
 2. Fix riliprubart data quality: UPDATE drugs SET target='FcRn' WHERE id='riliprubart'
 
-Both fixes are small and unambiguous. After they are applied, TSLP moves to READY and all four candidates will be Implementation-Ready.
+Both fixes unblock TSLP (C5) and FcRn (C7) respectively. Can be applied alongside IL-4Rα implementation.
 
 **Candidate 3 — What was built:**
 - `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
@@ -530,7 +539,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **Phase 5 Candidates 1+2+3 — ALL ACTIVATED (flag=true)** — `useNormalizedIBD=true` (commit `522e155`), `useNormalizedTED=true` (commit `71974d6`), `useNormalizedDrugModal=true` (commit `cc1e0d6e`). All activated 2026-05-25. Monitoring windows open to ~2026-06-08. Legacy paths retained until 2026-06-24. New modal inconsistencies → `entity_consistency_checks`, not reverts.
+2. **Phase 5 Candidates 1+2+3+4 — ALL ACTIVATED (flag=true)** — `useNormalizedIBD=true` (commit `522e155`), `useNormalizedTED=true` (commit `71974d6`), `useNormalizedDrugModal=true` (commit `cc1e0d6e`), `useUnifiedTL1A=true` (commit `15d07a026275`). All activated 2026-05-25. Monitoring windows open to ~2026-06-08 (IBD/TED/modal) and ~2026-06-24 (TL1A). Legacy paths retained until deadlines. New inconsistencies → `entity_consistency_checks`, not reverts.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
