@@ -9924,9 +9924,40 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
       }
     } catch(_) {}
 
+    // ── Recent news_articles for this company (Fix 4 — knowledge graph integration) ──
+    // Fetches news_articles.matched_company_ids contains companyId.
+    // Higher signal than intel_companies junction; direct FK set by fetch_homepage_news.py.
+    let coNewsArticles = [];
+    try {
+      const _co90dAgo = new Date(Date.now() - 90*24*60*60*1000).toISOString().slice(0,10);
+      const { data: coNaRows } = await _sb.from('news_articles')
+        .select('id,headline,source_name,published_at,article_url,relevance_score,meridian_summary,why_it_matters,matched_drug_ids')
+        .contains('matched_company_ids', [companyId])
+        .neq('source_validation_status', 'invalid')
+        .gte('published_at', _co90dAgo)
+        .order('relevance_score', { ascending: false })
+        .limit(20);
+      coNewsArticles = coNaRows || [];
+    } catch(_) {}
+
+    // ── Intel directly linked via primary_company_id (Fix 4 — higher-signal intel path) ──
+    // Separate from intelNews (intel_companies junction) — primary_company_id is a direct FK
+    // for intel items where this company is the primary subject. Higher BD signal.
+    let companyIntelDirect = [];
+    try {
+      const _ci90dAgo = new Date(Date.now() - 90*24*60*60*1000).toISOString().slice(0,10);
+      const { data: ciRows } = await _sb.from('intel')
+        .select('id,intel_date,headline,intel_type,source_url,importance,body')
+        .eq('primary_company_id', companyId)
+        .gte('intel_date', _ci90dAgo)
+        .order('intel_date', { ascending: false })
+        .limit(15);
+      companyIntelDirect = ciRows || [];
+    } catch(_) {}
+
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -10368,7 +10399,7 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -10725,11 +10756,87 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     }).join('') || '<div style="font-size:11px;color:#94a3b8">No area overlap records.</div>'}
   </div>`;
 
+  // ── Catalyst Timeline (Fix 3B) ────────────────────────────────────────────
+  const _SIG_CAT_STYLE = {
+    clinical_readout: { label:'READOUT', bg:'#f0fdf4', color:'#15803d' },
+    regulatory:       { label:'REG',     bg:'#fef2f2', color:'#b91c1c' },
+    conference:       { label:'CONF',    bg:'#eff6ff', color:'#1d4ed8' },
+    pdufa:            { label:'PDUFA',   bg:'#fef2f2', color:'#b91c1c' },
+    trial_start:      { label:'START',   bg:'#f0fdf4', color:'#059669' },
+    data_readout:     { label:'DATA',    bg:'#f0fdf4', color:'#15803d' },
+  };
+  const _drugCatalysts = drugCatalysts || [];
+  const _catalystSummary = _drugCatalysts.slice(0,3).map(c => {
+    const sty = _SIG_CAT_STYLE[c.catalyst_type] || { label: (c.catalyst_type||'EVENT').toUpperCase().slice(0,8), bg:'#f8fafc', color:'#64748b' };
+    const dateStr = c.sort_date ? (() => { try { const d = new Date(c.sort_date); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return c.sort_date;} })() : '';
+    return `<div class="cem-item-row" style="align-items:flex-start">
+      <span style="font-size:8px;font-weight:700;background:${sty.bg};color:${sty.color};border-radius:4px;padding:2px 5px;flex-shrink:0;margin-top:1px">${sty.label}</span>
+      <div style="flex:1">
+        <div style="font-size:11.5px;color:#1e293b;line-height:1.4">${c.catalyst_text ? c.catalyst_text.slice(0,110)+(c.catalyst_text.length>110?'…':'') : 'Upcoming catalyst'}</div>
+        ${dateStr ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">${dateStr}</div>` : ''}
+      </div>
+      ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8;text-decoration:none;flex-shrink:0">↗</a>` : ''}
+    </div>`;
+  }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts linked to this drug.</span>';
+
+  const _catalystDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All upcoming catalysts — ${drugName}</div>
+    ${_drugCatalysts.length ? _drugCatalysts.map(c => {
+      const sty = _SIG_CAT_STYLE[c.catalyst_type] || { label:(c.catalyst_type||'EVENT').toUpperCase().slice(0,8), bg:'#f8fafc', color:'#64748b' };
+      const dateStr = c.sort_date ? (() => { try { const d = new Date(c.sort_date); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return c.sort_date;} })() : '';
+      return `<div style="display:flex;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid #e2e8f0;align-items:flex-start">
+        <span style="font-size:8px;font-weight:700;background:${sty.bg};color:${sty.color};border-radius:4px;padding:2px 5px;flex-shrink:0;margin-top:2px">${sty.label}</span>
+        <div style="flex:1">
+          <div style="font-size:11.5px;color:#1e293b;line-height:1.45">${c.catalyst_text||'Upcoming catalyst'}</div>
+          ${dateStr ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">${dateStr}</div>` : ''}
+          ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8">↗ Source</a>` : ''}
+        </div>
+      </div>`;
+    }).join('') : '<div style="font-size:11px;color:#94a3b8">No upcoming catalysts with drug_id linked in database. Catalysts linked via company_id may appear in the company card.</div>'}
+  </div>`;
+
+  // ── Drug News (Fix 3A) ────────────────────────────────────────────────────
+  const _drugNewsItems = drugNews || [];
+  const _drugNewsSummary = _drugNewsItems.slice(0,3).map(n => {
+    const dateStr = n.published_at ? (() => { try { const d = new Date(n.published_at); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); } catch(e){return n.published_at.slice(0,10);} })() : '';
+    const relScore = n.relevance_score ? Math.round(n.relevance_score) : null;
+    return `<div class="cem-item-row" style="flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:flex-start;gap:6px">
+        <div style="flex:1">
+          <div style="font-size:11.5px;font-weight:600;color:#0f172a;line-height:1.35">${n.article_url ? `<a href="${n.article_url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${(n.headline||'').slice(0,100)+(n.headline?.length>100?'…':'')}</a>` : (n.headline||'').slice(0,100)}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px">${[n.source_name, dateStr].filter(Boolean).join(' · ')}${relScore ? ` · relevance ${relScore}` : ''}</div>
+        </div>
+      </div>
+      ${n.why_it_matters ? `<div style="font-size:11px;color:#64748b;line-height:1.4;margin-top:2px">${n.why_it_matters.slice(0,120)+(n.why_it_matters.length>120?'…':'')}</div>` : ''}
+    </div>`;
+  }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No recent articles matched to this drug.</span>';
+
+  const _drugNewsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">Recent coverage — ${drugName}</div>
+    ${_drugNewsItems.length ? _drugNewsItems.map(n => {
+      const dateStr = n.published_at ? (() => { try { const d = new Date(n.published_at); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return n.published_at.slice(0,10);} })() : '';
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #e2e8f0">
+        <div style="font-size:12px;font-weight:600;margin-bottom:3px">${n.article_url ? `<a href="${n.article_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${n.headline||'Article'}</a>` : n.headline||'Article'}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">${[n.source_name, dateStr].filter(Boolean).join(' · ')}</div>
+        ${n.meridian_summary ? `<div style="font-size:11px;color:#1e293b;line-height:1.5">${n.meridian_summary.slice(0,300)}</div>` : ''}
+        ${n.why_it_matters ? `<div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">${n.why_it_matters}</div>` : ''}
+      </div>`;
+    }).join('') : '<div style="font-size:11px;color:#94a3b8">No recent articles matched to this drug via news_articles.matched_drug_ids. Articles may appear via company card if matched to the company.</div>'}
+  </div>`;
+
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
   const _overviewDrugContent = `
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
+      ${_drugCatalysts.length ? `<div class="cem-cell" style="grid-column:1/-1">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-catalysts')">
+          <div class="cem-sec-lbl">📅 Upcoming catalysts</div>
+          <div class="cem-sec-hint">${_drugCatalysts.length} upcoming <i id="cem-chev-dr-catalysts" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${_catalystSummary}</div>
+        <div class="cem-det" id="cem-det-dr-catalysts">${_catalystDetail}</div>
+      </div>` : ''}
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-trials')">
           <div class="cem-sec-lbl">🧪 Clinical trials</div>
@@ -10745,6 +10852,14 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
         </div>
         <div class="cem-sec-body">${bdDealsSummary}</div>
         <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
+      </div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-news')">
+          <div class="cem-sec-lbl">📰 Recent coverage</div>
+          <div class="cem-sec-hint">${_drugNewsItems.length ? _drugNewsItems.length+' articles' : 'No matches'} <i id="cem-chev-dr-news" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${_drugNewsSummary}</div>
+        <div class="cem-det" id="cem-det-dr-news">${_drugNewsDetail}</div>
       </div>
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
@@ -11086,6 +11201,58 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     </tbody></table>
   </div>`;
 
+  // Recent Coverage — news_articles + intel.primary_company_id (Fix 4)
+  const _coNewsItems = sbData?.newsArticles || [];
+  const _coIntelItems = sbData?.companyIntel || [];
+
+  // Merge: intel first (higher signal), then news articles, dedup by headline
+  const _allCoverage = [
+    ..._coIntelItems.map(i => ({
+      _type: 'intel', headline: i.headline, date: i.intel_date,
+      source_url: i.source_url, summary: (i.body||'').slice(0,200),
+      badge: i.intel_type || 'Intel', badge_bg: '#eff6ff', badge_color: '#1d4ed8',
+      importance: i.importance,
+    })),
+    ..._coNewsItems.map(n => ({
+      _type: 'news', headline: n.headline, date: n.published_at?.slice(0,10),
+      source_url: n.article_url, summary: n.meridian_summary || n.why_it_matters || '',
+      badge: n.source_name || 'News', badge_bg: '#f0fdf4', badge_color: '#15803d',
+      relevance: n.relevance_score, drug_ids: n.matched_drug_ids,
+    })),
+  ].filter((item, idx, arr) =>
+    arr.findIndex(x => (x.headline||'').slice(0,40) === (item.headline||'').slice(0,40)) === idx
+  ).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  const coverageSummary = _allCoverage.slice(0,3).map(item => {
+    const dateStr = item.date ? (() => { try { const d = new Date(item.date); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); } catch(e){return item.date.slice(0,10);} })() : '';
+    return `<div class="cem-item-row" style="flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:flex-start;gap:5px">
+        <span style="font-size:8px;font-weight:700;background:${item.badge_bg};color:${item.badge_color};border-radius:3px;padding:1px 5px;flex-shrink:0;margin-top:2px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(item.badge||'').toUpperCase().slice(0,10)}</span>
+        <div style="flex:1">
+          <div style="font-size:11.5px;font-weight:600;color:#0f172a;line-height:1.35">${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${(item.headline||'').slice(0,90)+(item.headline?.length>90?'…':'')}</a>` : (item.headline||'').slice(0,90)}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:1px">${dateStr}</div>
+        </div>
+      </div>
+      ${item.summary ? `<div style="font-size:11px;color:#64748b;line-height:1.4;padding-left:0">${item.summary.slice(0,100)+(item.summary.length>100?'…':'')}</div>` : ''}
+    </div>`;
+  }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No recent coverage. news_articles and intel will appear here when matched to this company.</span>';
+
+  const coverageDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">All recent coverage — ${companyName}</div>
+    <div style="font-size:9px;color:#94a3b8;margin-bottom:8px">Intel items (primary_company_id): ${_coIntelItems.length} · News articles (matched_company_ids): ${_coNewsItems.length}</div>
+    ${_allCoverage.length ? _allCoverage.map(item => {
+      const dateStr = item.date ? (() => { try { const d = new Date(item.date); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); } catch(e){return item.date.slice(0,10);} })() : '';
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #e2e8f0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:8px;font-weight:700;background:${item.badge_bg};color:${item.badge_color};border-radius:3px;padding:1px 5px">${(item.badge||'').toUpperCase().slice(0,12)}</span>
+          <span style="font-size:10px;color:#94a3b8">${dateStr}</span>
+        </div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:3px">${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${item.headline||'Article'}</a>` : item.headline||'Article'}</div>
+        ${item.summary ? `<div style="font-size:11px;color:#1e293b;line-height:1.5">${item.summary.slice(0,250)}</div>` : ''}
+      </div>`;
+    }).join('') : '<div style="font-size:11px;color:#94a3b8">No coverage found. Run fetch_homepage_news.py and ensure company_aliases are populated for this company.</div>'}
+  </div>`;
+
   // Strategic signals
   const bdProfile  = bd?.profile || '';
   const bdFacts    = pi?.facts   || [];
@@ -11253,6 +11420,11 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
         <div class="cem-sec-hdr" onclick="_cemToggle('co-cats')"><div class="cem-sec-lbl">📅 Catalysts</div><div class="cem-sec-hint">${catCount} upcoming <i id="cem-chev-co-cats" class="cem-chev">▶</i></div></div>
         <div class="cem-sec-body">${catSummary||'<span style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts.</span>'}</div>
         <div class="cem-det" id="cem-det-co-cats">${catDetail}</div>
+      </div>
+      <div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-coverage')"><div class="cem-sec-lbl">📰 Recent coverage</div><div class="cem-sec-hint">${_allCoverage.length ? _allCoverage.length+' items' : 'No matches'} <i id="cem-chev-co-coverage" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${coverageSummary}</div>
+        <div class="cem-det" id="cem-det-co-coverage">${coverageDetail}</div>
       </div>
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('co-sigs')"><div class="cem-sec-lbl">⚡ Strategic signals</div><div class="cem-sec-hint">${bdFacts.length} signals <i id="cem-chev-co-sigs" class="cem-chev">▶</i></div></div>
@@ -11788,6 +11960,34 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       drugDeals = (dealRows||[]).filter(d => d.deal_type && d.deal_type !== 'news');
     } catch(_) {}
 
+    // Fetch news articles linked to this drug (Fix 3A — knowledge graph integration)
+    let drugNews = [];
+    try {
+      const _dNews90dAgo = new Date(Date.now() - 90*24*60*60*1000).toISOString().slice(0,10);
+      const { data: newsRows } = await _sb.from('news_articles')
+        .select('id,headline,source_name,published_at,article_url,relevance_score,meridian_summary,why_it_matters')
+        .contains('matched_drug_ids', [drug?.id || drugId])
+        .neq('source_validation_status', 'invalid')
+        .gte('published_at', _dNews90dAgo)
+        .order('relevance_score', { ascending: false })
+        .limit(5);
+      drugNews = newsRows || [];
+    } catch(_) {}
+
+    // Fetch upcoming catalysts linked to this drug (Fix 3B — knowledge graph integration)
+    let drugCatalysts = [];
+    try {
+      const _todayStr = new Date().toISOString().slice(0,10);
+      const { data: catRows } = await _sb.from('catalysts')
+        .select('id,catalyst_text,sort_date,catalyst_type,resolved,source_url')
+        .eq('drug_id', drug?.id || drugId)
+        .eq('resolved', false)
+        .gte('sort_date', _todayStr)
+        .order('sort_date', { ascending: true })
+        .limit(5);
+      drugCatalysts = catRows || [];
+    } catch(_) {}
+
     // Fetch company name
     let companyName = '';
     if (drug?.company_id) {
@@ -11829,7 +12029,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
@@ -15909,7 +16109,7 @@ async function loadIndustryInsightsFeed() {
   if (!feed) return;
   feed.innerHTML = '<div class="iif-loading">Loading news feed…</div>';
   try {
-    const [iaRes, intelRes, sigRes, dealRes] = await Promise.all([
+    const [iaRes, intelRes, sigRes, dealRes, naRes] = await Promise.all([
       _sb.from('intel_areas').select('intel_id,area_id').limit(500),
       _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,importance')
          .order('intel_date',{ascending:false}).limit(200),
@@ -15917,6 +16117,13 @@ async function loadIndustryInsightsFeed() {
          .order('source_date',{ascending:false}).limit(200),
       _sb.from('deals').select('id,deal_date,headline,total_usd_m,upfront_usd_m,source_url,area_id')
          .order('deal_date',{ascending:false}).limit(100),
+      // Fix 5 — area tab news routing: news_articles with matched_area_ids populated
+      _sb.from('news_articles')
+         .select('id,published_at,headline,meridian_summary,why_it_matters,article_url,source_name,relevance_score,matched_area_ids,matched_drug_ids,matched_company_ids')
+         .neq('source_validation_status','invalid')
+         .eq('is_this_week', true)
+         .order('relevance_score',{ascending:false})
+         .limit(60),
     ]);
     // Build intel→area map
     const areaMap = {};
@@ -15951,10 +16158,20 @@ async function loadIndustryInsightsFeed() {
       type:  'deal',
       areas: x.area_id ? [x.area_id] : [],
     }));
+    // Fix 5 — news_articles in Industry Insights feed, area-tagged via matched_area_ids
+    const newsItems = (naRes.data||[]).filter(x => x.headline).map(x => ({
+      _key:  `na-${x.id}`,
+      date:  x.published_at ? x.published_at.slice(0,10) : '',
+      headline: x.headline,
+      body:  x.meridian_summary || x.why_it_matters || '',
+      sources: x.article_url ? [{name: x.source_name||'News', url: x.article_url}] : [],
+      type:  'news',
+      areas: x.matched_area_ids || [],
+    }));
 
     // Merge and deduplicate by normalised headline + date
     const seen = {};
-    [...intelItems, ...sigItems, ...dealItems].forEach(item => {
+    [...intelItems, ...sigItems, ...dealItems, ...newsItems].forEach(item => {
       if (!item.date || !item.headline) return;
       const key = item.headline.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,60)+'|'+item.date;
       if (!seen[key]) {
