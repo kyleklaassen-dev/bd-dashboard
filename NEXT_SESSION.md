@@ -240,11 +240,26 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 **Candidates 1+2+3 ACTIVATED 2026-05-25.** All three monitoring windows open to ~2026-06-08.
 
-**⚡ FIRST TASK NEXT SESSION — Candidate 3 monitoring + Candidate 4 implementation:**
-1. Confirm Candidates 1+2+3 still stable (open modals for batoclimab, dupilumab, sim0709)
-2. Check console for errors — any unexpected normalized values → log to `entity_consistency_checks`, not reverts
-3. Begin Candidate 4: implement TL1A as a `_makeAreaPI` target_view. Architecture is already decided — this is execution. Read `docs/unified_area_dashboard_architecture.md` for the approved config-driven design.
-4. Shadow-render TL1A unified vs tl1aPI before flipping `useUnifiedTL1A=true`
+**⚡ FIRST TASK NEXT SESSION — Parallel pre-flight audits**
+
+The infrastructure is complete. Risk has flipped from "building faster than we can trust" to "being overly cautious when trust is already in place." The new operating model: **multiple audits in parallel, one activation at a time.**
+
+**Track A — Candidate 4 (Primary):**
+Run TL1A pre-flight audit (Step 1 of 5-step playbook). Produce classification report before any code.
+
+**Track B — Candidates 5/6/7 (Parallel):**
+Run pre-flight audits for FcRn, TSLP, and IL-4Rα simultaneously alongside Track A. Each audit: count legacy drugs, count normalized drugs, enumerate overlap/extra_legacy/extra_normalized, classify every difference.
+
+**Track C — Intelligence products:**
+Continue landscape card improvements and entity summaries.
+
+**Track D — Migration docs:**
+Prepare Candidate 5 migration package while Candidate 4 audit runs. When Candidate 4 clears, Candidate 5 should already be waiting.
+
+**Track E — Reconciliation harvesting:**
+Surface any new inconsistencies from production modal usage → `entity_consistency_checks`.
+
+**Goal:** When Candidate 4 activates, Candidates 5+6+7 classification reports already exist. No waiting between activations. The weeks of architecture discussion before each migration should be gone.
 
 **Candidate 3 — What was built:**
 - `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
