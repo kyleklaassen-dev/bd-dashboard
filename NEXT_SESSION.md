@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53r (2026-05-25) — Phase 5 Candidate 3 PERMANENTLY ACTIVATED (useNormalizedDrugModal=true, commit cc1e0d6e). Drug modal now reads from normalized tables. Third completed Phase 5 migration.  
+**Last session:** Session 54 (2026-05-25) — Parallel pre-flight audits complete for all four remaining Phase 5 candidates. TL1A ✅ READY (100% adj, 17 OOS classified). FcRn ✅ READY (100% raw, riliprubart confirmed). IL-4Rα ✅ READY (100% adj, 5 OOS classified). TSLP ⛔ BLOCKED (apg333 normalized_gap — one drug_targets row missing). First task: TL1A Step 3 implementation.  
 **Prior session:** Session 53q — Candidate 2 (TED) permanently activated (useNormalizedTED=true, commit 71974d6)
 
 ---
@@ -229,37 +229,171 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 ---
 
-## Phase 5 Status
+## Phase 5 Pipeline — Three-Stage Tracker
 
-| Candidate | Component | Flag | Value | Deployed | Activated |
-|---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ commit `522e155` | ✅ **ACTIVATED 2026-05-25** — all 8 gates live; monitoring window open |
-| 2 | TED area tab | `useNormalizedTED` | **true** | ✅ commit `71974d6` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; ted_indication_group_view=compare_pass_oos_adjusted (9→13 drugs, raw=100%) |
-| 3 | Drug modal | `useNormalizedDrugModal` | **true** | ✅ commit `cc1e0d6e` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; labels clean; CIDP verified; 5-drug validation passed |
-| 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ implementation pending | ❌ pending unified rendering migration |
+**One activation at a time. Parallel audits everywhere else.**
 
-**Candidates 1+2+3 ACTIVATED 2026-05-25.** All three monitoring windows open to ~2026-06-08.
+### Activated
+| Candidate | Flag | Commit | Notes |
+|---|---|---|---|
+| IBD area tab | `useNormalizedIBD=true` | `522e155` | Monitoring to ~2026-06-08 |
+| TED area tab | `useNormalizedTED=true` | `71974d6` | Monitoring to ~2026-06-08 |
+| Drug modal | `useNormalizedDrugModal=true` | `cc1e0d6e` | Monitoring to ~2026-06-08 |
 
-**⚡ FIRST TASK NEXT SESSION — Parallel pre-flight audits**
+### Implementation-Ready
+_(Classification report complete, differences explained, awaiting activation lane)_
 
-The infrastructure is complete. Risk has flipped from "building faster than we can trust" to "being overly cautious when trust is already in place." The new operating model: **multiple audits in parallel, one activation at a time.**
+| Candidate | Source swap | Adj match | Notes |
+|---|---|---|---|
+| TL1A target-view | `drug_areas area_id='tl1a'` → `drug_targets target_id='tl1a'` | **100%** (33/33) | ✅ READY — 17 OOS (scope_difference), 1 extra-norm (legitimate) |
+| FcRn area tab | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ READY — 0 extra-legacy, 1 extra-norm (riliprubart — confirmed FcRn; data quality fix: drugs.target field stale) |
+| IL-4Rα area tab | `drug_areas area_id='il4ra'` → `drug_targets target_id='il4ra'` | **100%** (4/4) | ✅ READY — 5 OOS (scope_difference), 1 extra-norm (ibi333 bispecific — legitimate) |
 
-**Track A — Candidate 4 (Primary):**
-Run TL1A pre-flight audit (Step 1 of 5-step playbook). Produce classification report before any code.
+### Blocked (reconciliation required)
+| Candidate | Source swap | Issue | Fix required |
+|---|---|---|---|
+| TSLP area tab | `drug_areas area_id='tslp'` → `drug_targets target_id IN (tslp,tslpr)` | apg333 normalized_gap (TSLP drug confirmed by mechanism, missing from drug_targets) | Add drug_targets row: apg333 → tslp. Then adj match = 8/8 = 100%. |
 
-**Track B — Candidates 5/6/7 (Parallel):**
-Run pre-flight audits for FcRn, TSLP, and IL-4Rα simultaneously alongside Track A. Each audit: count legacy drugs, count normalized drugs, enumerate overlap/extra_legacy/extra_normalized, classify every difference.
+---
 
-**Track C — Intelligence products:**
-Continue landscape card improvements and entity summaries.
+## Pre-Flight Audit Results — Session 54 (2026-05-25)
 
-**Track D — Migration docs:**
-Prepare Candidate 5 migration package while Candidate 4 audit runs. When Candidate 4 clears, Candidate 5 should already be waiting.
+All four candidates audited in parallel. Full classification below.
 
-**Track E — Reconciliation harvesting:**
-Surface any new inconsistencies from production modal usage → `entity_consistency_checks`.
+### CANDIDATE 4 — TL1A ✅ READY
 
-**Goal:** When Candidate 4 activates, Candidates 5+6+7 classification reports already exist. No waiting between activations. The weeks of architecture discussion before each migration should be gone.
+| Metric | Value |
+|---|---|
+| Legacy (`drug_areas area_id='tl1a'`) | 50 |
+| Normalized (`drug_targets target_id='tl1a'`) | 34 |
+| Overlap | 33 |
+| Raw match | 66.0% |
+| Extra-legacy | 17 |
+| Extra-normalized | 1 |
+| OOS (all scope_difference) | 17 |
+| **Adjusted match** | **100%** (33/33) |
+| **Verdict** | **✅ READY — proceed to implementation** |
+
+**Extra-legacy (17) — all `scope_difference` (non-TL1A-mechanism IBD competitors):**
+abbv-382 (α4β7) · abbv-668 (RIPK1) · gb004 (PHD inhibitor) · golimumab (TNF) · guselkumab (IL-23p19) · guselkumab-golimumab (combo) · lm-302 (CLDN18.2, ECC accepted) · lutikizumab (IL-1α/β) · mirikizumab (IL-23p19) · risankizumab (IL-23p19) · sim0500 (BCMA trispecific, ECC accepted) · spy001 (α4β7) · spy003 (IL-23p19) · spy130 (α4β7+IL-23 combo) · upadacitinib (JAK1) · ustekinumab (IL-12/23p40) · vedolizumab (α4β7)
+
+**Extra-normalized (1) — `legitimate_target_drug`:**
+anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not yet in drug_areas (Preclinical), already in drug_targets. Correct new addition.
+
+**Implementation notes:**
+- Source swap inside `_makeAreaPI` only. No rendering changes needed.
+- Flag: `FEATURE_FLAGS.useUnifiedTL1A = true`
+- Query changes: `drug_areas WHERE area_id='tl1a'` → `drug_targets WHERE target_id='tl1a'`
+- Post-migration: tab will show 34 drugs (33 overlap + anti-tl1a-xpf005-arm). The 17 scope_difference drugs remain visible in IBD area tab — they don't disappear, they just move to their correct area.
+
+---
+
+### CANDIDATE 5 — TSLP ⛔ BLOCKED
+
+| Metric | Value |
+|---|---|
+| Legacy (`drug_areas area_id='tslp'`) | 14 |
+| Normalized (`drug_targets target_id IN (tslp, tslpr)`) | 9 |
+| Overlap | 7 |
+| Raw match | 50.0% |
+| Extra-legacy | 7 |
+| Extra-normalized | 2 |
+| OOS (scope_difference) | 6 |
+| **Adjusted match (current)** | **87.5%** (7/8) — gap is apg333 |
+| **Adjusted match (after fix)** | **100%** (8/8) |
+| **Verdict** | **⛔ BLOCKED — apg333 normalized_gap must be filled** |
+
+**Extra-legacy (7):**
+- `apg333` — **`normalized_gap`** · Anti-TSLP IgG (Apogee, Phase 1). Mechanism field confirms TSLP target. drug_targets has zero rows for apg333. Must be added before activation.
+- `astegolimab` (IL-33) — `scope_difference` · pathway partner
+- `benralizumab` (IL-5Rα) — `scope_difference` · eosinophil pathway partner
+- `dupilumab` (IL-4Rα) — `scope_difference` · AD competitive context
+- `itepekimab` (IL-33) — `scope_difference` · pathway partner
+- `mepolizumab` (IL-5) — `scope_difference` · eosinophil pathway partner
+- `tozorakimab` (IL-33R/ST2) — `scope_difference` · pathway partner
+
+**Extra-normalized (2) — both `legitimate_target_drug`:**
+- `catalog-53` — TSLP, Phase 1, Newsoara. In drug_targets(tslp). Not yet in drug_areas. Correct new addition.
+- `ibi333` — IL-4Rα×TSLP bispecific, Phase 3, Sanofi. drug_targets has both tslp and il4ra rows. Correct bispecific coverage.
+
+**Fix required:** Insert drug_targets row: `{ drug_id: 'apg333', target_id: 'tslp', confidence_score: 95, source_type: 'manual', review_status: 'reviewed_accepted' }`. Mechanism field is unambiguous — anti-TSLP IgG confirmed.
+
+**Note:** TSLP query must use `target_id IN ('tslp', 'tslpr')` to capture verekitug (targets TSLP receptor). This was established in Phase 4C.
+
+---
+
+### CANDIDATE 6 — IL-4Rα ✅ READY
+
+| Metric | Value |
+|---|---|
+| Legacy (`drug_areas area_id='il4ra'`) | 9 |
+| Normalized (`drug_targets target_id='il4ra'`) | 5 |
+| Overlap | 4 |
+| Raw match | 44.4% |
+| Extra-legacy | 5 |
+| Extra-normalized | 1 |
+| OOS (all scope_difference) | 5 |
+| **Adjusted match** | **100%** (4/4) |
+| **Verdict** | **✅ READY — proceed to implementation after TL1A activates** |
+
+**Extra-legacy (5) — all `scope_difference` (atopy pathway partners, not IL-4Rα-targeting):**
+- `amlitelimab` (OX40L) · `lebrikizumab` (IL-13) · `nemolizumab` (IL-31Rα) · `tralokinumab` (IL-13) · `zumilokibart` (IL-13)
+
+**Extra-normalized (1) — `legitimate_target_drug`:**
+- `ibi333` — IL-4Rα×TSLP bispecific (Sanofi, Phase 3). drug_targets has il4ra and tslp rows (conf=95, auto_confirmed). Correct addition — will appear in both IL-4Rα and TSLP tabs post-migration.
+
+---
+
+### CANDIDATE 7 — FcRn ✅ READY
+
+| Metric | Value |
+|---|---|
+| Legacy (`drug_areas area_id='fcrn'`) | 6 |
+| Normalized (`drug_targets target_id='fcrn'`) | 7 |
+| Overlap | 6 |
+| Raw match | **100.0%** |
+| Extra-legacy | 0 |
+| Extra-normalized | 1 |
+| OOS | 0 |
+| **Adjusted match** | **100%** (6/6) |
+| **Verdict** | **✅ READY — proceed after TL1A + IL-4Rα activate** |
+
+**Extra-legacy (0):** All 6 legacy FcRn drugs confirmed in normalized. batoclimab · efgartigimod · imvt-1402 · nipocalimab · orilanolimab · rozanolixizumab — all have `target=FcRn` in drugs table and drug_targets rows.
+
+**Extra-normalized (1) — `legitimate_target_drug`:**
+- `riliprubart` (Sanofi, Phase 3) — drug_targets review_notes: "Riliprubart (SAR443765): anti-FcRn monoclonal antibody, Sanofi Phase 3 program in IgAN and CIDP. FcRn primary target confirmed." Confidence 95, reviewed_accepted.
+- ⚠️ **Data quality note:** `drugs.target` field shows "C1q complement" — this is stale/incorrect. Should be updated to "FcRn" before activation. Does not block the migration (drug_targets is authoritative), but should be fixed for dashboard display consistency.
+
+---
+
+## Activation Lane — Recommended Order
+
+| Position | Candidate | Status | Prerequisite |
+|---|---|---|---|
+| Next | TL1A (C4) | ✅ READY | None — implement now |
+| 2nd | IL-4Rα (C6) | ✅ READY | Wait for TL1A activation |
+| 3rd | FcRn (C7) | ✅ READY | Wait for IL-4Rα; fix drugs.target for riliprubart |
+| 4th | TSLP (C5) | ⛔ BLOCKED | Fix apg333 normalized_gap first; then READY |
+
+**Blocking fix for TSLP (small, well-defined):** Add one drug_targets row for apg333 → tslp. Can be done as reconciliation step before TSLP implementation starts — does not block the activation lane.
+
+**Activation constraint unchanged:** Parallel audits ✅ complete. Now back to sequential: one activation at a time.
+
+---
+
+## ⚡ FIRST TASK NEXT SESSION — Candidate 4 (TL1A) Implementation
+
+Pre-flight audit complete. Classification report delivered. All differences explained. Adjusted match = 100%.
+
+**Proceed with Step 3 — Implementation:**
+
+Add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag. Source swap only — no rendering changes. The engine is already unified (Session 45).
+
+**Reconciliation items to handle this session (before/alongside TL1A implementation):**
+1. Fix apg333 normalized_gap: INSERT into drug_targets (`drug_id='apg333'`, `target_id='tslp'`, `confidence_score=95`, `source_type='manual'`, `review_status='reviewed_accepted'`, `review_notes='Anti-TSLP IgG confirmed by mechanism field. Apogee Phase 1 program.'`)
+2. Fix riliprubart data quality: UPDATE drugs SET target='FcRn' WHERE id='riliprubart'
+
+Both fixes are small and unambiguous. After they are applied, TSLP moves to READY and all four candidates will be Implementation-Ready.
 
 **Candidate 3 — What was built:**
 - `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
@@ -327,7 +461,7 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 ### P1 — Phase 5 Candidate 4 (TL1A) — Data Source Migration
 
-**Status:** Not started. `tl1aPI` was already retired (Session 45, commit `b4355353`). TL1A rendering already runs through `_makeAreaPI`. This is a source swap + validation sprint.
+**Status:** Pre-flight audit COMPLETE (Session 54). Classification report delivered. Adjusted match = 100% (33/33). All 17 extra-legacy classified as scope_difference. Implementation is next. `tl1aPI` was already retired (Session 45, commit `b4355353`). TL1A rendering already runs through `_makeAreaPI`. This is a source swap + validation sprint.
 
 **Current source:** `drug_areas WHERE area_id='tl1a'`  
 **Target source:** `drug_targets WHERE target_id='tl1a'`  
@@ -386,9 +520,9 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 | Track | Focus | Status |
 |---|---|---|
 | A — Relationship Layer | Wave 2D complete; imvt-1402/waiha held pending evidence | ✅ Wave 2D done; epi-001 held |
-| B — Ontology Quality | Phase 4C complete; epi-001 + cizutamig held | ✅ Phase 4C done |
+| B — Ontology Quality | Pre-flight audits complete; apg333 gap + riliprubart data quality fix pending | ▶ Two small reconciliation fixes before TSLP/FcRn activate |
 | C — Intelligence Products | Portfolio intelligence product | Queued after Phase 5 Candidate 1 activation |
-| D — Dashboard Architecture | Phase 5 Candidate 1 — final gate (IBD dual-read manual confirm → permanent flip) | ▶ **PRIMARY FOCUS** |
+| D — Dashboard Architecture | TL1A implementation (Step 3) → validate → activate. Then IL-4Rα → FcRn → TSLP. | ▶ **PRIMARY FOCUS — Candidate 4 implementation** |
 | E — Data Acquisition | Normalization engine → platform library | Documented; deferred |
 
 ---
