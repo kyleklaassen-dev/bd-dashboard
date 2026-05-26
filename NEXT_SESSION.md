@@ -236,15 +236,15 @@ Full plan: `docs/phase4c_validation_plan.md`
 | 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ commit `522e155` | ✅ **ACTIVATED 2026-05-25** — all 8 gates live; monitoring window open |
 | 2 | TED area tab | `useNormalizedTED` | **true** | ✅ commit `71974d6` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; ted_indication_group_view=compare_pass_oos_adjusted (9→13 drugs, raw=100%) |
 | 3 | Drug modal | `useNormalizedDrugModal` | **true** | ✅ commit `cc1e0d6e` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; labels clean; CIDP verified; 5-drug validation passed |
-| 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
+| 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ implementation pending | ❌ pending unified rendering migration |
 
 **Candidates 1+2+3 ACTIVATED 2026-05-25.** All three monitoring windows open to ~2026-06-08.
 
-**⚡ FIRST TASK NEXT SESSION — Candidate 3 monitoring + Candidate 4 planning:**
+**⚡ FIRST TASK NEXT SESSION — Candidate 3 monitoring + Candidate 4 implementation:**
 1. Confirm Candidates 1+2+3 still stable (open modals for batoclimab, dupilumab, sim0709)
-2. Check console for errors — any unexpected normalized values → log to `entity_consistency_checks`
-3. Begin Candidate 4 (TL1A) arch review: read `docs/unified_area_dashboard_architecture.md`, map tl1aPI read path, identify feature-flag insertion point
-4. Record inconsistencies in `entity_consistency_checks`, NOT reverts, unless scientific content changes materially
+2. Check console for errors — any unexpected normalized values → log to `entity_consistency_checks`, not reverts
+3. Begin Candidate 4: implement TL1A as a `_makeAreaPI` target_view. Architecture is already decided — this is execution. Read `docs/unified_area_dashboard_architecture.md` for the approved config-driven design.
+4. Shadow-render TL1A unified vs tl1aPI before flipping `useUnifiedTL1A=true`
 
 **Candidate 3 — What was built:**
 - `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
@@ -310,17 +310,17 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 **Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
 
-### P1 — Phase 5 Candidate 4 (TL1A) — Architecture Review Required
+### P1 — Phase 5 Candidate 4 (TL1A) — Data Source Migration
 
-**Status:** Not started. TL1A uses separate `tl1aPI` object (~1700 lines), not `_makeAreaPI`. Feature-flag insertion point must be mapped before any migration attempt.
+**Status:** Not started. Note: `tl1aPI` was already retired in Session 45 (commit `b4355353`) — TL1A rendering already runs through `_makeAreaPI`. Candidate 4 is the *data source* migration inside that engine: swap the TL1A query from `drug_areas WHERE area_id='tl1a'` to `drug_targets WHERE target_id='tl1a'`.
 
-**Required before starting:**
-1. Read `docs/unified_area_dashboard_architecture.md` (TL1A unification path)
-2. Trace `tl1aPI` read path: where does it query `drug_areas`? Where does `_makeAreaPI` diverge?
-3. Identify safe flag insertion point
-4. Only then build Candidate 4 migration
+**Architecture is already decided.** One engine, many view configurations. Candidate 4 is execution only.
 
-**Do not attempt to migrate TL1A without completing the arch review.** Constraint `#6` is standing.
+**Candidate 4 sprint:**
+1. Add TL1A target_view config to `_makeAreaPI` that reads from `drug_targets WHERE target_id='tl1a'` when `useUnifiedTL1A=true`
+2. Shadow-render: run normalized path alongside legacy `drug_areas` path, compare output
+3. Validate via `useUnifiedTL1A` feature flag — same 8-gate pattern as Candidates 1–3
+4. When all gates pass → flip `useUnifiedTL1A=true` permanently (30-day legacy retention applies)
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
@@ -367,7 +367,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
-6. **TL1A Phase 5 requires arch review** — `tl1aPI` is a separate ~1700-line object, not `_makeAreaPI`. Map its read path before any Phase 5 migration attempt on TL1A tab.
+6. **TL1A Candidate 4 is a data source migration, not a rendering debate** — `tl1aPI` was already retired in Session 45 (commit `b4355353`). TL1A already runs through `_makeAreaPI`. Candidate 4 swaps the query inside that engine from `drug_areas WHERE area_id='tl1a'` to `drug_targets WHERE target_id='tl1a'` via `useUnifiedTL1A` flag. Same 8-gate sprint pattern as Candidates 1–3.
 7. **30-day rule** — When any flag is flipped to true, keep legacy code commented (not deleted) for 30 days.
 
 ---
