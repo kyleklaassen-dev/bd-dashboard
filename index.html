@@ -2043,7 +2043,7 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // Acceptance criteria and rollback paths: docs/phase5_migration_plan.md
 const FEATURE_FLAGS = {
   useNormalizedIBD:       true,   // Candidate 1: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed incl. runtime ibd_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
-  useNormalizedTED:       false,  // Candidate 2: TED area tab from drug_indications (ted)
+  useNormalizedTED:       true,   // Candidate 2: ACTIVATED 2026-05-25 — all 8 gates passed incl. runtime ted_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
   useNormalizedDrugModal: false,  // Candidate 3: drug modal (pending 10-drug sprint)
   useUnifiedTL1A:         false,  // Candidate 4: TL1A unified engine (do not enable yet)
 };
