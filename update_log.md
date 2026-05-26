@@ -1,5 +1,49 @@
 
 ---
+## 2026-05-26 (Session 61) — C7 FcRn ACTIVATED · Legacy Read Layer Elimination MILESTONE · area_metadata DDL Written
+
+**MILESTONE: Legacy Read Layer Elimination DECLARED COMPLETE**
+All 6 feature flags permanently set to true. drug_areas no longer serves any biological dashboard tab.
+
+| Flag | Surface | Activated |
+|---|---|---|
+| `useNormalizedIBD` | IBD tab | 2026-05-25 |
+| `useNormalizedTED` | TED tab | 2026-05-25 |
+| `useNormalizedDrugModal` | Drug modal | 2026-05-25 |
+| `useUnifiedTL1A` | TL1A tab | 2026-05-25 |
+| `useUnifiedAtopy` | TSLP + IL-4Rα tabs | 2026-05-26 |
+| `useUnifiedFCRN` | FcRn tab | **2026-05-26** ← this session |
+
+**Track A — C7 FcRn 8-gate validation + activation:**
+- G1: legacy=7 (atg-201, batoclimab, efgartigimod, imvt-1402, nipocalimab, orilanolimab, rozanolixizumab) ✓
+- G2: norm=7 (batoclimab, efgartigimod, imvt-1402, nipocalimab, orilanolimab, riliprubart, rozanolixizumab) ✓
+- G3: Key drugs present in norm path ✓
+- G4: atg-201 absent from norm path (CD19×CD3 scope_diff, not FcRn biology) ✓
+- G5: Legacy path renders cleanly (4 entities) ✓
+- G6: Norm path renders cleanly (5 entities — Sanofi/riliprubart added) ✓
+- G7: `[Phase4B-FCRN] legacy=7 norm=7 overlap=6 raw=85.7% scopeDiff=1 adj=100% → compare_pass_oos_adjusted` ✓
+- G8: Rollback (flag=false) restores legacy path ✓
+- Activated `useUnifiedFCRN: true` (commit sha f8a17e7). Deployed, build completed success.
+- Post-activation live verification: all 6 flags confirmed true at `?bust=c7live`
+
+**Track B — Wave 3 quality validation (P2):**
+- 49 rows sampled + validated. All integrity checks pass (drug_id valid, indication_id valid, no phantom rows)
+- Confidence distribution: A=31 (63%), B=12 (24%), C=6 (12%)
+- 6 C-grade rows flagged (confidence=40, Phase 1 evidence only): cizutamig/ted (already in ECC), cln-978/sjogrens, cnd261/ra, risankizumab-lutikizumab-or-trosunilimab/uc, zumilokibart/asthma, zumilokibart/crswnp
+- Wave 3 safe to treat as authoritative with C-grade monitoring caveat
+
+**Track C — area_metadata governance table DDL (P3):**
+- `docs/area_metadata_ddl.sql` written and deployed to GitHub (sha 6c86297)
+- Full DDL: CREATE TABLE + updated_at trigger + RLS policies + 11 area_id seed rows
+- 8 redirected (legacy_retained): ibd, igf1r, ted, tl1a, il4ra, tslp, atopy, fcrn (fcrn=flag_activated)
+- 3 preserved: autoimmune (curated_strategic), respiratory (curated_strategic), tcell (curated_platform)
+- **NOT YET applied to Supabase — requires SQL Editor**
+
+**GitHub deploys this session:**
+- `index.html` → sha f8a17e7 (useUnifiedFCRN=true)
+- `docs/area_metadata_ddl.sql` → sha 6c86297
+
+---
 ## 2026-05-26 (Session 60) — C7 FcRn Infrastructure + Wave 3 Backfill COMMITTED + drug_competitive_scores Package Complete
 
 **Track A — C7 FcRn (flag=false, pre-validation):**
