@@ -1,8 +1,8 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 58 (2026-05-26) — **GitHub Pages/Actions STILL DEGRADED (third consecutive session). Track A (C5/C6 activation) remains blocked. Ontology governance mega-sprint completed: 5 governance documents produced (Tracks B–F). Critical findings: (1) drug_area_scores has NO normalized replacement — cannot retire without Phase 5.5 drug_competitive_scores migration; (2) apg333 missing drugs.target field — P0 fix needed; (3) 62 trial-indication gaps found in ECC-7; (4) iscalimab has 5 missing drug_indications rows.**
+**Last session:** Session 58 (2026-05-26) — **Phase 6 Master Plan complete. All 8 governance docs committed (drug_areas_disposition, redirected_entities_inventory, strategic_views_architecture, ontology_consistency_sweep, drug_areas_retirement_simulation, phase6_master_plan, drug_competitive_scores_design, wave3_enrichment_plan). Architecture diagram produced. Key insight: drug_areas is replaceable; drug_area_scores is not — WS3 is the largest remaining engineering milestone (5–8 sessions). Total Phase 6 estimate: 14–20 sessions.**
 
-**Track A — still blocked. Step 0 every session: check `githubstatus.com`. If Actions+Pages operational: deploy → G6 (zero console errors) → G7 (window.showPhase4Compare() returns compare_pass_oos_adjusted for il4ra + tslp) → advisor go → activate useUnifiedAtopy=true → deploy → re-test → log.**
+**Track A — still blocked (third consecutive session). Step 0 every session: check `githubstatus.com`. If Actions+Pages operational: deploy → G6 (zero console errors) → G7 (window.showPhase4Compare() returns compare_pass_oos_adjusted for il4ra + tslp) → advisor go → activate useUnifiedAtopy=true → deploy → re-test → log.**
 
 ```bash
 curl -s "https://www.githubstatus.com/api/v2/components.json" | python3 -c "
@@ -14,7 +14,12 @@ for c in data['components']:
 "
 ```
 
-**If still degraded:** Skip Track A. Work on P0 ECC fixes (apg333 + rocatinlimab drugs.target fields) and P1 drug_indications backfill for iscalimab/itepekimab/afimkibart/lutikizumab. Then implement C7 (FcRn) in code behind useUnifiedFCRN=false while waiting.
+**If still degraded (Session 59 fallback — no Pages needed):**
+1. **P0 ECC-1 fixes (do first):** `apg333.drugs.target → 'TSLP'` and `rocatinlimab.drugs.target → 'OX40L'`
+2. **Wave 3 Wave A backfill:** Run `wave3_drug_indications_backfill.py` — Tier 1+2 priority: iscalimab (5 rows), lutikizumab (3), imvt-1402 (2), astegolimab (2) = 12 rows first
+3. **C7 code implementation:** Add `useUnifiedFCRN: false` to FEATURE_FLAGS in index.html, add `_FCRN_NORM` branch in `_makeAreaPI().init()`, build `_runPhase4BFCRNDualRead()` method (pattern: `_runPhase4BTL1ADualRead`), fix riliprubart drugs.target (`'C1q complement'` → `'FcRn'`)
+
+See `docs/phase6_master_plan.md` for full session sequence and dependency map.
 
 ---
 
