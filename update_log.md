@@ -1,5 +1,22 @@
 
 ---
+## 2026-05-26 (Session 57) — GitHub Pages still degraded; validation queue fix (obexelimab fcgriib)
+
+**GitHub Pages/Actions infrastructure STILL degraded (second consecutive session). C5+C6 activation remains blocked.**
+
+**Deploy attempts (all failed):**
+- Re-push via GitHub Contents API (commit `089819dd`) — Actions run `26448207781` + rerun `26448276495` — both failed: `codeload.github.com` not serving `actions/upload-pages-artifact@v3`
+- Direct Pages API build (`POST /pages/builds`) — errored
+- `githubstatus.com`: Actions + Pages both `degraded_performance` at session end
+
+**Validation queue fix:**
+- `obexelimab` target_consistency: added `fcgriib` (FcγRIIB / CD32B) to `targets` table + added `drug_targets` row (co_primary, confidence_A=98). Validation result → `pass`.
+- obexelimab is CD19×FcγRIIb bispecific — both targets now represented.
+- Queue: 4 needs_review remain (ep006/undisclosed, obinutuzumab/voclosporin SLE-LN mapping, linsitinib company resolution)
+
+**No dashboard changes. No deploy.**
+
+---
 ## 2026-05-26 (Session 56) — Phase 5 C5+C6: useUnifiedAtopy code deployed, validation partial (GitHub Pages degraded)
 
 **C5 (TSLP) + C6 (IL-4Rα) bundled behind `useUnifiedAtopy` flag. Code in repo, CDN not yet live due to GitHub Pages/Actions degradation incident.**
