@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o/p (2026-05-25) — Phase 4C complete + monitoring pass: TAB_AREA_MAP bug found and fixed; flag=false pending browser verification of Gate 8  
+**Last session:** Session 53p (2026-05-25) — Phase 5 Candidate 1 PERMANENTLY ACTIVATED (useNormalizedIBD=true, commit 522e155). All 8 gates confirmed live. First completed Phase 5 migration.  
 **Prior session:** Session 53n/o — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications)
 
 ---
@@ -86,9 +86,9 @@ All Phase 4A work is done. Corrections applied and verified.
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
 | Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 monitoring pass complete; TAB_AREA_MAP fix deployed; flag=false pending browser Gate 8 verify** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 PERMANENTLY ACTIVATED 2026-05-25 (useNormalizedIBD=true, commit 522e155)** |
 
-**Phase 5 Candidate 1 (IBD): Monitoring pass found and resolved a blocking bug. TAB_AREA_MAP['tl1a'] was ['tl1a'], missing 'ibd' — making useNormalizedIBD a no-op. Fixed to ['tl1a', 'ibd']. Legacy behavior unchanged (ibd ⊂ tl1a in drug_areas). Gate 8 now requires: load TL1A tab with flag=true → `window.showPhase4Compare()` → confirm ibd record → re-enable flag permanently.**
+**Phase 5 Candidate 1 (IBD): ACTIVATED 2026-05-25. All 8 gates confirmed live. `ibd_indication_group_view=compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%). Monitoring window: 2026-05-25 → ~2026-06-08. Legacy path retained until 2026-06-24 (30-day rule). Candidate 2 (TED) is next.**
 
 ---
 
@@ -229,19 +229,19 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 ## Phase 5 Status
 
-| Candidate | Component | Flag | Default | Deployed | Activated |
+| Candidate | Component | Flag | Value | Deployed | Activated |
 |---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | **false** | ✅ (code live + TAB_AREA_MAP fix deployed) | ⏸ **TAB_AREA_MAP fixed; pending browser Gate 8 verify → flip to true** |
+| 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ commit `522e155` | ✅ **ACTIVATED 2026-05-25** — all 8 gates live; monitoring window open |
 | 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**Candidate 1 monitoring pass result (2026-05-25):** TAB_AREA_MAP bug found and fixed. Flag remains at false. Deployment in progress.
+**Candidate 1 ACTIVATED 2026-05-25 (commit 522e155).** All 8 gates confirmed live. ibd_indication_group_view=compare_pass_oos_adjusted auto-fires on TL1A tab load. Monitoring window: 2026-05-25 → ~2026-06-08.
 
-**⚡ FIRST TASK NEXT SESSION — Verify Gate 8, then flip flag:**
-1. Pull latest deploy (TAB_AREA_MAP fix is live)
-2. Temporarily set `useNormalizedIBD: true` in the deployed dashboard console or in index.html locally
-3. Navigate to TL1A tab (the IBD competitive landscape tab)
+**⚡ FIRST TASK NEXT SESSION — Candidate 2 (TED) planning:**
+1. Confirm Candidate 1 still stable (check dashboard, run `window.showPhase4Compare()`)
+2. Begin Candidate 2 TED planning (see P1 below)
+3. PLACEHOLDER — remove this line
 4. Open browser console → run `window.showPhase4Compare()`
 5. Confirm two records appear — ibd record: `compare_pass_oos_adjusted` (94% raw → 100% adj)
 6. Advisor go → deploy `useNormalizedIBD: true` permanently
@@ -357,7 +357,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **Phase 5 Candidate 1 — flag=false (reverted)** — Activation test ran 2026-05-25. 7/8 gates passed. Flag reverted pending manual IBD dual-read confirm. Do NOT flip to `true` permanently until IBD comparison record directly observed + advisor go.
+2. **Phase 5 Candidate 1 — ACTIVATED (flag=true)** — `useNormalizedIBD=true` permanent, commit `522e155`. All 8 gates confirmed live 2026-05-25. Monitoring window open to ~2026-06-08. Legacy path retained until 2026-06-24.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
