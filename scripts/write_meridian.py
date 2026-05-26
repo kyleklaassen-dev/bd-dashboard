@@ -128,7 +128,7 @@ def fetch_drug_context():
             f"{SUPABASE_URL}/rest/v1/drugs",
             headers=SB_HEADERS,
             params={
-                "select": "id,name,display_name,company_id,stage,target,mechanism,overlap,partner_company,partnership_type,partnership_verified,indication_short",
+                "select": "id,name,display_name,company_id,stage,target,mechanism,overlap,overlap_rationale,ailux_angle,partner_company,partnership_type,partnership_verified,indication_short",
                 "limit": "500",
             },
         )
@@ -365,6 +365,8 @@ def enrich_intel_with_drug_context(items, drugs, companies):
                 f"    Stage: {drug.get('stage','?')} | Target: {drug.get('target') or drug.get('mechanism','?')}",
                 f"    Overlap: {drug.get('overlap','?')} | Indication: {drug.get('indication_short','?')}",
             ]
+            if drug.get("ailux_angle"):
+                parts.append(f"    BD Signal: {drug['ailux_angle']}")
             if drug.get("partner_company"):
                 verified = "✓" if drug.get("partnership_verified") else "?"
                 parts.append(f"    Partner: {drug['partner_company']} [{drug.get('partnership_type','')}] {verified}")
