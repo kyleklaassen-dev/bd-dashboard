@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 55 (2026-05-25) — **Phase 5 Candidate 4 (TL1A) PERMANENTLY ACTIVATED.** All 8 gates passed. `useUnifiedTL1A=true`, commit `15d07a026275`. TL1A tab now reads from `drug_targets(target_id='tl1a')`: count=34, adjusted_match_pct=100%, compare_pass_oos_adjusted. **First task next session: IL-4Rα (C6) implementation.**  
+**Last session:** Session 56 (2026-05-26) — **Phase 5 C5+C6 (`useUnifiedAtopy`) code deployed to GitHub (commit `a0ffdec4`). `.nojekyll` added (commit `688d77e6`). GitHub Pages DEGRADED at time of session — build not yet live. Data-layer gates G1-G5+G8 confirmed via console simulation. G6/G7 pending CDN recovery.** First task next session: verify Pages is live with new code, run G6+G7, then request advisor approval before setting `useUnifiedAtopy=true`.  
 **Prior session:** Session 54 — Parallel pre-flight audits complete. TL1A/FcRn/IL-4Rα all READY; TSLP blocked pending apg333 fix.
 
 ---
@@ -383,44 +383,59 @@ anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not
 
 ---
 
-## ⚡ FIRST TASK NEXT SESSION — Candidate 6 (IL-4Rα) Implementation
+## ⚡ FIRST TASK NEXT SESSION — Complete useUnifiedAtopy browser validation (G6+G7)
 
-**TL1A (C4) is permanently activated as of 2026-05-25. IL-4Rα is next in the activation lane.**
+**C5+C6 (`useUnifiedAtopy`) code is IN THE REPO but NOT YET LIVE on GitHub Pages.**  
+Session 56 ended with GitHub Pages degraded (Actions + Pages both `degraded_performance` per githubstatus.com).
 
-Pre-flight audit complete (Session 54). Classification report delivered. All differences explained. Adjusted match = 100% (4/4).
+**Commits in repo (in order):**
+- `a0ffdec4` — main code: `_runPhase4BAtopyDualRead`, FEATURE_FLAGS.useUnifiedAtopy=false, all 5 code changes  
+- `4b95285f` — re-trigger (no code change)  
+- `688d77e6` — `.nojekyll` added (disables Jekyll, forces static serve — fixes future build errors)
 
-**Proceed with C5+C6 bundled sprint (`useUnifiedAtopy` flag):**
+**Step 1: Verify Pages recovered**  
+Check: `python3 -c "import urllib.request,json; req=urllib.request.Request('https://kyleklaassen-dev.github.io/bd-dashboard/index.html',headers={'Cache-Control':'no-cache'}); content=urllib.request.urlopen(req).read().decode(); print('live:', 'useUnifiedAtopy' in content)"`  
+If not live: `https://www.githubstatus.com` — wait for Pages/Actions to clear.
 
-**Architecture decision (Session 55):** C5 and C6 must be activated together. TAB_AREA_MAP has `'il4ra-tslp': ['il4ra','tslp']` — a combined tab that queries both areas. Migrating only il4ra would require a mixed source query (drug_targets for il4ra + drug_areas for tslp). Bundling is architecturally clean and both candidates are READY.
+**Step 2: Load fresh bust URL in browser**  
+Navigate to: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<new_timestamp>`
 
-**Flag name:** `useUnifiedAtopy: false`
+**Step 3: Run remaining gates**
 
-**Query logic (inside `_makeAreaPI`):**
+| Gate | Test | Expected | Status |
+|---|---|---|---|
+| G1 | flag=false → legacy path, il4ra-ox40l count | 9 | ✅ CONFIRMED (console sim) |
+| G2 | flag=true → drug_targets fires, il4ra-ox40l count | 5 | ✅ CONFIRMED (direct query) |
+| G3 | dupilumab, rademikibart, apg279, apg777, ibi333 present | all ✓ | ✅ CONFIRMED |
+| G4 | amlitelimab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart absent | all ✓ | ✅ CONFIRMED |
+| G5 | tezepelumab, apg333, bsi-045b, verekitug, gb0895 present | all ✓ | ✅ CONFIRMED |
+| G6 | Zero console errors on il4ra-ox40l + tslp tab load | 0 errors | ⏳ PENDING CDN |
+| G7 | `window.__MERIDIAN_PHASE4_COMPARE__` shows il4ra_target_view + tslp_target_view both = compare_pass_oos_adjusted | both ✓ | ⏳ PENDING CDN |
+| G8 | flag=false restores 9 / 14 counts | confirmed legacy | ✅ CONFIRMED (current live = rollback) |
+
+**Data-layer pre-validation (already confirmed, Session 56):**
+- IL-4Rα: legacy=9, normalized=5, scope_diff=5 (all confirmed absent from drug_targets)  
+  Adj: overlap=4, denom=4, adj_match=**100%** → `compare_pass_oos_adjusted` expected
+- TSLP: legacy=14, normalized=10, scope_diff=6 (all confirmed absent from drug_targets)  
+  Adj: overlap=8, denom=8, adj_match=**100%** → `compare_pass_oos_adjusted` expected
+
+**G7 console check (when Pages is live):**
 ```javascript
-const _ATOPY_NORM = !!(FEATURE_FLAGS.useUnifiedAtopy && 
-                       (this.areaIds.includes('il4ra') || this.areaIds.includes('tslp')));
-const _atopyTargets = [
-  ...(this.areaIds.includes('il4ra') ? ['il4ra'] : []),
-  ...(this.areaIds.includes('tslp')  ? ['tslp','tslpr'] : [])
-];
-// init() fetch: drug_targets WHERE target_id IN (_atopyTargets)
-// _loadEntityMeta(): same filter
+// In browser console — set flag=true, load il4ra-ox40l tab, then:
+FEATURE_FLAGS.useUnifiedAtopy = true;
+// navigate to il4ra-ox40l tab
+// then:
+window.__MERIDIAN_PHASE4_COMPARE__.filter(r => r.path?.includes('atopy'))
 ```
 
-**Ternary priority order (critical — same lesson as C4):**
-```
-_ATOPY_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → drug_areas fallback
-```
-Check `_ATOPY_NORM` FIRST in both `init()` and `_loadEntityMeta()`.
+**Step 4: If all 8 gates pass → return to user with full results table, request advisor go before setting `useUnifiedAtopy=true`**
 
-**Expected count changes:**
-- il4ra-ox40l tab: 9 → 5 (5 scope_diff excluded)
-- il4ra-tslp tab: ~19 → ~14 (5 scope_diff excluded, 3 new legitimate additions)
-- TSLP tab: 14 → 10 (6 scope_diff excluded, 2 new)
-
-**Reconciliation fixes:** Both already applied. No action needed.
-- apg333 → tslp: ✅ PRESENT in drug_targets (conf=95, reviewed_accepted)
-- riliprubart.drugs.target: ✅ CORRECT (= 'FcRn')
+**Architecture (already implemented in index.html, do NOT re-implement):**
+- FEATURE_FLAGS.useUnifiedAtopy = false ← current
+- `_ATOPY_NORM` checked FIRST in ternary (before `_TL1A_NORM`)
+- `_atopyTargets` dynamically built from areaIds
+- `_runPhase4BAtopyDualRead` method complete
+- Scope_diff: IL-4Rα=5 drugs (OX40L, IL-13×3, IL-31Rα), TSLP=6 drugs (IL-33×2, IL-5Rα, IL-4Rα, IL-5, IL-33R/ST2)
 
 **Full activation package:** `docs/phase5_c6_activation_package.md`
 
