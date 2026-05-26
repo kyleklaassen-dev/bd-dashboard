@@ -12496,12 +12496,12 @@ function _makeAreaPI(tabId, areaIds) {
 
         // Parallel fetches — query A switches on flag; B/C/D always unchanged
         const [_memberResult, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
-          _IBD_NORM
-            ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
-            : _TED_NORM
-              ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
-              : _TL1A_NORM
-                ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
+          _TL1A_NORM
+            ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
+            : _IBD_NORM
+              ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
+              : _TED_NORM
+                ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
                 : _sb.from('drug_areas')
                     .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
                     .in('area_id', this.areaIds),
@@ -12670,10 +12670,10 @@ function _makeAreaPI(tabId, areaIds) {
         const companySet = new Set(companyIds);
 
         const [drugAreaRes, comboRes, catRes] = await Promise.all([
-          this._ibdNorm
-            ? _sb.from('drug_indications').select('drug_id,drugs(id,company_id,indication_short)').in('indication_id', ['uc','cd']).limit(500)
-            : this._tl1aNorm
-              ? _sb.from('drug_targets').select('drug_id,drugs(id,company_id,indication_short)').eq('target_id', 'tl1a').limit(500)
+          this._tl1aNorm
+            ? _sb.from('drug_targets').select('drug_id,drugs(id,company_id,indication_short)').eq('target_id', 'tl1a').limit(500)
+            : this._ibdNorm
+              ? _sb.from('drug_indications').select('drug_id,drugs(id,company_id,indication_short)').in('indication_id', ['uc','cd']).limit(500)
               : _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
           _sb.from('drug_combinations').select('company_id').in('area_id', this.areaIds).limit(300),
           _sb.from('catalysts').select('company_id,catalyst_date,sort_date').in('company_id', companyIds).eq('resolved', false).gte('sort_date', today).order('sort_date', { ascending: true }).limit(300),
