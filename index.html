@@ -1463,9 +1463,10 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 310px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
 .mol-dd-menu.open { display: block; }
 
-/* ── HIERARCHY DROPDOWN ──────────────────────────────────────── */
+/* ── HIERARCHY DROPDOWN — flyout cascade on hover ───────────── */
 .hier-dd-wrap { position: relative; }
 .hier-dd-btn-active { background: #1a3a6e !important; color: white !important; }
+
 .hier-dd-menu {
   display: none;
   position: absolute;
@@ -1474,165 +1475,129 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   background: white;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  width: 340px;
+  width: 220px;
   z-index: 600;
   border: 1px solid #dde3ea;
-  overflow: hidden;
+  overflow: visible; /* allows sub-panels to escape bounds */
 }
 .hier-dd-menu.open { display: block; }
+
 .hier-dd-header {
-  padding: 9px 14px 7px;
+  padding: 8px 13px 7px;
   background: #0f1e32;
+  border-radius: 10px 10px 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .hier-dd-header-label {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.45);
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: rgba(255,255,255,0.45);
 }
-.hier-dd-header-hint {
-  font-size: 10px;
-  color: rgba(255,255,255,0.3);
-}
-.hier-dd-body {
-  max-height: 440px;
-  overflow-y: auto;
-  padding: 4px 0 6px;
-}
-.hier-dd-body::-webkit-scrollbar { width: 4px; }
-.hier-dd-body::-webkit-scrollbar-track { background: transparent; }
-.hier-dd-body::-webkit-scrollbar-thumb { background: #d1d9e0; border-radius: 2px; }
+.hier-dd-header-hint { font-size: 10px; color: rgba(255,255,255,0.28); }
 
-/* LEVEL: Therapeutic Area */
-.hier-ta {
-  cursor: pointer;
-  user-select: none;
-}
-.hier-ta-row {
+/* TA-level body — no overflow clipping so sub-panels can escape */
+.hier-dd-body { padding: 4px 0 4px; overflow: visible; }
+
+/* ── Generic row ── */
+.hier-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
   transition: background 0.1s;
+  white-space: nowrap;
 }
-.hier-ta-row:hover { background: #f1f5f9; }
-.hier-ta-row.open { background: #eef4fb; }
+.hier-row:hover { background: #eef4fb; }
+.hier-row-name { flex: 1; }
+.hier-row-count { font-size: 10px; color: #94a3b8; font-weight: 600; flex-shrink: 0; }
+.hier-row-arrow { font-size: 8px; color: #b0bec8; flex-shrink: 0; }
+
+/* ── TA row ── */
 .hier-ta-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.hier-ta-name { font-size: 13px; font-weight: 800; color: #0d1f38; flex: 1; }
-.hier-ta-count { font-size: 10px; color: #94a3b8; font-weight: 600; }
-.hier-ta-chev { font-size: 9px; color: #94a3b8; transition: transform 0.18s; flex-shrink: 0; }
-.hier-ta-row.open .hier-ta-chev { transform: rotate(90deg); }
-.hier-ta-children { display: none; background: #f8fafc; border-top: 1px solid #eef0f3; border-bottom: 1px solid #eef0f3; }
-.hier-ta.expanded > .hier-ta-children { display: block; }
+.hier-ta-name { font-size: 13px; font-weight: 800; color: #0d1f38; }
 
-/* LEVEL: Disease Area */
-.hier-da {
-  cursor: pointer;
-  user-select: none;
-}
-.hier-da-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 14px 6px 30px;
-  transition: background 0.1s;
-}
-.hier-da-row:hover { background: #eef4fb; }
-.hier-da-row.open { background: #e5eef8; }
-.hier-da-name { font-size: 12px; font-weight: 700; color: #1a2f50; flex: 1; }
-.hier-da-count { font-size: 10px; color: #94a3b8; }
-.hier-da-chev { font-size: 8px; color: #b0bec8; transition: transform 0.18s; }
-.hier-da-row.open .hier-da-chev { transform: rotate(90deg); }
-.hier-da-children { display: none; background: #f0f5fb; }
-.hier-da.expanded > .hier-da-children { display: block; }
+/* ── DA row ── */
+.hier-da-name { font-size: 12px; font-weight: 700; color: #1a2f50; }
 
-/* LEVEL: Indication */
-.hier-ind {
-  cursor: pointer;
-  user-select: none;
-}
-.hier-ind-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 14px 5px 46px;
-  transition: background 0.1s;
-}
-.hier-ind-row:hover { background: #e5eef8; }
-.hier-ind-row.open { background: #dce8f5; }
+/* ── Indication row ── */
 .hier-ind-abbr {
-  font-size: 10px;
-  font-weight: 800;
-  color: #2e6fb0;
-  background: #e8f0f8;
-  padding: 1px 6px;
-  border-radius: 5px;
-  flex-shrink: 0;
-  letter-spacing: 0.03em;
+  font-size: 10px; font-weight: 800; color: #2e6fb0;
+  background: #e8f0f8; padding: 1px 6px; border-radius: 5px;
+  flex-shrink: 0; letter-spacing: 0.03em;
 }
-.hier-ind-name { font-size: 11.5px; font-weight: 600; color: #334155; flex: 1; }
-.hier-ind-count { font-size: 10px; color: #94a3b8; }
-.hier-ind-chev { font-size: 8px; color: #b0bec8; transition: transform 0.18s; }
-.hier-ind-row.open .hier-ind-chev { transform: rotate(90deg); }
-.hier-ind-children { display: none; background: #e8f0f8; padding: 3px 0; }
-.hier-ind.expanded > .hier-ind-children { display: block; }
+.hier-ind-name { font-size: 11.5px; font-weight: 600; color: #334155; }
 
-/* LEVEL: Target (leaf) */
-.hier-tgt-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 14px 5px 60px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.hier-tgt-row:hover { background: #d1e3f5; }
-.hier-tgt-row.selected { background: #1a3a6e; }
-.hier-tgt-row.selected .hier-tgt-name { color: white; }
-.hier-tgt-row.selected .hier-tgt-count { color: rgba(255,255,255,0.55); }
-.hier-tgt-dot { width: 5px; height: 5px; border-radius: 50%; background: #7ab8f5; flex-shrink: 0; }
+/* ── Target row (leaf) ── */
+.hier-tgt-dot { width: 5px; height: 5px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
 .hier-tgt-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: #1e3a5f;
+  font-size: 11.5px; font-weight: 700; color: #1e3a5f;
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  flex: 1;
 }
-.hier-tgt-count { font-size: 10px; color: #94a3b8; }
+.hier-tgt-row:hover .hier-tgt-dot { background: #2e6fb0; }
+.hier-tgt-row.selected-tgt { background: #1a3a6e !important; }
+.hier-tgt-row.selected-tgt .hier-tgt-name { color: #7ab8f5; }
+.hier-tgt-row.selected-tgt .hier-tgt-dot { background: #7ab8f5; }
+.hier-tgt-row.selected-tgt .hier-row-count { color: rgba(255,255,255,0.45); }
 
-/* Divider between TAs */
-.hier-ta-divider { height: 1px; background: #eef0f3; margin: 2px 0; }
+/* ── Sub-panels (flyout to the right on parent hover) ── */
+.hier-item { position: relative; }
 
-/* Selection breadcrumb at bottom of dropdown */
+.hier-sub-panel {
+  display: none;
+  position: absolute;
+  top: -5px;           /* slight upward nudge so it aligns with the row */
+  left: 100%;          /* flush against parent right edge — no gap = no hover break */
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  border: 1px solid #dde3ea;
+  min-width: 230px;
+  z-index: 10;
+  overflow: visible;   /* allow deeper sub-panels to escape */
+}
+
+/* Show sub-panel when parent .hier-item is hovered.
+   Because .hier-sub-panel is a DOM child of .hier-item, hovering
+   over the sub-panel keeps the parent :hover active — no bridge needed. */
+.hier-item:hover > .hier-sub-panel { display: block; }
+
+/* Sub-panel header (shows indication name above target list) */
+.hier-sub-hd {
+  padding: 7px 12px 5px;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef0f3;
+  border-radius: 8px 8px 0 0;
+}
+.hier-sub-hd-label {
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #94a3b8;
+}
+.hier-sub-hd-name { font-size: 12px; font-weight: 700; color: #1a2f50; margin-top: 1px; }
+
+/* Divider between items in the same panel */
+.hier-divider { height: 1px; background: #f0f3f7; margin: 2px 0; }
+
+/* ── Footer (selection breadcrumb) ── */
 .hier-dd-footer {
-  padding: 7px 14px;
+  padding: 7px 13px;
   background: #f8fafc;
   border-top: 1px solid #eef0f3;
+  border-radius: 0 0 10px 10px;
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 32px;
 }
 .hier-dd-footer-path {
-  font-size: 11px;
-  color: #64748b;
-  flex: 1;
-  font-style: italic;
+  font-size: 11px; color: #94a3b8; flex: 1; font-style: italic;
 }
 .hier-dd-footer-path.has-sel { color: #1a3a6e; font-style: normal; font-weight: 600; }
 .hier-dd-footer-clear {
-  font-size: 10px;
-  font-weight: 700;
-  color: #94a3b8;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: none;
+  font-size: 10px; font-weight: 700; color: #94a3b8;
+  background: none; border: none; cursor: pointer; padding: 0; display: none;
 }
 .hier-dd-footer-clear.visible { display: block; }
 .hier-dd-footer-clear:hover { color: #dc2626; }
@@ -17633,7 +17598,9 @@ function toggleMolDropdown() {
 
 // ══════════════════════════════════════════════════════════
 //  HIERARCHY / ONTOLOGY DROPDOWN — PROTOTYPE (mock data)
-//  No Supabase connection. Approve UX before wiring live data.
+//  Hover-triggered cascading flyout.  No Supabase connection.
+//  Sub-panels are DOM children of their parent .hier-item so
+//  CSS :hover propagates through — no JS hover bridge needed.
 // ══════════════════════════════════════════════════════════
 
 const HIER_DATA = [
@@ -17762,12 +17729,9 @@ const HIER_DATA = [
   },
 ];
 
-// Track expansion + selection state
+// Track selection (expansion is purely CSS :hover now)
 const hierState = {
-  openTAs: new Set(),
-  openDAs: new Set(),
-  openInds: new Set(),
-  selTA: null, selDA: null, selInd: null, selTgt: null,
+  sel: null, // { ta, da, ind, tgt } — last clicked target
   built: false,
 };
 
@@ -17775,7 +17739,6 @@ function toggleHierDropdown() {
   const menu = document.getElementById('hier-dd-menu');
   const btn  = document.getElementById('hier-dd-btn');
   const isOpen = menu.classList.contains('open');
-  // Close mol dropdown if open
   document.getElementById('mol-dd-menu')?.classList.remove('open');
   if (isOpen) {
     menu.classList.remove('open');
@@ -17787,157 +17750,146 @@ function toggleHierDropdown() {
   }
 }
 
+// ── Tree builder — nested DOM, hover handled by CSS :hover ──
 function hierBuildTree() {
   const body = document.getElementById('hier-dd-body');
   body.innerHTML = '';
   HIER_DATA.forEach((ta, ti) => {
-    if (ti > 0) {
-      const div = document.createElement('div');
-      div.className = 'hier-ta-divider';
-      body.appendChild(div);
-    }
+    if (ti > 0) body.appendChild(hierDivider());
     body.appendChild(hierMakeTA(ta));
   });
 }
 
+function hierDivider() {
+  const d = document.createElement('div');
+  d.className = 'hier-divider';
+  return d;
+}
+
+// ── Level 1: Therapeutic Area ──
 function hierMakeTA(ta) {
-  const wrap = document.createElement('div');
-  wrap.className = 'hier-ta';
-  wrap.id = 'hier-ta-' + ta.id;
+  // .hier-item wraps row + sub-panel; CSS :hover on .hier-item reveals sub-panel
+  const item = document.createElement('div');
+  item.className = 'hier-item';
 
   const row = document.createElement('div');
-  row.className = 'hier-ta-row' + (hierState.openTAs.has(ta.id) ? ' open' : '');
+  row.className = 'hier-row';
   row.innerHTML = `
     <div class="hier-ta-dot" style="background:${ta.color}"></div>
-    <div class="hier-ta-name">${ta.name}</div>
-    <div class="hier-ta-count">${ta.total}</div>
-    <div class="hier-ta-chev">▶</div>
+    <div class="hier-row-name hier-ta-name">${ta.name}</div>
+    <div class="hier-row-count">${ta.total}</div>
+    <div class="hier-row-arrow">▶</div>
   `;
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickTA(ta.id); });
+  // Clicking a TA row sets it as the selection context
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta}); });
 
-  const children = document.createElement('div');
-  children.className = 'hier-ta-children';
-  ta.das.forEach(da => children.appendChild(hierMakeDA(ta.id, da)));
-
-  wrap.appendChild(row);
-  wrap.appendChild(children);
-  if (hierState.openTAs.has(ta.id)) wrap.classList.add('expanded');
-  return wrap;
-}
-
-function hierMakeDA(taId, da) {
-  const wrap = document.createElement('div');
-  wrap.className = 'hier-da';
-  wrap.id = 'hier-da-' + da.id;
-
-  const row = document.createElement('div');
-  row.className = 'hier-da-row' + (hierState.openDAs.has(da.id) ? ' open' : '');
-  row.innerHTML = `
-    <div class="hier-da-chev">▶</div>
-    <div class="hier-da-name">${da.name}</div>
-    <div class="hier-da-count">${da.total}</div>
-  `;
-  row.title = da.full;
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickDA(taId, da.id); });
-
-  const children = document.createElement('div');
-  children.className = 'hier-da-children';
-  da.inds.forEach(ind => children.appendChild(hierMakeInd(taId, da.id, ind)));
-
-  wrap.appendChild(row);
-  wrap.appendChild(children);
-  if (hierState.openDAs.has(da.id)) wrap.classList.add('expanded');
-  return wrap;
-}
-
-function hierMakeInd(taId, daId, ind) {
-  const wrap = document.createElement('div');
-  wrap.className = 'hier-ind';
-  wrap.id = 'hier-ind-' + ind.id;
-
-  const row = document.createElement('div');
-  row.className = 'hier-ind-row' + (hierState.openInds.has(ind.id) ? ' open' : '');
-  row.innerHTML = `
-    <div class="hier-ind-chev">▶</div>
-    <span class="hier-ind-abbr">${ind.abbr}</span>
-    <div class="hier-ind-name">${ind.name}</div>
-    <div class="hier-ind-count">${ind.total}</div>
-  `;
-  row.addEventListener('click', (e) => { e.stopPropagation(); hierClickInd(taId, daId, ind.id); });
-
-  const children = document.createElement('div');
-  children.className = 'hier-ind-children';
-  ind.tgts.forEach(tgt => {
-    const trow = document.createElement('div');
-    const isSel = hierState.selTgt === tgt.id && hierState.selInd === ind.id;
-    trow.className = 'hier-tgt-row' + (isSel ? ' selected' : '');
-    trow.innerHTML = `
-      <div class="hier-tgt-dot"></div>
-      <div class="hier-tgt-name">${tgt.name}</div>
-      <div class="hier-tgt-count">${tgt.n}</div>
-    `;
-    trow.addEventListener('click', (e) => { e.stopPropagation(); hierClickTgt(taId, daId, ind.id, tgt.id, tgt.name); });
-    children.appendChild(trow);
+  // Sub-panel: Disease Areas
+  const sub = document.createElement('div');
+  sub.className = 'hier-sub-panel';
+  ta.das.forEach((da, di) => {
+    if (di > 0) sub.appendChild(hierDivider());
+    sub.appendChild(hierMakeDA(ta, da));
   });
 
-  wrap.appendChild(row);
-  wrap.appendChild(children);
-  if (hierState.openInds.has(ind.id)) wrap.classList.add('expanded');
-  return wrap;
+  item.appendChild(row);
+  item.appendChild(sub);
+  return item;
 }
 
-// ── Click handlers ──────────────────────────────────────
+// ── Level 2: Disease Area ──
+function hierMakeDA(ta, da) {
+  const item = document.createElement('div');
+  item.className = 'hier-item';
 
-function hierClickTA(taId) {
-  const already = hierState.openTAs.has(taId);
-  if (already) { hierState.openTAs.delete(taId); }
-  else { hierState.openTAs.add(taId); }
-  hierState.selTA = already ? null : taId;
-  hierState.selDA = null; hierState.selInd = null; hierState.selTgt = null;
-  hierRebuild();
-  hierUpdateFooter();
+  const row = document.createElement('div');
+  row.className = 'hier-row';
+  row.title = da.full;
+  row.innerHTML = `
+    <div class="hier-row-name hier-da-name">${da.name}</div>
+    <div class="hier-row-count">${da.total}</div>
+    <div class="hier-row-arrow">▶</div>
+  `;
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta, da}); });
+
+  // Sub-panel: Indications
+  const sub = document.createElement('div');
+  sub.className = 'hier-sub-panel';
+  da.inds.forEach((ind, ii) => {
+    if (ii > 0) sub.appendChild(hierDivider());
+    sub.appendChild(hierMakeInd(ta, da, ind));
+  });
+
+  item.appendChild(row);
+  item.appendChild(sub);
+  return item;
 }
 
-function hierClickDA(taId, daId) {
-  const already = hierState.openDAs.has(daId);
-  if (already) { hierState.openDAs.delete(daId); }
-  else { hierState.openDAs.add(daId); hierState.openTAs.add(taId); }
-  hierState.selTA = taId; hierState.selDA = already ? null : daId;
-  hierState.selInd = null; hierState.selTgt = null;
-  hierRebuild();
-  hierUpdateFooter();
+// ── Level 3: Indication ──
+function hierMakeInd(ta, da, ind) {
+  const item = document.createElement('div');
+  item.className = 'hier-item';
+
+  const row = document.createElement('div');
+  row.className = 'hier-row';
+  row.innerHTML = `
+    <span class="hier-ind-abbr">${ind.abbr}</span>
+    <div class="hier-row-name hier-ind-name">${ind.name}</div>
+    <div class="hier-row-count">${ind.total}</div>
+    <div class="hier-row-arrow">▶</div>
+  `;
+  row.addEventListener('click', (e) => { e.stopPropagation(); hierSetSel({ta, da, ind}); });
+
+  // Sub-panel: Targets (leaf level — no further children)
+  const sub = document.createElement('div');
+  sub.className = 'hier-sub-panel';
+
+  // Panel header shows indication context
+  const hd = document.createElement('div');
+  hd.className = 'hier-sub-hd';
+  hd.innerHTML = `
+    <div class="hier-sub-hd-label">${da.name}</div>
+    <div class="hier-sub-hd-name">${ind.name}</div>
+  `;
+  sub.appendChild(hd);
+
+  ind.tgts.forEach(tgt => {
+    const trow = document.createElement('div');
+    const isSel = hierState.sel?.tgt?.id === tgt.id && hierState.sel?.ind?.id === ind.id;
+    trow.className = 'hier-row hier-tgt-row' + (isSel ? ' selected-tgt' : '');
+    trow.innerHTML = `
+      <div class="hier-tgt-dot"></div>
+      <div class="hier-row-name hier-tgt-name">${tgt.name}</div>
+      <div class="hier-row-count">${tgt.n}</div>
+    `;
+    trow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hierSetSel({ta, da, ind, tgt});
+      hierShowSelectionToast(tgt.name);
+      // Keep dropdown open so user can see footer update; close on next outside click
+    });
+    sub.appendChild(trow);
+  });
+
+  item.appendChild(row);
+  item.appendChild(sub);
+  return item;
 }
 
-function hierClickInd(taId, daId, indId) {
-  const already = hierState.openInds.has(indId);
-  if (already) { hierState.openInds.delete(indId); }
-  else { hierState.openInds.add(indId); hierState.openDAs.add(daId); hierState.openTAs.add(taId); }
-  hierState.selTA = taId; hierState.selDA = daId;
-  hierState.selInd = already ? null : indId;
-  hierState.selTgt = null;
-  hierRebuild();
-  hierUpdateFooter();
-}
-
-function hierClickTgt(taId, daId, indId, tgtId, tgtName) {
-  hierState.selTA = taId; hierState.selDA = daId; hierState.selInd = indId; hierState.selTgt = tgtId;
-  hierState.openTAs.add(taId); hierState.openDAs.add(daId); hierState.openInds.add(indId);
-  hierRebuild();
-  hierUpdateFooter();
-  // Prototype-only toast — no dashboard navigation yet
-  hierShowSelectionToast(tgtName);
-}
-
-function hierRebuild() {
+// ── Selection tracking ──────────────────────────────────
+function hierSetSel(sel) {
+  hierState.sel = sel;
+  // Rebuild to update selected-tgt highlight, then update footer
   hierState.built = false;
   hierBuildTree();
   hierState.built = true;
+  hierUpdateFooter();
 }
 
 function hierClearSelection() {
-  hierState.selTA = null; hierState.selDA = null; hierState.selInd = null; hierState.selTgt = null;
-  hierState.openTAs.clear(); hierState.openDAs.clear(); hierState.openInds.clear();
-  hierRebuild();
+  hierState.sel = null;
+  hierState.built = false;
+  hierBuildTree();
+  hierState.built = true;
   hierUpdateFooter();
 }
 
@@ -17945,37 +17897,23 @@ function hierUpdateFooter() {
   const path  = document.getElementById('hier-footer-path');
   const clear = document.getElementById('hier-footer-clear');
   if (!path) return;
-
-  const ta  = HIER_DATA.find(t => t.id === hierState.selTA);
-  const da  = ta?.das.find(d => d.id === hierState.selDA);
-  const ind = da?.inds.find(i => i.id === hierState.selInd);
-  const tgt = ind?.tgts.find(t => t.id === hierState.selTgt);
-
-  if (tgt) {
-    path.textContent = [ta.name, da.name, ind.abbr, tgt.name].join(' › ');
-    path.className = 'hier-dd-footer-path has-sel';
-    clear.className = 'hier-dd-footer-clear visible';
-  } else if (ind) {
-    path.textContent = [ta.name, da.name, ind.abbr].join(' › ');
-    path.className = 'hier-dd-footer-path has-sel';
-    clear.className = 'hier-dd-footer-clear visible';
-  } else if (da) {
-    path.textContent = [ta.name, da.name].join(' › ');
-    path.className = 'hier-dd-footer-path has-sel';
-    clear.className = 'hier-dd-footer-clear visible';
-  } else if (ta) {
-    path.textContent = ta.name;
-    path.className = 'hier-dd-footer-path has-sel';
-    clear.className = 'hier-dd-footer-clear visible';
-  } else {
-    path.textContent = 'Select a therapeutic area, disease, indication, or target';
+  const s = hierState.sel;
+  if (!s || !s.ta) {
+    path.textContent = 'Hover to explore · click to select';
     path.className = 'hier-dd-footer-path';
     clear.className = 'hier-dd-footer-clear';
+  } else {
+    const parts = [s.ta.name];
+    if (s.da)  parts.push(s.da.name);
+    if (s.ind) parts.push(s.ind.abbr);
+    if (s.tgt) parts.push(s.tgt.name);
+    path.textContent = parts.join(' › ');
+    path.className = 'hier-dd-footer-path has-sel';
+    clear.className = 'hier-dd-footer-clear visible';
   }
 }
 
 function hierShowSelectionToast(name) {
-  // Lightweight prototype feedback — remove when wiring live data
   let t = document.getElementById('hier-toast');
   if (!t) {
     t = document.createElement('div');
@@ -17983,10 +17921,10 @@ function hierShowSelectionToast(name) {
     t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f1e32;color:white;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);pointer-events:none;transition:opacity 0.3s;';
     document.body.appendChild(t);
   }
-  t.textContent = '🎯 ' + name + ' selected · dashboard filter coming after UX approval';
+  t.textContent = '🎯 ' + name + ' · dashboard filter wires in after UX approval';
   t.style.opacity = '1';
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
 }
 function closeCenterDrugDD() {
   const dd = document.getElementById('center-drug-dd');
