@@ -2046,6 +2046,7 @@ const FEATURE_FLAGS = {
   useNormalizedTED:       true,   // Candidate 2: ACTIVATED 2026-05-25 — all 8 gates passed incl. runtime ted_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
   useNormalizedDrugModal: true,   // Candidate 3: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed. Labels clean (IL-23p19, EoE, Chronic Urticaria), confidence display correct (95% not 9500%), CIDP evidence verified (reviewed_by kyle-2026-05-25, NCT07188/NCT05581). Rollback: set false.
   useUnifiedTL1A:         true,   // Candidate 4: ACTIVATED 2026-05-25 — all 8 gates passed. drug_targets(target_id='tl1a') replaces drug_areas. count 50→34 (scope-diff drugs correctly excluded). adjusted_match_pct=100, compare_pass_oos_adjusted. Rollback: set false.
+  useUnifiedAtopy:        false,  // Candidates 5+6: TSLP + IL-4Rα bundled (do not enable yet). Covers il4ra-ox40l, il4ra-tslp, tslp tabs.
 };
 
 // ── Tag colour map ──────────────────────────────────────────────────────────
@@ -12491,20 +12492,42 @@ function _makeAreaPI(tabId, areaIds) {
         // Pre-flight audit: 100% adj match (33/33). All differences classified.
         // Rollback: set FEATURE_FLAGS.useUnifiedTL1A = false.
         const _TL1A_NORM = !!(FEATURE_FLAGS.useUnifiedTL1A && this.areaIds.includes('tl1a'));
+        // ── Phase 5 Candidates 5+6 — TSLP + IL-4Rα unified source ───────────
+        // Bundled because il4ra-tslp tab uses areaIds=['il4ra','tslp']:
+        // activating only one would require a mixed legacy/normalized source.
+        // When FEATURE_FLAGS.useUnifiedAtopy=true: drug membership from
+        // drug_targets(target_id IN _atopyTargets) instead of drug_areas.
+        // Atopy tabs scope_diff exclusions:
+        //   IL-4Rα: OX40L(×1), IL-13(×3), IL-31Rα(×1) → 5 excluded, adj=100%
+        //   TSLP:   IL-33(×2),IL-5Rα(×1),IL-5(×1),IL-4Rα(×1),IL-33R(×1) → 6 excl, adj=100%
+        // Pre-flight audit (Session 54): all differences classified, adj=100%.
+        // Rollback: set FEATURE_FLAGS.useUnifiedAtopy = false.
+        const _il4ra = this.areaIds.includes('il4ra');
+        const _tslp  = this.areaIds.includes('tslp');
+        const _ATOPY_NORM = !!(FEATURE_FLAGS.useUnifiedAtopy && (_il4ra || _tslp));
+        const _atopyTargets = [
+          ...(_il4ra ? ['il4ra'] : []),
+          ...(_tslp  ? ['tslp','tslpr'] : [])
+        ];
+        this._atopyNorm    = _ATOPY_NORM;    // stored for _loadEntityMeta
+        this._atopyTargets = _atopyTargets;  // stored for _loadEntityMeta
         this._ibdNorm  = _IBD_NORM;  // stored for _loadEntityMeta
         this._tl1aNorm = _TL1A_NORM; // stored for _loadEntityMeta
 
         // Parallel fetches — query A switches on flag; B/C/D always unchanged
+        // Precedence: _ATOPY_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → legacy drug_areas
         const [_memberResult, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
-          _TL1A_NORM
-            ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
-            : _IBD_NORM
-              ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
-              : _TED_NORM
-                ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
-                : _sb.from('drug_areas')
-                    .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
-                    .in('area_id', this.areaIds),
+          _ATOPY_NORM
+            ? _sb.from('drug_targets').select('drug_id').in('target_id', _atopyTargets)
+            : _TL1A_NORM
+              ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
+              : _IBD_NORM
+                ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
+                : _TED_NORM
+                  ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
+                  : _sb.from('drug_areas')
+                      .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
+                      .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
             .in('area_id', this.areaIds),
@@ -12516,7 +12539,7 @@ function _makeAreaPI(tabId, areaIds) {
 
         // Normalized path: resolve drug_ids → full drug objects (second fetch)
         let rows, error;
-        if (_IBD_NORM || _TED_NORM || _TL1A_NORM) {
+        if (_ATOPY_NORM || _IBD_NORM || _TED_NORM || _TL1A_NORM) {
           if (_memberResult.error) throw _memberResult.error;
           const _normIds = [...new Set((_memberResult.data||[]).map(r=>r.drug_id))];
           if (_normIds.length) {
@@ -12621,6 +12644,9 @@ function _makeAreaPI(tabId, areaIds) {
         if (this.areaIds.includes('tl1a')) this._runPhase4BTL1ADualRead(scoreRows);
         // Phase 4B Path C — TED indication-group dual-read (non-blocking, parallel only)
         if (this.areaIds.includes('igf1r')) this._runPhase4BTEDDualRead(scoreRows);
+        // Phase 4B Paths D/E — Atopy dual-read: IL-4Rα + TSLP target-views (non-blocking)
+        if (this.areaIds.includes('il4ra')) this._runPhase4BAtopyDualRead(scoreRows, 'il4ra', ['il4ra']);
+        if (this.areaIds.includes('tslp'))  this._runPhase4BAtopyDualRead(scoreRows, 'tslp',  ['tslp','tslpr']);
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -12670,11 +12696,13 @@ function _makeAreaPI(tabId, areaIds) {
         const companySet = new Set(companyIds);
 
         const [drugAreaRes, comboRes, catRes] = await Promise.all([
-          this._tl1aNorm
-            ? _sb.from('drug_targets').select('drug_id,drugs(id,company_id,indication_short)').eq('target_id', 'tl1a').limit(500)
-            : this._ibdNorm
-              ? _sb.from('drug_indications').select('drug_id,drugs(id,company_id,indication_short)').in('indication_id', ['uc','cd']).limit(500)
-              : _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
+          this._atopyNorm
+            ? _sb.from('drug_targets').select('drug_id,drugs(id,company_id,indication_short)').in('target_id', this._atopyTargets || []).limit(500)
+            : this._tl1aNorm
+              ? _sb.from('drug_targets').select('drug_id,drugs(id,company_id,indication_short)').eq('target_id', 'tl1a').limit(500)
+              : this._ibdNorm
+                ? _sb.from('drug_indications').select('drug_id,drugs(id,company_id,indication_short)').in('indication_id', ['uc','cd']).limit(500)
+                : _sb.from('drug_areas').select('drugs(id,company_id,indication_short)').in('area_id', this.areaIds).limit(500),
           _sb.from('drug_combinations').select('company_id').in('area_id', this.areaIds).limit(300),
           _sb.from('catalysts').select('company_id,catalyst_date,sort_date').in('company_id', companyIds).eq('resolved', false).gte('sort_date', today).order('sort_date', { ascending: true }).limit(300),
         ]);
@@ -14862,6 +14890,112 @@ function _makeAreaPI(tabId, areaIds) {
       );
     } catch(err) {
       console.warn('[Phase4B-TED] dual-read error:', err.message);
+    }
+  },
+
+  // Phase 4B Path D/E — Atopy (IL-4Rα + TSLP) dual-read comparison
+  // Called once per atopy area on PI tab load. areaId = 'il4ra' | 'tslp'
+  // targetIds = ['il4ra'] | ['tslp','tslpr']
+  async _runPhase4BAtopyDualRead(legacyScoreRows, areaId, targetIds) {
+    // Scope-diff drugs per area: present in legacy drug_areas (atopy area) but correctly
+    // excluded from drug_targets because they target a different molecule in the pathway.
+    const IL4RA_SCOPE_DIFF = {
+      'amlitelimab':  { classification: 'scope_difference', note: 'Targets OX40L, not IL-4Rα — atopy area scope, different target' },
+      'lebrikizumab': { classification: 'scope_difference', note: 'Targets IL-13, not IL-4Rα — atopy area scope, different target' },
+      'nemolizumab':  { classification: 'scope_difference', note: 'Targets IL-31Rα, not IL-4Rα — atopy area scope, different target' },
+      'tralokinumab': { classification: 'scope_difference', note: 'Targets IL-13, not IL-4Rα — atopy area scope, different target' },
+      'zumilokibart': { classification: 'scope_difference', note: 'Targets IL-13, not IL-4Rα — atopy area scope, different target' },
+    };
+    const TSLP_SCOPE_DIFF = {
+      'astegolimab':  { classification: 'scope_difference', note: 'Targets IL-33, not TSLP/TSLPR — atopy area scope, different target' },
+      'benralizumab': { classification: 'scope_difference', note: 'Targets IL-5Rα, not TSLP/TSLPR — atopy area scope, different target' },
+      'dupilumab':    { classification: 'scope_difference', note: 'Targets IL-4Rα (not TSLP/TSLPR) — appears in TSLP tab via area join only' },
+      'itepekimab':   { classification: 'scope_difference', note: 'Targets IL-33, not TSLP/TSLPR — atopy area scope, different target' },
+      'mepolizumab':  { classification: 'scope_difference', note: 'Targets IL-5, not TSLP/TSLPR — atopy area scope, different target' },
+      'tozorakimab':  { classification: 'scope_difference', note: 'Targets IL-33R/ST2, not TSLP/TSLPR — atopy area scope, different target' },
+    };
+
+    const SCOPE_DIFF_MAP = areaId === 'il4ra' ? IL4RA_SCOPE_DIFF : TSLP_SCOPE_DIFF;
+    const pathName = areaId === 'il4ra' ? 'il4ra_target_view' : 'tslp_target_view';
+    const legacyLabel = `[Phase4B-Atopy-${areaId.toUpperCase()}]`;
+
+    try {
+      // Legacy set: drugs in drug_area_scores with area_id = areaId
+      let _legacyRows = (legacyScoreRows || []).filter(s => s.area_id === areaId);
+      if (!_legacyRows.length) {
+        const { data: fetched } = await _sb
+          .from('drug_area_scores')
+          .select('drug_id,area_id')
+          .eq('area_id', areaId);
+        _legacyRows = fetched || [];
+      }
+      const legacySet = new Set(_legacyRows.map(s => s.drug_id));
+
+      // Normalized set: drugs in drug_targets with target_id IN targetIds
+      const { data: normRows, error: normErr } = await _sb
+        .from('drug_targets')
+        .select('drug_id,target_id')
+        .in('target_id', targetIds);
+      if (normErr) throw normErr;
+      const normSet = new Set((normRows || []).map(r => r.drug_id));
+
+      // Overlap, extra-legacy, extra-normalized
+      const overlapSet  = new Set([...legacySet].filter(id => normSet.has(id)));
+      const extraLegacy = [...legacySet].filter(id => !normSet.has(id));
+      const extraNorm   = [...normSet].filter(id => !legacySet.has(id));
+
+      // Classify differences
+      const diffClassifications = {};
+      extraLegacy.forEach(id => {
+        diffClassifications[id] = SCOPE_DIFF_MAP[id]
+          || { classification: 'needs_manual_review', note: 'Unclassified extra-legacy record — check target assignment' };
+      });
+      extraNorm.forEach(id => {
+        diffClassifications[id] = { classification: 'new_normalized_value', note: `Drug in drug_targets(${targetIds.join(',')}) not in legacy — genuine normalized addition` };
+      });
+
+      // Metrics
+      const legacyCount  = legacySet.size;
+      const normCount    = normSet.size;
+      const overlapCount = overlapSet.size;
+      const rawMatchPct  = legacyCount > 0 ? Math.round(overlapCount / legacyCount * 1000) / 10 : 0;
+
+      // Adjusted: scope_difference drugs are correctly excluded — remove from denominator
+      const scopeDiffCount = extraLegacy.filter(id =>
+        diffClassifications[id]?.classification === 'scope_difference'
+      ).length;
+      const adjDenominator = legacyCount - scopeDiffCount;
+      const adjMatchPct    = adjDenominator > 0 ? Math.round(overlapCount / adjDenominator * 1000) / 10 : 100;
+
+      const status = adjMatchPct >= 95 ? 'compare_pass_oos_adjusted' :
+                     rawMatchPct >= 95 ? 'compare_pass' : 'migration_blocker';
+
+      const record = {
+        component:               '_makeAreaPI',
+        path:                    pathName,
+        legacy_source:           `drug_area_scores.area_id = '${areaId}'`,
+        normalized_source:       `drug_targets.target_id IN (${targetIds.map(t=>`'${t}'`).join(',')})`,
+        legacy_count:            legacyCount,
+        normalized_count:        normCount,
+        overlap_count:           overlapCount,
+        raw_match_pct:           rawMatchPct,
+        scope_diff_count:        scopeDiffCount,
+        adjusted_denominator:    adjDenominator,
+        adjusted_match_pct:      adjMatchPct,
+        extra_legacy:            extraLegacy,
+        extra_normalized:        extraNorm,
+        difference_classifications: diffClassifications,
+        status,
+        timestamp:               new Date().toISOString(),
+      };
+
+      window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+      console.log(
+        `${legacyLabel} legacy=${legacyCount} norm=${normCount} overlap=${overlapCount}` +
+        ` raw=${rawMatchPct}% scopeDiff=${scopeDiffCount} adj=${adjMatchPct}% → ${status}`
+      );
+    } catch(err) {
+      console.warn(`${legacyLabel} dual-read error:`, err.message);
     }
   },
 
