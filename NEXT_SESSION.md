@@ -1,23 +1,67 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 58 (2026-05-26) — **Phase 6 Master Plan complete. All 8 governance docs committed (drug_areas_disposition, redirected_entities_inventory, strategic_views_architecture, ontology_consistency_sweep, drug_areas_retirement_simulation, phase6_master_plan, drug_competitive_scores_design, wave3_enrichment_plan). Architecture diagram produced. Key insight: drug_areas is replaceable; drug_area_scores is not — WS3 is the largest remaining engineering milestone (5–8 sessions). Total Phase 6 estimate: 14–20 sessions.**
+**Last session:** Session 59 (2026-05-26) — **C5+C6 permanently ACTIVATED (`useUnifiedAtopy: true`, commit `32eeb683`). All 10 post-activation checks PASS. All 5 feature flags now true. P0 ECC-1 fixes applied (apg333.target='TSLP', rocatinlimab.target='OX40L'). Phase 6 Master Plan complete (8 governance docs committed). Session 60 begins Phase 6 execution.**
 
-**Track A — still blocked (third consecutive session). Step 0 every session: check `githubstatus.com`. If Actions+Pages operational: deploy → G6 (zero console errors) → G7 (window.showPhase4Compare() returns compare_pass_oos_adjusted for il4ra + tslp) → advisor go → activate useUnifiedAtopy=true → deploy → re-test → log.**
+## Phase 5 Status — ALL CANDIDATES ACTIVATED ✅
 
-```bash
-curl -s "https://www.githubstatus.com/api/v2/components.json" | python3 -c "
-import json,sys
-data=json.load(sys.stdin)
-for c in data['components']:
-    if any(k in c['name'].lower() for k in ['actions','pages','git']):
-        print(f\"{c['name']}: {c['status']}\")
-"
-```
+| Candidate | Flag | Status |
+|---|---|---|
+| IBD (C1) | `useNormalizedIBD=true` | ✅ ACTIVATED |
+| TED (C2) | `useNormalizedTED=true` | ✅ ACTIVATED |
+| Drug Modal (C3) | `useNormalizedDrugModal=true` | ✅ ACTIVATED |
+| TL1A (C4) | `useUnifiedTL1A=true` | ✅ ACTIVATED |
+| TSLP+IL-4Rα (C5/C6) | `useUnifiedAtopy=true` | ✅ **ACTIVATED 2026-05-26** |
+| FcRn (C7) | `useUnifiedFCRN` | ⏳ Code not yet written |
 
-**If still degraded (Session 59 fallback — no Pages needed):**
-1. **P0 ECC-1 fixes (do first):** `apg333.drugs.target → 'TSLP'` and `rocatinlimab.drugs.target → 'OX40L'`
-2. **Wave 3 Wave A backfill:** Run `wave3_drug_indications_backfill.py` — Tier 1+2 priority: iscalimab (5 rows), lutikizumab (3), imvt-1402 (2), astegolimab (2) = 12 rows first
-3. **C7 code implementation:** Add `useUnifiedFCRN: false` to FEATURE_FLAGS in index.html, add `_FCRN_NORM` branch in `_makeAreaPI().init()`, build `_runPhase4BFCRNDualRead()` method (pattern: `_runPhase4BTL1ADualRead`), fix riliprubart drugs.target (`'C1q complement'` → `'FcRn'`)
+**drug_areas no longer serves any normalized tab queries for tl1a/ibd/igf1r/atopy/il4ra/tslp. Only autoimmune/respiratory/tcell remain.**
+
+---
+
+## Session 60 Priority Queue (Phase 6 Execution)
+
+### P0 — WS1: Implement C7 FcRn (no Pages needed)
+
+**File:** `index.html`  
+**Pattern:** Follow `_runPhase4BTL1ADualRead` / `useUnifiedTL1A` exactly.
+
+Steps:
+1. Add `useUnifiedFCRN: false` to FEATURE_FLAGS (with comment)
+2. Add `_FCRN_NORM` branch in `_makeAreaPI()` init block (after TSLP/IL-4Rα block)
+3. Build `_runPhase4BFCRNDualRead()` method — reads `drug_targets WHERE target_id='fcrn'` vs legacy `drug_areas WHERE area_id='fcrn'`
+4. Fix `riliprubart.drugs.target`: `'C1q complement'` → `'FcRn'` (Supabase PATCH)
+5. Deploy with flag=false
+6. Run G1–G8 validation gates (see pre-flight audit in this doc: `fcrn: legacy=6, norm=7, overlap=6, adj=100%`)
+7. On all 8 pass: request advisor go → set flag=true → deploy → retest
+
+### P1 — WS2: Wave 3 drug_indications backfill (no Pages needed)
+
+**Script:** `scripts/wave3_drug_indications_backfill.py` — write and run  
+**Plan:** `docs/wave3_enrichment_plan.md`
+
+Tier 1+2 priority (12 rows first):
+- iscalimab → gmg, hs, ra, sjogrens, sle (5 rows)
+- lutikizumab → ad, hs, uc (3 rows)
+- imvt-1402 → ra, ted (2 rows)
+- astegolimab → ad, asthma (2 rows)
+
+Pre-flight: verify indication_ids exist → run dry_run → commit → post-validation
+
+### P2 — WS3: drug_competitive_scores SQL + migration script
+
+**Plan:** `docs/drug_competitive_scores_design.md`
+
+Steps:
+1. Run pre-migration queries: count rows per area_id, identify ted/igf1r duplicates, identify atopy scope
+2. Write `scripts/migrate_drug_area_scores.py`  
+3. Create `drug_competitive_scores` table in Supabase (SQL migration)
+4. Run migration script — verify row count + spot-check 20 rows
+
+### P3 — WS4: company_strategic_views seeding (after WS1 complete)
+
+**Plan:** `docs/strategic_views_architecture.md`  
+Not yet started. Seed autoimmune + respiratory strategic views.
+
+---
 
 See `docs/phase6_master_plan.md` for full session sequence and dependency map.
 
@@ -260,14 +304,15 @@ Full plan: `docs/phase4c_validation_plan.md`
 | TED area tab | `useNormalizedTED=true` | `71974d6` | Monitoring to ~2026-06-08 |
 | Drug modal | `useNormalizedDrugModal=true` | `cc1e0d6e` | Monitoring to ~2026-06-08 |
 | TL1A area tab | `useUnifiedTL1A=true` | `15d07a026275` | ACTIVATED 2026-05-25. Monitoring to ~2026-06-24. count=34, adj_match=100% |
+| TSLP + IL-4Rα (C5+C6) | `useUnifiedAtopy=true` | `32eeb683` | **ACTIVATED 2026-05-26**. TSLP adj=100% (14→10, scopeDiff=6), IL-4Rα adj=100% (9→5, scopeDiff=5). All 10 post-activation checks pass. |
 
 ### Implementation-Ready — Next in Activation Lane
 _(All gates pre-cleared, awaiting sequential activation)_
 
 | Candidate | Source swap | Adj match | Notes |
 |---|---|---|---|
-| **IL-4Rα (C6)** | `drug_areas area_id='il4ra'` → `drug_targets target_id='il4ra'` | **100%** (4/4) | ✅ **NEXT** — 5 OOS (scope_difference), 1 extra-norm (ibi333 bispecific — legitimate) |
-| FcRn area tab | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ READY after IL-4Rα — fix drugs.target for riliprubart first |
+| ~~IL-4Rα (C6)~~ | ~~`drug_areas area_id='il4ra'`~~ | ~~100%~~ | ✅ **ACTIVATED 2026-05-26** — useUnifiedAtopy=true covers IL-4Rα |
+| **FcRn (C7)** | `drug_areas area_id='fcrn'` → `drug_targets target_id='fcrn'` | **100%** (6/6 raw) | ✅ **NEXT** — fix drugs.target for riliprubart first. Code not yet written. |
 
 ### Blocked (reconciliation required)
 | Candidate | Source swap | Issue | Fix required |
