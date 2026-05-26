@@ -389,6 +389,37 @@ This is a better KPI than enrichment coverage because it measures utilization, n
 
 ---
 
+## Acceptance Tests — Session 66 Validation
+
+Before closing the session, verify these three traversals work end-to-end. If any fails, identify which layer of the depth chain is broken.
+
+**Test 1 — Company traversal:**  
+Open Ventyx Biosciences company card. Confirm visible without navigation:
+- [ ] ownership (ABBVie acquired 2022 — parent_company_id set)
+- [ ] drugs (VTX002 / izokibep / other pipeline)
+- [ ] catalysts (upcoming readouts)
+- [ ] news (recent articles mentioning Ventyx or VTX002)
+- [ ] deals / partnerships
+
+**Test 2 — Drug traversal:**  
+Open tulisokibart drug card. Confirm visible without navigation:
+- [ ] stage + mechanism + indications + targets
+- [ ] trials (active studies)
+- [ ] catalysts (upcoming readouts)
+- [ ] ownership (Protagonist → Novartis chain)
+- [ ] partnerships
+- [ ] recent news
+
+**Test 3 — News routing:**  
+Confirm a recent AbbVie article surfaces in all expected locations:
+- [ ] AbbVie company card "Recent Coverage"
+- [ ] Drug cards for matched_drug_ids
+- [ ] Homepage "Important Articles"
+
+Any failure maps directly to a depth chain break (Linked / Queryable / Rendered / Reachable) and becomes the next session's P1.
+
+---
+
 ## What NOT to Do in Session 66
 
 - Do not build new AI enrichment fields
