@@ -10359,9 +10359,21 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory'};
+  // ── Phase 5 Candidate 3 — normalized relationship label maps ─────────────────
+  const _IND_LABEL = {
+    uc:'Ulcerative Colitis', cd:"Crohn's Disease", ted:'Thyroid Eye Disease',
+    ad:'Atopic Dermatitis', asthma:'Asthma', copd:'COPD', crswnp:'CRSwNP',
+    ra:'Rheumatoid Arthritis', sle:'Lupus (SLE)', gmg:'Generalized MG',
+    cidp:'CIDP', igg4rd:'IgG4-RD', mg:'Myasthenia Gravis', hs:'Hidradenitis Suppurativa',
+  };
+  const _TARGET_LABEL = {
+    tl1a:'TL1A', tslp:'TSLP', il4ra:'IL-4Rα', fcrn:'FcRn',
+    igf1r:'IGF1R', tshr:'TSHR', bcma:'BCMA', cd19:'CD19', cd3:'CD3',
+    il13:'IL-13', il5:'IL-5', il33:'IL-33', ox40l:'OX40L', ox40:'OX40',
+  };
 
   const drugName = drug.display_name || drug.name || 'Unknown drug';
   const mechanism = drug.mechanism || '';
@@ -10419,14 +10431,25 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
   </div>`;
 
   // Trials section
-  const trialSummary = (trials||[]).slice(0,3).map(t => `
+  // ── Phase 5 Candidate 3 — trial indication ontology map (normalized) ─────────
+  const _trialIndMap = {};
+  (normData?.trialInds || []).forEach(ti => {
+    if (!_trialIndMap[ti.trial_id]) _trialIndMap[ti.trial_id] = [];
+    _trialIndMap[ti.trial_id].push(ti.indication_id);
+  });
+  const trialSummary = (trials||[]).slice(0,3).map(t => {
+    const _tIndPills = (_trialIndMap[t.id] || [])
+      .map(i => `<span style="font-size:9px;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:3px">${_IND_LABEL[i]||i}</span>`)
+      .join('');
+    return `
     <div class="cem-item-row">
       ${_cemPhasePill(t.phase)}
       <div>
-        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemTrialLink(t.trial_name||t.indication||'Trial', t.nct_id)}</div>
+        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemTrialLink(t.trial_name||t.indication||'Trial', t.nct_id)}${_tIndPills}</div>
         <div style="font-size:10.5px;color:#64748b">${t.indication||''} ${t.status?'· '+t.status:''}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const trialDetail = `<div class="cem-det-inner">
     <div class="cem-det-title">Full trial detail</div>
@@ -10485,6 +10508,49 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
     ${molData.half_life ? `<div class="cem-fact"><span class="cem-fact-lbl">Half-life</span><span class="cem-fact-val">${molData.half_life}</span></div>` : ''}
     ${molData.dosing_interval ? `<div class="cem-fact"><span class="cem-fact-lbl">Dosing</span><span class="cem-fact-val">${molData.dosing_interval}</span></div>` : ''}
   </div>` : '<div class="cem-det-inner"><div style="font-size:11px;color:#94a3b8">No molecule intelligence data yet — run enrichment to populate.</div></div>';
+
+  // ── Phase 5 Candidate 3 — Normalized Targets section ─────────────────────────
+  const _normTargets = normData?.targets || [];
+  const normTargetsSummary = _normTargets.slice(0,4).map(t => {
+    const tLbl = _TARGET_LABEL[t.target_id] || t.target_id.toUpperCase();
+    const confPill = t.confidence_score != null
+      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">${Math.round(t.confidence_score*100)}%</span>` : '';
+    const rvwPill  = t.review_status && t.review_status !== 'confirmed'
+      ? `<span style="font-size:9px;background:#fff7ed;color:#c2410c;border-radius:4px;padding:1px 5px;margin-left:3px">${t.review_status}</span>` : '';
+    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${tLbl}</div></div>${confPill}${rvwPill}</div>`;
+  }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No target relationships in normalized table.</span>';
+  const normTargetsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">drug_targets — normalized relationship data</div>
+    <table class="cem-tbl"><thead><tr><th>Target</th><th>Confidence</th><th>Review status</th></tr></thead><tbody>
+    ${_normTargets.map(t => `<tr>
+      <td style="font-weight:600">${_TARGET_LABEL[t.target_id]||t.target_id.toUpperCase()}</td>
+      <td style="color:#64748b">${t.confidence_score != null ? Math.round(t.confidence_score*100)+'%' : '—'}</td>
+      <td style="color:#64748b">${t.review_status||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+
+  // ── Phase 5 Candidate 3 — Normalized Indications section ─────────────────────
+  const _normInds = normData?.indications || [];
+  const normIndsSummary = _normInds.slice(0,4).map(i => {
+    const iLbl = _IND_LABEL[i.indication_id] || i.indication_id.toUpperCase();
+    const stagePill = i.development_stage
+      ? `<span style="font-size:9px;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px">${i.development_stage}</span>` : '';
+    const confPill  = i.confidence_score != null
+      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:3px">${Math.round(i.confidence_score*100)}%</span>` : '';
+    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${iLbl}</div></div>${stagePill}${confPill}</div>`;
+  }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No indication relationships in normalized table.</span>';
+  const normIndsDetail = `<div class="cem-det-inner">
+    <div class="cem-det-title">drug_indications — normalized relationship data</div>
+    <table class="cem-tbl"><thead><tr><th>Indication</th><th>Stage</th><th>Confidence</th><th>Status</th></tr></thead><tbody>
+    ${_normInds.map(i => `<tr>
+      <td style="font-weight:600">${_IND_LABEL[i.indication_id]||i.indication_id.toUpperCase()}</td>
+      <td style="color:#64748b">${i.development_stage||'—'}</td>
+      <td style="color:#64748b">${i.confidence_score != null ? Math.round(i.confidence_score*100)+'%' : '—'}</td>
+      <td style="color:#64748b">${i.review_status||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>`;
 
   // Knowledge gaps
   const gaps = [];
@@ -10701,6 +10767,22 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals) {
           ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
         </div></div>
       </div>
+      ${_normTargets.length ? `<div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-norm-tgt')">
+          <div class="cem-sec-lbl">🎯 Targets <span style="font-size:9px;font-weight:700;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">Normalized</span></div>
+          <div class="cem-sec-hint">${_normTargets.length} target${_normTargets.length!==1?'s':''} <i id="cem-chev-dr-norm-tgt" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${normTargetsSummary}</div>
+        <div class="cem-det" id="cem-det-dr-norm-tgt">${normTargetsDetail}</div>
+      </div>` : ''}
+      ${_normInds.length ? `<div class="cem-cell">
+        <div class="cem-sec-hdr" onclick="_cemToggle('dr-norm-ind')">
+          <div class="cem-sec-lbl">🩺 Indications <span style="font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px">Normalized</span></div>
+          <div class="cem-sec-hint">${_normInds.length} indication${_normInds.length!==1?'s':''} <i id="cem-chev-dr-norm-ind" class="cem-chev">▶</i></div>
+        </div>
+        <div class="cem-sec-body">${normIndsSummary}</div>
+        <div class="cem-det" id="cem-det-dr-norm-ind">${normIndsDetail}</div>
+      </div>` : ''}
     </div>`;
 
   // ── DRUG PROFILE TAB ──────────────────────────────────────────────────────
@@ -11673,8 +11755,40 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     subEl.textContent = companyName || 'Drug Profile';
+
+    // ── Phase 5 Candidate 3 — Drug modal normalized source ─────────────────────
+    // When FEATURE_FLAGS.useNormalizedDrugModal=true: fetch drug_targets,
+    // drug_indications, and trial_indications (via trial IDs) for display in the
+    // Targets and Indications cells of the modal overview. Non-blocking — errors
+    // fall back to normData=null (no normalized cells shown).
+    let normData = null;
+    if (FEATURE_FLAGS.useNormalizedDrugModal) {
+      const _normDrugId = drug?.id || drugId;
+      if (_normDrugId && !String(_normDrugId).startsWith('static-')) {
+        try {
+          const [_dtR, _diR] = await Promise.all([
+            _sb.from('drug_targets').select('target_id,confidence_score,review_status').eq('drug_id', _normDrugId),
+            _sb.from('drug_indications').select('indication_id,confidence_score,development_stage,review_status').eq('drug_id', _normDrugId),
+          ]);
+          const _nTargets = _dtR.data || [];
+          const _nInds    = _diR.data || [];
+          let   _nTrialInds = [];
+          if (trials.length) {
+            const _tIds = trials.map(t => t.id).slice(0, 30);
+            const { data: _tiData } = await _sb.from('trial_indications')
+              .select('trial_id,indication_id,confidence_score')
+              .in('trial_id', _tIds);
+            _nTrialInds = _tiData || [];
+          }
+          normData = { targets: _nTargets, indications: _nInds, trialInds: _nTrialInds };
+        } catch(_normErr) {
+          console.warn('[drugModal-norm] normalized fetch error:', _normErr?.message);
+        }
+      }
+    }
+
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
