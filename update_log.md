@@ -1,5 +1,39 @@
 
 ---
+## 2026-05-25 (Session 55) — Phase 5 Candidate 4 PERMANENTLY ACTIVATED: useUnifiedTL1A=true
+
+**Fourth completed Phase 5 migration. TL1A area tab now reads from `drug_targets` (target_id='tl1a') instead of `drug_areas` (area_id='tl1a').**
+
+**8-gate validation results:**
+
+| Gate | Description | Result |
+|---|---|---|
+| G1 | flag=false → legacy path (drug_indications IBD) | ✅ count=49, firstTable=drug_indications |
+| G2 | flag=true → count=34, drug_targets fired | ✅ count=34, firstTable=drug_targets |
+| G3 | Real TL1A drugs present | ✅ tulisokibart, sim0709, duvakitug, afimkibart, XmAb412 |
+| G4 | Scope-diff drugs absent | ✅ scopeDiffPresent=[] |
+| G5 | anti-tl1a-xpf005-arm present | ✅ "Anti-TL1A (XPF005 arm)" confirmed |
+| G6 | Zero console errors | ✅ no errors |
+| G7 | Phase 4B dual-read = compare_pass_oos_adjusted | ✅ adjusted_match_pct=100, path=tl1a_target_view |
+| G8 | flag=false rollback → count restores to ~49 | ✅ count=49, tl1aNorm=false |
+
+**Key data points:**
+- Legacy (`drug_areas area_id='tl1a'`): 50 drugs
+- Normalized (`drug_targets target_id='tl1a'`): 34 drugs
+- Overlap: 33 | OOS: 17 scope_diff | Extra-norm: 1 (anti-tl1a-xpf005-arm)
+- Adjusted match: 100% (33/33)
+
+**FEATURE_FLAGS state after this session:**
+```javascript
+useNormalizedIBD:       true   // C1: ACTIVATED 2026-05-25
+useNormalizedTED:       true   // C2: ACTIVATED 2026-05-25
+useNormalizedDrugModal: true   // C3: ACTIVATED 2026-05-25
+useUnifiedTL1A:         true   // C4: ACTIVATED 2026-05-25 ← new
+```
+
+**Commit:** `15d07a026275b9f6b051ccd6ac390ecf0be7b2d3`
+
+---
 ## 2026-05-25 (Session 54) — Parallel pre-flight audits: all four Phase 5 remaining candidates classified
 
 **Audit scope:** TL1A (C4), TSLP (C5), IL-4Rα (C6), FcRn (C7) — all audited simultaneously. No code changes. Data only.
