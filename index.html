@@ -12359,15 +12359,23 @@ function _makeAreaPI(tabId, areaIds) {
         // Competitive scores (drug_area_scores), combos, companies: unchanged.
         // Rollback: set FEATURE_FLAGS.useNormalizedIBD = false.
         const _IBD_NORM = !!(FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd'));
+        // ── Phase 5 Candidate 2 — TED normalized source ──────────────────────
+        // When FEATURE_FLAGS.useNormalizedTED=true: drug membership from
+        // drug_indications (ted) instead of drug_areas (igf1r).
+        // Competitive scores (drug_area_scores), combos, companies: unchanged.
+        // Rollback: set FEATURE_FLAGS.useNormalizedTED = false.
+        const _TED_NORM = !!(FEATURE_FLAGS.useNormalizedTED && this.areaIds.includes('igf1r'));
         this._ibdNorm = _IBD_NORM; // stored for _loadEntityMeta
 
         // Parallel fetches — query A switches on flag; B/C/D always unchanged
         const [_memberResult, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _IBD_NORM
             ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
-            : _sb.from('drug_areas')
-                .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
-                .in('area_id', this.areaIds),
+            : _TED_NORM
+              ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
+              : _sb.from('drug_areas')
+                  .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
+                  .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
             .in('area_id', this.areaIds),
@@ -12379,7 +12387,7 @@ function _makeAreaPI(tabId, areaIds) {
 
         // Normalized path: resolve drug_ids → full drug objects (second fetch)
         let rows, error;
-        if (_IBD_NORM) {
+        if (_IBD_NORM || _TED_NORM) {
           if (_memberResult.error) throw _memberResult.error;
           const _normIds = [...new Set((_memberResult.data||[]).map(r=>r.drug_id))];
           if (_normIds.length) {
@@ -12482,6 +12490,8 @@ function _makeAreaPI(tabId, areaIds) {
         if (this.areaIds.includes('ibd')) this._runPhase4BDualRead(scoreRows);
         // Phase 4B Path B — TL1A target-view dual-read (non-blocking, parallel only)
         if (this.areaIds.includes('tl1a')) this._runPhase4BTL1ADualRead(scoreRows);
+        // Phase 4B Path C — TED indication-group dual-read (non-blocking, parallel only)
+        if (this.areaIds.includes('igf1r')) this._runPhase4BTEDDualRead(scoreRows);
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -14626,6 +14636,101 @@ function _makeAreaPI(tabId, areaIds) {
       );
     } catch(err) {
       console.warn('[Phase4B-TL1A] dual-read error:', err.message);
+    }
+  },
+
+  // ── Phase 4B Path C — TED indication-group dual-read ───────────────────────
+  // Governance: TED (Thyroid Eye Disease) is an indication mapped to igf1r area.
+  // Normalized source: drug_indications WHERE indication_id='ted'
+  // Legacy source:     drug_area_scores.area_id='igf1r'
+  // Pre-flight audit 2026-05-25: legacy=9, norm=13, overlap=9, raw=100%.
+  // 4 extra_norm drugs (crn12755, iscalimab, lonigutamab, sp-1351) classified as
+  // new_normalized_value — genuine TED drugs not in legacy igf1r bucket.
+  // 1 data error removed: cizutamig (BCMA×CD3 myeloma bispecific, tier3_pattern false
+  // positive on "TED" in compound indication list).
+  async _runPhase4BTEDDualRead(legacyScoreRows) {
+    // No extra-legacy classifications needed — all 9 legacy drugs confirmed in normalized.
+    // Extra-norm drugs are genuine TED additions (normalized path is strictly richer).
+    const TED_DIFF_CLASSIFICATIONS = {};
+
+    try {
+      // Legacy set: drugs in drug_area_scores with area_id = 'igf1r'
+      // Self-fetch if legacyScoreRows is missing or empty (robustness fix).
+      let _legacyRows = (legacyScoreRows || []).filter(s => s.area_id === 'igf1r');
+      if (!_legacyRows.length) {
+        const { data: fetched } = await _sb
+          .from('drug_area_scores')
+          .select('drug_id,area_id')
+          .eq('area_id', 'igf1r');
+        _legacyRows = fetched || [];
+      }
+      const legacySet = new Set(_legacyRows.map(s => s.drug_id));
+
+      // Normalized set: drugs in drug_indications with indication_id = 'ted'
+      const { data: normRows, error: normErr } = await _sb
+        .from('drug_indications')
+        .select('drug_id,indication_id')
+        .eq('indication_id', 'ted');
+      if (normErr) throw normErr;
+
+      const normSet = new Set((normRows || []).map(r => r.drug_id));
+
+      // Overlap, extra-legacy, extra-normalized
+      const overlapSet    = new Set([...legacySet].filter(id => normSet.has(id)));
+      const extraLegacy   = [...legacySet].filter(id => !normSet.has(id));
+      const extraNorm     = [...normSet].filter(id => !legacySet.has(id));
+
+      // Classify differences
+      const diffClassifications = {};
+      extraLegacy.forEach(id => {
+        diffClassifications[id] = TED_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'needs_manual_review', note: 'Unclassified extra-legacy record' };
+      });
+      extraNorm.forEach(id => {
+        diffClassifications[id] = TED_DIFF_CLASSIFICATIONS[id]
+          || { classification: 'new_normalized_value', note: 'Drug in normalized not present in legacy — genuine TED addition' };
+      });
+
+      // Metrics
+      const legacyCount  = legacySet.size;
+      const normCount    = normSet.size;
+      const overlapCount = overlapSet.size;
+      const rawMatchPct  = legacyCount > 0 ? Math.round(overlapCount / legacyCount * 1000) / 10 : 0;
+
+      // Adjusted: no noise_removed drugs for TED — raw and adjusted are equal
+      const noiseRemovedCount = extraLegacy.filter(id =>
+        diffClassifications[id]?.classification === 'legacy_noise_removed'
+      ).length;
+      const adjOverlap  = overlapCount + noiseRemovedCount;
+      const adjMatchPct = legacyCount > 0 ? Math.round(adjOverlap / legacyCount * 1000) / 10 : 0;
+
+      const status = adjMatchPct >= 95 ? 'compare_pass_oos_adjusted' :
+                     rawMatchPct >= 95 ? 'compare_pass' : 'migration_blocker';
+
+      const record = {
+        component:               '_makeAreaPI',
+        path:                    'ted_indication_group_view',
+        legacy_source:           "drug_area_scores.area_id = 'igf1r'",
+        normalized_source:       "drug_indications.indication_id = 'ted'",
+        legacy_count:            legacyCount,
+        normalized_count:        normCount,
+        overlap_count:           overlapCount,
+        raw_match_pct:           rawMatchPct,
+        adjusted_match_pct:      adjMatchPct,
+        extra_legacy:            extraLegacy,
+        extra_normalized:        extraNorm,
+        difference_classifications: diffClassifications,
+        status,
+        timestamp:               new Date().toISOString(),
+      };
+
+      window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+      console.log(
+        `[Phase4B-TED] legacy=${legacyCount} norm=${normCount} overlap=${overlapCount}` +
+        ` raw=${rawMatchPct}% adj=${adjMatchPct}% → ${status}`
+      );
+    } catch(err) {
+      console.warn('[Phase4B-TED] dual-read error:', err.message);
     }
   },
 
