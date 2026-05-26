@@ -1,6 +1,6 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53o (2026-05-25) — Phase 4C complete + IBD activation test run (7/8 gates passed); flag reverted to false pending manual IBD dual-read confirmation  
+**Last session:** Session 53o/p (2026-05-25) — Phase 4C complete + monitoring pass: TAB_AREA_MAP bug found and fixed; flag=false pending browser verification of Gate 8  
 **Prior session:** Session 53n/o — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications)
 
 ---
@@ -86,9 +86,9 @@ All Phase 4A work is done. Corrections applied and verified.
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
 | Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 activation test complete (7/8 gates); flag=false pending manual IBD dual-read confirm** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 monitoring pass complete; TAB_AREA_MAP fix deployed; flag=false pending browser Gate 8 verify** |
 
-**Phase 5 Candidate 1 (IBD): activation test ran 2026-05-25. 7/8 gates passed. Flag reverted to false (commit d942456). One gate remains: manual navigation to IBD section → `window.showPhase4Compare()` → confirm `compare_pass_oos_adjusted`. Re-enable after that check + advisor go.**
+**Phase 5 Candidate 1 (IBD): Monitoring pass found and resolved a blocking bug. TAB_AREA_MAP['tl1a'] was ['tl1a'], missing 'ibd' — making useNormalizedIBD a no-op. Fixed to ['tl1a', 'ibd']. Legacy behavior unchanged (ibd ⊂ tl1a in drug_areas). Gate 8 now requires: load TL1A tab with flag=true → `window.showPhase4Compare()` → confirm ibd record → re-enable flag permanently.**
 
 ---
 
@@ -231,19 +231,23 @@ Full plan: `docs/phase4c_validation_plan.md`
 
 | Candidate | Component | Flag | Default | Deployed | Activated |
 |---|---|---|---|---|---|
-| 1 | IBD area tab | `useNormalizedIBD` | **false** | ✅ (code live) | ⏸ **Activation test 7/8 — pending manual IBD dual-read confirm** |
+| 1 | IBD area tab | `useNormalizedIBD` | **false** | ✅ (code live + TAB_AREA_MAP fix deployed) | ⏸ **TAB_AREA_MAP fixed; pending browser Gate 8 verify → flip to true** |
 | 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**Candidate 1 activation test result (2026-05-25):** 7/8 gates passed. Flag reverted to false (commit `d942456`). One gate remaining.
+**Candidate 1 monitoring pass result (2026-05-25):** TAB_AREA_MAP bug found and fixed. Flag remains at false. Deployment in progress.
 
-**⚡ FIRST TASK NEXT SESSION — IBD dual-read manual check:**
-1. Open deployed dashboard (flag is currently `false` — flip to `true` locally or in a test build)
-2. Navigate: TL1A tab → IBD sub-section
-3. Open browser console → run `window.showPhase4Compare()`
-4. Confirm IBD record appears: `compare_pass_oos_adjusted`
-5. Report result → advisor go → set `useNormalizedIBD=true` permanently
+**⚡ FIRST TASK NEXT SESSION — Verify Gate 8, then flip flag:**
+1. Pull latest deploy (TAB_AREA_MAP fix is live)
+2. Temporarily set `useNormalizedIBD: true` in the deployed dashboard console or in index.html locally
+3. Navigate to TL1A tab (the IBD competitive landscape tab)
+4. Open browser console → run `window.showPhase4Compare()`
+5. Confirm two records appear — ibd record: `compare_pass_oos_adjusted` (94% raw → 100% adj)
+6. Advisor go → deploy `useNormalizedIBD: true` permanently
+
+**Why TAB_AREA_MAP fix was needed:**
+`_IBD_NORM = FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd')` — the 'ibd' check required 'ibd' in TAB_AREA_MAP, which was missing. Adding 'ibd' to ['tl1a', 'ibd'] is safe: ibd ⊂ tl1a in drug_areas, so the union is the same 50-drug legacy set. No display change in legacy mode.
 
 **Pre-activation checklist for permanent flip:**
 - [x] 10-drug modal sprint complete (Session 53o)
@@ -253,6 +257,7 @@ Full plan: `docs/phase4c_validation_plan.md`
 - [x] IBD count matches normalized output (49 legacy = 49 normalized)
 - [x] lm-302/sim0500/spy072/epi-001 excluded from normalized set
 - [x] Legacy fallback confirmed when flag=false
+- [x] **TAB_AREA_MAP fixed** — 'ibd' now in TL1A areaIds; flag path enabled; dual-read can fire
 - [ ] **IBD dual-read record directly observed in browser** ← ONLY REMAINING GATE
 
 ---
