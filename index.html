@@ -2047,6 +2047,7 @@ const FEATURE_FLAGS = {
   useNormalizedDrugModal: true,   // Candidate 3: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed. Labels clean (IL-23p19, EoE, Chronic Urticaria), confidence display correct (95% not 9500%), CIDP evidence verified (reviewed_by kyle-2026-05-25, NCT07188/NCT05581). Rollback: set false.
   useUnifiedTL1A:         true,   // Candidate 4: ACTIVATED 2026-05-25 — all 8 gates passed. drug_targets(target_id='tl1a') replaces drug_areas. count 50→34 (scope-diff drugs correctly excluded). adjusted_match_pct=100, compare_pass_oos_adjusted. Rollback: set false.
   useUnifiedAtopy:        true,   // Candidates 5+6: ACTIVATED 2026-05-26 — advisor go. TSLP adj=100% (14→10, scopeDiff=6), IL-4Rα adj=100% (9→5, scopeDiff=5). compare_pass_oos_adjusted both. drug_targets(target_id IN il4ra,tslp,tslpr) replaces drug_areas. Rollback: set false.
+  useUnifiedFCRN:         false,  // Candidate 7: NOT YET ACTIVATED. FcRn tab. drug_targets(target_id='fcrn') replaces drug_areas(fcrn). Gains: riliprubart (+1). Drops: atg-201 (scope_diff: CD19×CD3 bispecific, Watch-tier in legacy only). Pre-flight: legacy=7 norm=7 overlap=6 scopeDiff=1 adj=6/6=100%. Rollback: set false.
 };
 
 // ── Tag colour map ──────────────────────────────────────────────────────────
@@ -12513,21 +12514,34 @@ function _makeAreaPI(tabId, areaIds) {
         this._atopyTargets = _atopyTargets;  // stored for _loadEntityMeta
         this._ibdNorm  = _IBD_NORM;  // stored for _loadEntityMeta
         this._tl1aNorm = _TL1A_NORM; // stored for _loadEntityMeta
+        // ── Phase 5 Candidate 7 — FcRn unified source ────────────────────────
+        // When FEATURE_FLAGS.useUnifiedFCRN=true: drug membership from
+        // drug_targets(target_id='fcrn') instead of drug_areas(area_id='fcrn').
+        // Gains: riliprubart (SAR443765, Phase 3, IgAN+CIDP — confirmed FcRn inhibitor).
+        // Drops: atg-201 (scope_difference: CD19×CD3 bispecific — Watch-tier in legacy
+        //         FcRn area as UCB autoimmune asset, not an FcRn-targeting agent).
+        // Pre-flight (Session 54, updated Session 60): legacy=7 norm=7 overlap=6
+        //   scopeDiff=1(atg-201) adj=6/6=100% → compare_pass_oos_adjusted.
+        // Rollback: set FEATURE_FLAGS.useUnifiedFCRN = false.
+        const _FCRN_NORM = !!(FEATURE_FLAGS.useUnifiedFCRN && this.areaIds.includes('fcrn'));
+        this._fcrnNorm = _FCRN_NORM;  // stored for _loadEntityMeta
 
         // Parallel fetches — query A switches on flag; B/C/D always unchanged
-        // Precedence: _ATOPY_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → legacy drug_areas
+        // Precedence: _ATOPY_NORM → _FCRN_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → legacy drug_areas
         const [_memberResult, { data:comboRows }, { data:scoreRows }, { data:companiesRows }] = await Promise.all([
           _ATOPY_NORM
             ? _sb.from('drug_targets').select('drug_id').in('target_id', _atopyTargets)
-            : _TL1A_NORM
-              ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
-              : _IBD_NORM
-                ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
-                : _TED_NORM
-                  ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
-                  : _sb.from('drug_areas')
-                      .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
-                      .in('area_id', this.areaIds),
+            : _FCRN_NORM
+              ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'fcrn')
+              : _TL1A_NORM
+                ? _sb.from('drug_targets').select('drug_id').eq('target_id', 'tl1a')
+                : _IBD_NORM
+                  ? _sb.from('drug_indications').select('drug_id').in('indication_id', ['uc','cd'])
+                  : _TED_NORM
+                    ? _sb.from('drug_indications').select('drug_id').eq('indication_id', 'ted')
+                    : _sb.from('drug_areas')
+                        .select('drugs(id,name,brand_name,display_name,company_id,mechanism,target,cls,overlap,stage,stage_detail,key_data,ailux_angle,entity_id,entity_name,entity_type,partner_company,partnership_type,partnership_verified,licensor_name,licensor_code,indication_short,drug_summary,differentiation_thesis,strategic_role,route,dosing_type,current_owner_company_id,originator_company_id,ownership_status,display_partner_name,companies!company_id(name,ticker,status,hq_city,hq_country))')
+                        .in('area_id', this.areaIds),
           _sb.from('drug_combinations')
             .select('company_id')
             .in('area_id', this.areaIds),
@@ -12539,7 +12553,7 @@ function _makeAreaPI(tabId, areaIds) {
 
         // Normalized path: resolve drug_ids → full drug objects (second fetch)
         let rows, error;
-        if (_ATOPY_NORM || _IBD_NORM || _TED_NORM || _TL1A_NORM) {
+        if (_ATOPY_NORM || _FCRN_NORM || _IBD_NORM || _TED_NORM || _TL1A_NORM) {
           if (_memberResult.error) throw _memberResult.error;
           const _normIds = [...new Set((_memberResult.data||[]).map(r=>r.drug_id))];
           if (_normIds.length) {
@@ -12647,6 +12661,8 @@ function _makeAreaPI(tabId, areaIds) {
         // Phase 4B Paths D/E — Atopy dual-read: IL-4Rα + TSLP target-views (non-blocking)
         if (this.areaIds.includes('il4ra')) this._runPhase4BAtopyDualRead(scoreRows, 'il4ra', ['il4ra']);
         if (this.areaIds.includes('tslp'))  this._runPhase4BAtopyDualRead(scoreRows, 'tslp',  ['tslp','tslpr']);
+        // Phase 4B Path F — FcRn target-view dual-read (non-blocking)
+        if (this.areaIds.includes('fcrn')) this._runPhase4BFCRNDualRead(scoreRows);
       } catch(e) {
         const el2 = document.getElementById(this.tabId+'-area-pi');
         if (el2) el2.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
@@ -14975,6 +14991,99 @@ function _makeAreaPI(tabId, areaIds) {
         path:                    pathName,
         legacy_source:           `drug_area_scores.area_id = '${areaId}'`,
         normalized_source:       `drug_targets.target_id IN (${targetIds.map(t=>`'${t}'`).join(',')})`,
+        legacy_count:            legacyCount,
+        normalized_count:        normCount,
+        overlap_count:           overlapCount,
+        raw_match_pct:           rawMatchPct,
+        scope_diff_count:        scopeDiffCount,
+        adjusted_denominator:    adjDenominator,
+        adjusted_match_pct:      adjMatchPct,
+        extra_legacy:            extraLegacy,
+        extra_normalized:        extraNorm,
+        difference_classifications: diffClassifications,
+        status,
+        timestamp:               new Date().toISOString(),
+      };
+
+      window.__MERIDIAN_PHASE4_COMPARE__.push(record);
+      console.log(
+        `${legacyLabel} legacy=${legacyCount} norm=${normCount} overlap=${overlapCount}` +
+        ` raw=${rawMatchPct}% scopeDiff=${scopeDiffCount} adj=${adjMatchPct}% → ${status}`
+      );
+    } catch(err) {
+      console.warn(`${legacyLabel} dual-read error:`, err.message);
+    }
+  },
+
+  // Phase 4B Path F — FcRn target-view dual-read
+  // Legacy source:     drug_area_scores WHERE area_id='fcrn'     (7 rows incl. atg-201)
+  // Normalized source: drug_targets    WHERE target_id='fcrn'    (7 rows incl. riliprubart)
+  // Scope-diff: atg-201 (CD19×CD3 bispecific — Watch-tier in fcrn legacy, not an FcRn drug)
+  // Extra-norm: riliprubart (SAR443765 — confirmed FcRn inhibitor, was missing from drug_area_scores)
+  // Expected: legacy=7 norm=7 overlap=6 scopeDiff=1 adj=6/6=100% → compare_pass_oos_adjusted
+  async _runPhase4BFCRNDualRead(legacyScoreRows) {
+    const FCRN_SCOPE_DIFF = {
+      'atg-201': { classification: 'scope_difference', note: 'Targets CD19×CD3, not FcRn — Watch-tier UCB autoimmune asset in legacy fcrn area; correctly excluded from drug_targets(fcrn)' },
+    };
+    const pathName   = 'fcrn_target_view';
+    const legacyLabel = '[Phase4B-FCRN]';
+
+    try {
+      // Legacy set: drugs in drug_area_scores with area_id = 'fcrn'
+      let _legacyRows = (legacyScoreRows || []).filter(s => s.area_id === 'fcrn');
+      if (!_legacyRows.length) {
+        const { data: fetched } = await _sb
+          .from('drug_area_scores')
+          .select('drug_id,area_id')
+          .eq('area_id', 'fcrn');
+        _legacyRows = fetched || [];
+      }
+      const legacySet = new Set(_legacyRows.map(s => s.drug_id));
+
+      // Normalized set: drugs in drug_targets with target_id = 'fcrn'
+      const { data: normRows, error: normErr } = await _sb
+        .from('drug_targets')
+        .select('drug_id,target_id')
+        .eq('target_id', 'fcrn');
+      if (normErr) throw normErr;
+      const normSet = new Set((normRows || []).map(r => r.drug_id));
+
+      // Overlap, extra-legacy, extra-normalized
+      const overlapSet  = new Set([...legacySet].filter(id => normSet.has(id)));
+      const extraLegacy = [...legacySet].filter(id => !normSet.has(id));
+      const extraNorm   = [...normSet].filter(id => !legacySet.has(id));
+
+      // Classify differences
+      const diffClassifications = {};
+      extraLegacy.forEach(id => {
+        diffClassifications[id] = FCRN_SCOPE_DIFF[id]
+          || { classification: 'needs_manual_review', note: 'Unclassified extra-legacy record — check target assignment' };
+      });
+      extraNorm.forEach(id => {
+        diffClassifications[id] = { classification: 'new_normalized_value', note: 'Drug in drug_targets(fcrn) not in legacy drug_area_scores — genuine normalized addition' };
+      });
+
+      // Metrics
+      const legacyCount  = legacySet.size;
+      const normCount    = normSet.size;
+      const overlapCount = overlapSet.size;
+      const rawMatchPct  = legacyCount > 0 ? Math.round(overlapCount / legacyCount * 1000) / 10 : 0;
+
+      // Adjusted: scope_difference drugs correctly excluded — remove from denominator
+      const scopeDiffCount = extraLegacy.filter(id =>
+        diffClassifications[id]?.classification === 'scope_difference'
+      ).length;
+      const adjDenominator = legacyCount - scopeDiffCount;
+      const adjMatchPct    = adjDenominator > 0 ? Math.round(overlapCount / adjDenominator * 1000) / 10 : 100;
+
+      const status = adjMatchPct >= 95 ? 'compare_pass_oos_adjusted' :
+                     rawMatchPct >= 95 ? 'compare_pass' : 'migration_blocker';
+
+      const record = {
+        component:               '_makeAreaPI',
+        path:                    pathName,
+        legacy_source:           "drug_area_scores.area_id = 'fcrn'",
+        normalized_source:       "drug_targets.target_id = 'fcrn'",
         legacy_count:            legacyCount,
         normalized_count:        normCount,
         overlap_count:           overlapCount,
