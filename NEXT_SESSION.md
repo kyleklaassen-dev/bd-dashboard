@@ -1,69 +1,86 @@
-# Next Session — Session 66: Knowledge Graph Integration
+# Next Session — Session 67: Knowledge Graph Completion
 
 **Prepared:** 2026-05-26  
 **Phase:** Phase 6 — Fact Connectivity & Canonical Display  
-**Session 65 complete:** Live system health audit ✅ · P0 homepage news workflow created ✅ · is_this_week decay fix ✅ · Article routing audit ✅ · Submit intel pipeline audit ✅
+**Session 66 complete:** Company identity audit ✅ · Drug card news+catalysts (3A/3B) ✅ · Company card intel coverage (Fix 4) ✅ · Area tab news routing (Fix 5) ✅ · Ventyx + VTX002 added ✅
 
 ---
 
-## The Maturity Shift
+## Session 66 — What Was Built
 
-Session 66 is the first knowledge graph integration session — not an engineering cleanup. The platform already contains a substantial amount of intelligence. The bottleneck is no longer knowledge acquisition. It is knowledge visibility.
+Four routing gaps closed in one session:
 
-The question is no longer whether the data exists. The question is whether a user can discover it from the entity they are currently viewing.
+| Fix | What | Break point closed |
+|---|---|---|
+| 3A | Drug card: news_articles section | Rendered → Reachable (drug) |
+| 3B | Drug card: catalyst timeline section | Rendered → Reachable (drug) |
+| Fix 4 | Company card: intel + news coverage | Rendered → Reachable (company) |
+| Fix 5 | Industry Insights: news_articles added | Coverage gap in intel feed |
 
-**Priority order:** Freshness → Connectivity → Canonicality. Those three things create most of the value. New enrichment, new AI signals, and new ontology work are all second-order until these three are complete.
-
----
-
-## Connectivity Depth Chain (standing metric — run at session start)
-
-For every major table, report five levels before diagnosing any gap:
-
-```
-Stored      → total rows
-Linked      → rows with canonical entity FK (drug_id, company_id, area_id)
-Queryable   → rows a UI query would return under current filters
-Rendered    → rows actually rendered in at least one UI component
-Reachable   → rows reachable from the most specific context (drug card)
-```
-
-Each break point has a different fix: Stored→Linked = entity integrity; Linked→Queryable = filter logic; Queryable→Rendered = missing component; Rendered→Reachable = wrong surface, not wired to asset view.
+**Ventyx Biosciences** added as `status='acquired', parent_company_id='abbvie'`. **VTX002** (S1P1 modulator, Phase 2) added as first Ventyx drug.
 
 ---
 
-## Session 66 Success Metric
+## Connectivity Depth Chain — Session 66 Status
 
-By end of session, answer five questions for each major table: Fresh? Linked? Visible? Owned? Next fix?
-
-And pass two acceptance tests:
-
-**Company test:** Open AbbVie. See all relevant assets, news, catalysts, ownership relationships, and partnerships from one place.
-
-**Drug test:** Open tulisokibart. See all relevant news, catalysts, trials, ownership, and partnerships from one place.
-
-If those tests pass, Meridian will feel significantly more useful than it does today without adding a single new intelligence row to the database.
-
----
-
-## Priority 0: Review Submitted Intel (5 min — START HERE, manual)
-
-9 items submitted 2026-05-26. By session start they should be `status='analyzed'`.
-
-Open the Submitted Intel tab. For each:
-- ✅ Send to Queue (high confidence, clear entities)
-- ❌ Reject (irrelevant or duplicate)
-- 💬 Needs Review (ambiguous)
-
-Note which entities were matched and where accepted items land. This immediately validates one pipeline path.
+| Table | Stored | Linked | Queryable | Rendered | Reachable (drug card) | Break point |
+|---|---|---|---|---|---|---|
+| catalysts | 790 | 790 | 781 | ✅ area tab | ✅ drug card (Fix 3B) | **CLOSED** |
+| news_articles | 55 | 55 | 55 | ✅ homepage | ✅ drug card (Fix 3A) | **CLOSED** |
+| intel | 767 | 767 | 767 | ✅ area tab | ✅ company card (Fix 4) | **CLOSED** |
+| deals | 192 | ? | ? | ✅ company card | — | company card OK |
+| signals | 51 | 51 | ? | ✅ area tab | — | not yet drug-card |
+| submitted_intel | 9+ | — | — | ✅ review tab | — | traceability gap |
 
 ---
 
-## Priority 1: Submit Intel Traceability (P0 — build in Session 66)
+## Acceptance Tests — Session 66 Status
 
-**Goal:** The Submit Intel screen must show what happened to each submission — what was extracted, what entities matched, what was written to Supabase, and where it appears in the dashboard. This is a factual audit trail, not AI reasoning.
+### Test 1 — Drug traversal (tulisokibart) — check at session start
 
-See full spec: `docs/submit_intel_traceability_spec.md`
+Open tulisokibart drug card:
+- [x] stage + mechanism + indications + targets (existing)
+- [x] trials (existing)
+- [x] catalysts (upcoming readouts) ← **NEW Fix 3B**
+- [x] recent news ← **NEW Fix 3A**
+- [ ] ownership chain (Protagonist → Novartis) — not yet built
+- [ ] partnerships — partial
+
+### Test 2 — Company traversal (AbbVie)
+
+Open AbbVie company card:
+- [x] pipeline drugs (9 drugs including VTX002 path)
+- [x] catalysts (30 linked)
+- [x] deals/partnerships
+- [x] Recent coverage section ← **NEW Fix 4** (will show if news_articles.matched_company_ids includes 'abbvie')
+- [ ] Ventyx appears as subsidiary — not yet wired in company card display
+
+### Test 3 — Ventyx traversal
+
+Open Ventyx company card:
+- [ ] VTX002 visible in pipeline
+- [ ] parent_company_id = abbvie set ✅ (data is correct)
+- [ ] AbbVie appears as parent in UI — not yet displayed
+
+---
+
+## Priority 0: Validate Session 66 Routing Fixes (15 min — START HERE)
+
+Open the live dashboard. For each:
+
+**Drug card test:** Open tulisokibart. Verify "Upcoming catalysts" banner and "Recent coverage" sections appear. If catalysts section is empty, check `catalysts.drug_id = 'tulisokibart'` in Supabase. If news is empty, check `news_articles.matched_drug_ids` contains tulisokibart.
+
+**Company card test:** Open AbbVie. Verify "Recent coverage" section appears in the overview grid. Check the section shows intel + news items or an informative "no matches" state.
+
+**Industry Insights test:** Open Industry Insights tab. Verify news articles now appear in the feed alongside intel items.
+
+---
+
+## Priority 1: Submit Intel Traceability (P0 — from Session 66 plan, not yet built)
+
+**Goal:** The Submit Intel screen must show what happened to each submission — what was extracted, what entities matched, what was written to Supabase, and where it appears in the dashboard.
+
+See full spec: `docs/submit_intel_traceability_spec.md` (to be created this session)
 
 ### Schema additions required
 
@@ -77,30 +94,20 @@ published_at         TIMESTAMPTZ,
 rejection_reason     TEXT
 ```
 
-**On downstream tables** (new FK column):
+**On downstream tables** (new FK):
 ```sql
 -- Add to: catalysts, deals, intel
 source_submitted_intel_id  UUID REFERENCES submitted_intel(id)
 ```
 
-### Status lifecycle
-
-```
-new → [review_submitted_intel.py] → analyzed / needs_review
-    → [Kyle action] → imported (→ discovery_queue) / rejected
-                    → [company_enrichment.py] → published
-```
-
-Display all 6 states in the Review tab with timestamps.
-
 ### UI additions (Submitted Intel Review tab)
 
 For each submission, expand to show:
-1. **Status timeline** — received → processed → reviewed → published/rejected + timestamps
-2. **Entities discovered** — companies, drugs, targets, indications, catalysts, deals matched
-3. **Supabase writes** — exact table + row IDs created or updated
-4. **Dashboard placement** — which surfaces now show this intelligence (with navigation buttons)
-5. **Rejection reason** — if rejected, why
+1. Status timeline — received → processed → reviewed → published/rejected + timestamps
+2. Entities discovered — companies, drugs, targets, indications matched
+3. Supabase writes — exact table + row IDs created or updated
+4. Dashboard placement — which surfaces now show this intelligence
+5. Rejection reason — if rejected, why
 
 ### Acceptance test
 
@@ -108,306 +115,126 @@ Submit a Fierce/Endpoints article link. After processing, the Submitted Intel sc
 
 ---
 
-## Priority 2: Company Identity Audit → `docs/company_cleanup_plan.md`
+## Priority 2: Ventyx / AbbVie Ownership Display
 
-Do before routing fixes. Routing quality depends on entity quality — `news_articles.matched_company_ids` is populated by fuzzy-matching against `companies.name`. Fragmented company IDs degrade every downstream surface.
+The data is correct: Ventyx has `parent_company_id='abbvie'`. The UI doesn't yet surface this relationship.
 
-### Part A — Identity violation queries
-
-```sql
--- Case duplicates
-SELECT LOWER(name) AS name_lower, array_agg(id ORDER BY id) AS ids, COUNT(*) AS ct
-FROM companies GROUP BY LOWER(name) HAVING COUNT(*) > 1 ORDER BY ct DESC;
-
--- Slash-compound names (should be ownership relationships)
-SELECT id, name FROM companies WHERE name LIKE '%/%' ORDER BY name;
-
--- Lowercase names
-SELECT id, name FROM companies WHERE name != INITCAP(name) AND name = LOWER(name) ORDER BY name;
-
--- Acquired companies without parent_company_id
-SELECT id, name, status FROM companies WHERE status = 'acquired' AND parent_company_id IS NULL ORDER BY name;
-
--- Current ownership relationships
-SELECT c.id, c.name, p.id AS parent_id, p.name AS parent_name
-FROM companies c JOIN companies p ON c.parent_company_id = p.id ORDER BY p.name, c.name;
-```
-
-### Part B — Connectivity score matrix
-
-```sql
-SELECT c.id, c.name,
-  COUNT(DISTINCT d.id)   AS drugs_linked,
-  COUNT(DISTINCT ca.id)  AS catalysts_linked,
-  COUNT(DISTINCT de.id)  AS deals_linked,
-  COUNT(DISTINCT oe.id)  AS ownership_edges,
-  (c.parent_company_id IS NOT NULL)::int AS has_parent
-FROM companies c
-LEFT JOIN drugs d       ON d.company_id = c.id
-LEFT JOIN catalysts ca  ON ca.company_id = c.id
-LEFT JOIN deals de      ON de.company_id = c.id
-LEFT JOIN ownership_edges oe ON oe.from_company_id = c.id OR oe.to_company_id = c.id
-WHERE c.status != 'acquired'
-GROUP BY c.id, c.name, c.parent_company_id, c.status ORDER BY drugs_linked DESC;
-```
-
-For news_articles linkage:
-```sql
-SELECT DISTINCT unnest(matched_company_ids) AS company_id, COUNT(*) AS article_count
-FROM news_articles GROUP BY 1 ORDER BY 2 DESC LIMIT 30;
-```
-
-### Part C — Three classes of fix (execute by class)
-
-**Class 1 — Formatting (execute immediately):**
-Capitalization, spacing, punctuation — safe direct UPDATEs. Examples: `abbvie` → `AbbVie`.
-
-**Class 2 — Aliases (add to `company_aliases`, do not merge rows):**
-`J&J` → alias pointing to `Johnson & Johnson`. `AbbVie` / `Abbvie` → one canonical id.
-
-**Class 3 — Corporate structure (hold for review before execution):**
-Roche ↔ Genentech, Prometheus ↔ Merck, Seagen ↔ Pfizer, Ventyx ↔ AbbVie. These are business questions, not naming questions. Always create the ownership relationship — NEVER merge or delete the subsidiary entity. Preserving both records retains the drug's origin story, clinical attribution, and acquisition chain.
-
-### Part D — Output
-
-`docs/company_cleanup_plan.md`:
-- Table 1: identity violations + recommended action
-- Table 2: connectivity scorecard (top 30 by drug count)
-
----
-
-## Priority 3: Drug Card News + Catalyst Integration (index.html)
-
-Drug card is becoming the canonical asset page. Start here before area-tab news because the drug card currently has zero activity sections — highest impact per line of code.
-
-### Fix 3A — News section (30 min)
-
-In `_cemDrugBody` C1/C2 fetch path, add:
+**Fix A — Company card subsidiary display:**
+In `openCompanySlideOver`, after the company row fetch, fetch subsidiaries:
 ```javascript
-const { data: drugNews } = await _sb.from('news_articles')
-  .select('id,headline,source_name,published_at,article_url,relevance_score,meridian_summary,why_it_matters')
-  .contains('matched_drug_ids', [drugId])
-  .neq('source_validation_status', 'invalid')
-  .gte('published_at', _90dAgo)
-  .order('relevance_score', { ascending: false })
-  .limit(5);
+const { data: subsidiaries } = await _sb.from('companies')
+  .select('id,name,status')
+  .eq('parent_company_id', companyId)
+  .eq('status', 'acquired');
 ```
+Render as an "Acquired subsidiaries" row in the identity section of `_cemCompanyBody`. Show subsidiary name + link to open their card.
 
-Render after the trials section. Style consistent with company card "Recent Coverage".
-
-### Fix 3B — Catalyst section (30 min)
-
+**Fix B — Drug card ownership chain:**
+Add to drug modal fetch:
 ```javascript
-const { data: drugCatalysts } = await _sb.from('catalysts')
-  .select('id,catalyst_text,sort_date,catalyst_type,resolved,source_url')
-  .eq('drug_id', drugId)
-  .eq('resolved', false)
-  .gte('sort_date', new Date().toISOString().slice(0,10))
-  .order('sort_date', { ascending: true })
-  .limit(5);
+const { data: originatorCo } = await _sb.from('companies')
+  .select('id,name,parent_company_id')
+  .eq('id', drug.originator_company_id || drug.company_id)
+  .limit(1);
 ```
-
-Render as a timeline above the news section (Timeline comes before Activity in the five-layer IA).
+If `parent_company_id` is set, show "via [Originator] (a [Parent] company)" in the identity section.
 
 ---
 
-## Priority 4: Company Card Intel Integration (index.html)
+## Priority 3: Drug Card Ownership Chain + Partnership Display
 
-**Gap A1 from article_relationship_audit.md:** `intel.primary_company_id` exists but is never used. Opening AbbVie should expose AbbVie intel items, not just news articles.
+The drug card currently shows no ownership chain. VTX002 → Ventyx → AbbVie should be visible from the drug card.
 
-In `openCompanySlideOver` fetch block, add alongside the existing `news_articles` fetch:
-```javascript
-const { data: companyIntel } = await _sb.from('intel')
-  .select('id,intel_date,headline,intel_type,source_url,importance')
-  .eq('primary_company_id', companyId)
-  .gte('intel_date', _90dAgo)
-  .order('intel_date', { ascending: false })
-  .limit(15);
+**Current state:**
+- `drugs.current_owner_company_id` = 'abbvie' (set for VTX002)
+- `drugs.originator_company_id` = 'ventyx' (set for VTX002)
+- `drugs.ownership_status` = 'acquired'
+
+**Display spec (Identity layer, layer 1 in five-layer IA):**
 ```
-
-Render above the news_articles block in the Recent Coverage section. Intel items are Claude-extracted — higher signal than RSS articles and deserve priority placement.
+Current owner: AbbVie [→ open company card]
+Originator:    Ventyx Biosciences [→ open company card] (acquired 2022)
+Mechanism:     S1P1 receptor modulator
+```
 
 ---
 
-## Priority 5: Area Tab Article Routing (index.html)
+## Priority 4: Catalyst Connectivity — drug_id backfill audit
 
-Third routing fix. Area tabs already have an intel feed so this is lower urgency, but it closes the gap for area-level news visibility.
+143 of 790 catalysts have `drug_id` set. The remaining 647 are linked only via `company_id` + `area_id`. These are catalysts that cannot reach the drug card.
 
-Add to each area tab data load:
-```javascript
-const { data: areaNews } = await _sb.from('news_articles')
-  .select('id,headline,source_name,published_at,article_url,relevance_score,meridian_summary,why_it_matters,matched_drug_ids,matched_company_ids')
-  .contains('matched_area_ids', [areaId])
-  .eq('is_this_week', true)
-  .neq('source_validation_status', 'invalid')
-  .order('relevance_score', { ascending: false })
-  .limit(10);
-```
-
-Render as "Recent Coverage" below the intel feed.
-
----
-
-## Priority 6: Industry Insights Coverage Audit → `docs/industry_insights_audit.md`
-
-Pipeline is healthy (write_meridian.py Mon–Sat 10:30 UTC). The question is coverage — how many recent intelligence items exist in Supabase that do NOT appear in the daily briefing?
-
-```bash
-grep -n "intel\|catalyst\|deals\|news_articles" scripts/write_meridian.py | head -40
-```
-
-Confirm: which tables are queried? What filters exclude items? Are relevance thresholds cutting recent content?
-
-Output: `docs/industry_insights_audit.md` — tables queried, filters applied, available vs. included row counts, coverage gap.
-
----
-
-## Priority 7: Catalyst Connectivity Audit → `docs/catalyst_connectivity_audit.md`
-
-Run depth chain for catalysts:
-
+Run:
 ```sql
-SELECT COUNT(*) FROM catalysts;                                                    -- stored
-SELECT COUNT(*) FROM catalysts WHERE drug_id IS NOT NULL OR company_id IS NOT NULL; -- linked
-SELECT COUNT(*) FROM catalysts WHERE resolved = false AND sort_date >= CURRENT_DATE; -- queryable/future
-SELECT area_id, COUNT(*) AS ct FROM catalysts GROUP BY area_id ORDER BY ct DESC;   -- distribution
+SELECT c.company_id, c.area_id, COUNT(*) AS ct
+FROM catalysts c 
+WHERE c.drug_id IS NULL AND c.resolved = false
+GROUP BY 1, 2 ORDER BY ct DESC LIMIT 20;
 ```
 
-Four-surface visibility matrix: drug card / company card / area tab / homepage.
+For the top companies/areas, check if the catalyst text contains drug names that could be back-linked. Write a Python script to:
+1. For each catalyst WHERE drug_id IS NULL, search catalyst_text for drug names in the database
+2. If confident match found (drug company_id matches catalyst company_id), set drug_id
+
+Output: `docs/catalyst_drug_backfill_audit.md` with match counts and confidence distribution.
 
 ---
 
-## UI Coverage Matrix (build continuously, not end-of-session)
+## Priority 5: Company Cleanup — Class 1 Formatting Fixes
 
-Populate this throughout the session as each audit runs:
-
-| Table | Stored | Linked | Queryable | Rendered | Reachable (drug card) | Break point |
-|---|---|---|---|---|---|---|
-| catalysts | 790 | ? | ? | ? | ? | ? |
-| news_articles | 55 | 55 | 55 | 55 | 0 | Rendered→Reachable |
-| intel | 767 | 767 | ? | ? | 0 | Rendered→Reachable |
-| deals | 192 | ? | ? | ? | ? | ? |
-| signals | 51 | 51 | ? | ? | 0 | ? |
-| submitted_intel | 9 | ? | — | ? | 0 | Rendered→Reachable |
+From `docs/company_cleanup_plan.md`:
+- Only one identity issue: `argenx` (intentional branding, no change needed)
+- Investigate Teva's 10 orphaned catalysts (company_id='teva' but no drugs linked)
+- Decide Chugai/Roche ownership (Roche ~63% owner — set parent_company_id?)
 
 ---
 
-## Canonical Surface Ownership Matrix
-
-Every fact type has one canonical owner. Secondary surfaces show filtered views. This prevents future duplication as the platform grows.
+## Canonical Surface Ownership Matrix (standing reference)
 
 | Fact Type | Canonical Owner | Secondary Surfaces |
 |---|---|---|
-| Drug news | Drug card | Company card, Area page |
-| Company news | Company card | Homepage |
-| Catalyst | Drug card (asset timeline) | Company card (portfolio), Area tab (competitive) |
+| Drug news | Drug card ✅ Fixed 3A | Company card, Area page |
+| Company news | Company card ✅ Fixed 4 | Homepage |
+| Catalyst | Drug card (asset timeline) ✅ Fixed 3B | Company card (portfolio), Area tab |
 | Trial | Drug card | Company card |
 | Partnership | Company card | Drug card |
 | Ownership chain | Company card | Drug card |
 | Deal | Company card | Drug card, Homepage |
-| Article | Drug or Company card (by linkage) | Industry Insights |
-| Intel item | Area tab | Company card (P4 routing fix) |
-| Signal | Area tab | Homepage |
+| Article | Drug or Company card (by linkage) | Industry Insights ✅ Fixed 5 |
+| Intel item | Area tab | Company card ✅ Fixed 4 |
 
 ---
 
-## Acceptance Tests
+## Session 68+ Roadmap
 
-**Test 1 — Company traversal (Ventyx / VTX002):**
-
-VTX002 is a S1P1 receptor modulator from Ventyx. Ventyx was acquired by AbbVie in 2022. Both entities must be preserved — do not collapse them.
-
-Open Ventyx company card:
-- [ ] `parent_company_id = abbvie` set
-- [ ] VTX002 and Ventyx pipeline drugs visible
-- [ ] Catalysts for Ventyx pipeline visible
-- [ ] Recent news mentioning Ventyx or VTX002
-
-Open AbbVie company card:
-- [ ] Ventyx appears as subsidiary / acquired entity
-- [ ] VTX002 visible through portfolio/ownership relationship
-- [ ] Ownership chain: VTX002 → Ventyx → AbbVie renders correctly
-
-**Test 2 — Drug traversal (tulisokibart):**
-
-Open tulisokibart drug card:
-- [ ] stage + mechanism + indications + targets
-- [ ] trials (active studies)
-- [ ] catalysts (upcoming readouts)
-- [ ] ownership chain (Protagonist → Novartis if confirmed in DB)
-- [ ] partnerships
-- [ ] recent news
-
-**Test 3 — News routing (AbbVie article):**
-
-Confirm a recent AbbVie article surfaces in:
-- [ ] AbbVie company card "Recent Coverage"
-- [ ] Drug cards for matched_drug_ids
-- [ ] Homepage "Important Articles"
+1. **Session 68:** Drug card full five-layer redesign (ownership chain, deal history, partnership display)
+2. **Session 69:** Company card full five-layer redesign + subsidiary display
+3. **Session 70:** Submit intel traceability build (backend + UI)
+4. **Session 71:** Catalyst drug_id backfill + P1 cleanup
 
 ---
 
-## Drug Card — Target IA (reference, for implementation)
-
-Five-layer order — facts before interpretation:
-
-```
-1. Identity:    current owner · originator · parent chain
-2. Status:      stage · indications · targets · mechanism
-3. Timeline:    catalysts (next 3) · trials · milestones
-4. Activity:    news · deals · partnerships · submitted intel lineage
-5. [Collapsible] Interpretation: ailux_angle · overlap · BD framing
-```
-
-AI-generated signals always collapsible, never leading.
-
----
-
-## What NOT to Do in Session 66
+## What NOT to Do in Session 67
 
 - No new enrichment fields
 - No new AI signal generation
 - No new Ailux angle generation
 - No C11 parallel-write
-- No therapeutic area navigation redesign
-- No new ontology work
 - Do not merge company row IDs without FK dependency check
 - Do not collapse Roche/Genentech, Prometheus/Merck, or Ventyx/AbbVie into single entities
 
 ---
 
-## Deliverables — Session 66
-
-| File | Type | Priority |
-|---|---|---|
-| `docs/submit_intel_traceability_spec.md` | Design spec | P0 |
-| `index.html` | DDL + schema additions (submitted_intel columns) | P0 |
-| `index.html` | Drug card news + catalyst sections (Fixes 3A + 3B) | P1 |
-| `index.html` | Company card intel section (Fix 4) | P2 |
-| `docs/company_cleanup_plan.md` | Identity audit + connectivity scorecard + Class 1 fixes | P2 |
-| `index.html` | Area tab article routing (Fix 5) | P3 |
-| `docs/industry_insights_audit.md` | Coverage audit | P3 |
-| `docs/catalyst_connectivity_audit.md` | Depth chain + surface matrix | P3 |
-| `docs/ui_coverage_matrix.md` | Running depth chain per table | P3 |
-
----
-
-## Session 67+ Roadmap
-
-1. **Session 67:** Submit Intel Traceability UI build + backend wiring (if not complete in 66)
-2. **Session 68:** Drug card full five-layer redesign (ownership chain, deal history)
-3. **Session 69:** Company card full five-layer redesign + Surface C redirect
-4. **Session 70:** C3 PI tab migration + C11 parallel-write
-
----
-
-## Modified Files — Session 65
+## Modified Files — Session 66
 
 | File | Change |
 |---|---|
-| `scripts/fetch_homepage_news.py` | Step 1: bulk reset is_this_week=false for articles older than 7 days |
-| `.github/workflows/fetch-homepage-news.yml` | NEW — daily 07:30 UTC |
-| `docs/live_system_health_audit.md` | NEW |
-| `docs/article_relationship_audit.md` | NEW |
-| `docs/submit_intel_pipeline_audit.md` | NEW |
+| `index.html` | Fix 3A: drug card news section (_cemDrugBody + openDrugEntityModal) |
+| `index.html` | Fix 3B: drug card catalyst timeline section (_cemDrugBody + openDrugEntityModal) |
+| `index.html` | Fix 4: company card coverage section (_cemCompanyBody + openCompanySlideOver) |
+| `index.html` | Fix 5: industry insights news_articles routing (loadIndustryInsightsFeed) |
+| `docs/company_cleanup_plan.md` | NEW — identity violations + connectivity scorecard + depth chains |
 | `NEXT_SESSION.md` | This file |
+
+**Supabase inserts:**
+- `companies`: ventyx (Ventyx Biosciences, acquired, parent=abbvie)
+- `drugs`: vtx002 (VTX002, S1P1 modulator, Phase 2, company_id=ventyx, current_owner=abbvie)
