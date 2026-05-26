@@ -1,121 +1,221 @@
-# NEXT SESSION — BD Platform
+# Next Session — Session 65: C11 Parallel-Write + Drug Card Sprint 1
 
-**Last session:** Session 63 (2026-05-26)
-
----
-
-## ✅ MILESTONE CLOSED: Legacy Read Layer Elimination (Session 61)
-
-All 6 feature flags permanently true. drug_areas no longer serves any biological dashboard tab.
+**Prepared:** 2026-05-26  
+**Phase:** Phase 6 — Intelligence Presentation Layer  
+**Session 64 complete:** C1/C2 migration ✅ · write_meridian ailux_angle fix ✅ · company surface audit ✅ · enrichment observability design ✅
 
 ---
 
-## Phase 6 Workstream Status
+## Session 64 — What Was Done
 
-| WS | Name | Status |
-|---|---|---|
-| WS1 | C5+C6+C7 activation | ✅ **COMPLETE** |
-| WS2 | Wave 3 drug-indication pairs | ✅ **COMPLETE** — 49 rows, quality validated |
-| WS3 | drug_competitive_scores | ✅ **Table created + 234 rows migrated** |
-| WS3 (next) | C1/C2 drug modal migration | ⏳ **PLAN COMPLETE** — ready to implement |
-| WS4 | Strategic views (autoimmune/respiratory/tcell) | Not started |
+### WS-A — C1/C2 Drug Modal Migration (COMPLETE)
+- `drug_area_scores` reads at lines 11677 (C1) and 11761 (C2) replaced with `drug_competitive_scores`
+- `SELECT` updated: `context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux`
+- `drug_areas` join removed — `scoreRes0.data` is now the complete source
+- `areas[]` reshaped: `context_id` exposed as `area_id` for downstream compat; `vs_ailux` carried forward
+- Dual-read comparison harness inserted after C1 fetch: `window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__`
+- `_confBadge` updated to handle new A/B/C enum alongside legacy confirmed/supported
+- `_CONF_LABEL` tooltip map added
+- `_CEM_AMAP` extended: added `uc:'UC'`, `cd:'CD'`, `ted:'TED'`, `autoimmune:'Autoimmune'`
+- `_AREA_LABEL` extended: added `ibd`, `uc`, `cd`, `ted`, `autoimmune`, `respiratory`
 
----
+### WS-C — write_meridian.py ailux_angle Fix (COMPLETE)
+- `ailux_angle` and `overlap_rationale` added to `fetch_drug_context()` SELECT
+- `BD Signal: {ailux_angle}` line added to `enrich_intel_with_drug_context()` drug context block
+- 130 enriched drug-level angles now available to daily Meridian briefing context
 
-## Session 64 Priority: C1/C2 Implementation
+### WS-E — Company Surface Inventory (COMPLETE)
+- Three surfaces identified and classified
+- Inventory doc: `docs/company_surface_inventory_session64.md`
+- Surface A (`openCompanySlideOver` → entity-modal): CANONICAL — all new intelligence goes here
+- Surface B (`#co-slideover`): DEAD LEGACY — no JS writes to it; safe to remove
+- Surface C (`openCOPanel` → `#co-panel`): PARALLEL — redirect to canonical in Session 66+
 
-### Context
-
-C1/C2 planning is complete. Full plan in `docs/drug_competitive_scores_c1c2_plan.md`.
-
-Pre-implementation audit complete:
-- **strategic_role** — SAFE to omit. Column does not exist in drug_area_scores. All display code conditionally null. No compatibility work needed.
-- **_confBadge** — P0 blocker identified. Must update before deploying C1/C2.
-
-### Implementation Sequence
-
-1. **`_AREA_LABEL` pre-flight** — locate definition; confirm or add `uc`/`cd`/`ted` entries
-2. **`_confBadge` fix (P0 blocker)** — update to handle A/B/C + legacy strings simultaneously; add `_CONF_LABEL` map for tooltip
-3. **`_CEM_AMAP` update** — add `uc:'UC'`, `cd:'CD'`, `ted:'TED'`
-4. **C1 fetch** — swap `drug_area_scores` → `drug_competitive_scores`; update SELECT (remove strategic_role; add context_type,context_id,vs_ailux); rekey scoreMap on `context_id`; reshape areas[] (expose context_id as area_id)
-5. **C2 fetch** — same changes for name-search fallback path
-6. **Dual-read harness** — `window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__` — insert after new fetch resolves
-7. **Deploy** — single commit: `feat: C1/C2 drug modal migrated to drug_competitive_scores with dual-read harness`
-8. **Validate** — 10-drug validation set in browser console
-
-### 10-Drug Validation Set
-
-sim0709, batoclimab, dupilumab, risankizumab, efgartigimod, riliprubart, epi-001, lm-302, spy072, upadacitinib
-
-Expected patterns:
-- Non-IBD drugs: `old_only=[]`, `new_only=[]`, zero field mismatches
-- IBD drugs: `old_only=['ibd']`, `new_only=['uc','cd']` — expected expansion, not regression
-- epi-001, spy072: `old_only=[]`, `new_only=[]` — both have `ibd` fallback
-
-### Open Items from WS3 Migration
-
-**3 indication/ibd fallback drugs** — IBD drugs with no UC or CD entries in drug_indications:
-- `epi-001` — held in backfill_preview — do NOT touch without source evidence
-- `sim0500` — should have UC/CD entries (backfill in Wave 4)
-- `spy072` — should have UC/CD entries (backfill in Wave 4)
-
-Action for Wave 4: backfill sim0500 and spy072 into drug_indications for UC and/or CD.
+### WS-D — Enrichment Observability Design (COMPLETE)
+- Full `enrichment_runs` table DDL designed
+- `EnrichmentRunLogger` class designed for `company_enrichment.py`
+- `ResearchRunLogger` designed for `research.py`
+- nightly_health_report.py additions specified (5 new count queries)
+- Implementation doc: `docs/enrichment_observability_plan_session64.md`
 
 ---
 
-## Active Constraints
+## Session 64 — Acceptance Criteria Check
 
-1. **ontology_edges locked** — 25 rows. Do NOT unlock without advisor approval.
-2. **30-day rule** — Keep legacy flag branches until monitoring window closes.
-3. **drug_area_scores** — Do NOT delete. Legacy provenance for 212 rows.
-4. **drug_areas** — Do NOT delete. Serves autoimmune/respiratory/tcell.
-5. **C3 (PI tab scoreRows)** — Do NOT migrate yet. Behavioral consumer, HIGH risk.
-6. **C4–C8 (Phase 4B dual-read)** — NEVER migrate to drug_competitive_scores. They are permanent legacy readers by design.
-7. **company_enrichment.py** — Do NOT change write path yet. C11 parallel-write must wait until C1/C2 is stable ≥7 days.
-8. **epi-001** — Do NOT commit to drug_indications without source evidence.
-
----
-
-## Monitoring Windows (30-day rule)
-
-| Candidate | 30-day window closes |
+| Criterion | Status |
 |---|---|
-| C1/C2/C3 (IBD/TED/Modal) | ~2026-06-24 |
-| C4 (TL1A) | ~2026-06-24 |
-| C5/C6 (Atopy) | ~2026-06-25 |
-| C7 (FcRn) | ~2026-06-25 |
+| Drug modal reads competitive context from drug_competitive_scores | ✅ C1/C2 done |
+| Legacy drug_area_scores no longer used for C1/C2 display | ✅ |
+| C4-C8 legacy provenance reads remain untouched | ✅ Not touched |
+| All six feature flags remain true | ✅ Not touched |
+| Drug-level ailux_angle available to briefing context | ✅ write_meridian.py patched |
+| Company surface inventory complete | ✅ 3 surfaces classified |
+| sim0500/spy072 false backfill task removed | ✅ Removed below |
 
 ---
 
-## Validation Checks at Session Start
+## Immediate On-Open (Session 65)
+
+### Validation checks
 
 ```sql
--- Standing rule: check for validation failures first
-SELECT entity_id, check_type, check_status, failure_reason
+-- 1. Check drug_validation_results (standing rule — do this first)
+SELECT check_name, result, details
 FROM drug_validation_results
-WHERE check_status IN ('fail','warning','needs_review')
-ORDER BY check_status, entity_id LIMIT 20;
+WHERE result IN ('fail', 'warning', 'needs_review')
+ORDER BY result, check_name;
+-- Expected: 0 fail, 5 pre-existing needs_review. Any new entries = investigate first.
 
--- Open ECC items:
-SELECT entity_id, issue_key, status FROM entity_consistency_checks WHERE status = 'open';
+-- 2. Confirm dual-read harness is live — open any TL1A drug modal in browser
+-- Expected console output: [MERIDIAN_CMP] OK: {drug_name} old=1 new=1 matched=1
+-- Or for IBD drug: old=1 new=2 ibd_expansion=true
 
--- Confirm row counts:
-SELECT count(*) FROM drug_indications;            -- expect 246
-SELECT count(*) FROM drug_competitive_scores;     -- expect 234
-SELECT count(*) FROM drug_area_scores;            -- expect 212 (legacy — do not delete)
-SELECT count(*) FROM area_metadata;               -- expect 11
--- 3 indication/ibd fallback rows:
-SELECT drug_id FROM drug_competitive_scores WHERE context_id = 'ibd';
--- expect: epi-001, sim0500, spy072
+-- 3. Confirm ailux_angle in meridian briefing context
+-- Expected: next write_meridian.py run includes "BD Signal:" lines in drug context
 ```
+
+### C1/C2 10-drug validation set
+
+Open each in the drug modal and confirm: no `?` badges on previously-confirmed drugs, area chips display `UC`/`CD`/`TED` correctly for IBD/TED drugs.
+
+| Drug | Expected context_ids | IBD expansion? |
+|---|---|---|
+| sim0709 | uc, cd | yes |
+| batoclimab | fcrn | no |
+| dupilumab | il4ra | no |
+| risankizumab | uc, cd | yes |
+| efgartigimod | fcrn | no |
+| riliprubart | fcrn | no |
+| epi-001 | ibd (fallback) | no |
+| upadacitinib | uc, cd | yes |
+| spy072 | ibd (fallback — RA drug, intentional) | no |
+| sim0500 | ibd (fallback — MM drug, intentional) | no |
 
 ---
 
-## Files
+## Session 65 — Primary Work
 
-- `docs/drug_competitive_scores_c1c2_plan.md` — **C1/C2 implementation plan (Session 63)** — start here
-- `docs/drug_competitive_scores_consumer_inventory.md` — Full consumer inventory + classifications
-- `docs/drug_competitive_scores_design.md` — Consumer migration architecture
-- `docs/drug_competitive_scores_migration_report.md` — Full migration audit (Session 62)
-- `scripts/migrate_drug_area_scores.py` — Migration script (committed, idempotent)
-- `docs/phase6_master_plan.md` — Full session sequence and dependency map
+### P0: C11 Parallel-Write (company_enrichment.py → drug_competitive_scores)
+
+**PREREQUISITE:** C1/C2 must be validated with no unexpected regressions before C11 starts.  
+Per migration plan: C11 should begin after C1 is stable for ≥7 days. Session 65 is the right target.
+
+**Tasks:**
+1. Open `docs/drug_competitive_scores_consumer_inventory.md` — read Section 5 (C11 design)
+2. Add parallel-write block to `company_enrichment.py` after each `drug_area_scores` upsert
+3. Map `drug_area_scores` fields → `drug_competitive_scores` schema:
+   - `area_id` → `context_type` + `context_id` (use area_id→context_type lookup table)
+   - `confidence_level` → map confirmed→A, supported→B, inferred→inferred
+   - `overlap`, `overlap_rationale`, `cls`, `source_url` → direct copy
+   - `vs_ailux_positioning` → `vs_ailux`
+4. Preserve existing `drug_area_scores` write — do NOT remove it
+5. Run one enrichment pass for a single area (tl1a recommended)
+6. Verify `drug_competitive_scores` row count increases
+7. Confirm `enrichment_run_id` written where supported
+
+**Acceptance criteria:**
+- Every `drug_area_scores` upsert also writes a `drug_competitive_scores` row
+- Row count in `drug_competitive_scores` ≥ row count in `drug_area_scores`
+- `drug_area_scores` writes unchanged (legacy preserved)
+- No C4–C8 behavior broken
+
+---
+
+## Session 65 — Secondary Work (parallel-safe after C11 is drafted)
+
+### Drug Card Sprint 1 (WS-F)
+
+Tables: `drugs`, `drug_targets`, `drug_indications`, `catalysts`, `companies`, `partnerships`, `drug_competitive_scores` (post-C1)
+
+**Components to add to `_cemDrugBody`:**
+
+1. **Ailux BD Signal** — `drugs.ailux_angle` (already fetched; render more prominently at top)
+2. **Overlap tier badge** — `drugs.overlap` + `drugs.overlap_rationale` (rationale not currently rendered)
+3. **Catalyst timeline** — fetch `catalysts WHERE canonical_drug_id = drug.id OR drug_id = drug.id`, show next 1–3 by sort_date
+4. **Competitive cluster** — from `areas[]` (already fetched via drug_competitive_scores), group by context_id, show peer count
+5. **Confidence indicator** — use `areas[0].confidence_level` for badge if available
+
+**Do not add to drug card:**
+- C3 PI tab features (behavioral consumer, not yet migrated)
+- Hardcoded TL1A/IBD logic
+- `drug_areas` reads
+
+---
+
+## Session 66 (Planned)
+
+1. C11 monitoring — confirm 7+ days stable, no enrichment drift
+2. Begin `enrichment_runs` table DDL application (from `docs/enrichment_observability_plan_session64.md`)
+3. Begin Surface C redirect: `openCOPanel` → `openCompanySlideOver` (thin launcher)
+4. Drug card Sprint 1 continuation: ownership chain + confidence badge
+
+---
+
+## Session 67 (Planned)
+
+- C3 PI tab scoreRows migration (`_makeAreaPI`, line 12548): `drug_area_scores` → `drug_competitive_scores`
+- HIGH RISK — behavioral consumer. Only after C11 parallel-write proven ≥7 days.
+- Requires: area_id → context_id lookup map; behavioral validation across all 6 tabs
+
+---
+
+## Session 68 (Planned)
+
+- WS-H: `company_strategic_views` + `company_platform_views` DDL + backfill
+- These tables must exist before autoimmune/respiratory/tcell tabs can be retired from `drug_areas`
+
+---
+
+## Backlog (do not let these delay Session 65)
+
+| Item | Status |
+|---|---|
+| sim0500/spy072 backfill to UC/CD | **REMOVED** — confirmed correct as ibd fallback (MM + RA drugs) |
+| cizutamig TED ECC review | Open — determine if drug_indications(ted) entry needed |
+| drug_validation_results HTTP 400 | Open — investigate RLS/service key access |
+| Surface B (`#co-slideover`) DOM removal | Low priority cleanup |
+| Tier 2 angles (18 drugs) | Accepted backlog |
+| C9/C10 Ontology Audit tab migration | After C1 stable — low priority |
+
+---
+
+## Do Not
+
+- Build new features into `openCOPanel` / `#co-panel` (Surface C — parallel legacy)
+- Restore `#co-slideover` (Surface B — dead DOM)
+- Remove `drug_area_scores` or `drug_areas` tables
+- Migrate C3 before C11 is stable ≥7 days
+- Backfill sim0500 or spy072 to UC/CD drug_indications
+- Build new company intelligence outside `openCompanySlideOver` / entity-modal
+
+---
+
+## Modified Files — Session 64
+
+| File | Change |
+|---|---|
+| `scripts/write_meridian.py` | Added `ailux_angle`, `overlap_rationale` to `fetch_drug_context()` SELECT; added `BD Signal:` line to drug context block |
+| `index.html` | C1/C2 drug modal migrated to `drug_competitive_scores`; `_confBadge` updated (A/B/C enum); `_CONF_LABEL` added; `_CEM_AMAP` extended (uc/cd/ted); `_AREA_LABEL` extended (ibd/uc/cd/ted/autoimmune/respiratory); dual-read harness added |
+| `docs/company_surface_inventory_session64.md` | New — company surface classification |
+| `docs/enrichment_observability_plan_session64.md` | New — enrichment_runs design + implementation plan |
+
+## Supabase Tables Touched — Session 64
+
+None. All Session 64 work was frontend JS + Python script changes. No Supabase schema or data changes.
+
+---
+
+## What Is Now Safe to Build
+
+| Feature | Safe? | Reason |
+|---|---|---|
+| Drug card: ailux_angle display | ✅ YES | drugs table, fully enriched |
+| Drug card: overlap_rationale | ✅ YES | drugs table, fetched in _cemDrugBody |
+| Drug card: catalyst timeline | ✅ YES | catalysts table, direct drug_id FK |
+| Drug card: competitive context chips | ✅ YES | drug_competitive_scores now live in C1/C2 |
+| Drug card: ownership chain | ✅ YES | companies + partnerships tables |
+| Drug card: confidence badge | ✅ YES | drug_competitive_scores.confidence_level (A/B/C) |
+| Company card: parent_company_id | ✅ YES | companies table, safe read |
+| Homepage: catalyst feed | ✅ YES | catalysts table, direct query |
+| PI tab competitive scoring features | ⏳ WAIT | C3 migration pending (Session 67) |
+| Strategic/platform grouping by company | ⏳ WAIT | company_strategic_views not yet built (Session 68) |
