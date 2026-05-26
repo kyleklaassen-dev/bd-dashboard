@@ -1,5 +1,33 @@
 
 ---
+## 2026-05-26 (Session 65) — Live System Health Audit + P0 Pipeline Fix
+
+**P0 fix — fetch-homepage-news.yml created:**
+- New workflow `.github/workflows/fetch-homepage-news.yml` — runs daily at 07:30 UTC
+- Fits between research.py (06:00) and write_meridian.py (10:30) in the pipeline tier
+- Supports workflow_dispatch with dry_run / no_claude / since / limit inputs
+- Root cause of stale "Important Articles" homepage section: confirmed and fixed
+
+**P0 fix — is_this_week decay patched (scripts/fetch_homepage_news.py):**
+- Step 1 of run() now bulk-resets `is_this_week=false` for articles older than 7 days
+- Prevents indefinite accumulation of stale-but-flagged-current articles
+- Uses existing `sb_update_where()` function (already in the script)
+
+**Session 65 audit deliverables (docs/):**
+- `live_system_health_audit.md` — pipeline health by section, live counts, gap registry
+- `article_relationship_audit.md` — two-pipeline routing map, 5 surface gaps, fix roadmap
+- `submit_intel_pipeline_audit.md` — full submit intel flow, status state machine, 4 gaps
+
+**Key findings:**
+- Core pipeline (intel, catalysts, deals, signals) ✅ healthy
+- news_articles: 55 rows, all current, no workflow ← P0 now fixed
+- submitted_intel: 9 new items from today, will process in next 6h review cycle
+- research_queue: 60 pending items (normal backlog)
+- Three high-leverage routing gaps identified for Session 66: area tabs need news_articles, company cards need intel, drug modals need news
+
+Commits: `7d3d010b` (workflow) · `4c3695e8` (fetch_homepage_news.py) · `ec63341a` (health audit) · `edfc9608` (routing audit) · `688193eb` (submit intel audit) · `8c1876bc` (NEXT_SESSION)
+
+---
 ## 2026-05-26 (Session 63) — WS3 Consumer Migration Planning COMPLETE
 
 **Track A — Pre-implementation audit (C1/C2 drug modal):**
