@@ -1,5 +1,35 @@
 
 ---
+## 2026-05-26 (Session 56) — Phase 5 C5+C6: useUnifiedAtopy code deployed, validation partial (GitHub Pages degraded)
+
+**C5 (TSLP) + C6 (IL-4Rα) bundled behind `useUnifiedAtopy` flag. Code in repo, CDN not yet live due to GitHub Pages/Actions degradation incident.**
+
+**Code changes (commit `a0ffdec4`, flag=false):**
+- `FEATURE_FLAGS.useUnifiedAtopy = false` added
+- `_ATOPY_NORM` + `_atopyTargets` computed in `_makeAreaPI().init()`
+- Ternary precedence: `_ATOPY_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → legacy`
+- `_runPhase4BAtopyDualRead(legacyScoreRows, areaId, targetIds)` method added after `_runPhase4BTEDDualRead`
+- `_loadEntityMeta()` atopy branch added (checks `this._atopyNorm` first)
+- `.nojekyll` added to repo (commit `688d77e6`) — disables Jekyll, prevents future build errors
+
+**8-gate status:**
+
+| Gate | Status | Evidence |
+|---|---|---|
+| G1 | ✅ CONFIRMED | Console: il4ra_drug_areas=9, tslp_drug_areas=14 |
+| G2 | ✅ CONFIRMED | Direct query: il4ra_drug_targets=5, tslp/tslpr=10 |
+| G3 | ✅ CONFIRMED | dupilumab, rademikibart, apg279, apg777, ibi333 all in drug_targets(il4ra) |
+| G4 | ✅ CONFIRMED | amlitelimab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart all absent |
+| G5 | ✅ CONFIRMED | tezepelumab, apg333, bsi-045b, verekitug, gb0895 all in drug_targets(tslp/tslpr) |
+| G6 | ⏳ PENDING | Requires new code live in browser |
+| G7 | ⏳ PENDING | `_runPhase4BAtopyDualRead` not yet executed (CDN not updated) |
+| G8 | ✅ CONFIRMED | Current live = rollback state (9 il4ra, 14 tslp confirmed) |
+
+**Pre-validated adj_match:** IL-4Rα=100% (4/4), TSLP=100% (8/8) — scope_diff confirmed absent.  
+**GitHub Pages status at session end:** `errored` (infrastructure degradation, not code issue).  
+**Next:** Load fresh bust URL when Pages recovers → run G6+G7 → request advisor go for flag=true.
+
+---
 ## 2026-05-25 (Session 55) — Phase 5 Candidate 4 PERMANENTLY ACTIVATED: useUnifiedTL1A=true
 
 **Fourth completed Phase 5 migration. TL1A area tab now reads from `drug_targets` (target_id='tl1a') instead of `drug_areas` (area_id='tl1a').**
