@@ -383,59 +383,96 @@ anti-tl1a-xpf005-arm — TL1A arm of Ailux XPF005 TL1A×IL-23p19 bispecific. Not
 
 ---
 
-## ⚡ FIRST TASK NEXT SESSION — Complete useUnifiedAtopy browser validation (G6+G7)
+## ⚡ FIRST TASK NEXT SESSION — Runtime verification of useUnifiedAtopy (G6 + G7)
 
-**C5+C6 (`useUnifiedAtopy`) code is IN THE REPO but NOT YET LIVE on GitHub Pages.**  
-Session 56 ended with GitHub Pages degraded (Actions + Pages both `degraded_performance` per githubstatus.com).
+**C5+C6 implementation is complete in the repo. Do not restart implementation. Do not re-audit unless runtime gates fail.**
 
-**Commits in repo (in order):**
-- `a0ffdec4` — main code: `_runPhase4BAtopyDualRead`, FEATURE_FLAGS.useUnifiedAtopy=false, all 5 code changes  
-- `4b95285f` — re-trigger (no code change)  
-- `688d77e6` — `.nojekyll` added (disables Jekyll, forces static serve — fixes future build errors)
+The only blocker at end of Session 56 was GitHub Pages / GitHub Actions degraded performance (confirmed via githubstatus.com), which prevented CDN propagation and browser runtime verification.
 
-**Step 1: Verify Pages recovered**  
-Check: `python3 -c "import urllib.request,json; req=urllib.request.Request('https://kyleklaassen-dev.github.io/bd-dashboard/index.html',headers={'Cache-Control':'no-cache'}); content=urllib.request.urlopen(req).read().decode(); print('live:', 'useUnifiedAtopy' in content)"`  
-If not live: `https://www.githubstatus.com` — wait for Pages/Actions to clear.
+---
 
-**Step 2: Load fresh bust URL in browser**  
-Navigate to: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<new_timestamp>`
+### Current state
 
-**Step 3: Run remaining gates**
+| Item | Status |
+|---|---|
+| useUnifiedAtopy code | Implemented — commit `a0ffdec4` |
+| Feature flag default | `false` |
+| `.nojekyll` added | commit `688d77e6` — disables Jekyll, prevents future build errors |
+| Data-layer validation | G1/G2/G3/G4/G5/G8 passed |
+| GitHub Pages CDN | Blocked at session end (degraded_performance) |
+| Activation | Not yet approved |
+| Remaining gates | G6 + G7 browser runtime only |
 
-| Gate | Test | Expected | Status |
-|---|---|---|---|
-| G1 | flag=false → legacy path, il4ra-ox40l count | 9 | ✅ CONFIRMED (console sim) |
-| G2 | flag=true → drug_targets fires, il4ra-ox40l count | 5 | ✅ CONFIRMED (direct query) |
-| G3 | dupilumab, rademikibart, apg279, apg777, ibi333 present | all ✓ | ✅ CONFIRMED |
-| G4 | amlitelimab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart absent | all ✓ | ✅ CONFIRMED |
-| G5 | tezepelumab, apg333, bsi-045b, verekitug, gb0895 present | all ✓ | ✅ CONFIRMED |
-| G6 | Zero console errors on il4ra-ox40l + tslp tab load | 0 errors | ⏳ PENDING CDN |
-| G7 | `window.__MERIDIAN_PHASE4_COMPARE__` shows il4ra_target_view + tslp_target_view both = compare_pass_oos_adjusted | both ✓ | ⏳ PENDING CDN |
-| G8 | flag=false restores 9 / 14 counts | confirmed legacy | ✅ CONFIRMED (current live = rollback) |
+---
 
-**Data-layer pre-validation (already confirmed, Session 56):**
-- IL-4Rα: legacy=9, normalized=5, scope_diff=5 (all confirmed absent from drug_targets)  
-  Adj: overlap=4, denom=4, adj_match=**100%** → `compare_pass_oos_adjusted` expected
-- TSLP: legacy=14, normalized=10, scope_diff=6 (all confirmed absent from drug_targets)  
-  Adj: overlap=8, denom=8, adj_match=**100%** → `compare_pass_oos_adjusted` expected
+### P0 — Steps to execute
 
-**G7 console check (when Pages is live):**
+**Step 1 — Confirm Pages propagated:**
+```bash
+python3 -c "
+import urllib.request
+req = urllib.request.Request('https://kyleklaassen-dev.github.io/bd-dashboard/index.html',
+  headers={'Cache-Control':'no-cache'})
+content = urllib.request.urlopen(req).read().decode()
+print('live:', 'useUnifiedAtopy' in content)
+"
+```
+If not live: check `https://www.githubstatus.com` and wait for Pages/Actions to clear.
+
+**Step 2 — Load fresh bust URL in browser:**
+Navigate to: `https://kyleklaassen-dev.github.io/bd-dashboard/index.html?bust=<new_timestamp>`  
+Confirm in console: `FEATURE_FLAGS.useUnifiedAtopy === false`
+
+**Step 3 — Run G6:**
+Load the il4ra-ox40l tab and tslp tab with flag=false. Confirm zero console errors.
+
+**Step 4 — Run G7:**
 ```javascript
-// In browser console — set flag=true, load il4ra-ox40l tab, then:
+// Enable flag, navigate to il4ra-ox40l tab, then:
 FEATURE_FLAGS.useUnifiedAtopy = true;
-// navigate to il4ra-ox40l tab
-// then:
-window.__MERIDIAN_PHASE4_COMPARE__.filter(r => r.path?.includes('atopy'))
+loadAreaPI('il4ra-ox40l');
+// wait for load, then:
+window.showPhase4Compare()
+// Confirm both records present:
+// il4ra_target_view = compare_pass_oos_adjusted
+// tslp_target_view  = compare_pass_oos_adjusted
 ```
 
-**Step 4: If all 8 gates pass → return to user with full results table, request advisor go before setting `useUnifiedAtopy=true`**
+**Step 5 — If G6 and G7 pass:**
+1. Return full 8-gate results table to user
+2. **Ask for advisor go** — do not flip flag without explicit approval
+3. After approval: set `useUnifiedAtopy: true` in index.html
+4. Deploy to GitHub Pages
+5. Re-test live (load il4ra-ox40l, il4ra-tslp, tslp tabs; check counts)
+6. Update update_log.md + NEXT_SESSION.md
+7. Mark C5+C6 activated
 
-**Architecture (already implemented in index.html, do NOT re-implement):**
-- FEATURE_FLAGS.useUnifiedAtopy = false ← current
-- `_ATOPY_NORM` checked FIRST in ternary (before `_TL1A_NORM`)
-- `_atopyTargets` dynamically built from areaIds
-- `_runPhase4BAtopyDualRead` method complete
-- Scope_diff: IL-4Rα=5 drugs (OX40L, IL-13×3, IL-31Rα), TSLP=6 drugs (IL-33×2, IL-5Rα, IL-4Rα, IL-5, IL-33R/ST2)
+---
+
+### Gates already confirmed (do not redo unless runtime fails)
+
+| Gate | Status | Evidence |
+|---|---|---|
+| G1 | ✅ CONFIRMED | Legacy: il4ra=9, tslp=14 (console simulation, Session 56) |
+| G2 | ✅ CONFIRMED | Normalized: il4ra_drug_targets=5, tslp/tslpr=10 (direct Supabase query) |
+| G3 | ✅ CONFIRMED | dupilumab, rademikibart--cbp-201, apg279, apg777, ibi333 all present |
+| G4 | ✅ CONFIRMED | amlitelimab, lebrikizumab, nemolizumab, tralokinumab, zumilokibart all absent |
+| G5 | ✅ CONFIRMED | tezepelumab, apg333, bsi-045b, verekitug--upb-101, gb0895 all present |
+| G6 | ⏳ PENDING | Requires new code live in browser |
+| G7 | ⏳ PENDING | Requires `_runPhase4BAtopyDualRead` to execute in browser |
+| G8 | ✅ CONFIRMED | Current live dashboard = rollback state; 9/14 confirmed |
+
+**Pre-validated adj_match (Session 56):**
+- IL-4Rα: overlap=4, scope_diff=5, adj_denom=4 → **100%** → `compare_pass_oos_adjusted` expected
+- TSLP: overlap=8, scope_diff=6, adj_denom=8 → **100%** → `compare_pass_oos_adjusted` expected
+
+---
+
+### Do not do until C5+C6 closed
+
+- Do not start FcRn (C7) activation
+- Do not touch ontology_edges
+- Do not rework the code unless runtime gates fail
 
 **Full activation package:** `docs/phase5_c6_activation_package.md`
 
