@@ -1,5 +1,38 @@
 
 ---
+## 2026-05-25 (Session 53r) — Phase 5 Candidate 3 PERMANENTLY ACTIVATED: useNormalizedDrugModal=true
+
+**Third completed Phase 5 migration. Drug entity modal now reads from normalized tables.**
+
+| Field | Value |
+|---|---|
+| Flag | `FEATURE_FLAGS.useNormalizedDrugModal` |
+| Previous value | `false` |
+| New value | `true` — permanent |
+| Commit | `cc1e0d6e5c24` |
+| Surface | Drug entity modal (all drugs with DB IDs) |
+| New sections | 🎯 Targets (Normalized) + 🩺 Indications (Normalized) in Overview tab |
+| Data sources | `drug_targets` + `drug_indications` + `trial_indications` (via trial IDs) |
+
+**Pre-activation cleanup completed:**
+- Label fixes: `eoe`→EoE, `chronic_urticaria`→Chronic Urticaria, `il23p19`→IL-23p19 (commit `e4d7b9e32968`)
+- Confidence display fix: `Math.round(score)` not `Math.round(score*100)` — was showing 9500% (commit `0f99b191`)
+- CIDP source audit: `batoclimab→cidp` row verified — `reviewed_by: 'kyle-2026-05-25'`, Phase 2 trial evidence NCT07188/NCT05581, `conf=0.97`. Kept.
+
+**All 8 gates confirmed (pre-deploy validation):**
+- ✅ `useNormalizedDrugModal=true` set in FEATURE_FLAGS
+- ✅ Flag=false regression: modal renders, no normalized sections injected
+- ✅ Flag=true rendering: both Targets + Indications sections present
+- ✅ Five drugs validated: batoclimab, dupilumab, risankizumab, sim0709, epi-001
+- ✅ Labels clean: IL-23p19, EoE, Chronic Urticaria, IL-4Rα, FcRn, TL1A all correct
+- ✅ Confidence correct: 95%, 96%, 92%, 87% — no 9500% artifacts
+- ✅ 0 console errors
+- ✅ Phase4C dual-read instrumentation active (6 comparison records)
+- ✅ Rollback: set flag `false` removes both sections cleanly
+
+**Non-blocking cleanup noted:** batoclimab ted + gmg rows carry `review_status: review_required` — standing side item from session #167.
+
+---
 ## 2026-05-25 (Session 53q) — Phase 5 Candidate 2 PERMANENTLY ACTIVATED: useNormalizedTED=true
 
 **Second completed Phase 5 migration. Executed as a single controlled sprint.**
