@@ -1,5 +1,37 @@
 
 ---
+## 2026-05-26 (Session 62) — Phase 6 Competitive Intelligence Layer SEEDED
+
+**Track A — DDL execution:**
+- Applied `docs/drug_competitive_scores_ddl.sql` via Management API: table + 4 indexes + 6 constraints + RLS + updated_at trigger
+- Applied `docs/area_metadata_ddl.sql` via Management API: 11 area_ids seeded correctly
+
+**Track B — Migration: drug_area_scores → drug_competitive_scores:**
+- Fix: confidence_level mapping required (`confirmed`→`A`, `supported`→`B`, `inferred`→`inferred`)
+- Committed 234 rows from 212 source rows; 0 unmapped, 0 duplicates, 0 null context rows
+- IBD expansion: 49 drugs → 89 rows (46 UC + 40 CD + 3 fallback indication/ibd)
+- igf1r deduped against ted (9 rows collapsed); atopy deduped against il4ra/tslp (9 rows collapsed)
+- All 5 spot-checks pass: risankizumab/cd, mirikizumab/uc, upadacitinib/uc, efgartigimod/fcrn, dupilumab/il4ra
+- indication/ibd fallback (3 drugs): epi-001 (held), sim0500 (Simcere/AbbVie), spy072 — need UC/CD drug_indications entries
+
+**Track C — Comparison report:**
+- `docs/drug_competitive_scores_migration_report.md` written + deployed (sha 4253d0ce)
+- Full old-vs-new report: row counts, context distribution, confidence mapping, spot-checks, loss analysis, next steps
+
+**area_metadata validated:**
+- 11 rows: 8 redirected (legacy_retained) + 1 flag_activated (fcrn) + 3 preserved (not_started)
+- All lifecycle_state and retirement_status values correct
+
+**GitHub deploys:**
+- `scripts/migrate_drug_area_scores.py` → sha 026c99fc (confidence_level fix)
+- `docs/drug_competitive_scores_migration_report.md` → sha 4253d0ce
+
+**State after session:**
+- `drug_competitive_scores`: 234 rows — validated parallel layer (not yet consumed by dashboard)
+- `area_metadata`: 11 rows — governance table live
+- `drug_area_scores`: 212 rows — untouched (legacy provenance)
+
+---
 ## 2026-05-26 (Session 61) — C7 FcRn ACTIVATED · Legacy Read Layer Elimination MILESTONE · area_metadata DDL Written
 
 **MILESTONE: Legacy Read Layer Elimination DECLARED COMPLETE**
