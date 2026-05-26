@@ -10514,7 +10514,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   const normTargetsSummary = _normTargets.slice(0,4).map(t => {
     const tLbl = _TARGET_LABEL[t.target_id] || t.target_id.toUpperCase();
     const confPill = t.confidence_score != null
-      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">${Math.round(t.confidence_score*100)}%</span>` : '';
+      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">${Math.round(t.confidence_score)}%</span>` : '';
     const rvwPill  = t.review_status && t.review_status !== 'confirmed'
       ? `<span style="font-size:9px;background:#fff7ed;color:#c2410c;border-radius:4px;padding:1px 5px;margin-left:3px">${t.review_status}</span>` : '';
     return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${tLbl}</div></div>${confPill}${rvwPill}</div>`;
@@ -10524,7 +10524,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     <table class="cem-tbl"><thead><tr><th>Target</th><th>Confidence</th><th>Review status</th></tr></thead><tbody>
     ${_normTargets.map(t => `<tr>
       <td style="font-weight:600">${_TARGET_LABEL[t.target_id]||t.target_id.toUpperCase()}</td>
-      <td style="color:#64748b">${t.confidence_score != null ? Math.round(t.confidence_score*100)+'%' : '—'}</td>
+      <td style="color:#64748b">${t.confidence_score != null ? Math.round(t.confidence_score)+'%' : '—'}</td>
       <td style="color:#64748b">${t.review_status||'—'}</td>
     </tr>`).join('')}
     </tbody></table>
@@ -10537,7 +10537,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     const stagePill = i.development_stage
       ? `<span style="font-size:9px;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px">${i.development_stage}</span>` : '';
     const confPill  = i.confidence_score != null
-      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:3px">${Math.round(i.confidence_score*100)}%</span>` : '';
+      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:3px">${Math.round(i.confidence_score)}%</span>` : '';
     return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${iLbl}</div></div>${stagePill}${confPill}</div>`;
   }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No indication relationships in normalized table.</span>';
   const normIndsDetail = `<div class="cem-det-inner">
@@ -10546,7 +10546,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     ${_normInds.map(i => `<tr>
       <td style="font-weight:600">${_IND_LABEL[i.indication_id]||i.indication_id.toUpperCase()}</td>
       <td style="color:#64748b">${i.development_stage||'—'}</td>
-      <td style="color:#64748b">${i.confidence_score != null ? Math.round(i.confidence_score*100)+'%' : '—'}</td>
+      <td style="color:#64748b">${i.confidence_score != null ? Math.round(i.confidence_score)+'%' : '—'}</td>
       <td style="color:#64748b">${i.review_status||'—'}</td>
     </tr>`).join('')}
     </tbody></table>
