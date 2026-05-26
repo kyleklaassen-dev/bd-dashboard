@@ -1,5 +1,32 @@
 
 ---
+## 2026-05-26 (Session 59) — C5+C6 Permanent Activation + Phase 6 Master Plan Complete
+
+**GitHub Pages RECOVERED. C5+C6 useUnifiedAtopy activated permanently.**
+
+**C5/C6 Activation (Candidates 5+6):**
+- Set `useUnifiedAtopy: true` in FEATURE_FLAGS (commit `32eeb683`)
+- All 10 post-activation checks PASS:
+  - TSLP tab: 10 entities (norm=10), key drugs confirmed: tezepelumab, apg333, bsi-045b/bosakitug, verekitug--upb-101, gb0895
+  - IL-4Rα tab (il4ra-ox40l): 5 drugs, key drugs confirmed: dupilumab, rademikibart--cbp-201, apg279, apg777, ibi333 (Sanofi)
+  - tslp_target_view: compare_pass_oos_adjusted (legacy=14 norm=10 scopeDiff=6 adj=100%)
+  - il4ra_target_view: compare_pass_oos_adjusted (legacy=9 norm=5 scopeDiff=5 adj=100%)
+  - Rollback confirmed: set useUnifiedAtopy=false
+- All 5 feature flags now true: useNormalizedIBD, useNormalizedTED, useNormalizedDrugModal, useUnifiedTL1A, useUnifiedAtopy
+- drug_areas no longer serves atopy/il4ra/tslp tab membership queries
+
+**P0 ECC-1 Fixes (applied to Supabase):**
+- apg333.drugs.target → 'TSLP' (was stale)
+- rocatinlimab.drugs.target → 'OX40L' (was stale 'OX40')
+
+**Phase 6 Master Plan (4 workstreams, all design docs committed):**
+- docs/phase6_master_plan.md (commit b3a271bc)
+- docs/drug_competitive_scores_design.md (commit 563f08dc)
+- docs/wave3_enrichment_plan.md (commit 9383d021)
+- docs/strategic_views_architecture.md (commit 2f210e93)
+- docs/drug_areas_disposition_report.md, redirected_entities_inventory.md, ontology_consistency_sweep.md, drug_areas_retirement_simulation.md (all committed Session 58)
+
+---
 ## 2026-05-26 (Session 58) — Ontology Governance Mega-Sprint (Tracks B–F complete)
 
 **GitHub Pages/Actions still degraded. Track A (C5/C6 activation) remains blocked.**
