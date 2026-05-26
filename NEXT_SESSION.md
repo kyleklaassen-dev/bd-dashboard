@@ -25,9 +25,25 @@
 
 ---
 
-## Session 61 — Three Active Work Items
+## Advisor Assessment — Session 60 Close (2026-05-26)
 
-### Item 1 — C7 FcRn: 8-Gate Browser Validation + Activation (HIGHEST PRIORITY)
+> "The dashboard migrations prove architecture. Wave 3 improves truth. Truth is ultimately what determines long-term value."
+
+**On Wave 3:** The 197→246 drug_indications expansion was the highest-impact change of Session 60 — a 25% coverage increase in one session. C7 is important but Wave 3 moves the quality needle more directly.
+
+**On ontology migration completion:** ~95% complete. The hard conceptual work is done. Remaining work is execution, validation, and controlled retirement.
+
+**"Legacy Read Layer Elimination" milestone** — declared complete when:
+1. All 6 flags true: `useNormalizedIBD`, `useNormalizedTED`, `useNormalizedDrugModal`, `useUnifiedTL1A`, `useUnifiedAtopy`, `useUnifiedFCRN`
+2. No dashboard component reads `drug_areas` for any biological tab query
+
+At that point `drug_areas` becomes a compatibility artifact rather than an active dependency. Everything after is Phase 6 platform evolution.
+
+---
+
+## Session 61 — Four Parallel Objectives
+
+### P0 — C7 FcRn: 8-Gate Browser Validation + Activation (HIGHEST PRIORITY)
 
 **Pre-flight metrics (pre-confirmed):**
 - legacy=7 (incl. atg-201), norm=7 (incl. riliprubart), overlap=6, scopeDiff=1, adj=6/6=100%
@@ -65,7 +81,7 @@
 
 ---
 
-### Item 2 — Apply drug_competitive_scores DDL (PREREQUISITE FOR MIGRATION)
+### P1 — Apply drug_competitive_scores DDL + Run Migration
 
 The table does not exist yet. Apply via Supabase SQL Editor:
 
@@ -94,12 +110,52 @@ python3 scripts/migrate_drug_area_scores.py --commit   # execute + validate
 
 ---
 
-### Item 3 — Update memory file: production read layer milestone
+### P2 — Wave 3 Quality Validation
 
-After C7 activates, update `memory/project_production_read_layer.md` and `memory/project_meridian_maturity.md` to reflect:
-- All 7 biological tabs reading from ontology tables
-- drug_areas retired from all normalized biological tab queries
-- Next inflection: drug_area_scores = read-only (pending drug_competitive_scores migration + consumer swap)
+246 rows is a substantial jump. Prove quality before further expansion.
+
+**Sampling approach:**
+1. Pull 25 inserted rows (created_by='wave3_backfill/...'): `SELECT drug_id, indication_id, confidence_score, confidence_level FROM drug_indications WHERE created_by LIKE 'wave3_backfill%' ORDER BY random() LIMIT 25`
+2. For each, verify: indication maps to a real disease (not a characteristic), source evidence exists in trial_indications, confidence level matches clinical phase
+3. Check for false positives — drugs where trial_indications indicates may have been a phase 1 trial unrelated to indication
+4. Generate confidence distribution: count A/B/C breakdown across all 49 new rows
+5. Flag any rows that need review_status upgrade to needs_review
+
+**Expected findings:** Most rows B/C grade (phase 2/1 trials), few A-grade (no approved or phase 3 for these specific drug-indication pairs), low false-positive rate given the trial-indication join logic.
+
+### P3 — area_metadata Governance Table
+
+Convert disposition documentation into a queryable table. Advisor framing: "Future governance queries should hit a table, not parse markdown."
+
+**DDL:**
+```sql
+CREATE TABLE area_metadata (
+  area_id           TEXT PRIMARY KEY,
+  display_name      TEXT,
+  category          TEXT  CHECK (category IN ('ontology_biological','curated_strategic','curated_platform')),
+  lifecycle_state   TEXT  CHECK (lifecycle_state IN ('active','redirected','retired','preserved_curated','preserved_platform')),
+  replacement_source TEXT,  -- e.g. 'drug_targets.target_id=tl1a'
+  retirement_phase  TEXT    -- e.g. 'phase_5.3'
+);
+```
+
+**Seed data (from docs/drug_areas_disposition_report.md):**
+
+| area_id | category | lifecycle_state | replacement_source | retirement_phase |
+|---|---|---|---|---|
+| tl1a | ontology_biological | redirected | drug_targets.target_id=tl1a | phase_5.3 |
+| ibd | ontology_biological | redirected | drug_indications.indication_id IN (uc,cd) | phase_5.3 |
+| igf1r | ontology_biological | redirected | drug_indications.indication_id=ted | phase_5.3 |
+| ted | ontology_biological | redirected | drug_indications.indication_id=ted | phase_5.3 |
+| il4ra | ontology_biological | redirected | drug_targets.target_id=il4ra | phase_5.4 |
+| tslp | ontology_biological | redirected | drug_targets.target_id IN (tslp,tslpr) | phase_5.4 |
+| atopy | ontology_biological | redirected | drug_targets.target_id IN (il4ra,tslp,tslpr) | phase_5.4 |
+| fcrn | ontology_biological | active | drug_targets.target_id=fcrn | phase_5.5 |
+| autoimmune | curated_strategic | preserved_curated | company_strategic_views | phase_5.4 |
+| respiratory | curated_strategic | preserved_curated | company_strategic_views | phase_5.4 |
+| tcell | curated_platform | preserved_platform | company_platform_views | phase_5.4 |
+
+Note: Can be evaluated alongside WS4 strategic views work — does not need to block C7 or migration.
 
 ---
 
@@ -107,10 +163,24 @@ After C7 activates, update `memory/project_production_read_layer.md` and `memory
 
 | WS | Name | Status |
 |---|---|---|
-| WS1 | C5+C6+C7 activation | WS1 = C5+C6 ✅ DONE; C7 ⏳ next |
-| WS2 | Wave 3 +47 drug-indication pairs | ✅ **DONE Session 60** — 49 rows committed |
-| WS3 | drug_competitive_scores | ⏳ **DDL written, table not yet created** |
+| WS1 | C5+C6+C7 activation | C5+C6 ✅; C7 ⏳ infrastructure deployed, validation pending |
+| WS2 | Wave 3 +47 drug-indication pairs | ✅ **DONE Session 60** — 49 rows committed, quality validation pending (P2) |
+| WS3 | drug_competitive_scores | ⏳ DDL written, table not yet created, migration not yet run |
 | WS4 | Strategic views (autoimmune/respiratory → company_strategic_views) | Not started |
+| WS-Gov | area_metadata governance table | ⏳ Design complete (P3 above), evaluate alongside WS4 |
+
+### Next Major Milestone: Legacy Read Layer Elimination
+
+When all of the following are true, the ontology migration is complete and Phase 6 platform evolution begins:
+- `useNormalizedIBD = true` ✅
+- `useNormalizedTED = true` ✅
+- `useNormalizedDrugModal = true` ✅
+- `useUnifiedTL1A = true` ✅
+- `useUnifiedAtopy = true` ✅
+- `useUnifiedFCRN = true` ⏳ pending C7 activation
+- No dashboard component reads `drug_areas` for any biological tab query ⏳ pending C7 activation
+
+**Estimated completion: ~95%.** C7 validation is the last gate.
 
 **WS3 remaining work (5–8 sessions per design doc):**
 1. Apply DDL → run migration → validate (Session 61 if DDL applied this session)
