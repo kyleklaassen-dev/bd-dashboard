@@ -1,5 +1,40 @@
 
 ---
+## 2026-05-26 (Session 60) — C7 FcRn Infrastructure + Wave 3 Backfill COMMITTED + drug_competitive_scores Package Complete
+
+**Track A — C7 FcRn (flag=false, pre-validation):**
+- Added `useUnifiedFCRN: false` to FEATURE_FLAGS (commit `4af85431`)
+- Added `_FCRN_NORM` constant in `_makeAreaPI()` with full precedence chain: _ATOPY_NORM → _FCRN_NORM → _TL1A_NORM → _IBD_NORM → _TED_NORM → legacy
+- Built `_runPhase4BFCRNDualRead()` dual-read harness:
+  - Pre-flight: legacy=7 (incl. atg-201), norm=7 (incl. riliprubart), overlap=6, scopeDiff=1 (atg-201=CD19×CD3), adj=6/6=100% → compare_pass_oos_adjusted
+  - FCRN_SCOPE_DIFF map: atg-201 classified as scope_difference (UCB autoimmune asset, Watch-tier legacy only)
+- Fixed `riliprubart.mechanism` → "Anti-FcRn monoclonal antibody" (was "Anti-C1q complement monoclonal antibody")
+- **C7 status: infrastructure deployed, flag=false. 8-gate browser validation required before activation.**
+
+**Track B — Wave 3 drug_indications backfill COMMITTED:**
+- Script: `scripts/wave3_drug_indications_backfill.py`
+- Gap computed: 49 pairs across 35 drugs (trial_indications → trials.drug_id join, filtered to valid drugs)
+- All 49 rows committed to drug_indications (batch 1, Prefer: ignore-duplicates)
+- Confidence scoring: phase-based (Approved=92→A, Phase3=85→A, Phase2=70→B, Phase1=40→C)
+- Schema fix chain: is_lead_indication (not primary_indication), source_type=clinicaltrials_api, extraction_method=tier3_pattern, review_status=sampling_queue
+- drug_indications: 197 → 246 rows (+49)
+- Key drugs backfilled: lutikizumab (4 inds), iscalimab (5 inds), imvt-1402, astegolimab
+
+**Track C — drug_competitive_scores implementation package COMPLETE:**
+- `docs/drug_competitive_scores_ddl.sql` — Full DDL: context_type CHECK, UNIQUE(drug_id,context_type,context_id), 4 indexes, updated_at trigger, RLS policies matching drug_area_scores pattern
+- `scripts/migrate_drug_area_scores.py` — Full migration: drug_area_scores (212 rows) → drug_competitive_scores
+  - AREA_CONTEXT_MAP: tl1a/il4ra/tslp/fcrn → target; igf1r/ted → indication/ted (UNIQUE dedup); autoimmune/respiratory → strategic_view; tcell → platform_view
+  - IBD: per-drug UC/CD expansion via drug_indications lookup
+  - Atopy: per-drug il4ra/tslp expansion via drug_targets lookup
+  - Modes: --audit / --dry-run / --commit
+- **Table does NOT exist yet. DDL must be applied via Supabase SQL Editor before migration can run.**
+
+**GitHub deploys:**
+- `scripts/wave3_drug_indications_backfill.py` → sha 0d2b980
+- `scripts/migrate_drug_area_scores.py` → sha 4394be2
+- `docs/drug_competitive_scores_ddl.sql` → sha 702134c
+
+---
 ## 2026-05-26 (Session 59) — C5+C6 Permanent Activation + Phase 6 Master Plan Complete
 
 **GitHub Pages RECOVERED. C5+C6 useUnifiedAtopy activated permanently.**
