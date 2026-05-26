@@ -1,4 +1,4 @@
-# Next Session — Session 66: Routing Fixes + Company Normalization
+# Next Session — Session 66: Company Identity Audit + Routing Fixes
 
 **Prepared:** 2026-05-26  
 **Phase:** Phase 6 — Fact Connectivity & Canonical Display  
@@ -6,17 +6,28 @@
 
 ---
 
-## What Session 65 Established
+## The Maturity Shift
 
-Session 65 answered: *"Is the live system healthy?"*  
-The answer: core pipeline (intel, catalysts, deals, signals) is healthy. One confirmed P0 gap fixed: `fetch_homepage_news.py` now has a scheduled workflow at 07:30 UTC daily. The `is_this_week` decay bug is patched.
+Sessions 1–64 asked: *"Is the data correct?"*  
+Session 65 asked: *"Is the pipeline healthy?"*  
+Session 66 asks: *"Can a user actually use the data?"*
 
-Session 65 also produced three routing maps:
-- `live_system_health_audit.md` — pipeline health by section
-- `article_relationship_audit.md` — how articles route to surfaces
-- `submit_intel_pipeline_audit.md` — full submit intel flow
+These are different maturity stages. The platform has shifted from a data modeling problem to a data utilization problem. The highest-value work is no longer enrichment — it is connectivity, entity integrity, and surface completeness.
 
-Session 66 answers: *"Can we close the three highest-leverage routing gaps?"*
+The new primary KPI is **UI Coverage %**: for each intelligence table, what fraction of stored rows are actually reachable by a user? A row that exists in Supabase but cannot be reached from any UI surface does not exist for the user.
+
+---
+
+## Priority 0: Review Submitted Intel (5 min — START HERE)
+
+9 items submitted 2026-05-26 with `status='new'`. By session start they should be `status='analyzed'`.
+
+Open the Submitted Intel tab. For each analyzed item:
+- ✅ Send to Queue (high confidence, no dup concern)
+- ❌ Reject (irrelevant or duplicate)
+- 💬 Needs Review (ambiguous)
+
+**Do this before any code work.** Submitted intel is the highest-signal input in the system.
 
 ---
 
@@ -33,39 +44,91 @@ Open the Submitted Intel tab. For each analyzed item:
 
 ---
 
-## Priority 1: Company Normalization Audit → `company_cleanup_plan.md`
+## Priority 1: Company Identity Audit → `company_cleanup_plan.md`
 
-**Do this before routing fixes.** Routing quality depends on entity quality. `news_articles.matched_company_ids` is populated at write time by fuzzy-matching company names against `companies.name`. If "AbbVie", "abbvie", and "ABBVIE" are three different `company_id` values, news articles matched to one variant will not surface on the other company cards. Fix company identity first — every downstream routing improvement depends on it.
+**Do this before routing fixes.** Routing quality depends on entity quality. `news_articles.matched_company_ids` is populated at write time by fuzzy-matching company names against `companies.name`. If "AbbVie", "abbvie", and "ABBVIE" are three different `company_id` values, news articles matched to one variant will not surface on the other company cards. Fix company identity first.
+
+This is not a simple duplicate name check. Build a complete company identity audit.
+
+### Part A — Identity Violations
 
 ```sql
--- Find likely duplicates (same name, different case)
+-- Duplicate names (case variants)
 SELECT LOWER(name) AS name_lower, array_agg(id ORDER BY id) AS ids, COUNT(*) AS ct
-FROM companies
-GROUP BY LOWER(name)
-HAVING COUNT(*) > 1
-ORDER BY ct DESC;
+FROM companies GROUP BY LOWER(name) HAVING COUNT(*) > 1 ORDER BY ct DESC;
 
--- Find company/company patterns (slash-separated)
+-- Slash-compound names (should be parent_company_id relationship)
 SELECT id, name FROM companies WHERE name LIKE '%/%' ORDER BY name;
 
--- Find lowercase names (should be title case)
+-- Lowercase names (should be title case)
 SELECT id, name FROM companies WHERE name != INITCAP(name) AND name = LOWER(name) ORDER BY name;
 
--- Find acquired companies without parent_company_id
+-- Acquired companies without parent_company_id set
 SELECT id, name, status FROM companies WHERE status = 'acquired' AND parent_company_id IS NULL ORDER BY name;
 
--- Find parent_company_id relationships (current state)
+-- Current parent_company_id relationships
 SELECT c.id, c.name, p.id AS parent_id, p.name AS parent_name
-FROM companies c JOIN companies p ON c.parent_company_id = p.id
-ORDER BY p.name, c.name;
+FROM companies c JOIN companies p ON c.parent_company_id = p.id ORDER BY p.name, c.name;
 ```
 
-Output: `docs/company_cleanup_plan.md` — table of violating companies with recommended action (merge, alias, ownership_edge, rename, split).
+### Part B — Company Connectivity Score
 
-Execute safe fixes in the same session:
+For every company in the watchlist, compute a connectivity score across all linked intelligence tables. This tells you where entity integrity is weak — not by looking at the company record, but by looking at how much downstream data reaches it.
+
+```sql
+-- Connectivity score per company
+SELECT
+  c.id,
+  c.name,
+  COUNT(DISTINCT d.id)    AS drugs_linked,
+  COUNT(DISTINCT ca.id)   AS catalysts_linked,
+  COUNT(DISTINCT de.id)   AS deals_linked,
+  COUNT(DISTINCT oe.id)   AS ownership_edges,
+  (c.parent_company_id IS NOT NULL)::int AS has_parent,
+  CASE WHEN c.status = 'acquired' AND c.parent_company_id IS NULL THEN 1 ELSE 0 END AS orphaned_acquisition
+FROM companies c
+LEFT JOIN drugs d       ON d.company_id = c.id
+LEFT JOIN catalysts ca  ON ca.company_id = c.id
+LEFT JOIN deals de      ON de.company_id = c.id
+LEFT JOIN ownership_edges oe ON oe.from_company_id = c.id OR oe.to_company_id = c.id
+WHERE c.status != 'acquired'
+GROUP BY c.id, c.name, c.parent_company_id, c.status
+ORDER BY drugs_linked DESC;
+```
+
+For `news_articles` (array field, requires different approach):
+```sql
+-- Companies that appear in news_articles.matched_company_ids
+SELECT DISTINCT unnest(matched_company_ids) AS company_id, COUNT(*) AS article_count
+FROM news_articles
+GROUP BY 1 ORDER BY 2 DESC LIMIT 30;
+```
+
+### Part C — Output Format
+
+`docs/company_cleanup_plan.md` should include two tables:
+
+**Table 1 — Identity violations** (action required per company):
+
+| Company | Current ID | Violation Type | Recommended Action |
+|---|---|---|---|
+| abbvie | abbvie-2 | Case duplicate of abbvie | Merge → abbvie, add alias |
+| Roche / Genentech | roche-gen | Slash compound | Split: parent_company_id relationship |
+
+**Table 2 — Connectivity scorecard** (top 30 companies by drug count):
+
+| Company | Drugs | Catalysts | News | Deals | Ownership | Score |
+|---|---|---|---|---|---|---|
+| AbbVie | 8 | 12 | 14 | 5 | ✅ | 100 |
+| Company X | 3 | 0 | 1 | 2 | ❌ | 43 |
+
+Score formula: presence in each category = 20 pts, max 100.
+
+### Part D — Execute safe fixes in the same session
+
 - Rename clearly misspelled or miscased names (direct UPDATE)
 - Set `parent_company_id` for known acquired companies
-- Do NOT merge row IDs without verifying FK dependencies first (check drugs, partnerships, catalysts, deals, company_areas for each id)
+- Do NOT merge row IDs without verifying FK dependencies first (check drugs, partnerships, catalysts, deals, company_areas for each id before any DELETE)
 
 ---
 
@@ -127,7 +190,36 @@ Render as the last section in the drug modal, after trials and competitive score
 
 ---
 
-## Priority 3: Catalyst Connectivity Audit → `catalyst_connectivity_audit.md`
+## Priority 3: Industry Insights Audit → `industry_insights_audit.md`
+
+Industry Insights is the daily briefing iframe (`meridian_today.html`). It is nominally healthy (write_meridian.py runs Mon–Sat at 10:30 UTC). But "healthy pipeline" ≠ "complete coverage." The audit question is: how many recent intelligence items exist in Supabase that do NOT appear in the daily briefing?
+
+**Audit queries:**
+
+```sql
+-- How many intel rows from last 7 days?
+SELECT COUNT(*) FROM intel WHERE intel_date >= CURRENT_DATE - 7;
+
+-- How many catalysts unresolved and upcoming?
+SELECT COUNT(*) FROM catalysts WHERE resolved = false AND sort_date >= CURRENT_DATE;
+
+-- How many deals from last 14 days?
+SELECT COUNT(*) FROM deals WHERE deal_date >= CURRENT_DATE - 14;
+```
+
+**Audit grep (write_meridian.py):**
+```bash
+grep -n "intel\|catalyst\|deals\|news_articles" scripts/write_meridian.py | head -40
+```
+
+Confirm: which tables does write_meridian.py query? What filters does it apply? Are there relevance thresholds that exclude recent items?
+
+**Output:** `docs/industry_insights_audit.md`  
+Include: tables queried, filters applied, row counts available vs. included, coverage gap.
+
+---
+
+## Priority 4: Catalyst Connectivity Audit → `catalyst_connectivity_audit.md`
 
 ```sql
 SELECT COUNT(*) FROM catalysts;
@@ -148,7 +240,45 @@ Include: count table, 4-surface visibility matrix (drug card / company card / ar
 
 ---
 
-## Priority 4: Surface B Removal (10 min — if time allows)
+## Drug Card — Target Information Architecture (for Session 67+)
+
+The canonical drug card (`_cemDrugBody`) currently has: ontology, trials, competitive scores, partnerships, mechanism. It is missing the five most actionable BD facts: news, catalysts, ownership chain, deal history, company context.
+
+The target IA for the drug card (do not build until routing audits confirm what data exists):
+
+```
+Asset Overview
+  name · company · stage · mechanism · targets · indications
+
+Development
+  active trials (phase, endpoint, readout date)
+  catalyst timeline (next 3 upcoming, past 2)
+  milestones
+
+Business
+  ownership chain (originator → current owner → licensees)
+  partnerships (type · partner · economics summary)
+  deal history (deal type · counterparty · value · date)
+
+Intelligence
+  related news (from news_articles.matched_drug_ids)
+  related intel (from intel — when drug-level routing exists)
+  related company updates (from company card intel)
+```
+
+All of this data exists in Supabase. The challenge is rendering it in a single coherent surface. Build this in Session 67 after the connectivity audit confirms what's actually linked.
+
+---
+
+## Submit Intel Traceability Gap (Session 68+)
+
+From `submit_intel_pipeline_audit.md`: once a submission is promoted to `discovery_queue` and processed into `catalysts`/`deals`/`intel`, there is no FK back to the originating `submitted_intel` row. A submitted article that generates a catalyst has no traceable lineage.
+
+Future fix: add `source_submitted_intel_id` FK to `catalysts`, `deals`, and `intel`. This makes every submission traceable to its downstream outputs. Defer until submit intel volume increases enough to justify.
+
+---
+
+## Priority 5: Surface B Removal (10 min — if time allows)
 
 From `company_surface_inventory_session64.md`:
 
