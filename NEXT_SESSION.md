@@ -1,7 +1,20 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 57 (2026-05-26) — **GitHub Pages/Actions infrastructure STILL DEGRADED (second consecutive session). Multiple re-deploy attempts failed: Actions build errors on `codeload.github.com` not serving `upload-pages-artifact@v3`; legacy Pages API build stuck/errored. Pages CDN is serving pre-C5+C6 code (`FEATURE_FLAGS` has no `useUnifiedAtopy`). Code is correct in repo (commit `089819dd`). Validation queue fix: obexelimab `fcgriib` target added to targets + drug_targets; now 4 needs_review remain.** First task next session: check `githubstatus.com` — if Actions+Pages operational, deploy once more then run G6+G7. If still degraded, consider switching workflow to a version that avoids `upload-pages-artifact@v3`.  
-**Prior session:** Session 56 — C5+C6 code implemented and pushed. Data-layer gates G1-G5+G8 confirmed via console simulation (IL-4Rα adj_match=100%, TSLP adj_match=100%). Pages degraded at end of session.
+**Last session:** Session 58 (2026-05-26) — **GitHub Pages/Actions STILL DEGRADED (third consecutive session). Track A (C5/C6 activation) remains blocked. Ontology governance mega-sprint completed: 5 governance documents produced (Tracks B–F). Critical findings: (1) drug_area_scores has NO normalized replacement — cannot retire without Phase 5.5 drug_competitive_scores migration; (2) apg333 missing drugs.target field — P0 fix needed; (3) 62 trial-indication gaps found in ECC-7; (4) iscalimab has 5 missing drug_indications rows.**
+
+**Track A — still blocked. Step 0 every session: check `githubstatus.com`. If Actions+Pages operational: deploy → G6 (zero console errors) → G7 (window.showPhase4Compare() returns compare_pass_oos_adjusted for il4ra + tslp) → advisor go → activate useUnifiedAtopy=true → deploy → re-test → log.**
+
+```bash
+curl -s "https://www.githubstatus.com/api/v2/components.json" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+for c in data['components']:
+    if any(k in c['name'].lower() for k in ['actions','pages','git']):
+        print(f\"{c['name']}: {c['status']}\")
+"
+```
+
+**If still degraded:** Skip Track A. Work on P0 ECC fixes (apg333 + rocatinlimab drugs.target fields) and P1 drug_indications backfill for iscalimab/itepekimab/afimkibart/lutikizumab. Then implement C7 (FcRn) in code behind useUnifiedFCRN=false while waiting.
 
 ---
 
