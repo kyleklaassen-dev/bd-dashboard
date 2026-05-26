@@ -1,5 +1,38 @@
 
 ---
+## 2026-05-25 (Session 53q) — Phase 5 Candidate 2 PERMANENTLY ACTIVATED: useNormalizedTED=true
+
+**Second completed Phase 5 migration. Executed as a single controlled sprint.**
+
+| Field | Value |
+|---|---|
+| Flag | `FEATURE_FLAGS.useNormalizedTED` |
+| Previous value | `false` (stub from Candidate 1 session) |
+| New value | `true` — permanent |
+| Commit | `71974d6` |
+| Tab | `igf1r-tshr` → `areaIds: ['igf1r']` |
+| Legacy source | `drug_area_scores WHERE area_id='igf1r'` (9 drugs) |
+| Normalized source | `drug_indications WHERE indication_id='ted'` (13 drugs) |
+
+**Pre-flight data fix:** Deleted `drug_indications` row `e306af30` — cizutamig+ted, tier3_pattern false positive. BCMA×CD3 myeloma bispecific; "TED" matched from compound indication list (SLE·gMG·TED·RA·...), not a genuine TED indication.
+
+**All 8 gates confirmed live (commit 71974d6):**
+- ✅ `useNormalizedTED=true` live in production
+- ✅ `igf1r-tshr` tab loads, `piLoaded=true`
+- ✅ `ted_indication_group_view` auto-fires on igf1r-tshr tab load
+- ✅ status = `compare_pass_oos_adjusted` (legacy=9, norm=13, raw=100%, adj=100%)
+- ✅ batoclimab present in normalized set
+- ✅ 4 extra_norm drugs confirmed as genuine new additions (crn12755, iscalimab, lonigutamab, sp-1351 — all legitimate TED drugs)
+- ✅ 0 extra_legacy — perfect parity on all 9 legacy drugs
+- ✅ Rollback = one-line flag flip to `false`
+
+**Also included:** `_runPhase4BTEDDualRead` method with self-fetch fallback (same robustness pattern as IBD).
+
+**Monitoring window:** 2026-05-25 → ~2026-06-08 (14 days)
+**Legacy retention deadline:** 2026-06-24 (30-day rule)
+**Candidate 3 gate:** Drug modal sprint complete + 0 unexplained mismatches
+
+---
 ## 2026-05-25 (Session 53p) — Phase 5 Candidate 1 PERMANENTLY ACTIVATED: useNormalizedIBD=true
 
 **First completed Phase 5 migration. Advisor-approved 2026-05-25.**
