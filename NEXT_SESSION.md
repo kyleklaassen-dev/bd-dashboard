@@ -312,29 +312,33 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 ### P1 — Phase 5 Candidate 4 (TL1A) — Data Source Migration
 
-**Status:** Not started. Smaller scope than previously thought. `tl1aPI` was already retired in Session 45 — TL1A rendering already runs through `_makeAreaPI`. Candidate 4 is a source swap + validation sprint, not an architecture build.
+**Status:** Not started. `tl1aPI` was already retired (Session 45, commit `b4355353`). TL1A rendering already runs through `_makeAreaPI`. This is a source swap + validation sprint.
 
 **Current source:** `drug_areas WHERE area_id='tl1a'`  
 **Target source:** `drug_targets WHERE target_id='tl1a'`  
 **Flag:** `FEATURE_FLAGS.useUnifiedTL1A`
 
-**Step 1 — Pre-flight audit (do before any implementation):**
-Run the same pre-flight classification used for TED:
-- Count legacy TL1A drugs (from `drug_areas WHERE area_id='tl1a'`)
-- Count normalized TL1A target drugs (from `drug_targets WHERE target_id='tl1a'`)
-- Enumerate overlap, extra_legacy, extra_normalized
-- Classify every difference through `entity_consistency_checks`
-- Confirm adjusted match % (`compare_pass_oos_adjusted` threshold)
+**Step 1 — Pre-Flight Audit (before touching any code)**
+- Legacy TL1A population count (`drug_areas WHERE area_id='tl1a'`)
+- Normalized TL1A population count (`drug_targets WHERE target_id='tl1a'`)
+- Overlap %, extra_legacy list, extra_normalized list
+- Difference classification for every mismatch (legitimate_target_drug / legacy_noise / scope_difference / normalized_gap / source_conflict / manual_review)
+- Adjusted match %
+- **Deliverable: classification report. Nothing proceeds without it.**
 
-Only after classification report is complete should implementation begin.
+**Step 2 — Reconciliation**
+Every difference must be explainable before implementation starts. Unresolved mismatches → `entity_consistency_checks`.
 
-**Step 2 — Implementation (same 8-gate pattern as Candidates 1–3):**
-1. Add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag
-2. Shadow dual-read — run both paths, compare output
-3. Validate runtime comparison status
-4. Flip `useUnifiedTL1A=true` permanently when all gates pass (30-day legacy retention applies)
+**Step 3 — Implementation**
+After audit clears: add normalized path inside `_makeAreaPI` behind `useUnifiedTL1A` flag. Source swap only — no rendering changes needed. Small code change.
 
-**Why this moves fast:** Unified engine ✅ · Feature flag stub ✅ · Dual-read framework ✅ · Comparison harness ✅ · Reconciliation layer ✅. Work is data validation, not infrastructure construction.
+**Step 4 — Validation**
+Same 8-gate playbook as Candidates 1–3. Runtime observation wins over assumptions.
+
+**Step 5 — Activation**
+Flip flag permanently. Monitor to ~2026-06-08. Inconsistencies → `entity_consistency_checks`, not reverts.
+
+**Why this moves fast:** Unified engine ✅ · Feature flag stub ✅ · Dual-read framework ✅ · Comparison harness ✅ · Reconciliation layer ✅. The framework is built. The work is proving the data source swap is correct.
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
