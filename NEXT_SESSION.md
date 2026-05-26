@@ -18,6 +18,20 @@ The new primary KPI is **UI Coverage %**: for each intelligence table, what frac
 
 ---
 
+## Session 66 Success Metric
+
+By the end of Session 66, Claude should be able to say — for each major Supabase table:
+
+1. **Fresh?** — when was the last row written, is the pipeline healthy
+2. **Linked?** — what fraction of rows have a canonical entity FK (drug_id, company_id, area_id)
+3. **Visible?** — what fraction of rows are reachable from at least one UI surface
+4. **Owned?** — which UI surface is the canonical home for this table
+5. **Next fix?** — the single highest-leverage change to improve visibility
+
+That five-point answer per table is the real integration milestone for Phase 6.
+
+---
+
 ## Priority 0: Review Submitted Intel (5 min — START HERE)
 
 9 items submitted 2026-05-26 with `status='new'`. By session start they should be `status='analyzed'`.
@@ -242,31 +256,34 @@ Include: count table, 4-surface visibility matrix (drug card / company card / ar
 
 ## Drug Card — Target Information Architecture (for Session 67+)
 
-The canonical drug card (`_cemDrugBody`) currently has: ontology, trials, competitive scores, partnerships, mechanism. It is missing the five most actionable BD facts: news, catalysts, ownership chain, deal history, company context.
+The canonical drug card (`_cemDrugBody`) must be **primarily factual**. AI-generated signals (ailux_angle, overlap_rationale, BD framing) go in a collapsible secondary section. The card should be trustworthy and readable without AI annotation — facts first, interpretation available but not leading.
 
-The target IA for the drug card (do not build until routing audits confirm what data exists):
+**Priority order for the factual sections:**
 
 ```
 Asset Overview
-  name · company · stage · mechanism · targets · indications
+  current owner / company · originator / licensor · stage
+  indications · targets · mechanism
 
 Development
-  active trials (phase, endpoint, readout date)
-  catalyst timeline (next 3 upcoming, past 2)
-  milestones
+  trials (phase, endpoint, readout date)
+  catalysts (next 3 upcoming · past 2 resolved)
 
 Business
-  ownership chain (originator → current owner → licensees)
   partnerships (type · partner · economics summary)
-  deal history (deal type · counterparty · value · date)
+  deal history (type · counterparty · value · date)
+  ownership chain (originator → current owner → licensees)
 
-Intelligence
-  related news (from news_articles.matched_drug_ids)
-  related intel (from intel — when drug-level routing exists)
-  related company updates (from company card intel)
+Activity
+  recent news (news_articles.matched_drug_ids)
+  submitted intel lineage (future: source_submitted_intel_id FK)
+
+[Collapsible] BD Intelligence
+  ailux_angle · overlap / overlap_rationale
+  vs_ailux framing · confidence + source URL
 ```
 
-All of this data exists in Supabase. The challenge is rendering it in a single coherent surface. Build this in Session 67 after the connectivity audit confirms what's actually linked.
+All data exists in Supabase. Build in Session 67 after connectivity audit confirms linkage rates. Start with news (simplest) and catalysts (highest BD value).
 
 ---
 
