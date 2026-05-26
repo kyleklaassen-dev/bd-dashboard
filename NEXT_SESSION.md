@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53p (2026-05-25) — Phase 5 Candidate 1 PERMANENTLY ACTIVATED (useNormalizedIBD=true, commit 522e155). All 8 gates confirmed live. First completed Phase 5 migration.  
-**Prior session:** Session 53n/o — Phase 4C Ranks 5–8 complete; Wave 2D FcRn committed (200 drug_indications)
+**Last session:** Session 53q (2026-05-25) — Phase 5 Candidate 2 PERMANENTLY ACTIVATED (useNormalizedTED=true, commit 71974d6). All 8 gates confirmed live in single sprint. Second completed Phase 5 migration.  
+**Prior session:** Session 53p — Candidate 1 (IBD) permanently activated (useNormalizedIBD=true, commit 522e155)
 
 ---
 
@@ -86,9 +86,11 @@ All Phase 4A work is done. Corrections applied and verified.
 | Phase 4A | Evidence Reconciliation — candidate review + corrections | ✅ COMPLETE |
 | Phase 4B | Dual-read validation — parallel legacy + normalized reads | ✅ COMPLETE |
 | Phase 4C | Pre-migration classification sprint — explain every difference | ✅ COMPLETE — IBD ✅ TED ✅ modal 10/10 ✅ Ranks 5–8 ✅ |
-| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidate 1 PERMANENTLY ACTIVATED 2026-05-25 (useNormalizedIBD=true, commit 522e155)** |
+| Phase 5 | Incremental source switch — feature-flagged, per-component | ▶ **ACTIVE — Candidates 1+2 ACTIVATED 2026-05-25** |
 
-**Phase 5 Candidate 1 (IBD): ACTIVATED 2026-05-25. All 8 gates confirmed live. `ibd_indication_group_view=compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%). Monitoring window: 2026-05-25 → ~2026-06-08. Legacy path retained until 2026-06-24 (30-day rule). Candidate 2 (TED) is next.**
+**Phase 5 Candidate 1 (IBD): ACTIVATED 2026-05-25. `ibd_indication_group_view=compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24.**
+
+**Phase 5 Candidate 2 (TED): ACTIVATED 2026-05-25 (commit 71974d6). `ted_indication_group_view=compare_pass_oos_adjusted` (legacy=9, norm=13, raw=100%, adj=100%). 4 genuine new TED additions in normalized. 1 data error fixed (cizutamig false positive removed). Monitoring window → ~2026-06-08. Legacy retention deadline: 2026-06-24. Candidate 3 (Drug modal) is next.**
 
 ---
 
@@ -232,15 +234,15 @@ Full plan: `docs/phase4c_validation_plan.md`
 | Candidate | Component | Flag | Value | Deployed | Activated |
 |---|---|---|---|---|---|
 | 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ commit `522e155` | ✅ **ACTIVATED 2026-05-25** — all 8 gates live; monitoring window open |
-| 2 | TED area tab | `useNormalizedTED` | false | ❌ code not written yet | ❌ |
+| 2 | TED area tab | `useNormalizedTED` | **true** | ✅ commit `71974d6` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; ted_indication_group_view=compare_pass_oos_adjusted (9→13 drugs, raw=100%) |
 | 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**Candidate 1 ACTIVATED 2026-05-25 (commit 522e155).** All 8 gates confirmed live. ibd_indication_group_view=compare_pass_oos_adjusted auto-fires on TL1A tab load. Monitoring window: 2026-05-25 → ~2026-06-08.
+**Candidates 1+2 ACTIVATED 2026-05-25.** Both monitoring windows open to ~2026-06-08.
 
-**⚡ FIRST TASK NEXT SESSION — Candidate 2 (TED) planning:**
-1. Confirm Candidate 1 still stable (check dashboard, run `window.showPhase4Compare()`)
-2. Begin Candidate 2 TED planning (see P1 below)
+**⚡ FIRST TASK NEXT SESSION — Candidate 3 (Drug modal):**
+1. Confirm Candidates 1+2 still stable (check dashboard, run `window.showPhase4Compare()`)
+2. Begin Candidate 3 drug modal migration sprint
 3. PLACEHOLDER — remove this line
 4. Open browser console → run `window.showPhase4Compare()`
 5. Confirm two records appear — ibd record: `compare_pass_oos_adjusted` (94% raw → 100% adj)
