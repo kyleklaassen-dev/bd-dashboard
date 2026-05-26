@@ -1,5 +1,27 @@
 
 ---
+## 2026-05-26 (Session 63) — WS3 Consumer Migration Planning COMPLETE
+
+**Track A — Pre-implementation audit (C1/C2 drug modal):**
+- P0 strategic_role audit: SAFE — column does not exist in drug_area_scores; PostgREST silently returns null; all display code is conditional and never renders in production. Omit entirely from new query.
+- P1 confidence display audit: `_confBadge` hard-coded to legacy enum (`confirmed`/`supported`/`inferred`); new A/B/C values fall through to `?` — VISUAL REGRESSION IDENTIFIED. Fix defined: extend `_confBadge` to handle both old and new values; add `_CONF_LABEL` map for tooltip text. This is the **P0 blocker** before C1/C2 can deploy.
+- Context_id label audit: `_CEM_AMAP` missing `uc`/`cd`/`ted` entries; IBD drugs with new context_ids would display raw "uc"/"cd". Fix defined: add short labels to `_CEM_AMAP`.
+
+**Track B — C1/C2 implementation plan:**
+- `docs/drug_competitive_scores_c1c2_plan.md` written + deployed (sha 8f564873)
+- Full plan: 5 deliverables, exact code diffs, dual-read harness design, 10-drug validation set, implementation sequence
+- Dual-read harness: `window.__MERIDIAN_COMPETITIVE_SCORE_COMPARE__` — captures old vs new row counts, matched/old-only/new-only contexts, field-level parity on overlap/confidence/source_url
+
+**GitHub deploys:**
+- `docs/drug_competitive_scores_c1c2_plan.md` → sha 8f564873 (new file)
+- `NEXT_SESSION.md` → sha e96d4c7c
+
+**State after session:**
+- WS3 consumer migration plan complete — C1/C2 ready to implement
+- Blocker: `_confBadge` fix must land in same commit as C1/C2
+- Next: Session 64 = C1/C2 implementation + 10-drug validation
+
+---
 ## 2026-05-26 (Session 62) — Phase 6 Competitive Intelligence Layer SEEDED
 
 **Track A — DDL execution:**
