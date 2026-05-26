@@ -1,7 +1,7 @@
 # NEXT SESSION — BD Platform
 
-**Last session:** Session 53q (2026-05-25) — Phase 5 Candidate 2 PERMANENTLY ACTIVATED (useNormalizedTED=true, commit 71974d6). All 8 gates confirmed live in single sprint. Second completed Phase 5 migration.  
-**Prior session:** Session 53p — Candidate 1 (IBD) permanently activated (useNormalizedIBD=true, commit 522e155)
+**Last session:** Session 53r (2026-05-25) — Phase 5 Candidate 3 PERMANENTLY ACTIVATED (useNormalizedDrugModal=true, commit cc1e0d6e). Drug modal now reads from normalized tables. Third completed Phase 5 migration.  
+**Prior session:** Session 53q — Candidate 2 (TED) permanently activated (useNormalizedTED=true, commit 71974d6)
 
 ---
 
@@ -235,21 +235,25 @@ Full plan: `docs/phase4c_validation_plan.md`
 |---|---|---|---|---|---|
 | 1 | IBD area tab | `useNormalizedIBD` | **true** | ✅ commit `522e155` | ✅ **ACTIVATED 2026-05-25** — all 8 gates live; monitoring window open |
 | 2 | TED area tab | `useNormalizedTED` | **true** | ✅ commit `71974d6` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; ted_indication_group_view=compare_pass_oos_adjusted (9→13 drugs, raw=100%) |
-| 3 | Drug modal | `useNormalizedDrugModal` | false | ❌ code not written yet | ❌ |
+| 3 | Drug modal | `useNormalizedDrugModal` | **true** | ✅ commit `cc1e0d6e` | ✅ **ACTIVATED 2026-05-25** — 8 gates live; labels clean; CIDP verified; 5-drug validation passed |
 | 4 | TL1A tab | `useUnifiedTL1A` | false | ❌ arch review required | ❌ |
 
-**Candidates 1+2 ACTIVATED 2026-05-25.** Both monitoring windows open to ~2026-06-08.
+**Candidates 1+2+3 ACTIVATED 2026-05-25.** All three monitoring windows open to ~2026-06-08.
 
-**⚡ FIRST TASK NEXT SESSION — Candidate 3 (Drug modal):**
-1. Confirm Candidates 1+2 still stable (check dashboard, run `window.showPhase4Compare()`)
-2. Begin Candidate 3 drug modal migration sprint
-3. PLACEHOLDER — remove this line
-4. Open browser console → run `window.showPhase4Compare()`
-5. Confirm two records appear — ibd record: `compare_pass_oos_adjusted` (94% raw → 100% adj)
-6. Advisor go → deploy `useNormalizedIBD: true` permanently
+**⚡ FIRST TASK NEXT SESSION — Candidate 3 monitoring + Candidate 4 planning:**
+1. Confirm Candidates 1+2+3 still stable (open modals for batoclimab, dupilumab, sim0709)
+2. Check console for errors — any unexpected normalized values → log to `entity_consistency_checks`
+3. Begin Candidate 4 (TL1A) arch review: read `docs/unified_area_dashboard_architecture.md`, map tl1aPI read path, identify feature-flag insertion point
+4. Record inconsistencies in `entity_consistency_checks`, NOT reverts, unless scientific content changes materially
 
-**Why TAB_AREA_MAP fix was needed:**
-`_IBD_NORM = FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd')` — the 'ibd' check required 'ibd' in TAB_AREA_MAP, which was missing. Adding 'ibd' to ['tl1a', 'ibd'] is safe: ibd ⊂ tl1a in drug_areas, so the union is the same 50-drug legacy set. No display change in legacy mode.
+**Candidate 3 — What was built:**
+- `_cemDrugBody()` receives `normData` 7th param: `{ targets, indications, trialInds }`
+- Two new conditional grid cells: 🎯 Targets (Normalized) + 🩺 Indications (Normalized)
+- Trial indication pills on trial rows via `_trialIndMap` keyed by `trial_id`
+- Label maps: `_IND_LABEL`, `_TARGET_LABEL` with 20+ entries each
+- `openDrugEntityModal()` fetches `drug_targets` + `drug_indications` + `trial_indications` in parallel when flag=true
+- Non-blocking: errors fall back to `normData=null`, no normalized cells shown
+- Phase4C dual-read still fires unconditionally via `_runPhase4CModalDualRead()`
 
 **Pre-activation checklist for permanent flip:**
 - [x] 10-drug modal sprint complete (Session 53o)
@@ -306,17 +310,17 @@ Automated scanners (`drug_validation_results`, `conflict_detector.py`, `company_
 
 **Reference document:** `docs/phase4_reconciliation_summary.md` — full corrections log, before/after metrics, lessons learned.
 
-### P1 — Phase 5 Candidate 1 (IBD) — Final Gate
+### P1 — Phase 5 Candidate 4 (TL1A) — Architecture Review Required
 
-**Status:** Activation test 7/8 gates passed. Flag reverted to `false` (commit `d942456`). One gate remaining.
+**Status:** Not started. TL1A uses separate `tl1aPI` object (~1700 lines), not `_makeAreaPI`. Feature-flag insertion point must be mapped before any migration attempt.
 
-**Next session first task:**
-1. Open dashboard → TL1A tab → IBD section
-2. Run `window.showPhase4Compare()` in browser console
-3. Confirm IBD record: `compare_pass_oos_adjusted`
-4. Report to advisor → go → set `useNormalizedIBD=true`, deploy, update update_log.md + NEXT_SESSION.md
+**Required before starting:**
+1. Read `docs/unified_area_dashboard_architecture.md` (TL1A unification path)
+2. Trace `tl1aPI` read path: where does it query `drug_areas`? Where does `_makeAreaPI` diverge?
+3. Identify safe flag insertion point
+4. Only then build Candidate 4 migration
 
-**After activation confirmed stable (7+ days):** Candidate 2 gate = cizutamig/TED resolved + Candidate 1 stable.
+**Do not attempt to migrate TL1A without completing the arch review.** Constraint `#6` is standing.
 
 ### P2 — epi-001 Manual Review (Standing Hold)
 
@@ -359,7 +363,7 @@ Built and seeded 2026-05-25. Final state: 10 rows, operationally clean. See gove
 ## Active Constraints
 
 1. **ontology_edges locked** — 25 rows. Do NOT unlock until advisor explicitly approves.
-2. **Phase 5 Candidate 1 — ACTIVATED (flag=true)** — `useNormalizedIBD=true` permanent, commit `522e155`. All 8 gates confirmed live 2026-05-25. Monitoring window open to ~2026-06-08. Legacy path retained until 2026-06-24.
+2. **Phase 5 Candidates 1+2+3 — ALL ACTIVATED (flag=true)** — `useNormalizedIBD=true` (commit `522e155`), `useNormalizedTED=true` (commit `71974d6`), `useNormalizedDrugModal=true` (commit `cc1e0d6e`). All activated 2026-05-25. Monitoring windows open to ~2026-06-08. Legacy paths retained until 2026-06-24. New modal inconsistencies → `entity_consistency_checks`, not reverts.
 3. **epi-001 held** — 2 rows in backfill_preview as pending_review. Do NOT commit without source evidence.
 4. **batoclimab → cidp** — ✅ COMMITTED in Wave 2D (Session 53o). batoclimab drug_indications: ted(95), gmg(92), cidp(92).
 5. **compare_pass ≠ migration-ready** — tl1a/ibd/ted cleared Phase 4 compare threshold. Phase 4C classification + feature-flag design is the Phase 5 gate.
