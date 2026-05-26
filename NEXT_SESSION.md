@@ -18,17 +18,66 @@ The new primary KPI is **UI Coverage %**: for each intelligence table, what frac
 
 ---
 
+## Session 66 Reframe: Knowledge Graph Integration
+
+Session 66 is not an engineering cleanup session. It is the first knowledge graph integration session:
+
+1. Normalize entities (company identity audit)
+2. Connect facts to entities (linkage audit)
+3. Connect entities to UI surfaces (routing)
+4. Define ownership of information (canonical surface matrix)
+5. Measure visibility and freshness (connectivity scores)
+
+Once complete, every future missing feature will show up as a measurable connectivity gap rather than a subjective observation.
+
+---
+
 ## Session 66 Success Metric
 
-By the end of Session 66, Claude should be able to say — for each major Supabase table:
+By end of session, answer these five questions for each major Supabase table:
 
-1. **Fresh?** — when was the last row written, is the pipeline healthy
-2. **Linked?** — what fraction of rows have a canonical entity FK (drug_id, company_id, area_id)
-3. **Visible?** — what fraction of rows are reachable from at least one UI surface
-4. **Owned?** — which UI surface is the canonical home for this table
-5. **Next fix?** — the single highest-leverage change to improve visibility
+1. **Fresh?** — last row written, pipeline healthy?
+2. **Linked?** — what fraction have a canonical entity FK (drug_id, company_id, area_id)?
+3. **Visible?** — what fraction are reachable from at least one UI surface?
+4. **Owned?** — which surface is the canonical home for this fact type?
+5. **Next fix?** — single highest-leverage change to improve reach?
 
-That five-point answer per table is the real integration milestone for Phase 6.
+---
+
+## Connectivity Score — Refined Definition
+
+UI Coverage % (rows visible / rows stored) is a start. The more informative metric tracks the full reach chain:
+
+```
+790 catalysts stored
+750 linked to a company or area (have company_id or area_id)
+620 visible somewhere in the UI
+420 reachable from a company card
+180 reachable from a drug card
+```
+
+The drug card number is usually the most revealing. It measures whether the most specific user context — "I am looking at this asset" — can reach the fact. High company-card reach but low drug-card reach means the fact is discoverable only through the portfolio view, not through the asset itself.
+
+---
+
+## Canonical Surface Ownership Matrix (new deliverable)
+
+Produce this as part of the Session 66 audit. Every fact type gets a canonical home. Everything else is a view.
+
+| Fact Type | Canonical Owner | Secondary Surfaces |
+|---|---|---|
+| Drug news | Drug card | Company card, Area page |
+| Company news | Company card | Homepage |
+| Catalyst | Drug card (asset timeline) | Company card (portfolio), Area tab (competitive) |
+| Trial | Drug card | Company card |
+| Partnership | Company card | Drug card |
+| Ownership chain | Company card | Drug card |
+| Deal | Company card | Drug card, Homepage |
+| Article | Drug or Company card (by linkage) | Industry Insights |
+| Intel item | Area tab | Company card (pending routing fix) |
+| Signal | Area tab | Homepage |
+
+This document forces clarity before building. Same catalyst, three surfaces — but only one perspective per surface, rendered consistently from the same query.
 
 ---
 
@@ -138,11 +187,23 @@ GROUP BY 1 ORDER BY 2 DESC LIMIT 30;
 
 Score formula: presence in each category = 20 pts, max 100.
 
-### Part D — Execute safe fixes in the same session
+### Part D — Three Classes of Fix (execute by class, not all at once)
 
-- Rename clearly misspelled or miscased names (direct UPDATE)
-- Set `parent_company_id` for known acquired companies
-- Do NOT merge row IDs without verifying FK dependencies first (check drugs, partnerships, catalysts, deals, company_areas for each id before any DELETE)
+**Class 1 — Easy (execute immediately in session):**
+- Capitalization: `abbvie` → `AbbVie`
+- Spacing / punctuation: `Johnson&Johnson` → `Johnson & Johnson`
+- Company/Company formatting: flag for relationship fix
+
+**Class 2 — Alias (add to `company_aliases`, do not merge rows):**
+- `AbbVie` / `Abbvie` / `ABBVIE` → one canonical id, others become aliases
+- `J&J` / `Johnson and Johnson` → aliases pointing to `Johnson & Johnson`
+- `Roche` / `Genentech` → aliases if same entity, or parent_company_id if separate
+
+**Class 3 — Relationship (ownership edges, not merges):**
+- Subsidiaries → `parent_company_id` FK
+- Acquisitions → `companies.status='acquired'` + `parent_company_id`
+- Slash compounds → separate company records + explicit `ownership_edges` row
+- Do NOT merge row IDs. Set relationships. Check FK dependencies (drugs, partnerships, catalysts, deals, company_areas) before any structural change.
 
 ---
 
