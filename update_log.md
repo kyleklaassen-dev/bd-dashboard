@@ -1,5 +1,32 @@
 
 ---
+## 2026-05-25 (Session 53p) — Phase 5 Candidate 1 PERMANENTLY ACTIVATED: useNormalizedIBD=true
+
+**First completed Phase 5 migration. Advisor-approved 2026-05-25.**
+
+| Field | Value |
+|---|---|
+| Flag | `FEATURE_FLAGS.useNormalizedIBD` |
+| Previous value | `false` (reverted after activation test, Gate 8 pending) |
+| New value | `true` — permanent |
+| Commit | `522e155` |
+| Also included | `_runPhase4BDualRead` self-fetch robustness fix — self-fetches `drug_area_scores WHERE area_id='ibd'` when `legacyScoreRows` is missing or empty |
+
+**All 8 gates confirmed live (commit 522e155):**
+- ✅ `useNormalizedIBD=true` live in production
+- ✅ Page loads, `hasErrors: 0`
+- ✅ `ibd_indication_group_view` auto-fires on TL1A tab load (TAB_AREA_MAP fix + self-fetch fix)
+- ✅ status = `compare_pass_oos_adjusted` (legacy=49, norm=49, adj=95.9%)
+- ✅ lm-302 absent from normalized set
+- ✅ sim0500, spy072, epi-001 absent from normalized set (OOS/held classifications correct)
+- ✅ TL1A dual-read unaffected: `tl1a_target_view=compare_pass_oos_adjusted` (legacy=50, norm=34, adj=100%)
+- ✅ Rollback = one-line flag flip to `false`
+
+**Monitoring window:** 2026-05-25 → ~2026-06-08 (14 days)
+**Legacy retention deadline:** 2026-06-24 (30-day rule — legacy IBD path may be removed after this date)
+**Candidate 2 gate:** cizutamig/TED resolved + Candidate 1 stable for 7+ days
+
+---
 ## 2026-05-25 (Session 53o) — Candidate 1 monitoring pass: Gate 8 root cause found + TAB_AREA_MAP fix applied
 
 **Finding:** `useNormalizedIBD=true` was a no-op in production. Root cause: TAB_AREA_MAP['tl1a'] = ['tl1a'] — 'ibd' was missing. The flag condition `_IBD_NORM = FEATURE_FLAGS.useNormalizedIBD && this.areaIds.includes('ibd')` evaluates to false for every tab. `_runPhase4BDualRead` also requires `areaIds.includes('ibd')` — cannot fire through any normal navigation without this fix.
