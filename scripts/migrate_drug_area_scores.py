@@ -175,7 +175,18 @@ def build_output_rows(scores, di_rows, dt_rows):
     output = {}   # (drug_id, context_type, context_id) → row dict
     audit  = []
 
+    # Map drug_area_scores.confidence_level (legacy enum) → drug_competitive_scores CHECK constraint
+    # drug_area_scores used: 'confirmed' (67), 'supported' (76), 'inferred' (42), NULL (27)
+    # drug_competitive_scores CHECK: ('A','B','C','inferred')
+    CONF_MAP = {
+        'confirmed': 'A',    # direct primary-source evidence — maps to A-grade
+        'supported': 'B',    # secondary/indirect evidence — maps to B-grade
+        'inferred':  'inferred',
+        None:        None,
+    }
+
     def _make_row(src, context_type, context_id):
+        raw_conf = src.get('confidence_level')
         return {
             'drug_id':           src['drug_id'],
             'context_type':      context_type,
@@ -183,13 +194,13 @@ def build_output_rows(scores, di_rows, dt_rows):
             'overlap':           src.get('overlap'),
             'overlap_rationale': src.get('overlap_rationale'),
             'cls':               src.get('cls'),
-            'confidence_level':  src.get('confidence_level'),
+            'confidence_level':  CONF_MAP.get(raw_conf, raw_conf),  # map legacy → A/B/C/inferred
             'source_url':        src.get('source_url'),
             'vs_ailux':          src.get('vs_ailux_positioning'),
             'enriched_by':       'migration',
             'enriched_at':       datetime.utcnow().isoformat(),
             'migrated_from':     f"drug_area_scores.area_id={src['area_id']}",
-            'notes':             f'Migrated {MIGRATION_ID}',
+            'notes':             f'Migrated {MIGRATION_ID}. Legacy confidence: {raw_conf}',
         }
 
     def _better(existing, candidate):
