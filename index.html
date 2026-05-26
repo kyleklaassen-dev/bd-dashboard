@@ -2044,7 +2044,7 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const FEATURE_FLAGS = {
   useNormalizedIBD:       true,   // Candidate 1: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed incl. runtime ibd_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
   useNormalizedTED:       true,   // Candidate 2: ACTIVATED 2026-05-25 — all 8 gates passed incl. runtime ted_indication_group_view=compare_pass_oos_adjusted. Rollback: set false.
-  useNormalizedDrugModal: false,  // Candidate 3: drug modal (pending 10-drug sprint)
+  useNormalizedDrugModal: true,   // Candidate 3: ACTIVATED 2026-05-25 — advisor-approved. All 8 gates passed. Labels clean (IL-23p19, EoE, Chronic Urticaria), confidence display correct (95% not 9500%), CIDP evidence verified (reviewed_by kyle-2026-05-25, NCT07188/NCT05581). Rollback: set false.
   useUnifiedTL1A:         false,  // Candidate 4: TL1A unified engine (do not enable yet)
 };
 
