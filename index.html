@@ -21458,6 +21458,266 @@ document.addEventListener('DOMContentLoaded', function(){
       <div id="oex-insp"></div>
     </div>
   </div>
+
+  <!-- ── Deep Neural Network Visualization ─────────────────────────────── -->
+  <div id="oex-dnn-section" style="flex-shrink:0;background:linear-gradient(180deg,#0d1520 0%,#0a1018 40%,#060d14 100%);padding:48px 0 64px;border-top:1px solid #1e3050">
+    <div style="max-width:1200px;margin:0 auto;padding:0 40px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#2d4a6a">Meridian Knowledge Architecture</span>
+        <span style="font-size:10px;color:#1e3050;letter-spacing:.06em">— deep representation of ontology relationships</span>
+      </div>
+      <canvas id="oex-dnn-canvas" style="width:100%;display:block;border-radius:8px"></canvas>
+    </div>
+  </div>
+
+  <script id="oex-dnn-script">
+  (function(){
+    const canvas = document.getElementById('oex-dnn-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.parentElement.offsetWidth - 80;
+    const H = 480;
+    canvas.width = W;
+    canvas.height = H;
+    canvas.style.height = H + 'px';
+
+    // Layer definitions matching Meridian ontology concepts
+    const LAYERS = [
+      { label: 'Raw Signals',   nodes: 7,  color: '#1d4ed8' },
+      { label: 'Entity Parse',  nodes: 11, color: '#2563eb' },
+      { label: 'Enrichment',    nodes: 13, color: '#0ea5e9' },
+      { label: 'Relationship',  nodes: 13, color: '#0891b2' },
+      { label: 'Ontology',      nodes: 11, color: '#0d9488' },
+      { label: 'Intelligence',  nodes: 7,  color: '#10b981' },
+      { label: 'BD Signal',     nodes: 4,  color: '#34d399' },
+    ];
+
+    const MARGIN_X = 60;
+    const MARGIN_TOP = 52;
+    const MARGIN_BOT = 64;
+    const usableH = H - MARGIN_TOP - MARGIN_BOT;
+    const usableW = W - MARGIN_X * 2;
+    const layerX = LAYERS.map((_, i) => MARGIN_X + (usableW / (LAYERS.length - 1)) * i);
+
+    // Build node positions
+    const nodes = LAYERS.map((layer, li) => {
+      const x = layerX[li];
+      return Array.from({ length: layer.nodes }, (_, ni) => {
+        const spacing = usableH / (layer.nodes + 1);
+        const y = MARGIN_TOP + spacing * (ni + 1);
+        return { x, y, li, ni, glow: 0, active: 0, pulse: Math.random() };
+      });
+    });
+
+    // Build connections (every node connects to every node in next layer)
+    const connections = [];
+    for (let li = 0; li < LAYERS.length - 1; li++) {
+      for (const src of nodes[li]) {
+        for (const dst of nodes[li + 1]) {
+          const weight = (Math.random() * 0.6 + 0.1);
+          connections.push({ src, dst, weight, pulses: [] });
+        }
+      }
+    }
+
+    // Pulse objects: { t: 0..1, opacity: 0..1 }
+    const activePulses = []; // { conn, t, life }
+
+    function firePulse() {
+      // Pick a random source node in layer 0
+      const srcNode = nodes[0][Math.floor(Math.random() * nodes[0].length)];
+      srcNode.glow = 1.0;
+      // Propagate through layers
+      let curNodes = [srcNode];
+      for (let li = 0; li < LAYERS.length - 1; li++) {
+        const nextNodes = [];
+        for (const src of curNodes) {
+          // Pick 2-4 random destinations
+          const dests = nodes[li + 1]
+            .slice()
+            .sort(() => Math.random() - 0.5)
+            .slice(0, Math.floor(Math.random() * 3) + 2);
+          for (const dst of dests) {
+            const conn = connections.find(c => c.src === src && c.dst === dst);
+            if (conn) {
+              activePulses.push({ conn, t: 0, delay: li * 0.18, life: 1 });
+              nextNodes.push(dst);
+            }
+          }
+        }
+        curNodes = [...new Set(nextNodes)];
+      }
+    }
+
+    let lastFire = 0;
+    let animId;
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function draw(ts) {
+      animId = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, W, H);
+
+      // Background
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#0d1520');
+      bg.addColorStop(1, '#060d14');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Fire new pulses periodically
+      if (ts - lastFire > 900 + Math.random() * 600) {
+        firePulse();
+        lastFire = ts;
+      }
+
+      // Update and draw pulses
+      const speed = 0.012;
+      for (let i = activePulses.length - 1; i >= 0; i--) {
+        const p = activePulses[i];
+        if (ts * 0.001 < 0) continue; // never
+        p.t = Math.min(1, p.t + speed);
+        if (p.t >= 1) {
+          p.conn.dst.glow = Math.min(1, p.conn.dst.glow + 0.6);
+          activePulses.splice(i, 1);
+          continue;
+        }
+
+        // Draw pulse along connection
+        const { src, dst } = p.conn;
+        const px = lerp(src.x, dst.x, p.t);
+        const py = lerp(src.y, dst.y, p.t);
+        const alpha = Math.sin(p.t * Math.PI) * 0.9;
+        const li = src.li;
+        const col = LAYERS[li].color;
+
+        ctx.beginPath();
+        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = col.replace(')', `,${alpha})`).replace('rgb', 'rgba').replace('#', 'rgba(').replace('rgba(', 'rgba(') || col;
+        // Use a simpler approach for the pulse color
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = col;
+        ctx.fillStyle = col;
+        ctx.globalAlpha = alpha;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw connections (dimly)
+      for (const c of connections) {
+        const alpha = c.weight * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(c.src.x, c.src.y);
+        ctx.lineTo(c.dst.x, c.dst.y);
+        ctx.strokeStyle = LAYERS[c.src.li].color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Decay node glows
+      for (const layer of nodes) {
+        for (const n of layer) {
+          n.glow = Math.max(0, n.glow - 0.015);
+        }
+      }
+
+      // Draw nodes
+      for (let li = 0; li < LAYERS.length; li++) {
+        const layer = LAYERS[li];
+        for (const n of nodes[li]) {
+          const baseR = 5;
+          const glowR = baseR + n.glow * 14;
+          
+          // Outer glow
+          if (n.glow > 0.05) {
+            const grad = ctx.createRadialGradient(n.x, n.y, baseR, n.x, n.y, glowR * 2.5);
+            grad.addColorStop(0, layer.color + 'cc');
+            grad.addColorStop(0.4, layer.color + '44');
+            grad.addColorStop(1, layer.color + '00');
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, glowR * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = n.glow * 0.8;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+
+          // Node body
+          const nodeGrad = ctx.createRadialGradient(n.x - 1, n.y - 1, 0, n.x, n.y, baseR + 2);
+          const baseAlpha = 0.35 + n.glow * 0.65;
+          nodeGrad.addColorStop(0, '#e0f2fe');
+          nodeGrad.addColorStop(0.4, layer.color);
+          nodeGrad.addColorStop(1, layer.color + '88');
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR + n.glow * 2, 0, Math.PI * 2);
+          ctx.fillStyle = nodeGrad;
+          ctx.globalAlpha = baseAlpha;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Node ring
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR + n.glow * 2 + 1.5, 0, Math.PI * 2);
+          ctx.strokeStyle = layer.color;
+          ctx.lineWidth = 0.8;
+          ctx.globalAlpha = 0.3 + n.glow * 0.5;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // Draw layer labels
+      ctx.font = '600 10px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      for (let li = 0; li < LAYERS.length; li++) {
+        const lx = layerX[li];
+        // Node count
+        ctx.fillStyle = LAYERS[li].color;
+        ctx.globalAlpha = 0.5;
+        ctx.fillText(LAYERS[li].nodes + (li === 0 || li === LAYERS.length - 1 ? '' : ''), lx, MARGIN_TOP - 22);
+        ctx.globalAlpha = 1;
+        // Label
+        ctx.fillStyle = '#4a6080';
+        ctx.font = '500 9.5px Inter, system-ui, sans-serif';
+        ctx.fillText(LAYERS[li].label.toUpperCase(), lx, H - 18);
+        // Tick line
+        ctx.beginPath();
+        ctx.moveTo(lx, MARGIN_TOP - 10);
+        ctx.lineTo(lx, MARGIN_TOP - 4);
+        ctx.strokeStyle = LAYERS[li].color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Param count label top-right
+      ctx.textAlign = 'right';
+      ctx.font = '500 9px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#1e3050';
+      ctx.fillText('Ω connections: ' + connections.length.toLocaleString(), W - 16, 18);
+    }
+
+    // Start when section scrolls into view (or immediately)
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(draw);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+    observer.observe(canvas);
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      const newW = canvas.parentElement.offsetWidth - 80;
+      canvas.width = newW;
+      canvas.style.width = '100%';
+    });
+  })();
+  </script>
 </div>
 
 <script>
