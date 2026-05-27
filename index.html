@@ -15097,14 +15097,21 @@ function _makeAreaPI(tabId, areaIds) {
     return name.replace(/[,\s]+(Biosciences?|Biopharmaceutical|Pharmaceutical(s)?|Pharma|Therapeutics?|Holdings?|Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim();
    };
    const _trimLegal = s => s ? s.replace(/[,\s]+(Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim() : null;
+   // _isOwnershipPill: true when pill source is the ownership chain (acquired/licensed asset),
+   // not a traditional partner_company field. Ownership-derived pills never show "?" because
+   // the acquisition or licensing event itself is the confirmation.
+   const _hasDirectPartner = !!(d.partner_company || d._partnerCo ||
+     (d.partnership_type && d.partnership_type !== 'self' && d.licensor_name));
    const _partnerCo   = d.partner_company || d._partnerCo
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
     // ownership model: show originator pill for acquired/licensed assets
     || ((d.ownership_status && d.ownership_status !== 'originated') ? (d.display_partner_name || null) : null)
     || null;
+   const _isOwnershipPill = !_hasDirectPartner && !!(d.ownership_status && d.ownership_status !== 'originated');
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
-   const _pv = d.partnership_verified;
+   // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
+   const _pv = _isOwnershipPill ? true : d.partnership_verified;
    const _pvColor   = _pv === true  ? {c:'#1d4ed8',bg:'#eff6ff',br:'#bfdbfe',lbl:'Confirmed partnership — click to manage'}
                     : _pv === false ? {c:'#92400e',bg:'#fffbeb',br:'#fcd34d',lbl:'Flagged unconfirmed by enrichment — click to confirm or remove'}
                     :                 {c:'#64748b',bg:'#f8fafc',br:'#cbd5e1',lbl:'Partnership not yet verified — click to confirm or remove'};
