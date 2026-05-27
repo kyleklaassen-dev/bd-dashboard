@@ -10021,7 +10021,7 @@ function initGrids(d) {
  {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp','${esc}',this)">▼ Notes</button>`);}}
  ],
  data:dropCols(d.tslpReadouts,[0,4]).sort((a,b)=>phaseRank(a[1])-phaseRank(b[1])||parseDateKey(a[3])-parseDateKey(b[3])), sort:true
- }).render(document.getElementById('grid-tslp-readouts'));
+ }); {const _e=document.getElementById('grid-tslp-readouts');if(_e)grids.tslpReadouts.render(_e);}
 
  // ── TSLP: Competitive Landscape ──────────────────────────────────
  grids.tslpLandscape = new gridjs.Grid({
@@ -10035,7 +10035,7 @@ function initGrids(d) {
  {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('tslp-landscape','${esc}',this)">▼ Notes</button>`);}}
  ],
  data:mergeLandscape(d.tslpPipe, d.tslpMono).sort((a,b)=>phaseRank(a[3])-phaseRank(b[3])), sort:true
- }).render(document.getElementById('grid-tslp-landscape'));
+ }); {const _e=document.getElementById('grid-tslp-landscape');if(_e)grids.tslpLandscape.render(_e);}
 
  // helper to build a standard 2-table pair for new tabs
  function makeTabGrids(prefix, readoutsData, pipeData, monoData) {
