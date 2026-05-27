@@ -1508,12 +1508,12 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 /* TA-level body — no overflow clipping so sub-panels can escape */
 .hier-dd-body { padding: 4px 0 4px; overflow: visible; }
 
-/* ── Generic row — visually thin; hover zone extended via .hier-item padding ── */
+/* ── Generic row — thin visual height ── */
 .hier-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 5px 12px;
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
@@ -1552,22 +1552,27 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .hier-tgt-row.selected-tgt .hier-row-count { color: rgba(255,255,255,0.45); }
 
 /* ── Sub-panels (flyout to the right on parent hover) ── */
-/* padding on .hier-item extends the :hover trigger zone invisibly above/below each row */
-.hier-item { position: relative; padding: 4px 0; margin: -4px 0; }
+.hier-item { position: relative; }
+/* ::after bridge: invisible zone extending rightward from each item so the mouse
+   stays "inside" .hier-item as it travels toward the sub-panel — no overlap needed */
+.hier-item::after {
+  content: ''; position: absolute;
+  top: 0; bottom: 0; left: 100%; width: 16px;
+}
 
 .hier-sub-panel {
   display: none;
   position: absolute;
-  top: -8px;                /* upward nudge gives top breathing room */
-  left: calc(100% - 6px);  /* 6px overlap with parent — physically no gap to cross */
+  top: -6px;
+  left: calc(100% + 4px); /* clean gap — panels sit beside each other, not overlapping */
   background: white;
   border-radius: 8px;
   box-shadow: 0 8px 28px rgba(0,0,0,0.18);
   border: 1px solid #dde3ea;
   min-width: 240px;
   z-index: 10;
-  overflow: visible;        /* allow deeper sub-panels to escape */
-  padding: 6px 0;           /* top/bottom buffer — mouse can enter from any edge */
+  overflow: visible;
+  padding: 4px 0;
 }
 
 /* Pure CSS hover — no timers, no lag.
