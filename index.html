@@ -17741,15 +17741,7 @@ const hierState = {
   built: false,
 };
 
-// Lazy-build tree on first hover — CSS handles show/hide
-(function() {
-  const wrap = document.getElementById('hier-dd-wrap');
-  if (wrap) {
-    wrap.addEventListener('mouseenter', function() {
-      if (!hierState.built) { hierBuildTree(); hierState.built = true; }
-    });
-  }
-})();
+// Tree is built after all functions are defined below — see hierInit() call at end of block
 
 // ── Tree builder — nested DOM, hover handled purely by CSS :hover ──
 // No timers. Hit area is enlarged physically: taller rows (11px padding),
@@ -17962,6 +17954,10 @@ function hierShowSelectionToast(name) {
 function hierShowNoTabToast(name) {
   hierToast('⏳ No dashboard yet for ' + name, '#475569');
 }
+// Build tree immediately so it's ready the first time the menu appears
+hierBuildTree();
+hierState.built = true;
+
 function closeCenterDrugDD() {
   const dd = document.getElementById('center-drug-dd');
   const title = document.getElementById('tab-current-title');
