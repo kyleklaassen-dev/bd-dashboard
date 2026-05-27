@@ -3142,7 +3142,7 @@ async function loadMeridianReader() {
         .in('importance', ['high', 'medium'])
         .order('intel_date', { ascending: false })
         .limit(40),
-      _sb.from('intel_areas').select('intel_id,area_id'),
+      _sb.from('intel_areas').select('intel_id,area_id,target_id,context_type'),
       _sb.from('deals')
         .select('id,deal_date,deal_date_label,from_company,to_company,headline,area_id,total_usd_m,upfront_usd_m,source_url')
         .order('deal_date', { ascending: false })
@@ -3844,7 +3844,7 @@ async function loadAreaIntel(tabId) {
   try {
     // Step 1: get intel_ids tagged to these areas
     const { data: iaRows, error: iaErr } = await _sb.from('intel_areas')
-      .select('intel_id').in('area_id', areas);
+      .select('intel_id').or(`target_id.in.(${areas.join(',')}),area_id.in.(${areas.join(',')})`);
     if (iaErr) throw iaErr;
     if (!iaRows || !iaRows.length) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No Meridian intel yet — updates will appear here after the next morning run.</div>`;
@@ -17232,7 +17232,7 @@ async function loadIndustryInsightsFeed() {
   feed.innerHTML = '<div class="iif-loading">Loading intelligence feed…</div>';
   try {
     const [iaRes, intelRes, sigRes, dealRes, naRes, coRes] = await Promise.all([
-      _sb.from('intel_areas').select('intel_id,area_id').limit(2000),
+      _sb.from('intel_areas').select('intel_id,area_id,target_id,context_type').limit(2000),
       _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,event_type,importance,primary_company_id')
          .order('intel_date',{ascending:false}).limit(300),
       _sb.from('competitive_signals').select('id,signal_type,title,description,source_url,source_date,area_id')
@@ -17612,7 +17612,7 @@ async function loadLiveIntel() {
   const body = document.getElementById('ii-live-body');
   if (!body) return;
   try {
-    const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').limit(200);
+    const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id,target_id,context_type').limit(200);
     const { data: rows, error } = await _sb.from('intel')
       .select('*').order('intel_date', { ascending: false }).limit(40);
     if (error) throw error;
@@ -18012,7 +18012,7 @@ async function loadTL1AIntelFeed() {
  const body = document.getElementById('tl1a-intel-feed-body');
  if (!body || !_sb) { return; }
  try {
-  const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id').eq('area_id','tl1a').limit(100);
+  const { data: iaRows } = await _sb.from('intel_areas').select('intel_id,area_id,target_id').or('target_id.eq.tl1a,area_id.eq.tl1a').limit(100);
   const tl1aIds = (iaRows||[]).map(r=>r.intel_id);
   let rows = [];
   if (tl1aIds.length) {
@@ -18409,7 +18409,7 @@ async function _gsSbSearch(term) {
     .or(`name.ilike.%${esc}%,display_name.ilike.%${esc}%,mechanism.ilike.%${esc}%`)
     .order('name', { ascending: true }).limit(5),
    _sb.from('intel')
-    .select('id,intel_date,headline,intel_type,importance,source_url,intel_areas(area_id)')
+    .select('id,intel_date,headline,intel_type,importance,source_url,intel_areas(area_id,target_id)')
     .or(`headline.ilike.%${esc}%,body.ilike.%${esc}%`)
     .order('intel_date', { ascending: false }).limit(5),
    _sb.from('deals')
