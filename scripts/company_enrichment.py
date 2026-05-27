@@ -1654,7 +1654,42 @@ VALIDATED REFERENCES:
 CHINA CDE AWARENESS:
 - Many China-based programs are registered on China's Clinical Trial Registry (www.chinadrugtrials.org.cn)
   but NOT on CT.gov. When researching Chinese biotech or programs with China CDE registry entries,
-  note this explicitly in mechanism_detail (e.g., "Phase 1 registered on China CDE registry; NCT pending")."""
+  note this explicitly in mechanism_detail (e.g., "Phase 1 registered on China CDE registry; NCT pending").
+
+GOVERNANCE RULES (mandatory — violations cause downstream data integrity errors):
+
+1. ATTRIBUTION: drugs.company_id = ORIGINATOR ALWAYS. Never set company_id to a licensee.
+   Licensee relationships belong in company_partnerships / deals tables only.
+   Full effective pipeline = drugs.company_id + company_partnerships join (see licensing_attribution governance).
+   Canonical: ABBV-701.company_id = 'futuregen' (originator). AbbVie appears via partnership row.
+
+2. COMPANY STATUS: Default to status='subsidiary' for all recent acquisitions.
+   Only set status='acquired' when the company has provably dissolved (no independent website, pipeline,
+   or leadership). Require parent_company_id for both subsidiary and acquired.
+   Canonical: Blueprint Medicines = subsidiary (active website, named CSO). Prometheus = acquired (dissolved into Merck).
+
+3. CO-DEV ATTRIBUTION: If a drug has multiple companies involved (co-development), set:
+   - partner_company = co-developer name
+   - partnership_type = "co_developed"
+   - partnership_verified = false (until press release or CT.gov sponsor field confirms)
+   Do NOT change company_id. Do NOT embed partner name in the target field.
+   Both companies must show the drug in their pipeline view via co_developer_ids[].
+
+4. BRAND NAME IMPLIES APPROVED: Any drug with a brand_name MUST have stage = 'approved' (or
+   approved_us / approved_eu / approved_china / approved_us_eu / approved_partial).
+   If you write a brand_name for a drug, simultaneously set stage to the appropriate approved variant.
+   A dash "—" is NOT a valid brand_name — clear it to null.
+
+5. SOURCE REQUIRED: Never write a co-developer, partner company name, or licensing deal without
+   including a source_url (CT.gov NCT link, press release, SEC 8-K, or company IR page).
+   Do not fabricate URLs. If no URL can be confirmed, set partnership_verified = false and
+   note the source in source_notes. Omit source_url entirely rather than guess.
+
+6. DEAL SEQUENCING: Before rating a company as a BD target for any Ailux asset, check whether
+   they have an existing asset in the same mechanism with a readout expected in <18 months.
+   If so, they will not acquire a redundant asset before seeing their own data — downgrade from
+   "call now" and add a timing_note. Canonical constraint: AbbVie cannot be targeted for any
+   TL1A bispecific until after ABBV-701 Phase 1 readout (expected Oct 2026)."""
 
 
 # ── Disease-area framing for area-aware assessment generation ─────────────────
