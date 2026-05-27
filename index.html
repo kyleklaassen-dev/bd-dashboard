@@ -4406,6 +4406,38 @@ function loadMoleculeTab(tabId) {
   <div id="hw-count-num">—</div>
   <div id="hw-count-label">data points tracked</div>
   <div id="hw-breakdown"></div>
+
+  <!-- ── BD Intelligence metric tiles ── -->
+  <div id="hw-bd-metrics">
+   <div class="hw-bdm-tile accent-red">
+    <div class="hw-bdm-num" id="hw-bdm-opportunities">—</div>
+    <div class="hw-bdm-lbl">BD Opportunities</div>
+    <div class="hw-bdm-sub">Critical + High gaps</div>
+   </div>
+   <div class="hw-bdm-tile accent-indigo">
+    <div class="hw-bdm-num" id="hw-bdm-mechanisms">—</div>
+    <div class="hw-bdm-lbl">Mechanism Classes</div>
+    <div class="hw-bdm-sub">Precedent mapped</div>
+   </div>
+   <div class="hw-bdm-tile accent-teal">
+    <div class="hw-bdm-num" id="hw-bdm-deals">—</div>
+    <div class="hw-bdm-lbl">Deals Tracked</div>
+    <div class="hw-bdm-sub">Value analysis</div>
+   </div>
+   <div class="hw-bdm-tile accent-amber">
+    <div class="hw-bdm-num" id="hw-bdm-priority">—</div>
+    <div class="hw-bdm-lbl">Companies Prioritized</div>
+    <div class="hw-bdm-sub">Call now + Call soon</div>
+   </div>
+  </div>
+
+  <!-- ── Platform Intelligence callout ── -->
+  <div id="hw-platform-intel">
+   <div class="hw-pi-eyebrow">Top BD Priority</div>
+   <div class="hw-pi-headline" id="hw-pi-headline">—</div>
+   <div class="hw-pi-pitch" id="hw-pi-pitch"></div>
+  </div>
+
  </div>
 
  <!-- ── Overlay backdrop ───────────────────────────────────────── -->
@@ -17348,6 +17380,38 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     }
   }
 
+  // ── BD Intelligence tiles ─────────────────────────────────────────
+  async function _hwLoadBDMetrics() {
+    try {
+      const [gaps, mechs, deals, priority, topCo] = await Promise.all([
+        _sb.from('company_pipeline_gaps').select('id', { count:'exact', head:true }).in('gap_severity', ['critical','high']),
+        _sb.from('mechanism_precedent_map').select('id', { count:'exact', head:true }),
+        _sb.from('deal_value_tracking').select('id', { count:'exact', head:true }),
+        _sb.from('bd_readiness_composite').select('id', { count:'exact', head:true }).in('call_priority', ['call_now','call_soon']),
+        _sb.from('bd_readiness_composite').select('company_name,overall_bd_score,ailux_pitch').eq('call_priority','call_now').order('overall_bd_score',{ascending:false}).limit(1),
+      ]);
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+      set('hw-bdm-opportunities', gaps.count ?? '—');
+      set('hw-bdm-mechanisms',    mechs.count ?? '—');
+      set('hw-bdm-deals',         deals.count ?? '—');
+      set('hw-bdm-priority',      priority.count ?? '—');
+      const metricsEl = document.getElementById('hw-bd-metrics');
+      if (metricsEl) setTimeout(() => metricsEl.classList.add('visible'), 1200);
+      // Top priority callout
+      const row = topCo.data && topCo.data[0];
+      if (row) {
+        const intel = document.getElementById('hw-platform-intel');
+        const hl    = document.getElementById('hw-pi-headline');
+        const pt    = document.getElementById('hw-pi-pitch');
+        if (hl) hl.textContent = `${row.company_name}  ·  BD Score ${row.overall_bd_score}`;
+        if (pt) pt.textContent = row.ailux_pitch || '';
+        if (intel) setTimeout(() => intel.classList.add('visible'), 1500);
+      }
+    } catch(e) {
+      console.warn('[BDMetrics]', e);
+    }
+  }
+
   // ── Entry / exit ───────────────────────────────────────────────────
   async function initHomeWelcome() {
     _hwUpdateClock();
@@ -17355,6 +17419,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (!_hwFirstLoad) return;
     _hwFirstLoad = false;
     await _hwRefresh(true);
+    _hwLoadBDMetrics();
     _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
   }
 
