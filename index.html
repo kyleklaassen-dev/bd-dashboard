@@ -1826,6 +1826,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .dkn-table tr:last-child td { border-bottom: none; }
 .dkn-table tr:nth-child(even) td { background: #f9fafb; }
 .dkn-drug { font-weight: 700; color: #1a2f50; }
+.drug-brand-name { font-weight: 600; }
+.drug-molecule-name { font-size: 0.82em; color: var(--text-muted, #8899aa); margin-left: 6px; font-weight: 400; }
 .dkn-mech { color: #4f46e5; font-size: 10.5px; }
 .dkn-stage-pill { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 8px; background: #e8f0f8; color: #2e6fb0; }
 .dkn-stage-pill.approved { background: #d1fae5; color: #065f46; }
@@ -4119,7 +4121,7 @@ async function loadAreaCompetitors(tabId) {
     const mech = targetDisplay.slice(0,55) + (targetDisplay.length > 55 ? '…' : '');
     const angle = (d.ailux_angle || d.key_data || '').slice(0, 90) + ((d.ailux_angle || d.key_data || '').length > 90 ? '…' : '');
     return `<tr style="border-bottom:1px solid #f1f5f9">
-      <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap">${d.name}${d.brand_name ? `<br><span style="font-size:10px;font-weight:400;color:#64748b">${d.brand_name}</span>` : ''}</td>
+      <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap">${d.brand_name ? `<span class="drug-brand-name">${d.brand_name}</span>${d.name !== d.brand_name ? '<span class="drug-molecule-name">'+d.name+'</span>' : ''}` : d.name}</td>
       <td style="padding:7px 10px;font-size:11px;color:#374151;white-space:nowrap">${coName}</td>
       <td style="padding:7px 10px">${phasePill(d.stage)}</td>
       <td style="padding:7px 10px;font-size:10px;color:#475569">${mech}</td>
@@ -4172,7 +4174,7 @@ async function loadAreaDrugs(tabId) {
     if (error || !rows || !rows.length) return;
     const drugs = rows.map(r => r.drugs).filter(Boolean);
     el.innerHTML = drugs.map(d => `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
-      <strong>${d.brand_name || d.name}</strong>${d.brand_name && d.name && d.name !== d.brand_name ? '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">'+d.name+'</span>' : ''} · <span style="color:#64748b;font-size:11px">${d.stage||''}</span>
+      <span class="drug-brand-name">${d.brand_name || d.name}</span>${d.brand_name && d.name && d.name !== d.brand_name ? '<span class="drug-molecule-name">'+d.name+'</span>' : ''} · <span style="color:#64748b;font-size:11px">${d.stage||''}</span>
     </div>`).join('');
   } catch(e) { console.warn('loadAreaDrugs', tabId, e); }
 }
@@ -7706,11 +7708,11 @@ function _drugNameHTML(str) {
   if (!str) return '—';
   const m = str.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
   if (!m) return str;
-  return m[1].trim() + '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">' + m[2].trim() + '</span>';
+  return m[1].trim() + '<span class="drug-molecule-name">' + m[2].trim() + '</span>';
 }
 // ── PI tab drug label HTML: brand + (molecule) when brand exists ──────────────
 function _piDrugLabelHTML(d) {
-  const _sec = s => '<span style="font-weight:400;color:#94a3b8;font-size:10px;margin-left:5px">' + s + '</span>';
+  const _sec = s => '<span class="drug-molecule-name">' + s + '</span>';
   if (d.brand_name) {
     // Use d.name (the INN) directly — avoids display_name doubling e.g. "Stelara (ustekinumab)"
     const mol = _dknCleanName(d.name || '') || '';
@@ -10504,10 +10506,14 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
       });
     }
 
-    // Build drug fetch: own drugs + all drugs controlled via ownership_edges
+    // Build drug fetch: own drugs + controlled via ownership_edges + co-developed drugs
+    // co_developer_ids is a TEXT[] column; PostgREST cs.{id} = array contains operator
+    const _codevFilter = `co_developer_ids.cs.{${companyId}}`;
+    const _leadFilter  = `lead_company_id.eq.${companyId}`;
+    const _ownFilter   = `company_id.eq.${companyId}`;
     const idsToFetch = controlledDrugIds.length
-      ? `company_id.eq.${companyId},id.in.(${controlledDrugIds.join(',')})`
-      : `company_id.eq.${companyId}`;
+      ? `${_ownFilter},id.in.(${controlledDrugIds.join(',')}),${_leadFilter},${_codevFilter}`
+      : `${_ownFilter},${_leadFilter},${_codevFilter}`;
     const { data: allDrugsData } = await _sb.from('drugs').select('*')
       .or(idsToFetch).order('sort_order', { ascending: true }).limit(50);
 
@@ -10516,7 +10522,11 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
       if (seen.has(d.id)) return false;
       // Controlled assets show in the controlling company's dossier regardless of area context
       const isControlledAsset = controlledDrugIds.includes(d.id) && d.company_id !== companyId;
-      if (!areaSet.has(d.id) && !isControlledAsset) return false;
+      // Co-developed: drug has co_developer_ids containing this company but company_id is a different org
+      const isCoDevAsset = d.company_id !== companyId
+        && (Array.isArray(d.co_developer_ids) && d.co_developer_ids.includes(companyId)
+            || d.lead_company_id === companyId);
+      if (!areaSet.has(d.id) && !isControlledAsset && !isCoDevAsset) return false;
       seen.add(d.id);
       // Controlled asset: override pill fields so controller's dossier shows originator, not legacy partner_company/licensor fields
       if (isControlledAsset) {
@@ -10527,6 +10537,12 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
         d.licensor_name     = null;        // clear legacy fields that would override
         d.entity_name       = null;
         d.partnership_verified = true;     // suppress "?" — this relationship is confirmed via ownership_edges
+      }
+      // Co-dev asset: mark it so pipeline UI shows CO-DEV badge + originator label
+      if (isCoDevAsset && !isControlledAsset) {
+        d._is_codev = true;
+        // Show the originating company name as the pill label
+        d._codev_originator = d.company_id; // raw id; resolved to name below if possible
       }
       return true;
     });
@@ -10765,9 +10781,14 @@ function _buildCompanyDossierBody(prog, sbData, areaId) {
     // Originator pill: shown when drug was acquired/licensed from another company.
     // Priority: ownership_edges ORIGINATED_BY (_originator_name) > partner_company text field.
     const _origPillStyle = 'font-size:9px;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;white-space:nowrap';
+    const _codevPillStyle = 'font-size:9px;font-weight:700;color:#7c3aed;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:1px 7px;white-space:nowrap';
+    // CO-DEV badge: shown when this drug appears here because of co-development (not origination)
+    const codevBadge = d._is_codev
+      ? `<span style="${_codevPillStyle}" title="Co-developed asset — originated by ${d._codev_originator}">CO-DEV</span>`
+      : '';
     const originatorPill = d._originator_name
       ? `<span style="${_origPillStyle}" title="Originated by ${d._originator_name}">via ${d._originator_name}</span>`
-      : (d.partner_company
+      : (d.partner_company && !d._is_codev
         ? `<span style="${_origPillStyle}">w/ ${d.partner_company}</span>`
         : '');
     return `
@@ -10777,6 +10798,7 @@ function _buildCompanyDossierBody(prog, sbData, areaId) {
           <span style="font-size:12px;font-weight:700;color:#1e3a5f;cursor:pointer" onclick="openDrugEntityModal('${d.id}','${(d.display_name||d.name||'').replace(/'/g,"\\'")}',event)">${_drugNameHTML(d.display_name||d.name||'—')}</span>
           <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;${stageStyle(d.stage)}">${d.stage||'Preclinical'}</span>
           ${d.cls?`<span style="font-size:9px;color:#64748b;font-weight:600">${d.cls}</span>`:''}
+          ${codevBadge}
           ${originatorPill}
         </div>
         ${d.target?`<div style="font-size:10.5px;color:#2e6fb0;font-weight:600;margin-bottom:2px">${d.target}</div>`:''}
@@ -12309,7 +12331,7 @@ async function openEntityModal(type, id, name, sourceTabId) {
     const [profRes, catRes, drugRes, dealRes] = await Promise.all([
       _sb.from('company_profiles').select('*').eq('company_id', id).limit(10),
       _sb.from('catalysts').select('label,catalyst_date,sort_date,notes').eq('company_id', id).order('sort_date').limit(8),
-      _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,overlap,overlap_rationale,strategic_role,company_id').eq('company_id', id).limit(15),
+      _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,overlap,overlap_rationale,strategic_role,company_id,lead_company_id,co_developer_ids').or(`company_id.eq.${id},lead_company_id.eq.${id},co_developer_ids.cs.{${id}}`).limit(15),
       _sb.from('deals').select('headline,deal_date,deal_type,value_usd,source_url').eq('company_id', id).order('deal_date', {ascending:false}).limit(5),
     ]);
 
@@ -13191,7 +13213,7 @@ registerTab('discovery-queue', {
   onEnter() { if (!_dqData.length) dqLoad(); }
 });
 registerTab('intelligence', {
-  onEnter() { if (typeof loadIntelFeed === 'function') loadIntelFeed(true); }
+  onEnter() { if (typeof loadIntelFeed === 'function') loadIntelFeed(true); if (typeof loadApprovalsWatchList === 'function' && !_bdApprovalsLoaded) { _bdApprovalsLoaded = true; loadApprovalsWatchList(); } }
 });
 registerTab('submitted-intel', {
   onEnter() { siLoad(); }
@@ -13867,18 +13889,24 @@ function _makeAreaPI(tabId, areaIds) {
           const { data: coRows2 } = await _sb.from('companies').select('id,name').in('id', origIds2);
           (coRows2||[]).forEach(c => { origNameMap2[c.id] = (c.name||'').split(' ')[0] || c.id; });
         }
-        // Anchor on entity's actual programs (matching entity row grouping) + any controlled drugs
+        // Anchor on entity's actual programs (matching entity row grouping) + controlled drugs + co-dev drugs
         // This prevents cross-entity bleed (e.g. Simcere's company_id drugs showing under BI's entity)
         const programIds = (ent?.programs || []).map(p => p.id);
         const allDrugIds = [...new Set([...programIds, ...controlledDrugIds2])];
+        // co_developer_ids / lead_company_id OR clause for co-dev drugs
+        const _codevFilter2 = `co_developer_ids.cs.{${companyId}}`;
+        const _leadFilter2  = `lead_company_id.eq.${companyId}`;
         const idsToFetch2 = allDrugIds.length
-          ? `id.in.(${allDrugIds.join(',')})`
-          : `company_id.eq.${companyId}`;
+          ? `id.in.(${allDrugIds.join(',')}),company_id.eq.${companyId},${_leadFilter2},${_codevFilter2}`
+          : `company_id.eq.${companyId},${_leadFilter2},${_codevFilter2}`;
         const { data: allCoDrugs } = await _sb.from('drugs').select('*')
           .or(idsToFetch2).order('sort_order', { ascending: true }).limit(30);
         const drugs = (allCoDrugs||[]).filter(d => {
           const isCtrl = controlledDrugIds2.includes(d.id) && d.company_id !== companyId;
-          if (!areaSet.has(d.id) && !isCtrl) return false;
+          const isCoDev2 = d.company_id !== companyId
+            && (Array.isArray(d.co_developer_ids) && d.co_developer_ids.includes(companyId)
+                || d.lead_company_id === companyId);
+          if (!areaSet.has(d.id) && !isCtrl && !isCoDev2) return false;
           if (isCtrl) {
             const origName2 = (originatorMap2[d.id] ? origNameMap2[originatorMap2[d.id]] : null)
               || d.display_partner_name || null;
@@ -13887,6 +13915,10 @@ function _makeAreaPI(tabId, areaIds) {
             d.licensor_name    = null;
             d.entity_name      = null;
             d.partnership_verified = true;
+          }
+          if (isCoDev2 && !isCtrl) {
+            d._is_codev = true;
+            d._codev_originator = d.company_id;
           }
           return true;
         });
@@ -23876,6 +23908,22 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 
+  <!-- ── Near-Term Approvals & Watch List ── -->
+  <div class="bd-section-wrap" id="bd-approvals-section" style="margin:0;border-radius:0;border-left:none;border-right:none">
+    <div class="bd-section-hdr" id="bd-approvals-hdr" onclick="bdToggleSection('approvals')">
+      <div>
+        <div class="bd-section-hdr-title">📅 Upcoming Approvals &amp; Watch List</div>
+        <div class="bd-section-hdr-sub">PDUFA dates, imminent decisions, and drugs flagged for monitoring</div>
+      </div>
+      <span class="bd-section-hdr-chev" id="bd-approvals-chev">▼</span>
+    </div>
+    <div class="bd-section-body" id="bd-approvals-body">
+      <div id="bd-approvals-grid" style="padding:16px 20px">
+        <div style="font-size:12px;color:#94a3b8">Loading approvals data…</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── BD Priority Summary ── -->
   <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -25985,13 +26033,234 @@ async function loadIntelFeed(force) {
 // ── BD section toggle ────────────────────────────────────────────────────────
 function bdToggleSection(which) {
   const hdrId  = 'bd-' + which + '-hdr';
-  const bodyId = 'bd-' + (which === 'gaps' ? 'gaps-body' : 'rankings-body');
+  const bodyMap = { gaps: 'bd-gaps-body', rankings: 'bd-rankings-body', approvals: 'bd-approvals-body' };
+  const bodyId = bodyMap[which] || ('bd-' + which + '-body');
   const hdr  = document.getElementById(hdrId);
   const body = document.getElementById(bodyId);
   if (!hdr || !body) return;
   const isCollapsed = hdr.classList.contains('collapsed');
   hdr.classList.toggle('collapsed', !isCollapsed);
   body.classList.toggle('collapsed', !isCollapsed);
+  // lazy-load approvals on first open
+  if (which === 'approvals' && !isCollapsed === false && !_bdApprovalsLoaded) {
+    _bdApprovalsLoaded = true;
+    loadApprovalsWatchList();
+  }
+}
+
+// ── Near-Term Approvals & Watch List ─────────────────────────────────────────
+let _bdApprovalsLoaded = false;
+
+// Hard-coded known items as fallback / seed data
+const KNOWN_PDUFA = [
+  {
+    name: 'veligrotug',
+    brand_name: null,
+    indication: 'Thyroid Eye Disease (TED)',
+    company: 'Immunovant',
+    pdufa_date: '2026-06-30',
+    notes: 'FcRn inhibitor — first SC FcRn mAb with albumin-sparing redesign; TED indication PDUFA June 30, 2026',
+    days_label: '34 days',
+    area: 'TED / FcRn'
+  },
+  {
+    name: 'ianalumab',
+    brand_name: null,
+    indication: "Sjogren's Disease",
+    company: 'Novartis',
+    pdufa_date: '2026-07-01',
+    notes: "Anti-BAFF-R mAb — BLA expected mid-2026 for primary Sjogren's disease; first biologic in class",
+    days_label: '~35 days',
+    area: 'Autoimmune'
+  }
+];
+
+function _approvalsCountdown(pdufaDate) {
+  if (!pdufaDate) return null;
+  const now = new Date();
+  const target = new Date(pdufaDate);
+  const diffMs = target - now;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return `${Math.abs(diffDays)}d ago`;
+  if (diffDays === 0) return 'TODAY';
+  if (diffDays <= 30) return `${diffDays}d`;
+  const months = Math.round(diffDays / 30.4);
+  return `~${months}mo`;
+}
+
+function _approvalsCountdownColor(pdufaDate) {
+  if (!pdufaDate) return '#64748b';
+  const now = new Date();
+  const diffDays = Math.round((new Date(pdufaDate) - now) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return '#94a3b8';
+  if (diffDays <= 60) return '#dc2626';
+  if (diffDays <= 180) return '#d97706';
+  return '#059669';
+}
+
+function _approvalsRenderItem(item, type) {
+  const nameHtml = item.brand_name
+    ? `<span class="drug-brand-name">${item.brand_name}</span><span class="drug-molecule-name">${item.name}</span>`
+    : `<span class="drug-brand-name">${item.name}</span>`;
+  const countdown = item.pdufa_date ? _approvalsCountdown(item.pdufa_date) : null;
+  const countdownColor = _approvalsCountdownColor(item.pdufa_date);
+  const dateStr = item.pdufa_date ? new Date(item.pdufa_date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : (item.days_label || '');
+  
+  if (type === 'pdufa') {
+    return `<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px">
+      <div style="flex-shrink:0;background:${countdownColor};color:white;border-radius:8px;padding:5px 10px;text-align:center;min-width:52px">
+        <div style="font-size:13px;font-weight:900;line-height:1">${countdown || '?'}</div>
+        <div style="font-size:8px;font-weight:600;opacity:0.85;margin-top:2px">PDUFA</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px">${nameHtml}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+          <span style="font-size:11px;color:#1e3a5f;font-weight:600">${item.company || '—'}</span>
+          <span style="font-size:10px;background:#e8f0f8;color:#2e6fb0;padding:1px 7px;border-radius:6px;font-weight:700">${item.area || item.indication || ''}</span>
+          ${item.pdufa_date ? `<span style="font-size:10px;color:#64748b">${dateStr}</span>` : ''}
+        </div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.5">${item.indication || ''}${item.notes ? ` — ${item.notes}` : ''}</div>
+      </div>
+    </div>`;
+  } else {
+    // watch list item
+    const sevColor = item.severity === 'high' ? '#dc2626' : item.severity === 'medium' ? '#d97706' : '#64748b';
+    const sevBg = item.severity === 'high' ? '#fef2f2' : item.severity === 'medium' ? '#fffbeb' : '#f8fafc';
+    return `<div style="background:white;border:1px solid #e2e8f0;border-left:3px solid ${sevColor};border-radius:8px;padding:11px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:700;color:#0f172a">${nameHtml}</div>
+        ${item.severity ? `<span style="font-size:9px;font-weight:800;background:${sevBg};color:${sevColor};padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:0.04em">${item.severity}</span>` : ''}
+        ${item.company ? `<span style="font-size:11px;color:#475569">${item.company}</span>` : ''}
+      </div>
+      <div style="font-size:11.5px;color:#475569;line-height:1.5">${item.watch_notes || item.cascade_rationale || item.notes || ''}</div>
+    </div>`;
+  }
+}
+
+async function loadApprovalsWatchList() {
+  const grid = document.getElementById('bd-approvals-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:8px 0">Loading…</div>';
+
+  let pdufaItems = [...KNOWN_PDUFA];
+  let watchItems = [];
+
+  try {
+    // Try to fetch regulatory review drugs from DB
+    const { data: regDrugs } = await _sb
+      .from('drugs')
+      .select('id,name,brand_name,stage,mechanism,company_id,indication_short,companies!company_id(name)')
+      .in('stage', ['regulatory_review','bla_filed','nda_filed','approved_pending'])
+      .order('name')
+      .limit(30);
+
+    if (regDrugs && regDrugs.length) {
+      // Merge DB results — avoid duplicating hard-coded known items
+      const hardCodedNames = new Set(KNOWN_PDUFA.map(x => x.name.toLowerCase()));
+      regDrugs.forEach(d => {
+        if (!hardCodedNames.has((d.name||'').toLowerCase())) {
+          pdufaItems.push({
+            name: d.name,
+            brand_name: d.brand_name || null,
+            indication: d.indication_short || '',
+            company: d.companies?.name || d.company_id || '',
+            pdufa_date: d.pdufa_date || null,
+            notes: d.approval_notes || '',
+            area: ''
+          });
+        }
+      });
+    }
+  } catch(e) { /* silently continue with hard-coded items */ }
+
+  try {
+    // Try to fetch watch-flagged drugs
+    const { data: watchDrugs } = await _sb
+      .from('drugs')
+      .select('id,name,brand_name,stage,watch_notes,company_id,companies!company_id(name)')
+      .eq('watch_flag', true)
+      .limit(20);
+
+    if (watchDrugs && watchDrugs.length) {
+      watchDrugs.forEach(d => {
+        watchItems.push({
+          name: d.name,
+          brand_name: d.brand_name || null,
+          company: d.companies?.name || d.company_id || '',
+          watch_notes: d.watch_notes || `Stage: ${d.stage || 'unknown'}`,
+          severity: 'medium'
+        });
+      });
+    }
+  } catch(e) { /* silently continue */ }
+
+  try {
+    // Try failure cascade watch items
+    const { data: cascades } = await _sb
+      .from('drug_failure_cascade')
+      .select('drug_id,cascade_type,rationale,severity,drugs(name,brand_name,company_id,companies!company_id(name))')
+      .eq('cascade_type', 'mechanism_validation')
+      .limit(10);
+
+    if (cascades && cascades.length) {
+      const watchNames = new Set(watchItems.map(x => x.name.toLowerCase()));
+      cascades.forEach(c => {
+        const d = c.drugs;
+        if (!d) return;
+        if (!watchNames.has((d.name||'').toLowerCase())) {
+          watchItems.push({
+            name: d.name,
+            brand_name: d.brand_name || null,
+            company: d.companies?.name || d.company_id || '',
+            watch_notes: c.rationale || 'Mechanism validation risk — class under scrutiny',
+            cascade_rationale: c.rationale || '',
+            severity: c.severity || 'medium'
+          });
+        }
+      });
+    }
+  } catch(e) { /* silently continue */ }
+
+  // Sort pdufa items: nearest date first
+  pdufaItems.sort((a, b) => {
+    if (!a.pdufa_date && !b.pdufa_date) return 0;
+    if (!a.pdufa_date) return 1;
+    if (!b.pdufa_date) return -1;
+    return a.pdufa_date > b.pdufa_date ? 1 : a.pdufa_date < b.pdufa_date ? -1 : 0;
+  });
+
+  let html = '';
+
+  // PDUFA section
+  html += `<div style="margin-bottom:18px">
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#1e3a5f;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px">IMMINENT DECISIONS</span>
+      <span style="font-weight:500;color:#94a3b8">${pdufaItems.length} drug${pdufaItems.length !== 1 ? 's' : ''} tracked</span>
+    </div>`;
+  if (pdufaItems.length) {
+    html += pdufaItems.map(item => _approvalsRenderItem(item, 'pdufa')).join('');
+  } else {
+    html += '<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:8px 0">No drugs in regulatory review stage found in database.</div>';
+  }
+  html += '</div>';
+
+  // Watch list section
+  html += `<div>
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#1e3a5f;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px">WATCH LIST</span>
+      <span style="font-weight:500;color:#94a3b8">${watchItems.length} drug${watchItems.length !== 1 ? 's' : ''} flagged</span>
+    </div>`;
+  if (watchItems.length) {
+    html += watchItems.map(item => _approvalsRenderItem(item, 'watch')).join('');
+  } else {
+    html += `<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:8px 0">
+      No drugs currently flagged via watch_flag or mechanism_validation cascade.<br>
+      <span style="font-size:11px">Monitoring ${pdufaItems.length} drugs for stage transitions and approval events.</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  grid.innerHTML = html;
 }
 
 // ── BD Gaps renderer ─────────────────────────────────────────────────────────
