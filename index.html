@@ -110,6 +110,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-s
 .content { padding: 0 10px 0; max-width: 100%; margin: 0 auto; position: relative; } #tab-drugs-know { padding: 0 !important; }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
+#tab-ontology-explorer.tab-pane.active { display: flex; }
 
 .stat-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 14px; }
 .stat-card { background: white; border-radius: 4px; padding: 6px 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 2px solid #2e6fb0; height: 72px; overflow: hidden; box-sizing: border-box; }
@@ -4004,7 +4005,6 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
-  <button class="nav-icon-btn" id="nav-icon-oex" onclick="switchTabTo('ontology-explorer')" title="Ontology Explorer (Prototype)">🗺️</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -20695,6 +20695,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <span style="font-size:10px;color:#4a6080;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
     <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Program Board</button>
     <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+    <button onclick="switchTabTo('ontology-explorer')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Explorer <span style="font-size:9px;background:rgba(245,158,11,.25);color:#f59e0b;padding:1px 5px;border-radius:8px;font-weight:800;margin-left:3px">PROTO</span></button>
   </div>
 <style>
 /* ── Ontology Audit Tab ─────────────────────────────────────────── */
@@ -21025,7 +21026,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ═══════════════════════════════════════════════════════════════════════════
      ONTOLOGY EXPLORER TAB  #tab-ontology-explorer  (prototype — mock data)
 ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="tab-pane" id="tab-ontology-explorer" style="display:none;padding:0;background:#0d1520;min-height:100vh;font-family:'Inter',sans-serif">
+<div class="tab-pane" id="tab-ontology-explorer" style="display:none;flex-direction:column;padding:0;background:#0d1520;font-family:'Inter',sans-serif;height:100%">
 
   <!-- Explorer header bar -->
   <div style="background:#111d2e;border-bottom:1px solid #1e3050;padding:0 24px;display:flex;align-items:center;gap:12px;height:44px;flex-shrink:0">
@@ -21218,7 +21219,7 @@ document.addEventListener('DOMContentLoaded', function(){
 #ont-explorer-panel .oex-i-list.ent li{font-size:10px;color:rgba(148,163,184,.6);background:rgba(22,32,50,.5);border-left-color:rgba(99,125,154,.25);padding:3px 8px;line-height:1.4}
 </style>
 
-<div id="ont-explorer-panel" style="display:flex;flex-direction:column;height:calc(100vh - 44px);overflow:hidden">
+<div id="ont-explorer-panel" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
   <div id="oex-ws">
     <div id="oex-lp">
       <div class="oex-ph">Ontology Tree <button onclick="oexCollapseAll()">Collapse all</button></div>
@@ -21787,6 +21788,8 @@ function oexRender(){
   oexRenderMatrix();
   oexRenderInspector();
 }
+// Auto-initialize on parse — elements are in DOM even when tab is hidden
+try { oexRender(); window.OEX_INITIALIZED = true; } catch(e) { console.warn('[OEX] init deferred:', e); }
 </script>
 
 </div><!-- /tab-ontology-explorer -->
