@@ -1465,7 +1465,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 
 /* ── HIERARCHY DROPDOWN — flyout cascade on hover ───────────── */
 .hier-dd-wrap { position: relative; }
-.hier-dd-btn-active { background: #1a3a6e !important; color: white !important; }
+/* Button lights up on hover — no JS class needed */
+.hier-dd-wrap:hover > .nav-icon-btn { background: #1a3a6e !important; color: white !important; }
 
 .hier-dd-menu {
   display: none;
@@ -1480,7 +1481,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   border: 1px solid #dde3ea;
   overflow: visible; /* allows sub-panels to escape bounds */
 }
-.hier-dd-menu.open { display: block; }
+/* Open on hover — no click required */
+.hier-dd-wrap:hover > .hier-dd-menu { display: block; }
 
 .hier-dd-header {
   padding: 8px 13px 7px;
@@ -1499,12 +1501,12 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 /* TA-level body — no overflow clipping so sub-panels can escape */
 .hier-dd-body { padding: 4px 0 4px; overflow: visible; }
 
-/* ── Generic row ── */
+/* ── Generic row — tall enough to stay within on diagonal movement ── */
 .hier-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 11px 13px;   /* 11px top/bottom = larger vertical hit area */
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
@@ -1548,24 +1550,23 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .hier-sub-panel {
   display: none;
   position: absolute;
-  top: -5px;           /* slight upward nudge so it aligns with the row */
-  left: 100%;          /* flush against parent right edge — no gap = no hover break */
+  top: -8px;                /* upward nudge gives top breathing room */
+  left: calc(100% - 6px);  /* 6px overlap with parent — physically no gap to cross */
   background: white;
   border-radius: 8px;
   box-shadow: 0 8px 28px rgba(0,0,0,0.18);
   border: 1px solid #dde3ea;
-  min-width: 230px;
+  min-width: 240px;
   z-index: 10;
-  overflow: visible;   /* allow deeper sub-panels to escape */
+  overflow: visible;        /* allow deeper sub-panels to escape */
+  padding: 6px 0;           /* top/bottom buffer — mouse can enter from any edge */
 }
 
-/* Two rules show the sub-panel:
-   1. CSS :hover  — instant appear on entry (no delay)
-   2. .hier-open  — JS-managed grace period on exit (prevents collapse
-      when mouse briefly leaves while navigating between levels).
-   Having EITHER rule active keeps the panel visible. */
-.hier-item:hover > .hier-sub-panel,
-.hier-item.hier-open > .hier-sub-panel { display: block; }
+/* Pure CSS hover — no timers, no lag.
+   Hit areas are physically enlarged so the mouse doesn't accidentally exit:
+   rows are taller, sub-panels have top/bottom buffers, and each sub-panel
+   overlaps its parent by 6px so there is never a physical gap to cross. */
+.hier-item:hover > .hier-sub-panel { display: block; }
 
 /* Sub-panel header (shows indication name above target list) */
 .hier-sub-hd {
@@ -3969,7 +3970,7 @@ function loadMoleculeTab(tabId) {
    </div>
    <!-- Hierarchy / Ontology dropdown — PROTOTYPE -->
    <div class="hier-dd-wrap" id="hier-dd-wrap">
-     <button class="nav-icon-btn" id="hier-dd-btn" onclick="toggleHierDropdown()" title="Target Space · Ontology Navigator" style="font-size:15px;">🗂</button>
+     <button class="nav-icon-btn" id="hier-dd-btn" title="Target Space · Ontology Navigator" style="font-size:15px;">🗂</button>
      <div class="hier-dd-menu" id="hier-dd-menu" onclick="event.stopPropagation()">
        <div class="hier-dd-header">
          <span class="hier-dd-header-label">Target Space Navigator</span>
@@ -17740,62 +17741,20 @@ const hierState = {
   built: false,
 };
 
-function toggleHierDropdown() {
-  const menu = document.getElementById('hier-dd-menu');
-  const btn  = document.getElementById('hier-dd-btn');
-  const isOpen = menu.classList.contains('open');
-  document.getElementById('mol-dd-menu')?.classList.remove('open');
-  if (isOpen) {
-    menu.classList.remove('open');
-    btn.classList.remove('hier-dd-btn-active');
-  } else {
-    if (!hierState.built) { hierBuildTree(); hierState.built = true; }
-    menu.classList.add('open');
-    btn.classList.add('hier-dd-btn-active');
-  }
-}
-
-// ── Grace-period hover management ──────────────────────────
-// Gives the user 200ms of forgiveness when moving between levels.
-// CSS :hover handles instant-show; JS .hier-open handles the delay on hide.
-const HIER_GRACE_MS = 200;
-const _hierTimers = new WeakMap();
-
-function _hierCancelHide(item) {
-  clearTimeout(_hierTimers.get(item));
-  _hierTimers.delete(item);
-}
-
-function _hierScheduleHide(item) {
-  _hierCancelHide(item);
-  _hierTimers.set(item, setTimeout(() => {
-    item.classList.remove('hier-open');
-    // Also close any open children — they lost their ancestor's protection
-    item.querySelectorAll('.hier-item.hier-open').forEach(c => {
-      c.classList.remove('hier-open');
-      _hierCancelHide(c);
+// Lazy-build tree on first hover — CSS handles show/hide
+(function() {
+  const wrap = document.getElementById('hier-dd-wrap');
+  if (wrap) {
+    wrap.addEventListener('mouseenter', function() {
+      if (!hierState.built) { hierBuildTree(); hierState.built = true; }
     });
-  }, HIER_GRACE_MS));
-}
+  }
+})();
 
-function hierAttachHover(item) {
-  item.addEventListener('mouseenter', () => {
-    // Cancel any pending hide for this item and all its open ancestors
-    // (keeps the chain alive when re-entering from a child panel path)
-    _hierCancelHide(item);
-    item.classList.add('hier-open');
-    let ancestor = item.parentElement?.closest('.hier-item');
-    while (ancestor) {
-      _hierCancelHide(ancestor);
-      ancestor = ancestor.parentElement?.closest('.hier-item');
-    }
-  });
-  item.addEventListener('mouseleave', () => {
-    _hierScheduleHide(item);
-  });
-}
-
-// ── Tree builder — nested DOM, hover handled by CSS :hover ──
+// ── Tree builder — nested DOM, hover handled purely by CSS :hover ──
+// No timers. Hit area is enlarged physically: taller rows (11px padding),
+// 6px top/bottom buffer inside sub-panels, and sub-panels overlap parent
+// by 6px (left: calc(100% - 6px)) so there is never a physical gap.
 function hierBuildTree() {
   const body = document.getElementById('hier-dd-body');
   body.innerHTML = '';
@@ -17817,8 +17776,6 @@ function hierDivider() {
 function hierNav(tabId, label) {
   if (tabId) {
     navTo(tabId);
-    document.getElementById('hier-dd-menu')?.classList.remove('open');
-    document.getElementById('hier-dd-btn')?.classList.remove('hier-dd-btn-active');
   } else {
     hierShowNoTabToast(label);
   }
@@ -18061,11 +18018,6 @@ document.addEventListener('click', function(e) {
   const title = document.getElementById('tab-current-title');
   if (title && !title.contains(e.target)) {
     closeCenterDrugDD();
-  }
-  const hierWrap = document.getElementById('hier-dd-wrap');
-  if (hierWrap && !hierWrap.contains(e.target)) {
-    document.getElementById('hier-dd-menu')?.classList.remove('open');
-    document.getElementById('hier-dd-btn')?.classList.remove('hier-dd-btn-active');
   }
 });
 
