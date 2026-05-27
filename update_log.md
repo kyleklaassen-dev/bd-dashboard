@@ -2,6 +2,33 @@
 ---
 
 ---
+## 2026-05-27 (Session 86) — intel_areas ontology migration (commit 9635495a3f)
+
+**Purpose:** Migrate `intel_areas` from legacy `area_id`-only routing to ontology-native routing. First migration in the Group D operational tables wave.
+
+**SQL (Supabase):**
+1. `ALTER TABLE intel_areas ADD COLUMN target_id text, indication_id text, therapeutic_area_id text, context_type text`
+2. `UPDATE intel_areas SET target_id = lam.target_id, ... FROM legacy_area_ontology_map WHERE area_id = legacy_area_id` → **18/18 rows updated**
+
+**Backfill result:** fcrn→target_id='fcrn', igf1r→'igf1r', il4ra→'il4ra', tslp→'tslp', tcell→null (platform_view — area_id fallback)
+
+**Code changes (6) in index.html:**
+- Lines 3145, 17235, 17615: Added `target_id,context_type` to bulk select strings
+- Line 3847: Flipped critical `loadAreaIntel` filter from `.in('area_id', areas)` → `.or('target_id.in.(...),area_id.in.(...)')` dual-filter
+- Line 18015: Flipped TL1AIntelFeed from `.eq('area_id','tl1a')` → `.or(...)` dual-filter
+- Line 18412: Added `target_id` to search embedded sub-select `intel_areas(area_id,target_id)`
+
+**Validation — all 4 intel-bearing tabs passing, zero console errors:**
+- FcRn: 3 items via ontology path (target_id='fcrn') ✅
+- IGF-1R×TSHR: 6 items via ontology path ✅
+- IL-4Rα×TSLP: 6 items via ontology path (il4ra+tslp) ✅
+- ACE/tcell: 3 items via area_id fallback (target_id=null — platform_view) ✅
+
+**Pattern established** for Group D wave: same 4-step sequence applies to research_queue, competitive_signals, company_profiles, signals.
+
+**Output doc:** `docs/intel_areas_ontology_migration.md`
+
+---
 ## 2026-05-27 (Session 85) — Post-retirement ontology integrity audit (analysis only, no code/DB changes)
 
 **Purpose:** Confirm `disease_areas` removal left no hidden schema, code, or ontology inconsistencies. Produce prioritized migration queue for remaining legacy area structures.
