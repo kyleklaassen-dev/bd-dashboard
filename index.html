@@ -17853,6 +17853,13 @@ function hierNav(tabId, label) {
     if (_hierCloseTimer) { clearTimeout(_hierCloseTimer); _hierCloseTimer = null; }
     document.getElementById('hier-dd-menu')?.classList.remove('open');
     navTo(tabId);
+    // Override the title bar with the selection breadcrumb path
+    const s = hierState.sel;
+    if (s) {
+      const parts = [s.ta?.name, s.da?.name, s.ind?.name, s.tgt?.name].filter(Boolean);
+      const nameEl = document.getElementById('tab-current-name');
+      if (nameEl && parts.length) nameEl.textContent = parts.join(' › ');
+    }
   } else {
     hierShowNoTabToast(label);
   }
