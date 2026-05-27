@@ -15109,6 +15109,12 @@ function _makeAreaPI(tabId, areaIds) {
     || null;
    const _isOwnershipPill = !_hasDirectPartner && !!(d.ownership_status && d.ownership_status !== 'originated');
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
+   // Self-attribution guard: suppress pill when the partner is the same entity we're already
+   // grouped under (e.g. fg-m701 grouped under AbbVie showing "w/ AbbVie" is redundant).
+   // Compare shortened names case-insensitively so "Boehringer Ingelheim" matches "BI" etc.
+   const _entityShort = d.co ? _shortenPartner(d.co) : '';
+   const _partnerMatchesEntity = !!(_partnerShort && _entityShort &&
+     _partnerShort.toLowerCase() === _entityShort.toLowerCase());
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
    // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
    const _pv = _isOwnershipPill ? true : d.partnership_verified;
@@ -15116,7 +15122,7 @@ function _makeAreaPI(tabId, areaIds) {
                     : _pv === false ? {c:'#92400e',bg:'#fffbeb',br:'#fcd34d',lbl:'Flagged unconfirmed by enrichment — click to confirm or remove'}
                     :                 {c:'#64748b',bg:'#f8fafc',br:'#cbd5e1',lbl:'Partnership not yet verified — click to confirm or remove'};
    const _pvMark    = _pv === true ? '' : ' ?';
-   const partnerTag = _partnerShort
+   const partnerTag = (_partnerShort && !_partnerMatchesEntity)
     ? `<span class="pi-partner-pill" data-drug-id="${d.id||''}" data-partner="${(_partnerCo||'').replace(/"/g,'&quot;')}" data-pv="${_pv}" onclick="piConfirmPartner(this,event)" style="font-size:9px;cursor:pointer;color:${_pvColor.c};background:${_pvColor.bg};border:1px solid ${_pvColor.br};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvColor.lbl}">w/ ${_partnerShort}${_pvMark}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
@@ -15411,12 +15417,14 @@ function _makeAreaPI(tabId, areaIds) {
 
    // Confidence indicator: surfaces data quality at a glance
    const _conf = (d.confidence_level || '').toLowerCase();
+   // Confidence indicator — subtle, small, tooltip-first. Font reduced to 7px, low opacity.
+   // confirmed=✓ green, supported=◐ amber, inferred=? gray. All suppressed unless hovering drug name.
    const _confIndicator = _conf === 'confirmed'
-    ? `<span title="Verified — confirmed from direct source" style="font-size:9px;color:#15803d;font-weight:700;white-space:nowrap;flex-shrink:0">✓</span>`
+    ? `<span title="Verified — confirmed from direct source" style="font-size:7px;color:#15803d;font-weight:700;opacity:0.6;white-space:nowrap;flex-shrink:0;margin-left:2px">✓</span>`
     : _conf === 'supported'
-    ? `<span title="Partially verified — supported by indirect sources" style="font-size:9px;color:#b45309;font-weight:700;white-space:nowrap;flex-shrink:0">◐</span>`
+    ? `<span title="Partially verified — supported by indirect sources" style="font-size:7px;color:#b45309;font-weight:700;opacity:0.6;white-space:nowrap;flex-shrink:0;margin-left:2px">◐</span>`
     : _conf === 'inferred'
-    ? `<span title="Inferred — not directly confirmed" style="font-size:9px;color:#94a3b8;font-weight:700;white-space:nowrap;flex-shrink:0">?</span>`
+    ? `<span title="Inferred — not directly confirmed" style="font-size:7px;color:#94a3b8;font-weight:600;opacity:0.5;white-space:nowrap;flex-shrink:0;margin-left:2px">?</span>`
     : '';
 
    return `<div class="pi-da-row${_tierCls}">
