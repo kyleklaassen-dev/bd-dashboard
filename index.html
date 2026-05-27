@@ -10347,8 +10347,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
     // Re-enable with proper cache invalidation once ownership changes stabilize.
     const piObj = _areaPIs[sourceTabId] || null;
 
-    // ── Parallel fetch: profile + catalysts + deals + company row + all company areas ──
-    const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes] = await Promise.all([
+    // ── Parallel fetch: profile + catalysts + deals + company row + all company areas + subsidiaries ──
+    const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes, subsidiariesRes] = await Promise.all([
       _sb.from('company_profiles').select('*')
          .eq('company_id', companyId).eq('area_id', AREA)
          .order('updated_at', { ascending: false }).limit(1),
@@ -10359,6 +10359,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
       _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2').eq('id', companyId).limit(1),
       _sb.from('company_areas').select('area_id').eq('company_id', companyId),
+      _sb.from('companies').select('id,name,status').eq('parent_company_id', companyId).in('status', ['acquired', 'subsidiary']),
     ]);
 
     // ── Multi-area profiles + catalysts (for Assessment / Catalysts tabs) ──
@@ -10595,7 +10596,8 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
 
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect };
+    const subsidiaries = subsidiariesRes.data || [];
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -11653,11 +11655,12 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
 
 /* ── Company card renderer ───────────────────────────────────────── */
 function _cemCompanyBody(prog, sbData, areaId, extraData) {
-  const profile    = sbData?.profile   || {};
-  const companyRow = sbData?.company   || null;
-  const sbCats     = sbData?.catalysts || [];
-  const sbDeals    = sbData?.deals     || [];
-  const sbDrugs    = sbData?.drugs     || [];
+  const profile      = sbData?.profile       || {};
+  const companyRow   = sbData?.company       || null;
+  const sbCats       = sbData?.catalysts     || [];
+  const sbDeals      = sbData?.deals         || [];
+  const sbDrugs      = sbData?.drugs         || [];
+  const sbSubs       = sbData?.subsidiaries  || [];
   const pi = profile.platform_intelligence || null;
   const bd = profile.bd_intelligence      || null;
   const companyName = prog?.co || '';
@@ -22105,17 +22108,17 @@ document.addEventListener('DOMContentLoaded', function(){
     var TODAY = new Date().toISOString().split('T')[0];
 
     var AREA_META = {
-      tl1a:        {label:'TL1A',        color:'#3b82f6'},
-      ibd:         {label:'IBD',         color:'#8b5cf6'},
-      atopy:       {label:'Atopy',       color:'#f59e0b'},
-      ted:         {label:'TED',         color:'#10b981'},
-      igf1r:       {label:'IGF-1R',      color:'#f97316'},
-      fcrn:        {label:'FcRn',        color:'#06b6d4'},
-      tcell:       {label:'T-Cell',      color:'#a78bfa'},
-      respiratory: {label:'Respiratory', color:'#64748b'},
-      autoimmune:  {label:'Autoimmune',  color:'#ec4899'},
-      il4ra:       {label:'IL-4Rα', color:'#22d3ee'},
-      tslp:        {label:'TSLP',        color:'#84cc16'},
+      tl1a:        {label:'TL1A',        color:'#3b82f6', type:'TARGET'},
+      ibd:         {label:'IBD',         color:'#8b5cf6', type:'INDICATION'},
+      atopy:       {label:'Atopy',       color:'#f59e0b', type:'INDICATION'},
+      ted:         {label:'TED',         color:'#10b981', type:'INDICATION'},
+      igf1r:       {label:'IGF-1R',      color:'#f97316', type:'TARGET'},
+      fcrn:        {label:'FcRn',        color:'#06b6d4', type:'TARGET'},
+      tcell:       {label:'T-Cell',      color:'#a78bfa', type:'PLATFORM'},
+      respiratory: {label:'Respiratory', color:'#64748b', type:'AREA'},
+      autoimmune:  {label:'Autoimmune',  color:'#ec4899', type:'AREA'},
+      il4ra:       {label:'IL-4Rα', color:'#22d3ee', type:'TARGET'},
+      tslp:        {label:'TSLP',        color:'#84cc16', type:'TARGET'},
     };
 
     var STAGE_ORDER = ['Preclinical','Phase 1','Phase 2','Phase 3','BLA Filed','Approved'];
@@ -22838,8 +22841,18 @@ document.addEventListener('DOMContentLoaded', function(){
             ctx.textAlign  = 'right';
             ctx.font       = '600 12px Inter,system-ui,sans-serif';
             ctx.fillStyle  = meta.color;
-            ctx.fillText(meta.label, LEFT_MARGIN - 14, rowMidY + 5);
+            ctx.fillText(meta.label, LEFT_MARGIN - 14, rowMidY + 1);
             ctx.restore();
+
+            /* Type subtext beneath label */
+            if (meta.type) {
+              ctx.save();
+              ctx.textAlign = 'right';
+              ctx.font = '500 8px Inter,system-ui,sans-serif';
+              ctx.fillStyle = '#3a5a7a';
+              ctx.fillText(meta.type, LEFT_MARGIN - 14, rowMidY + 13);
+              ctx.restore();
+            }
 
             /* Small bullet circle before label — all dots at fixed DOT_X column */
             ctx.save();
