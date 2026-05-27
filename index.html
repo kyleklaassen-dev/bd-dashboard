@@ -554,6 +554,8 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   gap: 30px;
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding-bottom: 40px;
 }
 .hw-bd-item {
   display: flex;
@@ -9300,11 +9302,11 @@ function dknLoadSbData() { return dknLoadData(); }
       <table class="si-table">
         <thead>
           <tr>
-            <th>Date</th><th>By</th><th>Title / Summary</th><th>Link</th><th>Status</th><th>Confidence</th>
+            <th>Date</th><th>By</th><th>Title / Summary</th><th>Link</th><th>Status</th><th>Confidence</th><th></th>
           </tr>
         </thead>
         <tbody id="si-tbody">
-          <tr><td colspan="6" class="si-empty">Loading…</td></tr>
+          <tr><td colspan="7" class="si-empty">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -11045,7 +11047,7 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -11471,7 +11473,16 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   </div>`;
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
+  // Ownership chain banner (shown when drug has been acquired and has a current owner)
+  const _ownerBannerHtml = ownerData ? `<div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Ownership Chain</span>
+    <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
+    <span style="font-size:11px;color:#64748b">·</span>
+    <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
+  </div>` : '';
+
   const _overviewDrugContent = `
+    ${_ownerBannerHtml}
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
@@ -12049,7 +12060,15 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const _areaFilterHtml = ''; // pills now live in the header, not in the body
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
+  // Acquired subsidiaries banner
+  const _acquiredSubs = sbSubs.filter(s => s.status === 'acquired');
+  const _subsBannerHtml = _acquiredSubs.length ? `<div style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-left:3px solid #15803d;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d">Acquired subsidiaries</span>
+    ${_acquiredSubs.map(s => `<span onclick="openCompanySlideOver('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px">ACQUIRED</span>${s.name||s.id}</span>`).join('')}
+  </div>` : '';
+
   const _overviewContent = `<div>
+    ${_subsBannerHtml}
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
@@ -12642,6 +12661,22 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       if (coRows?.[0]) companyName = coRows[0].name + (coRows[0].ticker ? ` (${coRows[0].ticker})` : '');
     }
 
+    // Fetch current owner if different from originator (acquisition/licensing chain)
+    let ownerData = null; // { ownerName, ownerCompanyId, originatorName, originatorCompanyId }
+    if (drug?.current_owner_company_id && drug.current_owner_company_id !== drug.company_id) {
+      try {
+        const { data: ownerRows } = await _sb.from('companies').select('id,name').eq('id', drug.current_owner_company_id).limit(1);
+        if (ownerRows?.[0]) {
+          ownerData = {
+            ownerName:         ownerRows[0].name,
+            ownerCompanyId:    drug.current_owner_company_id,
+            originatorName:    companyName,
+            originatorCompanyId: drug.company_id,
+          };
+        }
+      } catch(_) {}
+    }
+
     subEl.textContent = companyName || 'Drug Profile';
 
     // ── Phase 5 Candidate 3 — Drug modal normalized source ─────────────────────
@@ -12676,7 +12711,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
@@ -16402,7 +16437,7 @@ function siRender() {
   if (!tbody) return;
   const rows = _siStatusFilter ? _siData.filter(r => r.status === _siStatusFilter) : _siData;
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="si-empty">No submissions${_siStatusFilter ? ` with status "${_siStatusFilter}"` : ''}.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="si-empty">No submissions${_siStatusFilter ? ` with status "${_siStatusFilter}"` : ''}.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r, i) => {
@@ -16411,8 +16446,49 @@ function siRender() {
     const urlDom = r.source_url ? (() => { try { return new URL(r.source_url).hostname.replace('www.',''); } catch(e) { return r.source_url.slice(0,30); } })() : '';
     const status = r.status || 'new';
     const conf   = r.confidence_level || '';
-    const rowId  = `si-row-${r.id}`;
     const detId  = `si-det-${r.id}`;
+    const chevId = `si-chev-${r.id}`;
+
+    // ── Status timeline ──────────────────────────────────────────────────────
+    const _siSteps = [
+      { key:'submitted', label:'Submitted', done: true, ts: r.created_at },
+      { key:'processed', label:'Processed', done: !!(r.analyzed_at || r.extracted_title || status === 'analyzed' || status === 'approved' || status === 'rejected' || status === 'imported'), ts: r.analyzed_at },
+      { key:'resolved',  label: status === 'rejected' ? 'Rejected' : status === 'imported' ? 'Imported' : 'Published', done: !!(status === 'approved' || status === 'rejected' || status === 'imported'), ts: r.reviewed_at || r.imported_at },
+    ];
+    const _siTimeline = `<div style="display:flex;align-items:center;gap:0;margin-bottom:12px">
+      ${_siSteps.map((step, si) => {
+        const dotColor = step.done ? (step.key === 'resolved' && status === 'rejected' ? '#dc2626' : '#16a34a') : '#cbd5e1';
+        const labelColor = step.done ? '#1e293b' : '#94a3b8';
+        const tsStr = step.ts ? (() => { try { return new Date(step.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); } catch(_){ return ''; } })() : '';
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px">
+          <div style="display:flex;align-items:center;width:100%">
+            ${si > 0 ? `<div style="flex:1;height:2px;background:${_siSteps[si-1].done ? dotColor : '#e2e8f0'}"></div>` : '<div style="flex:1"></div>'}
+            <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};flex-shrink:0;border:2px solid ${step.done ? dotColor : '#e2e8f0'}"></div>
+            ${si < _siSteps.length - 1 ? `<div style="flex:1;height:2px;background:#e2e8f0"></div>` : '<div style="flex:1"></div>'}
+          </div>
+          <div style="font-size:10px;font-weight:700;color:${labelColor};text-align:center;white-space:nowrap">${step.label}</div>
+          ${tsStr ? `<div style="font-size:9px;color:#94a3b8;text-align:center">${tsStr}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    // ── Matched entity pills ─────────────────────────────────────────────────
+    const _matchedCos  = r.matched_company_ids  || null;
+    const _matchedDrugs= r.matched_drug_ids     || null;
+    const _entityPillsHtml = (_matchedCos || _matchedDrugs) ? `<div style="margin-bottom:10px">
+      <div class="si-detail-label" style="margin-bottom:5px">Matched Entities</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${(_matchedCos || []).map(cId => `<span onclick="event.stopPropagation();openCompanySlideOver('${cId}','${cId}','')" style="display:inline-block;font-size:11px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:12px;padding:3px 9px;cursor:pointer" title="Open company card">🏢 ${cId}</span>`).join('')}
+        ${(_matchedDrugs || []).map(dId => `<span onclick="event.stopPropagation();openDrugEntityModal('${dId}','${dId}',event)" style="display:inline-block;font-size:11px;font-weight:600;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;cursor:pointer" title="Open drug card">💊 ${dId}</span>`).join('')}
+      </div>
+    </div>` : '';
+
+    // ── Rejection reason ─────────────────────────────────────────────────────
+    const _rejectionHtml = (status === 'rejected' && r.rejection_reason) ? `<div style="background:#fff1f2;border:1px solid #fca5a5;border-left:3px solid #dc2626;border-radius:6px;padding:8px 11px;margin-bottom:10px">
+      <div class="si-detail-label" style="color:#dc2626;margin-bottom:3px">Rejection Reason</div>
+      <div style="font-size:12px;color:#991b1b">${r.rejection_reason}</div>
+    </div>` : '';
+
     return `<tr class="si-data-row" onclick="siToggleDetail('${r.id}')">
   <td style="white-space:nowrap">${date}</td>
   <td style="white-space:nowrap">${r.submitted_by || '—'}</td>
@@ -16420,13 +16496,17 @@ function siRender() {
   <td>${urlDom ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;font-size:11px">${urlDom}</a>` : '—'}</td>
   <td><span class="si-status-badge si-status-${status}">${status.replace('_',' ')}</span></td>
   <td class="si-conf-badge">${conf}</td>
+  <td style="white-space:nowrap;color:#64748b;font-size:11px"><span id="${chevId}">▶ Details</span></td>
 </tr>
 <tr class="si-detail-row" id="${detId}">
-  <td colspan="6"><div class="si-detail-inner" id="si-di-${r.id}">
+  <td colspan="7"><div class="si-detail-inner" id="si-di-${r.id}">
+    ${_siTimeline}
+    ${_rejectionHtml}
+    ${_entityPillsHtml}
     <div class="si-detail-grid">
       <div class="si-detail-section">
-        <div class="si-detail-label">Original Link</div>
-        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" style="color:#2563eb;word-break:break-all">${r.source_url}</a>` : '—'}</div>
+        <div class="si-detail-label">Source Link</div>
+        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a>` : '—'}</div>
       </div>
       <div class="si-detail-section">
         <div class="si-detail-label">Submitted Text</div>
@@ -16458,8 +16538,12 @@ function siRender() {
 }
 
 function siToggleDetail(id) {
-  const el = document.getElementById(`si-di-${id}`);
-  if (el) el.classList.toggle('open');
+  const el   = document.getElementById(`si-di-${id}`);
+  const chev = document.getElementById(`si-chev-${id}`);
+  if (el) {
+    const isOpen = el.classList.toggle('open');
+    if (chev) chev.textContent = isOpen ? '▼ Details' : '▶ Details';
+  }
 }
 
 async function siSetStatus(id, newStatus, btn) {
