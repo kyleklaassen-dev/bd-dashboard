@@ -1575,11 +1575,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   padding: 4px 0;
 }
 
-/* Pure CSS hover — no timers, no lag.
-   Hit areas are physically enlarged so the mouse doesn't accidentally exit:
-   rows are taller, sub-panels have top/bottom buffers, and each sub-panel
-   overlaps its parent by 6px so there is never a physical gap to cross. */
-.hier-item:hover > .hier-sub-panel { display: block; }
+/* Sub-panels open/close via JS .open class with 1-second grace on mouseleave */
+.hier-item > .hier-sub-panel.open { display: block; }
 
 /* Sub-panel header (shows indication name above target list) */
 .hier-sub-hd {
@@ -17754,6 +17751,39 @@ const hierState = {
   built: false,
 };
 
+// ── Per-item 1-second grace period for sub-panels ─────────────
+// mouseenter: open this sub-panel immediately; close any open siblings immediately
+// mouseleave: wait 1 second, then close — mouse can return within that window
+function hierAttachHover(item) {
+  let timer = null;
+  const sub = item.querySelector(':scope > .hier-sub-panel');
+  if (!sub) return;
+
+  item._hierForceClose = function() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    sub.classList.remove('open');
+  };
+
+  item.addEventListener('mouseenter', function() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    // Immediately close any open siblings so only one sub-panel shows at a time
+    const parent = item.parentElement;
+    if (parent) {
+      parent.querySelectorAll(':scope > .hier-item').forEach(function(sib) {
+        if (sib !== item && sib._hierForceClose) sib._hierForceClose();
+      });
+    }
+    sub.classList.add('open');
+  });
+
+  item.addEventListener('mouseleave', function() {
+    timer = setTimeout(function() {
+      sub.classList.remove('open');
+      timer = null;
+    }, 1000);
+  });
+}
+
 // ── Hover open / 1-second grace-period close ──────────────────
 let _hierCloseTimer = null;
 (function() {
@@ -17835,6 +17865,7 @@ function hierMakeTA(ta) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
@@ -17867,6 +17898,7 @@ function hierMakeDA(ta, da) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
@@ -17922,6 +17954,7 @@ function hierMakeInd(ta, da, ind) {
 
   item.appendChild(row);
   item.appendChild(sub);
+  hierAttachHover(item);
   return item;
 }
 
