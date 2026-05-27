@@ -10049,7 +10049,7 @@ function initGrids(d) {
  {name:'Notes',width:'80px',sort:false,formatter:(c)=>{const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('${prefix}','${esc}',this)">▼ Notes</button>`);}}
  ],
  data:dropCols(readoutsData,[0,4]).sort((a,b)=>phaseRank(a[1])-phaseRank(b[1])||parseDateKey(a[3])-parseDateKey(b[3])), sort:true
- }).render(document.getElementById('grid-'+prefix+'-readouts'));
+ }); {const _e=document.getElementById('grid-'+prefix+'-readouts');if(_e)grids[prefix+'Readouts'].render(_e);}
 
  grids[prefix+'Landscape'] = new gridjs.Grid({
  columns:[
@@ -10062,7 +10062,7 @@ function initGrids(d) {
  {name:'Notes',width:'80px',sort:false,formatter:(c)=>{if(!c)return'';const esc=String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");return gridjs.html(`<button class="note-btn" onclick="toggleNote('${prefix}-landscape','${esc}',this)">▼ Notes</button>`);}}
  ],
  data:mergeLandscape(pipeData, monoData).sort((a,b)=>phaseRank(a[3])-phaseRank(b[3])), sort:true
- }).render(document.getElementById('grid-'+prefix+'-landscape'));
+ }); {const _e=document.getElementById('grid-'+prefix+'-landscape');if(_e)grids[prefix+'Landscape'].render(_e);}
  }
 
  if (d.il4raTslpReadouts) makeTabGrids('il4ra-tslp', d.il4raTslpReadouts, d.il4raTslpPipe, d.il4raTslpMono);
@@ -11049,7 +11049,7 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -11483,8 +11483,30 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
   </div>` : '';
 
+  // ── Failure cascade risk banner (Fix B — Session 68) ─────────────────────
+  const _cascadeRiskHtml = (() => {
+    if (!cascadeRisk?.cascade_risk_level) return '';
+    const lvl = cascadeRisk.cascade_risk_level;
+    const _sty = {
+      HIGH:   { bg:'#fef2f2', border:'#fca5a5', accent:'#b91c1c', bdg:'#b91c1c' },
+      MEDIUM: { bg:'#fff7ed', border:'#fdba74', accent:'#c2410c', bdg:'#ea580c' },
+      LOW:    { bg:'#fefce8', border:'#fde047', accent:'#ca8a04', bdg:'#ca8a04' },
+    }[lvl] || { bg:'#f8fafc', border:'#e2e8f0', accent:'#64748b', bdg:'#64748b' };
+    const mech = [cascadeRisk.mechanism_target, cascadeRisk.mechanism_indication].filter(Boolean).join(' × ');
+    const validity = cascadeRisk.mechanism_validity || 'failed';
+    const rationale = cascadeRisk.cascade_risk_rationale ? cascadeRisk.cascade_risk_rationale.slice(0,180)+(cascadeRisk.cascade_risk_rationale.length>180?'…':'') : '';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;background:${_sty.bg};border:1px solid ${_sty.border};border-left:3px solid ${_sty.accent};border-radius:7px;padding:10px 12px;margin-bottom:10px">
+      <div style="flex-shrink:0;margin-top:1px"><span style="font-size:8px;font-weight:800;background:${_sty.bdg};color:white;border-radius:5px;padding:2px 7px;letter-spacing:0.04em;text-transform:uppercase">⚠ ${lvl} RISK</span></div>
+      <div>
+        <div style="font-size:11.5px;font-weight:700;color:${_sty.accent};margin-bottom:3px">Mechanism failure cascade risk</div>
+        <div style="font-size:11px;color:#1e293b;line-height:1.45">${mech ? `<strong>${mech}</strong> mechanism is <em>${validity}</em>.` : ''} ${rationale}</div>
+      </div>
+    </div>`;
+  })();
+
   const _overviewDrugContent = `
     ${_ownerBannerHtml}
+    ${_cascadeRiskHtml}
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
@@ -11507,7 +11529,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-deals')">
           <div class="cem-sec-lbl">🤝 BD deals</div>
-          <div class="cem-sec-hint">${hasDeal?'1 deal':'No deal'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
+          <div class="cem-sec-hint">${_allDeals.length>0?_allDeals.length+' deal'+(_allDeals.length!==1?'s':''):'No deal'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
         </div>
         <div class="cem-sec-body">${bdDealsSummary}</div>
         <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
@@ -12062,10 +12084,13 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const _areaFilterHtml = ''; // pills now live in the header, not in the body
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
-  // Acquired subsidiaries banner
-  const _acquiredSubs = sbSubs.filter(s => s.status === 'acquired');
-  const _subsBannerHtml = _acquiredSubs.length ? `<div style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-left:3px solid #15803d;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
-    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d">Acquired subsidiaries</span>
+  // Subsidiaries + acquired entities banner (Session 68)
+  const _acquiredSubs  = sbSubs.filter(s => s.status === 'acquired');
+  const _activeSubs    = sbSubs.filter(s => s.status === 'subsidiary');
+  const _allSubsorted  = [..._activeSubs, ..._acquiredSubs];
+  const _subsBannerHtml = _allSubsorted.length ? `<div style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-left:3px solid #15803d;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d">Subsidiaries &amp; acquired entities</span>
+    ${_activeSubs.map(s => `<span onclick="openCompanySlideOver('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px">SUBSIDIARY</span>${s.name||s.id}</span>`).join('')}
     ${_acquiredSubs.map(s => `<span onclick="openCompanySlideOver('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px">ACQUIRED</span>${s.name||s.id}</span>`).join('')}
   </div>` : '';
 
@@ -12681,6 +12706,18 @@ async function openDrugEntityModal(drugId, drugName, evt) {
 
     subEl.textContent = companyName || 'Drug Profile';
 
+    // Fetch failure cascade risk for this drug (Fix B — Session 68)
+    let cascadeRisk = null;
+    try {
+      const _crId = drug?.id || drugId;
+      if (_crId && !String(_crId).startsWith('static-')) {
+        const { data: crRows } = await _sb.from('failure_cascade_risk')
+          .select('cascade_risk_level,mechanism_target,mechanism_indication,mechanism_validity,cascade_risk_rationale')
+          .eq('drug_id', _crId).limit(1);
+        cascadeRisk = crRows?.[0] || null;
+      }
+    } catch(_) {}
+
     // ── Phase 5 Candidate 3 — Drug modal normalized source ─────────────────────
     // When FEATURE_FLAGS.useNormalizedDrugModal=true: fetch drug_targets,
     // drug_indications, and trial_indications (via trial IDs) for display in the
@@ -12713,7 +12750,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
