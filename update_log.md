@@ -1,6 +1,22 @@
 
 ---
 
+## 2026-05-27 (Session 88) — Ontology Stabilization Audit: observability panel + shutdown checklist + stale comment cleanup
+
+**Purpose:** Operational maturity pass — no migrations, no new tables. Finalize session 88 mandate: wire live health diagnostics, document legacy shutdown sequences, clean stale comments, produce stabilization report.
+
+**index.html changes:**
+- Added `loadOntologyHealth()` function (~line 3504): queries all 9 operational tables for `target_id` coverage, fallback context inventory, legacy structure row counts; builds coverage table + summary panel
+- Added `ont-sec-health` HTML panel to Ontology Audit tab: Ontology Health — Live Diagnostics section with Refresh button
+- Wired `loadOntologyHealth()` to TAB_REGISTRY `onEnter` for 'ontology' tab (line 26489): auto-fires on tab open
+- Replaced 4 stale comments "pending DB FK teardown" → "DB teardown complete Session 84" (disease_areas was dropped Session 84)
+
+**New docs:**
+- `docs/ontology_legacy_shutdown_checklist.md` — kill conditions, blocker dependencies, safe retirement sequences for drug_area_scores (gate 2026-06-27), drug_areas (Phase 5 activations), area_id fallback columns
+- `docs/ontology_stabilization_report.md` — full architecture map (5 layers), coverage data, observability infrastructure, outstanding items, session verdict
+
+---
+
 ---
 ## 2026-05-27 (Session 87) — Ontology Acceleration Sprint: batch Group D migration (commit 5cc73e3edd)
 
