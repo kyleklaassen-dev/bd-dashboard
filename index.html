@@ -16330,7 +16330,7 @@ function switchTab(id, btn) {
   document.getElementById('tab-' + id)?.classList.add('active');
   btn?.classList.add('active');
   updateTabTitle(id);
-  clearGlobalSearch();
+  try { clearGlobalSearch(); } catch(e) { /* grid not yet rendered — safe to skip */ }
   buildToc(id);
   closeToc();
   if (typeof fixTabBarTop === 'function') requestAnimationFrame(fixTabBarTop);
