@@ -1,197 +1,133 @@
-# Next Session — Session 69
-
-**Prepared:** 2026-05-27  
-**Phase:** Phase 6 — Fact Connectivity & Canonical Display  
-**Session 68 complete:** Failure cascade risk badge ✅ · makeTabGrids null guards ✅ · Subsidiary display ✅ · Deal count hint fix ✅ · Deployed commit `313a923a8759`
+# NEXT_SESSION.md — Session 81 Handoff
+**Written:** 2026-05-27  
+**Last commit:** `fba9f390cc53`
 
 ---
 
-## Session 68 — What Was Built
+## What Was Done This Session (Session 80)
 
-### Bug Fixes (Critical)
+### P0: disease_areas Code Retirement — COMPLETE
 
-| Fix | What | Result |
+All active JavaScript DB reads referencing `disease_areas` have been removed from `index.html`. Final grep confirmed zero hits. Table is now safely droppable in a future DB session.
+
+**8 code changes made:**
+1. `OEX_ALL_TABLES` — removed `'disease_areas'`
+2. `ALL_TABLES` homepage poller — removed `'disease_areas'`
+3. Admin row-count fetch (line ~24939) — stubbed with `Promise.resolve({ data: [] })`
+4. `_loadOntologyExplorer` (line ~26388) — stubbed with `Promise.resolve({ data: [] })`
+5. `OEX_JOIN_MAP` primary — removed `disease_areas` key; mechanism_status/competitive_landscapes/area_metadata set to `[]`
+6. `OEX_JOIN_MAP` fallback — same cleanup
+7. `OEX_FK_MAP` — removed all `disease_areas:'area_id'` entries
+8. `SEED_CAT_DATA` — removed disease_areas from ontology catalog list
+
+**Validation passed:**
+- `grep -n "from('disease_areas')" index.html` → CLEAN
+- OEX matrix: TL1A 94%, IBD 96%, all area rows present
+- Ontology group: 5 tables (correct, was 6)
+- Zero console errors
+- Ontology Audit panel loads cleanly
+
+**Retirement doc written:** `docs/disease_areas_retirement_ready.md`
+
+---
+
+## Session 81 Decision Point
+
+Before the next code session, one decision is required:
+
+### Decision: drug_area_scores retirement path
+
+`drug_area_scores` cannot be retired until a choice is made:
+
+**Option A** — Backfill `competitive_relevance` + `relevance_rationale` into `drug_competitive_scores`, then decommission dual-read harnesses (one data session + one code session).
+
+**Option B** — Formally deprecate those two fields (accept data loss), then decommission dual-read harnesses (one code session, no data migration).
+
+Until this is decided, `drug_area_scores` stays untouched.
+
+---
+
+## disease_areas DB Teardown (One DB Session, Whenever Ready)
+
+The code is clean. The only remaining step to fully retire `disease_areas` is a Supabase SQL Editor session:
+
+```sql
+-- Step 1: Verify constraint names (run first)
+SELECT conname, conrelid::regclass AS table_name
+FROM pg_constraint
+WHERE confrelid = 'public.disease_areas'::regclass
+AND contype = 'f';
+
+-- Step 2: Drop FK constraints (adjust names if Step 1 differs)
+ALTER TABLE public.area_metadata          DROP CONSTRAINT IF EXISTS area_metadata_area_id_fkey;
+ALTER TABLE public.mechanism_status       DROP CONSTRAINT IF EXISTS mechanism_status_area_id_fkey;
+ALTER TABLE public.competitive_landscapes DROP CONSTRAINT IF EXISTS competitive_landscapes_area_id_fkey;
+
+-- Step 3: Drop the table
+DROP TABLE public.disease_areas;
+```
+
+This can be done any time — no code changes needed beforehand.
+
+---
+
+## Remaining Retirement Work (Post-Decision)
+
+### Phase 5 remaining activations (not started)
+- `il4ra`, `tslp`, `ted` areas: still using `drug_areas` legacy fallback in `_makeAreaPI`
+- Once these activate, the `drug_areas` + `drug_combinations` fallback branch in `_makeAreaPI` can be removed
+
+### Phase 6 remaining migrations (not started)
+- `research_queue`: add `target_id` / `therapeutic_area_id` + backfill
+- `intel_areas`: add `target_id` / `therapeutic_area_id` + backfill
+- `company_profiles`: area ontology columns (compound key: company_id + area_id)
+- `competitive_signals`: area ontology columns
+
+### 4 indications with NULL disease_area (optional cleanup)
+Still need `_HIER_LEGACY_TO_TA` entries in index.html:
+- psoriasis → dermatology
+- psa → rheumatology
+- itp → hematology
+- graves_disease → ophthalmology
+
+---
+
+## Retirement Status Summary
+
+### area_metadata current state
+
+| area_id | retirement_status | Note |
 |---|---|---|
-| `makeTabGrids` null guards | `grid-${prefix}-readouts/landscape` render calls in `makeTabGrids` had no null guard — crashed ALL tabs (TSLP fix from session 67 was only a partial fix) | ✅ No more Container null errors |
-| `initGrids` TSLP guards | Line 10024 — already fixed in commit `498fe790d350` (session 67) | ✅ |
+| atopy | flag_activated | Phase 3 done |
+| fcrn | flag_activated | Phase 3 done |
+| igf1r | flag_activated | Phase 3 done |
+| tl1a | flag_activated | Phase 3 done |
+| ibd | flag_activated | Phase 3 done |
+| il4ra | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
+| ted | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
+| tslp | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
+| autoimmune | not_started | Preserved strategic view — not targeted for retirement |
+| respiratory | not_started | Preserved strategic view — not targeted for retirement |
+| tcell | not_started | Preserved platform view — not targeted for retirement |
 
-### UI Features Added
+### Tables: Retirement Readiness
 
-| Feature | Location | Details |
+| Table | Status | Blocker |
 |---|---|---|
-| Failure cascade risk badge | `openDrugEntityModal` + `_cemDrugBody` | Queries `failure_cascade_risk` view; shows HIGH/MEDIUM/LOW banner with mechanism + rationale. IMVT-1402 shows ⚠ HIGH RISK · FcRn × TED failed |
-| Subsidiary + acquired entity display | `_cemCompanyBody` | Shows both `status='subsidiary'` (SUBSIDIARY pill) and `status='acquired'` (ACQUIRED pill) entities in company card header. AbbVie shows Ventyx Biosciences (ACQUIRED) |
-| Deal count hint fix | `_cemDrugBody` | `'1 deal'` hardcoded → now shows actual count (`_allDeals.length + ' deals'`) |
-
-### Deployment
-
-| Commit | SHA | What |
-|---|---|---|
-| Session 67 TSLP fix | `498fe790d350` | initGrids TSLP null guards |
-| Session 68 all features | `313a923a8759` | makeTabGrids null guards + cascade risk badge + subsidiary display + deal count |
-
-### Key Test Results
-
-| Test | Result |
-|---|---|
-| IMVT-1402 drug card cascade risk | ✅ `HIGH, FcRn × TED, failed, "Mechanism has failed in Phase 3..."` |
-| `failure_cascade_risk` view health | ✅ 17 rows live |
-| AbbVie subsidiaries query | ✅ Returns `[{id:'ventyx', name:'Ventyx Biosciences', status:'acquired'}]` |
-| No Container null errors | ✅ Confirmed clean console after CDN propagated |
+| `disease_areas` | **✅ Code-clean** | DB FK teardown only (3 constraints + DROP TABLE) — no code changes needed |
+| `drug_area_scores` | **🔴 Blocked** | competitive_relevance/relevance_rationale fields; dual-read harnesses active |
+| `drug_areas` | **🔴 Blocked** | Active fallback in `_makeAreaPI` for il4ra/tslp/ted |
+| `area_metadata` | **✅ Keep permanently** | Migration tracking system, keyed by area_id as own PK |
+| `legacy_area_ontology_map` | **✅ Keep permanently** | Bridge table for all Phase 3+ backfills |
 
 ---
 
-## Priority 0: Session Start Validation
+## Known Good State
 
-```sql
--- 1. Check open governance violations
-SELECT table_name, row_id, rule_name, description
-FROM governance_violations WHERE resolved = FALSE;
-
--- 2. Check drug validation failures
-SELECT drug_id, rule_name, result, details
-FROM drug_validation_results WHERE result IN ('fail', 'warning')
-ORDER BY result, drug_id LIMIT 20;
-
--- 3. Verify failure_cascade_risk still returning rows
-SELECT drug_name, cascade_risk_level, mechanism_target, mechanism_indication
-FROM failure_cascade_risk ORDER BY cascade_risk_level, drug_name;
-```
-
----
-
-## Priority 1: Apply geo_approval_gaps View (Manual — 5 min)
-
-The `geo_approval_gaps` VIEW was defined in `migrations/v40_geographic_approvals_expansion.sql` but was never applied to the database. The Supabase SQL editor was inaccessible via automation in session 68.
-
-**Apply manually via Supabase SQL Editor** (`https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new`):
-
-```sql
-CREATE OR REPLACE VIEW geo_approval_gaps AS
-SELECT
-  d.id,
-  d.name,
-  d.brand_name,
-  d.stage,
-  bool_or(ga.geography = 'US' AND ga.approval_type != 'pending') as approved_us,
-  bool_or(ga.geography = 'EU' AND ga.approval_type != 'pending') as approved_eu,
-  bool_or(ga.geography = 'Japan' AND ga.approval_type != 'pending') as approved_japan,
-  bool_or(ga.geography = 'China' AND ga.approval_type != 'pending') as approved_china,
-  bool_or(ga.geography = 'US' AND ga.approval_type = 'pending') as pending_us,
-  COUNT(DISTINCT ga.geography) as geo_count,
-  COUNT(DISTINCT ga.indication) as indication_count
-FROM drugs d
-LEFT JOIN geographic_approvals ga ON ga.drug_id = d.id
-WHERE d.stage ILIKE '%approv%'
-   OR d.brand_name IS NOT NULL
-   OR ga.id IS NOT NULL
-GROUP BY d.id, d.name, d.brand_name, d.stage
-ORDER BY d.name;
-```
-
-Verify: `SELECT * FROM geo_approval_gaps LIMIT 5;`
-
----
-
-## Priority 2: COMPETES_WITH Edge Backfill
-
-From session 66 audit: ~714 of ~1,000 expected COMPETES_WITH edges exist. ~286 missing.
-
-```sql
--- Find drugs sharing target × indication without a COMPETES_WITH edge
-SELECT d1.id as drug1, d2.id as drug2
-FROM drugs d1
-JOIN drug_targets dt1 ON dt1.drug_id = d1.id
-JOIN drug_targets dt2 ON dt2.target_id = dt1.target_id AND dt2.drug_id != d1.id
-JOIN drugs d2 ON d2.id = dt2.drug_id
-LEFT JOIN entity_edges ee ON ee.from_entity_id = d1.id 
-  AND ee.to_entity_id = d2.id AND ee.edge_type = 'COMPETES_WITH'
-WHERE ee.id IS NULL
-LIMIT 20;
-```
-
-Approach: Script using drug_area_scores.overlap IN ('direct', 'adjacent') as the source.
-
----
-
-## Priority 3: drug_sources Backfill
-
-Table has 0 rows. Run enrichment on ~80 drugs with `data_confidence = 'unverified'`:
-
-```sql
-SELECT stage, COUNT(*) total, 
-  COUNT(CASE WHEN data_confidence = 'unverified' THEN 1 END) unverified
-FROM drugs GROUP BY stage ORDER BY total DESC;
-```
-
----
-
-## Priority 4: COMPETES_WITH Visualization in Drug Card
-
-Now that failure cascade risk is wired, next logical step: surface competitive relationship edges (COMPETES_WITH) in the drug card. Query `entity_edges WHERE edge_type='COMPETES_WITH' AND (from_entity_id=drug.id OR to_entity_id=drug.id)` and render as a "Competing programs" cell.
-
----
-
-## Priority 5: Ventyx Company Card Slow Render
-
-The AbbVie company card takes >8 seconds to render because `openCompanySlideOver` fetches trials in a serial loop for each drug (line 10537). For companies with large pipelines (AbbVie has dozens of drugs), this compounds.
-
-**Fix**: Batch the trial fetch with `.in('drug_id', drugIds)` instead of looping:
-```javascript
-// Replace serial loop with parallel batch
-const { data: trialsData } = await _sb.from('trials')
-  .select('*').in('drug_id', drugs.slice(0,8).map(d=>d.id));
-trials = trialsData || [];
-```
-
----
-
-## Priority 6: Mechanism Status Coverage Expansion
-
-Current: 33 rows in `mechanism_status`. The `failure_cascade_risk` view only surfaces risks for mechanisms WITH a failure/weakness record. Consider adding records for additional critical mechanisms:
-
-- TL1A × IBD (phase_3, active — multiple Phase 3 programs running)
-- IL-4Rα × AD (approved — dupilumab canonical)
-- TSLP × Asthma (approved — tezepelumab)
-
-These would allow the cascade risk view to also surface LOW risk / validated precedents.
-
----
-
-## Session 68 End State — Connectivity Depth Chain
-
-| Table | Stored | Linked | Status |
-|---|---|---|---|
-| `catalysts` | 794 | 534 drug_id | ✅ |
-| `news_articles` | 55 | 55 | ✅ |
-| `intel` | 776 | 637 indication, 1288 target | ✅ |
-| `mechanism_status` | 33 | 33 indication_id+target_id | ✅ |
-| `failure_cascade_risk` | 17 | live VIEW | ✅ **wired to UI Session 68** |
-| `deals` | 204 | linked to drug card | ✅ **count fixed Session 68** |
-| `drug_sources` | 0 | — | ⚠️ EMPTY |
-| `geo_approval_gaps` | — | VIEW missing | ⚠️ NEEDS MANUAL APPLY |
-
----
-
-## What NOT to Do in Session 69
-
-- Do not touch `drug_areas` biological reads (Phase 5 freeze)
-- Do not merge Roche/Genentech, Prometheus/Merck, or Ventyx/AbbVie into single entities
-- Do not run new AI enrichment / signal generation
-- Do not modify `_resolveStage` logic
-- Do not add new indication ontology entries without checking `indication_ontology_governance.md`
-
----
-
-## Modified Files — Session 68
-
-| File | Change |
-|---|---|
-| `index.html` | makeTabGrids null guards (lines 10052, 10065) |
-| `index.html` | `_cemDrugBody` + `cascadeRisk` param + banner HTML |
-| `index.html` | `openDrugEntityModal` cascade risk query |
-| `index.html` | `_cemCompanyBody` subsidiary banner expanded (acquired + active) |
-| `index.html` | Deal count hint fixed (`_allDeals.length` instead of `'1 deal'`) |
-| `NEXT_SESSION.md` | This file |
-
-**Supabase — no changes this session** (geo_approval_gaps VIEW pending manual apply)
+- Dashboard: live at GitHub Pages, commit `fba9f390cc53`
+- `index.html`: zero active `disease_areas` DB reads (confirmed by grep)
+- OEX matrix: all 11 areas rendering, disease_areas node removed, Ontology group = 5 tables
+- `docs/disease_areas_retirement_ready.md`: complete checklist + FK drop sequence
+- `drug_competitive_scores`: 253 rows, all 11 legacy areas covered
+- Phase 3 dual-filter: all 4 catalyst/deals reads on `target_id OR area_id`
+- `area_metadata`: tl1a + ibd = flag_activated; all 8 active areas Phase 3 noted
