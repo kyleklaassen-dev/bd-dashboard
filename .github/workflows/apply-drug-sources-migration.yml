@@ -1,7 +1,12 @@
 name: Apply Drug Sources Migration (v37, one-shot)
 
-# Trigger: manual only. Run once to create drug_sources table and seed data.
-# Delete this workflow after successful run.
+# Trigger: manual only.
+#
+# PREREQUISITE: Apply migrations/v37_drug_sources.sql manually in the Supabase SQL editor first:
+#   https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
+#
+# This workflow seeds the 30 high-confidence source rows and updates drugs.data_confidence.
+# Run once after the SQL is applied. Safe to re-run (idempotent inserts).
 
 on:
   workflow_dispatch:
@@ -20,83 +25,8 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Apply v37 migration and seed sources
+      - name: Seed sources and update confidence scores
         env:
           SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          python3 - <<'PYEOF'
-          import os, sys, requests, json, datetime
-
-          SUPABASE_URL = os.environ["SUPABASE_URL"]
-          SERVICE_KEY  = os.environ["SUPABASE_SERVICE_KEY"]
-
-          def h():
-              return {
-                  "apikey":        SERVICE_KEY,
-                  "Authorization": f"Bearer {SERVICE_KEY}",
-                  "Content-Type":  "application/json",
-                  "Prefer":        "return=representation",
-              }
-
-          def table_exists(table):
-              r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?limit=0", headers=h(), timeout=10)
-              return r.status_code not in (400, 404, 406)
-
-          def column_exists(table, col):
-              r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?select={col}&limit=1", headers=h(), timeout=10)
-              return r.status_code == 200
-
-          def run_sql(sql):
-              """Try pg-meta endpoint (returns None if unavailable)."""
-              r = requests.post(
-                  f"{SUPABASE_URL}/pg-meta/v0/query",
-                  headers=h(), json={"query": sql}, timeout=60
-              )
-              if r.status_code == 404:
-                  return None
-              return r.json() if r.ok else {"error": r.text[:300]}
-
-          # ── Step 1: Create drug_sources table ─────────────────────────────
-          if table_exists("drug_sources"):
-              print("drug_sources already exists — skipping CREATE TABLE")
-          else:
-              print("Creating drug_sources table...")
-              sql = open("migrations/v37_drug_sources.sql").read()
-              result = run_sql(sql)
-              if result is None:
-                  print("ERROR: pg-meta not available. Apply migrations/v37_drug_sources.sql manually.")
-                  print("Dashboard: https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new")
-                  sys.exit(1)
-              if isinstance(result, dict) and "error" in result:
-                  print(f"ERROR: {result['error']}")
-                  sys.exit(1)
-              print("  drug_sources table created.")
-
-          # ── Step 2: Seed source rows ──────────────────────────────────────
-          print("Seeding source URLs...")
-          sys.path.insert(0, "scripts")
-          from apply_drug_sources_migration import seed_sources, update_confidence
-          count = seed_sources(SERVICE_KEY)
-          print(f"  Inserted {count} source rows.")
-
-          # ── Step 3: Update confidence scores ─────────────────────────────
-          print("Updating data_confidence on drugs...")
-          update_confidence(SERVICE_KEY)
-
-          # ── Step 4: Verify ────────────────────────────────────────────────
-          r = requests.get(
-              f"{SUPABASE_URL}/rest/v1/drug_sources?select=id",
-              headers={**h(), "Prefer": "count=exact"}, timeout=10
-          )
-          cr = r.headers.get("content-range", "?")
-          print(f"  drug_sources rows: {cr}")
-
-          r2 = requests.get(
-              f"{SUPABASE_URL}/rest/v1/drugs?select=id",
-              headers={**h(), "Prefer": "count=exact"}, timeout=10
-          )
-          total = r2.headers.get("content-range", "0-0/0").split("/")[-1]
-          print(f"  Total drugs: {total}")
-          print("Done.")
-          PYEOF
+        run: python3 scripts/apply_drug_sources_migration.py --seed-only
