@@ -7721,8 +7721,9 @@ function _piDrugLabelHTML(d) {
     if (!mol || mol.toLowerCase() === d.brand_name.toLowerCase()) return d.brand_name;
     return d.brand_name + _sec(mol);
   }
-  // No brand name: render display_name splitting any "(secondary)" without parens
-  return _drugNameHTML(d.display_name || d.name || '') || '—';
+  // No brand name: use _piDrugLabel (strips research code parentheticals/slash codes)
+  // then split any remaining "(secondary)" into styled span. Prevents "Itepekimab REGN3500/SAR440340".
+  return _drugNameHTML(_piDrugLabel(d)) || '—';
 }
 
 // \u2500\u2500 Stage resolver \u2014 systemic approval detection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -15216,6 +15217,15 @@ function _makeAreaPI(tabId, areaIds) {
     || ((d.partnership_type && d.partnership_type !== 'self') ? _trimLegal(d.licensor_name) : null)
     // ownership model: show originator pill for acquired/licensed assets
     || ((d.ownership_status && d.ownership_status !== 'originated') ? (d.display_partner_name || null) : null)
+    // ATH fallback: if an asset_transfer_history chain exists and the originator ≠ current display
+    // entity, use the ATH originator as the inferred partner (e.g. HXN-1002/HXN-1003 → Earendil)
+    || (() => {
+      const _ath = athByDrugId?.[d.id];
+      if (!_ath?.length) return null;
+      const _orig = _ath[0].from_entity_name;
+      const _cN = s => (s||'').toLowerCase().replace(/[_\-\s]+/g,'');
+      return (_orig && _cN(_orig) !== _cN(d.co)) ? _orig : null;
+    })()
     || null;
    const _isOwnershipPill = !_hasDirectPartner && !!(d.ownership_status && d.ownership_status !== 'originated');
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
