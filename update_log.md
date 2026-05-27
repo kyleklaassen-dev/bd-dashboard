@@ -2,6 +2,34 @@
 ---
 
 ---
+## 2026-05-27 (Session 84) — disease_areas DB retirement complete (no code commit — DB-only)
+
+**Purpose:** Drop `disease_areas` from Supabase now that all code reads were cleaned in Session 80.
+
+**Pre-flight:** `grep -n "from('disease_areas')" index.html` → CLEAN. Dashboard loads correctly at `?v=84`.
+
+**FK discovery:** Retirement doc anticipated 3 FK constraints; actual count was **13**. All 13 are legacy `area_id` FKs on child tables (drug_areas, company_areas, deals, catalysts, company_partnerships, ailux_positions, etc.) — superseded by Phase 3 ontology columns but never cleaned up at DB level. Dropping FK constraints removes referential integrity only; no data affected.
+
+**SQL executed:**
+```sql
+DROP TABLE public.disease_areas CASCADE;
+```
+Single statement; `CASCADE` removes all 13 FK constraints automatically.
+
+**Verification:** `table_exists = false`, `remaining_fks = 0` — confirmed via Supabase Management API.
+
+**Dashboard validation — all tabs + OEX, zero console errors:**
+- TL1A: 24 entities, 5 badges, 6 borders ✅
+- FcRn: 5 entities, 4 badges, 4 borders ✅
+- IL-4Rα×TSLP: 11 entities, 9 badges, 9 borders ✅
+- IGF-1R×TSHR: 13 entities, 8 badges, 8 borders ✅
+- OEX: 100 tree nodes, 72 matrix cells, renders correctly ✅
+
+**No code change.** No deploy needed. Dashboard commit remains `2c889eda61e3`.
+
+**Output doc:** `docs/disease_areas_db_retirement_execution.md`
+
+---
 ## 2026-05-27 (Session 83) — competitive_relevance + relevance_rationale restored in DCS (commit 2c889eda61e3)
 
 **Purpose:** Execute Option C (hybrid migration) from Session 81 decision memo — restore the strategic relevance layer that went dark when `_makeAreaPI` was switched to DCS reads in Session 78.
