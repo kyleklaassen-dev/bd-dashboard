@@ -4406,8 +4406,6 @@ function loadMoleculeTab(tabId) {
   <div id="hw-date-line"></div>
   <div id="hw-time-line"></div>
   <div id="hw-rule"></div>
-  <div id="hw-count-num">—</div>
-  <div id="hw-count-label">data points tracked</div>
   <div id="hw-breakdown"></div>
 
 
@@ -23210,6 +23208,7 @@ document.addEventListener('DOMContentLoaded', function(){
           chks.className='oex-leaf-chks';
           chks.style.cssText='display:inline-flex;gap:4px;margin-left:auto;flex-shrink:0;padding-right:4px;align-items:center';
           chks.innerHTML=_oexChkHtml(node.type,node.id,node.label);
+          chks.addEventListener('click',function(e){e.stopPropagation();});
           leaf.style.display='flex'; leaf.style.alignItems='center';
           leaf.appendChild(chks);
           leaf.setAttribute('onclick','');
@@ -23260,6 +23259,7 @@ document.addEventListener('DOMContentLoaded', function(){
         chks.className='oex-leaf-chks';
         chks.style.cssText='display:inline-flex;gap:4px;margin-left:auto;flex-shrink:0;padding-right:4px;align-items:center';
         chks.innerHTML=_oexChkHtml('tables',tblName,tblName);
+        chks.addEventListener('click',function(e){e.stopPropagation();});
         leaf.style.display='flex'; leaf.style.alignItems='center';
         leaf.appendChild(chks);
         leaf.setAttribute('onclick','');
