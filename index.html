@@ -11475,70 +11475,61 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   </div>`;
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
-  // Provenance chain banner: full multi-hop chain from asset_transfer_history if available,
-  // otherwise falls back to the simple two-node ownerData banner.
+  // Provenance badge: single inline badge combining FORMERLY (drug name history) +
+  // transfer chain (company-by-company ownership journey).
+  //
+  // Design rule: method label goes ON the receiving node, not between nodes.
+  //   EpimAb → Vignette Bio (lic. ex-China) → Candid (acq.) → UCB (acq.)
+  // This makes direction unambiguous: "Candid (acq.)" = Candid received it via acquisition.
+  //
+  // Shows for any drug with asset_transfer_history rows OR ownerData.
+  // Only most-recent former drug name shown (licensor_code); omit if same as current name.
   const _ownerBannerHtml = (() => {
-    // ── Full provenance chain (from asset_transfer_history) ─────────────────
+    const _provNodeHtml = (name, id, methodLabel, tip) => {
+      const _nSafe = (name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const _nameEl = id
+        ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer;white-space:nowrap" onclick="event.preventDefault();event.stopPropagation();openCompanyEntityModal('${id}','${_nSafe}','')">${name}</span>`
+        : `<span style="font-weight:700;color:#475569;white-space:nowrap">${name}</span>`;
+      if (!methodLabel) return _nameEl;
+      const _tipAttr = tip ? ` title="${(tip).replace(/"/g,'&quot;')}"` : '';
+      return `${_nameEl} <span style="font-size:8.5px;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 4px;white-space:nowrap"${_tipAttr}>${methodLabel}</span>`;
+    };
+
     if (transferChain && transferChain.length > 0) {
-      // Build ordered node array from the chain
+      // Build node list: [{name, id}] with method on each node except the first
       const _tcNodes = [];
       transferChain.forEach((hop, i) => {
         if (i === 0) _tcNodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
-        _tcNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id });
-      });
-
-      const _tcNodeHtml = (node) => {
-        const _nSafe = (node.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        return node.id
-          ? `<span style="font-size:11px;font-weight:700;color:#1d4ed8;white-space:nowrap;cursor:pointer" onclick="event.preventDefault();openCompanyEntityModal('${node.id}','${_nSafe}','')">${node.name}</span>`
-          : `<span style="font-size:11px;font-weight:700;color:#1e293b;white-space:nowrap">${node.name}</span>`;
-      };
-
-      const _tcEdgeHtml = (hop) => {
-        const _typeShort = { license:'license', sublicense:'sublicense', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
+        const _mShort = { license:'lic.', sublicense:'sub-lic.', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
         const _geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` ${hop.geographic_scope}` : '';
-        const _dealNote = hop.deal_value_notes
-          ? ` · ${hop.deal_value_notes.slice(0,45)}${hop.deal_value_notes.length > 45 ? '…' : ''}`
-          : (hop.deal_value_upfront_usd ? ` · $${(hop.deal_value_upfront_usd / 1e6).toFixed(0)}M upfront` : '');
-        const _vDot = hop.verified ? '' : ' ⚬';
-        const _tipTxt = (hop.deal_value_notes || '').replace(/"/g, '&quot;');
-        return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0">
-          <span style="font-size:9px;color:#1d4ed8;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 5px;white-space:nowrap" title="${_tipTxt}">${_typeShort}${_geo}${_vDot}</span>
-          ${_dealNote ? `<span style="font-size:9px;color:#64748b;white-space:nowrap">${_dealNote.trim()}</span>` : ''}
-        </span>`;
-      };
-
-      let _timelineHtml = _tcNodeHtml(_tcNodes[0]);
-      transferChain.forEach((hop, i) => {
-        _timelineHtml += `<span style="color:#94a3b8;font-size:11px;padding:0 3px;flex-shrink:0">→</span>`;
-        _timelineHtml += _tcEdgeHtml(hop);
-        _timelineHtml += `<span style="color:#94a3b8;font-size:11px;padding:0 3px;flex-shrink:0">→</span>`;
-        _timelineHtml += _tcNodeHtml(_tcNodes[i + 1]);
+        const _vd = hop.verified ? '' : ' ⚬';
+        _tcNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id, method: `${_mShort}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
       });
 
-      const _tcHasUnverified = transferChain.some(h => !h.verified);
+      let _chainHtml = _provNodeHtml(_tcNodes[0].name, _tcNodes[0].id, null, null);
+      _tcNodes.slice(1).forEach(node => {
+        _chainHtml += ` <span style="color:#cbd5e1;font-size:10px">→</span> ${_provNodeHtml(node.name, node.id, node.method, node.tip)}`;
+      });
 
-      return `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Provenance Chain</span>
-          <span style="font-size:9px;color:#64748b">${transferChain.length} transfer${transferChain.length !== 1 ? 's' : ''}</span>
-          ${_tcHasUnverified
-            ? '<span style="font-size:9px;color:#92400e">· some hops unverified</span>'
-            : '<span style="font-size:9px;color:#15803d">· all verified ✓</span>'}
-        </div>
-        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;row-gap:6px">
-          ${_timelineHtml}
-        </div>
+      // Former drug name — only the most recent / only one (licensor_code)
+      const _curName = drug?.display_name || drug?.name || '';
+      const _frmCode = (drug?.licensor_code && drug.licensor_code.trim() !== _curName.trim()) ? drug.licensor_code.trim() : null;
+
+      return `<div style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:10px;padding:4px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">
+        ${_frmCode ? `<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${_frmCode}</span><span style="color:#cbd5e1;margin:0 2px">·</span>` : ''}
+        ${_chainHtml}
       </div>`;
     }
 
-    // ── Fallback: simple two-node ownership banner ───────────────────────────
+    // Fallback: simple two-node ownership (no ATH rows, but ownerData present)
     if (!ownerData) return '';
-    return `<div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
-      <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Ownership Chain</span>
-      <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanyEntityModal('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
-      <span style="font-size:11px;color:#64748b">·</span>
-      <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanyEntityModal('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
+    const _curName2 = drug?.display_name || drug?.name || '';
+    const _frmCode2 = (drug?.licensor_code && drug.licensor_code.trim() !== _curName2.trim()) ? drug.licensor_code.trim() : null;
+    return `<div style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:10px;padding:4px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">
+      ${_frmCode2 ? `<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${_frmCode2}</span><span style="color:#cbd5e1;margin:0 2px">·</span>` : ''}
+      ${_provNodeHtml(ownerData.originatorName, ownerData.originatorCompanyId, null, null)}
+      <span style="color:#cbd5e1;font-size:10px">→</span>
+      ${_provNodeHtml(ownerData.ownerName, ownerData.ownerCompanyId, 'acq.', null)}
     </div>`;
   })();
 
@@ -15385,49 +15376,48 @@ function _makeAreaPI(tabId, areaIds) {
     ? `<div class="pi-tr-hd-label">${trialCountLabel}</div>${trialHeader}<div>${activeTrialRowsHTML}${termSection}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
-   // Acquired drug provenance note — full multi-hop chain from asset_transfer_history when available,
-   // otherwise falls back to simple FORMERLY badge from licensor_code / licensor_name fields.
+   // Provenance badge — single inline badge: FORMERLY [name] · [chain]
+   // Method label goes ON the receiving node: "Candid (acq.)" = Candid received it via acquisition.
+   // No separate FORMERLY + chain badges — one badge handles both name history and chain.
    let acquisitionNote = '';
    try {
     const _athChain = athByDrugId[d.id] || [];
+    const _curDrugName = (d.display_name || d.name || '').trim();
+    const _frmCode = (d.licensor_code && d.licensor_code.trim() !== _curDrugName) ? d.licensor_code.trim() : null;
+
+    const _pnHtml = (name, id, methodLabel, tip) => {
+     const _nSafe = (name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+     const _nameEl = id
+      ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer;white-space:nowrap" onclick="event.stopPropagation();openCompanyEntityModal('${id}','${_nSafe}','')">${name}</span>`
+      : `<span style="font-weight:700;color:#475569;white-space:nowrap">${name}</span>`;
+     if (!methodLabel) return _nameEl;
+     const _tipAttr = tip ? ` title="${(tip+'').replace(/"/g,'&quot;')}"` : '';
+     return `${_nameEl} <span style="font-size:8.5px;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 4px;white-space:nowrap"${_tipAttr}>${methodLabel}</span>`;
+    };
+
     if (_athChain.length > 0) {
-     // Build ordered node array
-     const _acqNodes = [];
+     // Build nodes with method on each receiving node (not on the arrow)
+     const _pnodes = [];
      _athChain.forEach((hop, i) => {
-      if (i === 0) _acqNodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
-      _acqNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id });
+      if (i === 0) _pnodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
+      const _ms = { license:'lic.', sublicense:'sub-lic.', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
+      const _geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` ${hop.geographic_scope}` : '';
+      const _vd = hop.verified ? '' : ' ⚬';
+      _pnodes.push({ name: hop.to_entity_name, id: hop.to_entity_id, method: `${_ms}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
      });
-     const _acqNodeHtml = node => node.id
-      ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer" onclick="event.stopPropagation();openCompanyEntityModal('${node.id}','${(node.name||'').replace(/'/g,"\\'")}','')">${node.name}</span>`
-      : `<span style="font-weight:700;color:#475569">${node.name}</span>`;
-     const _acqEdgeHtml = hop => {
-      const tl = { license:'license', sublicense:'sublicense', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
-      const geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` (${hop.geographic_scope})` : '';
-      const vd = hop.verified ? '' : ' ⚬';
-      const tip = hop.deal_value_notes ? hop.deal_value_notes.replace(/"/g,'&quot;') : '';
-      return `<span style="font-size:9px;font-weight:600;color:#1d4ed8;background:#eff6ff;border-radius:3px;padding:1px 4px;white-space:nowrap" title="${tip}">${tl}${geo}${vd}</span>`;
-     };
-     let _acqChainHtml = _acqNodeHtml(_acqNodes[0]);
-     _athChain.forEach((hop, i) => {
-      _acqChainHtml += ` <span style="color:#94a3b8;font-size:10px">→</span> ${_acqEdgeHtml(hop)} <span style="color:#94a3b8;font-size:10px">→</span> ${_acqNodeHtml(_acqNodes[i + 1])}`;
+     let _chainStr = _pnHtml(_pnodes[0].name, _pnodes[0].id, null, null);
+     _pnodes.slice(1).forEach(n => {
+      _chainStr += ` <span style="color:#cbd5e1;font-size:10px">→</span> ${_pnHtml(n.name, n.id, n.method, n.tip)}`;
      });
-     // Optional FORMERLY badge when drug was renamed
-     const _frmBadge = (d.licensor_code && d.licensor_code !== (d.display_name || d.name))
-      ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-bottom:4px;padding:2px 7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b"><span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${d.licensor_code}</span></div> `
-      : '';
-     acquisitionNote = _frmBadge + '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:8px;padding:5px 9px;background:#f8fafc;border:1px solid #bfdbfe;border-left:2px solid #1d4ed8;border-radius:4px;font-size:10px">'
-      + '<span style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;white-space:nowrap;flex-shrink:0">Provenance</span>'
-      + '<span style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">' + _acqChainHtml + '</span>'
+     acquisitionNote = '<div style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:8px;padding:4px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">'
+      + (_frmCode ? `<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${_frmCode}</span><span style="color:#cbd5e1;margin:0 2px">·</span>` : '')
+      + _chainStr
       + '</div>';
-    } else if (d.licensor_code && d.licensor_code !== (d.display_name || d.name)) {
-     // Fallback: simple FORMERLY badge (drugs not yet in asset_transfer_history)
-     const acqLicensorSpan = d.licensor_name
-      ? '· acquired from <strong>' + d.licensor_name + '</strong>'
-      : '';
-     acquisitionNote = '<div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;padding:3px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">'
-      + '<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span>'
-      + '<span style="font-weight:700;color:#475569">' + d.licensor_code + '</span>'
-      + (acqLicensorSpan ? `<span>${acqLicensorSpan}</span>` : '')
+    } else if (_frmCode) {
+     // Fallback: no ATH chain yet — show FORMERLY + simple originator if available
+     const _origSpan = d.licensor_name ? ` <span style="color:#cbd5e1">·</span> <span>${d.licensor_name}</span>` : '';
+     acquisitionNote = '<div style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:8px;padding:4px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">'
+      + `<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${_frmCode}</span>${_origSpan}`
       + '</div>';
     }
    } catch(_) { acquisitionNote = ''; }
@@ -26596,7 +26586,7 @@ async function loadIntelFeed(force) {
   try {
     // Load discoveries
     const discResp = await fetch(INTEL_BASE + '/intelligence_discoveries?select=*&order=discovered_at.desc&limit=100', {
-      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+      headers: { 'apikey': INTEL_SVC, 'Authorization': 'Bearer ' + INTEL_SVC }
     });
     if (discResp.ok) {
       _intelDiscs = await discResp.json();
@@ -26605,7 +26595,7 @@ async function loadIntelFeed(force) {
     }
     // Load review queue
     const rqResp = await fetch(INTEL_BASE + '/review_queue?select=*&order=priority.asc,created_at.desc', {
-      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+      headers: { 'apikey': INTEL_SVC, 'Authorization': 'Bearer ' + INTEL_SVC }
     });
     if (rqResp.ok) {
       _intelRQ = await rqResp.json();
@@ -26614,13 +26604,13 @@ async function loadIntelFeed(force) {
     }
     // Load BD pipeline gaps
     const gapsResp = await fetch(INTEL_BASE + '/company_pipeline_gaps?select=*&gap_severity=in.(critical,high)&order=gap_severity.asc,company_id.asc', {
-      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+      headers: { 'apikey': INTEL_SVC, 'Authorization': 'Bearer ' + INTEL_SVC }
     });
     _bdGaps = gapsResp.ok ? (await gapsResp.json()) : [];
     // Load BD readiness rankings (graceful 404)
     try {
       const rkResp = await fetch(INTEL_BASE + '/bd_readiness_composite?select=*&order=overall_bd_score.desc', {
-        headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+        headers: { 'apikey': INTEL_SVC, 'Authorization': 'Bearer ' + INTEL_SVC }
       });
       _bdRankings = (rkResp.ok) ? (await rkResp.json()) : [];
     } catch(e2) { _bdRankings = []; }
