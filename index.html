@@ -11502,6 +11502,8 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   // Shows for any drug with asset_transfer_history rows OR ownerData.
   // Only most-recent former drug name shown (licensor_code); omit if same as current name.
   const _ownerBannerHtml = (() => {
+    // _spName: shorten company names for provenance nodes (strip JV parentheticals + pharma suffixes)
+    const _spName = n => n ? n.replace(/\s*\([^)]*\)/g,'').trim().replace(/[,\s]+(Biotherapeutics?|Biosciences?|Biopharmaceuticals?|Biologics?|Biotechnology|Technologies?|Pharmaceutical(s)?|Pharma|Biopharma|Therapeutics?|Holdings?|Sciences?|Labs?|Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.|Limited)\.?\s*$/i,'').trim() : n;
     const _provNodeHtml = (name, id, methodLabel, tip) => {
       const _nSafe = (name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       const _nameEl = id
@@ -11513,14 +11515,14 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     };
 
     if (transferChain && transferChain.length > 0) {
-      // Build node list: [{name, id}] with method on each node except the first
+      // Build node list: [{name, id}] with method on each node except the first; names shortened
       const _tcNodes = [];
       transferChain.forEach((hop, i) => {
-        if (i === 0) _tcNodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
+        if (i === 0) _tcNodes.push({ name: _spName(hop.from_entity_name), id: hop.from_entity_id });
         const _mShort = { license:'lic.', sublicense:'sub-lic.', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
         const _geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` ${hop.geographic_scope}` : '';
         const _vd = hop.verified ? '' : ' ⚬';
-        _tcNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id, method: `${_mShort}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
+        _tcNodes.push({ name: _spName(hop.to_entity_name), id: hop.to_entity_id, method: `${_mShort}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
       });
 
       let _chainHtml = _provNodeHtml(_tcNodes[0].name, _tcNodes[0].id, null, null);
@@ -15219,10 +15221,11 @@ function _makeAreaPI(tabId, areaIds) {
    const _entityShort = d.co ? _shortenPartner(d.co) : '';
    const _ft = s => s ? s.split(/[-\s]/)[0] : s;
    const _coIdNorm = s => (s || '').toLowerCase().replace(/[_\-\s]+/g, '');
-   const _partnerMatchesEntity = !!(_partnerShort && _entityShort && (
-     _partnerShort.toLowerCase() === _entityShort.toLowerCase() ||
-     (_ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3) ||
-     (d.company_id && _coIdNorm(_partnerShort) === _coIdNorm(d.company_id))
+   const _partnerMatchesEntity = !!(_partnerShort && (
+     (_entityShort && _partnerShort.toLowerCase() === _entityShort.toLowerCase()) ||
+     (_entityShort && _ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3) ||
+     (d.company_id && _coIdNorm(_partnerShort) === _coIdNorm(d.company_id)) ||
+     (prog?.co && _coIdNorm(_partnerShort) === _coIdNorm(prog.co))
    ));
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
    // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
@@ -15417,14 +15420,14 @@ function _makeAreaPI(tabId, areaIds) {
     };
 
     if (_athChain.length > 0) {
-     // Build nodes with method on each receiving node (not on the arrow)
+     // Build nodes with method on each receiving node; shorten company names
      const _pnodes = [];
      _athChain.forEach((hop, i) => {
-      if (i === 0) _pnodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
+      if (i === 0) _pnodes.push({ name: _shortenPartner(hop.from_entity_name), id: hop.from_entity_id });
       const _ms = { license:'lic.', sublicense:'sub-lic.', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
       const _geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` ${hop.geographic_scope}` : '';
       const _vd = hop.verified ? '' : ' ⚬';
-      _pnodes.push({ name: hop.to_entity_name, id: hop.to_entity_id, method: `${_ms}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
+      _pnodes.push({ name: _shortenPartner(hop.to_entity_name), id: hop.to_entity_id, method: `${_ms}${_geo}${_vd}`, tip: hop.deal_value_notes || '' });
      });
      let _chainStr = _pnHtml(_pnodes[0].name, _pnodes[0].id, null, null);
      _pnodes.slice(1).forEach(n => {
