@@ -13693,6 +13693,22 @@ function _makeAreaPI(tabId, areaIds) {
           display_name:           d.display_name || null,
           };
         });
+        // Batch-fetch asset_transfer_history for all drugs in this area tab (Session 69).
+        // Stored on `this` so _genericDetailHTML can access it per drug via this.athByDrugId[drugId].
+        this.athByDrugId = {};
+        try {
+          const _athDrugIds = this.data.map(d => d.id).filter(Boolean);
+          if (_athDrugIds.length) {
+            const { data: _athRows } = await _sb.from('asset_transfer_history')
+              .select('drug_id,sequence_order,from_entity_name,from_entity_id,to_entity_name,to_entity_id,transfer_type,geographic_scope,deal_value_notes,deal_value_upfront_usd,verified')
+              .in('drug_id', _athDrugIds)
+              .order('sequence_order', { ascending: true });
+            (_athRows || []).forEach(r => {
+              (this.athByDrugId[r.drug_id] = this.athByDrugId[r.drug_id] || []).push(r);
+            });
+          }
+        } catch(_) {}
+
         this._buildEntities();
         this.filteredEntities = [...this.entities];
         this.loaded = true;
@@ -14129,7 +14145,7 @@ function _makeAreaPI(tabId, areaIds) {
           newsArticles = naRows || [];
         } catch(_) {}
 
-        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel, competitiveSignals, newsArticles };
+        const sbData = { profile, catalysts: cats||[], deals: allNews, drugs, trials, combos, moleculeIntel, competitiveSignals, newsArticles, athByDrugId: this.athByDrugId || {} };
         this._profileCache[entityId] = sbData;
 
         // Replace loading placeholder with full rendering
@@ -14280,6 +14296,7 @@ function _makeAreaPI(tabId, areaIds) {
   const sbCombos      = sbData?.combos || [];
   const moleculeIntel       = sbData?.moleculeIntel || {};
   const competitiveSignals  = sbData?.competitiveSignals || [];
+  const athByDrugId         = sbData?.athByDrugId || {};
 
   // ── Narrative fields ────────────────────────────────────────────────────
   const platformSummary   = profile.platform_summary || prog.summary || '';
@@ -15154,7 +15171,7 @@ function _makeAreaPI(tabId, areaIds) {
    const drugInd      = _abbrevInd(d.indication_short) || '—';
    // partner_company comes from Supabase drug record (DB-loaded) or static _partnerCo fallback.
    // Final fallback: for licensed_in/co_developed/collaboration deals, derive from licensor_name.
-   // _shortenPartner: known abbreviations first, then strip bio/pharma suffixes for a clean pill label.
+   // _shortenPartner: known abbreviations first, then strip bio/pharma suffixes → first meaningful name only.
    const _shortenPartner = name => {
     if (!name) return name;
     const _MAP = {
@@ -15162,11 +15179,11 @@ function _makeAreaPI(tabId, areaIds) {
      'Prometheus Biosciences': 'Prometheus', 'FutureGen Biopharmaceutical': 'FutureGen',
      'FutureGen Biopharmaceutical Co., Ltd.': 'FutureGen', 'Teva Pharmaceutical': 'Teva',
      'Telavant Holdings': 'Telavant', 'Qyuns Therapeutics': 'Qyuns', 'Earendil Pharmaceuticals': 'Earendil',
-     'Zymeworks Inc.': 'Zymeworks', 'Novamab': 'Novamab',
+     'Zymeworks Inc.': 'Zymeworks', 'Novamab': 'Novamab', 'Sanofi-Aventis': 'Sanofi',
     };
     if (_MAP[name]) return _MAP[name];
-    // Strip common legal/pharma suffixes for the pill
-    return name.replace(/[,\s]+(Biosciences?|Biopharmaceutical|Pharmaceutical(s)?|Pharma|Therapeutics?|Holdings?|Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim();
+    // Strip common legal/pharma suffixes — including Biologics, Biotherapeutics, Bio, Labs etc.
+    return name.replace(/[,\s]+(Biotherapeutics?|Biosciences?|Biopharmaceuticals?|Biologics?|Biotechnology|Technologies?|Pharmaceutical(s)?|Pharma|Biopharma|Therapeutics?|Holdings?|Sciences?|Labs?|Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.|Limited)\.?\s*$/i,'').trim();
    };
    const _trimLegal = s => s ? s.replace(/[,\s]+(Co\.?,?\s*Ltd\.?|Inc\.?|LLC|Corp\.?|GmbH|S\.A\.|B\.V\.)\.?\s*$/i,'').trim() : null;
    // _isOwnershipPill: true when pill source is the ownership chain (acquired/licensed asset),
@@ -15183,10 +15200,13 @@ function _makeAreaPI(tabId, areaIds) {
    const _partnerShort = _partnerCo ? _shortenPartner(_partnerCo) : null;
    // Self-attribution guard: suppress pill when the partner is the same entity we're already
    // grouped under (e.g. fg-m701 grouped under AbbVie showing "w/ AbbVie" is redundant).
-   // Compare shortened names case-insensitively so "Boehringer Ingelheim" matches "BI" etc.
+   // Exact match first, then first-token match to handle hyphenated variants (Sanofi-Aventis vs Sanofi).
    const _entityShort = d.co ? _shortenPartner(d.co) : '';
-   const _partnerMatchesEntity = !!(_partnerShort && _entityShort &&
-     _partnerShort.toLowerCase() === _entityShort.toLowerCase());
+   const _ft = s => s ? s.split(/[-\s]/)[0] : s;
+   const _partnerMatchesEntity = !!(_partnerShort && _entityShort && (
+     _partnerShort.toLowerCase() === _entityShort.toLowerCase() ||
+     (_ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3)
+   ));
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
    // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
    const _pv = _isOwnershipPill ? true : d.partnership_verified;
@@ -15360,18 +15380,49 @@ function _makeAreaPI(tabId, areaIds) {
     ? `<div class="pi-tr-hd-label">${trialCountLabel}</div>${trialHeader}<div>${activeTrialRowsHTML}${termSection}</div>`
     : `<div style="font-size:11px;color:#94a3b8;padding:4px 0">No trials linked yet</div>`;
 
-   // Acquired drug provenance note — shown when drug was in-licensed / acquired and renamed
-   // licensor_code holds the original name (e.g. "FG-M701"); licensor_name holds originating company
+   // Acquired drug provenance note — full multi-hop chain from asset_transfer_history when available,
+   // otherwise falls back to simple FORMERLY badge from licensor_code / licensor_name fields.
    let acquisitionNote = '';
    try {
-    if (d.licensor_code && d.licensor_code !== (d.display_name || d.name)) {
+    const _athChain = athByDrugId[d.id] || [];
+    if (_athChain.length > 0) {
+     // Build ordered node array
+     const _acqNodes = [];
+     _athChain.forEach((hop, i) => {
+      if (i === 0) _acqNodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
+      _acqNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id });
+     });
+     const _acqNodeHtml = node => node.id
+      ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer" onclick="event.stopPropagation();openCompanySlideOver('${node.id}','${(node.name||'').replace(/'/g,"\\'")}','')">${node.name}</span>`
+      : `<span style="font-weight:700;color:#475569">${node.name}</span>`;
+     const _acqEdgeHtml = hop => {
+      const tl = { license:'license', sublicense:'sublicense', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
+      const geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` (${hop.geographic_scope})` : '';
+      const vd = hop.verified ? '' : ' ⚬';
+      const tip = hop.deal_value_notes ? hop.deal_value_notes.replace(/"/g,'&quot;') : '';
+      return `<span style="font-size:9px;font-weight:600;color:#1d4ed8;background:#eff6ff;border-radius:3px;padding:1px 4px;white-space:nowrap" title="${tip}">${tl}${geo}${vd}</span>`;
+     };
+     let _acqChainHtml = _acqNodeHtml(_acqNodes[0]);
+     _athChain.forEach((hop, i) => {
+      _acqChainHtml += ` <span style="color:#94a3b8;font-size:10px">→</span> ${_acqEdgeHtml(hop)} <span style="color:#94a3b8;font-size:10px">→</span> ${_acqNodeHtml(_acqNodes[i + 1])}`;
+     });
+     // Optional FORMERLY badge when drug was renamed
+     const _frmBadge = (d.licensor_code && d.licensor_code !== (d.display_name || d.name))
+      ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-bottom:4px;padding:2px 7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b"><span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span><span style="font-weight:700;color:#475569">${d.licensor_code}</span></div> `
+      : '';
+     acquisitionNote = _frmBadge + '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:8px;padding:5px 9px;background:#f8fafc;border:1px solid #bfdbfe;border-left:2px solid #1d4ed8;border-radius:4px;font-size:10px">'
+      + '<span style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;white-space:nowrap;flex-shrink:0">Provenance</span>'
+      + '<span style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">' + _acqChainHtml + '</span>'
+      + '</div>';
+    } else if (d.licensor_code && d.licensor_code !== (d.display_name || d.name)) {
+     // Fallback: simple FORMERLY badge (drugs not yet in asset_transfer_history)
      const acqLicensorSpan = d.licensor_name
-      ? '<span>· acquired from <strong>' + d.licensor_name + '</strong></span>'
+      ? '· acquired from <strong>' + d.licensor_name + '</strong>'
       : '';
      acquisitionNote = '<div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;padding:3px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;color:#64748b">'
       + '<span style="font-weight:700;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:0.05em">formerly</span>'
       + '<span style="font-weight:700;color:#475569">' + d.licensor_code + '</span>'
-      + acqLicensorSpan
+      + (acqLicensorSpan ? `<span>${acqLicensorSpan}</span>` : '')
       + '</div>';
     }
    } catch(_) { acquisitionNote = ''; }
