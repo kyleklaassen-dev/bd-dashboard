@@ -1481,6 +1481,13 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   border: 1px solid #dde3ea;
   overflow: visible; /* allows sub-panels to escape bounds */
 }
+/* Invisible bridge fills the gap between button and menu so hover never breaks */
+.hier-dd-menu::before {
+  content: '';
+  position: absolute;
+  top: -10px; left: 0; right: 0;
+  height: 10px;
+}
 /* Open on hover — no click required */
 .hier-dd-wrap:hover > .hier-dd-menu { display: block; }
 
