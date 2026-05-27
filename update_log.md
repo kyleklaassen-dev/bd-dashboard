@@ -2,6 +2,29 @@
 ---
 
 ---
+## 2026-05-27 (Session 85) — Post-retirement ontology integrity audit (analysis only, no code/DB changes)
+
+**Purpose:** Confirm `disease_areas` removal left no hidden schema, code, or ontology inconsistencies. Produce prioritized migration queue for remaining legacy area structures.
+
+**Schema audit:** 27 tables have `area_id` columns. All classified. No orphaned reads, no broken joins.
+
+**Code audit:** 25 `disease_areas` references remain in `index.html` — all static HTML or stale comments (say "pending DB FK teardown"; teardown is now done). Zero live DB reads on `disease_areas`. All live `area_id` reads target tables that exist with data.
+
+**Ontology bridge:** `legacy_area_ontology_map` intact — all 11/11 legacy contexts mapped. All child table data confirmed intact after CASCADE drop.
+
+**Key findings:**
+- Tables already Phase 3-migrated (dual-filter complete): catalysts, company_areas, deals, mechanism_status, target_areas
+- Legacy tables pending retirement: drug_areas (Phase 5 activation blocker), drug_area_scores (harness decommission gate 2026-06-27)
+- Not-yet-migrated Group D tables: intel_areas (18 rows), research_queue (60 rows), competitive_signals (252 rows), company_profiles (137 rows), discovery_queue (64 rows), signals (63 rows)
+- 9 stale comments in index.html say "pending DB FK teardown" — cosmetic, non-blocking
+
+**Prioritized migration list:** P1 drug_area_scores → P2 drug_areas → P3 intel_areas → P4 research_queue → P5 competitive_signals → P6 company_profiles → P7 discovery_queue
+
+**No code changed. No DB touched.**
+
+**Output doc:** `docs/post_disease_areas_integrity_audit.md`
+
+---
 ## 2026-05-27 (Session 84) — disease_areas DB retirement complete (no code commit — DB-only)
 
 **Purpose:** Drop `disease_areas` from Supabase now that all code reads were cleaned in Session 80.
