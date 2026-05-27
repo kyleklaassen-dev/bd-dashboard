@@ -1488,8 +1488,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
   top: -10px; left: 0; right: 0;
   height: 10px;
 }
-/* Open on hover — no click required */
-.hier-dd-wrap:hover > .hier-dd-menu { display: block; }
+/* Opened/closed via JS .open class — 1s close delay on mouseleave */
+.hier-dd-menu.open { display: block; }
 
 .hier-dd-header {
   padding: 8px 13px 7px;
@@ -17754,7 +17754,24 @@ const hierState = {
   built: false,
 };
 
-// Tree is built after all functions are defined below — see hierInit() call at end of block
+// ── Hover open / 1-second grace-period close ──────────────────
+let _hierCloseTimer = null;
+(function() {
+  const wrap = document.getElementById('hier-dd-wrap');
+  const menu = document.getElementById('hier-dd-menu');
+  if (!wrap || !menu) return;
+  wrap.addEventListener('mouseenter', function() {
+    if (_hierCloseTimer) { clearTimeout(_hierCloseTimer); _hierCloseTimer = null; }
+    if (!hierState.built) { hierBuildTree(); hierState.built = true; }
+    menu.classList.add('open');
+  });
+  wrap.addEventListener('mouseleave', function() {
+    _hierCloseTimer = setTimeout(function() {
+      menu.classList.remove('open');
+      _hierCloseTimer = null;
+    }, 1000);
+  });
+})();
 
 // ── Tree builder — nested DOM, hover handled purely by CSS :hover ──
 // No timers. Hit area is enlarged physically: taller rows (11px padding),
@@ -17780,6 +17797,9 @@ function hierDivider() {
 // If no tabId, shows a "dashboard coming soon" toast instead.
 function hierNav(tabId, label) {
   if (tabId) {
+    // Immediate close on deliberate selection — no delay
+    if (_hierCloseTimer) { clearTimeout(_hierCloseTimer); _hierCloseTimer = null; }
+    document.getElementById('hier-dd-menu')?.classList.remove('open');
     navTo(tabId);
   } else {
     hierShowNoTabToast(label);
