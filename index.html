@@ -2391,21 +2391,23 @@ details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
 .iif-area-respiratory { background:#d1fae5; color:#047857; }
 .iif-area-ibd { background:#dbeafe; color:#1d4ed8; }
 .iif-area-default { background:#f1f5f9; color:#64748b; }
-/* Industry Insights - Sidebar Layout */
-#iif-layout { display:flex; align-items:flex-start; }
-#iif-sidebar { width:210px; flex-shrink:0; padding:18px 12px 60px; background:#f5f8fc; border-right:1px solid #e0e8f0; position:sticky; top:0; height:100vh; overflow-y:auto; box-sizing:border-box; }
-#iif-main { flex:1; min-width:0; padding:20px 28px 48px; box-sizing:border-box; }
-.iif-sb-section { margin-bottom:22px; }
-.iif-sb-label { display:block; font-size:9px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#8a9bb8; margin-bottom:7px; }
-.iif-sb-pill { display:block; width:100%; background:none; border:none; text-align:left; cursor:pointer; font-size:12.5px; font-weight:500; color:#3d5275; padding:5px 10px; border-radius:7px; margin-bottom:1px; transition:background .12s, color .12s; }
-.iif-sb-pill:hover { background:#e5edf8; }
-.iif-sb-pill.active { background:#1e4a82; color:white; font-weight:700; }
-.iif-sb-select { width:100%; padding:6px 9px; border:1.5px solid #dde6f0; border-radius:8px; font-size:12px; color:#2a3f5f; background:#fff; cursor:pointer; box-sizing:border-box; }
-.iif-sb-select:focus { outline:none; border-color:#1e4a82; }
-.iif-sb-reset { display:block; width:100%; margin-top:4px; padding:8px; background:none; border:1.5px solid #dde6f0; border-radius:8px; font-size:11px; font-weight:700; color:#7a8fa8; cursor:pointer; letter-spacing:0.04em; transition:background .12s; }
-.iif-sb-reset:hover { background:#e5edf8; color:#1e4a82; border-color:#b0c4de; }
-#iif-hier-indication { display:none; margin-top:8px; }
-#iif-hier-target { display:none; margin-top:8px; }
+/* Industry Insights - Compact Header Layout */
+#iif-layout { display:flex; flex-direction:column; }
+#iif-filter-header { position:sticky; top:0; z-index:50; background:#fff; border-bottom:1px solid #e5edf5; padding:0; }
+.iif-fh-row { display:flex; align-items:center; flex-wrap:nowrap; gap:0; padding:8px 20px; }
+.iif-fh-row-types { gap:3px; padding-bottom:7px; border-bottom:1px solid #f0f4f8; }
+.iif-fh-row-secondary { gap:4px; padding-top:7px; overflow-x:auto; }
+.iif-fh-group { display:flex; align-items:center; gap:3px; flex-shrink:0; }
+.iif-fh-label { font-size:8.5px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:#a0b0c8; margin-right:4px; white-space:nowrap; flex-shrink:0; }
+.iif-fh-sep { width:1px; height:18px; background:#e0e8f0; margin:0 8px; flex-shrink:0; }
+.iif-fh-pill { background:none; border:1px solid transparent; font-size:11.5px; font-weight:500; color:#4a6080; padding:4px 10px; border-radius:16px; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background .12s, color .12s, border-color .12s; }
+.iif-fh-pill:hover { background:#f0f4fb; border-color:#d0daea; }
+.iif-fh-pill.active { background:#1e4a82; color:white; border-color:#1e4a82; font-weight:700; }
+.iif-fh-select { font-size:11.5px; color:#3a5070; border:1px solid #d8e4f0; border-radius:8px; padding:4px 8px; background:#fff; cursor:pointer; flex-shrink:0; }
+.iif-fh-select:focus { outline:none; border-color:#1e4a82; }
+.iif-fh-reset { background:none; border:1px solid #dde8f0; border-radius:8px; font-size:13px; color:#94a8c0; cursor:pointer; padding:3px 9px; margin-left:auto; flex-shrink:0; transition:background .12s; }
+.iif-fh-reset:hover { background:#f0f4fb; color:#1e4a82; }
+#iif-main { flex:1; padding:16px 24px 48px; }
 /* Source badge */
 .iif-source-badge { font-size:9px; font-weight:800; padding:1px 6px; border-radius:5px; text-transform:uppercase; letter-spacing:.06em; }
 .iif-source-badge-intel { background:#1e3a5f; color:white; }
@@ -4537,92 +4539,87 @@ function loadMoleculeTab(tabId) {
 <!-- ══════════════ TAB 1: TL1A × IL-23p19 ══════════════ -->
 
 <div class="tab-pane" id="tab-industry-insights">
-  <!-- Sidebar + Main Layout -->
+  <!-- Compact sticky filter header + full-width feed -->
   <div id="iif-layout">
-    <!-- Left Sidebar: Filters -->
-    <div id="iif-sidebar">
 
-      <!-- Source -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Source</span>
-        <button class="iif-sb-pill iif-src-pill active" data-src="all"   onclick="iifSetFilter('src','all')">All</button>
-        <button class="iif-sb-pill iif-src-pill"        data-src="intel" onclick="iifSetFilter('src','intel')">Intel</button>
-        <button class="iif-sb-pill iif-src-pill"        data-src="news"  onclick="iifSetFilter('src','news')">News</button>
+    <!-- Row 1: Event Type (primary filter) -->
+    <div id="iif-filter-header">
+      <div class="iif-fh-row iif-fh-row-types">
+        <span class="iif-fh-label">Type</span>
+        <button class="iif-fh-pill iif-pill active" data-cat="all"           onclick="iifSetFilter('cat','all')">All</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="clinical_data" onclick="iifSetFilter('cat','clinical_data')">Clinical Data</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="deal"          onclick="iifSetFilter('cat','deal')">BD Deal</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="regulatory"    onclick="iifSetFilter('cat','regulatory')">Regulatory</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="partnership"   onclick="iifSetFilter('cat','partnership')">Partnership</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="pipeline"      onclick="iifSetFilter('cat','pipeline')">Pipeline</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="publication"   onclick="iifSetFilter('cat','publication')">Publication</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="market"        onclick="iifSetFilter('cat','market')">Market</button>
+        <button class="iif-fh-pill iif-pill"        data-cat="other"         onclick="iifSetFilter('cat','other')">Other</button>
       </div>
 
-      <!-- Date -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Date</span>
-        <button class="iif-sb-pill iif-date-pill active" data-range="all"   onclick="iifSetFilter('range','all')">All Time</button>
-        <button class="iif-sb-pill iif-date-pill"        data-range="today" onclick="iifSetFilter('range','today')">Today</button>
-        <button class="iif-sb-pill iif-date-pill"        data-range="week"  onclick="iifSetFilter('range','week')">This Week</button>
-        <button class="iif-sb-pill iif-date-pill"        data-range="month" onclick="iifSetFilter('range','month')">This Month</button>
-      </div>
-
-      <!-- Relevance -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Relevance</span>
-        <button class="iif-sb-pill iif-rel-pill active" data-rel="all"  onclick="iifSetFilter('rel','all')">All</button>
-        <button class="iif-sb-pill iif-rel-pill"        data-rel="high" onclick="iifSetFilter('rel','high')">High</button>
-        <button class="iif-sb-pill iif-rel-pill"        data-rel="med"  onclick="iifSetFilter('rel','med')">Medium+</button>
-      </div>
-
-      <!-- Company (populated dynamically, sorted alphabetically) -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Company</span>
-        <select id="iif-sel-company" class="iif-sb-select" onchange="iifSetFilter('company', this.value)">
-          <option value="">All Companies</option>
-        </select>
-      </div>
-
-      <!-- Disease Area - hierarchical cascading -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Therapeutic Area</span>
-        <select id="iif-sel-therapeutic" class="iif-sb-select" onchange="iifHierFilter('therapeutic', this.value)">
-          <option value="">All Areas</option>
-          <option value="immuno">Immunology &amp; Inflammation</option>
-          <option value="resp">Respiratory</option>
-          <option value="endo">Endocrinology</option>
-        </select>
-        <div id="iif-hier-indication">
-          <span class="iif-sb-label" style="margin-top:10px;display:block">Indication</span>
-          <select id="iif-sel-indication" class="iif-sb-select" onchange="iifHierFilter('indication', this.value)">
+      <!-- Row 2: Secondary filters inline -->
+      <div class="iif-fh-row iif-fh-row-secondary">
+        <!-- Source -->
+        <div class="iif-fh-group">
+          <span class="iif-fh-label">Source</span>
+          <button class="iif-fh-pill iif-src-pill active" data-src="all"   onclick="iifSetFilter('src','all')">All</button>
+          <button class="iif-fh-pill iif-src-pill"        data-src="intel" onclick="iifSetFilter('src','intel')">Intel</button>
+          <button class="iif-fh-pill iif-src-pill"        data-src="news"  onclick="iifSetFilter('src','news')">News</button>
+        </div>
+        <div class="iif-fh-sep"></div>
+        <!-- Date -->
+        <div class="iif-fh-group">
+          <span class="iif-fh-label">Date</span>
+          <button class="iif-fh-pill iif-date-pill active" data-range="all"   onclick="iifSetFilter('range','all')">All</button>
+          <button class="iif-fh-pill iif-date-pill"        data-range="today" onclick="iifSetFilter('range','today')">Today</button>
+          <button class="iif-fh-pill iif-date-pill"        data-range="week"  onclick="iifSetFilter('range','week')">Week</button>
+          <button class="iif-fh-pill iif-date-pill"        data-range="month" onclick="iifSetFilter('range','month')">Month</button>
+        </div>
+        <div class="iif-fh-sep"></div>
+        <!-- Relevance -->
+        <div class="iif-fh-group">
+          <span class="iif-fh-label">Relevance</span>
+          <button class="iif-fh-pill iif-rel-pill active" data-rel="all"  onclick="iifSetFilter('rel','all')">All</button>
+          <button class="iif-fh-pill iif-rel-pill"        data-rel="high" onclick="iifSetFilter('rel','high')">High</button>
+          <button class="iif-fh-pill iif-rel-pill"        data-rel="med"  onclick="iifSetFilter('rel','med')">Med+</button>
+        </div>
+        <div class="iif-fh-sep"></div>
+        <!-- Area cascade -->
+        <div class="iif-fh-group">
+          <span class="iif-fh-label">Area</span>
+          <select id="iif-sel-therapeutic" class="iif-fh-select" onchange="iifHierFilter('therapeutic', this.value)">
+            <option value="">All Areas</option>
+            <option value="immuno">Immunology &amp; Inflammation</option>
+            <option value="resp">Respiratory</option>
+            <option value="endo">Endocrinology</option>
+          </select>
+          <select id="iif-sel-indication" class="iif-fh-select" style="display:none" onchange="iifHierFilter('indication', this.value)">
             <option value="">All Indications</option>
           </select>
-        </div>
-        <div id="iif-hier-target">
-          <span class="iif-sb-label" style="margin-top:10px;display:block">Specific Target</span>
-          <select id="iif-sel-target" class="iif-sb-select" onchange="iifHierFilter('target', this.value)">
+          <select id="iif-sel-target" class="iif-fh-select" style="display:none" onchange="iifHierFilter('target', this.value)">
             <option value="">All Targets</option>
           </select>
         </div>
+        <div class="iif-fh-sep"></div>
+        <!-- Company -->
+        <div class="iif-fh-group">
+          <span class="iif-fh-label">Company</span>
+          <select id="iif-sel-company" class="iif-fh-select" onchange="iifSetFilter('company', this.value)">
+            <option value="">All Companies</option>
+          </select>
+        </div>
+        <!-- Reset -->
+        <button class="iif-fh-reset" onclick="iifResetFilters()" title="Clear all filters">&#x21BA;</button>
       </div>
+    </div><!-- /iif-filter-header -->
 
-      <!-- Event Type -->
-      <div class="iif-sb-section">
-        <span class="iif-sb-label">Event Type</span>
-        <button class="iif-sb-pill iif-pill active" data-cat="all"           onclick="iifSetFilter('cat','all')">All</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="clinical_data" onclick="iifSetFilter('cat','clinical_data')">Clinical Data</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="deal"          onclick="iifSetFilter('cat','deal')">BD Deal</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="regulatory"    onclick="iifSetFilter('cat','regulatory')">Regulatory</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="partnership"   onclick="iifSetFilter('cat','partnership')">Partnership</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="pipeline"      onclick="iifSetFilter('cat','pipeline')">Pipeline</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="publication"   onclick="iifSetFilter('cat','publication')">Publication</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="market"        onclick="iifSetFilter('cat','market')">Market</button>
-        <button class="iif-sb-pill iif-pill"        data-cat="other"         onclick="iifSetFilter('cat','other')">Other</button>
-      </div>
-
-      <!-- Reset -->
-      <button class="iif-sb-reset" onclick="iifResetFilters()">&#x21BA; Reset Filters</button>
-    </div><!-- /iif-sidebar -->
-
-    <!-- Right: Results -->
+    <!-- Full-width feed -->
     <div id="iif-main">
       <div id="iif-results-bar"></div>
       <div id="iif-feed">
         <div class="iif-loading">Loading intelligence feed…</div>
       </div>
-    </div><!-- /iif-main -->
+    </div>
   </div><!-- /iif-layout -->
   <!-- ── Historical Archive (collapsed) ────────────────────────────────── -->
   <div class="iif-archive-wrap">
@@ -17235,7 +17232,7 @@ function iifSetFilter(dim, val) {
   if (['company','cat','src','range','rel'].includes(dim)) _iifFilters[dim] = val;
   const selMap = { cat:'.iif-pill', src:'.iif-src-pill', range:'.iif-date-pill', rel:'.iif-rel-pill' };
   if (selMap[dim]) {
-    document.querySelectorAll('.iif-sb-pill' + selMap[dim]).forEach(p => {
+    document.querySelectorAll('.iif-fh-pill' + selMap[dim]).forEach(p => {
       p.classList.toggle('active', (p.dataset[dim]||'') === val);
     });
   }
@@ -17244,18 +17241,18 @@ function iifSetFilter(dim, val) {
 
 function iifResetFilters() {
   _iifFilters = { cat:'all', src:'all', range:'all', rel:'all', company:'', areaSet:null };
-  document.querySelectorAll('.iif-sb-pill.iif-pill').forEach(p => p.classList.toggle('active', p.dataset.cat==='all'));
-  document.querySelectorAll('.iif-sb-pill.iif-src-pill').forEach(p => p.classList.toggle('active', p.dataset.src==='all'));
-  document.querySelectorAll('.iif-sb-pill.iif-date-pill').forEach(p => p.classList.toggle('active', p.dataset.range==='all'));
-  document.querySelectorAll('.iif-sb-pill.iif-rel-pill').forEach(p => p.classList.toggle('active', p.dataset.rel==='all'));
+  document.querySelectorAll('.iif-fh-pill.iif-pill').forEach(p => p.classList.toggle('active', p.dataset.cat==='all'));
+  document.querySelectorAll('.iif-fh-pill.iif-src-pill').forEach(p => p.classList.toggle('active', p.dataset.src==='all'));
+  document.querySelectorAll('.iif-fh-pill.iif-date-pill').forEach(p => p.classList.toggle('active', p.dataset.range==='all'));
+  document.querySelectorAll('.iif-fh-pill.iif-rel-pill').forEach(p => p.classList.toggle('active', p.dataset.rel==='all'));
   const cs = document.getElementById('iif-sel-company'); if (cs) cs.value = '';
   const ts = document.getElementById('iif-sel-therapeutic'); if (ts) ts.value = '';
   const is_ = document.getElementById('iif-sel-indication');
   if (is_) is_.innerHTML = '<option value="">All Indications</option>';
   const tgt = document.getElementById('iif-sel-target');
   if (tgt) tgt.innerHTML = '<option value="">All Targets</option>';
-  const hi = document.getElementById('iif-hier-indication'); if (hi) hi.style.display = 'none';
-  const ht = document.getElementById('iif-hier-target'); if (ht) ht.style.display = 'none';
+  const iis = document.getElementById('iif-sel-indication'); if (iis) { iis.innerHTML='<option value="">All Indications</option>'; iis.style.display='none'; }
+  const its = document.getElementById('iif-sel-target');      if (its) { its.innerHTML='<option value="">All Targets</option>';     its.style.display='none'; }
   iifRender();
 }
 
@@ -17294,18 +17291,14 @@ const IIF_HIER = {
 function iifHierFilter(level, val) {
   const indicSel  = document.getElementById('iif-sel-indication');
   const targetSel = document.getElementById('iif-sel-target');
-  const hierIndic  = document.getElementById('iif-hier-indication');
-  const hierTarget = document.getElementById('iif-hier-target');
 
   if (level === 'therapeutic') {
-    if (indicSel)  indicSel.innerHTML  = '<option value="">All Indications</option>';
-    if (targetSel) targetSel.innerHTML = '<option value="">All Targets</option>';
-    if (hierTarget) hierTarget.style.display = 'none';
+    if (indicSel)  { indicSel.innerHTML  = '<option value="">All Indications</option>'; indicSel.style.display = 'none'; }
+    if (targetSel) { targetSel.innerHTML = '<option value="">All Targets</option>';      targetSel.style.display = 'none'; }
     if (!val) {
-      if (hierIndic) hierIndic.style.display = 'none';
       _iifFilters.areaSet = null;
     } else {
-      if (hierIndic) hierIndic.style.display = 'block';
+      if (indicSel) indicSel.style.display = '';
       (IIF_HIER.indication[val]||[]).forEach(i => {
         const o = document.createElement('option');
         o.value = i.val; o.textContent = i.label;
@@ -17315,13 +17308,12 @@ function iifHierFilter(level, val) {
     }
 
   } else if (level === 'indication') {
-    if (targetSel) targetSel.innerHTML = '<option value="">All Targets</option>';
+    if (targetSel) { targetSel.innerHTML = '<option value="">All Targets</option>'; targetSel.style.display = 'none'; }
     if (!val) {
-      if (hierTarget) hierTarget.style.display = 'none';
       const tv = (document.getElementById('iif-sel-therapeutic')||{}).value||'';
       _iifFilters.areaSet = tv ? new Set(IIF_HIER.therapeuticAreas[tv]||[]) : null;
     } else {
-      if (hierTarget) hierTarget.style.display = 'block';
+      if (targetSel) targetSel.style.display = '';
       (IIF_HIER.target[val]||[]).forEach(t => {
         const o = document.createElement('option');
         o.value = t.val; o.textContent = t.label;
