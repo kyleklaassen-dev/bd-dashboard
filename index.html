@@ -17615,6 +17615,9 @@ let _molCloseTimer = null;
   if (!wrap || !menu) return;
   wrap.addEventListener('mouseenter', function() {
     if (_molCloseTimer) { clearTimeout(_molCloseTimer); _molCloseTimer = null; }
+    // Close the folder navigator immediately
+    if (_hierCloseTimer) { clearTimeout(_hierCloseTimer); _hierCloseTimer = null; }
+    document.getElementById('hier-dd-menu')?.classList.remove('open');
     menu.classList.add('open');
   });
   wrap.addEventListener('mouseleave', function() {
@@ -17809,6 +17812,9 @@ let _hierCloseTimer = null;
   if (!wrap || !menu) return;
   wrap.addEventListener('mouseenter', function() {
     if (_hierCloseTimer) { clearTimeout(_hierCloseTimer); _hierCloseTimer = null; }
+    // Close the DNA dropdown immediately
+    if (_molCloseTimer) { clearTimeout(_molCloseTimer); _molCloseTimer = null; }
+    document.getElementById('mol-dd-menu')?.classList.remove('open');
     if (!hierState.built) { hierBuildTree(); hierState.built = true; }
     menu.classList.add('open');
   });
