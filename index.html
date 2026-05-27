@@ -2393,7 +2393,7 @@ details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
 .iif-area-default { background:#f1f5f9; color:#64748b; }
 /* Industry Insights — Sticky Sidebar Layout */
 #iif-layout { display:flex; align-items:flex-start; min-height:100vh; }
-#iif-sidebar { width:200px; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto; background:#f6f9fc; border-right:1px solid #e4edf5; padding:16px 12px 40px; box-sizing:border-box; }
+#iif-sidebar { width:200px; flex-shrink:0; position:sticky; top:90px; height:calc(100vh - 90px); overflow-y:auto; background:#f6f9fc; border-right:1px solid #e4edf5; padding:16px 12px 40px; box-sizing:border-box; }
 #iif-main { flex:1; min-width:0; padding:0 24px 48px; }
 .iif-sb-section { margin-bottom:16px; }
 .iif-sb-label { display:block; font-size:8.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#9aafc8; margin-bottom:5px; }
@@ -13346,7 +13346,7 @@ registerTab('pharma-intel', {
 });
 registerTab('industry-insights', {
 
-  onEnter() { loadIndustryInsightsFeed(); }
+  onEnter() { _iifSyncSidebar(); loadIndustryInsightsFeed(); }
 
 });
 
@@ -17347,6 +17347,21 @@ function iifHierFilter(level, val) {
 
   iifRender();
 }
+
+// Sync sidebar top/height to sit below sticky header + tab-bar
+function _iifSyncSidebar() {
+  const header  = document.querySelector('.header');
+  const tabBar  = document.querySelector('.tab-bar');
+  const sidebar = document.getElementById('iif-sidebar');
+  if (!sidebar) return;
+  const offset = Math.round(
+    (header ? header.getBoundingClientRect().height : 0) +
+    (tabBar  ? tabBar.getBoundingClientRect().height  : 0)
+  );
+  sidebar.style.top    = offset + 'px';
+  sidebar.style.height = 'calc(100vh - ' + offset + 'px)';
+}
+window.addEventListener('resize', _iifSyncSidebar);
 
 function iifRender() {
   const feed = document.getElementById('iif-feed');
@@ -22674,7 +22689,7 @@ document.addEventListener('DOMContentLoaded', function(){
     id:'ontology',icon:'&#129516;',label:'Ontology',emoji:'🧬',
     tables:[
           {name:'therapeutic_areas',count:8,desc:'Therapeutic area taxonomy (Gastroenterology, Respiratory, Dermatology, etc.)'},
-          {name:'disease_areas',count:0,desc:'Legacy disease area definitions — superseded by therapeutic_areas + indications'},
+          /* disease_areas removed from catalog — Session 80 code retirement; table pending DB FK teardown */
           {name:'indications',count:38,desc:'Disease/indication ontology nodes (diseases only rule)'},
           {name:'indication_aliases',count:86,desc:'Synonym mappings for indication normalization'},
           {name:'area_metadata',count:11,desc:'Per-area configuration metadata for dashboard rendering'},
@@ -22733,11 +22748,12 @@ document.addEventListener('DOMContentLoaded', function(){
       });
 
       /* Join map for inspector (mirrors OEX_JOIN_MAP) */
+      /* Session 80: disease_areas removed from JOIN_MAP fallback — code retirement */
       var JOIN_MAP = OEX_JOIN_MAP || {
   drugs: ['drug_area_scores','drug_targets','drug_indications','drug_competitive_scores','drug_validation_results','trials','catalysts','deals'],
   companies: ['company_areas','deals','ailux_positions','entity_edges','news_articles'],
   drug_area_scores: ['drugs'],
-  disease_areas: ['drug_area_scores','area_metadata','catalysts'],
+  /* disease_areas removed — Session 80 code retirement */
   drug_targets: ['drugs'],
   drug_indications: ['drugs','indications'],
   trials: ['drugs','trial_registries'],
@@ -22748,8 +22764,8 @@ document.addEventListener('DOMContentLoaded', function(){
   indications: ['drug_indications','indication_aliases','therapeutic_areas'],
   indication_aliases: ['indications'],
   entity_edges: ['drugs','companies'],
-  mechanism_status: ['disease_areas'],
-  competitive_landscapes: ['disease_areas'],
+  mechanism_status: [],
+  competitive_landscapes: [],
   geographic_approvals: ['drugs'],
   trial_registries: ['trials'],
   drug_validation_results: ['drugs'],
@@ -22757,7 +22773,7 @@ document.addEventListener('DOMContentLoaded', function(){
   ailux_positions: ['companies'],
   deals: ['companies','drugs'],
   validation_tests: ['drugs'],
-  area_metadata: ['disease_areas'],
+  area_metadata: [],
   drug_competitive_scores: ['drugs']
 };
 
@@ -23573,7 +23589,8 @@ document.addEventListener('DOMContentLoaded', function(){
       'drugs','drug_area_scores','drug_targets','drug_indications',
       'drug_competitive_scores','drug_validation_results',
       'companies','company_areas','deals','ailux_positions',
-      'disease_areas','therapeutic_areas','indications','indication_aliases',
+      /* disease_areas removed — Session 80 code retirement: table pending FK teardown */
+      'therapeutic_areas','indications','indication_aliases',
       'area_metadata','mechanism_status',
       'catalysts','news_articles','entity_edges','competitive_landscapes',
       'geographic_approvals','research_queue',
@@ -23581,14 +23598,15 @@ document.addEventListener('DOMContentLoaded', function(){
     ];
 
     /* FK relationship map: table → array of tables it links to via a shared key.
-       Note: disease_areas is legacy/empty; new hierarchy: therapeutic_areas → indications */
+       Session 80: disease_areas removed — code retirement complete; table pending DB FK teardown.
+       New hierarchy: therapeutic_areas → indications */
     var OEX_JOIN_MAP = {
       drugs:['drug_area_scores','drug_targets','drug_indications','drug_competitive_scores',
              'drug_validation_results','trials','catalysts','deals','entity_edges',
              'geographic_approvals','research_queue','validation_tests'],
       companies:['company_areas','deals','ailux_positions','entity_edges','news_articles','research_queue'],
       drug_area_scores:['drugs'],
-      disease_areas:['drug_area_scores','area_metadata','catalysts','mechanism_status','competitive_landscapes'],
+      /* disease_areas removed — Session 80 code retirement */
       drug_targets:['drugs'],
       drug_indications:['drugs','indications'],
       trials:['drugs','trial_registries'],
@@ -23599,8 +23617,8 @@ document.addEventListener('DOMContentLoaded', function(){
       indications:['drug_indications','indication_aliases','therapeutic_areas'],
       indication_aliases:['indications'],
       entity_edges:['drugs','companies'],
-      mechanism_status:['disease_areas'],
-      competitive_landscapes:['disease_areas'],
+      mechanism_status:[],  /* was ['disease_areas'] — FK pending DB teardown */
+      competitive_landscapes:[],  /* was ['disease_areas'] — FK pending DB teardown */
       geographic_approvals:['drugs'],
       trial_registries:['trials'],
       drug_validation_results:['drugs'],
@@ -23608,7 +23626,7 @@ document.addEventListener('DOMContentLoaded', function(){
       ailux_positions:['companies'],
       deals:['companies','drugs'],
       validation_tests:['drugs'],
-      area_metadata:['disease_areas'],
+      area_metadata:[],  /* was ['disease_areas'] — FK pending DB teardown */
       drug_competitive_scores:['drugs']
     };
 
@@ -23616,24 +23634,27 @@ document.addEventListener('DOMContentLoaded', function(){
        The FK column lives in childTable and references parentTable.id
        Used by _oexTableStrength to find the right FK depending on which
        table is the parent vs child in a given row×col pair.           */
+    /* Session 80: removed disease_areas:'area_id' FK entries from all tables.
+       area_metadata/mechanism_status/competitive_landscapes still reference disease_areas
+       via DB constraints — those will be dropped in the DB FK teardown session. */
     var OEX_FK_MAP = {
-      drug_area_scores:        {drugs:'drug_id',      disease_areas:'area_id'},
+      drug_area_scores:        {drugs:'drug_id'},
       drug_targets:            {drugs:'drug_id'},
       drug_indications:        {drugs:'drug_id',      indications:'indication_id'},
-      drug_competitive_scores: {drugs:'drug_id',      disease_areas:'area_id'},
+      drug_competitive_scores: {drugs:'drug_id'},
       drug_validation_results: {drugs:'drug_id'},
       trials:                  {drugs:'drug_id'},
-      catalysts:               {drugs:'drug_id',      disease_areas:'area_id'},
-      deals:                   {companies:'company_id', drugs:'drug_id', disease_areas:'area_id'},
-      company_areas:           {companies:'company_id', disease_areas:'area_id'},
+      catalysts:               {drugs:'drug_id'},
+      deals:                   {companies:'company_id', drugs:'drug_id'},
+      company_areas:           {companies:'company_id'},
       entity_edges:            {drugs:'drug_id',      companies:'company_id'},
       geographic_approvals:    {drugs:'drug_id'},
       research_queue:          {drugs:'drug_id',      companies:'company_id'},
       trial_registries:        {trials:'drug_id'},
       validation_tests:        {drugs:'drug_id'},
-      area_metadata:           {disease_areas:'area_id'},
-      mechanism_status:        {disease_areas:'area_id'},
-      competitive_landscapes:  {disease_areas:'area_id'},
+      area_metadata:           {},  /* area_id FK to disease_areas — pending DB teardown */
+      mechanism_status:        {},  /* area_id FK to disease_areas — pending DB teardown */
+      competitive_landscapes:  {},  /* area_id FK to disease_areas — pending DB teardown */
       indication_aliases:      {indications:'indication_id'},
       ailux_positions:         {companies:'company_id'},
       news_articles:           {companies:'company_id'}
@@ -24911,7 +24932,7 @@ async function ontologyLoad(force = false) {
   if (ts) ts.textContent = 'Loading…';
 
   const [
-    { data: daRows },
+    { data: daRows },  /* Session 80: disease_areas stub — returns [] pending DB FK teardown */
     { data: indRows },
     { data: tgtRows },
     { data: tpRows },
@@ -24924,7 +24945,7 @@ async function ontologyLoad(force = false) {
     { count: intelCt },
     { count: edgeCt }
   ] = await Promise.all([
-    _sb.from('disease_areas').select('*').order('name'),
+    Promise.resolve({ data: [] }),  /* disease_areas — retired from code reads (Session 80) */
     _sb.from('indications').select('*').order('name'),
     _sb.from('targets').select('id,name,family,pathway,cross_area_relevance').order('name'),
     _sb.from('target_pairs').select('id,name,area').order('name'),
