@@ -7421,6 +7421,21 @@ function loadMoleculeTab(tabId) {
       <button class="dkn-chip ta-rare" onclick="dknSetTa(this,'Rare Disease')">Rare Disease</button>
       <button class="dkn-chip ta-met"  onclick="dknSetTa(this,'Metabolic')">Metabolic</button>
     </div>
+    <div class="dkn-chips" id="dkn-fmt-chips" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;">
+      <span style="font-size:10px;color:#64748b;padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Format:</span>
+      <button class="dkn-chip active"         onclick="dknSetFmt(this,'')">All</button>
+      <button class="dkn-chip fmt-mab"        onclick="dknSetFmt(this,'mAb')">mAb</button>
+      <button class="dkn-chip fmt-bsab"       onclick="dknSetFmt(this,'BsAb')">BsAb</button>
+      <button class="dkn-chip fmt-tce"        onclick="dknSetFmt(this,'TCE')">TCE</button>
+      <button class="dkn-chip fmt-sm"         onclick="dknSetFmt(this,'SM')">SM</button>
+      <button class="dkn-chip fmt-cart"       onclick="dknSetFmt(this,'CAR-T')">CAR-T</button>
+      <button class="dkn-chip fmt-vhh"        onclick="dknSetFmt(this,'VHH')">VHH</button>
+      <button class="dkn-chip fmt-triab"      onclick="dknSetFmt(this,'TriAb')">TriAb</button>
+      <button class="dkn-chip fmt-adc"        onclick="dknSetFmt(this,'ADC')">ADC</button>
+      <button class="dkn-chip fmt-pep"        onclick="dknSetFmt(this,'Pep')">Pep</button>
+      <button class="dkn-chip fmt-combo"      onclick="dknSetFmt(this,'Combo')">Combo</button>
+      <button class="dkn-chip fmt-other"      onclick="dknSetFmt(this,'_other')">Fc / FP</button>
+    </div>
     <div class="dkn-chips" id="dkn-extra-filters" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;align-items:center;">
       <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding-right:4px;">Indication:</span>
       <select class="dkn-select" id="dkn-ind-select" onchange="dknSetInd(this)">
@@ -7592,6 +7607,19 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 /* TA column */
 .dkn-th-ta { min-width:90px; }
 @media(max-width:1100px){ .dkn-th-ta, .dkn-col-ta { display:none !important; } }
+
+/* Fmt chip active states — match the pill colors */
+.dkn-chip.fmt-mab.active   { background:#0369a1; color:white; border-color:#0369a1; }
+.dkn-chip.fmt-bsab.active  { background:#9d174d; color:white; border-color:#9d174d; }
+.dkn-chip.fmt-tce.active   { background:#92400e; color:white; border-color:#92400e; }
+.dkn-chip.fmt-sm.active    { background:#374151; color:white; border-color:#374151; }
+.dkn-chip.fmt-cart.active  { background:#991b1b; color:white; border-color:#991b1b; }
+.dkn-chip.fmt-vhh.active   { background:#065f46; color:white; border-color:#065f46; }
+.dkn-chip.fmt-triab.active { background:#5b21b6; color:white; border-color:#5b21b6; }
+.dkn-chip.fmt-adc.active   { background:#7e22ce; color:white; border-color:#7e22ce; }
+.dkn-chip.fmt-pep.active   { background:#c2410c; color:white; border-color:#c2410c; }
+.dkn-chip.fmt-combo.active { background:#64748b; color:white; border-color:#64748b; }
+.dkn-chip.fmt-other.active { background:#475569; color:white; border-color:#475569; }
 .dkn-trash-btn { width:26px; height:26px; border-radius:5px; border:1px solid #fca5a5;
   background:#fff1f2; color:#dc2626; cursor:pointer; font-size:14px; line-height:1;
   display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; }
@@ -7680,6 +7708,7 @@ let dknCompanyFilter = '';
 let dknModalityFilter = '';
 let dknStageDropFilter = '';
 let dknTaFilter = '';
+let dknFmtChipFilter = '';
 
 const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
 
@@ -7855,6 +7884,12 @@ function dknSetTa(btn, val) {
   btn.classList.add('active');
   dknRender();
 }
+function dknSetFmt(btn, val) {
+  dknFmtChipFilter = val;
+  document.querySelectorAll('#dkn-fmt-chips .dkn-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  dknRender();
+}
 function dknPopulateSelects() {
   const drugs = _dknData || [];
   const sel = document.getElementById('dkn-class-select');
@@ -7933,6 +7968,12 @@ function dknRender() {
     if (dknCompanyFilter && _dknCoName(d) !== dknCompanyFilter) return false;
     if (dknModalityFilter && (d.modality_fmt || d.modality || '') !== dknModalityFilter) return false;
     if (dknTaFilter && (d.therapeutic_area || '') !== dknTaFilter) return false;
+    if (dknFmtChipFilter) {
+      const fmt = d.modality_fmt || '';
+      if (dknFmtChipFilter === '_other') {
+        if (!['Fc','FP'].includes(fmt)) return false;
+      } else if (fmt !== dknFmtChipFilter) return false;
+    }
     if (q) {
       const risk  = _dknRisk(d.drug_summary);
       const notes = _dknNotes(d.drug_summary);
@@ -8117,7 +8158,7 @@ function dknRenderRemovedPanel() {
 function dknReset() {
   dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = '';
   dknClassFilter = ''; dknIndFilter = '';
-  dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = ''; dknTaFilter = '';
+  dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = ''; dknTaFilter = ''; dknFmtChipFilter = '';
   const is = document.getElementById('dkn-ind-select');
   if (is) is.value = '';
   const cs = document.getElementById('dkn-company-select');
@@ -8129,6 +8170,7 @@ function dknReset() {
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-ta-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('#dkn-fmt-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
 }
 
