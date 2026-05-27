@@ -7989,7 +7989,7 @@ function dknRow(d) {
     : '<span style="color:#94a3b8">—</span>';
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
-  <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanySlideOver('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
+  <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanyEntityModal('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
   <td class="dkn-col-format">${modalityBadge}</td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
@@ -10314,15 +10314,15 @@ function _openEntityByEl(el) {
     hq_city:    el.dataset.hqcity     || '',
     hq_country: el.dataset.hqcountry  || '',
   };
-  openCompanySlideOver(id, name, tab, cid, hints);
+  openCompanyEntityModal(id, name, tab, cid, hints);
 }
 
 /* ─── Company slide-over panel ──────────────────────────────────────────────── */
-async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbackCid, rowHints) {
-  console.log('[openCompanySlideOver] called:', companyId, companyName, sourceTabId);
+async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallbackCid, rowHints) {
+  console.log('[openCompanyEntityModal] called:', companyId, companyName, sourceTabId);
   // Open overlay FIRST — before any DOM manipulation that could throw
   const overlay = document.getElementById('entity-modal-overlay');
-  if (!overlay) { console.warn('[openCompanySlideOver] overlay not found'); return; }
+  if (!overlay) { console.warn('[openCompanyEntityModal] overlay not found'); return; }
   overlay.classList.add('open');
 
   const titleEl  = document.getElementById('entity-modal-title');
@@ -10335,7 +10335,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
   if (bodyEl)   bodyEl.innerHTML    = '<div style="padding:60px;text-align:center;color:#94a3b8;font-style:italic;font-size:13px">⟳ Loading…</div>';
   if (footerEl) footerEl.style.display = 'none';
 
-  if (!bodyEl) { console.warn('[openCompanySlideOver] bodyEl not found'); return; }
+  if (!bodyEl) { console.warn('[openCompanyEntityModal] bodyEl not found'); return; }
 
   if (!_sb) {
     bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Database not connected.</div>';
@@ -10420,7 +10420,7 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
       if (!companyRow.hq_city    && rowHints.hq_city)    companyRow.hq_city    = rowHints.hq_city;
       if (!companyRow.hq_country && rowHints.hq_country) companyRow.hq_country = rowHints.hq_country;
     }
-    console.log('[openCompanySlideOver] companyRow:', companyRow);
+    console.log('[openCompanyEntityModal] companyRow:', companyRow);
     const cats    = catsRes.data || [];
     let deals     = dealsRes.data || [];
 
@@ -10615,11 +10615,11 @@ async function openCompanySlideOver(companyId, companyName, sourceTabId, fallbac
       bodyEl.innerHTML = _cemCompanyBody(prog, sbData, AREA, extraData);
     }
     catch (e) {
-      console.error('[openCompanySlideOver] render error:', e);
+      console.error('[openCompanyEntityModal] render error:', e);
       bodyEl.innerHTML = `<div style="padding:20px;color:#dc2626;font-size:12px">Render error: ${e.message}</div>`;
     }
   } catch (err) {
-    console.warn('[openCompanySlideOver] fetch error:', err);
+    console.warn('[openCompanyEntityModal] fetch error:', err);
     bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">Failed to load company data.</div>';
   }
 }
@@ -11303,7 +11303,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     const ind   = drug.indication_short || '';
     const fmt   = drug.format || drug.cls || '';
     const compLink = companyName && drug.company_id
-      ? `<a href="#" style="color:#1d4ed8;text-decoration:none;font-weight:600" onclick="event.preventDefault();openCompanySlideOver('${drug.company_id}','${(companyName||'').replace(/'/g,"\\'")}','')">${companyName}</a>`
+      ? `<a href="#" style="color:#1d4ed8;text-decoration:none;font-weight:600" onclick="event.preventDefault();openCompanyEntityModal('${drug.company_id}','${(companyName||'').replace(/'/g,"\\'")}','')">${companyName}</a>`
       : companyName || '';
     const parts = [compLink, fmt, ind].filter(Boolean);
     _cemDrugSubEl.innerHTML = parts.length ? parts.join(' · ') : 'Drug Profile';
@@ -11490,7 +11490,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
       const _tcNodeHtml = (node) => {
         const _nSafe = (node.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         return node.id
-          ? `<span style="font-size:11px;font-weight:700;color:#1d4ed8;white-space:nowrap;cursor:pointer" onclick="event.preventDefault();openCompanySlideOver('${node.id}','${_nSafe}','')">${node.name}</span>`
+          ? `<span style="font-size:11px;font-weight:700;color:#1d4ed8;white-space:nowrap;cursor:pointer" onclick="event.preventDefault();openCompanyEntityModal('${node.id}','${_nSafe}','')">${node.name}</span>`
           : `<span style="font-size:11px;font-weight:700;color:#1e293b;white-space:nowrap">${node.name}</span>`;
       };
 
@@ -11536,9 +11536,9 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     if (!ownerData) return '';
     return `<div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
       <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Ownership Chain</span>
-      <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
+      <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanyEntityModal('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
       <span style="font-size:11px;color:#64748b">·</span>
-      <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
+      <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanyEntityModal('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
     </div>`;
   })();
 
@@ -12149,8 +12149,8 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const _allSubsorted  = [..._activeSubs, ..._acquiredSubs];
   const _subsBannerHtml = _allSubsorted.length ? `<div style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-left:3px solid #15803d;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
     <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d">Subsidiaries &amp; acquired entities</span>
-    ${_activeSubs.map(s => `<span onclick="openCompanySlideOver('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px">SUBSIDIARY</span>${s.name||s.id}</span>`).join('')}
-    ${_acquiredSubs.map(s => `<span onclick="openCompanySlideOver('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px">ACQUIRED</span>${s.name||s.id}</span>`).join('')}
+    ${_activeSubs.map(s => `<span onclick="openCompanyEntityModal('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px">SUBSIDIARY</span>${s.name||s.id}</span>`).join('')}
+    ${_acquiredSubs.map(s => `<span onclick="openCompanyEntityModal('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px">ACQUIRED</span>${s.name||s.id}</span>`).join('')}
   </div>` : '';
 
   const _overviewContent = `<div>
@@ -13592,9 +13592,14 @@ function _makeAreaPI(tabId, areaIds) {
           _sb.from('drug_combinations')
             .select('company_id')
             .in('area_id', this.areaIds),
-          _sb.from('drug_area_scores')
-            .select('drug_id,area_id,overlap,cls,overlap_rationale,vs_ailux_positioning,competitive_relevance,relevance_rationale')
-            .in('area_id', this.areaIds),
+          // Phase 2 flip (Session 78): drug_area_scores → drug_competitive_scores
+          // context_id is the canonical area identifier; IBD expanded to include uc/cd
+          // indication-based rows alongside legacy ibd-keyed rows.
+          _sb.from('drug_competitive_scores')
+            .select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level')
+            .in('context_id', this.areaIds.includes('ibd')
+              ? [...this.areaIds.filter(a=>a!=='ibd'),'ibd','uc','cd']
+              : this.areaIds),
           _sb.from('companies').select('id,name,ticker,status,hq_city,hq_country'),
         ]);
 
@@ -13673,7 +13678,7 @@ function _makeAreaPI(tabId, areaIds) {
           stageKey:             _resolveStage(d),
           overlap:              score?.overlap || d.overlap || (d.ailux_competes_directly ? 'Direct' : 'Watch'),
           overlap_rationale:    score?.overlap_rationale || d.differentiation_thesis || '',
-          vs_ailux:             score?.vs_ailux_positioning || '',
+          vs_ailux:             score?.vs_ailux || '',
           competitive_relevance: score?.competitive_relevance || null,
           relevance_rationale:   score?.relevance_rationale || '',
           summary:              d.ailux_angle || d.key_data || '',
@@ -15393,7 +15398,7 @@ function _makeAreaPI(tabId, areaIds) {
       _acqNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id });
      });
      const _acqNodeHtml = node => node.id
-      ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer" onclick="event.stopPropagation();openCompanySlideOver('${node.id}','${(node.name||'').replace(/'/g,"\\'")}','')">${node.name}</span>`
+      ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer" onclick="event.stopPropagation();openCompanyEntityModal('${node.id}','${(node.name||'').replace(/'/g,"\\'")}','')">${node.name}</span>`
       : `<span style="font-weight:700;color:#475569">${node.name}</span>`;
      const _acqEdgeHtml = hop => {
       const tl = { license:'license', sublicense:'sublicense', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
@@ -15874,9 +15879,17 @@ function _makeAreaPI(tabId, areaIds) {
 
     try {
       // Legacy set: drugs in drug_area_scores with area_id='tl1a'
-      const legacySet = new Set(
-        (legacyScoreRows || []).filter(s => s.area_id === 'tl1a').map(s => s.drug_id)
-      );
+      // Self-fetch if legacyScoreRows is empty (robustness: scoreRows now from drug_competitive_scores
+      // which uses context_id not area_id, so filter always returns empty — fallback to direct fetch).
+      let _legacyRows = (legacyScoreRows || []).filter(s => s.area_id === 'tl1a');
+      if (!_legacyRows.length) {
+        const { data: fetched } = await _sb
+          .from('drug_area_scores')
+          .select('drug_id,area_id')
+          .eq('area_id', 'tl1a');
+        _legacyRows = fetched || [];
+      }
+      const legacySet = new Set(_legacyRows.map(s => s.drug_id));
 
       // Normalized set: drugs in drug_targets with target_id='tl1a'
       // NOTE: do NOT use drug_indications here — TL1A is a TARGET, not an indication
@@ -16667,7 +16680,7 @@ function siRender() {
     const _entityPillsHtml = (_matchedCos || _matchedDrugs) ? `<div style="margin-bottom:10px">
       <div class="si-detail-label" style="margin-bottom:5px">Matched Entities</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${(_matchedCos || []).map(cId => `<span onclick="event.stopPropagation();openCompanySlideOver('${cId}','${cId}','')" style="display:inline-block;font-size:11px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:12px;padding:3px 9px;cursor:pointer" title="Open company card">🏢 ${cId}</span>`).join('')}
+        ${(_matchedCos || []).map(cId => `<span onclick="event.stopPropagation();openCompanyEntityModal('${cId}','${cId}','')" style="display:inline-block;font-size:11px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:12px;padding:3px 9px;cursor:pointer" title="Open company card">🏢 ${cId}</span>`).join('')}
         ${(_matchedDrugs || []).map(dId => `<span onclick="event.stopPropagation();openDrugEntityModal('${dId}','${dId}',event)" style="display:inline-block;font-size:11px;font-weight:600;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;cursor:pointer" title="Open drug card">💊 ${dId}</span>`).join('')}
       </div>
     </div>` : '';
@@ -18274,7 +18287,7 @@ document.addEventListener('click', function(e) {
      const panel  = document.getElementById('gs-sb-panel');
      if (panel) panel.style.display = 'none';
      const activeTabId = document.querySelector('.tab-pane.active')?.id?.replace(/^tab-/,'') || 'home';
-     if (typeof openCompanySlideOver === 'function') openCompanySlideOver(coId, coName, activeTabId);
+     if (typeof openCompanyEntityModal === 'function') openCompanyEntityModal(coId, coName, activeTabId);
      return;
    }
    if (gtype === 'drug') {
@@ -19461,7 +19474,7 @@ function _addRankingDossierBtns() {
     btn.className = 'co-profile-btn pi-dossier-btn';
     btn.textContent = 'Profile →';
     var coName = strong.textContent.replace(/[▼▲↑↓]/g,'').trim();
-    btn.onclick = function(e) { e.stopPropagation(); openCompanySlideOver(sbId, coName, 'pharma-intel'); };
+    btn.onclick = function(e) { e.stopPropagation(); openCompanyEntityModal(sbId, coName, 'pharma-intel'); };
     strong.appendChild(btn);
   });
 }
@@ -19533,7 +19546,7 @@ function _acRender() {
     var ta2 = c.ta_focus_2 ? '<span class="pi-ta-pill pi-ta2" style="font-size:10px">' + c.ta_focus_2 + '</span>' : '';
     var drugs = c.drug_count > 0 ? '<span style="font-weight:700;color:#1e3a5f">' + c.drug_count + '</span>' : '<span style="color:#94a3b8">—</span>';
     var safeName = c.name.replace(/'/g, '\\\'');
-    return '<tr class="ac-row" onclick="openCompanySlideOver(\'' + c.id + '\',\'' + safeName + '\',\'pharma-intel\')" title="Open ' + c.name + ' dossier">'
+    return '<tr class="ac-row" onclick="openCompanyEntityModal(\'' + c.id + '\',\'' + safeName + '\',\'pharma-intel\')" title="Open ' + c.name + ' dossier">'
       + '<td><strong>' + c.name + '</strong>' + ticker + '</td>'
       + '<td><span class="ac-geo-pill" style="' + geoBg + '">' + geoLbl + '</span></td>'
       + '<td style="font-size:10.5px;color:#475569">' + type + '</td>'
@@ -22830,15 +22843,16 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!wrap) return;
       wrap.innerHTML = '<div style="padding:24px;font-size:11px;color:#3a5a7a">Loading…</div>';
 
-      /* Step 1: Get all drug-area memberships */
-      var dasRes = await _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500);
+      /* Step 1: Get all drug-area memberships — Phase 2 flip (Session 78): drug_competitive_scores */
+      var dasRes = await _sb.from('drug_competitive_scores').select('context_id,drug_id,overlap').limit(1500);
       var das = (dasRes.data || []);
 
-      /* Build per-area drug sets */
+      /* Build per-area drug sets; map indication-based uc/cd rows back to 'ibd' key */
       var byArea = {};
       das.forEach(function(r){
-        if (!byArea[r.area_id]) byArea[r.area_id] = new Set();
-        byArea[r.area_id].add(r.drug_id);
+        var aId = (r.context_id==='uc'||r.context_id==='cd') ? 'ibd' : r.context_id;
+        if (!byArea[aId]) byArea[aId] = new Set();
+        byArea[aId].add(r.drug_id);
       });
 
       var AREA_ORDER = ['tl1a','ibd','atopy','ted','igf1r','fcrn','tcell','respiratory','il4ra','tslp','autoimmune'];
