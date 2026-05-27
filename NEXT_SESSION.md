@@ -1,6 +1,18 @@
-# NEXT_SESSION.md — Session 82 Handoff
+# NEXT_SESSION.md — Session 83 Handoff
 **Written:** 2026-05-27  
-**Last commit:** `fba9f390cc53` (Session 80 — Session 81 is docs-only, no code deployed)
+**Last commit:** `7c6315305b` (Session 82 — co-dev partner pill inversion + erd-1 data fix)
+
+---
+
+## Session 82 Complete: Partner Pill Co-Dev Inversion
+
+Two fixes shipped (commit `7c6315305b`):
+
+1. **erd-1 data fix** — `partner_company` cleared to null. Now falls through to `display_partner_name = "Earendil"`. HXN-1003 shows "w/ Earendil" on Sanofi's card.
+
+2. **Co-dev inversion in `_genericDetailHTML`** — When self-attribution guard fires on `partner_company` AND drug originated elsewhere (`d.company_id ≠ prog.company_id`), derives pill from `d.entity_name` instead. Itepekimab now shows "w/ Regeneron" on Sanofi's card. Existing correct pills (duvakitug, HXN-1002, etc.) unaffected.
+
+Partner pill system is now complete. All known issues resolved.
 
 ---
 
@@ -12,7 +24,7 @@ The two missing fields are `competitive_relevance` and `relevance_rationale`. Bo
 
 ---
 
-## Session 82 Mandate: P1 — Migrate competitive_relevance + relevance_rationale to DCS
+## Session 83 Mandate: P1 — Migrate competitive_relevance + relevance_rationale to DCS
 
 **One session. Two SQL statements. One line of code.**
 
@@ -83,7 +95,7 @@ Once `competitive_relevance` is live in DCS:
 
 ---
 
-## Session 82 Constraints
+## Session 83 Constraints
 
 Do NOT:
 - Drop `drug_area_scores`
@@ -154,7 +166,9 @@ This is independent of Session 82 — can be done before or after.
 
 ## Known Good State
 
-- Dashboard: live at GitHub Pages, commit `fba9f390cc53`
-- `index.html`: zero active `disease_areas` DB reads
-- `drug_competitive_scores`: 253 rows — missing `competitive_relevance`/`relevance_rationale` (Session 82 fixes this)
+- Dashboard: live at GitHub Pages, commit `7c6315305b`
+- `index.html`: zero active `disease_areas` DB reads; partner pill co-dev inversion complete
+- `drug_competitive_scores`: 253 rows — missing `competitive_relevance`/`relevance_rationale` (Session 83 fixes this)
 - Phase 3 dual-filter: all 4 reads on `target_id OR area_id`
+- `erd-1.partner_company`: now null (was "Sanofi" — fixed this session)
+- Partner pill system: all known issues resolved (self-attribution, co-dev inversion, long names)
