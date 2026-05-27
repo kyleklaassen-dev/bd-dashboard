@@ -20604,7 +20604,8 @@ document.addEventListener('DOMContentLoaded', function(){
   <div style="background:#1e2d3d;border-bottom:1px solid #2d4060;padding:0 32px;display:flex;align-items:center;gap:0">
     <span style="font-size:10px;color:#4a6080;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
     <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Program Board</button>
-    <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+    <button id="ont-subbtn-audit" onclick="switchOntSubTab('audit')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+    <button id="ont-subbtn-explorer" onclick="switchOntSubTab('explorer')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Explorer <span style="font-size:9px;background:rgba(245,158,11,.25);color:#f59e0b;padding:1px 5px;border-radius:8px;font-weight:800;margin-left:3px">PROTO</span></button>
   </div>
 <style>
 /* ── Ontology Audit Tab ─────────────────────────────────────────── */
@@ -20929,6 +20930,757 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>
 
 </div><!-- /ont-wrap -->
+
+<style>
+/* ── Ontology Explorer Panel (scoped to #ont-explorer-panel) ── */
+#ont-explorer-panel {
+  --oex-bg:#0d1520;--oex-bg2:#111d2e;--oex-bg3:#162032;--oex-bg4:#1a2840;
+  --oex-border:#1e3050;--oex-border2:#243d5c;
+  --oex-text:#c8d8ec;--oex-text-dim:#637d9a;--oex-text-bright:#e8f0fa;
+  --oex-accent:#3b82f6;--oex-accent2:#1d4ed8;
+  --oex-strong:#10b981;--oex-strong-bg:rgba(16,185,129,.12);--oex-strong-bd:rgba(16,185,129,.35);
+  --oex-partial:#f59e0b;--oex-partial-bg:rgba(245,158,11,.12);--oex-partial-bd:rgba(245,158,11,.35);
+  --oex-sparse:#f97316;--oex-sparse-bg:rgba(249,115,22,.1);--oex-sparse-bd:rgba(249,115,22,.3);
+  --oex-missing:#ef4444;--oex-missing-bg:rgba(239,68,68,.07);--oex-missing-bd:rgba(239,68,68,.2);
+  font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
+  background:var(--oex-bg);color:var(--oex-text);font-size:13px;
+}
+#ont-explorer-panel #oex-ws{display:flex;flex:1;overflow:hidden;height:100%}
+#ont-explorer-panel #oex-lp{width:232px;flex-shrink:0;background:var(--oex-bg2);border-right:1px solid var(--oex-border);display:flex;flex-direction:column;overflow:hidden}
+#ont-explorer-panel .oex-ph{padding:9px 12px;border-bottom:1px solid var(--oex-border);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--oex-text-dim);display:flex;align-items:center;justify-content:space-between}
+#ont-explorer-panel .oex-ph button{background:none;border:1px solid var(--oex-border2);color:var(--oex-text-dim);border-radius:3px;padding:2px 6px;font-size:10px;cursor:pointer;transition:all .15s}
+#ont-explorer-panel .oex-ph button:hover{border-color:var(--oex-accent);color:var(--oex-accent)}
+#ont-explorer-panel #oex-tree{flex:1;overflow-y:auto;padding:6px 0}
+#ont-explorer-panel .oex-tc{margin-bottom:1px}
+#ont-explorer-panel .oex-tc-hd{display:flex;align-items:center;gap:6px;padding:6px 12px;cursor:pointer;transition:background .1s;user-select:none}
+#ont-explorer-panel .oex-tc-hd:hover{background:var(--oex-bg3)}
+#ont-explorer-panel .oex-tc-hd.sel{background:rgba(59,130,246,.15)}
+#ont-explorer-panel .oex-t-arr{font-size:9px;color:var(--oex-text-dim);width:10px;transition:transform .15s;flex-shrink:0}
+#ont-explorer-panel .oex-t-arr.open{transform:rotate(90deg)}
+#ont-explorer-panel .oex-t-ico{font-size:12px}
+#ont-explorer-panel .oex-t-lbl{font-size:12px;font-weight:600;color:var(--oex-text-bright);flex:1}
+#ont-explorer-panel .oex-t-cnt{font-size:10px;color:var(--oex-text-dim);background:var(--oex-bg3);padding:1px 5px;border-radius:8px}
+#ont-explorer-panel .oex-tv-wrap{display:none;padding-left:2px}
+#ont-explorer-panel .oex-tv-wrap.open{display:block}
+#ont-explorer-panel .oex-tv{display:flex;align-items:center;gap:5px;padding:4px 10px 4px 28px;cursor:pointer;transition:background .1s;user-select:none}
+#ont-explorer-panel .oex-tv:hover{background:var(--oex-bg3)}
+#ont-explorer-panel .oex-tv.sel{background:rgba(59,130,246,.13);border-left:2px solid var(--oex-accent)}
+#ont-explorer-panel .oex-tv-dot{width:5px;height:5px;border-radius:50%;background:var(--oex-border2);flex-shrink:0}
+#ont-explorer-panel .oex-tv.sel .oex-tv-dot{background:var(--oex-accent)}
+#ont-explorer-panel .oex-tv-lbl{font-size:12px;color:var(--oex-text);flex:1}
+#ont-explorer-panel .oex-tv.sel .oex-tv-lbl{color:var(--oex-text-bright)}
+#ont-explorer-panel .oex-tv-sarr{font-size:8px;color:var(--oex-text-dim);transition:transform .15s}
+#ont-explorer-panel .oex-tv-sarr.open{transform:rotate(90deg)}
+#ont-explorer-panel .oex-tsv-wrap{display:none;padding-left:8px}
+#ont-explorer-panel .oex-tsv-wrap.open{display:block}
+#ont-explorer-panel .oex-tsv{display:flex;align-items:center;gap:5px;padding:3px 10px 3px 36px;cursor:pointer;transition:background .1s;user-select:none}
+#ont-explorer-panel .oex-tsv:hover{background:var(--oex-bg3)}
+#ont-explorer-panel .oex-tsv.sel{background:rgba(59,130,246,.1);border-left:2px solid var(--oex-accent2)}
+#ont-explorer-panel .oex-tsv-dot{width:4px;height:4px;border-radius:50%;background:var(--oex-border2);flex-shrink:0}
+#ont-explorer-panel .oex-tsv.sel .oex-tsv-dot{background:var(--oex-accent2)}
+#ont-explorer-panel .oex-tsv-lbl{font-size:11px;color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-tsv.sel .oex-tsv-lbl{color:var(--oex-text)}
+#ont-explorer-panel #oex-selbar{padding:8px 12px;border-top:1px solid var(--oex-border);min-height:52px}
+#ont-explorer-panel .oex-sb-lbl{font-size:10px;font-weight:700;color:var(--oex-text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+#ont-explorer-panel #oex-sb-nodes{display:flex;flex-wrap:wrap;gap:4px}
+#ont-explorer-panel .oex-sb-none{font-size:11px;color:var(--oex-text-dim);font-style:italic}
+#ont-explorer-panel .oex-sb-chip{font-size:10px;padding:2px 7px;border-radius:10px;display:flex;align-items:center;gap:4px;cursor:pointer;font-weight:600}
+#ont-explorer-panel .oex-sb-chip:hover{filter:brightness(1.2)}
+#ont-explorer-panel .oex-sb-chip.ta{background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.4);color:#93c5fd}
+#ont-explorer-panel .oex-sb-chip.tc{background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4);color:#6ee7b7}
+#ont-explorer-panel .oex-sb-chip.mod{background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.4);color:#c4b5fd}
+#ont-explorer-panel .oex-sb-chip.cot{background:rgba(248,113,113,.2);border:1px solid rgba(248,113,113,.4);color:#fca5a5}
+#ont-explorer-panel .oex-sb-chip.ds{background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.4);color:#fcd34d}
+#ont-explorer-panel .oex-sb-chip.cat{background:rgba(34,211,238,.2);border:1px solid rgba(34,211,238,.4);color:#a5f3fc}
+#ont-explorer-panel .oex-sb-chip.dt{background:rgba(99,125,154,.2);border:1px solid rgba(99,125,154,.4);color:#94a3b8}
+#ont-explorer-panel #oex-cp{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#ont-explorer-panel .oex-mtb{padding:8px 16px;border-bottom:1px solid var(--oex-border);display:flex;align-items:center;gap:12px;background:var(--oex-bg2);flex-shrink:0}
+#ont-explorer-panel .oex-legend{display:flex;gap:12px;margin-left:auto}
+#ont-explorer-panel .oex-li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-ld{width:8px;height:8px;border-radius:2px}
+#ont-explorer-panel .oex-ld.s{background:var(--oex-strong)}#ont-explorer-panel .oex-ld.p{background:var(--oex-partial)}#ont-explorer-panel .oex-ld.sp{background:var(--oex-sparse)}
+#ont-explorer-panel .oex-ld.m{background:var(--oex-missing);opacity:.5}
+#ont-explorer-panel #oex-mscroll{flex:1;overflow:auto;padding:16px}
+#ont-explorer-panel #oex-mwrap{display:inline-block;min-width:100%}
+#ont-explorer-panel table{border-collapse:collapse}
+#ont-explorer-panel .oex-mcorner{background:var(--oex-bg2);position:sticky;left:0;top:0;z-index:10;width:128px;min-width:128px;border-right:1px solid var(--oex-border);border-bottom:1px solid var(--oex-border);padding:8px 10px}
+#ont-explorer-panel .oex-mcorner-txt{font-size:10px;color:var(--oex-text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-top:4px}
+#ont-explorer-panel th.oex-ch{padding:0;background:var(--oex-bg2);position:sticky;top:0;z-index:5;border-left:1px solid var(--oex-border);border-bottom:1px solid var(--oex-border);min-width:108px}
+#ont-explorer-panel .oex-ch-in{display:flex;flex-direction:column;align-items:center;padding:8px 6px;cursor:pointer;transition:background .1s;gap:3px}
+#ont-explorer-panel .oex-ch-in:hover{background:var(--oex-bg4)}
+#ont-explorer-panel .oex-ch-in.exp{background:rgba(59,130,246,.08)}
+#ont-explorer-panel .oex-ch-lbl{font-size:11px;font-weight:700;color:var(--oex-text-bright);text-align:center;line-height:1.2}
+#ont-explorer-panel .oex-ch-arr{font-size:9px;color:var(--oex-text-dim);transition:transform .15s}
+#ont-explorer-panel .oex-ch-arr.open{transform:rotate(180deg)}
+#ont-explorer-panel th.oex-sch{padding:0;background:var(--oex-bg3);position:sticky;top:0;z-index:5;border-left:1px solid var(--oex-border);border-bottom:2px solid var(--oex-border2);min-width:88px}
+#ont-explorer-panel .oex-sch-in{padding:6px 4px;text-align:center;font-size:10px;color:var(--oex-text-dim);cursor:pointer;transition:background .1s;line-height:1.3}
+#ont-explorer-panel .oex-sch-in:hover{background:rgba(59,130,246,.08);color:var(--oex-text)}
+#ont-explorer-panel .oex-sch-in.ssel{color:var(--oex-accent)}
+#ont-explorer-panel th.oex-rh{position:sticky;left:0;z-index:4;background:var(--oex-bg2);border-right:1px solid var(--oex-border);border-bottom:1px solid var(--oex-border);padding:0;min-width:128px;width:128px}
+#ont-explorer-panel .oex-rh-in{display:flex;align-items:center;gap:5px;padding:8px 10px;cursor:pointer;transition:background .1s;white-space:nowrap}
+#ont-explorer-panel .oex-rh-in:hover{background:var(--oex-bg4)}
+#ont-explorer-panel .oex-rh-in.exp{background:rgba(59,130,246,.08)}
+#ont-explorer-panel .oex-rh-lbl{font-size:11px;font-weight:700;color:var(--oex-text-bright);flex:1}
+#ont-explorer-panel .oex-rh-arr{font-size:9px;color:var(--oex-text-dim);margin-left:auto;transition:transform .15s}
+#ont-explorer-panel .oex-rh-arr.open{transform:rotate(90deg)}
+#ont-explorer-panel th.oex-srh{position:sticky;left:0;z-index:4;background:var(--oex-bg3);border-right:2px solid var(--oex-border2);border-bottom:1px solid var(--oex-border);padding:0;min-width:128px;width:128px}
+#ont-explorer-panel .oex-srh-in{padding:5px 10px 5px 20px;font-size:10px;color:var(--oex-text-dim);white-space:nowrap;cursor:pointer;transition:background .1s}
+#ont-explorer-panel .oex-srh-in:hover{background:rgba(59,130,246,.08);color:var(--oex-text)}
+#ont-explorer-panel .oex-srh-in.ssel{color:var(--oex-accent)}
+#ont-explorer-panel td.oex-mc{border:1px solid var(--oex-border);padding:0;min-width:108px}
+#ont-explorer-panel td.oex-msc{border:1px solid var(--oex-border);padding:0;min-width:88px}
+#ont-explorer-panel .oex-ci{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;cursor:pointer;min-height:52px;transition:all .1s;position:relative}
+#ont-explorer-panel .oex-ci:hover{filter:brightness(1.2)}
+#ont-explorer-panel .oex-ci.sel-cell{outline:2px solid var(--oex-accent);outline-offset:-2px;z-index:1}
+#ont-explorer-panel .oex-ci.s{background:var(--oex-strong-bg);border:1px solid var(--oex-strong-bd)}
+#ont-explorer-panel .oex-ci.p{background:var(--oex-partial-bg);border:1px solid var(--oex-partial-bd)}
+#ont-explorer-panel .oex-ci.sp{background:var(--oex-sparse-bg);border:1px solid var(--oex-sparse-bd)}
+#ont-explorer-panel .oex-ci.m{background:var(--oex-missing-bg);border:1px solid var(--oex-missing-bd)}
+#ont-explorer-panel .oex-ci.diag{background:transparent;border:none;cursor:default}
+#ont-explorer-panel .oex-ci.s:hover{background:rgba(16,185,129,.2)}#ont-explorer-panel .oex-ci.p:hover{background:rgba(245,158,11,.2)}
+#ont-explorer-panel .oex-ci.sp:hover{background:rgba(249,115,22,.16)}#ont-explorer-panel .oex-ci.m:hover{background:rgba(239,68,68,.12)}
+#ont-explorer-panel .oex-cpct{font-size:13px;font-weight:800}
+#ont-explorer-panel .oex-ci.s .oex-cpct{color:var(--oex-strong)}#ont-explorer-panel .oex-ci.p .oex-cpct{color:var(--oex-partial)}
+#ont-explorer-panel .oex-ci.sp .oex-cpct{color:var(--oex-sparse)}#ont-explorer-panel .oex-ci.m .oex-cpct{color:var(--oex-missing);opacity:.55}
+#ont-explorer-panel .oex-clbl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+#ont-explorer-panel .oex-ci.s .oex-clbl{color:rgba(16,185,129,.65)}#ont-explorer-panel .oex-ci.p .oex-clbl{color:rgba(245,158,11,.65)}
+#ont-explorer-panel .oex-ci.sp .oex-clbl{color:rgba(249,115,22,.55)}#ont-explorer-panel .oex-ci.m .oex-clbl{color:rgba(239,68,68,.35)}
+#ont-explorer-panel .oex-cdiag{font-size:14px;color:var(--oex-border2)}
+#ont-explorer-panel #oex-rp{width:296px;flex-shrink:0;background:var(--oex-bg2);border-left:1px solid var(--oex-border);display:flex;flex-direction:column;overflow:hidden}
+#ont-explorer-panel #oex-insp{flex:1;overflow-y:auto;padding:14px}
+#ont-explorer-panel .oex-ie{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;padding:24px;text-align:center}
+#ont-explorer-panel .oex-ie-ico{font-size:40px;opacity:.25}
+#ont-explorer-panel .oex-ie-t{font-size:13px;font-weight:600;color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-ie-d{font-size:11px;color:var(--oex-text-dim);line-height:1.55}
+#ont-explorer-panel .oex-is{margin-bottom:16px}
+#ont-explorer-panel .oex-is-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--oex-text-dim);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--oex-border)}
+#ont-explorer-panel .oex-it{font-size:14px;font-weight:700;color:var(--oex-text-bright);margin-bottom:3px;line-height:1.3}
+#ont-explorer-panel .oex-is-d{font-size:11px;color:var(--oex-text-dim);margin-bottom:8px;line-height:1.45}
+#ont-explorer-panel .oex-sbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-bottom:8px}
+#ont-explorer-panel .oex-sbadge.s{background:var(--oex-strong-bg);border:1px solid var(--oex-strong-bd);color:var(--oex-strong)}
+#ont-explorer-panel .oex-sbadge.p{background:var(--oex-partial-bg);border:1px solid var(--oex-partial-bd);color:var(--oex-partial)}
+#ont-explorer-panel .oex-sbadge.sp{background:var(--oex-sparse-bg);border:1px solid var(--oex-sparse-bd);color:var(--oex-sparse)}
+#ont-explorer-panel .oex-sbadge.m{background:var(--oex-missing-bg);border:1px solid var(--oex-missing-bd);color:var(--oex-missing)}
+#ont-explorer-panel .oex-cov-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#ont-explorer-panel .oex-cov-bg{flex:1;height:4px;background:var(--oex-border);border-radius:2px;overflow:hidden}
+#ont-explorer-panel .oex-cov-fill{height:100%;border-radius:2px;transition:width .3s}
+#ont-explorer-panel .f-s{background:var(--oex-strong)}#ont-explorer-panel .f-p{background:var(--oex-partial)}
+#ont-explorer-panel .f-sp{background:var(--oex-sparse)}#ont-explorer-panel .f-m{background:var(--oex-missing)}
+#ont-explorer-panel .oex-cov-pct{font-size:11px;font-weight:700;min-width:30px;text-align:right}
+#ont-explorer-panel .oex-i-note{font-size:11px;color:var(--oex-text);line-height:1.5;padding:7px 10px;background:var(--oex-bg3);border-radius:4px;margin-bottom:8px}
+#ont-explorer-panel .oex-i-list{list-style:none;display:flex;flex-direction:column;gap:3px}
+#ont-explorer-panel .oex-i-list li{font-size:11px;color:var(--oex-text);line-height:1.4;padding:4px 8px;background:var(--oex-bg3);border-radius:4px;border-left:2px solid var(--oex-border2)}
+#ont-explorer-panel .oex-i-list.ex li{border-left-color:rgba(59,130,246,.5)}
+#ont-explorer-panel .oex-i-list.gp li{border-left-color:var(--oex-sparse);color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-i-list.pt li{border-left-color:var(--oex-strong);font-family:'Courier New',monospace;font-size:10px;color:#86efac;padding:5px 8px}
+#ont-explorer-panel .oex-path-box{font-size:11px;color:var(--oex-text-dim);padding:8px 10px;background:var(--oex-bg3);border-radius:4px;line-height:1.9;font-family:'Courier New',monospace;margin-bottom:8px}
+#ont-explorer-panel .oex-path-box .pn{color:var(--oex-text-bright);font-weight:700}
+#ont-explorer-panel .oex-path-box .pa{color:var(--oex-accent)}
+#ont-explorer-panel .oex-path-box .pp{color:var(--oex-text-dim);font-size:10px;font-style:italic;font-family:inherit}
+#ont-explorer-panel .oex-nchips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+#ont-explorer-panel ::-webkit-scrollbar{width:5px;height:5px}
+#ont-explorer-panel ::-webkit-scrollbar-track{background:transparent}
+#ont-explorer-panel ::-webkit-scrollbar-thumb{background:var(--oex-border2);border-radius:3px}
+#ont-explorer-panel .oex-lb{display:inline-flex;align-items:center;font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0}
+#ont-explorer-panel .oex-lb1{background:rgba(59,130,246,.22);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+#ont-explorer-panel .oex-lb2{background:rgba(16,185,129,.18);color:#6ee7b7;border:1px solid rgba(16,185,129,.28)}
+#ont-explorer-panel .oex-lb3{background:rgba(99,125,154,.15);color:#637d9a;border:1px solid rgba(99,125,154,.25)}
+#ont-explorer-panel .oex-lguide{display:flex;align-items:center;gap:5px;padding:6px 12px 5px;background:rgba(0,0,0,.18);border-bottom:1px solid var(--oex-border);flex-shrink:0}
+#ont-explorer-panel .oex-lguide-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-lguide-sep{color:var(--oex-border2);font-size:10px;margin:0 1px}
+#ont-explorer-panel #oex-mat-level{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-sch-level{display:inline-flex;gap:3px;align-items:center;font-size:9px;color:var(--oex-text-dim);margin-top:2px;opacity:.7}
+#ont-explorer-panel .oex-i-tier{margin-bottom:14px}
+#ont-explorer-panel .oex-i-tier-hd{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;margin-bottom:7px}
+#ont-explorer-panel .oex-i-tier-hd.t1{background:rgba(59,130,246,.08);border-left:2px solid rgba(59,130,246,.4)}
+#ont-explorer-panel .oex-i-tier-hd.t2{background:rgba(16,185,129,.07);border-left:2px solid rgba(16,185,129,.35)}
+#ont-explorer-panel .oex-i-tier-hd.t3{background:rgba(99,125,154,.06);border-left:2px solid rgba(99,125,154,.2)}
+#ont-explorer-panel .oex-i-tier-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+#ont-explorer-panel .oex-i-tier-hd.t1 .oex-i-tier-title{color:#93c5fd}
+#ont-explorer-panel .oex-i-tier-hd.t2 .oex-i-tier-title{color:#6ee7b7}
+#ont-explorer-panel .oex-i-tier-hd.t3 .oex-i-tier-title{color:var(--oex-text-dim)}
+#ont-explorer-panel .oex-i-tier-sub{font-size:10px;margin-left:4px}
+#ont-explorer-panel .oex-i-tier-hd.t1 .oex-i-tier-sub{color:rgba(147,197,253,.6)}
+#ont-explorer-panel .oex-i-tier-hd.t2 .oex-i-tier-sub{color:rgba(110,231,183,.55)}
+#ont-explorer-panel .oex-i-tier-hd.t3 .oex-i-tier-sub{color:rgba(99,125,154,.6);font-style:italic}
+#ont-explorer-panel .oex-ent-zone{margin-top:14px;padding-top:10px;border-top:1px dashed rgba(99,125,154,.25)}
+#ont-explorer-panel .oex-ent-zone-hd{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+#ont-explorer-panel .oex-ent-zone-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(99,125,154,.7)}
+#ont-explorer-panel .oex-ent-zone-note{font-size:9px;color:rgba(99,125,154,.5);font-style:italic}
+#ont-explorer-panel .oex-i-list.ent li{font-size:10px;color:rgba(148,163,184,.6);background:rgba(22,32,50,.5);border-left-color:rgba(99,125,154,.25);padding:3px 8px;line-height:1.4}
+</style>
+
+<div id="ont-explorer-panel" style="display:none;flex-direction:column;height:calc(100vh - 44px);overflow:hidden">
+  <div id="oex-ws">
+    <div id="oex-lp">
+      <div class="oex-ph">Ontology Tree <button onclick="oexCollapseAll()">Collapse all</button></div>
+      <div class="oex-lguide">
+        <div class="oex-lguide-item"><span class="oex-lb oex-lb1">L1</span> Category</div>
+        <span class="oex-lguide-sep">→</span>
+        <div class="oex-lguide-item"><span class="oex-lb oex-lb2">L2</span> Vocabulary</div>
+        <span class="oex-lguide-sep">→</span>
+        <div class="oex-lguide-item"><span class="oex-lb oex-lb3">L3</span> Entity</div>
+      </div>
+      <div id="oex-tree"></div>
+      <div id="oex-selbar">
+        <div class="oex-sb-lbl">Selected nodes</div>
+        <div id="oex-sb-nodes"><span class="oex-sb-none">None selected — click any node</span></div>
+      </div>
+    </div>
+    <div id="oex-cp">
+      <div class="oex-mtb">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--oex-text-dim)">Relationship Matrix</span>
+        <div id="oex-mat-level">
+          <span style="color:var(--oex-border2)">·</span>
+          <span class="oex-lb oex-lb1">L1</span><span>Category</span>
+          <span style="color:var(--oex-border2)">×</span>
+          <span class="oex-lb oex-lb1">L1</span><span>Category</span>
+        </div>
+        <span style="font-size:10px;color:var(--oex-text-dim);margin-left:6px;opacity:.6">Click header to expand · Click cell to inspect</span>
+        <div class="oex-legend">
+          <div class="oex-li"><div class="oex-ld s"></div>Strong ≥70%</div>
+          <div class="oex-li"><div class="oex-ld p"></div>Partial 40–70%</div>
+          <div class="oex-li"><div class="oex-ld sp"></div>Sparse 15–40%</div>
+          <div class="oex-li"><div class="oex-ld m"></div>Missing &lt;15%</div>
+        </div>
+      </div>
+      <div id="oex-mscroll"><div id="oex-mwrap"></div></div>
+    </div>
+    <div id="oex-rp">
+      <div class="oex-ph">Inspector</div>
+      <div id="oex-insp"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// ONTOLOGY EXPLORER — MOCK DATA (namespaced OEX_)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const OEX_CATS = ['Therapeutic Area','Target Class','Modality','Company Type','Development Stage','Catalyst Type','Deal Type'];
+
+const OEX_CAT_META = {
+  'Therapeutic Area': { icon:'🧬', code:'ta', desc:'Disease-level classification organizing all clinical programs and competitive contexts' },
+  'Target Class':     { icon:'⚗️', code:'tc', desc:'Biological target categories defining mechanism-of-action families across programs' },
+  'Modality':         { icon:'💊', code:'mod', desc:'Drug format classifications from small molecules to cell therapies and bispecifics' },
+  'Company Type':     { icon:'🏢', code:'cot', desc:'Organization categories by size, type, and BD strategic relevance' },
+  'Development Stage':{ icon:'📊', code:'ds',  desc:'Clinical development phase classifications for all tracked programs' },
+  'Catalyst Type':    { icon:'⚡', code:'cat', desc:'Event types representing BD-relevant inflection points and milestones' },
+  'Deal Type':        { icon:'🤝', code:'dt',  desc:'Partnership and transaction structure classifications' },
+};
+
+const OEX_VOCAB = {
+  'Therapeutic Area': {
+    'Gastroenterology': { children: { 'IBD': { children: { 'Ulcerative Colitis': {}, "Crohn's Disease": {}, 'Pouchitis': {} } }, 'Liver Disease': {}, 'Colorectal': {} } },
+    'Dermatology': { children: { 'Atopic Dermatitis': {}, 'Psoriasis': {}, 'CSU': {} } },
+    'Rheumatology': { children: { 'RA': {}, 'SLE': {}, 'PsA': {}, 'AS': {} } },
+    'Oncology': { children: { 'Hematologic': {}, 'Solid Tumors': {}, 'Lung': {} } },
+    'Neurology': { children: { 'gMG': {}, 'CIDP': {}, 'NMOSD': {} } },
+    'Respiratory': { children: { 'Severe Asthma': {}, 'COPD': {}, 'IPF': {} } },
+    'Autoimmune': {},
+  },
+  'Target Class': { 'Cytokine': {}, 'Receptor': {}, 'Integrin': {}, 'Checkpoint': {}, 'GPCR': {}, 'Kinase': {}, 'Growth Factor': {} },
+  'Modality': {
+    'Monoclonal antibody': {},
+    'Bispecific': { children: { 'Cytokine×Cytokine': {}, 'Receptor×Cytokine': {}, 'TCE Bispecific': {} } },
+    'scFv': {}, 'ADC': {}, 'TCE': {}, 'Small molecule': {}, 'Cell therapy': {},
+  },
+  'Company Type': { 'Large Pharma': {}, 'Mid-size Biotech': {}, 'Small Biotech': {}, 'CRO': {}, 'Academic': {} },
+  'Development Stage': { 'Discovery': {}, 'Preclinical': {}, 'Phase 1': {}, 'Phase 2': {}, 'Phase 3': {}, 'Approved': {} },
+  'Catalyst Type': { 'Clinical readout': {}, 'Regulatory event': {}, 'Deal event': {}, 'Trial start': {}, 'Data update': {} },
+  'Deal Type': { 'Acquisition': {}, 'License-in': {}, 'License-out': {}, 'Co-development': {}, 'Option': {}, 'Research collaboration': {} },
+};
+
+const OEX_REL = {
+  'Therapeutic Area|Target Class':      { str:'s',  cov:85, desc:'Well-mapped — drug_targets and area assignments establish strong structural links' },
+  'Therapeutic Area|Modality':          { str:'p',  cov:62, desc:'Modality data exists but not uniformly linked to all therapeutic areas; bispecific taxonomy incomplete' },
+  'Therapeutic Area|Company Type':      { str:'s',  cov:78, desc:'Companies have area assignments; Large Pharma coverage is strongest' },
+  'Therapeutic Area|Development Stage': { str:'s',  cov:82, desc:'Clinical trials link indications to stage; strong structural coverage' },
+  'Therapeutic Area|Catalyst Type':     { str:'p',  cov:55, desc:'Catalyst coverage is uneven across therapeutic areas — Gastroenterology strongest' },
+  'Therapeutic Area|Deal Type':         { str:'sp', cov:28, desc:'Deal structures not systematically linked to therapeutic context in current schema' },
+  'Target Class|Modality':              { str:'s',  cov:74, desc:'Target type informs modality selection; monoclonal antibody and bispecific well-documented' },
+  'Target Class|Company Type':          { str:'p',  cov:51, desc:'Target class clustering by company type is observable but not formally mapped' },
+  'Target Class|Development Stage':     { str:'p',  cov:58, desc:'Stage distribution by target class is partially captured via trial phase assignments' },
+  'Target Class|Catalyst Type':         { str:'sp', cov:32, desc:'Catalyst types are not systematically linked to target biology class' },
+  'Target Class|Deal Type':             { str:'sp', cov:22, desc:'Target class not linked to deal structures in current ontology' },
+  'Modality|Company Type':              { str:'p',  cov:48, desc:'Modality preference by company type is observable but not formally captured' },
+  'Modality|Development Stage':         { str:'s',  cov:71, desc:'Stage distribution by modality is well-tracked; ADC and bispecific have rich stage data' },
+  'Modality|Catalyst Type':             { str:'sp', cov:35, desc:'Modality-specific catalyst types have not been defined in the current taxonomy' },
+  'Modality|Deal Type':                 { str:'sp', cov:25, desc:'Modality not linked to deal structure types — a gap in the commercial intelligence layer' },
+  'Company Type|Development Stage':     { str:'p',  cov:60, desc:'Stage distribution by company type is observable — Large Pharma skews Phase 2–3' },
+  'Company Type|Catalyst Type':         { str:'p',  cov:44, desc:'Company type influences which catalyst types matter; not yet formalized' },
+  'Company Type|Deal Type':             { str:'sp', cov:38, desc:'Deal type by company type partially captured; Large Pharma acquisitions best-tracked' },
+  'Development Stage|Catalyst Type':    { str:'s',  cov:79, desc:'Catalysts are directly linked to development milestones — the strongest non-biological relationship' },
+  'Development Stage|Deal Type':        { str:'sp', cov:30, desc:'Deal timing by development stage is not formally captured in the current schema' },
+  'Catalyst Type|Deal Type':            { str:'sp', cov:20, desc:'Deal events and catalyst events are not cross-referenced; a known gap in BD event intelligence' },
+};
+
+const OEX_VREL = {
+  'Gastroenterology|Bispecific': { str:'p', cov:45, note:'TL1A×IL-23 bispecific strategy is well-documented. Broader bispecific taxonomy in GI disease is incomplete — preclinical programs lack subcategory tagging.', examples:['TL1A×IL-23 dual-cytokine programs (multiple sponsors)','TSLP+IL-33 combination strategies in respiratory overlap','Dual-integrin bispecific approaches (early stage)'], gaps:['No formal "dual cytokine" ontology subcategory exists','Bispecific subcategories (cytokine×cytokine vs receptor×cytokine) undefined at area level','Preclinical bispecific discovery-stage programs not systematically tagged'], paths:['Gastroenterology → IBD → TL1A / IL-23p19 (Cytokine class) → Bispecific format → TL1A×IL-23 opportunity'] },
+  'Gastroenterology|Cytokine': { str:'s', cov:88, note:'Cytokine-targeting programs in Gastroenterology represent the best-mapped intersection in Meridian. TL1A, IL-23p19, and IL-6 are canonical.', examples:['TL1A programs across IBD (multiple Phase 2/3)','IL-23p19 antibodies in UC/CD (guselkumab, risankizumab)','IL-6/IL-6R programs in Crohn\'s disease'], gaps:['New cytokine targets (IL-34, LIGHT) not yet formally classified','Cytokine hierarchy does not distinguish ligand vs receptor at GI-area level'], paths:['Gastroenterology → IBD → Cytokine target class → TL1A / IL-23 / IL-6 → competitive landscape'] },
+  'Gastroenterology|Monoclonal antibody': { str:'s', cov:91, note:'Monoclonal antibodies in IBD are the single best-covered intersection in the platform. This represents Meridian\'s competitive intelligence core.', examples:['vedolizumab (anti-α4β7, Takeda)','guselkumab (anti-IL-23p19, J&J)','obriksekelimab (anti-CCR8, AstraZeneca)','tulisokibart (anti-TL1A, Pfizer)'], gaps:['Some biosimilar programs lack full area mapping','Combination mAb strategies not yet categorized as a modality subcategory'], paths:['Gastroenterology → IBD → Cytokine / Receptor / Integrin targets → Monoclonal antibody → approved and clinical programs'] },
+  'Oncology|ADC': { str:'s', cov:83, note:'ADC programs in Oncology are well-represented, reflecting the depth of AbbVie, AstraZeneca, and Pfizer oncology pipelines tracked in Meridian.', examples:['HER2-targeting ADC programs (multiple)','TROP2-directed ADCs in breast and lung','CD79b-directed ADCs in hematologic malignancies','Nectin-4 targeting ADCs in solid tumors'], gaps:['ADC payload class not tracked as an ontology field','Oncology ADC subcategory taxonomy not formalized (tumor antigen vs pathway target)'], paths:['Oncology → Solid Tumors / Hematologic → Surface antigen targets → ADC modality → linker-payload variants'] },
+  'Cytokine|Bispecific': { str:'p', cov:52, note:'Cytokine-targeting bispecifics are a growing and strategically important category. TL1A×IL-23 is the canonical example in Meridian\'s coverage area.', examples:['TL1A×IL-23 bispecifics (tulisokibart class)','IL-4Rα×TSLP combination strategies','IL-23×TNF early-stage approaches'], gaps:['No ontology class for "dual cytokine bispecific" exists yet','Cytokine hierarchy does not distinguish ligand vs receptor in bispecific context','Target pair taxonomy (drug_targets → target_pairs) needs formalization for bispecifics'], paths:['Cytokine class → specific cytokines (TL1A, IL-23, IL-4Rα) → bispecific format → dual-cytokine therapeutic strategy'] },
+  'Large Pharma|Phase 2': { str:'s', cov:81, note:'Large pharma Phase 2 coverage is the most complete segment in Meridian. Mid-size and small biotech at Phase 2 have more gaps.', examples:['AbbVie TL1A/IL-23 franchise (multiple Phase 2s)','Pfizer IBD portfolio (tulisokibart, obriksekelimab)','Roche/Genentech atopy and GI programs'], gaps:['Phase 2 readout timing not aggregated by company type across areas','Company type not formally linked to trial registry records'], paths:['Large Pharma → internal pipeline → multiple indications → Phase 2 readout timing → catalyst intelligence'] },
+  'Bispecific|Phase 2': { str:'p', cov:54, note:'Phase 2 bispecific programs are present but the ontology link is inferred from drug records, not structured as a formal relationship.', examples:['TL1A×IL-23 bispecific Phase 2 programs in IBD','BCMA×CD3 TCE bispecifics in myeloma','PD-L1×TGFβ programs in solid tumors'], gaps:['Bispecific modality not formally tagged in trial records — links are inferred','No bispecific-specific catalyst type (e.g., "bispecific IND filing") exists'], paths:['Bispecific → format → Phase 2 programs → readout timing → catalyst event'] },
+  'Receptor|Gastroenterology': { str:'p', cov:58, note:'Receptor targets in Gastroenterology are relevant (FcRn, integrin receptors, TL1A receptor DR3) but the Receptor class is more sparsely mapped to GI-specific programs than the Cytokine class.', examples:['DR3 (TL1A receptor) programs in IBD','α4β7 integrin receptor (vedolizumab target)','FcRn-targeted programs with GI indication overlap'], gaps:['DR3 classified as both Cytokine (for TL1A) and Receptor — needs formal disambiguation','Integrin vs. receptor distinction not consistently applied across GI programs'], paths:['Gastroenterology → IBD → Receptor targets (DR3, α4β7, IL-23R) → mAb and bispecific programs'] },
+  'Autoimmune|Cytokine': { str:'s', cov:79, note:'Autoimmune × Cytokine is a strong relationship but "Autoimmune" as a category is overloaded — it spans GI, Dermatology, and Rheumatology. Needs sub-classification.', examples:['JAK inhibitors with cytokine pathway effects','IL-6R inhibitors (tocilizumab, sarilumab) in RA/SLE','IL-4Rα antibodies across atopic conditions'], gaps:['"Autoimmune" is used as both a catch-all area and a category — the ontology is ambiguous here','Cross-area cytokine targets (JAK1, IL-6) have inconsistent area assignments'], paths:['Autoimmune (broad) → specific disease areas → cytokine pathways → approved / clinical landscape'] },
+};
+
+const OEX_PATHS = {
+  'Gastroenterology+Bispecific+Cytokine': { title:'Bispecific cytokine strategy in GI disease', strength:'p', cov:52, summary:'This is one of the most strategically active spaces in Meridian\'s coverage. TL1A×IL-23 bispecific programs sit at the intersection of all three nodes.', path:'<span class="pn">Gastroenterology</span> <span class="pa">→</span> IBD (UC / CD)\n<span class="pa">↓</span> <span class="pp">key mechanistic targets</span>\n<span class="pn">Cytokine</span> class <span class="pa">→</span> TL1A · IL-23p19 · IL-6\n<span class="pa">↓</span> <span class="pp">emerging treatment strategy</span>\n<span class="pn">Bispecific</span> modality <span class="pa">→</span> TL1A×IL-23 programs\n<span class="pa">↓</span> <span class="pp">competitive landscape</span>\nAbbVie · Pfizer · Protagonist · Roche', gaps:['No formal "dual cytokine bispecific" ontology class','Target pair taxonomy needs formalization (drug_targets → target_pairs)','Bispecific preclinical programs in IBD not systematically tagged'], examples:['TL1A×IL-23 bispecific programs (multiple Phase 2/3)','TSLP+IL-33 dual-cytokine in respiratory overlap','Cytokine×receptor format bispecifics (early stage)'], suggest:['Explore: Gastroenterology × Target Class (expanded)','Check: Phase 2 bispecifics in IBD','Review: Cytokine × Bispecific cell in matrix'] },
+  'Autoimmune+Receptor+Phase 2': { title:'Receptor targets in autoimmune Phase 2 programs', strength:'p', cov:49, summary:'A broad but meaningful intersection — receptor-targeting programs at Phase 2 span multiple autoimmune disease areas with different competitive densities.', path:'<span class="pn">Autoimmune</span> <span class="pa">→</span> multiple disease areas\n<span class="pa">↓</span> <span class="pp">mechanistic focus</span>\n<span class="pn">Receptor</span> class <span class="pa">→</span> IL-4Rα · FcRn · α4β7 · IL-23R · OX40\n<span class="pa">↓</span> <span class="pp">development focus</span>\n<span class="pn">Phase 2</span> <span class="pa">→</span> mid-stage competitive density\n<span class="pa">↓</span> <span class="pp">BD opportunity window</span>\nactive programs approaching readout', gaps:['"Autoimmune" category has inconsistent scope — some programs not mapped here','Receptor subclass not uniformly applied (ligand-binding vs effector receptor distinction)','Phase 2 → Phase 3 transition probability not captured per receptor class'], examples:['IL-4Rα antagonists in AD/asthma (Phase 2 extensions)','FcRn programs in gMG and IgG-mediated diseases','OX40/OX40L programs across inflammatory conditions'], suggest:['Expand: Therapeutic Area row in matrix','Explore: Autoimmune × Receptor cell','Add: Development Stage column expansion'] },
+  'Large Pharma+IBD+Bispecific': { title:'Large pharma bispecific strategy in IBD', strength:'s', cov:74, summary:'Large pharma bispecific IBD programs are the best-covered sub-segment in this intersection. AbbVie and Pfizer dominate; Roche is entering.', path:'<span class="pn">Large Pharma</span> <span class="pa">→</span> AbbVie · Pfizer · Roche · J&amp;J\n<span class="pa">↓</span> <span class="pp">therapeutic focus</span>\n<span class="pn">IBD</span> <span class="pa">→</span> UC · Crohn\'s Disease\n<span class="pa">↓</span> <span class="pp">emerging modality strategy</span>\n<span class="pn">Bispecific</span> <span class="pa">→</span> TL1A×IL-23 · dual-cytokine\n<span class="pa">↓</span>\ncompetitive BD-relevant landscape', gaps:['Bispecific programs from mid-size biotech in IBD less well-tracked','No deal tracking for bispecific licensing specifically in GI','Stage timelines for bispecific vs mAb programs not formally compared'], examples:['AbbVie TL1A×IL-23 bispecific platform','Pfizer tulisokibart and combination strategy','J&J guselkumab + bispecific pipeline extensions'], suggest:['Expand: Company Type row to see Large vs Mid vs Small differentiation','Check: Gastroenterology × Deal Type cell','Explore: Large Pharma × Catalyst Type relationship'] },
+  'Gastroenterology+Cytokine': { title:'Cytokine biology in Gastroenterology', strength:'s', cov:88, summary:'The single best-covered intersection in Meridian. Cytokine targets in IBD represent the core of the platform\'s competitive intelligence.', path:'<span class="pn">Gastroenterology</span> <span class="pa">→</span> IBD (UC / CD / Pouchitis)\n<span class="pa">↓</span> <span class="pp">dominant mechanism class</span>\n<span class="pn">Cytokine</span> <span class="pa">→</span> TL1A · IL-23p19 · IL-6 · TNF · IL-10\n<span class="pa">↓</span> <span class="pp">established therapeutic approach</span>\nmAb · bispecific · fusion protein programs', gaps:['Emerging cytokines (IL-34, LIGHT, TL1A variants) not yet classified','Cytokine redundancy / pathway overlap not formalized as an ontology concept'], examples:['TL1A programs (>12 clinical assets tracked)','IL-23p19 antibodies: guselkumab, risankizumab, mirikizumab','TNF axis programs in combination strategies'], suggest:['Expand: Target Class column to see specific cytokines','Explore: Gastroenterology × Bispecific cell','Review: Cytokine × Development Stage relationship'] },
+};
+
+// ── State ──────────────────────────────────────────────────────────────────────
+const OEX_S = {
+  treeOpen: new Set(), treeSubOpen: new Set(),
+  selected: [],
+  matRowExp: new Set(), matColExp: new Set(),
+  activeCell: null,
+  inspMode: 'empty',
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function oexStrLabel(s){ return {s:'Strong',p:'Partial',sp:'Sparse',m:'Missing'}[s]||''; }
+function oexStrDot(s){ return {s:'●',p:'◑',sp:'◔',m:'○'}[s]||''; }
+function oexCovStr(c){ return c>=70?'s':c>=40?'p':c>=15?'sp':'m'; }
+function oexCatCode(c){ return OEX_CAT_META[c]?.code||'dt'; }
+function oexHashS(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h=h&h;} return Math.abs(h); }
+
+function oexGetCellData(rk, ck){
+  if(rk===ck) return {type:'diag'};
+  const rCat=rk.includes('|')?rk.split('|')[0]:rk;
+  const cCat=ck.includes('|')?ck.split('|')[0]:ck;
+  if(rCat===cCat) return {type:'diag'};
+  const rv=rk.includes('|')?rk.split('|')[1]:null;
+  const cv=ck.includes('|')?ck.split('|')[1]:null;
+  if(rv||cv){
+    const v1=rv||rk, v2=cv||ck;
+    const vk=[`${v1}|${v2}`,`${v2}|${v1}`].find(k=>OEX_VREL[k]);
+    if(vk) return {...OEX_VREL[vk],type:'vrel'};
+  }
+  const kk=[`${rCat}|${cCat}`,`${cCat}|${rCat}`].find(k=>OEX_REL[k]);
+  if(kk){
+    const d=OEX_REL[kk];
+    if(!rv&&!cv) return {...d,type:'cat'};
+    const h=oexHashS(`${rk}${ck}`);
+    const v=Math.max(0,Math.min(100,d.cov+((h%20)-10)));
+    return {str:oexCovStr(v),cov:v,desc:d.desc,type:'sub'};
+  }
+  return {str:'m',cov:5,desc:'No structured relationship',type:'unknown'};
+}
+
+function oexGetPathKey(){
+  const vals=OEX_S.selected.map(n=>n.val||n.cat);
+  const keys=Object.keys(OEX_PATHS);
+  for(const k of keys){
+    const parts=k.split('+');
+    if(parts.every(p=>vals.some(v=>v===p||v.includes(p)||p.includes(v)))) return k;
+    const matched=parts.filter(p=>vals.some(v=>v.toLowerCase().includes(p.toLowerCase())||p.toLowerCase().includes(v.toLowerCase())));
+    if(matched.length>=Math.min(parts.length,OEX_S.selected.length)) return k;
+  }
+  return null;
+}
+
+// ── Tree ───────────────────────────────────────────────────────────────────────
+function oexRenderTree(){
+  const el=document.getElementById('oex-tree');
+  let h='';
+  for(const cat of OEX_CATS){
+    const m=OEX_CAT_META[cat];
+    const open=OEX_S.treeOpen.has(cat);
+    const vals=Object.keys(OEX_VOCAB[cat]);
+    const selCat=OEX_S.selected.some(n=>n.cat===cat&&n.level==='cat');
+    h+=`<div class="oex-tc">
+      <div class="oex-tc-hd ${selCat?'sel':''}" onclick="oexToggleTreeCat(event,'${cat}')">
+        <span class="oex-t-arr ${open?'open':''}">▶</span>
+        <span class="oex-t-ico">${m.icon}</span>
+        <span class="oex-t-lbl">${cat}</span>
+        <span class="oex-lb oex-lb1" style="margin-right:2px">L1</span>
+        <span class="oex-t-cnt">${vals.length}</span>
+      </div>
+      <div class="oex-tv-wrap ${open?'open':''}">`;
+    for(const val of vals){
+      const vData=OEX_VOCAB[cat][val];
+      const hasSub=vData.children&&Object.keys(vData.children).length>0;
+      const subOpen=OEX_S.treeSubOpen.has(`${cat}|${val}`);
+      const selVal=OEX_S.selected.some(n=>n.cat===cat&&n.val===val);
+      const safeVal=val.replace(/'/g,"\\'");
+      const safeCat=cat.replace(/'/g,"\\'");
+      h+=`<div class="oex-tv ${selVal?'sel':''}" onclick="oexSelectNode(event,'${safeCat}','${safeVal}','val')">
+        <span class="oex-tv-dot"></span>
+        <span class="oex-tv-lbl">${val}</span>
+        <span class="oex-lb oex-lb2" style="font-size:7px;padding:0 3px;opacity:.65">L2</span>
+        ${hasSub?`<span class="oex-tv-sarr ${subOpen?'open':''}">▶</span>`:''}
+      </div>`;
+      if(hasSub){
+        h+=`<div class="oex-tsv-wrap ${subOpen?'open':''}">`;
+        for(const sv of Object.keys(vData.children)){
+          const svData=vData.children[sv];
+          const hasDeep=svData.children&&Object.keys(svData.children).length>0;
+          const selSub=OEX_S.selected.some(n=>n.cat===cat&&n.val===sv);
+          const safeSv=sv.replace(/'/g,"\\'");
+          h+=`<div class="oex-tsv ${selSub?'sel':''}" onclick="oexSelectNode(event,'${safeCat}','${safeSv}','sub')">
+            <span class="oex-tsv-dot"></span>
+            <span class="oex-tsv-lbl">${sv}${hasDeep?' ▸':''}</span>
+          </div>`;
+        }
+        h+='</div>';
+      }
+    }
+    h+='</div></div>';
+  }
+  el.innerHTML=h;
+  oexRenderSelBar();
+}
+
+function oexToggleTreeCat(e,cat){
+  e.stopPropagation();
+  const arrow=e.currentTarget.querySelector('.oex-t-arr');
+  if(arrow&&(e.target===arrow||arrow.contains(e.target)||e.target===e.currentTarget)){
+    OEX_S.treeOpen.has(cat)?OEX_S.treeOpen.delete(cat):OEX_S.treeOpen.add(cat);
+    oexRenderTree(); return;
+  }
+  oexSelectNode(e,cat,null,'cat');
+  OEX_S.treeOpen.add(cat);
+  oexRenderTree();
+}
+
+function oexSelectNode(e,cat,val,level){
+  e.stopPropagation();
+  if(level==='val'&&val){
+    const vData=OEX_VOCAB[cat]?.[val];
+    if(vData?.children&&Object.keys(vData.children).length>0){
+      const k=`${cat}|${val}`;
+      OEX_S.treeSubOpen.has(k)?OEX_S.treeSubOpen.delete(k):OEX_S.treeSubOpen.add(k);
+    }
+  }
+  const key=`${cat}|${val||'__cat__'}`;
+  const idx=OEX_S.selected.findIndex(n=>`${n.cat}|${n.val||'__cat__'}`===key);
+  if(idx>=0){ OEX_S.selected.splice(idx,1); }
+  else { OEX_S.selected.push({cat,val,level}); }
+  OEX_S.inspMode='nodes';
+  OEX_S.activeCell=null;
+  oexUpdateHeaderState();
+  oexRenderTree();
+  oexRenderInspector();
+}
+
+function oexRenderSelBar(){
+  const el=document.getElementById('oex-sb-nodes');
+  if(!OEX_S.selected.length){ el.innerHTML='<span class="oex-sb-none">None selected — click any node</span>'; return; }
+  el.innerHTML=OEX_S.selected.map(n=>{
+    const c=oexCatCode(n.cat);
+    const lbl=n.val||n.cat;
+    const safeC=n.cat.replace(/'/g,"\\'"),safeV=(n.val||'').replace(/'/g,"\\'");
+    return `<span class="oex-sb-chip ${c}" onclick="oexRemoveNode('${safeC}','${safeV}','${n.level}')" title="Click to deselect">${lbl} ×</span>`;
+  }).join('');
+}
+
+function oexRemoveNode(cat,val,level){
+  val=val||null;
+  OEX_S.selected=OEX_S.selected.filter(n=>!(n.cat===cat&&(n.val||null)===(val||null)));
+  if(!OEX_S.selected.length) OEX_S.inspMode='empty';
+  oexUpdateHeaderState();
+  oexRenderTree();
+  oexRenderInspector();
+}
+
+function oexCollapseAll(){
+  OEX_S.treeOpen.clear(); OEX_S.treeSubOpen.clear();
+  oexRenderTree();
+}
+
+function oexUpdateHeaderState(){
+  // no header in embedded mode
+}
+
+function oexClearAll(){
+  OEX_S.selected=[];
+  OEX_S.activeCell=null;
+  OEX_S.inspMode='empty';
+  oexUpdateHeaderState();
+  oexRenderTree();
+  oexRenderInspector();
+}
+
+// ── Matrix ─────────────────────────────────────────────────────────────────────
+function oexGetMatDims(){
+  const rows=[],cols=[];
+  for(const c of OEX_CATS){
+    rows.push({type:'cat',key:c,cat:c});
+    if(OEX_S.matRowExp.has(c)) for(const v of Object.keys(OEX_VOCAB[c])) rows.push({type:'val',key:`${c}|${v}`,cat:c,val:v});
+  }
+  for(const c of OEX_CATS){
+    cols.push({type:'cat',key:c,cat:c});
+    if(OEX_S.matColExp.has(c)) for(const v of Object.keys(OEX_VOCAB[c])) cols.push({type:'val',key:`${c}|${v}`,cat:c,val:v});
+  }
+  return {rows,cols};
+}
+
+function oexRenderMatrix(){
+  const {rows,cols}=oexGetMatDims();
+  const anyRowExp=OEX_CATS.some(c=>OEX_S.matRowExp.has(c));
+  const anyColExp=OEX_CATS.some(c=>OEX_S.matColExp.has(c));
+  const rLvl=anyRowExp?'oex-lb2 L2':'oex-lb1 L1';
+  const cLvl=anyColExp?'oex-lb2 L2':'oex-lb1 L1';
+  const rWord=anyRowExp?'Vocabulary':'Category';
+  const cWord=anyColExp?'Vocabulary':'Category';
+  const ml=document.getElementById('oex-mat-level');
+  if(ml) ml.innerHTML=`<span style="color:var(--oex-border2)">·</span>
+    <span class="oex-lb ${rLvl}">${rWord.slice(0,2).toUpperCase()}</span><span>${rWord}</span>
+    <span style="color:var(--oex-border2)">×</span>
+    <span class="oex-lb ${cLvl}">${cWord.slice(0,2).toUpperCase()}</span><span>${cWord}</span>`;
+
+  let h='<table><thead><tr>';
+  h+=`<th class="oex-mcorner"><div class="oex-mcorner-txt">↓ Row · Col →</div></th>`;
+
+  let ci=0;
+  while(ci<cols.length){
+    const col=cols[ci];
+    if(col.type==='cat'){
+      let span=1;
+      if(OEX_S.matColExp.has(col.cat)){
+        let ni=ci+1;
+        while(ni<cols.length&&cols[ni].type==='val'&&cols[ni].cat===col.cat){span++;ni++;}
+      }
+      const exp=OEX_S.matColExp.has(col.cat);
+      const safeC=col.cat.replace(/'/g,"\\'");
+      h+=`<th class="oex-ch" colspan="${span}"><div class="oex-ch-in ${exp?'exp':''}" onclick="oexToggleCol('${safeC}')">
+        <span class="oex-ch-lbl">${col.cat.replace(' ','&nbsp;')}</span>
+        <span class="oex-ch-arr ${exp?'open':''}">▼</span>
+      </div></th>`;
+      if(exp&&span>1) ci+=span; else ci++;
+    } else { ci++; }
+  }
+  h+='</tr>';
+
+  if(anyColExp){
+    h+='<tr><th class="oex-mcorner"></th>';
+    for(const col of cols){
+      if(col.type==='cat'){
+        if(!OEX_S.matColExp.has(col.cat)) h+=`<th class="oex-sch"><div class="oex-sch-in">—</div></th>`;
+      } else {
+        const shortVal=col.val.length>12?col.val.slice(0,12)+'…':col.val;
+        h+=`<th class="oex-sch"><div class="oex-sch-in" title="${col.val}">${shortVal}<div class="oex-sch-level"><span class="oex-lb oex-lb2" style="font-size:7px;padding:0 3px">L2</span></div></div></th>`;
+      }
+    }
+    h+='</tr>';
+  }
+  h+='</thead><tbody>';
+
+  let ri=0;
+  while(ri<rows.length){
+    const row=rows[ri];
+    h+='<tr>';
+    if(row.type==='cat'){
+      const exp=OEX_S.matRowExp.has(row.cat);
+      let span=1;
+      if(exp){ let ni=ri+1; while(ni<rows.length&&rows[ni].type==='val'&&rows[ni].cat===row.cat){span++;ni++;} }
+      const safeC=row.cat.replace(/'/g,"\\'");
+      h+=`<th class="oex-rh" rowspan="${span}"><div class="oex-rh-in ${exp?'exp':''}" onclick="oexToggleRow('${safeC}')">
+        <span style="font-size:11px">${OEX_CAT_META[row.cat].icon}</span>
+        <span class="oex-rh-lbl">${row.cat}</span>
+        <span class="oex-rh-arr ${exp?'open':''}">▶</span>
+      </div></th>`;
+    } else {
+      const shortVal=row.val.length>14?row.val.slice(0,14)+'…':row.val;
+      h+=`<th class="oex-srh"><div class="oex-srh-in" title="${row.val}">${shortVal}</div></th>`;
+    }
+    for(const col of cols){
+      if(col.type==='cat'&&OEX_S.matColExp.has(col.cat)) continue;
+      const d=oexGetCellData(row.key,col.key);
+      const isSel=OEX_S.activeCell&&OEX_S.activeCell.rk===row.key&&OEX_S.activeCell.ck===col.key;
+      const td=row.type==='cat'?'oex-mc':'oex-msc';
+      const safeRk=row.key.replace(/'/g,"\\'"),safeCk=col.key.replace(/'/g,"\\'");
+      const safeRCat=(row.cat||'').replace(/'/g,"\\'"),safeCCat=(col.cat||'').replace(/'/g,"\\'");
+      if(d.type==='diag'){
+        h+=`<td class="${td}"><div class="oex-ci diag"><span class="oex-cdiag">—</span></div></td>`;
+      } else {
+        h+=`<td class="${td}"><div class="oex-ci ${d.str||'m'} ${isSel?'sel-cell':''}" onclick="oexSelectCell('${safeRk}','${safeCk}','${safeRCat}','${safeCCat}')">
+          <span class="oex-cpct">${d.cov}%</span>
+          <span class="oex-clbl">${oexStrLabel(d.str)}</span>
+        </div></td>`;
+      }
+    }
+    h+='</tr>';
+    ri++;
+  }
+  h+='</tbody></table>';
+  document.getElementById('oex-mwrap').innerHTML=h;
+}
+
+function oexToggleRow(cat){ OEX_S.matRowExp.has(cat)?OEX_S.matRowExp.delete(cat):OEX_S.matRowExp.add(cat); oexRenderMatrix(); }
+function oexToggleCol(cat){ OEX_S.matColExp.has(cat)?OEX_S.matColExp.delete(cat):OEX_S.matColExp.add(cat); oexRenderMatrix(); }
+
+function oexSelectCell(rk,ck,rCat,cCat){
+  const d=oexGetCellData(rk,ck);
+  if(d.type==='diag') return;
+  OEX_S.activeCell={rk,ck,rCat,cCat};
+  OEX_S.inspMode='cell';
+  OEX_S.selected=[];
+  oexRenderTree();
+  oexRenderMatrix();
+  oexRenderInspector();
+}
+
+// ── Inspector ──────────────────────────────────────────────────────────────────
+function oexRenderInspector(){
+  const el=document.getElementById('oex-insp');
+  if(OEX_S.inspMode==='empty'||(!OEX_S.activeCell&&!OEX_S.selected.length)){
+    el.innerHTML=`<div class="oex-ie">
+      <div class="oex-ie-ico">🗺️</div>
+      <div class="oex-ie-t">Ontology Explorer</div>
+      <div class="oex-ie-d">Click any cell in the matrix to inspect a category relationship.<br><br>
+      Select nodes from the tree to explore conceptual paths and intersections across the ontology.</div>
+    </div>`; return;
+  }
+  if(OEX_S.inspMode==='cell'&&OEX_S.activeCell) oexRenderCellInspector(el);
+  else if(OEX_S.selected.length) oexRenderNodeInspector(el);
+}
+
+function oexRenderCellInspector(el){
+  const {rk,ck,rCat,cCat}=OEX_S.activeCell;
+  const d=oexGetCellData(rk,ck);
+  const rIsVal=rk.includes('|'), cIsVal=ck.includes('|');
+  const rLabel=rIsVal?rk.split('|')[1]:rk;
+  const cLabel=cIsVal?ck.split('|')[1]:ck;
+  const rParent=rCat||rk, cParent=cCat||ck;
+  const vals=[rLabel,cLabel];
+  const detKey=Object.keys(OEX_VREL).find(k=>{ const [a,b]=k.split('|'); return (vals.includes(a)&&vals.includes(b))||(vals.some(v=>v.includes(a))||vals.some(v=>v.includes(b))); });
+  const det=detKey?OEX_VREL[detKey]:null;
+  const covColor=d.str==='sp'?'oex-sparse':d.str==='s'?'oex-strong':d.str==='p'?'oex-partial':'oex-missing';
+
+  let h=`<div class="oex-i-tier">
+    <div class="oex-i-tier-hd t1"><span class="oex-lb oex-lb1">L1</span><span class="oex-i-tier-title">Category Relationship</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700;color:var(--oex-text-bright)">${rParent}</span>
+      <span style="color:var(--oex-border2)">×</span>
+      <span style="font-size:12px;font-weight:700;color:var(--oex-text-bright)">${cParent}</span>
+    </div>`;
+  if(!rIsVal&&!cIsVal){
+    h+=`<span class="oex-sbadge ${d.str}">${oexStrDot(d.str)} ${oexStrLabel(d.str)}</span>
+    <div class="oex-cov-row"><div class="oex-cov-bg"><div class="oex-cov-fill f-${d.str}" style="width:${d.cov}%"></div></div><div class="oex-cov-pct" style="color:var(--${covColor})">${d.cov}%</div></div>
+    <div class="oex-i-note">${d.desc||''}</div>
+    <div style="font-size:11px;color:var(--oex-text-dim);line-height:1.55;padding:6px 8px;background:var(--oex-bg3);border-radius:4px">
+      Click the <strong>${rLabel}</strong> row header or <strong>${cLabel}</strong> column header to expand to vocabulary level (L2).
+    </div>`;
+  } else {
+    h+=`<div class="oex-i-note" style="color:var(--oex-text-dim)">
+      ${rIsVal?`<span class="oex-lb oex-lb2" style="margin-right:4px">L2</span><strong>${rLabel}</strong> within <strong>${rParent}</strong>`:`<span class="oex-lb oex-lb1" style="margin-right:4px">L1</span><strong>${rLabel}</strong>`}
+      &nbsp;×&nbsp;
+      ${cIsVal?`<span class="oex-lb oex-lb2" style="margin-right:4px">L2</span><strong>${cLabel}</strong> within <strong>${cParent}</strong>`:`<span class="oex-lb oex-lb1" style="margin-right:4px">L1</span><strong>${cLabel}</strong>`}
+    </div>`;
+  }
+  h+='</div>';
+
+  if(rIsVal||cIsVal||det){
+    h+=`<div class="oex-i-tier">
+      <div class="oex-i-tier-hd t2"><span class="oex-lb oex-lb2">L2</span><span class="oex-i-tier-title">Vocabulary Intersection</span><span class="oex-i-tier-sub">${rLabel} × ${cLabel}</span></div>
+      <span class="oex-sbadge ${d.str}">${oexStrDot(d.str)} ${oexStrLabel(d.str)}</span>
+      <div class="oex-cov-row"><div class="oex-cov-bg"><div class="oex-cov-fill f-${d.str}" style="width:${d.cov}%"></div></div><div class="oex-cov-pct" style="color:var(--${covColor})">${d.cov}%</div></div>`;
+    const note=det?.note||d.desc||'';
+    if(note) h+=`<div class="oex-i-note">${note}</div>`;
+    if(det?.paths?.length) h+=`<div class="oex-is-t" style="margin-top:8px">Conceptual path</div><ul class="oex-i-list pt">${det.paths.map(p=>`<li>${p}</li>`).join('')}</ul>`;
+    if(det?.gaps?.length) h+=`<div class="oex-is-t" style="margin-top:8px">Ontology gaps</div><ul class="oex-i-list gp">${det.gaps.map(g=>`<li>⚠ ${g}</li>`).join('')}</ul>`;
+    else if(!det) h+=`<div class="oex-i-note" style="color:var(--oex-text-dim);font-style:italic;font-size:10px">No detailed vocabulary-level data for this combination yet.</div>`;
+    h+='</div>';
+  }
+
+  if(det?.examples?.length){
+    h+=`<div class="oex-ent-zone">
+      <div class="oex-ent-zone-hd"><span class="oex-lb oex-lb3">L3</span><span class="oex-ent-zone-lbl">Supporting evidence</span><span class="oex-ent-zone-note">entity examples only</span></div>
+      <ul class="oex-i-list ent">${det.examples.map(x=>`<li>${x}</li>`).join('')}</ul>
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+function oexRenderNodeInspector(el){
+  const nodes=OEX_S.selected;
+  const pathKey=oexGetPathKey();
+  const path=pathKey?OEX_PATHS[pathKey]:null;
+  const l1nodes=nodes.filter(n=>n.level==='cat');
+  const l2nodes=nodes.filter(n=>n.level==='val'||n.level==='sub');
+  let h='';
+
+  h+=`<div class="oex-i-tier">
+    <div class="oex-i-tier-hd t1"><span class="oex-lb oex-lb1">L1</span><span class="oex-i-tier-title">Category Context</span></div>`;
+  const catsSeen=[...new Set(nodes.map(n=>n.cat))];
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+    ${catsSeen.map(c=>`<span style="font-size:11px;font-weight:600;padding:3px 8px;background:var(--oex-bg3);border-radius:4px;color:var(--oex-text-bright)">${OEX_CAT_META[c].icon} ${c}</span>`).join('')}
+  </div>`;
+  if(catsSeen.length>=2){
+    let pairHtml='';
+    for(let i=0;i<catsSeen.length;i++) for(let j=i+1;j<catsSeen.length;j++){
+      const d=oexGetCellData(catsSeen[i],catsSeen[j]);
+      if(d.type!=='diag') pairHtml+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--oex-bg3);border-radius:4px;margin-bottom:3px;font-size:10px">
+        <span class="oex-sbadge ${d.str}" style="margin:0;padding:1px 5px;font-size:9px">${oexStrDot(d.str)}</span>
+        <span style="color:var(--oex-text-dim)">${catsSeen[i]}</span><span style="color:var(--oex-border2)">×</span><span style="color:var(--oex-text-dim)">${catsSeen[j]}</span>
+        <span style="margin-left:auto;font-weight:700;color:var(--oex-text-dim)">${d.cov}%</span>
+      </div>`;
+    }
+    if(pairHtml) h+=pairHtml;
+  }
+  h+='</div>';
+
+  h+=`<div class="oex-i-tier">
+    <div class="oex-i-tier-hd t2"><span class="oex-lb oex-lb2">L2</span><span class="oex-i-tier-title">Vocabulary Intersection</span></div>
+    <div class="oex-nchips" style="margin-bottom:10px">
+      ${nodes.map(n=>{ const c=oexCatCode(n.cat); const isL1=n.level==='cat';
+        return `<span class="oex-sb-chip ${c}" style="${isL1?'opacity:.6':''}">
+          <span class="oex-lb ${isL1?'oex-lb1':'oex-lb2'}" style="font-size:7px;padding:0 3px">${isL1?'L1':'L2'}</span>
+          ${n.val||n.cat}</span>`; }).join('')}
+    </div>`;
+  if(path){
+    h+=`<div class="oex-it" style="margin-bottom:4px">${path.title}</div>
+    <span class="oex-sbadge ${path.strength}">${oexStrDot(path.strength)} ${oexStrLabel(path.strength)} · ${path.cov}% coverage</span>
+    <div class="oex-i-note">${path.summary}</div>
+    <div class="oex-is-t" style="margin-top:8px">Conceptual path</div>
+    <div class="oex-path-box">${path.path}</div>`;
+    if(path.gaps?.length) h+=`<div class="oex-is-t" style="margin-top:8px">Ontology gaps in this path</div><ul class="oex-i-list gp">${path.gaps.map(g=>`<li>⚠ ${g}</li>`).join('')}</ul>`;
+    if(path.suggest?.length) h+=`<div class="oex-is-t" style="margin-top:8px">Suggested next exploration</div><ul class="oex-i-list">${path.suggest.map(s=>`<li>→ ${s}</li>`).join('')}</ul>`;
+  } else {
+    h+=`<div class="oex-i-note">
+      ${l2nodes.length?`<strong>${l2nodes.map(n=>n.val).join(', ')}</strong> selected.`:'Category-level nodes selected.'}
+      <br>Try selecting <strong>Gastroenterology</strong> + <strong>Bispecific</strong> + <strong>Cytokine</strong> for a detailed path.
+    </div>`;
+    if(l2nodes.length>=2){
+      h+=`<div class="oex-is-t" style="margin-top:8px">Vocabulary pairings</div>`;
+      for(let i=0;i<l2nodes.length;i++) for(let j=i+1;j<l2nodes.length;j++){
+        const a=l2nodes[i],b=l2nodes[j];
+        const d=oexGetCellData(`${a.cat}|${a.val}`,`${b.cat}|${b.val}`);
+        if(d.type!=='diag') h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--oex-bg3);border-radius:4px;margin-bottom:3px;font-size:11px">
+          <span class="oex-sbadge ${d.str}" style="margin:0;padding:2px 5px;font-size:9px">${oexStrDot(d.str)}</span>
+          <span><strong>${a.val}</strong> × <strong>${b.val}</strong></span>
+          <span style="margin-left:auto;color:var(--oex-text-dim)">${d.cov}%</span>
+        </div>`;
+      }
+    }
+  }
+  h+='</div>';
+
+  if(path?.examples?.length){
+    h+=`<div class="oex-ent-zone">
+      <div class="oex-ent-zone-hd"><span class="oex-lb oex-lb3">L3</span><span class="oex-ent-zone-lbl">Supporting evidence</span><span class="oex-ent-zone-note">entity examples — context only</span></div>
+      <ul class="oex-i-list ent">${path.examples.map(x=>`<li>${x}</li>`).join('')}</ul>
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function oexRender(){
+  oexRenderTree();
+  oexRenderMatrix();
+  oexRenderInspector();
+}
+</script>
+
 </div><!-- /tab-ontology -->
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -23150,6 +23902,27 @@ function auCollectEdits() {
     ta.select();
   });
 }
+
+function switchOntSubTab(which) {
+  var audit = document.getElementById('ont-wrap');
+  var explorer = document.getElementById('ont-explorer-panel');
+  var btnAudit = document.getElementById('ont-subbtn-audit');
+  var btnExplorer = document.getElementById('ont-subbtn-explorer');
+  if (!audit || !explorer) return;
+  if (which === 'explorer') {
+    audit.style.display = 'none';
+    explorer.style.display = 'flex';
+    if (btnAudit) { btnAudit.style.borderBottomColor = 'transparent'; btnAudit.style.color = '#6b8aad'; btnAudit.style.fontWeight = '500'; }
+    if (btnExplorer) { btnExplorer.style.borderBottomColor = '#4a90c4'; btnExplorer.style.color = '#f0f6ff'; btnExplorer.style.fontWeight = '700'; }
+    if (!window.OEX_INITIALIZED) { oexRender(); window.OEX_INITIALIZED = true; }
+  } else {
+    audit.style.display = '';
+    explorer.style.display = 'none';
+    if (btnAudit) { btnAudit.style.borderBottomColor = '#4a90c4'; btnAudit.style.color = '#f0f6ff'; btnAudit.style.fontWeight = '700'; }
+    if (btnExplorer) { btnExplorer.style.borderBottomColor = 'transparent'; btnExplorer.style.color = '#6b8aad'; btnExplorer.style.fontWeight = '500'; }
+  }
+}
+
 </script>
 
 </body>
