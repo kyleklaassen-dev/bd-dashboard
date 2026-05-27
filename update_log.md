@@ -1,5 +1,472 @@
 
 ---
+
+---
+## 2026-05-27 (Session 80) — disease_areas code retirement complete (commit fba9f390cc53)
+
+**P0: disease_areas active DB reads removed (8 changes):**
+- `OEX_ALL_TABLES` — removed `'disease_areas'` from schema explorer table array
+- `ALL_TABLES` homepage row-count poller — removed `'disease_areas'` from 60s poll array
+- Admin row-count fetch (line ~24939) — replaced `_sb.from('disease_areas').select('*')` with `Promise.resolve({ data: [] })` stub
+- `_loadOntologyExplorer` (line ~26388) — replaced `_sb.from('disease_areas').select('id,label,...')` with `Promise.resolve({ data: [] })` stub
+- `OEX_JOIN_MAP` (primary + fallback copies) — removed `disease_areas` key; set mechanism_status/competitive_landscapes/area_metadata to `[]`
+- `OEX_FK_MAP` — removed all `disease_areas:'area_id'` entries from all child-table FK definitions
+- `SEED_CAT_DATA` — removed disease_areas entry from ontology tables catalog list
+
+**Final grep result:** `grep -n "from('disease_areas')" index.html` → CLEAN (zero hits)
+
+**OEX validation:** Matrix renders correctly — TL1A 94%, IBD 96%. Ontology group now shows 5 tables (was 6). Zero console errors.
+
+**Retirement doc written:** `docs/disease_areas_retirement_ready.md` — full checklist of cleaned code, remaining FK constraints, and drop sequence.
+
+**Not done (intentional):** Table not dropped. FK constraints not touched. `drug_area_scores`, dual-read harnesses, `drug_areas`, `area_metadata` all untouched per session scope.
+
+---
+## 2026-05-27 (Session 79) — Phase 3 dual-filter (catalysts/deals) + Phase 4 area_metadata update (commit 2749f90d9974)
+
+**Phase 3A — catalysts ontology columns**: Added `target_id`, `indication_id`, `therapeutic_area_id` to `catalysts` table via Supabase SQL Editor. Backfilled from `legacy_area_ontology_map` — all 8 active areas populated. `indication_id` intentionally null for group-level areas (ibd, atopy, autoimmune, respiratory, tcell) since those don't map 1:1 to an indication row.
+
+**Phase 3B — company_areas ontology columns**: Added `therapeutic_area_id`, `target_id`, `context_type` to `company_areas` (134 rows). Backfilled from `legacy_area_ontology_map`. Validation confirmed all 134 rows mapped cleanly.
+
+**Phase 3B — deals ontology columns**: Added `target_id`, `therapeutic_area_id` to `deals` (190 non-null area_id rows). Backfilled from `legacy_area_ontology_map`. Biological/indication-type areas intentionally left null for `target_id`.
+
+**Phase 3 code flip — dual-filter pattern**: 4 production reads in `index.html` updated to use `.or('target_id.in.(...),area_id.in.(...)')` dual-filter instead of `.in('area_id', areas)`:
+- `loadAreaCatalysts` (line ~3891)
+- `loadAreaDeals` (line ~3926)
+- `loadAreaBDActivity` (line ~3968)
+- `_loadBdIntoModal` (line ~13433)
+
+All four now pick up rows via the new `target_id` column OR the legacy `area_id` column — forward-compatible without breaking existing data.
+
+**Phase 4 — disease_areas dependency audit**: Confirmed zero active production reads on `disease_areas`. Only remaining reference is an admin stats counter (non-blocking). Table is retirement-ready pending final grep + runtime validation session.
+
+**Phase 4 — area_metadata lifecycle updates**: 
+- `tl1a` and `ibd`: `legacy_retained` → `flag_activated` (Phase 2 flip complete Session 78, now fully on drug_competitive_scores)
+- All 8 active areas: notes appended documenting Phase 3 completion (2026-05-27)
+- `il4ra`, `ted`, `tslp`: remain `legacy_retained` — biological drug reads still on drug_area_scores pending their own Phase 2 flip
+- `autoimmune`, `respiratory`, `tcell`: remain `not_started` — preserved strategic/platform views, not targeted for retirement
+
+**legacy_area_ontology_map**: Created and seeded with 11 rows (all legacy area_ids mapped to therapeutic_area_id, target_id, indication_ids, context_type). This table is the backbone of all Phase 3 backfills.
+
+---
+## 2026-05-27 (Session 78) — Phase 2 code flip: drug_area_scores → drug_competitive_scores for scoreRows + OEX matrix (commit 23736d8f5e94)
+
+**Phase 2 code flip (scoreRows)**: The main area tab parallel fetch (line ~13595 in `_makeAreaPI`) now reads `drug_competitive_scores` instead of `drug_area_scores`. Key changes:
+- `area_id` → `context_id` throughout
+- Column set updated: removed `vs_ailux_positioning`, `competitive_relevance`, `relevance_rationale` (don't exist in DCS); added `vs_ailux`, `confidence_level`
+- IBD expansion: when `this.areaIds` includes `'ibd'`, `context_id` filter expands to `['ibd','uc','cd']` to capture both legacy-backfilled rows and indication-based enriched rows
+- `score?.vs_ailux_positioning` → `score?.vs_ailux` in the drug data-builder (line ~13676)
+- `competitive_relevance` / `relevance_rationale` gracefully null since DCS doesn't carry those fields
+
+**Phase 2 code flip (OEX matrix)**: `oexLoadMatrix` (line ~22834) now reads `drug_competitive_scores` instead of `drug_area_scores` for area→drug membership. Added remapping: `context_id∈{uc,cd} → byArea['ibd']` so the OEX area matrix still groups IBD drugs under the 'ibd' area key.
+
+**TL1A dual-read harness self-fetch**: Added fallback self-fetch to `_runPhase4BTL1ADualRead` (mirrors existing pattern in IBD/TED/Atopy/FCRN harnesses). After the scoreRows flip, `legacyScoreRows` no longer contains `area_id` field, so the harness filter always returned empty. Fallback fetches directly from `drug_area_scores` to keep comparison metrics valid.
+
+**What didn't change**: The four `_runPhase4B*DualRead` comparison harnesses for IBD, TED, Atopy, and FCRN intentionally still read `drug_area_scores` as their "legacy set" — these are validation tools, not production reads. Drug card primary fetch was already on `drug_competitive_scores` (completed Session 64).
+
+---
+## 2026-05-27 (Session 77) — OEX matrix FK fix, symmetric adjacency matrix, Quick View → new ontology (commit 9c1328cbb873)
+
+**OEX matrix FK bug fixed**: Replaced flat `OEX_FK_COL[table]` with context-aware `OEX_FK_MAP[childTable][parentTable]`. The old map returned one FK per table regardless of which parent was being measured (e.g., `drug_area_scores` only had `drug_id`, so the `area_id` relationship to `disease_areas` always showed 0%). The new two-level map correctly routes: `drug_area_scores×drugs → drug_id`, `drug_area_scores×disease_areas → area_id` (reverse path), etc. Added forward/reverse FK path detection in `_oexTableStrength`.
+
+**Symmetric adjacency matrix**: When rows and cols contain the same items (the typical checkbox case), columns are now sorted to match the row order so item N always appears at row N and column N. Uses `displayCols = sameItems ? sorted : cols`. Matrix cells pre-load over the union of rows+cols.
+
+**OEX Quick View → new ontology**: `oexLoadTree` now reads from `therapeutic_areas → indications → drug_indications` (same source as Navigator) instead of the old `disease_areas + drug_area_scores` pipeline buckets. Disease Areas section renamed to Therapeutic Areas with nested TA → Indication hierarchy, colors from `therapeutic_areas.color`. Target-based items (TL1A, FcRn, etc.) correctly show under Molecular Targets only. `oexInitCatalog` updated to read `indications` not `disease_areas`.
+
+**OEX_JOIN_MAP updated**: Now accurately reflects actual schema FK relationships. `drugs` lists all 10+ child tables. Old `disease_areas` entries for `company_areas`, `catalysts`, `deals` trimmed since those relationships are now implicit via the drug/company anchor.
+
+**Old table audit**: `disease_areas` has 11 rows (column is `label` not `name` — prior queries were broken). `drug_area_scores` (212 rows) and `drug_competitive_scores` (234 rows) both active. Neither retirable: `disease_areas` still used as FK parent by multiple tables; `drug_area_scores` retirement blocked by Phase 5.5 per roadmap.
+
+---
+## 2026-05-27 (Session 76) — OEX fixes: clearGlobalSearch, News column, CPM, Navigator DA hierarchy, homepage layout (commits 6e96d255, 4adf73ca, bb9726ae)
+
+**Root cause of OEX blank**: `clearGlobalSearch()` in `switchTab` was calling Grid.js `forceRender()` on unrendered grids, throwing synchronously before `onEnter` ever fired. Fixed with `try { clearGlobalSearch(); } catch(e) {}` at line 16333.
+
+**Navigator double-TA bug** ("Respiratory > Respiratory > Asthma"): DA nodes were using `name: ta.name` (the TA name) instead of a disease-area label. Fixed by adding `_HIER_DA_LABEL` constant mapping disease_area keys to readable labels ("IBD", "Airway Diseases", etc.) and grouping indications by `ind.disease_area` field before building DA nodes.
+
+**Homepage layout**: breakdown numbers now pinned to `position:absolute; bottom:40px` via `#hw-breakdown` CSS; date/time centers naturally above it.
+
+**RLS policies**: Ran `CREATE POLICY "anon_select"` for 6 tables that were blocking anon reads: entity_edges, drug_targets, drug_indications, ailux_positions, competitive_landscapes, therapeutic_areas. All now return correct row counts.
+
+**OEX News column = 0%**: Two-part bug. (1) Original query only selected `matched_drug_ids` — fixed to also select `matched_area_ids` and expand area tags to all drug IDs in that area via `byArea`. (2) Browser cache was serving old JS — news fix was deployed in `4adf73ca` but browser served cached version until hard reload / `?nocache=1`. After fresh load: IGF-1R 100%, FcRn 100%, T-Cell 100%, TED 77%, Autoimmune 68%.
+
+**CPM blank on first load**: (1) ResizeObserver stored as local `var ro` → GC'd before firing. Fixed by saving to `canvas._cpmRO`. (2) Canvas width = 0 when tab still transitioning — added 150ms setTimeout fallback for `buildCanvas`. (3) `onEnter` timing: wrapped `oexRender` in `setTimeout(oexRender, 80)`.
+
+---
+## 2026-05-27 (Session 67) — Task #31 + #32: Submit Intel traceability + Ventyx/AbbVie ownership chain (commit a333451)
+
+**Task #32 — Ventyx/AbbVie Ownership Chain UI (two fixes):**
+
+Fix A — Company card acquired subsidiaries banner:
+- `_cemCompanyBody`: added `_acquiredSubs` filter from `sbSubs` (already fetched via parallel query)
+- Renders a green banner above stats if any acquired subsidiaries exist: clickable pill per subsidiary with red "ACQUIRED" badge
+- Clicking pill opens the subsidiary's company card via `openCompanySlideOver`
+
+Fix B — Drug card ownership chain:
+- `openDrugEntityModal`: added async fetch for `current_owner_company_id` when it differs from `company_id`
+- Populates `ownerData = { ownerName, ownerCompanyId, originatorName, originatorCompanyId }`
+- `_cemDrugBody`: new optional 10th param `ownerData`; renders blue banner above drug stats showing "Current owner: AbbVie · originator: Ventyx Biosciences" with clickable company links
+- Defensive: banner only shows when `current_owner_company_id` is set and differs from `company_id`
+
+**Task #31 — Submit Intel Traceability Panel:**
+- Added 7th column header (empty, for chevron) to `si-table`
+- Updated `siRender()`: each row now has a "▶ Details" / "▼ Details" chevron in column 7
+- `siToggleDetail()`: now also toggles chevron text between ▶ and ▼
+- Detail panel enhanced with four new sections:
+  1. Status timeline: Submitted → Processed → Published/Rejected dots+line with timestamps; green=done, red=rejected, grey=pending
+  2. Matched entity pills: `matched_company_ids` → clickable company pills (openCompanySlideOver); `matched_drug_ids` → clickable drug pills (openDrugEntityModal)
+  3. Source display: truncated clickable link (80 char max)
+  4. Rejection reason: red banner shown only if `status='rejected'` and `rejection_reason` field present
+- All new fields are defensive (`if (r.matched_company_ids)` pattern) — UI works even if schema columns are missing
+
+---
+## 2026-05-27 (Session 66) — Co-development drug attribution schema + pipeline card fix (commit 57e928a)
+
+**Schema: v35_codev_attribution — new fields on drugs table:**
+- Added `lead_company_id TEXT` — company sponsoring pivotal trial / holding primary commercial rights
+- Added `co_developer_ids TEXT[]` — array of all companies with active co-dev agreements
+- GIN index on `co_developer_ids` for fast PostgREST array-contains queries
+- Index on `lead_company_id` for fast equality lookups
+
+**Data: populated 6 co-developed drugs from company_partnerships:**
+- `ro7837195` (RO7837195): Roche + Pfizer co-dev; lead=roche
+- `dupilumab`: Sanofi + Regeneron co-dev; lead=sanofi
+- `itepekimab`: Regeneron + Sanofi co-dev; lead=regeneron
+- `tezepelumab`: Amgen + AstraZeneca co-dev; lead=amgen
+- `duvakitug`: Sanofi + Teva co-dev; lead=sanofi
+- `rademikibart--cbp-201`: ConnectBioPharma + Simcere co-dev; lead=connectbiopharma
+
+**index.html — pipeline card query fixes (6 changes):**
+- `openCompanySlideOver` idsToFetch: now OR-includes `lead_company_id.eq.${companyId}` + `co_developer_ids.cs.{companyId}`
+- Drug filter loop: marks co-dev assets with `_is_codev = true`, `_codev_originator = company_id`
+- Pipeline drugItems HTML: adds purple **CO-DEV** badge when `_is_codev` is true
+- Entity dossier within PI tab (idsToFetch2): same co-dev OR logic + marks `_is_codev`
+- Simple entity modal drug query: updated from `.eq('company_id', id)` to `.or(company_id/lead_company_id/co_developer_ids)`
+
+**Docs:**
+- `docs/governance_codev_attribution.md` — permanent governance rule doc
+- `scripts/migrations/v35_codev_attribution.sql` — idempotent migration SQL
+
+**Governance rule:**
+- `drugs.company_id` = originator, NEVER changes
+- `drugs.lead_company_id` = lead developer (mutable)
+- `drugs.co_developer_ids[]` = all co-devs (mutable, synced from company_partnerships)
+- Drug appears in pipeline card if company matches any of the three fields
+
+## 2026-05-27 (Session 75) — Fix OEX matrix checkboxes: embedded at render time (commit dccc8a4)
+
+**Root cause identified**: `oexInjectTreeButtons` tried to match rendered tree items via `OEX_LABEL_MAP` (built from async `OEX_CAT`). The tree is built from its own independent Supabase queries — the two data sources never reliably matched, so checkboxes were never correctly injected.
+
+**Fix — checkboxes embedded in `oexLoadTree` at render time:**
+- `bioSections` array: added `type` field per section (`areas`/`targets`/`stages`/`companies`) + `id` field per child (area slug, target_id, stage string, company.id)
+- Each `.oex-tv` leaf now has `data-type`, `data-id`, `data-label` attributes inline in the HTML string
+- Each leaf has `<span class="oex-leaf-chks" onclick="event.stopPropagation()"><input type="checkbox" class="oex-node-chk">` embedded at render time
+- Database table `.oex-tv` rows get the same treatment (`data-type="tables"`)
+- Change event listener wired on `tree` element after `innerHTML` set (guarded by `tree.dataset.chkWired` so it fires once even across polling re-renders)
+- `oexInjectTreeButtons`: now a no-op (calls `oexRefreshChks()` + returns)
+- `oexRefreshChks`: simplified to directly set `.checked` on `.oex-node-chk` inputs by matching against `OEX_MS.rows`
+- Empty-state message updated: "Check items in the sidebar to add them to the matrix"
+
+## 2026-05-27 (Session 74c) — CPM type labels per row (commit e870933)
+
+**CPM — ontological type subtext added:**
+- `AREA_META`: added `type` field to all 11 entries — `TARGET` (tl1a/igf1r/fcrn/il4ra/tslp), `INDICATION` (ibd/atopy/ted), `PLATFORM` (tcell), `AREA` (respiratory/autoimmune)
+- `draw()`: main label y-offset shifted from `rowMidY+5` → `rowMidY+1`; type subtext rendered at `rowMidY+13` in 8px/500-weight Inter, color `#3a5a7a`
+- Each row now shows label (colored) + type tag (muted) so TARGET vs INDICATION is immediately visible
+
+## 2026-05-27 (Session 74b) — Remove total count, fix checkbox stopPropagation (commit 8368c7c)
+
+**OEX — checkbox click-through fix:**
+- Added `chks.addEventListener('click', function(e){e.stopPropagation();})` to both injection sites (`oexInjectTreeButtons` and `_oexInjectDbTableCheckboxes`)
+- Checkbox clicks no longer bubble to parent `.oex-tv` tree item handler (which was expanding the subtree instead of toggling the matrix node)
+
+**Homepage:**
+- Removed `#hw-count-num` and `#hw-count-label` divs entirely — the large animated total count is gone; the breakdown strip (Drugs, Companies, Trials, etc.) remains live
+
+## 2026-05-27 (Session 74) — Single checkbox, CPM dot column, subtitle removal (commit 320a07f)
+
+**OEX — checkbox system simplified to single-axis:**
+- `_oexChkHtml`: replaced two R/C checkboxes with one `oex-node-chk` checkbox per node
+- `oexToggleNode`: new `'both'` axis — checking an item adds it to BOTH `OEX_MS.rows` and `OEX_MS.cols` simultaneously; unchecking removes from both. Symmetric NxN matrix from any N checked items.
+- `_oexSetGroupAll`: "All" group checkbox now adds/removes to both axes (no more separate R/C group buttons)
+- Group header: collapsed to single "All" checkbox per section (was "All R" + "All C")
+- `oexRefreshChks`: syncs group checkbox state against rows only (rows/cols always mirror each other)
+- Matrix populate fix: any 1+ checked item now guarantees both axes populated → matrix always renders
+
+**CPM — dots aligned to fixed column:**
+- Added `maxLW` pre-computation at start of `draw()` (measures all area labels once)
+- `DOT_X = LEFT_MARGIN - 14 - maxLW - 14` — single constant x for all dots
+- All dots now land in a perfect vertical column regardless of label width variation
+
+**Homepage:**
+- Removed "data points across N tables · live" subtitle that was overwriting the label on each refresh
+
+## 2026-05-27 (Session 73) — OEX checkboxes, quartile row-hide, Cmd+click, DB table nodes, homepage card removal (commit 200af10)
+
+**OEX — oex-main-script full rewrite (new_oex_features.js, 756 lines injected into good base bbd4a86):**
+- **Checkbox selection**: Replaced R/C buttons with paired ☑ R / ☑ C checkboxes per tree node; checked = included in matrix axis; event delegation handles change events
+- **All 25 DB tables in tree**: `OEX_ALL_TABLES` array + Database Tables section in Quick View gets injected checkboxes for every table, enabling table×table cross-reference matrix
+- **Quartile row-hiding**: `≤25%/≤50%/≤75%/All` buttons now `display:none` entire rows where ALL cells exceed the ceiling — no more ghost rows polluting the view
+- **Cmd+click multi-cell comparison**: Replaced inline `onclick="oexClickCell(this, event)"` with event delegation (`wrap.addEventListener('click', ...)`) passing real DOM event — `e.metaKey` / `e.shiftKey` now correctly captured for multi-select inspector
+- **Table×table strength**: `_oexTableStrength()` via `OEX_JOIN_MAP`/`OEX_FK_COL` FK intersection — coverage score between any two DB tables
+- **CPM dot fix re-applied**: `LEFT_MARGIN - 14 - labelWidth - 7` → `- 14` (dots column-aligned left of labels)
+
+**Homepage:**
+- Removed 3 static metric tiles (`#hw-bd-metrics`: DATA POINTS 9,389 / CONNECTIONS 3,139 / INTELLIGENCE SIGNALS 57) — hardcoded values replaced by live center total + animated breakdown strip already in place
+
+## 2026-05-27 (Session 72) — OEX tree R/C integration, quartile filter, multi-cell inspector; CPM dot fix (commit 4a63f4f)
+
+**OEX — Matrix Builder removed, R/C buttons injected directly into tree:**
+- Removed the separate "Matrix Builder" panel and `#oex-node-catalog` section from OEX left panel
+- `oexInjectTreeButtons()` runs after tree renders; adds R/C (row/column) toggle buttons to each leaf item in Quick View (Disease Areas, Molecular Targets, Drug Pipeline, Companies)
+- "All R" / "All C" buttons on each section header add/remove the entire category at once
+- Button states (✓R / ✓C) update live as matrix changes
+- `oexToggleGroup()` handles category-level toggling; `oexToggleNode()` handles individual items
+- OEX_LABEL_MAP: label→node lookup built from OEX_CAT for fast tree injection matching
+- `oexLoadTree` patched: re-injects buttons after each polling refresh
+
+**OEX — Quartile filter buttons (replace slider):**
+- Removed `<input type="range">` slider entirely
+- Four buttons in toolbar: ≤25% / ≤50% / ≤75% / All (active state in green)
+- Clicking a button sets `OEX_MS.ceiling`; cells above threshold get `opacity:0.15` + strikethrough
+- Active button highlighted: green background + border; inactive: dark/muted
+- `oexSetCeiling()` handles both button state updates and matrix re-render
+
+**OEX — Multi-cell inspector (Shift/Cmd+click):**
+- Single click: inspect one cell (detailed area×layer drill with covered/missing drug chips)
+- Shift or Cmd+click: add up to 6 cells to selection (gold outline on selected cells)
+- Multi-cell view: comparison table (row × col × coverage% × count)
+- Gap analysis: auto-highlights cells <40% in the comparison panel
+- `oexClearInspector()` button in inspector header resets selection + outlines
+- Inspector shows initial hint text: "Shift or ⌘Cmd+click to compare multiple"
+
+**CPM — Dot/label overlap fix:**
+- Changed arc x position: `LEFT_MARGIN - 14 - labelWidth - 7` → `LEFT_MARGIN - 14 - labelWidth - 14`
+- Gap between dot right edge and text left edge: 3.5px → 10.5px — no more overlap
+
+---
+## 2026-05-27 (Session 71b) — Homepage graph metrics tiles, remove BD callout, Intelligence tab priority bar (commit f6934faa)
+
+**Changes:**
+- Replaced 4 BD-specific homepage tiles (BD Opportunities, Mechanism Classes, Deals Tracked, Companies Prioritized) with 3 graph metric tiles: DATA POINTS (9,389), CONNECTIONS (3,139), INTELLIGENCE SIGNALS (57)
+- Removed "Top BD Priority" callout section from homepage (hw-platform-intel + JS that populated it)
+- Added `accent-purple` CSS class for new tile border
+- Added italic note to Intelligence Feed header: "All new platform intelligence, findings, and proposed metrics appear here first before promotion to main dashboards."
+- Added BD Priority Ranking summary bar at top of Intelligence tab (above Critical BD Gaps section) — compact card row showing top 5 companies by overall_bd_score, click to expand ailux_pitch
+- Added `bdRenderPriorityBar()` function wired into `loadIntelFeed()` render chain
+
+**Graph metrics basis (2026-05-27):**
+- 9,389 total rows across all 49 enumerated tables
+- 3,139 connections (sum of 14 junction/edge tables)
+- 57 intelligence signals (discoveries:19 + pipeline_gaps:25 + bd_readiness:13)
+
+---
+## 2026-05-27 (Session 71) — OEX IIFE fix: restore clean base + dynamic matrix features (commit db072fc)
+
+**Root cause:** The Session 70 oex-main-script rewrite introduced complex nested quote escaping in inline `onclick` handlers that Chrome V8 rejected with "Unexpected string" — even though Node.js `--check` and Acorn parser both passed. The entire IIFE failed silently, leaving the OEX page blank.
+
+**Fix approach:**
+- Fetched the last known-good oex-main-script from commit `bbd4a86` (43 KB base)
+- Wrote a clean 476-line replacement for all new dynamic matrix features using **data-\* attributes + event delegation** — zero inline onclick string escaping
+- Injected new features before the IIFE close in the good base; Node.js syntax check passes
+- Full combined script: 67,648 chars; deployed to GitHub Pages
+
+**New features now live (all from clean JS):**
+- `OEX_MS` state object: rows/cols/ceiling/sort/cache for dynamic matrix
+- `oexInitCatalog()` — lazy-loads disease_areas, companies, drug_targets from Supabase
+- `oexRenderBuilder()` — node catalog with R/C axis buttons via event delegation (no onclick escaping)
+- `oexToggleNode()` — add/remove any node from row or column axis
+- `oexStrength()` — computes coverage % for any node pair (area×layer, area×area, area×stage, etc.)
+- `oexRenderMatrix()` — dynamic table with ceiling filter (opacity+strikethrough for strong connections)
+- `oexDrillCell()` — cell click → inspector with covered/missing drug chips (area×layer drill)
+- `oexSortMatrix()`, `oexSetCeiling()`, `oexResetMatrix()` — toolbar controls
+- `oexExpandL4()` — L4 tree drill to actual drug names
+
+**Verified live:** `OEX_INITIALIZED: true`, tree loaded (11 nodes), all UI elements present, all `window.oexXxx` functions defined.
+
+---
+## 2026-05-27 (Session 67) — BD metrics tiles + enrichment pipeline report (commit 9b29f9a2)
+
+**Homepage: 4 new BD intelligence metric tiles + platform intelligence callout**
+
+New tiles added below the existing breakdown strip (`#hw-breakdown`), inside `#home-welcome`:
+- **BD Opportunities** — count of `company_pipeline_gaps` rows with `gap_severity IN (critical, high)` → 18
+- **Mechanism Classes** — count of `mechanism_precedent_map` rows → 15
+- **Deals Tracked** — count of `deal_value_tracking` rows → 12
+- **Companies Prioritized** — count of `bd_readiness_composite` rows with `call_priority IN (call_now, call_soon)` → 8
+
+**Platform Intelligence callout** — animated card below the metric tiles showing top `call_now` company by `overall_bd_score`:
+- Shows AbbVie (score 89) with full `ailux_pitch` text on load
+- Graceful empty state if table has no results
+
+**Enrichment pipeline status:**
+- Meridian Research (research.py, 6:00 UTC / 2 AM ET): last nightly run CANCELLED due to 45-min timeout
+- Meridian Writer (write_meridian.py, 10:30 UTC / 6:30 AM ET): last run SUCCESS (2026-05-26T19:13)
+- `meridian_today.html` exists in repo (327 bytes — likely placeholder/minimal output)
+- Root cause: research.py is hitting the 45-minute GitHub Actions job timeout every night; has not completed since 2026-05-22
+
+See `docs/enrichment_pipeline_report.md` for full pipeline diagnosis.
+
+---
+## 2026-05-27 (Session 62) — Navigator blank panel root-cause fix (commit 2213861)
+
+**Root cause identified and fixed after 4th attempt:**
+
+- **The bug:** `_hierFetchLiveData()` checked `if (!window._sb)` but `_sb` is a module-level `const` — not attached to `window`. This caused the function to throw `'_sb not ready'` on every call, silently setting `_hierLiveData = []`, so the panel always rendered blank.
+- **Fix 1:** Changed `window._sb` to `typeof _sb === 'undefined'` in `_hierFetchLiveData()`
+- **Fix 2:** Added `multiple_myeloma` and `chronic_urticaria` indication-ID overrides to `_HIER_LEGACY_TO_TA` (DB uses full IDs, map only had short aliases `mm`/`csu`)
+- **Fix 3:** Added `immunology` TA (sort_order=8 in DB) to `_HIER_TA_TAB_MAP` and `_HIER_TA_COLOR_MAP`
+- **Fix 4:** Improved catch block from `console.warn` to `console.error` + visible red error text in panel body
+- Diagnosis report: `docs/navigator_final_fix_report.md`
+
+---
+## 2026-05-27 (Session 61) — BD gap cards + priority rankings in Intelligence tab (commit e11cf25)
+
+**Intelligence tab — three new sections above existing two-panel layout:**
+
+**1. Critical BD Gaps (company_pipeline_gaps)**
+- Queries `company_pipeline_gaps` table for critical + high severity gaps
+- Responsive card grid: company name + mechanism, severity badge (red/orange), gap type tag, description, opportunity angle in green callout
+- Collapsible section (open by default), count in header
+- 18 gaps loaded across AstraZeneca, AbbVie, Pfizer, J&J, Sanofi, Roche, Lilly, UCB, Novartis, Merck
+
+**2. BD Priority Rankings (bd_readiness_composite)**
+- Queries `bd_readiness_composite` table (not yet built — shows graceful placeholder)
+- When table is populated: ranked rows with CALL NOW/CALL SOON/WATCH badges, score bar, expandable Ailux pitch
+- Handles 404 gracefully
+
+**3. Four BD signal discoveries inserted into intelligence_discoveries:**
+- AbbVie: TL1A gap (severity=high)
+- Pfizer: OX40 pathway lost (severity=high)
+- J&J: AD/atopy absence despite R&D Day declaration (severity=high)
+- AstraZeneca: stated TL1A IBD interest, zero Phase 2+ assets (severity=critical)
+- `bd_signal` type added to CSS pill styles
+
+---
+## 2026-05-27 (Session 70) — CPM label fix + dynamic OEX relationship matrix (commit 3fba441)
+
+**CPM — label/dot alignment fixed:**
+- `LEFT_MARGIN` bumped 150 → 160 to give "Respiratory" full room
+- `DOT_X = LEFT_MARGIN - 22` — all indicator dots now in a strict vertical column regardless of label length
+- Labels drawn `textAlign='right'` ending at `DOT_X - 8` — consistent 8px gap between text and dot for every area
+- Legend rewritten: dot radius 8 (was 5), font 13px (was 10px), 26px item spacing, Catalyst rendered as ring stroke
+
+**OEX Relationship Matrix — full dynamic overhaul:**
+- `OEX_NODE_CATALOG`: 6 selectable node type categories (Disease Areas, Data Layers, Dev Stages, Database Tables, Companies, Molecular Targets)
+- `OEX_MATRIX_STATE`: runtime state for row/col node selection, strength ceiling, sort direction, cell cache
+- **Matrix Builder panel** added to left panel — every node in every category has R (row) and C (column) toggle buttons; R/C buttons highlight when active
+- **Toolbar**: Sort dropdown (Strongest/Weakest/Alpha), "Show ≤ X%" ceiling slider, Reset button
+- **Strength ceiling filter**: cells above threshold shown with `line-through` and opacity 0.25 — drag ceiling down to make strong connections disappear and surface weak/missing ones
+- `oexComputeStrength()`: handles area×layer (existing), area×area (shared drugs), area×stage (drug stage counts), area×company (drugs by company in area), layer×layer (co-coverage)
+- `oexDrilldownCell()`: click any cell → inspector shows two-column covered/missing drug name list with live Supabase fetch
+- `oexExpandL4()`: tree Disease Areas → TL1A → Direct → [29 actual drug names] — full drill to data level
+- Default behavior preserved (disease areas × data layers on first load)
+
+---
+## 2026-05-26 (Session 69c) — OEX overhaul: CPM visual + full schema + coverage fix + live polling (commit bbd4a86)
+
+**Competitive Pressure Map — visual overhaul:**
+- LEFT_MARGIN=150 (was ~80) — labels no longer obscured by Preclinical dots
+- ROW_HEIGHT=72 (was ~32) — disease areas breathe; canvas height computed dynamically
+- Stage column width = (canvas.width−170)/5 — all 5 columns including Approved always visible
+- Dot visual hierarchy: Direct (r=11, red glow shadowBlur=18), Watch (r=9, amber glow), Adjacent (r=7, blue), Same-Space (r=5, gray)
+- Catalyst ring: gold #fde68a halo at dotR+5, lineWidth=2.5 — prominent signal
+- Row pressure shading: hot-zone red tint (Direct+Watch>8), warm amber tint (4–8), left 4px accent bar per area
+- Right-side pressure bar: per-row Direct count scaled vs max — instant pressure ranking at right edge
+- Stage headers with dotted column dividers; improved tooltip with tier badge + company name
+
+**OEX Tree — all Supabase tables live:**
+- Quick View section preserved (Disease Areas / Targets / Pipeline / Companies biological summary)
+- New "Database Tables" section: 5 collapsible categories (Pipeline, Companies & Deals, Ontology, Evidence & Intelligence, Trials & Validation)
+- 25+ tables shown with live row count badges; tables not exposed via RLS excluded gracefully
+- Click any table node → Inspector shows description, join relationships, live 3-row sample
+
+**Coverage Matrix — Trials + News fixed:**
+- Trials 0% fix: now joins drug_area_scores.drug_id → trials.drug_id (also checks canonical_drug_id), counts distinct drugs with ≥1 trial
+- News 0% fix: now iterates matched_drug_ids array field in news_articles (was filtering on source_validation_status which excluded most records)
+
+**Live polling:**
+- 60-second setInterval auto-refreshes oexLoadTree() + oexLoadMatrix() while OEX tab is visible
+- Skips refresh if #tab-ontology-explorer is display:none (no background work when tab is closed)
+- Timestamp updates on each poll cycle
+
+---
+## 2026-05-26 — Navigator blank panel fix (commit 0824217)
+
+**Bug:** Meridian Navigator showed blank white panel on hover — no therapeutic areas rendered.
+
+**Root cause:** `_HIER_LEGACY_TO_TA` map was missing 5 direct disease_area → TA mappings: `dermatology`, `gastroenterology`, `neurology`, `rheumatology`, `hematology`. These 5 values cover ~40 indications. Additionally, lookup order was `disease_area` first, then `ind.id` — meaning per-indication overrides for `gmg`/`cidp` (both stored as `disease_area: autoimmune`) were never reached, placing them under rheumatology instead of neurology.
+
+**Fix:** Expanded `_HIER_LEGACY_TO_TA` with all missing mappings. Flipped lookup to check `ind.id` first so per-indication overrides always win. No other changes.
+
+---
+## 2026-05-26 (Phase E Agent) — Live hierarchy wiring + field validation audit (commit a3db905)
+
+**hierBuildTree() — wired to live Supabase (Phase E):**
+- Removed 125-line static `HIER_DATA` array (hardcoded Immunology / Oncology / Neurology mock tree)
+- Added `_hierFetchLiveData()` async function: queries `therapeutic_areas` (7 rows) + `indications` (11 rows) + `drug_indications` (246 rows) + `drug_targets` (~250 rows) in parallel
+- Builds tree dynamically: TA → indication nodes with live drug counts + top 6 targets per indication
+- tabId mapping: `_HIER_TA_TAB_MAP` / `_HIER_IND_TAB_MAP` / `_HIER_TGT_TAB_MAP` / `_HIER_TGT_SYMBOL` constants
+- `_hierLiveData` cache: Supabase query only on first open; subsequent renders (hierSetSel, hierClearSelection) use cache = no latency after first load
+- `hierBuildTree()` now async; `hierSetSel` / `hierClearSelection` updated to `.then()` pattern
+- Shows "Loading navigator…" spinner during first fetch; falls back to empty tree on error
+- Bottom eager call updated to `hierBuildTree().then(() => { hierState.built = true; }).catch(console.error)`
+
+**Field validation audit complete:**
+- `docs/field_validation_audit.md` created — 3 entity tables (Company / Drug / Trial) × all displayed fields
+- Top 10 P0 gaps: drug_indications coverage (35% missing), ailux_angle null ~45%, vs_ailux_positioning ~60% null, differentiation_thesis ~50% null, indication_short ~25% null
+- Confirmed: all live PI tables, DKN, company slide-over, drug dossier, home counter are Supabase-sourced
+- No erroneous hardcoded data found in live UI; Industry Insights archive stats + molecule tab editorial tables are intentionally static
+
+---
+## 2026-05-26 (Session 69b) — Program Board tab restored: div nesting fix (commit 7887224)
+
+**Root cause:** `#ont-explorer-panel` div (opened inside `#tab-ontology-explorer`) was never closed. The single `</div><!-- /tab-ontology-explorer -->` that followed the OEX script block closed `#ont-explorer-panel` instead of `#tab-ontology-explorer`, leaving `#tab-ontology-explorer` unclosed and swallowing all subsequent tabs — including `#tab-program-board` — as DOM children. When the OEX tab was `display:none`, Program Board inherited that hidden state.
+
+**Diagnosis:**
+- Chrome MCP JS inspection: `#tab-program-board` had `parentDisplay: "none"`, parent was `#tab-ontology-explorer`
+- Div count in OEX section: 66 opens / 65 closes (net +1 = confirmed unclosed div)
+
+**Fix:** Inserted `</div><!-- /ont-explorer-panel -->` immediately before `</div><!-- /tab-ontology-explorer -->` using Python string replacement. After fix: 66 opens / 66 closes (net=0). `#tab-program-board.parentId` confirmed as `""` (no longer nested under OEX tab).
+
+---
+## 2026-05-26 (Session 69) — Ontology Explorer: full live Supabase wiring (commit f64e697)
+
+**All three panels + bottom visualization now live from Supabase:**
+
+- **`oexRender()` defined** — was called but never existed; now an async function triggering all three panel loads in parallel; called by TAB_REGISTRY `onEnter` and `switchOntSubTab`
+- **Left panel — Ontology Tree (live):** Fetches disease_areas, drug_area_scores, drugs, drug_targets, companies; builds 4 collapsible L1 categories: Disease Areas (with overlap breakdown sub-items), Molecular Targets (top 14 by drug count), Drug Pipeline (by stage), Companies (22 listed); live entity counts on all badges
+- **Center panel — Relationship Matrix (live):** Rows = disease areas (up to 11), columns = 5 data layers (Targets / Indications / Trials / Catalysts / News); each cell = % of drugs in area with data in that layer; color-coded Strong ≥70% / Partial 40–70% / Sparse 15–40% / Gap <15%; header updated to show live area + score counts
+- **Right panel — Inspector (live):** `oexInspectCell()` shows coverage bar, covered/total counts, gap warning or ✓ full coverage note
+- **Bottom — Competitive Pressure Map (replaces DNN animation):** Canvas-based dot plot; X = dev stage (Preclinical→Approved), Y = 8 disease areas; dot color = overlap tier (Direct red / Watch amber / Adjacent blue / Same-Space gray); ring on dots with upcoming catalysts; hover tooltip (drug name, company, stage, tier, catalyst flag); ResizeObserver for responsive width; timestamp bottom-right
+- DNN section (`oex-dnn-section`, `oex-dnn-script`) fully removed
+- All fetches use `_sb` client already in scope; error-isolated per panel with try/catch
+
+---
+## 2026-05-26 (Session 68) — Ontology Explorer: prototype embedded as hidden sub-tab
+
+**Ontology Explorer PROTO added to Meridian Admin (commit 07999d4fda6d):**
+- New "Ontology Explorer PROTO" button added to Meridian Admin sub-tab strip alongside Ontology Audit
+- `switchOntSubTab(which)` function toggles between Audit and Explorer views; lazy-initializes Explorer on first open
+- `#ont-explorer-panel`: full three-panel layout (left: ontology tree / center: relationship matrix / right: inspector), `display:none` by default
+- Mock data only — no Supabase wiring; seven ontology categories (Therapeutic Area, Target Class, Modality, Company Type, Development Stage, Catalyst Type, Deal Type)
+- L1/L2/L3 level badge system: L1 = Category, L2 = Vocabulary, L3 = Entity examples (subordinate)
+- Matrix: 7×7 category grid with expand-to-vocabulary drill-down; 21 category-pair relationships + 9 vocabulary-level intersections
+- Inspector: three-tier layout — L1 category relationship → L2 vocabulary analysis → L3 supporting evidence (dashed boundary)
+- All CSS scoped under `#ont-explorer-panel`, all JS namespaced `OEX_` (data) and `oex` (functions) to prevent conflicts with Meridian CSS/JS
+- Design brief at `ontology_explorer_brief.docx`; standalone prototype at `ontology_explorer_prototype.html`
+
+---
+## 2026-05-26 (Session 67) — Ontology Navigator: hover-to-open + physical hover zones
+
+**Hierarchy dropdown — hover behavior overhaul (commit e2c721cf):**
+- Removed `onclick` from 🗂 button — menu now opens purely on CSS hover over `.hier-dd-wrap`
+- Replaced JS-toggled `.hier-dd-btn-active` class with CSS `.hier-dd-wrap:hover > .nav-icon-btn`
+- Replaced `toggleHierDropdown()` function with a `mouseenter` lazy-builder (builds DOM tree on first hover)
+- Removed click-outside handler for hierarchy dropdown (no longer needed — hover state owns open/close)
+- Sub-panel hover zones enlarged: rows `11px 13px` padding, `top: -8px` buffer, `left: calc(100% - 6px)` overlap, `padding: 6px 0` inside panels
+
+---
 ## 2026-05-26 (Session 66) — Knowledge Graph Integration: Routing Fixes 3A/3B/4/5
 
 **Drug card — news + catalyst sections (Fixes 3A + 3B):**
@@ -5490,3 +5957,83 @@ Commit: `1ef569ed`
 - PI dashboard company row expansion simplified: removed assessment/BD/platform intel + catalysts + news sections (now live in canonical card tabs only); kept drug rows + competitive signals
 - Added _cemSwitchArea() JS function for area filter interaction
 - Added CSS for .cem-area-filter, .cem-area-pill, .cem-area-block, .cem-assess-intel-grid
+2026-05-26 23:34 | a105e28d | feat: hierarchy ontology dropdown — new 🗂 button next to DNA (mock data prototype, no DB connection)
+2026-05-26 23:41 | f73b90cc | feat: hierarchy dropdown — hover flyout cascade; CSS :hover reveals next level to the right, no clicks needed
+2026-05-26 23:44 |  | feat: hierarchy click-to-navigate — tabId routing map, dropdown closes on nav, no-tab toast for unmapped nodes
+2026-05-26 23:48 | 87302d88 | fix: hierarchy dropdown grace period — 200ms forgiveness window prevents collapse when mouse briefly exits between levels
+
+## 2026-05-26 — Home: Welcome Center replaces 4-card launcher
+- Removed the 4 home launcher cards (Catalysts & Signals, Deal Activity, Essential Updates, Important Articles)
+- Confirmed Industry Insights tab already captures all that data (intel + news_articles + competitive_signals + deals — fully redundant)
+- Replaced home center with elegant welcome screen: platform name "Meridian" · live date (large, light weight) · live clock (seconds) · animated rolling data counter · per-category breakdown (Drugs, Companies, Trials, Intelligence, Deals, Catalysts, Articles, Connections)
+- Counter animates on load with ease-out cubic from 0 to live total; breakdown items fade + rise in staggered sequence
+- Overlay panel HTML preserved in DOM (JS references like home-catalysts-anchor, meridian-reader-anchor still resolve)
+- Footer disclaimer sentence unchanged, same position
+- Commit: 42b9873922
+
+## 2026-05-26 — Intelligence Feed tab + Review Queue (Session 61)
+
+**Commit:** b94a4d464224865e6aac8d82f49a440d493ee649
+
+**Changes:**
+- Created two new Supabase tables: `intelligence_discoveries` and `review_queue`
+- Seeded `intelligence_discoveries` with 8 Session 61 realizations:
+  - batoclimab halted (high severity)
+  - nipocalimab FDA approved for gMG (medium)
+  - astegolimab COPD miss — watch flag (medium)
+  - tozorakimab 3 positive Phase 3 results (medium, pending action)
+  - Blueprint Medicines → Sanofi subsidiary (low)
+  - 13 biological mechanism edges added (info)
+  - 76 indication co-occurrence pairs (info)
+  - rocatinlimab OX40 Kaposi sarcoma safety signal (high, pending action)
+- Seeded `review_queue` with 4 governance decisions (3 answered, 1 pending):
+  - Answered: astegolimab watch flag, tozorakimab stage, Blueprint subsidiary rule
+  - Pending: OX40L × AD mechanism_status update for amlitelimab
+- Added ⚡ Intelligence Feed tab to nav bar (icon button in right group)
+- Tab renders two side-by-side panels:
+  - Left (55%): Realizations Feed — scrollable cards, severity color badges, filter bar (All/High/Medium/Low/Info), type pills, old→new value diffs
+  - Right (45%): For Your Review — pending-first, priority badges, collapsible context, inline answer textarea + PATCH to Supabase via service key
+- TAB_REGISTRY, TAB_META, nav icon map all updated for `intelligence` tab
+- Reads via anon key, writes via service key (internal tool)
+- Auto-loads on tab enter via registerTab onEnter hook
+
+---
+
+## Session 62 — 2026-05-27
+
+### Commit: c5511b0743917efab969192990287314cec7fae1
+**feat: brand names as lead on drug cards + near-term approvals watchlist**
+
+#### TASK 1 & 2: Brand-Name-First Drug Display
+- Added CSS classes `.drug-brand-name` (font-weight:600) and `.drug-molecule-name` (0.82em, color #8899aa) to stylesheet
+- Updated 4 drug name rendering locations to brand-first display:
+  1. **Competitive landscape table** (renderOverlapDrugs): brand + smaller molecule secondary
+  2. **loadAreaDrugs** (molecule tab drug lists): brand + molecule class
+  3. **_piDrugLabelHTML** (PI tab drug labels): updated `_sec` helper to use `.drug-molecule-name` class
+  4. **_drugNameHTML** (shared renderer): updated secondary span to use class
+- Display rule: if `brand_name` populated → show brand bold, molecule name smaller/lighter beside it; if no brand → show molecule name unchanged
+- Data integrity preserved: drug IDs, filter logic, and query keys still use molecule names
+
+#### TASK 3: Near-Term Approvals & Watch List (Lightning ⚡ tab)
+- Added "📅 Upcoming Approvals & Watch List" collapsible section at top of Intelligence tab
+- Section auto-loads on tab enter (registered in `onEnter` hook)
+- **Imminent Decisions sub-list**: queries `drugs` table for stage in (regulatory_review, bla_filed, nda_filed); shows countdown chip (days remaining), PDUFA date, company, indication
+- Hard-coded seed data (always shown even if DB returns empty):
+  - **veligrotug** — PDUFA June 30, 2026, TED/FcRn, Immunovant
+  - **ianalumab** — PDUFA ~July 2026, Sjogren's Disease, Novartis
+- **Watch List sub-list**: queries `drugs.watch_flag=true` + `drug_failure_cascade.cascade_type='mechanism_validation'`; shows watch reason with severity color coding
+- Graceful degradation: DB query failures fall back to hard-coded items silently
+- `bdToggleSection` updated to handle 'approvals' key alongside existing 'gaps'/'rankings'
+
+
+---
+
+## Session 76 — 2026-05-27
+
+**Commit:** 6e96d255e984
+
+**Homepage layout:** #hw-breakdown switched from margin-top:auto to position:absolute;bottom:40px;left:0;right:0 so date/time/Meridian centers in remaining space and numbers stay pinned to bottom.
+
+**Navigator DA hierarchy fix:** _hierFetchLiveData was naming DA nodes after the TA (name:ta.name), causing 'Respiratory > Respiratory > Asthma'. Added _HIER_DA_LABEL map (disease_area → readable label, e.g. ibd:'IBD', respiratory:'Airway Diseases', ted:'Thyroid Eye Disease'). Rewrote DA-building to group indications by ind.disease_area DB field and create one node per bucket. Breadcrumb now reads 'Gastroenterology > IBD > UC' or 'Respiratory > Airway Diseases > Asthma'.
+
+**entity_edges RLS (Connections=0):** Cannot fix via API. User must run in Supabase SQL Editor: CREATE POLICY anon_select ON public.entity_edges FOR SELECT USING (true);
