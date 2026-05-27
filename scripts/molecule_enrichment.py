@@ -29,7 +29,7 @@ Environment:
   SUPABASE_SERVICE_KEY  — required
 """
 
-import os, sys, json, re, argparse, textwrap
+import os, sys, json, re, argparse, textwrap, hashlib
 from datetime import datetime, timezone
 
 import anthropic
@@ -82,6 +82,39 @@ def sb_get(table, params):
         log(f"⚠ GET {table} → {resp.status_code}: {resp.text[:200]}")
         return []
     return resp.json() or []
+
+def make_canonical_id(drug_id):
+    """Generate a deterministic canonical_drug_id for drugs that lack one."""
+    h = hashlib.md5(drug_id.encode()).hexdigest().upper()[:8]
+    return f"CANON_DRUG_{h}"
+
+def ensure_canonical_id(drug):
+    """If drug lacks canonical_drug_id, generate one, insert stub into canonical_drugs,
+    then PATCH it into the drugs table. Inserting the canonical_drugs row first avoids
+    the FK constraint violation on molecule_intelligence.canonical_drug_id."""
+    if drug.get("canonical_drug_id"):
+        return drug["canonical_drug_id"]
+
+    canon = make_canonical_id(drug["id"])
+    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
+         "Content-Type": "application/json", "Prefer": "resolution=ignore-duplicates"}
+
+    # 1. Insert stub into canonical_drugs (ignore if already exists)
+    stub = {
+        "canonical_id":   canon,
+        "canonical_name": drug.get("display_name") or drug.get("drug_name") or drug["id"],
+        "is_active":      True,
+        "confidence_score": 50,
+    }
+    requests.post(f"{SUPABASE_URL}/rest/v1/canonical_drugs", json=stub, headers=h, timeout=15)
+
+    # 2. Patch canonical_drug_id onto the drugs row
+    requests.patch(f"{SUPABASE_URL}/rest/v1/drugs", json={"canonical_drug_id": canon},
+                   params={"id": f"eq.{drug['id']}"}, headers=h, timeout=15)
+
+    drug["canonical_drug_id"] = canon
+    log(f"  ↳ generated canonical_drug_id: {canon} (stub inserted into canonical_drugs)", indent=1)
+    return canon
 
 def sb_delete_by_drug_id(drug_id):
     """Delete existing molecule_intelligence record for this drug_id."""
@@ -208,6 +241,16 @@ def build_prompt(drug, trials):
         3. Dosing and PK implications from known structure
         4. What a BD team at a competing company would want to know
 
+        ## Governance Rules (mandatory)
+        - ATTRIBUTION: company_id in the database = originator (developer). If you see a licensee
+          relationship, note it in source_url context but do NOT suggest changing company_id.
+        - BRAND NAME: Only populate brand_name for fully approved drugs. A drug in Phase 1/2/3
+          with a brand name is an error — leave brand_name null unless the drug is approved.
+        - SOURCE: source_url must be a real, verifiable URL (CT.gov, FDA label, peer-reviewed paper,
+          company IR). Do not fabricate. Omit rather than guess.
+        - CO-DEV: If co-developed, note partner in source_url context. Do NOT embed partner name
+          in the target field. Target = molecular targets only (e.g. "TL1A × IL-23p19").
+
         {SCHEMA_BLOCK}
 
         Return only the JSON object, no markdown fences, no commentary.
@@ -239,7 +282,7 @@ VALID_CONFIDENCE = {"high", "medium", "low"}
 
 def write_mol_intel(drug, parsed, dry_run=False):
     drug_id = drug["id"]
-    canonical = drug.get("canonical_drug_id")
+    canonical = ensure_canonical_id(drug)  # generates + patches drugs table if missing
 
     # Validate field_status
     raw_fs = parsed.get("field_status") or {}
@@ -268,8 +311,7 @@ def write_mol_intel(drug, parsed, dry_run=False):
         "last_enriched_at":        NOW_ISO,
         "enriched_by":             "molecule_enrichment.py",
     }
-    if canonical:
-        rec["canonical_drug_id"] = canonical
+    rec["canonical_drug_id"] = canonical  # always set (generated if missing)
 
     # Remove None values (keep field_status always)
     rec = {k: v for k, v in rec.items() if v is not None or k == "field_status"}
