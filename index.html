@@ -533,12 +533,12 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   margin-bottom: 54px;
 }
 #hw-count-num {
-  font-size: 82px;
-  font-weight: 200;
-  color: #1a2f50;
-  letter-spacing: -4px;
+  font-size: 50px;
+  font-weight: 300;
+  color: #4a6585;
+  letter-spacing: -1.5px;
   line-height: 1;
-  margin-bottom: 15px;
+  margin-bottom: 13px;
   font-variant-numeric: tabular-nums;
 }
 #hw-count-label {
@@ -17037,7 +17037,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const start = performance.now();
       function tick(now) {
         const p = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
+        // Ease-in-out cubic: starts very slowly, accelerates through middle, settles gently
+        const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
         el.textContent = _hwFmt(Math.round(target * eased));
         if (p < 1) requestAnimationFrame(tick);
       }
@@ -17050,7 +17051,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (!_hwClockTimer) _hwClockTimer = setInterval(_hwUpdateClock, 1000);
     if (_hwCountsLoaded) return;
     try {
-      const [drugR, trialR, intelR, dealR, catR, naR, compR, edgeR] = await Promise.all([
+      // Core entity tables (shown in breakdown)
+      const [drugR, trialR, intelR, dealR, catR, naR, compR, edgeR,
+             // Relationship + junction tables (counted in total only)
+             dtR, diR, daR, icR, iaR, partR, csR, mlR, ciR, clR] = await Promise.all([
         _sb.from('drugs').select('*',{count:'exact',head:true}),
         _sb.from('trials').select('*',{count:'exact',head:true}),
         _sb.from('intel').select('*',{count:'exact',head:true}),
@@ -17059,6 +17063,17 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         _sb.from('news_articles').select('*',{count:'exact',head:true}),
         _sb.from('companies').select('*',{count:'exact',head:true}),
         _sb.from('entity_edges').select('*',{count:'exact',head:true}),
+        // relationships & junctions
+        _sb.from('drug_targets').select('*',{count:'exact',head:true}),
+        _sb.from('drug_indications').select('*',{count:'exact',head:true}),
+        _sb.from('drug_areas').select('*',{count:'exact',head:true}),
+        _sb.from('intel_companies').select('*',{count:'exact',head:true}),
+        _sb.from('intel_areas').select('*',{count:'exact',head:true}),
+        _sb.from('partnerships').select('*',{count:'exact',head:true}),
+        _sb.from('competitive_signals').select('*',{count:'exact',head:true}),
+        _sb.from('molecule_intelligence').select('*',{count:'exact',head:true}),
+        _sb.from('company_strategic_views').select('*',{count:'exact',head:true}),
+        _sb.from('competitive_landscapes').select('*',{count:'exact',head:true}),
       ]);
       const breakdown = [
         { n: drugR.count  || 0, l: 'Drugs' },
@@ -17070,8 +17085,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         { n: naR.count    || 0, l: 'Articles' },
         { n: edgeR.count  || 0, l: 'Connections' },
       ];
-      const total = breakdown.reduce((s, x) => s + x.n, 0);
-      _hwAnimCount(document.getElementById('hw-count-num'), total, 2200, 0);
+      // Total includes every relationship row — junctions, mappings, enrichment records
+      const relTotal = [dtR,diR,daR,icR,iaR,partR,csR,mlR,ciR,clR]
+        .reduce((s, r) => s + (r.count || 0), 0);
+      const total = breakdown.reduce((s, x) => s + x.n, 0) + relTotal;
+      // Slow start — 500ms pause before the counter wakes, then 4.5s ease-in-out
+      _hwAnimCount(document.getElementById('hw-count-num'), total, 4500, 500);
       const bd = document.getElementById('hw-breakdown');
       if (bd) {
         bd.innerHTML = breakdown.map((x,i) => `
