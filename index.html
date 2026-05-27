@@ -11049,7 +11049,7 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -11475,13 +11475,72 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   </div>`;
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
-  // Ownership chain banner (shown when drug has been acquired and has a current owner)
-  const _ownerBannerHtml = ownerData ? `<div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
-    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Ownership Chain</span>
-    <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
-    <span style="font-size:11px;color:#64748b">·</span>
-    <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
-  </div>` : '';
+  // Provenance chain banner: full multi-hop chain from asset_transfer_history if available,
+  // otherwise falls back to the simple two-node ownerData banner.
+  const _ownerBannerHtml = (() => {
+    // ── Full provenance chain (from asset_transfer_history) ─────────────────
+    if (transferChain && transferChain.length > 0) {
+      // Build ordered node array from the chain
+      const _tcNodes = [];
+      transferChain.forEach((hop, i) => {
+        if (i === 0) _tcNodes.push({ name: hop.from_entity_name, id: hop.from_entity_id });
+        _tcNodes.push({ name: hop.to_entity_name, id: hop.to_entity_id });
+      });
+
+      const _tcNodeHtml = (node) => {
+        const _nSafe = (node.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        return node.id
+          ? `<span style="font-size:11px;font-weight:700;color:#1d4ed8;white-space:nowrap;cursor:pointer" onclick="event.preventDefault();openCompanySlideOver('${node.id}','${_nSafe}','')">${node.name}</span>`
+          : `<span style="font-size:11px;font-weight:700;color:#1e293b;white-space:nowrap">${node.name}</span>`;
+      };
+
+      const _tcEdgeHtml = (hop) => {
+        const _typeShort = { license:'license', sublicense:'sublicense', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' }[hop.transfer_type] || hop.transfer_type;
+        const _geo = (hop.geographic_scope && hop.geographic_scope !== 'global') ? ` ${hop.geographic_scope}` : '';
+        const _dealNote = hop.deal_value_notes
+          ? ` · ${hop.deal_value_notes.slice(0,45)}${hop.deal_value_notes.length > 45 ? '…' : ''}`
+          : (hop.deal_value_upfront_usd ? ` · $${(hop.deal_value_upfront_usd / 1e6).toFixed(0)}M upfront` : '');
+        const _vDot = hop.verified ? '' : ' ⚬';
+        const _tipTxt = (hop.deal_value_notes || '').replace(/"/g, '&quot;');
+        return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0">
+          <span style="font-size:9px;color:#1d4ed8;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 5px;white-space:nowrap" title="${_tipTxt}">${_typeShort}${_geo}${_vDot}</span>
+          ${_dealNote ? `<span style="font-size:9px;color:#64748b;white-space:nowrap">${_dealNote.trim()}</span>` : ''}
+        </span>`;
+      };
+
+      let _timelineHtml = _tcNodeHtml(_tcNodes[0]);
+      transferChain.forEach((hop, i) => {
+        _timelineHtml += `<span style="color:#94a3b8;font-size:11px;padding:0 3px;flex-shrink:0">→</span>`;
+        _timelineHtml += _tcEdgeHtml(hop);
+        _timelineHtml += `<span style="color:#94a3b8;font-size:11px;padding:0 3px;flex-shrink:0">→</span>`;
+        _timelineHtml += _tcNodeHtml(_tcNodes[i + 1]);
+      });
+
+      const _tcHasUnverified = transferChain.some(h => !h.verified);
+
+      return `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Provenance Chain</span>
+          <span style="font-size:9px;color:#64748b">${transferChain.length} transfer${transferChain.length !== 1 ? 's' : ''}</span>
+          ${_tcHasUnverified
+            ? '<span style="font-size:9px;color:#92400e">· some hops unverified</span>'
+            : '<span style="font-size:9px;color:#15803d">· all verified ✓</span>'}
+        </div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;row-gap:6px">
+          ${_timelineHtml}
+        </div>
+      </div>`;
+    }
+
+    // ── Fallback: simple two-node ownership banner ───────────────────────────
+    if (!ownerData) return '';
+    return `<div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid #1d4ed8;border-radius:7px;padding:9px 12px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8">Ownership Chain</span>
+      <span style="font-size:12px;color:#1e293b">Current owner: <a href="#" style="color:#1d4ed8;font-weight:700;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.ownerCompanyId}','${ownerData.ownerName.replace(/'/g,"\\'")}','')">${ownerData.ownerName}</a></span>
+      <span style="font-size:11px;color:#64748b">·</span>
+      <span style="font-size:11px;color:#64748b">originator: <a href="#" style="color:#64748b;font-weight:600;text-decoration:none" onclick="event.preventDefault();openCompanySlideOver('${ownerData.originatorCompanyId}','${ownerData.originatorName.replace(/'/g,"\\'")}','')">${ownerData.originatorName}</a></span>
+    </div>`;
+  })();
 
   // ── Failure cascade risk banner (Fix B — Session 68) ─────────────────────
   const _cascadeRiskHtml = (() => {
@@ -12706,6 +12765,19 @@ async function openDrugEntityModal(drugId, drugName, evt) {
 
     subEl.textContent = companyName || 'Drug Profile';
 
+    // Fetch asset transfer history (multi-hop provenance chain) — Session 69
+    let transferChain = [];
+    try {
+      const _tcDrugId = drug?.id || drugId;
+      if (_tcDrugId && !String(_tcDrugId).startsWith('static-')) {
+        const { data: tcRows } = await _sb.from('asset_transfer_history')
+          .select('sequence_order,from_entity_name,from_entity_id,to_entity_name,to_entity_id,transfer_type,geographic_scope,transfer_date,deal_value_upfront_usd,deal_value_milestones_usd,deal_value_notes,verified,source_url')
+          .eq('drug_id', _tcDrugId)
+          .order('sequence_order', { ascending: true });
+        transferChain = tcRows || [];
+      }
+    } catch(_) {}
+
     // Fetch failure cascade risk for this drug (Fix B — Session 68)
     let cascadeRisk = null;
     try {
@@ -12750,7 +12822,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
