@@ -17094,12 +17094,23 @@ function closeHomePanel() {
 // Close overlay on Escape key
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
-// ── Home Welcome — Live Clock + Dynamic Full-Database Counter ────────────────
+// ── Home Welcome — Live Clock + Full-Database Counter (polls every 60s) ──────
 (function() {
-  const SB_URL  = SUPABASE_URL + '/rest/v1';
-  const SB_KEY  = SUPABASE_ANON;
 
-  // Breakdown tables — the 8 shown individually below the number
+  // Every confirmed table in Supabase (verified live, May 2026)
+  const ALL_TABLES = [
+    'drugs','companies','trials','intel','deals','catalysts','news_articles','entity_edges',
+    'drug_targets','drug_indications','drug_areas','drug_area_scores',
+    'drug_competitive_scores','drug_validation_results','drug_aliases',
+    'intel_companies','intel_areas',
+    'competitive_signals','competitive_landscapes','mechanism_status','molecule_intelligence',
+    'trial_registries','validation_tests',
+    'company_aliases','company_areas',
+    'indications','indication_aliases','targets','target_pairs',
+    'modalities','disease_areas','area_metadata',
+    'ailux_positions','research_queue','geographic_approvals','submitted_intel',
+  ];
+
   const BREAKDOWN = [
     { tbl:'drugs',        l:'Drugs'        },
     { tbl:'companies',    l:'Companies'    },
@@ -17111,16 +17122,14 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     { tbl:'entity_edges', l:'Connections'  },
   ];
 
-  let _hwClockTimer  = null;
-  let _hwPollTimer   = null;
+  let _hwClockTimer   = null;
+  let _hwPollTimer    = null;
   let _hwCurrentTotal = 0;
-  let _hwAllTables   = null; // discovered dynamically from PostgREST schema
-  let _hwFirstLoad   = true;
-  let _hwAnimFrame   = null;
+  let _hwFirstLoad    = true;
 
   function _hwFmt(n) { return n.toLocaleString('en-US'); }
 
-  // ── Clock ────────────────────────────────────────────────────────
+  // ── Clock ─────────────────────────────────────────────────────────
   function _hwUpdateClock() {
     const now = new Date();
     const dEl = document.getElementById('hw-date-line');
@@ -17129,83 +17138,41 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (tEl) tEl.textContent = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
   }
 
-  // ── Animated counter (from current value to target) ─────────────
+  // ── Each element gets its own independent animation ───────────────
   function _hwAnimTo(el, from, to, duration, delay) {
     if (!el) return;
-    if (_hwAnimFrame) cancelAnimationFrame(_hwAnimFrame);
     setTimeout(() => {
       const start = performance.now();
+      let rafId = null;
       function tick(now) {
         const p = Math.min((now - start) / duration, 1);
-        // Ease-in-out cubic — starts slow, lifts through middle, settles gently
-        const eased = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2;
+        const eased = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2, 3)/2;
         el.textContent = _hwFmt(Math.round(from + (to - from) * eased));
-        if (p < 1) { _hwAnimFrame = requestAnimationFrame(tick); }
-        else { _hwAnimFrame = null; }
+        if (p < 1) rafId = requestAnimationFrame(tick);
       }
-      _hwAnimFrame = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(tick);
     }, delay || 0);
   }
 
-  // ── Discover every table from PostgREST OpenAPI schema ──────────
-  async function _hwGetAllTables() {
-    if (_hwAllTables) return _hwAllTables;
-    try {
-      // PostgREST root returns OpenAPI JSON — paths keys are /tablename
-      const res = await fetch(SB_URL + '/', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-      });
-      const schema = await res.json();
-      // Extract table names from paths, strip leading slash, drop RPC paths
-      const tables = Object.keys(schema.paths || {})
-        .map(p => p.replace(/^\//, ''))
-        .filter(t => t && !t.startsWith('rpc/'));
-      _hwAllTables = tables;
-      return tables;
-    } catch(e) {
-      console.warn('[HomeWelcome] schema discovery failed', e);
-      return null;
-    }
-  }
-
-  // ── Count every row in every table ──────────────────────────────
-  async function _hwFetchAllCounts() {
-    const tables = await _hwGetAllTables();
-    if (!tables) return null;
-
-    // Fetch counts in parallel — one HEAD request per table
+  // ── Fetch every table count via _sb (the existing Supabase client) ─
+  async function _hwFetchCounts() {
     const results = await Promise.allSettled(
-      tables.map(tbl =>
-        fetch(`${SB_URL}/${tbl}?select=*&limit=0`, {
-          method: 'HEAD',
-          headers: {
-            'apikey': SB_KEY,
-            'Authorization': 'Bearer ' + SB_KEY,
-            'Prefer': 'count=exact'
-          }
-        }).then(r => {
-          const cr = r.headers.get('Content-Range') || '';
-          const count = parseInt(cr.split('/')[1] || '0', 10) || 0;
-          return { tbl, count };
-        })
-      )
+      ALL_TABLES.map(t => _sb.from(t).select('*', { count:'exact', head:true }))
     );
-
-    // Build map: tableName -> count
-    const countMap = {};
-    results.forEach(r => {
-      if (r.status === 'fulfilled') countMap[r.value.tbl] = r.value.count;
+    const map = {};
+    results.forEach((r, i) => {
+      map[ALL_TABLES[i]] = (r.status === 'fulfilled' ? (r.value.count || 0) : 0);
     });
-    return countMap;
+    return map;
   }
 
-  // ── Render breakdown bar (first time only) ──────────────────────
-  function _hwRenderBreakdown(countMap) {
+  // ── Render breakdown strip (first time only) ───────────────────────
+  function _hwRenderBreakdown(map) {
     const bd = document.getElementById('hw-breakdown');
     if (!bd || bd.dataset.rendered) return;
     bd.dataset.rendered = '1';
-    bd.innerHTML = BREAKDOWN.map((x,i) => `
-      <div class="hw-bd-item" style="transition-delay:${i*70+500}ms">
+    bd.innerHTML = BREAKDOWN.map((x, i) => `
+      <div class="hw-bd-item" style="transition-delay:${i*70+600}ms">
         <div class="hw-bd-num">0</div>
         <div class="hw-bd-lbl">${x.l}</div>
       </div>`).join('');
@@ -17213,77 +17180,63 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
         setTimeout(() => {
           item.classList.add('visible');
-          const numEl = item.querySelector('.hw-bd-num');
-          const n = countMap[BREAKDOWN[i].tbl] || 0;
-          _hwAnimTo(numEl, 0, n, 1400, 0);
-        }, i * 70 + 500);
+          _hwAnimTo(item.querySelector('.hw-bd-num'), 0, map[BREAKDOWN[i].tbl] || 0, 1400, 0);
+        }, i * 70 + 600);
       });
     });
   }
 
-  // ── Update breakdown numbers on subsequent polls ─────────────────
-  function _hwUpdateBreakdown(countMap) {
+  // ── Update breakdown on subsequent polls ───────────────────────────
+  function _hwUpdateBreakdown(map) {
     const bd = document.getElementById('hw-breakdown');
     if (!bd) return;
     bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
       const numEl = item.querySelector('.hw-bd-num');
       if (!numEl) return;
-      const current = parseInt(numEl.textContent.replace(/,/g,''), 10) || 0;
-      const next    = countMap[BREAKDOWN[i].tbl] || 0;
-      if (next !== current) _hwAnimTo(numEl, current, next, 800, 0);
+      const cur  = parseInt(numEl.textContent.replace(/,/g,''), 10) || 0;
+      const next = map[BREAKDOWN[i].tbl] || 0;
+      if (next !== cur) _hwAnimTo(numEl, cur, next, 800, 0);
     });
   }
 
-  // ── Main refresh — fetch everything, update display ──────────────
+  // ── Main refresh ───────────────────────────────────────────────────
   async function _hwRefresh(isFirst) {
-    const countMap = await _hwFetchAllCounts();
-    if (!countMap) return;
-
-    const total = Object.values(countMap).reduce((s, n) => s + n, 0);
-    const totalEl = document.getElementById('hw-count-num');
-
-    if (isFirst) {
-      // First load: slow dramatic count from 0
-      _hwAnimTo(totalEl, 0, total, 4500, 500);
-      _hwRenderBreakdown(countMap);
-    } else {
-      // Subsequent polls: gentle update from current value
-      _hwAnimTo(totalEl, _hwCurrentTotal, total, 1200, 0);
-      _hwUpdateBreakdown(countMap);
-    }
-    _hwCurrentTotal = total;
-
-    // Show table count as subtitle hint
-    const lbl = document.getElementById('hw-count-label');
-    if (lbl) {
-      const n = Object.keys(countMap).length;
-      lbl.textContent = `data points across ${n} tables · live`;
+    try {
+      const map   = await _hwFetchCounts();
+      const total = Object.values(map).reduce((s, n) => s + n, 0);
+      const totalEl = document.getElementById('hw-count-num');
+      const lbl     = document.getElementById('hw-count-label');
+      if (isFirst) {
+        _hwAnimTo(totalEl, 0, total, 4500, 500);
+        _hwRenderBreakdown(map);
+      } else {
+        _hwAnimTo(totalEl, _hwCurrentTotal, total, 1200, 0);
+        _hwUpdateBreakdown(map);
+      }
+      _hwCurrentTotal = total;
+      if (lbl) lbl.textContent = `data points across ${ALL_TABLES.length} tables · live`;
+    } catch(e) {
+      console.warn('[HomeWelcome]', e);
     }
   }
 
-  // ── Entry point ──────────────────────────────────────────────────
+  // ── Entry / exit ───────────────────────────────────────────────────
   async function initHomeWelcome() {
     _hwUpdateClock();
     if (!_hwClockTimer) _hwClockTimer = setInterval(_hwUpdateClock, 1000);
-
-    if (_hwFirstLoad) {
-      _hwFirstLoad = false;
-      await _hwRefresh(true);
-      // Poll every 60 seconds while on the home tab
-      _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
-    }
+    if (!_hwFirstLoad) return;
+    _hwFirstLoad = false;
+    await _hwRefresh(true);
+    _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
   }
 
   function _hwPause() {
-    if (_hwPollTimer) { clearInterval(_hwPollTimer); _hwPollTimer = null; }
+    if (_hwPollTimer)  { clearInterval(_hwPollTimer);  _hwPollTimer  = null; }
     if (_hwClockTimer) { clearInterval(_hwClockTimer); _hwClockTimer = null; }
-    _hwFirstLoad = true; // re-animate on next enter
+    _hwFirstLoad = true;
   }
 
-  registerTab('home', {
-    onEnter() { initHomeWelcome(); },
-    onLeave()  { _hwPause(); }
-  });
+  registerTab('home', { onEnter() { initHomeWelcome(); }, onLeave() { _hwPause(); } });
   document.addEventListener('DOMContentLoaded', () => { initHomeWelcome(); });
 })();
 
@@ -18261,139 +18214,213 @@ let _molCloseTimer = null;
 })();
 
 // ══════════════════════════════════════════════════════════
-//  HIERARCHY / ONTOLOGY DROPDOWN — PROTOTYPE (mock data)
-//  Hover-triggered cascading flyout.  No Supabase connection.
+//  HIERARCHY / ONTOLOGY DROPDOWN — LIVE SUPABASE (Phase E)
+//  Hover-triggered cascading flyout. Data from Supabase.
 //  Sub-panels are DOM children of their parent .hier-item so
 //  CSS :hover propagates through — no JS hover bridge needed.
+//
+//  Data sources:
+//    therapeutic_areas  — top-level TA nodes (7 rows)
+//    indications        — indication nodes with disease_area FK (11 rows)
+//    drug_indications   — drug counts per indication (246 rows)
+//    drug_targets       — target assignment per drug (250+ rows)
+//
+//  tabId mapping — therapeutic_areas.id → dashboard tab:
 // ══════════════════════════════════════════════════════════
 
 // tabId = existing Meridian dashboard to navTo() on click.
 // null  = no dashboard yet; clicking shows a "coming soon" toast.
-const HIER_DATA = [
-  {
-    id: 'immunology', name: 'Immunology', color: '#7c3aed', total: 35, tabId: 'tl1a',
-    das: [
-      {
-        id: 'ibd', name: 'IBD', full: 'Inflammatory Bowel Disease', total: 22, tabId: 'tl1a',
-        inds: [
-          { id: 'uc', abbr: 'UC', name: 'Ulcerative Colitis', total: 18, tabId: 'tl1a',
-            tgts: [
-              { id: 'tl1a',  name: 'TL1A',     n: 11, tabId: 'tl1a'  },
-              { id: 'il23',  name: 'IL-23p19',  n: 9,  tabId: 'tl1a'  },
-              { id: 'a4b7',  name: 'α4β7',      n: 3,  tabId: null    },
-              { id: 'tnf',   name: 'TNF',        n: 4,  tabId: null    },
-              { id: 'jak',   name: 'JAK',        n: 5,  tabId: null    },
-            ]
-          },
-          { id: 'cd', abbr: 'CD', name: "Crohn's Disease", total: 14, tabId: 'tl1a',
-            tgts: [
-              { id: 'tl1a',  name: 'TL1A',     n: 8,  tabId: 'tl1a'  },
-              { id: 'il23',  name: 'IL-23p19',  n: 7,  tabId: 'tl1a'  },
-              { id: 'tnf',   name: 'TNF',        n: 3,  tabId: null    },
-            ]
-          },
-        ]
-      },
-      {
-        id: 'atopy', name: 'Atopy', full: 'Atopic Disease', total: 14, tabId: 'il4ra-tslp',
-        inds: [
-          { id: 'ad', abbr: 'AD', name: 'Atopic Dermatitis', total: 11, tabId: 'il4ra-tslp',
-            tgts: [
-              { id: 'il4ra', name: 'IL-4Rα',   n: 7,  tabId: 'il4ra-tslp' },
-              { id: 'tslp',  name: 'TSLP',      n: 4,  tabId: 'tslp'       },
-              { id: 'il13',  name: 'IL-13',      n: 3,  tabId: null         },
-            ]
-          },
-          { id: 'csu', abbr: 'CSU', name: 'Chronic Spontaneous Urticaria', total: 5, tabId: null,
-            tgts: [
-              { id: 'il4ra', name: 'IL-4Rα',   n: 3,  tabId: 'il4ra-tslp' },
-              { id: 'ige',   name: 'IgE',        n: 2,  tabId: null         },
-            ]
-          },
-        ]
-      },
-      {
-        id: 'neuromuscular', name: 'Neuromuscular', full: 'Neuromuscular Disease', total: 13, tabId: 'fcrn',
-        inds: [
-          { id: 'gmg', abbr: 'gMG', name: 'Generalized Myasthenia Gravis', total: 10, tabId: 'fcrn',
-            tgts: [
-              { id: 'fcrn',  name: 'FcRn',      n: 8,  tabId: 'fcrn' },
-              { id: 'achr',  name: 'AChR',       n: 2,  tabId: null   },
-            ]
-          },
-          { id: 'cidp', abbr: 'CIDP', name: 'CIDP', total: 5, tabId: 'fcrn',
-            tgts: [
-              { id: 'fcrn',  name: 'FcRn',      n: 5,  tabId: 'fcrn' },
-            ]
-          },
-        ]
-      },
-      {
-        id: 'ophthalmology', name: 'Ophthalmology', full: 'Thyroid & Orbital Disease', total: 9, tabId: 'igf1r-tshr',
-        inds: [
-          { id: 'ted', abbr: 'TED', name: 'Thyroid Eye Disease', total: 9, tabId: 'igf1r-tshr',
-            tgts: [
-              { id: 'igf1r', name: 'IGF-1R',    n: 5,  tabId: 'igf1r-tshr' },
-              { id: 'tshr',  name: 'TSHR',       n: 2,  tabId: 'igf1r-tshr' },
-              { id: 'fcrn',  name: 'FcRn',       n: 2,  tabId: 'fcrn'       },
-            ]
-          },
-        ]
-      },
-    ]
-  },
-  {
-    id: 'oncology', name: 'Oncology', color: '#dc2626', total: 28, tabId: null,
-    das: [
-      {
-        id: 'lung', name: 'Lung Cancer', full: 'Lung & Thoracic Oncology', total: 19, tabId: null,
-        inds: [
-          { id: 'nsclc', abbr: 'NSCLC', name: 'Non-Small Cell Lung Cancer', total: 16, tabId: null,
-            tgts: [
-              { id: 'pd1',   name: 'PD-1',       n: 12, tabId: null },
-              { id: 'her2',  name: 'HER2',        n: 6,  tabId: null },
-              { id: 'tigit', name: 'TIGIT',       n: 4,  tabId: null },
-              { id: 'kras',  name: 'KRAS G12C',   n: 3,  tabId: null },
-            ]
-          },
-          { id: 'sclc', abbr: 'SCLC', name: 'Small Cell Lung Cancer', total: 3, tabId: null,
-            tgts: [
-              { id: 'dll3',  name: 'DLL3',        n: 3,  tabId: null },
-            ]
-          },
-        ]
-      },
-      {
-        id: 'heme', name: 'Hematologic', full: 'Hematologic Malignancies', total: 17, tabId: 'ace',
-        inds: [
-          { id: 'mm', abbr: 'MM', name: 'Multiple Myeloma', total: 17, tabId: 'ace',
-            tgts: [
-              { id: 'bcma',   name: 'BCMA',    n: 9,  tabId: 'ace'  },
-              { id: 'cd38',   name: 'CD38',    n: 5,  tabId: null   },
-              { id: 'gprc5d', name: 'GPRC5D', n: 3,  tabId: null   },
-            ]
-          },
-        ]
-      },
-    ]
-  },
-  {
-    id: 'neurology', name: 'Neurology', color: '#0891b2', total: 7, tabId: null,
-    das: [
-      {
-        id: 'neuroimmune', name: 'Neuroimmune', full: 'Neuroimmune Disorders', total: 7, tabId: null,
-        inds: [
-          { id: 'nmosd', abbr: 'NMOSD', name: 'Neuromyelitis Optica Spectrum Disorder', total: 7, tabId: null,
-            tgts: [
-              { id: 'aqp4', name: 'AQP4', n: 4, tabId: null   },
-              { id: 'fcrn', name: 'FcRn', n: 3, tabId: 'fcrn' },
-            ]
-          },
-        ]
-      },
-    ]
-  },
-];
+const _HIER_TA_TAB_MAP = {
+  gastroenterology: 'tl1a',       // TL1A × IL-23p19 tab (IBD)
+  respiratory:      'tslp',       // TSLP × IL-33 tab
+  dermatology:      'il4ra-tslp', // IL-4Rα × TSLP tab (Atopy)
+  rheumatology:     null,         // no dashboard yet
+  neurology:        'fcrn',       // FcRn Bispecific tab
+  ophthalmology:    'igf1r-tshr', // IGF-1R × TSHR tab (TED)
+  oncology:         'ace',        // BCMA × CD19 × CD3 tab
+};
+// Therapeutic area color palette
+const _HIER_TA_COLOR_MAP = {
+  gastroenterology: '#7c3aed',
+  respiratory:      '#0891b2',
+  dermatology:      '#c2410c',
+  rheumatology:     '#b45309',
+  neurology:        '#1d4ed8',
+  ophthalmology:    '#0f766e',
+  oncology:         '#dc2626',
+};
+// indication.id → tabId (per-indication override)
+const _HIER_IND_TAB_MAP = {
+  uc:          'tl1a',
+  cd:          'tl1a',
+  asthma:      'tslp',
+  copd:        'tslp',
+  ad:          'il4ra-tslp',
+  csu:         'il4ra-tslp',
+  ted:         'igf1r-tshr',
+  gmg:         'fcrn',
+  cidp:        'fcrn',
+  mm:          'ace',
+  all:         'ace',
+};
+// drug_targets.target_id → tabId
+const _HIER_TGT_TAB_MAP = {
+  tl1a:    'tl1a',
+  il23p19: 'tl1a',
+  il4ra:   'il4ra-tslp',
+  tslp:    'tslp',
+  tslpr:   'tslp',
+  fcrn:    'fcrn',
+  igf1r:   'igf1r-tshr',
+  tshr:    'igf1r-tshr',
+  bcma:    'ace',
+  cd19:    'ace',
+  cd3:     'ace',
+};
+// Map target_id slug to display symbol
+const _HIER_TGT_SYMBOL = {
+  tl1a:    'TL1A',
+  il23p19: 'IL-23p19',
+  il4ra:   'IL-4Rα',
+  tslp:    'TSLP',
+  tslpr:   'TSLP-R',
+  fcrn:    'FcRn',
+  igf1r:   'IGF-1R',
+  tshr:    'TSHR',
+  bcma:    'BCMA',
+  cd19:    'CD19',
+  cd3:     'CD3',
+  a4b7:    'α4β7',
+  il13:    'IL-13',
+  il33:    'IL-33',
+  ige:     'IgE',
+  il5ra:   'IL-5Rα',
+  cd40:    'CD40',
+  il1ab:   'IL-1α/β',
+  il6r:    'IL-6R',
+  il17a:   'IL-17A',
+  tnf:     'TNF',
+};
+
+// indications.disease_area (legacy string) → therapeutic_areas.id
+const _HIER_LEGACY_TO_TA = {
+  ibd:         'gastroenterology',
+  respiratory: 'respiratory',
+  atopy:       'dermatology',
+  ted:         'ophthalmology',
+  gmg:         'neurology',
+  cidp:        'neurology',
+  autoimmune:  'rheumatology',
+  oncology:    'oncology',
+  mm:          'oncology',
+  all:         'oncology',
+};
+
+let _hierLiveData = null;  // cached tree array; null = not yet loaded
+let _hierFetching = false; // guard against parallel fetches
+
+// ── Async data fetcher — builds the tree from 4 Supabase tables ──
+async function _hierFetchLiveData() {
+  if (!window._sb) throw new Error('_sb not ready');
+
+  const [r1, r2, r3, r4] = await Promise.all([
+    _sb.from('therapeutic_areas').select('id,name,sort_order').eq('status','active').order('sort_order'),
+    _sb.from('indications').select('id,name,abbreviation,disease_area').order('name'),
+    _sb.from('drug_indications').select('drug_id,indication_id'),
+    _sb.from('drug_targets').select('drug_id,target_id'),
+  ]);
+
+  if (r1.error || r2.error) {
+    throw r1.error || r2.error;
+  }
+
+  const taRows  = r1.data || [];
+  const indRows = r2.data || [];
+  const diRows  = r3.data || [];
+  const dtRows  = r4.data || [];
+
+  // Build: indication_id → Set<drug_id>
+  const indDrugMap = {};
+  diRows.forEach(r => {
+    if (!indDrugMap[r.indication_id]) indDrugMap[r.indication_id] = new Set();
+    indDrugMap[r.indication_id].add(r.drug_id);
+  });
+
+  // Build: drug_id → [target_id]
+  const drugTargetMap = {};
+  dtRows.forEach(r => {
+    if (!drugTargetMap[r.drug_id]) drugTargetMap[r.drug_id] = [];
+    drugTargetMap[r.drug_id].push(r.target_id);
+  });
+
+  // Group indications under their therapeutic area
+  const taIndMap = {};
+  indRows.forEach(ind => {
+    // Map disease_area string to therapeutic_area id; also try ind.id directly
+    const taId = _HIER_LEGACY_TO_TA[ind.disease_area] || _HIER_LEGACY_TO_TA[ind.id];
+    if (!taId) return;
+    if (!taIndMap[taId]) taIndMap[taId] = [];
+    taIndMap[taId].push(ind);
+  });
+
+  // Build tree: therapeutic_area → [indication nodes] (no intermediate disease-area level)
+  const tree = taRows.map(ta => {
+    const inds    = taIndMap[ta.id] || [];
+    const taTabId = _HIER_TA_TAB_MAP[ta.id] || null;
+
+    const indNodes = inds.map(ind => {
+      const drugSet  = indDrugMap[ind.id] || new Set();
+      const total    = drugSet.size;
+      const indTabId = _HIER_IND_TAB_MAP[ind.id] || taTabId;
+
+      // Count targets across drugs in this indication
+      const tgtCount = {};
+      drugSet.forEach(dId => {
+        (drugTargetMap[dId] || []).forEach(tId => {
+          tgtCount[tId] = (tgtCount[tId] || 0) + 1;
+        });
+      });
+
+      const tgts = Object.entries(tgtCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([tId, n]) => ({
+          id:    tId,
+          name:  _HIER_TGT_SYMBOL[tId] || tId.toUpperCase().replace(/_/g,'-'),
+          n,
+          tabId: _HIER_TGT_TAB_MAP[tId] || indTabId,
+        }));
+
+      return { id: ind.id, abbr: ind.abbreviation || ind.id.toUpperCase().slice(0,6), name: ind.name, total, tabId: indTabId, tgts };
+    }).filter(ind => ind.total > 0);
+
+    // Count unique drugs across all indications under this TA
+    const taDrugSet = new Set();
+    inds.forEach(ind => (indDrugMap[ind.id] || new Set()).forEach(id => taDrugSet.add(id)));
+    const taTotal = taDrugSet.size;
+
+    // Collapse all indications under one DA-level node whose name = TA name
+    const daNode = indNodes.length ? [{
+      id:    ta.id + '-da',
+      name:  ta.name,
+      full:  ta.name,
+      total: taTotal,
+      tabId: taTabId,
+      inds:  indNodes,
+    }] : [];
+
+    return {
+      id:    ta.id,
+      name:  ta.name,
+      color: _HIER_TA_COLOR_MAP[ta.id] || '#64748b',
+      total: taTotal,
+      tabId: taTabId,
+      das:   daNode,
+    };
+  }).filter(ta => ta.total > 0 || (taIndMap[ta.id] || []).length > 0);
+
+  return tree;
+}
 
 // Track selection (expansion is purely CSS :hover now)
 const hierState = {
@@ -18447,7 +18474,9 @@ let _hierCloseTimer = null;
     // Close the DNA dropdown immediately
     if (_molCloseTimer) { clearTimeout(_molCloseTimer); _molCloseTimer = null; }
     document.getElementById('mol-dd-menu')?.classList.remove('open');
-    if (!hierState.built) { hierBuildTree(); hierState.built = true; }
+    if (!hierState.built) {
+      hierBuildTree().then(() => { hierState.built = true; }).catch(console.error);
+    }
     menu.classList.add('open');
   });
   wrap.addEventListener('mouseleave', function() {
@@ -18462,10 +18491,32 @@ let _hierCloseTimer = null;
 // No timers. Hit area is enlarged physically: taller rows (11px padding),
 // 6px top/bottom buffer inside sub-panels, and sub-panels overlap parent
 // by 6px (left: calc(100% - 6px)) so there is never a physical gap.
-function hierBuildTree() {
+//
+// async: fetches Supabase on first call, caches in _hierLiveData.
+// Subsequent calls (e.g. from hierSetSel) render synchronously from cache.
+async function hierBuildTree() {
   const body = document.getElementById('hier-dd-body');
+  if (!body) return;
+
+  // If cache is empty and a fetch isn't already in progress, load from Supabase
+  if (!_hierLiveData && !_hierFetching) {
+    _hierFetching = true;
+    body.innerHTML = '<div style="padding:14px 16px;font-size:11px;color:#94a3b8">Loading navigator…</div>';
+    try {
+      _hierLiveData = await _hierFetchLiveData();
+    } catch(e) {
+      console.warn('hierBuildTree: Supabase fetch failed, using empty tree', e);
+      _hierLiveData = [];
+    }
+    _hierFetching = false;
+  }
+
+  // If still fetching (parallel call), just return — first call will re-render
+  if (_hierFetching) return;
+
+  const data = _hierLiveData || [];
   body.innerHTML = '';
-  HIER_DATA.forEach((ta, ti) => {
+  data.forEach((ta, ti) => {
     if (ti > 0) body.appendChild(hierDivider());
     body.appendChild(hierMakeTA(ta));
   });
@@ -18624,18 +18675,15 @@ function hierMakeInd(ta, da, ind) {
 function hierSetSel(sel) {
   hierState.sel = sel;
   // Rebuild to update selected-tgt highlight, then update footer
+  // hierBuildTree is async but renders synchronously from cache after first load
   hierState.built = false;
-  hierBuildTree();
-  hierState.built = true;
-  hierUpdateFooter();
+  hierBuildTree().then(() => { hierState.built = true; hierUpdateFooter(); }).catch(console.error);
 }
 
 function hierClearSelection() {
   hierState.sel = null;
   hierState.built = false;
-  hierBuildTree();
-  hierState.built = true;
-  hierUpdateFooter();
+  hierBuildTree().then(() => { hierState.built = true; hierUpdateFooter(); }).catch(console.error);
 }
 
 function hierUpdateFooter() {
@@ -18679,9 +18727,9 @@ function hierShowSelectionToast(name) {
 function hierShowNoTabToast(name) {
   hierToast('⏳ No dashboard yet for ' + name, '#475569');
 }
-// Build tree immediately so it's ready the first time the menu appears
-hierBuildTree();
-hierState.built = true;
+// Prefetch hierarchy data so it's ready the first time the menu opens.
+// hierBuildTree is async — data loads from Supabase and caches in _hierLiveData.
+hierBuildTree().then(() => { hierState.built = true; }).catch(console.error);
 
 function closeCenterDrugDD() {
   const dd = document.getElementById('center-drug-dd');
