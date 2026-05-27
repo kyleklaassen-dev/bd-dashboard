@@ -2,6 +2,21 @@
 ---
 
 ---
+## 2026-05-27 (Session 81) — drug_area_scores decision memo (analysis only, no code written)
+
+**Purpose:** Produce a product/ontology decision memo for `drug_area_scores` retirement path before any code is touched.
+
+**Key finding:** `competitive_relevance` and `relevance_rationale` are the only substantive fields in DAS that were not migrated to `drug_competitive_scores`. Both are currently dead in the UI — the `_makeAreaPI` DCS select doesn't fetch them, so all relevance badges, entity row borders, and strategic sort are no-ops in production. The feature is fully designed and coded in the UI; it just needs these two columns added to DCS.
+
+**Recommendation: Option C — Hybrid.** Add `competitive_relevance` + `relevance_rationale` to `drug_competitive_scores`, backfill 166 rows from DAS, add two field names to the DCS select in `_makeAreaPI`. Two SQL statements + one line of code change. Full feature comes back to life.
+
+**Not recommended: Option B (deprecate).** The 28 curated rationales are high-quality strategic intelligence. The UI infrastructure is complete. Deprecating removes meaningful signal permanently.
+
+**Output:** `docs/drug_area_scores_decision_memo.md` — full field-by-field comparison, 10-question analysis, backfill SQL, and execution plan.
+
+**No code changed. No table modified.**
+
+---
 ## 2026-05-27 (Session 80) — disease_areas code retirement complete (commit fba9f390cc53)
 
 **P0: disease_areas active DB reads removed (8 changes):**
