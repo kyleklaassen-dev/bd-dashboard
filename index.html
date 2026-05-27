@@ -3499,6 +3499,121 @@ async function loadIdentityFooter() {
   }
 }
 
+// ── Ontology Health Diagnostic ───────────────────────────────────────────────
+// Loads live from Supabase; wired to Ontology Audit tab, Session 88.
+async function loadOntologyHealth() {
+  const mount = document.getElementById('ont-health-mount');
+  if (!mount || !_sb) return;
+  mount.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:8px 0">Querying Supabase…</div>';
+  try {
+    // Coverage query per table — count total vs with target_id
+    const TABLES = [
+      { tbl:'catalysts',           alias:'catalysts' },
+      { tbl:'company_areas',       alias:'company_areas' },
+      { tbl:'deals',               alias:'deals' },
+      { tbl:'intel_areas',         alias:'intel_areas' },
+      { tbl:'research_queue',      alias:'research_queue' },
+      { tbl:'competitive_signals', alias:'competitive_signals' },
+      { tbl:'company_profiles',    alias:'company_profiles' },
+      { tbl:'discovery_queue',     alias:'discovery_queue' },
+      { tbl:'signals',             alias:'signals' },
+    ];
+
+    const results = await Promise.all(TABLES.map(({ tbl }) =>
+      _sb.from(tbl).select('area_id,target_id,context_type').limit(5000)
+        .then(r => {
+          const rows = r.data || [];
+          const total = rows.length;
+          const withTarget = rows.filter(x => x.target_id).length;
+          const fallbackContexts = [...new Set(rows.filter(x => !x.target_id && x.area_id).map(x => x.area_id))].sort();
+          return { tbl, total, withTarget, pct: total > 0 ? Math.round(withTarget * 100 / total) : 0, fallbackContexts };
+        })
+    ));
+
+    // Legacy structure status
+    const [dasRes, daRes, lamRes] = await Promise.all([
+      _sb.from('drug_area_scores').select('area_id', { count:'exact', head:true }),
+      _sb.from('drug_areas').select('area_id', { count:'exact', head:true }),
+      _sb.from('legacy_area_ontology_map').select('legacy_area_id,context_type,target_id'),
+    ]);
+    const dasCount = dasRes.count ?? 0;
+    const daCount  = daRes.count ?? 0;
+    const lamRows  = lamRes.data || [];
+    const nullTargetContexts = lamRows.filter(r => !r.target_id).map(r => `${r.legacy_area_id} (${r.context_type})`);
+
+    // Build coverage table
+    const coverageRows = results.map(r => {
+      const pctCls = r.pct === 100 ? '#16a34a' : r.pct >= 80 ? '#d97706' : r.pct >= 40 ? '#f59e0b' : '#dc2626';
+      const fallbackStr = r.fallbackContexts.length ? r.fallbackContexts.join(', ') : '—';
+      const note = r.tbl === 'signals' ? '<span style="color:#94a3b8;font-style:italic">area_id never populated by pipeline</span>' : (r.pct === 100 ? '<span style="color:#16a34a">✓ full ontology coverage</span>' : `<span style="color:#64748b">fallback: ${fallbackStr}</span>`);
+      return `<tr>
+        <td style="font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;padding:5px 10px;white-space:nowrap">${r.tbl}</td>
+        <td style="text-align:right;padding:5px 10px;font-size:12px;color:#334155">${r.total}</td>
+        <td style="text-align:right;padding:5px 10px;font-size:12px;color:#334155">${r.withTarget}</td>
+        <td style="text-align:right;padding:5px 10px;font-size:13px;font-weight:800;color:${pctCls}">${r.pct}%</td>
+        <td style="padding:5px 10px;font-size:11px">${note}</td>
+      </tr>`;
+    }).join('');
+
+    const totalRows  = results.reduce((s,r) => s + r.total, 0);
+    const totalOnt   = results.reduce((s,r) => s + r.withTarget, 0);
+    const overallPct = totalRows > 0 ? Math.round(totalOnt * 100 / totalRows) : 0;
+    const overallCls = overallPct >= 85 ? '#16a34a' : '#d97706';
+
+    mount.innerHTML = `
+      <div style="display:flex;align-items:center;gap:24px;margin-bottom:16px;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="text-align:center">
+          <div style="font-size:28px;font-weight:800;color:${overallCls}">${overallPct}%</div>
+          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Ontology Coverage</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px">${totalOnt}/${totalRows} rows with target_id</div>
+        </div>
+        <div style="flex:1;border-left:1px solid #e2e8f0;padding-left:20px">
+          <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:8px">Permanent bridge tables (retain forever)</div>
+          <div style="font-size:11px;color:#64748b">• <code style="font-size:11px">legacy_area_ontology_map</code> — ${lamRows.length} rows, ${lamRows.filter(r=>r.target_id).length} target contexts, ${nullTargetContexts.length} non-target: ${nullTargetContexts.join(' · ')}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px">• <code style="font-size:11px">area_metadata</code> — migration tracking system</div>
+        </div>
+        <div style="border-left:1px solid #e2e8f0;padding-left:20px">
+          <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:8px">Legacy safety rails (gated)</div>
+          <div style="font-size:11px;color:#64748b">• <code style="font-size:11px">drug_area_scores</code> — ${dasCount} rows — gate 2026-06-27</div>
+          <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-top:4px">• <code style="font-size:11px">drug_areas</code> — ${daCount} rows — Phase 5 activations pending (il4ra, tslp, ted)</div>
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:2px solid #e2e8f0">
+            <th style="text-align:left;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Table</th>
+            <th style="text-align:right;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Total</th>
+            <th style="text-align:right;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Ontology</th>
+            <th style="text-align:right;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Coverage</th>
+            <th style="text-align:left;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Fallback Path</th>
+          </tr>
+        </thead>
+        <tbody>${coverageRows}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
+            <td style="padding:6px 10px;font-size:11px;font-weight:700;color:#0f172a">All tables</td>
+            <td style="text-align:right;padding:6px 10px;font-size:12px;font-weight:700;color:#0f172a">${totalRows}</td>
+            <td style="text-align:right;padding:6px 10px;font-size:12px;font-weight:700;color:#0f172a">${totalOnt}</td>
+            <td style="text-align:right;padding:6px 10px;font-size:13px;font-weight:800;color:${overallCls}">${overallPct}%</td>
+            <td style="padding:6px 10px;font-size:11px;color:#94a3b8">signals excluded from meaningful %</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div style="margin-top:14px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;font-size:11px;color:#166534">
+        <strong>Dual-filter locations (12 active reads):</strong> research_queue · intel_areas · catalysts (area tabs) · deals (area tabs) · bd_activity · competitive_signals (company modal) · company_profiles (company modal) · discovery_queue (client-side) · signals (client-side) · Morning Report · loadTL1AIntelFeed · _loadBdIntoModal
+      </div>
+      <div style="margin-top:8px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;font-size:11px;color:#92400e">
+        <strong>Outstanding code flips (low urgency):</strong> catalysts reads in company modal (lines 10476, 10500) and OEX card (line 14110) still use direct .eq('area_id') — works correctly because catalysts.area_id is still populated; will pick up in a future cleanup session.
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:#94a3b8;text-align:right">Queried live · ${new Date().toLocaleString()}</div>
+    `;
+  } catch(e) {
+    mount.innerHTML = `<div style="color:#dc2626;font-size:12px">Error: ${e.message}</div>`;
+  }
+}
+
 // ── PI Score Badge injection ──────────────────────────────────────────────────
 // Called after _makeAreaPI loads; injects colored score chips into the table.
 async function _injPIScores(tabId, areaIds) {
@@ -22231,6 +22346,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <div class="ont-wrap">
 
+  <!-- ── 0: Ontology Health — Live Diagnostics ──────────────────────── -->
+  <div class="ont-section" id="ont-sec-health" style="border-left:4px solid #4a90c4">
+    <div class="ont-sec-hd" onclick="ontToggle('health')">
+      <span class="ont-sec-icon">🩺</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">Ontology Health — Live Diagnostics</div>
+        <div class="ont-sec-sub">Target_id coverage per table · fallback path inventory · legacy structure status · queried live from Supabase</div>
+      </div>
+      <button onclick="event.stopPropagation();loadOntologyHealth()" style="font-size:10px;font-weight:700;background:#eff6ff;border:1.5px solid #3b82f6;color:#1e40af;border-radius:5px;padding:3px 10px;cursor:pointer;margin-right:10px">⟳ Refresh</button>
+      <span class="ont-sec-tog" id="ont-health-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-health-body">
+      <div id="ont-health-mount" style="color:#94a3b8;font-size:12px;padding:8px 0">Loading ontology health…</div>
+    </div>
+  </div>
+
   <!-- ── A: Relationship Matrix ──────────────────────────────────────── -->
   <div class="ont-section" id="ont-sec-a">
     <div class="ont-sec-hd" onclick="ontToggle('a')">
@@ -22810,7 +22941,7 @@ document.addEventListener('DOMContentLoaded', function(){
     id:'ontology',icon:'&#129516;',label:'Ontology',emoji:'🧬',
     tables:[
           {name:'therapeutic_areas',count:8,desc:'Therapeutic area taxonomy (Gastroenterology, Respiratory, Dermatology, etc.)'},
-          /* disease_areas removed from catalog — Session 80 code retirement; table pending DB FK teardown */
+          /* disease_areas removed from catalog — Session 80 code retirement; table DB teardown complete Session 84 */
           {name:'indications',count:38,desc:'Disease/indication ontology nodes (diseases only rule)'},
           {name:'indication_aliases',count:86,desc:'Synonym mappings for indication normalization'},
           {name:'area_metadata',count:11,desc:'Per-area configuration metadata for dashboard rendering'},
@@ -23719,7 +23850,7 @@ document.addEventListener('DOMContentLoaded', function(){
     ];
 
     /* FK relationship map: table → array of tables it links to via a shared key.
-       Session 80: disease_areas removed — code retirement complete; table pending DB FK teardown.
+       Session 80: disease_areas removed — code retirement complete; table DB teardown complete Session 84.
        New hierarchy: therapeutic_areas → indications */
     var OEX_JOIN_MAP = {
       drugs:['drug_area_scores','drug_targets','drug_indications','drug_competitive_scores',
@@ -25053,7 +25184,7 @@ async function ontologyLoad(force = false) {
   if (ts) ts.textContent = 'Loading…';
 
   const [
-    { data: daRows },  /* Session 80: disease_areas stub — returns [] pending DB FK teardown */
+    { data: daRows },  /* Session 80: disease_areas stub — returns [] DB teardown complete Session 84 */
     { data: indRows },
     { data: tgtRows },
     { data: tpRows },
@@ -26355,7 +26486,7 @@ async function ontInspectArea(id, btn) {
 }
 
 registerTab('ontology', {
-  onEnter() { ontologyLoad(); }
+  onEnter() { ontologyLoad(); loadOntologyHealth(); }
 });
 registerTab('program-board', {
   onEnter() { pbInit(); }
@@ -26502,7 +26633,7 @@ async function _loadOntologyExplorer(force = false) {
 
   try {
     const [r1,r2,r3,r4,r5] = await Promise.all([
-      Promise.resolve({ data: [] }),  /* disease_areas — retired from code reads (Session 80); table pending DB FK teardown */
+      Promise.resolve({ data: [] }),  /* disease_areas — retired from code reads (Session 80); table DB teardown complete Session 84 */
       _sb.from('indications').select('id,name,abbreviation,disease_area,biology_tags').order('disease_area,id'),
       _sb.from('targets').select('id,label,gene_symbol,target_type,family,pathway,ailux_relevance,disease_areas,cross_area_relevance').order('id'),
       _sb.from('target_pairs').select('id,pair_symbol,pair_type,ailux_pair,disease_areas,first_drug').order('id'),
