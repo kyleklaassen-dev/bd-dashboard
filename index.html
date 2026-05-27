@@ -15245,6 +15245,26 @@ function _makeAreaPI(tabId, areaIds) {
      (prog?.company_id && _coIdNorm(_partnerShort) === _coIdNorm(prog.company_id)) ||
      (prog?.co && _coIdNorm(_partnerShort) === _coIdNorm(prog.co))
    ));
+   // Co-dev inversion: when primary partner_company = viewing entity (self-attribution fires),
+   // but the drug was originated by a DIFFERENT company, show that originator as the pill instead.
+   // Example: itepekimab has partner_company="Sanofi" (recorded from Regeneron's POV). When Sanofi
+   // views their card, the guard kills "w/ Sanofi" but we should show "w/ Regeneron" instead.
+   let _finalPartnerShort = _partnerShort;
+   let _finalPartnerCo    = _partnerCo;
+   let _suppressPill      = _partnerMatchesEntity;
+   if (_partnerMatchesEntity && d.company_id && _coIdNorm(d.company_id) !== _coIdNorm(prog?.company_id || '')) {
+     const _altCo    = d.entity_name || d.company_id;
+     const _altShort = _altCo ? _shortenPartner(_altCo) : null;
+     const _altSelf  = _altShort && (
+       (prog?.company_id && _coIdNorm(_altShort) === _coIdNorm(prog.company_id)) ||
+       (prog?.co         && _coIdNorm(_altShort) === _coIdNorm(prog.co))
+     );
+     if (_altShort && !_altSelf) {
+       _finalPartnerShort = _altShort;
+       _finalPartnerCo    = _altCo;
+       _suppressPill      = false;
+     }
+   }
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
    // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
    const _pv = _isOwnershipPill ? true : d.partnership_verified;
@@ -15252,8 +15272,8 @@ function _makeAreaPI(tabId, areaIds) {
                     : _pv === false ? {c:'#92400e',bg:'#fffbeb',br:'#fcd34d',lbl:'Flagged unconfirmed by enrichment — click to confirm or remove'}
                     :                 {c:'#64748b',bg:'#f8fafc',br:'#cbd5e1',lbl:'Partnership not yet verified — click to confirm or remove'};
    const _pvMark    = _pv === true ? '' : ' ?';
-   const partnerTag = (_partnerShort && !_partnerMatchesEntity)
-    ? `<span class="pi-partner-pill" data-drug-id="${d.id||''}" data-partner="${(_partnerCo||'').replace(/"/g,'&quot;')}" data-pv="${_pv}" onclick="piConfirmPartner(this,event)" style="font-size:9px;cursor:pointer;color:${_pvColor.c};background:${_pvColor.bg};border:1px solid ${_pvColor.br};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvColor.lbl}">w/ ${_partnerShort}${_pvMark}</span>`
+   const partnerTag = (_finalPartnerShort && !_suppressPill)
+    ? `<span class="pi-partner-pill" data-drug-id="${d.id||''}" data-partner="${(_finalPartnerCo||'').replace(/"/g,'&quot;')}" data-pv="${_pv}" onclick="piConfirmPartner(this,event)" style="font-size:9px;cursor:pointer;color:${_pvColor.c};background:${_pvColor.bg};border:1px solid ${_pvColor.br};border-radius:8px;padding:1px 6px;white-space:nowrap" title="${_pvColor.lbl}">w/ ${_finalPartnerShort}${_pvMark}</span>`
     : '';
    const overlapTag   = d._overlap && d._overlap !== (prog.overlap||'') ? this._ovBadge(d._overlap) : '';
 
