@@ -1,6 +1,22 @@
-# NEXT_SESSION.md — Session 83 Handoff
+# NEXT_SESSION.md — Session 84 Handoff
 **Written:** 2026-05-27  
-**Last commit:** `7c6315305b` (Session 82 — co-dev partner pill inversion + erd-1 data fix)
+**Last commit:** `2c889eda61e3` (Session 83 — competitive_relevance + relevance_rationale restored in DCS)
+
+---
+
+## Session 83 Complete: competitive_relevance Restored
+
+Option C executed exactly as specced in the Session 81 decision memo:
+
+1. **ALTER TABLE** — Added `competitive_relevance` (text + CHECK constraint) and `relevance_rationale` (text) to `drug_competitive_scores`.
+
+2. **Backfill** — 166 rows populated from `drug_area_scores` where `drug_id + context_id` matched `drug_id + area_id`. 87 DCS-only rows remain null (newer drugs, expected).
+
+3. **Code change** — `_makeAreaPI` DCS select (line ~13614) now fetches `competitive_relevance,relevance_rationale`.
+
+4. **UI validation** — All 4 area tabs show restored relevance badges, left-border color coding, secondary sort, and tooltip rationale. Zero console errors.
+
+The strategic relevance layer is live in production. DAS has no remaining UI dependencies.
 
 ---
 
@@ -12,103 +28,15 @@ Two fixes shipped (commit `7c6315305b`):
 
 2. **Co-dev inversion in `_genericDetailHTML`** — When self-attribution guard fires on `partner_company` AND drug originated elsewhere (`d.company_id ≠ prog.company_id`), derives pill from `d.entity_name` instead. Itepekimab now shows "w/ Regeneron" on Sanofi's card. Existing correct pills (duvakitug, HXN-1002, etc.) unaffected.
 
-Partner pill system is now complete. All known issues resolved.
-
 ---
 
-## Session 81 Decision: Confirmed Recommendation
+## Session 84 Options
 
-`drug_area_scores_decision_memo.md` produced. **Option C selected (hybrid).**
+No single P0 mandate. Three independent tracks, each bounded:
 
-The two missing fields are `competitive_relevance` and `relevance_rationale`. Both exist in DAS (212/212 populated), neither was migrated to DCS, and both are currently dead in the UI because the DCS select doesn't include them. The relevance badges, entity row border colors, secondary sort by strategic importance, and rationale display panels are all coded but non-functional in production.
+### Track A — disease_areas DB Teardown (Standalone DB session)
 
----
-
-## Session 83 Mandate: P1 — Migrate competitive_relevance + relevance_rationale to DCS
-
-**One session. Two SQL statements. One line of code.**
-
-### Step 1 — Add columns in Supabase SQL Editor
-
-```sql
-ALTER TABLE public.drug_competitive_scores
-  ADD COLUMN IF NOT EXISTS competitive_relevance text 
-    CHECK (competitive_relevance IN ('very_high','high','medium','low','monitor')),
-  ADD COLUMN IF NOT EXISTS relevance_rationale text;
-```
-
-### Step 2 — Backfill from DAS
-
-```sql
-UPDATE public.drug_competitive_scores dcs
-SET 
-  competitive_relevance = das.competitive_relevance,
-  relevance_rationale   = das.relevance_rationale
-FROM public.drug_area_scores das
-WHERE dcs.drug_id    = das.drug_id
-  AND dcs.context_id = das.area_id
-  AND das.competitive_relevance IS NOT NULL;
--- Expected: 166 rows updated
-```
-
-**Verification query (run after backfill):**
-```sql
-SELECT competitive_relevance, COUNT(*) 
-FROM drug_competitive_scores 
-WHERE competitive_relevance IS NOT NULL
-GROUP BY competitive_relevance
-ORDER BY COUNT(*) DESC;
--- Expected totals matching DAS distribution: medium~75, high~60, low~31, very_high~30, monitor~16
--- (scaled to 166 matched rows, not 212)
-```
-
-### Step 3 — Update `_makeAreaPI` DCS select in index.html
-
-Find (line ~13614):
-```javascript
-.select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level')
-```
-
-Replace with:
-```javascript
-.select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level,competitive_relevance,relevance_rationale')
-```
-
-### Step 4 — Validate in browser
-
-Open TL1A tab → check entity rows for left-border color coding (very_high=red, high=orange, medium=amber).  
-Expand a drug card → check for relevance rationale text in the detail panel.  
-Check console for errors.
-
-### Step 5 — Deploy + write docs
-
-Commit, push. Update `update_log.md` and this file.
-
----
-
-## What This Unblocks After Session 82
-
-Once `competitive_relevance` is live in DCS:
-- DAS has no remaining UI dependencies (only dual-read harnesses + OEX schema exploration)
-- Session 83 can formally evaluate dual-read harness decommission (30+ days clean matching logs needed first)
-- DAS becomes retirable on the harness decommission timeline
-
----
-
-## Session 83 Constraints
-
-Do NOT:
-- Drop `drug_area_scores`
-- Remove dual-read harnesses
-- Touch `drug_areas`
-- Start Phase 5 activations for il4ra/tslp/ted
-- Expand scope beyond the two-field migration
-
----
-
-## disease_areas DB Teardown (Still Pending)
-
-The code is clean (Session 80). Anytime you want to drop the table:
+Code is clean (Session 80). Anytime you want to drop the table:
 
 ```sql
 -- Step 1: Verify constraint names
@@ -125,11 +53,44 @@ ALTER TABLE public.competitive_landscapes DROP CONSTRAINT IF EXISTS competitive_
 DROP TABLE public.disease_areas;
 ```
 
-This is independent of Session 82 — can be done before or after.
+This is fully independent — does not require code changes.
+
+### Track B — Dual-read harness decommission review
+
+The five harnesses (`_runPhase4BDualRead`, `_runPhase4BTL1ADualRead`, `_runPhase4BTEDDualRead`, `_runPhase4BAtopyDualRead`, `_runPhase4BFcRNDualRead`) compare DCS `overlap` vs DAS baseline.
+
+Decommission gate: 30+ days of clean matching logs from all five harnesses. Session 83 completed 2026-05-27 — earliest eligible review date: **2026-06-27**.
+
+Do NOT decommission early. If log review is the Session 84 mandate, start by pulling the console log output from the deployed dashboard for each harness.
+
+### Track C — Enrich the 87 null competitive_relevance rows
+
+87 DCS rows (drugs added after the original DAS migration) have `competitive_relevance = null`. These show no badge and no border — correct behavior for un-enriched entries.
+
+To fill: run `company_enrichment.py` against those drugs for their respective areas. The enrichment pipeline produces `competitive_relevance` values as part of normal enrichment output. Backfill script would then UPDATE DCS from the enrichment output.
+
+Query to identify the 87 rows:
+```sql
+SELECT dcs.drug_id, dcs.context_id, d.name
+FROM drug_competitive_scores dcs
+LEFT JOIN drugs d ON d.id = dcs.drug_id
+WHERE dcs.competitive_relevance IS NULL
+ORDER BY dcs.context_id, d.name;
+```
 
 ---
 
 ## Retirement Status Summary
+
+### Tables: Retirement Readiness
+
+| Table | Status | Next Step |
+|---|---|---|
+| `disease_areas` | **✅ Code-clean** | DB FK teardown (3 ALTER + DROP) — standalone DB session |
+| `drug_area_scores` | **🟡 Near-ready** | Dual-read harness decommission (30+ days clean logs, earliest 2026-06-27) |
+| `drug_areas` | **🔴 Blocked** | Active fallback in `_makeAreaPI` for il4ra/tslp/ted until Phase 5 activations |
+| `area_metadata` | **✅ Keep permanently** | Migration tracking system |
+| `legacy_area_ontology_map` | **✅ Keep permanently** | Bridge table for all Phase 3+ backfills |
 
 ### area_metadata current state
 
@@ -147,28 +108,27 @@ This is independent of Session 82 — can be done before or after.
 | respiratory | not_started | Preserved strategic view |
 | tcell | not_started | Preserved platform view |
 
-### Tables: Retirement Readiness
+---
 
-| Table | Status | Next Step |
-|---|---|---|
-| `disease_areas` | **✅ Code-clean** | DB FK teardown (3 ALTER + DROP) — standalone DB session |
-| `drug_area_scores` | **🟡 Near-ready** | Add competitive_relevance/relevance_rationale to DCS → backfill → one code line (Session 82) |
-| `drug_areas` | **🔴 Blocked** | Active fallback in `_makeAreaPI` for il4ra/tslp/ted until Phase 5 activations |
-| `area_metadata` | **✅ Keep permanently** | Migration tracking system |
-| `legacy_area_ontology_map` | **✅ Keep permanently** | Bridge table for all Phase 3+ backfills |
+## Session 84 Constraints
+
+Do NOT:
+- Drop `drug_area_scores`
+- Remove dual-read harnesses before 2026-06-27 log review
+- Touch `drug_areas`
+- Start Phase 5 activations for il4ra/tslp/ted
 
 ---
 
 ## Key Docs Written This Session
 
-- `docs/drug_area_scores_decision_memo.md` — Full analysis + recommendation + SQL
-- `docs/disease_areas_retirement_ready.md` — Written Session 80, still current
+- `docs/drug_area_scores_option_c_execution.md` — Full SQL + row counts + UI validation + remaining blockers
 
 ## Known Good State
 
-- Dashboard: live at GitHub Pages, commit `7c6315305b`
-- `index.html`: zero active `disease_areas` DB reads; partner pill co-dev inversion complete
-- `drug_competitive_scores`: 253 rows — missing `competitive_relevance`/`relevance_rationale` (Session 83 fixes this)
+- Dashboard: live at GitHub Pages, commit `2c889eda61e3`
+- `index.html`: zero active `disease_areas` DB reads; partner pill co-dev inversion complete; `competitive_relevance` + `relevance_rationale` live in DCS reads
+- `drug_competitive_scores`: 253 rows — 166 with `competitive_relevance` populated, 87 null (enrichment queue)
+- `drug_area_scores`: archival only — dual-read harness baseline, no production UI reads
 - Phase 3 dual-filter: all 4 reads on `target_id OR area_id`
-- `erd-1.partner_company`: now null (was "Sanofi" — fixed this session)
-- Partner pill system: all known issues resolved (self-attribution, co-dev inversion, long names)
+- Partner pill system: all known issues resolved
