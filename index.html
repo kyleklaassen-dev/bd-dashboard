@@ -13611,7 +13611,7 @@ function _makeAreaPI(tabId, areaIds) {
           // context_id is the canonical area identifier; IBD expanded to include uc/cd
           // indication-based rows alongside legacy ibd-keyed rows.
           _sb.from('drug_competitive_scores')
-            .select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level')
+            .select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level,competitive_relevance,relevance_rationale')
             .in('context_id', this.areaIds.includes('ibd')
               ? [...this.areaIds.filter(a=>a!=='ibd'),'ibd','uc','cd']
               : this.areaIds),
