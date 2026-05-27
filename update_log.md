@@ -2,6 +2,35 @@
 ---
 
 ---
+## 2026-05-27 (Session 83) — competitive_relevance + relevance_rationale restored in DCS (commit 2c889eda61e3)
+
+**Purpose:** Execute Option C (hybrid migration) from Session 81 decision memo — restore the strategic relevance layer that went dark when `_makeAreaPI` was switched to DCS reads in Session 78.
+
+**SQL executed (Supabase SQL Editor):**
+
+1. `ALTER TABLE public.drug_competitive_scores ADD COLUMN IF NOT EXISTS competitive_relevance text CHECK (competitive_relevance IN ('very_high','high','medium','low','monitor')), ADD COLUMN IF NOT EXISTS relevance_rationale text;`
+
+2. `UPDATE public.drug_competitive_scores dcs SET competitive_relevance = das.competitive_relevance, relevance_rationale = das.relevance_rationale FROM public.drug_area_scores das WHERE dcs.drug_id = das.drug_id AND dcs.context_id = das.area_id AND das.competitive_relevance IS NOT NULL;` → **166 rows backfilled** (87 DCS-only rows remain null — newer drugs not in DAS, expected)
+
+**Code change:** `_makeAreaPI` DCS select (line ~13614) — added `competitive_relevance,relevance_rationale` to select string. Two other DCS selects (drug card modal, lines ~12623/~12697) intentionally left unchanged.
+
+**UI validation — all 4 tabs passing, zero console errors:**
+- TL1A: 24 entities, 5 badges, 5 colored borders (high×4, medium×1)
+- FcRn: 5 entities, 4 badges, 4 borders (very_high×2, medium×1, monitor×1)
+- IGF-1R×TSHR: 13 entities, 8 badges, 8 borders (very_high×2, high×1, medium×2, low×2, monitor×1)
+- IL-4Rα×TSLP: 11 entities, 9 badges, 9 borders (very_high×3, high×2, medium×1, low×3)
+
+**competitive_relevance distribution after backfill:** medium:56, high:44, very_high:27, low:25, monitor:14 (total 166)
+
+**28 curated rationales confirmed transferred** — batoclimab, crn12755, yb-101, teprotumumab, sp-1351 verified.
+
+**Remaining DAS retirement blockers:**
+1. Five dual-read harnesses (`_runPhase4BDualRead` et al.) still active — need 30+ days clean matching logs before decommission
+2. 87 DCS-only rows have `competitive_relevance = null` — will fill naturally via enrichment pipeline, not a blocker
+
+**Output doc:** `docs/drug_area_scores_option_c_execution.md`
+
+---
 ## 2026-05-27 (Session 82) — Partner pill co-dev inversion + erd-1 data fix (commit 7c6315305b)
 
 **Purpose:** Complete partner pill fixes left over from Session 79 — erd-1 (HXN-1003) missing pill and itepekimab showing wrong partner on Sanofi's card.
