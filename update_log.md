@@ -2,6 +2,24 @@
 ---
 
 ---
+## 2026-05-27 (Session 82) — Partner pill co-dev inversion + erd-1 data fix (commit 7c6315305b)
+
+**Purpose:** Complete partner pill fixes left over from Session 79 — erd-1 (HXN-1003) missing pill and itepekimab showing wrong partner on Sanofi's card.
+
+**Root causes found and fixed:**
+
+1. **erd-1 / HXN-1003 missing "w/ Earendil" pill** — Data bug: `drugs.partner_company = "Sanofi"` on erd-1 (set from Regeneron's POV). `_partnerCo` chain hit this first, self-attribution guard (Sanofi = Sanofi) killed the pill before reaching `display_partner_name = "Earendil"`. Fix: cleared `partner_company` to null via Supabase PATCH. Now falls through to `display_partner_name = "Earendil"`. No code change needed.
+
+2. **itepekimab showing no "w/ Regeneron" on Sanofi's card** — Co-dev inversion problem. `partner_company = "Sanofi"` (correct from Regeneron's POV), but self-attribution guard fires when viewing Sanofi's card. Previously no fallback existed. Code fix: added co-dev inversion logic in `_genericDetailHTML` — when self-attribution suppresses `partner_company` AND `d.company_id ≠ prog.company_id`, derive the alternative pill from `d.entity_name` (the drug's originator). For itepekimab: `entity_name = "Regeneron"` → shows "w/ Regeneron" on Sanofi's card; guard confirms "Regeneron" ≠ "Sanofi" so no suppression.
+
+**Verified safe for existing correct cases:**
+- Duvakitug "w/ Teva" on Sanofi: `company_id = "sanofi"` = `prog.company_id` → inversion condition false → no change ✓
+- HXN-1002 "w/ Earendil": `partner_company = null` → no self-attribution → no change ✓
+- Itepekimab "w/ Sanofi" on Regeneron: `_partnerCo = "Sanofi"` ≠ "Regeneron" entity → guard doesn't fire → shows ✓
+
+**Code change location:** `_genericDetailHTML` in index.html, after `_partnerMatchesEntity` computation.
+
+---
 ## 2026-05-27 (Session 81) — drug_area_scores decision memo (analysis only, no code written)
 
 **Purpose:** Produce a product/ontology decision memo for `drug_area_scores` retirement path before any code is touched.
