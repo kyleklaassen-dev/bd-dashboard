@@ -4410,24 +4410,6 @@ function loadMoleculeTab(tabId) {
   <div id="hw-count-label">data points tracked</div>
   <div id="hw-breakdown"></div>
 
-  <!-- ── Graph metric tiles ── -->
-  <div id="hw-bd-metrics">
-   <div class="hw-bdm-tile accent-indigo">
-    <div class="hw-bdm-num" id="hw-bdm-datapoints">9,389</div>
-    <div class="hw-bdm-lbl">DATA POINTS</div>
-    <div class="hw-bdm-sub">Across all tables</div>
-   </div>
-   <div class="hw-bdm-tile accent-purple">
-    <div class="hw-bdm-num" id="hw-bdm-connections">3,139</div>
-    <div class="hw-bdm-lbl">CONNECTIONS</div>
-    <div class="hw-bdm-sub">Drug · Company · Trial edges</div>
-   </div>
-   <div class="hw-bdm-tile accent-teal">
-    <div class="hw-bdm-num" id="hw-bdm-signals">57</div>
-    <div class="hw-bdm-lbl">INTELLIGENCE SIGNALS</div>
-    <div class="hw-bdm-sub">Discoveries + BD gaps + rankings</div>
-   </div>
-  </div>
 
  </div>
 
@@ -22107,7 +22089,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <canvas id="oex-cpm-canvas" style="display:block;width:100%;background:#060d14"></canvas>
   </div>
 
-  <script id="oex-main-script">
+<script id="oex-main-script">
   (function(){
     'use strict';
 
@@ -23033,34 +23015,82 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
 
+
     /* ══════════════════════════════════════════════════════════════════════
-       DYNAMIC MATRIX SYSTEM — Session 72
-       Tree-integrated R/C buttons, quartile filter, multi-cell inspector,
-       parent-group expansion, event delegation throughout
+       DYNAMIC MATRIX SYSTEM — Session 73
+       Checkboxes (R/C), quartile row-hiding, table nodes, event-delegation
+       multi-cell inspector, CPM dot gap already in base
     ══════════════════════════════════════════════════════════════════════ */
 
     /* ── State ─────────────────────────────────────────────────────────── */
     var OEX_CAT = null;
     var OEX_LABEL_MAP = {};
-    var OEX_MS = {
-      rows: [],
-      cols: [],
-      ceiling: 100,
-      sort: 'desc',
-      cache: {}
-    };
+    var OEX_MS = { rows:[], cols:[], ceiling:100, sort:'desc', cache:{} };
     var OEX_SEL = [];
     var OEX_TREE_INJECTED = false;
 
-    /* ── Section label → catalog type mapping ───────────────────────────── */
+    /* Section header label → catalog type */
     var OEX_SECTION_MAP = {
-      'Disease Areas':     'areas',
-      'Molecular Targets': 'targets',
-      'Drug Pipeline':     'stages',
-      'Companies':         'companies'
+      'Disease Areas':'areas', 'Molecular Targets':'targets',
+      'Drug Pipeline':'stages', 'Companies':'companies'
     };
 
-    /* ── Catalog initializer ────────────────────────────────────────────── */
+    /* All Supabase table names (for table-node matrix) */
+    var OEX_ALL_TABLES = [
+      'drugs','drug_area_scores','drug_targets','drug_indications',
+      'drug_competitive_scores','drug_validation_results',
+      'companies','company_areas','deals','ailux_positions',
+      'disease_areas','therapeutic_areas','indications','indication_aliases',
+      'area_metadata','mechanism_status',
+      'catalysts','news_articles','entity_edges','competitive_landscapes',
+      'geographic_approvals','research_queue',
+      'trials','trial_registries','validation_tests'
+    ];
+
+    /* FK relationship map: table → array of tables it links to via a shared key */
+    var OEX_JOIN_MAP = {
+      drugs:['drug_area_scores','drug_targets','drug_indications','drug_competitive_scores',
+             'drug_validation_results','trials','catalysts','deals'],
+      companies:['company_areas','deals'],
+      drug_area_scores:['drugs','disease_areas'],
+      disease_areas:['drug_area_scores','area_metadata','catalysts'],
+      drug_targets:['drugs'],
+      drug_indications:['drugs','indications'],
+      trials:['drugs','trial_registries'],
+      catalysts:['drugs','disease_areas'],
+      news_articles:['companies'],
+      company_areas:['companies','disease_areas'],
+      therapeutic_areas:['disease_areas'],
+      indications:['drug_indications','indication_aliases'],
+      indication_aliases:['indications'],
+      entity_edges:['drugs','companies'],
+      mechanism_status:['disease_areas'],
+      competitive_landscapes:['disease_areas'],
+      geographic_approvals:['drugs'],
+      trial_registries:['trials'],
+      drug_validation_results:['drugs'],
+      research_queue:['drugs','companies'],
+      ailux_positions:['companies'],
+      deals:['companies','drugs','disease_areas'],
+      validation_tests:['drugs'],
+      area_metadata:['disease_areas'],
+      drug_competitive_scores:['drugs','disease_areas']
+    };
+
+    /* FK column names to use when querying overlaps */
+    var OEX_FK_COL = {
+      drug_area_scores:'drug_id', drug_targets:'drug_id', drug_indications:'drug_id',
+      drug_competitive_scores:'drug_id', drug_validation_results:'drug_id',
+      trials:'drug_id', catalysts:'drug_id', deals:'drug_id',
+      company_areas:'company_id', entity_edges:'drug_id',
+      geographic_approvals:'drug_id', research_queue:'drug_id',
+      trial_registries:'drug_id', validation_tests:'drug_id',
+      area_metadata:'area_id', mechanism_status:'area_id',
+      competitive_landscapes:'area_id', indication_aliases:'indication_id',
+      drug_indications:'drug_id'
+    };
+
+    /* ── Catalog initializer ─────────────────────────────────────────── */
     async function oexInitCatalog() {
       if (OEX_CAT) return;
       var areaRes = await _sb.from('disease_areas').select('id,name').order('name');
@@ -23069,58 +23099,55 @@ document.addEventListener('DOMContentLoaded', function(){
 
       var tgtCount = {};
       (tgtRes.data||[]).forEach(function(r){
-        if (r.target_id) tgtCount[r.target_id] = (tgtCount[r.target_id]||0)+1;
+        if (r.target_id) tgtCount[r.target_id]=(tgtCount[r.target_id]||0)+1;
       });
       var topTgts = Object.keys(tgtCount)
-        .sort(function(a,b){ return tgtCount[b]-tgtCount[a]; })
-        .slice(0,40)
-        .map(function(t){ return {id:t, label:t}; });
+        .sort(function(a,b){return tgtCount[b]-tgtCount[a];})
+        .slice(0,40).map(function(t){return {id:t,label:t};});
 
       OEX_CAT = {
-        areas: {
+        areas:{
           label:'Disease Areas', icon:'\u{1F9EC}',
-          items:(areaRes.data||[]).map(function(a){ return {id:a.id, label:a.name||a.id}; })
+          items:(areaRes.data||[]).map(function(a){return {id:a.id,label:a.name||a.id};})
         },
-        layers: {
+        layers:{
           label:'Data Layers', icon:'\u{1F4CA}',
           items:[
-            {id:'targets',     label:'Targets'},
-            {id:'indications', label:'Indications'},
-            {id:'trials',      label:'Trials'},
-            {id:'catalysts',   label:'Catalysts'},
-            {id:'news',        label:'News'}
+            {id:'targets',label:'Targets'},{id:'indications',label:'Indications'},
+            {id:'trials',label:'Trials'},{id:'catalysts',label:'Catalysts'},{id:'news',label:'News'}
           ]
         },
-        stages: {
+        stages:{
           label:'Dev Stages', icon:'\u{1F52C}',
           items:[
-            {id:'Preclinical', label:'Preclinical'},
-            {id:'Phase 1',     label:'Phase 1'},
-            {id:'Phase 2',     label:'Phase 2'},
-            {id:'Phase 3',     label:'Phase 3'},
-            {id:'Approved',    label:'Approved'}
+            {id:'Preclinical',label:'Preclinical'},{id:'Phase 1',label:'Phase 1'},
+            {id:'Phase 2',label:'Phase 2'},{id:'Phase 3',label:'Phase 3'},{id:'Approved',label:'Approved'}
           ]
         },
-        companies: {
+        companies:{
           label:'Companies', icon:'\u{1F3E2}',
-          items:(coRes.data||[]).map(function(c){ return {id:c.id, label:c.name||c.id}; })
+          items:(coRes.data||[]).map(function(c){return {id:c.id,label:c.name||c.id};})
         },
-        targets: {
+        targets:{
           label:'Molecular Targets', icon:'\u{1F3AF}',
           items:topTgts
+        },
+        tables:{
+          label:'Database Tables', icon:'\u{1F5C4}',
+          items:OEX_ALL_TABLES.map(function(t){return {id:t,label:t};})
         }
       };
 
       OEX_LABEL_MAP = {};
-      Object.keys(OEX_CAT).forEach(function(type) {
-        OEX_CAT[type].items.forEach(function(item) {
-          OEX_LABEL_MAP[item.label.toLowerCase()] = {type:type, id:item.id, label:item.label};
-          OEX_LABEL_MAP[item.id.toLowerCase()]    = {type:type, id:item.id, label:item.label};
+      Object.keys(OEX_CAT).forEach(function(type){
+        OEX_CAT[type].items.forEach(function(item){
+          OEX_LABEL_MAP[item.label.toLowerCase()]={type:type,id:item.id,label:item.label};
+          OEX_LABEL_MAP[item.id.toLowerCase()]   ={type:type,id:item.id,label:item.label};
         });
       });
     }
 
-    /* ── Inject R/C buttons into Quick View tree items ──────────────────── */
+    /* ── Inject checkboxes into Quick View tree + DB Tables ─────────── */
     function oexInjectTreeButtons() {
       var tree = document.getElementById('oex-tree');
       if (!tree || !OEX_CAT) return;
@@ -23131,322 +23158,459 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!hd) return;
         var sectionLabel = (hd.querySelector('.oex-t-lbl')||{}).textContent||'';
         var catType = OEX_SECTION_MAP[sectionLabel];
-        if (!catType) return;
-
-        if (!hd.hasAttribute('data-oex-wired')) {
-          hd.setAttribute('data-oex-wired','1');
-          var groupBtns = document.createElement('span');
-          groupBtns.style.cssText = 'display:inline-flex;gap:3px;margin-left:6px;flex-shrink:0;vertical-align:middle';
-          groupBtns.innerHTML =
-            '<button class="oex-nb" data-type="'+catType+'" data-id="_all" data-label="'+sectionLabel+'" data-axis="row" style="font-size:9px;padding:0 5px;height:16px;background:#1e4d2b;color:#4ade80;border:none;border-radius:3px;cursor:pointer">All R</button>'+
-            '<button class="oex-nb" data-type="'+catType+'" data-id="_all" data-label="'+sectionLabel+'" data-axis="col" style="font-size:9px;padding:0 5px;height:16px;background:#1e2d4a;color:#60a5fa;border:none;border-radius:3px;cursor:pointer">All C</button>';
-          hd.appendChild(groupBtns);
+        if (!catType) {
+          // Check if it's a Database Tables section — inject table checkboxes
+          if (sectionLabel && !hd.hasAttribute('data-oex-wired')) {
+            _oexInjectDbTableCheckboxes(sec, sectionLabel);
+          }
+          return;
         }
 
+        /* Quick View section: inject "All R" / "All C" on header */
+        if (!hd.hasAttribute('data-oex-wired')) {
+          hd.setAttribute('data-oex-wired','1');
+          var g = document.createElement('span');
+          g.style.cssText='display:inline-flex;gap:4px;margin-left:6px;flex-shrink:0;vertical-align:middle';
+          g.innerHTML=
+            '<label style="font-size:9px;color:#4ade80;cursor:pointer;display:flex;align-items:center;gap:2px">'
+            +'<input type="checkbox" class="oex-grp-chk" data-type="'+catType+'" data-axis="row" style="width:10px;height:10px;accent-color:#4ade80;cursor:pointer"> All R</label>'
+            +'<label style="font-size:9px;color:#60a5fa;cursor:pointer;display:flex;align-items:center;gap:2px">'
+            +'<input type="checkbox" class="oex-grp-chk" data-type="'+catType+'" data-axis="col" style="width:10px;height:10px;accent-color:#60a5fa;cursor:pointer"> All C</label>';
+          hd.appendChild(g);
+        }
+
+        /* Individual leaf items */
         var leaves = Array.prototype.slice.call(sec.querySelectorAll('.oex-tv'));
-        leaves.forEach(function(leaf) {
+        leaves.forEach(function(leaf){
           if (leaf.hasAttribute('data-oex-wired')) return;
           leaf.setAttribute('data-oex-wired','1');
           var lblEl = leaf.querySelector('.oex-tv-lbl');
           var rawLabel = lblEl ? lblEl.textContent.trim() : '';
-          var node = OEX_LABEL_MAP[rawLabel.toLowerCase()] || {type:catType, id:rawLabel, label:rawLabel};
-          leaf.setAttribute('data-type', node.type);
-          leaf.setAttribute('data-id',   node.id);
+          var node = OEX_LABEL_MAP[rawLabel.toLowerCase()] || {type:catType,id:rawLabel,label:rawLabel};
+          leaf.setAttribute('data-type',node.type);
+          leaf.setAttribute('data-id',  node.id);
           leaf.setAttribute('data-label',node.label);
-          var btns = document.createElement('span');
-          btns.className = 'oex-leaf-btns';
-          btns.style.cssText = 'display:inline-flex;gap:2px;margin-left:auto;flex-shrink:0;padding-right:4px';
-          btns.innerHTML = _oexLeafBtnHtml(node.type, node.id, node.label);
-          leaf.style.display = 'flex';
-          leaf.style.alignItems = 'center';
-          leaf.appendChild(btns);
+          var chks = document.createElement('span');
+          chks.className='oex-leaf-chks';
+          chks.style.cssText='display:inline-flex;gap:4px;margin-left:auto;flex-shrink:0;padding-right:4px;align-items:center';
+          chks.innerHTML=_oexChkHtml(node.type,node.id,node.label);
+          leaf.style.display='flex'; leaf.style.alignItems='center';
+          leaf.appendChild(chks);
           leaf.setAttribute('onclick','');
         });
       });
 
+      /* Wire one delegated listener on the tree */
       if (!OEX_TREE_INJECTED) {
-        OEX_TREE_INJECTED = true;
-        tree.addEventListener('click', function(e) {
-          var btn = e.target.closest('.oex-nb');
-          if (!btn) return;
+        OEX_TREE_INJECTED=true;
+        tree.addEventListener('change',function(e){
+          var chk=e.target;
+          if (!chk || chk.type!=='checkbox') return;
           e.stopPropagation();
-          var type  = btn.getAttribute('data-type');
-          var id    = btn.getAttribute('data-id');
-          var label = btn.getAttribute('data-label');
-          var axis  = btn.getAttribute('data-axis');
-          if (!type || !axis) return;
-          if (id === '_all') oexToggleGroup(type, axis);
-          else oexToggleNode(type, id, label, axis);
+          if (chk.classList.contains('oex-grp-chk')) {
+            var type=chk.getAttribute('data-type');
+            var axis=chk.getAttribute('data-axis');
+            _oexSetGroupAll(type,axis,chk.checked);
+          } else if (chk.classList.contains('oex-row-chk')||chk.classList.contains('oex-col-chk')) {
+            var axis=chk.classList.contains('oex-row-chk')?'row':'col';
+            var leaf=chk.closest('[data-type]');
+            if (!leaf) return;
+            var type=leaf.getAttribute('data-type');
+            var id=leaf.getAttribute('data-id');
+            var label=leaf.getAttribute('data-label');
+            oexToggleNode(type,id,label,axis,chk.checked);
+          }
         });
       }
-
-      oexRefreshTreeButtons();
+      oexRefreshChks();
     }
 
-    function _oexLeafBtnHtml(type, id, label) {
-      var inR = OEX_MS.rows.some(function(n){ return n.id===id && n.type===type; });
-      var inC = OEX_MS.cols.some(function(n){ return n.id===id && n.type===type; });
-      var safeLabel = (label||'').replace(/"/g,'&quot;');
-      var rStyle = inR ? 'background:#166534;color:#4ade80;border:1px solid #4ade80' : 'background:#1e4d2b;color:#4ade80;border:none';
-      var cStyle = inC ? 'background:#1e40af;color:#60a5fa;border:1px solid #60a5fa' : 'background:#1e3050;color:#60a5fa;border:none';
-      var base = 'font-size:9px;padding:1px 5px;border-radius:3px;cursor:pointer;flex-shrink:0';
-      return '<button class="oex-nb" data-type="'+type+'" data-id="'+id+'" data-label="'+safeLabel+'" data-axis="row" style="'+base+';'+rStyle+'">'+(inR?'✓R':'R')+'</button>'+
-             '<button class="oex-nb" data-type="'+type+'" data-id="'+id+'" data-label="'+safeLabel+'" data-axis="col" style="'+base+';'+cStyle+'">'+(inC?'✓C':'C')+'</button>';
+    /* ── Inject checkboxes into database table items ──────────────────── */
+    function _oexInjectDbTableCheckboxes(sec, sectionLabel) {
+      var hd = sec.querySelector('.oex-tc-hd');
+      if (!hd) return;
+      hd.setAttribute('data-oex-wired','1');
+
+      var leaves = Array.prototype.slice.call(sec.querySelectorAll('.oex-tv'));
+      leaves.forEach(function(leaf){
+        if (leaf.hasAttribute('data-oex-wired')) return;
+        leaf.setAttribute('data-oex-wired','1');
+        var lblEl = leaf.querySelector('.oex-tv-lbl');
+        var tblName = lblEl ? lblEl.textContent.trim() : '';
+        // Only add checkboxes if this is a known table
+        if (OEX_ALL_TABLES.indexOf(tblName) < 0) return;
+        leaf.setAttribute('data-type','tables');
+        leaf.setAttribute('data-id', tblName);
+        leaf.setAttribute('data-label', tblName);
+        var chks = document.createElement('span');
+        chks.className='oex-leaf-chks';
+        chks.style.cssText='display:inline-flex;gap:4px;margin-left:auto;flex-shrink:0;padding-right:4px;align-items:center';
+        chks.innerHTML=_oexChkHtml('tables',tblName,tblName);
+        leaf.style.display='flex'; leaf.style.alignItems='center';
+        leaf.appendChild(chks);
+        leaf.setAttribute('onclick','');
+      });
     }
 
-    function oexRefreshTreeButtons() {
-      var tree = document.getElementById('oex-tree');
+    /* ── Checkbox HTML ───────────────────────────────────────────────── */
+    function _oexChkHtml(type,id,label) {
+      var inR=OEX_MS.rows.some(function(n){return n.id===id&&n.type===type;});
+      var inC=OEX_MS.cols.some(function(n){return n.id===id&&n.type===type;});
+      var safe=(label||'').replace(/"/g,'&quot;');
+      return '<label style="font-size:9px;color:#4ade80;cursor:pointer;display:flex;align-items:center;gap:2px" title="Add to rows">'
+        +'<input type="checkbox" class="oex-row-chk" '+(inR?'checked':'')+' style="width:10px;height:10px;accent-color:#4ade80;cursor:pointer"> R</label>'
+        +'<label style="font-size:9px;color:#60a5fa;cursor:pointer;display:flex;align-items:center;gap:2px" title="Add to columns">'
+        +'<input type="checkbox" class="oex-col-chk" '+(inC?'checked':'')+' style="width:10px;height:10px;accent-color:#60a5fa;cursor:pointer"> C</label>';
+    }
+
+    /* ── Refresh all checkbox states ────────────────────────────────── */
+    function oexRefreshChks() {
+      var tree=document.getElementById('oex-tree');
       if (!tree) return;
-      tree.querySelectorAll('.oex-leaf-btns').forEach(function(btnsEl) {
-        var leaf = btnsEl.parentElement;
-        var type  = leaf.getAttribute('data-type');
-        var id    = leaf.getAttribute('data-id');
-        var label = leaf.getAttribute('data-label');
-        if (!type || !id) return;
-        btnsEl.innerHTML = _oexLeafBtnHtml(type, id, label);
+      tree.querySelectorAll('.oex-leaf-chks').forEach(function(chksEl){
+        var leaf=chksEl.parentElement;
+        var type=leaf.getAttribute('data-type');
+        var id  =leaf.getAttribute('data-id');
+        var label=leaf.getAttribute('data-label');
+        if (!type||!id) return;
+        chksEl.innerHTML=_oexChkHtml(type,id,label);
+      });
+      /* Sync group checkboxes */
+      tree.querySelectorAll('.oex-grp-chk').forEach(function(chk){
+        var type=chk.getAttribute('data-type');
+        var axis=chk.getAttribute('data-axis');
+        if (!type||!axis||!OEX_CAT||!OEX_CAT[type]) return;
+        var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
+        var catItems=OEX_CAT[type].items;
+        chk.checked=catItems.length>0&&catItems.every(function(item){
+          return arr.some(function(n){return n.id===item.id&&n.type===type;});
+        });
+        chk.indeterminate=!chk.checked&&catItems.some(function(item){
+          return arr.some(function(n){return n.id===item.id&&n.type===type;});
+        });
       });
     }
 
-    window.oexToggleGroup = function(type, axis) {
-      if (!OEX_CAT || !OEX_CAT[type]) return;
-      var arr = axis === 'row' ? OEX_MS.rows : OEX_MS.cols;
-      var catItems = OEX_CAT[type].items;
-      var allIn = catItems.every(function(item) {
-        return arr.some(function(n){ return n.id===item.id && n.type===type; });
-      });
-      if (allIn) {
-        var ids = catItems.map(function(i){ return i.id; });
-        if (axis==='row') OEX_MS.rows = OEX_MS.rows.filter(function(n){ return !(n.type===type && ids.indexOf(n.id)>=0); });
-        else              OEX_MS.cols = OEX_MS.cols.filter(function(n){ return !(n.type===type && ids.indexOf(n.id)>=0); });
-      } else {
-        catItems.forEach(function(item) {
-          if (!arr.some(function(n){ return n.id===item.id && n.type===type; }))
-            arr.push({type:type, id:item.id, label:item.label});
+    /* ── Set all items in group checked/unchecked ───────────────────── */
+    function _oexSetGroupAll(type,axis,checked) {
+      if (!OEX_CAT||!OEX_CAT[type]) return;
+      var catItems=OEX_CAT[type].items;
+      if (checked) {
+        catItems.forEach(function(item){
+          var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
+          if (!arr.some(function(n){return n.id===item.id&&n.type===type;}))
+            arr.push({type:type,id:item.id,label:item.label});
         });
+      } else {
+        var ids=catItems.map(function(i){return i.id;});
+        if (axis==='row') OEX_MS.rows=OEX_MS.rows.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
+        else              OEX_MS.cols=OEX_MS.cols.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
       }
-      OEX_MS.cache = {};
-      oexRefreshTreeButtons();
+      OEX_MS.cache={};
+      oexRefreshChks();
+      oexLoadMatrix();
+    }
+
+    /* ── Toggle a single node ────────────────────────────────────────── */
+    window.oexToggleNode = function(type,id,label,axis,add) {
+      var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
+      var idx=arr.findIndex(function(n){return n.id===id&&n.type===type;});
+      var shouldAdd = (typeof add==='boolean') ? add : idx===-1;
+      if (shouldAdd && idx===-1) arr.push({type:type,id:id,label:label});
+      else if (!shouldAdd && idx>=0) arr.splice(idx,1);
+      OEX_MS.cache={};
+      oexRefreshChks();
       oexLoadMatrix();
     };
 
-    window.oexToggleNode = function(type, id, label, axis) {
-      var arr = axis === 'row' ? OEX_MS.rows : OEX_MS.cols;
-      var idx = arr.findIndex(function(n){ return n.id===id && n.type===type; });
-      if (idx === -1) arr.push({type:type, id:id, label:label});
-      else arr.splice(idx, 1);
-      OEX_MS.cache = {};
-      oexRefreshTreeButtons();
-      oexLoadMatrix();
-    };
-
-    /* ── Coverage strength computation ─────────────────────────────────── */
-    async function oexStrength(rowNode, colNode) {
-      var cacheKey = rowNode.type+'|'+rowNode.id+'|'+colNode.type+'|'+colNode.id;
-      if (OEX_MS.cache[cacheKey]) return OEX_MS.cache[cacheKey];
-      var result = {pct:null, covered:null, total:null};
+    /* ── Coverage strength ───────────────────────────────────────────── */
+    async function oexStrength(rowNode,colNode) {
+      var key=rowNode.type+'|'+rowNode.id+'|'+colNode.type+'|'+colNode.id;
+      if (OEX_MS.cache[key] && OEX_MS.cache[key]!=='pending') return OEX_MS.cache[key];
+      var result={pct:null,covered:null,total:null};
       try {
-        var drugIds = await _oexGetDrugIds(rowNode);
-        if (!drugIds || !drugIds.length) { OEX_MS.cache[cacheKey]=result; return result; }
-        result.total = drugIds.length;
-        var covered = await _oexCountCovered(drugIds, colNode);
-        result.covered = covered;
-        result.pct = Math.round(covered / drugIds.length * 100);
-      } catch(e) { console.warn('[OEX strength]', e); }
-      OEX_MS.cache[cacheKey] = result;
+        if (rowNode.type==='tables' || colNode.type==='tables') {
+          result = await _oexTableStrength(rowNode,colNode);
+        } else {
+          var drugIds=await _oexGetDrugIds(rowNode);
+          if (!drugIds||!drugIds.length){OEX_MS.cache[key]=result;return result;}
+          result.total=drugIds.length;
+          result.covered=await _oexCountCovered(drugIds,colNode);
+          result.pct=Math.round(result.covered/result.total*100);
+        }
+      } catch(e){console.warn('[OEX strength]',e);}
+      OEX_MS.cache[key]=result;
+      return result;
+    }
+
+    /* ── Table × Table strength (schema overlap metric) ─────────────── */
+    async function _oexTableStrength(rowNode,colNode) {
+      var result={pct:null,covered:null,total:null};
+      try {
+        var rowTbl=rowNode.type==='tables'?rowNode.id:null;
+        var colTbl=colNode.type==='tables'?colNode.id:null;
+        if (!rowTbl) return result;
+
+        /* Count total rows in row table */
+        var cntRes=await _sb.from(rowTbl).select('*',{count:'exact',head:true});
+        var total=cntRes.count||0;
+        if (!total) return result;
+        result.total=total;
+
+        if (colTbl) {
+          /* Table × Table: check if they share any relationship */
+          var related=(OEX_JOIN_MAP[rowTbl]||[]).indexOf(colTbl)>=0;
+          if (!related&&(OEX_JOIN_MAP[colTbl]||[]).indexOf(rowTbl)<0) {
+            result.pct=0; result.covered=0; return result;
+          }
+          /* Find the FK col from colTbl pointing to rowTbl's primary key */
+          var fkCol = OEX_FK_COL[colTbl] || 'drug_id';
+          /* Count distinct FK values in colTbl that appear in rowTbl */
+          var lr=await _sb.from(colTbl).select(fkCol).limit(2000);
+          var ids=new Set((lr.data||[]).map(function(r){return r[fkCol];}));
+          /* Count rowTbl rows whose id is in that set */
+          var pkRes=await _sb.from(rowTbl).select('id').limit(2000);
+          var pkIds=(pkRes.data||[]).map(function(r){return r.id;});
+          var covered=pkIds.filter(function(id){return ids.has(id);}).length;
+          result.covered=covered;
+          result.pct=Math.round(covered/total*100);
+        } else {
+          /* Table × biological layer */
+          var drugIds=await _oexGetDrugIds(colNode);
+          if (!drugIds||!drugIds.length) return result;
+          var pkRes2=await _sb.from(rowTbl).select('id').limit(2000);
+          var pkIds2=(pkRes2.data||[]).map(function(r){return r.id;});
+          var drugSet=new Set(drugIds);
+          var covered2=pkIds2.filter(function(id){return drugSet.has(id);}).length;
+          result.covered=covered2;
+          result.pct=Math.round(covered2/total*100);
+        }
+      } catch(e){console.warn('[OEX table strength]',e);}
       return result;
     }
 
     async function _oexGetDrugIds(node) {
-      if (node.type === 'areas') {
-        var r = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', node.id).limit(500);
-        return (r.data||[]).map(function(x){ return x.drug_id; });
+      if (node.type==='areas'){
+        var r=await _sb.from('drug_area_scores').select('drug_id').eq('area_id',node.id).limit(500);
+        return (r.data||[]).map(function(x){return x.drug_id;});
       }
-      if (node.type === 'stages') {
-        var r = await _sb.from('drugs').select('id').eq('stage', node.id).limit(500);
-        return (r.data||[]).map(function(x){ return x.id; });
+      if (node.type==='stages'){
+        var r=await _sb.from('drugs').select('id').eq('stage',node.id).limit(500);
+        return (r.data||[]).map(function(x){return x.id;});
       }
-      if (node.type === 'companies') {
-        var r = await _sb.from('drugs').select('id').eq('company_id', node.id).limit(500);
-        if (!r.data || !r.data.length) {
-          var cr = await _sb.from('companies').select('name').eq('id', node.id).limit(1);
-          var cname = cr.data && cr.data[0] ? cr.data[0].name : node.label;
-          var r2 = await _sb.from('drugs').select('id').ilike('company_display','%'+cname+'%').limit(500);
-          return (r2.data||[]).map(function(x){ return x.id; });
+      if (node.type==='companies'){
+        var r=await _sb.from('drugs').select('id').eq('company_id',node.id).limit(500);
+        if (!r.data||!r.data.length){
+          var cr=await _sb.from('companies').select('name').eq('id',node.id).limit(1);
+          var cname=cr.data&&cr.data[0]?cr.data[0].name:node.label;
+          var r2=await _sb.from('drugs').select('id').ilike('company_display','%'+cname+'%').limit(500);
+          return (r2.data||[]).map(function(x){return x.id;});
         }
-        return (r.data||[]).map(function(x){ return x.id; });
+        return (r.data||[]).map(function(x){return x.id;});
       }
-      if (node.type === 'targets') {
-        var r = await _sb.from('drug_targets').select('drug_id').eq('target_id', node.id).limit(500);
-        return (r.data||[]).map(function(x){ return x.drug_id; });
+      if (node.type==='targets'){
+        var r=await _sb.from('drug_targets').select('drug_id').eq('target_id',node.id).limit(500);
+        return (r.data||[]).map(function(x){return x.drug_id;});
       }
       return [];
     }
 
-    async function _oexCountCovered(drugIds, colNode) {
+    async function _oexCountCovered(drugIds,colNode) {
       if (!drugIds.length) return 0;
-      var ids = drugIds.slice(0,400);
-      if (colNode.type === 'layers') return await _oexCountCoveredLayer(ids, colNode.id);
-      if (colNode.type === 'areas') {
-        var r = await _sb.from('drug_area_scores').select('drug_id').eq('area_id',colNode.id).in('drug_id',ids).limit(500);
+      var ids=drugIds.slice(0,400);
+      if (colNode.type==='layers') return await _oexCountCoveredLayer(ids,colNode.id);
+      if (colNode.type==='areas'){
+        var r=await _sb.from('drug_area_scores').select('drug_id').eq('area_id',colNode.id).in('drug_id',ids).limit(500);
         return (r.data||[]).length;
       }
-      if (colNode.type === 'stages') {
-        var r = await _sb.from('drugs').select('id').eq('stage',colNode.id).in('id',ids).limit(500);
+      if (colNode.type==='stages'){
+        var r=await _sb.from('drugs').select('id').eq('stage',colNode.id).in('id',ids).limit(500);
         return (r.data||[]).length;
       }
-      if (colNode.type === 'companies') {
-        var r = await _sb.from('drugs').select('id').eq('company_id',colNode.id).in('id',ids).limit(500);
+      if (colNode.type==='companies'){
+        var r=await _sb.from('drugs').select('id').eq('company_id',colNode.id).in('id',ids).limit(500);
         return (r.data||[]).length;
       }
-      if (colNode.type === 'targets') {
-        var r = await _sb.from('drug_targets').select('drug_id').eq('target_id',colNode.id).in('drug_id',ids).limit(500);
+      if (colNode.type==='targets'){
+        var r=await _sb.from('drug_targets').select('drug_id').eq('target_id',colNode.id).in('drug_id',ids).limit(500);
         return (r.data||[]).length;
       }
       return 0;
     }
 
-    async function _oexCountCoveredLayer(drugIds, layerId) {
-      if (layerId==='news') {
-        var r = await _sb.from('news_articles').select('matched_drug_ids').limit(500);
-        var found = new Set();
+    async function _oexCountCoveredLayer(drugIds,layerId) {
+      if (layerId==='news'){
+        var r=await _sb.from('news_articles').select('matched_drug_ids').limit(500);
+        var found=new Set();
         (r.data||[]).forEach(function(row){
-          (row.matched_drug_ids||[]).forEach(function(id){ if (drugIds.indexOf(id)>=0) found.add(id); });
+          (row.matched_drug_ids||[]).forEach(function(id){if(drugIds.indexOf(id)>=0)found.add(id);});
         });
         return found.size;
       }
-      var tbl = layerId==='targets'?'drug_targets':layerId==='indications'?'drug_indications':layerId==='trials'?'trials':layerId==='catalysts'?'catalysts':null;
+      var tbl=layerId==='targets'?'drug_targets':layerId==='indications'?'drug_indications':layerId==='trials'?'trials':layerId==='catalysts'?'catalysts':null;
       if (!tbl) return 0;
-      var fld = 'drug_id';
-      var r = await _sb.from(tbl).select(fld).in(fld, drugIds).limit(1000);
-      var found = new Set((r.data||[]).map(function(x){ return x[fld]; }));
-      return found.size;
+      var r=await _sb.from(tbl).select('drug_id').in('drug_id',drugIds).limit(1000);
+      return new Set((r.data||[]).map(function(x){return x.drug_id;})).size;
     }
 
-    /* ── Render matrix ──────────────────────────────────────────────────── */
+    /* ── Render matrix (event delegation, no inline onclick) ────────── */
     async function oexRenderMatrix() {
-      var wrap = document.getElementById('oex-mwrap');
+      var wrap=document.getElementById('oex-mwrap');
       if (!wrap) return;
-      var rows = OEX_MS.rows, cols = OEX_MS.cols;
-      if (!rows.length || !cols.length) {
-        wrap.innerHTML = '<div style="padding:24px 16px;font-size:12px;color:#475569;text-align:center">'
-          +'Use the <strong style="color:#4ade80">R</strong> and <strong style="color:#60a5fa">C</strong> buttons in the left panel to add rows and columns.</div>';
+      var rows=OEX_MS.rows, cols=OEX_MS.cols;
+      if (!rows.length||!cols.length) {
+        wrap.innerHTML='<div style="padding:24px 16px;font-size:12px;color:#475569;text-align:center">'
+          +'Check the <strong style="color:#4ade80">R</strong> boxes to add rows and '
+          +'<strong style="color:#60a5fa">C</strong> boxes to add columns.</div>';
+        _oexWireCellClicks();
         return;
       }
-      var promises = [];
-      rows.forEach(function(r){ cols.forEach(function(c){ promises.push(oexStrength(r,c)); }); });
-      await Promise.all(promises);
 
-      var cellData = {};
-      rows.forEach(function(r){
-        cols.forEach(function(c){
-          var k = r.type+'|'+r.id+'|'+c.type+'|'+c.id;
-          cellData[k] = OEX_MS.cache[k] || {pct:null,covered:null,total:null};
-        });
-      });
+      /* Pre-load all cells */
+      await Promise.all(rows.map(function(r){return Promise.all(cols.map(function(c){return oexStrength(r,c);}));}));
 
-      var sortedRows = _oexSortRows(rows, cellData);
-      var html = '<table style="border-collapse:collapse;min-width:100%">';
-      html += '<thead><tr><th style="padding:6px 10px;font-size:10px;color:#475569;text-align:left;background:#060d14;position:sticky;top:0;z-index:2;min-width:130px">Node</th>';
+      /* Collect per-cell data */
+      var cellData={};
+      rows.forEach(function(r){cols.forEach(function(c){
+        var k=r.type+'|'+r.id+'|'+c.type+'|'+c.id;
+        cellData[k]=OEX_MS.cache[k]||{pct:null,covered:null,total:null};
+      });});
+
+      /* Sort rows */
+      var sorted=_oexSortRows(rows,cellData);
+
+      /* Build table — use data-* attrs only, no inline onclick strings */
+      var html='<table style="border-collapse:collapse;min-width:100%">';
+      html+='<thead><tr><th style="padding:6px 10px;font-size:10px;color:#475569;text-align:left;background:#060d14;position:sticky;top:0;z-index:2;min-width:130px">Node</th>';
       cols.forEach(function(c){
-        html += '<th style="padding:6px 8px;font-size:10px;color:#94a3b8;text-align:center;background:#060d14;position:sticky;top:0;z-index:2;min-width:80px;white-space:nowrap">'
+        html+='<th style="padding:6px 8px;font-size:10px;color:#94a3b8;text-align:center;background:#060d14;position:sticky;top:0;z-index:2;min-width:80px;white-space:nowrap">'
           +'<span style="font-size:8px;text-transform:uppercase;letter-spacing:.05em">'+c.label+'</span></th>';
       });
-      html += '</tr></thead><tbody>';
-      sortedRows.forEach(function(row){
-        var dot = _oexTypeDot(row.type);
-        html += '<tr><td style="padding:5px 10px;font-size:11px;color:#cbd5e1;background:#060d14;white-space:nowrap;position:sticky;left:0;z-index:1">'+dot+row.label+'</td>';
+      html+='</tr></thead><tbody>';
+
+      sorted.forEach(function(row){
+        /* Determine if this row has ANY cell ≤ ceiling */
+        var hasCellInCeiling = cols.some(function(col){
+          var k=row.type+'|'+row.id+'|'+col.type+'|'+col.id;
+          var d=cellData[k]; var p=d?d.pct:null;
+          return p===null || p<=OEX_MS.ceiling;
+        });
+        var rowDisplay = (OEX_MS.ceiling<100 && !hasCellInCeiling) ? 'display:none' : '';
+
+        html+='<tr style="'+rowDisplay+'">';
+        html+='<td style="padding:5px 10px;font-size:11px;color:#cbd5e1;background:#060d14;white-space:nowrap;position:sticky;left:0;z-index:1">'+_oexTypeDot(row.type)+row.label+'</td>';
         cols.forEach(function(col){
-          var k = row.type+'|'+row.id+'|'+col.type+'|'+col.id;
-          var d = cellData[k];
-          var pct = d ? d.pct : null;
-          var show = pct === null || pct <= OEX_MS.ceiling;
-          var bg = pct===null?'#0d1520':(pct>=70?'rgba(74,222,128,.12)':pct>=40?'rgba(251,191,36,.10)':pct>=15?'rgba(251,146,60,.09)':'rgba(248,113,113,.08)');
-          var fg = pct===null?'#2d4a6a':(pct>=70?'#4ade80':pct>=40?'#fbbf24':pct>=15?'#fb923c':'#f87171');
-          var opacity = show ? '1' : '0.15';
-          var tdecor  = show ? 'none' : 'line-through';
-          html += '<td onclick="oexClickCell(this,event)" '
+          var k=row.type+'|'+row.id+'|'+col.type+'|'+col.id;
+          var d=cellData[k]; var pct=d?d.pct:null;
+          /* When ceiling<100: cells > ceiling are dimmed; cells ≤ ceiling shown fully */
+          var belowCeiling = pct===null || pct<=OEX_MS.ceiling;
+          var bg=pct===null?'#0d1520':(pct>=70?'rgba(74,222,128,.12)':pct>=40?'rgba(251,191,36,.10)':pct>=15?'rgba(251,146,60,.09)':'rgba(248,113,113,.08)');
+          var fg=pct===null?'#2d4a6a':(pct>=70?'#4ade80':pct>=40?'#fbbf24':pct>=15?'#fb923c':'#f87171');
+          var opacity = (OEX_MS.ceiling<100 && !belowCeiling) ? '0.12' : '1';
+          /* Highlight gap cells when filtered */
+          var outline = (OEX_MS.ceiling<100 && belowCeiling && pct!==null && pct<70) ? 'outline:1px solid '+fg+';outline-offset:-1px;' : '';
+          html+='<td class="oex-cell" '
             +'data-row-type="'+row.type+'" data-row-id="'+row.id+'" data-row-label="'+row.label.replace(/"/g,'&quot;')+'" '
             +'data-col-type="'+col.type+'" data-col-id="'+col.id+'" data-col-label="'+col.label.replace(/"/g,'&quot;')+'" '
-            +'style="text-align:center;padding:4px 6px;cursor:pointer;background:'+bg+';opacity:'+opacity+';transition:opacity .15s">';
-          if (pct !== null) {
-            html += '<span style="font-size:11px;font-weight:700;color:'+fg+';text-decoration:'+tdecor+'">'+pct+'%</span>';
-          } else {
-            html += '<span style="font-size:10px;color:#1e3050">—</span>';
-          }
-          html += '</td>';
+            +'style="text-align:center;padding:4px 6px;cursor:pointer;background:'+bg+';opacity:'+opacity+';transition:opacity .15s;'+outline+'">';
+          if (pct!==null) html+='<span style="font-size:11px;font-weight:700;color:'+fg+'">'+pct+'%</span>';
+          else html+='<span style="font-size:10px;color:#1e3050">—</span>';
+          html+='</td>';
         });
-        html += '</tr>';
+        html+='</tr>';
       });
-      html += '</tbody></table>';
-      wrap.innerHTML = html;
+      html+='</tbody></table>';
+      wrap.innerHTML=html;
+      _oexWireCellClicks();
 
-      var sub = document.getElementById('oex-matrix-subtitle');
-      if (sub) sub.textContent = rows.length+' rows × '+cols.length+' cols'+(OEX_MS.ceiling<100?' · showing ≤'+OEX_MS.ceiling+'%':'');
+      var sub=document.getElementById('oex-matrix-subtitle');
+      if (sub) {
+        var visRows=sorted.filter(function(row){
+          return cols.some(function(col){
+            var k=row.type+'|'+row.id+'|'+col.type+'|'+col.id;
+            var d=cellData[k]; var p=d?d.pct:null;
+            return p===null||p<=OEX_MS.ceiling;
+          });
+        }).length;
+        sub.textContent=rows.length+' rows × '+cols.length+' cols'
+          +(OEX_MS.ceiling<100?' · '+visRows+' rows with gaps ≤'+OEX_MS.ceiling+'%':'');
+      }
     }
 
-    function _oexTypeDot(type) {
-      var colors = {areas:'#10b981',targets:'#8b5cf6',stages:'#f59e0b',companies:'#3b82f6',layers:'#06b6d4'};
-      var c = colors[type]||'#64748b';
-      return '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+c+';margin-right:6px;flex-shrink:0;vertical-align:middle"></span>';
-    }
-
-    function _oexSortRows(rows, cellData) {
-      if (OEX_MS.sort === 'alpha') return rows.slice().sort(function(a,b){return a.label.localeCompare(b.label);});
-      return rows.slice().sort(function(a,b){
-        var aA = _rowAvg(a,cellData), bA = _rowAvg(b,cellData);
-        return OEX_MS.sort==='desc' ? bA-aA : aA-bA;
+    /* ── Wire cell click listener (event delegation) ─────────────────── */
+    function _oexWireCellClicks() {
+      var wrap=document.getElementById('oex-mwrap');
+      if (!wrap||wrap._oexClickWired) return;
+      wrap._oexClickWired=true;
+      wrap.addEventListener('click',function(e){
+        var td=e.target.closest('.oex-cell');
+        if (!td) return;
+        _oexHandleCell(td, e);
       });
     }
-    function _rowAvg(node, cellData) {
-      var k = node.type+'|'+node.id;
-      var vals = Object.keys(cellData).filter(function(key){return key.startsWith(k+'|');})
-        .map(function(key){return cellData[key].pct;}).filter(function(v){return v!==null;});
-      return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : -1;
-    }
 
-    /* ── Cell click (single / multi) ───────────────────────────────────── */
-    window.oexClickCell = function(td, evt) {
-      var rn = {type:td.getAttribute('data-row-type'),id:td.getAttribute('data-row-id'),label:td.getAttribute('data-row-label')};
-      var cn = {type:td.getAttribute('data-col-type'),id:td.getAttribute('data-col-id'),label:td.getAttribute('data-col-label')};
-      if (evt && (evt.shiftKey || evt.metaKey || evt.ctrlKey)) {
-        var key = rn.id+'|'+cn.id;
-        var idx = OEX_SEL.findIndex(function(s){return s.key===key;});
+    function _oexHandleCell(td, e) {
+      var rn={type:td.getAttribute('data-row-type'),id:td.getAttribute('data-row-id'),label:td.getAttribute('data-row-label')};
+      var cn={type:td.getAttribute('data-col-type'),id:td.getAttribute('data-col-id'),label:td.getAttribute('data-col-label')};
+      var isMulti = e && (e.shiftKey||e.metaKey||e.ctrlKey);
+      if (isMulti) {
+        var key=rn.id+'|'+cn.id;
+        var idx=OEX_SEL.findIndex(function(s){return s.key===key;});
         if (idx>=0) {
           OEX_SEL.splice(idx,1);
           td.style.outline=''; td.style.outlineOffset='';
         } else {
           if (OEX_SEL.length>=6) {
-            var old = OEX_SEL.shift();
-            var oldTd = document.querySelector('[data-row-id="'+old.rn.id+'"][data-col-id="'+old.cn.id+'"]');
-            if (oldTd) { oldTd.style.outline=''; oldTd.style.outlineOffset=''; }
+            var old=OEX_SEL.shift();
+            var oldTd=document.querySelector('.oex-cell[data-row-id="'+old.rn.id+'"][data-col-id="'+old.cn.id+'"]');
+            if (oldTd){oldTd.style.outline='';oldTd.style.outlineOffset='';}
           }
-          OEX_SEL.push({key:key, rn:rn, cn:cn});
+          OEX_SEL.push({key:key,rn:rn,cn:cn});
           td.style.outline='2px solid #f59e0b'; td.style.outlineOffset='-2px';
         }
       } else {
-        document.querySelectorAll('#oex-mwrap td[data-row-id]').forEach(function(t){t.style.outline='';t.style.outlineOffset='';});
-        OEX_SEL = [{key:rn.id+'|'+cn.id, rn:rn, cn:cn}];
+        document.querySelectorAll('#oex-mwrap .oex-cell').forEach(function(t){t.style.outline='';t.style.outlineOffset='';});
+        OEX_SEL=[{key:rn.id+'|'+cn.id,rn:rn,cn:cn}];
         td.style.outline='2px solid #f59e0b'; td.style.outlineOffset='-2px';
       }
       oexRenderInspector();
-    };
+    }
 
-    /* ── Render inspector ───────────────────────────────────────────────── */
+    function _oexTypeDot(type) {
+      var colors={areas:'#10b981',targets:'#8b5cf6',stages:'#f59e0b',companies:'#3b82f6',layers:'#06b6d4',tables:'#94a3b8'};
+      var c=colors[type]||'#64748b';
+      return '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+c+';margin-right:6px;flex-shrink:0;vertical-align:middle"></span>';
+    }
+
+    function _oexSortRows(rows,cellData) {
+      if (OEX_MS.sort==='alpha') return rows.slice().sort(function(a,b){return a.label.localeCompare(b.label);});
+      return rows.slice().sort(function(a,b){
+        var aA=_rowAvg(a,cellData), bA=_rowAvg(b,cellData);
+        return OEX_MS.sort==='desc'?bA-aA:aA-bA;
+      });
+    }
+    function _rowAvg(node,cellData) {
+      var k=node.type+'|'+node.id;
+      var vals=Object.keys(cellData).filter(function(key){return key.startsWith(k+'|');})
+        .map(function(key){return cellData[key].pct;}).filter(function(v){return v!==null;});
+      return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:-1;
+    }
+
+    /* ── Inspector ───────────────────────────────────────────────────── */
     async function oexRenderInspector() {
-      var panel = document.getElementById('oex-insp');
-      var countEl = document.getElementById('oex-insp-sel-count');
+      var panel=document.getElementById('oex-insp');
+      var countEl=document.getElementById('oex-insp-sel-count');
       if (!panel) return;
       if (!OEX_SEL.length) {
-        panel.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">⇧Shift or ⌘Cmd+click to compare multiple.</span></div>';
+        panel.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">&#8679;Shift or &#8984;Cmd+click to compare multiple.</span></div>';
         if (countEl) countEl.textContent='';
         return;
       }
-      if (countEl) countEl.textContent = OEX_SEL.length>1 ? OEX_SEL.length+' selected' : '';
-      panel.innerHTML='<div style="padding:8px 12px;font-size:10px;color:#3a5a7a">Loading…</div>';
+      if (countEl) countEl.textContent=OEX_SEL.length>1?OEX_SEL.length+' selected':'';
+      panel.innerHTML='<div style="padding:8px 12px;font-size:10px;color:#3a5a7a">Loading...</div>';
 
-      var loaded = await Promise.all(OEX_SEL.map(async function(sel){
-        var d = await oexStrength(sel.rn, sel.cn);
-        return {sel:sel, d:d};
+      var loaded=await Promise.all(OEX_SEL.map(async function(sel){
+        return {sel:sel,d:await oexStrength(sel.rn,sel.cn)};
       }));
 
       var html='';
@@ -23455,28 +23619,28 @@ document.addEventListener('DOMContentLoaded', function(){
         var pct=d.pct;
         var bc=pct===null?'#475569':(pct>=70?'#4ade80':pct>=40?'#fbbf24':pct>=15?'#fb923c':'#f87171');
         var tier=pct===null?'No data':(pct>=70?'Strong':pct>=40?'Partial':pct>=15?'Sparse':'Missing');
-        html='<div style="padding:10px 12px">';
-        html+='<div style="font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:4px">'+rn.label+' <span style="color:#475569">×</span> '+cn.label+'</div>';
-        html+='<div style="margin-bottom:10px"><span style="background:'+bc+';color:#0a1525;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">'+tier+(pct!==null?' — '+pct+'%':'')+'</span></div>';
-        if (d.covered!==null) html+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+d.covered+' of '+d.total+' drugs have '+cn.label+' data</div>';
-        if (rn.type==='areas' && cn.type==='layers') html+='<div id="oex-drill-detail" style="font-size:10px;color:#475569;margin-top:4px">Loading details…</div>';
+        html='<div style="padding:10px 12px">'
+          +'<div style="font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:4px">'+rn.label+' <span style="color:#475569">&#215;</span> '+cn.label+'</div>'
+          +'<div style="margin-bottom:10px"><span style="background:'+bc+';color:#0a1525;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">'+tier+(pct!==null?' &mdash; '+pct+'%':'')+'</span></div>';
+        if (d.covered!==null) html+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+d.covered+' of '+d.total+' have '+cn.label+' data</div>';
+        if (rn.type==='areas'&&cn.type==='layers') html+='<div id="oex-drill-detail" style="font-size:10px;color:#475569;margin-top:4px">Loading details...</div>';
         html+='</div>';
       } else {
         html='<div style="padding:8px 12px">';
-        html+='<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Comparison</div>';
-        html+='<table style="width:100%;border-collapse:collapse">';
-        html+='<tr style="border-bottom:1px solid #1e3050"><th style="font-size:10px;color:#475569;text-align:left;padding:3px 4px">Row</th><th style="font-size:10px;color:#475569;text-align:left;padding:3px 4px">Col</th><th style="font-size:10px;color:#475569;text-align:right;padding:3px 4px">Cov%</th><th style="font-size:10px;color:#475569;text-align:right;padding:3px 4px">n</th></tr>';
+        html+='<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Comparison ('+loaded.length+')</div>';
+        html+='<table style="width:100%;border-collapse:collapse">'
+          +'<tr style="border-bottom:1px solid #1e3050"><th style="font-size:10px;color:#475569;padding:3px 4px;text-align:left">Row</th><th style="font-size:10px;color:#475569;padding:3px 4px;text-align:left">Col</th><th style="font-size:10px;color:#475569;padding:3px 4px;text-align:right">%</th><th style="font-size:10px;color:#475569;padding:3px 4px;text-align:right">n</th></tr>';
         loaded.forEach(function(item){
           var p=item.d.pct;
           var fg=p===null?'#475569':(p>=70?'#4ade80':p>=40?'#fbbf24':p>=15?'#fb923c':'#f87171');
           html+='<tr style="border-bottom:1px solid #0d1520">'
-            +'<td style="font-size:10px;color:#94a3b8;padding:4px 4px">'+item.sel.rn.label+'</td>'
-            +'<td style="font-size:10px;color:#94a3b8;padding:4px 4px">'+item.sel.cn.label+'</td>'
-            +'<td style="font-size:11px;font-weight:700;color:'+fg+';text-align:right;padding:4px 4px">'+(p===null?'—':p+'%')+'</td>'
-            +'<td style="font-size:10px;color:#64748b;text-align:right;padding:4px 4px">'+(item.d.covered!==null?item.d.covered+'/'+item.d.total:'—')+'</td></tr>';
+            +'<td style="font-size:10px;color:#94a3b8;padding:4px">'+item.sel.rn.label+'</td>'
+            +'<td style="font-size:10px;color:#94a3b8;padding:4px">'+item.sel.cn.label+'</td>'
+            +'<td style="font-size:11px;font-weight:700;color:'+fg+';text-align:right;padding:4px">'+(p===null?'&mdash;':p+'%')+'</td>'
+            +'<td style="font-size:10px;color:#64748b;text-align:right;padding:4px">'+(item.d.covered!==null?item.d.covered+'/'+item.d.total:'&mdash;')+'</td></tr>';
         });
         html+='</table>';
-        var gaps=loaded.filter(function(item){return item.d.pct!==null && item.d.pct<40;});
+        var gaps=loaded.filter(function(i){return i.d.pct!==null&&i.d.pct<40;});
         if (gaps.length) {
           html+='<div style="margin-top:10px;font-size:10px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.06em">Gaps ('+gaps.length+')</div>';
           gaps.forEach(function(item){
@@ -23485,136 +23649,127 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         html+='</div>';
       }
-      panel.innerHTML = html;
+      panel.innerHTML=html;
 
       if (loaded.length===1) {
         var rn=loaded[0].sel.rn, cn=loaded[0].sel.cn, d=loaded[0].d;
-        if (rn.type==='areas' && cn.type==='layers') _oexDrillAreaLayer(panel, rn, cn, d);
+        if (rn.type==='areas'&&cn.type==='layers') _oexDrillAreaLayer(panel,rn,cn,d);
       }
     }
 
-    async function _oexDrillAreaLayer(panel, rowNode, colNode, d) {
-      var detailEl = panel.querySelector('#oex-drill-detail');
+    async function _oexDrillAreaLayer(panel,rowNode,colNode,d) {
+      var detailEl=panel.querySelector('#oex-drill-detail');
       if (!detailEl) return;
       try {
-        var dasRes = await _sb.from('drug_area_scores').select('drug_id,drugs(name)').eq('area_id',rowNode.id).limit(200);
-        var allDrugs = (dasRes.data||[]).map(function(r){ return {id:r.drug_id, name:(r.drugs&&r.drugs.name)||r.drug_id}; });
-        var layerIds = new Set();
-        var layerId = colNode.id;
-        var tbl = layerId==='targets'?'drug_targets':layerId==='indications'?'drug_indications':layerId==='trials'?'trials':layerId==='catalysts'?'catalysts':null;
+        var dasRes=await _sb.from('drug_area_scores').select('drug_id,drugs(name)').eq('area_id',rowNode.id).limit(200);
+        var allDrugs=(dasRes.data||[]).map(function(r){return {id:r.drug_id,name:(r.drugs&&r.drugs.name)||r.drug_id};});
+        var layerIds=new Set();
+        var tbl=colNode.id==='targets'?'drug_targets':colNode.id==='indications'?'drug_indications':colNode.id==='trials'?'trials':colNode.id==='catalysts'?'catalysts':null;
         if (tbl) {
-          var lr = await _sb.from(tbl).select('drug_id').in('drug_id',allDrugs.map(function(d){return d.id;})).limit(500);
-          (lr.data||[]).forEach(function(r){ layerIds.add(r.drug_id); });
+          var lr=await _sb.from(tbl).select('drug_id').in('drug_id',allDrugs.map(function(d){return d.id;})).limit(500);
+          (lr.data||[]).forEach(function(r){layerIds.add(r.drug_id);});
         }
-        var covered = allDrugs.filter(function(d){ return layerIds.has(d.id); });
-        var missing  = allDrugs.filter(function(d){ return !layerIds.has(d.id); });
-        var chip = 'display:inline-block;padding:1px 5px;border-radius:8px;font-size:9px;margin:1px;white-space:nowrap';
-        var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">';
-        html += '<div><div style="color:#4ade80;font-size:9px;font-weight:700;margin-bottom:3px">COVERED ('+covered.length+')</div>';
-        covered.slice(0,25).forEach(function(d){ html+='<span style="'+chip+';background:rgba(74,222,128,.1);color:#4ade80">'+d.name+'</span>'; });
+        var covered=allDrugs.filter(function(d){return layerIds.has(d.id);});
+        var missing =allDrugs.filter(function(d){return !layerIds.has(d.id);});
+        var chip='display:inline-block;padding:1px 5px;border-radius:8px;font-size:9px;margin:1px;white-space:nowrap';
+        var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+          +'<div><div style="color:#4ade80;font-size:9px;font-weight:700;margin-bottom:3px">COVERED ('+covered.length+')</div>';
+        covered.slice(0,25).forEach(function(d){html+='<span style="'+chip+';background:rgba(74,222,128,.1);color:#4ade80">'+d.name+'</span>';});
         if (covered.length>25) html+='<div style="color:#475569;font-size:9px">+'+(covered.length-25)+' more</div>';
         html+='</div><div><div style="color:#f87171;font-size:9px;font-weight:700;margin-bottom:3px">MISSING ('+missing.length+')</div>';
-        missing.slice(0,25).forEach(function(d){ html+='<span style="'+chip+';background:rgba(248,113,113,.1);color:#f87171">'+d.name+'</span>'; });
+        missing.slice(0,25).forEach(function(d){html+='<span style="'+chip+';background:rgba(248,113,113,.1);color:#f87171">'+d.name+'</span>';});
         if (missing.length>25) html+='<div style="color:#475569;font-size:9px">+'+(missing.length-25)+' more</div>';
         html+='</div></div>';
-        detailEl.innerHTML = html;
-      } catch(e) { detailEl.textContent='Error: '+e.message; }
+        detailEl.innerHTML=html;
+      } catch(e){detailEl.textContent='Error: '+e.message;}
     }
 
-    /* ── Toolbar ────────────────────────────────────────────────────────── */
-    window.oexSortMatrix = function(val) { OEX_MS.sort=val; oexRenderMatrix(); };
+    /* ── Toolbar controls ─────────────────────────────────────────────── */
+    window.oexSortMatrix = function(val){OEX_MS.sort=val;oexRenderMatrix();};
 
     window.oexSetCeiling = function(val) {
-      OEX_MS.ceiling = parseInt(val,10);
-      var offStyle='font-size:10px;padding:2px 7px;background:#0d1f35;border:1px solid #1e3050;border-radius:4px;color:#94a3b8;cursor:pointer;font-weight:400';
-      var onStyle ='font-size:10px;padding:2px 7px;background:#1e4d2b;border:1px solid #4ade80;border-radius:4px;color:#4ade80;cursor:pointer;font-weight:600';
+      OEX_MS.ceiling=parseInt(val,10);
+      var off='font-size:10px;padding:2px 7px;background:#0d1f35;border:1px solid #1e3050;border-radius:4px;color:#94a3b8;cursor:pointer;font-weight:400';
+      var on ='font-size:10px;padding:2px 7px;background:#1e4d2b;border:1px solid #4ade80;border-radius:4px;color:#4ade80;cursor:pointer;font-weight:600';
       [25,50,75,100].forEach(function(v){
-        var el=document.getElementById('oexq-'+v);
-        if (el) el.style.cssText=(v===OEX_MS.ceiling?onStyle:offStyle);
+        var el=document.getElementById('oexq-'+v); if(el) el.style.cssText=(v===OEX_MS.ceiling?on:off);
       });
       oexRenderMatrix();
     };
 
-    window.oexResetMatrix = function() {
+    window.oexResetMatrix = function(){
       OEX_MS.rows=[]; OEX_MS.cols=[]; OEX_MS.cache={}; OEX_MS.ceiling=100; OEX_MS.sort='desc';
       OEX_SEL=[];
       oexSetCeiling(100);
       var s=document.getElementById('oex-sort-select'); if(s) s.value='desc';
-      oexRefreshTreeButtons();
+      oexRefreshChks();
       oexRenderMatrix();
       var p=document.getElementById('oex-insp'); if(p) p.innerHTML='';
       var c=document.getElementById('oex-insp-sel-count'); if(c) c.textContent='';
     };
 
-    window.oexClearInspector = function() {
+    window.oexClearInspector = function(){
       OEX_SEL=[];
-      document.querySelectorAll('#oex-mwrap td[data-row-id]').forEach(function(t){t.style.outline='';t.style.outlineOffset='';});
+      document.querySelectorAll('#oex-mwrap .oex-cell').forEach(function(t){t.style.outline='';t.style.outlineOffset='';});
       var p=document.getElementById('oex-insp');
-      if(p) p.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">⇧Shift or ⌘Cmd+click to compare multiple.</span></div>';
+      if(p) p.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">&#8679;Shift or &#8984;Cmd+click to compare multiple.</span></div>';
       var c=document.getElementById('oex-insp-sel-count'); if(c) c.textContent='';
     };
 
-    window.oexLoadMatrix = async function() {
+    window.oexLoadMatrix = async function(){
       var wrap=document.getElementById('oex-mwrap');
-      if (wrap && OEX_MS.rows.length && OEX_MS.cols.length)
-        wrap.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#3a5a7a">Computing…</div>';
+      if(wrap&&OEX_MS.rows.length&&OEX_MS.cols.length)
+        wrap.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#3a5a7a">Computing...</div>';
       await oexRenderMatrix();
     };
 
-    /* ── L4 expansion ───────────────────────────────────────────────────── */
-    window.oexExpandL4 = async function(el, areaId, overlapTier) {
-      var wrap = el.nextElementSibling;
+    /* ── L4 expansion ─────────────────────────────────────────────────── */
+    window.oexExpandL4 = async function(el,areaId,overlapTier){
+      var wrap=el.nextElementSibling;
       if (!wrap) return;
-      if (wrap.classList.contains('open')) {
-        wrap.classList.remove('open'); el.classList.remove('sel'); return;
-      }
+      if (wrap.classList.contains('open')){wrap.classList.remove('open');el.classList.remove('sel');return;}
       el.classList.add('sel');
-      wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">Loading…</div>';
+      wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">Loading...</div>';
       wrap.classList.add('open');
       try {
         var q=_sb.from('drug_area_scores').select('drug_id,drugs(name,stage)').eq('area_id',areaId).limit(200);
         if (overlapTier) q=q.eq('overlap',overlapTier);
         var res=await q;
-        var drugs=(res.data||[]).map(function(r){
-          return {name:(r.drugs&&r.drugs.name)||r.drug_id, stage:(r.drugs&&r.drugs.stage)||''};
-        }).sort(function(a,b){return a.name.localeCompare(b.name);});
-        if (!drugs.length) { wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">No drugs found</div>'; return; }
+        var drugs=(res.data||[]).map(function(r){return {name:(r.drugs&&r.drugs.name)||r.drug_id,stage:(r.drugs&&r.drugs.stage)||''};})
+          .sort(function(a,b){return a.name.localeCompare(b.name);});
+        if (!drugs.length){wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">No drugs found</div>';return;}
         wrap.innerHTML=drugs.map(function(d){
           return '<div style="padding:2px 20px;font-size:10px;color:#64748b;display:flex;justify-content:space-between"><span>'+d.name+'</span><span style="color:#3a5a7a;font-size:9px">'+d.stage+'</span></div>';
         }).join('');
-      } catch(e) { wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#f87171">Error: '+e.message+'</div>'; }
+      } catch(e){wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#f87171">Error: '+e.message+'</div>';}
     };
 
-    /* ── Override oexRender ─────────────────────────────────────────────── */
-    var _origOexRender = window.oexRender;
-    window.oexRender = async function() {
+    /* ── Override oexRender ───────────────────────────────────────────── */
+    var _origOexRender=window.oexRender;
+    window.oexRender=async function(){
       await _origOexRender();
       try {
         if (!OEX_CAT) await oexInitCatalog();
-        setTimeout(function() {
+        setTimeout(function(){
           oexInjectTreeButtons();
-          var panel=document.getElementById('oex-insp');
-          if (panel && !panel.innerHTML.trim()) {
-            panel.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">⇧Shift or ⌘Cmd+click to compare multiple.</span></div>';
-          }
-        }, 400);
-      } catch(e) { console.error('[OEX] init',e); }
+          var p=document.getElementById('oex-insp');
+          if(p&&!p.innerHTML.trim()) p.innerHTML='<div style="padding:16px 12px;font-size:11px;color:#2d4a6a">Click a cell to inspect.<br><span style="font-size:10px;color:#1e3050">&#8679;Shift or &#8984;Cmd+click to compare multiple.</span></div>';
+        },400);
+      } catch(e){console.error('[OEX] init',e);}
     };
 
-    /* ── Patch oexLoadTree to re-inject after tree reloads ──────────────── */
-    setTimeout(function() {
-      var origTree = window.oexLoadTree;
-      if (origTree && !origTree._patched) {
-        origTree._patched = true;
-        window.oexLoadTree = async function() {
-          await origTree();
-          OEX_TREE_INJECTED = false;
-          setTimeout(function(){ if (OEX_CAT) oexInjectTreeButtons(); }, 300);
+    /* Patch oexLoadTree to re-inject after polls */
+    setTimeout(function(){
+      var orig=window.oexLoadTree;
+      if (orig&&!orig._patched){
+        orig._patched=true;
+        window.oexLoadTree=async function(){
+          await orig();
+          OEX_TREE_INJECTED=false;
+          setTimeout(function(){if(OEX_CAT) oexInjectTreeButtons();},300);
         };
       }
-    }, 600);
-
-
+    },600);
 
   })();
   </script>
