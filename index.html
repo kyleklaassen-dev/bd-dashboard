@@ -15235,10 +15235,14 @@ function _makeAreaPI(tabId, areaIds) {
    const _entityShort = d.co ? _shortenPartner(d.co) : '';
    const _ft = s => s ? s.split(/[-\s]/)[0] : s;
    const _coIdNorm = s => (s || '').toLowerCase().replace(/[_\-\s]+/g, '');
+   // Self-attribution guard: suppress when partner = the entity we're viewing FROM.
+   // Use prog.entity_id (slug) + prog.co (display name) — NOT d.company_id (the drug's originator).
+   // d.company_id caused false suppression for licensed drugs where originator === partner
+   // (e.g. HXN-1002/erd-1 company_id='earendil', display_partner_name='Earendil' → wrongly suppressed).
    const _partnerMatchesEntity = !!(_partnerShort && (
      (_entityShort && _partnerShort.toLowerCase() === _entityShort.toLowerCase()) ||
      (_entityShort && _ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3) ||
-     (d.company_id && _coIdNorm(_partnerShort) === _coIdNorm(d.company_id)) ||
+     (prog?.company_id && _coIdNorm(_partnerShort) === _coIdNorm(prog.company_id)) ||
      (prog?.co && _coIdNorm(_partnerShort) === _coIdNorm(prog.co))
    ));
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
