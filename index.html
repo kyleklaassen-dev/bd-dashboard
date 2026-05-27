@@ -13375,6 +13375,7 @@ function _hideDrugPills(tid) {
 ['tslp','il4ra-tslp','il4ra-ox40l','igf1r-tshr','fcrn','ace'].forEach(tid => {
   registerTab(tid, {
     onEnter() {
+      loadAreaPI(tid);
       if (typeof loadMoleculeTab==='function' && !_molTabLoaded[tid]) loadMoleculeTab(tid);
       _showDrugPills(tid);
     },
