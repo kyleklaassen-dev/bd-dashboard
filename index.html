@@ -15199,9 +15199,11 @@ function _makeAreaPI(tabId, areaIds) {
    // Exact match first, then first-token match to handle hyphenated variants (Sanofi-Aventis vs Sanofi).
    const _entityShort = d.co ? _shortenPartner(d.co) : '';
    const _ft = s => s ? s.split(/[-\s]/)[0] : s;
+   const _coIdNorm = s => (s || '').toLowerCase().replace(/[_\-\s]+/g, '');
    const _partnerMatchesEntity = !!(_partnerShort && _entityShort && (
      _partnerShort.toLowerCase() === _entityShort.toLowerCase() ||
-     (_ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3)
+     (_ft(_partnerShort.toLowerCase()) === _ft(_entityShort.toLowerCase()) && _ft(_partnerShort.toLowerCase()).length >= 3) ||
+     (d.company_id && _coIdNorm(_partnerShort) === _coIdNorm(d.company_id))
    ));
    // partnership_verified: true=confirmed (blue), null=unverified (gray "?"), false=flagged (amber "?")
    // Ownership-derived pills are always treated as confirmed — the acquisition IS the confirmation.
