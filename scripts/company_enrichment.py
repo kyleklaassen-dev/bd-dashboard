@@ -1689,7 +1689,45 @@ GOVERNANCE RULES (mandatory — violations cause downstream data integrity error
    they have an existing asset in the same mechanism with a readout expected in <18 months.
    If so, they will not acquire a redundant asset before seeing their own data — downgrade from
    "call now" and add a timing_note. Canonical constraint: AbbVie cannot be targeted for any
-   TL1A bispecific until after ABBV-701 Phase 1 readout (expected Oct 2026)."""
+   TL1A bispecific until after ABBV-701 Phase 1 readout (expected Oct 2026).
+
+SOURCE TRACEABILITY (mandatory for every drug and deal record you write):
+
+Every claim you write to the database must have at least one source URL. This is how the
+platform detects hallucinations and errors. For each drug INSERT or UPDATE, you MUST also
+write at least one row to the drug_sources table using this structure:
+
+  {
+    "drug_id": "<drug_id>",
+    "drug_name": "<drug_name>",
+    "claim_type": "<stage|approval|mechanism|brand_name|company|indication|trial_registration|deal|partnership>",
+    "claim_value": "<the value being sourced, e.g. 'Phase 3' or 'tulisokibart'>",
+    "source_url": "<actual URL>",
+    "source_type": "<clinicaltrials|fda_label|press_release|sec_filing|pubmed|company_website|ema_label|who_inn|news>",
+    "source_domain": "<domain extracted from URL>",
+    "content_confirms_claim": true,
+    "confidence": "<high|medium|low>",
+    "added_by": "enrichment",
+    "session_label": "<area>_<YYYY-MM-DD>"
+  }
+
+Accepted source URL types (in order of preference):
+  1. ClinicalTrials.gov NCT links: https://clinicaltrials.gov/study/NCT########
+  2. FDA press announcements: https://www.fda.gov/news-events/press-announcements/...
+  3. EMA approval decisions: https://www.ema.europa.eu/...
+  4. Company IR press releases: company investor relations pages
+  5. SEC 8-K filings: https://www.sec.gov/...
+  6. PubMed abstracts: https://pubmed.ncbi.nlm.nih.gov/<PMID>/
+
+Rules:
+- If you cannot find a real URL for a claim, set claim_type='unverified' and omit source_url.
+  Do NOT fabricate URLs. A missing source is less harmful than a hallucinated one.
+- For stage claims: CT.gov NCT link is the gold standard. Always prefer it.
+- For approval claims: FDA press announcement or EMA approval decision is required.
+- For deal/partnership claims: press release or SEC 8-K is required.
+- NCT numbers must be exactly 8 digits (e.g. NCT06197581). Reject any shorter/longer NCTs.
+- Every drug you enrich should have at minimum one source row for its most important claim
+  (typically stage or approval)."""
 
 
 # ── Disease-area framing for area-aware assessment generation ─────────────────
@@ -2321,6 +2359,57 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
+
+            # ── Source traceability: write drug_sources row ───────────────────
+            # Every drug write must have at least one source URL.
+            # The LLM is instructed to embed drug_sources rows in its response JSON.
+            # As a fallback, we also auto-generate a CT.gov search source for any
+            # drug that has a stage claim but no explicit source URL in the response.
+            _source_rows = du.get("drug_sources") or []
+            if not _source_rows:
+                # Fallback: generate a CT.gov search source for stage claims
+                _stage_val = update_fields.get("stage") or du.get("stage") or ""
+                _drug_name_val = du.get("name") or drug_id
+                if _stage_val:
+                    _ct_search = f"https://clinicaltrials.gov/search?term={requests.utils.quote(_drug_name_val)}"
+                    _source_rows = [{
+                        "drug_id":              drug_id,
+                        "drug_name":            _drug_name_val,
+                        "claim_type":           "stage",
+                        "claim_value":          _stage_val,
+                        "source_url":           _ct_search,
+                        "source_type":          "clinicaltrials",
+                        "source_domain":        "clinicaltrials.gov",
+                        "content_confirms_claim": False,
+                        "confidence":           "low",
+                        "added_by":             "enrichment",
+                        "session_label":        f"{area_id}_{TODAY}",
+                    }]
+            else:
+                # LLM-provided sources: validate and tag them
+                for _sr in _source_rows:
+                    _sr.setdefault("drug_id",       drug_id)
+                    _sr.setdefault("drug_name",     du.get("name") or drug_id)
+                    _sr.setdefault("added_by",      "enrichment")
+                    _sr.setdefault("session_label", f"{area_id}_{TODAY}")
+                    _sr.setdefault("confidence",    "medium")
+                    # Validate URL format before storing
+                    raw_url = _sr.get("source_url") or ""
+                    if raw_url:
+                        validated = validate_source_url(raw_url, context=f"{drug_id}_source",
+                                                         head_check=False)
+                        if not validated:
+                            _sr["source_url"] = ""
+                            _sr["url_status"] = "dead"
+                        else:
+                            _sr.setdefault("url_status", "unverified")
+            _valid_sources = [s for s in _source_rows if s.get("source_url")]
+            if _valid_sources:
+                _src_result = sb_upsert("drug_sources", _valid_sources)
+                log(f"    drug_sources: {len(_src_result or [])} row(s) written for {drug_id}", indent=2)
+            else:
+                log(f"    drug_sources: no valid source URL for {drug_id} — "
+                    f"add a CT.gov NCT link or FDA URL to improve data confidence", indent=2)
 
             # ── P1-D: Parallel write to drug_area_scores ──────────────────────
             # Write area-specific competitive fields to the normalised table so
