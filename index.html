@@ -17053,8 +17053,13 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     try {
       // Core entity tables (shown in breakdown)
       const [drugR, trialR, intelR, dealR, catR, naR, compR, edgeR,
-             // Relationship + junction tables (counted in total only)
-             dtR, diR, daR, icR, iaR, partR, csR, mlR, ciR, clR] = await Promise.all([
+             // Every other table in the database
+             dtR, diR, daR, icR, iaR, csR, mlR, clR, msR,
+             trR, vR, vtR, daScR, dcScR, dvR,
+             coAlR, drAlR, iaAlR, compAR,
+             indR, tgtR, tpR, modR, dareaR, aMetR,
+             aiR, rqR, geoR, siR] = await Promise.all([
+        // Breakdown 8
         _sb.from('drugs').select('*',{count:'exact',head:true}),
         _sb.from('trials').select('*',{count:'exact',head:true}),
         _sb.from('intel').select('*',{count:'exact',head:true}),
@@ -17063,17 +17068,42 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         _sb.from('news_articles').select('*',{count:'exact',head:true}),
         _sb.from('companies').select('*',{count:'exact',head:true}),
         _sb.from('entity_edges').select('*',{count:'exact',head:true}),
-        // relationships & junctions
+        // Drug relationship tables
         _sb.from('drug_targets').select('*',{count:'exact',head:true}),
         _sb.from('drug_indications').select('*',{count:'exact',head:true}),
         _sb.from('drug_areas').select('*',{count:'exact',head:true}),
+        // Intel junction tables
         _sb.from('intel_companies').select('*',{count:'exact',head:true}),
         _sb.from('intel_areas').select('*',{count:'exact',head:true}),
-        _sb.from('partnerships').select('*',{count:'exact',head:true}),
+        // Competitive intelligence
         _sb.from('competitive_signals').select('*',{count:'exact',head:true}),
         _sb.from('molecule_intelligence').select('*',{count:'exact',head:true}),
-        _sb.from('company_strategic_views').select('*',{count:'exact',head:true}),
         _sb.from('competitive_landscapes').select('*',{count:'exact',head:true}),
+        _sb.from('mechanism_status').select('*',{count:'exact',head:true}),
+        // Validation & trial data
+        _sb.from('trial_registries').select('*',{count:'exact',head:true}),
+        _sb.from('drug_validation_results').select('*',{count:'exact',head:true}),
+        _sb.from('validation_tests').select('*',{count:'exact',head:true}),
+        // Scoring tables
+        _sb.from('drug_area_scores').select('*',{count:'exact',head:true}),
+        _sb.from('drug_competitive_scores').select('*',{count:'exact',head:true}),
+        // Alias / mapping tables
+        _sb.from('company_aliases').select('*',{count:'exact',head:true}),
+        _sb.from('drug_aliases').select('*',{count:'exact',head:true}),
+        _sb.from('indication_aliases').select('*',{count:'exact',head:true}),
+        _sb.from('company_areas').select('*',{count:'exact',head:true}),
+        // Ontology tables
+        _sb.from('indications').select('*',{count:'exact',head:true}),
+        _sb.from('targets').select('*',{count:'exact',head:true}),
+        _sb.from('target_pairs').select('*',{count:'exact',head:true}),
+        _sb.from('modalities').select('*',{count:'exact',head:true}),
+        _sb.from('disease_areas').select('*',{count:'exact',head:true}),
+        _sb.from('area_metadata').select('*',{count:'exact',head:true}),
+        // Research & misc
+        _sb.from('ailux_positions').select('*',{count:'exact',head:true}),
+        _sb.from('research_queue').select('*',{count:'exact',head:true}),
+        _sb.from('geographic_approvals').select('*',{count:'exact',head:true}),
+        _sb.from('submitted_intel').select('*',{count:'exact',head:true}),
       ]);
       const breakdown = [
         { n: drugR.count  || 0, l: 'Drugs' },
@@ -17085,10 +17115,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         { n: naR.count    || 0, l: 'Articles' },
         { n: edgeR.count  || 0, l: 'Connections' },
       ];
-      // Total includes every relationship row — junctions, mappings, enrichment records
-      const relTotal = [dtR,diR,daR,icR,iaR,partR,csR,mlR,ciR,clR]
-        .reduce((s, r) => s + (r.count || 0), 0);
-      const total = breakdown.reduce((s, x) => s + x.n, 0) + relTotal;
+      // Every other table adds to the total — every row, every mapping, every relationship
+      const extraTotal = [
+        dtR, diR, daR, icR, iaR, csR, mlR, clR, msR,
+        trR, vR, vtR, daScR, dcScR, dvR,
+        coAlR, drAlR, iaAlR, compAR,
+        indR, tgtR, tpR, modR, dareaR, aMetR,
+        aiR, rqR, geoR, siR
+      ].reduce((s, r) => s + (r.count || 0), 0);
+      const total = breakdown.reduce((s, x) => s + x.n, 0) + extraTotal;
       // Slow start — 500ms pause before the counter wakes, then 4.5s ease-in-out
       _hwAnimCount(document.getElementById('hw-count-num'), total, 4500, 500);
       const bd = document.getElementById('hw-breakdown');
