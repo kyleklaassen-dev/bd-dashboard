@@ -21876,7 +21876,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
   <!-- ── Competitive Pressure Map (live Supabase) ────────────────────────── -->
-  <div id="oex-cpm-section" style="flex-shrink:0;border-top:1px solid #1e3050;background:#060d14">
+  <div id="oex-cpm-section" style="flex-shrink:0;border-top:1px solid #1e3050;background:#060d14;min-height:640px">
     <div style="padding:12px 24px 8px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#1e3a5f">Competitive Pressure Map</span>
@@ -21938,6 +21938,22 @@ document.addEventListener('DOMContentLoaded', function(){
       try { await oexInitMap();    } catch(e) { console.error('[OEX] map',    e); }
     };
 
+    /* ── Live polling — refresh OEX data every 60s while tab visible ─────── */
+    window.OEX_POLL_INTERVAL = 60000;
+    window.oexStartPolling = function() {
+      if (window._oexPollTimer) clearInterval(window._oexPollTimer);
+      window._oexPollTimer = setInterval(async function() {
+        var panel = document.getElementById('tab-ontology-explorer');
+        if (!panel || panel.style.display === 'none') return;
+        try { await oexLoadMatrix(); } catch(e) { console.warn('[OEX poll] matrix', e); }
+        try { await oexLoadTree();   } catch(e) { console.warn('[OEX poll] tree',   e); }
+        var ts = document.getElementById('oex-ts');
+        if (ts) ts.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      }, window.OEX_POLL_INTERVAL);
+    };
+    window.oexStartPolling();
+
+
     window.oexCollapseAll = function() {
       document.querySelectorAll('#oex-tree .oex-tc-hd').forEach(function(h){
         h.classList.remove('sel');
@@ -21954,6 +21970,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!tree) return;
       tree.innerHTML = '<div style="padding:16px 12px;font-size:11px;color:#3a5a7a">Loading…</div>';
 
+      /* ── Biological Quick View (existing logic) ── */
       var results = await Promise.all([
         _sb.from('disease_areas').select('id,name,slug').order('name'),
         _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500),
@@ -21968,7 +21985,6 @@ document.addEventListener('DOMContentLoaded', function(){
       var dtRows    = (results[3].data || []);
       var companies = (results[4].data || []);
 
-      /* Area map: slug -> {name, drugIds, overlapCounts} */
       var areaMap = {};
       das.forEach(function(r){
         if (!areaMap[r.area_id]) areaMap[r.area_id] = {name:r.area_id, drugIds:new Set(), overlapCounts:{}};
@@ -21981,22 +21997,132 @@ document.addEventListener('DOMContentLoaded', function(){
         if (areaMap[k]) areaMap[k].name = a.name || k;
       });
 
-      /* Stage counts */
       var stageCounts = {};
-      drugs.forEach(function(d){
-        var s = d.stage||'Unknown';
-        stageCounts[s] = (stageCounts[s]||0)+1;
-      });
+      drugs.forEach(function(d){ var s = d.stage||'Unknown'; stageCounts[s] = (stageCounts[s]||0)+1; });
 
-      /* Target counts */
       var targetCounts = {};
-      dtRows.forEach(function(r){
-        targetCounts[r.target_id] = (targetCounts[r.target_id]||0)+1;
-      });
+      dtRows.forEach(function(r){ targetCounts[r.target_id] = (targetCounts[r.target_id]||0)+1; });
       var topTargets = Object.entries(targetCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,14);
 
-      /* Build tree sections */
-      var sections = [
+      /* ── Live counts from Supabase for DB table view ── */
+      var SEED_CAT_DATA = [  {
+    id:'pipeline',icon:'&#128138;',label:'Pipeline',emoji:'💊',
+    tables:[
+          {name:'drugs',count:155,desc:'Core drug/asset records; stage, name, company_display, overlap classification'},
+          {name:'drug_area_scores',count:212,desc:'Drug membership in each disease area with overlap tier (Direct/Adjacent/etc.)'},
+          {name:'drug_targets',count:176,desc:'Drug→molecular target assignments (e.g. drug X hits TL1A)'},
+          {name:'drug_indications',count:294,desc:'Drug→indication mappings from ontology migration'},
+          {name:'drug_competitive_scores',count:234,desc:'Per-drug competitive pressure scores by area'},
+          {name:'drug_validation_results',count:848,desc:'Automated validation check results per drug (stage_match, trial_match, etc.)'}
+    ]
+  },
+  {
+    id:'companies',icon:'&#127970;',label:'Companies & Deals',emoji:'🏢',
+    tables:[
+          {name:'companies',count:114,desc:'Company master records; status=acquired hides from dashboard'},
+          {name:'company_areas',count:134,desc:'Company→disease area associations'},
+          {name:'deals',count:195,desc:'BD transactions; upfront/total USD, deal type, area_id, drug_id'},
+          {name:'ailux_positions',count:2,desc:'Internal Ailux portfolio positions and strategic notes'}
+    ]
+  },
+  {
+    id:'ontology',icon:'&#129516;',label:'Ontology',emoji:'🧬',
+    tables:[
+          {name:'disease_areas',count:11,desc:'Top-level disease area definitions (11 active areas)'},
+          {name:'therapeutic_areas',count:8,desc:'Broader therapeutic category groupings'},
+          {name:'indications',count:38,desc:'Disease/indication ontology nodes (diseases only rule)'},
+          {name:'indication_aliases',count:86,desc:'Synonym mappings for indication normalization'},
+          {name:'area_metadata',count:11,desc:'Per-area configuration metadata for dashboard rendering'},
+          {name:'mechanism_status',count:25,desc:'Mechanism-of-action status tracking per target'}
+    ]
+  },
+  {
+    id:'evidence',icon:'&#128300;',label:'Evidence & Intelligence',emoji:'🔬',
+    tables:[
+          {name:'catalysts',count:794,desc:'Upcoming BD-relevant events, readouts, and catalysts with sort_date'},
+          {name:'news_articles',count:55,desc:'Fetched news articles with Meridian AI summaries and drug/area matching'},
+          {name:'entity_edges',count:1068,desc:'Graph edges between entities (drug–drug, drug–company, etc.)'},
+          {name:'competitive_landscapes',count:5,desc:'Structured competitive landscape assessments per mechanism'},
+          {name:'geographic_approvals',count:3,desc:'Drug approval status by geography'},
+          {name:'research_queue',count:60,desc:'Enrichment job queue for background research tasks'}
+    ]
+  },
+  {
+    id:'trials',icon:'&#129514;',label:'Trials & Validation',emoji:'🧪',
+    tables:[
+          {name:'trials',count:554,desc:'Clinical trial records linked to drugs; phase, status, endpoints'},
+          {name:'trial_registries',count:620,desc:'Raw ClinicalTrials.gov registry sync data'},
+          {name:'validation_tests',count:1059,desc:'Automated validation test definitions and results'}
+    ]
+  },
+  {
+    id:'platform',icon:'&#9881;',label:'Platform',emoji:'⚙️',
+    tables:[
+          
+    ]
+  }];
+
+      /* Fetch live row counts for all tables */
+      var SB_URL = (typeof SUPABASE_URL !== 'undefined') ? SUPABASE_URL : 'https://tghntyofptvfhmtchwcv.supabase.co';
+      var SB_KEY = (typeof SUPABASE_ANON_KEY !== 'undefined') ? SUPABASE_ANON_KEY : '';
+      /* Try to get live counts via _sb metadata or just use seed data */
+      var liveCounts = {};
+      try {
+        var allTables = [];
+        SEED_CAT_DATA.forEach(function(cat){ cat.tables.forEach(function(t){ allTables.push(t.name); }); });
+        var countFetches = allTables.map(function(tbl){
+          return _sb.from(tbl).select('*',{count:'exact',head:true}).then(function(res){
+            if (res.count !== null && res.count !== undefined) liveCounts[tbl] = res.count;
+          }).catch(function(){});
+        });
+        await Promise.all(countFetches);
+      } catch(e) { /* fall through to seed data */ }
+
+      /* Merge live counts with seed data */
+      var CAT_DATA = SEED_CAT_DATA.map(function(cat){
+        return Object.assign({}, cat, {
+          tables: cat.tables.map(function(t){
+            return Object.assign({}, t, {count: liveCounts[t.name] !== undefined ? liveCounts[t.name] : t.count});
+          })
+        });
+      });
+
+      /* Join map for inspector */
+      var JOIN_MAP = {
+  drugs: ['drug_area_scores','drug_targets','drug_indications','drug_competitive_scores','drug_validation_results','trials','catalysts','deals'],
+  companies: ['company_areas','deals','partnerships'],
+  drug_area_scores: ['drugs','disease_areas'],
+  disease_areas: ['drug_area_scores','area_metadata','catalysts'],
+  drug_targets: ['drugs'],
+  drug_indications: ['drugs','indications'],
+  trials: ['drugs'],
+  catalysts: ['drugs','disease_areas'],
+  news_articles: ['companies'],
+  company_areas: ['companies','disease_areas'],
+  therapeutic_areas: ['disease_areas'],
+  indications: ['drug_indications','indication_aliases'],
+  indication_aliases: ['indications'],
+  entity_edges: ['drugs','companies'],
+  mechanism_status: ['disease_areas'],
+  competitive_landscapes: ['disease_areas'],
+  geographic_approvals: ['drugs'],
+  trial_registries: ['trials'],
+  drug_validation_results: ['drugs'],
+  research_queue: ['drugs','companies'],
+  ailux_positions: ['companies'],
+  deals: ['companies','drugs','disease_areas'],
+  validation_tests: ['drugs'],
+  area_metadata: ['disease_areas'],
+  drug_competitive_scores: ['drugs','disease_areas']
+};
+
+      /* ── Build HTML ── */
+      var html = '';
+
+      /* Section 1: Quick View (biological) */
+      html += '<div style="padding:6px 12px 4px;font-size:9px;font-weight:800;letter-spacing:2px;color:#2d4a6a;text-transform:uppercase">Quick View</div>';
+
+      var bioSections = [
         {
           id:'ta', icon:'&#127919;', label:'Disease Areas', cls:'ta',
           count: Object.keys(areaMap).length,
@@ -22031,8 +22157,7 @@ document.addEventListener('DOMContentLoaded', function(){
         },
       ];
 
-      var html = '';
-      sections.forEach(function(sec){
+      bioSections.forEach(function(sec){
         html += '<div class="oex-tc"><div class="oex-tc-hd" onclick="oexTreeToggle(this)">'
           +'<span class="oex-t-arr">▶</span>'
           +'<span class="oex-t-ico">'+sec.icon+'</span>'
@@ -22062,6 +22187,42 @@ document.addEventListener('DOMContentLoaded', function(){
         });
         html += '</div></div>';
       });
+
+      /* Section 2: Database Tables */
+      html += '<div style="padding:10px 12px 4px;font-size:9px;font-weight:800;letter-spacing:2px;color:#2d4a6a;text-transform:uppercase;border-top:1px solid #1a2e48;margin-top:6px">Database Tables</div>';
+
+      var CAT_COLORS = {
+        pipeline:  '#3b82f6',
+        companies: '#10b981',
+        ontology:  '#8b5cf6',
+        evidence:  '#f59e0b',
+        trials:    '#06b6d4',
+        platform:  '#64748b',
+      };
+
+      CAT_DATA.forEach(function(cat){
+        if (!cat.tables.length) return;
+        var totalRows = cat.tables.reduce(function(s,t){return s+(typeof t.count==='number'?t.count:0);},0);
+        var catColor = CAT_COLORS[cat.id] || '#4a6080';
+        html += '<div class="oex-tc">'
+          +'<div class="oex-tc-hd" onclick="oexTreeToggle(this)">'
+          +'<span class="oex-t-arr">▶</span>'
+          +'<span class="oex-t-ico" style="font-size:13px">'+cat.icon+'</span>'
+          +'<span class="oex-t-lbl" style="color:'+catColor+'">'+cat.label+'</span>'
+          +'<span class="oex-t-cnt">'+cat.tables.length+' tables</span>'
+          +'</div><div class="oex-tv-wrap">';
+        cat.tables.forEach(function(tbl){
+          var dispCount = typeof tbl.count === 'number' ? tbl.count.toLocaleString() : '—';
+          var joins = (JOIN_MAP[tbl.name]||[]).join(', ');
+          html += '<div class="oex-tv" style="cursor:pointer" onclick="oexInspectTable('+JSON.stringify(tbl.name)+','+tbl.count+','+JSON.stringify(tbl.desc)+','+JSON.stringify(JOIN_MAP[tbl.name]||[])+',\''+cat.id+'\')">'
+            +'<span class="oex-tv-dot" style="background:'+catColor+'"></span>'
+            +'<span class="oex-tv-lbl" style="font-family:monospace;font-size:10px">'+tbl.name+'</span>'
+            +'<span class="oex-t-cnt" id="oex-cnt-'+tbl.name+'" style="background:rgba(0,0,0,.3)">'+dispCount+'</span>'
+            +'</div>';
+        });
+        html += '</div></div>';
+      });
+
       tree.innerHTML = html;
 
       var tsEl = document.getElementById('oex-ts');
@@ -22099,29 +22260,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!wrap) return;
       wrap.innerHTML = '<div style="padding:24px;font-size:11px;color:#3a5a7a">Loading…</div>';
 
-      var results = await Promise.all([
-        _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500),
-        _sb.from('drug_targets').select('drug_id').limit(1000),
-        _sb.from('drug_indications').select('drug_id').limit(1000),
-        _sb.from('trials').select('canonical_drug_id').limit(2000),
-        _sb.from('catalysts').select('drug_id').gte('sort_date',TODAY).limit(1000),
-        _sb.from('news_articles').select('matched_drug_ids').eq('source_validation_status','valid').limit(500),
-      ]);
+      /* Step 1: Get all drug-area memberships */
+      var dasRes = await _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500);
+      var das = (dasRes.data || []);
 
-      var das    = (results[0].data || []);
-      var dtRows = (results[1].data || []);
-      var diRows = (results[2].data || []);
-      var trials = (results[3].data || []);
-      var cats   = (results[4].data || []);
-      var news   = (results[5].data || []);
-
-      var withTargets = new Set(dtRows.map(function(r){return r.drug_id;}));
-      var withIndic   = new Set(diRows.map(function(r){return r.drug_id;}));
-      var withTrials  = new Set(trials.map(function(r){return r.canonical_drug_id;}).filter(Boolean));
-      var withCats    = new Set(cats.map(function(r){return r.drug_id;}).filter(Boolean));
-      var newsSet     = new Set();
-      news.forEach(function(r){ if (r.matched_drug_ids) r.matched_drug_ids.forEach(function(id){newsSet.add(id);}); });
-
+      /* Build per-area drug sets */
       var byArea = {};
       das.forEach(function(r){
         if (!byArea[r.area_id]) byArea[r.area_id] = new Set();
@@ -22131,12 +22274,44 @@ document.addEventListener('DOMContentLoaded', function(){
       var AREA_ORDER = ['tl1a','ibd','atopy','ted','igf1r','fcrn','tcell','respiratory','il4ra','tslp','autoimmune'];
       var visAreas   = AREA_ORDER.filter(function(a){return byArea[a];});
 
+      /* Step 2: Fetch coverage data with correct joins */
+
+      /* Targets: drug_targets has drug_id */
+      var targRes = await _sb.from('drug_targets').select('drug_id').limit(1000);
+      var withTargets = new Set((targRes.data||[]).map(function(r){return r.drug_id;}));
+
+      /* Indications: drug_indications has drug_id */
+      var indicRes = await _sb.from('drug_indications').select('drug_id').limit(1000);
+      var withIndic = new Set((indicRes.data||[]).map(function(r){return r.drug_id;}));
+
+      /* Trials: trials table has drug_id AND canonical_drug_id — use both */
+      var trialsRes = await _sb.from('trials').select('drug_id,canonical_drug_id').limit(2000);
+      var withTrials = new Set();
+      (trialsRes.data||[]).forEach(function(r){
+        if (r.drug_id) withTrials.add(r.drug_id);
+        if (r.canonical_drug_id) withTrials.add(r.canonical_drug_id);
+      });
+
+      /* Catalysts: catalysts has drug_id */
+      var TODAY = new Date().toISOString().split('T')[0];
+      var catsRes = await _sb.from('catalysts').select('drug_id').gte('sort_date',TODAY).limit(1000);
+      var withCats = new Set((catsRes.data||[]).map(function(r){return r.drug_id;}).filter(Boolean));
+
+      /* News: news_articles has matched_drug_ids (array) — flatten it */
+      var newsRes = await _sb.from('news_articles').select('matched_drug_ids').neq('source_validation_status','invalid').limit(500);
+      var newsSet = new Set();
+      (newsRes.data||[]).forEach(function(r){
+        if (Array.isArray(r.matched_drug_ids)) {
+          r.matched_drug_ids.forEach(function(id){ if (id) newsSet.add(id); });
+        }
+      });
+
       var COLS = [
         {id:'targets',     label:'Targets',     icon:'🔬', set:withTargets,  desc:'Drug→target assignments'},
         {id:'indications', label:'Indications', icon:'🏷', set:withIndic,    desc:'Drug→indication mappings'},
         {id:'trials',      label:'Trials',      icon:'🧪', set:withTrials,   desc:'ClinicalTrials.gov records'},
         {id:'catalysts',   label:'Catalysts',   icon:'📅', set:withCats,     desc:'Upcoming events & readouts'},
-        {id:'news',        label:'News',        icon:'📰', set:newsSet,      desc:'News coverage (matched)'},
+        {id:'news',        label:'News',        icon:'📰', set:newsSet,      desc:'News coverage (matched_drug_ids)'},
       ];
 
       function ccls(p){ return p>=70?'s':p>=40?'p':p>=15?'sp':'m'; }
@@ -22152,9 +22327,10 @@ document.addEventListener('DOMContentLoaded', function(){
       html += '</tr></thead><tbody>';
 
       visAreas.forEach(function(aId){
-        var meta     = AREA_META[aId]||{label:aId, color:'#4a6080'};
-        var drugSet  = byArea[aId];
-        var total    = drugSet.size;
+        var meta    = AREA_META[aId]||{label:aId, color:'#4a6080'};
+        var drugSet = byArea[aId];
+        var total   = drugSet.size;
+        if (total === 0) return;
         html += '<tr><th class="oex-rh"><div class="oex-rh-in">'
           +'<span style="width:6px;height:6px;border-radius:50%;background:'+meta.color+';display:inline-block;flex-shrink:0"></span>'
           +'<span class="oex-rh-lbl">'+meta.label+'</span>'
@@ -22163,7 +22339,7 @@ document.addEventListener('DOMContentLoaded', function(){
         COLS.forEach(function(col){
           var covered=0;
           drugSet.forEach(function(did){ if (col.set.has(did)) covered++; });
-          var pct = total>0 ? Math.round(covered/total*100) : 0;
+          var pct = Math.round(covered/total*100);
           var cls = ccls(pct), lbl = clbl(pct);
           html += '<td class="oex-mc"><div class="oex-ci '+cls+'"'
             +' onclick="oexInspectCell(\''+aId+'\',\''+col.id+'\','+covered+','+total+','+pct+')"'
@@ -22217,6 +22393,64 @@ document.addEventListener('DOMContentLoaded', function(){
         +'</div></div>';
     };
 
+
+    /* ── Table Inspector ────────────────────────────────────────────────── */
+    window.oexInspectTable = async function(tableName, rowCount, desc, joins, catId) {
+      var insp = document.getElementById('oex-insp');
+      if (!insp) return;
+      var CAT_COLORS = {
+        pipeline:  '#3b82f6', companies:'#10b981', ontology:'#8b5cf6',
+        evidence:  '#f59e0b', trials:   '#06b6d4', platform:'#64748b',
+      };
+      var catColor = CAT_COLORS[catId] || '#4a6080';
+      var joinsHtml = (joins && joins.length)
+        ? joins.map(function(j){return '<span style="background:rgba(255,255,255,.06);color:#93c5fd;padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace">'+j+'</span>';}).join(' ')
+        : '<span style="color:#3a5a7a;font-size:10px">none mapped</span>';
+      insp.innerHTML = '<div class="oex-is">'
+        +'<div class="oex-is-t">Table Inspector</div>'
+        +'<div class="oex-it" style="font-family:monospace;font-size:14px;color:'+catColor+'">'+tableName+'</div>'
+        +'<div class="oex-is-d">'+desc+'</div>'
+        +'<span class="oex-sbadge s" style="font-family:monospace" id="oex-insp-count">'+rowCount.toLocaleString()+' rows</span>'
+        +'</div>'
+        +'<div class="oex-is"><div class="oex-is-t">Joins To</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 0">'+joinsHtml+'</div>'
+        +'</div>'
+        +'<div class="oex-is"><div class="oex-is-t">Sample Rows</div>'
+        +'<div id="oex-sample-wrap" style="font-size:10px;color:#3a5a7a;padding:4px 0">Loading sample…</div>'
+        +'<button onclick="window.oexLoadSample(\''+tableName+'\')" style="margin-top:6px;padding:4px 10px;font-size:10px;background:#1a2e48;border:1px solid #2d4a6a;border-radius:4px;color:#93c5fd;cursor:pointer">↻ Refresh sample</button>'
+        +'</div>';
+      /* Load sample automatically */
+      window.oexLoadSample(tableName);
+    };
+
+    window.oexLoadSample = async function(tableName) {
+      var wrap = document.getElementById('oex-sample-wrap');
+      if (!wrap) return;
+      wrap.textContent = 'Fetching…';
+      try {
+        var res = await _sb.from(tableName).select('*').limit(3);
+        var rows = res.data || [];
+        if (!rows.length) { wrap.textContent = '(no rows)'; return; }
+        var keys = Object.keys(rows[0]).slice(0, 6); /* max 6 cols to avoid overflow */
+        var tbl = '<div style="overflow-x:auto"><table style="font-size:9px;border-collapse:collapse;width:100%">'
+          +'<thead><tr>'+keys.map(function(k){return '<th style="padding:2px 6px;border-bottom:1px solid #1e3a5f;color:#4a90c4;text-align:left;font-family:monospace;white-space:nowrap">'+k+'</th>';}).join('')+'</tr></thead>'
+          +'<tbody>';
+        rows.forEach(function(row){
+          tbl += '<tr>'+keys.map(function(k){
+            var v = row[k];
+            if (v === null || v === undefined) v = '—';
+            else if (typeof v === 'object') v = JSON.stringify(v).slice(0,40);
+            else v = String(v).slice(0,40);
+            return '<td style="padding:2px 6px;border-bottom:1px solid #0f1d2e;color:#8ba8c8;font-family:monospace;white-space:nowrap">'+v+'</td>';
+          }).join('')+'</tr>';
+        });
+        tbl += '</tbody></table></div>';
+        wrap.innerHTML = tbl;
+      } catch(e) {
+        wrap.textContent = 'Error: ' + (e.message||e);
+      }
+    };
+
     /* ── Competitive Pressure Map (canvas) ───────────────────────────────── */
     async function oexInitMap() {
       var canvas = document.getElementById('oex-cpm-canvas');
@@ -22237,14 +22471,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
       var MAP_AREAS = ['tl1a','ibd','atopy','ted','igf1r','fcrn','tcell','respiratory'];
 
-      function stageToX(stage) {
+      function stageToCol(stage) {
         if (!stage) return 0;
         var s = stage.toLowerCase();
-        if (s.indexOf('approved')>=0) return 4;
-        if (s.indexOf('bla')>=0||s.indexOf('filed')>=0) return 3.7;
+        if (s.indexOf('approved')>=0)                      return 4;
+        if (s.indexOf('bla')>=0||s.indexOf('filed')>=0)   return 3.7;
         if (s.indexOf('phase 3')>=0||s.indexOf('2/3')>=0) return 3;
         if (s.indexOf('phase 2')>=0||s.indexOf('1/2')>=0) return 2;
-        if (s.indexOf('phase 1')>=0) return 1;
+        if (s.indexOf('phase 1')>=0)                       return 1;
         return 0;
       }
 
@@ -22254,12 +22488,31 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!drug) return;
         if (MAP_AREAS.indexOf(r.area_id)<0) return;
         if (!areaRows[r.area_id]) areaRows[r.area_id]=[];
-        areaRows[r.area_id].push({drug:drug, overlap:r.overlap, hasCat:withCat.has(r.drug_id), sx:stageToX(drug.stage)});
+        areaRows[r.area_id].push({
+          drug:    drug,
+          overlap: r.overlap,
+          hasCat:  withCat.has(r.drug_id),
+          sx:      stageToCol(drug.stage),
+        });
       });
 
-      var DPR = window.devicePixelRatio||1;
-      var H_CSS = 340;
+      /* Visual config */
+      var LEFT_MARGIN = 150;
+      var RIGHT_PAD   = 20;
+      var TOP_PAD     = 52;
+      var BOTTOM_PAD  = 32;
+      var ROW_HEIGHT  = 72;
+
       var STAGE_LABELS = ['Preclinical','Phase 1','Phase 2','Phase 3','Approved'];
+
+      var TIER_CFG = {
+        'Direct':    {r:11, fill:'#ef4444', glow:18,  glowColor:'#ef4444'},
+        'Watch':     {r:9,  fill:'#f59e0b', glow:10,  glowColor:'#f59e0b'},
+        'Adjacent':  {r:7,  fill:'#60a5fa', glow:0,   glowColor:'transparent'},
+        'Same-Space':{r:5,  fill:'#6b7280', glow:0,   glowColor:'transparent'},
+      };
+
+      var DPR = window.devicePixelRatio||1;
       var hoveredDot = null;
 
       function getTooltip() {
@@ -22267,142 +22520,302 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!tt) {
           tt = document.createElement('div');
           tt.id = 'oex-cpm-tt';
-          tt.style.cssText = 'position:fixed;display:none;z-index:9999;background:#1a2840;border:1px solid #2d4060;border-radius:6px;padding:8px 10px;font-size:11px;color:#c8d8ec;pointer-events:none;max-width:210px;box-shadow:0 4px 12px rgba(0,0,0,.5);font-family:Inter,system-ui,sans-serif;line-height:1.5';
+          tt.style.cssText = 'position:fixed;display:none;z-index:9999;background:#1a2840;border:1px solid #2d4060;border-radius:6px;padding:8px 10px;font-size:11px;color:#c8d8ec;pointer-events:none;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,.6);font-family:Inter,system-ui,sans-serif;line-height:1.5';
           document.body.appendChild(tt);
         }
         return tt;
       }
 
       function buildCanvas(wCss) {
-        var W = wCss;
-        canvas.width  = Math.round(W*DPR);
-        canvas.height = Math.round(H_CSS*DPR);
-        canvas.style.height = H_CSS+'px';
-        var ctx = canvas.getContext('2d');
-        ctx.scale(DPR,DPR);
-
-        var LM=88, TM=40, BM=44, RM=24;
-        var plotW=W-LM-RM, plotH=H_CSS-TM-BM;
         var visAreas = MAP_AREAS.filter(function(a){return areaRows[a];});
-        var nRows=visAreas.length, nCols=5;
-        var rowH=plotH/nRows, colW=plotW/(nCols-1);
+        var numAreas = visAreas.length;
 
-        var dots=[];
+        var H_CSS = TOP_PAD + (numAreas * ROW_HEIGHT) + BOTTOM_PAD;
+        var colW  = (wCss - LEFT_MARGIN - RIGHT_PAD) / 5;
+
+        canvas.width  = Math.round(wCss * DPR);
+        canvas.height = Math.round(H_CSS * DPR);
+        canvas.style.height = H_CSS + 'px';
+
+        var ctx = canvas.getContext('2d');
+        ctx.scale(DPR, DPR);
+
+        /* Pre-compute max Direct count for pressure bar scaling */
+        var maxDirect = 0;
+        visAreas.forEach(function(aId){
+          var dct = (areaRows[aId]||[]).filter(function(r){return r.overlap==='Direct';}).length;
+          if (dct > maxDirect) maxDirect = dct;
+        });
+
+        var dots = [];
 
         function draw() {
-          ctx.clearRect(0,0,W,H_CSS);
-          ctx.fillStyle='#060d14'; ctx.fillRect(0,0,W,H_CSS);
+          ctx.clearRect(0, 0, wCss, H_CSS);
+          ctx.fillStyle = '#060d14';
+          ctx.fillRect(0, 0, wCss, H_CSS);
 
-          /* Grid */
-          ctx.save(); ctx.strokeStyle='rgba(30,48,80,.5)'; ctx.lineWidth=0.5;
-          for (var ci=0;ci<nCols;ci++){var x=LM+ci*colW; ctx.beginPath();ctx.moveTo(x,TM);ctx.lineTo(x,TM+plotH);ctx.stroke();}
-          for (var ri=0;ri<=nRows;ri++){var y=TM+ri*rowH; ctx.beginPath();ctx.moveTo(LM,y);ctx.lineTo(LM+plotW,y);ctx.stroke();}
+          /* ── Column divider lines (subtle dotted) */
+          ctx.save();
+          ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          ctx.lineWidth = 1;
+          for (var ci = 1; ci < 5; ci++) {
+            var vx = LEFT_MARGIN + ci * colW;
+            ctx.beginPath(); ctx.moveTo(vx, TOP_PAD - 16); ctx.lineTo(vx, H_CSS - BOTTOM_PAD + 8); ctx.stroke();
+          }
+          ctx.setLineDash([]);
           ctx.restore();
 
-          /* Stage labels top */
-          ctx.save(); ctx.textAlign='center'; ctx.font='500 9px Inter,system-ui,sans-serif'; ctx.fillStyle='rgba(99,125,154,.7)';
-          STAGE_LABELS.forEach(function(lbl,ci){ ctx.fillText(lbl.toUpperCase(), LM+ci*colW, TM-8); });
-          ctx.restore();
-
-          /* Area labels left */
-          ctx.save(); ctx.textAlign='right'; ctx.font='600 10px Inter,system-ui,sans-serif';
-          visAreas.forEach(function(aId,ri){
-            var meta=AREA_META[aId]||{label:aId,color:'#4a6080'};
-            ctx.fillStyle=meta.color; ctx.fillText(meta.label, LM-10, TM+ri*rowH+rowH*0.5+4);
+          /* ── Stage header labels */
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.font = '700 9px Inter,system-ui,sans-serif';
+          ctx.fillStyle = '#4b6280';
+          ctx.letterSpacing = '0.1em';
+          STAGE_LABELS.forEach(function(lbl, ci){
+            var hx = LEFT_MARGIN + ci * colW + colW / 2;
+            ctx.fillText(lbl.toUpperCase(), hx, TOP_PAD - 16);
           });
           ctx.restore();
 
-          /* Dots */
-          dots=[];
-          visAreas.forEach(function(aId,ri){
-            var rows=areaRows[aId]||[];
-            var cyBase=TM+ri*rowH;
-            var buckets={};
-            rows.forEach(function(r){ var k=r.sx; if(!buckets[k])buckets[k]=[]; buckets[k].push(r); });
+          /* ── Top separator under stage headers */
+          ctx.save();
+          ctx.strokeStyle = 'rgba(30,48,80,0.6)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(LEFT_MARGIN, TOP_PAD - 6);
+          ctx.lineTo(wCss - RIGHT_PAD, TOP_PAD - 6);
+          ctx.stroke();
+          ctx.restore();
+
+          /* ── Per-row: shading + labels + dots */
+          dots = [];
+
+          visAreas.forEach(function(aId, ri){
+            var rows    = areaRows[aId] || [];
+            var meta    = AREA_META[aId] || {label:aId, color:'#4a6080'};
+            var rowY    = TOP_PAD + ri * ROW_HEIGHT;
+            var rowMidY = rowY + ROW_HEIGHT / 2;
+
+            var directCt = rows.filter(function(r){return r.overlap==='Direct';}).length;
+            var watchCt  = rows.filter(function(r){return r.overlap==='Watch';}).length;
+            var hotScore = directCt + watchCt;
+
+            /* Row pressure background shading */
+            ctx.save();
+            if (hotScore > 8) {
+              ctx.fillStyle = 'rgba(239,68,68,0.06)';
+            } else if (hotScore >= 4) {
+              ctx.fillStyle = 'rgba(245,158,11,0.04)';
+            } else {
+              ctx.fillStyle = 'transparent';
+            }
+            ctx.fillRect(LEFT_MARGIN, rowY, wCss - LEFT_MARGIN - RIGHT_PAD, ROW_HEIGHT);
+            ctx.restore();
+
+            /* Left accent bar (4px, full row height, area color) */
+            ctx.save();
+            ctx.fillStyle = meta.color;
+            ctx.globalAlpha = 0.55;
+            ctx.fillRect(LEFT_MARGIN, rowY, 4, ROW_HEIGHT);
+            ctx.restore();
+
+            /* Area label — right-aligned into left margin */
+            ctx.save();
+            ctx.textAlign  = 'right';
+            ctx.font       = '600 12px Inter,system-ui,sans-serif';
+            ctx.fillStyle  = meta.color;
+            ctx.fillText(meta.label, LEFT_MARGIN - 14, rowMidY + 5);
+            ctx.restore();
+
+            /* Small bullet circle before label */
+            var labelWidth = ctx.measureText(meta.label).width;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(LEFT_MARGIN - 14 - labelWidth - 7, rowMidY + 1, 3.5, 0, Math.PI*2);
+            ctx.fillStyle = meta.color;
+            ctx.globalAlpha = 0.85;
+            ctx.fill();
+            ctx.restore();
+
+            /* Row separator */
+            if (ri > 0) {
+              ctx.save();
+              ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(LEFT_MARGIN, rowY);
+              ctx.lineTo(wCss - RIGHT_PAD, rowY);
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            /* Right-side pressure bar */
+            if (maxDirect > 0) {
+              var barH     = ROW_HEIGHT * 0.6;
+              var barFillH = (directCt / maxDirect) * barH;
+              var barX     = wCss - RIGHT_PAD + 4;
+              var barY     = rowMidY - barH / 2;
+              ctx.save();
+              ctx.fillStyle = 'rgba(30,48,80,0.5)';
+              ctx.fillRect(barX, barY, 4, barH);
+              if (barFillH > 0) {
+                ctx.fillStyle = directCt > 0 ? '#ef4444' : '#2d4060';
+                ctx.globalAlpha = 0.8;
+                ctx.fillRect(barX, barY + barH - barFillH, 4, barFillH);
+              }
+              ctx.restore();
+            }
+
+            /* ── Dots ── */
+            var buckets = {};
+            rows.forEach(function(r){
+              var k = r.sx;
+              if (!buckets[k]) buckets[k] = [];
+              buckets[k].push(r);
+            });
+
             Object.keys(buckets).forEach(function(sx){
-              var items=buckets[sx];
-              var cx=LM+parseFloat(sx)*colW;
-              var dpr2=Math.floor((colW-14)/10)||1;
-              var spacing=9, dotR=3.5;
-              items.forEach(function(item,i){
-                var row=Math.floor(i/dpr2), col=i%dpr2;
-                var totalRows=Math.ceil(items.length/dpr2), totalCols=Math.min(items.length,dpr2);
-                var gridW=(totalCols-1)*spacing, gridH=(totalRows-1)*spacing;
-                var dx=cx-gridW/2+col*spacing, dy=cyBase+rowH*0.5-gridH/2+row*spacing;
-                var color=OVERLAP_COLOR[item.overlap]||'#637d9a';
-                var isHov=(hoveredDot&&hoveredDot.drug.id===item.drug.id&&hoveredDot.area===aId);
+              var items  = buckets[sx];
+              var cx     = LEFT_MARGIN + parseFloat(sx) * colW + colW / 2;
+              var cfg0   = TIER_CFG['Direct'];
+              /* max dot radius across items in this bucket for spacing */
+              var maxR   = cfg0.r;
+              var spacing = maxR * 2 + 4;
+              var dpr2   = Math.max(1, Math.floor((colW - maxR*2 - 8) / spacing));
+
+              items.forEach(function(item, i){
+                var cfg     = TIER_CFG[item.overlap] || TIER_CFG['Same-Space'];
+                var dotR    = cfg.r;
+                var col     = i % dpr2;
+                var row2    = Math.floor(i / dpr2);
+                var totalCols = Math.min(items.length, dpr2);
+                var totalRows = Math.ceil(items.length / dpr2);
+                var gridW   = (totalCols - 1) * spacing;
+                var gridH   = (totalRows - 1) * spacing;
+                var dx      = cx - gridW / 2 + col * spacing;
+                var dy      = rowMidY - gridH / 2 + row2 * spacing;
+                var isHov   = (hoveredDot && hoveredDot.drug.id===item.drug.id && hoveredDot.area===aId);
+
                 ctx.save();
-                ctx.beginPath(); ctx.arc(dx,dy,dotR+(isHov?1.5:0),0,Math.PI*2);
-                ctx.fillStyle=isHov?color:color+'cc'; ctx.fill();
-                if (item.hasCat){
-                  ctx.beginPath(); ctx.arc(dx,dy,dotR+2.5+(isHov?1.5:0),0,Math.PI*2);
-                  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+
+                /* Glow for Direct / Watch */
+                if (cfg.glow > 0) {
+                  ctx.shadowBlur  = isHov ? cfg.glow * 1.4 : cfg.glow;
+                  ctx.shadowColor = cfg.glowColor;
+                } else {
+                  ctx.shadowBlur  = 0;
+                  ctx.shadowColor = 'transparent';
                 }
+
+                /* Dot fill */
+                ctx.beginPath();
+                ctx.arc(dx, dy, dotR + (isHov ? 2 : 0), 0, Math.PI*2);
+                ctx.fillStyle = isHov ? cfg.fill : cfg.fill + 'cc';
+                ctx.fill();
+
+                ctx.shadowBlur  = 0;
+                ctx.shadowColor = 'transparent';
+
+                /* Catalyst ring — bright gold halo */
+                if (item.hasCat) {
+                  ctx.beginPath();
+                  ctx.arc(dx, dy, dotR + 5 + (isHov ? 2 : 0), 0, Math.PI*2);
+                  ctx.strokeStyle = '#fde68a';
+                  ctx.lineWidth   = 2.5;
+                  ctx.globalAlpha = isHov ? 1 : 0.85;
+                  ctx.stroke();
+                }
+
                 ctx.restore();
-                dots.push({dx:dx,dy:dy,r:dotR+3,drug:item.drug,overlap:item.overlap,hasCat:item.hasCat,area:aId});
+
+                dots.push({
+                  dx: dx, dy: dy,
+                  r:  dotR + 6,
+                  drug:    item.drug,
+                  overlap: item.overlap,
+                  hasCat:  item.hasCat,
+                  area:    aId,
+                });
               });
             });
           });
 
-          /* Timestamp */
-          ctx.save(); ctx.textAlign='right'; ctx.font='400 8px Inter,system-ui,sans-serif';
-          ctx.fillStyle='rgba(30,48,80,.9)';
-          ctx.fillText('Live · '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),W-8,H_CSS-6);
+          /* ── Timestamp */
+          ctx.save();
+          ctx.textAlign  = 'right';
+          ctx.font       = '400 8px Inter,system-ui,sans-serif';
+          ctx.fillStyle  = 'rgba(30,48,80,0.9)';
+          ctx.fillText(
+            'Live · ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),
+            wCss - RIGHT_PAD - 8,
+            H_CSS - 8
+          );
           ctx.restore();
-        }
+        } /* end draw() */
 
         draw();
-        canvas._draw=draw; canvas._dots=dots;
+        canvas._draw = draw;
+        canvas._dots = dots;
         return ctx;
-      }
+      } /* end buildCanvas() */
 
+      /* ── Tooltip hover */
       canvas.addEventListener('mousemove', function(e){
-        var rect=canvas.getBoundingClientRect();
-        var mx=e.clientX-rect.left, my=e.clientY-rect.top;
-        var found=null;
-        var dotsArr=canvas._dots||[];
-        for (var i=0;i<dotsArr.length;i++){
-          var d=dotsArr[i];
-          if (Math.sqrt((d.dx-mx)*(d.dx-mx)+(d.dy-my)*(d.dy-my))<=d.r+1){found=d;break;}
+        var rect = canvas.getBoundingClientRect();
+        var mx   = e.clientX - rect.left;
+        var my   = e.clientY - rect.top;
+        var found = null;
+        var dotsArr = canvas._dots || [];
+        for (var i = 0; i < dotsArr.length; i++) {
+          var d = dotsArr[i];
+          var dist = Math.sqrt((d.dx-mx)*(d.dx-mx) + (d.dy-my)*(d.dy-my));
+          if (dist <= d.r + 1) { found = d; break; }
         }
-        hoveredDot=found;
-        if (canvas._draw) canvas._draw(); canvas._dots=canvas._dots||[];
-        var tt=getTooltip();
-        if (found){
-          var meta=AREA_META[found.area]||{label:found.area};
-          var color=OVERLAP_COLOR[found.overlap]||'#637d9a';
-          var bg=OVERLAP_BG[found.overlap]||'rgba(99,125,154,.1)';
-          tt.innerHTML='<div style="font-weight:700;color:#e8f0fa;margin-bottom:3px">'+(found.drug.name||found.drug.id)+'</div>'
-            +'<div style="color:#637d9a;font-size:10px;margin-bottom:4px">'+(found.drug.company_display||'')+'</div>'
-            +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-            +'<span style="background:rgba(59,130,246,.15);color:#93c5fd;padding:1px 5px;border-radius:3px;font-size:10px">'+(found.drug.stage||'?')+'</span>'
-            +'<span style="background:'+bg+';color:'+color+';padding:1px 5px;border-radius:3px;font-size:10px;border:1px solid '+color+'40">'+(found.overlap||'?')+'</span>'
-            +'<span style="color:#637d9a;font-size:10px">'+meta.label+'</span>'
-            +(found.hasCat?'<span style="color:#f59e0b;font-size:10px">⚡ catalyst</span>':'')
-            +'</div>';
-          tt.style.display='block';
-          tt.style.left=(e.clientX+14)+'px'; tt.style.top=(e.clientY-10)+'px';
-          canvas.style.cursor='pointer';
+        hoveredDot = found;
+        if (canvas._draw) { canvas._draw(); canvas._dots = canvas._dots || []; }
+
+        var tt = getTooltip();
+        if (found) {
+          var meta    = AREA_META[found.area] || {label:found.area};
+          var cfg     = TIER_CFG[found.overlap] || {fill:'#637d9a'};
+          var color   = cfg.fill;
+          var bg      = OVERLAP_BG[found.overlap] || 'rgba(99,125,154,.1)';
+          tt.innerHTML =
+            '<div style="font-weight:700;color:#e8f0fa;margin-bottom:3px">' + (found.drug.name||found.drug.id) + '</div>'
+            + '<div style="color:#637d9a;font-size:10px;margin-bottom:5px">' + (found.drug.company_display||'') + '</div>'
+            + '<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
+            + '<span style="background:rgba(59,130,246,.15);color:#93c5fd;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600">' + (found.drug.stage||'?') + '</span>'
+            + '<span style="background:' + bg + ';color:' + color + ';padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid ' + color + '40">' + (found.overlap||'?') + '</span>'
+            + '<span style="color:#4b6280;font-size:10px">' + meta.label + '</span>'
+            + (found.hasCat ? '<span style="color:#fde68a;font-size:10px;font-weight:700">⚡ catalyst</span>' : '')
+            + '</div>';
+          tt.style.display = 'block';
+          tt.style.left    = (e.clientX + 16) + 'px';
+          tt.style.top     = (e.clientY - 12) + 'px';
+          canvas.style.cursor = 'pointer';
         } else {
-          tt.style.display='none'; canvas.style.cursor='default';
+          tt.style.display    = 'none';
+          canvas.style.cursor = 'default';
         }
-      });
-      canvas.addEventListener('mouseleave', function(){
-        hoveredDot=null;
-        if (canvas._draw) canvas._draw();
-        var tt=document.getElementById('oex-cpm-tt');
-        if (tt) tt.style.display='none';
       });
 
-      /* Init via ResizeObserver */
-      var ro=new ResizeObserver(function(entries){
-        var w=entries[0].contentRect.width;
-        if (w<100) return;
+      canvas.addEventListener('mouseleave', function(){
+        hoveredDot = null;
+        if (canvas._draw) canvas._draw();
+        var tt = document.getElementById('oex-cpm-tt');
+        if (tt) tt.style.display = 'none';
+      });
+
+      /* ── Init via ResizeObserver */
+      var ro = new ResizeObserver(function(entries){
+        var w = entries[0].contentRect.width;
+        if (w < 100) return;
         buildCanvas(w);
       });
       ro.observe(canvas);
-      var pw=canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
-      if (pw>100) buildCanvas(pw);
+      var pw = canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
+      if (pw > 100) buildCanvas(pw);
     }
 
   })();
