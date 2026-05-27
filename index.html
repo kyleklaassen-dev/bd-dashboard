@@ -17701,7 +17701,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     'trial_registries','validation_tests',
     'company_aliases','company_areas',
     'indications','indication_aliases','targets','target_pairs',
-    'modalities','disease_areas','area_metadata',
+    'modalities',/* 'disease_areas' removed Session 80 — code retirement */'area_metadata',
     'ailux_positions','research_queue','geographic_approvals','submitted_intel',
   ];
 
@@ -26385,7 +26385,7 @@ async function _loadOntologyExplorer(force = false) {
 
   try {
     const [r1,r2,r3,r4,r5] = await Promise.all([
-      _sb.from('disease_areas').select('id,label,description,indication_group,sort_order').order('sort_order'),
+      Promise.resolve({ data: [] }),  /* disease_areas — retired from code reads (Session 80); table pending DB FK teardown */
       _sb.from('indications').select('id,name,abbreviation,disease_area,biology_tags').order('disease_area,id'),
       _sb.from('targets').select('id,label,gene_symbol,target_type,family,pathway,ailux_relevance,disease_areas,cross_area_relevance').order('id'),
       _sb.from('target_pairs').select('id,pair_symbol,pair_type,ailux_pair,disease_areas,first_drug').order('id'),
