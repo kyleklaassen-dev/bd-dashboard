@@ -13276,7 +13276,18 @@ registerTab('submitted-intel', {
   onEnter() { siLoad(); }
 });
 registerTab('ontology-explorer', {
-  onEnter() { if (!window.OEX_INITIALIZED) { oexRender(); window.OEX_INITIALIZED = true; } }
+  onEnter() {
+    if (!window.OEX_INITIALIZED) {
+      window.OEX_INITIALIZED = true;
+      setTimeout(oexRender, 80); // Wait for DOM to settle after tab switch
+    } else {
+      // Re-init CPM if canvas never rendered (was hidden during first init)
+      setTimeout(function() {
+        var cv = document.getElementById('oex-cpm-canvas');
+        if (cv && cv.width <= 300) oexRender();
+      }, 80);
+    }
+  }
 });
 registerTab('audit', {
   onEnter() { auditLoad(); }
@@ -22680,12 +22691,18 @@ document.addEventListener('DOMContentLoaded', function(){
       var catsRes = await _sb.from('catalysts').select('drug_id').gte('sort_date',TODAY).limit(1000);
       var withCats = new Set((catsRes.data||[]).map(function(r){return r.drug_id;}).filter(Boolean));
 
-      /* News: news_articles has matched_drug_ids (array) — flatten it */
-      var newsRes = await _sb.from('news_articles').select('matched_drug_ids').neq('source_validation_status','invalid').limit(500);
+      /* News: use matched_drug_ids directly; also expand matched_area_ids to drug-level
+         (most articles only carry area tags, not drug tags — both must be used) */
+      var newsRes = await _sb.from('news_articles').select('matched_drug_ids,matched_area_ids').neq('source_validation_status','invalid').limit(500);
       var newsSet = new Set();
       (newsRes.data||[]).forEach(function(r){
         if (Array.isArray(r.matched_drug_ids)) {
           r.matched_drug_ids.forEach(function(id){ if (id) newsSet.add(id); });
+        }
+        if (Array.isArray(r.matched_area_ids)) {
+          r.matched_area_ids.forEach(function(aId){
+            if (byArea[aId]) byArea[aId].forEach(function(dId){ newsSet.add(dId); });
+          });
         }
       });
 
@@ -23208,15 +23225,21 @@ document.addEventListener('DOMContentLoaded', function(){
         if (tt) tt.style.display = 'none';
       });
 
-      /* ── Init via ResizeObserver */
-      var ro = new ResizeObserver(function(entries){
+      /* ── Init via ResizeObserver — saved to canvas._cpmRO to prevent GC */
+      if (canvas._cpmRO) { canvas._cpmRO.disconnect(); }
+      canvas._cpmRO = new ResizeObserver(function(entries){
         var w = entries[0].contentRect.width;
         if (w < 100) return;
         buildCanvas(w);
       });
-      ro.observe(canvas);
+      canvas._cpmRO.observe(canvas);
+      /* Fallback: if parent already has width, render immediately */
       var pw = canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
       if (pw > 100) buildCanvas(pw);
+      else setTimeout(function(){
+        var w2 = canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
+        if (w2 > 100) buildCanvas(w2);
+      }, 150);
     }
 
 
@@ -26886,7 +26909,8 @@ function switchOntSubTab(which) {
     explorer.style.display = 'flex';
     if (btnAudit) { btnAudit.style.borderBottomColor = 'transparent'; btnAudit.style.color = '#6b8aad'; btnAudit.style.fontWeight = '500'; }
     if (btnExplorer) { btnExplorer.style.borderBottomColor = '#4a90c4'; btnExplorer.style.color = '#f0f6ff'; btnExplorer.style.fontWeight = '700'; }
-    if (!window.OEX_INITIALIZED) { oexRender(); window.OEX_INITIALIZED = true; }
+    if (!window.OEX_INITIALIZED) { window.OEX_INITIALIZED = true; setTimeout(oexRender, 80); }
+    else { setTimeout(function(){ var cv=document.getElementById('oex-cpm-canvas'); if(cv&&cv.width<=300) oexRender(); }, 80); }
   } else {
     audit.style.display = '';
     explorer.style.display = 'none';
