@@ -580,6 +580,92 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   color: #b8c6d4;
 }
 
+/* ── BD Intelligence metric tiles ── */
+#hw-bd-metrics {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 36px;
+  padding: 0 16px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease 1.2s, transform 0.6s ease 1.2s;
+}
+#hw-bd-metrics.visible { opacity: 1; transform: translateY(0); }
+.hw-bdm-tile {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 18px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(30,60,110,0.08), 0 0 0 1px rgba(30,60,110,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hw-bdm-tile.accent-red   { border-top: 2px solid #dc2626; }
+.hw-bdm-tile.accent-indigo { border-top: 2px solid #4f46e5; }
+.hw-bdm-tile.accent-teal  { border-top: 2px solid #0d9488; }
+.hw-bdm-tile.accent-amber { border-top: 2px solid #d97706; }
+.hw-bdm-num {
+  font-size: 26px;
+  font-weight: 300;
+  color: #1e3a5f;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.hw-bdm-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.hw-bdm-sub {
+  font-size: 9.5px;
+  color: #b0bec8;
+  margin-top: 1px;
+}
+
+/* ── Platform Intelligence callout ── */
+#hw-platform-intel {
+  margin: 20px auto 0;
+  max-width: 640px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+  border: 1px solid #dbeafe;
+  border-left: 3px solid #2e6fb0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  text-align: left;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease 1.5s, transform 0.6s ease 1.5s;
+  display: none;
+}
+#hw-platform-intel.visible { opacity: 1; transform: translateY(0); display: block; }
+.hw-pi-eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #2e6fb0;
+  margin-bottom: 5px;
+}
+.hw-pi-headline {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 4px;
+}
+.hw-pi-pitch {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.5;
+  font-style: italic;
+}
+
 /* ── Home overlay ── */
 #home-overlay-backdrop {
   display: none;
@@ -22241,29 +22327,9 @@ document.addEventListener('DOMContentLoaded', function(){
               +'<span class="oex-tv-sarr">▶</span>'
               +'</div><div class="oex-tsv-wrap">';
             child.sub.forEach(function(s){
-              /* L4 expansion: parse "Overlap (N)" labels to enable drill-down */
-              var overlapMatch = s.label.match(/^(\S+)\s+\((\d+)\)$/);
-              var areaIdForL4 = '';
-              if (overlapMatch && sec.id === 'ta') {
-                /* Find the area id for this child */
-                Object.keys(areaMap).forEach(function(k){
-                  var meta = AREA_META[k]||{label:k};
-                  if (meta.label === child.label) areaIdForL4 = k;
-                });
-              }
-              if (overlapMatch && areaIdForL4) {
-                var overlapTier = overlapMatch[1];
-                html += '<div class="oex-tsv" onclick="oexExpandL4(this,\''+areaIdForL4+'\',\''+overlapTier+'\')">'
-                  +'<span class="oex-tsv-dot" style="background:'+s.color+'"></span>'
-                  +'<span class="oex-tsv-lbl">'+s.label+'</span>'
-                  +'<span style="font-size:8px;color:#3a5a7a;margin-left:4px">▶</span>'
-                  +'</div>'
-                  +'<div class="oex-l4-wrap" style="display:none;padding-left:4px"></div>';
-              } else {
-                html += '<div class="oex-tsv" onclick="oexSelectNode(\''+s.label+'\',\''+sec.cls+'\')">'
-                  +'<span class="oex-tsv-dot" style="background:'+s.color+'"></span>'
-                  +'<span class="oex-tsv-lbl">'+s.label+'</span></div>';
-              }
+              html += '<div class="oex-tsv" onclick="oexSelectNode(\''+s.label+'\',\''+sec.cls+'\')">'
+                +'<span class="oex-tsv-dot" style="background:'+s.color+'"></span>'
+                +'<span class="oex-tsv-lbl">'+s.label+'</span></div>';
             });
             html += '</div>';
           } else {
@@ -22341,632 +22407,143 @@ document.addEventListener('DOMContentLoaded', function(){
       }).join('');
     };
 
-    /* ── L4 Drill-down for tree ──────────────────────────────────────────── */
-    window.oexExpandL4 = async function(el, areaId, overlapTier) {
-      var wrap = el.nextElementSibling;
-      if (!wrap || !wrap.classList.contains('oex-l4-wrap')) return;
-      /* Toggle */
-      if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
-      wrap.style.display = 'block';
-      wrap.innerHTML = '<div class="oex-l4-item" style="color:#3a5a7a">Loading…</div>';
-
-      try {
-        var res = await _sb.from('drug_area_scores')
-          .select('drug_id,drugs(name)')
-          .eq('area_id', areaId)
-          .eq('overlap', overlapTier)
-          .limit(60);
-        var rows = (res.data || []);
-        if (!rows.length) { wrap.innerHTML = '<div class="oex-l4-item" style="color:#3a5a7a">(none)</div>'; return; }
-        wrap.innerHTML = rows.map(function(r){
-          var name = (r.drugs && r.drugs.name) ? r.drugs.name : (r.drug_id || '—');
-          var safeName = name.replace(/"/g,'&quot;');
-          return '<div class="oex-l4-item" onclick="oexSelectNode(this.dataset.name,\'ds\'  )" data-name="'+safeName+'" title="'+safeName+'">'+name+'</div>';
-        }).join('');
-      } catch(e) {
-        wrap.innerHTML = '<div class="oex-l4-item" style="color:#f87171">Error: '+e.message+'</div>';
-      }
-    };
-
     /* ── Matrix Panel ────────────────────────────────────────────────────── */
+    async function oexLoadMatrix() {
+      var wrap = document.getElementById('oex-mwrap');
+      if (!wrap) return;
+      wrap.innerHTML = '<div style="padding:24px;font-size:11px;color:#3a5a7a">Loading…</div>';
 
-    /* ── Node catalog + state ──────────────────────────────────────────── */
-    var OEX_NODE_CATALOG = {
-      areas: {
-        label: 'Disease Areas', icon: '🧬',
-        items: [] // populated from disease_areas table
-      },
-      layers: {
-        label: 'Data Layers', icon: '📊',
-        items: [
-          {id:'targets', label:'Targets'},
-          {id:'indications', label:'Indications'},
-          {id:'trials', label:'Trials'},
-          {id:'catalysts', label:'Catalysts'},
-          {id:'news', label:'News'}
-        ]
-      },
-      stages: {
-        label: 'Dev Stages', icon: '🔬',
-        items: [
-          {id:'Preclinical',label:'Preclinical'},
-          {id:'Phase 1',label:'Phase 1'},
-          {id:'Phase 2',label:'Phase 2'},
-          {id:'Phase 3',label:'Phase 3'},
-          {id:'Approved',label:'Approved'}
-        ]
-      },
-      companies: {
-        label: 'Companies (Top 20)', icon: '🏢',
-        items: [] // populated from companies table
-      },
-      targets: {
-        label: 'Molecular Targets', icon: '🎯',
-        items: [] // populated from drug_targets table
-      }
-    };
+      /* Step 1: Get all drug-area memberships */
+      var dasRes = await _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500);
+      var das = (dasRes.data || []);
 
-    var OEX_MATRIX_STATE = {
-      rowNodes: [],
-      colNodes: [],
-      strengthCeiling: 100,
-      strengthFloor: 0,
-      sortDir: 'desc',
-      cellData: {},
-    };
-
-    /* ── Cached data for strength computation ─────────────────────────── */
-    var _oexCache = {
-      das: null,        // drug_area_scores rows
-      byArea: null,     // area_id -> Set of drug_ids
-      withTargets: null,
-      withIndic: null,
-      withTrials: null,
-      withCats: null,
-      newsSet: null,
-      drugs: null,      // array of drug records
-      drugById: null,   // id -> drug
-      areaByDrugId: null, // drug_id -> Set of area_ids
-    };
-
-    /* ── Ensure node catalog is populated ────────────────────────────── */
-    var _oexCatalogLoaded = false;
-    async function oexEnsureNodeCatalog() {
-      if (_oexCatalogLoaded) return;
-
-      var results = await Promise.all([
-        _sb.from('disease_areas').select('id,name,slug').order('name'),
-        _sb.from('companies').select('id,name').neq('status','acquired').order('name').limit(20),
-        _sb.from('drug_targets').select('target_id').limit(2000),
-      ]);
-
-      var areas    = (results[0].data || []);
-      var cos      = (results[1].data || []);
-      var dtRows   = (results[2].data || []);
-
-      OEX_NODE_CATALOG.areas.items = areas.map(function(a){
-        return {id: a.slug || a.id, label: a.name || a.slug || a.id};
-      });
-
-      OEX_NODE_CATALOG.companies.items = cos.map(function(c){
-        return {id: c.id, label: c.name};
-      });
-
-      var tgtCounts = {};
-      dtRows.forEach(function(r){ tgtCounts[r.target_id] = (tgtCounts[r.target_id]||0)+1; });
-      OEX_NODE_CATALOG.targets.items = Object.entries(tgtCounts)
-        .sort(function(a,b){return b[1]-a[1];})
-        .slice(0,20)
-        .map(function(e){ return {id: e[0], label: e[0].toUpperCase()}; });
-
-      _oexCatalogLoaded = true;
-    }
-
-    /* ── Ensure coverage data cache is fresh ─────────────────────────── */
-    var _oexDataLoaded = false;
-    async function oexEnsureData() {
-      if (_oexDataLoaded) return;
-
-      var TODAY_STR = new Date().toISOString().split('T')[0];
-      var results = await Promise.all([
-        _sb.from('drug_area_scores').select('area_id,drug_id,overlap').limit(1500),
-        _sb.from('drug_targets').select('drug_id').limit(1000),
-        _sb.from('drug_indications').select('drug_id').limit(1000),
-        _sb.from('trials').select('drug_id,canonical_drug_id').limit(2000),
-        _sb.from('catalysts').select('drug_id').gte('sort_date',TODAY_STR).limit(1000),
-        _sb.from('news_articles').select('matched_drug_ids').neq('source_validation_status','invalid').limit(500),
-        _sb.from('drugs').select('id,name,stage,company_id,company_display').limit(500),
-      ]);
-
-      var das       = (results[0].data || []);
-      var dtRows    = (results[1].data || []);
-      var indicRows = (results[2].data || []);
-      var triRows   = (results[3].data || []);
-      var catRows   = (results[4].data || []);
-      var newsRows  = (results[5].data || []);
-      var drugRows  = (results[6].data || []);
-
+      /* Build per-area drug sets */
       var byArea = {};
       das.forEach(function(r){
         if (!byArea[r.area_id]) byArea[r.area_id] = new Set();
         byArea[r.area_id].add(r.drug_id);
       });
 
-      var areaByDrugId = {};
-      das.forEach(function(r){
-        if (!areaByDrugId[r.drug_id]) areaByDrugId[r.drug_id] = new Set();
-        areaByDrugId[r.drug_id].add(r.area_id);
-      });
+      var AREA_ORDER = ['tl1a','ibd','atopy','ted','igf1r','fcrn','tcell','respiratory','il4ra','tslp','autoimmune'];
+      var visAreas   = AREA_ORDER.filter(function(a){return byArea[a];});
 
-      var withTargets = new Set(dtRows.map(function(r){ return r.drug_id; }));
-      var withIndic   = new Set(indicRows.map(function(r){ return r.drug_id; }));
-      var withTrials  = new Set();
-      triRows.forEach(function(r){
+      /* Step 2: Fetch coverage data with correct joins */
+
+      /* Targets: drug_targets has drug_id */
+      var targRes = await _sb.from('drug_targets').select('drug_id').limit(1000);
+      var withTargets = new Set((targRes.data||[]).map(function(r){return r.drug_id;}));
+
+      /* Indications: drug_indications has drug_id */
+      var indicRes = await _sb.from('drug_indications').select('drug_id').limit(1000);
+      var withIndic = new Set((indicRes.data||[]).map(function(r){return r.drug_id;}));
+
+      /* Trials: trials table has drug_id AND canonical_drug_id — use both */
+      var trialsRes = await _sb.from('trials').select('drug_id,canonical_drug_id').limit(2000);
+      var withTrials = new Set();
+      (trialsRes.data||[]).forEach(function(r){
         if (r.drug_id) withTrials.add(r.drug_id);
         if (r.canonical_drug_id) withTrials.add(r.canonical_drug_id);
       });
-      var withCats = new Set(catRows.map(function(r){ return r.drug_id; }).filter(Boolean));
-      var newsSet  = new Set();
-      newsRows.forEach(function(r){
-        if (Array.isArray(r.matched_drug_ids)) r.matched_drug_ids.forEach(function(id){ if (id) newsSet.add(id); });
-      });
 
-      var drugById = {};
-      drugRows.forEach(function(d){ drugById[d.id] = d; });
+      /* Catalysts: catalysts has drug_id */
+      var TODAY = new Date().toISOString().split('T')[0];
+      var catsRes = await _sb.from('catalysts').select('drug_id').gte('sort_date',TODAY).limit(1000);
+      var withCats = new Set((catsRes.data||[]).map(function(r){return r.drug_id;}).filter(Boolean));
 
-      _oexCache.das        = das;
-      _oexCache.byArea     = byArea;
-      _oexCache.areaByDrugId = areaByDrugId;
-      _oexCache.withTargets = withTargets;
-      _oexCache.withIndic   = withIndic;
-      _oexCache.withTrials  = withTrials;
-      _oexCache.withCats    = withCats;
-      _oexCache.newsSet     = newsSet;
-      _oexCache.drugs       = drugRows;
-      _oexCache.drugById    = drugById;
-      _oexDataLoaded = true;
-    }
-
-    /* ── Compute strength for a row×col pair ────────────────────────── */
-    function oexComputeStrength(rowNode, colNode) {
-      var cache = _oexCache;
-      var key = rowNode.id + '|' + colNode.id;
-      if (OEX_MATRIX_STATE.cellData[key]) return OEX_MATRIX_STATE.cellData[key];
-
-      var result = {pct: null, covered: null, total: null, drillLabel: 'N/A'};
-
-      /* area × layer */
-      if (rowNode.type === 'area' && colNode.type === 'layer') {
-        var drugSet = cache.byArea[rowNode.id];
-        if (!drugSet) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-        var total = drugSet.size;
-        var layerMap = {
-          targets:     cache.withTargets,
-          indications: cache.withIndic,
-          trials:      cache.withTrials,
-          catalysts:   cache.withCats,
-          news:        cache.newsSet,
-        };
-        var layerSet = layerMap[colNode.id];
-        if (!layerSet) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-        var covered = 0;
-        drugSet.forEach(function(did){ if (layerSet.has(did)) covered++; });
-        result = {pct: Math.round(covered/total*100), covered: covered, total: total, drillLabel: rowNode.label+' × '+colNode.label};
-      }
-
-      /* area × area */
-      else if (rowNode.type === 'area' && colNode.type === 'area') {
-        var setA = cache.byArea[rowNode.id] || new Set();
-        var setB = cache.byArea[colNode.id] || new Set();
-        if (rowNode.id === colNode.id) {
-          result = {pct: 100, covered: setA.size, total: setA.size, drillLabel: 'Diagonal'};
-        } else {
-          var intersection = 0;
-          setA.forEach(function(did){ if (setB.has(did)) intersection++; });
-          var union = setA.size + setB.size - intersection;
-          if (union === 0) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-          result = {pct: Math.round(intersection/union*100), covered: intersection, total: union, drillLabel: 'Shared drugs'};
+      /* News: news_articles has matched_drug_ids (array) — flatten it */
+      var newsRes = await _sb.from('news_articles').select('matched_drug_ids').neq('source_validation_status','invalid').limit(500);
+      var newsSet = new Set();
+      (newsRes.data||[]).forEach(function(r){
+        if (Array.isArray(r.matched_drug_ids)) {
+          r.matched_drug_ids.forEach(function(id){ if (id) newsSet.add(id); });
         }
-      }
-
-      /* area × stage */
-      else if (rowNode.type === 'area' && colNode.type === 'stage') {
-        var drugSet = cache.byArea[rowNode.id];
-        if (!drugSet) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-        var total = drugSet.size;
-        var covered = 0;
-        drugSet.forEach(function(did){
-          var d = cache.drugById[did];
-          if (d && d.stage === colNode.id) covered++;
-        });
-        result = {pct: Math.round(covered/total*100), covered: covered, total: total, drillLabel: colNode.label+' drugs in '+rowNode.label};
-      }
-
-      /* area × company */
-      else if (rowNode.type === 'area' && colNode.type === 'company') {
-        var drugSet = cache.byArea[rowNode.id];
-        if (!drugSet) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-        var total = drugSet.size;
-        var covered = 0;
-        drugSet.forEach(function(did){
-          var d = cache.drugById[did];
-          if (d && d.company_id === colNode.id) covered++;
-        });
-        result = {pct: Math.round(covered/total*100), covered: covered, total: total, drillLabel: colNode.label+' drugs in '+rowNode.label};
-      }
-
-      /* layer × layer */
-      else if (rowNode.type === 'layer' && colNode.type === 'layer') {
-        var layerMap = {
-          targets:     cache.withTargets,
-          indications: cache.withIndic,
-          trials:      cache.withTrials,
-          catalysts:   cache.withCats,
-          news:        cache.newsSet,
-        };
-        var setA = layerMap[rowNode.id] || new Set();
-        var setB = layerMap[colNode.id] || new Set();
-        if (rowNode.id === colNode.id) {
-          result = {pct: 100, covered: setA.size, total: setA.size, drillLabel: 'Diagonal'};
-        } else {
-          var intersection = 0;
-          setA.forEach(function(did){ if (setB.has(did)) intersection++; });
-          var total = cache.drugs ? cache.drugs.length : setA.size;
-          if (total === 0) { OEX_MATRIX_STATE.cellData[key] = result; return result; }
-          result = {pct: Math.round(intersection/total*100), covered: intersection, total: total, drillLabel: 'Drugs with both layers'};
-        }
-      }
-
-      OEX_MATRIX_STATE.cellData[key] = result;
-      return result;
-    }
-
-    /* ── Compute all strengths for current row×col grid ─────────────── */
-    async function oexComputeAllStrengths() {
-      await oexEnsureData();
-      var rows = OEX_MATRIX_STATE.rowNodes;
-      var cols = OEX_MATRIX_STATE.colNodes;
-      rows.forEach(function(r){
-        cols.forEach(function(c){
-          oexComputeStrength(r, c);
-        });
       });
-    }
 
-    /* ── Sort rows based on current sortDir ─────────────────────────── */
-    function oexApplySort() {
-      var rows = OEX_MATRIX_STATE.rowNodes;
-      var cols = OEX_MATRIX_STATE.colNodes;
-      var dir = OEX_MATRIX_STATE.sortDir;
-      if (dir === 'alpha') {
-        rows.sort(function(a,b){ return a.label.localeCompare(b.label); });
-        return;
-      }
-      rows.sort(function(a,b){
-        var sumA = 0, sumB = 0, countA = 0, countB = 0;
-        cols.forEach(function(c){
-          var ra = OEX_MATRIX_STATE.cellData[a.id+'|'+c.id];
-          var rb = OEX_MATRIX_STATE.cellData[b.id+'|'+c.id];
-          if (ra && ra.pct !== null) { sumA += ra.pct; countA++; }
-          if (rb && rb.pct !== null) { sumB += rb.pct; countB++; }
-        });
-        var avgA = countA ? sumA/countA : 0;
-        var avgB = countB ? sumB/countB : 0;
-        return dir === 'desc' ? avgB - avgA : avgA - avgB;
-      });
-    }
-
-    /* ── Render the matrix ──────────────────────────────────────────── */
-    function oexRenderMatrix() {
-      var wrap = document.getElementById('oex-mwrap');
-      if (!wrap) return;
-      var rows = OEX_MATRIX_STATE.rowNodes;
-      var cols = OEX_MATRIX_STATE.colNodes;
-      var ceiling = OEX_MATRIX_STATE.strengthCeiling;
-
-      if (!rows.length || !cols.length) {
-        wrap.innerHTML = '<div style="padding:32px;text-align:center;font-size:12px;color:#3a5a7a">No rows or columns selected.<br>Use the <strong style="color:#60a5fa">Matrix Builder</strong> in the left panel to add nodes.</div>';
-        return;
-      }
+      var COLS = [
+        {id:'targets',     label:'Targets',     icon:'🔬', set:withTargets,  desc:'Drug→target assignments'},
+        {id:'indications', label:'Indications', icon:'🏷', set:withIndic,    desc:'Drug→indication mappings'},
+        {id:'trials',      label:'Trials',      icon:'🧪', set:withTrials,   desc:'ClinicalTrials.gov records'},
+        {id:'catalysts',   label:'Catalysts',   icon:'📅', set:withCats,     desc:'Upcoming events & readouts'},
+        {id:'news',        label:'News',        icon:'📰', set:newsSet,      desc:'News coverage (matched_drug_ids)'},
+      ];
 
       function ccls(p){ return p>=70?'s':p>=40?'p':p>=15?'sp':'m'; }
       function clbl(p){ return p>=70?'Strong':p>=40?'Partial':p>=15?'Sparse':'Gap'; }
 
-      var html = '<table><thead><tr>';
-      html += '<th class="oex-mcorner"><div class="oex-mcorner-txt">Row × Col</div></th>';
-      cols.forEach(function(col){
-        html += '<th class="oex-ch"><div class="oex-ch-in" title="'+col.label+'">'
+      var html = '<table><thead><tr><th class="oex-mcorner"><div class="oex-mcorner-txt">Area × Layer</div></th>';
+      COLS.forEach(function(col){
+        html += '<th class="oex-ch"><div class="oex-ch-in" title="'+col.desc+'">'
+          +'<span style="font-size:14px">'+col.icon+'</span>'
           +'<span class="oex-ch-lbl">'+col.label+'</span>'
           +'</div></th>';
       });
       html += '</tr></thead><tbody>';
 
-      rows.forEach(function(row){
+      visAreas.forEach(function(aId){
+        var meta    = AREA_META[aId]||{label:aId, color:'#4a6080'};
+        var drugSet = byArea[aId];
+        var total   = drugSet.size;
+        if (total === 0) return;
         html += '<tr><th class="oex-rh"><div class="oex-rh-in">'
-          +'<span style="width:6px;height:6px;border-radius:50%;background:#4a90c4;display:inline-block;flex-shrink:0"></span>'
-          +'<span class="oex-rh-lbl">'+row.label+'</span>'
+          +'<span style="width:6px;height:6px;border-radius:50%;background:'+meta.color+';display:inline-block;flex-shrink:0"></span>'
+          +'<span class="oex-rh-lbl">'+meta.label+'</span>'
+          +'<span style="font-size:9px;color:#3a5a7a;margin-left:auto">'+total+'</span>'
           +'</div></th>';
-
-        cols.forEach(function(col){
-          var data = OEX_MATRIX_STATE.cellData[row.id+'|'+col.id] || {pct:null,covered:null,total:null};
-          if (data.pct === null) {
-            html += '<td class="oex-mc"><div class="oex-ci diag"><span class="oex-cdiag">—</span></div></td>';
-            return;
-          }
-          var pct = data.pct;
-          var filtered = pct > ceiling;
-          var cls = ccls(pct);
-          var lbl = clbl(pct);
-          var filtStyle = filtered ? ' oex-matrix-filtered' : '';
-          var rowIdSafe = row.id.replace(/'/g, "\\'");
-          var colIdSafe = col.id.replace(/'/g, "\\'");
-          html += '<td class="oex-mc"><div class="oex-ci '+cls+filtStyle+'"'
-            +' onclick="oexDrilldownCell('+JSON.stringify({type:row.type,id:row.id,label:row.label})+','+JSON.stringify({type:col.type,id:col.id,label:col.label})+','+pct+')"'
-            +' title="'+row.label+' × '+col.label+': '+data.covered+'/'+data.total+' ('+pct+'%)">'
+        COLS.forEach(function(col){
+          var covered=0;
+          drugSet.forEach(function(did){ if (col.set.has(did)) covered++; });
+          var pct = Math.round(covered/total*100);
+          var cls = ccls(pct), lbl = clbl(pct);
+          html += '<td class="oex-mc"><div class="oex-ci '+cls+'"'
+            +' onclick="oexInspectCell(\''+aId+'\',\''+col.id+'\','+covered+','+total+','+pct+')"'
+            +' title="'+meta.label+' × '+col.label+': '+covered+'/'+total+' ('+pct+'%)">'
             +'<span class="oex-cpct">'+pct+'%</span>'
-            +'<span class="oex-clbl">'+data.covered+'/'+data.total+'</span>'
+            +'<span class="oex-clbl">'+covered+'/'+total+'</span>'
             +'</div></td>';
         });
         html += '</tr>';
       });
-
       html += '</tbody></table>';
       wrap.innerHTML = html;
 
-      /* Update subtitle */
-      var sub = document.getElementById('oex-matrix-subtitle');
-      if (sub) sub.textContent = rows.length+' rows × '+cols.length+' cols';
-
-      /* Update live badge in oex-mat-level if it exists */
-      var ml = document.getElementById('oex-mat-level');
-      if (ml) ml.innerHTML = '';
+      var mlevel = document.getElementById('oex-mat-level');
+      if (mlevel) {
+        mlevel.innerHTML = '<span style="color:#1e3050">·</span>'
+          +'<span class="oex-lb oex-lb2">Live</span>'
+          +'<span style="font-size:10px;color:#3a5a7a">'+visAreas.length+' areas × '+COLS.length+' layers · '+das.length+' drug-area scores</span>';
+      }
     }
 
-    /* ── Render the node catalog in the left panel ──────────────────── */
-    function oexRenderNodeCatalog() {
-      var container = document.getElementById('oex-node-catalog');
-      if (!container) return;
-      var html = '';
-
-      var CATEGORY_ORDER = ['areas','layers','stages','companies','targets'];
-      CATEGORY_ORDER.forEach(function(catKey){
-        var cat = OEX_NODE_CATALOG[catKey];
-        if (!cat || !cat.items || !cat.items.length) return;
-
-        html += '<div style="margin-bottom:2px">'
-          +'<div style="padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:.08em;color:#3a5a7a;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">'
-          +'<span style="font-size:11px">'+cat.icon+'</span>'+cat.label
-          +'</div>'
-          +'<div>';
-
-        cat.items.forEach(function(item){
-          var inRow = OEX_MATRIX_STATE.rowNodes.some(function(n){ return n.id===item.id && n.type===catKey; });
-          var inCol = OEX_MATRIX_STATE.colNodes.some(function(n){ return n.id===item.id && n.type===catKey; });
-          var rCls = 'oex-node-btn-row'+(inRow?' active':'');
-          var cCls = 'oex-node-btn-col'+(inCol?' active':'');
-          var labelEsc = item.label.replace(/'/g,"\\'");
-          html += '<div style="display:flex;align-items:center;padding:2px 12px;gap:4px">'
-            +'<span style="flex:1;font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+item.label+'">'+item.label+'</span>'
-            +'<button class="'+rCls+'" onclick="oexToggleNode(\''+catKey+'\',\''+item.id+'\',\''+labelEsc+'\',\'row\')">'+(inRow?'✓R':'R')+'</button>'
-            +'<button class="'+cCls+'" onclick="oexToggleNode(\''+catKey+'\',\''+item.id+'\',\''+labelEsc+'\',\'col\')">'+(inCol?'✓C':'C')+'</button>'
-            +'</div>';
-        });
-        html += '</div></div>';
-      });
-
-      container.innerHTML = html;
-    }
-
-    /* ── Toggle a node on/off for row or col ────────────────────────── */
-    window.oexToggleNode = function(type, id, label, axis) {
-      var arr = axis === 'row' ? OEX_MATRIX_STATE.rowNodes : OEX_MATRIX_STATE.colNodes;
-      var idx = arr.findIndex(function(n){ return n.id === id && n.type === type; });
-      if (idx === -1) {
-        arr.push({type:type, id:id, label:label});
-      } else {
-        arr.splice(idx, 1);
-      }
-      // Clear cached data for recompute
-      OEX_MATRIX_STATE.cellData = {};
-      oexRenderNodeCatalog();
-      oexLoadMatrix();
-    };
-
-    /* ── Main oexLoadMatrix (entry point) ───────────────────────────── */
-    async function oexLoadMatrix() {
-      var wrap = document.getElementById('oex-mwrap');
-      if (!wrap) return;
-      wrap.innerHTML = '<div style="padding:24px;font-size:11px;color:#3a5a7a">Loading…</div>';
-
-      /* 1. Ensure node catalog */
-      await oexEnsureNodeCatalog();
-
-      /* 2. Render catalog (first time or after catalog load) */
-      oexRenderNodeCatalog();
-
-      /* 3. Default rows/cols if empty */
-      if (OEX_MATRIX_STATE.rowNodes.length === 0) {
-        var AREA_ORDER = ['tl1a','ibd','atopy','ted','igf1r','fcrn','tcell','respiratory','il4ra','tslp','autoimmune'];
-        OEX_MATRIX_STATE.rowNodes = OEX_NODE_CATALOG.areas.items
-          .filter(function(a){ return AREA_ORDER.indexOf(a.id) !== -1; })
-          .sort(function(a,b){ return AREA_ORDER.indexOf(a.id) - AREA_ORDER.indexOf(b.id); })
-          .map(function(a){ return {type:'area', id:a.id, label:a.label}; });
-      }
-      if (OEX_MATRIX_STATE.colNodes.length === 0) {
-        OEX_MATRIX_STATE.colNodes = OEX_NODE_CATALOG.layers.items.map(function(l){
-          return {type:'layer', id:l.id, label:l.label};
-        });
-      }
-
-      /* 4. Compute strengths */
-      await oexComputeAllStrengths();
-
-      /* 5. Sort */
-      oexApplySort();
-
-      /* 6. Render */
-      oexRenderMatrix();
-    }
-
-    /* ── Sort matrix by column ───────────────────────────────────────── */
-    window.oexSortMatrix = function(dir) {
-      OEX_MATRIX_STATE.sortDir = dir;
-      oexApplySort();
-      oexRenderMatrix();
-    };
-
-    /* ── Ceiling filter ─────────────────────────────────────────────── */
-    window.oexSetCeiling = function(val) {
-      OEX_MATRIX_STATE.strengthCeiling = parseInt(val, 10);
-      var lbl = document.getElementById('oex-ceiling-label');
-      if (lbl) lbl.textContent = val + '%';
-      oexRenderMatrix();
-    };
-
-    /* ── Reset to defaults ──────────────────────────────────────────── */
-    window.oexResetMatrix = function() {
-      OEX_MATRIX_STATE.rowNodes = [];
-      OEX_MATRIX_STATE.colNodes = [];
-      OEX_MATRIX_STATE.strengthCeiling = 100;
-      OEX_MATRIX_STATE.sortDir = 'desc';
-      OEX_MATRIX_STATE.cellData = {};
-      var slider = document.getElementById('oex-ceiling-slider');
-      if (slider) slider.value = 100;
-      var lbl = document.getElementById('oex-ceiling-label');
-      if (lbl) lbl.textContent = '100%';
-      var sortSel = document.getElementById('oex-sort-select');
-      if (sortSel) sortSel.value = 'desc';
-      oexLoadMatrix();
-    };
-
-    /* ── Drilldown on cell click ─────────────────────────────────────── */
-    window.oexDrilldownCell = async function(rowNode, colNode, pct) {
+    window.oexInspectCell = function(areaId, colId, covered, total, pct) {
       var insp = document.getElementById('oex-insp');
       if (!insp) return;
-
+      var meta = AREA_META[areaId]||{label:areaId, color:'#4a6080'};
+      var colLabels = {targets:'Targets',indications:'Indications',trials:'Trials',catalysts:'Catalysts',news:'News'};
+      var colDescs  = {targets:'drug→target assignments',indications:'drug→indication mappings',
+                       trials:'ClinicalTrials.gov records',catalysts:'upcoming events & readouts',news:'news coverage'};
+      var lbl = colLabels[colId]||colId;
+      var desc= colDescs[colId]||'';
+      var gap = total-covered;
       function ccls(p){ return p>=70?'s':p>=40?'p':p>=15?'sp':'m'; }
-      function clbl(p){ return p>=70?'Strong':p>=40?'Partial':p>=15?'Sparse':'Gap'; }
+      function clbl2(p){ return p>=70?'Strong':p>=40?'Partial':p>=15?'Sparse':'Gap'; }
       function fcls(c){ return c==='s'?'strong':c==='p'?'partial':c==='sp'?'sparse':'missing'; }
-
       var cls = ccls(pct);
       insp.innerHTML = '<div class="oex-is">'
         +'<div class="oex-is-t">Cell Inspector</div>'
-        +'<div class="oex-it">'+rowNode.label+' <span style="color:#3a5a7a">×</span> '+colNode.label+'</div>'
-        +'<span class="oex-sbadge '+cls+'">'+clbl(pct)+' — '+pct+'%</span>'
+        +'<div class="oex-it">'+meta.label+' <span style="color:#3a5a7a">×</span> '+lbl+'</div>'
+        +'<div class="oex-is-d">'+desc+'</div>'
+        +'<span class="oex-sbadge '+cls+'">'+clbl2(pct)+' — '+pct+'%</span>'
         +'<div class="oex-cov-row">'
         +'<span style="font-size:10px;color:#637d9a;min-width:60px">Coverage</span>'
         +'<div class="oex-cov-bg"><div class="oex-cov-fill f-'+cls+'" style="width:'+pct+'%"></div></div>'
         +'<span class="oex-cov-pct" style="color:var(--oex-'+fcls(cls)+')">'+pct+'%</span>'
         +'</div></div>'
-        +'<div class="oex-is" id="oex-drill-detail"><div style="padding:12px;font-size:11px;color:#3a5a7a">Loading details…</div></div>';
-
-      /* Fetch detailed drill-down */
-      await oexEnsureData();
-      var cache = _oexCache;
-      var coveredDrugs = [], missingDrugs = [], sharedDrugs = [];
-
-      if (rowNode.type === 'area' && colNode.type === 'layer') {
-        var drugSet = cache.byArea[rowNode.id] || new Set();
-        var layerMap = {
-          targets:     cache.withTargets,
-          indications: cache.withIndic,
-          trials:      cache.withTrials,
-          catalysts:   cache.withCats,
-          news:        cache.newsSet,
-        };
-        var layerSet = layerMap[colNode.id] || new Set();
-        drugSet.forEach(function(did){
-          var d = cache.drugById[did];
-          var name = d ? (d.name || did) : did;
-          if (layerSet.has(did)) coveredDrugs.push(name);
-          else missingDrugs.push(name);
-        });
-        coveredDrugs.sort(); missingDrugs.sort();
-      }
-      else if (rowNode.type === 'area' && colNode.type === 'area') {
-        var setA = cache.byArea[rowNode.id] || new Set();
-        var setB = cache.byArea[colNode.id] || new Set();
-        setA.forEach(function(did){
-          if (setB.has(did)) {
-            var d = cache.drugById[did];
-            sharedDrugs.push(d ? (d.name || did) : did);
-          }
-        });
-        sharedDrugs.sort();
-      }
-      else if (rowNode.type === 'area' && colNode.type === 'stage') {
-        var drugSet = cache.byArea[rowNode.id] || new Set();
-        drugSet.forEach(function(did){
-          var d = cache.drugById[did];
-          var name = d ? (d.name || did) : did;
-          if (d && d.stage === colNode.id) coveredDrugs.push(name);
-          else missingDrugs.push(name);
-        });
-        coveredDrugs.sort(); missingDrugs.sort();
-      }
-      else if (rowNode.type === 'area' && colNode.type === 'company') {
-        var drugSet = cache.byArea[rowNode.id] || new Set();
-        drugSet.forEach(function(did){
-          var d = cache.drugById[did];
-          var name = d ? (d.name || did) : did;
-          if (d && d.company_id === colNode.id) coveredDrugs.push(name);
-          else missingDrugs.push(name);
-        });
-        coveredDrugs.sort(); missingDrugs.sort();
-      }
-      else if (rowNode.type === 'layer' && colNode.type === 'layer') {
-        var layerMap = {
-          targets:     cache.withTargets,
-          indications: cache.withIndic,
-          trials:      cache.withTrials,
-          catalysts:   cache.withCats,
-          news:        cache.newsSet,
-        };
-        var setA = layerMap[rowNode.id] || new Set();
-        var setB = layerMap[colNode.id] || new Set();
-        (cache.drugs || []).forEach(function(d){
-          var name = d.name || d.id;
-          var hasA = setA.has(d.id), hasB = setB.has(d.id);
-          if (hasA && hasB) coveredDrugs.push(name);
-          else if (!hasA || !hasB) missingDrugs.push(name);
-        });
-        coveredDrugs.sort(); missingDrugs.sort();
-      }
-
-      function chipify(arr, color) {
-        return arr.slice(0,40).map(function(n){
-          return '<span style="display:inline-block;padding:1px 6px;background:rgba(0,0,0,.3);border-radius:8px;font-size:10px;color:'+color+';margin:1px">'+n+'</span>';
-        }).join('') + (arr.length>40 ? '<span style="font-size:10px;color:#3a5a7a">+' + (arr.length-40) + ' more</span>' : '');
-      }
-
-      var detailEl = document.getElementById('oex-drill-detail');
-      if (!detailEl) return;
-
-      if (sharedDrugs.length > 0) {
-        detailEl.innerHTML = '<div class="oex-is-t">Shared Drugs ('+sharedDrugs.length+')</div>'
-          +'<div>'+chipify(sharedDrugs,'#93c5fd')+'</div>';
-      } else {
-        var covCount = coveredDrugs.length, misCount = missingDrugs.length;
-        detailEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-          +'<div>'
-          +'<div style="color:#4ade80;font-size:10px;font-weight:700;margin-bottom:4px">COVERED ('+covCount+')</div>'
-          +'<div>'+chipify(coveredDrugs,'#86efac')+'</div>'
-          +'</div>'
-          +'<div>'
-          +'<div style="color:#f87171;font-size:10px;font-weight:700;margin-bottom:4px">MISSING ('+misCount+')</div>'
-          +'<div>'+chipify(missingDrugs,'#fca5a5')+'</div>'
-          +'</div>'
-          +'</div>';
-      }
-    };
-
-    /* ── Legacy oexInspectCell (kept for back-compat, redirects to drill-down) */
-    window.oexInspectCell = function(areaId, colId, covered, total, pct) {
-      oexDrilldownCell(
-        {type:'area', id:areaId, label:(AREA_META[areaId]||{label:areaId}).label},
-        {type:'layer', id:colId, label:({targets:'Targets',indications:'Indications',trials:'Trials',catalysts:'Catalysts',news:'News'}[colId]||colId)},
-        pct
-      );
+        +'<div class="oex-is"><div class="oex-is-t">Counts</div>'
+        +'<div class="oex-i-note">'
+        +'<strong style="color:#c8d8ec">'+covered+'</strong> of <strong style="color:#c8d8ec">'+total+'</strong> drugs in '+meta.label+' have '+lbl+' data'
+        +(gap>0 ? '<br><span style="color:#f97316">'+gap+' drug'+(gap===1?'':'s')+' missing '+lbl+' coverage</span>'
+                : '<br><span style="color:#10b981">✓ Full coverage</span>')
+        +'</div></div>';
     };
 
 
@@ -23073,7 +22650,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
 
       /* Visual config */
-      var LEFT_MARGIN = 160;
+      var LEFT_MARGIN = 150;
       var RIGHT_PAD   = 20;
       var TOP_PAD     = 52;
       var BOTTOM_PAD  = 32;
@@ -23164,53 +22741,6 @@ document.addEventListener('DOMContentLoaded', function(){
           ctx.stroke();
           ctx.restore();
 
-          /* ── Legend (top-right) */
-          (function() {
-            var legItems = [
-              {label:'Direct',     fill:'#ef4444'},
-              {label:'Watch',      fill:'#f59e0b'},
-              {label:'Adjacent',   fill:'#60a5fa'},
-              {label:'Same-Space', fill:'#6b7280'},
-              {label:'Catalyst',   fill:'#fde68a', ring:true},
-            ];
-            var legDotR   = 8;
-            var legFontSz = 13;
-            var legSpacing = 26;
-            var legY      = 20;
-            ctx.save();
-            ctx.font = legFontSz + 'px Inter, sans-serif';
-            // Measure total width to right-align the block
-            var totalW = 0;
-            legItems.forEach(function(item, i) {
-              totalW += legDotR * 2 + 6 + ctx.measureText(item.label).width + (i < legItems.length - 1 ? legSpacing : 0);
-            });
-            var legStartX = wCss - RIGHT_PAD - totalW;
-            var curX = legStartX;
-            legItems.forEach(function(item) {
-              // Draw dot (or ring for catalyst)
-              ctx.beginPath();
-              ctx.arc(curX + legDotR, legY, legDotR, 0, Math.PI * 2);
-              if (item.ring) {
-                ctx.strokeStyle = item.fill;
-                ctx.lineWidth = 2.5;
-                ctx.globalAlpha = 0.85;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-              } else {
-                ctx.fillStyle = item.fill;
-                ctx.globalAlpha = 0.85;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-              }
-              // Draw label
-              ctx.textAlign = 'left';
-              ctx.fillStyle = '#8ba8c8';
-              ctx.fillText(item.label, curX + legDotR * 2 + 6, legY + 5);
-              curX += legDotR * 2 + 6 + ctx.measureText(item.label).width + legSpacing;
-            });
-            ctx.restore();
-          })();
-
           /* ── Per-row: shading + labels + dots */
           dots = [];
 
@@ -23243,19 +22773,19 @@ document.addEventListener('DOMContentLoaded', function(){
             ctx.fillRect(LEFT_MARGIN, rowY, 4, ROW_HEIGHT);
             ctx.restore();
 
-            /* Area label + indicator dot — fixed column layout */
-            var DOT_X = LEFT_MARGIN - 22;
-            // Draw area label text right-aligned ending before dot
+            /* Area label — right-aligned into left margin */
             ctx.save();
-            ctx.textAlign = 'right';
-            ctx.font = '600 12px Inter, sans-serif';
-            ctx.fillStyle = meta.color;
-            ctx.fillText(meta.label, DOT_X - 8, rowY + ROW_HEIGHT / 2 + 4);
+            ctx.textAlign  = 'right';
+            ctx.font       = '600 12px Inter,system-ui,sans-serif';
+            ctx.fillStyle  = meta.color;
+            ctx.fillText(meta.label, LEFT_MARGIN - 14, rowMidY + 5);
             ctx.restore();
-            // Draw indicator dot at fixed column
+
+            /* Small bullet circle before label */
+            var labelWidth = ctx.measureText(meta.label).width;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(DOT_X, rowY + ROW_HEIGHT / 2, 5, 0, Math.PI * 2);
+            ctx.arc(LEFT_MARGIN - 14 - labelWidth - 7, rowMidY + 1, 3.5, 0, Math.PI*2);
             ctx.fillStyle = meta.color;
             ctx.globalAlpha = 0.85;
             ctx.fill();
@@ -23440,6 +22970,484 @@ document.addEventListener('DOMContentLoaded', function(){
       var pw = canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
       if (pw > 100) buildCanvas(pw);
     }
+
+
+    /* ══════════════════════════════════════════════════════════════════════
+       DYNAMIC MATRIX SYSTEM — Session 70
+       Node selector, drill-down, strength ceiling filter, L4 tree drill
+    ══════════════════════════════════════════════════════════════════════ */
+
+    /* ── State ─────────────────────────────────────────────────────────── */
+    var OEX_CAT = null; // populated by oexInitCatalog
+    var OEX_MS = {      // matrix state
+      rows: [],         // [{type,id,label}]
+      cols: [],         // [{type,id,label}]
+      ceiling: 100,     // hide cells above this %
+      sort: 'desc',     // 'desc'=strongest first, 'asc'=weakest, 'alpha'
+      cache: {}         // 'rowKey|colKey' -> {pct,covered,total}
+    };
+
+    /* ── Catalog initializer ────────────────────────────────────────────── */
+    async function oexInitCatalog() {
+      if (OEX_CAT) return;
+      var areaRes  = await _sb.from('disease_areas').select('id,name').order('name');
+      var coRes    = await _sb.from('companies').select('id,name').order('name').limit(25);
+      var tgtRes   = await _sb.from('drug_targets').select('target_id').limit(2000);
+
+      // Top targets by frequency
+      var tgtCount = {};
+      (tgtRes.data || []).forEach(function(r) {
+        if (r.target_id) tgtCount[r.target_id] = (tgtCount[r.target_id] || 0) + 1;
+      });
+      var topTgts = Object.keys(tgtCount)
+        .sort(function(a,b){ return tgtCount[b] - tgtCount[a]; })
+        .slice(0,20)
+        .map(function(t){ return {id:t, label:t}; });
+
+      OEX_CAT = {
+        areas: {
+          label: 'Disease Areas', icon: '\u{1F9EC}',
+          items: (areaRes.data||[]).map(function(a){ return {id:a.id, label:a.name||a.id}; })
+        },
+        layers: {
+          label: 'Data Layers', icon: '\u{1F4CA}',
+          items: [
+            {id:'targets',     label:'Targets'},
+            {id:'indications', label:'Indications'},
+            {id:'trials',      label:'Trials'},
+            {id:'catalysts',   label:'Catalysts'},
+            {id:'news',        label:'News'}
+          ]
+        },
+        stages: {
+          label: 'Dev Stages', icon: '\u{1F52C}',
+          items: [
+            {id:'Preclinical',label:'Preclinical'},
+            {id:'Phase 1',label:'Phase 1'},
+            {id:'Phase 2',label:'Phase 2'},
+            {id:'Phase 3',label:'Phase 3'},
+            {id:'Approved',label:'Approved'}
+          ]
+        },
+        companies: {
+          label: 'Companies', icon: '\u{1F3E2}',
+          items: (coRes.data||[]).map(function(c){ return {id:c.id, label:c.name||c.id}; })
+        },
+        targets: {
+          label: 'Molecular Targets', icon: '\u{1F3AF}',
+          items: topTgts
+        }
+      };
+    }
+
+    /* ── Render the Matrix Builder panel ───────────────────────────────── */
+    function oexRenderBuilder() {
+      var cont = document.getElementById('oex-node-catalog');
+      if (!cont || !OEX_CAT) return;
+      var html = '';
+      var catKeys = Object.keys(OEX_CAT);
+      catKeys.forEach(function(key) {
+        var cat = OEX_CAT[key];
+        if (!cat.items.length) return;
+        html += '<div style="margin-bottom:4px">';
+        html += '<div style="padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:.08em;color:#3a5a7a;text-transform:uppercase">';
+        html += cat.icon + ' ' + cat.label + '</div>';
+        html += '<div>';
+        cat.items.forEach(function(item) {
+          var inR = OEX_MS.rows.some(function(n){ return n.id === item.id && n.type === key; });
+          var inC = OEX_MS.cols.some(function(n){ return n.id === item.id && n.type === key; });
+          var rStyle = inR
+            ? 'background:#166534;color:#4ade80;border:1px solid #4ade80'
+            : 'background:#1e4d2b;color:#4ade80;border:none';
+          var cStyle = inC
+            ? 'background:#1e40af;color:#60a5fa;border:1px solid #60a5fa'
+            : 'background:#1e3050;color:#60a5fa;border:none';
+          var btnBase = 'font-size:9px;padding:1px 5px;border-radius:3px;cursor:pointer;flex-shrink:0';
+          html += '<div style="display:flex;align-items:center;padding:2px 12px;gap:4px" data-key="' + key + '" data-id="' + item.id + '" data-label="' + item.label.replace(/"/g,'&quot;') + '">';
+          html += '<span style="flex:1;font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.label + '</span>';
+          html += '<button style="' + btnBase + ';' + rStyle + '" class="oex-nb" data-axis="row">' + (inR ? '✓R' : 'R') + '</button>';
+          html += '<button style="' + btnBase + ';' + cStyle + '" class="oex-nb" data-axis="col">' + (inC ? '✓C' : 'C') + '</button>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      });
+      cont.innerHTML = html;
+
+      // Attach delegated click handler once
+      if (!cont._oexBound) {
+        cont._oexBound = true;
+        cont.addEventListener('click', function(e) {
+          var btn = e.target.closest('.oex-nb');
+          if (!btn) return;
+          var row = e.target.closest('[data-key]');
+          if (!row) return;
+          var type  = row.getAttribute('data-key');
+          var id    = row.getAttribute('data-id');
+          var label = row.getAttribute('data-label');
+          var axis  = btn.getAttribute('data-axis');
+          oexToggleNode(type, id, label, axis);
+        });
+      }
+    }
+
+    /* ── Toggle node on/off ─────────────────────────────────────────────── */
+    window.oexToggleNode = function(type, id, label, axis) {
+      var arr = axis === 'row' ? OEX_MS.rows : OEX_MS.cols;
+      var idx = arr.findIndex(function(n){ return n.id === id && n.type === type; });
+      if (idx === -1) arr.push({type:type, id:id, label:label});
+      else arr.splice(idx, 1);
+      OEX_MS.cache = {};
+      oexRenderBuilder();
+      oexLoadMatrix();
+    };
+
+    /* ── Compute strength between two nodes ────────────────────────────── */
+    async function oexStrength(rowNode, colNode) {
+      var key = rowNode.type + '|' + rowNode.id + '||' + colNode.type + '|' + colNode.id;
+      if (OEX_MS.cache[key]) return OEX_MS.cache[key];
+
+      var result = {pct:null, covered:null, total:null};
+
+      try {
+        // area x layer
+        if (rowNode.type === 'areas' && colNode.type === 'layers') {
+          var dasRes = await _sb.from('drug_area_scores')
+            .select('drug_id').eq('area_id', rowNode.id).limit(500);
+          var ids = (dasRes.data||[]).map(function(r){ return r.drug_id; });
+          var total = ids.length;
+          if (total > 0) {
+            var covered = 0;
+            var lid = colNode.id;
+            if (lid === 'targets') {
+              var r2 = await _sb.from('drug_targets').select('drug_id')
+                .in('drug_id', ids).limit(500);
+              var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+              covered = has.size;
+            } else if (lid === 'indications') {
+              var r2 = await _sb.from('drug_indications').select('drug_id')
+                .in('drug_id', ids).limit(500);
+              var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+              covered = has.size;
+            } else if (lid === 'trials') {
+              var r2 = await _sb.from('trials').select('drug_id')
+                .in('drug_id', ids).limit(500);
+              var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+              covered = has.size;
+            } else if (lid === 'catalysts') {
+              var r2 = await _sb.from('catalysts').select('drug_id')
+                .in('drug_id', ids).limit(500);
+              var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+              covered = has.size;
+            } else if (lid === 'news') {
+              var r2 = await _sb.from('news_articles').select('drug_id')
+                .in('drug_id', ids).not('drug_id','is','null').limit(500);
+              var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+              covered = has.size;
+            }
+            result = {pct:Math.round(covered/total*100), covered:covered, total:total};
+          }
+        }
+        // area x area: drugs in both areas
+        else if (rowNode.type === 'areas' && colNode.type === 'areas') {
+          var r1 = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', rowNode.id).limit(500);
+          var r2 = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', colNode.id).limit(500);
+          var s1 = new Set((r1.data||[]).map(function(r){ return r.drug_id; }));
+          var s2 = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+          var both = Array.from(s1).filter(function(id){ return s2.has(id); }).length;
+          var union = s1.size + s2.size - both;
+          result = union > 0 ? {pct:Math.round(both/union*100), covered:both, total:union} : {pct:0,covered:0,total:0};
+        }
+        // area x stage: drugs in area at that stage
+        else if (rowNode.type === 'areas' && colNode.type === 'stages') {
+          var dasRes = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', rowNode.id).limit(500);
+          var ids = (dasRes.data||[]).map(function(r){ return r.drug_id; });
+          if (ids.length > 0) {
+            var r2 = await _sb.from('drugs').select('id').in('id', ids).eq('stage', colNode.id).limit(500);
+            result = {pct:Math.round((r2.data||[]).length/ids.length*100), covered:(r2.data||[]).length, total:ids.length};
+          }
+        }
+        // area x company: drugs in area by company
+        else if (rowNode.type === 'areas' && colNode.type === 'companies') {
+          var dasRes = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', rowNode.id).limit(500);
+          var ids = (dasRes.data||[]).map(function(r){ return r.drug_id; });
+          if (ids.length > 0) {
+            var r2 = await _sb.from('drugs').select('id').in('id', ids).eq('company_id', colNode.id).limit(500);
+            result = {pct:Math.round((r2.data||[]).length/ids.length*100), covered:(r2.data||[]).length, total:ids.length};
+          }
+        }
+        // area x target: drugs in area with that target
+        else if (rowNode.type === 'areas' && colNode.type === 'targets') {
+          var dasRes = await _sb.from('drug_area_scores').select('drug_id').eq('area_id', rowNode.id).limit(500);
+          var ids = (dasRes.data||[]).map(function(r){ return r.drug_id; });
+          if (ids.length > 0) {
+            var r2 = await _sb.from('drug_targets').select('drug_id').in('drug_id', ids).eq('target_id', colNode.id).limit(500);
+            var has = new Set((r2.data||[]).map(function(r){ return r.drug_id; }));
+            result = {pct:Math.round(has.size/ids.length*100), covered:has.size, total:ids.length};
+          }
+        }
+      } catch(e) {
+        result = {pct:null, covered:null, total:null, err:e.message};
+      }
+
+      OEX_MS.cache[key] = result;
+      return result;
+    }
+
+    /* ── Sort helper ────────────────────────────────────────────────────── */
+    function oexSortRows(rows, cellData) {
+      if (OEX_MS.sort === 'alpha') {
+        return rows.slice().sort(function(a,b){ return a.label.localeCompare(b.label); });
+      }
+      return rows.slice().sort(function(a,b) {
+        var aMax = 0, bMax = 0;
+        OEX_MS.cols.forEach(function(c) {
+          var ak = a.type+'|'+a.id+'||'+c.type+'|'+c.id;
+          var bk = b.type+'|'+b.id+'||'+c.type+'|'+c.id;
+          var ap = (cellData[ak]||{}).pct || 0;
+          var bp = (cellData[bk]||{}).pct || 0;
+          if (ap > aMax) aMax = ap;
+          if (bp > bMax) bMax = bp;
+        });
+        return OEX_MS.sort === 'asc' ? aMax - bMax : bMax - aMax;
+      });
+    }
+
+    /* ── Render matrix table ────────────────────────────────────────────── */
+    function oexRenderMatrix() {
+      var wrap = document.getElementById('oex-mwrap');
+      if (!wrap) return;
+      var rows = OEX_MS.rows, cols = OEX_MS.cols;
+      if (!rows.length || !cols.length) {
+        wrap.innerHTML = '<div style="padding:24px;font-size:12px;color:#3a5a7a;text-align:center">Use the <strong style="color:#64748b">R</strong> and <strong style="color:#60a5fa">C</strong> buttons in the left panel to add rows and columns.</div>';
+        return;
+      }
+
+      var sorted = oexSortRows(rows, OEX_MS.cache);
+      var ceiling = OEX_MS.ceiling;
+
+      var ICONS = {targets:'\u{1F52C}', indications:'\u{1F4CB}', trials:'\u{1F9EA}', catalysts:'\u{1F4C5}', news:'\u{1F4F0}'};
+      var html = '<table style="border-collapse:collapse;width:100%;font-size:12px">';
+      // Header
+      html += '<thead><tr><th style="padding:8px 12px;text-align:left;color:#475569;font-size:11px;font-weight:500;white-space:nowrap">AREA × LAYER</th>';
+      cols.forEach(function(c) {
+        var ic = ICONS[c.id] || '';
+        html += '<th class="oex-ch" style="padding:8px 6px;text-align:center;color:#64748b;font-size:11px;font-weight:500;min-width:80px;cursor:pointer" onclick="oexSortByCol()">';
+        html += '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">';
+        html += '<span style="font-size:14px">' + ic + '</span>';
+        html += '<span>' + c.label + '</span></div></th>';
+      });
+      html += '</tr></thead><tbody>';
+
+      sorted.forEach(function(row) {
+        html += '<tr>';
+        html += '<td class="oex-rl" style="padding:6px 12px;color:#94a3b8;font-size:12px;white-space:nowrap;border-right:1px solid #1e3050">';
+        var dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:6px"></span>';
+        html += dot + row.label + '</td>';
+
+        cols.forEach(function(col) {
+          var key = row.type+'|'+row.id+'||'+col.type+'|'+col.id;
+          var d = OEX_MS.cache[key];
+          var pct = d ? d.pct : null;
+
+          // Cell style
+          var filtered = pct !== null && pct > ceiling;
+          var bg = '#0d1820', color = '#334155', opacity = '1';
+          var tdeco = 'none';
+
+          if (filtered) {
+            bg = '#0d1820'; color = '#1e3050'; tdeco = 'line-through'; opacity = '0.3';
+          } else if (pct === null) {
+            bg = '#0a1525'; color = '#1e3050';
+          } else if (pct >= 70) {
+            bg = '#14532d'; color = '#4ade80';
+          } else if (pct >= 40) {
+            bg = '#713f12'; color = '#fbbf24';
+          } else if (pct >= 15) {
+            bg = '#7c2d12'; color = '#fb923c';
+          } else {
+            bg = '#2d1b1b'; color = '#f87171';
+          }
+
+          var txt = pct !== null ? pct + '%' : '—';
+          var sub = (d && d.covered !== null) ? (d.covered + '/' + d.total) : '';
+          var title = row.label + ' x ' + col.label + (sub ? ': ' + sub : '');
+
+          html += '<td onclick="oexDrillCell(this)" ';
+          html += 'data-row-type="' + row.type + '" data-row-id="' + row.id + '" data-row-label="' + row.label.replace(/"/g,'&quot;') + '" ';
+          html += 'data-col-type="' + col.type + '" data-col-id="' + col.id + '" data-col-label="' + col.label.replace(/"/g,'&quot;') + '" ';
+          html += 'title="' + title + '" style="text-align:center;padding:6px 4px;cursor:pointer;border:1px solid #0d1820;background:' + bg + ';opacity:' + opacity + '">';
+          html += '<div style="font-size:13px;font-weight:600;color:' + color + ';text-decoration:' + tdeco + '">' + txt + '</div>';
+          if (sub) html += '<div style="font-size:9px;color:' + color + ';opacity:.7;text-decoration:' + tdeco + '">' + sub + '</div>';
+          html += '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+
+      // Update subtitle
+      var sub = document.getElementById('oex-matrix-subtitle');
+      if (sub) sub.textContent = rows.length + ' rows × ' + cols.length + ' cols' + (ceiling < 100 ? ' · showing ≤ ' + ceiling + '%' : '');
+    }
+
+    /* ── Drill-down cell inspector ──────────────────────────────────────── */
+    window.oexDrillCell = async function(td) {
+      var rowType = td.getAttribute('data-row-type');
+      var rowId   = td.getAttribute('data-row-id');
+      var rowLbl  = td.getAttribute('data-row-label');
+      var colType = td.getAttribute('data-col-type');
+      var colId   = td.getAttribute('data-col-id');
+      var colLbl  = td.getAttribute('data-col-label');
+      var panel = document.getElementById('oex-insp');
+      if (!panel) return;
+
+      var rowNode = {type:rowType, id:rowId, label:rowLbl};
+      var colNode = {type:colType, id:colId, label:colLbl};
+      var d = await oexStrength(rowNode, colNode);
+      var pct = d.pct;
+      var pctBadge = pct === null ? '—' : pct + '%';
+      var badgeColor = pct === null ? '#475569' : (pct >= 70 ? '#4ade80' : pct >= 40 ? '#fbbf24' : pct >= 15 ? '#fb923c' : '#f87171');
+      var tierLabel = pct === null ? 'No data' : (pct >= 70 ? 'Strong' : pct >= 40 ? 'Partial' : pct >= 15 ? 'Sparse' : 'Missing');
+
+      var html = '<div style="padding:12px">';
+      html += '<div class="oex-si-hd" style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:4px">' + rowLbl + ' <span style="color:#475569">×</span> ' + colLbl + '</div>';
+      html += '<div style="margin-bottom:12px"><span style="background:' + badgeColor + ';color:#0a1525;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">' + tierLabel + ' — ' + pctBadge + '</span></div>';
+
+      if (d.covered !== null) {
+        html += '<div style="font-size:11px;color:#64748b;margin-bottom:8px">' + d.covered + ' of ' + d.total + ' ' + rowLbl + ' have ' + colLbl + ' data</div>';
+      }
+
+      // Fetch drill-down details if area x layer
+      if (rowType === 'areas' && colType === 'layers') {
+        html += '<div style="font-size:10px;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">LOADING DETAILS…</div>';
+        panel.innerHTML = html + '</div>';
+
+        var dasRes = await _sb.from('drug_area_scores').select('drug_id,drugs(name)').eq('area_id', rowId).limit(200);
+        var allDrugs = (dasRes.data||[]).map(function(r){ return {id:r.drug_id, name:(r.drugs&&r.drugs.name)||r.drug_id}; });
+
+        var layerIds = new Set();
+        if (colId === 'targets') {
+          var lr = await _sb.from('drug_targets').select('drug_id').in('drug_id', allDrugs.map(function(d){ return d.id; })).limit(500);
+          (lr.data||[]).forEach(function(r){ layerIds.add(r.drug_id); });
+        } else if (colId === 'indications') {
+          var lr = await _sb.from('drug_indications').select('drug_id').in('drug_id', allDrugs.map(function(d){ return d.id; })).limit(500);
+          (lr.data||[]).forEach(function(r){ layerIds.add(r.drug_id); });
+        } else if (colId === 'trials') {
+          var lr = await _sb.from('trials').select('drug_id').in('drug_id', allDrugs.map(function(d){ return d.id; })).limit(500);
+          (lr.data||[]).forEach(function(r){ layerIds.add(r.drug_id); });
+        } else if (colId === 'catalysts') {
+          var lr = await _sb.from('catalysts').select('drug_id').in('drug_id', allDrugs.map(function(d){ return d.id; })).limit(500);
+          (lr.data||[]).forEach(function(r){ layerIds.add(r.drug_id); });
+        }
+
+        var covered = allDrugs.filter(function(d){ return layerIds.has(d.id); });
+        var missing  = allDrugs.filter(function(d){ return !layerIds.has(d.id); });
+
+        var chipStyle = 'display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;margin:1px;white-space:nowrap';
+        html = html.replace('<div style="font-size:10px;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">LOADING DETAILS…</div>', '');
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+        html += '<div><div style="color:#4ade80;font-size:10px;font-weight:600;margin-bottom:4px">COVERED (' + covered.length + ')</div>';
+        covered.slice(0,30).forEach(function(d){ html += '<span style="' + chipStyle + ';background:rgba(74,222,128,.1);color:#4ade80">' + d.name + '</span>'; });
+        if (covered.length > 30) html += '<div style="color:#475569;font-size:10px">+' + (covered.length-30) + ' more</div>';
+        html += '</div>';
+        html += '<div><div style="color:#f87171;font-size:10px;font-weight:600;margin-bottom:4px">MISSING (' + missing.length + ')</div>';
+        missing.slice(0,30).forEach(function(d){ html += '<span style="' + chipStyle + ';background:rgba(248,113,113,.1);color:#f87171">' + d.name + '</span>'; });
+        if (missing.length > 30) html += '<div style="color:#475569;font-size:10px">+' + (missing.length-30) + ' more</div>';
+        html += '</div></div>';
+      }
+
+      panel.innerHTML = html + '</div>';
+    };
+
+    /* ── Toolbar controls ───────────────────────────────────────────────── */
+    window.oexSortMatrix = function(val) {
+      OEX_MS.sort = val;
+      oexRenderMatrix();
+    };
+    window.oexSetCeiling = function(val) {
+      OEX_MS.ceiling = parseInt(val, 10);
+      var lbl = document.getElementById('oex-ceiling-label');
+      if (lbl) lbl.textContent = val + '%';
+      oexRenderMatrix();
+    };
+    window.oexResetMatrix = function() {
+      OEX_MS.rows = (OEX_CAT && OEX_CAT.areas) ? OEX_CAT.areas.items.map(function(a){ return {type:'areas',id:a.id,label:a.label}; }) : [];
+      OEX_MS.cols = [{type:'layers',id:'targets',label:'Targets'},{type:'layers',id:'indications',label:'Indications'},{type:'layers',id:'trials',label:'Trials'},{type:'layers',id:'catalysts',label:'Catalysts'},{type:'layers',id:'news',label:'News'}];
+      OEX_MS.cache = {};
+      OEX_MS.ceiling = 100;
+      OEX_MS.sort = 'desc';
+      var slider = document.getElementById('oex-ceiling-slider');
+      if (slider) slider.value = 100;
+      var lbl = document.getElementById('oex-ceiling-label');
+      if (lbl) lbl.textContent = '100%';
+      var sel = document.getElementById('oex-sort-select');
+      if (sel) sel.value = 'desc';
+      oexRenderBuilder();
+      oexLoadMatrix();
+    };
+
+    /* ── L4 tree drill-down ─────────────────────────────────────────────── */
+    window.oexExpandL4 = async function(el, areaId, overlapTier) {
+      var wrap = el.nextElementSibling;
+      if (!wrap || !wrap.classList.contains('oex-l4-wrap')) return;
+      if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      wrap.innerHTML = '<div class="oex-l4-item" style="color:#3a5a7a">Loading…</div>';
+      try {
+        var res = await _sb.from('drug_area_scores')
+          .select('drug_id,drugs(name)')
+          .eq('area_id', areaId)
+          .eq('overlap', overlapTier)
+          .limit(60);
+        var rows = (res.data || []);
+        if (!rows.length) { wrap.innerHTML = '<div class="oex-l4-item" style="color:#3a5a7a">(none)</div>'; return; }
+        var html = '';
+        rows.forEach(function(r) {
+          var name = (r.drugs && r.drugs.name) ? r.drugs.name : (r.drug_id || '—');
+          html += '<div class="oex-l4-item">' + name + '</div>';
+        });
+        wrap.innerHTML = html;
+      } catch(e) {
+        wrap.innerHTML = '<div class="oex-l4-item" style="color:#f87171">Error: ' + e.message + '</div>';
+      }
+    };
+
+    /* ── Hook into oexLoadMatrix for dynamic mode ───────────────────────── */
+    var _origLoadMatrix = oexLoadMatrix;
+    oexLoadMatrix = async function() {
+      // If no custom nodes set, use orignal behavior (disease areas x data layers)
+      if (!OEX_MS.rows.length && !OEX_MS.cols.length) {
+        await _origLoadMatrix();
+        return;
+      }
+      // Dynamic mode
+      var wrap = document.getElementById('oex-mwrap');
+      if (wrap) wrap.innerHTML = '<div style="padding:24px;font-size:11px;color:#3a5a7a">Computing…</div>';
+      await oexInitCatalog();
+      // Compute all strengths in parallel
+      var promises = [];
+      OEX_MS.rows.forEach(function(r) {
+        OEX_MS.cols.forEach(function(c) {
+          promises.push(oexStrength(r, c));
+        });
+      });
+      await Promise.all(promises);
+      oexRenderBuilder();
+      oexRenderMatrix();
+    };
+
+    /* ── Initialize catalog + builder on first oexRender ───────────────── */
+    var _origOexRender = window.oexRender;
+    window.oexRender = async function() {
+      await _origOexRender();
+      // Also init catalog and render builder
+      try {
+        await oexInitCatalog();
+        oexRenderBuilder();
+      } catch(e) { console.error('[OEX] catalog', e); }
+    };
+
+
 
   })();
   </script>
