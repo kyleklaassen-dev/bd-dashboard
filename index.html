@@ -1508,12 +1508,12 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 /* TA-level body — no overflow clipping so sub-panels can escape */
 .hier-dd-body { padding: 4px 0 4px; overflow: visible; }
 
-/* ── Generic row — tall enough to stay within on diagonal movement ── */
+/* ── Generic row — visually thin; hover zone extended via .hier-item padding ── */
 .hier-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 13px;   /* 11px top/bottom = larger vertical hit area */
+  padding: 7px 12px;
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
@@ -1552,7 +1552,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .hier-tgt-row.selected-tgt .hier-row-count { color: rgba(255,255,255,0.45); }
 
 /* ── Sub-panels (flyout to the right on parent hover) ── */
-.hier-item { position: relative; }
+/* padding on .hier-item extends the :hover trigger zone invisibly above/below each row */
+.hier-item { position: relative; padding: 4px 0; margin: -4px 0; }
 
 .hier-sub-panel {
   display: none;
