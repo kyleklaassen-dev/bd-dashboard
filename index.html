@@ -22353,7 +22353,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!rows.length) { wrap.innerHTML = '<div class="oex-l4-item" style="color:#3a5a7a">(none)</div>'; return; }
         wrap.innerHTML = rows.map(function(r){
           var name = (r.drugs && r.drugs.name) ? r.drugs.name : (r.drug_id || '—');
-          return '<div class="oex-l4-item" onclick="oexSelectNode(''+name.replace(/'/g,"\'") +'','ds')" title="'+name+'">'+name+'</div>';
+          var safeName = name.replace(/"/g,'&quot;');
+          return '<div class="oex-l4-item" onclick="oexSelectNode(this.dataset.name,\'ds\'  )" data-name="'+safeName+'" title="'+safeName+'">'+name+'</div>';
         }).join('');
       } catch(e) {
         wrap.innerHTML = '<div class="oex-l4-item" style="color:#f87171">Error: '+e.message+'</div>';
