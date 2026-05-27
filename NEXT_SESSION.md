@@ -1,64 +1,110 @@
-# NEXT_SESSION.md — Session 81 Handoff
+# NEXT_SESSION.md — Session 82 Handoff
 **Written:** 2026-05-27  
-**Last commit:** `fba9f390cc53`
+**Last commit:** `fba9f390cc53` (Session 80 — Session 81 is docs-only, no code deployed)
 
 ---
 
-## What Was Done This Session (Session 80)
+## Session 81 Decision: Confirmed Recommendation
 
-### P0: disease_areas Code Retirement — COMPLETE
+`drug_area_scores_decision_memo.md` produced. **Option C selected (hybrid).**
 
-All active JavaScript DB reads referencing `disease_areas` have been removed from `index.html`. Final grep confirmed zero hits. Table is now safely droppable in a future DB session.
-
-**8 code changes made:**
-1. `OEX_ALL_TABLES` — removed `'disease_areas'`
-2. `ALL_TABLES` homepage poller — removed `'disease_areas'`
-3. Admin row-count fetch (line ~24939) — stubbed with `Promise.resolve({ data: [] })`
-4. `_loadOntologyExplorer` (line ~26388) — stubbed with `Promise.resolve({ data: [] })`
-5. `OEX_JOIN_MAP` primary — removed `disease_areas` key; mechanism_status/competitive_landscapes/area_metadata set to `[]`
-6. `OEX_JOIN_MAP` fallback — same cleanup
-7. `OEX_FK_MAP` — removed all `disease_areas:'area_id'` entries
-8. `SEED_CAT_DATA` — removed disease_areas from ontology catalog list
-
-**Validation passed:**
-- `grep -n "from('disease_areas')" index.html` → CLEAN
-- OEX matrix: TL1A 94%, IBD 96%, all area rows present
-- Ontology group: 5 tables (correct, was 6)
-- Zero console errors
-- Ontology Audit panel loads cleanly
-
-**Retirement doc written:** `docs/disease_areas_retirement_ready.md`
+The two missing fields are `competitive_relevance` and `relevance_rationale`. Both exist in DAS (212/212 populated), neither was migrated to DCS, and both are currently dead in the UI because the DCS select doesn't include them. The relevance badges, entity row border colors, secondary sort by strategic importance, and rationale display panels are all coded but non-functional in production.
 
 ---
 
-## Session 81 Decision Point
+## Session 82 Mandate: P1 — Migrate competitive_relevance + relevance_rationale to DCS
 
-Before the next code session, one decision is required:
+**One session. Two SQL statements. One line of code.**
 
-### Decision: drug_area_scores retirement path
-
-`drug_area_scores` cannot be retired until a choice is made:
-
-**Option A** — Backfill `competitive_relevance` + `relevance_rationale` into `drug_competitive_scores`, then decommission dual-read harnesses (one data session + one code session).
-
-**Option B** — Formally deprecate those two fields (accept data loss), then decommission dual-read harnesses (one code session, no data migration).
-
-Until this is decided, `drug_area_scores` stays untouched.
-
----
-
-## disease_areas DB Teardown (One DB Session, Whenever Ready)
-
-The code is clean. The only remaining step to fully retire `disease_areas` is a Supabase SQL Editor session:
+### Step 1 — Add columns in Supabase SQL Editor
 
 ```sql
--- Step 1: Verify constraint names (run first)
+ALTER TABLE public.drug_competitive_scores
+  ADD COLUMN IF NOT EXISTS competitive_relevance text 
+    CHECK (competitive_relevance IN ('very_high','high','medium','low','monitor')),
+  ADD COLUMN IF NOT EXISTS relevance_rationale text;
+```
+
+### Step 2 — Backfill from DAS
+
+```sql
+UPDATE public.drug_competitive_scores dcs
+SET 
+  competitive_relevance = das.competitive_relevance,
+  relevance_rationale   = das.relevance_rationale
+FROM public.drug_area_scores das
+WHERE dcs.drug_id    = das.drug_id
+  AND dcs.context_id = das.area_id
+  AND das.competitive_relevance IS NOT NULL;
+-- Expected: 166 rows updated
+```
+
+**Verification query (run after backfill):**
+```sql
+SELECT competitive_relevance, COUNT(*) 
+FROM drug_competitive_scores 
+WHERE competitive_relevance IS NOT NULL
+GROUP BY competitive_relevance
+ORDER BY COUNT(*) DESC;
+-- Expected totals matching DAS distribution: medium~75, high~60, low~31, very_high~30, monitor~16
+-- (scaled to 166 matched rows, not 212)
+```
+
+### Step 3 — Update `_makeAreaPI` DCS select in index.html
+
+Find (line ~13614):
+```javascript
+.select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level')
+```
+
+Replace with:
+```javascript
+.select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level,competitive_relevance,relevance_rationale')
+```
+
+### Step 4 — Validate in browser
+
+Open TL1A tab → check entity rows for left-border color coding (very_high=red, high=orange, medium=amber).  
+Expand a drug card → check for relevance rationale text in the detail panel.  
+Check console for errors.
+
+### Step 5 — Deploy + write docs
+
+Commit, push. Update `update_log.md` and this file.
+
+---
+
+## What This Unblocks After Session 82
+
+Once `competitive_relevance` is live in DCS:
+- DAS has no remaining UI dependencies (only dual-read harnesses + OEX schema exploration)
+- Session 83 can formally evaluate dual-read harness decommission (30+ days clean matching logs needed first)
+- DAS becomes retirable on the harness decommission timeline
+
+---
+
+## Session 82 Constraints
+
+Do NOT:
+- Drop `drug_area_scores`
+- Remove dual-read harnesses
+- Touch `drug_areas`
+- Start Phase 5 activations for il4ra/tslp/ted
+- Expand scope beyond the two-field migration
+
+---
+
+## disease_areas DB Teardown (Still Pending)
+
+The code is clean (Session 80). Anytime you want to drop the table:
+
+```sql
+-- Step 1: Verify constraint names
 SELECT conname, conrelid::regclass AS table_name
 FROM pg_constraint
-WHERE confrelid = 'public.disease_areas'::regclass
-AND contype = 'f';
+WHERE confrelid = 'public.disease_areas'::regclass AND contype = 'f';
 
--- Step 2: Drop FK constraints (adjust names if Step 1 differs)
+-- Step 2: Drop FK constraints
 ALTER TABLE public.area_metadata          DROP CONSTRAINT IF EXISTS area_metadata_area_id_fkey;
 ALTER TABLE public.mechanism_status       DROP CONSTRAINT IF EXISTS mechanism_status_area_id_fkey;
 ALTER TABLE public.competitive_landscapes DROP CONSTRAINT IF EXISTS competitive_landscapes_area_id_fkey;
@@ -67,28 +113,7 @@ ALTER TABLE public.competitive_landscapes DROP CONSTRAINT IF EXISTS competitive_
 DROP TABLE public.disease_areas;
 ```
 
-This can be done any time — no code changes needed beforehand.
-
----
-
-## Remaining Retirement Work (Post-Decision)
-
-### Phase 5 remaining activations (not started)
-- `il4ra`, `tslp`, `ted` areas: still using `drug_areas` legacy fallback in `_makeAreaPI`
-- Once these activate, the `drug_areas` + `drug_combinations` fallback branch in `_makeAreaPI` can be removed
-
-### Phase 6 remaining migrations (not started)
-- `research_queue`: add `target_id` / `therapeutic_area_id` + backfill
-- `intel_areas`: add `target_id` / `therapeutic_area_id` + backfill
-- `company_profiles`: area ontology columns (compound key: company_id + area_id)
-- `competitive_signals`: area ontology columns
-
-### 4 indications with NULL disease_area (optional cleanup)
-Still need `_HIER_LEGACY_TO_TA` entries in index.html:
-- psoriasis → dermatology
-- psa → rheumatology
-- itp → hematology
-- graves_disease → ophthalmology
+This is independent of Session 82 — can be done before or after.
 
 ---
 
@@ -103,31 +128,33 @@ Still need `_HIER_LEGACY_TO_TA` entries in index.html:
 | igf1r | flag_activated | Phase 3 done |
 | tl1a | flag_activated | Phase 3 done |
 | ibd | flag_activated | Phase 3 done |
-| il4ra | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
-| ted | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
-| tslp | legacy_retained | Phase 3 done; biological reads still on drug_area_scores |
-| autoimmune | not_started | Preserved strategic view — not targeted for retirement |
-| respiratory | not_started | Preserved strategic view — not targeted for retirement |
-| tcell | not_started | Preserved platform view — not targeted for retirement |
+| il4ra | legacy_retained | biological reads still on drug_area_scores pending Phase 5 activation |
+| ted | legacy_retained | biological reads still on drug_area_scores pending Phase 5 activation |
+| tslp | legacy_retained | biological reads still on drug_area_scores pending Phase 5 activation |
+| autoimmune | not_started | Preserved strategic view |
+| respiratory | not_started | Preserved strategic view |
+| tcell | not_started | Preserved platform view |
 
 ### Tables: Retirement Readiness
 
-| Table | Status | Blocker |
+| Table | Status | Next Step |
 |---|---|---|
-| `disease_areas` | **✅ Code-clean** | DB FK teardown only (3 constraints + DROP TABLE) — no code changes needed |
-| `drug_area_scores` | **🔴 Blocked** | competitive_relevance/relevance_rationale fields; dual-read harnesses active |
-| `drug_areas` | **🔴 Blocked** | Active fallback in `_makeAreaPI` for il4ra/tslp/ted |
-| `area_metadata` | **✅ Keep permanently** | Migration tracking system, keyed by area_id as own PK |
+| `disease_areas` | **✅ Code-clean** | DB FK teardown (3 ALTER + DROP) — standalone DB session |
+| `drug_area_scores` | **🟡 Near-ready** | Add competitive_relevance/relevance_rationale to DCS → backfill → one code line (Session 82) |
+| `drug_areas` | **🔴 Blocked** | Active fallback in `_makeAreaPI` for il4ra/tslp/ted until Phase 5 activations |
+| `area_metadata` | **✅ Keep permanently** | Migration tracking system |
 | `legacy_area_ontology_map` | **✅ Keep permanently** | Bridge table for all Phase 3+ backfills |
 
 ---
 
+## Key Docs Written This Session
+
+- `docs/drug_area_scores_decision_memo.md` — Full analysis + recommendation + SQL
+- `docs/disease_areas_retirement_ready.md` — Written Session 80, still current
+
 ## Known Good State
 
 - Dashboard: live at GitHub Pages, commit `fba9f390cc53`
-- `index.html`: zero active `disease_areas` DB reads (confirmed by grep)
-- OEX matrix: all 11 areas rendering, disease_areas node removed, Ontology group = 5 tables
-- `docs/disease_areas_retirement_ready.md`: complete checklist + FK drop sequence
-- `drug_competitive_scores`: 253 rows, all 11 legacy areas covered
-- Phase 3 dual-filter: all 4 catalyst/deals reads on `target_id OR area_id`
-- `area_metadata`: tl1a + ibd = flag_activated; all 8 active areas Phase 3 noted
+- `index.html`: zero active `disease_areas` DB reads
+- `drug_competitive_scores`: 253 rows — missing `competitive_relevance`/`relevance_rationale` (Session 82 fixes this)
+- Phase 3 dual-filter: all 4 reads on `target_id OR area_id`
