@@ -17016,13 +17016,33 @@ function closeHomePanel() {
 // Close overlay on Escape key
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePanel(); });
 
-// ── Home Welcome — Live Clock + Data Counter ─────────────────────────────────
+// ── Home Welcome — Live Clock + Dynamic Full-Database Counter ────────────────
 (function() {
-  let _hwClockTimer = null;
-  let _hwCountsLoaded = false;
+  const SB_URL  = SUPABASE_URL + '/rest/v1';
+  const SB_KEY  = SUPABASE_ANON;
+
+  // Breakdown tables — the 8 shown individually below the number
+  const BREAKDOWN = [
+    { tbl:'drugs',        l:'Drugs'        },
+    { tbl:'companies',    l:'Companies'    },
+    { tbl:'trials',       l:'Trials'       },
+    { tbl:'intel',        l:'Intelligence' },
+    { tbl:'deals',        l:'Deals'        },
+    { tbl:'catalysts',    l:'Catalysts'    },
+    { tbl:'news_articles',l:'Articles'     },
+    { tbl:'entity_edges', l:'Connections'  },
+  ];
+
+  let _hwClockTimer  = null;
+  let _hwPollTimer   = null;
+  let _hwCurrentTotal = 0;
+  let _hwAllTables   = null; // discovered dynamically from PostgREST schema
+  let _hwFirstLoad   = true;
+  let _hwAnimFrame   = null;
 
   function _hwFmt(n) { return n.toLocaleString('en-US'); }
 
+  // ── Clock ────────────────────────────────────────────────────────
   function _hwUpdateClock() {
     const now = new Date();
     const dEl = document.getElementById('hw-date-line');
@@ -17031,126 +17051,161 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (tEl) tEl.textContent = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
   }
 
-  function _hwAnimCount(el, target, duration, delay) {
+  // ── Animated counter (from current value to target) ─────────────
+  function _hwAnimTo(el, from, to, duration, delay) {
     if (!el) return;
+    if (_hwAnimFrame) cancelAnimationFrame(_hwAnimFrame);
     setTimeout(() => {
       const start = performance.now();
       function tick(now) {
         const p = Math.min((now - start) / duration, 1);
-        // Ease-in-out cubic: starts very slowly, accelerates through middle, settles gently
-        const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-        el.textContent = _hwFmt(Math.round(target * eased));
-        if (p < 1) requestAnimationFrame(tick);
+        // Ease-in-out cubic — starts slow, lifts through middle, settles gently
+        const eased = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2;
+        el.textContent = _hwFmt(Math.round(from + (to - from) * eased));
+        if (p < 1) { _hwAnimFrame = requestAnimationFrame(tick); }
+        else { _hwAnimFrame = null; }
       }
-      requestAnimationFrame(tick);
+      _hwAnimFrame = requestAnimationFrame(tick);
     }, delay || 0);
   }
 
-  async function initHomeWelcome() {
-    _hwUpdateClock();
-    if (!_hwClockTimer) _hwClockTimer = setInterval(_hwUpdateClock, 1000);
-    if (_hwCountsLoaded) return;
+  // ── Discover every table from PostgREST OpenAPI schema ──────────
+  async function _hwGetAllTables() {
+    if (_hwAllTables) return _hwAllTables;
     try {
-      // Core entity tables (shown in breakdown)
-      const [drugR, trialR, intelR, dealR, catR, naR, compR, edgeR,
-             // Every other table in the database
-             dtR, diR, daR, icR, iaR, csR, mlR, clR, msR,
-             trR, vR, vtR, daScR, dcScR, dvR,
-             coAlR, drAlR, iaAlR, compAR,
-             indR, tgtR, tpR, modR, dareaR, aMetR,
-             aiR, rqR, geoR, siR] = await Promise.all([
-        // Breakdown 8
-        _sb.from('drugs').select('*',{count:'exact',head:true}),
-        _sb.from('trials').select('*',{count:'exact',head:true}),
-        _sb.from('intel').select('*',{count:'exact',head:true}),
-        _sb.from('deals').select('*',{count:'exact',head:true}),
-        _sb.from('catalysts').select('*',{count:'exact',head:true}),
-        _sb.from('news_articles').select('*',{count:'exact',head:true}),
-        _sb.from('companies').select('*',{count:'exact',head:true}),
-        _sb.from('entity_edges').select('*',{count:'exact',head:true}),
-        // Drug relationship tables
-        _sb.from('drug_targets').select('*',{count:'exact',head:true}),
-        _sb.from('drug_indications').select('*',{count:'exact',head:true}),
-        _sb.from('drug_areas').select('*',{count:'exact',head:true}),
-        // Intel junction tables
-        _sb.from('intel_companies').select('*',{count:'exact',head:true}),
-        _sb.from('intel_areas').select('*',{count:'exact',head:true}),
-        // Competitive intelligence
-        _sb.from('competitive_signals').select('*',{count:'exact',head:true}),
-        _sb.from('molecule_intelligence').select('*',{count:'exact',head:true}),
-        _sb.from('competitive_landscapes').select('*',{count:'exact',head:true}),
-        _sb.from('mechanism_status').select('*',{count:'exact',head:true}),
-        // Validation & trial data
-        _sb.from('trial_registries').select('*',{count:'exact',head:true}),
-        _sb.from('drug_validation_results').select('*',{count:'exact',head:true}),
-        _sb.from('validation_tests').select('*',{count:'exact',head:true}),
-        // Scoring tables
-        _sb.from('drug_area_scores').select('*',{count:'exact',head:true}),
-        _sb.from('drug_competitive_scores').select('*',{count:'exact',head:true}),
-        // Alias / mapping tables
-        _sb.from('company_aliases').select('*',{count:'exact',head:true}),
-        _sb.from('drug_aliases').select('*',{count:'exact',head:true}),
-        _sb.from('indication_aliases').select('*',{count:'exact',head:true}),
-        _sb.from('company_areas').select('*',{count:'exact',head:true}),
-        // Ontology tables
-        _sb.from('indications').select('*',{count:'exact',head:true}),
-        _sb.from('targets').select('*',{count:'exact',head:true}),
-        _sb.from('target_pairs').select('*',{count:'exact',head:true}),
-        _sb.from('modalities').select('*',{count:'exact',head:true}),
-        _sb.from('disease_areas').select('*',{count:'exact',head:true}),
-        _sb.from('area_metadata').select('*',{count:'exact',head:true}),
-        // Research & misc
-        _sb.from('ailux_positions').select('*',{count:'exact',head:true}),
-        _sb.from('research_queue').select('*',{count:'exact',head:true}),
-        _sb.from('geographic_approvals').select('*',{count:'exact',head:true}),
-        _sb.from('submitted_intel').select('*',{count:'exact',head:true}),
-      ]);
-      const breakdown = [
-        { n: drugR.count  || 0, l: 'Drugs' },
-        { n: compR.count  || 0, l: 'Companies' },
-        { n: trialR.count || 0, l: 'Trials' },
-        { n: intelR.count || 0, l: 'Intelligence' },
-        { n: dealR.count  || 0, l: 'Deals' },
-        { n: catR.count   || 0, l: 'Catalysts' },
-        { n: naR.count    || 0, l: 'Articles' },
-        { n: edgeR.count  || 0, l: 'Connections' },
-      ];
-      // Every other table adds to the total — every row, every mapping, every relationship
-      const extraTotal = [
-        dtR, diR, daR, icR, iaR, csR, mlR, clR, msR,
-        trR, vR, vtR, daScR, dcScR, dvR,
-        coAlR, drAlR, iaAlR, compAR,
-        indR, tgtR, tpR, modR, dareaR, aMetR,
-        aiR, rqR, geoR, siR
-      ].reduce((s, r) => s + (r.count || 0), 0);
-      const total = breakdown.reduce((s, x) => s + x.n, 0) + extraTotal;
-      // Slow start — 500ms pause before the counter wakes, then 4.5s ease-in-out
-      _hwAnimCount(document.getElementById('hw-count-num'), total, 4500, 500);
-      const bd = document.getElementById('hw-breakdown');
-      if (bd) {
-        bd.innerHTML = breakdown.map((x,i) => `
-          <div class="hw-bd-item" style="transition-delay:${i*70+500}ms">
-            <div class="hw-bd-num">0</div>
-            <div class="hw-bd-lbl">${x.l}</div>
-          </div>`).join('');
-        requestAnimationFrame(() => {
-          bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
-            setTimeout(() => {
-              item.classList.add('visible');
-              _hwAnimCount(item.querySelector('.hw-bd-num'), breakdown[i].n, 1400, 0);
-            }, i * 70 + 500);
-          });
-        });
-      }
-      _hwCountsLoaded = true;
+      // PostgREST root returns OpenAPI JSON — paths keys are /tablename
+      const res = await fetch(SB_URL + '/', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      });
+      const schema = await res.json();
+      // Extract table names from paths, strip leading slash, drop RPC paths
+      const tables = Object.keys(schema.paths || {})
+        .map(p => p.replace(/^\//, ''))
+        .filter(t => t && !t.startsWith('rpc/'));
+      _hwAllTables = tables;
+      return tables;
     } catch(e) {
-      console.warn('[HomeWelcome]', e);
-      const el = document.getElementById('hw-count-num');
-      if (el) el.textContent = '—';
+      console.warn('[HomeWelcome] schema discovery failed', e);
+      return null;
     }
   }
 
-  registerTab('home', { onEnter() { initHomeWelcome(); } });
+  // ── Count every row in every table ──────────────────────────────
+  async function _hwFetchAllCounts() {
+    const tables = await _hwGetAllTables();
+    if (!tables) return null;
+
+    // Fetch counts in parallel — one HEAD request per table
+    const results = await Promise.allSettled(
+      tables.map(tbl =>
+        fetch(`${SB_URL}/${tbl}?select=*&limit=0`, {
+          method: 'HEAD',
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+            'Prefer': 'count=exact'
+          }
+        }).then(r => {
+          const cr = r.headers.get('Content-Range') || '';
+          const count = parseInt(cr.split('/')[1] || '0', 10) || 0;
+          return { tbl, count };
+        })
+      )
+    );
+
+    // Build map: tableName -> count
+    const countMap = {};
+    results.forEach(r => {
+      if (r.status === 'fulfilled') countMap[r.value.tbl] = r.value.count;
+    });
+    return countMap;
+  }
+
+  // ── Render breakdown bar (first time only) ──────────────────────
+  function _hwRenderBreakdown(countMap) {
+    const bd = document.getElementById('hw-breakdown');
+    if (!bd || bd.dataset.rendered) return;
+    bd.dataset.rendered = '1';
+    bd.innerHTML = BREAKDOWN.map((x,i) => `
+      <div class="hw-bd-item" style="transition-delay:${i*70+500}ms">
+        <div class="hw-bd-num">0</div>
+        <div class="hw-bd-lbl">${x.l}</div>
+      </div>`).join('');
+    requestAnimationFrame(() => {
+      bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
+        setTimeout(() => {
+          item.classList.add('visible');
+          const numEl = item.querySelector('.hw-bd-num');
+          const n = countMap[BREAKDOWN[i].tbl] || 0;
+          _hwAnimTo(numEl, 0, n, 1400, 0);
+        }, i * 70 + 500);
+      });
+    });
+  }
+
+  // ── Update breakdown numbers on subsequent polls ─────────────────
+  function _hwUpdateBreakdown(countMap) {
+    const bd = document.getElementById('hw-breakdown');
+    if (!bd) return;
+    bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
+      const numEl = item.querySelector('.hw-bd-num');
+      if (!numEl) return;
+      const current = parseInt(numEl.textContent.replace(/,/g,''), 10) || 0;
+      const next    = countMap[BREAKDOWN[i].tbl] || 0;
+      if (next !== current) _hwAnimTo(numEl, current, next, 800, 0);
+    });
+  }
+
+  // ── Main refresh — fetch everything, update display ──────────────
+  async function _hwRefresh(isFirst) {
+    const countMap = await _hwFetchAllCounts();
+    if (!countMap) return;
+
+    const total = Object.values(countMap).reduce((s, n) => s + n, 0);
+    const totalEl = document.getElementById('hw-count-num');
+
+    if (isFirst) {
+      // First load: slow dramatic count from 0
+      _hwAnimTo(totalEl, 0, total, 4500, 500);
+      _hwRenderBreakdown(countMap);
+    } else {
+      // Subsequent polls: gentle update from current value
+      _hwAnimTo(totalEl, _hwCurrentTotal, total, 1200, 0);
+      _hwUpdateBreakdown(countMap);
+    }
+    _hwCurrentTotal = total;
+
+    // Show table count as subtitle hint
+    const lbl = document.getElementById('hw-count-label');
+    if (lbl) {
+      const n = Object.keys(countMap).length;
+      lbl.textContent = `data points across ${n} tables · live`;
+    }
+  }
+
+  // ── Entry point ──────────────────────────────────────────────────
+  async function initHomeWelcome() {
+    _hwUpdateClock();
+    if (!_hwClockTimer) _hwClockTimer = setInterval(_hwUpdateClock, 1000);
+
+    if (_hwFirstLoad) {
+      _hwFirstLoad = false;
+      await _hwRefresh(true);
+      // Poll every 60 seconds while on the home tab
+      _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
+    }
+  }
+
+  function _hwPause() {
+    if (_hwPollTimer) { clearInterval(_hwPollTimer); _hwPollTimer = null; }
+    if (_hwClockTimer) { clearInterval(_hwClockTimer); _hwClockTimer = null; }
+    _hwFirstLoad = true; // re-animate on next enter
+  }
+
+  registerTab('home', {
+    onEnter() { initHomeWelcome(); },
+    onLeave()  { _hwPause(); }
+  });
   document.addEventListener('DOMContentLoaded', () => { initHomeWelcome(); });
 })();
 
