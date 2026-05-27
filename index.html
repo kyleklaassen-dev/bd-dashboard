@@ -7413,6 +7413,14 @@ function loadMoleculeTab(tabId) {
       <button class="dkn-chip tgt-fcrn"    onclick="dknSetTarget(this,'fcrn')">FcRn</button>
       <button class="dkn-chip tgt-bcma"    onclick="dknSetTarget(this,'bcma-cd19')">BCMA × CD19 × CD3</button>
     </div>
+    <div class="dkn-chips" id="dkn-ta-chips" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;">
+      <span style="font-size:10px;color:#64748b;padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Ther. area:</span>
+      <button class="dkn-chip active" onclick="dknSetTa(this,'')">All TAs</button>
+      <button class="dkn-chip ta-imm"  onclick="dknSetTa(this,'Immunology')">Immunology</button>
+      <button class="dkn-chip ta-onc"  onclick="dknSetTa(this,'Oncology')">Oncology</button>
+      <button class="dkn-chip ta-rare" onclick="dknSetTa(this,'Rare Disease')">Rare Disease</button>
+      <button class="dkn-chip ta-met"  onclick="dknSetTa(this,'Metabolic')">Metabolic</button>
+    </div>
     <div class="dkn-chips" id="dkn-extra-filters" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;align-items:center;">
       <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding-right:4px;">Indication:</span>
       <select class="dkn-select" id="dkn-ind-select" onchange="dknSetInd(this)">
@@ -7462,7 +7470,8 @@ function loadMoleculeTab(tabId) {
   <th class="dkn-th-drug sortable" onclick="dknSort('name')">Drug &#9661;</th>
   <th class="dkn-th-co sortable" onclick="dknSort('company')">Company &#9661;</th>
   <th class="dkn-th-stage sortable" onclick="dknSort('stage')">Stage &#9661;</th>
-  <th class="dkn-th-format">Format</th>
+  <th class="dkn-th-format">Fmt</th>
+  <th class="dkn-th-ta">TA</th>
   <th class="dkn-th-target sortable" onclick="dknSort('target')">Target &#9661;</th>
   <th class="dkn-th-cls">Class / MOA</th>
   <th class="dkn-th-ind sortable" onclick="dknSort('indication')">Indication</th>
@@ -7551,6 +7560,38 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-th-del { width:34px; }
 .dkn-modality-pill { display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600; white-space:nowrap; background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; }
 @media(max-width:768px){ .dkn-th-format, .dkn-col-format { display:none !important; } }
+
+/* Fmt shorthand pills */
+.dkn-fmt-pill { display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:700; white-space:nowrap; }
+.dkn-fmt-mAb    { background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; }
+.dkn-fmt-BsAb   { background:#fce7f3; color:#9d174d; border:1px solid #f9a8d4; }
+.dkn-fmt-TCE    { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+.dkn-fmt-TriAb  { background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; }
+.dkn-fmt-CART   { background:#fef2f2; color:#991b1b; border:1px solid #fca5a5; }
+.dkn-fmt-SM     { background:#f3f4f6; color:#374151; border:1px solid #d1d5db; }
+.dkn-fmt-ADC    { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
+.dkn-fmt-VHH    { background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; }
+.dkn-fmt-Pep    { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+.dkn-fmt-Fc     { background:#f8fafc; color:#475569; border:1px solid #cbd5e1; }
+.dkn-fmt-FP     { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
+.dkn-fmt-Combo  { background:#f1f5f9; color:#64748b; border:1px solid #94a3b8; }
+
+/* TA pills */
+.dkn-ta-pill { display:inline-block; padding:2px 6px; border-radius:8px; font-size:9.5px; font-weight:700; white-space:nowrap; }
+.dkn-ta-immunology  { background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; }
+.dkn-ta-oncology    { background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
+.dkn-ta-rare        { background:#ede9fe; color:#7c3aed; border:1px solid #c4b5fd; }
+.dkn-ta-metabolic   { background:#d1fae5; color:#059669; border:1px solid #6ee7b7; }
+
+/* TA filter chips */
+.dkn-chip.ta-imm.active  { background:#1d4ed8; color:white; border-color:#1d4ed8; }
+.dkn-chip.ta-onc.active  { background:#dc2626; color:white; border-color:#dc2626; }
+.dkn-chip.ta-rare.active { background:#7c3aed; color:white; border-color:#7c3aed; }
+.dkn-chip.ta-met.active  { background:#059669; color:white; border-color:#059669; }
+
+/* TA column */
+.dkn-th-ta { min-width:90px; }
+@media(max-width:1100px){ .dkn-th-ta, .dkn-col-ta { display:none !important; } }
 .dkn-trash-btn { width:26px; height:26px; border-radius:5px; border:1px solid #fca5a5;
   background:#fff1f2; color:#dc2626; cursor:pointer; font-size:14px; line-height:1;
   display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; }
@@ -7602,7 +7643,7 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-detail-row.dkn-open { display:table-row; }
 .dkn-detail-td { padding:0 !important; border-bottom:2px solid #bfdbfe !important; background:white !important; }
 .dkn-detail-panel { padding:14px 20px 16px; background:linear-gradient(135deg,#f8faff 0%,#f0f6ff 100%); border-top:1px solid #dbeafe; }
-.dkn-dp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px; }
+.dkn-dp-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:12px; }
 .dkn-dp-cell { background:white; border:1px solid #e8eef5; border-radius:6px; padding:9px 12px; }
 .dkn-dp-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:4px; }
 .dkn-dp-val { font-size:12px; color:#1e293b; line-height:1.5; }
@@ -7638,6 +7679,7 @@ let dknTargetFilter = '';
 let dknCompanyFilter = '';
 let dknModalityFilter = '';
 let dknStageDropFilter = '';
+let dknTaFilter = '';
 
 const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
 
@@ -7748,11 +7790,11 @@ async function dknLoadData() {
   if (_dknData !== null || _dknLoading) return;
   _dknLoading = true;
   const tbody = document.getElementById('dkn-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
   try {
     const { data, error } = await _sb
       .from('drugs')
-      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly,modality,companies!company_id(name)')
+      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly,modality,modality_fmt,binding_domain,therapeutic_area,companies!company_id(name)')
       .not('catalog_category', 'is', null)
       .order('catalog_category')
       .order('stage');
@@ -7764,7 +7806,7 @@ async function dknLoadData() {
   } catch(e) {
     console.warn('dknLoadData', e);
     _dknLoading = false;
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
   }
 }
 
@@ -7807,6 +7849,12 @@ function dknSetStageDrop(sel) {
   dknStageDropFilter = sel.value;
   dknRender();
 }
+function dknSetTa(btn, val) {
+  dknTaFilter = val;
+  document.querySelectorAll('#dkn-ta-chips .dkn-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  dknRender();
+}
 function dknPopulateSelects() {
   const drugs = _dknData || [];
   const sel = document.getElementById('dkn-class-select');
@@ -7828,10 +7876,10 @@ function dknPopulateSelects() {
       coSel.appendChild(opt);
     });
   }
-  // Populate modality dropdown
+  // Populate modality dropdown using modality_fmt shorthand
   const modSel = document.getElementById('dkn-modality-select');
   if (modSel && modSel.options.length <= 1) {
-    const mods = [...new Set(drugs.map(d => d.modality).filter(Boolean))].sort();
+    const mods = [...new Set(drugs.map(d => d.modality_fmt || d.modality).filter(Boolean))].sort();
     mods.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m; opt.textContent = m;
@@ -7883,7 +7931,8 @@ function dknRender() {
       if (!kws.some(k => ind.includes(k.toLowerCase()))) return false;
     }
     if (dknCompanyFilter && _dknCoName(d) !== dknCompanyFilter) return false;
-    if (dknModalityFilter && (d.modality || '') !== dknModalityFilter) return false;
+    if (dknModalityFilter && (d.modality_fmt || d.modality || '') !== dknModalityFilter) return false;
+    if (dknTaFilter && (d.therapeutic_area || '') !== dknTaFilter) return false;
     if (q) {
       const risk  = _dknRisk(d.drug_summary);
       const notes = _dknNotes(d.drug_summary);
@@ -7910,7 +7959,7 @@ function dknRender() {
   }
   const tbody = document.getElementById('dkn-tbody');
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
@@ -7952,6 +8001,8 @@ function _renderDetailPanel(id, detailRow) {
     { label: 'Class / Mechanism', val: d.cls || '—' },
     { label: 'Stage', val: d.stage_detail || d.phase_display || d.stage || '—' },
     { label: 'Key Trials', val: d.trial_names || (d.key_data ? 'See data below' : '—') },
+    { label: 'Format (Fmt)', val: d.modality_fmt ? `${d.modality_fmt}${d.binding_domain ? ' · ' + d.binding_domain : ''}` : (d.modality || '—') },
+    { label: 'Therapeutic Area', val: d.therapeutic_area || '—' },
   ].map(c => `<div class="dkn-dp-cell"><div class="dkn-dp-label">${c.label}</div><div class="dkn-dp-val">${c.val}</div></div>`).join('');
 
   const endpointsHtml = d.endpoints
@@ -8002,15 +8053,18 @@ function dknRow(d) {
   const rowStyle = isRemoved ? ' style="opacity:0.4;background:#fff8f8;"' : '';
   const diff = d.differentiation_thesis || '';
   const risk = _dknRisk(d.drug_summary);
-  const modality = d.modality || '—';
-  const modalityBadge = d.modality
-    ? `<span class="dkn-modality-pill">${d.modality}</span>`
+  const fmtBadge = d.modality_fmt
+    ? `<span class="dkn-fmt-pill dkn-fmt-${d.modality_fmt.replace(/[^a-zA-Z]/g,'')}">${d.modality_fmt}</span>`
+    : (d.modality ? `<span class="dkn-modality-pill" style="font-size:9px">${d.modality.slice(0,12)}</span>` : '<span style="color:#94a3b8">—</span>');
+  const taPill = d.therapeutic_area
+    ? `<span class="dkn-ta-pill dkn-ta-${d.therapeutic_area.split(' ')[0].toLowerCase()}">${d.therapeutic_area}</span>`
     : '<span style="color:#94a3b8">—</span>';
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanyEntityModal('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
-  <td class="dkn-col-format">${modalityBadge}</td>
+  <td class="dkn-col-format">${fmtBadge}</td>
+  <td class="dkn-col-ta">${taPill}</td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
   <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls || '—'}</td>
   <td class="dkn-col-ind" style="font-size:11px">${d.indication_short || '—'}</td>
@@ -8063,7 +8117,7 @@ function dknRenderRemovedPanel() {
 function dknReset() {
   dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = '';
   dknClassFilter = ''; dknIndFilter = '';
-  dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = '';
+  dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = ''; dknTaFilter = '';
   const is = document.getElementById('dkn-ind-select');
   if (is) is.value = '';
   const cs = document.getElementById('dkn-company-select');
@@ -8074,6 +8128,7 @@ function dknReset() {
   if (sd) sd.value = '';
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('#dkn-ta-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
 }
 
