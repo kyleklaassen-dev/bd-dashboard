@@ -17773,6 +17773,8 @@ function hierAttachHover(item) {
         if (sib !== item && sib._hierForceClose) sib._hierForceClose();
       });
     }
+    // Collapse any deeper panels already open within this item (going back a level)
+    item.querySelectorAll('.hier-sub-panel.open').forEach(function(s) { s.classList.remove('open'); });
     sub.classList.add('open');
   });
 
