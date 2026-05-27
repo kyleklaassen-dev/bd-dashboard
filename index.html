@@ -7027,6 +7027,24 @@ function loadMoleculeTab(tabId) {
         <option value="Oncology">Oncology</option>
         <option value="Hematology">Hematology</option>
       </select>
+      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Company:</span>
+      <select class="dkn-select" id="dkn-company-select" onchange="dknSetCompany(this)" style="max-width:170px">
+        <option value="">All Companies</option>
+      </select>
+      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Stage:</span>
+      <select class="dkn-select" id="dkn-stage-drop-select" onchange="dknSetStageDrop(this)">
+        <option value="">All Stages</option>
+        <option value="Approved">Approved</option>
+        <option value="Phase 3">Phase 3</option>
+        <option value="Phase 2">Phase 2</option>
+        <option value="Phase 1">Phase 1</option>
+        <option value="Preclinical">Preclinical</option>
+        <option value="Research">Research</option>
+      </select>
+      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Modality:</span>
+      <select class="dkn-select" id="dkn-modality-select" onchange="dknSetModality(this)" style="max-width:160px">
+        <option value="">All Modalities</option>
+      </select>
     </div>
   </div>
   <div class="dkn-filter-right">
@@ -7045,6 +7063,7 @@ function loadMoleculeTab(tabId) {
   <th class="dkn-th-drug sortable" onclick="dknSort('name')">Drug &#9661;</th>
   <th class="dkn-th-co sortable" onclick="dknSort('company')">Company &#9661;</th>
   <th class="dkn-th-stage sortable" onclick="dknSort('stage')">Stage &#9661;</th>
+  <th class="dkn-th-format">Format</th>
   <th class="dkn-th-target sortable" onclick="dknSort('target')">Target &#9661;</th>
   <th class="dkn-th-cls">Class / MOA</th>
   <th class="dkn-th-ind sortable" onclick="dknSort('indication')">Indication</th>
@@ -7124,12 +7143,15 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-th-drug { min-width:160px; }
 .dkn-th-co { min-width:90px; }
 .dkn-th-stage { min-width:80px; cursor:pointer; }
+.dkn-th-format { min-width:100px; }
 .dkn-th-target { min-width:80px; }
 .dkn-th-cls { min-width:120px; }
 .dkn-th-ind { min-width:120px; }
 .dkn-th-diff { min-width:220px; }
 .dkn-th-risk { min-width:150px; }
 .dkn-th-del { width:34px; }
+.dkn-modality-pill { display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600; white-space:nowrap; background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; }
+@media(max-width:768px){ .dkn-th-format, .dkn-col-format { display:none !important; } }
 .dkn-trash-btn { width:26px; height:26px; border-radius:5px; border:1px solid #fca5a5;
   background:#fff1f2; color:#dc2626; cursor:pointer; font-size:14px; line-height:1;
   display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; }
@@ -7214,6 +7236,9 @@ let dknRemovedIds = [];
 let dknUndoStack = [];
 let dknShowRemoved = false;
 let dknTargetFilter = '';
+let dknCompanyFilter = '';
+let dknModalityFilter = '';
+let dknStageDropFilter = '';
 
 const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
 
@@ -7250,7 +7275,8 @@ function _dknNotes(drug_summary) {
   return idx >= 0 ? drug_summary.slice(idx + 3).trim() : '';
 }
 function _dknCoName(d) {
-  return d.company_display || d.company_id || '—';
+  // Prefer the joined companies.name (lead company only) over the denormalized company_display
+  return (d.companies && d.companies.name) || d.company_display || d.company_id || '—';
 }
 // Strip leading trial-name / study-code prefixes from display names.
 // Handles patterns like "CD-M24-885 risankizumab plus lictuzumab"
@@ -7322,11 +7348,11 @@ async function dknLoadData() {
   if (_dknData !== null || _dknLoading) return;
   _dknLoading = true;
   const tbody = document.getElementById('dkn-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#64748b;font-size:12px">Loading drug catalog…</td></tr>';
   try {
     const { data, error } = await _sb
       .from('drugs')
-      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly')
+      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly,modality,companies!company_id(name)')
       .not('catalog_category', 'is', null)
       .order('catalog_category')
       .order('stage');
@@ -7338,7 +7364,7 @@ async function dknLoadData() {
   } catch(e) {
     console.warn('dknLoadData', e);
     _dknLoading = false;
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#dc2626;font-size:12px">⚠ Failed to load drug catalog. Please refresh.</td></tr>';
   }
 }
 
@@ -7369,6 +7395,18 @@ function dknSetInd(sel) {
   dknIndFilter = sel.value;
   dknRender();
 }
+function dknSetCompany(sel) {
+  dknCompanyFilter = sel.value;
+  dknRender();
+}
+function dknSetModality(sel) {
+  dknModalityFilter = sel.value;
+  dknRender();
+}
+function dknSetStageDrop(sel) {
+  dknStageDropFilter = sel.value;
+  dknRender();
+}
 function dknPopulateSelects() {
   const drugs = _dknData || [];
   const sel = document.getElementById('dkn-class-select');
@@ -7380,6 +7418,26 @@ function dknPopulateSelects() {
       sel.appendChild(opt);
     });
   }
+  // Populate company dropdown
+  const coSel = document.getElementById('dkn-company-select');
+  if (coSel && coSel.options.length <= 1) {
+    const names = [...new Set(drugs.map(d => (d.companies && d.companies.name) || d.company_display || d.company_id).filter(Boolean))].sort();
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = n;
+      coSel.appendChild(opt);
+    });
+  }
+  // Populate modality dropdown
+  const modSel = document.getElementById('dkn-modality-select');
+  if (modSel && modSel.options.length <= 1) {
+    const mods = [...new Set(drugs.map(d => d.modality).filter(Boolean))].sort();
+    mods.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      modSel.appendChild(opt);
+    });
+  }
 }
 function dknSort(col) {
   if (dknSortCol === col) dknSortDir *= -1;
@@ -7387,7 +7445,7 @@ function dknSort(col) {
   document.querySelectorAll('.dkn-master-table th').forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
   });
-  const colMap = {name:0,company:1,stage:2,target:3,indication:5};
+  const colMap = {name:0,company:1,stage:2,target:4,indication:6};
   const thIdx = colMap[col];
   if (thIdx !== undefined) {
     const ths = document.querySelectorAll('.dkn-master-table th');
@@ -7403,7 +7461,7 @@ function dknRender() {
   // Sync column header sort indicators (covers initial render, not just user clicks)
   document.querySelectorAll('.dkn-master-table th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
   if (dknSortCol) {
-    const _cm = {name:0,company:1,stage:2,target:3,indication:5};
+    const _cm = {name:0,company:1,stage:2,target:4,indication:6};
     const _ti = _cm[dknSortCol];
     if (_ti !== undefined) document.querySelectorAll('.dkn-master-table th')[_ti]?.classList.add(dknSortDir===1?'sort-asc':'sort-desc');
   }
@@ -7411,6 +7469,7 @@ function dknRender() {
   let data = _dknData.filter(d => {
     if (dknCatFilter && d.catalog_category !== dknCatFilter) return false;
     if (dknStageFilter && d.stage !== dknStageFilter) return false;
+    if (dknStageDropFilter && d.stage !== dknStageDropFilter) return false;
     if (!dknShowRemoved && dknRemovedIds.includes(d.id)) return false;
     if (dknTargetFilter) {
       const keywords = DKN_TARGET_MAP[dknTargetFilter] || [];
@@ -7423,6 +7482,8 @@ function dknRender() {
       const ind = (d.indication_short || '').toLowerCase();
       if (!kws.some(k => ind.includes(k.toLowerCase()))) return false;
     }
+    if (dknCompanyFilter && _dknCoName(d) !== dknCompanyFilter) return false;
+    if (dknModalityFilter && (d.modality || '') !== dknModalityFilter) return false;
     if (q) {
       const risk  = _dknRisk(d.drug_summary);
       const notes = _dknNotes(d.drug_summary);
@@ -7449,7 +7510,7 @@ function dknRender() {
   }
   const tbody = document.getElementById('dkn-tbody');
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
@@ -7541,10 +7602,15 @@ function dknRow(d) {
   const rowStyle = isRemoved ? ' style="opacity:0.4;background:#fff8f8;"' : '';
   const diff = d.differentiation_thesis || '';
   const risk = _dknRisk(d.drug_summary);
+  const modality = d.modality || '—';
+  const modalityBadge = d.modality
+    ? `<span class="dkn-modality-pill">${d.modality}</span>`
+    : '<span style="color:#94a3b8">—</span>';
   return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanySlideOver('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
+  <td class="dkn-col-format">${modalityBadge}</td>
   <td class="dkn-col-target" style="font-size:11px;font-weight:600;color:#2e6fb0">${d.target || '—'}</td>
   <td class="dkn-col-cls" style="font-size:10.5px;color:#475569">${d.cls || '—'}</td>
   <td class="dkn-col-ind" style="font-size:11px">${d.indication_short || '—'}</td>
@@ -7552,7 +7618,7 @@ function dknRow(d) {
   <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${risk.length > 70 ? risk.slice(0,70)+'…' : risk}</td>
 </tr>
 <tr id="dkn-dr-${d.id}" class="dkn-detail-row">
-  <td colspan="9" class="dkn-detail-td">
+  <td colspan="10" class="dkn-detail-td">
     <div class="dkn-detail-panel"></div>
   </td>
 </tr>`;
@@ -7597,8 +7663,15 @@ function dknRenderRemovedPanel() {
 function dknReset() {
   dknCatFilter = ''; dknStageFilter = ''; dknTargetFilter = '';
   dknClassFilter = ''; dknIndFilter = '';
+  dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = '';
   const is = document.getElementById('dkn-ind-select');
   if (is) is.value = '';
+  const cs = document.getElementById('dkn-company-select');
+  if (cs) cs.value = '';
+  const ms = document.getElementById('dkn-modality-select');
+  if (ms) ms.value = '';
+  const sd = document.getElementById('dkn-stage-drop-select');
+  if (sd) sd.value = '';
   document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
