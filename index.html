@@ -2034,6 +2034,78 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .intel-feed-meta { display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px; }
 .intel-feed-type { font-size:9px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;font-weight:600; }
 .intel-feed-date { font-size:10px;color:#94a3b8; }
+
+/* ── INTELLIGENCE FEED TAB ───────────────────────────────────────────── */
+.intel-feed-wrap { display: flex; gap: 14px; padding: 14px; min-height: calc(100vh - 80px); align-items: flex-start; }
+.intel-feed-left { flex: 0 0 55%; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.intel-feed-right { flex: 0 0 43%; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.intel-panel-hd { background: #1a2f50; color: white; padding: 10px 14px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between; }
+.intel-panel-hd-title { font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; }
+.intel-panel-hd-sub { font-size: 10px; opacity: 0.65; }
+.intel-panel-body { background: white; border-radius: 0 0 8px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); max-height: calc(100vh - 160px); overflow-y: auto; }
+.intel-filter-bar { padding: 8px 10px; border-bottom: 1px solid #e8eef5; display: flex; gap: 6px; align-items: center; background: #f8fafc; }
+.intel-filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 10px; border: 1.5px solid #dde3ea; background: white; color: #5a7a9e; cursor: pointer; transition: all 0.12s; letter-spacing: 0.2px; }
+.intel-filter-btn.active { background: #1a2f50; color: white; border-color: #1a2f50; }
+.intel-filter-btn:hover:not(.active) { border-color: #a0b4c8; color: #1a2f50; }
+.intel-toggle-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 10px; color: #5a7a9e; font-weight: 600; }
+.intel-toggle { position: relative; display: inline-block; width: 30px; height: 16px; }
+.intel-toggle input { opacity: 0; width: 0; height: 0; }
+.intel-toggle-slider { position: absolute; inset: 0; background: #ccd6e0; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+.intel-toggle-slider:before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; bottom: 2px; background: white; border-radius: 50%; transition: 0.2s; }
+.intel-toggle input:checked + .intel-toggle-slider { background: #2e6fb0; }
+.intel-toggle input:checked + .intel-toggle-slider:before { transform: translateX(14px); }
+.intel-disc-card { padding: 10px 14px; border-bottom: 1px solid #e8eef5; transition: background 0.1s; }
+.intel-disc-card:last-child { border-bottom: none; }
+.intel-disc-card:hover { background: #f5f8fc; }
+.intel-disc-row1 { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+.intel-disc-badge { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.intel-disc-badge.sev-high { background: #fde8e8; color: #991b1b; }
+.intel-disc-badge.sev-medium { background: #fff3cd; color: #7a5a00; }
+.intel-disc-badge.sev-low { background: #dbeafe; color: #1e40af; }
+.intel-disc-badge.sev-info { background: #f1f5f9; color: #475569; }
+.intel-disc-title { font-size: 12px; font-weight: 800; color: #1a2f50; line-height: 1.35; flex: 1; }
+.intel-disc-entity { font-size: 10px; font-weight: 700; color: #2e6fb0; margin-bottom: 3px; }
+.intel-disc-desc { font-size: 11px; color: #3a4f6a; line-height: 1.55; margin-bottom: 5px; }
+.intel-disc-meta { display: flex; gap: 10px; align-items: center; }
+.intel-disc-session { font-size: 9px; font-weight: 700; background: #e8f0f8; color: #2e6fb0; padding: 1px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+.intel-disc-date { font-size: 9px; color: #94a3b8; }
+.intel-disc-actioned { font-size: 9px; color: #2a7a47; font-weight: 700; }
+.intel-disc-pending { font-size: 9px; color: #c45b11; font-weight: 700; }
+.intel-type-pill { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+.intel-type-drug_correction { background: #fce7f3; color: #9d174d; }
+.intel-type-risk_signal { background: #fde8e8; color: #991b1b; }
+.intel-type-positive_data { background: #d4edda; color: #155724; }
+.intel-type-company_update { background: #e0e7ff; color: #3730a3; }
+.intel-type-anchor_added { background: #ede9fe; color: #5b21b6; }
+.intel-type-validation { background: #dbeafe; color: #1e40af; }
+.intel-type-relationship_found { background: #ecfdf5; color: #065f46; }
+.intel-empty { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 12px; }
+.intel-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+.intel-rq-card { padding: 12px 14px; border-bottom: 1px solid #e8eef5; transition: background 0.1s; }
+.intel-rq-card:last-child { border-bottom: none; }
+.intel-rq-card:hover { background: #f5f8fc; }
+.intel-rq-card.answered { opacity: 0.65; }
+.intel-rq-row1 { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+.intel-rq-priority { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+.intel-rq-priority.p-urgent { background: #fde8e8; color: #991b1b; }
+.intel-rq-priority.p-high { background: #fff3cd; color: #7a5a00; }
+.intel-rq-priority.p-medium { background: #dbeafe; color: #1e40af; }
+.intel-rq-priority.p-low { background: #f1f5f9; color: #475569; }
+.intel-rq-entity { font-size: 11px; font-weight: 800; color: #1a2f50; flex: 1; }
+.intel-rq-cat { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+.intel-rq-question { font-size: 12px; color: #1a2e4a; line-height: 1.5; font-weight: 600; margin-bottom: 6px; }
+.intel-rq-ctx-toggle { font-size: 10px; color: #2e6fb0; cursor: pointer; font-weight: 700; margin-bottom: 5px; display: inline-block; }
+.intel-rq-ctx-toggle:hover { text-decoration: underline; }
+.intel-rq-ctx { font-size: 10px; color: #5a7a9e; line-height: 1.55; padding: 7px 10px; background: #f5f8fc; border-radius: 5px; border-left: 2px solid #dde3ea; margin-bottom: 8px; }
+.intel-rq-answer-box { margin-top: 8px; }
+.intel-rq-answer-box textarea { width: 100%; border: 1.5px solid #dde3ea; border-radius: 5px; padding: 7px 10px; font-size: 11px; color: #1a2e4a; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; outline: none; transition: border-color 0.15s; }
+.intel-rq-answer-box textarea:focus { border-color: #2e6fb0; }
+.intel-rq-answer-btn { margin-top: 6px; padding: 6px 16px; background: #1a2f50; color: white; border: none; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.intel-rq-answer-btn:hover { background: #2e6fb0; }
+.intel-rq-answer-btn:disabled { opacity: 0.5; cursor: default; }
+.intel-rq-answered-tag { font-size: 10px; font-weight: 700; color: #2a7a47; background: #d4edda; padding: 2px 8px; border-radius: 6px; }
+.intel-rq-kyle-answer { font-size: 11px; color: #2a5a35; background: #f0faf4; border-left: 3px solid #2a7a47; padding: 7px 10px; border-radius: 0 5px 5px 0; margin-top: 6px; line-height: 1.5; }
+.intel-loading { padding: 30px 20px; text-align: center; color: #94a3b8; font-size: 11px; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -4140,6 +4212,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
+  <button class="nav-icon-btn" id="nav-icon-intel" onclick="navTo('intelligence')" title="Intelligence Feed · Realizations & Review">⚡</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -4160,6 +4233,7 @@ function loadMoleculeTab(tabId) {
         <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology-explorer', this)" style="display:none">Ontology Explorer</button>
         <button class="tab-btn" onclick="switchTab('program-board', this)" style="display:none">Program Board</button>
+        <button class="tab-btn" onclick="switchTab('intelligence', this)" style="display:none">Intelligence</button>
  <!-- Centered current page indicator -->
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
@@ -9925,6 +9999,7 @@ const TAB_META = {
  'pharma-intel':      { name: 'Pharma Landscape',       badge: null,             cls: '' },
  'industry-insights': { name: 'Industry Insights',       badge: null,             cls: '' },
  ontology:            { name: 'Ontology Audit',           badge: null,             cls: '' },
+ intelligence:        { name: 'Intelligence Feed',          badge: 'Session 61',      cls: '' },
 };
 function updateTabTitle(id) {
  const fallbackName = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -12965,6 +13040,9 @@ registerTab('industry-insights', {
 
 registerTab('discovery-queue', {
   onEnter() { if (!_dqData.length) dqLoad(); }
+});
+registerTab('intelligence', {
+  onEnter() { if (typeof loadIntelFeed === 'function') loadIntelFeed(true); }
 });
 registerTab('submitted-intel', {
   onEnter() { siLoad(); }
@@ -18633,7 +18711,8 @@ const NAV_ICON_MAP = {
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
-  'discovery-queue': 'nav-icon-queue'
+  'discovery-queue': 'nav-icon-queue',
+  'intelligence': 'nav-icon-intel'
 };
 function updateNavIconActive(tabId) {
   document.querySelectorAll('.nav-icon-btn').forEach(b => b.classList.remove('active'));
@@ -22539,6 +22618,72 @@ document.addEventListener('DOMContentLoaded', function(){
 
   </div><!-- /max-width wrapper -->
 </div><!-- /tab-program-board -->
+<!-- ══════════════ INTELLIGENCE FEED TAB ══════════════ -->
+<div class="tab-pane" id="tab-intelligence" style="padding:0;background:#eef2f7;min-height:100vh">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#0d1f38 0%,#1a3a6e 60%,#2e6fb0 100%);padding:14px 20px;border-bottom:2px solid rgba(255,255,255,0.08)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:900;color:white;letter-spacing:-0.3px">Intelligence Feed</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px">Realizations from enrichment sessions · Pending decisions for review</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="intel-session-badge" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);color:white;padding:3px 10px;border-radius:10px;letter-spacing:0.3px">Session 61</span>
+        <button onclick="loadIntelFeed(true)" style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 12px;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.12)'">↺ Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="intel-feed-wrap">
+    <!-- LEFT: Realizations Feed -->
+    <div class="intel-feed-left">
+      <div class="intel-panel-hd">
+        <div>
+          <div class="intel-panel-hd-title">Realizations Feed</div>
+          <div class="intel-panel-hd-sub" id="intel-disc-count">Loading…</div>
+        </div>
+        <span style="font-size:11px;opacity:0.5">Newest first</span>
+      </div>
+      <div class="intel-panel-body">
+        <div class="intel-filter-bar">
+          <button class="intel-filter-btn active" data-sev="all" onclick="intelFilterSev(this,'all')">All</button>
+          <button class="intel-filter-btn" data-sev="high" onclick="intelFilterSev(this,'high')">High</button>
+          <button class="intel-filter-btn" data-sev="medium" onclick="intelFilterSev(this,'medium')">Medium</button>
+          <button class="intel-filter-btn" data-sev="low" onclick="intelFilterSev(this,'low')">Low</button>
+          <button class="intel-filter-btn" data-sev="info" onclick="intelFilterSev(this,'info')">Info</button>
+        </div>
+        <div id="intel-disc-list">
+          <div class="intel-loading">Loading realizations…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Review Queue -->
+    <div class="intel-feed-right">
+      <div class="intel-panel-hd">
+        <div>
+          <div class="intel-panel-hd-title">For Your Review</div>
+          <div class="intel-panel-hd-sub" id="intel-rq-count">Loading…</div>
+        </div>
+        <div class="intel-toggle-wrap">
+          Show answered
+          <label class="intel-toggle">
+            <input type="checkbox" id="intel-show-answered" onchange="intelRenderRQ()">
+            <span class="intel-toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="intel-panel-body">
+        <div id="intel-rq-list">
+          <div class="intel-loading">Loading review queue…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-intelligence -->
+
 
 <script>
 // ── PROGRAM BOARD ────────────────────────────────────────────────────────────
@@ -24492,6 +24637,200 @@ function auCollectEdits() {
     ta.select();
   });
 }
+
+// ── INTELLIGENCE FEED ────────────────────────────────────────────────────────
+const INTEL_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
+const INTEL_SVC  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTAzNjExMiwiZXhwIjoyMDk0NjEyMTEyfQ.jNvG6fsxPnH81N3DRI4sLJXTAypzHob7eQdQmESo-Y4";
+const INTEL_BASE = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1";
+
+let _intelDiscs = [];
+let _intelRQ = [];
+let _intelSevFilter = 'all';
+let _intelLoaded = false;
+
+async function loadIntelFeed(force) {
+  if (_intelLoaded && !force) return;
+  _intelLoaded = true;
+  try {
+    // Load discoveries
+    const discResp = await fetch(INTEL_BASE + '/intelligence_discoveries?select=*&order=discovered_at.desc&limit=100', {
+      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+    });
+    if (discResp.ok) {
+      _intelDiscs = await discResp.json();
+    } else {
+      _intelDiscs = [];
+    }
+    // Load review queue
+    const rqResp = await fetch(INTEL_BASE + '/review_queue?select=*&order=priority.asc,created_at.desc', {
+      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+    });
+    if (rqResp.ok) {
+      _intelRQ = await rqResp.json();
+    } else {
+      _intelRQ = [];
+    }
+  } catch(e) {
+    console.warn('[IntelFeed] load error', e);
+    _intelDiscs = [];
+    _intelRQ = [];
+  }
+  intelRenderDisc();
+  intelRenderRQ();
+}
+
+function intelFilterSev(btn, sev) {
+  document.querySelectorAll('.intel-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _intelSevFilter = sev;
+  intelRenderDisc();
+}
+
+function intelRenderDisc() {
+  const el = document.getElementById('intel-disc-list');
+  const countEl = document.getElementById('intel-disc-count');
+  if (!el) return;
+  const filtered = _intelSevFilter === 'all' ? _intelDiscs : _intelDiscs.filter(d => d.severity === _intelSevFilter);
+  if (countEl) countEl.textContent = filtered.length + ' realizations';
+  if (!filtered.length) {
+    el.innerHTML = '<div class="intel-empty"><div class="intel-empty-icon">⚡</div><div>No realizations found</div></div>';
+    return;
+  }
+  const typeLabels = {
+    drug_correction: 'Drug Correction', company_update: 'Company Update',
+    relationship_found: 'Relationship Found', validation: 'Validation',
+    positive_data: 'Positive Data', risk_signal: 'Risk Signal', anchor_added: 'Anchor Added'
+  };
+  el.innerHTML = filtered.map(d => {
+    const dt = d.discovered_at ? new Date(d.discovered_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const typeClass = 'intel-type-' + (d.type || 'validation');
+    const typeLabel = typeLabels[d.type] || d.type;
+    const changeHtml = (d.old_value && d.new_value) ?
+      `<div style="font-size:10px;color:#5a7a9e;margin-bottom:4px"><span style="color:#991b1b;font-weight:700">${escHtml(d.old_value)}</span> → <span style="color:#155724;font-weight:700">${escHtml(d.new_value)}</span></div>` : '';
+    return `<div class="intel-disc-card">
+      <div class="intel-disc-row1">
+        <span class="intel-disc-badge sev-${d.severity||'medium'}">${d.severity||'medium'}</span>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+            <span class="intel-disc-title">${escHtml(d.title)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+            <span class="intel-type-pill ${typeClass}">${typeLabel}</span>
+            ${d.entity_name ? `<span class="intel-disc-entity">${escHtml(d.entity_name)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${changeHtml}
+      ${d.description ? `<div class="intel-disc-desc">${escHtml(d.description)}</div>` : ''}
+      <div class="intel-disc-meta">
+        ${d.session_label ? `<span class="intel-disc-session">${escHtml(d.session_label)}</span>` : ''}
+        ${dt ? `<span class="intel-disc-date">${dt}</span>` : ''}
+        ${d.source ? `<span class="intel-disc-date">via ${escHtml(d.source)}</span>` : ''}
+        <span class="${d.actioned ? 'intel-disc-actioned' : 'intel-disc-pending'}">${d.actioned ? '✓ Actioned' : '○ Pending action'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function intelRenderRQ() {
+  const el = document.getElementById('intel-rq-list');
+  const countEl = document.getElementById('intel-rq-count');
+  const showAnswered = document.getElementById('intel-show-answered')?.checked;
+  if (!el) return;
+  const filtered = showAnswered ? _intelRQ : _intelRQ.filter(r => r.status !== 'answered');
+  const pending = _intelRQ.filter(r => r.status === 'pending').length;
+  if (countEl) countEl.textContent = pending + ' pending · ' + _intelRQ.length + ' total';
+  if (!filtered.length) {
+    const msg = showAnswered ? 'No questions found' : 'No pending questions — all caught up!';
+    el.innerHTML = `<div class="intel-empty"><div class="intel-empty-icon">✓</div><div>${msg}</div></div>`;
+    return;
+  }
+  const priOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+  const sorted = [...filtered].sort((a,b) => (priOrder[a.priority]??9) - (priOrder[b.priority]??9));
+  el.innerHTML = sorted.map(r => {
+    const isAnswered = r.status === 'answered';
+    const ctxId = 'rq-ctx-' + r.id;
+    return `<div class="intel-rq-card ${isAnswered ? 'answered' : ''}" id="rq-card-${r.id}">
+      <div class="intel-rq-row1">
+        <span class="intel-rq-priority p-${r.priority||'medium'}">${r.priority||'medium'}</span>
+        <span class="intel-rq-entity">${escHtml(r.entity_name||'')}</span>
+        ${isAnswered ? '<span class="intel-rq-answered-tag">Answered</span>' : ''}
+      </div>
+      ${r.category ? `<div class="intel-rq-cat">${escHtml(r.category)}</div>` : ''}
+      <div class="intel-rq-question">${escHtml(r.question)}</div>
+      ${r.context ? `
+        <span class="intel-rq-ctx-toggle" onclick="intelToggleCtx('${ctxId}')">▸ Context</span>
+        <div class="intel-rq-ctx" id="${ctxId}" style="display:none">${escHtml(r.context)}</div>
+      ` : ''}
+      ${isAnswered && r.kyle_answer ? `<div class="intel-rq-kyle-answer"><strong>Answer:</strong> ${escHtml(r.kyle_answer)}</div>` : ''}
+      ${!isAnswered ? `
+        <div class="intel-rq-answer-box">
+          <textarea id="rq-ans-${r.id}" placeholder="Type your answer here…"></textarea>
+          <br>
+          <button class="intel-rq-answer-btn" onclick="intelMarkAnswered(${r.id})">Mark as Answered</button>
+        </div>
+      ` : ''}
+      ${r.session_label ? `<div style="margin-top:6px;font-size:9px;color:#94a3b8">${escHtml(r.session_label)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function intelToggleCtx(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const toggle = el.previousElementSibling;
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    if (toggle) toggle.textContent = toggle.textContent.replace('▸', '▾');
+  } else {
+    el.style.display = 'none';
+    if (toggle) toggle.textContent = toggle.textContent.replace('▾', '▸');
+  }
+}
+
+async function intelMarkAnswered(id) {
+  const ta = document.getElementById('rq-ans-' + id);
+  const btn = document.querySelector(`#rq-card-${id} .intel-rq-answer-btn`);
+  if (!ta) return;
+  const answer = ta.value.trim();
+  if (!answer) { ta.style.borderColor = '#ef4444'; setTimeout(() => { ta.style.borderColor = ''; }, 1500); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const resp = await fetch(INTEL_BASE + '/review_queue?id=eq.' + id, {
+      method: 'PATCH',
+      headers: {
+        'apikey': INTEL_SVC,
+        'Authorization': 'Bearer ' + INTEL_SVC,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ kyle_answer: answer, status: 'answered', answered_at: new Date().toISOString() })
+    });
+    if (resp.ok) {
+      // Update local state
+      const idx = _intelRQ.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        _intelRQ[idx].kyle_answer = answer;
+        _intelRQ[idx].status = 'answered';
+        _intelRQ[idx].answered_at = new Date().toISOString();
+      }
+      intelRenderRQ();
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = 'Mark as Answered'; }
+      alert('Save failed. Please try again.');
+    }
+  } catch(e) {
+    console.warn('[IntelFeed] PATCH error', e);
+    if (btn) { btn.disabled = false; btn.textContent = 'Mark as Answered'; }
+    alert('Network error. Please try again.');
+  }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 
 function switchOntSubTab(which) {
   var audit = document.getElementById('ont-wrap');
