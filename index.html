@@ -22415,36 +22415,36 @@ document.addEventListener('DOMContentLoaded', function(){
 
       var bioSections = [
         {
-          id:'ta', icon:'&#127919;', label:'Disease Areas', cls:'ta',
+          id:'ta', icon:'&#127919;', label:'Disease Areas', cls:'ta', type:'areas',
           count: Object.keys(areaMap).length,
           children: Object.entries(areaMap)
             .sort(function(a,b){return b[1].drugIds.size-a[1].drugIds.size;})
             .map(function(e){
-              var id=e[0], ad=e[1];
-              var meta = AREA_META[id]||{label:ad.name||id, color:'#4a6080'};
+              var aId=e[0], ad=e[1];
+              var meta = AREA_META[aId]||{label:ad.name||aId, color:'#4a6080'};
               var sub=[];
               if (ad.overlapCounts['Direct'])    sub.push({label:'Direct ('+(ad.overlapCounts['Direct']||0)+')',color:'#ef4444'});
               if (ad.overlapCounts['Watch'])     sub.push({label:'Watch ('+(ad.overlapCounts['Watch']||0)+')',color:'#f59e0b'});
               if (ad.overlapCounts['Adjacent'])  sub.push({label:'Adjacent ('+(ad.overlapCounts['Adjacent']||0)+')',color:'#60a5fa'});
-              return {label:meta.label, count:ad.drugIds.size, color:meta.color, sub:sub};
+              return {id:aId, label:meta.label, count:ad.drugIds.size, color:meta.color, sub:sub};
             }),
         },
         {
-          id:'tc', icon:'&#128300;', label:'Molecular Targets', cls:'tc',
+          id:'tc', icon:'&#128300;', label:'Molecular Targets', cls:'tc', type:'targets',
           count: Object.keys(targetCounts).length,
-          children: topTargets.map(function(e){return {label:e[0].toUpperCase(), count:e[1], color:'#10b981', sub:[]};}),
+          children: topTargets.map(function(e){return {id:e[0], label:e[0].toUpperCase(), count:e[1], color:'#10b981', sub:[]};}),
         },
         {
-          id:'ds', icon:'&#128138;', label:'Drug Pipeline', cls:'ds',
+          id:'ds', icon:'&#128138;', label:'Drug Pipeline', cls:'ds', type:'stages',
           count: drugs.length,
           children: STAGE_ORDER.filter(function(s){return stageCounts[s];}).map(function(s){
-            return {label:s, count:stageCounts[s], color:'#f59e0b', sub:[]};
+            return {id:s, label:s, count:stageCounts[s], color:'#f59e0b', sub:[]};
           }),
         },
         {
-          id:'cot', icon:'&#127970;', label:'Companies', cls:'cot',
+          id:'cot', icon:'&#127970;', label:'Companies', cls:'cot', type:'companies',
           count: companies.length,
-          children: companies.slice(0,22).map(function(c){return {label:c.name, count:null, color:'#637d9a', sub:[]};}),
+          children: companies.slice(0,22).map(function(c){return {id:c.id, label:c.name, count:null, color:'#637d9a', sub:[]};}),
         },
       ];
 
@@ -22458,11 +22458,16 @@ document.addEventListener('DOMContentLoaded', function(){
         sec.children.forEach(function(child){
           var cntBadge = child.count!==null ? '<span class="oex-t-cnt">'+child.count+'</span>' : '';
           var dot = child.color ? 'style="background:'+child.color+'"' : '';
+          var chkSpan = '<span class="oex-leaf-chks" onclick="event.stopPropagation()">'
+            +'<input type="checkbox" class="oex-node-chk" style="width:12px;height:12px;accent-color:#4ade80;cursor:pointer;flex-shrink:0"></span>';
+          var nodeId = child.id || child.label;
+          var dataAttrs = ' data-type="'+sec.type+'" data-id="'+nodeId+'" data-label="'+child.label+'"';
           if (child.sub && child.sub.length) {
-            html += '<div class="oex-tv" onclick="oexTreeToggleLeaf(this)">'
+            html += '<div class="oex-tv"'+dataAttrs+' onclick="oexTreeToggleLeaf(this)">'
               +'<span class="oex-tv-dot" '+dot+'></span>'
               +'<span class="oex-tv-lbl">'+child.label+'</span>'+cntBadge
               +'<span class="oex-tv-sarr">▶</span>'
+              +chkSpan
               +'</div><div class="oex-tsv-wrap">';
             child.sub.forEach(function(s){
               html += '<div class="oex-tsv" onclick="oexSelectNode(\''+s.label+'\',\''+sec.cls+'\')">'
@@ -22471,9 +22476,10 @@ document.addEventListener('DOMContentLoaded', function(){
             });
             html += '</div>';
           } else {
-            html += '<div class="oex-tv" onclick="oexSelectNode(\''+child.label+'\',\''+sec.cls+'\')">'
+            html += '<div class="oex-tv"'+dataAttrs+' onclick="oexSelectNode(\''+child.label+'\',\''+sec.cls+'\')">'
               +'<span class="oex-tv-dot" '+dot+'></span>'
-              +'<span class="oex-tv-lbl">'+child.label+'</span>'+cntBadge+'</div>';
+              +'<span class="oex-tv-lbl">'+child.label+'</span>'+cntBadge
+              +chkSpan+'</div>';
           }
         });
         html += '</div></div>';
@@ -22504,17 +22510,35 @@ document.addEventListener('DOMContentLoaded', function(){
           +'</div><div class="oex-tv-wrap">';
         cat.tables.forEach(function(tbl){
           var dispCount = typeof tbl.count === 'number' ? tbl.count.toLocaleString() : '—';
-          var joins = (JOIN_MAP[tbl.name]||[]).join(', ');
-          html += '<div class="oex-tv" style="cursor:pointer" onclick="oexInspectTable('+JSON.stringify(tbl.name)+','+tbl.count+','+JSON.stringify(tbl.desc)+','+JSON.stringify(JOIN_MAP[tbl.name]||[])+',\''+cat.id+'\')">'
+          html += '<div class="oex-tv" data-type="tables" data-id="'+tbl.name+'" data-label="'+tbl.name+'" style="cursor:pointer" onclick="oexInspectTable('+JSON.stringify(tbl.name)+','+tbl.count+','+JSON.stringify(tbl.desc)+','+JSON.stringify(JOIN_MAP[tbl.name]||[])+',\''+cat.id+'\')">'
             +'<span class="oex-tv-dot" style="background:'+catColor+'"></span>'
             +'<span class="oex-tv-lbl" style="font-family:monospace;font-size:10px">'+tbl.name+'</span>'
             +'<span class="oex-t-cnt" id="oex-cnt-'+tbl.name+'" style="background:rgba(0,0,0,.3)">'+dispCount+'</span>'
+            +'<span class="oex-leaf-chks" onclick="event.stopPropagation()">'
+            +'<input type="checkbox" class="oex-node-chk" style="width:12px;height:12px;accent-color:#4ade80;cursor:pointer;flex-shrink:0"></span>'
             +'</div>';
         });
         html += '</div></div>';
       });
 
       tree.innerHTML = html;
+
+      /* Wire checkbox change listener once — survives innerHTML replacement since listener is on tree element itself */
+      if (!tree.dataset.chkWired) {
+        tree.dataset.chkWired = '1';
+        tree.addEventListener('change', function(e) {
+          var chk = e.target;
+          if (!chk || chk.type !== 'checkbox' || !chk.classList.contains('oex-node-chk')) return;
+          e.stopPropagation();
+          var leaf = chk.closest('[data-type]');
+          if (!leaf) return;
+          var type = leaf.getAttribute('data-type');
+          var id   = leaf.getAttribute('data-id');
+          var label= leaf.getAttribute('data-label');
+          if (!type || !id) return;
+          oexToggleNode(type, id, label, 'both', chk.checked);
+        });
+      }
 
       var tsEl = document.getElementById('oex-ts');
       if (tsEl) tsEl.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -23262,6 +23286,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     /* ── Inject checkboxes into Quick View tree + DB Tables ─────────── */
     function oexInjectTreeButtons() {
+      /* Checkboxes now embedded in oexLoadTree at render time — just refresh states */
+      oexRefreshChks();
+      return;
       var tree = document.getElementById('oex-tree');
       if (!tree || !OEX_CAT) return;
 
@@ -23373,27 +23400,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
     /* ── Refresh all checkbox states ────────────────────────────────── */
     function oexRefreshChks() {
+      /* Directly update .checked on embedded oex-node-chk inputs */
       var tree=document.getElementById('oex-tree');
       if (!tree) return;
-      tree.querySelectorAll('.oex-leaf-chks').forEach(function(chksEl){
-        var leaf=chksEl.parentElement;
+      tree.querySelectorAll('.oex-node-chk').forEach(function(chk){
+        var leaf=chk.closest('[data-type]');
+        if (!leaf) return;
         var type=leaf.getAttribute('data-type');
         var id  =leaf.getAttribute('data-id');
-        var label=leaf.getAttribute('data-label');
         if (!type||!id) return;
-        chksEl.innerHTML=_oexChkHtml(type,id,label);
-      });
-      /* Sync group checkboxes — check against rows (rows+cols always in sync) */
-      tree.querySelectorAll('.oex-grp-chk').forEach(function(chk){
-        var type=chk.getAttribute('data-type');
-        if (!type||!OEX_CAT||!OEX_CAT[type]) return;
-        var catItems=OEX_CAT[type].items;
-        chk.checked=catItems.length>0&&catItems.every(function(item){
-          return OEX_MS.rows.some(function(n){return n.id===item.id&&n.type===type;});
-        });
-        chk.indeterminate=!chk.checked&&catItems.some(function(item){
-          return OEX_MS.rows.some(function(n){return n.id===item.id&&n.type===type;});
-        });
+        chk.checked=OEX_MS.rows.some(function(n){return n.id===id&&n.type===type;});
       });
     }
 
@@ -23570,8 +23586,7 @@ document.addEventListener('DOMContentLoaded', function(){
       var rows=OEX_MS.rows, cols=OEX_MS.cols;
       if (!rows.length||!cols.length) {
         wrap.innerHTML='<div style="padding:24px 16px;font-size:12px;color:#475569;text-align:center">'
-          +'Check the <strong style="color:#4ade80">R</strong> boxes to add rows and '
-          +'<strong style="color:#60a5fa">C</strong> boxes to add columns.</div>';
+          +'Check items in the sidebar to add them to the matrix.</div>';
         _oexWireCellClicks();
         return;
       }
