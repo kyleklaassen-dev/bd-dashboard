@@ -2106,6 +2106,48 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .intel-rq-answered-tag { font-size: 10px; font-weight: 700; color: #2a7a47; background: #d4edda; padding: 2px 8px; border-radius: 6px; }
 .intel-rq-kyle-answer { font-size: 11px; color: #2a5a35; background: #f0faf4; border-left: 3px solid #2a7a47; padding: 7px 10px; border-radius: 0 5px 5px 0; margin-top: 6px; line-height: 1.5; }
 .intel-loading { padding: 30px 20px; text-align: center; color: #94a3b8; font-size: 11px; }
+
+/* ── BD GAP CARDS ────────────────────────────────────────────────── */
+.bd-section-wrap { padding: 14px 14px 0; }
+.bd-section-hdr { background: #1a2f50; color: white; padding: 10px 14px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.bd-section-hdr:hover { background: #223a63; }
+.bd-section-hdr-title { font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+.bd-section-hdr-sub { font-size: 10px; opacity: 0.65; }
+.bd-section-hdr-chev { font-size: 11px; color: rgba(255,255,255,0.55); transition: transform 0.18s; }
+.bd-section-hdr.collapsed .bd-section-hdr-chev { transform: rotate(-90deg); }
+.bd-section-body { background: white; border-radius: 0 0 8px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+.bd-section-body.collapsed { display: none; }
+.bd-gaps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0; }
+.bd-gap-card { padding: 11px 14px; border-bottom: 1px solid #e8eef5; border-right: 1px solid #e8eef5; transition: background 0.1s; }
+.bd-gap-card:hover { background: #f5f8fc; }
+.bd-gap-row1 { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+.bd-gap-company { font-size: 13px; font-weight: 800; color: #1a2f50; flex: 1; }
+.bd-gap-sev { font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.bd-gap-sev.sev-critical { background: #fde8e8; color: #991b1b; border: 1px solid #fca5a5; }
+.bd-gap-sev.sev-high { background: #fff3cd; color: #7a5a00; border: 1px solid #fcd34d; }
+.bd-gap-type-tag { display: inline-block; font-size: 8.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: #e8f0f8; color: #2e6fb0; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+.bd-gap-desc { font-size: 11px; color: #3a4f6a; line-height: 1.5; margin-bottom: 5px; }
+.bd-gap-angle { font-size: 10.5px; color: #2a7a47; font-style: italic; line-height: 1.45; padding: 5px 8px; background: #f0faf4; border-left: 2px solid #4caf76; border-radius: 0 4px 4px 0; }
+/* ── BD RANKINGS ─────────────────────────────────────────────────── */
+.bd-rank-list { padding: 0; }
+.bd-rank-row { padding: 11px 14px; border-bottom: 1px solid #e8eef5; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: background 0.1s; }
+.bd-rank-row:last-child { border-bottom: none; }
+.bd-rank-row:hover { background: #f5f8fc; }
+.bd-rank-badge { font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.bd-rank-badge.call-now { background: #fde8e8; color: #991b1b; border: 1px solid #fca5a5; animation: pi-dot-blink 2s ease-in-out infinite; }
+.bd-rank-badge.call-soon { background: #fff3cd; color: #7a5a00; border: 1px solid #fcd34d; }
+.bd-rank-badge.watch { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.bd-rank-name { font-size: 13px; font-weight: 800; color: #1a2f50; }
+.bd-rank-gap { font-size: 11px; color: #5a7a9e; line-height: 1.4; margin-top: 2px; }
+.bd-rank-score-bar-wrap { flex: 1; min-width: 80px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.bd-rank-score-num { font-size: 12px; font-weight: 800; color: #1a2f50; }
+.bd-rank-bar-bg { width: 80px; height: 5px; background: #e8eef5; border-radius: 3px; overflow: hidden; }
+.bd-rank-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2e6fb0, #0891b2); transition: width 0.4s; }
+.bd-rank-pitch { font-size: 11px; color: #3a4f6a; line-height: 1.55; margin-top: 8px; padding: 8px 10px; background: #f5f8fc; border-radius: 5px; border-left: 2px solid #2e6fb0; display: none; }
+.bd-rank-row.expanded .bd-rank-pitch { display: block; }
+.bd-rank-row.expanded { background: #f5f8fc; }
+.bd-rank-placeholder { padding: 28px 20px; text-align: center; color: #94a3b8; font-size: 12px; font-style: italic; }
+.intel-type-bd_signal { background: #fce7f3; color: #9d174d; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -23109,6 +23151,38 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div>
 
+  <!-- ── SECTION 1: Critical BD Gaps ─────────────────────────────── -->
+  <div class="bd-section-wrap" id="bd-gaps-section">
+    <div class="bd-section-hdr" id="bd-gaps-hdr" onclick="bdToggleSection('gaps')">
+      <div>
+        <div class="bd-section-hdr-title">⚠ Critical BD Gaps &middot; <span id="bd-gaps-count">loading</span> identified</div>
+        <div class="bd-section-hdr-sub">Pipeline voids with documented company intent — direct partnership opportunities</div>
+      </div>
+      <span class="bd-section-hdr-chev">▼</span>
+    </div>
+    <div class="bd-section-body" id="bd-gaps-body">
+      <div class="bd-gaps-grid" id="bd-gaps-grid">
+        <div style="padding:24px;color:#94a3b8;font-size:12px;text-align:center">Loading BD gaps…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: BD Priority Rankings ──────────────────────────── -->
+  <div class="bd-section-wrap" style="padding-top:10px" id="bd-rankings-section">
+    <div class="bd-section-hdr" id="bd-rankings-hdr" onclick="bdToggleSection('rankings')">
+      <div>
+        <div class="bd-section-hdr-title">📊 BD Priority Rankings &middot; <span id="bd-rankings-count">loading</span> companies scored</div>
+        <div class="bd-section-hdr-sub">Composite readiness score · click any row to expand Ailux pitch</div>
+      </div>
+      <span class="bd-section-hdr-chev">▼</span>
+    </div>
+    <div class="bd-section-body" id="bd-rankings-body">
+      <div class="bd-rank-list" id="bd-rank-list">
+        <div class="bd-rank-placeholder">BD Rankings loading…</div>
+      </div>
+    </div>
+  </div>
+
   <div class="intel-feed-wrap">
     <!-- LEFT: Realizations Feed -->
     <div class="intel-feed-left">
@@ -25121,6 +25195,8 @@ let _intelDiscs = [];
 let _intelRQ = [];
 let _intelSevFilter = 'all';
 let _intelLoaded = false;
+let _bdGaps = [];
+let _bdRankings = [];
 
 async function loadIntelFeed(force) {
   if (_intelLoaded && !force) return;
@@ -25144,13 +25220,119 @@ async function loadIntelFeed(force) {
     } else {
       _intelRQ = [];
     }
+    // Load BD pipeline gaps
+    const gapsResp = await fetch(INTEL_BASE + '/company_pipeline_gaps?select=*&gap_severity=in.(critical,high)&order=gap_severity.asc,company_id.asc', {
+      headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+    });
+    _bdGaps = gapsResp.ok ? (await gapsResp.json()) : [];
+    // Load BD readiness rankings (graceful 404)
+    try {
+      const rkResp = await fetch(INTEL_BASE + '/bd_readiness_composite?select=*&order=overall_bd_score.desc', {
+        headers: { 'apikey': INTEL_ANON, 'Authorization': 'Bearer ' + INTEL_ANON }
+      });
+      _bdRankings = (rkResp.ok) ? (await rkResp.json()) : [];
+    } catch(e2) { _bdRankings = []; }
   } catch(e) {
     console.warn('[IntelFeed] load error', e);
     _intelDiscs = [];
     _intelRQ = [];
+    _bdGaps = [];
+    _bdRankings = [];
   }
   intelRenderDisc();
   intelRenderRQ();
+  bdRenderGaps();
+  bdRenderRankings();
+}
+
+// ── BD section toggle ────────────────────────────────────────────────────────
+function bdToggleSection(which) {
+  const hdrId  = 'bd-' + which + '-hdr';
+  const bodyId = 'bd-' + (which === 'gaps' ? 'gaps-body' : 'rankings-body');
+  const hdr  = document.getElementById(hdrId);
+  const body = document.getElementById(bodyId);
+  if (!hdr || !body) return;
+  const isCollapsed = hdr.classList.contains('collapsed');
+  hdr.classList.toggle('collapsed', !isCollapsed);
+  body.classList.toggle('collapsed', !isCollapsed);
+}
+
+// ── BD Gaps renderer ─────────────────────────────────────────────────────────
+function bdRenderGaps() {
+  const grid     = document.getElementById('bd-gaps-grid');
+  const countEl  = document.getElementById('bd-gaps-count');
+  if (!grid) return;
+  if (countEl) countEl.textContent = _bdGaps.length;
+  if (!_bdGaps.length) {
+    grid.innerHTML = '<div style="padding:24px;color:#94a3b8;font-size:12px;text-align:center">No critical or high-severity gaps found.</div>';
+    return;
+  }
+  const GAP_TYPE_LABELS = {
+    mechanism_absent: 'Mechanism Absent',
+    indication_gap:   'Indication Gap',
+    stage_gap:        'Stage Gap',
+    portfolio_gap:    'Portfolio Gap',
+    geographic_gap:   'Geographic Gap',
+  };
+  grid.innerHTML = _bdGaps.map(g => {
+    const sevCls = 'sev-' + (g.gap_severity || 'high');
+    const sevLabel = (g.gap_severity || 'high').toUpperCase();
+    const typeLabel = GAP_TYPE_LABELS[g.gap_type] || (g.gap_type || '').replace(/_/g,' ');
+    const company = (g.company_id || '').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    const desc = escHtml(g.gap_description || '');
+    const angle = escHtml(g.opportunity_angle || '');
+    const mech = g.mechanism ? escHtml(g.mechanism) : '';
+    const ind  = g.indication ? escHtml(g.indication) : '';
+    return `<div class="bd-gap-card">
+      <div class="bd-gap-row1">
+        <div class="bd-gap-company">${escHtml(company)}${mech ? `<span style="font-size:10px;font-weight:600;color:#64748b;margin-left:6px">${mech}</span>` : ''}</div>
+        <span class="bd-gap-sev ${sevCls}">${sevLabel}</span>
+      </div>
+      ${typeLabel ? `<span class="bd-gap-type-tag">${typeLabel}${ind ? ' · ' + ind : ''}</span>` : ''}
+      <div class="bd-gap-desc">${desc}</div>
+      ${angle ? `<div class="bd-gap-angle">${angle}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── BD Rankings renderer ─────────────────────────────────────────────────────
+function bdRenderRankings() {
+  const list    = document.getElementById('bd-rank-list');
+  const countEl = document.getElementById('bd-rankings-count');
+  if (!list) return;
+  if (!_bdRankings || !_bdRankings.length) {
+    if (countEl) countEl.textContent = '0';
+    list.innerHTML = '<div class="bd-rank-placeholder">BD Rankings not yet computed — run enrichment pipeline to generate scores.</div>';
+    return;
+  }
+  if (countEl) countEl.textContent = _bdRankings.length;
+  list.innerHTML = _bdRankings.map((r, i) => {
+    const score = r.overall_bd_score || 0;
+    const badgeCls = score >= 80 ? 'call-now' : score >= 60 ? 'call-soon' : 'watch';
+    const badgeLbl = score >= 80 ? 'CALL NOW' : score >= 60 ? 'CALL SOON' : 'WATCH';
+    const name = escHtml(r.company_name || r.company_id || '—');
+    const gap  = escHtml(r.primary_gap || r.top_gap || '');
+    const pitch = escHtml(r.ailux_pitch || r.pitch || '');
+    const barPct = Math.min(100, Math.max(0, score));
+    return `<div class="bd-rank-row" id="bdr-row-${i}" onclick="bdToggleRankRow(${i})">
+      <span class="bd-rank-badge ${badgeCls}">${badgeLbl}</span>
+      <div style="flex:1;min-width:0">
+        <div class="bd-rank-name">${name}</div>
+        ${gap ? `<div class="bd-rank-gap">${gap}</div>` : ''}
+        ${pitch ? `<div class="bd-rank-pitch">${pitch}</div>` : ''}
+      </div>
+      <div class="bd-rank-score-bar-wrap">
+        <div class="bd-rank-score-num">${score}</div>
+        <div class="bd-rank-bar-bg"><div class="bd-rank-bar-fill" style="width:${barPct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bdToggleRankRow(i) {
+  const row = document.getElementById('bdr-row-' + i);
+  if (!row) return;
+  row.classList.toggle('expanded');
 }
 
 function intelFilterSev(btn, sev) {
