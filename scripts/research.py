@@ -406,6 +406,14 @@ Skip articles where the focus-area relevance is clearly tangential (e.g., a gene
 
 PAYWALLED / SHORT CONTENT: If the full text is missing or very brief (< 200 chars) but the headline clearly signals a relevant clinical event (trial data, approval, deal, IND filing), extract a record using the headline and any available summary. Set importance conservatively. Do NOT skip solely because content is short — headline intelligence is still intelligence.
 
+GOVERNANCE RULES FOR DEAL EXTRACTION:
+- deal_from = licensee/acquirer (the company gaining rights). deal_to = licensor/originator (the company giving rights).
+- The drug's originating company (inventor/developer) is always deal_to in a licensing deal.
+  Example: AbbVie licensed ABBV-701 from FutureGen → deal_from="abbvie", deal_to="futuregen".
+- For acquisitions: deal_from = acquirer, deal_to = acquired company.
+- Never swap deal_from and deal_to just because the acquirer is larger or more prominent.
+- source_url must be the actual article URL — always include it for deal records.
+
 Return ONLY a valid JSON array. No markdown, no explanation, no wrapper text."""
 
 
