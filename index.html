@@ -17377,7 +17377,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         _hwUpdateBreakdown(map);
       }
       _hwCurrentTotal = total;
-      if (lbl) lbl.textContent = `data points across ${ALL_TABLES.length} tables · live`;
+      if (lbl) lbl.textContent = '';
     } catch(e) {
       console.warn('[HomeWelcome]', e);
     }
@@ -22750,6 +22750,15 @@ document.addEventListener('DOMContentLoaded', function(){
           ctx.fillStyle = '#060d14';
           ctx.fillRect(0, 0, wCss, H_CSS);
 
+          /* Pre-compute fixed dot column — all dots share same X */
+          ctx.font = '600 12px Inter,system-ui,sans-serif';
+          var maxLW = 0;
+          visAreas.forEach(function(aId){
+            var m = AREA_META[aId];
+            if (m) { var lw = ctx.measureText(m.label).width; if (lw > maxLW) maxLW = lw; }
+          });
+          var DOT_X = LEFT_MARGIN - 14 - maxLW - 14;
+
           /* ── Column divider lines (subtle dotted) */
           ctx.save();
           ctx.setLineDash([2, 4]);
@@ -22824,11 +22833,10 @@ document.addEventListener('DOMContentLoaded', function(){
             ctx.fillText(meta.label, LEFT_MARGIN - 14, rowMidY + 5);
             ctx.restore();
 
-            /* Small bullet circle before label */
-            var labelWidth = ctx.measureText(meta.label).width;
+            /* Small bullet circle before label — all dots at fixed DOT_X column */
             ctx.save();
             ctx.beginPath();
-            ctx.arc(LEFT_MARGIN - 14 - labelWidth - 14, rowMidY + 1, 3.5, 0, Math.PI*2);
+            ctx.arc(DOT_X, rowMidY + 1, 3.5, 0, Math.PI*2);
             ctx.fillStyle = meta.color;
             ctx.globalAlpha = 0.85;
             ctx.fill();
@@ -23172,10 +23180,8 @@ document.addEventListener('DOMContentLoaded', function(){
           var g = document.createElement('span');
           g.style.cssText='display:inline-flex;gap:4px;margin-left:6px;flex-shrink:0;vertical-align:middle';
           g.innerHTML=
-            '<label style="font-size:9px;color:#4ade80;cursor:pointer;display:flex;align-items:center;gap:2px">'
-            +'<input type="checkbox" class="oex-grp-chk" data-type="'+catType+'" data-axis="row" style="width:10px;height:10px;accent-color:#4ade80;cursor:pointer"> All R</label>'
-            +'<label style="font-size:9px;color:#60a5fa;cursor:pointer;display:flex;align-items:center;gap:2px">'
-            +'<input type="checkbox" class="oex-grp-chk" data-type="'+catType+'" data-axis="col" style="width:10px;height:10px;accent-color:#60a5fa;cursor:pointer"> All C</label>';
+            '<label style="font-size:9px;color:#4ade80;cursor:pointer;display:flex;align-items:center;gap:3px" title="Select all in this group">'
+            +'<input type="checkbox" class="oex-grp-chk" data-type="'+catType+'" style="width:11px;height:11px;accent-color:#4ade80;cursor:pointer"> All</label>';
           hd.appendChild(g);
         }
 
@@ -23209,16 +23215,14 @@ document.addEventListener('DOMContentLoaded', function(){
           e.stopPropagation();
           if (chk.classList.contains('oex-grp-chk')) {
             var type=chk.getAttribute('data-type');
-            var axis=chk.getAttribute('data-axis');
-            _oexSetGroupAll(type,axis,chk.checked);
-          } else if (chk.classList.contains('oex-row-chk')||chk.classList.contains('oex-col-chk')) {
-            var axis=chk.classList.contains('oex-row-chk')?'row':'col';
+            _oexSetGroupAll(type,chk.checked);
+          } else if (chk.classList.contains('oex-node-chk')) {
             var leaf=chk.closest('[data-type]');
             if (!leaf) return;
             var type=leaf.getAttribute('data-type');
             var id=leaf.getAttribute('data-id');
             var label=leaf.getAttribute('data-label');
-            oexToggleNode(type,id,label,axis,chk.checked);
+            oexToggleNode(type,id,label,'both',chk.checked);
           }
         });
       }
@@ -23252,15 +23256,12 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     }
 
-    /* ── Checkbox HTML ───────────────────────────────────────────────── */
+    /* ── Checkbox HTML — single checkbox adds node to BOTH row and col axes ── */
     function _oexChkHtml(type,id,label) {
-      var inR=OEX_MS.rows.some(function(n){return n.id===id&&n.type===type;});
-      var inC=OEX_MS.cols.some(function(n){return n.id===id&&n.type===type;});
+      var active=OEX_MS.rows.some(function(n){return n.id===id&&n.type===type;});
       var safe=(label||'').replace(/"/g,'&quot;');
-      return '<label style="font-size:9px;color:#4ade80;cursor:pointer;display:flex;align-items:center;gap:2px" title="Add to rows">'
-        +'<input type="checkbox" class="oex-row-chk" '+(inR?'checked':'')+' style="width:10px;height:10px;accent-color:#4ade80;cursor:pointer"> R</label>'
-        +'<label style="font-size:9px;color:#60a5fa;cursor:pointer;display:flex;align-items:center;gap:2px" title="Add to columns">'
-        +'<input type="checkbox" class="oex-col-chk" '+(inC?'checked':'')+' style="width:10px;height:10px;accent-color:#60a5fa;cursor:pointer"> C</label>';
+      return '<label style="cursor:pointer;display:flex;align-items:center" title="Include in matrix">'
+        +'<input type="checkbox" class="oex-node-chk" '+(active?'checked':'')+' style="width:12px;height:12px;accent-color:#4ade80;cursor:pointer"></label>';
     }
 
     /* ── Refresh all checkbox states ────────────────────────────────── */
@@ -23275,49 +23276,51 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!type||!id) return;
         chksEl.innerHTML=_oexChkHtml(type,id,label);
       });
-      /* Sync group checkboxes */
+      /* Sync group checkboxes — check against rows (rows+cols always in sync) */
       tree.querySelectorAll('.oex-grp-chk').forEach(function(chk){
         var type=chk.getAttribute('data-type');
-        var axis=chk.getAttribute('data-axis');
-        if (!type||!axis||!OEX_CAT||!OEX_CAT[type]) return;
-        var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
+        if (!type||!OEX_CAT||!OEX_CAT[type]) return;
         var catItems=OEX_CAT[type].items;
         chk.checked=catItems.length>0&&catItems.every(function(item){
-          return arr.some(function(n){return n.id===item.id&&n.type===type;});
+          return OEX_MS.rows.some(function(n){return n.id===item.id&&n.type===type;});
         });
         chk.indeterminate=!chk.checked&&catItems.some(function(item){
-          return arr.some(function(n){return n.id===item.id&&n.type===type;});
+          return OEX_MS.rows.some(function(n){return n.id===item.id&&n.type===type;});
         });
       });
     }
 
-    /* ── Set all items in group checked/unchecked ───────────────────── */
-    function _oexSetGroupAll(type,axis,checked) {
+    /* ── Set all items in group checked/unchecked — always both axes ── */
+    function _oexSetGroupAll(type,checked) {
       if (!OEX_CAT||!OEX_CAT[type]) return;
       var catItems=OEX_CAT[type].items;
       if (checked) {
         catItems.forEach(function(item){
-          var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
-          if (!arr.some(function(n){return n.id===item.id&&n.type===type;}))
-            arr.push({type:type,id:item.id,label:item.label});
+          if (!OEX_MS.rows.some(function(n){return n.id===item.id&&n.type===type;}))
+            OEX_MS.rows.push({type:type,id:item.id,label:item.label});
+          if (!OEX_MS.cols.some(function(n){return n.id===item.id&&n.type===type;}))
+            OEX_MS.cols.push({type:type,id:item.id,label:item.label});
         });
       } else {
         var ids=catItems.map(function(i){return i.id;});
-        if (axis==='row') OEX_MS.rows=OEX_MS.rows.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
-        else              OEX_MS.cols=OEX_MS.cols.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
+        OEX_MS.rows=OEX_MS.rows.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
+        OEX_MS.cols=OEX_MS.cols.filter(function(n){return !(n.type===type&&ids.indexOf(n.id)>=0);});
       }
       OEX_MS.cache={};
       oexRefreshChks();
       oexLoadMatrix();
     }
 
-    /* ── Toggle a single node ────────────────────────────────────────── */
+    /* ── Toggle a single node — 'both' adds/removes from rows AND cols ── */
     window.oexToggleNode = function(type,id,label,axis,add) {
-      var arr=axis==='row'?OEX_MS.rows:OEX_MS.cols;
-      var idx=arr.findIndex(function(n){return n.id===id&&n.type===type;});
-      var shouldAdd = (typeof add==='boolean') ? add : idx===-1;
-      if (shouldAdd && idx===-1) arr.push({type:type,id:id,label:label});
-      else if (!shouldAdd && idx>=0) arr.splice(idx,1);
+      function _tog(arr) {
+        var idx=arr.findIndex(function(n){return n.id===id&&n.type===type;});
+        var shouldAdd=(typeof add==='boolean')?add:idx===-1;
+        if (shouldAdd && idx===-1) arr.push({type:type,id:id,label:label});
+        else if (!shouldAdd && idx>=0) arr.splice(idx,1);
+      }
+      if (axis==='both'||axis==='row') _tog(OEX_MS.rows);
+      if (axis==='both'||axis==='col') _tog(OEX_MS.cols);
       OEX_MS.cache={};
       oexRefreshChks();
       oexLoadMatrix();
