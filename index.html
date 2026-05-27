@@ -3887,8 +3887,10 @@ async function loadAreaCatalysts(tabId) {
   const el = document.getElementById(tabId + '-live-catalysts');
   if (!el) return;
   try {
+    // Phase 3 dual-filter: target_id (new) OR area_id (legacy) — both valid during transition
     const { data: rows, error } = await _sb.from('catalysts')
-      .select('*').eq('resolved', false).in('area_id', areas)
+      .select('*').eq('resolved', false)
+      .or(`target_id.in.(${areas.join(',')}),area_id.in.(${areas.join(',')})`)
       .order('sort_date', { ascending: true }).limit(10);
     if (error) throw error;
     if (!rows || !rows.length) {
@@ -3922,8 +3924,9 @@ async function loadAreaDeals(tabId) {
   const el = document.getElementById(tabId + '-live-deals');
   if (!el) return;
   try {
+    // Phase 3 dual-filter: target_id OR area_id during transition
     const { data: rows, error } = await _sb.from('deals')
-      .select('*').in('area_id', areas)
+      .select('*').or(`target_id.in.(${areas.join(',')}),area_id.in.(${areas.join(',')})`)
       .order('deal_date', { ascending: false }).limit(6);
     if (error) throw error;
     if (!rows || !rows.length) {
@@ -3964,8 +3967,9 @@ async function loadAreaBDActivity(tabId) {
   const el = document.getElementById(tabId + '-bd-activity');
   if (!el) return;
   try {
+    // Phase 3 dual-filter: target_id OR area_id during transition
     let { data: rows, error } = await _sb.from('deals')
-      .select('*').in('area_id', areas)
+      .select('*').or(`target_id.in.(${areas.join(',')}),area_id.in.(${areas.join(',')})`)
       .order('deal_date', { ascending: false });
     if (error) throw error;
     _bdaState[tabId] = { rows: rows || [], filter: 'all', search: '' };
@@ -13430,7 +13434,10 @@ async function _loadBdIntoModal(tabId, el) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) { el.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:12px">No BD data for this area.</div>'; return; }
   try {
-    let { data: rows, error } = await _sb.from('deals').select('*').in('area_id', areas).order('deal_date', { ascending: false });
+    // Phase 3 dual-filter: target_id OR area_id during transition
+    let { data: rows, error } = await _sb.from('deals').select('*')
+      .or(`target_id.in.(${areas.join(',')}),area_id.in.(${areas.join(',')})`)
+      .order('deal_date', { ascending: false });
     if (error) throw error;
     // Fallback: if area_id filter returns nothing, also try deals with no area_id set
     // that may still belong here — query all and filter by relevance to the area label
