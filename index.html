@@ -17180,7 +17180,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       bd.querySelectorAll('.hw-bd-item').forEach((item, i) => {
         setTimeout(() => {
           item.classList.add('visible');
-          _hwAnimTo(item.querySelector('.hw-bd-num'), 0, map[BREAKDOWN[i].tbl] || 0, 550, 0);
+          _hwAnimTo(item.querySelector('.hw-bd-num'), 0, map[BREAKDOWN[i].tbl] || 0, 280, 0);
         }, i * 70 + 600);
       });
     });
@@ -17207,7 +17207,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const totalEl = document.getElementById('hw-count-num');
       const lbl     = document.getElementById('hw-count-label');
       if (isFirst) {
-        _hwAnimTo(totalEl, 0, total, 7000, 500);
+        _hwAnimTo(totalEl, 0, total, 3500, 500);
         _hwRenderBreakdown(map);
       } else {
         _hwAnimTo(totalEl, _hwCurrentTotal, total, 1200, 0);
