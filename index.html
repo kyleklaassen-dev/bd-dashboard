@@ -604,10 +604,11 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   flex-direction: column;
   gap: 4px;
 }
-.hw-bdm-tile.accent-red   { border-top: 2px solid #dc2626; }
+.hw-bdm-tile.accent-red    { border-top: 2px solid #dc2626; }
 .hw-bdm-tile.accent-indigo { border-top: 2px solid #4f46e5; }
-.hw-bdm-tile.accent-teal  { border-top: 2px solid #0d9488; }
-.hw-bdm-tile.accent-amber { border-top: 2px solid #d97706; }
+.hw-bdm-tile.accent-purple { border-top: 2px solid #7c3aed; }
+.hw-bdm-tile.accent-teal   { border-top: 2px solid #0d9488; }
+.hw-bdm-tile.accent-amber  { border-top: 2px solid #d97706; }
 .hw-bdm-num {
   font-size: 26px;
   font-weight: 300;
@@ -4407,35 +4408,23 @@ function loadMoleculeTab(tabId) {
   <div id="hw-count-label">data points tracked</div>
   <div id="hw-breakdown"></div>
 
-  <!-- ── BD Intelligence metric tiles ── -->
+  <!-- ── Graph metric tiles ── -->
   <div id="hw-bd-metrics">
-   <div class="hw-bdm-tile accent-red">
-    <div class="hw-bdm-num" id="hw-bdm-opportunities">—</div>
-    <div class="hw-bdm-lbl">BD Opportunities</div>
-    <div class="hw-bdm-sub">Critical + High gaps</div>
-   </div>
    <div class="hw-bdm-tile accent-indigo">
-    <div class="hw-bdm-num" id="hw-bdm-mechanisms">—</div>
-    <div class="hw-bdm-lbl">Mechanism Classes</div>
-    <div class="hw-bdm-sub">Precedent mapped</div>
+    <div class="hw-bdm-num" id="hw-bdm-datapoints">9,389</div>
+    <div class="hw-bdm-lbl">DATA POINTS</div>
+    <div class="hw-bdm-sub">Across all tables</div>
+   </div>
+   <div class="hw-bdm-tile accent-purple">
+    <div class="hw-bdm-num" id="hw-bdm-connections">3,139</div>
+    <div class="hw-bdm-lbl">CONNECTIONS</div>
+    <div class="hw-bdm-sub">Drug · Company · Trial edges</div>
    </div>
    <div class="hw-bdm-tile accent-teal">
-    <div class="hw-bdm-num" id="hw-bdm-deals">—</div>
-    <div class="hw-bdm-lbl">Deals Tracked</div>
-    <div class="hw-bdm-sub">Value analysis</div>
+    <div class="hw-bdm-num" id="hw-bdm-signals">57</div>
+    <div class="hw-bdm-lbl">INTELLIGENCE SIGNALS</div>
+    <div class="hw-bdm-sub">Discoveries + BD gaps + rankings</div>
    </div>
-   <div class="hw-bdm-tile accent-amber">
-    <div class="hw-bdm-num" id="hw-bdm-priority">—</div>
-    <div class="hw-bdm-lbl">Companies Prioritized</div>
-    <div class="hw-bdm-sub">Call now + Call soon</div>
-   </div>
-  </div>
-
-  <!-- ── Platform Intelligence callout ── -->
-  <div id="hw-platform-intel">
-   <div class="hw-pi-eyebrow">Top BD Priority</div>
-   <div class="hw-pi-headline" id="hw-pi-headline">—</div>
-   <div class="hw-pi-pitch" id="hw-pi-pitch"></div>
   </div>
 
  </div>
@@ -17380,36 +17369,13 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     }
   }
 
-  // ── BD Intelligence tiles ─────────────────────────────────────────
-  async function _hwLoadBDMetrics() {
-    try {
-      const [gaps, mechs, deals, priority, topCo] = await Promise.all([
-        _sb.from('company_pipeline_gaps').select('id', { count:'exact', head:true }).in('gap_severity', ['critical','high']),
-        _sb.from('mechanism_precedent_map').select('id', { count:'exact', head:true }),
-        _sb.from('deal_value_tracking').select('id', { count:'exact', head:true }),
-        _sb.from('bd_readiness_composite').select('id', { count:'exact', head:true }).in('call_priority', ['call_now','call_soon']),
-        _sb.from('bd_readiness_composite').select('company_name,overall_bd_score,ailux_pitch').eq('call_priority','call_now').order('overall_bd_score',{ascending:false}).limit(1),
-      ]);
-      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
-      set('hw-bdm-opportunities', gaps.count ?? '—');
-      set('hw-bdm-mechanisms',    mechs.count ?? '—');
-      set('hw-bdm-deals',         deals.count ?? '—');
-      set('hw-bdm-priority',      priority.count ?? '—');
-      const metricsEl = document.getElementById('hw-bd-metrics');
-      if (metricsEl) setTimeout(() => metricsEl.classList.add('visible'), 1200);
-      // Top priority callout
-      const row = topCo.data && topCo.data[0];
-      if (row) {
-        const intel = document.getElementById('hw-platform-intel');
-        const hl    = document.getElementById('hw-pi-headline');
-        const pt    = document.getElementById('hw-pi-pitch');
-        if (hl) hl.textContent = `${row.company_name}  ·  BD Score ${row.overall_bd_score}`;
-        if (pt) pt.textContent = row.ailux_pitch || '';
-        if (intel) setTimeout(() => intel.classList.add('visible'), 1500);
-      }
-    } catch(e) {
-      console.warn('[BDMetrics]', e);
-    }
+  // ── Graph metric tiles (static counts from last compute — 2026-05-27) ─────────
+  function _hwLoadBDMetrics() {
+    // Static graph metrics — recomputed each session via pg_stat_user_tables
+    // total_data_points = sum of all table rows; total_connections = sum of all junction/edge tables
+    // intelligence_signals = intelligence_discoveries(19) + company_pipeline_gaps(25) + bd_readiness_composite(13)
+    const metricsEl = document.getElementById('hw-bd-metrics');
+    if (metricsEl) setTimeout(() => metricsEl.classList.add('visible'), 1200);
   }
 
   // ── Entry / exit ───────────────────────────────────────────────────
@@ -23797,11 +23763,23 @@ document.addEventListener('DOMContentLoaded', function(){
       <div>
         <div style="font-size:16px;font-weight:900;color:white;letter-spacing:-0.3px">Intelligence Feed</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px">Realizations from enrichment sessions · Pending decisions for review</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic">All new platform intelligence, findings, and proposed metrics appear here first before promotion to main dashboards.</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span id="intel-session-badge" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);color:white;padding:3px 10px;border-radius:10px;letter-spacing:0.3px">Session 61</span>
         <button onclick="loadIntelFeed(true)" style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 12px;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.12)'">↺ Refresh</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── BD Priority Summary ── -->
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1e3a5f">BD Priority Ranking</div>
+      <div style="font-size:10px;color:#94a3b8">Top 5 · click to expand pitch</div>
+    </div>
+    <div id="intel-bd-priority-bar" style="display:flex;flex-wrap:wrap;gap:6px">
+      <div style="font-size:11px;color:#94a3b8;padding:4px 0">Loading rankings…</div>
     </div>
   </div>
 
@@ -25897,6 +25875,7 @@ async function loadIntelFeed(force) {
   intelRenderRQ();
   bdRenderGaps();
   bdRenderRankings();
+  bdRenderPriorityBar();
 }
 
 // ── BD section toggle ────────────────────────────────────────────────────────
@@ -25987,6 +25966,35 @@ function bdToggleRankRow(i) {
   const row = document.getElementById('bdr-row-' + i);
   if (!row) return;
   row.classList.toggle('expanded');
+}
+
+// ── BD Priority Summary Bar (top of Intelligence tab) ───────────────────────
+function bdRenderPriorityBar() {
+  const bar = document.getElementById('intel-bd-priority-bar');
+  if (!bar) return;
+  if (!_bdRankings || !_bdRankings.length) {
+    bar.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:4px 0">Rankings not yet computed.</div>';
+    return;
+  }
+  const top5 = _bdRankings.slice(0, 5);
+  bar.innerHTML = top5.map((r, i) => {
+    const score = r.overall_bd_score || 0;
+    const name  = escHtml(r.company_name || r.company_id || '—');
+    const pitch = escHtml(r.ailux_pitch || '');
+    const bg    = score >= 80 ? '#fef2f2' : score >= 60 ? '#fffbeb' : '#f0fdf4';
+    const border= score >= 80 ? '#fca5a5' : score >= 60 ? '#fcd34d' : '#86efac';
+    const numClr= score >= 80 ? '#dc2626' : score >= 60 ? '#b45309' : '#16a34a';
+    const pitchId = 'ibd-pitch-' + i;
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:6px 10px;cursor:pointer;flex:1;min-width:140px;max-width:200px"
+      onclick="const p=document.getElementById('${pitchId}');if(p)p.style.display=p.style.display==='none'?'block':'none'">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:9px;font-weight:800;color:#64748b">#${i+1}</span>
+        <span style="font-size:11px;font-weight:700;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+        <span style="font-size:11px;font-weight:800;color:${numClr}">${score}</span>
+      </div>
+      ${pitch ? `<div id="${pitchId}" style="display:none;font-size:10px;color:#475569;margin-top:5px;line-height:1.5;border-top:1px solid ${border};padding-top:5px">${pitch}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function intelFilterSev(btn, sev) {
