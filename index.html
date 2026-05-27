@@ -554,8 +554,10 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   gap: 30px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: auto;
-  padding-bottom: 40px;
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
 }
 .hw-bd-item {
   display: flex;
@@ -18572,6 +18574,22 @@ const _HIER_TGT_SYMBOL = {
   tnf:     'TNF',
 };
 
+// disease_area string → human-readable DA label (one level below TA)
+const _HIER_DA_LABEL = {
+  ibd:              'IBD',
+  gastroenterology: 'GI / IBD',
+  respiratory:      'Airway Diseases',
+  atopy:            'Atopic Disease',
+  dermatology:      'Skin Diseases',
+  ted:              'Thyroid Eye Disease',
+  ophthalmology:    'Eye Diseases',
+  autoimmune:       'Autoimmune',
+  rheumatology:     'Musculoskeletal',
+  neurology:        'Neuromuscular',
+  hematology:       'Hematology',
+  oncology:         'Oncology',
+};
+
 // indications.disease_area (legacy string) → therapeutic_areas.id
 // Also used as per-indication-id overrides (checked first in lookup below)
 const _HIER_LEGACY_TO_TA = {
@@ -18654,19 +18672,17 @@ async function _hierFetchLiveData() {
     const inds    = taIndMap[ta.id] || [];
     const taTabId = _HIER_TA_TAB_MAP[ta.id] || null;
 
-    const indNodes = inds.map(ind => {
+    // Helper: build one indication node from a raw indication row
+    function _mkIndNode(ind) {
       const drugSet  = indDrugMap[ind.id] || new Set();
       const total    = drugSet.size;
       const indTabId = _HIER_IND_TAB_MAP[ind.id] || taTabId;
-
-      // Count targets across drugs in this indication
       const tgtCount = {};
       drugSet.forEach(dId => {
         (drugTargetMap[dId] || []).forEach(tId => {
           tgtCount[tId] = (tgtCount[tId] || 0) + 1;
         });
       });
-
       const tgts = Object.entries(tgtCount)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 6)
@@ -18676,24 +18692,38 @@ async function _hierFetchLiveData() {
           n,
           tabId: _HIER_TGT_TAB_MAP[tId] || indTabId,
         }));
-
       return { id: ind.id, abbr: ind.abbreviation || ind.id.toUpperCase().slice(0,6), name: ind.name, total, tabId: indTabId, tgts };
-    }).filter(ind => ind.total > 0);
+    }
+
+    // Group raw indications by their disease_area field → DA-level buckets
+    const daGroupInds = {};
+    inds.forEach(ind => {
+      const daKey = ind.disease_area || ta.id;
+      if (!daGroupInds[daKey]) daGroupInds[daKey] = [];
+      daGroupInds[daKey].push(ind);
+    });
 
     // Count unique drugs across all indications under this TA
     const taDrugSet = new Set();
     inds.forEach(ind => (indDrugMap[ind.id] || new Set()).forEach(id => taDrugSet.add(id)));
     const taTotal = taDrugSet.size;
 
-    // Collapse all indications under one DA-level node whose name = TA name
-    const daNode = indNodes.length ? [{
-      id:    ta.id + '-da',
-      name:  ta.name,
-      full:  ta.name,
-      total: taTotal,
-      tabId: taTabId,
-      inds:  indNodes,
-    }] : [];
+    // Build one DA node per distinct disease_area bucket, with a readable name
+    const daNode = Object.entries(daGroupInds).map(([daKey, daInds]) => {
+      const daLabel    = _HIER_DA_LABEL[daKey] || (daKey.charAt(0).toUpperCase() + daKey.slice(1));
+      const daIndNodes = daInds.map(_mkIndNode).filter(n => n.total > 0);
+      if (!daIndNodes.length) return null;
+      const daDrugSet  = new Set();
+      daInds.forEach(ind => (indDrugMap[ind.id] || new Set()).forEach(id => daDrugSet.add(id)));
+      return {
+        id:    ta.id + '-' + daKey,
+        name:  daLabel,
+        full:  daLabel,
+        total: daDrugSet.size,
+        tabId: taTabId,
+        inds:  daIndNodes,
+      };
+    }).filter(Boolean).sort((a, b) => b.total - a.total);
 
     return {
       id:    ta.id,
