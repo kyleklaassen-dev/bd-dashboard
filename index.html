@@ -3506,8 +3506,8 @@ async function _injPIScores(tabId, areaIds) {
   try {
     const { data, error } = await _sb
       .from('research_queue')
-      .select('entity_id,completeness_score,completeness_tier,next_best_action,priority_score,area_id')
-      .in('area_id', areaIds);
+      .select('entity_id,completeness_score,completeness_tier,next_best_action,priority_score,area_id,target_id,context_type')
+      .or(`target_id.in.(${areaIds.join(',')}),area_id.in.(${areaIds.join(',')})`);
     if (error || !data || !data.length) return;
 
     // Build map: entity_id → best record (highest priority)
@@ -3728,7 +3728,7 @@ function _sigGroupLabel(dateStr) {
 function renderSignals(rows) {
   const list = document.getElementById('signals-list');
   if (!list) return;
-  let filtered = _sigAreaFilter ? rows.filter(r => r.area_id === _sigAreaFilter) : rows;
+  let filtered = _sigAreaFilter ? rows.filter(r => r.area_id === _sigAreaFilter || r.target_id === _sigAreaFilter) : rows;
   if (_sigTypeFilter) filtered = filtered.filter(r => r.signal_type === _sigTypeFilter);
   if (!filtered.length) {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">No signals found.</div>';
@@ -9538,7 +9538,7 @@ function dqRender() {
 
   let rows = _dqData.filter(r => {
     if (_dqStatus !== 'all' && r.status !== _dqStatus) return false;
-    if (areaF && r.area_id !== areaF) return false;
+    if (areaF && r.area_id !== areaF && r.target_id !== areaF) return false;
     if (sourceF) {
       const rowSource = r.source || (r.discovered_by === 'company_intake' ? 'user_intake' : 'signal_monitoring');
       if (rowSource !== sourceF) return false;
@@ -10470,7 +10470,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     // ── Parallel fetch: profile + catalysts + deals + company row + all company areas + subsidiaries ──
     const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes, subsidiariesRes] = await Promise.all([
       _sb.from('company_profiles').select('*')
-         .eq('company_id', companyId).eq('area_id', AREA)
+         .eq('company_id', companyId).or(`target_id.eq.${AREA},area_id.eq.${AREA}`)
          .order('updated_at', { ascending: false }).limit(1),
       _sb.from('catalysts').select('*')
          .eq('company_id', companyId).eq('area_id', AREA)
@@ -10491,7 +10491,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     const [allAreaProfileRows, allAreaCatRows] = await Promise.all([
       Promise.all(allAreaIds.map(aId =>
         _sb.from('company_profiles').select('*')
-           .eq('company_id', companyId).eq('area_id', aId)
+           .eq('company_id', companyId).or(`target_id.eq.${aId},area_id.eq.${aId}`)
            .order('updated_at', { ascending: false }).limit(1)
            .then(r => ({ areaId: aId, profile: r.data?.[0] || null }))
       )),
@@ -10511,8 +10511,8 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     // Competitive signals per area
     const allAreaSigsRows = await Promise.all(allAreaIds.map(aId =>
       _sb.from('competitive_signals')
-         .select('id,signal_type,title,description,source_url,source_date,drug_id,confidence')
-         .eq('company_id', companyId).eq('area_id', aId)
+         .select('id,signal_type,title,description,source_url,source_date,drug_id,confidence,area_id,target_id')
+         .eq('company_id', companyId).or(`target_id.eq.${aId},area_id.eq.${aId}`)
          .order('source_date', { ascending: false }).limit(20)
          .then(r => ({ areaId: aId, sigs: r.data || [] }))
     ));
@@ -13276,7 +13276,7 @@ async function loadTopOpps() {
   const [dqRes, catRes, intelRes, coRes] = await Promise.allSettled([
     // High-relevance discovery candidates (pending + approved, last 30 days)
     _sb.from('discovery_queue')
-      .select('id,company_name,drug_name,area_id,relevance_score,competition_layer,overlap,reason,relevance_rationale,discovered_at,status')
+      .select('id,company_name,drug_name,area_id,target_id,relevance_score,competition_layer,overlap,reason,relevance_rationale,discovered_at,status')
       .gte('relevance_score', 7)
       .in('status', ['pending','approved'])
       .gte('discovered_at', cutoff30 + 'T00:00:00Z')
@@ -14101,7 +14101,7 @@ function _makeAreaPI(tabId, areaIds) {
       try {
         // Company profile for this area
         const { data: profileRows } = await _sb.from('company_profiles').select('*')
-          .eq('company_id', companyId).eq('area_id', AREA)
+          .eq('company_id', companyId).or(`target_id.eq.${AREA},area_id.eq.${AREA}`)
           .order('updated_at', { ascending: false }).limit(1);
         const profile = profileRows?.[0] || null;
 
@@ -14239,8 +14239,8 @@ function _makeAreaPI(tabId, areaIds) {
         let competitiveSignals = [];
         try {
           const { data: sigRows } = await _sb.from('competitive_signals')
-            .select('id,signal_type,title,description,source_url,source_date,drug_id,confidence')
-            .eq('company_id', companyId).eq('area_id', AREA)
+            .select('id,signal_type,title,description,source_url,source_date,drug_id,confidence,area_id,target_id')
+            .eq('company_id', companyId).or(`target_id.eq.${AREA},area_id.eq.${AREA}`)
             .order('source_date', { ascending: false }).limit(10);
           competitiveSignals = sigRows || [];
         } catch(_) {}
@@ -17235,7 +17235,7 @@ async function loadIndustryInsightsFeed() {
       _sb.from('intel_areas').select('intel_id,area_id,target_id,context_type').limit(2000),
       _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,event_type,importance,primary_company_id')
          .order('intel_date',{ascending:false}).limit(300),
-      _sb.from('competitive_signals').select('id,signal_type,title,description,source_url,source_date,area_id')
+      _sb.from('competitive_signals').select('id,signal_type,title,description,source_url,source_date,area_id,target_id,context_type')
          .order('source_date',{ascending:false}).limit(200),
       _sb.from('deals').select('id,deal_date,headline,total_usd_m,upfront_usd_m,source_url,area_id')
          .order('deal_date',{ascending:false}).limit(100),
