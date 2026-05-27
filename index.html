@@ -18280,6 +18280,7 @@ const _HIER_TA_TAB_MAP = {
   neurology:        'fcrn',       // FcRn Bispecific tab
   ophthalmology:    'igf1r-tshr', // IGF-1R × TSHR tab (TED)
   oncology:         'ace',        // BCMA × CD19 × CD3 tab
+  immunology:       null,         // no dashboard yet
 };
 // Therapeutic area color palette
 const _HIER_TA_COLOR_MAP = {
@@ -18290,6 +18291,7 @@ const _HIER_TA_COLOR_MAP = {
   neurology:        '#1d4ed8',
   ophthalmology:    '#0f766e',
   oncology:         '#dc2626',
+  immunology:       '#64748b',
 };
 // indication.id → tabId (per-indication override)
 const _HIER_IND_TAB_MAP = {
@@ -18362,12 +18364,15 @@ const _HIER_LEGACY_TO_TA = {
   autoimmune:       'rheumatology',
   hematology:       'neurology',   // waiha → FcRn/neurology umbrella
   // per-indication-id overrides (these take precedence — lookup checks ind.id first)
-  gmg:              'neurology',
-  cidp:             'neurology',
-  nmosd:            'neurology',
-  waiha:            'neurology',
-  mm:               'oncology',
-  all:              'oncology',
+  gmg:                'neurology',
+  cidp:               'neurology',
+  nmosd:              'neurology',
+  waiha:              'neurology',
+  mm:                 'oncology',
+  all:                'oncology',
+  // DB indication IDs that differ from short aliases in _HIER_IND_TAB_MAP
+  multiple_myeloma:   'oncology',
+  chronic_urticaria:  'dermatology',
 };
 
 let _hierLiveData = null;  // cached tree array; null = not yet loaded
@@ -18375,7 +18380,8 @@ let _hierFetching = false; // guard against parallel fetches
 
 // ── Async data fetcher — builds the tree from 4 Supabase tables ──
 async function _hierFetchLiveData() {
-  if (!window._sb) throw new Error('_sb not ready');
+  // _sb is a module-level const — not on window. Use it directly.
+  if (typeof _sb === 'undefined') throw new Error('_sb not ready');
 
   const [r1, r2, r3, r4] = await Promise.all([
     _sb.from('therapeutic_areas').select('id,name,sort_order').eq('status','active').order('sort_order'),
@@ -18559,8 +18565,9 @@ async function hierBuildTree() {
     try {
       _hierLiveData = await _hierFetchLiveData();
     } catch(e) {
-      console.warn('hierBuildTree: Supabase fetch failed, using empty tree', e);
+      console.error('hierBuildTree: Supabase fetch failed — navigator will be empty. Error:', e);
       _hierLiveData = [];
+      body.innerHTML = '<div style="padding:14px 16px;font-size:11px;color:#ef4444">Navigator failed to load. Check console.</div>';
     }
     _hierFetching = false;
   }
