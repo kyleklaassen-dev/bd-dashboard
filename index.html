@@ -2035,8 +2035,9 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .iif-pill { background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; font-size:12px; font-weight:600; padding:5px 14px; border-radius:20px; cursor:pointer; transition:all .15s; white-space:nowrap; }
 .iif-pill:hover { background:#e2e8f0; color:#1e293b; }
 .iif-pill.active { background:#1e3a5f; color:white; border-color:#1e3a5f; }
-.iif-card { background:white; border:1px solid #e8edf2; border-radius:10px; padding:13px 16px 11px; margin-bottom:8px; transition:box-shadow .15s; }
+.iif-card { background:white; border:1px solid #e8edf2; border-radius:10px; padding:0; margin-bottom:8px; transition:box-shadow .15s; overflow:hidden; display:flex; align-items:stretch; cursor:default; }
 .iif-card:hover { box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+.iif-card-inner { flex:1; min-width:0; padding:13px 16px 11px; }
 .iif-card-top { display:flex; align-items:center; gap:7px; margin-bottom:7px; flex-wrap:wrap; }
 .iif-date { font-size:10.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
 .iif-type-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
@@ -2087,6 +2088,44 @@ details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
 .iif-area-respiratory { background:#d1fae5; color:#047857; }
 .iif-area-ibd { background:#dbeafe; color:#1d4ed8; }
 .iif-area-default { background:#f1f5f9; color:#64748b; }
+/* Enhanced filter bar */
+#iif-filter-bar { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid #f1f5f9; }
+.iif-filter-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.iif-filter-row-top { align-items:flex-end; }
+.iif-filter-row-types { padding-top:4px; flex-wrap:wrap; gap:5px; align-items:center; }
+.iif-filter-group { display:flex; flex-direction:column; gap:4px; }
+.iif-filter-group-selects { flex-direction:row; gap:6px; align-items:flex-end; }
+.iif-filter-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+.iif-filter-row-types .iif-filter-label { margin-right:2px; }
+.iif-source-pills { display:flex; gap:4px; }
+.iif-src-pill, .iif-date-pill, .iif-rel-pill { background:#f8fafc; border:1px solid #e2e8f0; color:#64748b; font-size:11px; font-weight:600; padding:4px 10px; border-radius:16px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.iif-src-pill:hover, .iif-date-pill:hover, .iif-rel-pill:hover { background:#e2e8f0; color:#1e293b; }
+.iif-src-pill.active, .iif-date-pill.active, .iif-rel-pill.active { background:#1e3a5f; color:white; border-color:#1e3a5f; }
+.iif-select { font-size:11px; font-weight:600; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:5px 26px 5px 10px; appearance:none; -webkit-appearance:none; cursor:pointer; min-width:130px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; }
+.iif-select:focus { outline:none; border-color:#94a3b8; }
+.iif-reset-btn { font-size:11px; font-weight:700; color:#94a3b8; background:none; border:1px solid #e2e8f0; border-radius:8px; padding:5px 12px; cursor:pointer; white-space:nowrap; margin-left:auto; transition:all .15s; align-self:flex-end; }
+.iif-reset-btn:hover { background:#fee2e2; color:#dc2626; border-color:#fca5a5; }
+/* Source badge */
+.iif-source-badge { font-size:9px; font-weight:800; padding:1px 6px; border-radius:5px; text-transform:uppercase; letter-spacing:.06em; }
+.iif-source-badge-intel { background:#1e3a5f; color:white; }
+.iif-source-badge-news  { background:#0369a1; color:white; }
+.iif-source-badge-signal { background:#6d28d9; color:white; }
+.iif-source-badge-deal  { background:#065f46; color:white; }
+/* Company chip in card */
+.iif-company-name { font-size:10.5px; font-weight:700; color:#1e40af; background:#eff6ff; border-radius:5px; padding:1px 6px; }
+/* Results bar */
+#iif-results-bar { font-size:11px; color:#94a3b8; font-weight:600; margin-bottom:10px; min-height:16px; }
+/* Event type badge additions */
+.iif-type-clinical_data { background:#dbeafe; color:#1e40af; }
+.iif-type-market { background:#fef3c7; color:#92400e; }
+.iif-type-partnership { background:#d1fae5; color:#065f46; }
+.iif-type-other { background:#f1f5f9; color:#64748b; }
+.iif-type-signal { background:#f5f3ff; color:#5b21b6; }
+/* Card relevance bar */
+.iif-card-rel { width:4px; flex-shrink:0; align-self:stretch; border-radius:0; }
+.iif-card-rel-high   { background:#22c55e; }
+.iif-card-rel-medium { background:#f59e0b; }
+.iif-card-rel-low    { background:#e8edf2; }
 
 </style>
 
@@ -4206,20 +4245,70 @@ function loadMoleculeTab(tabId) {
 <div class="tab-pane" id="tab-industry-insights">
   <!-- ── Unified News Feed ─────────────────────────────────────────────── -->
   <div id="iif-wrap">
+    <!-- ── Advanced Filter Bar ─────────────────────────────────────────── -->
     <div id="iif-filter-bar">
-      <button class="iif-pill active" data-cat="all" onclick="iifFilter('all')">All</button>
-      <button class="iif-pill" data-cat="clinical" onclick="iifFilter('clinical')">Clinical</button>
-      <button class="iif-pill" data-cat="catalyst" onclick="iifFilter('catalyst')">Catalyst</button>
-      <button class="iif-pill" data-cat="deal" onclick="iifFilter('deal')">BD Deal</button>
-      <button class="iif-pill" data-cat="regulatory" onclick="iifFilter('regulatory')">Regulatory</button>
-      <button class="iif-pill" data-cat="pipeline" onclick="iifFilter('pipeline')">Pipeline</button>
-      <button class="iif-pill" data-cat="financing" onclick="iifFilter('financing')">Financing</button>
-      <button class="iif-pill" data-cat="conference" onclick="iifFilter('conference')">Conference</button>
-      <button class="iif-pill" data-cat="publication" onclick="iifFilter('publication')">Publication</button>
-      <button class="iif-pill" data-cat="patent" onclick="iifFilter('patent')">Patent</button>
+      <div class="iif-filter-row iif-filter-row-top">
+        <div class="iif-filter-group">
+          <label class="iif-filter-label">Source</label>
+          <div class="iif-source-pills">
+            <button class="iif-src-pill active" data-src="all"  onclick="iifSetFilter('src','all')">All</button>
+            <button class="iif-src-pill"         data-src="intel" onclick="iifSetFilter('src','intel')">Intel</button>
+            <button class="iif-src-pill"         data-src="news"  onclick="iifSetFilter('src','news')">News</button>
+          </div>
+        </div>
+        <div class="iif-filter-group">
+          <label class="iif-filter-label">Date</label>
+          <div class="iif-source-pills">
+            <button class="iif-date-pill active" data-range="all"   onclick="iifSetFilter('range','all')">All Time</button>
+            <button class="iif-date-pill"         data-range="today" onclick="iifSetFilter('range','today')">Today</button>
+            <button class="iif-date-pill"         data-range="week"  onclick="iifSetFilter('range','week')">This Week</button>
+            <button class="iif-date-pill"         data-range="month" onclick="iifSetFilter('range','month')">This Month</button>
+          </div>
+        </div>
+        <div class="iif-filter-group">
+          <label class="iif-filter-label">Relevance</label>
+          <div class="iif-source-pills">
+            <button class="iif-rel-pill active" data-rel="all"  onclick="iifSetFilter('rel','all')">All</button>
+            <button class="iif-rel-pill"         data-rel="high" onclick="iifSetFilter('rel','high')">High</button>
+            <button class="iif-rel-pill"         data-rel="med"  onclick="iifSetFilter('rel','med')">Medium+</button>
+          </div>
+        </div>
+        <div class="iif-filter-group iif-filter-group-selects">
+          <select id="iif-sel-company" class="iif-select" onchange="iifSetFilter('company', this.value)">
+            <option value="">All Companies</option>
+          </select>
+          <select id="iif-sel-area" class="iif-select" onchange="iifSetFilter('area', this.value)">
+            <option value="">All Areas</option>
+            <option value="tl1a">TL1A</option>
+            <option value="tslp">TSLP</option>
+            <option value="il4ra">IL-4Rα</option>
+            <option value="igf1r">IGF-1R</option>
+            <option value="fcrn">FcRn</option>
+            <option value="ted">TED</option>
+            <option value="ibd">IBD</option>
+            <option value="respiratory">Respiratory</option>
+            <option value="autoimmune">Autoimmune</option>
+          </select>
+        </div>
+        <button class="iif-reset-btn" onclick="iifResetFilters()" title="Clear all filters">↺ Reset</button>
+      </div>
+      <div class="iif-filter-row iif-filter-row-types">
+        <span class="iif-filter-label">Event Type:</span>
+        <button class="iif-pill active" data-cat="all"          onclick="iifSetFilter('cat','all')">All</button>
+        <button class="iif-pill"         data-cat="clinical_data" onclick="iifSetFilter('cat','clinical_data')">Clinical Data</button>
+        <button class="iif-pill"         data-cat="deal"          onclick="iifSetFilter('cat','deal')">BD Deal</button>
+        <button class="iif-pill"         data-cat="regulatory"    onclick="iifSetFilter('cat','regulatory')">Regulatory</button>
+        <button class="iif-pill"         data-cat="partnership"   onclick="iifSetFilter('cat','partnership')">Partnership</button>
+        <button class="iif-pill"         data-cat="pipeline"      onclick="iifSetFilter('cat','pipeline')">Pipeline</button>
+        <button class="iif-pill"         data-cat="publication"   onclick="iifSetFilter('cat','publication')">Publication</button>
+        <button class="iif-pill"         data-cat="market"        onclick="iifSetFilter('cat','market')">Market</button>
+        <button class="iif-pill"         data-cat="other"         onclick="iifSetFilter('cat','other')">Other</button>
+      </div>
+      <div id="iif-active-filters"></div>
     </div>
+    <div id="iif-results-bar"></div>
     <div id="iif-feed">
-      <div class="iif-loading">Loading news feed…</div>
+      <div class="iif-loading">Loading intelligence feed…</div>
     </div>
   </div>
   <!-- ── Historical Archive (collapsed) ────────────────────────────────── -->
@@ -16320,21 +16409,27 @@ function iiToggle(id) {
 
 // ── Industry Insights Feed v2 ─────────────────────────────────────────────────
 const IIF_TYPE_MAP = {
-  // intel_type values
-  'deal':           { cat:'deal',        label:'BD Deal',      cls:'deal' },
-  'clinical':       { cat:'clinical',    label:'Clinical',     cls:'clinical' },
-  'regulatory':     { cat:'regulatory',  label:'Regulatory',   cls:'regulatory' },
-  'conference':     { cat:'conference',  label:'Conference',   cls:'conference' },
-  'pipeline':       { cat:'pipeline',    label:'Pipeline',     cls:'pipeline' },
-  'financing':      { cat:'financing',   label:'Financing',    cls:'financing' },
-  'news':           { cat:'publication', label:'News',         cls:'news' },
-  'user_submitted': { cat:'publication', label:'Submitted',    cls:'news' },
-  // competitive_signals signal_type values
-  'clinical_update':{ cat:'clinical',    label:'Clinical',     cls:'clinical' },
-  'licensing':      { cat:'deal',        label:'BD Deal',      cls:'deal' },
-  'patent':         { cat:'patent',      label:'Patent',       cls:'patent' },
-  'publication':    { cat:'publication', label:'Publication',  cls:'publication' },
-  'financing':      { cat:'financing',   label:'Financing',    cls:'financing' },
+  // event_type values (new canonical)
+  'clinical_data':  { cat:'clinical_data', label:'Clinical Data', cls:'clinical_data' },
+  'deal':           { cat:'deal',          label:'BD Deal',       cls:'deal' },
+  'regulatory':     { cat:'regulatory',    label:'Regulatory',    cls:'regulatory' },
+  'partnership':    { cat:'partnership',   label:'Partnership',   cls:'partnership' },
+  'pipeline':       { cat:'pipeline',      label:'Pipeline',      cls:'pipeline' },
+  'publication':    { cat:'publication',   label:'Publication',   cls:'publication' },
+  'market':         { cat:'market',        label:'Market',        cls:'market' },
+  'other':          { cat:'other',         label:'Other',         cls:'other' },
+  'signal':         { cat:'other',         label:'Signal',        cls:'signal' },
+  // legacy intel_type fallbacks
+  'clinical':       { cat:'clinical_data', label:'Clinical Data', cls:'clinical_data' },
+  'clinical_update':{ cat:'clinical_data', label:'Clinical Data', cls:'clinical_data' },
+  'data':           { cat:'clinical_data', label:'Clinical Data', cls:'clinical_data' },
+  'conference':     { cat:'publication',   label:'Publication',   cls:'publication' },
+  'financing':      { cat:'other',         label:'Other',         cls:'other' },
+  'management':     { cat:'other',         label:'Other',         cls:'other' },
+  'licensing':      { cat:'deal',          label:'BD Deal',       cls:'deal' },
+  'patent':         { cat:'other',         label:'Patent',        cls:'other' },
+  'news':           { cat:'pipeline',      label:'Pipeline',      cls:'pipeline' },
+  'user_submitted': { cat:'publication',   label:'Submitted',     cls:'news' },
 };
 const IIF_AREA_LABELS = {
   'tl1a':'TL1A','tslp':'TSLP','il4ra':'IL-4Rα','il4ra-tslp':'IL-4Rα×TSLP',
@@ -16349,73 +16444,123 @@ const IIF_AREA_CLS = {
 };
 
 let _iifLoaded = false;
-let _iifActive = 'all';
 let _iifItems  = [];
+let _iifCompanyMap = {};  // id -> name
+let _iifFilters = {
+  cat:     'all',      // event_type category
+  src:     'all',      // 'all' | 'intel' | 'news'
+  range:   'all',      // 'all' | 'today' | 'week' | 'month'
+  rel:     'all',      // 'all' | 'high' | 'med'
+  company: '',         // company id string
+  area:    '',         // area id string
+};
 
 async function loadIndustryInsightsFeed() {
   if (_iifLoaded) { iifRender(); return; }
   const feed = document.getElementById('iif-feed');
   if (!feed) return;
-  feed.innerHTML = '<div class="iif-loading">Loading news feed…</div>';
+  feed.innerHTML = '<div class="iif-loading">Loading intelligence feed…</div>';
   try {
-    const [iaRes, intelRes, sigRes, dealRes, naRes] = await Promise.all([
-      _sb.from('intel_areas').select('intel_id,area_id').limit(500),
-      _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,importance')
-         .order('intel_date',{ascending:false}).limit(200),
+    const [iaRes, intelRes, sigRes, dealRes, naRes, coRes] = await Promise.all([
+      _sb.from('intel_areas').select('intel_id,area_id').limit(2000),
+      _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,event_type,importance,primary_company_id')
+         .order('intel_date',{ascending:false}).limit(300),
       _sb.from('competitive_signals').select('id,signal_type,title,description,source_url,source_date,area_id')
          .order('source_date',{ascending:false}).limit(200),
       _sb.from('deals').select('id,deal_date,headline,total_usd_m,upfront_usd_m,source_url,area_id')
          .order('deal_date',{ascending:false}).limit(100),
-      // Fix 5 — area tab news routing: news_articles with matched_area_ids populated
       _sb.from('news_articles')
-         .select('id,published_at,headline,meridian_summary,why_it_matters,article_url,source_name,relevance_score,matched_area_ids,matched_drug_ids,matched_company_ids')
+         .select('id,published_at,headline,meridian_summary,why_it_matters,article_url,source_name,relevance_score,priority_level,event_type,matched_area_ids,matched_drug_ids,matched_company_ids')
          .neq('source_validation_status','invalid')
-         .eq('is_this_week', true)
-         .order('relevance_score',{ascending:false})
-         .limit(60),
+         .order('published_at',{ascending:false})
+         .limit(150),
+      _sb.from('companies').select('id,name').order('name').limit(200),
     ]);
-    // Build intel→area map
+
+    // Build company map for name lookup
+    _iifCompanyMap = {};
+    (coRes.data||[]).forEach(c => { _iifCompanyMap[c.id] = c.name; });
+
+    // Populate company dropdown
+    const sel = document.getElementById('iif-sel-company');
+    if (sel && sel.options.length <= 1) {
+      const seen2 = new Set();
+      const allCompIds = [
+        ...(intelRes.data||[]).map(x=>x.primary_company_id).filter(Boolean),
+        ...(naRes.data||[]).flatMap(x=>x.matched_company_ids||[]),
+      ];
+      allCompIds.forEach(id => {
+        if (!seen2.has(id) && _iifCompanyMap[id]) {
+          seen2.add(id);
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = _iifCompanyMap[id];
+          sel.appendChild(opt);
+        }
+      });
+    }
+
+    // Build intel->area map
     const areaMap = {};
     (iaRes.data||[]).forEach(r => { (areaMap[r.intel_id]=areaMap[r.intel_id]||[]).push(r.area_id); });
 
-    // Normalise each source into common shape
-    const normalise = (items) => items.filter(x => x.headline||x.title);
-    const intelItems = normalise(intelRes.data||[]).map(x => ({
-      _key:  `intel-${x.id}`,
-      date:  x.intel_date,
-      headline: x.headline,
-      body:  x.body || '',
-      sources: x.source_url ? [{name: x.source_name||'Source', url: x.source_url}] : [],
-      type:  x.intel_type || 'news',
-      areas: areaMap[x.id] || [],
+    // Importance/relevance to numeric score (0-1) for filtering
+    const importanceScore = { high:0.9, medium:0.6, low:0.3 };
+
+    // Normalise intel items
+    const intelItems = (intelRes.data||[]).filter(x=>x.headline).map(x => ({
+      _key:       'intel-'+x.id,
+      date:       x.intel_date,
+      headline:   x.headline,
+      body:       x.body || '',
+      sources:    x.source_url ? [{name: x.source_name||'Source', url: x.source_url}] : [],
+      event_type: x.event_type || x.intel_type || 'signal',
+      areas:      areaMap[x.id] || [],
+      source_type:'intel',
+      company_id: x.primary_company_id || '',
+      rel_score:  importanceScore[x.importance] || 0.5,
     }));
-    const sigItems = normalise(sigRes.data||[]).map(x => ({
-      _key:  `sig-${x.id}`,
-      date:  x.source_date,
-      headline: x.title,
-      body:  x.description || '',
-      sources: x.source_url ? [{name:'Source', url: x.source_url}] : [],
-      type:  x.signal_type || 'news',
-      areas: x.area_id ? [x.area_id] : [],
+
+    // Normalise competitive_signals
+    const sigItems = (sigRes.data||[]).filter(x=>x.title).map(x => ({
+      _key:       'sig-'+x.id,
+      date:       x.source_date,
+      headline:   x.title,
+      body:       x.description || '',
+      sources:    x.source_url ? [{name:'Source', url: x.source_url}] : [],
+      event_type: x.signal_type || 'signal',
+      areas:      x.area_id ? [x.area_id] : [],
+      source_type:'intel',
+      company_id: '',
+      rel_score:  0.5,
     }));
-    const dealItems = normalise(dealRes.data||[]).map(x => ({
-      _key:  `deal-${x.id}`,
-      date:  x.deal_date,
-      headline: x.headline,
-      body:  x.total_usd_m ? `Total: $${x.total_usd_m}M${x.upfront_usd_m?` · $${x.upfront_usd_m}M upfront`:''}` : '',
-      sources: x.source_url ? [{name:'Source', url: x.source_url}] : [],
-      type:  'deal',
-      areas: x.area_id ? [x.area_id] : [],
+
+    // Normalise deal items
+    const dealItems = (dealRes.data||[]).filter(x=>x.headline).map(x => ({
+      _key:       'deal-'+x.id,
+      date:       x.deal_date,
+      headline:   x.headline,
+      body:       x.total_usd_m ? ('Total: $'+x.total_usd_m+'M'+(x.upfront_usd_m?' · $'+x.upfront_usd_m+'M upfront':'')) : '',
+      sources:    x.source_url ? [{name:'Source', url: x.source_url}] : [],
+      event_type: 'deal',
+      areas:      x.area_id ? [x.area_id] : [],
+      source_type:'intel',
+      company_id: '',
+      rel_score:  0.7,
     }));
-    // Fix 5 — news_articles in Industry Insights feed, area-tagged via matched_area_ids
-    const newsItems = (naRes.data||[]).filter(x => x.headline).map(x => ({
-      _key:  `na-${x.id}`,
-      date:  x.published_at ? x.published_at.slice(0,10) : '',
-      headline: x.headline,
-      body:  x.meridian_summary || x.why_it_matters || '',
-      sources: x.article_url ? [{name: x.source_name||'News', url: x.article_url}] : [],
-      type:  'news',
-      areas: x.matched_area_ids || [],
+
+    // Normalise news_articles
+    const newsItems = (naRes.data||[]).filter(x=>x.headline).map(x => ({
+      _key:       'na-'+x.id,
+      date:       x.published_at ? x.published_at.slice(0,10) : '',
+      headline:   x.headline,
+      body:       x.meridian_summary || x.why_it_matters || '',
+      sources:    x.article_url ? [{name: x.source_name||'News', url: x.article_url}] : [],
+      event_type: x.event_type || 'pipeline',
+      areas:      x.matched_area_ids || [],
+      source_type:'news',
+      company_id: (x.matched_company_ids||[])[0] || '',
+      rel_score:  x.relevance_score ? x.relevance_score / 100 : 0.3,
     }));
 
     // Merge and deduplicate by normalised headline + date
@@ -16424,10 +16569,11 @@ async function loadIndustryInsightsFeed() {
       if (!item.date || !item.headline) return;
       const key = item.headline.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,60)+'|'+item.date;
       if (!seen[key]) {
-        seen[key] = {...item, sources:[...item.sources]};
+        seen[key] = Object.assign({}, item, {sources:[...item.sources]});
       } else {
         item.sources.forEach(s => { if (!seen[key].sources.find(x=>x.url===s.url)) seen[key].sources.push(s); });
         if (!seen[key].body && item.body) seen[key].body = item.body;
+        if (item.rel_score > seen[key].rel_score) seen[key].rel_score = item.rel_score;
       }
     });
 
@@ -16440,44 +16586,99 @@ async function loadIndustryInsightsFeed() {
     iifRender();
   } catch(e) {
     const feed2 = document.getElementById('iif-feed');
-    if (feed2) feed2.innerHTML = `<div class="iif-empty">Error loading feed: ${e.message}</div>`;
+    if (feed2) feed2.innerHTML = '<div class="iif-empty">Error loading feed: '+e.message+'</div>';
+    console.error('[IIF]', e);
   }
 }
 
-function iifFilter(cat) {
-  _iifActive = cat;
-  document.querySelectorAll('#iif-filter-bar .iif-pill').forEach(p =>
-    p.classList.toggle('active', p.dataset.cat === cat));
+
+function iifSetFilter(dim, val) {
+  _iifFilters[dim] = val;
+  const selMap = { cat:'.iif-pill', src:'.iif-src-pill', range:'.iif-date-pill', rel:'.iif-rel-pill' };
+  if (selMap[dim]) {
+    document.querySelectorAll('#iif-filter-bar ' + selMap[dim]).forEach(p => {
+      p.classList.toggle('active', (p.dataset[dim]||'') === val);
+    });
+  }
   iifRender();
 }
+
+function iifResetFilters() {
+  _iifFilters = { cat:'all', src:'all', range:'all', rel:'all', company:'', area:'' };
+  document.querySelectorAll('.iif-pill').forEach(p => p.classList.toggle('active', p.dataset.cat==='all'));
+  document.querySelectorAll('.iif-src-pill').forEach(p => p.classList.toggle('active', p.dataset.src==='all'));
+  document.querySelectorAll('.iif-date-pill').forEach(p => p.classList.toggle('active', p.dataset.range==='all'));
+  document.querySelectorAll('.iif-rel-pill').forEach(p => p.classList.toggle('active', p.dataset.rel==='all'));
+  const cs = document.getElementById('iif-sel-company'); if (cs) cs.value = '';
+  const as = document.getElementById('iif-sel-area'); if (as) as.value = '';
+  iifRender();
+}
+
+// Legacy compatibility
+function iifFilter(cat) { iifSetFilter('cat', cat); }
 
 function iifRender() {
   const feed = document.getElementById('iif-feed');
   if (!feed) return;
-  const items = _iifActive === 'all' ? _iifItems : _iifItems.filter(item => {
-    const m = IIF_TYPE_MAP[item.type];
-    return m && m.cat === _iifActive;
+  const f = _iifFilters;
+
+  // Date range cutoffs
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekAgo  = new Date(today); weekAgo.setDate(today.getDate()-7);
+  const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth()-1);
+
+  let items = _iifItems.filter(item => {
+    if (f.src !== 'all' && item.source_type !== f.src) return false;
+    if (f.cat !== 'all') {
+      const m = IIF_TYPE_MAP[item.event_type];
+      const cat = m ? m.cat : item.event_type;
+      if (cat !== f.cat) return false;
+    }
+    if (f.range !== 'all' && item.date) {
+      const d = new Date(item.date + 'T00:00:00');
+      if (f.range === 'today' && d < today) return false;
+      if (f.range === 'week'  && d < weekAgo) return false;
+      if (f.range === 'month' && d < monthAgo) return false;
+    }
+    if (f.rel === 'high' && item.rel_score < 0.75) return false;
+    if (f.rel === 'med'  && item.rel_score < 0.5)  return false;
+    if (f.company && item.company_id !== f.company) return false;
+    if (f.area && !(item.areas||[]).includes(f.area)) return false;
+    return true;
   });
-  if (!items.length) { feed.innerHTML = '<div class="iif-empty">No items match this filter.</div>'; return; }
+
+  const bar = document.getElementById('iif-results-bar');
+  if (bar) bar.textContent = items.length ? (items.length + ' item' + (items.length===1?'':'s')) : '';
+
+  if (!items.length) { feed.innerHTML = '<div class="iif-empty">No items match the current filters.</div>'; return; }
+
   let lastDay = ''; let html = '';
   items.forEach(item => {
     const dayStr = _iifFormatDay(item.date);
     if (dayStr !== lastDay) { html += `<div class="iif-day-sep">${dayStr}</div>`; lastDay = dayStr; }
-    const tm = IIF_TYPE_MAP[item.type] || {label: item.type||'News', cls:'news'};
+    const et = item.event_type || 'signal';
+    const tm = IIF_TYPE_MAP[et] || {label: et, cls:'news'};
+    const srcBadgeCls = item.source_type === 'news' ? 'iif-source-badge-news' : 'iif-source-badge-intel';
+    const srcLabel    = item.source_type === 'news' ? 'NEWS' : 'INTEL';
     const areaPills = (item.areas||[]).map(a =>
       `<span class="iif-area-pill iif-area-${IIF_AREA_CLS[a]||'default'}">${IIF_AREA_LABELS[a]||a}</span>`
     ).join('');
+    const companyName = item.company_id ? (_iifCompanyMap[item.company_id]||item.company_id) : '';
+    const companyChip = companyName ? `<span class="iif-company-name">${_iifEsc(companyName)}</span>` : '';
+    const relCls = item.rel_score >= 0.75 ? 'iif-card-rel-high' : item.rel_score >= 0.5 ? 'iif-card-rel-medium' : 'iif-card-rel-low';
     const hasBody = !!item.body;
     const hlUrl = _gUrl(item.headline || '');
-    html += `<div class="iif-card" id="iif-card-${item._key}"${hasBody?' onclick="iifToggleCard(\''+item._key+'\')"':''}>
+    const toggleAttr = hasBody ? ` onclick="iifToggleCard('${item._key}')"` : '';
+    html += `<div class="iif-card" id="iif-card-${item._key}"${toggleAttr}><div class="iif-card-rel ${relCls}"></div><div class="iif-card-inner">
   <div class="iif-card-top">
     <span class="iif-date">${item.date||''}</span>
-    <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${areaPills}
+    <span class="iif-source-badge ${srcBadgeCls}">${srcLabel}</span>
+    <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${companyChip}${areaPills}
   </div>
   <a class="iif-headline" href="${hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(item.headline)}</a>
-  ${hasBody?`<div class="iif-meta"><span class="iif-expand-icon">▼</span></div>`:''}
+  ${hasBody?`<div class="iif-meta"><span class="iif-expand-icon">&#9660;</span></div>`:''}
   ${hasBody?`<div class="iif-body-text" id="iif-body-${item._key}">${_iifEsc(item.body)}</div>`:''}
-</div>`;
+</div></div>`;
   });
   feed.innerHTML = html;
 }
@@ -21026,17 +21227,14 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ═══════════════════════════════════════════════════════════════════════════
      ONTOLOGY EXPLORER TAB  #tab-ontology-explorer  (prototype — mock data)
 ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="tab-pane" id="tab-ontology-explorer" style="display:none;flex-direction:column;padding:0;background:#0d1520;font-family:'Inter',sans-serif;height:100%">
+<div class="tab-pane" id="tab-ontology-explorer" style="flex-direction:column;padding:0;background:#0d1520;font-family:'Inter',sans-serif;height:100%">
 
-  <!-- Explorer header bar -->
-  <div style="background:#111d2e;border-bottom:1px solid #1e3050;padding:0 24px;display:flex;align-items:center;gap:12px;height:44px;flex-shrink:0">
-    <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#637d9a">Meridian</span>
-    <span style="font-size:14px;font-weight:700;color:#e8f0fa">Ontology Explorer</span>
-    <span style="font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(245,158,11,.18);color:#f59e0b">Prototype</span>
-    <span style="font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(99,125,154,.18);color:#637d9a">Internal</span>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <button onclick="switchTabTo('ontology')" style="background:none;border:1px solid #243d5c;color:#637d9a;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">← Ontology Audit</button>
-    </div>
+  <!-- Admin sub-tab strip (matches Meridian Admin pattern) -->
+  <div style="background:#1e2d3d;border-bottom:1px solid #2d4060;padding:0 32px;display:flex;align-items:center;gap:0;flex-shrink:0">
+    <span style="font-size:10px;color:#4a6080;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
+    <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Program Board</button>
+    <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#6b8aad;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+    <button onclick="switchTabTo('ontology-explorer')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Ontology Explorer <span style="font-size:9px;background:rgba(245,158,11,.25);color:#f59e0b;padding:1px 5px;border-radius:8px;font-weight:800;margin-left:3px">PROTO</span></button>
   </div>
 
 
@@ -21805,6 +22003,7 @@ try { oexRender(); window.OEX_INITIALIZED = true; } catch(e) { console.warn('[OE
     <span style="font-size:10px;color:#2d4a6a;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-right:24px;padding:11px 0;white-space:nowrap">Meridian Admin</span>
     <button onclick="switchTabTo('program-board')" style="padding:10px 18px;border:none;border-bottom:2px solid #4a90c4;background:transparent;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">Program Board</button>
     <button onclick="switchTabTo('ontology')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#4a6080;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Audit</button>
+    <button onclick="switchTabTo('ontology-explorer')" style="padding:10px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:#4a6080;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.3px">Ontology Explorer <span style="font-size:9px;background:rgba(245,158,11,.25);color:#f59e0b;padding:1px 5px;border-radius:8px;font-weight:800;margin-left:3px">PROTO</span></button>
   </div>
 
   <!-- Header -->
