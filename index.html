@@ -18303,17 +18303,29 @@ const _HIER_TGT_SYMBOL = {
 };
 
 // indications.disease_area (legacy string) → therapeutic_areas.id
+// Also used as per-indication-id overrides (checked first in lookup below)
 const _HIER_LEGACY_TO_TA = {
-  ibd:         'gastroenterology',
-  respiratory: 'respiratory',
-  atopy:       'dermatology',
-  ted:         'ophthalmology',
-  gmg:         'neurology',
-  cidp:        'neurology',
-  autoimmune:  'rheumatology',
-  oncology:    'oncology',
-  mm:          'oncology',
-  all:         'oncology',
+  // disease_area values that match TA ids directly
+  gastroenterology: 'gastroenterology',
+  respiratory:      'respiratory',
+  dermatology:      'dermatology',
+  rheumatology:     'rheumatology',
+  neurology:        'neurology',
+  ophthalmology:    'ophthalmology',
+  oncology:         'oncology',
+  // legacy disease_area aliases
+  ibd:              'gastroenterology',
+  atopy:            'dermatology',
+  ted:              'ophthalmology',
+  autoimmune:       'rheumatology',
+  hematology:       'neurology',   // waiha → FcRn/neurology umbrella
+  // per-indication-id overrides (these take precedence — lookup checks ind.id first)
+  gmg:              'neurology',
+  cidp:             'neurology',
+  nmosd:            'neurology',
+  waiha:            'neurology',
+  mm:               'oncology',
+  all:              'oncology',
 };
 
 let _hierLiveData = null;  // cached tree array; null = not yet loaded
@@ -18356,8 +18368,8 @@ async function _hierFetchLiveData() {
   // Group indications under their therapeutic area
   const taIndMap = {};
   indRows.forEach(ind => {
-    // Map disease_area string to therapeutic_area id; also try ind.id directly
-    const taId = _HIER_LEGACY_TO_TA[ind.disease_area] || _HIER_LEGACY_TO_TA[ind.id];
+    // Check ind.id first (per-indication overrides), then disease_area string
+    const taId = _HIER_LEGACY_TO_TA[ind.id] || _HIER_LEGACY_TO_TA[ind.disease_area];
     if (!taId) return;
     if (!taIndMap[taId]) taIndMap[taId] = [];
     taIndMap[taId].push(ind);
