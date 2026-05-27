@@ -13506,7 +13506,7 @@ function _makeAreaPI(tabId, areaIds) {
           ticker:               companiesMap.get(ownerCoId)?.ticker || d.companies?.ticker || '',
           hq_city:              companiesMap.get(ownerCoId)?.hq_city  || d.companies?.hq_city  || '',
           hq_country:           companiesMap.get(ownerCoId)?.hq_country || d.companies?.hq_country || '',
-          drug:                 d.name + (d.brand_name ? ` (${d.brand_name})` : ''),
+          drug:                 d.brand_name ? d.brand_name + (d.name && d.name.toLowerCase() !== d.brand_name.toLowerCase() ? ` (${d.name})` : '') : d.name,
           name:                 d.name,
           target:               d.target || _piExtractTarget(d.mechanism) || '—',
           mechanism:            d.mechanism || '',
@@ -13790,7 +13790,7 @@ function _makeAreaPI(tabId, areaIds) {
       let html = '';
       if (ent.programs.length > 0) {
         const bubbles = ent.programs.map(p =>
-          `<div class="pi-prog-bubble"><span class="pi-prog-name">${p.name}</span>
+          `<div class="pi-prog-bubble"><span class="pi-prog-name">${p.brand_name || p.name}</span>${p.brand_name && p.name && p.name.toLowerCase() !== p.brand_name.toLowerCase() ? '<span class="drug-molecule-name">' + p.name + '</span>' : ''}
             ${this._stagePill(p.stageKey)} ${this._clsPill(p.cls)}
             ${p.target!=='—'?`<span class="pi-prog-target">${p.target}</span>`:''}
             ${this._ovBadge(p.overlap)}
@@ -15315,10 +15315,20 @@ function _makeAreaPI(tabId, areaIds) {
    const _tierVal = (d.overlap||d._overlap||d.overlap_category||'').toLowerCase().replace(/[-_\s]/g,'');
    const _tierCls = _tierVal==='direct' ? ' pi-da-direct' : _tierVal==='adjacent' ? ' pi-da-adjacent' : (_tierVal==='watch'||_tierVal==='samespace') ? ' pi-da-watch' : '';
 
+   // Confidence indicator: surfaces data quality at a glance
+   const _conf = (d.confidence_level || '').toLowerCase();
+   const _confIndicator = _conf === 'confirmed'
+    ? `<span title="Verified — confirmed from direct source" style="font-size:9px;color:#15803d;font-weight:700;white-space:nowrap;flex-shrink:0">✓</span>`
+    : _conf === 'supported'
+    ? `<span title="Partially verified — supported by indirect sources" style="font-size:9px;color:#b45309;font-weight:700;white-space:nowrap;flex-shrink:0">◐</span>`
+    : _conf === 'inferred'
+    ? `<span title="Inferred — not directly confirmed" style="font-size:9px;color:#94a3b8;font-weight:700;white-space:nowrap;flex-shrink:0">?</span>`
+    : '';
+
    return `<div class="pi-da-row${_tierCls}">
     <div class="pi-da-hd" onclick="piToggleDrugRow(this)">
      <span class="pi-da-toggle">▶</span>
-     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_piDrugLabel(d)).replace(/'/g,"\\'")}',event)">${_piDrugLabelHTML(d)}</span></span>
+     <span class="pi-da-name"><span class="pi-entity-name" onclick="event.stopPropagation();openDrugEntityModal('${d.id}','${(_piDrugLabel(d)).replace(/'/g,"\\'")}',event)">${_piDrugLabelHTML(d)}</span>${_confIndicator}</span>
      <span class="pi-da-mech">${drugTarget}</span>
      <div class="pi-da-stage">${this._stagePill(drugPhase)}</div>
      <div class="pi-da-pills"><span class="pi-da-tag" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0">${drugInd}</span></div>
@@ -23735,11 +23745,14 @@ document.addEventListener('DOMContentLoaded', function(){
       wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">Loading...</div>';
       wrap.classList.add('open');
       try {
-        var q=_sb.from('drug_area_scores').select('drug_id,drugs(name,stage)').eq('area_id',areaId).limit(200);
+        var q=_sb.from('drug_area_scores').select('drug_id,drugs(name,brand_name,stage)').eq('area_id',areaId).limit(200);
         if (overlapTier) q=q.eq('overlap',overlapTier);
         var res=await q;
-        var drugs=(res.data||[]).map(function(r){return {name:(r.drugs&&r.drugs.name)||r.drug_id,stage:(r.drugs&&r.drugs.stage)||''};})
-          .sort(function(a,b){return a.name.localeCompare(b.name);});
+        var drugs=(res.data||[]).map(function(r){
+          var bn=(r.drugs&&r.drugs.brand_name)||null;
+          var nm=(r.drugs&&r.drugs.name)||r.drug_id;
+          return {name: bn ? bn + (nm && nm.toLowerCase()!==bn.toLowerCase() ? ' ('+nm+')' : '') : nm, stage:(r.drugs&&r.drugs.stage)||''};
+        }).sort(function(a,b){return a.name.localeCompare(b.name);});
         if (!drugs.length){wrap.innerHTML='<div style="padding:4px 20px;font-size:10px;color:#3a5a7a">No drugs found</div>';return;}
         wrap.innerHTML=drugs.map(function(d){
           return '<div style="padding:2px 20px;font-size:10px;color:#64748b;display:flex;justify-content:space-between"><span>'+d.name+'</span><span style="color:#3a5a7a;font-size:9px">'+d.stage+'</span></div>';
@@ -25544,8 +25557,9 @@ async function ontInspectArea(id, btn) {
   const drugListHtml = drugRows.slice(0, 25).map(d => {
     const ov = overlapMap[d.id];
     const ovCol = ovColors[ov] || '#94a3b8';
+    const _dLabel = d.brand_name ? `<span class="drug-brand-name">${d.brand_name}</span>${d.name && d.name.toLowerCase() !== d.brand_name.toLowerCase() ? '<span class="drug-molecule-name">'+d.name+'</span>' : ''}` : (d.name||d.id);
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px">
-      <span style="flex:1;font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.name||d.id}">${d.name||d.id}</span>
+      <span style="flex:1;font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.name||d.id}">${_dLabel}</span>
       <span style="font-size:10px;color:#64748b;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.company||'—'}</span>
       <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:${ovCol}22;color:${ovCol};flex-shrink:0">${ov||'—'}</span>
       <span style="font-size:9px;color:#94a3b8;min-width:55px;text-align:right;flex-shrink:0">${d.stage||'—'}</span>
