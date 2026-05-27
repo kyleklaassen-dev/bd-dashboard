@@ -1462,6 +1462,8 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .mol-dd-wrap { position: relative; }
 .mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 310px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
 .mol-dd-menu.open { display: block; }
+/* Bridge fills the gap so hover doesn't break when moving from button to menu */
+.mol-dd-menu::before { content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px; }
 
 /* ── HIERARCHY DROPDOWN — flyout cascade on hover ───────────── */
 .hier-dd-wrap { position: relative; }
@@ -3967,7 +3969,7 @@ function loadMoleculeTab(tabId) {
    <button class="nav-icon-btn" id="nav-icon-drugs" onclick="navTo('drugs-know')" title="Drugs to Know">💊</button>
    <!-- Molecule dropdown -->
    <div class="mol-dd-wrap" id="mol-dd-wrap">
-     <button class="nav-icon-btn" id="mol-dd-btn" onclick="toggleMolDropdown()" title="Drug Molecules">🧬</button>
+     <button class="nav-icon-btn" id="mol-dd-btn" title="Drug Molecules">🧬</button>
      <div class="mol-dd-menu" id="mol-dd-menu">
        <div class="nav-dd-item" onclick="navTo('tl1a')"><span class="nav-dd-target">TL1A × IL-23p19</span><span class="nav-dd-badge ct">IBD</span></div>
        <div class="nav-dd-item" onclick="navTo('tslp')"><span class="nav-dd-target">TSLP × IL-33</span><span class="nav-dd-badge ct">Respiratory</span></div>
@@ -17605,10 +17607,23 @@ window.addEventListener('load', () => {
  loadData().then(d => { window._dashData = d; initGrids(d); });
 });
 
-// ── Nav dropdown ───────────────────────────────────────────────
-function toggleMolDropdown() {
-  document.getElementById('mol-dd-menu').classList.toggle('open');
-}
+// ── Nav dropdown — hover open, 1-second grace on mouseleave ───
+let _molCloseTimer = null;
+(function() {
+  const wrap = document.getElementById('mol-dd-wrap');
+  const menu = document.getElementById('mol-dd-menu');
+  if (!wrap || !menu) return;
+  wrap.addEventListener('mouseenter', function() {
+    if (_molCloseTimer) { clearTimeout(_molCloseTimer); _molCloseTimer = null; }
+    menu.classList.add('open');
+  });
+  wrap.addEventListener('mouseleave', function() {
+    _molCloseTimer = setTimeout(function() {
+      menu.classList.remove('open');
+      _molCloseTimer = null;
+    }, 1000);
+  });
+})();
 
 // ══════════════════════════════════════════════════════════
 //  HIERARCHY / ONTOLOGY DROPDOWN — PROTOTYPE (mock data)
