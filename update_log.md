@@ -2,6 +2,42 @@
 ---
 
 ---
+## 2026-05-27 (Session 87) — Ontology Acceleration Sprint: batch Group D migration (commit 5cc73e3edd)
+
+**Purpose:** Batch-migrate all 5 remaining Group D operational tables (`research_queue`, `competitive_signals`, `company_profiles`, `discovery_queue`, `signals`) to ontology-native dual-filter routing. Completes the Group D wave started in Session 86.
+
+**SQL (Supabase) — 5 tables, identical pattern:**
+- `ALTER TABLE {table} ADD COLUMN target_id text, indication_id text, therapeutic_area_id text, context_type text` × 5
+- `UPDATE {table} SET target_id = lam.target_id, ... FROM legacy_area_ontology_map WHERE area_id = legacy_area_id` × 5
+
+**Backfill results:**
+- `research_queue`: 60/60 rows updated — tcell→null/platform_view, 5 target contexts mapped
+- `competitive_signals`: 252/252 rows updated — same pattern
+- `company_profiles`: 137/137 rows updated — 11 area_ids (5 target + 2 indication + 3 strategic/platform view)
+- `discovery_queue`: 64/64 rows updated — same as research_queue pattern
+- `signals`: 0/63 rows updated — area_id was never populated; columns added for schema consistency
+
+**Code changes (10) in index.html:**
+- Line 3509–3510: `research_queue` select expand + dual-filter `.or('target_id.in.(...),area_id.in.(...)')`
+- Lines 10514–10515, 14242–14243: `competitive_signals` company modal + card — dual-filter with `company_id` AND `target_id/area_id`
+- Line 17238: `competitive_signals` bulk select expansion (added `target_id,context_type`)
+- Lines 10472–10473, 10493–10494, 14103–14104: `company_profiles` 3 filter reads — dual-filter
+- Line 9541: `discovery_queue` client-side JS filter — `r.area_id !== areaF && r.target_id !== areaF`
+- Line 13279: `discovery_queue` Morning Report select — added `target_id`
+- Line 3731: `signals` client-side JS filter — `r.area_id === _sigAreaFilter || r.target_id === _sigAreaFilter`
+
+**Validation — zero console errors:**
+- `research_queue` dual-filter: tl1a→ontology path ✅, tcell→area_id fallback ✅
+- `company_profiles` dual-filter: fcrn→ontology path ✅, tcell→area_id fallback ✅
+- `discovery_queue`: 64 rows loaded, tl1a→target_id='tl1a' ✅, tcell→null ✅
+- `signals`: 57 rows loaded, all area_id/target_id null (expected — never populated)
+- `competitive_signals`: RLS restricts anon reads (pre-existing, not a regression)
+
+**Output doc:** `docs/ontology_acceleration_sprint_report.md`
+
+---
+
+---
 ## 2026-05-27 (Session 86) — intel_areas ontology migration (commit 9635495a3f)
 
 **Purpose:** Migrate `intel_areas` from legacy `area_id`-only routing to ontology-native routing. First migration in the Group D operational tables wave.
