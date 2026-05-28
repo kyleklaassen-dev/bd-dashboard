@@ -2611,7 +2611,7 @@ function _freshnessBadge(isoDate) {
 }
 
 // ── Company card renderer ────────────────────────────────────────────────────
-function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt) {
+function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt, bdMomentum) {
   const areaKeys = areas.map(a => a.area_id);
   const areaStr  = areaKeys.join(' ');
 
@@ -2647,6 +2647,20 @@ function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt) {
     ? `<div style="font-size:11px;color:#2563eb;background:#eff6ff;padding:6px 10px;border-radius:5px;margin-top:6px;line-height:1.5;"><strong>Ailux BD Lens:</strong> ${company.ailux_angle}</div>`
     : '';
 
+  const _bdMomArrow = { rising:'↑', stable:'→', declining:'↓' };
+  const _bdMomColor = { rising:'#15803d', stable:'#1d4ed8', declining:'#94a3b8', quiet:'#94a3b8' };
+  const _bdMomLabel = { rising:'Active BD', stable:'Stable BD', declining:'Quiet', quiet:'Quiet' };
+  const _bdPriColors = { call_now:'#dc2626', monitor:'#ea580c', watch:'#475569' };
+  const momentumHtml = bdMomentum ? (() => {
+    const trend  = bdMomentum.bd_trend || 'stable';
+    const pri    = bdMomentum.call_priority;
+    const arrow  = _bdMomArrow[trend] || '→';
+    const col    = _bdMomColor[trend] || '#94a3b8';
+    const label  = _bdMomLabel[trend] || trend;
+    const priTag = pri ? `<span style="font-size:8px;font-weight:800;text-transform:uppercase;background:${_bdPriColors[pri]||'#475569'}1a;color:${_bdPriColors[pri]||'#475569'};border:1px solid ${_bdPriColors[pri]||'#e2e8f0'};border-radius:4px;padding:1px 5px;margin-left:4px">${pri.replace(/_/g,' ')}</span>` : '';
+    return `<div style="font-size:10.5px;color:${col};margin-top:4px;font-weight:600">${arrow} ${label}${priTag}</div>`;
+  })() : '';
+
   const priceHtml = company.stock_price
     ? (() => {
         const chg = company.stock_change;
@@ -2676,6 +2690,7 @@ function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt) {
   <div class="stock-body">
     ${bodySignals}
     ${ailuxAngleHtml}
+    ${momentumHtml}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
       ${company.last_verified ? `<span style="font-size:10px;color:#cbd5e1;">Verified ${company.last_verified}</span>` : '<span></span>'}
       ${freshnessHtml}
@@ -2690,15 +2705,16 @@ async function loadStockCards() {
   if (!grid) return;
 
   try {
-    // Parallel fetch: companies + areas + signals + intel relevance
+    // Parallel fetch: companies + areas + signals + intel relevance + BD momentum
     const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
-    const [compRes, areaRes, sigRes, recentIntelRes, intelCosRes, profRes] = await Promise.all([
+    const [compRes, areaRes, sigRes, recentIntelRes, intelCosRes, profRes, momentumRes] = await Promise.all([
       _sb.from('companies').select('*'),
       _sb.from('company_areas').select('*'),
       _sb.from('company_signals').select('*').order('sort_order'),
       _sb.from('intel').select('id').gte('intel_date', sevenDaysAgo),
       _sb.from('intel_companies').select('company_id,intel_id'),
       _sb.from('company_profiles').select('company_id,last_enriched_at'),
+      _sb.from('company_bd_momentum').select('company_id,momentum_score,bd_trend,call_priority'),
     ]);
 
     if (compRes.error) throw compRes.error;
@@ -2710,6 +2726,10 @@ async function loadStockCards() {
     // Build enrichment freshness map: company_id (slug) → last_enriched_at
     const enrichedMap = {};
     (profRes.data || []).forEach(p => { if (p.company_id) enrichedMap[p.company_id] = p.last_enriched_at; });
+
+    // Build BD momentum map: company_id → momentum data
+    const momentumMap = {};
+    (momentumRes.data || []).forEach(m => { if (m.company_id) momentumMap[m.company_id] = m; });
 
     // Build relevance maps
     const recentIntelIds = new Set((recentIntelRes.data||[]).map(r => r.id));
@@ -2738,7 +2758,8 @@ async function loadStockCards() {
       // Look up freshness by company slug (name lowercased + stripped) or direct id match
       const slug = (company.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
       const lastEnriched = enrichedMap[company.id] || enrichedMap[slug] || null;
-      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs, companyNewIntel, lastEnriched));
+      const bdMomentum   = momentumMap[company.id] || null;
+      grid.insertAdjacentHTML('beforeend', buildStockCard(company, areas, sigs, companyNewIntel, lastEnriched, bdMomentum));
     });
 
     // Re-apply any active filter after render
@@ -3497,6 +3518,51 @@ async function loadIdentityHealth() {
   }
 }
 
+// ── Governance Violations Widget ──────────────────────────────────────────────
+// Fetches open governance_violations and injects a badge into the footer + populates
+// the #gov-violations-mount element in the Architecture tab if present.
+async function loadGovernanceViolations() {
+  try {
+    const { data: govViolations } = await _sb
+      .from('governance_violations')
+      .select('rule_name, entity_id, entity_type, violation_description, detected_at')
+      .eq('resolved', false)
+      .order('detected_at', { ascending: false })
+      .limit(20);
+    const _vCount = (govViolations || []).length;
+
+    // Inject badge next to identity footer if violations exist
+    const _govBadgeEl = document.getElementById('idf-gov-badge');
+    if (_govBadgeEl) {
+      _govBadgeEl.textContent = _vCount > 0 ? ` · ${_vCount} governance violation${_vCount!==1?'s':''}` : '';
+      _govBadgeEl.style.color = _vCount > 0 ? '#b91c1c' : '';
+    }
+
+    // Populate governance violations mount in Architecture tab (if present)
+    const _govMount = document.getElementById('gov-violations-mount');
+    if (_govMount) {
+      if (!_vCount) {
+        _govMount.innerHTML = '<div style="color:#15803d;font-size:12px;padding:8px 0">✅ No open governance violations.</div>';
+      } else {
+        _govMount.innerHTML = `
+          <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;color:#b91c1c">${_vCount} open violation${_vCount!==1?'s':''}</span>
+            <span style="font-size:10px;color:#94a3b8">— resolve in Supabase or via scripts/apply_governance_violations.py</span>
+          </div>
+          ${(govViolations||[]).map(v => `<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #fee2e2">
+            <span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;flex-shrink:0;white-space:nowrap">${(v.rule_name||'').replace(/_/g,' ')}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:600;color:#1e293b">${v.entity_id||'—'} <span style="font-weight:400;color:#64748b">(${v.entity_type||'—'})</span></div>
+              <div style="font-size:10.5px;color:#475569;margin-top:1px">${v.violation_description||''}</div>
+            </div>
+            <span style="font-size:9px;color:#94a3b8;flex-shrink:0;padding-top:1px">${(v.detected_at||'').slice(0,10)}</span>
+          </div>`).join('')}
+        `;
+      }
+    }
+  } catch(_) {}
+}
+
 // ── Identity Health Footer ────────────────────────────────────────────────────
 async function loadIdentityFooter() {
   const footer = document.getElementById('id-footer');
@@ -4054,20 +4120,40 @@ async function loadAreaCatalysts(tabId) {
       el.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:10px 0">No upcoming catalysts logged. Meridian will add events here.</div>`;
       return;
     }
+
+    // ── Enrich with BD timing window data ─────────────────────────────────────
+    let bdTimingMap = {};
+    try {
+      const _catDrugIds = rows.map(c => c.drug_id).filter(Boolean);
+      if (_catDrugIds.length) {
+        const { data: bdTiming } = await _sb
+          .from('catalyst_bd_timing_window')
+          .select('drug_id, bd_score, call_priority, ailux_pitch, ailux_action_tier')
+          .in('drug_id', _catDrugIds);
+        (bdTiming || []).forEach(b => { bdTimingMap[b.drug_id] = b; });
+      }
+    } catch(_) {}
+
     const sigColor = { high:'#dc2626', medium:'#d97706', low:'#6b7280' };
-    el.innerHTML = rows.map(c => `
+    const _bdPriorityStyle = { call_now:'#dc3545', monitor:'#fd7e14', watch:'#6c757d' };
+    el.innerHTML = rows.map(c => {
+      const _bd = c.drug_id ? bdTimingMap[c.drug_id] : null;
+      const _bdBadge = _bd ? `<span style="background:${_bdPriorityStyle[_bd.call_priority]||'#6c757d'};color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;white-space:nowrap;margin-left:4px" title="${_bd.ailux_pitch||''}">${(_bd.call_priority||'').replace(/_/g,' ')}</span>` : '';
+      return `
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f4f8">
         <div style="flex-shrink:0;width:80px;text-align:right">
           <span style="font-size:11px;font-weight:800;color:${sigColor[c.significance]||'#6b7280'}">${c.catalyst_date}</span>
         </div>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4">${c.label}</div>
+          <div style="font-size:13px;font-weight:700;color:#0d1f38;line-height:1.4;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${c.label}${_bdBadge}</div>
           ${c.notes ? `<div style="font-size:12px;color:#6b7280;margin-top:3px">${c.notes}</div>` : ''}
+          ${_bd?.ailux_pitch ? `<div style="font-size:10.5px;color:#1d4ed8;margin-top:3px;font-style:italic">${_bd.ailux_pitch}</div>` : ''}
         </div>
         <div style="flex-shrink:0">
           <span style="font-size:9px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${sigColor[c.significance]||'#6b7280'}1a;color:${sigColor[c.significance]||'#6b7280'}">${c.significance}</span>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     el.innerHTML = `<div style="color:#94a3b8;font-size:12px">Catalysts unavailable.</div>`;
     console.error('loadAreaCatalysts', tabId, e);
@@ -10884,6 +10970,17 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
       deals = d2 || [];
     }
 
+    // ── Deal sequencing constraints for this company ──────────────────────────
+    let seqConstraints = [];
+    try {
+      const { data: scRows } = await _sb
+        .from('deal_sequencing_constraints')
+        .select('constraint_type, constraint_description, timing_note, bd_action_blocked_until, constraint_expires')
+        .eq('company_id', companyId)
+        .limit(5);
+      seqConstraints = scRows || [];
+    } catch(_) {}
+
     // Intel news items
     let intelNews = [];
     try {
@@ -11052,7 +11149,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const subsidiaries = subsidiariesRes.data || [];
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -11500,7 +11597,7 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -12096,6 +12193,41 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
         <div class="cem-sec-body">${normIndsSummary}</div>
         <div class="cem-det" id="cem-det-dr-norm-ind">${normIndsDetail}</div>
       </div>` : ''}
+      ${(geoApprovals||[]).length ? (() => {
+        const _geo = geoApprovals || [];
+        const _geoSummary = _geo.slice(0,3).map(a => {
+          const _status = a.approval_status === 'approved' ? `<span style="font-size:9px;background:#dcfce7;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Approved</span>` : `<span style="font-size:9px;background:#f1f5f9;color:#64748b;border-radius:4px;padding:1px 5px;margin-left:4px">${a.approval_status||'—'}</span>`;
+          return `<div class="cem-item-row">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                <span style="font-size:11.5px;font-weight:600;color:#0f172a">${a.geography||'—'}</span>${_status}
+                ${a.brand_name?`<span style="font-size:10px;color:#7c3aed;font-weight:600;margin-left:4px">${a.brand_name}</span>`:''}
+              </div>
+              <div style="font-size:10px;color:#94a3b8;margin-top:1px">${[a.regulator, a.approval_date?a.approval_date.slice(0,10):''].filter(Boolean).join(' · ')}</div>
+            </div>
+          </div>`;
+        }).join('');
+        const _geoDetail = `<div class="cem-det-inner">
+          <div class="cem-det-title">All approvals — ${drugName}</div>
+          <table class="cem-tbl"><thead><tr><th>Geography</th><th>Brand Name</th><th>Regulator</th><th>Date</th><th>Indication</th></tr></thead><tbody>
+          ${_geo.map(a => `<tr>
+            <td style="font-weight:600">${a.geography||'—'}</td>
+            <td style="color:#7c3aed;font-weight:600">${a.brand_name||'—'}</td>
+            <td style="color:#64748b">${a.regulator||'—'}</td>
+            <td style="color:#64748b">${a.approval_date?a.approval_date.slice(0,10):'—'}</td>
+            <td style="color:#64748b;font-size:10px">${a.indication||'—'}</td>
+          </tr>`).join('')}
+          </tbody></table>
+        </div>`;
+        return `<div class="cem-cell">
+          <div class="cem-sec-hdr" onclick="_cemToggle('dr-geo-approvals')">
+            <div class="cem-sec-lbl">🌍 Geographic Approvals</div>
+            <div class="cem-sec-hint">${_geo.length} region${_geo.length!==1?'s':''} <i id="cem-chev-dr-geo-approvals" class="cem-chev">▶</i></div>
+          </div>
+          <div class="cem-sec-body">${_geoSummary}</div>
+          <div class="cem-det" id="cem-det-dr-geo-approvals">${_geoDetail}</div>
+        </div>`;
+      })() : ''}
     </div>`;
 
   // ── DRUG PROFILE TAB ──────────────────────────────────────────────────────
@@ -12199,6 +12331,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const sbDeals      = sbData?.deals         || [];
   const sbDrugs      = sbData?.drugs         || [];
   const sbSubs       = sbData?.subsidiaries  || [];
+  const sbSeqConst   = sbData?.seqConstraints || [];
   const pi = profile.platform_intelligence || null;
   const bd = profile.bd_intelligence      || null;
   const companyName = prog?.co || '';
@@ -12587,6 +12720,21 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const _areaFilterHtml = ''; // pills now live in the header, not in the body
 
   // ── OVERVIEW TAB ─────────────────────────────────────────────────────────
+  // BD timing constraint banner — warns against "call now" when constraints exist
+  const _seqBannerHtml = sbSeqConst.length ? sbSeqConst.map(sc => {
+    const _expiry = sc.constraint_expires ? ` (expires ${sc.constraint_expires.slice(0,10)})` : '';
+    const _blocked = sc.bd_action_blocked_until ? ` · blocked until ${sc.bd_action_blocked_until.slice(0,10)}` : '';
+    const _note = sc.timing_note ? ` — ${sc.timing_note}` : '';
+    return `<div style="background:#fff3cd;border:1px solid #ffc107;border-left:3px solid #e69900;border-radius:7px;padding:9px 12px;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start">
+      <span style="font-size:13px;flex-shrink:0">⚠️</span>
+      <div>
+        <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e">BD Timing Constraint${_expiry}</span>
+        <div style="font-size:11.5px;font-weight:600;color:#78350f;margin-top:2px">${sc.constraint_description||sc.constraint_type||'Constraint'}</div>
+        ${_note ? `<div style="font-size:10.5px;color:#92400e;margin-top:2px">${_note}${_blocked}</div>` : (_blocked ? `<div style="font-size:10.5px;color:#92400e;margin-top:2px">${_blocked}</div>` : '')}
+      </div>
+    </div>`;
+  }).join('') : '';
+
   // Subsidiaries + acquired entities banner (Session 68)
   const _acquiredSubs  = sbSubs.filter(s => s.status === 'acquired');
   const _activeSubs    = sbSubs.filter(s => s.status === 'subsidiary');
@@ -12598,6 +12746,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   </div>` : '';
 
   const _overviewContent = `<div>
+    ${_seqBannerHtml}
     ${_subsBannerHtml}
     ${statsHtml}
     ${interpHtml}
@@ -13234,6 +13383,19 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       }
     } catch(_) {}
 
+    // ── Geographic approvals for this drug (Connection 6) ─────────────────────
+    let geoApprovals = [];
+    try {
+      const _gaId = drug?.id || drugId;
+      if (_gaId && !String(_gaId).startsWith('static-')) {
+        const { data: gaRows } = await _sb.from('geographic_approvals')
+          .select('geography, approval_date, approval_status, brand_name, regulator, indication')
+          .eq('drug_id', _gaId)
+          .order('approval_date', { ascending: false });
+        geoApprovals = gaRows || [];
+      }
+    } catch(_) {}
+
     // ── Phase 5 Candidate 3 — Drug modal normalized source ─────────────────────
     // When FEATURE_FLAGS.useNormalizedDrugModal=true: fetch drug_targets,
     // drug_indications, and trial_indications (via trial IDs) for display in the
@@ -13266,7 +13428,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals);
 
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
@@ -14164,6 +14326,18 @@ function _makeAreaPI(tabId, areaIds) {
           }
         } catch(_) {}
 
+        // ── Coverage scores for this area (Connection 3) ──────────────────────
+        this._covScoreMap = {};
+        try {
+          const _primaryArea = this.areaIds[0];
+          const { data: _covRows } = await _sb
+            .from('coverage_scores')
+            .select('company_id, coverage_score')
+            .eq('area_slug', _primaryArea)
+            .limit(200);
+          (_covRows || []).forEach(s => { if (s.company_id) this._covScoreMap[s.company_id] = s.coverage_score; });
+        } catch(_) {}
+
         this._buildEntities();
         this.filteredEntities = [...this.entities];
         this.loaded = true;
@@ -14712,8 +14886,10 @@ function _makeAreaPI(tabId, areaIds) {
         const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#2563eb',monitor:'#94a3b8'};
         const relevBorder = ent.bestRelevance ? `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance]||'transparent'}` : '';
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
+        const _covPct = this._covScoreMap?.[ent.company_id] ?? this._covScoreMap?.[ent.entity_id] ?? null;
+        const _covHtml = _covPct != null ? `<span style="font-size:9px;font-weight:700;color:${_covPct>=70?'#15803d':_covPct>=40?'#b45309':'#b91c1c'};margin-left:5px" title="Coverage score: ${_covPct}%">⬤ ${_covPct}%</span>` : '';
         return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
+          <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span>${_covHtml}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target}</td>
@@ -18525,7 +18701,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   document.addEventListener('DOMContentLoaded', () => { initHomeWelcome(); });
 })();
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
@@ -20547,7 +20723,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ── Identity Health Footer ─────────────────────────────────────────────── -->
 <div id="id-footer" class="idf-loading" onclick="navTo('home');setTimeout(()=>document.getElementById('meridian-reader-anchor')?.scrollIntoView({behavior:'smooth'}),200)">
  <div class="idf-dot" id="idf-dot"></div>
- <span id="idf-text">Loading identity health…</span>
+ <span id="idf-text">Loading identity health…</span><span id="idf-gov-badge" style="font-weight:700"></span>
  <span class="idf-hint">click to view home tab ↑</span>
 </div>
 
@@ -22794,6 +22970,22 @@ document.addEventListener('DOMContentLoaded', function(){
 </style>
 
 <div class="ont-wrap">
+
+  <!-- ── 0: Governance Violations — Session Start Checklist ─────────── -->
+  <div class="ont-section" id="ont-sec-gov" style="border-left:4px solid #dc2626">
+    <div class="ont-sec-hd" onclick="ontToggle('gov')">
+      <span class="ont-sec-icon">⚠️</span>
+      <div style="flex:1">
+        <div class="ont-sec-title">Governance Violations</div>
+        <div class="ont-sec-sub">Open data integrity violations — brand_name_implies_approved · codev_requires_source_url · approval_date_implies_approved</div>
+      </div>
+      <button onclick="event.stopPropagation();loadGovernanceViolations()" style="font-size:10px;font-weight:700;background:#fef2f2;border:1.5px solid #dc2626;color:#b91c1c;border-radius:5px;padding:3px 10px;cursor:pointer;margin-right:10px">⟳ Refresh</button>
+      <span class="ont-sec-tog" id="ont-gov-tog">▾</span>
+    </div>
+    <div class="ont-sec-body" id="ont-gov-body">
+      <div id="gov-violations-mount" style="color:#94a3b8;font-size:12px;padding:8px 0">Loading governance violations…</div>
+    </div>
+  </div>
 
   <!-- ── 0: Ontology Health — Live Diagnostics ──────────────────────── -->
   <div class="ont-section" id="ont-sec-health" style="border-left:4px solid #4a90c4">
