@@ -1519,6 +1519,46 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .intel-success-icon { font-size: 32px; margin-bottom: 8px; }
 .intel-success-title { font-size: 15px; font-weight: 800; color: #1a2f50; margin-bottom: 6px; }
 .intel-success-sub { font-size: 12px; color: #64748b; line-height: 1.5; }
+/* ── Document Upload Modal ────────────────────────────────────────── */
+.doc-upload-btn { background: rgba(255,255,255,0.12); color: white; border: 1.5px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
+.doc-upload-btn:hover { background: rgba(255,255,255,0.22); }
+.doc-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.60); z-index: 1010; align-items: flex-start; justify-content: center; padding: 48px 16px 16px; overflow-y: auto; }
+.doc-modal-overlay.open { display: flex; }
+.doc-modal { background: white; border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.28); width: 100%; max-width: 620px; overflow: hidden; }
+.doc-modal-hd { background: linear-gradient(135deg,#0d1f38 0%,#1a3a6e 100%); color: white; padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.doc-modal-title { font-size: 15px; font-weight: 800; margin-bottom: 3px; }
+.doc-modal-sub { font-size: 11.5px; opacity: 0.72; line-height: 1.4; }
+.doc-modal-close { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 6px; width: 28px; height: 28px; font-size: 15px; cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: background .15s; }
+.doc-modal-close:hover { background: rgba(255,255,255,0.28); }
+.doc-modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 13px; }
+.doc-modal-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.doc-modal-label { font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.doc-modal-label .req { color: #dc2626; }
+.doc-modal-input { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 9px 12px; font-family: inherit; color: #1a2e4a; outline: none; width: 100%; box-sizing: border-box; transition: border-color .15s, box-shadow .15s; background: white; }
+.doc-modal-input:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.10); }
+.doc-modal-input.error { border-color: #dc2626; }
+.doc-modal-select { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 13px; padding: 9px 12px; font-family: inherit; color: #1a2e4a; outline: none; width: 100%; box-sizing: border-box; background: white; cursor: pointer; transition: border-color .15s; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.doc-modal-select:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.10); outline: none; }
+.doc-modal-textarea { border: 1.5px solid #dde3ea; border-radius: 7px; font-size: 12.5px; padding: 9px 12px; resize: vertical; font-family: inherit; color: #1a2e4a; line-height: 1.5; outline: none; width: 100%; box-sizing: border-box; min-height: 72px; transition: border-color .15s, box-shadow .15s; }
+.doc-modal-textarea:focus { border-color: #2e6fb0; box-shadow: 0 0 0 3px rgba(46,111,176,0.10); }
+.doc-modal-filedrop { border: 1.5px dashed #c5d9ef; border-radius: 7px; padding: 14px 12px; text-align: center; font-size: 12px; color: #64748b; cursor: pointer; transition: all .15s; background: #f8fbff; }
+.doc-modal-filedrop:hover, .doc-modal-filedrop.dragover { border-color: #2e6fb0; background: #edf4fd; color: #2e6fb0; }
+.doc-modal-filedrop input[type=file] { display: none; }
+.doc-modal-filedrop-name { font-weight: 700; color: #1a2e4a; margin-top: 4px; font-size: 11px; }
+.doc-modal-err { font-size: 11.5px; color: #dc2626; font-weight: 600; display: none; margin-top: -4px; }
+.doc-modal-err.show { display: block; }
+.doc-modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #f1f5f9; background: #fafbfc; }
+.doc-modal-submit { background: #1a2f50; color: white; border: none; border-radius: 7px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; }
+.doc-modal-submit:hover { background: #2e6fb0; }
+.doc-modal-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+.doc-modal-cancel { background: none; border: none; color: #64748b; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 6px; }
+.doc-modal-cancel:hover { background: #f1f5f9; }
+.doc-success-msg { display: none; text-align: center; padding: 32px 20px; }
+.doc-success-msg.show { display: block; }
+.doc-success-icon { font-size: 32px; margin-bottom: 8px; }
+.doc-success-title { font-size: 15px; font-weight: 800; color: #1a2f50; margin-bottom: 6px; }
+.doc-success-sub { font-size: 12px; color: #64748b; line-height: 1.5; }
+.doc-modal-hint { font-size: 10.5px; color: #94a3b8; line-height: 1.5; margin-top: -4px; }
 /* ── Submitted Intel review panel ────────────────────────────────── */
 .si-panel { padding: 0; }
 .si-filter-bar { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
@@ -4074,6 +4114,85 @@ async function loadAreaDeals(tabId) {
   }
 }
 
+// ── BD Insights Loader ───────────────────────────────────────────────────────
+// Loads strategic intelligence summaries from bd_insights table (v54)
+// Renders below existing area tab content as collapsible insight cards
+// tabId = the modal/tab ID (e.g. 'tslp', 'il4ra-tslp', 'ace'); maps to area_slug + container
+const _BD_INSIGHTS_MAP = {
+  'tl1a':       { slug:'tl1a',  cid:'tl1a-bd-insights' },
+  'tslp':       { slug:'tslp',  cid:'tslp-bd-insights' },
+  'il4ra-tslp': { slug:'il4ra', cid:'il4ra-tslp-bd-insights' },
+  'il4ra-ox40l':{ slug:'il4ra', cid:'il4ra-ox40l-bd-insights' },
+  'igf1r-tshr': { slug:'igf1r', cid:'igf1r-tshr-bd-insights' },
+  'igf1r':      { slug:'igf1r', cid:'igf1r-tshr-bd-insights' },
+  'fcrn':       { slug:'fcrn',  cid:'fcrn-bd-insights' },
+  'ace':        { slug:'tcell', cid:'ace-bd-insights' },
+  'tcell':      { slug:'tcell', cid:'ace-bd-insights' },
+};
+async function loadBdInsights(tabId) {
+  const mapping = _BD_INSIGHTS_MAP[tabId];
+  if (!mapping) return;
+  const el = document.getElementById(mapping.cid);
+  if (!el || typeof _sb === 'undefined') return;
+  const areaSlug = mapping.slug;
+  try {
+    const { data, error } = await _sb
+      .from('bd_insights')
+      .select('*')
+      .eq('area_slug', areaSlug)
+      .order('significance_score', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    if (!data || !data.length) {
+      el.innerHTML = '';
+      return;
+    }
+    const typeLabel = {
+      landscape_summary: 'Landscape', competitive_threat: 'Competitive Threat',
+      deal_context: 'Deal Context', patient_insight: 'Patient Intel',
+      mechanism_note: 'Mechanism', timing_alert: 'Timing Alert',
+      acquisition_signal: 'Acquisition Signal'
+    };
+    const typeColor = {
+      landscape_summary: '#1d4ed8', competitive_threat: '#dc2626',
+      deal_context: '#7c3aed', patient_insight: '#059669',
+      mechanism_note: '#0891b2', timing_alert: '#d97706',
+      acquisition_signal: '#9333ea'
+    };
+    const scoreBar = (s) => {
+      const pct = Math.round((s / 10) * 100);
+      const col = s >= 9 ? '#dc2626' : s >= 7 ? '#d97706' : '#6b7280';
+      return `<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;font-weight:800;color:${col}">${s}/10</span><div style="width:50px;height:4px;background:#e5e7eb;border-radius:2px"><div style="width:${pct}%;height:4px;background:${col};border-radius:2px"></div></div></div>`;
+    };
+    el.innerHTML = `
+      <div style="margin-top:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b">Strategic Intelligence</span>
+          <span style="font-size:9px;background:#e8f0f8;color:#2e6fb0;padding:1px 7px;border-radius:8px;font-weight:800">Live · Supabase</span>
+        </div>
+        ${data.map(ins => {
+          const tc = typeColor[ins.insight_type] || '#6b7280';
+          const tl = typeLabel[ins.insight_type] || ins.insight_type;
+          const insId = 'insight-' + ins.id;
+          return `<div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px;overflow:hidden">
+            <div onclick="var b=document.getElementById('${insId}');b.style.display=b.style.display==='none'?'block':'none'" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;background:#fafbfc">
+              <span style="flex-shrink:0;font-size:9px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:8px;background:${tc}1a;color:${tc};margin-top:1px">${tl}</span>
+              <span style="flex:1;font-size:12px;font-weight:700;color:#0d1f38;line-height:1.4">${ins.headline}</span>
+              <span style="flex-shrink:0">${scoreBar(ins.significance_score||0)}</span>
+            </div>
+            <div id="${insId}" style="display:none;padding:10px 12px;background:white;border-top:1px solid #f0f4f8">
+              <p style="font-size:12px;color:#374151;line-height:1.7;margin:0">${ins.body}</p>
+              ${ins.source_url ? `<a href="${ins.source_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2e6fb0;margin-top:6px;display:inline-block">Source</a>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '';
+    console.error('loadBdInsights', areaSlug, e);
+  }
+}
+
 // ── BD ACTIVITY TABLE ────────────────────────────────────────────────────────
 const _BDA_TYPE_COLOR = { acquisition:'#7c3aed', license:'#1d4ed8', collab:'#065f46', option:'#b45309' };
 const _bdaState = {}; // per-section filter state
@@ -4332,6 +4451,7 @@ function loadMoleculeTab(tabId) {
    <div id="gs-sb-panel" class="gs-sb-panel"></div>
   </div>
   <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel</button>
+  <button class="doc-upload-btn" onclick="openDocUploadModal()" title="Add source document (conference poster, press release, filing…)" style="align-self:stretch;height:auto;">📄 Add Doc</button>
  </div>
  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><span id="dq-nav-badge" onclick="navTo('discovery-queue')" title="New high-priority discoveries in queue — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;line-height:16px;margin-left:4px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ New</span>
  <div class="header-meta">
@@ -4420,6 +4540,105 @@ function loadMoleculeTab(tabId) {
   <div class="intel-modal-footer" id="im-footer">
    <button class="intel-modal-cancel" onclick="closeIntelModal()">Cancel</button>
    <button class="intel-modal-submit" id="im-submit-btn" onclick="submitIntelNew()">Submit →</button>
+  </div>
+ </div>
+</div>
+
+<!-- DOCUMENT UPLOAD MODAL -->
+<div class="doc-modal-overlay" id="doc-modal-overlay" onclick="if(event.target===this)closeDocUploadModal()">
+ <div class="doc-modal">
+  <div class="doc-modal-hd">
+   <div>
+    <div class="doc-modal-title">📄 Add Source Document</div>
+    <div class="doc-modal-sub">Conference posters, press releases, filings, publications — add evidence to Meridian's knowledge base.</div>
+   </div>
+   <button class="doc-modal-close" onclick="closeDocUploadModal()">✕</button>
+  </div>
+  <!-- Form body -->
+  <div class="doc-modal-body" id="doc-form-body">
+   <!-- Row 1: Entity + Document Type -->
+   <div class="doc-modal-row2">
+    <div>
+     <div class="doc-modal-label">Drug or Company <span class="req">*</span></div>
+     <select class="doc-modal-select" id="doc-entity-id">
+      <option value="">Loading…</option>
+     </select>
+    </div>
+    <div>
+     <div class="doc-modal-label">Document Type <span class="req">*</span></div>
+     <select class="doc-modal-select" id="doc-type">
+      <option value="">Select type…</option>
+      <option value="conference_poster">Conference Poster</option>
+      <option value="press_release">Press Release</option>
+      <option value="sec_filing">SEC Filing (8-K / 10-K / 10-Q)</option>
+      <option value="clinical_publication">Clinical Publication</option>
+      <option value="clinical_trial_registry">Clinical Trial Registry (CT.gov)</option>
+      <option value="patent">Patent</option>
+      <option value="regulatory_submission">Regulatory Submission</option>
+      <option value="investor_presentation">Investor Presentation</option>
+      <option value="news_article">News Article</option>
+     </select>
+    </div>
+   </div>
+   <!-- Row 2: Title -->
+   <div>
+    <div class="doc-modal-label">Title <span class="req">*</span></div>
+    <input type="text" class="doc-modal-input" id="doc-title" placeholder="Full document title…">
+   </div>
+   <!-- Row 3: Date + Conference/Journal -->
+   <div class="doc-modal-row2">
+    <div>
+     <div class="doc-modal-label">Publication Date</div>
+     <input type="date" class="doc-modal-input" id="doc-date">
+    </div>
+    <div>
+     <div class="doc-modal-label">Conference or Journal</div>
+     <input type="text" class="doc-modal-input" id="doc-venue" placeholder="e.g. ENDO 2024, NEJM…">
+    </div>
+   </div>
+   <!-- Row 4: Source URL -->
+   <div>
+    <div class="doc-modal-label">Source URL</div>
+    <input type="url" class="doc-modal-input" id="doc-url" placeholder="https://… press release, CT.gov, PubMed, SEC EDGAR…">
+   </div>
+   <!-- Row 5: Key Findings -->
+   <div>
+    <div class="doc-modal-label">Key Findings <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8">(one per line)</span></div>
+    <textarea class="doc-modal-textarea" id="doc-findings" placeholder="• Primary endpoint met&#10;• Drug X achieved Y in Z patients&#10;• Strategic: competes with Ailux in…" style="min-height:88px;"></textarea>
+   </div>
+   <!-- Row 6: Relevance Tags + Authors -->
+   <div class="doc-modal-row2">
+    <div>
+     <div class="doc-modal-label">Relevance Tags</div>
+     <input type="text" class="doc-modal-input" id="doc-tags" placeholder="TL1A, IBD, Phase 3, Spyre…">
+     <div class="doc-modal-hint">Comma-separated. Used for search + filtering.</div>
+    </div>
+    <div>
+     <div class="doc-modal-label">Authors</div>
+     <input type="text" class="doc-modal-input" id="doc-authors" placeholder="Smith J, Jones K…">
+     <div class="doc-modal-hint">Comma-separated surnames first.</div>
+    </div>
+   </div>
+   <!-- Row 7: PDF file -->
+   <div>
+    <div class="doc-modal-label">Attach PDF <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8">(optional — metadata saved now, file upload to Supabase Storage coming soon)</span></div>
+    <div class="doc-modal-filedrop" id="doc-filedrop" onclick="document.getElementById('doc-file').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDocFileDrop(event)">
+     <input type="file" id="doc-file" accept=".pdf,.htm,.html,.txt" onchange="handleDocFileSelect(event)">
+     <div id="doc-filedrop-label">Click to select PDF, or drag and drop here</div>
+     <div class="doc-modal-filedrop-name" id="doc-filedrop-name" style="display:none"></div>
+    </div>
+   </div>
+   <div class="doc-modal-err" id="doc-err">Please fill in all required fields (entity, type, and title).</div>
+  </div>
+  <!-- Success state -->
+  <div class="doc-success-msg" id="doc-success">
+   <div class="doc-success-icon">📄</div>
+   <div class="doc-success-title">Document saved to Meridian.</div>
+   <div class="doc-success-sub">The record is now in <code>source_documents</code>.<br>It will appear in the evidence tab for this entity.</div>
+  </div>
+  <div class="doc-modal-footer" id="doc-footer">
+   <button class="doc-modal-cancel" onclick="closeDocUploadModal()">Cancel</button>
+   <button class="doc-modal-submit" id="doc-submit-btn" onclick="submitDocUpload()">Save Document →</button>
   </div>
  </div>
 </div>
@@ -5499,6 +5718,7 @@ function loadMoleculeTab(tabId) {
  <div class="note-panel-label">Trial Notes</div>
  <div id="note-panel-body-tl1a"></div>
  </div>
+ <div id="tl1a-bd-insights"></div>
   </div>
  </div>
 </div>
@@ -5958,7 +6178,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · TSLP × IL-33</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('tslp-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — TSLP × IL-33</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>Tozorakimab OBERON/MIRANDA</td><td>AstraZeneca</td><td>Anti-ST2 (IL-33R)</td><td>Phase 3</td><td>H2 2026</td><td>🔴 High — COPD Ph3 topline; validates alarmin in COPD; shapes bispecific thesis</td></tr><tr><td>Bosakitug asthma Ph2</td><td>Biosion/Aclaris</td><td>Anti-TSLP (LA)</td><td>Phase 2</td><td>H2 2026</td><td>🟡 Med — long-acting anti-TSLP benchmark vs. tezepelumab standard dosing</td></tr><tr><td>HBM9378/SKB378 Ph2 asthma exacerbation</td><td>Windward/Harbour+Kelun</td><td>Anti-TSLP</td><td>Phase 2</td><td>H2 2026</td><td>🟡 Med — supports TSLP franchise; monoAb arm of Windward bispecific thesis</td></tr><tr><td>Astegolimab PACIFIC Ph3 asthma</td><td>Roche</td><td>Anti-ST2 (IL-33R)</td><td>Phase 3</td><td>2026</td><td>🟡 Med — anti-IL-33R asthma; complements QX031N acquisition rationale</td></tr><tr><td>QX031N FIH</td><td>Qyuns → Roche</td><td>TSLP × IL-33</td><td>Pre-IND</td><td>~2027</td><td>🟢 Watch — first human TSLP×IL-33 bispecific data; defines bispecific thesis</td></tr><tr><td>WIN027 Ph1</td><td>Windward Bio</td><td>TSLP × IL-13</td><td>Phase 1</td><td>2027</td><td>🟢 Watch — alt bispecific format; IL-13 vs IL-33 second arm comparison</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — TSLP × IL-33</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="tslp-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="tslp-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -6249,7 +6469,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · IL-4Rα × TSLP</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('il4ra-tslp-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IL-4Rα × TSLP</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="il4ra-tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>Dupilumab COPD label expansion</td><td>Sanofi/Regeneron</td><td>Anti-IL-4Rα</td><td>Approved</td><td>2024 ✓</td><td>🔴 High — defines IL-4Rα as the dominant upstream blocker in type 2; raises bispecific baseline</td></tr><tr><td>BSI-502 TSLP×IL-4Rα Ph1</td><td>Biosion</td><td>TSLP × IL-4Rα</td><td>Phase 1</td><td>2026–27</td><td>🔴 High — first human data for this bispecific format; safety/PK baseline for the field</td></tr><tr><td>Dupilumab AD head-to-head vs lebrikizumab</td><td>Multiple</td><td>Anti-IL-4Rα vs Anti-IL-13</td><td>Phase 3</td><td>Ongoing</td><td>🟡 Med — defines IL-13-only vs full IL-4Rα blockade; informs bispecific positioning</td></tr><tr><td>Tezepelumab + dupilumab combination study</td><td>AZ/Amgen</td><td>TSLP monoAb + IL-4Rα</td><td>Exploratory</td><td>2026–27</td><td>🟡 Med — combination data would validate dual TSLP+IL-4Rα without bispecific; sets the bar</td></tr><tr><td>Nemolizumab (anti-IL-31Rα) AD Ph3</td><td>Galderma/Pfizer</td><td>Anti-IL-31Rα</td><td>Phase 3</td><td>2025 ✓</td><td>🟢 Watch — IL-31 pruritus pathway; complementary to IL-4Rα; shows itch is a separate tractable target</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IL-4Rα × TSLP</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="il4ra-tslp-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="il4ra-tslp-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="il4ra-tslp-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -6514,7 +6734,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · IL-4Rα × OX40L</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('il4ra-ox40l-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IL-4Rα × OX40L</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="il4ra-ox40l-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>Amlitelimab OLYMPIA 1/2 Ph3</td><td>Sanofi</td><td>Anti-OX40L (IV/SC)</td><td>Phase 3</td><td>2025 ✓ (Ph3 positive)</td><td>🔴 High — validates OX40L as registrational target in AD; sets bispecific efficacy benchmark</td></tr><tr><td>Telazorlimab (ISB-830) Ph2 AD</td><td>Ichnos Sciences</td><td>Anti-OX40</td><td>Phase 2</td><td>2026</td><td>🟡 Med — anti-OX40 vs anti-OX40L comparison; informs receptor vs ligand blocking strategy</td></tr><tr><td>Rocatinlimab Ph3 ROCKET</td><td>Kyowa Kirin/Amgen</td><td>Anti-OX40</td><td>Phase 3</td><td>2026–27</td><td>🔴 High — Ph3 OX40 blockade in AD; if positive, defines the OX40 pathway commercial standard</td></tr><tr><td>Dupilumab + tezepelumab combination</td><td>AZ/Sanofi</td><td>IL-4Rα + TSLP</td><td>Exploratory</td><td>2026–27</td><td>🟡 Med — combination dupilumab+tezepelumab data would inform TSLP+IL-4Rα bispecific positioning</td></tr><tr><td>Subcutaneous amlitelimab dose-finding</td><td>Sanofi</td><td>Anti-OX40L (SC)</td><td>Phase 2</td><td>2026</td><td>🟡 Med — SC formulation feasibility; critical for commercial positioning vs dupilumab SC</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IL-4Rα × OX40L</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="il4ra-ox40l-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="il4ra-ox40l-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="il4ra-ox40l-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -6778,7 +6998,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · IGF1R × TSHR</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('igf1r-tshr-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IGF1R × TSHR</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="igf1r-tshr-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>IMVT-1402 THRIVE (TED Ph2/3)</td><td>Immunovant/Roivant</td><td>Anti-FcRn (batoclimab next-gen)</td><td>Phase 2/3</td><td>2026</td><td>🔴 High — FcRn inhibition as TSHR-Ab reduction strategy; validates alternative TED biology</td></tr><tr><td>Iscalimab (CFZ533) TED Ph2</td><td>Novartis</td><td>Anti-CD40</td><td>Phase 2</td><td>2026</td><td>🟡 Med — CD40 pathway in TED; different upstream target; watch safety + proptosis reduction</td></tr><tr><td>Linsitinib TED Ph2</td><td>Dorc/Eledon</td><td>Oral IGF-1R inhibitor</td><td>Phase 2</td><td>2026–27</td><td>🟡 Med — small molecule vs biologic IGF-1R; defines whether biologic format is necessary</td></tr><tr><td>Teprotumumab long-term follow-up data</td><td>Horizon/AZ</td><td>Anti-IGF1R (IV)</td><td>Approved/Follow-up</td><td>Ongoing</td><td>🟢 Watch — durability of proptosis reduction; hearing loss longitudinal data</td></tr><tr><td>argenx VYVGART TED expansion</td><td>argenx</td><td>Anti-FcRn (efgartigimod)</td><td>Phase 2</td><td>2026</td><td>🟢 Watch — FcRn reduces anti-TSHR IgG; complements IGF1R×TSHR bispecific thesis</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — IGF1R × TSHR</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="igf1r-tshr-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="igf1r-tshr-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="igf1r-tshr-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -7043,7 +7263,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · FcRn Bispecific</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('fcrn-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — FcRn Bispecific</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="fcrn-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>IMVT-1402 Phase 2/3 multiple indications</td><td>Immunovant/Roivant</td><td>Next-gen anti-FcRn (albumin-sparing)</td><td>Ph2/3</td><td>2026–27</td><td>🔴 High — next-gen FcRn benchmark; if clean safety, sets the standard for all FcRn inhibitors</td></tr><tr><td>ARGX-117 Phase 2 (FcRn×CD131 bispecific)</td><td>argenx</td><td>FcRn × CD131 bispecific</td><td>Phase 2</td><td>2026</td><td>🔴 High — first FcRn bispecific in Ph2; validates bispecific concept and choice of second arm</td></tr><tr><td>Efgartigimod gMG 5-year follow-up</td><td>argenx</td><td>Anti-FcRn (VYVGART)</td><td>Approved/Follow-up</td><td>Ongoing</td><td>🟡 Med — long-term safety and durability; durability is key question for chronic indications</td></tr><tr><td>Nipocalimab CIDP Ph3</td><td>J&J</td><td>Anti-FcRn (nipocalimab)</td><td>Phase 3</td><td>2026</td><td>🟡 Med — CIDP approval would broaden FcRn market; validates IgG reduction in neurological disease</td></tr><tr><td>Rozanolixizumab CIDP Ph3</td><td>UCB</td><td>Anti-FcRn (rozanolixizumab)</td><td>Phase 3</td><td>2025 ✓</td><td>🟢 Watch — additional FcRn approval in CIDP; multi-player market confirms commercial viability</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — FcRn Bispecific</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="fcrn-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="fcrn-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="fcrn-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -7314,7 +7534,7 @@ function loadMoleculeTab(tabId) {
   <div class="tl1a-modal-hd"><span>📅 Catalyst Calendar · BCMA × CD19 × CD3</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('ace-modal-catalysts'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — BCMA × CD19 × CD3</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="ace-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><table class="info-table"><tr><th>Program</th><th>Company</th><th>Target</th><th>Stage</th><th>Expected</th><th>Significance</th></tr><tr><td>Kyverna KYV-101 CD19 CAR-T Ph2 (autoimmune)</td><td>Kyverna Therapeutics</td><td>CD19 CAR-T</td><td>Phase 2</td><td>2026</td><td>🔴 High — first major Ph2 data for CD19 CAR-T in SLE/NMOSD; defines safety/efficacy bar</td></tr><tr><td>Cabaletta CABA-201 CD19 CAR-T Ph2 (SLE/MG)</td><td>Cabaletta Bio</td><td>CD19 CAR-T</td><td>Phase 2</td><td>2026</td><td>🔴 High — SLE + MG efficacy data; will define durability of immune reset</td></tr><tr><td>BMS anti-CD19 CAR-T Phase 1/2</td><td>Bristol-Myers Squibb</td><td>CD19 CAR-T (lisocabtagene)</td><td>Phase 1/2</td><td>2026</td><td>🔴 High — largest pharma in this space; BMS data will attract major partner attention</td></tr><tr><td>Obexelimab (ZB002) IgG4-RD Ph3</td><td>Zenas BioPharma</td><td>CD19×FcγRIIb bispecific mAb</td><td>Phase 2/3</td><td>2026</td><td>🟡 Med — bispecific B cell suppression without cell therapy; defines antibody vs CAR-T positioning</td></tr><tr><td>Daratumumab autoimmune SLE Ph2</td><td>J&J/Janssen</td><td>Anti-CD38 (anti-plasma cell)</td><td>Phase 2</td><td>2026</td><td>🟡 Med — BCMA-adjacent mechanism; plasma cell targeting without T cell engagement</td></tr><tr><td>Ianalumab (BAFF-R) SLE Ph3</td><td>Novartis</td><td>Anti-BAFF-R</td><td>Phase 3</td><td>2026–27</td><td>🟢 Watch — if positive, BAFF-R sets a new SLE biologic SOC upstream of B cell activation</td></tr></table></div>
+  <div class="tl1a-modal-body"><div class="sec-hd"><span class="sec-title">Catalyst Calendar — BCMA × CD19 × CD3</span><div class="sec-line"></div><span class="sec-tag o">Live · Supabase</span></div><div style="padding:0 0 16px" id="ace-live-catalysts"><div style="color:#94a3b8;font-size:12px;padding:12px 0">Loading catalysts…</div></div><div id="ace-bd-insights"></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="ace-modal-china" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -13620,6 +13840,8 @@ function openDrugModal(id) {
   // Lazy-load intel when intel modal opens
   const intelMatch = id.match(/^(tslp|il4ra-tslp|il4ra-ox40l|igf1r-tshr|fcrn|ace)-modal-intel$/);
   if (intelMatch && typeof loadAreaIntel === 'function') loadAreaIntel(intelMatch[1]);
+  // Lazy-load bd_insights when catalyst modal opens (area insights panel)
+  if (catMatch && typeof loadBdInsights === 'function') loadBdInsights(catMatch[1]);
 }
 // TL1A uses its own function names — wire them to the shared open/close logic
 function openTl1aModal(id) {
@@ -13629,6 +13851,7 @@ function openTl1aModal(id) {
   el.classList.add('open');
   document.body.style.overflow = 'hidden';
   if (id === 'tl1a-modal-catalysts' && typeof loadAreaCatalysts === 'function') loadAreaCatalysts('tl1a');
+  if (id === 'tl1a-modal-catalysts' && typeof loadBdInsights    === 'function') loadBdInsights('tl1a');
   if (id === 'tl1a-modal-intel'     && typeof loadAreaIntel     === 'function') loadAreaIntel('tl1a');
   if (id === 'tl1a-modal-bd-activity') {
     const bdEl = document.getElementById('tl1a-bd-activity');
@@ -16840,6 +17063,232 @@ async function submitIntelNew() {
     });
   }, 3000);
 }
+// ── Document Upload Modal ─────────────────────────────────────────────────────
+// Populates entity dropdown, handles form, saves to source_documents via Supabase.
+
+let _docEntitiesLoaded = false;
+
+async function openDocUploadModal() {
+  // Reset form
+  ['doc-form-body','doc-footer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = '';
+  });
+  document.getElementById('doc-success')?.classList.remove('show');
+  document.getElementById('doc-err')?.classList.remove('show');
+  ['doc-entity-id','doc-type','doc-title','doc-date','doc-venue',
+   'doc-url','doc-findings','doc-tags','doc-authors'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('error'); }
+  });
+  const btn = document.getElementById('doc-submit-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Save Document →'; }
+
+  // Reset file drop
+  const fileInput = document.getElementById('doc-file');
+  if (fileInput) fileInput.value = '';
+  const dropLabel = document.getElementById('doc-filedrop-label');
+  const dropName  = document.getElementById('doc-filedrop-name');
+  if (dropLabel) dropLabel.style.display = '';
+  if (dropName)  { dropName.style.display = 'none'; dropName.textContent = ''; }
+
+  document.getElementById('doc-modal-overlay')?.classList.add('open');
+
+  // Load entity dropdown once
+  if (!_docEntitiesLoaded) {
+    await _docLoadEntities();
+  }
+}
+
+function closeDocUploadModal() {
+  document.getElementById('doc-modal-overlay')?.classList.remove('open');
+}
+
+async function _docLoadEntities() {
+  const sel = document.getElementById('doc-entity-id');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    // Fetch drugs
+    const { data: drugs, error: dErr } = await _sb
+      .from('drugs')
+      .select('id,name,stage')
+      .order('name', { ascending: true })
+      .limit(300);
+    if (dErr) throw dErr;
+
+    // Fetch companies
+    const { data: companies, error: cErr } = await _sb
+      .from('companies')
+      .select('id,name')
+      .order('name', { ascending: true })
+      .limit(200);
+    if (cErr) throw cErr;
+
+    let html = '<option value="">Select drug or company…</option>';
+
+    if (drugs && drugs.length) {
+      html += '<optgroup label="── Drugs ──">';
+      drugs.forEach(d => {
+        const stage = d.stage ? ` (${d.stage})` : '';
+        html += `<option value="${_escAttr(d.id)}" data-type="drug">${_escAttr(d.name)}${stage}</option>`;
+      });
+      html += '</optgroup>';
+    }
+
+    if (companies && companies.length) {
+      html += '<optgroup label="── Companies ──">';
+      companies.forEach(c => {
+        html += `<option value="${_escAttr(c.id)}" data-type="company">${_escAttr(c.name)}</option>`;
+      });
+      html += '</optgroup>';
+    }
+
+    sel.innerHTML = html;
+    _docEntitiesLoaded = true;
+  } catch (e) {
+    sel.innerHTML = '<option value="">Error loading — type entity ID manually</option>';
+    console.error('[doc-upload] entity load error:', e);
+  }
+}
+
+function _escAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function handleDocFileSelect(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const dropLabel = document.getElementById('doc-filedrop-label');
+  const dropName  = document.getElementById('doc-filedrop-name');
+  if (dropLabel) dropLabel.style.display = 'none';
+  if (dropName)  { dropName.textContent = `${file.name} (${(file.size/1024).toFixed(1)} KB)`; dropName.style.display = ''; }
+}
+
+function handleDocFileDrop(evt) {
+  evt.preventDefault();
+  document.getElementById('doc-filedrop')?.classList.remove('dragover');
+  const file = evt.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById('doc-file');
+  // Assign via DataTransfer so the input reflects the file
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  if (input) input.files = dt.files;
+  handleDocFileSelect({ target: { files: [file] } });
+}
+
+async function submitDocUpload() {
+  const entitySel  = document.getElementById('doc-entity-id');
+  const entityId   = (entitySel?.value || '').trim();
+  const entityType = entitySel?.options[entitySel.selectedIndex]?.dataset?.type || 'drug';
+  const docType    = (document.getElementById('doc-type')?.value || '').trim();
+  const title      = (document.getElementById('doc-title')?.value || '').trim();
+  const dateVal    = (document.getElementById('doc-date')?.value || '').trim();
+  const venue      = (document.getElementById('doc-venue')?.value || '').trim();
+  const url        = (document.getElementById('doc-url')?.value || '').trim();
+  const findingsRaw= (document.getElementById('doc-findings')?.value || '').trim();
+  const tagsRaw    = (document.getElementById('doc-tags')?.value || '').trim();
+  const authorsRaw = (document.getElementById('doc-authors')?.value || '').trim();
+
+  const errEl = document.getElementById('doc-err');
+  if (errEl) { errEl.classList.remove('show'); errEl.textContent = ''; }
+
+  // Validation
+  const missing = [];
+  if (!entityId) missing.push('entity');
+  if (!docType)  missing.push('document type');
+  if (!title)    missing.push('title');
+  if (missing.length) {
+    if (errEl) {
+      errEl.textContent = `Required: ${missing.join(', ')}.`;
+      errEl.classList.add('show');
+    }
+    if (!entityId) entitySel?.classList.add('error');
+    if (!docType)  document.getElementById('doc-type')?.classList.add('error');
+    if (!title)    document.getElementById('doc-title')?.classList.add('error');
+    return;
+  }
+
+  // Parse arrays
+  const keyFindings = findingsRaw
+    ? findingsRaw.split('\n').map(s => s.replace(/^[•\-\*]\s*/,'').trim()).filter(Boolean)
+    : [];
+  const relevanceTags = tagsRaw
+    ? tagsRaw.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+  const authors = authorsRaw
+    ? authorsRaw.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+
+  // Determine conference vs journal
+  const isConference = ['conference_poster','investor_presentation','investor_day'].includes(docType);
+  const conferenceName = isConference ? (venue || null) : null;
+  const journalName    = isConference ? null : (venue || null);
+
+  const payload = {
+    entity_id:       entityId   || null,
+    entity_type:     entityType || 'drug',
+    document_type:   docType,
+    title:           title,
+    authors:         authors.length ? authors : null,
+    publication_date: dateVal || null,
+    conference_name: conferenceName,
+    journal_name:    journalName,
+    external_url:    url || null,
+    key_findings:    keyFindings.length ? keyFindings : null,
+    relevance_tags:  relevanceTags.length ? relevanceTags : null,
+    uploaded_by:     'kyle',
+    verified:        false,
+  };
+
+  const btn = document.getElementById('doc-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const resp = await fetch(
+      'https://tghntyofptvfhmtchwcv.supabase.co/rest/v1/source_documents',
+      {
+        method: 'POST',
+        headers: {
+          'apikey':        INTEL_SVC,
+          'Authorization': 'Bearer ' + INTEL_SVC,
+          'Content-Type':  'application/json',
+          'Prefer':        'return=representation',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!resp.ok) {
+      const detail = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${detail}`);
+    }
+    const saved = await resp.json();
+    console.log('[doc-upload] saved:', saved);
+
+    // Show success
+    document.getElementById('doc-form-body').style.display = 'none';
+    document.getElementById('doc-footer').style.display = 'none';
+    document.getElementById('doc-success')?.classList.add('show');
+
+    // Auto-close after 3.5s
+    setTimeout(() => {
+      closeDocUploadModal();
+      if (btn) { btn.disabled = false; btn.textContent = 'Save Document →'; }
+    }, 3500);
+
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Document →'; }
+    if (errEl) {
+      errEl.textContent = `Save failed: ${e?.message || e}`;
+      errEl.classList.add('show');
+    }
+    console.error('[doc-upload] insert error:', e);
+  }
+}
+// ── End Document Upload Modal ─────────────────────────────────────────────────
+
 // Legacy stubs — kept so any old references don't throw
 function saveFromModal() { submitIntelNew(); }
 function submitIntel()    { submitIntelNew(); }
