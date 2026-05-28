@@ -40,6 +40,24 @@ _REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+# ── Lazy imports for new agent modules ───────────────────────────────────────
+# These are imported at call time to avoid hard failures if a module is missing.
+def _import_agent(module_name: str):
+    """Import a sibling script module by name. Returns None on failure."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        os.path.join(_SCRIPTS_DIR, f"{module_name}.py")
+    )
+    if spec and spec.loader:
+        try:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+        except Exception as e:
+            log(f"  WARNING: Could not import {module_name}: {e}")
+    return None
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CREDENTIALS
 # Never hardcoded — reads from environment first, files as fallback.
@@ -468,19 +486,38 @@ def phase_a5_coverage_compute() -> Dict:
     return results
 
 
-def phase_a6_enrichment_backlog() -> Dict:
-    """Identify drugs and companies needing enrichment."""
-    log("A6: Enrichment backlog scan", indent=1)
-    results = {"low_coverage_drugs": [], "low_coverage_companies": []}
-
+def phase_a6_coverage_gap_finder() -> Dict:
+    """
+    Tier 4 QA Agent: Coverage Gap Finder.
+    Identifies 9 gap types (missing data that SHOULD be in the DB).
+    Writes gaps to research_queue with priority scores.
+    Delegates to scripts/coverage_gap_finder.py.
+    """
+    log("A6: Coverage Gap Finder (Tier 4 QA Agent)", indent=1)
+    mod = _import_agent("coverage_gap_finder")
+    if not mod:
+        log("  coverage_gap_finder.py not found — falling back to legacy backlog scan", indent=2)
+        return _phase_a6_legacy_backlog()
     try:
-        # Get drugs with low coverage
+        result = mod.run(dry_run=DRY_RUN)
+        records = result.get("total_queued", 0)
+        log(f"  Coverage gap finder complete: {records} items queued", indent=2)
+        return result
+    except Exception as e:
+        log(f"  coverage_gap_finder.run() failed: {e}", indent=2)
+        log(traceback.format_exc(), indent=2)
+        return {"error": str(e)}
+
+
+def _phase_a6_legacy_backlog() -> Dict:
+    """Legacy fallback for A6 if coverage_gap_finder.py is unavailable."""
+    results = {"low_coverage_drugs": [], "low_coverage_companies": []}
+    try:
         low_drugs = sb_get("drugs", {
             "select": "id,name,target,stage,company_id",
             "limit": "200",
             "order": "stage.desc"
         })
-        # Filter by coverage (read from coverage_scores if possible)
         try:
             scores = sb_get("coverage_scores", {
                 "entity_type": "eq.drug",
@@ -493,21 +530,15 @@ def phase_a6_enrichment_backlog() -> Dict:
                 d for d in low_drugs if d["id"] in low_ids
             ][:50]
         except Exception:
-            # Fallback: all drugs lacking key fields
             results["low_coverage_drugs"] = [
                 d for d in low_drugs
                 if not d.get("target") or not d.get("stage")
             ][:50]
-
         log(f"  Low-coverage drugs queued: {len(results['low_coverage_drugs'])}", indent=2)
     except Exception as e:
         log(f"  Drug backlog scan failed: {e}", indent=2)
-
     try:
-        low_cos = sb_get("companies", {
-            "select": "id,name,status",
-            "limit": "200"
-        })
+        low_cos = sb_get("companies", {"select": "id,name,status", "limit": "200"})
         try:
             co_scores = sb_get("coverage_scores", {
                 "entity_type": "eq.company",
@@ -521,11 +552,9 @@ def phase_a6_enrichment_backlog() -> Dict:
             ][:30]
         except Exception:
             results["low_coverage_companies"] = low_cos[:20]
-
         log(f"  Low-coverage companies queued: {len(results['low_coverage_companies'])}", indent=2)
     except Exception as e:
         log(f"  Company backlog scan failed: {e}", indent=2)
-
     return results
 
 
@@ -1653,31 +1682,56 @@ def phase_e3_governance_revalidation() -> Dict:
     return phase_a2_governance_validation()
 
 
-def phase_e4_source_quality_audit() -> Dict:
-    """Verify source URLs stored during sprint."""
-    log("E4: Source quality audit", indent=1)
-    results = {"checked": 0, "broken": 0, "generic": 0}
-
-    import urllib.request as _urlreq
-    import urllib.error as _urlerr
-
+def phase_e4_source_verifier() -> Dict:
+    """
+    Tier 3 Validation Agent: Source Verifier.
+    Validates every source_url in the database:
+      - URL format check
+      - Trusted domain registry check
+      - HTTP HEAD request (10s timeout, 20-URL batches)
+      - Fabricated URL pattern detection
+    Writes to source_validation_log, flags enriched_field_log,
+    and creates governance_violations for missing source URLs.
+    Delegates to scripts/source_verifier.py.
+    """
+    log("E4: Source Verifier (Tier 3 Validation Agent)", indent=1)
+    mod = _import_agent("source_verifier")
+    if not mod:
+        log("  source_verifier.py not found — falling back to legacy source audit", indent=2)
+        return _phase_e4_legacy_audit()
     try:
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=48)).isoformat()
+        result = mod.run(dry_run=DRY_RUN)
+        log(
+            f"  Source verification complete: "
+            f"checked={result.get('total_checked', 0)}, "
+            f"valid={result.get('valid', 0)}, "
+            f"invalid={result.get('invalid', 0)}",
+            indent=2
+        )
+        return result
+    except Exception as e:
+        log(f"  source_verifier.run() failed: {e}", indent=2)
+        log(traceback.format_exc(), indent=2)
+        return {"error": str(e)}
+
+
+def _phase_e4_legacy_audit() -> Dict:
+    """Legacy fallback for E4 if source_verifier.py is unavailable."""
+    results = {"checked": 0, "broken": 0, "generic": 0}
+    import urllib.request as _urlreq
+    try:
         recent_deals = sb_get("deals", {
             "select": "id,source_url",
             "source_url": "not.is.null",
             "limit": "20"
         })
-
         generic_patterns = ["/pipeline", "/programs", "/news-releases", "/press-releases"]
-
         for deal in recent_deals:
             url = deal.get("source_url")
             if not url:
                 continue
             results["checked"] += 1
-            is_generic = any(p in url for p in generic_patterns)
-            if is_generic:
+            if any(p in url for p in generic_patterns):
                 results["generic"] += 1
                 continue
             try:
@@ -1687,23 +1741,49 @@ def phase_e4_source_quality_audit() -> Dict:
                     status = r.status
                 if status in (404, 410):
                     results["broken"] += 1
-                    log(f"  BROKEN URL: {url[:80]}", indent=2)
             except Exception:
                 results["broken"] += 1
     except Exception as e:
-        log(f"  Source audit failed: {e}", indent=2)
-
+        log(f"  Legacy source audit failed: {e}", indent=2)
     log(f"  URLs checked: {results['checked']}, broken: {results['broken']}, generic: {results['generic']}", indent=2)
     return results
 
 
-def phase_e5_contradiction_detection() -> Dict:
-    """Find conflicting values across entities."""
-    log("E5: Contradiction detection", indent=1)
-    results = {"contradictions": []}
-
+def phase_e5_consistency_checker() -> Dict:
+    """
+    Tier 4 QA Agent: Consistency Checker.
+    Finds data contradictions across the database with 8 check types:
+      1. Drug stage vs trial_registries phase mismatch
+      2. Brand name without approval stage (governance)
+      3. company_id originator rule violations
+      4. Duplicate entity detection (>85% name similarity)
+      5. Deal attribution gap (missing partnership row)
+      6. Stage history contradiction / regression
+      7. entity_relationships bidirectional symmetry
+      8. molecule_intelligence vs drugs.stage
+    Writes to agent_disagreements table and governance_violations.
+    Delegates to scripts/consistency_checker.py.
+    """
+    log("E5: Consistency Checker (Tier 4 QA Agent)", indent=1)
+    mod = _import_agent("consistency_checker")
+    if not mod:
+        log("  consistency_checker.py not found — falling back to legacy contradiction detection", indent=2)
+        return _phase_e5_legacy_contradiction()
     try:
-        # Check: drug with brand_name but stage != approved variants
+        result = mod.run(dry_run=DRY_RUN)
+        total = result.get("total_contradictions", 0)
+        log(f"  Consistency check complete: {total} total contradictions found", indent=2)
+        return result
+    except Exception as e:
+        log(f"  consistency_checker.run() failed: {e}", indent=2)
+        log(traceback.format_exc(), indent=2)
+        return {"error": str(e)}
+
+
+def _phase_e5_legacy_contradiction() -> Dict:
+    """Legacy fallback for E5 if consistency_checker.py is unavailable."""
+    results = {"contradictions": []}
+    try:
         branded = sb_get("drugs", {
             "select": "id,name,brand_name,stage",
             "brand_name": "not.is.null",
@@ -1720,8 +1800,6 @@ def phase_e5_contradiction_detection() -> Dict:
                     "brand_name": d.get("brand_name"),
                     "stage": d.get("stage")
                 })
-
-        # Check: company status=subsidiary but parent_company_id=null
         subsidiaries = sb_get("companies", {
             "select": "id,name,status,parent_company_id",
             "status": "eq.subsidiary",
@@ -1734,11 +1812,9 @@ def phase_e5_contradiction_detection() -> Dict:
                 "company_id": c["id"],
                 "company_name": c.get("name")
             })
-
         log(f"  Contradictions found: {len(results['contradictions'])}", indent=2)
     except Exception as e:
-        log(f"  Contradiction detection failed: {e}", indent=2)
-
+        log(f"  Legacy contradiction detection failed: {e}", indent=2)
     return results
 
 
@@ -1993,15 +2069,40 @@ def phase_f3_sprint_summary() -> Dict:
     return results
 
 
-def phase_f4_monday_review_queue() -> Dict:
-    """Build prioritized review queue for Monday."""
-    log("F4: Monday review queue", indent=1)
+def phase_f4_human_queue_builder() -> Dict:
+    """
+    Tier 5 Meta Agent: Human Queue Builder.
+    Builds Kyle's prioritized review queue for the feedback UI.
+    Scores each pending enriched_field_log entry by a 9-factor algorithm,
+    assigns queue positions, and auto-promotes stale pending labels.
+    Delegates to scripts/human_queue_builder.py.
+    """
+    log("F4: Human Queue Builder (Tier 5 Meta Agent)", indent=1)
+    mod = _import_agent("human_queue_builder")
+    if not mod:
+        log("  human_queue_builder.py not found — falling back to legacy review queue", indent=2)
+        return _phase_f4_legacy_review_queue()
+    try:
+        result = mod.run(dry_run=DRY_RUN)
+        log(
+            f"  Human queue built: "
+            f"pending={result.get('total_pending', 0)}, "
+            f"queued={result.get('queued_for_review', 0)}, "
+            f"avg_score={result.get('avg_priority_score', 0)}, "
+            f"auto_promoted={result.get('auto_promoted', 0)}",
+            indent=2
+        )
+        return result
+    except Exception as e:
+        log(f"  human_queue_builder.run() failed: {e}", indent=2)
+        log(traceback.format_exc(), indent=2)
+        return {"error": str(e)}
+
+
+def _phase_f4_legacy_review_queue() -> Dict:
+    """Legacy fallback for F4 if human_queue_builder.py is unavailable."""
     results = {"items_queued": 0}
-
-    # Create monday_review_queue table records
     queue_items = []
-
-    # Governance violations
     try:
         viols = sb_get("governance_violations", {
             "resolved": "eq.false",
@@ -2020,8 +2121,6 @@ def phase_f4_monday_review_queue() -> Dict:
             })
     except Exception:
         pass
-
-    # Validation failures
     try:
         failures = sb_get("drug_validation_results", {
             "result": "eq.fail",
@@ -2040,19 +2139,14 @@ def phase_f4_monday_review_queue() -> Dict:
             })
     except Exception:
         pass
-
     results["items_queued"] = len(queue_items)
-
     if queue_items and not DRY_RUN:
         try:
             if table_exists("monday_review_queue"):
                 for item in queue_items[:30]:
                     sb_post("monday_review_queue", item)
-            else:
-                log("  monday_review_queue table not found — items logged to sprint_log only", indent=2)
         except Exception as e:
-            log(f"  Queue write failed: {e}", indent=2)
-
+            log(f"  Legacy queue write failed: {e}", indent=2)
     log(f"  Review items queued: {results['items_queued']}", indent=2)
     return results
 
@@ -2268,7 +2362,7 @@ PHASE_MAP = {
     "A3": phase_a3_source_url_validation,
     "A4": phase_a4_duplicate_detection,
     "A5": phase_a5_coverage_compute,
-    "A6": phase_a6_enrichment_backlog,
+    "A6": phase_a6_coverage_gap_finder,
     "A7": phase_a7_trajectory_health,
     "A8": phase_a8_stale_data_detection,
     "B1": phase_b1_drug_enrichment,
@@ -2298,15 +2392,15 @@ PHASE_MAP = {
     "E1": phase_e1_stage_ctgov_xref,
     "E2": phase_e2_enrichment_consistency,
     "E3": phase_e3_governance_revalidation,
-    "E4": phase_e4_source_quality_audit,
-    "E5": phase_e5_contradiction_detection,
+    "E4": phase_e4_source_verifier,
+    "E5": phase_e5_consistency_checker,
     "E6": phase_e6_schema_validation_review,
     "E7": phase_e7_positive_label_quality,
     "E8": phase_e8_agent_disagreement,
     "F1": phase_f1_final_coverage,
     "F2": phase_f2_next_session_md,
     "F3": phase_f3_sprint_summary,
-    "F4": phase_f4_monday_review_queue,
+    "F4": phase_f4_human_queue_builder,
     "F5": phase_f5_trajectory_summary,
     "F6": phase_f6_github_commit,
     "F7": phase_f7_enrichment_cleanup,
