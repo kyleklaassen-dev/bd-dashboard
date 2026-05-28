@@ -1,0 +1,1047 @@
+# Meridian Weekend Autonomous Sprint — Phase Configuration
+# All 48 phases organized in 6 blocks (A–F)
+# Runs Friday evening through Sunday afternoon while Kyle is traveling.
+
+sprint_version: "1.0"
+platform: "Meridian BD Platform — Ailux Biotherapeutics"
+description: >
+  Continuous enrichment, validation, and intelligence synthesis sprint.
+  48 phases across 6 blocks. Each block maps to a GitHub Actions job
+  triggered by schedule. Blocks can also be run manually via workflow_dispatch.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK A — Validation & Schema (runs first, no dependencies)
+# Target: Friday 9 PM ET (01:00 UTC Saturday)
+# ─────────────────────────────────────────────────────────────────────────────
+phases:
+
+  - phase_id: A1
+    name: Schema Health Check
+    description: >
+      Verify all expected Supabase tables exist. Check index coverage on
+      high-query columns (company_id, drug_id, stage, coverage_score).
+      Report foreign-key integrity violations (orphaned drugs, trials, partnerships).
+    block: A
+    script_function: phase_a1_schema_health
+    estimated_minutes: 3
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - trials
+      - drug_targets
+      - drug_indications
+      - company_partnerships
+      - deals
+      - coverage_scores
+      - enrichment_runs
+      - drug_validation_results
+      - governance_violations
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: A2
+    name: Governance Validation
+    description: >
+      Check all brand_name → approved stage rules. Verify company_id = originator
+      (not licensee) for all drugs. Find governance_violations WHERE resolved = false.
+      Flag any new violations found since last run.
+    block: A
+    script_function: phase_a2_governance_validation
+    estimated_minutes: 5
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - governance_violations
+      - company_partnerships
+    supabase_tables_write:
+      - governance_violations
+      - weekend_sprint_log
+
+  - phase_id: A3
+    name: Source URL Validation
+    description: >
+      Check for null source_urls in deals and company_partnerships tables.
+      Count records missing source citations. Flag records where
+      partnership_verified = true but source_url is null (data contradiction).
+    block: A
+    script_function: phase_a3_source_url_validation
+    estimated_minutes: 4
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - deals
+      - company_partnerships
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: A4
+    name: Duplicate Detection
+    description: >
+      Find potential duplicate drugs by name similarity (Levenshtein distance < 3
+      on normalized names). Find potential duplicate companies. Report pairs for
+      manual review — do not auto-merge.
+    block: A
+    script_function: phase_a4_duplicate_detection
+    estimated_minutes: 5
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - companies
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: A5
+    name: Coverage Score Compute
+    description: >
+      Recalculate all coverage scores using compute_coverage.py logic.
+      Update coverage_scores table for all drugs and companies.
+      Log before/after distribution (p25, p50, p75, min, max).
+    block: A
+    script_function: phase_a5_coverage_compute
+    estimated_minutes: 8
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - drug_targets
+      - drug_indications
+      - company_partnerships
+      - deals
+    supabase_tables_write:
+      - coverage_scores
+      - weekend_sprint_log
+
+  - phase_id: A6
+    name: Enrichment Backlog Scan
+    description: >
+      Identify all drugs with coverage_score < 40. Identify all companies with
+      coverage_score < 40. Build prioritized enrichment queue sorted by
+      strategic importance (direct/adjacent > same_space, stage desc).
+      Write backlog to weekend_sprint_log for Block B to consume.
+    block: A
+    script_function: phase_a6_enrichment_backlog
+    estimated_minutes: 4
+    depends_on:
+      - A5
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - coverage_scores
+      - drug_targets
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: A7
+    name: Trajectory Health Check
+    description: >
+      Check fine_tune_dataset quality metrics if table exists.
+      Audit enrichment_runs for recent failure rate (last 7 days).
+      Report schema_valid rate, avg records_processed, error distribution.
+    block: A
+    script_function: phase_a7_trajectory_health
+    estimated_minutes: 3
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - enrichment_runs
+      - fine_tune_dataset
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: A8
+    name: Stale Data Detection
+    description: >
+      Find all drugs where last enrichment was > 90 days ago and stage is
+      Phase 2 or later (high priority to keep fresh). Find companies with
+      key narrative fields (drug_summary, bd_angle, risk_summary) enriched
+      > 90 days ago. Build stale refresh queue.
+    block: A
+    script_function: phase_a8_stale_data_detection
+    estimated_minutes: 4
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - company_profiles
+      - enrichment_runs
+    supabase_tables_write:
+      - weekend_sprint_log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK B — Primary Enrichment (runs after A)
+# Target: Friday 11 PM ET (03:00 UTC Saturday) and Saturday 3 PM ET (19:00 UTC)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - phase_id: B1
+    name: Drug Enrichment Batch
+    description: >
+      Enrich up to 30 drugs with coverage_score < 40, prioritized by
+      strategic importance. Uses drug_enrichment.py. For each drug: query
+      from Supabase, build enrichment prompt, call Claude API, parse with
+      Pydantic, write to enriched_field_log, log to enrichment_runs.
+      Skips drugs enriched within the last 7 days.
+    block: B
+    script_function: phase_b1_drug_enrichment
+    estimated_minutes: 45
+    depends_on:
+      - A6
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - coverage_scores
+      - drug_targets
+      - drug_indications
+      - companies
+    supabase_tables_write:
+      - drugs
+      - enrichment_runs
+      - enriched_field_log
+      - coverage_scores
+      - weekend_sprint_log
+
+  - phase_id: B2
+    name: Company Enrichment Batch
+    description: >
+      Enrich up to 20 companies with coverage_score < 40. Uses existing
+      company_enrichment.py invoked as a module. Prioritize companies with
+      direct/adjacent overlap drugs. Skips companies enriched within 7 days.
+    block: B
+    script_function: phase_b2_company_enrichment
+    estimated_minutes: 40
+    depends_on:
+      - A6
+    priority: 1
+    supabase_tables_read:
+      - companies
+      - coverage_scores
+      - drugs
+      - company_partnerships
+    supabase_tables_write:
+      - company_profiles
+      - enrichment_runs
+      - enriched_field_log
+      - weekend_sprint_log
+
+  - phase_id: B3
+    name: BD Angle Enrichment
+    description: >
+      Fill missing bd_angle for Direct and Adjacent overlap drugs. BD angle
+      is the Ailux-specific strategic framing: why this drug matters to
+      Ailux's TL1A×IL-23p19 bispecific program. Use Claude to generate
+      concise 2-3 sentence angles. Apply stage-aware framing rules.
+    block: B
+    script_function: phase_b3_bd_angle_enrichment
+    estimated_minutes: 20
+    depends_on:
+      - A6
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_targets
+      - drug_indications
+    supabase_tables_write:
+      - drugs
+      - enriched_field_log
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: B4
+    name: Risk Summary Enrichment
+    description: >
+      Fill missing risk_summary for priority drugs (Phase 2+, Direct/Adjacent).
+      Risk summary = key development risk in 1-2 sentences (efficacy, safety,
+      competitive, regulatory). Use Claude. Apply governance: never fabricate
+      specific trial data not in context.
+    block: B
+    script_function: phase_b4_risk_summary_enrichment
+    estimated_minutes: 20
+    depends_on:
+      - A6
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_targets
+      - trials
+    supabase_tables_write:
+      - drugs
+      - enriched_field_log
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: B5
+    name: Mechanism Status Enrichment
+    description: >
+      Fill drug mechanism_status where null. Mechanism status describes
+      the current clinical/regulatory status of the mechanism class
+      (e.g., "anti-TL1A: 3 Phase 2 trials active, 1 Phase 3 initiated").
+      Writes to competitive_landscapes.mechanism_status.
+    block: B
+    script_function: phase_b5_mechanism_status
+    estimated_minutes: 15
+    depends_on:
+      - A6
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - competitive_landscapes
+      - drug_targets
+    supabase_tables_write:
+      - competitive_landscapes
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: B6
+    name: Clinical Details Enrichment
+    description: >
+      Fill missing patient_population and primary_endpoint for Phase 2/3 drugs
+      that lack these fields. These fields are critical for TPP comparison.
+      Source from CT.gov or company press releases. Use validate_source_url()
+      before storing any source_url.
+    block: B
+    script_function: phase_b6_clinical_details
+    estimated_minutes: 25
+    depends_on:
+      - A6
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - trials
+    supabase_tables_write:
+      - drugs
+      - enriched_field_log
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: B7
+    name: Deal Enrichment
+    description: >
+      Find recent deals (last 180 days) with missing source_url or deal_value.
+      Attempt to backfill from Claude synthesis using company name + drug name.
+      Apply governance: source_url required for all deals — omit rather than guess.
+      partnership_verified = false until confirmed.
+    block: B
+    script_function: phase_b7_deal_enrichment
+    estimated_minutes: 20
+    depends_on:
+      - A3
+    priority: 2
+    supabase_tables_read:
+      - deals
+      - companies
+      - drugs
+    supabase_tables_write:
+      - deals
+      - enriched_field_log
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: B8
+    name: Partnership Verification
+    description: >
+      Check company_partnerships where partnership_verified = false.
+      For each unverified partnership, attempt to find a confirming source
+      (CT.gov sponsor field, press release URL). Update partnership_verified = true
+      and source_url if found. Do not verify without a real source.
+    block: B
+    script_function: phase_b8_partnership_verification
+    estimated_minutes: 15
+    depends_on:
+      - A3
+    priority: 3
+    supabase_tables_read:
+      - company_partnerships
+      - companies
+      - drugs
+    supabase_tables_write:
+      - company_partnerships
+      - enriched_field_log
+      - enrichment_runs
+      - weekend_sprint_log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK C — Relationship & Intelligence Enrichment
+# Target: Saturday 3 AM ET (07:00 UTC) and Sunday 3 AM ET (07:00 UTC)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - phase_id: C1
+    name: Missing Partnership Detection
+    description: >
+      Find company relationships not yet in DB. Cross-reference company_partnerships
+      against known BD news from news_articles. Flag companies in the TL1A/IL-23
+      space that appear in news partnerships but lack a DB relationship record.
+    block: C
+    script_function: phase_c1_missing_partnerships
+    estimated_minutes: 15
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - company_partnerships
+      - news_articles
+      - companies
+      - drugs
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: C2
+    name: Licensing Chain Enrichment
+    description: >
+      Build asset_transfer_history for top 20 drugs lacking full licensing
+      chain records. Licensing chain = multi-hop: originator → licensee1 → licensee2.
+      Canonical example: EpimAb → Vignette → Candid → UCB. Requires source_url
+      for each hop. Apply governance: company_id stays with originator.
+    block: C
+    script_function: phase_c2_licensing_chains
+    estimated_minutes: 30
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - company_partnerships
+      - deals
+      - companies
+    supabase_tables_write:
+      - asset_transfer_history
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: C3
+    name: Co-Developer Attribution
+    description: >
+      Verify co-developer relationships for drugs with co_developer_ids set.
+      For each co-developed drug: confirm both companies show it in pipeline view.
+      Check partner_company fields are not embedded in target field (governance error).
+      Flag any co-dev relationships missing source_url.
+    block: C
+    script_function: phase_c3_codev_attribution
+    estimated_minutes: 15
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - company_partnerships
+      - companies
+    supabase_tables_write:
+      - governance_violations
+      - weekend_sprint_log
+
+  - phase_id: C4
+    name: Competitor Mapping
+    description: >
+      Find new drugs not yet tracked in each mechanism area. Query CT.gov for
+      active IBD trials with TL1A, IL-23p19, or bispecific IBD keywords.
+      Compare against drugs table — flag any NCT IDs not in our DB.
+      Create drug stubs for newly found competitors.
+    block: C
+    script_function: phase_c4_competitor_mapping
+    estimated_minutes: 20
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_targets
+      - trials
+    supabase_tables_write:
+      - drugs
+      - trials
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: C5
+    name: Patent Landscape Seeds
+    description: >
+      Identify key method patents for TL1A and IL-23 mechanisms. Seed
+      patent_landscape table (create if missing) with assignee, patent_number,
+      filing_date, expiry_date, claim_summary. Focus on composition-of-matter
+      and method-of-treatment claims relevant to bispecific approaches.
+    block: C
+    script_function: phase_c5_patent_landscape
+    estimated_minutes: 20
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - drugs
+      - companies
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: C6
+    name: Entity Relationship Dating
+    description: >
+      Add valid_from dates to undated company_partnerships and deals records.
+      Source dates from: deal announcement (press release date), CT.gov first
+      posted date, or enrichment_runs.created_at as fallback. Never fabricate.
+    block: C
+    script_function: phase_c6_relationship_dating
+    estimated_minutes: 15
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - company_partnerships
+      - deals
+      - enrichment_runs
+    supabase_tables_write:
+      - company_partnerships
+      - deals
+      - weekend_sprint_log
+
+  - phase_id: C7
+    name: Conference Catalyst Scan
+    description: >
+      Find upcoming DDW, ECCO, ASH, UEG, ACR, and AASLD presentations for
+      tracked drugs. Check news_articles for conference abstract mentions.
+      Create catalyst_calendar entries for upcoming data readouts.
+      DDW 2026 = May, ECCO 2027 = February, UEG Week 2026 = October.
+    block: C
+    script_function: phase_c7_conference_catalysts
+    estimated_minutes: 15
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - news_articles
+      - trials
+    supabase_tables_write:
+      - catalyst_calendar
+      - weekend_sprint_log
+
+  - phase_id: C8
+    name: Regulatory Milestone Scan
+    description: >
+      Find PDUFA dates and approval decisions for tracked drugs. Check for
+      recent FDA/EMA approval decisions in news_articles. Update drug stage
+      if new approval found. Note: only update stage if governance rule met
+      (brand_name must also be set). Flag for Kyle review if uncertain.
+    block: C
+    script_function: phase_c8_regulatory_milestones
+    estimated_minutes: 10
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - news_articles
+      - drug_validation_results
+    supabase_tables_write:
+      - catalyst_calendar
+      - weekend_sprint_log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK D — Intelligence Synthesis (runs after B + C)
+# Target: Saturday 7 AM ET (11:00 UTC), Saturday 7 PM ET (23:00 UTC), Sunday 7 AM ET
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - phase_id: D1
+    name: Strategic Value Scoring
+    description: >
+      Compute or update strategic_value_score for all companies in the DB.
+      Score dimensions: mechanism overlap (0-30), stage advancement (0-20),
+      BD activity (0-20), geographic reach (0-15), financial strength (0-15).
+      Write to companies.strategic_value_score and log scoring breakdown.
+    block: D
+    script_function: phase_d1_strategic_value_scoring
+    estimated_minutes: 20
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - companies
+      - drugs
+      - company_partnerships
+      - deals
+      - drug_targets
+    supabase_tables_write:
+      - companies
+      - weekend_sprint_log
+
+  - phase_id: D2
+    name: Competitive Landscape Update
+    description: >
+      Update mechanism_status for all tracked mechanisms in competitive_landscapes.
+      Recalculate n_approved, n_phase3, n_phase2, n_phase1, n_preclinical counts.
+      Flag any mechanisms where counts changed since last run (possible new entrant
+      or stage advancement).
+    block: D
+    script_function: phase_d2_competitive_landscape
+    estimated_minutes: 15
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_targets
+      - competitive_landscapes
+    supabase_tables_write:
+      - competitive_landscapes
+      - weekend_sprint_log
+
+  - phase_id: D3
+    name: Drug Competitive Scores
+    description: >
+      Recompute drug_competitive_scores for drugs added or enriched in the last
+      14 days. Competitive score = function of mechanism match, stage parity,
+      geographic overlap with Ailux target markets, and modality similarity.
+      Only compute for drugs with sufficient enrichment (coverage_score > 30).
+    block: D
+    script_function: phase_d3_drug_competitive_scores
+    estimated_minutes: 20
+    depends_on:
+      - B1
+      - B3
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_targets
+      - drug_indications
+      - coverage_scores
+    supabase_tables_write:
+      - drug_competitive_scores
+      - weekend_sprint_log
+
+  - phase_id: D4
+    name: Ailux BD Angle Analysis
+    description: >
+      Specific analysis for potential Ailux partnership candidates. Apply
+      deal_sequencing constraints (AbbVie blocked until Oct 2026 ABBV-701 readout).
+      Score top 10 BD candidates by: asset complementarity, timing, financial fit,
+      strategic logic. Output structured analysis to weekend_sprint_log.
+    block: D
+    script_function: phase_d4_ailux_bd_analysis
+    estimated_minutes: 25
+    depends_on:
+      - D1
+    priority: 1
+    supabase_tables_read:
+      - companies
+      - drugs
+      - deals
+      - company_partnerships
+      - ailux_positions
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: D5
+    name: Pipeline Advancement Tracking
+    description: >
+      Update drug_stage_history for any stage changes detected since last run.
+      Compare current drugs.stage against most recent drug_stage_history entry.
+      Log stage progression events (e.g., Phase 1 → Phase 2). Flag regressions
+      (Phase 3 → Phase 2 may indicate trial failure).
+    block: D
+    script_function: phase_d5_pipeline_advancement
+    estimated_minutes: 10
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - drug_stage_history
+    supabase_tables_write:
+      - drug_stage_history
+      - weekend_sprint_log
+
+  - phase_id: D6
+    name: Catalyst Calendar Enrichment
+    description: >
+      Populate catalyst_calendar with findings from D8 (stale detection) and
+      C7 (conference scan). De-duplicate against existing entries.
+      Set catalyst priority scores: Phase 3 readout = P1, Phase 2 = P2,
+      conference abstract = P3. Link catalyst_drug_id to drugs table.
+    block: D
+    script_function: phase_d6_catalyst_calendar
+    estimated_minutes: 15
+    depends_on:
+      - C7
+      - C8
+    priority: 2
+    supabase_tables_read:
+      - catalyst_calendar
+      - drugs
+      - trials
+    supabase_tables_write:
+      - catalyst_calendar
+      - weekend_sprint_log
+
+  - phase_id: D7
+    name: Patient Intelligence Synthesis
+    description: >
+      Update indication_patient_intelligence for priority indications (UC, CD,
+      atopic dermatitis, TED, MG). Patient intel = unmet need summary, patient
+      experience insights, advocacy landscape, treatment satisfaction gaps.
+      Equal weight to competitive intelligence per Meridian philosophy.
+    block: D
+    script_function: phase_d7_patient_intelligence
+    estimated_minutes: 30
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - indication_patient_intelligence
+      - drug_indications
+      - drugs
+    supabase_tables_write:
+      - indication_patient_intelligence
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: D8
+    name: Coverage Score Recompute
+    description: >
+      Post-enrichment coverage recalculation. Run after all Block B enrichment
+      to capture coverage gains. Compare before (A5) vs after scores to measure
+      sprint effectiveness. Log delta distribution. Expected: +5-15 point avg
+      for enriched drugs.
+    block: D
+    script_function: phase_d8_coverage_recompute
+    estimated_minutes: 8
+    depends_on:
+      - B1
+      - B2
+      - B3
+      - B4
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - drug_targets
+      - drug_indications
+      - company_partnerships
+      - deals
+    supabase_tables_write:
+      - coverage_scores
+      - weekend_sprint_log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK E — QA Validation (runs after D)
+# Target: Saturday 11 AM ET (15:00 UTC), Saturday 11 PM ET (03:00 UTC Sun), Sunday 11 AM ET
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - phase_id: E1
+    name: Stage / CT.gov Cross-Reference
+    description: >
+      Verify drug stages against trial_registries data. For each drug with
+      a trial_registry entry, compare drugs.stage vs trial_registries.phase.
+      Flag stage_trial_match = false if mismatch. Write to drug_validation_results.
+      Expected baseline: 16 known stage_trial_match gaps from Session 30.
+    block: E
+    script_function: phase_e1_stage_ctgov_xref
+    estimated_minutes: 10
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - trial_registries
+      - trials
+      - drug_validation_results
+    supabase_tables_write:
+      - drug_validation_results
+      - weekend_sprint_log
+
+  - phase_id: E2
+    name: Enrichment Consistency Check
+    description: >
+      Flag fields changed significantly from previous enrichment run.
+      Compare enriched_field_log entries from this sprint against previous sprint.
+      >50% change in a text field = flag for review. Stage reversal = always flag.
+      Mechanism target change = always flag (identity risk).
+    block: E
+    script_function: phase_e2_enrichment_consistency
+    estimated_minutes: 8
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - enriched_field_log
+      - enrichment_runs
+      - drugs
+    supabase_tables_write:
+      - drug_validation_results
+      - weekend_sprint_log
+
+  - phase_id: E3
+    name: Governance Re-Validation
+    description: >
+      Post-enrichment governance check. Re-run all A2 checks after Block B/C
+      enrichment. Enrichment can introduce new violations. Check: brand_name→approved,
+      company_id=originator, partner_name not in target field, source_url present
+      for deals/partnerships. Log new violations to governance_violations.
+    block: E
+    script_function: phase_e3_governance_revalidation
+    estimated_minutes: 8
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - company_partnerships
+      - deals
+      - governance_violations
+    supabase_tables_write:
+      - governance_violations
+      - weekend_sprint_log
+
+  - phase_id: E4
+    name: Source Quality Audit
+    description: >
+      Verify source URLs stored during this sprint are live. Use HEAD requests
+      with 6s timeout. Mark broken URLs (404, timeout) as needs_review.
+      Generic URLs (pipeline pages, homepages) flag as low_confidence.
+      Apply same logic as validate_source_url() in company_enrichment.py.
+    block: E
+    script_function: phase_e4_source_quality_audit
+    estimated_minutes: 15
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - deals
+      - company_partnerships
+      - enriched_field_log
+    supabase_tables_write:
+      - deals
+      - company_partnerships
+      - weekend_sprint_log
+
+  - phase_id: E5
+    name: Contradiction Detection
+    description: >
+      Find conflicting values across related entities. Examples: drug stage in
+      drugs table vs stage in trials table vs stage in drug_stage_history.
+      Company status = subsidiary but parent_company_id is null.
+      Drug with brand_name but stage = phase_3. Log all contradictions.
+    block: E
+    script_function: phase_e5_contradiction_detection
+    estimated_minutes: 10
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - drugs
+      - trials
+      - drug_stage_history
+      - companies
+    supabase_tables_write:
+      - drug_validation_results
+      - governance_violations
+      - weekend_sprint_log
+
+  - phase_id: E6
+    name: Schema Validation Review
+    description: >
+      Check all enrichment_runs.schema_valid flags from this sprint.
+      Count schema_valid = false runs. Identify which skill_names are producing
+      schema failures. Log validation failure taxonomy (data_bug / test_bug /
+      stale_assumption / source_gap / true_unresolved) per Session 30 framework.
+    block: E
+    script_function: phase_e6_schema_validation_review
+    estimated_minutes: 5
+    depends_on: []
+    priority: 2
+    supabase_tables_read:
+      - enrichment_runs
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: E7
+    name: Positive Label Quality
+    description: >
+      Verify implicit positives in fine_tune_dataset if table exists.
+      Check that positive labels (human_label = 1 or true) correspond to
+      records that still have expected field values in the source tables.
+      Stale positive labels (source record changed) degrade model quality.
+    block: E
+    script_function: phase_e7_positive_label_quality
+    estimated_minutes: 8
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - fine_tune_dataset
+      - drugs
+      - companies
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: E8
+    name: Agent Disagreement Logging
+    description: >
+      Flag fields enriched differently across multiple runs this sprint.
+      If drug.bd_angle was written twice with significantly different content,
+      log as agent_disagreement in drug_validation_results for Kyle review.
+      This surfaces the hardest enrichment cases for human attention.
+    block: E
+    script_function: phase_e8_agent_disagreement
+    estimated_minutes: 8
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - enriched_field_log
+      - drugs
+    supabase_tables_write:
+      - drug_validation_results
+      - weekend_sprint_log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCK F — Reporting & Cleanup
+# Target: Saturday 1 PM ET (17:00 UTC) and Sunday 2 PM ET (18:00 UTC)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - phase_id: F1
+    name: Coverage Score Final Compute
+    description: >
+      Final definitive coverage calculation after all sprint enrichment.
+      Recompute all coverage_scores. Generate before/after comparison
+      (baseline from A5 vs final). Log per-table improvement statistics.
+      This is the ground truth score Kyle sees Monday morning.
+    block: F
+    script_function: phase_f1_final_coverage
+    estimated_minutes: 8
+    depends_on: []
+    priority: 1
+    supabase_tables_read:
+      - drugs
+      - companies
+      - drug_targets
+      - drug_indications
+      - company_partnerships
+      - deals
+    supabase_tables_write:
+      - coverage_scores
+      - weekend_sprint_log
+
+  - phase_id: F2
+    name: NEXT_SESSION.md Generation
+    description: >
+      Write NEXT_SESSION.md to workspace root. Content: sprint summary table,
+      top 10 items for Kyle review (by priority), unresolved governance violations,
+      new drugs/companies discovered, coverage score improvements, failed phases,
+      recommended first action for Monday session.
+    block: F
+    script_function: phase_f2_next_session_md
+    estimated_minutes: 5
+    depends_on:
+      - F1
+    priority: 1
+    supabase_tables_read:
+      - weekend_sprint_log
+      - governance_violations
+      - drug_validation_results
+      - coverage_scores
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: F3
+    name: Weekend Sprint Summary
+    description: >
+      Write a complete sprint summary to weekend_sprint_log with aggregate
+      statistics: total phases run, total records processed, total errors,
+      coverage score delta, new entities discovered, governance violations
+      found/resolved. Write sprint_complete row with final status.
+    block: F
+    script_function: phase_f3_sprint_summary
+    estimated_minutes: 3
+    depends_on:
+      - F1
+    priority: 1
+    supabase_tables_read:
+      - weekend_sprint_log
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: F4
+    name: Monday Review Queue
+    description: >
+      Build prioritized review queue for Kyle's Monday session. Top items:
+      agent disagreements, governance violations, new competitor drugs found,
+      stage advancements detected, deals with missing source_url.
+      Write to Supabase monday_review_queue table (create if needed).
+    block: F
+    script_function: phase_f4_monday_review_queue
+    estimated_minutes: 5
+    depends_on:
+      - E3
+      - E5
+      - E8
+    priority: 1
+    supabase_tables_read:
+      - drug_validation_results
+      - governance_violations
+      - weekend_sprint_log
+      - drugs
+      - companies
+    supabase_tables_write:
+      - monday_review_queue
+      - weekend_sprint_log
+
+  - phase_id: F5
+    name: Trajectory Summary Update
+    description: >
+      Refresh trajectory_quality view stats if the view exists. Log current
+      enrichment quality metrics to enrichment_runs for trend tracking.
+      Compute: avg coverage_score delta per sprint, enrichment success rate,
+      schema_valid rate trend over last 4 sprints.
+    block: F
+    script_function: phase_f5_trajectory_summary
+    estimated_minutes: 5
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - enrichment_runs
+      - coverage_scores
+    supabase_tables_write:
+      - enrichment_runs
+      - weekend_sprint_log
+
+  - phase_id: F6
+    name: GitHub Commit
+    description: >
+      Commit all changes from weekend sprint to GitHub. Uses GITHUB_TOKEN env var.
+      Commits: NEXT_SESSION.md, WEEKEND_SPRINT_LOG.md, any script changes.
+      Does NOT commit database changes (those are in Supabase directly).
+      Uses same git pattern as existing write_meridian.py deploy.
+    block: F
+    script_function: phase_f6_github_commit
+    estimated_minutes: 3
+    depends_on:
+      - F2
+      - F3
+    priority: 1
+    supabase_tables_read: []
+    supabase_tables_write:
+      - weekend_sprint_log
+
+  - phase_id: F7
+    name: Enrichment Log Cleanup
+    description: >
+      Archive old enrichment_runs records older than 90 days.
+      Move to enrichment_runs_archive table (create if needed).
+      Clean up enriched_field_log entries older than 90 days similarly.
+      Keeps the working tables fast and relevant.
+    block: F
+    script_function: phase_f7_enrichment_cleanup
+    estimated_minutes: 5
+    depends_on: []
+    priority: 3
+    supabase_tables_read:
+      - enrichment_runs
+      - enriched_field_log
+    supabase_tables_write:
+      - enrichment_runs_archive
+      - weekend_sprint_log
+
+  - phase_id: F8
+    name: Alert Generation
+    description: >
+      Flag any critical issues for Kyle. Critical = any of: governance_violation
+      with priority=P0, drug stage regression detected, schema_valid failure > 20%
+      of runs, new TL1A/IL-23 competitor found, AbbVie constraint violated.
+      Write alerts to weekend_sprint_log with alert_level = 'critical'|'warning'|'info'.
+    block: F
+    script_function: phase_f8_alert_generation
+    estimated_minutes: 3
+    depends_on:
+      - F3
+    priority: 1
+    supabase_tables_read:
+      - weekend_sprint_log
+      - governance_violations
+      - drug_validation_results
+    supabase_tables_write:
+      - weekend_sprint_log
