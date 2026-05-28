@@ -102,6 +102,9 @@ def log_enrichment_run(
     prompt_snapshot: str = "",
     entity_id: str = "",
     skill_name: str = "",
+    # v60 run classification fields
+    model_version: str = "claude-sonnet-4-6",
+    run_type: str = "scheduled",
 ) -> Optional[str]:
     """
     Create an enrichment_runs record in Supabase.
@@ -119,10 +122,13 @@ def log_enrichment_run(
       prompt_snapshot    — v59: first ~5000 chars of the system prompt (for fine-tuning)
       entity_id          — v59: drug/company ID being enriched (for single-entity runs)
       skill_name         — v59: 'enrich_drug' | 'company_enrich' | etc.
+      model_version      — v60: explicit model version string, e.g. 'claude-sonnet-4-6'
+      run_type           — v60: 'scheduled' | 'manual' | 'correction' | 'weekend_sprint' | 'validation'
 
     Usage in enrichment scripts:
       from model_comparison import log_enrichment_run
-      run_id = log_enrichment_run('company_enrichment.py', 'claude-sonnet-4-6', 'v1.0', 'company')
+      run_id = log_enrichment_run('company_enrichment.py', 'claude-sonnet-4-6', 'v1.0', 'company',
+                                  model_version='claude-sonnet-4-6', run_type='scheduled')
       # ... do enrichment ...
       # pass run_id to drug/company patch payloads as last_enrichment_run_id
     """
@@ -140,6 +146,9 @@ def log_enrichment_run(
         "notes":             notes or None,
         # v59 trajectory capture
         "fine_tune_eligible": True,
+        # v60 run classification
+        "model_version":     model_version,
+        "run_type":          run_type,
     }
     if prompt_snapshot:
         record["prompt_snapshot"] = prompt_snapshot[:5000]
