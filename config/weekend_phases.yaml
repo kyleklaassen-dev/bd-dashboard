@@ -118,15 +118,20 @@ phases:
       - weekend_sprint_log
 
   - phase_id: A6
-    name: Enrichment Backlog Scan
+    name: Coverage Gap Finder
     description: >
-      Identify all drugs with coverage_score < 40. Identify all companies with
-      coverage_score < 40. Build prioritized enrichment queue sorted by
-      strategic importance (direct/adjacent > same_space, stage desc).
-      Write backlog to weekend_sprint_log for Block B to consume.
+      Tier 4 QA Agent (coverage_gap_finder.py). Identifies missing data across
+      9 gap types: low coverage_score drugs (<40), missing molecule_intelligence
+      rows, missing drug_indications rows, missing catalyst_calendar for Phase 2/3
+      drugs, deals without company_partnerships rows, phantom companies,
+      unverified entity_relationships, Direct/Adjacent drugs with null bd_angle (P0),
+      Phase 2/3 drugs with null risk_summary (P1).
+      All gaps written to research_queue with priority (P0/P1/P2/P3).
     block: A
-    script_function: phase_a6_enrichment_backlog
-    estimated_minutes: 4
+    script_function: phase_a6_coverage_gap_finder
+    script_file: scripts/coverage_gap_finder.py
+    script_entry: run
+    estimated_minutes: 6
     depends_on:
       - A5
     priority: 1
@@ -135,7 +140,14 @@ phases:
       - companies
       - coverage_scores
       - drug_targets
+      - drug_indications
+      - molecule_intelligence
+      - catalyst_calendar
+      - company_partnerships
+      - deals
+      - entity_relationships
     supabase_tables_write:
+      - research_queue
       - weekend_sprint_log
 
   - phase_id: A7
@@ -781,45 +793,73 @@ phases:
       - weekend_sprint_log
 
   - phase_id: E4
-    name: Source Quality Audit
+    name: Source Verifier
     description: >
-      Verify source URLs stored during this sprint are live. Use HEAD requests
-      with 6s timeout. Mark broken URLs (404, timeout) as needs_review.
-      Generic URLs (pipeline pages, homepages) flag as low_confidence.
-      Apply same logic as validate_source_url() in company_enrichment.py.
+      Tier 3 Validation Agent (source_verifier.py). Validates every source_url
+      in the database: checks URL format, trusted domain registry (ct.gov,
+      sec.gov, pubmed, pharma IR pages, etc.), HTTP HEAD request (10s timeout),
+      and detects fabricated URL patterns.
+      Writes results to source_validation_log table (created if needed).
+      Updates enriched_field_log.field_label = 'source_invalid' for bad URLs.
+      Creates governance_violations for deals/partnerships missing source_url
+      (governance rule 5: source_url required for all deals).
+      Batches 20 URLs at a time with 0.5s sleep between batches.
     block: E
-    script_function: phase_e4_source_quality_audit
-    estimated_minutes: 15
+    script_function: phase_e4_source_verifier
+    script_file: scripts/source_verifier.py
+    script_entry: run
+    estimated_minutes: 20
     depends_on: []
     priority: 2
     supabase_tables_read:
+      - drugs
+      - companies
       - deals
       - company_partnerships
+      - entity_relationships
       - enriched_field_log
+      - drug_validation_results
+      - catalyst_calendar
     supabase_tables_write:
-      - deals
-      - company_partnerships
+      - source_validation_log
+      - enriched_field_log
+      - governance_violations
       - weekend_sprint_log
 
   - phase_id: E5
-    name: Contradiction Detection
+    name: Consistency Checker
     description: >
-      Find conflicting values across related entities. Examples: drug stage in
-      drugs table vs stage in trials table vs stage in drug_stage_history.
-      Company status = subsidiary but parent_company_id is null.
-      Drug with brand_name but stage = phase_3. Log all contradictions.
+      Tier 4 QA Agent (consistency_checker.py). Finds data contradictions
+      across the database with 8 check types:
+      (1) Drug stage vs trial_registries phase mismatch,
+      (2) Brand name without approved stage (governance violation),
+      (3) company_id originator rule violations,
+      (4) Duplicate entity detection (>85% name similarity),
+      (5) Deal attribution gap (deal with no company_partnerships row),
+      (6) Stage history contradiction or regression in history chain,
+      (7) entity_relationships bidirectional symmetry check,
+      (8) molecule_intelligence vs drugs.stage mismatch.
+      Writes all contradictions to agent_disagreements table (created if needed).
+      Writes governance violations for governance-rule contradictions.
     block: E
-    script_function: phase_e5_contradiction_detection
-    estimated_minutes: 10
+    script_function: phase_e5_consistency_checker
+    script_file: scripts/consistency_checker.py
+    script_entry: run
+    estimated_minutes: 12
     depends_on: []
     priority: 2
     supabase_tables_read:
       - drugs
       - trials
+      - trial_registries
       - drug_stage_history
       - companies
+      - deals
+      - company_partnerships
+      - entity_relationships
+      - molecule_intelligence
     supabase_tables_write:
-      - drug_validation_results
+      - agent_disagreements
       - governance_violations
       - weekend_sprint_log
 
@@ -946,28 +986,33 @@ phases:
       - weekend_sprint_log
 
   - phase_id: F4
-    name: Monday Review Queue
+    name: Human Queue Builder
     description: >
-      Build prioritized review queue for Kyle's Monday session. Top items:
-      agent disagreements, governance violations, new competitor drugs found,
-      stage advancements detected, deals with missing source_url.
-      Write to Supabase monday_review_queue table (create if needed).
+      Tier 5 Meta Agent (human_queue_builder.py). Builds Kyle's prioritized
+      review queue for the feedback UI. Scores each pending enriched_field_log
+      entry using: base(50) +30(Direct/Adjacent) +20(high-value field)
+      +15(low confidence) +10(was_changed) -10(metadata field) +25(clinical stage)
+      -5/day(staleness, max -50) +20(upcoming catalyst <180d).
+      Writes review_priority_score + review_queue_position to enriched_field_log.
+      Auto-promotes stale pending labels (>14 days, tracked overlap) to 'confirmed'.
+      Writes auto-promotions to kyle_reviews table.
     block: F
-    script_function: phase_f4_monday_review_queue
-    estimated_minutes: 5
+    script_function: phase_f4_human_queue_builder
+    script_file: scripts/human_queue_builder.py
+    script_entry: run
+    estimated_minutes: 8
     depends_on:
       - E3
       - E5
       - E8
     priority: 1
     supabase_tables_read:
-      - drug_validation_results
-      - governance_violations
-      - weekend_sprint_log
+      - enriched_field_log
       - drugs
-      - companies
+      - catalyst_calendar
     supabase_tables_write:
-      - monday_review_queue
+      - enriched_field_log
+      - kyle_reviews
       - weekend_sprint_log
 
   - phase_id: F5
