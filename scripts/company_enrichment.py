@@ -64,6 +64,7 @@ ENVIRONMENT:
 """
 
 import os
+import sys
 import json
 import time
 import datetime
@@ -74,11 +75,27 @@ from typing import Optional
 import requests
 import anthropic
 
+# Ensure the scripts/ directory is on sys.path so relative imports work
+# whether the script is invoked from the repo root or from scripts/ directly.
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
 try:
     from identity_resolution import DrugIdentityResolver
     _IDENTITY_RESOLVER_AVAILABLE = True
 except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False
+
+try:
+    from model_comparison import log_enrichment_run, update_enrichment_run
+    _MODEL_COMPARISON_AVAILABLE = True
+except ImportError:
+    _MODEL_COMPARISON_AVAILABLE = False
+    def log_enrichment_run(*args, **kwargs):   # type: ignore[misc]
+        return None
+    def update_enrichment_run(*args, **kwargs): # type: ignore[misc]
+        return False
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -2235,7 +2252,8 @@ def parse_enrichment_response(text: str) -> Optional[dict]:
         return None
 
 
-def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: bool = False):
+def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: bool = False,
+                enrichment_run_id: Optional[str] = None):
     """Write Claude enrichment results to Supabase."""
     if dry_run:
         log(f"  [DRY RUN] {json.dumps(data, indent=2)[:400]}...", indent=1)
@@ -2283,6 +2301,9 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             "enriched_by":         "claude-intelligence-v2",
             "last_enriched_model": "claude-sonnet-4-6",
         }
+        # Stamp enrichment run provenance on company_profiles (v57 model comparison engine)
+        if enrichment_run_id:
+            profile_rec["last_enrichment_run_id"] = enrichment_run_id
         for field in ["platform_intelligence","bd_intelligence",
                       "platform_summary","bd_summary","key_risk","why_it_matters",
                       "vs_ailux","strategic_behavior","pipeline_url",
@@ -2355,6 +2376,11 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         if update_fields:
             # Stamp model version on every drug write (v16 provenance column)
             update_fields["last_enriched_model"] = "claude-sonnet-4-6"
+            # Stamp enrichment run provenance (v57 model comparison engine)
+            if enrichment_run_id:
+                update_fields["last_enrichment_run_id"] = enrichment_run_id
+                update_fields["enriched_by"]  = "claude-sonnet-4-6"
+                update_fields["enriched_at"]  = NOW_ISO
             ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
@@ -3168,11 +3194,14 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
                    dry_run: bool = False, resolver=None,
                    skip_web_search: bool = False,
                    skip_trial_refresh: bool = False,
-                   fast_model: bool = False) -> bool:
+                   fast_model: bool = False,
+                   enrichment_run_id: Optional[str] = None) -> bool:
     """Run Steps 4-6 for one company.
 
     Args:
-      resolver: a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
+      resolver:            a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
+      enrichment_run_id:   UUID of the parent enrichment_runs row (from log_enrichment_run).
+                           When set, stamped on drug/company rows as last_enrichment_run_id.
     """
     log(f"\n{'='*56}")
     log(f"Enriching: {company_id} / {area_id}")
@@ -3253,7 +3282,8 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         log("  Parse failed — skipping", indent=1)
         return False
 
-    write_step5(company_id, area_id, data, ctx, dry_run)
+    write_step5(company_id, area_id, data, ctx, dry_run,
+                enrichment_run_id=enrichment_run_id)
 
     # POST-ENRICHMENT COMPLETENESS SCORING
     log("  Completeness scoring...", indent=1)
@@ -3406,6 +3436,21 @@ def run_intelligence_pipeline(area_id: str,
     company_map = get_company_map()
     log(f"Loaded {len(company_map)} company name→ID mappings")
 
+    # ── Model Comparison Engine: log this pipeline run ────────────────────────
+    _synthesis_model = "claude-haiku-4-5-20251001" if fast_model else "claude-sonnet-4-6"
+    _pipeline_run_id: Optional[str] = None
+    if not dry_run and _MODEL_COMPARISON_AVAILABLE:
+        _pipeline_run_id = log_enrichment_run(
+            script_name="company_enrichment.py",
+            model_name=_synthesis_model,
+            prompt_version="v1.0",
+            entity_type="company",
+            notes=f"area={area_id} company_filter={company_filter or 'all'}",
+        )
+    _pipeline_start_time = time.time()
+    _pipeline_fields_set = 0
+    _pipeline_errors = 0
+
     # Instantiate identity resolver once per pipeline run.
     # A single instance loads the alias cache once (one Supabase round-trip),
     # then every enrich_company → step6 call reuses it.
@@ -3480,16 +3525,31 @@ def run_intelligence_pipeline(area_id: str,
                                 resolver=run_resolver,
                                 skip_web_search=skip_web_search,
                                 skip_trial_refresh=skip_trial_refresh,
-                                fast_model=fast_model)
+                                fast_model=fast_model,
+                                enrichment_run_id=_pipeline_run_id)
             results["success" if ok else "failed"] += 1
+            if ok:
+                _pipeline_fields_set += 1
+            else:
+                _pipeline_errors += 1
         except Exception as e:
             log(f"FATAL: {cid}: {e}")
             results["failed"] += 1
+            _pipeline_errors += 1
         time.sleep(2)
 
     log(f"\n{'='*60}")
     log(f"Complete: {results['success']} success, {results['failed']} failed")
     log(f"{'='*60}")
+
+    # ── Model Comparison Engine: update run totals ────────────────────────────
+    if _pipeline_run_id and not dry_run:
+        update_enrichment_run(
+            run_id=_pipeline_run_id,
+            fields_set=_pipeline_fields_set,
+            run_duration_seconds=time.time() - _pipeline_start_time,
+            error_count=_pipeline_errors,
+        )
 
     # Mark dispatched enrichment_queue items as complete
     if not dry_run and queued_items:
