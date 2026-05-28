@@ -2360,6 +2360,10 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
     # catalog_category lookup — used below to auto-stamp drugs that are missing it
     _drug_catalog_map: dict = {d["id"]: d.get("catalog_category") for d in ctx.get("drugs", []) if d.get("id")}
 
+    # v60: pre-enrichment drug snapshot for old_value capture in enriched_field_log
+    # ctx["drugs"] was loaded before Claude ran — it holds the pre-enrichment state
+    _pre_enrich_drug_map: dict = {d["id"]: d for d in ctx.get("drugs", []) if d.get("id")}
+
     # Area-specific fields that belong in drug_area_scores (in addition to drugs table)
     # source_url + confidence_level are included so every area score carries provenance
     _AREA_SCORE_FIELDS = {"overlap", "overlap_rationale", "cls", "vs_ailux", "area_fit",
@@ -2404,6 +2408,49 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
+
+            # ── v60: enriched_field_log writes with old_value capture ─────────
+            # Write one row per enriched field. old_value comes from the pre-enrichment
+            # ctx snapshot captured before Claude ran — this is the diff training signal.
+            if ok and enrichment_run_id and not dry_run:
+                _pre_drug = _pre_enrich_drug_map.get(drug_id, {})
+                # Fields that carry enrichment signal (skip provenance/admin fields)
+                _LOGGABLE_FIELDS = {
+                    "mechanism", "ailux_angle", "drug_summary", "source_url",
+                    "overlap", "overlap_rationale", "differentiation_thesis",
+                    "stage", "modality", "target", "catalog_category",
+                    "strategic_role", "risk_summary", "bd_angle",
+                }
+                _field_log_rows = []
+                _now_ts = datetime.datetime.utcnow().isoformat()
+                for _fname, _fval in update_fields.items():
+                    if _fname not in _LOGGABLE_FIELDS:
+                        continue
+                    if _fval is None:
+                        continue
+                    _fval_str = str(_fval) if not isinstance(_fval, str) else _fval
+                    _old_val = _pre_drug.get(_fname)
+                    _old_val_str = str(_old_val) if (_old_val is not None and not isinstance(_old_val, str)) else _old_val
+                    _field_log_rows.append({
+                        "enrichment_run_id": enrichment_run_id,
+                        "entity_type":       "drug",
+                        "entity_id":         drug_id,
+                        "field_name":        _fname,
+                        "enriched_value":    _fval_str,
+                        "old_value":         _old_val_str,
+                        "old_value_captured_at": _now_ts if _old_val_str is not None else None,
+                        "was_changed":       _old_val_str != _fval_str if _old_val_str is not None else True,
+                        "model_name":        "claude-sonnet-4-6",
+                        "enriched_at":       _now_ts,
+                        "field_label":       "pending",
+                        "label_source":      "pending",
+                    })
+                if _field_log_rows:
+                    try:
+                        _fl_result = sb_upsert("enriched_field_log", _field_log_rows)
+                        log(f"    enriched_field_log: {len(_fl_result or [])} field(s) logged for {drug_id}", indent=2)
+                    except Exception as _fl_exc:
+                        log(f"    enriched_field_log: write failed (non-fatal): {_fl_exc}", indent=2)
 
             # ── Source traceability: write drug_sources row ───────────────────
             # Every drug write must have at least one source URL.
@@ -3560,6 +3607,9 @@ def run_intelligence_pipeline(area_id: str,
             prompt_snapshot=ENRICHMENT_SYSTEM[:5000],
             entity_id=company_filter or "",
             skill_name="company_enrich",
+            # v60 run classification
+            model_version=_synthesis_model,
+            run_type="scheduled",
         )
     _pipeline_start_time = time.time()
     _pipeline_fields_set = 0
