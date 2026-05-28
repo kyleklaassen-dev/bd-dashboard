@@ -70,10 +70,27 @@ import time
 import datetime
 import argparse
 import re
-from typing import Optional
+from typing import Optional, List
 
 import requests
 import anthropic
+
+try:
+    from pydantic import BaseModel, Field as PydanticField
+    _PYDANTIC_AVAILABLE = True
+
+    class DrugEnrichmentOutput(BaseModel):
+        mechanism: Optional[str] = None
+        ailux_angle: Optional[str] = None
+        drug_summary: Optional[str] = None
+        source_url: Optional[str] = None
+        overlap: Optional[str] = None
+        overlap_rationale: Optional[str] = None
+        differentiation_thesis: Optional[str] = None
+
+except ImportError:
+    _PYDANTIC_AVAILABLE = False
+    DrugEnrichmentOutput = None  # type: ignore[assignment,misc]
 
 # Ensure the scripts/ directory is on sys.path so relative imports work
 # whether the script is invoked from the repo root or from scripts/ directly.
@@ -88,13 +105,15 @@ except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False
 
 try:
-    from model_comparison import log_enrichment_run, update_enrichment_run
+    from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run
     _MODEL_COMPARISON_AVAILABLE = True
 except ImportError:
     _MODEL_COMPARISON_AVAILABLE = False
     def log_enrichment_run(*args, **kwargs):   # type: ignore[misc]
         return None
     def update_enrichment_run(*args, **kwargs): # type: ignore[misc]
+        return False
+    def patch_enrichment_run(*args, **kwargs): # type: ignore[misc]
         return False
 
 
@@ -3277,13 +3296,104 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         log("  Claude failed — skipping", indent=1)
         return False
 
+    # ── v59 trajectory capture: store raw LLM response ───────────────────────
+    if enrichment_run_id and not dry_run:
+        try:
+            patch_enrichment_run(enrichment_run_id, {
+                "raw_llm_response": (text or "")[:8000],
+                "entity_id":        company_id,
+                "skill_name":       "company_enrich",
+            })
+        except Exception as _traj_exc:
+            log(f"  [trajectory] raw_llm_response patch failed (non-fatal): {_traj_exc}", indent=2)
+
     data = parse_enrichment_response(text)
     if not data:
         log("  Parse failed — skipping", indent=1)
         return False
 
+    # ── v59 Pydantic schema validation on drug_updates fields ────────────────
+    # Validates the specific fields in DrugEnrichmentOutput schema before DB writes.
+    # If validation fails for any field, that field is skipped; schema_valid = False.
+    # All validation logic is wrapped in try/except so failures never block enrichment.
+    _VALIDATED_DRUG_FIELDS = {"mechanism", "ailux_angle", "drug_summary",
+                               "source_url", "overlap", "overlap_rationale",
+                               "differentiation_thesis"}
+    _fields_attempted: list = []
+    _fields_changed:   list = []
+    _fields_confirmed: list = []
+    _fields_failed:    list = []
+    _schema_valid: Optional[bool] = None
+    _correction_count = 0
+
+    try:
+        # Build lookup of existing (pre-enrichment) drug field values from context
+        _ctx_drug_map = {d["id"]: d for d in ctx.get("drugs", [])}
+
+        for du in (data.get("drug_updates") or []):
+            drug_id_val = du.get("drug_id") or ""
+            old_drug = _ctx_drug_map.get(drug_id_val, {})
+
+            for field in _VALIDATED_DRUG_FIELDS:
+                new_val = du.get(field)
+                if new_val is None:
+                    continue
+                _fields_attempted.append(field)
+
+                # Pydantic validation: build a single-field model and validate
+                if _PYDANTIC_AVAILABLE and DrugEnrichmentOutput is not None:
+                    try:
+                        DrugEnrichmentOutput(**{field: new_val})
+                    except Exception as _val_err:
+                        log(f"  [schema] {drug_id_val}.{field} failed validation: {_val_err}", indent=2)
+                        _fields_failed.append(f"{drug_id_val}.{field}")
+                        # Remove from du so write_step5 skips it
+                        du.pop(field, None)
+                        continue
+
+                # Track changed vs confirmed vs corrected
+                old_val = old_drug.get(field)
+                if old_val and old_val == new_val:
+                    _fields_confirmed.append(f"{drug_id_val}.{field}")
+                elif old_val and old_val != new_val:
+                    _fields_changed.append(f"{drug_id_val}.{field}")
+                    _correction_count += 1
+                else:
+                    # Field was empty before → new value
+                    _fields_changed.append(f"{drug_id_val}.{field}")
+
+        _schema_valid = len(_fields_failed) == 0
+        log(f"  [schema] attempted={len(_fields_attempted)} changed={len(_fields_changed)} "
+            f"confirmed={len(_fields_confirmed)} failed={len(_fields_failed)} "
+            f"corrections={_correction_count}", indent=1)
+
+    except Exception as _schema_exc:
+        log(f"  [schema] validation block error (non-fatal): {_schema_exc}", indent=2)
+
     write_step5(company_id, area_id, data, ctx, dry_run,
                 enrichment_run_id=enrichment_run_id)
+
+    # ── v59 trajectory capture: patch enrichment_runs with field tracking ─────
+    if enrichment_run_id and not dry_run:
+        try:
+            _traj_patch: dict = {
+                "fine_tune_eligible": True,
+            }
+            if _fields_attempted:
+                _traj_patch["fields_attempted"] = _fields_attempted
+            if _fields_changed:
+                _traj_patch["fields_changed"] = _fields_changed
+            if _fields_confirmed:
+                _traj_patch["fields_confirmed"] = _fields_confirmed
+            if _fields_failed:
+                _traj_patch["fields_failed"] = _fields_failed
+            if _schema_valid is not None:
+                _traj_patch["schema_valid"] = _schema_valid
+            if _correction_count:
+                _traj_patch["correction_count"] = _correction_count
+            patch_enrichment_run(enrichment_run_id, _traj_patch)
+        except Exception as _traj_exc2:
+            log(f"  [trajectory] field-tracking patch failed (non-fatal): {_traj_exc2}", indent=2)
 
     # POST-ENRICHMENT COMPLETENESS SCORING
     log("  Completeness scoring...", indent=1)
@@ -3446,6 +3556,10 @@ def run_intelligence_pipeline(area_id: str,
             prompt_version="v1.0",
             entity_type="company",
             notes=f"area={area_id} company_filter={company_filter or 'all'}",
+            # v59 trajectory capture: store system prompt snapshot + skill name
+            prompt_snapshot=ENRICHMENT_SYSTEM[:5000],
+            entity_id=company_filter or "",
+            skill_name="company_enrich",
         )
     _pipeline_start_time = time.time()
     _pipeline_fields_set = 0
