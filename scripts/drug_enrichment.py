@@ -526,18 +526,33 @@ def validate_output(raw: dict, drug_name: str) -> Dict:
 
 def log_field_change(drug_id: str, field: str,
                      old_value: Any, new_value: Any,
+                     enrichment_run_id: Optional[str] = None,
+                     model_confidence: float = 0.8,
+                     source_url: Optional[str] = None,
                      skill_name: str = "drug_enrich"):
-    """Write to enriched_field_log with old_value captured."""
+    """Write to enriched_field_log with full provenance (old_value, enrichment_run_id, was_changed)."""
     try:
-        sb_post("enriched_field_log", {
-            "entity_id":   drug_id,
-            "entity_type": "drug",
-            "field_name":  field,
-            "old_value":   str(old_value) if old_value is not None else None,
-            "new_value":   str(new_value) if new_value is not None else None,
-            "skill_name":  skill_name,
-            "created_at":  NOW_ISO,
-        })
+        old_str = str(old_value) if old_value is not None else None
+        new_str = str(new_value) if new_value is not None else None
+        was_changed = old_str != new_str if old_str is not None else True
+        _now_ts = datetime.datetime.utcnow().isoformat()
+        row = {
+            "entity_id":        drug_id,
+            "entity_type":      "drug",
+            "field_name":       field,
+            "old_value":        old_str,
+            "enriched_value":   new_str,
+            "was_changed":      was_changed,
+            "model_confidence": model_confidence,
+            "enriched_at":      _now_ts,
+            "field_label":      "pending",
+            "label_source":     "pending",
+        }
+        if enrichment_run_id:
+            row["enrichment_run_id"] = enrichment_run_id
+        if source_url:
+            row["source_citation"] = source_url
+        sb_post("enriched_field_log", row)
     except Exception as e:
         log(f"  enriched_field_log write failed for {field}: {e}", indent=3)
 
@@ -580,19 +595,22 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
 
     # Log enrichment start
     run_id = log_enrichment_run(
-        entity_id=drug_id,
+        script_name="drug_enrichment.py",
+        model_name="claude-sonnet-4-6",
+        prompt_version="v1.0",
         entity_type="drug",
+        entity_id=drug_id,
         skill_name="drug_enrich",
         run_type="weekend_sprint",
-        model="claude-sonnet-4-5",
-        prompt_preview=prompt[:500],
+        model_version="claude-sonnet-4-6",
+        prompt_snapshot=prompt[:5000],
     ) if _MODEL_COMPARISON_AVAILABLE else None
 
     t0 = time.time()
     raw_response = None
     try:
         msg = client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-4-6",
             max_tokens=800,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -601,7 +619,7 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     except Exception as e:
         log(f"  Claude API call failed: {e}", indent=2)
         if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, status="error", error_message=str(e))
+            patch_enrichment_run(run_id, {"status": "error", "error_message": str(e)})
         return False
 
     # 4. Parse JSON from response
@@ -624,8 +642,8 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     except Exception as e:
         log(f"  JSON parse failed: {e}. Raw: {raw_response[:200]}", indent=2)
         if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, status="error", schema_valid=False,
-                                 error_message=f"JSON parse error: {e}")
+            patch_enrichment_run(run_id, {"status": "error", "schema_valid": False,
+                                          "error_message": f"JSON parse error: {e}"})
         return False
 
     # 5. Validate output
@@ -633,8 +651,8 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     if not validated:
         log(f"  No valid fields after validation — skipping write", indent=2)
         if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, status="warning", schema_valid=False,
-                                 records_processed=0)
+            patch_enrichment_run(run_id, {"status": "warning", "schema_valid": False,
+                                          "records_processed": 0})
         return False
 
     # Only update fields that are actually missing
@@ -649,19 +667,33 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     else:
         if update:
             try:
-                sb_patch("drugs", {"id": drug_id}, update)
+                # Stamp provenance fields on every drug write
+                write_payload = {
+                    **update,
+                    "last_enriched_model": "claude-sonnet-4-6",
+                    "updated_at": "now()",
+                }
+                if run_id:
+                    write_payload["last_enrichment_run_id"] = run_id
+
+                sb_patch("drugs", {"id": drug_id}, write_payload)
                 log(f"  Drug {drug_name}: patched {len(update)} fields", indent=2)
 
-                # Log each field change
+                # Log each field change with full provenance
+                source = validated.get("source_url")
                 for field, new_val in update.items():
                     old_val = drug.get(field)
-                    log_field_change(drug_id, field, old_val, new_val)
+                    log_field_change(
+                        drug_id, field, old_val, new_val,
+                        enrichment_run_id=run_id,
+                        source_url=source if field == "source_url" else None,
+                    )
 
             except Exception as e:
                 log(f"  Patch failed: {e}", indent=2)
                 if run_id and _MODEL_COMPARISON_AVAILABLE:
-                    patch_enrichment_run(run_id, status="error",
-                                         error_message=f"Patch failed: {e}")
+                    patch_enrichment_run(run_id, {"status": "error",
+                                                   "error_message": f"Patch failed: {e}"})
                 return False
 
         # Update coverage score
@@ -682,27 +714,29 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     # 7. Log enrichment run
     duration = time.time() - t0
     if run_id and _MODEL_COMPARISON_AVAILABLE:
-        patch_enrichment_run(
-            run_id,
-            status="success",
-            schema_valid=True,
-            records_processed=len(update),
-            duration_seconds=duration,
-        )
+        patch_enrichment_run(run_id, {
+            "status":            "success",
+            "schema_valid":      True,
+            "records_processed": len(update),
+            "run_duration_seconds": round(duration, 2),
+            "model_version":     "claude-sonnet-4-6",
+        })
     else:
-        # Log to enrichment_runs directly
+        # Log to enrichment_runs directly (model_comparison not available)
         try:
             sb_post("enrichment_runs", {
-                "entity_id":       drug_id,
-                "entity_type":     "drug",
-                "skill_name":      "drug_enrich",
-                "run_type":        "weekend_sprint",
-                "model":           "claude-sonnet-4-5",
-                "status":          "success",
-                "schema_valid":    True,
-                "records_processed": len(update),
-                "duration_seconds":  round(duration, 2),
-                "created_at":      NOW_ISO,
+                "entity_id":          drug_id,
+                "entity_type":        "drug",
+                "skill_name":         "drug_enrich",
+                "script_name":        "drug_enrichment.py",
+                "model_name":         "claude-sonnet-4-6",
+                "model_version":      "claude-sonnet-4-6",
+                "run_type":           "weekend_sprint",
+                "status":             "success",
+                "schema_valid":       True,
+                "records_processed":  len(update),
+                "run_duration_seconds": round(duration, 2),
+                "run_date":           NOW_ISO,
             })
         except Exception:
             pass
