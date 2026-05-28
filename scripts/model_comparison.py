@@ -98,6 +98,10 @@ def log_enrichment_run(
     entity_type: str,
     entities_processed: int = 0,
     notes: str = "",
+    # v59 trajectory capture fields
+    prompt_snapshot: str = "",
+    entity_id: str = "",
+    skill_name: str = "",
 ) -> Optional[str]:
     """
     Create an enrichment_runs record in Supabase.
@@ -112,6 +116,9 @@ def log_enrichment_run(
       entity_type        — 'drug' | 'company' | 'relationship'
       entities_processed — how many entities will be (or were) enriched in this run
       notes              — optional free-text context
+      prompt_snapshot    — v59: first ~5000 chars of the system prompt (for fine-tuning)
+      entity_id          — v59: drug/company ID being enriched (for single-entity runs)
+      skill_name         — v59: 'enrich_drug' | 'company_enrich' | etc.
 
     Usage in enrichment scripts:
       from model_comparison import log_enrichment_run
@@ -131,7 +138,16 @@ def log_enrichment_run(
         "entities_processed": entities_processed,
         "run_date":          NOW_ISO,
         "notes":             notes or None,
+        # v59 trajectory capture
+        "fine_tune_eligible": True,
     }
+    if prompt_snapshot:
+        record["prompt_snapshot"] = prompt_snapshot[:5000]
+    if entity_id:
+        record["entity_id"] = entity_id
+    if skill_name:
+        record["skill_name"] = skill_name
+
     result = sb_insert("enrichment_runs", record)
     if result and result.get("id"):
         run_id = result["id"]
@@ -168,6 +184,32 @@ def update_enrichment_run(
         return r.status_code in (200, 204)
     except Exception as e:
         print(f"[update_enrichment_run] {e}")
+        return False
+
+
+def patch_enrichment_run(run_id: str, patch: dict) -> bool:
+    """
+    Patch arbitrary fields on an enrichment_run row.
+
+    Used by company_enrichment.py to store v59 trajectory capture fields
+    (raw_llm_response, schema_valid, fields_attempted, fields_changed,
+    fields_confirmed, fields_failed, correction_count) after each enrichment.
+
+    All patch failures are non-fatal — enrichment continues regardless.
+    """
+    if not run_id or not patch:
+        return False
+    try:
+        r = requests.patch(
+            f"{SUPABASE_URL}/rest/v1/enrichment_runs",
+            headers=SB_HEADERS,
+            params={"id": f"eq.{run_id}"},
+            json=patch,
+            timeout=10,
+        )
+        return r.status_code in (200, 204)
+    except Exception as e:
+        print(f"[patch_enrichment_run] {e}")
         return False
 
 
