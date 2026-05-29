@@ -20239,20 +20239,22 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     backdrop.classList.add('open');
     card.classList.add('open');
 
-    // Fetch all 4 scoring tables in parallel
-    let win = null, bio = null, reg = null, strat = null;
+    // Fetch all 4 scoring tables + company map in parallel
+    let win = null, bio = null, reg = null, strat = null, companyMap = [];
     if (typeof _sb !== 'undefined') {
       try {
-        const [wRes, bRes, rRes, sRes] = await Promise.all([
+        const [wRes, bRes, rRes, sRes, cmRes] = await Promise.all([
           _sb.from('indication_window_urgency').select('*').eq('indication_id', id).single(),
           _sb.from('indication_biology_validation').select('*').eq('indication_id', id).single(),
           _sb.from('indication_regulatory_clarity').select('*').eq('indication_id', id).single(),
           _sb.from('indication_patient_stratifiability').select('*').eq('indication_id', id).single(),
+          _sb.from('indication_company_map').select('*').eq('indication_id', id).order('relevance_score', { ascending: false }),
         ]);
         win   = wRes.data;
         bio   = bRes.data;
         reg   = rRes.data;
         strat = sRes.data;
+        companyMap = cmRes.data || [];
       } catch(_) { /* tables may not exist yet */ }
     }
 
@@ -20369,6 +20371,57 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
 
     if (!win && !bio && !reg && !strat) {
       html += `<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">Detailed scoring data not yet available for this indication.</div>`;
+    }
+
+    // KEY COMPANIES IN THIS INDICATION
+    if (companyMap.length > 0) {
+      const roleMeta = {
+        validates_biology:  { label: 'Validates Biology', fg: '#065f46', bg: '#d1fae5' },
+        competes_directly:  { label: 'Competes Directly', fg: '#7f1d1d', bg: '#fee2e2' },
+        potential_partner:  { label: 'Potential Partner',  fg: '#1a3f8f', bg: '#e8f0f8' },
+        licensing_target:   { label: 'Licensing Target',   fg: '#92400e', bg: '#fef3c7' },
+        monitor:            { label: 'Monitor',             fg: '#64748b', bg: '#f1f5f9' },
+      };
+      const partnerMeta = {
+        high:    { label: 'High',    fg: '#065f46', bg: '#d1fae5' },
+        medium:  { label: 'Medium',  fg: '#1a3f8f', bg: '#e8f0f8' },
+        low:     { label: 'Low',     fg: '#64748b', bg: '#f1f5f9' },
+        conflict: { label: 'Conflict', fg: '#7f1d1d', bg: '#fee2e2' },
+      };
+
+      function _badge(val, map) {
+        const m = map[val] || { label: val, fg: '#64748b', bg: '#f1f5f9' };
+        return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${m.bg};color:${m.fg}">${m.label}</span>`;
+      }
+
+      const rows = companyMap.map(c => {
+        const drugBit = c.key_drug_id
+          ? `<div style="font-size:11px;color:#334155;margin-top:2px"><span style="font-weight:600">${c.key_drug_id.replace(/-/g,' ')}</span>${c.key_drug_stage ? ` · <span style="color:#64748b">${c.key_drug_stage}</span>` : ''}</div>`
+          : '';
+        const resultBit = c.key_drug_result
+          ? `<div style="font-size:10px;color:#64748b;margin-top:1px;line-height:1.4;font-style:italic">${c.key_drug_result}</div>`
+          : '';
+        return `<div style="border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:700;color:#0d1f38">${c.company_id.toUpperCase()}</span>
+                ${_badge(c.role, roleMeta)}
+              </div>
+              ${drugBit}
+              ${resultBit}
+              ${c.role_rationale ? `<div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.5">${c.role_rationale}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:9px;color:#94a3b8;margin-bottom:3px;text-align:right">Partnership</div>
+              ${_badge(c.partnership_potential, partnerMeta)}
+              <div style="font-size:10px;color:#94a3b8;margin-top:3px">Relevance: ${c.relevance_score}/10</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      html += _section('Key Companies in This Indication', rows);
     }
 
     html += `</div>`;
