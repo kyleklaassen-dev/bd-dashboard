@@ -661,6 +661,303 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
         f"(company junction rows written inline)")
 
 
+# ── New-source sweep helpers ─────────────────────────────────────────────────
+
+def write_to_research_queue(item: dict) -> None:
+    """
+    Write a single item to the research_queue table.
+
+    Expected keys (matching coverage_gap_finder.py schema):
+        entity_type  — "trial" | "company" | "drug"
+        entity_id    — globally unique identifier (NCT ID, company slug, etc.)
+        gap_type     — e.g. "new_trial_registration" | "sec_8k_filing"
+        priority     — "P0" | "P1" | "P2"
+        reason       — human-readable context string (truncated to 1000 chars)
+        source       — script name
+        status       — "pending"
+
+    Uses on_conflict=entity_id,gap_type so repeated nightly runs update
+    the existing row rather than accumulating duplicates.
+    """
+    payload = json.dumps([{
+        "entity_type": item.get("entity_type", "trial"),
+        "entity_id":   str(item.get("entity_id", ""))[:200],
+        "gap_type":    item.get("gap_type", "new_source_signal"),
+        "priority":    item.get("priority", "P1"),
+        "reason":      str(item.get("reason", ""))[:1000],
+        "source":      item.get("source", "research_sweep"),
+        "status":      "pending",
+    }]).encode()
+
+    req = requests.post(
+        f"{SUPABASE_URL}/rest/v1/research_queue",
+        data=payload,
+        headers={
+            **SB_HEADERS,
+            "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+        params={"on_conflict": "entity_id,gap_type"},
+        timeout=10,
+    )
+    if req.status_code not in (200, 201):
+        log(f"  research_queue write error: {req.status_code} {req.text[:150]}")
+
+
+def run_new_source_sweep() -> None:
+    """
+    Phase 6 (nightly supplement): new-data-source sweep.
+
+    Runs AFTER the main RSS→extract→write pipeline. Calls:
+      1. ctgov_poller.poll_ctgov_new_registrations — newly registered trials
+         by mechanism keyword. Writes to research_queue (entity_type=trial).
+      2. edgar_fetcher.process_company — 8-K filings for the 14 tracked
+         companies. Writes to source_documents via edgar_fetcher's own writer.
+
+    Neither step requires the Anthropic API; both are pure fetch→parse→store.
+    """
+    log("--- Phase 6: New-source sweep (CT.gov + EDGAR) ---")
+
+    # ── 6a: CT.gov new registrations ──────────────────────────────────────
+    try:
+        # Import here to avoid circular deps and make the import optional
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from ctgov_poller import poll_ctgov_new_registrations, write_trial_to_research_queue
+        new_trials = poll_ctgov_new_registrations(days_back=7)
+        log(f"  CT.gov: {len(new_trials)} new trial registrations found")
+        written = 0
+        for trial in new_trials:
+            ok = write_trial_to_research_queue(trial, SUPABASE_KEY)
+            if ok:
+                written += 1
+        log(f"  CT.gov: {written}/{len(new_trials)} written to research_queue")
+    except Exception as exc:
+        log(f"  CT.gov sweep error: {exc}")
+
+    # ── 6b: EDGAR 8-K sweep (14 tracked companies, 14-day window) ─────────
+    try:
+        from edgar_fetcher import TRACKED_COMPANIES, process_company
+        log(f"  EDGAR: scanning {len(TRACKED_COMPANIES)} companies for 8-Ks (14 days back)")
+        edgar_saved = 0
+        for company in TRACKED_COMPANIES:
+            saved = process_company(
+                company,
+                form_types=["8-K"],
+                days_back=14,
+                service_key=SUPABASE_KEY,
+                dry_run=False,
+            )
+            edgar_saved += len(saved)
+            time.sleep(1.0)  # EDGAR courtesy delay between companies
+        log(f"  EDGAR: {edgar_saved} relevant 8-K documents saved to source_documents")
+    except Exception as exc:
+        log(f"  EDGAR sweep error: {exc}")
+
+    log("--- Phase 6 complete ---")
+
+
+# ── GAP 1 FIX: PK/PD queue processor ─────────────────────────────────────────
+
+def fetch_pubmed_abstract(pmid: str, timeout: int = 10) -> str:
+    """
+    Fetch abstract text for a PubMed PMID via the NCBI efetch API.
+    Returns empty string on failure.
+    """
+    try:
+        url = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+            f"?db=pubmed&id={pmid}&rettype=abstract&retmode=text"
+        )
+        resp = requests.get(url, timeout=timeout, headers={"User-Agent": "Meridian-BD/1.0"})
+        if resp.status_code == 200:
+            return resp.text
+    except Exception as exc:
+        log(f"  PubMed fetch error (PMID {pmid}): {exc}")
+    return ""
+
+
+def parse_pk_from_abstract(abstract_text: str) -> dict:
+    """
+    Lightweight regex extraction of common PK parameters from an abstract.
+    Returns a dict with any parameters found; empty dict if none detected.
+    Confidence is intentionally conservative — only clear numeric patterns match.
+    """
+    import re
+    result = {}
+    text = abstract_text.lower()
+
+    # Half-life: "half-life of 14 days" / "t1/2 = 21 h" / "elimination half-life 14.2 days"
+    hl_match = re.search(
+        r"(?:half.life|t½|t1/2)\s*(?:of|=|was|is)?\s*([\d.]+)\s*(day|hour|h\b|week)",
+        text
+    )
+    if hl_match:
+        val = float(hl_match.group(1))
+        unit = hl_match.group(2).strip()
+        # Convert to hours
+        if "day" in unit:
+            val *= 24
+        elif "week" in unit:
+            val *= 168
+        result["half_life_hours"] = round(val, 1)
+
+    # Bioavailability: "bioavailability of 72%" / "F = 68%"
+    ba_match = re.search(
+        r"(?:bioavailability|absolute bioavailability)\s*(?:of|=|was|is)?\s*([\d.]+)\s*%",
+        text
+    )
+    if ba_match:
+        result["bioavailability_pct"] = float(ba_match.group(1))
+
+    # Cmax in ng/mL or µg/mL
+    cmax_match = re.search(
+        r"c(?:max|peak)\s*(?:of|=|was|is)?\s*([\d.]+)\s*(?:ng/ml|ug/ml|µg/ml|ng·/ml)",
+        text
+    )
+    if cmax_match:
+        result["cmax_ng_ml"] = float(cmax_match.group(1))
+
+    # AUC
+    auc_match = re.search(
+        r"auc(?:inf|0.inf|0–inf|last)?\s*(?:of|=|was|is)?\s*([\d.]+)\s*(?:ng|µg)[\s·]*h(?:r|our)?",
+        text
+    )
+    if auc_match:
+        result["auc_inf_ng_hr_ml"] = float(auc_match.group(1))
+
+    # Immunogenicity / ADA
+    ada_match = re.search(
+        r"(?:ada|anti-drug antibod|immunogenicity)\D{0,30}([\d.]+)\s*%",
+        text
+    )
+    if ada_match:
+        result["immunogenicity_ada_pct"] = float(ada_match.group(1))
+
+    return result
+
+
+def process_pkpd_queue() -> int:
+    """
+    GAP 1 FIX: Process research_queue items where context_type='pkpd_literature'
+    or reason contains 'PK/PD'. For each item:
+      1. Extract PMID from the reason field.
+      2. Fetch the PubMed abstract.
+      3. If it mentions PK parameters (half-life, Cmax, AUC, bioavailability),
+         write a row to drug_pk_parameters.
+      4. Mark the research_queue item as assigned_status='completed'.
+
+    Returns count of items processed.
+    """
+    log("--- Phase 7: PK/PD queue processor ---")
+
+    # Fetch pending pkpd queue items
+    queue_items = []
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/research_queue",
+            headers=SB_HEADERS,
+            params={
+                "context_type": "eq.pkpd_literature",
+                "assigned_status": "eq.pending",
+                "select": "id,entity_id,reason",
+                "limit": "100",
+            },
+            timeout=15,
+        )
+        if r.status_code == 200:
+            queue_items = r.json()
+        else:
+            log(f"  research_queue fetch error: {r.status_code}")
+    except Exception as exc:
+        log(f"  PK/PD queue fetch error: {exc}")
+        return 0
+
+    log(f"  Found {len(queue_items)} pending PK/PD queue items")
+    if not queue_items:
+        return 0
+
+    processed = 0
+    pk_written = 0
+    NOW_ISO = datetime.datetime.utcnow().isoformat()
+
+    for item in queue_items:
+        item_id = item["id"]
+        drug_id = item.get("entity_id", "")
+        reason = item.get("reason", "")
+
+        # Extract PMID from reason text: "PMID 39073504"
+        import re
+        pmid_match = re.search(r"PMID\s+(\d+)", reason)
+        if not pmid_match:
+            log(f"  No PMID found in reason for {drug_id}: {reason[:80]}")
+            # Mark completed anyway — no PMID to process
+            requests.patch(
+                f"{SUPABASE_URL}/rest/v1/research_queue",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                params={"id": f"eq.{item_id}"},
+                json={"assigned_status": "completed"},
+                timeout=10,
+            )
+            processed += 1
+            continue
+
+        pmid = pmid_match.group(1)
+        source_url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+
+        log(f"  Processing {drug_id} — PMID {pmid}")
+        time.sleep(0.5)  # NCBI courtesy delay
+
+        abstract = fetch_pubmed_abstract(pmid)
+        if not abstract:
+            log(f"    No abstract returned for PMID {pmid}")
+        else:
+            pk_params = parse_pk_from_abstract(abstract)
+            if pk_params:
+                log(f"    Extracted PK params: {list(pk_params.keys())}")
+                pk_rec = {
+                    "drug_id":      drug_id,
+                    "source_type":  "pubmed_abstract",
+                    "source_url":   source_url,
+                    "notes":        f"Auto-extracted from PubMed PMID {pmid}",
+                    "verified":     False,
+                    "created_at":   NOW_ISO,
+                    **pk_params,
+                }
+                try:
+                    pr = requests.post(
+                        f"{SUPABASE_URL}/rest/v1/drug_pk_parameters",
+                        headers={**SB_HEADERS, "Prefer": "resolution=ignore-duplicates,return=minimal"},
+                        json=pk_rec,
+                        timeout=15,
+                    )
+                    if pr.status_code in (200, 201, 204):
+                        pk_written += 1
+                        log(f"    ✓ Wrote drug_pk_parameters for {drug_id} (PMID {pmid})")
+                    else:
+                        log(f"    ✗ Write failed: {pr.status_code} {pr.text[:100]}")
+                except Exception as exc:
+                    log(f"    Write error: {exc}")
+            else:
+                log(f"    No PK parameters detected in abstract (PMID {pmid})")
+
+        # Mark research_queue item as completed
+        try:
+            requests.patch(
+                f"{SUPABASE_URL}/rest/v1/research_queue",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                params={"id": f"eq.{item_id}"},
+                json={"assigned_status": "completed", "last_action_at": NOW_ISO},
+                timeout=10,
+            )
+        except Exception:
+            pass
+
+        processed += 1
+
+    log(f"  PK/PD queue: {processed} items processed, {pk_written} drug_pk_parameters rows written")
+    log("--- Phase 7 complete ---")
+    return processed
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     log(f"=== Meridian Research Pipeline — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
@@ -698,5 +995,29 @@ if __name__ == "__main__":
             intel = extract_intel(new_articles)
             if intel:
                 write_to_supabase(intel, company_map=company_map, resolver=resolver)
+
+    # Phase 6: CT.gov + EDGAR sweep — runs unconditionally (independent of RSS results)
+    run_new_source_sweep()
+
+    # Phase 7: PK/PD queue processor — reads research_queue pkpd_literature items,
+    # fetches PubMed abstracts, extracts PK parameters, writes to drug_pk_parameters
+    try:
+        process_pkpd_queue()
+    except Exception as exc:
+        log(f"Phase 7 PK/PD queue error (non-fatal): {exc}")
+
+    # GAP 3 FIX: Source verifier — run nightly to validate source URLs and
+    # write to source_validation_log. Called here so it runs as part of nightly pipeline.
+    # source_verifier.run() checks URLs from deals, partnerships, enriched_field_log, etc.
+    # and writes results to source_validation_log (populating a previously empty table).
+    try:
+        from source_verifier import run as run_source_verifier
+        log("--- Phase 8: Source URL verification ---")
+        run_source_verifier(dry_run=False, limit=50)
+        log("--- Phase 8 complete ---")
+    except ImportError:
+        log("source_verifier not available — skipping Phase 8")
+    except Exception as exc:
+        log(f"Phase 8 source verifier error (non-fatal): {exc}")
 
     log("=== Research complete ===")
