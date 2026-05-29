@@ -174,6 +174,7 @@ def update_enrichment_run(
 ) -> bool:
     """
     Patch an enrichment_run row after the batch completes.
+    Sets status='completed' and completed_at to mark the run as done.
     Call at the end of run_intelligence_pipeline() with totals.
     """
     if not run_id:
@@ -187,6 +188,9 @@ def update_enrichment_run(
                 "fields_set":            fields_set,
                 "run_duration_seconds":  round(run_duration_seconds, 2),
                 "error_count":           error_count,
+                # BUG 1 FIX: mark run complete so it doesn't stay stuck in 'running'
+                "status":                "completed",
+                "completed_at":          datetime.datetime.utcnow().isoformat(),
             },
             timeout=10,
         )
