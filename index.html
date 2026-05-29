@@ -8812,8 +8812,10 @@ function dknRender() {
   const q = '';
   let data = _dknData.filter(d => {
     if (dknCatFilter && d.catalog_category !== dknCatFilter) return false;
-    if (dknStageFilter && d.stage !== dknStageFilter) return false;
-    if (dknStageDropFilter && d.stage !== dknStageDropFilter) return false;
+    // Use _resolveStage so approved_us / approved_us_eu / bla_under_review all match "Approved"
+    const _dStage = _resolveStage(d);
+    if (dknStageFilter && _dStage !== dknStageFilter) return false;
+    if (dknStageDropFilter && _dStage !== dknStageDropFilter) return false;
     if (!dknShowRemoved && dknRemovedIds.includes(d.id)) return false;
     if (dknTargetFilter) {
       const sets = DKN_TARGET_MAP[dknTargetFilter] || [];
