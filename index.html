@@ -5243,6 +5243,11 @@ function loadMoleculeTab(tabId) {
  <div class="tab-current-title" id="tab-current-title" onclick="toggleCenterDrugDD(event)">
  <span class="tab-current-chevron" id="tab-current-chevron">▾</span>
  <span class="tab-current-name" id="tab-current-name">Home</span>
+ <!-- Navigator hierarchy filter chip — shown when a target is selected -->
+ <span id="hier-filter-chip" onclick="event.stopPropagation();hierClearSelection();applyHierFilterToActivePI(null);" style="display:none;align-items:center;gap:4px;background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;border-radius:12px;padding:2px 10px 2px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;" title="Click to clear target filter">
+   <span id="hier-filter-chip-label">Filter active</span>
+   <span style="font-size:11px;opacity:0.7;margin-left:2px">×</span>
+ </span>
  <!-- Meridian archive — shown only when on the meridian-issue tab -->
  <div id="meridian-tab-archive" style="display:none;align-items:center;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;position:relative;" onclick="event.stopPropagation()">
    <button id="meridian-archive-btn" onclick="toggleMeridianArchive(event)"
@@ -15653,12 +15658,35 @@ function _makeAreaPI(tabId, areaIds) {
       const wrap = document.getElementById(this.tabId+'-area-pi-wrap');
       if (!wrap) return;
       const stage = wrap.querySelector('.pi-pill-group[data-filter="stage"] .pi-pill.active')?.dataset?.val||'';
-      this.filteredEntities = this.entities.filter(ent=>
-        (!stage || ent.programs.some(p=>p.stageKey===stage))
-      );
+      // Respect any active hier target/indication filter on top of stage pill
+      const tgtName = this._hierFilterTarget || null;
+      const indName = this._hierFilterInd || null;
+      this.filteredEntities = this.entities
+        .map(ent => {
+          let progs = ent.programs;
+          if (stage) progs = progs.filter(p => p.stageKey === stage);
+          if (tgtName) {
+            const tL = tgtName.toLowerCase();
+            progs = progs.filter(p => (p.target||'').toLowerCase().includes(tL) || (p.name||'').toLowerCase().includes(tL));
+          }
+          if (indName && !tgtName) {
+            const iL = indName.toLowerCase();
+            progs = progs.filter(p => (p.indication_short||'').toLowerCase().includes(iL));
+          }
+          return progs.length > 0 ? {...ent, programs: progs} : null;
+        })
+        .filter(Boolean);
       const cnt = document.getElementById(this.tabId+'-area-pi-count');
       if (cnt) cnt.textContent = `${this.filteredEntities.length} entities`;
       this._renderTable();
+    },
+
+    // Apply a target (and/or indication) filter from the navigator hierarchy.
+    // targetName = null resets all hier filters and restores the full entity list.
+    applyTargetFilter(targetName, indicationName) {
+      this._hierFilterTarget = targetName || null;
+      this._hierFilterInd    = indicationName || null;
+      this.filter(); // re-runs combined stage + target + indication filter
     },
 
     sort(col) {
@@ -22266,9 +22294,69 @@ function hierNav(tabId, label) {
       const nameEl = document.getElementById('tab-current-name');
       if (nameEl && parts.length) nameEl.textContent = parts.join(' › ');
     }
+    // Apply target/indication filter to the PI component for this tab.
+    // The component may not be loaded yet if this is the first visit — poll for up to 5s.
+    _hierScheduleFilter(tabId, s);
   } else {
     hierShowNoTabToast(label);
   }
+}
+
+// Schedules a filter application after a hierarchy selection.
+// Polls until the _areaPIs component for the tab is loaded (lazy-load may not be done yet).
+function _hierScheduleFilter(tabId, sel) {
+  const tgtName = sel?.tgt?.name || null;
+  const indName = sel?.ind?.name || null;
+
+  // Update filter chip visibility immediately
+  _hierUpdateFilterChip(tgtName, indName);
+
+  // If no actual filter to apply, just clear any existing filter and return
+  if (!tgtName && !indName) {
+    _areaPIs[tabId]?.applyTargetFilter(null, null);
+    return;
+  }
+
+  let attempts = 0;
+  const MAX = 25; // up to ~5 seconds (25 × 200ms)
+  function _tryApply() {
+    const pi = _areaPIs[tabId];
+    if (pi && pi.loaded) {
+      pi.applyTargetFilter(tgtName, indName);
+      return;
+    }
+    if (++attempts < MAX) setTimeout(_tryApply, 200);
+  }
+  _tryApply();
+}
+
+// Shows/hides the filter chip in the title bar.
+function _hierUpdateFilterChip(targetName, indicationName) {
+  const chip  = document.getElementById('hier-filter-chip');
+  const label = document.getElementById('hier-filter-chip-label');
+  if (!chip || !label) return;
+  if (targetName) {
+    label.textContent = targetName + ' only';
+    chip.style.display = 'inline-flex';
+  } else if (indicationName) {
+    label.textContent = indicationName + ' only';
+    chip.style.display = 'inline-flex';
+  } else {
+    chip.style.display = 'none';
+  }
+}
+
+// Called by the chip × and by hierClearSelection to reset all hier filters.
+function applyHierFilterToActivePI(sel) {
+  const tgtName = sel?.tgt?.name || null;
+  const indName = sel?.ind?.name || null;
+  _hierUpdateFilterChip(tgtName, indName);
+  // Apply to all loaded PI components (covers the case where we don't know which tab is active)
+  Object.values(_areaPIs).forEach(pi => {
+    if (typeof pi.applyTargetFilter === 'function') {
+      pi.applyTargetFilter(tgtName, indName);
+    }
+  });
 }
 
 // ── Level 1: Therapeutic Area ──
@@ -22406,6 +22494,8 @@ function hierClearSelection() {
   hierState.sel = null;
   hierState.built = false;
   hierBuildTree().then(() => { hierState.built = true; hierUpdateFooter(); }).catch(console.error);
+  // Clear all PI filters and hide the chip
+  applyHierFilterToActivePI(null);
 }
 
 function hierUpdateFooter() {
