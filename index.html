@@ -2458,6 +2458,28 @@ a:hover, .clickable:hover { color: #A8D8EA !important; }
 .cem-audit-field { font-weight:700; color:#1e293b; font-size:10.5px; }
 .cem-audit-old { color:#94a3b8; text-decoration:line-through; font-size:10px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cem-audit-new { color:#0f172a; font-size:10px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* ── Files tab in entity modal ── */
+.cem-files-header { padding: 8px 0 12px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; }
+.cem-files-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.cem-file-filter-btn { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer; color: #64748b; }
+.cem-file-filter-btn.active { background: #ede9fe; border-color: #8b5cf6; color: #7c3aed; }
+.cem-files-list { display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; }
+.cem-files-loading, .cem-files-empty { color: #94a3b8; font-size: 13px; padding: 24px; text-align: center; }
+.cem-file-row { display: flex; gap: 10px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fafafa; }
+.cem-file-row[data-type="8-K"] { border-left: 3px solid #dc2626; }
+.cem-file-row[data-type="abstract"] { border-left: 3px solid #6366f1; }
+.cem-file-row[data-type="clinical_data"] { border-left: 3px solid #4f46e5; }
+.cem-file-icon { font-size: 18px; min-width: 24px; }
+.cem-file-body { flex: 1; min-width: 0; }
+.cem-file-title a { font-size: 13px; color: #1e293b; font-weight: 500; text-decoration: none; }
+.cem-file-title a:hover { color: #6366f1; text-decoration: underline; }
+.cem-file-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.cem-file-type-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+.cem-file-venue, .cem-file-date, .cem-file-drugs, .cem-file-phase { font-size: 11px; color: #64748b; }
+.cem-file-authors { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.cem-file-toggle-btn { font-size: 11px; color: #6366f1; background: none; border: none; cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.cem-file-abstract { font-size: 12px; color: #475569; line-height: 1.5; margin-top: 6px; background: #f8fafc; padding: 8px; border-radius: 6px; }
+.cem-file-findings { font-size: 12px; color: #059669; margin-top: 4px; }
 .cw-hd{background:#1e3a5f;color:#fff;padding:11px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .cw-hd-title{font-size:13px;font-weight:700}
 .cw-hd-badge{background:rgba(255,255,255,.15);color:#fff;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600}
@@ -11693,6 +11715,87 @@ function _dossierSwitch(panelId) {
   const panel = body.querySelector(`#${panelId}`);
   if (btn) btn.classList.add('active');
   if (panel) panel.classList.add('active');
+  // Load files on demand when Files tab is activated
+  if (panelId === 'cem-tab-files' && window._cemCurrentCompanyId) {
+    _cemLoadFiles(window._cemCurrentCompanyId);
+  }
+}
+
+// ── Files tab: fetch + render company_documents ───────────────────────────
+function _cemLoadFiles(companyId) {
+  const list = document.getElementById('cem-files-list');
+  if (!list) return;
+  list.innerHTML = '<div class="cem-files-loading">Loading documents...</div>';
+
+  const url = `${SUPABASE_URL}/rest/v1/company_documents?company_id=eq.${companyId}&select=id,document_type,title,authors,conference,journal,publication_date,conference_date,source_url,pubmed_id,drug_names,phase,abstract_text,key_findings&order=publication_date.desc.nullslast&limit=50`;
+
+  fetch(url, { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } })
+    .then(r => r.json())
+    .then(docs => {
+      window._cemFilesData = Array.isArray(docs) ? docs : [];
+      _cemRenderFiles(window._cemFilesData);
+    })
+    .catch(() => {
+      list.innerHTML = '<div class="cem-files-empty">No documents found.</div>';
+    });
+}
+
+function _cemRenderFiles(docs) {
+  const list = document.getElementById('cem-files-list');
+  if (!list) return;
+  if (!docs || !docs.length) {
+    list.innerHTML = '<div class="cem-files-empty">No documents stored for this company yet. Documents are collected during nightly enrichment.</div>';
+    return;
+  }
+
+  const TYPE_ICONS = {
+    'abstract': '📄', '8-K': '📋', 'poster': '🖼️', 'slide_deck': '📊',
+    'press_release': '📰', 'IND': '💉', 'clinical_data': '🔬',
+    'patent': '⚖️', 'analyst_report': '📈', 'other': '📎'
+  };
+  const TYPE_COLORS = {
+    'abstract': '#6366f1', '8-K': '#dc2626', 'poster': '#7c3aed',
+    'slide_deck': '#0891b2', 'press_release': '#059669', 'IND': '#d97706',
+    'clinical_data': '#4f46e5', 'patent': '#374151', 'other': '#64748b'
+  };
+
+  list.innerHTML = docs.map(doc => {
+    const icon = TYPE_ICONS[doc.document_type] || '📎';
+    const color = TYPE_COLORS[doc.document_type] || '#64748b';
+    const date = doc.publication_date || doc.conference_date || '';
+    const venue = doc.conference || doc.journal || '';
+    const drugs = (doc.drug_names || []).join(', ');
+    const hasAbstract = doc.abstract_text && doc.abstract_text.length > 20;
+
+    return `<div class="cem-file-row" data-type="${doc.document_type}">
+      <div class="cem-file-icon" style="color:${color}">${icon}</div>
+      <div class="cem-file-body">
+        <div class="cem-file-title">
+          ${doc.source_url ? `<a href="${doc.source_url}" target="_blank" rel="noopener">${doc.title || 'Untitled'}</a>` : (doc.title || 'Untitled')}
+        </div>
+        <div class="cem-file-meta">
+          <span class="cem-file-type-badge" style="background:${color}20;color:${color}">${doc.document_type}</span>
+          ${venue ? `<span class="cem-file-venue">${venue}</span>` : ''}
+          ${date ? `<span class="cem-file-date">${date.slice(0,7)}</span>` : ''}
+          ${drugs ? `<span class="cem-file-drugs">${drugs}</span>` : ''}
+          ${doc.phase ? `<span class="cem-file-phase">${doc.phase}</span>` : ''}
+        </div>
+        ${doc.authors ? `<div class="cem-file-authors">${doc.authors.slice(0,120)}${doc.authors.length > 120 ? '...' : ''}</div>` : ''}
+        ${hasAbstract ? `<div class="cem-file-abstract-toggle">
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent==='Show abstract'?'Hide abstract':'Show abstract'" class="cem-file-toggle-btn">Show abstract</button>
+          <div class="cem-file-abstract" style="display:none">${(doc.abstract_text || '').slice(0,800)}${(doc.abstract_text||'').length>800?'...':''}</div>
+        </div>` : ''}
+        ${doc.key_findings ? `<div class="cem-file-findings">💡 ${doc.key_findings.slice(0,200)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCompanyFiles(type, btn) {
+  document.querySelectorAll('.cem-file-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const docs = window._cemFilesData || [];
+  _cemRenderFiles(type === 'all' ? docs : docs.filter(d => d.document_type === type));
 }
 
 // Build the tab-nav + panels HTML shell
@@ -12825,6 +12928,8 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   const pi = profile.platform_intelligence || null;
   const bd = profile.bd_intelligence      || null;
   const companyName = prog?.co || '';
+  // Store current company ID so _dossierSwitch can trigger lazy file load
+  window._cemCurrentCompanyId = prog?.company_id || prog?.id || null;
 
   // Header — identity pills + confidence bar (areaLabel needed here, declare first)
   const _CEMAreaMap = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L'};
@@ -13518,6 +13623,21 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   </div>`;
 
   // ── Assemble tabs + panels ────────────────────────────────────────────────
+  const _filesContent = `<div>
+    <div class="cem-files-header">
+      <div class="cem-files-filter">
+        <button class="cem-file-filter-btn active" onclick="filterCompanyFiles('all', this)">All</button>
+        <button class="cem-file-filter-btn" onclick="filterCompanyFiles('abstract', this)">Abstracts</button>
+        <button class="cem-file-filter-btn" onclick="filterCompanyFiles('8-K', this)">SEC Filings</button>
+        <button class="cem-file-filter-btn" onclick="filterCompanyFiles('clinical_data', this)">Clinical Data</button>
+        <button class="cem-file-filter-btn" onclick="filterCompanyFiles('press_release', this)">Press Releases</button>
+      </div>
+    </div>
+    <div id="cem-files-list" class="cem-files-list">
+      <div class="cem-files-loading">Select this tab to load documents.</div>
+    </div>
+  </div>`;
+
   const _tabs = [
     { id:'cem-tab-overview',   label:'Overview' },
     { id:'cem-tab-assessment', label:'Assessment' },
@@ -13525,6 +13645,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     { id:'cem-tab-news',       label:'Related News' },
     { id:'cem-tab-signals',    label:`Signals${_totalSigCount?' ('+_totalSigCount+')':''}` },
     { id:'cem-tab-dq',         label:`Data Quality${_totalDqIssues?' ('+_totalDqIssues+')':''}` },
+    { id:'cem-tab-files',      label:'📁 Files' },
   ];
   const _panels = [
     { id:'cem-tab-overview',   content: _overviewContent },
@@ -13533,6 +13654,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     { id:'cem-tab-news',       content: _newsContent },
     { id:'cem-tab-signals',    content: _signalsContent },
     { id:'cem-tab-dq',         content: _dqContent },
+    { id:'cem-tab-files',      content: _filesContent },
   ];
 
   return _areaFilterHtml + _buildDossierShell(_tabs, _panels);
