@@ -1,6 +1,60 @@
 
 ---
 
+## 2026-05-28 (Session 90) — Major overhaul: Ailux pipeline rename, filter system, entity click-through, saved views
+
+**Commit:** 9967214f5c8a
+
+**Agent 1 — Ailux pipeline + memory:**
+- ACE name retired. ALX002 is the official name (CD19 × BCMA TCE, B cell-driven I&I, IND by 2027)
+- Supabase: XPF005 → ALX001, ALX-FcRn → ALX005, ALX002 row created
+- `ailux_positions` table updated to reference ALX001 and ALX005
+- 7 memory files updated (ACE/XPF005 references removed)
+- New memory: `project_ailux_pipeline.md` — full ALX001/002/005 pipeline table
+- MEMORY.md updated with pipeline pointer
+
+**Agent 2 — Submit Intel + Add Doc merge:**
+- Single "Submit Intel" button replaces two separate buttons
+- Paperclip icon (📎) on the button opens file attachment directly
+- Modal gains: file attach zone, auto-extraction of drug codes/company names/dollar amounts from text files
+- "Questions for Kyle" section appears when gaps are detected in submitted doc
+- `detected_fields` and `attached_file` included in Supabase intel payload
+
+**Agent 3 — Filter system redesign:**
+- Old chip-based filter bar → thin pill-shaped `<select>` dropdowns in one row
+- Groups: [Ther. Area | Indication | Target] · [Modality | Stage] · [Company]
+- Cascading TA → Indication: selecting Immunology hides irrelevant indications
+- Indication dropdown now has real indications: UC, CD, RA, PsA, SLE, TED, Graves, CIDP, etc.
+- `DKN_TARGET_MAP` rewritten as keyword-set arrays — TL1A filter no longer pulls unrelated IL-23 drugs
+- `dknSetTaDrop()` + `dknSetTargetDrop()` functions added
+
+**Agent 4 — Row fixes + display labels:**
+- Relevance bar: now ALL rows have a colored left border (default grey if no relevance data)
+- Colors: Very High = indigo, High = green, Medium = amber, Low = slate, null = light grey
+- Top stats block (4 numbers) removed — single "Tracking N · next readout in X days" line remains
+- ACE display labels updated throughout: `TAB_PORTFOLIO_LABELS`, `IIF_AREA_LABELS`, intel panel prose, first-pass guide
+- XPF005 → ALX001 at line 29042
+
+**Agent 5 — Right panel cleanup + Saved Views:**
+- 7 right-side pill panels removed across all area tabs (Biology Deep Dive, SoC, Ailux Profile, TED History, Estimand Guide)
+- `[id$='-pills-right'] { display:none !important }` guard added
+- Saved Views feature: 🔖 bookmark button in header
+- Opens slide-over panel listing saved dashboard configurations
+- `saveCurrentView()` → prompts for name → saves tab + all filter states to localStorage
+- `loadSavedView(id)` → restores tab + filters
+- `deleteSavedView(id)` → removes from localStorage
+
+**Agent 6 — Indication KFs + click-through:**
+- 5 new indication rows in `area_knowledge` Supabase table: CD, RA, Graves, gMG, CIDP
+- KF chip bar expanded to 13 chips (added CD, Graves, gMG, CIDP, RA)
+- Indication search results now route to Knowledge Folder panel
+- LEAD TARGET column: all target text is now an `entity-link` → clicking opens target's KF
+- Drug dossier modal: Target + Indication fields are now clickable → open KF
+- `openKFFromTarget(str)` + `openKFFromIndication(str)` functions added
+- `.entity-link` CSS: dotted underline, turns indigo on hover
+
+---
+
 ## 2026-05-28 (Session 89) — Dashboard v2: Card redesign, Discovery Queue, enhanced search, About panel
 
 **Commit:** e462e80a51da
