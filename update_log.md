@@ -1,6 +1,42 @@
 
 ---
 
+## 2026-05-28 (Session 91) — Drug favorites, pill bar removal, About Meridian rewrite, search-as-database, birthday
+
+**Commit:** 004d7638daef
+
+**Meridian Birthday confirmed:** May 18, 2026 — oldest drug record (nipocalimab) created at 2026-05-18T00:36:08 UTC. "Intelligence gathering since May 18, 2026" stamp added to homepage bottom. Saved as key memory.
+
+**Agent A — Birthday stamp:**
+- Queried Supabase: oldest record = `drugs.created_at` 2026-05-18 (nipocalimab)
+- Added `.hw-since` div below `#hw-breakdown` on homepage
+- Memory: `project_meridian_birthday.md` saved
+
+**Agent B — Pill bar + favorites:**
+- KF chip bar REMOVED entirely (lines 4729–4744 HTML, 8368–8372 CSS)
+- Removing chip bar also fixed the filter bar visibility issue (chip bar height was offsetting the sticky top)
+- Drug favorites ⭐: star column added to DKN table header and every row
+- Favorites stored in `localStorage['meridian_drug_favorites']`, pinned to top on every render
+- `toggleDrugFav()` + `_dknSortFavoritesToTop()` functions added
+- `data-drug-id` added to each `<tr>` row for stable identification
+
+**Agent C — About Meridian + drag-drop + LEAD TARGET:**
+- About Meridian panel completely rewritten: "A knowledge graph for biotech business development" — 4 prose sections (What it tracks / How it learns / What makes it useful / datestamp). Dark gradient hero, no numbered lists, no generic descriptions.
+- Submit Intel: drag-and-drop zone added (`si-drop-zone`) — drop a file or click to browse. Files read via FileReader; text files auto-populate the intel textarea. Drop feedback: active state on hover.
+- LEAD TARGET column: entity-link `onclick` removed from PI table cells — targets are plain text again. KF access only through search bar.
+
+**Agent D — Search-as-database:**
+- KF results: now first in search dropdown with `_KF_TAGLINES` map (all 13 slugs), icon + tagline + "Open folder →" CTA
+- News results: headline = `<a href>` hyperlink direct to article; source label badges (Fierce/Endpoints/STAT/etc.); deduplication by 60% token overlap; "+N sources" expandable list; link quality indicator (🔗 vs ⚠)
+- Patient intelligence: `indication_patient_intelligence` table queried on indication search terms — results appear second in dropdown (after KFs)
+- `_gsSourceLabel()` + `_gsDedupeNews()` + `_gsShowSources()` functions added
+
+**v21 Excel built:**
+- 7 sheets: Action Tracker (58 items P0-P3), Session Log (38 sessions), Schema Status (32 tables), Ailux Pipeline, Dashboard Features Audit, Kyle Requests Status, Governance Rules
+- P0 critical items surfaced: v62_agent_validation_tables.sql needs manual apply; entity_edges RLS; research.py timeout issue
+
+---
+
 ## 2026-05-28 (Session 90) — Major overhaul: Ailux pipeline rename, filter system, entity click-through, saved views
 
 **Commit:** 9967214f5c8a
