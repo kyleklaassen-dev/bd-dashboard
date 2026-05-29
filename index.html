@@ -671,7 +671,7 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 /* ── Platform Intelligence callout ── */
 #hw-platform-intel {
   margin: 20px auto 0;
-  max-width: 640px;
+  max-width: 960px;
   background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
   border: 1px solid #dbeafe;
   border-left: 3px solid #2e6fb0;
@@ -5273,24 +5273,21 @@ function loadMoleculeTab(tabId) {
  </div>
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
- <div id="bd-today-anchor" style="max-width:860px;margin:0 auto 24px;padding:0 20px;"></div>
+ <div id="bd-today-anchor" style="max-width:960px;margin:0 auto 24px;padding:0 24px;"></div>
 
- <!-- ── Indication Priority widget ──────────────────────────── -->
- <div id="ind-priority-anchor" style="max-width:860px;margin:0 auto 24px;padding:0 20px;"></div>
+ <!-- ── Home lower panels: Issue → Catalysts → Indication Priority ── -->
+ <div style="max-width:960px;margin:0 auto;padding:0 24px;">
 
- <!-- ── Home lower panels (Meridian Issue + Catalyst Calendar) ── -->
- <div style="max-width:860px;margin:0 auto;padding:0 20px;">
-
-  <!-- Today's Meridian Issue — full width, no header bar -->
+  <!-- Today's Meridian Issue — full width, tall, clean scroll -->
   <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
-   <div id="hw-issue-content" style="min-height:320px;max-height:calc(100vh - 260px);overflow-y:auto;font-size:13px;line-height:1.75;color:#334155;padding:24px 28px">
+   <div id="hw-issue-content" style="min-height:480px;max-height:calc(100vh - 180px);overflow-y:auto;font-size:13.5px;line-height:1.8;color:#334155;padding:28px 36px">
     Loading…
    </div>
   </div>
 
   <!-- 90-Day BD Catalyst Calendar -->
   <div class="hw-cal-section" id="hw-cal-section" style="display:none">
-   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
     <span style="font-size:11px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.06em">Upcoming Catalysts — 90 Days</span>
     <span id="hw-cal-count" style="font-size:10px;color:#94a3b8;margin-left:auto"></span>
    </div>
@@ -5298,6 +5295,9 @@ function loadMoleculeTab(tabId) {
     <div style="color:#94a3b8;font-size:11px;padding:12px 0">Loading catalysts…</div>
    </div>
   </div>
+
+  <!-- Indication Priority — below catalysts -->
+  <div id="ind-priority-anchor"></div>
 
  </div><!-- end home lower panels -->
 
