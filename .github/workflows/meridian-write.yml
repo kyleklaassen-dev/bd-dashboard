@@ -1,13 +1,18 @@
 name: Meridian Writer
 
 on:
+  workflow_run:
+    workflows: ["Meridian Research"]
+    types: [completed]
+    branches: [main]
   schedule:
-    # 6:30 AM ET = 10:30 UTC (Mon–Sat) — runs after research pipeline
-    - cron: "30 10 * * 1-6"
+    # 6:30 AM ET = 10:30 UTC daily — fallback if Research didn't run
+    - cron: "30 10 * * *"
   workflow_dispatch:   # allow manual trigger
 
 jobs:
   write:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
