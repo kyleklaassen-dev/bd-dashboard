@@ -1266,6 +1266,7 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
  .header-search-wrap { max-width: 100%; order: 3; flex-basis: 100%; }
  .header-asset-jump { max-width: 110px; font-size: 10.5px; }
  .submit-intel-btn { font-size: 10px; padding: 3px 8px; }
+ .si-attach-icon { font-size: 12px; }
  .toc-btn { font-size: 11px; padding: 4px 8px; }
  /* Content */
  .content { padding: 0 12px 24px; }
@@ -1312,8 +1313,14 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 }
 
 /* ══ SUBMIT INTEL HEADER BUTTON ═════════════════════════════════ */
-.submit-intel-btn { background: rgba(255,255,255,0.18); color: white; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
+.submit-intel-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); color: white; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 0.2px; transition: background 0.15s; }
 .submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
+.si-attach-icon { opacity: 0.7; font-size: 14px; padding: 2px 4px; border-radius: 3px; }
+.si-attach-icon:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+.si-file-zone { margin-top: 12px; padding: 10px 14px; background: var(--bg-secondary, #f8fafc); border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; color: #64748b; cursor: pointer; }
+.si-file-zone:hover { border-color: #6366f1; color: #6366f1; }
+.si-detected-fields { margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; font-size: 12px; }
+.si-questions { margin-top: 8px; padding: 8px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 12px; }
 
 
 /* ══ ENTITY NAME — clickable anchor for deep-dive modal ════════ */
@@ -2145,7 +2152,8 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .tl1a-pills-col.tl1a-pills-visible { display:flex; }
 @media (max-width: 1440px) { .tl1a-pills-col { display:none !important; } }
 [id$='-pills-left']  { left:14px; }
-[id$='-pills-right'] { right:14px; }
+/* [id$='-pills-right'] right panel deprecated 2026-05-28 — Biology Deep Dive, Standard of Care, Ailux Profile, Estimand Guide, History buttons removed; content now surfaced via Knowledge Folders */
+[id$='-pills-right'] { right:14px; display:none !important; }
 .tl1a-pill-btn { background:white;border:1.5px solid #dde3ea;border-radius:20px;padding:8px 10px;font-size:10.5px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:center;transition:all 0.15s;width:100%;line-height:1.3;position:relative;display:flex;align-items:center;justify-content:center;gap:4px; }
 .tl1a-pill-btn:hover { background:#1e3a5f;color:white;border-color:#1e3a5f;box-shadow:0 3px 10px rgba(30,58,95,0.2); }
 .tl1a-pill-new-dot { display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pi-dot-blink 2.8s ease-in-out infinite;flex-shrink:0; }
@@ -2958,7 +2966,7 @@ const TAB_PORTFOLIO_LABELS = {
   'il4ra':      'Atopic Disease Portfolio',
   'igf1r-tshr': 'TED Portfolio',
   'fcrn':       'Autoimmune Portfolio',
-  'ace':        'T-Cell Engager Portfolio',
+  'ace':        'ALX002 (T-Cell Engager)',
 };
 
 // ── Canonical area palette — single source of truth for all panels ────────────
@@ -4693,8 +4701,7 @@ function loadMoleculeTab(tabId) {
    <button class="header-gs-clear gs-clear" id="gs-clear" onclick="clearGlobalSearch()" title="Clear" style="display:none"></button>
    <div id="gs-sb-panel" class="gs-sb-panel"></div>
   </div>
-  <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel</button>
-  <button class="doc-upload-btn" onclick="openDocUploadModal()" title="Add source document (conference poster, press release, filing…)" style="align-self:stretch;height:auto;">📄 Add Doc</button>
+  <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel<span class="si-attach-icon" onclick="event.stopPropagation(); triggerDocAttach()" title="Attach document">📎</span></button>
  </div>
  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
@@ -4714,9 +4721,14 @@ function loadMoleculeTab(tabId) {
   <span class="kf-chip" onclick="openKnowledgeFolder('il23')">🔬 IL-23</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('ibd')">💊 IBD</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('uc')">🩺 UC</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('cd')">🩺 CD</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('atopy')">🌡️ Atopy</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('ted')">👁️ TED</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('graves')">🦋 Graves</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('fcrn')">🧬 FcRn</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('mg')">💪 gMG</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('cidp')">🧠 CIDP</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('ra')">🦴 RA</span>
   <span class="kf-chip" onclick="openKnowledgeFolder('bispecific')">⚡ Bispecific</span>
 </div>
 
@@ -4888,6 +4900,13 @@ function loadMoleculeTab(tabId) {
     <div class="intel-modal-label">Comments</div>
     <textarea class="intel-modal-text" id="im-text" placeholder="Paste text, quote, observation, rumor, or anything worth flagging…"></textarea>
    </div>
+   <!-- File attachment -->
+   <div>
+    <input type="file" id="si-file-input" accept=".txt,.md,.pdf,.docx,.xlsx,.csv" style="display:none" onchange="siHandleFileSelected(event)">
+    <div class="si-file-zone" id="si-file-zone" onclick="document.getElementById('si-file-input').click()">📎 Attach a document <span style="opacity:0.6">(optional — PDF, text, CSV…)</span></div>
+    <div class="si-detected-fields" id="si-detected-fields" style="display:none"></div>
+    <div class="si-questions" id="si-questions" style="display:none"></div>
+   </div>
    <div>
     <div class="intel-modal-label">Your name <span style="color:#dc2626">*</span></div>
     <input type="text" class="intel-modal-name" id="im-name" placeholder="First name">
@@ -5049,6 +5068,7 @@ function loadMoleculeTab(tabId) {
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
   <button class="nav-icon-btn" id="nav-icon-intel" onclick="navTo('intelligence')" title="Intelligence Feed · Realizations & Review">⚡</button>
+  <button class="bookmark-btn nav-icon-btn" id="nav-icon-bookmark" onclick="openSavedViewsPanel()" title="Saved views">🔖</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -5958,14 +5978,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-bd-activity')">🤝 BD Activity</button>
 </div>
-<!-- RIGHT fixed pill column -->
-<div class="tl1a-pills-col" id="tl1a-pills-right">
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('tl1a-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" id="pill-soc" onclick="openTl1aModal('tl1a-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-history')">📖 IBD History</button>
-</div>
+<!-- RIGHT fixed pill column — deprecated 2026-05-28; content routed via Knowledge Folders -->
 
 <div class="tl1a-layout">
  <!-- CENTER: Program Intelligence -->
@@ -6371,13 +6384,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="tslp-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('tslp-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('tslp-modal-history')">📖 Resp. History</button>
-</div>
+<!-- tslp-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="tslp-area-pi-wrap">
@@ -6660,13 +6667,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="il4ra-tslp-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('il4ra-tslp-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-tslp-modal-history')">📖 Type 2 History</button>
-</div>
+<!-- il4ra-tslp-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="il4ra-tslp-area-pi-wrap">
@@ -6924,13 +6925,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="il4ra-ox40l-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('il4ra-ox40l-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('il4ra-ox40l-modal-history')">📖 AD History</button>
-</div>
+<!-- il4ra-ox40l-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="il4ra-ox40l-area-pi-wrap">
@@ -7189,13 +7184,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="igf1r-tshr-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('igf1r-tshr-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('igf1r-tshr-modal-history')">📖 TED History</button>
-</div>
+<!-- igf1r-tshr-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="igf1r-tshr-area-pi-wrap">
@@ -7445,13 +7434,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="fcrn-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('fcrn-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('fcrn-modal-history')">📖 Autoimmune Hx</button>
-</div>
+<!-- fcrn-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="fcrn-area-pi-wrap">
@@ -7718,13 +7701,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-bd')">🤝 BD Activity</button>
 </div>
-<div class="tl1a-pills-col" id="ace-pills-right">
-  <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-ailux')">🧬 Ailux Profile</button>
-  <button class="tl1a-pill-btn" onclick="openBioDD('ace-bio-dd')">⚗ Biology Deep Dive</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-estimand')">📐 Estimand Guide</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-soc')">🏥 Standard of Care</button>
-  <button class="tl1a-pill-btn" onclick="openDrugModal('ace-modal-history')">📖 CAR-T History</button>
-</div>
+<!-- ace-pills-right removed 2026-05-28; content routed via Knowledge Folders -->
 <div class="tl1a-layout">
  <div class="tl1a-center-col">
 <div class="pi-card" id="ace-area-pi-wrap">
@@ -7794,7 +7771,7 @@ function loadMoleculeTab(tabId) {
  <div class="intel-hd-left">
  
  <div>
- <div class="intel-hd-title">Field Intelligence — BCMA × CD19 × CD3 (ACE) · Immune Reset</div>
+ <div class="intel-hd-title">Field Intelligence — BCMA × CD19 × CD3 (ALX002) · Immune Reset</div>
  <div style="font-size:12px;color:#5a7a9e;margin-top:2px">Trispecific TCE · Full B-lineage depletion · Off-the-shelf CAR-T alternative · Q6M dosing target</div>
  </div>
  </div>
@@ -7804,37 +7781,37 @@ function loadMoleculeTab(tabId) {
  <div class="intel-item">
  <div class="intel-date-left">May 2026</div>
  <div class="intel-dot intel-dot-red"></div>
- <div class="intel-text"><strong>UCB acquires Candid Therapeutics for up to $2.2B — BCMAxCD19xCD3 trispecific CND460 enters major pharma pipeline</strong> <a class="intel-src" href="https://www.ucb.com/newsroom/press-releases/article/ucb-to-acquire-candid-therapeutics-building-upon-its-existing-immunology-pipeline-with-novel-t-cell-engagers" target="_blank" rel="noopener">UCB PR (May 3, 2026)</a> — $2.0B upfront + up to $200M milestones. CND460 (BCMAxCD19xCD3 trispecific, preclinical) is a direct analogue to the ACE format: designed to simultaneously target BCMA and CD19 across a broad B-cell and plasma cell spectrum. Deal also includes CND261 (CD20×CD3, Ph1) and CND319 (CD19×CD20, preclinical). Transaction expected to close Q2/Q3 2026. Second major pharma validation of BCMAxCD19xCD3 format in autoimmune after Sanofi/HXN-1031 ($2.56B) — confirms that ≥$2B upfront is the market rate for preclinical trispecific B/plasma cell depletors. ACE window: both UCB and Sanofi are acquiring, not originating, these platforms — the technology origination premium still available to a first-mover with a validated molecule.</div>
+ <div class="intel-text"><strong>UCB acquires Candid Therapeutics for up to $2.2B — BCMAxCD19xCD3 trispecific CND460 enters major pharma pipeline</strong> <a class="intel-src" href="https://www.ucb.com/newsroom/press-releases/article/ucb-to-acquire-candid-therapeutics-building-upon-its-existing-immunology-pipeline-with-novel-t-cell-engagers" target="_blank" rel="noopener">UCB PR (May 3, 2026)</a> — $2.0B upfront + up to $200M milestones. CND460 (BCMAxCD19xCD3 trispecific, preclinical) is a direct analogue to the ALX002 format: designed to simultaneously target BCMA and CD19 across a broad B-cell and plasma cell spectrum. Deal also includes CND261 (CD20×CD3, Ph1) and CND319 (CD19×CD20, preclinical). Transaction expected to close Q2/Q3 2026. Second major pharma validation of BCMAxCD19xCD3 format in autoimmune after Sanofi/HXN-1031 ($2.56B) — confirms that ≥$2B upfront is the market rate for preclinical trispecific B/plasma cell depletors. ALX002 window: both UCB and Sanofi are acquiring, not originating, these platforms — the technology origination premium still available to a first-mover with a validated molecule.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
  <div class="intel-date-left">Mar 2026</div>
  <div class="intel-dot intel-dot-red"></div>
- <div class="intel-text"><strong>Kali Therapeutics KT501 (CD19×BCMA×CD3): first patient dosed Phase 1a — March 18, 2026</strong> <a class="intel-src" href="https://kalitherapeutics.com" target="_blank" rel="noopener">Kali Therapeutics</a> — IgG-like SC trispecific, "CD3 masking" platform to maximize potency and minimize CRS. Lead indication: Rheumatoid Arthritis. First direct competitor to ACE to reach the clinic. RA is defensible but arguably not the strongest immune reset story — SLE, myasthenia gravis, and SSc have stronger autoantibody-driven mechanistic rationale. Phase 1a: NHP deep depletion, low cytokines. Affinity data not published. Watch closely: Phase 1 safety/tolerability data from KT501 in 2026 will set the first human proof-of-concept for the trispecific format.</div>
+ <div class="intel-text"><strong>Kali Therapeutics KT501 (CD19×BCMA×CD3): first patient dosed Phase 1a — March 18, 2026</strong> <a class="intel-src" href="https://kalitherapeutics.com" target="_blank" rel="noopener">Kali Therapeutics</a> — IgG-like SC trispecific, "CD3 masking" platform to maximize potency and minimize CRS. Lead indication: Rheumatoid Arthritis. First direct competitor to ALX002 to reach the clinic. RA is defensible but arguably not the strongest immune reset story — SLE, myasthenia gravis, and SSc have stronger autoantibody-driven mechanistic rationale. Phase 1a: NHP deep depletion, low cytokines. Affinity data not published. Watch closely: Phase 1 safety/tolerability data from KT501 in 2026 will set the first human proof-of-concept for the trispecific format.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
  <div class="intel-date-left">Feb 2026</div>
  <div class="intel-dot intel-dot-blue"></div>
- <div class="intel-text"><strong>CLN-978 (Cullinan) CD19×CD3×HSA: Phase 1 OUTRACE trial — first data expected Q2 2026</strong> <a class="intel-src" href="https://cullinantherapeutics.com" target="_blank" rel="noopener">Cullinan</a> — 65 kDa small construct (SC favorable), attenuated CD3, two scFvs + anti-HSA nanobody. Phase 1 — most advanced CD19×CD3 bispecific in autoimmune (No DLTs at 10 or 20 μg; 30 μg enrolling). Active OUTRACE trials: SLE, RA, Sjögren's across US, Europe, Australia. Key limitation: only CD19 arm — misses plasma cell compartment (BCMA). ACE/full lineage depletion rationale: long-lived plasma cells in bone marrow are CD19−/BCMA+ — only BCMA arm reaches them.</div>
+ <div class="intel-text"><strong>CLN-978 (Cullinan) CD19×CD3×HSA: Phase 1 OUTRACE trial — first data expected Q2 2026</strong> <a class="intel-src" href="https://cullinantherapeutics.com" target="_blank" rel="noopener">Cullinan</a> — 65 kDa small construct (SC favorable), attenuated CD3, two scFvs + anti-HSA nanobody. Phase 1 — most advanced CD19×CD3 bispecific in autoimmune (No DLTs at 10 or 20 μg; 30 μg enrolling). Active OUTRACE trials: SLE, RA, Sjögren's across US, Europe, Australia. Key limitation: only CD19 arm — misses plasma cell compartment (BCMA). ALX002/full lineage depletion rationale: long-lived plasma cells in bone marrow are CD19−/BCMA+ — only BCMA arm reaches them.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
  <div class="intel-date-left">2024</div>
  <div class="intel-dot intel-dot-green"></div>
- <div class="intel-text"><strong>Three landmark papers in 2024 validate the immune reset hypothesis across three independent mechanisms</strong> — (1) Müller et al. (NEJM 2024): CD19 CAR-T in 15 SLE/SSc/myositis patients → complete remission, all immunosuppression stopped, drug-free months-to-years. (2) Bucci et al. (Nature Medicine 2024): blinatumomab (CD19×CD3) off-the-shelf → drug-free remission in refractory RA. (3) Alexander et al. (NEJM 2024): teclistamab (BCMA×CD3) → remission in refractory SLE. These three papers together make the ACE hypothesis almost axiomatic: if CD19 alone works (CAR-T, blinatumomab) AND BCMA alone works (teclistamab), a molecule targeting both should achieve deeper and more durable depletion.</div>
+ <div class="intel-text"><strong>Three landmark papers in 2024 validate the immune reset hypothesis across three independent mechanisms</strong> — (1) Müller et al. (NEJM 2024): CD19 CAR-T in 15 SLE/SSc/myositis patients → complete remission, all immunosuppression stopped, drug-free months-to-years. (2) Bucci et al. (Nature Medicine 2024): blinatumomab (CD19×CD3) off-the-shelf → drug-free remission in refractory RA. (3) Alexander et al. (NEJM 2024): teclistamab (BCMA×CD3) → remission in refractory SLE. These three papers together make the ALX002 hypothesis almost axiomatic: if CD19 alone works (CAR-T, blinatumomab) AND BCMA alone works (teclistamab), a molecule targeting both should achieve deeper and more durable depletion.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
  <div class="intel-date-left">2024</div>
  <div class="intel-dot intel-dot-green"></div>
- <div class="intel-text"><strong>HXN-1031 (Helixon): CD19×BCMA×CD3 trispecific TCE — Sanofi-backed ($2.56B deal) — confirms big pharma conviction in the format</strong> — Pre-IND/pre-clinical stage. Sub-micromolar CD3 affinity (attenuated intentionally) to limit CRS risk. Published NHP data: depletion in peripheral blood AND bone marrow, sustained Ig reduction. Sanofi's decision to pay up to $2.56B for a pre-IND trispecific TCE is the strongest deal validation the ACE format has received — signals that commercial partners are convinced of the mechanism before clinical proof, which is exactly the window for ACE positioning.</div>
+ <div class="intel-text"><strong>HXN-1031 (Helixon): CD19×BCMA×CD3 trispecific TCE — Sanofi-backed ($2.56B deal) — confirms big pharma conviction in the format</strong> — Pre-IND/pre-clinical stage. Sub-micromolar CD3 affinity (attenuated intentionally) to limit CRS risk. Published NHP data: depletion in peripheral blood AND bone marrow, sustained Ig reduction. Sanofi's decision to pay up to $2.56B for a pre-IND trispecific TCE is the strongest deal validation the ALX002 format has received — signals that commercial partners are convinced of the mechanism before clinical proof, which is exactly the window for ALX002 positioning.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
  <div class="intel-date-left">Mar 2025</div>
  <div class="intel-dot intel-dot-blue"></div>
- <div class="intel-text"><strong>Excalipoint (Shanghai) raises $68.7M for trispecific TCE platform — China executing on the format at speed</strong> <a class="intel-src" href="https://www.fiercebiotech.com/biotech/excalipoint-raises-68-7m" target="_blank" rel="noopener">Fierce Biotech</a> — EXP011 (CTM012): DLL3×CD3×4-1BB in Ph1 (SCLC). EXP012 (CTM013): CD3×4-1BB×CDH17 entering clinical 2025. Oncology-first but demonstrates Chinese biotech mastery of trispecific TCE format. Competitive pressure on ACE timelines — need to move quickly from preclinical to IND to be ahead of the next wave of China-sourced autoimmune TCEs.</div>
+ <div class="intel-text"><strong>Excalipoint (Shanghai) raises $68.7M for trispecific TCE platform — China executing on the format at speed</strong> <a class="intel-src" href="https://www.fiercebiotech.com/biotech/excalipoint-raises-68-7m" target="_blank" rel="noopener">Fierce Biotech</a> — EXP011 (CTM012): DLL3×CD3×4-1BB in Ph1 (SCLC). EXP012 (CTM013): CD3×4-1BB×CDH17 entering clinical 2025. Oncology-first but demonstrates Chinese biotech mastery of trispecific TCE format. Competitive pressure on ALX002 timelines — need to move quickly from preclinical to IND to be ahead of the next wave of China-sourced autoimmune TCEs.</div>
  <button class="intel-read-btn" onclick="markIntelRead(this)"> Read</button>
  </div>
  <div class="intel-item">
@@ -7866,10 +7843,10 @@ function loadMoleculeTab(tabId) {
  <tbody>
 <tr><td><span class="dkn-drug">Teclistamab</span><br><span style="font-size:10px;color:#8a9bb0">Tecvayli</span></td><td>J&amp;J (Janssen)</td><td><span class="dkn-stage-pill approved">Approved (myeloma) / Ph2 autoimmune</span></td><td><span class="dkn-mech">BCMA&#215;CD3 bispecific TCE &#8212; redirects T cells to BCMA+ plasma cells</span></td><td style="font-size:11px">First approved BCMA bispecific. J&amp;J now testing in SLE (case series: 5/6 drug-free remission; Alexander NEJM 2024). BCMA-only &#8212; misses CD19+ B-cell compartment. Ailux&#8217;s trispecific covers both BCMA and CD19 simultaneously &#8212; potentially deeper and more durable depletion.</td></tr>
 <tr><td><span class="dkn-drug">Blinatumomab</span><br><span style="font-size:10px;color:#8a9bb0">Blincyto</span></td><td>Amgen</td><td><span class="dkn-stage-pill approved">Approved (ALL) / Ph2 autoimmune</span></td><td><span class="dkn-mech">CD19&#215;CD3 bispecific TCE &#8212; redirects T cells to CD19+ B-cells</span></td><td style="font-size:11px">Bucci Nature Medicine 2024: 75% DAS28 response in RA Ph1b. CD19-only &#8212; misses BCMA+ long-lived plasma cells (which re-seed autoantibody production). Ailux adds BCMA arm to address this gap. Blincyto&#8217;s continuous IV infusion or complex SC schedule is a commercial barrier vs. Q6M SC dosing.</td></tr>
-<tr><td><span class="dkn-drug">KT501</span></td><td>Kali Therapeutics</td><td><span class="dkn-stage-pill ph1">Ph1a (RA)</span></td><td><span class="dkn-mech">CD19&#215;BCMA&#215;CD3 trispecific TCE &#8212; CD3 masking platform, SC IgG-like format</span></td><td style="font-size:11px">Most direct format competitor to ACE. First patient dosed Mar 18, 2026. RA lead indication. Ph1a safety data from KT501 will be the first human validation of trispecific TCE format for autoimmune. Watch: CRS profile, B-cell depletion depth, and CD3-masking effectiveness.</td></tr>
+<tr><td><span class="dkn-drug">KT501</span></td><td>Kali Therapeutics</td><td><span class="dkn-stage-pill ph1">Ph1a (RA)</span></td><td><span class="dkn-mech">CD19&#215;BCMA&#215;CD3 trispecific TCE &#8212; CD3 masking platform, SC IgG-like format</span></td><td style="font-size:11px">Most direct format competitor to ALX002. First patient dosed Mar 18, 2026. RA lead indication. Ph1a safety data from KT501 will be the first human validation of trispecific TCE format for autoimmune. Watch: CRS profile, B-cell depletion depth, and CD3-masking effectiveness.</td></tr>
 <tr><td><span class="dkn-drug">Axicabtagene ciloleucel</span><br><span style="font-size:10px;color:#8a9bb0">Yescarta</span></td><td>Kite/Gilead</td><td><span class="dkn-stage-pill approved">Approved (DLBCL, FL) &#8212; Ph2 autoimmune</span></td><td><span class="dkn-mech">CD19 CAR-T &#8212; patient-specific autologous T cells engineered to target CD19</span></td><td style="font-size:11px">Erlangen proof-of-concept (M&#252;ller NEJM 2024): 5/6 SLE patients achieve drug-free remission. The gold standard for immune reset efficacy. Manufacturing bottleneck (6&#8211;8 weeks per patient), lymphodepletion, and hospital infusion are the barriers that Ailux&#8217;s off-the-shelf SC trispecific addresses.</td></tr>
 <tr><td><span class="dkn-drug">Belimumab</span><br><span style="font-size:10px;color:#8a9bb0">Benlysta</span></td><td>GSK</td><td><span class="dkn-stage-pill approved">Approved (SLE, LN)</span></td><td><span class="dkn-mech">Anti-BAFF/BLyS &#8212; reduces B-cell survival signal, selective B-cell depletion</span></td><td style="font-size:11px">Standard-of-care biologic in SLE. Reduces overall B-cell numbers but does not eliminate plasma cells (no BCMA targeting). Modest clinical effect (~30% disease activity reduction). Establishes that B-cell modulation is beneficial in SLE &#8212; the question CAR-T and trispecific data answers is: does complete depletion achieve what partial depletion cannot?</td></tr>
-<tr><td><span class="dkn-drug">Anifrolumab</span><br><span style="font-size:10px;color:#8a9bb0">Saphnelo</span></td><td>AstraZeneca</td><td><span class="dkn-stage-pill approved">Approved (SLE)</span></td><td><span class="dkn-mech">Anti-IFN-&#945;/&#946; receptor IgG1 &#8212; blocks type I interferon signaling</span></td><td style="font-size:11px">Approved SLE biologic addressing the IFN signature pathway rather than B-cells. Complementary mechanism to B-cell depletion approaches. High IFN signature patients are the likely responders to anifrolumab; high autoantibody/plasma cell burden patients may be the target for immune reset approaches like ACE.</td></tr>
+<tr><td><span class="dkn-drug">Anifrolumab</span><br><span style="font-size:10px;color:#8a9bb0">Saphnelo</span></td><td>AstraZeneca</td><td><span class="dkn-stage-pill approved">Approved (SLE)</span></td><td><span class="dkn-mech">Anti-IFN-&#945;/&#946; receptor IgG1 &#8212; blocks type I interferon signaling</span></td><td style="font-size:11px">Approved SLE biologic addressing the IFN signature pathway rather than B-cells. Complementary mechanism to B-cell depletion approaches. High IFN signature patients are the likely responders to anifrolumab; high autoantibody/plasma cell burden patients may be the target for immune reset approaches like ALX002.</td></tr>
 <tr><td><span class="dkn-drug">Voclosporin</span><br><span style="font-size:10px;color:#8a9bb0">Lupkynis</span></td><td>Aurinia</td><td><span class="dkn-stage-pill approved">Approved (lupus nephritis)</span></td><td><span class="dkn-mech">Calcineurin inhibitor &#8212; oral, T-cell activation inhibitor, approved for LN in combination</span></td><td style="font-size:11px">Oral standard-of-care add-on for lupus nephritis. Defines the combination treatment landscape that immune reset drugs would need to outperform or replace. Approval in LN specifically relevant since LN is driven by IgG immune complex deposition &#8212; a mechanism FcRn inhibitors and B-cell depletion approaches directly target.</td></tr>
 <tr><td colspan="5" style="background:#f1f5f9;padding:6px 12px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;border-top:2px solid #dde3ea">Competitive Pipeline &#8212; Companies &amp; Drugs to Watch</td></tr>
 <tr><td><span class="dkn-drug">CABA-201</span><span style="color:#64748b;font-size:10px"></span></td><td style="font-size:11px">Cabaletta Bio</td><td><span class="dkn-stage-pill ph2">Ph2</span></td><td><span class="dkn-mech">CD19-targeted CAR-T</span></td><td style="font-size:11px">Phase 2 in SLE and MG. CAR-T achieves deep, durable B-cell depletion &#8212; potentially curative. Watch: if remission rates are high, could reframe the market toward one-time cell therapy vs. chronic antibody dosing.</td></tr>
@@ -8092,87 +8069,76 @@ function loadMoleculeTab(tabId) {
 
 <!-- FILTER BAR -->
 <div id="dkn-tab-filter" class="dkn-filter-bar">
-  <div class="dkn-filter-left">
-    <div class="dkn-chips" id="dkn-stage-chips">
-      <button class="dkn-chip active" onclick="dknSetStage(this,'')">All Stages</button>
-      <button class="dkn-chip stage-appr" onclick="dknSetStage(this,'Approved')">Approved</button>
-      <button class="dkn-chip stage-ph3" onclick="dknSetStage(this,'Phase 3')">Phase 3</button>
-      <button class="dkn-chip stage-ph2" onclick="dknSetStage(this,'Phase 2')">Phase 2</button>
-      <button class="dkn-chip stage-ph1" onclick="dknSetStage(this,'Phase 1')">Phase 1</button>
-      <button class="dkn-chip stage-pre" onclick="dknSetStage(this,'Preclinical')">Preclinical</button>
-    </div>
-    <div class="dkn-chips" id="dkn-target-chips" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;">
-      <span style="font-size:10px;color:#64748b;padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Target area:</span>
-      <button class="dkn-chip active" onclick="dknSetTarget(this,'')">All</button>
-      <button class="dkn-chip tgt-tl1a"    onclick="dknSetTarget(this,'tl1a')">TL1A × IL-23p19</button>
-      <button class="dkn-chip tgt-tslp"    onclick="dknSetTarget(this,'tslp-il33')">TSLP × IL-33</button>
-      <button class="dkn-chip tgt-il4tslp" onclick="dknSetTarget(this,'il4ra-tslp')">IL-4Rα × TSLP</button>
-      <button class="dkn-chip tgt-il4ox40" onclick="dknSetTarget(this,'il4ra-ox40l')">IL-4Rα × OX40L</button>
-      <button class="dkn-chip tgt-igf1r"   onclick="dknSetTarget(this,'igf1r-tshr')">IGF1R × TSHR</button>
-      <button class="dkn-chip tgt-fcrn"    onclick="dknSetTarget(this,'fcrn')">FcRn</button>
-      <button class="dkn-chip tgt-bcma"    onclick="dknSetTarget(this,'bcma-cd19')">BCMA × CD19 × CD3</button>
-    </div>
-    <div class="dkn-chips" id="dkn-ta-chips" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;">
-      <span style="font-size:10px;color:#64748b;padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Ther. area:</span>
-      <button class="dkn-chip active" onclick="dknSetTa(this,'')">All TAs</button>
-      <button class="dkn-chip ta-imm"  onclick="dknSetTa(this,'Immunology')">Immunology</button>
-      <button class="dkn-chip ta-onc"  onclick="dknSetTa(this,'Oncology')">Oncology</button>
-      <button class="dkn-chip ta-rare" onclick="dknSetTa(this,'Rare Disease')">Rare Disease</button>
-      <button class="dkn-chip ta-met"  onclick="dknSetTa(this,'Metabolic')">Metabolic</button>
-    </div>
-    <div class="dkn-chips" id="dkn-fmt-chips" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;">
-      <span style="font-size:10px;color:#64748b;padding:3px 4px 3px 0;white-space:nowrap;align-self:center;">Format:</span>
-      <button class="dkn-chip active"         onclick="dknSetFmt(this,'')">All</button>
-      <button class="dkn-chip fmt-mab"        onclick="dknSetFmt(this,'mAb')">mAb</button>
-      <button class="dkn-chip fmt-bsab"       onclick="dknSetFmt(this,'BsAb')">BsAb</button>
-      <button class="dkn-chip fmt-tce"        onclick="dknSetFmt(this,'TCE')">TCE</button>
-      <button class="dkn-chip fmt-sm"         onclick="dknSetFmt(this,'SM')">SM</button>
-      <button class="dkn-chip fmt-cart"       onclick="dknSetFmt(this,'CAR-T')">CAR-T</button>
-      <button class="dkn-chip fmt-vhh"        onclick="dknSetFmt(this,'VHH')">VHH</button>
-      <button class="dkn-chip fmt-triab"      onclick="dknSetFmt(this,'TriAb')">TriAb</button>
-      <button class="dkn-chip fmt-adc"        onclick="dknSetFmt(this,'ADC')">ADC</button>
-      <button class="dkn-chip fmt-pep"        onclick="dknSetFmt(this,'Pep')">Pep</button>
-      <button class="dkn-chip fmt-combo"      onclick="dknSetFmt(this,'Combo')">Combo</button>
-      <button class="dkn-chip fmt-other"      onclick="dknSetFmt(this,'_other')">Fc / FP</button>
-    </div>
-    <div class="dkn-chips" id="dkn-extra-filters" style="border-top:1px solid #d0dae8;padding-top:6px;margin-top:2px;align-items:center;">
-      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding-right:4px;">Indication:</span>
-      <select class="dkn-select" id="dkn-ind-select" onchange="dknSetInd(this)">
-        <option value="">All Indications</option>
-        <option value="IBD / GI">IBD / GI</option>
-        <option value="Rheumatology">Rheumatology</option>
-        <option value="Dermatology">Dermatology</option>
-        <option value="Respiratory">Respiratory</option>
-        <option value="Neurology">Neurology</option>
-        <option value="Ophthalmology">Ophthalmology (TED)</option>
-        <option value="Oncology">Oncology</option>
-        <option value="Hematology">Hematology</option>
-      </select>
-      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Company:</span>
-      <select class="dkn-select" id="dkn-company-select" onchange="dknSetCompany(this)" style="max-width:170px">
-        <option value="">All Companies</option>
-      </select>
-      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Stage:</span>
-      <select class="dkn-select" id="dkn-stage-drop-select" onchange="dknSetStageDrop(this)">
-        <option value="">All Stages</option>
-        <option value="Approved">Approved</option>
-        <option value="Phase 3">Phase 3</option>
-        <option value="Phase 2">Phase 2</option>
-        <option value="Phase 1">Phase 1</option>
-        <option value="Preclinical">Preclinical</option>
-        <option value="Research">Research</option>
-      </select>
-      <span style="font-size:10px;color:#64748b;white-space:nowrap;align-self:center;padding:0 4px;">Modality:</span>
-      <select class="dkn-select" id="dkn-modality-select" onchange="dknSetModality(this)" style="max-width:160px">
-        <option value="">All Modalities</option>
-      </select>
-    </div>
+  <!-- Group 1: Biology -->
+  <div class="dkn-filter-group">
+    <select class="dkn-pill-select" id="dkn-ta-select" onchange="dknSetTaDrop(this)">
+      <option value="">Ther. Area</option>
+      <option value="Immunology">Immunology</option>
+      <option value="Oncology">Oncology</option>
+      <option value="Neurology">Neurology</option>
+      <option value="Rare Disease">Rare Disease</option>
+      <option value="Metabolic">Metabolic</option>
+    </select>
+    <select class="dkn-pill-select" id="dkn-ind-select" onchange="dknSetInd(this)">
+      <option value="">Indication</option>
+      <option value="UC" data-ta="Immunology">UC</option>
+      <option value="CD" data-ta="Immunology">CD</option>
+      <option value="RA" data-ta="Immunology">RA</option>
+      <option value="PsA" data-ta="Immunology">PsA</option>
+      <option value="SLE" data-ta="Immunology">SLE</option>
+      <option value="IgG4-RD" data-ta="Immunology">IgG4-RD</option>
+      <option value="AD" data-ta="Immunology">Atopic Dermatitis</option>
+      <option value="Asthma" data-ta="Immunology">Asthma</option>
+      <option value="CSU" data-ta="Immunology">CSU / Urticaria</option>
+      <option value="PsO" data-ta="Immunology">Psoriasis</option>
+      <option value="TED" data-ta="Immunology">TED</option>
+      <option value="Graves" data-ta="Immunology">Graves Disease</option>
+      <option value="MG" data-ta="Rare Disease">Myasthenia Gravis</option>
+      <option value="CIDP" data-ta="Rare Disease">CIDP</option>
+      <option value="PV" data-ta="Rare Disease">Pemphigus Vulgaris</option>
+      <option value="ITP" data-ta="Rare Disease">ITP</option>
+      <option value="AIHA" data-ta="Rare Disease">AIHA</option>
+    </select>
+    <select class="dkn-pill-select" id="dkn-target-select" onchange="dknSetTargetDrop(this)">
+      <option value="">Target</option>
+      <option value="tl1a">TL1A × IL-23p19</option>
+      <option value="tslp-il33">TSLP × IL-33</option>
+      <option value="il4ra-tslp">IL-4Rα × TSLP</option>
+      <option value="il4ra-ox40l">IL-4Rα × OX40L</option>
+      <option value="igf1r-tshr">IGF1R × TSHR</option>
+      <option value="fcrn">FcRn</option>
+      <option value="bcma-cd19">BCMA × CD19 × CD3</option>
+    </select>
   </div>
+  <div class="dkn-filter-group-divider"></div>
+  <!-- Group 2: Molecule -->
+  <div class="dkn-filter-group">
+    <select class="dkn-pill-select" id="dkn-modality-select" onchange="dknSetModality(this)">
+      <option value="">Modality</option>
+    </select>
+    <select class="dkn-pill-select" id="dkn-stage-drop-select" onchange="dknSetStageDrop(this)">
+      <option value="">Stage</option>
+      <option value="Approved">Approved</option>
+      <option value="Phase 3">Phase 3</option>
+      <option value="Phase 2">Phase 2</option>
+      <option value="Phase 1">Phase 1</option>
+      <option value="Preclinical">Preclinical</option>
+      <option value="Research">Research</option>
+    </select>
+  </div>
+  <div class="dkn-filter-group-divider"></div>
+  <!-- Group 3: Company -->
+  <div class="dkn-filter-group">
+    <select class="dkn-pill-select" id="dkn-company-select" onchange="dknSetCompany(this)" style="max-width:160px">
+      <option value="">Company</option>
+    </select>
+  </div>
+  <!-- Right: count + actions -->
   <div class="dkn-filter-right">
     <span class="dkn-count" id="dkn-count">— drugs</span>
-    <button class="dkn-undo-btn" id="dkn-undo-btn" onclick="dknUndo()" style="display:none">&#8635; Undo Remove</button>
+    <button class="dkn-undo-btn" id="dkn-undo-btn" onclick="dknUndo()" style="display:none">&#8635; Undo</button>
     <button class="dkn-show-removed" id="dkn-show-removed" onclick="dknToggleRemoved()" style="display:none">&#128065; Removed (<span id="dkn-removed-count">0</span>)</button>
-    <button class="dkn-reset-btn" onclick="dknReset()">&#8635; Reset All</button>
+    <button class="dkn-reset-btn" onclick="dknReset()">&#8635; Reset</button>
   </div>
 </div>
 
@@ -8208,9 +8174,23 @@ function loadMoleculeTab(tabId) {
 <style>
 .dkn-master-wrap { display:flex; flex-direction:column; position:fixed; left:0; right:0; bottom:0; top:90px; background:#f1f5f9; z-index:50; }
 
-.dkn-filter-bar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-  padding:4px 16px 8px; background:#eef2f7; border-bottom:2px solid #d0dae8; flex-wrap:wrap; }
+.dkn-filter-bar { display:flex; align-items:center; gap:6px;
+  padding:6px 16px 6px; background:#eef2f7; border-bottom:2px solid #d0dae8; flex-wrap:wrap; }
 .dkn-filter-left { display:flex; flex-direction:column; gap:6px; flex:1; min-width:0; }
+.dkn-filter-group { display:flex; gap:5px; align-items:center; }
+.dkn-filter-group-divider { width:1px; height:22px; background:#c8d4e2; margin:0 2px; flex-shrink:0; }
+.dkn-pill-select {
+  -webkit-appearance:none; appearance:none;
+  background:#f1f5f9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E") no-repeat right 8px center;
+  background-size:8px;
+  border:1px solid #d0dae8; border-radius:20px;
+  padding:4px 24px 4px 10px; font-size:11.5px; color:#374151;
+  cursor:pointer; min-width:90px; max-width:200px;
+  transition:border-color .15s;
+}
+.dkn-pill-select:focus { outline:none; border-color:#6366f1; background-color:#fff; }
+.dkn-pill-select option { background:white; color:#1a2f50; }
+.dkn-pill-select[value]:not([value=""]) { border-color:#1a2f50; background-color:#e8f0f8; color:#1a2f50; }
 .dkn-search { width:100%; max-width:560px; padding:7px 12px; border-radius:6px; border:1px solid #c8d4e2;
   font-size:13px; background:white; color:#1a2f50; outline:none; }
 .dkn-search::placeholder { color:#94a3b8; }
@@ -8239,7 +8219,7 @@ function loadMoleculeTab(tabId) {
 .dkn-chip.tgt-igf1r.active    { background:#ecfdf5; color:#065f46; border-color:#059669; }
 .dkn-chip.tgt-fcrn.active     { background:#ede9fe; color:#5b21b6; border-color:#7c3aed; }
 .dkn-chip.tgt-bcma.active     { background:#fef2f2; color:#991b1b; border-color:#ef4444; }
-.dkn-filter-right { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; padding-top:2px; }
+.dkn-filter-right { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; padding-top:0; margin-left:auto; }
 .dkn-count { color:#64748b; font-size:12px; white-space:nowrap; }
 .dkn-reset-btn, .dkn-undo-btn, .dkn-show-removed {
   padding:4px 10px; border-radius:6px; border:1px solid #c8d4e2;
@@ -8388,6 +8368,8 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-dp-competes { display:inline-block; background:#fef2f2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; font-size:9px; font-weight:700; padding:1px 7px; margin-left:6px; vertical-align:middle; }
 
 /* Knowledge Folders — Meridian v2 */
+.entity-link { cursor:pointer; color:inherit; border-bottom:1px dotted #94a3b8; text-decoration:none; transition:color .15s,border-color .15s; }
+.entity-link:hover { color:#6366f1; border-bottom-color:#6366f1; }
 .kf-chips-bar { display:flex; gap:8px; padding:6px 18px 0; background:#0f172a; overflow-x:auto; scrollbar-width:none; flex-wrap:wrap; }
 .kf-chips-bar::-webkit-scrollbar { display:none; }
 .kf-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.06); transition:all .2s; white-space:nowrap; }
@@ -8487,6 +8469,26 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 /* ── Info button in header ── */
 .meridian-info-btn { background:none; border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.7); border-radius:6px; cursor:pointer; font-size:13px; padding:3px 9px; line-height:1; transition:all .15s; flex-shrink:0; }
 .meridian-info-btn:hover { background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.4); }
+
+/* ── Saved Views Panel (SVP) ── */
+.svp-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:1400; }
+.svp-overlay.open { display:flex; justify-content:flex-end; }
+.svp-panel { width:340px; height:100vh; background:white; box-shadow:-4px 0 20px rgba(0,0,0,0.15); display:flex; flex-direction:column; }
+.svp-header { display:flex; justify-content:space-between; align-items:center; padding:20px; border-bottom:1px solid #e2e8f0; }
+.svp-header h3 { margin:0; font-size:15px; font-weight:700; color:#1e3a5f; }
+.svp-header button { background:none; border:none; font-size:16px; cursor:pointer; color:#94a3b8; padding:2px 4px; }
+.svp-header button:hover { color:#1e3a5f; }
+.svp-body { flex:1; overflow-y:auto; padding:12px; }
+.svp-footer { padding:12px 20px; border-top:1px solid #e2e8f0; }
+.svp-footer button { width:100%; padding:9px 12px; background:#1e3a5f; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+.svp-footer button:hover { background:#1a2f50; }
+.svp-row { display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; margin-bottom:6px; border:1px solid #e2e8f0; }
+.svp-name { flex:1; font-weight:500; cursor:pointer; font-size:13px; color:#1e3a5f; }
+.svp-name:hover { color:#6366f1; }
+.svp-meta { font-size:11px; color:#94a3b8; white-space:nowrap; }
+.svp-del { background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:13px; padding:2px 4px; flex-shrink:0; }
+.svp-del:hover { color:#ef4444; }
+.svp-empty { text-align:center; color:#94a3b8; padding:40px 20px; font-size:13px; }
 </style>
 
 <script>
@@ -8513,24 +8515,38 @@ let dknFmtChipFilter = '';
 const STAGE_ORDER = { 'Approved':0, 'Phase 3':1, 'Phase 2':2, 'Phase 1':3, 'Preclinical':4, 'Research':5 };
 
 const DKN_IND_MAP = {
-  'IBD / GI':       ['CD','UC','IBD','Crohn','colitis'],
-  'Rheumatology':   ['RA','PsA',' AS','axSpA','SLE','lupus','SSc','sclerosis','myositis'],
-  'Dermatology':    ['PsO','AD','CSU','urticaria','alopecia','eczema','derm'],
-  'Respiratory':    ['asthma','COPD','IPF','ILD','pulmonary','respiratory'],
-  'Neurology':      ['MG','CIDP','NMO','MS ','myasthenia','neuromyelitis'],
-  'Ophthalmology':  ['TED','uveitis','thyroid eye'],
-  'Oncology':       ['cancer','lymphoma','leukemia','myeloma','tumor','carcinoma','sarcoma','oncol'],
-  'Hematology':     ['hemolytic','ITP','AIHA','thrombocytopenia','hemophilia','anemia'],
+  // Actual indications — matched against indication_short field
+  'UC':       ['UC','ulcerative colitis'],
+  'CD':       ['CD','crohn'],
+  'RA':       ['RA','rheumatoid arthritis'],
+  'PsA':      ['PsA','psoriatic arthritis'],
+  'SLE':      ['SLE','lupus'],
+  'IgG4-RD':  ['IgG4','igg4-rd','igg4-related'],
+  'AD':       ['AD','atopic dermatitis','eczema'],
+  'Asthma':   ['asthma'],
+  'CSU':      ['CSU','urticaria','chronic spontaneous'],
+  'PsO':      ['PsO','psoriasis'],
+  'TED':      ['TED','thyroid eye'],
+  'Graves':   ['Graves','graves'],
+  'MG':       ['myasthenia','gmg'],
+  'CIDP':     ['CIDP'],
+  'PV':       ['pemphigus','PV'],
+  'ITP':      ['ITP','thrombocytopenia'],
+  'AIHA':     ['AIHA','hemolytic anemia'],
 };
+// DKN_TARGET_MAP: each entry is an array of required keyword sets.
+// A drug matches if its target field contains ALL keywords in at least one set (AND within a set, OR across sets).
+// Format: array of arrays. Single-element inner arrays = single keyword.
+// Multi-element inner arrays = ALL must be present (AND logic) for that set.
 const DKN_TARGET_MAP = {
-  'ailux-focus': ['TL1A','IL-23p19','IL-23','TSLP','IL-33','IL-4R','OX40','IGF-1R','IGF1R','TSHR','FcRn','BCMA','CD19','CD3','neonatal Fc','efgartigimod','batoclimab','nipocalimab','rozanolixizumab','duvakitug','tulisokibart','afimkibart','teprotumumab','tepezza','amlitelimab','dupilumab','tezepelumab'],
-  'tl1a':        ['TL1A', 'IL-23p19', 'IL-23', 'IL-12/23'],
-  'tslp-il33':   ['TSLP', 'IL-33'],
-  'il4ra-tslp':  ['IL-4R', 'TSLP'],
-  'il4ra-ox40l': ['IL-4R', 'OX40'],
-  'igf1r-tshr':  ['IGF-1R', 'IGF1R', 'TSHR'],
-  'fcrn':        ['FcRn'],
-  'bcma-cd19':   ['BCMA', 'CD19', 'CD3']
+  'ailux-focus': [['TL1A'],['TSLP'],['IL-33'],['IL-4R'],['OX40'],['IGF-1R'],['IGF1R'],['TSHR'],['FcRn'],['BCMA'],['CD19'],['neonatal fc'],['efgartigimod'],['batoclimab'],['nipocalimab'],['rozanolixizumab'],['duvakitug'],['tulisokibart'],['afimkibart'],['teprotumumab'],['tepezza'],['amlitelimab'],['dupilumab'],['tezepelumab']],
+  'tl1a':        [['TL1A'],['tl1a']],
+  'tslp-il33':   [['TSLP'],['IL-33'],['tslp'],['il-33']],
+  'il4ra-tslp':  [['IL-4R','TSLP'],['il-4r','tslp']],
+  'il4ra-ox40l': [['IL-4R','OX40'],['il-4r','ox40']],
+  'igf1r-tshr':  [['IGF-1R'],['IGF1R'],['TSHR'],['igf1r'],['tshr']],
+  'fcrn':        [['FcRn'],['fcrn'],['neonatal fc']],
+  'bcma-cd19':   [['BCMA'],['bcma']]
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -8681,13 +8697,39 @@ function dknSetStageDrop(sel) {
 function dknSetTa(btn, val) {
   dknTaFilter = val;
   document.querySelectorAll('#dkn-ta-chips .dkn-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
+  dknRender();
+}
+function dknSetTaDrop(sel) {
+  dknTaFilter = sel.value;
+  // Cascade: filter indication options to only show relevant indications for this TA
+  const indSel = document.getElementById('dkn-ind-select');
+  if (indSel) {
+    const ta = sel.value;
+    Array.from(indSel.options).forEach(opt => {
+      if (!opt.value) return; // keep "Indication" placeholder
+      opt.hidden = ta ? (opt.dataset.ta !== ta) : false;
+    });
+    // Clear indication filter if the selected indication isn't valid for this TA
+    const curInd = indSel.value;
+    if (curInd && ta) {
+      const curOpt = indSel.querySelector(`option[value="${curInd}"]`);
+      if (curOpt && curOpt.dataset.ta !== ta) {
+        indSel.value = '';
+        dknIndFilter = '';
+      }
+    }
+  }
+  dknRender();
+}
+function dknSetTargetDrop(sel) {
+  dknTargetFilter = sel.value;
   dknRender();
 }
 function dknSetFmt(btn, val) {
   dknFmtChipFilter = val;
   document.querySelectorAll('#dkn-fmt-chips .dkn-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   dknRender();
 }
 function dknPopulateSelects() {
@@ -8755,9 +8797,11 @@ function dknRender() {
     if (dknStageDropFilter && d.stage !== dknStageDropFilter) return false;
     if (!dknShowRemoved && dknRemovedIds.includes(d.id)) return false;
     if (dknTargetFilter) {
-      const keywords = DKN_TARGET_MAP[dknTargetFilter] || [];
+      const sets = DKN_TARGET_MAP[dknTargetFilter] || [];
       const tgt = (d.target || '').toLowerCase();
-      if (!keywords.some(k => tgt.includes(k.toLowerCase()))) return false;
+      // A drug matches if its target contains ALL keywords in at least one set (OR across sets, AND within each set)
+      const matched = sets.some(kws => kws.every(k => tgt.includes(k.toLowerCase())));
+      if (!matched) return false;
     }
     if (dknClassFilter && d.cls !== dknClassFilter) return false;
     if (dknIndFilter) {
@@ -8960,17 +9004,17 @@ function dknReset() {
   dknClassFilter = ''; dknIndFilter = '';
   dknCompanyFilter = ''; dknModalityFilter = ''; dknStageDropFilter = ''; dknTaFilter = ''; dknFmtChipFilter = '';
   const is = document.getElementById('dkn-ind-select');
-  if (is) is.value = '';
+  if (is) { is.value = ''; Array.from(is.options).forEach(o => { o.hidden = false; }); }
+  const ts = document.getElementById('dkn-ta-select');
+  if (ts) ts.value = '';
+  const tgt = document.getElementById('dkn-target-select');
+  if (tgt) tgt.value = '';
   const cs = document.getElementById('dkn-company-select');
   if (cs) cs.value = '';
   const ms = document.getElementById('dkn-modality-select');
   if (ms) ms.value = '';
   const sd = document.getElementById('dkn-stage-drop-select');
   if (sd) sd.value = '';
-  document.querySelectorAll('#dkn-stage-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
-  document.querySelectorAll('#dkn-target-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
-  document.querySelectorAll('#dkn-ta-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
-  document.querySelectorAll('#dkn-fmt-chips .dkn-chip').forEach((b,i) => b.classList.toggle('active', i===0));
   dknRender();
 }
 
@@ -11869,10 +11913,10 @@ function _buildDrugDossierBody(drug, areas, trials, molData) {
     ${mechanism||summary||diff ? `<div class="dossier-card">
       <div class="dossier-section-hd">Drug Profile</div>
       ${_dossierKV('Mechanism', mechanism)}
-      ${_dossierKV('Target', drug.target)}
+      ${drug.target ? `<div class="dossier-kv"><span class="dossier-kv-k">Target</span><span class="dossier-kv-v"><span class="entity-link" onclick="openKFFromTarget('${(drug.target||'').replace(/'/g,"\\'")}')" title="Open Knowledge Folder for this target">${drug.target}</span></span></div>` : ''}
       ${_dossierKV('Class', drug.cls)}
       ${_dossierKV('Route', drug.route)}
-      ${_dossierKV('Indication', drug.indication_short)}
+      ${drug.indication_short ? `<div class="dossier-kv"><span class="dossier-kv-k">Indication</span><span class="dossier-kv-v"><span class="entity-link" onclick="openKFFromIndication('${(drug.indication_short||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')" title="Open Knowledge Folder for this indication">${drug.indication_short}</span></span></div>` : ''}
     </div>` : ''}
     ${summary ? `<div class="dossier-card"><div class="dossier-section-hd">Summary</div><p style="font-size:12px;line-height:1.6;color:#1e293b;margin:0">${summary}</p></div>` : ''}
     ${diff ? `<div class="dossier-card" style="border-left:3px solid #7c3aed"><div class="dossier-section-hd">Differentiation Thesis</div><p style="font-size:12px;line-height:1.55;color:#1e293b;margin:0;font-weight:600">${diff}</p></div>` : ''}
@@ -15368,8 +15412,8 @@ function _makeAreaPI(tabId, areaIds) {
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
-        const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#2563eb',monitor:'#94a3b8'};
-        const relevBorder = ent.bestRelevance ? `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance]||'transparent'}` : '';
+        const _RELEV_BORDER = {very_high:'#6366f1',high:'#10b981',medium:'#f59e0b',low:'#94a3b8',monitor:'#94a3b8'};
+        const relevBorder = `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance||'']||'#e2e8f0'}`;
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         const _covPct = this._covScoreMap?.[ent.company_id] ?? this._covScoreMap?.[ent.entity_id] ?? null;
         const _covHtml = _covPct != null ? `<span style="font-size:9px;font-weight:700;color:${_covPct>=70?'#15803d':_covPct>=40?'#b45309':'#b91c1c'};margin-left:5px" title="Coverage score: ${_covPct}%">⬤ ${_covPct}%</span>` : '';
@@ -15377,66 +15421,29 @@ function _makeAreaPI(tabId, areaIds) {
           <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span>${_covHtml}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
-          <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target}</td>
+          <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target && ent.target !== '—' ? `<span class="entity-link" onclick="event.stopPropagation();openKFFromTarget('${ent.target.replace(/'/g,"\\'")}')" title="Open Knowledge Folder: ${ent.target.replace(/"/g,'&quot;')}">${ent.target}</span>` : ent.target}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
           <td>${threatCell}</td>
           <td>${catCell}</td>
         </tr>${expRow}`;
       }).join('');
 
-      // ── Meridian v2: Quick Stats bar ─────────────────────────────────────────
-      const _qsDrugs       = this.data || [];
-      const _qsTotal       = _qsDrugs.length;
-      const _clinicalStages = ['Phase 1','Phase 2','Phase 3','Phase 1/2','Phase 2/3','Approved'];
-      const _qsClinical    = _qsDrugs.filter(d => d.stageKey && _clinicalStages.includes(d.stageKey)).length;
-      // Catalyst count: companies in this area with a nextCatalyst within 180 days from today
-      const _qsToday     = new Date();
-      const _qs180       = new Date(_qsToday.getTime() + 180 * 24 * 60 * 60 * 1000);
-      let _qsCatCount    = 0;
-      if (this._entityMeta) {
-        Object.values(this._entityMeta).forEach(m => {
-          if (m.nextCatalyst) {
-            const d = new Date(m.nextCatalyst + 'T12:00:00Z');
-            if (!isNaN(d) && d >= _qsToday && d <= _qs180) _qsCatCount++;
-          }
-        });
-      }
-      // Average coverage score
-      let _qsCovAvg = '—';
-      const _covVals = Object.values(this._covScoreMap || {}).filter(v => v != null && !isNaN(v));
-      if (_covVals.length) _qsCovAvg = Math.round(_covVals.reduce((a,b)=>a+b,0) / _covVals.length) + '%';
-
+      // ── Status line (replaces 4-box stats block) ──────────────────────────────
+      const _qsDrugs   = this.data || [];
+      const _qsToday   = new Date();
       // Next catalyst in days (for status line)
-      let _qsNextDays = null;
-      const _allCats = Object.values(this._entityMeta || {}).map(m=>m.nextCatalyst).filter(Boolean);
+      let _qsNextDays  = null;
+      const _allCats   = Object.values(this._entityMeta || {}).map(m=>m.nextCatalyst).filter(Boolean);
       if (_allCats.length) {
         const soonest = _allCats.map(c => new Date(c+'T12:00:00Z')).filter(d=>!isNaN(d)&&d>=_qsToday).sort((a,b)=>a-b)[0];
         if (soonest) _qsNextDays = Math.ceil((soonest - _qsToday) / (24*60*60*1000));
       }
 
       // Area name from tab ID (title-case, strip suffixes)
-      const _areaRaw = (this.tabId||'').replace(/-area-pi$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      const _areaRaw   = (this.tabId||'').replace(/-area-pi$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
       const _statusLine = _areaStatusLine(_qsDrugs, _areaRaw, _qsNextDays);
 
-      const _quickStats = `<div class="meridian-quick-stats" style="display:flex;gap:24px;padding:10px 12px 16px 12px;border-bottom:1px solid #e2e8f0;margin-bottom:4px;flex-wrap:wrap;">
-        <div class="qs-item">
-          <span class="qs-num" style="font-size:20px;font-weight:700;color:#1e3a5f;">${_qsTotal}</span>
-          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">drugs tracked</span>
-        </div>
-        <div class="qs-item">
-          <span class="qs-num" style="font-size:20px;font-weight:700;color:#15803d;">${_qsClinical}</span>
-          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">in clinical stage</span>
-        </div>
-        <div class="qs-item">
-          <span class="qs-num" style="font-size:20px;font-weight:700;color:#b45309;">${_qsCatCount}</span>
-          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">catalysts (180d)</span>
-        </div>
-        <div class="qs-item">
-          <span class="qs-num" style="font-size:20px;font-weight:700;color:#1d4ed8;">${_qsCovAvg}</span>
-          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">avg coverage</span>
-        </div>
-      </div>
-      <div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
+      const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       el.innerHTML = _quickStats + `<table class="pi-table">
         <colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>
@@ -17720,17 +17727,23 @@ function openIntelModal() {
   document.getElementById('im-success').classList.remove('show');
   document.getElementById('im-err').classList.remove('show');
   ['im-url','im-name'].forEach(id => document.getElementById(id)?.classList.remove('error'));
+  _siResetFileAttachment();
   document.getElementById('intel-modal-overlay').classList.add('open');
   setTimeout(() => document.getElementById('im-text')?.focus(), 80);
 }
 function closeIntelModal() {
   document.getElementById('intel-modal-overlay').classList.remove('open');
+  _siResetFileAttachment();
 }
 async function submitIntelNew() {
   const url  = (document.getElementById('im-url')?.value  || '').trim();
   const text = (document.getElementById('im-text')?.value || '').trim();
   const name = (document.getElementById('im-name')?.value || '').trim();
   const err  = document.getElementById('im-err');
+  // Capture any attached file info
+  const fileInput = document.getElementById('si-file-input');
+  const attachedFile = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+  const attachedFileName = attachedFile ? attachedFile.name : null;
   // Validation
   let valid = true;
   document.getElementById('im-name')?.classList.remove('error');
@@ -17750,7 +17763,12 @@ async function submitIntelNew() {
       source_url:       url || null,
       submitted_text:   text || null,
       status:           'new',
-      raw_payload_json: { url, text, name, submitted_at: new Date().toISOString() }
+      raw_payload_json: {
+        url, text, name,
+        attached_file: attachedFileName || null,
+        detected_fields: window._siLastDetected || null,
+        submitted_at: new Date().toISOString()
+      }
     };
     const { error } = await _sb.from('submitted_intel').insert([payload]);
     if (error) throw error;
@@ -17776,8 +17794,117 @@ async function submitIntelNew() {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    // Reset file attachment state
+    _siResetFileAttachment();
   }, 3000);
 }
+// ── Submit Intel — File attachment helpers ────────────────────────────────────
+window._siLastDetected = null;
+
+function triggerDocAttach() {
+  // Open the intel modal first (if not already open), then trigger file pick
+  if (!document.getElementById('intel-modal-overlay')?.classList.contains('open')) {
+    openIntelModal();
+    setTimeout(() => document.getElementById('si-file-input')?.click(), 120);
+  } else {
+    document.getElementById('si-file-input')?.click();
+  }
+}
+
+function _siResetFileAttachment() {
+  const fileInput = document.getElementById('si-file-input');
+  if (fileInput) fileInput.value = '';
+  const zone = document.getElementById('si-file-zone');
+  if (zone) zone.innerHTML = '📎 Attach a document <span style="opacity:0.6">(optional — PDF, text, CSV…)</span>';
+  const det = document.getElementById('si-detected-fields');
+  if (det) { det.style.display = 'none'; det.innerHTML = ''; }
+  const q = document.getElementById('si-questions');
+  if (q) { q.style.display = 'none'; q.innerHTML = ''; }
+  window._siLastDetected = null;
+}
+
+function siHandleFileSelected(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const zone = document.getElementById('si-file-zone');
+  if (zone) zone.innerHTML = `📎 <strong>${file.name}</strong> <span style="color:#94a3b8;font-size:11px">(${(file.size/1024).toFixed(1)} KB)</span>`;
+  _siReadFile(file);
+}
+
+function _siReadFile(file) {
+  const det = document.getElementById('si-detected-fields');
+  const q   = document.getElementById('si-questions');
+  // Text-readable types
+  const isText = /text\/(plain|markdown|csv)|application\/json/.test(file.type) ||
+                 /\.(txt|md|csv|json)$/i.test(file.name);
+  if (isText) {
+    if (det) { det.style.display = ''; det.innerHTML = '<em style="color:#64748b">Reading…</em>'; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target.result || '';
+      const fields  = _siExtractIntelFields(content);
+      window._siLastDetected = fields.detected;
+      // Show detected
+      if (det) {
+        if (fields.detected.length) {
+          det.style.display = '';
+          det.innerHTML = '<strong style="color:#166534">Detected:</strong> ' +
+            fields.detected.map(f => `<span style="background:#dcfce7;border-radius:3px;padding:1px 5px;margin:0 2px">${_esc(f)}</span>`).join(' ');
+        } else {
+          det.style.display = '';
+          det.innerHTML = '<span style="color:#64748b">No structured fields auto-detected — add context in Comments above.</span>';
+        }
+      }
+      // Show questions
+      if (q && fields.questions.length) {
+        q.style.display = '';
+        q.innerHTML = '<strong style="color:#92400e">Questions for Kyle:</strong><ul style="margin:4px 0 0 16px;padding:0">' +
+          fields.questions.map(qn => `<li>${_esc(qn)}</li>`).join('') + '</ul>';
+      } else if (q) {
+        q.style.display = 'none';
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    // Binary / PDF / docx
+    window._siLastDetected = null;
+    if (det) {
+      det.style.display = '';
+      const typeLabel = /pdf/i.test(file.name) ? 'PDF' :
+                        /docx?/i.test(file.name) ? 'Word document' :
+                        /xlsx?/i.test(file.name) ? 'Excel file' : 'File';
+      det.innerHTML = `<span style="color:#64748b">${typeLabel} attached — will be noted on submission. Add key points in Comments above.</span>`;
+    }
+    if (q) q.style.display = 'none';
+  }
+}
+
+function _siExtractIntelFields(text) {
+  const detected  = [];
+  const questions = [];
+  // Dollar amounts
+  const dollars = text.match(/\$[\d,]+(?:\.\d+)?(?:\s*[BMK](?:illion|n)?)?/gi) || [];
+  dollars.slice(0,3).forEach(d => detected.push(d.trim()));
+  // Drug codes: 2-5 uppercase letters + digits (e.g. XPF-005, ABBV-701, SPY001)
+  const drugCodes = text.match(/\b[A-Z]{2,5}[-‑]?\d{2,4}\b/g) || [];
+  [...new Set(drugCodes)].slice(0,4).forEach(d => detected.push(d));
+  // Company names: 2+ consecutive Title-Case words (rough heuristic, exclude common sentence starts)
+  const coNames = text.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/g) || [];
+  const filtered = [...new Set(coNames)].filter(n =>
+    !/^(The|This|These|There|Their|They|Phase|Study|Trial|Data|Drug|Results|Safety|Efficacy)\b/.test(n)
+  );
+  filtered.slice(0,4).forEach(n => detected.push(n));
+  // Dates: YYYY, or Month YYYY, or M/D/YYYY
+  const dates = text.match(/\b(?:20\d{2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+20\d{2}|\d{1,2}\/\d{1,2}\/20\d{2})\b/gi) || [];
+  [...new Set(dates)].slice(0,2).forEach(d => detected.push(d));
+  // Generate gap questions
+  if (!dollars.length) questions.push('What is the deal or milestone value (if any)?');
+  if (!dates.length)   questions.push('What is the effective or announcement date?');
+  if (!drugCodes.length && detected.filter(d => /[A-Z]/.test(d)).length < 2)
+    questions.push('Which specific drug or asset does this relate to?');
+  return { detected: [...new Set(detected)].slice(0, 10), questions };
+}
+
 // ── Document Upload Modal ─────────────────────────────────────────────────────
 // Populates entity dropdown, handles form, saves to source_documents via Supabase.
 
@@ -18273,8 +18400,8 @@ const WEEKLY_TASKS = [
  { id:'th3', area:'AI', color:'#5b21b6', text:'Compare FcRn Competitive Landscape — efgartigimod vs nipocalimab vs rozanolixizumab differentiation', tab:'fcrn', anchor:'fcrn-landscape-anchor' },
  ]},
  { day: 'Friday', tasks: [
- { id:'f1', area:'Immune Reset', color:'#991b1b', text:'Read BCMA × CD19 × CD3 (ACE) tab — understand why dual B-cell lineage depletion is the hypothesis', tab:'ace', anchor:'ace-edu-anchor' },
- { id:'f2', area:'Immune Reset', color:'#991b1b', text:'Review ACE Competitive Landscape — KT501 vs CLN-978 vs CAR-T: what is Ailux doing differently?', tab:'ace', anchor:'ace-landscape-anchor' },
+ { id:'f1', area:'Immune Reset', color:'#991b1b', text:'Read BCMA × CD19 × CD3 (ALX002) tab — understand why dual B-cell lineage depletion is the hypothesis', tab:'ace', anchor:'ace-edu-anchor' },
+ { id:'f2', area:'Immune Reset', color:'#991b1b', text:'Review ALX002 Competitive Landscape — KT501 vs CLN-978 vs CAR-T: what is Ailux doing differently?', tab:'ace', anchor:'ace-landscape-anchor' },
  { id:'f3', area:'General', color:'#4b5563', text:'Review Meridian Daily Reader — are all 7 coverage areas still current? Submit anything new via ＋ Submit Intel', tab:'home', anchor:'meridian-reader-anchor' },
  ]},
 ];
@@ -18484,7 +18611,7 @@ const IIF_AREA_LABELS = {
   'tl1a':'TL1A','tslp':'TSLP','il4ra':'IL-4Rα','il4ra-tslp':'IL-4Rα×TSLP',
   'il4ra-ox40l':'IL-4Rα×OX40L','igf1r':'IGF-1R','igf1r-tshr':'IGF-1R×TSHR',
   'fcrn':'FcRn','ted':'TED','respiratory':'Respiratory','atopy':'Atopy',
-  'ibd':'IBD','autoimmune':'Autoimmune','ace':'ACE','tl1a-ibd':'TL1A×IBD'
+  'ibd':'IBD','autoimmune':'Autoimmune','ace':'ALX002','tl1a-ibd':'TL1A×IBD'
 };
 const IIF_AREA_CLS = {
   'tl1a':'tl1a','tslp':'tslp','il4ra':'il4ra','il4ra-tslp':'il4ra',
@@ -28898,7 +29025,7 @@ function kfRenderTab(tab) {
       '<div class="kf-section">' +
         '<div class="kf-section-title">Key programs</div>' +
         '<div class="kf-text" style="background:#f0fdf4;border-radius:8px;padding:12px;border-left:4px solid #16a34a;">' +
-          '<strong>XPF005</strong> — TL1A×IL-23p19 bispecific · Lead program · Phase 1<br>' +
+          '<strong>ALX001</strong> — TL1A×IL-23p19 bispecific · Lead program · Phase 1<br>' +
           '<strong>ALX-FcRn</strong> — FcRn×Albumin bispecific · Second program · Preclinical' +
         '</div>' +
       '</div>';
@@ -29187,14 +29314,19 @@ async function _gsSbSearch(term) {
 
     // Also check Knowledge Folder chips (area slugs) client-side
     var kfAreas = [
-      {slug:'tl1a', label:'TL1A', icon:'🦠'},
-      {slug:'il23', label:'IL-23', icon:'🔬'},
-      {slug:'ibd',  label:'IBD',  icon:'💊'},
-      {slug:'uc',   label:'UC / Ulcerative Colitis', icon:'🩺'},
-      {slug:'atopy',label:'Atopy', icon:'🌡️'},
-      {slug:'ted',  label:'TED / Thyroid Eye Disease', icon:'👁️'},
-      {slug:'fcrn', label:'FcRn', icon:'🧬'},
-      {slug:'bispecific', label:'Bispecific', icon:'⚡'},
+      {slug:'tl1a',      label:'TL1A', icon:'🦠'},
+      {slug:'il23',      label:'IL-23', icon:'🔬'},
+      {slug:'ibd',       label:'IBD / Inflammatory Bowel Disease', icon:'💊'},
+      {slug:'uc',        label:'UC / Ulcerative Colitis', icon:'🩺'},
+      {slug:'cd',        label:'CD / Crohn\'s Disease', icon:'🩺'},
+      {slug:'atopy',     label:'Atopy / Atopic Dermatitis', icon:'🌡️'},
+      {slug:'ted',       label:'TED / Thyroid Eye Disease', icon:'👁️'},
+      {slug:'fcrn',      label:'FcRn', icon:'🧬'},
+      {slug:'ra',        label:'RA / Rheumatoid Arthritis', icon:'🦴'},
+      {slug:'mg',        label:'MG / Myasthenia Gravis / gMG', icon:'💪'},
+      {slug:'cidp',      label:'CIDP / Demyelinating Polyneuropathy', icon:'🧠'},
+      {slug:'graves',    label:'Graves\' Disease / Graves Disease', icon:'🦋'},
+      {slug:'bispecific',label:'Bispecific', icon:'⚡'},
     ];
     var t_lc = term.toLowerCase();
     var matchedAreas = kfAreas.filter(function(a) {
@@ -29249,11 +29381,29 @@ async function _gsSbSearch(term) {
 
     // ── Indications ───────────────────────────────────────────────
     if (indics.length) {
+      // Map indication names to KF slugs for click-through
+      var _indicSlugMap = {
+        'ulcerative colitis':'uc', 'uc':'uc',
+        "crohn's disease":'cd', 'crohn disease':'cd', 'cd':'cd',
+        'rheumatoid arthritis':'ra', 'ra':'ra',
+        'thyroid eye disease':'ted', 'ted':'ted',
+        "graves' disease":'graves', 'graves disease':'graves', 'graves':'graves',
+        'myasthenia gravis':'mg', 'gmg':'mg', 'mg':'mg',
+        'cidp':'cidp', 'chronic inflammatory demyelinating polyneuropathy':'cidp',
+        'atopic dermatitis':'atopy', 'ad':'atopy', 'atopy':'atopy',
+        'inflammatory bowel disease':'ibd', 'ibd':'ibd',
+      };
       html += '<div class="gs-sb-section-hd">Disease Areas (' + indics.length + ')</div>';
       indics.forEach(function(ind) {
-        html += '<div class="gs-sb-item gs-nav-item" data-gtype="indication" style="cursor:pointer">' +
+        var _indKey = (ind.name||'').toLowerCase();
+        var _kfSlug = _indicSlugMap[_indKey] || null;
+        var _pill = _kfSlug
+          ? '<span class="gs-sb-nav-pill">→ Knowledge Folder</span>'
+          : '<span class="gs-sb-nav-pill">→ Indication</span>';
+        html += '<div class="gs-sb-item gs-nav-item" data-gtype="' + (_kfSlug ? 'knowledgefolder' : 'indication') + '"' +
+          (_kfSlug ? ' data-kf-slug="' + _kfSlug + '"' : '') + ' style="cursor:pointer">' +
           '<div class="gs-sb-headline">🩺 '+hl(ind.name)+'</div>' +
-          '<div class="gs-sb-meta"><span class="gs-sb-nav-pill">→ Indication</span></div>' +
+          '<div class="gs-sb-meta">' + _pill + '</div>' +
         '</div>';
       });
     }
@@ -29321,7 +29471,7 @@ async function _gsSbSearch(term) {
   }
 }
 
-// Handle Knowledge Folder click in search results
+// Handle Knowledge Folder click in search results (targets + indications)
 document.addEventListener('click', function(e) {
   var item = e.target.closest('.gs-nav-item[data-gtype="knowledgefolder"]');
   if (item) {
@@ -29332,7 +29482,191 @@ document.addEventListener('click', function(e) {
   }
 }, true);
 
+// openKFFromIndication — maps an indication string to a KF slug and opens it
+function openKFFromIndication(indStr) {
+  if (!indStr || indStr === '—') return;
+  var t = indStr.toLowerCase();
+  var indicSlugMap = [
+    {keys:['ulcerative colitis',' uc ','\\buc\\b'],  slug:'uc'},
+    {keys:["crohn's disease",'crohn disease','\\bcd\\b'], slug:'cd'},
+    {keys:['rheumatoid arthritis','\\bra\\b'], slug:'ra'},
+    {keys:['thyroid eye disease','\\bted\\b'], slug:'ted'},
+    {keys:["graves' disease",'graves disease','graves'], slug:'graves'},
+    {keys:['myasthenia gravis','\\bgmg\\b','\\bmg\\b'],  slug:'mg'},
+    {keys:['cidp','chronic inflammatory demyelinating'], slug:'cidp'},
+    {keys:['atopic dermatitis','\\bad\\b','atopy'],    slug:'atopy'},
+    {keys:['inflammatory bowel','\\bibd\\b'],          slug:'ibd'},
+  ];
+  var match = null;
+  for (var i = 0; i < indicSlugMap.length; i++) {
+    var entry = indicSlugMap[i];
+    for (var j = 0; j < entry.keys.length; j++) {
+      try {
+        if (new RegExp(entry.keys[j],'i').test(t)) { match = entry.slug; break; }
+      } catch(e) {
+        if (t.includes(entry.keys[j])) { match = entry.slug; break; }
+      }
+    }
+    if (match) break;
+  }
+  if (match && typeof openKnowledgeFolder === 'function') openKnowledgeFolder(match);
+}
 
+// openKFFromTarget — maps a target string from the PI table to a KF slug and opens it
+function openKFFromTarget(targetStr) {
+  if (!targetStr || targetStr === '—') return;
+  var t = targetStr.toLowerCase().replace(/[\s×x\-_\/]/g, '');
+  var slugMap = [
+    {keys:['tl1a'],              slug:'tl1a'},
+    {keys:['il23','il23p19'],    slug:'il23'},
+    {keys:['igf1r','tshr'],      slug:'ted'},
+    {keys:['fcrn'],              slug:'fcrn'},
+    {keys:['il4ra'],             slug:'atopy'},
+    {keys:['tslp'],              slug:'atopy'},
+    {keys:['cd19','bcma','cd38'],slug:'ace'},
+  ];
+  var match = null;
+  for (var i = 0; i < slugMap.length; i++) {
+    var entry = slugMap[i];
+    for (var j = 0; j < entry.keys.length; j++) {
+      if (t.includes(entry.keys[j])) { match = entry.slug; break; }
+    }
+    if (match) break;
+  }
+  if (match && typeof openKnowledgeFolder === 'function') openKnowledgeFolder(match);
+}
+
+
+</script>
+
+<!-- ── Saved Views Panel ── -->
+<div id="svp-overlay" class="svp-overlay" onclick="if(event.target===this)closeSavedViewsPanel()">
+  <div class="svp-panel" onclick="event.stopPropagation()">
+    <div class="svp-header">
+      <h3>Saved Views</h3>
+      <button onclick="closeSavedViewsPanel()">✕</button>
+    </div>
+    <div class="svp-body" id="svp-body"></div>
+    <div class="svp-footer">
+      <button onclick="saveCurrentView()">+ Save current view</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Saved Views Panel — localStorage-backed view bookmarking ──────────────────
+(function() {
+  const SVP_KEY = 'meridian_saved_views';
+
+  function _getSavedViews() {
+    try { return JSON.parse(localStorage.getItem(SVP_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function _setSavedViews(views) {
+    try { localStorage.setItem(SVP_KEY, JSON.stringify(views)); }
+    catch(e) { console.warn('[SVP] localStorage write failed', e); }
+  }
+
+  function _currentTab() {
+    return document.querySelector('.tab-pane.active')?.id?.replace(/^tab-/, '') || 'home';
+  }
+
+  function _currentFilters() {
+    return {
+      ta:       document.getElementById('dkn-ta-select')?.value || '',
+      ind:      document.getElementById('dkn-ind-select')?.value || '',
+      target:   document.getElementById('dkn-target-select')?.value || '',
+      modality: document.getElementById('dkn-modality-select')?.value || '',
+      stage:    document.getElementById('dkn-stage-drop-select')?.value || ''
+    };
+  }
+
+  function _applyFilters(filters) {
+    if (!filters) return;
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val !== undefined) el.value = val;
+    };
+    set('dkn-ta-select',         filters.ta);
+    set('dkn-ind-select',        filters.ind);
+    set('dkn-target-select',     filters.target);
+    set('dkn-modality-select',   filters.modality);
+    set('dkn-stage-drop-select', filters.stage);
+    // Trigger filter re-render if function exists
+    if (typeof dknApplyFilters === 'function') dknApplyFilters();
+    else if (typeof dknSetTaDrop === 'function' && filters.ta) dknSetTaDrop(document.getElementById('dkn-ta-select'));
+  }
+
+  function _formatMeta(view) {
+    const parts = [view.tab];
+    if (view.filters?.stage) parts.push(view.filters.stage);
+    if (view.filters?.ind) parts.push(view.filters.ind);
+    if (view.savedAt) parts.push(view.savedAt.replace(/^\d{4}-/, '').replace('-', '/'));
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  window._renderSavedViews = function() {
+    const body = document.getElementById('svp-body');
+    if (!body) return;
+    const views = _getSavedViews();
+    if (!views.length) {
+      body.innerHTML = '<div class="svp-empty">No saved views yet.<br>Navigate to a tab, set filters, then click<br>"+ Save current view".</div>';
+      return;
+    }
+    body.innerHTML = views.map(v =>
+      `<div class="svp-row">
+        <div class="svp-name" onclick="loadSavedView(${v.id})">${v.name}</div>
+        <div class="svp-meta">${_formatMeta(v)}</div>
+        <button class="svp-del" onclick="deleteSavedView(${v.id})" title="Remove">✕</button>
+      </div>`
+    ).join('');
+  };
+
+  window.openSavedViewsPanel = function() {
+    window._renderSavedViews();
+    document.getElementById('svp-overlay')?.classList.add('open');
+  };
+
+  window.closeSavedViewsPanel = function() {
+    document.getElementById('svp-overlay')?.classList.remove('open');
+  };
+
+  window.saveCurrentView = function() {
+    const name = prompt('Name this view (e.g. "Phase 3 IBD Watch"):');
+    if (!name || !name.trim()) return;
+    const views = _getSavedViews();
+    views.push({
+      id: Date.now(),
+      name: name.trim(),
+      tab: _currentTab(),
+      filters: _currentFilters(),
+      savedAt: new Date().toISOString().slice(0, 10)
+    });
+    _setSavedViews(views);
+    window._renderSavedViews();
+  };
+
+  window.loadSavedView = function(viewId) {
+    const views = _getSavedViews();
+    const view = views.find(v => v.id === viewId);
+    if (!view) return;
+    // Switch to saved tab
+    if (view.tab) {
+      const btn = document.querySelector(`.tab-btn[onclick*="'${view.tab}'"]`);
+      if (typeof switchTab === 'function') switchTab(view.tab, btn);
+    }
+    // Apply filters after short delay so tab renders first
+    setTimeout(() => { _applyFilters(view.filters); }, 150);
+    window.closeSavedViewsPanel();
+  };
+
+  window.deleteSavedView = function(viewId) {
+    const views = _getSavedViews().filter(v => v.id !== viewId);
+    _setSavedViews(views);
+    window._renderSavedViews();
+  };
+})();
 </script>
 
 </body>
