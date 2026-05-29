@@ -2407,6 +2407,104 @@ a:hover, .clickable:hover { color: #A8D8EA !important; }
   padding: 20px 24px;
   margin-bottom: 20px;
 }
+/* Indication Priority widget */
+.ind-priority-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 22px 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+.ind-priority-hd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ind-priority-hd-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1e3a5f;
+}
+.ind-priority-hd-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-left: auto;
+}
+.ind-priority-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ind-priority-row:last-child { border-bottom: none; }
+.ind-rank-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ind-rank-badge.rank-1 { background: #1e3a5f; color: #fff; }
+.ind-rank-badge.rank-2 { background: #2e6fb0; color: #fff; }
+.ind-rank-badge.rank-3 { background: #3b82f6; color: #fff; }
+.ind-priority-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0d1f38;
+  flex: 1;
+  min-width: 0;
+}
+.ind-priority-meta {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 1px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+.ind-alx-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ind-alx-alx001 { background: #e8f0f8; color: #2e6fb0; }
+.ind-alx-alx002 { background: #fce7f3; color: #be185d; }
+.ind-alx-alx005 { background: #d1fae5; color: #065f46; }
+.ind-alx-multi { background: #f3e8ff; color: #7e22ce; }
+.ind-unmet-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.ind-unmet-high { background: #fee2e2; color: #dc2626; }
+.ind-unmet-mid  { background: #ffedd5; color: #ea580c; }
+.ind-unmet-low  { background: #f1f5f9; color: #64748b; }
+.ind-wspace-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ind-wspace-high { background: #22c55e; }
+.ind-wspace-mid  { background: #f59e0b; }
+.ind-wspace-low  { background: #ef4444; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -4840,27 +4938,33 @@ function loadMoleculeTab(tabId) {
     <div class="atd-hero">
       <button class="atd-close" onclick="closeAboutDataPanel()">×</button>
       <div class="atd-hero-icon">◈</div>
-      <h2 class="atd-title">The Meridian</h2>
-      <p class="atd-subtitle">A knowledge graph for biotech business development</p>
+      <h2 class="atd-title">Meridian — Scientific Asset Intelligence</h2>
+      <p class="atd-subtitle">For which patients does our biology create a clinically differentiated outcome?</p>
     </div>
     <div class="atd-body">
       <div class="atd-section">
-        <p>Meridian is a continuously-updated competitive intelligence system built specifically for TL1A × IL-23p19, FcRn, and adjacent immunology programs. It is not a news aggregator. It is not a database viewer. It is a structured reasoning engine that knows the field.</p>
+        <p>Meridian exists to answer one question: for which patients, in which indication, does Ailux's bispecific biology create a clinically differentiated outcome that patients need and the market hasn't delivered?</p>
+      </div>
+      <div class="atd-section">
+        <h4>Intelligence hierarchy</h4>
+        <p>Intelligence is organized from the ground up — <strong>Patients first, then Indications, then Targets, then Companies.</strong> Every data point is evaluated against: does this change our understanding of patient unmet need, indication biology, or competitive positioning? Deal activity and company news are inputs to that evaluation, not the answer itself.</p>
       </div>
       <div class="atd-section">
         <h4>What it tracks</h4>
-        <p>154 drug programs across 6 mechanism areas. 540+ clinical trials. 37 active partnerships. Catalyst timelines updated weekly. Every enriched field carries a source, a confidence tier, and a correction history.</p>
+        <p>154 drug programs across 6 mechanism areas. 540+ clinical trials. 37 active partnerships. Patient population data, biologic failure rates, and SoC remission benchmarks for 17 tracked indications. Catalyst timelines updated weekly. Every enriched field carries a source, a confidence tier, and a correction history.</p>
       </div>
       <div class="atd-section">
         <h4>How it learns</h4>
         <p>Three intake paths: a nightly enrichment pipeline reads press releases, trial registries, and company announcements through a structured extraction model; a correction layer captures every review and disagreement as labeled training data; and a research queue surfaces gaps for human judgment. Every correction improves the next enrichment.</p>
       </div>
       <div class="atd-section">
-        <h4>What makes it useful</h4>
-        <p>The competitive landscape in immunology moves faster than any analyst can track manually. Meridian compresses that signal: which programs are in Phase 3, which readouts are imminent, which companies are acquirable, and where the mechanism gaps are. The answer to "who should we call in Q4?" is a query, not a meeting.</p>
+        <h4>The three Ailux programs</h4>
+        <p><strong>ALX001</strong> (TL1A×IL-23p19) — UC and Crohn's Disease. The deepest unmet need in IBD: 40–45% biologic failure, 20–25% SoC remission. No approved bispecific in this mechanism space.<br><br>
+        <strong>ALX002</strong> (CD19×BCMA) — SLE and Sjogren's Syndrome. B cell and plasma cell dual depletion for the most treatment-resistant autoimmune patients.<br><br>
+        <strong>ALX005</strong> (FcRn×Albumin) — gMG and CIDP. FcRn monotherapy is now approved; the bispecific era for antibody-mediated disease is next.</p>
       </div>
       <div class="atd-section atd-since">
-        <p>Active since May 18, 2026.</p>
+        <p>Active since May 18, 2026. Intelligence organized by patient need, not deal activity.</p>
       </div>
     </div>
   </div>
@@ -5170,6 +5274,9 @@ function loadMoleculeTab(tabId) {
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
  <div id="bd-today-anchor" style="max-width:860px;margin:0 auto 24px;padding:0 20px;"></div>
+
+ <!-- ── Indication Priority widget ──────────────────────────── -->
+ <div id="ind-priority-anchor" style="max-width:860px;margin:0 auto 24px;padding:0 20px;"></div>
 
  <!-- ── Home lower panels (Meridian Issue + Catalyst Calendar) ── -->
  <div style="max-width:860px;margin:0 auto;padding:0 20px;">
@@ -19965,6 +20072,109 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     }
   }
 
+  // ── Indication Priority widget ─────────────────────────────────────
+  // Renders top 5 indication priorities on the home page.
+  // Data source: indication_priority_scores table (if present) or
+  // built-in static data derived from seed_indication_priorities.py rankings.
+  async function loadIndicationPriority() {
+    const anchor = document.getElementById('ind-priority-anchor');
+    if (!anchor) return;
+
+    // Static fallback data (mirrors seed_indication_priorities.py rankings)
+    // Rank order: Sjogren(1), CD(2), SLE(3), TL1A-area(4), CIDP(5),
+    //             UC(6), gMG(7), FcRn-area(8), IBD(9), MG-broad(10)...
+    const STATIC_PRIORITIES = [
+      { rank:1, name:"Sjogren's Syndrome",              fit:9, wspace:9, unmet:9,  bfr:60.0, patients:400000,  progs:["alx002"], rationale:"Nearly no approved pharmacotherapy. CD19×BCMA: highest white space of any tracked indication." },
+      { rank:2, name:"Crohn's Disease",                 fit:10, wspace:7, unmet:9, bfr:45.0, patients:780000, progs:["alx001"], rationale:"20% SoC remission — worst tracked. Fibroinflammatory phenotype ideally addressed by TL1A×IL-23." },
+      { rank:3, name:"Systemic Lupus Erythematosus",    fit:9,  wspace:8, unmet:9, bfr:50.0, patients:200000, progs:["alx002"], rationale:"15% SoC remission. B cell + plasma cell dual depletion strategy differentiated from belimumab/anifrolumab." },
+      { rank:4, name:"TL1A Mechanism Area",             fit:10, wspace:7, unmet:9, bfr:42.0, patients:2500000, progs:["alx001"], rationale:"Bispecific window is 2025–2027. Monospecifics entering Ph3 — differentiation clock is running." },
+      { rank:5, name:"CIDP",                            fit:10, wspace:9, unmet:8, bfr:35.0, patients:40000,  progs:["alx005"], rationale:"Efgartigimod approved (mono) but bispecific white space essentially unchallenged. High maintenance convenience opportunity." },
+    ];
+
+    let rows = STATIC_PRIORITIES;
+
+    // Try live data from Supabase if table exists
+    if (typeof _sb !== 'undefined') {
+      try {
+        const { data, error } = await _sb
+          .from('indication_priority_scores')
+          .select('indication_priority_rank,indication_name,ailux_fit_score,competitive_white_space,unmet_need_score,biologic_failure_rate_pct,patient_count_us,alx_programs,priority_rationale')
+          .order('indication_priority_rank', { ascending: true })
+          .limit(5);
+        if (!error && data && data.length) {
+          rows = data.map(d => ({
+            rank: d.indication_priority_rank,
+            name: d.indication_name,
+            fit: d.ailux_fit_score,
+            wspace: d.competitive_white_space,
+            unmet: d.unmet_need_score,
+            bfr: d.biologic_failure_rate_pct,
+            patients: d.patient_count_us,
+            progs: d.alx_programs || [],
+            rationale: d.priority_rationale || '',
+          }));
+        }
+      } catch(_) { /* use static fallback */ }
+    }
+
+    function _progPill(progs) {
+      if (!progs || !progs.length) return '';
+      if (progs.length > 1) return `<span class="ind-alx-pill ind-alx-multi">ALX Multi</span>`;
+      const p = progs[0];
+      return `<span class="ind-alx-pill ind-alx-${p}">${p.toUpperCase()}</span>`;
+    }
+
+    function _unmetBadge(score) {
+      const cls = score >= 9 ? 'ind-unmet-high' : score >= 7 ? 'ind-unmet-mid' : 'ind-unmet-low';
+      const lbl = score >= 9 ? 'High urgency' : score >= 7 ? 'Significant' : 'Moderate';
+      return `<span class="ind-unmet-badge ${cls}">${lbl} ${score}/10</span>`;
+    }
+
+    function _wspaceDot(score) {
+      const cls = score >= 8 ? 'ind-wspace-high' : score >= 6 ? 'ind-wspace-mid' : 'ind-wspace-low';
+      const tip = score >= 8 ? 'Open white space' : score >= 6 ? 'Some competition' : 'Crowded';
+      return `<span class="ind-wspace-dot ${cls}" title="${tip} (${score}/10)"></span>`;
+    }
+
+    function _rankBadge(rank) {
+      const rankCls = rank <= 3 ? ` rank-${rank}` : '';
+      return `<div class="ind-rank-badge${rankCls}">${rank}</div>`;
+    }
+
+    function _fmtPatients(n) {
+      if (!n) return '';
+      if (n >= 1000000) return (n/1000000).toFixed(1) + 'M US patients';
+      if (n >= 1000)    return Math.round(n/1000) + 'K US patients';
+      return n + ' US patients';
+    }
+
+    const rowsHtml = rows.map(r => `
+      <div class="ind-priority-row">
+        ${_rankBadge(r.rank)}
+        <div style="flex:1;min-width:0;">
+          <div class="ind-priority-name">${r.name}</div>
+          <div class="ind-priority-meta">${r.rationale ? r.rationale.substring(0,90) + (r.rationale.length > 90 ? '…' : '') : _fmtPatients(r.patients)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          ${_wspaceDot(r.wspace)}
+          ${_unmetBadge(r.unmet)}
+          ${_progPill(r.progs)}
+        </div>
+      </div>`).join('');
+
+    anchor.innerHTML = `<div class="ind-priority-card">
+      <div class="ind-priority-hd">
+        <span class="ind-priority-hd-title">Indication Priority — Top 5</span>
+        <span class="ind-priority-hd-sub">Patient unmet need · Ailux fit · Bispecific white space</span>
+      </div>
+      ${rowsHtml}
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:9px;color:#94a3b8;">White space: <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;"></span> open  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-left:4px;"></span> some competition  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-left:4px;"></span> crowded</span>
+        <span style="margin-left:auto;font-size:9px;color:#94a3b8;">Scored by Meridian · Patients → Indications → Targets → Companies</span>
+      </div>
+    </div>`;
+  }
+
   // ── Meridian Issue inline reader ──────────────────────────────────
   async function _hwLoadMeridianIssue() {
     const panel = document.getElementById('hw-issue-panel');
@@ -20100,6 +20310,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     await _hwRefresh(true);
     _hwLoadBDMetrics();
     loadBDToday();
+    loadIndicationPriority();
     _hwLoadMeridianIssue();
     _hwLoadCatalystCalendar();
     _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
