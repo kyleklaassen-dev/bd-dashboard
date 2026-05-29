@@ -584,6 +584,17 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   color: #b8c6d4;
 }
 
+.hw-since {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  font-size: 11px;
+  color: rgba(100,130,160,0.45);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
 /* ── BD Intelligence metric tiles ── */
 #hw-bd-metrics {
   display: flex;
@@ -1317,8 +1328,14 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .submit-intel-btn:hover { background: rgba(255,255,255,0.28); }
 .si-attach-icon { opacity: 0.7; font-size: 14px; padding: 2px 4px; border-radius: 3px; }
 .si-attach-icon:hover { opacity: 1; background: rgba(255,255,255,0.2); }
-.si-file-zone { margin-top: 12px; padding: 10px 14px; background: var(--bg-secondary, #f8fafc); border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; color: #64748b; cursor: pointer; }
-.si-file-zone:hover { border-color: #6366f1; color: #6366f1; }
+.si-drop-zone { margin-top: 12px; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8fafc; }
+.si-drop-zone.si-drop-active { border-color: #6366f1; background: #eef2ff; }
+.si-drop-inner { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.si-drop-icon { font-size: 20px; }
+.si-drop-text { font-size: 13px; color: #374151; }
+.si-drop-types { font-size: 11px; color: #94a3b8; }
+.si-file-zone { margin-top: 8px; padding: 8px 12px; background: var(--bg-secondary, #f8fafc); border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #374151; }
+.si-file-zone:hover { border-color: #6366f1; }
 .si-detected-fields { margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; font-size: 12px; }
 .si-questions { margin-top: 8px; padding: 8px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 12px; }
 
@@ -1641,6 +1658,32 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .gs-sb-meta { font-size: 10px; color: rgba(255,255,255,0.42); display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
 .gs-sb-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; }
 .gs-sb-empty { padding: 18px 12px; font-size: 11px; color: rgba(255,255,255,0.38); text-align: center; }
+/* ── Knowledge Folder search results ──────────────────────────────── */
+.gs-kf-result { background: rgba(99,102,241,0.06); border-left: 2px solid rgba(99,102,241,0.45); }
+.gs-kf-result:hover { background: rgba(99,102,241,0.14); }
+.gs-kf-tagline { font-size: 10px; color: rgba(255,255,255,0.45); font-weight: 400; }
+.gs-kf-cta { display:inline-block; background: rgba(99,102,241,0.35); color: #a5b4fc; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+/* ── News article search results ──────────────────────────────────── */
+.gs-news-row { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.gs-news-headline { font-size: 12px; color: rgba(255,255,255,0.88); text-decoration: none; display: block; line-height: 1.4; font-weight: 500; }
+.gs-news-headline:hover { color: #818cf8; text-decoration: underline; }
+.gs-news-headline-nolink { color: rgba(255,255,255,0.5); }
+.gs-news-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.gs-news-source { font-size: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); padding: 1px 6px; border-radius: 10px; }
+.gs-news-date { font-size: 10px; color: rgba(255,255,255,0.35); }
+.gs-news-sources-btn { font-size: 10px; background: none; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 1px 6px; cursor: pointer; color: rgba(255,255,255,0.5); }
+.gs-news-sources-btn:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); }
+.gs-news-sources-list { margin-top: 4px; padding-left: 2px; }
+.gs-news-sources-list a { display: block; font-size: 11px; color: #818cf8; padding: 2px 0; text-decoration: none; }
+.gs-news-sources-list a:hover { text-decoration: underline; }
+/* ── Link quality indicators ──────────────────────────────────────── */
+.gs-link-quality { font-size: 9px; margin-right: 2px; }
+.gs-link-ok { color: #34d399; }
+.gs-link-missing { color: #fbbf24; }
+/* ── Patient intelligence results ────────────────────────────────── */
+.gs-patient-row { padding: 8px 12px; background: rgba(16,185,129,0.06); border-left: 2px solid rgba(16,185,129,0.4); margin: 2px 0; }
+.gs-patient-label { font-size: 10px; color: #34d399; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+.gs-patient-text { font-size: 11px; color: rgba(255,255,255,0.7); line-height: 1.45; }
 /* ── BD ACTIVITY ───────────────────────────────────────────────── */
 .bda-section { background:white; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.07); margin-bottom:18px; overflow:hidden; border-left:5px solid #7c3aed; }
 .bda-hd { display:flex; align-items:center; gap:10px; padding:14px 18px 12px; cursor:pointer; user-select:none; }
@@ -4715,23 +4758,6 @@ function loadMoleculeTab(tabId) {
  </div>
 </div>
 
-<!-- Knowledge Folder chips — Meridian v2 -->
-<div class="kf-chips-bar" id="kf-chips-bar">
-  <span class="kf-chip" onclick="openKnowledgeFolder('tl1a')">🦠 TL1A</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('il23')">🔬 IL-23</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('ibd')">💊 IBD</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('uc')">🩺 UC</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('cd')">🩺 CD</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('atopy')">🌡️ Atopy</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('ted')">👁️ TED</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('graves')">🦋 Graves</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('fcrn')">🧬 FcRn</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('mg')">💪 gMG</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('cidp')">🧠 CIDP</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('ra')">🦴 RA</span>
-  <span class="kf-chip" onclick="openKnowledgeFolder('bispecific')">⚡ Bispecific</span>
-</div>
-
 <!-- Knowledge Folder panel overlay -->
 <div class="kf-panel-overlay" id="kf-panel-overlay" onclick="if(event.target===this)closeKnowledgeFolder()">
   <div class="kf-panel" id="kf-panel">
@@ -4778,62 +4804,27 @@ function loadMoleculeTab(tabId) {
     <div class="atd-hero">
       <button class="atd-close" onclick="closeAboutDataPanel()">×</button>
       <div class="atd-hero-icon">◈</div>
-      <div class="atd-hero-title">About This Data</div>
-      <div class="atd-hero-sub">How intelligence enters the Meridian — sources, pipelines, and governance rules</div>
+      <h2 class="atd-title">The Meridian</h2>
+      <p class="atd-subtitle">A knowledge graph for biotech business development</p>
     </div>
     <div class="atd-body">
       <div class="atd-section">
-        <div class="atd-section-title"><span class="atd-section-num">1</span>Nightly Enrichment Pipeline</div>
-        <div class="atd-section-body">
-          Every night, an AI pipeline reads press releases, clinical trial registrations, SEC filings, and biotech news. It extracts structured facts — drug names, stages, deals, catalysts — and writes them to the Meridian database.
-          <div class="atd-rule-box">
-            Sources: <span class="atd-source-chip">CT.gov</span><span class="atd-source-chip">SEC EDGAR</span><span class="atd-source-chip">Fierce Biotech</span><span class="atd-source-chip">BioPharma Dive</span><span class="atd-source-chip">STAT News</span><br>
-            Pipeline runs at <strong>2 AM ET</strong> · Results visible by 6:30 AM ET
-          </div>
-        </div>
+        <p>Meridian is a continuously-updated competitive intelligence system built specifically for TL1A × IL-23p19, FcRn, and adjacent immunology programs. It is not a news aggregator. It is not a database viewer. It is a structured reasoning engine that knows the field.</p>
       </div>
-      <hr class="atd-divider">
       <div class="atd-section">
-        <div class="atd-section-title"><span class="atd-section-num">2</span>Kyle's Corrections and Submissions</div>
-        <div class="atd-section-body">
-          Any data point can be corrected using the "Submit Intel" button. Submissions are queued, screened for plausibility, and promoted to production. Each correction improves future enrichment accuracy.
-          <div class="atd-rule-box">
-            Every fact has a <strong>confidence level</strong> (model-inferred vs. verified by source). Source URLs are required for deals, partnerships, and co-development relationships.
-          </div>
-        </div>
+        <h4>What it tracks</h4>
+        <p>154 drug programs across 6 mechanism areas. 540+ clinical trials. 37 active partnerships. Catalyst timelines updated weekly. Every enriched field carries a source, a confidence tier, and a correction history.</p>
       </div>
-      <hr class="atd-divider">
       <div class="atd-section">
-        <div class="atd-section-title"><span class="atd-section-num">3</span>Manual Research Queue</div>
-        <div class="atd-section-body">
-          Gaps identified during enrichment — missing stage, no mechanism, no clinical trials — are added to the Research Queue (the ⚡ badge in the header). The pipeline works through the queue during nightly runs.
-          <div class="atd-rule-box">
-            Priority levels: <strong style="color:#dc2626">P0</strong> (critical) · <strong style="color:#ea580c">P1</strong> (important) · <strong style="color:#ca8a04">P2</strong> (fill-in) · <strong style="color:#64748b">P3</strong> (background)
-          </div>
-        </div>
+        <h4>How it learns</h4>
+        <p>Three intake paths: a nightly enrichment pipeline reads press releases, trial registries, and company announcements through a structured extraction model; a correction layer captures every review and disagreement as labeled training data; and a research queue surfaces gaps for human judgment. Every correction improves the next enrichment.</p>
       </div>
-      <hr class="atd-divider">
       <div class="atd-section">
-        <div class="atd-section-title"><span class="atd-section-num">4</span>Governance Rules</div>
-        <div class="atd-section-body">
-          Meridian enforces strict rules to prevent common intelligence errors.
-          <div class="atd-rule-box">
-            <strong>Licensing attribution:</strong> company_id always = originator (inventor), never licensee.<br>
-            <strong>Company status:</strong> "Subsidiary" unless provably dissolved — no active website, no named leadership.<br>
-            <strong>Brand name implies approved:</strong> A brand name is only set when regulatory approval is confirmed.<br>
-            <strong>Source required:</strong> Every deal and partnership requires a press release or SEC filing URL.
-          </div>
-        </div>
+        <h4>What makes it useful</h4>
+        <p>The competitive landscape in immunology moves faster than any analyst can track manually. Meridian compresses that signal: which programs are in Phase 3, which readouts are imminent, which companies are acquirable, and where the mechanism gaps are. The answer to "who should we call in Q4?" is a query, not a meeting.</p>
       </div>
-      <hr class="atd-divider">
-      <div class="atd-section">
-        <div class="atd-section-title"><span class="atd-section-num">5</span>What the Numbers Mean</div>
-        <div class="atd-section-body">
-          Drug counts, coverage scores, and relevance scores are computed from the underlying graph — they update as new data arrives. A coverage score of 80%+ means all key fields (stage, mechanism, trials, partnerships) are populated and verified.
-          <div class="atd-rule-box">
-            If something looks wrong, use <strong>Submit Intel</strong> to flag it. The system learns from every correction.
-          </div>
-        </div>
+      <div class="atd-section atd-since">
+        <p>Intelligence gathering since <strong>May 18, 2026</strong></p>
       </div>
     </div>
   </div>
@@ -4902,8 +4893,15 @@ function loadMoleculeTab(tabId) {
    </div>
    <!-- File attachment -->
    <div>
-    <input type="file" id="si-file-input" accept=".txt,.md,.pdf,.docx,.xlsx,.csv" style="display:none" onchange="siHandleFileSelected(event)">
-    <div class="si-file-zone" id="si-file-zone" onclick="document.getElementById('si-file-input').click()">📎 Attach a document <span style="opacity:0.6">(optional — PDF, text, CSV…)</span></div>
+    <div class="si-drop-zone" id="si-drop-zone">
+      <input type="file" id="si-file-input" accept=".txt,.md,.pdf,.docx,.xlsx,.csv" style="display:none" onchange="siHandleFileSelected(event)">
+      <div class="si-drop-inner" onclick="document.getElementById('si-file-input').click()">
+        <span class="si-drop-icon">📎</span>
+        <span class="si-drop-text">Drop file here or <u>click to browse</u></span>
+        <span class="si-drop-types">.txt · .pdf · .docx · .csv</span>
+      </div>
+      <div class="si-file-zone" id="si-file-zone" style="display:none"></div>
+    </div>
     <div class="si-detected-fields" id="si-detected-fields" style="display:none"></div>
     <div class="si-questions" id="si-questions" style="display:none"></div>
    </div>
@@ -5132,6 +5130,7 @@ function loadMoleculeTab(tabId) {
   <div id="hw-time-line"></div>
   <div id="hw-rule"></div>
   <div id="hw-breakdown"></div>
+  <div class="hw-since">Intelligence gathering since <strong>May 18, 2026</strong></div>
  </div>
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
@@ -8147,6 +8146,7 @@ function loadMoleculeTab(tabId) {
 <table class="dkn-master-table" id="dkn-master-table">
 <thead>
 <tr>
+  <th class="dkn-fav-cell"></th>
   <th class="dkn-th-drug sortable" onclick="dknSort('name')">Drug &#9661;</th>
   <th class="dkn-th-co sortable" onclick="dknSort('company')">Company &#9661;</th>
   <th class="dkn-th-stage sortable" onclick="dknSort('stage')">Stage &#9661;</th>
@@ -8227,6 +8227,9 @@ function loadMoleculeTab(tabId) {
 .dkn-undo-btn { background:#fef9ec; border-color:#d97706; color:#92400e; }
 .dkn-show-removed { background:#fef2f2; border-color:#ef4444; color:#b91c1c; }
 
+.dkn-fav-cell { width: 28px; text-align: center; padding: 0 4px !important; }
+.dkn-fav-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px; opacity: 0.5; line-height: 1; }
+.dkn-fav-btn:hover { opacity: 1; }
 .dkn-table-wrap { flex:1; overflow:auto; }
 @media(max-width:768px){.dkn-th-cls,.dkn-th-diff,.dkn-th-risk,.dkn-col-cls,.dkn-col-diff,.dkn-col-risk{display:none!important;}}
 .dkn-select { padding:3px 8px; border-radius:6px; border:1px solid #c8d4e2; font-size:11px; background:white; color:#1a2f50; cursor:pointer; outline:none; max-width:200px; }
@@ -8370,11 +8373,6 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 /* Knowledge Folders — Meridian v2 */
 .entity-link { cursor:pointer; color:inherit; border-bottom:1px dotted #94a3b8; text-decoration:none; transition:color .15s,border-color .15s; }
 .entity-link:hover { color:#6366f1; border-bottom-color:#6366f1; }
-.kf-chips-bar { display:flex; gap:8px; padding:6px 18px 0; background:#0f172a; overflow-x:auto; scrollbar-width:none; flex-wrap:wrap; }
-.kf-chips-bar::-webkit-scrollbar { display:none; }
-.kf-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.06); transition:all .2s; white-space:nowrap; }
-.kf-chip:hover { background:rgba(255,255,255,0.14); color:#fff; border-color:rgba(255,255,255,0.35); transform:translateY(-1px); }
-.kf-chip.active { background:rgba(59,130,246,0.3); border-color:#3b82f6; color:#93c5fd; }
 .kf-panel-overlay { display:none; position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
 .kf-panel-overlay.open { display:block; }
 .kf-panel { position:fixed; top:0; right:0; width:min(680px, 96vw); height:100vh; background:#fff; box-shadow:-8px 0 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .3s cubic-bezier(0.4,0,0.2,1); }
@@ -8451,20 +8449,19 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .atd-overlay.open { display:block; }
 .atd-panel { position:fixed; top:0; right:0; width:min(560px,96vw); height:100vh; background:#fff; box-shadow:-8px 0 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .3s cubic-bezier(0.4,0,0.2,1); }
 .atd-overlay.open .atd-panel { transform:translateX(0); }
-.atd-hero { background:linear-gradient(135deg,#0f2340 0%,#1e3a8a 100%); color:#fff; padding:24px 24px 20px; flex-shrink:0; position:relative; }
+.atd-hero { text-align:center; padding:28px 24px 20px; background:linear-gradient(135deg,#0f172a,#1e3a5f); color:#fff; flex-shrink:0; position:relative; }
 .atd-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .atd-close:hover { background:rgba(255,255,255,0.25); }
-.atd-hero-icon { font-size:28px; margin-bottom:8px; }
-.atd-hero-title { font-size:20px; font-weight:800; letter-spacing:-.3px; }
-.atd-hero-sub { font-size:12px; color:rgba(255,255,255,.7); margin-top:4px; line-height:1.5; }
-.atd-body { flex:1; overflow-y:auto; padding:24px; }
-.atd-section { margin-bottom:24px; }
-.atd-section-num { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:11px; font-weight:800; background:#1d4ed8; color:#fff; flex-shrink:0; margin-right:8px; margin-bottom:8px; }
-.atd-section-title { font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:flex; align-items:center; }
-.atd-section-body { font-size:13px; color:#374151; line-height:1.65; padding-left:30px; }
-.atd-rule-box { background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-top:8px; font-size:12px; color:#1e3a5f; line-height:1.6; }
-.atd-divider { border:none; border-top:1px solid #f1f5f9; margin:0 0 20px; }
-.atd-source-chip { display:inline-flex; align-items:center; gap:4px; background:#f0fdf4; border:1px solid #86efac; border-radius:5px; padding:2px 8px; font-size:11px; color:#166534; font-weight:600; margin:2px 3px; }
+.atd-hero-icon { font-size:28px; margin-bottom:8px; opacity:0.7; }
+.atd-title { font-size:22px; font-weight:700; margin:0 0 4px; }
+.atd-subtitle { font-size:13px; opacity:0.6; margin:0; }
+.atd-body { padding:20px 24px; overflow-y:auto; flex:1; }
+.atd-section { margin-bottom:20px; }
+.atd-section h4 { font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 6px; }
+.atd-section p { font-size:13px; color:#374151; line-height:1.6; margin:0; }
+.atd-since { border-top:1px solid #e2e8f0; padding-top:16px; }
+.atd-since p { font-size:12px; color:#94a3b8; }
+.atd-since strong { color:#64748b; }
 
 /* ── Info button in header ── */
 .meridian-info-btn { background:none; border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.7); border-radius:6px; cursor:pointer; font-size:13px; padding:3px 9px; line-height:1; transition:all .15s; flex-shrink:0; }
@@ -8844,7 +8841,7 @@ function dknRender() {
   }
   const tbody = document.getElementById('dkn-tbody');
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="dkn-no-results">No drugs match your filters. <a href="#" onclick="dknReset();return false;">Reset all filters</a></td></tr>';
   } else {
     tbody.innerHTML = data.map(d => dknRow(d)).join('');
   }
@@ -8857,6 +8854,7 @@ function dknRender() {
   document.getElementById('dkn-undo-btn').style.display = dknUndoStack.length ? '' : 'none';
   document.getElementById('dkn-show-removed').style.display = remCount ? '' : 'none';
   if (dknShowRemoved) dknRenderRemovedPanel();
+  _dknSortFavoritesToTop();
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
@@ -8944,7 +8942,10 @@ function dknRow(d) {
   const taPill = d.therapeutic_area
     ? `<span class="dkn-ta-pill dkn-ta-${d.therapeutic_area.split(' ')[0].toLowerCase()}">${d.therapeutic_area}</span>`
     : '<span style="color:#94a3b8">—</span>';
-  return `<tr data-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
+  const _dknFavs = JSON.parse(localStorage.getItem('meridian_drug_favorites') || '[]');
+  const isFav = _dknFavs.includes(d.id);
+  return `<tr data-id="${d.id}" data-drug-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
+  <td class="dkn-fav-cell"><button class="dkn-fav-btn" onclick="event.stopPropagation();toggleDrugFav(${eid},this)" data-drug-id="${d.id}" title="Favorite">${isFav ? '⭐' : '☆'}</button></td>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
   <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanyEntityModal('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
@@ -8957,7 +8958,7 @@ function dknRow(d) {
   <td class="dkn-col-risk" style="font-size:11px;color:#64748b">${risk.length > 70 ? risk.slice(0,70)+'…' : risk}</td>
 </tr>
 <tr id="dkn-dr-${d.id}" class="dkn-detail-row">
-  <td colspan="10" class="dkn-detail-td">
+  <td colspan="11" class="dkn-detail-td">
     <div class="dkn-detail-panel"></div>
   </td>
 </tr>`;
@@ -9016,6 +9017,42 @@ function dknReset() {
   const sd = document.getElementById('dkn-stage-drop-select');
   if (sd) sd.value = '';
   dknRender();
+}
+
+// ── Favorites ─────────────────────────────────────────────────────────────────
+function toggleDrugFav(drugId, btn) {
+  let favs = JSON.parse(localStorage.getItem('meridian_drug_favorites') || '[]');
+  if (favs.includes(drugId)) {
+    favs = favs.filter(id => id !== drugId);
+    btn.textContent = '☆';
+  } else {
+    favs.push(drugId);
+    btn.textContent = '⭐';
+  }
+  localStorage.setItem('meridian_drug_favorites', JSON.stringify(favs));
+  _dknSortFavoritesToTop();
+}
+
+function _dknSortFavoritesToTop() {
+  const favs = JSON.parse(localStorage.getItem('meridian_drug_favorites') || '[]');
+  const tbody = document.getElementById('dkn-tbody');
+  if (!tbody) return;
+  // Collect pairs: [mainRow, detailRow]
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  const pairs = [];
+  for (let i = 0; i < allRows.length; i++) {
+    const row = allRows[i];
+    if (row.dataset.drugId) {
+      const detailRow = allRows[i + 1];
+      pairs.push({ main: row, detail: detailRow, isFav: favs.includes(row.dataset.drugId) });
+      if (detailRow) i++; // skip the detail row in the outer loop
+    }
+  }
+  pairs.sort((a, b) => (b.isFav ? 1 : 0) - (a.isFav ? 1 : 0));
+  pairs.forEach(p => {
+    tbody.appendChild(p.main);
+    if (p.detail) tbody.appendChild(p.detail);
+  });
 }
 
 // ── Snap / changelog (runs after Supabase data loads) ─────────────────────────
@@ -15421,7 +15458,7 @@ function _makeAreaPI(tabId, areaIds) {
           <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span>${_covHtml}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
           <td>${pipelineCell}</td>
           <td>${indCell}</td>
-          <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target && ent.target !== '—' ? `<span class="entity-link" onclick="event.stopPropagation();openKFFromTarget('${ent.target.replace(/'/g,"\\'")}')" title="Open Knowledge Folder: ${ent.target.replace(/"/g,'&quot;')}">${ent.target}</span>` : ent.target}</td>
+          <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target || ''}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
           <td>${threatCell}</td>
           <td>${catCell}</td>
@@ -17814,8 +17851,10 @@ function triggerDocAttach() {
 function _siResetFileAttachment() {
   const fileInput = document.getElementById('si-file-input');
   if (fileInput) fileInput.value = '';
+  const dropInner = document.querySelector('#si-drop-zone .si-drop-inner');
+  if (dropInner) dropInner.style.display = '';
   const zone = document.getElementById('si-file-zone');
-  if (zone) zone.innerHTML = '📎 Attach a document <span style="opacity:0.6">(optional — PDF, text, CSV…)</span>';
+  if (zone) { zone.innerHTML = ''; zone.style.display = 'none'; }
   const det = document.getElementById('si-detected-fields');
   if (det) { det.style.display = 'none'; det.innerHTML = ''; }
   const q = document.getElementById('si-questions');
@@ -17826,10 +17865,34 @@ function _siResetFileAttachment() {
 function siHandleFileSelected(evt) {
   const file = evt.target.files[0];
   if (!file) return;
-  const zone = document.getElementById('si-file-zone');
-  if (zone) zone.innerHTML = `📎 <strong>${file.name}</strong> <span style="color:#94a3b8;font-size:11px">(${(file.size/1024).toFixed(1)} KB)</span>`;
+  _siShowFileInZone(file);
   _siReadFile(file);
 }
+
+function _siShowFileInZone(file) {
+  const dropInner = document.querySelector('#si-drop-zone .si-drop-inner');
+  if (dropInner) dropInner.style.display = 'none';
+  const zone = document.getElementById('si-file-zone');
+  if (zone) { zone.innerHTML = `📎 <strong>${file.name}</strong> <span style="color:#94a3b8;font-size:11px">(${(file.size/1024).toFixed(1)} KB)</span> <span style="color:#6366f1;cursor:pointer;font-size:11px" onclick="_siResetFileAttachment()">✕ remove</span>`; zone.style.display = ''; }
+}
+
+(function() {
+  function initSIDrop() {
+    const dropZone = document.getElementById('si-drop-zone');
+    if (!dropZone) return;
+    dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('si-drop-active'); });
+    dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('si-drop-active'); });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('si-drop-active');
+      const file = e.dataTransfer.files[0];
+      if (file) { _siShowFileInZone(file); _siReadFile(file); }
+    });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initSIDrop); }
+  else { initSIDrop(); }
+  window._initSIDropOnOpen = initSIDrop;
+})();
 
 function _siReadFile(file) {
   const det = document.getElementById('si-detected-fields');
@@ -29266,8 +29329,71 @@ function closeAboutDataPanel() {
 // ═══════════════════════════════════════════════════════
 // ENHANCED SEARCH — add indications/areas to Supabase search
 // ═══════════════════════════════════════════════════════
-// Patch _gsSbSearch to also query indications
+// Patch _gsSbSearch to also query indications, patient intel, and news_articles
 var _gsSbSearchOrig = _gsSbSearch;
+
+// ── Source label helper ────────────────────────────────────────────────────
+var _GS_SOURCE_LABELS = {
+  'fiercebiotech.com':'Fierce','fiercepharma.com':'Fierce',
+  'endpts.com':'Endpoints','endpoints.news':'Endpoints',
+  'prnewswire.com':'PRNewswire','businesswire.com':'BusinessWire',
+  'globenewswire.com':'GlobeNewswire',
+  'statnews.com':'STAT','biopharmadive.com':'BioPharma Dive',
+  'reuters.com':'Reuters','bloomberg.com':'Bloomberg',
+  'sec.gov':'SEC','clinicaltrials.gov':'ClinicalTrials.gov'
+};
+function _gsSourceLabel(url) {
+  try {
+    var host = new URL(url).hostname.replace('www.','');
+    var match = Object.entries(_GS_SOURCE_LABELS).find(function(e) { return host.includes(e[0]); });
+    return match ? match[1] : host.split('.')[0];
+  } catch(e) { return 'Source'; }
+}
+
+// ── News dedup: token overlap >60% = same story ────────────────────────────
+function _gsNewsTokens(headline) {
+  return (headline||'').toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/).filter(function(w) {
+    return w.length > 3 && !['with','that','from','this','have','been','will','were','they','their','into','more','than','also'].includes(w);
+  });
+}
+function _gsNewsOverlap(a, b) {
+  var ta = _gsNewsTokens(a), tb = _gsNewsTokens(b);
+  if (!ta.length || !tb.length) return 0;
+  var setB = new Set(tb);
+  var shared = ta.filter(function(w) { return setB.has(w); }).length;
+  return shared / Math.max(ta.length, tb.length);
+}
+function _gsDedupeNews(items) {
+  var groups = [];
+  items.forEach(function(item) {
+    var placed = false;
+    for (var i = 0; i < groups.length; i++) {
+      if (_gsNewsOverlap(item.headline, groups[i][0].headline) > 0.6) {
+        groups[i].push(item);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) groups.push([item]);
+  });
+  return groups;
+}
+
+// ── Show/hide extra sources list ───────────────────────────────────────────
+function _gsShowSources(btn) {
+  var list = btn.parentElement.nextElementSibling;
+  if (list) list.style.display = list.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── Format date string to short form ──────────────────────────────────────
+function _gsShortDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    var d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  } catch(e) { return dateStr.slice(0,10); }
+}
+
 async function _gsSbSearch(term) {
   var panel = document.getElementById('gs-sb-panel');
   if (!panel) return;
@@ -29303,37 +29429,68 @@ async function _gsSbSearch(term) {
         .select('id,name,synonyms,therapeutic_area_id')
         .or('name.ilike.%' + esc + '%,synonyms.ilike.%' + esc + '%')
         .order('name', { ascending: true }).limit(4),
+      _sb.from('news_articles')
+        .select('id,headline,article_url,source_name,published_at,meridian_summary,why_it_matters,relevance_score')
+        .or('headline.ilike.%' + esc + '%,meridian_summary.ilike.%' + esc + '%')
+        .neq('source_validation_status','invalid')
+        .order('published_at', { ascending: false }).limit(8),
+      _sb.from('indication_patient_intelligence')
+        .select('indication_name,patient_count,unmet_need_summary,key_patient_insight')
+        .ilike('indication_name', '%' + esc + '%')
+        .limit(2),
     ]);
 
-    var cos    = results[0].data  || [];
-    var drugs  = results[1].data  || [];
-    var intel  = results[2].data  || [];
-    var deals  = results[3].data  || [];
-    var cats   = results[4].data  || [];
-    var indics = results[5].data  || [];
+    var cos      = results[0].data  || [];
+    var drugs    = results[1].data  || [];
+    var intel    = results[2].data  || [];
+    var deals    = results[3].data  || [];
+    var cats     = results[4].data  || [];
+    var indics   = results[5].data  || [];
+    var newsArts = results[6].data  || [];
+    var patIntel = results[7].data  || [];
 
-    // Also check Knowledge Folder chips (area slugs) client-side
+    // ── KF taglines (hardcoded for speed) ────────────────────────────────
+    var _KF_TAGLINES = {
+      'tl1a':      'The cytokine at the center of IBD',
+      'il23':      'Selective p19 inhibition across immune diseases',
+      'ibd':       'Crohn\'s & UC — the bispecific frontier',
+      'uc':        'Ulcerative colitis competitive landscape',
+      'cd':        'Crohn\'s disease competitive landscape',
+      'atopy':     'IL-4Rα / TSLP atopic dermatitis landscape',
+      'ted':       'IGF-1R × TSHR thyroid eye disease',
+      'fcrn':      'Neonatal Fc receptor — IgG reduction platform',
+      'ra':        'Rheumatoid arthritis competitive intelligence',
+      'mg':        'Myasthenia gravis — FcRn & complement landscape',
+      'cidp':      'Chronic inflammatory demyelinating polyneuropathy',
+      'graves':    'Graves\' disease — emerging biologic space',
+      'bispecific':'Bispecific antibody platform landscape',
+    };
+
+    // ── Also check Knowledge Folder chips (area slugs) client-side ───────
     var kfAreas = [
-      {slug:'tl1a',      label:'TL1A', icon:'🦠'},
-      {slug:'il23',      label:'IL-23', icon:'🔬'},
-      {slug:'ibd',       label:'IBD / Inflammatory Bowel Disease', icon:'💊'},
-      {slug:'uc',        label:'UC / Ulcerative Colitis', icon:'🩺'},
-      {slug:'cd',        label:'CD / Crohn\'s Disease', icon:'🩺'},
-      {slug:'atopy',     label:'Atopy / Atopic Dermatitis', icon:'🌡️'},
-      {slug:'ted',       label:'TED / Thyroid Eye Disease', icon:'👁️'},
-      {slug:'fcrn',      label:'FcRn', icon:'🧬'},
-      {slug:'ra',        label:'RA / Rheumatoid Arthritis', icon:'🦴'},
-      {slug:'mg',        label:'MG / Myasthenia Gravis / gMG', icon:'💪'},
-      {slug:'cidp',      label:'CIDP / Demyelinating Polyneuropathy', icon:'🧠'},
-      {slug:'graves',    label:'Graves\' Disease / Graves Disease', icon:'🦋'},
-      {slug:'bispecific',label:'Bispecific', icon:'⚡'},
+      {slug:'tl1a',      label:'TL1A', aliases:['tl1a'], icon:'🦠'},
+      {slug:'il23',      label:'IL-23', aliases:['il23','il-23'], icon:'🔬'},
+      {slug:'ibd',       label:'IBD / Inflammatory Bowel Disease', aliases:['ibd','inflammatory bowel'], icon:'💊'},
+      {slug:'uc',        label:'UC / Ulcerative Colitis', aliases:['uc','ulcerative colitis'], icon:'🩺'},
+      {slug:'cd',        label:'CD / Crohn\'s Disease', aliases:['cd','crohn'], icon:'🩺'},
+      {slug:'atopy',     label:'Atopy / Atopic Dermatitis', aliases:['atopy','atopic','atd'], icon:'🌡️'},
+      {slug:'ted',       label:'TED / Thyroid Eye Disease', aliases:['ted','thyroid eye'], icon:'👁️'},
+      {slug:'fcrn',      label:'FcRn', aliases:['fcrn'], icon:'🧬'},
+      {slug:'ra',        label:'RA / Rheumatoid Arthritis', aliases:['ra','rheumatoid'], icon:'🦴'},
+      {slug:'mg',        label:'MG / Myasthenia Gravis', aliases:['mg','gmg','myasthenia'], icon:'💪'},
+      {slug:'cidp',      label:'CIDP / Demyelinating Polyneuropathy', aliases:['cidp','demyelinating'], icon:'🧠'},
+      {slug:'graves',    label:'Graves\' Disease', aliases:['graves'], icon:'🦋'},
+      {slug:'bispecific',label:'Bispecific Antibodies', aliases:['bispecific','bisp'], icon:'⚡'},
     ];
-    var t_lc = term.toLowerCase();
+    var t_lc = term.toLowerCase().trim();
     var matchedAreas = kfAreas.filter(function(a) {
-      return a.label.toLowerCase().includes(t_lc) || a.slug.toLowerCase().includes(t_lc);
+      return a.aliases.some(function(alias) { return alias.includes(t_lc) || t_lc.includes(alias); }) ||
+             a.label.toLowerCase().includes(t_lc) || a.slug.toLowerCase().includes(t_lc);
     });
 
-    if (!cos.length && !drugs.length && !intel.length && !deals.length && !cats.length && !indics.length && !matchedAreas.length) {
+    var hasResults = cos.length || drugs.length || intel.length || deals.length ||
+                     cats.length || indics.length || matchedAreas.length || newsArts.length || patIntel.length;
+    if (!hasResults) {
       panel.innerHTML = '<div class="gs-sb-empty">No results for "<em>' + term.replace(/</g,'&lt;') + '</em>"</div>';
       return;
     }
@@ -29342,18 +29499,34 @@ async function _gsSbSearch(term) {
     function hl(s) { return (s||'').replace(/</g,'&lt;').replace(re, function(m) { return '<mark class="gs-hl">'+m+'</mark>'; }); }
     var html = '';
 
-    // ── Knowledge Folders (areas) ─────────────────────────────────
+    // ── Knowledge Folders — TOP PRIORITY ─────────────────────────────────
     if (matchedAreas.length) {
       html += '<div class="gs-sb-section-hd">Knowledge Folders (' + matchedAreas.length + ')</div>';
       matchedAreas.forEach(function(a) {
-        html += '<div class="gs-sb-item gs-nav-item" data-gtype="knowledgefolder" data-kf-slug="' + a.slug + '" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">' + a.icon + ' ' + hl(a.label) + '</div>' +
-          '<div class="gs-sb-meta"><span class="gs-sb-nav-pill">→ Open Folder</span></div>' +
+        var tagline = _KF_TAGLINES[a.slug] || '';
+        html += '<div class="gs-sb-item gs-kf-result gs-nav-item" data-gtype="knowledgefolder" data-kf-slug="' + a.slug + '" style="cursor:pointer">' +
+          '<div class="gs-sb-headline">' + a.icon + ' ' + hl(a.label) +
+            (tagline ? ' <span class="gs-kf-tagline">· ' + tagline + '</span>' : '') +
+          '</div>' +
+          '<div class="gs-sb-meta"><span class="gs-kf-cta">Open folder →</span></div>' +
         '</div>';
       });
     }
 
-    // ── Companies ─────────────────────────────────────────────────
+    // ── Patient Intelligence ──────────────────────────────────────────────
+    if (patIntel.length) {
+      html += '<div class="gs-sb-section-hd">Patient Intelligence (' + patIntel.length + ')</div>';
+      patIntel.forEach(function(p) {
+        var summary = p.unmet_need_summary || p.key_patient_insight || '';
+        if (summary.length > 160) summary = summary.slice(0, 157) + '…';
+        html += '<div class="gs-patient-row">' +
+          '<div class="gs-patient-label">👥 Patient Intelligence · ' + (p.indication_name||'') + '</div>' +
+          '<div class="gs-patient-text">' + (summary ? summary.replace(/</g,'&lt;') : 'No summary available.') + '</div>' +
+        '</div>';
+      });
+    }
+
+    // ── Companies ─────────────────────────────────────────────────────────
     if (cos.length) {
       html += '<div class="gs-sb-section-hd">Companies (' + cos.length + ')</div>';
       cos.forEach(function(co) {
@@ -29366,7 +29539,7 @@ async function _gsSbSearch(term) {
       });
     }
 
-    // ── Drugs ─────────────────────────────────────────────────────
+    // ── Drugs ─────────────────────────────────────────────────────────────
     if (drugs.length) {
       html += '<div class="gs-sb-section-hd">Drugs (' + drugs.length + ')</div>';
       drugs.forEach(function(d) {
@@ -29379,19 +29552,18 @@ async function _gsSbSearch(term) {
       });
     }
 
-    // ── Indications ───────────────────────────────────────────────
+    // ── Disease Areas (Indications) ───────────────────────────────────────
     if (indics.length) {
-      // Map indication names to KF slugs for click-through
       var _indicSlugMap = {
-        'ulcerative colitis':'uc', 'uc':'uc',
-        "crohn's disease":'cd', 'crohn disease':'cd', 'cd':'cd',
-        'rheumatoid arthritis':'ra', 'ra':'ra',
-        'thyroid eye disease':'ted', 'ted':'ted',
-        "graves' disease":'graves', 'graves disease':'graves', 'graves':'graves',
-        'myasthenia gravis':'mg', 'gmg':'mg', 'mg':'mg',
-        'cidp':'cidp', 'chronic inflammatory demyelinating polyneuropathy':'cidp',
-        'atopic dermatitis':'atopy', 'ad':'atopy', 'atopy':'atopy',
-        'inflammatory bowel disease':'ibd', 'ibd':'ibd',
+        'ulcerative colitis':'uc','uc':'uc',
+        "crohn's disease":'cd','crohn disease':'cd','cd':'cd',
+        'rheumatoid arthritis':'ra','ra':'ra',
+        'thyroid eye disease':'ted','ted':'ted',
+        "graves' disease":'graves','graves disease':'graves','graves':'graves',
+        'myasthenia gravis':'mg','gmg':'mg','mg':'mg',
+        'cidp':'cidp','chronic inflammatory demyelinating polyneuropathy':'cidp',
+        'atopic dermatitis':'atopy','ad':'atopy','atopy':'atopy',
+        'inflammatory bowel disease':'ibd','ibd':'ibd',
       };
       html += '<div class="gs-sb-section-hd">Disease Areas (' + indics.length + ')</div>';
       indics.forEach(function(ind) {
@@ -29408,6 +29580,7 @@ async function _gsSbSearch(term) {
       });
     }
 
+    // ── Intel ─────────────────────────────────────────────────────────────
     if (intel.length) {
       html += '<div class="gs-sb-section-hd">Intel (' + intel.length + ')</div>';
       intel.forEach(function(item) {
@@ -29416,9 +29589,11 @@ async function _gsSbSearch(term) {
         var areaIds = (item.intel_areas||[]).map(function(a) { return a.area_id; });
         var tabId = _GS_AREA_TO_TAB[areaIds[0]] || 'industry-insights';
         var tabLbl = _GS_TAB_LABEL[tabId] || tabId;
-        var srcBtn = item.source_url ? '<a onclick="event.stopPropagation()" href="'+item.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
+        var hasUrl = item.source_url && item.source_url.length > 4;
+        var srcBtn = hasUrl ? '<a onclick="event.stopPropagation()" href="'+item.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
+        var linkQuality = '<span class="gs-link-quality ' + (hasUrl ? 'gs-link-ok' : 'gs-link-missing') + '">' + (hasUrl ? '🔗' : '⚠') + '</span>';
         html += '<div class="gs-sb-item gs-nav-item" data-area="'+(areaIds[0]||'')+'" data-gtype="intel" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">'+hl(item.headline)+srcBtn+'</div>' +
+          '<div class="gs-sb-headline">'+linkQuality+' '+hl(item.headline)+srcBtn+'</div>' +
           '<div class="gs-sb-meta">' +
           '<span class="gs-sb-badge" style="background:'+tc+'28;color:'+tc+'">'+(item.intel_type||'news')+'</span>' +
           (areas ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+areas+'</span>' : '') +
@@ -29428,6 +29603,44 @@ async function _gsSbSearch(term) {
       });
     }
 
+    // ── News Articles (with dedup + source grouping) ───────────────────────
+    if (newsArts.length) {
+      var newsGroups = _gsDedupeNews(newsArts);
+      html += '<div class="gs-sb-section-hd">News Articles (' + newsGroups.length + (newsGroups.length < newsArts.length ? ' grouped' : '') + ')</div>';
+      newsGroups.forEach(function(group) {
+        var primary = group[0];
+        var extras  = group.slice(1);
+        var hasUrl  = primary.article_url && primary.article_url.length > 4;
+        var srcLabel = primary.source_name || (hasUrl ? _gsSourceLabel(primary.article_url) : 'Source');
+        var shortDate = _gsShortDate(primary.published_at);
+        var linkQuality = '<span class="gs-link-quality ' + (hasUrl ? 'gs-link-ok' : 'gs-link-missing') + '">' + (hasUrl ? '🔗' : '⚠') + '</span>';
+        var headlineHtml = hasUrl
+          ? '<a href="' + primary.article_url.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener" class="gs-news-headline" onclick="event.stopPropagation()">' + hl(primary.headline) + '</a>'
+          : '<span class="gs-news-headline gs-news-headline-nolink">' + hl(primary.headline) + '</span>';
+        var extrasBtns = '';
+        if (extras.length) {
+          var extraLinks = extras.map(function(e) {
+            var eUrl = e.article_url && e.article_url.length > 4 ? e.article_url : null;
+            var eSrc = e.source_name || (eUrl ? _gsSourceLabel(eUrl) : 'Source');
+            return eUrl
+              ? '<a href="' + eUrl.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + eSrc + '</a>'
+              : '<span style="color:rgba(255,255,255,0.4)">' + eSrc + '</span>';
+          }).join('');
+          extrasBtns = '<button class="gs-news-sources-btn" onclick="event.stopPropagation();_gsShowSources(this)">+' + extras.length + ' source' + (extras.length > 1 ? 's' : '') + '</button>' +
+            '<div class="gs-news-sources-list" style="display:none">' + extraLinks + '</div>';
+        }
+        html += '<div class="gs-sb-item gs-news-row" style="cursor:default">' +
+          '<div>' + linkQuality + ' ' + headlineHtml + '</div>' +
+          '<div class="gs-news-meta">' +
+            '<span class="gs-news-source">' + (srcLabel||'') + '</span>' +
+            (shortDate ? '<span class="gs-news-date">' + shortDate + '</span>' : '') +
+            extrasBtns +
+          '</div>' +
+        '</div>';
+      });
+    }
+
+    // ── Deals ─────────────────────────────────────────────────────────────
     if (deals.length) {
       html += '<div class="gs-sb-section-hd">Deals (' + deals.length + ')</div>';
       deals.forEach(function(d) {
@@ -29435,7 +29648,8 @@ async function _gsSbSearch(term) {
         var val = d.total_usd_m ? ' · $' + d.total_usd_m + 'M' : '';
         var dTabId = _GS_AREA_TO_TAB[d.area_id] || 'industry-insights';
         var dTabLbl = _GS_TAB_LABEL[dTabId] || dTabId;
-        var dSrcBtn = d.source_url ? '<a onclick="event.stopPropagation()" href="'+d.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
+        var dHasUrl = d.source_url && d.source_url.length > 4;
+        var dSrcBtn = dHasUrl ? '<a onclick="event.stopPropagation()" href="'+d.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
         html += '<div class="gs-sb-item gs-nav-item" data-area="'+(d.area_id||'')+'" data-gtype="deal" style="cursor:pointer">' +
           '<div class="gs-sb-headline">'+hl(d.headline)+dSrcBtn+'</div>' +
           '<div class="gs-sb-meta">' +
@@ -29447,6 +29661,7 @@ async function _gsSbSearch(term) {
       });
     }
 
+    // ── Catalysts ─────────────────────────────────────────────────────────
     if (cats.length) {
       html += '<div class="gs-sb-section-hd">Catalysts (' + cats.length + ')</div>';
       cats.forEach(function(c) {
