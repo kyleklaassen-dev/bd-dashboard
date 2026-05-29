@@ -137,7 +137,7 @@ jobs:
   block-b:
     name: "Block B — Primary Enrichment"
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     if: >
       (github.event_name == 'schedule' &&
        (github.event.schedule == '0 3 * * 6' || github.event.schedule == '0 19 * * 6')) ||
