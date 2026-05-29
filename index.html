@@ -2281,6 +2281,58 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .bd-rank-row.expanded { background: #f5f8fc; }
 .bd-rank-placeholder { padding: 28px 20px; text-align: center; color: #94a3b8; font-size: 12px; font-style: italic; }
 .intel-type-bd_signal { background: #fce7f3; color: #9d174d; }
+
+/* ── Meridian v2 — soft visual refresh ─────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+/* Softer card borders */
+.stock-card, .entity-card, .drug-card {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  transition: box-shadow 0.2s ease;
+}
+.stock-card:hover, .entity-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+/* Friendlier scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+/* Softer separators */
+.tab-divider, hr { border-color: rgba(255,255,255,0.06) !important; }
+
+/* Warm accent on hover states */
+a:hover, .clickable:hover { color: #A8D8EA !important; }
+
+/* Stage progress dots */
+.stage-progress {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 4px 0;
+}
+.stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  transition: background 0.2s;
+}
+.stage-dot.active { background: #7EC8A4; }
+.stage-dot.past { background: rgba(126,200,164,0.35); }
+.stage-dot.approved-dot { background: #F4A261; }
+
+/* BD Today card */
+.bd-today-card {
+  background: linear-gradient(135deg,rgba(31,56,100,0.9),rgba(26,26,46,0.95));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -2697,6 +2749,43 @@ function buildStockCard(company, areas, signals, newIntelSet, lastEnrichedAt, bd
     </div>
   </div>
 </div>`;
+}
+
+// ── Meridian v2 helpers ───────────────────────────────────────────────────────
+
+// Stage progress dots — visual journey indicator for drug cards
+function _stageProgressHtml(stage) {
+  const stageOrder  = ['preclinical','phase_1','phase_1_2','phase_2','phase_2_3','phase_3','approved'];
+  const stageLabels = ['Pre','1','1/2','2','2/3','3','✓'];
+  const s = (stage||'').toLowerCase().replace(/ /g,'_');
+  let currentIdx = stageOrder.findIndex(k => s === k || s.includes(k.replace('phase_','phase ').replace('_','-')));
+  // Fuzzy match: "phase 2" → phase_2, "approved" variants
+  if (currentIdx < 0) {
+    if (s.includes('preclin')) currentIdx = 0;
+    else if (s.includes('phase_1') || s.includes('phase 1')) currentIdx = 1;
+    else if (s.includes('phase_2') || s.includes('phase 2')) currentIdx = 3;
+    else if (s.includes('phase_3') || s.includes('phase 3')) currentIdx = 5;
+    else if (s.includes('approv')) currentIdx = 6;
+  }
+  if (currentIdx < 0) return `<span style="font-size:11px;color:#8BA3B8;">${stage||'Unknown'}</span>`;
+  const dots = stageOrder.map((_, i) => {
+    const isApproved = i === 6 && i === currentIdx;
+    const cls = isApproved ? 'approved-dot' : i < currentIdx ? 'past' : i === currentIdx ? 'active' : '';
+    return `<div class="stage-dot ${cls}" title="${stageLabels[i]}"></div>`;
+  }).join('');
+  return `<div class="stage-progress" title="${stage}">${dots}<span style="font-size:10px;color:#8BA3B8;margin-left:4px;">${stageLabels[currentIdx]||stage}</span></div>`;
+}
+
+// Area status line — natural language summary sentence for area tabs
+function _areaStatusLine(drugs, areaName, nextCatalystDays) {
+  const total    = drugs.length;
+  const clinical = drugs.filter(d => d.stage && /phase/i.test(d.stage)).length;
+  const approved = drugs.filter(d => d.stage && /approv/i.test(d.stage)).length;
+  let parts = [`Tracking <strong>${total}</strong> ${areaName} programs`];
+  if (clinical > 0) parts.push(`<strong>${clinical}</strong> in clinical trials`);
+  if (approved > 0) parts.push(`<strong>${approved}</strong> approved`);
+  if (nextCatalystDays != null) parts.push(`next readout in <strong>${nextCatalystDays}</strong> days`);
+  return `<p style="font-size:12px;color:#8BA3B8;margin:0 0 12px 0;line-height:1.5;">${parts.join(' · ')}</p>`;
 }
 
 // ── Fetch + render stock cards from Supabase ─────────────────────────────────
@@ -4835,9 +4924,10 @@ function loadMoleculeTab(tabId) {
   <div id="hw-time-line"></div>
   <div id="hw-rule"></div>
   <div id="hw-breakdown"></div>
-
-
  </div>
+
+ <!-- ── BD Today widget ───────────────────────────────────────── -->
+ <div id="bd-today-anchor" style="max-width:640px;margin:0 auto 24px;padding:0 16px;"></div>
 
  <!-- ── Overlay backdrop ───────────────────────────────────────── -->
  <div id="home-overlay-backdrop" onclick="closeHomePanel()"></div>
@@ -14899,7 +14989,61 @@ function _makeAreaPI(tabId, areaIds) {
         </tr>${expRow}`;
       }).join('');
 
-      el.innerHTML = `<table class="pi-table">
+      // ── Meridian v2: Quick Stats bar ─────────────────────────────────────────
+      const _qsDrugs       = this.data || [];
+      const _qsTotal       = _qsDrugs.length;
+      const _clinicalStages = ['Phase 1','Phase 2','Phase 3','Phase 1/2','Phase 2/3','Approved'];
+      const _qsClinical    = _qsDrugs.filter(d => d.stageKey && _clinicalStages.includes(d.stageKey)).length;
+      // Catalyst count: companies in this area with a nextCatalyst within 180 days from today
+      const _qsToday     = new Date();
+      const _qs180       = new Date(_qsToday.getTime() + 180 * 24 * 60 * 60 * 1000);
+      let _qsCatCount    = 0;
+      if (this._entityMeta) {
+        Object.values(this._entityMeta).forEach(m => {
+          if (m.nextCatalyst) {
+            const d = new Date(m.nextCatalyst + 'T12:00:00Z');
+            if (!isNaN(d) && d >= _qsToday && d <= _qs180) _qsCatCount++;
+          }
+        });
+      }
+      // Average coverage score
+      let _qsCovAvg = '—';
+      const _covVals = Object.values(this._covScoreMap || {}).filter(v => v != null && !isNaN(v));
+      if (_covVals.length) _qsCovAvg = Math.round(_covVals.reduce((a,b)=>a+b,0) / _covVals.length) + '%';
+
+      // Next catalyst in days (for status line)
+      let _qsNextDays = null;
+      const _allCats = Object.values(this._entityMeta || {}).map(m=>m.nextCatalyst).filter(Boolean);
+      if (_allCats.length) {
+        const soonest = _allCats.map(c => new Date(c+'T12:00:00Z')).filter(d=>!isNaN(d)&&d>=_qsToday).sort((a,b)=>a-b)[0];
+        if (soonest) _qsNextDays = Math.ceil((soonest - _qsToday) / (24*60*60*1000));
+      }
+
+      // Area name from tab ID (title-case, strip suffixes)
+      const _areaRaw = (this.tabId||'').replace(/-area-pi$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      const _statusLine = _areaStatusLine(_qsDrugs, _areaRaw, _qsNextDays);
+
+      const _quickStats = `<div class="meridian-quick-stats" style="display:flex;gap:24px;padding:10px 12px 16px 12px;border-bottom:1px solid #e2e8f0;margin-bottom:4px;flex-wrap:wrap;">
+        <div class="qs-item">
+          <span class="qs-num" style="font-size:20px;font-weight:700;color:#1e3a5f;">${_qsTotal}</span>
+          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">drugs tracked</span>
+        </div>
+        <div class="qs-item">
+          <span class="qs-num" style="font-size:20px;font-weight:700;color:#15803d;">${_qsClinical}</span>
+          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">in clinical stage</span>
+        </div>
+        <div class="qs-item">
+          <span class="qs-num" style="font-size:20px;font-weight:700;color:#b45309;">${_qsCatCount}</span>
+          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">catalysts (180d)</span>
+        </div>
+        <div class="qs-item">
+          <span class="qs-num" style="font-size:20px;font-weight:700;color:#1d4ed8;">${_qsCovAvg}</span>
+          <span class="qs-label" style="font-size:10px;color:#94a3b8;display:block;margin-top:1px;">avg coverage</span>
+        </div>
+      </div>
+      <div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
+
+      el.innerHTML = _quickStats + `<table class="pi-table">
         <colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>
         <thead><tr>
           <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
@@ -18680,6 +18824,87 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (metricsEl) setTimeout(() => metricsEl.classList.add('visible'), 1200);
   }
 
+  // ── BD Today widget ────────────────────────────────────────────────
+  async function loadBDToday() {
+    const anchor = document.getElementById('bd-today-anchor');
+    if (!anchor || typeof _sb === 'undefined') return;
+    try {
+      const todayISO  = new Date().toISOString().split('T')[0];
+      const plus30    = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+      const [catRes, drugRes] = await Promise.all([
+        _sb.from('catalyst_calendar')
+          .select('drug_id,event_name,expected_date,call_priority,company_name,drug_name')
+          .gte('expected_date', todayISO)
+          .lte('expected_date', plus30)
+          .eq('is_past', false)
+          .order('expected_date', { ascending: true })
+          .limit(5),
+        // fallback: catalysts table if catalyst_calendar is empty/missing
+        _sb.from('catalysts')
+          .select('company_id,catalyst_name,sort_date,area_id,companies(name)')
+          .gte('sort_date', todayISO)
+          .lte('sort_date', plus30)
+          .eq('resolved', false)
+          .order('sort_date', { ascending: true })
+          .limit(5),
+      ]);
+
+      // Prefer catalyst_calendar rows; fall back to catalysts table
+      const todayMs = Date.now();
+      let items = [];
+      if (catRes.data && catRes.data.length) {
+        items = (catRes.data||[]).map(c => {
+          const d = new Date(c.expected_date + 'T12:00:00Z');
+          const daysUntil = Math.ceil((d - todayMs) / (24*60*60*1000));
+          const priColor = c.call_priority === 'call_now' ? '#dc2626' : c.call_priority === 'monitor' ? '#ea580c' : '#475569';
+          const priLabel = (c.call_priority||'watch').replace(/_/g,' ');
+          return `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+            <div style="width:42px;text-align:center;flex-shrink:0;">
+              <div style="font-size:15px;font-weight:700;color:#F4A261;">${daysUntil}</div>
+              <div style="font-size:9px;color:#8BA3B8;">days</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;color:#E8F4FD;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.event_name||'Catalyst'}</div>
+              <div style="font-size:11px;color:#8BA3B8;">${c.drug_name||'—'} · ${c.company_name||'—'}</div>
+            </div>
+            ${c.call_priority ? `<div style="flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:10px;background:${priColor};color:#fff;white-space:nowrap;">${priLabel}</div>` : ''}
+          </div>`;
+        });
+      } else if (catRes.error && drugRes.data && drugRes.data.length) {
+        items = (drugRes.data||[]).map(c => {
+          const d = new Date((c.sort_date||'') + 'T12:00:00Z');
+          const daysUntil = Math.ceil((d - todayMs) / (24*60*60*1000));
+          const coName = c.companies?.name || c.company_id || '—';
+          return `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+            <div style="width:42px;text-align:center;flex-shrink:0;">
+              <div style="font-size:15px;font-weight:700;color:#F4A261;">${daysUntil}</div>
+              <div style="font-size:9px;color:#8BA3B8;">days</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;color:#E8F4FD;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.catalyst_name||'Catalyst'}</div>
+              <div style="font-size:11px;color:#8BA3B8;">${coName}</div>
+            </div>
+          </div>`;
+        });
+      }
+
+      if (!items.length) return; // no upcoming catalysts — hide widget
+
+      const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric'});
+      anchor.innerHTML = `<div class="bd-today-card">
+        <div style="font-size:11px;color:#8BA3B8;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">
+          BD Today · ${dateStr}
+        </div>
+        ${items.join('')}
+        <div style="font-size:11px;color:#8BA3B8;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+          Upcoming catalysts from Meridian · <a href="#" onclick="event.preventDefault();switchTab('home',document.querySelector('.tab-btn.home-tab'));setTimeout(()=>{const el=document.getElementById('home-panel-catalysts');if(el){el.style.display='block';}},100)" style="color:#7EC8A4;">View all →</a>
+        </div>
+      </div>`;
+    } catch(e) {
+      console.warn('[BDToday]', e);
+    }
+  }
+
   // ── Entry / exit ───────────────────────────────────────────────────
   async function initHomeWelcome() {
     _hwUpdateClock();
@@ -18688,6 +18913,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     _hwFirstLoad = false;
     await _hwRefresh(true);
     _hwLoadBDMetrics();
+    loadBDToday();
     _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
   }
 
