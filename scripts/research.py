@@ -421,7 +421,10 @@ def extract_intel(articles):
     all_intel = []
     batch_size = 6  # Smaller batches — Sonnet writes richer body text, needs more headroom
 
+    total_batches = (len(articles) + batch_size - 1) // batch_size
     for i in range(0, len(articles), batch_size):
+        batch_num = i // batch_size + 1
+        log(f"  [EXTRACT {batch_num}/{total_batches}] articles {i+1}–{min(i+batch_size, len(articles))} of {len(articles)}")
         batch = articles[i:i + batch_size]
         batch_text = "\n\n---\n\n".join(
             _format_article_for_extraction(a) for a in batch
@@ -546,8 +549,10 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
     inserted_deals = 0
     inserted_catalysts = 0
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    total = len(intel_items)
 
-    for item in intel_items:
+    for idx, item in enumerate(intel_items, 1):
+        log(f"  [WRITE {idx}/{total}] {item.get('area_id','?')} — {(item.get('headline') or '')[:80]}")
         # ── Intel record ──────────────────────────────────────────────────
         intel_rec = {
             "intel_date":  item.get("intel_date") or today,
@@ -672,19 +677,24 @@ if __name__ == "__main__":
         except Exception as e:
             log(f"CompanyIdentityResolver init failed, falling back to company_map: {e}")
 
+    log("--- Phase 1/5: Fetching RSS feeds ---")
     articles = fetch_feeds(hours_back=48)
+    log("--- Phase 2/5: Filtering for focus-area relevance ---")
     relevant = filter_relevant(articles)
 
     if not relevant:
         log("No relevant articles found — done.")
     else:
+        log("--- Phase 3/5: Deduplicating against Supabase ---")
         existing_urls = get_existing_urls()
         new_articles = [a for a in relevant if a["url"] not in existing_urls]
         log(f"New (not in Supabase): {len(new_articles)} articles")
 
         if new_articles:
+            log("--- Phase 4/5: Enriching with full text ---")
             # Enrich high-priority articles with full body text before extraction
             enrich_with_full_text(new_articles, max_fetches=15)
+            log("--- Phase 5/5: Extracting intel + writing to Supabase ---")
             intel = extract_intel(new_articles)
             if intel:
                 write_to_supabase(intel, company_map=company_map, resolver=resolver)
