@@ -757,6 +757,43 @@ def run_new_source_sweep() -> None:
 
 # ── GAP 1 FIX: PK/PD queue processor ─────────────────────────────────────────
 
+PKPD_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+PKPD_EXTRACTION_PROMPT = """\
+Extract PK/PD parameters from this abstract. Return JSON only — no markdown, no explanation.
+Use null for any field not mentioned. Confidence should reflect how clearly the value appears
+(1.0 = explicit numeric in results section, 0.5 = approximate or inferred, 0.0 = not found).
+
+{
+  "half_life_h": null,
+  "half_life_unit": null,
+  "cmax_value": null,
+  "cmax_unit": null,
+  "auc_value": null,
+  "auc_unit": null,
+  "bioavailability_pct": null,
+  "vd_value": null,
+  "vd_unit": null,
+  "clearance_value": null,
+  "clearance_unit": null,
+  "route": null,
+  "species": null,
+  "confidence": 0.0
+}
+
+Rules:
+- half_life_unit: use "h" for hours, "d" for days, "wk" for weeks
+- route: MUST be exactly ONE of: "SC", "IV", "oral", or null — never a combination like "SC/IV"
+  If multiple routes are studied, pick the PRIMARY route or null
+- species: "human", "mouse", "monkey", "rat", or null
+- If half_life_h is given in days in the abstract, convert to hours (multiply by 24) and set half_life_unit="h"
+- Only extract values explicitly stated — do not infer or estimate
+- confidence above 0.5 means the abstract explicitly reports the parameter with a numeric value
+
+Abstract:
+{abstract_text}"""
+
+
 def fetch_pubmed_abstract(pmid: str, timeout: int = 10) -> str:
     """
     Fetch abstract text for a PubMed PMID via the NCBI efetch API.
@@ -775,81 +812,101 @@ def fetch_pubmed_abstract(pmid: str, timeout: int = 10) -> str:
     return ""
 
 
-def parse_pk_from_abstract(abstract_text: str) -> dict:
+def extract_pk_with_claude(abstract_text: str) -> dict:
     """
-    Lightweight regex extraction of common PK parameters from an abstract.
-    Returns a dict with any parameters found; empty dict if none detected.
-    Confidence is intentionally conservative — only clear numeric patterns match.
+    Use Claude claude-haiku-4-5-20251001 to extract PK parameters from a PubMed abstract.
+    Returns parsed dict with extracted parameters; empty dict on failure or low confidence.
+    Only returns fields where confidence > 0.5.
     """
-    import re
-    result = {}
-    text = abstract_text.lower()
+    if not abstract_text or len(abstract_text.strip()) < 50:
+        return {}
 
-    # Half-life: "half-life of 14 days" / "t1/2 = 21 h" / "elimination half-life 14.2 days"
-    hl_match = re.search(
-        r"(?:half.life|t½|t1/2)\s*(?:of|=|was|is)?\s*([\d.]+)\s*(day|hour|h\b|week)",
-        text
-    )
-    if hl_match:
-        val = float(hl_match.group(1))
-        unit = hl_match.group(2).strip()
-        # Convert to hours
-        if "day" in unit:
-            val *= 24
-        elif "week" in unit:
-            val *= 168
-        result["half_life_hours"] = round(val, 1)
+    # Truncate to ~4000 chars to keep costs minimal
+    abstract_trimmed = abstract_text[:4000]
 
-    # Bioavailability: "bioavailability of 72%" / "F = 68%"
-    ba_match = re.search(
-        r"(?:bioavailability|absolute bioavailability)\s*(?:of|=|was|is)?\s*([\d.]+)\s*%",
-        text
-    )
-    if ba_match:
-        result["bioavailability_pct"] = float(ba_match.group(1))
+    prompt = PKPD_EXTRACTION_PROMPT.replace("{abstract_text}", abstract_trimmed)
 
-    # Cmax in ng/mL or µg/mL
-    cmax_match = re.search(
-        r"c(?:max|peak)\s*(?:of|=|was|is)?\s*([\d.]+)\s*(?:ng/ml|ug/ml|µg/ml|ng·/ml)",
-        text
-    )
-    if cmax_match:
-        result["cmax_ng_ml"] = float(cmax_match.group(1))
+    try:
+        resp = client.messages.create(
+            model=PKPD_CLAUDE_MODEL,
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = resp.content[0].text.strip()
 
-    # AUC
-    auc_match = re.search(
-        r"auc(?:inf|0.inf|0–inf|last)?\s*(?:of|=|was|is)?\s*([\d.]+)\s*(?:ng|µg)[\s·]*h(?:r|our)?",
-        text
-    )
-    if auc_match:
-        result["auc_inf_ng_hr_ml"] = float(auc_match.group(1))
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
 
-    # Immunogenicity / ADA
-    ada_match = re.search(
-        r"(?:ada|anti-drug antibod|immunogenicity)\D{0,30}([\d.]+)\s*%",
-        text
-    )
-    if ada_match:
-        result["immunogenicity_ada_pct"] = float(ada_match.group(1))
+        parsed = json.loads(raw)
+        confidence = float(parsed.get("confidence", 0.0))
 
-    return result
+        if confidence <= 0.5:
+            return {}
+
+        # Build output dict — only non-null fields that map to db columns
+        result = {}
+
+        if parsed.get("half_life_h") is not None:
+            result["half_life_hours"] = float(parsed["half_life_h"])
+
+        if parsed.get("bioavailability_pct") is not None:
+            result["bioavailability_pct"] = float(parsed["bioavailability_pct"])
+
+        if parsed.get("cmax_value") is not None:
+            result["cmax_ng_ml"] = float(parsed["cmax_value"])
+
+        if parsed.get("auc_value") is not None:
+            result["auc_inf_ng_hr_ml"] = float(parsed["auc_value"])
+
+        if parsed.get("vd_value") is not None:
+            result["volume_distribution_l"] = float(parsed["vd_value"])
+
+        if parsed.get("clearance_value") is not None:
+            result["clearance_ml_hr_kg"] = float(parsed["clearance_value"])
+
+        # dose_route is the column name in drug_pk_parameters (not "route")
+        # Only allow exact values: SC, IV, oral — reject combined strings like "SC/IV"
+        route_val = str(parsed.get("route") or "").strip()
+        if route_val in ("SC", "IV", "oral"):
+            result["dose_route"] = route_val
+
+        # species is not a column in drug_pk_parameters — embed in notes instead
+        if parsed.get("species"):
+            result["_species"] = str(parsed["species"])
+
+        result["_confidence"] = confidence  # internal — not written to db column
+        return result
+
+    except json.JSONDecodeError as exc:
+        log(f"    Claude PK extraction: JSON parse error — {exc}")
+        return {}
+    except Exception as exc:
+        log(f"    Claude PK extraction error: {exc}")
+        return {}
 
 
 def process_pkpd_queue() -> int:
     """
-    GAP 1 FIX: Process research_queue items where context_type='pkpd_literature'
-    or reason contains 'PK/PD'. For each item:
+    GAP 1 FIX: Process research_queue items where context_type='pkpd_literature'.
+    Uses Claude claude-haiku-4-5-20251001 for structured extraction (replaces regex).
+
+    For each item:
       1. Extract PMID from the reason field.
-      2. Fetch the PubMed abstract.
-      3. If it mentions PK parameters (half-life, Cmax, AUC, bioavailability),
-         write a row to drug_pk_parameters.
-      4. Mark the research_queue item as assigned_status='completed'.
+      2. Fetch the PubMed abstract via NCBI efetch.
+      3. Send abstract to Claude — get structured PK parameter JSON.
+      4. If confidence > 0.5, write to drug_pk_parameters.
+      5. Mark the research_queue item as assigned_status='completed'.
 
     Returns count of items processed.
     """
-    log("--- Phase 7: PK/PD queue processor ---")
+    log("--- Phase 7: PK/PD queue processor (Claude-powered) ---")
 
-    # Fetch pending pkpd queue items
+    # Fetch ALL pkpd queue items regardless of status — reset completed so they
+    # get reprocessed by Claude (regex run may have missed parameters).
     queue_items = []
     try:
         r = requests.get(
@@ -857,8 +914,7 @@ def process_pkpd_queue() -> int:
             headers=SB_HEADERS,
             params={
                 "context_type": "eq.pkpd_literature",
-                "assigned_status": "eq.pending",
-                "select": "id,entity_id,reason",
+                "select": "id,entity_id,reason,assigned_status",
                 "limit": "100",
             },
             timeout=15,
@@ -871,7 +927,7 @@ def process_pkpd_queue() -> int:
         log(f"  PK/PD queue fetch error: {exc}")
         return 0
 
-    log(f"  Found {len(queue_items)} pending PK/PD queue items")
+    log(f"  Found {len(queue_items)} PK/PD queue items (all statuses)")
     if not queue_items:
         return 0
 
@@ -885,11 +941,9 @@ def process_pkpd_queue() -> int:
         reason = item.get("reason", "")
 
         # Extract PMID from reason text: "PMID 39073504"
-        import re
         pmid_match = re.search(r"PMID\s+(\d+)", reason)
         if not pmid_match:
             log(f"  No PMID found in reason for {drug_id}: {reason[:80]}")
-            # Mark completed anyway — no PMID to process
             requests.patch(
                 f"{SUPABASE_URL}/rest/v1/research_queue",
                 headers={**SB_HEADERS, "Prefer": "return=minimal"},
@@ -904,21 +958,28 @@ def process_pkpd_queue() -> int:
         source_url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
 
         log(f"  Processing {drug_id} — PMID {pmid}")
-        time.sleep(0.5)  # NCBI courtesy delay
+        time.sleep(0.4)  # NCBI courtesy delay
 
         abstract = fetch_pubmed_abstract(pmid)
         if not abstract:
             log(f"    No abstract returned for PMID {pmid}")
         else:
-            pk_params = parse_pk_from_abstract(abstract)
+            pk_params = extract_pk_with_claude(abstract)
+            confidence = pk_params.pop("_confidence", 0.0)
+
             if pk_params:
-                log(f"    Extracted PK params: {list(pk_params.keys())}")
+                log(f"    Claude extracted PK params (conf={confidence:.2f}): {list(pk_params.keys())}")
+                # _species is not a column — move it to notes
+                species_note = pk_params.pop("_species", None)
+                notes_str = f"Claude-extracted from PubMed PMID {pmid} (conf={confidence:.2f})"
+                if species_note:
+                    notes_str += f"; species={species_note}"
                 pk_rec = {
                     "drug_id":      drug_id,
                     # source_type CHECK constraint: Phase1|Phase2|Phase3|label|abstract|poster|investor_PR|ClinicalTrials
                     "source_type":  "abstract",
                     "source_url":   source_url,
-                    "notes":        f"Auto-extracted from PubMed PMID {pmid}",
+                    "notes":        notes_str,
                     "verified":     False,
                     **pk_params,
                 }
@@ -937,7 +998,7 @@ def process_pkpd_queue() -> int:
                 except Exception as exc:
                     log(f"    Write error: {exc}")
             else:
-                log(f"    No PK parameters detected in abstract (PMID {pmid})")
+                log(f"    No PK parameters found by Claude (confidence too low or none present) — PMID {pmid}")
 
         # Mark research_queue item as completed
         try:
@@ -952,6 +1013,7 @@ def process_pkpd_queue() -> int:
             pass
 
         processed += 1
+        time.sleep(0.2)  # avoid Claude rate-limit on haiku
 
     log(f"  PK/PD queue: {processed} items processed, {pk_written} drug_pk_parameters rows written")
     log("--- Phase 7 complete ---")
