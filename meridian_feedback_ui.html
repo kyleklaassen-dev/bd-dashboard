@@ -48,7 +48,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .q-empty{padding:40px 16px;text-align:center;color:#94a3b8;font-size:12px}
 
 /* ── Review panel (right) ── */
-.review{flex:1;overflow-y:auto;background:#f8fafc;padding:20px;display:flex;flex-direction:column;gap:16px}
+.review{flex:1;display:flex;flex-direction:column;background:#f8fafc;overflow:hidden}
+.review-scroll{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+/* ── Sticky action footer ── */
+.action-footer{flex-shrink:0;background:white;border-top:2px solid #e2e8f0;padding:14px 20px;display:none}
+.action-footer.visible{display:block}
 .review-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#94a3b8}
 .review-empty-icon{font-size:40px;opacity:0.4}
 .review-empty-text{font-size:13px;font-weight:600;color:#94a3b8}
@@ -162,11 +166,50 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   </div>
 
   <!-- Review panel -->
-  <div class="review" id="review-panel">
-    <div class="review-empty">
-      <div class="review-empty-icon">⌨</div>
-      <div class="review-empty-text">Select an item to review</div>
-      <div class="review-empty-sub">Use Y / N / U / S keys after selecting an item. Queue sorted by review priority.</div>
+  <div class="review">
+    <!-- Scrollable card area -->
+    <div class="review-scroll" id="review-panel">
+      <div class="review-empty">
+        <div class="review-empty-icon">⌨</div>
+        <div class="review-empty-text">Select an item to review</div>
+        <div class="review-empty-sub">Use Y / N / U / S keys, or type a note below and submit.</div>
+      </div>
+    </div>
+
+    <!-- PERMANENT sticky action footer — always visible, never re-rendered -->
+    <div class="action-footer" id="action-footer">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="action-btn yes" onclick="doAction('confirmed')" style="flex:1;padding:8px 4px;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:13px;font-weight:900">Y</span>Correct
+        </button>
+        <button class="action-btn no" onclick="doAction('corrected')" style="flex:1;padding:8px 4px;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:13px;font-weight:900">N</span>Incorrect
+        </button>
+        <button class="action-btn uncertain" onclick="doAction('uncertain')" style="flex:1;padding:8px 4px;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:13px;font-weight:900">U</span>Uncertain
+        </button>
+        <button class="action-btn skip" onclick="doAction('skipped')" style="flex:1;padding:8px 4px;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:13px;font-weight:900">S</span>Skip
+        </button>
+      </div>
+      <div style="margin-bottom:6px;font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:8px">
+        Note / Correction
+        <span id="notes-required-badge" style="background:#fee2e2;color:#b91c1c;border-radius:3px;padding:1px 6px;font-size:8px;display:none">Required for N</span>
+      </div>
+      <textarea id="notes-input"
+        rows="3"
+        style="width:100%;border:1.5px solid #e2e8f0;border-radius:6px;padding:10px;font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border-color 0.15s;box-sizing:border-box"
+        placeholder="Type the correct value, a note, or additional context… optional for Y/U/S, required for N. Ctrl+Enter to submit."
+        onfocus="this.style.borderColor='#7c3aed'"
+        onblur="this.style.borderColor='#e2e8f0'"
+      ></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+        <span style="font-size:10px;color:#94a3b8">Ctrl+Enter — submit · Esc — clear</span>
+        <button id="notes-submit-btn" onclick="submitCorrection()"
+          style="display:none;padding:6px 14px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+          Submit Correction ↵
+        </button>
+      </div>
     </div>
   </div>
 
@@ -356,30 +399,10 @@ function renderReview(item) {
         ${item.source_citation ? `<div style="margin-top:8px"><div class="meta-key">Source</div><div style="font-size:11px;color:#7c3aed;word-break:break-all;margin-top:3px"><a href="${escHtml(item.source_citation)}" target="_blank" rel="noopener">${escHtml(item.source_citation)}</a></div></div>` : ''}
       </div>
     </div>
-
-    <div class="action-panel">
-      <div class="action-hint">
-        Press <kbd>Y</kbd> Correct &nbsp;·&nbsp; <kbd>N</kbd> Incorrect &nbsp;·&nbsp; <kbd>U</kbd> Uncertain &nbsp;·&nbsp; <kbd>S</kbd> Skip
-      </div>
-      <div class="action-buttons">
-        <button class="action-btn yes" onclick="doAction('confirmed')"><span class="key">Y</span>Correct</button>
-        <button class="action-btn no" onclick="doAction('corrected')"><span class="key">N</span>Incorrect</button>
-        <button class="action-btn uncertain" onclick="doAction('uncertain')"><span class="key">U</span>Uncertain</button>
-        <button class="action-btn skip" onclick="doAction('skipped')"><span class="key">S</span>Skip</button>
-      </div>
-      <div class="notes-box">
-        <div class="notes-box-label">
-          Note / Correction &nbsp;<span class="required-badge" id="notes-required-badge">Required for N</span>
-        </div>
-        <textarea id="notes-input" placeholder="Type a note, correction, or additional context… (optional for Y/U/S, required for N)"></textarea>
-        <div class="notes-submit-row">
-          <span class="notes-hint" id="notes-hint">Optional — press Y / U / S above to submit, or N then Submit below</span>
-          <button class="correction-submit" id="notes-submit-btn" onclick="submitCorrection()" style="display:none">Submit Correction ↵</button>
-        </div>
-      </div>
-      <div class="correction-box" id="correction-box" style="display:none"></div>
-    </div>
   `;
+  // Show the sticky action footer whenever a card is rendered
+  const footer = document.getElementById('action-footer');
+  if (footer) footer.classList.add('visible');
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
