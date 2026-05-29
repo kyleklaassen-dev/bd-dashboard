@@ -308,6 +308,288 @@ def fetch_graph_context():
     return active_in, targets_edges, competes_with
 
 
+def fetch_catalyst_calendar(days_ahead=365):
+    """
+    Pull upcoming events from catalyst_calendar (structured BD timing table).
+    Distinct from fetch_upcoming_catalysts() which reads the legacy catalysts table.
+    Returns events ordered by expected_date ascending.
+    """
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    future = (datetime.datetime.utcnow() + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/catalyst_calendar",
+            headers=SB_HEADERS,
+            params={
+                "select": (
+                    "id,drug_id,company_id,event_type,event_name,"
+                    "expected_date,expected_quarter,strategic_significance,"
+                    "ailux_impact,description,source_url,confidence,is_past"
+                ),
+                "expected_date": f"gte.{today}",
+                "is_past": "eq.false",
+                "order": "expected_date.asc",
+                "limit": "50",
+            },
+        )
+        events = r.json() if r.status_code == 200 else []
+        if not isinstance(events, list):
+            log(f"Catalyst calendar unexpected response — skipping")
+            return []
+        log(f"Fetched {len(events)} catalyst calendar events (next {days_ahead}d)")
+        return events
+    except Exception as e:
+        log(f"Catalyst calendar fetch error: {e}")
+        return []
+
+
+def fetch_bd_priority_companies():
+    """
+    Fetch top BD-priority companies via two signals:
+      1. drug_competitive_scores: drugs with very_high competitive_relevance
+      2. company_strategic_views: companies with view_type in competitive/acquisition_target
+    Returns dict with keys 'scores' and 'views'.
+    """
+    scores, views = [], []
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/drug_competitive_scores",
+            headers=SB_HEADERS,
+            params={
+                "select": (
+                    "drug_id,context_id,competitive_relevance,"
+                    "total_competition_score,relevance_rationale"
+                ),
+                "competitive_relevance": "eq.very_high",
+                "order": "total_competition_score.desc",
+                "limit": "50",
+            },
+        )
+        scores = r.json() if r.status_code == 200 and isinstance(r.json(), list) else []
+        log(f"Fetched {len(scores)} very_high competitive relevance drug scores")
+    except Exception as e:
+        log(f"BD priority scores fetch error: {e}")
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/company_strategic_views",
+            headers=SB_HEADERS,
+            params={
+                "select": (
+                    "company_id,view_type,strategic_score,"
+                    "summary,ailux_relevance,key_assets"
+                ),
+                "view_type": "in.(competitive,acquisition_target)",
+                "order": "strategic_score.desc.nullslast",
+                "limit": "30",
+            },
+        )
+        views = r.json() if r.status_code == 200 and isinstance(r.json(), list) else []
+        log(f"Fetched {len(views)} competitive/acquisition_target strategic views")
+    except Exception as e:
+        log(f"BD priority views fetch error: {e}")
+
+    return {"scores": scores, "views": views}
+
+
+def fetch_patient_intelligence_stats():
+    """
+    Fetch top-level numeric patient intelligence columns (v65+).
+
+    Returns a dict keyed by indication_name. Each value is a flat dict with:
+        patient_count_us, patient_count_global, market_size_usd_bn,
+        remission_rate_soc_pct, biologic_failure_rate_pct, unmet_need_score.
+
+    Returns empty dict if the v65 migration has not been applied yet (columns
+    will not exist → Supabase returns them as null for all rows, or PGRST204).
+    Only rows with at least patient_count_us populated are included.
+    """
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/indication_patient_intelligence",
+            headers=SB_HEADERS,
+            params={
+                "select": (
+                    "indication_name,patient_count_us,patient_count_global,"
+                    "market_size_usd_bn,remission_rate_soc_pct,"
+                    "biologic_failure_rate_pct,unmet_need_score"
+                ),
+                "limit": "50",
+            },
+        )
+        if r.status_code != 200:
+            log(f"Patient intelligence stats unavailable ({r.status_code}) — skipping")
+            return {}
+        rows = r.json()
+        if not isinstance(rows, list):
+            return {}
+        result = {
+            row["indication_name"]: row
+            for row in rows
+            if row.get("indication_name") and row.get("patient_count_us") is not None
+        }
+        log(f"Fetched patient intelligence numeric stats for {len(result)} indications")
+        return result
+    except Exception as e:
+        log(f"Patient intelligence stats fetch error: {e}")
+        return {}
+
+
+def build_patient_stats_block(stats: dict) -> str:
+    """
+    Format the v65 numeric patient stats as a compact dashboard block.
+
+    Used to inject market-size and unmet-need context into the LLM prompt
+    without relying on JSON parsing or hallucinated statistics.
+    Each row becomes one compact stats line.
+    """
+    if not stats:
+        return "(Patient population stats not available — v65 migration may be pending)"
+
+    lines = ["PATIENT POPULATION STATS (from indication_patient_intelligence — v65 columns):"]
+
+    # Priority order for display
+    priority = [
+        "IBD (Inflammatory Bowel Disease)",
+        "TL1A Target Area",
+        "Ulcerative Colitis",
+        "Crohn's Disease",
+        "IL-4Rα Target Area",
+        "Atopic Dermatitis",
+        "TSLP Target Area",
+        "FcRn Target Area",
+        "IGF-1R Target Area",
+        "Thyroid Eye Disease",
+        "Generalized Myasthenia Gravis",
+        "CIDP",
+        "Autoimmune Diseases (Broad)",
+        "Respiratory Diseases (Broad)",
+    ]
+    ordered = [k for k in priority if k in stats]
+    ordered += sorted(k for k in stats if k not in priority)
+
+    for name in ordered:
+        row = stats[name]
+        parts = []
+        if row.get("patient_count_us"):
+            us = int(row["patient_count_us"])
+            parts.append(f"US ~{us:,}")
+        if row.get("market_size_usd_bn"):
+            mkt = float(row["market_size_usd_bn"])
+            parts.append(f"${mkt:.1f}B market")
+        if row.get("remission_rate_soc_pct") is not None:
+            parts.append(f"{row['remission_rate_soc_pct']:.0f}% SoC remission")
+        if row.get("biologic_failure_rate_pct") is not None:
+            parts.append(f"{row['biologic_failure_rate_pct']:.0f}% biologic failure")
+        if row.get("unmet_need_score") is not None:
+            parts.append(f"unmet need {row['unmet_need_score']}/10")
+        stat_line = " | ".join(parts) if parts else "(data pending)"
+        lines.append(f"  {name}: {stat_line}")
+
+    return "\n".join(lines)
+
+
+def build_catalyst_calendar_block(events: list, days_window: int = 90) -> str:
+    """
+    Format catalyst_calendar events as a two-tier block:
+      - Tier 1: events in the next `days_window` days (primary BD calendar)
+      - Tier 2: events beyond that window up to 12 months (horizon scan)
+    Used to inject structured BD timing into both prompt passes.
+    """
+    if not events:
+        return "(No catalyst calendar events on record for the next 12 months)"
+
+    cutoff = (datetime.datetime.utcnow() + datetime.timedelta(days=days_window)).strftime("%Y-%m-%d")
+    near, far = [], []
+    for ev in events:
+        if ev.get("expected_date", "9999") <= cutoff:
+            near.append(ev)
+        else:
+            far.append(ev)
+
+    SIG_LABELS = {"P0": "CRITICAL", "P1": "HIGH", "P2": "MEDIUM", "P3": "LOW"}
+
+    def _fmt(ev):
+        sig = SIG_LABELS.get(ev.get("strategic_significance", ""), ev.get("strategic_significance", ""))
+        drug = ev.get("drug_id", "?")
+        company = ev.get("company_id", "?")
+        etype = (ev.get("event_type") or "").replace("_", " ").upper()
+        name = ev.get("event_name", "")
+        date = ev.get("expected_date") or ev.get("expected_quarter", "?")
+        impact = ev.get("ailux_impact", "")
+        line = f"  [{sig}] {date} | {drug} ({company}) | {etype}\n  Name: {name}"
+        if impact:
+            line += f"\n  Ailux Impact: {impact}"
+        return line
+
+    lines = [f"BD CATALYST CALENDAR (next {days_window} days — primary timing anchor):"]
+    if near:
+        for ev in near:
+            lines.append(_fmt(ev))
+            lines.append("")
+    else:
+        lines.append(f"  (No catalysts in the next {days_window} days)")
+
+    if far:
+        lines.append(f"\nHORIZON CATALYSTS (>{days_window}d, next 12 months):")
+        for ev in far[:15]:  # cap horizon to avoid prompt bloat
+            lines.append(_fmt(ev))
+            lines.append("")
+
+    return "\n".join(lines)
+
+
+def build_bd_priority_block(bd_data: dict) -> str:
+    """
+    Format BD priority company data (drug_competitive_scores + company_strategic_views)
+    into a compact editorial block for both prompt passes.
+    """
+    scores = bd_data.get("scores", [])
+    views  = bd_data.get("views", [])
+
+    if not scores and not views:
+        return "(BD priority company data unavailable)"
+
+    lines = ["BD PRIORITY COMPANIES (from competitive scores + strategic views):"]
+
+    if views:
+        lines.append("\nTOP STRATEGIC COMPANIES (competitive + acquisition_target view_type, by strategic_score):")
+        for v in views[:15]:
+            co     = v.get("company_id", "?")
+            vtype  = v.get("view_type", "?").replace("_", " ").upper()
+            score  = v.get("strategic_score", "?")
+            rel    = v.get("ailux_relevance", "")
+            assets = ", ".join(v.get("key_assets") or [])
+            line   = f"  {co} | {vtype} | score: {score}"
+            if assets:
+                line += f" | key assets: {assets}"
+            if rel:
+                line += f"\n    Relevance: {rel}"
+            lines.append(line)
+
+    if scores:
+        lines.append("\nVERY_HIGH RELEVANCE DRUGS (direct competitive threats, by total_competition_score):")
+        # Group by context_id (area) for readability
+        by_area = {}
+        for s in scores:
+            area = s.get("context_id", "unknown")
+            by_area.setdefault(area, []).append(s)
+        for area in sorted(by_area):
+            area_label = AREA_NAMES.get(area, area)
+            lines.append(f"\n  {area_label}:")
+            for s in sorted(by_area[area], key=lambda x: -(x.get("total_competition_score") or 0)):
+                drug   = s.get("drug_id", "?")
+                score  = s.get("total_competition_score", "?")
+                rationale = s.get("relevance_rationale", "")
+                line   = f"    {drug} | score: {score}"
+                if rationale:
+                    line += f" — {rationale}"
+                lines.append(line)
+
+    return "\n".join(lines)
+
+
 def fetch_recent_trials():
     """Fetch clinical trial records updated in the last 30 days."""
     cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
@@ -611,7 +893,36 @@ WRITING_STANDARDS:
 - Target is the molecular target. Mechanism is how the drug engages it. Pathway is the downstream biology. Name all three distinctly.
 - If a drug's mechanism is unknown or disputed, say so explicitly and do not write competitive analysis around it until resolved."""
 
-SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + PATIENT_INTELLIGENCE_CONTEXT
+ENRICHED_DATA_INSTRUCTIONS = """
+ENRICHED DATA NOW AVAILABLE — USE IT:
+
+1. PATIENT MARKET DATA: You have numeric patient counts and market sizes for each indication.
+   - ALWAYS cite specific numbers: "~{N:,} US patients" and "${X}B addressable market"
+   - ALWAYS cite unmet_need_score (1–10) when available: "Unmet need score: {score}/10"
+   - Interpret the score: 8–10 = severe unmet need, 5–7 = partial, 1–4 = manageable with current SoC
+   - NEVER use vague phrases like "large patient population" without the number
+
+2. UPCOMING CATALYSTS: You have a structured BD catalyst calendar with specific dates.
+   - ALWAYS include a "⏰ BD Calendar — Next 90 Days" section (see section structure below)
+   - Format each entry: "[SIGNIFICANCE] YYYY-MM-DD | drug (company) | EVENT TYPE — event name | Ailux impact"
+   - This section appears even when there are no catalysts — show the table with "No near-term catalysts" if empty
+   - This is the single most important timing intelligence for BD decision-making
+
+3. BD PRIORITY COMPANIES: You have competitive relevance scores for all drugs.
+   - In any section discussing a competitor drug, cite its competitive_relevance tier if available
+   - For companies with view_type=acquisition_target and strategic_score ≥ 70, note this explicitly
+   - AbbVie is NOT a current BD target for TL1A bispecific until after ABBV-701 Phase 1 readout (Oct 2026)
+   - "CALL NOW" framing applies only to companies with no conflicting timing constraint
+
+4. WRITING STANDARD (reconfirmed):
+   - No speculation about company strategy unless supported by press release, earnings call, or investor letter
+   - First mention of drug → hyperlink to drug card modal
+   - First mention of company → hyperlink to company modal
+   - Patient numbers required for every indication discussed
+   - Mechanism precision required: name the target, pathway, and effector cell
+"""
+
+SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + PATIENT_INTELLIGENCE_CONTEXT + ENRICHED_DATA_INSTRUCTIONS
 
 
 # ── Pass 1: Editorial planning ───────────────────────────────────────────────
@@ -624,6 +935,12 @@ INTELLIGENCE AVAILABLE:
 
 RECENT DEALS:
 {deals_block}
+
+BD CATALYST CALENDAR (structured timing intelligence):
+{catalyst_calendar_block}
+
+BD PRIORITY COMPANIES (competitive scores + strategic views):
+{bd_priority_block}
 
 COMPANY INTELLIGENCE (live dashboard state):
 {signals_block}
@@ -639,6 +956,9 @@ AILUX CONTEXT:
 
 ## Today's Patient Intelligence Context
 {patient_context_block}
+
+## Patient Population & Market Stats (v65 — queryable numeric fields)
+{patient_stats_block}
 
 Your editorial plan must answer:
 1. THESIS: In one sentence, what is the single most important thing today's full intelligence picture reveals about the competitive landscape? This becomes the editorial spine of the lede.
@@ -666,8 +986,14 @@ INTELLIGENCE (last 48 hours — primary sources: Endpoints News, Fierce Biotech,
 RECENT DEALS (last 7 days):
 {deals_block}
 
-UPCOMING CATALYSTS:
+UPCOMING CATALYSTS (legacy catalysts table):
 {catalysts_block}
+
+BD CATALYST CALENDAR (structured timing intelligence — use this for the BD Calendar section):
+{catalyst_calendar_block}
+
+BD PRIORITY COMPANIES (competitive scores + strategic views):
+{bd_priority_block}
 
 COMPANY INTELLIGENCE (live state from dashboard company cards):
 {signals_block}
@@ -684,6 +1010,9 @@ AILUX CONTEXT:
 ## Today's Patient Intelligence Context
 {patient_context_block}
 
+## Patient Population & Market Stats (v65 — queryable numeric fields)
+{patient_stats_block}
+
 ─────────────────────────────────────────────
 SECTION STRUCTURE (build exactly this architecture):
 
@@ -695,9 +1024,24 @@ SECTION STRUCTURE (build exactly this architecture):
 
 4. BD & DEAL WATCH — If there are recent deals. For each deal: what was the strategic logic, what does the pricing signal about asset valuation, who is now foreclosed from this asset. Go beyond describing the deal to arguing its implications.
 
-5. CATALYST WATCH — Always include. HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending.
+5. ⏰ BD CALENDAR — NEXT 90 DAYS — ALWAYS INCLUDE. Never omit this section, even on quiet news days. It is the fixed BD timing anchor.
+   - Use the BD CATALYST CALENDAR data above (from catalyst_calendar table)
+   - Group entries by calendar month (e.g., "June 2026", "July 2026", "August 2026")
+   - For each event: drug name, company, event type, expected date, and the ailux_impact field verbatim (truncated to 2 sentences max)
+   - After the grouped list, include a compact HTML table: columns = Month | Event | Drug (Company) | Significance | Ailux Impact
+   - If no events fall in the 90-day window, show the table header with a single row: "(No near-term catalysts on record)"
+   - Then add a sub-header "Horizon (>90 days)" and list events in the next 12 months
 
-6. CLOSING NOTE — 2–3 sentences in italic. End on a forward-looking observation or open question, not a summary of what was just written.
+6. 🩺 INDICATION INTELLIGENCE — ALWAYS INCLUDE. Pull from the Patient Population & Market Stats block.
+   - Select the 2–3 indications most relevant to this week's news (IBD / UC / CD always eligible; add others if they appeared in today's intel)
+   - For each indication, write one compact paragraph using this exact structure:
+     "There are approximately {patient_count_us:,} patients with [indication] in the United States ({patient_count_global:,} globally). The addressable market is estimated at ${market_size_usd_bn}B. Current standard-of-care achieves remission in approximately {remission_rate_soc_pct}% of patients; {biologic_failure_rate_pct}% fail biologics, leaving a substantial refractory population. Unmet need score: {unmet_need_score}/10."
+   - If a numeric field is null, omit that clause rather than using "N/A"
+   - Follow each paragraph with a BD Lens callout linking the market size and failure rate to Ailux's positioning
+
+7. CATALYST WATCH — The legacy catalyst table (from UPCOMING CATALYSTS block above). HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending. If no legacy catalysts, note "(No entries in legacy catalyst table — see BD Calendar section above)"
+
+8. CLOSING NOTE — 2–3 sentences in italic. End on a forward-looking observation or open question, not a summary of what was just written.
 
 ─────────────────────────────────────────────
 4-LAYER NARRATIVE FORMAT — mandatory for any drug event, clinical trial result, or deal:
@@ -846,17 +1190,21 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
 # ── Generate HTML with Claude Opus (two passes) ──────────────────────────────
 def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
                              prior_block, signals_block="", graph_block="",
-                             patient_context_block=""):
+                             patient_context_block="", patient_stats_block="",
+                             catalyst_calendar_block="", bd_priority_block=""):
     """Pass 1: produce a tight editorial plan before writing a word of prose."""
     prompt = PLAN_PROMPT.format(
-        date_long             = date_long,
-        intel_block           = intel_block,
-        deals_block           = deals_block,
-        ailux_block           = ailux_block,
-        prior_block           = prior_block,
-        signals_block         = signals_block,
-        graph_block           = graph_block or "(Graph context unavailable)",
-        patient_context_block = patient_context_block or "(No patient intelligence context available)",
+        date_long               = date_long,
+        intel_block             = intel_block,
+        deals_block             = deals_block,
+        ailux_block             = ailux_block,
+        prior_block             = prior_block,
+        signals_block           = signals_block,
+        graph_block             = graph_block or "(Graph context unavailable)",
+        patient_context_block   = patient_context_block or "(No patient intelligence context available)",
+        patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
+        catalyst_calendar_block = catalyst_calendar_block or "(No catalyst calendar data available)",
+        bd_priority_block       = bd_priority_block or "(No BD priority company data available)",
     )
     log("Pass 1 — generating editorial plan (Opus)…")
     resp = client.messages.create(
@@ -912,7 +1260,8 @@ def format_plan_block(plan):
 
 def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
                   recent_issues, company_signals, trials,
-                  graph_active_in=None, graph_targets=None, graph_competes=None):
+                  graph_active_in=None, graph_targets=None, graph_competes=None,
+                  catalyst_calendar_events=None, bd_priority_data=None):
     now = datetime.datetime.utcnow()
     date_long     = now.strftime("%A, %B %-d, %Y")
     week_num      = now.isocalendar()[1]
@@ -924,26 +1273,40 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # Build patient intelligence context for all areas represented in today's intel.
     # This block is passed to both API passes (plan + draft) so the LLM has
     # verified disease burden data and does not need to hallucinate statistics.
+    # v65+: patient_intelligence_module now pulls live numeric stats (patient counts,
+    # market sizes, remission/failure rates) from the DB when the v65 columns are
+    # present, supplementing the hardcoded disease context text blocks.
     patient_context = build_patient_context_block(enriched_intel) if PATIENT_INTEL_AVAILABLE else ""
 
-    intel_block     = build_intel_block(enriched_intel)
-    deals_block     = build_deals_block(deals)
-    catalysts_block = build_catalysts_block(catalysts)
-    ailux_block     = build_ailux_block(ailux_positions)
-    prior_block     = build_prior_coverage_block(recent_issues)
-    signals_block   = build_company_signals_block(company_signals)
-    trials_block    = build_trials_block(trials)
-    graph_block     = build_graph_block(
+    # v65+: Fetch numeric patient stats (patient counts, market sizes, failure rates)
+    # as a separate compact block. Injected into the draft prompt so the LLM has
+    # precise, queryable figures rather than hand-wavy ranges.
+    patient_stats = fetch_patient_intelligence_stats()
+    patient_stats_block = build_patient_stats_block(patient_stats)
+
+    intel_block            = build_intel_block(enriched_intel)
+    deals_block            = build_deals_block(deals)
+    catalysts_block        = build_catalysts_block(catalysts)
+    ailux_block            = build_ailux_block(ailux_positions)
+    prior_block            = build_prior_coverage_block(recent_issues)
+    signals_block          = build_company_signals_block(company_signals)
+    trials_block           = build_trials_block(trials)
+    graph_block            = build_graph_block(
         graph_active_in or {},
         graph_targets   or {},
         graph_competes  or [],
     )
+    catalyst_calendar_block = build_catalyst_calendar_block(catalyst_calendar_events or [])
+    bd_priority_block       = build_bd_priority_block(bd_priority_data or {})
 
     # Pass 1: editorial plan — includes company signals + graph for landscape context
     plan = generate_editorial_plan(date_long, intel_block, deals_block,
                                    ailux_block, prior_block, signals_block,
                                    graph_block=graph_block,
-                                   patient_context_block=patient_context)
+                                   patient_context_block=patient_context,
+                                   patient_stats_block=patient_stats_block,
+                                   catalyst_calendar_block=catalyst_calendar_block,
+                                   bd_priority_block=bd_priority_block)
     plan_block = format_plan_block(plan)
 
     # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
@@ -956,17 +1319,20 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
 
     # Pass 2: full draft
     prompt = DRAFT_PROMPT.format(
-        date_long             = date_long,
-        date_dateline         = date_dateline,
-        plan_block            = plan_block,
-        intel_block           = intel_block,
-        deals_block           = deals_block,
-        catalysts_block       = catalysts_block,
-        ailux_block           = ailux_block,
-        signals_block         = signals_block,
-        trials_block          = trials_block,
-        graph_block           = graph_block,
-        patient_context_block = patient_context or "(No patient intelligence context available)",
+        date_long               = date_long,
+        date_dateline           = date_dateline,
+        plan_block              = plan_block,
+        intel_block             = intel_block,
+        deals_block             = deals_block,
+        catalysts_block         = catalysts_block,
+        catalyst_calendar_block = catalyst_calendar_block,
+        bd_priority_block       = bd_priority_block,
+        ailux_block             = ailux_block,
+        signals_block           = signals_block,
+        trials_block            = trials_block,
+        graph_block             = graph_block,
+        patient_context_block   = patient_context or "(No patient intelligence context available)",
+        patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
     )
 
     log("Pass 2 — generating full Meridian draft (Opus)…")
@@ -1236,6 +1602,8 @@ if __name__ == "__main__":
     intel                              = fetch_recent_intel(hours_back=48)
     deals                              = fetch_recent_deals(days_back=7)
     catalysts                          = fetch_upcoming_catalysts()
+    catalyst_calendar_events           = fetch_catalyst_calendar(days_ahead=365)
+    bd_priority_data                   = fetch_bd_priority_companies()
     drugs, companies                   = fetch_drug_context()
     ailux_positions                    = fetch_ailux_position()
     recent_issues                      = fetch_recent_meridian_issues(n=7)
@@ -1244,6 +1612,9 @@ if __name__ == "__main__":
     graph_active_in, graph_targets, graph_competes = fetch_graph_context()
 
     log(f"Data assembled: {len(intel)} intel · {len(deals)} deals · {len(catalysts)} catalysts · "
+        f"{len(catalyst_calendar_events)} cal events · "
+        f"{len(bd_priority_data.get('scores',[]))} very_high scores · "
+        f"{len(bd_priority_data.get('views',[]))} strategic views · "
         f"{len(company_signals)} signals · {len(trials)} trials · {len(recent_issues)} prior issues · "
         f"graph: {sum(len(v) for v in graph_active_in.values())} ACTIVE_IN / "
         f"{len(graph_targets)} TARGETS / {len(graph_competes)} COMPETES_WITH")
@@ -1267,6 +1638,8 @@ if __name__ == "__main__":
             graph_active_in=graph_active_in,
             graph_targets=graph_targets,
             graph_competes=graph_competes,
+            catalyst_calendar_events=catalyst_calendar_events,
+            bd_priority_data=bd_priority_data,
         )
 
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
