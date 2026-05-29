@@ -11,6 +11,15 @@ import os, json, datetime, base64, re, time, hashlib
 import requests
 import anthropic
 
+# Patient intelligence context (co-equal intelligence layer)
+try:
+    from patient_intelligence_module import PATIENT_INTELLIGENCE_CONTEXT, build_patient_context_block
+    PATIENT_INTEL_AVAILABLE = True
+except ImportError:
+    PATIENT_INTELLIGENCE_CONTEXT = ""
+    build_patient_context_block = lambda items: ""
+    PATIENT_INTEL_AVAILABLE = False
+
 # ── Credentials ─────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL      = os.environ["SUPABASE_URL"]
@@ -590,7 +599,19 @@ TONE: The writing of a scientist who also reads The Economist and thinks like a 
 HARD PROHIBITIONS:
 - Do not include any contact information, email addresses, or tip lines. The Meridian has no public inbox.
 - Do not include any sign-off line such as "Questions or tips:" or any equivalent.
-- The issue-meta footer should contain only the confidentiality disclaimer — no contact details of any kind."""
+- The issue-meta footer should contain only the confidentiality disclaimer — no contact details of any kind.
+
+WRITING_STANDARDS:
+- Resolve contradictions before writing. If two sources disagree on a drug's target or mechanism, the definitive answer is the primary literature or EMA/FDA label. Never present both versions as equally valid.
+- No speculation about company strategy, executive intent, or institutional behavior unless supported by a press release, earnings call transcript, or investor letter. Inference is not evidence.
+- Every competitive paragraph must include at minimum: patient population (N, geography), current SOC response rate, and what clinical improvement means for this patient. Numbers are mandatory.
+- Cite exact trial data: registry ID or trial name, primary endpoint metric, value at which dose and timepoint, N enrolled or completed. Do not round or generalize.
+- First mention of a drug name in the HTML output: wrap in <a href="#" onclick="openDrugModal('{drug_id}')">drug name</a>. Subsequent mentions: plain text.
+- First mention of a company name: wrap in <a href="#" onclick="openCompanyModal('{company_id}')">company name</a>. Subsequent mentions: plain text.
+- Target is the molecular target. Mechanism is how the drug engages it. Pathway is the downstream biology. Name all three distinctly.
+- If a drug's mechanism is unknown or disputed, say so explicitly and do not write competitive analysis around it until resolved."""
+
+SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + PATIENT_INTELLIGENCE_CONTEXT
 
 
 # ── Pass 1: Editorial planning ───────────────────────────────────────────────
@@ -615,6 +636,9 @@ PRIOR COVERAGE:
 
 AILUX CONTEXT:
 {ailux_block}
+
+## Today's Patient Intelligence Context
+{patient_context_block}
 
 Your editorial plan must answer:
 1. THESIS: In one sentence, what is the single most important thing today's full intelligence picture reveals about the competitive landscape? This becomes the editorial spine of the lede.
@@ -657,6 +681,9 @@ CLINICAL TRIAL TRACKER (recent updates from dashboard trial panel):
 AILUX CONTEXT:
 {ailux_block}
 
+## Today's Patient Intelligence Context
+{patient_context_block}
+
 ─────────────────────────────────────────────
 SECTION STRUCTURE (build exactly this architecture):
 
@@ -671,6 +698,14 @@ SECTION STRUCTURE (build exactly this architecture):
 5. CATALYST WATCH — Always include. HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending.
 
 6. CLOSING NOTE — 2–3 sentences in italic. End on a forward-looking observation or open question, not a summary of what was just written.
+
+─────────────────────────────────────────────
+4-LAYER NARRATIVE FORMAT — mandatory for any drug event, clinical trial result, or deal:
+When writing about any drug event, clinical trial result, or deal involving a drug in the IBD, atopy, TED, FcRn, T-cell, or GI oncology space, apply the 4-layer format:
+1. What the molecule does (1 sentence)
+2. Who the patient is and what they face (2-3 sentences)
+3. What the mechanism means for the patient's daily life (1-2 sentences)
+4. What this means for BD strategy and deal value (1-2 sentences)
 
 ─────────────────────────────────────────────
 BD LENS FORMAT — use this HTML for every BD Lens callout:
@@ -726,18 +761,102 @@ The header block must be exactly:
 Return ONLY the HTML document. No markdown. No explanation outside the HTML."""
 
 
+# ── First-mention hyperlink post-processor ───────────────────────────────────
+def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
+    """
+    Post-processing pass: wrap the FIRST occurrence of each known drug name and
+    company name in the HTML with the appropriate onclick modal link.  All
+    subsequent occurrences are left as plain text.
+
+    Rules:
+      - Drug first mention  → <a href="#" onclick="openDrugModal('{id}')">name</a>
+      - Company first mention → <a href="#" onclick="openCompanyModal('{id}')">name</a>
+      - Names already inside an <a …> tag are skipped (source links placed by LLM).
+      - Only replaces exact-case matches with word-boundary guards to avoid
+        partial-word collisions (e.g. "Roche" inside "Roche/Genentech" is handled
+        by longest-match ordering).
+      - Skips tokens shorter than 4 characters to reduce false positives.
+
+    This closes the gap when the LLM fails to apply the onclick pattern itself,
+    and enforces the WRITING_STANDARDS first-mention rule programmatically.
+    """
+    import re as _re
+
+    # Build sorted lists: longest name first to avoid partial replacements
+    drug_entries = []
+    for d in drugs.values():
+        for field in [d.get("display_name"), d.get("name")]:
+            if field and len(field) >= 4:
+                drug_entries.append((field, d["id"]))
+    # Deduplicate by name, keep first occurrence (display_name preferred)
+    seen_drug_names = set()
+    drug_entries_dedup = []
+    for name, did in sorted(drug_entries, key=lambda x: -len(x[0])):
+        if name.lower() not in seen_drug_names:
+            seen_drug_names.add(name.lower())
+            drug_entries_dedup.append((name, did))
+
+    company_entries = []
+    for c in companies.values():
+        if c.get("name") and len(c["name"]) >= 4:
+            company_entries.append((c["name"], c["id"]))
+    company_entries = sorted(company_entries, key=lambda x: -len(x[0]))
+
+    # Helper: check if position pos in html is already inside an <a> tag
+    def _inside_anchor(html_str, pos):
+        """Return True if pos falls between an <a …> and its </a>."""
+        preceding = html_str[:pos]
+        open_count  = len(_re.findall(r'<a[\s>]', preceding, _re.IGNORECASE))
+        close_count = len(_re.findall(r'</a>', preceding, _re.IGNORECASE))
+        return open_count > close_count
+
+    def _replace_first(html_str, token, replacement):
+        """Replace the first word-boundary occurrence of token (case-sensitive)
+        that is NOT already inside an anchor tag."""
+        pattern = _re.compile(r'(?<![a-zA-Z0-9\-])' + _re.escape(token) + r'(?![a-zA-Z0-9\-])')
+        for m in pattern.finditer(html_str):
+            if not _inside_anchor(html_str, m.start()):
+                return html_str[:m.start()] + replacement + html_str[m.end():]
+        return html_str  # no eligible occurrence found
+
+    # Apply drug links
+    drug_linked = set()
+    for name, did in drug_entries_dedup:
+        if name.lower() not in drug_linked:
+            link = f'<a href="#" onclick="openDrugModal(\'{did}\')">{name}</a>'
+            new_html = _replace_first(html, name, link)
+            if new_html is not html:  # replacement was made
+                html = new_html
+                drug_linked.add(name.lower())
+
+    # Apply company links
+    co_linked = set()
+    for name, cid in company_entries:
+        if name.lower() not in co_linked:
+            link = f'<a href="#" onclick="openCompanyModal(\'{cid}\')">{name}</a>'
+            new_html = _replace_first(html, name, link)
+            if new_html is not html:
+                html = new_html
+                co_linked.add(name.lower())
+
+    log(f"First-mention links applied: {len(drug_linked)} drugs, {len(co_linked)} companies")
+    return html
+
+
 # ── Generate HTML with Claude Opus (two passes) ──────────────────────────────
 def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
-                             prior_block, signals_block="", graph_block=""):
+                             prior_block, signals_block="", graph_block="",
+                             patient_context_block=""):
     """Pass 1: produce a tight editorial plan before writing a word of prose."""
     prompt = PLAN_PROMPT.format(
-        date_long     = date_long,
-        intel_block   = intel_block,
-        deals_block   = deals_block,
-        ailux_block   = ailux_block,
-        prior_block   = prior_block,
-        signals_block = signals_block,
-        graph_block   = graph_block or "(Graph context unavailable)",
+        date_long             = date_long,
+        intel_block           = intel_block,
+        deals_block           = deals_block,
+        ailux_block           = ailux_block,
+        prior_block           = prior_block,
+        signals_block         = signals_block,
+        graph_block           = graph_block or "(Graph context unavailable)",
+        patient_context_block = patient_context_block or "(No patient intelligence context available)",
     )
     log("Pass 1 — generating editorial plan (Opus)…")
     resp = client.messages.create(
@@ -802,6 +921,11 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # Enrich intel with live drug/company context
     enriched_intel = enrich_intel_with_drug_context(intel, drugs, companies)
 
+    # Build patient intelligence context for all areas represented in today's intel.
+    # This block is passed to both API passes (plan + draft) so the LLM has
+    # verified disease burden data and does not need to hallucinate statistics.
+    patient_context = build_patient_context_block(enriched_intel) if PATIENT_INTEL_AVAILABLE else ""
+
     intel_block     = build_intel_block(enriched_intel)
     deals_block     = build_deals_block(deals)
     catalysts_block = build_catalysts_block(catalysts)
@@ -818,7 +942,8 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # Pass 1: editorial plan — includes company signals + graph for landscape context
     plan = generate_editorial_plan(date_long, intel_block, deals_block,
                                    ailux_block, prior_block, signals_block,
-                                   graph_block=graph_block)
+                                   graph_block=graph_block,
+                                   patient_context_block=patient_context)
     plan_block = format_plan_block(plan)
 
     # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
@@ -831,16 +956,17 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
 
     # Pass 2: full draft
     prompt = DRAFT_PROMPT.format(
-        date_long       = date_long,
-        date_dateline   = date_dateline,
-        plan_block      = plan_block,
-        intel_block     = intel_block,
-        deals_block     = deals_block,
-        catalysts_block = catalysts_block,
-        ailux_block     = ailux_block,
-        signals_block   = signals_block,
-        trials_block    = trials_block,
-        graph_block     = graph_block,
+        date_long             = date_long,
+        date_dateline         = date_dateline,
+        plan_block            = plan_block,
+        intel_block           = intel_block,
+        deals_block           = deals_block,
+        catalysts_block       = catalysts_block,
+        ailux_block           = ailux_block,
+        signals_block         = signals_block,
+        trials_block          = trials_block,
+        graph_block           = graph_block,
+        patient_context_block = patient_context or "(No patient intelligence context available)",
     )
 
     log("Pass 2 — generating full Meridian draft (Opus)…")
@@ -861,6 +987,13 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # Ensure all links open in a new tab (iframe navigation guard)
     if "<base " not in html:
         html = html.replace("<head>", '<head>\n<base target="_blank" rel="noopener">', 1)
+
+    # Apply first-mention hyperlinks for drug and company names.
+    # This enforces the WRITING_STANDARDS rule programmatically: first occurrence
+    # of each known entity gets an onclick modal link; subsequent occurrences are
+    # plain text.  Runs after the LLM draft so the LLM's own source hyperlinks
+    # (which already sit inside <a> tags) are never double-wrapped.
+    html = apply_first_mention_links(html, drugs, companies)
 
     return html, plan, _plan_company_ids, _content_fingerprint
 
