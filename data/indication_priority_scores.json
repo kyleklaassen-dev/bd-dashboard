@@ -1,71 +1,23 @@
 [
   {
-    "indication_id": "sjogrens",
-    "indication_name": "Sjogren's Syndrome",
-    "patient_count_us": 400000,
-    "market_size_usd_bn": 2.0,
-    "unmet_need_score": 9,
-    "biologic_failure_rate_pct": 60.0,
-    "remission_rate_soc_pct": 10.0,
-    "ailux_fit_score": 9,
-    "competitive_white_space": 9,
-    "priority_rationale": "Direct ALX002 target. Nearly no approved pharmacotherapy for systemic Sjogren's \u2014 highest white space of any indication tracked. B cell/plasma cell pathology is core disease driver = strong CD19\u00d7BCMA mechanistic fit. Small but severely underserved patient population.",
-    "alx_programs": [
-      "alx002"
-    ],
-    "indication_priority_rank": 1,
-    "_composite_score": 8.4
-  },
-  {
-    "indication_id": "cd",
-    "indication_name": "Crohn's Disease",
-    "patient_count_us": 780000,
-    "market_size_usd_bn": 7.0,
-    "unmet_need_score": 9,
-    "biologic_failure_rate_pct": 45.0,
-    "remission_rate_soc_pct": 20.0,
+    "indication_id": "gmg",
+    "indication_name": "Generalized Myasthenia Gravis",
+    "patient_count_us": 90000,
+    "market_size_usd_bn": 3.0,
+    "unmet_need_score": 8,
+    "biologic_failure_rate_pct": 30.0,
+    "remission_rate_soc_pct": 50.0,
     "ailux_fit_score": 10,
-    "competitive_white_space": 7,
-    "priority_rationale": "Direct ALX001 target. Worst remission rate of any indication tracked (20% SoC). 45% biologic failure = large inadequate responder pool. Fibrotic CD has essentially no good option. TL1A\u00d7IL-23 combo is mechanistically ideal for the fibroinflammatory phenotype.",
-    "alx_programs": [
-      "alx001"
-    ],
-    "indication_priority_rank": 2,
-    "_composite_score": 8.0
-  },
-  {
-    "indication_id": "sle",
-    "indication_name": "Systemic Lupus Erythematosus",
-    "patient_count_us": 200000,
-    "market_size_usd_bn": 4.0,
-    "unmet_need_score": 9,
-    "biologic_failure_rate_pct": 50.0,
-    "remission_rate_soc_pct": 15.0,
-    "ailux_fit_score": 9,
     "competitive_white_space": 8,
-    "priority_rationale": "Direct ALX002 target (CD19\u00d7BCMA). SLE has among the worst SoC remission rates tracked. The B-cell + plasma cell dual depletion strategy is mechanistically compelling and differentiated from belimumab (BLyS only) or anifrolumab (IFN). No approved bispecific in class \u2014 high white space.",
-    "alx_programs": [
-      "alx002"
-    ],
-    "indication_priority_rank": 3,
-    "_composite_score": 8.0
-  },
-  {
-    "indication_id": "tl1a",
-    "indication_name": "TL1A Mechanism Area",
-    "patient_count_us": 2500000,
-    "market_size_usd_bn": 15.0,
-    "unmet_need_score": 9,
-    "biologic_failure_rate_pct": 42.0,
-    "remission_rate_soc_pct": 18.0,
-    "ailux_fit_score": 10,
-    "competitive_white_space": 7,
-    "priority_rationale": "Broadest view of ALX001 competitive landscape. TL1A space is rapidly maturing \u2014 monospecifics entering Phase 3, but TL1A bispecifics (pairing with IL-23) are only entering Ph1/2. Competitive window for differentiation is 2025-2027 before monospecifics own the positioning.",
-    "alx_programs": [
-      "alx001"
-    ],
-    "indication_priority_rank": 4,
-    "_composite_score": 7.94
+    "window_urgency_score": 8,
+    "biology_validation_score": 10,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 10,
+    "priority_rationale": "Direct ALX005 target. FcRn mechanism fully validated by 3+ approved drugs. MG-ADL is FDA gold standard. AChR Ab+ stratification = 85% of gMG population perfectly identified at baseline. Bispecific white space remains open — no FcRn bispecific in gMG Phase 2.",
+    "tooltip_why": "Window urgency=8 (FcRn mono approved; no FcRn bispecific in gMG Phase 2 — bispecific niche is open) · Biology validated (FcRn mechanism: efgartigimod, rozanolixizumab, nipocalimab all approved in gMG) · Endpoint established (MG-ADL is FDA gold standard, QMG secondary) · Biomarker: AChR Ab+ = ~85% of gMG, perfectly stratifiable at baseline",
+    "alx_programs": ["alx005"],
+    "indication_priority_rank": 1,
+    "_composite_score": 8.90
   },
   {
     "indication_id": "cidp",
@@ -77,12 +29,35 @@
     "remission_rate_soc_pct": 60.0,
     "ailux_fit_score": 10,
     "competitive_white_space": 9,
-    "priority_rationale": "Direct ALX005 target. Efgartigimod approved but bispecific white space is essentially unchallenged. Smaller patient population ($1.5B market) is a ceiling constraint, but high fit + high white space justifies top-5 priority. Maintenance convenience is a key clinical differentiator.",
-    "alx_programs": [
-      "alx005"
-    ],
-    "indication_priority_rank": 5,
-    "_composite_score": 7.9
+    "window_urgency_score": 9,
+    "biology_validation_score": 8,
+    "regulatory_pathway_clarity": 7,
+    "patient_stratifiability": 6,
+    "priority_rationale": "Direct ALX005 target. Efgartigimod approved (monospecific) but bispecific white space is completely unchallenged — no FcRn bispecific in CIDP Phase 2. Highest window urgency score of any indication. INCAT endpoint established. Market size ceiling ($1.5B) is the primary constraint.",
+    "tooltip_why": "Window urgency=9 (no FcRn bispecific in CIDP Phase 2; efgartigimod mono approved, bispecific space completely open) · FcRn mechanism validated by efgartigimod/rozanolixizumab clinical data · INCAT disability score established, FDA-accepted; some debate vs ADSS · Anti-NF155 antibody subset exists but not universal; clinical severity stratification possible",
+    "alx_programs": ["alx005"],
+    "indication_priority_rank": 2,
+    "_composite_score": 8.70
+  },
+  {
+    "indication_id": "cd",
+    "indication_name": "Crohn's Disease",
+    "patient_count_us": 780000,
+    "market_size_usd_bn": 7.0,
+    "unmet_need_score": 9,
+    "biologic_failure_rate_pct": 45.0,
+    "remission_rate_soc_pct": 20.0,
+    "ailux_fit_score": 10,
+    "competitive_white_space": 7,
+    "window_urgency_score": 7,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 8,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Direct ALX001 target. Worst remission rate of any indication tracked (20% SoC). 45% biologic failure = large inadequate responder pool. Fibrotic CD has essentially no good option. TL1A×IL-23 combo is mechanistically ideal for the fibroinflammatory phenotype. SPY072 Phase 1b = 18-24 month window.",
+    "tooltip_why": "Window urgency=7 (SPY072 TL1A×IL-23 Phase 1b active, 18-24mo window before Phase 2 data closes bispecific positioning) · Biology validated (TL1A ARTEMIS-CD Phase 2b data; IL-23 multiple Phase 3 trials in CD) · CDAI + endoscopic endpoints established, FDA-precedented · Biomarker emerging (fecal calprotectin, TL1A-high expressors, fibrotic phenotype selection)",
+    "alx_programs": ["alx001"],
+    "indication_priority_rank": 3,
+    "_composite_score": 8.40
   },
   {
     "indication_id": "uc",
@@ -94,63 +69,15 @@
     "remission_rate_soc_pct": 25.0,
     "ailux_fit_score": 10,
     "competitive_white_space": 7,
-    "priority_rationale": "Direct ALX001 target. 40% biologic failure rate with only 25% SoC remission \u2014 among the worst in I&I. No approved bispecific; Spyre/Sanofi SPY002 in Phase 2 is closest competitor. Deep remission gap is Ailux's clinical window.",
-    "alx_programs": [
-      "alx001"
-    ],
-    "indication_priority_rank": 6,
-    "_composite_score": 7.6
-  },
-  {
-    "indication_id": "gmg",
-    "indication_name": "Generalized Myasthenia Gravis",
-    "patient_count_us": 90000,
-    "market_size_usd_bn": 3.0,
-    "unmet_need_score": 8,
-    "biologic_failure_rate_pct": 30.0,
-    "remission_rate_soc_pct": 50.0,
-    "ailux_fit_score": 10,
-    "competitive_white_space": 8,
-    "priority_rationale": "Direct ALX005 target (FcRn\u00d7Albumin). FcRn monospecifics now approved (rozanolixizumab, efgartigimod) but bispecific combining extended half-life with second mechanism has open white space. AChR+ and MuSK+ subgroups have different needs = Ailux differentiation opportunity.",
-    "alx_programs": [
-      "alx005"
-    ],
-    "indication_priority_rank": 7,
-    "_composite_score": 7.6
-  },
-  {
-    "indication_id": "fcrn",
-    "indication_name": "FcRn Target Area",
-    "patient_count_us": 800000,
-    "market_size_usd_bn": 6.0,
-    "unmet_need_score": 8,
-    "biologic_failure_rate_pct": 35.0,
-    "remission_rate_soc_pct": 40.0,
-    "ailux_fit_score": 9,
-    "competitive_white_space": 7,
-    "priority_rationale": "ALX005 mechanism monitoring view. FcRn monospecific era is now established \u2014 approved drugs exist. Competitive window for bispecific is the next gen. Bispecific + extended half-life profile could redefine dosing standards across gMG, CIDP, pemphigus, ITP.",
-    "alx_programs": [
-      "alx005"
-    ],
-    "indication_priority_rank": 8,
-    "_composite_score": 7.2
-  },
-  {
-    "indication_id": "ibd",
-    "indication_name": "IBD (Inflammatory Bowel Disease)",
-    "patient_count_us": 1680000,
-    "market_size_usd_bn": 15.0,
-    "unmet_need_score": 8,
-    "biologic_failure_rate_pct": 42.0,
-    "remission_rate_soc_pct": 22.0,
-    "ailux_fit_score": 9,
-    "competitive_white_space": 6,
-    "priority_rationale": "Combined UC+CD view for ALX001. More competitive than individual indication views because of the breadth of approved drugs in IBD overall. Bispecific white space is real but the crowding in the monospecific space sets a high differentiation bar.",
-    "alx_programs": [
-      "alx001"
-    ],
-    "indication_priority_rank": 9,
-    "_composite_score": 7.14
+    "window_urgency_score": 6,
+    "biology_validation_score": 10,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 8,
+    "priority_rationale": "Direct ALX001 target. TL1A mechanism FDA-validated in UC via ARTEMIS Phase 2b. Endoscopic remission is the gold standard — highest regulatory clarity of any IBD indication. Window compressing (duvakitug Phase 3 H2 2026, SPY072 Phase 1b active) but biology and endpoint strength are unmatched.",
+    "tooltip_why": "Window urgency=6 (SPY072 TL1A×IL-23 Phase 1b active; duvakitug Ph3 H2 2026 — 12-18mo window before benchmark data lands) · TL1A mechanism FDA-validated in UC via ARTEMIS Phase 2b · Endoscopic remission is FDA gold standard (MTWSI/Mayo score established, multiple approved drugs) · Fecal calprotectin, TL1A-high expressors, biologic failure history as strong baseline stratifiers",
+    "alx_programs": ["alx001"],
+    "indication_priority_rank": 4,
+    "_composite_score": 8.25
   },
   {
     "indication_id": "mg",
@@ -162,12 +89,115 @@
     "remission_rate_soc_pct": 50.0,
     "ailux_fit_score": 8,
     "competitive_white_space": 8,
-    "priority_rationale": "Broad MG view overlapping with direct ALX005 target (gMG). Relevant for FcRn competitive monitoring. eculizumab, rituximab, efgartigimod all active. Bispecific opportunity mirrors gMG analysis.",
-    "alx_programs": [
-      "alx005"
-    ],
+    "window_urgency_score": 8,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 9,
+    "patient_stratifiability": 8,
+    "priority_rationale": "Broad MG view overlapping with direct ALX005 target (gMG). Relevant for FcRn competitive monitoring. eculizumab, rituximab, efgartigimod all active. Bispecific opportunity mirrors gMG analysis. AChR Ab stratification well-established.",
+    "tooltip_why": "Window urgency=8 (mirrors gMG; bispecific space open within broad MG; AChR-specific subgroup is addressable niche) · FcRn + complement mechanisms both clinically validated · MG-ADL + QMG established; regulatory pathway mature with multiple approved drugs · AChR Ab+ stratification well-established; eculizumab failures define refractory AQM4 subgroup",
+    "alx_programs": ["alx005"],
+    "indication_priority_rank": 5,
+    "_composite_score": 8.15
+  },
+  {
+    "indication_id": "sjogrens",
+    "indication_name": "Sjogren's Syndrome",
+    "patient_count_us": 400000,
+    "market_size_usd_bn": 2.0,
+    "unmet_need_score": 9,
+    "biologic_failure_rate_pct": 60.0,
+    "remission_rate_soc_pct": 10.0,
+    "ailux_fit_score": 9,
+    "competitive_white_space": 9,
+    "window_urgency_score": 9,
+    "biology_validation_score": 5,
+    "regulatory_pathway_clarity": 4,
+    "patient_stratifiability": 3,
+    "priority_rationale": "Direct ALX002 target. Nearly no approved pharmacotherapy — highest white space of any tracked indication and highest window urgency. B cell/plasma cell pathology is core disease driver = strong CD19×BCMA fit. Critical risk: biology validation is lower than it appears (contested animal models, no FDA-established endpoint, no validated biomarker). High white space is partly explained by high trial failure risk.",
+    "tooltip_why": "Window urgency=9 (no Phase 2+ CD19 bispecific in Sjogren's — window is wide open, >24mo) · Biology contested (no validated animal model; ESSDAI/ESSPRI debate ongoing; rituximab Phase 3 failures) · Endpoint contested (ESSDAI vs ESSPRI, no FDA-accepted gold standard for approval) · No validated stratification biomarker (RF/anti-SSA insufficient; anti-Ro52 not yet validated as enrollment criterion)",
+    "alx_programs": ["alx002"],
+    "indication_priority_rank": 6,
+    "_composite_score": 8.05
+  },
+  {
+    "indication_id": "tl1a",
+    "indication_name": "TL1A Mechanism Area",
+    "patient_count_us": 2500000,
+    "market_size_usd_bn": 15.0,
+    "unmet_need_score": 9,
+    "biologic_failure_rate_pct": 42.0,
+    "remission_rate_soc_pct": 18.0,
+    "ailux_fit_score": 10,
+    "competitive_white_space": 7,
+    "window_urgency_score": 5,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 9,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Broadest view of ALX001 competitive landscape. TL1A mechanism FDA-validated. Bispecific window is 2025-2027 — monospecifics entering Phase 3 (duvakitug H2 2026 Phase 3 readout). Window urgency penalized because monospecifics are already defining the positioning before bispecifics reach Ph2.",
+    "tooltip_why": "Window urgency=5 (monospecifics entering Phase 3 — duvakitug Ph3 H2 2026; window compressing for bispecific differentiation before monospecifics own positioning) · TL1A mechanism FDA-validated via ARTEMIS Phase 2b data · Endoscopic remission gold standard in IBD, FDA-established pathway · Fecal calprotectin + TL1A-high expressors as emerging stratification tools",
+    "alx_programs": ["alx001"],
+    "indication_priority_rank": 7,
+    "_composite_score": 8.05
+  },
+  {
+    "indication_id": "fcrn",
+    "indication_name": "FcRn Target Area",
+    "patient_count_us": 800000,
+    "market_size_usd_bn": 6.0,
+    "unmet_need_score": 8,
+    "biologic_failure_rate_pct": 35.0,
+    "remission_rate_soc_pct": 40.0,
+    "ailux_fit_score": 9,
+    "competitive_white_space": 7,
+    "window_urgency_score": 7,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 9,
+    "patient_stratifiability": 8,
+    "priority_rationale": "ALX005 mechanism monitoring view. FcRn monospecific era is now established — approved drugs exist. Competitive window for bispecific is the next gen across gMG, CIDP, pemphigus, ITP. Strong biology validation and regulatory clarity across the class.",
+    "tooltip_why": "Window urgency=7 (FcRn mono era established; bispecific next-gen window open but narrowing as competition develops across indications) · FcRn mechanism validated across gMG, CIDP, ITP, pemphigus by 3+ approved drugs · Strong FDA precedent across multiple IgG-mediated diseases, multiple established endpoints · Disease-specific antibody biomarkers (AChR, anti-HMCN2, anti-NF155) provide indication-level stratification",
+    "alx_programs": ["alx005"],
+    "indication_priority_rank": 8,
+    "_composite_score": 8.05
+  },
+  {
+    "indication_id": "sle",
+    "indication_name": "Systemic Lupus Erythematosus",
+    "patient_count_us": 200000,
+    "market_size_usd_bn": 4.0,
+    "unmet_need_score": 9,
+    "biologic_failure_rate_pct": 50.0,
+    "remission_rate_soc_pct": 15.0,
+    "ailux_fit_score": 9,
+    "competitive_white_space": 8,
+    "window_urgency_score": 8,
+    "biology_validation_score": 6,
+    "regulatory_pathway_clarity": 5,
+    "patient_stratifiability": 3,
+    "priority_rationale": "Direct ALX002 target (CD19×BCMA). SLE has among the worst SoC remission rates tracked. B-cell + plasma cell dual depletion differentiated from belimumab/anifrolumab. Critical risk: SLE has ~75% Phase 2→32 failure rate historically, SLEDAI endpoint complexity, and no validated biomarker for responder identification.",
+    "tooltip_why": "Window urgency=8 (no Phase 2+ CD19×BCMA bispecific in SLE — window is open) · Biology moderate (CAR-T CD19 depletion data emerging; historically 75% Ph2→Ph3 failure rate in SLE) · SLEDAI composite is complex, SRI-4 FDA-accepted but difficult endpoint to power · No validated stratification biomarker; must enroll broad SLE population",
+    "alx_programs": ["alx002"],
+    "indication_priority_rank": 9,
+    "_composite_score": 7.85
+  },
+  {
+    "indication_id": "ibd",
+    "indication_name": "IBD (Inflammatory Bowel Disease)",
+    "patient_count_us": 1680000,
+    "market_size_usd_bn": 15.0,
+    "unmet_need_score": 8,
+    "biologic_failure_rate_pct": 42.0,
+    "remission_rate_soc_pct": 22.0,
+    "ailux_fit_score": 9,
+    "competitive_white_space": 6,
+    "window_urgency_score": 6,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 9,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Combined UC+CD view for ALX001. More competitive than individual indication views because of the breadth of approved drugs in IBD overall. Bispecific white space is real but the crowding in the monospecific space sets a high differentiation bar.",
+    "tooltip_why": "Window urgency=6 (combined view — bispecific window 12-18mo; SPY072 + duvakitug Phase 3 readouts define the clock) · TL1A×IL-23 mechanism validated in UC+CD separately, strong biology · Endoscopic remission + CDAI gold standards, FDA well-established pathway · Fecal calprotectin, biologic failure history, endoscopic severity as stratifiers",
+    "alx_programs": ["alx001"],
     "indication_priority_rank": 10,
-    "_composite_score": 7.0
+    "_composite_score": 7.65
   },
   {
     "indication_id": "il23",
@@ -179,12 +209,15 @@
     "remission_rate_soc_pct": 30.0,
     "ailux_fit_score": 8,
     "competitive_white_space": 5,
-    "priority_rationale": "Second arm of ALX001. IL-23p19 monotherapy is already standard of care in UC/CD/psoriasis \u2014 bispecific must prove additive benefit over adding drugs sequentially. The differentiation story is convenience + synergy, not mechanism novelty alone.",
-    "alx_programs": [
-      "alx001"
-    ],
+    "window_urgency_score": 4,
+    "biology_validation_score": 10,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Second arm of ALX001. IL-23p19 monotherapy is already standard of care in UC/CD/psoriasis — bispecific must prove additive benefit over adding drugs sequentially. Window urgency is low because IL-23 monospecifics have already defined the space. The differentiation story is convenience + synergy, not mechanism novelty.",
+    "tooltip_why": "Window urgency=4 (IL-23p19 monospecifics approved SoC in UC/CD/psoriasis — bispecific must prove additive value, not fill empty space) · IL-23 mechanism: most validated non-TNF target in IBD and autoimmune disease · Endoscopic remission FDA gold standard, multiple approved drugs confirm pathway · Fecal calprotectin + prior biologic failure as stratifiers; phenotype-based selection possible",
+    "alx_programs": ["alx001"],
     "indication_priority_rank": 11,
-    "_composite_score": 6.26
+    "_composite_score": 6.80
   },
   {
     "indication_id": "ted",
@@ -196,10 +229,15 @@
     "remission_rate_soc_pct": 45.0,
     "ailux_fit_score": 4,
     "competitive_white_space": 6,
-    "priority_rationale": "Competitive monitoring area \u2014 not direct Ailux. IGF-1R\u00d7TSHR bispecific approach is being pioneered here (veligrotug, lonigutamab). Tepezza relapse problem + SC route preference = clinical gap. Relevant to understand bispecific differentiation playbook even outside Ailux mechanisms.",
+    "window_urgency_score": 5,
+    "biology_validation_score": 8,
+    "regulatory_pathway_clarity": 8,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Competitive monitoring area — not direct Ailux. IGF-1R×TSHR bispecific approach being pioneered here (veligrotug, lonigutamab). Tepezza relapse problem + SC route preference = clinical gap. Relevant to understand bispecific differentiation playbook even outside Ailux mechanisms.",
+    "tooltip_why": "Window urgency=5 (teprotumumab approved; linsitinib Phase 3; IGF-1R bispecific space moderately crowded with 2 active programs) · IGF-1R validated by teprotumumab (Tepezza) approval; TSHR component emerging via lonigutamab · CAS + proptosis response well-established by FDA via Tepezza approval pathway · CAS activity score + thyroid antibody titers provide reasonable baseline stratification",
     "alx_programs": [],
     "indication_priority_rank": 12,
-    "_composite_score": 5.8
+    "_composite_score": 6.25
   },
   {
     "indication_id": "graves",
@@ -211,10 +249,15 @@
     "remission_rate_soc_pct": 55.0,
     "ailux_fit_score": 3,
     "competitive_white_space": 8,
-    "priority_rationale": "Adjacent to TED \u2014 same IGF-1R/TSHR biology. Iscalimab (anti-CD40L) in Phase 3. No approved biologic for Graves hyperthyroidism itself. High white space but low Ailux fit. Monitor as part of IGF-1R competitive landscape.",
+    "window_urgency_score": 7,
+    "biology_validation_score": 6,
+    "regulatory_pathway_clarity": 5,
+    "patient_stratifiability": 5,
+    "priority_rationale": "Adjacent to TED — same IGF-1R/TSHR biology. Iscalimab (anti-CD40L) in Phase 3. No approved biologic for Graves hyperthyroidism itself. High white space but low Ailux fit. Monitor as part of IGF-1R competitive landscape.",
+    "tooltip_why": "Window urgency=7 (no approved biologic for Graves hyperthyroidism; iscalimab Phase 3 only competitor) · IGF-1R/TSHR biology partially validated by TED data; Graves-specific PoC limited · Endpoint contested — TRAb suppression vs clinical euthyroidism; no FDA-established Phase 3 endpoint · TRAb titer provides some stratification but not validated as enrollment criterion",
     "alx_programs": [],
     "indication_priority_rank": 13,
-    "_composite_score": 5.2
+    "_composite_score": 5.85
   },
   {
     "indication_id": "autoimmune_broad",
@@ -226,14 +269,15 @@
     "remission_rate_soc_pct": 25.0,
     "ailux_fit_score": 5,
     "competitive_white_space": 4,
-    "priority_rationale": "Broad strategic view \u2014 useful for partner positioning analysis across ALX001/ALX002/ALX005 mechanisms. Too wide for actionable competitive scoring but relevant for tracking company portfolios that span multiple autoimmune indications.",
-    "alx_programs": [
-      "alx001",
-      "alx002",
-      "alx005"
-    ],
+    "window_urgency_score": 5,
+    "biology_validation_score": 7,
+    "regulatory_pathway_clarity": 6,
+    "patient_stratifiability": 4,
+    "priority_rationale": "Broad strategic view — useful for partner positioning analysis across ALX001/ALX002/ALX005 mechanisms. Too wide for actionable competitive scoring but relevant for tracking company portfolios that span multiple autoimmune indications.",
+    "tooltip_why": "Window urgency=5 (broad view — some areas open, others crowded; no single urgency signal) · Biology varies widely by indication within this broad category · Regulatory pathways established per-disease but no unifying approach · Biomarker stratification is indication-specific; no cross-indication stratification tool",
+    "alx_programs": ["alx001", "alx002", "alx005"],
     "indication_priority_rank": 14,
-    "_composite_score": 5.1
+    "_composite_score": 5.45
   },
   {
     "indication_id": "atopy",
@@ -245,10 +289,15 @@
     "remission_rate_soc_pct": 30.0,
     "ailux_fit_score": 3,
     "competitive_white_space": 3,
-    "priority_rationale": "Watch area. Dupilumab dominates with strong efficacy. IL-4Ra/TSLP/IL-13 monospecifics all approved or late-stage. Bispecific white space nearly closed by competitive density. Low Ailux relevance \u2014 useful for understanding IL-4Ra/TSLP positioning benchmarks.",
+    "window_urgency_score": 2,
+    "biology_validation_score": 10,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 8,
+    "priority_rationale": "Watch area. Dupilumab dominates with strong efficacy. IL-4Ra/TSLP/IL-13 monospecifics all approved or late-stage. Bispecific white space nearly closed by competitive density. Low Ailux relevance — useful for understanding IL-4Ra/TSLP positioning benchmarks.",
+    "tooltip_why": "Window urgency=2 (dupilumab dominates; amlitelimab, lebrikizumab, nemolizumab all approved/near-approval — competitive window effectively closed) · IL-4Ra/IL-13/TSLP mechanisms fully validated by multiple approved drugs · IGA + EASI/SCORAD gold standards firmly established · IgE, blood eosinophils, TSLP expression provide excellent baseline stratification",
     "alx_programs": [],
     "indication_priority_rank": 15,
-    "_composite_score": 4.1
+    "_composite_score": 4.90
   },
   {
     "indication_id": "respiratory_broad",
@@ -260,10 +309,15 @@
     "remission_rate_soc_pct": 25.0,
     "ailux_fit_score": 2,
     "competitive_white_space": 4,
+    "window_urgency_score": 2,
+    "biology_validation_score": 9,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 8,
     "priority_rationale": "Low Ailux relevance. TSLP/IL-4Ra/IL-5 biologics dominating respiratory (tezepelumab, dupilumab, mepolizumab). Useful for TSLP competitive monitoring but not directly relevant to ALX001/002/005 programs.",
+    "tooltip_why": "Window urgency=2 (tezepelumab/dupilumab/mepolizumab approved in asthma; TSLP+IL-4Ra bispecific space effectively closed) · TSLP/IL-4Ra/IL-5 mechanisms validated by multiple regulatory approvals · FEV1/ACQ gold standards firmly established by FDA · Blood eosinophil + FeNO stratification fully validated in clinical practice",
     "alx_programs": [],
     "indication_priority_rank": 16,
-    "_composite_score": 4.1
+    "_composite_score": 4.70
   },
   {
     "indication_id": "ra",
@@ -275,9 +329,14 @@
     "remission_rate_soc_pct": 30.0,
     "ailux_fit_score": 3,
     "competitive_white_space": 2,
-    "priority_rationale": "Low-priority watch area. RA market is enormous ($22B) but mechanistically saturated \u2014 TNFi, JAKi, IL-6i, abatacept all approved + generic/biosimilar pressure. No Ailux mechanism directly relevant. Bispecific white space closing (faricimab-class approach not yet applied in RA).",
+    "window_urgency_score": 2,
+    "biology_validation_score": 10,
+    "regulatory_pathway_clarity": 10,
+    "patient_stratifiability": 7,
+    "priority_rationale": "Low-priority watch area. RA market is enormous ($22B) but mechanistically saturated — TNFi, JAKi, IL-6i, abatacept all approved + generic/biosimilar pressure. No Ailux mechanism directly relevant. Bispecific white space closing.",
+    "tooltip_why": "Window urgency=2 (TNFi/JAKi/IL-6i/abatacept all approved + biosimilar pressure; bispecific space crowded; no Ailux mechanism directly relevant) · TNF/IL-6/JAK mechanisms most validated in all of autoimmune disease · ACR20/50/70 + DAS28 gold standards, well-established FDA pathway · RF/anti-CCP seronegative vs seropositive stratification established; limited predictive value for treatment response",
     "alx_programs": [],
     "indication_priority_rank": 17,
-    "_composite_score": 3.8
+    "_composite_score": 4.50
   }
 ]
