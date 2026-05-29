@@ -2729,6 +2729,46 @@ def phase_f9_bd_recommendations() -> Dict:
         return {"status": "error", "error": str(e)}
 
 
+def phase_f10_navigator_lookup_refresh() -> Dict:
+    """Rebuild navigator_lookup.json and deploy to GitHub Pages via build_navigator_lookup.py."""
+    log("F10: Navigator Lookup Refresh", indent=1)
+    import subprocess
+    script_path = os.path.join(_SCRIPTS_DIR, "build_navigator_lookup.py")
+    if not os.path.exists(script_path):
+        log("  WARNING: build_navigator_lookup.py not found — skipping", indent=2)
+        return {"status": "skipped", "reason": "script_not_found"}
+
+    if DRY_RUN:
+        log("  DRY-RUN: would run build_navigator_lookup.py", indent=2)
+        return {"status": "dry_run"}
+
+    try:
+        result = subprocess.run(
+            ["python3", script_path],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=_REPO_ROOT,
+        )
+        if result.returncode == 0:
+            log("[F10] navigator_lookup.json rebuilt and deployed", indent=2)
+            # Surface any key output lines
+            output_lines = [l for l in result.stdout.splitlines() if l.strip()]
+            for line in output_lines[-5:]:  # last 5 lines
+                log(f"  {line}", indent=3)
+            return {"status": "success", "returncode": 0}
+        else:
+            err_snippet = result.stderr[:300] if result.stderr else result.stdout[:300]
+            log(f"[F10] build_navigator_lookup.py error (rc={result.returncode}): {err_snippet}", indent=2)
+            return {"status": "error", "returncode": result.returncode, "error": err_snippet}
+    except subprocess.TimeoutExpired:
+        log("[F10] navigator refresh timed out after 120s", indent=2)
+        return {"status": "error", "error": "timeout_120s"}
+    except Exception as e:
+        log(f"[F10] navigator refresh error: {e}", indent=2)
+        return {"status": "error", "error": str(e)}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PHASE DISPATCH TABLE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2786,6 +2826,7 @@ PHASE_MAP = {
     "F7": phase_f7_enrichment_cleanup,
     "F8": phase_f8_alert_generation,
     "F9": phase_f9_bd_recommendations,
+    "F10": phase_f10_navigator_lookup_refresh,
 }
 
 BLOCK_PHASES = {
@@ -2794,7 +2835,7 @@ BLOCK_PHASES = {
     "C": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
     "D": ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11"],
     "E": ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"],
-    "F": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"],
+    "F": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"],
 }
 
 
