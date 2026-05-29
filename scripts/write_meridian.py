@@ -881,7 +881,7 @@ TONE: The writing of a scientist who also reads The Economist and thinks like a 
 HARD PROHIBITIONS:
 - Do not include any contact information, email addresses, or tip lines. The Meridian has no public inbox.
 - Do not include any sign-off line such as "Questions or tips:" or any equivalent.
-- The issue-meta footer should contain only the confidentiality disclaimer — no contact details of any kind.
+- Do NOT include any confidentiality notice, classification label, or footer text. The Meridian Issue ends after the closing note — no disclaimers, no "AILUX INTERNAL", no "Not for external distribution", nothing after the closing section.
 
 WRITING_STANDARDS:
 - Resolve contradictions before writing. If two sources disagree on a drug's target or mechanism, the definitive answer is the primary literature or EMA/FDA label. Never present both versions as equally valid.
