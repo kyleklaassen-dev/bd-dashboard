@@ -2441,6 +2441,7 @@ a:hover, .clickable:hover { color: #A8D8EA !important; }
   border-bottom: 1px solid #f1f5f9;
 }
 .ind-priority-row:last-child { border-bottom: none; }
+.ind-priority-row:hover { background:#f8fafc; border-radius:6px; }
 .ind-rank-badge {
   width: 22px;
   height: 22px;
@@ -5283,14 +5284,14 @@ function loadMoleculeTab(tabId) {
  </div>
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
- <div id="bd-today-anchor" style="max-width:960px;margin:0 auto 24px;padding:0 24px;"></div>
+ <div id="bd-today-anchor" style="max-width:1100px;margin:0 auto 24px;padding:0 24px;"></div>
 
  <!-- ── Home lower panels: Issue → Catalysts → Indication Priority ── -->
- <div style="max-width:960px;margin:0 auto;padding:0 24px;">
+ <div style="max-width:1100px;margin:0 auto;padding:0 24px;">
 
   <!-- Today's Meridian Issue — full width, tall, clean scroll -->
   <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
-   <div id="hw-issue-content" style="min-height:480px;max-height:calc(100vh - 180px);overflow-y:auto;font-size:13.5px;line-height:1.8;color:#334155;padding:28px 36px">
+   <div id="hw-issue-content" style="min-height:480px;max-height:calc(100vh - 180px);overflow-y:auto;font-size:15px;line-height:1.85;color:#334155;padding:28px 36px">
     Loading…
    </div>
   </div>
@@ -20100,13 +20101,13 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     // Sjogren's drops 5 places: window is wide open (9) but biology contested,
     // endpoint not FDA-established, and no validated stratification biomarker.
     const STATIC_PRIORITIES = [
-      { rank:1, name:"Generalized Myasthenia Gravis", fit:10, wspace:8, unmet:8,  wind:8, bio:10, reg:10, strat:10, composite:8.90, bfr:30.0, patients:90000,  progs:["alx005"], rationale:"FcRn mechanism fully validated (3+ approved drugs). MG-ADL is FDA gold standard. AChR Ab+ = 85% of patients — perfectly stratifiable at baseline.", tooltip:"Why #1: Window urgency=8 (no FcRn bispecific in gMG Phase 2 — bispecific niche is open) · Biology validated (efgartigimod, rozanolixizumab, nipocalimab all approved) · Endpoint established (MG-ADL is FDA gold standard) · Biomarker: AChR Ab+ = ~85% of gMG, perfectly stratifiable at baseline" },
-      { rank:2, name:"CIDP",                          fit:10, wspace:9, unmet:8,  wind:9, bio:8,  reg:7,  strat:6,  composite:8.70, bfr:35.0, patients:40000,  progs:["alx005"], rationale:"Highest window urgency of any indication (9). Efgartigimod approved (mono) but bispecific white space is completely unchallenged — no competitor in Phase 2.", tooltip:"Why #2: Window urgency=9 (no FcRn bispecific in CIDP Phase 2; efgartigimod mono approved, bispecific space completely open) · FcRn mechanism validated by clinical data · INCAT disability score established, FDA-accepted · Anti-NF155 antibody subset exists; clinical severity stratification possible" },
-      { rank:3, name:"Crohn's Disease",               fit:10, wspace:7, unmet:9,  wind:7, bio:9,  reg:8,  strat:7,  composite:8.40, bfr:45.0, patients:780000, progs:["alx001"], rationale:"20% SoC remission — worst tracked. TL1A ARTEMIS-CD Phase 2b data validates mechanism. SPY072 Phase 1b sets 18-24 month window.", tooltip:"Why #3: Window urgency=7 (SPY072 TL1A×IL-23 Phase 1b active, 18-24mo window) · Biology validated (TL1A ARTEMIS-CD Phase 2b; IL-23 multiple Phase 3 trials) · CDAI + endoscopic endpoints established, FDA-precedented · Biomarker emerging (fecal calprotectin, TL1A-high expressors, fibrotic phenotype)" },
-      { rank:4, name:"Ulcerative Colitis",             fit:10, wspace:7, unmet:8,  wind:6, bio:10, reg:10, strat:8,  composite:8.25, bfr:40.0, patients:900000, progs:["alx001"], rationale:"Endoscopic remission is FDA gold standard. TL1A mechanism validated by ARTEMIS Phase 2b. Window compressing — duvakitug Phase 3 H2 2026.", tooltip:"Why #4: Window urgency=6 (SPY072 Phase 1b active; duvakitug Ph3 H2 2026 — 12-18mo window) · TL1A mechanism FDA-validated in UC via ARTEMIS Phase 2b · Endoscopic remission is FDA gold standard (Mayo score established) · Fecal calprotectin, TL1A-high expressors as strong baseline stratifiers" },
-      { rank:5, name:"Myasthenia Gravis (Broad)",      fit:8,  wspace:8, unmet:8,  wind:8, bio:9,  reg:9,  strat:8,  composite:8.15, bfr:30.0, patients:36000,  progs:["alx005"], rationale:"Bispecific white space mirrors gMG. AChR Ab stratification well-established. eculizumab/efgartigimod failures define refractory subgroup addressable by next-gen bispecific.", tooltip:"Why #5: Window urgency=8 (bispecific space open within broad MG; AChR-specific subgroup is addressable niche) · FcRn + complement mechanisms both clinically validated · MG-ADL + QMG established; mature regulatory pathway · AChR Ab+ stratification well-established; eculizumab failures define refractory subgroup" },
-      { rank:6, name:"Sjogren's Syndrome",             fit:9,  wspace:9, unmet:9,  wind:9, bio:5,  reg:4,  strat:3,  composite:8.05, bfr:60.0, patients:400000, progs:["alx002"], rationale:"Highest window urgency and white space. Critical caveat: biology contested (no validated animal model), endpoint not FDA-established, no validated stratification biomarker.", tooltip:"Why #6: Window urgency=9 (no Phase 2+ CD19 bispecific in Sjogren's — >24mo window) · Biology contested (no validated animal model; rituximab Phase 3 failures) · Endpoint contested (ESSDAI vs ESSPRI; no FDA gold standard) · No validated biomarker (RF/anti-SSA insufficient for stratification)" },
-      { rank:7, name:"TL1A Mechanism Area",            fit:10, wspace:7, unmet:9,  wind:5, bio:9,  reg:9,  strat:7,  composite:8.05, bfr:42.0, patients:2500000,progs:["alx001"], rationale:"TL1A mechanism FDA-validated. Window urgency penalized — monospecifics entering Phase 3 are defining the positioning before bispecifics reach Phase 2.", tooltip:"Why #7: Window urgency=5 (monospecifics entering Phase 3 — duvakitug Ph3 H2 2026 readout compresses differentiation window) · TL1A mechanism FDA-validated via ARTEMIS Phase 2b · Endoscopic remission gold standard in IBD · Fecal calprotectin + TL1A-high expressors as emerging stratification" },
+      { id:"gmg",      rank:1, name:"Generalized Myasthenia Gravis", fit:10, wspace:8, unmet:8,  wind:8, bio:10, reg:10, strat:10, composite:8.90, bfr:30.0, patients:90000,  progs:["alx005"], rationale:"FcRn mechanism fully validated (3+ approved drugs). MG-ADL is FDA gold standard. AChR Ab+ = 85% of patients — perfectly stratifiable at baseline.", tooltip:"Why #1: Window urgency=8 (no FcRn bispecific in gMG Phase 2 — bispecific niche is open) · Biology validated (efgartigimod, rozanolixizumab, nipocalimab all approved) · Endpoint established (MG-ADL is FDA gold standard) · Biomarker: AChR Ab+ = ~85% of gMG, perfectly stratifiable at baseline" },
+      { id:"cidp",     rank:2, name:"CIDP",                          fit:10, wspace:9, unmet:8,  wind:9, bio:8,  reg:7,  strat:6,  composite:8.70, bfr:35.0, patients:40000,  progs:["alx005"], rationale:"Highest window urgency of any indication (9). Efgartigimod approved (mono) but bispecific white space is completely unchallenged — no competitor in Phase 2.", tooltip:"Why #2: Window urgency=9 (no FcRn bispecific in CIDP Phase 2; efgartigimod mono approved, bispecific space completely open) · FcRn mechanism validated by clinical data · INCAT disability score established, FDA-accepted · Anti-NF155 antibody subset exists; clinical severity stratification possible" },
+      { id:"cd",       rank:3, name:"Crohn's Disease",               fit:10, wspace:7, unmet:9,  wind:7, bio:9,  reg:8,  strat:7,  composite:8.40, bfr:45.0, patients:780000, progs:["alx001"], rationale:"20% SoC remission — worst tracked. TL1A ARTEMIS-CD Phase 2b data validates mechanism. SPY072 Phase 1b sets 18-24 month window.", tooltip:"Why #3: Window urgency=7 (SPY072 TL1A×IL-23 Phase 1b active, 18-24mo window) · Biology validated (TL1A ARTEMIS-CD Phase 2b; IL-23 multiple Phase 3 trials) · CDAI + endoscopic endpoints established, FDA-precedented · Biomarker emerging (fecal calprotectin, TL1A-high expressors, fibrotic phenotype)" },
+      { id:"uc",       rank:4, name:"Ulcerative Colitis",             fit:10, wspace:7, unmet:8,  wind:6, bio:10, reg:10, strat:8,  composite:8.25, bfr:40.0, patients:900000, progs:["alx001"], rationale:"Endoscopic remission is FDA gold standard. TL1A mechanism validated by ARTEMIS Phase 2b. Window compressing — duvakitug Phase 3 H2 2026.", tooltip:"Why #4: Window urgency=6 (SPY072 Phase 1b active; duvakitug Ph3 H2 2026 — 12-18mo window) · TL1A mechanism FDA-validated in UC via ARTEMIS Phase 2b · Endoscopic remission is FDA gold standard (Mayo score established) · Fecal calprotectin, TL1A-high expressors as strong baseline stratifiers" },
+      { id:"mg",       rank:5, name:"Myasthenia Gravis (Broad)",      fit:8,  wspace:8, unmet:8,  wind:8, bio:9,  reg:9,  strat:8,  composite:8.15, bfr:30.0, patients:36000,  progs:["alx005"], rationale:"Bispecific white space mirrors gMG. AChR Ab stratification well-established. eculizumab/efgartigimod failures define refractory subgroup addressable by next-gen bispecific.", tooltip:"Why #5: Window urgency=8 (bispecific space open within broad MG; AChR-specific subgroup is addressable niche) · FcRn + complement mechanisms both clinically validated · MG-ADL + QMG established; mature regulatory pathway · AChR Ab+ stratification well-established; eculizumab failures define refractory subgroup" },
+      { id:"sjogrens", rank:6, name:"Sjogren's Syndrome",             fit:9,  wspace:9, unmet:9,  wind:9, bio:5,  reg:4,  strat:3,  composite:8.05, bfr:60.0, patients:400000, progs:["alx002"], rationale:"Highest window urgency and white space. Critical caveat: biology contested (no validated animal model), endpoint not FDA-established, no validated stratification biomarker.", tooltip:"Why #6: Window urgency=9 (no Phase 2+ CD19 bispecific in Sjogren's — >24mo window) · Biology contested (no validated animal model; rituximab Phase 3 failures) · Endpoint contested (ESSDAI vs ESSPRI; no FDA gold standard) · No validated biomarker (RF/anti-SSA insufficient for stratification)" },
+      { id:"tl1a",     rank:7, name:"TL1A Mechanism Area",            fit:10, wspace:7, unmet:9,  wind:5, bio:9,  reg:9,  strat:7,  composite:8.05, bfr:42.0, patients:2500000,progs:["alx001"], rationale:"TL1A mechanism FDA-validated. Window urgency penalized — monospecifics entering Phase 3 are defining the positioning before bispecifics reach Phase 2.", tooltip:"Why #7: Window urgency=5 (monospecifics entering Phase 3 — duvakitug Ph3 H2 2026 readout compresses differentiation window) · TL1A mechanism FDA-validated via ARTEMIS Phase 2b · Endoscopic remission gold standard in IBD · Fecal calprotectin + TL1A-high expressors as emerging stratification" },
     ];
 
     let rows = STATIC_PRIORITIES;
@@ -20116,11 +20117,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       try {
         const { data, error } = await _sb
           .from('indication_priority_scores')
-          .select('indication_priority_rank,indication_name,ailux_fit_score,competitive_white_space,unmet_need_score,biologic_failure_rate_pct,patient_count_us,alx_programs,priority_rationale,window_urgency_score,biology_validation_score,regulatory_pathway_clarity,patient_stratifiability,_composite_score,tooltip_why')
+          .select('indication_priority_rank,indication_name,ailux_fit_score,competitive_white_space,unmet_need_score,biologic_failure_rate_pct,patient_count_us,alx_programs,priority_rationale,window_urgency_score,biology_validation_score,regulatory_pathway_clarity,patient_stratifiability,composite_score,tooltip_why')
           .order('indication_priority_rank', { ascending: true })
           .limit(7);
         if (!error && data && data.length) {
           rows = data.map(d => ({
+            id: d.indication_id,
             rank: d.indication_priority_rank,
             name: d.indication_name,
             fit: d.ailux_fit_score,
@@ -20182,7 +20184,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     const rowsHtml = rows.map(r => {
       const tooltipAttr = r.tooltip ? ` title="${r.tooltip.replace(/"/g, '&quot;')}"` : '';
       return `
-      <div class="ind-priority-row"${tooltipAttr} style="cursor:default;">
+      <div class="ind-priority-row"${tooltipAttr} style="cursor:pointer;" onclick="_hwShowIndicationDetail('${r.id || r.name}')" data-ind-id="${r.id || r.name}">
         ${_rankBadge(r.rank)}
         <div style="flex:1;min-width:0;">
           <div class="ind-priority-name">${r.name}${r.composite ? `<span style="font-size:9px;color:#94a3b8;font-weight:400;margin-left:6px;">${r.composite.toFixed(2)}</span>` : ''}</div>
@@ -20204,10 +20206,176 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       ${rowsHtml}
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:9px;color:#94a3b8;">White space: <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;"></span> open  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-left:4px;"></span> some  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-left:4px;"></span> crowded</span>
-        <span style="font-size:9px;color:#94a3b8;">Hover card for scoring rationale</span>
+        <span style="font-size:9px;color:#94a3b8;">Click any row for full indication intelligence</span>
         <span style="margin-left:auto;font-size:9px;color:#94a3b8;">Composite v2 · 7 dimensions · Meridian 2026-05-29</span>
       </div>
     </div>`;
+  }
+
+  // ── Indication Detail Modal ────────────────────────────────────────
+  async function _hwShowIndicationDetail(indicationId) {
+    // Normalize id: strip leading 'alx' prefixes if accidentally passed as name
+    const id = (indicationId || '').toLowerCase().replace(/\s+/g, '_');
+
+    // Show the overlay immediately with a loading state
+    const backdrop = document.getElementById('home-overlay-backdrop');
+    const card = document.getElementById('home-overlay-card');
+    const titleEl = document.getElementById('home-overlay-title');
+    const body = document.getElementById('home-overlay-body');
+    if (!card || !body) return;
+
+    // Hide all other panels
+    card.querySelectorAll('.home-panel').forEach(p => p.style.display = 'none');
+
+    titleEl.textContent = 'Loading indication intelligence…';
+    backdrop.classList.add('active');
+    card.classList.add('active');
+
+    // Fetch all 4 scoring tables in parallel
+    let win = null, bio = null, reg = null, strat = null;
+    if (typeof _sb !== 'undefined') {
+      try {
+        const [wRes, bRes, rRes, sRes] = await Promise.all([
+          _sb.from('indication_window_urgency').select('*').eq('indication_id', id).single(),
+          _sb.from('indication_biology_validation').select('*').eq('indication_id', id).single(),
+          _sb.from('indication_regulatory_clarity').select('*').eq('indication_id', id).single(),
+          _sb.from('indication_patient_stratifiability').select('*').eq('indication_id', id).single(),
+        ]);
+        win   = wRes.data;
+        bio   = bRes.data;
+        reg   = rRes.data;
+        strat = sRes.data;
+      } catch(_) { /* tables may not exist yet */ }
+    }
+
+    // Pull static row for name + scores fallback
+    const staticRow = (typeof loadIndicationPriority !== 'undefined')
+      ? null // can't easily access STATIC_PRIORITIES — use fetched data
+      : null;
+
+    const indName = (win && win.indication_name) || (bio && bio.indication_name) || id.toUpperCase();
+    titleEl.textContent = indName + ' — Indication Intelligence';
+
+    function _score(n, max) {
+      if (n == null) return '<span style="color:#94a3b8">—</span>';
+      const pct = Math.round((n / max) * 100);
+      const col = pct >= 80 ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#ef4444';
+      return `<span style="font-weight:700;color:${col}">${n}/${max}</span>`;
+    }
+
+    function _pill(label, val) {
+      if (!val) return '';
+      const colors = { gold_standard:'#1a3f8f,#e8f0f8', established:'#065f46,#d1fae5', contested:'#92400e,#fef3c7',
+        evolving:'#7e22ce,#f3e8ff', undefined:'#64748b,#f1f5f9', validated:'#065f46,#d1fae5',
+        emerging:'#0369a1,#e0f2fe', exploratory:'#7e22ce,#f3e8ff', none:'#64748b,#f1f5f9',
+        approved_drug:'#065f46,#d1fae5', phase3_positive:'#1a3f8f,#e8f0f8', phase2_positive:'#0369a1,#e0f2fe',
+        phase1_signal:'#92400e,#fef3c7', preclinical_only:'#64748b,#f1f5f9',
+        good:'#065f46,#d1fae5', limited:'#92400e,#fef3c7', poor:'#7f1d1d,#fee2e2', gold_standard_model:'#065f46,#d1fae5' };
+      const [fg, bg] = (colors[val] || '64748b,#f1f5f9').split(',');
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${bg};color:#${fg.replace('#','')};margin-right:4px">${label}</span>`;
+    }
+
+    function _section(title, content) {
+      return `<div style="margin-bottom:18px;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#1e3a5f;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #1a3f8f;">${title}</div>
+        ${content}
+      </div>`;
+    }
+
+    function _row(label, val) {
+      if (!val && val !== 0) return '';
+      return `<div style="display:flex;gap:8px;margin-bottom:5px;font-size:12px;">
+        <span style="min-width:180px;color:#64748b;flex-shrink:0">${label}</span>
+        <span style="color:#0d1f38;font-weight:500">${val}</span>
+      </div>`;
+    }
+
+    // Build modal sections
+    let html = `<div style="padding:0 4px;">`;
+
+    // WINDOW URGENCY
+    if (win) {
+      const bispecTotal = (win.competing_bispecifics_phase1||0) + (win.competing_bispecifics_phase2||0) + (win.competing_bispecifics_phase3||0);
+      html += _section('Competitive Window', `
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+          <div><span style="font-size:10px;color:#64748b">Window Urgency</span><br>${_score(win.window_urgency_score, 10)}</div>
+          <div><span style="font-size:10px;color:#64748b">Months Remaining</span><br><span style="font-weight:700;color:#0d1f38">${win.months_to_window_close || '—'}</span></div>
+          <div><span style="font-size:10px;color:#64748b">Ailux Program</span><br><span style="font-weight:700;color:#2e6fb0">${(win.ailux_program||'').toUpperCase()}</span></div>
+          <div><span style="font-size:10px;color:#64748b">Competing Bispecifics</span><br><span style="font-weight:700;color:#0d1f38">Ph1: ${win.competing_bispecifics_phase1||0} · Ph2: ${win.competing_bispecifics_phase2||0} · Ph3: ${win.competing_bispecifics_phase3||0}</span></div>
+        </div>
+        ${win.next_key_event ? `<div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:8px 12px;border-radius:0 4px 4px 0;font-size:12px;margin-bottom:8px;"><span style="font-weight:700;color:#92400e">Key Window Event:</span> ${win.next_key_event}${win.next_event_date ? ` <span style="color:#94a3b8">(${win.next_event_date})</span>` : ''}</div>` : ''}
+        ${win.window_narrative ? `<div style="font-size:12px;color:#334155;line-height:1.6">${win.window_narrative}</div>` : ''}
+      `);
+    }
+
+    // BIOLOGY VALIDATION
+    if (bio) {
+      html += _section('Biology Validation', `
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+          <div><span style="font-size:10px;color:#64748b">Validation Score</span><br>${_score(bio.biology_validation_score, 10)}</div>
+          <div><span style="font-size:10px;color:#64748b">Proof of Concept</span><br>${_pill('', bio.proof_of_concept_type)}${(bio.proof_of_concept_type||'').replace(/_/g,' ')}</div>
+          <div><span style="font-size:10px;color:#64748b">Preclinical Fidelity</span><br>${_score(bio.preclinical_model_fidelity, 10)} ${_pill(bio.preclinical_model_type||'', bio.preclinical_model_type)}</div>
+          ${bio.pubmed_publication_count ? `<div><span style="font-size:10px;color:#64748b">PubMed Papers</span><br><span style="font-weight:700;color:#0d1f38">~${bio.pubmed_publication_count.toLocaleString()}</span></div>` : ''}
+        </div>
+        ${bio.key_validation_drug ? `<div style="background:#e8f0f8;border-left:3px solid #1a3f8f;padding:8px 12px;border-radius:0 4px 4px 0;font-size:12px;margin-bottom:8px;">
+          <div style="font-weight:700;color:#1a3f8f;margin-bottom:2px">${bio.key_validation_drug}</div>
+          <div style="color:#334155">${bio.key_validation_trial || ''}</div>
+          <div style="color:#0d1f38;margin-top:2px;font-weight:500">${bio.key_validation_result || ''}</div>
+        </div>` : ''}
+        ${bio.animal_to_human_translation ? `<div style="font-size:11px;color:#64748b;line-height:1.5;font-style:italic">${bio.animal_to_human_translation}</div>` : ''}
+        ${bio.biology_narrative ? `<div style="font-size:12px;color:#334155;line-height:1.6;margin-top:6px">${bio.biology_narrative}</div>` : ''}
+      `);
+    }
+
+    // REGULATORY CLARITY
+    if (reg) {
+      html += _section('Regulatory Pathway', `
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+          <div><span style="font-size:10px;color:#64748b">Pathway Clarity</span><br>${_score(reg.regulatory_pathway_clarity, 10)}</div>
+          <div><span style="font-size:10px;color:#64748b">Endpoint Status</span><br>${_pill(reg.endpoint_status||'', reg.endpoint_status)}</div>
+          ${reg.orphan_drug_eligible ? '<div><span style="font-size:10px;color:#64748b">Orphan Drug</span><br><span style="font-weight:700;color:#065f46">Eligible</span></div>' : ''}
+          ${reg.breakthrough_therapy_eligible ? '<div><span style="font-size:10px;color:#64748b">Breakthrough Therapy</span><br><span style="font-weight:700;color:#065f46">Eligible</span></div>' : ''}
+          ${reg.typical_phase3_size ? `<div><span style="font-size:10px;color:#64748b">Typical Ph3 Size</span><br><span style="font-weight:700;color:#0d1f38">n≈${reg.typical_phase3_size.toLocaleString()}</span></div>` : ''}
+          ${reg.typical_phase3_duration_months ? `<div><span style="font-size:10px;color:#64748b">Ph3 Duration</span><br><span style="font-weight:700;color:#0d1f38">${reg.typical_phase3_duration_months} mo</span></div>` : ''}
+        </div>
+        ${reg.primary_endpoint ? _row('Primary Endpoint', reg.primary_endpoint) : ''}
+        ${reg.fda_precedent_drug ? _row('FDA Precedent Drug', reg.fda_precedent_drug) : ''}
+        ${reg.regulatory_narrative ? `<div style="font-size:12px;color:#334155;line-height:1.6;margin-top:8px">${reg.regulatory_narrative}</div>` : ''}
+      `);
+    }
+
+    // PATIENT STRATIFIABILITY
+    if (strat) {
+      html += _section('Patient Stratifiability', `
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+          <div><span style="font-size:10px;color:#64748b">Stratifiability</span><br>${_score(strat.patient_stratifiability, 10)}</div>
+          <div><span style="font-size:10px;color:#64748b">Biomarker Status</span><br>${_pill(strat.biomarker_status||'', strat.biomarker_status)}</div>
+          ${strat.biomarker_sensitivity_pct != null ? `<div><span style="font-size:10px;color:#64748b">Patient Capture</span><br><span style="font-weight:700;color:#0d1f38">${strat.biomarker_sensitivity_pct}%</span></div>` : ''}
+          ${strat.enriched_trial_size_reduction_pct ? `<div><span style="font-size:10px;color:#64748b">Ph2 Size Reduction</span><br><span style="font-weight:700;color:#065f46">−${strat.enriched_trial_size_reduction_pct}%</span></div>` : ''}
+        </div>
+        ${strat.primary_biomarker ? _row('Primary Biomarker', strat.primary_biomarker) : ''}
+        ${strat.non_responder_escape_pathway ? `<div style="background:#fee2e2;border-left:3px solid #ef4444;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;margin:8px 0;"><span style="font-weight:700;color:#7f1d1d">Non-Responder Escape:</span> ${strat.non_responder_escape_pathway}</div>` : ''}
+        ${strat.stratifiability_narrative ? `<div style="font-size:12px;color:#334155;line-height:1.6">${strat.stratifiability_narrative}</div>` : ''}
+      `);
+    }
+
+    if (!win && !bio && !reg && !strat) {
+      html += `<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">Detailed scoring data not yet available for this indication.</div>`;
+    }
+
+    html += `</div>`;
+
+    // Inject into a dedicated panel inside the overlay body
+    let detailPanel = document.getElementById('home-panel-ind-detail');
+    if (!detailPanel) {
+      detailPanel = document.createElement('div');
+      detailPanel.className = 'home-panel';
+      detailPanel.id = 'home-panel-ind-detail';
+      detailPanel.style.cssText = 'padding:16px 20px;max-height:calc(100vh - 160px);overflow-y:auto;';
+      body.appendChild(detailPanel);
+    }
+    detailPanel.innerHTML = html;
+    detailPanel.style.display = 'block';
   }
 
   // ── Meridian Issue inline reader ──────────────────────────────────
@@ -20229,10 +20397,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       body.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
       // Inject scoped styles to make the serif issue content look clean inside the card
       content.innerHTML = `<style>
-        #hw-issue-content h1 { font-size:18px; font-weight:700; color:#1a3f8f; margin:0 0 6px 0; font-family:Georgia,serif; }
-        #hw-issue-content h2 { font-size:14px; font-weight:700; color:#1a3f8f; margin:18px 0 4px 0; border-bottom:1px solid #dce6f7; padding-bottom:4px; font-family:Georgia,serif; }
-        #hw-issue-content h3 { font-size:13px; font-weight:600; color:#1e3a5f; margin:14px 0 4px 0; font-style:italic; font-family:Georgia,serif; }
-        #hw-issue-content p { margin:0 0 10px 0; }
+        #hw-issue-content h1 { font-size:22px; font-weight:700; color:#1a3f8f; margin:0 0 6px 0; font-family:Georgia,serif; }
+        #hw-issue-content h2 { font-size:17px; font-weight:700; color:#1a3f8f; margin:18px 0 4px 0; border-bottom:1px solid #dce6f7; padding-bottom:4px; font-family:Georgia,serif; }
+        #hw-issue-content h3 { font-size:15px; font-weight:600; color:#1e3a5f; margin:14px 0 4px 0; font-style:italic; font-family:Georgia,serif; }
+        #hw-issue-content p { margin:0 0 10px 0; font-size:15px; }
         #hw-issue-content .dateline { font-size:10px; color:#3d5166; letter-spacing:0.5px; text-transform:uppercase; font-family:Calibri,Helvetica,sans-serif; }
         #hw-issue-content .tagline { font-style:italic; font-size:12px; color:#3d5166; margin:0 0 14px 0; }
         #hw-issue-content hr.thick { border:none; border-top:2px solid #1a3f8f; margin:8px 0 4px 0; }
