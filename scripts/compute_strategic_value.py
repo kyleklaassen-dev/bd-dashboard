@@ -282,7 +282,7 @@ def update_company_scores(companies, scores, dry_run=False):
                 "strategic_value_score": score,
                 "strategic_value_rationale": rationale,
                 "strategic_value_updated_at": datetime.utcnow().isoformat(),
-                "strategic_value_run_id": RUN_ID,
+                # strategic_value_run_id is UUID type — omit free-text run ID
             }
         )
         updated += 1
@@ -302,7 +302,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["bispecific"],
         "desc": "{name} has bispecific antibody platform capability ({count} clinical/approved assets)",
         "relevance": "Direct format competitor to ALX001 (TL1A×IL-23p19) and ALX002 (CD19×BCMA)",
-        "partnership": "High — bispecific expertise directly transferable; potential format partner or acquirer",
+        "partnership": "high",
     },
     "FcRn_engineering": {
         "target_kw": ["fcrn", "neonatal fc"],
@@ -310,7 +310,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["fcrn", "half-life extended"],
         "desc": "{name} has FcRn-targeting or half-life engineering capability ({count} clinical/approved assets)",
         "relevance": "Direct mechanism competitor to ALX005 (FcRn×Albumin)",
-        "partnership": "Medium — FcRn mechanism is small; partnership or competitive monitoring warranted",
+        "partnership": "medium",
     },
     "ADC": {
         "target_kw": [],
@@ -318,7 +318,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["adc", "antibody-drug"],
         "desc": "{name} has antibody-drug conjugate (ADC) platform ({count} clinical/approved assets)",
         "relevance": "Tangential — ADC expertise relevant to next-gen bispecific linker/payload chemistry",
-        "partnership": "Low — ADC platform not directly relevant to current Ailux programs",
+        "partnership": "low",
     },
     "TCE": {
         "target_kw": ["cd3", "t-cell engager"],
@@ -326,7 +326,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["t-cell engager", "bispecific t-cell"],
         "desc": "{name} has T-cell engager (TCE) platform ({count} clinical/approved assets)",
         "relevance": "Adjacent to ALX002 (CD19×BCMA) — TCE expertise relevant to bispecific I&I strategy",
-        "partnership": "Medium — TCE platform companies may seek I&I expansion beyond oncology",
+        "partnership": "medium",
     },
     "mAb_platform": {
         "target_kw": [],
@@ -335,7 +335,7 @@ PLATFORM_CONFIG = {
         "min_approved": 3,
         "desc": "{name} has established monoclonal antibody platform ({count} approved mAbs)",
         "relevance": "Adjacent — established mAb infrastructure positions for bispecific expansion",
-        "partnership": "Medium — mAb manufacturing/CMC capability relevant to Ailux scale-up",
+        "partnership": "medium",
     },
     "small_molecule": {
         "target_kw": [],
@@ -343,7 +343,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["small molecule", "oral"],
         "desc": "{name} has small molecule platform ({count} clinical/approved assets)",
         "relevance": "Same-space — small molecule competitors in same indications; different modality",
-        "partnership": "Low — modality mismatch with Ailux bispecific strategy",
+        "partnership": "low",
     },
     "cell_therapy": {
         "target_kw": ["car-t", "car t"],
@@ -351,7 +351,7 @@ PLATFORM_CONFIG = {
         "modality_kw": ["car-t", "cell therapy"],
         "desc": "{name} has cell therapy platform ({count} clinical/approved assets)",
         "relevance": "Adjacent to ALX002 (CD19×BCMA) — cell therapy targets same antigens, different modality",
-        "partnership": "Medium — shared antigen targeting (CD19/BCMA) creates I&I market overlap",
+        "partnership": "medium",
     },
 }
 
