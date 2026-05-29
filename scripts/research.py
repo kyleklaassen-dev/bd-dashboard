@@ -1020,6 +1020,103 @@ def process_pkpd_queue() -> int:
     return processed
 
 
+# ── Phase 9: Asset differentiation profile staleness check ───────────────────
+# Queries asset_differentiation_profiles for last_updated timestamps, then
+# checks intelligence_discoveries and research_queue for recent competitor
+# events touching ALX001/ALX002/ALX005 competitor programs.
+# Flags profiles where a relevant competitor update is newer than last_updated
+# and writes a research_queue item for human review.
+
+ASSET_COMPETITOR_MAP = {
+    "alx001": ["SPY072", "tulisokibart", "RO7837195", "SIM0709", "duvakitug", "risankizumab", "mirikizumab"],
+    "alx002": ["KT501", "CLN-978", "HXN-1031", "CND460", "belimumab", "anifrolumab"],
+    "alx005": ["efgartigimod", "rozanolixizumab", "nipocalimab", "IMVT-1402", "batoclimab"],
+}
+
+def _run_asset_profile_staleness_check():
+    """Check if any asset_differentiation_profiles need KOL Q&A refresh based on recent competitor intel."""
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    # Fetch current profile timestamps
+    prof_resp = requests.get(
+        f"{SUPABASE_URL}/rest/v1/asset_differentiation_profiles",
+        headers=headers,
+        params={"select": "program_id,last_updated"},
+        timeout=15,
+    )
+    if prof_resp.status_code != 200:
+        log(f"  Phase 9: could not fetch profiles ({prof_resp.status_code})")
+        return
+
+    profiles = {p["program_id"]: p["last_updated"] for p in prof_resp.json()}
+
+    # Fetch recent intelligence_discoveries (last 14 days)
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    intel_resp = requests.get(
+        f"{SUPABASE_URL}/rest/v1/intelligence_discoveries",
+        headers=headers,
+        params={"select": "drug_name,discovery_text,created_at", "created_at": f"gte.{cutoff}", "limit": "200"},
+        timeout=15,
+    )
+    recent_intel = intel_resp.json() if intel_resp.status_code == 200 else []
+
+    flagged = []
+    for program_id, competitors in ASSET_COMPETITOR_MAP.items():
+        profile_ts = profiles.get(program_id)
+        if not profile_ts:
+            continue
+        for item in recent_intel:
+            drug = (item.get("drug_name") or "").lower()
+            text = (item.get("discovery_text") or "").lower()
+            created = item.get("created_at", "")
+            # Check if this intel mentions a competitor for this program
+            if any(c.lower() in drug or c.lower() in text for c in competitors):
+                # Check if intel is newer than profile
+                if created > profile_ts:
+                    flagged.append({
+                        "program_id": program_id,
+                        "competitor_trigger": drug or "unknown",
+                        "intel_date": created,
+                        "profile_updated": profile_ts,
+                    })
+                    break  # one flag per program is enough
+
+    if flagged:
+        log(f"  Phase 9: {len(flagged)} program(s) flagged for profile review: {[f['program_id'] for f in flagged]}")
+        # Write to research_queue
+        queue_rows = []
+        for f in flagged:
+            queue_rows.append({
+                "queue_type": "asset_profile_review",
+                "drug_name": f["program_id"].upper(),
+                "priority": "medium",
+                "notes": (
+                    f"Competitor update detected for {f['program_id'].upper()} profile. "
+                    f"Trigger: {f['competitor_trigger']} ({f['intel_date'][:10]}). "
+                    f"Profile last updated: {f['profile_updated'][:10]}. "
+                    "Review KOL Q&A and pharma_bd_objections for accuracy."
+                ),
+                "status": "pending",
+            })
+        if queue_rows:
+            rq_resp = requests.post(
+                f"{SUPABASE_URL}/rest/v1/research_queue",
+                headers={**headers, "Prefer": "resolution=merge-duplicates"},
+                json=queue_rows,
+                timeout=15,
+            )
+            if rq_resp.status_code in (200, 201):
+                log(f"  Phase 9: {len(queue_rows)} research_queue item(s) written for human review")
+            else:
+                log(f"  Phase 9: research_queue write failed ({rq_resp.status_code})")
+    else:
+        log("  Phase 9: all asset profiles current — no staleness flags")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     log(f"=== Meridian Research Pipeline — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
@@ -1081,5 +1178,16 @@ if __name__ == "__main__":
         log("source_verifier not available — skipping Phase 8")
     except Exception as exc:
         log(f"Phase 8 source verifier error (non-fatal): {exc}")
+
+    # Phase 9: Asset differentiation profile staleness check
+    # Queries asset_differentiation_profiles + recent intelligence to flag
+    # profiles that may need KOL Q&A or objection updates based on competitor
+    # data changes. Logs flagged programs to research_queue for human review.
+    try:
+        log("--- Phase 9: Asset differentiation profile staleness check ---")
+        _run_asset_profile_staleness_check()
+        log("--- Phase 9 complete ---")
+    except Exception as exc:
+        log(f"Phase 9 asset profile check error (non-fatal): {exc}")
 
     log("=== Research complete ===")
