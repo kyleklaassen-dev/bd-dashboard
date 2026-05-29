@@ -915,11 +915,11 @@ def process_pkpd_queue() -> int:
                 log(f"    Extracted PK params: {list(pk_params.keys())}")
                 pk_rec = {
                     "drug_id":      drug_id,
-                    "source_type":  "pubmed_abstract",
+                    # source_type CHECK constraint: Phase1|Phase2|Phase3|label|abstract|poster|investor_PR|ClinicalTrials
+                    "source_type":  "abstract",
                     "source_url":   source_url,
                     "notes":        f"Auto-extracted from PubMed PMID {pmid}",
                     "verified":     False,
-                    "created_at":   NOW_ISO,
                     **pk_params,
                 }
                 try:
