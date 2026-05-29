@@ -5286,15 +5286,12 @@ function loadMoleculeTab(tabId) {
  <!-- ── BD Today widget ───────────────────────────────────────── -->
  <div id="bd-today-anchor" style="max-width:1100px;margin:0 auto 24px;padding:0 24px;"></div>
 
- <!-- ── Ailux Asset Intelligence card ─────────────────────────── -->
- <div id="asset-intel-anchor" style="max-width:1100px;margin:0 auto 24px;padding:0 24px;"></div>
-
- <!-- ── Home lower panels: Issue → Catalysts → Indication Priority ── -->
+ <!-- ── Home lower panels: Issue → Catalysts → Indication Priority → Asset Intelligence ── -->
  <div style="max-width:1100px;margin:0 auto;padding:0 24px;">
 
   <!-- Today's Meridian Issue — full width, tall, clean scroll -->
   <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
-   <div id="hw-issue-content" style="min-height:600px;max-height:calc(100vh - 140px);overflow-y:auto;font-size:16px;line-height:1.9;color:#1e293b;padding:36px 48px">
+   <div id="hw-issue-content" style="min-height:600px;max-height:calc(100vh - 120px);overflow-y:auto;font-size:16px;line-height:1.9;color:#1e293b;padding:40px 52px">
     Loading…
    </div>
   </div>
@@ -5312,6 +5309,9 @@ function loadMoleculeTab(tabId) {
 
   <!-- Indication Priority — below catalysts -->
   <div id="ind-priority-anchor"></div>
+
+  <!-- Ailux Asset Intelligence — below indication priority -->
+  <div id="asset-intel-anchor" style="margin-top:4px;"></div>
 
  </div><!-- end home lower panels -->
 
@@ -20221,7 +20221,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   }
 
   // ── Indication Detail Modal ────────────────────────────────────────
-  async function _hwShowIndicationDetail(indicationId) {
+  window._hwShowIndicationDetail = async function(indicationId) {
     // Normalize id: strip leading 'alx' prefixes if accidentally passed as name
     const id = (indicationId || '').toLowerCase().replace(/\s+/g, '_');
 
