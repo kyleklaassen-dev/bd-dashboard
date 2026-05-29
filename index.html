@@ -4640,6 +4640,40 @@ function loadMoleculeTab(tabId) {
  </div>
 </div>
 
+<!-- Knowledge Folder chips — Meridian v2 -->
+<div class="kf-chips-bar" id="kf-chips-bar">
+  <span class="kf-chip" onclick="openKnowledgeFolder('tl1a')">🦠 TL1A</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('il23')">🔬 IL-23</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('ibd')">💊 IBD</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('uc')">🩺 UC</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('atopy')">🌡️ Atopy</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('ted')">👁️ TED</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('fcrn')">🧬 FcRn</span>
+  <span class="kf-chip" onclick="openKnowledgeFolder('bispecific')">⚡ Bispecific</span>
+</div>
+
+<!-- Knowledge Folder panel overlay -->
+<div class="kf-panel-overlay" id="kf-panel-overlay" onclick="if(event.target===this)closeKnowledgeFolder()">
+  <div class="kf-panel" id="kf-panel">
+    <button class="kf-panel-close" onclick="closeKnowledgeFolder()">×</button>
+    <div class="kf-panel-hero">
+      <div class="kf-panel-icon" id="kf-icon"></div>
+      <div class="kf-panel-name" id="kf-name"></div>
+      <div class="kf-panel-tagline" id="kf-tagline"></div>
+    </div>
+    <div class="kf-panel-tabs">
+      <div class="kf-tab active" onclick="kfSwitchTab(this,'overview')">Overview</div>
+      <div class="kf-tab" onclick="kfSwitchTab(this,'landscape')">Landscape</div>
+      <div class="kf-tab" onclick="kfSwitchTab(this,'ailux')">Ailux Position</div>
+      <div class="kf-tab" onclick="kfSwitchTab(this,'perspectives')">Perspectives</div>
+      <div class="kf-tab" onclick="kfSwitchTab(this,'bd')">BD Opportunities</div>
+    </div>
+    <div class="kf-panel-body" id="kf-panel-body">
+      <div class="kf-loading">Loading intelligence briefing…</div>
+    </div>
+  </div>
+</div>
+
 <!-- ENTITY DEEP-DIVE MODAL -->
 <div class="entity-modal-overlay" id="entity-modal-overlay" onclick="if(event.target===this)closeEntityModal()">
  <div class="entity-modal-card">
@@ -8198,6 +8232,47 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dkn-dp-live-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#2e7d32; margin-bottom:4px; }
 .dkn-dp-live-text { font-size:11.5px; color:#1b5e20; line-height:1.5; }
 .dkn-dp-competes { display:inline-block; background:#fef2f2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; font-size:9px; font-weight:700; padding:1px 7px; margin-left:6px; vertical-align:middle; }
+
+/* Knowledge Folders — Meridian v2 */
+.kf-chips-bar { display:flex; gap:8px; padding:6px 18px 0; background:#0f172a; overflow-x:auto; scrollbar-width:none; flex-wrap:wrap; }
+.kf-chips-bar::-webkit-scrollbar { display:none; }
+.kf-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.06); transition:all .2s; white-space:nowrap; }
+.kf-chip:hover { background:rgba(255,255,255,0.14); color:#fff; border-color:rgba(255,255,255,0.35); transform:translateY(-1px); }
+.kf-chip.active { background:rgba(59,130,246,0.3); border-color:#3b82f6; color:#93c5fd; }
+.kf-panel-overlay { display:none; position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
+.kf-panel-overlay.open { display:block; }
+.kf-panel { position:fixed; top:0; right:0; width:min(680px, 96vw); height:100vh; background:#fff; box-shadow:-8px 0 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .3s cubic-bezier(0.4,0,0.2,1); }
+.kf-panel-overlay.open .kf-panel { transform:translateX(0); }
+.kf-panel-hero { background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%); color:#fff; padding:24px 24px 20px; flex-shrink:0; }
+.kf-panel-icon { font-size:32px; margin-bottom:8px; }
+.kf-panel-name { font-size:22px; font-weight:800; letter-spacing:-0.3px; }
+.kf-panel-tagline { font-size:13px; color:rgba(255,255,255,0.75); margin-top:4px; line-height:1.4; }
+.kf-panel-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.kf-panel-close:hover { background:rgba(255,255,255,0.25); }
+.kf-panel-tabs { display:flex; background:#f8fafc; border-bottom:1px solid #e2e8f0; flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.kf-tab { padding:10px 16px; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; }
+.kf-tab.active { color:#1d4ed8; border-bottom-color:#1d4ed8; background:#fff; }
+.kf-tab:hover:not(.active) { color:#374151; background:#f1f5f9; }
+.kf-panel-body { flex:1; overflow-y:auto; padding:20px 24px; }
+.kf-section { margin-bottom:20px; }
+.kf-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:#94a3b8; margin-bottom:8px; }
+.kf-text { font-size:13px; line-height:1.65; color:#374151; }
+.kf-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+.kf-stat { background:#f8fafc; border-radius:8px; padding:12px; text-align:center; }
+.kf-stat-num { font-size:20px; font-weight:800; color:#1d4ed8; }
+.kf-stat-lbl { font-size:10px; color:#64748b; margin-top:2px; }
+.kf-persp-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.kf-persp-tab { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid #e2e8f0; color:#475569; background:#f8fafc; transition:all .15s; }
+.kf-persp-tab.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+.kf-persp-content { background:#f0f7ff; border-radius:10px; padding:16px; border-left:4px solid #1d4ed8; }
+.kf-persp-role { font-size:10px; font-weight:700; text-transform:uppercase; color:#1d4ed8; letter-spacing:.6px; margin-bottom:6px; }
+.kf-persp-narrative { font-size:13px; line-height:1.65; color:#1e293b; margin-bottom:12px; }
+.kf-persp-points { list-style:none; padding:0; margin:0; }
+.kf-persp-points li { font-size:12px; color:#374151; padding:4px 0; padding-left:16px; position:relative; line-height:1.5; }
+.kf-persp-points li::before { content:'▸'; position:absolute; left:0; color:#1d4ed8; }
+.kf-persp-sq { font-size:12px; color:#64748b; font-style:italic; margin-top:10px; border-top:1px solid #dbeafe; padding-top:8px; }
+.kf-bottom-line { font-size:13px; font-weight:700; color:#1e3a5f; background:#eff6ff; border-radius:6px; padding:10px 14px; margin-top:10px; }
+.kf-loading { text-align:center; padding:40px; color:#94a3b8; font-size:13px; }
 </style>
 
 <script>
@@ -28404,6 +28479,204 @@ function switchOntSubTab(which) {
     explorer.style.display = 'none';
     if (btnAudit) { btnAudit.style.borderBottomColor = '#4a90c4'; btnAudit.style.color = '#f0f6ff'; btnAudit.style.fontWeight = '700'; }
     if (btnExplorer) { btnExplorer.style.borderBottomColor = 'transparent'; btnExplorer.style.color = '#6b8aad'; btnExplorer.style.fontWeight = '500'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// KNOWLEDGE FOLDERS — Meridian v2
+// ═══════════════════════════════════════════════════════
+var _kfCurrentSlug = null;
+var _kfKnowledge = null;
+var _kfPerspectives = [];
+var _kfCurrentTab = 'overview';
+var _kfCurrentPerspRole = 'CEO';
+
+async function openKnowledgeFolder(slug) {
+  _kfCurrentSlug = slug;
+  _kfCurrentTab = 'overview';
+  _kfCurrentPerspRole = 'CEO';
+
+  // Show panel immediately
+  document.getElementById('kf-panel-overlay').classList.add('open');
+  document.getElementById('kf-panel-body').innerHTML = '<div class="kf-loading">Loading intelligence briefing…</div>';
+
+  // Mark active chip
+  document.querySelectorAll('.kf-chip').forEach(function(c) {
+    c.classList.toggle('active', c.getAttribute('onclick').includes("'" + slug + "'"));
+  });
+
+  try {
+    var knowProm = _sb.from('area_knowledge').select('*').eq('area_slug', slug).single();
+    var perspProm = _sb.from('area_perspectives').select('*').eq('area_slug', slug).order('perspective_role');
+
+    var knowRes = await knowProm;
+    var perspRes = await perspProm;
+
+    _kfKnowledge = knowRes.data;
+    _kfPerspectives = perspRes.data || [];
+
+    if (_kfKnowledge) {
+      document.getElementById('kf-icon').textContent = _kfKnowledge.icon || '🔬';
+      document.getElementById('kf-name').textContent = _kfKnowledge.area_name;
+      document.getElementById('kf-tagline').textContent = _kfKnowledge.tagline || '';
+    }
+
+    // Reset tabs UI
+    document.querySelectorAll('.kf-tab').forEach(function(t, i) { t.classList.toggle('active', i === 0); });
+    kfRenderTab('overview');
+
+  } catch(e) {
+    console.error('KF load error', e);
+    document.getElementById('kf-panel-body').innerHTML =
+      '<div class="kf-loading">⚠️ Could not load intelligence briefing. Try refreshing.</div>';
+  }
+}
+
+function closeKnowledgeFolder() {
+  document.getElementById('kf-panel-overlay').classList.remove('open');
+  document.querySelectorAll('.kf-chip').forEach(function(c) { c.classList.remove('active'); });
+  _kfCurrentSlug = null;
+}
+
+function kfSwitchTab(el, tab) {
+  document.querySelectorAll('.kf-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  _kfCurrentTab = tab;
+  kfRenderTab(tab);
+}
+
+function kfRenderTab(tab) {
+  var body = document.getElementById('kf-panel-body');
+  var k = _kfKnowledge;
+
+  if (!k) {
+    body.innerHTML = '<div class="kf-loading">No data available for this area yet.</div>';
+    return;
+  }
+
+  if (tab === 'overview') {
+    body.innerHTML =
+      '<div class="kf-section">' +
+        '<div class="kf-stat-row">' +
+          '<div class="kf-stat"><div class="kf-stat-num">' + (k.drug_count_total || '—') + '</div><div class="kf-stat-lbl">Programs tracked</div></div>' +
+          '<div class="kf-stat"><div class="kf-stat-num">' + (k.drug_count_direct || '—') + '</div><div class="kf-stat-lbl">Direct competitors</div></div>' +
+          '<div class="kf-stat"><div class="kf-stat-num">' + (k.area_type ? k.area_type.charAt(0).toUpperCase() + k.area_type.slice(1) : 'Area') + '</div><div class="kf-stat-lbl">Area type</div></div>' +
+        '</div>' +
+      '</div>' +
+      (k.description ? '<div class="kf-section"><div class="kf-section-title">About this area</div><div class="kf-text">' + escHtml(k.description) + '</div></div>' : '') +
+      (k.patient_population ? '<div class="kf-section"><div class="kf-section-title">Patient population</div><div class="kf-text">' + escHtml(k.patient_population) + '</div></div>' : '') +
+      (k.unmet_need ? '<div class="kf-section"><div class="kf-section-title">Unmet need</div><div class="kf-text">' + escHtml(k.unmet_need) + '</div></div>' : '') +
+      (k.standard_of_care ? '<div class="kf-section"><div class="kf-section-title">Current standard of care</div><div class="kf-text">' + escHtml(k.standard_of_care) + '</div></div>' : '') +
+      (k.key_mechanism ? '<div class="kf-section"><div class="kf-section-title">Mechanism of action</div><div class="kf-text">' + escHtml(k.key_mechanism) + '</div></div>' : '');
+
+  } else if (tab === 'ailux') {
+    body.innerHTML =
+      '<div class="kf-section">' +
+        '<div class="kf-section-title">Ailux\'s position</div>' +
+        '<div class="kf-text">' + escHtml(k.ailux_relevance || 'Ailux monitors this area closely as part of its competitive intelligence program.') + '</div>' +
+      '</div>' +
+      '<div class="kf-section">' +
+        '<div class="kf-section-title">Key programs</div>' +
+        '<div class="kf-text" style="background:#f0fdf4;border-radius:8px;padding:12px;border-left:4px solid #16a34a;">' +
+          '<strong>XPF005</strong> — TL1A×IL-23p19 bispecific · Lead program · Phase 1<br>' +
+          '<strong>ALX-FcRn</strong> — FcRn×Albumin bispecific · Second program · Preclinical' +
+        '</div>' +
+      '</div>';
+
+  } else if (tab === 'perspectives') {
+    var roles = ['CEO', 'CSO', 'CBO', 'CFO', 'KOL'];
+    var roleIcons = {CEO: '👔', CSO: '🔬', CBO: '🤝', CFO: '💰', KOL: '🏥'};
+
+    var perspTabsHtml = roles.map(function(r) {
+      return '<div class="kf-persp-tab' + (r === _kfCurrentPerspRole ? ' active' : '') +
+             '" onclick="kfSwitchPersp(\'' + r + '\',this)">' + (roleIcons[r] || '') + ' ' + r + '</div>';
+    }).join('');
+
+    body.innerHTML =
+      '<div class="kf-section">' +
+        '<div class="kf-section-title">View through the lens of…</div>' +
+        '<div class="kf-persp-tabs" id="kf-persp-tabs">' + perspTabsHtml + '</div>' +
+        '<div id="kf-persp-content">' + _kfBuildPerspContent(_kfCurrentPerspRole) + '</div>' +
+      '</div>';
+
+  } else if (tab === 'bd') {
+    body.innerHTML = '<div class="kf-loading">Loading BD intelligence…</div>';
+    _loadKfBdData();
+
+  } else if (tab === 'landscape') {
+    body.innerHTML = '<div class="kf-loading">Landscape view coming soon — tracks competitive programs by stage.</div>';
+
+  } else {
+    body.innerHTML = '<div class="kf-loading">Loading…</div>';
+  }
+}
+
+function _kfBuildPerspContent(role) {
+  var persp = null;
+  for (var i = 0; i < _kfPerspectives.length; i++) {
+    if (_kfPerspectives[i].perspective_role === role) { persp = _kfPerspectives[i]; break; }
+  }
+  if (!persp) {
+    return '<div class="kf-loading">No ' + role + ' perspective available for this area yet.</div>';
+  }
+  var pts = [];
+  if (Array.isArray(persp.key_points)) pts = persp.key_points;
+  else if (typeof persp.key_points === 'string') { try { pts = JSON.parse(persp.key_points); } catch(e) {} }
+
+  return '<div class="kf-persp-content">' +
+    '<div class="kf-persp-role">' + escHtml(persp.role_title || role) + ' perspective</div>' +
+    '<div class="kf-persp-narrative">' + escHtml(persp.narrative) + '</div>' +
+    (pts.length ? '<ul class="kf-persp-points">' + pts.map(function(p) { return '<li>' + escHtml(p) + '</li>'; }).join('') + '</ul>' : '') +
+    (persp.strategic_question ? '<div class="kf-persp-sq">❓ Key question: <em>' + escHtml(persp.strategic_question) + '</em></div>' : '') +
+    (persp.bottom_line ? '<div class="kf-bottom-line">🎯 Bottom line: ' + escHtml(persp.bottom_line) + '</div>' : '') +
+    '</div>';
+}
+
+function kfSwitchPersp(role, el) {
+  _kfCurrentPerspRole = role;
+  document.querySelectorAll('.kf-persp-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('kf-persp-content').innerHTML = _kfBuildPerspContent(role);
+}
+
+async function _loadKfBdData() {
+  var body = document.getElementById('kf-panel-body');
+  try {
+    var catsRes = await _sb.from('catalyst_calendar')
+      .select('drug_id, event_name, expected_date, expected_quarter, strategic_significance, ailux_impact, drugs(name,stage)')
+      .not('is_past', 'is', true)
+      .order('expected_date', { ascending: true })
+      .limit(10);
+
+    var cats = catsRes.data || [];
+    var now = new Date();
+
+    var catHtml = cats.length ? cats.map(function(c) {
+      var daysUntil = c.expected_date ? Math.ceil((new Date(c.expected_date) - now) / 86400000) : null;
+      var sig = c.strategic_significance;
+      var sigColor = sig === 'P0' ? '#dc2626' : sig === 'P1' ? '#ea580c' : '#64748b';
+      return '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;gap:10px;align-items:flex-start;">' +
+        '<span style="font-size:10px;font-weight:800;color:' + sigColor + ';background:' + sigColor + '18;border-radius:4px;padding:2px 6px;flex-shrink:0;margin-top:2px">' + (sig || '—') + '</span>' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:600;color:#1e293b">' + escHtml((c.drugs && c.drugs.name) || c.drug_id || '—') + '</div>' +
+          '<div style="font-size:11px;color:#475569">' + escHtml(c.event_name || '') +
+            (daysUntil !== null ? ' · <strong style="color:' + (daysUntil < 90 ? '#dc2626' : '#374151') + '">' + daysUntil + 'd away</strong>' : (c.expected_quarter ? ' · ' + c.expected_quarter : '')) +
+          '</div>' +
+          (c.ailux_impact ? '<div style="font-size:11px;color:#6b7280;margin-top:2px;font-style:italic">' + escHtml(c.ailux_impact) + '</div>' : '') +
+        '</div>' +
+        '</div>';
+    }).join('') : '<div style="color:#94a3b8;font-size:12px">No upcoming catalysts tracked.</div>';
+
+    if (body) {
+      body.innerHTML =
+        '<div class="kf-section">' +
+          '<div class="kf-section-title">Upcoming catalysts</div>' +
+          catHtml +
+        '</div>';
+    }
+  } catch(e) {
+    console.warn('KF BD data error', e);
+    if (body) body.innerHTML = '<div class="kf-loading">Could not load BD data.</div>';
   }
 }
 
