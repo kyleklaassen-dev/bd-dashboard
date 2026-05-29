@@ -5291,7 +5291,7 @@ function loadMoleculeTab(tabId) {
 
   <!-- Today's Meridian Issue — full width, tall, clean scroll -->
   <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
-   <div id="hw-issue-content" style="min-height:480px;max-height:calc(100vh - 180px);overflow-y:auto;font-size:15px;line-height:1.85;color:#334155;padding:28px 36px">
+   <div id="hw-issue-content" style="min-height:600px;max-height:calc(100vh - 140px);overflow-y:auto;font-size:16px;line-height:1.9;color:#1e293b;padding:36px 48px">
     Loading…
    </div>
   </div>
@@ -20228,8 +20228,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     card.querySelectorAll('.home-panel').forEach(p => p.style.display = 'none');
 
     titleEl.textContent = 'Loading indication intelligence…';
-    backdrop.classList.add('active');
-    card.classList.add('active');
+    backdrop.classList.add('open');
+    card.classList.add('open');
 
     // Fetch all 4 scoring tables in parallel
     let win = null, bio = null, reg = null, strat = null;
@@ -20397,10 +20397,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       body.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
       // Inject scoped styles to make the serif issue content look clean inside the card
       content.innerHTML = `<style>
-        #hw-issue-content h1 { font-size:22px; font-weight:700; color:#1a3f8f; margin:0 0 6px 0; font-family:Georgia,serif; }
-        #hw-issue-content h2 { font-size:17px; font-weight:700; color:#1a3f8f; margin:18px 0 4px 0; border-bottom:1px solid #dce6f7; padding-bottom:4px; font-family:Georgia,serif; }
-        #hw-issue-content h3 { font-size:15px; font-weight:600; color:#1e3a5f; margin:14px 0 4px 0; font-style:italic; font-family:Georgia,serif; }
-        #hw-issue-content p { margin:0 0 10px 0; font-size:15px; }
+        #hw-issue-content h1 { font-size:26px; font-weight:700; color:#1a3f8f; margin:0 0 8px 0; font-family:Georgia,serif; }
+        #hw-issue-content h2 { font-size:20px; font-weight:700; color:#1a3f8f; margin:22px 0 6px 0; border-bottom:1px solid #dce6f7; padding-bottom:5px; font-family:Georgia,serif; }
+        #hw-issue-content h3 { font-size:17px; font-weight:600; color:#1e3a5f; margin:16px 0 5px 0; font-style:italic; font-family:Georgia,serif; }
+        #hw-issue-content p { margin:0 0 14px 0; font-size:16px; line-height:1.9; }
         #hw-issue-content .dateline { font-size:10px; color:#3d5166; letter-spacing:0.5px; text-transform:uppercase; font-family:Calibri,Helvetica,sans-serif; }
         #hw-issue-content .tagline { font-style:italic; font-size:12px; color:#3d5166; margin:0 0 14px 0; }
         #hw-issue-content hr.thick { border:none; border-top:2px solid #1a3f8f; margin:8px 0 4px 0; }
