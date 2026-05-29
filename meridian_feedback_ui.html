@@ -220,14 +220,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://tghntyofptvfhmtchwcv.supabase.co';
-// NOTE: Uses anon key for client-side. Service key must never be in client HTML.
-// For local review tool that Kyle runs on his own machine, using service key is acceptable.
+// Private tool — Kyle's local machine only. Anon key is sufficient for reads+writes
+// since RLS allows anon insert on correction_labels and kyle_reviews.
+// Key must match .supabase_anon_key in workspace root.
 const SUPABASE_KEY = (function() {
   // Try to read from meta tag (set by server) or fall back to anon key
   const meta = document.querySelector('meta[name="sb-key"]');
   if (meta) return meta.content;
-  // Anon key — read-only access for display, write needs RLS or service key
-  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.HlqBTdaVV2l3RcbT8l2OO-h7x3Ny8pB0rkpK3jqmJRc';
+  // Anon key (current — updated 2026-05-29, matches .supabase_anon_key)
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g';
 })();
 
 const { createClient } = supabase;
