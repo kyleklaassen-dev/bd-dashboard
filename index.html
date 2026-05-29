@@ -2505,6 +2505,16 @@ a:hover, .clickable:hover { color: #A8D8EA !important; }
 .ind-wspace-high { background: #22c55e; }
 .ind-wspace-mid  { background: #f59e0b; }
 .ind-wspace-low  { background: #ef4444; }
+.ind-wind-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.ind-wind-open   { background: #dcfce7; color: #15803d; }
+.ind-wind-mid    { background: #fef9c3; color: #a16207; }
+.ind-wind-narrow { background: #fee2e2; color: #dc2626; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
@@ -20075,20 +20085,28 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   // ── Indication Priority widget ─────────────────────────────────────
   // Renders top 5 indication priorities on the home page.
   // Data source: indication_priority_scores table (if present) or
-  // built-in static data derived from seed_indication_priorities.py rankings.
+  // built-in static data derived from indication_priority_scores.json rankings.
+  // Composite formula (v2): unmet×0.20 + fit×0.25 + wspace×0.15 + window_urgency×0.20
+  //   + biology×0.10 + regulatory×0.05 + stratifiability×0.05
   async function loadIndicationPriority() {
     const anchor = document.getElementById('ind-priority-anchor');
     if (!anchor) return;
 
-    // Static fallback data (mirrors seed_indication_priorities.py rankings)
-    // Rank order: Sjogren(1), CD(2), SLE(3), TL1A-area(4), CIDP(5),
-    //             UC(6), gMG(7), FcRn-area(8), IBD(9), MG-broad(10)...
+    // Static fallback data — new v2 ranking (2026-05-29)
+    // Rank order: gMG(1), CIDP(2), CD(3), UC(4), MG-broad(5),
+    //             Sjogren(6), TL1A-area(7), FcRn-area(8), SLE(9), IBD(10)...
+    // Key insight: gMG rises to #1 because it is the ONLY indication with
+    // validated biology (10) + established FDA endpoint (10) + perfect biomarker (AChR Ab+, 10)
+    // Sjogren's drops 5 places: window is wide open (9) but biology contested,
+    // endpoint not FDA-established, and no validated stratification biomarker.
     const STATIC_PRIORITIES = [
-      { rank:1, name:"Sjogren's Syndrome",              fit:9, wspace:9, unmet:9,  bfr:60.0, patients:400000,  progs:["alx002"], rationale:"Nearly no approved pharmacotherapy. CD19×BCMA: highest white space of any tracked indication." },
-      { rank:2, name:"Crohn's Disease",                 fit:10, wspace:7, unmet:9, bfr:45.0, patients:780000, progs:["alx001"], rationale:"20% SoC remission — worst tracked. Fibroinflammatory phenotype ideally addressed by TL1A×IL-23." },
-      { rank:3, name:"Systemic Lupus Erythematosus",    fit:9,  wspace:8, unmet:9, bfr:50.0, patients:200000, progs:["alx002"], rationale:"15% SoC remission. B cell + plasma cell dual depletion strategy differentiated from belimumab/anifrolumab." },
-      { rank:4, name:"TL1A Mechanism Area",             fit:10, wspace:7, unmet:9, bfr:42.0, patients:2500000, progs:["alx001"], rationale:"Bispecific window is 2025–2027. Monospecifics entering Ph3 — differentiation clock is running." },
-      { rank:5, name:"CIDP",                            fit:10, wspace:9, unmet:8, bfr:35.0, patients:40000,  progs:["alx005"], rationale:"Efgartigimod approved (mono) but bispecific white space essentially unchallenged. High maintenance convenience opportunity." },
+      { rank:1, name:"Generalized Myasthenia Gravis", fit:10, wspace:8, unmet:8,  wind:8, bio:10, reg:10, strat:10, composite:8.90, bfr:30.0, patients:90000,  progs:["alx005"], rationale:"FcRn mechanism fully validated (3+ approved drugs). MG-ADL is FDA gold standard. AChR Ab+ = 85% of patients — perfectly stratifiable at baseline.", tooltip:"Why #1: Window urgency=8 (no FcRn bispecific in gMG Phase 2 — bispecific niche is open) · Biology validated (efgartigimod, rozanolixizumab, nipocalimab all approved) · Endpoint established (MG-ADL is FDA gold standard) · Biomarker: AChR Ab+ = ~85% of gMG, perfectly stratifiable at baseline" },
+      { rank:2, name:"CIDP",                          fit:10, wspace:9, unmet:8,  wind:9, bio:8,  reg:7,  strat:6,  composite:8.70, bfr:35.0, patients:40000,  progs:["alx005"], rationale:"Highest window urgency of any indication (9). Efgartigimod approved (mono) but bispecific white space is completely unchallenged — no competitor in Phase 2.", tooltip:"Why #2: Window urgency=9 (no FcRn bispecific in CIDP Phase 2; efgartigimod mono approved, bispecific space completely open) · FcRn mechanism validated by clinical data · INCAT disability score established, FDA-accepted · Anti-NF155 antibody subset exists; clinical severity stratification possible" },
+      { rank:3, name:"Crohn's Disease",               fit:10, wspace:7, unmet:9,  wind:7, bio:9,  reg:8,  strat:7,  composite:8.40, bfr:45.0, patients:780000, progs:["alx001"], rationale:"20% SoC remission — worst tracked. TL1A ARTEMIS-CD Phase 2b data validates mechanism. SPY072 Phase 1b sets 18-24 month window.", tooltip:"Why #3: Window urgency=7 (SPY072 TL1A×IL-23 Phase 1b active, 18-24mo window) · Biology validated (TL1A ARTEMIS-CD Phase 2b; IL-23 multiple Phase 3 trials) · CDAI + endoscopic endpoints established, FDA-precedented · Biomarker emerging (fecal calprotectin, TL1A-high expressors, fibrotic phenotype)" },
+      { rank:4, name:"Ulcerative Colitis",             fit:10, wspace:7, unmet:8,  wind:6, bio:10, reg:10, strat:8,  composite:8.25, bfr:40.0, patients:900000, progs:["alx001"], rationale:"Endoscopic remission is FDA gold standard. TL1A mechanism validated by ARTEMIS Phase 2b. Window compressing — duvakitug Phase 3 H2 2026.", tooltip:"Why #4: Window urgency=6 (SPY072 Phase 1b active; duvakitug Ph3 H2 2026 — 12-18mo window) · TL1A mechanism FDA-validated in UC via ARTEMIS Phase 2b · Endoscopic remission is FDA gold standard (Mayo score established) · Fecal calprotectin, TL1A-high expressors as strong baseline stratifiers" },
+      { rank:5, name:"Myasthenia Gravis (Broad)",      fit:8,  wspace:8, unmet:8,  wind:8, bio:9,  reg:9,  strat:8,  composite:8.15, bfr:30.0, patients:36000,  progs:["alx005"], rationale:"Bispecific white space mirrors gMG. AChR Ab stratification well-established. eculizumab/efgartigimod failures define refractory subgroup addressable by next-gen bispecific.", tooltip:"Why #5: Window urgency=8 (bispecific space open within broad MG; AChR-specific subgroup is addressable niche) · FcRn + complement mechanisms both clinically validated · MG-ADL + QMG established; mature regulatory pathway · AChR Ab+ stratification well-established; eculizumab failures define refractory subgroup" },
+      { rank:6, name:"Sjogren's Syndrome",             fit:9,  wspace:9, unmet:9,  wind:9, bio:5,  reg:4,  strat:3,  composite:8.05, bfr:60.0, patients:400000, progs:["alx002"], rationale:"Highest window urgency and white space. Critical caveat: biology contested (no validated animal model), endpoint not FDA-established, no validated stratification biomarker.", tooltip:"Why #6: Window urgency=9 (no Phase 2+ CD19 bispecific in Sjogren's — >24mo window) · Biology contested (no validated animal model; rituximab Phase 3 failures) · Endpoint contested (ESSDAI vs ESSPRI; no FDA gold standard) · No validated biomarker (RF/anti-SSA insufficient for stratification)" },
+      { rank:7, name:"TL1A Mechanism Area",            fit:10, wspace:7, unmet:9,  wind:5, bio:9,  reg:9,  strat:7,  composite:8.05, bfr:42.0, patients:2500000,progs:["alx001"], rationale:"TL1A mechanism FDA-validated. Window urgency penalized — monospecifics entering Phase 3 are defining the positioning before bispecifics reach Phase 2.", tooltip:"Why #7: Window urgency=5 (monospecifics entering Phase 3 — duvakitug Ph3 H2 2026 readout compresses differentiation window) · TL1A mechanism FDA-validated via ARTEMIS Phase 2b · Endoscopic remission gold standard in IBD · Fecal calprotectin + TL1A-high expressors as emerging stratification" },
     ];
 
     let rows = STATIC_PRIORITIES;
@@ -20098,9 +20116,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       try {
         const { data, error } = await _sb
           .from('indication_priority_scores')
-          .select('indication_priority_rank,indication_name,ailux_fit_score,competitive_white_space,unmet_need_score,biologic_failure_rate_pct,patient_count_us,alx_programs,priority_rationale')
+          .select('indication_priority_rank,indication_name,ailux_fit_score,competitive_white_space,unmet_need_score,biologic_failure_rate_pct,patient_count_us,alx_programs,priority_rationale,window_urgency_score,biology_validation_score,regulatory_pathway_clarity,patient_stratifiability,_composite_score,tooltip_why')
           .order('indication_priority_rank', { ascending: true })
-          .limit(5);
+          .limit(7);
         if (!error && data && data.length) {
           rows = data.map(d => ({
             rank: d.indication_priority_rank,
@@ -20108,10 +20126,16 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
             fit: d.ailux_fit_score,
             wspace: d.competitive_white_space,
             unmet: d.unmet_need_score,
+            wind: d.window_urgency_score || null,
+            bio: d.biology_validation_score || null,
+            reg: d.regulatory_pathway_clarity || null,
+            strat: d.patient_stratifiability || null,
+            composite: d._composite_score || null,
             bfr: d.biologic_failure_rate_pct,
             patients: d.patient_count_us,
             progs: d.alx_programs || [],
             rationale: d.priority_rationale || '',
+            tooltip: d.tooltip_why || '',
           }));
         }
       } catch(_) { /* use static fallback */ }
@@ -20148,29 +20172,40 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       return n + ' US patients';
     }
 
-    const rowsHtml = rows.map(r => `
-      <div class="ind-priority-row">
+    function _windBadge(score) {
+      if (!score) return '';
+      const cls = score >= 8 ? 'ind-wind-open' : score >= 6 ? 'ind-wind-mid' : 'ind-wind-narrow';
+      const lbl = score >= 8 ? 'Window open' : score >= 6 ? 'Window narrowing' : 'Window closing';
+      return `<span class="ind-wind-badge ${cls}" title="Competitive window urgency: ${score}/10">${lbl}</span>`;
+    }
+
+    const rowsHtml = rows.map(r => {
+      const tooltipAttr = r.tooltip ? ` title="${r.tooltip.replace(/"/g, '&quot;')}"` : '';
+      return `
+      <div class="ind-priority-row"${tooltipAttr} style="cursor:default;">
         ${_rankBadge(r.rank)}
         <div style="flex:1;min-width:0;">
-          <div class="ind-priority-name">${r.name}</div>
-          <div class="ind-priority-meta">${r.rationale ? r.rationale.substring(0,90) + (r.rationale.length > 90 ? '…' : '') : _fmtPatients(r.patients)}</div>
+          <div class="ind-priority-name">${r.name}${r.composite ? `<span style="font-size:9px;color:#94a3b8;font-weight:400;margin-left:6px;">${r.composite.toFixed(2)}</span>` : ''}</div>
+          <div class="ind-priority-meta">${r.rationale ? r.rationale.substring(0,95) + (r.rationale.length > 95 ? '…' : '') : _fmtPatients(r.patients)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           ${_wspaceDot(r.wspace)}
-          ${_unmetBadge(r.unmet)}
+          ${r.wind ? _windBadge(r.wind) : _unmetBadge(r.unmet)}
           ${_progPill(r.progs)}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     anchor.innerHTML = `<div class="ind-priority-card">
       <div class="ind-priority-hd">
-        <span class="ind-priority-hd-title">Indication Priority — Top 5</span>
-        <span class="ind-priority-hd-sub">Patient unmet need · Ailux fit · Bispecific white space</span>
+        <span class="ind-priority-hd-title">Indication Priority — Top 7</span>
+        <span class="ind-priority-hd-sub">Unmet need · Ailux fit · Window urgency · Biology validation · Endpoint clarity · Biomarker stratifiability</span>
       </div>
       ${rowsHtml}
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:9px;color:#94a3b8;">White space: <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;"></span> open  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-left:4px;"></span> some competition  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-left:4px;"></span> crowded</span>
-        <span style="margin-left:auto;font-size:9px;color:#94a3b8;">Scored by Meridian · Patients → Indications → Targets → Companies</span>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:9px;color:#94a3b8;">White space: <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;"></span> open  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-left:4px;"></span> some  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-left:4px;"></span> crowded</span>
+        <span style="font-size:9px;color:#94a3b8;">Hover card for scoring rationale</span>
+        <span style="margin-left:auto;font-size:9px;color:#94a3b8;">Composite v2 · 7 dimensions · Meridian 2026-05-29</span>
       </div>
     </div>`;
   }
