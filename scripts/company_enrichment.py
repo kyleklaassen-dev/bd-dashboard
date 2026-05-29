@@ -1485,6 +1485,26 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
             if result:
                 log(f"    + Catalyst [{significance}]: {label[:55]} ({pcd_label})", indent=3)
                 created += 1
+                # BUG 7 FIX: Dual-write to catalyst_calendar (new schema)
+                # The legacy catalysts table is the live source; we mirror here going forward
+                # so catalyst_calendar self-populates. No bulk migration of 862 legacy rows.
+                try:
+                    cc_rec = {
+                        "drug_id":              trial.get("drug_id", ""),
+                        "company_id":           company_id,
+                        "event_type":           "readout",
+                        "event_name":           label[:200],
+                        "expected_date":        sort_date,
+                        "expected_quarter":     pcd_label,
+                        "description":          f"CT.gov trial {trial.get('nct_id', '')} primary completion",
+                        "strategic_significance": significance,
+                        "confidence":           "inferred",
+                        "source_url":           f"https://clinicaltrials.gov/study/{trial.get('nct_id', '')}",
+                        "is_past":              False,
+                    }
+                    sb_upsert("catalyst_calendar", cc_rec)
+                except Exception:
+                    pass  # non-fatal
 
     return created
 
@@ -2719,6 +2739,33 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
             cat_rec["source_url"] = cat["source_url"]
         result = sb_upsert("catalysts", cat_rec)
         log(f"  catalyst '{cat_rec['label'][:40]}': {'✓' if result else '✗'}", indent=1)
+
+        # BUG 7 FIX: Dual-write to catalyst_calendar so new table populates going forward.
+        # NOTE: The legacy catalysts table (862 rows) is the live data source. catalyst_calendar
+        # (14 rows) is the new schema. We do NOT migrate old rows — too risky. Instead, every
+        # new catalyst written here is mirrored to catalyst_calendar. Once catalyst_calendar
+        # has sufficient coverage, the dashboard can switch its primary read to it.
+        try:
+            cc_rec = {
+                "drug_id":              drug_id_raw,
+                "company_id":           company_id,
+                "event_type":           cat_type,
+                "event_name":           (cat.get("label") or "")[:200],
+                "expected_date":        sort_date,
+                "expected_quarter":     cat.get("catalyst_date", ""),
+                "description":          cat.get("notes", ""),
+                "strategic_significance": cat.get("significance", "medium"),
+                "ailux_impact":         cat.get("ailux_angle", ""),
+                "confidence":           cat.get("confidence_level", "inferred"),
+                "is_past":              False,
+            }
+            if cat.get("source_url"):
+                cc_rec["source_url"] = cat["source_url"]
+            if enrichment_run_id:
+                cc_rec["enrichment_run_id"] = enrichment_run_id
+            sb_upsert("catalyst_calendar", cc_rec)
+        except Exception as _cc_exc:
+            log(f"  catalyst_calendar mirror: non-fatal error: {_cc_exc}", indent=1)
 
     for du in data.get("deal_updates", []):
         headline = du.get("headline", "")
