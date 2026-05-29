@@ -645,6 +645,24 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   margin-top: 1px;
 }
 
+/* ── Meridian Issue panel ── */
+.hw-issue-panel { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:16px; margin-bottom:16px; }
+.hw-issue-hd { display:flex; align-items:center; gap:8px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f1f5f9; }
+/* ── BD Catalyst Calendar ── */
+.hw-cal-section { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:16px; margin-bottom:16px; }
+.hw-cal-month { font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin:12px 0 6px 0; }
+.hw-cal-item { display:flex; align-items:baseline; gap:10px; padding:6px 0; border-bottom:1px solid #f8fafc; font-size:11px; cursor:pointer; }
+.hw-cal-item:last-child { border-bottom:none; }
+.hw-cal-item:hover { background:#fafbfc; border-radius:4px; }
+.hw-cal-sig { border-radius:3px; padding:1px 6px; font-size:9px; font-weight:800; text-transform:uppercase; flex-shrink:0; }
+.hw-cal-sig.p0 { background:#fee2e2; color:#b91c1c; }
+.hw-cal-sig.p1 { background:#fed7aa; color:#c2410c; }
+.hw-cal-sig.p2 { background:#fef9c3; color:#854d0e; }
+.hw-cal-sig.p3 { background:#f1f5f9; color:#64748b; }
+.hw-cal-date { color:#64748b; flex-shrink:0; min-width:58px; }
+.hw-cal-headline { color:#1e3a5f; flex:1; font-weight:500; }
+.hw-cal-drug { color:#94a3b8; flex-shrink:0; max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
 /* ── Platform Intelligence callout ── */
 #hw-platform-intel {
   margin: 20px auto 0;
@@ -5148,6 +5166,34 @@ function loadMoleculeTab(tabId) {
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
  <div id="bd-today-anchor" style="max-width:640px;margin:0 auto 24px;padding:0 16px;"></div>
+
+ <!-- ── Home lower panels (Meridian Issue + Catalyst Calendar) ── -->
+ <div style="max-width:640px;margin:0 auto;padding:0 16px;">
+
+  <!-- Today's Meridian Issue -->
+  <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
+   <div class="hw-issue-hd">
+    <span style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:0.06em">Today's Meridian Issue</span>
+    <span id="hw-issue-date" style="font-size:10px;color:#64748b;margin-left:auto"></span>
+    <a href="meridian_today.html" target="_blank" style="font-size:10px;color:#7c3aed;margin-left:12px;font-weight:700;text-decoration:none;">Open full issue ↗</a>
+   </div>
+   <div id="hw-issue-content" style="max-height:420px;overflow-y:auto;font-size:12.5px;line-height:1.7;color:#334155;padding:4px 0">
+    Loading…
+   </div>
+  </div>
+
+  <!-- 90-Day BD Catalyst Calendar -->
+  <div class="hw-cal-section" id="hw-cal-section" style="display:none">
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+    <span style="font-size:11px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.06em">Next 90 Days — BD Calendar</span>
+    <span id="hw-cal-count" style="font-size:10px;color:#94a3b8;margin-left:auto"></span>
+   </div>
+   <div id="hw-cal-body">
+    <div style="color:#94a3b8;font-size:11px;padding:12px 0">Loading catalysts…</div>
+   </div>
+  </div>
+
+ </div><!-- end home lower panels -->
 
  <!-- ── Overlay backdrop ───────────────────────────────────────── -->
  <div id="home-overlay-backdrop" onclick="closeHomePanel()"></div>
@@ -19873,6 +19919,118 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     }
   }
 
+  // ── Meridian Issue inline reader ──────────────────────────────────
+  async function _hwLoadMeridianIssue() {
+    const panel = document.getElementById('hw-issue-panel');
+    const content = document.getElementById('hw-issue-content');
+    if (!panel || !content) return;
+    try {
+      const resp = await fetch('meridian_today.html');
+      if (!resp.ok) throw new Error('not found');
+      const html = await resp.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      // Remove <style>, <script>, <head> cruft — grab body children
+      const body = doc.body;
+      // Remove any base tags that would affect links
+      body.querySelectorAll('base').forEach(el => el.remove());
+      // Scope all links to open in new tab
+      body.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+      // Inject scoped styles to make the serif issue content look clean inside the card
+      content.innerHTML = `<style>
+        #hw-issue-content h1 { font-size:18px; font-weight:700; color:#1a3f8f; margin:0 0 6px 0; font-family:Georgia,serif; }
+        #hw-issue-content h2 { font-size:14px; font-weight:700; color:#1a3f8f; margin:18px 0 4px 0; border-bottom:1px solid #dce6f7; padding-bottom:4px; font-family:Georgia,serif; }
+        #hw-issue-content h3 { font-size:13px; font-weight:600; color:#1e3a5f; margin:14px 0 4px 0; font-style:italic; font-family:Georgia,serif; }
+        #hw-issue-content p { margin:0 0 10px 0; }
+        #hw-issue-content .dateline { font-size:10px; color:#3d5166; letter-spacing:0.5px; text-transform:uppercase; font-family:Calibri,Helvetica,sans-serif; }
+        #hw-issue-content .tagline { font-style:italic; font-size:12px; color:#3d5166; margin:0 0 14px 0; }
+        #hw-issue-content hr.thick { border:none; border-top:2px solid #1a3f8f; margin:8px 0 4px 0; }
+        #hw-issue-content hr.thin { border:none; border-top:1px solid #d0d9ea; margin:4px 0 16px 0; }
+        #hw-issue-content a { color:#1a3f8f; text-decoration:none; border-bottom:1px solid #bfdbfe; }
+        #hw-issue-content .bd-lens { border-left:3px solid #1a3f8f; background:#f0f4fb; padding:12px 16px; margin:14px 0; border-radius:0 4px 4px 0; font-size:12px; }
+        #hw-issue-content .label { font-size:9px; font-weight:700; letter-spacing:2px; color:#1a3f8f; text-transform:uppercase; margin-bottom:6px !important; }
+        #hw-issue-content table { width:100%; border-collapse:collapse; margin:10px 0 16px; font-size:11px; font-family:Calibri,Helvetica,sans-serif; }
+        #hw-issue-content th { background:#1a3f8f; color:#fff; padding:7px 10px; text-align:left; }
+        #hw-issue-content td { padding:6px 10px; border:1px solid #dce6f7; vertical-align:top; }
+        #hw-issue-content tr:nth-child(even) td { background:#f5f8ff; }
+        #hw-issue-content .closing { font-style:italic; color:#3d5166; font-size:12px; border-top:1px solid #d0d9ea; padding-top:14px; margin-top:24px; }
+        #hw-issue-content .issue-meta { font-size:10px; color:#94a3b8; margin-top:20px; padding-top:10px; border-top:1px solid #e8edf5; font-family:Calibri,Helvetica,sans-serif; }
+      </style>` + body.innerHTML;
+      panel.style.display = 'block';
+      const dateEl = document.getElementById('hw-issue-date');
+      if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+    } catch(e) {
+      if (content) content.innerHTML = '<p style="color:#94a3b8;font-size:11px;padding:8px 0">Issue not yet generated today. Check back after 3 PM ET.</p>';
+      if (panel) panel.style.display = 'block';
+    }
+  }
+
+  // ── 90-Day BD Catalyst Calendar ──────────────────────────────────
+  async function _hwLoadCatalystCalendar() {
+    const section = document.getElementById('hw-cal-section');
+    const body = document.getElementById('hw-cal-body');
+    if (!section || !body || typeof _sb === 'undefined') return;
+    try {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const plus90   = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
+      const { data: cats, error } = await _sb
+        .from('catalyst_calendar')
+        .select('id,drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact')
+        .gt('expected_date', todayISO)
+        .lt('expected_date', plus90)
+        .order('expected_date', { ascending: true })
+        .limit(30);
+      if (error || !cats || !cats.length) {
+        body.innerHTML = '<div style="color:#94a3b8;font-size:11px;padding:12px 0">No catalysts found in the next 90 days.</div>';
+        section.style.display = 'block';
+        return;
+      }
+      // Group by month
+      const byMonth = {};
+      cats.forEach(c => {
+        const d = new Date(c.expected_date + 'T12:00:00Z');
+        const key = d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+        if (!byMonth[key]) byMonth[key] = [];
+        byMonth[key].push(c);
+      });
+      const sigClass = s => { const sl = (s||'').toLowerCase(); return sl === 'p0' ? 'p0' : sl === 'p1' ? 'p1' : sl === 'p2' ? 'p2' : 'p3'; };
+      const fmtDate = iso => { const d = new Date(iso + 'T12:00:00Z'); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+      let html = '';
+      Object.keys(byMonth).forEach(month => {
+        html += `<div class="hw-cal-month">${month}</div>`;
+        byMonth[month].forEach(c => {
+          const sig = c.strategic_significance || 'P3';
+          const sc  = sigClass(sig);
+          const tooltip = c.ailux_impact ? ` title="${c.ailux_impact.replace(/"/g,'&quot;').substring(0,200)}…"` : '';
+          const drugLabel = (c.drug_id || '').replace(/-/g,' ').toUpperCase().substring(0,18);
+          html += `<div class="hw-cal-item" onclick="_hwCalClick('${c.drug_id||''}')"${tooltip}>
+            <span class="hw-cal-sig ${sc}">${sig}</span>
+            <span class="hw-cal-date">${fmtDate(c.expected_date)}</span>
+            <span class="hw-cal-headline">${c.event_name||'—'}</span>
+            <span class="hw-cal-drug">${drugLabel}</span>
+          </div>`;
+        });
+      });
+      body.innerHTML = html;
+      const countEl = document.getElementById('hw-cal-count');
+      if (countEl) countEl.textContent = `${cats.length} events`;
+      section.style.display = 'block';
+    } catch(e) {
+      console.warn('[CatalystCalendar]', e);
+      section.style.display = 'block';
+    }
+  }
+
+  function _hwCalClick(drugId) {
+    if (!drugId) return;
+    // Try to open the drug modal if available
+    if (typeof openDrugModal === 'function') { openDrugModal(drugId); return; }
+    if (typeof showDrugCard === 'function') { showDrugCard(drugId); return; }
+    // Fallback: navigate to the drug in the search bar
+    const searchEl = document.getElementById('drug-search-input') || document.getElementById('search-input');
+    if (searchEl) { searchEl.value = drugId; searchEl.dispatchEvent(new Event('input')); }
+  }
+
   // ── Entry / exit ───────────────────────────────────────────────────
   async function initHomeWelcome() {
     _hwUpdateClock();
@@ -19882,6 +20040,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     await _hwRefresh(true);
     _hwLoadBDMetrics();
     loadBDToday();
+    _hwLoadMeridianIssue();
+    _hwLoadCatalystCalendar();
     _hwPollTimer = setInterval(() => _hwRefresh(false), 60_000);
   }
 
