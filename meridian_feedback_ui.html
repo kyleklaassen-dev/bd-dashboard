@@ -91,13 +91,20 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .action-btn.uncertain:hover,.action-btn.uncertain.active{background:#fef9c3;border-color:#ca8a04;color:#854d0e}
 .action-btn.skip:hover,.action-btn.skip.active{background:#f1f5f9;border-color:#94a3b8;color:#475569}
 
-/* ── Correction input ── */
-.correction-box{margin-top:10px;display:none}
-.correction-box.show{display:block}
-.correction-box textarea{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:12px;resize:vertical;min-height:70px;font-family:inherit}
-.correction-box textarea:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,0.1)}
-.correction-submit{margin-top:6px;padding:7px 14px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;float:right}
+/* ── Notes input (always visible) ── */
+.notes-box{margin-top:12px}
+.notes-box-label{font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.notes-box-label .required-badge{background:#fee2e2;color:#b91c1c;border-radius:3px;padding:1px 5px;font-size:8px;display:none}
+.notes-box-label .required-badge.show{display:inline}
+.notes-box textarea{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-size:12px;resize:vertical;min-height:64px;font-family:inherit;box-sizing:border-box;transition:border-color 0.15s}
+.notes-box textarea:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,0.1)}
+.notes-box textarea.required-highlight{border-color:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,0.15)}
+.notes-submit-row{display:flex;gap:8px;margin-top:8px;align-items:center}
+.notes-hint{font-size:10px;color:#94a3b8;flex:1}
+.correction-submit{padding:7px 16px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .correction-submit:hover{background:#6d28d9}
+/* legacy — keep .correction-box hidden */
+.correction-box{display:none}
 
 /* ── Progress bar ── */
 .progress-bar{background:#f1f5f9;border-radius:4px;height:4px;overflow:hidden;margin:0 14px 8px}
@@ -360,65 +367,109 @@ function renderReview(item) {
         <button class="action-btn uncertain" onclick="doAction('uncertain')"><span class="key">U</span>Uncertain</button>
         <button class="action-btn skip" onclick="doAction('skipped')"><span class="key">S</span>Skip</button>
       </div>
-      <div class="correction-box" id="correction-box">
-        <textarea id="correction-input" placeholder="Enter the correct value..."></textarea>
-        <button class="correction-submit" onclick="submitCorrection()">Submit Correction</button>
+      <div class="notes-box">
+        <div class="notes-box-label">
+          Note / Correction &nbsp;<span class="required-badge" id="notes-required-badge">Required for N</span>
+        </div>
+        <textarea id="notes-input" placeholder="Type a note, correction, or additional context… (optional for Y/U/S, required for N)"></textarea>
+        <div class="notes-submit-row">
+          <span class="notes-hint" id="notes-hint">Optional — press Y / U / S above to submit, or N then Submit below</span>
+          <button class="correction-submit" id="notes-submit-btn" onclick="submitCorrection()" style="display:none">Submit Correction ↵</button>
+        </div>
       </div>
+      <div class="correction-box" id="correction-box" style="display:none"></div>
     </div>
   `;
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
+// Track pending action when N is pressed (waits for note submission)
+let _pendingCorrectedAction = false;
+
+function _getNote() {
+  return (document.getElementById('notes-input')?.value || '').trim();
+}
+
+function _clearNote() {
+  const el = document.getElementById('notes-input');
+  if (el) el.value = '';
+  const badge = document.getElementById('notes-required-badge');
+  if (badge) badge.classList.remove('show');
+  const btn = document.getElementById('notes-submit-btn');
+  if (btn) btn.style.display = 'none';
+  const hint = document.getElementById('notes-hint');
+  if (hint) hint.textContent = 'Optional — press Y / U / S above to submit, or N then Submit below';
+  const ta = document.getElementById('notes-input');
+  if (ta) ta.classList.remove('required-highlight');
+  _pendingCorrectedAction = false;
+}
+
 async function doAction(action) {
   if (selectedIdx < 0) return;
   const item = filteredItems[selectedIdx];
+  const note = _getNote();
 
-  // Show correction box for 'corrected' action
-  const corrBox = document.getElementById('correction-box');
   if (action === 'corrected') {
-    if (corrBox) { corrBox.classList.add('show'); document.getElementById('correction-input').focus(); }
-    return; // wait for submission
+    // N pressed — show submit button, require note
+    _pendingCorrectedAction = true;
+    const badge = document.getElementById('notes-required-badge');
+    if (badge) badge.classList.add('show');
+    const btn = document.getElementById('notes-submit-btn');
+    if (btn) btn.style.display = '';
+    const hint = document.getElementById('notes-hint');
+    if (hint) hint.textContent = 'Type the correct value above, then click Submit';
+    const ta = document.getElementById('notes-input');
+    if (ta) { ta.focus(); ta.classList.add('required-highlight'); }
+    return; // wait for submitCorrection()
   }
-  if (corrBox) corrBox.classList.remove('show');
 
-  await writeReview(item, action, null);
+  _pendingCorrectedAction = false;
+  await writeReview(item, action, note || null);
   advance(action);
 }
 
 async function submitCorrection() {
   if (selectedIdx < 0) return;
   const item = filteredItems[selectedIdx];
-  const val = document.getElementById('correction-input')?.value?.trim();
-  if (!val) { alert('Please enter the correct value.'); return; }
+  const val = _getNote();
+  if (!val) {
+    const ta = document.getElementById('notes-input');
+    if (ta) { ta.focus(); ta.classList.add('required-highlight'); }
+    return;
+  }
 
-  // Write to correction_labels with correct schema
-  await db.from('correction_labels').insert({
-    entity_type: item.entity_type || 'drug',
-    entity_id: item.entity_id,
-    field_name: item.field_name,
-    model_output: item.enriched_value,
-    correct_value: val,
-    correction_source: 'kyle',
-    error_type: 'wrong_value',
-    error_severity: 'medium',
-    fine_tune_use: true
-  });
+  // Write to correction_labels
+  try {
+    await db.from('correction_labels').insert({
+      entity_type: item.entity_type || 'drug',
+      entity_id: item.entity_id,
+      field_name: item.field_name,
+      model_output: item.enriched_value,
+      correct_value: val,
+      correction_source: 'kyle',
+      error_type: 'wrong_value',
+      error_severity: 'medium',
+      fine_tune_use: true
+    });
+  } catch(e) { console.warn('correction_labels write:', e); }
 
-  // Also update enriched_field_log field_label and link correction
-  await db.from('enriched_field_log').update({
-    field_label: 'corrected',
-    label_source: 'kyle_correction',
-    reviewed_at: new Date().toISOString(),
-    reviewed_by: 'Kyle'
-  }).eq('id', item.id);
+  // Update enriched_field_log
+  try {
+    await db.from('enriched_field_log').update({
+      field_label: 'corrected',
+      label_source: 'kyle_correction',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: 'Kyle'
+    }).eq('id', item.id);
+  } catch(e) { console.warn('enriched_field_log update:', e); }
 
   await writeReview(item, 'corrected', val);
   advance('corrected');
 }
 
-async function writeReview(item, action, correctedValue) {
+async function writeReview(item, action, noteText) {
   // Write to kyle_reviews (positive label store)
-  await db.from('kyle_reviews').insert({
+  const reviewRow = {
     entity_type: item.entity_type || 'drug',
     entity_id: item.entity_id,
     field_name: item.field_name,
@@ -428,7 +479,10 @@ async function writeReview(item, action, correctedValue) {
     reviewed_at: new Date().toISOString(),
     session_id: 'feedback-ui-' + new Date().toISOString().slice(0, 10),
     fine_tune_use: action !== 'skipped'
-  });
+  };
+  if (noteText) reviewRow.notes = noteText;
+  await db.from('kyle_reviews').insert(reviewRow);
+  _clearNote();
 
   // Update enriched_field_log label if not a skip
   if (action !== 'skipped') {
@@ -493,8 +547,16 @@ function showToast(action) {
 
 // ── Keyboard ─────────────────────────────────────────────────────────────────
 function bindKeys() {
+  // Ctrl+Enter inside the notes textarea → submit (correction if N pending, else confirmed)
   document.addEventListener('keydown', e => {
-    // Don't fire when typing in textarea/input
+    if (e.target.id === 'notes-input') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (_pendingCorrectedAction) { submitCorrection(); }
+        else { doAction('confirmed'); }
+      }
+      return; // don't fire Y/N/U/S shortcuts while typing
+    }
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
     if (selectedIdx < 0) return;
 
@@ -510,8 +572,7 @@ function bindKeys() {
         if (selectedIdx > 0) selectItem(selectedIdx - 1);
         break;
       case 'escape':
-        const cb = document.getElementById('correction-box');
-        if (cb) cb.classList.remove('show');
+        _clearNote();
         break;
     }
   });
