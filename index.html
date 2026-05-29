@@ -11853,17 +11853,58 @@ async function _cemLoadBdIntel(companyId) {
 
   try {
     const _24mAgo = new Date(Date.now() - 730*24*60*60*1000).toISOString().slice(0,10);
-    const [svRes, pvRes, dealRes, svScoreRes] = await Promise.all([
+    const [svRes, pvRes, dealRes, svScoreRes, conflictRes] = await Promise.all([
       _sb.from('company_strategic_views').select('view_type,summary,ailux_relevance,strategic_score,key_assets,confidence_source').eq('company_id', companyId).limit(5),
       _sb.from('company_platform_views').select('platform_type,platform_description,relevance_to_ailux,partnership_potential,confidence_source').eq('company_id', companyId).limit(5),
       _sb.from('deals').select('id,deal_date,deal_type,headline,upfront_usd_m,total_usd_m').eq('company_id', companyId).gte('deal_date', _24mAgo).order('deal_date', {ascending:false}).limit(10),
       _sb.from('companies').select('strategic_value_score').eq('id', companyId).limit(1),
+      _sb.from('company_portfolio_conflicts').select('ailux_asset_id,conflict_level,conflict_rationale,conflicting_drug_ids,combo_opportunity,combo_description').eq('company_id', companyId).order('ailux_asset_id'),
     ]);
 
     const svViews   = svRes.data  || [];
     const pvViews   = pvRes.data  || [];
     const deals24m  = dealRes.data || [];
     const svs       = svScoreRes.data?.[0]?.strategic_value_score ?? null;
+    const conflicts = conflictRes.data || [];
+
+    // Portfolio Conflict Analysis
+    const _conflictAssets = [
+      { id:'alx001', label:'ALX001', desc:'TL1A×IL-23p19 · IBD' },
+      { id:'alx002', label:'ALX002', desc:'CD19×BCMA · I&I Autoimmune' },
+      { id:'alx005', label:'ALX005', desc:'FcRn×Albumin · Autoantibody' },
+    ];
+    const _conflictMeta = {
+      hard:  { badge:'#dc2626', bg:'#fef2f2', icon:'🔴', label:'Hard Conflict' },
+      soft:  { badge:'#b45309', bg:'#fffbeb', icon:'🟡', label:'Soft Conflict' },
+      combo: { badge:'#1d4ed8', bg:'#eff6ff', icon:'🔵', label:'Combo Opportunity' },
+      clear: { badge:'#15803d', bg:'#f0fdf4', icon:'🟢', label:'Clear' },
+    };
+    const _conflictHtml = _conflictAssets.map(asset => {
+      const row = conflicts.find(c => c.ailux_asset_id === asset.id);
+      if (!row) return '';
+      const m = _conflictMeta[row.conflict_level] || _conflictMeta.clear;
+      const drugList = (row.conflicting_drug_ids || []).length > 0
+        ? `<div style="font-size:10px;color:#64748b;margin-top:3px">Conflicting assets: <span style="font-weight:600;color:#475569">${(row.conflicting_drug_ids||[]).slice(0,4).join(', ')}</span></div>`
+        : '';
+      const comboNote = row.combo_opportunity && row.combo_description
+        ? `<div style="margin-top:5px;padding:6px 8px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0;font-size:10.5px;color:#1e40af;line-height:1.45">💡 ${row.combo_description.slice(0,200)+(row.combo_description.length>200?'…':'')}</div>`
+        : '';
+      const hardNote = row.conflict_level === 'hard'
+        ? `<div style="margin-top:5px;padding:6px 8px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 4px 4px 0;font-size:10.5px;color:#991b1b;line-height:1.45">⚠️ This company's pipeline directly competes with ${asset.label} — partnership may face internal resistance from their BD team.</div>`
+        : '';
+      return `<div style="margin-bottom:10px;padding:10px;background:${m.bg};border-radius:8px;border:0.5px solid ${m.badge}22">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:800;color:#1e293b">${asset.label}</span>
+          <span style="font-size:9.5px;color:#64748b">${asset.desc}</span>
+          <span style="margin-left:auto;font-size:10px;font-weight:700;background:${m.bg};color:${m.badge};border:1px solid ${m.badge}40;border-radius:6px;padding:2px 8px">${m.icon} ${m.label}</span>
+        </div>
+        <div style="font-size:11px;color:#334155;line-height:1.45">${(row.conflict_rationale||'').slice(0,200)+(row.conflict_rationale&&row.conflict_rationale.length>200?'…':'')}</div>
+        ${drugList}${hardNote}${comboNote}
+      </div>`;
+    }).join('');
+    const _conflictSection = conflicts.length > 0
+      ? _conflictHtml || '<div style="font-size:11px;color:#94a3b8;font-style:italic">No conflict data on record.</div>'
+      : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No conflict analysis on record for this company.</div>';
 
     // Strategic Value Score badge
     const _svsBadge = svs != null ? (() => {
@@ -11918,6 +11959,12 @@ async function _cemLoadBdIntel(companyId) {
     }).join('') || '<div style="font-size:11px;color:#94a3b8;font-style:italic">No deals in the last 24 months.</div>';
 
     panel.innerHTML = `
+      <div style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:10px">Portfolio Conflict Analysis
+          <span style="font-size:9px;font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0"> · vs Ailux ALX001 / ALX002 / ALX005</span>
+        </div>
+        ${_conflictSection}
+      </div>
       <div style="margin-bottom:20px">
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Strategic Value Score</div>
         <div style="display:flex;align-items:center;gap:10px">${_svsBadge}</div>
