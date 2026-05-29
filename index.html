@@ -2025,10 +2025,10 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-overlap-watch    { background:#fef9c3;color:#92400e; }   /* Watch — yellow */
 /* Competitive relevance badges — strategic importance independent of clinical stage */
 .pi-relev-badge { display:inline-block;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;cursor:default;white-space:nowrap; }
-.pi-relev-veryhigh { background:#fce7f3;color:#9d174d; }   /* Very High — rose */
-.pi-relev-high     { background:#ffedd5;color:#9a3412; }   /* High — orange */
-.pi-relev-medium   { background:#fef9c3;color:#92400e; }   /* Medium — amber */
-.pi-relev-low      { background:#dbeafe;color:#1e40af; }   /* Low — blue (benchmark) */
+.pi-relev-veryhigh { background:#fee2e2;color:#b91c1c; }   /* Very High — red */
+.pi-relev-high     { background:#ffedd5;color:#c2410c; }   /* High — orange */
+.pi-relev-medium   { background:#fef3c7;color:#b45309; }   /* Medium — amber */
+.pi-relev-low      { background:#f1f5f9;color:#64748b; }   /* Low — grey */
 .pi-relev-monitor  { background:#f1f5f9;color:#64748b; }   /* Monitor — slate */
 .pi-stage-pill { display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700; }
 .pi-stage-approved { background:#dcfce7;color:#166534; }
@@ -16060,7 +16060,9 @@ function _makeAreaPI(tabId, areaIds) {
           ? `<span style="font-size:9px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:2px 7px;font-weight:700;white-space:nowrap;display:inline-block">${indScope}</span>`
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
 
-        const relevBadge = this._relevBadge(ent.bestRelevance, ent.bestRelevanceRationale);
+        // Always show a relevance pill for active companies; fall back to 'low' if no score
+        const _effectiveRelev = ent.bestRelevance || (ent.isTerminated ? null : 'low');
+        const relevBadge = this._relevBadge(_effectiveRelev, ent.bestRelevanceRationale);
         const threatCell = ent.isTerminated
           ? `<span style="color:#cbd5e1">—</span>`
           : relevBadge || `<span style="color:#cbd5e1">—</span>`;
@@ -16078,8 +16080,8 @@ function _makeAreaPI(tabId, areaIds) {
           : `<span style="font-size:10px;color:#cbd5e1">—</span>`;
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
-        const _RELEV_BORDER = {very_high:'#6366f1',high:'#10b981',medium:'#f59e0b',low:'#94a3b8',monitor:'#94a3b8'};
-        const relevBorder = `border-left:3px solid ${_RELEV_BORDER[ent.bestRelevance||'']||'#e2e8f0'}`;
+        const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#d97706',low:'#94a3b8',monitor:'#94a3b8'};
+        const relevBorder = `border-left:3px solid ${_RELEV_BORDER[_effectiveRelev||'']||'#e2e8f0'}`;
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         const _covPct = this._covScoreMap?.[ent.company_id] ?? this._covScoreMap?.[ent.entity_id] ?? null;
         const _covHtml = _covPct != null ? `<span style="font-size:9px;font-weight:700;color:${_covPct>=70?'#15803d':_covPct>=40?'#b45309':'#b91c1c'};margin-left:5px" title="Coverage score: ${_covPct}%">⬤ ${_covPct}%</span>` : '';
