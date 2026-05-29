@@ -1,10 +1,13 @@
 name: Meridian Homepage News
 
 on:
+  workflow_run:
+    workflows: ["Meridian Research"]
+    types: [completed]
+    branches: [main]
   schedule:
-    # 07:30 UTC daily — runs after research.py (06:00 UTC) and before write_meridian.py (10:30 UTC)
-    # This slot is intentional: research enriches intel/catalysts first, then news fetches
-    # fresh articles, then the morning briefing bundles both into Industry Insights.
+    # 07:30 UTC daily — fallback if Research didn't run
+    # Runs in parallel with Writer (both triggered by Research completing)
     - cron: "30 7 * * *"
   workflow_dispatch:
     inputs:
@@ -29,6 +32,7 @@ on:
 
 jobs:
   fetch-news:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
