@@ -794,12 +794,26 @@ def score_company(company, idx):
 # ---------------------------------------------------------------------------
 
 
+def _delete_acquisition_target_rows():
+    """Delete all existing acquisition_target rows so we can insert fresh ones."""
+    return _request(
+        "DELETE",
+        "company_strategic_views?view_type=eq.acquisition_target",
+    )
+
+
 def write_to_supabase(results, dry_run=False):
     print("[4/6] Writing scores to Supabase (company_strategic_views)...")
 
-    written = 0
-    skipped = 0
+    if dry_run:
+        print(f"  [DRY RUN] Would write {len([r for r in results if r])} rows")
+        return 0
 
+    # Delete existing acquisition_target rows, then insert fresh set
+    _delete_acquisition_target_rows()
+    print("  Cleared existing acquisition_target rows")
+
+    rows_to_insert = []
     for r in results:
         if r is None:
             continue
@@ -821,7 +835,7 @@ def write_to_supabase(results, dry_run=False):
 
         summary = " | ".join(summary_parts)
 
-        row = {
+        rows_to_insert.append({
             "company_id": cid,
             "view_type": "acquisition_target",
             "summary": summary[:2000],  # safety trim
@@ -835,24 +849,17 @@ def write_to_supabase(results, dry_run=False):
             "enrichment_run_id": None,
             "confidence_source": "model",
             "updated_at": datetime.utcnow().isoformat(),
-        }
+        })
 
-        if dry_run:
-            skipped += 1
-            continue
+    # Batch insert in chunks of 50
+    written = 0
+    chunk_size = 50
+    for i in range(0, len(rows_to_insert), chunk_size):
+        chunk = rows_to_insert[i:i + chunk_size]
+        post("company_strategic_views", chunk, prefer="return=minimal")
+        written += len(chunk)
 
-        # Use upsert on company_id + view_type
-        result = upsert(
-            "company_strategic_views?on_conflict=company_id,view_type",
-            row
-        )
-        written += 1
-
-    if dry_run:
-        print(f"  [DRY RUN] Would write {len([r for r in results if r])} rows")
-    else:
-        print(f"  Wrote {written} acquisition_target rows to company_strategic_views")
-
+    print(f"  Wrote {written} acquisition_target rows to company_strategic_views")
     return written
 
 
