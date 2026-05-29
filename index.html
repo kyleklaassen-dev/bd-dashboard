@@ -20570,6 +20570,53 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     { id:'alx001', label:'ALX001', targetPair:'TL1A×IL-23p19', indication:'UC + CD', color:'#2e6fb0', bg:'#e8f0f8' },
     { id:'alx002', label:'ALX002', targetPair:'CD19×BCMA',     indication:'SLE / I&I', color:'#be185d', bg:'#fce7f3' },
     { id:'alx005', label:'ALX005', targetPair:'FcRn×Albumin',  indication:'gMG + CIDP', color:'#065f46', bg:'#d1fae5' },
+    { id:'alx004', label:'ALX004?', targetPair:'White Space',  indication:'Next Program', color:'#7c3aed', bg:'#ede9fe' },
+  ];
+
+  // ── ALX004 White Space data (top 3 candidates from target_pair_whitespace) ──
+  const _ALX004_CANDIDATES = [
+    {
+      rank: 1,
+      name: 'TL1A × α4β7',
+      score: 9.33,
+      indication: 'UC / Crohn\'s Disease',
+      synergy: 9,
+      whiteSpace: 9,
+      platformFit: 10,
+      bisp_p2: 0,
+      oneLineSynergy: 'α4β7 stops gut lymphocytes from entering; TL1A stops the inflammation once they arrive — dual mechanism, one molecule.',
+      rationale: 'Extends ALX001\'s TL1A expertise into the proven gut-selective trafficking axis. Vedolizumab is approved and widely used — a TL1A×α4β7 bispecific would be the first single agent combining both mechanisms simultaneously, targeting the 40-45% of IBD patients who fail anti-TNF and need more than one mechanism to achieve mucosal healing.',
+      dataNeeded: 'Head-to-head mucosal healing data vs. vedolizumab monotherapy; PK characterization of bispecific in gut tissue; Phase 1 dose-finding in UC moderate-severe population.',
+      color: '#2e6fb0',
+    },
+    {
+      rank: 2,
+      name: 'FcRn × CD19',
+      score: 9.17,
+      indication: 'SLE / Autoimmune Hepatitis / AIHA',
+      synergy: 9,
+      whiteSpace: 10,
+      platformFit: 10,
+      bisp_p2: 0,
+      oneLineSynergy: 'FcRn clears the existing pathogenic IgG acutely; CD19 eliminates the B cells producing new IgG durably — acute + durable in one molecule.',
+      rationale: 'Directly synergistic with ALX002\'s CD19 arm and ALX005\'s FcRn mechanism. White space score of 10 — no FcRn×CD19 bispecific exists anywhere in clinical development. Addresses the key FcRn monotherapy gap: disease rebounds when treatment stops. The combination could achieve durable drug-free remission in antibody-mediated autoimmune diseases where neither mechanism alone is sufficient.',
+      dataNeeded: 'Mechanistic proof-of-concept in AChR+ gMG or SLE patient-derived cell systems; safety profiling of combined IgG depletion + B cell depletion; optimal dosing ratio for acute vs. durable components.',
+      color: '#065f46',
+    },
+    {
+      rank: 3,
+      name: 'C5 × FcRn',
+      score: 9.17,
+      indication: 'AChR+ Generalized Myasthenia Gravis',
+      synergy: 9,
+      whiteSpace: 9,
+      platformFit: 9,
+      bisp_p2: 0,
+      oneLineSynergy: 'FcRn removes the pathogenic AChR antibody; C5 blocks the complement attack at the neuromuscular junction — addresses both steps of gMG pathophysiology in one molecule.',
+      rationale: 'The most precise mechanistic story: in AChR+ gMG, pathogenic IgG triggers C5-mediated complement attack at the NMJ. Blocking the IgG (FcRn) AND the downstream complement effector (C5) provides more complete NMJ protection than either alone. Natural extension of ALX005\'s FcRn platform into the rare neuromuscular disease space. Both efgartigimod (FcRn) and ravulizumab (C5) are already approved in gMG — the bispecific consolidates two standard-of-care agents into one subcutaneous injection.',
+      dataNeeded: 'Ex vivo NMJ complement assay with dual blockade vs. each mono; meningococcal safety monitoring protocol design; PK modeling to align FcRn and C5 blockade half-lives in same molecule.',
+      color: '#7c3aed',
+    },
   ];
 
   let _assetProfiles = {};
@@ -20599,7 +20646,41 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       return `<span style="font-size:10px;font-weight:600;color:${c};">${w}</span>`;
     }
 
+    function _renderALX004Tab() {
+      const scoreBar = (val) => {
+        const pct = Math.round((val / 10) * 100);
+        const col = val >= 9 ? '#16a34a' : val >= 7 ? '#d97706' : '#dc2626';
+        return `<div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:5px;background:#e2e8f0;border-radius:3px;">
+            <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;color:${col};min-width:18px;text-align:right;">${val}</span>
+        </div>`;
+      };
+      const cards = _ALX004_CANDIDATES.map((c, i) => `
+        <div style="background:${i===0?'#f0fdf4':i===1?'#f0f9ff':'#faf5ff'};border-radius:8px;padding:11px 12px;margin-bottom:10px;border-left:3px solid ${c.color};">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+            <div style="font-size:12px;font-weight:800;color:#0d1f38;">#${c.rank} ${c.name}</div>
+            <div style="font-size:11px;font-weight:700;color:${c.color};background:white;border-radius:4px;padding:2px 7px;">${c.score.toFixed(2)}</div>
+          </div>
+          <div style="font-size:10px;color:#64748b;margin-bottom:7px;font-style:italic;">${c.indication}</div>
+          <div style="font-size:10px;color:#1e293b;line-height:1.5;margin-bottom:8px;">${c.oneLineSynergy}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Synergy</div>${scoreBar(c.synergy)}</div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">White Space</div>${scoreBar(c.whiteSpace)}</div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Platform Fit</div>${scoreBar(c.platformFit)}</div>
+          </div>
+        </div>`).join('');
+      return `
+        <div style="padding:10px 0 2px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#7c3aed;margin-bottom:8px;">Top 3 Candidates · 15 Pairs Scored</div>
+          ${cards}
+          <div style="font-size:9px;color:#94a3b8;text-align:center;margin-top:4px;">Composite score = avg of 6 dimensions (biology A+B, synergy, white space, unmet need, platform fit) · No Phase 2 bispecific in any candidate</div>
+        </div>`;
+    }
+
     function _renderTabContent(prog) {
+      if (prog.id === 'alx004') return _renderALX004Tab();
       const p = _assetProfiles[prog.id];
       const diff = p ? p.key_differentiator : 'Profile loading…';
       const kol1 = (p && p.top_kol_questions && p.top_kol_questions[0]) ? p.top_kol_questions[0].question : '—';
@@ -20655,31 +20736,68 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     if (!content) return;
     const prog = _ASSET_PROGRAMS.find(p => p.id === programId);
     if (!prog) return;
-    content.innerHTML = (function() {
-      const p = _assetProfiles[prog.id];
-      const diff = p ? p.key_differentiator : 'Profile loading…';
-      const windows = { alx001:'Narrowing — SPY072 Ph1b active', alx002:'Open — 24+ mo window', alx005:'Open — no bispecific in Ph2' };
-      const colors  = { alx001:'#f59e0b', alx002:'#22c55e', alx005:'#22c55e' };
-      const kol1 = (p && p.top_kol_questions && p.top_kol_questions[0]) ? p.top_kol_questions[0].question : '—';
-      return `
-        <div style="padding:14px 0 2px;">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Lead Indication</div>
-          <div style="font-size:13px;font-weight:700;color:#0d1f38;margin-bottom:12px;">${prog.indication}</div>
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Key Differentiator</div>
-          <div style="font-size:12px;color:#1e293b;line-height:1.55;margin-bottom:12px;">${diff}</div>
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Competitive Window</div>
-          <div style="margin-bottom:12px;"><span style="font-size:10px;font-weight:600;color:${colors[prog.id] || '#94a3b8'};">${windows[prog.id] || 'Unknown'}</span></div>
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Top KOL Question</div>
-          <div style="font-size:11px;color:#475569;font-style:italic;line-height:1.5;margin-bottom:14px;">"${kol1}"</div>
-          <button onclick="_hwShowAssetDetail('${prog.id}')"
-            style="width:100%;padding:9px 0;background:#1a2f50;color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.03em;">
-            Full Differentiation Profile →
-          </button>
-        </div>`;
-    })();
+
+    if (programId === 'alx004') {
+      content.innerHTML = (function() {
+        const scoreBar = (val) => {
+          const pct = Math.round((val / 10) * 100);
+          const col = val >= 9 ? '#16a34a' : val >= 7 ? '#d97706' : '#dc2626';
+          return `<div style="display:flex;align-items:center;gap:6px;">
+            <div style="flex:1;height:5px;background:#e2e8f0;border-radius:3px;">
+              <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;"></div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:${col};min-width:18px;text-align:right;">${val}</span>
+          </div>`;
+        };
+        const cards = _ALX004_CANDIDATES.map((c, i) => `
+          <div style="background:${i===0?'#f0fdf4':i===1?'#f0f9ff':'#faf5ff'};border-radius:8px;padding:11px 12px;margin-bottom:10px;border-left:3px solid ${c.color};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+              <div style="font-size:12px;font-weight:800;color:#0d1f38;">#${c.rank} ${c.name}</div>
+              <div style="font-size:11px;font-weight:700;color:${c.color};background:white;border-radius:4px;padding:2px 7px;">${c.score.toFixed(2)}</div>
+            </div>
+            <div style="font-size:10px;color:#64748b;margin-bottom:7px;font-style:italic;">${c.indication}</div>
+            <div style="font-size:10px;color:#1e293b;line-height:1.5;margin-bottom:8px;">${c.oneLineSynergy}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+              <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Synergy</div>${scoreBar(c.synergy)}</div>
+              <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">White Space</div>${scoreBar(c.whiteSpace)}</div>
+              <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Platform Fit</div>${scoreBar(c.platformFit)}</div>
+            </div>
+          </div>`).join('');
+        return `
+          <div style="padding:10px 0 2px;">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#7c3aed;margin-bottom:8px;">Top 3 Candidates · 15 Pairs Scored</div>
+            ${cards}
+            <div style="font-size:9px;color:#94a3b8;text-align:center;margin-top:4px;">Composite score = avg of 6 dimensions · No Phase 2 bispecific in any candidate</div>
+          </div>`;
+      })();
+    } else {
+      content.innerHTML = (function() {
+        const p = _assetProfiles[prog.id];
+        const diff = p ? p.key_differentiator : 'Profile loading…';
+        const windows = { alx001:'Narrowing — SPY072 Ph1b active', alx002:'Open — 24+ mo window', alx005:'Open — no bispecific in Ph2' };
+        const colors  = { alx001:'#f59e0b', alx002:'#22c55e', alx005:'#22c55e' };
+        const kol1 = (p && p.top_kol_questions && p.top_kol_questions[0]) ? p.top_kol_questions[0].question : '—';
+        return `
+          <div style="padding:14px 0 2px;">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Lead Indication</div>
+            <div style="font-size:13px;font-weight:700;color:#0d1f38;margin-bottom:12px;">${prog.indication}</div>
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Key Differentiator</div>
+            <div style="font-size:12px;color:#1e293b;line-height:1.55;margin-bottom:12px;">${diff}</div>
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Competitive Window</div>
+            <div style="margin-bottom:12px;"><span style="font-size:10px;font-weight:600;color:${colors[prog.id] || '#94a3b8'};">${windows[prog.id] || 'Unknown'}</span></div>
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;">Top KOL Question</div>
+            <div style="font-size:11px;color:#475569;font-style:italic;line-height:1.5;margin-bottom:14px;">"${kol1}"</div>
+            <button onclick="_hwShowAssetDetail('${prog.id}')"
+              style="width:100%;padding:9px 0;background:#1a2f50;color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.03em;">
+              Full Differentiation Profile →
+            </button>
+          </div>`;
+      })();
+    }
     // Update tab button styles
     document.querySelectorAll('.asset-tab-btn').forEach((btn, i) => {
       const p = _ASSET_PROGRAMS[i];
+      if (!p) return;
       btn.style.background = p.id === programId ? p.bg : 'transparent';
       btn.style.color = p.id === programId ? p.color : '#64748b';
       btn.style.fontWeight = p.id === programId ? '800' : '600';
