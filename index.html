@@ -15661,17 +15661,75 @@ function _makeAreaPI(tabId, areaIds) {
       // Respect any active hier target/indication filter on top of stage pill
       const tgtName = this._hierFilterTarget || null;
       const indName = this._hierFilterInd || null;
+
+      // Build O(1) drug-id sets from navigator_lookup when available (preferred)
+      // Falls back to string-match when lookup hasn't loaded yet.
+      let tgtDrugSet = null;
+      let indDrugSet = null;
+      const nav = window._navLookup;
+      if (nav && tgtName) {
+        // Find matching target_id(s) by label (case-insensitive)
+        const tL = tgtName.toLowerCase();
+        const matchedIds = Object.keys(nav.target_meta || {}).filter(id => {
+          const m = nav.target_meta[id];
+          return (m.label||'').toLowerCase() === tL
+              || (m.full_name||'').toLowerCase().includes(tL)
+              || id.toLowerCase() === tL.replace(/[^a-z0-9]/g,'_');
+        });
+        if (matchedIds.length > 0) {
+          tgtDrugSet = new Set();
+          matchedIds.forEach(id => (nav.target_drugs[id] || []).forEach(d => tgtDrugSet.add(d)));
+        }
+      }
+      if (nav && indName && !tgtName) {
+        const iL = indName.toLowerCase();
+        const matchedIds = Object.keys(nav.indication_meta || {}).filter(id => {
+          const m = nav.indication_meta[id];
+          return (m.name||'').toLowerCase() === iL
+              || (m.abbreviation||'').toLowerCase() === iL
+              || id.toLowerCase() === iL.replace(/[^a-z0-9]/g,'_');
+        });
+        if (matchedIds.length > 0) {
+          indDrugSet = new Set();
+          matchedIds.forEach(id => (nav.indication_drugs[id] || []).forEach(d => indDrugSet.add(d)));
+        }
+      }
+
       this.filteredEntities = this.entities
         .map(ent => {
           let progs = ent.programs;
           if (stage) progs = progs.filter(p => p.stageKey === stage);
           if (tgtName) {
-            const tL = tgtName.toLowerCase();
-            progs = progs.filter(p => (p.target||'').toLowerCase().includes(tL) || (p.name||'').toLowerCase().includes(tL));
+            if (tgtDrugSet) {
+              // Precise lookup: keep programs whose drug_id is in the set
+              progs = progs.filter(p => tgtDrugSet.has(p.drug_id || p.id || ''));
+              // If no drug_id match, fall back to string-match (safety net for inline drugs)
+              if (progs.length === 0) {
+                const tL = tgtName.toLowerCase();
+                progs = ent.programs.filter(p =>
+                  (stage ? p.stageKey === stage : true) &&
+                  ((p.target||'').toLowerCase().includes(tL) || (p.name||'').toLowerCase().includes(tL))
+                );
+              }
+            } else {
+              const tL = tgtName.toLowerCase();
+              progs = progs.filter(p => (p.target||'').toLowerCase().includes(tL) || (p.name||'').toLowerCase().includes(tL));
+            }
           }
           if (indName && !tgtName) {
-            const iL = indName.toLowerCase();
-            progs = progs.filter(p => (p.indication_short||'').toLowerCase().includes(iL));
+            if (indDrugSet) {
+              progs = progs.filter(p => indDrugSet.has(p.drug_id || p.id || ''));
+              if (progs.length === 0) {
+                const iL = indName.toLowerCase();
+                progs = ent.programs.filter(p =>
+                  (stage ? p.stageKey === stage : true) &&
+                  (p.indication_short||'').toLowerCase().includes(iL)
+                );
+              }
+            } else {
+              const iL = indName.toLowerCase();
+              progs = progs.filter(p => (p.indication_short||'').toLowerCase().includes(iL));
+            }
           }
           return progs.length > 0 ? {...ent, programs: progs} : null;
         })
@@ -22056,6 +22114,16 @@ const _HIER_LEGACY_TO_TA = {
 
 let _hierLiveData = null;  // cached tree array; null = not yet loaded
 let _hierFetching = false; // guard against parallel fetches
+
+// Navigator lookup — pre-computed target→drug, indication→drug, etc. mappings
+// Loaded once alongside the navigator tree; enables O(1) set-based drug filtering.
+window._navLookup = null;
+(function _loadNavLookup() {
+  fetch('./data/navigator_lookup.json?_v=' + Date.now())
+    .then(r => r.ok ? r.json() : null)
+    .then(data => { if (data) window._navLookup = data; })
+    .catch(() => { /* non-fatal: falls back to string-match filter */ });
+})();
 
 // ── Async data fetcher — builds the tree from 4 Supabase tables ──
 async function _hierFetchLiveData() {
