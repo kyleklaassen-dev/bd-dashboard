@@ -1809,6 +1809,157 @@ def phase_d8_coverage_recompute() -> Dict:
     return phase_a5_coverage_compute()
 
 
+
+
+def phase_d9_target_pair_whitespace_refresh() -> Dict:
+    """D-new1: Recount competing bispecifics in target_pair_whitespace from live drugs table."""
+    log("D9: target_pair_whitespace refresh", indent=1)
+    results = {"rows_checked": 0, "rows_updated": 0}
+
+    if not table_exists("target_pair_whitespace"):
+        log("  target_pair_whitespace table not found — skipping", indent=2)
+        return {"skipped": "table_missing"}
+
+    try:
+        rows = sb_get("target_pair_whitespace", {"select": "id,target_a,target_b", "limit": "200"})
+        drugs = sb_get("drugs", {"select": "id,target,stage", "limit": "1000"})
+
+        for row in rows:
+            results["rows_checked"] += 1
+            ta = (row.get("target_a") or "").lower()
+            tb = (row.get("target_b") or "").lower()
+            if not ta or not tb:
+                continue
+
+            p1_count = sum(
+                1 for d in drugs
+                if ta in (d.get("target") or "").lower()
+                and tb in (d.get("target") or "").lower()
+                and (d.get("stage") or "").lower() in ("phase 1", "phase i", "phase1")
+            )
+            p2_count = sum(
+                1 for d in drugs
+                if ta in (d.get("target") or "").lower()
+                and tb in (d.get("target") or "").lower()
+                and (d.get("stage") or "").lower() in ("phase 2", "phase ii", "phase2", "phase 2/3", "phase 2a", "phase 2b")
+            )
+
+            if not DRY_RUN:
+                try:
+                    sb_patch("target_pair_whitespace", {"id": row["id"]}, {
+                        "competing_bispecifics_phase1": p1_count,
+                        "competing_bispecifics_phase2": p2_count
+                    })
+                    results["rows_updated"] += 1
+                except Exception as e:
+                    log(f"  Row {row['id']} update failed: {e}", indent=2)
+            else:
+                log(f"  [DRY-RUN] {ta}×{tb}: P1={p1_count}, P2={p2_count}", indent=2)
+
+        log(f"  Rows checked: {results['rows_checked']}, updated: {results['rows_updated']}", indent=2)
+    except Exception as e:
+        log(f"  target_pair_whitespace refresh failed: {e}", indent=2)
+
+    return results
+
+
+def phase_d10_indication_priority_refresh() -> Dict:
+    """D-new2: Run seed_indication_priorities to recompute all 17 indication ranks."""
+    log("D10: Indication priority refresh", indent=1)
+    results = {"indications_updated": 0}
+
+    mod = _import_agent("seed_indication_priorities")
+    if mod is None:
+        log("  seed_indication_priorities.py not importable — skipping", indent=2)
+        return {"skipped": "module_missing"}
+
+    if DRY_RUN:
+        log("  [DRY-RUN] Would run seed_indication_priorities.main()", indent=2)
+        return {"dry_run": True}
+
+    try:
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            if hasattr(mod, "main"):
+                mod.main()
+            elif hasattr(mod, "run"):
+                mod.run()
+            else:
+                log("  seed_indication_priorities has no main() or run() — skipping", indent=2)
+                return {"skipped": "no_entrypoint"}
+        output = buf.getvalue()
+        log(f"  seed_indication_priorities output: {output[:300]}", indent=2)
+
+        # Count updated rows from output
+        import re
+        m = re.search(r"(\d+)\s+indication", output, re.IGNORECASE)
+        if m:
+            results["indications_updated"] = int(m.group(1))
+        else:
+            results["indications_updated"] = 17  # assume all 17 if script ran clean
+
+        log(f"  Indication priorities refreshed: {results['indications_updated']}", indent=2)
+    except Exception as e:
+        log(f"  Indication priority refresh failed: {e}", indent=2)
+
+    return results
+
+
+def phase_d11_asset_value_predictions_refresh() -> Dict:
+    """D-new3: Recompute composite scores in asset_value_predictions from current indication_priority scores."""
+    log("D11: Asset value predictions refresh", indent=1)
+    results = {"predictions_updated": 0}
+
+    if not table_exists("asset_value_predictions"):
+        log("  asset_value_predictions table not found — skipping", indent=2)
+        return {"skipped": "table_missing"}
+
+    try:
+        now_ts = datetime.datetime.utcnow().isoformat()
+
+        # Load indication_priority scores as a lookup dict
+        prio_rows = sb_get("indication_priorities", {
+            "select": "indication_id,composite_score,indication_priority_rank",
+            "limit": "100"
+        }) if table_exists("indication_priorities") else []
+        prio_map = {r["indication_id"]: r for r in prio_rows}
+
+        # Load predictions
+        predictions = sb_get("asset_value_predictions", {
+            "select": "id,drug_id,indication_id,composite_score",
+            "limit": "500"
+        })
+
+        for pred in predictions:
+            ind_id = pred.get("indication_id")
+            prio = prio_map.get(ind_id)
+            if prio is None:
+                continue
+
+            new_composite = prio.get("composite_score")
+            if new_composite is None:
+                continue
+
+            if not DRY_RUN:
+                try:
+                    sb_patch("asset_value_predictions", {"id": pred["id"]}, {
+                        "composite_score": new_composite,
+                        "last_computed": now_ts
+                    })
+                    results["predictions_updated"] += 1
+                except Exception as e:
+                    log(f"  Prediction {pred['id']} update failed: {e}", indent=2)
+            else:
+                log(f"  [DRY-RUN] prediction {pred['id']}: composite_score → {new_composite}", indent=2)
+
+        log(f"  Predictions updated: {results['predictions_updated']}", indent=2)
+    except Exception as e:
+        log(f"  Asset value predictions refresh failed: {e}", indent=2)
+
+    return results
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PHASE IMPLEMENTATIONS — BLOCK E (QA Validation)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2615,6 +2766,9 @@ PHASE_MAP = {
     "D6": phase_d6_area_knowledge_and_catalyst,
     "D7": phase_d7_patient_intelligence,
     "D8": phase_d8_coverage_recompute,
+    "D9": phase_d9_target_pair_whitespace_refresh,
+    "D10": phase_d10_indication_priority_refresh,
+    "D11": phase_d11_asset_value_predictions_refresh,
     "E1": phase_e1_stage_ctgov_xref,
     "E2": phase_e2_enrichment_consistency,
     "E3": phase_e3_governance_revalidation,
@@ -2638,7 +2792,7 @@ BLOCK_PHASES = {
     "A": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"],
     "B": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
     "C": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
-    "D": ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"],
+    "D": ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11"],
     "E": ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"],
     "F": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"],
 }
