@@ -80,10 +80,12 @@ def fetch_governance_violations():
 
 # ── 4. Validation alerts (fail/warning) ─────────────────────────────────────
 def fetch_validation_alerts():
+    # Actual columns: check_status, check_type, details, updated_at
+    # (not result_type, rule_name, detail, checked_at)
     rows = sb_get("drug_validation_results", {
-        "select": "drug_id,result_type,rule_name,detail,checked_at",
-        "result_type": "in.(fail,warning)",
-        "order": "checked_at.desc",
+        "select": "drug_id,check_status,check_type,details,notes,updated_at",
+        "check_status": "in.(fail,warning)",
+        "order": "updated_at.desc",
         "limit": 100,
     })
     return rows
@@ -171,15 +173,15 @@ def format_summary(runs, changes, violations, alerts, date_str):
     lines.append("")
 
     # ── Validation alerts ────────────────────────────────────────────────────
-    fail_count    = sum(1 for a in alerts if a.get("result_type") == "fail")
-    warning_count = sum(1 for a in alerts if a.get("result_type") == "warning")
+    fail_count    = sum(1 for a in alerts if a.get("check_status") == "fail")
+    warning_count = sum(1 for a in alerts if a.get("check_status") == "warning")
     lines.append(f"VALIDATION ALERTS: {len(alerts)} open "
                  f"({fail_count} fail, {warning_count} warning)")
     for alert in alerts[:30]:
         drug_id = alert.get("drug_id") or "?"
-        rtype   = (alert.get("result_type") or "?").upper()
-        rule    = alert.get("rule_name") or "?"
-        detail  = (alert.get("detail") or "")[:120]
+        rtype   = (alert.get("check_status") or "?").upper()
+        rule    = alert.get("check_type") or "?"
+        detail  = (alert.get("details") or alert.get("notes") or "")[:120]
         lines.append(f"  [{rtype}] {drug_id} — {rule}: {detail}")
     if len(alerts) > 30:
         lines.append(f"  … and {len(alerts) - 30} more")
