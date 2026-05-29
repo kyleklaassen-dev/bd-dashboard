@@ -2898,17 +2898,8 @@ function _stageProgressHtml(stage) {
   return `<div class="stage-progress" title="${stage}">${dots}<span style="font-size:10px;color:#8BA3B8;margin-left:4px;">${stageLabels[currentIdx]||stage}</span></div>`;
 }
 
-// Area status line — natural language summary sentence for area tabs
-function _areaStatusLine(drugs, areaName, nextCatalystDays) {
-  const total    = drugs.length;
-  const clinical = drugs.filter(d => d.stage && /phase/i.test(d.stage)).length;
-  const approved = drugs.filter(d => d.stage && /approv/i.test(d.stage)).length;
-  let parts = [`Tracking <strong>${total}</strong> ${areaName} programs`];
-  if (clinical > 0) parts.push(`<strong>${clinical}</strong> in clinical trials`);
-  if (approved > 0) parts.push(`<strong>${approved}</strong> approved`);
-  if (nextCatalystDays != null) parts.push(`next readout in <strong>${nextCatalystDays}</strong> days`);
-  return `<p style="font-size:12px;color:#8BA3B8;margin:0 0 12px 0;line-height:1.5;">${parts.join(' · ')}</p>`;
-}
+// Area status line — removed per Kyle (2026-05-29)
+function _areaStatusLine(drugs, areaName, nextCatalystDays) { return ''; }
 
 // ── Fetch + render stock cards from Supabase ─────────────────────────────────
 async function loadStockCards() {
