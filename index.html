@@ -646,12 +646,17 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 }
 
 /* ── Meridian Issue panel ── */
-.hw-issue-panel { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:16px; margin-bottom:16px; }
-.hw-issue-hd { display:flex; align-items:center; gap:8px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f1f5f9; }
+.hw-issue-panel { background:white; border-radius:12px; border:1px solid #e2e8f0; padding:0; margin-bottom:20px; overflow:hidden; }
+.hw-issue-hd { display:none; } /* header removed per Kyle 2026-05-29 */
 /* ── BD Catalyst Calendar ── */
-.hw-cal-section { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:16px; margin-bottom:16px; }
-.hw-cal-month { font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin:12px 0 6px 0; }
-.hw-cal-item { display:flex; align-items:baseline; gap:10px; padding:6px 0; border-bottom:1px solid #f8fafc; font-size:11px; cursor:pointer; }
+.hw-cal-section { background:white; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; margin-bottom:20px; }
+.hw-cal-month { font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin:14px 0 6px 0; }
+.hw-cal-item { padding:8px 0; border-bottom:1px solid #f8fafc; font-size:11px; cursor:pointer; }
+.hw-cal-item-row { display:flex; align-items:baseline; gap:10px; }
+.hw-cal-detail { display:none; padding:8px 12px; background:#f8fafc; border-radius:6px; margin-top:6px; font-size:11px; line-height:1.6; color:#475569; }
+.hw-cal-detail.open { display:block; }
+.hw-cal-detail a { color:#7c3aed; font-weight:600; text-decoration:none; }
+.hw-cal-detail a:hover { text-decoration:underline; }
 .hw-cal-item:last-child { border-bottom:none; }
 .hw-cal-item:hover { background:#fafbfc; border-radius:4px; }
 .hw-cal-sig { border-radius:3px; padding:1px 6px; font-size:9px; font-weight:800; text-transform:uppercase; flex-shrink:0; }
@@ -4855,7 +4860,7 @@ function loadMoleculeTab(tabId) {
         <p>The competitive landscape in immunology moves faster than any analyst can track manually. Meridian compresses that signal: which programs are in Phase 3, which readouts are imminent, which companies are acquirable, and where the mechanism gaps are. The answer to "who should we call in Q4?" is a query, not a meeting.</p>
       </div>
       <div class="atd-section atd-since">
-        <p>Intelligence gathering since <strong>May 18, 2026</strong></p>
+        <p>Active since May 18, 2026.</p>
       </div>
     </div>
   </div>
@@ -5161,31 +5166,25 @@ function loadMoleculeTab(tabId) {
   <div id="hw-time-line"></div>
   <div id="hw-rule"></div>
   <div id="hw-breakdown"></div>
-  <div class="hw-since">Intelligence gathering since <strong>May 18, 2026</strong></div>
  </div>
 
  <!-- ── BD Today widget ───────────────────────────────────────── -->
- <div id="bd-today-anchor" style="max-width:640px;margin:0 auto 24px;padding:0 16px;"></div>
+ <div id="bd-today-anchor" style="max-width:860px;margin:0 auto 24px;padding:0 20px;"></div>
 
  <!-- ── Home lower panels (Meridian Issue + Catalyst Calendar) ── -->
- <div style="max-width:640px;margin:0 auto;padding:0 16px;">
+ <div style="max-width:860px;margin:0 auto;padding:0 20px;">
 
-  <!-- Today's Meridian Issue -->
+  <!-- Today's Meridian Issue — full width, no header bar -->
   <div class="hw-issue-panel" id="hw-issue-panel" style="display:none">
-   <div class="hw-issue-hd">
-    <span style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:0.06em">Today's Meridian Issue</span>
-    <span id="hw-issue-date" style="font-size:10px;color:#64748b;margin-left:auto"></span>
-    <a href="meridian_today.html" target="_blank" style="font-size:10px;color:#7c3aed;margin-left:12px;font-weight:700;text-decoration:none;">Open full issue ↗</a>
-   </div>
-   <div id="hw-issue-content" style="max-height:420px;overflow-y:auto;font-size:12.5px;line-height:1.7;color:#334155;padding:4px 0">
+   <div id="hw-issue-content" style="min-height:320px;max-height:calc(100vh - 260px);overflow-y:auto;font-size:13px;line-height:1.75;color:#334155;padding:24px 28px">
     Loading…
    </div>
   </div>
 
   <!-- 90-Day BD Catalyst Calendar -->
   <div class="hw-cal-section" id="hw-cal-section" style="display:none">
-   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-    <span style="font-size:11px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.06em">Next 90 Days — BD Calendar</span>
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.06em">Upcoming Catalysts — 90 Days</span>
     <span id="hw-cal-count" style="font-size:10px;color:#94a3b8;margin-left:auto"></span>
    </div>
    <div id="hw-cal-body">
@@ -20042,19 +20041,33 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       });
       const sigClass = s => { const sl = (s||'').toLowerCase(); return sl === 'p0' ? 'p0' : sl === 'p1' ? 'p1' : sl === 'p2' ? 'p2' : 'p3'; };
       const fmtDate = iso => { const d = new Date(iso + 'T12:00:00Z'); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
-      let html = '';
+      let html = ''; let cid = 0;
       Object.keys(byMonth).forEach(month => {
         html += `<div class="hw-cal-month">${month}</div>`;
         byMonth[month].forEach(c => {
           const sig = c.strategic_significance || 'P3';
           const sc  = sigClass(sig);
-          const tooltip = c.ailux_impact ? ` title="${c.ailux_impact.replace(/"/g,'&quot;').substring(0,200)}…"` : '';
           const drugLabel = (c.drug_id || '').replace(/-/g,' ').toUpperCase().substring(0,18);
-          html += `<div class="hw-cal-item" onclick="_hwCalClick('${c.drug_id||''}')"${tooltip}>
-            <span class="hw-cal-sig ${sc}">${sig}</span>
-            <span class="hw-cal-date">${fmtDate(c.expected_date)}</span>
-            <span class="hw-cal-headline">${c.event_name||'—'}</span>
-            <span class="hw-cal-drug">${drugLabel}</span>
+          const detailId = `hw-cal-d-${cid++}`;
+          // Expandable row — click headline row to toggle detail
+          const sourceLink = c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener">Source ↗</a>` : '';
+          const ctLink = c.nct_id ? ` · <a href="https://clinicaltrials.gov/study/${c.nct_id}" target="_blank" rel="noopener">ClinicalTrials ↗</a>` : '';
+          const detail = (c.ailux_impact || c.catalyst_rationale || '') ;
+          html += `<div class="hw-cal-item">
+            <div class="hw-cal-item-row" onclick="document.getElementById('${detailId}').classList.toggle('open')" style="cursor:pointer">
+              <span class="hw-cal-sig ${sc}">${sig}</span>
+              <span class="hw-cal-date">${fmtDate(c.expected_date)}</span>
+              <span class="hw-cal-headline">${c.event_name||'—'}</span>
+              <span class="hw-cal-drug">${drugLabel}</span>
+              <span style="font-size:10px;color:#94a3b8;flex-shrink:0">▾</span>
+            </div>
+            <div class="hw-cal-detail" id="${detailId}">
+              ${detail ? `<div style="margin-bottom:6px">${detail}</div>` : ''}
+              <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+                ${sourceLink}${ctLink}
+                ${c.drug_id ? `<span style="cursor:pointer;color:#7c3aed;font-weight:600" onclick="_hwCalClick('${c.drug_id}')">Open drug card ↗</span>` : ''}
+              </div>
+            </div>
           </div>`;
         });
       });
