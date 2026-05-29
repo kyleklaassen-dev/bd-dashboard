@@ -223,6 +223,76 @@ def patch_enrichment_run(run_id: str, patch: dict) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# v63 SECURITY CAMERA — set_audit_session_vars
+# ══════════════════════════════════════════════════════════════════════════
+
+def set_audit_session_vars(
+    changed_by: str,
+    run_id: Optional[str] = None,
+    change_source: str = "enrichment_agent",
+    change_reason: str = "",
+    session_id: str = "",
+    migration_file: str = "",
+    migration_version: str = "",
+) -> str:
+    """
+    Build the SET LOCAL SQL block that enrichment scripts should prepend to
+    any UPDATE query so the field_change_audit trigger captures correct attribution.
+
+    Returns a SQL string of SET LOCAL statements — include at the start of any
+    transaction or use in a combined SQL block with your UPDATE.
+
+    Usage in enrichment scripts:
+        from model_comparison import set_audit_session_vars
+        audit_vars = set_audit_session_vars(
+            changed_by='company_enrichment_agent',
+            run_id=run_id,
+            change_source='enrichment_agent',
+            change_reason='nightly enrichment run',
+            session_id=os.environ.get('GITHUB_RUN_ID', ''),
+        )
+        # Then prepend audit_vars to any UPDATE SQL:
+        full_sql = audit_vars + "\\n" + your_update_sql
+
+    PostgreSQL session variables set:
+        app.changed_by          — script/agent name
+        app.change_source       — one of: enrichment_agent, weekend_sprint,
+                                  manual_edit, migration, kyle_correction,
+                                  trigger, unknown
+        app.enrichment_run_id   — UUID of the enrichment_runs row (if available)
+        app.session_id          — GitHub Actions run ID or session identifier
+        app.change_reason       — free-text reason for the change
+        app.migration_file      — migration file name (if from a migration)
+        app.migration_version   — migration version string (e.g. 'v63')
+
+    Note: SET LOCAL only applies within the current transaction, which is the
+    correct scope — audit vars reset automatically after each transaction.
+    """
+    lines = []
+
+    def _safe(val: str) -> str:
+        """Escape single quotes for SQL string literals."""
+        return (val or "").replace("'", "''")
+
+    if changed_by:
+        lines.append(f"SET LOCAL app.changed_by = '{_safe(changed_by)}';")
+    if change_source:
+        lines.append(f"SET LOCAL app.change_source = '{_safe(change_source)}';")
+    if run_id:
+        lines.append(f"SET LOCAL app.enrichment_run_id = '{_safe(run_id)}';")
+    if session_id:
+        lines.append(f"SET LOCAL app.session_id = '{_safe(session_id)}';")
+    if change_reason:
+        lines.append(f"SET LOCAL app.change_reason = '{_safe(change_reason)}';")
+    if migration_file:
+        lines.append(f"SET LOCAL app.migration_file = '{_safe(migration_file)}';")
+    if migration_version:
+        lines.append(f"SET LOCAL app.migration_version = '{_safe(migration_version)}';")
+
+    return "\n".join(lines)
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # ANALYSIS — compute accuracy metrics
 # ══════════════════════════════════════════════════════════════════════════
 
