@@ -1,6 +1,35 @@
 
 ---
 
+## 2026-05-28 (Session 89) — Dashboard v2: Card redesign, Discovery Queue, enhanced search, About panel
+
+**Commit:** e462e80a51da
+
+**Agent 2 — Card redesign + progressive disclosure:**
+- `buildStockCard` extended with 3 new chips on card face: BD Signal badge (Hot/Active/Monitor/Quiet mapped from bdMomentum), Next Catalyst chip (days until readout from `catalyst_calendar`), Confidence Tier chip (Verified/Model/Inferred from `company_profiles.confidence_tier`)
+- `loadStockCards` now fetches `catalyst_calendar` (next 180 days) and `confidence_tier` in parallel with existing card data
+- `openCompanyEntityModal` now fetches `drug_validation_results` + `field_change_audit` for each company
+- New **Data Quality tab** in company entity modal: validation issues per drug (color-coded pass/warn/fail) + recent field change log (old→new with strikethrough)
+- New CSS: `.sc-bd-badge`, `.sc-cat-chip`, `.sc-conf-chip`, `.cem-dq-row`, `.cem-audit-row`
+
+**Agent 3 — Discovery Queue + search:**
+- `dq-nav-badge` activated (was `display:none`) — now shows live count of `research_queue WHERE status='pending'`
+- `#dq-nav-count` span added inside badge for live number
+- `openDQPanel()` / `closeDQPanel()` — slide-over panel showing pending research items grouped by P0/P1/P2/P3 priority with entity name, gap type, age
+- `openAboutDataPanel()` — "About This Data" slide-over explaining the 3 data intake paths in plain language
+- ℹ️ info button added to header next to DQ badge
+- `_gsSbSearch()` enhanced: now also queries `indications` table by name/synonyms + matches Knowledge Folder slugs; results show new "Knowledge Folders" and "Disease Areas" sections; clicking a KF result calls `openKnowledgeFolder(slug)`
+- New CSS: `.dqp-overlay`, `.dqp-panel`, `.dqp-group-hd`, `.dqp-badge` (P0-P3 variants), `.atd-overlay`, `.atd-panel`, `.meridian-info-btn`
+
+**Supabase tables newly surfaced:**
+- `catalyst_calendar` → card face next catalyst chip
+- `drug_validation_results` → Data Quality modal tab
+- `field_change_audit` → Data Quality modal tab (change log)
+- `research_queue` → DQ badge count + Discovery Queue panel
+- `indications` → enhanced global search
+
+---
+
 ## 2026-05-27 (Session 88) — Ontology Stabilization Audit: observability panel + shutdown checklist + stale comment cleanup
 
 **Purpose:** Operational maturity pass — no migrations, no new tables. Finalize session 88 mandate: wire live health diagnostics, document legacy shutdown sequences, clean stale comments, produce stabilization report.
