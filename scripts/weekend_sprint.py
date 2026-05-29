@@ -2550,6 +2550,34 @@ def phase_f8_alert_generation() -> Dict:
     return {"alerts": len(alerts), "critical": sum(1 for a in alerts if a["level"] == "critical")}
 
 
+def phase_f9_bd_recommendations() -> Dict:
+    """Refresh weekly BD call list — scores all companies and writes top 20 with Claude deal framing."""
+    log("F9: BD Recommendations Engine", indent=1)
+    mod = _import_agent("bd_recommender")
+    if not mod:
+        log("  WARNING: Could not import bd_recommender.py — skipping", indent=2)
+        return {"status": "skipped", "reason": "module_import_failed"}
+
+    try:
+        results = mod.main(dry_run=DRY_RUN, top_n=20, print_top=5)
+        this_week = [r for r in results if r.get("call_urgency") == "this_week"]
+        this_month = [r for r in results if r.get("call_urgency") == "this_month"]
+        log(f"  BD Recommendations complete: {len(results)} scored", indent=2)
+        log(f"  CALL THIS WEEK ({len(this_week)}): {', '.join(r['company_name'] for r in this_week)}", indent=2)
+        log(f"  CALL THIS MONTH ({len(this_month)}): {', '.join(r['company_name'] for r in this_month)}", indent=2)
+        return {
+            "status": "success",
+            "records_processed": len(results),
+            "this_week": len(this_week),
+            "this_month": len(this_month),
+            "top_company": results[0]["company_name"] if results else None,
+            "top_score": results[0]["total_score"] if results else None,
+        }
+    except Exception as e:
+        log(f"  BD Recommendations failed: {e}", indent=2)
+        return {"status": "error", "error": str(e)}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PHASE DISPATCH TABLE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2603,6 +2631,7 @@ PHASE_MAP = {
     "F6": phase_f6_github_commit,
     "F7": phase_f7_enrichment_cleanup,
     "F8": phase_f8_alert_generation,
+    "F9": phase_f9_bd_recommendations,
 }
 
 BLOCK_PHASES = {
@@ -2611,7 +2640,7 @@ BLOCK_PHASES = {
     "C": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
     "D": ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"],
     "E": ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"],
-    "F": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"],
+    "F": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"],
 }
 
 
