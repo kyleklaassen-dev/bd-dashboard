@@ -248,10 +248,23 @@ def phase_a1_schema_health() -> Dict:
     """Verify all tables exist, check for orphaned records."""
     log("A1: Schema health check", indent=1)
     expected_tables = [
+        # Core entity tables
         "drugs", "companies", "trials", "drug_targets", "drug_indications",
         "company_partnerships", "deals", "coverage_scores", "enrichment_runs",
         "drug_validation_results", "governance_violations", "catalyst_calendar",
         "news_articles", "ailux_positions",
+        # PK/PD + translational layer (v58 migration)
+        "drug_pk_parameters", "drug_pd_parameters", "drug_biomarkers",
+        "non_responder_profiles", "clinical_evidence_items",
+        "payer_tpp_criteria", "portfolio_conflict_matrix",
+        # Strategic views
+        "company_strategic_views", "company_platform_views",
+        # Knowledge / scoring
+        "area_knowledge", "drug_competitive_scores",
+        # Source tracking
+        "source_validation_log",
+        # Document corpus
+        "company_documents",
     ]
     results = {"present": [], "missing": [], "orphan_checks": {}}
 
@@ -1389,6 +1402,32 @@ def phase_d1_strategic_value_scoring() -> Dict:
     except Exception as e:
         log(f"  Scoring failed: {e}", indent=2)
 
+    # ── company_strategic_views seed / refresh ───────────────────────────────
+    # Delegates to seed_strategic_views.py if available; otherwise skips (not fatal).
+    if table_exists("company_strategic_views"):
+        try:
+            existing_svs = sb_get("company_strategic_views", {"select": "id", "limit": "1"})
+            if not existing_svs:
+                log("  company_strategic_views is empty — running seed_strategic_views", indent=2)
+                mod_sv = _import_agent("seed_strategic_views")
+                if mod_sv and hasattr(mod_sv, "main"):
+                    if not DRY_RUN:
+                        import io, contextlib
+                        buf = io.StringIO()
+                        with contextlib.redirect_stdout(buf):
+                            mod_sv.main()
+                        log("  seed_strategic_views.main() complete", indent=2)
+                    else:
+                        log("  [DRY-RUN] Would run seed_strategic_views.main()", indent=2)
+                else:
+                    log("  seed_strategic_views.py not importable — skipping", indent=2)
+            else:
+                log(f"  company_strategic_views already seeded", indent=2)
+        except Exception as e:
+            log(f"  company_strategic_views seed check failed: {e}", indent=2)
+    else:
+        log("  company_strategic_views table not found — skipping seed", indent=2)
+
     return results
 
 
@@ -1425,28 +1464,126 @@ def phase_d2_competitive_landscape() -> Dict:
 
 
 def phase_d3_drug_competitive_scores() -> Dict:
-    """Recompute drug_competitive_scores for recent drugs."""
+    """Recompute drug_competitive_scores for any rows with null total_competition_score.
+    Delegates to patch_competitive_scores_null.py if available; otherwise runs inline.
+    """
     log("D3: Drug competitive scores recompute", indent=1)
-    results = {"scored": 0}
+    results = {"scored": 0, "null_before": 0, "null_after": 0, "skipped": None}
 
     if not table_exists("drug_competitive_scores"):
         log("  drug_competitive_scores table not found — skipping", indent=2)
         return {"skipped": "table_missing"}
 
+    # Count null-score rows
     try:
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).isoformat()
-        recent_drugs = sb_get("drugs", {
-            "select": "id,name,stage,overlap,target",
-            "updated_at": f"gt.{cutoff}",
-            "limit": "50"
+        null_rows = sb_get("drug_competitive_scores", {
+            "total_competition_score": "is.null",
+            "select": "id",
+            "limit": "1",
         })
-        log(f"  Recent drugs to score: {len(recent_drugs)}", indent=2)
-        results["scored"] = len(recent_drugs)
-        # Scoring is complex (requires drug_competitive_scores schema knowledge)
-        # Log for Kyle's awareness; full scoring runs in compute_landscape_coverage.py
+        # Use count via header trick — sb_get returns list, get rough estimate
+        all_null = sb_get("drug_competitive_scores", {
+            "total_competition_score": "is.null",
+            "select": "id,drug_id,context_id,overlap,cls",
+            "limit": "500",
+        })
+        results["null_before"] = len(all_null)
+        log(f"  Null-score rows before: {results['null_before']}", indent=2)
     except Exception as e:
-        log(f"  Drug score query failed: {e}", indent=2)
+        log(f"  Null count query failed: {e}", indent=2)
+        return results
 
+    if results["null_before"] == 0:
+        log("  No null-score rows — nothing to do", indent=2)
+        return results
+
+    # Try delegating to patch_competitive_scores_null.py
+    mod = _import_agent("patch_competitive_scores_null")
+    if mod and hasattr(mod, "main"):
+        try:
+            if not DRY_RUN:
+                import io, contextlib
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    mod.main()
+                output = buf.getvalue()
+                # Parse "Done: N scored" from output
+                import re as _re
+                m = _re.search(r"Done:\s+(\d+)\s+scored", output)
+                if m:
+                    results["scored"] = int(m.group(1))
+                log(f"  patch_competitive_scores_null.main() complete: {results['scored']} scored", indent=2)
+            else:
+                log("  [DRY-RUN] Would call patch_competitive_scores_null.main()", indent=2)
+                results["scored"] = results["null_before"]
+            return results
+        except Exception as e:
+            log(f"  patch_competitive_scores_null.main() failed: {e} — running inline fallback", indent=2)
+
+    # Inline fallback: basic scoring for null rows
+    log(f"  Running inline scoring for {min(len(all_null), 100)} null rows", indent=2)
+    NOW_ISO_local = datetime.datetime.utcnow().isoformat()
+
+    stage_scores = {"approved": 10, "phase 3": 10, "phase 2": 8, "phase 1": 5, "preclinical": 2}
+    overlap_scores = {"Direct": 40, "Adjacent": 20, "Same-Space": 10, "Watch": 5}
+
+    # Load drug stage/modality data
+    drug_ids = list({r["drug_id"] for r in all_null if r.get("drug_id")})
+    drug_lookup: Dict[str, dict] = {}
+    for i in range(0, len(drug_ids), 50):
+        chunk = drug_ids[i:i+50]
+        try:
+            drugs = sb_get("drugs", {
+                "id": "in.(" + ",".join(chunk) + ")",
+                "select": "id,stage,modality",
+            })
+            for d in drugs:
+                drug_lookup[d["id"]] = d
+        except Exception:
+            pass
+
+    for row in all_null[:100]:
+        drug_id = row.get("drug_id", "")
+        overlap = row.get("overlap") or ""
+        drug_data = drug_lookup.get(drug_id, {})
+        stage = (drug_data.get("stage") or "").lower()
+        modality = (drug_data.get("modality") or row.get("cls") or "").lower()
+
+        tgt = overlap_scores.get(overlap, 0)
+        stg = next((v for k, v in stage_scores.items() if k in stage), 2)
+        # Bispecific bonus
+        mod_bonus = 5 if "bispecific" in modality else 0
+        total = min(100, tgt + stg + mod_bonus)
+
+        payload = {
+            "total_competition_score": total,
+            "monitoring_priority_score": total,
+            "score_rationale": f"inline: overlap={overlap}, stage={stage}",
+            "scored_by": "weekend_sprint_d3_inline",
+            "scored_at": NOW_ISO_local,
+            "score_version": 1,
+        }
+        if not DRY_RUN:
+            try:
+                sb_patch("drug_competitive_scores", {"id": row["id"]}, payload)
+                results["scored"] += 1
+            except Exception as e:
+                log(f"    Score patch failed for row {row['id']}: {e}", indent=3)
+        else:
+            results["scored"] += 1
+
+    # Recount nulls
+    try:
+        remaining = sb_get("drug_competitive_scores", {
+            "total_competition_score": "is.null",
+            "select": "id",
+            "limit": "500",
+        })
+        results["null_after"] = len(remaining)
+    except Exception:
+        pass
+
+    log(f"  Scored {results['scored']} rows; null remaining: {results['null_after']}", indent=2)
     return results
 
 
@@ -1546,20 +1683,81 @@ def phase_d5_pipeline_advancement() -> Dict:
     return results
 
 
-def phase_d6_catalyst_calendar() -> Dict:
-    """Populate catalyst_calendar with C7+C8 findings."""
-    log("D6: Catalyst calendar enrichment", indent=1)
-    results = {"catalysts_reviewed": 0}
+def phase_d6_area_knowledge_and_catalyst() -> Dict:
+    """
+    Refresh area_knowledge drug counts (direct + total) for all 13 area slugs,
+    then log catalyst_calendar entry count.
+    Delegates to update_area_knowledge_counts.py if available.
+    """
+    log("D6: Area knowledge counts refresh + catalyst calendar audit", indent=1)
+    results = {"areas_updated": 0, "areas_failed": 0, "catalysts_logged": 0}
 
-    if not table_exists("catalyst_calendar"):
-        return {"skipped": "table_missing"}
+    # ── Area knowledge refresh ───────────────────────────────────────────────
+    if not table_exists("area_knowledge"):
+        log("  area_knowledge table not found — skipping count refresh", indent=2)
+    else:
+        mod = _import_agent("update_area_knowledge_counts")
+        if mod and hasattr(mod, "main"):
+            try:
+                if not DRY_RUN:
+                    import io, contextlib
+                    buf = io.StringIO()
+                    with contextlib.redirect_stdout(buf):
+                        mod.main()
+                    output = buf.getvalue()
+                    import re as _re
+                    m = _re.search(r"Done:\s+(\d+)/(\d+)", output)
+                    if m:
+                        results["areas_updated"] = int(m.group(1))
+                    log(f"  area_knowledge refresh complete: {results['areas_updated']} rows updated", indent=2)
+                else:
+                    log("  [DRY-RUN] Would call update_area_knowledge_counts.main()", indent=2)
+                    results["areas_updated"] = -1  # dry-run sentinel
+            except Exception as e:
+                log(f"  update_area_knowledge_counts.main() failed: {e}", indent=2)
+                results["areas_failed"] = 1
+        else:
+            # Inline fallback: recompute a few key areas using ontology joins
+            log("  update_area_knowledge_counts.py not importable — running inline fallback", indent=2)
+            AREA_TARGETS = {
+                "tl1a":  (["tl1a"], []),
+                "il23":  (["il23p19", "il12_23p40"], []),
+                "fcrn":  (["fcrn"], []),
+                "igf1r": (["igf1r", "tshr"], []),
+            }
+            try:
+                ak_rows = sb_get("area_knowledge", {"select": "id,area_slug", "limit": "50"})
+                for row in ak_rows:
+                    slug = row.get("area_slug")
+                    if slug not in AREA_TARGETS:
+                        continue
+                    target_ids, _ = AREA_TARGETS[slug]
+                    try:
+                        dt_rows = sb_get("drug_targets", {
+                            "target_id": f"in.({','.join(target_ids)})",
+                            "select": "drug_id",
+                            "limit": "500",
+                        })
+                        count = len({r["drug_id"] for r in dt_rows if r.get("drug_id")})
+                        if not DRY_RUN:
+                            sb_patch("area_knowledge", {"id": row["id"]},
+                                     {"drug_count_direct": count, "drug_count_total": count})
+                        results["areas_updated"] += 1
+                        log(f"    {slug}: {count} drugs", indent=3)
+                    except Exception as inner_e:
+                        log(f"    {slug}: failed — {inner_e}", indent=3)
+                        results["areas_failed"] += 1
+            except Exception as e:
+                log(f"  Inline area_knowledge fallback failed: {e}", indent=2)
 
-    try:
-        existing = sb_get("catalyst_calendar", {"select": "id", "limit": "1"})
-        results["catalysts_reviewed"] = len(existing)
-        log(f"  Catalyst calendar entries: {results['catalysts_reviewed']}", indent=2)
-    except Exception as e:
-        log(f"  Catalyst calendar query failed: {e}", indent=2)
+    # ── Catalyst calendar audit (informational) ──────────────────────────────
+    if table_exists("catalyst_calendar"):
+        try:
+            catalysts = sb_get("catalyst_calendar", {"select": "id", "limit": "1"})
+            results["catalysts_logged"] = 1  # table reachable
+            log("  catalyst_calendar: table reachable", indent=2)
+        except Exception as e:
+            log(f"  catalyst_calendar query failed: {e}", indent=2)
 
     return results
 
@@ -2386,7 +2584,7 @@ PHASE_MAP = {
     "D3": phase_d3_drug_competitive_scores,
     "D4": phase_d4_ailux_bd_analysis,
     "D5": phase_d5_pipeline_advancement,
-    "D6": phase_d6_catalyst_calendar,
+    "D6": phase_d6_area_knowledge_and_catalyst,
     "D7": phase_d7_patient_intelligence,
     "D8": phase_d8_coverage_recompute,
     "E1": phase_e1_stage_ctgov_xref,
