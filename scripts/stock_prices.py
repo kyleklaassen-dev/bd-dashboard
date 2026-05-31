@@ -115,21 +115,47 @@ def get_companies():
         return []
 
 
-def upsert_price(company_id, price, change_pct):
-    """Update stock_price and stock_change on the company row."""
+def upsert_price(company_id, ticker, price, change_pct, market_cap=None):
+    """Update stock_price and stock_change on the company row, and write a history record."""
+    now_iso = datetime.datetime.utcnow().isoformat() + "Z"
+
+    # 1. Patch the live companies row (existing behaviour)
     r = requests.patch(
         f"{SUPABASE_URL}/rest/v1/companies",
         headers={**SB_HEADERS, "Prefer": "return=minimal"},
         params={"id": f"eq.{company_id}"},
         json={
-            "stock_price":      price,
-            "stock_change":     change_pct,
+            "stock_price":       price,
+            "stock_change":      change_pct,
             "last_price_update": datetime.datetime.utcnow().isoformat(),
         },
     )
     if r.status_code not in (200, 201, 204):
         log(f"  Update error for company {company_id}: {r.status_code} {r.text[:100]}")
         return False
+
+    # 2. Insert into stock_price_history for trend tracking
+    hist_payload = {
+        "company_id":    company_id,
+        "ticker":        ticker,
+        "price_usd":     price,
+        "change_1d_pct": change_pct,
+        "recorded_at":   now_iso,
+        "source":        "yfinance",
+    }
+    if market_cap is not None:
+        hist_payload["market_cap_usd"] = market_cap
+
+    rh = requests.post(
+        f"{SUPABASE_URL}/rest/v1/stock_price_history",
+        headers={**SB_HEADERS, "Prefer": "return=minimal"},
+        json=hist_payload,
+        timeout=10,
+    )
+    if rh.status_code not in (200, 201, 204):
+        log(f"  History insert warning for {ticker}: {rh.status_code} {rh.text[:80]}")
+        # Non-fatal: the main update already succeeded
+
     return True
 
 
@@ -163,7 +189,7 @@ if __name__ == "__main__":
     for ticker, co in ticker_to_company.items():
         if ticker in prices:
             p = prices[ticker]
-            if upsert_price(co["id"], p["price"], p["change_pct"]):
+            if upsert_price(co["id"], ticker, p["price"], p["change_pct"], p.get("market_cap")):
                 log(f"  {co['name']} ({ticker}): ${p['price']} ({p['change_pct']:+.2f}%)")
                 updated += 1
         else:
