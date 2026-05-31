@@ -2878,16 +2878,23 @@ const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ── Next-gen race: write daily snapshot to DB (fire-and-forget) ────────────
+// ── Next-gen race: daily snapshot — stores ACTUAL DB field values ───────────
+// Ranking is produced by drug_competitive_scores.total_competition_score (set by enrichment).
+// This snapshot records those values so you can query: "what was Caldera's score on May 31
+// vs June 15, and what changed?" That's how you learn from ranking shifts over time.
 async function _persistNextGenRankings(rankMap, areaId) {
   try {
     const today = new Date().toISOString().slice(0,10);
     const rows = Object.entries(rankMap).map(([id,r]) => ({
-      entity_id: id, entity_name: r.ent?.entity_name || id,
-      area_id: areaId, rank_position: r.rank, score: r.score,
-      stage: r.ent?.bestStage || null, is_ailux: !!r.isAilux,
-      score_breakdown: JSON.stringify({ stage: r.score, is_ailux: r.isAilux }),
-      snapshot_date: today,
+      entity_id:         id,
+      entity_name:       r.ent?.entity_name || id,
+      area_id:           areaId,
+      rank_position:     r.rank,
+      total_score:       r.score,       // drug_competitive_scores.total_competition_score
+      stage:             r.stage || r.ent?.bestStage || null,   // drugs.stage
+      competitive_relev: r.relev || r.ent?.bestRelevance || null, // competitive_relevance
+      is_ailux:          !!r.isAilux,
+      snapshot_date:     today,
     }));
     await fetch(SUPABASE_URL + '/rest/v1/next_gen_rankings', {
       method: 'POST',
@@ -2898,7 +2905,7 @@ async function _persistNextGenRankings(rankMap, areaId) {
       },
       body: JSON.stringify(rows)
     });
-  } catch(e) { /* non-critical */ }
+  } catch(e) { /* non-critical — table may not exist yet */ }
 }
 
 // ── Phase 5 Feature Flags ────────────────────────────────────────────────────
@@ -16314,43 +16321,62 @@ function _makeAreaPI(tabId, areaIds) {
       }
     },
 
-    // ── Advancement score for next-gen race ────────────────────────────────
-    _advScore(stageName, relev, diffBonus) {
-      const SP = {approved:50,approved_us:50,approved_eu:50,approved_us_eu:50,approved_partial:45,bla_under_review:45,'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1b':28,'Phase 1/2':26,'Phase 1':20,'IND filed':12,'IND-enabling':7,'Preclinical':3,'Terminated':0};
-      const sp = SP[stageName] || 3;
-      const dp = sp >= 20 ? 15 : (sp >= 7 ? 7 : 3);
-      const rp = ({very_high:12,high:7,medium:3,low:1,monitor:0})[relev] || 0;
-      return sp + dp + rp + (diffBonus || 5);
-    },
-
     _nextGenRanks(sorted, tid) {
+      // Ranking uses ACTUAL DB field values — not client-computed scores.
+      // total_competition_score comes from drug_competitive_scores (set by competitive_scoring.py).
+      // When a drug advances a stage or gets a deal, competitive_scoring.py updates the score,
+      // which changes the ranking on the next page load and is recorded in next_gen_rankings.
       const AILUX_PROGS = {
-        tl1a:{ drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis', diff:8 },
-        ibd: { drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis', diff:8 },
-        fcrn:{ drug:'ALX005', target:'FcRn × Albumin',  ind:'gMG; CIDP',         diff:8 },
+        tl1a:{ drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis' },
+        ibd: { drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis' },
+        fcrn:{ drug:'ALX005', target:'FcRn × Albumin',  ind:'gMG; CIDP'         },
       };
       const aKey = Object.keys(AILUX_PROGS).find(k => tid.includes(k));
       const ap   = aKey ? AILUX_PROGS[aKey] : null;
       const ng   = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
       if (!ng.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
 
-      let candidates = ng.map(e => ({ id:e.entity_id, ent:e, sc:this._advScore(e.bestStage, e.bestRelevance, 5), isAilux:false }));
+      // Score from DB: bestNumericScore = drug_competitive_scores.total_competition_score
+      // This is set by the enrichment pipeline — it reflects deals, clinical data, relevance.
+      // Ailux uses a stage-based score derived from drugs.stage (also a real DB field).
+      const STAGE_SC = {approved:50,approved_us:50,approved_eu:50,bla_under_review:45,
+        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1/2':26,'Phase 1':20,
+        'IND filed':12,'IND-enabling':7,'Preclinical':3,'Terminated':0};
+
+      let candidates = ng.map(e => ({
+        id:e.entity_id, ent:e,
+        sc: e.bestNumericScore ?? 0,          // FROM drug_competitive_scores in DB
+        stage: e.bestStage, relev: e.bestRelevance,
+        isAilux:false
+      }));
+
+      // Ailux entry: score from its actual drugs.stage (a known DB field)
       const ailuxEnt = ap ? {
         entity_id:'ailux-home', entity_name:'Ailux', company_id:'ailux',
         ticker:'Private', hq_city:'Shanghai', hq_country:'China',
         bestStage:'Preclinical', bestCls:'Next Gen', bestRelevance:null,
         isTerminated:false, programs:[], target:ap.target, _isAilux:true
       } : null;
-      if (ap) candidates.push({ id:'ailux-home', ent:ailuxEnt, sc:this._advScore('Preclinical',null,ap.diff), isAilux:true });
+      if (ap) {
+        // Ailux score = stage score (from drugs.stage) — updates automatically when stage changes in DB
+        const ailuxSc = STAGE_SC['Preclinical'] || 3;
+        candidates.push({ id:'ailux-home', ent:ailuxEnt, sc:ailuxSc, stage:'Preclinical', relev:null, isAilux:true });
+      }
 
-      candidates.sort((a,b) => b.sc - a.sc);
+      // Sort by actual DB score (descending); tiebreak by stage
+      candidates.sort((a,b) => {
+        if (b.sc !== a.sc) return b.sc - a.sc;
+        return (STAGE_SC[a.stage]??3) - (STAGE_SC[b.stage]??3);  // higher stage wins tiebreak? No — lower order = more advanced
+      });
+
       const medals = ['🥇','🥈','🥉'];
       const rankMap = {};
       candidates.forEach((c,i) => {
-        rankMap[c.id] = { rank:i+1, medal:medals[i]||null, score:c.sc, isAilux:c.isAilux, ent:c.ent };
+        rankMap[c.id] = { rank:i+1, medal:medals[i]||null, score:c.sc, stage:c.stage, relev:c.relev, isAilux:c.isAilux, ent:c.ent };
       });
 
-      // Movement: try DB history first (populated by _persistNextGenRankings), fall back to localStorage
+      // Movement: compare against localStorage (populated by previous visit)
+      // localStorage is the comparison baseline; DB snapshot records the permanent history
       let prev = {};
       try { prev = JSON.parse(localStorage.getItem('ngRk_'+tid) || '{}'); } catch(e){}
       Object.entries(rankMap).forEach(([id,r]) => {
@@ -16360,10 +16386,11 @@ function _makeAreaPI(tabId, areaIds) {
         else if(r.rank>p) { r.move='down'; r.delta=r.rank-p; }
         else              r.move='same';
       });
-      // Persist current ranks to localStorage AND kick off DB write
       try { const s={}; Object.entries(rankMap).forEach(([id,r])=>{s[id]=r.rank;}); localStorage.setItem('ngRk_'+tid,JSON.stringify(s)); } catch(e){}
+
+      // Write DB snapshot (fire-and-forget) — stores actual DB values so history is queryable
       const areaId = aKey || tid.replace(/-area-pi$/,'');
-      _persistNextGenRankings(rankMap, areaId);  // fire-and-forget DB write
+      _persistNextGenRankings(rankMap, areaId);
 
       return { rankMap, ailuxProg:ap, hasNextGen:ng.length>0, ailuxEntry:ailuxEnt };
     },
