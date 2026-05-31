@@ -6208,6 +6208,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" id="pill-market" onclick="openTl1aModal('tl1a-modal-market')">💊 IBD Market</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-bd-activity')">🤝 BD Activity</button>
+  <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')" style="border-left:2px solid #22c55e;background:#f0fdf4;color:#166534;font-weight:800">ALX001 Position</button>
 </div>
 <!-- RIGHT fixed pill column — deprecated 2026-05-28; content routed via Knowledge Folders -->
 
@@ -6307,6 +6308,15 @@ function loadMoleculeTab(tabId) {
  <strong>Key Inflection Points:</strong> Phase 1 PK confirmation of ~37-day t&#189; in humans + free TL1A depletion biomarker (TSLP/DR3 pathway suppression) is the single most value-generative event. Comparable: Simcere SIM0709 (pre-IND &#8594; BI &#8364;42M up / &#8364;1.05B total). The trimer-destabilizing epitope must be confirmed as non-overlapping with receptor-blocking competitors. A positive Phase 2a UC signal — even a biomarker endpoint — would push upfront to $300M+ territory given duvakitug's Ph2b 48% remission bar.
  </div>
  </div>
+
+<!-- STRATEGIC BD POSITION — loaded from ailux_bd_context table -->
+<div id="ailux-strategic-position-section" style="margin-top:20px">
+  <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:10px">Strategic BD Position</div>
+  <div id="ailux-bd-context-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:rgba(255,255,255,0.08);border-radius:6px;padding:12px;font-size:11px;color:rgba(255,255,255,0.7)">Loading strategy context…</div>
+  </div>
+</div>
+
  </div>
   </div>
  </div>
@@ -15446,12 +15456,51 @@ function openTl1aModal(id) {
     const bdEl = document.getElementById('tl1a-bd-activity');
     if (bdEl && !bdEl.dataset.loaded) { _loadBdIntoModal('tl1a', bdEl); bdEl.dataset.loaded = '1'; }
   }
+  if (id === 'tl1a-modal-ailux') _loadAiluxBdContext();
 }
 function closeTl1aModal(el) {
   if (!el) return;
   el.classList.remove('open');
   if (!document.querySelector('.tl1a-modal-overlay.open')) document.body.style.overflow = '';
 }
+
+// ── Ailux BD Context loader ──────────────────────────────────────────────────
+var _ailuxBdContextLoaded = false;
+async function _loadAiluxBdContext() {
+  if (_ailuxBdContextLoaded) return;
+  const container = document.getElementById('ailux-bd-context-cards');
+  if (!container) return;
+  try {
+    const res = await _sb.from('ailux_bd_context')
+      .select('context_type,context_key,context_value,strategic_implication,confidence')
+      .in('context_key', ['asset_sale_timing','optimal_partner_profile','negotiation_leverage_drivers','china_vs_global_strategy'])
+      .order('context_type');
+    const rows = res.data || [];
+    if (!rows.length) { container.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:11px">No strategy context loaded.</div>'; return; }
+    const keyLabels = {
+      asset_sale_timing: 'Deal Timing',
+      optimal_partner_profile: 'Best-Fit Partners',
+      negotiation_leverage_drivers: 'Leverage Drivers',
+      china_vs_global_strategy: 'China vs. Global Strategy'
+    };
+    const confColor = { high: '#86efac', medium: '#fcd34d', low: '#f87171' };
+    container.innerHTML = rows.map(function(r) {
+      const label = keyLabels[r.context_key] || r.context_key.replace(/_/g,' ');
+      const conf = r.confidence || 'medium';
+      const cc = confColor[conf] || '#fcd34d';
+      return '<div style="background:rgba(255,255,255,0.09);border-radius:7px;padding:12px;border-top:2px solid ' + cc + '30">' +
+        '<div style="font-size:9px;font-weight:800;color:' + cc + ';text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">' + label + '</div>' +
+        '<div style="font-size:11px;color:rgba(255,255,255,0.88);line-height:1.55;margin-bottom:7px">' + escHtml(r.context_value.substring(0, 280)) + (r.context_value.length > 280 ? '…' : '') + '</div>' +
+        (r.strategic_implication ? '<div style="font-size:10.5px;color:rgba(255,255,255,0.6);font-style:italic;border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;line-height:1.45">' + escHtml(r.strategic_implication.substring(0, 200)) + (r.strategic_implication.length > 200 ? '…' : '') + '</div>' : '') +
+        '</div>';
+    }).join('');
+    _ailuxBdContextLoaded = true;
+  } catch(e) {
+    console.warn('ailux_bd_context load error', e);
+    if (container) container.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:11px">Strategy context unavailable.</div>';
+  }
+}
+
 async function _loadBdIntoModal(tabId, el) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) { el.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:12px">No BD data for this area.</div>'; return; }
@@ -31170,10 +31219,15 @@ function kfRenderTab(tab) {
       '<div class="kf-section">' +
         '<div class="kf-section-title">Key programs</div>' +
         '<div class="kf-text" style="background:#f0fdf4;border-radius:8px;padding:12px;border-left:4px solid #16a34a;">' +
-          '<strong>ALX001</strong> — TL1A×IL-23p19 bispecific · Lead program · Phase 1<br>' +
-          '<strong>ALX-FcRn</strong> — FcRn×Albumin bispecific · Second program · Preclinical' +
+          '<strong>ALX001</strong> — TL1A×IL-23p19 bispecific · Lead program · IND filed Q2 2026 · FIH target Q4 2027<br>' +
+          '<strong>ALX002 / ALX005</strong> — Next-generation programs · Preclinical' +
         '</div>' +
+      '</div>' +
+      '<div class="kf-section" id="kf-ailux-bd-section">' +
+        '<div class="kf-section-title">BD Strategy Context</div>' +
+        '<div id="kf-ailux-bd-rows" style="color:#94a3b8;font-size:12px">Loading…</div>' +
       '</div>';
+    _loadKfAiluxBdContext();
 
   } else if (tab === 'perspectives') {
     var roles = ['CEO', 'CSO', 'CBO', 'CFO', 'KOL'];
@@ -31229,6 +31283,32 @@ function kfSwitchPersp(role, el) {
   document.querySelectorAll('.kf-persp-tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   document.getElementById('kf-persp-content').innerHTML = _kfBuildPerspContent(role);
+}
+
+async function _loadKfAiluxBdContext() {
+  var el = document.getElementById('kf-ailux-bd-rows');
+  if (!el) return;
+  try {
+    var res = await _sb.from('ailux_bd_context')
+      .select('context_key,context_value,strategic_implication,confidence')
+      .in('context_key', ['asset_sale_timing','optimal_partner_profile','negotiation_leverage_drivers'])
+      .order('context_key');
+    var rows = res.data || [];
+    var keyLabels = { asset_sale_timing:'Deal Timing', optimal_partner_profile:'Best-Fit Partners', negotiation_leverage_drivers:'Leverage Drivers' };
+    el.innerHTML = rows.map(function(r) {
+      var label = keyLabels[r.context_key] || r.context_key.replace(/_/g,' ');
+      var confMap = { high:'#16a34a', medium:'#d97706', low:'#dc2626' };
+      var cc = confMap[r.confidence] || '#d97706';
+      return '<div style="margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:7px;border-left:3px solid ' + cc + '">' +
+        '<div style="font-size:10px;font-weight:800;color:' + cc + ';text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">' + escHtml(label) + '</div>' +
+        '<div style="font-size:11.5px;color:#1e293b;line-height:1.55;margin-bottom:4px">' + escHtml(r.context_value.substring(0,250)) + (r.context_value.length > 250 ? '…' : '') + '</div>' +
+        (r.strategic_implication ? '<div style="font-size:11px;color:#475569;font-style:italic">' + escHtml(r.strategic_implication.substring(0,180)) + (r.strategic_implication.length > 180 ? '…' : '') + '</div>' : '') +
+        '</div>';
+    }).join('') || '<div style="color:#94a3b8;font-size:12px">No context available.</div>';
+  } catch(e) {
+    console.warn('KF ailux_bd_context error', e);
+    if (el) el.innerHTML = '<div style="color:#94a3b8;font-size:12px">Could not load strategy context.</div>';
+  }
 }
 
 async function _loadKfBdData() {
