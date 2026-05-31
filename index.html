@@ -16336,21 +16336,24 @@ function _makeAreaPI(tabId, areaIds) {
       const ng   = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
       if (!ng.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
 
-      // Score from DB: bestNumericScore = drug_competitive_scores.total_competition_score
-      // This is set by the enrichment pipeline — it reflects deals, clinical data, relevance.
-      // Ailux uses a stage-based score derived from drugs.stage (also a real DB field).
-      const STAGE_SC = {approved:50,approved_us:50,approved_eu:50,bla_under_review:45,
-        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1/2':26,'Phase 1':20,
-        'IND filed':12,'IND-enabling':7,'Preclinical':3,'Terminated':0};
+      // ── Composite ranking score from all known DB values ────────────────────
+      // Primary: total_competition_score from drug_competitive_scores (0-10, set by enrichment).
+      // The enrichment pipeline incorporates: deal value, clinical stage, data quality,
+      // competitive relevance, and — as drug_intelligence_qa populates — 100Q answers.
+      // Scores refine automatically as enrichment runs. Stage adds clinical advancement signal.
+      const STAGE_W = {approved:10,approved_us:10,approved_eu:10,bla_under_review:9.5,
+        'Phase 3':9,'Phase 2/3':8.5,'Phase 2':8,'Phase 1/2':7,'Phase 1':6,
+        'IND filed':4,'IND-enabling':2.5,'Preclinical':1,'Terminated':0};
+      const AILUX_SC = {approved:50,approved_us:50,bla_under_review:45,
+        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1':20,'IND filed':12,'IND-enabling':7,'Preclinical':3};
+
+      // 70% enrichment score (DB) + 30% stage signal = composite
+      const composite = (e) => ((e.bestNumericScore ?? 0) * 0.7) + ((STAGE_W[e.bestStage] ?? 0) * 0.3);
 
       let candidates = ng.map(e => ({
-        id:e.entity_id, ent:e,
-        sc: e.bestNumericScore ?? 0,          // FROM drug_competitive_scores in DB
-        stage: e.bestStage, relev: e.bestRelevance,
-        isAilux:false
+        id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false
       }));
 
-      // Ailux entry: score from its actual drugs.stage (a known DB field)
       const ailuxEnt = ap ? {
         entity_id:'ailux-home', entity_name:'Ailux', company_id:'ailux',
         ticker:'Private', hq_city:'Shanghai', hq_country:'China',
@@ -16358,15 +16361,13 @@ function _makeAreaPI(tabId, areaIds) {
         isTerminated:false, programs:[], target:ap.target, _isAilux:true
       } : null;
       if (ap) {
-        // Ailux score = stage score (from drugs.stage) — updates automatically when stage changes in DB
-        const ailuxSc = STAGE_SC['Preclinical'] || 3;
+        const ailuxSc = AILUX_SC['Preclinical'] || 3;
         candidates.push({ id:'ailux-home', ent:ailuxEnt, sc:ailuxSc, stage:'Preclinical', relev:null, isAilux:true });
       }
 
-      // Sort by actual DB score (descending); tiebreak by stage
       candidates.sort((a,b) => {
-        if (b.sc !== a.sc) return b.sc - a.sc;
-        return (STAGE_SC[a.stage]??3) - (STAGE_SC[b.stage]??3);  // higher stage wins tiebreak? No — lower order = more advanced
+        if (Math.abs(b.sc - a.sc) > 0.01) return b.sc - a.sc;
+        return (STAGE_W[b.stage]??0) - (STAGE_W[a.stage]??0);
       });
 
       const medals = ['🥇','🥈','🥉'];
@@ -16559,13 +16560,23 @@ function _makeAreaPI(tabId, areaIds) {
             + '<td><span style="font-size:9px;color:#d97706;font-weight:700;white-space:nowrap">IND 2026 →</span></td>'
             + '</tr>' + expRow;
         }
-        // Normal competitor row
+        // Row build — Ailux uses same structure, amber styling applied here
         const rk = showRace ? this._rankCell(rInfo) : '';
-        const entBorder = 'border-left:3px solid ' + _numBorderCol;
-        const _oc = '_areaPIToggle(\'' + tid + '\',\'' + ent.entity_id + '\')';
-        return '<tr class="pi-main'+(isExp?' expanded':'')+'" style="cursor:pointer;'+entBorder+'" onclick="'+_oc+'">'
+        const rowBg     = isAilux ? ' pi-ailux-row' : '';
+        const entBorder = isAilux ? 'border-left:3px solid #f59e0b' : ('border-left:3px solid ' + _numBorderCol);
+        const nameColor = isAilux ? '#92400e' : '#1e3a5f';
+        const ailuxTag  = isAilux ? ' <span class="pi-ailux-tag">HOME</span>' : '';
+        const entityInner = isAilux
+          ? ent.entity_name + ailuxTag
+          : '<span class="pi-entity-name" data-eid="'+ent.entity_id+'" data-cid="'+(ent.company_id||ent.entity_id)+'" data-ename="'+ent.entity_name.replace(/"/g,'&quot;')+'" data-tab="'+tid+'" data-ticker="'+(ent.ticker||'').replace(/"/g,'')+'" data-hqcity="'+(ent.hq_city||'').replace(/"/g,'')+'" data-hqcountry="'+(ent.hq_country||'').replace(/"/g,'')+'" onclick="event.stopPropagation();_openEntityByEl(this)">'+ent.entity_name+'</span>'+_covHtml;
+        const locLine = isAilux
+          ? 'Private — Shanghai, China'
+          : (()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?' — '+ent.hq_city+', '+ent.hq_country:'';return t+loc;})();
+        const rowOnclick = isAilux ? '' : ' onclick="_areaPIToggle(\''+tid+'\',\''+ent.entity_id+'\')"';
+        const rowCursor  = isAilux ? 'cursor:default;' : 'cursor:pointer;';
+        return '<tr class="pi-main'+(isExp?' expanded':'')+rowBg+'" style="'+rowCursor+entBorder+'"'+rowOnclick+'>'
           + rk
-          + '<td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="'+ent.entity_id+'" data-cid="'+(ent.company_id||ent.entity_id)+'" data-ename="'+ent.entity_name.replace(/"/g,'&quot;')+'" data-tab="'+tid+'" data-ticker="'+(ent.ticker||'').replace(/"/g,'')+'" data-hqcity="'+(ent.hq_city||'').replace(/"/g,'')+'" data-hqcountry="'+(ent.hq_country||'').replace(/"/g,'')+'" onclick="event.stopPropagation();_openEntityByEl(this)">'+ent.entity_name+'</span>'+_covHtml+'</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">'+(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?' — '+ent.hq_city+', '+ent.hq_country:'';return t+loc;})()+' </div></td>'
+          + '<td><strong style="font-size:12px;color:'+nameColor+';display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+entityInner+'</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">'+locLine+'</div></td>'
           + '<td>'+pipelineCell+'</td>'
           + '<td>'+indCell+'</td>'
           + '<td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(ent.target||'')+'</td>'
@@ -16593,7 +16604,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col style="width:6%"><col style="width:18%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col style="width:4%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
