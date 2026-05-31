@@ -1040,7 +1040,7 @@ SECTION STRUCTURE (build exactly this architecture):
 6. 🩺 INDICATION INTELLIGENCE — ALWAYS INCLUDE. Pull from the Patient Population & Market Stats block.
    - Select the 2–3 indications most relevant to this week's news (IBD / UC / CD always eligible; add others if they appeared in today's intel)
    - For each indication, write one compact paragraph using this exact structure:
-     "There are approximately {patient_count_us:,} patients with [indication] in the United States ({patient_count_global:,} globally). The addressable market is estimated at ${market_size_usd_bn}B. Current standard-of-care achieves remission in approximately {remission_rate_soc_pct}% of patients; {biologic_failure_rate_pct}% fail biologics, leaving a substantial refractory population. Unmet need score: {unmet_need_score}/10."
+     "There are approximately [N] patients with [indication] in the United States ([M] globally). The addressable market is estimated at $[X]B. Current standard-of-care achieves remission in approximately [R]% of patients; [F]% fail biologics, leaving a substantial refractory population. Unmet need score: [U]/10." — fill in the actual numbers from the Patient Population & Market Stats block above.
    - If a numeric field is null, omit that clause rather than using "N/A"
    - Follow each paragraph with a BD Lens callout linking the market size and failure rate to Ailux's positioning
 
