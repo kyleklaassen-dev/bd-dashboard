@@ -598,9 +598,9 @@ def fetch_recent_trials():
             f"{SUPABASE_URL}/rest/v1/trials",
             headers=SB_HEADERS,
             params={
-                "select": "drug_id,nct_id,phase,status,enrollment,primary_completion,sponsor,indication,updated_at",
-                "updated_at": f"gte.{cutoff}T00:00:00",
-                "order": "updated_at.desc",
+                "select": "drug_id,trial_name,study_acronym,phase,status,n_enrollment,primary_completion_date,sponsor,indication,created_at",
+                "created_at": f"gte.{cutoff}T00:00:00",
+                "order": "created_at.desc",
                 "limit": "60",
             },
         )
@@ -794,13 +794,13 @@ def build_trials_block(trials):
         phase  = t.get("phase", "?")
         status = t.get("status", "?")
         ind    = t.get("indication", "")
-        nct    = t.get("nct_id", "")
-        comp   = t.get("primary_completion", "")
+        name   = t.get("trial_name") or t.get("study_acronym", "")
+        comp   = t.get("primary_completion_date", "")
         line   = f"  {drug} | Phase {phase} | {status} | {ind}"
         if comp:
             line += f" | completion: {comp}"
-        if nct:
-            line += f" | {nct}"
+        if name:
+            line += f" | {name}"
         lines.append(line)
     return "\n".join(lines)
 
