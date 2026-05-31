@@ -31552,14 +31552,26 @@ function _cfFmtTime(ts) {
 }
 
 // ── Badge CSS class lookup ───────────────────────────────────────────────────
-function _cfBadgeClass(type) {
+function _cfBadgeClass(type, docType) {
+  if (type === 'abstract') {
+    // Doc-type-specific colors
+    const dt = (docType || '').toLowerCase();
+    if (dt === '8-k' || dt === 'press_release') return 'cf-badge-deal';
+    if (dt === 'poster' || dt === 'slide_deck')  return 'cf-badge-catalyst';
+    if (dt === 'patent')                          return 'cf-badge-signal';
+    return 'cf-badge-abstract'; // default for abstract, clinical_data, etc.
+  }
   return { news:'cf-badge-news', drug:'cf-badge-drug', company:'cf-badge-company',
-           deal:'cf-badge-deal', abstract:'cf-badge-abstract',
-           signal:'cf-badge-signal', catalyst:'cf-badge-catalyst' }[type] || 'cf-badge-change';
+           deal:'cf-badge-deal', signal:'cf-badge-signal',
+           catalyst:'cf-badge-catalyst' }[type] || 'cf-badge-change';
 }
-function _cfBadgeLabel(type) {
+function _cfBadgeLabel(type, docType) {
+  if (type === 'abstract') {
+    const dt = (docType || '').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    return dt || 'Document';
+  }
   return { news:'News', drug:'Drug', company:'Company', deal:'Deal',
-           abstract:'Abstract', signal:'Signal', catalyst:'Catalyst', change:'Change' }[type] || type;
+           signal:'Signal', catalyst:'Catalyst', change:'Change' }[type] || type;
 }
 
 // ── Relevance bar (0-100) ────────────────────────────────────────────────────
@@ -31581,7 +31593,7 @@ function _cfEsc(s) {
 
 // ── Render a single feed item to HTML ───────────────────────────────────────
 function _cfRenderItem(item) {
-  const badge = `<span class="cf-badge ${_cfBadgeClass(item.type)}">${_cfBadgeLabel(item.type)}</span>`;
+  const badge = `<span class="cf-badge ${_cfBadgeClass(item.type, item.docType)}">${_cfBadgeLabel(item.type, item.docType)}</span>`;
 
   // Change before→after pill
   const changePill = item.isChange
@@ -31721,19 +31733,32 @@ async function cfLoadFeed() {
     // ── 4. Abstracts / company documents ─────────────────────────────────
     if (want('abstract')) {
       const { data: docs, error: dce } = await _sb.from('company_documents')
-        .select('id,title,document_type,source_url,created_at,company_id')
+        .select('id,title,document_type,source_url,publication_date,conference,journal,phase,drug_names,key_findings,authors,created_at,company_id,pubmed_id')
         .gte('created_at', since)
         .order('created_at', { ascending: false })
-        .limit(60);
+        .limit(100);
       if (dce) console.warn('[CF docs]', dce);
       (docs || []).forEach(d => {
+        const docType = (d.document_type || 'document').toLowerCase();
+        // Build a rich detail line with all available context
+        const parts = [];
+        if (d.drug_names) parts.push(`Drug: ${d.drug_names}`);
+        if (d.conference) parts.push(d.conference);
+        if (d.journal) parts.push(d.journal);
+        if (d.phase) parts.push(`Phase ${d.phase}`);
+        if (d.authors) parts.push(`by ${String(d.authors).substring(0, 60)}`);
+        if (d.key_findings) parts.push(String(d.key_findings).substring(0, 120));
+        // Build direct access URL — prefer source_url, fallback to PubMed
+        const accessUrl = d.source_url || (d.pubmed_id ? `https://pubmed.ncbi.nlm.nih.gov/${d.pubmed_id}/` : null);
         items.push({
-          type:   'abstract',
-          ts:     d.created_at,
-          title:  d.title || 'Scientific document',
-          detail: d.document_type ? `Type: ${d.document_type}` : '',
-          entity: d.company_id || '',
-          url:    d.source_url
+          type:    'abstract',
+          docType: docType,
+          ts:      d.created_at,
+          title:   d.title || 'Scientific document',
+          detail:  parts.join(' · ') || `${docType} document`,
+          entity:  d.company_id || '',
+          url:     accessUrl,
+          docBadge: docType  // raw type for badge color
         });
       });
     }
