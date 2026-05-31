@@ -2015,14 +2015,14 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-cls-1st  { background:#dbeafe;color:#1d4ed8; }   /* 1st Gen — blue: foundational monospecifics */
 .pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
 .pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
-/* ── Generation Race UI — subtle ranking ────────────────────────────────────── */
-.pi-rank-cell { width:30px;text-align:center;padding:0 !important;vertical-align:middle; }
-.pi-rk-wrap   { display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.3; }
-.pi-rk-medal  { font-size:11px;line-height:1; }
-.pi-rk-num    { font-size:10px;font-weight:500;color:#94a3b8;font-variant-numeric:tabular-nums;line-height:1; }
-.pi-rk-home .pi-rk-num { color:#b45309;font-weight:700; }
-.pi-move-up   { color:#16a34a;font-size:8px;font-weight:700;line-height:1; }
-.pi-move-dn   { color:#dc2626;font-size:8px;font-weight:700;line-height:1; }
+/* ── Generation Race UI — 1% col, number+dash inline, vertically centered ──── */
+.pi-rank-cell { width:1%;text-align:center;padding:0 6px 0 4px !important;vertical-align:middle; }
+.pi-rk-wrap   { display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;white-space:nowrap; }
+.pi-rk-medal  { font-size:10px;line-height:1; }
+.pi-rk-num    { font-size:10px;font-weight:400;color:#cbd5e1;font-variant-numeric:tabular-nums;line-height:1; }
+.pi-rk-home .pi-rk-num { color:#f59e0b;font-weight:600; }
+.pi-move-up   { color:#16a34a;font-size:9px;font-weight:700;line-height:1; }
+.pi-move-dn   { color:#dc2626;font-size:9px;font-weight:700;line-height:1; }
 .pi-move-dash { color:#e2e8f0;font-size:8px;line-height:1; }
 .pi-ailux-row { background:linear-gradient(90deg,#fffbeb,#fffdf5) !important; }
 .pi-ailux-row:hover { background:linear-gradient(90deg,#fef3c7,#fffbeb) !important; }
@@ -16378,8 +16378,10 @@ function _makeAreaPI(tabId, areaIds) {
       };
       const aKey = Object.keys(AILUX_PROGS).find(k => tid.includes(k));
       const ap   = aKey ? AILUX_PROGS[aKey] : null;
-      const ng   = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
-      const fg   = sorted.filter(e => e.bestCls !== 'Next Gen' && !e.isTerminated);
+      // Real Ailux entity (company_id='ailux') becomes HOME — exclude from competitor pool
+      const _noAilux = sorted.filter(e => e.company_id !== 'ailux');
+      const ng   = _noAilux.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
+      const fg   = _noAilux.filter(e => e.bestCls !== 'Next Gen' && !e.isTerminated);
       if (!ng.length && !fg.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
 
       // Score: 70% drug_competitive_scores.total_competition_score (enrichment pipeline)
@@ -16484,8 +16486,10 @@ function _makeAreaPI(tabId, areaIds) {
       // Build display list: inject separators + Ailux at correct rank position
       let displayList = sorted;
       if (showRace) {
-        const ng = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
-        const fg = sorted.filter(e => e.bestCls !== 'Next Gen' || e.isTerminated);
+        // Exclude real Ailux from competitor lists — only HOME row represents Ailux
+        const _noAiluxSorted = sorted.filter(e => e.company_id !== 'ailux');
+        const ng = _noAiluxSorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
+        const fg = _noAiluxSorted.filter(e => e.bestCls !== 'Next Gen' || e.isTerminated);
         const ngSorted = [...ng].sort((a,b) => (rankMap[a.entity_id]?.rank??99)-(rankMap[b.entity_id]?.rank??99));
         const ailuxRank = rankMap['ailux-home']?.rank ?? 99;
         const ngFinal = [];
@@ -16645,7 +16649,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col style="width:3%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
