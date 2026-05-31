@@ -2338,6 +2338,39 @@ tr.pi-detail-row td { background:#f0f7ff;padding:0;border-bottom:1px solid #bfdb
 .bd-section-hdr-sub { font-size: 10px; opacity: 0.65; }
 .bd-section-hdr-chev { font-size: 11px; color: rgba(255,255,255,0.55); transition: transform 0.18s; }
 .bd-section-hdr.collapsed .bd-section-hdr-chev { transform: rotate(-90deg); }
+/* Bispecific Race Section */
+.race-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+.race-table th { background:#1a2f50; color:white; padding:7px 10px; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; text-align:left; }
+.race-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+.race-table tr:last-child td { border-bottom:none; }
+.race-table tr:hover td { background:#f8fafc; }
+.race-rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:10px; font-weight:800; }
+.race-rank-1 { background:#fbbf24; color:#78350f; }
+.race-rank-2 { background:#94a3b8; color:white; }
+.race-rank-3 { background:#d97706; color:white; }
+.race-rank-other { background:#e2e8f0; color:#475569; }
+.race-format-badge { display:inline-block; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; text-transform:uppercase; letter-spacing:0.3px; }
+.race-fmt-true { background:#dbeafe; color:#1d4ed8; }
+.race-fmt-co { background:#fef3c7; color:#92400e; }
+.race-conflict-badge { display:inline-block; font-size:8.5px; font-weight:700; padding:2px 8px; border-radius:10px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.race-alx-row td { background:#f0fdf4 !important; }
+.race-alx-row:hover td { background:#dcfce7 !important; }
+.race-phase-tag { display:inline-block; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; }
+.race-phase-ph2b { background:#7c3aed; color:white; }
+.race-phase-ph2 { background:#2563eb; color:white; }
+.race-phase-ph1 { background:#0891b2; color:white; }
+.race-phase-pre { background:#d97706; color:white; }
+.race-phase-prec { background:#64748b; color:white; }
+.race-mech-note { font-size:10px; color:#dc2626; font-weight:600; margin-top:3px; }
+.race-timeline-note { font-size:10px; color:#475569; margin-top:2px; }
+.race-section-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.race-section-title { font-size:13px; font-weight:800; color:#1e3a5f; }
+.race-live-badge { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:700; background:#dcfce7; color:#166534; border:1px solid #86efac; padding:2px 8px; border-radius:10px; }
+.race-legend { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.race-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:#64748b; }
+.race-conflict-callout { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px 14px; margin-top:14px; }
+.race-conflict-title { font-size:11px; font-weight:800; color:#9a3412; margin-bottom:6px; }
+.race-conflict-body { font-size:11px; color:#7c2d12; line-height:1.55; }
 .bd-section-body { background: white; border-radius: 0 0 8px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
 .bd-section-body.collapsed { display: none; }
 .bd-gaps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0; }
@@ -6204,6 +6237,7 @@ function loadMoleculeTab(tabId) {
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-china')">🇨🇳 China Molecules</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-bd-activity')">🤝 BD Activity</button>
   <button class="tl1a-pill-btn" onclick="openTl1aModal('tl1a-modal-ailux')" style="border-left:2px solid #22c55e;background:#f0fdf4;color:#166534;font-weight:800">ALX001 Position</button>
+  <button class="tl1a-pill-btn" onclick="openBispecificRaceModal()" style="border-left:2px solid #7c3aed;background:#f5f3ff;color:#5b21b6;font-weight:800">Bispecific Race</button>
 </div>
 <!-- RIGHT fixed pill column — deprecated 2026-05-28; content routed via Knowledge Folders -->
 
@@ -6313,6 +6347,46 @@ function loadMoleculeTab(tabId) {
 </div>
 
  </div>
+  </div>
+ </div>
+</div>
+
+<!-- BISPECIFIC RACE MODAL -->
+<div class="tl1a-modal-overlay" id="tl1a-modal-bispecific-race" onclick="if(this===event.target)closeTl1aModal(this)">
+ <div class="tl1a-modal-panel" style="max-width:1100px">
+  <div class="tl1a-modal-hd">
+   <span>TL1A x IL-23 Bispecific Race — ALX001 vs. Field</span>
+   <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('tl1a-modal-bispecific-race'))">x</button>
+  </div>
+  <div class="tl1a-modal-body">
+<div class="race-section-hd">
+  <div>
+    <div class="race-section-title">TL1A x IL-23 Bispecific Race</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px">All programs targeting simultaneous TL1A + IL-23 blockade in IBD — ranked by clinical advancement</div>
+  </div>
+  <span class="race-live-badge">LIVE - Supabase</span>
+</div>
+<div class="race-legend">
+  <div class="race-legend-item"><span class="race-format-badge race-fmt-true">single molecule</span> True bispecific (single antibody)</div>
+  <div class="race-legend-item"><span class="race-format-badge race-fmt-co">co-formulation</span> Co-formulated monoAbs</div>
+  <div class="race-legend-item"><span class="race-conflict-badge">Internal Conflict</span> Portfolio tension flag</div>
+</div>
+<div id="bispecific-race-table-wrap">
+  <div style="color:#94a3b8;font-size:12px;padding:20px;text-align:center">Loading bispecific landscape...</div>
+</div>
+<div id="bispecific-race-conflict-callout" style="display:none" class="race-conflict-callout">
+  <div class="race-conflict-title">Sanofi Internal Portfolio Conflict — Strategic Watch</div>
+  <div id="bispecific-race-conflict-body" class="race-conflict-body"></div>
+</div>
+<div style="margin-top:16px;padding:12px 14px;background:#f8fafc;border-radius:8px;font-size:11px;color:#64748b;border:1px solid #e2e8f0">
+  <strong style="color:#1e3a5f">Reading the Race:</strong> ALX001 (rank 10) enters a crowded field — 8+ bispecifics already in clinical development.
+  The race is not just about phase; it is about <strong>format differentiation</strong> (true single-molecule vs. co-formulation),
+  <strong>mechanistic superiority</strong> (p19-selective vs. p40-blocking IL-23 arm), and <strong>patient selection</strong>
+  (the 30% hypothesis). ALX001's 2+2 symmetric format, YTE Fc for monthly dosing, DR3-specificity, and p19-selectivity
+  define a distinct mechanistic position even entering late in the race.
+  The <strong>SPY230 platform study</strong> (NCT07012395) will be the first to prove whether bispecific dual blockade
+  meaningfully outperforms sequential monoAbs — a readout that either validates or challenges the entire bispecific hypothesis.
+</div>
   </div>
  </div>
 </div>
@@ -15452,6 +15526,10 @@ function openTl1aModal(id) {
     if (bdEl && !bdEl.dataset.loaded) { _loadBdIntoModal('tl1a', bdEl); bdEl.dataset.loaded = '1'; }
   }
   if (id === 'tl1a-modal-ailux') _loadAiluxBdContext();
+  if (id === 'tl1a-modal-bispecific-race') _loadBispecificRace();
+}
+function openBispecificRaceModal() {
+  openTl1aModal('tl1a-modal-bispecific-race');
 }
 function closeTl1aModal(el) {
   if (!el) return;
@@ -15493,6 +15571,94 @@ async function _loadAiluxBdContext() {
   } catch(e) {
     console.warn('ailux_bd_context load error', e);
     if (container) container.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:11px">Strategy context unavailable.</div>';
+  }
+}
+
+// ── Bispecific Race loader ────────────────────────────────────────────────────
+var _bispecificRaceLoaded = false;
+async function _loadBispecificRace() {
+  if (_bispecificRaceLoaded) return;
+  const wrap = document.getElementById('bispecific-race-table-wrap');
+  const conflictCallout = document.getElementById('bispecific-race-conflict-callout');
+  const conflictBody = document.getElementById('bispecific-race-conflict-body');
+  if (!wrap) return;
+  try {
+    const res = await _sb.from('drug_bispecific_landscape')
+      .select('*')
+      .order('race_rank', { ascending: true });
+    const rows = res.data || [];
+    if (!rows.length) { wrap.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:16px">No landscape data found.</div>'; return; }
+
+    const phaseClass = {
+      'Phase 2b': 'race-phase-ph2b',
+      'Phase 2': 'race-phase-ph2',
+      'Phase 1': 'race-phase-ph1',
+      'Pre-IND': 'race-phase-pre',
+      'Preclinical': 'race-phase-prec'
+    };
+    const rankBadge = (r) => {
+      const cls = r === 1 ? 'race-rank-1' : r === 2 ? 'race-rank-2' : r === 3 ? 'race-rank-3' : 'race-rank-other';
+      return `<span class="race-rank-badge ${cls}">${r}</span>`;
+    };
+    const fmtBadge = (fmt) => {
+      if (fmt === 'co_formulation' || fmt === 'co_dosing')
+        return `<span class="race-format-badge race-fmt-co">co-form</span>`;
+      return `<span class="race-format-badge race-fmt-true">single mol.</span>`;
+    };
+    const phaseBadge = (ph) => {
+      const cls = phaseClass[ph] || 'race-phase-prec';
+      return `<span class="race-phase-tag ${cls}">${ph || 'Unknown'}</span>`;
+    };
+
+    const tableRows = rows.map(r => {
+      const isAlx = r.drug_id === 'anti-tl1a-xpf005-arm';
+      const rowCls = isAlx ? ' class="race-alx-row"' : '';
+      const mechanismNote = r.vs_alx001_mechanism && r.vs_alx001_mechanism.includes('CRITICAL DISADVANTAGE')
+        ? `<div class="race-mech-note">p40-blocking (vs. p19-selective): suppresses IL-12/NK immunity</div>` : '';
+      const conflictTag = r.has_internal_portfolio_conflict
+        ? `<br><span class="race-conflict-badge" style="margin-top:4px;display:inline-block">Portfolio Conflict</span>` : '';
+      const valencyNote = r.valency && r.valency !== 'co_formulation' ? `<div style="font-size:9.5px;color:#475569;margin-top:2px">Valency: ${r.valency}</div>` : '';
+      const nctLink = r.nct_id
+        ? `<a href="https://clinicaltrials.gov/study/${r.nct_id}" target="_blank" rel="noopener" style="font-size:9.5px;color:#2563eb;display:inline-block;margin-top:3px">${r.nct_id}</a>` : '';
+      const partner = r.development_partner ? `<div style="font-size:9.5px;color:#64748b;margin-top:2px">+ ${r.development_partner}</div>` : '';
+      const timeline = r.vs_alx001_timeline ? `<div class="race-timeline-note">${escHtml(r.vs_alx001_timeline)}</div>` : '';
+      const milestone = r.landmark_event ? `<div style="font-size:10px;color:#475569;margin-top:3px;font-style:italic">${escHtml(r.landmark_event.substring(0,80))}${r.landmark_event.length > 80 ? '...' : ''}</div>` : '';
+
+      return `<tr${rowCls}>
+        <td style="text-align:center;width:40px">${rankBadge(r.race_rank || 99)}</td>
+        <td><strong style="font-size:12px;color:#1e3a5f">${escHtml(r.drug_name)}</strong>${conflictTag}</td>
+        <td><div style="font-size:11px;font-weight:600;color:#374151">${escHtml(r.company_name || '')}${isAlx ? ' <span style="color:#166534;font-size:9px;font-weight:800">(AILUX)</span>' : ''}</div>${partner}</td>
+        <td>${phaseBadge(r.current_phase)}</td>
+        <td>${fmtBadge(r.drug_format)}${valencyNote}</td>
+        <td style="font-size:10px;color:#374151">${r.il23_arm_selectivity === 'p19_selective' ? '<span style="color:#166534;font-weight:700">p19-selective</span>' : r.il23_arm_selectivity === 'p40_blocking' ? '<span style="color:#dc2626;font-weight:700">p40-blocking</span>' : '<span style="color:#94a3b8">unknown</span>'}${mechanismNote}</td>
+        <td style="font-size:10px;color:#374151">${timeline}${milestone}${nctLink}</td>
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `<table class="race-table">
+      <thead><tr>
+        <th style="text-align:center">Rank</th>
+        <th>Drug</th>
+        <th>Company</th>
+        <th>Phase</th>
+        <th>Format</th>
+        <th>IL-23 Arm</th>
+        <th>Timeline vs. ALX001</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+    // Show Sanofi conflict callout
+    const conflictRow = rows.find(r => r.has_internal_portfolio_conflict && r.internal_conflict_description);
+    if (conflictRow && conflictCallout && conflictBody) {
+      conflictBody.textContent = conflictRow.internal_conflict_description;
+      conflictCallout.style.display = 'block';
+    }
+
+    _bispecificRaceLoaded = true;
+  } catch(e) {
+    console.warn('[BispecificRace] load error', e);
+    if (wrap) wrap.innerHTML = `<div style="color:#dc2626;font-size:12px;padding:16px">Error loading landscape: ${e.message}</div>`;
   }
 }
 
