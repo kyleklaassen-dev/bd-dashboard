@@ -2016,7 +2016,7 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
 .pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
 /* ── Generation Race UI — 1% col, number+dash inline, vertically centered ──── */
-.pi-rank-cell { width:1%;text-align:center;padding:0 6px 0 4px !important;vertical-align:middle; }
+.pi-rank-cell { width:28px !important;min-width:28px !important;max-width:28px !important;text-align:center;padding:0 4px 0 2px !important;vertical-align:middle; }
 .pi-rk-wrap   { display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;white-space:nowrap; }
 .pi-rk-medal  { font-size:10px;line-height:1; }
 .pi-rk-num    { font-size:10px;font-weight:400;color:#cbd5e1;font-variant-numeric:tabular-nums;line-height:1; }
@@ -16646,7 +16646,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col style="width:28px"><col style="width:auto"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
