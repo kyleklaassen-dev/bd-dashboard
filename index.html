@@ -16498,11 +16498,13 @@ function _makeAreaPI(tabId, areaIds) {
         const ngCount  = ngFinal.length;
         const ailuxPos = rankMap['ailux-home']?.rank;
         const fgStart  = ngCount + 1;
+        // Sort fg by their assigned rank so numbers appear in sequence
+        const fgSorted = [...fg].sort((a,b) => (rankMap[a.entity_id]?.rank??99)-(rankMap[b.entity_id]?.rank??99));
         displayList = [
           { _sep:'ng', _label:'🧬 Next-Gen · '+ngCount+' programs'+(ailuxPos?' · Ailux #'+ailuxPos:'') },
           ...ngFinal,
-          ...(fg.length ? [{ _sep:'fg', _label:'🔬 First-Gen · #'+fgStart+'–'+(fgStart+fg.length-1)+' · Sets the efficacy bar' }] : []),
-          ...fg
+          ...(fgSorted.length ? [{ _sep:'fg', _label:'🔬 First-Gen · #'+fgStart+'–'+(fgStart+fgSorted.length-1)+' · Sets the efficacy bar' }] : []),
+          ...fgSorted
         ];
       }
 
@@ -16643,7 +16645,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col style="width:5%"><col style="width:18%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col style="width:3%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
