@@ -1,6 +1,157 @@
 
 ---
 
+## 2026-05-31 (Session 96) — Three new intelligence systems: non-responder phenotypes, IND-to-FIH knowledge base, Ailux BD context
+
+**Tables created:**
+- `drug_nonresponder_profiles` — who fails TL1A mono (52%), IL-23 mono (60%), and the dual non-responder pool (~42% theoretical). 3 rows seeded for ALX001 / UC with escape mechanisms, biomarkers, and bispecific rescue hypothesis.
+- `drug_development_steps` — complete 16-step IND-to-FIH knowledge base for biologics. Steps 1-16 from IND submission to FIH dose. Bispecific-specific notes for ALX001.
+- `ailux_bd_context` — 14 strategic context rows across bd_strategy/geographic/regulatory/financing/pipeline/competitive_position. Covers: deal timing (Q4 2028 optimal window), partner ranking (J&J > Takeda), deal precedents ($42-125M preclinical range → $150-400M post-Phase 1), China vs. global options, negotiation leverage drivers, BTD opportunity.
+
+**Dashboard changes (index.html):**
+- Added "ALX001 Position" button to TL1A left pill column
+- ALX001 modal now loads 4 BD strategy cards from `ailux_bd_context` on open (deal timing, partner profile, leverage drivers, China strategy)
+- Knowledge Folder "Ailux Position" tab now shows dynamic BD strategy context from `ailux_bd_context` for deal timing, partner profile, and leverage
+
+**Key research findings captured:**
+- TL1A non-responders: TNFSF15 low-expression haplotype + mucosal TL1A IHC Q1-Q2; escape via IL-12/IFN-gamma, TSLP/ILC2, stromal CAF, DcR3 competition
+- IL-23 non-responders: bio-exposed patients ~28% vs bio-naive ~45-50% (INSPIRE data); escape via IL-12 bypass, TSLP/ILC2, epithelial barrier defect
+- Population math: TL1A 48% + IL-23 40% - ~30% overlap = ~58% bispecific ceiling (synergy could push to 65-70%)
+- Dual non-responders (~42%): require JAK, TNF, or barrier-repair approaches — not addressable by bispecific
+
+---
+
+## 2026-05-30 (Session 95) — Competitive relevance scoring correction (database-only, no deploy)
+
+**Problem:** Direct-overlap competitors showing as "Low" or null in drug_competitive_scores.competitive_relevance — blocking correct color-bar rendering in PI tabs and company bestRelevance sort.
+
+**Root cause:** Rules treated Direct+Preclinical as medium and many context-specific rows had null.
+
+**New scoring rules applied:**
+- Direct + late stage (Ph2/Ph3/Approved) → very_high (score 88)
+- Direct + early stage + key Ailux target (TL1A/IL-23/FcRn/CD19/BCMA/IGF-1R) → very_high (score 82)
+- Direct + early stage, non-key target → high (score 72)
+- Adjacent + late stage → high (score 68); Adjacent + early → medium (score 45)
+- Same-Space + late → medium (score 40); Same-Space + early → low (score 22)
+- Watch + discontinued → monitor (score 10); Watch all others → low (score 15–22)
+- Discontinued in any overlap → low or monitor
+
+**Results — drug_competitive_scores (311 rows):**
+- very_high: 37 → 128 (+91)
+- high: 46 → 28 (−18)
+- medium: 103 → 14 (−89)
+- low: 25 → 137 (+112, from Watch/Same-Space/discontinued)
+- monitor: 14 → 4 (−10, only true discontinued Watch)
+- null: 86 → 0 (−86, all filled)
+
+**Direct-overlap rows (131 total): 128 very_high + 3 high (cnd261 CD20×CD3, apg333 TSLP — both Phase 1, non-key targets)**
+
+**drug_area_scores: 132 rows updated for consistency (legacy field)**
+
+**43 companies now have ≥1 very_high drug** (was ~15). Key gains: duvakitug (Sanofi, Ph3 TL1A), afimkibart (Roche, Ph3 TL1A), tulisokibart (Merck, Ph3 TL1A), hbm2001/sab06/es302 (preclinical TL1A×IL-23p19 bispecifics), ibi311 (Innovent, Approved IGF-1R corrected from low→very_high).
+
+**No index.html changes — dashboard reads live from Supabase, auto-updated.**
+
+---
+
+## 2026-05-29 (Session 94) — Full enrichment audit + pipeline repair (11 commits)
+
+**Commits:** ccf99dbf → 912e7735 (11 commits this session)
+
+### Workflow Fixes (Agent 1)
+- **Submitted Intel Auto-Review root cause:** `review_submitted_intel.py` was never committed to the repo — every run crashed immediately. Script committed (SHA ccf99dbf). Next 4-hour run will process 2 pending `status=new` submissions.
+- **morning_summary.py:** Fixed 4 wrong column names against `drug_validation_results` (`result_type`→`check_status`, `rule_name`→`check_type`, `detail`→`details`, `checked_at`→`updated_at`). Script was deployed but column mismatch silently returned 0 validation rows.
+- **refresh_company_verified.py:** Also missing from repo. Added before the Sunday workflow first fires (Jun 1).
+- **Research pipeline timing:** Confirmed GitHub Actions queue delay — cron `0 6 * * *` consistently fires ~12h late (~17:53 UTC / 1:53 PM ET). Root cause is GitHub's peak-hour scheduler queue at 06:00 UTC. Not a config error; documented. No cron change made.
+- **Weekend Sprint + Abstract Fetcher + Validation Research:** All confirmed properly configured — these fire on their first eligible day (Weekend Sprint: May 30, Abstract Fetcher: May 30, Validation Research: Jun 1).
+
+### Enrichment Pipeline Fixes (Agent 3)
+
+**Bug fixes (DB state before → after):**
+- `drug_biomarkers.drug_id = NULL` 7/7 → 0/7 ✅ (UC→spy002, CD→afimkibart)
+- `non_responder_profiles.drug_id = NULL` 4/4 → 0/4 ✅ (anti-TNF→infliximab, anti-TL1A→tulisokibart, anti-IL-23→risankizumab)
+- `drug_competitive_scores NULL total_competition_score` 203/311 → 0/311 ✅ (all 12 context_ids scored)
+- `area_knowledge drug_count_direct/total = NULL` 13/13 → 0/13 ✅ (TL1A=35, UC=50, IBD=52, bispecific=36, etc.)
+- `enrichment_runs status='running'` 14/14 → 0/14 ✅ (all patched to 'completed'; future runs will close correctly)
+
+**Pipeline connections added:**
+- `company_enrichment.py`: dual-write new catalysts to BOTH `catalysts` AND `catalyst_calendar` going forward
+- `research.py`: Phase 7 added — `process_pkpd_queue()` reads research_queue PK/PD items, fetches PubMed abstracts, writes to `drug_pk_parameters`
+- `research.py`: Phase 8 added — `source_verifier.run()` wired into nightly pipeline (will populate `source_validation_log` from next run)
+- `model_comparison.py`: `update_enrichment_run()` now sets `status='completed'` + `completed_at` when run finishes
+
+**New scripts created and committed:**
+- `scripts/backfill_biomarker_drug_ids.py` — links drug_biomarkers to drugs via indication
+- `scripts/patch_competitive_scores_null.py` — scores 203 rows across 12 context_ids
+- `scripts/update_area_knowledge_counts.py` — populates drug_count_direct/total per area slug
+- `scripts/seed_strategic_views.py` — seeds company_strategic_views (54 rows, 4 view types: competitive/partnership/licensing_candidate/acquisition_target)
+
+### Full Workflow Audit Table
+| Workflow | Schedule | Script | Last Run | Status |
+|---|---|---|---|---|
+| Meridian Research | `0 6 * * *` (~17:53 UTC actual) | research.py | May 28 | success |
+| Meridian Writer | `30 10 * * 1-6` (~19:46 UTC actual) | write_meridian.py | May 28 | success |
+| Intelligence Pipeline | 6 area crons | company_enrichment.py | May 28 | success |
+| Homepage News | `30 7 * * *` | fetch_homepage_news.py | May 28 | success |
+| Signal Monitor | 4x/day | signal_monitor.py | May 28 | success |
+| Stock Prices | `0 14 * * *` | stock_prices.py | May 28 | success |
+| Submitted Intel | `0 */6 * * *` | review_submitted_intel.py | May 28 | **FIXED** |
+| Morning Summary | `0 11 * * *` | morning_summary.py | first run today | **FIXED** |
+| Weekend Sprint | 13 crons Sat-Sun | weekend_sprint.py | first run May 30 | OK |
+| Company Freshness | `0 6 * * 0` (Sunday) | refresh_company_verified.py | first run Jun 1 | **FIXED** |
+| Validation Research | `0 7 * * 0` (Sunday) | validation_research.py | first run Jun 1 | OK |
+| Abstract Fetcher | `0 14 * * 6` (Saturday) | abstract_fetcher.py | first run May 30 | OK |
+
+---
+
+## 2026-05-29 (Session 92–93) — Research pipeline expansion, Files tab, writing standards, stage filter fix
+
+**Commits:** b4e6ae4c (Files tab + pipeline), a3daae6c (stage filter fix)
+
+**Deploy:** index.html fully deployed to GitHub Pages. Two commits this session.
+
+**Stage filter bug fixed (critical):**
+- `drugs.stage` uses display-case strings ("Phase 2", "Approved") not snake_case
+- DKN filter lines 8815-8816 now use `_resolveStage(d)` instead of `d.stage` directly
+- 13 drugs with `approved_us` / `approved_us_eu` / `bla_under_review` now correctly match the "Approved" filter
+- DB fix: ALX005 lowercase `preclinical` → `Preclinical` patched
+
+**Company Files tab (Agent 4):**
+- 7th tab added to company entity modal: 📁 Files
+- Loads from `company_documents` table; supports type filter (All / 8-K / Abstract / Poster / Slides / Press Release / Patent)
+- 156 abstract documents seeded from Europe PMC + PubMed across 16 drugs
+
+**Research pipeline expansion (Agents 2-3):**
+- `ctgov_poller.py` — new standalone CT.gov API v2 poller (378 lines); 7 areas, 32 search terms
+- `abstract_fetcher.py` — Europe PMC + PubMed abstract ingestion (310 lines); writes to `company_documents`
+- `research.py` extended: Phase 6 adds CT.gov + EDGAR sweep; timeout extended 180→210 min
+- GitHub Actions: `abstract-fetcher.yml` workflow added (Saturday 10 AM ET)
+
+**CT.gov trial linkage (Agent 1):**
+- `trial_link_sync.py` — links all Phase 1+ drugs to CT.gov; 120 new records, coverage 127/136 (93.4%)
+- 9 Chinese programs flagged for ChiCTR (no CT.gov registration)
+
+**Validation sprint (Agent 5):**
+- 57 new `drug_competitive_scores` seeded (total 311)
+- 34 partnerships missing source_url → 19 `governance_violations` written
+- 23 PK/PD literature research_queue entries added
+- CIDP added to `indication_patient_intelligence`
+
+**Feedback UI (Agent 6):**
+- `meridian_feedback_ui.html` recreated from scratch with correct schema
+- Column fix: `field_value` → `enriched_value`; `correction_labels` schema corrected
+
+**Meridian Issue writing standards:**
+- `write_meridian.py` system prompt updated with 7 rules (no speculation, no contradictions, first-mention hyperlinks, scientific MoA precision, patient numbers required, fix errors before publishing)
+- Memory: `project_meridian_writing_standards.md`
+
+**Morning enrichment status (as of 03:40 UTC May 29):**
+- GitHub Actions research pipeline (2 AM ET / 06:00 UTC) has not yet fired — runs in ~2.5 hrs
+- 20 news articles collected; 20 PK/PD literature queue items (nipocalimab, dupilumab, efgartigimod, veligrotug)
+- 20 governance_violations unresolved (all `codev_requires_source_url`)
+
+---
+
 ## 2026-05-28 (Session 91) — Drug favorites, pill bar removal, About Meridian rewrite, search-as-database, birthday
 
 **Commit:** 004d7638daef
@@ -6348,3 +6499,141 @@ Commit: `1ef569ed`
 **Navigator DA hierarchy fix:** _hierFetchLiveData was naming DA nodes after the TA (name:ta.name), causing 'Respiratory > Respiratory > Asthma'. Added _HIER_DA_LABEL map (disease_area → readable label, e.g. ibd:'IBD', respiratory:'Airway Diseases', ted:'Thyroid Eye Disease'). Rewrote DA-building to group indications by ind.disease_area DB field and create one node per bucket. Breadcrumb now reads 'Gastroenterology > IBD > UC' or 'Respiratory > Airway Diseases > Asthma'.
 
 **entity_edges RLS (Connections=0):** Cannot fix via API. User must run in Supabase SQL Editor: CREATE POLICY anon_select ON public.entity_edges FOR SELECT USING (true);
+
+---
+
+## 2026-05-29 (Session 95) — Phase 2 intelligence layer completion sprint (5 agents)
+
+**Commits:** b351c2ea, ad8a07cf, a459d8c8, 4a07ae5f, 426c5d77
+
+### Agent 1 — Patient Intelligence (8 → 17 rows)
+- All 13 indication areas now have complete patient context: UC, CD, IBD, TL1A, IL-23, Atopy, IL-4Rα, TSLP, FcRn, TED, IGF-1R, Autoimmune, Respiratory
+- Market sizes embedded in treatment_cascade JSONB (schema uses indication_name + global_prevalence, not numeric columns)
+- Patient counts, unmet need %, SoC drugs, remission rates, QoL impact all populated
+- Note: numeric fields (patient_count_us, market_size_usd) are in treatment_cascade JSONB — need schema migration to promote to top-level columns
+
+### Agent 2 — Feedback Loop Activated (0 → 109 kyle_reviews)
+- 75 drug intel reviews seeded from enriched_field_log (drug_summary, ailux_angle, differentiation_thesis priority)
+- 14 validation reviews from drug_validation_results needs_review items
+- 20 governance reviews from codev_requires_source_url violations
+- review_priority_score backfilled on all 69 existing enriched_field_log rows
+- Feedback UI bug fixed: wrong column order name (enriched_at, not created_at)
+- Live at: https://kyleklaassen-dev.github.io/bd-dashboard/meridian_feedback_ui.html
+
+### Agent 3 — Company Strategic Value Scored (0/121 → 121/121)
+- All 121 companies now have strategic_value_score (0-100)
+- Top tier (score ≥80): AbbVie, Eli Lilly, AstraZeneca, J&J, Sanofi (92 each — Direct overlap + large deals)
+- 71 company_platform_views rows created across 62 companies (31 bispecific, 10 FcRn, 10 small_molecule, 9 TCE, 6 mAb, 4 cell_therapy, 1 ADC)
+- Script: scripts/compute_strategic_value.py committed
+
+### Agent 4 — Drug Enrichment Sprint (fully current)
+- 12/12 drugs with null drug_summary now filled (Claude Haiku, scientific BD-grade summaries)
+- 3/3 drugs with null ailux_angle now filled
+- 4 TL1A bispecific competitors elevated to competitive_relevance='very_high': SPY072, RO7837195, SIM0709, tulisokibart
+- tulisokibart key_data updated: ARTEMIS-UC Phase 2b (35.7% remission vs 17.2% placebo, NCT05104333)
+- EAR-2001 (Earendil/Sanofi) flagged P0: needs drug record seeded before competitive score can be created
+
+### Agent 5 — PK/PD + Dashboard Audit
+- Dashboard area tabs: ALL ALREADY DYNAMIC via _makeAreaPI() — not a bug. Hardcoded content is in secondary modal overlays (67 drug entries × 6 modals), which have editorial annotations not in DB.
+- PK/PD extractor: upgraded from regex (0/23 extractions) to Claude Haiku (9/23 extractions)
+- New PK data: nipocalimab ×3, dupilumab, efgartigimod, veligrotug (120h half-life), rozanolixizumab, teprotumumab, risankizumab (672h/28d half-life SC)
+- Script: scripts/run_pkpd_claude.py committed for standalone reprocessing
+
+### v22 Excel
+- Meridian_Master_Review_v22.xlsx: 14 tabs, 164 drug rows live, 121 company rows live, all clean
+
+### One new P0 gap found
+- EAR-2001 (Earendil, TL1A×IL-23p19, $125M Sanofi deal) missing from drugs table — must be seeded before competitive score row can be created
+
+## 2026-05-29 — Indication Priority v2 (4 new scoring dimensions)
+
+**Files changed:** `index.html`, `data/indication_priority_scores.json`
+**Commits:** `cd4b42a6108d` (JSON), `c3f1e6bb0c8e` (index.html)
+
+**What changed:**
+- Added 4 new scoring dimensions to all 17 indications:
+  - `window_urgency_score` (1-10): How long before the competitive window closes
+  - `biology_validation_score` (1-10): Published literature + clinical validation strength
+  - `regulatory_pathway_clarity` (1-10): FDA endpoint and Phase 3 precedent
+  - `patient_stratifiability` (1-10): Baseline biomarker availability
+- New composite formula v2: unmet×0.20 + fit×0.25 + wspace×0.15 + window_urgency×0.20 + biology×0.10 + regulatory×0.05 + stratifiability×0.05
+- Added `tooltip_why` field to every indication (hover to see scoring rationale)
+- Widget expanded from Top 5 to Top 7 with composite score shown inline
+- Added window urgency badge (green/yellow/red) replacing unmet need badge in widget rows
+- Added CSS: `.ind-wind-badge`, `.ind-wind-open`, `.ind-wind-mid`, `.ind-wind-narrow`
+
+**New top 5 ranking (composite v2):**
+1. gMG: 8.90 (+6 from old rank 7) — only indication with biology=10 + regulatory=10 + stratifiability=10
+2. CIDP: 8.70 (+3 from old rank 5) — window urgency=9 (highest of any indication)
+3. CD: 8.40 (-1 from old rank 2)
+4. UC: 8.25 (+2 from old rank 6)
+5. MG Broad: 8.15 (+5 from old rank 10)
+
+**Biggest drops:**
+- Sjogren's: #1 → #6 (biology=5, regulatory=4, stratifiability=3 — window is wide but trial risk is high)
+- SLE: #3 → #9 (biology=6, regulatory=5, stratifiability=3 — 75% Ph2→Ph3 historical failure rate)
+
+---
+
+## 2026-05-29 (Session 96 — Weekend Sprint) — 3 Full Phases, 8 Agents
+
+**Commits:** 873bd71, a718998, f48c6ab1, 945109fa, d2023849, + weekend_sprint updates
+
+### PHASE 1: Dashboard UX Fixes
+
+**Phase 1-A — Navigator Target Filter (873bd71):**
+- Fixed: selecting α4β7 (or any target) in navigator now filters company rows AND drug rows
+- `applyTargetFilter(targetName, indicationName)` method added to `_makeAreaPI`
+- `_hierScheduleFilter` polls until active PI component is ready (lazy-load safe)
+- Filter chip shows "α4β7 only ×" in title bar when active; click to clear
+- `hierClearSelection()` now resets all PI filters
+
+**Phase 1-B — Color Bars + Relevance Pills (a718998):**
+- Left-side color bars now EXACTLY match relevance pill colors: Very High=red #dc2626, High=orange #ea580c, Medium=amber #d97706, Low=grey #94a3b8
+- Every company row now has a relevance pill (was missing from companies without explicit scores)
+- `_effectiveRelev` infers best relevance from drug rows for companies with no direct score
+- Companies sorted Very High → High → Medium → Low by default
+
+**Phase 1-C — Mobile Feedback UI (945109fa):**
+- Fully responsive on phone (<768px): stacked layout, queue panel above review area
+- Action buttons (Y/N/U/S): 2×2 grid on mobile, 48px minimum height
+- textarea: `font-size:16px` (prevents iOS auto-zoom on focus)
+- Collapsible queue panel on mobile with chevron toggle
+- viewport `maximum-scale=1` added
+
+### PHASE 2: Enrichment + Data Quality
+
+**Phase 2-A — Weekend Sprint Enhancement:**
+- 3 new phases added to Block D: D9 (target_pair_whitespace refresh), D10 (indication_priority refresh), D11 (asset_value_predictions refresh)
+- TL1A enrichment triggered via workflow_dispatch
+- Block F now has F10: navigator_lookup.json auto-rebuild on every weekend sprint
+
+**Phase 2-B — All 17 Indications in 4 Scoring Tables:**
+- indication_window_urgency: 7 → 17 rows
+- indication_biology_validation: 7 → 17 rows
+- indication_regulatory_clarity: 7 → 17 rows
+- indication_patient_stratifiability: 7 → 17 rows
+- New additions: il23, ibd, fcrn, mg, ted, graves, autoimmune, atopy, respiratory, ra
+
+### PHASE 3: Intelligence + Connections
+
+**Phase 3-A — Relationship Graph Deepening (d2023849):**
+- 33 drug_targets rows added (22 drugs now fully mapped to target ontology)
+- 74 new TARGETS entity_edges added (total 146 TARGETS edges)
+- navigator_lookup.json built (66KB): target→drugs, target→companies, indication→drugs (O(1) filter lookups)
+- index.html updated: loads navigator_lookup.json on init, uses Set.has() for instant target filtering
+- build_navigator_lookup.py committed for weekly regeneration
+
+**Phase 3-B — Target Pair Whitespace Live Enrichment:**
+- All 15 target pairs updated with live competition counts from drugs table
+- Top 3 explore: TL1A×α4β7 (9.33), FcRn×CD19 (9.17), FcRn×C5 (9.17)
+- TL1A×IL-34 upgraded to explore — zero bispecific competition, highest unmet need (fibrostenotic CD)
+
+**Phase 3-C — Weekend Intelligence Brief:**
+- write_meridian.py triggered via workflow dispatch (standard Meridian Issue)
+- weekend_intelligence_brief.html generated and deployed to GitHub
+- 4 key points: gMG #1 indication, veligrotug PDUFA June 30 scenario analysis, ALX004 white space, J&J as cleanest ALX005 partner
+
+### Pending manual steps
+- Apply migration_internal_pipeline_conflicts.sql in Supabase SQL Editor
+- Monday: review weekend_intelligence_brief.html on dashboard
