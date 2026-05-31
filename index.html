@@ -31664,13 +31664,14 @@ function _cfRenderItem(item) {
     ? `<div class="cf-change-pill"><span class="cf-old">${_cfEsc(_cfTrunc(item.oldVal, 60))}</span><span class="cf-arrow">→</span><span class="cf-new">${_cfEsc(_cfTrunc(item.newVal, 80))}</span></div>`
     : '';
 
-  const source = item.url
-    ? `<a href="${_cfEsc(item.url)}" target="_blank" rel="noopener" class="cf-source">${
-        item.type==='news' ? 'Read Article ↗' :
-        item.type==='abstract' ? 'Open Document ↗' :
-        item.type==='deal' ? 'Deal Source ↗' :
-        item.type==='catalyst' ? 'View Source ↗' : 'Source ↗'
-      }</a>`
+  // URLs must not be HTML-escaped — only replace " to prevent attribute breakout
+  const _safeUrl = u => (u || '').replace(/"/g, '%22').replace(/'/g, '%27').replace(/\s/g, '%20');
+  const srcLabel = item.type==='news' ? 'Read Article' :
+                   item.type==='abstract' ? 'Open Document' :
+                   item.type==='deal' ? 'Source' :
+                   item.type==='catalyst' ? 'Source' : 'Source';
+  const source = (item.url && item.url.startsWith('http'))
+    ? `<a href="${_safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="cf-source">${srcLabel} ↗</a>`
     : '';
 
   const entity = item.entity
