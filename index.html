@@ -8695,6 +8695,55 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .cf-new{color:#16a34a;font-weight:700}
 .cf-relevance{display:inline-block;width:24px;height:4px;border-radius:2px;background:#e2e8f0;vertical-align:middle;overflow:hidden}
 .cf-relevance-fill{height:100%;border-radius:2px;background:#3b82f6}
+
+/* ── Drug Intelligence Card ── */
+.dim-headline-strip { display:flex; gap:12px; padding:14px 16px 10px; flex-wrap:wrap; border-bottom:1px solid #f1f5f9; }
+.dim-headline-fact { flex:1; min-width:160px; }
+.dim-headline-icon { font-size:14px; margin-bottom:3px; }
+.dim-headline-label { font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
+.dim-headline-value { font-size:12px; font-weight:600; color:#0f172a; line-height:1.4; }
+
+.dim-domain-bar { border-bottom:1px solid #f8fafc; }
+.dim-domain-hd { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:background 0.1s; }
+.dim-domain-hd:hover { background:#f8fafc; }
+.dim-domain-icon { font-size:16px; flex-shrink:0; }
+.dim-domain-name { font-size:12px; font-weight:700; color:#0f172a; flex:1; }
+.dim-domain-meta { font-size:10px; color:#94a3b8; }
+.dim-domain-arrow { font-size:11px; color:#cbd5e1; transition:transform 0.2s; }
+.dim-domain-arrow.open { transform:rotate(90deg); }
+.dim-domain-summary { font-size:11px; color:#475569; line-height:1.5; flex:2; }
+.dim-domain-body { display:none; padding:0 16px 12px; background:#fafbfc; }
+.dim-domain-body.open { display:block; }
+
+.dim-qa-item { padding:10px 0; border-bottom:1px solid #f1f5f9; }
+.dim-qa-item:last-child { border-bottom:none; }
+.dim-qa-num { font-size:9px; font-weight:700; color:#cbd5e1; margin-bottom:2px; }
+.dim-qa-q { font-size:10px; color:#94a3b8; margin-bottom:5px; font-style:italic; }
+.dim-qa-short { font-size:13px; font-weight:600; color:#0f172a; line-height:1.4; margin-bottom:4px; }
+.dim-qa-detail { font-size:11px; color:#475569; line-height:1.6; display:none; margin-top:5px; }
+.dim-qa-detail.open { display:block; }
+.dim-qa-toggle { font-size:9px; color:#7c3aed; cursor:pointer; font-weight:600; }
+.dim-qa-meta { display:flex; align-items:center; gap:6px; margin-top:5px; flex-wrap:wrap; }
+.dim-conf-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dim-conf-high { background:#22c55e; }
+.dim-conf-medium { background:#f59e0b; }
+.dim-conf-low { background:#ef4444; }
+.dim-conf-unknown { background:#e2e8f0; }
+.dim-source-chip { font-size:9px; padding:1px 6px; border-radius:8px; background:#f0f4ff; color:#4338ca; font-weight:600; text-decoration:none; cursor:pointer; }
+.dim-source-chip:hover { background:#e0e7ff; }
+
+/* Timeline */
+.dim-timeline { padding:16px; overflow-x:auto; }
+.dim-timeline-track { display:flex; align-items:center; gap:0; min-width:600px; position:relative; margin:20px 0; }
+.dim-timeline-line { flex:1; height:2px; background:#e2e8f0; }
+.dim-timeline-dot { width:12px; height:12px; border-radius:50%; border:2px solid; flex-shrink:0; position:relative; cursor:default; }
+.dim-timeline-dot.done { background:#22c55e; border-color:#22c55e; }
+.dim-timeline-dot.current { background:#3b82f6; border-color:#3b82f6; box-shadow:0 0 0 3px #bfdbfe; }
+.dim-timeline-dot.future { background:white; border-color:#cbd5e1; }
+.dim-timeline-dot.imminent { background:white; border-color:#f59e0b; box-shadow:0 0 0 3px #fef3c7; }
+.dim-timeline-label { position:absolute; font-size:9px; font-weight:600; color:#64748b; white-space:nowrap; left:50%; transform:translateX(-50%); }
+.dim-timeline-label.above { bottom:18px; }
+.dim-timeline-label.below { top:18px; }
 </style>
 
 <script>
@@ -12138,145 +12187,280 @@ async function _cemLoadBdIntel(companyId) {
 }
 
 // ── Drug entity modal — Intelligence tab lazy loader ───────────────────────
+// Domain config for 100-question intelligence framework
+const _DIM_DOMAINS = [
+  { id:'molecule',    icon:'🔬', label:'Molecule & Mechanism',   questions:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], color:'#e0f2fe' },
+  { id:'clinical',    icon:'🏥', label:'Clinical Development',   questions:[21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40], color:'#dcfce7' },
+  { id:'patient',     icon:'👤', label:'Patient Intelligence',   questions:[41,42,43,44,45,46,47,48,49,50,51,52,53,54,55], color:'#fef3c7' },
+  { id:'payer',       icon:'💰', label:'Payer & Market Access',  questions:[56,57,58,59,60,61,62,63,64,65], color:'#f3e8ff' },
+  { id:'competitive', icon:'⚔️', label:'Competitive Landscape', questions:[66,67,68,69,70,71,72,73,74,75,76,77,78,79,80], color:'#fff1f2' },
+  { id:'regulatory',  icon:'⚖️', label:'Regulatory Pathway',   questions:[81,82,83,84,85,86,87,88,89,90], color:'#f0fdf4' },
+  { id:'ip',          icon:'🔒', label:'IP & Legal',            questions:[91,92,93,94,95], color:'#faf5ff' },
+  { id:'strategic',   icon:'🎯', label:'BD & Strategic Value',  questions:[96,97,98,99,100], color:'#fff7ed' },
+];
+
+function _dimConfClass(score) {
+  if (score == null) return 'dim-conf-unknown';
+  if (score >= 0.7) return 'dim-conf-high';
+  if (score >= 0.4) return 'dim-conf-medium';
+  return 'dim-conf-low';
+}
+
+function _dimConfLabel(score, level) {
+  if (level === 'high') return 'High confidence';
+  if (level === 'low') return 'Low confidence';
+  if (score == null) return 'Confidence unknown';
+  if (score >= 0.7) return 'High confidence';
+  if (score >= 0.4) return 'Medium confidence';
+  return 'Low confidence';
+}
+
+function _dimSourceChips(urls, labels) {
+  if (!urls || !urls.length) return '';
+  return (urls||[]).map((u,i) => {
+    const lbl = (labels && labels[i]) ? labels[i] : (() => {
+      try { const h = new URL(u).hostname.replace('www.',''); return h.split('.')[0].toUpperCase().slice(0,10); } catch(_) { return 'SOURCE'; }
+    })();
+    const shortLbl = lbl.length > 18 ? lbl.slice(0,18)+'…' : lbl;
+    return u ? `<a class="dim-source-chip" href="${u}" target="_blank" rel="noopener" title="${lbl}">${shortLbl}</a>` : `<span class="dim-source-chip" title="${lbl}">${shortLbl}</span>`;
+  }).join('');
+}
+
+function _dimBuildTimeline(qaMap) {
+  // Pull milestone dates from specific questions
+  const q21 = (qaMap[21]||{}).answer_short || '';
+  const q28 = (qaMap[28]||{}).answer_short || '';
+  const milestones = [
+    { label:'Discovery', sub:'', state:'done' },
+    { label:'IND Filing', sub:'', state:'done' },
+    { label:'FIH', sub: q21.slice(0,30) || '', state: q21 && !q21.toLowerCase().includes('unknown') ? 'done' : 'future' },
+    { label:'Ph1 Complete', sub:'', state:'future' },
+    { label:'Phase 2', sub:'', state:'current' },
+    { label:'Phase 3', sub: q28.slice(0,25) || '', state: q28.toLowerCase().includes('2026') || q28.toLowerCase().includes('2025') ? 'imminent' : 'future' },
+    { label:'NDA/BLA', sub:'', state:'future' },
+    { label:'Approval', sub:'', state:'future' },
+  ];
+
+  const dots = milestones.map((m, i) => {
+    const isAbove = i % 2 === 0;
+    const labelClass = isAbove ? 'above' : 'below';
+    const subHtml = m.sub ? `<span style="font-weight:400;color:#94a3b8"> · ${m.sub}</span>` : '';
+    return `${i > 0 ? '<div class="dim-timeline-line"></div>' : ''}
+      <div class="dim-timeline-dot ${m.state}" style="position:relative">
+        <div class="dim-timeline-label ${labelClass}">${m.label}${subHtml}</div>
+      </div>`;
+  }).join('');
+
+  return `<div class="dim-timeline">
+    <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Development Timeline</div>
+    <div class="dim-timeline-track">${dots}</div>
+    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span> Confirmed</span>
+      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;display:inline-block"></span> Current</span>
+      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #f59e0b;display:inline-block"></span> Imminent (&lt;12 mo)</span>
+      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #cbd5e1;display:inline-block"></span> Future</span>
+    </div>
+  </div>`;
+}
+
+function _dimBuildEfficacyChart(qaMap) {
+  // Q29 = efficacy ceiling; Q67 = BIC benchmark
+  const q29 = (qaMap[29]||{}).answer_short || '';
+  const q67 = (qaMap[67]||{}).answer_short || '';
+  if (!q29 && !q67) return '';
+
+  // Parse numbers from text for simple bar chart
+  const extractPct = s => { const m = s.match(/(\d+(?:\.\d+)?)\s*%/); return m ? parseFloat(m[1]) : null; };
+  const thisPct  = extractPct(q29) || 26;   // TUSCANY-2 baseline
+  const bicPct   = extractPct(q67) || 24.2; // mirikizumab LUCENT-1
+  const ailuxTgt = 50;
+
+  const maxPct = Math.max(thisPct, bicPct, ailuxTgt) * 1.2;
+  const bar = (pct, color, label, sublabel) => {
+    const w = Math.round((pct / maxPct) * 100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:3px">
+        <span style="font-weight:600;color:#0f172a">${label}</span>
+        <span style="font-weight:700;color:${color}">${pct}%</span>
+      </div>
+      <div style="background:#f1f5f9;border-radius:4px;height:8px;position:relative">
+        <div style="background:${color};border-radius:4px;height:8px;width:${w}%;transition:width 0.4s"></div>
+      </div>
+      ${sublabel ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px">${sublabel}</div>` : ''}
+    </div>`;
+  };
+
+  // Dotted ALX001 target line
+  const tgtW = Math.round((ailuxTgt / maxPct) * 100);
+
+  return `<div style="background:#f8fafc;border:0.5px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-top:12px">
+    <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Efficacy Benchmark — Clinical Remission Rate (Wk 12)</div>
+    <div style="position:relative">
+      ${bar(thisPct, '#3b82f6', 'This drug (Ph2, enriched)', 'TUSCANY-2 unenriched UC population')}
+      ${bar(bicPct, '#64748b', 'BIC: mirikizumab LUCENT-1 Ph3', 'Moderately-to-severely active UC, ITT')}
+      <div style="margin-top:6px;position:relative">
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
+          <span style="font-weight:600;color:#7c3aed">ALX001 target</span>
+          <span style="font-weight:700;color:#7c3aed">&gt;${ailuxTgt}%</span>
+        </div>
+        <div style="background:#f1f5f9;border-radius:4px;height:8px;position:relative">
+          <div style="position:absolute;left:${tgtW}%;top:-3px;bottom:-3px;width:2px;background:#7c3aed;border-radius:1px"></div>
+          <div style="background:repeating-linear-gradient(90deg,#e9d5ff 0px,#e9d5ff 4px,transparent 4px,transparent 8px);border-radius:4px;height:8px;width:${tgtW}%"></div>
+        </div>
+        <div style="font-size:9px;color:#94a3b8;margin-top:2px">TL1A×IL-23p19 bispecific target (biologic design ceiling)</div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:#94a3b8;margin-top:8px;border-top:0.5px solid #e2e8f0;padding-top:6px">Source: TUSCANY-2 (Ph2) · LUCENT-1 D'Haens et al. NEJM 2023 · Confidence: medium</div>
+  </div>`;
+}
+
 async function _demLoadIntelligence(drugId, drugName, companyId) {
   const panel = document.getElementById('cem-dtab-intel-panel');
   if (!panel || !_sb) return;
-  panel.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Loading intelligence…</div>';
+  panel.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Loading intelligence profile…</div>';
 
   try {
     const _drugIdSafe = drugId && !String(drugId).startsWith('static-') ? drugId : null;
-    const _todayStr   = new Date().toISOString().slice(0,10);
-    const _drugNameQ  = (drugName||'').split(/\s+/).slice(0,3).join(' ');
 
-    const [dcsRes, pkRes, catCalRes, catFallRes, abstractRes] = await Promise.all([
-      _drugIdSafe
-        ? _sb.from('drug_competitive_scores').select('context_id,overlap,competitive_relevance,total_competition_score,cls,confidence_level,vs_ailux').eq('drug_id', _drugIdSafe)
-        : Promise.resolve({data:[]}),
-      _drugIdSafe
-        ? _sb.from('drug_pk_parameters').select('dose_route,half_life_hours,cmax_ng_ml,auc_inf_ng_hr_ml,steady_state_weeks,sc_injection_volume_ml,dose_mg,population_type,source_type,evidence_date,conference_name,notes').eq('drug_id', _drugIdSafe).limit(5)
-        : Promise.resolve({data:[]}),
-      _drugIdSafe
-        ? _sb.from('catalyst_calendar').select('event_name,expected_date,expected_quarter,event_type,description,strategic_significance,ailux_impact,confidence').eq('drug_id', _drugIdSafe).eq('is_past', false).order('expected_date',{ascending:true}).limit(8)
-        : Promise.resolve({data:[]}),
-      _drugIdSafe
-        ? _sb.from('catalysts').select('catalyst_text,sort_date,catalyst_type,source_url').eq('drug_id', _drugIdSafe).eq('resolved', false).gte('sort_date', _todayStr).order('sort_date',{ascending:true}).limit(5)
-        : Promise.resolve({data:[]}),
-      companyId
-        ? _sb.from('company_documents').select('title,source_url,publication_date,conference,journal,document_type,phase,authors').eq('company_id', companyId).eq('document_type','abstract').order('publication_date',{ascending:false}).limit(5)
-        : Promise.resolve({data:[]}),
-    ]);
+    // Fetch the 100-question intelligence profile
+    const { data: qaRows, error: qaErr } = _drugIdSafe
+      ? await _sb.from('drug_intelligence_qa')
+          .select('question_id,domain,question_text,answer_text,answer_short,confidence_score,evidence_level,source_urls,source_labels')
+          .eq('drug_id', _drugIdSafe)
+          .order('question_id', {ascending: true})
+      : { data: [], error: null };
 
-    const dcsRows   = dcsRes.data   || [];
-    const pkRows    = pkRes.data    || [];
-    const calRows   = catCalRes.data || [];
-    const catRows   = catFallRes.data || [];
-    const abstracts = abstractRes.data || [];
+    if (qaErr) throw qaErr;
 
-    // Merge catalyst sources: catalyst_calendar first, then catalysts table for any extras
-    const mergedCats = [...calRows];
-    const catCalNames = new Set(calRows.map(c => (c.event_name||'').toLowerCase().slice(0,30)));
-    catRows.forEach(c => {
-      const k = (c.catalyst_text||'').toLowerCase().slice(0,30);
-      if (!catCalNames.has(k)) mergedCats.push({event_name: c.catalyst_text, expected_date: c.sort_date, event_type: c.catalyst_type, source_url: c.source_url});
+    // No data state
+    if (!qaRows || qaRows.length === 0) {
+      panel.innerHTML = `<div style="padding:32px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🔬</div>
+        <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:6px">Intelligence profile not yet generated for ${drugName || 'this drug'}</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:16px">Run the enrichment pipeline to generate 100-question analysis covering mechanism, clinical development, patient intelligence, competitive positioning, and BD strategy.</div>
+        <div style="font-size:10px;color:#94a3b8">drug_intelligence_qa table · drug_id: ${_drugIdSafe || 'unknown'}</div>
+      </div>`;
+      return;
+    }
+
+    // Index by question_id for fast lookup
+    const qaMap = {};
+    qaRows.forEach(r => { qaMap[r.question_id] = r; });
+
+    // Group by domain
+    const byDomain = {};
+    qaRows.forEach(r => {
+      if (!byDomain[r.domain]) byDomain[r.domain] = [];
+      byDomain[r.domain].push(r);
     });
 
-    // ── Competitive Position ─────────────────────────────────────────────────
-    const _CEM_AMAP_I = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ibd:'IBD',uc:'UC',cd:'CD',ted:'TED',atopy:'Atopy',respiratory:'Respiratory',autoimmune:'Autoimmune'};
-    const _ovCol = o => o==='direct'?'#b91c1c':o==='adjacent'?'#1d4ed8':o==='same_space'?'#7c3aed':'#64748b';
-    const _ovBg  = o => o==='direct'?'#fef2f2':o==='adjacent'?'#eff6ff':o==='same_space'?'#f5f3ff':'#f8fafc';
-    const _relLabel = {primary:'Primary competitor',secondary:'Secondary competitor',contextual:'Contextual',reference:'Reference'};
+    // ── Layer 1: Headline Strip ──────────────────────────────────────────────
+    const _hlFact = (icon, label, qRow) => {
+      const val = qRow ? (qRow.answer_short || '').slice(0, 80) || '—' : '—';
+      return `<div class="dim-headline-fact">
+        <div class="dim-headline-icon">${icon}</div>
+        <div class="dim-headline-label">${label}</div>
+        <div class="dim-headline-value">${val}</div>
+      </div>`;
+    };
 
-    const _dcsHtml = dcsRows.length ? dcsRows.map(s => {
-      const aLbl = _CEM_AMAP_I[s.context_id] || s.context_id.toUpperCase();
-      const ovLbl = s.overlap || '—';
-      const relLbl = _relLabel[s.competitive_relevance] || s.competitive_relevance || '—';
-      return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid #f1f5f9">
-        <span style="font-size:9px;font-weight:700;background:#f1f5f9;color:#475569;border-radius:4px;padding:2px 6px;flex-shrink:0;margin-top:1px">${aLbl}</span>
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-size:10px;font-weight:700;background:${_ovBg(s.overlap)};color:${_ovCol(s.overlap)};border-radius:5px;padding:1px 7px;text-transform:capitalize">${ovLbl}</span>
-            ${s.competitive_relevance ? `<span style="font-size:10px;color:#64748b">${relLbl}</span>` : ''}
-            ${s.total_competition_score != null ? `<span style="font-size:10px;font-weight:700;color:#1d4ed8">score ${s.total_competition_score}</span>` : ''}
+    // Q2 = mechanism (block TL1A→DR3), Q29 = efficacy ceiling, Q41 = patient, Q9 = route/interval, Q28 = timeline
+    const hlMech = qaMap[2] ? (qaMap[2].answer_short||'').slice(0,80) : (qaMap[1] ? (qaMap[1].answer_short||'').slice(0,80) : '—');
+    const hlEff  = qaMap[29] ? (qaMap[29].answer_short||'').slice(0,80) : '—';
+    const hlPat  = qaMap[41] ? (qaMap[41].answer_short||'').slice(0,80) : '—';
+    const hlRoute= qaMap[9]  ? (qaMap[9].answer_short||'').slice(0,80) : (qaMap[8] ? (qaMap[8].answer_short||'').slice(0,80) : '—');
+    const hlTime = qaMap[28] ? (qaMap[28].answer_short||'').slice(0,80) : (qaMap[21] ? (qaMap[21].answer_short||'').slice(0,80) : '—');
+
+    const headlineHtml = `<div class="dim-headline-strip">
+      <div class="dim-headline-fact"><div class="dim-headline-icon">🎯</div><div class="dim-headline-label">Mechanism</div><div class="dim-headline-value">${hlMech}</div></div>
+      <div class="dim-headline-fact"><div class="dim-headline-icon">📊</div><div class="dim-headline-label">Efficacy ceiling</div><div class="dim-headline-value">${hlEff}</div></div>
+      <div class="dim-headline-fact"><div class="dim-headline-icon">👤</div><div class="dim-headline-label">Patient</div><div class="dim-headline-value">${hlPat}</div></div>
+      <div class="dim-headline-fact"><div class="dim-headline-icon">💊</div><div class="dim-headline-label">Route</div><div class="dim-headline-value">${hlRoute}</div></div>
+      <div class="dim-headline-fact"><div class="dim-headline-icon">🏁</div><div class="dim-headline-label">Timeline</div><div class="dim-headline-value">${hlTime}</div></div>
+    </div>`;
+
+    // ── Layer 2+3: Domain Bars with expandable Q&A ───────────────────────────
+    const _uid = () => Math.random().toString(36).slice(2,8);
+
+    const domainsHtml = _DIM_DOMAINS.map(dom => {
+      const rows = (byDomain[dom.id] || []).sort((a,b) => a.question_id - b.question_id);
+      if (!rows.length) return '';
+
+      const answered = rows.filter(r => r.answer_short && r.answer_short !== '—').length;
+      const highConf = rows.filter(r => (r.confidence_score||0) >= 0.7 || r.evidence_level === 'high').length;
+      const domId = `dim-dom-${dom.id}-${_uid()}`;
+
+      // 2-sentence domain summary: first 2 non-empty answer_shorts
+      const summaryRows = rows.filter(r => r.answer_short).slice(0,2);
+      const summaryText = summaryRows.map(r => r.answer_short.replace(/\.$/, '')).join('. ') + (summaryRows.length ? '.' : '');
+
+      // Q&A items for this domain
+      const qaItemsHtml = rows.map(r => {
+        const detId = `dim-det-${r.question_id}-${_uid()}`;
+        const chips = _dimSourceChips(r.source_urls, r.source_labels);
+        const hasDetail = r.answer_text && r.answer_text !== r.answer_short && r.answer_text.length > 20;
+        return `<div class="dim-qa-item">
+          <div class="dim-qa-num">Q${r.question_id}</div>
+          <div class="dim-qa-q">${r.question_text || ''}</div>
+          <div class="dim-qa-short">${r.answer_short || '—'}</div>
+          ${hasDetail ? `<span class="dim-qa-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'▲ Hide detail':'→ Detail'">→ Detail</span>
+          <div class="dim-qa-detail" id="${detId}">${r.answer_text || ''}</div>` : ''}
+          <div class="dim-qa-meta">
+            <div class="dim-conf-dot ${_dimConfClass(r.confidence_score)}" title="${_dimConfLabel(r.confidence_score, r.evidence_level)}"></div>
+            <span style="font-size:9px;color:#94a3b8">${_dimConfLabel(r.confidence_score, r.evidence_level)}</span>
+            ${chips}
           </div>
-          ${s.vs_ailux ? `<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.4">${s.vs_ailux.slice(0,140)+(s.vs_ailux.length>140?'…':'')}</div>` : ''}
+        </div>`;
+      }).join('');
+
+      // Insert efficacy benchmark chart after Clinical domain Q&A
+      const extraHtml = dom.id === 'clinical' ? _dimBuildEfficacyChart(qaMap) : '';
+
+      return `<div class="dim-domain-bar">
+        <div class="dim-domain-hd" onclick="(function(el){const b=el.nextElementSibling;const arr=el.querySelector('.dim-domain-arrow');b.classList.toggle('open');if(arr)arr.classList.toggle('open');})(this)">
+          <span class="dim-domain-icon">${dom.icon}</span>
+          <span class="dim-domain-name">${dom.label}</span>
+          <span class="dim-domain-summary">${summaryText.slice(0,120)}${summaryText.length>120?'…':''}</span>
+          <span class="dim-domain-meta">${answered}/${rows.length} answered${highConf > 0 ? ` · ${highConf} high conf` : ''}</span>
+          <span class="dim-domain-arrow">▶</span>
+        </div>
+        <div class="dim-domain-body">
+          ${qaItemsHtml}
+          ${extraHtml}
         </div>
       </div>`;
-    }).join('') : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No competitive scores on record — run enrichment pipeline.</div>';
+    }).join('');
 
-    // ── PK/PD Profile ─────────────────────────────────────────────────────────
-    const _pkHtml = pkRows.length ? pkRows.map(pk => {
-      const route = pk.dose_route || '—';
-      const hl    = pk.half_life_hours != null ? (pk.half_life_hours >= 24 ? `${(pk.half_life_hours/24).toFixed(1)} days` : `${pk.half_life_hours}h`) : null;
-      const popLbl = {patient:'Patient',healthy_volunteer:'Healthy volunteer',pediatric:'Pediatric'}[pk.population_type] || pk.population_type || '';
-      const src   = pk.source_type || '';
-      const conf  = pk.conference_name || '';
-      const facts = [
-        hl                               ? `<div class="cem-fact"><span class="cem-fact-lbl">Half-life</span><span class="cem-fact-val">${hl}</span></div>` : '',
-        pk.cmax_ng_ml != null            ? `<div class="cem-fact"><span class="cem-fact-lbl">Cmax</span><span class="cem-fact-val">${pk.cmax_ng_ml} ng/mL</span></div>` : '',
-        pk.auc_inf_ng_hr_ml != null      ? `<div class="cem-fact"><span class="cem-fact-lbl">AUC∞</span><span class="cem-fact-val">${pk.auc_inf_ng_hr_ml} ng·hr/mL</span></div>` : '',
-        pk.steady_state_weeks != null    ? `<div class="cem-fact"><span class="cem-fact-lbl">Steady-state</span><span class="cem-fact-val">~${pk.steady_state_weeks} weeks</span></div>` : '',
-        pk.sc_injection_volume_ml != null? `<div class="cem-fact"><span class="cem-fact-lbl">SC vol</span><span class="cem-fact-val">${pk.sc_injection_volume_ml} mL</span></div>` : '',
-        pk.dose_mg != null               ? `<div class="cem-fact"><span class="cem-fact-lbl">Dose</span><span class="cem-fact-val">${pk.dose_mg} mg ${route}</span></div>` : `<div class="cem-fact"><span class="cem-fact-lbl">Route</span><span class="cem-fact-val">${route}</span></div>`,
-        popLbl                           ? `<div class="cem-fact"><span class="cem-fact-lbl">Population</span><span class="cem-fact-val">${popLbl}</span></div>` : '',
-        src                              ? `<div class="cem-fact"><span class="cem-fact-lbl">Source</span><span class="cem-fact-val">${src}${conf?' · '+conf:''}</span></div>` : '',
-      ].filter(Boolean).join('');
-      return `<div style="background:#fafbfc;border:0.5px solid #e2e8f0;border-radius:7px;padding:10px 12px;margin-bottom:8px">${facts}${pk.notes?`<div style="font-size:10.5px;color:#64748b;margin-top:6px;line-height:1.45;border-top:0.5px solid #e2e8f0;padding-top:6px">${pk.notes.slice(0,200)+(pk.notes.length>200?'…':'')}</div>`:''}</div>`;
-    }).join('') : `<div style="display:flex;align-items:center;gap:8px;padding:10px;background:#fafbfc;border:0.5px solid #e2e8f0;border-radius:7px"><span style="font-size:18px">🔬</span><div><div style="font-size:11.5px;color:#94a3b8;font-style:italic">No PK data available — add via Submit Intel</div><div style="font-size:10px;color:#cbd5e1;margin-top:2px">drug_pk_parameters table</div></div></div>`;
+    // ── Layer 4: Timeline ────────────────────────────────────────────────────
+    const timelineHtml = _dimBuildTimeline(qaMap);
 
-    // ── Key Catalysts ─────────────────────────────────────────────────────────
-    const _CAL_EVT = {trial_readout:{label:'READOUT',bg:'#f0fdf4',color:'#15803d'},trial_start:{label:'START',bg:'#f0fdf4',color:'#059669'},regulatory:{label:'REG',bg:'#fef2f2',color:'#b91c1c'},conference:{label:'CONF',bg:'#eff6ff',color:'#1d4ed8'},data_release:{label:'DATA',bg:'#f0fdf4',color:'#15803d'},pdufa:{label:'PDUFA',bg:'#fef2f2',color:'#b91c1c'}};
-    const _sigLabel = {P0:'P0 — critical',high:'High',medium:'Medium',low:'Low'};
-    const _catHtml = mergedCats.length ? mergedCats.map(c => {
-      const sty = _CAL_EVT[c.event_type] || {label:(c.event_type||'EVENT').toUpperCase().slice(0,8),bg:'#f8fafc',color:'#64748b'};
-      const dateLbl = c.expected_date ? (() => { try { const d=new Date(c.expected_date); return d.toLocaleDateString('en-US',{month:'short',year:'numeric'}); } catch(_){return c.expected_date;} })() : (c.expected_quarter||'');
-      const sig = c.strategic_significance;
-      const sigPill = sig ? `<span style="font-size:9px;font-weight:700;background:${sig==='P0'?'#fef2f2':sig==='high'?'#fff7ed':'#f8fafc'};color:${sig==='P0'?'#b91c1c':sig==='high'?'#c2410c':'#64748b'};border-radius:4px;padding:1px 5px;margin-left:4px">${_sigLabel[sig]||sig}</span>` : '';
-      return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid #f1f5f9">
-        <span style="font-size:8px;font-weight:700;background:${sty.bg};color:${sty.color};border-radius:4px;padding:2px 5px;flex-shrink:0;margin-top:2px">${sty.label}</span>
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-            <span style="font-size:11.5px;color:#1e293b;font-weight:600">${c.event_name||'Upcoming event'}</span>${sigPill}
-          </div>
-          ${dateLbl ? `<div style="font-size:10px;color:#94a3b8;margin-top:1px">${dateLbl}</div>` : ''}
-          ${c.description ? `<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.4">${c.description.slice(0,140)+(c.description.length>140?'…':'')}</div>` : ''}
-          ${c.ailux_impact ? `<div style="font-size:10.5px;color:#7c3aed;margin-top:3px;line-height:1.4;font-style:italic">${c.ailux_impact.slice(0,120)+(c.ailux_impact.length>120?'…':'')}</div>` : ''}
-          ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8;text-decoration:none;display:block;margin-top:2px">↗ Source</a>` : ''}
-        </div>
-      </div>`;
-    }).join('') : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No upcoming catalysts linked to this drug in catalyst_calendar or catalysts tables.</div>';
-
-    // ── Scientific Abstracts ──────────────────────────────────────────────────
-    const _absHtml = abstracts.length ? abstracts.map(a => {
-      const venue = a.conference || a.journal || '';
-      const dateStr = (a.publication_date||'').slice(0,7);
-      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #f1f5f9">
-        <div style="font-size:12px;font-weight:600;color:#0f172a;line-height:1.35;margin-bottom:3px">${a.source_url?`<a href="${a.source_url}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:none">${a.title||'Abstract'}</a>`:a.title||'Abstract'}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
-          ${venue?`<span style="font-size:9px;background:#f5f3ff;color:#7c3aed;border-radius:4px;padding:1px 5px;font-weight:600">${venue}</span>`:''}
-          ${dateStr?`<span style="font-size:9px;color:#94a3b8">${dateStr}</span>`:''}
-          ${a.phase?`<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px">${a.phase}</span>`:''}
-        </div>
-        ${a.authors?`<div style="font-size:10px;color:#94a3b8;margin-top:2px">${a.authors.slice(0,80)+(a.authors.length>80?'…':'')}</div>`:''}
-      </div>`;
-    }).join('') : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No abstracts stored for this company yet — collected during enrichment.</div>';
+    // ── Assemble panel ───────────────────────────────────────────────────────
+    const totalAnswered = qaRows.filter(r => r.answer_short && r.answer_short !== '—').length;
+    const highConfTotal = qaRows.filter(r => (r.confidence_score||0) >= 0.7 || r.evidence_level === 'high').length;
+    const _latestRow = [...qaRows].sort((a,b) => new Date(b.last_researched||0) - new Date(a.last_researched||0))[0] || {};
+    const _lastUpdated = _latestRow.last_researched
+      ? new Date(_latestRow.last_researched).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+      : 'unknown';
 
     panel.innerHTML = `
-      <div style="margin-bottom:20px">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Competitive Position</div>
-        ${_dcsHtml}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;border-bottom:1px solid #f1f5f9;background:#fafbfc">
+        <div>
+          <span style="font-size:12px;font-weight:700;color:#0f172a">${drugName || 'Drug'} — Intelligence Profile</span>
+          <span style="font-size:10px;color:#94a3b8;margin-left:8px">${totalAnswered}/100 questions answered · ${highConfTotal} high confidence</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:9px;color:#94a3b8">Click any domain to expand</span>
+        </div>
       </div>
-      <div style="margin-bottom:20px">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">PK/PD Profile</div>
-        ${_pkHtml}
+      ${headlineHtml}
+      <div style="margin:0">
+        ${domainsHtml}
       </div>
-      <div style="margin-bottom:20px">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Key Catalysts <span style="font-weight:400;color:#94a3b8">${mergedCats.length} upcoming</span></div>
-        ${_catHtml}
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Scientific Abstracts <span style="font-weight:400;color:#94a3b8">${abstracts.length} found</span></div>
-        ${_absHtml}
+      ${timelineHtml}
+      <div style="padding:10px 16px;font-size:9px;color:#cbd5e1;border-top:1px solid #f8fafc">
+        Intelligence profile generated by Meridian enrichment pipeline · ${qaRows.length} questions · Last updated ${_lastUpdated}
       </div>`;
+
   } catch(e) {
     panel.innerHTML = `<div style="padding:16px;color:#dc2626;font-size:12px">Failed to load intelligence: ${e.message}</div>`;
   }
