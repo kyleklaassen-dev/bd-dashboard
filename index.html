@@ -11640,19 +11640,35 @@ async function renderMeridianIssue(issueId, label) {
       .eq('id', issueId)
       .single();
     if (data?.body_html) {
-      // Inject bridge functions so entity links in the Meridian open
-      // the canonical company/drug cards in the parent dashboard — not a web search.
+      // Bridge: entity links open canonical cards in parent dashboard, never navigate out.
+      // Intercepts ALL anchor clicks — if onclick has openDrugModal/openCompanyModal,
+      // preventDefault stops any href navigation, then calls parent modal directly.
       const BRIDGE = `<script>
-function openDrugModal(id){try{window.parent.openDrugEntityModal(id,id,null);}catch(e){}}
-function openCompanyModal(id){try{window.parent.openCompanyEntityModal(id,id,'meridian',id);}catch(e){}}
+function openDrugModal(id){try{window.parent.openDrugEntityModal(id,id,null);}catch(e){console.warn('bridge:drug',e);}}
+function openCompanyModal(id){try{window.parent.openCompanyEntityModal(id,id,'meridian',id);}catch(e){console.warn('bridge:co',e);}}
 document.addEventListener('click',function(e){
-  var a=e.target.closest('a[onclick]');
-  if(a){var oc=a.getAttribute('onclick');
-    if(oc&&(oc.includes('openDrugModal')||oc.includes('openCompanyModal'))){
-      e.preventDefault();try{eval(oc);}catch(err){}
-    }
+  var a=e.target.closest('a');
+  if(!a)return;
+  var oc=a.getAttribute('onclick')||'';
+  // Any link with an entity modal onclick — intercept and block navigation
+  if(oc.includes('openDrugModal(')||oc.includes('openCompanyModal(')){
+    e.preventDefault();
+    e.stopPropagation();
+    try{
+      var m=oc.match(/open(?:Drug|Company)Modal\(\'([^\']+)\'\)/);
+      if(m){
+        if(oc.includes('openDrugModal'))openDrugModal(m[1]);
+        else openCompanyModal(m[1]);
+      }
+    }catch(err){}
+    return false;
   }
-});
+  // All other links: open in new tab (never navigate away from dashboard)
+  if(a.href&&a.href!==window.location.href+'#'&&!a.href.endsWith('#')){
+    e.preventDefault();
+    window.open(a.href,'_blank','noopener,noreferrer');
+  }
+},true); // capture phase catches it before browser default
 <\/script>`;
       frame.srcdoc = BRIDGE + data.body_html;
     }
