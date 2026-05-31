@@ -15400,7 +15400,7 @@ function _makeAreaPI(tabId, areaIds) {
           // context_id is the canonical area identifier; IBD expanded to include uc/cd
           // indication-based rows alongside legacy ibd-keyed rows.
           _sb.from('drug_competitive_scores')
-            .select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level,competitive_relevance,relevance_rationale')
+            .select('drug_id,context_id,overlap,cls,overlap_rationale,vs_ailux,confidence_level,competitive_relevance,relevance_rationale,relevance_score_numeric,score_breakdown_json')
             .in('context_id', this.areaIds.includes('ibd')
               ? [...this.areaIds.filter(a=>a!=='ibd'),'ibd','uc','cd']
               : this.areaIds),
@@ -15485,6 +15485,8 @@ function _makeAreaPI(tabId, areaIds) {
           vs_ailux:             score?.vs_ailux || '',
           competitive_relevance: score?.competitive_relevance || null,
           relevance_rationale:   score?.relevance_rationale || '',
+          relevance_score_numeric: score?.relevance_score_numeric ?? null,
+          score_breakdown_json:  score?.score_breakdown_json  ?? null,
           summary:              d.ailux_angle || d.key_data || '',
           stageDetail:          d.stage_detail || '',
           indication_short:     d.indication_short || '',
@@ -15578,7 +15580,11 @@ function _makeAreaPI(tabId, areaIds) {
           progs[0] || {});
         const bestRelevance = bestRelevanceProg.competitive_relevance || null;
         const bestRelevanceRationale = bestRelevanceProg.relevance_rationale || '';
-        return { ...ent, bestStage, bestCls, bestOverlap, bestRelevance, bestRelevanceRationale, isTerminated,
+        // Numeric score: take the highest relevance_score_numeric across all programs
+        const bestNumericProg = progs.reduce((b,p) => ((p.relevance_score_numeric??-1) > (b?.relevance_score_numeric??-1)) ? p : b, progs[0] || {});
+        const bestNumericScore = bestNumericProg.relevance_score_numeric ?? null;
+        const bestBreakdown    = bestNumericProg.score_breakdown_json    ?? null;
+        return { ...ent, bestStage, bestCls, bestOverlap, bestRelevance, bestRelevanceRationale, bestNumericScore, bestBreakdown, isTerminated,
           target: leadProg?.target||'—',
           summary: progs.map(p=>p.summary).filter(Boolean)[0]||'',
           stageDetail: leadProg?.stageDetail||'',
@@ -15834,6 +15840,18 @@ function _makeAreaPI(tabId, areaIds) {
       return `<span class="pi-relev-badge ${cls}"${tip}>${lbl}</span>`;
     },
 
+    _numericRelevColor(n) {
+      return n >= 9 ? {fg:'#dc2626',bg:'#fee2e2'} : n >= 7 ? {fg:'#ea580c',bg:'#ffedd5'} : n >= 5 ? {fg:'#d97706',bg:'#fef3c7'} : n >= 3 ? {fg:'#64748b',bg:'#f1f5f9'} : {fg:'#94a3b8',bg:'#f8fafc'};
+    },
+
+    _numericRelevPill(score, breakdown) {
+      if (score == null) return '<span style="font-size:10px;color:#94a3b8">—</span>';
+      const n = parseFloat(score);
+      const {fg, bg} = this._numericRelevColor(n);
+      const bAttr = breakdown ? ` data-breakdown='${JSON.stringify(breakdown).replace(/'/g,"&#39;")}'` : '';
+      return `<span class="pi-numeric-relev" style="background:${bg};color:${fg};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;letter-spacing:0.01em" onclick="event.stopPropagation();_piShowRelevExplain(this,${n})"${bAttr}>${n.toFixed(1)}</span>`;
+    },
+
     _entityDetailHTML(ent) {
       const eid = ent.entity_id;
       // If already cached, render full detail inline (no flicker on re-render)
@@ -16079,10 +16097,10 @@ function _makeAreaPI(tabId, areaIds) {
       const sorted = [...this.filteredEntities].sort((a,b)=>{
         let av,bv;
         if (this.sortCol==='relevance') {
-          // Relevance-first: known values precede nulls; stage as tiebreaker within same tier
-          const ar = a.bestRelevance != null ? (_RELEV_ORD_SORT[a.bestRelevance]??5) : 6;
-          const br = b.bestRelevance != null ? (_RELEV_ORD_SORT[b.bestRelevance]??5) : 6;
-          if (ar !== br) return this.sortDir * (ar - br);
+          // Numeric score: sort descending (highest first); nulls last; stage as tiebreaker
+          const an = a.bestNumericScore ?? -1;
+          const bn = b.bestNumericScore ?? -1;
+          if (an !== bn) return this.sortDir * (bn - an);
           return (STAGE_ORDER_PI[a.bestStage]??9) - (STAGE_ORDER_PI[b.bestStage]??9);
         }
         if      (this.sortCol==='co')      { av=a.entity_name; bv=b.entity_name; }
@@ -16141,9 +16159,11 @@ function _makeAreaPI(tabId, areaIds) {
         // Always show a relevance pill for active companies; fall back to 'low' if no score
         const _effectiveRelev = ent.bestRelevance || (ent.isTerminated ? null : 'low');
         const relevBadge = this._relevBadge(_effectiveRelev, ent.bestRelevanceRationale);
+        // Numeric score pill (replaces word pill as primary display)
+        const numericPill = this._numericRelevPill(ent.bestNumericScore, ent.bestBreakdown);
         const threatCell = ent.isTerminated
           ? `<span style="color:#cbd5e1">—</span>`
-          : relevBadge || `<span style="color:#cbd5e1">—</span>`;
+          : numericPill;
 
         const catFmt = (() => {
           if (!nextCat) return null;
@@ -16159,7 +16179,9 @@ function _makeAreaPI(tabId, areaIds) {
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
         const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#d97706',low:'#94a3b8',monitor:'#94a3b8'};
-        const relevBorder = `border-left:3px solid ${_RELEV_BORDER[_effectiveRelev||'']||'#e2e8f0'}`;
+        // Use numeric score for border color if available, else fall back to word-label lookup
+        const _numBorderCol = ent.bestNumericScore != null ? this._numericRelevColor(parseFloat(ent.bestNumericScore)).fg : (_RELEV_BORDER[_effectiveRelev||''] || '#e2e8f0');
+        const relevBorder = `border-left:3px solid ${_numBorderCol}`;
         const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         const _covPct = this._covScoreMap?.[ent.company_id] ?? this._covScoreMap?.[ent.entity_id] ?? null;
         const _covHtml = _covPct != null ? `<span style="font-size:9px;font-weight:700;color:${_covPct>=70?'#15803d':_covPct>=40?'#b45309':'#b91c1c'};margin-left:5px" title="Coverage score: ${_covPct}%">⬤ ${_covPct}%</span>` : '';
@@ -18231,6 +18253,51 @@ function _areaPIPill(tabId, group, val, btn) {
 }
 function _areaPISort(tabId, col) { _areaPIs[tabId]?.sort(col); }
 function _areaPIToggle(tabId, id) { _areaPIs[tabId]?.toggle(id); }
+
+// ── Relevance score explanation modal ──────────────────────────────────────
+function _piShowRelevExplain(el, score) {
+  // Remove any existing modal
+  document.querySelectorAll('.pi-relev-modal-wrap').forEach(m => m.remove());
+  const n = parseFloat(score);
+  const col = n >= 9 ? '#dc2626' : n >= 7 ? '#ea580c' : n >= 5 ? '#d97706' : '#64748b';
+  let breakdown = {};
+  try { breakdown = JSON.parse(el.dataset.breakdown || '{}'); } catch(e) {}
+  const rows = [
+    ['Stage Proximity',    breakdown.stage_points,    3, breakdown.stage_label || 'Unknown'],
+    ['Mechanism Overlap',  breakdown.overlap_points,  3, breakdown.overlap_type || 'Unknown'],
+    ['Deal Activity',      breakdown.deal_points,     2, (breakdown.deal_count || 0) + ' deal(s) in this area'],
+    ['Pipeline Depth',     breakdown.depth_points,    1, (breakdown.pipeline_depth || 1) + ' program(s) tracked'],
+    ['Research Activity',  breakdown.research_points, 1, 'Scientific publications + conference presence'],
+  ];
+  const rowsHtml = rows.map(([label, pts, max, note]) => {
+    const pctW = max > 0 && pts != null ? Math.round((pts / max) * 100) : 0;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">
+        <div style="flex:1"><div style="font-size:11px;font-weight:600;color:#1e293b">${label}</div><div style="font-size:10px;color:#94a3b8">${note}</div></div>
+        <div style="text-align:right;flex-shrink:0"><span style="font-size:13px;font-weight:800;color:#0f172a">${pts != null ? parseFloat(pts).toFixed(1) : '?'}</span><span style="font-size:10px;color:#94a3b8">/${max}</span></div>
+      </div>
+      <div style="height:4px;background:#f1f5f9;border-radius:2px"><div style="height:4px;border-radius:2px;background:${col};width:${pctW}%"></div></div>
+    </div>`;
+  }).join('');
+  const wrap = document.createElement('div');
+  wrap.className = 'pi-relev-modal-wrap';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.2)';
+  wrap.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:24px;width:340px;max-width:90vw">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <span style="font-size:28px;font-weight:900;color:${col}">${n.toFixed(1)}</span>
+      <div><div style="font-size:13px;font-weight:700;color:#0f172a">Relevance Score</div><div style="font-size:11px;color:#64748b">out of 10.0</div></div>
+      <button onclick="this.closest('.pi-relev-modal-wrap').remove()" style="margin-left:auto;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer;color:#64748b;font-size:13px">✕</button>
+    </div>
+    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">How this was calculated</div>
+    ${rowsHtml}
+    <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-top:2px;display:flex;justify-content:space-between;font-size:11px">
+      <span style="color:#64748b">Total score</span>
+      <span style="font-weight:800;color:${col}">${n.toFixed(1)} / 10.0</span>
+    </div>
+  </div>`;
+  wrap.addEventListener('click', e => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
 
 // ── Drug accordion + trial row toggle helpers ──────────────────────────────
 function piToggleDrugRow(hd) {
