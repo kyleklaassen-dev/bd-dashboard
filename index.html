@@ -2016,19 +2016,18 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
 .pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
 /* ── Generation Race UI ─────────────────────────────────────────────────────── */
-.pi-rank-cell { width:50px;text-align:center;padding:4px 2px !important;vertical-align:middle; }
-.pi-medal { display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:900;line-height:1; }
-.pi-medal-gold   { background:#fef3c7;border:2px solid #f59e0b;box-shadow:0 0 5px rgba(245,158,11,.3); }
-.pi-medal-silver { background:#f1f5f9;border:2px solid #94a3b8;box-shadow:0 0 4px rgba(148,163,184,.25); }
-.pi-medal-bronze { background:#fff7ed;border:2px solid #d97706;box-shadow:0 0 4px rgba(217,119,6,.2); }
-.pi-rank-num  { display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:50%;font-size:10px;font-weight:700;color:#64748b; }
-.pi-rank-home { display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:#fff8e1;border:2px solid #f59e0b;border-radius:50%;font-size:12px;font-weight:900;color:#b45309; }
-.pi-move-wrap { display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px; }
-.pi-move-up   { color:#16a34a;font-size:10px;font-weight:900;line-height:1; }
-.pi-move-dn   { color:#dc2626;font-size:10px;font-weight:900;line-height:1; }
-.pi-move-st   { color:#cbd5e1;font-size:9px;line-height:1; }
-.pi-move-new  { color:#8b5cf6;font-size:7.5px;font-weight:800;letter-spacing:.4px; }
-.pi-move-d    { font-size:7.5px;font-weight:700; }
+.pi-rank-cell { width:26px;text-align:center;padding:1px 0 !important;vertical-align:middle; }
+.pi-rk        { display:inline-flex;align-items:center;justify-content:center;width:18px;height:16px;border-radius:3px;font-size:9px;font-weight:700;line-height:1; }
+.pi-rk-1      { background:#fef3c7;color:#92400e;border:1px solid #fbbf24; }
+.pi-rk-2      { background:#f1f5f9;color:#475569;border:1px solid #cbd5e1; }
+.pi-rk-3      { background:#fff7ed;color:#7c2d12;border:1px solid #fed7aa; }
+.pi-rk-n      { background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0; }
+.pi-rk-home   { background:#fff8e1;color:#b45309;border:1px solid #fde68a; }
+.pi-move-wrap { display:flex;flex-direction:column;align-items:center;gap:0; }
+.pi-move-up   { color:#16a34a;font-size:7px;line-height:1; }
+.pi-move-dn   { color:#dc2626;font-size:7px;line-height:1; }
+.pi-move-st   { color:#e2e8f0;font-size:6px;line-height:1; }
+.pi-move-new  { color:#a78bfa;font-size:6px;font-weight:700; }
 .pi-ailux-row { background:linear-gradient(90deg,#fffbeb,#fffdf5) !important; }
 .pi-ailux-row:hover { background:linear-gradient(90deg,#fef3c7,#fffbeb) !important; }
 .pi-ailux-tag { display:inline-block;padding:1px 5px;border-radius:4px;font-size:7.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;margin-left:3px; }
@@ -16371,10 +16370,11 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     _nextGenRanks(sorted, tid) {
-      // Ranking uses ACTUAL DB field values — not client-computed scores.
-      // total_competition_score comes from drug_competitive_scores (set by competitive_scoring.py).
-      // When a drug advances a stage or gets a deal, competitive_scoring.py updates the score,
-      // which changes the ranking on the next page load and is recorded in next_gen_rankings.
+      // ALL entities ranked in one unified sequential system.
+      // Next-gen (bispecifics) and first-gen (monospecifics) are ranked separately
+      // within their groups — ranks continue sequentially so every entity has a number.
+      // Scores from actual DB values (drug_competitive_scores) refined over time by enrichment.
+      // Every rank is written to next_gen_rankings table — permanent historical record.
       const AILUX_PROGS = {
         tl1a:{ drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis' },
         ibd: { drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis' },
@@ -16383,50 +16383,42 @@ function _makeAreaPI(tabId, areaIds) {
       const aKey = Object.keys(AILUX_PROGS).find(k => tid.includes(k));
       const ap   = aKey ? AILUX_PROGS[aKey] : null;
       const ng   = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
-      if (!ng.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
+      const fg   = sorted.filter(e => e.bestCls !== 'Next Gen' && !e.isTerminated);
+      if (!ng.length && !fg.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
 
-      // ── Composite ranking score from all known DB values ────────────────────
-      // Primary: total_competition_score from drug_competitive_scores (0-10, set by enrichment).
-      // The enrichment pipeline incorporates: deal value, clinical stage, data quality,
-      // competitive relevance, and — as drug_intelligence_qa populates — 100Q answers.
-      // Scores refine automatically as enrichment runs. Stage adds clinical advancement signal.
+      // Score: 70% drug_competitive_scores.total_competition_score (enrichment pipeline)
+      //      + 30% stage signal (drugs.stage). As 100Q fills in, enrichment incorporates it.
       const STAGE_W = {approved:10,approved_us:10,approved_eu:10,bla_under_review:9.5,
         'Phase 3':9,'Phase 2/3':8.5,'Phase 2':8,'Phase 1/2':7,'Phase 1':6,
         'IND filed':4,'IND-enabling':2.5,'Preclinical':1,'Terminated':0};
-      const AILUX_SC = {approved:50,approved_us:50,bla_under_review:45,
-        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1':20,'IND filed':12,'IND-enabling':7,'Preclinical':3};
-
-      // 70% enrichment score (DB) + 30% stage signal = composite
       const composite = (e) => ((e.bestNumericScore ?? 0) * 0.7) + ((STAGE_W[e.bestStage] ?? 0) * 0.3);
 
-      let candidates = ng.map(e => ({
-        id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false
-      }));
-
+      // Build Ailux synthetic entry
       const ailuxEnt = ap ? {
         entity_id:'ailux-home', entity_name:'Ailux', company_id:'ailux',
         ticker:'Private', hq_city:'Shanghai', hq_country:'China',
         bestStage:'Preclinical', bestCls:'Next Gen', bestRelevance:null,
         isTerminated:false, programs:[], target:ap.target, _isAilux:true
       } : null;
-      if (ap) {
-        const ailuxSc = AILUX_SC['Preclinical'] || 3;
-        candidates.push({ id:'ailux-home', ent:ailuxEnt, sc:ailuxSc, stage:'Preclinical', relev:null, isAilux:true });
-      }
 
-      candidates.sort((a,b) => {
-        if (Math.abs(b.sc - a.sc) > 0.01) return b.sc - a.sc;
-        return (STAGE_W[b.stage]??0) - (STAGE_W[a.stage]??0);
-      });
+      // Score next-gen candidates (Ailux gets stage-based score from drugs.stage)
+      let ngCandidates = ng.map(e => ({ id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false, isNg:true }));
+      if (ap) ngCandidates.push({ id:'ailux-home', ent:ailuxEnt, sc:(STAGE_W['Preclinical']||1)*1.0, stage:'Preclinical', relev:null, isAilux:true, isNg:true });
+      ngCandidates.sort((a,b) => Math.abs(b.sc-a.sc)>0.01 ? b.sc-a.sc : (STAGE_W[b.stage]??0)-(STAGE_W[a.stage]??0));
 
-      const medals = ['🥇','🥈','🥉'];
+      // Score first-gen candidates (continue numbering after next-gen)
+      let fgCandidates = fg.map(e => ({ id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false, isNg:false }));
+      fgCandidates.sort((a,b) => Math.abs(b.sc-a.sc)>0.01 ? b.sc-a.sc : (STAGE_W[b.stage]??0)-(STAGE_W[a.stage]??0));
+
+      // Assign sequential ranks: next-gen 1..N, then first-gen N+1..M
       const rankMap = {};
-      candidates.forEach((c,i) => {
-        rankMap[c.id] = { rank:i+1, medal:medals[i]||null, score:c.sc, stage:c.stage, relev:c.relev, isAilux:c.isAilux, ent:c.ent };
+      let rank = 1;
+      [...ngCandidates, ...fgCandidates].forEach(c => {
+        rankMap[c.id] = { rank, score:c.sc, stage:c.stage, relev:c.relev, isAilux:c.isAilux, isNg:c.isNg, ent:c.ent };
+        rank++;
       });
 
-      // Movement: compare against localStorage (populated by previous visit)
-      // localStorage is the comparison baseline; DB snapshot records the permanent history
+      // Movement arrows: compare to localStorage snapshot from last visit
       let prev = {};
       try { prev = JSON.parse(localStorage.getItem('ngRk_'+tid) || '{}'); } catch(e){}
       Object.entries(rankMap).forEach(([id,r]) => {
@@ -16436,9 +16428,8 @@ function _makeAreaPI(tabId, areaIds) {
         else if(r.rank>p) { r.move='down'; r.delta=r.rank-p; }
         else              r.move='same';
       });
+      // Save to localStorage (current session baseline) and DB (permanent history)
       try { const s={}; Object.entries(rankMap).forEach(([id,r])=>{s[id]=r.rank;}); localStorage.setItem('ngRk_'+tid,JSON.stringify(s)); } catch(e){}
-
-      // Write DB snapshot (fire-and-forget) — stores actual DB values so history is queryable
       const areaId = aKey || tid.replace(/-area-pi$/,'');
       _persistNextGenRankings(rankMap, areaId);
 
@@ -16446,18 +16437,16 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     _rankCell(info) {
-      if (!info) return '<td class="pi-rank-cell" style="color:#cbd5e1;font-size:10px">—</td>';
-      const { rank, medal, move, delta, isAilux } = info;
-      let badge;
-      if (isAilux)      badge = '<span class="pi-rank-home" title="Ailux — home team">★</span>';
-      else if (rank===1) badge = '<span class="pi-medal pi-medal-gold">🥇</span>';
-      else if (rank===2) badge = '<span class="pi-medal pi-medal-silver">🥈</span>';
-      else if (rank===3) badge = '<span class="pi-medal pi-medal-bronze">🥉</span>';
-      else               badge = '<span class="pi-rank-num">'+rank+'</span>';
-      const mv = move==='up'   ? '<span class="pi-move-up">↑<span class="pi-move-d" style="color:#16a34a">+'+(delta||'')+'</span></span>'
-               : move==='down' ? '<span class="pi-move-dn">↓<span class="pi-move-d" style="color:#dc2626">'+(delta||'')+'</span></span>'
-               : move==='new'  ? '<span class="pi-move-new">NEW</span>'
-               : '<span class="pi-move-st">→</span>';
+      // Small text badge: top 3 get color, rest get gray number, Ailux gets amber star
+      // All entities — next-gen and first-gen — get a number (recorded in DB permanently)
+      if (!info) return '<td class="pi-rank-cell"><span class="pi-rk pi-rk-n" style="opacity:.3">—</span></td>';
+      const { rank, move, isAilux } = info;
+      const cls = isAilux ? 'pi-rk-home' : (rank===1?'pi-rk-1':rank===2?'pi-rk-2':rank===3?'pi-rk-3':'pi-rk-n');
+      const lbl = isAilux ? '★' : rank;
+      const badge = '<span class="pi-rk '+cls+'" title="'+(isAilux?'Ailux':'#'+rank)+'">'+lbl+'</span>';
+      const mv = move==='up'   ? '<span class="pi-move-up">↑</span>'
+               : move==='down' ? '<span class="pi-move-dn">↓</span>'
+               : '';
       return '<td class="pi-rank-cell"><div class="pi-move-wrap">'+badge+mv+'</div></td>';
     },
 
@@ -16506,12 +16495,13 @@ function _makeAreaPI(tabId, areaIds) {
           ngFinal.push(e);
         }
         if (!aDone) ngFinal.push(ailuxEntry);
-        const ngCount = ngFinal.length;
+        const ngCount  = ngFinal.length;
         const ailuxPos = rankMap['ailux-home']?.rank;
+        const fgStart  = ngCount + 1;
         displayList = [
-          { _sep:'ng', _label:'🧬 NEXT-GEN BISPECIFIC RACE · '+ngCount+' programs'+(ailuxPos?' · Ailux at #'+ailuxPos:'') },
+          { _sep:'ng', _label:'🧬 Next-Gen · '+ngCount+' programs'+(ailuxPos?' · Ailux #'+ailuxPos:'') },
           ...ngFinal,
-          ...(fg.length ? [{ _sep:'fg', _label:'🔬 FIRST-GEN — Validated class · Sets the efficacy bar' }] : []),
+          ...(fg.length ? [{ _sep:'fg', _label:'🔬 First-Gen · #'+fgStart+'–'+(fgStart+fg.length-1)+' · Sets the efficacy bar' }] : []),
           ...fg
         ];
       }
@@ -16653,7 +16643,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col style="width:4%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col style="width:3%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
