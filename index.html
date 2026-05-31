@@ -2015,19 +2015,17 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-cls-1st  { background:#dbeafe;color:#1d4ed8; }   /* 1st Gen — blue: foundational monospecifics */
 .pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
 .pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
-/* ── Generation Race UI ─────────────────────────────────────────────────────── */
-.pi-rank-cell { width:26px;text-align:center;padding:1px 0 !important;vertical-align:middle; }
-.pi-rk        { display:inline-flex;align-items:center;justify-content:center;width:18px;height:16px;border-radius:3px;font-size:9px;font-weight:700;line-height:1; }
-.pi-rk-1      { background:#fef3c7;color:#92400e;border:1px solid #fbbf24; }
-.pi-rk-2      { background:#f1f5f9;color:#475569;border:1px solid #cbd5e1; }
-.pi-rk-3      { background:#fff7ed;color:#7c2d12;border:1px solid #fed7aa; }
-.pi-rk-n      { background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0; }
-.pi-rk-home   { background:#fff8e1;color:#b45309;border:1px solid #fde68a; }
-.pi-move-wrap { display:flex;flex-direction:column;align-items:center;gap:0; }
-.pi-move-up   { color:#16a34a;font-size:7px;line-height:1; }
-.pi-move-dn   { color:#dc2626;font-size:7px;line-height:1; }
-.pi-move-st   { color:#e2e8f0;font-size:6px;line-height:1; }
-.pi-move-new  { color:#a78bfa;font-size:6px;font-weight:700; }
+/* ── Generation Race UI — subtle ranking ────────────────────────────────────── */
+.pi-rank-cell { width:34px;text-align:left;padding:0 4px 0 6px !important;vertical-align:middle;white-space:nowrap; }
+.pi-rk-wrap   { display:inline-flex;align-items:center;gap:2px; }
+.pi-rk-num    { font-size:10px;font-weight:500;color:#94a3b8;font-variant-numeric:tabular-nums; }
+.pi-rk-1 .pi-rk-num { color:#d97706;font-weight:700; }
+.pi-rk-2 .pi-rk-num { color:#9ca3af;font-weight:600; }
+.pi-rk-3 .pi-rk-num { color:#b45309;font-weight:600; }
+.pi-rk-home .pi-rk-num { color:#b45309;font-weight:700; }
+.pi-rk-medal  { font-size:9px;line-height:1; }
+.pi-move-up   { color:#16a34a;font-size:9px;font-weight:700;line-height:1; }
+.pi-move-dn   { color:#dc2626;font-size:9px;font-weight:700;line-height:1; }
 .pi-ailux-row { background:linear-gradient(90deg,#fffbeb,#fffdf5) !important; }
 .pi-ailux-row:hover { background:linear-gradient(90deg,#fef3c7,#fffbeb) !important; }
 .pi-ailux-tag { display:inline-block;padding:1px 5px;border-radius:4px;font-size:7.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;margin-left:3px; }
@@ -16437,17 +16435,21 @@ function _makeAreaPI(tabId, areaIds) {
     },
 
     _rankCell(info) {
-      // Small text badge: top 3 get color, rest get gray number, Ailux gets amber star
-      // All entities — next-gen and first-gen — get a number (recorded in DB permanently)
-      if (!info) return '<td class="pi-rank-cell"><span class="pi-rk pi-rk-n" style="opacity:.3">—</span></td>';
+      // Plain number + arrow — no box, just the rank sitting in the column
+      // Top 3 get a tiny medal glyph + colored number; rest are plain gray
+      if (!info) return '<td class="pi-rank-cell"></td>';
       const { rank, move, isAilux } = info;
-      const cls = isAilux ? 'pi-rk-home' : (rank===1?'pi-rk-1':rank===2?'pi-rk-2':rank===3?'pi-rk-3':'pi-rk-n');
-      const lbl = isAilux ? '★' : rank;
-      const badge = '<span class="pi-rk '+cls+'" title="'+(isAilux?'Ailux':'#'+rank)+'">'+lbl+'</span>';
-      const mv = move==='up'   ? '<span class="pi-move-up">↑</span>'
-               : move==='down' ? '<span class="pi-move-dn">↓</span>'
-               : '';
-      return '<td class="pi-rank-cell"><div class="pi-move-wrap">'+badge+mv+'</div></td>';
+      const rankCls = isAilux ? 'pi-rk-home' : (rank===1?'pi-rk-1':rank===2?'pi-rk-2':rank===3?'pi-rk-3':'');
+      const medal   = rank===1 ? '<span class="pi-rk-medal">🥇</span>' : rank===2 ? '<span class="pi-rk-medal">🥈</span>' : rank===3 ? '<span class="pi-rk-medal">🥉</span>' : '';
+      const numStr  = isAilux ? '★' : rank;
+      const arrow   = move==='up'   ? '<span class="pi-move-up">↑</span>'
+                    : move==='down' ? '<span class="pi-move-dn">↓</span>'
+                    : '';
+      return '<td class="pi-rank-cell"><span class="pi-rk-wrap '+(rankCls||'')+'">'
+        + medal
+        + '<span class="pi-rk-num">'+numStr+'</span>'
+        + arrow
+        + '</span></td>';
     },
 
     _renderTable() {
@@ -16643,7 +16645,7 @@ function _makeAreaPI(tabId, areaIds) {
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
       const _cg = showRace
-        ? '<colgroup><col style="width:3%"><col style="width:19%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
+        ? '<colgroup><col style="width:5%"><col style="width:18%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>'
         : '<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>';
       const _th = showRace
         ? '<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'co\')">Entity</th><th>Pipeline</th><th>Indication</th><th>Lead Target</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'stage\')">Stage</th><th class="pi-th-sort" onclick="_areaPISort(\''+tid+'\',\'relevance\')">Relevance</th><th>Catalyst</th></tr></thead>'
