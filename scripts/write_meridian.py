@@ -209,7 +209,7 @@ def fetch_company_signals():
             f"{SUPABASE_URL}/rest/v1/company_signals",
             headers=SB_HEADERS,
             params={
-                "select": "company_id,signal_type,signal_text,sort_order",
+                "select": "company_id,dir,signal_text,sort_order",
                 "order": "company_id,sort_order",
             },
         )
@@ -779,7 +779,7 @@ def build_company_signals_block(signals):
     for company in sorted(by_company):
         lines.append(f"\n{company.upper()}:")
         for s in by_company[company]:
-            stype = s.get("signal_type", "?").upper()
+            stype = (s.get("dir") or s.get("signal_type") or "?").upper()
             lines.append(f"  [{stype}] {s.get('signal_text', '')}")
     return "\n".join(lines)
 
