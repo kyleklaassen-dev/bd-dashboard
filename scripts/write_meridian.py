@@ -1172,7 +1172,7 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
     drug_linked = set()
     for name, did in drug_entries_dedup:
         if name.lower() not in drug_linked:
-            link = f'<a href="#" onclick="openDrugModal(\'{did}\')">{name}</a>'
+            link = f'<a href="javascript:void(0)" style="cursor:pointer" onclick="try{{window.parent.openDrugEntityModal(\'{did}\',\'{name}\',null)}}catch(e){{}}">{name}</a>'
             new_html = _replace_first(html, name, link)
             if new_html is not html:  # replacement was made
                 html = new_html
@@ -1182,7 +1182,7 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
     co_linked = set()
     for name, cid in company_entries:
         if name.lower() not in co_linked:
-            link = f'<a href="#" onclick="openCompanyModal(\'{cid}\')">{name}</a>'
+            link = f'<a href="javascript:void(0)" style="cursor:pointer" onclick="try{{window.parent.openCompanyEntityModal(\'{cid}\',\'{name}\',\'meridian\',\'{cid}\')}}catch(e){{}}">{name}</a>'
             new_html = _replace_first(html, name, link)
             if new_html is not html:
                 html = new_html
