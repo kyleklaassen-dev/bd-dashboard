@@ -121,9 +121,9 @@ _DRUGS: Optional[list] = None
 def load_entities():
     global _COMPANIES, _DRUGS
     if _COMPANIES is None:
-        _COMPANIES = sb_list("companies", "id,name,aliases")
+        _COMPANIES = sb_list("companies", "id,name")
     if _DRUGS is None:
-        _DRUGS = sb_list("drugs", "id,display_name,aliases")
+        _DRUGS = sb_list("drugs", "id,display_name")
 
 def match_entity(name: str, entities: list, name_field: str) -> Optional[str]:
     """Fuzzy match a string against a list of entities. Returns id or None."""
@@ -134,14 +134,8 @@ def match_entity(name: str, entities: list, name_field: str) -> Optional[str]:
         primary = (e.get(name_field) or "").lower().strip()
         if name_lc == primary or name_lc in primary or primary in name_lc:
             return e["id"]
-        # Check aliases
-        aliases = e.get("aliases") or []
-        if isinstance(aliases, str):
-            try: aliases = json.loads(aliases)
-            except: aliases = [aliases]
-        for alias in aliases:
-            if name_lc == alias.lower().strip():
-                return e["id"]
+        # Aliases field removed — skip alias matching
+        pass
     return None
 
 # ── Duplicate detection ───────────────────────────────────────────────────────
@@ -198,12 +192,12 @@ def check_duplicates(url: str, submitted_text: str, extraction: Optional[dict]) 
     companies = list({c.lower() for c in (extraction or {}).get("extracted_entities", {}).get("companies", [])})
     drugs     = list({d.lower() for d in (extraction or {}).get("extracted_entities", {}).get("drugs", [])})
     if companies or drugs:
-        dq_rows = sb_get("discovery_queue", {
-            "select": "company_name,drug_name,notes",
+        dq_rows = sb_get("research_queue", {
+            "select": "entity_name,reason",
             "limit":  "200",
         })
         for row in dq_rows:
-            dq_text = " ".join(filter(None, [row.get("company_name"), row.get("drug_name"), row.get("notes")])).lower()
+            dq_text = " ".join(filter(None, [row.get("entity_name"), row.get("reason")])).lower()
             for co in companies:
                 if co in dq_text:
                     reasons.append(f"Company \"{co}\" already has an open discovery_queue item")
