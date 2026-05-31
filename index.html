@@ -16664,14 +16664,8 @@ function _makeAreaPI(tabId, areaIds) {
         ngByRank.forEach(ent => {
           const entRank = rankMap[ent.entity_id]?.rank ?? 99;
           if (!ailuxDone && ailuxRankPos <= entRank) { finalBody += ailuxRowHtml; ailuxDone = true; }
-          const idx = sorted.indexOf(ent);
-          finalBody += idx >= 0 ? sorted.map((e,i)=>i===idx).indexOf(true) >= 0 ? (() => {
-            // rebuild row correctly from perEntRows index
-            return Array.from({length: sorted.length}).map((_,i) => sorted[i] === ent ? i : -1).find(i=>i>=0);
-          })() : -1 : -1;
-          // Simpler: find the row from the array by entity_id match
           const rowIdx = sorted.findIndex(e => e.entity_id === ent.entity_id);
-          if (rowIdx >= 0) finalBody += Array.isArray(rows) ? rows[rowIdx] : '';
+          if (rowIdx >= 0 && Array.isArray(rows)) finalBody += rows[rowIdx];
         });
         if (!ailuxDone) finalBody += ailuxRowHtml;
 
