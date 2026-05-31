@@ -1,0 +1,39 @@
+name: Daily Ranking Snapshots
+
+on:
+  schedule:
+    # Run daily at 7:00 AM ET (11:00 UTC) — after Meridian publishes at 6:30 AM ET
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      area:
+        description: 'Area to snapshot (tl1a / ibd / fcrn / all)'
+        required: false
+        default: 'all'
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Write ranking snapshots
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          AREA="${{ github.event.inputs.area || 'all' }}"
+          if [ "$AREA" = "all" ]; then
+            python scripts/write_ranking_snapshots.py
+          else
+            python scripts/write_ranking_snapshots.py --area "$AREA"
+          fi
