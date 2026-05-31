@@ -16378,10 +16378,9 @@ function _makeAreaPI(tabId, areaIds) {
       };
       const aKey = Object.keys(AILUX_PROGS).find(k => tid.includes(k));
       const ap   = aKey ? AILUX_PROGS[aKey] : null;
-      // Real Ailux entity (company_id='ailux') becomes HOME — exclude from competitor pool
-      const _noAilux = sorted.filter(e => e.company_id !== 'ailux');
-      const ng   = _noAilux.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
-      const fg   = _noAilux.filter(e => e.bestCls !== 'Next Gen' && !e.isTerminated);
+      // All entities participate — Ailux uses dev-progress score, others use competitive score
+      const ng   = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
+      const fg   = sorted.filter(e => e.bestCls !== 'Next Gen' && !e.isTerminated);
       if (!ng.length && !fg.length && !ap) return { rankMap:{}, ailuxProg:null, hasNextGen:false, ailuxEntry:null };
 
       // Score: 70% drug_competitive_scores.total_competition_score (enrichment pipeline)
@@ -16391,21 +16390,25 @@ function _makeAreaPI(tabId, areaIds) {
         'IND filed':4,'IND-enabling':2.5,'Preclinical':1,'Terminated':0};
       const composite = (e) => ((e.bestNumericScore ?? 0) * 0.7) + ((STAGE_W[e.bestStage] ?? 0) * 0.3);
 
-      // Build Ailux synthetic entry
-      const ailuxEnt = ap ? {
-        entity_id:'ailux-home', entity_name:'Ailux', company_id:'ailux',
-        ticker:'Private', hq_city:'Shanghai', hq_country:'China',
-        bestStage:'Preclinical', bestCls:'Next Gen', bestRelevance:null,
-        isTerminated:false, programs:[], target:ap.target, _isAilux:true
-      } : null;
+      // Ailux participates as a real DB entity — no synthetic creation.
+      // Development-progress score: how far along is Ailux vs competitors?
+      // Stage-based so it climbs naturally as ALX001 advances through clinical milestones.
+      const AILUX_DEV_SC = {approved:50,approved_us:50,bla_under_review:45,
+        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1':20,
+        'IND filed':12,'IND-enabling':7,'Preclinical':3,'Terminated':0};
 
-      // Score next-gen candidates (Ailux gets stage-based score from drugs.stage)
-      let ngCandidates = ng.map(e => ({ id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false, isNg:true }));
-      if (ap) ngCandidates.push({ id:'ailux-home', ent:ailuxEnt, sc:(STAGE_W['Preclinical']||1)*1.0, stage:'Preclinical', relev:null, isAilux:true, isNg:true });
+      let ngCandidates = ng.map(e => {
+        const isAilux = e.company_id === 'ailux';
+        // Ailux: scored by development stage (not competitive relevance — it has no score against itself)
+        // Everyone else: scored by actual DB value from drug_competitive_scores
+        const sc = isAilux ? (AILUX_DEV_SC[e.bestStage] || 3) : composite(e);
+        return { id:e.entity_id, ent:e, sc, stage:e.bestStage, relev:e.bestRelevance, isAilux, isNg:true };
+      });
+      const ailuxEnt = ng.find(e => e.company_id === 'ailux') || null;
       ngCandidates.sort((a,b) => Math.abs(b.sc-a.sc)>0.01 ? b.sc-a.sc : (STAGE_W[b.stage]??0)-(STAGE_W[a.stage]??0));
 
       // Score first-gen candidates (continue numbering after next-gen)
-      let fgCandidates = fg.map(e => ({ id:e.entity_id, ent:e, sc:composite(e), stage:e.bestStage, relev:e.bestRelevance, isAilux:false, isNg:false }));
+      let fgCandidates = fg.map(e => { const isAilux=e.company_id==='ailux'; const sc=isAilux?(AILUX_DEV_SC[e.bestStage]||3):composite(e); return { id:e.entity_id, ent:e, sc, stage:e.bestStage, relev:e.bestRelevance, isAilux, isNg:false }; });
       fgCandidates.sort((a,b) => Math.abs(b.sc-a.sc)>0.01 ? b.sc-a.sc : (STAGE_W[b.stage]??0)-(STAGE_W[a.stage]??0));
 
       // Assign sequential ranks: next-gen 1..N, then first-gen N+1..M
@@ -16486,21 +16489,15 @@ function _makeAreaPI(tabId, areaIds) {
       // Build display list: inject separators + Ailux at correct rank position
       let displayList = sorted;
       if (showRace) {
-        // Exclude real Ailux from competitor lists — only HOME row represents Ailux
-        const _noAiluxSorted = sorted.filter(e => e.company_id !== 'ailux');
-        const ng = _noAiluxSorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
-        const fg = _noAiluxSorted.filter(e => e.bestCls !== 'Next Gen' || e.isTerminated);
+        // Ailux participates like all other entities — no filtering
+        const ng = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
+        const fg = sorted.filter(e => e.bestCls !== 'Next Gen' || e.isTerminated);
+        // Sort ng by rank — Ailux is already in ngSorted at its correct position
         const ngSorted = [...ng].sort((a,b) => (rankMap[a.entity_id]?.rank??99)-(rankMap[b.entity_id]?.rank??99));
-        const ailuxRank = rankMap['ailux-home']?.rank ?? 99;
-        const ngFinal = [];
-        let aDone = !ailuxEntry;
-        for (const e of ngSorted) {
-          if (!aDone && ailuxRank <= (rankMap[e.entity_id]?.rank??99)) { ngFinal.push(ailuxEntry); aDone=true; }
-          ngFinal.push(e);
-        }
-        if (!aDone) ngFinal.push(ailuxEntry);
+        const ngFinal  = ngSorted;  // Ailux participates naturally, no injection needed
         const ngCount  = ngFinal.length;
-        const ailuxPos = rankMap['ailux-home']?.rank;
+        const _ailuxRealEnt = ng.find(e => e.company_id === 'ailux');
+        const ailuxPos = _ailuxRealEnt ? rankMap[_ailuxRealEnt.entity_id]?.rank : null;
         const fgStart  = ngCount + 1;
         // Sort fg by their assigned rank so numbers appear in sequence
         const fgSorted = [...fg].sort((a,b) => (rankMap[a.entity_id]?.rank??99)-(rankMap[b.entity_id]?.rank??99));
@@ -16582,7 +16579,7 @@ function _makeAreaPI(tabId, areaIds) {
         // Use numeric score for border color if available, else fall back to word-label lookup
         const _numBorderCol = ent.bestNumericScore != null ? this._numericRelevColor(parseFloat(ent.bestNumericScore)).fg : (_RELEV_BORDER[_effectiveRelev||''] || '#e2e8f0');
         const relevBorder = `border-left:3px solid ${_numBorderCol}`;
-        const isAilux = !!ent._isAilux;
+        const isAilux = ent.company_id === 'ailux';  // amber HOME styling for real Ailux entity
         const rInfo   = rankMap[ent.entity_id] || null;
         const colSpan = showRace ? 8 : 7;
         const expRow = isExp ? '<tr class="pi-detail-row"><td colspan="'+colSpan+'"><div class="pi-research-host" id="pi-research-host-'+ent.entity_id+'"></div>'+this._entityDetailHTML(ent)+'</td></tr>' : '';
@@ -16617,8 +16614,8 @@ function _makeAreaPI(tabId, areaIds) {
         const locLine = isAilux
           ? 'Private — Shanghai, China'
           : (()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?' — '+ent.hq_city+', '+ent.hq_country:'';return t+loc;})();
-        const rowOnclick = isAilux ? '' : ' onclick="_areaPIToggle(\''+tid+'\',\''+ent.entity_id+'\')"';
-        const rowCursor  = isAilux ? 'cursor:default;' : 'cursor:pointer;';
+        const rowOnclick = ' onclick="_areaPIToggle(\''+tid+'\',\''+ent.entity_id+'\')"';  // all entities have dropdown
+        const rowCursor  = 'cursor:pointer;';  // all entities expand on click
         return '<tr class="pi-main'+(isExp?' expanded':'')+rowBg+'" style="'+rowCursor+entBorder+'"'+rowOnclick+'>'
           + rk
           + '<td><strong style="font-size:12px;color:'+nameColor+';display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+entityInner+'</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">'+locLine+'</div></td>'
