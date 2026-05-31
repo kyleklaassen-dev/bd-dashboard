@@ -11185,7 +11185,8 @@ function dqCloseDetail(e) {
       <iframe id="meridian-issue-frame"
        srcdoc="<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading issue…</p>"
        style="width:100%;height:calc(100vh - 102px);min-height:600px;border:none;display:block;"
-       title="The Meridian">
+       title="The Meridian"
+       onload="_injectMeridianBridge(this)">
       </iframe>
     </div>
   </div>
@@ -11522,6 +11523,40 @@ function updateTabTitle(id) {
  titleEl.classList.toggle('is-drug', isDrug);
  if (!isDrug) closeCenterDrugDD();
 }
+// ── Meridian entity link bridge ───────────────────────────────────────────────
+// Injected on every iframe load (both srcdoc and static file fallback).
+// Same-origin iframe — contentDocument is accessible.
+function _injectMeridianBridge(frame) {
+  try {
+    const doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+    if (!doc || !doc.head) return;
+    // Remove any previous bridge to avoid duplicates on reload
+    const prev = doc.getElementById('_meridian_bridge');
+    if (prev) prev.remove();
+    const s = doc.createElement('script');
+    s.id = '_meridian_bridge';
+    s.textContent = [
+      'function openDrugModal(id){try{window.parent.openDrugEntityModal(id,id,null);}catch(e){}}',
+      'function openCompanyModal(id){try{window.parent.openCompanyEntityModal(id,id,"meridian",id);}catch(e){}}',
+      'document.addEventListener("click",function(e){',
+      '  var a=e.target.closest("a");if(!a)return;',
+      '  var oc=a.getAttribute("onclick")||"";',
+      '  if(oc.indexOf("openDrugModal(")>=0||oc.indexOf("openCompanyModal(")>=0){',
+      '    e.preventDefault();e.stopPropagation();',
+      '    var m=oc.match(/open(?:Drug|Company)Modal\\(\\x27([^\\x27]+)\\x27\\)/);',
+      '    if(m){if(oc.indexOf("openDrugModal")>=0)openDrugModal(m[1]);else openCompanyModal(m[1]);}',
+      '    return false;',
+      '  }',
+      '  if(a.href&&a.getAttribute("href")!=="#"){',
+      '    e.preventDefault();',
+      '    window.open(a.href,"_blank","noopener,noreferrer");',
+      '  }',
+      '},true);'
+    ].join('\n');
+    doc.head.appendChild(s);
+  } catch(e) { console.warn('[meridian bridge]', e); }
+}
+
 // ── Meridian Archive ──────────────────────────────────────────────────────────
 let _meridianLoaded = false;
 
