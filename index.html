@@ -2016,6 +2016,29 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .pi-cls-2nd  { background:#f0fdf4;color:#166534; }   /* 2nd Gen — green: engineered/improved monospecifics */
 .pi-cls-next { background:#f3e8ff;color:#6b21a8; }   /* Next Gen — purple: bispecifics / dual-pathway */
 
+/* ── Generation Race: medals, movement, Ailux row ────────────────────────── */
+.pi-rank-cell { width:52px;text-align:center;padding:4px 2px !important;vertical-align:middle; }
+.pi-rank-medal { display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:900;flex-shrink:0;line-height:1; }
+.pi-rank-gold   { background:#fef3c7;border:2px solid #f59e0b;box-shadow:0 0 6px rgba(245,158,11,0.35); }
+.pi-rank-silver { background:#f1f5f9;border:2px solid #94a3b8;box-shadow:0 0 4px rgba(148,163,184,0.3); }
+.pi-rank-bronze { background:#fff7ed;border:2px solid #d97706;box-shadow:0 0 4px rgba(217,119,6,0.25); }
+.pi-rank-num    { width:22px;height:22px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:50%;font-size:10px;font-weight:700;color:#64748b;display:inline-flex;align-items:center;justify-content:center; }
+.pi-rank-home   { width:26px;height:26px;background:#fff8e1;border:2px solid #f59e0b;border-radius:50%;font-size:12px;font-weight:900;color:#b45309;display:inline-flex;align-items:center;justify-content:center; }
+.pi-move-wrap   { display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px; }
+.pi-move-up   { color:#16a34a;font-size:10px;font-weight:900;line-height:1; }
+.pi-move-down { color:#dc2626;font-size:10px;font-weight:900;line-height:1; }
+.pi-move-same { color:#cbd5e1;font-size:9px;line-height:1; }
+.pi-move-new  { color:#8b5cf6;font-size:8px;font-weight:700;letter-spacing:0.5px; }
+.pi-move-delta{ font-size:7.5px;font-weight:700; }
+.pi-ailux-row { background:linear-gradient(90deg,#fffbeb 0%,#fffdf5 100%) !important; }
+.pi-ailux-row:hover { background:linear-gradient(90deg,#fef3c7 0%,#fffbeb 100%) !important; }
+.pi-ailux-row td { border-top:1px dashed #fde68a !important;border-bottom:1px dashed #fde68a !important; }
+.pi-gen-sep td { padding:5px 8px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;border:none !important;cursor:default; }
+.pi-gen-sep-ng td { color:#7c3aed;background:#fdf4ff;border-left:3px solid #a855f7 !important; }
+.pi-gen-sep-fg td { color:#64748b;background:#f8fafc;border-left:3px solid #94a3b8 !important;margin-top:4px; }
+.pi-score-chip { display:inline-block;padding:1px 5px;border-radius:5px;font-size:8px;font-weight:700;color:#7c3aed;background:#f3e8ff;margin-left:3px; }
+.pi-ailux-tag  { display:inline-block;padding:1px 6px;border-radius:5px;font-size:8px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;margin-left:4px;letter-spacing:0.3px; }
+
 /* RELEVANCE badges — competitive/strategic overlap with our program */
 .pi-overlap-badge { display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700; }
 .pi-overlap-direct   { background:#fee2e2;color:#991b1b; }   /* Direct — red */
@@ -12226,30 +12249,129 @@ function _dimSourceChips(urls, labels) {
   }).join('');
 }
 
-function _dimBuildTimeline(qaMap) {
-  // Pull milestone dates from specific questions
+// Canonical milestone ordering for timeline display
+const _DIM_MILESTONE_ORDER = ['discovery','ind_enabling','ind_filing','fih','phase1_complete','phase2_start','phase2_primary','phase3_start','phase3_primary','nda_filing','approval'];
+const _DIM_MILESTONE_LABELS = {
+  discovery:'Discovery', ind_enabling:'IND-Enabling', ind_filing:'IND Filing',
+  fih:'FIH', phase1_complete:'Ph1 Done', phase2_start:'Phase 2',
+  phase2_primary:'Ph2 Readout', phase3_start:'Phase 3', phase3_primary:'Ph3 Readout',
+  nda_filing:'NDA/BLA', approval:'Approval',
+};
+
+function _dimBuildTimeline(qaMap, timelineRows) {
+  // timelineRows: from drug_timeline_estimates (preferred) or drug_development_timelines
+  const today = new Date();
+  const nowMs = today.getTime();
+  const twelveMonthMs = 365 * 24 * 60 * 60 * 1000;
+
+  // Build milestone map from DB rows — prefer current_is_best_estimate rows
+  const dbMap = {};
+  if (timelineRows && timelineRows.length) {
+    const sorted = [...timelineRows].sort((a,b) => (b.current_is_best_estimate ? 1 : 0) - (a.current_is_best_estimate ? 1 : 0));
+    sorted.forEach(r => { if (!dbMap[r.milestone]) dbMap[r.milestone] = r; });
+  }
+
+  // Which milestones to show: union of DB milestones + core canonical set
+  const dbKeys = Object.keys(dbMap);
+  const coreKeys = ['fih','phase2_start','phase3_start','nda_filing','approval'];
+  const seen = new Set();
+  const orderedKeys = _DIM_MILESTONE_ORDER.filter(m => {
+    if (seen.has(m)) return false;
+    if (dbKeys.includes(m) || coreKeys.includes(m)) { seen.add(m); return true; }
+    return false;
+  });
+
+  // Q&A fallback text
   const q21 = (qaMap[21]||{}).answer_short || '';
   const q28 = (qaMap[28]||{}).answer_short || '';
-  const milestones = [
-    { label:'Discovery', sub:'', state:'done' },
-    { label:'IND Filing', sub:'', state:'done' },
-    { label:'FIH', sub: q21.slice(0,30) || '', state: q21 && !q21.toLowerCase().includes('unknown') ? 'done' : 'future' },
-    { label:'Ph1 Complete', sub:'', state:'future' },
-    { label:'Phase 2', sub:'', state:'current' },
-    { label:'Phase 3', sub: q28.slice(0,25) || '', state: q28.toLowerCase().includes('2026') || q28.toLowerCase().includes('2025') ? 'imminent' : 'future' },
-    { label:'NDA/BLA', sub:'', state:'future' },
-    { label:'Approval', sub:'', state:'future' },
-  ];
+
+  const milestones = orderedKeys.map(key => {
+    const db = dbMap[key];
+    const label = _DIM_MILESTONE_LABELS[key] || key;
+    let state = 'future', sub = '', opacityStyle = '', dashStyle = '', tooltipParts = [];
+
+    if (db) {
+      const actualDate = db.actual_date ? new Date(db.actual_date) : null;
+      const estDate = (db.estimate_date || db.estimated_date) ? new Date(db.estimate_date || db.estimated_date) : null;
+      const estYear = db.estimate_year || db.estimated_year;
+      const estQ = db.estimate_quarter || db.estimated_quarter;
+      const conf = db.estimate_confidence || db.confidence;
+      const delta = db.delta_days;
+
+      if (actualDate) {
+        state = 'done';
+        sub = delta != null && delta !== 0
+          ? (delta < 0 ? `${Math.abs(delta)}d early` : `${delta}d late`)
+          : actualDate.getFullYear().toString();
+      } else if (estDate) {
+        const msAway = estDate.getTime() - nowMs;
+        if (msAway < 0) {
+          state = 'current';
+        } else if (msAway < twelveMonthMs) {
+          state = 'imminent';
+        } else {
+          state = 'future';
+        }
+        sub = estQ ? estQ : estYear ? estYear.toString() : estDate.getFullYear().toString();
+      } else if (estYear) {
+        sub = estQ ? estQ : estYear.toString();
+      }
+
+      // Visual confidence encoding for future/imminent milestones
+      if (state === 'future') {
+        if (conf === 'speculative') { opacityStyle = 'opacity:0.45;'; dashStyle = 'border-style:dashed;'; }
+        else if (conf === 'low') { opacityStyle = 'opacity:0.65;'; }
+        else if (conf === 'medium') { opacityStyle = 'opacity:0.85;'; }
+      }
+
+      // Tooltip assembly
+      const estLabel = actualDate
+        ? `Actual: ${actualDate.toLocaleDateString('en-US',{month:'short',year:'numeric'})}`
+        : estDate ? `Est: ${estDate.toLocaleDateString('en-US',{month:'short',year:'numeric'})}`
+          : estYear ? `Est: ${estYear}` : '';
+      if (estLabel) tooltipParts.push(estLabel);
+      if (conf) tooltipParts.push(`${conf} confidence`);
+      const basisText = (db.estimate_basis || db.date_basis || '').slice(0,100);
+      if (basisText) tooltipParts.push(basisText);
+    } else {
+      // Q&A fallback
+      if (key === 'fih') {
+        state = (q21 && !q21.toLowerCase().includes('unknown')) ? 'done' : 'future';
+        sub = q21.slice(0,25);
+      } else if (key === 'phase3_start') {
+        const isImminent = q28.toLowerCase().includes('2026') || q28.toLowerCase().includes('2025');
+        state = isImminent ? 'imminent' : 'future';
+        sub = q28.slice(0,25);
+      } else if (key === 'phase2_start') {
+        state = 'current';
+      }
+    }
+
+    return { key, label, sub, state, opacityStyle, dashStyle, tooltip: tooltipParts.join(' | '), isSpeculative: (db?.estimate_confidence || db?.confidence) === 'speculative' };
+  });
 
   const dots = milestones.map((m, i) => {
     const isAbove = i % 2 === 0;
     const labelClass = isAbove ? 'above' : 'below';
-    const subHtml = m.sub ? `<span style="font-weight:400;color:#94a3b8"> · ${m.sub}</span>` : '';
-    return `${i > 0 ? '<div class="dim-timeline-line"></div>' : ''}
-      <div class="dim-timeline-dot ${m.state}" style="position:relative">
+    const subHtml = m.sub ? `<span style="font-weight:400;color:#94a3b8;font-size:8px"> ${m.sub}</span>` : '';
+    const ttAttr = m.tooltip ? ` title="${m.tooltip.replace(/"/g,\"'\")}"` : '';
+    const isDeltaBadge = m.sub && (m.sub.includes('d early') || m.sub.includes('d late'));
+    const deltaBadge = isDeltaBadge
+      ? `<span style="font-size:8px;font-weight:700;color:${m.sub.includes('early')?'#22c55e':'#ef4444'};position:absolute;top:-18px;left:50%;transform:translateX(-50%);white-space:nowrap">\u2713 ${m.sub}</span>`
+      : '';
+    const prevSpeculative = i > 0 && milestones[i-1].isSpeculative;
+    const lineStyle = prevSpeculative ? 'background:repeating-linear-gradient(90deg,#cbd5e1 0px,#cbd5e1 4px,transparent 4px,transparent 8px);' : '';
+    return `${i > 0 ? `<div class="dim-timeline-line" style="${lineStyle}"></div>` : ''}
+      <div class="dim-timeline-dot ${m.state}" style="position:relative;${m.opacityStyle}${m.dashStyle}"${ttAttr}>
+        ${deltaBadge}
         <div class="dim-timeline-label ${labelClass}">${m.label}${subHtml}</div>
       </div>`;
   }).join('');
+
+  const hasSpeculative = milestones.some(m => m.isSpeculative);
+  const confLegend = hasSpeculative
+    ? `<span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:16px;border-top:2px dashed #cbd5e1;display:inline-block"></span> Speculative</span>`
+    : '';
 
   return `<div class="dim-timeline">
     <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Development Timeline</div>
@@ -12258,8 +12380,10 @@ function _dimBuildTimeline(qaMap) {
       <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span> Confirmed</span>
       <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;display:inline-block"></span> Current</span>
       <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #f59e0b;display:inline-block"></span> Imminent (&lt;12 mo)</span>
-      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #cbd5e1;display:inline-block"></span> Future</span>
+      <span style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #cbd5e1;display:inline-block"></span> Future est.</span>
+      ${confLegend}
     </div>
+    <div style="font-size:9px;color:#94a3b8;margin-top:4px">Hover milestone dots for estimate basis &middot; drug_timeline_estimates</div>
   </div>`;
 }
 
@@ -12322,13 +12446,24 @@ async function _demLoadIntelligence(drugId, drugName, companyId) {
   try {
     const _drugIdSafe = drugId && !String(drugId).startsWith('static-') ? drugId : null;
 
-    // Fetch the 100-question intelligence profile
-    const { data: qaRows, error: qaErr } = _drugIdSafe
-      ? await _sb.from('drug_intelligence_qa')
-          .select('question_id,domain,question_text,answer_text,answer_short,confidence_score,evidence_level,source_urls,source_labels')
-          .eq('drug_id', _drugIdSafe)
-          .order('question_id', {ascending: true})
-      : { data: [], error: null };
+    // Fetch the 100-question intelligence profile + timeline estimates in parallel
+    const [qaResult, timelineResult] = await Promise.all([
+      _drugIdSafe
+        ? _sb.from('drug_intelligence_qa')
+            .select('question_id,domain,question_text,answer_text,answer_short,confidence_score,evidence_level,source_urls,source_labels')
+            .eq('drug_id', _drugIdSafe)
+            .order('question_id', {ascending: true})
+        : Promise.resolve({ data: [], error: null }),
+      _drugIdSafe
+        ? _sb.from('drug_timeline_estimates')
+            .select('milestone,milestone_label,estimate_date,estimate_year,estimate_quarter,estimate_confidence,estimate_basis,actual_date,delta_days,current_is_best_estimate,source_url,notes')
+            .eq('drug_id', _drugIdSafe)
+            .eq('current_is_best_estimate', true)
+            .order('milestone', {ascending: true})
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const { data: qaRows, error: qaErr } = qaResult;
+    const { data: tlRows } = timelineResult; // timeline errors are non-fatal
 
     if (qaErr) throw qaErr;
 
@@ -12431,8 +12566,9 @@ async function _demLoadIntelligence(drugId, drugName, companyId) {
       </div>`;
     }).join('');
 
-    // ── Layer 4: Timeline ────────────────────────────────────────────────────
-    const timelineHtml = _dimBuildTimeline(qaMap);
+    // ── Layer 4: Timeline ─────────────────────────────────────────────────────
+    // Prefer drug_timeline_estimates (tlRows); fall back to Q&A-inferred state
+    const timelineHtml = _dimBuildTimeline(qaMap, tlRows || []);
 
     // ── Assemble panel ───────────────────────────────────────────────────────
     const totalAnswered = qaRows.filter(r => r.answer_short && r.answer_short !== '—').length;
@@ -16270,6 +16406,102 @@ function _makeAreaPI(tabId, areaIds) {
       }
     },
 
+    // ── Next-gen generation ranking ─────────────────────────────────────────
+    _nextGenRanks(sorted, tid) {
+      const STAGE_PTS = {
+        approved:50,approved_us:50,approved_eu:50,approved_us_eu:50,approved_partial:45,
+        bla_under_review:45,nda_under_review:45,
+        'Phase 3':40,'Phase 2/3':37,'Phase 2':35,'Phase 1b':28,'Phase 1/2':26,'Phase 1':20,
+        'IND filed':12,'IND-enabling':7,'Preclinical':3,'Terminated':0
+      };
+      const advScore = (stageName, relev, diffBonus) => {
+        const sp = STAGE_PTS[stageName] || 3;
+        const dp = sp >= 20 ? 15 : (sp >= 7 ? 7 : 3);  // data quality proxy
+        const rp = ({very_high:12,high:7,medium:3,low:1,monitor:0})[relev] || 0;
+        return sp + dp + rp + (diffBonus || 5);
+      };
+
+      // Ailux programs by tab area key
+      const AILUX_PROGS = {
+        tl1a: { drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis', diff:8 },
+        ibd:  { drug:'ALX001', target:'TL1A × IL-23p19', ind:'UC; CD; Psoriasis', diff:8 },
+        fcrn: { drug:'ALX005', target:'FcRn × Albumin',  ind:'gMG; CIDP',         diff:8 },
+      };
+      const aKey = Object.keys(AILUX_PROGS).find(k => tid.includes(k));
+      const ailuxProg = aKey ? AILUX_PROGS[aKey] : null;
+
+      // Gather next-gen entities
+      const nextGen = sorted.filter(e => e.bestCls === 'Next Gen' && !e.isTerminated);
+      if (!nextGen.length && !ailuxProg) return { rankMap: {}, ailuxProg: null, hasNextGen: false };
+
+      // Score each next-gen entity
+      let ranked = nextGen.map(e => ({
+        id: e.entity_id, ent: e, sc: advScore(e.bestStage, e.bestRelevance, 5), isAilux: false
+      }));
+
+      // Add Ailux synthetic entry if this tab has an Ailux program
+      if (ailuxProg) {
+        ranked.push({
+          id: 'ailux-home',
+          ent: { entity_id:'ailux-home', entity_name:'Ailux', company_id:'ailux',
+                 ticker:'Private', hq_city:'Shanghai', hq_country:'China',
+                 bestStage:'Preclinical', bestCls:'Next Gen', bestRelevance:null,
+                 isTerminated:false, programs:[],
+                 target: ailuxProg.target, isAilux: true },
+          sc: advScore('Preclinical', null, ailuxProg.diff),
+          isAilux: true
+        });
+      }
+
+      // Sort by score descending
+      ranked.sort((a,b) => b.sc - a.sc);
+
+      // Assign ranks
+      const medals = ['🥇','🥈','🥉'];
+      const rankMap = {};
+      ranked.forEach((item, i) => {
+        rankMap[item.id] = { rank: i+1, medal: medals[i] || null, score: item.sc, isAilux: item.isAilux, ent: item.ent };
+      });
+
+      // Movement tracking via localStorage
+      let prevRanks = {};
+      try { prevRanks = JSON.parse(localStorage.getItem('ngRk_'+tid) || '{}'); } catch(e){}
+      const toSave = {};
+      Object.entries(rankMap).forEach(([id,r]) => { toSave[id] = r.rank; });
+      try { localStorage.setItem('ngRk_'+tid, JSON.stringify(toSave)); } catch(e){}
+
+      // Attach movement arrows
+      Object.entries(rankMap).forEach(([id,r]) => {
+        const prev = prevRanks[id];
+        if (prev == null)         r.move = 'new';
+        else if (r.rank < prev)   { r.move = 'up';   r.delta = prev - r.rank; }
+        else if (r.rank > prev)   { r.move = 'down'; r.delta = r.rank - prev; }
+        else                      r.move = 'same';
+      });
+
+      return { rankMap, ailuxProg, hasNextGen: nextGen.length > 0 };
+    },
+
+    _rankBadgeHTML(rankInfo) {
+      if (!rankInfo) return `<td class="pi-rank-cell">—</td>`;
+      const { rank, medal, move, delta, isAilux } = rankInfo;
+      let badgeHtml;
+      if (isAilux) {
+        badgeHtml = `<span class="pi-rank-home" title="Ailux — home team">★</span>`;
+      } else if (medal) {
+        const cls = rank===1?'pi-rank-gold':rank===2?'pi-rank-silver':'pi-rank-bronze';
+        badgeHtml = `<span class="pi-rank-medal ${cls}" title="Position ${rank} — next-gen bispecific race">${medal}</span>`;
+      } else {
+        badgeHtml = `<span class="pi-rank-num" title="Position ${rank}">${rank}</span>`;
+      }
+      let moveHtml = '';
+      if (move === 'up')   moveHtml = `<span class="pi-move-up" title="Moved up ${delta}">&nbsp;↑<span class="pi-move-delta" style="color:#16a34a">+${delta}</span></span>`;
+      else if (move === 'down') moveHtml = `<span class="pi-move-down" title="Moved down ${delta}">&nbsp;↓<span class="pi-move-delta" style="color:#dc2626">${delta}</span></span>`;
+      else if (move === 'same') moveHtml = `<span class="pi-move-same" title="Position unchanged">→</span>`;
+      else if (move === 'new')  moveHtml = `<span class="pi-move-new" title="New entry">NEW</span>`;
+      return `<td class="pi-rank-cell"><div class="pi-move-wrap">${badgeHtml}${moveHtml}</div></td>`;
+    },
+
     _renderTable() {
       const el = document.getElementById(this.tabId+'-area-pi');
       if (!el) return;
@@ -16296,6 +16528,10 @@ function _makeAreaPI(tabId, areaIds) {
         return this.sortDir*(av-bv);
       });
       sorted.sort((a,b) => { if (a.isTerminated!==b.isTerminated) return a.isTerminated?1:-1; return 0; });
+
+      // ── Next-gen generation ranking ──────────────────────────────────────
+      const { rankMap, ailuxProg, hasNextGen } = this._nextGenRanks(sorted, tid);
+      const showRace = hasNextGen || !!ailuxProg;
 
       if (cnt) cnt.textContent = `${sorted.length} entities`;
       if (!sorted.length) {
@@ -16363,53 +16599,115 @@ function _makeAreaPI(tabId, areaIds) {
         const catCell = `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">${catContent}<span class="pi-expand-icon${isExp?' open':''}">▼</span></div>`;
 
         const _RELEV_BORDER = {very_high:'#dc2626',high:'#ea580c',medium:'#d97706',low:'#94a3b8',monitor:'#94a3b8'};
-        // Use numeric score for border color if available, else fall back to word-label lookup
         const _numBorderCol = ent.bestNumericScore != null ? this._numericRelevColor(parseFloat(ent.bestNumericScore)).fg : (_RELEV_BORDER[_effectiveRelev||''] || '#e2e8f0');
-        const relevBorder = `border-left:3px solid ${_numBorderCol}`;
-        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="7"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
+        const isAilux = ent.isAilux || ent.company_id === 'ailux';
+        const relevBorder = isAilux ? 'border-left:3px solid #f59e0b' : `border-left:3px solid ${_numBorderCol}`;
+        const rankInfo = rankMap[ent.entity_id] || null;
+        const rankCell = showRace ? this._rankBadgeHTML(rankInfo) : '';
+        const colSpan = showRace ? 8 : 7;
+        const expRow = isExp ? `<tr class="pi-detail-row"><td colspan="${colSpan}"><div class="pi-research-host" id="pi-research-host-${ent.entity_id}"></div>${this._entityDetailHTML(ent)}</td></tr>` : '';
         const _covPct = this._covScoreMap?.[ent.company_id] ?? this._covScoreMap?.[ent.entity_id] ?? null;
         const _covHtml = _covPct != null ? `<span style="font-size:9px;font-weight:700;color:${_covPct>=70?'#15803d':_covPct>=40?'#b45309':'#b91c1c'};margin-left:5px" title="Coverage score: ${_covPct}%">⬤ ${_covPct}%</span>` : '';
-        return `<tr class="pi-main${isExp?' expanded':''}" style="cursor:pointer;${relevBorder}" onclick="_areaPIToggle('${tid}','${ent.entity_id}')">
-          <td><strong style="font-size:12px;color:#1e3a5f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span>${_covHtml}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
-          <td>${pipelineCell}</td>
+        const ailuxTag = isAilux ? `<span class="pi-ailux-tag">HOME</span>` : '';
+        const ailuxRowClass = isAilux ? ' pi-ailux-row' : '';
+        const nameHtml = isAilux
+          ? `${ent.entity_name}${ailuxTag}`
+          : `<span class="pi-entity-name" data-eid="${ent.entity_id}" data-cid="${ent.company_id||ent.entity_id}" data-ename="${ent.entity_name.replace(/"/g,'&quot;')}" data-tab="${tid}" data-ticker="${(ent.ticker||'').replace(/"/g,'')}" data-hqcity="${(ent.hq_city||'').replace(/"/g,'')}" data-hqcountry="${(ent.hq_country||'').replace(/"/g,'')}" onclick="event.stopPropagation();_openEntityByEl(this)">${ent.entity_name}</span>${_covHtml}`;
+        const scoreHtml = rankInfo ? `<span class="pi-score-chip" title="Advancement score: ${rankInfo.score}">${rankInfo.score}</span>` : '';
+        return `<tr class="pi-main${isExp?' expanded':''}${ailuxRowClass}" style="cursor:pointer;${relevBorder}" onclick="${isAilux?'':` _areaPIToggle('${tid}','${ent.entity_id}')`}">
+          ${rankCell}
+          <td><strong style="font-size:12px;color:${isAilux?'#92400e':'#1e3a5f'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nameHtml}</strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">${(()=>{const t=(ent.ticker||'').split('/')[0].trim()||'Private';const loc=(ent.hq_city&&ent.hq_country)?` — ${ent.hq_city}, ${ent.hq_country}`:'';return t+loc;})()}</div></td>
+          <td>${isAilux ? `<div style="font-size:10px;color:#92400e;font-weight:700">ALX001${scoreHtml}</div>` : pipelineCell}</td>
           <td>${indCell}</td>
           <td style="font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ent.target || ''}</td>
           <td>${this._stagePill(ent.bestStage)}</td>
-          <td>${threatCell}</td>
+          <td>${isAilux ? `<span style="font-size:9px;color:#b45309;font-weight:700;background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:8px">Home Team</span>` : threatCell}</td>
           <td>${catCell}</td>
         </tr>${expRow}`;
-      }).join('');
+      }); // rowsArr — per-entity HTML, index matches sorted[]
 
-      // ── Status line (replaces 4-box stats block) ──────────────────────────────
+      // ── Build Ailux synthetic row for the race ──────────────────────────────
+      const _aRankInfo = rankMap['ailux-home'];
+      const ailuxRowHtml = (ailuxProg && _aRankInfo) ? (() => {
+        const _ap = ailuxProg;
+        const _aScore = _aRankInfo.score;
+        const _aMoveHtml = _aRankInfo.move === 'up'   ? `<span class="pi-move-up">↑<span class="pi-move-delta" style="color:#16a34a">+${_aRankInfo.delta}</span></span>`
+                         : _aRankInfo.move === 'down' ? `<span class="pi-move-down">↓<span class="pi-move-delta" style="color:#dc2626">${_aRankInfo.delta}</span></span>`
+                         : _aRankInfo.move === 'new'  ? `<span class="pi-move-new">NEW</span>`
+                         : `<span class="pi-move-same">→</span>`;
+        return `<tr class="pi-main pi-ailux-row" style="cursor:default;border-left:3px solid #f59e0b">
+          <td class="pi-rank-cell"><div class="pi-move-wrap"><span class="pi-rank-home" title="Ailux — home team, rank #${_aRankInfo.rank}">★</span>${_aMoveHtml}</div></td>
+          <td><strong style="font-size:12px;color:#92400e;display:block;white-space:nowrap">Ailux <span class="pi-ailux-tag">HOME</span></strong><div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px">Private — Shanghai, China</div></td>
+          <td><div style="font-size:10px;color:#92400e;font-weight:700">${_ap.drug} <span class="pi-score-chip" title="Advancement score ${_aScore}/100 — watch this climb">${_aScore}</span></div></td>
+          <td><span style="font-size:9px;background:#fff8e1;color:#92400e;border:1px solid #fde68a;border-radius:8px;padding:2px 7px;font-weight:700;display:inline-block">${(_ap.ind||'').split(';')[0].trim()}</span></td>
+          <td style="font-size:11px;color:#92400e;white-space:nowrap;font-weight:600">${_ap.target}</td>
+          <td>${this._stagePill('Preclinical')}</td>
+          <td><span style="font-size:9px;color:#b45309;font-weight:700;background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:8px">Your Asset</span></td>
+          <td><span style="font-size:9px;color:#d97706;font-weight:700;white-space:nowrap">IND 2026 →</span></td>
+        </tr>`;
+      })() : '';
+
+      // ── Assemble final table body with generation sections ──────────────────
+      let finalBody = '';
+      if (showRace) {
+        const ngEnts = sorted.filter(e => e.bestCls === 'Next Gen');
+        const fgEnts = sorted.filter(e => e.bestCls !== 'Next Gen');
+        const ngCount = ngEnts.length + (ailuxProg ? 1 : 0);
+        const ailuxRankPos = _aRankInfo?.rank ?? 99;
+
+        // Next-gen section separator
+        finalBody += `<tr class="pi-gen-sep pi-gen-sep-ng"><td colspan="8">🧬 NEXT-GEN BISPECIFIC RACE · ${ngCount} programs · Ailux at #${ailuxRankPos}</td></tr>`;
+
+        // Sort ng entities by rank and interleave Ailux
+        const ngByRank = [...ngEnts].sort((a,b) => (rankMap[a.entity_id]?.rank??99)-(rankMap[b.entity_id]?.rank??99));
+        let ailuxDone = !ailuxProg;
+        ngByRank.forEach(ent => {
+          const entRank = rankMap[ent.entity_id]?.rank ?? 99;
+          if (!ailuxDone && ailuxRankPos <= entRank) { finalBody += ailuxRowHtml; ailuxDone = true; }
+          const idx = sorted.indexOf(ent);
+          finalBody += idx >= 0 ? sorted.map((e,i)=>i===idx).indexOf(true) >= 0 ? (() => {
+            // rebuild row correctly from perEntRows index
+            return Array.from({length: sorted.length}).map((_,i) => sorted[i] === ent ? i : -1).find(i=>i>=0);
+          })() : -1 : -1;
+          // Simpler: find the row from the array by entity_id match
+          const rowIdx = sorted.findIndex(e => e.entity_id === ent.entity_id);
+          if (rowIdx >= 0) finalBody += Array.isArray(rows) ? rows[rowIdx] : '';
+        });
+        if (!ailuxDone) finalBody += ailuxRowHtml;
+
+        // First-gen section separator
+        if (fgEnts.length) {
+          finalBody += `<tr class="pi-gen-sep pi-gen-sep-fg"><td colspan="8">🔬 FIRST-GEN — Validated class (monospecifics) · Defines efficacy bar bispecifics must clear</td></tr>`;
+          fgEnts.forEach(ent => {
+            const rowIdx = sorted.findIndex(e => e.entity_id === ent.entity_id);
+            if (rowIdx >= 0 && Array.isArray(rows)) finalBody += rows[rowIdx];
+          });
+        }
+      } else {
+        finalBody = Array.isArray(rows) ? rows.join('') : (rows || '');
+      }
+
+      // ── Status line ───────────────────────────────────────────────────────────
       const _qsDrugs   = this.data || [];
       const _qsToday   = new Date();
-      // Next catalyst in days (for status line)
       let _qsNextDays  = null;
       const _allCats   = Object.values(this._entityMeta || {}).map(m=>m.nextCatalyst).filter(Boolean);
       if (_allCats.length) {
         const soonest = _allCats.map(c => new Date(c+'T12:00:00Z')).filter(d=>!isNaN(d)&&d>=_qsToday).sort((a,b)=>a-b)[0];
         if (soonest) _qsNextDays = Math.ceil((soonest - _qsToday) / (24*60*60*1000));
       }
-
-      // Area name from tab ID (title-case, strip suffixes)
       const _areaRaw   = (this.tabId||'').replace(/-area-pi$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
       const _statusLine = _areaStatusLine(_qsDrugs, _areaRaw, _qsNextDays);
-
       const _quickStats = `<div style="padding:0 12px 2px 12px;">${_statusLine}</div>`;
 
-      el.innerHTML = _quickStats + `<table class="pi-table">
-        <colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>
-        <thead><tr>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th>
-          <th>Pipeline</th>
-          <th>Indication</th>
-          <th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th>
-          <th class="pi-th-sort" onclick="_areaPISort('${tid}','relevance')">Relevance</th>
-          <th>Catalyst</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+      const _colgroup = showRace
+        ? `<colgroup><col style="width:6%"><col style="width:18%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"></colgroup>`
+        : `<colgroup><col style="width:19%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:15%"></colgroup>`;
+      const _thead = showRace
+        ? `<thead><tr><th style="text-align:center;font-size:9px;color:#7c3aed;font-weight:800">Rank</th><th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th><th>Pipeline</th><th>Indication</th><th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th><th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th><th class="pi-th-sort" onclick="_areaPISort('${tid}','relevance')">Relevance</th><th>Catalyst</th></tr></thead>`
+        : `<thead><tr><th class="pi-th-sort" onclick="_areaPISort('${tid}','co')">Entity</th><th>Pipeline</th><th>Indication</th><th onclick="_areaPISort('${tid}','target')" style="cursor:pointer">Lead Target</th><th class="pi-th-sort" onclick="_areaPISort('${tid}','stage')">Stage</th><th class="pi-th-sort" onclick="_areaPISort('${tid}','relevance')">Relevance</th><th>Catalyst</th></tr></thead>`;
+
+      el.innerHTML = _quickStats + `<table class="pi-table">${_colgroup}${_thead}<tbody>${finalBody}</tbody></table>`;
     },
 
  _genericDetailHTML(prog, sbData, tabId) {
@@ -18463,17 +18761,39 @@ function _piShowRelevExplain(el, score) {
       <div style="height:4px;background:#f1f5f9;border-radius:2px"><div style="height:4px;border-radius:2px;background:${col};width:${pctW}%"></div></div>
     </div>`;
   }).join('');
+
+  // Q&A Evidence-Based Modifiers section
+  const qaMods = breakdown.qa_modifiers || null;
+  const qaTotal = breakdown.qa_modifier_total || 0;
+  const QA_LABEL = { q29_efficacy:'Efficacy data (Q29)', q67_bic:'BIC benchmark (Q67)', q91_ip:'IP position (Q91)', q81_regulatory:'Regulatory designation (Q81)', ph3_floor:'Phase 3 data floor' };
+  const qaHtml = qaMods ? `
+    <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-top:2px">
+      <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Evidence-Based Modifiers (Q&amp;A)</div>
+      ${Object.entries(qaMods).map(([key, pts]) => `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="font-size:10px;color:#475569;flex:1">${QA_LABEL[key] || key}</span>
+          <span style="font-size:12px;font-weight:800;color:${parseFloat(pts)>0?'#22c55e':'#ef4444'};flex-shrink:0;margin-left:8px">${parseFloat(pts)>0?'+':''}${parseFloat(pts).toFixed(1)}</span>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;font-size:10px;border-top:1px dashed #f1f5f9;padding-top:6px;margin-top:2px">
+        <span style="color:#64748b">Evidence modifier total</span>
+        <span style="font-weight:700;color:${qaTotal>0?'#22c55e':qaTotal<0?'#ef4444':'#64748b'}">${qaTotal>0?'+':''}${parseFloat(qaTotal).toFixed(1)}</span>
+      </div>
+    </div>` : '';
+
+  const baseScore = qaMods ? (n - qaTotal).toFixed(1) : null;
+
   const wrap = document.createElement('div');
   wrap.className = 'pi-relev-modal-wrap';
   wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.2)';
-  wrap.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:24px;width:340px;max-width:90vw">
+  wrap.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:24px;width:360px;max-width:90vw;max-height:80vh;overflow-y:auto">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
       <span style="font-size:28px;font-weight:900;color:${col}">${n.toFixed(1)}</span>
-      <div><div style="font-size:13px;font-weight:700;color:#0f172a">Relevance Score</div><div style="font-size:11px;color:#64748b">out of 10.0</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:#0f172a">Relevance Score</div><div style="font-size:11px;color:#64748b">${qaMods ? `${baseScore} base + ${qaTotal>0?'+':''}${parseFloat(qaTotal).toFixed(1)} evidence` : 'out of 10.0'}</div></div>
       <button onclick="this.closest('.pi-relev-modal-wrap').remove()" style="margin-left:auto;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer;color:#64748b;font-size:13px">✕</button>
     </div>
     <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">How this was calculated</div>
     ${rowsHtml}
+    ${qaHtml}
     <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-top:2px;display:flex;justify-content:space-between;font-size:11px">
       <span style="color:#64748b">Total score</span>
       <span style="font-weight:800;color:${col}">${n.toFixed(1)} / 10.0</span>
