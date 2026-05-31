@@ -11554,6 +11554,21 @@ function _injectMeridianBridge(frame) {
       '},true);'
     ].join('\n');
     doc.head.appendChild(s);
+
+    // Directly neutralize href on entity links so they ONLY fire the onclick modal.
+    // Some links have both href="https://..." and onclick="openCompanyModal()" —
+    // stripping the href ensures the modal opens, nothing navigates.
+    setTimeout(function() {
+      try {
+        doc.querySelectorAll('a[onclick]').forEach(function(a) {
+          var oc = a.getAttribute('onclick') || '';
+          if (oc.indexOf('openDrugModal(') >= 0 || oc.indexOf('openCompanyModal(') >= 0) {
+            a.setAttribute('href', 'javascript:void(0)');
+            a.removeAttribute('target');
+          }
+        });
+      } catch(e2) {}
+    }, 500);
   } catch(e) { console.warn('[meridian bridge]', e); }
 }
 
