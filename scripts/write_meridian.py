@@ -725,7 +725,12 @@ def build_ailux_block(positions):
     """Construct the Ailux competitive anchor block from DB + static context."""
     # Static context is always included; DB positions supplement it
     static = """AILUX IDENTITY & COMPETITIVE POSITION:
-Ailux is an AI-native antibody design company. SPY002 is its lead asset: a TL1A × IL-23p19 bispecific antibody in development for IBD (UC and CD). The p19 subunit selectivity matters — it preserves IL-12-driven Th1 immunity unlike p40-targeted agents (e.g., RO7837195, Roche/Pfizer), making it mechanistically distinct.
+Ailux Biotherapeutics is developing three bispecific antibody programs, all targeting IND by 2027:
+- ALX001 (TL1A×IL-23p19): Lead IBD program for UC and CD. The p19 subunit selectivity preserves IL-12-driven Th1 immunity unlike p40-targeted agents. The bispecific hypothesis: simultaneous TL1A+IL-23 blockade achieves deep remission in the 40-45% of IBD patients who fail monospecific biologics.
+- ALX002 (CD19×BCMA): I&I autoimmune program targeting SLE and Sjogren's via dual B-cell and plasma cell depletion.
+- ALX005 (FcRn×Albumin): Rare disease program for gMG and CIDP; half-life extension bispecific format.
+
+CRITICAL: SPY002/SPY072 is Spyre Therapeutics' TL1A×IL-23p19 bispecific — it is a DIRECT COMPETITOR to ALX001, NOT an Ailux asset. Never conflate Ailux with Spyre or refer to SPY002 as an Ailux drug. RO7837195 (Roche/Pfizer) is another direct ALX001 competitor.
 
 TL1A CLASS STATE: Two monospecific anti-TL1A antibodies are in Phase 3 — tulisokibart (Merck, ATLAS-UC primary ~Nov 2026, first Ph3 TL1A readout) and afimkibart (Roche, AMETRINE-2 primary Jan 2027). Merck's readout is the single most consequential class validation event before Ailux reaches clinical inflection. A positive result validates sequencing and combination strategies and sets the monotherapy ceiling that a bispecific must exceed. A failure reshapes everything.
 
@@ -1206,13 +1211,18 @@ def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
         catalyst_calendar_block = catalyst_calendar_block or "(No catalyst calendar data available)",
         bd_priority_block       = bd_priority_block or "(No BD priority company data available)",
     )
-    log("Pass 1 — generating editorial plan (Opus)…")
-    resp = client.messages.create(
-        model      = "claude-opus-4-6",
-        max_tokens = 1500,
-        system     = SYSTEM_PROMPT,
-        messages   = [{"role": "user", "content": prompt}],
-    )
+    log("Pass 1 — generating editorial plan (Sonnet)…")
+    log(f"Pass 1 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
+    try:
+        resp = client.messages.create(
+            model      = "claude-sonnet-4-6",
+            max_tokens = 1500,
+            system     = SYSTEM_PROMPT,
+            messages   = [{"role": "user", "content": prompt}],
+        )
+    except Exception as api_err:
+        log(f"Pass 1 API error: {type(api_err).__name__}: {api_err}")
+        raise
     raw = resp.content[0].text.strip()
     log(f"Editorial plan: {resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out")
 
@@ -1335,13 +1345,18 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
         patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
     )
 
-    log("Pass 2 — generating full Meridian draft (Opus)…")
-    resp = client.messages.create(
-        model      = "claude-opus-4-6",
-        max_tokens = 16000,
-        system     = SYSTEM_PROMPT,
-        messages   = [{"role": "user", "content": prompt}],
-    )
+    log("Pass 2 — generating full Meridian draft (Sonnet)…")
+    log(f"Pass 2 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
+    try:
+        resp = client.messages.create(
+            model      = "claude-sonnet-4-6",
+            max_tokens = 16000,
+            system     = SYSTEM_PROMPT,
+            messages   = [{"role": "user", "content": prompt}],
+        )
+    except Exception as api_err:
+        log(f"Pass 2 API error: {type(api_err).__name__}: {api_err}")
+        raise
     html = resp.content[0].text.strip()
     log(f"Full draft: {resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out → {len(html):,} chars")
 
