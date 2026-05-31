@@ -2906,35 +2906,12 @@ const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ── Next-gen race: daily snapshot — stores ACTUAL DB field values ───────────
-// Ranking is produced by drug_competitive_scores.total_competition_score (set by enrichment).
-// This snapshot records those values so you can query: "what was Caldera's score on May 31
-// vs June 15, and what changed?" That's how you learn from ranking shifts over time.
-async function _persistNextGenRankings(rankMap, areaId) {
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const rows = Object.entries(rankMap).map(([id,r]) => ({
-      entity_id:         id,
-      entity_name:       r.ent?.entity_name || id,
-      area_id:           areaId,
-      rank_position:     r.rank,
-      total_score:       r.score,       // drug_competitive_scores.total_competition_score
-      stage:             r.stage || r.ent?.bestStage || null,   // drugs.stage
-      competitive_relev: r.relev || r.ent?.bestRelevance || null, // competitive_relevance
-      is_ailux:          !!r.isAilux,
-      snapshot_date:     today,
-    }));
-    await fetch(SUPABASE_URL + '/rest/v1/next_gen_rankings', {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(rows)
-    });
-  } catch(e) { /* non-critical — table may not exist yet */ }
-}
+// ── Next-gen ranking history: written by competitive_scoring.py (enrichment pipeline) ──
+// The browser does NOT write to next_gen_rankings. Ranking changes are recorded
+// when the pipeline runs and updates drug_competitive_scores — that script also
+// writes a snapshot here. The dashboard reads this table to compute movement arrows.
+// See scripts/competitive_scoring.py: _write_ranking_snapshot()
+function _persistNextGenRankings() { /* no-op — pipeline writes, browser reads */ }
 
 // ── Phase 5 Feature Flags ────────────────────────────────────────────────────
 // All flags default false. Flip individually only after validation passes.
@@ -11662,7 +11639,21 @@ async function renderMeridianIssue(issueId, label) {
       .eq('id', issueId)
       .single();
     if (data?.body_html) {
-      frame.srcdoc = data.body_html;
+      // Inject bridge functions so entity links in the Meridian open
+      // the canonical company/drug cards in the parent dashboard — not a web search.
+      const BRIDGE = `<script>
+function openDrugModal(id){try{window.parent.openDrugEntityModal(id,id,null);}catch(e){}}
+function openCompanyModal(id){try{window.parent.openCompanyEntityModal(id,id,'meridian',id);}catch(e){}}
+document.addEventListener('click',function(e){
+  var a=e.target.closest('a[onclick]');
+  if(a){var oc=a.getAttribute('onclick');
+    if(oc&&(oc.includes('openDrugModal')||oc.includes('openCompanyModal'))){
+      e.preventDefault();try{eval(oc);}catch(err){}
+    }
+  }
+});
+<\/script>`;
+      frame.srcdoc = BRIDGE + data.body_html;
     }
   } catch(e) {
     console.warn('[MERIDIAN:render]', e);
@@ -16595,10 +16586,10 @@ function _makeAreaPI(tabId, areaIds) {
         else if(r.rank>p) { r.move='down'; r.delta=r.rank-p; }
         else              r.move='same';
       });
-      // Save to localStorage (current session baseline) and DB (permanent history)
+      // Save to localStorage for session-level movement (browser only).
+      // DB history is written by competitive_scoring.py (enrichment pipeline) — not the browser.
+      // The browser is READ-ONLY from next_gen_rankings: fetches yesterday's snapshot for arrows.
       try { const s={}; Object.entries(rankMap).forEach(([id,r])=>{s[id]=r.rank;}); localStorage.setItem('ngRk_'+tid,JSON.stringify(s)); } catch(e){}
-      const areaId = aKey || tid.replace(/-area-pi$/,'');
-      _persistNextGenRankings(rankMap, areaId);
 
       return { rankMap, ailuxProg:ap, hasNextGen:ng.length>0, ailuxEntry:ailuxEnt };
     },
