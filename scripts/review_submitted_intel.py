@@ -54,7 +54,16 @@ SB_HEADERS = {
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 def sb_get(table: str, params: dict) -> list:
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    # Use requests params= so values are properly URL-encoded
+    # (Supabase uses special chars in filter values, e.g. URLs with & and =)
+    from urllib.parse import quote
+    qs_parts = []
+    for k, v in params.items():
+        # Supabase operators like eq./neq. must stay unencoded in the VALUE prefix;
+        # only the actual filter value portion needs encoding.
+        # Strategy: encode everything, but Supabase column names & operators are safe ASCII.
+        qs_parts.append(f"{k}={quote(str(v), safe='.,:')}")
+    qs = "&".join(qs_parts)
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{qs}", headers=SB_HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()
@@ -320,6 +329,315 @@ def call_claude(url: str, text: str, page_content: str) -> Optional[dict]:
         print(f"    ✗ Claude API error: {e}")
         return None
 
+# ── Deep Intelligence Execution ──────────────────────────────────────────────
+DEEP_EXTRACTION_PROMPT = """You are a pharmaceutical intelligence analyst for Ailux Biotherapeutics.
+
+Read this submitted intelligence SENTENCE BY SENTENCE and extract every actionable database entry.
+
+SOURCE: {url}
+TEXT: {text}
+PAGE CONTENT: {page_content}
+
+Extract ALL of the following. Be specific and use exact numbers, names, and data from the text.
+Return ONLY valid JSON with no extra text:
+
+{{
+  "companies": [
+    {{
+      "name": "exact company name",
+      "id_slug": "lowercase-hyphenated-id",
+      "description": "what they do, why relevant",
+      "status": "active|acquired",
+      "headquarters": "city, country if known"
+    }}
+  ],
+  "drugs": [
+    {{
+      "name": "drug name/code",
+      "display_name": "Drug Name (mechanism/target)",
+      "company": "company name",
+      "stage": "Preclinical|Phase 1|Phase 2|Phase 3|Approved",
+      "target": "target A × target B",
+      "modality": "bispecific antibody|mAb|ADC|mRNA|small molecule|etc",
+      "indication": "disease(s)",
+      "mechanism": "2-3 sentence mechanism description",
+      "drug_summary": "3-4 sentence summary including all data from text",
+      "key_data": "specific clinical/preclinical data point with numbers",
+      "is_competitor_to_alx001": false,
+      "is_competitor_to_alx002": false,
+      "is_competitor_to_alx005": false
+    }}
+  ],
+  "clinical_data": [
+    {{
+      "drug_name": "drug name",
+      "trial_name": "trial name if given",
+      "phase": "1|2|3",
+      "indication": "indication",
+      "primary_endpoint": "endpoint",
+      "remission_rate_pct": null,
+      "hazard_ratio": null,
+      "n_enrolled": null,
+      "timepoint_weeks": null,
+      "key_finding": "specific data point with number",
+      "source": "abstract ID/publication"
+    }}
+  ],
+  "deals": [
+    {{
+      "from_company": "originator",
+      "to_company": "acquirer/partner",
+      "deal_type": "licensing|acquisition|collaboration",
+      "upfront_usd_m": null,
+      "total_usd_m": null,
+      "headline": "one sentence deal description",
+      "detail": "full deal detail"
+    }}
+  ],
+  "catalysts": [
+    {{
+      "drug_name": "drug name",
+      "event": "what happens",
+      "date_str": "YYYY-MM-DD or YYYY-Q1/2/3/4 or 'H1 2026'",
+      "significance": "P0|P1|P2|P3",
+      "ailux_impact": "why this matters for Ailux"
+    }}
+  ],
+  "qa_insights": [
+    {{
+      "drug_name": "drug name",
+      "question_id": 29,
+      "domain": "clinical|molecule|patient|competitive|regulatory",
+      "answer_short": "1 sentence",
+      "answer_text": "2-4 sentences with specific data from text",
+      "confidence": 0.0
+    }}
+  ]
+}}"""
+
+
+def deep_execute_intelligence(row: dict, extraction: dict, url: str, text: str, page_content: str) -> list:
+    """
+    Second-pass deep extraction: sentence-by-sentence analysis that creates/updates
+    all entities in the database. Returns list of action strings for logging.
+    """
+    actions = []
+    source_label = url or "submitted_intel"
+
+    # ── Deep extraction via Claude ──────────────────────────────────────────────
+    prompt = DEEP_EXTRACTION_PROMPT.format(
+        url=url or "(none)",
+        text=text or "(none)",
+        page_content=page_content[:4000] if page_content else "(not fetched)"
+    )
+    try:
+        import anthropic as _anth
+        c = _anth.Anthropic(api_key=ANTHROPIC_KEY)
+        resp = c.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = resp.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"): raw = raw[4:]
+        deep = json.loads(raw)
+    except Exception as e:
+        print(f"  │  Deep extraction failed: {e}")
+        return actions
+
+    svc_headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+    }
+
+    def upsert(table, data):
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=svc_headers, json=data)
+        return r.status_code in (200, 201)
+
+    def patch(table, filter_qs, data):
+        r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}", headers=svc_headers, json=data)
+        return r.status_code in (200, 204)
+
+    def exists(table, filter_qs):
+        h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+        r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}&select=id&limit=1", headers=h)
+        return bool(r.json()) if r.status_code == 200 else False
+
+    # ── 1. Companies ────────────────────────────────────────────────────────────
+    for co in deep.get("companies", []):
+        co_id = co.get("id_slug", "").lower().replace(" ", "-")
+        if not co_id or not co.get("name"): continue
+        if not exists("companies", f"id=eq.{co_id}"):
+            ok = upsert("companies", {
+                "id": co_id, "name": co["name"], "status": co.get("status", "active"),
+                "headquarters": co.get("headquarters", ""),
+                "insight_text": co.get("description", "")
+            })
+            if ok: actions.append(f"Created company: {co['name']}")
+        else:
+            if co.get("description"):
+                patch("companies", f"id=eq.{co_id}", {"insight_text": co["description"]})
+            actions.append(f"Updated company: {co['name']}")
+
+    # ── 2. Drugs ────────────────────────────────────────────────────────────────
+    for drug in deep.get("drugs", []):
+        nm = drug.get("name", "").strip()
+        if not nm: continue
+        # Build slug
+        drug_slug = nm.lower().replace(" ", "-").replace("/", "-")
+
+        # Find company_id
+        co_name = drug.get("company", "")
+        co_id_guess = co_name.lower().replace(" ", "-")[:20] if co_name else None
+
+        drug_row = {
+            "id": drug_slug, "name": nm,
+            "display_name": drug.get("display_name", nm),
+            "stage": drug.get("stage", "Preclinical"),
+            "target": drug.get("target", ""),
+            "therapeutic_area": "Immunology",
+            "indication_short": drug.get("indication", ""),
+            "mechanism": drug.get("mechanism", ""),
+            "drug_summary": drug.get("drug_summary", ""),
+            "key_data": drug.get("key_data", ""),
+            "catalog_category": "Competitor",
+            "overlap": "Direct" if (drug.get("is_competitor_to_alx001") or drug.get("is_competitor_to_alx002") or drug.get("is_competitor_to_alx005")) else "Watch",
+            "source_url": source_label, "confidence_level": "supported",
+            "modality": drug.get("modality", "")
+        }
+        if co_id_guess: drug_row["company_id"] = co_id_guess
+
+        if not exists("drugs", f"id=eq.{drug_slug}"):
+            ok = upsert("drugs", drug_row)
+            if ok: actions.append(f"Created drug: {nm}")
+        else:
+            update_fields = {k: v for k, v in drug_row.items()
+                           if k not in ("id", "name", "company_id") and v}
+            patch("drugs", f"id=eq.{drug_slug}", update_fields)
+            actions.append(f"Updated drug: {nm}")
+
+    # ── 3. Clinical data → drug_clinical_benchmarks ─────────────────────────────
+    for cd in deep.get("clinical_data", []):
+        drug_slug = cd.get("drug_name", "").lower().replace(" ", "-")
+        if not drug_slug or not exists("drugs", f"id=eq.{drug_slug}"): continue
+        row_data = {
+            "drug_id": drug_slug,
+            "benchmark_type": "primary_remission" if "remission" in cd.get("key_finding","").lower() else "overall_survival" if "survival" in cd.get("key_finding","").lower() else "clinical_response",
+            "rate_pct": cd.get("remission_rate_pct"),
+            "n_enrolled": cd.get("n_enrolled"),
+            "timepoint_weeks": cd.get("timepoint_weeks"),
+            "trial_name": cd.get("trial_name", ""),
+            "patient_enrichment": cd.get("indication", ""),
+            "is_phase3": cd.get("phase") == "3",
+            "source_url": source_label
+        }
+        ok = upsert("drug_clinical_benchmarks", row_data)
+        if ok: actions.append(f"Clinical benchmark: {drug_slug} — {cd.get('key_finding','')[:60]}")
+
+    # ── 4. Deals ────────────────────────────────────────────────────────────────
+    for deal in deep.get("deals", []):
+        if not deal.get("headline"): continue
+        deal_row = {
+            "from_company": deal.get("from_company", ""),
+            "to_company": deal.get("to_company", ""),
+            "deal_type": deal.get("deal_type", "collaboration"),
+            "upfront_usd_m": deal.get("upfront_usd_m"),
+            "total_usd_m": deal.get("total_usd_m"),
+            "headline": deal.get("headline", ""),
+            "detail": deal.get("detail", ""),
+            "source_url": source_label,
+            "economic_terms_verified": False
+        }
+        ok = upsert("deals", deal_row)
+        if ok: actions.append(f"Deal: {deal.get('headline','')[:60]}")
+
+    # ── 5. Catalysts ────────────────────────────────────────────────────────────
+    for cat in deep.get("catalysts", []):
+        # Try to find drug_id
+        drug_nm = cat.get("drug_name", "")
+        drug_slug = drug_nm.lower().replace(" ", "-") if drug_nm else None
+        date_str = cat.get("date_str", "")
+        # Parse date
+        expected_date = None
+        if date_str and len(date_str) >= 7:
+            try:
+                if len(date_str) == 10:
+                    expected_date = date_str
+                elif "Q" in date_str:
+                    y, q = date_str.split("-Q") if "-Q" in date_str else (date_str[:4], date_str[5])
+                    expected_date = f"{y}-{'03' if q=='1' else '06' if q=='2' else '09' if q=='3' else '12'}-30"
+            except: pass
+
+        cat_row = {
+            "event_name": cat.get("event", "")[:200],
+            "expected_date": expected_date,
+            "strategic_significance": cat.get("significance", "P2"),
+            "ailux_impact": cat.get("ailux_impact", ""),
+            "is_past": False,
+            "source_url": source_label
+        }
+        if drug_slug and exists("drugs", f"id=eq.{drug_slug}"):
+            cat_row["drug_id"] = drug_slug
+
+        ok = upsert("catalyst_calendar", cat_row)
+        if ok: actions.append(f"Catalyst: {cat.get('event','')[:60]}")
+
+    # ── 6. Q&A insights → drug_intelligence_qa ──────────────────────────────────
+    for qa in deep.get("qa_insights", []):
+        drug_nm = qa.get("drug_name", "")
+        drug_slug = drug_nm.lower().replace(" ", "-") if drug_nm else None
+        if not drug_slug or not exists("drugs", f"id=eq.{drug_slug}"): continue
+        qa_row = {
+            "drug_id": drug_slug,
+            "question_id": qa.get("question_id", 29),
+            "domain": qa.get("domain", "clinical"),
+            "question_text": f"Q{qa.get('question_id', 29)} from submitted intel",
+            "answer_short": qa.get("answer_short", ""),
+            "answer_text": qa.get("answer_text", ""),
+            "confidence_score": qa.get("confidence", 0.70),
+            "evidence_level": "medium",
+            "source_labels": [source_label],
+            "researcher_model": "claude-sonnet-4-6"
+        }
+        ok = upsert("drug_intelligence_qa", qa_row)
+        if ok: actions.append(f"Q&A: {drug_slug} Q{qa.get('question_id')} — {qa.get('answer_short','')[:50]}")
+
+    # ── 7. Store document ────────────────────────────────────────────────────────
+    title = extraction.get("extracted_title", "") or (text[:80] if text else url[:80])
+    companies_found = [c.get("name") for c in deep.get("companies", []) if c.get("name")]
+    primary_co = companies_found[0].lower().replace(" ", "-")[:20] if companies_found else None
+
+    if primary_co and exists("companies", f"id=eq.{primary_co}"):
+        doc_row = {
+            "company_id": primary_co,
+            "document_type": "abstract" if "abstract" in (extraction.get("source_type","")) else "press_release",
+            "title": title[:300],
+            "source_url": source_label,
+            "key_findings": extraction.get("extracted_summary", "")[:500],
+            "drug_names": ", ".join(d.get("name","") for d in deep.get("drugs", []) if d.get("name"))[:200]
+        }
+        ok = upsert("company_documents", doc_row)
+        if ok: actions.append(f"Stored document: {title[:50]}")
+
+    # ── 8. Intake log ────────────────────────────────────────────────────────────
+    intake_row = {
+        "entity_type": "drug" if deep.get("drugs") else "company",
+        "entity_name": companies_found[0] if companies_found else "Unknown",
+        "fact_type": "new_drug" if deep.get("drugs") else "new_relationship",
+        "fact_text": extraction.get("extracted_summary", text[:200]),
+        "supporting_quote": f"Submitted via Submit Intel button. Source: {url or 'text submission'}",
+        "auto_confidence": 0.80,
+        "review_status": "confirmed"
+    }
+    upsert("conversation_intelligence_intake", intake_row)
+
+    return actions
+
+
 # ── Process single row ────────────────────────────────────────────────────────
 def process_row(row: dict, dry_run: bool = False) -> dict:
     row_id = row["id"]
@@ -421,7 +739,23 @@ def process_row(row: dict, dry_run: bool = False) -> dict:
             "analyzed_at":               datetime.now(timezone.utc).isoformat(),
         }
 
-    # Step 6: Write back
+    # Step 6A: Deep intelligence execution (write entities to DB)
+    execution_summary = []
+    if extraction and not dry_run and update.get("status") in ("analyzed", "needs_review"):
+        try:
+            execution_summary = deep_execute_intelligence(row, extraction, url, text, page_content)
+            if execution_summary:
+                print(f"  │  Deep execution: {len(execution_summary)} actions taken")
+                for action in execution_summary[:5]:
+                    print(f"  │    ✓ {action}")
+        except Exception as e:
+            print(f"  │  Deep execution error (non-fatal): {e}")
+
+    # Attach execution summary to update
+    if execution_summary:
+        update["review_notes"] = (update.get("review_notes") or "") + f"\nExecuted: {'; '.join(execution_summary[:10])}"
+
+    # Step 6B: Write back status
     if dry_run:
         print(f"  └─ [DRY RUN] Would update row to status={update['status']}")
     else:
