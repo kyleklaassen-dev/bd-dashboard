@@ -31678,13 +31678,22 @@ async function _renderDQPanel() {
       var gapText = item.gap_type || item.reason || item.next_best_action || '';
       var entityType = item.entity_type ? ' · ' + item.entity_type : '';
       var score = item.completeness_score != null ? ' · ' + Math.round(item.completeness_score) + '% complete' : '';
-      return '<div class="dqp-row" onclick="closeDQPanel();navTo(\'discovery-queue\')">' +
-        '<div class="dqp-badge ' + cls + '">' + p + '</div>' +
-        '<div style="min-width:0;flex:1">' +
-          '<div class="dqp-row-name">' + escHtml(item.entity_name || item.entity_id || '—') + '</div>' +
+      var itemId = item.id || '';
+      var entityName = item.entity_name || item.entity_id || '—';
+      return '<div class="dqp-row">' +
+        '<div class="dqp-badge ' + cls + '" onclick="closeDQPanel();navTo(\'discovery-queue\')" style="cursor:pointer">' + p + '</div>' +
+        '<div style="min-width:0;flex:1;cursor:pointer" onclick="closeDQPanel();navTo(\'discovery-queue\')">' +
+          '<div class="dqp-row-name">' + escHtml(entityName) + '</div>' +
           '<div class="dqp-row-gap">' + escHtml(gapText.slice(0,80)) + entityType + score + '</div>' +
         '</div>' +
-        '<div class="dqp-row-age">' + ageStr(item.created_at) + '</div>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
+          '<div class="dqp-row-age">' + ageStr(item.created_at) + '</div>' +
+          (itemId ? '<button onclick="event.stopPropagation();_dqResearchNow(\'' + itemId + '\',\'' + escHtml(entityName).replace(/'/g,'\\\'') + '\')" ' +
+            'style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;border:1px solid #2563eb;background:white;color:#2563eb;cursor:pointer;white-space:nowrap;transition:all .15s" ' +
+            'onmouseover="this.style.background=\'#2563eb\';this.style.color=\'white\'" ' +
+            'onmouseout="this.style.background=\'white\';this.style.color=\'#2563eb\'" ' +
+            'title="Queue this item for the next pipeline run">▶ Research Now</button>' : '') +
+        '</div>' +
       '</div>';
     }).join('');
     return '<div class="dqp-priority-group">' +
@@ -31701,6 +31710,67 @@ async function _renderDQPanel() {
   if (other.length) html += buildGroup('Other', 'P3', other);
 
   body.innerHTML = html || '<div class="dqp-empty">No pending items.</div>';
+}
+
+// ─── Research Now — queue a research_queue item for the next pipeline run ───
+async function _dqResearchNow(itemId, entityName) {
+  if (!itemId) return;
+
+  // Optimistically update button to show it's been queued
+  var btns = document.querySelectorAll('[onclick*="_dqResearchNow(\'' + itemId + '\'"]');
+  btns.forEach(function(b) {
+    b.disabled = true;
+    b.textContent = '⏳ Queued';
+    b.style.borderColor = '#94a3b8';
+    b.style.color = '#94a3b8';
+    b.style.background = 'white';
+  });
+
+  try {
+    var now = new Date().toISOString();
+    var { error } = await _sb.from('research_queue')
+      .update({
+        assigned_status: 'processing',
+        last_action_at: now,
+        next_best_action: 'Manually queued via Research Now — will be processed by next pipeline run',
+      })
+      .eq('id', itemId);
+
+    if (error) throw error;
+
+    // Show toast
+    var toast = document.createElement('div');
+    toast.innerHTML = '<strong>' + escHtml(entityName) + '</strong> queued for research. '
+      + 'Run <code style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 4px;border-radius:3px">'
+      + 'python3 scripts/process_queue_item.py --batch</code> to execute now.';
+    Object.assign(toast.style, {
+      position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+      background: '#1e40af', color: 'white', padding: '10px 20px', borderRadius: '8px',
+      fontSize: '12px', fontWeight: '600', zIndex: '99999',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.25)', maxWidth: '520px', textAlign: 'center',
+      lineHeight: '1.5',
+    });
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 5000);
+
+    // Update button to confirmed state
+    btns.forEach(function(b) {
+      b.textContent = '✓ Queued';
+      b.style.borderColor = '#059669';
+      b.style.color = '#059669';
+    });
+
+  } catch(e) {
+    console.error('_dqResearchNow error:', e);
+    // Restore button on failure
+    btns.forEach(function(b) {
+      b.disabled = false;
+      b.textContent = '▶ Research Now';
+      b.style.borderColor = '#2563eb';
+      b.style.color = '#2563eb';
+    });
+    alert('Error queuing item: ' + (e.message || e));
+  }
 }
 
 // ═══════════════════════════════════════════════════════
