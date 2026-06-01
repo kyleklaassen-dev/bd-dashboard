@@ -11543,13 +11543,13 @@ function _injectMeridianBridge(frame) {
       '  var oc=a.getAttribute("onclick")||"";',
       '  var hasModal=oc.indexOf("openDrugModal(")>=0||oc.indexOf("openCompanyModal(")>=0',
       '    ||oc.indexOf("openDrugEntityModal(")>=0||oc.indexOf("openCompanyEntityModal(")>=0;',
-      '  if(hasModal){e.preventDefault();e.stopPropagation();return false;}',
+      '  if(hasModal){e.preventDefault();return;}',
       '  var rawHref=a.getAttribute("href")||"";',
       '  if(a.href&&rawHref!=="#"&&!rawHref.startsWith("javascript")){',
       '    e.preventDefault();',
       '    window.open(a.href,"_blank","noopener,noreferrer");',
       '  }',
-      '},true);'
+      '},false);'
     ].join('\n');
     doc.head.appendChild(s);
 
