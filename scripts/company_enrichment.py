@@ -105,7 +105,7 @@ except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False
 
 try:
-    from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run
+    from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run, build_enrichment_summary
     _MODEL_COMPARISON_AVAILABLE = True
 except ImportError:
     _MODEL_COMPARISON_AVAILABLE = False
@@ -115,6 +115,8 @@ except ImportError:
         return False
     def patch_enrichment_run(*args, **kwargs): # type: ignore[misc]
         return False
+    def build_enrichment_summary(*args, **kwargs):  # type: ignore[misc]
+        return None
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1783,7 +1785,41 @@ Rules:
 - For deal/partnership claims: press release or SEC 8-K is required.
 - NCT numbers must be exactly 8 digits (e.g. NCT06197581). Reject any shorter/longer NCTs.
 - Every drug you enrich should have at minimum one source row for its most important claim
-  (typically stage or approval)."""
+  (typically stage or approval).
+
+FINE-TUNING FLYWHEEL — CONFIRMED EXAMPLES (100% acceptance rate from kyle_reviews, 2026-05-29):
+These are real examples Kyle has confirmed as correct. Use them as style and quality guides.
+
+EXAMPLE: drug_summary (confirmed as high quality)
+  DRUG: duvakitug (TL1A mAb, Sanofi/Teva co-dev, Phase 3 IBD)
+  GOOD: "Duvakitug is a human IgG1-λ2 anti-TL1A mAb co-developed with Teva (equal cost/profit share),
+  delivering the highest Phase 2b efficacy in the TL1A class: 48% clinical remission in UC and 48%
+  endoscopic improvement in CD. Phase 3 TUSCANY-3 (UC) and TUSCANY-4 (CD) ongoing, primary completion
+  ~2027. Sets the monospecific TL1A efficacy ceiling against which bispecifics will be compared."
+  WHY GOOD: Leads with mechanism + deal structure, includes specific Phase 2b numbers, names the trials,
+  anchors BD implication in final sentence. Dense, factual, no filler.
+
+EXAMPLE: ailux_angle (confirmed as high quality)
+  DRUG: duvakitug
+  GOOD: "Direct comparator; Sanofi/Teva's most advanced TL1A program. Ph3 readout will set class expectations."
+  DRUG: veligrotug (Prometheus/Merck, acquired TL1A program)
+  GOOD: "TUSCANY-2 Phase 2b SUCCESS triggered $7.1B Roche acquisition — strongest validation of TL1A
+  mechanism to date. Phase 3 (2027 readout) will set the efficacy ceiling for the class."
+  DRUG: elegrobart (IGF-1R, Viridian)
+  GOOD: "Biggest near-term threat to Tepezza class: SC self-administration + favorable safety profile.
+  Phase 3 success makes elegrobart the likely BLA-stage competitor in 2027."
+  WHY GOOD: Concise (≤2 sentences). BD-specific framing. Links the drug to Ailux's strategic position.
+  Includes timing. Uses specific deal values when available. No speculation beyond what's implied by facts.
+
+EXAMPLE: differentiation_thesis (confirmed as high quality)
+  DRUG: abatacept (T-cell costimulation inhibitor)
+  GOOD: "T-cell costimulation modulation; ~3d half-life; Q2W dosing"
+  DRUG: ozanimod (S1P modulator)
+  GOOD: "Potential fibrosis modification; upstream T-cell amplification control; ~7-10d half-life; Q4W"
+  DRUG: elegrobart (IGF-1R SC autoinjector)
+  GOOD: "SC autoinjector → at-home dosing; same IGF-1R mechanism as Tepezza but avoids infusion center; BLA Q1 2027"
+  WHY GOOD: 3-5 tightly packed facts separated by semicolons. Never repeats drug_summary. Focuses on
+  what makes the MOLECULE distinct (format, half-life, dosing schedule, engineering choice, route of admin)."""
 
 
 # ── Disease-area framing for area-aware assessment generation ─────────────────
@@ -2441,6 +2477,20 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                     "stage", "modality", "target", "catalog_category",
                     "strategic_role", "risk_summary", "bd_angle",
                 }
+                # ── confidence_score: derive from LLM confidence_level + source heuristic ──
+                # confidence_level in drug_updates: 'confirmed' | 'supported' | 'inferred'
+                _cl = (du.get("confidence_level") or "").lower()
+                _has_source = bool(du.get("source_url"))
+                if _cl == "confirmed":
+                    _conf_score = 0.90
+                elif _cl == "supported":
+                    _conf_score = 0.80
+                elif _cl == "inferred":
+                    _conf_score = 0.65
+                elif _has_source:
+                    _conf_score = 0.80
+                else:
+                    _conf_score = 0.75
                 _field_log_rows = []
                 _now_ts = datetime.datetime.utcnow().isoformat()
                 for _fname, _fval in update_fields.items():
@@ -2461,6 +2511,8 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                         "old_value_captured_at": _now_ts if _old_val_str is not None else None,
                         "was_changed":       _old_val_str != _fval_str if _old_val_str is not None else True,
                         "model_name":        "claude-sonnet-4-6",
+                        "confidence_score":  _conf_score,
+                        "source_citation":   du.get("source_url") or None,
                         "enriched_at":       _now_ts,
                         "field_label":       "pending",
                         "label_source":      "pending",
@@ -3020,6 +3072,10 @@ def write_molecule_intelligence(company_id: str, area_id: str,
             if enrichment_run_id:
                 _now_ts = datetime.datetime.utcnow().isoformat()
                 _field_log_rows = []
+                # ── confidence_score for molecule intelligence fields ──────────
+                # Use field_status to infer confidence: confirmed>inferred>unknown
+                _fs = field_status or {}
+                _mi_source_url = mu.get("source_url") or None
                 for _fname in MI_LOGGABLE_FIELDS:
                     _new_val = rec.get(_fname)
                     if _new_val is None:
@@ -3028,6 +3084,18 @@ def write_molecule_intelligence(company_id: str, area_id: str,
                     _new_str = str(_new_val)
                     _old_str = str(_old_val) if _old_val is not None else None
                     _was_changed = _old_str != _new_str if _old_str is not None else True
+                    # Per-field confidence from field_status if available, else source heuristic
+                    _fs_val = (_fs.get(_fname) or "").lower()
+                    if _fs_val == "confirmed":
+                        _mi_conf = 0.90
+                    elif _fs_val == "inferred":
+                        _mi_conf = 0.65
+                    elif _fs_val == "unknown":
+                        _mi_conf = 0.50
+                    elif _mi_source_url:
+                        _mi_conf = 0.80
+                    else:
+                        _mi_conf = 0.75
                     _field_log_rows.append({
                         "enrichment_run_id": enrichment_run_id,
                         "entity_type":       "drug",
@@ -3037,6 +3105,8 @@ def write_molecule_intelligence(company_id: str, area_id: str,
                         "old_value":         _old_str,
                         "was_changed":       _was_changed,
                         "model_name":        "claude-sonnet-4-6",
+                        "confidence_score":  _mi_conf,
+                        "source_citation":   _mi_source_url,
                         "enriched_at":       _now_ts,
                         "field_label":       "pending",
                         "label_source":      "pending",
@@ -3798,6 +3868,161 @@ def reconcile_company_areas(area_id: str, dry_run: bool = False) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# COVERAGE PASS — ensure every drug gets enriched at least once
+# ══════════════════════════════════════════════════════════════════════════
+
+def enrich_never_touched_drugs(limit: int = 10, dry_run: bool = False) -> int:
+    """
+    Coverage pass: pick drugs with last_synced_date IS NULL (never enriched)
+    and run a lightweight Claude enrichment to fill target, mechanism,
+    drug_summary, ailux_angle, differentiation_thesis.
+
+    Falls back to stale drugs (last_synced_date > 14 days ago) if nothing new.
+
+    Called at the end of run_intelligence_pipeline() — after all area-based
+    company enrichment passes are done — so it doesn't block primary work.
+
+    Returns: count of drugs updated.
+    """
+    log(f"\n{'─'*56}")
+    log("Coverage Pass — drugs with no last_synced_date")
+    log(f"{'─'*56}")
+
+    # 1. Never-enriched drugs first
+    never = sb_get("drugs", {
+        "select": "id,name,display_name,catalog_category,company_id,stage,target,mechanism,last_synced_date",
+        "last_synced_date": "is.null",
+        "catalog_category": "not.is.null",   # skip bare stubs with no category
+        "limit": str(limit),
+        "order": "created_at.asc",
+    })
+
+    if not never:
+        # Fallback: stale drugs enriched more than 14 days ago
+        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+        never = sb_get("drugs", {
+            "select": "id,name,display_name,catalog_category,company_id,stage,target,mechanism,last_synced_date",
+            "last_synced_date": f"lte.{cutoff}",
+            "limit": str(limit),
+            "order": "last_synced_date.asc",
+        })
+        if never:
+            log(f"  No never-enriched drugs found; falling back to {len(never)} stale (>14d) drugs")
+
+    if not never:
+        log("  Coverage pass: nothing to do")
+        return 0
+
+    log(f"  {len(never)} drug(s) selected for coverage enrichment")
+
+    _COVERAGE_SYSTEM = (
+        "You are Meridian, a pharmaceutical intelligence assistant. "
+        "Research the given drug and return structured JSON. "
+        "Use null for fields you cannot determine — do NOT hallucinate."
+    )
+
+    updated = 0
+    for drug in never:
+        did   = drug["id"]
+        dname = drug.get("display_name") or drug.get("name") or did
+        stage = drug.get("stage") or "unknown"
+        cat   = drug.get("catalog_category") or "unknown"
+
+        log(f"\n  Drug: {dname} ({did}) | stage={stage} | cat={cat}", indent=1)
+
+        prompt = (
+            f'Research the pharmaceutical drug "{dname}" (ID: {did}, stage: {stage}, '
+            f'category: {cat}).\n\n'
+            "Return JSON only:\n"
+            "{\n"
+            '  "target": "molecular target(s), e.g. TL1A, PD-1, IL-23p19",\n'
+            '  "mechanism": "2–3 sentence mechanistic description",\n'
+            '  "differentiation_thesis": "1–2 sentence unique value vs class",\n'
+            '  "ailux_angle": "1–2 sentence relevance to TL1A×IL-23p19 bispecific program",\n'
+            '  "drug_summary": "3–4 sentence overview: what it is, stage, key data, maker",\n'
+            '  "stage": "Preclinical|Phase 1|Phase 2|Phase 3|NDA Filed|Approved|Discontinued",\n'
+            '  "indication_short": "primary indication(s)"\n'
+            "}"
+        )
+
+        text = None
+        for attempt in range(1, 3):
+            try:
+                resp = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=600,
+                    system=_COVERAGE_SYSTEM,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                text = resp.content[0].text.strip()
+                break
+            except Exception as e:
+                log(f"    Claude error (attempt {attempt}/2): {e}", indent=2)
+                if attempt < 2:
+                    time.sleep(5)
+
+        if not text:
+            log("    Skipped — Claude unavailable", indent=2)
+            continue
+
+        # Parse JSON
+        try:
+            import re as _re
+            raw = _re.sub(r"```(?:json)?", "", text).strip()
+            enriched = json.loads(raw)
+        except Exception as e:
+            log(f"    JSON parse error: {e} | raw: {text[:120]}", indent=2)
+            enriched = {}
+
+        if not enriched:
+            continue
+
+        # Build update — only fill fields that are currently empty
+        update: dict = {}
+        NULLABLE = ["target", "mechanism", "differentiation_thesis", "ailux_angle", "drug_summary"]
+        for field in NULLABLE:
+            if enriched.get(field) and not drug.get(field):
+                update[field] = enriched[field]
+
+        if enriched.get("stage") and not drug.get("stage"):
+            update["stage"] = enriched["stage"]
+        if enriched.get("indication_short") and not drug.get("indication_short"):
+            update["indication_short"] = enriched["indication_short"]
+
+        update["last_synced_date"] = TODAY
+
+        filled = [k for k in update if k != "last_synced_date"]
+        log(f"    Fields to write: {filled}", indent=2)
+
+        if dry_run:
+            log("    [dry-run] skipping write", indent=2)
+            updated += 1
+            continue
+
+        ok = sb_patch("drugs", {"id": f"eq.{did}"}, update)
+        if ok:
+            log(f"    Updated {dname}: {filled}", indent=2)
+            # Mark the research_queue item resolved if one exists
+            sb_patch(
+                "research_queue",
+                {"entity_id": f"eq.{did}", "context_type": "eq.never_enriched"},
+                {
+                    "assigned_status": "resolved",
+                    "next_best_action": f"DONE: Coverage pass filled {filled}",
+                    "last_action_at": NOW_ISO,
+                },
+            )
+            updated += 1
+        else:
+            log(f"    PATCH failed for {dname}", indent=2)
+
+        time.sleep(1)   # brief pause to stay within rate limits
+
+    log(f"\n  Coverage pass complete: {updated}/{len(never)} drugs updated")
+    return updated
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # MAIN PIPELINE ORCHESTRATION — all 7 steps for one area
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -3823,6 +4048,21 @@ def run_intelligence_pipeline(area_id: str,
 
     company_map = get_company_map()
     log(f"Loaded {len(company_map)} company name→ID mappings")
+
+    # ── Cleanup: mark any dangling 'running' runs older than 2h as 'failed' ─────
+    # This prevents stuck runs from accumulating when the process is killed.
+    # Uses 'failed' status (valid enum value; 'interrupted' not in DB enum).
+    if not dry_run:
+        try:
+            cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=2)).isoformat()
+            sb_patch("enrichment_runs",
+                     {"status": "failed", "completed_at": NOW_ISO,
+                      "error_log": "Process killed or timed out before completion"},
+                     {"status": "eq.running", "started_at": f"lt.{cutoff}",
+                      "script_name": "eq.company_enrichment.py"})
+            log("Checked for dangling enrichment_runs (failed if >2h old)")
+        except Exception as _cleanup_exc:
+            log(f"  Cleanup check failed (non-fatal): {_cleanup_exc}")
 
     # ── Model Comparison Engine: log this pipeline run ────────────────────────
     _synthesis_model = "claude-haiku-4-5-20251001" if fast_model else "claude-sonnet-4-6"
@@ -3914,6 +4154,7 @@ def run_intelligence_pipeline(area_id: str,
     log("Note: Trials pre-populated by ct_gov_sync.py (Step 3)")
 
     results = {"success": 0, "failed": 0}
+    _companies_processed = 0
     for cid in company_ids:
         try:
             ok = enrich_company(cid, area_id, company_map, dry_run=dry_run,
@@ -3923,6 +4164,7 @@ def run_intelligence_pipeline(area_id: str,
                                 fast_model=fast_model,
                                 enrichment_run_id=_pipeline_run_id)
             results["success" if ok else "failed"] += 1
+            _companies_processed += 1
             if ok:
                 _pipeline_fields_set += 1
             else:
@@ -3937,13 +4179,18 @@ def run_intelligence_pipeline(area_id: str,
     log(f"Complete: {results['success']} success, {results['failed']} failed")
     log(f"{'='*60}")
 
-    # ── Model Comparison Engine: update run totals ────────────────────────────
+    # ── Model Comparison Engine: update run totals + build summary ────────────
     if _pipeline_run_id and not dry_run:
+        # Build comprehensive summary from enriched_field_log before closing run
+        enrichment_summary = build_enrichment_summary(_pipeline_run_id)
         update_enrichment_run(
             run_id=_pipeline_run_id,
             fields_set=_pipeline_fields_set,
             run_duration_seconds=time.time() - _pipeline_start_time,
             error_count=_pipeline_errors,
+            companies_processed=_companies_processed,
+            areas_processed=[area_id],
+            summary_json=enrichment_summary,
         )
 
     # Mark dispatched enrichment_queue items as complete
@@ -3960,6 +4207,16 @@ def run_intelligence_pipeline(area_id: str,
         reconcile_company_areas(area_id, dry_run=dry_run)
     else:
         log(f"\n── Reconciliation skipped (targeted run: {company_filter}) ──")
+
+    # Coverage pass — fill any drugs that have never been enriched.
+    # Runs only on full-area runs (not targeted --company filters) to avoid
+    # double-processing during fast targeted re-enrichment sessions.
+    # Limit=10 per area run keeps total cost bounded; never-enriched drugs
+    # are also added to research_queue so they surface in the Discovery Queue.
+    if not company_filter:
+        enrich_never_touched_drugs(limit=10, dry_run=dry_run)
+    else:
+        log("\n── Coverage pass skipped (targeted run) ──")
 
 
 # ══════════════════════════════════════════════════════════════════════════
