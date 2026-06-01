@@ -8849,7 +8849,7 @@ th.sort-desc::after { content:' ▼'; color:#fbbf24; }
 .dim-timeline-dot.current { background:#3b82f6; border-color:#3b82f6; box-shadow:0 0 0 3px #bfdbfe; }
 .dim-timeline-dot.future { background:white; border-color:#cbd5e1; }
 .dim-timeline-dot.imminent { background:white; border-color:#f59e0b; box-shadow:0 0 0 3px #fef3c7; }
-.dim-timeline-label { position:absolute; font-size:9px; font-weight:600; color:#64748b; white-space:nowrap; left:50%; transform:translateX(-50%); }
+.dim-timeline-label { position:absolute; font-size:9px; font-weight:600; color:#64748b; white-space:normal; left:50%; transform:translateX(-50%); width:max-content; max-width:90px; text-align:center; }
 .dim-timeline-label.above { bottom:18px; }
 .dim-timeline-label.below { top:18px; }
 </style>
@@ -11541,13 +11541,11 @@ function _injectMeridianBridge(frame) {
       'document.addEventListener("click",function(e){',
       '  var a=e.target.closest("a");if(!a)return;',
       '  var oc=a.getAttribute("onclick")||"";',
-      '  if(oc.indexOf("openDrugModal(")>=0||oc.indexOf("openCompanyModal(")>=0){',
-      '    e.preventDefault();e.stopPropagation();',
-      '    var m=oc.match(/open(?:Drug|Company)Modal\\(\\x27([^\\x27]+)\\x27\\)/);',
-      '    if(m){if(oc.indexOf("openDrugModal")>=0)openDrugModal(m[1]);else openCompanyModal(m[1]);}',
-      '    return false;',
-      '  }',
-      '  if(a.href&&a.getAttribute("href")!=="#"){',
+      '  var hasModal=oc.indexOf("openDrugModal(")>=0||oc.indexOf("openCompanyModal(")>=0',
+      '    ||oc.indexOf("openDrugEntityModal(")>=0||oc.indexOf("openCompanyEntityModal(")>=0;',
+      '  if(hasModal){e.preventDefault();e.stopPropagation();return false;}',
+      '  var rawHref=a.getAttribute("href")||"";',
+      '  if(a.href&&rawHref!=="#"&&!rawHref.startsWith("javascript")){',
       '    e.preventDefault();',
       '    window.open(a.href,"_blank","noopener,noreferrer");',
       '  }',
@@ -11562,7 +11560,7 @@ function _injectMeridianBridge(frame) {
       try {
         doc.querySelectorAll('a[onclick]').forEach(function(a) {
           var oc = a.getAttribute('onclick') || '';
-          if (oc.indexOf('openDrugModal(') >= 0 || oc.indexOf('openCompanyModal(') >= 0) {
+          if (oc.indexOf('openDrugModal(') >= 0 || oc.indexOf('openCompanyModal(') >= 0 || oc.indexOf('openDrugEntityModal(') >= 0 || oc.indexOf('openCompanyEntityModal(') >= 0) {
             a.setAttribute('href', 'javascript:void(0)');
             a.removeAttribute('target');
           }
@@ -12415,16 +12413,27 @@ function _dimSourceChips(urls, labels) {
 }
 
 function _dimBuildTimeline(qaMap) {
-  // Pull milestone dates from specific questions
-  const q21 = (qaMap[21]||{}).answer_short || '';
-  const q28 = (qaMap[28]||{}).answer_short || '';
+  // Extract clean date estimates from Q21 (FIH) and Q28 (Phase 3 completion)
+  // Only use as sub-label if it looks like a real date (year, quarter, or month)
+  const _cleanDate = (s) => {
+    if (!s) return '';
+    // Look for patterns like "Q4 2027", "H1 2028", "2027", "Oct 2027", "early 2027"
+    const m = s.match(/(?:Q[1-4]|H[12]|[A-Z][a-z]{2,8}|early|late|mid)?\s*20\d\d/i);
+    if (m) return m[0].trim();
+    // If it starts with "FIH" or is a description, skip it
+    if (/^fih|^phase|^ind|^approval|^discovery/i.test(s.trim())) return '';
+    // Short clean date string (under 12 chars)
+    return s.length <= 12 ? s.trim() : '';
+  };
+  const q21 = _cleanDate((qaMap[21]||{}).answer_short || '');
+  const q28 = _cleanDate((qaMap[28]||{}).answer_short || '');
   const milestones = [
     { label:'Discovery', sub:'', state:'done' },
     { label:'IND Filing', sub:'', state:'done' },
-    { label:'FIH', sub: q21.slice(0,30) || '', state: q21 && !q21.toLowerCase().includes('unknown') ? 'done' : 'future' },
+    { label:'FIH', sub: q21, state: q21 ? 'done' : 'future' },
     { label:'Ph1 Complete', sub:'', state:'future' },
     { label:'Phase 2', sub:'', state:'current' },
-    { label:'Phase 3', sub: q28.slice(0,25) || '', state: q28.toLowerCase().includes('2026') || q28.toLowerCase().includes('2025') ? 'imminent' : 'future' },
+    { label:'Phase 3', sub: q28, state: q28 ? 'imminent' : 'future' },
     { label:'NDA/BLA', sub:'', state:'future' },
     { label:'Approval', sub:'', state:'future' },
   ];
@@ -13092,9 +13101,9 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
 
   // Meridian Interpretation
   const interpDots = [];
-  if (vsAilux) interpDots.push({ col:'#dc2626', text: vsAilux.slice(0,180) });
-  if (diff)    interpDots.push({ col:'#7c3aed', text: diff.slice(0,180) });
-  if (summary) interpDots.push({ col:'#059669', text: summary.slice(0,180) });
+  if (vsAilux) interpDots.push({ col:'#dc2626', text: vsAilux });
+  if (diff)    interpDots.push({ col:'#7c3aed', text: diff });
+  if (summary) interpDots.push({ col:'#059669', text: summary });
   if (mechanism && !interpDots.length) interpDots.push({ col:'#0284c7', text: `Mechanism: ${mechanism}` });
 
   const interpSummaryHtml = interpDots.map(d =>
@@ -13187,7 +13196,7 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   const bdAngle    = molData?.bd_angle     || '';
   const riskSum    = molData?.risk_summary  || '';
   const sigSummary = (bdAngle || riskSum)
-    ? `<div style="font-size:12px;color:#1e293b;line-height:1.5;margin-bottom:6px">${(bdAngle||riskSum).slice(0,200)}</div>`
+    ? `<div style="font-size:12px;color:#1e293b;line-height:1.5;margin-bottom:6px">${bdAngle||riskSum}</div>`
     : '<div style="font-size:11px;color:#94a3b8;font-style:italic">No molecule intelligence enriched yet.</div>';
 
   const sigDetail = molData ? `<div class="cem-det-inner">
