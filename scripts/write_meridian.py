@@ -1367,7 +1367,7 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
 
     # Ensure all links open in a new tab (iframe navigation guard)
     if "<base " not in html:
-        html = html.replace("<head>", '<head>\n<base target="_blank" rel="noopener">', 1)
+        html = html.replace("<head>", '<head>\n', 1)
 
     # Apply first-mention hyperlinks for drug and company names.
     # This enforces the WRITING_STANDARDS rule programmatically: first occurrence
