@@ -17,6 +17,11 @@ on:
         description: 'Limit to one area_id (blank = all with null LDS)'
         required: false
         default: ''
+      recompute_all:
+        description: 'Recompute all areas, not just null LDS'
+        type: boolean
+        required: false
+        default: false
       dry_run:
         description: 'Compute but do not write to Supabase'
         type: boolean
@@ -48,6 +53,9 @@ jobs:
           ARGS=""
           if [ -n "${{ github.event.inputs.area }}" ]; then
             ARGS="$ARGS --area ${{ github.event.inputs.area }}"
+          fi
+          if [ "${{ github.event.inputs.recompute_all }}" == "true" ]; then
+            ARGS="$ARGS --all"
           fi
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
