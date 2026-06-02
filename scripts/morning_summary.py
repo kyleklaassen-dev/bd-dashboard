@@ -7,6 +7,7 @@ meridian_overnight_summary.txt in the repo root.
 """
 
 import os
+import json
 import datetime
 import requests
 
@@ -70,7 +71,7 @@ def fetch_field_changes():
 # ── 3. Open governance violations ────────────────────────────────────────────
 def fetch_governance_violations():
     rows = sb_get("governance_violations", {
-        "select": "id,entity_type,entity_id,rule_name,violation_detail,created_at",
+        "select": "id,table_name,row_id,rule_name,description,detected_at",
         "resolved": "eq.false",
         "order": "created_at.desc",
         "limit": 50,
@@ -181,7 +182,7 @@ def format_summary(runs, changes, violations, alerts, date_str):
         drug_id = alert.get("drug_id") or "?"
         rtype   = (alert.get("check_status") or "?").upper()
         rule    = alert.get("check_type") or "?"
-        detail  = (alert.get("details") or alert.get("notes") or "")[:120]
+        detail  = (alert.get("notes") or (json.dumps(alert.get("details")) if alert.get("details") else "") or "")[:120]
         lines.append(f"  [{rtype}] {drug_id} — {rule}: {detail}")
     if len(alerts) > 30:
         lines.append(f"  … and {len(alerts) - 30} more")
@@ -192,11 +193,11 @@ def format_summary(runs, changes, violations, alerts, date_str):
     # ── Governance violations ────────────────────────────────────────────────
     lines.append(f"GOVERNANCE FLAGS: {len(violations)} unresolved")
     for v in violations[:20]:
-        etype   = v.get("entity_type") or "?"
-        eid     = v.get("entity_id") or "?"
+        etype   = v.get("table_name") or "?"
+        eid     = v.get("row_id") or "?"
         rule    = v.get("rule_name") or "?"
-        detail  = (v.get("violation_detail") or "")[:120]
-        created = (v.get("created_at") or "")[:10]
+        detail  = (v.get("description") or "")[:120]
+        created = (v.get("detected_at") or "")[:10]
         lines.append(f"  {etype}/{eid} — {rule} ({created}): {detail}")
     if len(violations) > 20:
         lines.append(f"  … and {len(violations) - 20} more")
