@@ -1,5 +1,5 @@
 # NEXT SESSION — 2026-06-03 (Morning)
-<!-- updated: 2026-06-02T08:00Z agent: cowork autonomous full-day -->
+<!-- updated: 2026-06-02T23:30Z agent: cowork autonomous full-day -->
 
 ## What Was Done This Session (full autonomous overnight run)
 
@@ -130,14 +130,23 @@ See `docs/AUDIT_REPORT_2026-06-01.md` for complete findings.
 
 ---
 
-## Final State (2026-06-02 evening — updated)
-**994/1000 validation tests passing. All P1 passing. 1 remaining: spy072/ibd DAS legacy (June 26 retirement).**
-- Drugs: 174 | DCS: 342 | Deals: 155+ | drug_indications: 332+
-- company_areas: all E3 tests fixed (amgen/fcrn, boehringer/tl1a, jnj/tcell, regeneron/il4ra added)
-- source_url: 168/174 (96%, was 70% this morning)
-- LDS: ALL 5 areas above 77 — fcrn=88.8, atopy=86.7, ibd=81.9, igf1r=80.0, autoimmune=77.3
-- company_profiles: 138/138 bd_angle filled (0 gaps)
-- Deals added today: ATG-201 ($1.18B), cizutamig/Candid ($2.2B), Horizon/Amgen ($27.8B), vedolizumab/ENHANZE, dupilumab (Sanofi/Regeneron), tezepelumab (AZ/Amgen), teprotumumab, ustekinumab, risankizumab, mirikizumab, upadacitinib, spy002 (Paragon/Spyre), 5 IGF-1R/TED catalysts added
+## Final State (2026-06-02 end of day — COMPLETE)
+**994/1000 validation passing. All P1 passing. 1 remaining: spy072/ibd DAS legacy (June 26 retirement).**
+- Drugs: 174 | DCS: 342 | Deals: 158 (was 140 morning) | Catalysts: 986
+- source_url: 168/174 (96%, was 70% morning)
+- LDS all above 77: fcrn=88.8, atopy=86.7, **ibd=83.7** (was 50.83!), igf1r=80.0, autoimmune=77.3
+- company_profiles: 138/138 bd_angle filled | company_areas: all E3 tests resolved
+- **Fine-tuning flywheel**: 109 training examples extracted, 60 drift detected, 17 regressions restored
+- **Retirement plan**: docs/drug_area_scores_retirement_plan.md written (exec June 27)
+
+**Key competitive intelligence added (evening session):**
+- Earendil/Sanofi $1.72B: HXN-1002 (α4β7×TL1A) + HXN-1003 (TL1A×IL-23p19) — direct ALX001 competitor
+- HXN-1001 Phase 2a started April 2026 (Earendil TL1A mAb) 
+- Earendil $787M Series C, March 2026 (Sanofi + Pfizer investors)
+- Duvakitug Phase 3 live (Teva/Sanofi); Phase 2b LTE positive Feb 2026
+- ABBV-668 Phase 2 complete Dec 2025; AbbVie SKYRIZI+TL1A combo planned 2026
+- Afimkibart Phase 3 UC (reg submission 2027); Phase 2 CD data expected 2026
+- 17 Kyle-confirmed field values restored from regression (differentiation_thesis, patient_benefit_simplified, unmet_need_addressed)
 
 ---
 
@@ -197,7 +206,10 @@ See `docs/AUDIT_REPORT_2026-06-01.md` for complete findings.
 
 ---
 
-## ⚠️ ONE MANUAL ACTION REQUIRED (Kyle — 30 seconds)
+## ⚠️ ~~ONE MANUAL ACTION REQUIRED~~ DONE ✅
+The company_areas migration was applied programmatically via Supabase Management API. All P1 tests passing.
+
+## Previously Required Manual Action — COMPLETED
 **Run this SQL in Supabase SQL Editor to fix 8 validation failures + unblock candid/merck visibility:**
 ```
 File: migrations/fix_company_areas_trigger.sql
