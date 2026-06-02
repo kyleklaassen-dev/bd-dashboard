@@ -130,15 +130,34 @@ See `docs/AUDIT_REPORT_2026-06-01.md` for complete findings.
 
 ---
 
-## Final State (2026-06-02 end of day)
-**10/10 verification checks passing.**
-- Drugs: 174 | DCS: 342 (+30) | Deals: 142
-- drug_indications: 332 rows across 173 drugs (+22 rows)
-- company_partnerships: 52 rows (+6)
-- indication_patient_intelligence: 17 rows, all key fields filled
-- Meridian issue: ✓ live for June 2 (52,985 chars)
+## Final State (2026-06-02 evening — updated)
+**994/1000 validation tests passing. All P1 passing. 1 remaining: spy072/ibd DAS legacy (June 26 retirement).**
+- Drugs: 174 | DCS: 342 | Deals: 155+ | drug_indications: 332+
+- company_areas: all E3 tests fixed (amgen/fcrn, boehringer/tl1a, jnj/tcell, regeneron/il4ra added)
+- source_url: 168/174 (96%, was 70% this morning)
+- LDS: ALL 5 areas above 77 — fcrn=88.8, atopy=86.7, ibd=81.9, igf1r=80.0, autoimmune=77.3
+- company_profiles: 138/138 bd_angle filled (0 gaps)
+- Deals added today: ATG-201 ($1.18B), cizutamig/Candid ($2.2B), Horizon/Amgen ($27.8B), vedolizumab/ENHANZE, dupilumab (Sanofi/Regeneron), tezepelumab (AZ/Amgen), teprotumumab, ustekinumab, risankizumab, mirikizumab, upadacitinib, spy002 (Paragon/Spyre), 5 IGF-1R/TED catalysts added
 
 ---
+
+### Session: Relationship + UI Audit (2026-06-02 afternoon)
+
+**Schema inventory (50 tables audited):**
+- Found 9 high-value tables completely disconnected from dashboard
+- Added 56 new ORIGINATED_BY + 8 CONTROLLED_BY ownership edges (117 total, was 61)
+- Added 10 new clinical benchmark rows (58 total), 11 new PK rows (43 total), 8 new biomarker rows (12 total)
+- Added 9 new non-responder profiles (9 total), 6 new payer TPP rows (17 total), 3 pipeline conflicts (10 total)
+- Added 22 drug_indication rows for 10 previously uncovered catalog drugs
+- all 17 indication_patient_intelligence rows fully populated (escalation_triggers, unmet_need_narrative, patient_reported_priorities, trial_endpoint_gap)
+
+**New UI features deployed (commit 3e78f06f):**
+- Drug Profile tab: **Clinical Intelligence panel** — PK Profile (half-life, dose/route, ADA %), Efficacy Benchmarks (response/remission rates vs placebo), Patient Biomarkers (predictive/PD markers). Lazy-loads from drug_clinical_benchmarks, drug_pk_parameters, drug_biomarkers.
+- Overview tab: **Payer & Access Intelligence panel** — Target Product Profile benchmarks per indication, Non-Responder Biology (escape mechanisms, NR rates). Lazy-loads from payer_tpp_criteria, non_responder_profiles.
+- Both panels are non-blocking (fetch after modal renders), gracefully absent when no data.
+
+**Data quality — all 8/8 checks passing:**
+- Drugs: 174 | DCS: 342 | Deals: 142 | drug_indications: 332
 
 ### Phase 2 Close + Phase 3 Push + BD Readiness (2026-06-02 ~11:00–12:00Z)
 
