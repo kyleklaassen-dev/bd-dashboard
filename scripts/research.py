@@ -549,15 +549,43 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
     inserted_intel = 0
     inserted_deals = 0
     inserted_catalysts = 0
+    skipped_intel = 0
+    skipped_deals = 0
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     total = len(intel_items)
 
+    # ── Pre-fetch existing headlines (last 120 days) to prevent nightly duplication ──
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=120)).strftime("%Y-%m-%d")
+    existing_intel_headlines: set[str] = set()
+    existing_deal_headlines:  set[str] = set()
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/intel?select=headline&intel_date=gte.{cutoff}&limit=2000",
+            headers=SB_HEADERS, timeout=10)
+        if r.status_code == 200:
+            existing_intel_headlines = {row["headline"] for row in r.json() if row.get("headline")}
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/deals?select=headline&deal_date=gte.{cutoff}&limit=1000",
+            headers=SB_HEADERS, timeout=10)
+        if r.status_code == 200:
+            existing_deal_headlines = {row["headline"] for row in r.json() if row.get("headline")}
+        log(f"  Dedup cache: {len(existing_intel_headlines)} intel, {len(existing_deal_headlines)} deal headlines loaded")
+    except Exception as e:
+        log(f"  WARN: dedup pre-fetch failed ({e}); continuing without dedup guard")
+
     for idx, item in enumerate(intel_items, 1):
         log(f"  [WRITE {idx}/{total}] {item.get('area_id','?')} — {(item.get('headline') or '')[:80]}")
+        # ── Intel dedup check ─────────────────────────────────────────────
+        intel_headline_key = (item.get("headline") or "")[:200]
+        if intel_headline_key in existing_intel_headlines:
+            log(f"  [SKIP dupe intel] {intel_headline_key[:80]}")
+            skipped_intel += 1
+            continue
+        existing_intel_headlines.add(intel_headline_key)
         # ── Intel record ──────────────────────────────────────────────────
         intel_rec = {
             "intel_date":  item.get("intel_date") or today,
-            "headline":    (item.get("headline") or "")[:200],
+            "headline":    intel_headline_key,
             "body":        item.get("body") or "",
             "source_url":  item.get("source_url") or "",
             "source_name": item.get("source_name") or "",
@@ -607,24 +635,30 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
 
         # ── Deal record ───────────────────────────────────────────────────
         if item.get("is_deal") and item.get("deal_from"):
-            deal_date = item.get("intel_date") or today
-            deal_rec = {
-                "deal_date":       deal_date,
-                "deal_date_label": datetime.datetime.strptime(deal_date[:7], "%Y-%m").strftime("%b %Y")
-                                   if deal_date else today[:7],
-                "from_company":    item.get("deal_from") or "",
-                "to_company":      item.get("deal_to") or "",
-                "area_id":         item["area_id"],
-                "deal_type":       item.get("deal_type") or "license",
-                "upfront_usd_m":   item.get("deal_upfront_usd_m"),
-                "total_usd_m":     item.get("deal_total_usd_m"),
-                "headline":        (item.get("headline") or "")[:200],
-                "detail":          item.get("body") or "",
-                "source_url":      item.get("source_url") or "",
-                "ailux_signal":    "",
-            }
-            if sb_post("deals", deal_rec):
-                inserted_deals += 1
+            deal_headline_key = (item.get("headline") or "")[:200]
+            if deal_headline_key in existing_deal_headlines:
+                log(f"  [SKIP dupe deal] {deal_headline_key[:80]}")
+                skipped_deals += 1
+            else:
+                existing_deal_headlines.add(deal_headline_key)
+                deal_date = item.get("intel_date") or today
+                deal_rec = {
+                    "deal_date":       deal_date,
+                    "deal_date_label": datetime.datetime.strptime(deal_date[:7], "%Y-%m").strftime("%b %Y")
+                                       if deal_date else today[:7],
+                    "from_company":    item.get("deal_from") or "",
+                    "to_company":      item.get("deal_to") or "",
+                    "area_id":         item["area_id"],
+                    "deal_type":       item.get("deal_type") or "license",
+                    "upfront_usd_m":   item.get("deal_upfront_usd_m"),
+                    "total_usd_m":     item.get("deal_total_usd_m"),
+                    "headline":        deal_headline_key,
+                    "detail":          item.get("body") or "",
+                    "source_url":      item.get("source_url") or "",
+                    "ailux_signal":    "",
+                }
+                if sb_post("deals", deal_rec):
+                    inserted_deals += 1
 
         # ── Catalyst record ───────────────────────────────────────────────
         if item.get("has_catalyst") and item.get("catalyst_label"):
@@ -659,6 +693,7 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
                 inserted_catalysts += 1
 
     log(f"Wrote → intel: {inserted_intel}, deals: {inserted_deals}, catalysts: {inserted_catalysts} "
+        f"| Skipped dupes → intel: {skipped_intel}, deals: {skipped_deals} "
         f"(company junction rows written inline)")
 
 
