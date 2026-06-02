@@ -1,0 +1,58 @@
+name: Backfill Company BD Angles
+
+# Fills company_profiles.bd_angle for all rows where it is NULL.
+# Uses Claude Sonnet via Anthropic API — targeted single-field backfill,
+# much lighter than running the full company_enrichment pipeline.
+#
+# Manual dispatch only — run once to clear the backlog, then
+# company_enrichment.yml maintains bd_angle going forward.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max profiles to process (default: 100 = all missing)'
+        required: false
+        default: '100'
+      area:
+        description: 'Limit to one area_id (leave blank for all areas)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run — generate but do not write to Supabase'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run bd_angle backfill
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS="--limit ${{ github.event.inputs.limit || '100' }}"
+          if [ -n "${{ github.event.inputs.area }}" ]; then
+            ARGS="$ARGS --area ${{ github.event.inputs.area }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "Running: python scripts/backfill_bd_angle.py $ARGS"
+          python scripts/backfill_bd_angle.py $ARGS
