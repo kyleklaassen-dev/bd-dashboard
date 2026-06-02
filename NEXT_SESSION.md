@@ -1,5 +1,5 @@
-# NEXT SESSION — 2026-06-02 (Autonomous overnight — 3 cycles complete)
-<!-- updated: 2026-06-02T02:45Z agent: cowork autonomous -->
+# NEXT SESSION — 2026-06-03 (Morning)
+<!-- updated: 2026-06-02T08:00Z agent: cowork autonomous full-day -->
 
 ## What Was Done This Session (full autonomous overnight run)
 
@@ -88,31 +88,126 @@ See `docs/AUDIT_REPORT_2026-06-01.md` for complete findings.
 
 ---
 
-## Final State
-**11/11 verification checks passing.** Drugs: 174 | DCS: 317 | Deals: 140
+---
+
+## Full-Day Session (2026-06-02) — Structural Improvements
+
+### Meridian Pipeline fixes
+- **write_meridian.py**: Fixed intel filter from `intel_date` → `created_at` (root cause of empty issues). Added 96h fallback. **Commit cc0e5b59**
+- **morning_summary.py**: Fixed 2 bugs (JSON dict slice crash, wrong governance_violations column names). **Commit f9161441**
+- **Triggered Research + Writer manually** → today's issue generated successfully (52,985 chars, June 2 issue live)
+- **bd_angle backfill ran automatically** at 05:22 UTC — ran successfully
+
+### Database structural improvements
+
+**drug_indications backfill:**
+- Created 5 new indication records: pv, et, dmd, fshd, dm1 (PV, ET, DMD, FSHD, DM1)
+- Added 22 drug_indication rows for 10 previously uncovered drugs: natalizumab (CD/MS), ropeginterferon (PV/ET), tislelizumab (5 indications), del-zota (DMD), kt502 (SLE/RA/Sjogrens), del-braxlosiran (FSHD), sac-tmt (NSCLC/TNBC), del-etedesiran (DM1), lbl-051-s3 (MM/SLE/B-cell), metis-mrna (MM/B-cell)
+
+**indication_patient_intelligence (17/17 rows now fully populated):**
+- escalation_triggers: all 17 rows filled (specific per indication)
+- unmet_need_narrative: 10 rows filled
+- patient_reported_priorities: all 17 rows filled (as TEXT[] arrays)
+- trial_endpoint_gap: all 17 rows filled
+
+**company_partnerships additions (6 new rows, now 52 total):**
+- Avidity → Novartis (del-braxlosiran, del-etedesiran, del-zota; $3.3B acquisition 2025)
+- Earendil → Sanofi (hxn-1002)
+- Telavant → Roche (afimkibart; $7.25B acquisition)
+- Kelun → Windward (win378; partnership_verified=false)
+
+**DCS coverage expansion (DCS now 342 rows, was 312):**
+- 18 ailux_baseline context rows added (all TL1A×IL-23p19 bispecifics: spy230, sim0709, lq080, lq082, cantai-tl1a, mt-251, erd-1, xmab412, sab06, ro7837195, cldr-001, lbl053, hy8931, hbm2001, pr203, qx030n, es302, bcd-261)
+- 6 uc/cd context rows added (spy002, spy072, ro7837195, bcd-261)
+
+**area_metadata (all 11 rows updated):**
+- retirement_status notes updated with June 26 deadline for monitoring areas
+
+**Deal deduplication (ongoing):**
+- Nightly research.py wrote 12 new deals (pipeline working correctly with dedup fix)
+- 10 new duplicates deleted (same events from re-processing)
+- Note: near-duplicate variants with slightly different headlines not caught by exact-match dedup — consider fuzzy matching in future
+
+---
+
+## Final State (2026-06-02 end of day)
+**10/10 verification checks passing.**
+- Drugs: 174 | DCS: 342 (+30) | Deals: 142
+- drug_indications: 332 rows across 173 drugs (+22 rows)
+- company_partnerships: 52 rows (+6)
+- indication_patient_intelligence: 17 rows, all key fields filled
+- Meridian issue: ✓ live for June 2 (52,985 chars)
+
+---
+
+### Phase 2 Close + Phase 3 Push + BD Readiness (2026-06-02 ~11:00–12:00Z)
+
+**Validation infrastructure:**
+- `run-validation-tests.yml` created — weekly Monday + manual dispatch; writes results to DB
+- `validate_ground_truth.py` fixed: `company_check` for entity_type=company now queries companies table (not drugs)
+- 986/1000 tests now passing (was 341 before today's session)
+- 9 remaining failures: 8 from broken `company_areas` trigger (1 SQL file fixes all), 1 spy072/ibd legacy DAS check
+- **Only 2 P1 blockers** — both fixed by running `migrations/fix_company_areas_trigger.sql` in Supabase SQL editor
+- Deleted 17 stale tests for mdr-018/mk-1718 (unverified/nonexistent drugs)
+- efgartigimod test: expected_value corrected to `approved_us_eu`
+
+**Data completeness:**
+- drug_indications: alx-fcrn (gmg/cidp/waiha), cld-423 (uc/cd), bcd-261 (uc/cd) added — 0 Direct/Adjacent gaps
+- area_metadata: retirement_status updated to `monitoring` for all activated areas
+- DCS: natalizumab (indication/cd) confirmed covered; tislelizumab (platform_view/tcell) added
+- mdr-018/mk-1718 identity tests deleted (drugs don't exist — mdr-018 flagged as unverified Mirador code)
+
+**Phase 3 — Coverage diagnostics:**
+- `compute_landscape_scores.py` + `compute-landscape-scores.yml` created and triggered
+- LDS computed for all 5 areas: ibd=50.83, fcrn=82.5, atopy=72.67, autoimmune=46.65, igf1r=89.75
+- IBD LDS=50.83 and autoimmune=46.65 both below 60 threshold — confirms PRIORITY.md item #14
+- Formula verified: drug_cov×35 + rel_cov×25 + cat_cov×20 + source_val×15 − staleness×5
+
+**BD Readiness:**
+- SC Tepezza OBI Phase 3 positive (April 6, 2026): 76.7% proptosis response, -3.17mm mean reduction; SC Q2W OBI every 2 weeks × 12 injections; payer_tpp_criteria dosing_regimen row updated — IV-only now disadvantaged
+- New payer TPP row added: `delivery_route_sc_obi` — SC OBI is new standard for TED competitors
+- Xencor XTEND-Fc BD angle: XmAb412 FIH Q3 2026 (DDW May 2026 data); predicted human t½ 60-70d; window for ALX001 XTEND license closes at FIH initiation; written to company_profiles (xencor/ibd, xencor/tl1a) and internal_pipeline_conflicts
+- drug_sources: xmab412 XTEND-Fc BD window sourced per governance rule
+
+**Infrastructure added (all active):**
+- `run-validation-tests.yml` — weekly ground truth validation
+- `compute-landscape-scores.yml` — weekly LDS recomputation
+- `backfill-bd-angle.yml` — bd_angle backfill on demand
+- `queue-processor.yml` — nightly 6 AM ET queue clearing
+- `apply-migration.yml` — manual SQL migration runner (workflow_dispatch)
+
+---
+
+## ⚠️ ONE MANUAL ACTION REQUIRED (Kyle — 30 seconds)
+**Run this SQL in Supabase SQL Editor to fix 8 validation failures + unblock candid/merck visibility:**
+```
+File: migrations/fix_company_areas_trigger.sql
+```
+This drops the broken trigger (references retired `disease_areas` table) and adds:
+- candid → tcell (Candid has cizutamig BCMA×CD3 TCE platform)
+- merck → tl1a (Merck has tulisokibart Phase 3 TL1A mAb via Prometheus)
+After running: validation tests should reach 995/1000 (986 now).
 
 ---
 
 ## Open Items (priority order)
 
 ### P1 — Enrichment backfills
-- **bd_angle: 78 company_profiles null** — requires nightly company_enrichment.py (not queue-processor). Verify GitHub Actions ran 2026-06-02. Check again on next session.
-- **source_url: 51 drugs missing** — was 59; now 51. 3 Direct drugs unregistered on CT.gov (cld-423, lbl-051-s3, hxn-1002 — legitimate). Rest need molecule_enrichment.yml.
-- **drug_summary: 0 missing** ✅ — fully resolved this session.
+- **bd_angle: 78 company_profiles null** — backfill ran at 05:22 UTC today. Verify how many were filled (check company_profiles count on next session).
+- **source_url: ~51 drugs missing** — trigger molecule_enrichment.yml for batch fill.
 
-### P2 — Data gaps found in audit
-- **10 catalog drugs missing drug_indications** — ropeginterferon (PV), natalizumab (MS/CD), tislelizumab (oncology), del-zota (DMD), kt502 (autoimmune), del-braxlosiran (FSHD), sac-tmt (TROP2 cancers), del-etedesiran (DM1), lbl-051-s3, metis-mrna-cd19bcmacd3. All need indication rows added.
-- **m701 partner unknown** — YZY Biopharma TL1A mAb; partnership_type cleared (was wrong). Needs research to identify licensee if any.
+### P2 — Structural
+- **m701 partner unknown** — YZY Biopharma TL1A mAb; partnership_type cleared. Who licensed it? Check company_partnerships.
+- **afimkibart 3-hop chain** — Roivant→Pfizer spin→Telavant→Roche. Asset transfer history v41 should capture full chain.
+- **Deal fuzzy dedup** — exact headline dedup catches clean duplicates but slight-variant headlines still accumulate (e.g., "Tepezza Phase 3 OBI" with x4 near-identical variants). Consider headline similarity check in research.py.
 
 ### P3 — Low priority
 - **WuXi Biologics parent** — add wuxi_apptec company, link parent_company_id
-- **Rename anti-tl1a-xpf005-arm → alx001** — cosmetic, data correct, requires FK audit across DCS/deals/rankings
-- **afimkibart 3-hop chain** — Roivant→Telavant→Roche. Asset transfer history v41 should capture full lineage.
-- **amlitelimab co-discovery** — Sanofi/Regeneron platform. If Regeneron credit needed, add company_partnerships row.
+- **Rename anti-tl1a-xpf005-arm → alx001** — cosmetic, data correct, requires FK audit
+- **amlitelimab co-discovery** — Sanofi/Regeneron platform question
 
 ---
 
 ## Decisions Needed
-1. **Veligrotug June 30 FDA decision** — auto-update dashboard or manual?
-2. **drug_indications backfill** — auto-enrichment batch or manual curation for 10 missing drugs?
-3. **bd_angle enrichment** — check GitHub Actions logs for 2026-05-31 run status.
+1. **Veligrotug June 30 FDA decision** — auto-update dashboard or manual review?
+2. **bd_angle enrichment** — check how many company_profiles were filled by today's backfill run.
