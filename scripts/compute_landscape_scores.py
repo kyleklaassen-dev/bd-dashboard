@@ -234,13 +234,14 @@ def main():
     parser = argparse.ArgumentParser(description="Compute landscape_dependency_score for all areas")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--area", help="Limit to one area_id")
+    parser.add_argument("--all", action="store_true", help="Recompute all areas, not just null ones")
     args = parser.parse_args()
 
     # Fetch landscapes needing computation
     params = {"select": "*", "limit": "20"}
     if args.area:
         params["area_id"] = f"eq.{args.area}"
-    else:
+    elif not args.all:
         params["landscape_dependency_score"] = "is.null"
 
     landscapes = sb_get("competitive_landscapes", params)
