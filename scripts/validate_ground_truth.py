@@ -197,7 +197,8 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             # Two modes:
             # 1. entity_type='company' + field_name set → check companies table field directly
             # 2. entity_type='drug' (default) → verify a drug belongs to a specific company
-            if entity_type == "company" and field:
+            _entity_type = test.get("entity_type") or "drug"
+            if _entity_type == "company" and field:
                 # Direct company field check (e.g. status, hq_country)
                 if "companies_all" not in cache:
                     cache["companies_all"] = sb_get("companies",
