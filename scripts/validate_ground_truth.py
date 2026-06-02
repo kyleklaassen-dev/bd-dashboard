@@ -194,18 +194,33 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             return ("pass" if passed else "fail"), actual, ""
 
         elif test_type == "company_check":
-            # Verify a drug belongs to a specific company.
-            # expected_value = company_id string; operator = eq (default).
-            if "drugs_all" not in cache:
-                cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target,catalog_category"})
-            drug = next((d for d in cache["drugs_all"]
-                         if d.get("id","").lower() == entity_id.lower()
-                         or d.get("name","").lower() == entity_id.lower()), None)
-            if not drug:
-                return "error", "", f"Drug '{entity_id}' not found"
-            actual = drug.get("company_id") or ""
-            passed = evaluate_operator(actual, expected, operator)
-            return ("pass" if passed else "fail"), actual, ""
+            # Two modes:
+            # 1. entity_type='company' + field_name set → check companies table field directly
+            # 2. entity_type='drug' (default) → verify a drug belongs to a specific company
+            if entity_type == "company" and field:
+                # Direct company field check (e.g. status, hq_country)
+                if "companies_all" not in cache:
+                    cache["companies_all"] = sb_get("companies",
+                        {"select": "id,name,status,hq_country,parent_company_id"})
+                company = next((c for c in cache["companies_all"]
+                                if c.get("id","").lower() == entity_id.lower()), None)
+                if not company:
+                    return "error", "", f"Company '{entity_id}' not found"
+                actual = str(company.get(field) or "")
+                passed = evaluate_operator(actual, expected, operator)
+                return ("pass" if passed else "fail"), actual, ""
+            else:
+                # Drug ownership check
+                if "drugs_all" not in cache:
+                    cache["drugs_all"] = sb_get("drugs", {"select": "id,name,overlap,stage,company_id,display_name,target,catalog_category"})
+                drug = next((d for d in cache["drugs_all"]
+                             if d.get("id","").lower() == entity_id.lower()
+                             or d.get("name","").lower() == entity_id.lower()), None)
+                if not drug:
+                    return "error", "", f"Drug '{entity_id}' not found"
+                actual = drug.get("company_id") or ""
+                passed = evaluate_operator(actual, expected, operator)
+                return ("pass" if passed else "fail"), actual, ""
 
         elif test_type == "display_name_check":
             # Verify a drug's display_name contains (or doesn't contain) a given string.
