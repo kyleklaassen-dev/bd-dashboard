@@ -1,0 +1,66 @@
+name: Apply SQL Migration
+
+# Runs a SQL migration file against Supabase via psycopg2.
+# Manual dispatch only — never scheduled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_file:
+        description: 'Path to SQL file relative to repo root (e.g. migrations/fix_company_areas_trigger.sql)'
+        required: true
+      dry_run:
+        description: 'Print SQL without executing'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install psycopg2
+        run: pip install psycopg2-binary
+
+      - name: Apply migration
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          FILE="${{ github.event.inputs.migration_file }}"
+          echo "Migration file: $FILE"
+          cat "$FILE"
+          echo "---"
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "DRY RUN — not executing"
+          else
+            python3 -c "
+import psycopg2, os, sys
+sql = open('$FILE').read()
+url = os.environ['SUPABASE_DB_URL']
+conn = psycopg2.connect(url)
+conn.autocommit = True
+cur = conn.cursor()
+try:
+    cur.execute(sql)
+    print('Migration applied successfully')
+    try:
+        rows = cur.fetchall()
+        for r in rows: print(r)
+    except: pass
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+finally:
+    conn.close()
+"
+          fi
