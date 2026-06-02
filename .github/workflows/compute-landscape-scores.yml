@@ -1,0 +1,56 @@
+name: Compute Landscape Dependency Scores
+
+# Computes landscape_dependency_score for competitive_landscapes rows with null LDS.
+# Formula: LDS = drug_coverage*35 + relationship_coverage*25 + catalyst_coverage*20
+#              + source_validation*15 - staleness_penalty*5
+#
+# Runs weekly Monday at 11:30 AM UTC (7:30 AM ET) after validation tests.
+# Manual dispatch for immediate run.
+
+on:
+  schedule:
+    - cron: '30 11 * * 1'   # 7:30 AM ET Mondays
+
+  workflow_dispatch:
+    inputs:
+      area:
+        description: 'Limit to one area_id (blank = all with null LDS)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Compute but do not write to Supabase'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Compute landscape scores
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.area }}" ]; then
+            ARGS="$ARGS --area ${{ github.event.inputs.area }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "Running: python scripts/compute_landscape_scores.py $ARGS"
+          python scripts/compute_landscape_scores.py $ARGS
