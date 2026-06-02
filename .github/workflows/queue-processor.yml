@@ -1,0 +1,57 @@
+name: Discovery Queue Processor
+
+# Executes pending research_queue items via process_queue_item.py.
+# Handles 3 route types:
+#   Route 1 — CT.gov trial search
+#   Route 2 — Drug field enrichment (Claude Sonnet)
+#   Route 3 — PubMed PK/PD extraction
+#
+# Manual dispatch: choose batch size (default 65 = all pending)
+# Nightly: runs daily at 5 AM ET (10:00 UTC) to clear overnight queue growth
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 6 AM ET (10:00 UTC) daily
+
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Number of items to process (default: 65 = all pending)'
+        required: false
+        default: '65'
+      dry_run:
+        description: 'Dry run — classify routes only, no writes'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  process-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Process pending queue items
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '65' }}"
+          DRY_FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            DRY_FLAG="--dry-run"
+          fi
+          echo "Processing up to $LIMIT pending queue items..."
+          python scripts/process_queue_item.py --batch --limit "$LIMIT" $DRY_FLAG
