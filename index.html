@@ -15003,6 +15003,157 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     bodyEl.classList.add('dossier-mode');
     bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals);
 
+    // ── Lazy-load Clinical Intelligence (benchmarks, PK, biomarkers) ─────────────
+    // Non-blocking: fetches after the modal renders, injects into Drug Profile tab
+    if (drug?.id && !isStaticId && _sb) {
+      (async () => {
+        try {
+          const [cbRes, pkRes, bmRes] = await Promise.all([
+            _sb.from('drug_clinical_benchmarks').select('*').eq('drug_id', drug.id).order('indication_id').limit(20),
+            _sb.from('drug_pk_parameters').select('*').eq('drug_id', drug.id).limit(10),
+            _sb.from('drug_biomarkers').select('*').eq('drug_id', drug.id).limit(15),
+          ]);
+          const cb = cbRes?.data || [];
+          const pk = pkRes?.data || [];
+          const bm = bmRes?.data || [];
+          if (!cb.length && !pk.length && !bm.length) return;
+
+          let clinHtml = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
+          clinHtml += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#6366f1;margin-bottom:8px">📊 Clinical Intelligence</div>';
+
+          // PK Profile
+          if (pk.length) {
+            clinHtml += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">PK Profile</div>';
+            pk.forEach(p => {
+              const hl = p.half_life_hours ? `<span style="color:#7c3aed;font-weight:700">${(p.half_life_hours/24).toFixed(1)}d t½</span>` : '';
+              const dose = [p.dose_mg ? p.dose_mg+'mg' : '', p.dose_route||''].filter(Boolean).join(' ');
+              const ada  = p.immunogenicity_ada_pct != null ? `<span style="color:#94a3b8;font-size:10px">${p.immunogenicity_ada_pct}% ADA</span>` : '';
+              const conf = p.verified ? '<span style="color:#22c55e;font-size:9px">✓</span>' : '<span style="color:#94a3b8;font-size:9px">~</span>';
+              const note = p.notes ? `<span style="color:#94a3b8;font-size:10px;display:block;margin-top:2px">${p.notes.substring(0,120)}</span>` : '';
+              clinHtml += `<div style="font-size:11px;color:#374151;padding:5px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;margin-bottom:4px">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${conf}${dose ? `<span style="font-weight:600">${dose}</span>` : ''}${hl}${ada}</div>${note}</div>`;
+            });
+            clinHtml += '</div>';
+          }
+
+          // Efficacy Benchmarks
+          if (cb.length) {
+            clinHtml += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Efficacy Benchmarks</div>';
+            const byInd = {};
+            cb.forEach(r => { const k = r.indication_id||'?'; (byInd[k]=byInd[k]||[]).push(r); });
+            Object.entries(byInd).forEach(([ind, rows]) => {
+              clinHtml += `<div style="font-size:10px;font-weight:700;color:#475569;margin:4px 0 3px;text-transform:uppercase;letter-spacing:0.03em">${ind}</div>`;
+              rows.forEach(r => {
+                const rate = r.rate_pct != null ? `${r.rate_pct}%` : '—';
+                const comp = r.comparator_rate_pct != null ? ` vs ${r.comparator_rate_pct}% PBO` : '';
+                const tp   = r.timepoint_weeks ? ` wk${r.timepoint_weeks}` : '';
+                const trial = r.trial_name ? ` · ${r.trial_name.substring(0,40)}` : '';
+                const dim  = (r.benchmark_type||'').replace(/_/g,' ');
+                clinHtml += `<div style="padding:3px 8px;background:#f0fdf4;border-left:2px solid #4ade80;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px">
+                  <span style="font-weight:700;color:#166534">${rate}${comp}</span><span style="color:#64748b"> ${dim}${tp}${trial}</span></div>`;
+              });
+            });
+            clinHtml += '</div>';
+          }
+
+          // Biomarkers
+          if (bm.length) {
+            clinHtml += '<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Patient Biomarkers</div>';
+            bm.forEach(b => {
+              const iconMap = {non_responder_marker:'⚠️',eligibility:'✓',predictive:'◎',pharmacodynamic:'📉'};
+              const icon = iconMap[b.biomarker_class] || '◦';
+              const dir  = b.direction_for_response ? `<span style="color:#64748b;font-size:10px;margin-left:4px">${b.direction_for_response}</span>` : '';
+              const note = b.notes ? b.notes.substring(0,100) : '';
+              clinHtml += `<div style="padding:4px 8px;background:#fafaf5;border:1px solid #e2e8f0;border-radius:4px;margin-bottom:3px;font-size:11px">
+                <span style="margin-right:5px">${icon}</span><span style="font-weight:600;color:#374151">${b.biomarker_name}</span>${dir}
+                ${note ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">${note}</div>` : ''}</div>`;
+            });
+            clinHtml += '</div>';
+          }
+
+          clinHtml += '</div>';
+
+          // Inject into Drug Profile tab panel
+          const profilePanel = document.getElementById('cem-dtab-profile');
+          if (profilePanel) profilePanel.insertAdjacentHTML('beforeend', clinHtml);
+        } catch(_clinErr) {
+          console.warn('[drugModal-clinical]', _clinErr?.message);
+        }
+      })();
+    }
+
+    // ── Lazy-load Payer + Non-Responder Intelligence ──────────────────────────
+    // Injects payer TPP criteria and non-responder profiles into Overview tab
+    if (drug?.id && !isStaticId && _sb) {
+      (async () => {
+        try {
+          // Get indication IDs for this drug from drug_indications
+          const { data: drugInds } = await _sb.from('drug_indications')
+            .select('indication_id').eq('drug_id', drug.id).limit(10);
+          const indIds = (drugInds||[]).map(r => r.indication_id).filter(Boolean);
+          if (!indIds.length) return;
+
+          const [tppRes, nrRes] = await Promise.all([
+            _sb.from('payer_tpp_criteria').select('*').in('indication_id', indIds).limit(15),
+            _sb.from('non_responder_profiles').select('*').eq('drug_id', drug.id).limit(6),
+          ]);
+          const tpp = tppRes?.data || [];
+          const nr  = nrRes?.data  || [];
+          if (!tpp.length && !nr.length) return;
+
+          let payerHtml = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
+          payerHtml += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0891b2;margin-bottom:8px">💊 Payer & Access Intelligence</div>';
+
+          // Payer TPP
+          if (tpp.length) {
+            payerHtml += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Target Product Profile Benchmarks</div>';
+            const byInd = {};
+            tpp.forEach(r => { const k = r.indication_id||'?'; (byInd[k]=byInd[k]||[]).push(r); });
+            Object.entries(byInd).forEach(([ind, rows]) => {
+              payerHtml += `<div style="font-size:10px;font-weight:700;color:#475569;margin:4px 0 3px;text-transform:uppercase;letter-spacing:0.03em">${ind}</div>`;
+              rows.slice(0,3).forEach(r => {
+                const dim = (r.tpp_dimension||'').replace(/_/g,' ');
+                const pref = r.preferred_profile ? r.preferred_profile.substring(0,100) : '';
+                const min  = r.minimum_acceptable ? r.minimum_acceptable.substring(0,80) : '';
+                payerHtml += `<div style="padding:5px 8px;background:#f0f9ff;border-left:2px solid #38bdf8;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px">
+                  <div style="font-weight:700;color:#0369a1">${dim}</div>
+                  ${pref ? `<div style="color:#374151;margin-top:2px">✓ Preferred: ${pref}</div>` : ''}
+                  ${min  ? `<div style="color:#64748b;font-size:10px">Min: ${min}</div>` : ''}
+                </div>`;
+              });
+            });
+            payerHtml += '</div>';
+          }
+
+          // Non-Responder Profiles
+          if (nr.length) {
+            payerHtml += '<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Non-Responder Biology</div>';
+            nr.forEach(r => {
+              const rate = r.non_responder_rate_pct != null ? `${r.non_responder_rate_pct}% NR` : '';
+              const esc  = r.escape_mechanism_text ? r.escape_mechanism_text.substring(0,120) : '';
+              payerHtml += `<div style="padding:5px 8px;background:#fff7ed;border-left:2px solid #fb923c;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span style="font-weight:700;color:#c2410c">${r.mechanism_class||'?'}</span>
+                  ${rate ? `<span style="color:#94a3b8">${rate}</span>` : ''}
+                  <span style="color:#94a3b8;font-size:10px">${r.line_of_therapy||''}</span>
+                </div>
+                ${esc ? `<div style="color:#78350f;font-size:10px;margin-top:2px">${esc}</div>` : ''}
+              </div>`;
+            });
+            payerHtml += '</div>';
+          }
+
+          payerHtml += '</div>';
+
+          // Inject into Overview tab panel
+          const overviewPanel = document.getElementById('cem-dtab-overview');
+          if (overviewPanel) overviewPanel.insertAdjacentHTML('beforeend', payerHtml);
+        } catch(_payerErr) {
+          console.warn('[drugModal-payer]', _payerErr?.message);
+        }
+      })();
+    }
+
     // Footer: disease area tabs this drug appears in
     if (areas.length) {
       const areaToTabs = {};
