@@ -62,23 +62,53 @@ AREA_NAMES = {
 
 # ── Fetch intel from Supabase ────────────────────────────────────────────────
 def fetch_recent_intel(hours_back=48):
-    """Pull intel + area tags written in the last N hours."""
-    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours_back)).strftime("%Y-%m-%d")
+    """Pull intel + area tags written (created) in the last N hours.
+
+    Filters on created_at (when research.py wrote the row) rather than
+    intel_date (the original event date). This handles the common case where
+    research.py scrapes articles about historical deals — those rows have old
+    intel_dates but were freshly added to the DB and should appear in today's issue.
+
+    Falls back to a 96-hour window if the primary fetch returns fewer than 5 items,
+    so a single missed nightly research run doesn't produce an empty issue.
+    """
+    cutoff_iso = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours_back)).isoformat()
     try:
         r = requests.get(
             f"{SUPABASE_URL}/rest/v1/intel",
             headers=SB_HEADERS,
             params={
-                "select": "id,intel_date,headline,body,source_url,source_name,importance,intel_type,intel_areas(area_id)",
-                "intel_date": f"gte.{cutoff}",
-                "order": "importance.desc,intel_date.desc",
+                "select": "id,intel_date,headline,body,source_url,source_name,importance,intel_type,created_at,intel_areas(area_id)",
+                "created_at": f"gte.{cutoff_iso}",
+                "order": "importance.desc,created_at.desc",
             },
         )
         items = r.json()
         for item in items:
             areas = item.pop("intel_areas", []) or []
             item["areas"] = [a["area_id"] for a in areas]
-        log(f"Fetched {len(items)} intel items (since {cutoff})")
+        log(f"Fetched {len(items)} intel items (created since {cutoff_iso[:10]})")
+
+        # Fallback: if very sparse, extend window to 96h to survive a missed nightly run
+        if len(items) < 5:
+            cutoff_wide = (datetime.datetime.utcnow() - datetime.timedelta(hours=96)).isoformat()
+            r2 = requests.get(
+                f"{SUPABASE_URL}/rest/v1/intel",
+                headers=SB_HEADERS,
+                params={
+                    "select": "id,intel_date,headline,body,source_url,source_name,importance,intel_type,created_at,intel_areas(area_id)",
+                    "created_at": f"gte.{cutoff_wide}",
+                    "order": "importance.desc,created_at.desc",
+                },
+            )
+            items2 = r2.json()
+            for item in items2:
+                areas = item.pop("intel_areas", []) or []
+                item["areas"] = [a["area_id"] for a in areas]
+            if len(items2) > len(items):
+                log(f"Sparse primary fetch ({len(items)} items) — extended to 96h: {len(items2)} items")
+                items = items2
+
         return items
     except Exception as e:
         log(f"Intel fetch error: {e}")
