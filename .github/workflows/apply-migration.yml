@@ -29,38 +29,45 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install psycopg2
-        run: pip install psycopg2-binary
-
-      - name: Apply migration
+      - name: Apply migration via Supabase Management API
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_PAT:         ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           FILE="${{ github.event.inputs.migration_file }}"
+          # Extract project ref from URL (https://PROJECTREF.supabase.co)
+          PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | sed 's|\.supabase\.co.*||')
+          echo "Project ref: $PROJECT_REF"
           echo "Migration file: $FILE"
+          echo "--- SQL ---"
           cat "$FILE"
-          echo "---"
+          echo "--- end SQL ---"
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             echo "DRY RUN — not executing"
-          else
-            python3 -c "
-import psycopg2, os, sys
-sql = open('$FILE').read()
-url = os.environ['SUPABASE_DB_URL']
-conn = psycopg2.connect(url)
-conn.autocommit = True
-cur = conn.cursor()
-try:
-    cur.execute(sql)
-    print('Migration applied successfully')
-    try:
-        rows = cur.fetchall()
-        for r in rows: print(r)
-    except: pass
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-finally:
-    conn.close()
-"
+            exit 0
           fi
+          # Use Supabase Management API to execute SQL
+          python3 -c "
+import json, os, sys, urllib.request
+sql = open('$FILE').read()
+project_ref = '$PROJECT_REF'
+pat = os.environ['SUPABASE_PAT']
+url = f'https://api.supabase.com/v1/projects/{project_ref}/database/query'
+data = json.dumps({'query': sql}).encode()
+req = urllib.request.Request(url, data=data,
+      headers={'Authorization': f'Bearer {pat}', 'Content-Type': 'application/json'},
+      method='POST')
+try:
+    with urllib.request.urlopen(req) as r:
+        body = json.loads(r.read())
+        print('Migration applied successfully')
+        if isinstance(body, list):
+            for row in body: print(row)
+        else:
+            print(body)
+except urllib.request.HTTPError as e:
+    err = e.read().decode()
+    print(f'HTTP {e.code}: {err}', file=sys.stderr)
+    sys.exit(1)
+"
