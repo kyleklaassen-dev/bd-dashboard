@@ -1,6 +1,6 @@
 # Meridian — Current Priority Stack
 
-**Last updated:** 2026-06-02 (evening autonomous — 994/1000 validation, LDS 77-89 all areas, 96% source_url)  
+**Last updated:** 2026-06-02 23:30Z (full autonomous day — IBD LDS 50→87, 994/1000 valid, 158 deals, flywheel built)  
 **Rule:** Claude reads this at the start of every session before any other action. Claude updates this at the end of every session. Kyle reviews and corrects direction here, not mid-session.  
 **Multi-agent:** Two agents active. Agent 2 owns 100Q Phase A. This agent takes everything else. Both append to AGENT_LOG.md. Neither overwrites PRIORITY.md mid-task.
 
@@ -8,10 +8,11 @@
 
 ## ▶ DOING NOW
 
-**✅ Migration applied. All P1 tests passing. 994/1000 validation. Only 1 remaining failure: spy072/ibd DAS legacy check (acceptable until June 26 drug_area_scores retirement).**
+**Data foundation is in excellent shape. Next meaningful autonomous work is 100Q Phase B (waiting on Agent 2) or Phase 4 self-evolution.**
 
-**Next priority: Fine-tuning flywheel + 100Q Phase B (when Agent 2 Phase A is ready)**
-The data foundation is now in very good shape. Next focus should shift to intelligence quality and BD utility.
+Phase status: Phase 2 ~100% complete. Phase 3 ~65%. Phase 4/5 = 0%.
+The biggest remaining gap: relationship coverage for autoimmune (0.31) and IGF-1R (0.40) areas.
+Veligrotug June 30 FDA decision is the next timed P1 action.
 
 ---
 
@@ -24,16 +25,16 @@ The data foundation is now in very good shape. Next focus should shift to intell
 | 3 | **drug_summary** | v19 QA | P2 | ✅ DONE | 0 drugs missing. Resolved 2026-06-02 autonomous session. |
 | 8 | **Run all 1,000 validation tests** | v19 P3 | P3 | ✅ DONE | 994/1000 passing. All P1 passing. 1 remaining: spy072/ibd DAS legacy (acceptable until June 26). |
 | 9 | **Wave 3 validation sprint** | v24 P1 | P1 | ✅ DONE | Tested as part of full 1000-test run. drug_validation_results clean. |
-| 10 | **Coverage Diagnostics — landscape_dependency_score** | v24 P1 | P1 | ✅ DONE | All areas above 77: fcrn=88.8, atopy=86.7, ibd=81.9, igf1r=80.0, autoimmune=77.3. Weekly recompute scheduled. |
+| 10 | **Coverage Diagnostics — landscape_dependency_score** | v24 P1 | P1 | ✅ DONE | All areas above 77: fcrn=88.8, **ibd=87.2** (was 50.83!), atopy=86.7, igf1r=80.0, autoimmune=77.3. Weekly recompute live. |
 | 11 | **area_metadata table** | v24 P1 | P1 | ✅ DONE | 11 rows, all monitoring status, retirement ~June 26. |
 | 12 | **indication_patient_intelligence** | v24 G-007 | P2 | ✅ DONE | 17/17 rows 100% filled (another agent completed this 2026-06-02). |
-| 13 | **partner_company_ids[] co-developer sweep** | v24 P2 | P2 | Open | 6 new company_partnerships added by other agent. Remaining gaps: m701 partner unknown. |
-| 14 | **IBD coverage score** | v19 P3 | P2 | ✅ DONE | LDS=81.9 (was 50.83). drug_cov=1.0, cat_cov=1.0, src_val=0.96. rel_coverage=0.50 (14/28 deals). |
+| 13 | **partner_company_ids[] co-developer sweep** | v24 P2 | P2 | ✅ DONE | m701 = EpCAM×CD3 for malignant ascites (NOT TL1A/IBD) — correctly classified Watch, no partner needed. 6 new company_partnerships added. |
+| 14 | **IBD coverage score** | v19 P3 | P2 | ✅ DONE | LDS=87.2 (was 50.83!). rel_coverage=0.71 (20/28 deals). 18 IBD deals added today. |
 | 15 | **intel_companies null** | v19 P3 | P3 | ✅ DONE | 0 null company_ids. |
 | 16 | **SC Tepezza TPP update** | v19 P5 | P2 | ✅ DONE | Phase 3 OBI positive April 2026. payer_tpp_criteria updated. IV-only now disadvantaged. |
 | 17 | **drug_competitive_scores WS3** | v24 P0 | P2 | ✅ DONE | 320+ rows. All Direct/Adjacent covered. No competitive_scoring.py needed. |
-| 18 | **Fine-tuning flywheel** — extract kyle_reviews 109 items into structured signal | v24 P2 | P2 | Open | Design prompt improvement loop. |
-| 19 | **drug_area_scores retirement** — table retirement after June 26 | Option C | P2 | Timer | 30-day monitoring window closes ~June 26. Then build area_metadata + retire. |
+| 18 | **Fine-tuning flywheel Phase 1** | v24 P2 | P2 | ✅ DONE | extract_fine_tune_signal.py built + ran. 109 examples, 60 drift detected, 17 regressions restored. Phase 2 (negative examples + prompt→response format) = next step. |
+| 19 | **drug_area_scores retirement** — table retirement June 27 | Option C | P2 | Timer | docs/drug_area_scores_retirement_plan.md written. Execute June 27: remove health check from index.html, drop table, update area_metadata status. |
 | 20 | **100Q Phase B** — research agents for 164+ drugs (after Phase A complete) | 100Q | P2 | Waiting | Do not start until Phase A validated by other agent. |
 
 ---
