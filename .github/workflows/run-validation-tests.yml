@@ -1,0 +1,60 @@
+name: Run Ground Truth Validation Tests
+
+# Runs validate_ground_truth.py against all 1,000 tests and writes results to DB.
+# Establishes the quality baseline for Phase 2 completion.
+# Runs weekly on Monday mornings + manual dispatch.
+
+on:
+  schedule:
+    - cron: '0 11 * * 1'   # 7 AM ET Mondays (11:00 UTC)
+
+  workflow_dispatch:
+    inputs:
+      area:
+        description: 'Limit to one area_id (blank = all)'
+        required: false
+        default: ''
+      priority:
+        description: 'Limit to priority level (P1, P2, 1, 2, blank = all)'
+        required: false
+        default: ''
+      fail_only:
+        description: 'Show only failures in log'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run validation tests
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS="--write-results"
+          if [ -n "${{ github.event.inputs.area }}" ]; then
+            ARGS="$ARGS --area ${{ github.event.inputs.area }}"
+          fi
+          if [ -n "${{ github.event.inputs.priority }}" ]; then
+            ARGS="$ARGS --priority ${{ github.event.inputs.priority }}"
+          fi
+          if [ "${{ github.event.inputs.fail_only }}" == "true" ]; then
+            ARGS="$ARGS --fail-only"
+          fi
+          echo "Running: python scripts/validate_ground_truth.py $ARGS"
+          python scripts/validate_ground_truth.py $ARGS
