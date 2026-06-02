@@ -146,8 +146,10 @@ def run_test(test: dict, cache: dict) -> tuple[str, str, str]:
             if cache_key not in cache:
                 cache[cache_key] = sb_get("company_areas",
                                           {"area_id": f"eq.{area_id}", "select": "company_id"})
+            # Handle compound entity_id format "company:area" — extract company part only
+            check_company_id = entity_id.split(":")[0] if ":" in entity_id else entity_id
             matches = [r for r in cache[cache_key]
-                       if r.get("company_id","").lower() == entity_id.lower()]
+                       if r.get("company_id","").lower() == check_company_id.lower()]
             actual = "true" if matches else "false"
             passed = evaluate_operator(actual, expected, operator)
             return ("pass" if passed else "fail"), actual, ""
