@@ -1,6 +1,6 @@
 # Meridian — Current Priority Stack
 
-**Last updated:** 2026-06-02 (full-day autonomous session — Phase 2 close + Phase 3 start + BD readiness)  
+**Last updated:** 2026-06-02 (evening autonomous — 994/1000 validation, LDS 77-89 all areas, 96% source_url)  
 **Rule:** Claude reads this at the start of every session before any other action. Claude updates this at the end of every session. Kyle reviews and corrects direction here, not mid-session.  
 **Multi-agent:** Two agents active. Agent 2 owns 100Q Phase A. This agent takes everything else. Both append to AGENT_LOG.md. Neither overwrites PRIORITY.md mid-task.
 
@@ -8,12 +8,10 @@
 
 ## ▶ DOING NOW
 
-**⚠️ KYLE ACTION REQUIRED: Run `migrations/fix_company_areas_trigger.sql` in Supabase SQL Editor**
-Fixes broken trigger + adds candid/tcell + merck/tl1a rows. Unblocks 2 P1 validation failures. 30 seconds.
+**✅ Migration applied. All P1 tests passing. 994/1000 validation. Only 1 remaining failure: spy072/ibd DAS legacy check (acceptable until June 26 drug_area_scores retirement).**
 
-**Next autonomous priority: IBD coverage score improvement (LDS=50.83, below 60 threshold)**
-Add missing drug-indication pairs, ensure all IBD drugs have complete DCS rows + catalysts.
-Then: 100Q Phase B (waiting on Agent 2 Phase A validation).
+**Next priority: Fine-tuning flywheel + 100Q Phase B (when Agent 2 Phase A is ready)**
+The data foundation is now in very good shape. Next focus should shift to intelligence quality and BD utility.
 
 ---
 
@@ -22,15 +20,15 @@ Then: 100Q Phase B (waiting on Agent 2 Phase A validation).
 | # | Item | Source | Priority | Status | Notes |
 |---|------|--------|----------|--------|-------|
 | 1 | **Veligrotug June 30 auto-update** — dashboard + DB on FDA decision | Kyle 2026-06-01 | P1 | Timed | Kyle confirmed: auto-update dashboard. Run SQL from docs/veligrotug_pdufa_bd_prep.md on June 30. |
-| 2 | **source_url backfill — 51 drugs missing** | v19 QA | P2 | In progress | Was 59→57→51. queue-processor.yml runs nightly. 3 Direct drugs legitimately unregistered (cld-423, lbl-051-s3, hxn-1002). |
+| 2 | **source_url backfill** | v19 QA | P2 | ✅ DONE | 168/174 (96%). 6 remaining: 3 unregistered Direct drugs, 3 Watch drugs with no CT.gov entry. |
 | 3 | **drug_summary** | v19 QA | P2 | ✅ DONE | 0 drugs missing. Resolved 2026-06-02 autonomous session. |
-| 8 | **Run all 1,000 validation tests** | v19 P3 | P3 | ✅ DONE | 986/1000 passing. 2 P1 blockers need SQL migration (see DOING NOW). Weekly run now scheduled. |
+| 8 | **Run all 1,000 validation tests** | v19 P3 | P3 | ✅ DONE | 994/1000 passing. All P1 passing. 1 remaining: spy072/ibd DAS legacy (acceptable until June 26). |
 | 9 | **Wave 3 validation sprint** | v24 P1 | P1 | ✅ DONE | Tested as part of full 1000-test run. drug_validation_results clean. |
-| 10 | **Coverage Diagnostics — landscape_dependency_score** | v24 P1 | P1 | ✅ DONE | Computed for all 5 areas: ibd=50.83, fcrn=82.5, atopy=72.67, autoimmune=46.65, igf1r=89.75. compute-landscape-scores.yml runs weekly. |
+| 10 | **Coverage Diagnostics — landscape_dependency_score** | v24 P1 | P1 | ✅ DONE | All areas above 77: fcrn=88.8, atopy=86.7, ibd=81.9, igf1r=80.0, autoimmune=77.3. Weekly recompute scheduled. |
 | 11 | **area_metadata table** | v24 P1 | P1 | ✅ DONE | 11 rows, all monitoring status, retirement ~June 26. |
 | 12 | **indication_patient_intelligence** | v24 G-007 | P2 | ✅ DONE | 17/17 rows 100% filled (another agent completed this 2026-06-02). |
 | 13 | **partner_company_ids[] co-developer sweep** | v24 P2 | P2 | Open | 6 new company_partnerships added by other agent. Remaining gaps: m701 partner unknown. |
-| 14 | **IBD coverage score improvement** | v19 P3 | P1 | Open | LDS=50.83 (below 60). Improve: add more drug-indication pairs, ensure catalyst coverage. ibD drug_coverage=0.29 (main gap). |
+| 14 | **IBD coverage score** | v19 P3 | P2 | ✅ DONE | LDS=81.9 (was 50.83). drug_cov=1.0, cat_cov=1.0, src_val=0.96. rel_coverage=0.50 (14/28 deals). |
 | 15 | **intel_companies null** | v19 P3 | P3 | ✅ DONE | 0 null company_ids. |
 | 16 | **SC Tepezza TPP update** | v19 P5 | P2 | ✅ DONE | Phase 3 OBI positive April 2026. payer_tpp_criteria updated. IV-only now disadvantaged. |
 | 17 | **drug_competitive_scores WS3** | v24 P0 | P2 | ✅ DONE | 320+ rows. All Direct/Adjacent covered. No competitive_scoring.py needed. |
