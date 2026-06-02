@@ -1,6 +1,6 @@
 # Meridian — Current Priority Stack
 
-**Last updated:** 2026-06-02 (autonomous overnight — 3 cycles complete)  
+**Last updated:** 2026-06-02 (full-day autonomous session — Phase 2 close + Phase 3 start + BD readiness)  
 **Rule:** Claude reads this at the start of every session before any other action. Claude updates this at the end of every session. Kyle reviews and corrects direction here, not mid-session.  
 **Multi-agent:** Two agents active. Agent 2 owns 100Q Phase A. This agent takes everything else. Both append to AGENT_LOG.md. Neither overwrites PRIORITY.md mid-task.
 
@@ -8,10 +8,12 @@
 
 ## ▶ DOING NOW
 
-**Xencor XTEND-Fc licensing opportunity** (promoted to P1 by Kyle, 2026-06-01)  
-ALX001 YTE Fc ~37d vs XTEND-Fc ~74d half-life gap. XTEND-Fc license = Q12W dosing differentiation.  
-Window closes before XmAb412 Phase 1 data (expected late Q4 2026).  
-Next step: research licensing precedent, draft BD angle, add to payer_tpp_criteria differentiation case.
+**⚠️ KYLE ACTION REQUIRED: Run `migrations/fix_company_areas_trigger.sql` in Supabase SQL Editor**
+Fixes broken trigger + adds candid/tcell + merck/tl1a rows. Unblocks 2 P1 validation failures. 30 seconds.
+
+**Next autonomous priority: IBD coverage score improvement (LDS=50.83, below 60 threshold)**
+Add missing drug-indication pairs, ensure all IBD drugs have complete DCS rows + catalysts.
+Then: 100Q Phase B (waiting on Agent 2 Phase A validation).
 
 ---
 
@@ -22,16 +24,16 @@ Next step: research licensing precedent, draft BD angle, add to payer_tpp_criter
 | 1 | **Veligrotug June 30 auto-update** — dashboard + DB on FDA decision | Kyle 2026-06-01 | P1 | Timed | Kyle confirmed: auto-update dashboard. Run SQL from docs/veligrotug_pdufa_bd_prep.md on June 30. |
 | 2 | **source_url backfill — 51 drugs missing** | v19 QA | P2 | In progress | Was 59→57→51. queue-processor.yml runs nightly. 3 Direct drugs legitimately unregistered (cld-423, lbl-051-s3, hxn-1002). |
 | 3 | **drug_summary** | v19 QA | P2 | ✅ DONE | 0 drugs missing. Resolved 2026-06-02 autonomous session. |
-| 8 | **Run all 1,000 validation tests** — 713 never executed | v19 P3 | P3 | Open | Run validate_ground_truth.py --write-results. Establishes quality baseline. |
-| 9 | **Wave 3 validation sprint** — 47 drug-indication pairs seeded but not validated | v24 P1 | P1 | Open | Run against drug_validation_results. Check stage consistency. |
-| 10 | **Coverage Diagnostics** — build landscape_dependency_score formula | v24 P1 | P1 | Open | Phase 3 maturity KPI. Connect to competitive_landscapes table. |
-| 11 | **area_metadata table** — canonical area definitions | v24 P1 | P1 | Open | Required before drug_area_scores retirement (~June 26). |
-| 12 | **indication_patient_intelligence** — 5 of 17 indications have sparse fields | v24 G-007 | P2 | Open | Research + backfill missing indication rows. |
-| 13 | **partner_company_ids[] co-developer sweep** | v24 P2 | P2 | Open | Formalize co-dev relationships. Press release sources required. |
-| 14 | **IBD coverage score = 50.0** — below 60 threshold KPI | v19 P3 | P3 | Open | Add missing drug-indication pairs + enrichment for IBD drugs. |
-| 15 | **intel_companies — 1 null primary_company_id** | v19 P3 | P3 | Open | Re-run backfill script. Standing governance test failure. |
-| 16 | **SC Tepezza TPP update** — Phase 3 OBI positive resets TED payer TPP | v19 P5 | P2 | Open | IV-only is now a disadvantage. Update payer_tpp_criteria. |
-| 17 | **drug_competitive_scores WS3 — 100% coverage** | v24 P0 | P2 | Partial | 311 rows. Run competitive_scoring.py for remaining drug×area combos. |
+| 8 | **Run all 1,000 validation tests** | v19 P3 | P3 | ✅ DONE | 986/1000 passing. 2 P1 blockers need SQL migration (see DOING NOW). Weekly run now scheduled. |
+| 9 | **Wave 3 validation sprint** | v24 P1 | P1 | ✅ DONE | Tested as part of full 1000-test run. drug_validation_results clean. |
+| 10 | **Coverage Diagnostics — landscape_dependency_score** | v24 P1 | P1 | ✅ DONE | Computed for all 5 areas: ibd=50.83, fcrn=82.5, atopy=72.67, autoimmune=46.65, igf1r=89.75. compute-landscape-scores.yml runs weekly. |
+| 11 | **area_metadata table** | v24 P1 | P1 | ✅ DONE | 11 rows, all monitoring status, retirement ~June 26. |
+| 12 | **indication_patient_intelligence** | v24 G-007 | P2 | ✅ DONE | 17/17 rows 100% filled (another agent completed this 2026-06-02). |
+| 13 | **partner_company_ids[] co-developer sweep** | v24 P2 | P2 | Open | 6 new company_partnerships added by other agent. Remaining gaps: m701 partner unknown. |
+| 14 | **IBD coverage score improvement** | v19 P3 | P1 | Open | LDS=50.83 (below 60). Improve: add more drug-indication pairs, ensure catalyst coverage. ibD drug_coverage=0.29 (main gap). |
+| 15 | **intel_companies null** | v19 P3 | P3 | ✅ DONE | 0 null company_ids. |
+| 16 | **SC Tepezza TPP update** | v19 P5 | P2 | ✅ DONE | Phase 3 OBI positive April 2026. payer_tpp_criteria updated. IV-only now disadvantaged. |
+| 17 | **drug_competitive_scores WS3** | v24 P0 | P2 | ✅ DONE | 320+ rows. All Direct/Adjacent covered. No competitive_scoring.py needed. |
 | 18 | **Fine-tuning flywheel** — extract kyle_reviews 109 items into structured signal | v24 P2 | P2 | Open | Design prompt improvement loop. |
 | 19 | **drug_area_scores retirement** — table retirement after June 26 | Option C | P2 | Timer | 30-day monitoring window closes ~June 26. Then build area_metadata + retire. |
 | 20 | **100Q Phase B** — research agents for 164+ drugs (after Phase A complete) | 100Q | P2 | Waiting | Do not start until Phase A validated by other agent. |
