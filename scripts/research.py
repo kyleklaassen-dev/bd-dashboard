@@ -575,10 +575,21 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
 
     for idx, item in enumerate(intel_items, 1):
         log(f"  [WRITE {idx}/{total}] {item.get('area_id','?')} — {(item.get('headline') or '')[:80]}")
-        # ── Intel dedup check ─────────────────────────────────────────────
+        # ── Intel dedup check (exact + fuzzy similarity) ─────────────────
         intel_headline_key = (item.get("headline") or "")[:200]
         if intel_headline_key in existing_intel_headlines:
             log(f"  [SKIP dupe intel] {intel_headline_key[:80]}")
+            skipped_intel += 1
+            continue
+        # Fuzzy dedup: skip if any existing headline is >82% similar
+        import difflib as _dl
+        _h_lower = intel_headline_key.lower()
+        _fuzzy_dupe = any(
+            _dl.SequenceMatcher(None, _h_lower, _ex.lower()).ratio() > 0.82
+            for _ex in existing_intel_headlines
+        )
+        if _fuzzy_dupe:
+            log(f"  [SKIP fuzzy-dupe intel] {intel_headline_key[:80]}")
             skipped_intel += 1
             continue
         existing_intel_headlines.add(intel_headline_key)
@@ -640,7 +651,18 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
                 log(f"  [SKIP dupe deal] {deal_headline_key[:80]}")
                 skipped_deals += 1
             else:
-                existing_deal_headlines.add(deal_headline_key)
+                # Fuzzy dedup for deals too
+                import difflib as _dl2
+                _dh_lower = deal_headline_key.lower()
+                _deal_fuzzy = any(
+                    _dl2.SequenceMatcher(None, _dh_lower, _ex.lower()).ratio() > 0.82
+                    for _ex in existing_deal_headlines
+                )
+                if _deal_fuzzy:
+                    log(f"  [SKIP fuzzy-dupe deal] {deal_headline_key[:80]}")
+                    skipped_deals += 1
+                else:
+                    existing_deal_headlines.add(deal_headline_key)
                 deal_date = item.get("intel_date") or today
                 deal_rec = {
                     "deal_date":       deal_date,
