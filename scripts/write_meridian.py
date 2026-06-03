@@ -1595,10 +1595,30 @@ def save_to_supabase(html_content: str, intel: list, date_str: str,
 # ── Commit HTML to GitHub Pages via blob API ─────────────────────────────────
 def deploy_to_github(html_content, filename="meridian_today.html"):
     api = f"https://api.github.com/repos/{GITHUB_REPO}"
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 
     ref_r = requests.get(f"{api}/git/ref/heads/main", headers=GH_HEADERS)
     ref_r.raise_for_status()
     head_sha = ref_r.json()["object"]["sha"]
+
+    # ── Guard: skip if today's issue was already committed ────────────────────
+    # Checks the last commit touching meridian_today.html. If it already
+    # has today's date in the message, this is a duplicate run — skip.
+    try:
+        recent = requests.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/commits",
+            headers=GH_HEADERS,
+            params={"path": filename, "per_page": 1},
+            timeout=10,
+        )
+        if recent.status_code == 200 and recent.json():
+            last_msg = recent.json()[0]["commit"]["message"]
+            if today in last_msg and "[auto]" in last_msg:
+                log(f"Skipping deploy — today's issue already committed ({last_msg[:60]}). "
+                    f"Use workflow_dispatch with force=true to override.")
+                return
+    except Exception as _guard_err:
+        log(f"[WARN] Could not check last commit: {_guard_err} — proceeding with deploy")
 
     commit_r = requests.get(f"{api}/git/commits/{head_sha}", headers=GH_HEADERS)
     commit_r.raise_for_status()
@@ -1618,7 +1638,6 @@ def deploy_to_github(html_content, filename="meridian_today.html"):
     tree_r.raise_for_status()
     new_tree_sha = tree_r.json()["sha"]
 
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     commit_post = requests.post(f"{api}/git/commits", headers=GH_HEADERS, json={
         "message": f"Meridian issue {today} [auto]",
         "tree":    new_tree_sha,
