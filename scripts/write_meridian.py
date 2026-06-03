@@ -1616,6 +1616,105 @@ def save_to_supabase(html_content: str, intel: list, date_str: str,
 
 
 # ── Commit HTML to GitHub Pages via blob API ─────────────────────────────────
+def sync_catalyst_outcomes(plan: dict, intel: list):
+    """
+    G4 Feedback Loop: After generating the Issue, scan recent intel for confirmed
+    data readouts and mark matching catalysts as resolved in Supabase.
+
+    Logic:
+      1. Build a set of drug/company names that had data events this week
+         (intel items with catalyst_type='readout' or importance='high' + keywords)
+      2. For each, find unresolved catalysts in the DB for that drug/company
+      3. If the catalyst label matches the intel signal, mark resolved
+
+    This closes the loop: Issue reads catalysts → Issue generates → Issue resolves
+    catalysts that are now confirmed events.
+    """
+    if not plan or not intel:
+        return
+
+    # Keywords that indicate a catalyst resolved
+    RESOLVE_SIGNALS = [
+        "positive", "met primary", "statistically significant", "approved",
+        "phase 3 complete", "topline", "data readout", "presented at",
+        "published", "fda approved", "ema approved", "nda filed", "bla filed",
+        "phase 2b results", "phase 3 results", "pivotal trial",
+    ]
+
+    resolved_count = 0
+    now_str = datetime.datetime.utcnow().isoformat()
+
+    # Build drug name → drug_id mapping from plan
+    drug_signals: dict[str, str] = {}  # drug_name_lower → drug_id
+    company_signals: list[str] = []    # company_ids featured
+
+    if isinstance(plan, dict):
+        for section in plan.get("sections", []):
+            for drug_id in section.get("drug_ids", []):
+                drug_signals[drug_id.lower()] = drug_id
+            for co_id in section.get("company_ids", []):
+                company_signals.append(co_id)
+
+    # Scan recent intel for resolution signals
+    for item in intel:
+        headline = (item.get("headline") or "").lower()
+        body = (item.get("body") or "").lower()
+        text = headline + " " + body
+
+        # Check if this intel item confirms a catalyst resolved
+        has_signal = any(kw in text for kw in RESOLVE_SIGNALS)
+        if not has_signal:
+            continue
+
+        importance = item.get("importance", "")
+        if importance not in ("high", "critical"):
+            continue
+
+        # Find drug IDs mentioned in this intel item
+        for drug_id in drug_signals.values():
+            if drug_id.lower() in text or drug_id.replace("-", " ").lower() in text:
+                # Look for unresolved catalysts for this drug
+                try:
+                    r = requests.get(
+                        f"{SUPABASE_URL}/rest/v1/catalysts",
+                        headers=SB_HEADERS,
+                        params={
+                            "drug_id": f"eq.{drug_id}",
+                            "resolved": "eq.false",
+                            "significance": "in.(high,critical)",
+                            "select": "id,label,drug_id",
+                            "limit": "5",
+                        },
+                        timeout=10,
+                    )
+                    cats = r.json() if r.status_code == 200 else []
+                    for cat in cats:
+                        cat_label = (cat.get("label") or "").lower()
+                        # Only resolve if there's label overlap with the intel headline
+                        label_words = set(cat_label.split())
+                        headline_words = set(headline.split())
+                        overlap = label_words & headline_words - {"a","the","in","of","for","and","with","or","to","from"}
+                        if len(overlap) >= 2:  # meaningful overlap
+                            outcome = (item.get("headline") or "")[:200]
+                            requests.patch(
+                                f"{SUPABASE_URL}/rest/v1/catalysts",
+                                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                                params={"id": f"eq.{cat['id']}"},
+                                json={"resolved": True, "resolved_note": f"[auto] Meridian Issue: {outcome}",
+                                      "catalyst_status": "resolved", "staleness_status": "stale"},
+                                timeout=10,
+                            )
+                            log(f"  [sync_catalyst] Resolved catalyst for {drug_id}: {cat['label'][:60]}")
+                            resolved_count += 1
+                except Exception as e:
+                    log(f"  [sync_catalyst warn] {drug_id}: {e}")
+
+    if resolved_count:
+        log(f"sync_catalyst_outcomes: resolved {resolved_count} catalysts from today's intel")
+    else:
+        log("sync_catalyst_outcomes: no matching resolved catalysts (normal — most issues are monitoring, not readout)")
+
+
 def deploy_to_github(html_content, filename="meridian_today.html"):
     api = f"https://api.github.com/repos/{GITHUB_REPO}"
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
@@ -1789,6 +1888,11 @@ if __name__ == "__main__":
     # feedback loop: intelligence output feeds back into intelligence input priority.
     if plan_company_ids:
         bump_editorial_priority(plan_company_ids)
+
+    # ── G4: Catalyst outcome sync ──────────────────────────────────────────────
+    # Scan today's intel for confirmed readouts and resolve matching catalysts.
+    # This closes the read→generate→write feedback loop.
+    sync_catalyst_outcomes(plan, intel)
 
     deploy_to_github(html)
     log("=== Write complete ===")
