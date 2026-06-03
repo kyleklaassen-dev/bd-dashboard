@@ -1,0 +1,75 @@
+name: Execute Intel Actions (N2 fix)
+
+# N2 fix: daily schedule for execute_intel_actions.py so approved items
+# don't pile up waiting for manual execution.
+# Also runs after queue-processor to pick up any newly promoted drugs.
+
+on:
+  schedule:
+    - cron: '30 10 * * *'   # 6:30 AM ET daily (after queue-processor at 6 AM)
+  workflow_dispatch:
+    inputs:
+      discovery:
+        description: 'Run discovery queue promotion'
+        type: boolean
+        default: true
+      submitted:
+        description: 'Run submitted intel action execution'
+        type: boolean
+        default: true
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install requests
+
+      - name: Execute intel actions
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.discovery }}" == "false" ]; then ARGS="--submitted"; fi
+          if [ "${{ github.event.inputs.submitted }}" == "false" ]; then ARGS="--discovery"; fi
+          python scripts/execute_intel_actions.py $ARGS
+
+      - name: Trigger enrichment for newly promoted drugs (N3 fix)
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          # Enrich any drugs promoted today that have null mechanism
+          python - << 'PYEOF'
+import os, json, requests, datetime
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+
+# Find auto-discovered drugs with null mechanism added in last 24h
+since = (datetime.datetime.utcnow() - datetime.timedelta(hours=25)).isoformat()
+r = requests.get(f"{SUPABASE_URL}/rest/v1/drugs",
+    headers=SB_H,
+    params={"discovery_status":"eq.auto","mechanism":"is.null",
+            "created_at":f"gte.{since}","select":"id,entity_name","limit":"20"})
+new_unenriched = r.json() if r.status_code == 200 else []
+
+if not new_unenriched:
+    print("No newly promoted drugs need enrichment")
+else:
+    print(f"Adding {len(new_unenriched)} newly promoted drugs to research_queue")
+    for drug in new_unenriched:
+        requests.post(f"{SUPABASE_URL}/rest/v1/research_queue",
+            headers={**SB_H, "Prefer": "return=minimal"},
+            json={"entity_id": drug["id"], "entity_name": drug.get("entity_name","") or drug["id"],
+                  "context_type": "never_enriched", "priority_score": 90,
+                  "assigned_status": "pending",
+                  "reason": f"Newly promoted drug {drug['id']} — needs immediate enrichment"})
+    print(f"Queued {len(new_unenriched)} drugs for enrichment")
+PYEOF
