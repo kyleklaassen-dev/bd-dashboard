@@ -1219,6 +1219,53 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
                 co_linked.add(name.lower())
 
     log(f"First-mention links applied: {len(drug_linked)} drugs, {len(co_linked)} companies")
+
+    # ── Final cleanup: fix LLM-generated href="#" entity links ──────────────────
+    # The LLM sometimes generates <a href="#" onclick="openDrugModal('id')"> or
+    # <a href="#" onclick="openCompanyModal('id')"> links. These break because:
+    #   1. openDrugModal / openCompanyModal don't exist in the Meridian iframe
+    #   2. href="#" scrolls or navigates the iframe instead of opening a card
+    # Fix: convert to javascript:void(0) + window.parent calls, or strip entirely.
+    import re as _re2
+
+    def _fix_drug_modal_link(m):
+        did = m.group(1).strip("'\"")
+        # Try to get the display name from between the tags
+        display = m.group(2)
+        safe_name = display.replace("'", "\\'")
+        return (f'<a href="javascript:void(0)" style="cursor:pointer" '
+                f'onclick="try{{window.parent.openDrugEntityModal(\'{did}\',\'{safe_name}\',null)}}catch(e){{}}">'
+                f'{display}</a>')
+
+    def _fix_company_modal_link(m):
+        cid = m.group(1).strip("'\"")
+        display = m.group(2)
+        safe_name = display.replace("'", "\\'")
+        return (f'<a href="javascript:void(0)" style="cursor:pointer" '
+                f'onclick="try{{window.parent.openCompanyEntityModal(\'{cid}\',\'{safe_name}\',\'meridian\',\'{cid}\')}}catch(e){{}}">'
+                f'{display}</a>')
+
+    # Match: <a href="#" onclick="openDrugModal('id')">text</a>
+    html = _re2.sub(
+        r'<a\s+href=["\']#["\'][^>]*onclick=["\']openDrugModal\(([^)]+)\)["\'][^>]*>([^<]+)</a>',
+        _fix_drug_modal_link, html)
+    # Also handle reversed attr order: onclick first, then href
+    html = _re2.sub(
+        r'<a\s+onclick=["\']openDrugModal\(([^)]+)\)["\'][^>]*href=["\']#["\'][^>]*>([^<]+)</a>',
+        _fix_drug_modal_link, html)
+
+    # Match: <a href="#" onclick="openCompanyModal('id')">text</a>
+    html = _re2.sub(
+        r'<a\s+href=["\']#["\'][^>]*onclick=["\']openCompanyModal\(([^)]+)\)["\'][^>]*>([^<]+)</a>',
+        _fix_company_modal_link, html)
+    html = _re2.sub(
+        r'<a\s+onclick=["\']openCompanyModal\(([^)]+)\)["\'][^>]*href=["\']#["\'][^>]*>([^<]+)</a>',
+        _fix_company_modal_link, html)
+
+    # Catch-all: any remaining href="#" on entity links → strip href (leave onclick)
+    html = _re2.sub(r'(<a\b[^>]*) href=["\']#["\']([^>]*onclick[^>]*>)', r'\1\2', html)
+
+    log("LLM href='#' entity links sanitized")
     return html
 
 
