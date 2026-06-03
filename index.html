@@ -4124,7 +4124,34 @@ async function loadOntologyHealth() {
         <strong>Outstanding code flips (low urgency):</strong> catalysts reads in company modal (lines 10476, 10500) and OEX card (line 14110) still use direct .eq('area_id') — works correctly because catalysts.area_id is still populated; will pick up in a future cleanup session.
       </div>
       <div style="margin-top:8px;font-size:10px;color:#94a3b8;text-align:right">Queried live · ${new Date().toLocaleString()}</div>
+      <div id="lds-scores-panel" style="margin-top:12px"></div>
     `;
+    // G7 fix: load LDS scores into panel
+    (async () => {
+      try {
+        const { data: lsRows } = await _sb.from('competitive_landscapes')
+          .select('area_id,landscape_dependency_score,relationship_coverage_score,drug_coverage_score,source_validation_score,coverage_computed_at')
+          .order('landscape_dependency_score', { ascending: false });
+        if (!lsRows?.length) return;
+        const cols = lsRows.map(l => {
+          const s = Math.round(l.landscape_dependency_score ?? 0);
+          const col = s >= 80 ? '#065f46' : s >= 60 ? '#92400e' : '#991b1b';
+          const bg  = s >= 80 ? '#d1fae5' : s >= 60 ? '#fef3c7' : '#fee2e2';
+          return `<div style="text-align:center;padding:8px 12px;background:${bg};border-radius:8px;flex:1;min-width:90px">
+            <div style="font-size:18px;font-weight:800;color:${col}">${s}</div>
+            <div style="font-size:9px;font-weight:700;color:${col};text-transform:uppercase">${l.area_id}</div>
+            <div style="font-size:9px;color:${col};opacity:.75;margin-top:2px">rel ${Math.round((l.relationship_coverage_score??0)*100)}% · src ${Math.round((l.source_validation_score??0)*100)}%</div>
+          </div>`;
+        }).join('');
+        const computedAt = lsRows[0]?.coverage_computed_at ? new Date(lsRows[0].coverage_computed_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+        document.getElementById('lds-scores-panel').innerHTML = `
+          <div style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
+            <div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Landscape Dependency Scores (LDS/100) — updated ${computedAt}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${cols}</div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:6px">Formula: Drug×35 + Rel×25 + Cat×20 + Source×15 − Stale×5 · computed weekly</div>
+          </div>`;
+      } catch(e) { console.warn('LDS panel error', e); }
+    })();
   } catch(e) {
     mount.innerHTML = `<div style="color:#dc2626;font-size:12px">Error: ${e.message}</div>`;
   }
@@ -4926,6 +4953,26 @@ function loadMoleculeTab(tabId) {
   loadAreaPI(tabId);           // replaces loadAreaCompetitors
   loadAreaBDActivity(tabId);
   if (TAB_LANDSCAPE_MAP?.[tabId]) loadLandscapeCoverage(tabId); // v32 coverage panel
+  _injectAreaFreshness(tabId); // G15 fix: show last-enriched timestamp
+}
+
+// G15: inject last-enriched freshness into area tab header
+async function _injectAreaFreshness(tabId) {
+  try {
+    // Find the area_id for this tab
+    const areaId = (typeof TAB_AREA !== 'undefined' && TAB_AREA[tabId]) || tabId;
+    const el = document.getElementById(tabId + '-freshness-badge');
+    if (!el || !_sb) return;
+    const { data } = await _sb.from('company_profiles')
+      .select('last_enriched_at')
+      .eq('area_id', areaId)
+      .not('last_enriched_at', 'is', null)
+      .order('last_enriched_at', { ascending: false })
+      .limit(1);
+    if (data?.[0]?.last_enriched_at) {
+      el.innerHTML = _freshnessBadge(data[0].last_enriched_at);
+    }
+  } catch(e) {}
 }
 
 </script>
