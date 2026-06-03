@@ -1096,8 +1096,10 @@ BD LENS FORMAT — use this HTML for every BD Lens callout:
 ─────────────────────────────────────────────
 SOURCE LINKING — MANDATORY:
 Every factual claim drawn from an intel item MUST be hyperlinked to its source_url using an inline anchor tag. This is non-negotiable.
-- Format: <a href="SOURCE_URL">linked text</a>
+- Format: <a href="SOURCE_URL" target="_blank" rel="noopener noreferrer">linked text</a>
+- ALWAYS include target="_blank" rel="noopener noreferrer" on every source link. This is mandatory — without it, the link navigates the iframe instead of opening a new tab.
 - Link on the most specific noun — drug name, trial name, company name, or the key phrase — not generic words like "reported" or "announced"
+- IMPORTANT: Do NOT wrap drug or company names in source links. If a drug name IS the source anchor, use a generic word instead (e.g., "announced" or "reported") so the drug name stays available for entity modal linking.
 - When Endpoints News or Fierce Biotech is the source, prefer those links over others covering the same story
 - Aim for at minimum one hyperlink per paragraph. Dense sourcing is a feature, not clutter.
 - If two sources cover the same claim, link both: "Endpoints <a href="...">reported</a> and Fierce <a href="...">confirmed</a>"
@@ -1266,6 +1268,27 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
     html = _re2.sub(r'(<a\b[^>]*) href=["\']#["\']([^>]*onclick[^>]*>)', r'\1\2', html)
 
     log("LLM href='#' entity links sanitized")
+
+    # ── Ensure ALL external source links have target="_blank" ──────────────────
+    # Source links without target="_blank" navigate the iframe itself when clicked,
+    # which browsers show as about:blank (cross-origin blocked). This post-processor
+    # guarantees every external href gets target="_blank" rel="noopener noreferrer"
+    # regardless of what the LLM emitted.
+    def _add_target_blank(m):
+        tag = m.group(0)
+        if 'target=' in tag:
+            return tag  # already has target
+        if 'onclick=' in tag:
+            return tag  # entity modal link — never add target
+        # Insert target="_blank" rel="noopener noreferrer" before the closing >
+        return tag[:-1] + ' target="_blank" rel="noopener noreferrer">'
+
+    html = _re2.sub(r'<a\b[^>]*href=["\']https?://[^"\']*["\'][^>]*>', _add_target_blank, html)
+
+    # Count and log
+    n_blanks = len(_re2.findall(r'target="_blank"', html))
+    log(f"Source links with target=_blank ensured: {n_blanks}")
+
     return html
 
 
