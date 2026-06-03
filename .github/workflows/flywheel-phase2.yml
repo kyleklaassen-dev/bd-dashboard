@@ -1,0 +1,39 @@
+name: Fine-Tuning Flywheel Phase 2
+
+# Weekly drift detection + auto-restore + training data generation.
+# Ensures Kyle-confirmed field values don't silently regress after enrichment runs.
+
+on:
+  schedule:
+    - cron: '0 12 * * 2'   # 8 AM ET Tuesdays (after Monday validation run)
+  workflow_dispatch:
+    inputs:
+      detect_only:
+        description: 'Report drift without restoring values'
+        type: boolean
+        default: false
+
+jobs:
+  flywheel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install requests
+      - name: Run flywheel Phase 2
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          FLAG=""
+          if [ "${{ github.event.inputs.detect_only }}" == "true" ]; then FLAG="--detect-only"; fi
+          python scripts/flywheel_phase2.py $FLAG
+      - name: Commit training data
+        run: |
+          git config user.email "meridian-bot@ailux.bio"
+          git config user.name "Meridian Bot"
+          git add data/drift_report_*.json data/training_pairs_*.jsonl || true
+          git diff --staged --quiet || git commit -m "flywheel: drift report + training pairs $(date +%Y-%m-%d)"
+          git push || true
