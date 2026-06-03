@@ -11851,7 +11851,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
          .eq('resolved', false).order('sort_date', { ascending: true }).limit(20),
       _sb.from('deals').select('*')
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
-      _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2,strategic_value_score').eq('id', companyId).limit(1),
+      _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2,strategic_value_score,stock_price,stock_change,market_cap_usd_m,cash_runway').eq('id', companyId).limit(1),
       _sb.from('company_areas').select('area_id').eq('company_id', companyId),
       _sb.from('companies').select('id,name,status').eq('parent_company_id', companyId).in('status', ['acquired', 'subsidiary']),
     ]);
@@ -13910,6 +13910,17 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     <div class="cem-stat"><div class="cem-stat-lbl">Pipeline (${areaLabel})</div><div class="cem-stat-val">${drugCount} drug${drugCount!==1?'s':''}</div><div class="cem-stat-sub">${sbDrugs.filter(d=>d.stage&&(d.stage.includes('2')||d.stage.includes('3')||d.stage==='Approved')).length} Phase 2+</div></div>
     <div class="cem-stat"><div class="cem-stat-lbl">BD deal value</div><div class="cem-stat-val">${dealValStr}</div><div class="cem-stat-sub">${dealCount} deal${dealCount!==1?'s':''}</div></div>
     <div class="cem-stat"><div class="cem-stat-lbl">Upcoming catalysts</div><div class="cem-stat-val">${catCount}</div><div class="cem-stat-sub">in ${areaLabel}</div></div>
+    ${(() => {
+      const sp = companyRow?.stock_price; const mc = companyRow?.market_cap_usd_m;
+      const chg = companyRow?.stock_change; const tkr = companyRow?.ticker;
+      const cr = companyRow?.cash_runway;
+      if (!sp && !mc) return '';
+      const priceStr = sp ? `$${Number(sp).toFixed(2)}` : '—';
+      const chgStr = chg != null ? `<span style="color:${chg>=0?'#16a34a':'#dc2626'};font-size:9px">${chg>=0?'+':''}${Number(chg).toFixed(1)}%</span>` : '';
+      const mcStr = mc ? (mc>=1000?`$${(mc/1000).toFixed(1)}B`:`$${Math.round(mc)}M`) : '';
+      const crStr = cr ? `<div style="font-size:9px;color:#94a3b8;margin-top:1px">Runway: ${cr}</div>` : '';
+      return `<div class="cem-stat"><div class="cem-stat-lbl">${tkr&&tkr!=='Private'?tkr+' ':''}Market data</div><div class="cem-stat-val">${priceStr} ${chgStr}</div><div class="cem-stat-sub">${mcStr?'Mkt cap '+mcStr:''}</div>${crStr}</div>`;
+    })()}
     <div class="cem-stat"><div class="cem-stat-lbl">Coverage score</div><div class="cem-stat-val" style="color:${(profile.completeness_score||0)>=80?'#15803d':(profile.completeness_score||0)>=50?'#b45309':'#94a3b8'}">${profile.completeness_score!=null?profile.completeness_score+'%':'—'}</div><div class="cem-stat-sub">Meridian completeness</div></div>
   </div>`;
 
