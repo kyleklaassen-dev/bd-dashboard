@@ -257,6 +257,54 @@ def main():
     for area, lds in sorted(results.items()):
         print(f"  {area}: LDS={lds}")
 
+    # ── N4 fix: LDS → enrichment priority feedback ────────────────────────────
+    # Areas with low LDS (rel_coverage below 0.5) get a +15 priority boost
+    # in the research_queue for their companies/drugs so the next enrichment
+    # run focuses more effort on gap-filling for weak areas.
+    if not args.dry_run and results:
+        _apply_lds_priority_feedback(results)
+
+
+def _apply_lds_priority_feedback(results: dict):
+    """N4: Boost research_queue priority for companies in low-LDS areas."""
+    # Areas with LDS below 75 get boosted; below 60 get max boost
+    LOW_THRESHOLD = 75
+    BOOST_MEDIUM = 8   # LDS 60-75
+    BOOST_HIGH = 15    # LDS < 60
+
+    boosted_total = 0
+    for area_id, lds in results.items():
+        if lds >= LOW_THRESHOLD:
+            continue
+        boost = BOOST_HIGH if lds < 60 else BOOST_MEDIUM
+
+        # Find companies in this area's research_queue and boost priority
+        try:
+            r = requests.get(f"{BASE}/research_queue",
+                headers=SB_H,
+                params={"area_id": f"eq.{area_id}",
+                        "select": "id,priority_score",
+                        "assigned_status": "eq.pending",
+                        "limit": "50"},
+                timeout=15)
+            rows = r.json() if r.status_code == 200 else []
+            for row in rows:
+                current = row.get("priority_score") or 0
+                new_score = min(100, current + boost)
+                requests.patch(f"{BASE}/research_queue",
+                    headers={**SB_H, "Prefer": "return=minimal"},
+                    params={"id": f"eq.{row['id']}"},
+                    json={"priority_score": new_score},
+                    timeout=10)
+                boosted_total += 1
+        except Exception as e:
+            log(f"  [LDS feedback warn] {area_id}: {e}")
+
+    if boosted_total:
+        log(f"N4 LDS feedback: boosted {boosted_total} queue items for low-LDS areas")
+    else:
+        log("N4 LDS feedback: no pending queue items in low-LDS areas (queue may be empty)")
+
 
 if __name__ == "__main__":
     main()
