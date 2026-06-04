@@ -21580,9 +21580,28 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     const content = document.getElementById('hw-issue-content');
     if (!panel || !content) return;
     try {
-      const resp = await fetch('meridian_today.html');
-      if (!resp.ok) throw new Error('not found');
-      const html = await resp.text();
+      // Single source of truth: read the most recent issue from Supabase
+      // (same source as the Meridian tab) so the home card never falls behind
+      // the static meridian_today.html deploy.
+      let html, issueDate;
+      if (typeof _sb !== 'undefined' && _sb) {
+        const { data: issues, error } = await _sb
+          .from('meridian_issues')
+          .select('issue_date, body_html')
+          .order('issue_date', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        if (issues && issues.length && issues[0].body_html) {
+          html = issues[0].body_html;
+          issueDate = issues[0].issue_date;
+        }
+      }
+      // Fallback: static file if Supabase is unavailable or empty
+      if (!html) {
+        const resp = await fetch('meridian_today.html?v=' + Date.now());
+        if (!resp.ok) throw new Error('not found');
+        html = await resp.text();
+      }
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       // Remove <style>, <script>, <head> cruft — grab body children
@@ -21613,7 +21632,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       </style>` + body.innerHTML;
       panel.style.display = 'block';
       const dateEl = document.getElementById('hw-issue-date');
-      if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+      if (dateEl) {
+        const labelDate = issueDate ? new Date(issueDate + 'T12:00:00') : new Date();
+        dateEl.textContent = labelDate.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+      }
     } catch(e) {
       if (content) content.innerHTML = '<p style="color:#94a3b8;font-size:11px;padding:8px 0">Issue not yet generated today. Check back after 3 PM ET.</p>';
       if (panel) panel.style.display = 'block';
