@@ -42,6 +42,10 @@ import requests
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# This module prints progress directly; the LDS-feedback step calls log(),
+# so alias it to print to keep a single output path (fixes NameError crash).
+log = print
+
 def _key(f):
     p = os.path.join(_REPO, f)
     return open(p).read().strip() if os.path.exists(p) else None

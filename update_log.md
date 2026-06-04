@@ -1,6 +1,84 @@
 
 ---
 
+## 2026-06-03 (overnight) — IGF-1R relationship coverage + data-integrity finds
+
+- **IGF-1R landscape_dependency_score 83.5 → 93.5.** Relationship coverage 0.6 → 1.0 after adding two *real, sourced* Viridian deals covering veligrotug (VRDN-001) and elegrobart (VRDN-003): Kissei Japan license (Jul 30 2025; $70M upfront, up to $315M, 20s–mid-30s% royalties) and DRI Healthcare US synthetic royalty (Oct 2025; up to $300M). 4 deal rows + 4 `drug_sources` rows. Directly relevant to veligrotug's June 30 PDUFA (queue #1).
+- **Data-integrity flag (governance_violations):** `lu-ag22515` record corrupted — stored target=TSHR, mechanism text describes TL1A/DR3 (hallucinated), company_id null, indication_short="IGF1R", stage=Preclinical. Verified reality: AprilBio-originated **anti-CD40L SAFA** fusion protein, licensed to Lundbeck, **Phase 2 TED** (NCT06557850). Mis-placed in target/igf1r context. Logged for Kyle review (not auto-edited). Sources in `drug_sources`.
+- **PRIORITY.md correction:** the "autoimmune 0.31 / IGF-1R 0.40" relationship-coverage figures were stale. Actual current: autoimmune LDS 94.48 (rel 1.0), igf1r now 93.5 (rel 1.0).
+- **Bugfix:** `scripts/compute_landscape_scores.py` — `_apply_lds_priority_feedback` called undefined `log()` (crashed at tail after writes). Added `log = print` alias.
+
+---
+
+## 2026-06-03 — Flywheel close (S1 option 1) + Fresh-data banner (S3)
+
+**S1 — Enrichment hints now consumed at runtime (closes the flywheel loop):**
+- `scripts/company_enrichment.py`: added `load_enrichment_hints()` + `enrichment_system_prompt()`. The Phase B synthesis call now appends `data/enrichment_prompt_hints.md` (auto-generated from Kyle's confirmed ground truth by `apply_prompt_improvements.py`) to `ENRICHMENT_SYSTEM`. Previously the hints file was generated but never read at enrichment time — now it reaches the model on every run. `prompt_snapshot` also captures the effective (hints-included) prompt. Hints are memoized per process; missing file is a no-op.
+
+**S3 — Dashboard fresh-data banner (last-updated, polling approach):**
+- New Supabase table `system_status` (singleton id=1) via `migrations/schema_migration_system_status_v1.sql`: `last_enrichment_at`, `last_research_at`, `last_pipeline_label`, `updated_record_count`, `note`, `updated_at`. RLS: anon/authenticated SELECT only.
+- `scripts/company_enrichment.py`: `update_system_status()` helper; stamps `last_enrichment_at` + record count at end of the enrichment run (non-fatal).
+- `scripts/research.py`: `stamp_system_status_research()`; stamps `last_research_at` at end of the nightly research pipeline.
+- `index.html`: fixed-position soft banner that baselines `system_status` server timestamps at page load, polls every 5 min, and shows a dismissable "New intelligence has arrived — refresh" prompt when a newer enrichment/research timestamp appears. Server-to-server timestamp comparison (no client-clock skew). Does not auto-reload; user-initiated refresh only. Complements the per-area freshness badge (Task 23) by proactively signaling new data arriving after page open.
+
+## 2026-05-31 (Session 98) — Intelligence Brain: 4 New Tables, Bispecific Race Dashboard, Conversation Intake Agent
+
+**New Supabase tables created:**
+- `drug_bispecific_landscape` — 10 rows; all TL1A×IL-23 programs ranked by clinical advancement; format, valency, IL-23 arm selectivity, Sanofi conflict flag, vs-ALX001 comparisons
+- `conversation_intelligence_intake` — auto-capture table with auto-promote trigger (>0.85 confidence → governance_violation flag)
+- `drug_cdx_strategy` — 3 rows; tulisokibart ARTEMIS-UC CDx (clinical_validation), ALX001 dual biomarker UC (hypothetical), ALX001 CD CDx (discovery)
+- `bispecific_clinical_hypothesis` — 1 row; formal "30% Both-Arms Needed Hypothesis" with patient population math, mechanistic rationale, expected remission rates
+
+**Dashboard update (index.html):**
+- Added "Bispecific Race" pill button in TL1A left pills column (purple/violet styling)
+- Added `tl1a-modal-bispecific-race` modal overlay with live Supabase table load
+- Race table: rank badge, phase chip, format badge (single-mol vs co-form), IL-23 arm color coding (p19=green, p40=red), Sanofi conflict callout
+- `_loadBispecificRace()` JS function with `_bispecificRaceLoaded` guard
+
+**New script:**
+- `scripts/conversation_intake.py` — session-end intelligence capture agent; uses Claude API (claude-opus-4-5) for fact extraction; --review/--promote/--reject CLI; stores to conversation_intelligence_intake
+
+**Key intelligence formalized:**
+- RO7837195 p40-blocking IL-23 arm = mechanistic disadvantage vs ALX001 p19-selective
+- SPY230 co-formulation (NOT single molecule) — different IP and PK profile
+- HXN-1003/Sanofi internal conflict: duvakitug Phase 3 vs HXN-1003 bispecific simultaneously
+- HY8931 = direct 2+2 format competitor to ALX001 (only other confirmed 2+2)
+- 30% hypothesis: ~30% UC patients need both arms; dual biomarker (TNFSF15 TAG + IL-23p19 mucosal) identifies them
+
+**Commit:** 3ecb9bb6b8 (index.html) + fb537f1c4d (conversation_intake.py)
+
+---
+
+## 2026-05-31 (Session 97) — TL1A×IL-23 Bispecific Landscape: Complete competitive picture, two new intelligence tables, BCD-261 added
+
+**Research completed:**
+- ClinicalTrials.gov systematic search for all TL1A×IL-23p19 bispecifics globally
+- Confirmed 7 true bispecifics and 1 co-formulation (Spyre SPY230) ahead of ALX001
+- Discovered BCD-261 (Biocad, Russia): Phase 2 UC + CD simultaneously (NCT07080034/NCT07078994), FIH March 2024 — NOT previously in database
+
+**New company/drug added:**
+- `biocad` company record added
+- `bcd-261` drug record added: Phase 2, TL1A×IL-23p19 bispecific, UC + CD, FIH March 2024
+- drug_targets rows for bcd-261 (tl1a + il23p19, both co_primary)
+- drug_development_timelines: FIH actual=2024-03-29, phase2_start actual=2025-08-14
+
+**RO7837195 record updated:**
+- differentiation_thesis updated with p40-blocking IL-23 arm as key disadvantage vs p19-selective
+- FIH estimated date set to ~2022 (backward projection from Phase 2b timeline)
+
+**Tables created (`migrations/v43_bispecific_differentiation_tables.sql`):**
+- `bispecific_differentiation_factors` — 18 rows covering format, binding, PK, PD, patient_selection, regulatory, clinical_design, manufacturing, safety factors. Each row: mechanistic_rationale, clinical_significance, ailux/mirador/roche/spyre positions, importance_rank 1-10, evidence_quality.
+- `nonresponder_bispecific_bridge` — 8 rows mapping UC patient phenotypes to bispecific rescue mechanisms. Covers the complete patient math for ALX001's addressable population.
+
+**Key findings:**
+- TRUE bispecifics ahead of ALX001 (Phase order): RO7837195 (Phase 2b, Roche/Pfizer, p40-blocking), BCD-261 (Phase 2, Biocad), QX030N/CLD-423 (Phase 1, Qyuns/Caldera), MT-251 (Phase 1 FIH Jan 2026, Mirador), SIM0709 (Phase 1, Simcere/BI), HY8931 (Phase 1, Newsoara, 2+2), LQ080 (Phase 1, Novamab, VHH nanobody)
+- Top 3 differentiation factors (rank 9/10): (1) p19-selective vs p40-blocking IL-23 arm — PROVEN, ALX001 wins; (2) dual target biomarker strategy for patient selection — EMERGING; (3) Phase 2 trial design with monoAb arms vs placebo-only — EMERGING, Spyre is gold standard
+- Core bispecific hypothesis population: 30% of UC (Th1/Th17 mixed, co-elevated TL1A+IL-23)
+- ALX001 addressable: ~60% of UC (excludes TSLP-dominant 15% and fibrostenotic 10% + TNF-innate 5%)
+- ALX001 engineering advantage on 3 key factors: DR3-selectivity (spares DcR3), p19-selective IL-23 arm, 2+2 symmetric format (easier manufacturing + maximum ILC3 co-engagement)
+
+---
+
 ## 2026-05-31 (Session 96) — Three new intelligence systems: non-responder phenotypes, IND-to-FIH knowledge base, Ailux BD context
 
 **Tables created:**
