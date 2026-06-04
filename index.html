@@ -21608,8 +21608,20 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const body = doc.body;
       // Remove any base tags that would affect links
       body.querySelectorAll('base').forEach(el => el.remove());
-      // Scope all links to open in new tab
-      body.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+      // Scope links: entity links (drug/company) open the canonical card in-place;
+      // everything else opens in a new tab. Entity links carry href="#" — if we
+      // blindly set target=_blank they spawn an about:blank tab, so leave them alone.
+      body.querySelectorAll('a').forEach(a => {
+        const oc = a.getAttribute('onclick') || '';
+        const isEntity = oc.includes('openDrugModal(') || oc.includes('openCompanyModal(');
+        if (isEntity) {
+          a.removeAttribute('target');
+          a.style.cursor = 'pointer';
+        } else if (a.getAttribute('href') && !a.getAttribute('href').endsWith('#')) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+        }
+      });
       // Inject scoped styles to make the serif issue content look clean inside the card
       content.innerHTML = `<style>
         #hw-issue-content h1 { font-size:26px; font-weight:700; color:#1a3f8f; margin:0 0 8px 0; font-family:Georgia,serif; }
@@ -21630,6 +21642,33 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
         #hw-issue-content .closing { font-style:italic; color:#3d5166; font-size:12px; border-top:1px solid #d0d9ea; padding-top:14px; margin-top:24px; }
         #hw-issue-content .issue-meta { font-size:10px; color:#94a3b8; margin-top:20px; padding-top:10px; border-top:1px solid #e8edf5; font-family:Calibri,Helvetica,sans-serif; }
       </style>` + body.innerHTML;
+      // Bridge: route entity-link clicks to the parent dashboard's canonical
+      // modal. Capture phase + stopPropagation prevents the inline
+      // onclick="openDrugModal(...)" (undefined here) from firing and stops the
+      // href="#" navigation that was spawning a blank tab.
+      if (!content._meridianBridgeBound) {
+        content._meridianBridgeBound = true;
+        content.addEventListener('click', function(ev) {
+          const a = ev.target.closest('a');
+          if (!a) return;
+          const oc = a.getAttribute('onclick') || '';
+          if (oc.includes('openDrugModal(') || oc.includes('openCompanyModal(')) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const m = oc.match(/open(?:Drug|Company)Modal\(\s*['"]([^'"]+)['"]/);
+            if (m) {
+              try {
+                if (oc.includes('openDrugModal')) openDrugEntityModal(m[1], m[1], null);
+                else openCompanyEntityModal(m[1], m[1], 'meridian', m[1]);
+              } catch(err) { console.warn('[hw-issue:bridge]', err); }
+            }
+            return false;
+          }
+          // Guard: bare href="#" anchors shouldn't jump the page
+          const href = a.getAttribute('href') || '';
+          if (href === '#' || href.endsWith('#')) ev.preventDefault();
+        }, true);
+      }
       panel.style.display = 'block';
       const dateEl = document.getElementById('hw-issue-date');
       if (dateEl) {
