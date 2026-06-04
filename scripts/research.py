@@ -483,6 +483,26 @@ def sb_post(table, record):
     return data[0] if data else None
 
 
+def stamp_system_status_research(note=None):
+    """Best-effort: stamp system_status.last_research_at so the dashboard's
+    freshness banner reflects the latest research run. Never fatal."""
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    rec = {"last_research_at": now_iso, "updated_at": now_iso,
+           "last_pipeline_label": "research"}
+    if note:
+        rec["note"] = note[:500]
+    try:
+        r = requests.patch(f"{SUPABASE_URL}/rest/v1/system_status",
+                           headers=SB_HEADERS, params={"id": "eq.1"},
+                           json=rec, timeout=15)
+        if r.status_code in (200, 204):
+            log("  system_status stamped (research)")
+        else:
+            log(f"  system_status stamp HTTP {r.status_code} (non-fatal)")
+    except Exception as e:
+        log(f"  system_status stamp failed (non-fatal): {e}")
+
+
 # ── Company name → ID lookup ─────────────────────────────────────────────────
 # Known aliases that differ from the simple lowercase ID
 COMPANY_ALIASES = {
@@ -1511,5 +1531,8 @@ if __name__ == "__main__":
         _run_bispecific_competitive_monitor()
     except Exception as exc:
         log(f"Phase 10 bispecific monitor error (non-fatal): {exc}")
+
+    # S3: stamp system_status so the dashboard surfaces a fresh-data signal.
+    stamp_system_status_research(note="Nightly research pipeline complete")
 
     log("=== Research complete ===")

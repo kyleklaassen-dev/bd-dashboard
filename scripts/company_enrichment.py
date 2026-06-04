@@ -495,6 +495,39 @@ def sb_patch(table: str, record: dict, match_params: dict) -> bool:
         return False
 
 
+def update_system_status(pipeline_label: str, record_count: int = 0,
+                         note: Optional[str] = None) -> bool:
+    """Stamp the system_status singleton so the dashboard knows fresh data arrived.
+
+    Powers the S3 "New intelligence available — refresh" banner. Sets the
+    timestamp column matching the pipeline (enrichment vs research), bumps
+    updated_at, and records how many rows were touched. Best-effort: a failure
+    here must never break a pipeline run.
+    """
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    rec = {
+        "updated_at": now_iso,
+        "last_pipeline_label": pipeline_label,
+        "updated_record_count": int(record_count or 0),
+    }
+    if pipeline_label == "research":
+        rec["last_research_at"] = now_iso
+    else:
+        rec["last_enrichment_at"] = now_iso
+    if note:
+        rec["note"] = note[:500]
+    try:
+        ok = sb_patch("system_status", rec, {"id": "eq.1"})
+        if ok:
+            log(f"  system_status stamped ({pipeline_label}, {record_count} records)", indent=1)
+        else:
+            log(f"  system_status stamp returned no match (table missing?)", indent=1)
+        return ok
+    except Exception as e:
+        log(f"  system_status stamp failed (non-fatal): {e}", indent=1)
+        return False
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # COMPANY NAME → SUPABASE ID MAPPING
 # ══════════════════════════════════════════════════════════════════════════
@@ -1820,6 +1853,55 @@ EXAMPLE: differentiation_thesis (confirmed as high quality)
   GOOD: "SC autoinjector → at-home dosing; same IGF-1R mechanism as Tepezza but avoids infusion center; BLA Q1 2027"
   WHY GOOD: 3-5 tightly packed facts separated by semicolons. Never repeats drug_summary. Focuses on
   what makes the MOLECULE distinct (format, half-life, dosing schedule, engineering choice, route of admin)."""
+
+
+# ── Flywheel close: inject confirmed-ground-truth quality hints at runtime ─────
+# apply_prompt_improvements.py reads Kyle's confirmed examples (training_pairs_*.jsonl)
+# and writes data/enrichment_prompt_hints.md. This loader pulls that guidance into the
+# live ENRICHMENT_SYSTEM prompt so the next enrichment run benefits from the latest
+# confirmed signal. This is the step that was previously missing — the hints file was
+# generated but never consumed at enrichment time.
+_HINTS_PATH = os.path.join(os.path.dirname(_SCRIPTS_DIR), "data", "enrichment_prompt_hints.md")
+_ENRICHMENT_HINTS_CACHE = None  # lazily loaded, then memoized for the process
+
+
+def load_enrichment_hints() -> str:
+    """Return the auto-generated quality-hints block (empty string if absent).
+
+    Strips the file's own title/HTML-comment header and wraps the guidance in a
+    clearly delimited section so it reads as an addendum to ENRICHMENT_SYSTEM.
+    """
+    global _ENRICHMENT_HINTS_CACHE
+    if _ENRICHMENT_HINTS_CACHE is not None:
+        return _ENRICHMENT_HINTS_CACHE
+    block = ""
+    try:
+        if os.path.exists(_HINTS_PATH):
+            raw = open(_HINTS_PATH, encoding="utf-8").read().strip()
+            # Drop the auto-generated title line and the HTML comment marker.
+            lines = [
+                ln for ln in raw.splitlines()
+                if not ln.startswith("# Enrichment Prompt Quality Hints")
+                and not ln.strip().startswith("<!--")
+            ]
+            body = "\n".join(lines).strip()
+            if body:
+                block = (
+                    "\n\n"
+                    "LEARNED QUALITY GUIDANCE (auto-derived from Kyle's confirmed ground truth — "
+                    "these reflect the length, structure, and content of values Kyle has personally "
+                    "verified; match them closely):\n"
+                    + body
+                )
+    except Exception:
+        block = ""
+    _ENRICHMENT_HINTS_CACHE = block
+    return block
+
+
+def enrichment_system_prompt() -> str:
+    """ENRICHMENT_SYSTEM with the latest learned quality hints appended."""
+    return ENRICHMENT_SYSTEM + load_enrichment_hints()
 
 
 # ── Disease-area framing for area-aware assessment generation ─────────────────
@@ -3623,7 +3705,7 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         try:
             resp = client.messages.create(
                 model=_synthesis_model, max_tokens=_synthesis_tokens,
-                system=ENRICHMENT_SYSTEM,
+                system=enrichment_system_prompt(),
                 messages=[{"role": "user", "content": prompt}]
             )
             text = resp.content[0].text
@@ -4075,7 +4157,7 @@ def run_intelligence_pipeline(area_id: str,
             entity_type="company",
             notes=f"area={area_id} company_filter={company_filter or 'all'}",
             # v59 trajectory capture: store system prompt snapshot + skill name
-            prompt_snapshot=ENRICHMENT_SYSTEM[:5000],
+            prompt_snapshot=enrichment_system_prompt()[:5000],
             entity_id=company_filter or "",
             skill_name="company_enrich",
             # v60 run classification
@@ -4217,6 +4299,15 @@ def run_intelligence_pipeline(area_id: str,
         enrich_never_touched_drugs(limit=10, dry_run=dry_run)
     else:
         log("\n── Coverage pass skipped (targeted run) ──")
+
+    # ── S3: stamp system_status so the dashboard surfaces fresh-data banner ────
+    if not dry_run:
+        _touched = results.get('success', 0)
+        update_system_status(
+            "enrichment",
+            record_count=_touched,
+            note=f"Enrichment run for area '{area_id}' — {_touched} records updated",
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════

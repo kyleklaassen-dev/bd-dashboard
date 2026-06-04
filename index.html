@@ -872,6 +872,33 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .sc-freshness.recent { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
 .sc-freshness.stale  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
 .sc-freshness.unknown { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
+/* ── S3: fresh-data banner ── */
+.fresh-banner {
+  position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(8px);
+  z-index:9999; display:flex; align-items:center; gap:10px;
+  max-width:min(92vw,560px);
+  padding:10px 12px 10px 16px;
+  background:#ffffff; color:#1e293b;
+  border:1px solid #e2e8f0; border-radius:14px;
+  box-shadow:0 8px 28px rgba(15,23,42,0.14);
+  font-size:13px; line-height:1.35;
+  opacity:0; pointer-events:none;
+  transition:opacity .35s ease, transform .35s ease;
+}
+.fresh-banner.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+.fresh-banner-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; flex-shrink:0; box-shadow:0 0 0 4px rgba(34,197,94,0.15); }
+.fresh-banner-text { flex:1; }
+.fresh-banner-refresh {
+  flex-shrink:0; border:none; cursor:pointer;
+  background:#0f172a; color:#fff; font-weight:600; font-size:12.5px;
+  padding:6px 12px; border-radius:9px; transition:background .2s ease;
+}
+.fresh-banner-refresh:hover { background:#1e293b; }
+.fresh-banner-dismiss {
+  flex-shrink:0; border:none; background:transparent; cursor:pointer;
+  color:#94a3b8; font-size:18px; line-height:1; padding:2px 4px; border-radius:6px;
+}
+.fresh-banner-dismiss:hover { color:#475569; background:#f1f5f9; }
 /* ── Identity Health Footer ── */
 #id-footer { display:none !important; }
 body { padding-bottom:0; }
@@ -2906,6 +2933,63 @@ details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
 const SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g";
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── S3: fresh-data banner ───────────────────────────────────────────────────
+// Polls the system_status singleton row (stamped by the nightly enrichment and
+// research pipelines on completion). We baseline the server timestamps at page
+// load, then compare server-to-server on each poll — no wall-clock comparison,
+// so client clock skew never produces false positives. When a newer
+// last_enrichment_at (or last_research_at) appears, we surface a soft, dismissable
+// "refresh" banner rather than auto-reloading, so work in progress is never lost.
+const FRESH_POLL_MS = 5 * 60 * 1000;   // 5 minutes
+let _freshBaseline   = null;           // {enr,res} captured on first poll
+let _freshDismissed  = false;
+let _freshShown      = false;
+
+function _dismissFreshBanner() {
+  _freshDismissed = true;
+  const el = document.getElementById('fresh-data-banner');
+  if (el) { el.classList.remove('show'); setTimeout(() => { el.hidden = true; }, 350); }
+}
+
+function _showFreshBanner(cur, enrNew) {
+  const el  = document.getElementById('fresh-data-banner');
+  const txt = document.getElementById('fresh-banner-text');
+  if (!el || !txt) return;
+  if (enrNew && Number(cur.cnt) > 0) {
+    const n = Number(cur.cnt);
+    txt.textContent = `New intelligence has arrived — ${n} record${n === 1 ? '' : 's'} updated since you opened this page.`;
+  } else {
+    txt.textContent = 'New intelligence has arrived since you opened this page.';
+  }
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('show'));
+  _freshShown = true;
+}
+
+async function _pollSystemStatus() {
+  try {
+    const { data, error } = await _sb
+      .from('system_status')
+      .select('last_enrichment_at,last_research_at,updated_record_count')
+      .eq('id', 1)
+      .maybeSingle();
+    if (error || !data) return;
+    const cur = { enr: data.last_enrichment_at, res: data.last_research_at, cnt: data.updated_record_count };
+    if (_freshBaseline === null) { _freshBaseline = cur; return; }   // establish baseline, no alert
+    if (_freshShown || _freshDismissed) return;
+    const newer = (a, b) => a && (!b || new Date(a) > new Date(b));
+    const enrNew = newer(cur.enr, _freshBaseline.enr);
+    const resNew = newer(cur.res, _freshBaseline.res);
+    if (enrNew || resNew) _showFreshBanner(cur, enrNew);
+  } catch (e) { /* non-fatal — banner is best-effort */ }
+}
+
+function _startFreshDataWatch() {
+  _pollSystemStatus();                          // baseline immediately on load
+  setInterval(_pollSystemStatus, FRESH_POLL_MS);
+}
+document.addEventListener('DOMContentLoaded', _startFreshDataWatch);
 
 // ── Next-gen ranking history: written by competitive_scoring.py (enrichment pipeline) ──
 // The browser does NOT write to next_gen_rankings. Ranking changes are recorded
@@ -4979,6 +5063,14 @@ async function _injectAreaFreshness(tabId) {
 
 </head>
 <body>
+
+<!-- S3: fresh-data banner — polls system_status, appears when new intelligence lands -->
+<div id="fresh-data-banner" class="fresh-banner" role="status" aria-live="polite" hidden>
+  <span class="fresh-banner-dot"></span>
+  <span class="fresh-banner-text" id="fresh-banner-text">New intelligence has arrived since you opened this page.</span>
+  <button type="button" class="fresh-banner-refresh" onclick="location.reload()">Refresh</button>
+  <button type="button" class="fresh-banner-dismiss" aria-label="Dismiss" onclick="_dismissFreshBanner()">×</button>
+</div>
 
 <div class="header">
  <div style="flex-shrink:0">
