@@ -510,10 +510,13 @@ def update_system_status(pipeline_label: str, record_count: int = 0,
         "last_pipeline_label": pipeline_label,
         "updated_record_count": int(record_count or 0),
     }
-    if pipeline_label == "research":
-        rec["last_research_at"] = now_iso
-    else:
-        rec["last_enrichment_at"] = now_iso
+    _col = {
+        "research":   "last_research_at",
+        "meridian":   "last_meridian_at",
+        "scoring":    "last_scoring_at",
+        "enrichment": "last_enrichment_at",
+    }.get(pipeline_label, "last_enrichment_at")
+    rec[_col] = now_iso
     if note:
         rec["note"] = note[:500]
     try:

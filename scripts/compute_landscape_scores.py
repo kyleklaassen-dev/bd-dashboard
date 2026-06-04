@@ -268,6 +268,19 @@ def main():
     if not args.dry_run and results:
         _apply_lds_priority_feedback(results)
 
+    # ── S3: stamp system_status so the dashboard surfaces fresh scores ────────
+    if not args.dry_run and results:
+        try:
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            sb_patch("system_status", {"id": "eq.1"}, {
+                "last_scoring_at": now_iso, "updated_at": now_iso,
+                "last_pipeline_label": "landscape_scoring",
+                "note": f"Landscape scores recomputed for {len(results)} area(s)",
+            })
+            log("system_status stamped (scoring)")
+        except Exception as e:
+            log(f"system_status stamp failed (non-fatal): {e}")
+
 
 def _apply_lds_priority_feedback(results: dict):
     """N4: Boost research_queue priority for companies in low-LDS areas."""

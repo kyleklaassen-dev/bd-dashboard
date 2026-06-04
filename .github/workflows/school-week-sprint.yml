@@ -24,6 +24,11 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
+# Prevent overlapping sprint runs (Tue–Sat cron) from double-writing.
+concurrency:
+  group: school-week-sprint
+  cancel-in-progress: false
+
 jobs:
   sprint:
     runs-on: ubuntu-latest

@@ -2952,11 +2952,13 @@ function _dismissFreshBanner() {
   if (el) { el.classList.remove('show'); setTimeout(() => { el.hidden = true; }, 350); }
 }
 
-function _showFreshBanner(cur, enrNew) {
+function _showFreshBanner(cur, enrNew, merNew) {
   const el  = document.getElementById('fresh-data-banner');
   const txt = document.getElementById('fresh-banner-text');
   if (!el || !txt) return;
-  if (enrNew && Number(cur.cnt) > 0) {
+  if (merNew) {
+    txt.textContent = 'A new Meridian Issue has been published — refresh to read it.';
+  } else if (enrNew && Number(cur.cnt) > 0) {
     const n = Number(cur.cnt);
     txt.textContent = `New intelligence has arrived — ${n} record${n === 1 ? '' : 's'} updated since you opened this page.`;
   } else {
@@ -2971,17 +2973,21 @@ async function _pollSystemStatus() {
   try {
     const { data, error } = await _sb
       .from('system_status')
-      .select('last_enrichment_at,last_research_at,updated_record_count')
+      .select('last_enrichment_at,last_research_at,last_meridian_at,last_scoring_at,updated_record_count')
       .eq('id', 1)
       .maybeSingle();
     if (error || !data) return;
-    const cur = { enr: data.last_enrichment_at, res: data.last_research_at, cnt: data.updated_record_count };
+    const cur = { enr: data.last_enrichment_at, res: data.last_research_at,
+                  mer: data.last_meridian_at, sco: data.last_scoring_at,
+                  cnt: data.updated_record_count };
     if (_freshBaseline === null) { _freshBaseline = cur; return; }   // establish baseline, no alert
     if (_freshShown || _freshDismissed) return;
     const newer = (a, b) => a && (!b || new Date(a) > new Date(b));
     const enrNew = newer(cur.enr, _freshBaseline.enr);
     const resNew = newer(cur.res, _freshBaseline.res);
-    if (enrNew || resNew) _showFreshBanner(cur, enrNew);
+    const merNew = newer(cur.mer, _freshBaseline.mer);
+    const scoNew = newer(cur.sco, _freshBaseline.sco);
+    if (enrNew || resNew || merNew || scoNew) _showFreshBanner(cur, enrNew, merNew);
   } catch (e) { /* non-fatal — banner is best-effort */ }
 }
 

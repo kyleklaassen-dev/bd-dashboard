@@ -1895,4 +1895,20 @@ if __name__ == "__main__":
     sync_catalyst_outcomes(plan, intel)
 
     deploy_to_github(html)
+
+    # ── S3: stamp system_status so the dashboard surfaces the new Issue ───────
+    try:
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        requests.patch(
+            f"{SUPABASE_URL}/rest/v1/system_status",
+            headers={**SB_HEADERS, "Prefer": "return=minimal"},
+            params={"id": "eq.1"},
+            json={"last_meridian_at": now_iso, "updated_at": now_iso,
+                  "last_pipeline_label": "meridian_write",
+                  "note": "New Meridian Issue published"},
+            timeout=15)
+        log("system_status stamped (meridian_write)")
+    except Exception as e:
+        log(f"system_status stamp failed (non-fatal): {e}")
+
     log("=== Write complete ===")

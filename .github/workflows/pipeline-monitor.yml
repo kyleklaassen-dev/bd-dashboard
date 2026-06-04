@@ -1,0 +1,55 @@
+name: Competitor Pipeline Monitor
+
+# Activates scripts/pipeline_monitor.py, which was built for nightly use but was
+# never scheduled. It hashes each tracked company's pipeline page and, on change,
+# fires a signals row + a discovery_queue row for human review — so competitor
+# pipeline updates (new drug, stage change, discontinuation) surface within 24h.
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # 1:00 AM ET daily (quiet window, before enrichment)
+  workflow_dispatch:
+    inputs:
+      company:
+        description: "Filter to a single company_id (optional)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Fetch + diff only, no writes"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: pipeline-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run pipeline monitor
+        env:
+          SUPABASE_URL:         https://tghntyofptvfhmtchwcv.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.company }}" ]; then
+            ARGS="$ARGS --company ${{ github.event.inputs.company }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/pipeline_monitor.py $ARGS
