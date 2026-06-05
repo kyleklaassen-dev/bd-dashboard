@@ -35,39 +35,8 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          FILE="${{ github.event.inputs.migration_file }}"
-          # Extract project ref from URL (https://PROJECTREF.supabase.co)
-          PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | sed 's|\.supabase\.co.*||')
-          echo "Project ref: $PROJECT_REF"
-          echo "Migration file: $FILE"
-          echo "--- SQL ---"
-          cat "$FILE"
-          echo "--- end SQL ---"
+          ARGS="${{ github.event.inputs.migration_file }}"
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
-            echo "DRY RUN — not executing"
-            exit 0
+            ARGS="$ARGS --dry-run"
           fi
-          # Use Supabase Management API to execute SQL
-          python3 -c "
-import json, os, sys, urllib.request
-sql = open('$FILE').read()
-project_ref = '$PROJECT_REF'
-pat = os.environ['SUPABASE_PAT']
-url = f'https://api.supabase.com/v1/projects/{project_ref}/database/query'
-data = json.dumps({'query': sql}).encode()
-req = urllib.request.Request(url, data=data,
-      headers={'Authorization': f'Bearer {pat}', 'Content-Type': 'application/json'},
-      method='POST')
-try:
-    with urllib.request.urlopen(req) as r:
-        body = json.loads(r.read())
-        print('Migration applied successfully')
-        if isinstance(body, list):
-            for row in body: print(row)
-        else:
-            print(body)
-except urllib.request.HTTPError as e:
-    err = e.read().decode()
-    print(f'HTTP {e.code}: {err}', file=sys.stderr)
-    sys.exit(1)
-"
+          python3 scripts/apply_sql_migration.py $ARGS
