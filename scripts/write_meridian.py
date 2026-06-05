@@ -1829,7 +1829,32 @@ def bump_editorial_priority(company_ids: list, boost: int = 10):
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    import sys as _sys
     log(f"=== Meridian Writer — {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
+
+    # ── One Issue per day ─────────────────────────────────────────────────────
+    # The Writer is triggered twice daily (chained off Meridian Research, plus a
+    # 6:30 ET fallback cron) — and can also be dispatched manually. Without this
+    # guard it regenerates (full LLM pass + republish) each time. If today's Issue
+    # already exists, skip; the fallback cron only does work when the chain didn't.
+    # Override with --force or MERIDIAN_FORCE=1.
+    _FORCE = ("--force" in _sys.argv) or (os.environ.get("MERIDIAN_FORCE", "").lower() in ("1", "true", "yes"))
+    _today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    if not _FORCE:
+        try:
+            _r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/meridian_issues",
+                headers=SB_HEADERS,
+                params={"issue_date": f"eq.{_today}", "select": "id,created_at"},
+                timeout=15)
+            _existing = _r.json() if _r.status_code == 200 else []
+            if _existing:
+                log(f"Issue for {_today} already generated (id={_existing[0].get('id')}). "
+                    f"Skipping — only one Issue is produced per day. "
+                    f"Use --force or MERIDIAN_FORCE=1 to regenerate.")
+                _sys.exit(0)
+        except Exception as _e:
+            log(f"Same-day guard check failed (continuing to generate): {_e}")
 
     # Fetch all data sources — the full dashboard state feeds the Meridian
     intel                              = fetch_recent_intel(hours_back=48)

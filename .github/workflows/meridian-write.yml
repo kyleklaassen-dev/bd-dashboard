@@ -6,9 +6,11 @@ on:
     types: [completed]
     branches: [main]
   schedule:
-    # 6:30 AM ET = 10:30 UTC daily — fallback if Research didn't run
+    # 6:30 AM ET = 10:30 UTC daily — TRUE fallback now: write_meridian.py skips
+    # if today's Issue already exists (one Issue/day), so this only generates
+    # when the Research→Writer chain didn't run.
     - cron: "30 10 * * *"
-  workflow_dispatch:   # allow manual trigger
+  workflow_dispatch:   # allow manual trigger (use --force / MERIDIAN_FORCE=1 to regenerate same-day)
 
 concurrency:
   group: meridian-write
