@@ -3889,16 +3889,42 @@ def reconcile_company_areas(area_id: str, dry_run: bool = False) -> dict:
         return results
 
     # Which companies have drugs in this area (via drug_areas)?
+    # A company "has a program" in an area through ANY of these paths — all count,
+    # so reconciliation must not delete a legitimately-linked company:
+    #   1. direct        — a drug whose company_id is the company (originator)
+    #   2. acquired-sub  — a drug whose originator is an acquired subsidiary whose
+    #                      parent_company_id is the company (e.g. tulisokibart →
+    #                      prometheus(acquired) → merck)
+    #   3. co-dev/license — a drug whose partner_company resolves to the company
+    #                      (e.g. dupilumab → partner Regeneron; sim0709 → Boehringer)
     da_rows = sb_get("drug_areas", {"area_id": f"eq.{area_id}", "select": "drug_id"})
     drug_ids_in_area = {r["drug_id"] for r in da_rows}
     companies_with_drugs: set[str] = set()
+    partner_names: set[str] = set()
     if drug_ids_in_area:
         chunk = list(drug_ids_in_area)[:300]
         drug_rows = sb_get("drugs", {
             "id": f"in.({','.join(chunk)})",
-            "select": "id,company_id",
+            "select": "id,company_id,partner_company",
         })
-        companies_with_drugs = {d["company_id"] for d in drug_rows}
+        companies_with_drugs = {d["company_id"] for d in drug_rows if d.get("company_id")}
+        partner_names = {d["partner_company"] for d in drug_rows if d.get("partner_company")}
+
+    # Path 2 — roll acquired subsidiaries up to their parent.
+    acquired = sb_get("companies", {"status": "eq.acquired", "select": "id,parent_company_id"})
+    sub_to_parent = {c["id"]: c["parent_company_id"] for c in acquired if c.get("parent_company_id")}
+    rolled_up = {sub_to_parent[c] for c in companies_with_drugs if c in sub_to_parent}
+
+    # Path 3 — resolve partner company NAMES to ids (co-development / licensing).
+    partner_ids: set[str] = set()
+    if partner_names:
+        all_cos = sb_get("companies", {"select": "id,name"})
+        name_to_id = {(c.get("name") or "").strip().lower(): c["id"] for c in all_cos}
+        for pn in partner_names:
+            key = pn.strip().lower()
+            pid = COMPANY_ALIASES.get(key) or name_to_id.get(key)
+            if pid:
+                partner_ids.add(pid)
 
     # Which companies have combo programs in this area?
     combo_rows = sb_get("drug_combinations", {
@@ -3907,7 +3933,8 @@ def reconcile_company_areas(area_id: str, dry_run: bool = False) -> dict:
     })
     companies_with_combos = {r["company_id"] for r in combo_rows}
 
-    companies_with_programs = companies_with_drugs | companies_with_combos
+    companies_with_programs = (companies_with_drugs | companies_with_combos
+                               | rolled_up | partner_ids)
 
     # ── Job A: remove stale company_areas links ──────────────────────────
     stale = [cid for cid in all_company_ids if cid not in companies_with_programs]
