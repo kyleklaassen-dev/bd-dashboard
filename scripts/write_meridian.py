@@ -35,6 +35,53 @@ SB_HEADERS = {
     "Content-Type":  "application/json",
 }
 
+# ── Pre-publish fact-check gate ───────────────────────────────────────────────
+# A fact only earns a place in the Issue if it isn't backed by a FABRICATED source.
+# This is the gate that would have stopped the veligrotug "gMG" line at the door:
+# its catalyst carried a clinicaltrials.gov/search?term= URL (an invented citation).
+# Keep the same patterns the Source Verifier uses. We DROP rows whose source_url is
+# present-but-fabricated; we KEEP rows with no source (real-but-unsourced is fine —
+# we never want to lose a real molecule like CLD-423), and log everything dropped.
+import re as _re
+_FABRICATED_SOURCE = _re.compile(
+    r"(/search\?term=|/search\?q=|google\.com/search|clinicaltrials\.gov/search"
+    r"|example\.com|placeholder\.|/drug-name-here|localhost|127\.0\.0\.1)", _re.I)
+
+def _is_fabricated_source(url):
+    return bool(url) and bool(_FABRICATED_SOURCE.search(str(url)))
+
+_FACT_CHECK = {"dropped": [], "checked": 0}
+
+def fact_check_filter(rows, label, url_field="source_url"):
+    """Drop rows whose source_url is fabricated; keep the rest. Records drops."""
+    kept = []
+    for r in rows:
+        _FACT_CHECK["checked"] += 1
+        if _is_fabricated_source(r.get(url_field)):
+            _FACT_CHECK["dropped"].append({"kind": label, "row": r.get("label") or r.get("headline") or r.get("id"), "url": r.get(url_field)})
+        else:
+            kept.append(r)
+    n = len(rows) - len(kept)
+    if n:
+        log(f"  ⚖ fact-check: dropped {n} {label} with fabricated source URLs (kept {len(kept)})")
+    return kept
+
+def fact_check_report():
+    """Log a summary and open a governance_violation if anything was dropped."""
+    d = _FACT_CHECK["dropped"]
+    log(f"⚖ Fact-check gate: {_FACT_CHECK['checked']} sourced facts checked, {len(d)} dropped for fabricated sources.")
+    if d:
+        try:
+            requests.post(f"{SUPABASE_URL}/rest/v1/governance_violations",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                json={"table_name": "meridian_issue_factcheck", "row_id": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
+                      "rule_name": "fabricated_source_excluded_from_issue",
+                      "description": "Pre-publish fact-check dropped facts with fabricated source URLs before the Issue was written: "
+                                     + "; ".join(f"[{x['kind']}] {str(x['row'])[:50]} ({str(x['url'])[:50]})" for x in d[:10]),
+                      "resolved": False}, timeout=15)
+        except Exception as e:
+            log(f"  fact-check governance log failed (non-fatal): {e}")
+
 GH_HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
     "Accept":        "application/vnd.github+json",
@@ -123,13 +170,13 @@ def fetch_recent_deals(days_back=7):
             f"{SUPABASE_URL}/rest/v1/deals",
             headers=SB_HEADERS,
             params={
-                "select": "deal_date,from_company,to_company,area_id,deal_type,upfront_usd_m,total_usd_m,headline,detail",
+                "select": "deal_date,from_company,to_company,area_id,deal_type,upfront_usd_m,total_usd_m,headline,detail,source_url",
                 "deal_date": f"gte.{cutoff}",
                 "order": "deal_date.desc",
             },
         )
-        deals = r.json()
-        log(f"Fetched {len(deals)} recent deals")
+        deals = fact_check_filter(r.json(), "deal")
+        log(f"Fetched {len(deals)} recent deals (fact-checked)")
         return deals
     except Exception as e:
         log(f"Deals fetch error: {e}")
@@ -144,15 +191,15 @@ def fetch_upcoming_catalysts():
             f"{SUPABASE_URL}/rest/v1/catalysts",
             headers=SB_HEADERS,
             params={
-                "select": "catalyst_date,label,area_id,significance,catalyst_type,notes",
+                "select": "catalyst_date,label,area_id,significance,catalyst_type,notes,source_url",
                 "resolved": "eq.false",
                 "sort_date": f"gte.{today}",
                 "order": "sort_date.asc",
-                "limit": "20",
+                "limit": "30",
             },
         )
-        cats = r.json()
-        log(f"Fetched {len(cats)} upcoming catalysts")
+        cats = fact_check_filter(r.json(), "catalyst")[:20]
+        log(f"Fetched {len(cats)} upcoming catalysts (fact-checked)")
         return cats
     except Exception as e:
         log(f"Catalysts fetch error: {e}")
@@ -1953,5 +2000,8 @@ if __name__ == "__main__":
         log("system_status stamped (meridian_write)")
     except Exception as e:
         log(f"system_status stamp failed (non-fatal): {e}")
+
+    # Pre-publish fact-check summary + governance log (what the gate excluded today)
+    fact_check_report()
 
     log("=== Write complete ===")
