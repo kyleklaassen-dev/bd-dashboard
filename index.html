@@ -32557,6 +32557,11 @@ async function _gsSbSearch(term) {
         .select('indication_name,patient_count,unmet_need_summary,key_patient_insight')
         .ilike('indication_name', '%' + esc + '%')
         .limit(2),
+      // Wave 2d: match prior/code names via drug_aliases (e.g. "AMG 729" → obexelimab)
+      _sb.from('drug_aliases')
+        .select('canonical_id,alias_name')
+        .ilike('alias_name', '%' + esc + '%')
+        .limit(8),
     ]);
 
     var cos      = results[0].data  || [];
@@ -32567,6 +32572,28 @@ async function _gsSbSearch(term) {
     var indics   = results[5].data  || [];
     var newsArts = results[6].data  || [];
     var patIntel = results[7].data  || [];
+    var aliasHits = results[8] && results[8].data || [];
+
+    // ── Wave 2d: resolve alias hits → drugs, merge in (so "AMG 729" finds obexelimab) ──
+    try {
+      var haveCanon = {};
+      drugs.forEach(function(dd){ if (dd.canonical_drug_id) haveCanon[dd.canonical_drug_id] = 1; });
+      var wantCanon = [];
+      aliasHits.forEach(function(a){ if (a.canonical_id && !haveCanon[a.canonical_id] && wantCanon.indexOf(a.canonical_id) < 0) wantCanon.push(a.canonical_id); });
+      if (wantCanon.length) {
+        var aliasMap = {};
+        aliasHits.forEach(function(a){ if (!aliasMap[a.canonical_id]) aliasMap[a.canonical_id] = a.alias_name; });
+        var aRes = await _sb.from('drugs')
+          .select('id,name,display_name,stage,mechanism,company_id,canonical_drug_id,dashboard_visible')
+          .in('canonical_drug_id', wantCanon).neq('dashboard_visible', false).limit(5);
+        (aRes.data || []).forEach(function(dd){
+          if (drugs.some(function(x){ return x.id === dd.id; })) return;
+          dd._aliasHit = aliasMap[dd.canonical_drug_id] || null;  // the matched prior/code name
+          drugs.push(dd);
+        });
+        drugs = drugs.slice(0, 8);
+      }
+    } catch(e) { /* alias merge is best-effort */ }
 
     // ── KF taglines (hardcoded for speed) ────────────────────────────────
     var _KF_TAGLINES = {
@@ -32665,9 +32692,10 @@ async function _gsSbSearch(term) {
         var label   = d.display_name || d.name || '';
         var mechTag = d.mechanism ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+d.mechanism.slice(0,50)+'</span>' : '';
         var stageTag= d.stage ? '<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">'+d.stage+'</span>' : '';
+        var aliasTag= d._aliasHit ? '<span class="gs-sb-badge" title="Matched a prior / code name" style="background:rgba(124,58,237,0.3);color:#c4b5fd">↳ '+String(d._aliasHit).slice(0,28)+'</span>' : '';
         html += '<div class="gs-sb-item gs-nav-item" data-gtype="drug" data-drug-id="'+d.id+'" data-drug-name="'+label.replace(/"/g,'&quot;')+'" style="cursor:pointer">' +
           '<div class="gs-sb-headline">💊 '+hl(label)+(d.name !== label ? '<span style="font-size:10px;opacity:0.55;margin-left:5px">'+hl(d.name)+'</span>' : '')+'</div>' +
-          '<div class="gs-sb-meta">'+stageTag+mechTag+'</div></div>';
+          '<div class="gs-sb-meta">'+stageTag+mechTag+aliasTag+'</div></div>';
       });
     }
 
