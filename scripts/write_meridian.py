@@ -1588,8 +1588,17 @@ def save_to_supabase(html_content: str, intel: list, date_str: str,
         )
         existing = chk.json() if chk.status_code == 200 else []
 
+        # One Issue per day — never overwrite an existing day's Issue unless
+        # explicitly forced. (Belt-and-suspenders behind the entry-point guard.)
+        import sys as _sys
+        _force = ("--force" in _sys.argv) or (os.environ.get("MERIDIAN_FORCE", "").lower() in ("1", "true", "yes"))
+        if existing and not _force:
+            log(f"Issue for {date_str} already exists (id={existing[0]['id']}) — keeping the original, NOT overwriting. "
+                f"Use --force to replace it.")
+            return
+
         if existing:
-            # PATCH the existing row in-place
+            # PATCH the existing row in-place (only reached with --force)
             row_id = existing[0]["id"]
             r = requests.patch(
                 f"{SUPABASE_URL}/rest/v1/meridian_issues",
@@ -1597,7 +1606,7 @@ def save_to_supabase(html_content: str, intel: list, date_str: str,
                 headers={**SB_HEADERS, "Prefer": "return=minimal"},
                 json=base_payload,
             )
-            verb = "Updated"
+            verb = "Updated (forced)"
         else:
             # INSERT brand-new row
             r = requests.post(
