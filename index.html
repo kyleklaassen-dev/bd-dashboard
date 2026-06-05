@@ -13398,7 +13398,7 @@ async function _loadMeridianNarrative(drugId) {
   } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
 }
 
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -13905,6 +13905,34 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     </div>`;
   })();
 
+  // ── drug_sources provenance (Wave 2: surfaces the dark drug_sources table) ──
+  const _provRows = (drugSources || []).filter(s => s && (s.source_url || s.claim_value));
+  const _CLAIM_LBL = {mechanism:'Mechanism', stage:'Stage', company_pipeline:'Pipeline', partnership:'Partnership',
+    approval:'Approval', trial_id:'Trial', indication:'Indication', correction:'Correction', source_url_removed:'Source removed'};
+  const _confirmBadge = (s) => {
+    if (s.claim_type === 'source_url_removed') return '<span style="font-size:8px;font-weight:700;background:#fef2f2;color:#b91c1c;border-radius:8px;padding:1px 6px">removed</span>';
+    if (s.content_confirms_claim === true)  return '<span title="Source content verified to support this claim" style="font-size:8px;font-weight:700;background:#f0fdf4;color:#15803d;border-radius:8px;padding:1px 6px">✓ confirmed</span>';
+    if (s.content_confirms_claim === false) return '<span title="Source checked — did not support claim" style="font-size:8px;font-weight:700;background:#fef2f2;color:#b91c1c;border-radius:8px;padding:1px 6px">✗ unconfirmed</span>';
+    return '<span title="Stored but content not yet machine-verified" style="font-size:8px;font-weight:700;background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0;border-radius:8px;padding:1px 6px">unverified</span>';
+  };
+  const _provConfirmed = _provRows.filter(s => s.content_confirms_claim === true).length;
+  const srcProvSummary = _provRows.length
+    ? `<div style="font-size:11px;color:#475569">${_provRows.length} documented source${_provRows.length!==1?'s':''}${_provConfirmed?` · <span style="color:#15803d;font-weight:600">${_provConfirmed} content-verified</span>`:''}</div>`
+    : '';
+  const srcProvDetail = _provRows.length ? `<div class="cem-det-inner">
+    <div class="cem-det-title">Documented provenance — drug_sources</div>
+    ${_provRows.map(s => {
+      const lbl = _CLAIM_LBL[s.claim_type] || (s.claim_type||'claim');
+      const dom = s.source_domain || (s.source_url ? (function(){try{return new URL(s.source_url).hostname.replace(/^www\./,'');}catch(e){return 'source';}})() : '');
+      const link = s.source_url ? `<a class="cem-link" href="${s.source_url}" target="_blank" rel="noopener" data-trusted="1">↗ ${dom||'source'}</a>` : `<span style="color:#94a3b8">${dom||'—'}</span>`;
+      const styp = s.source_type ? `<span style="font-size:9px;color:#64748b">${String(s.source_type).replace(/_/g,' ')}</span>` : '';
+      return `<div class="cem-fact" style="align-items:flex-start">
+        <span class="cem-fact-lbl">${lbl}</span>
+        <span class="cem-fact-val" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">${link} ${styp} ${_confirmBadge(s)}</span>
+      </div>`;
+    }).join('')}
+  </div>` : '';
+
   const _overviewDrugContent = `
     ${_ownerBannerHtml}
     ${_cascadeRiskHtml}
@@ -13969,13 +13997,15 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
       </div>
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
-          <div class="cem-sec-lbl">🛡 Source confidence</div>
-          <div class="cem-sec-hint">per section <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
+          <div class="cem-sec-lbl">🛡 Sources & provenance</div>
+          <div class="cem-sec-hint">${_provRows.length ? _provRows.length+' documented' : 'per section'} <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
         </div>
-        <div class="cem-sec-body">${srcSummary}</div>
-        <div class="cem-det" id="cem-det-dr-src"><div class="cem-det-inner">
-          <div class="cem-det-title">Source breakdown</div>
-          ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_area_scores.</div>'}
+        <div class="cem-sec-body">${srcProvSummary || srcSummary}</div>
+        <div class="cem-det" id="cem-det-dr-src">
+          ${srcProvDetail}
+          <div class="cem-det-inner">
+          <div class="cem-det-title">Per-area source breakdown</div>
+          ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank" data-trusted="1">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_competitive_scores.</div>'}
         </div></div>
       </div>
       ${_normTargets.length ? `<div class="cem-cell">
@@ -15126,12 +15156,14 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     // Primary lookup by ID; if ID is a static placeholder (starts with "static-") skip it
     const isStaticId = !drugId || String(drugId).startsWith('static-');
     // C1 — primary fetch: drug_competitive_scores (migrated from drug_area_scores, Session 64)
-    const [drugRes, scoreRes0, trialRes0, molRes0] = await Promise.all([
+    const [drugRes, scoreRes0, trialRes0, molRes0, srcRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('*').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_sources').select('claim_type,claim_value,source_url,source_type,source_domain,content_confirms_claim,confidence').eq('drug_id', drugId),
     ]);
+    const drugSources = srcRes0.data || [];
 
     let drug    = drugRes.data?.[0]  || null;
     // Build areas[] from drug_competitive_scores; expose context_id as area_id for downstream compat
@@ -15360,7 +15392,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     window._cemCurrentDrugCompanyId = drug?.company_id || null;
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources);
 
     // ── Meridian Narrative (prose read layer) — non-blocking load into placeholder
     if (drug?.id) _loadMeridianNarrative(drug.id);
