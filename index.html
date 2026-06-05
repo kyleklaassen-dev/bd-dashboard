@@ -899,6 +899,45 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
   color:#94a3b8; font-size:18px; line-height:1; padding:2px 4px; border-radius:6px;
 }
 .fresh-banner-dismiss:hover { color:#475569; background:#f1f5f9; }
+/* ── Wave 2: pipeline health dot + panel ── */
+.health-dot-btn {
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+  border:1px solid #e2e8f0; background:#fff; border-radius:11px;
+  padding:2px 9px 2px 7px; line-height:16px; transition:background .2s ease, border-color .2s ease;
+}
+.health-dot-btn:hover { background:#f8fafc; border-color:#cbd5e1; }
+.health-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.health-dot.ok   { background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.15); }
+.health-dot.warn { background:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,0.15); }
+.health-dot.bad  { background:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,0.15); }
+.health-dot.unknown { background:#cbd5e1; }
+.health-dot-lbl { font-size:10px; font-weight:700; color:#475569; white-space:nowrap; }
+.health-overlay {
+  position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.28);
+  display:none; align-items:flex-start; justify-content:center; padding-top:84px;
+}
+.health-overlay.show { display:flex; }
+.health-panel {
+  width:min(94vw,440px); max-height:72vh; overflow-y:auto;
+  background:#fff; border-radius:16px; box-shadow:0 18px 50px rgba(15,23,42,0.22);
+  padding:18px 18px 14px;
+}
+.health-panel-head { display:flex; align-items:center; gap:9px; margin-bottom:3px; }
+.health-panel-title { font-size:15px; font-weight:800; color:#0f172a; flex:1; }
+.health-panel-close { border:none; background:transparent; cursor:pointer; color:#94a3b8; font-size:20px; line-height:1; }
+.health-panel-close:hover { color:#475569; }
+.health-summary-line { font-size:13px; color:#334155; margin:2px 0 4px; font-weight:600; }
+.health-checked { font-size:10.5px; color:#94a3b8; margin-bottom:12px; }
+.health-run { display:flex; align-items:center; gap:9px; padding:7px 4px; border-top:1px solid #f1f5f9; }
+.health-run:first-of-type { border-top:none; }
+.health-run-name { flex:1; font-size:12px; color:#1e293b; font-weight:600; text-decoration:none; }
+a.health-run-name:hover { color:#2563eb; text-decoration:underline; }
+.health-run-time { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
+.health-run-pill { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; padding:1px 6px; border-radius:8px; }
+.health-run-pill.ok   { background:#f0fdf4; color:#15803d; }
+.health-run-pill.bad  { background:#fef2f2; color:#dc2626; }
+.health-run-pill.run  { background:#eff6ff; color:#2563eb; }
+.health-empty { font-size:12px; color:#94a3b8; padding:14px 4px; text-align:center; }
 /* ── Identity Health Footer ── */
 #id-footer { display:none !important; }
 body { padding-bottom:0; }
@@ -2997,6 +3036,105 @@ function _startFreshDataWatch() {
 }
 document.addEventListener('DOMContentLoaded', _startFreshDataWatch);
 
+// ── Wave 2: pipeline health indicator ────────────────────────────────────────
+// Surfaces the previously-dark pipeline_runs + system_status.health_summary as a
+// soft header dot. Green = all workflows healthy, amber = something failing.
+// Click opens a panel listing the latest run per workflow. Read-only, best-effort.
+let _healthRuns = [];
+const _HEALTH_LABELS = {  // tidy a couple of path-named legacy rows; most names are already friendly
+  '.github/workflows/apply-migration.yml': 'Apply SQL Migration',
+};
+function _prettyWf(name) {
+  if (!name) return 'Workflow';
+  if (_HEALTH_LABELS[name]) return _HEALTH_LABELS[name];
+  if (name.startsWith('.github/workflows/')) {
+    return name.split('/').pop().replace(/\.ya?ml$/,'').replace(/[-_]/g,' ')
+               .replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return name;
+}
+function _relTime(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.round(ms/60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m/60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h/24)}d ago`;
+}
+async function _loadSystemHealth() {
+  try {
+    const ssP = _sb.from('system_status').select('health_summary,last_health_at').eq('id',1).maybeSingle();
+    const prP = _sb.from('pipeline_runs')
+      .select('workflow_name,status,conclusion,recorded_at,run_started_at,run_html_url')
+      .order('recorded_at',{ascending:false}).limit(80);
+    const [{data:ss}, {data:runs}] = await Promise.all([ssP, prP]);
+    // latest run per workflow
+    const seen = new Map();
+    (runs||[]).forEach(r => { if (!seen.has(r.workflow_name)) seen.set(r.workflow_name, r); });
+    _healthRuns = [...seen.values()];
+    const failing = _healthRuns.filter(r => r.conclusion && r.conclusion!=='success' && r.status==='completed');
+    // header dot
+    const dot = document.getElementById('health-nav-dot');
+    const dotDot = document.getElementById('health-nav-dot-dot');
+    const dotLbl = document.getElementById('health-nav-dot-lbl');
+    if (dot && dotDot && dotLbl) {
+      let cls='unknown', lbl='—';
+      if (_healthRuns.length) {
+        if (failing.length===0) { cls='ok'; lbl='All green'; }
+        else { cls='bad'; lbl=`${failing.length} failing`; }
+      }
+      dotDot.className = 'health-dot '+cls;
+      dotLbl.textContent = lbl;
+      dot.style.display = 'inline-flex';
+    }
+    // stash summary for the panel
+    _healthRuns._summary = ss && ss.health_summary ? ss.health_summary.split(' @ ')[0] : null;
+    _healthRuns._checked = ss && ss.last_health_at ? ss.last_health_at : null;
+  } catch (e) { /* best-effort */ }
+}
+document.addEventListener('DOMContentLoaded', _loadSystemHealth);
+
+function openHealthPanel() {
+  const ov = document.getElementById('health-overlay'); if (!ov) return;
+  const failing = _healthRuns.filter(r => r.conclusion && r.conclusion!=='success' && r.status==='completed');
+  document.getElementById('health-panel-dot').className = 'health-dot ' +
+    (!_healthRuns.length ? 'unknown' : failing.length ? 'bad' : 'ok');
+  document.getElementById('health-summary-line').textContent =
+    _healthRuns._summary || (_healthRuns.length ? `${_healthRuns.length} workflows tracked` : 'No pipeline data yet.');
+  document.getElementById('health-checked').textContent =
+    _healthRuns._checked ? `Last checked ${_relTime(_healthRuns._checked)}` : '';
+  // failing first, then by recency
+  const ordered = [..._healthRuns].sort((a,b) => {
+    const af = (a.conclusion && a.conclusion!=='success')?0:1;
+    const bf = (b.conclusion && b.conclusion!=='success')?0:1;
+    if (af!==bf) return af-bf;
+    return new Date(b.recorded_at||b.run_started_at) - new Date(a.recorded_at||a.run_started_at);
+  });
+  const list = document.getElementById('health-run-list');
+  if (!ordered.length) { list.innerHTML = '<div class="health-empty">No pipeline runs recorded yet.</div>'; }
+  else {
+    list.innerHTML = ordered.map(r => {
+      let pill='run', word='running';
+      if (r.status==='completed') {
+        if (r.conclusion==='success') { pill='ok'; word='passed'; }
+        else { pill='bad'; word=(r.conclusion||'failed').replace(/_/g,' '); }
+      }
+      const name = _prettyWf(r.workflow_name);
+      const nameEl = r.run_html_url
+        ? `<a class="health-run-name" href="${r.run_html_url}" target="_blank" rel="noopener">${name}</a>`
+        : `<span class="health-run-name">${name}</span>`;
+      return `<div class="health-run">${nameEl}<span class="health-run-pill ${pill}">${word}</span>`
+           + `<span class="health-run-time">${_relTime(r.recorded_at||r.run_started_at)}</span></div>`;
+    }).join('');
+  }
+  ov.classList.add('show');
+}
+function closeHealthPanel() {
+  const ov = document.getElementById('health-overlay'); if (ov) ov.classList.remove('show');
+}
+
 // ── Next-gen ranking history: written by competitive_scoring.py (enrichment pipeline) ──
 // The browser does NOT write to next_gen_rankings. Ranking changes are recorded
 // when the pipeline runs and updates drug_competitive_scores — that script also
@@ -5078,6 +5216,20 @@ async function _injectAreaFreshness(tabId) {
   <button type="button" class="fresh-banner-dismiss" aria-label="Dismiss" onclick="_dismissFreshBanner()">×</button>
 </div>
 
+<!-- Wave 2: pipeline health panel — reads system_status + pipeline_runs -->
+<div class="health-overlay" id="health-overlay" onclick="if(event.target===this)closeHealthPanel()">
+  <div class="health-panel" role="dialog" aria-label="Pipeline health">
+    <div class="health-panel-head">
+      <span class="health-dot unknown" id="health-panel-dot"></span>
+      <span class="health-panel-title">Pipeline health</span>
+      <button class="health-panel-close" aria-label="Close" onclick="closeHealthPanel()">×</button>
+    </div>
+    <div class="health-summary-line" id="health-summary-line">Checking pipeline status…</div>
+    <div class="health-checked" id="health-checked"></div>
+    <div id="health-run-list"></div>
+  </div>
+</div>
+
 <div class="header">
  <div style="flex-shrink:0">
  <div class="header-title">◈ The Meridian</div>
@@ -5093,7 +5245,7 @@ async function _injectAreaFreshness(tabId) {
   </div>
   <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel<span class="si-attach-icon" onclick="event.stopPropagation(); triggerDocAttach()" title="Attach document">📎</span></button>
  </div>
- <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+ <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
