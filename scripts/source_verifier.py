@@ -270,6 +270,13 @@ FABRICATED_PATTERNS = [
     r"localhost",
     r"127\.0\.0\.1",
     r"^https?://[a-z]+\.com/press-release/[a-z-]+-[a-z-]+-[a-z-]+$",  # too generic
+    # Search-result URLs are non-canonical "citations" — a real source points to a
+    # specific NCT / article / filing, not a search. This is exactly the pattern that
+    # let the veligrotug "gMG" hallucination through (clinicaltrials.gov/search?term=…).
+    r"/search\?term=",
+    r"/search\?q=",
+    r"google\.com/search",
+    r"clinicaltrials\.gov/search",
 ]
 
 # Low-confidence patterns (generic pipeline / homepage URLs — not broken but not specific)
@@ -388,6 +395,8 @@ def collect_urls() -> List[Dict]:
         ("deals", "id", "source_url"),
         ("company_partnerships", "id", "source_url"),
         ("catalyst_calendar", "id", "source_url"),
+        ("catalysts", "id", "source_url"),      # added 2026-06-05: the veligrotug fabricated URL lived here, uncovered
+        ("drug_sources", "id", "source_url"),   # the source-of-truth provenance table
     ]
 
     for table_name, id_field, url_field in TABLE_SPECS:

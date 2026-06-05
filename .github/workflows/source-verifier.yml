@@ -1,0 +1,54 @@
+name: Source Verifier
+
+# Tier-3 trust layer, now on its OWN reliable schedule (was buried inside the
+# weekend sprint, which has been failing — so source verification hadn't run,
+# which is how the veligrotug fabricated-URL catalyst survived for weeks).
+# Validates every stored source_url across drugs, companies, deals, partnerships,
+# catalysts, catalyst_calendar, drug_sources: real format, trusted domain, live,
+# and NOT a fabricated/search pattern. Writes results to source_validation_log
+# and opens governance_violations for bad/missing sources.
+
+on:
+  schedule:
+    - cron: "0 8 * * 1,4"   # Mon + Thu, 4:00 AM ET
+  workflow_dispatch:
+    inputs:
+      table:
+        description: "Limit to one table (optional)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Report only, no writes"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: source-verifier
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run source verifier
+        env:
+          SUPABASE_URL:         https://tghntyofptvfhmtchwcv.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.table }}" ]; then ARGS="$ARGS --table ${{ github.event.inputs.table }}"; fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python scripts/source_verifier.py $ARGS
