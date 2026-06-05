@@ -1,0 +1,43 @@
+name: Completeness Scoring
+
+# Wave 1: scores drugs.completeness_score/tier across ALL areas every day.
+# Previously this ran only per-area inside the nightly enrichment (one area/run),
+# so ~2/3 of the catalog stayed unscored. This sweeps the whole catalog — pure
+# field-presence scoring (no LLM), so it's cheap.
+
+on:
+  schedule:
+    - cron: "30 9 * * *"   # 5:30 AM ET daily (after enrichment, before the Issue)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Score but do not write"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: completeness-scoring
+  cancel-in-progress: false
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Score completeness (all areas)
+        env:
+          SUPABASE_URL:         https://tghntyofptvfhmtchwcv.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS="--area all"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python scripts/research_intelligence.py $ARGS
