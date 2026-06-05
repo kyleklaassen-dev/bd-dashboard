@@ -3122,8 +3122,12 @@ function openHealthPanel() {
         else { pill='bad'; word=(r.conclusion||'failed').replace(/_/g,' '); }
       }
       const name = _prettyWf(r.workflow_name);
-      const nameEl = r.run_html_url
-        ? `<a class="health-run-name" href="${r.run_html_url}" target="_blank" rel="noopener">${name}</a>`
+      const url = r.run_html_url || '';
+      const isHttp = /^https?:\/\//i.test(url);
+      // data-trusted="1" exempts these real GitHub run URLs from _fixGenericLinks(),
+      // which otherwise rewrites "generic" hrefs to a Google search of the link text.
+      const nameEl = isHttp
+        ? `<a class="health-run-name" href="${url}" target="_blank" rel="noopener noreferrer" data-trusted="1">${name}</a>`
         : `<span class="health-run-name">${name}</span>`;
       return `<div class="health-run">${nameEl}<span class="health-run-pill ${pill}">${word}</span>`
            + `<span class="health-run-time">${_relTime(r.recorded_at||r.run_started_at)}</span></div>`;
@@ -13350,6 +13354,50 @@ function _cemPhasePill(phase) {
 }
 
 /* ── DRUG card renderer ──────────────────────────────────────────── */
+/* ── Meridian Narrative loader — the prose read layer (v70 entity_narratives) ──
+   Fetches the derived, cited overview narrative + its provenance and renders it
+   as the prose face of the drug card. Every clause carries a [n] citation that
+   maps to a source in the footnote list. Fails silently (leaves placeholder empty)
+   so a missing narrative never breaks the card. */
+async function _loadMeridianNarrative(drugId) {
+  const host = document.getElementById('meridian-narrative-' + drugId);
+  if (!host) return;
+  try {
+    const base = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'https://tghntyofptvfhmtchwcv.supabase.co') + '/rest/v1';
+    const hdr  = { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON };
+    const nRes = await fetch(base + '/entity_narratives?entity_type=eq.drug&entity_id=eq.' + encodeURIComponent(drugId) + '&section=eq.overview&select=id,body_md,confidence,generated_at,stale&limit=1', { headers: hdr });
+    const narr = (await nRes.json())[0];
+    if (!narr || !narr.body_md) return;
+    const pRes = await fetch(base + '/narrative_provenance?narrative_id=eq.' + narr.id + '&select=claim_text,source_url,source_table&order=id', { headers: hdr });
+    const prov = await pRes.json().catch(() => []);
+    const esc  = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // [n] -> superscript chip
+    const body = esc(narr.body_md).replace(/\s*\[(\d+)\]/g, (m, n) =>
+      `<sup style="color:#2563eb;font-weight:700;font-size:9px;cursor:default" title="Source ${n}">${n}</sup>`);
+    const foot = (Array.isArray(prov) ? prov : []).map((p, i) => {
+      const dom = p.source_url ? (p.source_url.split('/')[2] || 'source') : (p.source_table || 'graph');
+      const src = p.source_url
+        ? `<a href="${p.source_url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none">${dom}↗</a>`
+        : `<span style="color:#64748b">${dom}</span>`;
+      return `<li style="margin:2px 0;font-size:10px;color:#475569"><b style="color:#94a3b8">[${i + 1}]</b> ${esc(p.claim_text).slice(0, 96)} — ${src}</li>`;
+    }).join('');
+    const when  = (narr.generated_at || '').slice(0, 10);
+    const stale = narr.stale
+      ? `<span style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase">Stale</span>` : '';
+    host.innerHTML =
+      `<div style="background:linear-gradient(180deg,#fbfcff,#f6f8ff);border:1px solid #dbe4ff;border-left:3px solid #4f6ef7;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#4f46e5">📖 Meridian Narrative</span>
+          <span style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase" title="Generated from the knowledge graph; every clause cites a source.">Derived · Cited</span>
+          ${stale}
+          <span style="margin-left:auto;font-size:9px;color:#94a3b8">${when}</span>
+        </div>
+        <p style="font-size:12px;color:#1e293b;line-height:1.7;margin:0">${body}</p>
+        ${foot ? `<details style="margin-top:8px"><summary style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;cursor:pointer">Sources (${(prov||[]).length})</summary><ul style="margin:6px 0 0;padding-left:4px;list-style:none">${foot}</ul></details>` : ''}
+      </div>`;
+  } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
+}
+
 function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
@@ -14016,6 +14064,9 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     })() : null;
 
     const _cards = [
+      // Meridian Narrative — the prose read layer (derived from the graph, every clause cited).
+      // Filled asynchronously by _loadMeridianNarrative() after the modal renders.
+      `<div id="meridian-narrative-${drug.id||''}" class="meridian-narrative-host"></div>`,
       drug.drug_summary ? `<div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:6px">📋 Summary</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.drug_summary}</p></div>` : '',
       statCards ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${statCards}</div>` : '',
       _endpointsContent ? `<div style="background:#fffdf0;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin-bottom:8px">⚗ Pivotal Endpoints</div>${_endpointsContent}</div>` : '',
@@ -15310,6 +15361,9 @@ async function openDrugEntityModal(drugId, drugName, evt) {
 
     bodyEl.classList.add('dossier-mode');
     bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals);
+
+    // ── Meridian Narrative (prose read layer) — non-blocking load into placeholder
+    if (drug?.id) _loadMeridianNarrative(drug.id);
 
     // ── Lazy-load Clinical Intelligence (benchmarks, PK, biomarkers) ─────────────
     // Non-blocking: fetches after the modal renders, injects into Drug Profile tab
