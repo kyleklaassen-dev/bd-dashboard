@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Strategic Lens: the TL1A Race</title>
+<style>
+  :root{--bg:#0e1117;--panel:#161d27;--panel2:#1c2530;--ink:#e8edf3;--mut:#8a99ac;--line:#2a3744;
+    --direct:#f87171;--watch:#8a99ac;--ailux:#fbbf24;--bisp:#a78bfa;--good:#34d399;--accent:#6ea8fe;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:16px 22px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 3px;font-size:20px}
+  .sub{color:var(--mut);font-size:12.5px;max-width:1000px}
+  .stat{display:flex;gap:18px;margin-top:6px;font-size:11px;color:var(--mut);flex-wrap:wrap}
+  .stat b{color:var(--ink);font-size:16px;display:block}
+  .wrap{display:flex;min-height:calc(100vh - 78px)}
+  .canvas{flex:1;overflow:auto;padding:6px}
+  .side{width:392px;flex-shrink:0;border-left:1px solid var(--line);background:var(--panel);padding:15px 17px;overflow:auto;max-height:calc(100vh - 78px)}
+  .controls{display:flex;gap:8px;padding:8px 22px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:12px;cursor:pointer}
+  .btn.on{background:var(--accent);color:#08111e;border-color:var(--accent);font-weight:600}
+  .legend{margin-left:auto;display:flex;gap:5px 13px;flex-wrap:wrap;font-size:11px;color:var(--mut)}
+  .lg{display:inline-flex;align-items:center;gap:5px}.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  svg{display:block}
+  .node{cursor:pointer}.node:hover circle{stroke:#fff;stroke-width:2}
+  .nlabel{font-size:9px;fill:var(--mut)}.nlabel.big{fill:var(--ink);font-weight:600;font-size:10px}
+  .col-lbl{font-size:11px;fill:var(--mut);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+  .edge-deal{stroke:var(--good);stroke-width:1.6;opacity:.55;marker-end:url(#a)}
+  .edge-comp{stroke:#33414f;stroke-width:.7;opacity:.5}
+  .edge-comp.hot{stroke:var(--direct);stroke-width:1.4;opacity:.9}
+  h2{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);margin:2px 0 9px}
+  .read{font-size:13px}
+  .read p{margin:0 0 11px}
+  .read .lead{color:var(--ink);font-weight:600;margin-bottom:4px}
+  .read .k{color:var(--accent);font-weight:600}
+  .read ul{margin:4px 0 12px;padding-left:18px}.read li{margin:3px 0;font-size:12.5px}
+  .chip{display:inline-block;font-size:10.5px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 8px;margin:2px 3px 2px 0;color:var(--mut)}
+  .muted{color:var(--mut)}.small{font-size:11.5px}
+  .tag{font-size:9px;font-weight:800;padding:1px 6px;border-radius:20px;margin-left:5px}
+  .insight{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;margin:10px 0;background:var(--panel2)}
+  .insight.warn{border-left-color:var(--ailux)}
+</style>
+</head>
+<body>
+<header>
+  <a href="meridian_atlas.html" style="color:var(--accent);text-decoration:none;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:4px 10px;display:inline-block;margin-bottom:8px">← Back to Atlas</a>
+  <h1>◈ Strategic Lens — the TL1A Race <span style="color:var(--mut);font-size:13px;font-weight:400">live competitive knowledge graph · 2026-06-05</span></h1>
+  <div class="sub">The view turned around: instead of the system, the <b>intelligence</b>. Every node is a real TL1A asset; columns are development stage; gold is Ailux; green arrows are who-controls-whom (acquisition / license). Click any asset.</div>
+  <div class="stat" id="stat"></div>
+</header>
+<div class="controls">
+  <button class="btn on" id="b-all" onclick="setMode('all')">Full field</button>
+  <button class="btn" id="b-peers" onclick="setMode('peers')">Ailux's true peers (TL1A×IL-23)</button>
+  <button class="btn" id="b-deals" onclick="setMode('deals')">Who's taken (deal edges)</button>
+  <span class="small muted" style="margin-left:4px">· click empty space or press Esc to go back</span>
+  <div class="legend" id="legend"></div>
+</div>
+<div class="wrap">
+  <div class="canvas"><svg id="svg" width="1080" height="900" viewBox="0 0 1080 900"></svg></div>
+  <div class="side"><div id="panel"></div></div>
+</div>
+<script>const LENS={"nodes":[{"id":"sim0709","name":"SIM0709","co":"simcere","stage":"Phase 1","sx":1,"overlap":"Direct","deg":28,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"anti-tl1a-xpf005-arm","name":"ALX001 (TL1A\u00d7IL-23p19 bisp","co":"ailux","stage":"Preclinical","sx":0,"overlap":null,"deg":8,"bispec":true,"il23":true,"ailux":true,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"hxn-1002","name":"HXN-1002","co":"earendil","stage":"Preclinical","sx":0,"overlap":"Direct","deg":0,"bispec":true,"il23":false,"ailux":false,"target":"\u03b14\u03b27 \u00d7 TL1A","controlled_by":null},{"id":"guselkumab-golimumab","name":"guselkumab + golimumab","co":"jnj","stage":"Phase 3","sx":3,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23p19 + TNF\u03b1","controlled_by":null},{"id":"pr203","name":"BA2201","co":"shboan","stage":"Preclinical","sx":0,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"spy072","name":"SPY072 (anti-IL-23)","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Direct","deg":20,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"xmab942","name":"XmAb942","co":"xencor","stage":"Phase 1","sx":1,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"abbv-668","name":"ABBV-668","co":"abbvie","stage":"Phase 2","sx":2,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"RIPK1","controlled_by":null},{"id":"erd-1","name":"HXN-1003","co":"earendil","stage":"Preclinical","sx":0,"overlap":"Direct","deg":30,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"mt-251","name":"MT-251","co":"mirador","stage":"Phase 2","sx":2,"overlap":"Direct","deg":28,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"generate-uc","name":"GB-3250","co":"generate","stage":"Phase 3","sx":3,"overlap":"Direct","deg":26,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"spy120","name":"SPY120 (SPY001 + SPY002)","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"\u03b14\u03b27 + TL1A","controlled_by":null},{"id":"abbv-382","name":"ABBV-382","co":"abbvie","stage":"Discontinued","sx":-1,"overlap":"Adjacent","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"\u03b14\u03b27","controlled_by":null},{"id":"zl-2411","name":"ZL-2411","co":null,"stage":"Phase 1b","sx":1,"overlap":"Direct","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"hy8931","name":"HY8931","co":"newsoara","stage":"Phase 1","sx":1,"overlap":"Direct","deg":28,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"mirikizumab","name":"Omvoh (mirikizumab)","co":"lilly","stage":"Approved","sx":4,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23p19","controlled_by":null},{"id":"lm-302","name":"LM-302","co":"lanova","stage":"Phase 3","sx":3,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"CLDN18.2","controlled_by":null},{"id":"es302","name":"ES302","co":"elpiscience","stage":"Phase 2","sx":2,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"ear-2001","name":"HXN-1001","co":"earendil","stage":"Phase 2","sx":2,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"golimumab","name":"Simponi (golimumab)","co":"jnj","stage":"Approved","sx":4,"overlap":"Same-Space","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"TNF\u03b1","controlled_by":null},{"id":"upadacitinib","name":"Rinvoq (upadacitinib)","co":"abbvie","stage":"Phase 3","sx":3,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"JAK1","controlled_by":null},{"id":"lutikizumab","name":"Lutikizumab","co":"abbvie","stage":"Phase 3","sx":3,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"IL-1\u03b1/\u03b2","controlled_by":null},{"id":"afimkibart","name":"Afimkibart (RO7790121)","co":"roche","stage":"Phase 3","sx":3,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"ab001","name":"AB001 (or successor)","co":null,"stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23 (IL-23p19)","controlled_by":null},{"id":"spy002","name":"SPY002","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"ustekinumab","name":"Stelara (ustekinumab)","co":"jnj","stage":"Approved","sx":4,"overlap":"Same-Space","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"IL-12/23p40","controlled_by":null},{"id":"spy003","name":"SPY003 (anti-\u03b14\u03b27)","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23","controlled_by":null},{"id":"cldr-001","name":"CLD-423","co":"caldera","stage":"Phase 1","sx":1,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"fg-m701","name":"ABBV-701","co":"futuregen","stage":"Phase 1","sx":1,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"vedolizumab","name":"Entyvio (vedolizumab)","co":"takeda","stage":"Approved","sx":4,"overlap":"Adjacent","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"\u03b14\u03b27 integrin","controlled_by":null},{"id":"ep006","name":"ES302","co":"episcience","stage":"Preclinical","sx":0,"overlap":"Watch","deg":0,"bispec":true,"il23":false,"ailux":false,"target":"TL1A \u00d7 [undisclosed]","controlled_by":null},{"id":"xmab412","name":"XmAb412","co":"xencor","stage":"Phase 2","sx":2,"overlap":"Direct","deg":20,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"hbm2001","name":"HBM2001","co":"harbourbiomed","stage":"Preclinical","sx":0,"overlap":"Direct","deg":28,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"lbl053","name":"LBL-053","co":"leads","stage":"Phase 3","sx":3,"overlap":"Direct","deg":2,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p40","controlled_by":null},{"id":"spy001","name":"SPY001 (anti-TL1A, YTE Fc)","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"\u03b14\u03b27","controlled_by":null},{"id":"risankizumab","name":"Skyrizi (risankizumab)","co":"abbvie","stage":"Approved","sx":4,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23p19","controlled_by":null},{"id":"lq082","name":"LQ082","co":"novamab","stage":"Phase 2","sx":2,"overlap":"Direct","deg":0,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19 \u00d7 \u03b14\u03b27","controlled_by":null},{"id":"spy230","name":"SPY230 (SPY002+SPY003 co-f","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Direct","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23 + TL1A","controlled_by":null},{"id":"lbp-ec01","name":"LBP-EC01","co":null,"stage":"Phase 2","sx":2,"overlap":"Direct","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"TL1A / TNFSF15","controlled_by":null},{"id":"cld-423","name":"CLD-423","co":"caldera-therapeutics","stage":"Phase 1","sx":1,"overlap":"Direct","deg":16,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"guselkumab","name":"Tremfya (guselkumab)","co":"jnj","stage":"Approved","sx":4,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23p19","controlled_by":null},{"id":"lq080","name":"LQ080","co":"novamab","stage":"Phase 1","sx":1,"overlap":"Direct","deg":28,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"epi-001","name":"EPI-001","co":"episcience","stage":"Preclinical","sx":0,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"spy130","name":"SPY130 (SPY001 + SPY072)","co":"spyre","stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"\u03b14\u03b27 + IL-23","controlled_by":null},{"id":"abs-101","name":"ABS-101","co":"absci","stage":"Phase 1","sx":1,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"spx306","name":"SPX-306","co":"sparx","stage":"Phase 1","sx":1,"overlap":"Watch","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"bcd-261","name":"BCD-261","co":"biocad","stage":"Phase 2","sx":2,"overlap":"Direct","deg":0,"bispec":true,"il23":true,"ailux":false,"target":"TL1A \u00d7 IL-23p19","controlled_by":null},{"id":"vtx002","name":"VTX002","co":"ventyx","stage":"Phase 2","sx":2,"overlap":"Direct","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"S1P1","controlled_by":"lilly"},{"id":"mk-1695","name":"MK-1695 (formerly NGM820)","co":null,"stage":"Phase 2","sx":2,"overlap":"Adjacent","deg":0,"bispec":false,"il23":true,"ailux":false,"target":"IL-23 + TNF (dual)","controlled_by":null},{"id":"cantai-tl1a","name":"Cantai TL1A\u00d7IL-23p19","co":"cantai","stage":"Preclinical","sx":0,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"ro7837195","name":"RO7837195","co":"roche","stage":"Phase 2","sx":2,"overlap":"Direct","deg":4,"bispec":true,"il23":true,"ailux":false,"target":"IL-23p40 \u00d7 TL1A","controlled_by":null},{"id":"tulisokibart","name":"Tulisokibart (MK-7240)","co":"prometheus","stage":"Phase 3","sx":3,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":"merck"},{"id":"sab06","name":"SAB06","co":"santaana","stage":"Phase 3","sx":3,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"duvakitug","name":"duvakitug","co":"sanofi","stage":"Phase 3","sx":3,"overlap":"Direct","deg":18,"bispec":false,"il23":false,"ailux":false,"target":"TL1A","controlled_by":null},{"id":"gb004","name":"GB004","co":"gossamerbio","stage":"Terminated","sx":-1,"overlap":"Watch","deg":0,"bispec":false,"il23":false,"ailux":false,"target":"PHD1/HIF-1\u03b1","controlled_by":null},{"id":"qx030n","name":"QX030N","co":"qyuns","stage":"Phase 1","sx":1,"overlap":"Direct","deg":26,"bispec":true,"il23":true,"ailux":false,"target":"TL1A\u00d7IL-23p19","controlled_by":null},{"id":"sim0500","name":"SIM0500","co":"simcere","stage":"Phase 1","sx":1,"overlap":"Watch","deg":0,"bispec":true,"il23":false,"ailux":false,"target":"GPRC5D\u00d7BCMA\u00d7CD3","controlled_by":null}],"deals":[{"source_id":"merck","target_id":"prometheus","relationship_type":"parent_subsidiary"},{"source_id":"sim0709","target_id":"boehringer-ingelheim","relationship_type":"licensor_licensee"},{"source_id":"duvakitug","target_id":"pfizer","relationship_type":"licensor_licensee"},{"source_id":"xmab942","target_id":"xencor","relationship_type":"licensor_licensee"},{"source_id":"obexelimab","target_id":"zenas-biopharma","relationship_type":"licensor_licensee"},{"source_id":"hxn-1002","target_id":"sanofi","relationship_type":"licensor_licensee"},{"source_id":"tulisokibart","target_id":"prometheus","relationship_type":"licensor_licensee"},{"source_id":"roche","target_id":"telavant","relationship_type":"parent_subsidiary"},{"source_id":"morf-057","target_id":"lilly","relationship_type":"licensor_licensee"},{"source_id":"efgartigimod","target_id":"argenx","relationship_type":"licensor_licensee"},{"source_id":"amgen","target_id":"horizontherapeutics","relationship_type":"parent_subsidiary"},{"source_id":"bimekizumab","target_id":"ucb","relationship_type":"licensor_licensee"},{"source_id":"dupilumab","target_id":"regeneron","relationship_type":"co_developer"},{"source_id":"erd-1","target_id":"sanofi","relationship_type":"licensor_licensee"},{"source_id":"mirikizumab","target_id":"lilly","relationship_type":"licensor_licensee"},{"source_id":"guselkumab","target_id":"jnj","relationship_type":"licensor_licensee"},{"source_id":"brazikumab","target_id":"astrazeneca","relationship_type":"licensor_licensee"},{"source_id":"ucb","target_id":"candid","relationship_type":"parent_subsidiary"},{"source_id":"lilly","target_id":"ventyx","relationship_type":"parent_subsidiary"}],"acq":{"kali":"sanofi","prometheus":"merck","telavant":"roche","celgene":"bms","candid":"ucb","syntimmune":"astrazeneca","ventyx":"lilly","momenta":"jnj","horizontherapeutics":"amgen","aerpio":"roche","avidity":"novartis"},"stats":{"n":57,"bispec":23,"il23bispec":20,"edges":296,"wave2027":138,"byStage":{"Phase 1":11,"Preclinical":8,"Phase 3":10,"Phase 2":19,"Discontinued":1,"Phase 1b":1,"Approved":6,"Terminated":1}}};
+const LENS_EDGES=[["generate-uc","hbm2001"],["hbm2001","generate-uc"],["generate-uc","pr203"],["pr203","generate-uc"],["generate-uc","qx030n"],["qx030n","generate-uc"],["generate-uc","cldr-001"],["cldr-001","generate-uc"],["generate-uc","erd-1"],["erd-1","generate-uc"],["generate-uc","spx306"],["spx306","generate-uc"],["generate-uc","sim0709"],["sim0709","generate-uc"],["generate-uc","cantai-tl1a"],["cantai-tl1a","generate-uc"],["generate-uc","mt-251"],["mt-251","generate-uc"],["generate-uc","hy8931"],["hy8931","generate-uc"],["generate-uc","es302"],["es302","generate-uc"],["generate-uc","lq080"],["lq080","generate-uc"],["generate-uc","sab06"],["sab06","generate-uc"],["hbm2001","pr203"],["pr203","hbm2001"],["hbm2001","qx030n"],["qx030n","hbm2001"],["hbm2001","cldr-001"],["cldr-001","hbm2001"],["hbm2001","erd-1"],["erd-1","hbm2001"],["hbm2001","spx306"],["spx306","hbm2001"],["hbm2001","sim0709"],["sim0709","hbm2001"],["hbm2001","cantai-tl1a"],["cantai-tl1a","hbm2001"],["hbm2001","mt-251"],["mt-251","hbm2001"],["hbm2001","hy8931"],["hy8931","hbm2001"],["hbm2001","es302"],["es302","hbm2001"],["hbm2001","lq080"],["lq080","hbm2001"],["hbm2001","sab06"],["sab06","hbm2001"],["pr203","qx030n"],["qx030n","pr203"],["pr203","cldr-001"],["cldr-001","pr203"],["pr203","erd-1"],["erd-1","pr203"],["pr203","spx306"],["spx306","pr203"],["pr203","sim0709"],["sim0709","pr203"],["pr203","cantai-tl1a"],["cantai-tl1a","pr203"],["pr203","mt-251"],["mt-251","pr203"],["pr203","hy8931"],["hy8931","pr203"],["pr203","es302"],["es302","pr203"],["pr203","lq080"],["lq080","pr203"],["pr203","sab06"],["sab06","pr203"],["qx030n","cldr-001"],["cldr-001","qx030n"],["qx030n","erd-1"],["erd-1","qx030n"],["qx030n","spx306"],["spx306","qx030n"],["qx030n","sim0709"],["sim0709","qx030n"],["qx030n","cantai-tl1a"],["cantai-tl1a","qx030n"],["qx030n","mt-251"],["mt-251","qx030n"],["qx030n","hy8931"],["hy8931","qx030n"],["qx030n","es302"],["es302","qx030n"],["qx030n","lq080"],["lq080","qx030n"],["qx030n","sab06"],["sab06","qx030n"],["cldr-001","erd-1"],["erd-1","cldr-001"],["cldr-001","spx306"],["spx306","cldr-001"],["cldr-001","sim0709"],["sim0709","cldr-001"],["cldr-001","cantai-tl1a"],["cantai-tl1a","cldr-001"],["cldr-001","mt-251"],["mt-251","cldr-001"],["cldr-001","hy8931"],["hy8931","cldr-001"],["cldr-001","es302"],["es302","cldr-001"],["cldr-001","lq080"],["lq080","cldr-001"],["cldr-001","sab06"],["sab06","cldr-001"],["erd-1","spx306"],["spx306","erd-1"],["erd-1","sim0709"],["sim0709","erd-1"],["erd-1","cantai-tl1a"],["cantai-tl1a","erd-1"],["erd-1","mt-251"],["mt-251","erd-1"],["erd-1","hy8931"],["hy8931","erd-1"],["erd-1","es302"],["es302","erd-1"],["erd-1","lq080"],["lq080","erd-1"],["erd-1","sab06"],["sab06","erd-1"],["spx306","sim0709"],["sim0709","spx306"],["spx306","cantai-tl1a"],["cantai-tl1a","spx306"],["spx306","mt-251"],["mt-251","spx306"],["spx306","hy8931"],["hy8931","spx306"],["spx306","es302"],["es302","spx306"],["spx306","lq080"],["lq080","spx306"],["spx306","sab06"],["sab06","spx306"],["sim0709","cantai-tl1a"],["cantai-tl1a","sim0709"],["sim0709","mt-251"],["mt-251","sim0709"],["sim0709","hy8931"],["hy8931","sim0709"],["sim0709","es302"],["es302","sim0709"],["sim0709","lq080"],["lq080","sim0709"],["sim0709","sab06"],["sab06","sim0709"],["cantai-tl1a","mt-251"],["mt-251","cantai-tl1a"],["cantai-tl1a","hy8931"],["hy8931","cantai-tl1a"],["cantai-tl1a","es302"],["es302","cantai-tl1a"],["cantai-tl1a","lq080"],["lq080","cantai-tl1a"],["cantai-tl1a","sab06"],["sab06","cantai-tl1a"],["mt-251","hy8931"],["hy8931","mt-251"],["mt-251","es302"],["es302","mt-251"],["mt-251","lq080"],["lq080","mt-251"],["mt-251","sab06"],["sab06","mt-251"],["hy8931","es302"],["es302","hy8931"],["hy8931","lq080"],["lq080","hy8931"],["hy8931","sab06"],["sab06","hy8931"],["es302","lq080"],["lq080","es302"],["es302","sab06"],["sab06","es302"],["lq080","sab06"],["sab06","lq080"],["spy002","spy072"],["spy072","spy002"],["spy002","tulisokibart"],["tulisokibart","spy002"],["spy002","xmab942"],["xmab942","spy002"],["spy002","xmab412"],["xmab412","spy002"],["spy002","ear-2001"],["ear-2001","spy002"],["spy002","fg-m701"],["fg-m701","spy002"],["spy002","afimkibart"],["afimkibart","spy002"],["spy002","duvakitug"],["duvakitug","spy002"],["spy002","abs-101"],["abs-101","spy002"],["spy072","tulisokibart"],["tulisokibart","spy072"],["spy072","xmab942"],["xmab942","spy072"],["spy072","xmab412"],["xmab412","spy072"],["spy072","ear-2001"],["ear-2001","spy072"],["spy072","fg-m701"],["fg-m701","spy072"],["spy072","afimkibart"],["afimkibart","spy072"],["spy072","duvakitug"],["duvakitug","spy072"],["spy072","abs-101"],["abs-101","spy072"],["tulisokibart","xmab942"],["xmab942","tulisokibart"],["tulisokibart","xmab412"],["xmab412","tulisokibart"],["tulisokibart","ear-2001"],["ear-2001","tulisokibart"],["tulisokibart","fg-m701"],["fg-m701","tulisokibart"],["tulisokibart","afimkibart"],["afimkibart","tulisokibart"],["tulisokibart","duvakitug"],["duvakitug","tulisokibart"],["tulisokibart","abs-101"],["abs-101","tulisokibart"],["xmab942","xmab412"],["xmab412","xmab942"],["xmab942","ear-2001"],["ear-2001","xmab942"],["xmab942","fg-m701"],["fg-m701","xmab942"],["xmab942","afimkibart"],["afimkibart","xmab942"],["xmab942","duvakitug"],["duvakitug","xmab942"],["xmab942","abs-101"],["abs-101","xmab942"],["xmab412","ear-2001"],["ear-2001","xmab412"],["xmab412","fg-m701"],["fg-m701","xmab412"],["xmab412","afimkibart"],["afimkibart","xmab412"],["xmab412","duvakitug"],["duvakitug","xmab412"],["xmab412","abs-101"],["abs-101","xmab412"],["ear-2001","fg-m701"],["fg-m701","ear-2001"],["ear-2001","afimkibart"],["afimkibart","ear-2001"],["ear-2001","duvakitug"],["duvakitug","ear-2001"],["ear-2001","abs-101"],["abs-101","ear-2001"],["fg-m701","afimkibart"],["afimkibart","fg-m701"],["fg-m701","duvakitug"],["duvakitug","fg-m701"],["fg-m701","abs-101"],["abs-101","fg-m701"],["afimkibart","duvakitug"],["duvakitug","afimkibart"],["afimkibart","abs-101"],["abs-101","afimkibart"],["duvakitug","abs-101"],["abs-101","duvakitug"],["ro7837195","lbl053"],["lbl053","ro7837195"],["anti-tl1a-xpf005-arm","spy072"],["spy072","anti-tl1a-xpf005-arm"],["anti-tl1a-xpf005-arm","ro7837195"],["ro7837195","anti-tl1a-xpf005-arm"],["anti-tl1a-xpf005-arm","erd-1"],["erd-1","anti-tl1a-xpf005-arm"],["cld-423","sim0709"],["sim0709","cld-423"],["cld-423","lq080"],["lq080","cld-423"],["cld-423","xmab412"],["xmab412","cld-423"],["cld-423","anti-tl1a-xpf005-arm"],["anti-tl1a-xpf005-arm","cld-423"],["cld-423","hbm2001"],["hbm2001","cld-423"],["cld-423","hy8931"],["hy8931","cld-423"],["cld-423","mt-251"],["mt-251","cld-423"],["cld-423","erd-1"],["erd-1","cld-423"]];</script>
+<script>
+const NS='http://www.w3.org/2000/svg',svg=document.getElementById('svg');
+// Click empty space (or press Esc) to deselect and return to the overview.
+function _goHome(){SEL=null;render();}
+svg.addEventListener('click',e=>{if(e.target===svg)_goHome();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')_goHome();});
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+const STAGES=[['Preclinical',0],['Phase 1',1],['Phase 2',2],['Phase 3',3],['Approved',4]];
+const COLW=205, X0=40, TOP=70;
+let MODE='all', SEL=null;
+// layout: column by stage, vertical spread, deterministic
+function layout(){
+  const cols={0:[],1:[],2:[],3:[],4:[]};
+  LENS.nodes.forEach(n=>{ if(n.sx>=0 && cols[n.sx]) cols[n.sx].push(n); });
+  for(const k in cols){ cols[k].sort((a,b)=>b.deg-a.deg); cols[k].forEach((n,i)=>{ n._x=X0+n.sx*COLW+ (i%2?28:0); n._y=TOP+34+i*30; }); }
+}
+layout();
+const id2node={};LENS.nodes.forEach(n=>id2node[n.id]=n);
+function visible(n){
+  if(n.sx<0) return false;
+  if(MODE==='peers') return n.bispec && n.il23;
+  return true;
+}
+function nodeColor(n){ if(n.ailux) return 'var(--ailux)'; if(n.overlap==='Direct') return 'var(--direct)'; if(n.bispec&&n.il23) return 'var(--bisp)'; return 'var(--watch)'; }
+function draw(){
+  svg.innerHTML='';
+  const defs=el('defs');const m=el('marker',{id:'a',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'});m.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--good)'}));defs.appendChild(m);svg.appendChild(defs);
+  // stage columns
+  STAGES.forEach(([lab,sx])=>{const t=el('text',{x:X0+sx*COLW,y:54,class:'col-lbl'});t.textContent=lab;svg.appendChild(t);
+    svg.appendChild(el('line',{x1:X0+sx*COLW-12,y1:62,x2:X0+sx*COLW-12,y2:860,stroke:'var(--line)','stroke-dasharray':'2 4'}));});
+  const vis=new Set(LENS.nodes.filter(visible).map(n=>n.id));
+  // competitive edges (only when a node is selected, to avoid hairball)
+  if(SEL && MODE!=='deals'){
+    LENS_EDGES.forEach(([a,b])=>{ if((a===SEL||b===SEL)&&vis.has(a)&&vis.has(b)){
+      const na=id2node[a],nb=id2node[b];svg.appendChild(el('line',{x1:na._x,y1:na._y,x2:nb._x,y2:nb._y,class:'edge-comp hot'}));}});
+  }
+  // deal edges (drug/company -> controller)
+  if(MODE==='deals'||MODE==='all'){
+    LENS.deals.forEach(d=>{
+      const src=id2node[d.source_id]; if(!src||!vis.has(d.source_id))return;
+      // controller node: find a node of that company, else draw a label anchor
+      let tx, ty, tlabel=d.target_id;
+      const tnode=LENS.nodes.find(n=>n.co===d.target_id&&vis.has(n.id));
+      if(tnode){tx=tnode._x;ty=tnode._y;} else {tx=src._x+70;ty=src._y-22;}
+      if(MODE==='deals'){
+        svg.appendChild(el('line',{x1:src._x,y1:src._y,x2:tx,y2:ty,class:'edge-deal'}));
+        if(!tnode){const tl=el('text',{x:tx+4,y:ty,'font-size':'9.5',fill:'var(--good)'});tl.textContent='▸ '+tlabel;svg.appendChild(tl);}
+      }
+    });
+  }
+  // nodes
+  LENS.nodes.filter(visible).forEach(n=>{
+    const g=el('g',{class:'node',transform:`translate(${n._x},${n._y})`});
+    g.addEventListener('click',()=>{SEL=SEL===n.id?null:n.id;render();});
+    const r=4+Math.min(7,n.deg*0.28);
+    if(n.bispec&&n.il23&&!n.ailux) g.appendChild(el('circle',{r:r+3,fill:'none',stroke:'var(--bisp)','stroke-width':1.2,opacity:.7}));
+    if(n.ailux){ // gold star ring
+      g.appendChild(el('circle',{r:r+5,fill:'none',stroke:'var(--ailux)','stroke-width':2}));
+    }
+    const c=el('circle',{r,fill:nodeColor(n),stroke:'#0e1117','stroke-width':1.2});
+    if(SEL&&SEL!==n.id) c.setAttribute('opacity', isNeighbor(n.id)?'1':'.28');
+    g.appendChild(c);
+    const lab=el('text',{x:r+4,y:3,class:'nlabel'+((n.ailux||n.deg>=26)?' big':'')});lab.textContent=n.name;g.appendChild(lab);
+    svg.appendChild(g);
+  });
+}
+function isNeighbor(id){ if(!SEL)return true; if(id===SEL)return true;
+  return LENS_EDGES.some(([a,b])=>(a===SEL&&b===id)||(b===SEL&&a===id)); }
+
+function setMode(m){MODE=m;SEL=null;['all','peers','deals'].forEach(x=>document.getElementById('b-'+x).classList.toggle('on',x===m));render();}
+function render(){draw();renderPanel();}
+function renderPanel(){
+  const p=document.getElementById('panel');
+  if(SEL){const n=id2node[SEL];
+    const peers=LENS_EDGES.filter(([a,b])=>a===SEL||b===SEL).map(([a,b])=>a===SEL?b:a).map(id=>id2node[id]).filter(Boolean);
+    const deal=LENS.deals.find(d=>d.source_id===SEL);
+    let h=`<h2>Asset detail</h2><div class="read"><div class="lead">${n.name}</div>`
+      +`<div class="small muted">${n.co} · ${n.stage} · ${n.target||''}</div>`
+      +`<div style="margin-top:6px">${n.ailux?'<span class="tag" style="background:#3a2f12;color:var(--ailux)">AILUX</span>':''}${n.bispec?'<span class="tag" style="background:#241a3a;color:var(--bisp)">bispecific</span>':''}${n.overlap?`<span class="tag" style="background:#3a1a1a;color:var(--direct)">${n.overlap}</span>`:''}</div>`;
+    h+=`<div class="insight"><b>Competitive centrality:</b> ${n.deg} direct-competitor links — ${n.deg>=26?'a center of gravity in the field':n.deg>=12?'a well-connected contender':'a peripheral entrant'}.</div>`;
+    if(deal)h+=`<div class="insight"><b>Controlled by:</b> ${deal.target_id} (${deal.relationship_type})</div>`;
+    h+=`<div class="sec muted small" style="margin-top:8px">Competes directly with ${peers.length}:</div>`+peers.slice(0,20).map(x=>`<span class="chip" onclick="SEL='${x.id}';render()">${x.name}</span>`).join('');
+    h+=`<div style="margin-top:12px"><span class="btn" onclick="SEL=null;render()">← back to the read</span></div></div>`;
+    p.innerHTML=h;return;
+  }
+  p.innerHTML=THE_READ;
+}
+// legend + stats
+document.getElementById('legend').innerHTML=[['Ailux','var(--ailux)'],['Direct','var(--direct)'],['TL1A×IL-23 bisp','var(--bisp)'],['Other','var(--watch)']].map(([l,c])=>`<span class="lg"><span class="dot" style="background:${c}"></span>${l}</span>`).join('')+`<span class="lg"><span style="color:var(--good)">▸</span> deal/ownership edge</span>`;
+const s=LENS.stats;
+document.getElementById('stat').innerHTML=`<span><b>${s.n}</b>TL1A assets</span><span><b>${s.il23bispec}</b>TL1A×IL-23 bispecifics</span><span><b>${s.edges}</b>competitive links</span><span><b>${LENS.deals.length}</b>deal edges</span><span><b style="color:var(--ailux)">Preclinical</b>Ailux's stage</span>`;
+const THE_READ=`<h2>The read — what the graph says</h2><div class="read">
+<p class="lead">Ailux is entering the most crowded bispecific race in immunology, from the back.</p>
+<p><span class="k">${s.il23bispec} TL1A×IL-23p19 bispecifics</span> — Ailux's exact molecular class — already exist. Rivals are at <b>Phase 3</b> (LBL-053, SAB06) and <b>Phase 2</b> (Mirador, Xencor, Roche, Biocad, Elpiscience), while ALX001 sits at <b>preclinical</b>. Timing is a disadvantage; the edge has to be molecular (format, IL-23 arm selectivity, half-life).</p>
+<div class="insight warn"><b>The center of gravity is early + China-heavy.</b> The most-competed-with assets are preclinical/Phase-1 biotechs (Earendil, Harbour, Simcere, Mirador, Newsoara, Novamab, Qyuns). The race is being fought before the clinic, where format choices still differentiate.</div>
+<p class="lead">Big pharma has already taken its TL1A positions.</p>
+<ul>
+<li>Merck ◂ Prometheus (tulisokibart) · Roche ◂ Telavant · BI ◂ Simcere (SIM0709, duvakitug ◂ Pfizer)</li>
+<li>Sanofi (Earendil HXN-1002 + ERD-1) · Lilly (MORF-057, ◂ Ventyx) · AstraZeneca (brazikumab) · Amgen ◂ Horizon</li>
+</ul>
+<p>So the majors are largely <b>spoken for</b>. The unpartnered field is the small-cap / Chinese bispecifics — which is simultaneously <span class="k">Ailux's peer set and the live partner/acquisition pool</span>.</p>
+<div class="insight"><b>2027 is the inflection.</b> A dense wave of high-significance Phase-1 readouts (SIM0709, LQ080, HY8931, QX030N) and Mirador's Phase-2 + IPO land in H1–H2 2027. That data will sort the field — and is the window in which preclinical differentiation must already be locked.</div>
+<h2 style="margin-top:16px">The new direction this uncovers</h2>
+<div class="insight"><b>The platform knows the race, not the deals.</b> The graph holds <b>968 competitor edges</b> but only <b>${LENS.deals.length} ownership/license edges</b>. For a BD platform, the deal fabric is the asset — and it's the sparsest layer. The highest-leverage data investment now is <span class="k">deepening ownership / license / deal-history edges</span>, not adding more competitor links. That single shift turns "who competes" into "who could buy, partner, or be bought" — the actual BD question.</div>
+<p class="small muted">Switch to <b>Ailux's true peers</b> to isolate the ${s.il23bispec}-deep bispecific cohort, or <b>Who's taken</b> to see the deal edges. Click any node for its competitive centrality and controller.</p>
+</div>`;
+render();
+</script>
+</body>
+</html>
