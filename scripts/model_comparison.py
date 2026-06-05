@@ -171,27 +171,55 @@ def update_enrichment_run(
     fields_set: int = 0,
     run_duration_seconds: float = 0.0,
     error_count: int = 0,
+    companies_processed: int = 0,
+    drugs_processed: int = 0,
+    areas_processed: Optional[list] = None,
+    summary_json: Optional[dict] = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
 ) -> bool:
     """
     Patch an enrichment_run row after the batch completes.
     Sets status='completed' and completed_at to mark the run as done.
     Call at the end of run_intelligence_pipeline() with totals.
+
+    Args:
+      fields_set             — total fields written (legacy counter)
+      run_duration_seconds   — wall-clock seconds for the full run
+      error_count            — number of company enrichment failures
+      companies_processed    — how many company entities were enriched
+      drugs_processed        — how many drug rows were touched
+      areas_processed        — list of area_ids covered by this run
+      summary_json           — structured change summary (see build_enrichment_summary)
     """
     if not run_id:
         return False
     try:
+        payload: dict = {
+            "fields_set":            fields_set,
+            "run_duration_seconds":  round(run_duration_seconds, 2),
+            "error_count":           error_count,
+            # Mark run complete so it doesn't stay stuck in 'running'
+            "status":                "completed",
+            "completed_at":          datetime.datetime.utcnow().isoformat(),
+        }
+        if companies_processed:
+            payload["companies_processed"] = companies_processed
+        if drugs_processed:
+            payload["drugs_processed"] = drugs_processed
+        if areas_processed:
+            payload["areas_processed"] = areas_processed
+        if summary_json:
+            payload["summary_json"] = summary_json
+        if prompt_tokens or completion_tokens:
+            payload["prompt_tokens"]     = prompt_tokens
+            payload["completion_tokens"] = completion_tokens
+            payload["total_tokens_used"] = prompt_tokens + completion_tokens
         r = requests.patch(
             f"{SUPABASE_URL}/rest/v1/enrichment_runs",
             headers=SB_HEADERS,
             params={"id": f"eq.{run_id}"},
-            json={
-                "fields_set":            fields_set,
-                "run_duration_seconds":  round(run_duration_seconds, 2),
-                "error_count":           error_count,
-                # BUG 1 FIX: mark run complete so it doesn't stay stuck in 'running'
-                "status":                "completed",
-                "completed_at":          datetime.datetime.utcnow().isoformat(),
-            },
+            json=payload,
             timeout=10,
         )
         return r.status_code in (200, 204)
@@ -224,6 +252,94 @@ def patch_enrichment_run(run_id: str, patch: dict) -> bool:
     except Exception as e:
         print(f"[patch_enrichment_run] {e}")
         return False
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# v65 ENRICHMENT SUMMARY — build_enrichment_summary
+# ══════════════════════════════════════════════════════════════════════════
+
+def build_enrichment_summary(run_id: str) -> Optional[dict]:
+    """
+    Query enriched_field_log for all rows tied to run_id and build a
+    structured summary dict. PATCHes enrichment_runs.summary_json.
+
+    Returns the summary dict, or None on failure.
+
+    Summary shape:
+      {
+        "total_changes": N,
+        "companies_changed": ["abbvie", ...],           # up to 20
+        "fields_changed_most": [["field_name", count]], # top 10
+        "editorial_changes": {                          # drug_summary / ailux_angle / risk_summary
+          "drug_summary": ["drugA", ...],
+          "ailux_angle":  ["drugB", ...],
+          "risk_summary": ["drugC", ...],
+        },
+        "by_company": {                                 # up to 20 companies
+          "abbvie": {
+            "fields_changed": ["overlap", "drug_summary"],
+            "change_count": 2,
+          }
+        }
+      }
+    """
+    if not run_id or not SUPABASE_URL:
+        return None
+
+    # Pull all enriched_field_log rows for this run
+    try:
+        rows = sb_get(
+            "enriched_field_log",
+            {
+                "enrichment_run_id": f"eq.{run_id}",
+                "select": "entity_id,entity_type,field_name,old_value,enriched_value",
+                "limit": "2000",
+            },
+        )
+    except Exception as e:
+        print(f"[build_enrichment_summary] fetch error: {e}")
+        return None
+
+    if not rows:
+        return {"total_changes": 0, "companies_changed": [], "fields_changed_most": [], "editorial_changes": {}, "by_company": {}}
+
+    # Only count rows where something actually changed
+    changed = [r for r in rows if r.get("old_value") != r.get("enriched_value")]
+
+    from collections import Counter
+    field_counter: Counter = Counter()
+    by_entity: dict = {}
+    editorial: dict = {"drug_summary": [], "ailux_angle": [], "risk_summary": []}
+
+    for row in changed:
+        eid   = row.get("entity_id") or "unknown"
+        fname = row.get("field_name") or "unknown"
+        field_counter[fname] += 1
+
+        if eid not in by_entity:
+            by_entity[eid] = {"fields_changed": [], "change_count": 0}
+        by_entity[eid]["fields_changed"].append(fname)
+        by_entity[eid]["change_count"] += 1
+
+        if fname in editorial:
+            editorial[fname].append(eid)
+
+    # Trim to top 20 companies by change_count
+    top_companies = sorted(by_entity.keys(), key=lambda k: by_entity[k]["change_count"], reverse=True)[:20]
+    by_company_trimmed = {k: by_entity[k] for k in top_companies}
+
+    summary = {
+        "total_changes":      len(changed),
+        "companies_changed":  top_companies,
+        "fields_changed_most": field_counter.most_common(10),
+        "editorial_changes":  {k: v for k, v in editorial.items() if v},
+        "by_company":         by_company_trimmed,
+    }
+
+    # Patch the enrichment_runs row
+    patch_enrichment_run(run_id, {"summary_json": summary})
+    print(f"[build_enrichment_summary] run_id={run_id[:8]}... | {len(changed)} changes across {len(by_entity)} entities")
+    return summary
 
 
 # ══════════════════════════════════════════════════════════════════════════

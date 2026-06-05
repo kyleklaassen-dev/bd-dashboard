@@ -129,6 +129,19 @@ SUPABASE_KEY       = os.environ["SUPABASE_SERVICE_KEY"]
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
+# ── Token accounting (Wave 1: enrichment_runs token columns were always 0) ────
+# Module-level so it accumulates across every LLM call in a run (discovery, web,
+# molecule, synthesis, coverage). Written to enrichment_runs at run end → spend
+# becomes computable (tokens × model price).
+_RUN_TOKENS = {"in": 0, "out": 0}
+
+def _acc_tokens(resp):
+    try:
+        _RUN_TOKENS["in"]  += getattr(resp.usage, "input_tokens", 0) or 0
+        _RUN_TOKENS["out"] += getattr(resp.usage, "output_tokens", 0) or 0
+    except Exception:
+        pass
+
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -691,6 +704,7 @@ def gather_landscape_intel(area_id: str) -> str:
             messages=[{"role": "user", "content": prompt}],
             timeout=90.0,  # cap at 90s to avoid infinite hang
         )
+        _acc_tokens(resp)
         parts = [block.text for block in resp.content if hasattr(block, "text") and block.text]
         return "\n\n".join(parts)
     except Exception as e:
@@ -874,6 +888,7 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
             system=DISCOVERY_SYSTEM,
             messages=[{"role": "user", "content": prompt}]
         )
+        _acc_tokens(resp)
         text = resp.content[0].text.strip()
         if "```" in text:
             text = text.split("```")[1]
@@ -1678,6 +1693,7 @@ Be specific. Extract actual numbers and dates. Indicate uncertainty where presen
             if hasattr(block, "text") and block.text:
                 parts.append(block.text.strip())
         result = "\n\n".join(parts)
+        _acc_tokens(resp)
         tokens_in  = resp.usage.input_tokens
         tokens_out = resp.usage.output_tokens
         cost = (tokens_in / 1e6 * 3.0) + (tokens_out / 1e6 * 15.0)
@@ -3712,6 +3728,7 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
                 messages=[{"role": "user", "content": prompt}]
             )
             text = resp.content[0].text
+            _acc_tokens(resp)
             cost = (resp.usage.input_tokens / 1e6 * 3.0 +
                     resp.usage.output_tokens / 1e6 * 15.0)
             finish = getattr(resp, 'stop_reason', None)
@@ -4066,6 +4083,7 @@ def enrich_never_touched_drugs(limit: int = 10, dry_run: bool = False) -> int:
                     system=_COVERAGE_SYSTEM,
                     messages=[{"role": "user", "content": prompt}],
                 )
+                _acc_tokens(resp)
                 text = resp.content[0].text.strip()
                 break
             except Exception as e:
@@ -4303,7 +4321,11 @@ def run_intelligence_pipeline(area_id: str,
             companies_processed=_companies_processed,
             areas_processed=[area_id],
             summary_json=enrichment_summary,
+            prompt_tokens=_RUN_TOKENS["in"],
+            completion_tokens=_RUN_TOKENS["out"],
         )
+        log(f"  Run tokens: {_RUN_TOKENS['in']:,} in / {_RUN_TOKENS['out']:,} out "
+            f"(~${_RUN_TOKENS['in']/1e6*3 + _RUN_TOKENS['out']/1e6*15:.2f})")
 
     # Mark dispatched enrichment_queue items as complete
     if not dry_run and queued_items:
