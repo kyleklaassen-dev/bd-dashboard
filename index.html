@@ -12096,7 +12096,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     const piObj = _areaPIs[sourceTabId] || null;
 
     // ── Parallel fetch: profile + catalysts + deals + company row + all company areas + subsidiaries ──
-    const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes, subsidiariesRes] = await Promise.all([
+    const [profileRes, catsRes, dealsRes, companyRowRes, allAreaRowsRes, subsidiariesRes, partnershipsRes] = await Promise.all([
       _sb.from('company_profiles').select('*')
          .eq('company_id', companyId).or(`target_id.eq.${AREA},area_id.eq.${AREA}`)
          .order('updated_at', { ascending: false }).limit(1),
@@ -12108,6 +12108,10 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
       _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2,strategic_value_score,stock_price,stock_change,market_cap_usd_m,cash_runway').eq('id', companyId).limit(1),
       _sb.from('company_areas').select('area_id').eq('company_id', companyId),
       _sb.from('companies').select('id,name,status').eq('parent_company_id', companyId).in('status', ['acquired', 'subsidiary']),
+      // Wave 2: structured partnership relationships (both sides — this company as lead OR partner)
+      _sb.from('company_partnerships')
+         .select('partner_name,partner_company_name,partner_company_id,lead_company_id,partnership_type,deal_type,drug_id,geographic_rights,partnership_verified,source_url,is_current,notes')
+         .or(`lead_company_id.eq.${companyId},partner_company_id.eq.${companyId},company_id.eq.${companyId}`).limit(40),
     ]);
 
     // ── Multi-area profiles + catalysts (for Assessment / Catalysts tabs) ──
@@ -12384,7 +12388,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const subsidiaries = subsidiariesRes.data || [];
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []) };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -14353,6 +14357,56 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     }).join('') : '<div style="font-size:11px;color:#94a3b8">No deal records found.</div>'}
   </div>`;
 
+  // ── Structured partnerships (Wave 2: surfaces company_partnerships) ──
+  const _thisCoId = sbData?.company?.id || sbData?.profile?.company_id || '';
+  const _partnerships = (sbData?.partnerships || []).filter(p => p && (p.partner_name || p.partner_company_name || p.lead_company_id));
+  const _ptypeLbl = (p) => (p.partnership_type || p.deal_type || 'partnership').replace(/_/g,' ');
+  const _ptColor = (p) => {
+    const t = (p.partnership_type || p.deal_type || '').toLowerCase();
+    if (t.includes('out') || t==='licensed_out') return {bg:'#eff6ff',c:'#1d4ed8'};
+    if (t.includes('in') || t==='licensed_in')   return {bg:'#f0fdf4',c:'#15803d'};
+    if (t.includes('accord') || t.includes('acquis')) return {bg:'#fef2f2',c:'#b91c1c'};
+    return {bg:'#faf5ff',c:'#7c3aed'};
+  };
+  const _pPartnerName = (p) => {
+    // show the OTHER party relative to the company whose modal this is
+    if (_thisCoId && p.lead_company_id === _thisCoId) return p.partner_company_name || p.partner_name || p.partner_company_id || '—';
+    if (_thisCoId && p.partner_company_id === _thisCoId) return p.lead_company_id || 'lead partner';
+    return p.partner_company_name || p.partner_name || '—';
+  };
+  const _vPill = (p) => p.partnership_verified === true
+    ? '<span title="Verified against a source" style="font-size:8px;font-weight:700;background:#f0fdf4;color:#15803d;border-radius:8px;padding:1px 5px">✓ verified</span>'
+    : (p.partnership_verified === false
+      ? '<span title="Flagged — not yet source-confirmed" style="font-size:8px;font-weight:700;background:#fffbeb;color:#b45309;border-radius:8px;padding:1px 5px">?</span>' : '');
+  const partnershipCount = _partnerships.length;
+  const partnershipSummary = _partnerships.slice(0,4).map(p => {
+    const col=_ptColor(p);
+    return `<div class="cem-item-row" style="align-items:center;gap:6px">
+      <div style="flex:1;font-size:12px;font-weight:600;color:#0f172a">${_pPartnerName(p)}${p.drug_id?`<span style="font-size:10px;color:#94a3b8;font-weight:500"> · ${p.drug_id}</span>`:''}</div>
+      <span style="font-size:8.5px;font-weight:700;text-transform:capitalize;background:${col.bg};color:${col.c};border-radius:8px;padding:1px 7px">${_ptypeLbl(p)}</span>
+      ${_vPill(p)}
+    </div>`;
+  }).join('');
+  const partnershipDetail = _partnerships.length ? `<div class="cem-det-inner">
+    <div class="cem-det-title">Partnership relationships — company_partnerships</div>
+    ${_partnerships.map(p => {
+      const col=_ptColor(p);
+      const src = p.source_url ? `<a class="cem-link" href="${p.source_url}" target="_blank" rel="noopener" data-trusted="1">↗ source</a>` : '';
+      return `<div style="margin-bottom:9px;padding-bottom:9px;border-bottom:0.5px solid #e2e8f0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;color:#0f172a">${_pPartnerName(p)}</span>
+          <span style="font-size:8.5px;font-weight:700;text-transform:capitalize;background:${col.bg};color:${col.c};border-radius:8px;padding:1px 7px">${_ptypeLbl(p)}</span>
+          ${p.is_current===false?'<span style="font-size:8px;color:#94a3b8">(ended)</span>':''}
+          ${_vPill(p)}
+        </div>
+        <div style="font-size:10.5px;color:#64748b;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">
+          ${p.drug_id?`<span>Asset: ${p.drug_id}</span>`:''}${p.geographic_rights?`<span>· ${p.geographic_rights}</span>`:''}${src?`<span>· ${src}</span>`:''}
+        </div>
+        ${p.notes?`<div style="font-size:10.5px;color:#475569;margin-top:2px">${String(p.notes).slice(0,160)}</div>`:''}
+      </div>`;
+    }).join('')}
+  </div>` : '';
+
   // Catalysts section
   const catSummary = sbCats.slice(0,4).map(c => `
     <div class="cem-item-row">
@@ -14610,9 +14664,9 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
         <div class="cem-det" id="cem-det-co-pipe">${pipeDetail}</div>
       </div>
       <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('co-deals')"><div class="cem-sec-lbl">🤝 Partnerships</div><div class="cem-sec-hint">${dealCount} deal${dealCount!==1?'s':''} <i id="cem-chev-co-deals" class="cem-chev">▶</i></div></div>
-        <div class="cem-sec-body">${dealSummary||'<span style="font-size:11px;color:#94a3b8;font-style:italic">No deal records found.</span>'}</div>
-        <div class="cem-det" id="cem-det-co-deals">${dealDetail}</div>
+        <div class="cem-sec-hdr" onclick="_cemToggle('co-deals')"><div class="cem-sec-lbl">🤝 Partnerships</div><div class="cem-sec-hint">${partnershipCount?partnershipCount+' relationship'+(partnershipCount!==1?'s':''):dealCount+' deal'+(dealCount!==1?'s':'')} <i id="cem-chev-co-deals" class="cem-chev">▶</i></div></div>
+        <div class="cem-sec-body">${partnershipSummary || dealSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No partnership records found.</span>'}</div>
+        <div class="cem-det" id="cem-det-co-deals">${partnershipDetail}${dealDetail}</div>
       </div>
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('co-cats')"><div class="cem-sec-lbl">📅 Catalysts</div><div class="cem-sec-hint">${catCount} upcoming <i id="cem-chev-co-cats" class="cem-chev">▶</i></div></div>
