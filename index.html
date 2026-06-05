@@ -13368,18 +13368,18 @@ async function _loadMeridianNarrative(drugId) {
     const nRes = await fetch(base + '/entity_narratives?entity_type=eq.drug&entity_id=eq.' + encodeURIComponent(drugId) + '&section=eq.overview&select=id,body_md,confidence,generated_at,stale&limit=1', { headers: hdr });
     const narr = (await nRes.json())[0];
     if (!narr || !narr.body_md) return;
-    const pRes = await fetch(base + '/narrative_provenance?narrative_id=eq.' + narr.id + '&select=claim_text,source_url,source_table&order=id', { headers: hdr });
+    const pRes = await fetch(base + '/narrative_provenance?narrative_id=eq.' + narr.id + '&select=claim_index,claim_text,source_url,source_table&order=claim_index', { headers: hdr });
     const prov = await pRes.json().catch(() => []);
     const esc  = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     // [n] -> superscript chip
     const body = esc(narr.body_md).replace(/\s*\[(\d+)\]/g, (m, n) =>
       `<sup style="color:#2563eb;font-weight:700;font-size:9px;cursor:default" title="Source ${n}">${n}</sup>`);
-    const foot = (Array.isArray(prov) ? prov : []).map((p, i) => {
+    const foot = (Array.isArray(prov) ? prov : []).map((p) => {
       const dom = p.source_url ? (p.source_url.split('/')[2] || 'source') : (p.source_table || 'graph');
       const src = p.source_url
         ? `<a href="${p.source_url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none">${dom}↗</a>`
         : `<span style="color:#64748b">${dom}</span>`;
-      return `<li style="margin:2px 0;font-size:10px;color:#475569"><b style="color:#94a3b8">[${i + 1}]</b> ${esc(p.claim_text).slice(0, 96)} — ${src}</li>`;
+      return `<li style="margin:2px 0;font-size:10px;color:#475569"><b style="color:#94a3b8">[${p.claim_index}]</b> ${esc(p.claim_text).slice(0, 96)} — ${src}</li>`;
     }).join('');
     const when  = (narr.generated_at || '').slice(0, 10);
     const stale = narr.stale
@@ -24943,6 +24943,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[target="_blank"], a[href^="http"]');
     if (!a) return;
+    if (a.dataset.trusted) return; // explicit trusted links (GitHub runs, NCT, etc.) navigate directly
     const href = a.getAttribute('href') || '';
     if (!href || SKIP_RE.test(href)) return; // already a Google link — let it through
 
