@@ -66,6 +66,33 @@ def fact_check_filter(rows, label, url_field="source_url"):
         log(f"  ⚖ fact-check: dropped {n} {label} with fabricated source URLs (kept {len(kept)})")
     return kept
 
+def build_verification_cautions():
+    """Pull claims the Content Verifier marked content_confirms_claim=FALSE and turn
+    them into an explicit 'do NOT state these' block for the writer's system prompt.
+    Claim-level (not drug-level), so a real molecule keeps its confirmed facts while
+    a single disconfirmed claim (e.g. veligrotug→gMG) is withheld."""
+    MEANINGFUL = "(mechanism,indication,stage,target,partnership,approval,deal)"
+    try:
+        rows = requests.get(f"{SUPABASE_URL}/rest/v1/drug_sources",
+            headers=SB_HEADERS,
+            params={"select": "drug_id,claim_type,claim_value",
+                    "content_confirms_claim": "is.false",
+                    "claim_type": f"in.{MEANINGFUL}",
+                    "limit": "60"}, timeout=15).json()
+    except Exception as e:
+        log(f"  verification-cautions fetch failed (non-fatal): {e}")
+        return ""
+    if not rows:
+        return ""
+    lines = [f"  • {r['drug_id']}: do NOT state \"{str(r.get('claim_value'))[:120]}\" "
+             f"({r.get('claim_type')}) — its cited source did not confirm it."
+             for r in rows]
+    log(f"  ⚖ Injected {len(rows)} verification cautions into the writer prompt")
+    return ("\n\nVERIFICATION CAUTIONS — the following claims FAILED source confirmation "
+            "(the cited page does not support them). Do NOT state them as fact in the Issue; "
+            "omit them or note them only as unverified:\n" + "\n".join(lines))
+
+
 def fact_check_report():
     """Log a summary and open a governance_violation if anything was dropped."""
     d = _FACT_CHECK["dropped"]
@@ -1911,6 +1938,11 @@ if __name__ == "__main__":
                 _sys.exit(0)
         except Exception as _e:
             log(f"Same-day guard check failed (continuing to generate): {_e}")
+
+    # Close the trust loop: feed content-disconfirmed claims (content_confirms_claim
+    # = false, set by the Content Verifier) into the writer's system prompt so they
+    # are withheld from the Issue — claim-level, so real molecules keep their facts.
+    SYSTEM_PROMPT = SYSTEM_PROMPT + build_verification_cautions()
 
     # Fetch all data sources — the full dashboard state feeds the Meridian
     intel                              = fetch_recent_intel(hours_back=48)
