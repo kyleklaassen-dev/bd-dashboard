@@ -707,17 +707,21 @@ def create_governance_violations_for_null_sources():
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def run(dry_run: bool = False, target_table: str = None, limit: int = None) -> Dict:
+def run(dry_run: bool = False, target_table: str = None, limit: int = None,
+        new_only: bool = False, fresh_days: int = 6) -> Dict:
     """
     Full source verification run.
     Returns summary dict for weekend_sprint_log integration.
+
+    new_only: skip URLs already validated within the last `fresh_days` days
+              (for the nightly event-driven run — only checks what's new).
     """
     global DRY_RUN
     DRY_RUN = dry_run
 
     log("Source Verifier — Tier 3 Validation Agent")
     log(f"Run ID: {RUN_ID}")
-    log(f"Dry-run: {DRY_RUN}")
+    log(f"Dry-run: {DRY_RUN} | new_only: {new_only}")
 
     # 1. Apply DDL migrations
     log("Step 1: Applying DDL migrations", indent=1)
@@ -727,6 +731,22 @@ def run(dry_run: bool = False, target_table: str = None, limit: int = None) -> D
     # 2. Collect URLs
     log("Step 2: Collecting source URLs from all tables", indent=1)
     all_urls = collect_urls()
+
+    # Incremental: drop URLs already checked recently (event-driven nightly run)
+    if new_only:
+        try:
+            import datetime as _dt
+            cutoff = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=fresh_days)).isoformat()
+            seen = set()
+            for r in sb_get("source_validation_log",
+                            {"select": "source_url", "validated_at": f"gte.{cutoff}", "limit": "5000"}):
+                if r.get("source_url"):
+                    seen.add(r["source_url"])
+            before = len(all_urls)
+            all_urls = [u for u in all_urls if u["source_url"] not in seen]
+            log(f"  new-only: skipped {before - len(all_urls)} URLs checked in last {fresh_days}d; {len(all_urls)} remain", indent=2)
+        except Exception as e:
+            log(f"  new-only filter failed (continuing with all): {e}", indent=2)
 
     # Filter to specific table if requested
     if target_table:
@@ -787,7 +807,9 @@ if __name__ == "__main__":
                         help="Restrict to a single table (e.g. deals, company_partnerships)")
     parser.add_argument("--limit", type=int, default=None,
                         help="Maximum number of URLs to validate")
+    parser.add_argument("--new-only", action="store_true",
+                        help="Only validate URLs not checked in the last few days (event-driven nightly run)")
     args = parser.parse_args()
 
-    result = run(dry_run=args.dry_run, target_table=args.table, limit=args.limit)
+    result = run(dry_run=args.dry_run, target_table=args.table, limit=args.limit, new_only=args.new_only)
     print(json.dumps(result, indent=2))

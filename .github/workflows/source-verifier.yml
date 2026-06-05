@@ -9,8 +9,14 @@ name: Source Verifier
 # and opens governance_violations for bad/missing sources.
 
 on:
+  # EVENT-DRIVEN (Wave 0): runs right after the nightly ingest, on only the NEW
+  # URLs (--new-only), so each Issue is built on same-night-verified facts.
+  workflow_run:
+    workflows: ["Meridian Research"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: "0 8 * * 1,4"   # Mon + Thu, 4:00 AM ET
+    - cron: "0 8 * * 1,4"   # Mon + Thu, 4:00 AM ET — weekly FULL sweep (fallback + catches anything missed)
   workflow_dispatch:
     inputs:
       table:
@@ -29,6 +35,8 @@ concurrency:
 
 jobs:
   verify:
+    # only proceed when triggered manually/scheduled, or when the upstream succeeded
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -49,6 +57,8 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           ARGS=""
+          # event-driven nightly run → only the new URLs; weekly cron → full sweep
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then ARGS="$ARGS --new-only"; fi
           if [ -n "${{ github.event.inputs.table }}" ]; then ARGS="$ARGS --table ${{ github.event.inputs.table }}"; fi
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           python scripts/source_verifier.py $ARGS

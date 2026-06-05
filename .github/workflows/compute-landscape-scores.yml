@@ -8,8 +8,15 @@ name: Compute Landscape Dependency Scores
 # Manual dispatch for immediate run.
 
 on:
+  # EVENT-DRIVEN (Wave 0): chains off the Content Verifier so landscape scores are
+  # recomputed nightly on freshly-verified data, before the Writer reads them
+  # (fixes "daily Issues read weekly scores").
+  workflow_run:
+    workflows: ["Content Verifier"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: '30 11 * * 1'   # 7:30 AM ET Mondays
+    - cron: '30 11 * * 1'   # 7:30 AM ET Mondays — weekly fallback
 
   workflow_dispatch:
     inputs:
@@ -34,6 +41,7 @@ concurrency:
 
 jobs:
   compute:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -55,6 +63,8 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           ARGS=""
+          # nightly chained run → recompute all areas on fresh data
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then ARGS="$ARGS --all"; fi
           if [ -n "${{ github.event.inputs.area }}" ]; then
             ARGS="$ARGS --area ${{ github.event.inputs.area }}"
           fi

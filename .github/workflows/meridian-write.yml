@@ -1,8 +1,11 @@
 name: Meridian Writer
 
 on:
+  # EVENT-DRIVEN (Wave 0): the Writer now sits at the END of the nightly chain —
+  # Research → Source Verify → Content Verify → Score → Writer — so every Issue is
+  # built on facts verified and scored THAT SAME NIGHT.
   workflow_run:
-    workflows: ["Meridian Research"]
+    workflows: ["Compute Landscape Dependency Scores"]
     types: [completed]
     branches: [main]
   schedule:

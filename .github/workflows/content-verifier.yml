@@ -6,8 +6,14 @@ name: Content Verifier
 # governance_violation for any claim its source contradicts or omits.
 
 on:
+  # EVENT-DRIVEN (Wave 0): chains off the Source Verifier (which chains off the
+  # nightly ingest), so new claims are content-confirmed before the Issue is written.
+  workflow_run:
+    workflows: ["Source Verifier"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: "30 8 * * 2,5"   # Tue + Fri, 4:30 AM ET (offset from the Source Verifier)
+    - cron: "30 8 * * 2,5"   # Tue + Fri, 4:30 AM ET — weekly fallback
   workflow_dispatch:
     inputs:
       limit:
@@ -31,6 +37,7 @@ concurrency:
 
 jobs:
   verify:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
