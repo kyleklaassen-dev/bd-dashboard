@@ -474,7 +474,7 @@ def check_indication_consistency(drug: dict,
     # "R/R multiple myeloma".
     unmatched_structured = []
     for ind_id in sorted(structured_inds):
-        abbrev   = indication_abbrevs.get(ind_id, ind_id).lower()
+        abbrev   = (indication_abbrevs.get(ind_id) or ind_id).lower()
         # Also normalise the indication id (underscores → spaces)
         id_norm  = ind_id.lower().replace('_', ' ')
         abbrev_norm = abbrev.replace('_', ' ')

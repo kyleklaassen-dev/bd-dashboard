@@ -46,30 +46,30 @@ jobs:
         run: |
           # Enrich any drugs promoted today that have null mechanism
           python - << 'PYEOF'
-import os, json, requests, datetime
+          import os, json, requests, datetime
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+          SUPABASE_URL = os.environ["SUPABASE_URL"]
+          SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+          SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
 
-# Find auto-discovered drugs with null mechanism added in last 24h
-since = (datetime.datetime.utcnow() - datetime.timedelta(hours=25)).isoformat()
-r = requests.get(f"{SUPABASE_URL}/rest/v1/drugs",
-    headers=SB_H,
-    params={"discovery_status":"eq.auto","mechanism":"is.null",
-            "created_at":f"gte.{since}","select":"id,entity_name","limit":"20"})
-new_unenriched = r.json() if r.status_code == 200 else []
+          # Find auto-discovered drugs with null mechanism added in last 24h
+          since = (datetime.datetime.utcnow() - datetime.timedelta(hours=25)).isoformat()
+          r = requests.get(f"{SUPABASE_URL}/rest/v1/drugs",
+              headers=SB_H,
+              params={"discovery_status":"eq.auto","mechanism":"is.null",
+                      "created_at":f"gte.{since}","select":"id,entity_name","limit":"20"})
+          new_unenriched = r.json() if r.status_code == 200 else []
 
-if not new_unenriched:
-    print("No newly promoted drugs need enrichment")
-else:
-    print(f"Adding {len(new_unenriched)} newly promoted drugs to research_queue")
-    for drug in new_unenriched:
-        requests.post(f"{SUPABASE_URL}/rest/v1/research_queue",
-            headers={**SB_H, "Prefer": "return=minimal"},
-            json={"entity_id": drug["id"], "entity_name": drug.get("entity_name","") or drug["id"],
-                  "context_type": "never_enriched", "priority_score": 90,
-                  "assigned_status": "pending",
-                  "reason": f"Newly promoted drug {drug['id']} — needs immediate enrichment"})
-    print(f"Queued {len(new_unenriched)} drugs for enrichment")
-PYEOF
+          if not new_unenriched:
+              print("No newly promoted drugs need enrichment")
+          else:
+              print(f"Adding {len(new_unenriched)} newly promoted drugs to research_queue")
+              for drug in new_unenriched:
+                  requests.post(f"{SUPABASE_URL}/rest/v1/research_queue",
+                      headers={**SB_H, "Prefer": "return=minimal"},
+                      json={"entity_id": drug["id"], "entity_name": drug.get("entity_name","") or drug["id"],
+                            "context_type": "never_enriched", "priority_score": 90,
+                            "assigned_status": "pending",
+                            "reason": f"Newly promoted drug {drug['id']} — needs immediate enrichment"})
+              print(f"Queued {len(new_unenriched)} drugs for enrichment")
+          PYEOF
