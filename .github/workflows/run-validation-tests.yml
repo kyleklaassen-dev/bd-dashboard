@@ -24,6 +24,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: run-validation-tests
+  cancel-in-progress: false
+
 jobs:
   validate:
     runs-on: ubuntu-latest

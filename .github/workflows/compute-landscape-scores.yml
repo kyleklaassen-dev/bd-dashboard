@@ -28,6 +28,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: compute-landscape-scores
+  cancel-in-progress: false
+
 jobs:
   compute:
     runs-on: ubuntu-latest

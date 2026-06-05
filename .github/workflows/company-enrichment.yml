@@ -58,6 +58,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: company-enrichment-${{ github.event.schedule }}
+  cancel-in-progress: false
+
 jobs:
   intelligence-pipeline:
     runs-on: ubuntu-latest

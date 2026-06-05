@@ -25,6 +25,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: queue-processor
+  cancel-in-progress: false
+
 jobs:
   process-queue:
     runs-on: ubuntu-latest

@@ -9,10 +9,17 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:   # allow manual trigger
 
+concurrency:
+  group: meridian-research
+  cancel-in-progress: false
+
 jobs:
   research:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # Increased from 180 → 210 min to accommodate Phase 6 new-source sweep:
+    # CT.gov poller (~2 min) + EDGAR 8-K sweep for 14 companies (~8 min).
+    # Both run without the Anthropic API so cost impact is nil.
+    timeout-minutes: 210
 
     steps:
       - name: Checkout
@@ -29,6 +36,8 @@ jobs:
         run: pip install -r scripts/requirements.txt
 
       - name: Run research pipeline
+        # Phases 1–5: RSS → filter → dedup → full-text → LLM extract → Supabase
+        # Phase 6 (appended): CT.gov new-registration poller + EDGAR 8-K sweep
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}

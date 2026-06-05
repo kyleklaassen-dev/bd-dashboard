@@ -1881,20 +1881,29 @@ if __name__ == "__main__":
                      company_ids=plan_company_ids,
                      content_fingerprint=content_fingerprint)
 
-    # ── Editorial → Enrichment Priority Bump ─────────────────────────────────
+    # Publish the Issue FIRST. The page deploy is the critical output and must
+    # not be blocked by the optional post-processing below. (Root cause of the
+    # 2026-06-03+ Writer failures: a post-save feedback-loop step raised after the
+    # Issue was already saved to Supabase — which crashed the run BEFORE this
+    # deploy, so meridian_today.html never published and the workflow went red.)
+    deploy_to_github(html)
+
+    # ── Editorial → Enrichment Priority Bump (best-effort) ────────────────────
     # Companies featured in today's Meridian are the most BD-relevant right now.
     # Bump their priority_score in research_queue by +10 so the next enrichment
-    # scheduler run picks them up first. This closes the editorial → enrichment
-    # feedback loop: intelligence output feeds back into intelligence input priority.
-    if plan_company_ids:
-        bump_editorial_priority(plan_company_ids)
+    # scheduler run picks them up first. Never fail the publish over this.
+    try:
+        if plan_company_ids:
+            bump_editorial_priority(plan_company_ids)
+    except Exception as e:
+        log(f"bump_editorial_priority failed (non-fatal): {e}")
 
-    # ── G4: Catalyst outcome sync ──────────────────────────────────────────────
+    # ── G4: Catalyst outcome sync (best-effort) ───────────────────────────────
     # Scan today's intel for confirmed readouts and resolve matching catalysts.
-    # This closes the read→generate→write feedback loop.
-    sync_catalyst_outcomes(plan, intel)
-
-    deploy_to_github(html)
+    try:
+        sync_catalyst_outcomes(plan, intel)
+    except Exception as e:
+        log(f"sync_catalyst_outcomes failed (non-fatal): {e}")
 
     # ── S3: stamp system_status so the dashboard surfaces the new Issue ───────
     try:
