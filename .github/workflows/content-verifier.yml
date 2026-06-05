@@ -1,0 +1,54 @@
+name: Content Verifier
+
+# Tier-4 trust layer. Fetches each cited source and asks Claude whether the page
+# actually SUPPORTS the claim — the difference between "the URL exists" and "the
+# URL proves the fact". Writes drug_sources.content_confirms_claim and opens a
+# governance_violation for any claim its source contradicts or omits.
+
+on:
+  schedule:
+    - cron: "30 8 * * 2,5"   # Tue + Fri, 4:30 AM ET (offset from the Source Verifier)
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max claims to verify this run"
+        required: false
+        default: "40"
+      dry_run:
+        description: "Fetch + judge, no DB writes"
+        required: false
+        default: "false"
+        type: boolean
+      recheck:
+        description: "Also re-verify already-checked claims"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: content-verifier
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests anthropic
+      - name: Run content verifier
+        env:
+          SUPABASE_URL:         https://tghntyofptvfhmtchwcv.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS="--limit ${{ github.event.inputs.limit || '40' }}"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ "${{ github.event.inputs.recheck }}" = "true" ]; then ARGS="$ARGS --recheck"; fi
+          python scripts/content_verifier.py $ARGS
