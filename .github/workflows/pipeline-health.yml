@@ -1,0 +1,52 @@
+name: Pipeline Health Monitor
+
+# The monitoring backbone. Polls the Actions API for every workflow's latest run,
+# logs outcomes to pipeline_runs, and stamps system_status.health_summary so the
+# dashboard can show "N green / M failing". This is what makes a silent failure
+# (like the Meridian Writer outage) visible instead of discovered by hand.
+
+on:
+  schedule:
+    - cron: "15 */6 * * *"   # every 6 hours, offset 15 min off the hour
+  workflow_dispatch:
+    inputs:
+      fail_on_red:
+        description: "Turn this job red if any workflow is failing"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: pipeline-health
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run pipeline health monitor
+        env:
+          GITHUB_TOKEN:         ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO:          kyleklaassen-dev/bd-dashboard
+          SUPABASE_URL:         https://tghntyofptvfhmtchwcv.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.fail_on_red }}" = "true" ]; then ARGS="--fail-on-red"; fi
+          python scripts/pipeline_health.py $ARGS
