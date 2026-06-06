@@ -71,10 +71,13 @@ def main():
     for k, x in gby.items():
         if k in qby:
             q = qby[k]
-            _req("PATCH", f"source_collection_queue?id=eq.{q['id']}",
-                 {"priority": x.get("priority"), "claim_text": x.get("claim_text"),
-                  "gap_type": x.get("gap_type"), "last_seen": now}, "return=minimal")
-            patches += 1
+            # only PATCH when something material changed (avoids hammering on steady state)
+            if (q.get("priority") != x.get("priority") or q.get("gap_type") != x.get("gap_type")
+                    or q.get("claim_text") != x.get("claim_text")):
+                _req("PATCH", f"source_collection_queue?id=eq.{q['id']}",
+                     {"priority": x.get("priority"), "claim_text": x.get("claim_text"),
+                      "gap_type": x.get("gap_type"), "last_seen": now}, "return=minimal")
+                patches += 1
         else:
             inserts.append({"entity_type": x["entity_type"], "entity_id": x["entity_id"],
                             "section": x["section"], "claim_index": x.get("claim_index"),
@@ -82,7 +85,8 @@ def main():
                             "priority": x.get("priority"), "status": "open",
                             "first_seen": now, "last_seen": now})
     if inserts:
-        _req("POST", "source_collection_queue", inserts, "return=minimal")
+        _req("POST", "source_collection_queue?on_conflict=entity_type,entity_id,section,claim_index",
+             inserts, "resolution=ignore-duplicates,return=minimal")
 
     # auto-resolve gaps that are no longer present
     for k, q in qby.items():
