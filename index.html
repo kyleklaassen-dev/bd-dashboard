@@ -3200,7 +3200,8 @@ async function _loadWhitespace() {
     if (btn && (_wsTargets.length || _wsIndications.length)) btn.style.display='inline-flex';
   } catch(e) { /* best-effort */ }
 }
-document.addEventListener('DOMContentLoaded', _loadWhitespace);
+// DEPRECATED 2026-06-06: Whitespace pill removed entirely per Kyle (non-inclusive DB → unreliable gap claims). Loader disabled.
+// document.addEventListener('DOMContentLoaded', _loadWhitespace);
 
 function _wsScoreColor(s) {
   if (s >= 65) return {bg:'#ecfdf5', bd:'#a7f3d0', fg:'#047857'};   // strong opportunity
@@ -5451,7 +5452,9 @@ async function _injectAreaFreshness(tabId) {
   </div>
   <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel<span class="si-attach-icon" onclick="event.stopPropagation(); triggerDocAttach()" title="Attach document">📎</span></button>
  </div>
- <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="review-nav-btn" onclick="openReviewPanel()" title="Items flagged for your review" style="display:none;border-color:#fde68a;background:#fffbeb"><span class="health-dot-lbl" id="review-nav-lbl" style="color:#b45309">⚑ review</span></span><span class="health-dot-btn" id="ws-nav-btn" onclick="openWhitespacePanel()" title="Whitespace finder — high unmet need × thin competition" style="display:none;border-color:#ddd6fe;background:#f5f3ff"><span class="health-dot-lbl" style="color:#7c3aed">◇ Whitespace</span></span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+ <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><!-- DEPRECATED 2026-06-06: red Research Queue pill (dq-nav-badge), yellow review pill (review-nav-btn), and purple Whitespace pill (ws-nav-btn) removed from top bar.
+     Research-queue + governance-violation review items now consolidate into the Discovery Queue tab (⚑ Review filter). Whitespace removed entirely per Kyle.
+     Loaders _loadResearchQueue / _loadReviewQueue are retained (they feed the Discovery Queue). _loadWhitespace deprecated. --><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
@@ -5764,12 +5767,10 @@ async function _injectAreaFreshness(tabId) {
  <div class="nav-icon-right" style="display:flex;align-items:center;gap:4px;">
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
-   <button class="nav-icon-btn" id="nav-icon-pharma" onclick="navTo('pharma-intel')" title="Pharma Landscape">🏛️</button>
-  <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue">🔍</button>
+   <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. Panes/JS retained but unreachable for the deprecation window. -->
+  <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
   <button class="nav-icon-btn" id="nav-icon-intel" onclick="navTo('intelligence')" title="Intelligence Feed · Realizations & Review">⚡</button>
-  <button class="nav-icon-btn" id="nav-icon-changes" onclick="navTo('changes-feed')" title="Activity Feed — Live Database Changes">🔄</button>
-  <button class="bookmark-btn nav-icon-btn" id="nav-icon-bookmark" onclick="openSavedViewsPanel()" title="Saved views">🔖</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -5783,7 +5784,7 @@ async function _injectAreaFreshness(tabId) {
  <button class="tab-btn" onclick="switchTab('ace',this)" style="display:none">BCMA × CD19 × CD3</button>
  <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
-        <button class="tab-btn" onclick="switchTab('pharma-intel', this)">Pharma Landscape</button>
+        <!-- DEPRECATED 2026-06-06: Pharma Landscape tab button removed (tab retired). -->
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
@@ -11075,6 +11076,8 @@ function dknLoadSbData() { return dknLoadData(); }
           <button class="dq-stab" onclick="dqFilterStatus('rejected')" data-status="rejected" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;cursor:pointer">Rejected</button>
           <button class="dq-stab" onclick="dqFilterStatus('watch')" data-status="watch" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;cursor:pointer">Watch</button>
           <button class="dq-stab" onclick="dqFilterStatus('all')" data-status="all" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;cursor:pointer">All</button>
+          <!-- NEW 2026-06-06: unified human-review filter — research-queue gaps + flagged data-integrity items (replaces the old red & yellow top-bar pills) -->
+          <button class="dq-stab" onclick="dqFilterStatus('review')" data-status="review" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #f59e0b;background:white;color:#b45309;cursor:pointer;font-weight:700">⚑ Needs Review<span id="dq-review-count" style="display:none;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:0 6px;border-radius:9px;margin-left:6px;vertical-align:middle"></span></button>
         </div>
         <!-- Area filter -->
         <select id="dq-area-filter" onchange="dqRender()" style="font-size:11px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:white;color:#374151">
@@ -11133,6 +11136,9 @@ function dknLoadSbData() { return dknLoadData(); }
       </table>
       <div id="dq-empty" style="display:none;padding:48px;text-align:center;color:#94a3b8;font-size:13px">No items in this view.</div>
     </div>
+
+    <!-- NEW 2026-06-06: Needs-Review surface — research gaps + flagged data items, each with a specific verification question -->
+    <div id="dq-review-wrap" style="display:none"></div>
 
     <!-- Detail panel (slides in from right) -->
     <div id="dq-detail-overlay" onclick="dqCloseDetail(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9000"></div>
@@ -11224,6 +11230,7 @@ async function dqLoad() {
       .limit(500);
     if (error) throw error;
     _dqData = data || [];
+    await _dqLoadReview();   // NEW 2026-06-06: pull research-queue gaps + flagged items into the queue
     dqRenderStats();
     dqRender();
   } catch(e) {
@@ -12000,7 +12007,7 @@ const TAB_META = {
  stocks:       { name: 'Market & Learning',     badge: null,            cls: '' },
  'meridian-issue':    { name: 'The Meridian',         badge: "Today's Issue",  cls: 'ct-ai' },
  'drugs-know':        { name: 'Drugs to Know',          badge: null,             cls: '' },
- 'pharma-intel':      { name: 'Pharma Landscape',       badge: null,             cls: '' },
+ /* DEPRECATED 2026-06-06: 'pharma-intel' tab retired (removed from nav). */
  'industry-insights': { name: 'Industry Insights',       badge: null,             cls: '' },
  ontology:            { name: 'Ontology Audit',           badge: null,             cls: '' },
  intelligence:        { name: 'Intelligence Feed',          badge: 'Session 61',      cls: '' },
@@ -16485,9 +16492,10 @@ registerTab('meridian-issue', {
     if (arc) arc.style.display = 'none';
   }
 });
-registerTab('pharma-intel', {
-  onEnter() { _initAllCompanies(); _addRankingDossierBtns(); }
-});
+// DEPRECATED 2026-06-06: 'pharma-intel' tab retired (removed from nav). Registration disabled.
+// registerTab('pharma-intel', {
+//   onEnter() { _initAllCompanies(); _addRankingDossierBtns(); }
+// });
 registerTab('industry-insights', {
 
   onEnter() { _iifSyncSidebar(); loadIndustryInsightsFeed(); }
@@ -24424,14 +24432,14 @@ const NAV_ICON_MAP = {
   'home': 'nav-icon-home',
   'industry-insights': 'nav-icon-insights',
   'drugs-know': 'nav-icon-drugs',
-  'pharma-intel': 'nav-icon-pharma',
+  /* DEPRECATED 2026-06-06: 'pharma-intel': 'nav-icon-pharma' (tab retired) */
   'meridian-issue': 'nav-icon-meridian',
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
   'discovery-queue': 'nav-icon-queue',
-  'intelligence': 'nav-icon-intel',
-  'changes-feed': 'nav-icon-changes'
+  'intelligence': 'nav-icon-intel'
+  /* DEPRECATED 2026-06-06: 'changes-feed': 'nav-icon-changes' (Activity Feed retired) */
 };
 function updateNavIconActive(tabId) {
   document.querySelectorAll('.nav-icon-btn').forEach(b => b.classList.remove('active'));
@@ -24515,11 +24523,11 @@ function dknDismissChanges(){
   window._dknCL=null;
 }
 </script>
-<div id="dkn-change-badge" style="display:none;position:fixed;top:66px;right:18px;z-index:9999;cursor:pointer" onclick="dknShowChangelog()" title="Drugs to Know &#8212; recent changes">
+<div id="dkn-change-badge" style="display:none;position:fixed;top:102px;right:18px;z-index:9999;cursor:pointer" onclick="dknShowChangelog()" title="Drugs to Know &#8212; recent changes">
   <div style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;box-shadow:0 2px 8px rgba(220,38,38,.5);border:2px solid #fff">!</div>
   <div id="dkn-badge-count" style="position:absolute;top:-6px;right:-6px;background:#1e3a5f;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 5px;min-width:18px;text-align:center"></div>
 </div>
-<div id="dkn-changelog-modal" style="display:none;position:fixed;top:112px;right:18px;z-index:9998;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:18px;min-width:320px;max-width:400px;border:1px solid #e2e8f0">
+<div id="dkn-changelog-modal" style="display:none;position:fixed;top:148px;right:18px;z-index:9998;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:18px;min-width:320px;max-width:400px;border:1px solid #e2e8f0">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span style="font-weight:700;font-size:14px;color:#1e3a5f">&#128138; Drugs to Know &#8212; Recent Changes</span>
     <button onclick="document.getElementById('dkn-changelog-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;line-height:1">&#215;</button>
