@@ -6893,3 +6893,9 @@ Commit: `1ef569ed`
   - AB001 + SM-101 → new `ambiguous_identity` governance flag (multiple conflicting public identities). [#67]
   - SHR0817 / HLX36 → kept queued with concrete verification path documented. [#59]
   - CALT-100, DAM-51, ETA1001, NVX-360, XB3217 → obscure, await disclosure. [#65 narrowed]
+
+## 2026-06-06 — Header badge overlap + review-queue UX
+
+- **DTK red "!" badge** (dkn-change-badge) moved from top:14px → top:66px (clears the 54px sticky header); changelog modal 60px → 112px. No longer overlaps the date/time. Verified live: badge_clears_header=true.
+- **Needs Your Review queue** now distinguishes *needs-your-decision* (un-adjudicated) from *parked* (adjudicated to HOLD, awaiting external disclosure). Badge is amber "⚑ N to review" only when a decision is genuinely needed; otherwise calm "✓ N parked". Panel shows each parked item's recorded Decision. Verified live: "✓ 3 parked / All clear — nothing needs your judgment."
+- **MK-1695** resolved (#58): Kyle confirmed unfindable → confirmed phantom (Merck anti-TL1A = MK-7240/tulisokibart). Kept hidden, not hard-deleted. ab001/sm-101 (#67) marked parked. Remaining parked: shr0817/hlx36, ab001/sm-101, and 5 obscure codes — all awaiting disclosure.
