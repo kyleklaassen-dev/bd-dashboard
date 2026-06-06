@@ -5769,6 +5769,7 @@ async function _injectAreaFreshness(tabId) {
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. Panes/JS retained but unreachable for the deprecation window. -->
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
+  <button class="nav-icon-btn" id="nav-icon-relationships" onclick="navTo('relationships')" title="Relationships · patient unmet need, company competition & partnerships">🔗</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
@@ -24613,6 +24614,7 @@ const NAV_ICON_MAP = {
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
   'discovery-queue': 'nav-icon-queue',
+  'relationships': 'nav-icon-relationships',
   /* DEPRECATED 2026-06-06: 'changes-feed': 'nav-icon-changes' (Activity Feed retired) */
 };
 function updateNavIconActive(tabId) {
