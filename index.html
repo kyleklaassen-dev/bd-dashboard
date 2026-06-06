@@ -11266,9 +11266,13 @@ function dqRenderStats() {
   // Update pending badge in tab header
   const badge = document.getElementById('dq-pending-badge');
   if (badge) { badge.textContent = counts.pending || ''; badge.style.display = counts.pending ? 'inline-block' : 'none'; }
-  // Update nav badge (red dot for critical pending items)
+  // Update nav badge (red dot for critical pending items) — DEPRECATED node, guarded
   const navBadge = document.getElementById('dq-nav-badge');
   if (navBadge) { navBadge.style.display = byRel.critical > 0 ? 'block' : 'none'; }
+  // NEW 2026-06-06: Needs-Review count badge on the filter button
+  const revBadge = document.getElementById('dq-review-count');
+  const revN = (_dqReviewItems && _dqReviewItems.length) || 0;
+  if (revBadge) { revBadge.textContent = revN; revBadge.style.display = revN ? 'inline-block' : 'none'; }
 
   el.innerHTML = [
     { label: 'Pending Review', val: counts.pending,  color: '#2563eb' },
@@ -11290,6 +11294,19 @@ function dqRender() {
   const empty = document.getElementById('dq-empty');
   const loading = document.getElementById('dq-loading');
   if (!tbody) return;
+
+  // NEW 2026-06-06: "Needs Review" mode renders the unified review surface instead of the discovery table.
+  const _tableWrap  = document.getElementById('dq-table-wrap');
+  const _reviewWrap = document.getElementById('dq-review-wrap');
+  if (_dqStatus === 'review') {
+    if (_tableWrap)  _tableWrap.style.display  = 'none';
+    if (_reviewWrap) _reviewWrap.style.display = 'block';
+    dqRenderReview();
+    return;
+  } else {
+    if (_reviewWrap) _reviewWrap.style.display = 'none';
+    if (_tableWrap)  _tableWrap.style.display  = '';
+  }
 
   const areaF   = document.getElementById('dq-area-filter')?.value  || '';
   const sourceF = document.getElementById('dq-source-filter')?.value || '';
@@ -11434,6 +11451,156 @@ function dqRender() {
 function _esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// NEW 2026-06-06 — Discovery Queue · unified "Needs Review" surface
+// Consolidates the old red Research-Queue pill (research_queue) and the yellow
+// review pill (governance_violations) into one place. Each item carries a
+// SPECIFIC verification question so Kyle knows exactly what is unknown / to check.
+// ════════════════════════════════════════════════════════════════════════════
+let _dqReviewItems = [];
+
+// Build a concrete, human-readable verification question for a review item.
+function _dqReviewQuestion(it) {
+  const n = it.name || 'this item';
+  if (it.kind === 'flag') {
+    switch (it.rule_name) {
+      case 'missing_originator':
+      case 'missing_originator_obscure':
+        return `Who is the originator (developer) company for ${n}?`;
+      case 'mechanism_target_inconsistency':
+      case 'hallucinated_mechanism':
+        return `Is ${n}'s stated mechanism/target correct? A check flagged a mismatch — verify against a primary source.`;
+      case 'trial_id_misattribution':
+        return `Is the trial attributed to ${n} actually for this drug? Verify the NCT ID and sponsor.`;
+      case 'area_misclassification':
+        return `Is ${n} classified in the right disease area? A check flagged a possible misclassification.`;
+      case 'source_does_not_support_claim':
+        return `Does the cited source actually support the claim for ${n}? Re-verify the source.`;
+      case 'misingested_out_of_scope':
+        return `Is ${n} actually in scope for Meridian, or was it mis-ingested?`;
+      case 'ambiguous_identity':
+        return `Which entity does ${n} refer to? Resolve the ambiguous identity.`;
+      default:
+        return it.description ? `Verify: ${it.description}` : `Review the flagged data for ${n}.`;
+    }
+  }
+  // research_queue gap
+  const gap = (it.reason || it.action || '').trim();
+  const pct = (it.completeness != null) ? ` (currently ${Math.round(it.completeness)}% complete)` : '';
+  return gap
+    ? `What's still unknown for ${n}? ${gap}${pct}`
+    : `What key facts is ${n} missing? Verify and complete its profile${pct}.`;
+}
+
+async function _dqLoadReview() {
+  try {
+    const rq = await _loadResearchQueue();   // research_queue (returns array)
+    await _loadReviewQueue();                 // side-effect: populates _reviewNeedsDecision
+    const flags = (_reviewNeedsDecision || []).map(v => ({
+      kind: 'flag',
+      id: v.id,
+      name: (String(v.row_id || '').split(',')[0] || '').trim() || v.table_name || '—',
+      row_id: v.row_id,
+      rule_name: v.rule_name,
+      description: v.description,
+      created_at: v.detected_at,
+    }));
+    const research = (rq || []).map(it => ({
+      kind: 'research',
+      id: it.id,
+      name: it.entity_name || it.entity_id || '—',
+      entity_id: it.entity_id,
+      reason: it.reason,
+      action: it.next_best_action,
+      completeness: it.completeness_score,
+      created_at: it.created_at,
+    }));
+    _dqReviewItems = flags.concat(research);   // data flags first (need judgment), then research gaps
+  } catch(e) {
+    console.warn('dq review load error', e);
+    _dqReviewItems = [];
+  }
+  return _dqReviewItems;
+}
+
+function _dqAge(ts) {
+  if (!ts) return '';
+  const d = Math.floor((Date.now() - new Date(ts)) / 86400000);
+  if (d <= 0) return 'today';
+  if (d === 1) return '1d ago';
+  if (d < 30) return d + 'd ago';
+  return Math.floor(d / 30) + 'mo ago';
+}
+
+function dqRenderReview() {
+  const wrap = document.getElementById('dq-review-wrap');
+  if (!wrap) return;
+  const items = _dqReviewItems || [];
+  if (!items.length) {
+    wrap.innerHTML = `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:48px;text-align:center;color:#94a3b8;font-size:13px">Nothing needs review — the pipeline is up to date. ✅</div>`;
+    return;
+  }
+  const flags    = items.filter(i => i.kind === 'flag');
+  const research = items.filter(i => i.kind === 'research');
+
+  function card(it) {
+    const q = _esc(_dqReviewQuestion(it));
+    const isFlag = it.kind === 'flag';
+    const chip = isFlag
+      ? `<span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#fffbeb;color:#b45309;border:1px solid #fde68a;border-radius:8px;padding:2px 8px">⚑ Data flag</span>`
+      : `<span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:2px 8px">🔍 Research gap</span>`;
+    const links = isFlag
+      ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">${_reviewDrugLinks(it.row_id)}</div>`
+      : `<div style="margin-top:6px"><a href="#" data-trusted="1" onclick="event.preventDefault();openDrugEntityModal('${_esc(it.entity_id)}','${_esc(it.name)}',null)" style="font-size:11px;color:#2563eb;text-decoration:none">${_esc(it.name)}</a> <a href="https://www.google.com/search?q=${encodeURIComponent((it.name || '') + ' drug target mechanism company')}" target="_blank" rel="noopener" data-trusted="1" title="Web-verify" style="font-size:10px;text-decoration:none;padding:1px 5px;border:1px solid #e2e8f0;border-radius:5px;background:#f8fafc;margin-left:4px">🔍</a></div>`;
+    const ctx = isFlag
+      ? (it.description ? `<div style="font-size:11px;color:#64748b;line-height:1.45;margin-top:6px">${_esc(it.description)}</div>` : '')
+      : (it.action ? `<div style="font-size:11px;color:#64748b;line-height:1.45;margin-top:6px"><strong>Suggested step:</strong> ${_esc(it.action)}</div>` : '');
+    const actions = isFlag
+      ? `<button onclick="dqReviewResolve('${it.id}',this)" title="Mark this flag resolved" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:6px;border:none;background:#059669;color:white;cursor:pointer">✓ Resolved</button>`
+      : `<button onclick="_dqResearchNow('${it.id}','${_esc(it.name).replace(/'/g, "\\'")}')" title="Queue this item for the next pipeline run" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:6px;border:1px solid #2563eb;background:white;color:#2563eb;cursor:pointer">▶ Research Now</button>`;
+    return `<div style="background:white;border:1px solid #e2e8f0;border-left:3px solid ${isFlag ? '#f59e0b' : '#3b82f6'};border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">${chip}<span style="font-size:10px;color:#94a3b8;margin-left:auto">${_dqAge(it.created_at)}</span></div>
+      <div style="font-size:13px;font-weight:700;color:#0f172a;line-height:1.4;margin-top:8px">${q}</div>
+      ${links}
+      ${ctx}
+      <div style="margin-top:10px">${actions}</div>
+    </div>`;
+  }
+
+  function section(title, sub, arr) {
+    if (!arr.length) return '';
+    return `<div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:2px">${title} <span style="color:#94a3b8;font-weight:700">· ${arr.length}</span></div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:10px">${sub}</div>
+      ${arr.map(card).join('')}
+    </div>`;
+  }
+
+  wrap.innerHTML =
+    `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#92400e;line-height:1.5">
+       <strong>Everything that needs your eyes, in one place.</strong> Each item asks a specific question — the exact thing Meridian can't confirm on its own. Answer it (verify a source, confirm a company, or queue research) and it clears.
+     </div>` +
+    section('⚑ Data integrity flags', 'A check found something that may be wrong — your judgment decides.', flags) +
+    section('🔍 Research gaps', 'Known unknowns the pipeline can fill — queue them for the next run.', research);
+}
+
+async function dqReviewResolve(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const { error } = await _sb.from('governance_violations')
+      .update({ resolved: true, resolution_notes: 'Resolved via Discovery Queue review ' + new Date().toISOString().slice(0, 10) })
+      .eq('id', id);
+    if (error) throw error;
+    _reviewNeedsDecision = (_reviewNeedsDecision || []).filter(v => v.id !== id);
+    _dqReviewItems = _dqReviewItems.filter(x => !(x.kind === 'flag' && x.id === id));
+    dqRenderStats();
+    dqRender();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Resolved'; }
+    alert('Could not mark resolved (writes may be restricted): ' + (e.message || e));
+  }
 }
 
 async function dqAction(id, newStatus, extraPatch = null) {
@@ -29706,14 +29873,22 @@ document.addEventListener('DOMContentLoaded', function(){
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:16px;font-weight:900;color:white;letter-spacing:-0.3px">Intelligence Feed</div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px">Realizations from enrichment sessions · Pending decisions for review</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic">All new platform intelligence, findings, and proposed metrics appear here first before promotion to main dashboards.</div>
+        <div style="font-size:11.5px;color:rgba(255,255,255,0.72);margin-top:3px;font-weight:600">What's new and what needs attention — in one scan.</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px;font-style:italic">Upcoming catalysts, the biggest BD openings, who to prioritize, and the latest things Meridian has learned.</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span id="intel-session-badge" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);color:white;padding:3px 10px;border-radius:10px;letter-spacing:0.3px">Session 61</span>
         <button onclick="loadIntelFeed(true)" style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 12px;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.12)'">↺ Refresh</button>
       </div>
     </div>
+  </div>
+
+  <!-- NEW 2026-06-06: reading guide — orients the eye to the four things on this tab so value is obvious at a glance -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;background:#0d1f38;padding:10px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.06)">
+    <a href="#bd-approvals-section" onclick="document.getElementById('bd-approvals-section')?.scrollIntoView({behavior:'smooth',block:'start'});return false;" style="flex:1 1 160px;text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 11px"><div style="font-size:11px;font-weight:800;color:#fff">📅 Catalysts</div><div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:1px">What's about to happen</div></a>
+    <a href="#bd-gaps-section" onclick="document.getElementById('bd-gaps-section')?.scrollIntoView({behavior:'smooth',block:'start'});return false;" style="flex:1 1 160px;text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 11px"><div style="font-size:11px;font-weight:800;color:#fff">⚠ BD Gaps</div><div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:1px">Where the openings are</div></a>
+    <a href="#bd-rankings-section" onclick="document.getElementById('bd-rankings-section')?.scrollIntoView({behavior:'smooth',block:'start'});return false;" style="flex:1 1 160px;text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 11px"><div style="font-size:11px;font-weight:800;color:#fff">📊 Rankings</div><div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:1px">Who to prioritize</div></a>
+    <a href="#" onclick="document.querySelector('#tab-intelligence .intel-feed-left')?.scrollIntoView({behavior:'smooth',block:'start'});return false;" style="flex:1 1 160px;text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 11px"><div style="font-size:11px;font-weight:800;color:#fff">🧠 Realizations</div><div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:1px">What Meridian just learned</div></a>
   </div>
 
   <!-- ── Near-Term Approvals & Watch List ── -->
