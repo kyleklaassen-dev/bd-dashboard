@@ -13369,36 +13369,54 @@ async function _loadMeridianNarrative(drugId) {
   try {
     const base = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'https://tghntyofptvfhmtchwcv.supabase.co') + '/rest/v1';
     const hdr  = { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON };
-    const nRes = await fetch(base + '/entity_narratives?entity_type=eq.drug&entity_id=eq.' + encodeURIComponent(drugId) + '&section=eq.overview&select=id,body_md,confidence,generated_at,stale&limit=1', { headers: hdr });
-    const narr = (await nRes.json())[0];
-    if (!narr || !narr.body_md) return;
-    const pRes = await fetch(base + '/narrative_provenance?narrative_id=eq.' + narr.id + '&select=claim_index,claim_text,source_url,source_table&order=claim_index', { headers: hdr });
-    const prov = await pRes.json().catch(() => []);
-    const esc  = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    // [n] -> superscript chip
-    const body = esc(narr.body_md).replace(/\s*\[(\d+)\]/g, (m, n) =>
-      `<sup style="color:#2563eb;font-weight:700;font-size:9px;cursor:default" title="Source ${n}">${n}</sup>`);
-    const foot = (Array.isArray(prov) ? prov : []).map((p) => {
+    const secs = await (await fetch(base + '/entity_narratives?entity_type=eq.drug&entity_id=eq.' + encodeURIComponent(drugId) + '&section=in.(overview,intelligence)&select=id,section,body_md,generated_at,stale', { headers: hdr })).json();
+    if (!Array.isArray(secs) || !secs.length) return;
+    const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // markdown -> html: section headers, bold, italic, and citation chips ([n], [n,m], [n–m]).
+    const renderBody = md => {
+      let h = esc(md);
+      h = h.replace(/\s*\[([\d,–—\- ]+)\]/g, (m, g) => `<sup style="color:#2563eb;font-weight:700;font-size:9px">[${g.replace(/\s/g, '')}]</sup>`);
+      h = h.replace(/^###\s+(.*)$/gm, '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin:9px 0 3px">$1</div>');
+      h = h.replace(/^##\s+(.*)$/gm, '<div style="font-size:12.5px;font-weight:700;color:#1e293b;margin:3px 0 6px">$1</div>');
+      h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      h = h.replace(/^_(.*)_\s*$/gm, '<em style="color:#6d28d9;font-style:italic">$1</em>');
+      return h.split(/\n{2,}/).map(p => p.trim().match(/^<(div|em)/)
+        ? p : `<p style="font-size:12px;color:#1e293b;line-height:1.7;margin:0 0 7px">${p.replace(/\n/g, ' ')}</p>`).join('');
+    };
+    const provFor = async id => await (await fetch(base + '/narrative_provenance?narrative_id=eq.' + id + '&select=claim_index,claim_text,source_url,source_table&order=claim_index', { headers: hdr })).json().catch(() => []);
+    const foot = prov => (Array.isArray(prov) ? prov : []).map(p => {
       const dom = p.source_url ? (p.source_url.split('/')[2] || 'source') : (p.source_table || 'graph');
-      const src = p.source_url
-        ? `<a href="${p.source_url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none">${dom}↗</a>`
-        : `<span style="color:#64748b">${dom}</span>`;
+      const src = p.source_url ? `<a href="${p.source_url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none">${dom}↗</a>` : `<span style="color:#64748b">${dom}</span>`;
       return `<li style="margin:2px 0;font-size:10px;color:#475569"><b style="color:#94a3b8">[${p.claim_index}]</b> ${esc(p.claim_text).slice(0, 96)} — ${src}</li>`;
     }).join('');
-    const when  = (narr.generated_at || '').slice(0, 10);
-    const stale = narr.stale
-      ? `<span style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase">Stale</span>` : '';
-    host.innerHTML =
-      `<div style="background:linear-gradient(180deg,#fbfcff,#f6f8ff);border:1px solid #dbe4ff;border-left:3px solid #4f6ef7;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    const ov = secs.find(s => s.section === 'overview');
+    const an = secs.find(s => s.section === 'intelligence');
+    let html = '';
+    if (ov && ov.body_md) {
+      const prov = await provFor(ov.id);
+      html += `<div style="background:linear-gradient(180deg,#fbfcff,#f6f8ff);border:1px solid #dbe4ff;border-left:3px solid #4f6ef7;border-radius:8px;padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
           <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#4f46e5">📖 Meridian Narrative</span>
           <span style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase" title="Generated from the knowledge graph; every clause cites a source.">Derived · Cited</span>
-          ${stale}
-          <span style="margin-left:auto;font-size:9px;color:#94a3b8">${when}</span>
+          ${ov.stale ? '<span style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase">Stale</span>' : ''}
+          <span style="margin-left:auto;font-size:9px;color:#94a3b8">${(ov.generated_at || '').slice(0, 10)}</span>
         </div>
-        <p style="font-size:12px;color:#1e293b;line-height:1.7;margin:0">${body}</p>
-        ${foot ? `<details style="margin-top:8px"><summary style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;cursor:pointer">Sources (${(prov||[]).length})</summary><ul style="margin:6px 0 0;padding-left:4px;list-style:none">${foot}</ul></details>` : ''}
+        ${renderBody(ov.body_md)}
+        ${foot(prov) ? `<details style="margin-top:8px"><summary style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;cursor:pointer">Sources (${prov.length})</summary><ul style="margin:6px 0 0;padding-left:4px;list-style:none">${foot(prov)}</ul></details>` : ''}
       </div>`;
+    }
+    if (an && an.body_md) {
+      const prov = await provFor(an.id);
+      html += `<div style="background:linear-gradient(180deg,#fcfbff,#f8f5ff);border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#6d28d9">🧭 Meridian Analysis</span>
+          <span style="background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800;text-transform:uppercase" title="Interpretation by Meridian, grounded in the cited facts. Not a sourced fact.">Interpretation</span>
+        </div>
+        ${renderBody(an.body_md)}
+        ${foot(prov) ? `<details style="margin-top:8px"><summary style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;cursor:pointer">Basis (${prov.length} facts)</summary><ul style="margin:6px 0 0;padding-left:4px;list-style:none">${foot(prov)}</ul></details>` : ''}
+      </div>`;
+    }
+    host.innerHTML = html;
   } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
 }
 
