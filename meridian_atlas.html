@@ -149,8 +149,12 @@ function tab(t){['stack','value','gaps'].forEach(x=>document.getElementById('t-'
   if(t==='stack')renderStack();else if(t==='value')renderValue();else renderGaps();}
 function renderStack(){
   let h='<h2>The Meridian stack — sources to strategy</h2><div class="stack"><div>';
-  LAYERS.forEach((L,i)=>{const[name,metric,status,gap]=L;const ng=jumpMap[name]?GAPS.filter(g=>jumpMap[name].includes(g[1])).length:0;
-    h+=`<div class="layer" style="border-left-color:${LCOL[name]}" onclick="jumpToLayer('${name}')" title="See this layer's gaps"><div class="ln">${name}</div><div class="lm">${metric}<div class="muted" style="font-size:11px">${gap}</div></div><span class="lg" style="background:${SCOL[status]}22;color:${SCOL[status]}">${status}</span><span class="muted small" style="margin-left:10px;white-space:nowrap">${ng} gaps →</span></div>`;
+  LAYERS.forEach((L,i)=>{const[name,metric,status,gap]=L;
+    const layerGaps=jumpMap[name]?GAPS.filter(g=>jumpMap[name].includes(g[1])):[];
+    const nOpen=layerGaps.filter(g=>g[3]!=='FIXED').length, nFixed=layerGaps.filter(g=>g[3]==='FIXED').length;
+    const gapTxt=nOpen?`${nOpen} open →`:(nFixed?`✓ all fixed →`:`— →`);
+    const gapCol=nOpen?'var(--mut)':'var(--good)';
+    h+=`<div class="layer" style="border-left-color:${LCOL[name]}" onclick="jumpToLayer('${name}')" title="${nOpen} open · ${nFixed} fixed — click to see this layer's gaps"><div class="ln">${name}</div><div class="lm">${metric}<div class="muted" style="font-size:11px">${gap}</div></div><span class="lg" style="background:${SCOL[status]}22;color:${SCOL[status]}">${status}</span><span class="small" style="margin-left:10px;white-space:nowrap;color:${gapCol}">${gapTxt}</span></div>`;
     if(i<LAYERS.length-1)h+='<div class="arrow">↓</div>';});
   h+='</div><div>';
   h+='<h2 style="margin-top:0">Cross-cutting</h2>';

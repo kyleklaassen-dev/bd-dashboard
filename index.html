@@ -3121,9 +3121,12 @@ async function _loadReviewQueue() {
 document.addEventListener('DOMContentLoaded', _loadReviewQueue);
 
 function _reviewDrugLinks(rowId) {
-  // row_id may be a comma-list of drug ids; render each as a link that opens the drug modal
+  // row_id may be a comma-list of drug ids; each: open-card link + 🔍 web-verify
   return String(rowId||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,12).map(id =>
-    `<a href="#" data-trusted="1" onclick="event.preventDefault();closeReviewPanel();openDrugEntityModal('${id}','${id}',null)" style="font-size:11px;color:#2563eb;text-decoration:none;border:1px solid #e2e8f0;border-radius:6px;padding:1px 6px;white-space:nowrap">${id}</a>`
+    `<span style="display:inline-flex;align-items:center;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">`
+    + `<a href="#" data-trusted="1" onclick="event.preventDefault();closeReviewPanel();openDrugEntityModal('${id}','${id}',null)" style="font-size:11px;color:#2563eb;text-decoration:none;padding:1px 6px;white-space:nowrap">${id}</a>`
+    + `<a href="https://www.google.com/search?q=${encodeURIComponent(id+' drug target mechanism company')}" target="_blank" rel="noopener" data-trusted="1" title="Web-verify ${id}" style="font-size:10px;text-decoration:none;padding:1px 5px;border-left:1px solid #e2e8f0;background:#f8fafc">🔍</a>`
+    + `</span>`
   ).join(' ');
 }
 function openReviewPanel() {
@@ -5279,7 +5282,7 @@ async function _injectAreaFreshness(tabId) {
       <button class="health-panel-close" aria-label="Close" onclick="closeReviewPanel()">×</button>
     </div>
     <div class="health-summary-line" id="review-summary">Loading…</div>
-    <div class="health-checked">Items flagged for your judgment — verify the source, then resolve. Claude doesn't auto-edit these.</div>
+    <div class="health-checked">To resolve: ① click a drug to open its card, or 🔍 to web-verify · ② tell Claude the correct value (it fixes + sources it) or edit in Supabase. The dashboard is read-only (public key), so resolution happens via Claude or Supabase — not a button here.</div>
     <div id="review-list"></div>
   </div>
 </div>
