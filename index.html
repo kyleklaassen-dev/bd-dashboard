@@ -32554,9 +32554,9 @@ async function _gsSbSearch(term) {
         .neq('source_validation_status','invalid')
         .order('published_at', { ascending: false }).limit(8),
       _sb.from('indication_patient_intelligence')
-        .select('indication_name,patient_count,unmet_need_summary,key_patient_insight')
+        .select('indication_name,patient_count_us,unmet_need_narrative,why_it_matters')
         .ilike('indication_name', '%' + esc + '%')
-        .limit(2),
+        .limit(3),
       // Wave 2d: match prior/code names via drug_aliases (e.g. "AMG 729" → obexelimab)
       _sb.from('drug_aliases')
         .select('canonical_id,alias_name')
@@ -32663,7 +32663,7 @@ async function _gsSbSearch(term) {
     if (patIntel.length) {
       html += '<div class="gs-sb-section-hd">Patient Intelligence (' + patIntel.length + ')</div>';
       patIntel.forEach(function(p) {
-        var summary = p.unmet_need_summary || p.key_patient_insight || '';
+        var summary = p.unmet_need_narrative || p.why_it_matters || '';
         if (summary.length > 160) summary = summary.slice(0, 157) + '…';
         html += '<div class="gs-patient-row">' +
           '<div class="gs-patient-label">👥 Patient Intelligence · ' + (p.indication_name||'') + '</div>' +
