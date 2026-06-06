@@ -57,6 +57,11 @@ def score_drug(did):
     trials = get(f"trials?drug_id=eq.{did}&select=id")
     govs = get(f"governance_violations?row_id=eq.{did}&resolved=eq.false&select=rule_name")
     cats = get(f"catalysts?drug_id=eq.{did}&select=label")
+    # independence + agreement signals (v74/v75)
+    indep = get(f"narrative_independence?entity_id=eq.{did}&entity_type=eq.drug"
+                "&select=claims,multi_domain_claims,independent_claims,peer_reviewed_claims")
+    vconf = get(f"narrative_value_conflicts?drug_id=eq.{did}&select=metric")
+    gaps = get(f"source_collection_gaps?entity_id=eq.{did}&entity_type=eq.drug&select=gap_type")
 
     score, brk = 100, []
     def hit(pts, why):
@@ -93,13 +98,31 @@ def score_drug(did):
     if dups:
         hit(min(8, 2 * dups), f"{dups} duplicate catalyst row(s)")
 
+    # value disagreements — same metric/timepoint/dose, divergent numbers (v74)
+    if vconf:
+        hit(min(12, 4 * len(vconf)), f"{len(vconf)} unresolved value conflict(s)")
+
+    # source independence — does anything beyond sponsor/registry back the claims? (v74)
+    # Only assessable once a narrative exists; uses the best section.
+    best = max(indep, key=lambda r: (r.get("peer_reviewed_claims", 0),
+                                     r.get("independent_claims", 0)), default=None) if indep else None
+    if best:
+        if best.get("peer_reviewed_claims", 0) == 0 and confirmed:
+            hit(6, "no peer-reviewed/regulatory source backs any claim")
+        elif best.get("independent_claims", 0) == 0:
+            hit(3, "no independently-corroborated claim (sponsor/registry only)")
+
     score = max(0, score)
     grade = ("A" if score >= 90 else "B" if score >= 75 else "C" if score >= 60 else
              "D" if score >= 40 else "F")
     return {"drug_id": did, "score": score, "grade": grade,
             "breakdown": {"name": d.get("display_name"), "deductions": brk,
                           "confirmed_sources": len(confirmed), "trials": len(trials),
-                          "open_governance": len(govs)}}
+                          "open_governance": len(govs),
+                          "independent_claims": (best or {}).get("independent_claims", 0),
+                          "peer_reviewed_claims": (best or {}).get("peer_reviewed_claims", 0),
+                          "value_conflicts": len(vconf),
+                          "collection_gaps": len(gaps)}}
 
 
 def main():
