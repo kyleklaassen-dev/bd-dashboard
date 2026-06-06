@@ -20,7 +20,8 @@ from datetime import datetime, timezone
 
 SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 WORK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KEY = open(os.path.join(WORK, ".supabase_service_key")).read().strip()
+KEY = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+       or open(os.path.join(WORK, ".supabase_service_key")).read().strip())
 
 
 def _req(method, ep, data=None, prefer=None):

@@ -22,7 +22,8 @@ from urllib.parse import quote
 
 SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KEY = open(os.path.join(WORKSPACE, ".supabase_service_key")).read().strip()
+KEY = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+       or open(os.path.join(WORKSPACE, ".supabase_service_key")).read().strip())
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 UA = "meridian-trial-identity/1.0"

@@ -51,12 +51,15 @@ SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _read_key(filename):
+def _read_key(filename, env=None):
+    # env var first (CI / GitHub Actions secrets), then the local workspace file.
+    if env and os.environ.get(env, "").strip():
+        return os.environ[env].strip()
     with open(os.path.join(WORKSPACE, filename)) as f:
         return f.read().strip()
 
 
-SUPA_KEY = _read_key(".supabase_service_key")
+SUPA_KEY = _read_key(".supabase_service_key", "SUPABASE_SERVICE_KEY")
 
 # Drugs columns the overview recipe is allowed to look at (candidate structured atoms).
 # Each is admitted to the ASSERTED set only if a confirmed source corroborates it.

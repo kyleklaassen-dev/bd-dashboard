@@ -34,28 +34,45 @@ def main():
     ap.add_argument("--area", required=True)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--sections", default="overview,intelligence")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="skip drugs that already have all requested sections (resumable chunking)")
+    ap.add_argument("--no-crosswalk", action="store_true", help="skip the area-wide ct.gov enrich step")
+    ap.add_argument("--finalize-only", action="store_true",
+                    help="skip per-drug; just run landscape + trust + queue")
     args = ap.parse_args()
     secs = [s for s in args.sections.split(",") if s]
 
     ids = sorted({r["drug_id"] for r in
                   get(f"drug_targets?target_id=eq.{args.area}&select=drug_id") if r.get("drug_id")})
-    if args.limit:
-        ids = ids[:args.limit]
-    print(f"Batch narrative generation — area={args.area}, {len(ids)} drugs, sections={secs}\n")
 
-    # Refresh the study-identity resolver + trial→publication crosswalk FIRST, so
-    # triangulation runs against current ct.gov aliases/publications (v73).
-    print("Trial-identity + publication crosswalk:")
-    run(["scripts/enrich_trial_identity.py", "--area", args.area])
+    if not args.finalize_only:
+        if not args.no_crosswalk:
+            print("Trial-identity + publication crosswalk:")
+            run(["scripts/enrich_trial_identity.py", "--area", args.area])
 
-    ok = fail = 0
-    for did in ids:
-        for sec in secs:
-            if run(["scripts/narrative_gen.py", "--drug-id", did, "--section", sec, "--composer", "llm"]):
-                ok += 1
-            else:
-                fail += 1
-    print(f"\nper-drug narratives: {ok} ok, {fail} failed")
+        todo = ids
+        if args.skip_existing:
+            have = {(r["entity_id"], r["section"]) for r in
+                    get(f"entity_narratives?entity_type=eq.drug&select=entity_id,section"
+                        f"&entity_id=in.({','.join(ids)})")}
+            todo = [d for d in ids if any((d, s) not in have for s in secs)]
+        if args.limit:
+            todo = todo[:args.limit]
+        print(f"Batch narrative generation — area={args.area}, "
+              f"{len(todo)}/{len(ids)} drugs to do, sections={secs}\n")
+
+        ok = fail = 0
+        for did in todo:
+            for sec in secs:
+                if run(["scripts/narrative_gen.py", "--drug-id", did, "--section", sec, "--composer", "llm"]):
+                    ok += 1
+                else:
+                    fail += 1
+        print(f"\nper-drug narratives: {ok} ok, {fail} failed")
+        if args.limit:
+            print("(chunk done; re-run with --skip-existing --limit N to continue, "
+                  "then --finalize-only at the end)")
+            return
 
     print("\nLandscape narrative:")
     run(["scripts/landscape_narrative.py", "--target", args.area])
