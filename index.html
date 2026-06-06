@@ -30885,9 +30885,9 @@ async function ontInspectArea(id, btn) {
 
   // 1. Drugs in this area (drug_area_scores)
   const { data: dasData } = await _sb.from('drug_area_scores')
-    .select('drug_id, overlap, score')
+    .select('drug_id, overlap, score:strategic_value_score')
     .eq('area_id', id)
-    .order('score', { ascending: false })
+    .order('strategic_value_score', { ascending: false })
     .limit(60);
 
   const drugIds = (dasData||[]).map(d => d.drug_id);
@@ -30898,7 +30898,7 @@ async function ontInspectArea(id, btn) {
   let drugRows = [];
   if (drugIds.length > 0) {
     const { data } = await _sb.from('drugs')
-      .select('id, name, company, mechanism, modality, stage')
+      .select('id, name, company:company_id, mechanism, modality, stage')
       .in('id', drugIds);
     drugRows = data || [];
     // Preserve drug_area_scores order (by score desc)
@@ -31759,23 +31759,23 @@ async function loadApprovalsWatchList() {
     // Try failure cascade watch items
     const { data: cascades } = await _sb
       .from('drug_failure_cascade')
-      .select('drug_id,cascade_type,rationale,severity,drugs(name,brand_name,company_id,companies!company_id(name))')
+      .select('affected_drug_name,affected_company,cascade_type,impact_rationale')
       .eq('cascade_type', 'mechanism_validation')
       .limit(10);
 
     if (cascades && cascades.length) {
       const watchNames = new Set(watchItems.map(x => x.name.toLowerCase()));
       cascades.forEach(c => {
-        const d = c.drugs;
-        if (!d) return;
-        if (!watchNames.has((d.name||'').toLowerCase())) {
+        const nm = c.affected_drug_name;
+        if (!nm) return;
+        if (!watchNames.has(nm.toLowerCase())) {
           watchItems.push({
-            name: d.name,
-            brand_name: d.brand_name || null,
-            company: d.companies?.name || d.company_id || '',
-            watch_notes: c.rationale || 'Mechanism validation risk — class under scrutiny',
-            cascade_rationale: c.rationale || '',
-            severity: c.severity || 'medium'
+            name: nm,
+            brand_name: null,
+            company: c.affected_company || '',
+            watch_notes: c.impact_rationale || 'Mechanism validation risk — class under scrutiny',
+            cascade_rationale: c.impact_rationale || '',
+            severity: 'medium'
           });
         }
       });
