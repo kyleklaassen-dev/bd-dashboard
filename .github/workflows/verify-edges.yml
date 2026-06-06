@@ -1,0 +1,38 @@
+name: Verify Competitor Edges
+
+# Rule-verifies direct_competitor edges whose two drugs share a confirmed disease
+# area (drug_areas) — confirmable competition, not an unverifiable guess. Took the
+# graph from 0% → ~88% verified on the competitor layer. Idempotent; runs after the
+# nightly scoring so freshly-created edges get rule-checked.
+on:
+  schedule:
+    - cron: "0 11 * * *"   # 7 AM ET daily
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Count without writing"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: verify-edges
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rule-verify competitor edges
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python scripts/verify_competitor_edges.py $ARGS
