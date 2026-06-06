@@ -78,6 +78,8 @@ def main():
 
     print("\nLandscape narrative:")
     run(["scripts/landscape_narrative.py", "--target", args.area])
+    print("\nStrategic brief (decision layer):")
+    run(["scripts/strategic_brief.py", "--area", args.area])
     print("\nTrust scores:")
     run(["scripts/compute_trust_score.py", "--area", args.area, "--apply"])
     print("\nCollection queue sync:")
