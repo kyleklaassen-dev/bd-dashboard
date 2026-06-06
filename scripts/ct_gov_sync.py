@@ -370,7 +370,20 @@ def validate_drug_field_consistency(drug: dict) -> list[str]:
     if is_combo:
         return warnings  # combination drugs have intentional mixed fields
 
-    is_target_bispecific  = "×" in target
+    def _has_bispecific_sep(t):
+        # Recognize the multiple delimiters real target data uses, not just "×":
+        #   "×" / "/"  ·  spaced " x " (CD5 x CD3, IL-4Ra x TSLP)  ·  compact AxB (CD19xCD3)
+        if not t:
+            return False
+        if "×" in t or "/" in t:
+            return True
+        if _re2.search(r'\s[xX]\s', t):
+            return True
+        if _re2.search(r'[A-Za-z0-9]x[A-Z0-9]', t):   # CD19xCD3 — x between token end and an UPPER/digit
+            return True
+        return False
+
+    is_target_bispecific  = _has_bispecific_sep(target)
     is_format_bispecific  = "bispecific" in drug_format or "trispecific" in drug_format
     is_format_mono        = drug_format in ("mab", "antibody") and not is_format_bispecific
     is_mechanism_bispecific = "bispecific" in mechanism.lower() or "trispecific" in mechanism.lower()
@@ -388,14 +401,14 @@ def validate_drug_field_consistency(drug: dict) -> list[str]:
             f"but mechanism='{mechanism[:60]}' implies monospecific."
         )
 
-    if is_format_bispecific and target and "×" not in target and "/" not in target:
+    if is_format_bispecific and target and not _has_bispecific_sep(target):
         warnings.append(
             f"[field_conflict] drug '{did}': drug_format='{drug_format}' but "
             f"target='{target}' has no bispecific separator (× or /). "
             f"Check whether target field is complete."
         )
 
-    if is_mechanism_bispecific and target and "×" not in target and "/" not in target and target:
+    if is_mechanism_bispecific and target and not _has_bispecific_sep(target):
         warnings.append(
             f"[field_conflict] drug '{did}': mechanism implies bispecific "
             f"but target='{target}' shows only one target. Add second target to target field."
