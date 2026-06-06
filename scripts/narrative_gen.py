@@ -122,7 +122,8 @@ def fetch_recipe(drug_id):
             patients += get("indication_patient_intelligence?indication_name=eq."
                             + quote(nm) + "&select=indication_name,patient_count_us,"
                             "patient_count_global,biologic_failure_rate_pct,unmet_need_score,"
-                            "unmet_need_narrative,source_urls")
+                            "unmet_need_narrative,treatment_cascade,patient_reported_priorities,"
+                            "source_urls")
 
     # Competitor depth — other agents hitting the same primary target.
     competitors = []
@@ -148,6 +149,12 @@ def fetch_recipe(drug_id):
         "patients": patients,
         "competitors": competitors,
         "primary_target": prim,
+        # Strategic depth — ownership, molecule, escape biology, the clock.
+        "deals": get(f"deals?drug_id=eq.{drug_id}"),
+        "molecule": get(f"molecule_intelligence?drug_id=eq.{drug_id}"),
+        "non_responder": get(f"non_responder_profiles?drug_id=eq.{drug_id}"),
+        "catalysts": get(f"catalysts?drug_id=eq.{drug_id}&catalyst_status=neq.resolved"
+                         "&order=sort_date.asc&limit=8"),
     }
 
 
@@ -299,6 +306,25 @@ def extract_atoms(recipe, known_companies=None):
             "claim": claim, "kind": "external_confirmed" if su0 else "structured_confirmed",
             "confidence": "confirmed" if su0 else "inferred", "source_url": su0,
             "source_table": "indication_patient_intelligence", "source_row_id": str(nm)})
+        # Patient journey — treatment cascade + what patients prioritize.
+        casc = pt.get("treatment_cascade")
+        prio = pt.get("patient_reported_priorities")
+        jbits = []
+        if isinstance(casc, dict):
+            soc = casc.get("soc_drugs")
+            if soc:
+                jbits.append(f"standard of care: {str(soc)[:110]}")
+        elif casc:
+            jbits.append(f"treatment cascade: {str(casc)[:110]}")
+        if isinstance(prio, list) and prio:
+            jbits.append("patient priorities: " + ", ".join(str(x) for x in prio[:3]))
+        elif prio:
+            jbits.append(f"patient priorities: {str(prio)[:90]}")
+        if jbits:
+            asserted.append({
+                "claim": f"{nm} patient journey — " + "; ".join(jbits),
+                "kind": "structured_confirmed", "confidence": "inferred", "source_url": su0,
+                "source_table": "indication_patient_intelligence", "source_row_id": str(nm) + ":journey"})
 
     # --- Tier 2.7: COMPETITIVE LANDSCAPE (same primary target) ----------------
     comps = recipe.get("competitors", []) or []
@@ -318,6 +344,62 @@ def extract_atoms(recipe, known_companies=None):
             claim = (f"competing {tgt} agent {nm}" + (f" ({co})" if co else "")
                      + (f" is in {st}" if st else "") + (f" [{nct}]" if nct else ""))
             _clin_atom(claim, c.get("source_url"), "drugs", c.get("id"))
+
+    # --- Tier 2.8: DEAL / OWNERSHIP (precedent valuation) --------------------
+    for d in recipe.get("deals", []) or []:
+        to, frm = d.get("to_company"), d.get("from_company")
+        typ = (d.get("deal_type") or "deal").replace("_", " ")
+        tot = d.get("total_usd_m")
+        when = d.get("deal_date_label") or (str(d.get("deal_date") or "")[:4])
+        if not to:
+            continue
+        amt = f" for ${int(float(tot)):,}M" if tot else ""
+        claim = (f"Owned by {to} — {to} obtained the asset via {typ}"
+                 + (f" of {frm}" if frm else "") + amt + (f" ({when})" if when else ""))
+        _clin_atom(claim, d.get("source_url"), "deals", d.get("id"))
+
+    # --- Tier 2.9: MOLECULE CHARACTERIZATION ---------------------------------
+    for m in (recipe.get("molecule", []) or [])[:1]:
+        bits = [m.get("format"), m.get("valency")]
+        fc = m.get("fc_engineering")
+        ep = m.get("epitope")
+        claim = "Molecule: " + ", ".join([b for b in bits if b])
+        if fc:
+            claim += f"; Fc: {fc}"
+        if ep:
+            claim += f"; epitope: {ep.split(';')[0][:90]}"
+        asserted.append({"claim": claim, "kind": "structured_confirmed", "confidence": "inferred",
+                         "source_url": m.get("source_url"), "source_table": "molecule_intelligence",
+                         "source_row_id": str(m.get("id"))})
+
+    # --- Tier 3.0: ESCAPE BIOLOGY (target engagement ≠ efficacy) -------------
+    for nr in (recipe.get("non_responder", []) or [])[:1]:
+        rate = nr.get("non_responder_rate_pct")
+        esc = nr.get("active_escape_pathways")
+        esc_s = ", ".join(esc[:4]).replace("_", " ") if isinstance(esc, list) else ""
+        txt = (nr.get("escape_mechanism_text") or "").split(".")[0]
+        claim = "Target-engagement vs efficacy: " + (txt[:150] if txt else "")
+        if rate:
+            claim += f" (~{rate}% non-responders)"
+        if esc_s:
+            claim += f"; escape pathways: {esc_s}"
+        asserted.append({"claim": claim, "kind": "structured_confirmed", "confidence": "inferred",
+                         "source_url": nr.get("source_url"), "source_table": "non_responder_profiles",
+                         "source_row_id": str(nr.get("id"))})
+
+    # --- Tier 3.1: CATALYST CLOCK (next readouts) ----------------------------
+    seen_cat = set()
+    for c in recipe.get("catalysts", []) or []:
+        lbl = (c.get("label") or "").split("—")[0].strip()
+        key = lbl[:40].lower()
+        if not lbl or key in seen_cat:
+            continue
+        seen_cat.add(key)
+        when = c.get("catalyst_date")
+        claim = (f"Upcoming catalyst" + (f" ({when})" if when else "") + f": {lbl[:90]}")
+        _clin_atom(claim, c.get("source_url"), "catalysts", c.get("id"))
+        if len(seen_cat) >= 3:
+            break
 
     # dedup atoms by claim text (benchmarks table has duplicate rows)
     seen, deduped = set(), []
@@ -433,10 +515,12 @@ COMPOSE_SYSTEM = (
     "stated verbatim in an atom. Every clause that asserts a fact must carry an inline "
     "[n] citation; if you cannot cite a clause, delete it. Do not mention any identifier "
     "or fact in the SCRUB list. Be substantive and structured: when the atoms contain them, "
-    "include (a) the patient population / unmet need, (b) efficacy numbers with comparators "
-    "and trial phases/indications, (c) PK, and (d) the primary competitors with their stage. "
-    "End with one sentence of positioning that draws ONLY on the cited facts (e.g. how this "
-    "asset's stage compares to competitors) — no new facts. Keep it under 300 words."
+    "include, when the atoms provide them: (a) patient population / unmet need + who fails "
+    "current therapy, (b) the molecule (format, target, differentiation), (c) efficacy with "
+    "comparators and any target-engagement-vs-efficacy gap, (d) PK, (e) ownership / deal "
+    "value, (f) the primary competitors with stage, and (g) the next catalyst and date. "
+    "Organize with short markdown section headers. End with one sentence of positioning that "
+    "draws ONLY on the cited facts — no new facts. Keep it under 380 words."
 )
 
 
