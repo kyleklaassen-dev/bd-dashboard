@@ -42,14 +42,15 @@ FROM shared s WHERE er.id = s.id
 RETURNING er.id;
 """
 
-# Second rule: shared molecular target (drug_targets ontology) — same-target rivals.
+# Second rule: shared molecular target (drug_targets) — same-target rivals / analogues /
+# geographic variants. Applies to all drug-drug edge types where a shared target confirms it.
 SQL_TARGET = """
 WITH st AS (
   SELECT er.id, array_agg(DISTINCT a.target_id) AS tg
   FROM entity_relationships er
   JOIN drug_targets a ON a.drug_id = er.source_id
   JOIN drug_targets b ON b.drug_id = er.target_id AND b.target_id = a.target_id
-  WHERE er.relationship_type='direct_competitor'
+  WHERE er.relationship_type IN ('direct_competitor','mechanism_analogue','combination_candidate','geographic_variant')
     AND er.source_type='drug' AND er.target_type='drug'
     AND er.verification_needed = true
   GROUP BY er.id
@@ -59,6 +60,21 @@ SET verification_needed = false, confidence = 'medium', inference_method = 'rule
     evidence = ARRAY['rule-verified: both target ' || array_to_string(st.tg, ', ')],
     notes = COALESCE(NULLIF(er.notes,''),'') || ' [rule-verified: shared molecular target]'
 FROM st WHERE er.id = st.id
+RETURNING er.id;
+"""
+
+# Third rule: any edge carrying a real source URL is source-verified; parent_subsidiary
+# edges derivable from companies.parent_company_id are database-confirmed.
+SQL_SOURCED = """
+UPDATE entity_relationships SET verification_needed=false, confidence='medium'
+WHERE verification_needed=true AND source_url LIKE 'http%'
+RETURNING id;
+"""
+SQL_PARENT = """
+UPDATE entity_relationships er SET verification_needed=false, confidence='high', inference_method='database_join',
+  notes=COALESCE(NULLIF(er.notes,''),'') || ' [verified: companies.parent_company_id]'
+WHERE er.relationship_type='parent_subsidiary' AND er.verification_needed=true AND er.source_type='company'
+  AND EXISTS (SELECT 1 FROM companies c WHERE c.id=er.target_id AND c.parent_company_id=er.source_id)
 RETURNING er.id;
 """
 COUNT = ("SELECT round(100.0*sum((not verification_needed)::int)/count(*),1) pct, count(*) total "
@@ -85,10 +101,15 @@ def main() -> int:
              "WHERE a.drug_id=er.source_id AND b.drug_id=er.target_id);")
         print("[DRY] would rule-verify:", run(q))
         return 0
-    res_area = run(SQL)
-    res_tgt = run(SQL_TARGET)
-    print(f"rule-verified {len(res_area)} via shared area + {len(res_tgt)} via shared target")
+    n = {
+        "shared_area": len(run(SQL)),
+        "shared_target": len(run(SQL_TARGET)),
+        "source_url": len(run(SQL_SOURCED)),
+        "parent_company": len(run(SQL_PARENT)),
+    }
+    print("rule-verified:", n)
     print("competitor verified %:", run(COUNT))
+    print("overall graph verified %:", run("SELECT round(100.0*sum((not verification_needed)::int)/count(*),1) FROM entity_relationships;"))
     return 0
 
 

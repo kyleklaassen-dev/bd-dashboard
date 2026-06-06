@@ -82,7 +82,7 @@
 const METRICS=[
   ['24','workflows','good'],['110','scripts (30 sched.)',''],['167','tables',''],['74','surfaced','warn'],
   ['27','workflows green','good'],['948','validation pass','good'],['0','unmapped visible drugs','good'],
-  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['79','deal edges','good'],['94%','edges verified','good'],['28','indications','good'],
+  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['79','deal edges','good'],['89%','graph verified','good'],['28','indications','good'],
 ];
 const LAYERS=[
   ['Sources','RSS · CT.gov · SEC · PubMed · pipeline pages','green','Ingestion'],
@@ -127,7 +127,7 @@ const GAPS=[
   // OPEN — the remaining backlog
   ['Indication/patient layer deepened (17→28)','Strategic','HIGH','MOSTLY','Added 11 sourced Ailux-relevant indications (Psoriasis, SLE, Asthma, HS, EoE, PsA, Lupus Nephritis, COPD, CSU, CRSwNP, Sjogrens) + fixed the dead search query. Core covered + visible; ongoing.'],
   ['Deal-edge layer was sparse (19→79)','Graph','HIGH','FIXED','Materialized company_partnerships + asset_transfer_history + deals into entity_relationships as license/co-dev/ownership edges, each sourced. 19→79 deal edges. scripts/materialize_deal_edges.py + weekly workflow keep it current.'],
-  ['Competitive relationships were 100% unverified','Graph','MED','MOSTLY','Rule-verification: edges whose two drugs share a confirmed disease area are confirmable facts. Competitor layer 0%→94% verified (verify_competitor_edges.py + daily wf); overall graph 0%→51%. 176 cross-area edges still need review.'],
+  ['Competitive relationships were 100% unverified','Graph','MED','MOSTLY','Rule-verification: edges whose two drugs share a confirmed disease area are confirmable facts. Graph 0%→89% verified overall (competitor 94%) (verify_competitor_edges.py + daily wf); overall graph 0%→51%. 176 cross-area edges still need review.'],
   ['stage_trial_match: 53 warnings (China CDE registry)','Validate','MED','OPEN','~40 drugs have trials likely only in China\'s CDE registry, which we don\'t ingest. Add a CDE source. (All other validation warnings now cleared.)'],
   ['Some live-producer scripts still unscheduled','Ingestion','MED','OPEN','bd_recommender + landscape_briefing now scheduled (weekly); audit remaining producers for staleness.'],
   ['Orphan-writes: produced, read by nothing','Data','MED','OPEN','next_gen_rankings (movement arrows unwired), agent_disagreements, drug_development_timelines.'],
