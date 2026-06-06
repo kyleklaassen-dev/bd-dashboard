@@ -1,0 +1,39 @@
+name: Materialize Deal Edges
+
+# Mirrors company_partnerships / asset_transfer_history / deals into the
+# entity_relationships graph as licensor_licensee / co_developer / parent_subsidiary
+# edges. Idempotent (dedup), so it keeps the BD-bearing layer current as new
+# deals land. Weekly is plenty — deals are low-frequency.
+on:
+  schedule:
+    - cron: "0 10 * * 0"   # Sunday 6 AM ET
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Count without writing"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: deal-edges
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Materialize deal edges
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python scripts/materialize_deal_edges.py $ARGS
