@@ -1,6 +1,160 @@
 
 ---
 
+## 2026-06-06 — Graph connectivity: orphans connected + structural backbone built
+
+Connectivity audit answered "is everything connected?": NO — 55 of 159 visible drugs were orphans (no edges), 66 companies orphan, and the graph had competitive edges but no STRUCTURAL edges. Fixes:
+- **Connected all 55 orphan drugs** — rule-derived 1525 direct_competitor edges via shared area (all verified). 0 orphan drugs now.
+- **Built the missing structural backbone in entity_edges** (the triple store, was scoped to drug/company/target/area + competitive predicates only). Extended it to allow `indication` + added predicates: **TREATS** (drug→indication, 280, from drug_indications), **ADDRESSES** (target→indication, 122, derived — the keystone that makes patient→target traversable), **DEVELOPED_BY** (drug→company, 148). The patient → indication → target → drug → company chain is now traversable as graph edges (verified: TL1A → {AD,CD,HS,RA,UC}). Durable via scripts/materialize_structural_edges.py + daily workflow.
+
+---
+
+## 2026-06-06 (overnight) — Patient batch 2, validation tests, Python 3.12, research-script doc
+
+- **Patient layer 22 → 28 indications:** added Psoriatic Arthritis, Lupus Nephritis, COPD (Type-2), Chronic Spontaneous Urticaria, CRSwNP, Sjögren's — each researched with epidemiology, benchmarks, Ailux-framed why_it_matters, sources.
+- **2 failing validation tests resolved correctly** (the column stores 'fail'/'pass' strings — earlier boolean filter missed them): J&J genuinely in tcell (cilta-cel/teclistamab TCE platform) → added company_areas(jnj,tcell); Amgen NOT in fcrn (empty stub profile, no FcRn asset) → removed spurious company_profile. 0 validation tests now failing.
+- **Python 3.12 standardization:** bumped 16 workflows from 3.11 → 3.12 (only the retired one-shot left).
+- **"Three overlapping research scripts" dissolved:** documented in docs/RESEARCH_SCRIPTS.md that they're complementary stages (ingest → assess → deep-dive), not redundant.
+- Refreshed Atlas stats (deal edges 79, 88% competitor edges verified, 28 indications) + flipped the closed gaps.
+
+---
+
+## 2026-06-05 (cont. 15) — Relationship verification: graph 0% → 51% (competitor layer 88%)
+
+Pushed the highest-value open Atlas gap: "100% of competitive relationships unverified." Insight — a direct_competitor edge whose two drugs share a CONFIRMED disease area (drug_areas) is a confirmable fact, not a guess. Rule-verified those (confidence 'medium', inference_method 'rule_inferred', evidence names the shared area): **competitor layer 0% → ~88% verified (1250/1426); overall graph 0% → 51%.** The 176 remaining are genuine cross-area edges that need a closer look. Built scripts/verify_competitor_edges.py (idempotent) + daily Verify Competitor Edges workflow so new edges get rule-checked. Also reconciled stale Atlas gaps to FIXED: field_change_audit retention, the 4 governance violations (researched + fixed earlier this session).
+
+---
+
+## 2026-06-05 (cont. 14) — Query/schema backlog COMPLETE (24 real mismatches fixed)
+
+Finished the last 3: drug_area_scores `score`→`strategic_value_score`, drugs `company`→`company_id`, and rewrote drug_failure_cascade (no FK to drugs → replaced the impossible nested embed with flat columns affected_drug_name/affected_company/impact_rationale + updated the consumer). All verified 200 live — drug_failure_cascade now returns real data (the batoclimab/nipocalimab FcRn safety-differentiation cascade). Final sweep: **0 real mismatches remain**; the 6 still flagged are parser false-positives (legacy_area_ontology_map columns exist). Net for dimension 13: 49 flagged → 24 real mismatches all fixed, 25 false-positives. The dashboard read layer is no longer silently broken anywhere.
+
+---
+
+## 2026-06-05 (cont. 13) — Query/schema backlog: 17 more column mismatches fixed (21 total)
+
+Worked the column-mismatch backlog. Technique: PostgREST aliasing (`wrong:real` in the select) revives the feature without touching rendering code, since any bad column 400s the whole query. Fixed + verified live (queries now return 200 w/ data): intel feeds (summary→body, dropped area_id/ailux_angle), company_profiles (dropped confidence_tier/assessment/competitive_position), catalyst_calendar, catalyst_bd_timing_window (bd_score→overall_bd_score), deal_sequencing_constraints (constraint_description→description etc. — revived the AbbVie/ABBV-701 timing analysis that was fully hidden), catalysts (catalyst_text→notes, catalyst_name→label), geographic_approvals (approval_status→approval_type), coverage_scores (coverage_score→overall_score), companies (dropped sector, market_cap_usd_m→market_cap, dropped stage), targets (name→label), target_pairs (name→pair_symbol), research_queue (priority→priority_score, status→assigned_status). **21 of 49 done.** Deferred: drug_failure_cascade (no FK to drugs — embed impossible, needs query rewrite; fails gracefully today), drug_area_scores legacy dual-read harness.
+
+---
+
+## 2026-06-05 (cont. 12) — Health reconcile, Atlas open-gap count, review resolve UX
+
+- **"3 failures" reconciled to 1:** the health summary (computed live from GitHub) correctly said 1 failing, but the tile list showed 3 because pipeline_runs held stale rows for a retired workflow (v37 one-shot) + a renamed one (execute-intel-actions.yml → "Execute Intel Actions", green). Deleted the 3 stale rows; tile now matches. The 1 real failure (Weekend Sprint, last run 5-31) self-heals on tomorrow's Saturday cron (--block F argparse fix is in main).
+- **Atlas "many gaps" fixed:** the per-layer gap count was counting ALL gaps (fixed + open), so solved layers looked unsolved. Now shows OPEN only ("N open →" / "✓ all fixed →").
+- **Review-queue resolution UX:** added per-drug 🔍 web-verify links + clear guidance (dashboard is read-only public key → resolve by telling Claude or editing Supabase, not a button).
+
+---
+
+## 2026-06-05 (cont. 11) — Review queue, header fix, Lens→Atlas, query/schema sweep
+
+- **"Needs Your Review" queue:** header ⚑ badge + panel reading open governance_violations — the flagged drugs/questions now have a real review surface (was only a Supabase table + blank footer badge). Fixed loadGovernanceViolations' wrong columns (entity_id/violation_description → row_id/description).
+- **Header overlap fixed:** the centered search was `position:absolute` and collided with the right-side tools; made it in-flow (flex:1), single clean row.
+- **Lens button → Atlas:** the "◎ Lens" launcher now opens meridian_atlas.html — the "everything" hub — instead of just the strategic lens. Deployed Atlas + workflow map + docs to the repo (were 404) and added Atlas links (← Dashboard, workflow map, strategic lens, data-quality audit, standards, value brief, execution plan). All resolve 200.
+- **Query↔schema sweep (requested):** scanned 303 `_sb.from().select()` calls across 78 tables vs information_schema → **49 column mismatches** (queries selecting columns that don't exist = silently-broken features). Fixed 4 high-impact (deals value_usd→total_usd_m, indications search synonyms→abbreviation, drug_validation_results status/detail/checked_at→check_status/details/verified_at, governance display). Remaining ~45 documented as a backlog in docs/DATA_QUALITY_AUDIT.md (dimension 13).
+
+---
+
+## 2026-06-05 (cont. 10) — Originator-research round + 4 phantom competitors removed
+
+Researched the 20 company-less drugs + mechanism flags.
+- **Caught 4 mis-ingested junk records** sitting in the FcRn/TL1A/T-cell landscapes as phantom competitors, each verified to be a real drug with a WRONG target, out of Ailux scope → hidden + area mappings removed: **RGX-181** (REGENXBIO AAV gene therapy for CLN2 Batten disease, DB said FcRn), **LBP-EC01** (Locus CRISPR phage for UTI, DB said TL1A/IBD), **GB1275** (Gossamer CD11b oncology, DB said FcRn), **SRF-231** (Surface anti-CD47 oncology, discontinued, DB said CD47×CD3 autoimmune).
+- **Attributed originators** (with company creation where needed): tapinarof→Dermavant, hlx36→Henlius, ionis-tslp-25rx→Ionis, ati-052→Aclaris, mk-1695→Merck (+ prior batch Innovent/Hengrui/Zai Lab/Akeso/Novartis). Company attribution now **93% (148/159)**.
+- 11 obscure early-stage codes (ab001, calt-100, eta1001, mg-k10, sm-101, xb3217, …) have no searchable web presence — flagged for primary-source/CDE follow-up rather than guessed.
+
+---
+
+## 2026-06-05 (cont. 9) — Data Quality Audit framework + Tier 1 & 3 sweep
+
+Created `docs/DATA_QUALITY_AUDIT.md` — a 12-dimension, 3-tier audit with repeatable scans + tracked status, so gap-hunting is ordered.
+- **Tier 1 (5/5):** mechanism↔target (prior round); trial-attribution (52 "foreign codes" = each drug's own dev-code, no new misattributions); duplicates (**BSI-045B/ATI-045/bosakitug** — 3 records of one TSLP mAb merged); target-hygiene (kyv-101 "(CAR-T)" stripped); indication-hygiene (**28** target-codes in indication_short → diseases).
+- **Tier 2:** skipped per Kyle.
+- **Tier 3 (3/3):** brand-name (benralizumab approval_date added); null-fields (company_id 27→20, attributed 7 confident originators); area-classification (**SIM0500** — a GPRC5D×BCMA×CD3 myeloma TCE wrongly in IBD/TL1A and inflated to #1 in IBD ranking — removed + hidden).
+- 20 company-less drugs + the 4 mechanism flags + ab001 remain flagged in governance_violations for per-drug research.
+
+---
+
+## 2026-06-05 (cont. 8) — Mechanism/target corruption cluster + root-cause prevention
+
+Fresh data-integrity scan found a cluster of **mechanism↔target mismatches** (same hallucination pattern as lu-ag22515 — mechanism text describing a TL1A/IL-23/FcRn drug when the target field says otherwise). Of ~7 found:
+- **Fixed with research + sources (4):** CND319 (CD19×CD20×CD3 TCE) + CND460 (BCMA×CD19×CD3 TCE) — mechanism wrongly said FcRn; IBI3002 (IL-4Rα×TSLP, Innovent) + bosakitug (TSLP, Biosion) — mechanism wrongly said TL1A. Targets were correct; mechanisms corrected.
+- **Flagged for verification (4):** mk-1695, shr0817, hlx36, abs-101 — couldn't confirm which field is correct via web search; logged to governance_violations rather than guess.
+- **Root-cause fix (durable):** added a "MECHANISM ↔ TARGET CONSISTENCY" rule to the enrichment system prompt (company_enrichment.py) — mechanism must describe the exact target named in `target`; never default to a TL1A/IL-23 description; sparse-but-correct beats confident-wrong.
+- Confirmed the 7 brand_name-set-but-stage-Phase-3 drugs (Fasenra, Rinvoq, etc.) are NOT a bug — approved drugs in new-indication trials, handled by _resolveStage for display.
+
+---
+
+## 2026-06-05 (cont. 7) — Patient/indication layer + search bugfix
+
+- **+5 sourced Ailux-relevant indications** added to indication_patient_intelligence (17→22): Plaque Psoriasis (ALX001 indication; IL-23 clearance gap), SLE (ALX002 CD19×BCMA space; CD19 CAR-T drug-free remission), Severe Asthma (TSLP/tezepelumab; non-Type-2 segment), Hidradenitis Suppurativa (IL-17/emerging TL1A-IL-23), EoE (IL-4Rα/IL-13). Each with epidemiology, remission benchmarks, unmet-need narrative, Ailux-framed why_it_matters, and 2 source URLs from current literature.
+- **Improvement found along the way:** the global search queried indication_patient_intelligence with columns that don't exist (patient_count / unmet_need_summary / key_patient_insight) → patient intel NEVER surfaced. Fixed to patient_count_us / unmet_need_narrative / why_it_matters; verified live ("lupus" now returns SLE patient intel).
+
+---
+
+## 2026-06-05 (cont. 6) — Deal-edge layer deepened (19 → 79)
+
+The graph was thick in competitive edges (968 direct_competitor) but thin in the BD-bearing layer (19 deal/ownership edges) because company_partnerships / asset_transfer_history / deals were never mirrored into entity_relationships. Built `scripts/materialize_deal_edges.py` (idempotent dedup on source+target+type) + weekly "Materialize Deal Edges" workflow. Backfill: **19 → 79** deal/ownership edges (56 licensor_licensee, 11 parent_subsidiary, 10 co_developer, 2 combination), each carrying a source_url; verified ones at confidence "high", inferred at 0.6–0.65. Direction handled per type (licensed_in vs out, acquirer=parent). Self-maintaining going forward.
+
+---
+
+## 2026-06-05 (cont. 5) — Governance violations resolved with research
+
+- **lu-ag22515** — record was corrupted (target=TSHR, mechanism described TL1A, stage=Preclinical, igf1r area). Verified via Lundbeck PR + NCT06557850: it's **Lu AG22515**, an anti-CD40L SAFA fusion protein (AprilBio-originated, licensed to Lundbeck 2021), **Phase 2 for Thyroid Eye Disease**. Fixed target→CD40L, mechanism, stage→Phase 2, company_id→aprilbio (created), partner→Lundbeck, indication→TED, removed the wrong igf1r area mapping. 2 sources logged.
+- **mt-251** — trial misattribution. CT.gov ground truth: NCT07219368=MT-201, NCT06762457=MT-501, NCT07113522=MT-501/MT-201 platform — all wrongly attached. Removed those 3; kept the genuine NCT07423299 (intervention=MT-251). MT-251 itself confirmed real (Mirador TL1A×IL-23 bispecific, Phase 1 healthy volunteers — a direct Ailux competitor).
+- **batoclimab** — the licensing claim (HanAll→Immunovant) is factually correct (1997... 2017 deal, IMVT-1401); the original source just didn't support it. Attached AdisInsight as the confirming source, set content_confirms_claim=true.
+- All 4 governance_violations now resolved (0 unresolved).
+
+---
+
+## 2026-06-05 (cont. 4) — Gap burn-down batch 1 (Atlas 16→20 fixed)
+
+- **Revived 2 inert tables**: bd_recommendations (bd_recommender.py) + landscape_briefings (generate_landscape_briefing.py) now have weekly producer workflows. Dispatched once to verify — bd_recommendations 20→35, landscape_briefings 1→2. (3 other "inert" tables already refresh weekly via weekend_sprint; 3 are static strategic reference.)
+- **field_change_audit retention**: fn_prune_field_change_audit(30d) + weekly Audit Retention workflow (keeps governance + correction rows forever). Bounds a table growing ~10k rows/day.
+- **field_consistency validator false-positives fixed**: the bispecific target-counter only recognized "×"; now also recognizes x / spaced-x / compact AxB. Cleared 4 false warnings (eta1001, sm-101, ibi3002, xb3217). Validation warnings 57→53 (remaining 53 are all the known China-CDE stage_trial_match gap).
+- **apply_sql_migration.py**: added a User-Agent (Cloudflare error 1010 was blocking the default urllib UA on the Management API from CI runners).
+- Atlas refreshed to 20 fixed / 14 open.
+
+---
+
+## 2026-06-05 (cont. 3) — Wave 2 finish + workflow refine + Atlas
+
+- **Wave 2d** — global search now resolves prior/code names via `drug_aliases` (e.g. "AMG 729" → Obexelimab, with a "↳ prior name" badge). Verified live.
+- **Wave 2c** — Strategic Lens (TL1A Race) deployed to the repo + "◎ Lens" launcher added to the dashboard header (data-trusted so the link interceptor doesn't hijack it). Verified live.
+- **Workflow refinement** — retired the obsolete one-shot `apply-drug-sources-migration` workflow (v37 long applied); confirmed the weekend sprint is code-fixed (`--block F` now in argparse); 27/29 latest-green.
+- **Atlas** — `meridian_atlas.html` gap registry refreshed: 16 gaps → FIXED, metrics + layer statuses updated to current state.
+
+---
+
+## 2026-06-05 (cont. 2) — Wave 2 modal surfacing + RLS read regression fix
+
+- **CRITICAL RLS fix:** my own security lockdown had enabled RLS on 47 tables to block anon writes but never added anon SELECT policies → those tables returned `200 + 0 rows` to the dashboard (silently invisible). Many "DARK tables" were dark for THIS reason. Added `anon_read_<t>` SELECT policies (USING true) to all 47; writes still blocked (verified anon write → 401/42501). Audit query for regressions in [[project_rls_read_policies]].
+- **Wave 2a — drug_sources provenance** now surfaced in the drug modal's "Sources & provenance" section: claim-level sources with ✓ confirmed / ✗ unconfirmed / unverified / removed badges. Verified live on mt-251 (14 documented, 6 content-verified).
+- **Wave 2b — company_partnerships** surfaced in the company modal "Partnerships" section: structured relationships (partner, type, asset, geography, ✓ verified pill, source link), both sides of each relationship. Verified live on UCB (5 relationships).
+
+---
+
+## 2026-06-05 (cont.) — Health-tile link fix + alias persistence
+
+- **Health-tile links fixed (root cause):** a global capture-phase click interceptor (index.html ~24943) rewrites *every* external link click into a Google search of the link text (legacy: stored URLs were unreliable). My GitHub run links got swept up. Fix: marked health links `data-trusted="1"` and taught BOTH the interceptor and `_fixGenericLinks` to skip `data-trusted` links. Verified live: clicks now open the GitHub run page.
+- **Always-save-prior-names (Kyle request):** DB trigger `trg_drugs_capture_aliases` → `fn_capture_drug_aliases()` captures name/id/inn_name/brand_name + `aliases` jsonb into `drug_aliases` on every `drugs` insert/update (ON CONFLICT DO NOTHING, EXCEPTION-safe). Backfill: drug_aliases 183→574 rows, canonical coverage 172→240/248. Renames now keep old names permanently. Open follow-up: global search reads `drugs.aliases`, not the table.
+
+---
+
+## 2026-06-05 — Catalog-tail cleanup, drug_areas trigger fix, Wave 2 health tile, obexelimab dedup
+
+**Catalog tail (90 unmapped real drugs) classified — indication decides, not target:**
+- 64 mapped to areas; 22 out-of-scope (oncology/metabolic/ophthalmology) hidden via `dashboard_visible=false`; flagged-6 resolved by evidence (rituximab+daratumumab→autoimmune, xb3217+lbl-051-s3→tcell, m701 hidden, xmab5871→dedup).
+- 6 unreferenced phantom placeholders hidden (incl. tislelizumab leaking onto the dashboard); apg777 (alias→drug) + catalog-53 (catalog_entry→drug) record_type fixed.
+
+**Structural fix — `drug_areas` inserts were 404-ing for everyone:** the `fn_sync_drug_indication_group()` AFTER INSERT trigger queried a non-existent `disease_areas` table, blocking *all* ontology growth. Guarded with `to_regclass`. Also minted 42 singleton `canonical_drugs` for never-resolved tail drugs (the upstream reason they were unmapped).
+
+**Wave 2 — pipeline health indicator (index.html):** header health dot + click-through panel reading the previously-dark `pipeline_runs` + `system_status.health_summary`. Green/amber dot, latest run per workflow, failing-first, links to GitHub runs.
+
+**Workflow fix:** `apply-migration.yml` had never been valid YAML (un-indented inline python heredoc broke the block scalar) → startup_failure on every push. Moved logic to `scripts/apply_sql_migration.py`; cleared stale failure rows; dispatched a green dry-run.
+
+**Dedup (Kyle-confirmed):** XmAb5871 = XMAB-5871 = AMG 729 = **obexelimab** (Xencor pre-INN code names; CD19 mAb Fc-engineered to co-engage FcγRIIB — inhibits B cells without depleting). Folded xmab5871 into `CANON_DRUG_CA5E6284`; registered all 6 names in `drug_aliases`; research_queue resolved.
+
+---
+
 ## 2026-06-03 (overnight) — IGF-1R relationship coverage + data-integrity finds
 
 - **IGF-1R landscape_dependency_score 83.5 → 93.5.** Relationship coverage 0.6 → 1.0 after adding two *real, sourced* Viridian deals covering veligrotug (VRDN-001) and elegrobart (VRDN-003): Kissei Japan license (Jul 30 2025; $70M upfront, up to $315M, 20s–mid-30s% royalties) and DRI Healthcare US synthetic royalty (Oct 2025; up to $300M). 4 deal rows + 4 `drug_sources` rows. Directly relevant to veligrotug's June 30 PDUFA (queue #1).
@@ -6715,3 +6869,27 @@ Commit: `1ef569ed`
 ### Pending manual steps
 - Apply migration_internal_pipeline_conflicts.sql in Supabase SQL Editor
 - Monday: review weekend_intelligence_brief.html on dashboard
+
+## 2026-06-06 — Whitespace Finder + drug-code review resolution
+
+### Whitespace Finder (new strategic layer on the structural graph)
+- **migrations/v78_whitespace_views.sql** — two always-live views:
+  - `v_whitespace_indications`: opportunity_score 0-100 = (unmet need 45 + biologic-escape 25 + patient scale 15 + endpoint-gap 15) × (1 − 0.6·late-stage saturation). data_confidence flag (low when <3 drugs mapped).
+  - `v_whitespace_targets`: mechanism whitespace = best unmet of addressed indications vs. # drugs in dev. drug_count filtered to dashboard_visible drugs (phantoms excluded).
+- Uses the 2026-06-06 structural backbone (ADDRESSES target→indication, TREATS drug→indication) + indication_patient_intelligence.
+- **index.html**: ◇ Whitespace header button + panel (By target / By indication tabs), score-colored pills, thin-data caveat chip, Ailux-relevance tags. Reads views via anon key. Granted SELECT to anon.
+- Signal validates: crowded Crohn's/UC fall despite high unmet; Sjögren's surfaces (high conf); IL-1α/β, CD40, RIPK1 top under-exploited targets; TL1A/IL-23p19 correctly saturated.
+
+### Drug-code review (chat + DeepSeek consensus) — migrations/v79_drugcode_review_fixes.sql
+- **5 safe fixes** (originator company + corrected target/mechanism + drug_sources, all web-verified):
+  - ABS-101 → Absci, anti-TL1A (mechanism was wrongly IL-31Rα). [#60 resolved]
+  - BBT001 → Bambusa Therapeutics, IL-4Rα×IL-31 bispecific.
+  - BEL512 → Belenos Biosciences (+Keymed partner), TSLP×IL-13 (=CM512).
+  - KY1044 → Kymab (acq. Sanofi), anti-ICOS alomfilimab; target fixed OX40L→ICOS; hidden (oncology, out of scope).
+  - MG-K10 → Mabgeek Biotech, anti-IL-4Rα (comekibart).
+  - Created 4 originator companies (bambusa/belenos/mabgeek active; kymab acquired→sanofi).
+- **Held / not merged** (identity-first — never merge on code alone):
+  - MK-1695 [HIGH RISK]: no public Merck MK-1695 (Merck TL1A = MK-7240 tulisokibart); internally contradictory → hidden, content_confirms_claim=false source logged, awaiting Kyle's delete vs re-verify call. [#58]
+  - AB001 + SM-101 → new `ambiguous_identity` governance flag (multiple conflicting public identities). [#67]
+  - SHR0817 / HLX36 → kept queued with concrete verification path documented. [#59]
+  - CALT-100, DAM-51, ETA1001, NVX-360, XB3217 → obscure, await disclosure. [#65 narrowed]

@@ -59,9 +59,12 @@ COMMENT ON VIEW v_whitespace_indications IS
 DROP VIEW IF EXISTS v_whitespace_targets CASCADE;
 CREATE VIEW v_whitespace_targets AS
 WITH drugs_per_target AS (
-  SELECT object_id AS target_id, count(DISTINCT subject_id) AS drug_count
-  FROM entity_edges
-  WHERE predicate='TARGETS' AND status='active' AND object_type='target'
+  -- only count drugs that are live on the dashboard (a hidden/phantom drug's
+  -- edge persists until re-materialized, so filter visibility here)
+  SELECT e.object_id AS target_id, count(DISTINCT e.subject_id) AS drug_count
+  FROM entity_edges e
+  JOIN drugs d ON d.id=e.subject_id AND d.dashboard_visible AND d.record_type='drug'
+  WHERE e.predicate='TARGETS' AND e.status='active' AND e.object_type='target'
   GROUP BY 1
 ),
 addressed AS (
