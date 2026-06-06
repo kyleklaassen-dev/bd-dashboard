@@ -1,0 +1,52 @@
+name: Meridian Weekly Trial-ID Audit
+
+# Verifies every ClinicalTrials.gov NCT referenced in the catalog against the CT.gov
+# v2 JSON API. Fabricated (404) and misattributed NCTs are logged to governance_violations
+# (resolved=false, review queue). NEVER auto-edits drug data. See docs/DATA_INTEGRITY_SOP.md.
+# Origin: the NCT07423299 incident (a real trial wrongly scrubbed) — this is the immune system.
+
+on:
+  schedule:
+    # Monday 07:00 ET (11:00 UTC) — weekly integrity sweep.
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
+    inputs:
+      area:
+        description: "Limit to one area_id (e.g. tl1a); blank = whole catalog"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run — verify but do not write governance rows"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  trial-audit:
+    name: "Trial-ID Audit vs ClinicalTrials.gov"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run trial-ID audit
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          # Optional: enables the faster Management-API path; falls back to PostgREST if absent.
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          echo "=== Meridian Weekly Trial-ID Audit — $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+          AREA="${{ github.event.inputs.area }}"
+          SCOPE="--all"
+          if [ -n "$AREA" ]; then SCOPE="--area $AREA"; fi
+          MODE="--apply"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then MODE="--dry-run"; fi
+          echo "Running: python scripts/trial_id_audit.py $SCOPE $MODE --sleep 0.2"
+          python scripts/trial_id_audit.py $SCOPE $MODE --sleep 0.2
