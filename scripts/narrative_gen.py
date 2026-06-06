@@ -503,6 +503,148 @@ def _detect_conflicts(drug, corpus, scrub, conflicts, known_companies=None):
 
 
 # ---------------------------------------------------------------------------
+# 2.5 TRIANGULATION — attach INDEPENDENT corroborating sources to each atom
+# ---------------------------------------------------------------------------
+# Depth of trust: a claim resting on a single source is weaker than one backed by
+# several INDEPENDENT sources (distinct domains). Per-claim triangulation scans the
+# confirming drug_sources pool for rows that independently back each atom and attaches
+# them as `corroborations`. write_narrative emits one provenance row per corroboration,
+# all sharing the atom's claim_index — so the UI can show "backed by N sources" per claim
+# and narrative_source_diversity / narrative_claim_triangulation count real depth.
+def _domain(u):
+    m = re.search(r"^https?://([^/]+)", str(u or ""))
+    d = (m.group(1).lower() if m else "")
+    return d[4:] if d.startswith("www.") else d
+
+
+def _toks(s):
+    return {w for w in re.split(r"[\s,×x/·()\[\]:;]+", str(s or "").lower()) if len(w) > 4}
+
+
+# Distinctive study identifiers (trial acronyms): the machine-linkable key that ties an
+# independent publication (e.g. nejm.org) to a registry trial (clinicaltrials.gov) for the
+# SAME study. Blocklist strips domain-generic all-caps tokens that would false-match.
+_STUDY_BLOCKLIST = {"PHASE", "TL1A", "IL23", "STUDY", "TRIAL", "COHORT", "PLACEBO",
+                    "WEEKS", "RANDOM", "COHORTS", "ACTIVE", "BISPECIFIC"}
+_ACR_RE = re.compile(r"\b([A-Z][A-Z0-9]{4,}(?:-[A-Z0-9]+)*)\b")
+
+
+def _study_keys(*texts):
+    keys = set()
+    for t in texts:
+        for m in _ACR_RE.findall(str(t or "")):
+            if m.split("-")[0] not in _STUDY_BLOCKLIST:
+                keys.add(m.upper())
+    return keys
+
+
+def _corroboration_pool(recipe):
+    """Every CONFIRMING sourced row in the recipe, as an independent-source candidate.
+    drug_sources carries free text (token-matchable); the clinical tables carry a
+    registered trial id in their URL (the strong, low-noise corroboration signal)."""
+    pool = []
+    for s in recipe.get("sources", []) or []:
+        if (s.get("added_by") or "").startswith("reconcile_drug_integrity"):
+            continue
+        if s.get("content_confirms_claim") is False:   # disconfirmed → never corroborates
+            continue
+        url = s.get("source_url")
+        dom = s.get("source_domain") or _domain(url)
+        if not dom:
+            continue
+        cv = s.get("claim_value") or ""
+        pool.append({"url": url, "table": "drug_sources", "rid": str(s.get("id")), "domain": dom,
+                     "keys": {t.upper() for t in NCT_RE.findall(cv + " " + str(url or ""))} | _study_keys(cv),
+                     "toks": _toks(cv), "text": True})
+    # study-name field per table → the cross-domain link to its registry trial
+    for tbl, key, namef in [("trials", "trials", "study_acronym"),
+                            ("drug_clinical_benchmarks", "benchmarks", "trial_name"),
+                            ("drug_pk_parameters", "pk", "trial_name"),
+                            ("deals", "deals", None), ("molecule_intelligence", "molecule", None),
+                            ("drugs", "competitors", None),
+                            ("indication_patient_intelligence", "patients", None)]:
+        for r in recipe.get(key, []) or []:
+            url = r.get("source_url")
+            dom = _domain(url)
+            if not dom:
+                continue
+            keys = {t.upper() for t in NCT_RE.findall(str(url))}
+            if namef:
+                keys |= _study_keys(r.get(namef))
+            pool.append({"url": url, "table": tbl, "rid": str(r.get("id") or r.get("indication_name")),
+                         "domain": dom, "keys": keys, "toks": set(), "text": False})
+    return pool
+
+
+def triangulate(asserted, recipe):
+    """For each asserted atom, attach INDEPENDENT corroborating sources from a DIFFERENT
+    domain: a shared registered trial id (precise), or ≥3 salient-token overlap against a
+    text-rich drug_sources row. Sets a['corroborations'] and a['triangulation']
+    (# distinct independent domains backing the claim, including its primary)."""
+    pool = _corroboration_pool(recipe)
+    for a in asserted:
+        a.setdefault("corroborations", [])
+        prim_dom = _domain(a.get("source_url")) if a.get("source_url") else None
+        used = {prim_dom} if prim_dom else set()
+        a_url = str(a.get("source_url") or "")
+        a_keys = ({t.upper() for t in NCT_RE.findall(a["claim"] + " " + a_url)}
+                  | _study_keys(a["claim"]))
+        a_toks = _toks(a["claim"])
+        for c in pool:
+            if c["table"] == a.get("source_table") and c["rid"] == str(a.get("source_row_id")):
+                continue                                # not the atom's own primary row
+            if not c["domain"] or c["domain"] in used:  # independence = a NEW domain
+                continue
+            if (a_keys & c["keys"]) or (c["text"] and len(a_toks & c["toks"]) >= 3):
+                a["corroborations"].append({
+                    "source_url": c["url"], "source_table": c["table"],
+                    "source_row_id": c["rid"], "content_confirms_claim": True})
+                used.add(c["domain"])
+        a["triangulation"] = len(used)
+    return asserted
+
+
+# ---------------------------------------------------------------------------
+# 2.6 LEARNING LOOP — read prior human corrections so generation honors them
+# ---------------------------------------------------------------------------
+def fetch_feedback(entity_type, entity_id, section):
+    """Unresolved narrative_feedback for this entity+section (the corrections to honor)."""
+    from urllib.parse import quote
+    rows = get(f"narrative_feedback?entity_type=eq.{entity_type}"
+               f"&entity_id=eq.{quote(str(entity_id))}&section=eq.{section}"
+               f"&applied=eq.false&order=created_at.asc")
+    return rows or []
+
+
+def feedback_block(fb):
+    """Render unresolved corrections as prompt guidance. Corrections shape EMPHASIS,
+    INTERPRETATION and TONE — they are NOT new facts: a correction that asserts a fact
+    absent from the atoms must still be omitted (the fail-closed check enforces this)."""
+    if not fb:
+        return ""
+    lines = []
+    for f in fb:
+        ft = f.get("feedback_type") or "other"
+        q = (f.get("quote") or "").strip()
+        cor = (f.get("correction") or "").strip()
+        lines.append(f"- [{ft}]" + (f' re: "{q[:120]}"' if q else "") + f" → {cor}")
+    return ("\n\nPRIOR HUMAN CORRECTIONS — honor these (they override default phrasing and "
+            "emphasis; they are GUIDANCE, not new facts — you still may not assert any "
+            "fact, number, %, date, or trial id that is absent from the atoms/facts above; "
+            "if a correction would require an unsupported fact, reflect its intent without "
+            "stating the fact):\n" + "\n".join(lines))
+
+
+def mark_feedback_applied(fb):
+    ids = [str(f["id"]) for f in fb if f.get("id")]
+    if not ids:
+        return
+    _request("PATCH", f"narrative_feedback?id=in.({','.join(ids)})",
+             {"applied": True}, {"Prefer": "return=minimal"})
+    print(f"  marked {len(ids)} feedback row(s) applied")
+
+
+# ---------------------------------------------------------------------------
 # 3. COMPOSE — narrate ONLY the asserted atoms
 # ---------------------------------------------------------------------------
 COMPOSE_SYSTEM = (
@@ -524,14 +666,14 @@ COMPOSE_SYSTEM = (
 )
 
 
-def compose_llm(drug_name, atoms, scrub):
+def compose_llm(drug_name, atoms, scrub, feedback=None):
     import anthropic  # imported lazily so --composer template works without the lib
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] ({a['kind']}/{a['confidence']}) {a['claim']}"
                          for i, a in enumerate(atoms))
     prompt = (f"DRUG: {drug_name}\n\nCLAIM ATOMS:\n{numbered}\n\n"
-              f"SCRUB (never mention): {', '.join(scrub) or '(none)'}\n\n"
-              "Write the overview now.")
+              f"SCRUB (never mention): {', '.join(scrub) or '(none)'}"
+              + feedback_block(feedback) + "\n\nWrite the overview now.")
     resp = client.messages.create(
         model="claude-sonnet-4-6", max_tokens=700, temperature=0,
         system=COMPOSE_SYSTEM,
@@ -554,14 +696,14 @@ ANALYSIS_SYSTEM = (
 )
 
 
-def compose_analysis(drug_name, atoms, framing):
+def compose_analysis(drug_name, atoms, framing, feedback=None):
     import anthropic
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
     fr = "\n".join(f"- {k}: {v}" for k, v in framing.items() if v)
     prompt = (f"ASSET: {drug_name}\n\nCITED FACTS:\n{numbered}\n\n"
-              f"PRIOR FRAMING (context only, not citable):\n{fr or '(none)'}\n\n"
-              "Write the Meridian Analysis now.")
+              f"PRIOR FRAMING (context only, not citable):\n{fr or '(none)'}"
+              + feedback_block(feedback) + "\n\nWrite the Meridian Analysis now.")
     resp = client.messages.create(
         model="claude-sonnet-4-6", max_tokens=500, temperature=0,
         system=ANALYSIS_SYSTEM, messages=[{"role": "user", "content": prompt}])
@@ -650,15 +792,34 @@ def write_narrative(drug, section, prose, atoms, rh, composer):
     _request("DELETE", f"narrative_provenance?narrative_id=eq.{nid}")
     # claim_index = the [n] used inline in body_md (1-based atom position). This is
     # the STABLE ordering the UI cites against — provenance.id is a random uuid.
-    prov = [{
-        "narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
-        "drug_source_id": a["source_row_id"] if a["source_table"] == "drug_sources" else None,
-        "source_url": a.get("source_url"), "source_table": a["source_table"],
-        "source_row_id": a.get("source_row_id"),
-        "content_confirms_claim": (a["kind"] == "external_confirmed") or None,
-    } for i, a in enumerate(atoms)]
+    # PER-CLAIM TRIANGULATION: each atom emits its primary row PLUS one row per
+    # independent corroborating source, all sharing the same claim_index.
+    def _dsid(table, rid):
+        return rid if (table == "drug_sources" and str(rid).isdigit()) else None
+    prov = []
+    triangulated = 0
+    for i, a in enumerate(atoms):
+        prov.append({
+            "narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
+            "drug_source_id": _dsid(a["source_table"], a.get("source_row_id")),
+            "source_url": a.get("source_url"), "source_table": a["source_table"],
+            "source_row_id": a.get("source_row_id"),
+            "content_confirms_claim": (a["kind"] == "external_confirmed") or None,
+        })
+        corr = a.get("corroborations", []) or []
+        if corr:
+            triangulated += 1
+        for c in corr:
+            prov.append({
+                "narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
+                "drug_source_id": _dsid(c["source_table"], c.get("source_row_id")),
+                "source_url": c.get("source_url"), "source_table": c["source_table"],
+                "source_row_id": c.get("source_row_id"),
+                "content_confirms_claim": c.get("content_confirms_claim"),
+            })
     _request("POST", "narrative_provenance", prov, {"Prefer": "return=minimal"})
-    print(f"  wrote narrative {nid} + {len(prov)} provenance rows")
+    print(f"  wrote narrative {nid} + {len(prov)} provenance rows "
+          f"({triangulated}/{len(atoms)} claims triangulated)")
 
 
 # ---------------------------------------------------------------------------
@@ -675,13 +836,21 @@ def main():
     recipe = fetch_recipe(args.drug_id)
     rh = recipe_hash(recipe)
     atoms = extract_atoms(recipe)
-    asserted = atoms["asserted"]
+    asserted = triangulate(atoms["asserted"], recipe)
+    feedback = fetch_feedback("drug", args.drug_id, args.section)
 
     print(f"\n=== {args.drug_id} / {args.section}  (recipe hash {rh}) ===")
-    print(f"\nASSERTED atoms ({len(asserted)}):")
+    n_tri = sum(1 for a in asserted if a.get("corroborations"))
+    print(f"\nASSERTED atoms ({len(asserted)}; {n_tri} triangulated by ≥1 independent source):")
     for i, a in enumerate(asserted):
         src = a.get("source_url") or a["source_table"]
-        print(f"  [{i+1}] ({a['kind']}/{a['confidence']}) {a['claim']}  <- {src}")
+        tri = a.get("triangulation", 1)
+        tag = f"  +{len(a['corroborations'])} corrob → {tri} domains" if a.get("corroborations") else ""
+        print(f"  [{i+1}] ({a['kind']}/{a['confidence']}) {a['claim']}  <- {src}{tag}")
+    if feedback:
+        print(f"\nUNRESOLVED FEEDBACK to honor ({len(feedback)}):")
+        for f in feedback:
+            print(f"  ↳ [{f.get('feedback_type')}] {(f.get('correction') or '')[:80]}")
     print(f"\nUNVERIFIED — held out of prose ({len(atoms['unverified'])}):")
     for u in atoms["unverified"]:
         print(f"  - {u['claim']}")
@@ -706,7 +875,7 @@ def main():
         if not os.environ.get("ANTHROPIC_API_KEY"):
             raise SystemExit("the analysis tier requires ANTHROPIC_API_KEY (it is inference).")
         for i in range(3):
-            prose = compose_analysis(dname, asserted, framing)
+            prose = compose_analysis(dname, asserted, framing, feedback)
             problems = fail_closed_analysis(prose, asserted, atoms["scrub"])
             if not problems:
                 break
@@ -725,6 +894,7 @@ def main():
         if problems:
             raise SystemExit("blocked: analysis introduced unsupported facts.")
         write_narrative(drug, "intelligence", prose, asserted, rh, "llm-analysis")
+        mark_feedback_applied(feedback)
         return
 
     composer = args.composer
@@ -737,7 +907,8 @@ def main():
     # Retry on a fail-closed block before giving up — temperature=0 makes this rare.
     attempts = 1 if composer == "template" else 3
     for i in range(attempts):
-        prose = composer_fn(dname, asserted, atoms["scrub"])
+        prose = (composer_fn(dname, asserted, atoms["scrub"], feedback)
+                 if composer == "llm" else composer_fn(dname, asserted, atoms["scrub"]))
         problems = fail_closed_check(prose, asserted, atoms["scrub"])
         if not problems:
             break
@@ -758,6 +929,7 @@ def main():
     if problems:
         raise SystemExit("blocked: fail-closed problems present.")
     write_narrative(recipe["drug"], args.section, prose, asserted, rh, composer)
+    mark_feedback_applied(feedback)
 
 
 if __name__ == "__main__":

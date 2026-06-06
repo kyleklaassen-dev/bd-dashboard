@@ -17,7 +17,8 @@ import os, re, sys, json, argparse, hashlib, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from narrative_gen import get, _request, fail_closed_check, fail_closed_analysis  # noqa: E402
+from narrative_gen import (get, _request, fail_closed_check, fail_closed_analysis,  # noqa: E402
+                           fetch_feedback, feedback_block, mark_feedback_applied)
 
 PHASE = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}
 
@@ -103,12 +104,14 @@ ANALYSIS_SYSTEM_LS = (
     "'_Meridian Analysis — interpretation, grounded in the cited facts._'. Under 180 words.")
 
 
-def compose(system, drug_label, atoms):
+def compose(system, drug_label, atoms, feedback=None):
     import anthropic
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
+    user = (f"TARGET: {drug_label}\n\nFACTS:\n{numbered}" + feedback_block(feedback)
+            + "\n\nWrite it now.")
     r = client.messages.create(model="claude-sonnet-4-6", max_tokens=600, temperature=0,
-        system=system, messages=[{"role": "user", "content": f"TARGET: {drug_label}\n\nFACTS:\n{numbered}\n\nWrite it now."}])
+        system=system, messages=[{"role": "user", "content": user}])
     return r.content[0].text.strip()
 
 
@@ -147,27 +150,33 @@ def main():
         print("\n(no ANTHROPIC_API_KEY — atoms only)"); return
 
     label = args.target.upper()
+    fb_ov = fetch_feedback("target", args.target, "overview")
+    fb_an = fetch_feedback("target", args.target, "intelligence")
+    if fb_ov or fb_an:
+        print(f"  unresolved feedback: {len(fb_ov)} overview, {len(fb_an)} analysis")
 
-    def gen(system, checker):
+    def gen(system, checker, feedback):
         for i in range(3):
-            prose = compose(system, label, atoms)
+            prose = compose(system, label, atoms, feedback)
             probs = checker(prose, atoms, [])
             if not probs:
                 return prose, probs
             print(f"  (retry {i+1}/2: {probs[0][:50]})", file=sys.stderr)
         return prose, probs
 
-    overview, p1 = gen(LANDSCAPE_SYSTEM, fail_closed_check)
+    overview, p1 = gen(LANDSCAPE_SYSTEM, fail_closed_check, fb_ov)
     print(f"\n--- LANDSCAPE OVERVIEW ---\n{overview}\n", "PASS" if not p1 else f"PROBLEMS {p1}")
-    analysis, p2 = gen(ANALYSIS_SYSTEM_LS, fail_closed_analysis)
+    analysis, p2 = gen(ANALYSIS_SYSTEM_LS, fail_closed_analysis, fb_an)
     print(f"\n--- LANDSCAPE ANALYSIS ---\n{analysis}\n", "PASS" if not p2 else f"PROBLEMS {p2}")
 
     if args.dry_run:
         print("\n[dry-run] no write."); return
     if not p1:
         write(args.target, "overview", overview, atoms, rh)
+        mark_feedback_applied(fb_ov)
     if not p2:
         write(args.target, "intelligence", analysis, atoms, rh)
+        mark_feedback_applied(fb_an)
 
 
 if __name__ == "__main__":
