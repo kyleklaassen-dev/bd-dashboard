@@ -1732,6 +1732,19 @@ TARGET NOTATION (CRITICAL — target field must be targets ONLY, never include c
   The dashboard will display the "bispecific" modality from drug_format and the partner from partner_company.
   Target field = molecular targets only.
 
+MECHANISM ↔ TARGET CONSISTENCY (CRITICAL — prevents the most damaging error class):
+The `mechanism` text MUST describe the EXACT target named in the `target` field. The cytokine /
+receptor / antigen in the mechanism must match `target`. The `target` field is the source of truth.
+- NEVER default a drug's mechanism to a "TL1A / IL-23p19" description just because TL1A×IL-23 is
+  Ailux's focus. MOST catalog drugs target OTHER pathways (IL-4Rα, TSLP, FcRn, CD19/BCMA, CD40L, …).
+- Before writing mechanism, re-read the target field: if target = "IL-4Rα × TSLP", the mechanism is
+  about IL-4/IL-13 and TSLP alarmin signaling — NOT TL1A/DR3. If target = "CD19 × BCMA × CD3", the
+  mechanism is a T-cell engager — NOT FcRn.
+- If you do not know the true mechanism, write a short target-consistent stub rather than inventing a
+  TL1A/IL-23/FcRn description. A sparse-but-correct mechanism beats a confident wrong one.
+(Audit 2026-06-05 found IBI3002, bosakitug, CND319/CND460, shr0817/hlx36 with mechanism text copied
+from unrelated TL1A/IL-23/FcRn drugs — this rule exists to stop that.)
+
 CO-DEVELOPMENT PARTNERSHIP DETECTION:
 If you see text like "Company/Company co-dev" or "co-developed with Company" anywhere in the literature:
 1. Extract the partner company name and put it in partner_company
