@@ -1,0 +1,27 @@
+name: Materialize Structural Edges
+
+# Keeps the structural graph backbone in entity_edges current: TREATS (drug→indication),
+# ADDRESSES (target→indication), DEVELOPED_BY (drug→company). Makes the
+# patient → indication → target → drug → company chain traversable. Idempotent.
+on:
+  schedule:
+    - cron: "30 11 * * *"   # 7:30 AM ET daily (after verify-edges)
+  workflow_dispatch:
+
+concurrency:
+  group: structural-edges
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: python scripts/materialize_structural_edges.py
