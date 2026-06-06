@@ -120,7 +120,24 @@ def audit_draft_against_db(html, drugs):
     Returns the list of flags.
     """
     flags = []
-    # Map every asset that has a DEFINITE format to its format word.
+    # In this house style "bispecific"/"monospecific" are used constantly as CATEGORY
+    # nouns ("the bispecific premium", "monospecific TL1A comps"), so proximity to a
+    # drug name means nothing. We only flag two rare, unambiguous constructions that
+    # actually attribute a format TO a named asset:
+    #   A) copula/apposition:  "<NAME> is/are/—/, (a|an|the) … <OPP>"   (within one clause)
+    #   B) class membership:   "<OPP> class/programs/assets/antibodies/candidates … <NAME>"
+    # Both negation-guarded so legitimate comparisons ("NAME, unlike the bispecific
+    # class, is monospecific") don't trip. Validated: 0 false positives on a full issue.
+    #
+    # Run on visible text, not raw HTML (strip tags + unescape entities).
+    text = _re.sub(r"<[^>]+>", " ", html)
+    try:
+        import html as _htmlmod
+        text = _htmlmod.unescape(text)
+    except Exception:
+        pass
+    text = _re.sub(r"\s+", " ", text)
+
     fmt = {}
     for d in drugs.values():
         tc = (d.get("target_class") or "").strip().lower()
@@ -128,35 +145,26 @@ def audit_draft_against_db(html, drugs):
             continue
         for nm in (d.get("display_name"), d.get("name")):
             if nm and len(nm) >= 3:
-                # strip a trailing "(...)" qualifier from display_name for matching
                 base = _re.sub(r"\s*\(.*?\)\s*$", "", nm).strip()
                 if base:
                     fmt[base] = tc
-    # contrast cues that make "<name> ... <opposite format>" a legitimate comparison
-    # rather than a misattribution — checked ONLY in the span between the name and the
-    # format word, so a comparison elsewhere in the paragraph can't mask a real error.
-    _CONTRAST = _re.compile(r"(unlike|not a\b|rather than|versus|\bvs\b\.?|whereas|distinct from|"
-                            r"sister|as opposed to|compared (?:to|with)|in contrast)", _re.I)
-    RADIUS = 150  # wide enough to reach the format word later in the sentence
-    htl = html.lower()
+    _NEG = _re.compile(r"(?:not|n[’']t|unlike|rather than|versus|\bvs\b|whereas|distinct from|"
+                       r"as opposed to|isn\W?t|never)", _re.I)
     for nm, tc in fmt.items():
         opp = "bispecific" if tc == "monospecific" else "monospecific"
-        flagged = False
-        for m in _re.finditer(_re.escape(nm), html):
-            if flagged:
+        n = _re.escape(nm)
+        hit = None
+        pat_A = rf"{n}\b[^.]{{0,6}}(?:is|are|=|—|,|:)\s+(?:a|an|the)\s+(?:[\w/×.-]+\s+){{0,3}}{opp}\b"
+        pat_B = rf"{opp}\s+(?:class|programs?|assets?|antibodies|candidates?)\b[^.]{{0,90}}?\b{n}\b"
+        for pat in (pat_A, pat_B):
+            for m in _re.finditer(pat, text, _re.I):
+                if not _NEG.search(m.group()):
+                    hit = _re.sub(r"\s+", " ", m.group()).strip()
+                    break
+            if hit:
                 break
-            lo, hi = max(0, m.start() - RADIUS), min(len(html), m.end() + RADIUS)
-            # nearest opposite-format word within the window
-            for om in _re.finditer(opp, htl[lo:hi]):
-                op_s, op_e = lo + om.start(), lo + om.end()
-                gap = html[min(m.end(), op_s):max(m.start(), op_e)]  # text between name and word
-                if _CONTRAST.search(gap):
-                    continue  # legitimate comparison, not a misattribution
-                snip = html[min(m.start(), op_s) - 10: max(m.end(), op_e) + 10]
-                flags.append({"drug": nm, "db_format": tc, "draft_says": opp,
-                              "snippet": _re.sub(r"\s+", " ", snip).strip()})
-                flagged = True
-                break
+        if hit:
+            flags.append({"drug": nm, "db_format": tc, "draft_says": opp, "snippet": hit[:160]})
     if flags:
         for f in flags:
             log(f"  ⚠ DRAFT-AUDIT: '{f['drug']}' is {f['db_format']} in DB but the Issue "
