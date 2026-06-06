@@ -44,7 +44,13 @@ def main() -> int:
     req = urllib.request.Request(
         url,
         data=data,
-        headers={"Authorization": f"Bearer {pat}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {pat}",
+            "Content-Type": "application/json",
+            # Cloudflare (error 1010) blocks the default Python-urllib UA on the
+            # Management API from CI runners — send a normal UA.
+            "User-Agent": "meridian-pipeline/1.0 (+github-actions)",
+        },
         method="POST",
     )
     try:
