@@ -1,0 +1,41 @@
+name: Meridian Patient Briefs
+
+# Generates the cited Patient Brief + Meridian Patient Analysis for every indication
+# in indication_patient_intelligence (the North Star layer). Reuses the narrative
+# provenance/independence/gap machinery, so unsourced patient facts surface in the
+# collection queue for the evidence collector to source.
+
+on:
+  schedule:
+    # Sunday 07:00 UTC — after the narrative refresh.
+    - cron: "0 7 * * 0"
+  workflow_dispatch:
+    inputs:
+      indications:
+        description: "Comma-separated indication names (blank = all)"
+        required: false
+        default: ""
+
+jobs:
+  patient-briefs:
+    name: "Generate patient briefs"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install anthropic
+      - name: Generate patient briefs
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          IND="${{ github.event.inputs.indications }}"
+          if [ -n "$IND" ]; then
+            python scripts/generate_patient_briefs.py --indications "$IND"
+          else
+            python scripts/generate_patient_briefs.py --all
+          fi
