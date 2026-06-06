@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from narrative_gen import (get, _request, fail_closed_check, fail_closed_analysis,  # noqa: E402
-                           fetch_feedback, feedback_block, mark_feedback_applied)
+                           fetch_feedback, feedback_block, mark_feedback_applied, _source_tier)
 
 PHASE = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}
 
@@ -125,11 +125,14 @@ def write(target, section, prose, atoms, rh):
         print("  write failed", file=sys.stderr); return
     nid = res[0]["id"]
     _request("DELETE", f"narrative_provenance?narrative_id=eq.{nid}")
-    prov = [{"narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
-             "source_url": a.get("source_url"), "source_table": a["source_table"],
-             "source_row_id": a.get("source_row_id"),
-             "content_confirms_claim": (a["kind"] == "external_confirmed") or None}
-            for i, a in enumerate(atoms)]
+    prov = []
+    for i, a in enumerate(atoms):
+        tier, rank = _source_tier(a.get("source_url"), a["source_table"])
+        prov.append({"narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
+                     "source_url": a.get("source_url"), "source_table": a["source_table"],
+                     "source_row_id": a.get("source_row_id"),
+                     "content_confirms_claim": (a["kind"] == "external_confirmed") or None,
+                     "independence_tier": tier, "tier_rank": rank})
     _request("POST", "narrative_provenance", prov, {"Prefer": "return=minimal"})
     print(f"  wrote target/{section} {nid} + {len(prov)} provenance rows")
 

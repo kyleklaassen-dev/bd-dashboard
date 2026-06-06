@@ -530,6 +530,41 @@ def _toks(s):
     return {w for w in re.split(r"[\s,×x/·()\[\]:;]+", str(s or "").lower()) if len(w) > 4}
 
 
+# Independence weighting — WHO controls the source decides how much a corroboration
+# is worth. Peer-reviewed/regulatory (independent) > registry (independent platform,
+# sponsor-submitted) > independent news > sponsor PR/IR/SEC > our own internal rows.
+_PEER_DOMAINS = {"doi.org", "nejm.org", "thelancet.com", "nature.com", "science.org",
+                 "cell.com", "jamanetwork.com", "bmj.com", "annals.org", "gastrojournal.org",
+                 "journals.lww.com", "academic.oup.com", "oup.com", "sciencedirect.com",
+                 "springer.com", "link.springer.com", "wiley.com", "onlinelibrary.wiley.com",
+                 "tandfonline.com", "frontiersin.org", "plos.org", "journals.plos.org",
+                 "mdpi.com", "pubmed.ncbi.nlm.nih.gov", "ncbi.nlm.nih.gov", "europepmc.org",
+                 "ashpublications.org", "ahajournals.org", "atsjournals.org"}
+_REG_DOMAINS = {"fda.gov", "accessdata.fda.gov", "ema.europa.eu", "hpra.ie", "pmda.go.jp"}
+_REGISTRY_DOMAINS = {"clinicaltrials.gov", "anzctr.org.au", "clinicaltrialsregister.eu",
+                     "isrctn.com", "chictr.org.cn", "trialregister.nl", "who.int", "jrct.niph.go.jp"}
+_NEWS_DOMAINS = {"fiercebiotech.com", "statnews.com", "endpts.com", "biopharmadive.com",
+                 "reuters.com", "apnews.com", "bloomberg.com", "biospace.com"}
+
+
+def _source_tier(url, table):
+    """(tier_name, tier_rank). Higher rank = more independent/authoritative."""
+    if table == "trial_publications":
+        return "peer_reviewed", 5
+    d = _domain(url)
+    if not d:
+        return "internal", 1
+    if d in _PEER_DOMAINS:
+        return "peer_reviewed", 5
+    if d in _REG_DOMAINS:
+        return "regulatory", 5
+    if d in _REGISTRY_DOMAINS:
+        return "registry", 4
+    if d in _NEWS_DOMAINS:
+        return "independent_news", 3
+    return "sponsor", 2          # company IR / PR wire / SEC / any other company domain
+
+
 # Distinctive study identifiers (trial acronyms): the machine-linkable key that ties an
 # independent publication (e.g. nejm.org) to a registry trial (clinicaltrials.gov) for the
 # SAME study. Blocklist strips domain-generic all-caps tokens that would false-match.
@@ -669,6 +704,71 @@ def triangulate(asserted, recipe):
 
 
 # ---------------------------------------------------------------------------
+# 2.55 AGREEMENT — do the sources AGREE on the numbers? Surface, don't smooth.
+# ---------------------------------------------------------------------------
+def _dose_norm(dl):
+    s = str(dl or "").lower()
+    m = re.search(r"(\d+(?:\.\d+)?)\s*mg", s)
+    route = next((r for r in ("iv", "sc", "po", "oral") if re.search(r"\b" + r + r"\b", s)), "")
+    return ((m.group(1) + "mg") if m else "") + ((" " + route) if route else "")
+
+
+def detect_value_conflicts(recipe, resolver, tol=5.0):
+    """Same drug + metric + timepoint + normalized dose, but materially divergent
+    reported rates = a contradiction to surface (data error, or genuinely disagreeing
+    sources). Returns one record per conflicted (metric, timepoint, dose)."""
+    from collections import defaultdict
+    drug_id = recipe["drug"]["id"]
+    groups = defaultdict(list)
+    for b in recipe.get("benchmarks", []) or []:
+        rate = b.get("rate_pct")
+        dl = str(b.get("dose_label") or "")
+        if rate is None or not re.search(r"\d+\s*mg|\bIV\b|\bSC\b", dl, re.I):
+            continue                                   # skip comparator-name rows
+        dn = _dose_norm(dl)
+        if not dn:
+            continue
+        nct = next(iter(resolve_ncts(b.get("trial_name") or "", b.get("source_url"), resolver)), None)
+        groups[(str(b.get("benchmark_type") or ""), b.get("timepoint_weeks"), dn)].append(
+            {"value": float(rate), "source_url": b.get("source_url"),
+             "trial_name": b.get("trial_name"), "nct": nct})
+    conflicts = []
+    for (metric, tw, dn), vals in groups.items():
+        distinct = sorted({round(v["value"], 1) for v in vals})
+        if len(distinct) >= 2 and (distinct[-1] - distinct[0]) > tol:
+            conflicts.append({
+                "drug_id": drug_id, "metric": metric, "timepoint_weeks": tw, "dose_norm": dn,
+                "nct_id": next((v["nct"] for v in vals if v["nct"]), None),
+                "values_json": vals, "value_min": distinct[0], "value_max": distinct[-1],
+                "delta": round(distinct[-1] - distinct[0], 1)})
+    return conflicts
+
+
+def persist_value_conflicts(conflicts):
+    if not conflicts:
+        return
+    _request("POST", "narrative_value_conflicts?on_conflict=drug_id,metric,timepoint_weeks,dose_norm",
+             conflicts, {"Prefer": "resolution=merge-duplicates,return=minimal"})
+    print(f"  persisted {len(conflicts)} value conflict(s)")
+
+
+def conflicts_note(conflicts):
+    """Render conflicts as analysis-prompt guidance + the figures that may be cited."""
+    if not conflicts:
+        return "", set()
+    lines, figs = [], set()
+    for c in conflicts:
+        m = c["metric"].replace("_", " ")
+        wk = f" at week {c['timepoint_weeks']}" if c.get("timepoint_weeks") else ""
+        lines.append(f"- {m}{wk} ({c['dose_norm']}) is reported as "
+                     f"{c['value_min']}% AND {c['value_max']}% across sources — discordant.")
+        figs.add(f"{c['value_min']}%"); figs.add(f"{c['value_max']}%")
+    note = ("\n\nDATA CONFLICTS — surface these, do not smooth over (Meridian governance): "
+            "if material to the read, flag that the figures disagree.\n" + "\n".join(lines))
+    return note, figs
+
+
+# ---------------------------------------------------------------------------
 # 2.6 LEARNING LOOP — read prior human corrections so generation honors them
 # ---------------------------------------------------------------------------
 def fetch_feedback(entity_type, entity_id, section):
@@ -760,25 +860,27 @@ ANALYSIS_SYSTEM = (
 )
 
 
-def compose_analysis(drug_name, atoms, framing, feedback=None):
+def compose_analysis(drug_name, atoms, framing, feedback=None, conflict_note=""):
     import anthropic
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
     fr = "\n".join(f"- {k}: {v}" for k, v in framing.items() if v)
     prompt = (f"ASSET: {drug_name}\n\nCITED FACTS:\n{numbered}\n\n"
               f"PRIOR FRAMING (context only, not citable):\n{fr or '(none)'}"
-              + feedback_block(feedback) + "\n\nWrite the Meridian Analysis now.")
+              + conflict_note + feedback_block(feedback) + "\n\nWrite the Meridian Analysis now.")
     resp = client.messages.create(
         model="claude-sonnet-4-6", max_tokens=500, temperature=0,
         system=ANALYSIS_SYSTEM, messages=[{"role": "user", "content": prompt}])
     return resp.content[0].text.strip()
 
 
-def fail_closed_analysis(prose, atoms, scrub):
+def fail_closed_analysis(prose, atoms, scrub, extra_figures=None):
     """Analysis is inference, so it needn't cite every clause — but it must not fabricate
-    facts. Block if it introduces a %/NCT/$ figure absent from the fact atoms, or a scrub token."""
+    facts. Block if it introduces a %/NCT/$ figure absent from the fact atoms, or a scrub token.
+    extra_figures = figures legitimately allowed from detected value-conflicts."""
     problems = []
     corpus = " ".join(a["claim"] for a in atoms)
+    allowed = {f.replace(" ", "") for f in (extra_figures or set())}
     for tok in scrub:
         if tok.lower() in prose.lower():
             problems.append(f"scrubbed token '{tok}' present")
@@ -786,7 +888,7 @@ def fail_closed_analysis(prose, atoms, scrub):
         if nct.upper() not in corpus.upper():
             problems.append(f"introduced NCT not in facts: {nct}")
     for fig in set(re.findall(r"\d+(?:\.\d+)?%|\$\s?\d[\d,\.]*\s?[BMbm]?", prose)):
-        if fig.replace(" ", "") not in corpus.replace(" ", ""):
+        if fig.replace(" ", "") not in corpus.replace(" ", "") and fig.replace(" ", "") not in allowed:
             problems.append(f"introduced figure not in facts: {fig}")
     if "Meridian Analysis" not in prose:
         problems.append("missing the interpretation label")
@@ -863,23 +965,27 @@ def write_narrative(drug, section, prose, atoms, rh, composer):
     prov = []
     triangulated = 0
     for i, a in enumerate(atoms):
+        ptier, prank = _source_tier(a.get("source_url"), a["source_table"])
         prov.append({
             "narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
             "drug_source_id": _dsid(a["source_table"], a.get("source_row_id")),
             "source_url": a.get("source_url"), "source_table": a["source_table"],
             "source_row_id": a.get("source_row_id"),
             "content_confirms_claim": (a["kind"] == "external_confirmed") or None,
+            "independence_tier": ptier, "tier_rank": prank,
         })
         corr = a.get("corroborations", []) or []
         if corr:
             triangulated += 1
         for c in corr:
+            ctier, crank = _source_tier(c.get("source_url"), c["source_table"])
             prov.append({
                 "narrative_id": nid, "claim_index": i + 1, "claim_text": a["claim"],
                 "drug_source_id": _dsid(c["source_table"], c.get("source_row_id")),
                 "source_url": c.get("source_url"), "source_table": c["source_table"],
                 "source_row_id": c.get("source_row_id"),
                 "content_confirms_claim": c.get("content_confirms_claim"),
+                "independence_tier": ctier, "tier_rank": crank,
             })
     _request("POST", "narrative_provenance", prov, {"Prefer": "return=minimal"})
     print(f"  wrote narrative {nid} + {len(prov)} provenance rows "
@@ -901,7 +1007,11 @@ def main():
     rh = recipe_hash(recipe)
     atoms = extract_atoms(recipe)
     asserted = triangulate(atoms["asserted"], recipe)
+    resolver = build_study_resolver(recipe)
+    value_conflicts = detect_value_conflicts(recipe, resolver)
     feedback = fetch_feedback("drug", args.drug_id, args.section)
+    if not args.dry_run:
+        persist_value_conflicts(value_conflicts)
 
     print(f"\n=== {args.drug_id} / {args.section}  (recipe hash {rh}) ===")
     n_tri = sum(1 for a in asserted if a.get("corroborations"))
@@ -911,6 +1021,15 @@ def main():
         tri = a.get("triangulation", 1)
         tag = f"  +{len(a['corroborations'])} corrob → {tri} domains" if a.get("corroborations") else ""
         print(f"  [{i+1}] ({a['kind']}/{a['confidence']}) {a['claim']}  <- {src}{tag}")
+    n_indep = sum(1 for a in asserted
+                  if any(_source_tier(c.get("source_url"), c["source_table"])[1] >= 5
+                         for c in a.get("corroborations", [])))
+    print(f"  ({n_indep} of those corroborated by a peer-reviewed/regulatory source)")
+    if value_conflicts:
+        print(f"\nVALUE CONFLICTS detected ({len(value_conflicts)}):")
+        for c in value_conflicts:
+            print(f"  ! {c['metric']} wk{c['timepoint_weeks']} {c['dose_norm']}: "
+                  f"{c['value_min']}% vs {c['value_max']}% (Δ{c['delta']})")
     if feedback:
         print(f"\nUNRESOLVED FEEDBACK to honor ({len(feedback)}):")
         for f in feedback:
@@ -938,9 +1057,10 @@ def main():
                    ("ailux_angle", "vs_ailux", "differentiation_thesis", "overlap")}
         if not os.environ.get("ANTHROPIC_API_KEY"):
             raise SystemExit("the analysis tier requires ANTHROPIC_API_KEY (it is inference).")
+        cnote, cfigs = conflicts_note(value_conflicts)
         for i in range(3):
-            prose = compose_analysis(dname, asserted, framing, feedback)
-            problems = fail_closed_analysis(prose, asserted, atoms["scrub"])
+            prose = compose_analysis(dname, asserted, framing, feedback, cnote)
+            problems = fail_closed_analysis(prose, asserted, atoms["scrub"], cfigs)
             if not problems:
                 break
             if i < 2:
