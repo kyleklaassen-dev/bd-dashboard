@@ -1,0 +1,44 @@
+name: Meridian Narrative Generation
+
+# Regenerates the narrative layer for an area: per-drug overview + Meridian Analysis,
+# the target landscape narrative, and per-drug trust scores. A full weekly regen also
+# serves as the staleness fix (every narrative re-derived from current rows).
+# See docs/NARRATIVE_KNOWLEDGE_LAYER.md + NARRATIVE_QUESTIONS_THAT_MATTER.md.
+
+on:
+  schedule:
+    # Sunday 06:00 ET (10:00 UTC) — weekly refresh, before the Monday audit.
+    - cron: "0 10 * * 0"
+  workflow_dispatch:
+    inputs:
+      area:
+        description: "Area / primary target id (e.g. tl1a)"
+        required: true
+        default: "tl1a"
+      limit:
+        description: "Limit number of drugs (0 = all)"
+        required: false
+        default: "0"
+
+jobs:
+  generate:
+    name: "Generate area narratives"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install anthropic
+      - name: Generate narratives + landscape + trust scores
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PAT:         ${{ secrets.SUPABASE_PAT }}
+        run: |
+          AREA="${{ github.event.inputs.area }}"; AREA="${AREA:-tl1a}"
+          LIM="${{ github.event.inputs.limit }}"; LIM="${LIM:-0}"
+          echo "=== Narrative generation — area=$AREA limit=$LIM — $(date -u) ==="
+          python scripts/generate_area_narratives.py --area "$AREA" --limit "$LIM"
