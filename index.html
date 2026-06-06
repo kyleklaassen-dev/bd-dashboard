@@ -5328,6 +5328,7 @@ function loadMoleculeTab(tabId) {
   loadAreaPI(tabId);           // replaces loadAreaCompetitors
   loadAreaBDActivity(tabId);
   if (TAB_LANDSCAPE_MAP?.[tabId]) loadLandscapeCoverage(tabId); // v32 coverage panel
+  _loadAreaBriefs(tabId);      // Meridian landscape + strategic brief + patient briefs
   _injectAreaFreshness(tabId); // G15 fix: show last-enriched timestamp
 }
 
@@ -13531,6 +13532,95 @@ function _cemPhasePill(phase) {
   return `<span class="cem-pill ${cls}">${phase}</span>`;
 }
 
+/* ── Shared markdown renderer for Meridian narratives (headers, bold, italic, [n] cites) ── */
+function _mdMeridian(md) {
+  const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let h = esc(md);
+  h = h.replace(/\s*\[([\d,–—\- ]+)\]/g, (m, g) => `<sup style="color:#2563eb;font-weight:700;font-size:9px">[${g.replace(/\s/g, '')}]</sup>`);
+  h = h.replace(/^###\s+(.*)$/gm, '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin:9px 0 3px">$1</div>');
+  h = h.replace(/^##\s+(.*)$/gm, '<div style="font-size:12.5px;font-weight:700;color:#1e293b;margin:3px 0 6px">$1</div>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  h = h.replace(/^_(.*)_\s*$/gm, '<em style="color:#6d28d9;font-style:italic">$1</em>');
+  return h.split(/\n{2,}/).map(p => p.trim().match(/^<(div|em)/)
+    ? p : `<p style="font-size:12px;color:#1e293b;line-height:1.7;margin:0 0 7px">${p.replace(/\n/g, ' ')}</p>`).join('');
+}
+
+/* Area tab → the disease indications whose Patient Briefs to surface (North Star layer). */
+const AREA_BRIEF_INDICATIONS = {
+  'tl1a': ['Ulcerative Colitis', "Crohn's Disease", 'IBD (Inflammatory Bowel Disease)'],
+  'tslp': ['Severe Asthma', 'COPD (Type-2 / eosinophilic)', 'Chronic Rhinosinusitis with Nasal Polyps'],
+  'il4ra-tslp': ['Atopic Dermatitis', 'Severe Asthma', 'Chronic Rhinosinusitis with Nasal Polyps'],
+  'il4ra-ox40l': ['Atopic Dermatitis'],
+  'igf1r-tshr': ['Thyroid Eye Disease'],
+  'fcrn': ['Generalized Myasthenia Gravis', 'CIDP'],
+  'ace': ['Multiple Myeloma', 'Systemic Lupus Erythematosus (SLE)'],
+};
+
+/* ontology indication_id → Patient-Brief indication_name (for the drug-card Patient Context) */
+const IND_PATIENT_NAME = {
+  uc: 'Ulcerative Colitis', cd: "Crohn's Disease", ibd: 'IBD (Inflammatory Bowel Disease)',
+  ted: 'Thyroid Eye Disease', ad: 'Atopic Dermatitis', asthma: 'Severe Asthma',
+  copd: 'COPD (Type-2 / eosinophilic)', crswnp: 'Chronic Rhinosinusitis with Nasal Polyps',
+  gmg: 'Generalized Myasthenia Gravis', mg: 'Generalized Myasthenia Gravis', cidp: 'CIDP',
+  sle: 'Systemic Lupus Erythematosus (SLE)', psoriasis: 'Plaque Psoriasis', psa: 'Psoriatic Arthritis',
+  hs: 'Hidradenitis Suppurativa', eoe: 'Eosinophilic Esophagitis (EoE)',
+  chronic_urticaria: 'Chronic Spontaneous Urticaria', sjogren: "Sjögren's Disease",
+};
+
+/* ── Area-level Meridian briefs: Landscape, Landscape Analysis, Strategic Brief, Patient Briefs ──
+   Surfaces the target-level (entity_type='target') + patient (entity_type='indication') narratives
+   at the top of an area tab. Each block is collapsible; fails silent so a missing brief never breaks the tab. */
+async function _loadAreaBriefs(tabId) {
+  try {
+    if (typeof _sb === 'undefined' && typeof SUPABASE_ANON === 'undefined') return;
+    const areaId = (typeof TAB_AREA !== 'undefined' && TAB_AREA[tabId]) || tabId;
+    const pane = document.getElementById('tab-' + tabId);
+    if (!pane) return;
+    let host = document.getElementById('area-briefs-' + tabId);
+    if (host && host.dataset.loaded === '1') return;     // once per tab
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'area-briefs-' + tabId;
+      host.style.margin = '0 0 14px';
+      pane.insertBefore(host, pane.firstChild);
+    }
+    const base = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'https://tghntyofptvfhmtchwcv.supabase.co') + '/rest/v1';
+    const hdr = { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON };
+    const q = async u => { try { return await (await fetch(base + u, { headers: hdr })).json(); } catch (e) { return []; } };
+
+    const tgt = await q('/entity_narratives?entity_type=eq.target&entity_id=eq.' + encodeURIComponent(areaId) +
+      '&section=in.(overview,intelligence,business)&select=section,body_md,generated_at,stale');
+    const inds = AREA_BRIEF_INDICATIONS[tabId] || [];
+    let pats = [];
+    if (inds.length) {
+      const list = inds.map(n => '"' + n.replace(/"/g, '') + '"').join(',');
+      pats = await q('/entity_narratives?entity_type=eq.indication&section=eq.overview&entity_id=in.(' +
+        encodeURIComponent(list) + ')&select=entity_id,body_md');
+    }
+    if ((!tgt || !tgt.length) && (!pats || !pats.length)) { host.dataset.loaded = '1'; return; }
+
+    const byS = {}; (tgt || []).forEach(r => byS[r.section] = r);
+    const block = (icon, label, tagText, tagCol, body, open) => !body ? '' :
+      `<details ${open ? 'open' : ''} style="margin-bottom:8px"><summary style="cursor:pointer;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:${tagCol};outline:none">${icon} ${label}${tagText ? ` <span style="font-weight:700;color:#94a3b8;text-transform:none;letter-spacing:0">· ${tagText}</span>` : ''}</summary><div style="margin-top:7px">${_mdMeridian(body)}</div></details>`;
+
+    let inner = '';
+    if (byS.business) inner += block('🧭', 'Meridian Strategic Brief', 'BD priorities · interpretation', '#6d28d9', byS.business.body_md, true);
+    if (byS.overview) inner += block('🗺', 'Landscape', 'derived · cited', '#4f46e5', byS.overview.body_md, false);
+    if (byS.intelligence) inner += block('📊', 'Landscape Analysis', 'interpretation', '#6d28d9', byS.intelligence.body_md, false);
+    (pats || []).forEach(p => {
+      inner += block('🧑‍⚕️', 'Patient Brief — ' + (p.entity_id || ''), 'North Star · derived · cited', '#0369a1', p.body_md, false);
+    });
+    if (!inner) { host.dataset.loaded = '1'; return; }
+
+    host.innerHTML =
+      `<div style="background:linear-gradient(180deg,#fbfcff,#f7f9ff);border:1px solid #dbe4ff;border-left:3px solid #4f6ef7;border-radius:10px;padding:13px 15px">
+         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#3730a3;margin-bottom:9px">◎ Meridian — Landscape, Strategy & Patient</div>
+         ${inner}
+       </div>`;
+    host.dataset.loaded = '1';
+  } catch (e) { /* silent */ }
+}
+
 /* ── DRUG card renderer ──────────────────────────────────────────── */
 /* ── Meridian Narrative loader — the prose read layer (v70 entity_narratives) ──
    Fetches the derived, cited overview narrative + its provenance and renders it
@@ -13641,6 +13731,22 @@ async function _loadMeridianNarrative(drugId) {
         ${foot(prov) ? `<details style="margin-top:8px"><summary style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;cursor:pointer">Basis (${prov.length} facts)</summary><ul style="margin:6px 0 0;padding-left:4px;list-style:none">${foot(prov)}</ul></details>` : ''}
       </div>`;
     }
+    // Patient Context — the lead indication's Meridian Patient Brief (North Star layer)
+    try {
+      const di = await (await fetch(base + '/drug_indications?drug_id=eq.' + encodeURIComponent(drugId) +
+        '&select=indication_id,is_lead_indication&order=is_lead_indication.desc.nullslast', { headers: hdr })).json();
+      const iid = Array.isArray(di) && di.length ? di[0].indication_id : null;
+      const nm = iid && IND_PATIENT_NAME[iid];
+      if (nm) {
+        const pb = (await (await fetch(base + '/entity_narratives?entity_type=eq.indication&section=eq.overview&entity_id=eq.' +
+          encodeURIComponent(nm) + '&select=body_md', { headers: hdr })).json())[0];
+        if (pb && pb.body_md) {
+          html += `<details style="background:linear-gradient(180deg,#f7fdff,#eff8ff);border:1px solid #bae6fd;border-left:3px solid #0ea5e9;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+            <summary style="cursor:pointer;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0369a1;outline:none">🧑‍⚕️ Patient Context — ${esc(nm)} <span style="font-weight:700;color:#94a3b8;text-transform:none;letter-spacing:0">· North Star · derived · cited</span></summary>
+            <div style="margin-top:8px">${_mdMeridian(pb.body_md)}</div></details>`;
+        }
+      }
+    } catch (e) {}
     host.innerHTML = html;
   } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
 }
