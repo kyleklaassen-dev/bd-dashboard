@@ -109,6 +109,77 @@ def fact_check_report():
         except Exception as e:
             log(f"  fact-check governance log failed (non-fatal): {e}")
 
+def audit_draft_against_db(html, drugs):
+    """POST-draft consistency gate. Catches the SPY072-class error: the finished
+    Issue describing a DB-monospecific asset as a 'bispecific' (or a DB-bispecific
+    asset as 'monospecific'). The pre-write gates check sources; this checks the
+    PROSE against the canonical drugs table after the model has written it.
+
+    Flag, don't silently rewrite — surfaces a governance_violation for morning
+    review. Set MERIDIAN_FACTCHECK_STRICT=1 to hard-block deploy on any flag.
+    Returns the list of flags.
+    """
+    flags = []
+    # Map every asset that has a DEFINITE format to its format word.
+    fmt = {}
+    for d in drugs.values():
+        tc = (d.get("target_class") or "").strip().lower()
+        if tc not in ("monospecific", "bispecific"):
+            continue
+        for nm in (d.get("display_name"), d.get("name")):
+            if nm and len(nm) >= 3:
+                # strip a trailing "(...)" qualifier from display_name for matching
+                base = _re.sub(r"\s*\(.*?\)\s*$", "", nm).strip()
+                if base:
+                    fmt[base] = tc
+    # contrast cues that make "<name> ... <opposite format>" a legitimate comparison
+    # rather than a misattribution — checked ONLY in the span between the name and the
+    # format word, so a comparison elsewhere in the paragraph can't mask a real error.
+    _CONTRAST = _re.compile(r"(unlike|not a\b|rather than|versus|\bvs\b\.?|whereas|distinct from|"
+                            r"sister|as opposed to|compared (?:to|with)|in contrast)", _re.I)
+    RADIUS = 150  # wide enough to reach the format word later in the sentence
+    htl = html.lower()
+    for nm, tc in fmt.items():
+        opp = "bispecific" if tc == "monospecific" else "monospecific"
+        flagged = False
+        for m in _re.finditer(_re.escape(nm), html):
+            if flagged:
+                break
+            lo, hi = max(0, m.start() - RADIUS), min(len(html), m.end() + RADIUS)
+            # nearest opposite-format word within the window
+            for om in _re.finditer(opp, htl[lo:hi]):
+                op_s, op_e = lo + om.start(), lo + om.end()
+                gap = html[min(m.end(), op_s):max(m.start(), op_e)]  # text between name and word
+                if _CONTRAST.search(gap):
+                    continue  # legitimate comparison, not a misattribution
+                snip = html[min(m.start(), op_s) - 10: max(m.end(), op_e) + 10]
+                flags.append({"drug": nm, "db_format": tc, "draft_says": opp,
+                              "snippet": _re.sub(r"\s+", " ", snip).strip()})
+                flagged = True
+                break
+    if flags:
+        for f in flags:
+            log(f"  ⚠ DRAFT-AUDIT: '{f['drug']}' is {f['db_format']} in DB but the Issue "
+                f"reads as {f['draft_says']} — “…{f['snippet']}…”")
+        try:
+            requests.post(f"{SUPABASE_URL}/rest/v1/governance_violations",
+                headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                json={"table_name": "meridian_issue_factcheck",
+                      "row_id": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
+                      "rule_name": "draft_format_contradicts_db",
+                      "description": "Post-draft audit: Issue prose describes an asset's format "
+                                     "inconsistently with the drugs table — "
+                                     + "; ".join(f"{x['drug']} (DB={x['db_format']}, draft={x['draft_says']})" for x in flags[:10]),
+                      "resolved": False}, timeout=15)
+        except Exception as ex:
+            log(f"  draft-audit governance log failed (non-fatal): {ex}")
+        if os.environ.get("MERIDIAN_FACTCHECK_STRICT") == "1":
+            raise RuntimeError(f"Draft-audit hard-block: {len(flags)} format contradiction(s) vs DB")
+    else:
+        log("  ✓ draft-audit: no asset format contradicts the drugs table")
+    return flags
+
+
 GH_HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
     "Accept":        "application/vnd.github+json",
@@ -241,7 +312,7 @@ def fetch_drug_context():
             f"{SUPABASE_URL}/rest/v1/drugs",
             headers=SB_HEADERS,
             params={
-                "select": "id,name,display_name,company_id,stage,target,mechanism,overlap,overlap_rationale,ailux_angle,partner_company,partnership_type,partnership_verified,indication_short",
+                "select": "id,name,display_name,company_id,stage,target,mechanism,overlap,overlap_rationale,ailux_angle,partner_company,partnership_type,partnership_verified,indication_short,target_class,modality",
                 "limit": "500",
             },
         )
@@ -834,7 +905,9 @@ Ailux Biotherapeutics is developing three bispecific antibody programs, all targ
 - ALX002 (CD19×BCMA): I&I autoimmune program targeting SLE and Sjogren's via dual B-cell and plasma cell depletion.
 - ALX005 (FcRn×Albumin): Rare disease program for gMG and CIDP; half-life extension bispecific format.
 
-CRITICAL: SPY002/SPY072 is Spyre Therapeutics' TL1A×IL-23p19 bispecific — it is a DIRECT COMPETITOR to ALX001, NOT an Ailux asset. Never conflate Ailux with Spyre or refer to SPY002 as an Ailux drug. RO7837195 (Roche/Pfizer) is another direct ALX001 competitor.
+CRITICAL — SPYRE TL1A ASSETS ARE MONOSPECIFIC, NOT BISPECIFIC: SPY002 and SPY072 are two SEPARATE extended-half-life (YTE) MONOSPECIFIC anti-TL1A monoclonal antibodies from Spyre Therapeutics — NEITHER is a bispecific, and neither is an Ailux asset. SPY002 is in IBD (SKYLINE-UC; UC induction topline ~June 30 2026). SPY072 is in RHEUMATIC disease (SKYWAY basket: RA/PsA/axSpA; SKYWAY RA sub-study topline ~Q3 2026) — it has NO IBD program and there is no "ATLAS-1" trial. Treat both as TL1A-ARM benchmarks (proxies for the TL1A arm of ALX001), NOT as bispecific-format competitors. The genuine TL1A×IL-23p19 BISPECIFIC competitors to ALX001 are SIM0709 (Simcere/Boehringer Ingelheim), CLD-423 (Caldera/Qyuns — first subjects dosed Phase 1 Jan 2026), MT-251 (Mirador), XmAb412 (Xencor), HY8931 (Newsoara) and EAR-2001 (Earendil). RO7837195 (Roche/Pfizer) is another direct ALX001 competitor.
+
+FORMAT / INDICATION DISCIPLINE (no assumptions): An asset's format (monospecific vs bispecific), molecular target, indication, and trial names come ONLY from its database row (target, target_class, modality, indication_short, stage_detail) and its drug_sources. NEVER infer "bispecific" from a hyphenated target string or a display name; a drug is bispecific ONLY if target_class says so. NEVER invent or guess a trial name, phase, or indication. If a fact is not in the DB or sources, leave it out rather than guessing.
 
 TL1A CLASS STATE: Two monospecific anti-TL1A antibodies are in Phase 3 — tulisokibart (Merck, ATLAS-UC primary ~Nov 2026, first Ph3 TL1A readout) and afimkibart (Roche, AMETRINE-2 primary Jan 2027). Merck's readout is the single most consequential class validation event before Ailux reaches clinical inflection. A positive result validates sequencing and combination strategies and sets the monotherapy ceiling that a bispecific must exceed. A failure reshapes everything.
 
@@ -982,6 +1055,12 @@ YOUR EDITORIAL STANDARD:
 - Be precise about mechanism. "IL-23 inhibition" is not acceptable. Specify the subunit, the pathway, the cell type, the downstream effect.
 - Do not write "it remains to be seen." That hedge belongs in investor presentations, not intelligence briefings.
 - Do not write "this space continues to evolve" or any equivalent platitude.
+
+DIRECTNESS & ANTI-REPETITION (house rules — enforce strictly):
+- STATE EACH THESIS ONCE. The lead carries the central argument. Every later section must add NEW evidence, a NEW asset, or a NEW connection — it may build on the thesis but must never re-argue it. If a paragraph would only restate the lead in different words, cut it.
+- NO POSTURING. Drop portentous throat-clearing — "the central fact strategy must metabolize this weekend," "make no mistake," "the question is whether," "the window is X weeks wide" repeated as a refrain. Lead with the fact, then the implication, in plain declarative sentences. A dramatic sentence is weaker than a precise one.
+- FACTS AND RELATIONSHIPS OVER ADJECTIVES. Prefer a number, a date, a mechanism, or an explicit A→B relationship to any intensifier. Every competitive claim must name the relationship (who competes with / blocks / enables / sequences against / prices whom) and the evidence for it. Cut words that carry no fact: if a sentence survives deletion of an adjective with its meaning intact, delete the adjective.
+- NO ASSUMPTIONS. If you do not have a sourced fact, do not assert it. Do not infer an asset's format, target, indication, trial name, phase, or deal terms. Absent evidence, say less.
 
 SOURCE HIERARCHY: Endpoints News and Fierce Biotech are the primary trade sources. Direct company press releases are equally authoritative. When these sources conflict with secondary sources, prefer Endpoints/Fierce/company-direct. All factual claims must be hyperlinked to their source.
 
@@ -1550,6 +1629,9 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # (which already sit inside <a> tags) are never double-wrapped.
     html = apply_first_mention_links(html, drugs, companies)
 
+    # Post-draft fact-check gate: prose format vs canonical drugs table.
+    audit_draft_against_db(html, drugs)
+
     return html, plan, _plan_company_ids, _content_fingerprint
 
 
@@ -1809,6 +1891,8 @@ def deploy_to_github(html_content, filename="meridian_today.html"):
     # ── Guard: skip if today's issue was already committed ────────────────────
     # Checks the last commit touching meridian_today.html. If it already
     # has today's date in the message, this is a duplicate run — skip.
+    import sys as _sys
+    _force = ("--force" in _sys.argv) or (os.environ.get("MERIDIAN_FORCE", "").lower() in ("1", "true", "yes"))
     try:
         recent = requests.get(
             f"https://api.github.com/repos/{GITHUB_REPO}/commits",
@@ -1818,10 +1902,12 @@ def deploy_to_github(html_content, filename="meridian_today.html"):
         )
         if recent.status_code == 200 and recent.json():
             last_msg = recent.json()[0]["commit"]["message"]
-            if today in last_msg and "[auto]" in last_msg:
+            if today in last_msg and "[auto]" in last_msg and not _force:
                 log(f"Skipping deploy — today's issue already committed ({last_msg[:60]}). "
                     f"Use workflow_dispatch with force=true to override.")
                 return
+            if _force and today in last_msg:
+                log("Force flag set — re-deploying over today's existing issue commit.")
     except Exception as _guard_err:
         log(f"[WARN] Could not check last commit: {_guard_err} — proceeding with deploy")
 

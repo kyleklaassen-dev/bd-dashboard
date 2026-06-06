@@ -1,0 +1,231 @@
+sop_name: meridian_issue_style_v1
+version: "1.0"
+display_name: Meridian Issue Style Guide
+skill_name: write_meridian_issue
+status: active
+description: |
+  Style guide and quality bar for Meridian Issue entries. The Meridian Issue is
+  the platform's primary intelligence product — a curated, analyst-quality briefing
+  that translates raw competitive signals into BD-relevant decisions for Ailux.
+  Each entry must meet a significance threshold, follow a 4-section structure,
+  and maintain a specific tone: precise, direct, scientist-meets-banker.
+
+qualification:
+  description: "Not every signal qualifies as a Meridian Issue entry. Apply this gate first."
+  thresholds:
+    publish: "significance >= 4 OR direct ALX001 implication at any significance level"
+    queue_for_review: "significance = 3 AND involves a direct mechanism competitor"
+    discard: "significance <= 2 AND no ALX001 implication"
+  significance_rubric:
+    "5 — Critical":
+      description: "Phase 3 data in TL1A or bispecific IBD. FDA approval. Major acquisition of direct competitor."
+      examples:
+        - "PRA023 Phase 3 ARTEMIS-CD data released: 52% clinical remission rate"
+        - "Johnson & Johnson acquires company with Phase 2 TL1A asset"
+    "4 — High":
+      description: "Phase 2 data for direct or adjacent competitor. Deal or partnership in mechanism space. IND filing for new bispecific approach."
+      examples:
+        - "Roche/Genentech licenses etokimab, adjacent IL-33 path in IBD"
+        - "New bispecific IND: anti-TL1A x anti-IL-12 filed by undisclosed biotech"
+    "3 — Medium":
+      description: "Phase 1 data for adjacent competitor. Regulatory decision in IBD (adjacent drug). Conference poster with mechanism insight."
+      examples:
+        - "ECCO 2026 poster: IL-23 monotherapy responder biomarker identified"
+        - "Sanofi initiates Phase 1 for TL1A biologic (new mechanism)"
+    "2 — Low":
+      description: "Preclinical data. Analyst report. Discovery-stage news. Company restructuring with no direct pipeline impact."
+      examples:
+        - "New mouse model paper shows TL1A role in intestinal fibrosis"
+    "1 — Noise":
+      description: "General IBD news with no mechanism or BD relevance to Ailux."
+
+required_sections:
+  signal:
+    label: "Signal"
+    description: "One sentence: what happened. Who did what. When. Source."
+    format: "[Company] [action] on [date] — [source hyperlinked]."
+    tone: "Factual, no editorializing. This is the dateline."
+    max_length: "1 sentence, max 30 words"
+    example: "Merck announced positive Phase 2 data for MK-1234 (anti-TL1A mAb) in UC at DDW 2026 — press release."
+
+  mechanism:
+    label: "Mechanism"
+    description: |
+      2-4 sentences: explain the biology. What does this drug target? What is the pathway?
+      Why does this target matter in the disease? What is the proposed therapeutic logic?
+      Write for a scientist: assume familiarity with IBD biology but not the specific asset.
+    tone: "Scientific, precise. Specific receptor/cytokine names. No jargon without definition."
+    max_length: "4 sentences"
+    example: |
+      "MK-1234 blocks TL1A (TNF-like ligand 1A), a cytokine elevated in IBD mucosa that signals
+      through DR3 on T cells and ILCs to amplify Th1/Th17 inflammation. Unlike IL-23 blockade,
+      TL1A inhibition acts upstream of multiple effector pathways, potentially addressing non-responders
+      to IL-23 or TNF therapy. The bispecific hypothesis — blocking TL1A and IL-23 simultaneously —
+      rests on non-redundant, additive pathway suppression."
+
+  why_it_matters:
+    label: "Why It Matters"
+    description: |
+      2-4 sentences: BD significance. What does this signal mean for the competitive landscape?
+      Does it validate, threaten, or differentiate the mechanism? Does it change pricing expectations,
+      timeline pressure, or partnering calculus?
+    tone: "Analyst voice. Confident, directional. Allowed to have a point of view."
+    max_length: "4 sentences"
+    example: |
+      "Positive Phase 2 TL1A data from Merck increases mechanism confidence — critical for Ailux's
+      partnering story because it de-risks the target for large-pharma licensing conversations.
+      It also compresses timeline: if MK-1234 advances to Phase 3 in 2026, Ailux needs Phase 1 ALX001
+      data in hand before the window for bispecific differentiation closes. This is a validation signal,
+      not a threat — Ailux's bispecific approach is the next-generation answer to monotherapy proof of concept."
+
+  ailux_implication:
+    label: "Ailux Implication"
+    description: |
+      1-3 sentences: What should Kyle/Ailux do, consider, or watch because of this signal?
+      Actionable recommendation or watchpoint. Name specific counterparts if BD-relevant.
+    tone: "Advisory. First-person plural ('we should', 'this warrants'). Be specific."
+    max_length: "3 sentences"
+    example: |
+      "Raise MK-1234 on the BD-priority monitoring list — Merck moving to Phase 3 without a bispecific
+      position is a partnership gap. Worth tracking whether Merck licenses a bispecific add-on or builds
+      internally; 12-month window before Phase 3 enrollment locks their mechanism stance. Consider whether
+      ALX001 Phase 1 data can be positioned as the bispecific upgrade narrative at upcoming UEGW."
+
+tone_and_length:
+  overall_length: "Target 250-400 words total across all 4 sections."
+  sentence_style: "Short and precise. No compound sentences spanning more than 3 clauses."
+  forbidden_phrases:
+    - "It is worth noting that"
+    - "Importantly"
+    - "As mentioned above"
+    - "This is a complex landscape"
+    - "There are many factors to consider"
+    - "Obviously"
+    - "Clearly"
+    # posturing / throat-clearing — lead with the fact, not the drama
+    - "make no mistake"
+    - "the central fact ... must metabolize"
+    - "the question is whether"
+    - "it remains to be seen"
+    - "this space continues to evolve"
+  allowed_stance: |
+    Meridian Issue entries have a point of view. They are not neutral summaries.
+    Every entry should give the reader a clear signal about what to think or do.
+    Uncertainty is acceptable; vagueness is not.
+
+factual_integrity:
+  description: |
+    Accuracy rules that override style. A wrong fact stated well is worse than a
+    fact omitted. These exist because a monospecific anti-TL1A mAb (SPY072) was
+    repeatedly described as a TL1A×IL-23p19 bispecific across an entire issue.
+  format_discipline: |
+    An asset's FORMAT (monospecific vs bispecific), molecular target, indication,
+    trial name, and phase come ONLY from its drugs-table row (target, target_class,
+    modality, indication_short, stage_detail) and its drug_sources. Never infer
+    "bispecific" from a hyphenated target string or a display name. A drug is
+    bispecific only if target_class says so.
+  no_assumptions: |
+    If a fact is not in the DB or a cited source, do not assert it. Do not invent
+    trial names, dates, deal terms, phases, or indications. Absent evidence, say less.
+  no_repetition: |
+    State each thesis once. The lead carries the central argument; later sections
+    add new evidence, a new asset, or a new connection — they never re-argue the lead.
+  facts_over_adjectives: |
+    Prefer a number, a date, a mechanism, or an explicit A→B relationship to any
+    intensifier. Name the relationship (competes / blocks / enables / sequences /
+    prices) and the evidence for it. Delete adjectives that survive deletion.
+  enforcement: |
+    Pre-write: build_verification_cautions() injects every drug_sources row with
+    content_confirms_claim=false as a "do NOT state" rule. Post-draft:
+    audit_draft_against_db() flags any prose that calls a DB-monospecific asset
+    bispecific (or vice versa) and opens a governance_violation; set
+    MERIDIAN_FACTCHECK_STRICT=1 to hard-block deploy.
+
+source_requirements:
+  source_url: "Required for every entry. Link to primary source — not secondary coverage."
+  acceptable_sources:
+    - ClinicalTrials.gov (NCT number URL)
+    - Company press release (IR page URL)
+    - SEC 8-K or 10-K filing
+    - FDA.gov approval announcement
+    - PubMed abstract (for data publications)
+    - Conference abstract (ECCO, DDW, UEGW — with abstract number)
+  unacceptable_sources:
+    - General news articles without primary citation
+    - Twitter/X posts
+    - Analyst commentary without underlying source
+    - Wikipedia
+
+metadata_fields:
+  article_id: "Unique identifier for the entry"
+  headline: "8-12 words. Punchy, factual. Avoid clickbait."
+  significance: "Integer 1-5 per rubric above"
+  drug_ids: "Array of Meridian drug IDs referenced in the entry"
+  company_ids: "Array of Meridian company IDs referenced"
+  area_tags: "Array of area identifiers (e.g., tl1a, ibd, il23)"
+  xpf005_implication: "Boolean — does this entry have direct ALX001 relevance?"
+  published_date: "ISO 8601 date"
+
+steps:
+  1:
+    name: qualify_signal
+    instruction: |
+      Before writing anything, score significance 1-5 per rubric.
+      If significance < 4 AND xpf005_implication = false, do not write entry. Return discard.
+      If significance >= 4 OR xpf005_implication = true, proceed.
+
+  2:
+    name: verify_source
+    instruction: |
+      Confirm source_url is a primary source. If no primary source available, do not publish.
+      Log to research_queue for follow-up instead.
+
+  3:
+    name: write_four_sections
+    instruction: |
+      Write Signal, Mechanism, Why It Matters, Ailux Implication in order.
+      Each section starts with its label in bold. No section headers as separate lines.
+      Total length: 250-400 words.
+
+  4:
+    name: write_headline
+    instruction: |
+      Write headline last — after content is finalized.
+      8-12 words. Must convey who + what + significance direction (validates, threatens, etc.).
+      Do not reuse the Signal sentence as the headline.
+
+  5:
+    name: set_metadata
+    instruction: |
+      Set all required metadata fields. Tag drug_ids and company_ids from Meridian DB
+      (do not use free-text names — use IDs). Set xpf005_implication boolean explicitly.
+
+outputs:
+  entry: {type: object, description: "Complete Meridian Issue entry with all sections and metadata"}
+  publish: {type: boolean, description: "True if entry meets publication threshold"}
+  discard_reason: {type: string, nullable: true, description: "Why entry was not published"}
+
+error_handling: |
+  If significance cannot be determined (ambiguous signal):
+    - Default to significance=3 and set xpf005_implication explicitly
+    - Queue for human review rather than discarding
+  If source_url unavailable:
+    - Do not publish. Add to research_queue with source_needed flag.
+    - Do not fabricate or approximate a URL.
+
+related_sops:
+  - db_safety_v1.0.yaml (safe write before inserting new entries)
+  - competitive_scoring_v1.0.yaml (check drug scores before writing Why It Matters)
+
+changelog:
+  - version: "1.0"
+    date: "2026-05-28"
+    change: "Initial version. Codifies Meridian Issue 4-section format, significance rubric, and tone guide from project_intelligence_layer.md."
+  - version: "1.1"
+    date: "2026-06-06"
+    change: |
+      Added factual_integrity section (format discipline, no-assumptions, no-repetition,
+      facts-over-adjectives) after the SPY072 monospecific-vs-bispecific error. Corrected
+      stale XPF005 references to ALX001 (XPF005 is a known hallucinated asset). Added
+      posturing phrases to forbidden_phrases. Documented the pre-write + post-draft
+      fact-check gates in write_meridian.py.
