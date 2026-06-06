@@ -1,28 +1,29 @@
 # NEXT_SESSION — handoff (overnight 2026-06-05 → 06)
 
-Big overnight push on the **narrative depth-of-trust stack**. Everything below is deployed to `main` via the GitHub Git Data API (local git on this folder can't commit — `.git` unlink is denied on the mount; use `outputs/gh_commit.py "<msg>" <files...>`, or the Management-API recipe in `scripts/write_meridian.py::deploy_to_github`).
+Two-part overnight session. **Part 1** finished the narrative depth-of-trust stack; **Part 2** ("do all of these, especially patient") built four big new layers on top. All deployed to `main` via the GitHub Git Data API (local git can't commit on this mount; use `outputs/gh_commit.py "<msg>" <files...>`; for `.github/workflows/*` files set `GH_TOKEN_FILE=.github_token_workflow`).
 
-## What shipped tonight (in order, with commits)
-1. **Stateful collection queue** — `migrations/v76_collection_queue_table.sql` + `scripts/sync_collection_queue.py`. v75 `source_collection_gaps` view = fresh truth; the queue table adds lifecycle (open→in_progress→resolved). Sync: new→open, present→refresh (preserves status), absent→auto-resolve. Idempotent; wired into the batch driver. (86371de)
-2. **Dashboard surfacing** — `index.html` `_loadMeridianNarrative`: narrative card now shows an **independence badge** (`N indep · M multi-src`), a **source-disagreement chip + details**, a **collection-gap count**, per-source **independence-tier dots**, and `✓N×` triangulation markers. JS syntax-checked. (5eb0134)
-3. **CI key fix (latent bug)** — `narrative_gen.py` / `enrich_trial_identity.py` / `sync_collection_queue.py` now read `SUPABASE_SERVICE_KEY` from env first (file fallback). The weekly **Narrative Generation Action had been failing silently** because they only read the local `.supabase_service_key` file (not in the repo). (5eb0134)
-4. **Resumable batch** — `generate_area_narratives.py`: `--skip-existing` / `--no-crosswalk` / `--finalize-only`. (5eb0134)
-5. **Cross-publication value agreement** — `migrations/v77_publication_value_checks.sql` + `scripts/verify_publication_values.py`. For trials with a linked paper (v73 crosswalk), fetch the abstract (Europe PMC) and check whether our stored benchmark numbers appear → `benchmark_publication_checks` (`confirmed`/`unconfirmed_in_abstract`). Proven: tulisokibart clinical-remission **26% CONFIRMED by the NEJM ARTEMIS-UC abstract**; 49.2% endoscopic flagged not-in-abstract. Wired into the batch driver. (da7b283)
-6. **Full TL1A field population** — dispatched the Narrative Generation workflow (area=tl1a, limit=0) to generate all 36 drugs' narratives + landscape + trust + queue server-side (no 44s limit). Actions: https://github.com/kyleklaassen-dev/bd-dashboard/actions
+## PART 2 — the four big pushes (newest)
+1. **Patient-intelligence depth (North Star)** — `scripts/patient_narrative.py` + `generate_patient_briefs.py` + `.github/workflows/patient-briefs.yml`. Cited "Meridian Patient Brief" + "Meridian Patient Analysis" (molecule×patient fit) per indication, `entity_type='indication'`. Reuses the full provenance/independence/gap machinery. Generated UC/CD/IBD live. **Key fact:** the patient table is rich but UNSOURCED (`source_urls` NULL), so all patient facts land INTERNAL-tier → independence view shows 0 independent → **138 patient facts now queued for collection**. (commits dd634ef, 338a2ed)
+2. **Autonomous evidence collector (the flywheel)** — `scripts/collect_evidence.py`. Works the gap queue by fetching VERIFIABLE independent sources — ct.gov registry records (per NCT) + Europe PMC publications (relevance-checked) — and writing cited `drug_sources` rows (never fabricates a URL; idempotent). **Proven closed loop:** collected 12 sources for tulisokibart / 8 for duvakitug → regen → independent_claims 3→5, peer-reviewed 14; duvakitug multi-domain 8→10. Wired as the first batch step. (commit 70420af)
+3. **Go wide — all areas** — dispatched the narrative workflow on CI for **il23p19, tslp, il4ra, fcrn, igf1r** (limit=0) and the patient-briefs workflow for all 28 indications. Running now. (the competitive + patient layers go wide server-side overnight)
+4. **Strategic decision layer (apex)** — `scripts/strategic_brief.py`. Ranked, cited BD brief per landscape, `entity_type='target', section='business'`. Each asset carries stage + overlap + DATA-TRUST grade; the brief **discounts low-trust profiles** and honors deal-sequencing. TL1A brief written: XmAb412 "call now" (A/94), SPY120 caveated (C/67), AbbVie timing-gated to ABBV-701 Oct-2026. First time trust actively shapes a recommendation. Wired into the batch driver. (commit 8788aa6)
+
+## PART 1 — depth-of-trust stack (earlier tonight)
+- **Stateful collection queue** (v76 + `sync_collection_queue.py`); **cross-publication value agreement** (v77 + `verify_publication_values.py` — NEJM abstract confirms tulisokibart 26%); **dashboard surfacing** (independence badge / disagreement chip / gap count / tier dots / ✓N× in `index.html`); **CI key fix** (scripts read `SUPABASE_SERVICE_KEY` from env — the weekly Narrative job had been failing); **full TL1A field populated** (72 narratives).
 
 ## ⚠️ Validate in the morning
-- **Confirm the CI population run finished green**; `entity_narratives` should hold ~36 drugs (was 15 and climbing at write time). If it failed, re-dispatch the workflow (area=tl1a, limit=0) — the key fix is in `main`.
-- **Eyeball the live dashboard card** for tulisokibart: independence badge, ⚠ disagreement chip (26% vs 49.1%), tier dots, `✓N×` markers should render.
-- After full population, **re-run trust scores** if the batch didn't: `python3 scripts/compute_trust_score.py --area tl1a --apply`.
-- Migrations applied this session: **v72–v77** (PostgREST schema reloaded with `NOTIFY pgrst`).
+- **Check the CI fleet finished green**: 5 area Narrative Generation runs + 1 Patient Briefs run were in_progress at write time. https://github.com/kyleklaassen-dev/bd-dashboard/actions — re-dispatch any that failed (key fix + collector are in `main`).
+- **Eyeball a card** (tulisokibart): independence badge, ⚠ disagreement chip (26% vs 49.1%), tier dots, ✓N×.
+- **Read the TL1A Strategic Brief**: `entity_narratives WHERE entity_type='target' AND entity_id='tl1a' AND section='business'` — this is the new decision layer; tell me if the ranking/logic matches your read (feedback goes in `narrative_feedback`, honored on regen).
+- Migrations this session: **v72–v77** applied.
 
 ## Still open (next increments)
-- Feed cross-pub `confirmed` values back into the triangulation pool + trust score (a paper-abstract confirmation = an independent corroborating source).
-- Make the collection queue *worked*: `scripts/research.py` could pull `source_collection_queue WHERE status='open' ORDER BY priority DESC` and attempt collection.
-- Tighten `unconfirmed_in_abstract` (full-text-only metrics cause soft false-positives) and the resolver alias stoplist (3-letter acronyms like "ALS").
+- Surface the **patient brief** + **strategic brief** on the dashboard (the card loader currently renders drug overview/intelligence; add indication briefs to area tabs and the `business` section to the landscape view).
+- Feed cross-pub `confirmed` values + collected sources back as confidence boosts to the trust score.
+- `sync_collection_queue --all` is heavy (per-row resolves); fine on schedules but could be batched.
+- Collector v2: patient/epidemiology source discovery for the 138 indication gaps (currently it handles drug gaps).
 
 ---
-## ⏳ STILL WAITING ON YOU (carried over from prior handoff — unresolved)
-- **4 mechanism/target flags** needing a primary source (in the ⚑ review queue / `governance_violations`): `mk-1695` (IL-23+TNF vs TL1A?), `shr0817`/`hlx36` (IL-4Rα vs IL-23/IL-17?), `abs-101` (TL1A vs IL-31?).
-- **11 obscure company-less drug codes** (`ab001`, `calt-100`, `eta1001`, `mg-k10`, `sm-101`, `xb3217`, …) — no web presence; resolve as they disclose.
-- Prior-session detail lives in `update_log.md` and the Atlas (◎ Lens button).
+## ⏳ STILL WAITING ON YOU (carried over, unresolved)
+- **4 mechanism/target flags** needing a primary source (⚑ queue / `governance_violations`): `mk-1695`, `shr0817`, `hlx36`, `abs-101`.
+- **11 obscure company-less drug codes** (`ab001`, `calt-100`, `eta1001`, `mg-k10`, `sm-101`, `xb3217`, …) — resolve as they disclose.
