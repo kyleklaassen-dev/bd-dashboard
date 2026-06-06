@@ -6899,3 +6899,7 @@ Commit: `1ef569ed`
 - **DTK red "!" badge** (dkn-change-badge) moved from top:14px → top:66px (clears the 54px sticky header); changelog modal 60px → 112px. No longer overlaps the date/time. Verified live: badge_clears_header=true.
 - **Needs Your Review queue** now distinguishes *needs-your-decision* (un-adjudicated) from *parked* (adjudicated to HOLD, awaiting external disclosure). Badge is amber "⚑ N to review" only when a decision is genuinely needed; otherwise calm "✓ N parked". Panel shows each parked item's recorded Decision. Verified live: "✓ 3 parked / All clear — nothing needs your judgment."
 - **MK-1695** resolved (#58): Kyle confirmed unfindable → confirmed phantom (Merck anti-TL1A = MK-7240/tulisokibart). Kept hidden, not hard-deleted. ab001/sm-101 (#67) marked parked. Remaining parked: shr0817/hlx36, ab001/sm-101, and 5 obscure codes — all awaiting disclosure.
+
+## 2026-06-06 — MK-1695 phantom purged (v80)
+- Kyle ran migrations/v80_purge_mk1695_phantom.sql in Supabase. Verified: drugs/entity_relationships(52)/entity_edges(2)/drug_areas/drug_indications/drug_competitive_scores/drug_intelligence_qa/drug_validation_results all → 0.
+- Preserved as error memory: drug_sources row (content_confirms_claim=false) + resolved governance_violations. The record is gone; the lesson that it was a hallucination remains so re-ingestion is caught.
