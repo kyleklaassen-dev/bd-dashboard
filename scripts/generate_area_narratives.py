@@ -80,6 +80,8 @@ def main():
     run(["scripts/compute_trust_score.py", "--area", args.area, "--apply"])
     print("\nCollection queue sync:")
     run(["scripts/sync_collection_queue.py", "--area", args.area])
+    print("\nCross-publication value checks:")
+    run(["scripts/verify_publication_values.py", "--area", args.area])
     print("\nbatch complete.")
 
 
