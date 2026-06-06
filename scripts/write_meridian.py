@@ -27,6 +27,12 @@ SUPABASE_KEY      = os.environ["SUPABASE_SERVICE_KEY"]
 GITHUB_TOKEN      = os.environ["GITHUB_TOKEN"]
 GITHUB_REPO       = os.environ.get("GITHUB_REPO", "kyleklaassen-dev/bd-dashboard")
 
+# PUBLIC anon key for the in-issue feedback widget (write-only to meridian_feedback via
+# RLS; same key already embedded client-side in index.html). NOT the service key — never
+# put the service key in a deployed page. Env override allowed.
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g")
+
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 SB_HEADERS = {
@@ -91,6 +97,56 @@ def build_verification_cautions():
     return ("\n\nVERIFICATION CAUTIONS — the following claims FAILED source confirmation "
             "(the cited page does not support them). Do NOT state them as fact in the Issue; "
             "omit them or note them only as unverified:\n" + "\n".join(lines))
+
+
+def build_reader_feedback_block(days_back=30):
+    """Close the feedback loop: pull Kyle's in-issue feedback (meridian_feedback) from
+    the last N days and turn it into explicit editorial guidance for the writer.
+
+    Section 👎 / negative notes → tighten or rethink that kind of section.
+    Section 👍 → keep doing it. Comments are treated as direct editorial instructions.
+    Reads with the service key (RLS lets only service/authenticated read)."""
+    try:
+        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days_back)).strftime("%Y-%m-%d")
+        rows = requests.get(f"{SUPABASE_URL}/rest/v1/meridian_feedback",
+            headers=SB_HEADERS,
+            params={"select": "section_label,vote,comment,selected_text,created_at",
+                    "created_at": f"gte.{cutoff}",
+                    "order": "created_at.desc", "limit": "200"}, timeout=15).json()
+    except Exception as e:
+        log(f"  reader-feedback fetch failed (non-fatal): {e}")
+        return ""
+    if not rows or not isinstance(rows, list):
+        return ""
+    from collections import defaultdict
+    votes = defaultdict(lambda: [0, 0])   # label -> [up, down]
+    comments = []
+    for r in rows:
+        lab = (r.get("section_label") or "(unlabeled)").strip()
+        if r.get("vote") == "up":   votes[lab][0] += 1
+        elif r.get("vote") == "down": votes[lab][1] += 1
+        c = (r.get("comment") or "").strip()
+        if c:
+            sel = (r.get("selected_text") or "").strip()
+            comments.append((lab, c, sel))
+    lines = []
+    liked = [f'"{l}" ({v[0]}↑)' for l, v in votes.items() if v[0] > v[1] and v[0] > 0]
+    disliked = [f'"{l}" ({v[1]}↓)' for l, v in votes.items() if v[1] > 0 and v[1] >= v[0]]
+    if liked:
+        lines.append("Sections the reader marked HELPFUL (keep this kind of content/treatment): " + "; ".join(liked[:12]))
+    if disliked:
+        lines.append("Sections the reader marked NOT USEFUL (tighten, rethink, or cut this kind of section): " + "; ".join(disliked[:12]))
+    for lab, c, sel in comments[:25]:
+        if sel:
+            lines.append(f'On "{lab}" — re: “{sel[:120]}” — the reader wrote: "{c[:300]}"')
+        else:
+            lines.append(f'On "{lab}" — the reader wrote: "{c[:300]}"')
+    if not lines:
+        return ""
+    log(f"  ✎ Injected reader feedback: {len(votes)} rated sections, {len(comments)} comments")
+    return ("\n\nREADER FEEDBACK (from the actual reader of this briefing — treat as direct "
+            "editorial instruction, higher priority than generic style rules; if a comment "
+            "conflicts with a default, follow the comment):\n- " + "\n- ".join(lines))
 
 
 def fact_check_report():
@@ -1653,6 +1709,9 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     # Post-draft fact-check gate: prose format vs canonical drugs table.
     audit_draft_against_db(html, drugs)
 
+    # In-issue reader feedback widget (issue-tab only; writes to meridian_feedback).
+    html = inject_feedback_widget(html, datetime.datetime.utcnow().strftime("%Y-%m-%d"))
+
     return html, plan, _plan_company_ids, _content_fingerprint
 
 
@@ -1901,6 +1960,101 @@ def sync_catalyst_outcomes(plan: dict, intel: list):
         log("sync_catalyst_outcomes: no matching resolved catalysts (normal — most issues are monitoring, not readout)")
 
 
+def inject_feedback_widget(html, issue_date):
+    """Inject the in-issue reader-feedback widget (per-section 👍/👎 + notes, inline
+    selection comments, and an overall feedback panel) into the generated issue HTML.
+
+    Lives ONLY inside the Meridian issue document — which renders solely in the
+    'Today's Issue' tab (iframe → meridian_today.html / srcdoc for archived issues).
+    The home tab uses a separate reader list and never embeds this document, so the
+    widget never appears on the home page.
+
+    Writes go to public.meridian_feedback with the PUBLIC anon key (write-only via RLS).
+    Hidden in print. Fails silent if Supabase is unreachable.
+    """
+    css = """
+<style id="mf-styles">
+.mf-ctl{display:inline-flex;gap:6px;align-items:center;margin:8px 0 2px;vertical-align:middle;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.mf-btn{cursor:pointer;border:1px solid #d9dee8;background:#fff;border-radius:7px;padding:2px 9px;font-size:12px;line-height:1.5;color:#64748b;transition:all .12s;user-select:none}
+.mf-btn:hover{border-color:#a78bfa;color:#6d28d9}
+.mf-btn.mf-on-up{background:#ecfdf5;border-color:#10b981;color:#047857}
+.mf-btn.mf-on-down{background:#fef2f2;border-color:#ef4444;color:#b91c1c}
+.mf-note-wrap{margin:6px 0 12px;display:none}
+.mf-note-wrap.mf-open{display:block}
+.mf-ta{width:100%;max-width:640px;min-height:54px;border:1px solid #d9dee8;border-radius:8px;padding:8px 10px;font:13px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;resize:vertical;display:block}
+.mf-save{margin-top:6px;cursor:pointer;border:none;background:#6d28d9;color:#fff;border-radius:7px;padding:5px 13px;font-size:12px;font-weight:600}
+.mf-save:hover{background:#5b21b6}
+.mf-sel-pop{position:absolute;z-index:99999;display:none;background:#0d1f38;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.mf-sel-pop button{cursor:pointer;border:none;background:transparent;color:#fff;font-size:12px;font-weight:600;padding:6px 11px}
+.mf-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0d1f38;color:#fff;padding:9px 16px;border-radius:9px;font:13px -apple-system,sans-serif;opacity:0;transition:opacity .2s;z-index:99999;pointer-events:none}
+.mf-toast.mf-show{opacity:1}
+.mf-fab{position:fixed;bottom:18px;right:18px;z-index:99998;background:#6d28d9;color:#fff;border:none;border-radius:24px;padding:10px 16px;font:600 13px -apple-system,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(109,40,217,.35)}
+.mf-panel{position:fixed;bottom:64px;right:18px;z-index:99998;width:320px;max-width:90vw;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 12px 40px rgba(2,6,23,.2);padding:14px;display:none}
+.mf-panel.mf-open{display:block}
+.mf-panel h4{font:700 13px -apple-system,sans-serif;color:#0d1f38;margin:0 0 8px}
+@media print{.mf-ctl,.mf-fab,.mf-panel,.mf-sel-pop,.mf-toast,.mf-note-wrap{display:none!important}}
+</style>
+"""
+    js = """
+<script id="mf-feedback">
+(function(){
+  var SB="%%URL%%",KEY="%%KEY%%",ISSUE_DATE="%%DATE%%";
+  function post(b){b.issue_date=ISSUE_DATE;b.issue_id=(window.__MERIDIAN_ISSUE_ID__||null);b.page_url=location.href;b.user_agent=(navigator.userAgent||"").slice(0,300);
+    return fetch(SB+"/rest/v1/meridian_feedback",{method:"POST",headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(b)});}
+  function toast(m){var t=document.querySelector(".mf-toast");if(!t){t=document.createElement("div");t.className="mf-toast";document.body.appendChild(t);}t.textContent=m;t.classList.add("mf-show");setTimeout(function(){t.classList.remove("mf-show");},1700);}
+  function lbl(h){return (h.textContent||"").trim().replace(/\\s+/g," ").slice(0,180);}
+  function attach(h,idx){
+    if(h.getAttribute("data-mf"))return;h.setAttribute("data-mf","1");
+    var ctl=document.createElement("div");ctl.className="mf-ctl";
+    var up=document.createElement("span");up.className="mf-btn";up.textContent="\\uD83D\\uDC4D";up.title="Helpful";
+    var dn=document.createElement("span");dn.className="mf-btn";dn.textContent="\\uD83D\\uDC4E";dn.title="Not useful";
+    var nb=document.createElement("span");nb.className="mf-btn";nb.textContent="\\uD83D\\uDCAC note";
+    var wrap=document.createElement("div");wrap.className="mf-note-wrap";
+    var ta=document.createElement("textarea");ta.className="mf-ta";ta.placeholder="What works or doesn't in this section?";
+    var sv=document.createElement("button");sv.className="mf-save";sv.textContent="Save note";
+    wrap.appendChild(ta);wrap.appendChild(sv);
+    up.onclick=function(){post({section_index:idx,section_label:lbl(h),vote:"up"}).then(function(r){if(r.ok){up.classList.add("mf-on-up");dn.classList.remove("mf-on-down");toast("Marked helpful");}else toast("Couldn't save");}).catch(function(){toast("Couldn't save");});};
+    dn.onclick=function(){post({section_index:idx,section_label:lbl(h),vote:"down"}).then(function(r){if(r.ok){dn.classList.add("mf-on-down");up.classList.remove("mf-on-up");toast("Marked not useful");}else toast("Couldn't save");}).catch(function(){toast("Couldn't save");});};
+    nb.onclick=function(){wrap.classList.toggle("mf-open");if(wrap.classList.contains("mf-open"))ta.focus();};
+    sv.onclick=function(){var c=ta.value.trim();if(!c){toast("Write a note first");return;}post({section_index:idx,section_label:lbl(h),comment:c}).then(function(r){if(r.ok){toast("Note saved");ta.value="";wrap.classList.remove("mf-open");}else toast("Couldn't save");}).catch(function(){toast("Couldn't save");});};
+    ctl.appendChild(up);ctl.appendChild(dn);ctl.appendChild(nb);
+    h.parentNode.insertBefore(ctl,h.nextSibling);h.parentNode.insertBefore(wrap,ctl.nextSibling);
+  }
+  function init(){
+    var hs=document.querySelectorAll("h2,h3");for(var i=0;i<hs.length;i++)attach(hs[i],i);
+    var pop=document.createElement("div");pop.className="mf-sel-pop";var pb=document.createElement("button");pb.textContent="\\uD83D\\uDCAC Comment";pop.appendChild(pb);document.body.appendChild(pop);
+    var lastSel="";
+    document.addEventListener("mouseup",function(){setTimeout(function(){var s=window.getSelection();var t=s&&s.toString().trim();
+      if(t&&t.length>3&&t.length<800){lastSel=t;var r=s.getRangeAt(0).getBoundingClientRect();pop.style.top=(window.scrollY+r.top-40)+"px";pop.style.left=(window.scrollX+r.left)+"px";pop.style.display="block";}
+      else if(!pop.contains(document.activeElement))pop.style.display="none";},10);});
+    pb.onclick=function(){var c=prompt("Comment on:\\n\\n\\u201c"+lastSel.slice(0,160)+(lastSel.length>160?"\\u2026":"")+"\\u201d\\n\\nYour note:");
+      if(c&&c.trim())post({section_label:"(inline selection)",selected_text:lastSel.slice(0,800),comment:c.trim()}).then(function(r){toast(r.ok?"Comment saved":"Couldn't save");}).catch(function(){toast("Couldn't save");});pop.style.display="none";};
+    var fab=document.createElement("button");fab.className="mf-fab";fab.textContent="\\uD83D\\uDCAC Feedback";document.body.appendChild(fab);
+    var panel=document.createElement("div");panel.className="mf-panel";panel.innerHTML="<h4>Feedback on this issue</h4>";
+    var pta=document.createElement("textarea");pta.className="mf-ta";pta.placeholder="Overall thoughts on today's issue\\u2026";
+    var psv=document.createElement("button");psv.className="mf-save";psv.textContent="Send";
+    panel.appendChild(pta);panel.appendChild(psv);document.body.appendChild(panel);
+    fab.onclick=function(){panel.classList.toggle("mf-open");if(panel.classList.contains("mf-open"))pta.focus();};
+    psv.onclick=function(){var c=pta.value.trim();if(!c){toast("Write something first");return;}post({section_label:"(overall)",comment:c}).then(function(r){if(r.ok){toast("Thanks \\u2014 feedback sent");pta.value="";panel.classList.remove("mf-open");}else toast("Couldn't save");}).catch(function(){toast("Couldn't save");});};
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+"""
+    js = (js.replace("%%URL%%", SUPABASE_URL)
+            .replace("%%KEY%%", SUPABASE_ANON_KEY)
+            .replace("%%DATE%%", issue_date))
+    if "</head>" in html:
+        html = html.replace("</head>", css + "</head>", 1)
+    else:
+        html = css + html
+    if "</body>" in html:
+        html = html.replace("</body>", js + "</body>", 1)
+    else:
+        html = html + js
+    return html
+
+
 def deploy_to_github(html_content, filename="meridian_today.html"):
     api = f"https://api.github.com/repos/{GITHUB_REPO}"
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
@@ -2050,6 +2204,10 @@ if __name__ == "__main__":
     # = false, set by the Content Verifier) into the writer's system prompt so they
     # are withheld from the Issue — claim-level, so real molecules keep their facts.
     SYSTEM_PROMPT = SYSTEM_PROMPT + build_verification_cautions()
+
+    # Close the editorial loop: feed the reader's own in-issue feedback (👍/👎 + notes
+    # from meridian_feedback) back into the writer so each issue responds to real taste.
+    SYSTEM_PROMPT = SYSTEM_PROMPT + build_reader_feedback_block()
 
     # Fetch all data sources — the full dashboard state feeds the Meridian
     intel                              = fetch_recent_intel(hours_back=48)
