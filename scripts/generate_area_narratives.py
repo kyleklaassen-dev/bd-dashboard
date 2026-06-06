@@ -43,6 +43,11 @@ def main():
         ids = ids[:args.limit]
     print(f"Batch narrative generation — area={args.area}, {len(ids)} drugs, sections={secs}\n")
 
+    # Refresh the study-identity resolver + trial→publication crosswalk FIRST, so
+    # triangulation runs against current ct.gov aliases/publications (v73).
+    print("Trial-identity + publication crosswalk:")
+    run(["scripts/enrich_trial_identity.py", "--area", args.area])
+
     ok = fail = 0
     for did in ids:
         for sec in secs:

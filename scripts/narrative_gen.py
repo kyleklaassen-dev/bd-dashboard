@@ -137,9 +137,18 @@ def fetch_recipe(drug_id):
             competitors = get(f"drugs?id=in.({ids})&dashboard_visible=eq.true"
                               "&select=id,display_name,stage,company_display,source_url")
 
+    # Study-identity resolver inputs: canonical aliases + the trial→publication
+    # crosswalk (v73), so a registry claim can triangulate against its paper and
+    # any row naming a study by acronym/sponsor-id/DOI resolves to its NCT.
+    tids = get(f"trial_identity?drug_id=eq.{drug_id}")
+    _ncts = [t["nct_id"] for t in tids if t.get("nct_id")]
+    tpubs = get(f"trial_publications?nct_id=in.({','.join(_ncts)})") if _ncts else []
+
     return {
         "drug": drug[0],
         "sources": get(f"drug_sources?drug_id=eq.{drug_id}"),
+        "trial_identity": tids,
+        "trial_publications": tpubs,
         "targets": targets,
         "indications": indications,
         # Clinical-evidence depth — each row carries its own CT.gov provenance.
@@ -538,7 +547,47 @@ def _study_keys(*texts):
     return keys
 
 
-def _corroboration_pool(recipe):
+DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\"'<>)\]]+", re.I)
+
+
+def build_study_resolver(recipe):
+    """alias / DOI / PMID  →  canonical NCT, from trial_identity + trial_publications (v73)."""
+    alias2nct, doi2nct, pmid2nct = {}, {}, {}
+    for it in recipe.get("trial_identity", []) or []:
+        nct = it.get("nct_id")
+        for a in (it.get("alias_tokens") or []):
+            if a:
+                alias2nct[a.upper()] = nct
+        if it.get("acronym"):
+            alias2nct[it["acronym"].upper()] = nct
+    for p in recipe.get("trial_publications", []) or []:
+        if p.get("doi"):
+            doi2nct[p["doi"].lower()] = p["nct_id"]
+        if p.get("pmid"):
+            pmid2nct[str(p["pmid"])] = p["nct_id"]
+    return {"alias2nct": alias2nct, "doi2nct": doi2nct, "pmid2nct": pmid2nct}
+
+
+def resolve_ncts(text, url, resolver):
+    """Every canonical NCT a piece of text/URL refers to: direct NCT, a resolvable
+    study alias (acronym/sponsor id) as a whole token, a known DOI, or a known PMID."""
+    blob = f"{text} {url}"
+    up = blob.upper()
+    ncts = {t.upper() for t in NCT_RE.findall(blob)}
+    for alias, nct in resolver["alias2nct"].items():
+        if re.search(r"(?<![A-Z0-9])" + re.escape(alias) + r"(?![A-Z0-9])", up):
+            ncts.add(nct)
+    for doi in DOI_RE.findall(blob):
+        nct = resolver["doi2nct"].get(doi.lower())
+        if nct:
+            ncts.add(nct)
+    for pmid, nct in resolver["pmid2nct"].items():
+        if re.search(r"(?<!\d)" + re.escape(pmid) + r"(?!\d)", blob):
+            ncts.add(nct)
+    return ncts
+
+
+def _corroboration_pool(recipe, resolver):
     """Every CONFIRMING sourced row in the recipe, as an independent-source candidate.
     drug_sources carries free text (token-matchable); the clinical tables carry a
     registered trial id in their URL (the strong, low-noise corroboration signal)."""
@@ -555,7 +604,7 @@ def _corroboration_pool(recipe):
         cv = s.get("claim_value") or ""
         pool.append({"url": url, "table": "drug_sources", "rid": str(s.get("id")), "domain": dom,
                      "keys": {t.upper() for t in NCT_RE.findall(cv + " " + str(url or ""))} | _study_keys(cv),
-                     "toks": _toks(cv), "text": True})
+                     "ncts": resolve_ncts(cv, url, resolver), "toks": _toks(cv), "text": True})
     # study-name field per table → the cross-domain link to its registry trial
     for tbl, key, namef in [("trials", "trials", "study_acronym"),
                             ("drug_clinical_benchmarks", "benchmarks", "trial_name"),
@@ -568,11 +617,23 @@ def _corroboration_pool(recipe):
             dom = _domain(url)
             if not dom:
                 continue
+            namev = r.get(namef) if namef else ""
             keys = {t.upper() for t in NCT_RE.findall(str(url))}
-            if namef:
-                keys |= _study_keys(r.get(namef))
+            keys |= _study_keys(namev)
             pool.append({"url": url, "table": tbl, "rid": str(r.get("id") or r.get("indication_name")),
-                         "domain": dom, "keys": keys, "toks": set(), "text": False})
+                         "domain": dom, "keys": keys, "toks": set(), "text": False,
+                         "ncts": resolve_ncts(namev, url, resolver)})
+    # v73: authoritative trial publications — each is an INDEPENDENT-domain source for
+    # its trial's claims, linked by clinicaltrials.gov itself.
+    for p in recipe.get("trial_publications", []) or []:
+        url = p.get("pub_url")
+        dom = _domain(url)
+        if not dom:
+            continue
+        pool.append({"url": url, "table": "trial_publications",
+                     "rid": str(p.get("pmid") or p.get("id")), "domain": dom,
+                     "keys": set(), "toks": set(), "text": False,
+                     "ncts": {p["nct_id"]} if p.get("nct_id") else set()})
     return pool
 
 
@@ -581,7 +642,8 @@ def triangulate(asserted, recipe):
     domain: a shared registered trial id (precise), or ≥3 salient-token overlap against a
     text-rich drug_sources row. Sets a['corroborations'] and a['triangulation']
     (# distinct independent domains backing the claim, including its primary)."""
-    pool = _corroboration_pool(recipe)
+    resolver = build_study_resolver(recipe)
+    pool = _corroboration_pool(recipe, resolver)
     for a in asserted:
         a.setdefault("corroborations", [])
         prim_dom = _domain(a.get("source_url")) if a.get("source_url") else None
@@ -589,13 +651,15 @@ def triangulate(asserted, recipe):
         a_url = str(a.get("source_url") or "")
         a_keys = ({t.upper() for t in NCT_RE.findall(a["claim"] + " " + a_url)}
                   | _study_keys(a["claim"]))
+        a_ncts = resolve_ncts(a["claim"], a_url, resolver)   # canonical study identity
         a_toks = _toks(a["claim"])
         for c in pool:
             if c["table"] == a.get("source_table") and c["rid"] == str(a.get("source_row_id")):
                 continue                                # not the atom's own primary row
             if not c["domain"] or c["domain"] in used:  # independence = a NEW domain
                 continue
-            if (a_keys & c["keys"]) or (c["text"] and len(a_toks & c["toks"]) >= 3):
+            if ((a_ncts & c["ncts"]) or (a_keys & c["keys"])
+                    or (c["text"] and len(a_toks & c["toks"]) >= 3)):
                 a["corroborations"].append({
                     "source_url": c["url"], "source_table": c["table"],
                     "source_row_id": c["rid"], "content_confirms_claim": True})
