@@ -13603,13 +13603,15 @@ async function _loadAreaBriefs(tabId) {
     const areaId = (typeof TAB_AREA !== 'undefined' && TAB_AREA[tabId]) || tabId;
     const pane = document.getElementById('tab-' + tabId);
     if (!pane) return;
+    // mount inside the content column (the fixed left pill-nav overlaps full-width content)
+    const mount = pane.querySelector('.' + areaId + '-layout') || pane.querySelector('[class*="-layout"]') || pane;
     let host = document.getElementById('area-briefs-' + tabId);
     if (host && host.dataset.loaded === '1') return;     // once per tab
     if (!host) {
       host = document.createElement('div');
       host.id = 'area-briefs-' + tabId;
       host.style.margin = '0 0 14px';
-      pane.insertBefore(host, pane.firstChild);
+      mount.insertBefore(host, mount.firstChild);
     }
     const base = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'https://tghntyofptvfhmtchwcv.supabase.co') + '/rest/v1';
     const hdr = { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON };
@@ -20146,6 +20148,10 @@ function switchTab(id, btn) {
     try { TAB_REGISTRY[id].onEnter(); }
     catch(e) { console.warn(`[TAB:${id}:onEnter]`, e); }
   }
+  // Meridian briefs (landscape + strategy + patient) for any area tab
+  try {
+    if (typeof TAB_AREA !== 'undefined' && TAB_AREA[id] && typeof _loadAreaBriefs === 'function') _loadAreaBriefs(id);
+  } catch(e) { /* non-blocking */ }
 }
 // Helper for programmatic tab switching (used by home nav buttons)
 function switchTabTo(id) {
