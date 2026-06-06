@@ -3391,9 +3391,9 @@ async function loadStockCards() {
       _sb.from('company_signals').select('*').order('sort_order'),
       _sb.from('intel').select('id').gte('intel_date', sevenDaysAgo),
       _sb.from('intel_companies').select('company_id,intel_id'),
-      _sb.from('company_profiles').select('company_id,last_enriched_at,confidence_tier'),
+      _sb.from('company_profiles').select('company_id,last_enriched_at'),
       _sb.from('company_bd_momentum').select('company_id,momentum_score,bd_trend,call_priority'),
-      _sb.from('catalyst_calendar').select('company_name,drug_name,event_name,expected_date,call_priority')
+      _sb.from('catalyst_calendar').select('company_id,drug_id,event_name,expected_date')
         .gte('expected_date', todayISO).lte('expected_date', plus180)
         .eq('is_past', false).order('expected_date', { ascending: true }).limit(200),
     ]);
@@ -3784,7 +3784,7 @@ async function loadCatalysts() {
       _sb.from('catalysts').select('*').order('sort_date', { ascending: true }),
       _sb.from('signals').select('*,companies(name)')
           .order('event_date', { ascending: false }).limit(500),
-      _sb.from('intel').select('id,headline,summary,intel_date,importance,area_id,source_url,ailux_angle')
+      _sb.from('intel').select('id,headline,summary:body,intel_date,importance,source_url')
           .order('intel_date', { ascending: false }).limit(500),
       _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(100),
     ]);
@@ -4549,7 +4549,7 @@ async function loadBDSignal() {
     const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
     const [dealsRes, intelRes] = await Promise.all([
       _sb.from('deals').select('*').order('deal_date', { ascending: false }).limit(10),
-      _sb.from('intel').select('id,headline,summary,intel_date,importance,area_id,source_url,ailux_angle')
+      _sb.from('intel').select('id,headline,summary:body,intel_date,importance,source_url')
         .eq('importance','high').gte('intel_date', sevenDaysAgo)
         .order('intel_date', { ascending: false }).limit(6),
     ]);
@@ -4850,7 +4850,7 @@ async function loadAreaCatalysts(tabId) {
       if (_catDrugIds.length) {
         const { data: bdTiming } = await _sb
           .from('catalyst_bd_timing_window')
-          .select('drug_id, bd_score, call_priority, ailux_pitch, ailux_action_tier')
+          .select('company_id, bd_score:overall_bd_score, call_priority, ailux_pitch, ailux_action_tier')
           .in('drug_id', _catDrugIds);
         (bdTiming || []).forEach(b => { bdTimingMap[b.drug_id] = b; });
       }
@@ -5202,7 +5202,7 @@ async function loadAreaCompanies(tabId) {
   const areas = TAB_AREA_MAP[tabId];
   if (!areas) return;
   try {
-    const { data: rows, error } = await _sb.from('companies').select('id,name,ticker,stage,insight_text,ailux_angle')
+    const { data: rows, error } = await _sb.from('companies').select('id,name,ticker,insight_text,ailux_angle')
       .in('area_id', areas).order('name').limit(20);
     if (error || !rows || !rows.length) return;
     el.innerHTML = rows.map(c => `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
@@ -12172,7 +12172,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
          .eq('resolved', false).order('sort_date', { ascending: true }).limit(20),
       _sb.from('deals').select('*')
          .eq('company_id', companyId).order('deal_date', { ascending: false }).limit(20),
-      _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2,strategic_value_score,stock_price,stock_change,market_cap_usd_m,cash_runway').eq('id', companyId).limit(1),
+      _sb.from('companies').select('id,name,ticker,hq_city,hq_country,company_type,ta_focus_1,ta_focus_2,strategic_value_score,stock_price,stock_change,market_cap_usd_m:market_cap').eq('id', companyId).limit(1),
       _sb.from('company_areas').select('area_id').eq('company_id', companyId),
       _sb.from('companies').select('id,name,status').eq('parent_company_id', companyId).in('status', ['acquired', 'subsidiary']),
       // Wave 2: structured partnership relationships (both sides — this company as lead OR partner)
@@ -12223,7 +12223,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     // If entity_id ≠ company_id (e.g. acquired asset), retry with company_id
     if (!companyRow && fallbackCid && fallbackCid !== companyId) {
       const { data: fbRows } = await _sb.from('companies')
-        .select('id,name,ticker,hq_city,hq_country,company_type,sector,ta_focus_1,ta_focus_2,strategic_value_score')
+        .select('id,name,ticker,hq_city,hq_country,company_type,ta_focus_1,ta_focus_2,strategic_value_score')
         .eq('id', fallbackCid).limit(1);
       companyRow = fbRows?.[0] || null;
     }
@@ -12253,7 +12253,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     try {
       const { data: scRows } = await _sb
         .from('deal_sequencing_constraints')
-        .select('constraint_type, constraint_description, timing_note, bd_action_blocked_until, constraint_expires')
+        .select('constraint_type, constraint_description:description, timing_note:reasoning, bd_action_blocked_until:window_opens')
         .eq('company_id', companyId)
         .limit(5);
       seqConstraints = scRows || [];
@@ -15432,7 +15432,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     try {
       const _todayStr = new Date().toISOString().slice(0,10);
       const { data: catRows } = await _sb.from('catalysts')
-        .select('id,catalyst_text,sort_date,catalyst_type,resolved,source_url')
+        .select('id,catalyst_text:notes,sort_date,catalyst_type,resolved,source_url')
         .eq('drug_id', drug?.id || drugId)
         .eq('resolved', false)
         .gte('sort_date', _todayStr)
@@ -15497,7 +15497,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       const _gaId = drug?.id || drugId;
       if (_gaId && !String(_gaId).startsWith('static-')) {
         const { data: gaRows } = await _sb.from('geographic_approvals')
-          .select('geography, approval_date, approval_status, brand_name, regulator, indication')
+          .select('geography, approval_date, approval_status:approval_type, brand_name, regulator, indication')
           .eq('drug_id', _gaId)
           .order('approval_date', { ascending: false });
         geoApprovals = gaRows || [];
@@ -16732,7 +16732,7 @@ function _makeAreaPI(tabId, areaIds) {
           const _primaryArea = this.areaIds[0];
           const { data: _covRows } = await _sb
             .from('coverage_scores')
-            .select('company_id, coverage_score')
+            .select('company_id, coverage_score:overall_score')
             .eq('area_slug', _primaryArea)
             .limit(200);
           (_covRows || []).forEach(s => { if (s.company_id) this._covScoreMap[s.company_id] = s.coverage_score; });
@@ -21547,7 +21547,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const plus30    = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
       const [catRes, drugRes] = await Promise.all([
         _sb.from('catalyst_calendar')
-          .select('drug_id,event_name,expected_date,call_priority,company_name,drug_name')
+          .select('drug_id,event_name,expected_date')
           .gte('expected_date', todayISO)
           .lte('expected_date', plus30)
           .eq('is_past', false)
@@ -21555,7 +21555,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
           .limit(5),
         // fallback: catalysts table if catalyst_calendar is empty/missing
         _sb.from('catalysts')
-          .select('company_id,catalyst_name,sort_date,area_id,companies(name)')
+          .select('company_id,catalyst_name:label,sort_date,area_id,companies(name)')
           .gte('sort_date', todayISO)
           .lte('sort_date', plus30)
           .eq('resolved', false)
@@ -24777,7 +24777,7 @@ document.addEventListener('DOMContentLoaded', function(){
         .order('deal_date', {ascending: false})
         .limit(5),
       sb.from('company_profiles')
-        .select('area_id,platform_intelligence,bd_intelligence,assessment,competitive_position,vs_ailux,completeness_score,completeness_tier,missing_fields')
+        .select('area_id,platform_intelligence,bd_intelligence,vs_ailux,completeness_score,missing_fields')
         .eq('company_id', companyId),
     ]);
 
@@ -29764,8 +29764,8 @@ async function ontologyLoad(force = false) {
   ] = await Promise.all([
     Promise.resolve({ data: [] }),  /* disease_areas — retired from code reads (Session 80) */
     _sb.from('indications').select('*').order('name'),
-    _sb.from('targets').select('id,name,family,pathway,cross_area_relevance').order('name'),
-    _sb.from('target_pairs').select('id,name,area').order('name'),
+    _sb.from('targets').select('id,name:label,family,pathway,cross_area_relevance').order('label'),
+    _sb.from('target_pairs').select('id,name:pair_symbol').order('name'),
     _sb.from('modalities').select('*').order('name'),
     _sb.from('drugs').select('*',{count:'exact',head:true}),
     _sb.from('companies').select('*',{count:'exact',head:true}),
@@ -32344,7 +32344,7 @@ async function _loadResearchQueue() {
   if (_dqpLoaded && _dqpData) return _dqpData;
   try {
     var res = await _sb.from('research_queue')
-      .select('id,entity_type,entity_id,entity_name,gap_type,priority,status,created_at,notes,reason,next_best_action,completeness_score')
+      .select('id,entity_id,entity_name,priority:priority_score,assigned_status,created_at,reason,next_best_action,completeness_score')
       .eq('status', 'pending')
       .order('priority', { ascending: true })
       .order('created_at', { ascending: false })
