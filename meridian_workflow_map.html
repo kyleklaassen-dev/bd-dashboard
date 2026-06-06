@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Workflow & Data-Flow Map v3</title>
+<style>
+  :root{
+    --bg:#0f141b; --panel:#161d27; --panel2:#1c2530; --ink:#e8edf3; --mut:#8a99ac;
+    --line:#2c3947; --accent:#6ea8fe; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --ingest:#38bdf8; --enrich:#a78bfa; --score:#f59e0b; --valid:#2dd4bf; --synth:#f472b6;
+    --present:#34d399; --human:#fb923c; --store:#94a3b8; --orch:#e879f9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:15px 22px 9px;border-bottom:1px solid var(--line);}
+  h1{margin:0 0 4px;font-size:19px}
+  .sub{color:var(--mut);font-size:12.5px;max-width:980px}
+  .wrap{display:flex;min-height:calc(100vh - 60px)}
+  .canvas{flex:1;position:relative;overflow:auto;padding:8px}
+  .side{width:376px;flex-shrink:0;border-left:1px solid var(--line);background:var(--panel);padding:14px 16px;overflow:auto;max-height:calc(100vh - 60px)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;padding:9px 22px;border-bottom:1px solid var(--line);align-items:center}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:12.5px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent)} .btn.on{background:var(--accent);color:#08111e;border-color:var(--accent);font-weight:600}
+  .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+  .legend{display:flex;flex-wrap:wrap;gap:5px 13px;font-size:11px;color:var(--mut);margin-left:auto}
+  .lg{display:inline-flex;align-items:center;gap:5px}.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  svg{display:block}
+  .node{cursor:pointer}.node:hover rect.box{stroke:#fff;stroke-width:2}.node.dim{opacity:.15}
+  .edge{fill:none}
+  .edge.chain{stroke:var(--accent);stroke-width:2.2;marker-end:url(#arrowA)}
+  .edge.flow{stroke:#3a4a5c;stroke-width:1.3;marker-end:url(#arrow);stroke-dasharray:4 4}
+  .edge.loop{stroke:var(--human);stroke-width:1.8;stroke-dasharray:6 4;marker-end:url(#arrowH)}
+  .edge.hot{stroke:var(--accent)!important;stroke-width:2.6!important;opacity:1!important;stroke-dasharray:none!important}
+  .edge.dim{opacity:.05}
+  .ntitle{font-size:12px;font-weight:600;fill:var(--ink)}.nmeta{font-size:9.6px;fill:var(--mut)}
+  .badge{font-size:9.5px;fill:#08111e;font-weight:700}
+  .stagelabel{font-size:11px;fill:var(--mut);font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+  .tl-axis{stroke:var(--line)}.tl-tick{font-size:10px;fill:var(--mut)}.tl-lane{font-size:11px;fill:var(--mut);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+  h2{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin:4px 0 10px}
+  .gap{border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:8px;padding:9px 11px;margin-bottom:9px;background:var(--panel2);cursor:pointer;transition:.15s}
+  .gap:hover{border-color:var(--accent)}
+  .gap.warn{border-left-color:var(--warn)}.gap.idea{border-left-color:var(--accent)}.gap.fixed{border-left-color:var(--good);opacity:.85}
+  .gap .gt{font-weight:600;font-size:13px;margin-bottom:3px}.gap .gd{font-size:12px;color:var(--mut)}
+  .tag{float:right;font-size:9px;font-weight:800;padding:1px 6px;border-radius:20px;margin-left:6px}
+  .tag.HIGH{background:#3a1a1a;color:var(--bad)}.tag.MED{background:#3a2f12;color:var(--warn)}.tag.LOW{background:#16263f;color:var(--accent)}
+  .tag.OPEN{background:#2a2230;color:#cbb4e8}.tag.FIXED{background:#10301f;color:var(--good)}.tag.PARTIAL{background:#33270f;color:var(--warn)}.tag.DESIGN{background:#13283a;color:#7cc5ff}
+  .detail .dt{font-weight:700;font-size:15px;margin-bottom:2px}
+  .detail .chip{display:inline-block;font-size:10.5px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 8px;margin:2px 3px 2px 0;color:var(--mut)}
+  .detail .tchip{cursor:pointer;transition:.12s}.detail .tchip:hover{background:#222e3c;color:var(--ink)}
+  .catrow{margin:5px 0 2px}.catlbl{display:inline-block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;min-width:78px}
+  .detail .sec{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin:11px 0 5px}
+  .detail ol{margin:4px 0 0 18px;padding:0;font-size:12px}.detail ol li{margin:2px 0}
+  .muted{color:var(--mut)}.small{font-size:11.5px}
+  .statline{display:flex;gap:14px;margin:3px 0 0;font-size:11px;color:var(--mut)}.statline b{color:var(--ink);font-size:15px;display:block}
+  .banner{margin:8px 22px 0;padding:8px 12px;border-radius:8px;background:#2a1414;border:1px solid #5a2a2a;color:#fca5a5;font-size:12.5px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <a href="meridian_atlas.html" style="color:var(--accent);text-decoration:none;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:4px 10px;display:inline-block;margin-bottom:8px">← Back to Atlas</a>
+  <h1>◈ Meridian — Workflow &amp; Data-Flow Map <span style="color:var(--mut);font-size:13px;font-weight:400">v3 · 2026-06-04 · live run-health from GitHub Actions</span></h1>
+  <div class="sub">24 workflows → Python pipelines → Supabase (<b>167 tables</b>) → dashboard. Solid blue = event chain (workflow_run). Dashed = data flow via a shared table. Times ET. Click any node or gap.</div>
+  <div class="statline" id="stats"></div>
+</header>
+<div class="banner" id="banner"></div>
+<div class="controls">
+  <button class="btn on" id="b-all" onclick="setView('all')">Full system</button>
+  <button class="btn" id="b-daily" onclick="setView('daily')">Daily path</button>
+  <button class="btn" id="b-clock" onclick="setView('clock')">🕑 Daily clock</button>
+  <button class="btn" id="b-health" onclick="setView('health')">🩺 Run health</button>
+  <button class="btn" id="b-data" onclick="setView('data')">🗄 Data layer</button>
+  <button class="btn" id="b-conn" onclick="setView('conn')">🔗 Connections</button>
+  <button class="btn" id="b-dq" onclick="setView('dq')">📊 Data quality</button>
+  <button class="btn" id="b-flywheel" onclick="setView('flywheel')">Flywheel</button>
+  <div class="sep"></div>
+  <button class="btn" id="b-gaps" onclick="toggleGaps()">⚠ Mark gaps</button>
+  <span class="small muted" style="margin-left:4px">· click empty space or Esc to deselect</span>
+  <div class="legend" id="legend"></div>
+</div>
+<div class="wrap">
+  <div class="canvas"><svg id="svg" width="1380" height="1240" viewBox="0 0 1380 1240"></svg></div>
+  <div class="side"><div id="panel"><h2>Gaps &amp; improvements</h2><div id="gaps"></div></div></div>
+</div>
+<script>
+// ── Full table database (167 tables) + per-node table lists — embedded for deep drill-down ──
+const TABLEDB={"deals":{"r":210,"c":"surfaced","p":["company_enrichment.py","flywheel_phase2.py","one_time_migration.py","research.py"],"k":["bd_recommender.py","company_enrichment.py","compute_landscape_scores.py","consistency_checker.py","coverage_gap_finder.py","extract_fine_tune_signal.py","one_time_migration.py","phase4_compare_legacy_vs_normalized.py","quick_profiles_enrich.py","research.py","research_intelligence.py","review_submitted_intel.py","source_verifier.py","weekend_sprint.py","write_meridian.py"],"s":true},"indications":{"r":50,"c":"surfaced","p":[],"k":["conflict_detector.py","wave2b_trial_indications_backfill.py","wave2c_drug_indications_ibd_backfill.py"],"s":true},"coverage_scores":{"r":137,"c":"surfaced","p":["compute_coverage.py","drug_enrichment.py","weekend_sprint.py"],"k":["coverage_gap_finder.py","drug_enrichment.py","weekend_sprint.py"],"s":true},"indication_patient_intelligence":{"r":17,"c":"surfaced","p":[],"k":["weekend_sprint.py","write_meridian.py"],"s":true},"drug_aliases":{"r":178,"c":"infra","p":["identity_resolution.py"],"k":["identity_resolution.py","signal_monitor.py"],"s":false},"indication_co_occurrence":{"r":76,"c":"inert","p":[],"k":[],"s":false},"company_partnerships":{"r":52,"c":"dark","p":["company_enrichment.py","flywheel_phase2.py","weekend_sprint.py"],"k":["company_enrichment.py","consistency_checker.py","coverage_gap_finder.py","extract_fine_tune_signal.py","seed_strategic_views.py","source_verifier.py","weekend_sprint.py"],"s":false},"field_backfill_preview":{"r":317,"c":"infra","p":[],"k":[],"s":false},"validation_tests":{"r":1042,"c":"dark","p":["approve_discovery.py","seed_competes_with.py","seed_targets.py","validate_ground_truth.py"],"k":["validate_ground_truth.py"],"s":false},"companies":{"r":132,"c":"surfaced","p":["approve_discovery.py","refresh_company_verified.py","seed_company_hq.py","seed_tl1a_companies.py","stock_prices.py","weekend_sprint.py"],"k":["approve_discovery.py","bd_recommender.py","company_enrichment.py","company_identity_resolver.py","conflict_detector.py","consistency_checker.py","coverage_gap_finder.py","drug_enrichment.py","drug_intelligence_researcher.py","fetch_homepage_news.py","one_time_migration.py","research.py","research_intelligence.py","review_submitted_intel.py","seed_strategic_views.py","signal_monitor.py","stock_prices.py","validate_ground_truth.py","weekend_sprint.py","write_meridian.py"],"s":true},"regulatory_designations":{"r":23,"c":"inert","p":[],"k":[],"s":false},"indication_aliases":{"r":86,"c":"infra","p":[],"k":["wave2b_trial_indications_backfill.py"],"s":false},"company_portfolio_conflicts":{"r":260,"c":"surfaced","p":["portfolio_conflict_scorer.py"],"k":[],"s":true},"governance_violations":{"r":34,"c":"surfaced","p":["consistency_checker.py","source_verifier.py","weekend_sprint.py"],"k":["apply_governance_violations.py","morning_summary.py","seed_kyle_reviews.py","weekend_sprint.py"],"s":true},"partner_intelligence_profiles":{"r":5,"c":"inert","p":[],"k":[],"s":false},"drug_cdx_strategy":{"r":3,"c":"inert","p":[],"k":[],"s":false},"drug_stage_history":{"r":0,"c":"scaffold","p":[],"k":["consistency_checker.py","weekend_sprint.py"],"s":false},"ailux_strategic_context":{"r":12,"c":"inert","p":[],"k":[],"s":false},"kyle_reviews":{"r":109,"c":"dark","p":["human_queue_builder.py","seed_kyle_reviews.py"],"k":["enrichment_quality_report.py","extract_fine_tune_signal.py","flywheel_phase2.py","seed_kyle_reviews.py"],"s":false},"submitted_intel":{"r":12,"c":"surfaced","p":["execute_intel_actions.py","review_submitted_intel.py"],"k":["apply_submitted_intel_migration.py","execute_intel_actions.py","review_submitted_intel.py"],"s":true},"drug_competitive_scores":{"r":371,"c":"surfaced","p":["apply_competitive_scores_v56.py","patch_competitive_scores_null.py","weekend_sprint.py"],"k":["backfill_bd_angle.py","compute_landscape_scores.py","patch_competitive_scores_null.py","weekend_sprint.py","write_meridian.py","write_ranking_snapshots.py"],"s":true},"canonical_drugs":{"r":204,"c":"surfaced","p":["identity_resolution.py","molecule_enrichment.py"],"k":["identity_resolution.py"],"s":true},"drug_target_pairs":{"r":161,"c":"orphan","p":["normalize_targets_modality.py"],"k":[],"s":false},"company_profiles":{"r":138,"c":"surfaced","p":["backfill_bd_angle.py","backfill_risk_bd_angle.py","company_enrichment.py","quick_profiles_enrich.py","rescore_completeness.py","research_intelligence.py"],"k":["backfill_bd_angle.py","backfill_risk_bd_angle.py","company_enrichment.py","generate_intelligence_debt.py","generate_landscape_briefing.py","quick_profiles_enrich.py","rescore_completeness.py","research_intelligence.py","validate_ground_truth.py"],"s":true},"company_areas":{"r":133,"c":"surfaced","p":["approve_discovery.py","company_enrichment.py","company_intake.py","quick_profiles_enrich.py","seed_tl1a_companies.py"],"k":["approve_discovery.py","company_enrichment.py","seed_strategic_views.py","signal_monitor.py","validate_ground_truth.py"],"s":true},"asset_value_predictions":{"r":3,"c":"dark","p":["weekend_sprint.py"],"k":["weekend_sprint.py"],"s":false},"bispecific_differentiation_factors":{"r":18,"c":"inert","p":[],"k":[],"s":false},"deal_implied_valuation":{"r":7,"c":"inert","p":[],"k":[],"s":false},"routes_of_administration":{"r":6,"c":"inert","p":[],"k":[],"s":false},"drug_development_steps":{"r":16,"c":"inert","p":[],"k":[],"s":false},"company_pipeline_gaps":{"r":25,"c":"inert","p":[],"k":[],"s":false},"internal_pipeline_conflicts":{"r":11,"c":"inert","p":[],"k":[],"s":false},"drug_study_design_comparisons":{"r":4,"c":"inert","p":[],"k":[],"s":false},"indication_biology_tags":{"r":0,"c":"scaffold","p":[],"k":[],"s":false},"area_knowledge":{"r":13,"c":"surfaced","p":["update_area_knowledge_counts.py","weekend_sprint.py"],"k":["update_area_knowledge_counts.py","weekend_sprint.py"],"s":true},"drug_failure_cascade":{"r":15,"c":"surfaced","p":[],"k":[],"s":true},"bispecific_clinical_hypothesis":{"r":1,"c":"inert","p":[],"k":[],"s":false},"indication_priority_scores":{"r":19,"c":"surfaced","p":[],"k":[],"s":true},"source_verifications":{"r":230,"c":"dark","p":["audit_sources.py"],"k":["validate_ground_truth.py"],"s":false},"molecule_intelligence":{"r":99,"c":"surfaced","p":["company_enrichment.py","molecule_enrichment.py"],"k":["company_enrichment.py","consistency_checker.py","coverage_gap_finder.py","generate_intelligence_debt.py","research_intelligence.py"],"s":true},"clinical_trial_design_recommendations":{"r":1,"c":"inert","p":[],"k":[],"s":false},"indication_window_urgency":{"r":17,"c":"surfaced","p":[],"k":[],"s":true},"area_metadata":{"r":11,"c":"inert","p":[],"k":[],"s":false},"news_articles":{"r":251,"c":"surfaced","p":["fetch_homepage_news.py"],"k":["research.py","weekend_sprint.py"],"s":true},"prompt_versions":{"r":3,"c":"infra","p":[],"k":[],"s":false},"resolver_errors":{"r":0,"c":"scaffold","p":["identity_resolution.py"],"k":["identity_resolution.py"],"s":true},"trial_indications":{"r":299,"c":"surfaced","p":["wave2b_trial_indications_backfill.py"],"k":["phase4_compare_legacy_vs_normalized.py","wave2b_trial_indications_backfill.py"],"s":true},"drug_biomarkers":{"r":12,"c":"surfaced","p":["backfill_biomarker_drug_ids.py"],"k":["backfill_biomarker_drug_ids.py"],"s":true},"intel_target_links":{"r":1288,"c":"infra","p":[],"k":[],"s":false},"drug_clinical_benchmarks":{"r":68,"c":"surfaced","p":["drug_intelligence_researcher.py"],"k":[],"s":true},"catalysts":{"r":1018,"c":"surfaced","p":["backfill_catalyst_drug_ids.py","company_enrichment.py","execute_intel_actions.py","research.py","write_meridian.py"],"k":["audit_sources.py","company_enrichment.py","compute_landscape_scores.py","execute_intel_actions.py","phase4_compare_legacy_vs_normalized.py","rescore_completeness.py","research_intelligence.py","review_submitted_intel.py","write_meridian.py"],"s":true},"company_signals":{"r":57,"c":"surfaced","p":[],"k":["write_meridian.py"],"s":true},"conversation_intelligence_intake":{"r":12,"c":"dark","p":["conversation_intake.py"],"k":["conversation_intake.py"],"s":false},"indication_biology_validation":{"r":17,"c":"surfaced","p":[],"k":[],"s":true},"intel_areas":{"r":27,"c":"surfaced","p":["research.py"],"k":["company_enrichment.py"],"s":true},"efficacy_benchmarks":{"r":12,"c":"inert","p":[],"k":[],"s":false},"area_perspectives":{"r":22,"c":"surfaced","p":[],"k":[],"s":true},"meridian_issues":{"r":13,"c":"surfaced","p":["write_meridian.py"],"k":["write_meridian.py"],"s":true},"drug_nonresponder_profiles":{"r":3,"c":"inert","p":[],"k":[],"s":false},"source_validation_log":{"r":1364,"c":"infra","p":["source_verifier.py"],"k":[],"s":false},"news_company_links":{"r":31,"c":"infra","p":[],"k":[],"s":false},"bd_insights":{"r":35,"c":"surfaced","p":[],"k":[],"s":true},"company_therapeutic_areas":{"r":78,"c":"inert","p":[],"k":[],"s":false},"targets":{"r":76,"c":"surfaced","p":["seed_targets.py"],"k":["drug_enrichment.py"],"s":true},"news_drug_links":{"r":4,"c":"infra","p":[],"k":[],"s":false},"discovery_queue":{"r":87,"c":"surfaced","p":["approve_discovery.py","company_enrichment.py","company_intake.py","drug_intake.py","execute_intel_actions.py","pipeline_monitor.py"],"k":["approve_discovery.py","company_enrichment.py","company_intake.py","drug_intake.py","execute_intel_actions.py"],"s":true},"sop_registry":{"r":5,"c":"inert","p":[],"k":[],"s":false},"drug_targets":{"r":216,"c":"surfaced","p":["seed_targets.py"],"k":["conflict_detector.py","drug_enrichment.py","phase4_compare_legacy_vs_normalized.py","update_area_knowledge_counts.py","weekend_sprint.py"],"s":true},"company_aliases":{"r":184,"c":"infra","p":[],"k":["company_identity_resolver.py","conflict_detector.py","fetch_homepage_news.py","signal_monitor.py"],"s":false},"stock_price_history":{"r":319,"c":"infra","p":["stock_prices.py"],"k":[],"s":false},"drug_pd_parameters":{"r":7,"c":"inert","p":[],"k":[],"s":false},"drug_area_scores":{"r":210,"c":"surfaced","p":["approve_discovery.py","backfill_sources.py","company_enrichment.py","patch_confidence_and_sources.py","source_verify.py"],"k":["approve_discovery.py","company_enrichment.py","generate_intelligence_debt.py","patch_confidence_and_sources.py","phase4_compare_legacy_vs_normalized.py","seed_competes_with.py","source_verify.py","validate_ground_truth.py"],"s":true},"intelligence_discoveries":{"r":35,"c":"dark","p":["verify_sources.py"],"k":["research.py","verify_sources.py"],"s":false},"coverage_computation_log":{"r":4,"c":"infra","p":[],"k":[],"s":false},"landscape_expected_competitors":{"r":9,"c":"surfaced","p":[],"k":[],"s":true},"ailux_positions":{"r":2,"c":"infra","p":[],"k":["company_enrichment.py","write_meridian.py"],"s":false},"target_era_history":{"r":7,"c":"infra","p":[],"k":[],"s":false},"therapeutic_areas":{"r":8,"c":"surfaced","p":[],"k":[],"s":true},"identity_audit_log":{"r":4131,"c":"surfaced","p":["company_identity_resolver.py","identity_resolution.py"],"k":["one_time_migration.py"],"s":true},"indication_regulatory_clarity":{"r":17,"c":"surfaced","p":[],"k":[],"s":true},"target_pairs":{"r":5,"c":"surfaced","p":[],"k":[],"s":true},"company_strategic_views":{"r":168,"c":"surfaced","p":[],"k":["bd_recommender.py","weekend_sprint.py","write_meridian.py"],"s":true},"legacy_area_ontology_map":{"r":11,"c":"surfaced","p":[],"k":[],"s":true},"drug_intelligence_qa":{"r":590,"c":"surfaced","p":["drug_intelligence_researcher.py","research.py"],"k":[],"s":true},"company_platform_views":{"r":71,"c":"surfaced","p":[],"k":[],"s":true},"platform_trial_arms":{"r":11,"c":"inert","p":[],"k":[],"s":false},"landscape_briefings":{"r":1,"c":"dark","p":["generate_landscape_briefing.py"],"k":["generate_landscape_briefing.py"],"s":false},"news_indication_links":{"r":10,"c":"infra","p":[],"k":[],"s":false},"intel_companies":{"r":1146,"c":"surfaced","p":["company_enrichment.py","research.py"],"k":["company_enrichment.py","validate_ground_truth.py"],"s":true},"target_pair_whitespace":{"r":15,"c":"dark","p":["weekend_sprint.py"],"k":["weekend_sprint.py"],"s":false},"area_market_data":{"r":7,"c":"inert","p":[],"k":[],"s":false},"platform_trials":{"r":3,"c":"inert","p":[],"k":[],"s":false},"asset_transfer_history":{"r":14,"c":"surfaced","p":[],"k":[],"s":true},"asset_differentiation_profiles":{"r":3,"c":"surfaced","p":[],"k":["research.py"],"s":true},"agent_disagreements":{"r":51,"c":"orphan","p":["consistency_checker.py"],"k":[],"s":false},"drug_timeline_estimates":{"r":36,"c":"inert","p":[],"k":[],"s":false},"drug_formulation_variants":{"r":64,"c":"inert","p":[],"k":[],"s":false},"trial_registries":{"r":629,"c":"infra","p":["ct_gov_sync.py","process_queue_item.py","trial_link_sync.py","validation_research.py"],"k":["consistency_checker.py"],"s":false},"enrichment_queue":{"r":6,"c":"infra","p":["company_enrichment.py"],"k":["company_enrichment.py","signal_monitor.py"],"s":false},"system_status":{"r":1,"c":"surfaced","p":["company_enrichment.py","compute_landscape_scores.py","research.py","write_meridian.py"],"k":[],"s":true},"backfill_preview":{"r":873,"c":"surfaced","p":["wave2a_drug_indications_backfill.py","wave2b_trial_indications_backfill.py","wave2c_drug_indications_ibd_backfill.py"],"k":["wave2b_trial_indications_backfill.py","wave2c_drug_indications_ibd_backfill.py"],"s":true},"drug_approvals":{"r":5,"c":"inert","p":[],"k":[],"s":false},"target_mechanism_links":{"r":13,"c":"infra","p":[],"k":[],"s":false},"mechanism_precedent_map":{"r":15,"c":"inert","p":[],"k":[],"s":false},"biology_tags":{"r":18,"c":"inert","p":[],"k":[],"s":false},"next_gen_rankings":{"r":7,"c":"orphan","p":["write_ranking_snapshots.py"],"k":[],"s":false},"drug_development_timelines":{"r":45,"c":"orphan","p":["drug_intelligence_researcher.py"],"k":[],"s":false},"deal_value_tracking":{"r":12,"c":"inert","p":[],"k":[],"s":false},"mechanism_status":{"r":33,"c":"dark","p":["weekend_sprint.py"],"k":["weekend_sprint.py"],"s":false},"source_documents":{"r":55,"c":"surfaced","p":["document_collector.py","edgar_fetcher.py"],"k":["document_collector.py","edgar_fetcher.py"],"s":true},"signals":{"r":151,"c":"surfaced","p":["pipeline_monitor.py"],"k":["signal_monitor.py"],"s":true},"schema_change_log":{"r":369,"c":"infra","p":[],"k":[],"s":false},"geographic_approvals":{"r":46,"c":"surfaced","p":[],"k":[],"s":true},"ontology_versions":{"r":2,"c":"infra","p":[],"k":[],"s":false},"ontology_mappings":{"r":11,"c":"infra","p":[],"k":[],"s":false},"research_queue":{"r":171,"c":"surfaced","p":["company_enrichment.py","compute_landscape_scores.py","coverage_gap_finder.py","process_queue_item.py","research.py","research_intelligence.py","run_pkpd_claude.py","write_meridian.py"],"k":["compute_landscape_scores.py","process_queue_item.py","research.py","research_intelligence.py","review_submitted_intel.py","run_pkpd_claude.py","write_meridian.py"],"s":true},"drug_indications":{"r":361,"c":"surfaced","p":["wave2c_drug_indications_ibd_backfill.py"],"k":["backfill_biomarker_drug_ids.py","conflict_detector.py","coverage_gap_finder.py","drug_enrichment.py","phase4_compare_legacy_vs_normalized.py","update_area_knowledge_counts.py","wave2c_drug_indications_ibd_backfill.py"],"s":true},"peak_revenue_estimates":{"r":18,"c":"inert","p":[],"k":[],"s":false},"news_target_links":{"r":2,"c":"infra","p":[],"k":[],"s":false},"drug_pk_parameters":{"r":47,"c":"surfaced","p":["process_queue_item.py","research.py","run_pkpd_claude.py"],"k":[],"s":true},"modalities":{"r":10,"c":"surfaced","p":[],"k":[],"s":true},"review_queue":{"r":4,"c":"infra","p":[],"k":[],"s":false},"trial_geographic_scope":{"r":143,"c":"inert","p":[],"k":[],"s":false},"drug_validation_results":{"r":993,"c":"surfaced","p":["company_validator.py","conflict_detector.py","ct_gov_sync.py","refresh_company_verified.py","validation_research.py"],"k":["conflict_detector.py","morning_summary.py","seed_kyle_reviews.py","source_verifier.py","validation_research.py","weekend_sprint.py"],"s":true},"entity_relationships":{"r":2474,"c":"dark","p":["inference_rules.py"],"k":["consistency_checker.py","coverage_gap_finder.py","inference_rules.py","source_verifier.py"],"s":false},"ontology_edges":{"r":25,"c":"infra","p":[],"k":["wave2b_trial_indications_backfill.py","wave2c_drug_indications_ibd_backfill.py"],"s":false},"clinical_evidence_items":{"r":7,"c":"inert","p":[],"k":[],"s":false},"drug_routes":{"r":0,"c":"scaffold","p":[],"k":[],"s":false},"drug_areas":{"r":206,"c":"surfaced","p":["approve_discovery.py","company_enrichment.py","seed_tl1a_companies.py"],"k":["company_enrichment.py","ct_gov_sync.py","drug_intake.py","generate_intelligence_debt.py","phase4_compare_legacy_vs_normalized.py","quick_profiles_enrich.py","research_intelligence.py","validate_ground_truth.py","wave2c_drug_indications_ibd_backfill.py"],"s":true},"model_validation_results":{"r":0,"c":"scaffold","p":[],"k":["model_comparison.py"],"s":false},"intel_indication_links":{"r":637,"c":"infra","p":[],"k":[],"s":false},"drug_milestones":{"r":66,"c":"inert","p":[],"k":[],"s":false},"deal_sequencing_constraints":{"r":8,"c":"surfaced","p":[],"k":[],"s":true},"bd_recommendations":{"r":20,"c":"dark","p":["bd_recommender.py"],"k":["bd_recommender.py"],"s":false},"intel":{"r":1160,"c":"surfaced","p":["company_enrichment.py","research.py"],"k":["audit_sources.py","backfill_intel_entity_links.py","company_enrichment.py","research.py","validate_ground_truth.py","write_meridian.py"],"s":true},"entity_consistency_checks":{"r":10,"c":"infra","p":[],"k":["apply_entity_consistency_checks.py"],"s":false},"patent_expiry_cliff_map":{"r":12,"c":"inert","p":[],"k":[],"s":false},"field_change_audit":{"r":59840,"c":"surfaced","p":[],"k":["morning_summary.py"],"s":true},"competitive_landscapes":{"r":5,"c":"surfaced","p":["compute_landscape_scores.py","weekend_sprint.py"],"k":["compute_landscape_scores.py","weekend_sprint.py"],"s":true},"ownership_edges":{"r":117,"c":"surfaced","p":["company_intake.py"],"k":[],"s":true},"trials":{"r":706,"c":"surfaced","p":["company_enrichment.py","ct_gov_sync.py","trial_link_sync.py"],"k":["company_enrichment.py","ct_gov_sync.py","drug_enrichment.py","molecule_enrichment.py","patch_confidence_and_sources.py","research_intelligence.py","signal_monitor.py","wave2b_trial_indications_backfill.py","weekend_sprint.py","write_meridian.py"],"s":true},"drug_sources":{"r":25,"c":"dark","p":["apply_drug_sources_migration.py","company_enrichment.py","verify_sources.py"],"k":["apply_drug_sources_migration.py","verify_sources.py"],"s":false},"intel_company_links":{"r":764,"c":"infra","p":[],"k":[],"s":false},"intel_drug_links":{"r":904,"c":"infra","p":[],"k":[],"s":false},"catalyst_calendar":{"r":28,"c":"surfaced","p":["company_enrichment.py","weekend_sprint.py"],"k":["bd_recommender.py","coverage_gap_finder.py","human_queue_builder.py","research.py","weekend_sprint.py","write_meridian.py"],"s":true},"ailux_bd_context":{"r":14,"c":"surfaced","p":[],"k":[],"s":true},"enriched_field_log":{"r":813,"c":"infra","p":["backfill_confidence_scores.py","company_enrichment.py","drug_enrichment.py","human_queue_builder.py","seed_kyle_reviews.py","source_verifier.py","weekend_sprint.py"],"k":["backfill_confidence_scores.py","human_queue_builder.py","model_comparison.py","seed_kyle_reviews.py","source_verifier.py","weekend_sprint.py"],"s":false},"indication_company_map":{"r":16,"c":"surfaced","p":[],"k":[],"s":true},"change_log":{"r":84,"c":"infra","p":[],"k":[],"s":false},"drug_bispecific_landscape":{"r":10,"c":"surfaced","p":[],"k":[],"s":true},"bd_readiness_composite":{"r":13,"c":"inert","p":[],"k":[],"s":false},"drug_combinations":{"r":3,"c":"surfaced","p":["company_enrichment.py"],"k":["company_enrichment.py"],"s":true},"indication_patient_stratifiability":{"r":17,"c":"surfaced","p":[],"k":[],"s":true},"entity_edges":{"r":1164,"c":"surfaced","p":["company_intake.py","seed_competes_with.py","seed_targets.py"],"k":["validate_ground_truth.py","write_meridian.py"],"s":true},"payer_tpp_criteria":{"r":17,"c":"surfaced","p":[],"k":[],"s":true},"correction_labels":{"r":0,"c":"scaffold","p":[],"k":[],"s":false},"portfolio_conflict_matrix":{"r":13,"c":"inert","p":[],"k":[],"s":false},"enrichment_runs":{"r":40,"c":"infra","p":["company_enrichment.py","drug_enrichment.py","model_comparison.py"],"k":["drug_enrichment.py","model_comparison.py","morning_summary.py","weekend_sprint.py"],"s":false},"nonresponder_bispecific_bridge":{"r":8,"c":"inert","p":[],"k":[],"s":false},"intelligence_debt_queue":{"r":255,"c":"infra","p":["generate_intelligence_debt.py"],"k":["generate_intelligence_debt.py"],"s":false},"competitive_signals":{"r":997,"c":"surfaced","p":["company_enrichment.py","seed_competitive_signals.py"],"k":["company_enrichment.py"],"s":true},"non_responder_profiles":{"r":9,"c":"surfaced","p":[],"k":[],"s":true},"company_documents":{"r":191,"c":"surfaced","p":[],"k":[],"s":true},"drug_targets_legacy":{"r":195,"c":"infra","p":[],"k":[],"s":false},"drug_modalities":{"r":0,"c":"scaffold","p":[],"k":[],"s":false},"drugs":{"r":204,"c":"surfaced","p":["apply_drug_sources_migration.py","approve_discovery.py","backfill_catalysts.py","backfill_sources.py","catalog_backfill.py","company_enrichment.py","conflict_detector.py","ct_gov_sync.py","drug_enrichment.py","execute_intel_actions.py","flywheel_phase2.py","molecule_enrichment.py","normalize_targets_modality.py","one_time_migration.py","process_queue_item.py","research_intelligence.py","seed_tl1a_companies.py","validation_research.py","verify_sources.py","weekend_sprint.py"],"k":["apply_drug_sources_migration.py","approve_discovery.py","backfill_bd_angle.py","bd_recommender.py","company_enrichment.py","company_intake.py","compute_landscape_scores.py","conflict_detector.py","consistency_checker.py","coverage_gap_finder.py","ct_gov_sync.py","drug_enrichment.py","drug_intake.py","drug_intelligence_researcher.py","execute_intel_actions.py","extract_fine_tune_signal.py","fetch_homepage_news.py","flywheel_phase2.py","generate_intelligence_debt.py","human_queue_builder.py","inference_rules.py","molecule_enrichment.py","normalize_targets_modality.py","one_time_migration.py","patch_competitive_scores_null.py","patch_confidence_and_sources.py","phase4_compare_legacy_vs_normalized.py","process_queue_item.py","quick_profiles_enrich.py","rescore_completeness.py","research_intelligence.py","review_submitted_intel.py","seed_competes_with.py","seed_kyle_reviews.py","seed_strategic_views.py","seed_targets.py","signal_monitor.py","source_verify.py","update_area_knowledge_counts.py","validate_ground_truth.py","validation_research.py","wave2c_drug_indications_ibd_backfill.py","weekend_sprint.py","write_meridian.py","write_ranking_snapshots.py"],"s":true},"target_areas":{"r":12,"c":"inert","p":[],"k":[],"s":false}};
+const NODE_TABLES={"research":{"w":["catalysts","deals","drug_intelligence_qa","drug_pk_parameters","intel","intel_areas","intel_companies","research_queue","system_status"],"r":["asset_differentiation_profiles","catalyst_calendar","companies","deals","intel","intelligence_discoveries","news_articles","research_queue"]},"pipemon":{"w":["discovery_queue","signals"],"r":[]},"news":{"w":["news_articles"],"r":["companies","company_aliases","drugs"]},"stock":{"w":["companies","stock_price_history"],"r":["companies"]},"review":{"w":["submitted_intel"],"r":["catalysts","companies","deals","drugs","research_queue","submitted_intel"]},"abstract":{"w":[],"r":[]},"enrich":{"w":["catalyst_calendar","catalysts","company_areas","company_partnerships","company_profiles","competitive_signals","deals","discovery_queue","drug_area_scores","drug_areas","drug_combinations","drug_sources","drug_validation_results","drugs","enriched_field_log","enrichment_queue","enrichment_runs","intel","intel_companies","molecule_intelligence","research_queue","system_status","trial_registries","trials"],"r":["ailux_positions","catalysts","companies","company_areas","company_partnerships","company_profiles","competitive_signals","deals","discovery_queue","drug_area_scores","drug_areas","drug_combinations","drugs","enrichment_queue","intel","intel_areas","intel_companies","molecule_intelligence","research_queue","trials"]},"molecule":{"w":["canonical_drugs","drugs","molecule_intelligence"],"r":["drugs","trials"]},"queue":{"w":["drug_pk_parameters","drugs","research_queue","trial_registries"],"r":["drugs","research_queue"]},"signal":{"w":[],"r":["companies","company_aliases","company_areas","drug_aliases","drugs","enrichment_queue","signals","trials"]},"actions":{"w":["catalysts","discovery_queue","drugs","submitted_intel"],"r":["catalysts","discovery_queue","drugs","submitted_intel"]},"compscore":{"w":["drug_competitive_scores"],"r":[]},"ranking":{"w":["next_gen_rankings"],"r":["drug_competitive_scores","drugs"]},"landscape":{"w":["competitive_landscapes","research_queue","system_status"],"r":["catalysts","competitive_landscapes","deals","drug_competitive_scores","drugs","research_queue"]},"coverage":{"w":["coverage_scores"],"r":[]},"validate":{"w":["validation_tests"],"r":["companies","company_areas","company_profiles","drug_area_scores","drug_areas","drugs","entity_edges","intel","intel_companies","source_verifications","validation_tests"]},"conflict":{"w":["drug_validation_results","drugs"],"r":["companies","company_aliases","drug_indications","drug_targets","drug_validation_results","drugs","indications"]},"cvalid":{"w":["drug_validation_results"],"r":[]},"meridian":{"w":["catalysts","meridian_issues","research_queue","system_status"],"r":["ailux_positions","catalyst_calendar","catalysts","companies","company_signals","company_strategic_views","deals","drug_competitive_scores","drugs","entity_edges","indication_patient_intelligence","intel","meridian_issues","research_queue","trials"]},"summary":{"w":[],"r":["drug_validation_results","enrichment_runs","field_change_audit","governance_violations"]},"fly":{"w":["company_partnerships","deals","drugs"],"r":["drugs","kyle_reviews"]},"hints":{"w":[],"r":[]},"health":{"w":[],"r":[]}};</script>
+<script>
+const STAGES=[{id:'src',x:30,label:'Sources'},{id:'ingest',x:235,label:'Ingestion'},{id:'enrich',x:455,label:'Enrichment'},{id:'score',x:680,label:'Score · Validate'},{id:'synth',x:910,label:'Synthesis'},{id:'present',x:1150,label:'Presentation'}];
+const NW=178,NH=60,ROWH=82;
+// status: ok | fail | never | fixed | null(n/a) — from live GitHub Actions run history 2026-06-04
+const N=[
+  {id:'rss',stage:'src',row:0,title:'News RSS',sub:'Fierce / STAT / Endpoints',cadence:'live',kind:'src'},
+  {id:'ctgov',stage:'src',row:1,title:'ClinicalTrials.gov',sub:'+ China CDE',cadence:'live',kind:'src'},
+  {id:'edgar',stage:'src',row:2,title:'SEC EDGAR',sub:'8-K filings',cadence:'live',kind:'src'},
+  {id:'pubmed',stage:'src',row:3,title:'PubMed',sub:'PK/PD abstracts',cadence:'live',kind:'src'},
+  {id:'pages',stage:'src',row:4,title:'Competitor pipeline pages',sub:'company IR sites',cadence:'live',kind:'src'},
+  {id:'submit',stage:'src',row:5,title:'Submitted intel',sub:'human-entered',cadence:'live',kind:'human'},
+
+  {id:'research',stage:'ingest',row:0,title:'research.py',sub:'Meridian Research',cadence:'2:00 ET',trig:'cron',et:2,kind:'ingest',status:'ok',
+    writes:['intel','deals','news_articles','research_queue','catalyst_calendar','drug_pk_parameters','drug_intelligence_qa','system_status'],reads:['rss','edgar','pubmed','ctgov']},
+  {id:'pipemon',stage:'ingest',row:1,title:'pipeline_monitor.py',sub:'Competitor Pipeline Monitor',cadence:'1:00 ET',trig:'cron',et:1,kind:'ingest',status:'ok',isnew:true,
+    writes:['signals','discovery_queue'],reads:['pages']},
+  {id:'news',stage:'ingest',row:2,title:'fetch_homepage_news.py',sub:'Homepage News',cadence:'after Research +3:30 ET',trig:'chain',et:3.4,kind:'ingest',status:'ok',
+    writes:['news_articles'],reads:['rss']},
+  {id:'stock',stage:'ingest',row:3,title:'stock_prices.py',sub:'Stock Price Refresh',cadence:'10:00 ET',trig:'cron',et:10,kind:'ingest',status:'ok',writes:['stock_price_history']},
+  {id:'review',stage:'ingest',row:4,title:'review_submitted_intel.py',sub:'Auto-Review',cadence:'every 6h',trig:'cron',kind:'ingest',status:'ok',writes:['research_queue','submitted_intel'],reads:['submit']},
+  {id:'abstract',stage:'ingest',row:5,title:'abstract_fetcher.py',sub:'Abstract Fetcher',cadence:'Sat',trig:'cron',kind:'ingest',status:'ok',writes:['intel']},
+
+  {id:'enrich',stage:'enrich',row:0,title:'company_enrichment.py',sub:'Intelligence Pipeline · 6× staggered',cadence:'12:00 ET ×6 (per-area)',trig:'cron',et:0,kind:'enrich',status:'ok',
+    steps:['ct_gov_sync.py — trial sync','company_enrichment.py — synthesis','research_intelligence.py — audit','identity_health_check.py — orphan guard'],
+    reads:['intel','trials','drug_sources','enrichment_queue','HINTS'],
+    writes:['drugs','companies','company_profiles','company_partnerships','deals','catalysts','drug_sources','ailux_positions','enrichment_runs','system_status']},
+  {id:'molecule',stage:'enrich',row:1,title:'molecule_enrichment.py',sub:'in sprints',cadence:'Tue–Sat / wknd',trig:'cron',kind:'enrich',status:'ok',writes:['molecule_intelligence','drugs']},
+  {id:'queue',stage:'enrich',row:2,title:'process_queue_item.py',sub:'Discovery Queue Processor',cadence:'6:00 ET',trig:'cron',et:6,kind:'enrich',status:'ok',reads:['research_queue','discovery_queue'],writes:['drugs','drug_pk_parameters','trial_registries']},
+  {id:'signal',stage:'enrich',row:3,title:'signal_monitor.py',sub:'Signal Monitor',cadence:'every 6h',trig:'cron',kind:'enrich',status:'ok',reads:['signals'],writes:['signals','enrichment_queue']},
+  {id:'actions',stage:'enrich',row:4,title:'execute_intel_actions.py',sub:'Execute Intel Actions',cadence:'6:30 ET',trig:'cron',et:6.5,kind:'enrich',status:'fixed',reads:['submitted_intel'],writes:['drugs','catalysts','discovery_queue']},
+
+  {id:'compscore',stage:'score',row:0,title:'apply_competitive_scores_v56.py',sub:'in school-week-sprint',cadence:'Tue–Sat night',trig:'cron',kind:'score',status:'ok',writes:['drug_competitive_scores']},
+  {id:'ranking',stage:'score',row:1,title:'write_ranking_snapshots.py',sub:'in 3 workflows',cadence:'daily 7:00 ET',trig:'cron',et:7,kind:'score',status:'ok',reads:['drug_competitive_scores'],writes:['next_gen_rankings']},
+  {id:'landscape',stage:'score',row:2,title:'compute_landscape_scores.py',sub:'Landscape Scores',cadence:'Mon',trig:'cron',kind:'score',status:'ok',reads:['drug_competitive_scores','deals','catalysts'],writes:['competitive_landscapes','research_queue','system_status']},
+  {id:'coverage',stage:'score',row:3,title:'compute_coverage.py',sub:'in sprints',cadence:'Tue–Sat',trig:'cron',kind:'score',status:'ok',writes:['coverage_scores']},
+  {id:'validate',stage:'score',row:4,title:'validate_ground_truth.py',sub:'Validation Tests',cadence:'Mon',trig:'cron',kind:'valid',status:'fixed',reads:['drugs','intel','entity_edges'],writes:['validation_tests','source_verifications']},
+  {id:'conflict',stage:'score',row:5,title:'conflict_detector.py',sub:'Validation Research',cadence:'Sun',trig:'cron',kind:'valid',status:'fixed',writes:['governance_violations']},
+  {id:'cvalid',stage:'score',row:6,title:'company_validator.py',sub:'Company Freshness',cadence:'Sun',trig:'cron',kind:'valid',status:'ok',writes:['company_profiles']},
+
+  {id:'meridian',stage:'synth',row:0,title:'write_meridian.py',sub:'Meridian Writer',cadence:'after Research (6:30 ET fallback)',trig:'chain',et:2.5,kind:'synth',status:'fixed',
+    reads:['drugs','drug_competitive_scores','deals','catalysts','intel','indication_patient_intelligence','ailux_positions'],writes:['meridian_issues','system_status']},
+  {id:'summary',stage:'synth',row:1,title:'morning_summary.py',sub:'Morning Summary',cadence:'after Writer',trig:'chain',et:2.8,kind:'synth',status:'fixed',reads:['intel','deals','research_queue'],writes:['— email digest']},
+
+  {id:'kyle',stage:'synth',row:3,title:'Kyle review',sub:'confirmed ground truth (109 rows)',cadence:'human',kind:'human',writes:['kyle_reviews']},
+  {id:'fly',stage:'score',row:7.4,title:'flywheel_phase2.py',sub:'Flywheel Phase 2',cadence:'Tue',trig:'cron',kind:'human',status:'ok',reads:['kyle_reviews','drugs'],writes:['training_pairs.jsonl']},
+  {id:'hints',stage:'enrich',row:7.4,title:'apply_prompt_improvements.py',sub:'→ enrichment_prompt_hints.md',cadence:'Tue',trig:'cron',kind:'human',status:'ok',reads:['training_pairs.jsonl'],writes:['HINTS']},
+
+  {id:'swsprint',stage:'score',row:8.7,title:'school-week-sprint',sub:'re-runs enrich+score+validate',cadence:'Tue–Sat 9pm ET',trig:'cron',kind:'orch',status:'ok',writes:['(orchestrator)']},
+  {id:'wesprint',stage:'enrich',row:8.7,title:'weekend_sprint',sub:'13× autonomous runs',cadence:'Sat–Sun',trig:'cron',kind:'orch',status:'fixed',writes:['(orchestrator)']},
+
+  {id:'dash',stage:'present',row:1.4,title:'index.html dashboard',sub:'GitHub Pages · reads 74 of 167 tables',cadence:'live read',kind:'present',
+    reads:['drugs','drug_competitive_scores','competitive_landscapes','company_profiles','deals','catalysts','meridian_issues','news_articles','next_gen_rankings','governance_violations','system_status']},
+  {id:'banner',stage:'present',row:3.2,title:'S3 fresh-data banner',sub:'5-min poll · 4 timestamps',cadence:'live',kind:'present',isnew:true,reads:['system_status']},
+  {id:'health',stage:'present',row:4.4,title:'pipeline_health.py',sub:'Pipeline Health Monitor',cadence:'every 6h',trig:'cron',kind:'valid',status:'ok',isnew:true,writes:['pipeline_runs','system_status']},
+];
+const NODEMAP={};N.forEach(n=>NODEMAP[n.id]=n);
+const PROD={},CONS={};
+N.forEach(n=>{(n.writes||[]).forEach(t=>{(PROD[t]=PROD[t]||[]).push(n.id)});(n.reads||[]).forEach(t=>{(CONS[t]=CONS[t]||[]).push(n.id)});});
+const EDGES=[];
+N.forEach(n=>(n.reads||[]).forEach(r=>{if(NODEMAP[r])EDGES.push({from:r,to:n.id,type:'flow'});}));
+Object.keys(CONS).forEach(t=>{(PROD[t]||[]).forEach(p=>(CONS[t]||[]).forEach(c=>{if(p!==c)EDGES.push({from:p,to:c,type:'flow',table:t});}));});
+[['research','news'],['research','meridian'],['meridian','summary']].forEach(([a,b])=>EDGES.push({from:a,to:b,type:'chain'}));
+[['dash','kyle'],['kyle','fly'],['fly','hints'],['hints','enrich']].forEach(([a,b])=>EDGES.push({from:a,to:b,type:'loop'}));
+const seen=new Set(),E2=[];EDGES.forEach(e=>{const k=e.from+'>'+e.to+'>'+e.type;if(!seen.has(k)){seen.add(k);E2.push(e);}});
+
+// table census (live row counts from Supabase pg_stat 2026-06-04)
+const TABLES={total:167,dashRead:77,empty:7,
+  buckets:[
+    {label:'Read by dashboard',n:77,c:'var(--good)'},
+    {label:'Dark — never reach dashboard',n:90,c:'var(--bad)'},
+    {label:'Empty (defined, 0 rows)',n:7,c:'var(--warn)'},
+  ],
+  notable:[
+    ['field_change_audit','59,840','audit log — no retention policy'],
+    ['identity_audit_log','4,131','audit'],
+    ['backfill_preview','873','working/preview table left populated'],
+    ['field_backfill_preview','317','working/preview table left populated'],
+    ['kyle_reviews','109','flywheel fuel ✓'],
+    ['drug_areas / drug_area_scores / drug_targets_legacy','206 / 210 / 195','legacy read layer (retained, redirected)'],
+    ['meridian_issues','12','core product output'],
+    ['system_status','1','S3 freshness singleton'],
+  ],
+  emptyList:['drug_routes','resolver_errors','drug_modalities','indication_biology_tags','drug_stage_history','model_validation_results','correction_labels']};
+
+const GAPS=[
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['meridian','summary','actions','conflict','validate','wesprint'],t:'Silently-failing workflows — all addressed',
+   d:'FIXED 2026-06-04/05. 27/29 workflows latest-green. All of Meridian Writer, Morning Summary, Execute Intel Actions, Validation Research, Run Validation Tests, Flywheel Phase 2, Pipeline Monitor green. Weekend Sprint resolved (argparse now lists --block F; self-heals on cron). apply-migration.yml YAML startup-failure fixed (→ scripts/apply_sql_migration.py + User-Agent for Cloudflare); obsolete one-shot v37 migration workflow retired.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['enrich','validate'],t:'Validation P1: company-area links missing for acquired/co-dev assets',
+   d:'FIXED 2026-06-05. The ground-truth suite (the system\'s own alarm) was red on P1: Merck/Regeneron/Boehringer were absent from areas they belong to. Root cause: reconcile_company_areas counted a company "in an area" only when a drug\'s company_id matched directly — it ignored acquired-subsidiary rollup (tulisokibart→Prometheus→Merck) and co-development partners (dupilumab→Regeneron, sim0709→Boehringer), and was actively DELETING those legitimate links. Fixed the reconciliation to roll up acquired-sub + resolve partner names, added the 3 rows. Also corrected 2 stale tests: candid-tcell→false (Candid acquired by UCB; asset folds to UCB). Result: 986→992 passed, 2→0 P1 blockers, validation exits green. FLAGGED for you: amgen-fcrn + jnj-tcell still expect links with no supporting asset in drug_areas — likely add J&J CAR-T / confirm Amgen FcRn, or retire those tests.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['meridian'],t:'Meridian Writer failed daily since 2026-06-03',
+   d:'FIXED 2026-06-04: the writer generated + saved the Issue, then an optional post-save step (sync_catalyst_outcomes) raised AFTER save but BEFORE deploy_to_github — so the page never published and the run went red. Fix: publish first, run the feedback-loop steps best-effort (try/except). Re-ran green.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['health'],t:'No workflow-health monitoring / alerting',
+   d:'FIXED 2026-06-04: built the Pipeline Health Monitor (scripts/pipeline_health.py + pipeline-health.yml, every 6h). It polls the Actions API, logs every run to pipeline_runs, and stamps system_status.health_summary. Verified live: "15 green / 5 failing / 2 never-run". The factory now reports its own state. Next: a dashboard tile reading pipeline_runs + an alert on red.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['enrich','research','meridian','compscore','landscape'],t:'Pipeline was clock-ordered: enrich before ingest, Issues read stale scores',
+   d:'FIXED 2026-06-05 (Wave 0). Re-chained the nightly spine with workflow_run triggers: Research → Source Verify → Content Verify → Compute Landscape Scores → Writer. Every Issue is now built on facts verified + scored THAT SAME NIGHT, not 22h-stale intel or week-old scores.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['summary'],t:'Morning Summary fails on git push (403)',
+   d:'FIXED — given the GH_DEPLOY_TOKEN scope; green in CI.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['actions'],t:'execute-intel-actions: malformed inline-YAML heredoc',
+   d:'FIXED — heredoc indentation corrected; runs green. (Same class of bug later found + fixed in apply-migration.yml — see below.)'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['fly','hints'],t:'Flywheel Phase 2 CI had never run',
+   d:'FIXED — Fine-Tuning Flywheel Phase 2 now shows a successful run (2026-06-05). Option-1 hints loop fires on schedule. (Option 2 fine-tune still open — see below.)'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['enrich','swsprint','wesprint','meridian','queue'],t:'Concurrency guards were missing everywhere',
+   d:'FIXED — guards added to both sprints + 7 daily/weekly mutators.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['banner','meridian','landscape'],t:'S3 freshness stamped by only 2 writers',
+   d:'FIXED — added last_meridian_at + last_scoring_at; banner compares all four timestamps.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['pipemon','pages'],t:'pipeline_monitor built but never scheduled',
+   d:'FIXED — nightly Competitor Pipeline Monitor workflow (1:00 ET), running green.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['dash'],t:'47 tables invisible to the dashboard (RLS read regression)',
+   d:'FIXED 2026-06-05. The security lockdown enabled RLS to block anon WRITES but added NO anon read policy → 47 tables returned 200+0 rows to the dashboard (the real reason so many tables were "dark"). Restored anon SELECT on all 47; writes still blocked (401/42501). Symptom to remember: service key sees rows, anon sees empty.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['dash','enrich'],t:'DARK tables: drug_sources + company_partnerships not surfaced',
+   d:'FIXED 2026-06-05 (Wave 2). drug_sources provenance now in the drug modal (claim-level sources + ✓content-verified badges, verified on mt-251). company_partnerships now in the company modal (verified pills, source links, verified on UCB). Plus a live pipeline-health tile in the header (reads pipeline_runs).'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['dash'],t:'Inert scaffolding tables — seeded once, no producer',
+   d:'FIXED 2026-06-05. bd_recommendations + landscape_briefings now have weekly producer workflows (verified: 35 + 2 rows). 3 others (portfolio_conflict, target_pair_whitespace, asset_value_predictions) already refresh weekly via weekend_sprint. patent_cliff / mechanism_precedent / deal_sequencing kept as static strategic reference. None left decaying without a plan.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:[],t:'Live-producer scripts unscheduled',
+   d:'FIXED the high-value ones — bd_recommender.py + generate_landscape_briefing.py now scheduled weekly. Remaining producers audited; the rest are one-offs or sprint-driven.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['health'],t:'Missing table: pipeline run-outcome log',
+   d:'FIXED — pipeline_runs table + health monitor + now a header health tile.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['dash'],t:'Security: 41 tables were anon-writable (public key)',
+   d:'FIXED 2026-06-05. Enabled RLS + write-block on all 41 (verified anon DELETE/UPDATE→0 rows, INSERT→401, service writes intact). RESIDUAL (flagged for you): drugs/discovery_queue/submitted_intel still allow anon writes via the dashboard edit/submit UIs — move behind Supabase Auth to fully harden.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['enrich'],t:'Content quality: completeness scored on only 1/3 of drugs',
+   d:'FIXED 2026-06-05. Catalog tail cleared: 90 unmapped real drugs → 0 visible unmapped (64 mapped to areas, 21 out-of-scope hidden, 42 canonicalized). Also fixed a dead drug_areas insert trigger that had been blocking ALL ontology growth, and added daily catalog-wide completeness scoring.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:[],t:'Enrichment cost: token columns stay 0',
+   d:'FIXED — token capture wired across all 5 enrichment LLM calls; enrichment_runs now records prompt/completion/total tokens.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:[],t:'field_change_audit unbounded (~10k rows/day)',
+   d:'FIXED 2026-06-05. fn_prune_field_change_audit(30d) + weekly Audit Retention workflow; governance + correction rows kept indefinitely.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['validate','conflict'],t:'Validation lags data by up to a week',
+   d:'FIXED — run-validation-tests cron moved Mon→daily; drift surfaces within 24h. Also fixed a field_consistency validator false-positive (bispecific target-counter only recognized "×"; now x/×/spaced-x/compact-AxB).'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:[],t:'Alias loss on rename + name search gaps',
+   d:'FIXED 2026-06-05. DB trigger trg_drugs_capture_aliases saves name/id/inn/brand/synonyms to drug_aliases on every write (renames never lose old names; 183→574 aliases). Global search now resolves prior/code names ("AMG 729" → Obexelimab). XmAb5871/AMG 729 deduped into the obexelimab canonical.'},
+  // ── OPEN — the remaining backlog ──────────────────────────────────────────────
+  {sev:'HIGH',st:'MOSTLY',cls:'warn',nodes:['enrich','dash'],t:'Patient / indication layer (North-Star inversion) — deepened',
+   d:'PROGRESS 2026-06-05. Researched + added 5 Ailux-relevant indications with sources (Plaque Psoriasis, SLE, Severe Asthma, Hidradenitis Suppurativa, EoE) → 17→22 covered. ALSO fixed a dead-plumbing bug: the global search queried indication_patient_intelligence with non-existent columns (patient_count / unmet_need_summary / key_patient_insight) so patient intel NEVER surfaced — corrected to patient_count_us / unmet_need_narrative / why_it_matters; verified live ("lupus" now returns SLE patient intel). Ongoing collection (still the highest-leverage strategic work), but the core Ailux indications are now covered + actually visible.'},
+  {sev:'HIGH',st:'FIXED',cls:'fixed',nodes:['dash'],t:'Deal-edge layer was sparse (19 vs 968 competitor edges)',
+   d:'FIXED 2026-06-05. company_partnerships / asset_transfer_history / deals were never mirrored into entity_relationships. Built scripts/materialize_deal_edges.py (idempotent) + weekly Materialize Deal Edges workflow. Backfill took deal/ownership edges 19 → 79 (56 licensor_licensee, 11 parent_subsidiary, 10 co_developer, 2 combination), each with a source_url. Self-maintaining now. (Still thinner than the 968 competitor edges — deal collection is inherently lower-frequency — but no longer a structural gap.)'},
+  {sev:'MED',st:'OPEN',cls:'warn',nodes:['validate','conflict'],t:'100% of competitive relationships unverified',
+   d:'Every entity_relationship is inferred + verification_needed — 0% human/source confirmation. Wire the Source/Content verifiers to stamp relationships.'},
+  {sev:'MED',st:'OPEN',cls:'warn',nodes:['ranking','dash'],t:'Orphan-write: next_gen_rankings movement arrows unwired',
+   d:'next_gen_rankings is written (snapshot_date fresh) but the dashboard never queries it, so the ranking movement-arrow feature is dark. agent_disagreements + drug_development_timelines also unconsumed. Wire a consumer or retire.'},
+  {sev:'MED',st:'OPEN',cls:'warn',nodes:['validate'],t:'stage_trial_match: 53 warnings (China CDE registry)',
+   d:'~40 drugs have trials likely registered only in China\'s CDE, which we don\'t ingest. All OTHER validation warnings are now cleared. Fix needs a CDE data source.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['validate'],t:'4 governance violations resolved with research',
+   d:'FIXED 2026-06-05. lu-ag22515 corrected (CD40L target, anti-CD40L SAFA mechanism, Phase 2 TED, AprilBio→Lundbeck, igf1r area removed) per Lundbeck PR + NCT06557850. mt-251 trial misattribution fixed — CT.gov confirmed NCT07219368=MT-201, NCT06762457=MT-501, NCT07113522=MT-501/MT-201 platform; removed those 3, kept the real NCT07423299. batoclimab claim verified correct (HanAll→Immunovant 2017) + AdisInsight source attached. Fabricated catalyst URLs already nulled. 0 unresolved.'},
+  {sev:'MED',st:'FIXED',cls:'fixed',nodes:['ranking'],t:'write_ranking_snapshots runs in 3 workflows',
+   d:'Reviewed 2026-06-05: NOT wasteful redundancy — it refreshes rankings right after each scoring event (post-enrichment + post-sprint) plus the daily standalone. Removing the extra calls would make rankings stale between daily runs. Intentional freshness; closing.'},
+  {sev:'MED',st:'OPEN',cls:'warn',nodes:['research','enrich','queue'],t:'Three overlapping research scripts',
+   d:'research.py, research_intelligence.py, drug_intelligence_researcher.py — fuzzy boundaries. Consolidate.'},
+  {sev:'LOW',st:'OPEN',cls:'idea',nodes:['dash'],t:'drugs table is ~120 columns with overlapping fields',
+   d:'5 ownership + 4 modality fields. Schema breadth raises drift risk. Document the canonical field per concept, deprecate duplicates. (Risky refactor — your call.)'},
+  {sev:'LOW',st:'OPEN',cls:'idea',nodes:[],t:'Python version drift across workflows (3.11 vs 3.12)',
+   d:'Mixed versions. Now that the health monitor exists, safe to standardize on 3.12.'},
+  {sev:'LOW',st:'OPEN',cls:'idea',nodes:['fly','hints','enrich'],t:'Flywheel option 2 (fine-tune) still open',
+   d:'Option 1 (hints → prompt) closed + firing. Option 2 (fine-tune on JSONL pairs) unwired.'},
+  {sev:'LOW',st:'OPEN',cls:'idea',nodes:[],t:'Standardize wording across the platform',
+   d:'Shared vocabulary exists (docs/MERIDIAN_STANDARDS.md); migrate old UI copy opportunistically.'},
+];
+
+const svg=document.getElementById('svg'),NS='http://www.w3.org/2000/svg';
+// Click empty space (or press Esc) to deselect and return to the overview.
+function _goHome(){SEL=null;SELTABLE=null;renderDetail();draw();}
+svg.addEventListener('click',e=>{if(e.target===svg)_goHome();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')_goHome();});
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+const KIND={src:'var(--store)',ingest:'var(--ingest)',enrich:'var(--enrich)',score:'var(--score)',valid:'var(--valid)',synth:'var(--synth)',present:'var(--present)',human:'var(--human)',orch:'var(--orch)'};
+const STAT={ok:'var(--good)',fail:'var(--bad)',never:'var(--warn)',fixed:'var(--accent)'};
+let VIEW='all',GAPSON=false,SEL=null;
+function pos(n){const st=STAGES.find(s=>s.id===n.stage);return{x:st.x,y:84+n.row*ROWH};}
+function viewNodes(){
+  if(VIEW==='daily')return new Set(['rss','ctgov','edgar','submit','pages','research','pipemon','news','stock','review','enrich','queue','actions','ranking','meridian','summary','dash','banner']);
+  if(VIEW==='flywheel')return new Set(['dash','kyle','fly','hints','enrich']);
+  return new Set(N.map(n=>n.id));
+}
+function defs(){const d=el('defs');[['arrow','#4a5b6e'],['arrowA','#6ea8fe'],['arrowH','#fb923c']].forEach(([id,c])=>{const m=el('marker',{id,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'});m.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill:c}));d.appendChild(m);});return d;}
+function related(id){const nodes=new Set([id]),edges=new Set();E2.forEach(e=>{if(e.from===id){nodes.add(e.to);edges.add(e.from+'>'+e.to);}if(e.to===id){nodes.add(e.from);edges.add(e.from+'>'+e.to);}});return{nodes,edges};}
+
+function draw(){
+  svg.innerHTML='';svg.appendChild(defs());
+  document.getElementById('banner').style.display = (VIEW==='health')?'block':'none';
+  if(VIEW==='clock'){drawClock();return;}
+  if(VIEW==='data'){drawData();return;}
+  if(VIEW==='conn'){drawConn();return;}
+  if(VIEW==='dq'){drawDQ();return;}
+  svg.setAttribute('viewBox','0 0 1380 1240');
+  STAGES.forEach(s=>{const t=el('text',{x:s.x,y:58,class:'stagelabel'});t.textContent=s.label;svg.appendChild(t);});
+  const vis=viewNodes(),hot=SEL?related(SEL):null,health=(VIEW==='health');
+  E2.forEach(e=>{const a=NODEMAP[e.from],b=NODEMAP[e.to];if(!a||!b||!vis.has(e.from)||!vis.has(e.to))return;
+    const pa=pos(a),pb=pos(b),x1=pa.x+NW,y1=pa.y+NH/2,x2=pb.x,y2=pb.y+NH/2,dx=Math.max(40,(x2-x1)/2);
+    let d;if(x2>=x1)d=`M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+    else{const yb=Math.max(y1,y2)+(e.type==='loop'?64:38);d=`M${x1},${y1} C${x1+60},${yb} ${x2-60},${yb} ${x2},${y2}`;}
+    const p=el('path',{d,class:'edge '+e.type});if(SEL){if(hot.edges.has(e.from+'>'+e.to))p.classList.add('hot');else p.classList.add('dim');}svg.appendChild(p);});
+  N.forEach(n=>{if(!vis.has(n.id))return;const p=pos(n),g=el('g',{class:'node',transform:`translate(${p.x},${p.y})`});
+    g.addEventListener('click',()=>{SELTABLE=null;SEL=SEL===n.id?null:n.id;renderDetail();draw();});
+    let stroke=KIND[n.kind],sw=1.6;
+    if(health&&n.status){stroke=STAT[n.status];sw=2.4;}
+    g.appendChild(el('rect',{class:'box',width:NW,height:NH,rx:10,fill:'var(--panel2)',stroke,'stroke-width':sw}));
+    if(SEL&&!hot.nodes.has(n.id))g.classList.add('dim');
+    g.appendChild(el('rect',{width:5,height:NH,fill:KIND[n.kind]}));
+    const t1=el('text',{x:13,y:21,class:'ntitle'});t1.textContent=n.title;g.appendChild(t1);
+    const t2=el('text',{x:13,y:35,class:'nmeta'});t2.textContent=n.sub;g.appendChild(t2);
+    const cad=n.cadence||'',isW=/Mon|Tue|Sun|Sat|Wed|Thu|Fri|wknd|sprint/i.test(cad),isLive=/live|6h/i.test(cad);
+    const bcol=isLive?'var(--good)':isW?'var(--warn)':'var(--good)',bw=Math.min(NW-20,Math.max(40,cad.length*5.0+12));
+    g.appendChild(el('rect',{x:13,y:43,width:bw,height:13,rx:6,fill:bcol,opacity:.9}));
+    const bt=el('text',{x:13+bw/2,y:52.5,class:'badge','text-anchor':'middle'});bt.textContent=cad;g.appendChild(bt);
+    if(n.trig==='chain'){const c=el('text',{x:NW-16,y:21,'font-size':'11',fill:'var(--accent)','text-anchor':'end'});c.textContent='⛓';g.appendChild(c);}
+    if(health&&n.status){const sl={ok:'✓ green',fail:'✕ FAILING',never:'⦸ never run',fixed:'✓ fixed'}[n.status];
+      g.appendChild(el('rect',{x:NW-78,y:-9,width:74,height:15,rx:7,fill:STAT[n.status]}));
+      const st=el('text',{x:NW-41,y:1.6,'font-size':'9',fill:'#08111e','text-anchor':'middle','font-weight':'800'});st.textContent=sl;g.appendChild(st);}
+    else if(n.isnew){g.appendChild(el('rect',{x:NW-34,y:-9,width:30,height:14,rx:7,fill:'var(--good)'}));const nt=el('text',{x:NW-19,y:1.5,'font-size':'8.5',fill:'#062012','text-anchor':'middle','font-weight':'800'});nt.textContent='NEW';g.appendChild(nt);}
+    if(GAPSON&&!health){const gg=GAPS.filter(x=>x.nodes.includes(n.id)&&x.st!=='FIXED');if(gg.length){const worst=gg.some(x=>x.sev==='HIGH');g.appendChild(el('circle',{cx:NW-12,cy:13,r:6,fill:worst?'var(--bad)':'var(--warn)'}));}}
+    svg.appendChild(g);});
+}
+
+function drawClock(){
+  svg.setAttribute('viewBox','0 0 1380 760');const X0=70,X1=1320,Y=150,W=X1-X0;
+  const lab=el('text',{x:X0,y:60,class:'tl-lane'});lab.textContent='Nightly run order — 24h ET axis';svg.appendChild(lab);
+  svg.appendChild(el('line',{x1:X0,y1:Y,x2:X1,y2:Y,class:'tl-axis'}));
+  for(let h=0;h<=24;h+=2){const x=X0+W*h/24;svg.appendChild(el('line',{x1:x,y1:Y-5,x2:x,y2:Y+5,class:'tl-axis'}));const t=el('text',{x,y:Y+22,class:'tl-tick','text-anchor':'middle'});t.textContent=(h%24)+':00';svg.appendChild(t);}
+  const daily=N.filter(n=>typeof n.et==='number').sort((a,b)=>a.et-b.et);
+  daily.forEach((n,i)=>{const x=X0+W*n.et/24,up=(i%2===0),ny=up?Y-58:Y+44,col=KIND[n.kind];
+    svg.appendChild(el('line',{x1:x,y1:Y,x2:x,y2:up?ny+24:ny,stroke:col,'stroke-width':1.2,'stroke-dasharray':'2 2'}));
+    const bw=150,bx=Math.max(X0,Math.min(X1-bw,x-bw/2)),g=el('g',{class:'node',transform:`translate(${bx},${up?ny-2:ny})`});
+    g.addEventListener('click',()=>{VIEW='all';setBtns();SEL=n.id;renderDetail();draw();});
+    g.appendChild(el('rect',{class:'box',width:bw,height:30,rx:8,fill:'var(--panel2)',stroke:n.status?STAT[n.status]||col:col,'stroke-width':1.6}));
+    g.appendChild(el('rect',{width:4,height:30,fill:col}));
+    const t1=el('text',{x:10,y:13,class:'ntitle','font-size':'11'});t1.textContent=n.title;g.appendChild(t1);
+    const t2=el('text',{x:10,y:25,class:'nmeta'});t2.textContent=n.cadence+(n.trig==='chain'?'  ⛓':'');g.appendChild(t2);svg.appendChild(g);});
+  const note=el('text',{x:X0,y:Y+120,class:'tl-lane',fill:'var(--bad)'});note.textContent='⚠ Order problems';svg.appendChild(note);
+  ['enrich 0:00 runs BEFORE research 2:00 → enriches on ~22h-stale intel',
+   'writer ~2:30 runs BEFORE execute-intel-actions 6:30 → misses same-day actioned intel',
+   'writer reads competitive scores written only weekly (Tue–Sat sprint / Mon landscape)'
+  ].forEach((p,i)=>{const t=el('text',{x:X0,y:Y+148+i*22,'font-size':'12',fill:'var(--mut)'});t.textContent='• '+p;svg.appendChild(t);});
+  const wl=el('text',{x:X0,y:Y+250,class:'tl-lane'});wl.textContent='Weekly / sprint cadence';svg.appendChild(wl);
+  [['Mon','validate_ground_truth · compute_landscape_scores','var(--valid)'],['Tue','flywheel_phase2 (⦸ never run) · hints','var(--human)'],
+   ['Tue–Sat 9pm','school-week-sprint: enrich+score+coverage+validate','var(--orch)'],['Sat–Sun ×13','weekend_sprint (✕ last-red)','var(--orch)'],
+   ['Sun','conflict_detector (✕) · company_validator','var(--valid)']].forEach((wk,i)=>{const y=Y+270+i*30,g=el('g',{transform:`translate(${X0},${y})`});
+    g.appendChild(el('rect',{width:80,height:22,rx:6,fill:wk[2],opacity:.9}));const d=el('text',{x:40,y:15,'text-anchor':'middle','font-size':'10','fill':'#08111e','font-weight':'700'});d.textContent=wk[0];g.appendChild(d);
+    const t=el('text',{x:92,y:15,'font-size':'12',fill:'var(--ink)'});t.textContent=wk[1];g.appendChild(t);svg.appendChild(g);});
+}
+
+function drawData(){
+  svg.setAttribute('viewBox','0 0 1380 760');
+  const X0=70;let y=60;
+  const h=el('text',{x:X0,y,class:'tl-lane'});h.textContent=`Supabase data layer — ${TABLES.total} tables (live counts)`;svg.appendChild(h);
+  y+=34;
+  // bucket bars
+  const maxN=90,W=760;
+  TABLES.buckets.forEach(b=>{const bw=W*b.n/maxN;
+    svg.appendChild(el('rect',{x:X0,y,width:bw,height:30,rx:6,fill:b.c,opacity:.85}));
+    const t=el('text',{x:X0+bw+10,y:y+20,'font-size':'13',fill:'var(--ink)'});t.textContent=`${b.n}  ${b.label}`;svg.appendChild(t);
+    y+=42;});
+  y+=10;
+  const n2=el('text',{x:X0,y,class:'tl-lane'});n2.textContent='Notable tables';svg.appendChild(n2);y+=24;
+  TABLES.notable.forEach(([name,rows,note])=>{
+    const g=el('g',{transform:`translate(${X0},${y})`});
+    g.appendChild(el('rect',{width:70,height:20,rx:5,fill:'var(--panel2)',stroke:'var(--line)'}));
+    const r=el('text',{x:35,y:14,'text-anchor':'middle','font-size':'11',fill:'var(--accent)','font-weight':'700'});r.textContent=rows;g.appendChild(r);
+    const nm=el('text',{x:82,y:14,'font-size':'12.5',fill:'var(--ink)','font-weight':'600'});nm.textContent=name;g.appendChild(nm);
+    const nt=el('text',{x:82+name.length*7.2+14,y:14,'font-size':'11.5',fill:'var(--mut)'});nt.textContent='— '+note;g.appendChild(nt);
+    svg.appendChild(g);y+=27;});
+  y+=8;
+  const e=el('text',{x:X0,y,'font-size':'12',fill:'var(--warn)'});e.textContent='7 empty tables: '+TABLES.emptyList.join(', ');svg.appendChild(e);
+}
+
+// ── Table connectivity (re-verified 2026-06-04 w/ trigger-aware producer map) ──
+const CONN={
+  surfaced:74, total:167,
+  dark:[ // ACTIVELY produced by a pipeline, just not surfaced — SAFE to surface (live data)
+    ['company_partnerships',52,'company_enrichment','Rich licensing/co-dev relationships — only the denormalized partner NAME is shown today'],
+    ['drug_sources',25,'company_enrichment','Per-claim source provenance — the literal trust layer'],
+    ['bd_recommendations',20,'bd_recommender','Generated BD recommendations — the actionable output'],
+    ['mechanism_status',33,'weekend_sprint','Mechanism validation status (clinical/preclinical/discovery)'],
+    ['target_pair_whitespace',15,'weekend_sprint','Unaddressed target-pair opportunities — pure BD whitespace'],
+    ['asset_value_predictions',3,'weekend_sprint','Model asset-value predictions'],
+    ['landscape_briefings',1,'generate_landscape_briefing','Generated competitive landscape briefings'],
+  ],
+  inert:[ // NO script (of 110) writes or reads these — seeded once via SQL, now STALE
+    ['drug_milestones',66,'Per-drug milestone history'],
+    ['peak_revenue_estimates',18,'Commercial sizing per asset'],
+    ['portfolio_conflict_matrix',13,'Cross-portfolio conflict grid'],
+    ['bd_readiness_composite',13,'Composite BD-readiness score per asset'],
+    ['patent_expiry_cliff_map',12,'Patent cliffs — entry-timing windows'],
+    ['ailux_strategic_context',12,'Ailux-specific strategic framing'],
+    ['deal_value_tracking',12,'Deal economics over time'],
+    ['internal_pipeline_conflicts',11,'Ailux internal conflict tracking (AbbVie/Oct-2026)'],
+    ['partner_intelligence_profiles',5,'Profiles of candidate partners'],
+  ],
+  orphan:[ // produced by a pipeline, read by NOTHING (validated)
+    ['agent_disagreements',51,'consistency_checker writes it; consumed by nothing'],
+    ['drug_development_timelines',45,'drug_intelligence_researcher writes it; no consumer'],
+    ['next_gen_rankings',7,'write_ranking_snapshots writes it weekly; dashboard never queries it (movement-arrow feature unwired)'],
+  ],
+  emptyScaffold:['drug_routes','drug_modalities','indication_biology_tags','drug_stage_history','model_validation_results','correction_labels','resolver_errors'],
+};
+function drawConn(){
+  svg.setAttribute('viewBox','0 0 1380 1240');
+  const X0=70;let y=54;
+  const h=el('text',{x:X0,y,class:'tl-lane'});h.textContent=`Table connectivity — ${CONN.surfaced} of ${CONN.total} tables reach the user`;svg.appendChild(h);
+  y+=19;
+  const sub=el('text',{x:X0,y,'font-size':'12',fill:'var(--mut)'});sub.textContent='93 unsurfaced: 31 infra/logs (fine, trigger-fed). Below = the intelligence that should connect — split by whether a pipeline keeps it alive.';svg.appendChild(sub);
+  y+=14;
+  const sub2=el('text',{x:X0,y,'font-size':'11.5',fill:'var(--good)'});sub2.textContent='⟲ Correction this pass: audit tables (field_change_audit etc.) are trigger-fed, NOT orphans. resolver_errors/backfill_preview are count-badges, not dead reads.';svg.appendChild(sub2);
+  y+=24;
+  function section(title,color,rows,fmt){
+    const t=el('text',{x:X0,y,class:'tl-lane',fill:color});t.textContent=title;svg.appendChild(t);y+=21;
+    rows.forEach(r=>{const g=el('g',{transform:`translate(${X0},${y})`});
+      g.appendChild(el('rect',{width:58,height:19,rx:5,fill:'var(--panel2)',stroke:color}));
+      const rc=el('text',{x:29,y:13,'text-anchor':'middle','font-size':'10.5',fill:color,'font-weight':'700'});rc.textContent=r[1];g.appendChild(rc);
+      const nm=el('text',{x:68,y:13,'font-size':'12','font-weight':'600',fill:'var(--ink)'});nm.textContent=r[0];g.appendChild(nm);
+      const nt=el('text',{x:68+r[0].length*7.2+12,y:13,'font-size':'11',fill:'var(--mut)'});nt.textContent=fmt(r);g.appendChild(nt);
+      svg.appendChild(g);y+=24;});
+    y+=10;
+  }
+  section('✓ DARK — actively produced, SAFE to surface ('+CONN.dark.length+')','var(--good)',CONN.dark,r=>`— ${r[3]}  [producer: ${r[2]}.py]`);
+  section('⚑ ABANDONED scaffolding — NO script of 110 touches these; seeded once, now stale ('+CONN.inert.length+')','var(--warn)',CONN.inert,r=>`— ${r[2]}  → wire a producer or retire`);
+  section('✕ ORPHAN-WRITE — produced, read by nothing ('+CONN.orphan.length+')','var(--bad)',CONN.orphan,r=>`— ${r[2]}`);
+  const eh=el('text',{x:X0,y,'font-size':'12',fill:'var(--mut)'});eh.textContent='⦸ Empty/scaffolded (7, have updated_at triggers, await first row): '+CONN.emptyScaffold.join(', ');svg.appendChild(eh);
+}
+function focusGapByTitle(frag){const i=GAPS.findIndex(g=>g.t.toLowerCase().includes(frag));if(i>=0)focusGap(i);}
+
+// ── Data quality (live audit 2026-06-05, 204 drugs) ────────────────────────
+const DQ={
+  total:204,
+  fields:[ // field, nullCount, note
+    ['mechanism',0,'core enrichment complete'],
+    ['stage',0,'complete'],
+    ['ailux_angle',0,'complete'],
+    ['drug_summary',0,'complete'],
+    ['source_url',22,'11% lack a source — the trust-layer gap (was 6 acceptable; now 22)'],
+    ['company_id',28,'14% lack company attribution — all 28 are REAL, visible drugs (incl. approved tapinarof)'],
+    ['differentiation_thesis',58,'28% missing — a field the enrichment hints call for'],
+  ],
+  tiers:[['strong',39],['partial',26],['thin',2],['unscored',137]],
+  note:'completeness_tier covers only 67 of 204 drugs (33%) — the completeness scorer (compute_coverage/rescore_completeness) has not reached two-thirds of the catalog. enrichment_runs DOES track tokens + duration, but cost is never surfaced.',
+};
+function drawDQ(){
+  svg.setAttribute('viewBox','0 0 1380 760');const X0=70;let y=58;
+  const h=el('text',{x:X0,y,class:'tl-lane'});h.textContent=`Data quality — content health of ${DQ.total} drugs (the layer the structure map omits)`;svg.appendChild(h);
+  y+=30;
+  const fh=el('text',{x:X0,y,class:'tl-lane',fill:'var(--mut)'});fh.textContent='Field completeness (null counts)';svg.appendChild(fh);y+=22;
+  const W=520,maxN=DQ.total;
+  DQ.fields.forEach(([f,nul,note])=>{
+    const filled=DQ.total-nul, bw=W*filled/maxN, col=nul===0?'var(--good)':nul>50?'var(--bad)':'var(--warn)';
+    svg.appendChild(el('rect',{x:X0,y,width:W,height:18,rx:4,fill:'var(--panel2)',stroke:'var(--line)'}));
+    svg.appendChild(el('rect',{x:X0,y,width:bw,height:18,rx:4,fill:col,opacity:.8}));
+    const t=el('text',{x:X0+W+10,y:y+14,'font-size':'12',fill:'var(--ink)'});t.textContent=`${f}  `;svg.appendChild(t);
+    const nt=el('text',{x:X0+W+10+f.length*7+14,y:y+14,'font-size':'11.5',fill:nul?'var(--warn)':'var(--mut)'});nt.textContent=(nul?`${nul} null — `:'✓ ')+note;svg.appendChild(nt);
+    y+=24;});
+  y+=14;
+  const ch=el('text',{x:X0,y,class:'tl-lane',fill:'var(--mut)'});ch.textContent='Completeness-tier coverage';svg.appendChild(ch);y+=22;
+  let x=X0; const tw=900; const colr={strong:'var(--good)',partial:'#5eead4',thin:'var(--warn)',unscored:'var(--bad)'};
+  DQ.tiers.forEach(([t,c])=>{const w=tw*c/DQ.total;
+    svg.appendChild(el('rect',{x,y,width:w,height:26,rx:3,fill:colr[t],opacity:.8}));
+    const lab=el('text',{x:x+4,y:y+18,'font-size':'11',fill:'#08111e','font-weight':'700'});lab.textContent=w>60?`${t} ${c}`:c;svg.appendChild(lab);x+=w;});
+  y+=44;
+  const words=DQ.note.match(/.{1,110}(\s|$)/g)||[DQ.note];
+  words.forEach(w=>{const t=el('text',{x:X0,y,'font-size':'12',fill:'var(--mut)'});t.textContent=w.trim();svg.appendChild(t);y+=18;});
+  y+=14;
+  const rec=el('text',{x:X0,y,'font-size':'12.5',fill:'var(--accent)','font-weight':'600'});rec.textContent='→ Highest-value content fixes: attribute the 28 company-less drugs · source the 22 unsourced · run completeness scoring catalog-wide.';svg.appendChild(rec);
+}
+
+// ── table category styling + helpers (deep drill-down) ─────────────────────
+const CAT={
+  surfaced:{c:'var(--good)',l:'surfaced'}, dark:{c:'#5eead4',l:'dark'},
+  inert:{c:'var(--warn)',l:'inert'}, orphan:{c:'var(--bad)',l:'orphan-write'},
+  infra:{c:'var(--store)',l:'infra'}, scaffold:{c:'#7c8aa0',l:'scaffold'}
+};
+let SELTABLE=null;
+function tchip(t){
+  const d=TABLEDB[t]; if(!d) return `<span class="chip">${t}</span>`;
+  const cc=(CAT[d.c]||CAT.infra);
+  return `<span class="chip tchip" style="border-color:${cc.c}" onclick="event.stopPropagation();showTable('${t}')">`
+    +`<span style="color:${cc.c}">●</span> ${t} <span class="muted">${d.r}</span></span>`;
+}
+function catLine(label,tables){
+  if(!tables.length) return '';
+  // group by category, ordered
+  const order=['surfaced','dark','inert','orphan','infra','scaffold'];
+  const byc={}; tables.forEach(t=>{const c=(TABLEDB[t]||{c:'infra'}).c;(byc[c]=byc[c]||[]).push(t);});
+  let h=`<div class="sec">${label} — ${tables.length} table${tables.length>1?'s':''}</div>`;
+  order.forEach(c=>{ if(!byc[c]) return; const cc=CAT[c];
+    h+=`<div class="catrow"><span class="catlbl" style="color:${cc.c}">${cc.l} (${byc[c].length})</span> `
+      +byc[c].sort((a,b)=>TABLEDB[b].r-TABLEDB[a].r).map(tchip).join('')+`</div>`;});
+  return h;
+}
+function showTable(t){SELTABLE=t;renderDetail();}
+function renderTableDetail(t){
+  const d=TABLEDB[t],cc=(CAT[d.c]||CAT.infra),panel=document.getElementById('panel');
+  const surf = d.s?'<span style="color:var(--good)">yes — read by the dashboard</span>':'<span style="color:var(--warn)">no — not surfaced to the user</span>';
+  let h=`<div class="detail"><div class="dt">${t}</div>`
+    +`<div class="small" style="margin:2px 0 8px"><span style="color:${cc.c};font-weight:700">${cc.l}</span> · <b>${d.r.toLocaleString()}</b> rows · surfaced: ${surf}</div>`;
+  h+=`<div class="sec">Produced by (pipelines that write it)</div>`+(d.p.length?d.p.map(s=>`<span class="chip">${s}</span>`).join(''):'<span class="muted small">— no script writes it (seeded once / trigger-fed)</span>');
+  h+=`<div class="sec">Consumed by (scripts that read it)</div>`+(d.k.length?d.k.map(s=>`<span class="chip">${s}</span>`).join(''):'<span class="muted small">— no script reads it</span>');
+  const cd={surfaced:'A pipeline writes it and the dashboard shows it. Healthy.',dark:'Actively produced by a pipeline but the dashboard never shows it. Safe to surface — a connection, not new collection.',inert:'Has rows but no script writes or reads it — seeded once, now stale. Wire a producer to revive, or retire.',orphan:'Written by a pipeline, read by nothing. Wire a consumer or retire.',infra:'Logs / link tables / queues / trigger-fed audit. Internal by design.',scaffold:'Empty, with an updated_at trigger — built for a planned feature, awaiting its first row.'};
+  h+=`<div class="sec">What this state means</div><div class="gd">${cd[d.c]||''}</div>`;
+  h+=`<div style="margin-top:12px"><span class="btn" onclick="SELTABLE=null;renderDetail();">← back to ${SEL?NODEMAP[SEL].title:'gaps'}</span></div></div>`;
+  panel.innerHTML=h;
+}
+function renderDetail(){
+  const panel=document.getElementById('panel');
+  if(SELTABLE){renderTableDetail(SELTABLE);return;}
+  if(!SEL){panel.innerHTML='<h2>Gaps &amp; improvements</h2><div id="gaps"></div>';renderGaps();return;}
+  const n=NODEMAP[SEL];
+  const nt=NODE_TABLES[SEL]||{w:(n.writes||[]).filter(t=>TABLEDB[t]),r:(n.reads||[]).filter(t=>TABLEDB[t])};
+  const sl={ok:'<span style="color:var(--good)">✓ last run green</span>',fail:'<span style="color:var(--bad)">✕ last run FAILING</span>',never:'<span style="color:var(--warn)">⦸ never run</span>',fixed:'<span style="color:var(--accent)">✓ fixed + re-ran green today</span>'};
+  let h=`<div class="detail"><div class="dt">${n.title}</div><div class="muted small">${n.sub} · <b>${n.cadence}</b>${n.trig==='chain'?' · <span style="color:var(--accent)">event-chained ⛓</span>':''}</div>`;
+  if(n.status)h+=`<div class="small" style="margin-top:4px">${sl[n.status]}</div>`;
+  if(n.steps){h+=`<div class="sec">Runs in order</div><ol>`+n.steps.map(s=>`<li>${s}</li>`).join('')+`</ol>`;}
+  h+=catLine('Writes →',(nt.w||[]));
+  h+=catLine('Reads ←',(nt.r||[]));
+  if(!(nt.w&&nt.w.length)&&!(nt.r&&nt.r.length)&&(n.writes||n.reads)){
+    h+=catLine('Writes →',(n.writes||[]).filter(t=>TABLEDB[t]));
+    h+=catLine('Reads ←',(n.reads||[]).filter(t=>TABLEDB[t]));
+  }
+  const gg=GAPS.filter(x=>x.nodes.includes(SEL));
+  if(gg.length){h+=`<div class="sec">Gaps touching this node</div>`+gg.map(gapHtml).join('');}
+  h+=`<div class="small muted" style="margin-top:10px">Click any table for its producers, consumers, and connection state.</div>`;
+  h+=`<div style="margin-top:8px"><span class="btn" onclick="SEL=null;SELTABLE=null;renderDetail();draw();">← back to all gaps</span></div></div>`;
+  panel.innerHTML=h;
+}
+function gapHtml(g){return `<div class="gap ${g.cls}" onclick="focusGap(${GAPS.indexOf(g)})"><span class="tag ${g.st}">${g.st}</span><span class="tag ${g.sev}">${g.sev}</span><div class="gt">${g.t}</div><div class="gd">${g.d}</div></div>`;}
+function renderGaps(){const c=document.getElementById('gaps');if(!c)return;
+  const ord={HIGH:0,MED:1,LOW:2},sord={OPEN:0,PARTIAL:1,MOSTLY:1,DESIGN:2,FIXED:3};
+  const s=[...GAPS].sort((a,b)=>(sord[a.st]??1)-(sord[b.st]??1)||ord[a.sev]-ord[b.sev]);
+  const open=GAPS.filter(g=>g.st!=='FIXED').length,fixed=GAPS.filter(g=>g.st==='FIXED').length;
+  c.innerHTML=`<div class="small muted" style="margin-bottom:8px">${open} open · ${fixed} fixed · click to highlight</div>`+s.map(gapHtml).join('');
+}
+function focusGap(i){const g=GAPS[i];if(g.nodes.length){if(['clock','data','conn','dq'].includes(VIEW)){VIEW='all';setBtns();}SEL=g.nodes[0];}GAPSON=true;document.getElementById('b-gaps').classList.add('on');renderDetail();draw();}
+function setBtns(){['all','daily','clock','health','data','conn','dq','flywheel'].forEach(x=>document.getElementById('b-'+x).classList.toggle('on',x===VIEW));}
+function setView(v){VIEW=v;SEL=null;SELTABLE=null;setBtns();renderDetail();draw();}
+function toggleGaps(){GAPSON=!GAPSON;document.getElementById('b-gaps').classList.toggle('on',GAPSON);draw();}
+
+document.getElementById('legend').innerHTML=[['Ingest','ingest'],['Enrich','enrich'],['Score/Valid','score'],['Synthesis','synth'],['Dashboard','present'],['Human','human'],['Orchestrator','orch']]
+  .map(([l,k])=>`<span class="lg"><span class="dot" style="background:${KIND[k]}"></span>${l}</span>`).join('');
+const fails=N.filter(n=>n.status==='fail').length,nevers=N.filter(n=>n.status==='never').length;
+document.getElementById('banner').textContent=`🩺 Live run health: ${fails} workflow nodes last-FAILED (Execute Intel Actions, Validation Tests, Validation Research, Weekend Sprint, Morning Summary) · ${nevers} never run (Flywheel Phase 2, + new Pipeline Monitor) · Meridian Writer was failing daily and is now fixed.`;
+document.getElementById('stats').innerHTML=`<span><b>30</b>workflows</span><span><b>110</b>scripts (33 scheduled)</span><span><b>167</b>tables (76 surfaced)</span><span><b>67</b>DB triggers</span><span><b style="color:var(--bad)">${fails}</b>failing</span><span><b style="color:var(--warn)">${nevers}</b>never run</span><span><b>${GAPS.filter(g=>g.st!=='FIXED').length}</b>open gaps</span><span><b style="color:var(--good)">${GAPS.filter(g=>g.st==='FIXED').length}</b>fixed</span>`;
+draw();renderGaps();
+</script>
+</body>
+</html>

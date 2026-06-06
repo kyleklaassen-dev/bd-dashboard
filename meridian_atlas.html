@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Atlas — everything, connected</title>
+<style>
+  :root{--bg:#0e1117;--panel:#161d27;--panel2:#1c2530;--ink:#e8edf3;--mut:#8a99ac;--line:#2a3744;
+    --good:#34d399;--warn:#fbbf24;--bad:#f87171;--accent:#6ea8fe;--gold:#fbbf24;
+    --ingest:#38bdf8;--enrich:#a78bfa;--score:#f59e0b;--valid:#2dd4bf;--graph:#f472b6;--present:#34d399;--strat:#fbbf24;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:15px 24px 9px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 3px;font-size:20px}
+  .sub{color:var(--mut);font-size:12.5px;max-width:1050px}
+  .metrics{display:flex;flex-wrap:wrap;gap:10px;padding:11px 24px;border-bottom:1px solid var(--line)}
+  .met{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;min-width:96px}
+  .met b{display:block;font-size:18px}.met span{font-size:10.5px;color:var(--mut)}
+  .met.good b{color:var(--good)} .met.warn b{color:var(--warn)} .met.bad b{color:var(--bad)}
+  .tabs{display:flex;gap:7px;padding:9px 24px 0}
+  .tab{padding:7px 13px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--panel2);cursor:pointer;font-size:12.5px;color:var(--mut)}
+  .tab.on{background:var(--panel);color:var(--ink);font-weight:600}
+  .page{padding:16px 24px 40px}
+  h2{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin:18px 0 10px}
+  /* stack */
+  .stack{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}
+  .layer{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;padding:9px 13px;margin-bottom:8px;background:var(--panel2);cursor:pointer;transition:.15s}
+  .layer:hover{border-color:var(--accent)}
+  .layer .ln{font-weight:600;font-size:14px;min-width:128px}
+  .layer .lm{color:var(--mut);font-size:12px;flex:1}
+  .layer .lg{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px}
+  .arrow{text-align:center;color:var(--mut);font-size:15px;margin:-3px 0}
+  /* hierarchy barbell */
+  .bar{display:flex;flex-direction:column;gap:5px}
+  .brow{display:flex;align-items:center;gap:10px}
+  .blab{width:96px;font-size:12px;text-align:right;color:var(--mut)}
+  .bbar{height:24px;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#08111e}
+  .bnote{font-size:11px;color:var(--mut)}
+  .thesis{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:9px;padding:12px 15px;margin:14px 0;background:var(--panel2);font-size:13px}
+  .thesis b{color:var(--gold)}
+  /* gap registry */
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .chip{padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--panel2);cursor:pointer;font-size:11.5px;color:var(--mut)}
+  .chip.on{background:var(--accent);color:#08111e;border-color:var(--accent);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer}
+  td{padding:8px;border-bottom:1px solid #1e2630;vertical-align:top}
+  tr:hover td{background:#141b24}
+  .sev{font-weight:800;font-size:9.5px;padding:1px 6px;border-radius:20px}
+  .sev.HIGH{background:#3a1a1a;color:var(--bad)}.sev.MED{background:#3a2f12;color:var(--warn)}.sev.LOW{background:#16263f;color:var(--accent)}
+  .st{font-weight:800;font-size:9.5px;padding:1px 6px;border-radius:20px}
+  .st.OPEN{background:#2a2230;color:#cbb4e8}.st.FIXED{background:#10301f;color:var(--good)}.st.DESIGN{background:#13283a;color:#7cc5ff}.st.PARTIAL{background:#33270f;color:var(--warn)}
+  .lyr{font-size:10px;color:var(--mut)}
+  .gt{font-weight:600}.gd{color:var(--mut);font-size:11.5px;margin-top:2px}
+  .muted{color:var(--mut)} .hide{display:none}
+  .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .links a{color:var(--accent);font-size:12px;text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="tab('stack')" style="cursor:pointer" title="Back to home (the stack)">◈ Meridian Atlas <span style="color:var(--mut);font-size:13px;font-weight:400">everything, connected — 2026-06-05</span></h1>
+  <div class="sub">One display tying together the whole engagement: the system stack (sources → dashboard), the intelligence hierarchy (patient → deal), live health, security, data quality, the competitive graph, and a single consolidated <b>gap registry</b> — the backlog we burn down next.</div>
+  <div class="links">
+    <a href="./" style="border-color:var(--accent);color:var(--accent)">← Dashboard</a>
+    <a href="meridian_workflow_map.html">→ Workflow &amp; data-flow map</a>
+    <a href="meridian_strategic_lens.html">→ Strategic Lens (TL1A race)</a>
+    <a href="docs/DATA_QUALITY_AUDIT.md">→ Data-quality audit</a>
+    <a href="docs/MERIDIAN_STANDARDS.md">→ Standards</a>
+    <a href="docs/MERIDIAN_VALUE_BRIEF.md">→ Value brief</a>
+    <a href="docs/MERIDIAN_EXECUTION_PLAN.md">→ Execution plan</a>
+  </div>
+</header>
+<div class="metrics" id="metrics"></div>
+<div class="tabs">
+  <div class="tab on" id="t-stack" onclick="tab('stack')">⌂ Home · The stack</div>
+  <div class="tab" id="t-value" onclick="tab('value')">Intelligence hierarchy</div>
+  <div class="tab" id="t-gaps" onclick="tab('gaps')">Gap registry</div>
+</div>
+<div class="page" id="page"></div>
+<script>
+// ── consolidated data ──────────────────────────────────────────────────────
+const METRICS=[
+  ['24','workflows','good'],['110','scripts (30 sched.)',''],['167','tables',''],['74','surfaced','warn'],
+  ['27','workflows green','good'],['948','validation pass','good'],['0','unmapped visible drugs','good'],
+  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['19','deal edges','bad'],['22 fixed','12 open','good'],
+];
+const LAYERS=[
+  ['Sources','RSS · CT.gov · SEC · PubMed · pipeline pages','green','Ingestion'],
+  ['Ingestion','research.py 2:00 ET + ct_gov_sync + news + monitor','green','runs before enrich — ordering gap'],
+  ['Data layer','167 tables · 67 audit triggers · RLS reads restored','green','writes locked + 47 anon reads restored; alias-capture trigger live'],
+  ['Enrich · Score · Validate','company_enrichment ×6 · scoring daily · 992/1000 ground-truth','green','event-chained; completeness catalog-wide; validation daily'],
+  ['Knowledge graph','entity_edges + relationships — 968 competitor / 19 deal','bad','100% inferred-unverified; deal layer sparse'],
+  ['Synthesis','write_meridian → Meridian Issue (event-chained)','green','built on same-night verified+scored facts'],
+  ['Presentation','index.html dashboard + live health tile','warn','drug_sources + partnerships surfaced; Strategic Lens not yet folded in'],
+  ['Strategic decisions','patient → indication → target → company → deal','warn','data thin at the two value-bearing ends'],
+];
+const HIER=[ // level, dataDensity(0-100), note, color
+  ['Patient',18,'~17 of 50 indications have patient intel','#f472b6'],
+  ['Indication',12,'IBD scored on just 3 drugs (Ailux\'s own indication)','#fb923c'],
+  ['Target',100,'TL1A: 57 assets, 296 internal competitive links','#f59e0b'],
+  ['Molecule',85,'mechanism/format/stage strong (0% null core fields)','#a78bfa'],
+  ['Company',70,'132 companies; ownership modeled but partner-thin','#38bdf8'],
+  ['Deal',16,'19 ownership/license edges total','#34d399'],
+];
+const GAPS=[
+  // FIXED — 2026-06-05 session (Wave 0–2 + regression fixes)
+  ['RLS read-regression: 47 tables invisible to dashboard','Data','HIGH','FIXED','Security lockdown enabled RLS but added NO anon read policy → 47 tables returned 200+0 rows (the real reason many were "dark"). Restored anon SELECT on all 47; writes still blocked.'],
+  ['7 DARK tables: live intelligence not surfaced','Present','HIGH','FIXED','drug_sources provenance now in the drug modal (claim-level + ✓content-verified badges); company_partnerships now in the company modal (verified pills, source links). Both verified live.'],
+  ['Content quality: completeness scored on 1/3 of drugs','Enrich','HIGH','FIXED','Catalog tail classified: 90 unmapped real drugs → 0 visible unmapped. 64 mapped to areas, 21 out-of-scope hidden, 42 canonicalized. Daily catalog-wide completeness scoring workflow added.'],
+  ['drug_areas inserts 404 for everyone (dead trigger)','Data','HIGH','FIXED','fn_sync_drug_indication_group queried a non-existent disease_areas table, blocking ALL ontology growth. Guarded with to_regclass.'],
+  ['Prior drug names lost on rename','Data','HIGH','FIXED','DB trigger trg_drugs_capture_aliases saves name/id/inn/brand/synonyms to drug_aliases on every write (renames never lose old names). 183→574 aliases. Global search now resolves any prior/code name.'],
+  ['Enrichment runs BEFORE the day\'s ingest / daily Issues read weekly scores','Synthesis','HIGH','FIXED','Wave 0 event-driven chain: Research→Source Verify→Content Verify→Score→Writer. Every Issue built on same-night verified+scored facts.'],
+  ['No workflow-health monitoring','Health','HIGH','FIXED','pipeline_runs + pipeline_health.py + monitor; now surfaced as a live header health tile (reads pipeline_runs + system_status).'],
+  ['Meridian Writer failing daily','Synthesis','HIGH','FIXED','Publish before optional post-processing; re-verified green.'],
+  ['Validation P1: company-area links','Enrich','HIGH','FIXED','reconcile_company_areas rolls up acquired-subs + co-dev; 992 pass, 0 P1.'],
+  ['Security: 41 tables anon-writable','Data','HIGH','FIXED','RLS + read-only policy; anon writes blocked (401/42501).'],
+  ['apply-migration workflow startup-fails on every push','Health','MED','FIXED','YAML block-scalar broken by un-indented inline python heredoc; moved to scripts/apply_sql_migration.py. Recurring red gone.'],
+  ['Enrichment cost: token columns stay 0','Health','MED','FIXED','Token capture wired across all 5 enrichment LLM calls → enrichment_runs records prompt/completion/total.'],
+  ['Validation lags data by up to a week','Validate','MED','FIXED','run-validation-tests cron Mon→daily; drift surfaces within 24h.'],
+  ['Duplicate entity: CLD-423 / XmAb5871','Data','MED','FIXED','cld-423 ghost removed (cldr-001 canonical intact); XmAb5871=AMG 729 folded into obexelimab canonical with 6 aliases.'],
+  ['Half the pipeline is clock-ordered, not chained','Ingestion','MED','FIXED','workflow_run chain extended across the nightly spine.'],
+  ['Weekend Sprint last-red (5-31)','Health','LOW','FIXED','argparse now lists --block F; one-shot v37 migration workflow retired. Self-heals on cron.'],
+  ['Strategic Lens not integrated','Present','MED','FIXED','Deployed to repo + "◎ Lens" launcher in the dashboard header (data-trusted). Verified live.'],
+  ['9 INERT tables: seeded once, no producer','Data','HIGH','FIXED','3 refresh weekly via weekend_sprint (portfolio_conflict, whitespace, asset_value); bd_recommendations + landscape_briefings now have weekly producer workflows (verified: 35 + 2 rows); patent_cliff/mechanism_precedent/deal_sequencing kept as static strategic reference.'],
+  ['field_change_audit unbounded (~10k rows/day)','Data','MED','FIXED','fn_prune_field_change_audit(30d) + weekly Audit Retention workflow; governance + correction rows kept forever.'],
+  ['field_consistency validator false positives','Validate','MED','FIXED','Bispecific target-counter only recognized "×"; now also x / spaced-x / compact AxB. Cleared 4 false warnings (eta1001, sm-101, ibi3002, xb3217).'],
+  // OPEN — the remaining backlog
+  ['Indication/patient layer deepened (17→22)','Strategic','HIGH','MOSTLY','Added 5 sourced Ailux-relevant indications (Psoriasis, SLE, Asthma, HS, EoE) + fixed a dead search query (wrong column names) so patient intel actually surfaces. Ongoing collection, but core covered + visible.'],
+  ['Deal-edge layer was sparse (19→79)','Graph','HIGH','FIXED','Materialized company_partnerships + asset_transfer_history + deals into entity_relationships as license/co-dev/ownership edges, each sourced. 19→79 deal edges. scripts/materialize_deal_edges.py + weekly workflow keep it current.'],
+  ['100% of competitive relationships unverified','Graph','MED','OPEN','All entity_relationships are inferred + verification_needed. Core intelligence has 0% human/source confirmation.'],
+  ['stage_trial_match: 53 warnings (China CDE registry)','Validate','MED','OPEN','~40 drugs have trials likely only in China\'s CDE registry, which we don\'t ingest. Add a CDE source. (All other validation warnings now cleared.)'],
+  ['Some live-producer scripts still unscheduled','Ingestion','MED','OPEN','bd_recommender + landscape_briefing now scheduled (weekly); audit remaining producers for staleness.'],
+  ['Orphan-writes: produced, read by nothing','Data','MED','OPEN','next_gen_rankings (movement arrows unwired), agent_disagreements, drug_development_timelines.'],
+  ['Three overlapping research scripts','Ingestion','MED','OPEN','research.py / research_intelligence.py / drug_intelligence_researcher.py — consolidate.'],
+  ['Residual anon-write tables (drugs/discovery_queue/submitted_intel)','Data','MED','OPEN','Dashboard edit/submit UIs write via anon; move behind Supabase Auth to fully harden.'],
+  ['4 governance violations need human review','Validate','MED','OPEN','lu-ag22515 corrupted record, mt-251 trial misattribution, batoclimab source absent — flagged, need Kyle\'s eye.'],
+  ['drugs table ~120 columns, overlapping fields','Data','LOW','OPEN','5 ownership + 4 modality fields. Pick canonical per concept, deprecate duplicates.'],
+  ['field_change_audit ~60k rows, no retention','Data','LOW','OPEN','Add a retention window / rollup.'],
+  ['Python version drift (3.11 vs 3.12)','Health','LOW','OPEN','Standardize now that monitoring exists.'],
+  ['Flywheel option 2 (fine-tune) open','Enrich','LOW','OPEN','Hints (opt 1) shipped; model fine-tune on JSONL pairs unwired.'],
+  ['Flagged validation tests (jnj-tcell, amgen-fcrn)','Validate','LOW','OPEN','No supporting asset in drug_areas — add the asset or retire the test.'],
+];
+// ── render ──────────────────────────────────────────────────────────────────
+const LCOL={'Sources':'var(--ingest)','Ingestion':'var(--ingest)','Data layer':'var(--enrich)','Enrich · Score · Validate':'var(--score)','Knowledge graph':'var(--graph)','Synthesis':'var(--present)','Presentation':'var(--present)','Strategic decisions':'var(--strat)'};
+const SCOL={green:'var(--good)',warn:'var(--warn)',bad:'var(--bad)'};
+document.getElementById('metrics').innerHTML=METRICS.map(([n,l,c])=>`<div class="met ${c}"><b>${n}</b><span>${l}</span></div>`).join('');
+let FILTER={sev:null,st:null,layer:null};
+function tab(t){['stack','value','gaps'].forEach(x=>document.getElementById('t-'+x).classList.toggle('on',x===t));
+  if(t==='stack')renderStack();else if(t==='value')renderValue();else renderGaps();}
+function renderStack(){
+  let h='<h2>The Meridian stack — sources to strategy</h2><div class="stack"><div>';
+  LAYERS.forEach((L,i)=>{const[name,metric,status,gap]=L;const ng=jumpMap[name]?GAPS.filter(g=>jumpMap[name].includes(g[1])).length:0;
+    h+=`<div class="layer" style="border-left-color:${LCOL[name]}" onclick="jumpToLayer('${name}')" title="See this layer's gaps"><div class="ln">${name}</div><div class="lm">${metric}<div class="muted" style="font-size:11px">${gap}</div></div><span class="lg" style="background:${SCOL[status]}22;color:${SCOL[status]}">${status}</span><span class="muted small" style="margin-left:10px;white-space:nowrap">${ng} gaps →</span></div>`;
+    if(i<LAYERS.length-1)h+='<div class="arrow">↓</div>';});
+  h+='</div><div>';
+  h+='<h2 style="margin-top:0">Cross-cutting</h2>';
+  [['🩺 Health monitor','pipeline_runs · 6h · 21 green / 1 red','var(--good)'],
+   ['🔒 Security','RLS on all 168 tables; anon read-only','var(--good)'],
+   ['🔁 Flywheel','reviews → hints → enrichment (opt 1 live)','var(--accent)'],
+   ['📊 Data quality','core fields strong; completeness 1/3','var(--warn)'],
+   ['🕑 Freshness','oldest drug sync 12d; S3 banner live','var(--good)']
+  ].forEach(([n,d,c])=>{h+=`<div class="layer" style="border-left-color:${c};cursor:default"><div><div class="ln" style="min-width:0">${n}</div><div class="lm">${d}</div></div></div>`;});
+  h+='</div></div>';
+  document.getElementById('page').innerHTML=h;
+}
+function renderValue(){
+  const max=Math.max(...HIER.map(x=>x[1]));
+  let h='<h2>Intelligence hierarchy — and where the data actually is</h2>';
+  h+='<div class="thesis"><b>The barbell inversion.</b> Value flows upward from the patient and is realized at the deal. Yet the data is thickest in the competitive middle (Target/Molecule) and thinnest at the two ends that create BD value — the <b>patient floor</b> and the <b>deal ceiling</b>. The platform is data-rich where it matters least and data-poor where it matters most.</div>';
+  h+='<div class="bar">';
+  HIER.forEach(([lvl,d,note,c])=>{
+    h+=`<div class="brow"><div class="blab">${lvl}</div><div class="bbar" style="width:${Math.max(6,d/max*620)}px;background:${c}">${d}%</div><div class="bnote">${note}</div></div>`;
+  });
+  h+='</div>';
+  h+='<div class="thesis" style="border-left-color:var(--accent)"><b style="color:var(--accent)">The direction this sets.</b> The two highest-leverage data investments are the same ones the Strategic Lens surfaced: <b style="color:var(--accent)">deepen the deal/ownership edges</b> (top) and <b style="color:var(--accent)">build out the indication + patient layer</b> (bottom). That converts a competitive database into a BD decision engine.</div>';
+  document.getElementById('page').innerHTML=h;
+}
+// map each stack layer → the gap-registry layer tag(s) it owns
+const jumpMap={'Sources':['Ingestion'],'Ingestion':['Ingestion'],'Data layer':['Data'],
+  'Enrich · Score · Validate':['Enrich','Score','Validate'],'Knowledge graph':['Graph'],
+  'Synthesis':['Synthesis'],'Presentation':['Present'],'Strategic decisions':['Strategic']};
+function jumpToLayer(name){FILTER={sev:null,st:null,layer:jumpMap[name]||null};tab('gaps');}
+function setF(k,v){FILTER[k]=(JSON.stringify(FILTER[k])===JSON.stringify(v))?null:v;renderGaps();}
+function inLayer(g){const f=FILTER.layer;if(!f)return true;return Array.isArray(f)?f.includes(g[1]):g[1]===f;}
+function renderGaps(){
+  const sevs=['HIGH','MED','LOW'],sts=['OPEN','DESIGN','PARTIAL','FIXED'];
+  const layers=[...new Set(GAPS.map(g=>g[1]))];
+  let h='<h2>Consolidated gap registry — the improvement backlog</h2>';
+  h+='<div class="filters"><span class="muted small">Severity:</span>'+sevs.map(s=>`<span class="chip ${FILTER.sev===s?'on':''}" onclick="setF('sev','${s}')">${s}</span>`).join('');
+  h+='<span class="muted small" style="margin-left:8px">Status:</span>'+sts.map(s=>`<span class="chip ${FILTER.st===s?'on':''}" onclick="setF('st','${s}')">${s}</span>`).join('');
+  const layActive=s=>FILTER.layer===s||(Array.isArray(FILTER.layer)&&FILTER.layer.includes(s));
+  h+='<span class="muted small" style="margin-left:8px">Layer:</span>'+layers.map(s=>`<span class="chip ${layActive(s)?'on':''}" onclick="setF('layer','${s}')">${s}</span>`).join('');
+  if(FILTER.layer||FILTER.sev||FILTER.st)h+=`<span class="chip" style="border-color:var(--accent);color:var(--accent)" onclick="FILTER={sev:null,st:null,layer:null};renderGaps()">✕ clear</span>`;
+  h+='</div>';
+  let rows=GAPS.filter(g=>(!FILTER.sev||g[2]===FILTER.sev)&&(!FILTER.st||g[3]===FILTER.st)&&inLayer(g));
+  const ord={HIGH:0,MED:1,LOW:2},sord={OPEN:0,DESIGN:1,PARTIAL:2,FIXED:3};
+  rows.sort((a,b)=>(sord[a[3]]-sord[b[3]])||(ord[a[2]]-ord[b[2]]));
+  const open=GAPS.filter(g=>g[3]!=='FIXED').length,fixed=GAPS.filter(g=>g[3]==='FIXED').length;
+  h+=`<div class="muted small" style="margin-bottom:8px">${rows.length} shown · ${open} open · ${fixed} fixed this engagement</div>`;
+  h+='<table><tr><th>Sev</th><th>Status</th><th>Layer</th><th>Gap</th></tr>';
+  rows.forEach(g=>{h+=`<tr><td><span class="sev ${g[2]}">${g[2]}</span></td><td><span class="st ${g[3]}">${g[3]}</span></td><td class="lyr">${g[1]}</td><td><div class="gt">${g[0]}</div><div class="gd">${g[4]}</div></td></tr>`;});
+  h+='</table>';
+  document.getElementById('page').innerHTML=h;
+}
+renderStack();
+</script>
+</body>
+</html>

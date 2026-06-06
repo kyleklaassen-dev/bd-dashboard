@@ -5302,8 +5302,8 @@ async function _injectAreaFreshness(tabId) {
  <div style="flex-shrink:0">
  <div class="header-title">◈ The Meridian</div>
  </div>
- <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:stretch;gap:6px;">
-  <div class="header-search-wrap" style="position:static;left:auto;transform:none;width:clamp(280px,36vw,540px);">
+ <div style="flex:1 1 auto;min-width:0;display:flex;align-items:stretch;justify-content:center;gap:6px;">
+  <div class="header-search-wrap" style="position:static;left:auto;transform:none;width:clamp(240px,34vw,520px);">
    <input type="text" id="global-search" class="header-search-input"
    placeholder="Search programs, drugs, companies, deals…"
    oninput="globalSearch(this.value)">
@@ -5313,7 +5313,7 @@ async function _injectAreaFreshness(tabId) {
   </div>
   <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel<span class="si-attach-icon" onclick="event.stopPropagation(); triggerDocAttach()" title="Attach document">📎</span></button>
  </div>
- <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="review-nav-btn" onclick="openReviewPanel()" title="Items flagged for your review" style="display:none;border-color:#fde68a;background:#fffbeb"><span class="health-dot-lbl" id="review-nav-lbl" style="color:#b45309">⚑ review</span></span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_strategic_lens.html" target="_blank" rel="noopener" data-trusted="1" title="Strategic Lens — the TL1A Race (competitive whitespace view)" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+ <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="review-nav-btn" onclick="openReviewPanel()" title="Items flagged for your review" style="display:none;border-color:#fde68a;background:#fffbeb"><span class="health-dot-lbl" id="review-nav-lbl" style="color:#b45309">⚑ review</span></span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
@@ -12428,10 +12428,10 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
       const _dvDrugIds = drugs.map(d => d.id).filter(Boolean);
       if (_dvDrugIds.length) {
         const { data: dvRows } = await _sb.from('drug_validation_results')
-          .select('drug_id,check_type,status,detail,checked_at')
+          .select('drug_id,check_type,check_status,details,verified_at')
           .in('drug_id', _dvDrugIds)
-          .in('status', ['fail','warning','needs_review'])
-          .order('checked_at', { ascending: false })
+          .in('check_status', ['fail','warning','needs_review'])
+          .order('verified_at', { ascending: false })
           .limit(50);
         drugValidationResults = dvRows || [];
       }
@@ -15116,7 +15116,7 @@ async function openEntityModal(type, id, name, sourceTabId) {
       _sb.from('company_profiles').select('*').eq('company_id', id).limit(10),
       _sb.from('catalysts').select('label,catalyst_date,sort_date,notes').eq('company_id', id).order('sort_date').limit(8),
       _sb.from('drugs').select('id,name,display_name,stage,mechanism,drug_summary,overlap,overlap_rationale,strategic_role,company_id,lead_company_id,co_developer_ids').or(`company_id.eq.${id},lead_company_id.eq.${id},co_developer_ids.cs.{${id}}`).limit(15),
-      _sb.from('deals').select('headline,deal_date,deal_type,value_usd,source_url').eq('company_id', id).order('deal_date', {ascending:false}).limit(5),
+      _sb.from('deals').select('headline,deal_date,deal_type,total_usd_m,source_url').eq('company_id', id).order('deal_date', {ascending:false}).limit(5),
     ]);
 
     const profiles = profRes.data || [];
@@ -15211,7 +15211,7 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
 
   if (deals.length) {
     overviewHtml += `<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">📰 Recent Deals</div>${deals.slice(0,5).map(d => {
-      const val = d.value_usd ? `<span style="font-weight:700;color:#c45b11;margin-left:8px">$${(d.value_usd/1e6).toFixed(0)}M</span>` : '';
+      const val = d.total_usd_m ? `<span style="font-weight:700;color:#c45b11;margin-left:8px">$${Math.round(d.total_usd_m)}M</span>` : '';
       const src = d.source_url ? `<a href="${d.source_url}" target="_blank" rel="noopener" style="color:#2e6fb0;font-size:11px;font-weight:700;text-decoration:none;margin-right:4px">↗</a>` : '';
       return `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px;overflow:hidden">${src}${d.headline||d.deal_type||'Deal'}${val}<span style="float:right;font-size:10px;color:#94a3b8">${d.deal_date||''}</span></div>`;
     }).join('')}</div>`;
@@ -32637,8 +32637,8 @@ async function _gsSbSearch(term) {
         .or('label.ilike.%' + esc + '%,notes.ilike.%' + esc + '%')
         .order('sort_date', { ascending: true }).limit(4),
       _sb.from('indications')
-        .select('id,name,synonyms,therapeutic_area_id')
-        .or('name.ilike.%' + esc + '%,synonyms.ilike.%' + esc + '%')
+        .select('id,name,abbreviation,disease_area')
+        .or('name.ilike.%' + esc + '%,abbreviation.ilike.%' + esc + '%')
         .order('name', { ascending: true }).limit(4),
       _sb.from('news_articles')
         .select('id,headline,article_url,source_name,published_at,meridian_summary,why_it_matters,relevance_score')
