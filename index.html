@@ -5785,6 +5785,7 @@ async function _injectAreaFreshness(tabId) {
     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
         <!-- DEPRECATED 2026-06-06: Pharma Landscape tab button removed (tab retired). -->
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
+        <button class="tab-btn" onclick="switchTab('relationships', this)">Relationships</button>
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
@@ -11141,6 +11142,19 @@ function dknLoadSbData() { return dknLoadData(); }
     <!-- Detail panel (slides in from right) -->
     <div id="dq-detail-overlay" onclick="dqCloseDetail(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9000"></div>
     <div id="dq-detail-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:420px;background:white;z-index:9001;box-shadow:-4px 0 24px rgba(0,0,0,0.15);overflow-y:auto;padding:28px 24px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     RELATIONSHIPS TAB (added 2026-06-06 cowork) — surfaces the entity_edges
+     relationship layers: patient→indication unmet need, company competition,
+     partnerships & licensing lineage. Self-contained; reads via anon client.
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-relationships" style="padding:0;background:#f6f8fb;min-height:100vh">
+  <div style="max-width:1180px;margin:0 auto;padding:30px 22px 64px">
+    <div style="font-size:23px;font-weight:800;color:#0f2740;letter-spacing:-0.01em">Relationships</div>
+    <div style="font-size:13px;color:#5b6b7d;margin:6px 0 24px;line-height:1.65;max-width:760px">The knowledge graph, read aloud. Value flows upward from patients — so this starts with unmet need by indication, then shows how companies compete and partner across the landscape. Every connection here is derived deterministically from the structured graph.</div>
+    <div id="rel-body"><div style="color:#90a0b0;font-size:13px;padding:48px;text-align:center">Loading the graph…</div></div>
   </div>
 </div>
 
@@ -33205,6 +33219,97 @@ async function cfLoadFeed() {
   }
 
   body.innerHTML = items.map(_cfRenderItem).join('');
+}
+</script>
+
+<script>
+/* ── Relationships tab loader (cowork 2026-06-06) ──────────────────────────────
+   Fully additive. Surfaces entity_edges layers via the anon client. Registered
+   through TAB_REGISTRY so any error is isolated to this pane (switchTab catches). */
+registerTab('relationships', { onEnter(){ if(!window._relLoaded){ window._relLoaded = true; relLoad(); } } });
+
+function _relEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function relLoad(){
+  const body = document.getElementById('rel-body');
+  if(!body) return;
+  try {
+    const AREA = {tl1a:'TL1A × IL-23p19', ibd:'IBD', tslp:'TSLP', atopy:'Atopic Dermatitis', il4ra:'IL-4Rα', fcrn:'FcRn', igf1r:'IGF-1R', respiratory:'Respiratory', autoimmune:'Autoimmune', tcell:'T-cell', ted:'Thyroid Eye'};
+    const lab = a => AREA[a] || (a ? a.toUpperCase() : 'General');
+    const [coR, indR, ceR, peR] = await Promise.all([
+      _sb.from('companies').select('id,name'),
+      _sb.from('indications').select('id,name'),
+      _sb.from('entity_edges').select('subject_id,predicate,object_type,object_id,scope_area_id,rationale,source_url').eq('subject_type','company').in('predicate',['COMPETES_WITH','PARTNERED_WITH','LICENSED_FROM','ACQUIRED']),
+      _sb.from('entity_edges').select('object_type,object_id,rationale,source_url').eq('subject_type','patient').eq('predicate','AFFECTED_BY')
+    ]);
+    const cn = {}; (coR.data||[]).forEach(c => cn[c.id] = c.name || c.id);
+    const inm = {}; (indR.data||[]).forEach(i => inm[i.id] = i.name || i.id);
+    const nm = id => cn[id] || id;
+    const edges = ceR.data || [], ped = peR.data || [];
+
+    /* ── Section 1 · Patient → Indication (North Star anchor) ── */
+    const pat = ped.map(e => {
+      const m = /score\s+(\d+)\s*\/\s*10/.exec(e.rationale || '');
+      return { name: e.object_type==='indication' ? (inm[e.object_id]||e.object_id) : lab(e.object_id),
+               score: m ? +m[1] : null, isArea: e.object_type==='area' };
+    }).sort((a,b)=>(b.score||0)-(a.score||0));
+    const sevColor = s => s>=9?'#b91c1c':s>=7?'#d97706':s>=5?'#ca8a04':'#16a34a';
+    let patHTML = pat.map(p=>{
+      const sc = p.score==null ? '—' : p.score;
+      const w = p.score==null ? 0 : p.score*10;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #eef2f6">
+        <div style="width:230px;font-size:13px;font-weight:600;color:#1e3a52">${_relEsc(p.name)}${p.isArea?' <span style=\"font-size:10px;color:#94a3b8;font-weight:600\">· area</span>':''}</div>
+        <div style="flex:1;height:8px;background:#eef2f6;border-radius:6px;overflow:hidden"><div style="width:${w}%;height:100%;background:${sevColor(p.score||0)};border-radius:6px"></div></div>
+        <div style="width:54px;text-align:right;font-size:12px;font-weight:700;color:${sevColor(p.score||0)}">${sc}/10</div>
+      </div>`;
+    }).join('');
+
+    /* ── Section 2 · Competitive map by area ── */
+    const byArea = {};
+    edges.filter(e=>e.predicate==='COMPETES_WITH').forEach(e=>{
+      const a = e.scope_area_id || 'general';
+      (byArea[a] = byArea[a] || new Set()).add(e.subject_id); byArea[a].add(e.object_id);
+    });
+    const areaCards = Object.keys(byArea).sort((a,b)=>byArea[b].size-byArea[a].size).map(a=>{
+      const chips = [...byArea[a]].sort((x,y)=>nm(x).localeCompare(nm(y)))
+        .map(id=>`<span style="display:inline-block;background:#eef4fb;color:#1e527d;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;margin:2px">${_relEsc(nm(id))}</span>`).join('');
+      return `<div style="background:#fff;border:1px solid #e6edf4;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:800;color:#0f2740">${_relEsc(lab(a))}</div>
+          <div style="font-size:11px;color:#8595a6">${byArea[a].size} companies</div>
+        </div><div>${chips}</div></div>`;
+    }).join('');
+
+    /* ── Section 3 · Partnerships & lineage ── */
+    const seen = new Set(), parts = [];
+    edges.filter(e=>e.predicate==='PARTNERED_WITH').forEach(e=>{
+      const k = [e.subject_id,e.object_id].sort().join('|'); if(seen.has(k)) return; seen.add(k);
+      const t = /\(([^,)]+)/.exec(e.rationale||'');
+      parts.push({a:nm(e.subject_id), b:nm(e.object_id), type:(t?t[1]:'partnership').replace(/_/g,' '), src:e.source_url});
+    });
+    const lineage = edges.filter(e=>e.predicate==='LICENSED_FROM'||e.predicate==='ACQUIRED')
+      .map(e=>({verb:e.predicate==='ACQUIRED'?'acquired':'licensed from', a:nm(e.subject_id), b:nm(e.object_id), src:e.source_url}));
+    const srcIco = u => u ? ` <a href="${_relEsc(u)}" target="_blank" rel="noopener" style="text-decoration:none;font-size:10px;color:#3b82f6" title="source">↗</a>` : '';
+    const partHTML = parts.sort((x,y)=>x.a.localeCompare(y.a)).map(p=>
+      `<div style="font-size:12.5px;color:#33485c;padding:6px 0;border-bottom:1px solid #f0f3f7"><b style="color:#1e3a52">${_relEsc(p.a)}</b> ⟷ <b style="color:#1e3a52">${_relEsc(p.b)}</b> <span style="color:#8595a6">· ${_relEsc(p.type)}</span>${srcIco(p.src)}</div>`).join('');
+    const linHTML = lineage.map(l=>
+      `<div style="font-size:12.5px;color:#33485c;padding:6px 0;border-bottom:1px solid #f0f3f7"><b style="color:#1e3a52">${_relEsc(l.a)}</b> <span style="color:#8595a6">${_relEsc(l.verb)}</span> <b style="color:#1e3a52">${_relEsc(l.b)}</b>${srcIco(l.src)}</div>`).join('');
+
+    const compEdgeCount = edges.filter(e=>e.predicate==='COMPETES_WITH').length;
+    const sec = (title, sub, inner) => `<div style="margin-bottom:34px">
+      <div style="font-size:16px;font-weight:800;color:#0f2740;margin-bottom:2px">${title}</div>
+      <div style="font-size:12px;color:#8595a6;margin-bottom:14px">${sub}</div>${inner}</div>`;
+
+    body.innerHTML =
+      sec('Patient unmet need', `${pat.length} indications & areas · ranked by unmet-need severity`,
+          `<div style="background:#fff;border:1px solid #e6edf4;border-radius:12px;padding:8px 18px">${patHTML||'<div style="color:#90a0b0;padding:20px">No patient links yet.</div>'}</div>`) +
+      sec('Competitive map', `${Object.keys(byArea).length} areas · ${compEdgeCount/2|0} competitive pairs`,
+          areaCards || '<div style="color:#90a0b0;padding:20px">No competition edges.</div>') +
+      sec('Partnerships & licensing', `${parts.length} partnerships · ${lineage.length} licensing/acquisition links`,
+          `<div style="background:#fff;border:1px solid #e6edf4;border-radius:12px;padding:8px 18px">${partHTML}${linHTML||''}${(!partHTML&&!linHTML)?'<div style=\"color:#90a0b0;padding:20px\">No partnerships yet.</div>':''}</div>`);
+  } catch(e){
+    body.innerHTML = '<div style="color:#b91c1c;padding:30px;font-size:13px">Could not load relationships: '+_relEsc(e.message||e)+'</div>';
+  }
 }
 </script>
 
