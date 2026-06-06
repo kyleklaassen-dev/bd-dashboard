@@ -1,0 +1,29 @@
+name: Audit Retention
+
+# Prunes non-governance, non-correction field_change_audit rows older than 30 days.
+# field_change_audit grows ~10k rows/day; this bounds it without losing the audit
+# trail that matters (governance + corrections are kept indefinitely).
+on:
+  schedule:
+    - cron: "0 8 * * 0"   # Sunday 4 AM ET
+  workflow_dispatch:
+
+concurrency:
+  group: audit-retention
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Prune field_change_audit
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: python3 scripts/apply_sql_migration.py migrations/prune_field_change_audit.sql
