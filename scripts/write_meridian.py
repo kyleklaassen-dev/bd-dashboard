@@ -1055,7 +1055,7 @@ YOUR READERS: PhD scientists who have published in Nature and NEJM. BD professio
 YOUR EDITORIAL STANDARD:
 - Every paragraph must contain one claim a smart, busy reader could not have made without reading this issue. If a paragraph only restates known facts, cut it or rewrite it.
 - Never summarize what happened. Explain what it means and why it matters in the next 18 months.
-- The BD Lens is not "this is relevant to Ailux." It is the specific implication for positioning, deal optionality, combination thesis, asset pricing, or clinical strategy — written at deal-room precision.
+- The BD Lens is ACTION ONLY, not a second pass at the argument. The preceding prose already made the case; the Lens states only the decision it forces: what to do, which counterparty, by when. If the Lens restates the why, cut the restatement — keep only the move.
 - When two stories connect non-obviously, make the connection explicit and argue it. That is where the value lives.
 - Draw threads across issues. If Monday covered a deal and today brings data from the same program, say so explicitly — this is how the briefing builds a living model of the landscape.
 - When the news is quiet, say what is conspicuously absent and why that itself is signal. A mechanism with no news for three weeks when competitors are typically active is information.
@@ -1069,10 +1069,12 @@ DIRECTNESS & ANTI-REPETITION (house rules — enforce strictly):
 - NO POSTURING. Drop portentous throat-clearing — "the central fact strategy must metabolize this weekend," "make no mistake," "the question is whether," "the window is X weeks wide" repeated as a refrain. Lead with the fact, then the implication, in plain declarative sentences. A dramatic sentence is weaker than a precise one.
 - FACTS AND RELATIONSHIPS OVER ADJECTIVES. Prefer a number, a date, a mechanism, or an explicit A→B relationship to any intensifier. Every competitive claim must name the relationship (who competes with / blocks / enables / sequences against / prices whom) and the evidence for it. Cut words that carry no fact: if a sentence survives deletion of an adjective with its meaning intact, delete the adjective.
 - NO ASSUMPTIONS. If you do not have a sourced fact, do not assert it. Do not infer an asset's format, target, indication, trial name, phase, or deal terms. Absent evidence, say less.
+- SEPARATE FACT FROM INTERPRETATION BY VERB (not by label). State sourced facts as flat declaratives: "Simcere licensed SIM0709 to Boehringer for €42M upfront." Mark every inference with a verb that signals it is your read: "this implies," "the likely read is," "suggests," "if that holds." The reader must always be able to tell a sourced fact from your interpretation without a tag. Never dress an inference as a fact (e.g., "this creates a valuation floor" is interpretation — write "this likely sets a floor").
+- VARY THE ANALYTICAL MOVE. "External event → therefore Ailux should X" is ONE move; do not let it become the only one. Across the issue also use: contradiction (two sources disagree — say which wins and why), absence (an expected readout that did not arrive is itself signal), second-order (how a competitor will respond, not just what they did), and disconfirmation. Carry the plan's falsifier into the issue at least once — name the result that would prove the lead thesis wrong. If every item bends to support the thesis, the issue reads as confirmation bias, not intelligence.
 
 SOURCE HIERARCHY: Endpoints News and Fierce Biotech are the primary trade sources. Direct company press releases are equally authoritative. When these sources conflict with secondary sources, prefer Endpoints/Fierce/company-direct. All factual claims must be hyperlinked to their source.
 
-TONE: The writing of a scientist who also reads The Economist and thinks like a portfolio manager. Authoritative. Precise. Intellectually engaged. Occasionally pointed when the evidence warrants it.
+TONE: Plain, declarative, dense. The fact carries the weight, not the phrasing. Write like an analyst briefing a principal who trusts you and is short on time: state what is true, state what it implies, stop. No grandeur, no throat-clearing, no rhetorical build-up, no rhetorical questions, no "metabolize this weekend" theatrics, no refrains. A short sentence that states a fact beats a long one that performs insight. If a sentence's job is to sound smart rather than to inform, delete it. Precision is the only style.
 
 HARD PROHIBITIONS:
 - Do not include any contact information, email addresses, or tip lines. The Meridian has no public inbox.
@@ -1093,7 +1095,7 @@ ENRICHED_DATA_INSTRUCTIONS = """
 ENRICHED DATA NOW AVAILABLE — USE IT:
 
 1. PATIENT MARKET DATA: You have numeric patient counts and market sizes for each indication.
-   - ALWAYS cite specific numbers: "~{N:,} US patients" and "${X}B addressable market"
+   - Cite the number, but MATCH THE DECORATION TO ITS CERTAINTY. A figure with a real source: state it plainly and cite it. A modeled estimate from the stats block: write it as a round approximation — "about $8B", "roughly 900,000 US patients" — with NO decimal place and NO tilde. Do NOT render an estimate as "$8.0B" or "~1,680,000US"; decorating an estimate with a decimal or a tilde-plus-exact-digits is false precision and erodes trust.
    - ALWAYS cite unmet_need_score (1–10) when available: "Unmet need score: {score}/10"
    - Interpret the score: 8–10 = severe unmet need, 5–7 = partial, 1–4 = manageable with current SoC
    - NEVER use vague phrases like "large patient population" without the number
@@ -1163,9 +1165,10 @@ Your editorial plan must answer:
 4. BD IMPLICATIONS: What are the 2–3 most specific implications for Ailux's BD strategy — not "this is relevant" but the actual tactical or positional inference?
 5. ABSENCES: What notable development is conspicuously NOT in today's news that is worth flagging?
 6. CONTINUITY: Are there threads from prior issues that today's intelligence advances, resolves, or complicates? Name them.
-7. SECTION PLAN: Which sections should appear today? (Lead is always present. Others: Mechanism Intelligence / Clinical Inflection Points / BD & Deal Watch / Regulatory Watch.) Omit sections with nothing substantive to say.
+7. SECTION PLAN: Which sections should appear today? (Lead is always present. Others: Mechanism Intelligence / Clinical Inflection Points / BD & Deal Watch / Regulatory Watch.) NOVELTY GATE: for each non-lead section, state in one line the NEW fact, asset, or connection it adds beyond the thesis. A section that would only re-argue the lead in different words must be CUT or MERGED — restating the thesis is not a contribution. Be ruthless: fewer sections that each add something beat many that echo each other.
+8. FALSIFICATION: In one sentence, what concrete result or event would prove today's thesis WRONG? (This must be carried into the issue — an honest intelligence product names what would change its mind.)
 
-Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), continuity_threads (list of strings), sections (list of section names)."""
+Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), continuity_threads (list of strings), falsifier (string), section_plan (list of objects {{"name": section name, "adds": the one-line new contribution}})."""
 
 
 # ── Pass 2: Full draft ───────────────────────────────────────────────────────
@@ -1237,7 +1240,7 @@ SECTION STRUCTURE (build exactly this architecture):
 
 7. CATALYST WATCH — The legacy catalyst table (from UPCOMING CATALYSTS block above). HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending. If no legacy catalysts, note "(No entries in legacy catalyst table — see BD Calendar section above)"
 
-8. CLOSING NOTE — 2–3 sentences in italic. End on a forward-looking observation or open question, not a summary of what was just written.
+8. CLOSING NOTE — 2–3 sentences in italic. End on a single forward-looking observation or open question — the one thing to watch next. Do NOT restate the lead thesis or recap the issue; if the closer could have been written before reading the body, rewrite it. It must point forward, not back.
 
 ─────────────────────────────────────────────
 4-LAYER NARRATIVE FORMAT — mandatory for any drug event, clinical trial result, or deal:
@@ -1251,7 +1254,7 @@ When writing about any drug event, clinical trial result, or deal involving a dr
 BD LENS FORMAT — use this HTML for every BD Lens callout:
 <div class="bd-lens">
   <p class="label">BD LENS</p>
-  <p>[Specific, actionable implication for Ailux's BD or clinical strategy. Not generic. Not "this is relevant." The actual inference a deal-room professional would draw.]</p>
+  <p>[ACTION ONLY — 1–2 sentences. The decision the section forces: what to do, which counterparty, by when. Do NOT restate the analysis above it; the reader just read it. If you find yourself re-explaining the why, delete that and keep only the move. Example shape: "Brief Merck BD on the X angle before the Nov 30 ATLAS-UC readout; after it, the price moves." Not: a paragraph re-arguing why Merck matters.]</p>
 </div>
 
 ─────────────────────────────────────────────
@@ -1524,7 +1527,17 @@ def format_plan_block(plan):
         lines.append("\nCONTINUITY THREADS (connect today's issue to prior coverage):")
         for t in plan["continuity_threads"]:
             lines.append(f"  • {t}")
-    if plan.get("sections"):
+    if plan.get("falsifier"):
+        lines.append(f"\nWHAT WOULD PROVE THE THESIS WRONG (carry this into the issue): {plan['falsifier']}")
+    if plan.get("section_plan"):
+        lines.append("\nSECTIONS TO INCLUDE — each must deliver its stated NEW contribution; "
+                     "if a section cannot, drop it (do not pad or echo the lead):")
+        for s in plan["section_plan"]:
+            if isinstance(s, dict):
+                lines.append(f"  • {s.get('name','(unnamed)')} — adds: {s.get('adds','(no distinct contribution — reconsider)')}")
+            else:
+                lines.append(f"  • {s}")
+    elif plan.get("sections"):
         lines.append(f"\nSECTIONS TO INCLUDE: {', '.join(plan['sections'])}")
     return "\n".join(lines)
 
