@@ -1,0 +1,67 @@
+name: Meridian Evidence Collectors
+
+# The flywheel on a schedule: turn collection gaps into cited sources.
+#   1. collect_evidence.py       — drug claims  -> ct.gov registry + Europe PMC  (drug_sources rows)
+#   2. collect_patient_evidence.py — patient/epidemiology facts -> Europe PMC     (indication_patient_intelligence.source_urls)
+# Both are deterministic, idempotent, pure-API (no LLM), and never fabricate a URL.
+# Keeps source coverage fresh as new drugs/indications land.
+
+on:
+  schedule:
+    - cron: "0 15 * * 6"   # Saturday 11:00 AM ET (15:00 UTC) — after abstract-fetcher (14:00)
+  workflow_dispatch:
+    inputs:
+      areas:
+        description: "Space-separated drug areas for the drug collector (default: core immunology set)"
+        required: false
+        default: "tl1a il23p19 tslp il4ra fcrn igf1r a4b7"
+      dry_run:
+        description: "Dry run — fetch but do not write"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: evidence-collectors
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: "Collect drug + patient evidence"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run evidence collectors
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -e
+          echo "=== Meridian Evidence Collectors · $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+          AREAS="${{ github.event.inputs.areas }}"
+          AREAS="${AREAS:-tl1a il23p19 tslp il4ra fcrn igf1r a4b7}"
+          FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
+
+          echo "--- 1) Drug evidence (ct.gov + Europe PMC) over areas: $AREAS ---"
+          for area in $AREAS; do
+            echo ">> area: $area"
+            python scripts/collect_evidence.py --area "$area" $FLAG || echo "  (area $area failed — continuing)"
+          done
+
+          echo "--- 2) Patient / epidemiology evidence (Europe PMC) ---"
+          if [ -n "$FLAG" ]; then
+            python scripts/collect_patient_evidence.py --dry-run
+          else
+            python scripts/collect_patient_evidence.py --apply
+          fi
+
+          echo "=== done ==="
