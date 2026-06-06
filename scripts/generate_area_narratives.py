@@ -61,6 +61,8 @@ def main():
     run(["scripts/landscape_narrative.py", "--target", args.area])
     print("\nTrust scores:")
     run(["scripts/compute_trust_score.py", "--area", args.area, "--apply"])
+    print("\nCollection queue sync:")
+    run(["scripts/sync_collection_queue.py", "--area", args.area])
     print("\nbatch complete.")
 
 
