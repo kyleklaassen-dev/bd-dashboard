@@ -926,6 +926,9 @@ a.deal-link::after { content: ' ↗'; font-size: 9px; opacity: 0.65; }
 .health-panel-title { font-size:15px; font-weight:800; color:#0f172a; flex:1; }
 .health-panel-close { border:none; background:transparent; cursor:pointer; color:#94a3b8; font-size:20px; line-height:1; }
 .health-panel-close:hover { color:#475569; }
+.ws-tab { border:1px solid #e2e8f0; background:#fff; color:#64748b; font-size:11.5px; font-weight:700; padding:4px 12px; border-radius:8px; cursor:pointer; }
+.ws-tab:hover { border-color:#ddd6fe; color:#7c3aed; }
+.ws-tab.active { background:#f5f3ff; border-color:#ddd6fe; color:#7c3aed; }
 .health-summary-line { font-size:13px; color:#334155; margin:2px 0 4px; font-weight:600; }
 .health-checked { font-size:10.5px; color:#94a3b8; margin-bottom:12px; }
 .health-run { display:flex; align-items:center; gap:9px; padding:7px 4px; border-top:1px solid #f1f5f9; }
@@ -3149,6 +3152,92 @@ function openReviewPanel() {
 }
 function closeReviewPanel() { const ov=document.getElementById('review-overlay'); if(ov) ov.classList.remove('show'); }
 
+// ── Whitespace Finder ─────────────────────────────────────────────────────────
+// Reads v_whitespace_targets / v_whitespace_indications (v78): where high patient
+// unmet need meets thin competition, using the structural graph (ADDRESSES/TREATS
+// edges) + indication_patient_intelligence. Views are always-live; no staleness.
+let _wsTargets = [], _wsIndications = [];
+async function _loadWhitespace() {
+  try {
+    const [t, i] = await Promise.all([
+      _sb.from('v_whitespace_targets')
+         .select('target_label,full_name,target_class,ailux_relevance,best_unmet,indications_addressed,max_escape_rate,drug_count,opportunity_score')
+         .order('opportunity_score', { ascending:false }).limit(40),
+      _sb.from('v_whitespace_indications')
+         .select('indication_name,disease_area,unmet_need_score,biologic_failure_rate_pct,patient_count_us,drugs_total,drugs_late,opportunity_score,data_confidence,trial_endpoint_gap')
+         .order('opportunity_score', { ascending:false }).limit(40),
+    ]);
+    _wsTargets = t.data || []; _wsIndications = i.data || [];
+    const btn = document.getElementById('ws-nav-btn');
+    if (btn && (_wsTargets.length || _wsIndications.length)) btn.style.display='inline-flex';
+  } catch(e) { /* best-effort */ }
+}
+document.addEventListener('DOMContentLoaded', _loadWhitespace);
+
+function _wsScoreColor(s) {
+  if (s >= 65) return {bg:'#ecfdf5', bd:'#a7f3d0', fg:'#047857'};   // strong opportunity
+  if (s >= 45) return {bg:'#fffbeb', bd:'#fde68a', fg:'#b45309'};   // moderate
+  return {bg:'#f1f5f9', bd:'#e2e8f0', fg:'#64748b'};                // crowded / thin signal
+}
+function _wsScorePill(s) {
+  const c = _wsScoreColor(s);
+  return `<span style="font-size:13px;font-weight:800;background:${c.bg};color:${c.fg};border:1px solid ${c.bd};border-radius:8px;padding:2px 9px;min-width:34px;text-align:center;display:inline-block">${s}</span>`;
+}
+function _wsNum(n) { return n==null ? '—' : Number(n).toLocaleString(); }
+
+function _renderWhitespace(mode) {
+  document.getElementById('ws-tab-targets').className = 'ws-tab' + (mode==='targets'?' active':'');
+  document.getElementById('ws-tab-indications').className = 'ws-tab' + (mode==='indications'?' active':'');
+  const list = document.getElementById('ws-list');
+  if (mode==='indications') {
+    document.getElementById('ws-legend').textContent = 'Indications ranked by unmet need × patient scale vs. late-stage saturation. High score = real patient gap, thin pipeline.';
+    list.innerHTML = _wsIndications.map(r => {
+      const conf = r.data_confidence==='low'
+        ? `<span title="Few drugs mapped in Meridian's catalog for this indication — score may understate true competition" style="font-size:8.5px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:7px;padding:1px 6px">thin data</span>` : '';
+      const esc = r.biologic_failure_rate_pct!=null ? `${Math.round(r.biologic_failure_rate_pct)}% fail biologics` : '';
+      return `<div class="health-run" style="flex-direction:column;align-items:stretch;gap:6px;padding:11px 4px">
+        <div style="display:flex;align-items:center;gap:9px">
+          ${_wsScorePill(r.opportunity_score)}
+          <span style="font-weight:700;font-size:13px;color:#1e293b">${r.indication_name}</span>
+          ${conf}
+          <span style="font-size:10px;color:#94a3b8;margin-left:auto">${r.disease_area||''}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10.5px;color:#475569">
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">unmet ${r.unmet_need_score}/10</span>
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">${_wsNum(r.patient_count_us)} US pts</span>
+          ${esc?`<span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">${esc}</span>`:''}
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">${r.drugs_total} drugs · ${r.drugs_late} late-stage</span>
+        </div>
+        ${r.trial_endpoint_gap?`<div style="font-size:11px;color:#64748b;line-height:1.4">↳ ${(r.trial_endpoint_gap||'').replace(/</g,'&lt;')}</div>`:''}
+      </div>`;
+    }).join('') || '<div class="health-empty">No indication data.</div>';
+  } else {
+    document.getElementById('ws-legend').textContent = 'Mechanisms ranked by unmet need of the indications they address vs. how many drugs already hit them. High score = under-exploited target.';
+    list.innerHTML = _wsTargets.map(r => {
+      const ail = r.ailux_relevance ? `<span style="font-size:8.5px;font-weight:800;text-transform:uppercase;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:7px;padding:1px 6px">Ailux: ${r.ailux_relevance}</span>` : '';
+      return `<div class="health-run" style="flex-direction:column;align-items:stretch;gap:6px;padding:11px 4px">
+        <div style="display:flex;align-items:center;gap:9px">
+          ${_wsScorePill(r.opportunity_score)}
+          <span style="font-weight:700;font-size:13px;color:#1e293b">${r.target_label}</span>
+          ${ail}
+          <span style="font-size:10px;color:#94a3b8;margin-left:auto">${r.target_class||''}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10.5px;color:#475569">
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">best unmet ${r.best_unmet}/10</span>
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">${r.indications_addressed} indication${r.indications_addressed!==1?'s':''}</span>
+          <span style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:1px 7px">${r.drug_count} drug${r.drug_count!==1?'s':''} in dev</span>
+        </div>
+      </div>`;
+    }).join('') || '<div class="health-empty">No target data.</div>';
+  }
+}
+function openWhitespacePanel() {
+  const ov = document.getElementById('ws-overlay'); if (!ov) return;
+  _renderWhitespace('targets');
+  ov.classList.add('show');
+}
+function closeWhitespacePanel() { const ov=document.getElementById('ws-overlay'); if(ov) ov.classList.remove('show'); }
+
 function openHealthPanel() {
   const ov = document.getElementById('health-overlay'); if (!ov) return;
   const failing = _healthRuns.filter(r => r.conclusion && r.conclusion!=='success' && r.status==='completed');
@@ -5287,6 +5376,23 @@ async function _injectAreaFreshness(tabId) {
   </div>
 </div>
 
+<!-- Whitespace Finder panel — reads v_whitespace_targets / v_whitespace_indications (v78) -->
+<div class="health-overlay" id="ws-overlay" onclick="if(event.target===this)closeWhitespacePanel()">
+  <div class="health-panel" role="dialog" aria-label="Whitespace finder" style="width:min(94vw,620px)">
+    <div class="health-panel-head">
+      <span style="font-size:15px;color:#7c3aed">◇</span>
+      <span class="health-panel-title">Whitespace finder</span>
+      <button class="health-panel-close" aria-label="Close" onclick="closeWhitespacePanel()">×</button>
+    </div>
+    <div style="display:flex;gap:6px;margin:2px 0 8px">
+      <button class="ws-tab active" id="ws-tab-targets" onclick="_renderWhitespace('targets')">By target</button>
+      <button class="ws-tab" id="ws-tab-indications" onclick="_renderWhitespace('indications')">By indication</button>
+    </div>
+    <div class="health-checked" id="ws-legend"></div>
+    <div id="ws-list"></div>
+  </div>
+</div>
+
 <!-- Wave 2: pipeline health panel — reads system_status + pipeline_runs -->
 <div class="health-overlay" id="health-overlay" onclick="if(event.target===this)closeHealthPanel()">
   <div class="health-panel" role="dialog" aria-label="Pipeline health">
@@ -5316,7 +5422,7 @@ async function _injectAreaFreshness(tabId) {
   </div>
   <button class="submit-intel-btn" onclick="openIntelModal()" title="Submit intel for review" style="align-self:stretch;height:auto;">＋ Submit Intel<span class="si-attach-icon" onclick="event.stopPropagation(); triggerDocAttach()" title="Attach document">📎</span></button>
  </div>
- <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="review-nav-btn" onclick="openReviewPanel()" title="Items flagged for your review" style="display:none;border-color:#fde68a;background:#fffbeb"><span class="health-dot-lbl" id="review-nav-lbl" style="color:#b45309">⚑ review</span></span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+ <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span id="dq-nav-badge" onclick="openDQPanel()" title="Pending research items — click to review" style="display:none;cursor:pointer;background:#dc2626;color:white;font-size:10px;font-weight:900;padding:2px 8px;border-radius:10px;line-height:16px;white-space:nowrap;animation:pi-dot-blink 2s ease-in-out infinite">⚡ <span id="dq-nav-count">0</span> pending</span><span class="health-dot-btn" id="review-nav-btn" onclick="openReviewPanel()" title="Items flagged for your review" style="display:none;border-color:#fde68a;background:#fffbeb"><span class="health-dot-lbl" id="review-nav-lbl" style="color:#b45309">⚑ review</span></span><span class="health-dot-btn" id="ws-nav-btn" onclick="openWhitespacePanel()" title="Whitespace finder — high unmet need × thin competition" style="display:none;border-color:#ddd6fe;background:#f5f3ff"><span class="health-dot-lbl" style="color:#7c3aed">◇ Whitespace</span></span><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
