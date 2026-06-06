@@ -540,6 +540,53 @@ def compose_llm(drug_name, atoms, scrub):
     return resp.content[0].text.strip()
 
 
+ANALYSIS_SYSTEM = (
+    "You are Meridian's BD strategist writing for Ailux (developer of ALX001, a TL1A×IL-23 "
+    "bispecific antibody for IBD). You receive a NUMBERED list of CITED FACTS about another "
+    "asset, plus optional prior framing notes. Write a short 'Meridian Analysis' that is "
+    "explicitly an INTERPRETATION, not new fact, answering: (1) Is this asset a competitor, "
+    "partner, market-validator, or threat to Ailux — and why? (2) What single dependency or "
+    "catalyst could most change the story? (3) Where does it create or destroy value for "
+    "Ailux's bispecific program? Reason ONLY from the numbered facts and cite them as [n]. You "
+    "MUST NOT introduce any new number, %, date, dose, or trial id that is not in the facts. "
+    "Start with exactly: '_Meridian Analysis — interpretation, grounded in the cited facts._' "
+    "Then 2–3 short paragraphs. Under 200 words."
+)
+
+
+def compose_analysis(drug_name, atoms, framing):
+    import anthropic
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
+    fr = "\n".join(f"- {k}: {v}" for k, v in framing.items() if v)
+    prompt = (f"ASSET: {drug_name}\n\nCITED FACTS:\n{numbered}\n\n"
+              f"PRIOR FRAMING (context only, not citable):\n{fr or '(none)'}\n\n"
+              "Write the Meridian Analysis now.")
+    resp = client.messages.create(
+        model="claude-sonnet-4-6", max_tokens=500, temperature=0,
+        system=ANALYSIS_SYSTEM, messages=[{"role": "user", "content": prompt}])
+    return resp.content[0].text.strip()
+
+
+def fail_closed_analysis(prose, atoms, scrub):
+    """Analysis is inference, so it needn't cite every clause — but it must not fabricate
+    facts. Block if it introduces a %/NCT/$ figure absent from the fact atoms, or a scrub token."""
+    problems = []
+    corpus = " ".join(a["claim"] for a in atoms)
+    for tok in scrub:
+        if tok.lower() in prose.lower():
+            problems.append(f"scrubbed token '{tok}' present")
+    for nct in set(re.findall(r"NCT\d{8}", prose, re.I)):
+        if nct.upper() not in corpus.upper():
+            problems.append(f"introduced NCT not in facts: {nct}")
+    for fig in set(re.findall(r"\d+(?:\.\d+)?%|\$\s?\d[\d,\.]*\s?[BMbm]?", prose)):
+        if fig.replace(" ", "") not in corpus.replace(" ", ""):
+            problems.append(f"introduced figure not in facts: {fig}")
+    if "Meridian Analysis" not in prose:
+        problems.append("missing the interpretation label")
+    return problems
+
+
 def compose_template(drug_name, atoms, scrub):
     """Deterministic, guaranteed-grounded baseline (no API key needed)."""
     parts = [f"{drug_name} overview (derived; every clause cites a source atom):", ""]
@@ -620,7 +667,7 @@ def write_narrative(drug, section, prose, atoms, rh, composer):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--drug-id", required=True)
-    ap.add_argument("--section", default="overview", choices=["overview"])
+    ap.add_argument("--section", default="overview", choices=["overview", "intelligence"])
     ap.add_argument("--composer", default="llm", choices=["llm", "template"])
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -648,6 +695,37 @@ def main():
     for c in atoms["conflicts"]:
         print(f"  ! {c['issue']}: {c['detail']}")
     print(f"\nSCRUB list: {atoms['scrub'] or '(none)'}")
+
+    dname = recipe["drug"].get("display_name") or recipe["drug"]["name"]
+
+    # ── MERIDIAN ANALYSIS tier (interpretation, grounded in the cited facts) ──
+    if args.section == "intelligence":
+        drug = recipe["drug"]
+        framing = {k: drug.get(k) for k in
+                   ("ailux_angle", "vs_ailux", "differentiation_thesis", "overlap")}
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise SystemExit("the analysis tier requires ANTHROPIC_API_KEY (it is inference).")
+        for i in range(3):
+            prose = compose_analysis(dname, asserted, framing)
+            problems = fail_closed_analysis(prose, asserted, atoms["scrub"])
+            if not problems:
+                break
+            if i < 2:
+                print(f"  (analysis retry {i + 1}/2)", file=sys.stderr)
+        print(f"\n--- MERIDIAN ANALYSIS ---\n{prose}\n")
+        if problems:
+            print("FAIL-CLOSED (analysis) problems (would block write):")
+            for p in problems:
+                print(f"  x {p}")
+        else:
+            print("analysis fail-closed: PASS")
+        if args.dry_run:
+            print("\n[dry-run] no DB write.")
+            return
+        if problems:
+            raise SystemExit("blocked: analysis introduced unsupported facts.")
+        write_narrative(drug, "intelligence", prose, asserted, rh, "llm-analysis")
+        return
 
     composer = args.composer
     if composer == "llm" and not os.environ.get("ANTHROPIC_API_KEY"):
