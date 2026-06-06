@@ -3108,17 +3108,30 @@ const _RULE_LABEL = {
   source_does_not_support_claim:'Source mismatch', misingested_out_of_scope:'Mis-ingested',
   ambiguous_identity:'Ambiguous identity', missing_originator_obscure:'Obscure code',
 };
+let _reviewNeedsDecision = [], _reviewParked = [];
 async function _loadReviewQueue() {
   try {
     const { data } = await _sb.from('governance_violations')
-      .select('id,table_name,row_id,rule_name,description,detected_at')
+      .select('id,table_name,row_id,rule_name,description,detected_at,resolution_notes')
       .eq('resolved', false).order('detected_at', { ascending:false }).limit(60);
     _reviewItems = data || [];
+    // An item with resolution_notes has been adjudicated to a HOLD/PARK decision —
+    // it's tracked but needs no fresh judgment. Only un-adjudicated items are "to review".
+    _reviewNeedsDecision = _reviewItems.filter(v => !v.resolution_notes);
+    _reviewParked        = _reviewItems.filter(v =>  v.resolution_notes);
     const btn = document.getElementById('review-nav-btn');
     const lbl = document.getElementById('review-nav-lbl');
     if (btn && lbl) {
-      if (_reviewItems.length) { lbl.textContent = '⚑ '+_reviewItems.length+' to review'; btn.style.display='inline-flex'; }
-      else btn.style.display='none';
+      if (_reviewNeedsDecision.length) {
+        lbl.textContent = '⚑ '+_reviewNeedsDecision.length+' to review';
+        lbl.style.color = '#b45309'; btn.style.borderColor = '#fde68a'; btn.style.background = '#fffbeb';
+        btn.style.display = 'inline-flex';
+      } else if (_reviewParked.length) {
+        // nothing needs a decision — show a calm, non-nagging "parked" pill
+        lbl.textContent = '✓ '+_reviewParked.length+' parked';
+        lbl.style.color = '#64748b'; btn.style.borderColor = '#e2e8f0'; btn.style.background = '#f8fafc';
+        btn.style.display = 'inline-flex';
+      } else btn.style.display = 'none';
     }
   } catch(e) { /* best-effort */ }
 }
@@ -3133,22 +3146,36 @@ function _reviewDrugLinks(rowId) {
     + `</span>`
   ).join(' ');
 }
-function openReviewPanel() {
-  const ov = document.getElementById('review-overlay'); if (!ov) return;
-  document.getElementById('review-summary').textContent =
-    _reviewItems.length ? `${_reviewItems.length} item${_reviewItems.length!==1?'s':''} flagged for your judgment` : 'Nothing to review — all clear. ✅';
-  const list = document.getElementById('review-list');
-  list.innerHTML = _reviewItems.length ? _reviewItems.map(v => {
-    const lbl = _RULE_LABEL[v.rule_name] || (v.rule_name||'').replace(/_/g,' ');
-    return `<div class="health-run" style="flex-direction:column;align-items:stretch;gap:5px;padding:10px 4px">
+function _reviewCard(v, parked) {
+  const lbl = _RULE_LABEL[v.rule_name] || (v.rule_name||'').replace(/_/g,' ');
+  const chipBg = parked ? '#f1f5f9' : '#fffbeb', chipFg = parked ? '#475569' : '#b45309', chipBd = parked ? '#e2e8f0' : '#fde68a';
+  const decision = parked && v.resolution_notes
+    ? `<div style="font-size:10.5px;color:#0f766e;background:#f0fdfa;border-left:3px solid #5eead4;border-radius:0 4px 4px 0;padding:5px 8px;line-height:1.45"><strong>Decision:</strong> ${(v.resolution_notes||'').replace(/</g,'&lt;')}</div>` : '';
+  return `<div class="health-run" style="flex-direction:column;align-items:stretch;gap:5px;padding:10px 4px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#fffbeb;color:#b45309;border:1px solid #fde68a;border-radius:8px;padding:1px 7px">${lbl}</span>
+        <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:${chipBg};color:${chipFg};border:1px solid ${chipBd};border-radius:8px;padding:1px 7px">${lbl}</span>
         <span style="font-size:10px;color:#94a3b8;margin-left:auto">${(v.detected_at||'').slice(0,10)}</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px">${_reviewDrugLinks(v.row_id)}</div>
       <div style="font-size:11.5px;color:#475569;line-height:1.4">${(v.description||'').replace(/</g,'&lt;')}</div>
+      ${decision}
     </div>`;
-  }).join('') : '<div class="health-empty">Nothing to review — all clear. ✅</div>';
+}
+function openReviewPanel() {
+  const ov = document.getElementById('review-overlay'); if (!ov) return;
+  const nd = _reviewNeedsDecision.length, pk = _reviewParked.length;
+  document.getElementById('review-summary').textContent =
+    nd ? `${nd} item${nd!==1?'s':''} need your judgment${pk?` · ${pk} parked`:''}`
+       : pk ? `All clear — nothing needs your judgment. ${pk} item${pk!==1?'s':''} parked (tracked, awaiting disclosure).`
+            : 'Nothing to review — all clear. ✅';
+  const list = document.getElementById('review-list');
+  let html = '';
+  if (nd) html += _reviewNeedsDecision.map(v => _reviewCard(v,false)).join('');
+  if (pk) {
+    html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin:14px 2px 4px">Parked — adjudicated, awaiting disclosure (no action needed)</div>`;
+    html += _reviewParked.map(v => _reviewCard(v,true)).join('');
+  }
+  list.innerHTML = html || '<div class="health-empty">Nothing to review — all clear. ✅</div>';
   ov.classList.add('show');
 }
 function closeReviewPanel() { const ov=document.getElementById('review-overlay'); if(ov) ov.classList.remove('show'); }
@@ -24482,11 +24509,11 @@ function dknDismissChanges(){
   window._dknCL=null;
 }
 </script>
-<div id="dkn-change-badge" style="display:none;position:fixed;top:14px;right:18px;z-index:9999;cursor:pointer" onclick="dknShowChangelog()" title="Drugs to Know &#8212; recent changes">
+<div id="dkn-change-badge" style="display:none;position:fixed;top:66px;right:18px;z-index:9999;cursor:pointer" onclick="dknShowChangelog()" title="Drugs to Know &#8212; recent changes">
   <div style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;box-shadow:0 2px 8px rgba(220,38,38,.5);border:2px solid #fff">!</div>
   <div id="dkn-badge-count" style="position:absolute;top:-6px;right:-6px;background:#1e3a5f;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 5px;min-width:18px;text-align:center"></div>
 </div>
-<div id="dkn-changelog-modal" style="display:none;position:fixed;top:60px;right:18px;z-index:9998;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:18px;min-width:320px;max-width:400px;border:1px solid #e2e8f0">
+<div id="dkn-changelog-modal" style="display:none;position:fixed;top:112px;right:18px;z-index:9998;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:18px;min-width:320px;max-width:400px;border:1px solid #e2e8f0">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span style="font-weight:700;font-size:14px;color:#1e3a5f">&#128138; Drugs to Know &#8212; Recent Changes</span>
     <button onclick="document.getElementById('dkn-changelog-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;line-height:1">&#215;</button>
