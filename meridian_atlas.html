@@ -58,7 +58,7 @@
 </head>
 <body>
 <header>
-  <h1 onclick="tab('stack')" style="cursor:pointer" title="Back to home (the stack)">◈ Meridian Atlas <span style="color:var(--mut);font-size:13px;font-weight:400">everything, connected — 2026-06-05</span></h1>
+  <h1 onclick="tab('stack')" style="cursor:pointer" title="Back to home (the stack)">◈ Meridian Atlas <span style="color:var(--mut);font-size:13px;font-weight:400">everything, connected — 2026-06-06</span></h1>
   <div class="sub">One display tying together the whole engagement: the system stack (sources → dashboard), the intelligence hierarchy (patient → deal), live health, security, data quality, the competitive graph, and a single consolidated <b>gap registry</b> — the backlog we burn down next.</div>
   <div class="links">
     <a href="./" style="border-color:var(--accent);color:var(--accent)">← Dashboard</a>
@@ -82,25 +82,25 @@
 const METRICS=[
   ['24','workflows','good'],['110','scripts (30 sched.)',''],['167','tables',''],['74','surfaced','warn'],
   ['27','workflows green','good'],['948','validation pass','good'],['0','unmapped visible drugs','good'],
-  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['19','deal edges','bad'],['22 fixed','12 open','good'],
+  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['79','deal edges','good'],['88%','edges verified','good'],['28','indications','good'],
 ];
 const LAYERS=[
   ['Sources','RSS · CT.gov · SEC · PubMed · pipeline pages','green','Ingestion'],
   ['Ingestion','research.py 2:00 ET + ct_gov_sync + news + monitor','green','runs before enrich — ordering gap'],
   ['Data layer','167 tables · 67 audit triggers · RLS reads restored','green','writes locked + 47 anon reads restored; alias-capture trigger live'],
   ['Enrich · Score · Validate','company_enrichment ×6 · scoring daily · 992/1000 ground-truth','green','event-chained; completeness catalog-wide; validation daily'],
-  ['Knowledge graph','entity_edges + relationships — 968 competitor / 19 deal','bad','100% inferred-unverified; deal layer sparse'],
+  ['Knowledge graph','entity_edges + relationships — 968 competitor / 79 deal','warn','competitor layer 0%→88% rule-verified; deal edges 19→79'],
   ['Synthesis','write_meridian → Meridian Issue (event-chained)','green','built on same-night verified+scored facts'],
-  ['Presentation','index.html dashboard + live health tile','warn','drug_sources + partnerships surfaced; Strategic Lens not yet folded in'],
+  ['Presentation','index.html dashboard + live health tile + review queue','green','drug_sources + partnerships surfaced; Lens→Atlas hub; read layer un-broken'],
   ['Strategic decisions','patient → indication → target → company → deal','warn','data thin at the two value-bearing ends'],
 ];
 const HIER=[ // level, dataDensity(0-100), note, color
-  ['Patient',18,'~17 of 50 indications have patient intel','#f472b6'],
-  ['Indication',12,'IBD scored on just 3 drugs (Ailux\'s own indication)','#fb923c'],
+  ['Patient',32,'28 indications have patient intel (was 17)','#f472b6'],
+  ['Indication',30,'patient intel now spans the Ailux-relevant indications','#fb923c'],
   ['Target',100,'TL1A: 57 assets, 296 internal competitive links','#f59e0b'],
   ['Molecule',85,'mechanism/format/stage strong (0% null core fields)','#a78bfa'],
   ['Company',70,'132 companies; ownership modeled but partner-thin','#38bdf8'],
-  ['Deal',16,'19 ownership/license edges total','#34d399'],
+  ['Deal',40,'79 ownership/license edges (materialized from deals/partnerships)','#34d399'],
 ];
 const GAPS=[
   // FIXED — 2026-06-05 session (Wave 0–2 + regression fixes)
@@ -125,20 +125,20 @@ const GAPS=[
   ['field_change_audit unbounded (~10k rows/day)','Data','MED','FIXED','fn_prune_field_change_audit(30d) + weekly Audit Retention workflow; governance + correction rows kept forever.'],
   ['field_consistency validator false positives','Validate','MED','FIXED','Bispecific target-counter only recognized "×"; now also x / spaced-x / compact AxB. Cleared 4 false warnings (eta1001, sm-101, ibi3002, xb3217).'],
   // OPEN — the remaining backlog
-  ['Indication/patient layer deepened (17→22)','Strategic','HIGH','MOSTLY','Added 5 sourced Ailux-relevant indications (Psoriasis, SLE, Asthma, HS, EoE) + fixed a dead search query (wrong column names) so patient intel actually surfaces. Ongoing collection, but core covered + visible.'],
+  ['Indication/patient layer deepened (17→28)','Strategic','HIGH','MOSTLY','Added 11 sourced Ailux-relevant indications (Psoriasis, SLE, Asthma, HS, EoE, PsA, Lupus Nephritis, COPD, CSU, CRSwNP, Sjogrens) + fixed the dead search query. Core covered + visible; ongoing.'],
   ['Deal-edge layer was sparse (19→79)','Graph','HIGH','FIXED','Materialized company_partnerships + asset_transfer_history + deals into entity_relationships as license/co-dev/ownership edges, each sourced. 19→79 deal edges. scripts/materialize_deal_edges.py + weekly workflow keep it current.'],
   ['Competitive relationships were 100% unverified','Graph','MED','MOSTLY','Rule-verification: edges whose two drugs share a confirmed disease area are confirmable facts. Competitor layer 0%→88% verified (verify_competitor_edges.py + daily wf); overall graph 0%→51%. 176 cross-area edges still need review.'],
   ['stage_trial_match: 53 warnings (China CDE registry)','Validate','MED','OPEN','~40 drugs have trials likely only in China\'s CDE registry, which we don\'t ingest. Add a CDE source. (All other validation warnings now cleared.)'],
   ['Some live-producer scripts still unscheduled','Ingestion','MED','OPEN','bd_recommender + landscape_briefing now scheduled (weekly); audit remaining producers for staleness.'],
   ['Orphan-writes: produced, read by nothing','Data','MED','OPEN','next_gen_rankings (movement arrows unwired), agent_disagreements, drug_development_timelines.'],
-  ['Three overlapping research scripts','Ingestion','MED','OPEN','research.py / research_intelligence.py / drug_intelligence_researcher.py — consolidate.'],
+  ['Three "overlapping" research scripts','Ingestion','MED','FIXED','Complementary not redundant — ingest → assess → deep-dive. Documented in docs/RESEARCH_SCRIPTS.md.'],
   ['Residual anon-write tables (drugs/discovery_queue/submitted_intel)','Data','MED','OPEN','Dashboard edit/submit UIs write via anon; move behind Supabase Auth to fully harden.'],
   ['Governance violations researched + fixed','Validate','MED','FIXED','lu-ag22515 (anti-CD40L SAFA, Lundbeck, Ph2 TED), mt-251 (3 misattributed trials removed), batoclimab (source attached) — all corrected with sources. Remaining flags (mechanism mismatches, obscure originators) now surface in the dashboard "Needs Your Review" queue.'],
   ['drugs table ~120 columns, overlapping fields','Data','LOW','OPEN','5 ownership + 4 modality fields. Pick canonical per concept, deprecate duplicates.'],
   ['field_change_audit ~60k rows, no retention','Data','LOW','FIXED','fn_prune_field_change_audit(30d) + weekly Audit Retention workflow; governance/correction rows kept forever.'],
   ['Python version drift (3.11 vs 3.12)','Health','LOW','OPEN','Standardize now that monitoring exists.'],
   ['Flywheel option 2 (fine-tune) open','Enrich','LOW','OPEN','Hints (opt 1) shipped; model fine-tune on JSONL pairs unwired.'],
-  ['Flagged validation tests (jnj-tcell, amgen-fcrn)','Validate','LOW','OPEN','No supporting asset in drug_areas — add the asset or retire the test.'],
+  ['Flagged validation tests (jnj-tcell, amgen-fcrn)','Validate','LOW','FIXED','J&J added to tcell (real TCE platform); Amgen spurious fcrn profile removed (no FcRn asset). 0 validation tests failing.'],
 ];
 // ── render ──────────────────────────────────────────────────────────────────
 const LCOL={'Sources':'var(--ingest)','Ingestion':'var(--ingest)','Data layer':'var(--enrich)','Enrich · Score · Validate':'var(--score)','Knowledge graph':'var(--graph)','Synthesis':'var(--present)','Presentation':'var(--present)','Strategic decisions':'var(--strat)'};
