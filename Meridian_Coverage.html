@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Coverage Atlas</title>
+<style>
+  :root{color-scheme:light; --ink:#0f1f33; --slate:#41566e; --muted:#7286a0; --line:#e2e9f3;
+    --bg:#f4f7fb; --card:#fff; --accent:#1f6feb; --accent2:#13b5a6; --good:#1f9d6b; --warn:#d9822b; --bad:#d64545; --soft:#eef4fc;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 64px}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  h1{font-size:24px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--slate);font-size:14px}
+  .ns{color:var(--accent);font-weight:600}
+  .stamp{color:var(--muted);font-size:12px}
+  .bar{height:4px;width:60px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));margin:10px 0 20px}
+  .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:8px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .tile .n{font-size:20px;font-weight:750;letter-spacing:-.02em}
+  .tile .l{font-size:10.5px;color:var(--muted);margin-top:2px}
+  h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:28px 0 12px;border-bottom:1px solid var(--line);padding-bottom:7px;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .pad{padding:14px 16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;background:var(--card)}
+  tr:last-child td{border-bottom:none}
+  .scroll{max-height:420px;overflow:auto}
+  .pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .ok{background:#e6f5ee;color:var(--good)} .pt{background:#fbe9d8;color:var(--warn)} .ms{background:#fbe0e0;color:var(--bad)}
+  .mo{background:#e7f0fe;color:var(--accent)}
+  .muted{color:var(--muted)}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .hm{width:100%;border-collapse:separate;border-spacing:3px;font-size:12px}
+  .hm th{position:static;background:transparent;border:none;padding:4px 6px}
+  .hm td{border:none;border-radius:6px;text-align:center;padding:9px 4px;font-weight:700;cursor:pointer;min-width:64px}
+  .hm td.rowh{text-align:left;background:transparent;font-weight:600;color:var(--slate);cursor:default;font-size:12.5px}
+  .hm td.na{background:#f1f4f8;color:#c2ccd9;font-weight:400;cursor:default}
+  input.search{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;outline:none}
+  input.search:focus{border-color:var(--accent)}
+  .attr-chip{display:inline-block;margin:2px 3px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--line)}
+  .attr-chip.f{background:#e6f5ee;color:var(--good);border-color:#bfe6d4}
+  .attr-chip.u{background:#fbe0e0;color:var(--bad);border-color:#f3c6c6}
+  .attr-chip.x{background:#f1f4f8;color:var(--muted)}
+  .dom-block{margin-bottom:10px}
+  .dom-block .dn{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin:8px 0 3px}
+  .legend{font-size:11px;color:var(--muted);margin-top:8px}
+  .big{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .dict-item{padding:10px 0;border-bottom:1px solid var(--line)}
+  .dict-item:last-child{border-bottom:none}
+  .dict-item .t{font-weight:700;font-size:13.5px}
+  .dict-item .d{font-size:13px;color:var(--slate);margin-top:2px}
+  .dict-item .e{font-size:12px;color:var(--muted);margin-top:2px;font-style:italic}
+  @media(max-width:980px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Meridian — Coverage Atlas</h1>
+      <div class="sub">What Meridian knows, what it should know at each phase, and how it compares to paid platforms · anchored to the <span class="ns">100Q frame</span>: Molecule · Clinical · Patient · Payer · Competitive · Regulatory · IP · Strategic BD</div>
+    </div>
+    <div class="stamp" id="stamp">loading live data…</div>
+  </header>
+  <div class="bar"></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Completeness heatmap — % of phase-expected attributes filled (8 domains × development phase)</h2>
+  <div class="card pad">
+    <div class="muted" style="font-size:12.5px;margin-bottom:8px">Phase-conditional: a preclinical asset is only measured on attributes expected at preclinical. A cell shows <b>filled ÷ expected</b> across all drugs at that phase. Click any cell to see which attributes drive the gap.</div>
+    <div style="overflow-x:auto"><table class="hm" id="heatmap"><tbody><tr><td class="muted">loading…</td></tr></tbody></table></div>
+    <div class="legend">Cell color: <span class="pill ok">≥75%</span> <span class="pill pt">40–74%</span> <span class="pill ms">&lt;40%</span> · grey = not expected at that phase</div>
+    <div id="cell-detail" style="margin-top:12px"></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Collection priority queue — biggest expected-but-missing gaps</h2>
+      <div class="card"><div class="scroll"><table id="gaps"><thead><tr><th>Attribute</th><th>Domain</th><th>Missing / expected</th><th>%</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Molecule lookup — any molecule × any attribute</h2>
+      <div class="card pad">
+        <input class="search" id="drugsearch" placeholder="Type a molecule name… (e.g. tulisokibart)" autocomplete="off">
+        <div id="drugresult" class="muted" style="margin-top:10px;font-size:13px">Search any molecule to see exactly which tracked attributes are filled (green), expected-but-missing (red), or not yet expected at its phase (grey).</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="alex">The benchmark case — Meridian vs paid platforms (Citeline / Evaluate class)</h2>
+  <div class="grid2">
+    <div class="card pad">
+      <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">Computed coverage of paid-platform modules</div>
+      <div class="big" id="citeline-pct">…</div>
+      <div class="muted" style="font-size:12.5px" id="citeline-note"></div>
+      <div style="margin-top:10px" id="citeline-bars"></div>
+      <div class="legend" style="margin-top:10px">Computed from the data dictionary: each attribute mapped to the paid-platform module it overlaps, scored have=1 / partial=0.5 / missing=0. Not a guess — recomputes as coverage improves.</div>
+    </div>
+    <div class="card pad">
+      <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">What no subscription can do</div>
+      <div style="font-size:13.5px;margin-top:8px" id="meridian-only"></div>
+      <div class="muted" style="font-size:12.5px;margin-top:10px">
+        Paid platforms sell the same database to every subscriber. Meridian's <span class="ns">Ailux-relative layer</span> — overlap classification, deal-sequencing constraints, vs-Ailux reads, the BD angle on every asset, and the Patient → Indication → Target → Company hierarchy — cannot be bought, because it only exists relative to Ailux's own pipeline.
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="scroll"><table id="citeline-table"><thead><tr><th>Paid-platform module</th><th>Meridian attribute</th><th>Status</th><th>Honest note</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
+
+  <h2>What's inside Meridian — the data dictionary, in plain language</h2>
+  <div class="muted" style="font-size:13px;margin:-4px 0 12px">Every type of information the platform tracks for a molecule, what it means, and a real example. No database knowledge needed — this is the platform's table of contents.</div>
+  <div class="grid2" id="dict"></div>
+
+  <p class="stamp" style="margin-top:22px">Live from the Meridian Supabase backend · read-only (RLS anon) · completeness recomputed by scripts/compute_attribute_completeness.py · taxonomy: data_dictionary table (v123)</p>
+</div>
+
+<script>
+const SB="https://tghntyofptvfhmtchwcv.supabase.co/rest/v1";
+const KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const H={apikey:KEY,Authorization:"Bearer "+KEY};
+const esc=s=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function allRows(q){let out=[],off=0,page=1000;for(;;){const r=await fetch(SB+q,{headers:{...H,Range:off+"-"+(off+page-1),"Range-Unit":"items"}});if(!r.ok)throw new Error(r.status);const c=await r.json();out=out.concat(c);if(c.length<page)return out;off+=page;}}
+const PH=["Preclinical","Phase 1","Phase 2","Phase 3","Filed","Approved"];
+const DOMS=["Molecule","Clinical","Patient","Payer","Competitive","Regulatory","IP","Strategic BD"];
+const pct=(f,e)=>e?Math.round(100*f/e):null;
+const cellStyle=p=>{if(p==null)return"";const c=p>=75?"31,157,107":p>=40?"217,130,43":"214,69,69";const a=.12+.5*(p>=75?(p-75)/25:p>=40?(p-40)/35:(40-p)/40);return`background:rgba(${c},${Math.min(a,.6).toFixed(2)});color:${p>=75?"var(--good)":p>=40?"var(--warn)":"var(--bad)"}`;};
+
+let DICT=[],COMP=[];
+
+(async()=>{
+  try{
+    [DICT,COMP]=await Promise.all([
+      allRows("/data_dictionary?select=*&order=sort_order"),
+      allRows("/attribute_completeness?select=drug_id,drug_name,stage,stage_rank,attribute_key,domain,expected,filled")
+    ]);
+  }catch(e){document.getElementById("stamp").textContent="data unavailable — open in a browser with internet";return;}
+  document.getElementById("stamp").textContent="live · "+new Date().toLocaleString();
+  const byKey={};DICT.forEach(d=>byKey[d.attribute_key]=d);
+
+  // ---- tiles
+  const drugs=new Set(COMP.map(r=>r.drug_id));
+  const expRows=COMP.filter(r=>r.expected&&r.stage_rank!=null);
+  const fillRows=expRows.filter(r=>r.filled);
+  const mo=DICT.filter(d=>d.citeline_module==="Meridian-only").length;
+  const bench=DICT.filter(d=>d.citeline_module!=="Meridian-only");
+  const score=bench.reduce((s,d)=>s+(d.benchmark_status==="have"?1:d.benchmark_status==="partial"?.5:0),0);
+  const cpct=Math.round(100*score/bench.length);
+  document.getElementById("tiles").innerHTML=[
+    [DICT.length,"Attributes tracked"],[drugs.size,"Molecules measured"],
+    [pct(fillRows.length,expRows.length)+"%","Phase-expected facts filled"],
+    [cpct+"%","Paid-platform overlap covered"],[mo,"Meridian-only attributes"]
+  ].map(t=>`<div class="tile"><div class="n">${t[0]}</div><div class="l">${t[1]}</div></div>`).join("");
+
+  // ---- heatmap
+  const agg={};
+  expRows.forEach(r=>{const k=r.domain+"|"+r.stage_rank;agg[k]=agg[k]||[0,0];agg[k][0]++;if(r.filled)agg[k][1]++;});
+  let h="<tr><th></th>"+PH.map(p=>"<th>"+p+"</th>").join("")+"</tr>";
+  DOMS.forEach(dm=>{
+    h+="<tr><td class='rowh'>"+dm+"</td>";
+    for(let s=0;s<6;s++){const a=agg[dm+"|"+s];const p=a?pct(a[1],a[0]):null;
+      h+=p==null?"<td class='na'>—</td>":`<td style="${cellStyle(p)}" data-dom="${dm}" data-rank="${s}">${p}%</td>`;}
+    h+="</tr>";});
+  document.getElementById("heatmap").innerHTML=h;
+  document.getElementById("heatmap").addEventListener("click",e=>{
+    const td=e.target.closest("td[data-dom]");if(!td)return;
+    const dm=td.dataset.dom,s=+td.dataset.rank;
+    const rs=expRows.filter(r=>r.domain===dm&&r.stage_rank===s);
+    const per={};rs.forEach(r=>{per[r.attribute_key]=per[r.attribute_key]||[0,0];per[r.attribute_key][0]++;if(r.filled)per[r.attribute_key][1]++;});
+    const list=Object.entries(per).map(([k,v])=>({k,e:v[0],f:v[1],p:pct(v[1],v[0])})).sort((a,b)=>a.p-b.p);
+    document.getElementById("cell-detail").innerHTML=
+      `<div class="muted" style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(dm)} × ${PH[s]} — attribute fill rates (worst first)</div>`+
+      list.map(x=>`<span class="attr-chip ${x.p>=75?"f":"u"}">${esc(byKey[x.k]?byKey[x.k].display_name:x.k)} ${x.p}% (${x.f}/${x.e})</span>`).join("");
+  });
+
+  // ---- gap queue
+  const gq={};
+  expRows.forEach(r=>{gq[r.attribute_key]=gq[r.attribute_key]||[0,0];gq[r.attribute_key][0]++;if(!r.filled)gq[r.attribute_key][1]++;});
+  const gaps=Object.entries(gq).map(([k,v])=>({k,e:v[0],m:v[1],p:pct(v[0]-v[1],v[0])})).filter(x=>x.m>0).sort((a,b)=>b.m-a.m).slice(0,20);
+  document.querySelector("#gaps tbody").innerHTML=gaps.map(x=>{const d=byKey[x.k]||{};
+    return `<tr><td><b>${esc(d.display_name||x.k)}</b></td><td class="muted">${esc(d.domain||"")}</td><td>${x.m} / ${x.e}</td><td><span class="pill ${x.p>=75?"ok":x.p>=40?"pt":"ms"}">${x.p}% filled</span></td></tr>`;}).join("");
+
+  // ---- molecule lookup
+  const byDrug={};COMP.forEach(r=>{(byDrug[r.drug_id]=byDrug[r.drug_id]||{name:r.drug_name,stage:r.stage,rank:r.stage_rank,rows:[]}).rows.push(r);});
+  const names=Object.entries(byDrug).map(([id,d])=>({id,n:(d.name||id).toLowerCase()}));
+  document.getElementById("drugsearch").addEventListener("input",e=>{
+    const q=e.target.value.trim().toLowerCase();const out=document.getElementById("drugresult");
+    if(q.length<2){out.innerHTML="Keep typing…";return;}
+    const hits=names.filter(x=>x.n.includes(q)||x.id.includes(q)).slice(0,5);
+    if(!hits.length){out.innerHTML="No molecule matches.";return;}
+    out.innerHTML=hits.map(hit=>{
+      const d=byDrug[hit.id];
+      const exp=d.rows.filter(r=>r.expected),got=exp.filter(r=>r.filled);
+      let html=`<div style="margin-bottom:14px"><b>${esc(d.name||hit.id)}</b> <span class="muted">· ${esc(d.stage||"?")} · ${got.length}/${exp.length} expected attributes filled (${pct(got.length,exp.length)??"—"}%)</span>`;
+      DOMS.forEach(dm=>{
+        const rs=d.rows.filter(r=>r.domain===dm);if(!rs.length)return;
+        html+=`<div class="dom-block"><div class="dn">${dm}</div>`+rs.map(r=>{
+          const nm=byKey[r.attribute_key]?byKey[r.attribute_key].display_name:r.attribute_key;
+          const cls=!r.expected?"x":r.filled?"f":"u";
+          return `<span class="attr-chip ${cls}" title="${esc(byKey[r.attribute_key]?byKey[r.attribute_key].plain_description:"")}">${esc(nm)}</span>`;}).join("")+"</div>";});
+      return html+"</div>";}).join("");
+  });
+
+  // ---- citeline comparison
+  const mods={};
+  bench.forEach(d=>{(mods[d.citeline_module]=mods[d.citeline_module]||[]).push(d);});
+  document.getElementById("citeline-pct").textContent=cpct+"%";
+  document.getElementById("citeline-note").textContent=`of the ${bench.length} attribute types that overlap paid-platform modules (${DICT.length} tracked total, ${mo} Meridian-only)`;
+  document.getElementById("citeline-bars").innerHTML=Object.entries(mods).map(([m,as])=>{
+    const s=as.reduce((x,d)=>x+(d.benchmark_status==="have"?1:d.benchmark_status==="partial"?.5:0),0);
+    const p=Math.round(100*s/as.length);
+    return `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${esc(m)}</span><b>${p}%</b></div><div style="height:6px;border-radius:4px;background:#eef1f5"><div style="height:6px;border-radius:4px;width:${p}%;background:${p>=75?"var(--good)":p>=40?"var(--warn)":"var(--bad)"}"></div></div></div>`;}).join("");
+  document.getElementById("meridian-only").innerHTML=DICT.filter(d=>d.citeline_module==="Meridian-only")
+    .map(d=>`<span class="attr-chip mo" title="${esc(d.plain_description)}">${esc(d.display_name)}</span>`).join("")||"—";
+  const st=s=>s==="have"?'<span class="pill ok">have</span>':s==="partial"?'<span class="pill pt">partial</span>':'<span class="pill ms">missing</span>';
+  document.querySelector("#citeline-table tbody").innerHTML=bench
+    .sort((a,b)=>(a.citeline_module||"").localeCompare(b.citeline_module||"")||(a.sort_order-b.sort_order))
+    .map(d=>`<tr><td class="muted">${esc(d.citeline_module)}</td><td><b>${esc(d.display_name)}</b></td><td>${st(d.benchmark_status)}</td><td class="muted">${esc(d.benchmark_note||"")}</td></tr>`).join("");
+
+  // ---- plain-language dictionary
+  document.getElementById("dict").innerHTML=DOMS.map(dm=>{
+    const as=DICT.filter(d=>d.domain===dm);
+    return `<div class="card pad"><div class="dn" style="font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)">${dm}</div>`+
+      as.map(d=>`<div class="dict-item"><div class="t">${esc(d.display_name)}${d.citeline_module==="Meridian-only"?' <span class="pill mo">Meridian-only</span>':""}</div><div class="d">${esc(d.plain_description)}</div><div class="e">e.g. ${esc(d.example_text||"")}</div></div>`).join("")+"</div>";}).join("");
+})();
+</script>
+</body>
+</html>
