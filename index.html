@@ -1738,7 +1738,17 @@ a.intel-src { font-size: 11px; padding: 2px 8px; margin-left: 10px; }
 .header-gs-clear:hover { color: white; }
 mark.search-hl { background: #ffe566; color: #1a2f50; border-radius: 2px; padding: 0 1px; font-style: normal; }
 mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2px; padding: 0 1px; }
-.gs-sb-panel { display: none; position: absolute; top: calc(100% + 6px); left: -10px; right: -10px; background: #0f2340; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 3000; max-height: 460px; overflow-y: auto; }
+.gs-sb-panel { display: none; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); width: min(760px, 92vw); background: #0f2340; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 3000; max-height: 72vh; overflow-y: auto; }
+/* search dropdown category groups (Kyle 2026-06-07): collapsible, counts visible, relevance-sorted */
+.gs-grp { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.gs-grp summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: rgba(255,255,255,0.75); user-select: none; }
+.gs-grp summary::-webkit-details-marker { display: none; }
+.gs-grp summary:hover { background: rgba(255,255,255,0.05); }
+.gs-grp summary .gs-grp-car { font-size: 9px; color: #7cb9ff; transition: transform .12s; }
+.gs-grp[open] summary .gs-grp-car { transform: rotate(90deg); }
+.gs-grp summary .gs-grp-cnt { margin-left: auto; background: rgba(46,111,176,0.35); color: #7cb9ff; font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 9px; }
+a.gs-sb-item { display: block; text-decoration: none; color: inherit; }
+a.gs-sb-item:hover .gs-sb-headline { color: #7cb9ff; }
 .gs-sb-nav-pill { display:inline-block;background:rgba(46,111,176,0.35);color:#7cb9ff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto;white-space:nowrap; }
 .gs-sb-src { color:#60a5fa;font-size:10px;margin-left:5px;text-decoration:none;opacity:0.75; } .gs-sb-src:hover { opacity:1; }
 .gs-sb-meta { display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
@@ -32627,6 +32637,8 @@ function _gsShortDate(dateStr) {
 }
 
 async function _gsSbSearch(term) {
+  // Rebuilt 2026-06-07 (Kyle): collapsible categories, relevance-sorted, every row
+  // opens its stored web source directly; drugs/companies open their in-app cards.
   var panel = document.getElementById('gs-sb-panel');
   if (!panel) return;
   if (!term || term.length < 2) { panel.style.display = 'none'; return; }
@@ -32635,390 +32647,203 @@ async function _gsSbSearch(term) {
   panel.style.display = 'block';
   try {
     var results = await Promise.all([
-      _sb.from('companies')
-        .select('id,name,ticker,company_type,geography,status')
-        .neq('status','acquired')
-        .or('name.ilike.%' + esc + '%,ticker.ilike.%' + esc + '%')
-        .order('name', { ascending: true }).limit(6),
-      _sb.from('drugs')
-        .select('id,name,display_name,stage,mechanism,company_id')
-        .or('name.ilike.%' + esc + '%,display_name.ilike.%' + esc + '%,mechanism.ilike.%' + esc + '%')
-        .order('name', { ascending: true }).limit(5),
-      _sb.from('intel')
-        .select('id,intel_date,headline,intel_type,importance,source_url,intel_areas(area_id,target_id)')
+      _sb.from('companies').select('id,name,ticker,company_type,geography,status')
+        .neq('status','acquired').or('name.ilike.%' + esc + '%,ticker.ilike.%' + esc + '%').limit(8),
+      _sb.from('drugs').select('id,name,display_name,stage,mechanism,company_id,source_url,canonical_drug_id')
+        .or('name.ilike.%' + esc + '%,display_name.ilike.%' + esc + '%,mechanism.ilike.%' + esc + '%').limit(8),
+      _sb.from('intel').select('id,intel_date,headline,intel_type,importance,source_url')
         .or('headline.ilike.%' + esc + '%,body.ilike.%' + esc + '%')
-        .order('intel_date', { ascending: false }).limit(5),
-      _sb.from('deals')
-        .select('id,deal_date,headline,from_company,to_company,area_id,deal_type,total_usd_m,source_url')
+        .order('intel_date', { ascending: false }).limit(8),
+      _sb.from('deals').select('id,deal_date,headline,from_company,to_company,deal_type,total_usd_m,source_url')
         .or('headline.ilike.%' + esc + '%,detail.ilike.%' + esc + '%,from_company.ilike.%' + esc + '%,to_company.ilike.%' + esc + '%')
-        .order('deal_date', { ascending: false }).limit(4),
-      _sb.from('catalysts')
-        .select('id,catalyst_date,label,company_id,area_id,significance')
-        .eq('resolved', false)
-        .or('label.ilike.%' + esc + '%,notes.ilike.%' + esc + '%')
-        .order('sort_date', { ascending: true }).limit(4),
-      _sb.from('indications')
-        .select('id,name,abbreviation,disease_area')
-        .or('name.ilike.%' + esc + '%,abbreviation.ilike.%' + esc + '%')
-        .order('name', { ascending: true }).limit(4),
-      _sb.from('news_articles')
-        .select('id,headline,article_url,source_name,published_at,meridian_summary,why_it_matters,relevance_score')
+        .order('deal_date', { ascending: false }).limit(8),
+      _sb.from('catalysts').select('id,catalyst_date,label,significance,source_url')
+        .eq('resolved', false).or('label.ilike.%' + esc + '%,notes.ilike.%' + esc + '%')
+        .order('sort_date', { ascending: true }).limit(8),
+      _sb.from('indications').select('id,name,abbreviation,disease_area')
+        .or('name.ilike.%' + esc + '%,abbreviation.ilike.%' + esc + '%').limit(6),
+      _sb.from('news_articles').select('id,headline,article_url,source_name,published_at,relevance_score')
         .or('headline.ilike.%' + esc + '%,meridian_summary.ilike.%' + esc + '%')
         .neq('source_validation_status','invalid')
-        .order('published_at', { ascending: false }).limit(8),
-      _sb.from('indication_patient_intelligence')
-        .select('indication_name,patient_count_us,unmet_need_narrative,why_it_matters')
-        .ilike('indication_name', '%' + esc + '%')
-        .limit(3),
-      // Wave 2d: match prior/code names via drug_aliases (e.g. "AMG 729" → obexelimab)
-      _sb.from('drug_aliases')
-        .select('canonical_id,alias_name')
-        .ilike('alias_name', '%' + esc + '%')
-        .limit(8),
-      // Kyle 2026-06-07: search EVERYTHING — targets, papers, abstracts, conclusions, grants
-      _sb.from('targets')
-        .select('id,symbol,name,target_class')
-        .or('symbol.ilike.%' + esc + '%,name.ilike.%' + esc + '%')
-        .limit(4),
-      _sb.from('publications')
-        .select('id,title,journal,pub_year,doi,url,cited_by_count')
+        .order('published_at', { ascending: false }).limit(10),
+      _sb.from('drug_aliases').select('canonical_id,alias_name')
+        .ilike('alias_name', '%' + esc + '%').limit(10),
+      _sb.from('targets').select('id,symbol,name,target_class')
+        .or('symbol.ilike.%' + esc + '%,name.ilike.%' + esc + '%').limit(6),
+      _sb.from('publications').select('id,title,journal,pub_year,doi,url,cited_by_count')
         .ilike('title', '%' + esc + '%')
-        .order('cited_by_count', { ascending: false, nullsFirst: false }).limit(4),
-      _sb.from('conference_abstracts')
-        .select('id,title,conference,conference_year,doi,source_url')
-        .ilike('title', '%' + esc + '%')
-        .order('conference_year', { ascending: false }).limit(4),
-      _sb.from('strategic_insights')
-        .select('id,title,detail,insight_type,created_at')
+        .order('cited_by_count', { ascending: false, nullsFirst: false }).limit(8),
+      _sb.from('conference_abstracts').select('id,title,conference,conference_year,doi,source_url')
+        .ilike('title', '%' + esc + '%').order('conference_year', { ascending: false }).limit(8),
+      _sb.from('strategic_insights').select('id,title,detail,insight_type,created_at')
         .or('title.ilike.%' + esc + '%,detail.ilike.%' + esc + '%')
-        .order('created_at', { ascending: false }).limit(4),
-      _sb.from('grants')
-        .select('id,title,agency,fiscal_year,award_amount,project_url,source_url')
-        .ilike('title', '%' + esc + '%')
-        .order('fiscal_year', { ascending: false }).limit(4),
+        .order('created_at', { ascending: false }).limit(8),
+      _sb.from('grants').select('id,title,agency,fiscal_year,award_amount,project_url,source_url')
+        .ilike('title', '%' + esc + '%').order('fiscal_year', { ascending: false }).limit(8),
+      _sb.from('trial_facts').select('nct_id,title,phase,status,source_url')
+        .or('title.ilike.%' + esc + '%,nct_id.ilike.%' + esc + '%')
+        .limit(8),
+      _sb.from('kols').select('id,name,specialty')
+        .ilike('name', '%' + esc + '%').limit(6),
+      _sb.from('company_events').select('id,event_summary,event_type,filing_date,source_url')
+        .ilike('event_summary', '%' + esc + '%')
+        .order('filing_date', { ascending: false }).limit(8),
+      _sb.from('indication_patient_intelligence').select('indication_name,patient_count_us,unmet_need_narrative')
+        .ilike('indication_name', '%' + esc + '%').limit(4),
     ]);
+    var D = results.map(function(r) { return (r && r.data) || []; });
+    var cos=D[0], drugs=D[1], intel=D[2], deals=D[3], cats=D[4], indics=D[5], news=D[6],
+        aliases=D[7], tgts=D[8], pubs=D[9], confAbs=D[10], insights=D[11], grants2=D[12],
+        trials=D[13], kolHits=D[14], secEvts=D[15], patIntel=D[16];
 
-    var cos      = results[0].data  || [];
-    var drugs    = results[1].data  || [];
-    var intel    = results[2].data  || [];
-    var deals    = results[3].data  || [];
-    var cats     = results[4].data  || [];
-    var indics   = results[5].data  || [];
-    var newsArts = results[6].data  || [];
-    var patIntel = results[7].data  || [];
-    var aliasHits = results[8] && results[8].data || [];
-    var tgts     = results[9]  && results[9].data  || [];
-    var pubs     = results[10] && results[10].data || [];
-    var confAbs  = results[11] && results[11].data || [];
-    var insights = results[12] && results[12].data || [];
-    var grantHits= results[13] && results[13].data || [];
-
-    // ── Wave 2d: resolve alias hits → drugs, merge in (so "AMG 729" finds obexelimab) ──
+    // alias hits → resolve to drugs not already matched
     try {
-      var haveCanon = {};
-      drugs.forEach(function(dd){ if (dd.canonical_drug_id) haveCanon[dd.canonical_drug_id] = 1; });
-      var wantCanon = [];
-      aliasHits.forEach(function(a){ if (a.canonical_id && !haveCanon[a.canonical_id] && wantCanon.indexOf(a.canonical_id) < 0) wantCanon.push(a.canonical_id); });
-      if (wantCanon.length) {
-        var aliasMap = {};
-        aliasHits.forEach(function(a){ if (!aliasMap[a.canonical_id]) aliasMap[a.canonical_id] = a.alias_name; });
-        var aRes = await _sb.from('drugs')
-          .select('id,name,display_name,stage,mechanism,company_id,canonical_drug_id,dashboard_visible')
-          .in('canonical_drug_id', wantCanon).neq('dashboard_visible', false).limit(5);
-        (aRes.data || []).forEach(function(dd){
-          if (drugs.some(function(x){ return x.id === dd.id; })) return;
-          dd._aliasHit = aliasMap[dd.canonical_drug_id] || null;  // the matched prior/code name
-          drugs.push(dd);
-        });
-        drugs = drugs.slice(0, 8);
+      var haveC = {}; drugs.forEach(function(x){ if (x.canonical_drug_id) haveC[x.canonical_drug_id]=1; });
+      var want = []; var aMap = {};
+      aliases.forEach(function(a){ if (a.canonical_id && !haveC[a.canonical_id]) { if (want.indexOf(a.canonical_id)<0) want.push(a.canonical_id); if (!aMap[a.canonical_id]) aMap[a.canonical_id]=a.alias_name; } });
+      if (want.length) {
+        var aRes = await _sb.from('drugs').select('id,name,display_name,stage,mechanism,company_id,source_url,canonical_drug_id')
+          .in('canonical_drug_id', want).limit(6);
+        (aRes.data||[]).forEach(function(dd){ if (!drugs.some(function(x){return x.id===dd.id;})) { dd._aliasHit = aMap[dd.canonical_drug_id]; drugs.push(dd); } });
       }
-    } catch(e) { /* alias merge is best-effort */ }
+    } catch(e) {}
 
-    // ── KF taglines (hardcoded for speed) ────────────────────────────────
-    var _KF_TAGLINES = {
-      'tl1a':      'The cytokine at the center of IBD',
-      'il23':      'Selective p19 inhibition across immune diseases',
-      'ibd':       'Crohn\'s & UC — the bispecific frontier',
-      'uc':        'Ulcerative colitis competitive landscape',
-      'cd':        'Crohn\'s disease competitive landscape',
-      'atopy':     'IL-4Rα / TSLP atopic dermatitis landscape',
-      'ted':       'IGF-1R × TSHR thyroid eye disease',
-      'fcrn':      'Neonatal Fc receptor — IgG reduction platform',
-      'ra':        'Rheumatoid arthritis competitive intelligence',
-      'mg':        'Myasthenia gravis — FcRn & complement landscape',
-      'cidp':      'Chronic inflammatory demyelinating polyneuropathy',
-      'graves':    'Graves\' disease — emerging biologic space',
-      'bispecific':'Bispecific antibody platform landscape',
-    };
+    var tl = term.toLowerCase();
+    function mScore(text) {  // how well the visible text matches the query
+      var s = (text||'').toLowerCase(); var i = s.indexOf(tl);
+      if (i < 0) return 0.2;          // matched on a hidden field (body/detail)
+      if (i === 0) return 3;
+      return /\W/.test(s.charAt(i-1)) ? 2 : 1;
+    }
+    var re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+    function hl(s) { return (s||'').replace(/</g,'&lt;').replace(re, function(m){ return '<mark class="gs-hl">'+m+'</mark>'; }); }
+    function meta(parts) { return '<div class="gs-sb-meta">' + parts.filter(Boolean).join('') + '</div>'; }
+    function badge(t, c) { return t ? '<span class="gs-sb-badge" style="background:'+(c||'rgba(255,255,255,0.1)')+';color:rgba(255,255,255,0.75)">'+t+'</span>' : ''; }
+    function span(t) { return t ? '<span>'+t+'</span>' : ''; }
 
-    // ── Also check Knowledge Folder chips (area slugs) client-side ───────
-    var kfAreas = [
-      {slug:'tl1a',      label:'TL1A', aliases:['tl1a'], icon:'🦠'},
-      {slug:'il23',      label:'IL-23', aliases:['il23','il-23'], icon:'🔬'},
-      {slug:'ibd',       label:'IBD / Inflammatory Bowel Disease', aliases:['ibd','inflammatory bowel'], icon:'💊'},
-      {slug:'uc',        label:'UC / Ulcerative Colitis', aliases:['uc','ulcerative colitis'], icon:'🩺'},
-      {slug:'cd',        label:'CD / Crohn\'s Disease', aliases:['cd','crohn'], icon:'🩺'},
-      {slug:'atopy',     label:'Atopy / Atopic Dermatitis', aliases:['atopy','atopic','atd'], icon:'🌡️'},
-      {slug:'ted',       label:'TED / Thyroid Eye Disease', aliases:['ted','thyroid eye'], icon:'👁️'},
-      {slug:'fcrn',      label:'FcRn', aliases:['fcrn'], icon:'🧬'},
-      {slug:'ra',        label:'RA / Rheumatoid Arthritis', aliases:['ra','rheumatoid'], icon:'🦴'},
-      {slug:'mg',        label:'MG / Myasthenia Gravis', aliases:['mg','gmg','myasthenia'], icon:'💪'},
-      {slug:'cidp',      label:'CIDP / Demyelinating Polyneuropathy', aliases:['cidp','demyelinating'], icon:'🧠'},
-      {slug:'graves',    label:'Graves\' Disease', aliases:['graves'], icon:'🦋'},
-      {slug:'bispecific',label:'Bispecific Antibodies', aliases:['bispecific','bisp'], icon:'⚡'},
-    ];
-    var t_lc = term.toLowerCase().trim();
-    var matchedAreas = kfAreas.filter(function(a) {
-      return a.aliases.some(function(alias) { return alias.includes(t_lc) || t_lc.includes(alias); }) ||
-             a.label.toLowerCase().includes(t_lc) || a.slug.toLowerCase().includes(t_lc);
-    });
+    // every item: {score, url (direct web source) OR nav (in-app card), inner html}
+    var groups = [];
+    function grp(label, items) {
+      items = items.filter(Boolean).sort(function(a,b){ return b.score - a.score; });
+      if (items.length) groups.push({ label: label, items: items, top: items[0].score });
+    }
 
-    var hasResults = cos.length || drugs.length || intel.length || deals.length ||
-                     cats.length || indics.length || matchedAreas.length || newsArts.length || patIntel.length;
-    if (!hasResults) {
+    grp('Drugs', drugs.map(function(d){
+      var label = d.display_name || d.name;
+      return { score: mScore(label) + mScore(d.name) * 0.5 + (d._aliasHit ? 1.5 : 0),
+        nav: { gtype:'drug', id:d.id, name:label }, srcUrl: d.source_url || '',
+        inner: '<div class="gs-sb-headline">'+hl(label)+(d._aliasHit?' <span class="gs-sb-badge" style="background:rgba(124,185,255,0.2);color:#7cb9ff">aka '+hl(d._aliasHit)+'</span>':'')+'</div>'+
+               meta([badge(d.stage), span(hl(d.mechanism||'')), span(d.company_id||''), '<span class="gs-sb-nav-pill">→ drug card</span>']) };
+    }));
+    grp('Companies', cos.map(function(c){
+      return { score: mScore(c.name) + (c.ticker && c.ticker.toLowerCase()===tl ? 2 : 0),
+        nav: { gtype:'company', id:c.id, name:c.name },
+        inner: '<div class="gs-sb-headline">'+hl(c.name)+(c.ticker?' <span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+c.ticker+'</span>':'')+'</div>'+
+               meta([span(c.company_type||''), span(c.geography||''), '<span class="gs-sb-nav-pill">→ company card</span>']) };
+    }));
+    grp('Targets', tgts.map(function(t){
+      return { score: mScore(t.symbol) * 1.2 + mScore(t.name) * 0.5,
+        inner: '<div class="gs-sb-headline">'+hl(t.symbol||t.name)+'</div>'+meta([span(hl(t.name||'')), badge(t.target_class)]) };
+    }));
+    grp('Disease Areas', indics.map(function(x){
+      return { score: mScore(x.name) + mScore(x.abbreviation),
+        inner: '<div class="gs-sb-headline">'+hl(x.name)+(x.abbreviation?' ('+hl(x.abbreviation)+')':'')+'</div>'+meta([span(x.disease_area||'')]) };
+    }));
+    grp('News', news.map(function(n){
+      return { score: mScore(n.headline) + (n.relevance_score||0)/100,
+        url: n.article_url,
+        inner: '<div class="gs-sb-headline">'+hl(n.headline)+'</div>'+
+               meta([badge(_gsSourceLabel(n.article_url||''),'rgba(46,111,176,0.35)'), span(_gsShortDate(n.published_at))]) };
+    }));
+    grp('Intel', intel.map(function(x){
+      return { score: mScore(x.headline) + (x.importance==='high'?1:x.importance==='medium'?0.5:0),
+        url: x.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(x.headline)+'</div>'+
+               meta([badge(x.intel_type), badge(x.importance, x.importance==='high'?'rgba(239,68,68,0.25)':''), span(x.intel_date||'')]) };
+    }));
+    grp('Deals', deals.map(function(x){
+      return { score: mScore(x.headline) + mScore(x.from_company)*0.5 + mScore(x.to_company)*0.5 + (x.total_usd_m?Math.min(x.total_usd_m/5000,1):0),
+        url: x.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(x.headline || (x.from_company+' → '+x.to_company))+'</div>'+
+               meta([badge(x.deal_type), span(x.total_usd_m?('$'+x.total_usd_m+'M'):''), span(x.deal_date||'')]) };
+    }));
+    grp('Catalysts', cats.map(function(c){
+      return { score: mScore(c.label) + (c.significance==='high'?1:c.significance==='medium'?0.5:0),
+        url: c.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(c.label)+'</div>'+
+               meta([badge(c.significance, c.significance==='high'?'rgba(239,68,68,0.25)':''), span(c.catalyst_date||'')]) };
+    }));
+    grp('Clinical Trials', trials.map(function(t){
+      return { score: mScore(t.title) + mScore(t.nct_id)*1.5,
+        url: t.source_url || ('https://clinicaltrials.gov/study/' + t.nct_id),
+        inner: '<div class="gs-sb-headline">'+hl(t.title||t.nct_id)+'</div>'+
+               meta([badge(t.nct_id,'rgba(46,111,176,0.35)'), badge(t.phase), span(t.status||'')]) };
+    }));
+    grp('Publications', pubs.map(function(p){
+      return { score: mScore(p.title) + Math.min((p.cited_by_count||0)/200, 1),
+        url: p.doi ? ('https://doi.org/'+p.doi) : p.url,
+        inner: '<div class="gs-sb-headline">'+hl(p.title)+'</div>'+
+               meta([span(p.journal||''), span(p.pub_year||''), span(p.cited_by_count?p.cited_by_count+' citations':'')]) };
+    }));
+    grp('Congress Abstracts', confAbs.map(function(a){
+      return { score: mScore(a.title) + (a.conference_year>=2025?0.5:0),
+        url: a.doi ? ('https://doi.org/'+a.doi) : a.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(a.title)+'</div>'+meta([badge(a.conference), span(a.conference_year||'')]) };
+    }));
+    grp('Meridian Conclusions', insights.map(function(s){
+      return { score: mScore(s.title) + 0.3,
+        inner: '<div class="gs-sb-headline">'+hl(s.title)+'</div>'+
+               meta([badge(s.insight_type,'rgba(46,111,176,0.35)'), span((s.detail||'').slice(0,100))]) };
+    }));
+    grp('SEC Events', secEvts.map(function(ev){
+      return { score: mScore(ev.event_summary) + (ev.event_type==='deal'||ev.event_type==='ma'?0.8:0.2),
+        url: ev.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(ev.event_summary)+'</div>'+meta([badge(ev.event_type), span(ev.filing_date||'')]) };
+    }));
+    grp('NIH Grants', grants2.map(function(g){
+      return { score: mScore(g.title) + Math.min((g.award_amount||0)/3e6, 0.8),
+        url: g.project_url || g.source_url,
+        inner: '<div class="gs-sb-headline">'+hl(g.title)+'</div>'+
+               meta([span(g.agency||'NIH'), span('FY'+(g.fiscal_year||'')), span(g.award_amount?('$'+Math.round(g.award_amount/1000)+'k'):'')]) };
+    }));
+    grp('KOLs', kolHits.map(function(k){
+      return { score: mScore(k.name),
+        url: 'https://clinicaltrials.gov/search?term=' + encodeURIComponent(k.name||''),
+        inner: '<div class="gs-sb-headline">'+hl(k.name)+'</div>'+meta([span(k.specialty||'investigator'), span('trials ↗')]) };
+    }));
+    grp('Patient Intelligence', patIntel.map(function(p){
+      return { score: mScore(p.indication_name) + 0.5,
+        inner: '<div class="gs-sb-headline">'+hl(p.indication_name)+'</div>'+
+               meta([span(p.patient_count_us?('US patients: '+p.patient_count_us):''), span((p.unmet_need_narrative||'').slice(0,90))]) };
+    }));
+
+    if (!groups.length) {
       panel.innerHTML = '<div class="gs-sb-empty">No results for "<em>' + term.replace(/</g,'&lt;') + '</em>"</div>';
       return;
     }
-
-    var re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
-    function hl(s) { return (s||'').replace(/</g,'&lt;').replace(re, function(m) { return '<mark class="gs-hl">'+m+'</mark>'; }); }
-    var html = '';
-
-    // ── Knowledge Folders — TOP PRIORITY ─────────────────────────────────
-    if (matchedAreas.length) {
-      html += '<div class="gs-sb-section-hd">Knowledge Folders (' + matchedAreas.length + ')</div>';
-      matchedAreas.forEach(function(a) {
-        var tagline = _KF_TAGLINES[a.slug] || '';
-        html += '<div class="gs-sb-item gs-kf-result gs-nav-item" data-gtype="knowledgefolder" data-kf-slug="' + a.slug + '" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">' + a.icon + ' ' + hl(a.label) +
-            (tagline ? ' <span class="gs-kf-tagline">· ' + tagline + '</span>' : '') +
-          '</div>' +
-          '<div class="gs-sb-meta"><span class="gs-kf-cta">Open folder →</span></div>' +
-        '</div>';
-      });
-    }
-
-    // ── Patient Intelligence ──────────────────────────────────────────────
-    if (patIntel.length) {
-      html += '<div class="gs-sb-section-hd">Patient Intelligence (' + patIntel.length + ')</div>';
-      patIntel.forEach(function(p) {
-        var summary = p.unmet_need_narrative || p.why_it_matters || '';
-        if (summary.length > 160) summary = summary.slice(0, 157) + '…';
-        html += '<div class="gs-patient-row">' +
-          '<div class="gs-patient-label">👥 Patient Intelligence · ' + (p.indication_name||'') + '</div>' +
-          '<div class="gs-patient-text">' + (summary ? summary.replace(/</g,'&lt;') : 'No summary available.') + '</div>' +
-        '</div>';
-      });
-    }
-
-    // ── Companies ─────────────────────────────────────────────────────────
-    if (cos.length) {
-      html += '<div class="gs-sb-section-hd">Companies (' + cos.length + ')</div>';
-      cos.forEach(function(co) {
-        var typeTag = co.company_type ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+co.company_type+'</span>' : '';
-        var geoTag  = co.geography   ? '<span>'+co.geography+'</span>' : '';
-        var ticker  = co.ticker      ? ' <span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:monospace">'+co.ticker+'</span>' : '';
-        html += '<div class="gs-sb-item gs-nav-item" data-gtype="company" data-company-id="'+co.id+'" data-company-name="'+(co.name||'').replace(/"/g,'&quot;')+'" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">🏢 '+hl(co.name)+ticker+'</div>' +
-          '<div class="gs-sb-meta">'+typeTag+geoTag+'</div></div>';
-      });
-    }
-
-    // ── Drugs ─────────────────────────────────────────────────────────────
-    if (drugs.length) {
-      html += '<div class="gs-sb-section-hd">Drugs (' + drugs.length + ')</div>';
-      drugs.forEach(function(d) {
-        var label   = d.display_name || d.name || '';
-        var mechTag = d.mechanism ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+d.mechanism.slice(0,50)+'</span>' : '';
-        var stageTag= d.stage ? '<span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">'+d.stage+'</span>' : '';
-        var aliasTag= d._aliasHit ? '<span class="gs-sb-badge" title="Matched a prior / code name" style="background:rgba(124,58,237,0.3);color:#c4b5fd">↳ '+String(d._aliasHit).slice(0,28)+'</span>' : '';
-        html += '<div class="gs-sb-item gs-nav-item" data-gtype="drug" data-drug-id="'+d.id+'" data-drug-name="'+label.replace(/"/g,'&quot;')+'" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">💊 '+hl(label)+(d.name !== label ? '<span style="font-size:10px;opacity:0.55;margin-left:5px">'+hl(d.name)+'</span>' : '')+'</div>' +
-          '<div class="gs-sb-meta">'+stageTag+mechTag+aliasTag+'</div></div>';
-      });
-    }
-
-    // ── Disease Areas (Indications) ───────────────────────────────────────
-    if (indics.length) {
-      var _indicSlugMap = {
-        'ulcerative colitis':'uc','uc':'uc',
-        "crohn's disease":'cd','crohn disease':'cd','cd':'cd',
-        'rheumatoid arthritis':'ra','ra':'ra',
-        'thyroid eye disease':'ted','ted':'ted',
-        "graves' disease":'graves','graves disease':'graves','graves':'graves',
-        'myasthenia gravis':'mg','gmg':'mg','mg':'mg',
-        'cidp':'cidp','chronic inflammatory demyelinating polyneuropathy':'cidp',
-        'atopic dermatitis':'atopy','ad':'atopy','atopy':'atopy',
-        'inflammatory bowel disease':'ibd','ibd':'ibd',
-      };
-      html += '<div class="gs-sb-section-hd">Disease Areas (' + indics.length + ')</div>';
-      indics.forEach(function(ind) {
-        var _indKey = (ind.name||'').toLowerCase();
-        var _kfSlug = _indicSlugMap[_indKey] || null;
-        var _pill = _kfSlug
-          ? '<span class="gs-sb-nav-pill">→ Knowledge Folder</span>'
-          : '<span class="gs-sb-nav-pill">→ Indication</span>';
-        html += '<div class="gs-sb-item gs-nav-item" data-gtype="' + (_kfSlug ? 'knowledgefolder' : 'indication') + '"' +
-          (_kfSlug ? ' data-kf-slug="' + _kfSlug + '"' : '') + ' style="cursor:pointer">' +
-          '<div class="gs-sb-headline">🩺 '+hl(ind.name)+'</div>' +
-          '<div class="gs-sb-meta">' + _pill + '</div>' +
-        '</div>';
-      });
-    }
-
-    // ── Intel ─────────────────────────────────────────────────────────────
-    if (intel.length) {
-      html += '<div class="gs-sb-section-hd">Intel (' + intel.length + ')</div>';
-      intel.forEach(function(item) {
-        var areas = (item.intel_areas||[]).map(function(a) { return _AREA_LABEL_GS[a.area_id]||a.area_id; }).join(', ');
-        var tc = _TYPE_COLOR_GS[item.intel_type] || _TYPE_COLOR_GS.other;
-        var areaIds = (item.intel_areas||[]).map(function(a) { return a.area_id; });
-        var tabId = _GS_AREA_TO_TAB[areaIds[0]] || 'industry-insights';
-        var tabLbl = _GS_TAB_LABEL[tabId] || tabId;
-        var hasUrl = item.source_url && item.source_url.length > 4;
-        var srcBtn = hasUrl ? '<a onclick="event.stopPropagation()" href="'+item.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
-        var linkQuality = '<span class="gs-link-quality ' + (hasUrl ? 'gs-link-ok' : 'gs-link-missing') + '">' + (hasUrl ? '🔗' : '⚠') + '</span>';
-        html += '<div class="gs-sb-item gs-nav-item" data-area="'+(areaIds[0]||'')+'" data-gtype="intel" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">'+linkQuality+' '+hl(item.headline)+srcBtn+'</div>' +
-          '<div class="gs-sb-meta">' +
-          '<span class="gs-sb-badge" style="background:'+tc+'28;color:'+tc+'">'+(item.intel_type||'news')+'</span>' +
-          (areas ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+areas+'</span>' : '') +
-          '<span>'+(item.intel_date||'')+'</span>' +
-          '<span class="gs-sb-nav-pill">→ '+tabLbl+'</span>' +
-          '</div></div>';
-      });
-    }
-
-    // ── News Articles (with dedup + source grouping) ───────────────────────
-    if (newsArts.length) {
-      var newsGroups = _gsDedupeNews(newsArts);
-      html += '<div class="gs-sb-section-hd">News Articles (' + newsGroups.length + (newsGroups.length < newsArts.length ? ' grouped' : '') + ')</div>';
-      newsGroups.forEach(function(group) {
-        var primary = group[0];
-        var extras  = group.slice(1);
-        var hasUrl  = primary.article_url && primary.article_url.length > 4;
-        var srcLabel = primary.source_name || (hasUrl ? _gsSourceLabel(primary.article_url) : 'Source');
-        var shortDate = _gsShortDate(primary.published_at);
-        var linkQuality = '<span class="gs-link-quality ' + (hasUrl ? 'gs-link-ok' : 'gs-link-missing') + '">' + (hasUrl ? '🔗' : '⚠') + '</span>';
-        var headlineHtml = hasUrl
-          ? '<a href="' + primary.article_url.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener" class="gs-news-headline" onclick="event.stopPropagation()">' + hl(primary.headline) + '</a>'
-          : '<span class="gs-news-headline gs-news-headline-nolink">' + hl(primary.headline) + '</span>';
-        var extrasBtns = '';
-        if (extras.length) {
-          var extraLinks = extras.map(function(e) {
-            var eUrl = e.article_url && e.article_url.length > 4 ? e.article_url : null;
-            var eSrc = e.source_name || (eUrl ? _gsSourceLabel(eUrl) : 'Source');
-            return eUrl
-              ? '<a href="' + eUrl.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + eSrc + '</a>'
-              : '<span style="color:rgba(255,255,255,0.4)">' + eSrc + '</span>';
-          }).join('');
-          extrasBtns = '<button class="gs-news-sources-btn" onclick="event.stopPropagation();_gsShowSources(this)">+' + extras.length + ' source' + (extras.length > 1 ? 's' : '') + '</button>' +
-            '<div class="gs-news-sources-list" style="display:none">' + extraLinks + '</div>';
+    // most relevant category first; auto-open the best one
+    groups.sort(function(a,b){ return b.top - a.top; });
+    var html = '<div class="gs-sb-section-hd" style="display:flex;justify-content:space-between"><span>' +
+      groups.reduce(function(s,g){ return s+g.items.length; },0) + ' results in ' + groups.length +
+      ' categories</span><span style="text-transform:none;letter-spacing:0">click a row to open its source ↗</span></div>';
+    groups.forEach(function(g, gi) {
+      html += '<details class="gs-grp"' + (gi===0 ? ' open' : '') + '><summary><span class="gs-grp-car">▶</span>' +
+        g.label + '<span class="gs-grp-cnt">' + g.items.length + '</span></summary>';
+      g.items.forEach(function(it) {
+        if (it.nav) {  // drugs/companies → in-app card via the delegated handler
+          var dAttrs = it.nav.gtype==='company'
+            ? ' data-gtype="company" data-company-id="'+it.nav.id+'" data-company-name="'+(it.nav.name||'').replace(/"/g,'&quot;')+'"'
+            : ' data-gtype="drug" data-drug-id="'+it.nav.id+'" data-drug-name="'+(it.nav.name||'').replace(/"/g,'&quot;')+'"';
+          html += '<div class="gs-sb-item gs-nav-item"'+dAttrs+' style="cursor:pointer">' + it.inner +
+            (it.srcUrl ? '<a class="gs-sb-src" href="'+it.srcUrl+'" target="_blank" rel="noopener" data-trusted="1" onclick="event.stopPropagation()">source ↗</a>' : '') + '</div>';
+        } else if (it.url) {  // everything with a stored source → straight to the web
+          html += '<a class="gs-sb-item" href="'+it.url+'" target="_blank" rel="noopener" data-trusted="1">' + it.inner + '</a>';
+        } else {
+          html += '<div class="gs-sb-item" style="cursor:default">' + it.inner + '</div>';
         }
-        html += '<div class="gs-sb-item gs-news-row" style="cursor:default">' +
-          '<div>' + linkQuality + ' ' + headlineHtml + '</div>' +
-          '<div class="gs-news-meta">' +
-            '<span class="gs-news-source">' + (srcLabel||'') + '</span>' +
-            (shortDate ? '<span class="gs-news-date">' + shortDate + '</span>' : '') +
-            extrasBtns +
-          '</div>' +
-        '</div>';
       });
-    }
-
-    // ── Deals ─────────────────────────────────────────────────────────────
-    if (deals.length) {
-      html += '<div class="gs-sb-section-hd">Deals (' + deals.length + ')</div>';
-      deals.forEach(function(d) {
-        var aLabel = _AREA_LABEL_GS[d.area_id] || d.area_id || '';
-        var val = d.total_usd_m ? ' · $' + d.total_usd_m + 'M' : '';
-        var dTabId = _GS_AREA_TO_TAB[d.area_id] || 'industry-insights';
-        var dTabLbl = _GS_TAB_LABEL[dTabId] || dTabId;
-        var dHasUrl = d.source_url && d.source_url.length > 4;
-        var dSrcBtn = dHasUrl ? '<a onclick="event.stopPropagation()" href="'+d.source_url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" class="gs-sb-src">↗</a>' : '';
-        html += '<div class="gs-sb-item gs-nav-item" data-area="'+(d.area_id||'')+'" data-gtype="deal" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">'+hl(d.headline)+dSrcBtn+'</div>' +
-          '<div class="gs-sb-meta">' +
-          '<span class="gs-sb-badge" style="background:#f59e0b28;color:#f59e0b">deal</span>' +
-          (aLabel ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+aLabel+'</span>' : '') +
-          '<span>'+(d.from_company||'')+(d.to_company?' → '+d.to_company:'')+val+'</span>' +
-          '<span class="gs-sb-nav-pill">→ '+dTabLbl+'</span>' +
-          '</div></div>';
-      });
-    }
-
-    // ── Catalysts ─────────────────────────────────────────────────────────
-    if (cats.length) {
-      html += '<div class="gs-sb-section-hd">Catalysts (' + cats.length + ')</div>';
-      cats.forEach(function(c) {
-        var aLabel = _AREA_LABEL_GS[c.area_id] || c.area_id || '';
-        var sc = c.significance === 'high' ? '#ef4444' : c.significance === 'medium' ? '#f59e0b' : '#6b7280';
-        var cTabId = _GS_AREA_TO_TAB[c.area_id] || 'home';
-        var cTabLbl = _GS_TAB_LABEL[cTabId] || cTabId;
-        html += '<div class="gs-sb-item gs-nav-item" data-area="'+(c.area_id||'')+'" data-gtype="catalyst" style="cursor:pointer">' +
-          '<div class="gs-sb-headline">'+hl(c.label)+'</div>' +
-          '<div class="gs-sb-meta">' +
-          '<span class="gs-sb-badge" style="background:'+sc+'28;color:'+sc+'">'+(c.significance||'')+'</span>' +
-          (aLabel ? '<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+aLabel+'</span>' : '') +
-          '<span>'+(c.catalyst_date||'')+'</span>' +
-          '<span class="gs-sb-nav-pill">→ '+cTabLbl+'</span>' +
-          '</div></div>';
-      });
-    }
-
-    // ── Targets ───────────────────────────────────────────────────────────
-    if (tgts.length) {
-      html += '<div class="gs-sb-section-hd">Targets (' + tgts.length + ')</div>';
-      tgts.forEach(function(t) {
-        html += '<div class="gs-sb-item" style="cursor:default">' +
-          '<div class="gs-sb-headline">'+hl(t.symbol || t.name)+'</div>' +
-          '<div class="gs-sb-meta"><span>'+(t.name||'')+'</span>' +
-          (t.target_class?'<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+t.target_class+'</span>':'') +
-          '</div></div>';
-      });
-    }
-    // ── Publications ──────────────────────────────────────────────────────
-    if (pubs.length) {
-      html += '<div class="gs-sb-section-hd">Publications (' + pubs.length + ')</div>';
-      pubs.forEach(function(p) {
-        var pUrl = p.doi ? ('https://doi.org/' + p.doi) : (p.url || '');
-        html += '<div class="gs-sb-item" style="cursor:default">' +
-          '<div class="gs-sb-headline">'+hl(p.title)+(pUrl?' <a class="gs-sb-src" href="'+pUrl+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
-          '<div class="gs-sb-meta"><span>'+(p.journal||'')+'</span><span>'+(p.pub_year||'')+'</span>' +
-          (p.cited_by_count?'<span>'+p.cited_by_count+' citations</span>':'') + '</div></div>';
-      });
-    }
-    // ── Congress abstracts ────────────────────────────────────────────────
-    if (confAbs.length) {
-      html += '<div class="gs-sb-section-hd">Congress Abstracts (' + confAbs.length + ')</div>';
-      confAbs.forEach(function(a) {
-        var aUrl = a.doi ? ('https://doi.org/' + a.doi) : (a.source_url || '');
-        html += '<div class="gs-sb-item" style="cursor:default">' +
-          '<div class="gs-sb-headline">'+hl(a.title)+(aUrl?' <a class="gs-sb-src" href="'+aUrl+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
-          '<div class="gs-sb-meta"><span>'+(a.conference||'')+'</span><span>'+(a.conference_year||'')+'</span></div></div>';
-      });
-    }
-    // ── Meridian conclusions ──────────────────────────────────────────────
-    if (insights.length) {
-      html += '<div class="gs-sb-section-hd">Meridian Conclusions (' + insights.length + ')</div>';
-      insights.forEach(function(s) {
-        html += '<div class="gs-sb-item" style="cursor:default">' +
-          '<div class="gs-sb-headline">'+hl(s.title)+'</div>' +
-          '<div class="gs-sb-meta"><span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">'+(s.insight_type||'')+'</span>' +
-          '<span>'+((s.detail||'').slice(0,90))+'</span></div></div>';
-      });
-    }
-    // ── NIH grants ────────────────────────────────────────────────────────
-    if (grantHits.length) {
-      html += '<div class="gs-sb-section-hd">NIH Grants (' + grantHits.length + ')</div>';
-      grantHits.forEach(function(g) {
-        var gUrl2 = g.project_url || g.source_url || '';
-        html += '<div class="gs-sb-item" style="cursor:default">' +
-          '<div class="gs-sb-headline">'+hl(g.title)+(gUrl2?' <a class="gs-sb-src" href="'+gUrl2+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
-          '<div class="gs-sb-meta"><span>'+(g.agency||'NIH')+'</span><span>FY'+(g.fiscal_year||'')+'</span>' +
-          (g.award_amount?'<span>$'+Math.round(g.award_amount/1000)+'k</span>':'') + '</div></div>';
-      });
-    }
+      html += '</details>';
+    });
 
     panel.innerHTML = html;
   } catch(e) {
