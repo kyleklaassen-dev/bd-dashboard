@@ -5469,7 +5469,7 @@ async function _injectAreaFreshness(tabId) {
  </div>
  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><!-- DEPRECATED 2026-06-06: red Research Queue pill (dq-nav-badge), yellow review pill (review-nav-btn), and purple Whitespace pill (ws-nav-btn) removed from top bar.
      Research-queue + governance-violation review items now consolidate into the Discovery Queue tab (⚑ Review filter). Whitespace removed entirely per Kyle.
-     Loaders _loadResearchQueue / _loadReviewQueue are retained (they feed the Discovery Queue). _loadWhitespace deprecated. --><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+     Loaders _loadResearchQueue / _loadReviewQueue are retained (they feed the Discovery Queue). _loadWhitespace deprecated. --><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="pages/meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
@@ -12315,7 +12315,7 @@ async function loadMeridianIssue() {
     if (!issues || issues.length === 0) {
       // Absolute last resort: no issues anywhere — load the static live file
       frame.removeAttribute('srcdoc'); frame.srcdoc = '';
-      frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+      frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/pages/meridian_today.html?v=' + Date.now();
       return;
     }
 
@@ -12332,7 +12332,7 @@ async function loadMeridianIssue() {
   } catch(e) {
     console.warn('[MERIDIAN:load]', e);
     frame.removeAttribute('srcdoc'); frame.srcdoc = '';
-    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/pages/meridian_today.html?v=' + Date.now();
   }
 }
 
@@ -12365,7 +12365,7 @@ async function renderMeridianIssue(issueId, label) {
       }
     } catch(_) {}
     frame.removeAttribute('srcdoc'); frame.srcdoc = '';
-    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/meridian_today.html?v=' + Date.now();
+    frame.src = 'https://kyleklaassen-dev.github.io/bd-dashboard/pages/meridian_today.html?v=' + Date.now();
     return;
   }
   if (!_sb) return;
@@ -22462,7 +22462,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       }
       // Fallback: static file if Supabase is unavailable or empty
       if (!html) {
-        const resp = await fetch('meridian_today.html?v=' + Date.now());
+        const resp = await fetch('pages/meridian_today.html?v=' + Date.now());
         if (!resp.ok) throw new Error('not found');
         html = await resp.text();
       }
