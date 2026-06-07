@@ -22593,7 +22593,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const plus30    = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
       const [catRes, drugRes] = await Promise.all([
         _sb.from('catalyst_calendar')
-          .select('drug_id,event_name,expected_date')
+          .select('drug_id,event_name,expected_date,source_url')
           .gte('expected_date', todayISO)
           .lte('expected_date', plus30)
           .eq('is_past', false)
@@ -22601,7 +22601,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
           .limit(5),
         // fallback: catalysts table if catalyst_calendar is empty/missing
         _sb.from('catalysts')
-          .select('company_id,catalyst_name:label,sort_date,area_id,companies(name)')
+          .select('company_id,catalyst_name:label,sort_date,area_id,source_url,companies(name)')
           .gte('sort_date', todayISO)
           .lte('sort_date', plus30)
           .eq('resolved', false)
@@ -22618,17 +22618,18 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
           const daysUntil = Math.ceil((d - todayMs) / (24*60*60*1000));
           const priColor = c.call_priority === 'call_now' ? '#dc2626' : c.call_priority === 'monitor' ? '#ea580c' : '#475569';
           const priLabel = (c.call_priority||'watch').replace(/_/g,' ');
-          return `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+          const _u = c.source_url || '';
+          const _inner = `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
             <div style="width:42px;text-align:center;flex-shrink:0;">
               <div style="font-size:15px;font-weight:700;color:#F4A261;">${daysUntil}</div>
               <div style="font-size:9px;color:#8BA3B8;">days</div>
             </div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;color:#E8F4FD;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.event_name||'Catalyst'}</div>
-              <div style="font-size:11px;color:#8BA3B8;">${c.drug_name||'—'} · ${c.company_name||'—'}</div>
+              <div style="font-size:13px;color:#E8F4FD;font-weight:600;">${c.event_name||'Catalyst'}</div>
             </div>
-            ${c.call_priority ? `<div style="flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:10px;background:${priColor};color:#fff;white-space:nowrap;">${priLabel}</div>` : ''}
+            ${_u ? '<div style=\'flex-shrink:0;color:#7EC8A4;font-size:13px;align-self:center;\'>\u2197</div>' : ''}
           </div>`;
+          return _u ? `<a href="${_u}" target="_blank" rel="noopener" style="text-decoration:none;display:block;">${_inner}</a>` : _inner;
         });
       } else if (catRes.error && drugRes.data && drugRes.data.length) {
         items = (drugRes.data||[]).map(c => {
@@ -22652,13 +22653,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
 
       const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric'});
       anchor.innerHTML = `<div class="bd-today-card">
-        <div style="font-size:11px;color:#8BA3B8;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">
-          BD Today · ${dateStr}
-        </div>
         ${items.join('')}
-        <div style="font-size:11px;color:#8BA3B8;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
-          Upcoming catalysts from Meridian · <a href="#" onclick="event.preventDefault();switchTab('home',document.querySelector('.tab-btn.home-tab'));setTimeout(()=>{const el=document.getElementById('home-panel-catalysts');if(el){el.style.display='block';}},100)" style="color:#7EC8A4;">View all →</a>
-        </div>
       </div>`;
     } catch(e) {
       console.warn('[BDToday]', e);
@@ -23130,7 +23125,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const plus90   = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
       const { data: cats, error } = await _sb
         .from('catalyst_calendar')
-        .select('id,drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact')
+        .select('id,drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact,source_url')
         .gt('expected_date', todayISO)
         .lt('expected_date', plus90)
         .order('expected_date', { ascending: true })
