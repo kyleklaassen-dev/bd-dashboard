@@ -209,6 +209,10 @@ D = [
  ("exclusivity","Regulatory exclusivity","IP","drug_exclusivity",None,"satellite_rows",5,
   "Non-patent monopoly: biologic 12-year exclusivity, orphan exclusivity.",
   "119 Purple Book / Orange Book records","IP (Cortellis)","have",None,71),
+ ("patent_families","Patent families (global)","IP","patent_families",None,"satellite_rows",3,
+  "Every jurisdiction a patent is filed in — the INPADOC-style family, each member referenceable.",
+  "Prometheus TL1A patent: 27 members across 16 countries (SureChEMBL)","IP (Cortellis)","partial",
+  "Keyless SureChEMBL family graph; seeded from tracked patents",72),
  # STRATEGIC BD
  ("ownership","Ownership & originator","Strategic BD","drugs","ownership_status","column_nonnull",0,
   "Who owns the asset now, who invented it, and the chain between.",
