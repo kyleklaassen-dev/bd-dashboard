@@ -1828,6 +1828,9 @@ mark.gs-hl { background: rgba(255,229,102,0.3); color: inherit; border-radius: 2
 .nav-icon-right { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
 .nav-icon-btn { background: #eef4fb; color: #1a2f50; border: 1.5px solid #c8d8ed; border-radius: 6px; padding: 5px 8px; font-size: 17px; line-height: 1; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .nav-icon-btn:hover { background: #deeaf8; border-color: #2e6fb0; }
+#nav-icon-live:hover { background: #25457a !important; border-color: #25457a !important; }
+/* Originator (latest-owner-primary, originator-secondary) marker — muted subscript next to the display owner */
+.orig-marker { color: #94a3b8; font-size: 0.8em; font-weight: 400; margin-left: 5px; white-space: nowrap; font-style: normal; }
 .nav-icon-btn.active { background: #1a2f50; border-color: #1a2f50; }
 .mol-dd-wrap { position: relative; }
 .mol-dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: white; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); min-width: 310px; z-index: 500; overflow: hidden; border: 1px solid #dde3ea; }
@@ -5780,6 +5783,8 @@ async function _injectAreaFreshness(tabId) {
  </div>
  <!-- Insights + Meridian + Market — far right -->
  <div class="nav-icon-right" style="display:flex;align-items:center;gap:4px;">
+   <!-- Live Intelligence — external live page (opens new tab). Added 2026-06-07. -->
+   <a class="nav-icon-btn" id="nav-icon-live" href="https://kyleklaassen-dev.github.io/bd-dashboard/Meridian_Live.html" target="_blank" rel="noopener" title="Live Intelligence — the real-time Meridian feed (opens in a new tab)" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#1a2f50;color:#fff;border-color:#1a2f50;letter-spacing:.2px;">◇ Live</a>
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-predictions" onclick="navTo('predictions')" title="Predictions — Meridian's track record, every falsifiable call scored against ground truth">📈</button>
@@ -9451,6 +9456,39 @@ function _dknCoName(d) {
   // Prefer the joined companies.name (lead company only) over the denormalized company_display
   return (d.companies && d.companies.name) || d.company_display || d.company_id || '—';
 }
+
+// ── Originator marker (latest-owner-primary, originator-secondary) ───────────
+// Governance (refined 2026-06-07): company_id = displayed latest/notable owner;
+// originator_company_id is retained and shown as a MUTED secondary marker.
+// Fully additive + guarded — any failure simply renders no marker (never throws).
+window._ORIG_NAME_CACHE = window._ORIG_NAME_CACHE || {}; // company_id → display name
+async function _resolveOriginatorNames(ids) {
+  try {
+    const need = [...new Set((ids || []).filter(Boolean))].filter(id => !(id in window._ORIG_NAME_CACHE));
+    if (!need.length) return;
+    const { data } = await _sb.from('companies').select('id,name').in('id', need);
+    (data || []).forEach(c => { window._ORIG_NAME_CACHE[c.id] = c.name || c.id; });
+    // Mark unresolved ids so we don't refetch endlessly
+    need.forEach(id => { if (!(id in window._ORIG_NAME_CACHE)) window._ORIG_NAME_CACHE[id] = null; });
+  } catch (e) { console.warn('_resolveOriginatorNames', e); }
+}
+function _origShortName(name) {
+  if (!name) return null;
+  // "Boehringer Ingelheim" → "Boehringer"; keep single-word names whole
+  return name.split(/[\s,]/)[0] || name;
+}
+// Returns the muted "· orig. X" HTML, or '' when not applicable.
+function _originatorMarkerHTML(d) {
+  try {
+    if (!d) return '';
+    const oid = d.originator_company_id;
+    if (!oid || oid === d.company_id) return '';          // unknown or same-as-owner → no marker
+    const full = window._ORIG_NAME_CACHE[oid];
+    if (!full) return '';                                  // name not resolved yet → no marker (re-renders later)
+    const owner = (typeof _dknCoName === 'function') ? _dknCoName(d) : (d.company_id || '');
+    return `<span class="orig-marker" title="Originator (inventor/developer): ${full}. Displayed owner: ${owner}.">· orig. ${_origShortName(full)}</span>`;
+  } catch (e) { return ''; }
+}
 // Strip leading trial-name / study-code prefixes from display names.
 // Handles patterns like "CD-M24-885 risankizumab plus lictuzumab"
 //   and "DUET risankizumab + lictuzumab" → "risankizumab + lictuzumab"
@@ -9526,7 +9564,7 @@ async function dknLoadData() {
   try {
     const { data, error } = await _sb
       .from('drugs')
-      .select('id,display_name,company_display,company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly,modality,modality_fmt,binding_domain,therapeutic_area,companies!company_id(name)')
+      .select('id,display_name,company_display,company_id,originator_company_id,target,cls,catalog_category,stage,phase_display,indication_short,differentiation_thesis,drug_summary,endpoints,trial_names,stage_detail,key_data,ailux_angle,ailux_competes_directly,modality,modality_fmt,binding_domain,therapeutic_area,companies!company_id(name)')
       .not('catalog_category', 'is', null)
       .order('catalog_category')
       .order('stage');
@@ -9535,6 +9573,13 @@ async function dknLoadData() {
     _dknLoading = false;
     dknRender();
     _dknUpdateSnap();
+    // Resolve originator company names (latest-owner-primary, originator-secondary),
+    // then re-render so the muted "· orig. X" markers appear. Fully guarded.
+    try {
+      const _origIds = _dknData.map(d => d.originator_company_id)
+        .filter(o => o && _dknData.some(x => x.id && x.originator_company_id === o && x.company_id !== o));
+      if (_origIds.length) _resolveOriginatorNames(_origIds).then(() => { try { dknRender(); } catch (e) {} });
+    } catch (e) { /* marker is non-critical */ }
   } catch(e) {
     console.warn('dknLoadData', e);
     _dknLoading = false;
@@ -9839,7 +9884,7 @@ function dknRow(d) {
   return `<tr data-id="${d.id}" data-drug-id="${d.id}" class="dkn-drug-row" onclick="dknToggleDetail(${eid})"${rowStyle}>
   <td class="dkn-fav-cell"><button class="dkn-fav-btn" onclick="event.stopPropagation();toggleDrugFav(${eid},this)" data-drug-id="${d.id}" title="Favorite">${isFav ? '⭐' : '☆'}</button></td>
   <td class="dkn-col-drug"><span class="dkn-cat-bar ${catBarCls}"></span><span class="dkn-drug-name" onclick="event.stopPropagation();openDrugEntityModal(${eid},'${dLabel.replace(/'/g,"\\'")}',event)" title="Open dossier">${dLabel}</span><span class="dkn-chevron">▶</span></td>
-  <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanyEntityModal('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span></td>
+  <td class="dkn-col-co"><span class="dkn-co-link" onclick="event.stopPropagation();openCompanyEntityModal('${(d.company_id||'').replace(/'/g,"\\'")}','${(_dknCoName(d)).replace(/'/g,"\\'")}','drugs-know')" title="Open company profile">${_dknCoName(d)}</span>${_originatorMarkerHTML(d)}</td>
   <td class="dkn-col-stage"><span class="dkn-stage-pill ${stageCls}">${d.stage || '—'}</span></td>
   <td class="dkn-col-format">${fmtBadge}</td>
   <td class="dkn-col-ta">${taPill}</td>
@@ -9888,7 +9933,7 @@ function dknRenderRemovedPanel() {
   list.innerHTML = removedData.map(d =>
     `<div class="dkn-removed-item">
       <button class="dkn-restore-btn" onclick="dknRestoreInline(${JSON.stringify(d.id)})">↩ Restore</button>
-      <strong>${d.display_name || d.id}</strong> <span style="color:#94a3b8">${_dknCoName(d)} · ${d.target || '—'}</span>
+      <strong>${d.display_name || d.id}</strong> <span style="color:#94a3b8">${_dknCoName(d)}${_originatorMarkerHTML(d)} · ${d.target || '—'}</span>
     </div>`
   ).join('');
 }
