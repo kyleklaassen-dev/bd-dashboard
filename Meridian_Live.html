@@ -176,6 +176,17 @@
     </div>
   </div>
 
+  <div class="grid2">
+    <div>
+      <h2>Patent landscape — FTO (assignee → patent)</h2>
+      <div class="card"><div class="scroll"><table id="patfto"><thead><tr><th>Assignee</th><th>Patent</th><th>Expiry~</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Manufacturing — sites &amp; external CMOs (openFDA)</h2>
+      <div class="card"><div class="scroll"><table id="mfgsite"><thead><tr><th>Asset</th><th>Manufacturer</th><th>Rel.</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
   <h2>Knowledge graph — relationship edges by type</h2>
   <div class="card" style="padding:14px 16px"><div id="edges" class="muted">loading…</div></div>
 
@@ -219,10 +230,10 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   const drugSrc={}; try{(await rows("/drugs?select=id,source_url")).forEach(r=>{if(r.source_url)drugSrc[r.id]=r.source_url;});}catch(e){}
 
   // Strategic conclusions (derived) → each cites the source rows it was computed from
-  try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=400`);
+  try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=600`);
     const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
-    const LBL={acquisition_signal:'Acquisition signals',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (raise + short runway)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',kol_hub:'KOL hubs'};
-    const order=['acquisition_signal','readout_imminent','conference_readout','discontinuation_signal','trial_quality','exclusivity_cliff','eu_approval_lag','financing_signal','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','kol_hub'];
+    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',kol_hub:'KOL hubs'};
+    const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
     const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
     document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
       return `<div style="margin:8px 10px 14px"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:6px">${LBL[k]||esc(k)} <span class="muted">· ${items.length}</span></div>`+
@@ -330,7 +341,15 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   try{const d=await rows(`/drug_labels?select=drug_id,label_title,boxed_warning,set_url,source_url&order=drug_id.asc&limit=60`);
     fill("labels",d.map(r=>{const u=r.set_url||r.source_url;const bx=r.boxed_warning?' <span class="pill bad">boxed</span>':'';return TR(u,`<td><b>${esc(r.drug_id)}</b></td><td>${A(u,r.label_title||"label")}${bx}</td>`);}).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("labels",2);}
 
-  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN"];
+  // Patent landscape → Google Patents (FTO; anti-TL1A families surface here)
+  try{const d=await rows(`/company_patents?select=assignee_org,patent_number,patent_title,expiry_estimate,matched_target,source_url&order=expiry_estimate.desc.nullslast&limit=60`);
+    fill("patfto",d.map(r=>{const u=r.source_url||("https://patents.google.com/patent/"+encodeURIComponent(r.patent_number||""));const tg=r.matched_target?` <span class="pill md">${esc(r.matched_target)}</span>`:'';return TR(u,`<td>${esc(r.assignee_org||"")}</td><td>${A(u,r.patent_number)}${tg}<div class="muted" style="font-size:11px">${esc((r.patent_title||"").slice(0,70))}</div></td><td class="muted">${esc(String(r.expiry_estimate||"").slice(0,4))}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("patfto",3);}
+
+  // Manufacturing sites → openFDA/DailyMed. External CMOs (is_supplies_candidate) = real SUPPLIES relationships.
+  try{const d=await rows(`/manufacturing_sites?select=drug_id,manufacturer_name,manufacturer_company_id,is_supplies_candidate,is_inhouse,source_url&order=is_supplies_candidate.desc&limit=60`);
+    fill("mfgsite",d.map(r=>{const rel=r.is_supplies_candidate?'<span class="pill hi">ext. CMO</span>':r.is_inhouse?'<span class="pill ok">in-house</span>':'<span class="pill md">—</span>';return TR(r.source_url,`<td>${A(r.source_url||"",r.drug_id)}</td><td class="muted">${esc(r.manufacturer_name||"")}</td><td>${rel}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("mfgsite",3);}
+
+  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED"];
     const vals=await Promise.all(preds.map(p=>cntq("entity_edges?select=id&predicate=eq."+p).catch(()=>"–")));
     document.getElementById("edges").innerHTML=preds.map((p,i)=>`<span class="pill md" style="margin:3px 6px 3px 0;display:inline-block">${p}: <b class="n">${esc(vals[i])}</b></span>`).join("");
   }catch(e){document.getElementById("edges").textContent="unavailable";}
