@@ -1,0 +1,47 @@
+name: Meridian Atlas Refresh
+
+# Keeps the Coverage Atlas (and the live Intelligence page) current without any LLM cost.
+# - Recomputes attribute_completeness so the heatmap + molecule cards reflect the latest data.
+# - Refreshes the data_sources registry.
+# - Re-pulls SureChEMBL patent families (clean egress; the dev VM is throttled).
+# All steps are deterministic, idempotent, free (no Claude-API spend).
+#
+# The Live Intelligence + Atlas HTML pages read Supabase directly at load time, so they are
+# always live; this job refreshes the DERIVED snapshots they render (completeness matrix).
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"     # weekly, Monday 07:00 UTC — recompute completeness
+    - cron: "0 8 1 * *"     # monthly, 1st 08:00 UTC — also refresh patent families
+  workflow_dispatch:
+    inputs:
+      families:
+        description: "Also refresh SureChEMBL patent families (slow)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: atlas-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Provision service key
+        run: |
+          printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
+      - name: Recompute attribute completeness (heatmap + cards)
+        run: python3 scripts/compute_attribute_completeness.py
+      - name: Refresh data-sources registry
+        run: python3 scripts/seed_data_sources.py
+      - name: Refresh patent families (monthly cron or manual opt-in)
+        if: github.event.schedule == '0 8 1 * *' || github.event.inputs.families == 'true'
+        run: python3 scripts/integrations/surechembl_families.py || echo "surechembl partial/blocked — non-fatal"
+      - name: Clean up
+        if: always()
+        run: rm -f .supabase_service_key
