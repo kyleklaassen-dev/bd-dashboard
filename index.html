@@ -6038,6 +6038,11 @@ async function _injectAreaFreshness(tabId) {
           <button class="iif-sb-pill iif-src-pill active" data-src="all"   onclick="iifSetFilter('src','all')">All</button>
           <button class="iif-sb-pill iif-src-pill"        data-src="intel" onclick="iifSetFilter('src','intel')">Intel</button>
           <button class="iif-sb-pill iif-src-pill"        data-src="news"  onclick="iifSetFilter('src','news')">News</button>
+          <button class="iif-sb-pill iif-src-pill"        data-src="publication" onclick="iifSetFilter('src','publication')">Pubs</button>
+          <button class="iif-sb-pill iif-src-pill"        data-src="abstract"    onclick="iifSetFilter('src','abstract')">Congress</button>
+          <button class="iif-sb-pill iif-src-pill"        data-src="conclusion"  onclick="iifSetFilter('src','conclusion')">Conclusions</button>
+          <button class="iif-sb-pill iif-src-pill"        data-src="grant"       onclick="iifSetFilter('src','grant')">Grants</button>
+          <button class="iif-sb-pill iif-src-pill"        data-src="sec"         onclick="iifSetFilter('src','sec')">SEC</button>
         </div>
       </div>
 
@@ -21411,6 +21416,20 @@ async function loadIndustryInsightsFeed() {
   if (!feed) return;
   feed.innerHTML = '<div class="iif-loading">Loading intelligence feed…</div>';
   try {
+    // Learned-content sources (Kyle 2026-06-07: everything we learn lives in this tab)
+    const [pubRes, absRes, insRes, grantRes, evtRes, chinaRes] = await Promise.all([
+      _sb.from('publications').select('id,title,journal,pub_date,pub_year,doi,url,cited_by_count,tldr')
+         .not('title','is',null).order('pub_date',{ascending:false,nullsFirst:false}).limit(400),
+      _sb.from('conference_abstracts').select('id,title,conference,conference_year,presentation_date,presentation_type,doi,source_url,drug_id')
+         .not('title','is',null).order('conference_year',{ascending:false}).limit(300),
+      _sb.from('strategic_insights').select('id,title,detail,insight_type,metric,created_at,source_tables')
+         .order('created_at',{ascending:false}).limit(450),
+      _sb.from('grants').select('id,title,agency,fiscal_year,award_amount,matched_target,org_name,project_url,source_url')
+         .not('title','is',null).order('fiscal_year',{ascending:false}).limit(300),
+      _sb.from('company_events').select('id,doc_title,event_type,event_subtype,event_summary,filing_date,financing_type,offering_amount_text,source_url,company_id')
+         .neq('event_type','other').order('filing_date',{ascending:false}).limit(300),
+      _sb.from('china_intel').select('id,title,signal_type,published_date,url,source').limit(50),
+    ]);
     const [iaRes, intelRes, sigRes, dealRes, naRes, coRes] = await Promise.all([
       _sb.from('intel_areas').select('intel_id,area_id,target_id,context_type').limit(2000),
       _sb.from('intel').select('id,intel_date,headline,body,source_url,source_name,intel_type,event_type,importance,primary_company_id')
@@ -21510,9 +21529,79 @@ async function loadIndustryInsightsFeed() {
       rel_score:  x.relevance_score ? x.relevance_score / 100 : 0.3,
     }));
 
+    // Normalise publications (PubMed/Europe PMC corpus)
+    const pubItems = (pubRes.data||[]).map(x => ({
+      _key:'pub-'+x.id,
+      date: x.pub_date ? String(x.pub_date).slice(0,10) : (x.pub_year ? x.pub_year+'-01-01' : ''),
+      headline: x.title,
+      body: [x.journal, x.cited_by_count?x.cited_by_count+' citations':null, x.tldr].filter(Boolean).join(' · '),
+      sources: (x.doi||x.url) ? [{name: x.journal||'Paper', url: x.doi?('https://doi.org/'+x.doi):x.url}] : [],
+      event_type:'publication', areas:[], source_type:'publication', company_id:'',
+      rel_score: Math.min(0.3 + (x.cited_by_count||0)/200, 0.95),
+    }));
+    // Normalise conference abstracts (congress presence)
+    const absItems = (absRes.data||[]).map(x => ({
+      _key:'abs-'+x.id,
+      date: x.presentation_date ? String(x.presentation_date).slice(0,10) : (x.conference_year ? x.conference_year+'-01-01' : ''),
+      headline: x.title,
+      body: [x.conference, x.conference_year, x.presentation_type, x.drug_id?('asset: '+x.drug_id):null].filter(Boolean).join(' · '),
+      sources: (x.doi||x.source_url) ? [{name: x.conference||'Congress', url: x.doi?('https://doi.org/'+x.doi):x.source_url}] : [],
+      event_type:'publication', areas:[], source_type:'abstract', company_id:'',
+      rel_score: x.presentation_type==='late_breaker' ? 0.9 : 0.5,
+    }));
+    // Normalise strategic insights (Meridian's derived, cited conclusions)
+    const insTypeMap = {deal_event:'deal', ma_event:'deal', financing_signal:'market', funding_momentum:'market',
+      eu_approval_lag:'regulatory', orphan_designation:'regulatory', label_safety:'regulatory',
+      trial_quality:'clinical_data', conference_readout:'clinical_data', readout_imminent:'clinical_data',
+      partnership_termination:'partnership', patent_fto:'other', china_blind_spot:'market'};
+    const insItems = (insRes.data||[]).map(x => ({
+      _key:'ins-'+x.id,
+      date: x.created_at ? String(x.created_at).slice(0,10) : '',
+      headline: x.title,
+      body: [x.detail, x.metric].filter(Boolean).join(' · ') + (x.source_tables?' — derived from: '+[].concat(x.source_tables).join(', '):''),
+      sources: [],
+      event_type: insTypeMap[x.insight_type] || 'other',
+      areas:[], source_type:'conclusion', company_id:'',
+      rel_score: 0.75,
+    }));
+    // Normalise NIH grants (upstream academic signal)
+    const grantItems = (grantRes.data||[]).map(x => ({
+      _key:'grant-'+x.id,
+      date: x.fiscal_year ? x.fiscal_year+'-01-01' : '',
+      headline: x.title,
+      body: [x.agency, x.org_name, x.matched_target?('target: '+x.matched_target):null,
+             x.award_amount?('$'+Math.round(x.award_amount/1000)+'k'):null].filter(Boolean).join(' · '),
+      sources: (x.project_url||x.source_url) ? [{name:'NIH RePORTER', url:x.project_url||x.source_url}] : [],
+      event_type:'other', areas:[], source_type:'grant', company_id:'',
+      rel_score: Math.min(0.3 + (x.award_amount||0)/3e6, 0.9),
+    }));
+    // Normalise SEC company events (8-K typed: deals / leadership / financing)
+    const evtTypeMap = {deal:'deal', ma:'deal', financing:'market', leadership:'other', pipeline:'pipeline'};
+    const evtItems = (evtRes.data||[]).map(x => ({
+      _key:'evt-'+x.id,
+      date: x.filing_date ? String(x.filing_date).slice(0,10) : '',
+      headline: x.event_summary || x.doc_title || (x.event_type+' — SEC filing'),
+      body: [x.event_type, x.event_subtype, x.financing_type, x.offering_amount_text].filter(Boolean).join(' · '),
+      sources: x.source_url ? [{name:'SEC EDGAR', url:x.source_url}] : [],
+      event_type: evtTypeMap[x.event_type] || 'other',
+      areas:[], source_type:'sec', company_id: x.company_id||'',
+      rel_score: (x.event_type==='deal'||x.event_type==='ma') ? 0.8 : 0.55,
+    }));
+    // Normalise China signal
+    const chinaItems = (chinaRes.data||[]).map(x => ({
+      _key:'cn-'+x.id,
+      date: x.published_date ? String(x.published_date).slice(0,10) : '',
+      headline: x.title,
+      body: [x.signal_type, x.source, 'China-language signal'].filter(Boolean).join(' · '),
+      sources: x.url ? [{name:'GDELT', url:x.url}] : [],
+      event_type:'market', areas:[], source_type:'intel', company_id:'',
+      rel_score: 0.5,
+    }));
+
     // Merge and deduplicate by normalised headline + date
     const seen = {};
-    [...intelItems, ...sigItems, ...dealItems, ...newsItems].forEach(item => {
+    [...intelItems, ...sigItems, ...dealItems, ...newsItems,
+     ...pubItems, ...absItems, ...insItems, ...grantItems, ...evtItems, ...chinaItems].forEach(item => {
       if (!item.date || !item.headline) return;
       const key = item.headline.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,60)+'|'+item.date;
       if (!seen[key]) {
@@ -21700,6 +21789,10 @@ function iifRender() {
   if (!items.length) { feed.innerHTML = '<div class="iif-empty">No items match the current filters.</div>'; return; }
 
   const totalCount = items.length;
+  // Render cap — the corpus is now ~2,400 items (pubs/abstracts/conclusions/grants/SEC added 2026-06-07)
+  const RENDER_CAP = 600;
+  const capped = items.length > RENDER_CAP;
+  if (capped) items = items.slice(0, RENDER_CAP);
   let lastDay = ''; let firstDay = true; let html = '';
   items.forEach(item => {
     const dayStr = _iifFormatDay(item.date);
@@ -21710,8 +21803,11 @@ function iifRender() {
     }
     const et = item.event_type || 'signal';
     const tm = IIF_TYPE_MAP[et] || {label: et, cls:'news'};
-    const srcBadgeCls = item.source_type === 'news' ? 'iif-source-badge-news' : 'iif-source-badge-intel';
-    const srcLabel    = item.source_type === 'news' ? 'NEWS' : 'INTEL';
+    const SRC_BADGES = {news:['iif-source-badge-news','NEWS'], intel:['iif-source-badge-intel','INTEL'],
+      publication:['iif-source-badge-intel','PAPER'], abstract:['iif-source-badge-intel','CONGRESS'],
+      conclusion:['iif-source-badge-intel','MERIDIAN'], grant:['iif-source-badge-intel','GRANT'],
+      sec:['iif-source-badge-news','SEC']};
+    const [srcBadgeCls, srcLabel] = SRC_BADGES[item.source_type] || SRC_BADGES.intel;
     const areaPills = (item.areas||[]).map(a =>
       `<span class="iif-area-pill iif-area-${IIF_AREA_CLS[a]||'default'}">${IIF_AREA_LABELS[a]||a}</span>`
     ).join('');
@@ -21732,6 +21828,7 @@ function iifRender() {
   ${hasBody?`<div class="iif-body-text" id="iif-body-${item._key}">${_iifEsc(item.body)}</div>`:''}
 </div></div>`;
   });
+  if (capped) html += `<div class="iif-empty">Showing the ${RENDER_CAP} most recent of ${totalCount} matching items — use the filters to narrow.</div>`;
   feed.innerHTML = html;
 }
 
