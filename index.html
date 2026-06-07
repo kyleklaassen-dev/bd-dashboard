@@ -23806,6 +23806,9 @@ function globalSearch(term) {
  function vis(el, show) { el.style.display = show ? '' : 'none'; }
 
  // ── Grids: filter rows ──────────────────────────────────────────
+ // try/catch: Grid.js throws "Container is empty" if a grid hasn't rendered yet
+ // (e.g. searching from Home before visiting a molecule tab) — must not break search.
+ try {
  if (grids.tl1aReadouts) grids.tl1aReadouts.updateConfig({ data: filt(d && d.tl1aReadouts) }).forceRender();
  if (grids.tl1aPipe) grids.tl1aPipe.updateConfig( { data: filt(d && d.tl1aPipe) }).forceRender();
  if (grids.tl1aMono) grids.tl1aMono.updateConfig( { data: filt(d && d.tl1aMono) }).forceRender();
@@ -23813,6 +23816,7 @@ function globalSearch(term) {
  if (grids.tslpReadouts) grids.tslpReadouts.updateConfig( { data: filt(d && d.tslpReadouts) }).forceRender();
  if (grids.tslpPipe) grids.tslpPipe.updateConfig( { data: filt(d && d.tslpPipe) }).forceRender();
  if (grids.tslpMono) grids.tslpMono.updateConfig( { data: filt(d && d.tslpMono) }).forceRender();
+ } catch(e) { console.warn('[search] grid filter skipped:', e.message); }
 
  // ── All content blocks: hide everything that doesn't match ──────
  // Grid wrapper cards (the chart-collapse / info-card wrapping each grid)
