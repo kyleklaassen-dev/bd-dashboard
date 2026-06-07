@@ -41,7 +41,7 @@ USAGE:
   python scripts/ct_gov_sync.py --search-only         # only search, skip direct NCT fetch
 
 CALLED BY:
-  .github/workflows/company-enrichment.yml (runs before company_enrichment.py)
+  .github/workflows/daily-company-enrichment.yml (runs before company_enrichment.py)
   Can also be imported: from scripts.ct_gov_sync import sync_drug, get_trials_for_drug
 
 ENVIRONMENT:

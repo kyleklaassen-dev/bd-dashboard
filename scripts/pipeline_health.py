@@ -39,7 +39,7 @@ SB_H = {"apikey": SB_KEY, "Authorization": f"Bearer {SB_KEY}", "Content-Type": "
 # Workflows that are one-shot migrations / intentionally manual — excluded from "failing" health.
 IGNORE = {"Apply SQL Migration", "Apply Drug Sources Migration (v37, one-shot)",
           "Evening Research Update (RETIRED)",
-          ".github/workflows/apply-migration.yml",
+          ".github/workflows/manual-apply-migration.yml",
           ".github/workflows/apply-drug-sources-migration.yml"}
 
 

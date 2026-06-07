@@ -62,7 +62,7 @@ Each entity has a status button. Click to cycle:
 - **Sunday 05:00 UTC**: Full pipeline for all 6 areas (ct_gov + enrichment + intelligence)
 
 ### Manual run — single area
-1. Go to [GitHub Actions](https://github.com/kyleklaassen-dev/bd-dashboard/actions/workflows/company-enrichment.yml)
+1. Go to [GitHub Actions](https://github.com/kyleklaassen-dev/bd-dashboard/actions/workflows/daily-company-enrichment.yml)
 2. Click **Run workflow**
 3. Set `area` to the disease area (e.g. `tl1a`)
 4. Optionally filter to one company with `company` field (e.g. `sanofi`)

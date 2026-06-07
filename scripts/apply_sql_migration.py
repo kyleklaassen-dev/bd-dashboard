@@ -5,7 +5,7 @@ Usage: python3 scripts/apply_sql_migration.py <path-to-sql> [--dry-run]
 
 Env: SUPABASE_PAT (personal access token), SUPABASE_URL (https://<ref>.supabase.co)
 
-Extracted from .github/workflows/apply-migration.yml, where it lived as an inline
+Extracted from .github/workflows/manual-apply-migration.yml, where it lived as an inline
 `python3 -c "..."` heredoc whose un-indented body broke the YAML block scalar and
 caused a startup_failure on every push. Keeping it as a real file avoids the
 YAML/Python indentation conflict entirely.
