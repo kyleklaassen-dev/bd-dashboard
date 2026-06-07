@@ -43,6 +43,9 @@
   .collbar{display:flex;gap:16px;align-items:center;margin:4px 0 16px;font-size:12px;flex-wrap:wrap}
   .collbar span.act{color:var(--accent);cursor:pointer;font-weight:600} .collbar span.act:hover{text-decoration:underline}
   .collbar .cnt{color:var(--muted)}
+  .sect{margin:30px 0 10px;padding:10px 14px;border-radius:8px;background:linear-gradient(90deg,#eaf1fb,transparent);border-left:4px solid var(--accent)}
+  .sect-t{font-size:14px;font-weight:800;letter-spacing:.02em;color:var(--ink);text-transform:none}
+  .sect-d{font-size:11.5px;color:var(--slate);margin-top:2px}
   @media(max-width:980px){.tiles{grid-template-columns:repeat(4,1fr)}.grid2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -59,158 +62,112 @@
 
   <div class="tiles" id="tiles"></div>
 
+
+  <div class="sect"><div class="sect-t">01 · Start here — synthesis &amp; coverage</div><div class="sect-d">The big picture first: what the data concludes, and how complete it is.</div></div>
   <h2>Strategic conclusions — derived from the graph (every conclusion cites its source rows)</h2>
   <div class="card" style="padding:6px 4px;max-height:560px;overflow:auto"><div id="insights" class="muted" style="padding:10px 12px">loading…</div></div>
 
+  <h2>Data coverage — completeness by domain (heat-map summary)</h2>
+  <div class="card"><div class="scroll"><table id="coverage"><thead><tr><th>Domain</th><th>Filled / Expected</th><th>Coverage</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <div class="sect"><div class="sect-t">02 · Patient &amp; disease need</div><div class="sect-d">Meridian's North Star apex — where patient unmet need is greatest.</div></div>
   <h2>Patient unmet need → whitespace (North Star apex)</h2>
   <div class="card"><div class="scroll"><table id="patient"><thead><tr><th>Indication</th><th>Unmet /10</th><th>Competitors</th><th>Whitespace</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Upcoming readouts &amp; catalysts (source-verified)</h2>
-      <div class="card"><div class="scroll"><table id="catalysts"><thead><tr><th>Date</th><th>Event</th><th>Sig</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Regulatory designations &amp; timeline</h2>
-      <div class="card"><div class="scroll"><table id="reg"><thead><tr><th>Asset</th><th>Designation/Event</th><th>Date</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <div class="sect"><div class="sect-t">03 · Target &amp; molecule science</div><div class="sect-d">The biology: targets, genetics, pathways, and how makeable each molecule is.</div></div>
+  <h2>Target intelligence (druggability / TDL)</h2>
+  <div class="card"><div class="scroll"><table id="targets"><thead><tr><th>Target</th><th>TDL</th><th>Ligands</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>KOL network — most-active investigators</h2>
-      <div class="card"><div class="scroll"><table id="kols"><thead><tr><th>Investigator</th><th>Trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Exclusivity cliffs — patents + biologic reference-product</h2>
-      <div class="card"><div class="scroll"><table id="patents"><thead><tr><th>Asset</th><th>Type / ID</th><th>Expires</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Target genetics — human-genetics validation (Open Targets)</h2>
+  <div class="card"><div class="scroll"><table id="genval"><thead><tr><th>Target</th><th>Disease</th><th>Genetic</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Financing watch — shortest cash runway</h2>
-      <div class="card"><div class="scroll"><table id="fin"><thead><tr><th>Company</th><th>Runway (qtrs)</th><th>Cash</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>TL1A × IL-23 competitive landscape</h2>
-      <div class="card"><div class="scroll"><table id="tl1a"><thead><tr><th>Asset</th><th>Target</th><th>Stage</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Target LoF constraint — genetic safety (gnomAD LOEUF)</h2>
+  <div class="card"><div class="scroll"><table id="loeuf"><thead><tr><th>Target</th><th>LOEUF</th><th>Read</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Conference presence (congress abstracts)</h2>
-      <div class="card"><div class="scroll"><table id="conf"><thead><tr><th>Yr</th><th>Asset</th><th>Congress</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Global reach — China-developed assets</h2>
-      <div class="card"><div class="scroll"><table id="china"><thead><tr><th>Asset</th><th>China trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Mechanism pathways — target → pathway (whitespace hubs)</h2>
+  <div class="card"><div class="scroll"><table id="paths"><thead><tr><th>Target</th><th>Pathway</th><th>Src</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Target intelligence (druggability / TDL)</h2>
-      <div class="card"><div class="scroll"><table id="targets"><thead><tr><th>Target</th><th>TDL</th><th>Ligands</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Latest literature</h2>
-      <div class="card"><div class="scroll"><table id="pubs"><thead><tr><th>Yr</th><th>Publication</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Manufacturing complexity — very-high CMC assets</h2>
+  <div class="card"><div class="scroll"><table id="mfg"><thead><tr><th>Asset</th><th>Modality</th><th>CMC</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Safety signals — black-box warnings</h2>
-      <div class="card"><div class="scroll"><table id="safety"><thead><tr><th>Asset</th><th>Warning</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>KOL → company affiliations (trial-sponsorship proxy)</h2>
-      <div class="card"><div class="scroll"><table id="affil"><thead><tr><th>Investigator</th><th>Company</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Manufacturing — sites &amp; external CMOs (openFDA)</h2>
+  <div class="card"><div class="scroll"><table id="mfgsite"><thead><tr><th>Asset</th><th>Manufacturer</th><th>Rel.</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Company news sentiment — signal direction</h2>
-      <div class="card"><div class="scroll"><table id="sent"><thead><tr><th>Company</th><th>Net</th><th>Articles</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Manufacturing complexity — very-high CMC assets</h2>
-      <div class="card"><div class="scroll"><table id="mfg"><thead><tr><th>Asset</th><th>Modality</th><th>CMC</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <div class="sect"><div class="sect-t">04 · Competitive landscape</div><div class="sect-d">Who else is in the space, and what's coming next.</div></div>
+  <h2>TL1A × IL-23 competitive landscape</h2>
+  <div class="card"><div class="scroll"><table id="tl1a"><thead><tr><th>Asset</th><th>Target</th><th>Stage</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Company leadership</h2>
-      <div class="card"><div class="scroll"><table id="lead"><thead><tr><th>Company</th><th>Person</th><th>Role</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Adverse-event burden — FAERS report volume</h2>
-      <div class="card"><div class="scroll"><table id="faers"><thead><tr><th>Asset</th><th>Reaction</th><th>Reports</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Upcoming readouts &amp; catalysts (source-verified)</h2>
+  <div class="card"><div class="scroll"><table id="catalysts"><thead><tr><th>Date</th><th>Event</th><th>Sig</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Trial-design quality — believability of the evidence base</h2>
-      <div class="card"><div class="scroll"><table id="tdq"><thead><tr><th>Asset</th><th>Trial</th><th>Tier / score</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>EU approvals &amp; US-vs-EU lag</h2>
-      <div class="card"><div class="scroll"><table id="eulag"><thead><tr><th>Asset</th><th>EU date</th><th>Lag vs US</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <div class="sect"><div class="sect-t">05 · Clinical evidence &amp; literature</div><div class="sect-d">Trials, readouts, publications and safety — the strength of the evidence.</div></div>
+  <h2>Trial-design quality — believability of the evidence base</h2>
+  <div class="card"><div class="scroll"><table id="tdq"><thead><tr><th>Asset</th><th>Trial</th><th>Tier / score</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Conference readout signals — late-breakers &amp; positive reads</h2>
-      <div class="card"><div class="scroll"><table id="readout"><thead><tr><th>Yr</th><th>Asset</th><th>Signal</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Financing events — by security type (SEC)</h2>
-      <div class="card"><div class="scroll"><table id="events"><thead><tr><th>Date</th><th>Company</th><th>Type</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Conference presence (congress abstracts)</h2>
+  <div class="card"><div class="scroll"><table id="conf"><thead><tr><th>Yr</th><th>Asset</th><th>Congress</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Mechanism pathways — target → pathway (whitespace hubs)</h2>
-      <div class="card"><div class="scroll"><table id="paths"><thead><tr><th>Target</th><th>Pathway</th><th>Src</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Official labels — DailyMed (boxed warning / indication)</h2>
-      <div class="card"><div class="scroll"><table id="labels"><thead><tr><th>Asset</th><th>Label</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Conference readout signals — late-breakers &amp; positive reads</h2>
+  <div class="card"><div class="scroll"><table id="readout"><thead><tr><th>Yr</th><th>Asset</th><th>Signal</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
 
-  <div class="grid2">
-    <div>
-      <h2>Target genetics — human-genetics validation (Open Targets)</h2>
-      <div class="card"><div class="scroll"><table id="genval"><thead><tr><th>Target</th><th>Disease</th><th>Genetic</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Target LoF constraint — genetic safety (gnomAD LOEUF)</h2>
-      <div class="card"><div class="scroll"><table id="loeuf"><thead><tr><th>Target</th><th>LOEUF</th><th>Read</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
-
-  <div class="grid2">
-    <div>
-      <h2>Patent landscape — FTO (assignee → patent)</h2>
-      <div class="card"><div class="scroll"><table id="patfto"><thead><tr><th>Assignee</th><th>Patent</th><th>Expiry~</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Manufacturing — sites &amp; external CMOs (openFDA)</h2>
-      <div class="card"><div class="scroll"><table id="mfgsite"><thead><tr><th>Asset</th><th>Manufacturer</th><th>Rel.</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
-    </div>
-  </div>
+  <h2>Latest literature</h2>
+  <div class="card"><div class="scroll"><table id="pubs"><thead><tr><th>Yr</th><th>Publication</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
 
   <h2>Literature authors — most prolific in our corpus</h2>
   <div class="card"><div class="scroll"><table id="authors"><thead><tr><th>Author</th><th>Papers (corpus)</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
 
+  <h2>Safety signals — black-box warnings</h2>
+  <div class="card"><div class="scroll"><table id="safety"><thead><tr><th>Asset</th><th>Warning</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Adverse-event burden — FAERS report volume</h2>
+  <div class="card"><div class="scroll"><table id="faers"><thead><tr><th>Asset</th><th>Reaction</th><th>Reports</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Official labels — DailyMed (boxed warning / indication)</h2>
+  <div class="card"><div class="scroll"><table id="labels"><thead><tr><th>Asset</th><th>Label</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
+  <div class="sect"><div class="sect-t">06 · Regulatory &amp; IP</div><div class="sect-d">Approvals, designations, exclusivity and patents.</div></div>
+  <h2>Regulatory designations &amp; timeline</h2>
+  <div class="card"><div class="scroll"><table id="reg"><thead><tr><th>Asset</th><th>Designation/Event</th><th>Date</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>EU approvals &amp; US-vs-EU lag</h2>
+  <div class="card"><div class="scroll"><table id="eulag"><thead><tr><th>Asset</th><th>EU date</th><th>Lag vs US</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Exclusivity cliffs — patents + biologic reference-product</h2>
+  <div class="card"><div class="scroll"><table id="patents"><thead><tr><th>Asset</th><th>Type / ID</th><th>Expires</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Patent landscape — FTO (assignee → patent)</h2>
+  <div class="card"><div class="scroll"><table id="patfto"><thead><tr><th>Assignee</th><th>Patent</th><th>Expiry~</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <div class="sect"><div class="sect-t">07 · Company, financing &amp; BD</div><div class="sect-d">Who owns and funds the assets, deal signals, and global reach.</div></div>
+  <h2>Financing watch — shortest cash runway</h2>
+  <div class="card"><div class="scroll"><table id="fin"><thead><tr><th>Company</th><th>Runway (qtrs)</th><th>Cash</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Financing events — by security type (SEC)</h2>
+  <div class="card"><div class="scroll"><table id="events"><thead><tr><th>Date</th><th>Company</th><th>Type</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Company leadership</h2>
+  <div class="card"><div class="scroll"><table id="lead"><thead><tr><th>Company</th><th>Person</th><th>Role</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Company news sentiment — signal direction</h2>
+  <div class="card"><div class="scroll"><table id="sent"><thead><tr><th>Company</th><th>Net</th><th>Articles</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Academic ↔ industry research bridges</h2>
+  <div class="card"><div class="scroll"><table id="bridge"><thead><tr><th>Institution</th><th>Company</th><th>Papers</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+
+  <h2>Global reach — China-developed assets</h2>
+  <div class="card"><div class="scroll"><table id="china"><thead><tr><th>Asset</th><th>China trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
+  <div class="sect"><div class="sect-t">08 · People &amp; networks (KOLs)</div><div class="sect-d">The investigators and institutions that drive the field.</div></div>
+  <h2>KOL network — most-active investigators</h2>
+  <div class="card"><div class="scroll"><table id="kols"><thead><tr><th>Investigator</th><th>Trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
+  <h2>KOL influence — unified (trials + publications + citations)</h2>
+  <div class="card"><div class="scroll"><table id="kolinf"><thead><tr><th>Investigator</th><th>Trials</th><th>h-idx</th><th>Score</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
+
+  <h2>KOL → company affiliations (trial-sponsorship proxy)</h2>
+  <div class="card"><div class="scroll"><table id="affil"><thead><tr><th>Investigator</th><th>Company</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
+  <div class="sect"><div class="sect-t">09 · Platform &amp; knowledge graph</div><div class="sect-d">The underlying connected graph and a reference of every table.</div></div>
   <h2>Knowledge graph — relationship edges by type</h2>
   <div class="card" style="padding:14px 16px"><div id="edges" class="muted">loading…</div></div>
 
@@ -219,6 +176,7 @@
     <div class="muted" style="font-size:12px;margin-bottom:6px">Everything Meridian stores, grouped — click a group to see its tables with live row counts, click a table for sample rows. This is the full reference of what's available.</div>
     <div id="dataref" class="muted">loading…</div>
   </div>
+
 
   <p class="stamp" style="margin-top:22px">Live from the Meridian Supabase backend · figures reflect the production database at load time · read-only (RLS anon). Sources: ClinicalTrials.gov, Open Targets, ChEMBL, openFDA, SEC EDGAR, FDA Orange Book, Pharos/IDG, UniProt, Europe PMC/PubMed, OpenAlex.</p>
 </div>
@@ -262,7 +220,7 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   // Strategic conclusions (derived) → each cites the source rows it was computed from
   try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=600`);
     const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
-    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',author_hub:'Author hubs (literature KOLs)',kol_dual_signal:'KOL dual-signal (investigator + author)',seminal_evidence:'Seminal evidence (BD-relevant)',patient_whitespace:'Patient whitespace (unmet need × thin competition)',research_hub:'Research hubs (institutions by area)',kol_collaboration_cluster:'KOL collaboration clusters',kol_hub:'KOL hubs'};
+    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',author_hub:'Author hubs (literature KOLs)',kol_dual_signal:'KOL dual-signal (investigator + author)',seminal_evidence:'Seminal evidence (BD-relevant)',patient_whitespace:'Patient whitespace (unmet need × thin competition)',research_hub:'Research hubs (institutions by area)',kol_collaboration_cluster:'KOL collaboration clusters',kol_influence_ranking:'KOL influence ranking (trials + pubs + citations)',research_hub_institution:'Research-hub institutions',academic_industry_bridge:'Academic ↔ industry bridges',kol_hub:'KOL hubs'};
     const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','genetically_validated','target_safety_genetics','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
     const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
     document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
@@ -274,6 +232,13 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   // Patient unmet need → whitespace (excludes umbrella/0-competitor coverage artifacts)
   try{const d=await rows(`/patient_unmet_need_competition?select=indication_name,unmet_need_score,competitor_count,whitespace_score,source_urls&competitor_count=gte.1&order=whitespace_score.desc&limit=20`);
     fill("patient",d.map(r=>{const u=(r.source_urls||[])[0]||"";return TR(u,`<td>${A(u,r.indication_name)}</td><td>${esc(r.unmet_need_score??"")}</td><td>${esc(r.competitor_count??"")}</td><td><span class="pill ${r.whitespace_score>=0.5?'hi':'md'}">${Number(r.whitespace_score).toFixed(2)}</span></td>`);}).join(""));}catch(e){ec("patient",4);}
+
+  // Data coverage — completeness % by domain (the heat-map summary)
+  try{const doms=["Molecule","Clinical","Patient","Competitive","Regulatory","IP","Payer","Strategic BD"];
+    const rr=await Promise.all(doms.map(async d=>{const enc=encodeURIComponent(d);const e=+(await cntq(`attribute_completeness?select=id&expected=eq.true&domain=eq.${enc}`));const f=+(await cntq(`attribute_completeness?select=id&expected=eq.true&filled=eq.true&domain=eq.${enc}`));return {d,e,f,pct:e>0?Math.round(100*f/e):0};}));
+    let te=0,tf=0;rr.forEach(r=>{te+=r.e;tf+=r.f;});
+    const bar=p=>`<div style="background:var(--soft);border-radius:6px;height:8px;width:90px;display:inline-block;vertical-align:middle"><div style="height:8px;border-radius:6px;width:${p}%;background:${p>=70?'var(--good)':p>=45?'var(--warn)':'var(--bad)'}"></div></div> <b class="n">${p}%</b>`;
+    fill("coverage",rr.sort((a,b)=>b.pct-a.pct).map(r=>`<tr><td><b>${esc(r.d)}</b></td><td class="muted">${r.f} / ${r.e}</td><td>${bar(r.pct)}</td></tr>`).join("")+`<tr><td><b>OVERALL</b></td><td class="muted">${tf} / ${te}</td><td>${bar(te>0?Math.round(100*tf/te):0)}</td></tr>`);}catch(e){ec("coverage",3);}
 
   // Catalysts → ClinicalTrials.gov study record
   try{const d=await rows(`/catalysts?select=label,catalyst_date,sort_date,significance,source_url,related_trial_id&confidence_source=eq.ct_gov&sort_date=gte.${today}&order=sort_date.asc&limit=40`);
@@ -396,7 +361,15 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   try{const d=await rows(`/authors?select=full_name,works_count,openalex_id&order=works_count.desc.nullslast&limit=40`);
     fill("authors",d.map(r=>TR(r.openalex_id,`<td>${A(r.openalex_id,r.full_name)}</td><td>${esc(r.works_count??"")}</td>`)).join(""));}catch(e){ec("authors",2);}
 
-  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED","AUTHORED","CO_AUTHORED_WITH","RESEARCHES"];
+  // KOL influence — unified score (trials + publications + citations)
+  try{const d=await rows(`/kols?select=name,trial_count,h_index,influence_score,orcid&order=influence_score.desc.nullslast&limit=40`);
+    fill("kolinf",d.map(r=>{const u=r.orcid?(String(r.orcid).startsWith("http")?r.orcid:"https://orcid.org/"+r.orcid):"";return TR(u,`<td>${A(u,r.name)}</td><td>${esc(r.trial_count??"")}</td><td>${esc(r.h_index??"")}</td><td><span class="pill md">${r.influence_score!=null?Number(r.influence_score).toFixed(2):""}</span></td>`);}).join(""));}catch(e){ec("kolinf",4);}
+
+  // Academic ↔ industry research bridges (co-authorship)
+  try{const d=await rows(`/institution_company_bridge?select=shared_papers,institution:institutions(name),company:companies(name)&order=shared_papers.desc&limit=40`);
+    fill("bridge",d.map(r=>`<tr><td>${esc(r.institution?r.institution.name:"")}</td><td><b>${esc(r.company?r.company.name:"")}</b></td><td>${esc(r.shared_papers)}</td></tr>`).join(""));}catch(e){ec("bridge",3);}
+
+  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED","AUTHORED","CO_AUTHORED_WITH","RESEARCHES","COLLABORATES"];
     const vals=await Promise.all(preds.map(p=>cntq("entity_edges?select=id&predicate=eq."+p).catch(()=>"–")));
     document.getElementById("edges").innerHTML=preds.map((p,i)=>`<span class="pill md" style="margin:3px 6px 3px 0;display:inline-block">${p}: <b class="n">${esc(vals[i])}</b></span>`).join("");
   }catch(e){document.getElementById("edges").textContent="unavailable";}
