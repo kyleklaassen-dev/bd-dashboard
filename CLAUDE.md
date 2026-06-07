@@ -103,7 +103,8 @@ git add -A && git commit -m "description" && git push
 - `scripts/company_enrichment.py` — company/drug enrichment pipeline (ENRICHMENT_SYSTEM prompt)
 - `scripts/research.py` — nightly news intelligence pipeline
 - `scripts/molecule_enrichment.py` — molecule characterization pipeline
-- `migrations/schema_migration_governance_v1.sql` — governance_violations table DDL (needs manual apply)
+- `migrations/v1_schema.sql` — live schema snapshot (do not apply to prod); forward migrations start at v2
+- `migrations/_archive/` — pre-v1 historical SQL (see `_archive/SITUATION.md`)
 - `scripts/apply_governance_violations.py` — applies the above migration + verifies
 
 ## Governance Violations Table

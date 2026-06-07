@@ -12,7 +12,7 @@ Three migration modes:
   --commit    Execute migration + run post-migration validation
 
 Prerequisites:
-  1. Apply docs/drug_competitive_scores_ddl.sql via Supabase SQL Editor
+  1. Apply migrations/_archive/from-docs/drug_competitive_scores_ddl.sql via Supabase SQL Editor
   2. Set SUPABASE_KEY to service role key (writes required)
 
 Environment:

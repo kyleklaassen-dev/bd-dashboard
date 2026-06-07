@@ -546,7 +546,7 @@ def main():
 
     tests = sb_get("validation_tests", params)
     if not tests:
-        print("No validation tests found. Run migrations/v15_validation_tests.sql first.")
+        print("No validation tests found. Run migrations/_archive/from-migrations/v15_validation_tests.sql first.")
         sys.exit(0)
 
     print(f"\nLoaded {len(tests)} validation tests...")

@@ -1,5 +1,5 @@
 -- =============================================================================
--- vNN_description.sql
+-- vNN_description.sql  (forward migrations start at v2 — see migrations/README.md)
 -- Migration: <one-line description of what this migration does>
 -- Created: YYYY-MM-DD
 -- Author:  claude_agent

@@ -21,7 +21,7 @@ except ImportError:
     import requests
 
 BASE_DIR      = pathlib.Path(__file__).parent.parent
-SQL_FILE      = BASE_DIR / "migrations" / "v37_drug_sources.sql"
+SQL_FILE      = BASE_DIR / "migrations" / "_archive" / "from-migrations" / "v37_drug_sources.sql"
 KEY_FILE      = BASE_DIR / ".supabase_service_key"
 SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co"
 DASHBOARD_URL = "https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new"

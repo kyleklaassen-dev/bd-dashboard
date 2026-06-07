@@ -534,7 +534,9 @@ def print_audit(groups: dict, safe_edges: list, uncertain_edges: list, uncertain
 
 def apply_migration(project_id: str, pat: str) -> bool:
     """Applies v26_entity_edges.sql via Supabase Management API."""
-    migration_path = os.path.join(os.path.dirname(__file__), "migrations", "v26_entity_edges.sql")
+    migration_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "migrations", "_archive", "from-scripts-migrations", "v26_entity_edges.sql"
+    ))
     if not os.path.exists(migration_path):
         print(f"  [ERROR] Migration file not found: {migration_path}", file=sys.stderr)
         return False
