@@ -31,7 +31,7 @@ GITHUB_REPO       = os.environ.get("GITHUB_REPO", "kyleklaassen-dev/bd-dashboard
 # RLS; same key already embedded client-side in index.html). NOT the service key — never
 # put the service key in a deployed page. Env override allowed.
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g")
+    "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g")
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
