@@ -161,6 +161,10 @@ D = [
   "Estimated commercial ceiling, with assumptions shown.",
   "Tulisokibart: ~$2.5B peak (penetration-based)","Evaluate — Forecasts & Revenue","partial",
   "Sparse; forecasts are Evaluate's core strength — our honest 20%",42),
+ ("payer_pricing","US pricing & public spend","Payer","payer_pricing",None,"satellite_rows",5,
+  "What the US public payer actually spends — Medicare Part B/D totals and Medicaid acquisition cost.",
+  "Skyrizi: Medicare Part D total spending by year (CMS)","Evaluate — Forecasts & Revenue","partial",
+  "Actual US public spend; Evaluate adds global consensus forecasts",43),
  # COMPETITIVE
  ("competitive_scores","Competitive positioning","Competitive","drug_competitive_scores",None,"satellite_rows",0,
   "How this drug stacks up against competitors in each context, scored.",
