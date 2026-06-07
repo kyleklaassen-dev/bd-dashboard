@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian · Predictions</title>
+<style>
+  :root{
+    --ink:#0f172a; --slate:#64748b; --slate2:#94a3b8; --line:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --navy:#1a3f8f; --blue:#1d4ed8; --blue2:#2e6fb0;
+    --violet:#7c3aed; --green:#16a34a; --greenbg:#f0fdf4; --red:#dc2626; --redbg:#fef2f2;
+    --amber:#f59e0b; --amberbg:#fffbeb; --softblue:#f5f8ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  header.page{margin-bottom:8px}
+  h1{font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--slate);font-size:14px;margin-bottom:24px}
+  .sub b{color:var(--navy)}
+
+  /* poll / scoreboard */
+  .poll{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:18px;
+    padding:24px 26px;margin-bottom:8px;box-shadow:0 8px 28px rgba(26,63,143,.18)}
+  .poll h2{margin:0 0 16px;font-size:13px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.08em;opacity:.85}
+  .stats{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end}
+  .stat{min-width:90px}
+  .stat .n{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .stat .l{font-size:12px;opacity:.8;margin-top:5px}
+  .spark{flex:1;min-width:240px;height:84px;position:relative}
+  .spark .empty{font-size:13px;opacity:.8;font-style:italic;
+    display:flex;align-items:center;height:100%;justify-content:flex-end;text-align:right}
+  .legend{font-size:11px;opacity:.75;margin-top:8px}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 18px;align-items:center}
+  .controls .grp{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--slate);
+    padding:6px 13px;border-radius:999px;font-size:12.5px;cursor:pointer;font-weight:500;
+    transition:all .12s}
+  .chip:hover{border-color:var(--blue2);color:var(--navy)}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .controls .spacer{flex:1}
+
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .pc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
+    display:flex;flex-direction:column;gap:11px;transition:box-shadow .15s,transform .15s;
+    border-left:4px solid var(--blue2)}
+  .pc:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);transform:translateY(-2px)}
+  .pc.s-correct{border-left-color:var(--green)}
+  .pc.s-incorrect{border-left-color:var(--red)}
+  .pc.s-partially_correct{border-left-color:var(--amber)}
+  .pc.s-expired{border-left-color:var(--slate2)}
+  .pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .badge{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+    padding:3px 9px;border-radius:6px;background:var(--softblue);color:var(--navy);white-space:nowrap}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;text-transform:uppercase;
+    letter-spacing:.04em}
+  .pill.open{background:#eff6ff;color:var(--blue)}
+  .pill.correct{background:var(--greenbg);color:var(--green)}
+  .pill.incorrect{background:var(--redbg);color:var(--red)}
+  .pill.partially_correct{background:var(--amberbg);color:#b45309}
+  .pill.expired{background:#f1f5f9;color:var(--slate)}
+  .pc .subj{font-size:11px;font-weight:600;color:var(--blue2);text-transform:uppercase;letter-spacing:.04em}
+  .pc .stmt{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4}
+  .conf-row{display:flex;align-items:center;gap:12px}
+  .ring{--p:0;--c:var(--blue);width:46px;height:46px;border-radius:50%;flex-shrink:0;
+    background:conic-gradient(var(--c) calc(var(--p)*1%), #eef2f7 0);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink)}
+  .ring i{background:#fff;width:34px;height:34px;border-radius:50%;display:flex;
+    align-items:center;justify-content:center;font-style:normal}
+  .conf-meta{font-size:12px;color:var(--slate)}
+  .conf-meta b{color:var(--ink)}
+  .pc .foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;
+    color:var(--slate);border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+  .pc .val{font-weight:700;color:var(--violet)}
+  details{font-size:12.5px;color:var(--slate)}
+  details summary{cursor:pointer;color:var(--blue2);font-weight:500;outline:none}
+  details .body{margin-top:7px;padding:10px 12px;background:var(--bg);border-radius:9px;
+    line-height:1.55;color:#475569}
+  .outcome{background:var(--bg);border-radius:9px;padding:10px 12px;font-size:12.5px}
+  .outcome .ol{font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--slate);margin-bottom:3px}
+  .loading,.err{text-align:center;color:var(--slate);padding:60px 20px;font-size:14px}
+  .err{color:var(--red)}
+  footer{margin-top:40px;text-align:center;color:var(--slate2);font-size:12px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <h1>Predictions</h1>
+    <div class="sub">Every falsifiable call Meridian makes — confidence set in advance, outcome scored against ground truth.
+      <b>This is the platform's track record.</b></div>
+  </header>
+
+  <section class="poll" id="poll">
+    <h2>Track record · updating as calls resolve</h2>
+    <div class="stats" id="stats"><div class="loading" style="color:#fff;padding:10px 0">Loading…</div></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <div class="controls" id="controls"></div>
+  <div id="grid" class="grid"><div class="loading">Loading predictions…</div></div>
+
+  <footer>
+    Meridian foresight ledger · resolution criteria frozen at seed · scored by <code>score_foresight.py</code><br>
+    Brier score: lower is better (0 = perfect, 0.25 = a coin flip called at 50%).
+  </footer>
+</div>
+
+<script>
+const SB = "https://tghntyofptvfhmtchwcv.supabase.co";
+const KEY = "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const OUTCOME = {correct:1, incorrect:0, partially_correct:0.5};
+const TYPE_LABEL = {acquisition:"Acquisition",licensing_deal:"Licensing",asset_value:"Asset value",
+  outcome_success:"Clinical outcome",outcome_failure:"Clinical failure",first_to_clinic:"Race to clinic",
+  first_to_market:"Race to market",leader_rank:"Leadership",stall:"Program stall"};
+let DATA=[], fArea="all", fStatus="all";
+
+async function sb(path){
+  const r = await fetch(`${SB}/rest/v1/${path}`,{headers:{apikey:KEY,Authorization:`Bearer ${KEY}`}});
+  if(!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+const pct = x => Math.round(x*100);
+const fmtVal = v => v>=1e9?`$${(v/1e9).toFixed(1)}B`:v>=1e6?`$${(v/1e6).toFixed(0)}M`:`$${v}`;
+const fmtDate = d => d? new Date(d+"T00:00:00").toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+
+function renderPoll(){
+  const resolved = DATA.filter(p=>p.status in OUTCOME);
+  const open = DATA.filter(p=>p.status==="open");
+  const hits = resolved.filter(p=>p.status==="correct").length;
+  const brier = resolved.length? resolved.reduce((s,p)=>s+(p.confidence-OUTCOME[p.status])**2,0)/resolved.length : null;
+  const avgConf = open.length? open.reduce((s,p)=>s+p.confidence,0)/open.length : 0;
+
+  const stat=(n,l)=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  let html = stat(DATA.length,"calls made") + stat(open.length,"open") + stat(resolved.length,"resolved");
+  html += stat(resolved.length? `${pct(hits/resolved.length)}%`:"—","hit rate");
+  html += stat(brier!=null? brier.toFixed(2):"—","Brier score");
+  html += stat(`${pct(avgConf)}%`,"avg conviction (open)");
+
+  // accuracy-over-time sparkline (cumulative hit rate by resolved_at)
+  const ser = resolved.filter(p=>p.resolved_at).sort((a,b)=>a.resolved_at.localeCompare(b.resolved_at));
+  let spark;
+  if(ser.length>=2){
+    let cum=0; const pts=ser.map((p,i)=>{cum+=p.status==="correct"?1:0; return cum/(i+1);});
+    const W=260,H=84,pad=6; const step=(W-2*pad)/(pts.length-1);
+    const path=pts.map((y,i)=>`${i?'L':'M'}${(pad+i*step).toFixed(1)},${(H-pad-y*(H-2*pad)).toFixed(1)}`).join(' ');
+    spark=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="84">
+      <line x1="${pad}" y1="${H-pad-0.5*(H-2*pad)}" x2="${W-pad}" y2="${H-pad-0.5*(H-2*pad)}" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 3"/>
+      <path d="${path}" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+    </svg>`;
+  } else {
+    const next = open.map(p=>p.predicted_window_end).filter(Boolean).sort()[0];
+    spark=`<div class="empty">Accuracy line begins at the first resolution.<br>Next window closes <b>${fmtDate(next)}</b>.</div>`;
+  }
+  html += `<div class="spark">${spark}</div>`;
+  document.getElementById('stats').innerHTML = html;
+
+  // calibration legend, when there's enough resolved
+  let leg = `${open.length} open calls across ${new Set(DATA.map(p=>p.area_id)).size} area(s). `;
+  if(resolved.length){
+    const held = resolved.filter(p=>p.reasons_held).length;
+    leg += `Rationale held in ${held}/${resolved.length} resolved calls (incl. some that missed the headline).`;
+  } else {
+    leg += `No calls resolved yet — the scoreboard fills as windows close.`;
+  }
+  document.getElementById('legend').textContent = leg;
+}
+
+function renderControls(){
+  const areas=[...new Set(DATA.map(p=>p.area_id).filter(Boolean))].sort();
+  const statuses=["open","correct","partially_correct","incorrect","expired"];
+  const chip=(v,cur,grp,lbl)=>`<span class="chip ${v===cur?'on':''}" data-grp="${grp}" data-v="${v}">${lbl}</span>`;
+  let h=`<div class="grp">${chip("all",fArea,"area","All areas")}${areas.map(a=>chip(a,fArea,"area",a.toUpperCase())).join('')}</div>`;
+  h+=`<div class="spacer"></div>`;
+  h+=`<div class="grp">${chip("all",fStatus,"status","All")}${statuses.map(s=>chip(s,fStatus,"status",s.replace('_',' '))).join('')}</div>`;
+  const c=document.getElementById('controls'); c.innerHTML=h;
+  c.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{
+    if(el.dataset.grp==="area") fArea=el.dataset.v; else fStatus=el.dataset.v;
+    renderControls(); renderGrid();
+  });
+}
+
+function card(p){
+  const conf=pct(p.confidence);
+  const ringColor = p.status==="correct"?"var(--green)":p.status==="incorrect"?"var(--red)":
+                    p.status==="partially_correct"?"var(--amber)":"var(--blue)";
+  const resolved = p.status in OUTCOME;
+  const outcome = resolved? `<div class="outcome"><div class="ol">Outcome — ${p.status.replace('_',' ')}${p.reasons_held?' · rationale held':''}</div>
+      ${p.outcome_text||'(no detail)'}${p.outcome_value_usd?` · <b>${fmtVal(p.outcome_value_usd)}</b>`:''}
+      ${p.outcome_date?` · ${fmtDate(p.outcome_date)}`:''}</div>` : '';
+  const val = p.predicted_value_usd? `<span class="val">${fmtVal(p.predicted_value_usd)}</span>` : '';
+  return `<div class="pc s-${p.status}">
+    <div class="pc-top"><span class="badge">${TYPE_LABEL[p.prediction_type]||p.prediction_type}</span>
+      <span class="pill ${p.status}">${p.status.replace('_',' ')}</span></div>
+    <div class="subj">${p.subject_label||''}</div>
+    <div class="stmt">${p.statement}</div>
+    <div class="conf-row">
+      <div class="ring" style="--p:${conf};--c:${ringColor}"><i>${conf}%</i></div>
+      <div class="conf-meta">stated conviction<br><b>by ${fmtDate(p.predicted_window_end)}</b></div>
+    </div>
+    ${outcome}
+    <details><summary>Why this call</summary><div class="body">${p.rationale||'—'}</div></details>
+    ${p.resolution_criteria?`<details><summary>How it resolves</summary><div class="body">${p.resolution_criteria}</div></details>`:''}
+    <div class="foot"><span>${(p.area_id||'').toUpperCase()}</span>${val}</div>
+  </div>`;
+}
+
+function renderGrid(){
+  let rows=DATA.filter(p=>(fArea==="all"||p.area_id===fArea)&&(fStatus==="all"||p.status===fStatus));
+  const order={open:0,partially_correct:1,correct:2,incorrect:3,expired:4};
+  rows.sort((a,b)=>(order[a.status]-order[b.status])||(b.confidence-a.confidence));
+  document.getElementById('grid').innerHTML = rows.length? rows.map(card).join('')
+    : `<div class="loading">No predictions match this filter.</div>`;
+}
+
+(async()=>{
+  try{
+    DATA = await sb("foresight_predictions?select=*&order=confidence.desc&limit=500");
+    renderPoll(); renderControls(); renderGrid();
+  }catch(e){
+    document.getElementById('grid').innerHTML=`<div class="err">Couldn't load predictions.<br>${e.message}</div>`;
+    document.getElementById('stats').innerHTML='';
+  }
+})();
+</script>
+</body>
+</html>
