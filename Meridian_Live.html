@@ -178,6 +178,17 @@
 
   <div class="grid2">
     <div>
+      <h2>Target genetics — human-genetics validation (Open Targets)</h2>
+      <div class="card"><div class="scroll"><table id="genval"><thead><tr><th>Target</th><th>Disease</th><th>Genetic</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Target LoF constraint — genetic safety (gnomAD LOEUF)</h2>
+      <div class="card"><div class="scroll"><table id="loeuf"><thead><tr><th>Target</th><th>LOEUF</th><th>Read</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
       <h2>Patent landscape — FTO (assignee → patent)</h2>
       <div class="card"><div class="scroll"><table id="patfto"><thead><tr><th>Assignee</th><th>Patent</th><th>Expiry~</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
     </div>
@@ -232,8 +243,8 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   // Strategic conclusions (derived) → each cites the source rows it was computed from
   try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=600`);
     const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
-    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',kol_hub:'KOL hubs'};
-    const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
+    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',kol_hub:'KOL hubs'};
+    const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','genetically_validated','target_safety_genetics','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
     const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
     document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
       return `<div style="margin:8px 10px 14px"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:6px">${LBL[k]||esc(k)} <span class="muted">· ${items.length}</span></div>`+
@@ -340,6 +351,15 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   // Official labels → DailyMed SPL
   try{const d=await rows(`/drug_labels?select=drug_id,label_title,boxed_warning,set_url,source_url&order=drug_id.asc&limit=60`);
     fill("labels",d.map(r=>{const u=r.set_url||r.source_url;const bx=r.boxed_warning?' <span class="pill bad">boxed</span>':'';return TR(u,`<td><b>${esc(r.drug_id)}</b></td><td>${A(u,r.label_title||"label")}${bx}</td>`);}).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("labels",2);}
+
+  // Target genetics → Open Targets (human-genetics validation of our targets)
+  try{const d=await rows(`/target_disease_assoc?select=target_id,indication_id,genetic_association_score,overall_score&genetic_association_score=gte.0.7&order=genetic_association_score.desc.nullslast&limit=40`);
+    const gp=v=>v>=0.85?'<span class="pill hi">'+v.toFixed(2)+'</span>':v>=0.7?'<span class="pill md">'+v.toFixed(2)+'</span>':'<span class="pill lo">'+v.toFixed(2)+'</span>';
+    fill("genval",d.filter(r=>r.genetic_association_score!=null).map(r=>{const u="https://platform.opentargets.org/target/"+encodeURIComponent(r.target_id);return TR(u,`<td><b>${esc(r.target_id.toUpperCase())}</b></td><td class="muted">${esc(r.indication_id)}</td><td>${gp(Number(r.genetic_association_score))}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("genval",3);}
+
+  // Target LoF constraint → gnomAD via Open Targets (low LOEUF = intolerant = safety caution)
+  try{const d=await rows(`/target_genetics?select=target_id,oe_upper&constraint_type=eq.lof&order=oe_upper.asc.nullslast&limit=60`);
+    fill("loeuf",d.filter(r=>r.oe_upper!=null).map(r=>{const v=Number(r.oe_upper);const read=v<0.6?'<span class="pill bad">intolerant</span>':v<1.0?'<span class="pill md">moderate</span>':'<span class="pill ok">tolerant</span>';return `<tr><td><b>${esc(r.target_id.toUpperCase())}</b></td><td class="muted">${v.toFixed(2)}</td><td>${read}</td></tr>`;}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("loeuf",3);}
 
   // Patent landscape → Google Patents (FTO; anti-TL1A families surface here)
   try{const d=await rows(`/company_patents?select=assignee_org,patent_number,patent_title,expiry_estimate,matched_target,source_url&order=expiry_estimate.desc.nullslast&limit=60`);
