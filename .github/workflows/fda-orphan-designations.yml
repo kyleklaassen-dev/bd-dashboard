@@ -1,0 +1,59 @@
+name: FDA Orphan Designations
+
+# Off-VM data pull on a clean-egress GitHub runner: accessdata.fda.gov returns
+# Akamai 503 to the throttled shared VM. This runner POSTs the OOPD form's Excel
+# export, parses it, matches rows to our drugs (resolve-or-skip), and writes orphan
+# rows to regulatory_designations (alongside breakthrough / fast_track / PRIME).
+# Bronze first (source_payloads). Dry-run by default.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch + match but do not write"
+        required: false
+        default: "true"
+        type: boolean
+      start_date:
+        description: "Designation start date MM/DD/YYYY"
+        required: false
+        default: "01/01/1983"
+      limit:
+        description: "Cap parsed rows (0 = all)"
+        required: false
+        default: "0"
+  schedule:
+    - cron: "30 16 * * 0"   # Sundays 12:30 PM ET (16:30 UTC) — weekly refresh
+
+concurrency:
+  group: fda-orphan-designations
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    name: "FDA orphan designations export"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run FDA orphan designations pull
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -e
+          echo "=== FDA Orphan Designations · $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+          FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
+          START="${{ github.event.inputs.start_date }}"; START="${START:-01/01/1983}"
+          LIMIT="${{ github.event.inputs.limit }}"; LIMIT="${LIMIT:-0}"
+          python3 scripts/integrations/fda_orphan_designations.py \
+            $FLAG --start-date "$START" --limit "$LIMIT"
+          echo "=== done ==="
