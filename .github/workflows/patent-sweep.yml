@@ -53,12 +53,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Provision service key file
+      - name: Provision key files
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           set -e
           printf '%s' "$SUPABASE_SERVICE_KEY" > .supabase_service_key
+          # anon key is the public publishable key (already embedded in the dashboard HTML)
+          printf '%s' "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI" > .supabase_anon_key
 
       - name: Regenerate reference data (companies + drugs)
         env:
