@@ -160,8 +160,8 @@
       <div class="card"><div class="scroll"><table id="readout"><thead><tr><th>Yr</th><th>Asset</th><th>Signal</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
     </div>
     <div>
-      <h2>Financing events — dilutive raises (SEC)</h2>
-      <div class="card"><div class="scroll"><table id="events"><thead><tr><th>Date</th><th>Company</th><th>Form</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+      <h2>Financing events — by security type (SEC)</h2>
+      <div class="card"><div class="scroll"><table id="events"><thead><tr><th>Date</th><th>Company</th><th>Type</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
     </div>
   </div>
 
@@ -317,9 +317,10 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
     const sg=r=>r.is_late_breaker?'<span class="pill hi">late-breaker</span>':r.result_direction==="positive"?'<span class="pill ok">positive</span>':'<span class="pill md">readout</span>';
     fill("readout",d.map(r=>{const u=r.source_url||r.doi;return TR(u,`<td class="muted">${esc(r.conference_year||"")}</td><td>${A(u,r.drug_id)}<div class="muted" style="font-size:11px">${esc(r.conference||"")}</div></td><td>${sg(r)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("readout",3);}
 
-  // Financing events → SEC EDGAR filing (dilutive raises = runway pressure)
-  try{const d=await rows(`/company_events?select=company_id,filing_date,form_type,event_subtype,source_url&event_type=eq.financing&order=filing_date.desc&limit=40`);
-    fill("events",d.map(r=>TR(r.source_url,`<td class="muted">${esc(fmtDate(r.filing_date))}</td><td>${A(r.source_url,r.company_id)}</td><td><span class="pill md">${esc(r.form_type)}</span></td>`)).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("events",3);}
+  // Financing events → SEC EDGAR. Classified by the actual security in the prospectus body (a 424B5 can be equity OR debt). Dilutive equity = runway pressure; non-dilutive debt = balance-sheet management, NOT distress.
+  try{const d=await rows(`/company_events?select=company_id,filing_date,form_type,financing_type,is_dilutive,security_detail,offering_amount_text,source_url&event_type=eq.financing&order=filing_date.desc&limit=60`);
+    const FT={dilutive_equity:'Dilutive equity',atm_program:'ATM program',pipe:'PIPE',convertible_debt:'Convertible debt',non_dilutive_debt:'Non-dilutive debt',credit_facility:'Credit facility',preferred_equity:'Preferred equity',mixed_shelf:'Mixed shelf'};
+    fill("events",d.map(r=>{const t=r.financing_type;const lbl=FT[t]||(r.form_type||'financing');const cls=r.is_dilutive===true?'lo':r.is_dilutive===false?'ok':'md';const amt=r.offering_amount_text?` · ${esc(r.offering_amount_text)}`:'';return TR(r.source_url,`<td class="muted">${esc(fmtDate(r.filing_date))}</td><td>${A(r.source_url,r.company_id)}${amt}</td><td><span class="pill ${cls}">${esc(lbl)}</span></td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("events",3);}
 
   // Mechanism pathways → Reactome / GtoPdb. Densest pathways = adjacency whitespace.
   try{const d=await rows(`/target_pathways?select=symbol,pathway_name,source,source_url&order=symbol.asc&limit=120`);
