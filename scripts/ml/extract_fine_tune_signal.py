@@ -38,7 +38,7 @@ Next steps (Phase 2, not yet built):
 import os, sys, json, argparse, datetime
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def _key(f):
     p = os.path.join(_REPO, f)

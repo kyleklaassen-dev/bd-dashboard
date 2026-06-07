@@ -24,4 +24,4 @@ jobs:
       - env:
           SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        run: python scripts/materialize_structural_edges.py
+        run: python scripts/graph/materialize_structural_edges.py

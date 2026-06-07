@@ -17,7 +17,7 @@ Usage:
 import os, sys, json, argparse, datetime, re
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def _key(f):
     p = os.path.join(_REPO, f)

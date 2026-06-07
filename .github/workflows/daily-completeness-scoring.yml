@@ -40,4 +40,4 @@ jobs:
         run: |
           ARGS="--area all"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          python scripts/research_intelligence.py $ARGS
+          python scripts/enrichment/research_intelligence.py $ARGS

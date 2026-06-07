@@ -68,4 +68,4 @@ jobs:
           if [ -n "${{ github.event.inputs.limit }}" ] && [ "${{ github.event.inputs.limit }}" != "0" ]; then
             ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
           fi
-          python scripts/fetch_homepage_news.py $ARGS
+          python scripts/intelligence/fetch_homepage_news.py $ARGS

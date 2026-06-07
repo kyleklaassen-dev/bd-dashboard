@@ -1,6 +1,6 @@
 name: Competitor Pipeline Monitor
 
-# Activates scripts/pipeline_monitor.py, which was built for nightly use but was
+# Activates scripts/intelligence/pipeline_monitor.py, which was built for nightly use but was
 # never scheduled. It hashes each tracked company's pipeline page and, on change,
 # fires a signals row + a discovery_queue row for human review — so competitor
 # pipeline updates (new drug, stage change, discontinuation) surface within 24h.
@@ -52,4 +52,4 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python scripts/pipeline_monitor.py $ARGS
+          python scripts/intelligence/pipeline_monitor.py $ARGS

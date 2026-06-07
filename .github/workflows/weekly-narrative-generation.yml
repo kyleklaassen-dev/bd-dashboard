@@ -41,4 +41,4 @@ jobs:
           AREA="${{ github.event.inputs.area }}"; AREA="${AREA:-tl1a}"
           LIM="${{ github.event.inputs.limit }}"; LIM="${LIM:-0}"
           echo "=== Narrative generation — area=$AREA limit=$LIM — $(date -u) ==="
-          python scripts/generate_area_narratives.py --area "$AREA" --limit "$LIM"
+          python scripts/narrative/generate_area_narratives.py --area "$AREA" --limit "$LIM"

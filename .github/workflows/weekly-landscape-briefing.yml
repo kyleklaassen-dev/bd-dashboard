@@ -34,10 +34,10 @@ jobs:
         run: |
           AREA="${{ github.event.inputs.area }}"
           if [ -n "$AREA" ]; then
-            python scripts/generate_landscape_briefing.py --area "$AREA" --force
+            python scripts/narrative/generate_landscape_briefing.py --area "$AREA" --force
           else
             for a in tl1a ibd tslp il4ra igf1r fcrn tcell; do
               echo "=== briefing: $a ==="
-              python scripts/generate_landscape_briefing.py --area "$a" --force || echo "  ($a failed, continuing)"
+              python scripts/narrative/generate_landscape_briefing.py --area "$a" --force || echo "  ($a failed, continuing)"
             done
           fi

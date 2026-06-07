@@ -26,4 +26,4 @@ jobs:
         env:
           SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        run: python3 scripts/apply_sql_migration.py migrations/prune_field_change_audit.sql
+        run: python3 scripts/build/apply_sql_migration.py migrations/prune_field_change_audit.sql

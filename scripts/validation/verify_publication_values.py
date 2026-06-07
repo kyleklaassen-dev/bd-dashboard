@@ -18,7 +18,7 @@ Run:
 import os, re, sys, json, argparse, urllib.request, urllib.error
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'narrative'))
 import narrative_gen as ng  # reuse get/_request/resolver/recipe + key handling
 
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"

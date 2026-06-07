@@ -54,14 +54,14 @@ jobs:
           echo "--- 1) Drug evidence (ct.gov + Europe PMC) over areas: $AREAS ---"
           for area in $AREAS; do
             echo ">> area: $area"
-            python scripts/collect_evidence.py --area "$area" $FLAG || echo "  (area $area failed — continuing)"
+            python scripts/sync/collect_evidence.py --area "$area" $FLAG || echo "  (area $area failed — continuing)"
           done
 
           echo "--- 2) Patient / epidemiology evidence (Europe PMC) ---"
           if [ -n "$FLAG" ]; then
-            python scripts/collect_patient_evidence.py --dry-run
+            python scripts/sync/collect_patient_evidence.py --dry-run
           else
-            python scripts/collect_patient_evidence.py --apply
+            python scripts/sync/collect_patient_evidence.py --apply
           fi
 
           echo "=== done ==="

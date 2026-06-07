@@ -41,7 +41,7 @@ import urllib.error
 from datetime import datetime, timezone
 
 # Reuse the AUTHORITATIVE detection logic from the narrative generator.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'narrative'))
 from narrative_gen import fetch_recipe, extract_atoms, SUPA_URL, SUPA_KEY, get  # noqa: E402
 
 CONF_RANK = {"low": 0, "medium": 1, "high": 2}

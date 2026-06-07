@@ -52,4 +52,4 @@ jobs:
           GITHUB_TOKEN:      ${{ secrets.GH_DEPLOY_TOKEN }}
           GITHUB_REPO:       kyleklaassen-dev/bd-dashboard
           MERIDIAN_FORCE:    ${{ github.event.inputs.force == 'true' && '1' || '' }}
-        run: python scripts/write_meridian.py
+        run: python scripts/intelligence/write_meridian.py

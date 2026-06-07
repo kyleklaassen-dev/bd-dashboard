@@ -28,7 +28,7 @@ from collections import defaultdict, Counter
 from typing import Optional
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DATA = os.path.join(_REPO, "data")
 _OUTPUT = os.path.join(_REPO, "output")
 os.makedirs(_OUTPUT, exist_ok=True)

@@ -97,7 +97,7 @@ except ImportError:
 import anthropic
 
 # ── Credential helpers (reuse company_intake pattern) ────────────────────────
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'identity'))
 try:
     from company_identity_resolver import get_credentials
 except ImportError:

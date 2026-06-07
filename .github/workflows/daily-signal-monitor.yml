@@ -58,4 +58,4 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python scripts/signal_monitor.py $ARGS --verbose
+          python scripts/intelligence/signal_monitor.py $ARGS --verbose

@@ -26,7 +26,7 @@ import os, sys, json, argparse, datetime, re
 from typing import Optional
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DATA_DIR = os.path.join(_REPO, "data")
 _OUTPUT_DIR = os.path.join(_REPO, "output")
 os.makedirs(_OUTPUT_DIR, exist_ok=True)

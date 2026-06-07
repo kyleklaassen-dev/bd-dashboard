@@ -35,7 +35,7 @@ jobs:
         run: |
           IND="${{ github.event.inputs.indications }}"
           if [ -n "$IND" ]; then
-            python scripts/generate_patient_briefs.py --indications "$IND"
+            python scripts/narrative/generate_patient_briefs.py --indications "$IND"
           else
-            python scripts/generate_patient_briefs.py --all
+            python scripts/narrative/generate_patient_briefs.py --all
           fi

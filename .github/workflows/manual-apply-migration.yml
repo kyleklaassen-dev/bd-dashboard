@@ -39,4 +39,4 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python3 scripts/apply_sql_migration.py $ARGS
+          python3 scripts/build/apply_sql_migration.py $ARGS

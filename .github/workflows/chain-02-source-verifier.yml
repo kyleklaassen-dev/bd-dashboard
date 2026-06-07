@@ -61,4 +61,4 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_run" ]; then ARGS="$ARGS --new-only"; fi
           if [ -n "${{ github.event.inputs.table }}" ]; then ARGS="$ARGS --table ${{ github.event.inputs.table }}"; fi
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          python scripts/source_verifier.py $ARGS
+          python scripts/validation/source_verifier.py $ARGS

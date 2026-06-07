@@ -69,10 +69,10 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: Company profiles for unenriched companies"
-          python scripts/company_enrichment.py --area tl1a --skip-discovery
-          python scripts/company_enrichment.py --area fcrn --skip-discovery
-          python scripts/company_enrichment.py --area ibd --skip-discovery
-          python scripts/write_ranking_snapshots.py
+          python scripts/enrichment/company_enrichment.py --area tl1a --skip-discovery
+          python scripts/enrichment/company_enrichment.py --area fcrn --skip-discovery
+          python scripts/enrichment/company_enrichment.py --area ibd --skip-discovery
+          python scripts/scoring/write_ranking_snapshots.py
 
       # ── TUESDAY: Mechanism + source_url gaps ──────────────────────────────
       - name: "Tuesday — Mechanism detail + source_url enrichment"
@@ -80,10 +80,10 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: mechanism_detail and source_url backfill"
-          python scripts/molecule_enrichment.py --area tl1a
-          python scripts/molecule_enrichment.py --area ibd
-          python scripts/molecule_enrichment.py --area fcrn
-          python scripts/ct_gov_sync.py --area tl1a
+          python scripts/enrichment/molecule_enrichment.py --area tl1a
+          python scripts/enrichment/molecule_enrichment.py --area ibd
+          python scripts/enrichment/molecule_enrichment.py --area fcrn
+          python scripts/sync/ct_gov_sync.py --area tl1a
 
       # ── WEDNESDAY: 100Q intelligence seeding for Next Gen drugs ──────────
       - name: "Wednesday — 100Q intelligence seeding for top competitors"
@@ -91,9 +91,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: drug_intelligence_qa seeding for Next Gen bispecifics"
-          python scripts/drug_intelligence_researcher.py --area tl1a --limit 10
-          python scripts/company_enrichment.py --area igf1r --skip-discovery
-          python scripts/company_enrichment.py --area atopy --skip-discovery
+          python scripts/enrichment/drug_intelligence_researcher.py --area tl1a --limit 10
+          python scripts/enrichment/company_enrichment.py --area igf1r --skip-discovery
+          python scripts/enrichment/company_enrichment.py --area atopy --skip-discovery
 
       # ── THURSDAY: Company profiles pass 2 + validation tests ─────────────
       - name: "Thursday — Company profiles pass 2 + expand validation tests"
@@ -101,9 +101,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: Company profiles second pass + validation expansion"
-          python scripts/company_enrichment.py --area tslp --skip-discovery
-          python scripts/company_enrichment.py --area il4ra --skip-discovery
-          python scripts/validate_ground_truth.py --write-results
+          python scripts/enrichment/company_enrichment.py --area tslp --skip-discovery
+          python scripts/enrichment/company_enrichment.py --area il4ra --skip-discovery
+          python scripts/validation/validate_ground_truth.py --write-results
 
       # ── FRIDAY: Competitive scoring + full validation + ranking ──────────
       - name: "Friday — Competitive scoring sweep + ranking snapshots"
@@ -112,12 +112,12 @@ jobs:
         run: |
           echo "SPRINT: Full competitive scoring + ranking update"
           python scripts/apply_competitive_scores_v56.py
-          python scripts/write_ranking_snapshots.py
-          python scripts/validate_ground_truth.py --write-results
-          python scripts/compute_coverage.py
+          python scripts/scoring/write_ranking_snapshots.py
+          python scripts/validation/validate_ground_truth.py --write-results
+          python scripts/scoring/compute_coverage.py
 
       # ── DAILY: Always run after any sprint day ────────────────────────────
       - name: "Daily ranking snapshot"
         if: always()
         continue-on-error: true
-        run: python scripts/write_ranking_snapshots.py || true
+        run: python scripts/scoring/write_ranking_snapshots.py || true

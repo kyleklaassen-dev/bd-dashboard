@@ -24,7 +24,7 @@ Run:
 
 import os, sys, json, requests, argparse, datetime
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def _read(f):
     for base in [_REPO, os.path.dirname(os.path.abspath(__file__))]:
         p = os.path.join(base, f)

@@ -58,4 +58,4 @@ jobs:
           ARGS="--limit ${{ github.event.inputs.limit || '40' }}"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           if [ "${{ github.event.inputs.recheck }}" = "true" ]; then ARGS="$ARGS --recheck"; fi
-          python scripts/content_verifier.py $ARGS
+          python scripts/validation/content_verifier.py $ARGS

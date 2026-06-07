@@ -61,7 +61,7 @@ import requests
 import anthropic
 
 # ── Resolver import ───────────────────────────────────────────────────────────
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'identity'))
 from company_identity_resolver import CompanyIdentityResolver, get_credentials
 
 # ══════════════════════════════════════════════════════════════════════════════

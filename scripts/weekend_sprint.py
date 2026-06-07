@@ -34,21 +34,40 @@ from typing import Optional, List, Dict, Any
 import yaml
 import requests
 
-# ── Add scripts/ to path for sibling imports ─────────────────────────────────
+# ── Add scripts/ and all immediate subfolders to path ────────────────────────
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
+for _d in [_SCRIPTS_DIR] + [
+    os.path.join(_SCRIPTS_DIR, _sub)
+    for _sub in os.listdir(_SCRIPTS_DIR)
+    if os.path.isdir(os.path.join(_SCRIPTS_DIR, _sub)) and not _sub.startswith('_')
+]:
+    if _d not in sys.path:
+        sys.path.insert(0, _d)
+
+def _find_script(name: str) -> str:
+    """Find a script by filename in scripts/ or any immediate subdirectory."""
+    for search_dir in [_SCRIPTS_DIR] + [
+        os.path.join(_SCRIPTS_DIR, d)
+        for d in os.listdir(_SCRIPTS_DIR)
+        if os.path.isdir(os.path.join(_SCRIPTS_DIR, d))
+    ]:
+        path = os.path.join(search_dir, name)
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(f"Script not found: {name}")
 
 # ── Lazy imports for new agent modules ───────────────────────────────────────
 # These are imported at call time to avoid hard failures if a module is missing.
 def _import_agent(module_name: str):
-    """Import a sibling script module by name. Returns None on failure."""
+    """Import a script module by name, searching scripts/ and all subfolders."""
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        module_name,
-        os.path.join(_SCRIPTS_DIR, f"{module_name}.py")
-    )
+    try:
+        path = _find_script(f"{module_name}.py")
+    except FileNotFoundError:
+        log(f"  WARNING: Could not find {module_name}.py in scripts/ or subfolders")
+        return None
+    spec = importlib.util.spec_from_file_location(module_name, path)
     if spec and spec.loader:
         try:
             mod = importlib.util.module_from_spec(spec)
@@ -454,7 +473,7 @@ def phase_a5_coverage_compute() -> Dict:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "compute_coverage",
-            os.path.join(_SCRIPTS_DIR, "compute_coverage.py")
+            _find_script("compute_coverage.py")
         )
         if spec and spec.loader:
             mod = importlib.util.module_from_spec(spec)
@@ -655,7 +674,7 @@ def phase_b1_drug_enrichment() -> Dict:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "drug_enrichment",
-            os.path.join(_SCRIPTS_DIR, "drug_enrichment.py")
+            _find_script("drug_enrichment.py")
         )
         if spec and spec.loader:
             mod = importlib.util.module_from_spec(spec)
@@ -754,7 +773,7 @@ def phase_b2_company_enrichment() -> Dict:
             env["ANTHROPIC_API_KEY"] = ANTHROPIC_API_KEY or ""
             cmd = [
                 sys.executable,
-                os.path.join(_SCRIPTS_DIR, "company_enrichment.py"),
+                _find_script("company_enrichment.py"),
                 "--area", area,
             ]
             if DRY_RUN:
@@ -2733,7 +2752,7 @@ def phase_f10_navigator_lookup_refresh() -> Dict:
     """Rebuild navigator_lookup.json and deploy to GitHub Pages via build_navigator_lookup.py."""
     log("F10: Navigator Lookup Refresh", indent=1)
     import subprocess
-    script_path = os.path.join(_SCRIPTS_DIR, "build_navigator_lookup.py")
+    script_path = _find_script("build_navigator_lookup.py")
     if not os.path.exists(script_path):
         log("  WARNING: build_navigator_lookup.py not found — skipping", indent=2)
         return {"status": "skipped", "reason": "script_not_found"}

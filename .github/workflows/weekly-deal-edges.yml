@@ -36,4 +36,4 @@ jobs:
         run: |
           ARGS=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          python scripts/materialize_deal_edges.py $ARGS
+          python scripts/graph/materialize_deal_edges.py $ARGS

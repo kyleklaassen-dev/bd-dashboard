@@ -23,7 +23,7 @@ Run:
 import os, re, sys, json, time, argparse, urllib.request, urllib.error, urllib.parse
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'narrative'))
 import narrative_gen as ng  # get/_request + key handling
 
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"

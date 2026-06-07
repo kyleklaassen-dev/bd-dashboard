@@ -107,7 +107,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           echo "Running CT.gov sync for area: ${{ steps.area_select.outputs.area }}"
-          python scripts/ct_gov_sync.py --area ${{ steps.area_select.outputs.area }}
+          python scripts/sync/ct_gov_sync.py --area ${{ steps.area_select.outputs.area }}
 
       - name: "[Nightly] Steps 1,4,5,6 — Intelligence pipeline"
         if: github.event_name == 'schedule'
@@ -117,7 +117,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           echo "Running enrichment for area: ${{ steps.area_select.outputs.area }}"
-          python scripts/company_enrichment.py --area ${{ steps.area_select.outputs.area }}
+          python scripts/enrichment/company_enrichment.py --area ${{ steps.area_select.outputs.area }}
 
       - name: "[Nightly] Step 7 — Research intelligence audit"
         if: github.event_name == 'schedule'
@@ -125,7 +125,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/research_intelligence.py --area ${{ steps.area_select.outputs.area }}
+          python scripts/enrichment/research_intelligence.py --area ${{ steps.area_select.outputs.area }}
 
       - name: "[Nightly] Identity health check"
         if: github.event_name == 'schedule'
@@ -134,7 +134,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
+          python scripts/identity/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — single area (non-"all")
@@ -153,8 +153,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/ct_gov_sync.py $ARGS"
-          python scripts/ct_gov_sync.py $ARGS
+          echo "Running: python scripts/sync/ct_gov_sync.py $ARGS"
+          python scripts/sync/ct_gov_sync.py $ARGS
 
       - name: "[Manual] Steps 1,4,5,6 — Intelligence pipeline (single area)"
         if: |
@@ -172,8 +172,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/company_enrichment.py $ARGS"
-          python scripts/company_enrichment.py $ARGS
+          echo "Running: python scripts/enrichment/company_enrichment.py $ARGS"
+          python scripts/enrichment/company_enrichment.py $ARGS
 
       - name: "[Manual] Step 7 — Research intelligence audit (single area)"
         if: |
@@ -187,8 +187,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/research_intelligence.py $ARGS"
-          python scripts/research_intelligence.py $ARGS
+          echo "Running: python scripts/enrichment/research_intelligence.py $ARGS"
+          python scripts/enrichment/research_intelligence.py $ARGS
 
       - name: "[Manual] Identity health check (single area)"
         if: |
@@ -200,7 +200,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
+          python scripts/identity/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH — all areas loop
@@ -233,16 +233,16 @@ jobs:
 
             if [ "$SKIP_TRIAL" != "true" ]; then
               echo "  → Step 3: CT.gov trial sync"
-              python scripts/ct_gov_sync.py --area $AREA $DRY_FLAG
+              python scripts/sync/ct_gov_sync.py --area $AREA $DRY_FLAG
             else
               echo "  → Step 3: SKIPPED (skip_trial_sync=true)"
             fi
 
             echo "  → Steps 1,4,5,6: Intelligence pipeline"
-            python scripts/company_enrichment.py --area $AREA $DRY_FLAG
+            python scripts/enrichment/company_enrichment.py --area $AREA $DRY_FLAG
 
             echo "  → Step 7: Research intelligence audit"
-            python scripts/research_intelligence.py --area $AREA $DRY_FLAG
+            python scripts/enrichment/research_intelligence.py --area $AREA $DRY_FLAG
 
             echo "  ✓ Area $AREA complete"
           done
@@ -260,7 +260,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
+          python scripts/identity/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
 
       - name: "Record next-gen ranking snapshots"
         if: github.event.inputs.dry_run != 'true'
@@ -270,5 +270,5 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           echo "Recording next-gen ranking snapshots to DB..."
-          python scripts/write_ranking_snapshots.py
+          python scripts/scoring/write_ranking_snapshots.py
           echo "Ranking snapshots complete."

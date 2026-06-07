@@ -54,5 +54,5 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/backfill_bd_angle.py $ARGS"
-          python scripts/backfill_bd_angle.py $ARGS
+          echo "Running: python scripts/enrichment/backfill_bd_angle.py $ARGS"
+          python scripts/enrichment/backfill_bd_angle.py $ARGS
