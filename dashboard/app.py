@@ -82,6 +82,37 @@ def render_pipeline_page(pipeline: dict) -> None:
     st.graphviz_chart(pipeline["dot"], width="stretch")
 
     st.divider()
+    st.subheader("Data flow — inputs & outputs")
+    st.caption(
+        "What information comes in (and where from), what the pipeline "
+        "does with it, and what it ultimately persists (and where to)."
+    )
+    st.graphviz_chart(pipeline["io_dot"], width="stretch")
+
+    io_col1, io_col2 = st.columns(2)
+    with io_col1:
+        st.markdown("**Reads — inputs**")
+        for item in pipeline["io"]["reads"]:
+            st.markdown(f"`{item['name']}` — {item['kind']}")
+            st.caption(f"via `{item['via']}`")
+            st.write(item["desc"])
+            with st.expander("How much does it ask for, and how?"):
+                st.write(item["scope"])
+            st.write("")
+    with io_col2:
+        st.markdown("**Writes — outputs**")
+        for item in pipeline["io"]["writes"]:
+            st.markdown(f"`{item['name']}` — {item['kind']}")
+            st.caption(f"via `{item['via']}`")
+            st.write(item["desc"])
+            with st.expander("How much does it write, and how?"):
+                st.write(item["scope"])
+            st.write("")
+
+    with st.expander("How is the data filtered, deduped, and cleaned before it's persisted?"):
+        st.write(pipeline["io"]["cleaning"])
+
+    st.divider()
     st.subheader("File-by-file, in order")
 
     for phase in pipeline["phases"]:
@@ -92,7 +123,7 @@ def render_pipeline_page(pipeline: dict) -> None:
             if len(group) > 1:
                 st.markdown("**Run in parallel:**")
             for item in group:
-                st.markdown(f"`{item['file']}`")
+                st.markdown(f"`{item['file']}` &nbsp;·&nbsp; {item['lines']} lines")
                 st.write(item["desc"])
             st.write("")
 
