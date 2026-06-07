@@ -1,0 +1,77 @@
+name: CDE / NMPA China Recheck
+
+# Off-VM headless-Chromium pull on a clean-egress GitHub runner. The CDE / NMPA
+# registry (www.chinadrugtrials.org.cn) sits behind a Riversafe (瑞数) dynamic-JS
+# anti-bot WAF that plain curl/urllib cannot pass. Playwright/Chromium executes
+# the challenge JS (sets the FSSBBIl1Ugzb cookies) then searches by dev-code /
+# Chinese sponsor name for our 14 China-developed TL1A / IL-23 target assets.
+# Bronze first (source_payloads, source='cde_nmpa'); confident dev-code matches
+# upsert to china_trials. Idempotent, resolve-or-skip, dry-run by default.
+#
+# NOTE: the WAF is a JS challenge the browser solves regardless of IP, but the
+# site may geo-block / deny datacenter egress. If GitHub's runner egress is
+# blocked from CDE, run this monthly on a self-hosted / VM runner instead — the
+# script and search logic are unchanged either way.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch + match but do not write"
+        required: false
+        default: true
+        type: boolean
+      budget:
+        description: "Wall-clock seconds of fetching per invocation"
+        required: false
+        default: "300"
+      sponsor:
+        description: "Also enumerate by Chinese sponsor short-name (recall)"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 8 1 * *"   # 1st of each month, 08:00 UTC — monthly refresh
+
+concurrency:
+  group: cde-china-recheck
+  cancel-in-progress: false
+
+jobs:
+  recheck:
+    name: "CDE / NMPA China recheck"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + Chromium
+        run: |
+          set -e
+          python3 -m pip install --upgrade pip
+          python3 -m pip install playwright
+          python3 -m playwright install --with-deps chromium
+
+      - name: Run CDE / NMPA China recheck
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_ANON_KEY:    ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -e
+          echo "=== CDE / NMPA China recheck · $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+          # Dry-run by default. A real write happens when dispatched with
+          # dry_run=false, or on the monthly schedule (inputs are empty -> not "true").
+          FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" != "true" ]; then FLAG="--write"; fi
+          SPONSOR=""
+          if [ "${{ github.event.inputs.sponsor }}" = "true" ]; then SPONSOR="--sponsor"; fi
+          BUDGET="${{ github.event.inputs.budget }}"; BUDGET="${BUDGET:-300}"
+          python3 scripts/integrations/cde_nmpa_china.py \
+            $FLAG $SPONSOR --budget "$BUDGET" --refresh
+          echo "=== done ==="
