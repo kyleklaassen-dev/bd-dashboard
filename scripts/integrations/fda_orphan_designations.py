@@ -38,7 +38,9 @@ def _retry(fn, *a, tries=4, base=3.0, **k):
     raise last
 
 def fetch_export(start_date, end_date, per_page=10000):
-    """POST the OOPD form requesting the Excel export. Returns raw HTML/Excel text."""
+    """GET the OOPD Excel export. The CFM endpoint accepts the form fields as a
+    query string and returns an HTML <table> served as application/vnd.ms-excel.
+    (POST 302-redirects to a 404; GET is the working path.) Returns raw text."""
     form = {
         "Product_name": "", "sponsor_name": "", "Designation": "",
         "Designation_Start_Date": start_date, "Designation_End_Date": end_date,
@@ -48,10 +50,10 @@ def fetch_export(start_date, end_date, per_page=10000):
         "RecordsPerPage": str(per_page),
         "newSearch": "Run Search",
     }
-    body = urllib.parse.urlencode(form).encode()
+    url = f"{RESULTS}?{urllib.parse.urlencode(form)}"
     def _do():
-        req = urllib.request.Request(RESULTS, data=body, headers={
-            "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded",
+        req = urllib.request.Request(url, headers={
+            "User-Agent": UA,
             "Referer": "https://www.accessdata.fda.gov/scripts/opdlisting/oopd/",
             "Accept": "application/vnd.ms-excel,text/html,*/*",
         })
@@ -188,7 +190,14 @@ def main():
     print(f"FDA Orphan Designations · session={SESSION} · "
           f"{args.start_date}..{args.end_date} · dry_run={args.dry_run}\n")
 
-    raw = fetch_export(args.start_date, args.end_date)
+    try:
+        raw = fetch_export(args.start_date, args.end_date)
+    except Exception as e:
+        # A blocked external source is a documented gap, not a build failure.
+        print(f"!! FDA OOPD export unreachable after retries ({type(e).__name__}: {e}). "
+              "Re-run the workflow later — hosted egress is usually intermittent, "
+              "not permanent. No data written.")
+        return
     low = raw.lower()
     if ("access denied" in low or "<title>error" in low or
             ("503" in raw[:200] and "table" not in low)):
