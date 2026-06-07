@@ -54,7 +54,22 @@
   .dict-item .t{font-weight:700;font-size:13.5px}
   .dict-item .d{font-size:13px;color:var(--slate);margin-top:2px}
   .dict-item .e{font-size:12px;color:var(--muted);margin-top:2px;font-style:italic}
-  @media(max-width:980px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+  /* molecule card: domains as columns, attributes as line items */
+  .molgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .molcol .dn{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;border-bottom:1px solid var(--line);padding-bottom:3px}
+  .molrow{font-size:12.5px;padding:4px 2px;border-bottom:1px solid #f0f4f9;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .molrow:hover{background:var(--soft)}
+  .molrow .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .molrow.f .dot{background:var(--good)} .molrow.u .dot{background:var(--bad)} .molrow.x .dot{background:#c2ccd9}
+  .molrow.x{color:var(--muted)}
+  .molrow.open{background:var(--soft);font-weight:700}
+  .moldata{grid-column:1/-1;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:12.5px;margin:2px 0 8px}
+  .moldata .kv{padding:2px 0}
+  .moldata .kv b{color:var(--slate);font-weight:600;margin-right:6px}
+  .moldata table{font-size:12px}
+  .hitbtn{display:inline-block;margin:2px 4px 2px 0;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12px;font-weight:600}
+  .hitbtn:hover{border-color:var(--accent);color:var(--accent)}
+  @media(max-width:980px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.molgrid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -87,10 +102,23 @@
       <h2>Molecule lookup — any molecule × any attribute</h2>
       <div class="card pad">
         <input class="search" id="drugsearch" placeholder="Type a molecule name… (e.g. tulisokibart)" autocomplete="off">
-        <div id="drugresult" class="muted" style="margin-top:10px;font-size:13px">Search any molecule to see exactly which tracked attributes are filled (green), expected-but-missing (red), or not yet expected at its phase (grey).</div>
+        <div id="drughits" style="margin-top:8px"></div>
       </div>
     </div>
   </div>
+
+  <div id="drugcard-wrap" style="display:none">
+    <h2 id="drugcard-title">Molecule card</h2>
+    <div class="card pad">
+      <div id="drugcard-head" style="font-size:14px;margin-bottom:10px"></div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">● filled · ● expected but missing · ● not yet expected at this phase — click any line to see the stored data and where it comes from.</div>
+      <div class="molgrid" id="drugcard"></div>
+    </div>
+  </div>
+
+  <h2>Connected data sources — every API and what it brings in</h2>
+  <div class="muted" style="font-size:13px;margin:-4px 0 12px">The live registry of external sources feeding Meridian (data_sources table). Status is honest: <span class="pill ok">active</span> <span class="pill pt">partial</span> <span class="pill ms">blocked</span> <span class="pill mo">planned</span>.</div>
+  <div class="card"><div class="scroll" style="max-height:560px"><table id="sources"><thead><tr><th>Source</th><th>What we get</th><th>Feeds</th><th>Status</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
 
   <h2 id="alex">The benchmark case — Meridian vs paid platforms (Citeline / Evaluate class)</h2>
   <div class="grid2">
@@ -183,26 +211,108 @@ let DICT=[],COMP=[];
   document.querySelector("#gaps tbody").innerHTML=gaps.map(x=>{const d=byKey[x.k]||{};
     return `<tr><td><b>${esc(d.display_name||x.k)}</b></td><td class="muted">${esc(d.domain||"")}</td><td>${x.m} / ${x.e}</td><td><span class="pill ${x.p>=75?"ok":x.p>=40?"pt":"ms"}">${x.p}% filled</span></td></tr>`;}).join("");
 
-  // ---- molecule lookup
+  // ---- molecule lookup: columns of clickable line items → real stored data
   const byDrug={};COMP.forEach(r=>{(byDrug[r.drug_id]=byDrug[r.drug_id]||{name:r.drug_name,stage:r.stage,rank:r.stage_rank,rows:[]}).rows.push(r);});
   const names=Object.entries(byDrug).map(([id,d])=>({id,n:(d.name||id).toLowerCase()}));
+  // preferred display columns per satellite table (generic fallback below covers the rest)
+  const SAT_COLS={
+    drug_targets:["target_id","role","mechanism","binding_detail","source_url"],
+    drug_indications:["indication_id","status","stage","line_of_therapy","source_url"],
+    drug_pk_parameters:["parameter","value_numeric","value_text","unit","population","source_url"],
+    drug_pd_parameters:["parameter","value_text","biomarker","timepoint","source_url"],
+    drug_biomarkers:["biomarker_name","biomarker_type","use_context","assay","source_url"],
+    molecule_intelligence:["format_summary","engineering_notes","differentiators","risk_summary","source_url"],
+    trial_facts:["nct_id","phase","status","title","enrollment","source_url"],
+    catalysts:["event_date","event_type","title","significance","source_url"],
+    non_responder_profiles:["mechanism_class","non_responder_rate_pct","escape_mechanism_text","alternative_targets","source_url"],
+    payer_tpp_criteria:["tpp_dimension","minimum_acceptable","preferred_profile","step_therapy_required","source_url"],
+    peak_revenue_estimates:["indication","peak_revenue_usd_millions","estimate_year","estimate_basis","source"],
+    drug_competitive_scores:["context_type","context_id","score","rationale"],
+    regulatory_designations:["designation_type","indication","date","source_url"],
+    drug_labels:["label_title","spl_url","source_url"],
+    fda_adverse_events:["reaction","report_count"],
+    geographic_approvals:["geography","approval_date","regulator","indication"],
+    drug_patents:["patent_number","title","expiry_date","assignee","source_url"],
+    drug_exclusivity:["exclusivity_type","expiry_date","reference_product","source_url"],
+    drug_sources:["claim_type","claim_value","source_type","source_url","confidence"]
+  };
+  const LIM={trial_facts:12,catalysts:12,drug_competitive_scores:10,fda_adverse_events:10,drug_sources:12,drug_patents:12};
+  let DRUGROW=null, OPENKEY=null;
+  function renderVal(v){
+    if(v==null||v==="")return"";
+    if(typeof v==="boolean")return v?"yes":"no";
+    if(Array.isArray(v))return v.map(x=>esc(typeof x==="object"?JSON.stringify(x):x)).join(", ");
+    if(typeof v==="object")return esc(JSON.stringify(v));
+    const s=String(v);
+    if(/^https?:\/\//.test(s))return `<a href="${esc(s)}" target="_blank" rel="noopener">${esc(s.length>60?s.slice(0,57)+"…":s)}</a>`;
+    return esc(s);
+  }
+  async function attrData(drugId,key){
+    const d=byKey[key];
+    if(d.check_type==="column_nonnull"){
+      if(!DRUGROW)DRUGROW=(await allRows(`/drugs?id=eq.${encodeURIComponent(drugId)}&select=*`))[0]||{};
+      const v=DRUGROW[d.source_column];
+      return `<div class="kv"><b>${esc(d.display_name)}</b> <span class="muted">(drugs.${esc(d.source_column)})</span></div>
+              <div style="margin-top:4px">${v==null||String(v).trim()===""?'<span class="muted">— no data stored yet</span>':renderVal(v)}</div>`;
+    }
+    const lim=LIM[d.source_table]||8;
+    let rs=[];try{rs=await allRows(`/${d.source_table}?drug_id=eq.${encodeURIComponent(drugId)}&limit=${lim}`);}catch(e){return '<span class="muted">could not load</span>';}
+    if(!rs.length)return `<div class="kv"><b>${esc(d.display_name)}</b> <span class="muted">(${esc(d.source_table)})</span></div><div class="muted" style="margin-top:4px">— no rows stored yet for this molecule</div>`;
+    const prefer=SAT_COLS[d.source_table];
+    let html=`<div class="kv"><b>${esc(d.display_name)}</b> <span class="muted">(${esc(d.source_table)} · ${rs.length}${rs.length===lim?"+":""} rows)</span></div>`;
+    rs.forEach(r=>{
+      let cols=prefer?prefer.filter(c=>r[c]!=null&&String(r[c]).trim()!==""):[];
+      if(!cols.length)cols=Object.keys(r).filter(c=>!["id","drug_id","drug_name","created_at","updated_at","enrichment_run_id","canonical_drug_id"].includes(c)&&r[c]!=null&&String(r[c]).trim()!=="").slice(0,6);
+      html+=`<div style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px">`+cols.map(c=>`<div class="kv"><b>${esc(c)}</b>${renderVal(r[c])}</div>`).join("")+`</div>`;});
+    return html;
+  }
+  function renderCard(id){
+    const d=byDrug[id];DRUGROW=null;OPENKEY=null;
+    const exp=d.rows.filter(r=>r.expected),got=exp.filter(r=>r.filled);
+    document.getElementById("drugcard-wrap").style.display="block";
+    document.getElementById("drugcard-title").textContent="Molecule card — "+(d.name||id);
+    document.getElementById("drugcard-head").innerHTML=`<b style="font-size:17px">${esc(d.name||id)}</b> <span class="muted">· ${esc(d.stage||"?")} · ${got.length}/${exp.length} expected attributes filled (${pct(got.length,exp.length)??"—"}%)</span>`;
+    const colFor=r=>!r.expected?"x":r.filled?"f":"u";
+    document.getElementById("drugcard").innerHTML=DOMS.map(dm=>{
+      const rs=d.rows.filter(r=>r.domain===dm).sort((a,b)=>(byKey[a.attribute_key]?.sort_order??99)-(byKey[b.attribute_key]?.sort_order??99));
+      if(!rs.length)return"";
+      return `<div class="molcol"><div class="dn">${dm}</div>`+rs.map(r=>
+        `<div class="molrow ${colFor(r)}" data-key="${esc(r.attribute_key)}" title="${esc(byKey[r.attribute_key]?.plain_description||"")}"><span class="dot"></span><span>${esc(byKey[r.attribute_key]?.display_name||r.attribute_key)}</span></div>`).join("")+`</div>`;
+    }).join("");
+    document.getElementById("drugcard").onclick=async e=>{
+      const row=e.target.closest(".molrow");if(!row)return;
+      const key=row.dataset.key;
+      document.querySelectorAll(".moldata").forEach(x=>x.remove());
+      document.querySelectorAll(".molrow.open").forEach(x=>x.classList.remove("open"));
+      if(OPENKEY===key){OPENKEY=null;return;}
+      OPENKEY=key;row.classList.add("open");
+      const panel=document.createElement("div");panel.className="moldata";panel.innerHTML='<span class="muted">loading…</span>';
+      row.closest(".molcol").after(panel);
+      panel.innerHTML=await attrData(id,key);
+    };
+    document.getElementById("drugcard-wrap").scrollIntoView({behavior:"smooth",block:"start"});
+  }
   document.getElementById("drugsearch").addEventListener("input",e=>{
-    const q=e.target.value.trim().toLowerCase();const out=document.getElementById("drugresult");
-    if(q.length<2){out.innerHTML="Keep typing…";return;}
-    const hits=names.filter(x=>x.n.includes(q)||x.id.includes(q)).slice(0,5);
-    if(!hits.length){out.innerHTML="No molecule matches.";return;}
-    out.innerHTML=hits.map(hit=>{
-      const d=byDrug[hit.id];
-      const exp=d.rows.filter(r=>r.expected),got=exp.filter(r=>r.filled);
-      let html=`<div style="margin-bottom:14px"><b>${esc(d.name||hit.id)}</b> <span class="muted">· ${esc(d.stage||"?")} · ${got.length}/${exp.length} expected attributes filled (${pct(got.length,exp.length)??"—"}%)</span>`;
-      DOMS.forEach(dm=>{
-        const rs=d.rows.filter(r=>r.domain===dm);if(!rs.length)return;
-        html+=`<div class="dom-block"><div class="dn">${dm}</div>`+rs.map(r=>{
-          const nm=byKey[r.attribute_key]?byKey[r.attribute_key].display_name:r.attribute_key;
-          const cls=!r.expected?"x":r.filled?"f":"u";
-          return `<span class="attr-chip ${cls}" title="${esc(byKey[r.attribute_key]?byKey[r.attribute_key].plain_description:"")}">${esc(nm)}</span>`;}).join("")+"</div>";});
-      return html+"</div>";}).join("");
+    const q=e.target.value.trim().toLowerCase();const out=document.getElementById("drughits");
+    if(q.length<2){out.innerHTML="";return;}
+    const hits=names.filter(x=>x.n.includes(q)||x.id.includes(q)).slice(0,8);
+    out.innerHTML=hits.length?hits.map(h=>`<button class="hitbtn" data-id="${esc(h.id)}">${esc(byDrug[h.id].name||h.id)} <span class="muted">· ${esc(byDrug[h.id].stage||"?")}</span></button>`).join(""):'<span class="muted" style="font-size:12px">No molecule matches.</span>';
+    if(hits.length===1)renderCard(hits[0].id);
   });
+  document.getElementById("drughits").addEventListener("click",e=>{
+    const b=e.target.closest(".hitbtn");if(b)renderCard(b.dataset.id);
+  });
+
+  // ---- connected data sources
+  try{
+    const srcs=await allRows("/data_sources?select=*&order=sort_order");
+    const stp=s=>s==="active"?'<span class="pill ok">active</span>':s==="partial"?'<span class="pill pt">partial</span>':s==="attempted_blocked"?'<span class="pill ms">blocked</span>':'<span class="pill mo">planned</span>';
+    document.querySelector("#sources tbody").innerHTML=srcs.map(s=>
+      `<tr><td><b>${s.api_url?`<a href="${esc(s.api_url)}" target="_blank" rel="noopener">${esc(s.display_name)}</a>`:esc(s.display_name)}</b><div class="muted" style="font-size:11px">${esc(s.category)}</div></td>
+       <td>${esc(s.what_we_get)}${s.status_note?`<div class="muted" style="font-size:11.5px;margin-top:2px">⚠ ${esc(s.status_note)}</div>`:""}</td>
+       <td class="muted" style="font-size:11.5px">${(s.tables_fed||[]).map(esc).join("<br>")}</td>
+       <td>${stp(s.status)}</td></tr>`).join("");
+  }catch(e){document.querySelector("#sources tbody").innerHTML='<tr><td class="muted" colspan="4">could not load</td></tr>';}
 
   // ---- citeline comparison
   const mods={};
