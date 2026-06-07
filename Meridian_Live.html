@@ -36,6 +36,13 @@
   .muted{color:var(--muted)} b.n{font-weight:700}
   a.rowlink{color:var(--ink);text-decoration:none;font-weight:600;border-bottom:1px solid transparent} a.rowlink:hover{color:var(--accent);border-bottom-color:var(--accent)}
   tr[data-href]{cursor:pointer} tr[data-href]:hover{background:var(--soft)}
+  h2.coll{cursor:pointer;user-select:none}
+  h2.coll .car{font-size:11px;color:var(--muted);display:inline-block;width:12px;transition:transform .15s}
+  h2.coll.open .car{transform:rotate(90deg)} h2.coll:hover{color:var(--accent)}
+  .card.collapsed{display:none}
+  .collbar{display:flex;gap:16px;align-items:center;margin:4px 0 16px;font-size:12px;flex-wrap:wrap}
+  .collbar span.act{color:var(--accent);cursor:pointer;font-weight:600} .collbar span.act:hover{text-decoration:underline}
+  .collbar .cnt{color:var(--muted)}
   @media(max-width:980px){.tiles{grid-template-columns:repeat(4,1fr)}.grid2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -54,6 +61,9 @@
 
   <h2>Strategic conclusions — derived from the graph (every conclusion cites its source rows)</h2>
   <div class="card" style="padding:6px 4px;max-height:560px;overflow:auto"><div id="insights" class="muted" style="padding:10px 12px">loading…</div></div>
+
+  <h2>Patient unmet need → whitespace (North Star apex)</h2>
+  <div class="card"><div class="scroll"><table id="patient"><thead><tr><th>Indication</th><th>Unmet /10</th><th>Competitors</th><th>Whitespace</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
 
   <div class="grid2">
     <div>
@@ -198,8 +208,17 @@
     </div>
   </div>
 
+  <h2>Literature authors — most prolific in our corpus</h2>
+  <div class="card"><div class="scroll"><table id="authors"><thead><tr><th>Author</th><th>Papers (corpus)</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+
   <h2>Knowledge graph — relationship edges by type</h2>
   <div class="card" style="padding:14px 16px"><div id="edges" class="muted">loading…</div></div>
+
+  <h2>Data reference — every table in the platform, live counts, sample on click</h2>
+  <div class="card" style="padding:10px 14px">
+    <div class="muted" style="font-size:12px;margin-bottom:6px">Everything Meridian stores, grouped — click a group to see its tables with live row counts, click a table for sample rows. This is the full reference of what's available.</div>
+    <div id="dataref" class="muted">loading…</div>
+  </div>
 
   <p class="stamp" style="margin-top:22px">Live from the Meridian Supabase backend · figures reflect the production database at load time · read-only (RLS anon). Sources: ClinicalTrials.gov, Open Targets, ChEMBL, openFDA, SEC EDGAR, FDA Orange Book, Pharos/IDG, UniProt, Europe PMC/PubMed, OpenAlex.</p>
 </div>
@@ -243,7 +262,7 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   // Strategic conclusions (derived) → each cites the source rows it was computed from
   try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=600`);
     const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
-    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',kol_hub:'KOL hubs'};
+    const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',author_hub:'Author hubs (literature KOLs)',kol_dual_signal:'KOL dual-signal (investigator + author)',seminal_evidence:'Seminal evidence (BD-relevant)',patient_whitespace:'Patient whitespace (unmet need × thin competition)',research_hub:'Research hubs (institutions by area)',kol_collaboration_cluster:'KOL collaboration clusters',kol_hub:'KOL hubs'};
     const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','genetically_validated','target_safety_genetics','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
     const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
     document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
@@ -251,6 +270,10 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
         items.slice(0,8).map(r=>`<div style="margin:5px 0;padding-left:10px;border-left:2px solid var(--soft)"><b style="font-size:13px">${esc(r.title)}</b><div class="muted" style="font-size:12px">${esc(r.detail||'')}</div><div class="muted" style="font-size:10.5px;margin-top:1px">derived from: ${esc((r.source_tables||[]).join(', '))}${r.confidence?' · '+esc(r.confidence):''}</div></div>`).join('')+`</div>`;
     }).join('')||'<div class="muted" style="padding:10px">none</div>';
   }catch(e){document.getElementById('insights').textContent='unavailable — open in a browser with internet';}
+
+  // Patient unmet need → whitespace (excludes umbrella/0-competitor coverage artifacts)
+  try{const d=await rows(`/patient_unmet_need_competition?select=indication_name,unmet_need_score,competitor_count,whitespace_score,source_urls&competitor_count=gte.1&order=whitespace_score.desc&limit=20`);
+    fill("patient",d.map(r=>{const u=(r.source_urls||[])[0]||"";return TR(u,`<td>${A(u,r.indication_name)}</td><td>${esc(r.unmet_need_score??"")}</td><td>${esc(r.competitor_count??"")}</td><td><span class="pill ${r.whitespace_score>=0.5?'hi':'md'}">${Number(r.whitespace_score).toFixed(2)}</span></td>`);}).join(""));}catch(e){ec("patient",4);}
 
   // Catalysts → ClinicalTrials.gov study record
   try{const d=await rows(`/catalysts?select=label,catalyst_date,sort_date,significance,source_url,related_trial_id&confidence_source=eq.ct_gov&sort_date=gte.${today}&order=sort_date.asc&limit=40`);
@@ -369,10 +392,92 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   try{const d=await rows(`/manufacturing_sites?select=drug_id,manufacturer_name,manufacturer_company_id,is_supplies_candidate,is_inhouse,source_url&order=is_supplies_candidate.desc&limit=60`);
     fill("mfgsite",d.map(r=>{const rel=r.is_supplies_candidate?'<span class="pill hi">ext. CMO</span>':r.is_inhouse?'<span class="pill ok">in-house</span>':'<span class="pill md">—</span>';return TR(r.source_url,`<td>${A(r.source_url||"",r.drug_id)}</td><td class="muted">${esc(r.manufacturer_name||"")}</td><td>${rel}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("mfgsite",3);}
 
-  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED"];
+  // Literature authors → OpenAlex profile
+  try{const d=await rows(`/authors?select=full_name,works_count,openalex_id&order=works_count.desc.nullslast&limit=40`);
+    fill("authors",d.map(r=>TR(r.openalex_id,`<td>${A(r.openalex_id,r.full_name)}</td><td>${esc(r.works_count??"")}</td>`)).join(""));}catch(e){ec("authors",2);}
+
+  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED","AUTHORED","CO_AUTHORED_WITH","RESEARCHES"];
     const vals=await Promise.all(preds.map(p=>cntq("entity_edges?select=id&predicate=eq."+p).catch(()=>"–")));
     document.getElementById("edges").innerHTML=preds.map((p,i)=>`<span class="pill md" style="margin:3px 6px 3px 0;display:inline-block">${p}: <b class="n">${esc(vals[i])}</b></span>`).join("");
   }catch(e){document.getElementById("edges").textContent="unavailable";}
+})();
+</script>
+<script>
+// ── Data reference: every table, grouped, lazy counts + samples ──
+(async()=>{
+  const G=[
+   ["Core entities",[["drugs","Every molecule tracked — the master record"],["companies","Developers, owners, licensees"],["targets","Molecular targets"],["indications","Diseases"],["canonical_drugs","Identity resolution — one row per real-world molecule"],["drug_aliases","Every prior/alternate name"]]],
+   ["Clinical",[["trial_facts","Registered trials (CT.gov), design + sites"],["trial_results","Posted results sections"],["trial_design_quality","Believability score per trial"],["trial_registries","Registry crosswalk"],["drug_pk_parameters","Pharmacokinetics"],["drug_pd_parameters","Pharmacodynamics"],["drug_biomarkers","Biomarker / CDx strategy"],["efficacy_benchmarks","Endpoint deltas vs placebo"]]],
+   ["Regulatory",[["fda_approvals","US approvals (openFDA)"],["eu_approvals","EMA approvals + US-EU lag"],["geographic_approvals","Approvals by geography"],["regulatory_designations","Orphan / Fast Track / BTD"],["regulatory_timeline","Regulatory events over time"],["drug_labels","Official DailyMed labels"],["drug_safety","Black-box warnings"],["fda_adverse_events","FAERS post-market reports"]]],
+   ["Payer",[["payer_pricing","Medicare Part B/D spend, NADAC, ASP payment limits"],["payer_tpp_criteria","What payers need to see"],["peak_revenue_estimates","Commercial ceiling estimates"]]],
+   ["Intellectual property",[["company_patents","Patent landscape by assignee (FTO)"],["drug_patents","Patents tied to specific drugs"],["patent_families","Global family per patent (SureChEMBL)"],["drug_exclusivity","Purple/Orange Book exclusivity"]]],
+   ["Financial & corporate",[["company_filings","SEC filings index"],["company_events","8-K events typed (deals, leadership, financing)"],["company_financials","Cash runway"],["deals","Licensing / M&A deals"],["company_partnerships","Who works with whom"],["asset_transfer_history","Licensing chains (originator → owner)"],["company_personnel","Leadership"],["manufacturing_sites","openFDA establishments"],["stock_price_history","Daily prices"]]],
+   ["Literature & KOL",[["publications","PubMed/Europe PMC papers"],["publication_authors","Author graph"],["kols","Key opinion leaders"],["institutions","Research institutions"],["conference_abstracts","Congress abstracts"],["grants","NIH funding by target"]]],
+   ["Patient",[["indication_patient_intelligence","Unmet need, prevalence, severity per disease"],["non_responder_profiles","Why patients fail current drugs"]]],
+   ["Competitive & strategic",[["drug_competitive_scores","CLASS×RELEVANCE scoring vs Ailux"],["competitive_landscapes","Mechanism-level landscapes"],["strategic_insights","Derived, cited conclusions"],["catalysts","Dated future events"],["next_gen_rankings","Next-generation asset rankings"],["foresight_predictions","Falsifiable calls, scored"]]],
+   ["Graph & provenance",[["entity_edges","The knowledge graph (9k+ edges)"],["drug_sources","Every fact → its source (governance)"],["source_payloads","Bronze: raw API payloads"],["external_entity_map","Crosswalk to external IDs"]]],
+   ["China",[["china_trials","CDE/NMPA-registered trials"],["china_intel","China-language signal (GDELT)"]]],
+   ["Data quality",[["data_dictionary","The 49-attribute taxonomy"],["attribute_completeness","Phase-conditional fill per drug"],["data_sources","All 27 connected APIs"],["drug_validation_results","Validation checks"],["governance_violations","Rule breaches + resolution"],["coverage_scores","Per-drug completeness scores"]]]
+  ];
+  const cntAll=async t=>{try{const r=await fetch(SB+"/"+t+"?select=*",{headers:{...H,Prefer:"count=exact",Range:"0-0","Range-Unit":"items"}});return (r.headers.get("content-range")||"/?").split("/").pop();}catch(e){return "?";}};
+  const el=document.getElementById("dataref");
+  el.innerHTML=G.map((g,gi)=>`<div class="drg" data-g="${gi}" style="border-bottom:1px solid var(--line)">
+    <div class="drh" style="cursor:pointer;padding:7px 2px;font-weight:700;font-size:13px;color:var(--slate);display:flex;gap:8px;align-items:center"><span class="car" style="font-size:10px;color:var(--accent)">▸</span>${g[0]}<span style="margin-left:auto;font-weight:600;font-size:11px;color:var(--muted)">${g[1].length} tables</span></div>
+    <div class="drb" style="display:none;padding:0 0 8px"></div></div>`).join("");
+  el.classList.remove("muted");
+  el.querySelectorAll(".drg").forEach(grp=>{
+    const gi=+grp.dataset.g, body=grp.querySelector(".drb"), car=grp.querySelector(".car");
+    grp.querySelector(".drh").addEventListener("click",async()=>{
+      const open=body.style.display!=="none";
+      body.style.display=open?"none":"block"; car.textContent=open?"▸":"▾";
+      if(open||body.dataset.loaded)return;
+      body.dataset.loaded="1";
+      body.innerHTML=G[gi][1].map(([t,d],ti)=>`<div class="drt" data-t="${t}" style="cursor:pointer;padding:4px 2px 4px 20px;font-size:12.5px;display:flex;gap:8px;align-items:baseline;border-top:1px solid #f0f4f9"><b>${t}</b><span class="muted" style="font-size:12px">${d}</span><span class="muted drc" style="margin-left:auto;font-size:11px">…</span></div><div class="drd" style="display:none;margin:2px 0 6px 20px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px"></div>`).join("");
+      G[gi][1].forEach(async([t])=>{const n=await cntAll(t);const row=body.querySelector(`.drt[data-t="${t}"] .drc`);if(row)row.textContent=Number(n).toLocaleString?Number(n).toLocaleString():n;});
+      body.querySelectorAll(".drt").forEach(tr=>tr.addEventListener("click",async()=>{
+        const d=tr.nextElementSibling;
+        if(d.style.display!=="none"){d.style.display="none";return;}
+        body.querySelectorAll(".drd").forEach(x=>x.style.display="none");
+        d.style.display="block";
+        if(d.dataset.loaded)return; d.dataset.loaded="1"; d.innerHTML='<span class="muted">loading sample…</span>';
+        try{
+          const rs=await rows("/"+tr.dataset.t+"?limit=3");
+          d.innerHTML=rs.length?rs.map(r=>{
+            const cols=Object.keys(r).filter(c=>r[c]!=null&&String(r[c]).trim()!==""&&!["created_at","updated_at","enrichment_run_id"].includes(c)).slice(0,6);
+            return `<div style="border-bottom:1px solid var(--line);padding:4px 0">`+cols.map(c=>`<div><b style="color:var(--slate)">${esc(c)}</b> ${esc(String(r[c]).slice(0,140))}</div>`).join("")+`</div>`;
+          }).join("")+`<div class="muted" style="margin-top:4px;font-size:11px">sample of 3 — full table queryable via the platform</div>`:'<span class="muted">empty table</span>';
+        }catch(e){d.innerHTML='<span class="muted">could not load sample</span>';}
+      }));
+    });
+  });
+})();
+</script>
+<script>
+(function(){
+  function setup(){
+    var n=0;
+    [].slice.call(document.querySelectorAll('h2')).forEach(function(h){
+      var card=h.nextElementSibling;
+      if(!card||card.className.indexOf('card')<0)return;
+      h.classList.add('coll');
+      var car=document.createElement('span');car.className='car';car.textContent='\u25B8';
+      h.insertBefore(document.createTextNode(' '),h.firstChild);
+      h.insertBefore(car,h.firstChild);
+      card.classList.add('collapsed');
+      h.addEventListener('click',function(){
+        var hidden=card.classList.toggle('collapsed');
+        h.classList.toggle('open',!hidden);
+      });
+      n++;
+    });
+    var bar=document.createElement('div');bar.className='collbar';
+    bar.innerHTML='<span class="act" id="cx">Expand all</span><span class="act" id="cc">Collapse all</span><span class="cnt">'+n+' categories · click a header to open its card</span>';
+    var tiles=document.querySelector('.tiles');
+    if(tiles)tiles.parentNode.insertBefore(bar,tiles.nextSibling);
+    document.getElementById('cx').onclick=function(){document.querySelectorAll('h2.coll').forEach(function(h){h.nextElementSibling.classList.remove('collapsed');h.classList.add('open');});};
+    document.getElementById('cc').onclick=function(){document.querySelectorAll('h2.coll').forEach(function(h){h.nextElementSibling.classList.add('collapsed');h.classList.remove('open');});};
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
 </script>
 </body>
