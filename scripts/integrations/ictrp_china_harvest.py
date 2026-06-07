@@ -105,40 +105,81 @@ def search_intervention(op, term):
     if _hidden(form, "__VIEWSTATEENCRYPTED"):
         data["__VIEWSTATEENCRYPTED"] = ""
     res = _retry(_post, op, ADV, data, ADV)
+    # --- false-OK guard --------------------------------------------------------
+    # The WHO search back-end has been server-broken (round 14): the POST either
+    # 302-redirects to NoAccess.aspx, hangs, or silently bounces back the empty
+    # AdvSearch form (same page, 0 results). None of these is a real "0 hits"
+    # answer, so we must NOT report them as a successful search. Detect them and
+    # raise SearchBlocked so the caller counts them as `blocked`, not `searched_ok`.
+    if _search_is_blocked(res):
+        raise SearchBlocked("search endpoint returned NoAccess / bounce-back form (no results table)")
     ids = sorted(set(re.findall(r'[Tt]rial[Ii][Dd]=([A-Za-z0-9/\-]+)', res)))
     cm = re.search(r'(\d+)\s+record', res, re.I)
     return ids, (cm.group(1) if cm else None)
 
-def _label(html, *labels):
-    for lab in labels:
-        m = re.search(rf'{lab}\s*:?\s*</[^>]+>\s*<[^>]+>([^<]{{1,400}})', html, re.I)
-        if m and m.group(1).strip():
-            return re.sub(r'\s+', ' ', m.group(1)).strip()
-        m = re.search(rf'{lab}\s*:?\s*</td>\s*<td[^>]*>([^<]{{1,400}})', html, re.I)
-        if m and m.group(1).strip():
-            return re.sub(r'\s+', ' ', m.group(1)).strip()
+
+class SearchBlocked(Exception):
+    """Raised when the WHO search endpoint is unreachable/broken (not a real 0-hit)."""
+
+
+def _search_is_blocked(res):
+    """True when the search response is NOT a genuine results page.
+
+    Treats as blocked: the NoAccess redirect, an explicit 'temporarily unavailable'
+    notice, or the AdvSearch *form* bounced straight back (the broken-search
+    signature: the Advanced-Search form title is present AND there is neither a
+    results table / TrialID link nor a stated record count)."""
+    if not res or len(res) < 500:
+        return True
+    low = res.lower()
+    if "noaccess" in low or "temporarily unavailable" in low or "access denied" in low:
+        return True
+    has_results = bool(re.search(r'[Tt]rial[Ii][Dd]=', res)) or bool(re.search(r'\d+\s+record', res, re.I))
+    is_form = "advanced search" in low or "advsearch" in low
+    # bounced back to the empty search form with nothing to show -> broken, not 0-hit
+    if is_form and not has_results:
+        return True
+    return False
+
+
+def _span(html, *fields):
+    """Extract a value from the WHO ICTRP detail page.
+
+    The real Trial2.aspx markup stores every field in an ASP.NET span whose id ends
+    in '_<Field>Label', e.g. <span id="DataList3_ctl01_Public_titleLabel">...</span>.
+    The DataListN prefix varies by record, so match on the field suffix only."""
+    for f in fields:
+        m = re.search(rf'<span id="[^"]*_{f}Label"[^>]*>(.*?)</span>', html, re.S | re.I)
+        if m:
+            val = re.sub(r'<[^>]+>', ' ', m.group(1))
+            val = re.sub(r'\s+', ' ', val).strip()
+            if val:
+                return val
     return None
 
 def fetch_detail(op, trial_id):
-    """Fetch + parse one WHO detail page. Returns (parsed_dict, raw_html, url)."""
+    """Fetch + parse one WHO ICTRP detail page. Returns (parsed_dict, raw_html, url)."""
     tid = urllib.parse.quote(trial_id, safe="")
     for url in (DETAIL + tid, DETAIL_ALT + tid):
         try:
             html = _retry(_get, op, url, tries=3)
         except Exception:
             continue
-        if not html or len(html) < 500:
+        if not html or len(html) < 500 or "noaccess" in html.lower():
+            continue
+        # confirm this is a real trial record, not an error/empty shell
+        if not re.search(r'_TrialIDLabel"', html) and trial_id not in html:
             continue
         parsed = {
-            "trial_id": trial_id,
-            "registry": _label(html, "Source Register", "Register"),
-            "public_title": _label(html, "Public title", "Scientific title"),
-            "scientific_title": _label(html, "Scientific title"),
-            "condition": _label(html, "Health Condition", "Condition", "Health Condition\\(s\\) or Problem\\(s\\) studied"),
-            "intervention": _label(html, "Intervention", "Interventions"),
-            "sponsor": _label(html, "Primary sponsor", "Sponsor"),
-            "recruitment_status": _label(html, "Recruitment Status", "Recruitment status"),
-            "registration_date": _label(html, "Date of registration", "Date of Registration"),
+            "trial_id": _span(html, "TrialID") or trial_id,
+            "registry": _span(html, "Description", "Source_Register") or ("ChiCTR" if "ChiCTR" in trial_id else None),
+            "public_title": _span(html, "Public_title"),
+            "scientific_title": _span(html, "Scientific_title"),
+            "condition": _span(html, "Condition_FreeText", "Condition"),
+            "intervention": _span(html, "Intervention_FreeText", "Intervention"),
+            "sponsor": _span(html, "Primary_sponsor", "Sponsor"),
+            "recruitment_status": _span(html, "Recruitment_status"),
+            "registration_date": _span(html, "Date_registration"),
             "source_url": url,
         }
         return parsed, html, url
@@ -202,6 +243,71 @@ def match_drug(idx, parsed):
             return idx[term], term
     return None, None
 
+# --------------------------------------------------------------- detail -> rows
+def process_trial_id(op, tid, drug_idx, seed_did, bronze_rows, china_rows,
+                     seen_ids, sleep=2.0):
+    """Fetch one ICTRP detail page, land bronze, resolve-or-skip into china_rows.
+    Returns 1 if the detail page parsed, else 0."""
+    if tid in seen_ids:
+        return 0
+    seen_ids.add(tid)
+    parsed, raw, url = fetch_detail(op, tid)
+    time.sleep(sleep)
+    if not parsed:
+        return 0
+    payload_hash = hashlib.md5((raw or json.dumps(parsed)).encode()).hexdigest()
+    bronze_rows.append({
+        "source": "who_ictrp_detail", "entity_type": "trial",
+        "meridian_id": seed_did, "external_id": tid,
+        "endpoint": "trial_detail", "payload": parsed,
+        "payload_hash": payload_hash, "session_label": SESSION,
+        "promoted": False,
+    })
+    mdid, mterm = match_drug(drug_idx, parsed) if drug_idx else (None, None)
+    # bias toward the asset we seeded for, but only if it is a real drug id
+    if not mdid and seed_did and seed_did in (drug_idx.values() if drug_idx else []):
+        mdid, mterm = seed_did, "seed"
+    if mdid:
+        china_rows.append({
+            "trial_id": parsed.get("trial_id") or tid,
+            "registry": parsed.get("registry") or ("ChiCTR" if "ChiCTR" in tid else None),
+            "drug_id": mdid, "matched_term": mterm,
+            "public_title": parsed.get("public_title"),
+            "scientific_title": parsed.get("scientific_title"),
+            "condition": parsed.get("condition"),
+            "intervention": parsed.get("intervention"),
+            "sponsor": parsed.get("sponsor"),
+            "recruitment_status": parsed.get("recruitment_status"),
+            "registration_date": parsed.get("registration_date"),
+            "source_url": url, "session_label": SESSION,
+        })
+    return 1
+
+
+def _load_seed_ids(args):
+    """Collect ChiCTR/ICTRP ids to harvest directly (the reliable path).
+
+    Accepts a seed-file (one id, or 'drug_id,ChiCTR...' per line) and/or a
+    comma-separated --seed-ids. Returns list of (seed_drug_id_or_None, trial_id)."""
+    out = []
+    if args.seed_file and os.path.exists(args.seed_file):
+        for line in open(args.seed_file):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = [p.strip() for p in re.split(r'[,\t]', line)]
+            if len(parts) >= 2:
+                out.append((parts[0] or None, parts[1]))
+            else:
+                out.append((None, parts[0]))
+    if args.seed_ids:
+        for tid in args.seed_ids.split(","):
+            tid = tid.strip()
+            if tid:
+                out.append((None, tid))
+    return out
+
+
 # ------------------------------------------------------------------------------ main
 def main():
     ap = argparse.ArgumentParser()
@@ -209,6 +315,10 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="cap number of target assets (0=all)")
     ap.add_argument("--max-pages", type=int, default=0, help="reserved for crawl-range mode")
     ap.add_argument("--sleep", type=float, default=2.0, help="polite delay between requests (s)")
+    ap.add_argument("--seed-ids", default="", help="comma-separated ChiCTR/ICTRP TrialIDs to fetch directly")
+    ap.add_argument("--seed-file", default="", help="file of TrialIDs (or 'drug_id,TrialID' per line)")
+    ap.add_argument("--no-search", action="store_true",
+                    help="skip the (server-broken) WHO search; ID-seeding only")
     args = ap.parse_args()
 
     sb = None
@@ -233,57 +343,44 @@ def main():
     seen_ids = set()
     china_rows, bronze_rows = [], []
 
-    for did, terms in targets:
-        ids = []
-        status = "no-hits"
-        for term in terms:
-            try:
-                hit, cnt = search_intervention(op, term)
-                searched_ok += 1
-                ids += hit
-                status = f"OK stated_count={cnt}"
-                time.sleep(args.sleep)
-            except Exception as e:
-                blocked += 1
-                status = f"BLOCKED {type(e).__name__}"
-                break
-        ids = [i for i in sorted(set(ids)) if i not in seen_ids]
-        print(f"  {did:12s} {'/'.join(terms):14s} -> {status} ids={ids[:6]}")
+    # ---- Path A: ID-seeding (the reliable path — uses the WORKING detail fetch)
+    seeds = _load_seed_ids(args)
+    if seeds:
+        print(f"ID-seeding: {len(seeds)} TrialID(s) supplied -> ICTRP detail fetch")
+        for seed_did, tid in seeds:
+            n = process_trial_id(op, tid, drug_idx, seed_did, bronze_rows,
+                                 china_rows, seen_ids, args.sleep)
+            detail_ok += n
+            print(f"  seed {tid:22s} (for {seed_did or '-'}) -> "
+                  f"{'parsed' if n else 'no-record'}")
 
-        for tid in ids:
-            seen_ids.add(tid)
-            parsed, raw, url = fetch_detail(op, tid)
-            time.sleep(args.sleep)
-            if not parsed:
-                continue
-            detail_ok += 1
-            payload_hash = hashlib.md5(
-                (raw or json.dumps(parsed)).encode()).hexdigest()
-            bronze_rows.append({
-                "source": "who_ictrp", "entity_type": "trial",
-                "meridian_id": did, "external_id": tid,
-                "endpoint": "trial_detail", "payload": parsed,
-                "payload_hash": payload_hash, "session_label": SESSION,
-                "promoted": False,
-            })
-            mdid, mterm = match_drug(drug_idx, parsed) if drug_idx else (None, None)
-            # bias toward the asset we searched for if generic match failed
-            if not mdid and did in drug_idx.values():
-                mdid, mterm = did, "search_seed"
-            if mdid:
-                china_rows.append({
-                    "trial_id": tid,
-                    "registry": parsed.get("registry") or ("ChiCTR" if "ChiCTR" in tid else None),
-                    "drug_id": mdid, "matched_term": mterm,
-                    "public_title": parsed.get("public_title"),
-                    "scientific_title": parsed.get("scientific_title"),
-                    "condition": parsed.get("condition"),
-                    "intervention": parsed.get("intervention"),
-                    "sponsor": parsed.get("sponsor"),
-                    "recruitment_status": parsed.get("recruitment_status"),
-                    "registration_date": parsed.get("registration_date"),
-                    "source_url": url, "session_label": SESSION,
-                })
+    # ---- Path B: targeted WHO search (server-broken; kept for when it returns)
+    if not args.no_search:
+        for did, terms in targets:
+            ids = []
+            status = "no-hits"
+            for term in terms:
+                try:
+                    hit, cnt = search_intervention(op, term)
+                    searched_ok += 1
+                    ids += hit
+                    status = f"OK stated_count={cnt}"
+                    time.sleep(args.sleep)
+                except SearchBlocked as e:
+                    blocked += 1
+                    status = f"BLOCKED(search-down) {e}"
+                    break
+                except Exception as e:
+                    blocked += 1
+                    status = f"BLOCKED {type(e).__name__}"
+                    break
+            ids = [i for i in sorted(set(ids)) if i not in seen_ids]
+            print(f"  {did:12s} {'/'.join(terms):14s} -> {status} ids={ids[:6]}")
+            for tid in ids:
+                detail_ok += process_trial_id(op, tid, drug_idx, did, bronze_rows,
+                                              china_rows, seen_ids, args.sleep)
+    else:
+        print("(search path skipped: --no-search)")
 
     print(f"\nsummary: searched_ok={searched_ok} blocked={blocked} "
           f"detail_ok={detail_ok} bronze={len(bronze_rows)} matched={len(china_rows)}")
