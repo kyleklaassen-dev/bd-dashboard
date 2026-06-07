@@ -1,0 +1,112 @@
+name: Meridian Patent Sweep
+
+# Google Patents assignee/target sweep on a hosted runner (ubuntu-latest).
+# WHY HOSTED: the Cowork/dev VM is HTTP 503-blocked from patents.google.com
+# (both the xhr/query endpoint and direct /patent/ pages). GitHub Actions egress
+# is not blocked, so the resumable prefetcher + writer run cleanly here.
+#
+# Pipeline (deterministic, idempotent, no LLM, never fabricates a URL/patent):
+#   1. Regenerate reference data the prefetcher's build_manifest() expects
+#      (data/patents_cache/drugs.json + /tmp/companies.json) straight from Supabase,
+#      so the run is self-contained even on a fresh checkout.
+#   2. _patents_prefetch.py — curl-fetch manifest[start:start+count] x pages into
+#      data/patents_cache/ (resumable: already-cached pages are skipped).
+#   3. patentsview_patents.py --write --no-fetch — bronze + upsert company_patents
+#      off the cache only (natural key = patent_number, so re-runs add 0 dupes).
+#
+# The service key is written to .supabase_service_key (BASE_DIR) because
+# patentsview_patents.py reads the key from that file, not from env.
+
+on:
+  schedule:
+    - cron: "0 16 1 * *"   # 1st of each month, 16:00 UTC (~11:00 ET)
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Manifest start index (0-based) for the assignee/target sweep"
+        required: false
+        default: "0"
+      count:
+        description: "Number of manifest entries to fetch this run (0 = all remaining)"
+        required: false
+        default: "0"
+      pages:
+        description: "Pages per query (Google Patents, ~10 results/page)"
+        required: false
+        default: "2"
+
+concurrency:
+  group: patent-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    name: "Google Patents sweep -> company_patents"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Provision service key file
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -e
+          printf '%s' "$SUPABASE_SERVICE_KEY" > .supabase_service_key
+
+      - name: Regenerate reference data (companies + drugs)
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -e
+          mkdir -p data/patents_cache
+          python - <<'PY'
+          import json, os, urllib.request
+          REF = "tghntyofptvfhmtchwcv"
+          REST = f"https://{REF}.supabase.co/rest/v1"
+          KEY = os.environ["SUPABASE_SERVICE_KEY"]
+          H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+          def get(path):
+              req = urllib.request.Request(f"{REST}/{path}", headers=H)
+              return json.load(urllib.request.urlopen(req, timeout=60))
+          comps = get("companies?select=id,name,status&limit=5000")
+          drugs = get("drugs?select=id,name,company_id,target&limit=5000")
+          json.dump(comps, open("/tmp/companies.json", "w"))
+          json.dump(drugs, open("data/patents_cache/drugs.json", "w"))
+          print(f"companies={len(comps)} drugs={len(drugs)}")
+          PY
+
+      - name: Prefetch Google Patents pages
+        run: |
+          set -e
+          START="${{ github.event.inputs.start }}"; START="${START:-0}"
+          COUNT="${{ github.event.inputs.count }}"; COUNT="${COUNT:-0}"
+          PAGES="${{ github.event.inputs.pages }}"; PAGES="${PAGES:-2}"
+          echo "=== prefetch start=$START count=$COUNT pages=$PAGES ==="
+          if [ "$COUNT" = "0" ]; then
+            python scripts/integrations/_patents_prefetch.py "$START" 9999 "$PAGES"
+          else
+            python scripts/integrations/_patents_prefetch.py "$START" "$COUNT" "$PAGES"
+          fi
+
+      - name: Write company_patents (cache-only, no fetch)
+        run: |
+          set -e
+          echo "=== writer: --write --no-fetch ==="
+          PAGES="${{ github.event.inputs.pages }}"; PAGES="${PAGES:-2}"
+          python scripts/integrations/patentsview_patents.py --write --no-fetch --pages "$PAGES"
+
+      - name: Resolve patent families (SureChEMBL, keyless)
+        run: |
+          echo "=== surechembl family resolution ==="
+          python scripts/integrations/surechembl_families.py || echo "surechembl partial/blocked — non-fatal"
+
+      - name: Cleanup service key
+        if: always()
+        run: rm -f .supabase_service_key
