@@ -21824,7 +21824,9 @@ function iifRender() {
     <span class="iif-source-badge ${srcBadgeCls}">${srcLabel}</span>
     <span class="iif-type-badge iif-type-${tm.cls}">${tm.label}</span>${companyChip}${areaPills}
   </div>
-  <a class="iif-headline" href="${hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(item.headline)}</a>
+  ${(item.sources&&item.sources.length)||item.source_type!=='conclusion'
+    ? `<a class="iif-headline" href="${hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${_iifEsc(item.headline)}</a>`
+    : `<span class="iif-headline" style="cursor:inherit">${_iifEsc(item.headline)}</span>`}
   ${hasBody?`<div class="iif-meta"><span class="iif-expand-icon">&#9660;</span></div>`:''}
   ${hasBody?`<div class="iif-body-text" id="iif-body-${item._key}">${_iifEsc(item.body)}</div>`:''}
 </div></div>`;
