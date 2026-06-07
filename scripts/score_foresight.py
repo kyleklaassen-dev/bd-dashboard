@@ -42,6 +42,25 @@ PRED_QUEUE_DOC = os.path.join(ROOT, "docs", "prediction_review_queue.md")
 # status -> outcome score for Brier (1=happened, 0=didn't, 0.5=partial)
 OUTCOME = {"correct": 1.0, "incorrect": 0.0, "partially_correct": 0.5}
 
+# Miss-detection scope
+COVERED_AREAS = ("tl1a", "tslp", "il4ra", "igf1r", "fcrn", "ibd", "ted")
+TRACKING_START = "2026-05-18"        # Meridian's birthday — no system existed before this, so
+                                     # pre-existing events cannot be "missed". Honest window start.
+MATCH_TOLERANCE_DAYS = 120           # a catalyst's sort_date must be within +/- this of the event
+# deal_type (ground-truth event) -> the catalyst_type(s) that would count as having predicted it.
+# Per-type so an M&A event is only credited to a deal-family catalyst, not an unrelated approval.
+DEAL_TYPE_TO_CATALYST = {
+    "acquisition":   {"deal", "partnership"},
+    "licensing":     {"deal", "partnership"},
+    "collaboration": {"deal", "partnership"},
+    "partnership":   {"deal", "partnership"},
+    "option":        {"deal", "partnership"},
+    "financing":     {"financing", "deal"},
+    "regulatory":    {"regulatory", "approval", "filing"},
+    "clinical":      {"readout", "clinical_update"},
+}
+DEFAULT_CATALYST_MATCH = {"deal", "partnership"}
+
 
 def service_key() -> str:
     k = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -214,6 +233,9 @@ def main() -> int:
             f.write("\n".join(lines) + "\n")
     print(f"\nreview queue: {len(queue)} rows -> {os.path.relpath(QUEUE_DOC, ROOT)}")
 
+    # --- step 4.5: MISS DETECTION (makes the rate honest) ----------------------
+    n_seen, n_miss = detect_misses()
+
     # --- step 5: recompute scores ----------------------------------------------
     events = rest("foresight_events?select=period,area_id,foreseen,significance&limit=10000")
     W = {"high": 3, "medium": 2, "low": 1}
@@ -230,8 +252,9 @@ def main() -> int:
                 a[1] += 1
                 a[3] += w
 
-    note = ("UPPER BOUND: miss detection (events with no catalyst) not yet automated; "
-            "denominator currently = resolved catalysts + manual misses.")
+    note = ("Deal-event miss detection ACTIVE (deals since Meridian birthday vs catalyst ledger). "
+            "Readout/regulatory phase-transition miss sweep still pending — rate is honest for "
+            "deal events, near-upper-bound for clinical events.")
     scores = [{
         "period": p, "area_id": a,
         "events_total": v[0], "events_foreseen": v[1],
@@ -253,6 +276,87 @@ def main() -> int:
 
     resolve_tier2()
     return 0
+
+
+def _ddate(s):
+    try:
+        return date.fromisoformat((s or "")[:10])
+    except Exception:
+        return None
+
+
+def detect_misses():
+    """Tier-1 miss detection — makes Foresight Rate honest.
+
+    Ground truth = dated deals in covered areas SINCE Meridian's birthday
+    (pre-existence events can't be 'missed'). Each is a material event; it counts
+    as FORESEEN only if a deal-family catalyst existed in the same area, was
+    created BEFORE the event (immutable-timestamp rule — no hindsight catalysts),
+    and had a sort_date within tolerance. Otherwise it's a MISS (foreseen=false).
+    Logs both so the denominator is complete. Idempotent via a 'deal:<id>' key in
+    notes. Returns (n_foreseen, n_missed) logged this run.
+    """
+    print("\n=== miss detection (deal events) ===")
+    inlist = ",".join(COVERED_AREAS)
+    deals = rest("deals?select=id,deal_date,area_id,deal_type,from_company,to_company,company_id,"
+                 f"headline,source_url,total_usd_m&deal_date=gte.{TRACKING_START}&deal_date=lte.{TODAY}"
+                 f"&area_id=in.({inlist})&order=deal_date.asc&limit=2000")
+    cats = rest("catalysts?select=id,area_id,catalyst_type,sort_date,created_at"
+                f"&area_id=in.({inlist})&limit=5000")
+    logged = rest("foresight_events?select=notes&added_by=eq.miss_sweep&limit=10000")
+    done = {tok for r in logged for tok in (r.get("notes") or "").split() if tok.startswith("deal:")}
+
+    n_seen = n_miss = 0
+    rows = []
+    for dl in deals:
+        key = f"deal:{dl['id']}"
+        if key in done:
+            continue
+        ev = _ddate(dl["deal_date"])
+        if not ev:
+            continue
+        allowed = DEAL_TYPE_TO_CATALYST.get(dl.get("deal_type"), DEFAULT_CATALYST_MATCH)
+        matched = None
+        for c in cats:
+            if c.get("area_id") != dl.get("area_id"):
+                continue
+            if c.get("catalyst_type") not in allowed:
+                continue
+            cc, sd = _ddate(c.get("created_at")), _ddate(c.get("sort_date"))
+            if not cc or cc >= ev:                       # must predate the event — no hindsight
+                continue
+            if not sd or abs((sd - ev).days) > MATCH_TOLERANCE_DAYS:
+                continue
+            matched = c
+            break
+        foreseen = matched is not None
+        rows.append({
+            "period": period_of(dl["deal_date"]),
+            "area_id": dl.get("area_id"),
+            "event_type": dl.get("deal_type") or "deal",
+            "asset_label": (dl.get("headline") or f"{dl.get('from_company')} deal")[:300],
+            "company_id": dl.get("company_id") or dl.get("to_company") or dl.get("from_company"),
+            "event_date": dl["deal_date"][:10],
+            "source_url": dl.get("source_url") or "https://www.sec.gov",
+            "source_type": "press_release",
+            "significance": "high" if (dl.get("total_usd_m") or 0) >= 1000 else "medium",
+            "foreseen": foreseen,
+            "matched_catalyst_id": matched["id"] if matched else None,
+            "miss_reason": None if foreseen else
+                f"no catalyst predicted this {dl.get('deal_type')} event in '{dl.get('area_id')}' before {dl['deal_date'][:10]}",
+            "notes": f"{key} | miss_sweep",
+            "added_by": "miss_sweep",
+        })
+        n_seen += foreseen
+        n_miss += not foreseen
+
+    if rows and not DRY:
+        rest("foresight_events", "POST", rows, prefer="return=minimal")
+    print(f"  window {TRACKING_START}..{TODAY} | in-window covered deal events: {len(deals)} | "
+          f"new logged: {len(rows)} (foreseen={n_seen}, missed={n_miss})")
+    if not rows:
+        print("  nothing new (all in-window deal events already swept).")
+    return n_seen, n_miss
 
 
 def resolve_tier2() -> None:
