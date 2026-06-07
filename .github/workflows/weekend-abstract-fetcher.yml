@@ -1,15 +1,16 @@
 name: Meridian Abstract Fetcher
 
+# Weekly abstract and preprint sweep.
+# Default run (no flags): drug sweep (all Phase 2+ drugs) then preprint monitor.
+# Calls scripts/abstracts/fetch_abstracts.py which owns all orchestration logic.
+
 on:
   schedule:
-    # Saturday 10:00 AM ET = 14:00 UTC — weekly abstract and preprint sweep
-    # Runs on Saturdays, complementing the weekend sprint blocks.
-    # Light-weight: no LLM, pure PubMed + Europe PMC API calls.
-    - cron: "0 14 * * 6"
+    - cron: "0 14 * * 6"   # Saturday 14:00 UTC (10:00 AM ET)
   workflow_dispatch:
     inputs:
       drug:
-        description: "Fetch abstracts for a specific drug name (optional)"
+        description: "Fetch abstracts for a specific drug name only (optional)"
         required: false
         default: ""
       preprints:
@@ -23,18 +24,19 @@ on:
         default: "false"
         type: boolean
 
+concurrency:
+  group: abstract-fetcher
+  cancel-in-progress: false
+
 jobs:
-  fetch-abstracts:
-    name: "Fetch Abstracts & Preprints"
+  fetch:
+    name: "Fetch abstracts and preprints"
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -48,9 +50,6 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          echo "=== Meridian Abstract Fetcher ==="
-          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
           ARGS=""
           if [ -n "${{ github.event.inputs.drug }}" ]; then
             ARGS="$ARGS --drug ${{ github.event.inputs.drug }}"
@@ -61,15 +60,4 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-
-          echo "Running: python scripts/intelligence/abstract_fetcher.py $ARGS"
-          python scripts/intelligence/abstract_fetcher.py $ARGS
-
-      - name: Run preprint monitor (scheduled runs only)
-        if: github.event_name == 'schedule'
-        env:
-          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          echo "=== Preprint Monitor ==="
-          python scripts/intelligence/abstract_fetcher.py --preprints
+          python -m scripts.abstracts.fetch_abstracts $ARGS

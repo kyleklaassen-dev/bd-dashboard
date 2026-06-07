@@ -39,7 +39,7 @@ News gathering, signal monitoring, and daily intelligence output.
 | Script | Trigger | Description |
 |---|---|---|
 | `research.py` | ⚙️ | Nightly news pipeline — fetches and scores articles |
-| `abstract_fetcher.py` | ⚙️ | Weekly PubMed + Europe PMC abstract sweep |
+| `abstracts/fetch_abstracts.py` | ⚙️ | Weekly PubMed + Europe PMC abstract sweep + preprint monitor |
 | `fetch_homepage_news.py` | ⚙️ | Homepage news intelligence pilot |
 | `signal_monitor.py` | ⚙️ | Tier 1 signal monitor — catalysts, press releases |
 | `pipeline_monitor.py` | ⚙️ | Monitors pipeline health and data freshness |
@@ -128,8 +128,7 @@ Syncing data from external sources (ClinicalTrials, stock feeds, evidence).
 |---|---|---|
 | `ct_gov_sync.py` | ⚙️ | Syncs ClinicalTrials.gov trial data |
 | `stock_prices.py` | ⚙️ | Fetches company stock prices |
-| `collect_evidence.py` | ⚙️ | Collects evidence URLs for drug claims |
-| `collect_patient_evidence.py` | ⚙️ | Collects patient/epidemiology evidence |
+| `evidence/backfill_sources.py` | ⚙️ | Evidence source backfill entrypoint (drug + patient phases) |
 | `refresh_company_verified.py` | ⚙️ | Refreshes `company.verified` status |
 | `sync_collection_queue.py` | 🛠️ | Syncs collection queue from external triggers |
 
@@ -212,36 +211,6 @@ Building static assets and exporting schema/data.
 | `pipeline_health.py` | ⚙️ | Reports GitHub Actions workflow run health |
 
 ---
-
-## Future: Subfolder Refactor
-
-Planned folder structure (blocked on `_REPO` path + `_import_agent` refactor):
-
-```
-scripts/
-  enrichment/    # group 1
-  intelligence/  # group 2
-  scoring/       # group 3
-  validation/    # group 4
-  identity/      # group 5
-  intake/        # group 6
-  sync/          # group 7
-  graph/         # group 8
-  seed/          # group 9
-  narrative/     # group 10
-  ml/            # group 11
-  build/         # group 12
-  weekend_sprint.py   # stays at root (orchestrator)
-  pipeline_health.py  # stays at root
-  narrative_gen.py    # stays at root (shared library)
-  company_identity_resolver.py  # stays at root (shared library)
-```
-
-Blockers to resolve before executing:
-1. 37 scripts compute `_REPO` as `dirname(dirname(__file__))` — needs one extra `dirname` after move
-2. `weekend_sprint.py` `_import_agent()` hardcodes `_SCRIPTS_DIR/module.py` — needs subdirectory search
-3. 38 workflow files reference `python scripts/xxx.py` — all need path updates
-4. 15 scripts import siblings by bare name — need `sys.path` or `__init__.py` fixes
 
 
 

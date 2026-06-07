@@ -48,7 +48,7 @@ def main():
     if not args.finalize_only:
         if not args.no_crosswalk:
             print("Evidence collection (close the flywheel — gaps → cited sources):")
-            run(["scripts/collect_evidence.py", "--area", args.area])
+            run(["-m", "scripts.evidence.backfill_sources", "--areas", args.area])
             print("Trial-identity + publication crosswalk:")
             run(["scripts/enrich_trial_identity.py", "--area", args.area])
 
