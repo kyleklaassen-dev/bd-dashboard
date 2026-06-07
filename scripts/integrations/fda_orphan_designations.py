@@ -16,11 +16,12 @@ Run:  python3 scripts/integrations/fda_orphan_designations.py --dry-run
       python3 scripts/integrations/fda_orphan_designations.py --start-date 01/01/2015
 """
 import os, re, sys, json, time, hashlib, argparse
-import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.parse, urllib.error, http.cookiejar
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 
 UA = "Mozilla/5.0 (Meridian-BD-Research; +https://github.com/kyleklaassen-dev/bd-dashboard; contact kyleklaassen2@gmail.com)"
+INDEX = "https://www.accessdata.fda.gov/scripts/opdlisting/oopd/"
 RESULTS = "https://www.accessdata.fda.gov/scripts/opdlisting/oopd/OOPD_Results.cfm"
 SESSION = f"fda-orphan-{datetime.now(timezone.utc):%Y%m%d}"
 TODAY = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -37,10 +38,33 @@ def _retry(fn, *a, tries=4, base=3.0, **k):
             time.sleep(base * (2 ** i))
     raise last
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Surface the 302 Location instead of blindly following it (the OOPD form
+    redirects to a session-scoped results URL; the default handler drops the
+    POST body and lands on a 404)."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, f"redirect:{newurl}", headers, fp)
+
+def _build_opener(follow=True):
+    cj = http.cookiejar.CookieJar()
+    handlers = [urllib.request.HTTPCookieProcessor(cj)]
+    if not follow:
+        handlers.append(_NoRedirect())
+    return urllib.request.build_opener(*handlers)
+
+def _hidden(html, name):
+    m = (re.search(rf'id="{name}"[^>]*value="([^"]*)"', html) or
+         re.search(rf'name="{name}"[^>]*value="([^"]*)"', html))
+    return m.group(1) if m else ""
+
 def fetch_export(start_date, end_date, per_page=10000):
-    """GET the OOPD Excel export. The CFM endpoint accepts the form fields as a
-    query string and returns an HTML <table> served as application/vnd.ms-excel.
-    (POST 302-redirects to a 404; GET is the working path.) Returns raw text."""
+    """Drive the OOPD search the way a browser does, then retrieve the Excel export.
+    1) GET the search form (sets the ColdFusion CFID/CFTOKEN session cookie).
+    2) POST the form with Output_Format=Excel using that session.
+    3) If the POST 302-redirects, follow the Location with the same session
+       (that target is the actual results/Excel page).
+    Returns raw HTML/Excel text. Works from clean egress; on the throttled VM the
+    earlier step is Akamai-blocked, which is why this runs off-VM."""
     form = {
         "Product_name": "", "sponsor_name": "", "Designation": "",
         "Designation_Start_Date": start_date, "Designation_End_Date": end_date,
@@ -50,15 +74,41 @@ def fetch_export(start_date, end_date, per_page=10000):
         "RecordsPerPage": str(per_page),
         "newSearch": "Run Search",
     }
-    url = f"{RESULTS}?{urllib.parse.urlencode(form)}"
+    hdr = {"User-Agent": UA, "Referer": INDEX,
+           "Accept": "application/vnd.ms-excel,text/html,*/*"}
+
     def _do():
-        req = urllib.request.Request(url, headers={
-            "User-Agent": UA,
-            "Referer": "https://www.accessdata.fda.gov/scripts/opdlisting/oopd/",
-            "Accept": "application/vnd.ms-excel,text/html,*/*",
-        })
-        with urllib.request.urlopen(req, timeout=90) as r:
-            return r.read().decode("utf-8", "replace")
+        op = _build_opener(follow=False)
+        # 1) prime the session cookie
+        try:
+            with op.open(urllib.request.Request(INDEX, headers={"User-Agent": UA}),
+                         timeout=60):
+                pass
+        except urllib.error.HTTPError:
+            pass
+        body = urllib.parse.urlencode(form).encode()
+        # 2) POST results (no auto-follow so we can read Location)
+        try:
+            req = urllib.request.Request(RESULTS, data=body, headers={
+                **hdr, "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://www.accessdata.fda.gov"})
+            with op.open(req, timeout=90) as r:
+                return r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (301, 302, 303, 307) and str(e.reason).startswith("redirect:"):
+                loc = str(e.reason).split("redirect:", 1)[1]
+                if loc.startswith("/"):
+                    loc = "https://www.accessdata.fda.gov" + loc
+                elif not loc.startswith("http"):
+                    loc = INDEX + loc
+                # 3) follow the redirect target with the SAME session
+                op2 = urllib.request.build_opener(
+                    *[h for h in op.handlers
+                      if isinstance(h, urllib.request.HTTPCookieProcessor)])
+                with op2.open(urllib.request.Request(loc, headers=hdr),
+                              timeout=90) as r2:
+                    return r2.read().decode("utf-8", "replace")
+            raise
     return _retry(_do)
 
 # ------------------------------------------------------------------------- parse
