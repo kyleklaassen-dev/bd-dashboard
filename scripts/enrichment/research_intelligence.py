@@ -1036,38 +1036,31 @@ def run_intelligence_audit(
         print(f"  ── {real_entity_id} ({drug_names})")
 
         try:
-            ctx = load_entity_context(real_entity_id, area_id)
+            from pipeline.research.orchestrator import run_entity_pipeline
+            state = run_entity_pipeline(real_entity_id, area_id, dry_run=dry_run)
 
-            score_result = score_entity_completeness(ctx)
-            triggers = check_research_triggers(ctx)
-            next_action = get_next_best_action(ctx, score_result)
-            priority_score, reason = calculate_priority_score(ctx, score_result, triggers)
+            if not state.ok:
+                for err in state.errors:
+                    print(f"     WARN: {err}")
+                results.append({"entity_id": real_entity_id, "error": "; ".join(state.errors)})
+                continue
 
-            upsert_research_queue(
-                ctx=ctx,
-                score_result=score_result,
-                triggers=triggers,
-                next_action=next_action,
-                priority_score=priority_score,
-                reason=reason,
-                dry_run=dry_run,
-            )
-
+            score_result = state.score_result
             results.append({
                 "entity_id": real_entity_id,
                 "score": score_result["completeness_score"],
                 "tier": score_result["completeness_tier"],
-                "priority": priority_score,
-                "triggers": len(triggers),
-                "action": next_action[:60],
+                "priority": state.priority_score,
+                "triggers": len(state.triggers),
+                "action": state.next_action[:60],
             })
 
             print(
                 f"     score={score_result['completeness_score']:3d} "
                 f"tier={score_result['completeness_tier']:<8s} "
-                f"priority={priority_score:3d} "
-                f"triggers={len(triggers)} "
-                f"→ {next_action[:55]}"
+                f"priority={state.priority_score:3d} "
+                f"triggers={len(state.triggers)} "
+                f"→ {state.next_action[:55]}"
             )
 
         except Exception as e:

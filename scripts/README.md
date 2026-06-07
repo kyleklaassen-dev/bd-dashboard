@@ -242,3 +242,23 @@ Blockers to resolve before executing:
 2. `weekend_sprint.py` `_import_agent()` hardcodes `_SCRIPTS_DIR/module.py` — needs subdirectory search
 3. 38 workflow files reference `python scripts/xxx.py` — all need path updates
 4. 15 scripts import siblings by bare name — need `sys.path` or `__init__.py` fixes
+
+
+
+
+
+company_enrichment.py
+The key structural problems the inventory surfaces:
+
+Call #4 is the highest blast radius in the codebase. One call writes to 15 tables. JSON truncation (stop_reason='max_tokens') is already detected — but not recovered from. Partial writes land silently. Pydantic validation covers only 7 drug fields; the company_profile narrative fields have no runtime enforcement.
+
+Two prompts are invisible. _COVERAGE_SYSTEM (call #5) is a string literal inside a function body. enrichment_system_prompt() (call #4) is a 400-line dynamic function mixing governance rules, data quality constraints, and output format. Neither is discoverable from a prompt registry.
+
+Calls #1 and #3 are free-text passthrough. Web-search output injects unvalidated narrative into call #4's prompt — a hallucinated fact from the web search arrives in the synthesis with the same weight as a Supabase-sourced fact.
+
+The compounding value
+None of these phases are independent. The progression matters:
+ai/ layer           →  prompts + schemas are separate from business logic
+PipelineState       →  inter-step data has names and types
+Tier 1 extractions  →  nodes have no dependencies on the monolith
+LangGraph           →  routing is explicit, resumable, and visual

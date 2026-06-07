@@ -476,158 +476,26 @@ def log_field_change(drug_id: str, field: str,
 # ══════════════════════════════════════════════════════════════════════════════
 
 def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
-    """
-    Enrich a single drug by ID.
-    Returns True on success, False on failure.
-    """
+    """Enrich a single drug via the LangGraph pipeline. Returns True on success."""
+    from pipeline.drug.graph import build_drug_graph
+    from pipeline.drug.state import DrugPipelineState
+
     log(f"Enriching drug: {drug_id}", indent=0)
-
-    # 1. Fetch full context
-    ctx = fetch_drug_context(drug_id)
-    if not ctx:
-        log(f"  Drug {drug_id} not found in Supabase", indent=1)
-        return False
-
-    drug = ctx["drug"]
-    drug_name = drug.get("name") or drug_id
-
-    # 2. Check coverage
-    coverage = compute_coverage(drug)
-    missing = fields_to_enrich(drug)
-    log(f"  Drug: {drug_name} | Stage: {drug.get('stage')} | Coverage: {coverage}% | Missing: {missing}", indent=1)
-
-    if coverage >= 80:
-        log(f"  Already well-enriched (coverage={coverage}%) — skipping", indent=1)
-        return True
-
-    # 3. Build prompt and call Claude
-    prompt = build_enrichment_prompt(ctx)
-
-    # Log enrichment start
-    run_id = log_enrichment_run(
-        script_name="drug_enrichment.py",
-        model_name="claude-sonnet-4-6",
-        prompt_version="v1.0",
-        entity_type="drug",
-        entity_id=drug_id,
-        skill_name="drug_enrich",
-        run_type="weekend_sprint",
-        model_version="claude-sonnet-4-6",
-        prompt_snapshot=prompt[:5000],
-    ) if _MODEL_COMPARISON_AVAILABLE else None
-
     t0 = time.time()
 
-    # 4. Call Claude and parse JSON response
-    llm_result = ai_client.run_json(_DRUG_ENRICH_CFG, prompt)
-    log(f"  Claude response in {time.time()-t0:.1f}s ({llm_result.tokens_in}in/{llm_result.tokens_out}out "
-        f"${llm_result.cost_usd:.4f})", indent=2)
-    if not llm_result.ok:
-        log(f"  Claude API call or JSON parse failed", indent=2)
-        if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, {"status": "error",
-                                          "error_message": "LLM call or JSON parse failed"})
-        return False
+    state = DrugPipelineState(drug_id=drug_id, dry_run=dry_run)
+    app = build_drug_graph()
+    result = app.invoke(state)
 
-    raw_output = llm_result.data
-    log(f"  Parsed JSON keys: {list(raw_output.keys())}", indent=2)
+    elapsed = time.time() - t0
+    log(f"  Pipeline completed in {elapsed:.1f}s | "
+        f"nodes={result.nodes_completed} | ok={result.ok}", indent=1)
 
-    # 5. Validate output
-    validated = validate_output(raw_output, drug_name)
-    if not validated:
-        log(f"  No valid fields after validation — skipping write", indent=2)
-        if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, {"status": "warning", "schema_valid": False,
-                                          "records_processed": 0})
-        return False
+    if result.errors:
+        for err in result.errors:
+            log(f"  ERROR: {err}", indent=2)
 
-    # Only update fields that are actually missing
-    update = {k: v for k, v in validated.items()
-              if k in missing or (k == "source_url" and not drug.get("source_url"))}
-
-    log(f"  Fields to write: {list(update.keys())}", indent=2)
-
-    # 6. Write to Supabase
-    if dry_run:
-        log(f"  [DRY-RUN] Would patch drug {drug_id}: {list(update.keys())}", indent=2)
-    else:
-        if update:
-            try:
-                # Stamp provenance fields on every drug write
-                write_payload = {
-                    **update,
-                    "last_enriched_model": "claude-sonnet-4-6",
-                    "updated_at": "now()",
-                }
-                if run_id:
-                    write_payload["last_enrichment_run_id"] = run_id
-
-                _db.sb_patch("drugs", write_payload, {"id": f"eq.{drug_id}"})
-                log(f"  Drug {drug_name}: patched {len(update)} fields", indent=2)
-
-                # Log each field change with full provenance
-                source = validated.get("source_url")
-                for field, new_val in update.items():
-                    old_val = drug.get(field)
-                    log_field_change(
-                        drug_id, field, old_val, new_val,
-                        enrichment_run_id=run_id,
-                        source_url=source if field == "source_url" else None,
-                    )
-
-            except Exception as e:
-                log(f"  Patch failed: {e}", indent=2)
-                if run_id and _MODEL_COMPARISON_AVAILABLE:
-                    patch_enrichment_run(run_id, {"status": "error",
-                                                   "error_message": f"Patch failed: {e}"})
-                return False
-
-        # Update coverage score
-        try:
-            # Re-fetch and recompute
-            updated_drug = {**drug, **update}
-            new_coverage = compute_coverage(updated_drug)
-            _db.sb_post("coverage_scores", {
-                "entity_id":     drug_id,
-                "entity_type":   "drug",
-                "coverage_score": new_coverage,
-                "computed_at":   NOW_ISO,
-            })
-            log(f"  Coverage: {coverage}% → {new_coverage}%", indent=2)
-        except Exception:
-            pass
-
-    # 7. Log enrichment run
-    duration = time.time() - t0
-    if run_id and _MODEL_COMPARISON_AVAILABLE:
-        patch_enrichment_run(run_id, {
-            "status":            "success",
-            "schema_valid":      True,
-            "records_processed": len(update),
-            "run_duration_seconds": round(duration, 2),
-            "model_version":     "claude-sonnet-4-6",
-        })
-    else:
-        # Log to enrichment_runs directly (model_comparison not available)
-        try:
-            _db.sb_post("enrichment_runs", {
-                "entity_id":          drug_id,
-                "entity_type":        "drug",
-                "skill_name":         "drug_enrich",
-                "script_name":        "drug_enrichment.py",
-                "model_name":         "claude-sonnet-4-6",
-                "model_version":      "claude-sonnet-4-6",
-                "run_type":           "weekend_sprint",
-                "status":             "success",
-                "schema_valid":       True,
-                "records_processed":  len(update),
-                "run_duration_seconds": round(duration, 2),
-                "run_date":           NOW_ISO,
-            })
-        except Exception:
-            pass
-
-    return True
+    return result.ok
 
 
 # ══════════════════════════════════════════════════════════════════════════════

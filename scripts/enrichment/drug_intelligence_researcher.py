@@ -570,85 +570,53 @@ def research_drug(
     verbose: bool = False,
     domains_filter: Optional[list[str]] = None,
 ) -> dict:
-    """
-    Full 100-question research run for one drug + indication.
-    Returns summary dict with counts.
-    """
+    """Full 100-question research run via the LangGraph pipeline. Returns summary dict."""
+    from pipeline.drug_intel.graph import build_drug_intel_graph
+    from pipeline.drug_intel.state import DrugIntelPipelineState
+
     print(f"\nResearching drug: {drug_id} | indication: {indication}")
     print("=" * 60)
 
-    # Load drug record
-    drug = load_drug(drug_id)
-    print(f"  Drug:    {drug['name']}")
-    print(f"  Target:  {drug.get('target', 'unknown')}")
-    print(f"  Stage:   {drug.get('stage', 'unknown')}")
-    print(f"  Company: {drug.get('company_name', drug.get('company_id', 'unknown'))}")
-    print()
+    t0 = time.time()
+    state = DrugIntelPipelineState(
+        drug_id=drug_id,
+        indication=indication,
+        dry_run=dry_run,
+        verbose=verbose,
+        domains_filter=domains_filter,
+    )
 
-    all_qa: list[dict] = []
-    domains_to_run = domains_filter or list(DOMAIN_QUESTIONS.keys())
+    app = build_drug_intel_graph()
+    result = app.invoke(state)
 
-    t_total_start = time.time()
+    total_elapsed = time.time() - t0
 
-    for domain in domains_to_run:
-        if domain not in DOMAIN_QUESTIONS:
-            print(f"  [SKIP] Unknown domain: {domain}")
-            continue
+    if result.drug:
+        print(f"  Drug:    {result.drug.get('name', drug_id)}")
+        print(f"  Target:  {result.drug.get('target', 'unknown')}")
+        print(f"  Stage:   {result.drug.get('stage', 'unknown')}")
+        print()
 
-        config = DOMAIN_QUESTIONS[domain]
-        q_start, q_end = config["range"]
-        print(f"  Domain: {domain} (Q{q_start}–Q{q_end})", end="", flush=True)
+    print(f"\nCompleted in {total_elapsed:.1f}s")
+    print(f"  Q&A records:       {result.qa_stored}/100")
+    print(f"  Benchmarks stored: {result.benchmarks_stored}")
+    print(f"  Timeline events:   {result.timeline_stored}")
+    if dry_run:
+        print("  [DRY RUN — nothing written to Supabase]")
+    if result.errors:
+        for err in result.errors:
+            print(f"  ERROR: {err}")
 
-        t0 = time.time()
-        qa_records = call_claude_for_domain(drug, domain, config, indication, verbose=verbose)
-        elapsed = time.time() - t0
-
-        print(f" → {len(qa_records)} answers in {elapsed:.1f}s")
-
-        if qa_records:
-            stored = store_qa(qa_records, dry_run=dry_run)
-            if not dry_run and verbose:
-                print(f"    Stored {stored} Q&A records.")
-
-        all_qa.extend(qa_records)
-
-        # Brief pause to avoid rate limiting
-        if not dry_run:
-            time.sleep(0.5)
-
-    # Extract and store benchmarks
-    print(f"\n  Extracting clinical benchmarks...", end="", flush=True)
-    benchmarks = extract_benchmarks(drug, indication, all_qa, verbose=verbose)
-    stored_benchmarks = store_benchmarks(benchmarks, dry_run=dry_run)
-    print(f" → {stored_benchmarks} benchmarks")
-
-    # Extract and store timeline
-    print(f"  Extracting development timeline...", end="", flush=True)
-    timeline = extract_timeline(drug, all_qa, verbose=verbose)
-    stored_timeline = store_timeline(timeline, dry_run=dry_run)
-    print(f" → {stored_timeline} timeline events")
-
-    total_elapsed = time.time() - t_total_start
-
-    summary = {
+    return {
         "drug_id": drug_id,
-        "drug_name": drug["name"],
+        "drug_name": result.drug.get("name", drug_id) if result.drug else drug_id,
         "indication": indication,
-        "qa_count": len(all_qa),
-        "benchmark_count": stored_benchmarks,
-        "timeline_count": stored_timeline,
+        "qa_count": result.qa_stored,
+        "benchmark_count": result.benchmarks_stored,
+        "timeline_count": result.timeline_stored,
         "elapsed_seconds": round(total_elapsed, 1),
         "dry_run": dry_run,
     }
-
-    print(f"\nCompleted in {total_elapsed:.1f}s")
-    print(f"  Q&A records:       {len(all_qa)}/100")
-    print(f"  Benchmarks stored: {stored_benchmarks}")
-    print(f"  Timeline events:   {stored_timeline}")
-    if dry_run:
-        print("  [DRY RUN — nothing written to Supabase]")
-
-    return summary
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
