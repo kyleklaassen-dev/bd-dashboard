@@ -73,30 +73,25 @@ import re
 from typing import Optional, List
 
 import requests
-import anthropic
 
-try:
-    from pydantic import BaseModel, Field as PydanticField
-    _PYDANTIC_AVAILABLE = True
+# ── sys.path: add scripts/enrichment/ (for _common, identity_resolution) ──────
+# and scripts/ (for ai.*) so all internal imports resolve regardless of cwd.
+_SCRIPTS_DIR  = os.path.dirname(os.path.abspath(__file__))  # scripts/enrichment/
+_SCRIPTS_ROOT = os.path.dirname(_SCRIPTS_DIR)               # scripts/
+for _p in (_SCRIPTS_DIR, _SCRIPTS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-    class DrugEnrichmentOutput(BaseModel):
-        mechanism: Optional[str] = None
-        ailux_angle: Optional[str] = None
-        drug_summary: Optional[str] = None
-        source_url: Optional[str] = None
-        overlap: Optional[str] = None
-        overlap_rationale: Optional[str] = None
-        differentiation_thesis: Optional[str] = None
-
-except ImportError:
-    _PYDANTIC_AVAILABLE = False
-    DrugEnrichmentOutput = None  # type: ignore[assignment,misc]
-
-# Ensure the scripts/ directory is on sys.path so relative imports work
-# whether the script is invoked from the repo root or from scripts/ directly.
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
+# ── AI layer: centralized LLM client + prompts + schemas + validators ──────────
+import ai.client as ai_client
+import ai.prompts.landscape_search   as _p_landscape
+import ai.prompts.entity_discovery   as _p_discovery
+import ai.prompts.company_intel_search as _p_intel
+import ai.prompts.company_enrichment as _p_enrichment
+import ai.prompts.coverage_fill      as _p_coverage
+from ai.schemas.enrichment import DrugEnrichmentOutput, _PYDANTIC_AVAILABLE
+from ai.validators.drug_fields import validate_drug_updates
+from ai import run_log
 
 try:
     from identity_resolution import DrugIdentityResolver
@@ -104,6 +99,8 @@ try:
 except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False
 
+# model_comparison now wrapped by ai.run_log — keep legacy shims for any
+# remaining direct references in this file.
 try:
     from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run, build_enrichment_summary
     _MODEL_COMPARISON_AVAILABLE = True
@@ -126,20 +123,8 @@ except ImportError:
 from _common import load_credentials, sb_headers as _sb_headers
 SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-# ── Token accounting (Wave 1: enrichment_runs token columns were always 0) ────
-# Module-level so it accumulates across every LLM call in a run (discovery, web,
-# molecule, synthesis, coverage). Written to enrichment_runs at run end → spend
-# becomes computable (tokens × model price).
-_RUN_TOKENS = {"in": 0, "out": 0}
-
-def _acc_tokens(resp):
-    try:
-        _RUN_TOKENS["in"]  += getattr(resp.usage, "input_tokens", 0) or 0
-        _RUN_TOKENS["out"] += getattr(resp.usage, "output_tokens", 0) or 0
-    except Exception:
-        pass
+# Initialize shared LLM client (all model calls go through ai_client).
+ai_client.setup(ANTHROPIC_API_KEY)
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
@@ -636,30 +621,7 @@ def resolve_company_id(name: str, company_map: dict) -> Optional[str]:
 # Secondary: recent Supabase intel used as supplemental signal if available
 # ══════════════════════════════════════════════════════════════════════════
 
-DISCOVERY_SYSTEM = """You are a biopharma competitive intelligence analyst for Ailux Biotherapeutics.
-Identify NEW companies or drug programs that are relevant to the given disease area but not yet in our
-database. Return ONLY valid JSON — no markdown, no explanation."""
-
-LANDSCAPE_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
-Use web_search to find ALL companies with drug programs in the given target area — at ANY stage,
-from preclinical through approved. Include large pharma (Pfizer, Roche, AZ, Lilly, etc.) as well
-as small/mid-cap biotechs and early-stage companies.
-
-IMPORTANT: Do NOT limit results to clinical-stage programs. Preclinical and IND-enabling programs
-are strategically critical — they represent future competitors and partnership opportunities.
-Be comprehensive — missing a player (especially an early-stage one) is worse than a false positive.
-
-For each program found, report: company name, drug name/compound ID, mechanism of action, stage
-(Preclinical/IND Enabling/Phase 1/Phase 2/Phase 3/Approved), indication, partnership details.
-
-# TRANSACTION_PIPELINE_EXPANSION
-When enriching a company, investigate not only internally discovered assets, but also assets
-acquired through M&A, licensing, partnerships, and platform transactions. The company's pipeline
-should reflect current ownership and control, not merely original invention. Every acquired company
-should be treated as a potential pipeline import event requiring asset discovery and area
-reclassification. When a company has acquired another entity or signed a major licensing deal,
-ingest the ENTIRE acquired pipeline — all stages, not just the headline asset — and re-map
-company areas, competitive landscapes, and strategic relevance accordingly."""
+# Prompt system strings moved to ai/prompts/ — imported via _p_landscape, _p_discovery above.
 
 
 def gather_landscape_intel(area_id: str) -> str:
@@ -691,21 +653,10 @@ def gather_landscape_intel(area_id: str) -> str:
         "strategically important competitive signal."
     )
 
-    try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2500,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
-            system=LANDSCAPE_SEARCH_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=90.0,  # cap at 90s to avoid infinite hang
-        )
-        _acc_tokens(resp)
-        parts = [block.text for block in resp.content if hasattr(block, "text") and block.text]
-        return "\n\n".join(parts)
-    except Exception as e:
-        log(f"  Landscape search error: {e}", indent=1)
-        return ""
+    result = ai_client.run_text(_p_landscape.PROMPT_CFG, prompt, timeout=90.0)
+    if not result:
+        log("  Landscape search error or empty response", indent=1)
+    return result
 
 
 def step1_discover_new_entities(area_id: str, company_map: dict,
@@ -878,22 +829,11 @@ def step1_discover_new_entities(area_id: str, company_map: dict,
         'IF none found: {"new_entities": []}'
     )
 
-    try:
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=1500,
-            system=DISCOVERY_SYSTEM,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        _acc_tokens(resp)
-        text = resp.content[0].text.strip()
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:].strip()
-        data = json.loads(text)
-    except Exception as e:
-        log(f"  Discovery error: {e}", indent=1)
+    result = ai_client.run_json(_p_discovery.PROMPT_CFG, prompt)
+    if not result.ok:
+        log(f"  Discovery error — parse failed or LLM unavailable", indent=1)
         return 0
+    data = result.data
 
     new_entities = data.get("new_entities", [])
     if not new_entities:
@@ -1616,11 +1556,7 @@ AREA_LABELS_MAP = {
     "atopic":      "Atopic disease (AD, asthma, EoE)",
 }
 
-WEB_SEARCH_SYSTEM = """You are a biopharma competitive intelligence researcher.
-Use web_search to gather current, specific facts about the target company.
-Extract actual numbers, dates, partner names, dollar amounts — not general descriptions.
-Prioritize press releases, SEC filings, ClinicalTrials.gov, conference abstracts, and IR pages.
-Summarize findings in dense factual paragraphs. Do not fabricate — if you can't find something, say so."""
+# WEB_SEARCH_SYSTEM moved to ai/prompts/company_intel_search.py
 
 
 def gather_web_intelligence(company_name: str, area_id: str,
@@ -1674,35 +1610,18 @@ Expected enrollment completion or primary completion dates from company guidance
 Search year range: {year - 1}–{year}.
 Be specific. Extract actual numbers and dates. Indicate uncertainty where present."""
 
-    try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=3000,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
-            system=WEB_SEARCH_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=90.0,  # web search can be slow — cap at 90s to avoid infinite hang
-        )
-        # Extract all text content blocks (tool_use and tool_result blocks are intermediate)
-        parts = []
-        for block in resp.content:
-            if hasattr(block, "text") and block.text:
-                parts.append(block.text.strip())
-        result = "\n\n".join(parts)
-        _acc_tokens(resp)
-        tokens_in  = resp.usage.input_tokens
-        tokens_out = resp.usage.output_tokens
-        cost = (tokens_in / 1e6 * 3.0) + (tokens_out / 1e6 * 15.0)
-        log(f"  Web search: {tokens_in}in / {tokens_out}out (${cost:.4f})", indent=2)
-        return result if result else ""
-    except Exception as e:
-        log(f"  Web search failed (non-fatal): {e}", indent=2)
-        return ""
+    result = ai_client.run_text(_p_intel.PROMPT_CFG, prompt, timeout=90.0)
+    if result:
+        usage = ai_client.token_usage()
+        log(f"  Web search: {usage['in']}in / {usage['out']}out", indent=2)
+    else:
+        log("  Web search failed (non-fatal) — empty response", indent=2)
+    return result
 
 
-ENRICHMENT_SYSTEM = """You are a senior biopharma business development analyst for Ailux Biotherapeutics,
-a biotech developing a TL1A×IL-23p19 bispecific antibody for IBD. You synthesize clinical, competitive,
-and BD intelligence into structured data that powers a live competitive tracking dashboard.
+# ENRICHMENT_SYSTEM moved to ai/prompts/company_enrichment.py — use _p_enrichment.get_system()
+# The string below is intentionally removed; reference _p_enrichment.SYSTEM for inspection.
+_ENRICHMENT_SYSTEM_STUB = """[moved to ai/prompts/company_enrichment.py]
 
 KEY CONTEXT: Ailux's lead asset is a TL1A×IL-23p19 bispecific for UC/CD.
 Primary BD goal: identify the right pharma partner — timing, deal structure, positioning.
@@ -1883,53 +1802,7 @@ EXAMPLE: differentiation_thesis (confirmed as high quality)
   what makes the MOLECULE distinct (format, half-life, dosing schedule, engineering choice, route of admin)."""
 
 
-# ── Flywheel close: inject confirmed-ground-truth quality hints at runtime ─────
-# apply_prompt_improvements.py reads Kyle's confirmed examples (training_pairs_*.jsonl)
-# and writes data/enrichment_prompt_hints.md. This loader pulls that guidance into the
-# live ENRICHMENT_SYSTEM prompt so the next enrichment run benefits from the latest
-# confirmed signal. This is the step that was previously missing — the hints file was
-# generated but never consumed at enrichment time.
-_HINTS_PATH = os.path.join(os.path.dirname(_SCRIPTS_DIR), "data", "enrichment_prompt_hints.md")
-_ENRICHMENT_HINTS_CACHE = None  # lazily loaded, then memoized for the process
-
-
-def load_enrichment_hints() -> str:
-    """Return the auto-generated quality-hints block (empty string if absent).
-
-    Strips the file's own title/HTML-comment header and wraps the guidance in a
-    clearly delimited section so it reads as an addendum to ENRICHMENT_SYSTEM.
-    """
-    global _ENRICHMENT_HINTS_CACHE
-    if _ENRICHMENT_HINTS_CACHE is not None:
-        return _ENRICHMENT_HINTS_CACHE
-    block = ""
-    try:
-        if os.path.exists(_HINTS_PATH):
-            raw = open(_HINTS_PATH, encoding="utf-8").read().strip()
-            # Drop the auto-generated title line and the HTML comment marker.
-            lines = [
-                ln for ln in raw.splitlines()
-                if not ln.startswith("# Enrichment Prompt Quality Hints")
-                and not ln.strip().startswith("<!--")
-            ]
-            body = "\n".join(lines).strip()
-            if body:
-                block = (
-                    "\n\n"
-                    "LEARNED QUALITY GUIDANCE (auto-derived from Kyle's confirmed ground truth — "
-                    "these reflect the length, structure, and content of values Kyle has personally "
-                    "verified; match them closely):\n"
-                    + body
-                )
-    except Exception:
-        block = ""
-    _ENRICHMENT_HINTS_CACHE = block
-    return block
-
-
-def enrichment_system_prompt() -> str:
-    """ENRICHMENT_SYSTEM with the latest learned quality hints appended."""
-    return ENRICHMENT_SYSTEM + load_enrichment_hints()
+# load_enrichment_hints() and enrichment_system_prompt() moved to ai/prompts/company_enrichment.py
 
 
 # ── Disease-area framing for area-aware assessment generation ─────────────────
@@ -3723,37 +3596,25 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
     log("  Phase B — Claude synthesis...", indent=1)
     prompt = build_step5_prompt(company_id, area_id, ctx, web_intel=web_intel)
 
-    _synthesis_model = "claude-haiku-4-5-20251001" if fast_model else "claude-sonnet-4-6"
-    _synthesis_tokens = 4096 if fast_model else 8192
+    _synth_cfg = _p_enrichment.PROMPT_CFG_FAST if fast_model else _p_enrichment.PROMPT_CFG
     if fast_model:
-        log(f"  [fast mode] Using {_synthesis_model} (max_tokens={_synthesis_tokens})", indent=1)
+        log(f"  [fast mode] Using {_synth_cfg.model} (max_tokens={_synth_cfg.max_tokens})", indent=1)
 
-    text = None
-    for attempt in range(1, 4):
-        try:
-            resp = client.messages.create(
-                model=_synthesis_model, max_tokens=_synthesis_tokens,
-                system=enrichment_system_prompt(),
-                messages=[{"role": "user", "content": prompt}]
-            )
-            text = resp.content[0].text
-            _acc_tokens(resp)
-            cost = (resp.usage.input_tokens / 1e6 * 3.0 +
-                    resp.usage.output_tokens / 1e6 * 15.0)
-            finish = getattr(resp, 'stop_reason', None)
-            log(f"  {resp.usage.input_tokens}in / {resp.usage.output_tokens}out (${cost:.4f}) stop={finish}", indent=1)
-            # Detect truncation — if stop_reason is max_tokens, the JSON is incomplete
-            if finish == 'max_tokens':
-                log("  WARNING: response truncated at max_tokens — JSON will be incomplete, retrying is unlikely to help. Increase max_tokens or shorten prompt.", indent=1)
-            break
-        except Exception as e:
-            log(f"  Claude error (attempt {attempt}/3): {e}", indent=1)
-            if attempt < 3:
-                time.sleep(10 * attempt)
+    synth = ai_client.run_json(
+        _synth_cfg, prompt,
+        system_override=_p_enrichment.get_system(),
+        max_retries=3,
+    )
+    log(f"  {synth.tokens_in}in / {synth.tokens_out}out (${synth.cost_usd:.4f}) stop={synth.stop_reason}", indent=1)
+    if synth.truncated:
+        log("  WARNING: response truncated at max_tokens — JSON may be incomplete.", indent=1)
 
-    if text is None:
-        log("  Claude failed — skipping", indent=1)
+    if not synth.ok:
+        log("  Claude failed or parse error — skipping", indent=1)
         return False
+
+    text = synth.raw_text
+    data = synth.data
 
     # ── v59 trajectory capture: store raw LLM response ───────────────────────
     if enrichment_run_id and not dry_run:
@@ -3766,68 +3627,18 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         except Exception as _traj_exc:
             log(f"  [trajectory] raw_llm_response patch failed (non-fatal): {_traj_exc}", indent=2)
 
-    data = parse_enrichment_response(text)
-    if not data:
-        log("  Parse failed — skipping", indent=1)
-        return False
-
-    # ── v59 Pydantic schema validation on drug_updates fields ────────────────
-    # Validates the specific fields in DrugEnrichmentOutput schema before DB writes.
-    # If validation fails for any field, that field is skipped; schema_valid = False.
-    # All validation logic is wrapped in try/except so failures never block enrichment.
-    _VALIDATED_DRUG_FIELDS = {"mechanism", "ailux_angle", "drug_summary",
-                               "source_url", "overlap", "overlap_rationale",
-                               "differentiation_thesis"}
-    _fields_attempted: list = []
-    _fields_changed:   list = []
-    _fields_confirmed: list = []
-    _fields_failed:    list = []
-    _schema_valid: Optional[bool] = None
-    _correction_count = 0
-
-    try:
-        # Build lookup of existing (pre-enrichment) drug field values from context
-        _ctx_drug_map = {d["id"]: d for d in ctx.get("drugs", [])}
-
-        for du in (data.get("drug_updates") or []):
-            drug_id_val = du.get("drug_id") or ""
-            old_drug = _ctx_drug_map.get(drug_id_val, {})
-
-            for field in _VALIDATED_DRUG_FIELDS:
-                new_val = du.get(field)
-                if new_val is None:
-                    continue
-                _fields_attempted.append(field)
-
-                # Pydantic validation: build a single-field model and validate
-                if _PYDANTIC_AVAILABLE and DrugEnrichmentOutput is not None:
-                    try:
-                        DrugEnrichmentOutput(**{field: new_val})
-                    except Exception as _val_err:
-                        log(f"  [schema] {drug_id_val}.{field} failed validation: {_val_err}", indent=2)
-                        _fields_failed.append(f"{drug_id_val}.{field}")
-                        # Remove from du so write_step5 skips it
-                        du.pop(field, None)
-                        continue
-
-                # Track changed vs confirmed vs corrected
-                old_val = old_drug.get(field)
-                if old_val and old_val == new_val:
-                    _fields_confirmed.append(f"{drug_id_val}.{field}")
-                elif old_val and old_val != new_val:
-                    _fields_changed.append(f"{drug_id_val}.{field}")
-                    _correction_count += 1
-                else:
-                    # Field was empty before → new value
-                    _fields_changed.append(f"{drug_id_val}.{field}")
-
-        _schema_valid = len(_fields_failed) == 0
-        log(f"  [schema] attempted={len(_fields_attempted)} changed={len(_fields_changed)} "
-            f"confirmed={len(_fields_confirmed)} failed={len(_fields_failed)} "
-            f"corrections={_correction_count}", indent=1)
-
-    except Exception as _schema_exc:
-        log(f"  [schema] validation block error (non-fatal): {_schema_exc}", indent=2)
+    # ── v59 Pydantic schema validation on drug_updates fields (via ai.validators) ─
+    _ctx_drug_map = {d["id"]: d for d in ctx.get("drugs", [])}
+    _val = validate_drug_updates(data.get("drug_updates") or [], _ctx_drug_map)
+    _val.stats.log(indent=1)
+    # Write validated updates back into data so write_step5 uses them.
+    data["drug_updates"] = _val.valid_updates
+    _schema_valid  = _val.stats.schema_valid
+    _fields_attempted  = _val.stats.attempted
+    _fields_changed    = _val.stats.changed
+    _fields_confirmed  = _val.stats.confirmed
+    _fields_failed     = _val.stats.failed
+    _correction_count  = _val.stats.corrections
 
     write_step5(company_id, area_id, data, ctx, dry_run,
                 enrichment_run_id=enrichment_run_id)
@@ -4053,12 +3864,6 @@ def enrich_never_touched_drugs(limit: int = 10, dry_run: bool = False) -> int:
 
     log(f"  {len(never)} drug(s) selected for coverage enrichment")
 
-    _COVERAGE_SYSTEM = (
-        "You are Meridian, a pharmaceutical intelligence assistant. "
-        "Research the given drug and return structured JSON. "
-        "Use null for fields you cannot determine — do NOT hallucinate."
-    )
-
     updated = 0
     for drug in never:
         did   = drug["id"]
@@ -4083,45 +3888,18 @@ def enrich_never_touched_drugs(limit: int = 10, dry_run: bool = False) -> int:
             "}"
         )
 
-        text = None
-        for attempt in range(1, 3):
-            try:
-                resp = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=600,
-                    system=_COVERAGE_SYSTEM,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                _acc_tokens(resp)
-                text = resp.content[0].text.strip()
-                break
-            except Exception as e:
-                log(f"    Claude error (attempt {attempt}/2): {e}", indent=2)
-                if attempt < 2:
-                    time.sleep(5)
-
-        if not text:
-            log("    Skipped — Claude unavailable", indent=2)
+        cov = ai_client.run_json(_p_coverage.PROMPT_CFG, prompt, max_retries=2)
+        if not cov.ok:
+            log("    Skipped — Claude unavailable or parse error", indent=2)
             continue
-
-        # Parse JSON
-        try:
-            import re as _re
-            raw = _re.sub(r"```(?:json)?", "", text).strip()
-            enriched = json.loads(raw)
-        except Exception as e:
-            log(f"    JSON parse error: {e} | raw: {text[:120]}", indent=2)
-            enriched = {}
-
-        if not enriched:
-            continue
+        enriched = cov.data
 
         # Build update — only fill fields that are currently empty
         update: dict = {}
         NULLABLE = ["target", "mechanism", "differentiation_thesis", "ailux_angle", "drug_summary"]
-        for field in NULLABLE:
-            if enriched.get(field) and not drug.get(field):
-                update[field] = enriched[field]
+        for fld in NULLABLE:
+            if enriched.get(fld) and not drug.get(fld):
+                update[fld] = enriched[fld]
 
         if enriched.get("stage") and not drug.get("stage"):
             update["stage"] = enriched["stage"]
@@ -4214,7 +3992,7 @@ def run_intelligence_pipeline(area_id: str,
             entity_type="company",
             notes=f"area={area_id} company_filter={company_filter or 'all'}",
             # v59 trajectory capture: store system prompt snapshot + skill name
-            prompt_snapshot=enrichment_system_prompt()[:5000],
+            prompt_snapshot=_p_enrichment.get_system()[:5000],
             entity_id=company_filter or "",
             skill_name="company_enrich",
             # v60 run classification
