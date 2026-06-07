@@ -121,10 +121,14 @@ except ImportError:
 # ══════════════════════════════════════════════════════════════════════════
 
 from _common import load_credentials, sb_headers as _sb_headers
+import _db
 SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 
 # Initialize shared LLM client (all model calls go through ai_client).
 ai_client.setup(ANTHROPIC_API_KEY)
+
+# Initialize shared Supabase helpers (used by pipeline nodes + legacy functions here).
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
@@ -3546,152 +3550,29 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
                    skip_trial_refresh: bool = False,
                    fast_model: bool = False,
                    enrichment_run_id: Optional[str] = None) -> bool:
-    """Run Steps 4-6 for one company.
+    """Run Steps 4-6 for one company via pipeline orchestrator.
 
     Args:
       resolver:            a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
       enrichment_run_id:   UUID of the parent enrichment_runs row (from log_enrichment_run).
                            When set, stamped on drug/company rows as last_enrichment_run_id.
     """
-    log(f"\n{'='*56}")
-    log(f"Enriching: {company_id} / {area_id}")
-    log(f"{'='*56}")
+    from pipeline.orchestrator import run_company_pipeline
+    from pipeline.state import PipelineState
 
-    log("Fetching Supabase context...", indent=1)
-    ctx = fetch_company_context(company_id, area_id,
-                                skip_trial_refresh=skip_trial_refresh)
-    log(f"  {len(ctx['drugs'])} drugs | {len(ctx['trials'])} trials | "
-        f"{len(ctx['catalysts'])} catalysts | {len(ctx['deals'])} deals | "
-        f"{len(ctx['recent_intel'])} intel items", indent=1)
-
-    # STEP 4: Auto-catalysts from trial dates
-    log("STEP 4 — Catalyst auto-generation...", indent=1)
-    cats = step4_generate_catalysts_from_trials(company_id, area_id, ctx, dry_run)
-    log(f"  {cats} new catalysts", indent=1)
-
-    # STEP 5: Claude narrative enrichment
-    log("STEP 5 — Claude enrichment...", indent=1)
-
-    # Phase A: Web intelligence gathering (live search, non-fatal)
-    # Skip when --skip-web-search is set (e.g. source_url re-enrichment runs where
-    # Claude's training data is sufficient and speed matters more than live data).
-    co = ctx["company"]
-    log("  Phase A — Web intelligence search...", indent=1)
-    web_intel = ""
-    if not skip_web_search:
-        web_intel = gather_web_intelligence(
-            company_name=co.get("name", company_id),
-            area_id=area_id,
-            drugs=ctx["drugs"],
-            ticker=co.get("ticker", ""),
-        )
-        if web_intel:
-            log(f"  Web intelligence gathered ({len(web_intel)} chars)", indent=1)
-        else:
-            log("  No web intelligence (continuing with Supabase context only)", indent=1)
-    else:
-        log("  Skipped (--skip-web-search flag set) — using Supabase context only", indent=1)
-
-    # Phase B: Claude synthesis with web context injected
-    log("  Phase B — Claude synthesis...", indent=1)
-    prompt = build_step5_prompt(company_id, area_id, ctx, web_intel=web_intel)
-
-    _synth_cfg = _p_enrichment.PROMPT_CFG_FAST if fast_model else _p_enrichment.PROMPT_CFG
-    if fast_model:
-        log(f"  [fast mode] Using {_synth_cfg.model} (max_tokens={_synth_cfg.max_tokens})", indent=1)
-
-    synth = ai_client.run_json(
-        _synth_cfg, prompt,
-        system_override=_p_enrichment.get_system(),
-        max_retries=3,
+    state = PipelineState(
+        area_id=area_id,
+        company_id=company_id,
+        dry_run=dry_run,
+        skip_web_search=skip_web_search,
+        skip_trial_refresh=skip_trial_refresh,
+        fast_model=fast_model,
+        enrichment_run_id=enrichment_run_id,
+        company_map=company_map,
+        resolver=resolver,
     )
-    log(f"  {synth.tokens_in}in / {synth.tokens_out}out (${synth.cost_usd:.4f}) stop={synth.stop_reason}", indent=1)
-    if synth.truncated:
-        log("  WARNING: response truncated at max_tokens — JSON may be incomplete.", indent=1)
-
-    if not synth.ok:
-        log("  Claude failed or parse error — skipping", indent=1)
-        return False
-
-    text = synth.raw_text
-    data = synth.data
-
-    # ── v59 trajectory capture: store raw LLM response ───────────────────────
-    if enrichment_run_id and not dry_run:
-        try:
-            patch_enrichment_run(enrichment_run_id, {
-                "raw_llm_response": (text or "")[:8000],
-                "entity_id":        company_id,
-                "skill_name":       "company_enrich",
-            })
-        except Exception as _traj_exc:
-            log(f"  [trajectory] raw_llm_response patch failed (non-fatal): {_traj_exc}", indent=2)
-
-    # ── v59 Pydantic schema validation on drug_updates fields (via ai.validators) ─
-    _ctx_drug_map = {d["id"]: d for d in ctx.get("drugs", [])}
-    _val = validate_drug_updates(data.get("drug_updates") or [], _ctx_drug_map)
-    _val.stats.log(indent=1)
-    # Write validated updates back into data so write_step5 uses them.
-    data["drug_updates"] = _val.valid_updates
-    _schema_valid  = _val.stats.schema_valid
-    _fields_attempted  = _val.stats.attempted
-    _fields_changed    = _val.stats.changed
-    _fields_confirmed  = _val.stats.confirmed
-    _fields_failed     = _val.stats.failed
-    _correction_count  = _val.stats.corrections
-
-    write_step5(company_id, area_id, data, ctx, dry_run,
-                enrichment_run_id=enrichment_run_id)
-
-    # ── v59 trajectory capture: patch enrichment_runs with field tracking ─────
-    if enrichment_run_id and not dry_run:
-        try:
-            _traj_patch: dict = {
-                "fine_tune_eligible": True,
-            }
-            if _fields_attempted:
-                _traj_patch["fields_attempted"] = _fields_attempted
-            if _fields_changed:
-                _traj_patch["fields_changed"] = _fields_changed
-            if _fields_confirmed:
-                _traj_patch["fields_confirmed"] = _fields_confirmed
-            if _fields_failed:
-                _traj_patch["fields_failed"] = _fields_failed
-            if _schema_valid is not None:
-                _traj_patch["schema_valid"] = _schema_valid
-            if _correction_count:
-                _traj_patch["correction_count"] = _correction_count
-            patch_enrichment_run(enrichment_run_id, _traj_patch)
-        except Exception as _traj_exc2:
-            log(f"  [trajectory] field-tracking patch failed (non-fatal): {_traj_exc2}", indent=2)
-
-    # POST-ENRICHMENT COMPLETENESS SCORING
-    log("  Completeness scoring...", indent=1)
-    cs = _score_company_completeness(company_id, area_id, data, ctx)
-    c_score  = cs["score"]
-    c_tier   = cs["tier"]
-    c_missing = cs["missing"]
-    log(f"  Score: {c_score}/100 ({c_tier}) | {len(c_missing)} missing field(s)", indent=1)
-    if c_missing:
-        log(f"    Missing: {', '.join(c_missing[:8])}", indent=2)
-    if not dry_run:
-        # Write score + missing_fields to company_profiles
-        # Profile row must exist (just written above) — safe to patch
-        ok = sb_patch("company_profiles", {
-            "completeness_score":      c_score,
-            "missing_fields":          c_missing,
-            "completeness_checked_at": NOW_ISO,
-        }, {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"})
-        if not ok:
-            log("  ⚠ completeness score patch failed — profile row may not exist yet", indent=1)
-
-    # STEP 6: Deal intelligence
-    log("STEP 6 — Deal intelligence...", indent=1)
-    deals = step6_deal_intelligence(company_id, area_id, ctx, company_map, dry_run,
-                                    resolver=resolver)
-    log(f"  {deals} new deals", indent=1)
-
-    return True
+    state = run_company_pipeline(state)
+    return state.ok
 
 
 # ══════════════════════════════════════════════════════════════════════════
