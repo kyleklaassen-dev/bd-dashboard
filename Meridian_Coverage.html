@@ -54,6 +54,31 @@
   .dict-item .t{font-weight:700;font-size:13.5px}
   .dict-item .d{font-size:13px;color:var(--slate);margin-top:2px}
   .dict-item .e{font-size:12px;color:var(--muted);margin-top:2px;font-style:italic}
+  /* collapsible accordion sections */
+  .acc{margin:24px 0 0}
+  .acc-h{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 0;border-bottom:1px solid var(--line);padding-bottom:7px;font-weight:700;user-select:none}
+  .acc-h:hover{color:var(--slate)}
+  .acc-h .car{transition:transform .15s;font-size:10px;color:var(--accent)}
+  .acc.collapsed .acc-h .car{transform:rotate(-90deg)}
+  .acc-h .cnt{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+  .acc-body{margin-top:12px}
+  .acc.collapsed .acc-body{display:none}
+  /* grouped line-item drill (sources, dictionary) */
+  .lgroup .gh{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--slate);padding:8px 4px;border-bottom:1px solid var(--line);user-select:none}
+  .lgroup .gh:hover{color:var(--accent)}
+  .lgroup .gh .car{font-size:9px;color:var(--accent);transition:transform .15s}
+  .lgroup.collapsed .gh .car{transform:rotate(-90deg)}
+  .lgroup .gh .gc{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted)}
+  .lgroup .gb{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;padding:6px 0 10px}
+  .lgroup.collapsed .gb{display:none}
+  .litem{font-size:12.5px;padding:5px 2px;border-bottom:1px solid #f0f4f9;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .litem:hover{background:var(--soft)}
+  .litem.open{background:var(--soft);font-weight:700}
+  .litem .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .litem .dot.ok{background:var(--good)} .litem .dot.pt{background:var(--warn)} .litem .dot.ms{background:var(--bad)} .litem .dot.mo{background:var(--accent)}
+  .ldetail{grid-column:1/-1;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:12.5px;margin:2px 0 8px}
+  .ldetail b{color:var(--slate);font-weight:600}
+  @media(max-width:980px){.lgroup .gb{grid-template-columns:1fr}}
   /* molecule card: domains as columns, attributes as line items */
   .molgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
   .molcol .dn{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;border-bottom:1px solid var(--line);padding-bottom:3px}
@@ -85,63 +110,77 @@
 
   <div class="tiles" id="tiles"></div>
 
-  <h2>Completeness heatmap — % of phase-expected attributes filled (8 domains × development phase)</h2>
-  <div class="card pad">
-    <div class="muted" style="font-size:12.5px;margin-bottom:8px">Phase-conditional: a preclinical asset is only measured on attributes expected at preclinical. A cell shows <b>filled ÷ expected</b> across all drugs at that phase. Click any cell to see which attributes drive the gap.</div>
-    <div style="overflow-x:auto"><table class="hm" id="heatmap"><tbody><tr><td class="muted">loading…</td></tr></tbody></table></div>
-    <div class="legend">Cell color: <span class="pill ok">≥75%</span> <span class="pill pt">40–74%</span> <span class="pill ms">&lt;40%</span> · grey = not expected at that phase</div>
-    <div id="cell-detail" style="margin-top:12px"></div>
-  </div>
-
-  <div class="grid2">
-    <div>
-      <h2>Collection priority queue — biggest expected-but-missing gaps</h2>
-      <div class="card"><div class="scroll"><table id="gaps"><thead><tr><th>Attribute</th><th>Domain</th><th>Missing / expected</th><th>%</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
-    </div>
-    <div>
-      <h2>Molecule lookup — any molecule × any attribute</h2>
+  <!-- Molecule lookup — the model card, always open at top -->
+  <section class="acc" id="acc-lookup">
+    <h2 class="acc-h"><span class="car">▾</span> Molecule lookup — any molecule × any attribute</h2>
+    <div class="acc-body">
       <div class="card pad">
         <input class="search" id="drugsearch" placeholder="Type a molecule name… (e.g. tulisokibart)" autocomplete="off">
         <div id="drughits" style="margin-top:8px"></div>
       </div>
-    </div>
-  </div>
-
-  <div id="drugcard-wrap" style="display:none">
-    <h2 id="drugcard-title">Molecule card</h2>
-    <div class="card pad">
-      <div id="drugcard-head" style="font-size:14px;margin-bottom:10px"></div>
-      <div class="muted" style="font-size:12px;margin-bottom:10px">● filled · ● expected but missing · ● not yet expected at this phase — click any line to see the stored data and where it comes from.</div>
-      <div class="molgrid" id="drugcard"></div>
-    </div>
-  </div>
-
-  <h2>Connected data sources — every API and what it brings in</h2>
-  <div class="muted" style="font-size:13px;margin:-4px 0 12px">The live registry of external sources feeding Meridian (data_sources table). Status is honest: <span class="pill ok">active</span> <span class="pill pt">partial</span> <span class="pill ms">blocked</span> <span class="pill mo">planned</span>.</div>
-  <div class="card"><div class="scroll" style="max-height:560px"><table id="sources"><thead><tr><th>Source</th><th>What we get</th><th>Feeds</th><th>Status</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
-
-  <h2 id="alex">The benchmark case — Meridian vs paid platforms (Citeline / Evaluate class)</h2>
-  <div class="grid2">
-    <div class="card pad">
-      <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">Computed coverage of paid-platform modules</div>
-      <div class="big" id="citeline-pct">…</div>
-      <div class="muted" style="font-size:12.5px" id="citeline-note"></div>
-      <div style="margin-top:10px" id="citeline-bars"></div>
-      <div class="legend" style="margin-top:10px">Computed from the data dictionary: each attribute mapped to the paid-platform module it overlaps, scored have=1 / partial=0.5 / missing=0. Not a guess — recomputes as coverage improves.</div>
-    </div>
-    <div class="card pad">
-      <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">What no subscription can do</div>
-      <div style="font-size:13.5px;margin-top:8px" id="meridian-only"></div>
-      <div class="muted" style="font-size:12.5px;margin-top:10px">
-        Paid platforms sell the same database to every subscriber. Meridian's <span class="ns">Ailux-relative layer</span> — overlap classification, deal-sequencing constraints, vs-Ailux reads, the BD angle on every asset, and the Patient → Indication → Target → Company hierarchy — cannot be bought, because it only exists relative to Ailux's own pipeline.
+      <div id="drugcard-wrap" style="display:none;margin-top:14px">
+        <div class="card pad">
+          <div id="drugcard-head" style="font-size:14px;margin-bottom:10px"></div>
+          <div class="muted" style="font-size:12px;margin-bottom:10px">● filled · ● expected but missing · ● not yet expected at this phase — click any line to see the stored data and where it comes from.</div>
+          <div class="molgrid" id="drugcard"></div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="card" style="margin-top:14px"><div class="scroll"><table id="citeline-table"><thead><tr><th>Paid-platform module</th><th>Meridian attribute</th><th>Status</th><th>Honest note</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
+  </section>
 
-  <h2>What's inside Meridian — the data dictionary, in plain language</h2>
-  <div class="muted" style="font-size:13px;margin:-4px 0 12px">Every type of information the platform tracks for a molecule, what it means, and a real example. No database knowledge needed — this is the platform's table of contents.</div>
-  <div class="grid2" id="dict"></div>
+  <section class="acc" id="acc-heatmap">
+    <h2 class="acc-h"><span class="car">▾</span> Completeness heatmap — % of phase-expected attributes filled <span class="cnt">8 domains × phase</span></h2>
+    <div class="acc-body"><div class="card pad">
+      <div class="muted" style="font-size:12.5px;margin-bottom:8px">Phase-conditional: a preclinical asset is only measured on attributes expected at preclinical. A cell shows <b>filled ÷ expected</b> across all drugs at that phase. Click any cell to see which attributes drive the gap.</div>
+      <div style="overflow-x:auto"><table class="hm" id="heatmap"><tbody><tr><td class="muted">loading…</td></tr></tbody></table></div>
+      <div class="legend">Cell color: <span class="pill ok">≥75%</span> <span class="pill pt">40–74%</span> <span class="pill ms">&lt;40%</span> · grey = not expected at that phase</div>
+      <div id="cell-detail" style="margin-top:12px"></div>
+    </div></div>
+  </section>
+
+  <section class="acc collapsed" id="acc-gaps">
+    <h2 class="acc-h"><span class="car">▾</span> Collection priority queue — biggest expected-but-missing gaps <span class="cnt">top 20</span></h2>
+    <div class="acc-body"><div class="card"><div class="scroll"><table id="gaps"><thead><tr><th>Attribute</th><th>Domain</th><th>Missing / expected</th><th>%</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div></div>
+  </section>
+
+  <section class="acc collapsed" id="acc-sources">
+    <h2 class="acc-h"><span class="car">▾</span> Connected data sources — every API and what it brings in <span class="cnt" id="sources-cnt"></span></h2>
+    <div class="acc-body">
+      <div class="muted" style="font-size:13px;margin-bottom:10px">Grouped by category — click a category to expand, click a source for detail. Status: <span class="pill ok">active</span> <span class="pill pt">partial</span> <span class="pill ms">blocked</span> <span class="pill mo">planned</span>.</div>
+      <div class="card pad" id="sources">loading…</div>
+    </div>
+  </section>
+
+  <section class="acc collapsed" id="acc-alex">
+    <h2 class="acc-h"><span class="car">▾</span> The benchmark case — Meridian vs paid platforms <span class="cnt" id="alex-cnt"></span></h2>
+    <div class="acc-body">
+      <div class="grid2">
+        <div class="card pad">
+          <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">Computed coverage of paid-platform modules</div>
+          <div class="big" id="citeline-pct">…</div>
+          <div class="muted" style="font-size:12.5px" id="citeline-note"></div>
+          <div style="margin-top:10px" id="citeline-bars"></div>
+          <div class="legend" style="margin-top:10px">Computed from the data dictionary: each attribute mapped to the paid-platform module it overlaps, scored have=1 / partial=0.5 / missing=0. Not a guess — recomputes as coverage improves.</div>
+        </div>
+        <div class="card pad">
+          <div class="muted" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700">What no subscription can do</div>
+          <div style="font-size:13.5px;margin-top:8px" id="meridian-only"></div>
+          <div class="muted" style="font-size:12.5px;margin-top:10px">
+            Paid platforms sell the same database to every subscriber. Meridian's <span class="ns">Ailux-relative layer</span> — overlap classification, deal-sequencing constraints, vs-Ailux reads, the BD angle on every asset, and the Patient → Indication → Target → Company hierarchy — cannot be bought, because it only exists relative to Ailux's own pipeline.
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px"><div class="scroll"><table id="citeline-table"><thead><tr><th>Paid-platform module</th><th>Meridian attribute</th><th>Status</th><th>Honest note</th></tr></thead><tbody><tr><td class="muted" colspan="4">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </section>
+
+  <section class="acc collapsed" id="acc-dict">
+    <h2 class="acc-h"><span class="car">▾</span> What's inside Meridian — the data dictionary <span class="cnt" id="dict-cnt"></span></h2>
+    <div class="acc-body">
+      <div class="muted" style="font-size:13px;margin-bottom:10px">Every type of information tracked, grouped by domain — click a domain to expand, click an attribute for its plain-language meaning, example, and paid-platform mapping.</div>
+      <div class="card pad" id="dict">loading…</div>
+    </div>
+  </section>
 
   <p class="stamp" style="margin-top:22px">Live from the Meridian Supabase backend · read-only (RLS anon) · completeness recomputed by scripts/compute_attribute_completeness.py · taxonomy: data_dictionary table (v123)</p>
 </div>
@@ -303,20 +342,54 @@ let DICT=[],COMP=[];
     const b=e.target.closest(".hitbtn");if(b)renderCard(b.dataset.id);
   });
 
-  // ---- connected data sources
+  // ---- accordion section toggles
+  document.querySelectorAll(".acc .acc-h").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("collapsed")));
+  // generic grouped line-item drill: groups=[{key,label,count,items:[{label,dotClass,detailHTML}]}]
+  function renderGroups(container,groups){
+    container.innerHTML=groups.map((g,gi)=>
+      `<div class="lgroup collapsed" data-g="${gi}"><div class="gh"><span class="car">▾</span><span>${esc(g.label)}</span><span class="gc">${g.count}</span></div><div class="gb">`+
+      g.items.map((it,ii)=>`<div class="litem" data-i="${ii}"><span class="dot ${it.dotClass||""}"></span><span>${it.label}</span></div>`).join("")+
+      `</div></div>`).join("");
+    container.querySelectorAll(".gh").forEach(gh=>gh.addEventListener("click",()=>gh.parentElement.classList.toggle("collapsed")));
+    container.querySelectorAll(".lgroup").forEach(lg=>{
+      const g=groups[+lg.dataset.g];
+      lg.querySelector(".gb").addEventListener("click",e=>{
+        const it=e.target.closest(".litem");if(!it)return;
+        lg.querySelectorAll(".ldetail").forEach(x=>x.remove());
+        const wasOpen=it.classList.contains("open");
+        lg.querySelectorAll(".litem.open").forEach(x=>x.classList.remove("open"));
+        if(wasOpen)return;
+        it.classList.add("open");
+        const p=document.createElement("div");p.className="ldetail";p.innerHTML=g.items[+it.dataset.i].detailHTML;
+        it.after(p);
+      });
+    });
+  }
+
+  // ---- connected data sources (grouped by category, click-drill)
   try{
     const srcs=await allRows("/data_sources?select=*&order=sort_order");
+    document.getElementById("sources-cnt").textContent=srcs.length+" sources";
     const stp=s=>s==="active"?'<span class="pill ok">active</span>':s==="partial"?'<span class="pill pt">partial</span>':s==="attempted_blocked"?'<span class="pill ms">blocked</span>':'<span class="pill mo">planned</span>';
-    document.querySelector("#sources tbody").innerHTML=srcs.map(s=>
-      `<tr><td><b>${s.api_url?`<a href="${esc(s.api_url)}" target="_blank" rel="noopener">${esc(s.display_name)}</a>`:esc(s.display_name)}</b><div class="muted" style="font-size:11px">${esc(s.category)}</div></td>
-       <td>${esc(s.what_we_get)}${s.status_note?`<div class="muted" style="font-size:11.5px;margin-top:2px">⚠ ${esc(s.status_note)}</div>`:""}</td>
-       <td class="muted" style="font-size:11.5px">${(s.tables_fed||[]).map(esc).join("<br>")}</td>
-       <td>${stp(s.status)}</td></tr>`).join("");
-  }catch(e){document.querySelector("#sources tbody").innerHTML='<tr><td class="muted" colspan="4">could not load</td></tr>';}
+    const dotFor=s=>s==="active"?"ok":s==="partial"?"pt":s==="attempted_blocked"?"ms":"mo";
+    const CATLBL={science:"Science / Target biology",clinical:"Clinical trials",regulatory:"Regulatory",financial:"Financial",ip:"Intellectual property",literature:"Literature",news:"News",entity:"Company identity",china:"China"};
+    const cats=[...new Set(srcs.map(s=>s.category))];
+    const groups=cats.map(c=>({label:CATLBL[c]||c,count:srcs.filter(s=>s.category===c).length+" sources",
+      items:srcs.filter(s=>s.category===c).map(s=>({
+        label:esc(s.display_name)+" "+stp(s.status), dotClass:dotFor(s.status),
+        detailHTML:`<div><b>What we get:</b> ${esc(s.what_we_get)}</div>
+          <div style="margin-top:5px"><b>Feeds tables:</b> <span class="muted">${(s.tables_fed||[]).map(esc).join(", ")||"—"}</span></div>
+          <div style="margin-top:5px"><b>Access:</b> ${esc(s.access)} · <b>Status:</b> ${stp(s.status)}</div>
+          ${s.status_note?`<div style="margin-top:5px;color:var(--warn)">⚠ ${esc(s.status_note)}</div>`:""}
+          ${s.api_url?`<div style="margin-top:5px"><a href="${esc(s.api_url)}" target="_blank" rel="noopener">${esc(s.api_url)}</a></div>`:""}`
+      }))}));
+    renderGroups(document.getElementById("sources"),groups);
+  }catch(e){document.getElementById("sources").innerHTML='<span class="muted">could not load</span>';}
 
   // ---- citeline comparison
   const mods={};
   bench.forEach(d=>{(mods[d.citeline_module]=mods[d.citeline_module]||[]).push(d);});
+  document.getElementById("alex-cnt").textContent=cpct+"% covered";
   document.getElementById("citeline-pct").textContent=cpct+"%";
   document.getElementById("citeline-note").textContent=`of the ${bench.length} attribute types that overlap paid-platform modules (${DICT.length} tracked total, ${mo} Meridian-only)`;
   document.getElementById("citeline-bars").innerHTML=Object.entries(mods).map(([m,as])=>{
@@ -330,11 +403,20 @@ let DICT=[],COMP=[];
     .sort((a,b)=>(a.citeline_module||"").localeCompare(b.citeline_module||"")||(a.sort_order-b.sort_order))
     .map(d=>`<tr><td class="muted">${esc(d.citeline_module)}</td><td><b>${esc(d.display_name)}</b></td><td>${st(d.benchmark_status)}</td><td class="muted">${esc(d.benchmark_note||"")}</td></tr>`).join("");
 
-  // ---- plain-language dictionary
-  document.getElementById("dict").innerHTML=DOMS.map(dm=>{
+  // ---- plain-language dictionary (grouped by domain, click-drill)
+  document.getElementById("dict-cnt").textContent=DICT.length+" attributes";
+  const dictGroups=DOMS.map(dm=>{
     const as=DICT.filter(d=>d.domain===dm);
-    return `<div class="card pad"><div class="dn" style="font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)">${dm}</div>`+
-      as.map(d=>`<div class="dict-item"><div class="t">${esc(d.display_name)}${d.citeline_module==="Meridian-only"?' <span class="pill mo">Meridian-only</span>':""}</div><div class="d">${esc(d.plain_description)}</div><div class="e">e.g. ${esc(d.example_text||"")}</div></div>`).join("")+"</div>";}).join("");
+    return {label:dm,count:as.length+" attributes",items:as.map(d=>({
+      label:esc(d.display_name)+(d.citeline_module==="Meridian-only"?' <span class="pill mo">Meridian-only</span>':""),
+      dotClass:d.citeline_module==="Meridian-only"?"mo":d.benchmark_status==="have"?"ok":d.benchmark_status==="partial"?"pt":"ms",
+      detailHTML:`<div>${esc(d.plain_description)}</div>
+        <div class="muted" style="margin-top:5px;font-style:italic">e.g. ${esc(d.example_text||"")}</div>
+        <div style="margin-top:5px"><b>Stored in:</b> <span class="muted">${esc(d.source_table)}${d.source_column?"."+esc(d.source_column):""}</span> · <b>Expected from:</b> ${["Preclinical","Phase 1","Phase 2","Phase 3","Filed","Approved"][d.phase_expected]}</div>
+        <div style="margin-top:5px"><b>Paid-platform module:</b> ${esc(d.citeline_module||"—")}${d.citeline_module!=="Meridian-only"?" · "+(d.benchmark_status==="have"?'<span class="pill ok">have</span>':d.benchmark_status==="partial"?'<span class="pill pt">partial</span>':'<span class="pill ms">missing</span>'):""}</div>`
+    }))};
+  });
+  renderGroups(document.getElementById("dict"),dictGroups);
 })();
 </script>
 </body>
