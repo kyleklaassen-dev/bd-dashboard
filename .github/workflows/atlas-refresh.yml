@@ -11,7 +11,7 @@ name: Meridian Atlas Refresh
 
 on:
   schedule:
-    - cron: "0 7 * * 1"     # weekly, Monday 07:00 UTC — recompute completeness
+    - cron: "0 7 * * *"     # DAILY 07:00 UTC — recompute completeness (heat map) as regularly as is free
     - cron: "0 8 1 * *"     # monthly, 1st 08:00 UTC — also refresh patent families
   workflow_dispatch:
     inputs:
