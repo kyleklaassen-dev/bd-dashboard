@@ -9477,10 +9477,44 @@ function _origShortName(name) {
   // "Boehringer Ingelheim" → "Boehringer"; keep single-word names whole
   return name.split(/[\s,]/)[0] || name;
 }
-// Returns the muted "· orig. X" HTML, or '' when not applicable.
+// ── Full ownership chain (inventor → … → current owner) ──────────────────────
+// Round 13: assembled from asset_transfer_history (one row per hop). The chain
+// is display-only — drugs.company_id is NEVER changed. A multi-hop chain
+// (3+ entities) renders as "· chain: A → B → C"; a 1-hop transfer falls back to
+// the existing "· orig. X" marker. Fully additive + guarded (any failure = no
+// chain, never throws). Loaded once into a module-level cache.
+window._CHAIN_CACHE = window._CHAIN_CACHE || {}; // drug_id → ordered [entity names]
+async function _resolveOwnershipChains() {
+  if (window._CHAIN_LOADED) return;
+  try {
+    const { data } = await _sb.from('asset_transfer_history')
+      .select('drug_id,sequence_order,from_entity_name,to_entity_name')
+      .order('drug_id').order('sequence_order');
+    const byDrug = {};
+    (data || []).forEach(r => { (byDrug[r.drug_id] = byDrug[r.drug_id] || []).push(r); });
+    Object.keys(byDrug).forEach(did => {
+      const rows = byDrug[did].sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+      const names = [];
+      rows.forEach((r, i) => {
+        if (i === 0 && r.from_entity_name) names.push(r.from_entity_name);
+        if (r.to_entity_name) names.push(r.to_entity_name);
+      });
+      if (names.length >= 2) window._CHAIN_CACHE[did] = names;
+    });
+    window._CHAIN_LOADED = true;
+  } catch (e) { console.warn('_resolveOwnershipChains', e); }
+}
+// Returns the muted ownership-chain / "· orig. X" HTML, or '' when not applicable.
 function _originatorMarkerHTML(d) {
   try {
     if (!d) return '';
+    // Multi-hop ownership chain takes precedence when available (3+ entities).
+    const chain = (window._CHAIN_CACHE && d.id) ? window._CHAIN_CACHE[d.id] : null;
+    if (chain && chain.length >= 3) {
+      const owner = (typeof _dknCoName === 'function') ? _dknCoName(d) : (d.company_id || '');
+      const trail = chain.map(n => _origShortName(n)).join(' → ');
+      return `<span class="orig-marker" title="Ownership chain (inventor → current owner): ${chain.join(' → ')}. Displayed owner: ${owner}.">· chain: ${trail}</span>`;
+    }
     const oid = d.originator_company_id;
     if (!oid || oid === d.company_id) return '';          // unknown or same-as-owner → no marker
     const full = window._ORIG_NAME_CACHE[oid];
@@ -9580,6 +9614,11 @@ async function dknLoadData() {
         .filter(o => o && _dknData.some(x => x.id && x.originator_company_id === o && x.company_id !== o));
       if (_origIds.length) _resolveOriginatorNames(_origIds).then(() => { try { dknRender(); } catch (e) {} });
     } catch (e) { /* marker is non-critical */ }
+    // Load full ownership chains (asset_transfer_history) → re-render so multi-hop
+    // "· chain: A → B → C" trails appear. Fully guarded; chain failure is non-critical.
+    try {
+      _resolveOwnershipChains().then(() => { try { dknRender(); } catch (e) {} });
+    } catch (e) { /* chain marker is non-critical */ }
   } catch(e) {
     console.warn('dknLoadData', e);
     _dknLoading = false;
