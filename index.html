@@ -3700,7 +3700,7 @@ function renderDeals(deals) {
     const areaLabel = AREA_LABELS[d.area_id] || d.area_id || '';
     const dateStr   = rdtFmtDate(d.deal_date) || d.deal_date_label || '';
     const headline  = d.headline || `${d.from_company||''} / ${d.to_company||''} deal`;
-    const gLink     = _gUrl(headline);
+    const gLink     = d.source_url || _gUrl(headline); // stored source first, web search only as fallback
     const parties   = [d.from_company, d.to_company].filter(Boolean).join(' → ');
     const cardId    = `deal-card-${idx}`;
     // Expandable body content
@@ -3848,7 +3848,7 @@ function renderCatalysts(items) {
     const dateStr   = fmtDate(item.sortDate);
     const isHigh    = item.significance === 'high';
     const opacity   = item.resolved ? 'opacity:0.45;' : '';
-    const gLink     = _gUrl(item.label);
+    const gLink     = item.source_url || _gUrl(item.label); // stored source first
 
     return `<div class="uni-item${isHigh ? ' sig-high' : ''}" style="${opacity}">
   <div class="uni-meta">
@@ -4040,7 +4040,7 @@ async function loadMeridianReader() {
         .order('deal_date', { ascending: false })
         .limit(15),
       _sb.from('catalysts')
-        .select('id,catalyst_date,sort_date,label,area_id,significance,catalyst_type,notes')
+        .select('id,catalyst_date,sort_date,label,area_id,significance,catalyst_type,notes,source_url')
         .eq('resolved', false)
         .order('sort_date', { ascending: true })
         .limit(20),
@@ -4094,7 +4094,7 @@ async function loadMeridianReader() {
         type: 'intel', areaId,
         pills: areaPill + typePill + impPill,
         headline: hl,
-        hlUrl: _gUrl(hl),
+        hlUrl: item.source_url || _gUrl(hl),
         body: bodyParts.join(''),
         countdown: '',
       });
@@ -4127,7 +4127,7 @@ async function loadMeridianReader() {
         type: 'deal', areaId: d.area_id || '',
         pills: areaPill + dealPill,
         headline: hl,
-        hlUrl: _gUrl(searchTerms),
+        hlUrl: d.source_url || _gUrl(searchTerms),
         body: bodyParts.join(''),
         countdown: '',
       });
@@ -4148,7 +4148,7 @@ async function loadMeridianReader() {
         type: 'catalyst', areaId: c.area_id || '',
         pills: areaPill + catPill,
         headline: c.label,
-        hlUrl: _gUrl(c.label),
+        hlUrl: c.source_url || _gUrl(c.label),
         body: bodyParts.join(''),
         countdown: catDaysTag(c.sort_date),
       });
@@ -5220,7 +5220,7 @@ function _bdaRowHtml(tabId, d, i) {
           <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type || 'deal'}</span>
           ${val ? `<span class="bda-value">${val}</span>` : ''}
         </div>
-        <a class="bda-hl-link" href="${_gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
+        <a class="bda-hl-link" href="${d.source_url || _gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
       </div>
       ${hasDetail ? `<span class="bda-chevron">▶</span>` : ''}
     </div>
@@ -5460,7 +5460,8 @@ async function _injectAreaFreshness(tabId) {
  <div class="header-title">◈ The Meridian</div>
  </div>
  <div style="flex:1 1 auto;min-width:0;display:flex;align-items:stretch;justify-content:center;gap:6px;">
-  <div class="header-search-wrap" style="position:static;left:auto;transform:none;width:clamp(240px,34vw,520px);">
+  <!-- position:relative (NOT static) so the results panel anchors to this compact box, not the full header (Kyle 2026-06-07) -->
+  <div class="header-search-wrap" style="position:relative;left:auto;transform:none;width:clamp(240px,30vw,420px);">
    <input type="text" id="global-search" class="header-search-input"
    placeholder="Search programs, drugs, companies, deals…"
    oninput="globalSearch(this.value)">
@@ -21815,7 +21816,7 @@ function iifRender() {
     const companyChip = companyName ? `<span class="iif-company-name">${_iifEsc(companyName)}</span>` : '';
     const relCls = item.rel_score >= 0.75 ? 'iif-card-rel-high' : item.rel_score >= 0.5 ? 'iif-card-rel-medium' : 'iif-card-rel-low';
     const hasBody = !!item.body;
-    const hlUrl = _gUrl(item.headline || '');
+    const hlUrl = (item.sources && item.sources[0] && item.sources[0].url) || _gUrl(item.headline || ''); // stored source first (Kyle 2026-06-07)
     const toggleAttr = hasBody ? ` onclick="iifToggleCard('${item._key}')"` : '';
     html += `<div class="iif-card" id="iif-card-${item._key}"${toggleAttr}><div class="iif-card-rel ${relCls}"></div><div class="iif-card-inner">
   <div class="iif-card-top">
@@ -32668,6 +32669,27 @@ async function _gsSbSearch(term) {
         .select('canonical_id,alias_name')
         .ilike('alias_name', '%' + esc + '%')
         .limit(8),
+      // Kyle 2026-06-07: search EVERYTHING — targets, papers, abstracts, conclusions, grants
+      _sb.from('targets')
+        .select('id,symbol,name,target_class')
+        .or('symbol.ilike.%' + esc + '%,name.ilike.%' + esc + '%')
+        .limit(4),
+      _sb.from('publications')
+        .select('id,title,journal,pub_year,doi,url,cited_by_count')
+        .ilike('title', '%' + esc + '%')
+        .order('cited_by_count', { ascending: false, nullsFirst: false }).limit(4),
+      _sb.from('conference_abstracts')
+        .select('id,title,conference,conference_year,doi,source_url')
+        .ilike('title', '%' + esc + '%')
+        .order('conference_year', { ascending: false }).limit(4),
+      _sb.from('strategic_insights')
+        .select('id,title,detail,insight_type,created_at')
+        .or('title.ilike.%' + esc + '%,detail.ilike.%' + esc + '%')
+        .order('created_at', { ascending: false }).limit(4),
+      _sb.from('grants')
+        .select('id,title,agency,fiscal_year,award_amount,project_url,source_url')
+        .ilike('title', '%' + esc + '%')
+        .order('fiscal_year', { ascending: false }).limit(4),
     ]);
 
     var cos      = results[0].data  || [];
@@ -32679,6 +32701,11 @@ async function _gsSbSearch(term) {
     var newsArts = results[6].data  || [];
     var patIntel = results[7].data  || [];
     var aliasHits = results[8] && results[8].data || [];
+    var tgts     = results[9]  && results[9].data  || [];
+    var pubs     = results[10] && results[10].data || [];
+    var confAbs  = results[11] && results[11].data || [];
+    var insights = results[12] && results[12].data || [];
+    var grantHits= results[13] && results[13].data || [];
 
     // ── Wave 2d: resolve alias hits → drugs, merge in (so "AMG 729" finds obexelimab) ──
     try {
@@ -32930,6 +32957,60 @@ async function _gsSbSearch(term) {
           '<span>'+(c.catalyst_date||'')+'</span>' +
           '<span class="gs-sb-nav-pill">→ '+cTabLbl+'</span>' +
           '</div></div>';
+      });
+    }
+
+    // ── Targets ───────────────────────────────────────────────────────────
+    if (tgts.length) {
+      html += '<div class="gs-sb-section-hd">Targets (' + tgts.length + ')</div>';
+      tgts.forEach(function(t) {
+        html += '<div class="gs-sb-item" style="cursor:default">' +
+          '<div class="gs-sb-headline">'+hl(t.symbol || t.name)+'</div>' +
+          '<div class="gs-sb-meta"><span>'+(t.name||'')+'</span>' +
+          (t.target_class?'<span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+t.target_class+'</span>':'') +
+          '</div></div>';
+      });
+    }
+    // ── Publications ──────────────────────────────────────────────────────
+    if (pubs.length) {
+      html += '<div class="gs-sb-section-hd">Publications (' + pubs.length + ')</div>';
+      pubs.forEach(function(p) {
+        var pUrl = p.doi ? ('https://doi.org/' + p.doi) : (p.url || '');
+        html += '<div class="gs-sb-item" style="cursor:default">' +
+          '<div class="gs-sb-headline">'+hl(p.title)+(pUrl?' <a class="gs-sb-src" href="'+pUrl+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
+          '<div class="gs-sb-meta"><span>'+(p.journal||'')+'</span><span>'+(p.pub_year||'')+'</span>' +
+          (p.cited_by_count?'<span>'+p.cited_by_count+' citations</span>':'') + '</div></div>';
+      });
+    }
+    // ── Congress abstracts ────────────────────────────────────────────────
+    if (confAbs.length) {
+      html += '<div class="gs-sb-section-hd">Congress Abstracts (' + confAbs.length + ')</div>';
+      confAbs.forEach(function(a) {
+        var aUrl = a.doi ? ('https://doi.org/' + a.doi) : (a.source_url || '');
+        html += '<div class="gs-sb-item" style="cursor:default">' +
+          '<div class="gs-sb-headline">'+hl(a.title)+(aUrl?' <a class="gs-sb-src" href="'+aUrl+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
+          '<div class="gs-sb-meta"><span>'+(a.conference||'')+'</span><span>'+(a.conference_year||'')+'</span></div></div>';
+      });
+    }
+    // ── Meridian conclusions ──────────────────────────────────────────────
+    if (insights.length) {
+      html += '<div class="gs-sb-section-hd">Meridian Conclusions (' + insights.length + ')</div>';
+      insights.forEach(function(s) {
+        html += '<div class="gs-sb-item" style="cursor:default">' +
+          '<div class="gs-sb-headline">'+hl(s.title)+'</div>' +
+          '<div class="gs-sb-meta"><span class="gs-sb-badge" style="background:rgba(46,111,176,0.35);color:#7cb9ff">'+(s.insight_type||'')+'</span>' +
+          '<span>'+((s.detail||'').slice(0,90))+'</span></div></div>';
+      });
+    }
+    // ── NIH grants ────────────────────────────────────────────────────────
+    if (grantHits.length) {
+      html += '<div class="gs-sb-section-hd">NIH Grants (' + grantHits.length + ')</div>';
+      grantHits.forEach(function(g) {
+        var gUrl2 = g.project_url || g.source_url || '';
+        html += '<div class="gs-sb-item" style="cursor:default">' +
+          '<div class="gs-sb-headline">'+hl(g.title)+(gUrl2?' <a class="gs-sb-src" href="'+gUrl2+'" target="_blank" rel="noopener" data-trusted="1">source ↗</a>':'')+'</div>' +
+          '<div class="gs-sb-meta"><span>'+(g.agency||'NIH')+'</span><span>FY'+(g.fiscal_year||'')+'</span>' +
+          (g.award_amount?'<span>$'+Math.round(g.award_amount/1000)+'k</span>':'') + '</div></div>';
       });
     }
 
