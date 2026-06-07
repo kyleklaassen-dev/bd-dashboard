@@ -481,7 +481,7 @@ tr:nth-child(even) td { background: #f5f8ff; }
 
 <script id="mf-feedback">
 (function(){
-  var SB="https://tghntyofptvfhmtchwcv.supabase.co",KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g",ISSUE_DATE="2026-06-06";
+  var SB="https://tghntyofptvfhmtchwcv.supabase.co",KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI",ISSUE_DATE="2026-06-06";
   function post(b){b.issue_date=ISSUE_DATE;b.issue_id=(window.__MERIDIAN_ISSUE_ID__||null);b.page_url=location.href;b.user_agent=(navigator.userAgent||"").slice(0,300);
     return fetch(SB+"/rest/v1/meridian_feedback",{method:"POST",headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(b)});}
   function toast(m){var t=document.querySelector(".mf-toast");if(!t){t=document.createElement("div");t.className="mf-toast";document.body.appendChild(t);}t.textContent=m;t.classList.add("mf-show");setTimeout(function(){t.classList.remove("mf-show");},1700);}
