@@ -309,7 +309,6 @@ let DICT=[],COMP=[];
     const d=byDrug[id];DRUGROW=null;OPENKEY=null;
     const exp=d.rows.filter(r=>r.expected),got=exp.filter(r=>r.filled);
     document.getElementById("drugcard-wrap").style.display="block";
-    document.getElementById("drugcard-title").textContent="Molecule card — "+(d.name||id);
     document.getElementById("drugcard-head").innerHTML=`<b style="font-size:17px">${esc(d.name||id)}</b> <span class="muted">· ${esc(d.stage||"?")} · ${got.length}/${exp.length} expected attributes filled (${pct(got.length,exp.length)??"—"}%)</span>`;
     const colFor=r=>!r.expected?"x":r.filled?"f":"u";
     document.getElementById("drugcard").innerHTML=DOMS.map(dm=>{
