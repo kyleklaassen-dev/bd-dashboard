@@ -5782,7 +5782,7 @@ async function _injectAreaFreshness(tabId) {
  <div class="nav-icon-right" style="display:flex;align-items:center;gap:4px;">
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
-   <button class="nav-icon-btn" id="nav-icon-predictions" onclick="window.open('predictions.html','_blank')" title="Predictions — Meridian's track record, every falsifiable call scored against ground truth">📈</button>
+   <button class="nav-icon-btn" id="nav-icon-predictions" onclick="navTo('predictions')" title="Predictions — Meridian's track record, every falsifiable call scored against ground truth">📈</button>
    <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. Panes/JS retained but unreachable for the deprecation window. -->
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
@@ -5842,6 +5842,12 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="content">
+
+<!-- ══════════════ PREDICTIONS TAB (foresight ledger, embedded) ══════════════ -->
+<div class="tab-pane" id="tab-predictions">
+  <iframe id="predictions-frame" src="predictions.html" title="Predictions — Meridian foresight ledger"
+    style="width:100%;min-height:calc(100vh - 130px);border:0;display:block;background:#f8fafc;"></iframe>
+</div>
 
 <!-- ══════════════ HOME TAB: THE MERIDIAN ══════════════ -->
 <div class="tab-pane active" id="tab-home">
@@ -24613,6 +24619,7 @@ const NAV_ICON_MAP = {
   'drugs-know': 'nav-icon-drugs',
   /* DEPRECATED 2026-06-06: 'pharma-intel': 'nav-icon-pharma' (tab retired) */
   'meridian-issue': 'nav-icon-meridian',
+  'predictions': 'nav-icon-predictions',
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
