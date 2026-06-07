@@ -18,17 +18,19 @@ Usage:
   python3 scripts/backfill_bd_angle.py --dry-run   # print without writing
 """
 
-import os, sys, json, time, argparse, re, datetime
+import os, sys, json, time, argparse, re
 from typing import Optional
-import requests, anthropic
 
-from _common import load_credentials, sb_headers
+from _common import load_credentials
+import _db
+import ai.client as ai_client
+from ai.client import PromptConfig
 
-SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_KEY = load_credentials()
-client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = sb_headers(SUPABASE_KEY)
-NOW = datetime.datetime.utcnow().isoformat()
+_url, _key, _ak = load_credentials()
+_db.init_db(_url, _key)
+ai_client.setup(_ak)
+
+NOW = _db.now_iso()
 
 AREA_LABELS = {
     "ibd":         "IBD (UC/CD)",
@@ -49,26 +51,17 @@ ALX002 (CD19×BCMA T cell engager, preclinical), and ALX005 (FcRn×Albumin bispe
 Primary focus: IBD (UC/CD) with ALX001. Chinese biotech, Shanghai R&D.
 BD objective: identify partners, acquirers, licensing benchmarks, and competitive windows."""
 
-
-def sb_get(table, params):
-    try:
-        r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=15)
-        return r.json() if r.status_code == 200 else []
-    except Exception as e:
-        print(f"  [sb_get error] {e}"); return []
-
-
-def sb_patch(table, params, payload):
-    try:
-        r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=15)
-        return r.status_code in (200, 204)
-    except Exception as e:
-        print(f"  [sb_patch error] {e}"); return False
+_BD_ANGLE_CFG = PromptConfig(
+    name="bd_angle",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=300,
+)
 
 
 def get_company_drugs(company_id: str, area_id: str) -> list:
     """Get drugs for this company in this area via drug_competitive_scores."""
-    dcs_rows = sb_get("drug_competitive_scores", {
+    dcs_rows = _db.sb_get("drug_competitive_scores", {
         "context_id": f"eq.{area_id}",
         "select": "drug_id",
         "limit": "20",
@@ -77,10 +70,7 @@ def get_company_drugs(company_id: str, area_id: str) -> list:
     if not drug_ids:
         return []
 
-    # Filter to drugs actually owned by this company
-    # drug_competitive_scores context_type='platform_view'/'strategic_view' doesn't filter by company
-    # So fetch all company's drugs instead
-    drugs = sb_get("drugs", {
+    drugs = _db.sb_get("drugs", {
         "company_id": f"eq.{company_id}",
         "select": "id,name,stage,target,mechanism,overlap,indication_short",
         "limit": "15",
@@ -129,13 +119,8 @@ Be specific. Use the drug data and risk/why_it_matters context. No generic state
 Return ONLY the bd_angle text — no JSON, no labels, no markdown. Plain prose, 2-4 sentences."""
 
     try:
-        msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=300,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = msg.content[0].text.strip()
-        # Sanity check — should be prose, not JSON
+        text = ai_client.run_text(_BD_ANGLE_CFG, prompt)
+        text = text.strip()
         if text.startswith("{") or len(text) < 30:
             return None
         return text
@@ -160,7 +145,7 @@ def main():
     if args.area:
         params["area_id"] = f"eq.{args.area}"
 
-    profiles = sb_get("company_profiles", params)
+    profiles = _db.sb_get("company_profiles", params)
     print(f"\nFound {len(profiles)} profiles with null bd_angle (limit={args.limit})")
     if args.dry_run:
         print("DRY RUN — no writes\n")
@@ -183,10 +168,10 @@ def main():
         print(f"  bd_angle: {bd_angle[:120]}...")
 
         if not args.dry_run:
-            ok = sb_patch(
+            ok = _db.sb_patch(
                 "company_profiles",
-                {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"},
                 {"bd_angle": bd_angle, "updated_at": NOW},
+                {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"},
             )
             print(f"  {'✓ written' if ok else '✗ write failed'}")
             if ok:

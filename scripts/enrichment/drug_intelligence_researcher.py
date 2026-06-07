@@ -29,27 +29,20 @@ import argparse
 import datetime
 from typing import Optional
 
-import requests
-import anthropic
-
 from _common import load_credentials
+import _db
+import ai.client as ai_client
+from ai.client import PromptConfig
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-SUPABASE_URL, SERVICE_KEY, ANTHROPIC_KEY = load_credentials()
+_url, _key, _ak = load_credentials()
+_db.init_db(_url, _key)
+ai_client.setup(_ak)
+
 CLAUDE_MODEL  = "claude-sonnet-4-6"
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-
-SB_HEADERS = {
-    "apikey":        SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
-SB_UPSERT_HEADERS = {
-    **SB_HEADERS,
-    "Prefer": "resolution=merge-duplicates,return=representation",
-}
+_DOMAIN_CFG = PromptConfig(name="drug_domain", system="", model=CLAUDE_MODEL, max_tokens=8096)
+_EXTRACT_CFG = PromptConfig(name="drug_extract", system="", model=CLAUDE_MODEL, max_tokens=4096)
 
 # ── 100 Questions by Domain ────────────────────────────────────────────────────
 
@@ -292,32 +285,12 @@ Return ONLY a JSON array. If no milestone dates are found, return an empty array
 Do NOT fabricate dates. Only include dates that appear explicitly in the Q&A text above.
 """
 
-# ── Supabase helpers ──────────────────────────────────────────────────────────
-
-def sb_get(table: str, params: dict) -> list:
-    from urllib.parse import urlencode
-    qs = urlencode(params)
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{qs}", headers=SB_HEADERS, timeout=20)
-    r.raise_for_status()
-    return r.json()
-
-def sb_upsert(table: str, payload: list | dict) -> list:
-    if isinstance(payload, dict):
-        payload = [payload]
-    r = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{table}",
-        headers=SB_UPSERT_HEADERS,
-        json=payload,
-        timeout=30,
-    )
-    if not r.ok:
-        print(f"  [WARN] upsert failed for {table}: {r.status_code} {r.text[:200]}")
-    return r.json() if r.ok else []
+# sb_get / sb_upsert provided by _db module
 
 # ── Drug loading ──────────────────────────────────────────────────────────────
 
 def load_drug(drug_id: str) -> dict:
-    rows = sb_get("drugs", {
+    rows = _db.sb_get("drugs", {
         "select": "id,name,target,stage,mechanism,modality,company_id,drug_summary",
         "id": f"eq.{drug_id}",
     })
@@ -326,7 +299,7 @@ def load_drug(drug_id: str) -> dict:
     drug = rows[0]
 
     # Fetch company name
-    company_rows = sb_get("companies", {
+    company_rows = _db.sb_get("companies", {
         "select": "id,name",
         "id": f"eq.{drug['company_id']}",
     })
@@ -334,7 +307,7 @@ def load_drug(drug_id: str) -> dict:
     return drug
 
 def list_drugs() -> None:
-    rows = sb_get("drugs", {"select": "id,name,stage,target,company_id", "order": "name.asc"})
+    rows = _db.sb_get("drugs", {"select": "id,name,stage,target,company_id", "order": "name.asc"})
     print(f"{'ID':<40} {'Name':<35} {'Stage':<15} {'Target':<30} Company")
     print("-" * 130)
     for r in rows:
@@ -379,18 +352,11 @@ def call_claude_for_domain(
         print(f"  Calling Claude for domain '{domain}' (Q{q_start}–Q{q_end})...")
 
     t0 = time.time()
-    try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=8096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except Exception as e:
-        print(f"  [ERROR] Claude call failed for domain {domain}: {e}")
-        return []
-
+    raw = ai_client.run_text(_DOMAIN_CFG, prompt)
     elapsed = time.time() - t0
-    raw = response.content[0].text.strip()
+    if not raw:
+        print(f"  [ERROR] Claude call failed for domain {domain}")
+        return []
 
     if verbose:
         print(f"  Domain '{domain}' completed in {elapsed:.1f}s, ~{len(raw)} chars")
@@ -479,17 +445,10 @@ def extract_benchmarks(
     if verbose:
         print("  Extracting clinical benchmarks...")
 
-    try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except Exception as e:
-        print(f"  [ERROR] Benchmark extraction failed: {e}")
+    raw = ai_client.run_text(_EXTRACT_CFG, prompt)
+    if not raw:
+        print(f"  [ERROR] Benchmark extraction failed")
         return []
-
-    raw = response.content[0].text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -537,17 +496,10 @@ def extract_timeline(
     if verbose:
         print("  Extracting development timeline...")
 
-    try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except Exception as e:
-        print(f"  [ERROR] Timeline extraction failed: {e}")
+    raw = ai_client.run_text(_EXTRACT_CFG, prompt)
+    if not raw:
+        print(f"  [ERROR] Timeline extraction failed")
         return []
-
-    raw = response.content[0].text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -581,7 +533,7 @@ def store_qa(qa_records: list[dict], dry_run: bool = False) -> int:
     if dry_run:
         print(f"  [DRY RUN] Would upsert {len(qa_records)} Q&A records into drug_intelligence_qa")
         return len(qa_records)
-    result = sb_upsert("drug_intelligence_qa", qa_records)
+    result = _db.sb_upsert("drug_intelligence_qa", qa_records)
     return len(result) if isinstance(result, list) else len(qa_records)
 
 
@@ -591,17 +543,10 @@ def store_benchmarks(benchmarks: list[dict], dry_run: bool = False) -> int:
     if dry_run:
         print(f"  [DRY RUN] Would insert {len(benchmarks)} benchmarks into drug_clinical_benchmarks")
         return len(benchmarks)
-    # Benchmarks don't have a unique key — insert only (don't upsert to avoid duplication on re-run)
-    # Use upsert headers but without conflict resolution — plain POST
-    plain_headers = {**SB_HEADERS}
-    r = requests.post(
-        f"{SUPABASE_URL}/rest/v1/drug_clinical_benchmarks",
-        headers=plain_headers,
-        json=benchmarks,
-        timeout=30,
-    )
-    if not r.ok:
-        print(f"  [WARN] Benchmark insert failed: {r.status_code} {r.text[:200]}")
+    # Plain INSERT (no conflict merge) — avoids duplication on re-run
+    rows = _db.sb_insert("drug_clinical_benchmarks", benchmarks)
+    if not rows:
+        print(f"  [WARN] Benchmark insert returned no rows — check DB")
         return 0
     return len(benchmarks)
 
@@ -612,7 +557,7 @@ def store_timeline(timeline: list[dict], dry_run: bool = False) -> int:
     if dry_run:
         print(f"  [DRY RUN] Would upsert {len(timeline)} timeline events into drug_development_timelines")
         return len(timeline)
-    result = sb_upsert("drug_development_timelines", timeline)
+    result = _db.sb_upsert("drug_development_timelines", timeline)
     return len(result) if isinstance(result, list) else len(timeline)
 
 

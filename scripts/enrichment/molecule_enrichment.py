@@ -32,14 +32,17 @@ Environment:
 import os, sys, json, re, argparse, textwrap, hashlib
 from datetime import datetime, timezone
 
-import anthropic
-import requests
+from _common import load_credentials, log
+import _db
+import ai.client as ai_client
+from ai.client import PromptConfig
 
-# ── Config ─────────────────────────────────────────────────────────────────
-from _common import load_credentials, log  # noqa: E402
-SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
-MODEL             = "claude-sonnet-4-6"
-NOW_ISO           = datetime.now(timezone.utc).isoformat()
+_url, _key, _ak = load_credentials()
+_db.init_db(_url, _key)
+ai_client.setup(_ak)
+
+MODEL   = "claude-sonnet-4-6"
+NOW_ISO = datetime.now(timezone.utc).isoformat()
 
 # Priority order for --priority flag
 # Direct TL1A/bispecific competitors → Adjacent IBD backbones → Watch/reference
@@ -66,25 +69,20 @@ PRIORITY_DRUG_IDS = [
     "golimumab",       # Simponi — approved TNFα (reference drug)
 ]
 
-# ── Helpers ─────────────────────────────────────────────────────────────────
-# log() imported from _common
+_MOL_INTEL_CFG = PromptConfig(
+    name="molecule_intel",
+    system="",
+    model=MODEL,
+    max_tokens=1500,
+)
 
-def sb_get(table, params):
-    """GET from Supabase REST."""
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    resp = requests.get(url, params=params, headers={
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-    }, timeout=15)
-    if resp.status_code >= 300:
-        log(f"⚠ GET {table} → {resp.status_code}: {resp.text[:200]}")
-        return []
-    return resp.json() or []
+# ── Helpers ─────────────────────────────────────────────────────────────────
 
 def make_canonical_id(drug_id):
     """Generate a deterministic canonical_drug_id for drugs that lack one."""
     h = hashlib.md5(drug_id.encode()).hexdigest().upper()[:8]
     return f"CANON_DRUG_{h}"
+
 
 def ensure_canonical_id(drug):
     """If drug lacks canonical_drug_id, generate one, insert stub into canonical_drugs,
@@ -94,53 +92,28 @@ def ensure_canonical_id(drug):
         return drug["canonical_drug_id"]
 
     canon = make_canonical_id(drug["id"])
-    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
-         "Content-Type": "application/json", "Prefer": "resolution=ignore-duplicates"}
-
-    # 1. Insert stub into canonical_drugs (ignore if already exists)
     stub = {
         "canonical_id":   canon,
         "canonical_name": drug.get("display_name") or drug.get("drug_name") or drug["id"],
         "is_active":      True,
         "confidence_score": 50,
     }
-    requests.post(f"{SUPABASE_URL}/rest/v1/canonical_drugs", json=stub, headers=h, timeout=15)
-
-    # 2. Patch canonical_drug_id onto the drugs row
-    requests.patch(f"{SUPABASE_URL}/rest/v1/drugs", json={"canonical_drug_id": canon},
-                   params={"id": f"eq.{drug['id']}"}, headers=h, timeout=15)
-
+    _db.sb_upsert("canonical_drugs", stub)
+    _db.sb_patch(
+        "drugs",
+        {"canonical_drug_id": canon},
+        {"id": f"eq.{drug['id']}"},
+    )
     drug["canonical_drug_id"] = canon
     log(f"  ↳ generated canonical_drug_id: {canon} (stub inserted into canonical_drugs)", indent=1)
     return canon
 
-def sb_delete_by_drug_id(drug_id):
-    """Delete existing molecule_intelligence record for this drug_id."""
-    url = f"{SUPABASE_URL}/rest/v1/molecule_intelligence"
-    resp = requests.delete(url, params={"drug_id": f"eq.{drug_id}"}, headers={
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-    }, timeout=15)
-    return resp.status_code < 300
-
-def sb_insert_mol_intel(rec):
-    """INSERT molecule_intelligence record."""
-    url = f"{SUPABASE_URL}/rest/v1/molecule_intelligence"
-    resp = requests.post(url, json=rec, headers={
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }, timeout=15)
-    if resp.status_code >= 300:
-        log(f"  ✗ INSERT failed: {resp.status_code} {resp.text[:300]}")
-        return False
-    return True
 
 # ── Fetch drug context ───────────────────────────────────────────────────────
+
 def fetch_drug_context(drug_id):
     """Return drug record + recent trials for context."""
-    drugs = sb_get("drugs", {
+    drugs = _db.sb_get("drugs", {
         "select": "id,display_name,name,company_id,partner_company,target,stage,"
                   "cls,overlap,indication_short,canonical_drug_id,source_url,drug_summary",
         "id": f"eq.{drug_id}",
@@ -148,7 +121,7 @@ def fetch_drug_context(drug_id):
     })
     drug = drugs[0] if drugs else None
 
-    trials = sb_get("trials", {
+    trials = _db.sb_get("trials", {
         "select": "trial_name,phase,status,indication,n_enrollment,primary_endpoint",
         "drug_id": f"eq.{drug_id}",
         "order": "phase.desc",
@@ -157,7 +130,9 @@ def fetch_drug_context(drug_id):
 
     return drug, trials
 
+
 # ── Build prompt ─────────────────────────────────────────────────────────────
+
 SCHEMA_BLOCK = """
 Return a single JSON object with these fields:
 
@@ -194,6 +169,7 @@ field_status guidance:
 - inferred: reasonable inference from target class, company platform, or related program disclosure
 - unknown: genuinely not determinable from available information
 """
+
 
 def build_prompt(drug, trials):
     display = drug.get("display_name") or drug.get("name") or drug["id"]
@@ -256,37 +232,19 @@ def build_prompt(drug, trials):
 
     return prompt
 
-# ── Call Claude API ──────────────────────────────────────────────────────────
-def call_claude(prompt):
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return message.content[0].text.strip()
 
-def parse_response(raw):
-    """Extract JSON from Claude response."""
-    # Strip markdown fences if present
-    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
-    raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
-    raw = raw.strip()
-    return json.loads(raw)
+# ── Validation ────────────────────────────────────────────────────────────────
 
-# ── Write to Supabase ────────────────────────────────────────────────────────
 VALID_STATUS = {"confirmed", "inferred", "unknown"}
 VALID_CONFIDENCE = {"high", "medium", "low"}
 
+
 def write_mol_intel(drug, parsed, dry_run=False):
     drug_id = drug["id"]
-    canonical = ensure_canonical_id(drug)  # generates + patches drugs table if missing
+    canonical = ensure_canonical_id(drug)
 
-    # Validate field_status
     raw_fs = parsed.get("field_status") or {}
-    field_status = {}
-    for k, v in raw_fs.items():
-        field_status[k] = v if v in VALID_STATUS else "unknown"
+    field_status = {k: (v if v in VALID_STATUS else "unknown") for k, v in raw_fs.items()}
 
     confidence = parsed.get("confidence") or "low"
     if confidence not in VALID_CONFIDENCE:
@@ -308,10 +266,8 @@ def write_mol_intel(drug, parsed, dry_run=False):
         "source_url":              parsed.get("source_url")           or None,
         "last_enriched_at":        NOW_ISO,
         "enriched_by":             "molecule_enrichment.py",
+        "canonical_drug_id":       canonical,
     }
-    rec["canonical_drug_id"] = canonical  # always set (generated if missing)
-
-    # Remove None values (keep field_status always)
     rec = {k: v for k, v in rec.items() if v is not None or k == "field_status"}
 
     if dry_run:
@@ -319,14 +275,16 @@ def write_mol_intel(drug, parsed, dry_run=False):
             f"modality={rec.get('modality')} | confidence={rec.get('confidence')}", indent=1)
         return True
 
-    # Delete existing record for this drug_id, then insert fresh
-    sb_delete_by_drug_id(drug_id)
-    ok = sb_insert_mol_intel(rec)
+    _db.sb_delete("molecule_intelligence", {"drug_id": f"eq.{drug_id}"})
+    result = _db.sb_post("molecule_intelligence", rec)
+    ok = result is not None
     if ok:
         log(f"  ✓ written: format={rec.get('format')} | confidence={confidence}", indent=1)
     return ok
 
+
 # ── Main loop ────────────────────────────────────────────────────────────────
+
 def enrich_drug(drug_id, dry_run=False):
     log(f"\n{'='*60}")
     log(f"Drug: {drug_id}")
@@ -343,25 +301,17 @@ def enrich_drug(drug_id, dry_run=False):
     prompt = build_prompt(drug, trials)
 
     log("  Calling Claude API...", indent=0)
-    try:
-        raw = call_claude(prompt)
-    except Exception as e:
-        log(f"  ✗ API call failed: {e}")
+    result = ai_client.run_json(_MOL_INTEL_CFG, prompt)
+    if not result.ok:
+        log(f"  ✗ API call or JSON parse failed")
         return False
 
-    try:
-        parsed = parse_response(raw)
-    except json.JSONDecodeError as e:
-        log(f"  ✗ JSON parse failed: {e}")
-        log(f"  Raw response: {raw[:300]}")
-        return False
-
+    parsed = result.data
     log(f"  Parsed: format={parsed.get('format')} | "
         f"confidence={parsed.get('confidence')} | "
         f"source_url={parsed.get('source_url') or 'none'}")
 
-    ok = write_mol_intel(drug, parsed, dry_run=dry_run)
-    return ok
+    return write_mol_intel(drug, parsed, dry_run=dry_run)
 
 
 def main():
@@ -371,15 +321,6 @@ def main():
     group.add_argument("--priority", action="store_true", help="Run full priority list")
     parser.add_argument("--dry-run", action="store_true", help="Print results without writing")
     args = parser.parse_args()
-
-    # Validate env
-    missing = [k for k, v in [
-        ("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY),
-        ("SUPABASE_URL", SUPABASE_URL),
-        ("SUPABASE_SERVICE_KEY", SUPABASE_KEY),
-    ] if not v]
-    if missing:
-        sys.exit(f"ERROR: Missing env vars: {', '.join(missing)}")
 
     drug_ids = PRIORITY_DRUG_IDS if args.priority else args.drug_ids
 

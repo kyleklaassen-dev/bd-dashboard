@@ -62,9 +62,9 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
-import requests
 
 from _common import load_credentials
+import _db
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -114,57 +114,14 @@ TRIAL_PHASE_RANK: dict[str, int] = {
 
 ALL_AREAS = ["tl1a", "tslp", "il4ra", "fcrn", "igf1r", "tcell"]
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# SUPABASE CLIENT
-# ──────────────────────────────────────────────────────────────────────────────
-
-def _get_supabase_creds() -> tuple[str, str]:
-    """Return (url, service_key) via _common.load_credentials."""
-    url, key, _ = load_credentials(require_anthropic=False)
-    return url, key
+# Lazy-initialised via _db._ensure_init() — explicit init if running standalone
+_db_url, _db_key, _ = (load_credentials(require_anthropic=False)
+                       if not _db._initialized else ("", "", ""))
+if _db_url:
+    _db.init_db(_db_url, _db_key)
 
 
-def _sb_get(url: str, key: str, table: str, params: dict) -> list[dict]:
-    """GET rows from a Supabase table via PostgREST."""
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Accept": "application/json",
-    }
-    resp = requests.get(f"{url}/rest/v1/{table}", headers=headers, params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
-
-
-def _sb_upsert(url: str, key: str, table: str, data: dict | list) -> None:
-    """Upsert one or more rows into a Supabase table."""
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates",
-    }
-    payload = data if isinstance(data, list) else [data]
-    resp = requests.post(
-        f"{url}/rest/v1/{table}", headers=headers, json=payload, timeout=30
-    )
-    resp.raise_for_status()
-
-
-def _sb_patch(url: str, key: str, table: str, match: dict, data: dict) -> None:
-    """PATCH rows matching `match` with `data`."""
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-    params = {k: f"eq.{v}" for k, v in match.items()}
-    resp = requests.patch(
-        f"{url}/rest/v1/{table}", headers=headers, params=params, json=data, timeout=30
-    )
-    resp.raise_for_status()
+# _sb_get / _sb_upsert / _sb_patch / _get_supabase_creds / _now_iso replaced by _db module
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -181,9 +138,6 @@ def _nonempty(val: Any) -> bool:
         return len(val) > 0
     return True  # numbers, booleans, etc.
 
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -261,8 +215,6 @@ def _merge_drug_rows(rows: list[dict]) -> dict:
 def load_entity_context(
     entity_id: str,
     area_id: str,
-    sb_url: str,
-    sb_key: str,
 ) -> dict:
     """
     Load all research data for one entity from Supabase.
@@ -291,7 +243,7 @@ def load_entity_context(
     }
 
     # -- Drugs for this entity (area_id is in drug_areas junction, not on drugs directly)
-    drugs = _sb_get(sb_url, sb_key, "drugs", {
+    drugs = _db.sb_get("drugs", {
         "entity_id": f"eq.{entity_id}",
         "select": "*",
     })
@@ -311,7 +263,7 @@ def load_entity_context(
     })
 
     # -- Trials linked to these drugs (by drug_id)
-    trials = _sb_get(sb_url, sb_key, "trials", {
+    trials = _db.sb_get("trials", {
         "drug_id": drug_ids_filter,
         "select": "*",
     })
@@ -319,7 +271,7 @@ def load_entity_context(
     # ct_gov_sync that reference a different drug row sharing the same canonical.
     if canonical_ids:
         canon_filter = "in.(" + ",".join(canonical_ids) + ")"
-        canon_trials = _sb_get(sb_url, sb_key, "trials", {
+        canon_trials = _db.sb_get("trials", {
             "canonical_drug_id": canon_filter,
             "select": "*",
         })
@@ -331,7 +283,7 @@ def load_entity_context(
     ctx["trials"] = trials
 
     # -- Catalysts for these drugs
-    catalysts = _sb_get(sb_url, sb_key, "catalysts", {
+    catalysts = _db.sb_get("catalysts", {
         "drug_id": drug_ids_filter,
         "select": "*",
     })
@@ -340,14 +292,14 @@ def load_entity_context(
     # -- Company from first drug
     company_id = drugs[0].get("company_id") if drugs else None
     if company_id:
-        companies = _sb_get(sb_url, sb_key, "companies", {
+        companies = _db.sb_get("companies", {
             "id": f"eq.{company_id}",   # companies PK is 'id', not 'company_id'
             "select": "*",
             "limit": "1",
         })
         ctx["company"] = companies[0] if companies else None
 
-        profiles = _sb_get(sb_url, sb_key, "company_profiles", {
+        profiles = _db.sb_get("company_profiles", {
             "company_id": f"eq.{company_id}",
             "select": "*",
             "limit": "1",
@@ -357,7 +309,7 @@ def load_entity_context(
     # -- Deals for this entity (by entity_id)
     deals: list[dict] = []
     if entity_id:
-        deals = _sb_get(sb_url, sb_key, "deals", {
+        deals = _db.sb_get("deals", {
             "entity_id": f"eq.{entity_id}",
             "select": "*",
         })
@@ -365,7 +317,7 @@ def load_entity_context(
     # company_enrichment that may reference the canonical program directly.
     if canonical_ids:
         canon_filter = "in.(" + ",".join(canonical_ids) + ")"
-        canon_deals = _sb_get(sb_url, sb_key, "deals", {
+        canon_deals = _db.sb_get("deals", {
             "canonical_drug_id": canon_filter,
             "select": "*",
         })
@@ -624,7 +576,7 @@ def score_entity_completeness(ctx: dict) -> dict:
         "missing_fields": list(dict.fromkeys(missing_fields)),   # deduplicated, ordered
         "missing_stages": missing_stages,
         "populated_fields": list(dict.fromkeys(populated_fields)),
-        "last_scored_at": _now_iso(),
+        "last_scored_at": _db.now_iso(),
     }
 
 
@@ -943,8 +895,6 @@ def upsert_research_queue(
     priority_score: int,
     reason: str,
     dry_run: bool,
-    sb_url: str,
-    sb_key: str,
 ) -> None:
     """
     Write the enriched entity state to:
@@ -985,7 +935,7 @@ def upsert_research_queue(
         "completeness_score": score_result["completeness_score"],
         "completeness_tier": score_result["completeness_tier"],
         "trigger_events": triggers,
-        "last_updated": _now_iso(),
+        "last_updated": _db.now_iso(),
         # NOTE: assigned_status intentionally excluded from this payload.
         # merge-duplicates would overwrite user-set 'in_progress'/'done' statuses on
         # every nightly pipeline run. New rows get DEFAULT 'pending' from the schema.
@@ -1008,27 +958,13 @@ def upsert_research_queue(
         print(f"    [dry-run] drugs patch ({len(drugs)} rows): {json.dumps(drug_patch, default=str)[:200]}…")
         return
 
-    # Write research_queue — use explicit on_conflict target because the table's PK is
-    # a generated UUID; without this, PostgREST conflicts on PK and 409s on the
-    # UNIQUE(entity_id, area_id) constraint instead of updating the existing row.
-    rq_headers = {
-        "apikey": sb_key,
-        "Authorization": f"Bearer {sb_key}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=minimal",
-    }
-    rq_resp = requests.post(
-        f"{sb_url}/rest/v1/research_queue",
-        headers=rq_headers,
-        params={"on_conflict": "entity_id,area_id"},
-        json=[queue_row],
-        timeout=30,
-    )
-    rq_resp.raise_for_status()
+    # Write research_queue — explicit on_conflict because PK is a generated UUID;
+    # without it PostgREST would conflict on PK and 409 on UNIQUE(entity_id, area_id).
+    _db.sb_upsert("research_queue", queue_row, on_conflict="entity_id,area_id")
 
     # Stamp each drug row
     for drug in drugs:
-        _sb_patch(sb_url, sb_key, "drugs", {"id": drug["id"]}, drug_patch)
+        _db.sb_patch("drugs", drug_patch, {"id": f"eq.{drug['id']}"})
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1053,8 +989,6 @@ def run_intelligence_audit(
 
     Prints a summary table on completion.
     """
-    sb_url, sb_key = _get_supabase_creds()
-
     print(f"\n{'═'*60}")
     print(f"  Intelligence Audit — area: {area_id}")
     if dry_run:
@@ -1062,7 +996,7 @@ def run_intelligence_audit(
     print(f"{'═'*60}")
 
     # Discover all drug_ids for this area via the drug_areas junction table
-    area_rows = _sb_get(sb_url, sb_key, "drug_areas", {
+    area_rows = _db.sb_get("drug_areas", {
         "area_id": f"eq.{area_id}",
         "select": "drug_id",
     })
@@ -1080,7 +1014,7 @@ def run_intelligence_audit(
     if entity_filter:
         params["entity_id"] = f"ilike.%{entity_filter}%"
 
-    all_drugs = _sb_get(sb_url, sb_key, "drugs", params)
+    all_drugs = _db.sb_get("drugs", params)
 
     # Group by entity_id; entities without entity_id get a fallback key
     entity_map: dict[str, list] = {}
@@ -1102,7 +1036,7 @@ def run_intelligence_audit(
         print(f"  ── {real_entity_id} ({drug_names})")
 
         try:
-            ctx = load_entity_context(real_entity_id, area_id, sb_url, sb_key)
+            ctx = load_entity_context(real_entity_id, area_id)
 
             score_result = score_entity_completeness(ctx)
             triggers = check_research_triggers(ctx)
@@ -1117,8 +1051,6 @@ def run_intelligence_audit(
                 priority_score=priority_score,
                 reason=reason,
                 dry_run=dry_run,
-                sb_url=sb_url,
-                sb_key=sb_key,
             )
 
             results.append({
@@ -1172,8 +1104,6 @@ def rescore_molecule(
     Does NOT re-run Claude enrichment. Only re-reads the current DB state
     and recalculates scores.
     """
-    sb_url, sb_key = _get_supabase_creds()
-
     print(f"\n{'═'*60}")
     print(f"  Rescore Molecule — drug: {drug_id} / area: {area_id}")
     if dry_run:
@@ -1181,7 +1111,7 @@ def rescore_molecule(
     print(f"{'═'*60}")
 
     # 1. Find which company owns this drug in this area
-    drug_rows = _sb_get(sb_url, sb_key, "drugs", {
+    drug_rows = _db.sb_get("drugs", {
         "id": f"eq.{drug_id}",
         "select": "id,name,company_id,entity_id,stage,canonical_drug_id",
     })
@@ -1197,15 +1127,13 @@ def rescore_molecule(
     ctx = load_entity_context(
         entity_id=entity_id,
         area_id=area_id,
-        sb_url=sb_url,
-        sb_key=sb_key,
     )
     if not ctx:
         print(f"  ✗ Could not load context for entity '{entity_id}'")
         return
 
     # 3. Load current molecule_intelligence for this drug (post-curation state)
-    mol_rows = _sb_get(sb_url, sb_key, "molecule_intelligence", {
+    mol_rows = _db.sb_get("molecule_intelligence", {
         "drug_id": f"eq.{drug_id}",
         "select": "*",
     })
@@ -1260,23 +1188,20 @@ def rescore_molecule(
         return
 
     # 5. Patch company_profiles
-    import datetime
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     profile_patch = {
         "completeness_score":      completeness_score,
         "missing_fields":          missing_fields,
         "completeness_checked_at": now_iso,
     }
     # Find the company_profiles row for this entity × area
-    cp_rows = _sb_get(sb_url, sb_key, "company_profiles", {
+    cp_rows = _db.sb_get("company_profiles", {
         "company_id": f"eq.{company_id}",
         "area_id":    f"eq.{area_id}",
         "select":     "company_id",
     })
     if cp_rows:
-        _sb_patch(sb_url, sb_key, "company_profiles",
-                  {"company_id": company_id, "area_id": area_id},
-                  profile_patch)
+        _db.sb_patch("company_profiles", profile_patch,
+                  {"company_id": f"eq.{company_id}", "area_id": f"eq.{area_id}"})
         print(f"  ✓ company_profiles updated: score={completeness_score} "
               f"missing={len(missing_fields)}")
     else:
@@ -1286,7 +1211,7 @@ def rescore_molecule(
     priority_score = int(completeness_score * 0.6 + (
         30 if completeness_tier == "thin" else (20 if completeness_tier == "partial" else 10)
     ))
-    rq_rows = _sb_get(sb_url, sb_key, "research_queue", {
+    rq_rows = _db.sb_get("research_queue", {
         "entity_id": f"eq.{entity_id}",
         "area_id":   f"eq.{area_id}",
         "select":    "entity_id",
@@ -1299,9 +1224,8 @@ def rescore_molecule(
         "missing_fields":        missing_fields,
     }
     if rq_rows:
-        _sb_patch(sb_url, sb_key, "research_queue",
-                  {"entity_id": entity_id, "area_id": area_id},
-                  rq_patch)
+        _db.sb_patch("research_queue", rq_patch,
+                  {"entity_id": f"eq.{entity_id}", "area_id": f"eq.{area_id}"})
         print(f"  ✓ research_queue updated: priority={priority_score}")
     else:
         print(f"  ⚠ No research_queue row for {entity_id}/{area_id} — not updated")

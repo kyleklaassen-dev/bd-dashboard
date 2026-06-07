@@ -22,58 +22,29 @@ Usage:
 import os
 import json
 import argparse
-import datetime
-import urllib.request
-import urllib.parse
 
-import anthropic
+from _common import load_credentials
+import _db
+import ai.client as ai_client
+from ai.client import PromptConfig
 
-# ── Credentials ──────────────────────────────────────────────────────────────
-from _common import load_credentials, sb_headers as _sb_headers
-SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_url, _key, _ak = load_credentials()
+_db.init_db(_url, _key)
+ai_client.setup(_ak)
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
-
-SB_HEADERS = {
-    **_sb_headers(SUPABASE_KEY),
-    "Prefer": "return=representation",
-}
-
-
-# ── Supabase helpers ──────────────────────────────────────────────────────────
-
-def sb_get(table: str, params: dict) -> list:
-    qs = urllib.parse.urlencode(params)
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    req = urllib.request.Request(url, headers=SB_HEADERS)
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read())
-
-
-def sb_upsert(table: str, record: dict) -> bool:
-    """Insert or update via POST with on-conflict merge."""
-    headers = {**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=representation"}
-    body = json.dumps(record).encode()
-    req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/{table}",
-        data=body, headers=headers, method="POST"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return r.status in (200, 201)
-    except urllib.error.HTTPError as e:
-        print(f"  [sb_upsert {table}] {e.code}: {e.read().decode()[:200]}")
-        return False
-
-
-# ── Prompt ────────────────────────────────────────────────────────────────────
+NOW_ISO = _db.now_iso() + "Z"
 
 SYSTEM = (
     "You are a pharmaceutical business development analyst. "
     "You produce concise, accurate intelligence summaries for a BD platform. "
     "Respond ONLY with valid JSON — no markdown fences, no preamble."
+)
+
+_PROFILES_CFG = PromptConfig(
+    name="quick_profiles",
+    system=SYSTEM,
+    model="claude-haiku-4-5-20251001",
+    max_tokens=2048,
 )
 
 
@@ -146,13 +117,11 @@ IMPORTANT:
     return prompt
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 def enrich(company_id: str, area_id: str, dry_run: bool = False):
     print(f"[quick_profiles_enrich] {company_id} / {area_id}")
 
     # 1. Fetch drugs in this area for this company
-    drug_area_rows = sb_get("drug_areas", {
+    drug_area_rows = _db.sb_get("drug_areas", {
         "area_id": f"eq.{area_id}",
         "select":  "drug_id",
     })
@@ -161,15 +130,14 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
     drugs = []
     if drug_ids:
         chunk_ids = "(" + ",".join(drug_ids) + ")"
-        all_drugs = sb_get("drugs", {
+        drugs = _db.sb_get("drugs", {
             "company_id": f"eq.{company_id}",
             "id":         f"in.{chunk_ids}",
             "select":     "id,display_name,target,stage,overlap,drug_summary,overlap_rationale",
         })
-        drugs = all_drugs
 
     # 2. Fetch deals for this company×area
-    deals = sb_get("deals", {
+    deals = _db.sb_get("deals", {
         "company_id": f"eq.{company_id}",
         "area_id":    f"eq.{area_id}",
         "select":     "from_company,to_company,deal_type,upfront_usd_m,total_usd_m,headline",
@@ -177,7 +145,7 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
     })
 
     # 3. Fetch existing profile (if any)
-    existing_rows = sb_get("company_profiles", {
+    existing_rows = _db.sb_get("company_profiles", {
         "company_id": f"eq.{company_id}",
         "area_id":    f"eq.{area_id}",
         "select":     "platform_summary,bd_summary,key_risk,why_it_matters,vs_ailux",
@@ -190,34 +158,15 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
     prompt = build_prompt(company_id, area_id, drugs, deals, existing)
     print(f"  Prompt: ~{len(prompt.split())} words → calling claude-haiku-4-5-20251001")
 
-    resp = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=2048,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    text = resp.content[0].text.strip()
-    cost = (resp.usage.input_tokens / 1e6 * 0.8 +
-            resp.usage.output_tokens / 1e6 * 4.0)
-    print(f"  {resp.usage.input_tokens}in / {resp.usage.output_tokens}out "
-          f"(${cost:.4f}) stop={resp.stop_reason}")
+    result = ai_client.run_json(_PROFILES_CFG, prompt)
+    if not result.ok:
+        print(f"  ✗ LLM call or JSON parse failed")
+        return False
 
-    # 5. Parse response
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError as e:
-        # Try stripping markdown fences
-        cleaned = text
-        if "```" in cleaned:
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        try:
-            data = json.loads(cleaned.strip())
-        except Exception:
-            print(f"  Parse error: {e}")
-            print(f"  Raw: {text[:300]}")
-            return False
+    data = result.data
+    cost = result.cost_usd
+    print(f"  {result.tokens_in}in / {result.tokens_out}out "
+          f"(${cost:.4f}) stop={result.stop_reason}")
 
     print(f"  Keys: {list(data.keys())}")
 
@@ -227,13 +176,11 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
             print(f"    {k}: {str(v)[:120]}")
         return True
 
-    # 6. Guard E3: company_areas must exist before company_profiles
-    # Invariant: if company_profiles exists for company×area, company_areas must too.
-    # Upsert is idempotent — safe if row already exists.
-    sb_upsert("company_areas", {"company_id": company_id, "area_id": area_id})
+    # 5. Guard E3: company_areas must exist before company_profiles
+    _db.sb_upsert("company_areas", {"company_id": company_id, "area_id": area_id})
     print(f"  [E3 guard] company_areas ensured: {company_id} → {area_id}")
 
-    # 7. Upsert into company_profiles
+    # 6. Upsert into company_profiles
     record = {
         "company_id":         company_id,
         "area_id":            area_id,
@@ -247,7 +194,8 @@ def enrich(company_id: str, area_id: str, dry_run: bool = False):
         "updated_at":         NOW_ISO,
     }
 
-    ok = sb_upsert("company_profiles", record)
+    rows = _db.sb_upsert("company_profiles", record)
+    ok = bool(rows)
     if ok:
         print(f"  ✓ company_profiles upserted for {company_id}/{area_id}")
     else:

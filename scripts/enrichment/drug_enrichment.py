@@ -32,33 +32,10 @@ import argparse
 import re
 from typing import Optional, List, Dict, Any
 
-import requests
-import anthropic
-
-try:
-    from pydantic import BaseModel, Field as PydanticField
-    _PYDANTIC_AVAILABLE = True
-
-    class DrugEnrichmentOutput(BaseModel):
-        """Structured output from Claude drug enrichment."""
-        mechanism: Optional[str] = None
-        drug_summary: Optional[str] = None
-        ailux_angle: Optional[str] = None
-        bd_angle: Optional[str] = None
-        risk_summary: Optional[str] = None
-        overlap: Optional[str] = None
-        overlap_rationale: Optional[str] = None
-        differentiation_thesis: Optional[str] = None
-        patient_population: Optional[str] = None
-        primary_endpoint: Optional[str] = None
-        source_url: Optional[str] = None
-        catalog_category: Optional[str] = None
-
-except ImportError:
-    _PYDANTIC_AVAILABLE = False
-    DrugEnrichmentOutput = None  # type: ignore[assignment,misc]
-
 from _common import load_credentials, log  # noqa: E402
+import _db
+import ai.client as ai_client
+from ai.client import PromptConfig
 
 # ── Optional: import model_comparison logger if available ─────────────────────
 try:
@@ -75,22 +52,19 @@ except ImportError:
 # CREDENTIALS
 # ══════════════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
-SB_UPSERT = {
-    **SB_HEADERS,
-    "Prefer": "resolution=merge-duplicates,return=representation",
-}
+_url, _key, _ak = load_credentials()
+_db.init_db(_url, _key)
+ai_client.setup(_ak)
 
 TODAY   = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO = datetime.datetime.utcnow().isoformat()
+
+_DRUG_ENRICH_CFG = PromptConfig(
+    name="drug_enrichment",
+    system="You are a BD intelligence analyst. Return ONLY valid JSON — no markdown fences, no commentary.",
+    model="claude-sonnet-4-6",
+    max_tokens=800,
+)
 
 # ── Ailux context (constant across all drug enrichments) ──────────────────────
 AILUX_CONTEXT = """
@@ -136,34 +110,7 @@ def normalize_stage(raw: str) -> str:
     return STAGE_ALIASES.get(low, s)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SUPABASE HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
-
-def sb_get(table: str, params: dict = None) -> List[dict]:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    r = requests.get(url, headers=SB_HEADERS, params=params or {}, timeout=30)
-    r.raise_for_status()
-    return r.json()
-
-
-def sb_patch(table: str, filters: dict, data: dict) -> bool:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    params = {k: f"eq.{v}" for k, v in filters.items()}
-    r = requests.patch(url, headers=SB_HEADERS, params=params, json=data, timeout=30)
-    r.raise_for_status()
-    return True
-
-
-def sb_post(table: str, data: dict) -> dict:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    r = requests.post(url, headers=SB_UPSERT, json=data, timeout=30)
-    r.raise_for_status()
-    result = r.json()
-    return result[0] if isinstance(result, list) and result else {}
-
-
-# log() imported from _common
+# sb_get / sb_patch / sb_post provided by _db module
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -245,7 +192,7 @@ def fetch_drug_context(drug_id: str) -> Dict:
     ctx = {}
 
     # Core drug record
-    drugs = sb_get("drugs", {
+    drugs = _db.sb_get("drugs", {
         "id": f"eq.{drug_id}",
         "select": (
             "id,name,brand_name,target,stage,mechanism,modality,company_id,"
@@ -264,7 +211,7 @@ def fetch_drug_context(drug_id: str) -> Dict:
     try:
         company_id = ctx["drug"].get("company_id")
         if company_id:
-            cos = sb_get("companies", {
+            cos = _db.sb_get("companies", {
                 "id": f"eq.{company_id}",
                 "select": "id,name,hq_country,status,parent_company_id",
                 "limit": "1"
@@ -275,7 +222,7 @@ def fetch_drug_context(drug_id: str) -> Dict:
 
     # Drug targets
     try:
-        targets = sb_get("drug_targets", {
+        targets = _db.sb_get("drug_targets", {
             "drug_id": f"eq.{drug_id}",
             "select": "target_name,area_id,is_primary",
             "limit": "10"
@@ -286,7 +233,7 @@ def fetch_drug_context(drug_id: str) -> Dict:
 
     # Drug indications
     try:
-        indications = sb_get("drug_indications", {
+        indications = _db.sb_get("drug_indications", {
             "drug_id": f"eq.{drug_id}",
             "select": "indication_name,indication_id,is_primary",
             "limit": "10"
@@ -301,7 +248,7 @@ def fetch_drug_context(drug_id: str) -> Dict:
         if nct_ids:
             trials = []
             for nct in nct_ids[:3]:
-                t = sb_get("trials", {
+                t = _db.sb_get("trials", {
                     "nct_id": f"eq.{nct}",
                     "select": "nct_id,phase,status,primary_completion_date,title",
                     "limit": "1"
@@ -519,7 +466,7 @@ def log_field_change(drug_id: str, field: str,
             row["enrichment_run_id"] = enrichment_run_id
         if source_url:
             row["source_citation"] = source_url
-        sb_post("enriched_field_log", row)
+        _db.sb_post("enriched_field_log", row)
     except Exception as e:
         log(f"  enriched_field_log write failed for {field}: {e}", indent=3)
 
@@ -533,10 +480,6 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     Enrich a single drug by ID.
     Returns True on success, False on failure.
     """
-    if not client:
-        log(f"  SKIP {drug_id}: ANTHROPIC_API_KEY not set")
-        return False
-
     log(f"Enriching drug: {drug_id}", indent=0)
 
     # 1. Fetch full context
@@ -574,44 +517,20 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     ) if _MODEL_COMPARISON_AVAILABLE else None
 
     t0 = time.time()
-    raw_response = None
-    try:
-        msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw_response = msg.content[0].text.strip() if msg.content else ""
-        log(f"  Claude response received ({len(raw_response)} chars) in {time.time()-t0:.1f}s", indent=2)
-    except Exception as e:
-        log(f"  Claude API call failed: {e}", indent=2)
+
+    # 4. Call Claude and parse JSON response
+    llm_result = ai_client.run_json(_DRUG_ENRICH_CFG, prompt)
+    log(f"  Claude response in {time.time()-t0:.1f}s ({llm_result.tokens_in}in/{llm_result.tokens_out}out "
+        f"${llm_result.cost_usd:.4f})", indent=2)
+    if not llm_result.ok:
+        log(f"  Claude API call or JSON parse failed", indent=2)
         if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, {"status": "error", "error_message": str(e)})
+            patch_enrichment_run(run_id, {"status": "error",
+                                          "error_message": "LLM call or JSON parse failed"})
         return False
 
-    # 4. Parse JSON from response
-    try:
-        # Extract JSON block (handle markdown code fences)
-        json_str = raw_response
-        if "```json" in json_str:
-            json_str = json_str.split("```json")[1].split("```")[0].strip()
-        elif "```" in json_str:
-            json_str = json_str.split("```")[1].split("```")[0].strip()
-        else:
-            # Find first { to last }
-            start = json_str.find("{")
-            end   = json_str.rfind("}") + 1
-            if start >= 0 and end > start:
-                json_str = json_str[start:end]
-
-        raw_output = json.loads(json_str)
-        log(f"  Parsed JSON keys: {list(raw_output.keys())}", indent=2)
-    except Exception as e:
-        log(f"  JSON parse failed: {e}. Raw: {raw_response[:200]}", indent=2)
-        if run_id and _MODEL_COMPARISON_AVAILABLE:
-            patch_enrichment_run(run_id, {"status": "error", "schema_valid": False,
-                                          "error_message": f"JSON parse error: {e}"})
-        return False
+    raw_output = llm_result.data
+    log(f"  Parsed JSON keys: {list(raw_output.keys())}", indent=2)
 
     # 5. Validate output
     validated = validate_output(raw_output, drug_name)
@@ -643,7 +562,7 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
                 if run_id:
                     write_payload["last_enrichment_run_id"] = run_id
 
-                sb_patch("drugs", {"id": drug_id}, write_payload)
+                _db.sb_patch("drugs", write_payload, {"id": f"eq.{drug_id}"})
                 log(f"  Drug {drug_name}: patched {len(update)} fields", indent=2)
 
                 # Log each field change with full provenance
@@ -668,7 +587,7 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
             # Re-fetch and recompute
             updated_drug = {**drug, **update}
             new_coverage = compute_coverage(updated_drug)
-            sb_post("coverage_scores", {
+            _db.sb_post("coverage_scores", {
                 "entity_id":     drug_id,
                 "entity_type":   "drug",
                 "coverage_score": new_coverage,
@@ -691,7 +610,7 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
     else:
         # Log to enrichment_runs directly (model_comparison not available)
         try:
-            sb_post("enrichment_runs", {
+            _db.sb_post("enrichment_runs", {
                 "entity_id":          drug_id,
                 "entity_type":        "drug",
                 "skill_name":         "drug_enrich",
@@ -729,7 +648,7 @@ def run_batch(coverage_below: int = 40, limit: int = 30,
     # Get drugs by coverage
     drug_ids = []
     try:
-        scores = sb_get("coverage_scores", {
+        scores = _db.sb_get("coverage_scores", {
             "entity_type":   "eq.drug",
             "coverage_score": f"lt.{coverage_below}",
             "select":        "entity_id,coverage_score",
@@ -751,7 +670,7 @@ def run_batch(coverage_below: int = 40, limit: int = 30,
             }
             if area:
                 # Filter by area_id via drug_targets join
-                area_drugs = sb_get("drug_targets", {
+                area_drugs = _db.sb_get("drug_targets", {
                     "area_id": f"eq.{area}",
                     "select":  "drug_id",
                     "limit":   str(limit),
@@ -762,7 +681,7 @@ def run_batch(coverage_below: int = 40, limit: int = 30,
                         query_params["id"] = f"in.({','.join(area_drug_ids[:limit])})"
                         del query_params["bd_angle"]
 
-            drugs = sb_get("drugs", query_params)
+            drugs = _db.sb_get("drugs", query_params)
             drug_ids = [d["id"] for d in drugs]
         except Exception as e:
             log(f"Fallback drug query failed: {e}")
@@ -773,7 +692,7 @@ def run_batch(coverage_below: int = 40, limit: int = 30,
     # Check for recently-enriched drugs (skip if enriched within 7 days)
     recent_cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).isoformat()
     try:
-        recently_enriched = sb_get("enrichment_runs", {
+        recently_enriched = _db.sb_get("enrichment_runs", {
             "entity_type": "eq.drug",
             "skill_name":  "eq.drug_enrich",
             "created_at":  f"gt.{recent_cutoff}",
@@ -827,10 +746,6 @@ def main():
     parser.add_argument("--dry-run", action="store_true",
                         help="Fetch and synthesize but do not write to Supabase")
     args = parser.parse_args()
-
-    if not ANTHROPIC_API_KEY:
-        log("ERROR: ANTHROPIC_API_KEY not set")
-        sys.exit(1)
 
     if args.drug_id:
         success = enrich_drug(args.drug_id, dry_run=args.dry_run)

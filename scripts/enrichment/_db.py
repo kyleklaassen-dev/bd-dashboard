@@ -97,6 +97,26 @@ def sb_upsert(table: str, records: "list | dict",
         return []
 
 
+def sb_insert(table: str, records: "list | dict") -> list:
+    """Plain INSERT (no on-conflict merge). Use when duplicate rows per run are acceptable."""
+    _ensure_init()
+    if isinstance(records, dict):
+        records = [records]
+    if not records:
+        return []
+    try:
+        r = requests.post(f"{_URL}/rest/v1/{table}",
+                          headers=_HEADERS, json=records, timeout=15)
+        if r.status_code not in (200, 201):
+            _log(f"[sb_insert {table}] {r.status_code}: {r.text[:200]}")
+            return []
+        data = r.json()
+        return data if isinstance(data, list) else ([data] if data else [])
+    except Exception as e:
+        _log(f"[sb_insert {table}] {e}")
+        return []
+
+
 def sb_post(table: str, record: dict) -> Optional[dict]:
     _ensure_init()
     try:
