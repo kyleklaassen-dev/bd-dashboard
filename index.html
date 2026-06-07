@@ -12893,10 +12893,36 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
       fieldChangeAudit = fcaRows || [];
     } catch(_) {}
 
+    // ── New data layers (2026-06-07) — financials (runway), typed SEC events,
+    //    patent estate, leadership, and asset-transfer chains involving this company.
+    //    One parallel batch; each section renders only when non-empty.
+    let coFinancials = null, coSecEvents = [], coPatentRows = [], coPersonnel = [], coTransferChains = [];
+    try {
+      const [finR, evR, patR, perR, athR] = await Promise.all([
+        _sb.from('company_financials').select('cash_and_equivalents,cash_as_of,quarterly_burn,runway_quarters,market_cap,source_url,fetched_at')
+           .eq('company_id', companyId).order('fetched_at', {ascending:false}).limit(1),
+        _sb.from('company_events').select('event_type,event_subtype,event_summary,form_type,filing_date,source_url,financing_type,is_dilutive')
+           .eq('company_id', companyId).neq('event_type', 'other')
+           .order('filing_date', {ascending:false}).limit(5),
+        _sb.from('company_patents').select('patent_number,patent_title,matched_target,grant_year,patent_date,source_url')
+           .eq('company_id', companyId).order('patent_date', {ascending:false}).limit(60),
+        _sb.from('company_personnel').select('person_name,role,role_category,source_url')
+           .eq('company_id', companyId).limit(12),
+        _sb.from('asset_transfer_history').select('drug_id,sequence_order,from_entity_name,from_entity_id,to_entity_name,to_entity_id,transfer_type,geographic_scope,transfer_date,deal_value_notes,verified,source_url')
+           .or(`from_entity_id.eq.${companyId},to_entity_id.eq.${companyId}`)
+           .order('transfer_date', {ascending:false}).limit(12),
+      ]);
+      coFinancials     = finR.data?.[0] || null;
+      coSecEvents      = evR.data  || [];
+      coPatentRows     = patR.data || [];
+      coPersonnel      = perR.data || [];
+      coTransferChains = athR.data || [];
+    } catch(_nlErr) { console.warn('[companyModal-newlayers]', _nlErr?.message); }
+
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const subsidiaries = subsidiariesRes.data || [];
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []) };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -14086,7 +14112,7 @@ async function _loadMeridianNarrative(drugId) {
   } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
 }
 
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData) {
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -14164,42 +14190,49 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
 
   // Trials section
   // ── Phase 5 Candidate 3 — trial indication ontology map (normalized) ─────────
+  // DEPRECATED 2026-06-07 — _trialIndMap pills no longer render: trial_indications is
+  // keyed by legacy trials.id and the modal now reads trial_facts (different UUIDs).
   const _trialIndMap = {};
   (normData?.trialInds || []).forEach(ti => {
     if (!_trialIndMap[ti.trial_id]) _trialIndMap[ti.trial_id] = [];
     _trialIndMap[ti.trial_id].push(ti.indication_id);
   });
+  // 2026-06-07: trials come from trial_facts — link via stored source_url first,
+  // falling back to a constructed CT.gov study URL from the NCT id (never a fake URL).
+  const _tfLink = (label, t) => t?.source_url
+    ? `<a class="cem-link" href="${t.source_url}" target="_blank" rel="noopener">${label}</a>`
+    : _cemTrialLink(label, t?.nct_id);
   const trialSummary = (trials||[]).slice(0,3).map(t => {
-    const _tIndPills = (_trialIndMap[t.id] || [])
-      .map(i => `<span style="font-size:9px;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:3px">${_IND_LABEL[i]||i}</span>`)
-      .join('');
     return `
     <div class="cem-item-row">
       ${_cemPhasePill(t.phase)}
       <div>
-        <div style="font-size:12px;font-weight:600;color:#0f172a">${_cemTrialLink(t.trial_name||t.indication||'Trial', t.nct_id)}${_tIndPills}</div>
-        <div style="font-size:10.5px;color:#64748b">${t.indication||''} ${t.status?'· '+t.status:''}</div>
+        <div style="font-size:12px;font-weight:600;color:#0f172a">${_tfLink((t.trial_name||t.indication||'Trial').slice(0,90), t)}</div>
+        <div style="font-size:10.5px;color:#64748b">${t.indication||''} ${t.status?'· '+t.status:''}${t.n_enrollment?` · N=${t.n_enrollment}`:''}</div>
       </div>
     </div>`;
   }).join('');
 
   const trialDetail = `<div class="cem-det-inner">
-    <div class="cem-det-title">Full trial detail</div>
-    <table class="cem-tbl"><thead><tr><th>Phase</th><th>Trial</th><th>Indication</th><th>Status</th><th>N</th></tr></thead><tbody>
+    <div class="cem-det-title">Full trial detail — ClinicalTrials.gov</div>
+    <table class="cem-tbl"><thead><tr><th>Phase</th><th>Trial</th><th>Indication</th><th>Status</th><th>N</th><th>Dates</th></tr></thead><tbody>
     ${(trials||[]).map(t => `<tr>
       <td>${_cemPhasePill(t.phase)}</td>
-      <td>${_cemTrialLink(t.trial_name||'—', t.nct_id)}</td>
+      <td>${_tfLink((t.trial_name||'—').slice(0,80), t)}${t.why_stopped?`<div style="font-size:9.5px;color:#b91c1c">Stopped: ${(t.why_stopped||'').slice(0,80)}</div>`:''}</td>
       <td style="color:#64748b">${t.indication||'—'}</td>
       <td style="color:#64748b">${t.status||'—'}</td>
       <td style="color:#64748b">${t.n_enrollment||'—'}</td>
+      <td style="color:#64748b;font-size:10px;white-space:nowrap">${[t.start_date?t.start_date.slice(0,7):'', t.completion_date?'→ '+t.completion_date.slice(0,7):''].filter(Boolean).join(' ')||'—'}</td>
     </tr>`).join('')}
     </tbody></table>
     ${(trials||[]).filter(t=>t.primary_endpoint).slice(0,3).map(t =>
-      `<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;border:0.5px solid #e2e8f0"><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">${_cemTrialLink(t.trial_name||t.nct_id||'Trial', t.nct_id)} — Primary endpoint</div><div style="font-size:11px;color:#1e293b">${(t.primary_endpoint||'').slice(0,200)}</div></div>`
+      `<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;border:0.5px solid #e2e8f0"><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">${_tfLink(t.trial_name||t.nct_id||'Trial', t)} — Primary endpoint</div><div style="font-size:11px;color:#1e293b">${(t.primary_endpoint||'').slice(0,200)}</div></div>`
     ).join('')}
   </div>`;
 
   // Competitive position section
+  // DEPRECATED 2026-06-07 — compSummary/compDetail were already unreferenced by the
+  // assembly (relSummary/relDetail render the competitive view); kept for reference.
   const compSummary = (areas||[]).slice(0,3).map(a => `
     <div class="cem-item-row">
       <div style="flex:1">
@@ -14243,13 +14276,11 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
 
   // ── Phase 5 Candidate 3 — Normalized Targets section ─────────────────────────
   const _normTargets = normData?.targets || [];
+  // Declutter 2026-06-07: confidence % + review-status pills removed from the summary
+  // view (plumbing) — they remain in the expandable detail table below.
   const normTargetsSummary = _normTargets.slice(0,4).map(t => {
     const tLbl = _TARGET_LABEL[t.target_id] || t.target_id.toUpperCase();
-    const confPill = t.confidence_score != null
-      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">${Math.round(t.confidence_score)}%</span>` : '';
-    const rvwPill  = t.review_status && t.review_status !== 'confirmed'
-      ? `<span style="font-size:9px;background:#fff7ed;color:#c2410c;border-radius:4px;padding:1px 5px;margin-left:3px">${t.review_status}</span>` : '';
-    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${tLbl}</div></div>${confPill}${rvwPill}</div>`;
+    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${tLbl}</div></div></div>`;
   }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No target relationships in normalized table.</span>';
   const normTargetsDetail = `<div class="cem-det-inner">
     <div class="cem-det-title">drug_targets — normalized relationship data</div>
@@ -14264,13 +14295,13 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
 
   // ── Phase 5 Candidate 3 — Normalized Indications section ─────────────────────
   const _normInds = normData?.indications || [];
+  // Declutter 2026-06-07: confidence % pill removed from the summary view (plumbing) —
+  // it remains in the expandable detail table below. Stage pill kept (real signal).
   const normIndsSummary = _normInds.slice(0,4).map(i => {
     const iLbl = _IND_LABEL[i.indication_id] || i.indication_id.toUpperCase();
     const stagePill = i.development_stage
       ? `<span style="font-size:9px;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px">${i.development_stage}</span>` : '';
-    const confPill  = i.confidence_score != null
-      ? `<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:3px">${Math.round(i.confidence_score)}%</span>` : '';
-    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${iLbl}</div></div>${stagePill}${confPill}</div>`;
+    return `<div class="cem-item-row"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#0f172a">${iLbl}</div></div>${stagePill}</div>`;
   }).join('') || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No indication relationships in normalized table.</span>';
   const normIndsDetail = `<div class="cem-det-inner">
     <div class="cem-det-title">drug_indications — normalized relationship data</div>
@@ -14308,6 +14339,8 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
   </div>`;
 
   // Source confidence
+  // DEPRECATED 2026-06-07 — generic confidence-pill summary removed from display
+  // (confidence plumbing); the Sources & provenance cell now uses drug_sources counts.
   const srcSummary = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Pipeline / overlap data</span><span class="cem-pill ${areas?.some(a=>a.source_url)?'cem-p-high':'cem-p-med'}">${areas?.some(a=>a.source_url)?'Confirmed · High':'AI enriched · Medium'}</span></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11.5px;color:#64748b">Trial data</span><span class="cem-pill ${trialCount?'cem-p-blue':'cem-p-low'}">${trialCount?'ClinicalTrials.gov · High':'Not found'}</span></div>
@@ -14621,230 +14654,374 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     }).join('')}
   </div>` : '';
 
-  const _overviewDrugContent = `
-    ${_ownerBannerHtml}
-    ${_cascadeRiskHtml}
-    ${statsHtml}
-    ${interpHtml}
-    <div class="cem-grid">
-      ${_drugCatalysts.length ? `<div class="cem-cell" style="grid-column:1/-1">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-catalysts')">
-          <div class="cem-sec-lbl">📅 Upcoming catalysts</div>
-          <div class="cem-sec-hint">${_drugCatalysts.length} upcoming <i id="cem-chev-dr-catalysts" class="cem-chev">▶</i></div>
+  // ════════════════════════════════════════════════════════════════════════════
+  // CANONICAL DRUG CARD IA (2026-06-07) — four titled sections, one per tab:
+  //   1 · Asset Overview   2 · Development   3 · Business   4 · Intelligence
+  // Panel ids (cem-dtab-overview/profile/molecule/intel) are kept STABLE so the
+  // lazy injectors (_demLoadIntelligence → intel, clinical benchmarks → profile,
+  // payer TPP → molecule) keep working. Sections render only when non-empty.
+  // DEPRECATED 2026-06-07 — the previous single "Overview" cem-grid (catalysts/
+  // trials/deals/news/signals/rel/gaps/src/geo all in one tab) was replaced by
+  // this four-section IA; all cells were redistributed, none lost.
+  // ════════════════════════════════════════════════════════════════════════════
+  const _x = extData || {};
+  const _xLink = (html, url) => url ? `<a class="cem-link" href="${url}" target="_blank" rel="noopener">${html}</a>` : html;
+  const _xUsd  = v => { const n = +v; if (!n || isNaN(n)) return ''; return n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(0)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(2)}`; };
+
+  // — Regulatory designations (Development) — chips
+  const _DESIG_LBL = { orphan:'Orphan Drug', breakthrough:'Breakthrough Therapy', fast_track:'Fast Track', prime:'EMA PRIME', rmat:'RMAT', priority_review:'Priority Review', accelerated_approval:'Accelerated Approval', qidp:'QIDP' };
+  const _desigs = _x.designations || [];
+  const _desigCellHtml = _desigs.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">🏷 Regulatory designations</div><div class="cem-sec-hint">${_desigs.length}</div></div>
+    <div class="cem-sec-body" style="display:flex;flex-wrap:wrap;gap:5px">${_desigs.map(d => {
+      const lbl = _DESIG_LBL[d.designation_type] || (d.designation_type||'').replace(/_/g,' ');
+      const yr  = d.granted_date ? ` ’${String(d.granted_date).slice(2,4)}` : '';
+      const tip = [d.indication, d.granting_authority].filter(Boolean).join(' · ').replace(/"/g,'&quot;');
+      return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:2px 8px;white-space:nowrap">${lbl}${yr}${d.indication?`<span style="font-weight:500;color:#64748b">· ${(d.indication||'').slice(0,26)}</span>`:''}</span>`;
+    }).join('')}</div>
+  </div>` : '';
+
+  // — Safety & label (Development) — boxed-warning chips + FDA label link
+  const _safetyRows = _x.safety || [];
+  const _labelRows  = _x.labels || [];
+  const _safetyCellHtml = (_safetyRows.length || _labelRows.length || molData?.safety_observations) ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">⚠ Safety &amp; label</div><div class="cem-sec-hint">${_safetyRows.length?_safetyRows.length+' warning'+(_safetyRows.length!==1?'s':''):''}</div></div>
+    <div class="cem-sec-body">
+      ${_safetyRows.slice(0,4).map(s => {
+        const isBox = /black box|boxed/i.test(s.warning_type||'');
+        const chip = `<span style="display:inline-block;font-size:10px;font-weight:700;background:${isBox?'#fef2f2':'#fff7ed'};color:${isBox?'#b91c1c':'#c2410c'};border:1px solid ${isBox?'#fecaca':'#fed7aa'};border-radius:6px;padding:2px 8px;margin:0 4px 4px 0">${isBox?'⬛ Boxed warning':'⚠ '+(s.warning_type||'Warning')}${s.description?` — ${(s.description||'').slice(0,60)}`:''}</span>`;
+        return _xLink(chip, s.source_url);
+      }).join('')}
+      ${_labelRows.slice(0,1).map(l => `<div style="font-size:11px;margin-top:4px">${_xLink('↗ FDA label — '+((l.label_title||'Prescribing information').slice(0,70)), l.source_url || l.set_url)}</div>`).join('')}
+      ${molData?.safety_observations ? `<div style="font-size:11px;color:#1e293b;line-height:1.5;margin-top:5px">${molData.safety_observations}</div>` : ''}
+    </div>
+  </div>` : '';
+
+  // — PK one-liner (Development) — from drug_pk_parameters
+  const _pkRow = (_x.pk || [])[0] || null;
+  const _pkLineHtml = _pkRow ? (() => {
+    const bits = [
+      _pkRow.half_life_hours ? `t½ ${(_pkRow.half_life_hours/24).toFixed(1)}d` : '',
+      [_pkRow.dose_mg ? _pkRow.dose_mg + 'mg' : '', _pkRow.dose_route || ''].filter(Boolean).join(' '),
+      _pkRow.steady_state_weeks ? `steady state wk ${_pkRow.steady_state_weeks}` : '',
+      _pkRow.immunogenicity_ada_pct != null ? `${_pkRow.immunogenicity_ada_pct}% ADA` : '',
+    ].filter(Boolean).join(' · ');
+    return bits ? `<div style="font-size:11.5px;color:#1e293b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:8px 12px;margin-bottom:10px"><span style="font-weight:700;color:#7c3aed">💉 PK</span> &nbsp;${_xLink(bits, _pkRow.source_url)}${_pkRow.verified?' <span style="color:#22c55e;font-size:9px" title="Verified against source">✓</span>':''}</div>` : '';
+  })() : '';
+
+  // — Congress presence (Development) — last 3 conference abstracts
+  const _confAbs = _x.abstracts || [];
+  const _congressCellHtml = _confAbs.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">🎤 Congress presence</div><div class="cem-sec-hint">last ${_confAbs.length}</div></div>
+    <div class="cem-sec-body">${_confAbs.map(a => `<div class="cem-item-row" style="flex-direction:column;gap:1px;align-items:flex-start">
+      <div style="font-size:11.5px;font-weight:600;color:#0f172a;line-height:1.35">${_xLink((a.title||'Abstract').slice(0,110)+((a.title||'').length>110?'…':''), a.source_url || a.doi)}</div>
+      <div style="font-size:10px;color:#94a3b8">${[a.conference, a.conference_year].filter(Boolean).join(' · ')}</div>
+    </div>`).join('')}</div>
+  </div>` : '';
+
+  // — US payer economics (Business) — payer_pricing compact line
+  const _pp = _x.payer || [];
+  const _ppPick = (metric, src) => _pp.filter(p => p.metric === metric && (!src || p.source === src)).sort((a,b) => (b.year||0)-(a.year||0))[0];
+  const _ppBits = [];
+  { const r = _ppPick('total_spending','cms_partd'); if (r && r.value_numeric != null) _ppBits.push(_xLink(`Part D ${_xUsd(r.value_numeric)}${r.year?` (${r.year})`:''}`, r.source_url)); }
+  { const r = _ppPick('total_spending','cms_partb'); if (r && r.value_numeric != null) _ppBits.push(_xLink(`Part B ${_xUsd(r.value_numeric)}${r.year?` (${r.year})`:''}`, r.source_url)); }
+  { const r = _ppPick('asp_payment_limit_per_unit'); if (r && r.value_numeric != null) _ppBits.push(_xLink(`ASP ${_xUsd(r.value_numeric)}/unit`, r.source_url)); }
+  { const r = _ppPick('nadac_per_unit');             if (r && r.value_numeric != null) _ppBits.push(_xLink(`NADAC ${_xUsd(r.value_numeric)}/unit`, r.source_url)); }
+  const _payerCellHtml = _ppBits.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">💵 US payer economics</div><div class="cem-sec-hint">CMS</div></div>
+    <div class="cem-sec-body"><div style="font-size:11.5px;color:#1e293b;line-height:1.7">US payer: ${_ppBits.join(' <span style="color:#cbd5e1">·</span> ')}</div></div>
+  </div>` : '';
+
+  // — IP & patents (Business) — drug_patents (Orange Book) + patent_families
+  const _pats = _x.patents || [];
+  const _fams = _x.patentFamilies || [];
+  const _patExp = _pats.map(p => p.patent_expire_date).filter(Boolean).sort();
+  const _famJur = [...new Set(_fams.map(f => f.jurisdiction).filter(Boolean))];
+  const _ipCellHtml = (_pats.length || _famJur.length) ? `<div class="cem-cell">
+    <div class="cem-sec-hdr" onclick="_cemToggle('dr-ip')"><div class="cem-sec-lbl">📜 IP &amp; patents</div><div class="cem-sec-hint">${_pats.length || _fams.length} <i id="cem-chev-dr-ip" class="cem-chev">▶</i></div></div>
+    <div class="cem-sec-body"><div style="font-size:11.5px;color:#1e293b">IP: ${[
+      _pats.length ? `${_pats.length} Orange Book patent${_pats.length!==1?'s':''}${_patExp.length?`, earliest expiry ${_patExp[0].slice(0,4)}`:''}` : '',
+      _famJur.length ? `family in ${_famJur.length} jurisdiction${_famJur.length!==1?'s':''} (${_famJur.slice(0,6).join(', ')})` : '',
+    ].filter(Boolean).join(' · ')}</div></div>
+    <div class="cem-det" id="cem-det-dr-ip"><div class="cem-det-inner">
+      <div class="cem-det-title">Patent detail — ${drugName}</div>
+      ${_pats.length ? `<table class="cem-tbl"><thead><tr><th>Patent</th><th>Expiry</th><th>Scope</th></tr></thead><tbody>
+      ${_pats.slice(0,12).map(p => `<tr>
+        <td style="font-weight:600">${_xLink(p.patent_no||'—', p.source_url)}</td>
+        <td style="color:#64748b">${p.patent_expire_date?p.patent_expire_date.slice(0,10):'—'}</td>
+        <td style="color:#64748b;font-size:10px">${p.drug_substance_flag?'substance':(p.patent_use_code?'use':'product')}</td>
+      </tr>`).join('')}</tbody></table>` : ''}
+      ${_famJur.length ? `<div style="font-size:11px;color:#64748b;margin-top:6px">Patent family jurisdictions: ${_famJur.join(', ')}</div>` : ''}
+    </div></div>
+  </div>` : '';
+
+  // — Non-responder biology (Intelligence) — non_responder_profiles one-liners
+  const _nrRows = _x.nonResponders || [];
+  const _nrCellHtml = _nrRows.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">🧬 Non-responder biology</div><div class="cem-sec-hint">${_nrRows.length}</div></div>
+    <div class="cem-sec-body">${_nrRows.map(r => `<div style="padding:5px 8px;background:#fff7ed;border-left:2px solid #fb923c;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:700;color:#c2410c">${r.mechanism_class||'—'}</span>
+        ${r.non_responder_rate_pct != null ? `<span style="color:#94a3b8">${r.non_responder_rate_pct}% NR</span>` : ''}
+        <span style="color:#94a3b8;font-size:10px">${(r.line_of_therapy||'').replace(/_/g,' ')}</span>
+      </div>
+      ${r.escape_mechanism_text ? `<div style="color:#78350f;font-size:10px;margin-top:2px">${r.escape_mechanism_text.slice(0,140)}${r.escape_mechanism_text.length>140?'…':''}</div>` : ''}
+    </div>`).join('')}</div>
+  </div>` : '';
+
+  // — Geographic approvals (Business) — moved from the old Overview grid
+  const _geoCellHtml = (geoApprovals||[]).length ? (() => {
+    const _geo = geoApprovals || [];
+    const _geoSummary = _geo.slice(0,3).map(a => {
+      const _status = a.approval_status === 'approved' ? `<span style="font-size:9px;background:#dcfce7;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Approved</span>` : `<span style="font-size:9px;background:#f1f5f9;color:#64748b;border-radius:4px;padding:1px 5px;margin-left:4px">${a.approval_status||'—'}</span>`;
+      return `<div class="cem-item-row">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-size:11.5px;font-weight:600;color:#0f172a">${a.geography||'—'}</span>${_status}
+            ${a.brand_name?`<span style="font-size:10px;color:#7c3aed;font-weight:600;margin-left:4px">${a.brand_name}</span>`:''}
+          </div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:1px">${[a.regulator, a.approval_date?a.approval_date.slice(0,10):''].filter(Boolean).join(' · ')}</div>
         </div>
-        <div class="cem-sec-body">${_catalystSummary}</div>
-        <div class="cem-det" id="cem-det-dr-catalysts">${_catalystDetail}</div>
-      </div>` : ''}
+      </div>`;
+    }).join('');
+    const _geoDetail = `<div class="cem-det-inner">
+      <div class="cem-det-title">All approvals — ${drugName}</div>
+      <table class="cem-tbl"><thead><tr><th>Geography</th><th>Brand Name</th><th>Regulator</th><th>Date</th><th>Indication</th></tr></thead><tbody>
+      ${_geo.map(a => `<tr>
+        <td style="font-weight:600">${a.geography||'—'}</td>
+        <td style="color:#7c3aed;font-weight:600">${a.brand_name||'—'}</td>
+        <td style="color:#64748b">${a.regulator||'—'}</td>
+        <td style="color:#64748b">${a.approval_date?a.approval_date.slice(0,10):'—'}</td>
+        <td style="color:#64748b;font-size:10px">${a.indication||'—'}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div>`;
+    return `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-geo-approvals')">
+        <div class="cem-sec-lbl">🌍 Geographic Approvals</div>
+        <div class="cem-sec-hint">${_geo.length} region${_geo.length!==1?'s':''} <i id="cem-chev-dr-geo-approvals" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${_geoSummary}</div>
+      <div class="cem-det" id="cem-det-dr-geo-approvals">${_geoDetail}</div>
+    </div>`;
+  })() : '';
+  // ── Shared card builders (reused across the four sections) ────────────────
+  const _mbadgeFs = molData?.field_status || {};
+  const _mbadge = s => {
+    if (!s || s === 'confirmed') return '';
+    const cfg = s === 'inferred'
+      ? { bg:'#fffbeb', co:'#b45309', bd:'#fde68a', lbl:'Inferred' }
+      : { bg:'#f8fafc', co:'#94a3b8', bd:'#e2e8f0', lbl:'Not disclosed' };
+    return `<span style="font-size:7.5px;font-weight:800;text-transform:uppercase;background:${cfg.bg};color:${cfg.co};border:1px solid ${cfg.bd};border-radius:4px;padding:1px 4px;margin-left:4px">${cfg.lbl}</span>`;
+  };
+
+  const _summaryCardHtml = drug.drug_summary ? `<div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:6px">📋 Summary</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.drug_summary}</p></div>` : '';
+  const _mechDetailCardHtml = drug.mechanism_detail ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0284c7;margin-bottom:6px">🔬 Mechanism &amp; Context</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.mechanism_detail}</p></div>` : '';
+  const _diffCardHtml = drug.differentiation_thesis ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">⚡ Differentiation</div><p style="font-size:12px;color:#1e293b;font-weight:600;line-height:1.55;margin:0">${drug.differentiation_thesis}</p></div>` : '';
+  const _molDiffClaimCardHtml = molData?.differentiation_claim ? `<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">Differentiation Claim ${_mbadge(_mbadgeFs.differentiation_claim)}</div>
+    <p style="font-size:12px;color:#1e293b;font-style:italic;line-height:1.5;margin:0">${molData.differentiation_claim}</p>
+  </div>` : '';
+
+  // Asset identity — mechanism / target / format / route / lead indication
+  const _identityFacts = [
+    mechanism ? ['Mechanism', mechanism] : null,
+    target ? ['Target', target] : null,
+    cls ? ['Class', cls] : null,
+    (drug.format && drug.format !== cls) ? ['Format', drug.format] : null,
+    drug.route ? ['Route', drug.route] : null,
+    drug.indication_short ? ['Lead indication', drug.indication_short] : null,
+  ].filter(Boolean);
+  const _identityCardHtml = _identityFacts.length ? `<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Asset identity</div>
+    ${_identityFacts.map(([k,v]) => `<div class="cem-fact"><span class="cem-fact-lbl">${k}</span><span class="cem-fact-val">${v}</span></div>`).join('')}
+  </div>` : '';
+
+  // Molecule characterization (modality/format/half-life + engineering detail)
+  const _molCharCardHtml = molData ? (() => {
+    const mRow = (k, v, fk) => v ? `<div class="cem-fact"><span class="cem-fact-lbl">${k}</span><span class="cem-fact-val">${v}${_mbadge(_mbadgeFs[fk])}</span></div>` : '';
+    const rows = [
+      mRow('Format',         molData.format,          'format'),
+      mRow('Modality',       molData.modality,        'modality'),
+      mRow('IgG subclass',   molData.igg_subclass,    'igg_subclass'),
+      mRow('Fc engineering', molData.fc_engineering,  'fc_engineering'),
+      mRow('Epitope',        molData.epitope,         'epitope'),
+      mRow('Affinity (KD)',  molData.affinity_kd,     'affinity_kd'),
+      mRow('Half-life',      molData.half_life,       'half_life'),
+      mRow('Dosing interval',molData.dosing_interval, 'dosing_interval'),
+    ].filter(Boolean).join('');
+    return rows ? `<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Molecule Characterization</div>
+      ${rows}
+    </div>` : '';
+  })() : '';
+
+  // Approval dates card (Development)
+  const _approvalCardHtml = drug.approval_date ? (() => {
+    const entries = drug.approval_date.split(';').map(s => s.trim()).filter(Boolean);
+    const content = entries.length <= 1
+      ? `<span style="font-size:12px;font-weight:700;color:#0f172a">${drug.approval_date}</span>`
+      : `<ul style="margin:4px 0 0;padding-left:14px;list-style:disc;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px">${entries.map(e => `<li style="font-size:11px;font-weight:600;color:#1e293b;padding:1px 0">${e}</li>`).join('')}</ul>`;
+    return `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:4px">📅 Approval Dates</div>${content}</div>`;
+  })() : '';
+
+  // Pivotal endpoints card (Development)
+  const _endpointsCardHtml = drug.final_endpoints ? (() => {
+    const entries = drug.final_endpoints.split(/;\s*|\.\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.length > 4);
+    const content = entries.length <= 1
+      ? `<p style="font-size:12px;color:#1e293b;line-height:1.6;margin:0">${drug.final_endpoints}</p>`
+      : `<ul style="margin:0;padding-left:16px;list-style:disc">${entries.map(e => `<li style="font-size:11.5px;color:#1e293b;padding:3px 0;line-height:1.5">${e.replace(/\.$/, '')}</li>`).join('')}</ul>`;
+    return `<div style="background:#fffdf0;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin-bottom:8px">⚗ Pivotal Endpoints</div>${content}</div>`;
+  })() : '';
+
+  // Revenue + patients stat cards (Business)
+  const _bizStatCards = [
+    drug.annual_revenue ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d;margin-bottom:4px">💰 Annual Revenue</div><span style="font-size:13px;font-weight:800;color:#0f172a">${drug.annual_revenue}</span></div>` : '',
+    drug.patient_population ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:4px">👥 Patients on Therapy</div><span style="font-size:12px;font-weight:700;color:#0f172a">${drug.patient_population}</span></div>` : '',
+  ].filter(Boolean).join('');
+  const _bizStatCardsHtml = _bizStatCards ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${_bizStatCards}</div>` : '';
+
+  // ── 1 · ASSET OVERVIEW — what the molecule IS ─────────────────────────────
+  const _assetOverviewContent = `
+    ${_ownerBannerHtml}
+    ${statsHtml}
+    <div id="meridian-narrative-${drug.id||''}" class="meridian-narrative-host"></div>
+    ${_summaryCardHtml}
+    ${_identityCardHtml}
+    ${_mechDetailCardHtml}
+    ${_molCharCardHtml}
+    ${_normTargets.length ? `<div class="cem-grid"><div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-norm-tgt')">
+        <div class="cem-sec-lbl">🎯 Targets</div>
+        <div class="cem-sec-hint">${_normTargets.length} target${_normTargets.length!==1?'s':''} <i id="cem-chev-dr-norm-tgt" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${normTargetsSummary}</div>
+      <div class="cem-det" id="cem-det-dr-norm-tgt">${normTargetsDetail}</div>
+    </div></div>` : ''}`;
+
+  // ── 2 · DEVELOPMENT — where it is in the clinic ───────────────────────────
+  const _developmentContent = `
+    ${_approvalCardHtml}
+    ${_pkLineHtml}
+    <div class="cem-grid">
       <div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-trials')">
           <div class="cem-sec-lbl">🧪 Clinical trials</div>
-          <div class="cem-sec-hint">${trialCount} active <i id="cem-chev-dr-trials" class="cem-chev">▶</i></div>
+          <div class="cem-sec-hint">${trialCount} trial${trialCount!==1?'s':''} <i id="cem-chev-dr-trials" class="cem-chev">▶</i></div>
         </div>
         <div class="cem-sec-body">${trialSummary || '<span style="font-size:11px;color:#94a3b8;font-style:italic">No trial data linked.</span>'}</div>
         <div class="cem-det" id="cem-det-dr-trials">${trialDetail}</div>
       </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-deals')">
-          <div class="cem-sec-lbl">🤝 BD deals</div>
-          <div class="cem-sec-hint">${_allDeals.length>0?_allDeals.length+' deal'+(_allDeals.length!==1?'s':''):'No deal'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${bdDealsSummary}</div>
-        <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
-      </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-news')">
-          <div class="cem-sec-lbl">📰 Recent coverage</div>
-          <div class="cem-sec-hint">${_drugNewsItems.length ? _drugNewsItems.length+' articles' : 'No matches'} <i id="cem-chev-dr-news" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${_drugNewsSummary}</div>
-        <div class="cem-det" id="cem-det-dr-news">${_drugNewsDetail}</div>
-      </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
-          <div class="cem-sec-lbl">⚡ Strategic signals</div>
-          <div class="cem-sec-hint">${molData?'Enriched':'Pending'} <i id="cem-chev-dr-sigs" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${sigSummary}</div>
-        <div class="cem-det" id="cem-det-dr-sigs">${sigDetail}</div>
-      </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-rel')">
-          <div class="cem-sec-lbl">🔗 Relationship intelligence</div>
-          <div class="cem-sec-hint">${(areas||[]).length} areas <i id="cem-chev-dr-rel" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${relSummary}</div>
-        <div class="cem-det" id="cem-det-dr-rel">${relDetail}</div>
-      </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-gaps')">
-          <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
-          <div class="cem-sec-hint">${gaps.length} gaps <i id="cem-chev-dr-gaps" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${gapsSummary}</div>
-        <div class="cem-det" id="cem-det-dr-gaps">${gapsDetail}</div>
-      </div>
-      <div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
-          <div class="cem-sec-lbl">🛡 Sources & provenance</div>
-          <div class="cem-sec-hint">${_provRows.length ? _provRows.length+' documented' : 'per section'} <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${srcProvSummary || srcSummary}</div>
-        <div class="cem-det" id="cem-det-dr-src">
-          ${srcProvDetail}
-          <div class="cem-det-inner">
-          <div class="cem-det-title">Per-area source breakdown</div>
-          ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank" data-trusted="1">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_competitive_scores.</div>'}
-        </div></div>
-      </div>
-      ${_normTargets.length ? `<div class="cem-cell">
-        <div class="cem-sec-hdr" onclick="_cemToggle('dr-norm-tgt')">
-          <div class="cem-sec-lbl">🎯 Targets <span style="font-size:9px;font-weight:700;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">Normalized</span></div>
-          <div class="cem-sec-hint">${_normTargets.length} target${_normTargets.length!==1?'s':''} <i id="cem-chev-dr-norm-tgt" class="cem-chev">▶</i></div>
-        </div>
-        <div class="cem-sec-body">${normTargetsSummary}</div>
-        <div class="cem-det" id="cem-det-dr-norm-tgt">${normTargetsDetail}</div>
-      </div>` : ''}
+      ${_desigCellHtml}
+      ${_safetyCellHtml}
+      ${_congressCellHtml}
       ${_normInds.length ? `<div class="cem-cell">
         <div class="cem-sec-hdr" onclick="_cemToggle('dr-norm-ind')">
-          <div class="cem-sec-lbl">🩺 Indications <span style="font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px">Normalized</span></div>
+          <div class="cem-sec-lbl">🩺 Indications</div>
           <div class="cem-sec-hint">${_normInds.length} indication${_normInds.length!==1?'s':''} <i id="cem-chev-dr-norm-ind" class="cem-chev">▶</i></div>
         </div>
         <div class="cem-sec-body">${normIndsSummary}</div>
         <div class="cem-det" id="cem-det-dr-norm-ind">${normIndsDetail}</div>
       </div>` : ''}
-      ${(geoApprovals||[]).length ? (() => {
-        const _geo = geoApprovals || [];
-        const _geoSummary = _geo.slice(0,3).map(a => {
-          const _status = a.approval_status === 'approved' ? `<span style="font-size:9px;background:#dcfce7;color:#15803d;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">Approved</span>` : `<span style="font-size:9px;background:#f1f5f9;color:#64748b;border-radius:4px;padding:1px 5px;margin-left:4px">${a.approval_status||'—'}</span>`;
-          return `<div class="cem-item-row">
-            <div style="flex:1">
-              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-                <span style="font-size:11.5px;font-weight:600;color:#0f172a">${a.geography||'—'}</span>${_status}
-                ${a.brand_name?`<span style="font-size:10px;color:#7c3aed;font-weight:600;margin-left:4px">${a.brand_name}</span>`:''}
-              </div>
-              <div style="font-size:10px;color:#94a3b8;margin-top:1px">${[a.regulator, a.approval_date?a.approval_date.slice(0,10):''].filter(Boolean).join(' · ')}</div>
-            </div>
-          </div>`;
-        }).join('');
-        const _geoDetail = `<div class="cem-det-inner">
-          <div class="cem-det-title">All approvals — ${drugName}</div>
-          <table class="cem-tbl"><thead><tr><th>Geography</th><th>Brand Name</th><th>Regulator</th><th>Date</th><th>Indication</th></tr></thead><tbody>
-          ${_geo.map(a => `<tr>
-            <td style="font-weight:600">${a.geography||'—'}</td>
-            <td style="color:#7c3aed;font-weight:600">${a.brand_name||'—'}</td>
-            <td style="color:#64748b">${a.regulator||'—'}</td>
-            <td style="color:#64748b">${a.approval_date?a.approval_date.slice(0,10):'—'}</td>
-            <td style="color:#64748b;font-size:10px">${a.indication||'—'}</td>
-          </tr>`).join('')}
-          </tbody></table>
-        </div>`;
-        return `<div class="cem-cell">
-          <div class="cem-sec-hdr" onclick="_cemToggle('dr-geo-approvals')">
-            <div class="cem-sec-lbl">🌍 Geographic Approvals</div>
-            <div class="cem-sec-hint">${_geo.length} region${_geo.length!==1?'s':''} <i id="cem-chev-dr-geo-approvals" class="cem-chev">▶</i></div>
-          </div>
-          <div class="cem-sec-body">${_geoSummary}</div>
-          <div class="cem-det" id="cem-det-dr-geo-approvals">${_geoDetail}</div>
-        </div>`;
-      })() : ''}
-    </div>`;
+    </div>
+    <div style="margin-top:12px">${_endpointsCardHtml}</div>`;
 
-  // ── DRUG PROFILE TAB ──────────────────────────────────────────────────────
-  const _isApproved = /approv/i.test(phase);
-  const _SIG_STYLE_DR = {
-    conference:      { label:'CONF',    bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
-    clinical_update: { label:'READOUT', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
-    regulatory:      { label:'REG',     bg:'#fef2f2', color:'#b91c1c', border:'#fecaca' },
-    financing:       { label:'$',       bg:'#f0fdf4', color:'#065f46', border:'#a7f3d0' },
-    patent:          { label:'PATENT',  bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe' },
-    publication:     { label:'PUB',     bg:'#f5f3ff', color:'#4338ca', border:'#c7d2fe' },
-    licensing:       { label:'DEAL',    bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
-  };
-  const _drugProfileContent = (() => {
-    // Stat cards — approval-specific metrics
-    const _approvalDateContent = drug.approval_date ? (() => {
-      const entries = drug.approval_date.split(';').map(s => s.trim()).filter(Boolean);
-      if (entries.length <= 1) return `<span style="font-size:12px;font-weight:700;color:#0f172a">${drug.approval_date}</span>`;
-      const items = entries.map(e => `<li style="font-size:11px;font-weight:600;color:#1e293b;padding:1px 0">${e}</li>`).join('');
-      return `<ul style="margin:4px 0 0;padding-left:14px;list-style:disc;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px">${items}</ul>`;
-    })() : null;
-    const statCards = [
-      _approvalDateContent ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:4px">📅 Approval Dates</div>${_approvalDateContent}</div>` : '',
-      drug.annual_revenue ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#15803d;margin-bottom:4px">💰 Annual Revenue</div><span style="font-size:13px;font-weight:800;color:#0f172a">${drug.annual_revenue}</span></div>` : '',
-      drug.patient_population ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;flex:1;min-width:140px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:4px">👥 Patients on Therapy</div><span style="font-size:12px;font-weight:700;color:#0f172a">${drug.patient_population}</span></div>` : '',
-    ].filter(Boolean).join('');
-
-    // Endpoints as bullet list
-    const _endpointsContent = drug.final_endpoints ? (() => {
-      const entries = drug.final_endpoints.split(/;\s*|\.\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.length > 4);
-      if (entries.length <= 1) return `<p style="font-size:12px;color:#1e293b;line-height:1.6;margin:0">${drug.final_endpoints}</p>`;
-      return `<ul style="margin:0;padding-left:16px;list-style:disc">${entries.map(e => `<li style="font-size:11.5px;color:#1e293b;padding:3px 0;line-height:1.5">${e.replace(/\.$/, '')}</li>`).join('')}</ul>`;
-    })() : null;
-
-    const _cards = [
-      // Meridian Narrative — the prose read layer (derived from the graph, every clause cited).
-      // Filled asynchronously by _loadMeridianNarrative() after the modal renders.
-      `<div id="meridian-narrative-${drug.id||''}" class="meridian-narrative-host"></div>`,
-      drug.drug_summary ? `<div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:6px">📋 Summary</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.drug_summary}</p></div>` : '',
-      statCards ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${statCards}</div>` : '',
-      _endpointsContent ? `<div style="background:#fffdf0;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin-bottom:8px">⚗ Pivotal Endpoints</div>${_endpointsContent}</div>` : '',
-      drug.mechanism_detail ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0284c7;margin-bottom:6px">🔬 Mechanism &amp; Context</div><p style="font-size:12px;color:#1e293b;line-height:1.65;margin:0">${drug.mechanism_detail}</p></div>` : '',
-      drug.differentiation_thesis ? `<div style="background:#faf5ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px;margin-bottom:10px"><div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">⚡ Differentiation</div><p style="font-size:12px;color:#1e293b;font-weight:600;line-height:1.55;margin:0">${drug.differentiation_thesis}</p></div>` : '',
-    ].filter(Boolean);
-
-    if (!_cards.length) return '<div style="padding:20px 0;color:#94a3b8;font-size:12px;font-style:italic">No drug profile data enriched yet.</div>';
-    return `<div>${_cards.join('')}</div>`;
-  })();
-
-  // ── MOLECULE INTEL TAB ───────────────────────────────────────────────────
-  const _molDrugContent = molData ? (() => {
-    const fs = molData.field_status || {};
-    const _mbadge = s => {
-      if (!s || s === 'confirmed') return '';
-      const cfg = s === 'inferred'
-        ? { bg:'#fffbeb', co:'#b45309', bd:'#fde68a', lbl:'Inferred' }
-        : { bg:'#f8fafc', co:'#94a3b8', bd:'#e2e8f0', lbl:'Not disclosed' };
-      return `<span style="font-size:7.5px;font-weight:800;text-transform:uppercase;background:${cfg.bg};color:${cfg.co};border:1px solid ${cfg.bd};border-radius:4px;padding:1px 4px;margin-left:4px">${cfg.lbl}</span>`;
-    };
-    const mRow = (k, v, fk) => v ? `<div class="cem-fact"><span class="cem-fact-lbl">${k}</span><span class="cem-fact-val">${v}${_mbadge(fs[fk])}</span></div>` : '';
-    return `<div>
-      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px">
-        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:8px">Molecule Characterization</div>
-        ${mRow('Format',         molData.format,          'format')}
-        ${mRow('Modality',       molData.modality,        'modality')}
-        ${mRow('IgG subclass',   molData.igg_subclass,    'igg_subclass')}
-        ${mRow('Fc engineering', molData.fc_engineering,  'fc_engineering')}
-        ${mRow('Epitope',        molData.epitope,         'epitope')}
-        ${mRow('Affinity (KD)',  molData.affinity_kd,     'affinity_kd')}
-        ${mRow('Half-life',      molData.half_life,       'half_life')}
-        ${mRow('Dosing interval',molData.dosing_interval, 'dosing_interval')}
+  // ── 3 · BUSINESS — deals, payer economics, IP, market footprint ───────────
+  const _businessCells = [
+    hasDeal ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-deals')">
+        <div class="cem-sec-lbl">🤝 BD deals</div>
+        <div class="cem-sec-hint">${_allDeals.length>0?_allDeals.length+' deal'+(_allDeals.length!==1?'s':''):'on record'} <i id="cem-chev-dr-deals" class="cem-chev">▶</i></div>
       </div>
-      ${molData.differentiation_claim ? `<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 14px">
-        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:6px">Differentiation Claim ${_mbadge(fs.differentiation_claim)}</div>
-        <p style="font-size:12px;color:#1e293b;font-style:italic;line-height:1.5;margin:0">${molData.differentiation_claim}</p>
-      </div>` : ''}
-      ${molData.safety_observations ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-top:10px">
-        <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#c2410c;margin-bottom:6px">Safety Observations</div>
-        <p style="font-size:12px;color:#1e293b;line-height:1.5;margin:0">${molData.safety_observations}</p>
-      </div>` : ''}
-    </div>`;
-  })() : '<div style="padding:20px 0;color:#94a3b8;font-size:12px;font-style:italic">Molecule intelligence not yet profiled — runs automatically with enrichment pipeline.</div>';
+      <div class="cem-sec-body">${bdDealsSummary}</div>
+      <div class="cem-det" id="cem-det-dr-deals">${bdDealsDetail}</div>
+    </div>` : '',
+    _payerCellHtml,
+    _ipCellHtml,
+    _geoCellHtml,
+  ].filter(Boolean).join('');
+  const _businessContent = (_bizStatCardsHtml || _businessCells)
+    ? `${_bizStatCardsHtml}${_businessCells ? `<div class="cem-grid">${_businessCells}</div>` : ''}`
+    : '<div style="padding:20px 0;color:#94a3b8;font-size:12px;font-style:italic">No business intelligence on record yet — deals, payer pricing, and IP populate here as they are collected.</div>';
 
-  // ── Assemble tabs ────────────────────────────────────────────────────────
-  const _profileTabLabel = _isApproved ? 'Approved Drug' : 'Drug Profile';
-  // Intelligence tab — lazy-loaded on first activation (populated by _demLoadIntelligence)
-  const _intelDrugContent = `<div id="cem-dtab-intel-panel" style="min-height:120px"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Activate tab to load intelligence…</div></div>`;
+  // ── 4 · INTELLIGENCE — the Meridian read ──────────────────────────────────
+  const _intelligenceCells = [
+    _drugCatalysts.length ? `<div class="cem-cell" style="grid-column:1/-1">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-catalysts')">
+        <div class="cem-sec-lbl">📅 Upcoming catalysts</div>
+        <div class="cem-sec-hint">${_drugCatalysts.length} upcoming <i id="cem-chev-dr-catalysts" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${_catalystSummary}</div>
+      <div class="cem-det" id="cem-det-dr-catalysts">${_catalystDetail}</div>
+    </div>` : '',
+    (areas||[]).length ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-rel')">
+        <div class="cem-sec-lbl">🔗 Competitive position</div>
+        <div class="cem-sec-hint">${(areas||[]).length} area${(areas||[]).length!==1?'s':''} <i id="cem-chev-dr-rel" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${relSummary}</div>
+      <div class="cem-det" id="cem-det-dr-rel">${relDetail}</div>
+    </div>` : '',
+    (bdAngle || riskSum) ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-sigs')">
+        <div class="cem-sec-lbl">⚡ Strategic signals</div>
+        <div class="cem-sec-hint">Enriched <i id="cem-chev-dr-sigs" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${sigSummary}</div>
+      <div class="cem-det" id="cem-det-dr-sigs">${sigDetail}</div>
+    </div>` : '',
+    _drugNewsItems.length ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-news')">
+        <div class="cem-sec-lbl">📰 Recent coverage</div>
+        <div class="cem-sec-hint">${_drugNewsItems.length} article${_drugNewsItems.length!==1?'s':''} <i id="cem-chev-dr-news" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${_drugNewsSummary}</div>
+      <div class="cem-det" id="cem-det-dr-news">${_drugNewsDetail}</div>
+    </div>` : '',
+    _nrCellHtml,
+    gaps.length ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-gaps')">
+        <div class="cem-sec-lbl">⚠ Knowledge gaps</div>
+        <div class="cem-sec-hint">${gaps.length} gap${gaps.length!==1?'s':''} <i id="cem-chev-dr-gaps" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${gapsSummary}</div>
+      <div class="cem-det" id="cem-det-dr-gaps">${gapsDetail}</div>
+    </div>` : '',
+    (_provRows.length || (areas||[]).some(a => a.source_url)) ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-src')">
+        <div class="cem-sec-lbl">🛡 Sources &amp; provenance</div>
+        <div class="cem-sec-hint">${_provRows.length ? _provRows.length+' documented' : 'per area'} <i id="cem-chev-dr-src" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body">${srcProvSummary || '<div style="font-size:11px;color:#475569">Per-area primary sources documented below.</div>'}</div>
+      <div class="cem-det" id="cem-det-dr-src">
+        ${srcProvDetail}
+        <div class="cem-det-inner">
+        <div class="cem-det-title">Per-area source breakdown</div>
+        ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank" rel="noopener" data-trusted="1">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_competitive_scores.</div>'}
+      </div></div>
+    </div>` : '',
+  ].filter(Boolean).join('');
+
+  const _intelligenceContent = `
+    ${_cascadeRiskHtml}
+    ${interpHtml}
+    ${_diffCardHtml}
+    ${_molDiffClaimCardHtml}
+    ${_intelligenceCells ? `<div class="cem-grid">${_intelligenceCells}</div>` : ''}
+    <div id="cem-dtab-intel-panel" style="min-height:120px;margin-top:12px"><div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;font-style:italic">Loading deep intelligence profile…</div></div>`;
+
+  // ── Assemble — canonical four-section Drug Card IA ────────────────────────
   const _drugTabs = [
-    { id:'cem-dtab-overview', label:'Overview' },
-    { id:'cem-dtab-profile',  label:_profileTabLabel },
-    { id:'cem-dtab-molecule', label:'Molecule' },
+    { id:'cem-dtab-overview', label:'Asset Overview' },
+    { id:'cem-dtab-profile',  label:'Development' },
+    { id:'cem-dtab-molecule', label:'Business' },
     { id:'cem-dtab-intel',    label:'Intelligence' },
   ];
   const _drugPanels = [
-    { id:'cem-dtab-overview', content: _overviewDrugContent },
-    { id:'cem-dtab-profile',  content: _drugProfileContent },
-    { id:'cem-dtab-molecule', content: _molDrugContent },
-    { id:'cem-dtab-intel',    content: _intelDrugContent },
+    { id:'cem-dtab-overview', content: _assetOverviewContent },
+    { id:'cem-dtab-profile',  content: _developmentContent },
+    { id:'cem-dtab-molecule', content: _businessContent },
+    { id:'cem-dtab-intel',    content: _intelligenceContent },
   ];
   return _buildDossierShell(_drugTabs, _drugPanels);
 }
@@ -15336,9 +15513,100 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     ${_acquiredSubs.map(s => `<span onclick="openCompanyEntityModal('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:white;border:1px solid #bbf7d0;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;color:#1d4ed8;white-space:nowrap"><span style="font-size:8px;font-weight:800;text-transform:uppercase;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px">ACQUIRED</span>${s.name||s.id}</span>`).join('')}
   </div>` : '';
 
+  // ── New data layers (2026-06-07) — financials banner, leadership line, and
+  //    SEC events / patent estate / asset-transfer cells. Render only when non-empty.
+  const _coXLink = (html, url) => url ? `<a class="cem-link" href="${url}" target="_blank" rel="noopener">${html}</a>` : html;
+  const _coUsd = v => { const n = +v; if (!n || isNaN(n)) return ''; return n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(0)}M` : `$${Math.round(n).toLocaleString()}`; };
+
+  // Financials banner — cash, runway chip, burn (company_financials, SEC XBRL)
+  const _coFin = sbData?.financials || null;
+  const _finBits = [];
+  if (_coFin) {
+    if (_coFin.cash_and_equivalents) _finBits.push(`Cash ${_coUsd(_coFin.cash_and_equivalents)}${_coFin.cash_as_of?` <span style="color:#94a3b8;font-weight:400">(as of ${_coFin.cash_as_of.slice(0,7)})</span>`:''}`);
+    if (_coFin.runway_quarters != null) {
+      const _rq = Math.round(_coFin.runway_quarters * 10) / 10;
+      const _rqCol = _rq < 4 ? '#b91c1c' : _rq < 8 ? '#b45309' : '#15803d';
+      _finBits.push(`<span style="font-weight:800;color:${_rqCol}">Runway: ${_rq} quarters</span>`);
+    }
+    if (_coFin.quarterly_burn) _finBits.push(`Burn ${_coUsd(_coFin.quarterly_burn)}/qtr`);
+  }
+  const _finBannerHtml = _finBits.length ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #0891b2;border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:11.5px;color:#1e293b">
+    <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0891b2">💰 Financials</span>
+    ${_finBits.join(' <span style="color:#cbd5e1">·</span> ')}
+    ${_coFin?.source_url ? `<a href="${_coFin.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8;text-decoration:none;margin-left:auto">SEC ↗</a>` : ''}
+  </div>` : '';
+
+  // Leadership one-liner (company_personnel)
+  const _coPers = sbData?.personnel || [];
+  const _persRank = { ceo:0, president:1, cso:2, cmo:3, cfo:4, coo:5, cbo:6 };
+  const _persSorted = [..._coPers].sort((a,b) => (_persRank[a.role_category] ?? 9) - (_persRank[b.role_category] ?? 9));
+  const _leadershipHtml = _coPers.length ? `<div style="font-size:11px;color:#475569;margin:0 2px 10px">👥 <span style="font-weight:700">Leadership:</span> ${_persSorted.slice(0,5).map(p =>
+    `${_coXLink(p.person_name||'', p.source_url)}${p.role_category ? ` <span style="color:#94a3b8">(${(p.role_category||'').toUpperCase()})</span>` : (p.role ? ` <span style="color:#94a3b8">(${p.role})</span>` : '')}`
+  ).join(' · ')}${_coPers.length > 5 ? ` <span style="color:#94a3b8">+${_coPers.length-5} more</span>` : ''}</div>` : '';
+
+  // SEC filings & events cell (company_events, event_type ≠ 'other')
+  const _coSecEv = sbData?.secEvents || [];
+  const _SEC_EV_STYLE = {
+    financing:        { lbl:'FINANCING',  bg:'#f0fdf4', co:'#065f46' },
+    financial_update: { lbl:'FINANCIALS', bg:'#f8fafc', co:'#475569' },
+    leadership:       { lbl:'LEADERSHIP', bg:'#faf5ff', co:'#7c3aed' },
+    pipeline:         { lbl:'PIPELINE',   bg:'#eff6ff', co:'#1d4ed8' },
+    deal:             { lbl:'DEAL',       bg:'#fff7ed', co:'#c2410c' },
+    m_and_a:          { lbl:'M&A',        bg:'#fef2f2', co:'#991b1b' },
+  };
+  const _secEventsCellHtml = _coSecEv.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">🏛 SEC events</div><div class="cem-sec-hint">last ${_coSecEv.length}</div></div>
+    <div class="cem-sec-body">${_coSecEv.map(e => {
+      const sty = _SEC_EV_STYLE[e.event_type] || { lbl:(e.event_type||'EVENT').toUpperCase().slice(0,10), bg:'#f8fafc', co:'#64748b' };
+      const dil = e.is_dilutive ? ' <span style="font-size:8px;font-weight:700;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 4px">dilutive</span>' : '';
+      return `<div class="cem-item-row" style="align-items:flex-start">
+        <span style="font-size:8px;font-weight:700;background:${sty.bg};color:${sty.co};border-radius:4px;padding:2px 5px;flex-shrink:0;margin-top:1px">${sty.lbl}</span>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#1e293b;line-height:1.4">${_coXLink((e.event_summary||e.event_subtype||'SEC filing').slice(0,120)+((e.event_summary||'').length>120?'…':''), e.source_url)}${dil}</div>
+          <div style="font-size:9.5px;color:#94a3b8;margin-top:1px">${[e.form_type, e.filing_date?e.filing_date.slice(0,10):''].filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>` : '';
+
+  // Patent estate cell (company_patents) — count by matched target + top 3 titles
+  const _coPats2 = sbData?.companyPatents || [];
+  const _patByTarget = {};
+  _coPats2.forEach(p => { if (p.matched_target) _patByTarget[p.matched_target] = (_patByTarget[p.matched_target]||0) + 1; });
+  const _patTargetChips = Object.entries(_patByTarget).sort((a,b) => b[1]-a[1]).slice(0,6)
+    .map(([t,n]) => `<span style="font-size:9.5px;font-weight:700;background:#faf5ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;padding:2px 8px;white-space:nowrap">${t.toUpperCase()} × ${n}</span>`).join(' ');
+  const _patentsCellHtml = _coPats2.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">📜 Patent estate</div><div class="cem-sec-hint">${_coPats2.length} recent</div></div>
+    <div class="cem-sec-body">
+      ${_patTargetChips ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${_patTargetChips}</div>` : ''}
+      ${_coPats2.slice(0,3).map(p => `<div class="cem-item-row" style="flex-direction:column;gap:1px;align-items:flex-start">
+        <div style="font-size:11px;font-weight:600;color:#0f172a;line-height:1.35">${_coXLink((p.patent_title||p.patent_number||'Patent').slice(0,100), p.source_url)}</div>
+        <div style="font-size:9.5px;color:#94a3b8">${[p.patent_number, p.grant_year ? 'granted '+p.grant_year : (p.patent_date ? 'published '+String(p.patent_date).slice(0,4) : '')].filter(Boolean).join(' · ')}</div>
+      </div>`).join('')}
+    </div>
+  </div>` : '';
+
+  // Asset transfer chains cell (asset_transfer_history involving this company)
+  const _coTransfers = sbData?.transferChains || [];
+  const _TT_SHORT = { license:'lic.', sublicense:'sub-lic.', acquisition:'acq.', co_development:'co-dev', spin_out:'spin-out', internal:'internal', merger:'merger' };
+  const _transfersCellHtml = _coTransfers.length ? `<div class="cem-cell">
+    <div class="cem-sec-hdr"><div class="cem-sec-lbl">🔁 Asset transfers</div><div class="cem-sec-hint">${_coTransfers.length}</div></div>
+    <div class="cem-sec-body">${_coTransfers.slice(0,5).map(t => {
+      const _drugLnk = t.drug_id ? `<span style="font-weight:700;color:#1d4ed8;cursor:pointer" onclick="openDrugEntityModal('${t.drug_id}','${(t.drug_id||'').replace(/'/g,"\\'")}',event)">${t.drug_id}</span>` : '';
+      const _meth = `${_TT_SHORT[t.transfer_type]||t.transfer_type||''}${t.geographic_scope && t.geographic_scope!=='global' ? ' '+t.geographic_scope : ''}`;
+      const _line = `${t.from_entity_name||'?'} <span style="color:#cbd5e1">→</span> ${t.to_entity_name||'?'} <span style="font-size:9px;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 4px">${_meth}</span>`;
+      return `<div class="cem-item-row" style="flex-direction:column;gap:1px;align-items:flex-start">
+        <div style="font-size:11px;color:#1e293b">${_drugLnk}${_drugLnk?' — ':''}${t.source_url ? _coXLink(_line, t.source_url) : _line}</div>
+        <div style="font-size:9.5px;color:#94a3b8">${[t.transfer_date?t.transfer_date.slice(0,7):'', t.deal_value_notes].filter(Boolean).join(' · ')}${t.verified===false?' · unverified':''}</div>
+      </div>`;
+    }).join('')}</div>
+  </div>` : '';
+
   const _overviewContent = `<div>
     ${_seqBannerHtml}
     ${_subsBannerHtml}
+    ${_finBannerHtml}
+    ${_leadershipHtml}
     ${statsHtml}
     ${interpHtml}
     <div class="cem-grid">
@@ -15378,10 +15646,13 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
         <div class="cem-det" id="cem-det-co-src"><div class="cem-det-inner">
           <div class="cem-det-title">Source breakdown — ${companyName}</div>
           <div class="cem-fact"><span class="cem-fact-lbl">Last enriched</span><span class="cem-fact-val">${profile.last_enriched_at?profile.last_enriched_at.slice(0,10):'Not yet'}</span></div>
-          <div class="cem-fact"><span class="cem-fact-lbl">Profile ID</span><span class="cem-fact-val">${profile.id||'—'}</span></div>
+          <!-- DEPRECATED 2026-06-07 — Profile ID row removed from display (raw internal id, debug plumbing) -->
           <div class="cem-fact"><span class="cem-fact-lbl">Area context</span><span class="cem-fact-val">${areaLabel}</span></div>
         </div></div>
       </div>
+      ${_secEventsCellHtml}
+      ${_patentsCellHtml}
+      ${_transfersCellHtml}
     </div>
   </div>`;
 
@@ -15867,6 +16138,33 @@ function _entityModalBodyHTML(profiles, cats, drugs, deals, trials) {
 }
 
 /* ─── Drug modal  ─────────────────────────────────────────────────────────── */
+/* ── trial_facts → legacy trial display shape (2026-06-07) ─────────────────
+   The drug modal now reads `trial_facts` (CT.gov-derived) instead of legacy
+   `trials`. trial_facts column gotchas: trial_title (not title),
+   primary_completion_date (not completion_date), conditions/primary_endpoints
+   are arrays. This mapper normalizes to the field names the renderer expects. */
+function _mapTrialFactRow(r) {
+  const _phaseLbl = (r.phase || '')
+    .replace(/^EARLY_PHASE(\d)/i, 'Early Ph $1')
+    .replace(/^PHASE(\d)$/i, 'Phase $1')
+    .replace(/_/g, '/').replace(/PHASE(\d)/gi, 'Ph $1') || '';
+  const _statusLbl = r.status ? r.status.charAt(0) + r.status.slice(1).toLowerCase().replace(/_/g, ' ') : '';
+  return {
+    id: r.id,
+    nct_id: r.nct_id,
+    trial_name: r.trial_title || r.nct_id || '',
+    phase: _phaseLbl,
+    status: _statusLbl,
+    indication: Array.isArray(r.conditions) ? r.conditions.slice(0, 2).join(', ') : (r.conditions || ''),
+    n_enrollment: r.enrollment,
+    start_date: r.start_date || null,
+    completion_date: r.primary_completion_date || null,
+    why_stopped: r.why_stopped || null,
+    primary_endpoint: Array.isArray(r.primary_endpoints) ? r.primary_endpoints.join('; ') : (r.primary_endpoints || ''),
+    source_url: r.source_url || (r.nct_id ? `https://clinicaltrials.gov/study/${r.nct_id}` : null),
+  };
+}
+
 async function openDrugEntityModal(drugId, drugName, evt) {
   if (evt) { evt.stopPropagation(); evt.preventDefault(); }
   const overlay  = document.getElementById('entity-modal-overlay');
@@ -15894,10 +16192,13 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     // Primary lookup by ID; if ID is a static placeholder (starts with "static-") skip it
     const isStaticId = !drugId || String(drugId).startsWith('static-');
     // C1 — primary fetch: drug_competitive_scores (migrated from drug_area_scores, Session 64)
+    // 2026-06-07: trials source switched legacy `trials` → `trial_facts` (CT.gov-derived, fresher).
+    // Rows are normalized to the legacy display shape via _mapTrialFactRow.
+    const _TRIAL_FACT_COLS = 'id,nct_id,trial_title,phase,status,enrollment,conditions,primary_endpoints,start_date,primary_completion_date,why_stopped,source_url,lead_sponsor';
     const [drugRes, scoreRes0, trialRes0, molRes0, srcRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trials').select('*').eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trial_facts').select(_TRIAL_FACT_COLS).eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_sources').select('claim_type,claim_value,source_url,source_type,source_domain,content_confirms_claim,confidence').eq('drug_id', drugId),
     ]);
@@ -15955,7 +16256,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     }
     // ── END DUAL-READ HARNESS ─────────────────────────────────────────────────
 
-    let trials  = trialRes0.data     || [];
+    let trials  = (trialRes0.data || []).map(_mapTrialFactRow);
     let molData = molRes0.data?.[0]  || null;
 
     // If no drug found by ID (static placeholder or stale ID), fall back to name search
@@ -15973,7 +16274,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
         const rid = drug.id;
         const [sr, tr, mr] = await Promise.all([
           _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', rid),
-          _sb.from('trials').select('*').eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
+          _sb.from('trial_facts').select(_TRIAL_FACT_COLS).eq('drug_id', rid).order('phase', {ascending:false}).limit(20),
           _sb.from('molecule_intelligence').select('*').eq('drug_id', rid).limit(1),
         ]);
         areas = (sr.data || []).map(s => ({
@@ -15985,7 +16286,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
           source_url: s.source_url || null,
           vs_ailux: s.vs_ailux || null,
         }));
-        trials  = tr.data    || [];
+        trials  = (tr.data || []).map(_mapTrialFactRow);
         molData = mr.data?.[0] || null;
       }
     }
@@ -16093,6 +16394,33 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       }
     } catch(_) {}
 
+    // ── New data layers (2026-06-07) — payer pricing, IP, regulatory designations,
+    //    safety/labels, congress presence, PK, non-responder biology ─────────────
+    //    All fetched in one parallel batch; each section renders only when non-empty.
+    let extData = { payer:[], patents:[], patentFamilies:[], designations:[], safety:[], labels:[], abstracts:[], pk:[], nonResponders:[] };
+    try {
+      const _nlId = drug?.id || drugId;
+      if (_nlId && !String(_nlId).startsWith('static-')) {
+        const [ppR, dpR, pfR, rdR, dsR, dlR, caR, pkR, nrR] = await Promise.all([
+          _sb.from('payer_pricing').select('source,metric,value_numeric,unit,year,source_url').eq('drug_id', _nlId).order('year', {ascending:false}).limit(60),
+          _sb.from('drug_patents').select('patent_no,patent_expire_date,drug_substance_flag,patent_use_code,source_url').eq('drug_id', _nlId).order('patent_expire_date', {ascending:true}).limit(40),
+          _sb.from('patent_families').select('family_doc_id,jurisdiction').eq('drug_id', _nlId).limit(200),
+          _sb.from('regulatory_designations').select('designation_type,indication,granted_date,granting_authority').eq('drug_id', _nlId).order('granted_date', {ascending:false}).limit(20),
+          _sb.from('drug_safety').select('warning_type,description,source_url').eq('drug_id', _nlId).limit(10),
+          // drug_labels gotcha: no `spl_url` column — link target is source_url (DailyMed) with set_url fallback
+          _sb.from('drug_labels').select('label_title,marketing_status,set_url,source_url').eq('drug_id', _nlId).limit(2),
+          _sb.from('conference_abstracts').select('title,conference,conference_year,doi,source_url').eq('drug_id', _nlId).order('conference_year', {ascending:false}).limit(3),
+          _sb.from('drug_pk_parameters').select('dose_mg,dose_route,half_life_hours,steady_state_weeks,immunogenicity_ada_pct,verified,source_url').eq('drug_id', _nlId).limit(3),
+          _sb.from('non_responder_profiles').select('indication_id,mechanism_class,non_responder_rate_pct,line_of_therapy,escape_mechanism_text').eq('drug_id', _nlId).limit(4),
+        ]);
+        extData = {
+          payer: ppR.data || [], patents: dpR.data || [], patentFamilies: pfR.data || [],
+          designations: rdR.data || [], safety: dsR.data || [], labels: dlR.data || [],
+          abstracts: caR.data || [], pk: pkR.data || [], nonResponders: nrR.data || [],
+        };
+      }
+    } catch(_nlErr) { console.warn('[drugModal-newlayers]', _nlErr?.message); }
+
     // ── Phase 5 Candidate 3 — Drug modal normalized source ─────────────────────
     // When FEATURE_FLAGS.useNormalizedDrugModal=true: fetch drug_targets,
     // drug_indications, and trial_indications (via trial IDs) for display in the
@@ -16110,13 +16438,16 @@ async function openDrugEntityModal(drugId, drugName, evt) {
           const _nTargets = _dtR.data || [];
           const _nInds    = _diR.data || [];
           let   _nTrialInds = [];
-          if (trials.length) {
-            const _tIds = trials.map(t => t.id).slice(0, 30);
-            const { data: _tiData } = await _sb.from('trial_indications')
-              .select('trial_id,indication_id,confidence_score')
-              .in('trial_id', _tIds);
-            _nTrialInds = _tiData || [];
-          }
+          // DEPRECATED 2026-06-07 — trial_indications is keyed by legacy trials.id;
+          // the modal now reads trial_facts (different UUIDs), so this lookup can no
+          // longer match. trial_facts.conditions now supplies per-trial indication text.
+          // if (trials.length) {
+          //   const _tIds = trials.map(t => t.id).slice(0, 30);
+          //   const { data: _tiData } = await _sb.from('trial_indications')
+          //     .select('trial_id,indication_id,confidence_score')
+          //     .in('trial_id', _tIds);
+          //   _nTrialInds = _tiData || [];
+          // }
           normData = { targets: _nTargets, indications: _nInds, trialInds: _nTrialInds };
         } catch(_normErr) {
           console.warn('[drugModal-norm] normalized fetch error:', _normErr?.message);
@@ -16130,7 +16461,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     window._cemCurrentDrugCompanyId = drug?.company_id || null;
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData);
 
     // ── Meridian Narrative (prose read layer) — non-blocking load into placeholder
     if (drug?.id) _loadMeridianNarrative(drug.id);
@@ -16140,33 +16471,19 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     if (drug?.id && !isStaticId && _sb) {
       (async () => {
         try {
-          const [cbRes, pkRes, bmRes] = await Promise.all([
+          // DEPRECATED 2026-06-07 — drug_pk_parameters fetch + "PK Profile" block removed
+          // from this lazy injector: PK now renders statically in the Development section
+          // of the canonical Drug Card IA (built in _cemDrugBody from extData.pk).
+          const [cbRes, bmRes] = await Promise.all([
             _sb.from('drug_clinical_benchmarks').select('*').eq('drug_id', drug.id).order('indication_id').limit(20),
-            _sb.from('drug_pk_parameters').select('*').eq('drug_id', drug.id).limit(10),
             _sb.from('drug_biomarkers').select('*').eq('drug_id', drug.id).limit(15),
           ]);
           const cb = cbRes?.data || [];
-          const pk = pkRes?.data || [];
           const bm = bmRes?.data || [];
-          if (!cb.length && !pk.length && !bm.length) return;
+          if (!cb.length && !bm.length) return;
 
           let clinHtml = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
           clinHtml += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#6366f1;margin-bottom:8px">📊 Clinical Intelligence</div>';
-
-          // PK Profile
-          if (pk.length) {
-            clinHtml += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">PK Profile</div>';
-            pk.forEach(p => {
-              const hl = p.half_life_hours ? `<span style="color:#7c3aed;font-weight:700">${(p.half_life_hours/24).toFixed(1)}d t½</span>` : '';
-              const dose = [p.dose_mg ? p.dose_mg+'mg' : '', p.dose_route||''].filter(Boolean).join(' ');
-              const ada  = p.immunogenicity_ada_pct != null ? `<span style="color:#94a3b8;font-size:10px">${p.immunogenicity_ada_pct}% ADA</span>` : '';
-              const conf = p.verified ? '<span style="color:#22c55e;font-size:9px">✓</span>' : '<span style="color:#94a3b8;font-size:9px">~</span>';
-              const note = p.notes ? `<span style="color:#94a3b8;font-size:10px;display:block;margin-top:2px">${p.notes.substring(0,120)}</span>` : '';
-              clinHtml += `<div style="font-size:11px;color:#374151;padding:5px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;margin-bottom:4px">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${conf}${dose ? `<span style="font-weight:600">${dose}</span>` : ''}${hl}${ada}</div>${note}</div>`;
-            });
-            clinHtml += '</div>';
-          }
 
           // Efficacy Benchmarks
           if (cb.length) {
@@ -16205,7 +16522,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
 
           clinHtml += '</div>';
 
-          // Inject into Drug Profile tab panel
+          // Inject into the Development panel (canonical Drug Card IA, 2026-06-07)
           const profilePanel = document.getElementById('cem-dtab-profile');
           if (profilePanel) profilePanel.insertAdjacentHTML('beforeend', clinHtml);
         } catch(_clinErr) {
@@ -16214,8 +16531,11 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       })();
     }
 
-    // ── Lazy-load Payer + Non-Responder Intelligence ──────────────────────────
-    // Injects payer TPP criteria and non-responder profiles into Overview tab
+    // ── Lazy-load Payer TPP Intelligence ──────────────────────────────────────
+    // Injects payer TPP criteria into the Business panel (canonical Drug Card IA).
+    // DEPRECATED 2026-06-07 — non_responder_profiles fetch + render removed from this
+    // injector: non-responder biology now renders statically in the Intelligence
+    // section (built in _cemDrugBody from extData.nonResponders).
     if (drug?.id && !isStaticId && _sb) {
       (async () => {
         try {
@@ -16225,13 +16545,9 @@ async function openDrugEntityModal(drugId, drugName, evt) {
           const indIds = (drugInds||[]).map(r => r.indication_id).filter(Boolean);
           if (!indIds.length) return;
 
-          const [tppRes, nrRes] = await Promise.all([
-            _sb.from('payer_tpp_criteria').select('*').in('indication_id', indIds).limit(15),
-            _sb.from('non_responder_profiles').select('*').eq('drug_id', drug.id).limit(6),
-          ]);
-          const tpp = tppRes?.data || [];
-          const nr  = nrRes?.data  || [];
-          if (!tpp.length && !nr.length) return;
+          const { data: tppRows } = await _sb.from('payer_tpp_criteria').select('*').in('indication_id', indIds).limit(15);
+          const tpp = tppRows || [];
+          if (!tpp.length) return;
 
           let payerHtml = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
           payerHtml += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0891b2;margin-bottom:8px">💊 Payer & Access Intelligence</div>';
@@ -16257,29 +16573,14 @@ async function openDrugEntityModal(drugId, drugName, evt) {
             payerHtml += '</div>';
           }
 
-          // Non-Responder Profiles
-          if (nr.length) {
-            payerHtml += '<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Non-Responder Biology</div>';
-            nr.forEach(r => {
-              const rate = r.non_responder_rate_pct != null ? `${r.non_responder_rate_pct}% NR` : '';
-              const esc  = r.escape_mechanism_text ? r.escape_mechanism_text.substring(0,120) : '';
-              payerHtml += `<div style="padding:5px 8px;background:#fff7ed;border-left:2px solid #fb923c;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px">
-                <div style="display:flex;gap:8px;align-items:center">
-                  <span style="font-weight:700;color:#c2410c">${r.mechanism_class||'?'}</span>
-                  ${rate ? `<span style="color:#94a3b8">${rate}</span>` : ''}
-                  <span style="color:#94a3b8;font-size:10px">${r.line_of_therapy||''}</span>
-                </div>
-                ${esc ? `<div style="color:#78350f;font-size:10px;margin-top:2px">${esc}</div>` : ''}
-              </div>`;
-            });
-            payerHtml += '</div>';
-          }
+          // DEPRECATED 2026-06-07 — Non-Responder Profiles block removed (see note at top
+          // of this injector): now rendered statically in the Intelligence section.
 
           payerHtml += '</div>';
 
-          // Inject into Overview tab panel
-          const overviewPanel = document.getElementById('cem-dtab-overview');
-          if (overviewPanel) overviewPanel.insertAdjacentHTML('beforeend', payerHtml);
+          // Inject into the Business panel (canonical Drug Card IA, 2026-06-07)
+          const businessPanel = document.getElementById('cem-dtab-molecule');
+          if (businessPanel) businessPanel.insertAdjacentHTML('beforeend', payerHtml);
         } catch(_payerErr) {
           console.warn('[drugModal-payer]', _payerErr?.message);
         }
