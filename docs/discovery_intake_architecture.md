@@ -98,7 +98,7 @@ Akeso and Hengenix Biotech are **peer competitors** to Keymed Biosciences — bo
 3. If the classification is wrong, override via the dropdown (e.g., change to `licensor` if a deal was announced)
 4. Click Approve — the override is persisted to `discovery_queue.relationship_type` before promotion
 
-**Migration required (v10):** Run `scripts/migrations/v10_relationship_fields.sql` in the Supabase SQL editor before the next enrichment run.
+**Migration required (v10):** Run `migrations/v10_relationship_fields.sql` in the Supabase SQL editor before the next enrichment run.
 
 ---
 

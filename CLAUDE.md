@@ -103,7 +103,7 @@ git add -A && git commit -m "description" && git push
 - `scripts/company_enrichment.py` — company/drug enrichment pipeline (ENRICHMENT_SYSTEM prompt)
 - `scripts/research.py` — nightly news intelligence pipeline
 - `scripts/molecule_enrichment.py` — molecule characterization pipeline
-- `migrations/schema_migration_governance_v1.sql` — governance_violations table DDL (needs manual apply)
+- `migrations/legacy/schema_migration_governance_v1.sql` — governance_violations table DDL (needs manual apply)
 - `scripts/apply_governance_violations.py` — applies the above migration + verifies
 
 ## Governance Violations Table

@@ -508,6 +508,6 @@ The dashboard has no staleness indicator except `company.last_verified` shown in
 | 9 | **Low** | workflow | `pip install anthropic requests` unpinned — silent breakage risk | ✅ **FIXED** (needs `workflow` token to deploy — see note below) |
 | 10 | **Low** | workflow | Identity health check only runs for `area=all` manual dispatches, not single-area manual runs | ✅ **FIXED** (needs `workflow` token to deploy — see note below) |
 
-**Schema action required:** Run `schema_migration_v7.sql` in the Supabase SQL editor to add `DEFAULT 'pending'` to `research_queue.assigned_status`. Without this, the Bug #1 fix will fail on new row inserts (NOT NULL violation).
+**Schema action required:** Run `migrations/legacy/v7_research_queue_default.sql` in the Supabase SQL editor to add `DEFAULT 'pending'` to `research_queue.assigned_status`. Without this, the Bug #1 fix will fail on new row inserts (NOT NULL violation).
 
 **Workflow deploy note (Bugs #9 + #10):** The GitHub token currently has `repo` scope only. Modifying `.github/workflows/` requires `workflow` scope. The fixed `company-enrichment.yml` is ready in the workspace — apply via GitHub web editor or create a new PAT with `workflow` scope and re-run the deploy script. Changes: `pip install -r scripts/requirements.txt` (Bug #9) and a new `[Manual] Identity health check (single area)` step (Bug #10).

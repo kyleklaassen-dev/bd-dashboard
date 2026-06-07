@@ -56,7 +56,7 @@ python3 scripts/apply_governance_violations.py
 ```
 
 **Files**:
-- `migrations/schema_migration_governance_v1.sql` — DDL + seed data
+- `migrations/legacy/schema_migration_governance_v1.sql` — DDL + seed data
 - `scripts/apply_governance_violations.py` — migration runner with verification
 
 ### Violations Found (2026-05-27 audit)
@@ -129,7 +129,7 @@ Added `GOVERNANCE RULES FOR DEAL EXTRACTION` to `EXTRACT_PROMPT`. Rules clarify:
 
 ## Pending Actions (not automated)
 
-1. **Apply governance_violations migration**: Run `python3 scripts/apply_governance_violations.py` or paste `migrations/schema_migration_governance_v1.sql` into Supabase SQL editor
+1. **Apply governance_violations migration**: Run `python3 scripts/apply_governance_violations.py` or paste `migrations/legacy/schema_migration_governance_v1.sql` into Supabase SQL editor
 2. **Fix brand_name violations**: Clear the 5 brand_name placeholders (dash values) from the drugs table
 3. **Add source_urls to deals 198 and 201**: Agenus→Spyre and Lanova→Zymeworks
 4. **Add source_url column to company_partnerships**: Current schema lacks this field; violations tracked via deals table as proxy

@@ -186,7 +186,7 @@ All 6 are Novartis drugs. Enrichment ran with company-level autoimmune context a
 ## Action Plan
 
 ### Phase 1: Safe Deletes (56 rows)
-Apply the SQL in `migrations/wrong_area_cleanup.sql`. These are all clearly wrong-area enrichment artifacts with no BD relevance in the assigned area.
+Apply the SQL in `migrations/maintenance/wrong_area_cleanup.sql`. These are all clearly wrong-area enrichment artifacts with no BD relevance in the assigned area.
 
 ### Phase 2: Resolve Uncertainties (20 rows)
 

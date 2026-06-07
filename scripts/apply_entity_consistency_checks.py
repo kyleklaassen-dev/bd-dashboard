@@ -20,7 +20,7 @@ except ImportError:
     import requests
 
 BASE_DIR     = pathlib.Path(__file__).parent.parent
-SQL_FILE     = BASE_DIR / "migrations" / "entity_consistency_checks_v1.sql"
+SQL_FILE     = BASE_DIR / "migrations" / "checks" / "entity_consistency_checks_v1.sql"
 KEY_FILE     = BASE_DIR / ".supabase_service_key"
 SUPABASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co"
 

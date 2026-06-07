@@ -603,7 +603,9 @@ def build_entity_edge_rows(drug_id: str, canonical_id: str) -> list[dict]:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def apply_migration(project_id: str, pat: str) -> bool:
-    migration_path = os.path.join(os.path.dirname(__file__), "migrations", "v27_targets.sql")
+    migration_path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "migrations", "v27_targets.sql")
+    )
     if not os.path.exists(migration_path):
         print(f"  [ERROR] Not found: {migration_path}", file=sys.stderr)
         return False
