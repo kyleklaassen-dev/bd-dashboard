@@ -1,0 +1,59 @@
+name: Score Foresight (weekly)
+
+# Resolves the foresight ledger and recomputes the track record.
+# Tier 1: logs resolved catalysts as foresight_events, auto-verifies via CT.gov,
+#         recomputes foresight_scores per area.
+# Tier 2: flags overdue judgment predictions to docs/prediction_review_queue.md,
+#         computes Brier + hit-rate + calibration from resolved ones.
+# NO Claude/Anthropic API — pure Supabase + ClinicalTrials.gov. Cheap to run.
+# (Deliberately a GitHub Action, not a Cowork task.)
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"   # Mondays 12:00 UTC (~8 AM ET)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute without writing to Supabase"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: score-foresight
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # to commit refreshed review-queue docs back
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run foresight resolution loop
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python scripts/score_foresight.py $ARGS
+
+      - name: Commit refreshed review queues (if changed)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name  "meridian-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/foresight_review_queue.md docs/prediction_review_queue.md 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No review-queue changes."
+          else
+            git commit -m "chore(foresight): refresh review queues [skip ci]"
+            git push
+          fi
