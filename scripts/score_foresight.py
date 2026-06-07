@@ -60,6 +60,9 @@ DEAL_TYPE_TO_CATALYST = {
     "clinical":      {"readout", "clinical_update"},
 }
 DEFAULT_CATALYST_MATCH = {"deal", "partnership"}
+# covered mechanism -> drugs.target keyword (to scope clinical readouts to covered areas)
+COVERED_TARGET_KW = {"tl1a": "TL1A", "tslp": "TSLP", "il4ra": "IL-4", "igf1r": "IGF-1R", "fcrn": "FcRn"}
+READOUT_CATALYST_TYPES = {"readout", "clinical_update"}
 
 
 def service_key() -> str:
@@ -235,6 +238,7 @@ def main() -> int:
 
     # --- step 4.5: MISS DETECTION (makes the rate honest) ----------------------
     n_seen, n_miss = detect_misses()
+    detect_readout_misses()
 
     # --- step 5: recompute scores ----------------------------------------------
     events = rest("foresight_events?select=period,area_id,foreseen,significance&limit=10000")
@@ -356,6 +360,103 @@ def detect_misses():
           f"new logged: {len(rows)} (foreseen={n_seen}, missed={n_miss})")
     if not rows:
         print("  nothing new (all in-window deal events already swept).")
+    return n_seen, n_miss
+
+
+def _norm_pcd(s):
+    """Normalize a primary-completion string ('2026-06' or '2026-06-30') to a date."""
+    s = (s or "")[:10]
+    if len(s) == 7:
+        s += "-01"
+    return _ddate(s)
+
+
+def covered_drug_map():
+    """{drug_id: (area_id, drug_name)} for drugs whose target matches a covered mechanism."""
+    m = {}
+    for area, kw in COVERED_TARGET_KW.items():
+        for d in rest(f"drugs?select=id,name,target&target=ilike.*{kw}*&limit=500"):
+            m.setdefault(d["id"], (area, d.get("name") or d["id"]))
+    return m
+
+
+def detect_readout_misses():
+    """CT.gov readout-miss sweep — extends honesty to CLINICAL events.
+
+    Candidate events = trials of covered-area drugs whose primary completion falls
+    in the tracking window (a readout came due). CT.gov v2 confirms the event
+    actually occurred (results posted / COMPLETED / TERMINATED / completion passed).
+    Foreseen only if a catalyst predicted it: exact related_trial_id match, OR a
+    readout/clinical_update catalyst in the same area tied to the drug, created
+    BEFORE the event, sort_date within tolerance. Else a MISS. Idempotent via
+    'trial:<NCT>' in notes; added_by='readout_sweep'.
+    """
+    print("\n=== readout-miss sweep (CT.gov-verified clinical events) ===")
+    dmap = covered_drug_map()
+    trials = rest("trials?select=id,drug_id,phase,status,primary_completion_date,study_acronym,source_url"
+                  f"&primary_completion_date=gte.{TRACKING_START}&primary_completion_date=lte.{TODAY}&limit=500")
+    in_scope = [t for t in trials if t.get("drug_id") in dmap]
+    cats = rest("catalysts?select=id,area_id,catalyst_type,sort_date,created_at,drug_id,related_trial_id,label&limit=5000")
+    logged = rest("foresight_events?select=notes&added_by=eq.readout_sweep&limit=10000")
+    done = {tok for r in logged for tok in (r.get("notes") or "").split() if tok.startswith("trial:")}
+
+    n_seen = n_miss = 0
+    rows = []
+    for t in in_scope:
+        nct = t["id"]
+        key = f"trial:{nct}"
+        if key in done:
+            continue
+        area, dname = dmap[t["drug_id"]]
+        ev = _norm_pcd(t.get("primary_completion_date"))
+        if not ev:
+            continue
+        # CT.gov confirmation (best-effort); if unreachable, fall back to DB completion date
+        st = ctgov_status(nct)
+        occurred = True
+        if st:
+            occurred = (st["results_posted"] or st["overall"] in ("COMPLETED", "TERMINATED", "WITHDRAWN")
+                        or (st["primary_completion"] or "9999") <= TODAY)
+            if st["primary_completion"]:
+                ev = _norm_pcd(st["primary_completion"]) or ev
+        if not occurred:
+            continue  # readout not actually in yet — not a material event to score this run
+        # foreseen? exact trial match first, then drug+area readout catalyst created before the event
+        matched = None
+        for c in cats:
+            cc = _ddate(c.get("created_at"))
+            if c.get("related_trial_id") == nct and cc and cc < ev:
+                matched = c; break
+        if not matched:
+            for c in cats:
+                if c.get("area_id") != area or c.get("catalyst_type") not in READOUT_CATALYST_TYPES:
+                    continue
+                cc, sd = _ddate(c.get("created_at")), _ddate(c.get("sort_date"))
+                if not cc or cc >= ev or not sd or abs((sd - ev).days) > MATCH_TOLERANCE_DAYS:
+                    continue
+                if c.get("drug_id") == t["drug_id"] or dname.lower() in (c.get("label") or "").lower():
+                    matched = c; break
+        foreseen = matched is not None
+        label = f"{dname} {t.get('study_acronym') or ''} readout ({t.get('phase')})".strip()
+        rows.append({
+            "period": period_of(ev.isoformat()), "area_id": area, "event_type": "readout",
+            "asset_label": label[:300], "drug_id": t["drug_id"],
+            "event_date": ev.isoformat(),
+            "source_url": t.get("source_url") or f"https://clinicaltrials.gov/study/{nct}",
+            "source_type": "ct_gov", "significance": "high",
+            "foreseen": foreseen, "matched_catalyst_id": matched["id"] if matched else None,
+            "miss_reason": None if foreseen else f"no catalyst predicted the {nct} readout in '{area}' before {ev.isoformat()}",
+            "notes": f"{key} | readout_sweep", "added_by": "readout_sweep",
+        })
+        n_seen += foreseen
+        n_miss += not foreseen
+
+    if rows and not DRY:
+        rest("foresight_events", "POST", rows, prefer="return=minimal")
+    print(f"  window {TRACKING_START}..{TODAY} | covered in-window trials: {len(in_scope)} | "
+          f"new logged: {len(rows)} (foreseen={n_seen}, missed={n_miss})")
+    if not rows:
+        print("  nothing new (all in-window covered readouts already swept or not yet occurred).")
     return n_seen, n_miss
 
 
