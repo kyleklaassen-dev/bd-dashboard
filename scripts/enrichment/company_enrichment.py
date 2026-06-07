@@ -2733,14 +2733,14 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
                    skip_trial_refresh: bool = False,
                    fast_model: bool = False,
                    enrichment_run_id: Optional[str] = None) -> bool:
-    """Run Steps 4-6 for one company via pipeline orchestrator.
+    """Run Steps 4-6 for one company via the LangGraph pipeline graph.
 
     Args:
       resolver:            a pre-instantiated DrugIdentityResolver (passed from run_intelligence_pipeline).
       enrichment_run_id:   UUID of the parent enrichment_runs row (from log_enrichment_run).
                            When set, stamped on drug/company rows as last_enrichment_run_id.
     """
-    from pipeline.orchestrator import run_company_pipeline
+    from pipeline.graph import build_enrichment_graph
     from pipeline.state import PipelineState
 
     state = PipelineState(
@@ -2754,8 +2754,9 @@ def enrich_company(company_id: str, area_id: str, company_map: dict,
         company_map=company_map,
         resolver=resolver,
     )
-    state = run_company_pipeline(state)
-    return state.ok
+    app = build_enrichment_graph()
+    result = app.invoke(state)
+    return not result.get("errors")
 
 
 # ══════════════════════════════════════════════════════════════════════════
