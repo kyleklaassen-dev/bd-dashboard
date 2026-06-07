@@ -1,0 +1,69 @@
+name: WHO ICTRP China Harvest
+
+# Off-VM data pull on a clean-egress GitHub runner: the throttled shared VM gets
+# HTTP 000 / Akamai blocks from trialsearch.who.int. This runner has clean egress
+# and up to 6h. Targeted, polite, public-data-only intervention search for our
+# China-developed TL1A / IL-23 assets -> bronze (source_payloads) + matched
+# china_trials rows. Dry-run by default.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch + match but do not write"
+        required: false
+        default: "true"
+        type: boolean
+      limit:
+        description: "Cap number of target assets (0 = all 15)"
+        required: false
+        default: "0"
+      max_pages:
+        description: "Reserved for crawl-range mode (0 = off)"
+        required: false
+        default: "0"
+  schedule:
+    - cron: "0 16 * * 0"   # Sundays 12:00 PM ET (16:00 UTC) — weekly refresh
+
+concurrency:
+  group: ictrp-china-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    name: "WHO ICTRP China harvest"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Ensure china_trials table exists
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          # Idempotent CREATE TABLE IF NOT EXISTS via the Supabase Management API.
+          python3 scripts/apply_sql_migration.py migrations/v_china_trials.sql || \
+            echo "(migration step soft-failed — harvester still lands bronze safely)"
+
+      - name: Run ICTRP China harvester
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -e
+          echo "=== WHO ICTRP China harvest · $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+          FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
+          # Scheduled runs (no inputs) default to a real write.
+          LIMIT="${{ github.event.inputs.limit }}"; LIMIT="${LIMIT:-0}"
+          MAXP="${{ github.event.inputs.max_pages }}"; MAXP="${MAXP:-0}"
+          python3 scripts/integrations/ictrp_china_harvest.py \
+            $FLAG --limit "$LIMIT" --max-pages "$MAXP"
+          echo "=== done ==="
