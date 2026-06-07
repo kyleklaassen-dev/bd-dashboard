@@ -12896,9 +12896,9 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     // ── New data layers (2026-06-07) — financials (runway), typed SEC events,
     //    patent estate, leadership, and asset-transfer chains involving this company.
     //    One parallel batch; each section renders only when non-empty.
-    let coFinancials = null, coSecEvents = [], coPatentRows = [], coPersonnel = [], coTransferChains = [];
+    let coFinancials = null, coSecEvents = [], coPatentRows = [], coPersonnel = [], coTransferChains = [], coSentiment = null;
     try {
-      const [finR, evR, patR, perR, athR] = await Promise.all([
+      const [finR, evR, patR, perR, athR, sentR] = await Promise.all([
         _sb.from('company_financials').select('cash_and_equivalents,cash_as_of,quarterly_burn,runway_quarters,market_cap,source_url,fetched_at')
            .eq('company_id', companyId).order('fetched_at', {ascending:false}).limit(1),
         _sb.from('company_events').select('event_type,event_subtype,event_summary,form_type,filing_date,source_url,financing_type,is_dilutive')
@@ -12911,18 +12911,21 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
         _sb.from('asset_transfer_history').select('drug_id,sequence_order,from_entity_name,from_entity_id,to_entity_name,to_entity_id,transfer_type,geographic_scope,transfer_date,deal_value_notes,verified,source_url')
            .or(`from_entity_id.eq.${companyId},to_entity_id.eq.${companyId}`)
            .order('transfer_date', {ascending:false}).limit(12),
+        _sb.from('company_news_sentiment').select('n_articles,net_sentiment,last_article_date')
+           .eq('company_id', companyId).limit(1),
       ]);
       coFinancials     = finR.data?.[0] || null;
       coSecEvents      = evR.data  || [];
       coPatentRows     = patR.data || [];
       coPersonnel      = perR.data || [];
       coTransferChains = athR.data || [];
+      coSentiment      = sentR.data?.[0] || null;
     } catch(_nlErr) { console.warn('[companyModal-newlayers]', _nlErr?.message); }
 
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     const subsidiaries = subsidiariesRes.data || [];
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains, newsSentiment: coSentiment };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -14037,15 +14040,23 @@ async function _loadMeridianNarrative(drugId) {
     const renderBody = (md, provMap) => {
       let h = esc(md);
       h = h.replace(/^\s*-{3,}\s*$/gm, '');                       // stray --- rules
-      h = h.replace(/\s*\[([\d,–—\- ]+)\]/g, (m, g) => {
+      // Citations link the PROSE itself (Kyle 2026-06-07): the phrase before [n] becomes the
+      // hyperlink. Up to 6 trailing words, never crossing sentence punctuation or brackets.
+      // Extra co-citations on the same claim become tiny superscript "+" links; un-sourced
+      // claims get no marker at all — provenance stays in the Sources drawer.
+      h = h.replace(/((?:[^\s.;:!?()\[\]]+(?:\s+|$)){1,6})?\s*\[([\d,–—\- ]+)\]/g, (m, phrase, g) => {
         const nums = g.split(/[^\d]+/).filter(Boolean);
-        const links = nums.map(n => {
-          const src = provMap && provMap[n];
-          return (src && src.url)
-            ? `<a href="${src.url}" target="_blank" rel="noopener" title="${src.title}" style="color:#2563eb;text-decoration:none;border-bottom:1px dotted #93c5fd">${n}</a>`
-            : `<span style="color:#94a3b8">${n}</span>`;
-        }).join('<span style="color:#cbd5e1">,</span>');
-        return `<sup style="font-size:9px;font-weight:600;margin-left:1px">${links}</sup>`;
+        const srcs = nums.map(n => (provMap && provMap[n]) || null);
+        const first = srcs.find(s => s && s.url);
+        phrase = phrase || '';
+        const trail = phrase.endsWith(' ') ? ' ' : '';
+        const extra = srcs.filter(s => s && s.url && s !== first).slice(0, 3)
+          .map(s => `<sup style="font-size:8.5px;font-weight:700"><a href="${s.url}" target="_blank" rel="noopener" title="${s.title}" style="color:#93a8c8;text-decoration:none">+</a></sup>`).join('');
+        if (first && phrase.trim()) {
+          return `<a href="${first.url}" target="_blank" rel="noopener" title="${first.title}" style="color:#1d4ed8;text-decoration:none;border-bottom:1px solid #bfdbfe">${phrase.trim()}</a>${extra}${trail}`;
+        }
+        if (first) return `<sup style="font-size:9px;font-weight:600"><a href="${first.url}" target="_blank" rel="noopener" title="${first.title}" style="color:#2563eb;text-decoration:none">↗</a></sup>${extra}`;
+        return phrase; // no sourced URL — keep the prose clean, no dangling number
       });
       h = h.replace(/^###\s+(.*)$/gm, '<div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin:13px 0 4px">$1</div>');
       h = h.replace(/^##\s+(.*)$/gm, '<div style="font-size:13px;font-weight:700;color:#1e293b;margin:4px 0 8px">$1</div>');
@@ -15585,6 +15596,25 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     ${_coFin?.source_url ? `<a href="${_coFin.source_url}" target="_blank" rel="noopener" style="font-size:10px;color:#1d4ed8;text-decoration:none;margin-left:auto">SEC ↗</a>` : ''}
   </div>` : '';
 
+  // News sentiment banner (company_news_sentiment) — interpreted, not just a number (Kyle 2026-06-07)
+  // net_sentiment is the mean article tone (−1 bearish … +1 bullish); n_articles is the sample.
+  const _coSent = sbData?.newsSentiment || null;
+  const _sentBannerHtml = (_coSent && _coSent.n_articles) ? (() => {
+    const v = _coSent.net_sentiment, n = _coSent.n_articles;
+    const lo = n < 3;  // thin sample caveat
+    const band = v >= 0.35 ? ['Positive','#15803d','#dcfce7'] : v <= -0.35 ? ['Negative','#b91c1c','#fee2e2']
+      : v > 0.1 ? ['Leaning positive','#15803d','#f0fdf4'] : v < -0.1 ? ['Leaning negative','#b45309','#fff7ed']
+      : ['Mixed / neutral','#64748b','#f1f5f9'];
+    const read = v >= 0.35 ? 'recent coverage skews favorable — readouts, deals, or approvals'
+      : v <= -0.35 ? 'recent coverage skews adverse — failures, terminations, or safety'
+      : 'no clear directional signal in recent coverage';
+    return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:${band[2]};border:1px solid #e2e8f0;border-left:3px solid ${band[1]};border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:11.5px;color:#1e293b">
+      <span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:${band[1]}">📰 News sentiment</span>
+      <span style="font-weight:800;color:${band[1]}">${band[0]}</span>
+      <span style="color:#94a3b8">net ${v>=0?'+':''}${(v).toFixed(2)} over ${n} article${n!==1?'s':''}${_coSent.last_article_date?`, latest ${_coSent.last_article_date.slice(0,10)}`:''}</span>
+      <span style="flex-basis:100%;color:#64748b;font-size:10.5px">${read}.${lo?' <b style="color:#b45309">Thin sample</b> — directional only.':''} Tone of news flow, not a fundamental.</span>
+    </div>`; })() : '';
+
   // Leadership one-liner (company_personnel)
   const _coPers = sbData?.personnel || [];
   const _persRank = { ceo:0, president:1, cso:2, cmo:3, cfo:4, coo:5, cbo:6 };
@@ -15655,6 +15685,7 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     ${_seqBannerHtml}
     ${_subsBannerHtml}
     ${_finBannerHtml}
+    ${_sentBannerHtml}
     ${_leadershipHtml}
     ${statsHtml}
     ${interpHtml}
