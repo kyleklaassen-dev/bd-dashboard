@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Live Intelligence</title>
+<style>
+  :root{color-scheme:light; --ink:#0f1f33; --slate:#41566e; --muted:#7286a0; --line:#e2e9f3;
+    --bg:#f4f7fb; --card:#fff; --accent:#1f6feb; --accent2:#13b5a6; --good:#1f9d6b; --warn:#d9822b; --bad:#d64545; --soft:#eef4fc;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 64px}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  h1{font-size:24px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--slate);font-size:14px}
+  .ns{color:var(--accent);font-weight:600}
+  .stamp{color:var(--muted);font-size:12px}
+  .bar{height:4px;width:60px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));margin:10px 0 20px}
+  .tiles{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:8px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .tile .n{font-size:20px;font-weight:750;letter-spacing:-.02em}
+  .tile .l{font-size:10.5px;color:var(--muted);margin-top:2px}
+  h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:28px 0 12px;border-bottom:1px solid var(--line);padding-bottom:7px;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;background:var(--card)}
+  tr:last-child td{border-bottom:none}
+  .scroll{max-height:380px;overflow:auto}
+  .pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .hi{background:#fbe9d8;color:var(--warn)} .md{background:#e7f0fe;color:var(--accent)} .lo{background:#eef1f5;color:var(--slate)}
+  .bad{background:#fbe0e0;color:var(--bad)} .ok{background:#e6f5ee;color:var(--good)}
+  .err{color:var(--warn);font-size:12px;padding:10px 12px}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .muted{color:var(--muted)} b.n{font-weight:700}
+  a.rowlink{color:var(--ink);text-decoration:none;font-weight:600;border-bottom:1px solid transparent} a.rowlink:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  tr[data-href]{cursor:pointer} tr[data-href]:hover{background:var(--soft)}
+  @media(max-width:980px){.tiles{grid-template-columns:repeat(4,1fr)}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Meridian — Live Intelligence</h1>
+      <div class="sub">A connected competitive-intelligence graph for inflammatory &amp; autoimmune drug development · guided by <span class="ns">Meridian's North Star</span>: Patient → Indication → Target → Company</div>
+    </div>
+    <div class="stamp" id="stamp">loading live data…</div>
+  </header>
+  <div class="bar"></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Strategic conclusions — derived from the graph (every conclusion cites its source rows)</h2>
+  <div class="card" style="padding:6px 4px;max-height:560px;overflow:auto"><div id="insights" class="muted" style="padding:10px 12px">loading…</div></div>
+
+  <div class="grid2">
+    <div>
+      <h2>Upcoming readouts &amp; catalysts (source-verified)</h2>
+      <div class="card"><div class="scroll"><table id="catalysts"><thead><tr><th>Date</th><th>Event</th><th>Sig</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Regulatory designations &amp; timeline</h2>
+      <div class="card"><div class="scroll"><table id="reg"><thead><tr><th>Asset</th><th>Designation/Event</th><th>Date</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>KOL network — most-active investigators</h2>
+      <div class="card"><div class="scroll"><table id="kols"><thead><tr><th>Investigator</th><th>Trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Exclusivity cliffs — patents + biologic reference-product</h2>
+      <div class="card"><div class="scroll"><table id="patents"><thead><tr><th>Asset</th><th>Type / ID</th><th>Expires</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Financing watch — shortest cash runway</h2>
+      <div class="card"><div class="scroll"><table id="fin"><thead><tr><th>Company</th><th>Runway (qtrs)</th><th>Cash</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>TL1A × IL-23 competitive landscape</h2>
+      <div class="card"><div class="scroll"><table id="tl1a"><thead><tr><th>Asset</th><th>Target</th><th>Stage</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Conference presence (congress abstracts)</h2>
+      <div class="card"><div class="scroll"><table id="conf"><thead><tr><th>Yr</th><th>Asset</th><th>Congress</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Global reach — China-developed assets</h2>
+      <div class="card"><div class="scroll"><table id="china"><thead><tr><th>Asset</th><th>China trials</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Target intelligence (druggability / TDL)</h2>
+      <div class="card"><div class="scroll"><table id="targets"><thead><tr><th>Target</th><th>TDL</th><th>Ligands</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Latest literature</h2>
+      <div class="card"><div class="scroll"><table id="pubs"><thead><tr><th>Yr</th><th>Publication</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Safety signals — black-box warnings</h2>
+      <div class="card"><div class="scroll"><table id="safety"><thead><tr><th>Asset</th><th>Warning</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>KOL → company affiliations (trial-sponsorship proxy)</h2>
+      <div class="card"><div class="scroll"><table id="affil"><thead><tr><th>Investigator</th><th>Company</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Company news sentiment — signal direction</h2>
+      <div class="card"><div class="scroll"><table id="sent"><thead><tr><th>Company</th><th>Net</th><th>Articles</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Manufacturing complexity — very-high CMC assets</h2>
+      <div class="card"><div class="scroll"><table id="mfg"><thead><tr><th>Asset</th><th>Modality</th><th>CMC</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Company leadership</h2>
+      <div class="card"><div class="scroll"><table id="lead"><thead><tr><th>Company</th><th>Person</th><th>Role</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Adverse-event burden — FAERS report volume</h2>
+      <div class="card"><div class="scroll"><table id="faers"><thead><tr><th>Asset</th><th>Reaction</th><th>Reports</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Trial-design quality — believability of the evidence base</h2>
+      <div class="card"><div class="scroll"><table id="tdq"><thead><tr><th>Asset</th><th>Trial</th><th>Tier / score</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>EU approvals &amp; US-vs-EU lag</h2>
+      <div class="card"><div class="scroll"><table id="eulag"><thead><tr><th>Asset</th><th>EU date</th><th>Lag vs US</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Conference readout signals — late-breakers &amp; positive reads</h2>
+      <div class="card"><div class="scroll"><table id="readout"><thead><tr><th>Yr</th><th>Asset</th><th>Signal</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Financing events — dilutive raises (SEC)</h2>
+      <div class="card"><div class="scroll"><table id="events"><thead><tr><th>Date</th><th>Company</th><th>Form</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2>Mechanism pathways — target → pathway (whitespace hubs)</h2>
+      <div class="card"><div class="scroll"><table id="paths"><thead><tr><th>Target</th><th>Pathway</th><th>Src</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
+    </div>
+    <div>
+      <h2>Official labels — DailyMed (boxed warning / indication)</h2>
+      <div class="card"><div class="scroll"><table id="labels"><thead><tr><th>Asset</th><th>Label</th></tr></thead><tbody><tr><td class="muted" colspan="2">loading…</td></tr></tbody></table></div></div>
+    </div>
+  </div>
+
+  <h2>Knowledge graph — relationship edges by type</h2>
+  <div class="card" style="padding:14px 16px"><div id="edges" class="muted">loading…</div></div>
+
+  <p class="stamp" style="margin-top:22px">Live from the Meridian Supabase backend · figures reflect the production database at load time · read-only (RLS anon). Sources: ClinicalTrials.gov, Open Targets, ChEMBL, openFDA, SEC EDGAR, FDA Orange Book, Pharos/IDG, UniProt, Europe PMC/PubMed, OpenAlex.</p>
+</div>
+
+<script>
+const SB="https://tghntyofptvfhmtchwcv.supabase.co/rest/v1";
+const KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const H={apikey:KEY,Authorization:"Bearer "+KEY};
+const esc=s=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function rows(q){const r=await fetch(SB+q,{headers:H});if(!r.ok)throw new Error(r.status);return r.json();}
+async function count(t){const r=await fetch(SB+"/"+t+"?select=id",{headers:{...H,Prefer:"count=exact",Range:"0-0"}});return (r.headers.get("content-range")||"/?").split("/").pop();}
+async function cntq(q){const r=await fetch(SB+"/"+q,{headers:{...H,Prefer:"count=exact",Range:"0-0"}});return (r.headers.get("content-range")||"/?").split("/").pop();}
+const sig=s=>s==="high"?'<span class="pill hi">high</span>':s==="medium"?'<span class="pill md">med</span>':'<span class="pill lo">'+esc(s||"low")+'</span>';
+const fill=(id,h)=>{const b=document.querySelector("#"+id+" tbody");if(b)b.innerHTML=h;};
+const ec=(id,n)=>fill(id,'<tr><td class="err" colspan="'+n+'">open in a browser with internet</td></tr>');
+const money=v=>v==null?"":("$"+(Math.abs(v)>=1e9?(v/1e9).toFixed(1)+"B":Math.abs(v)>=1e6?(v/1e6).toFixed(0)+"M":v));
+// ── row links: primary cell is a hyperlink AND the whole row is clickable (data-href) ──
+const A=(url,text)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener" class="rowlink">${esc(text)}</a>`:esc(text);
+const TR=(url,cells)=>`<tr${url?` data-href="${esc(url)}"`:""}>${cells}</tr>`;
+const ctSearch=name=>"https://clinicaltrials.gov/search?term="+encodeURIComponent(name||"");
+const gpat=no=>{const c=String(no||"").replace(/[^A-Za-z0-9]/g,"");return c?"https://patents.google.com/patent/US"+c:"";};
+const pharos=sym=>"https://pharos.ncats.nih.gov/targets/"+encodeURIComponent(sym||"");
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDate=v=>{if(!v)return"";const t=String(v);let m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return (+m[3])+" "+MON[+m[2]-1]+" "+m[1];m=t.match(/^(\d{4})-(\d{2})$/);if(m)return MON[+m[2]-1]+" "+m[1];return t;};
+// whole-row click — ignore clicks that already land on an explicit <a>
+document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e.target.closest("tr[data-href]");if(tr)window.open(tr.dataset.href,"_blank","noopener");});
+
+(async()=>{
+  try{
+    const defs=[["drugs","Drugs"],["companies","Companies"],["catalysts","Catalysts"],["trial_facts","Trials"],
+      ["publications","Publications"],["kols","KOLs"],["entity_edges","Graph edges"],["drug_sources","Sourced facts"]];
+    const vals=await Promise.all(defs.map(d=>count(d[0]).catch(()=>"–")));
+    document.getElementById("tiles").innerHTML=defs.map((d,i)=>`<div class="tile"><div class="n">${esc(vals[i])}</div><div class="l">${d[1]}</div></div>`).join("");
+    document.getElementById("stamp").textContent="live · "+new Date().toLocaleString();
+  }catch(e){document.getElementById("stamp").textContent="data unavailable — open in a browser with internet";}
+
+  const today=new Date().toISOString().slice(0,10);
+  const FAERS_DASH="https://www.fda.gov/drugs/questions-and-answers-fdas-adverse-event-reporting-system-faers/fda-adverse-event-reporting-system-faers-public-dashboard";
+  const drugSrc={}; try{(await rows("/drugs?select=id,source_url")).forEach(r=>{if(r.source_url)drugSrc[r.id]=r.source_url;});}catch(e){}
+
+  // Strategic conclusions (derived) → each cites the source rows it was computed from
+  try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=400`);
+    const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
+    const LBL={acquisition_signal:'Acquisition signals',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (raise + short runway)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',kol_hub:'KOL hubs'};
+    const order=['acquisition_signal','readout_imminent','conference_readout','discontinuation_signal','trial_quality','exclusivity_cliff','eu_approval_lag','financing_signal','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','kol_hub'];
+    const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
+    document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
+      return `<div style="margin:8px 10px 14px"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:6px">${LBL[k]||esc(k)} <span class="muted">· ${items.length}</span></div>`+
+        items.slice(0,8).map(r=>`<div style="margin:5px 0;padding-left:10px;border-left:2px solid var(--soft)"><b style="font-size:13px">${esc(r.title)}</b><div class="muted" style="font-size:12px">${esc(r.detail||'')}</div><div class="muted" style="font-size:10.5px;margin-top:1px">derived from: ${esc((r.source_tables||[]).join(', '))}${r.confidence?' · '+esc(r.confidence):''}</div></div>`).join('')+`</div>`;
+    }).join('')||'<div class="muted" style="padding:10px">none</div>';
+  }catch(e){document.getElementById('insights').textContent='unavailable — open in a browser with internet';}
+
+  // Catalysts → ClinicalTrials.gov study record
+  try{const d=await rows(`/catalysts?select=label,catalyst_date,sort_date,significance,source_url,related_trial_id&confidence_source=eq.ct_gov&sort_date=gte.${today}&order=sort_date.asc&limit=40`);
+    fill("catalysts",d.map(r=>{const u=r.source_url||(r.related_trial_id?("https://clinicaltrials.gov/study/"+r.related_trial_id):"");return TR(u,`<td>${esc(fmtDate(r.catalyst_date||r.sort_date))}</td><td>${A(u,r.label)}</td><td>${sig(r.significance)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("catalysts",3);}
+
+  // Regulatory designations → granting authority + documented provenance
+  try{const d=await rows(`/regulatory_designations?select=drug_id,designation_type,indication,granted_date,source,granting_authority&order=designation_type&limit=40`);
+    fill("reg",d.map(r=>{const u=drugSrc[r.drug_id]||ctSearch(r.drug_id);return TR(u,`<td>${A(u,r.drug_id)}</td><td><span class="pill md">${esc(r.designation_type)}</span><div class="muted" style="font-size:11px">${esc(r.source||r.granting_authority||"")}</div></td><td>${esc(fmtDate(r.granted_date)||r.indication||"")}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("reg",3);}
+
+  // KOLs → ClinicalTrials.gov investigator search
+  try{const d=await rows(`/kols?select=name,trial_count&order=trial_count.desc.nullslast&limit=30`);
+    fill("kols",d.map(r=>{const u=ctSearch(r.name);return TR(u,`<td>${A(u,r.name)}</td><td>${esc(r.trial_count??"")}</td>`);}).join(""));}catch(e){ec("kols",2);}
+
+  // Exclusivity cliffs → small-molecule patents (Google Patents) + biologic reference-product (Purple Book)
+  try{const [pat,exc]=await Promise.all([
+      rows(`/drug_patents?select=drug_id,patent_no,patent_expire_date,source_url&drug_substance_flag=eq.true&patent_expire_date=gte.${today}&order=patent_expire_date.asc&limit=60`),
+      rows(`/drug_exclusivity?select=drug_id,exclusivity_date,source_url&is_biologic=eq.true&exclusivity_code=eq.REF_PRODUCT_12YR&exclusivity_date=gte.${today}&order=exclusivity_date.asc&limit=60`)
+    ]);
+    const merged=[
+      ...pat.map(r=>({drug:r.drug_id,type:'Patent '+(r.patent_no||''),exp:r.patent_expire_date,url:gpat(r.patent_no)||r.source_url,lbl:'US '+r.patent_no})),
+      ...exc.map(r=>({drug:r.drug_id,type:'Biologic RPE · BLA 12-yr',exp:r.exclusivity_date,url:"https://purplebooksearch.fda.gov/advanced-search?query="+encodeURIComponent(r.drug_id),lbl:'Purple Book'}))
+    ].filter(x=>x.exp).sort((a,b)=>String(a.exp).localeCompare(String(b.exp))).slice(0,80);
+    fill("patents",merged.map(r=>TR(r.url,`<td>${A(r.url,r.drug)}</td><td class="muted">${esc(r.type)}</td><td>${esc(fmtDate(r.exp))}</td>`)).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("patents",3);}
+
+  // Financials → SEC EDGAR filing
+  try{const d=await rows(`/company_financials?select=company_id,runway_quarters,cash_and_equivalents,source_url,cik&runway_quarters=not.is.null&order=runway_quarters.asc&limit=30`);
+    fill("fin",d.map(r=>{const lo=r.runway_quarters!=null&&r.runway_quarters<4;const u=r.source_url||(r.cik?("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK="+r.cik):"");return TR(u,`<td>${A(u,r.company_id)}</td><td>${lo?'<span class="pill bad">':''}${r.runway_quarters!=null?Number(r.runway_quarters).toFixed(1):""}${lo?'</span>':''}</td><td class="muted">${money(r.cash_and_equivalents)}</td>`);}).join(""));}catch(e){ec("fin",3);}
+
+  // TL1A landscape → drug's authoritative source (CT.gov / company IR)
+  try{const d=await rows(`/drugs?select=name,target,stage,source_url&or=(target.ilike.*TL1A*,mechanism.ilike.*TL1A*)&order=stage.desc&limit=60`);
+    fill("tl1a",d.map(r=>{const u=r.source_url||ctSearch(r.name);return TR(u,`<td>${A(u,r.name)}</td><td class="muted">${esc(r.target)}</td><td>${esc(r.stage)}</td>`);}).join(""));}catch(e){ec("tl1a",3);}
+
+  // Conference abstracts → DOI / source URL
+  try{const d=await rows(`/conference_abstracts?select=drug_id,conference,conference_year,source_url,doi&confidence=gte.0.9&order=conference_year.desc.nullslast&limit=40`);
+    fill("conf",d.map(r=>{const u=r.source_url||r.doi;return TR(u,`<td class="muted">${esc(r.conference_year||"")}</td><td>${A(u,r.drug_id)}</td><td>${esc(r.conference||"")}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("conf",3);}
+
+  // China assets → ClinicalTrials.gov search (China sites)
+  try{const d=await rows(`/trial_facts?select=drug_id&has_china_site=eq.true&limit=5000`);
+    const m={};d.forEach(r=>m[r.drug_id]=(m[r.drug_id]||0)+1);
+    fill("china",Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const u=ctSearch(k)+"&country=China";return TR(u,`<td>${A(u,k)}</td><td>${v}</td>`);}).join(""));}catch(e){ec("china",2);}
+
+  // Target intelligence → Pharos / IDG
+  try{const d=await rows(`/target_intelligence?select=symbol,tdl,ligand_count,source_url&order=ligand_count.desc.nullslast&limit=60`);
+    fill("targets",d.map(r=>{const u=pharos(r.symbol);return TR(u,`<td>${A(u,r.symbol)}</td><td>${esc(r.tdl)}</td><td>${esc(r.ligand_count??"")}</td>`);}).join(""));}catch(e){ec("targets",3);}
+
+  // Publications → already DOI/PubMed-linked
+  try{const d=await rows(`/publications?select=title,journal,pub_year,url&order=pub_year.desc.nullslast&limit=40`);
+    fill("pubs",d.map(r=>TR(r.url,`<td class="muted">${esc(r.pub_year||"")}</td><td>${A(r.url,r.title)}<div class="muted" style="font-size:11px">${esc(r.journal||"")}</div></td>`)).join(""));}catch(e){ec("pubs",2);}
+
+  // Safety signals → DailyMed black-box warnings (via Open Targets / ChEMBL)
+  try{const d=await rows(`/drug_safety?select=drug_id,warning_type,description,source_url&order=drug_id.asc&limit=60`);
+    fill("safety",d.map(r=>TR(r.source_url,`<td><b>${esc(r.drug_id)}</b></td><td>${A(r.source_url,r.description||r.warning_type)}</td>`)).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("safety",3);}
+
+  // KOL → company affiliations (CT.gov sponsorship proxy)
+  try{const d=await rows(`/entity_edges?select=subject_id,object_id,rationale,source_url&predicate=eq.AFFILIATED_WITH&limit=40`);
+    fill("affil",d.map(r=>{const m=/KOL (.+?) ran/.exec(r.rationale||"");const nm=m?m[1]:r.subject_id;const co=String(r.object_id||"").replace(/(^|[-_])([a-z])/g,(s,a,b)=>(a?" ":"")+b.toUpperCase());return TR(r.source_url,`<td>${A(r.source_url,nm)}</td><td>${esc(co)}</td>`);}).join(""));}catch(e){ec("affil",2);}
+
+  // Company news sentiment (aggregate signal direction)
+  try{const d=await rows(`/company_news_sentiment?select=company_id,n_articles,net_sentiment&n_articles=gte.2&order=net_sentiment.asc&limit=40`);
+    fill("sent",d.map(r=>{const v=Number(r.net_sentiment);const cls=v<=-0.3?"bad":v>=0.3?"ok":"lo";return `<tr><td><b>${esc(r.company_id)}</b></td><td><span class="pill ${cls}">${v.toFixed(2)}</span></td><td class="muted">${esc(r.n_articles)}</td></tr>`;}).join(""));}catch(e){ec("sent",3);}
+
+  // Manufacturing complexity → openFDA (where approved)
+  try{const d=await rows(`/manufacturing_profile?select=drug_id,modality,cmc_complexity,source_url&cmc_complexity=eq.very_high&order=drug_id.asc&limit=60`);
+    fill("mfg",d.map(r=>TR(r.source_url,`<td>${A(r.source_url||"",r.drug_id)}</td><td class="muted">${esc(r.modality)}</td><td><span class="pill hi">very high</span></td>`)).join(""));}catch(e){ec("mfg",3);}
+
+  // Company leadership → IR / SEC source
+  try{const d=await rows(`/company_personnel?select=company_id,person_name,role,source_url&order=company_id.asc&limit=80`);
+    fill("lead",d.map(r=>TR(r.source_url,`<td><b>${esc(r.company_id)}</b></td><td>${A(r.source_url,r.person_name)}</td><td class="muted">${esc(r.role)}</td>`)).join(""));}catch(e){ec("lead",3);}
+
+  // Adverse-event burden → openFDA FAERS
+  try{const d=await rows(`/fda_adverse_events?select=drug_id,reaction,report_count,source_url&order=report_count.desc&limit=40`);
+    fill("faers",d.map(r=>TR(FAERS_DASH,`<td><b>${esc(r.drug_id)}</b></td><td>${A(FAERS_DASH,r.reaction)}</td><td>${esc(Number(r.report_count).toLocaleString())}</td>`)).join(""));}catch(e){ec("faers",3);}
+
+  // Trial-design quality → CT.gov study record. Lead with the lowest-believability evidence (single-arm/low), then strongest.
+  try{const d=await rows(`/trial_design_quality?select=drug_id,nct_id,quality_tier,quality_score,score_rationale,source_url&order=quality_score.asc&limit=40`);
+    const tpill=t=>t==="high"?'<span class="pill ok">high</span>':t==="moderate"?'<span class="pill md">moderate</span>':t==="single_arm"?'<span class="pill bad">single-arm</span>':'<span class="pill lo">low</span>';
+    fill("tdq",d.map(r=>{const u=r.source_url||("https://clinicaltrials.gov/study/"+r.nct_id);return TR(u,`<td>${A(u,r.drug_id)}</td><td class="muted" style="font-size:11px">${esc(r.nct_id)}</td><td>${tpill(r.quality_tier)} <span class="muted">${esc(r.quality_score)}</span></td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("tdq",3);}
+
+  // EU approvals & lag → EMA EPAR. Most extreme lag/lead first.
+  try{const d=await rows(`/eu_approvals?select=drug_id,brand_name,eu_auth_date,eu_vs_us_lag_days,ema_product_url,source_url&order=eu_vs_us_lag_days.desc.nullslast&limit=60`);
+    const lag=v=>v==null?'<span class="muted">no US date</span>':v>0?'<span class="pill lo">EU +'+v+'d</span>':v<0?'<span class="pill ok">EU first '+Math.abs(v)+'d</span>':'<span class="pill md">same</span>';
+    fill("eulag",d.map(r=>{const u=r.ema_product_url||r.source_url;return TR(u,`<td>${A(u,r.brand_name||r.drug_id)}</td><td class="muted">${esc(fmtDate(r.eu_auth_date))}</td><td>${lag(r.eu_vs_us_lag_days)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("eulag",3);}
+
+  // Conference readout signals → DOI. Late-breakers + explicit positive reads first.
+  try{const d=await rows(`/conference_abstract_signals?select=drug_id,conference,conference_year,is_late_breaker,result_direction,signal_score,source_url,doi&or=(is_late_breaker.eq.true,result_direction.eq.positive,presented_edge_candidate.eq.true)&order=signal_score.desc.nullslast&limit=40`);
+    const sg=r=>r.is_late_breaker?'<span class="pill hi">late-breaker</span>':r.result_direction==="positive"?'<span class="pill ok">positive</span>':'<span class="pill md">readout</span>';
+    fill("readout",d.map(r=>{const u=r.source_url||r.doi;return TR(u,`<td class="muted">${esc(r.conference_year||"")}</td><td>${A(u,r.drug_id)}<div class="muted" style="font-size:11px">${esc(r.conference||"")}</div></td><td>${sg(r)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("readout",3);}
+
+  // Financing events → SEC EDGAR filing (dilutive raises = runway pressure)
+  try{const d=await rows(`/company_events?select=company_id,filing_date,form_type,event_subtype,source_url&event_type=eq.financing&order=filing_date.desc&limit=40`);
+    fill("events",d.map(r=>TR(r.source_url,`<td class="muted">${esc(fmtDate(r.filing_date))}</td><td>${A(r.source_url,r.company_id)}</td><td><span class="pill md">${esc(r.form_type)}</span></td>`)).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("events",3);}
+
+  // Mechanism pathways → Reactome / GtoPdb. Densest pathways = adjacency whitespace.
+  try{const d=await rows(`/target_pathways?select=symbol,pathway_name,source,source_url&order=symbol.asc&limit=120`);
+    fill("paths",d.map(r=>{const u=r.source_url||("https://reactome.org/content/query?q="+encodeURIComponent(r.pathway_name||""));return TR(u,`<td><b>${esc(r.symbol)}</b></td><td>${A(u,r.pathway_name)}</td><td class="muted" style="font-size:11px">${esc(r.source)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("paths",3);}
+
+  // Official labels → DailyMed SPL
+  try{const d=await rows(`/drug_labels?select=drug_id,label_title,boxed_warning,set_url,source_url&order=drug_id.asc&limit=60`);
+    fill("labels",d.map(r=>{const u=r.set_url||r.source_url;const bx=r.boxed_warning?' <span class="pill bad">boxed</span>':'';return TR(u,`<td><b>${esc(r.drug_id)}</b></td><td>${A(u,r.label_title||"label")}${bx}</td>`);}).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("labels",2);}
+
+  try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN"];
+    const vals=await Promise.all(preds.map(p=>cntq("entity_edges?select=id&predicate=eq."+p).catch(()=>"–")));
+    document.getElementById("edges").innerHTML=preds.map((p,i)=>`<span class="pill md" style="margin:3px 6px 3px 0;display:inline-block">${p}: <b class="n">${esc(vals[i])}</b></span>`).join("");
+  }catch(e){document.getElementById("edges").textContent="unavailable";}
+})();
+</script>
+</body>
+</html>
