@@ -21889,17 +21889,18 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     'indications','indication_aliases','targets','target_pairs',
     'modalities',/* 'disease_areas' removed Session 80 — code retirement */'area_metadata',
     'ailux_positions','research_queue','geographic_approvals','submitted_intel',
+    'trial_facts','publications','kols','drug_sources',
   ];
 
   const BREAKDOWN = [
-    { tbl:'drugs',        l:'Drugs'        },
-    { tbl:'companies',    l:'Companies'    },
-    { tbl:'trials',       l:'Trials'       },
-    { tbl:'intel',        l:'Intelligence' },
-    { tbl:'deals',        l:'Deals'        },
-    { tbl:'catalysts',    l:'Catalysts'    },
-    { tbl:'news_articles',l:'Articles'     },
-    { tbl:'entity_edges', l:'Connections'  },
+    { tbl:'drugs',        l:'Drugs'         },
+    { tbl:'companies',    l:'Companies'     },
+    { tbl:'catalysts',    l:'Catalysts'     },
+    { tbl:'trial_facts',  l:'Trials'        },
+    { tbl:'publications', l:'Publications'  },
+    { tbl:'kols',         l:'KOLs'          },
+    { tbl:'entity_edges', l:'Graph edges'   },
+    { tbl:'drug_sources', l:'Sourced facts' },
   ];
 
   let _hwClockTimer   = null;
