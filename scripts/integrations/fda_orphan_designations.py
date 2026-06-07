@@ -244,9 +244,20 @@ def main():
         raw = fetch_export(args.start_date, args.end_date)
     except Exception as e:
         # A blocked external source is a documented gap, not a build failure.
-        print(f"!! FDA OOPD export unreachable after retries ({type(e).__name__}: {e}). "
-              "Re-run the workflow later — hosted egress is usually intermittent, "
-              "not permanent. No data written.")
+        # Probe the index separately so the log distinguishes IP/bot-block (index
+        # also fails) from a request-shape problem (index ok, results fail).
+        idx_status = "?"
+        try:
+            req = urllib.request.Request(INDEX, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                idx_status = f"{r.status} ({len(r.read())} bytes)"
+        except Exception as ie:
+            idx_status = f"{type(ie).__name__}: {ie}"
+        print(f"!! FDA OOPD export unreachable after retries ({type(e).__name__}: {e}).")
+        print(f"   diagnostic: index page GET -> {idx_status}")
+        print("   If index ALSO fails -> Akamai is bot-blocking this egress IP "
+              "(needs a different runner/proxy). If index is 200 but results fail "
+              "-> the CFM results flow needs adjustment. No data written.")
         return
     low = raw.lower()
     if ("access denied" in low or "<title>error" in low or
