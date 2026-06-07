@@ -22,22 +22,12 @@ import os, sys, json, time, argparse, re, datetime
 from typing import Optional
 import requests, anthropic
 
-_REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from _common import load_credentials, sb_headers
 
-def _read_key(f):
-    p = os.path.join(_REPO_DIR, f)
-    return open(p).read().strip() if os.path.exists(p) else None
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _read_key(".supabase_service_key") or ""
-ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY") or _read_key(".anthropic_api_key") or ""
-
-if not SUPABASE_KEY: print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
-if not ANTHROPIC_KEY: print("ERROR: no ANTHROPIC_API_KEY"); sys.exit(1)
-
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_KEY = load_credentials()
 client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+SB_H = sb_headers(SUPABASE_KEY)
 NOW = datetime.datetime.utcnow().isoformat()
 
 AREA_LABELS = {

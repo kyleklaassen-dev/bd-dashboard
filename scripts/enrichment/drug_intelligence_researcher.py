@@ -26,28 +26,16 @@ import sys
 import json
 import time
 import argparse
-import pathlib
 import datetime
 from typing import Optional
 
 import requests
 import anthropic
 
+from _common import load_credentials
+
 # ── Credentials ───────────────────────────────────────────────────────────────
-BASE_DIR = pathlib.Path(__file__).parent.parent
-
-def _load_key(env_var: str, file_name: str) -> str:
-    val = os.environ.get(env_var, "").strip()
-    if val:
-        return val
-    p = BASE_DIR / file_name
-    if p.exists():
-        return p.read_text().strip()
-    sys.exit(f"ERROR: {env_var} not set and {file_name} not found in {BASE_DIR}")
-
-SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SERVICE_KEY   = _load_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
-ANTHROPIC_KEY = _load_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
+SUPABASE_URL, SERVICE_KEY, ANTHROPIC_KEY = load_credentials()
 CLAUDE_MODEL  = "claude-sonnet-4-6"
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)

@@ -64,6 +64,8 @@ from typing import Any
 
 import requests
 
+from _common import load_credentials
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -118,20 +120,8 @@ ALL_AREAS = ["tl1a", "tslp", "il4ra", "fcrn", "igf1r", "tcell"]
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _get_supabase_creds() -> tuple[str, str]:
-    """Return (url, service_key) from env or .supabase_service_key file."""
-    url = os.environ.get("SUPABASE_URL", "")
-    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-    if not key:
-        try:
-            with open(".supabase_service_key") as f:
-                key = f.read().strip()
-        except FileNotFoundError:
-            pass
-    if not url or not key:
-        raise RuntimeError(
-            "Supabase credentials not found. Set SUPABASE_URL + SUPABASE_SERVICE_KEY "
-            "or provide .supabase_service_key file."
-        )
+    """Return (url, service_key) via _common.load_credentials."""
+    url, key, _ = load_credentials(require_anthropic=False)
     return url, key
 
 

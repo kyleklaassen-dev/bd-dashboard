@@ -123,9 +123,8 @@ except ImportError:
 # CREDENTIALS + SETUP
 # ══════════════════════════════════════════════════════════════════════════
 
-ANTHROPIC_API_KEY  = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL       = os.environ["SUPABASE_URL"]
-SUPABASE_KEY       = os.environ["SUPABASE_SERVICE_KEY"]
+from _common import load_credentials, sb_headers as _sb_headers
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -416,10 +415,7 @@ def enforce_confidence_constraints(record: dict, context: str = "") -> dict:
     return record
 
 
-def log(msg: str, indent: int = 0):
-    ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
-    prefix = "  " * indent
-    print(f"[{ts}] {prefix}{msg}", flush=True)
+from _common import log  # noqa: E402 — imported after credentials
 
 
 # ══════════════════════════════════════════════════════════════════════════

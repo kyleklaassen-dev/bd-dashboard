@@ -29,19 +29,16 @@ import urllib.parse
 import anthropic
 
 # ── Credentials ──────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
+from _common import load_credentials, sb_headers as _sb_headers
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 
 SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
+    **_sb_headers(SUPABASE_KEY),
+    "Prefer": "return=representation",
 }
 
 

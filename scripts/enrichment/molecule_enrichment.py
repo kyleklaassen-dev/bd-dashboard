@@ -36,9 +36,8 @@ import anthropic
 import requests
 
 # ── Config ─────────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-SUPABASE_URL      = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+from _common import load_credentials, log  # noqa: E402
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 MODEL             = "claude-sonnet-4-6"
 NOW_ISO           = datetime.now(timezone.utc).isoformat()
 
@@ -68,8 +67,7 @@ PRIORITY_DRUG_IDS = [
 ]
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
-def log(msg, indent=0):
-    print(("  " * indent) + msg, flush=True)
+# log() imported from _common
 
 def sb_get(table, params):
     """GET from Supabase REST."""

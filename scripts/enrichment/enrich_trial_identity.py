@@ -20,10 +20,9 @@ Run:
 import os, re, sys, json, time, argparse, urllib.request, urllib.error
 from urllib.parse import quote
 
-SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KEY = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-       or open(os.path.join(WORKSPACE, ".supabase_service_key")).read().strip())
+from _common import load_credentials
+_SUPABASE_URL, KEY, _ = load_credentials(require_anthropic=False)
+SUPA = f"{_SUPABASE_URL}/rest/v1"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 UA = "meridian-trial-identity/1.0"

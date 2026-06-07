@@ -58,11 +58,7 @@ except ImportError:
     _PYDANTIC_AVAILABLE = False
     DrugEnrichmentOutput = None  # type: ignore[assignment,misc]
 
-# ── sys.path setup ────────────────────────────────────────────────────────────
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT   = os.path.dirname(_SCRIPTS_DIR)
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
+from _common import load_credentials, log  # noqa: E402
 
 # ── Optional: import model_comparison logger if available ─────────────────────
 try:
@@ -79,34 +75,7 @@ except ImportError:
 # CREDENTIALS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _read_file_credential(filename: str) -> str:
-    for base in [_REPO_ROOT, _SCRIPTS_DIR]:
-        path = os.path.join(base, filename)
-        if os.path.exists(path):
-            return open(path).read().strip()
-    return ""
-
-
-ANTHROPIC_API_KEY = (
-    os.environ.get("ANTHROPIC_API_KEY")
-    or _read_file_credential(".anthropic_api_key")
-)
-
-SUPABASE_URL = (
-    os.environ.get("SUPABASE_URL")
-    or _read_file_credential(".supabase_url")
-    or "https://tghntyofptvfhmtchwcv.supabase.co"
-)
-
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_KEY")
-    or _read_file_credential(".supabase_service_key")
-)
-
-if not SUPABASE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
-    sys.exit(1)
-
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
 
 SB_HEADERS = {
@@ -194,9 +163,7 @@ def sb_post(table: str, data: dict) -> dict:
     return result[0] if isinstance(result, list) and result else {}
 
 
-def log(msg: str, indent: int = 0):
-    ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
-    print(f"[{ts}] {'  ' * indent}{msg}", flush=True)
+# log() imported from _common
 
 
 # ══════════════════════════════════════════════════════════════════════════════
