@@ -30,10 +30,11 @@ jobs:
           FLAG=""
           if [ "${{ github.event.inputs.detect_only }}" == "true" ]; then FLAG="--detect-only"; fi
           python scripts/flywheel_phase2.py $FLAG
-      - name: Commit training data
-        run: |
-          git config user.email "meridian-bot@ailux.bio"
-          git config user.name "Meridian Bot"
-          git add data/drift_report_*.json data/training_pairs_*.jsonl || true
-          git diff --staged --quiet || git commit -m "flywheel: drift report + training pairs $(date +%Y-%m-%d)"
-          git push || true
+      - name: Upload flywheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flywheel-outputs-${{ github.run_id }}
+          path: |
+            output/drift_report_*.json
+            output/training_pairs_*.jsonl
+          retention-days: 30

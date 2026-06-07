@@ -18,8 +18,8 @@ Usage:
   python3 scripts/flywheel_phase2.py --entity-type drug
 
 Output files:
-  data/drift_report_YYYY-MM-DD.json   — drift summary
-  data/training_pairs_YYYY-MM-DD.jsonl — fine-tuning pairs
+  output/drift_report_YYYY-MM-DD.json   — drift summary
+  output/training_pairs_YYYY-MM-DD.jsonl — fine-tuning pairs
 """
 
 import os, sys, json, argparse, datetime, re
@@ -28,7 +28,8 @@ import requests
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DATA_DIR = os.path.join(_REPO, "data")
-os.makedirs(_DATA_DIR, exist_ok=True)
+_OUTPUT_DIR = os.path.join(_REPO, "output")
+os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
 def _key(f):
     p = os.path.join(_REPO, f)
@@ -206,11 +207,11 @@ def main():
         if pair: training_pairs.append(pair)
 
     # ── Write outputs ─────────────────────────────────────────────────────────
-    drift_path = os.path.join(_DATA_DIR, f"drift_report_{TODAY}.json")
+    drift_path = os.path.join(_OUTPUT_DIR, f"drift_report_{TODAY}.json")
     with open(drift_path, "w") as f:
         json.dump(drift_report, f, indent=2)
 
-    train_path = os.path.join(_DATA_DIR, f"training_pairs_{TODAY}.jsonl")
+    train_path = os.path.join(_OUTPUT_DIR, f"training_pairs_{TODAY}.jsonl")
     with open(train_path, "w") as f:
         for pair in training_pairs:
             f.write(json.dumps(pair) + "\n")

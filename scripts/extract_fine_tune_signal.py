@@ -129,7 +129,7 @@ def main():
     args = parser.parse_args()
 
     output_path = args.output or os.path.join(
-        _REPO, f"data/fine_tune_signal_{datetime.date.today()}.jsonl")
+        _REPO, f"output/fine_tune_signal_{datetime.date.today()}.jsonl")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Fetch all kyle_reviews with fine_tune_use=True
