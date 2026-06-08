@@ -135,7 +135,6 @@ def promote_discovery_queue(dry_run=False):
             "target": target or None,
             "stage": item.get("stage") or "Preclinical",
             "modality": item.get("modality") or None,
-            "area_id": item.get("area_id") or None,
             "overlap": item.get("overlap") or "Watch",
             "catalog_category": "Competitor",
             "discovery_status": "auto",
