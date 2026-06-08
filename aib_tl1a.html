@@ -84,32 +84,22 @@
     <div class="wm">◆ THE MERIDIAN · AREA INTELLIGENCE BRIEF</div>
     <h1>TL1A × IL-23p19 in Ulcerative Colitis &amp; IBD</h1>
   </div>
-  <div class="band-date">June 7, 2026</div>
+  <div class="band-date">June 8, 2026</div>
 </div>
 <div class="wrap">
   <div class="controls">
-    <div class="seg" id="seg">
-      <button data-v="refined" class="on">Refined · 1-page read</button>
-      <button data-v="full">Full · deep reference</button>
-    </div>
-    <div class="dl">
-      <a id="dl" href="AIB_TL1A_IL23p19_UC_Refined.docx" download>↓ Word</a>
+    <div class="dl" style="margin-left:0">
+      <a id="dl" href="AIB_TL1A_IL23p19_UC_v8.docx" download>↓ Download (Word)</a>
     </div>
   </div>
-  <div class="meta" id="meta">Distilled edition — every insight, less to read. Claims tagged
-    <span class="tagF">[F]</span>act <span class="tagI">[I]</span>nference
-    <span class="tagJ">[J]</span>udgment <span class="tagP">[P]</span>rediction.</div>
+  <div class="meta" id="meta">Source-traced · every footnote links to the primary source (ClinicalTrials.gov, NEJM, Lancet Gastroenterology &amp; Hepatology, ECCO / DDW, company disclosures).</div>
   <div id="doc"><div class="loading">Loading brief…</div></div>
 </div>
 
 <script>
-const SRC={refined:"aib_tl1a_refined.html",full:"aib_tl1a_full.html"};
-const DOCX={refined:"AIB_TL1A_IL23p19_UC_Refined.docx",full:"AIB_TL1A_IL23p19_UC_v6.docx"};
-const META={
-  refined:'Distilled edition — every insight, less to read.',
-  full:'Full edition — the complete deep-reference analysis.'};
+const DOC_SRC="aib_tl1a_v8.html";
 const cache={};
-const H1RE=/^(\d{1,2}\s·\s|Meridian Assessment|The decision$|Standing predictions|Sources)/;
+const H1RE=/^(\d{1,2}\s·\s|The landscape in brief$|What makes an asset valuable here$|Sources$)/;
 
 function enhance(root){
   // strip the fragment's leading cover paragraphs (band already shows title) — everything before the first table
@@ -155,31 +145,21 @@ function enhance(root){
       .replace(/\[P\]/g,'<span class="tagP">[P]</span>');
   });
   const fns=root.querySelector('.footnotes ol'); if(fns) fns.classList.add('fn');
+  // all source links open in a new tab
+  root.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener';});
 }
 function colorCell(td,cls){ const b=td.querySelector('strong')||td; b.classList.add(cls); }
 
-async function load(v){
+async function load(){
   const doc=document.getElementById('doc');
-  document.getElementById('meta').firstChild&&(null);
-  document.getElementById('meta').innerHTML=META[v]+' Claims tagged <span class="tagF">[F]</span>act <span class="tagI">[I]</span>nference <span class="tagJ">[J]</span>udgment <span class="tagP">[P]</span>rediction.';
-  document.getElementById('dl').setAttribute('href',DOCX[v]);
-  document.getElementById('dl').setAttribute('download','');
-  if(!cache[v]){
-    try{ const r=await fetch(SRC[v]); cache[v]=await r.text(); }
+  if(!cache.doc){
+    try{ const r=await fetch(DOC_SRC); cache.doc=await r.text(); }
     catch(e){ doc.innerHTML='<div class="loading">Could not load the brief. '+e.message+'</div>'; return; }
   }
-  doc.innerHTML=cache[v];
+  doc.innerHTML=cache.doc;
   enhance(doc);
 }
-document.getElementById('seg').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b) return;
-  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
-  load(b.dataset.v);
-});
-// initial from ?v=
-const v0=new URLSearchParams(location.search).get('v')==='full'?'full':'refined';
-if(v0==='full'){document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='full'));}
-load(v0);
+load();
 </script>
 </body>
 </html>
