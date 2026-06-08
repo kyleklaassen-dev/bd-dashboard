@@ -1,0 +1,34 @@
+name: Meridian Derived Rebuild (weekly, free)
+
+# Re-runs the idempotent, free, deterministic DERIVATION layers so the whole
+# derived stack stays current as upstream API data lands. No LLM cost.
+on:
+  schedule:
+    - cron: "0 8 * * 1"     # Mondays 08:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: meridian-derived-rebuild
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - name: Provision service key
+        run: printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
+      - name: Ownership rights (promote owner/originator/partnership facts)
+        run: python3 scripts/derive_ownership_rights.py || echo "ownership non-fatal"
+      - name: Publication influence (Semantic Scholar)
+        run: python3 scripts/integrations/publication_influence.py --write || echo "S2 non-fatal"
+      - name: Recompute coverage heat map (credit all sources)
+        run: python3 scripts/compute_attribute_completeness.py || echo "completeness non-fatal"
+      - name: Clean up
+        if: always()
+        run: rm -f .supabase_service_key
