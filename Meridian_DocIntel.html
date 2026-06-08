@@ -49,6 +49,7 @@
   <div class="sub">Structured facts, market data & insights extracted from submitted research — Wedbush, TD Cowen, Endpoints & more. Every claim links to its source.</div>
   <div class="tabs">
     <div class="tab on" data-v="digests" onclick="sw('digests')">Documents</div>
+    <div class="tab" data-v="synthesis" onclick="sw('synthesis')">🧠 Synthesis</div>
     <div class="tab" data-v="facts" onclick="sw('facts')">Facts Explorer</div>
     <div class="tab" data-v="rx" onclick="sw('rx')">Rx & Pricing</div>
     <div class="tab" data-v="market" onclick="sw('market')">Market Landscape</div>
@@ -57,6 +58,7 @@
 <div class="wrap">
   <div id="kpis"></div>
   <div id="v-digests" class="view on"><div class="empty">Loading documents…</div></div>
+  <div id="v-synthesis" class="view"><div class="empty">Loading…</div></div>
   <div id="v-facts" class="view">
     <div class="row" id="fact-filters"></div>
     <div id="facts-list"></div>
@@ -84,7 +86,7 @@ async function load(){
     q('rx_market_tracker','select=*&order=drug_class,drug_name'),
     q('market_landscape','select=*&order=area_id,year_label')
   ]);
-  renderKpis();renderDigests();renderFacts();renderRx();renderMarket();
+  renderKpis();renderDigests();renderSynthesis();renderFacts();renderRx();renderMarket();
 }
 function renderKpis(){
   document.getElementById('kpis').innerHTML=
@@ -95,14 +97,36 @@ function renderKpis(){
 }
 function renderDigests(){
   const el=document.getElementById('v-digests');
-  if(!DIGESTS.length){el.innerHTML='<div class="empty">No documents yet.</div>';return;}
-  el.innerHTML=DIGESTS.map(d=>{
+  const docs=DIGESTS.filter(d=>d.doc_type!=='synthesis');
+  if(!docs.length){el.innerHTML='<div class="empty">No documents yet.</div>';return;}
+  el.innerHTML=docs.map(d=>{
     const areas=(d.area_ids||[]).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
     const themes=(d.themes||[]).map(t=>`<span>${esc(t)}</span>`).join('');
     return `<div class="card">
       <div class="meta">${areas}<span class="badge">${esc(d.doc_type||'doc')}</span>${srcLink(d.source_url)}</div>
       <h3>${esc(d.title)}</h3>
       <div class="summary">${esc(d.executive_summary||d.one_paragraph)}</div>
+      ${d.bd_implications?`<div class="bd"><b>BD implication:</b> ${esc(d.bd_implications)}</div>`:''}
+      <div class="themes">${themes}</div>
+    </div>`;
+  }).join('');
+}
+function renderSynthesis(){
+  const el=document.getElementById('v-synthesis');
+  const syn=DIGESTS.filter(d=>d.doc_type==='synthesis');
+  if(!syn.length){el.innerHTML='<div class="empty">No synthesis briefs yet.</div>';return;}
+  el.innerHTML='<div class="card" style="background:transparent;border:none;padding:0 0 8px"><div class="summary">Synthesis briefs — facts rolled up per area into cited narratives. '+syn.length+' brief'+(syn.length!==1?'s':'')+'.</div></div>'+
+   syn.map(d=>{
+    const areas=(d.area_ids||[]).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
+    const themes=(d.themes||[]).map(t=>`<span>${esc(t)}</span>`).join('');
+    const km=(d.key_metrics||[]).map(m=>`<span class="badge" style="color:var(--ac2)">${esc(m.metric)}: ${esc(m.value)}${m.entity?' ('+esc(m.entity)+')':''}</span>`).join(' ');
+    const body=esc(d.executive_summary||'').split(/\n\n+/).map(p=>`<p style="margin:0 0 10px">${p}</p>`).join('');
+    return `<div class="card" style="border-left:3px solid var(--ac)">
+      <div class="meta">${areas}<span class="badge">🧠 synthesis</span></div>
+      <h3>${esc(d.title)}</h3>
+      ${d.one_paragraph?`<div class="summary" style="font-style:italic;color:#dbe6f7">${esc(d.one_paragraph)}</div>`:''}
+      <div style="font-size:13px;color:#cdd9ec;line-height:1.6;margin-top:8px">${body}</div>
+      ${km?`<div class="themes" style="margin-top:8px">${km}</div>`:''}
       ${d.bd_implications?`<div class="bd"><b>BD implication:</b> ${esc(d.bd_implications)}</div>`:''}
       <div class="themes">${themes}</div>
     </div>`;

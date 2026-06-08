@@ -16,7 +16,7 @@
   .ns{color:var(--accent);font-weight:600}
   .stamp{color:var(--muted);font-size:12px}
   .bar{height:4px;width:60px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));margin:10px 0 20px}
-  .tiles{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:8px}
+  .tiles{display:grid;grid-template-columns:repeat(9,1fr);gap:10px;margin-bottom:8px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
   .tile .n{font-size:20px;font-weight:750;letter-spacing:-.02em}
   .tile .l{font-size:10.5px;color:var(--muted);margin-top:2px}
@@ -206,9 +206,10 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
 (async()=>{
   try{
     const defs=[["drugs","Drugs"],["companies","Companies"],["catalysts","Catalysts"],["trial_facts","Trials"],
-      ["publications","Publications"],["kols","KOLs"],["entity_edges","Graph edges"],["drug_sources","Sourced facts"]];
+      ["publications","Publications"],["kols","KOLs"],["entity_edges","Graph edges"],["drug_sources","Sourced facts"],["intel_facts","Report facts"]];
     const vals=await Promise.all(defs.map(d=>count(d[0]).catch(()=>"–")));
-    document.getElementById("tiles").innerHTML=defs.map((d,i)=>`<div class="tile"><div class="n">${esc(vals[i])}</div><div class="l">${d[1]}</div></div>`).join("");
+    const _fmt=v=>{const n=+v;return isNaN(n)?esc(v):n.toLocaleString();};
+    document.getElementById("tiles").innerHTML=defs.map((d,i)=>`<div class="tile"><div class="n">${_fmt(vals[i])}</div><div class="l">${d[1]}</div></div>`).join("");
     document.getElementById("stamp").textContent="live · "+new Date().toLocaleString();
   }catch(e){document.getElementById("stamp").textContent="data unavailable — open in a browser with internet";}
 
