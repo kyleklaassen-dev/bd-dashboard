@@ -19,6 +19,7 @@ from pipelines import (
     FLYWHEEL_PHASE2,
     PIPELINES,
     SCHOOL_WEEK_SPRINT,
+    TRIAL_AUDIT,
     WEEKEND_SPRINT,
 )
 from state_graphs import STATE_GRAPHS
@@ -144,6 +145,7 @@ def render_home() -> None:
         (WEEKEND_SPRINT, "btn_weekend_sprint"),
         (SCHOOL_WEEK_SPRINT, "btn_school_week_sprint"),
         (FLYWHEEL_PHASE2, "btn_flywheel_phase2"),
+        (TRIAL_AUDIT, "btn_trial_audit"),
     ]
     cols = st.columns(3)
     for i, (pipeline, key) in enumerate(cards):

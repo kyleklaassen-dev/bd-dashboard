@@ -8,6 +8,7 @@ from .evidence_collectors import PIPELINE as EVIDENCE_COLLECTORS
 from .weekend_sprint import PIPELINE as WEEKEND_SPRINT
 from .school_week_sprint import PIPELINE as SCHOOL_WEEK_SPRINT
 from .flywheel_phase2 import PIPELINE as FLYWHEEL_PHASE2
+from .trial_audit import PIPELINE as TRIAL_AUDIT
 
 PIPELINES = {
     ABSTRACT_FETCHER["key"]: ABSTRACT_FETCHER,
@@ -15,4 +16,5 @@ PIPELINES = {
     WEEKEND_SPRINT["key"]: WEEKEND_SPRINT,
     SCHOOL_WEEK_SPRINT["key"]: SCHOOL_WEEK_SPRINT,
     FLYWHEEL_PHASE2["key"]: FLYWHEEL_PHASE2,
+    TRIAL_AUDIT["key"]: TRIAL_AUDIT,
 }
