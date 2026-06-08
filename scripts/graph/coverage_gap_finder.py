@@ -40,45 +40,23 @@ from collections import defaultdict
 import requests
 
 # ── Path setup ───────────────────────────────────────────────────────────────
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
+# NOTE: dirname(abspath(__file__)) resolved to scripts/, not the repo root,
+# before the scripts/ reorg moved this file into scripts/graph/ — recompute
+# relative to the true repo layout so credential-file lookups still work.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT   = os.path.dirname(_SCRIPTS_DIR)
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                          # noqa: E402
+
 # ── Credentials ──────────────────────────────────────────────────────────────
 
-def _read_cred(filename: str) -> str:
-    for base in [_REPO_ROOT, _SCRIPTS_DIR]:
-        path = os.path.join(base, filename)
-        if os.path.exists(path):
-            return open(path).read().strip()
-    return ""
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
-
-SUPABASE_URL = (
-    os.environ.get("SUPABASE_URL")
-    or _read_cred(".supabase_url")
-    or "https://tghntyofptvfhmtchwcv.supabase.co"
-)
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_KEY")
-    or _read_cred(".supabase_service_key")
-)
-
-if not SUPABASE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
-    sys.exit(1)
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
-SB_UPSERT_HEADERS = {
-    **SB_HEADERS,
-    "Prefer": "resolution=merge-duplicates,return=minimal",
-}
+SB_HEADERS = sb_headers(SUPABASE_KEY)
 
 NOW_ISO  = datetime.datetime.utcnow().isoformat()
 TODAY    = datetime.datetime.utcnow().strftime("%Y-%m-%d")
@@ -95,21 +73,15 @@ def log(msg: str, indent: int = 0):
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
 def sb_get(table: str, params: dict = None) -> List[dict]:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    r = requests.get(url, headers=SB_HEADERS, params=params or {}, timeout=30)
-    r.raise_for_status()
-    return r.json()
+    return _db.sb_get(table, params or {})
 
 
 def sb_post(table: str, data: dict) -> dict:
     if DRY_RUN:
         log(f"  [DRY-RUN] POST {table}: {json.dumps(data)[:120]}", indent=2)
         return data
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    r = requests.post(url, headers=SB_UPSERT_HEADERS, json=data, timeout=30)
-    r.raise_for_status()
-    result = r.json()
-    return result[0] if isinstance(result, list) and result else {}
+    result = _db.sb_upsert(table, data)
+    return result[0] if result else {}
 
 
 def sb_upsert(table: str, rows: List[dict]) -> int:
@@ -117,9 +89,7 @@ def sb_upsert(table: str, rows: List[dict]) -> int:
         if DRY_RUN:
             log(f"  [DRY-RUN] UPSERT {len(rows)} rows into {table}", indent=2)
         return len(rows)
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    r = requests.post(url, headers=SB_UPSERT_HEADERS, json=rows, timeout=60)
-    r.raise_for_status()
+    _db.sb_upsert(table, rows)
     return len(rows)
 
 

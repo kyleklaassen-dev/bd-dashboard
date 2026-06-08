@@ -18,19 +18,22 @@ Env: SUPABASE_URL, SUPABASE_SERVICE_KEY
 import os
 import sys
 import datetime
-import requests
 
-URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co").rstrip("/")
-KEY = os.environ["SUPABASE_SERVICE_KEY"]
-B = f"{URL}/rest/v1"
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
-HW = {**H, "Content-Type": "application/json", "Prefer": "return=minimal"}
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+URL, KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(URL, KEY)
 NOW = datetime.datetime.utcnow().isoformat() + "Z"
 DRY = "--dry-run" in sys.argv
 
 
 def g(t, params):
-    return requests.get(f"{B}/{t}", headers=H, params={**params, "limit": "5000"}, timeout=40).json()
+    return _db.sb_get(t, {**params, "limit": "5000"})
 
 
 def main() -> int:
@@ -103,9 +106,10 @@ def main() -> int:
 
     print(f"{'[DRY] ' if DRY else ''}deal/ownership edges to add: {len(rows)}")
     if rows and not DRY:
-        r = requests.post(f"{B}/entity_relationships", headers=HW, json=rows, timeout=90)
-        print("insert:", r.status_code, r.text[:160])
-        return 0 if r.status_code in (200, 201, 204) else 1
+        result = _db.sb_insert("entity_relationships", rows)
+        ok = bool(result)
+        print("insert:", "ok" if ok else "failed", f"({len(result)} rows)")
+        return 0 if ok else 1
     return 0
 
 
