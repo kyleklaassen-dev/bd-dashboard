@@ -116,6 +116,19 @@ if not SUPABASE_KEY:
     print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
     sys.exit(1)
 
+import ai.client as ai_client
+from ai.client import PromptConfig
+
+if ANTHROPIC_API_KEY:
+    ai_client.setup(ANTHROPIC_API_KEY)
+
+_ENRICH_CFG = PromptConfig(
+    name="weekend_sprint_enrich",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=500,
+)
+
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -801,14 +814,8 @@ def _llm_enrich(prompt: str, max_tokens: int = 500) -> Optional[str]:
     if not ANTHROPIC_API_KEY:
         return None
     try:
-        import anthropic as _anthropic
-        client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        msg = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return msg.content[0].text.strip() if msg.content else None
+        text = ai_client.run_text(_ENRICH_CFG.override(max_tokens=max_tokens), prompt, timeout=60.0)
+        return text.strip() or None
     except Exception as e:
         log(f"    LLM call failed: {e}", indent=3)
         return None

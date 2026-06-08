@@ -64,6 +64,19 @@ SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials(require_anthrop
 _db.init_db(SUPABASE_URL, SUPABASE_KEY)
 SUPABASE_PAT = _cred("SUPABASE_PAT", ".supabase_pat")
 
+import ai.client as ai_client
+from ai.client import PromptConfig
+
+if ANTHROPIC_API_KEY:
+    ai_client.setup(ANTHROPIC_API_KEY)
+
+_FRAMING_CFG = PromptConfig(
+    name="bd_recommender_framing",
+    system="You are a BD advisor at Ailux Biotherapeutics.",
+    model="claude-haiku-4-5-20251001",
+    max_tokens=400,
+)
+
 PROJECT_REF = "tghntyofptvfhmtchwcv"
 MGMT_URL    = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
 
@@ -337,7 +350,7 @@ def generate_deal_framing(scored: dict) -> str:
 
     summary = scored["view_summary"] or scored["ailux_relevance"] or scored["ailux_angle"] or "No context available."
 
-    prompt = f"""You are a BD advisor at Ailux Biotherapeutics. {AILUX_CONTEXT}
+    prompt = f"""{AILUX_CONTEXT}
 
 Generate a 3-sentence deal conversation opener for approaching {scored['company_name']}:
 - Sentence 1: Why Ailux is approaching them specifically (their pipeline situation and what makes them a fit right now)
@@ -351,26 +364,10 @@ Key upcoming catalyst: {scored['key_catalyst'] or 'None in next 12 months'}
 
 Be specific, data-driven, and BD-grade professional. No generic filler phrases. Each sentence must contain at least one concrete data point or mechanism detail."""
 
-    payload = json.dumps({
-        "model": "claude-haiku-4-5-20251001",
-        "max_tokens": 400,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode()
-
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        method="POST",
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-    )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            resp = json.loads(r.read())
-        text = resp["content"][0]["text"].strip()
+        text = ai_client.run_text(_FRAMING_CFG, prompt, timeout=30.0).strip()
+        if not text:
+            return "[Framing generation failed: empty response]"
         if scored["abbvie_blocked"]:
             text += f"\n\n{ABBVIE_CONSTRAINT_NOTE}"
         return text
