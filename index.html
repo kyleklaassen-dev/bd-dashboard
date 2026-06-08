@@ -20977,7 +20977,7 @@ async function submitIntelNew() {
   const err  = document.getElementById('im-err');
   // Capture any attached file info
   const fileInput = document.getElementById('si-file-input');
-  const attachedFile = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+  const attachedFile = window._siFile || ((fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null);
   const attachedFileName = attachedFile ? attachedFile.name : null;
   // Validation
   let valid = true;
@@ -21054,7 +21054,14 @@ async function submitIntelNew() {
   // Show success
   document.getElementById('im-form-body').style.display = 'none';
   document.getElementById('im-footer').style.display = 'none';
-  document.getElementById('im-success').classList.add('show');
+  const _succ = document.getElementById('im-success');
+  if (_succ) {
+    let fc = document.getElementById('im-success-file');
+    if (!fc) { fc = document.createElement('div'); fc.id = 'im-success-file'; fc.style.cssText = 'margin-top:8px;font-size:12px;font-weight:600'; _succ.appendChild(fc); }
+    fc.textContent = attachedFilePath ? ('📎 PDF saved to library: ' + (attachedFileName||'file')) : '';
+    fc.style.color = '#15803d';
+  }
+  _succ.classList.add('show');
   // Invalidate review panel cache so next open shows fresh data
   _siLoaded = false;
   // Auto-close after 3s
@@ -21094,6 +21101,7 @@ function _siResetFileAttachment() {
   const q = document.getElementById('si-questions');
   if (q) { q.style.display = 'none'; q.innerHTML = ''; }
   window._siLastDetected = null;
+  window._siFile = null;
 }
 
 function siHandleFileSelected(evt) {
@@ -21104,6 +21112,8 @@ function siHandleFileSelected(evt) {
 }
 
 function _siShowFileInZone(file) {
+  window._siFile = file;  // shared ref — drag-drop does NOT populate the file input, so the
+                          // submit handler must read this (fixes dropped PDFs not being uploaded)
   const dropInner = document.querySelector('#si-drop-zone .si-drop-inner');
   if (dropInner) dropInner.style.display = 'none';
   const zone = document.getElementById('si-file-zone');
@@ -21562,6 +21572,12 @@ function siRender() {
         <div class="si-detail-label">Source Link</div>
         <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a><div style="margin-top:6px"><a href="${r.source_url}" target="_blank" rel="noopener" data-trusted="1" onclick="event.stopPropagation()" style="display:inline-block;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;text-decoration:none">${/\.pdf|\/pdf|bluematrix/i.test(r.source_url)?'📄 View source PDF':'↗ Open source'}</a></div>` : '—'}</div>
       </div>
+      ${(()=>{const rpj=r.raw_payload_json||{};const nm=rpj.attached_file;const pth=rpj.attached_file_path;
+        if(!nm&&!pth)return '';
+        return `<div class="si-detail-section"><div class="si-detail-label">Attached PDF</div>
+          <div class="si-detail-value" style="font-size:11.5px">${pth
+            ? `📎 <strong>${nm||'PDF'}</strong> &nbsp;<span style="color:#15803d;font-weight:700">✓ saved to library</span>`
+            : `📎 <strong>${nm||'file'}</strong> &nbsp;<span style="color:#b91c1c;font-weight:700">⚠ not uploaded — re-attach the PDF and resubmit</span>`}</div></div>`;})()}
       <div class="si-detail-section">
         <div class="si-detail-label">Submitted Text</div>
         <div class="si-detail-value" style="max-height:80px;overflow-y:auto">${r.submitted_text || '—'}</div>
