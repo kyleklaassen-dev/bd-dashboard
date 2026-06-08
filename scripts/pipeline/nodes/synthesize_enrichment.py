@@ -11,10 +11,8 @@ import sys
 _HERE     = os.path.dirname(os.path.abspath(__file__))
 _PIPELINE = os.path.dirname(_HERE)
 _SCRIPTS  = os.path.dirname(_PIPELINE)
-_ENRICH   = os.path.join(_SCRIPTS, "enrichment")
-for _p in (_SCRIPTS, _ENRICH):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
 import ai.client as ai_client                          # noqa: E402
 import ai.prompts.company_enrichment as _p_enrichment  # noqa: E402

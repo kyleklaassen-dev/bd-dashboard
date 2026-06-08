@@ -74,8 +74,8 @@ from typing import Optional, List
 
 import requests
 
-# ── sys.path: add scripts/enrichment/ (for _common, identity_resolution) ──────
-# and scripts/ (for ai.*) so all internal imports resolve regardless of cwd.
+# ── sys.path: add scripts/enrichment/ (for identity_resolution) ───────────────
+# and scripts/ (for _common, _db, ai.*) so all internal imports resolve regardless of cwd.
 _SCRIPTS_DIR  = os.path.dirname(os.path.abspath(__file__))  # scripts/enrichment/
 _SCRIPTS_ROOT = os.path.dirname(_SCRIPTS_DIR)               # scripts/
 for _p in (_SCRIPTS_DIR, _SCRIPTS_ROOT):

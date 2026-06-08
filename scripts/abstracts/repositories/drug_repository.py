@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_SCRIPTS, "enrichment"))
+sys.path.insert(0, _SCRIPTS)
 from _db import sb_get  # noqa: E402
 
 from ..config import TARGET_STAGES

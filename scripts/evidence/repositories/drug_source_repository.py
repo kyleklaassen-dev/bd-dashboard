@@ -6,7 +6,7 @@ import sys
 from datetime import datetime, timezone
 
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_SCRIPTS, "enrichment"))
+sys.path.insert(0, _SCRIPTS)
 from _db import sb_get, sb_insert  # noqa: E402
 
 SESSION_LABEL = datetime.now(timezone.utc).strftime("%Y-%m-%d")

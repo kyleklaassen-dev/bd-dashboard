@@ -32,6 +32,12 @@ Environment:
 import os, sys, json, re, argparse, textwrap, hashlib
 from datetime import datetime, timezone
 
+# scripts/ root must be importable for _common, _db, ai.* (this file's
+# own directory is already on sys.path when run directly).
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
 from _common import load_credentials, log
 import _db
 import ai.client as ai_client

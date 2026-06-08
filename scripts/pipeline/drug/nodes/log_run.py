@@ -7,7 +7,7 @@ from __future__ import annotations
 import sys, os, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-import enrichment._db as _db
+import _db
 from ..state import DrugPipelineState
 
 

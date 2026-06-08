@@ -24,14 +24,12 @@ from __future__ import annotations
 import os
 import sys
 
-# Ensure scripts/ and scripts/enrichment/ resolve — needed when nodes are
+# Ensure scripts/ resolves — needed when nodes are
 # imported here before company_enrichment.py has configured sys.path.
 _HERE    = os.path.dirname(os.path.abspath(__file__))
 _SCRIPTS = os.path.dirname(_HERE)
-_ENRICH  = os.path.join(_SCRIPTS, "enrichment")
-for _p in (_SCRIPTS, _ENRICH):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
 from _common import log  # noqa: E402
 from pipeline.state import PipelineState  # noqa: E402

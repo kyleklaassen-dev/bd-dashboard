@@ -25,7 +25,7 @@ def _route_after_load(state: DrugPipelineState) -> Literal["synthesize", "__end_
     if not state.ok:
         return END
     if state.coverage >= _COVERAGE_THRESHOLD:
-        from enrichment._common import log
+        from _common import log
         log(f"  Already well-enriched (coverage={state.coverage}%) — skipping", indent=1)
         return END
     return "synthesize"

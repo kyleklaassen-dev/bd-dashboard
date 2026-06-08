@@ -10,8 +10,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-from enrichment._common import log
-import enrichment._db as _db
+from _common import log
+import _db
 from ..state import DrugPipelineState
 
 

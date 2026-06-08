@@ -8,9 +8,9 @@ from __future__ import annotations
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-from enrichment._common import log
-import enrichment.ai.client as ai_client
-from enrichment.ai.client import PromptConfig
+from _common import log
+import ai.client as ai_client
+from ai.client import PromptConfig
 from ..state import DrugPipelineState
 
 _DRUG_ENRICH_CFG = PromptConfig(

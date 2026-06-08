@@ -1,5 +1,5 @@
 """
-Shared Supabase CRUD helpers for enrichment scripts.
+Shared Supabase CRUD helpers for all scripts/ pipelines and domains.
 
 Call init_db(url, key) once after loading credentials, then use sb_get / sb_upsert /
 sb_patch / sb_post / sb_delete anywhere.  If init_db() is never called (e.g. during

@@ -18,9 +18,9 @@ import os
 import sys
 from typing import Optional
 
-# _common.py lives at scripts/enrichment/ — repo root is two levels up.
+# _common.py lives at scripts/ — repo root is one level up.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_REPO = os.path.dirname(os.path.dirname(_HERE))
+_REPO = os.path.dirname(_HERE)
 
 _DEFAULT_SUPABASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co"
 

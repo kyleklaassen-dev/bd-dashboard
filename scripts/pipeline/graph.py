@@ -68,10 +68,8 @@ import sys
 
 _HERE    = os.path.dirname(os.path.abspath(__file__))
 _SCRIPTS = os.path.dirname(_HERE)
-_ENRICH  = os.path.join(_SCRIPTS, "enrichment")
-for _p in (_SCRIPTS, _ENRICH):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
