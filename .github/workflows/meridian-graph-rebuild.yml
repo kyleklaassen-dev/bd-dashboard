@@ -34,7 +34,13 @@ jobs:
         run: python3 scripts/integrations/project_author_graph_v131.py --write || echo "author-graph non-fatal"
       - name: 4 · CO_AUTHORED_WITH + RESEARCHES edges + patient/research insights
         run: python3 scripts/project_patient_author_graph.py || echo "patient-author-graph non-fatal"
-      - name: 5 · Edge dedup safety pass (COMPETES_WITH)
+      - name: 5 · SUPPLIES/MANUFACTURES edges (openFDA establishment)
+        run: python3 scripts/integrations/project_manufacturing_edges.py --write || echo "mfg-edges non-fatal"
+      - name: 6 · COLLABORATES edges (institution -> company)
+        run: python3 scripts/integrations/project_collaborates_edges.py --write || echo "collaborates non-fatal"
+      - name: 7 · Drug -> publication REPORTED_IN bridge
+        run: python3 scripts/integrations/project_drug_pub_bridge.py --write || echo "drug-pub-bridge non-fatal"
+      - name: 8 · Edge dedup safety pass (COMPETES_WITH)
         run: python3 scripts/integrations/dedup_competes_with.py || echo "dedup non-fatal"
       - name: Clean up
         if: always()
