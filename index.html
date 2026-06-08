@@ -21007,9 +21007,15 @@ async function submitIntelNew() {
       if (btn) btn.textContent = 'Uploading PDF…';
       const safe = attachedFile.name.replace(/[^\w.\-]+/g, '_').slice(-80);
       const path = `uploads/${Date.now()}_${safe}`;
-      const { error: upErr } = await _sb.storage.from('source-documents')
-        .upload(path, attachedFile, { contentType: 'application/pdf', upsert: true });
-      if (upErr) throw upErr;
+      // Raw fetch upload — the supabase-js storage client omits the apikey header with
+      // the new publishable key format, which trips storage RLS. Raw fetch with the key works.
+      const upResp = await fetch(`${SUPABASE_URL}/storage/v1/object/source-documents/${path}`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+                   'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+        body: attachedFile
+      });
+      if (!upResp.ok) throw new Error('storage ' + upResp.status + ': ' + (await upResp.text()).slice(0,120));
       attachedFilePath = path;
       if (btn) btn.textContent = 'Submitting…';
     } catch (upe) {
