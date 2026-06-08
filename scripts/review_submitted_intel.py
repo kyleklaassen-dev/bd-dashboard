@@ -526,6 +526,45 @@ def governed_intake(row, extraction, url, source_name, archived_path) -> list:
 
 
 # ── Process single row ────────────────────────────────────────────────────────
+def fetch_storage_pdf(object_path: str) -> tuple[str, Optional[bytes]]:
+    """Download an uploaded PDF from the source-documents bucket and extract its text."""
+    if not object_path:
+        return "", None
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/storage/v1/object/{SOURCE_BUCKET}/{object_path}",
+            headers={"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}"},
+            timeout=30,
+        )
+        if not r.ok:
+            print(f"    ! storage fetch failed ({r.status_code})")
+            return "", None
+        return _extract_pdf_text(r.content, 12000), r.content
+    except Exception as e:
+        print(f"    ! storage fetch error: {e}")
+        return "", None
+
+
+def sign_storage_url(object_path: str, expires_in: int = 31536000) -> Optional[str]:
+    """Long-lived signed URL so an uploaded private PDF is viewable from the dashboard."""
+    if not object_path:
+        return None
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/storage/v1/object/sign/{SOURCE_BUCKET}/{object_path}",
+            headers={"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
+                     "Content-Type": "application/json"},
+            json={"expiresIn": expires_in}, timeout=20,
+        )
+        if r.ok:
+            signed = r.json().get("signedURL") or ""
+            if signed:
+                return f"{SUPABASE_URL}/storage/v1{signed}"
+    except Exception:
+        pass
+    return None
+
+
 def process_row(row: dict, dry_run: bool = False) -> dict:
     row_id = row["id"]
     url    = row.get("source_url") or ""
@@ -547,12 +586,26 @@ def process_row(row: dict, dry_run: bool = False) -> dict:
         _kb = f" + PDF {len(pdf_bytes)//1024}KB" if pdf_bytes else ""
         print(f"  │  Page content: {len(page_content)} chars{_kb}")
 
-    # Step 2b: Archive a fetched source PDF to Supabase Storage (saved in Supabase)
+    # Step 2a: Uploaded file (Submit-Intel 📎) — read the saved PDF from Storage
+    rpj = row.get("raw_payload_json") or {}
+    upload_path = rpj.get("attached_file_path") if isinstance(rpj, dict) else None
+    uploaded_signed_url = None
+    if not pdf_bytes and upload_path:
+        page_content, pdf_bytes = fetch_storage_pdf(upload_path)
+        print(f"  │  Uploaded PDF: {len(page_content)} chars from {upload_path}")
+
+    # Step 2b: Archive / keep the source PDF in Supabase Storage (saved in Supabase)
     archived_path = None
     if pdf_bytes and not dry_run:
-        archived_path = archive_pdf_to_storage(pdf_bytes, row_id, source_name)
+        archived_path = upload_path or archive_pdf_to_storage(pdf_bytes, row_id, source_name)
         if archived_path:
-            print(f"  │  PDF archived → {SOURCE_BUCKET}/{archived_path}")
+            print(f"  │  PDF saved → {SOURCE_BUCKET}/{archived_path}")
+        # Uploaded file with no external URL → expose the saved copy as the viewable source
+        if upload_path and not url:
+            uploaded_signed_url = sign_storage_url(upload_path)
+            if uploaded_signed_url:
+                url = uploaded_signed_url
+                print(f"  │  Signed view URL generated for uploaded PDF")
 
     # Step 3: Claude analysis
     print(f"  │  Running Claude extraction...")
@@ -633,6 +686,13 @@ def process_row(row: dict, dry_run: bool = False) -> dict:
             "confidence_level":          conf,
             "analyzed_at":               datetime.now(timezone.utc).isoformat(),
         }
+
+    # For uploaded-file submissions (no external URL), record the signed view URL as the
+    # row's source_url so the dashboard "View source PDF" + drug-card provenance can open it.
+    if uploaded_signed_url:
+        update["source_url"]                = uploaded_signed_url
+        update["source_name"]               = "source-documents (uploaded)"
+        update["source_validation_status"]  = "valid"
 
     # Step 6A: Governed intake — stage provenance + pending queue items (NO direct
     # production writes; promotion stays gated behind review + execute_intel_actions)

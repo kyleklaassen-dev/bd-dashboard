@@ -20985,12 +20985,41 @@ async function submitIntelNew() {
   document.getElementById('im-url')?.classList.remove('error');
   err.classList.remove('show');
   if (!name) { document.getElementById('im-name')?.classList.add('error'); valid = false; }
-  if (!url && !text) { document.getElementById('im-url')?.classList.add('error'); valid = false; }
+  if (!url && !text && !attachedFile) { document.getElementById('im-url')?.classList.add('error'); valid = false; }
   if (url && !/^https?:\/\//i.test(url)) { document.getElementById('im-url')?.classList.add('error'); valid = false; }
   if (!valid) { err.classList.add('show'); return; }
   // Disable button
   const btn = document.getElementById('im-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  // Upload the attached file (if any) to Supabase Storage so the PDF is actually SAVED.
+  // Private bucket source-documents (PDF only, ≤25MB). The backend reads it and generates
+  // a signed view URL, so an uploaded PDF becomes viewable in the dashboard as its source.
+  let attachedFilePath = null;
+  if (attachedFile) {
+    const isPdf = /pdf/i.test(attachedFile.type) || /\.pdf$/i.test(attachedFile.name);
+    if (!isPdf) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit →'; }
+      err.textContent = 'Attached file must be a PDF (max 25MB). For other docs, paste a link instead.';
+      err.classList.add('show');
+      return;
+    }
+    try {
+      if (btn) btn.textContent = 'Uploading PDF…';
+      const safe = attachedFile.name.replace(/[^\w.\-]+/g, '_').slice(-80);
+      const path = `uploads/${Date.now()}_${safe}`;
+      const { error: upErr } = await _sb.storage.from('source-documents')
+        .upload(path, attachedFile, { contentType: 'application/pdf', upsert: true });
+      if (upErr) throw upErr;
+      attachedFilePath = path;
+      if (btn) btn.textContent = 'Submitting…';
+    } catch (upe) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit →'; }
+      err.textContent = `File upload failed: ${upe?.message || upe}. You can submit the link instead.`;
+      err.classList.add('show');
+      console.error('[submit intel] upload error:', upe);
+      return;
+    }
+  }
   // Insert to submitted_intel
   try {
     const payload = {
@@ -21001,6 +21030,7 @@ async function submitIntelNew() {
       raw_payload_json: {
         url, text, name,
         attached_file: attachedFileName || null,
+        attached_file_path: attachedFilePath,
         detected_fields: window._siLastDetected || null,
         submitted_at: new Date().toISOString()
       }
@@ -21134,7 +21164,7 @@ function _siReadFile(file) {
       const typeLabel = /pdf/i.test(file.name) ? 'PDF' :
                         /docx?/i.test(file.name) ? 'Word document' :
                         /xlsx?/i.test(file.name) ? 'Excel file' : 'File';
-      det.innerHTML = `<span style="color:#64748b">${typeLabel} attached — will be noted on submission. Add key points in Comments above.</span>`;
+      det.innerHTML = `<span style="color:#64748b">${typeLabel} attached — ${/pdf/i.test(file.name)?'will be uploaded & saved to the source library, then read by the backend':'will be noted on submission'}. Add key points in Comments above.</span>`;
     }
     if (q) q.style.display = 'none';
   }
