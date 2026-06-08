@@ -5846,18 +5846,39 @@ async function _injectAreaFreshness(tabId) {
    <span style="font-size:11px;opacity:0.7;margin-left:2px">×</span>
  </span>
  <!-- Meridian archive — shown only when on the meridian-issue tab -->
- <div id="meridian-tab-archive" style="display:none;align-items:center;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;position:relative;" onclick="event.stopPropagation()">
-   <button id="meridian-archive-btn" onclick="toggleMeridianArchive(event)"
-     style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap;transition:all 0.15s;"
-     onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
-     onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">
-     Archive <span id="meridian-archive-chevron" style="font-size:8px;transition:transform 0.15s;display:inline-block;opacity:0.6">▾</span>
-   </button>
-   <div id="meridian-archive-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:300px;max-height:340px;overflow-y:auto;z-index:700;border:1px solid #dde3ea;">
-     <div id="meridian-archive-list" style="padding:4px 0">
-       <div class="mr-arch-item" style="color:#94a3b8;font-style:italic">Loading…</div>
-     </div>
+ <div id="meridian-tab-archive" style="display:none;align-items:center;gap:8px;margin-left:6px;border-left:1.5px solid #dde3ea;padding-left:10px;position:relative;" onclick="event.stopPropagation()">
+   <!-- Issue / AIB segmented switch -->
+   <div style="display:inline-flex;background:#eef2f7;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden">
+     <button id="mi-pill-issue" onclick="miSwitchView('issue')" style="border:0;background:#1a3f8f;color:#fff;padding:3px 13px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em">Issue</button>
+     <button id="mi-pill-aib" onclick="miSwitchView('aib')" style="border:0;background:transparent;color:#475569;padding:3px 13px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em">AIBs</button>
    </div>
+   <!-- Secondary control — Archive (Issue mode) -->
+   <span id="mi-archive-wrap" style="display:inline-flex;position:relative;align-items:center">
+     <button id="meridian-archive-btn" onclick="toggleMeridianArchive(event)"
+       style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap;transition:all 0.15s;"
+       onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
+       onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">
+       Archive <span id="meridian-archive-chevron" style="font-size:8px;transition:transform 0.15s;display:inline-block;opacity:0.6">▾</span>
+     </button>
+     <div id="meridian-archive-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:300px;max-height:340px;overflow-y:auto;z-index:700;border:1px solid #dde3ea;">
+       <div id="meridian-archive-list" style="padding:4px 0">
+         <div class="mr-arch-item" style="color:#94a3b8;font-style:italic">Loading…</div>
+       </div>
+     </div>
+   </span>
+   <!-- Secondary control — Area selector (AIB mode) -->
+   <span id="mi-area-wrap" style="display:none;position:relative;align-items:center">
+     <button id="mi-area-btn" onclick="toggleAibArea(event)"
+       style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#1a3f8f;letter-spacing:0.04em;white-space:nowrap;transition:all 0.15s;"
+       onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
+       onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">
+       TL1A × IL-23p19 <span style="font-size:8px;opacity:0.6">▾</span>
+     </button>
+     <div id="mi-area-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:260px;z-index:700;border:1px solid #dde3ea;padding:5px 0;text-transform:none;">
+       <div style="padding:8px 14px;font-size:12px;font-weight:700;color:#1a3f8f;background:#f5f8ff;display:flex;justify-content:space-between"><span>TL1A × IL-23p19</span><span style="color:#16a34a">IBD ✓</span></div>
+       <div style="padding:9px 14px;font-size:11.5px;color:#94a3b8;font-style:italic;line-height:1.4">TSLP · IL-4Rα · IGF-1R · FcRn<br>additional areas coming soon</div>
+     </div>
+   </span>
  </div>
  <div class="center-drug-dd" id="center-drug-dd" onclick="event.stopPropagation()">
    <div class="nav-dd-item" onclick="navTo('tl1a')"><span class="nav-dd-target">TL1A × IL-23p19</span><span class="nav-dd-badge ct">IBD</span></div>
@@ -12053,14 +12074,24 @@ function dqCloseDetail(e) {
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 4px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1200px;margin:0 auto;">
-    <!-- ===== View switcher: Meridian Issue / Area Intelligence Briefs ===== -->
-    <div style="display:flex;justify-content:center;margin:2px 0 14px">
-      <div id="mi-switch" style="display:inline-flex;background:#fff;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.07)">
-        <button data-view="issue" class="mi-seg" style="border:0;background:#1a3f8f;color:#fff;padding:8px 22px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Meridian Issue</button>
-        <button data-view="aib" class="mi-seg" style="border:0;background:#fff;color:#475569;padding:8px 22px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Area Intelligence Briefs</button>
-      </div>
-    </div>
-    <script>(function(){function miShow(v){var i=document.getElementById('view-issue'),a=document.getElementById('view-aib');if(!i||!a)return;i.style.display=v==='issue'?'block':'none';a.style.display=v==='aib'?'block':'none';if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src');}document.querySelectorAll('#mi-switch .mi-seg').forEach(function(b){var on=b.dataset.view===v;b.style.background=on?'#1a3f8f':'#fff';b.style.color=on?'#fff':'#475569';});}var sw=document.getElementById('mi-switch');if(sw)sw.addEventListener('click',function(e){var b=e.target.closest('.mi-seg');if(b)miShow(b.dataset.view);});})();</script>
+    <!-- Issue/AIB switch lives in the TOP BAR (#meridian-tab-archive); views toggled by global miSwitchView() -->
+    <script>
+    window.miSwitchView=function(v){
+      var i=document.getElementById('view-issue'),a=document.getElementById('view-aib');
+      if(i)i.style.display=v==='issue'?'block':'none';
+      if(a){a.style.display=v==='aib'?'block':'none';
+        if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src');}}
+      var aw=document.getElementById('mi-archive-wrap'),arw=document.getElementById('mi-area-wrap');
+      if(aw)aw.style.display=v==='issue'?'inline-flex':'none';
+      if(arw)arw.style.display=v==='aib'?'inline-flex':'none';
+      var pi=document.getElementById('mi-pill-issue'),pa=document.getElementById('mi-pill-aib');
+      if(pi){pi.style.background=v==='issue'?'#1a3f8f':'transparent';pi.style.color=v==='issue'?'#fff':'#475569';}
+      if(pa){pa.style.background=v==='aib'?'#1a3f8f':'transparent';pa.style.color=v==='aib'?'#fff':'#475569';}
+      var ad=document.getElementById('mi-area-dd');if(ad)ad.style.display='none';
+    };
+    window.toggleAibArea=function(e){if(e)e.stopPropagation();var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display=(dd.style.display==='none'||!dd.style.display)?'block':'none';};
+    document.addEventListener('click',function(){var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display='none';});
+    </script>
     <!-- AIB view (lazy-loaded on first switch) -->
     <div id="view-aib" style="display:none;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
       <iframe id="aib-frame" data-src="aib_tl1a.html" src="about:blank"
