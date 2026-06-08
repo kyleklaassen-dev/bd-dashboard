@@ -1,0 +1,50 @@
+name: Meridian — Deep Chunked Doc Extraction
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Storage object path in source-documents (e.g. uploads/123_Report.pdf)"
+        required: true
+      si:
+        description: "submitted_intel id (uuid) to link facts to"
+        required: true
+      source_url:
+        description: "Signed/view URL for the doc (for fact provenance)"
+        required: false
+        default: ""
+      title:
+        description: "Document title (extraction context)"
+        required: false
+        default: "research report"
+      chunk:
+        description: "Pages per chunk"
+        required: false
+        default: "5"
+      pages:
+        description: "Page range, e.g. 1-111 (blank = whole doc)"
+        required: false
+        default: ""
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install requests anthropic pypdf
+      - name: Run chunked extraction
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
+        run: |
+          python3 scripts/chunk_extract.py \
+            --path "${{ github.event.inputs.path }}" \
+            --si "${{ github.event.inputs.si }}" \
+            --source-url "${{ github.event.inputs.source_url }}" \
+            --title "${{ github.event.inputs.title }}" \
+            --chunk "${{ github.event.inputs.chunk }}" \
+            ${{ github.event.inputs.pages && format('--pages {0}', github.event.inputs.pages) || '' }}

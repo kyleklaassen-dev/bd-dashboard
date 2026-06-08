@@ -27,7 +27,7 @@ def _k(env, f):
 SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
 SERVICE_KEY   = _k("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 ANTHROPIC_KEY = _k("ANTHROPIC_API_KEY", ".anthropic_api_key")
-MODEL = "claude-opus-4-6"
+MODEL = os.environ.get("CHUNK_MODEL", "claude-sonnet-4-6")  # fast model for per-chunk fact pulling
 BUCKET = "source-documents"
 SB = {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json"}
 
@@ -37,16 +37,21 @@ def sb_post(t, row):
 def sb_get(t, params):
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{t}", headers=SB, params=params, timeout=25)
     return r.json() if r.status_code == 200 else []
+_DRUGS = {}; _COMPANIES = {}
+def preload():
+    for d in sb_get("drugs", {"select": "id,name,display_name"}):
+        for k in (d.get("name"), d.get("display_name"), d.get("id")):
+            if k: _DRUGS[k.split("(")[0].strip().lower()] = d["id"]
+    for c in sb_get("companies", {"select": "id,name"}):
+        if c.get("name"): _COMPANIES[c["name"].lower()] = c["id"]
+        _COMPANIES[c["id"]] = c["id"]
 def find_drug(nm):
     if not nm: return None
-    slug = re.sub(r"-+", "-", re.sub(r"[^a-z0-9-]", "-", nm.split("(")[0].strip().lower()))[:40]
-    if sb_get("drugs", {"id": f"eq.{slug}", "select": "id"}): return slug
-    rows = sb_get("drugs", {"name": f"ilike.{nm.split('(')[0].strip()}", "select": "id"})
-    return rows[0]["id"] if rows else None
+    return _DRUGS.get(nm.split("(")[0].strip().lower())
 def find_company(nm):
     if not nm: return None
-    cid = re.sub(r"[^a-z0-9]", "", nm.lower())[:40]
-    return cid if sb_get("companies", {"id": f"eq.{cid}", "select": "id"}) else None
+    n = nm.lower()
+    return _COMPANIES.get(n) or _COMPANIES.get(re.sub(r"[^a-z0-9]", "", n)[:40])
 
 def fetch_pdf(path):
     r = requests.get(f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{path}",
@@ -69,8 +74,8 @@ TEXT:
 def extract_chunk(text, pages, title):
     r = requests.post("https://api.anthropic.com/v1/messages",
         headers={"x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": MODEL, "max_tokens": 4000,
-              "messages": [{"role": "user", "content": PROMPT.format(pages=pages, title=title, text=text[:16000])}]},
+        json={"model": MODEL, "max_tokens": 8000,
+              "messages": [{"role": "user", "content": PROMPT.format(pages=pages, title=title, text=text[:13000])}]},
         timeout=150)
     r.raise_for_status()
     raw = r.json()["content"][0]["text"].strip()
@@ -99,6 +104,7 @@ def main():
             print(f"  pp {c[0]}-{c[1]}: {len(t)} chars  | {t[:90].strip()!r}")
         return
     src = a.source_url
+    preload()
     tot_f = tot_m = 0
     for (s, e) in chunks:
         text = "".join((reader.pages[i-1].extract_text() or "") for i in range(s, e+1))
@@ -110,30 +116,29 @@ def main():
             except Exception as ex: print(f"  pp{s}-{e}: extract err {ex}"); continue
             if cf: json.dump(data, open(cf, "w"))
         sect = data.get("section")
+        rows = []
         for f in data.get("facts", []):
             claim = (f.get("claim") or "").strip()
             if not claim: continue
-            # dedup on (si, claim-first-40)
-            if a.si and sb_get("intel_facts", {"submitted_intel_id": f"eq.{a.si}", "claim": f"ilike.{claim[:38].replace('%','')}*", "select": "id", "limit": "1"}): continue
             dnm = f.get("subject_drug") or ""
-            v = f.get("value");
+            v = f.get("value")
             try: vn = float(v) if v not in (None,"","null") and str(v).replace('.','').replace('-','').isdigit() else None
             except: vn = None
-            ok,_ = sb_post("intel_facts", {"submitted_intel_id": a.si, "source_url": src, "fact_type": f.get("fact_type") or "other",
+            rows.append({"submitted_intel_id": a.si, "source_url": src, "fact_type": f.get("fact_type") or "other",
                 "subject_type": "drug" if dnm else "company", "subject_id": find_drug(dnm) or find_company(f.get("subject_name")),
                 "subject_name": f.get("subject_name") or dnm, "claim": claim[:600], "metric": f.get("metric") or None,
                 "value_num": vn, "value_text": (None if vn is not None else (str(v) if v else None)), "unit": f.get("unit") or None,
                 "area_id": f.get("area") or None, "confidence": f.get("confidence") or "medium",
                 "section": sect, "page_ref": f"pp {s}-{e}"})
-            tot_f += ok
-        for m in data.get("market", []):
-            if m.get("company") and (m.get("market_share_pct") is not None or m.get("market_size_usd_b") is not None):
-                ok,_ = sb_post("market_landscape", {"submitted_intel_id": a.si, "source_url": src, "area_id": m.get("area"),
-                    "disease": m.get("disease"), "year_label": m.get("year_label"), "market_size_usd_b": m.get("market_size_usd_b"),
-                    "company": m.get("company"), "market_share_pct": m.get("market_share_pct"), "note": f"pp {s}-{e}"})
-                tot_m += ok
-        print(f"  pp{s}-{e}: +{tot_f} facts +{tot_m} market (cumulative)")
-        time.sleep(0.5)
+        if rows:
+            ok,_ = sb_post("intel_facts", rows); tot_f += len(rows) if ok else 0
+        mrows = [{"submitted_intel_id": a.si, "source_url": src, "area_id": m.get("area"), "disease": m.get("disease"),
+                  "year_label": m.get("year_label"), "market_size_usd_b": m.get("market_size_usd_b"), "company": m.get("company"),
+                  "market_share_pct": m.get("market_share_pct"), "note": f"pp {s}-{e}"}
+                 for m in data.get("market", []) if m.get("company") and (m.get("market_share_pct") is not None or m.get("market_size_usd_b") is not None)]
+        if mrows:
+            ok,_ = sb_post("market_landscape", mrows); tot_m += len(mrows) if ok else 0
+        print(f"  pp{s}-{e}: +{len(rows)} facts +{len(mrows)} market (cum {tot_f}/{tot_m})", flush=True)
     print(f"DONE: {tot_f} facts, {tot_m} market rows")
 
 if __name__ == "__main__":
