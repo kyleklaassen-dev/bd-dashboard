@@ -13039,8 +13039,10 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
 
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
+    let _coIntelFacts = [];
+    try { const { data: _cif } = await _sb.from('intel_facts').select('fact_type,claim,value_num,unit,area_id,source_url,page_ref').eq('subject_id', companyId).limit(80); _coIntelFacts = _cif || []; } catch(_e) {}
     const subsidiaries = subsidiariesRes.data || [];
-    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains, newsSentiment: coSentiment };
+    const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains, newsSentiment: coSentiment, intelFacts: _coIntelFacts };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
 
     // Cache disabled — ownership model requires fresh drug fetch each open
@@ -15246,6 +15248,18 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
   // Store current company ID so _dossierSwitch can trigger lazy file load
   window._cemCurrentCompanyId = prog?.company_id || prog?.id || null;
 
+  // Research Intelligence — facts extracted from submitted research reports
+  const _coFacts = (sbData?.intelFacts || []).filter(f => f && f.claim);
+  const _COIF_T = {clinical:'🧪 Clinical', competitive:'⚔️ Competitive', pipeline:'🔬 Pipeline', commercial:'💰 Commercial', market:'📊 Market', regulatory:'📋 Regulatory', patient:'👤 Patient', management:'🗣️ Management', deal:'🤝 Deal', catalyst:'📅 Catalyst'};
+  const _coIfBy = {}; _coFacts.forEach(f => { (_coIfBy[f.fact_type]=_coIfBy[f.fact_type]||[]).push(f); });
+  const _coResearchContent = _coFacts.length ? `<div style="padding:4px 2px">
+    <div style="font-size:12px;color:#475569;margin-bottom:10px">${_coFacts.length} facts extracted from submitted research (Cowen, Wedbush, etc.), grouped by type.</div>
+    ${Object.entries(_coIfBy).map(([t,fs]) => `<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">${_COIF_T[t]||t} (${fs.length})</div>
+      ${fs.map(f => { const v=(f.value_num!=null)?` <b style="color:#1d4ed8">${f.value_num}${f.unit?' '+f.unit:''}</b>`:''; const lk=f.source_url?`<a href="${f.source_url}" target="_blank" rel="noopener" data-trusted="1" style="color:#94a3b8;text-decoration:none;font-size:9px">↗${f.page_ref?' '+f.page_ref:''}</a>`:''; return `<div style="font-size:11.5px;color:#1e293b;line-height:1.45;margin-bottom:3px">• ${f.claim}${v} ${lk}</div>`; }).join('')}
+    </div>`).join('')}
+  </div>` : '';
+
   // Header — identity pills + confidence bar (areaLabel needed here, declare first)
   const _CEMAreaMap = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L'};
   const areaLabelHd = _CEMAreaMap[areaId] || (window._AREA_LABEL||{})[areaId] || areaId || '';
@@ -16145,9 +16159,11 @@ function _cemCompanyBody(prog, sbData, areaId, extraData) {
     { id:'cem-tab-signals',    label:`Signals${_totalSigCount?' ('+_totalSigCount+')':''}` },
     { id:'cem-tab-bd',         label:`BD Intel${_svsBadgeInline}` },
     { id:'cem-tab-dq',         label:`Data Quality${_totalDqIssues?' ('+_totalDqIssues+')':''}` },
+    ...(_coFacts.length ? [{ id:'cem-tab-research', label:`📑 Research (${_coFacts.length})` }] : []),
     { id:'cem-tab-files',      label:'📁 Files' },
   ];
   const _panels = [
+    ...(_coFacts.length ? [{ id:'cem-tab-research', content: _coResearchContent }] : []),
     { id:'cem-tab-overview',   content: _overviewContent },
     { id:'cem-tab-assessment', content: _assessmentContent },
     { id:'cem-tab-catalysts',  content: _catalystsContent },
