@@ -3158,7 +3158,7 @@ function _reviewDrugLinks(rowId) {
   return String(rowId||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,12).map(id =>
     `<span style="display:inline-flex;align-items:center;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">`
     + `<a href="#" data-trusted="1" onclick="event.preventDefault();closeReviewPanel();openDrugEntityModal('${id}','${id}',null)" style="font-size:11px;color:#2563eb;text-decoration:none;padding:1px 6px;white-space:nowrap">${id}</a>`
-    + `<a href="https://www.google.com/search?q=${encodeURIComponent(id+' drug target mechanism company')}" target="_blank" rel="noopener" data-trusted="1" title="Web-verify ${id}" style="font-size:10px;text-decoration:none;padding:1px 5px;border-left:1px solid #e2e8f0;background:#f8fafc">🔍</a>`
+    + `🔍`
     + `</span>`
   ).join(' ');
 }
@@ -7105,13 +7105,13 @@ async function _injectAreaFreshness(tabId) {
  <div class="china-grid">
 
  <div class="china-card licensed">
-  <div class="cc-name"><a href="https://www.google.com/search?q=Simcere+Pharmaceutical+SIM0709+TL1A+IL-23+Boehringer+Ingelheim" target="_blank" rel="noopener">Simcere Pharmaceutical</a></div>
+  <div class="cc-name">Simcere Pharmaceutical</div>
   <div class="cc-asset">SIM0709 · TL1A × IL-23p19 IgG bispecific</div>
   <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Phase 1</span></div>
   <div class="cc-detail">Retains all Greater China commercialization rights. Simcere's 5th out-licensing deal; cumulative out-licensing potential ~$4.6B. Demonstrated superior synergy over mono combination in preclinical IBD models.</div>
   <div class="cc-deal-block">
    <div class="cc-deal-date">October 2024</div>
-   <div class="cc-deal-partner"><a href="https://www.google.com/search?q=Boehringer+Ingelheim+Simcere+SIM0709+TL1A+IBD+deal" target="_blank" rel="noopener">↗ Boehringer Ingelheim · ex-China license</a></div>
+   <div class="cc-deal-partner">↗ Boehringer Ingelheim · ex-China license</div>
    <div class="cc-deal-costs">
     <span class="cc-cost-pill cc-cost-upfront">€42M upfront</span>
     <span class="cc-cost-pill cc-cost-total">€1.05B total potential</span>
@@ -7120,13 +7120,13 @@ async function _injectAreaFreshness(tabId) {
  </div>
 
  <div class="china-card licensed">
-  <div class="cc-name"><a href="https://www.google.com/search?q=Qyuns+Therapeutics+QX030N+TL1A+IL-23+Caldera+deal" target="_blank" rel="noopener">Qyuns Therapeutics (荃信生物)</a></div>
+  <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
   <div class="cc-asset">QX030N / CLD-423 · TL1A × IL-23p19 bispecific</div>
   <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Phase 1</span></div>
   <div class="cc-detail">First subjects dosed January 2026. Retains Greater China rights. Serial out-licensor — also licensed QX031N (TSLP×IL-33) to Roche ($75M upfront, Oct 2025) and QX027N (TSLP×IL-13) to Windward Bio.</div>
   <div class="cc-deal-block">
    <div class="cc-deal-date">2025</div>
-   <div class="cc-deal-partner"><a href="https://www.google.com/search?q=Caldera+Therapeutics+Qyuns+QX030N+CLD-423+TL1A+license" target="_blank" rel="noopener">↗ Caldera Therapeutics · ex-China license</a></div>
+   <div class="cc-deal-partner">↗ Caldera Therapeutics · ex-China license</div>
    <div class="cc-deal-costs">
     <span class="cc-cost-pill cc-cost-upfront">$10M upfront</span>
     <span class="cc-cost-pill cc-cost-other">~25% equity</span>
@@ -7136,7 +7136,7 @@ async function _injectAreaFreshness(tabId) {
  </div>
 
  <div class="china-card seeking">
-  <div class="cc-name"><a href="https://www.google.com/search?q=LaNova+Medicines+LQ080+TL1A+IL-23+bispecific+nanobody" target="_blank" rel="noopener">LaNova Medicines / Zymeworks</a></div>
+  <div class="cc-name">LaNova Medicines / Zymeworks</div>
   <div class="cc-asset">LQ080 · Extended half-life VHH nanobody bispecific</div>
   <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
   <div class="cc-detail">VHH nanobody format — uniquely compact vs. IgG competitors. Extended half-life in NHP enables less-frequent dosing. Presented at DDW 2025. Preclinical stage; global ex-China partnership opportunity open.</div>
@@ -7144,7 +7144,7 @@ async function _injectAreaFreshness(tabId) {
  </div>
 
  <div class="china-card seeking">
-  <div class="cc-name"><a href="https://www.google.com/search?q=Episcience+ES302+TL1A+IL-23+bispecific" target="_blank" rel="noopener">Episcience</a></div>
+  <div class="cc-name">Episcience</div>
   <div class="cc-asset">ES302 · TL1A × IL-23p19 bispecific</div>
   <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
   <div class="cc-detail">Limited public data. Early-stage preclinical program. One of ≥4 Chinese companies with TL1A×IL-23p19 assets, reflecting China's bispecific antibody engineering depth.</div>
@@ -7152,7 +7152,7 @@ async function _injectAreaFreshness(tabId) {
  </div>
 
  <div class="china-card seeking">
-  <div class="cc-name"><a href="https://www.google.com/search?q=Henxin+Biosciences+HXN-1003+TL1A+IL-23+bispecific" target="_blank" rel="noopener">Henxin Biosciences (显宸生物)</a></div>
+  <div class="cc-name">Henxin Biosciences (显宸生物)</div>
   <div class="cc-asset">HXN-1003 · TL1A × IL-23p19 bispecific</div>
   <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 1</span></div>
   <div class="cc-detail">IND-stage TL1A×IL-23p19 bispecific. Henxin is a clinical-stage Chinese biotech focused on precision immunology. HXN-1003 represents one of the most advanced Chinese-originated bispecifics in this mechanism class alongside Simcere and Qyuns.</div>
@@ -7409,13 +7409,13 @@ async function _injectAreaFreshness(tabId) {
    <div class="china-grid">
 
     <div class="china-card licensed">
-     <div class="cc-name"><a href="https://www.google.com/search?q=Qyuns+Therapeutics+QX031N+TSLP+IL-33+Roche+deal" target="_blank" rel="noopener">Qyuns Therapeutics (荃信生物)</a></div>
+     <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
      <div class="cc-asset">QX031N · TSLP × IL-33 bispecific</div>
      <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Preclinical</span></div>
      <div class="cc-detail">Roche holds global ex-China rights; Qyuns retains all Greater China. FIH estimated 2027. Highest-profile TSLP×IL-33 deal to date and benchmark valuation for bispecific alarmin blockers.</div>
      <div class="cc-deal-block">
       <div class="cc-deal-date">October 2025</div>
-      <div class="cc-deal-partner"><a href="https://www.google.com/search?q=Roche+Qyuns+QX031N+TSLP+IL-33+license+2025" target="_blank" rel="noopener">↗ Roche · global ex-China license</a></div>
+      <div class="cc-deal-partner">↗ Roche · global ex-China license</div>
       <div class="cc-deal-costs">
        <span class="cc-cost-pill cc-cost-upfront">$75M upfront</span>
        <span class="cc-cost-pill cc-cost-total">$1.07B total potential</span>
@@ -7424,13 +7424,13 @@ async function _injectAreaFreshness(tabId) {
     </div>
 
     <div class="china-card licensed">
-     <div class="cc-name"><a href="https://www.google.com/search?q=Qyuns+Therapeutics+QX027N+WIN027+TSLP+IL-13+Windward+deal" target="_blank" rel="noopener">Qyuns Therapeutics (荃信生物)</a></div>
+     <div class="cc-name">Qyuns Therapeutics (荃信生物)</div>
      <div class="cc-asset">QX027N / WIN027 · TSLP × IL-13 bispecific</div>
      <div class="cc-badge-row"><span class="cc-badge bg-licensed">Out-Licensed</span><span class="cc-phase-badge">Preclinical</span></div>
      <div class="cc-detail">Licensed to Windward Bio as WIN027. Demonstrates Qyuns' TSLP-anchor multispecific strategy — two separate bispecific pairs from the same company within months. Qyuns retains Greater China rights.</div>
      <div class="cc-deal-block">
       <div class="cc-deal-date">December 2025</div>
-      <div class="cc-deal-partner"><a href="https://www.google.com/search?q=Windward+Bio+Qyuns+QX027N+WIN027+TSLP+IL-13+deal" target="_blank" rel="noopener">↗ Windward Bio · global ex-China license</a></div>
+      <div class="cc-deal-partner">↗ Windward Bio · global ex-China license</div>
       <div class="cc-deal-costs">
        <span class="cc-cost-pill cc-cost-total">$700M total potential</span>
       </div>
@@ -7438,7 +7438,7 @@ async function _injectAreaFreshness(tabId) {
     </div>
 
     <div class="china-card seeking">
-     <div class="cc-name"><a href="https://www.google.com/search?q=Biosion+BSI-502+TSLP+IL-4Ra+bispecific+phase+1" target="_blank" rel="noopener">Biosion (百奥赛图)</a></div>
+     <div class="cc-name">Biosion (百奥赛图)</div>
      <div class="cc-asset">BSI-502 · TSLP × IL-4Rα bispecific</div>
      <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 1</span></div>
      <div class="cc-detail">Most advanced TSLP×IL-4Rα bispecific in clinical development globally. Biosion already out-licensed bosakitug (anti-TSLP monoAb) to Aclaris for >$900M, validating their TSLP franchise credibility.</div>
@@ -7446,13 +7446,13 @@ async function _injectAreaFreshness(tabId) {
     </div>
 
     <div class="china-card licensed">
-     <div class="cc-name"><a href="https://www.google.com/search?q=Harbour+BioMed+HBM9378+Kelun+SKB378+TSLP+Windward" target="_blank" rel="noopener">Harbour BioMed / Kelun Biotech</a></div>
+     <div class="cc-name">Harbour BioMed / Kelun Biotech</div>
      <div class="cc-asset">HBM9378 / SKB378 · Long-acting anti-TSLP</div>
      <div class="cc-badge-row"><span class="cc-badge bg-licensed">Sublicensed</span><span class="cc-phase-badge">Phase 2</span></div>
      <div class="cc-detail">Extended half-life anti-TSLP sublicensed to Windward Bio as part of a crossover financing deal. Phase 2 asthma exacerbation data expected H2 2026.</div>
      <div class="cc-deal-block">
       <div class="cc-deal-date">2025</div>
-      <div class="cc-deal-partner"><a href="https://www.google.com/search?q=Windward+Bio+Harbour+BioMed+HBM9378+TSLP+crossover" target="_blank" rel="noopener">↗ Windward Bio · sublicense (crossover financing)</a></div>
+      <div class="cc-deal-partner">↗ Windward Bio · sublicense (crossover financing)</div>
       <div class="cc-deal-costs">
        <span class="cc-cost-pill cc-cost-other">$165M crossover includes asset</span>
       </div>
@@ -7694,7 +7694,7 @@ async function _injectAreaFreshness(tabId) {
 <div class="china-grid">
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Biosion+BSI-502+TSLP+IL-4Ra+bispecific+phase+1" target="_blank" rel="noopener">Biosion (百奥赛图)</a></div>
+ <div class="cc-name">Biosion (百奥赛图)</div>
  <div class="cc-asset">BSI-502 · TSLP × IL-4Rα bispecific</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 1</span></div>
  <div class="cc-detail">Most advanced TSLP×IL-4Rα bispecific in clinical development globally. Biosion has an established TSLP franchise (bosakitug monoAb >$900M deal with Aclaris). BSI-502 adds the IL-4Rα arm for broader type-2 coverage.</div>
@@ -7702,7 +7702,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=China+biotech+TSLP+IL-4Ra+bispecific+dupilumab+biosimilar" target="_blank" rel="noopener">Multiple Chinese Biotechs</a></div>
+ <div class="cc-name">Multiple Chinese Biotechs</div>
  <div class="cc-asset">IL-4Rα monoAbs + TSLP bispecific derivatives</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
  <div class="cc-detail">China has deep IL-4Rα engineering capability (dupilumab biosimilars + novel epitope programs). Several undisclosed TSLP×IL-4Rα preclinical programs likely exist given the active TSLP franchise. Watch for DDW and AACI 2026 abstracts.</div>
@@ -7710,7 +7710,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Harbour+BioMed+HBM9378+TSLP+Windward+asthma+bispecific" target="_blank" rel="noopener">Harbour BioMed / Kelun Biotech</a></div>
+ <div class="cc-name">Harbour BioMed / Kelun Biotech</div>
  <div class="cc-asset">HBM9378 platform · TSLP engineering base</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2 (monoAb)</span></div>
  <div class="cc-detail">HBM9378 (anti-TSLP monoAb) in Ph2 asthma via Windward. Harbour's antibody engineering platform can add an IL-4Rα arm; no confirmed bispecific announced but the strategic fit is clear.</div>
@@ -7953,7 +7953,7 @@ async function _injectAreaFreshness(tabId) {
 <div class="china-grid">
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=China+biotech+IL-4Ra+OX40L+bispecific+amlitelimab+dermatitis" target="_blank" rel="noopener">Multiple Undisclosed Programs</a></div>
+ <div class="cc-name">Multiple Undisclosed Programs</div>
  <div class="cc-asset">IL-4Rα × OX40L bispecifics — preclinical</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
  <div class="cc-detail">China has deep IL-4Rα and OX40 pathway engineering capabilities. Sanofi's amlitelimab success will trigger multiple Chinese bispecific programs combining IL-4Rα+OX40L. Watch AACI and EADV 2026 abstracts for first disclosures.</div>
@@ -7961,7 +7961,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Innovent+Biologics+IL-4Ra+IBI302+dupilumab+biosimilar+OX40L" target="_blank" rel="noopener">Innovent Biologics (信达生物)</a></div>
+ <div class="cc-name">Innovent Biologics (信达生物)</div>
  <div class="cc-asset">IBI 302 and derivatives · IL-4Rα programs</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2</span></div>
  <div class="cc-detail">Innovent has an active IL-4Rα franchise (dupilumab biosimilar + novel programs). Their engineering platform could produce an IL-4Rα×OX40L bispecific if amlitelimab data confirm the OX40L thesis.</div>
@@ -7969,7 +7969,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Zymeworks+ZW171+IL-4Ra+OX40L+bispecific+Azymetric+IND" target="_blank" rel="noopener">Zymeworks</a></div>
+ <div class="cc-name">Zymeworks</div>
  <div class="cc-asset">ZW171 · IL-4Rα × OX40L bispecific</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
  <div class="cc-detail">Zymeworks has explicitly disclosed an IL-4Rα×OX40L bispecific program using their Azymetric platform. No clinical data yet but the program exists — watch IND filing.</div>
@@ -8211,7 +8211,7 @@ async function _injectAreaFreshness(tabId) {
 <div class="china-grid">
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=3SBio+SSGJ-613+IGF1R+thyroid+eye+disease+TED+phase+2" target="_blank" rel="noopener">3SBio / Shenyang Sunshine Pharma</a></div>
+ <div class="cc-name">3SBio / Shenyang Sunshine Pharma</div>
  <div class="cc-asset">SSGJ-613 · Anti-IGF1R mAb (TED)</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2</span></div>
  <div class="cc-detail">Chinese anti-IGF1R mAb in Phase 2 for TED. China has the largest iodine-deficiency population contributing to Graves' disease prevalence. A TED/GD drug with China rights retained is commercially valuable given the patient volume.</div>
@@ -8219,7 +8219,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=China+biotech+IGF1R+TSHR+bispecific+thyroid+eye+disease" target="_blank" rel="noopener">Undisclosed Chinese Programs</a></div>
+ <div class="cc-name">Undisclosed Chinese Programs</div>
  <div class="cc-asset">IGF1R/TSHR bispecific · preclinical</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
  <div class="cc-detail">Given China's bispecific engineering depth (demonstrated across TL1A, FcRn, and TSLP spaces), IGF1R×TSHR bispecifics likely exist in Chinese biotech pipelines. The Horizon/AZ deal at $27.8B provides strong incentive to develop next-generation TED assets.</div>
@@ -8470,7 +8470,7 @@ async function _injectAreaFreshness(tabId) {
 <div class="china-grid">
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=3SBio+SSGJ-707+FcRn+antibody+myasthenia+gravis+IgG" target="_blank" rel="noopener">3SBio / Shenyang Sunshine</a></div>
+ <div class="cc-name">3SBio / Shenyang Sunshine</div>
  <div class="cc-asset">SSGJ-707 · Anti-FcRn mAb</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2</span></div>
  <div class="cc-detail">Anti-FcRn mAb targeting gMG and other IgG-mediated indications. China has a large autoimmune/neurology patient population that makes FcRn drugs commercially significant with retained China rights.</div>
@@ -8478,7 +8478,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Zymeworks+FcRn+bispecific+Azymetric+platform+IgG+autoimmune" target="_blank" rel="noopener">Zymeworks</a></div>
+ <div class="cc-name">Zymeworks</div>
  <div class="cc-asset">ZW49 / FcRn bispecific platform</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Preclinical</span></div>
  <div class="cc-detail">Zymeworks' Azymetric bispecific platform applied to FcRn engineering. Multiple undisclosed FcRn bispecific candidates in development. Strong BD track record (multiple partnerships with major pharma).</div>
@@ -8486,7 +8486,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Harbour+BioMed+HBM7008+FcRn+inhibitor+phase+1+autoimmune" target="_blank" rel="noopener">Harbour BioMed</a></div>
+ <div class="cc-name">Harbour BioMed</div>
  <div class="cc-asset">HBM7008 · Anti-FcRn mAb</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 1</span></div>
  <div class="cc-detail">Harbour BioMed's anti-FcRn candidate in Phase 1. Harbour has deep antibody engineering capabilities (heavy-chain antibodies); FcRn inhibitor with potential for bispecific engineering toward ARGX-117 competition.</div>
@@ -8735,7 +8735,7 @@ async function _injectAreaFreshness(tabId) {
 <div class="china-grid">
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=CARSGEN+Therapeutics+CT053+BCMA+CD19+CAR-T+autoimmune+SLE" target="_blank" rel="noopener">CARSGEN Therapeutics (科济药业)</a></div>
+ <div class="cc-name">CARSGEN Therapeutics (科济药业)</div>
  <div class="cc-asset">CT053 / CT041 · BCMA CAR-T + CD19 CAR-T</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2</span></div>
  <div class="cc-detail">CARSGEN has both BCMA (oncology) and CD19 programs. Their manufacturing capabilities and China hematology/autoimmune trial infrastructure make them a potential partner for combined BCMA+CD19 immune reset programs. China autoimmune prevalence (SLE 1M+ patients) is significant.</div>
@@ -8743,7 +8743,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Zymeworks+ZW220+CD19+CD3+bispecific+B-cell+malignancies+autoimmune" target="_blank" rel="noopener">Zymeworks</a></div>
+ <div class="cc-name">Zymeworks</div>
  <div class="cc-asset">ZW220 · CD19 × CD3 bispecific</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 1</span></div>
  <div class="cc-detail">CD19×CD3 bispecific antibody in Phase 1 for B-cell malignancies. The Zymeworks platform is adaptable to add BCMA arm for a trispecific approach. Their strong BD track record (multiple >$1B deals) makes them a credible collaborative partner.</div>
@@ -8751,7 +8751,7 @@ async function _injectAreaFreshness(tabId) {
 </div>
 
 <div class="china-card seeking">
- <div class="cc-name"><a href="https://www.google.com/search?q=Innovative+Cellular+Therapeutics+BCMA+CD19+CAR-T+SLE+autoimmune" target="_blank" rel="noopener">Innovative Cellular Therapeutics (博慈创新)</a></div>
+ <div class="cc-name">Innovative Cellular Therapeutics (博慈创新)</div>
  <div class="cc-asset">BCMA CAR-T + CD19 programs</div>
  <div class="cc-badge-row"><span class="cc-badge bg-seeking">Seeking Partner</span><span class="cc-phase-badge">Phase 2</span></div>
  <div class="cc-detail">Chinese CAR-T company with both BCMA and CD19 programs. China lacks regulatory precedent for autoimmune CAR-T — first approved product in China would command significant market position given the SLE patient burden.</div>
@@ -11749,7 +11749,7 @@ function dqRenderReview() {
       : `<span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:2px 8px">🔍 Research gap</span>`;
     const links = isFlag
       ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">${_reviewDrugLinks(it.row_id)}</div>`
-      : `<div style="margin-top:6px"><a href="#" data-trusted="1" onclick="event.preventDefault();openDrugEntityModal('${_esc(it.entity_id)}','${_esc(it.name)}',null)" style="font-size:11px;color:#2563eb;text-decoration:none">${_esc(it.name)}</a> <a href="https://www.google.com/search?q=${encodeURIComponent((it.name || '') + ' drug target mechanism company')}" target="_blank" rel="noopener" data-trusted="1" title="Web-verify" style="font-size:10px;text-decoration:none;padding:1px 5px;border:1px solid #e2e8f0;border-radius:5px;background:#f8fafc;margin-left:4px">🔍</a></div>`;
+      : `<div style="margin-top:6px"><a href="#" data-trusted="1" onclick="event.preventDefault();openDrugEntityModal('${_esc(it.entity_id)}','${_esc(it.name)}',null)" style="font-size:11px;color:#2563eb;text-decoration:none">${_esc(it.name)}</a> 🔍</div>`;
     const ctx = isFlag
       ? (it.description ? `<div style="font-size:11px;color:#64748b;line-height:1.45;margin-top:6px">${_esc(it.description)}</div>` : '')
       : (it.action ? `<div style="font-size:11px;color:#64748b;line-height:1.45;margin-top:6px"><strong>Suggested step:</strong> ${_esc(it.action)}</div>` : '');
