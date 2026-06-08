@@ -18,23 +18,19 @@ Run:
   python3 scripts/seed_preclinical_competitors.py [--dry-run]
 """
 
-import json, os, sys, urllib.request, urllib.error, urllib.parse, datetime
+import json, os, sys, urllib.request, urllib.error, datetime
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SB_URL   = "https://tghntyofptvfhmtchwcv.supabase.co"
-DRY_RUN  = "--dry-run" in sys.argv
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-with open(os.path.join(BASE_DIR, ".supabase_service_key")) as f:
-    SERVICE_KEY = f.read().strip()
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-HEADERS_READ = {
-    "apikey": SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type": "application/json",
-}
-HEADERS_MERGE  = {**HEADERS_READ, "Prefer": "resolution=merge-duplicates,return=representation"}
-HEADERS_IGNORE = {**HEADERS_READ, "Prefer": "resolution=ignore-duplicates,return=representation"}
-HEADERS_PATCH  = {**HEADERS_READ, "Prefer": "return=representation"}
+DRY_RUN = "--dry-run" in sys.argv
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NOW = datetime.datetime.utcnow().isoformat()
 
@@ -44,16 +40,7 @@ def section(title):
 
 
 def get(table, params):
-    qs = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='.()*,')}" for k, v in params.items()
-    )
-    req = urllib.request.Request(f"{SB_URL}/rest/v1/{table}?{qs}", headers=HEADERS_READ)
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(f"  GET {table} HTTP {e.code}: {e.read().decode()[:300]}")
-        return []
+    return _db.sb_get(table, params)
 
 
 def upsert(table, rows, merge=True):
@@ -62,10 +49,20 @@ def upsert(table, rows, merge=True):
         for r in rows if len(rows) <= 5 else rows[:5]:
             print(f"    {r}")
         return len(rows)
-    headers = HEADERS_MERGE if merge else HEADERS_IGNORE
+    if merge:
+        result = _db.sb_upsert(table, rows)
+        return len(result) if result else len(rows)
+    # _db.sb_upsert only supports merge-duplicates; ignore-duplicates needs a
+    # thin local POST (precedent: sync_collection_queue.py / seed_strategic_views.py)
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=ignore-duplicates,return=representation",
+    }
     data = json.dumps(rows if isinstance(rows, list) else [rows]).encode()
     req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}", data=data, headers=headers, method="POST"
+        f"{SUPABASE_URL}/rest/v1/{table}", data=data, headers=headers, method="POST"
     )
     try:
         with urllib.request.urlopen(req) as r:

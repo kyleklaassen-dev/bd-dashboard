@@ -66,18 +66,20 @@ import ssl
 from collections import defaultdict
 from itertools import combinations
 
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CREDENTIALS
 # ══════════════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set.", file=sys.stderr)
-    sys.exit(1)
-
-ctx = ssl.create_default_context()
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -229,59 +231,16 @@ def is_bispecific_target(canonical: str) -> bool:
 # SUPABASE HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _headers(extra: dict | None = None):
-    h = {
-        "apikey":        SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=representation",
-    }
-    if extra:
-        h.update(extra)
-    return h
-
-
 def sb_get(table: str, params: dict, limit: int = 2000) -> list:
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}&limit={limit}"
-    req = urllib.request.Request(url, headers=_headers({"Range": f"0-{limit-1}"}))
-    try:
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read()[:300].decode("utf-8", errors="replace")
-        print(f"  [ERROR] GET {table}: {e.code} — {body}", file=sys.stderr)
-        return []
+    return _db.sb_get(table, {**params, "limit": str(limit)})
 
 
-def sb_post(table: str, payload: dict | list, upsert: bool = False) -> dict | list | None:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    prefer = "resolution=merge-duplicates,return=representation" if upsert else "return=representation"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method="POST",
-                                  headers=_headers({"Prefer": prefer}))
-    try:
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read()[:400].decode("utf-8", errors="replace")
-        print(f"  [ERROR] POST {table}: {e.code} — {body}", file=sys.stderr)
-        return None
-
-
-def sb_rpc(func: str, payload: dict) -> dict | None:
-    """Call a Supabase RPC / raw SQL via postgres RPC."""
-    url = f"{SUPABASE_URL}/rest/v1/rpc/{func}"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method="POST",
-                                  headers=_headers())
-    try:
-        with urllib.request.urlopen(req, context=ctx, timeout=60) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read()[:400].decode("utf-8", errors="replace")
-        print(f"  [ERROR] RPC {func}: {e.code} — {body}", file=sys.stderr)
-        return None
+def sb_post(table: str, payload: dict | list, upsert: bool = False) -> list | None:
+    if upsert:
+        result = _db.sb_upsert(table, payload)
+    else:
+        result = _db.sb_insert(table, payload)
+    return result or None
 
 
 # ══════════════════════════════════════════════════════════════════════════════

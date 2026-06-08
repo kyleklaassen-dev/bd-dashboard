@@ -41,14 +41,16 @@ ENVIRONMENT
 import os, sys, json, datetime, argparse, urllib.request, urllib.error, ssl
 from collections import defaultdict
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set.", file=sys.stderr)
-    sys.exit(1)
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-ctx = ssl.create_default_context()
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 
 
@@ -447,47 +449,20 @@ UNCERTAIN_PATTERNS = ["or", " vs ", "combination"]
 # SUPABASE HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _hdrs():
-    return {
-        "apikey":        SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=representation",
-    }
-
 def sb_get(table, params, limit=1000):
     """Paginate through all matching rows."""
     all_rows, offset, PAGE = [], 0, min(limit, 500)
     while True:
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
-        url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}&limit={PAGE}&offset={offset}"
-        req = urllib.request.Request(url, headers=_hdrs())
-        try:
-            with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
-                batch = json.loads(r.read())
-                all_rows.extend(batch)
-                if len(batch) < PAGE or len(all_rows) >= limit:
-                    break
-                offset += PAGE
-        except urllib.error.HTTPError as e:
-            body = e.read()[:300].decode("utf-8", errors="replace")
-            print(f"  [ERROR] GET {table}: {e.code} — {body}", file=sys.stderr)
+        batch = _db.sb_get(table, {**params, "limit": str(PAGE), "offset": str(offset)})
+        all_rows.extend(batch)
+        if len(batch) < PAGE or len(all_rows) >= limit:
             break
+        offset += PAGE
     return all_rows[:limit]
 
 def sb_post(table, payload, upsert=True):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    prefer = "resolution=merge-duplicates,return=representation" if upsert else "return=representation"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method="POST",
-          headers={**_hdrs(), "Prefer": prefer})
-    try:
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read()[:400].decode("utf-8", errors="replace")
-        print(f"  [ERROR] POST {table}: {e.code} — {body}", file=sys.stderr)
-        return None
+    result = _db.sb_upsert(table, payload) if upsert else _db.sb_insert(table, payload)
+    return result if result is not None else None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -626,6 +601,7 @@ def apply_migration(project_id: str, pat: str) -> bool:
             current = []
 
     api_url = f"https://api.supabase.com/v1/projects/{project_id}/database/query"
+    ctx = ssl.create_default_context()
     success = 0
     for stmt in statements:
         payload = json.dumps({"query": stmt + ";"}).encode()
