@@ -12053,22 +12053,22 @@ function dqCloseDetail(e) {
 
 <div class="tab-pane" id="tab-meridian-issue" style="padding:4px 24px 4px;background:#edf1f7;min-height:100vh">
   <div style="max-width:1200px;margin:0 auto;">
-    <!-- ===== Area Intelligence Briefs (AIBs) ===== -->
-    <div style="background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden;margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #e2e8f0;background:linear-gradient(135deg,#1a3f8f,#2e6fb0)">
-        <span style="font-size:18px">📑</span>
-        <div>
-          <div style="color:#fff;font-weight:700;font-size:16px;font-family:'Inter',sans-serif">Area Intelligence Briefs</div>
-          <div style="color:#d7e3f5;font-size:12px">Source-traced, decision-grade briefs by target × indication · toggle Refined / Full inside</div>
-        </div>
-        <a href="aib_tl1a.html" target="_blank" style="margin-left:auto;color:#fff;font-size:12px;border:1px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 12px;text-decoration:none">Open full screen ↗</a>
+    <!-- ===== View switcher: Meridian Issue / Area Intelligence Briefs ===== -->
+    <div style="display:flex;justify-content:center;margin:2px 0 14px">
+      <div id="mi-switch" style="display:inline-flex;background:#fff;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.07)">
+        <button data-view="issue" class="mi-seg" style="border:0;background:#1a3f8f;color:#fff;padding:8px 22px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Meridian Issue</button>
+        <button data-view="aib" class="mi-seg" style="border:0;background:#fff;color:#475569;padding:8px 22px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Area Intelligence Briefs</button>
       </div>
-      <iframe id="aib-frame" src="aib_tl1a.html"
-        style="width:100%;height:calc(100vh - 150px);min-height:600px;border:none;display:block;background:#f8fafc"
+    </div>
+    <script>(function(){function miShow(v){var i=document.getElementById('view-issue'),a=document.getElementById('view-aib');if(!i||!a)return;i.style.display=v==='issue'?'block':'none';a.style.display=v==='aib'?'block':'none';if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src');}document.querySelectorAll('#mi-switch .mi-seg').forEach(function(b){var on=b.dataset.view===v;b.style.background=on?'#1a3f8f':'#fff';b.style.color=on?'#fff':'#475569';});}var sw=document.getElementById('mi-switch');if(sw)sw.addEventListener('click',function(e){var b=e.target.closest('.mi-seg');if(b)miShow(b.dataset.view);});})();</script>
+    <!-- AIB view (lazy-loaded on first switch) -->
+    <div id="view-aib" style="display:none;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
+      <iframe id="aib-frame" data-src="aib_tl1a.html" src="about:blank"
+        style="width:100%;height:calc(100vh - 120px);min-height:600px;border:none;display:block;background:#f8fafc"
         title="Area Intelligence Briefs"></iframe>
     </div>
     <!-- Issue viewer -->
-    <div style="background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
+    <div id="view-issue" style="background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
       <iframe id="meridian-issue-frame"
        srcdoc="<p style='font-family:Georgia,serif;padding:60px 80px;color:#94a3b8;font-size:16px'>Loading issue…</p>"
        style="width:100%;height:calc(100vh - 102px);min-height:600px;border:none;display:block;"
@@ -14767,7 +14767,9 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     ${_provRows.map(s => {
       const lbl = _CLAIM_LBL[s.claim_type] || (s.claim_type||'claim');
       const dom = s.source_domain || (s.source_url ? (function(){try{return new URL(s.source_url).hostname.replace(/^www\./,'');}catch(e){return 'source';}})() : '');
-      const link = s.source_url ? `<a class="cem-link" href="${s.source_url}" target="_blank" rel="noopener" data-trusted="1">↗ ${dom||'source'}</a>` : `<span style="color:#94a3b8">${dom||'—'}</span>`;
+      const _isPdf = s.source_url && /\.pdf|\/pdf|bluematrix/i.test(s.source_url);
+      const _lbl2 = _isPdf ? `📄 View source PDF (${dom||'source'})` : `↗ ${dom||'source'}`;
+      const link = s.source_url ? `<a class="cem-link" href="${s.source_url}" target="_blank" rel="noopener" data-trusted="1">${_lbl2}</a>` : `<span style="color:#94a3b8">${dom||'—'}</span>`;
       const styp = s.source_type ? `<span style="font-size:9px;color:#64748b">${String(s.source_type).replace(/_/g,' ')}</span>` : '';
       return `<div class="cem-fact" style="align-items:flex-start">
         <span class="cem-fact-lbl">${lbl}</span>
@@ -21522,7 +21524,7 @@ function siRender() {
     <div class="si-detail-grid">
       <div class="si-detail-section">
         <div class="si-detail-label">Source Link</div>
-        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a><div style="margin-top:6px"><a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-block;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;text-decoration:none">${/\.pdf|\/pdf|bluematrix/i.test(r.source_url)?'📄 View source PDF':'↗ Open source'}</a></div>` : '—'}</div>
+        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a><div style="margin-top:6px"><a href="${r.source_url}" target="_blank" rel="noopener" data-trusted="1" onclick="event.stopPropagation()" style="display:inline-block;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;text-decoration:none">${/\.pdf|\/pdf|bluematrix/i.test(r.source_url)?'📄 View source PDF':'↗ Open source'}</a></div>` : '—'}</div>
       </div>
       <div class="si-detail-section">
         <div class="si-detail-label">Submitted Text</div>
@@ -26309,16 +26311,12 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   document.addEventListener('click', function(e) {
-    const a = e.target.closest('a[target="_blank"], a[href^="http"]');
-    if (!a) return;
-    if (a.dataset.trusted) return; // explicit trusted links (GitHub runs, NCT, etc.) navigate directly
-    const href = a.getAttribute('href') || '';
-    if (!href || SKIP_RE.test(href)) return; // already a Google link — let it through
-
-    e.preventDefault();
-
-    const query = _bestQuery(a);
-    window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank', 'noopener,noreferrer');
+    // DISABLED 2026-06-08 (Kyle): this capture-phase handler used to hijack EVERY stored
+    // source link into a Google "verification" search (unless data-trusted), which is why
+    // clicking a source/PDF link searched the web instead of opening the document. Kyle
+    // wants the direct link we have on file in every case, so source links now navigate
+    // directly. Left as a no-op so call sites and SKIP_RE/_bestQuery refs don't break.
+    return;
   }, true); // capture phase: fires before any stopPropagation in bubble phase
 })();
 </script>
