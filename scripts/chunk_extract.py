@@ -60,9 +60,13 @@ def fetch_pdf(path):
     return r.content
 
 PROMPT = """You are a pharma BD analyst for Ailux (TL1A×IL-23p19 bispecific, IBD). This is a CHUNK
-(pages {pages}) of a larger research report titled "{title}". Extract EVERY discrete fact stated in
+(pages {pages}) of a larger research report titled "{title}". Extract EVERY substantive discrete fact stated in
 this chunk — market sizes/shares, drug data, pipeline assets, pricing, KOL/management views, deal
-terms, catalysts. Be exhaustive; this is one slice of a long document. Return STRICT JSON:
+terms, catalysts. Be exhaustive; this is one slice of a long document.
+EXCLUDE boilerplate: legal disclosures, analyst certification, rating-distribution tables,
+investment-banking-services statements, and regulatory-entity descriptions of the bank itself
+(e.g. "TD Cowen", "TD Securities", "authorized and regulated") — these are not intelligence.
+Return STRICT JSON:
 {{
  "section": "the section/disease this chunk covers, if identifiable",
  "facts": [{{"fact_type":"clinical|commercial|competitive|market|management|patient|regulatory|catalyst|deal|pipeline","subject_name":"drug/company","subject_drug":"drug name if any","area":"tl1a|tslp|il4ra|igf1r|fcrn|tcell|general","claim":"one specific fact from the text","metric":"","value":"","unit":"","confidence":"high|medium|low"}}],
