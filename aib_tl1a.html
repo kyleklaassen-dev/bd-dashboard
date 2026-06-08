@@ -62,10 +62,10 @@
   #doc table.callout.gold td{background:var(--goldbg) !important;border-left-color:var(--gold) !important}
   #doc table.callout.red td{background:var(--redbg) !important;border-left-color:var(--red) !important}
   #doc table.callout tr:first-child td{color:var(--ink);font-weight:400}
-  /* verdict colors */
-  .v-green{color:var(--green);font-weight:700}
-  .v-red{color:var(--red);font-weight:700}
-  .v-amber{color:var(--amber);font-weight:700}
+  /* verdict colors (specific enough to beat #doc strong) */
+  #doc .v-green,#doc strong.v-green{color:var(--green);font-weight:700}
+  #doc .v-red,#doc strong.v-red{color:var(--red);font-weight:700}
+  #doc .v-amber,#doc strong.v-amber{color:var(--amber);font-weight:700}
   /* epistemic tags */
   .tagF{color:var(--green);font-weight:700}.tagI{color:var(--navy);font-weight:700}
   .tagJ{color:var(--amber);font-weight:700}.tagP{color:var(--red);font-weight:700}
@@ -109,6 +109,9 @@ const cache={};
 const H1RE=/^(\d{1,2}\s·\s|Meridian Assessment|The decision$|Standing predictions|Sources)/;
 
 function enhance(root){
+  // strip the fragment's leading cover paragraphs (band already shows title) — everything before the first table
+  let n=root.firstElementChild;
+  while(n && n.tagName==='P'){ const nx=n.nextElementSibling; n.remove(); n=nx; }
   // headings
   root.querySelectorAll(':scope > p').forEach(p=>{
     const t=p.textContent.trim();
@@ -164,7 +167,6 @@ async function load(v){
   }
   doc.innerHTML=cache[v];
   enhance(doc);
-  doc.scrollIntoView({block:'start',behavior:'instant'});
 }
 document.getElementById('seg').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
