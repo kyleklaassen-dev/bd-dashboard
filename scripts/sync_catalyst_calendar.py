@@ -21,6 +21,10 @@ def get_all(path):
         b=json.load(urllib.request.urlopen(r));out+=b
         if len(b)<1000:return out
         off+=1000
+import re as _re
+def _direct_url(label, fallback):
+    m=_re.search(r"(NCT\d{8})", label or "")
+    return ("https://clinicaltrials.gov/study/"+m.group(1)) if m else fallback
 today=datetime.date.today().isoformat()
 horizon=(datetime.date.today()+datetime.timedelta(days=120)).isoformat()
 # upcoming source-verified ct.gov catalysts in the next 120 days
@@ -38,7 +42,7 @@ for c in cats:
     sig={"high":"P1","medium":"P2"}.get((c.get("significance") or "").lower(),"watch")
     rows.append(dict(drug_id=c.get("drug_id"),company_id=c.get("company_id"),event_name=name,
         expected_date=c.get("sort_date") or c.get("catalyst_date"),event_type=et,
-        strategic_significance=sig,source_url=c.get("source_url"),
+        strategic_significance=sig,source_url=_direct_url(name, c.get("source_url")),
         confidence="verified",is_past=False,description="Auto-synced from ct.gov catalyst feed"))
 import sys
 dry="--apply" not in sys.argv
