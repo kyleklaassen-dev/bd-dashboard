@@ -17230,7 +17230,8 @@ function registerTab(id, hooks = {}) { TAB_REGISTRY[id] = hooks; }
 // Live Intelligence + Coverage Atlas — embedded pages; iframe src set lazily on first visit (Kyle 2026-06-07)
 function _lazyFrame(frameId) {
   const f = document.getElementById(frameId);
-  if (f && !f.src) f.src = f.dataset.src;
+  // cache-bust per session so the embedded page is never a stale cached copy (Kyle 2026-06-07)
+  if (f && !f.src) f.src = f.dataset.src + (f.dataset.src.includes('?') ? '&' : '?') + 'cb=' + Date.now();
 }
 registerTab('live',  { onEnter() { _lazyFrame('live-frame'); } });
 registerTab('atlas', { onEnter() { _lazyFrame('atlas-frame'); } });
