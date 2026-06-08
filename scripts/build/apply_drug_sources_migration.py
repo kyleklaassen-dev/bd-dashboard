@@ -10,7 +10,7 @@ If the automated pg-meta path fails, the script prints the full SQL for manual p
     https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new
 """
 
-import os, sys, pathlib, json, datetime
+import sys, pathlib, datetime
 
 try:
     import requests
@@ -20,29 +20,27 @@ except ImportError:
                            "--break-system-packages", "-q"])
     import requests
 
-BASE_DIR      = pathlib.Path(__file__).parent.parent
+# Three .parent hops — this file lives at scripts/build/, two hops would land
+# on scripts/ (a bug introduced when the scripts/ reorg moved this file deeper).
+BASE_DIR      = pathlib.Path(__file__).resolve().parent.parent.parent
 SQL_FILE      = BASE_DIR / "migrations" / "_archive" / "from-migrations" / "v37_drug_sources.sql"
-KEY_FILE      = BASE_DIR / ".supabase_service_key"
-SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co"
 DASHBOARD_URL = "https://supabase.com/dashboard/project/tghntyofptvfhmtchwcv/sql/new"
+
+_SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from _common import load_credentials, sb_headers  # noqa: E402
+
+SUPABASE_URL, _SERVICE_KEY, _ = load_credentials(require_anthropic=False)
 
 
 def load_service_key() -> str:
-    if KEY_FILE.exists():
-        return KEY_FILE.read_text().strip()
-    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-    if key:
-        return key
-    sys.exit("ERROR: .supabase_service_key not found.")
+    return _SERVICE_KEY
 
 
 def headers(key: str) -> dict:
-    return {
-        "apikey":        key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=representation",
-    }
+    return {**sb_headers(key), "Prefer": "return=representation"}
 
 
 def run_sql_automated(service_key: str, sql: str) -> dict | None:
@@ -70,15 +68,6 @@ def table_exists(service_key: str, table: str) -> bool:
         timeout=10,
     )
     return resp.status_code not in (400, 404, 406)
-
-
-def column_exists(service_key: str, table: str, column: str) -> bool:
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{table}?select={column}&limit=1",
-        headers=headers(service_key),
-        timeout=10,
-    )
-    return resp.status_code == 200
 
 
 def seed_sources(service_key: str) -> int:

@@ -19,7 +19,9 @@ import urllib.request
 from datetime import date
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# NOTE: three .parent hops — this file lives at scripts/build/, two hops would
+# land on scripts/ (a bug introduced when the scripts/ reorg moved this file deeper).
+ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_OUT = ROOT / "migrations" / "v1_schema.sql"
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
 ANON_KEY = os.environ.get(

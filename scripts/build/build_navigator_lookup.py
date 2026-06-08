@@ -27,26 +27,33 @@ Usage:
 import sys
 import os
 import json
-import requests
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
 
-# ─── Credentials ────────────────────────────────────────────────────────────
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SVC = open(os.path.join(WORKSPACE, '.supabase_service_key')).read().strip()
-BASE = 'https://tghntyofptvfhmtchwcv.supabase.co/rest/v1'
-H = {'apikey': SVC, 'Authorization': f'Bearer {SVC}', 'Content-Type': 'application/json'}
+# ─── Path setup + credentials ───────────────────────────────────────────────
+# NOTE: the old WORKSPACE = dirname(dirname(__file__)) resolved to scripts/,
+# not the repo root, after the scripts/ reorg moved this file a level deeper —
+# load_credentials/_db locate the repo root correctly regardless of subfolder depth.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT   = os.path.dirname(_SCRIPTS_DIR)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-OUTPUT_PATH = os.path.join(WORKSPACE, 'data', 'navigator_lookup.json')
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+
+OUTPUT_PATH = os.path.join(_REPO_ROOT, 'data', 'navigator_lookup.json')
 
 
 def fetch_all(endpoint: str, params: str = '', limit: int = 2000) -> list:
     """Fetch all rows from a Supabase REST endpoint."""
-    url = f'{BASE}/{endpoint}?{params}&limit={limit}'
-    r = requests.get(url, headers=H)
-    r.raise_for_status()
-    return r.json()
+    parsed = dict(p.split('=', 1) for p in params.split('&') if p)
+    parsed['limit'] = str(limit)
+    return _db.sb_get(endpoint, parsed)
 
 
 def build_lookup() -> dict:
@@ -248,6 +255,6 @@ if __name__ == '__main__':
     print_summary(lookup)
 
     if deploy_flag:
-        deploy(WORKSPACE)
+        deploy(_REPO_ROOT)
     else:
         print("\nRun with --deploy to push to GitHub Pages.")
