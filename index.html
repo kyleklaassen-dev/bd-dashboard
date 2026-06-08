@@ -33303,11 +33303,13 @@ async function _gsSbSearch(term) {
         .order('filing_date', { ascending: false }).limit(8),
       _sb.from('indication_patient_intelligence').select('indication_name,patient_count_us,unmet_need_narrative')
         .ilike('indication_name', '%' + esc + '%').limit(4),
+      _sb.from('intel_facts').select('claim,fact_type,subject_id,subject_name,area_id,source_url,page_ref')
+        .ilike('claim', '%' + esc + '%').limit(12),
     ]);
     var D = results.map(function(r) { return (r && r.data) || []; });
     var cos=D[0], drugs=D[1], intel=D[2], deals=D[3], cats=D[4], indics=D[5], news=D[6],
         aliases=D[7], tgts=D[8], pubs=D[9], confAbs=D[10], insights=D[11], grants2=D[12],
-        trials=D[13], kolHits=D[14], secEvts=D[15], patIntel=D[16];
+        trials=D[13], kolHits=D[14], secEvts=D[15], patIntel=D[16], ifacts=D[17];
 
     // alias hits → resolve to drugs not already matched
     try {
@@ -33353,6 +33355,12 @@ async function _gsSbSearch(term) {
         nav: { gtype:'company', id:c.id, name:c.name },
         inner: '<div class="gs-sb-headline">'+hl(c.name)+(typeof _sentDotHTML==='function'?_sentDotHTML(c.id):'')+(c.ticker?' <span class="gs-sb-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)">'+c.ticker+'</span>':'')+'</div>'+
                meta([span(c.company_type||''), span(c.geography||''), '<span class="gs-sb-nav-pill">→ company card</span>']) };
+    }));
+    grp('Research facts', (ifacts||[]).map(function(f){
+      return { score: mScore(f.claim) + 0.4,
+        url: f.source_url || '',
+        inner: '<div class="gs-sb-headline">'+hl(f.claim||'')+'</div>'+
+               meta([badge(f.fact_type,'rgba(34,197,94,0.25)'), span(f.subject_name||''), span(f.area_id||''), span(f.page_ref||''), '<span class="gs-sb-nav-pill">↗ source</span>']) };
     }));
     grp('Targets', tgts.map(function(t){
       return { score: mScore(t.symbol) * 1.2 + mScore(t.name) * 0.5,

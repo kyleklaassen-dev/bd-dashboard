@@ -39,6 +39,14 @@ WHERE d.company_id = '{cid}' OR cp.id IS NOT NULL
 
 **Canonical**: ABBV-701.company_id = 'futuregen'. AbbVie appears via partnership row only.
 
+#### 1a. Display: Latest/Notable Owner Primary, Originator Secondary (refined 2026-06-07)
+`company_id` is the **displayed primary attribution = the latest / most-notable owner** (the entity the market associates with the asset). This does NOT contradict the originator rule — it refines it:
+- The originator is still **always recorded**, now in nullable `drugs.originator_company_id` (companies.id; FK → companies).
+- The UI shows the owner as primary and renders the originator as a **muted secondary marker** (`· orig. Boehringer`) only when `originator_company_id` is set AND differs from `company_id`. Helper: `_originatorMarkerHTML(d)` + `window._ORIG_NAME_CACHE` in index.html (Drugs to Know catalog).
+- **Notable owner ≠ always the marketer.** For approved/marketed assets the notable owner is usually the marketer (e.g. **risankizumab/Skyrizi: company_id='abbvie', originator_company_id='boehringer'**). For **early-stage** assets the originator often IS the notable party, so company_id stays the originator (e.g. **ABBV-701: company_id='futuregen'**, originator_company_id left NULL because owner==originator).
+- Populate `originator_company_id` only where the originator is KNOWN and DIFFERS from `company_id` — derive from `asset_transfer_history` (earliest licensor in chain) or set explicit canonicals; **never fabricate**, leave NULL when unknown. Document every set value in `drug_sources` (claim_type='originator'). **Never change `company_id`** to do this. Migration: `migrations/v112_originator_display.sql`.
+- Tension cases (e.g. an asset where it's unclear whether owner or originator is "notable") → flag for Kyle, do not bulk-rewrite.
+
 ### 2. Company Status (Subsidiary vs Acquired)
 Default to `status='subsidiary'` for any company still operating independently.
 Only set `status='acquired'` when the company has **provably dissolved** — no active website, no independent pipeline, no named leadership.
@@ -69,8 +77,21 @@ Any drug with `brand_name` set MUST have `stage` in:
 
 A dash "—" is NOT a valid brand_name — clear to null. Never set stage=approved manually without also setting brand_name or a recognized approval milestone. Stage resolution is managed by `_resolveStage` in `_makeAreaPI`.
 
-### 5. Source URL Required
-Every deal, partnership, and co-developer relationship requires a `source_url` (CT.gov NCT link, press release, SEC 8-K, or company IR). Do not fabricate URLs. Omit rather than guess. Set `partnership_verified = false` if source cannot be confirmed.
+### 5. Source Documentation — Supabase Required (PRIMARY RULE)
+**Every fact written to Supabase must have its source written to Supabase.** This applies to all drug data, partnerships, deals, co-developer relationships, and verification findings. A source that lives only in chat, violation notes, or memory is NOT documented.
+
+Primary source table: **`drug_sources`** — one row per claim per source.
+Schema: `drug_id`, `drug_name`, `claim_type`, `claim_value`, `source_url`, `source_type`, `source_domain`, `content_confirms_claim` (bool), `confidence`, `added_by`, `session_label`
+
+- `claim_type` examples: `mechanism`, `stage`, `company_pipeline`, `partnership`, `source_url_removed`, `approval`, `trial_id`
+- `confidence` values: `confirmed`, `inferred`, `unverified`
+- `source_type` values: `press_release`, `ct_gov`, `sec_filing`, `company_ir`, `publication`, `news`, `conference`, `other`
+
+Also update:
+- `drugs.source_url` — single most authoritative source (CT.gov or company IR)
+- `drug_validation_results.source_url` — per-check verification source
+
+Do not fabricate URLs. Omit rather than guess. Set `content_confirms_claim=false` if source was checked and disproved the claim.
 
 ### 6. Deal Sequencing
 Before rating any company as "call now" for an Ailux asset, check:
@@ -96,6 +117,27 @@ TOKEN=$(cat .github_token)
 # Commit + push to main → GitHub Pages auto-deploys
 git add -A && git commit -m "description" && git push
 ```
+
+## Document Intelligence Layer — submitted-intel facts (READ before hunting for "the facts")
+
+Facts extracted from submitted research PDFs (TD Cowen, Wedbush, Endpoints, etc.) do **NOT** live in
+`drug_sources`, `clinical_evidence_items`, `source_documents`, or `submitted_intel.extracted_key_facts_json`.
+They live in **four dedicated tables** (added 2026-06-08). If a `submitted_intel` row looks empty,
+you're looking in the wrong place — query these:
+
+- **`intel_facts`** (~2,500 rows) — atomic fact store. `claim`, `fact_type`
+  (clinical/competitive/pipeline/commercial/market/regulatory/patient/management/deal/catalyst),
+  `subject_id` (→ drugs.id OR companies.id = the relationship link, ~71% linked), `subject_name`,
+  `area_id` (tl1a/tslp/il4ra/igf1r/fcrn/tcell), `value_num`/`unit`, `source_url` (Supabase signed PDF),
+  `page_ref`, `section`, `submitted_intel_id`.
+- **`intel_digests`** — one summary per document; `doc_type='synthesis'` = derived per-area synthesis briefs.
+- **`market_landscape`** — market size + share by company/year/area (Cowen).
+- **`rx_market_tracker`** — Wedbush Rx roster + pricing.
+
+Surfaces: drug card "📑 Research intelligence (N)"; company card "📑 Research (N)" tab; global search
+"Research facts"; the **📑 Docs** page `Meridian_DocIntel.html`; homepage "Report facts" tile (`Meridian_Live.html`).
+Pipeline: Submit-Intel PDF → Storage `source-documents` bucket → `scripts/chunk_extract.py` (via `chunk_extract.yml`, page-by-page) → these tables.
+Query a drug/company's facts: `intel_facts?subject_id=eq.<id>`; by area: `area_id=eq.<area>`.
 
 ## Key Files
 
