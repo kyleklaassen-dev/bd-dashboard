@@ -26,26 +26,23 @@ Usage:
   python scripts/content_verifier.py --dry-run       # fetch + judge, no DB writes
   python scripts/content_verifier.py --recheck       # also re-verify already-checked rows
 """
-import os, sys, re, json, html, argparse, datetime
+import os, sys, re, html, argparse, datetime
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-def _f(name):
-    p = os.path.join(_REPO, name)
-    return open(p).read().strip() if os.path.exists(p) else ""
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _f(".supabase_service_key")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or _f(".anthropic_api_key")
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                         # noqa: E402
+import ai.client as ai_client                      # noqa: E402
+from ai.client import PromptConfig                 # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
+
 MODEL = "claude-haiku-4-5-20251001"   # cheap + fast: a judging task, not generation
-
-try:
-    import anthropic
-    _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-except Exception:
-    _client = None
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; MeridianSourceVerifier/1.0)"}
 FABRICATED = re.compile(r"(/search\?term=|/search\?q=|google\.com/search|clinicaltrials\.gov/search|example\.com|placeholder\.)", re.I)
@@ -86,35 +83,25 @@ JUDGE_SYS = (
     "Be strict: a drug's indication, target, stage, deal terms must actually appear."
 )
 
+_JUDGE_CFG = PromptConfig(name="content_verifier_judge", system=JUDGE_SYS, model=MODEL, max_tokens=200)
+
 
 def judge(claim_type, claim_value, page_text):
-    if _client is None:
-        return "unreadable", "no anthropic client"
-    try:
-        resp = _client.messages.create(
-            model=MODEL, max_tokens=200, system=JUDGE_SYS,
-            messages=[{"role": "user", "content":
-                f"CLAIM ({claim_type}): {claim_value}\n\nPAGE TEXT:\n{page_text}"}])
-        txt = resp.content[0].text.strip()
-        m = re.search(r"\{.*\}", txt, re.S)
-        d = json.loads(m.group(0)) if m else {}
-        return d.get("verdict", "unreadable"), (d.get("evidence") or "")[:160]
-    except Exception as e:
-        return "unreadable", f"judge_error:{type(e).__name__}"
+    result = ai_client.run_json(_JUDGE_CFG, f"CLAIM ({claim_type}): {claim_value}\n\nPAGE TEXT:\n{page_text}")
+    if not result.ok:
+        return "unreadable", "judge_error: invalid JSON response"
+    d = result.data
+    return d.get("verdict", "unreadable"), (d.get("evidence") or "")[:160]
 
 
 def open_violation(row, verdict, evidence):
-    try:
-        requests.post(f"{BASE}/governance_violations",
-            headers={**SB, "Prefer": "return=minimal"},
-            json={"table_name": "drug_sources", "row_id": str(row["id"]),
-                  "rule_name": "source_does_not_support_claim",
-                  "description": f"[{verdict}] {row.get('drug_id')} / {row.get('claim_type')}: "
-                                 f"'{str(row.get('claim_value'))[:80]}' — source content does not support the claim. "
-                                 f"Evidence: {evidence}. URL: {row.get('source_url')}",
-                  "resolved": False}, timeout=15)
-    except Exception as e:
-        log(f"    violation log failed: {e}")
+    _db.sb_post("governance_violations", {
+        "table_name": "drug_sources", "row_id": str(row["id"]),
+        "rule_name": "source_does_not_support_claim",
+        "description": f"[{verdict}] {row.get('drug_id')} / {row.get('claim_type')}: "
+                       f"'{str(row.get('claim_value'))[:80]}' — source content does not support the claim. "
+                       f"Evidence: {evidence}. URL: {row.get('source_url')}",
+        "resolved": False})
 
 
 def main():
@@ -128,7 +115,7 @@ def main():
               "source_url": "not.is.null", "limit": str(args.limit)}
     if not args.recheck:
         params["content_confirms_claim"] = "is.null"
-    rows = requests.get(f"{BASE}/drug_sources", headers=SB, params=params, timeout=30).json()
+    rows = _db.sb_get("drug_sources", params)
     log(f"Content-verifying {len(rows)} drug_sources claims (model={MODEL}, dry_run={args.dry_run})")
 
     tally = {"supports": 0, "contradicts": 0, "absent": 0, "unreadable": 0, "fabricated": 0}
@@ -157,9 +144,7 @@ def main():
             patch["confidence"] = "unverified"
             open_violation(row, verdict, evidence)
         # 'unreadable' → leave content_confirms_claim unchanged (do NOT punish)
-        requests.patch(f"{BASE}/drug_sources",
-            headers={**SB, "Prefer": "return=minimal"},
-            params={"id": f"eq.{row['id']}"}, json=patch, timeout=20)
+        _db.sb_patch("drug_sources", patch, {"id": f"eq.{row['id']}"})
 
     log("\n=== Content verification summary ===")
     for k, v in tally.items():

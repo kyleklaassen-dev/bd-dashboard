@@ -78,35 +78,17 @@ import sys
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
-import requests
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_SERVICE_KEY",
-    os.environ.get("SUPABASE_ANON_KEY", ""),
-)
-
-if not SUPABASE_KEY:
-    _key_paths = [
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key"),
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_anon_key"),
-    ]
-    for _p in _key_paths:
-        _p = os.path.abspath(_p)
-        if os.path.exists(_p):
-            with open(_p) as _f:
-                SUPABASE_KEY = _f.read().strip()
-            break
-
-BASE = f"{SUPABASE_URL}/rest/v1"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=minimal",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 STALE_DAYS = 90
 
@@ -141,9 +123,7 @@ PRIORITY = {"high": 1, "medium": 2, "low": 3}
 # ── Supabase helpers ─────────────────────────────────────────────────────────
 
 def _get(path: str, params: dict | None = None) -> list[dict]:
-    r = requests.get(f"{BASE}/{path}", headers=HEADERS, params=params or {})
-    r.raise_for_status()
-    return r.json()
+    return _db.sb_get(path, params or {})
 
 
 def _patch_validation(company_id: str, check_type: str, payload: dict) -> None:
@@ -157,21 +137,15 @@ def _patch_validation(company_id: str, check_type: str, payload: dict) -> None:
         "created_by": "company_validator",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    r = requests.post(
-        f"{BASE}/drug_validation_results",
-        headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
-        json=row,
-    )
-    if r.status_code not in (200, 201, 204):
-        print(f"  [WARN] DB write failed ({company_id}, {check_type}): {r.status_code} {r.text[:200]}")
+    if not _db.sb_upsert("drug_validation_results", row):
+        print(f"  [WARN] DB write failed ({company_id}, {check_type})")
 
 
 def _clear_resolved(company_id: str, check_type: str) -> None:
-    requests.patch(
-        f"{BASE}/drug_validation_results",
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        params={"drug_id": f"eq.{company_id}", "check_type": f"eq.{check_type}"},
-        json={"check_status": "resolved", "updated_at": datetime.now(timezone.utc).isoformat()},
+    _db.sb_patch(
+        "drug_validation_results",
+        {"check_status": "resolved", "updated_at": datetime.now(timezone.utc).isoformat()},
+        {"drug_id": f"eq.{company_id}", "check_type": f"eq.{check_type}"},
     )
 
 

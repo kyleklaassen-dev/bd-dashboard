@@ -21,30 +21,22 @@ SCHEDULE:
 import os
 import re
 import sys
-import json
-import time
 import argparse
 import datetime
 import urllib.request
 import urllib.error
 from collections import defaultdict
 
-# ── Credentials ───────────────────────────────────────────────────────────────
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_KEY", "")
-if not SERVICE_KEY:
-    key_file = os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key")
-    if os.path.exists(key_file):
-        SERVICE_KEY = open(key_file).read().strip()
-if not SERVICE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found.")
-    sys.exit(1)
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-SB_HEADERS = {
-    "apikey":        SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type":  "application/json",
-}
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
+
+SUPABASE_URL, SERVICE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SERVICE_KEY)
+
 UA = {"User-Agent": "Mozilla/5.0 (compatible; BD-Platform-Audit/1.0)"}
 
 # ── Source type + tier classification ─────────────────────────────────────────
@@ -129,42 +121,18 @@ def url_source_status(http_status: int, url_type: str) -> str:
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 def sb_get(path: str) -> list:
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
-    req = urllib.request.Request(url, headers=SB_HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read().decode())
+    """Local call sites pass a combined 'table?select=...&...' path string;
+    split it and delegate to _db.sb_get's (table, params) interface."""
+    table, _, qs = path.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    return _db.sb_get(table, params)
 
 
 def sb_upsert(table: str, rows: list, on_conflict: str) -> int:
-    url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={on_conflict}"
-    body = json.dumps(rows).encode()
-    req = urllib.request.Request(
-        url, data=body,
-        headers={**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-        method="POST"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return r.status
-    except urllib.error.HTTPError as e:
-        print(f"  UPSERT ERROR {e.code}: {e.read().decode()[:150]}")
-        return e.code
-
-
-def sb_patch_filter(table: str, filter_str: str, payload: dict) -> int:
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_str}"
-    body = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=body,
-        headers={**SB_HEADERS, "Prefer": "return=minimal"},
-        method="PATCH"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return r.status
-    except urllib.error.HTTPError as e:
-        print(f"  PATCH ERROR {e.code}: {e.read().decode()[:100]}")
-        return e.code
+    """_db.sb_upsert returns the upserted rows (or [] on failure); translate to
+    an HTTP-status-like int since call sites just print it informationally."""
+    result = _db.sb_upsert(table, rows, on_conflict=on_conflict)
+    return 200 if (result or not rows) else 500
 
 
 # ── Collect URLs from all source tables ───────────────────────────────────────

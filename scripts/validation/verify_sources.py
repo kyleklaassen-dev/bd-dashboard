@@ -24,17 +24,15 @@ Runs nightly as part of the Meridian enrichment pipeline.
 import os, sys, time, datetime, pathlib, argparse, urllib.request, urllib.error
 from collections import defaultdict
 
-try:
-    import requests
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests",
-                           "--break-system-packages", "-q"])
-    import requests
+_SCRIPTS = pathlib.Path(__file__).resolve().parent.parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
 
-BASE_DIR     = pathlib.Path(__file__).parent.parent
-KEY_FILE     = BASE_DIR / ".supabase_service_key"
-SUPABASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co"
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
+
+SUPABASE_URL, _SERVICE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, _SERVICE_KEY)
 
 # Domains that always respond with 200 to HEAD — skip HTTP check (trust the URL)
 AUTHORITATIVE_DOMAINS = {
@@ -56,46 +54,18 @@ INTER_REQUEST_DELAY = 0.5
 UA = "Mozilla/5.0 (compatible; MeridianSourceVerifier/1.0; bd-platform-audit)"
 
 
-def load_service_key() -> str:
-    if KEY_FILE.exists():
-        return KEY_FILE.read_text().strip()
-    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-    if key:
-        return key
-    sys.exit("ERROR: .supabase_service_key not found.")
-
-
-def sb_headers(key: str) -> dict:
-    return {
-        "apikey":        key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=representation",
-    }
-
-
 def fetch_unverified_sources(service_key: str, all_sources: bool = False) -> list[dict]:
     """Return drug_sources rows that need verification."""
-    h = sb_headers(service_key)
     stale_cutoff = (
         datetime.datetime.utcnow() - datetime.timedelta(days=STALE_AFTER_DAYS)
     ).isoformat()
 
-    if all_sources:
-        params = "?select=id,drug_id,drug_name,source_url,source_domain,claim_type"
-    else:
+    params = {"select": "id,drug_id,drug_name,source_url,source_domain,claim_type"}
+    if not all_sources:
         # unverified OR last checked > 7 days ago
-        params = (
-            f"?select=id,drug_id,drug_name,source_url,source_domain,claim_type"
-            f"&or=(url_status.eq.unverified,url_last_checked.lt.{stale_cutoff})"
-        )
+        params["or"] = f"(url_status.eq.unverified,url_last_checked.lt.{stale_cutoff})"
 
-    resp = requests.get(f"{SUPABASE_URL}/rest/v1/drug_sources{params}",
-                        headers=h, timeout=15)
-    if not resp.ok:
-        print(f"[fetch] HTTP {resp.status_code}: {resp.text[:200]}")
-        return []
-    return resp.json()
+    return _db.sb_get("drug_sources", params)
 
 
 def check_url(url: str) -> tuple[str, int]:
@@ -140,26 +110,13 @@ def check_url(url: str) -> tuple[str, int]:
 
 def update_source_status(service_key: str, source_id: int,
                           url_status: str, now_iso: str) -> bool:
-    h = sb_headers(service_key)
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/drug_sources?id=eq.{source_id}",
-        headers={**h, "Prefer": "return=minimal"},
-        json={"url_status": url_status, "url_last_checked": now_iso},
-        timeout=10,
-    )
-    return resp.status_code in (200, 204)
+    return _db.sb_patch("drug_sources",
+                        {"url_status": url_status, "url_last_checked": now_iso},
+                        {"id": f"eq.{source_id}"})
 
 
 def post_summary_to_intelligence(service_key: str, summary: dict) -> None:
     """Post a one-line summary to intelligence_discoveries for dashboard visibility."""
-    h = sb_headers(service_key)
-
-    # Check if intelligence_discoveries table exists
-    test = requests.get(f"{SUPABASE_URL}/rest/v1/intelligence_discoveries?limit=0",
-                        headers=h, timeout=5)
-    if test.status_code in (400, 404):
-        return  # table doesn't exist, skip
-
     total = summary["live"] + summary["dead"] + summary["redirects"] + summary["errors"]
     note = (
         f"Source verification: {summary['live']} live, "
@@ -173,27 +130,15 @@ def post_summary_to_intelligence(service_key: str, summary: dict) -> None:
         "relevance":     "infrastructure",
         "created_at":    datetime.datetime.utcnow().isoformat(),
     }
-    requests.post(f"{SUPABASE_URL}/rest/v1/intelligence_discoveries",
-                  headers=h, json=record, timeout=10)
+    _db.sb_post("intelligence_discoveries", record)
 
 
 def update_confidence_scores(service_key: str) -> None:
     """Recompute drugs.data_confidence after url_status updates."""
-    h = sb_headers(service_key)
+    rows = _db.sb_get("drug_sources", {"select": "drug_id,content_confirms_claim,url_status"})
 
-    # Fetch all sources
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/drug_sources"
-        "?select=drug_id,content_confirms_claim,url_status",
-        headers=h, timeout=30,
-    )
-    if not resp.ok:
-        print(f"[confidence] Could not fetch sources: {resp.text[:100]}")
-        return
-
-    from collections import defaultdict
     counts: dict[str, dict] = defaultdict(lambda: {"confirmed": 0, "total": 0})
-    for row in resp.json():
+    for row in rows:
         drug_id = row["drug_id"]
         counts[drug_id]["total"] += 1
         if row.get("content_confirms_claim") and row.get("url_status") == "live":
@@ -210,13 +155,7 @@ def update_confidence_scores(service_key: str) -> None:
         else:
             level = "unverified"
 
-        patch = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/drugs?id=eq.{drug_id}",
-            headers={**h, "Prefer": "return=minimal"},
-            json={"data_confidence": level},
-            timeout=10,
-        )
-        if patch.ok:
+        if _db.sb_patch("drugs", {"data_confidence": level}, {"id": f"eq.{drug_id}"}):
             updated += 1
 
     print(f"[confidence] Updated data_confidence for {updated} drugs.")
@@ -230,7 +169,7 @@ def main() -> None:
                         help="Print what would be done without writing to DB.")
     args = parser.parse_args()
 
-    service_key = load_service_key()
+    service_key = _SERVICE_KEY
     now_iso     = datetime.datetime.utcnow().isoformat()
 
     print(f"[{now_iso[:19]}] Fetching sources to verify...")

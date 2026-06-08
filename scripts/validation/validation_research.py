@@ -46,27 +46,24 @@ import argparse
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
+
 # ═══════════════════════════════════════════════════════════════════════
 # CREDENTIALS
 # ═══════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+
 CT_GOV_BASE  = "https://clinicaltrials.gov/api/v2"
 ANZCTR_BASE  = "https://www.anzctr.org.au/TrialSearch.aspx"
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO      = datetime.datetime.utcnow().isoformat()
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=minimal",
-}
-SB_UPSERT_HEADERS = {
-    **SB_HEADERS,
-    "Prefer": "resolution=merge-duplicates,return=minimal",
-}
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -84,16 +81,7 @@ def log(msg: str, indent: int = 0):
 # ═══════════════════════════════════════════════════════════════════════
 
 def sb_get(table: str, params: dict) -> list:
-    try:
-        r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}",
-                         headers=SB_HEADERS,
-                         params={**params, "limit": "2000"},
-                         timeout=15)
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        log(f"[sb_get {table}] {e}")
-        return []
+    return _db.sb_get(table, {**params, "limit": "2000"})
 
 
 def sb_upsert(table: str, records: list | dict,
@@ -102,33 +90,10 @@ def sb_upsert(table: str, records: list | dict,
         records = [records]
     if not records:
         return True
-    # Normalize to identical key set
-    all_keys   = sorted({k for r in records for k in r.keys()})
-    normalized = [{k: r.get(k) for k in all_keys} for r in records]
-    url    = f"{SUPABASE_URL}/rest/v1/{table}"
-    params = {"on_conflict": on_conflict} if on_conflict else {}
-    try:
-        r = requests.post(url, headers=SB_UPSERT_HEADERS,
-                          params=params, json=normalized, timeout=15)
-        if r.status_code not in (200, 201):
-            log(f"[sb_upsert {table}] {r.status_code}: {r.text[:200]}")
-            return False
-        return True
-    except Exception as e:
-        log(f"[sb_upsert {table}] {e}")
-        return False
+    return bool(_db.sb_upsert(table, records, on_conflict=on_conflict))
 
 
-def sb_patch(table: str, record: dict, match_params: dict) -> bool:
-    try:
-        r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}",
-                           headers=SB_HEADERS,
-                           params=match_params,
-                           json=record, timeout=15)
-        return r.status_code in (200, 204)
-    except Exception as e:
-        log(f"[sb_patch {table}] {e}")
-        return False
+sb_patch = _db.sb_patch
 
 
 # ═══════════════════════════════════════════════════════════════════════

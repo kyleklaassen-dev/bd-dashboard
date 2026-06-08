@@ -45,37 +45,18 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+from _common import load_credentials, sb_headers  # noqa: E402
 
 # ── Credentials ──────────────────────────────────────────────────────────────
 
-def _read_cred(filename: str) -> str:
-    for base in [_REPO_ROOT, _SCRIPTS_DIR]:
-        path = os.path.join(base, filename)
-        if os.path.exists(path):
-            return open(path).read().strip()
-    return ""
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
 
-
-SUPABASE_URL = (
-    os.environ.get("SUPABASE_URL")
-    or _read_cred(".supabase_url")
-    or "https://tghntyofptvfhmtchwcv.supabase.co"
-)
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_KEY")
-    or _read_cred(".supabase_service_key")
-)
-
-if not SUPABASE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
-    sys.exit(1)
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+# DRY_RUN-aware sb_* helpers below need raising semantics + dry-run gating that
+# _db lacks, so they stay on raw requests — only credential loading is shared.
+SB_HEADERS = {**sb_headers(SUPABASE_KEY), "Prefer": "return=representation"}
 SB_UPSERT_HEADERS = {
     **SB_HEADERS,
     "Prefer": "resolution=merge-duplicates,return=minimal",

@@ -67,21 +67,23 @@ import argparse
 import requests
 from collections import defaultdict
 
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                          # noqa: E402
+
 # ═══════════════════════════════════════════════════════════════════════
 # CREDENTIALS + CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO      = datetime.datetime.utcnow().isoformat()
 
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=minimal",
-}
+SB_HEADERS = {**sb_headers(SUPABASE_KEY), "Prefer": "return=minimal"}
 SB_UPSERT_HEADERS = {
     **SB_HEADERS,
     "Prefer": "resolution=merge-duplicates,return=minimal",
@@ -210,20 +212,12 @@ def target_tokens_match(drugs_token: str, target_id: str) -> bool:
 # ═══════════════════════════════════════════════════════════════════════
 
 def sb_get(table: str, params: dict) -> list:
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS,
-            params={**params, "limit": "2000"},
-            timeout=20,
-        )
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        log(f"[sb_get {table}] {e}")
-        return []
+    return _db.sb_get(table, {**params, "limit": "2000"})
 
 
+# sb_upsert kept raw: it normalizes records to a uniform key set before posting
+# (PostgREST bulk-insert requires consistent columns across rows), behavior
+# _db.sb_upsert doesn't replicate.
 def sb_upsert(table: str, records: list | dict,
               on_conflict: str | None = None) -> bool:
     if isinstance(records, dict):
@@ -250,19 +244,7 @@ def sb_upsert(table: str, records: list | dict,
         return False
 
 
-def sb_patch(table: str, record: dict, match_params: dict) -> bool:
-    try:
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS,
-            params=match_params,
-            json=record,
-            timeout=20,
-        )
-        return r.status_code in (200, 204)
-    except Exception as e:
-        log(f"[sb_patch {table}] {e}")
-        return False
+sb_patch = _db.sb_patch
 
 
 def log(msg: str, indent: int = 0):

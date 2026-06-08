@@ -19,10 +19,16 @@ except ImportError:
                            "--break-system-packages", "-q"])
     import requests
 
+_SCRIPTS = pathlib.Path(__file__).resolve().parent.parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+
+from _common import load_credentials, sb_headers  # noqa: E402
+
 BASE_DIR     = pathlib.Path(__file__).parent.parent
 SQL_FILE     = BASE_DIR / "migrations" / "_archive" / "from-migrations" / "entity_consistency_checks_v1.sql"
-KEY_FILE     = BASE_DIR / ".supabase_service_key"
-SUPABASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co"
+
+SUPABASE_URL, _SERVICE_KEY, _ = load_credentials(require_anthropic=False)
 
 DASHBOARD_URL = (
     "https://supabase.com/dashboard/project/"
@@ -44,22 +50,8 @@ VERIFICATION = [
 ]
 
 
-def load_service_key():
-    if KEY_FILE.exists():
-        return KEY_FILE.read_text().strip()
-    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-    if key:
-        return key
-    sys.exit("ERROR: .supabase_service_key not found.")
-
-
 def headers(service_key):
-    return {
-        "apikey":        service_key,
-        "Authorization": f"Bearer {service_key}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=minimal",
-    }
+    return {**sb_headers(service_key), "Prefer": "return=minimal"}
 
 
 def table_exists(service_key):
@@ -90,10 +82,7 @@ def run_sql_automated(service_key, sql):
 
 
 def verify(service_key):
-    h = {
-        "apikey":        service_key,
-        "Authorization": f"Bearer {service_key}",
-    }
+    h = sb_headers(service_key)
     print("\n── Verification ──────────────────────────────────────────")
     all_pass = True
     for label, path in VERIFICATION:
@@ -129,7 +118,7 @@ def main():
     print("Meridian — entity_consistency_checks migration")
     print("─" * 70)
 
-    service_key = load_service_key()
+    service_key = _SERVICE_KEY
 
     # ── Step 1: Check if already exists ──────────────────────────────────────
     print("\n[1] Checking if entity_consistency_checks already exists...")

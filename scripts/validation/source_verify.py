@@ -29,51 +29,37 @@ Usage:
 import os, sys, json, time, hashlib, datetime, argparse
 from typing import Optional
 
-import anthropic
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-# ── Credentials ──────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-SUPABASE_URL      = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY", "")
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
+import ai.client as ai_client          # noqa: E402
+from ai.client import PromptConfig     # noqa: E402
 
-if not ANTHROPIC_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERROR: Set ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY env vars")
-    sys.exit(1)
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 TODAY  = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 MODEL  = "claude-sonnet-4-6"
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
-import urllib.request
+sb_get = _db.sb_get
 
-def _req(method: str, path: str, body=None) -> any:
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
-    data = json.dumps(body).encode() if body else None
-    req  = urllib.request.Request(url, data=data, method=method)
-    req.add_header("apikey",        SUPABASE_KEY)
-    req.add_header("Authorization", f"Bearer {SUPABASE_KEY}")
-    req.add_header("Content-Type",  "application/json")
-    req.add_header("Prefer",        "return=representation")
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body_text = e.read().decode()
-        print(f"  HTTP {e.code} {method} {path}: {body_text[:200]}")
-        return None
-    except Exception as ex:
-        print(f"  Request failed: {ex}")
-        return None
 
-def sb_get(table: str, params: dict) -> list:
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
-    result = _req("GET", f"{table}?{qs}")
-    return result if isinstance(result, list) else []
+def _parse_filter_qs(filter_qs: str) -> dict:
+    """Split an '&'-joined 'col=op.val' query string into a match-params dict."""
+    parts = {}
+    for piece in filter_qs.split("&"):
+        col, _, val = piece.partition("=")
+        parts[col] = val
+    return parts
+
 
 def sb_patch(table: str, match: str, record: dict) -> bool:
-    result = _req("PATCH", f"{table}?{match}", record)
-    return result is not None
+    return _db.sb_patch(table, record, _parse_filter_qs(match))
 
 def log(msg: str):
     ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
@@ -168,32 +154,25 @@ Return a JSON array, one object per drug, in the same order:
 ]"""
 
 # ── Claude call ───────────────────────────────────────────────────────────────
+_SOURCE_LOOKUP_CFG = PromptConfig(name="source_verify_lookup", system=SYSTEM, model=MODEL, max_tokens=1000)
+
+
 def call_claude(batch: list) -> list:
     prompt = build_prompt(batch)
+    # run_text (not run_json): the response is a JSON *array*, and ai_client._parse_json
+    # only handles top-level JSON objects.
+    raw = ai_client.run_text(_SOURCE_LOOKUP_CFG, prompt, timeout=30.0).strip()
+    if not raw:
+        log("  Claude call failed or returned empty response")
+        return []
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
     try:
-        resp = client.messages.create(
-            model=MODEL,
-            max_tokens=1000,
-            system=SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=30.0,
-        )
-        raw = ""
-        for block in resp.content:
-            if hasattr(block, "text") and block.text:
-                raw += block.text
-        # Strip markdown fences if present
-        raw = raw.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
         return json.loads(raw)
     except json.JSONDecodeError as e:
         log(f"  JSON parse error: {e} — raw: {raw[:200]}")
-        return []
-    except Exception as e:
-        log(f"  Claude call failed: {e}")
         return []
 
 # ── Write results ─────────────────────────────────────────────────────────────

@@ -18,11 +18,18 @@ Output:
   Return code: 0 if all P1 tests pass, 1 if any P1 test fails
 """
 
-import os, sys, json, argparse, datetime, urllib.request, urllib.error
+import os, sys, json, argparse, datetime
 from collections import defaultdict
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 
@@ -38,37 +45,15 @@ RESET  = "\033[0m"
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
 def sb_get(table, params=None):
-    qs = "&".join(f"{k}={v}" for k, v in (params or {}).items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    req = urllib.request.Request(url, headers={**_headers(), "Range": "0-999"})
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read()[:200]
-        print(f"  DB error fetching {table}: {e.code} {body}", file=sys.stderr)
-        return []
+    """Caller's Range: 0-999 cap is reproduced as a default 'limit' (preserving
+    any caller-specified limit) since _db.sb_get uses query params, not Range."""
+    p = dict(params or {})
+    p.setdefault("limit", "1000")
+    return _db.sb_get(table, p)
 
-def sb_patch(table, payload, filters):
-    qs = "&".join(f"{k}={v}" for k, v in filters.items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method="PATCH",
-                                  headers={**_headers(), "Prefer": "return=minimal"})
-    try:
-        with urllib.request.urlopen(req) as r:
-            return r.status in (200, 204)
-    except urllib.error.HTTPError as e:
-        print(f"  PATCH {table} failed: {e.code}", file=sys.stderr)
-        return False
+
+sb_patch = _db.sb_patch
 
 
 # ── Test evaluation ───────────────────────────────────────────────────────────
