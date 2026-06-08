@@ -98,9 +98,11 @@ Return JSON:
 {{
  "drugs":[{{"name":"","company":"","target":"","modality":"","stage":"Preclinical|Phase 1|Phase 2|Phase 3|Approved","indication":"","area":"tl1a|tslp|il4ra|igf1r|fcrn|tcell|general","mechanism":"1-2 sentences","summary":"2-3 sentences with the data in this doc","is_competitor":true,"confidence":"high|medium|low"}}],
  "catalysts":[{{"drug":"","company":"","date_str":"e.g. 3Q26 / Mid-2026 / 1H27","event":"","indication":"","area":"tl1a","significance":"P0|P1|P2|P3","confidence":"high|medium|low"}}],
- "deals":[{{"from_company":"originator","to_company":"partner/acquirer","deal_type":"licensing|acquisition|collaboration|option","upfront_usd_m":null,"total_usd_m":null,"headline":"","confidence":"high|medium|low"}}]
+ "deals":[{{"from_company":"originator","to_company":"partner/acquirer","deal_type":"licensing|acquisition|collaboration|option","upfront_usd_m":null,"total_usd_m":null,"headline":"","confidence":"high|medium|low"}}],
+ "digest":{{"title":"","one_paragraph":"2-3 sentences","executive_summary":"4-10 sentences capturing ALL the key content, numbers and themes","themes":[""],"bd_implications":"why it matters for Ailux/ALX001"}},
+ "facts":[{{"fact_type":"clinical|commercial|deal|catalyst|competitive|management|patient|regulatory|financial|market","subject_name":"drug/company the fact is about","subject_drug":"drug name if applicable","area":"tl1a|tslp|il4ra|igf1r|fcrn|tcell|general","claim":"ONE specific fact stated in the doc","metric":"","value":"","unit":"","period":"","confidence":"high|medium|low"}}]
 }}
-Only include facts actually stated in the document. Use [] when a section is empty."""
+CAPTURE EVERYTHING: in facts[], extract EVERY discrete fact, number, price, date, quote, and positioning statement in the document — even routine ones that would not become a card. The goal is a complete structured record of the document, not just card-worthy entities. Only include facts actually stated in the document. Use [] when a section is empty."""
 
 def claude_extract(content):
     r = requests.post("https://api.anthropic.com/v1/messages",
@@ -247,7 +249,40 @@ def enrich_row(row, dry=False, cache=None):
             "economic_terms_verified": False})
         if ok: log["deals"].append(f"+{hl[:50]}")
 
-    # 5) mark deep-enriched
+    # 5) Document digest (comprehensive — captures the whole doc, not just cards)
+    dg = data.get("digest") or {}
+    if dg.get("executive_summary") and not dry:
+        ok, _ = sb_post("intel_digests", {
+            "submitted_intel_id": rid, "source_url": url or None,
+            "doc_type": (row.get("source_name") or "document"), "title": (dg.get("title") or "")[:300],
+            "one_paragraph": dg.get("one_paragraph"), "executive_summary": dg.get("executive_summary"),
+            "themes": dg.get("themes") or [],
+            "companies": list({(d.get("company") or "") for d in data.get("drugs", []) if d.get("company")}),
+            "drugs": [d.get("name") for d in data.get("drugs", []) if d.get("name")],
+            "bd_implications": dg.get("bd_implications")})
+        if ok: log.setdefault("digest", []).append(dg.get("title", "")[:50])
+
+    # 6) Atomic facts — the full structured record of the document
+    for f in data.get("facts", []):
+        claim = (f.get("claim") or "").strip()
+        if not claim:
+            continue
+        v = f.get("value")
+        try: vnum = float(v) if v not in (None, "", "null") and str(v).replace(".", "").replace("-", "").isdigit() else None
+        except Exception: vnum = None
+        dnm = f.get("subject_drug") or ""
+        if dry:
+            log.setdefault("facts", []).append(claim[:50]); continue
+        ok, _ = sb_post("intel_facts", {
+            "submitted_intel_id": rid, "source_url": url or None, "fact_type": f.get("fact_type") or "other",
+            "subject_type": "drug" if dnm else "company", "subject_id": (drug_ids.get(dnm) or find_drug(dnm)) if dnm else None,
+            "subject_name": f.get("subject_name") or dnm or None, "claim": claim[:600],
+            "metric": f.get("metric") or None, "value_num": vnum, "value_text": (None if vnum is not None else (str(v) if v not in (None, "") else None)),
+            "unit": f.get("unit") or None, "period": f.get("period") or None, "area_id": f.get("area") or None,
+            "confidence": f.get("confidence") or "medium"})
+        if ok: log.setdefault("facts", []).append(claim[:50])
+
+    # 7) mark deep-enriched
     if not dry and isinstance(rpj, dict):
         rpj["deep_enriched_at"] = datetime.now(timezone.utc).isoformat()
         sb_patch("submitted_intel", {"id": f"eq.{rid}"}, {"raw_payload_json": rpj})
@@ -276,8 +311,8 @@ def main():
         print(f"\n┌─ {r['id'][:8]} | {r.get('source_name') or '—'}")
         try:
             log = enrich_row(r, a.dry_run, a.cache)
-            for k in ("drugs", "catalysts", "deals", "skipped"):
-                for x in log[k]: print(f"  {k[:4]}: {x}")
+            for k in ("drugs", "catalysts", "deals", "digest", "facts", "skipped"):
+                for x in log.get(k, []): print(f"  {k[:5]}: {x}")
         except Exception as e:
             print(f"  ! error: {e}")
     print("\nDone.")
