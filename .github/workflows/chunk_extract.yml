@@ -48,3 +48,8 @@ jobs:
             --title "${{ github.event.inputs.title }}" \
             --chunk "${{ github.event.inputs.chunk }}" \
             ${{ github.event.inputs.pages && format('--pages {0}', github.event.inputs.pages) || '' }}
+      - name: Rebuild fact -> entity relationship graph
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
+        run: python3 scripts/build_fact_graph.py

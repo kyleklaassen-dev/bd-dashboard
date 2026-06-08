@@ -13040,7 +13040,7 @@ async function openCompanyEntityModal(companyId, companyName, sourceTabId, fallb
     const prog   = { co: companyName, entity_id: companyId, company_id: companyId, id: companyId,
                      summary: profile?.platform_summary || '', overlap: '', _groupEntries: [] };
     let _coIntelFacts = [];
-    try { const { data: _cif } = await _sb.from('intel_facts').select('fact_type,claim,value_num,unit,area_id,source_url,page_ref').eq('subject_id', companyId).limit(80); _coIntelFacts = _cif || []; } catch(_e) {}
+    try { const { data: _cif } = await _sb.from('intel_fact_entities').select('role,intel_facts(fact_type,claim,value_num,unit,area_id,source_url,page_ref)').eq('entity_id', companyId).limit(150); _coIntelFacts = (_cif||[]).map(r=>r&&r.intel_facts).filter(Boolean); } catch(_e) {}
     const subsidiaries = subsidiariesRes.data || [];
     const sbData = { profile, company: companyRow, catalysts: cats, deals: allNews, drugs, trials, combos, moleculeIntel, newsArticles: coNewsArticles, companyIntel: companyIntelDirect, subsidiaries, seqConstraints, drugValidationResults, fieldChangeAudit, partnerships: (partnershipsRes.data || []), financials: coFinancials, secEvents: coSecEvents, companyPatents: coPatentRows, personnel: coPersonnel, transferChains: coTransferChains, newsSentiment: coSentiment, intelFacts: _coIntelFacts };
     const extraData = { allAreaIds, allAreaProfiles, allAreaCats, allAreaSigs, currentArea: AREA };
@@ -16440,10 +16440,10 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trial_facts').select(_TRIAL_FACT_COLS).eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_sources').select('claim_type,claim_value,source_url,source_type,source_domain,content_confirms_claim,confidence').eq('drug_id', drugId),
-      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('intel_facts').select('fact_type,claim,value_num,unit,area_id,source_url,page_ref,section,confidence').eq('subject_id', drugId).limit(80),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('intel_fact_entities').select('role,intel_facts(fact_type,claim,value_num,unit,area_id,source_url,page_ref,section,confidence)').eq('entity_id', drugId).limit(150),
     ]);
     const drugSources = srcRes0.data || [];
-    const intelFacts = ifRes0.data || [];
+    const intelFacts = (ifRes0.data || []).map(r => r && r.intel_facts).filter(Boolean);
 
     let drug    = drugRes.data?.[0]  || null;
     // Build areas[] from drug_competitive_scores; expose context_id as area_id for downstream compat

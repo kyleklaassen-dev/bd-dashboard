@@ -139,6 +139,13 @@ Surfaces: drug card "📑 Research intelligence (N)"; company card "📑 Researc
 Pipeline: Submit-Intel PDF → Storage `source-documents` bucket → `scripts/chunk_extract.py` (via `chunk_extract.yml`, page-by-page) → these tables.
 Query a drug/company's facts: `intel_facts?subject_id=eq.<id>`; by area: `area_id=eq.<area>`.
 
+- **`intel_fact_entities`** — the fact→entity relationship GRAPH (many-to-many). Each row links a
+  fact to an entity it names: `fact_id`, `entity_id` (drugs.id/companies.id), `entity_type`, `role`
+  (`subject` | `mentioned`), `area_id`. Use this to get EVERY fact that names an entity (not just its
+  primary subject): `intel_fact_entities?entity_id=eq.<id>&select=role,intel_facts(*)`. The drug/company
+  cards now read from here. Rebuilt by `scripts/build_fact_graph.py` (runs at the end of the
+  `chunk_extract.yml` workflow, so it stays current as new docs are added). ~76% of facts link to ≥1 entity.
+
 ## Key Files
 
 - `index.html` — main dashboard (single file, ~10k lines)
