@@ -3713,7 +3713,7 @@ function renderDeals(deals) {
     const areaLabel = AREA_LABELS[d.area_id] || d.area_id || '';
     const dateStr   = rdtFmtDate(d.deal_date) || d.deal_date_label || '';
     const headline  = d.headline || `${d.from_company||''} / ${d.to_company||''} deal`;
-    const gLink     = d.source_url || _gUrl(headline); // stored source first, web search only as fallback
+    const gLink     = d.source_url || ''; // direct source only — no Google fallback (Kyle 2026-06-08)
     const parties   = [d.from_company, d.to_company].filter(Boolean).join(' → ');
     const cardId    = `deal-card-${idx}`;
     // Expandable body content
@@ -3730,7 +3730,7 @@ function renderDeals(deals) {
       ${val ? `<span class="deal-card-val">${val}</span>` : ''}
     </div>
     <div class="deal-card-title-row">
-      <a class="deal-title-link" href="${gLink}" target="_blank" onclick="event.stopPropagation()">${headline}</a>
+      ${gLink ? `<a class="deal-title-link" href="${gLink}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${headline}</a>` : `<span class="deal-title-link" style="cursor:default">${headline}</span>`}
       ${hasBody ? `<button class="deal-chevron-btn" onclick="event.stopPropagation();toggleDealCard('${cardId}')">▾</button>` : ''}
     </div>
     ${parties ? `<div class="deal-parties">${parties}</div>` : ''}
@@ -3861,7 +3861,7 @@ function renderCatalysts(items) {
     const dateStr   = fmtDate(item.sortDate);
     const isHigh    = item.significance === 'high';
     const opacity   = item.resolved ? 'opacity:0.45;' : '';
-    const gLink     = item.source_url || _gUrl(item.label); // stored source first
+    const gLink     = item.source_url || ''; // direct source only — no Google fallback (Kyle 2026-06-08)
 
     return `<div class="uni-item${isHigh ? ' sig-high' : ''}" style="${opacity}">
   <div class="uni-meta">
@@ -3869,7 +3869,7 @@ function renderCatalysts(items) {
     ${countdown}
     <span class="uni-date">${dateStr}</span>
   </div>
-  <a class="uni-headline" href="${gLink}" target="_blank" rel="noopener">${item.label}</a>
+  ${gLink ? `<a class="uni-headline" href="${gLink}" target="_blank" rel="noopener">${item.label}</a>` : `<span class="uni-headline" style="cursor:default">${item.label}</span>`}
   ${item.notes ? `<div class="uni-notes">${item.notes}</div>` : ''}
   ${item.resolved && item.resolved_note ? `<div style="font-size:10px;color:#16a34a;margin-top:3px;">✓ ${item.resolved_note}</div>` : ''}
 </div>`;
@@ -4095,8 +4095,8 @@ async function loadMeridianReader() {
       if (item.body) bodyParts.push(`<div>${item.body}</div>`);
       if (extras.length) {
         const extraLinks = extras.map(e => {
-          const eUrl = e.source_url || _gUrl(e.headline || hl);
-          return `<a href="${eUrl}" target="_blank" rel="noopener" style="color:#2563eb;display:block;padding:1px 0;text-decoration:none;">↗ ${e.headline || _srcDomain(e.source_url) || 'source'}</a>`;
+          if (!e.source_url) return `<div style="color:#64748b;padding:1px 0">• ${e.headline || 'related item'}</div>`;
+          return `<a href="${e.source_url}" target="_blank" rel="noopener" style="color:#2563eb;display:block;padding:1px 0;text-decoration:none;">↗ ${e.headline || _srcDomain(e.source_url) || 'source'}</a>`;
         }).join('');
         bodyParts.push(`<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px">${extraLinks}</div>`);
       }
@@ -4107,7 +4107,7 @@ async function loadMeridianReader() {
         type: 'intel', areaId,
         pills: areaPill + typePill + impPill,
         headline: hl,
-        hlUrl: item.source_url || _gUrl(hl),
+        hlUrl: item.source_url || '',   // direct source only — no Google fallback (Kyle 2026-06-08)
         body: bodyParts.join(''),
         countdown: '',
       });
@@ -4140,7 +4140,7 @@ async function loadMeridianReader() {
         type: 'deal', areaId: d.area_id || '',
         pills: areaPill + dealPill,
         headline: hl,
-        hlUrl: d.source_url || _gUrl(searchTerms),
+        hlUrl: d.source_url || '',
         body: bodyParts.join(''),
         countdown: '',
       });
@@ -4161,7 +4161,7 @@ async function loadMeridianReader() {
         type: 'catalyst', areaId: c.area_id || '',
         pills: areaPill + catPill,
         headline: c.label,
-        hlUrl: c.source_url || _gUrl(c.label),
+        hlUrl: c.source_url || '',
         body: bodyParts.join(''),
         countdown: catDaysTag(c.sort_date),
       });
@@ -4184,7 +4184,7 @@ async function loadMeridianReader() {
         type: 'enriched', areaId: p.area_id || '',
         pills: areaPill + enrichPill,
         headline: `${p.company_id} profile updated`,
-        hlUrl: _gUrl(p.company_id + ' biotech'),
+        hlUrl: '', coId: p.company_id || '',   // opens the company card in-app, not Google
         body: summary ? summary.slice(0, 220) + (summary.length > 220 ? '…' : '') : '',
         countdown: '',
       });
@@ -4225,11 +4225,18 @@ function renderMeridianFeed() {
     const hasBody = !!f.body;
     const chev = `<span class="mr-chev" style="${hasBody?'':'visibility:hidden'}">▶</span>`;
     const bodyBlock = hasBody ? `<div class="mr-body" style="display:none">${f.body}</div>` : '';
+    // headline: direct source link if we have one; else open the company card in-app; else plain text.
+    // No Google-search fallback (Kyle 2026-06-08).
+    const headlineEl = f.hlUrl
+      ? `<a class="mr-hl" href="${f.hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${f.headline}</a>`
+      : (f.coId
+        ? `<a class="mr-hl" href="javascript:void(0)" onclick="event.stopPropagation();openCompanyEntityModal('${(f.coId||'').replace(/'/g,"\\'")}','${(f.coId||'').replace(/'/g,"\\'")}','home')">${f.headline}</a>`
+        : `<span class="mr-hl" style="cursor:default">${f.headline}</span>`);
     return `<div class="mr-item" data-type="${f.type}" data-area="${f.areaId}">
   <div class="mr-item-hd" onclick="mrToggle(this)">
     ${chev}
     <div class="mr-pills">${f.pills}</div>
-    <a class="mr-hl" href="${f.hlUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${f.headline}</a>
+    ${headlineEl}
     ${f.countdown || ''}
     <span class="mr-date-tag">${f.dateLabel}</span>
   </div>
@@ -5233,7 +5240,7 @@ function _bdaRowHtml(tabId, d, i) {
           <span class="bda-type" style="background:${tc}18;color:${tc}">${d.deal_type || 'deal'}</span>
           ${val ? `<span class="bda-value">${val}</span>` : ''}
         </div>
-        <a class="bda-hl-link" href="${d.source_url || _gUrl(hl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>
+        ${d.source_url ? `<a class="bda-hl-link" href="${d.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${hl}</a>` : `<span class="bda-hl-link" style="cursor:default">${hl}</span>`}
       </div>
       ${hasDetail ? `<span class="bda-chevron">▶</span>` : ''}
     </div>
@@ -22274,7 +22281,7 @@ function iifRender() {
     const companyChip = companyName ? `<span class="iif-company-name">${_iifEsc(companyName)}</span>` : '';
     const relCls = item.rel_score >= 0.75 ? 'iif-card-rel-high' : item.rel_score >= 0.5 ? 'iif-card-rel-medium' : 'iif-card-rel-low';
     const hasBody = !!item.body;
-    const hlUrl = (item.sources && item.sources[0] && item.sources[0].url) || _gUrl(item.headline || ''); // stored source first (Kyle 2026-06-07)
+    const hlUrl = (item.sources && item.sources[0] && item.sources[0].url) || ''; // direct source only — no Google fallback (Kyle 2026-06-08)
     const toggleAttr = hasBody ? ` onclick="iifToggleCard('${item._key}')"` : '';
     html += `<div class="iif-card" id="iif-card-${item._key}"${toggleAttr}><div class="iif-card-rel ${relCls}"></div><div class="iif-card-inner">
   <div class="iif-card-top">
