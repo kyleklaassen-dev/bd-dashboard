@@ -60,6 +60,16 @@ from typing import Optional
 
 import requests
 
+# NOTE: dirname(dirname(__file__)) resolved to scripts/, not the repo root,
+# after the scripts/ reorg moved this file into scripts/sync/ —
+# load_credentials locates the repo root correctly regardless of subfolder depth.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
 try:
     from identity_resolution import DrugIdentityResolver
     _IDENTITY_RESOLVER_AVAILABLE = True
@@ -71,22 +81,11 @@ except ImportError:
 # CREDENTIALS + CONSTANTS
 # ══════════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 CT_GOV_BASE  = "https://clinicaltrials.gov/api/v2"
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO      = datetime.datetime.utcnow().isoformat()
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
-SB_UPSERT_HEADERS = {
-    **SB_HEADERS,
-    "Prefer": "resolution=merge-duplicates,return=representation",
-}
 
 # CT.gov status → our normalized status
 CT_STATUS_MAP = {
@@ -576,58 +575,13 @@ def log(msg: str, indent: int = 0):
 # ══════════════════════════════════════════════════════════════════════════
 # SUPABASE HELPERS
 # ══════════════════════════════════════════════════════════════════════════
+# These were hand-rolled requests wrappers that duplicated _db's sb_get /
+# sb_upsert / sb_patch byte-for-byte (same headers, same merge-duplicates
+# resolution strategy, same status checks) — aliased to the shared module.
 
-def sb_get(table: str, params: dict) -> list:
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS, params=params, timeout=15
-        )
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        log(f"[sb_get {table}] {e}", indent=1)
-        return []
-
-
-def sb_upsert(table: str, records: list | dict,
-              on_conflict: str | None = None) -> list:
-    """
-    Upsert records into a Supabase table.
-
-    on_conflict: comma-separated column names for conflict target (e.g.
-    'drug_id,check_type'). Required when the table has a non-PK unique
-    constraint that should drive ON CONFLICT resolution. If omitted,
-    PostgREST defaults to the primary key.
-    """
-    if isinstance(records, dict):
-        records = [records]
-    if not records:
-        return []
-    url    = f"{SUPABASE_URL}/rest/v1/{table}"
-    params = {"on_conflict": on_conflict} if on_conflict else {}
-    try:
-        r = requests.post(url, headers=SB_UPSERT_HEADERS,
-                          params=params, json=records, timeout=15)
-        if r.status_code not in (200, 201):
-            log(f"[sb_upsert {table}] {r.status_code}: {r.text[:200]}", indent=1)
-            return []
-        return r.json()
-    except Exception as e:
-        log(f"[sb_upsert {table}] {e}", indent=1)
-        return []
-
-
-def sb_patch(table: str, record: dict, match_params: dict) -> bool:
-    try:
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS, params=match_params, json=record, timeout=15
-        )
-        return r.status_code in (200, 204)
-    except Exception as e:
-        log(f"[sb_patch {table}] {e}", indent=1)
-        return False
+sb_get    = _db.sb_get
+sb_upsert = _db.sb_upsert
+sb_patch  = _db.sb_patch
 
 
 # ══════════════════════════════════════════════════════════════════════════

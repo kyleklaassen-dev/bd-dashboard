@@ -54,31 +54,20 @@ import sys
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 
-import requests
+# NOTE: dirname(dirname(__file__)) resolved to scripts/, not the repo root,
+# after the scripts/ reorg moved this file into scripts/sync/ —
+# load_credentials locates the repo root correctly regardless of subfolder depth.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_ANON_KEY", ""))
-
-if not SUPABASE_KEY:
-    for _p in [
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key"),
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_anon_key"),
-    ]:
-        _p = os.path.abspath(_p)
-        if os.path.exists(_p):
-            with open(_p) as _f:
-                SUPABASE_KEY = _f.read().strip()
-            break
-
-BASE = f"{SUPABASE_URL}/rest/v1"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=minimal",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 # Company is "stale" if last_verified is older than this many days
 STALE_DAYS = 90
@@ -103,9 +92,7 @@ NOW = datetime.now(timezone.utc)
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _get(path: str, params: dict | None = None) -> list[dict]:
-    r = requests.get(f"{BASE}/{path}", headers=HEADERS, params=params or {})
-    r.raise_for_status()
-    return r.json()
+    return _db.sb_get(path, params or {})
 
 
 def _patch_company(company_id: str, payload: dict) -> bool:
@@ -113,12 +100,7 @@ def _patch_company(company_id: str, payload: dict) -> bool:
     safe = {k: v for k, v in payload.items() if k not in PROTECTED_FIELDS}
     if not safe:
         return False
-    r = requests.patch(
-        f"{BASE}/companies", headers=HEADERS,
-        params={"id": f"eq.{company_id}"},
-        json=safe,
-    )
-    return r.status_code == 204
+    return _db.sb_patch("companies", safe, {"id": f"eq.{company_id}"})
 
 
 def _write_validation(company_id: str, check_type: str, severity: str, details: dict) -> None:
@@ -132,11 +114,7 @@ def _write_validation(company_id: str, check_type: str, severity: str, details: 
         "created_by": "refresh_company_verified",
         "updated_at": NOW.isoformat(),
     }
-    requests.post(
-        f"{BASE}/drug_validation_results",
-        headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
-        json=row,
-    )
+    _db.sb_upsert("drug_validation_results", row)
 
 
 def _parse_date(s: str | None) -> date | None:

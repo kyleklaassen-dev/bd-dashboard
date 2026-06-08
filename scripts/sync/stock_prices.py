@@ -6,18 +6,18 @@ using yfinance and upserts to Supabase `companies` table.
 Runs 6 AM ET daily (10:00 UTC), after market open.
 """
 
-import os, json, datetime, time
-import requests
+import os, sys, datetime, time
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 # ── Credentials ─────────────────────────────────────────────────────────────
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 
 def log(msg):
@@ -103,16 +103,7 @@ def fetch_prices(tickers):
 
 def get_companies():
     """Fetch all companies from Supabase."""
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/companies",
-            headers=SB_HEADERS,
-            params={"select": "id,name,ticker"},
-        )
-        return r.json()
-    except Exception as e:
-        log(f"Companies fetch error: {e}")
-        return []
+    return _db.sb_get("companies", {"select": "id,name,ticker"})
 
 
 def upsert_price(company_id, ticker, price, change_pct, market_cap=None):
@@ -120,18 +111,12 @@ def upsert_price(company_id, ticker, price, change_pct, market_cap=None):
     now_iso = datetime.datetime.utcnow().isoformat() + "Z"
 
     # 1. Patch the live companies row (existing behaviour)
-    r = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/companies",
-        headers={**SB_HEADERS, "Prefer": "return=minimal"},
-        params={"id": f"eq.{company_id}"},
-        json={
-            "stock_price":       price,
-            "stock_change":      change_pct,
-            "last_price_update": datetime.datetime.utcnow().isoformat(),
-        },
-    )
-    if r.status_code not in (200, 201, 204):
-        log(f"  Update error for company {company_id}: {r.status_code} {r.text[:100]}")
+    if not _db.sb_patch("companies", {
+        "stock_price":       price,
+        "stock_change":      change_pct,
+        "last_price_update": datetime.datetime.utcnow().isoformat(),
+    }, {"id": f"eq.{company_id}"}):
+        log(f"  Update error for company {company_id}")
         return False
 
     # 2. Insert into stock_price_history for trend tracking
@@ -146,14 +131,8 @@ def upsert_price(company_id, ticker, price, change_pct, market_cap=None):
     if market_cap is not None:
         hist_payload["market_cap_usd"] = market_cap
 
-    rh = requests.post(
-        f"{SUPABASE_URL}/rest/v1/stock_price_history",
-        headers={**SB_HEADERS, "Prefer": "return=minimal"},
-        json=hist_payload,
-        timeout=10,
-    )
-    if rh.status_code not in (200, 201, 204):
-        log(f"  History insert warning for {ticker}: {rh.status_code} {rh.text[:80]}")
+    if _db.sb_post("stock_price_history", hist_payload) is None:
+        log(f"  History insert warning for {ticker}")
         # Non-fatal: the main update already succeeded
 
     return True

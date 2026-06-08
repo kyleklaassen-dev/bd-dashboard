@@ -18,12 +18,21 @@ Run:
 import os, sys, json, argparse, urllib.request, urllib.error
 from datetime import datetime, timezone
 
-SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KEY = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-       or open(os.path.join(WORK, ".supabase_service_key")).read().strip())
+# NOTE: WORK = dirname(dirname(__file__)) resolved to scripts/, not the repo
+# root, after the scripts/ reorg moved this file into scripts/sync/ —
+# load_credentials locates the repo root correctly regardless of subfolder depth.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
+from _common import load_credentials  # noqa: E402
 
+SUPABASE_URL, KEY, _ = load_credentials(require_anthropic=False)
+SUPA = f"{SUPABASE_URL}/rest/v1"
+
+# _req kept raw: its POST relies on resolution=ignore-duplicates (skip on
+# conflict, preserving existing status/first_seen — see "PRESERVE status"
+# above), a strategy _db.sb_upsert (merge-duplicates only) doesn't support.
 def _req(method, ep, data=None, prefer=None):
     h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
     if prefer:
