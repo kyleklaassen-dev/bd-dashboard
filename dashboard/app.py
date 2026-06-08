@@ -13,15 +13,7 @@ Run with:
 """
 import streamlit as st
 
-from pipelines import (
-    ABSTRACT_FETCHER,
-    EVIDENCE_COLLECTORS,
-    FLYWHEEL_PHASE2,
-    PIPELINES,
-    SCHOOL_WEEK_SPRINT,
-    TRIAL_AUDIT,
-    WEEKEND_SPRINT,
-)
+from pipelines import PIPELINE_GROUPS, PIPELINES
 from state_graphs import STATE_GRAPHS
 from state_graphs._topology import build_app, topology_dot
 
@@ -128,29 +120,24 @@ def render_home() -> None:
     )
     st.divider()
 
-    def workflow_card(pipeline: dict, key: str) -> None:
+    def workflow_card(pipeline: dict) -> None:
         workflow_filename = pipeline["workflow_file"].rsplit("/", 1)[-1]
         st.button(
             f"**{workflow_filename}**",
-            key=key,
+            key=f"btn_{pipeline['key']}",
             type="primary",
             width="stretch",
             on_click=go_to,
             args=(pipeline["key"],),
         )
 
-    cards = [
-        (ABSTRACT_FETCHER, "btn_abstract_fetcher"),
-        (EVIDENCE_COLLECTORS, "btn_evidence_collectors"),
-        (WEEKEND_SPRINT, "btn_weekend_sprint"),
-        (SCHOOL_WEEK_SPRINT, "btn_school_week_sprint"),
-        (FLYWHEEL_PHASE2, "btn_flywheel_phase2"),
-        (TRIAL_AUDIT, "btn_trial_audit"),
-    ]
-    cols = st.columns(3)
-    for i, (pipeline, key) in enumerate(cards):
-        with cols[i % 3]:
-            workflow_card(pipeline, key)
+    for label, group in PIPELINE_GROUPS:
+        st.markdown(f"### {label}")
+        cols = st.columns(3)
+        for i, pipeline in enumerate(group):
+            with cols[i % 3]:
+                workflow_card(pipeline)
+        st.write("")
 
 
 def render_pipeline_page(pipeline: dict) -> None:
@@ -213,7 +200,10 @@ def render_pipeline_page(pipeline: dict) -> None:
             if len(group) > 1:
                 st.markdown("**Run in parallel:**")
             for item in group:
-                st.markdown(f"`{item[unit_key]}` &nbsp;·&nbsp; {item['lines']} lines")
+                if item.get("lines") is not None:
+                    st.markdown(f"`{item[unit_key]}` &nbsp;·&nbsp; {item['lines']} lines")
+                else:
+                    st.markdown(f"`{item[unit_key]}`")
                 st.write(item["desc"])
             st.write("")
 
