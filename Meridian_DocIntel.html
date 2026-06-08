@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian · Document Intelligence</title>
+<style>
+  :root{--bg:#0b1220;--card:#111a2e;--card2:#0f1728;--bd:#1e2c47;--tx:#e6edf7;--mut:#8aa0c0;--ac:#5b9dff;--ac2:#22c55e;--warn:#f59e0b;--pill:#1b2a48;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--tx);font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:0 0 60px}
+  header{padding:20px 28px;border-bottom:1px solid var(--bd);background:linear-gradient(180deg,#0f1a30,#0b1220);position:sticky;top:0;z-index:10}
+  h1{font-size:19px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--mut);font-size:12.5px;margin-top:3px}
+  .tabs{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .tab{padding:7px 14px;border:1px solid var(--bd);border-radius:8px;background:var(--card2);color:var(--mut);cursor:pointer;font-weight:600;font-size:12.5px}
+  .tab.on{background:var(--ac);color:#04122b;border-color:var(--ac)}
+  .wrap{padding:22px 28px;max-width:1240px;margin:0 auto}
+  .view{display:none}.view.on{display:block}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .chip{padding:5px 11px;border:1px solid var(--bd);border-radius:20px;background:var(--card2);color:var(--mut);cursor:pointer;font-size:11.5px;font-weight:600}
+  .chip.on{background:var(--pill);color:var(--tx);border-color:var(--ac)}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .card h3{font-size:15px;font-weight:700;margin-bottom:4px}
+  .meta{color:var(--mut);font-size:11.5px;margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .badge{background:var(--pill);border:1px solid var(--bd);border-radius:6px;padding:1px 7px;font-size:10.5px;font-weight:700;color:var(--ac)}
+  .pdf{background:var(--ac);color:#04122b;border-radius:6px;padding:3px 10px;font-weight:700;text-decoration:none;font-size:11px}
+  .summary{font-size:13px;color:#cdd9ec;margin:8px 0}
+  .bd{background:#10241c;border:1px solid #1c3b2c;border-left:3px solid var(--ac2);border-radius:8px;padding:9px 12px;font-size:12.5px;color:#c8f0d8;margin-top:8px}
+  .themes span{display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:5px;padding:1px 7px;font-size:10.5px;color:var(--mut);margin:3px 4px 0 0}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--bd)}
+  th{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;position:sticky;top:0;background:var(--card)}
+  tr:hover td{background:#0e1830}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .ft{font-size:12px;border-left:3px solid var(--bd);padding:6px 0 6px 11px;margin-bottom:7px}
+  .ft .k{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-right:8px}
+  .ft a{color:var(--ac);font-size:10.5px;text-decoration:none}
+  .empty{color:var(--mut);padding:30px;text-align:center;font-style:italic}
+  .ftype-clinical{border-color:#3b82f6}.ftype-commercial{border-color:#22c55e}.ftype-competitive{border-color:#f59e0b}
+  .ftype-catalyst{border-color:#a855f7}.ftype-management{border-color:#ef4444}.ftype-patient{border-color:#06b6d4}
+  .ftype-partnership{border-color:#eab308}.ftype-market{border-color:#22c55e}
+  .kpi{display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:8px 13px;margin:0 8px 8px 0}
+  .kpi b{font-size:17px;color:var(--ac)} .kpi span{display:block;color:var(--mut);font-size:10.5px}
+  a.src{color:var(--ac);text-decoration:none;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📑 Meridian · Document Intelligence</h1>
+  <div class="sub">Structured facts, market data & insights extracted from submitted research — Wedbush, TD Cowen, Endpoints & more. Every claim links to its source.</div>
+  <div class="tabs">
+    <div class="tab on" data-v="digests" onclick="sw('digests')">Documents</div>
+    <div class="tab" data-v="facts" onclick="sw('facts')">Facts Explorer</div>
+    <div class="tab" data-v="rx" onclick="sw('rx')">Rx & Pricing</div>
+    <div class="tab" data-v="market" onclick="sw('market')">Market Landscape</div>
+  </div>
+</header>
+<div class="wrap">
+  <div id="kpis"></div>
+  <div id="v-digests" class="view on"><div class="empty">Loading documents…</div></div>
+  <div id="v-facts" class="view">
+    <div class="row" id="fact-filters"></div>
+    <div id="facts-list"></div>
+  </div>
+  <div id="v-rx" class="view"><div class="empty">Loading…</div></div>
+  <div id="v-market" class="view"><div class="empty">Loading…</div></div>
+</div>
+<script>
+const SB="https://tghntyofptvfhmtchwcv.supabase.co";
+const KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const H={apikey:KEY,Authorization:"Bearer "+KEY};
+const AREA={tl1a:"TL1A·IBD",tslp:"TSLP·Resp",il4ra:"IL-4Rα·Atopic",igf1r:"IGF1R·TED",fcrn:"FcRn",tcell:"T-cell"};
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const q=(t,p)=>fetch(`${SB}/rest/v1/${t}?${p}`,{headers:H}).then(r=>r.json());
+let DIGESTS=[],FACTS=[],RX=[],MKT=[];
+function sw(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));document.getElementById('v-'+v).classList.add('on');}
+function srcLink(u){if(!u)return'';const pdf=/\.pdf|\/pdf|bluematrix|drive\.google/i.test(u);
+  return `<a class="pdf" href="${esc(u)}" target="_blank" rel="noopener">${pdf?'📄 View source':'↗ Source'}</a>`;}
+
+async function load(){
+  [DIGESTS,FACTS,RX,MKT]=await Promise.all([
+    q('intel_digests','select=*&order=created_at.desc'),
+    q('intel_facts','select=*&order=id.desc&limit=2000'),
+    q('rx_market_tracker','select=*&order=drug_class,drug_name'),
+    q('market_landscape','select=*&order=area_id,year_label')
+  ]);
+  renderKpis();renderDigests();renderFacts();renderRx();renderMarket();
+}
+function renderKpis(){
+  document.getElementById('kpis').innerHTML=
+   `<div class="kpi"><b>${DIGESTS.length}</b><span>documents</span></div>
+    <div class="kpi"><b>${FACTS.length}</b><span>atomic facts</span></div>
+    <div class="kpi"><b>${RX.length}</b><span>tracked Rx</span></div>
+    <div class="kpi"><b>${MKT.length}</b><span>market data points</span></div>`;
+}
+function renderDigests(){
+  const el=document.getElementById('v-digests');
+  if(!DIGESTS.length){el.innerHTML='<div class="empty">No documents yet.</div>';return;}
+  el.innerHTML=DIGESTS.map(d=>{
+    const areas=(d.area_ids||[]).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
+    const themes=(d.themes||[]).map(t=>`<span>${esc(t)}</span>`).join('');
+    return `<div class="card">
+      <div class="meta">${areas}<span class="badge">${esc(d.doc_type||'doc')}</span>${srcLink(d.source_url)}</div>
+      <h3>${esc(d.title)}</h3>
+      <div class="summary">${esc(d.executive_summary||d.one_paragraph)}</div>
+      ${d.bd_implications?`<div class="bd"><b>BD implication:</b> ${esc(d.bd_implications)}</div>`:''}
+      <div class="themes">${themes}</div>
+    </div>`;
+  }).join('');
+}
+let factType='all',factArea='all';
+function renderFacts(){
+  const types=[...new Set(FACTS.map(f=>f.fact_type).filter(Boolean))].sort();
+  const areas=[...new Set(FACTS.map(f=>f.area_id).filter(Boolean))].sort();
+  document.getElementById('fact-filters').innerHTML=
+    `<span class="chip ${factType=='all'?'on':''}" onclick="setF('t','all')">All types</span>`+
+    types.map(t=>`<span class="chip ${factType==t?'on':''}" onclick="setF('t','${t}')">${t}</span>`).join('')+
+    `&nbsp;&nbsp;<span class="chip ${factArea=='all'?'on':''}" onclick="setF('a','all')">All areas</span>`+
+    areas.map(a=>`<span class="chip ${factArea==a?'on':''}" onclick="setF('a','${a}')">${AREA[a]||a}</span>`).join('');
+  const rows=FACTS.filter(f=>(factType=='all'||f.fact_type==factType)&&(factArea=='all'||f.area_id==factArea));
+  document.getElementById('facts-list').innerHTML=rows.length?rows.map(f=>{
+    const v=f.value_num!=null?`${f.value_num}${f.unit?' '+esc(f.unit):''}`:(f.value_text||'');
+    return `<div class="ft ftype-${esc(f.fact_type)}">
+      <span class="k">${esc(f.fact_type)}</span>${esc(f.subject_name||'')}
+      ${f.area_id?`<span class="badge">${AREA[f.area_id]||f.area_id}</span>`:''}
+      <div>${esc(f.claim)} ${v?`<b style="color:var(--ac)">${esc(v)}</b>`:''}</div>
+      ${f.source_url?`<a href="${esc(f.source_url)}" target="_blank" rel="noopener">↗ source</a>`:''}
+    </div>`;}).join(''):'<div class="empty">No facts match.</div>';
+}
+function setF(k,v){if(k=='t')factType=v;else factArea=v;renderFacts();}
+function renderRx(){
+  const el=document.getElementById('v-rx');
+  if(!RX.length){el.innerHTML='<div class="empty">No Rx data.</div>';return;}
+  const rows=RX.map(r=>{const m=(r.metric_note||'').match(/\$([\d,]+)/);const cost=m?m[1]:'';
+    return `<tr><td><b>${esc(r.brand_name||r.drug_name)}</b><div style="color:var(--mut);font-size:10.5px">${esc(r.drug_name)}</div></td>
+    <td><span class="badge">${esc(r.drug_class||'')}</span></td><td>${esc(r.company||'')}</td>
+    <td class="num">${cost?'$'+cost:''}</td><td style="color:var(--mut);font-size:11px">${esc((r.metric_note||'').replace(/^Monthly cost[^;]*;\s*/,''))}</td></tr>`;}).join('');
+  el.innerHTML=`<div class="card"><div class="meta"><span class="badge">IQVIA via Wedbush</span> Weekly Retail Rx tracker — roster & list pricing. <span style="color:var(--warn)">Weekly volume/share are chart-based in the source PDF (not yet digitized).</span></div>
+    <table><thead><tr><th>Drug</th><th>Class</th><th>Company</th><th class="num">Monthly cost</th><th>Indications</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderMarket(){
+  const el=document.getElementById('v-market');
+  if(!MKT.length){el.innerHTML='<div class="empty">No market data.</div>';return;}
+  const byArea={};MKT.forEach(m=>{(byArea[m.area_id]=byArea[m.area_id]||[]).push(m);});
+  el.innerHTML=Object.entries(byArea).map(([a,rows])=>{
+    const dis=rows[0].disease||'';const years=[...new Set(rows.map(r=>r.year_label))];
+    const cos=[...new Set(rows.map(r=>r.company))];
+    const head=years.map(y=>`<th class="num">${esc(y)}</th>`).join('');
+    const body=cos.map(c=>{const cells=years.map(y=>{const m=rows.find(r=>r.company==c&&r.year_label==y);
+      return `<td class="num">${m&&m.market_share_pct!=null?m.market_share_pct+'%':'—'}</td>`;}).join('');
+      return `<tr><td>${esc(c)}</td>${cells}</tr>`;}).join('');
+    const sz=rows.find(r=>r.market_size_usd_b);
+    return `<div class="card"><div class="meta"><span class="badge">${AREA[a]||a}</span> ${esc(dis)} — market share by \$ sales ${sz?'· ~\$'+sz.market_size_usd_b+'B':''} ${srcLink(rows[0].source_url)}</div>
+      <table><thead><tr><th>Company</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }).join('');
+}
+load().catch(e=>{document.getElementById('v-digests').innerHTML='<div class="empty">Load error: '+esc(e.message)+'</div>';});
+</script>
+</body>
+</html>
