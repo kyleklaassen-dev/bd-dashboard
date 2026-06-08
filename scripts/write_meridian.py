@@ -20,6 +20,20 @@ except ImportError:
     build_patient_context_block = lambda items: ""
     PATIENT_INTEL_AVAILABLE = False
 
+# Integration feed (Round 11–17 API data + synthesized strategic_insights layer).
+# Read-only; surfaces genetics / patents / regulatory / financing / KOL + the
+# distilled insight layer, scoped to the day's entities. Fully guarded: if the
+# module or its data is unavailable, the Issue still generates with empty blocks.
+try:
+    from meridian_integrations_feed import extract_scope_from_intel, render_feed
+    INTEGRATIONS_FEED_AVAILABLE = True
+except Exception as _feed_err:
+    INTEGRATIONS_FEED_AVAILABLE = False
+    def extract_scope_from_intel(intel, plan=None):
+        return {"drugs": [], "companies": [], "targets": [], "indications": []}
+    def render_feed(scope):
+        return ("(Integration feed unavailable.)", "(Integration feed unavailable.)")
+
 # ── Credentials ─────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL      = os.environ["SUPABASE_URL"]
@@ -904,6 +918,10 @@ def enrich_intel_with_drug_context(items, drugs, companies):
 
         item = dict(item)
         item["_db_context"] = "\n".join(ctx_lines) if ctx_lines else None
+        # Preserve the structured matches so the integration feed can resolve the
+        # day's in-scope entities (the text _db_context alone is not machine-usable).
+        item["_matched_drug_ids"]   = [d["id"] for d in matched_drugs]
+        item["_matched_company_ids"] = [c["id"] for c in matched_companies]
         enriched.append(item)
 
     return enriched
@@ -1174,6 +1192,20 @@ ENRICHED DATA NOW AVAILABLE — USE IT:
    - First mention of company → hyperlink to company modal
    - Patient numbers required for every indication discussed
    - Mechanism precision required: name the target, pathway, and effector cell
+
+5. STRATEGIC INSIGHTS + INTEGRATION DATA (new authoritative layers — use them, do not ignore them):
+   - GENETIC VALIDATION is the strongest target-credibility evidence the platform holds. When a target in today's news has a genetic_association_score, state it (e.g. "TL1A carries a 0.89 genetic association with IBD (Open Targets)") and hyperlink the source_url. This belongs in Mechanism Intelligence.
+   - PATENT / FTO data belongs in BD & Deal Watch and any diligence framing — FTO is the first thing a buyer checks. Name the densest estate and the expiry horizon.
+   - FINANCING / RUNWAY signals change the counterparty calculus: a cash-constrained owner of a mechanism-relevant asset is an elevated partnering target. Use these in BD & Deal Watch.
+   - REGULATORY DESIGNATIONS (Fast Track, orphan, etc.) belong in Regulatory Watch and affect timeline framing.
+   - STRATEGIC INSIGHTS are the platform's own derived reads. Treat a row tagged confidence=confirmed as a sourced fact (state it plainly, cite its source_tables); treat confidence=inferred/supported as YOUR interpretation (mark it with an inference verb — "suggests", "implies", "the likely read is"). NEVER present an inferred insight as a hard fact.
+   - Do not dump these blocks as lists. Weave the relevant facts into the argument where they strengthen a claim. Cite the source URL on the specific fact.
+
+6. AUDITABLE FORECASTS (when you state a probability, show your work):
+   - If you assign a probability to an outcome (a readout reading out positive, a deal closing, an approval), you MUST decompose it inline so the call is auditable and later scoreable. Format: "(base [X] [±Y reason] [±Z reason] → [P]%)". Example: "ATLAS-UC topline reads positive (base 50, +20 positive Phase 2, +15 Merck/CDx enrichment, −10 Phase 2→3 dilution → 70%)."
+   - Only attach a forecast where it adds decision value — a near-term catalyst that moves Ailux's calculus. Do not sprinkle probabilities on everything.
+   - State the forecast as YOUR judgment (it is an inference, not a fact): "the likely read is", "we put this at". Never present a forecast as certainty.
+   - Keep the daily's tone verb-only — do NOT add visible [F]/[I]/[J]/[P] tags. The decomposition itself signals it is a prediction.
 """
 
 SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + PATIENT_INTELLIGENCE_CONTEXT + ENRICHED_DATA_INSTRUCTIONS
@@ -1202,6 +1234,12 @@ COMPANY INTELLIGENCE (live dashboard state):
 GRAPH INTELLIGENCE (stored entity relationships — who is active where, what they target, who competes with whom):
 {graph_block}
 
+STRATEGIC INSIGHTS (synthesized layer — the platform's own distilled reads across genetics, patents, financing, trials, literature; in-scope for today's entities):
+{insights_block}
+
+INTEGRATION DATA (authoritative external sources — genetic validation, patent/FTO, regulatory designations, financing/runway, KOL):
+{integration_block}
+
 PRIOR COVERAGE:
 {prior_block}
 
@@ -1223,8 +1261,10 @@ Your editorial plan must answer:
 6. CONTINUITY: Are there threads from prior issues that today's intelligence advances, resolves, or complicates? Name them.
 7. SECTION PLAN: Which sections should appear today? (Lead is always present. Others: Mechanism Intelligence / Clinical Inflection Points / BD & Deal Watch / Regulatory Watch.) NOVELTY GATE: for each non-lead section, state in one line the NEW fact, asset, or connection it adds beyond the thesis. A section that would only re-argue the lead in different words must be CUT or MERGED — restating the thesis is not a contribution. Be ruthless: fewer sections that each add something beat many that echo each other.
 8. FALSIFICATION: In one sentence, what concrete result or event would prove today's thesis WRONG? (This must be carried into the issue — an honest intelligence product names what would change its mind.)
+9. THE MOVE: In 1–3 sentences, the single most important BD action today's intelligence forces — recommendation + counterparty + by-when. This becomes the decision block at the top of the issue. Respect timing constraints (AbbVie not a TL1A-bispecific target until after ABBV-701 Phase 1, ~Oct 2026). If nothing forces a move today, say what to keep watching and why no move yet — do not manufacture one.
+10. FORECASTS: List any near-term outcome (next ~6 months) that is decision-relevant and worth a probability. For each, give an auditable decomposition: "outcome — base X ±Y reason ±Z reason → P%". Empty list is acceptable if no catalyst is close enough to forecast.
 
-Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), continuity_threads (list of strings), falsifier (string), section_plan (list of objects {{"name": section name, "adds": the one-line new contribution}})."""
+Return your plan as JSON with keys: thesis, signal_items (list of headlines), noise_items (list of headlines), connections (list of strings), bd_implications (list of strings), absences (string), continuity_threads (list of strings), falsifier (string), the_move (string), forecasts (list of strings), section_plan (list of objects {{"name": section name, "adds": the one-line new contribution}})."""
 
 
 # ── Pass 2: Full draft ───────────────────────────────────────────────────────
@@ -1256,6 +1296,12 @@ COMPANY INTELLIGENCE (live state from dashboard company cards):
 GRAPH INTELLIGENCE (stored entity relationships — who is active where, mechanism convergence, confirmed competitive pairs):
 {graph_block}
 
+STRATEGIC INSIGHTS (the platform's own synthesized reads — in-scope; each carries a confidence and the source_tables it was derived from):
+{insights_block}
+
+INTEGRATION DATA (authoritative external sources, in-scope — each line carries a source URL to hyperlink):
+{integration_block}
+
 CLINICAL TRIAL TRACKER (recent updates from dashboard trial panel):
 {trials_block}
 
@@ -1273,13 +1319,15 @@ SECTION STRUCTURE (build exactly this architecture):
 
 1. LEAD — No section header. 3–5 paragraphs. Open with the editorial thesis in the first sentence — a claim, not a summary. Build the argument across paragraphs. Weave the day's most important stories into a single thematic arc. No bullet points. This is the intellectual core of the issue.
 
-2. MECHANISM INTELLIGENCE — One subsection per target/pathway with meaningful news. Header: name the mechanism with a subtitle that argues something (e.g., "TL1A: Setting the Monospecific Ceiling" not "TL1A Update"). Each subsection: 2–4 paragraphs of analysis + one BD Lens callout. Link source URLs inline as anchor tags.
+2. THE MOVE — A single decision-first block immediately after the LEAD, using the THE MOVE HTML format below. 1–3 plain declarative sentences naming the most important BD action today's full intelligence picture forces: the recommendation, the counterparty, and the by-when. This is the DECISION, not the analysis — do not re-argue the lead; state the move. Respect timing constraints (AbbVie is not a TL1A-bispecific target until after ABBV-701 Phase 1 readout, ~Oct 2026 — if a move would violate a constraint, say "hold until [date] because [constraint]"). If today's intelligence genuinely forces no new action, write one sentence naming what to keep watching and why no move is warranted yet — do NOT invent a move to fill the block.
 
-3. CLINICAL INFLECTION POINTS — Only if there are meaningful data readouts, enrollment milestones, or trial events that change the prior on a mechanism or asset. If today has no genuine clinical news, omit this section entirely rather than pad it.
+3. MECHANISM INTELLIGENCE — One subsection per target/pathway with meaningful news. Header: name the mechanism with a subtitle that argues something (e.g., "TL1A: Setting the Monospecific Ceiling" not "TL1A Update"). Each subsection: 2–4 paragraphs of analysis + one BD Lens callout. Link source URLs inline as anchor tags.
 
-4. BD & DEAL WATCH — If there are recent deals. For each deal: what was the strategic logic, what does the pricing signal about asset valuation, who is now foreclosed from this asset. Go beyond describing the deal to arguing its implications.
+4. CLINICAL INFLECTION POINTS — Only if there are meaningful data readouts, enrollment milestones, or trial events that change the prior on a mechanism or asset. If today has no genuine clinical news, omit this section entirely rather than pad it.
 
-5. ⏰ BD CALENDAR — NEXT 90 DAYS — ALWAYS INCLUDE. Never omit this section, even on quiet news days. It is the fixed BD timing anchor.
+5. BD & DEAL WATCH — If there are recent deals. For each deal: what was the strategic logic, what does the pricing signal about asset valuation, who is now foreclosed from this asset. Go beyond describing the deal to arguing its implications.
+
+6. ⏰ BD CALENDAR — NEXT 90 DAYS — ALWAYS INCLUDE. Never omit this section, even on quiet news days. It is the fixed BD timing anchor.
    - Use the BD CATALYST CALENDAR data above (from catalyst_calendar table)
    - Group entries by calendar month (e.g., "June 2026", "July 2026", "August 2026")
    - For each event: drug name, company, event type, expected date, and the ailux_impact field verbatim (truncated to 2 sentences max)
@@ -1287,16 +1335,16 @@ SECTION STRUCTURE (build exactly this architecture):
    - If no events fall in the 90-day window, show the table header with a single row: "(No near-term catalysts on record)"
    - Then add a sub-header "Horizon (>90 days)" and list events in the next 12 months
 
-6. 🩺 INDICATION INTELLIGENCE — ALWAYS INCLUDE. Pull from the Patient Population & Market Stats block.
+7. 🩺 INDICATION INTELLIGENCE — ALWAYS INCLUDE. Pull from the Patient Population & Market Stats block.
    - Select the 2–3 indications most relevant to this week's news (IBD / UC / CD always eligible; add others if they appeared in today's intel)
    - For each indication, write one compact paragraph using this exact structure:
      "There are approximately [N] patients with [indication] in the United States ([M] globally). The addressable market is estimated at $[X]B. Current standard-of-care achieves remission in approximately [R]% of patients; [F]% fail biologics, leaving a substantial refractory population. Unmet need score: [U]/10." — fill in the actual numbers from the Patient Population & Market Stats block above.
    - If a numeric field is null, omit that clause rather than using "N/A"
    - Follow each paragraph with a BD Lens callout linking the market size and failure rate to Ailux's positioning
 
-7. CATALYST WATCH — The legacy catalyst table (from UPCOMING CATALYSTS block above). HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending. If no legacy catalysts, note "(No entries in legacy catalyst table — see BD Calendar section above)"
+8. CATALYST WATCH — The legacy catalyst table (from UPCOMING CATALYSTS block above). HTML table with columns: Event | Asset | Area | Expected | Significance. Order by date ascending. If no legacy catalysts, note "(No entries in legacy catalyst table — see BD Calendar section above)"
 
-8. CLOSING NOTE — 2–3 sentences in italic. End on a single forward-looking observation or open question — the one thing to watch next. Do NOT restate the lead thesis or recap the issue; if the closer could have been written before reading the body, rewrite it. It must point forward, not back.
+9. CLOSING NOTE — 2–3 sentences in italic. End on a single forward-looking observation or open question — the one thing to watch next. Do NOT restate the lead thesis or recap the issue; if the closer could have been written before reading the body, rewrite it. It must point forward, not back.
 
 ─────────────────────────────────────────────
 4-LAYER NARRATIVE FORMAT — mandatory for any drug event, clinical trial result, or deal:
@@ -1305,6 +1353,13 @@ When writing about any drug event, clinical trial result, or deal involving a dr
 2. Who the patient is and what they face (2-3 sentences)
 3. What the mechanism means for the patient's daily life (1-2 sentences)
 4. What this means for BD strategy and deal value (1-2 sentences)
+
+─────────────────────────────────────────────
+THE MOVE FORMAT — use this HTML for the single decision block (section 2, immediately after the LEAD). Exactly one per issue:
+<div class="the-move">
+  <p class="label">THE MOVE</p>
+  <p>[1–3 plain declarative sentences. The most important BD action today forces: recommendation + counterparty + by-when. The decision, not the analysis. Example shape: "Open a TL1A-bispecific conversation with Takeda now, before the ~Q4 2026 ATLAS-UC topline resets the price. Hold AbbVie until after the ABBV-701 Phase 1 readout (~Oct 2026)." If no move is warranted, one sentence: what to keep watching and why no move yet.]</p>
+</div>
 
 ─────────────────────────────────────────────
 BD LENS FORMAT — use this HTML for every BD Lens callout:
@@ -1348,6 +1403,9 @@ tr:nth-child(even) td {{ background: #f5f8ff; }}
 .bd-lens {{ border-left: 4px solid #1a3f8f; background: #f0f4fb; padding: 18px 22px; margin: 22px 0; border-radius: 0 4px 4px 0; }}
 .bd-lens p {{ margin: 0 0 6px 0; }}
 .bd-lens p:last-child {{ margin: 0; }}
+.the-move {{ border: 1px solid #1a3f8f; border-left: 6px solid #1a3f8f; background: #eef3fc; padding: 18px 22px; margin: 8px 0 30px; border-radius: 4px; }}
+.the-move p {{ margin: 0; font-size: 17px; }}
+.the-move .label {{ color: #1a3f8f; margin-bottom: 8px !important; }}
 .label {{ font-family: Calibri, Helvetica, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #1a3f8f; text-transform: uppercase; margin-bottom: 8px !important; }}
 .closing {{ font-style: italic; color: #3d5166; font-size: 16px; border-top: 1px solid #d0d9ea; padding-top: 20px; margin-top: 40px; }}
 .issue-meta {{ font-family: Calibri, Helvetica, sans-serif; font-size: 13px; color: #64748b; margin-top: 60px; padding-top: 16px; border-top: 1px solid #e8edf5; }}
@@ -1516,7 +1574,8 @@ def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
 def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
                              prior_block, signals_block="", graph_block="",
                              patient_context_block="", patient_stats_block="",
-                             catalyst_calendar_block="", bd_priority_block=""):
+                             catalyst_calendar_block="", bd_priority_block="",
+                             insights_block="", integration_block=""):
     """Pass 1: produce a tight editorial plan before writing a word of prose."""
     prompt = PLAN_PROMPT.format(
         date_long               = date_long,
@@ -1526,6 +1585,8 @@ def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
         prior_block             = prior_block,
         signals_block           = signals_block,
         graph_block             = graph_block or "(Graph context unavailable)",
+        insights_block          = insights_block or "(No in-scope strategic insights today)",
+        integration_block       = integration_block or "(No in-scope integration data today)",
         patient_context_block   = patient_context_block or "(No patient intelligence context available)",
         patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
         catalyst_calendar_block = catalyst_calendar_block or "(No catalyst calendar data available)",
@@ -1585,6 +1646,12 @@ def format_plan_block(plan):
             lines.append(f"  • {t}")
     if plan.get("falsifier"):
         lines.append(f"\nWHAT WOULD PROVE THE THESIS WRONG (carry this into the issue): {plan['falsifier']}")
+    if plan.get("the_move"):
+        lines.append(f"\nTHE MOVE (render as the decision block at the top, right after the lead): {plan['the_move']}")
+    if plan.get("forecasts"):
+        lines.append("\nFORECASTS (render each with its auditable decomposition where you state the probability):")
+        for fc in plan["forecasts"]:
+            lines.append(f"  • {fc}")
     if plan.get("section_plan"):
         lines.append("\nSECTIONS TO INCLUDE — each must deliver its stated NEW contribution; "
                      "if a section cannot, drop it (do not pad or echo the lead):")
@@ -1639,6 +1706,22 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     catalyst_calendar_block = build_catalyst_calendar_block(catalyst_calendar_events or [])
     bd_priority_block       = build_bd_priority_block(bd_priority_data or {})
 
+    # Integration feed: resolve today's in-scope entities from the intel, then pull
+    # the synthesized insight layer + authoritative integration data (genetics,
+    # patents, regulatory, financing, KOL) for just those entities. Fully guarded —
+    # any failure degrades to empty blocks and the Issue still generates.
+    insights_block = "(No in-scope strategic insights today)"
+    integration_block = "(No in-scope integration data today)"
+    try:
+        feed_scope = extract_scope_from_intel(enriched_intel)
+        insights_block, integration_block = render_feed(feed_scope)
+        log(f"Integration feed: scope = {len(feed_scope.get('drugs',[]))} drugs / "
+            f"{len(feed_scope.get('companies',[]))} companies / "
+            f"{len(feed_scope.get('targets',[]))} targets · "
+            f"insights {len(insights_block):,} chars · integration {len(integration_block):,} chars")
+    except Exception as _fe:
+        log(f"Integration feed failed (non-fatal, Issue continues): {type(_fe).__name__}: {_fe}")
+
     # Pass 1: editorial plan — includes company signals + graph for landscape context
     plan = generate_editorial_plan(date_long, intel_block, deals_block,
                                    ailux_block, prior_block, signals_block,
@@ -1646,7 +1729,9 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
                                    patient_context_block=patient_context,
                                    patient_stats_block=patient_stats_block,
                                    catalyst_calendar_block=catalyst_calendar_block,
-                                   bd_priority_block=bd_priority_block)
+                                   bd_priority_block=bd_priority_block,
+                                   insights_block=insights_block,
+                                   integration_block=integration_block)
     plan_block = format_plan_block(plan)
 
     # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
@@ -1671,6 +1756,8 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
         signals_block           = signals_block,
         trials_block            = trials_block,
         graph_block             = graph_block,
+        insights_block          = insights_block,
+        integration_block       = integration_block,
         patient_context_block   = patient_context or "(No patient intelligence context available)",
         patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
     )
