@@ -30,52 +30,16 @@ import argparse
 import uuid
 from typing import List, Dict, Optional, Tuple
 
-import requests
-
 # ── Path setup ───────────────────────────────────────────────────────────────
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
-# ── Credentials ──────────────────────────────────────────────────────────────
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-def _read_cred(filename: str) -> str:
-    for base in [_REPO_ROOT, _SCRIPTS_DIR]:
-        path = os.path.join(base, filename)
-        if os.path.exists(path):
-            return open(path).read().strip()
-    return ""
-
-
-SUPABASE_URL = (
-    os.environ.get("SUPABASE_URL")
-    or _read_cred(".supabase_url")
-    or "https://tghntyofptvfhmtchwcv.supabase.co"
-)
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_KEY")
-    or _read_cred(".supabase_service_key")
-)
-
-if not SUPABASE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
-    sys.exit(1)
-
-BASE_URL = f"{SUPABASE_URL}/rest/v1"
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
-SB_MIN_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=minimal",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 TODAY   = datetime.datetime.utcnow().strftime("%Y-%m-%d")
@@ -119,16 +83,7 @@ def log(msg: str, indent: int = 0):
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
 def sb_get(table: str, params: dict = None) -> List[dict]:
-    url = f"{BASE_URL}/{table}"
-    r = requests.get(url, headers=SB_HEADERS, params=params or {}, timeout=30)
-    if not r.ok:
-        log(f"  GET {table} failed: {r.status_code} {r.text[:200]}", indent=2)
-        return []
-    data = r.json()
-    if isinstance(data, dict) and "code" in data:
-        log(f"  GET {table} error: {data.get('message')}", indent=2)
-        return []
-    return data or []
+    return _db.sb_get(table, params or {})
 
 
 def sb_post_rows(table: str, rows: List[dict]) -> int:
@@ -138,14 +93,8 @@ def sb_post_rows(table: str, rows: List[dict]) -> int:
     if DRY_RUN:
         log(f"  [DRY-RUN] Would insert {len(rows)} rows into {table}", indent=2)
         return len(rows)
-    url = f"{BASE_URL}/{table}"
-    r = requests.post(url, headers=SB_HEADERS, json=rows, timeout=30)
-    if not r.ok:
-        body = r.json() if r.content else {}
-        log(f"  POST {table} failed: {r.status_code} {body.get('message', r.text[:100])}", indent=2)
-        return 0
-    result = r.json()
-    return len(result) if isinstance(result, list) else 1
+    result = _db.sb_insert(table, rows)
+    return len(result)
 
 
 def sb_patch(table: str, filters: dict, data: dict) -> bool:
@@ -153,14 +102,8 @@ def sb_patch(table: str, filters: dict, data: dict) -> bool:
     if DRY_RUN:
         log(f"  [DRY-RUN] Would PATCH {table} WHERE {filters}: {list(data.keys())}", indent=2)
         return True
-    url = f"{BASE_URL}/{table}"
     params = {k: f"eq.{v}" for k, v in filters.items()}
-    r = requests.patch(url, headers=SB_MIN_HEADERS, params=params, json=data, timeout=30)
-    if not r.ok:
-        body = r.json() if r.content else {}
-        log(f"  PATCH {table} failed: {r.status_code} {body.get('message', r.text[:100])}", indent=2)
-        return False
-    return True
+    return _db.sb_patch(table, data, params)
 
 
 def sb_post_single(table: str, row: dict) -> Optional[dict]:
@@ -168,14 +111,7 @@ def sb_post_single(table: str, row: dict) -> Optional[dict]:
     if DRY_RUN:
         log(f"  [DRY-RUN] Would insert into {table}: {json.dumps(row)[:120]}", indent=2)
         return row
-    url = f"{BASE_URL}/{table}"
-    r = requests.post(url, headers=SB_HEADERS, json=row, timeout=30)
-    if not r.ok:
-        body = r.json() if r.content else {}
-        log(f"  POST {table} failed: {r.status_code} {body.get('message', r.text[:200])}", indent=2)
-        return None
-    result = r.json()
-    return result[0] if isinstance(result, list) and result else {}
+    return _db.sb_post(table, row)
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────

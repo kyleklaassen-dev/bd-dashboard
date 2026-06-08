@@ -29,21 +29,16 @@ import json
 import requests
 import sys
 
-BASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-def get_key():
-    key_path = os.path.join(os.path.dirname(__file__), '..', '.supabase_service_key')
-    with open(key_path) as f:
-        return f.read().strip()
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-SERVICE_KEY = get_key()
-
-HEADERS = {
-    "apikey": SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=minimal",
-}
+SUPABASE_URL, SERVICE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SERVICE_KEY)
+BASE_URL = f"{SUPABASE_URL}/rest/v1"
 
 # ── Indication data ───────────────────────────────────────────────────────────
 # Source: indication_patient_intelligence table + clinical knowledge
@@ -379,7 +374,7 @@ def create_table(service_key):
     return resp.status_code, resp.text
 
 
-def upsert_rows(ranked, service_key):
+def upsert_rows(ranked):
     """Upsert all rows into indication_priority_scores."""
     rows = []
     for ind in ranked:
@@ -387,18 +382,8 @@ def upsert_rows(ranked, service_key):
         row["last_computed"] = "now()"
         rows.append(row)
 
-    resp = requests.post(
-        f"{BASE_URL}/indication_priority_scores",
-        headers={
-            **HEADERS,
-            "apikey": service_key,
-            "Authorization": f"Bearer {service_key}",
-            "Prefer": "resolution=merge-duplicates,return=representation",
-        },
-        json=rows,
-        timeout=20,
-    )
-    return resp.status_code, resp.text
+    result = _db.sb_upsert("indication_priority_scores", rows, on_conflict="indication_id")
+    return bool(result), result
 
 
 def write_json_fallback(ranked):
@@ -430,21 +415,19 @@ def print_ranking(ranked):
 
 
 def main():
-    service_key = get_key()
     ranked = rank_indications(INDICATIONS)
     print_ranking(ranked)
 
     # Try to create table (may fail if DDL blocked)
     print("\n[table] Attempting to create indication_priority_scores table...")
-    status, body = create_table(service_key)
+    status, body = create_table(SERVICE_KEY)
     print(f"  create attempt: HTTP {status} — {body[:120]}")
 
     # Try upsert
     print("[upsert] Upserting rows...")
-    u_status, u_body = upsert_rows(ranked, service_key)
-    print(f"  upsert: HTTP {u_status}")
-    if u_status not in (200, 201):
-        print(f"  error body: {u_body[:300]}")
+    ok, result = upsert_rows(ranked)
+    if not ok:
+        print(f"  upsert failed: {result}")
         print("[fallback] Writing to JSON instead...")
         out = write_json_fallback(ranked)
         print(f"  JSON written: {out}")

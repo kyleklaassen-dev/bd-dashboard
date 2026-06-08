@@ -10,14 +10,18 @@ Run from the BD Platform directory:
 """
 
 import argparse
-import json
-import ssl
+import os
 import sys
-import urllib.error
-import urllib.request
 
-SUPABASE_URL = 'https://tghntyofptvfhmtchwcv.supabase.co'
-SVC_KEY_FILE = '.supabase_service_key'
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 # ── COMPANY DATA ─────────────────────────────────────────────────────────────
 # Each entry: company_id → (ticker_fix_or_None, hq_city, hq_country)
@@ -123,26 +127,11 @@ COMPANY_HQ = {
 }
 
 
-def load_service_key():
-    with open(SVC_KEY_FILE) as f:
-        return f.read().strip()
-
-
-def sb_patch(svc_key, company_id, payload, dry_run=False):
-    url = f'{SUPABASE_URL}/rest/v1/companies?id=eq.{company_id}'
-    body = json.dumps(payload).encode()
+def sb_patch(company_id, payload, dry_run=False):
     if dry_run:
         print(f'  [DRY] PATCH {company_id}: {payload}')
-        return
-    req = urllib.request.Request(url, data=body, method='PATCH', headers={
-        'apikey':        svc_key,
-        'Authorization': f'Bearer {svc_key}',
-        'Content-Type':  'application/json',
-        'Prefer':        'return=minimal',
-    })
-    ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, context=ctx, timeout=30):
-        pass
+        return True
+    return _db.sb_patch('companies', payload, {'id': f'eq.{company_id}'})
 
 
 def main():
@@ -150,18 +139,9 @@ def main():
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
 
-    svc_key = load_service_key()
-
     # Fetch current DB state so we know which tickers to skip
-    anon_key = open('.supabase_anon_key').read().strip()
-    req = urllib.request.Request(
-        f'{SUPABASE_URL}/rest/v1/companies?select=id,ticker&limit=200',
-        headers={'apikey': anon_key, 'Authorization': f'Bearer {anon_key}',
-                 'Accept': 'application/json'},
-    )
-    ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, context=ctx) as r:
-        db_rows = {row['id']: row['ticker'] for row in json.loads(r.read())}
+    db_rows = {row['id']: row['ticker']
+               for row in _db.sb_get('companies', {'select': 'id,ticker', 'limit': '200'})}
 
     ok = err = skip = 0
     print(f'Seeding {len(COMPANY_HQ)} companies (dry_run={args.dry_run})\n')
@@ -187,13 +167,11 @@ def main():
             ticker_note = f' ticker={current_ticker!r}→{payload["ticker"]!r}'
 
         label = f'{co_id:<28} {hq_city}, {hq_country}{ticker_note}'
-        try:
-            sb_patch(svc_key, co_id, payload, dry_run=args.dry_run)
+        if sb_patch(co_id, payload, dry_run=args.dry_run):
             print(f'  ✓ {label}')
             ok += 1
-        except urllib.error.HTTPError as e:
-            body = e.read().decode('utf-8', errors='replace')
-            print(f'  ✗ {label}\n    HTTP {e.code}: {body[:200]}', file=sys.stderr)
+        else:
+            print(f'  ✗ {label}', file=sys.stderr)
             err += 1
 
     print(f'\n{"DRY RUN —" if args.dry_run else "Done —"} {ok} updated, {skip} skipped, {err} errors')

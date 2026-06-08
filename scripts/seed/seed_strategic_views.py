@@ -24,37 +24,28 @@ Run:
 
 import os, sys, json, requests, argparse, datetime
 
-_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-def _read(f):
-    for base in [_REPO, os.path.dirname(os.path.abspath(__file__))]:
-        p = os.path.join(base, f)
-        if os.path.exists(p):
-            return open(p).read().strip()
-    return ""
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _read(".supabase_service_key")
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-if not SUPABASE_KEY:
-    print("ERROR: No SUPABASE_SERVICE_KEY"); sys.exit(1)
-
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 REST = f"{SUPABASE_URL}/rest/v1"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=representation",
-}
 
-def sb_get(table, params=None):
-    r = requests.get(f"{REST}/{table}", headers=HEADERS, params=params or {}, timeout=20)
-    if r.status_code == 200:
-        return r.json()
-    print(f"  GET {table}: {r.status_code} {r.text[:200]}")
-    return []
+sb_get = _db.sb_get
 
+# sb_insert kept raw: relies on resolution=ignore-duplicates (skip on
+# conflict), a strategy _db.sb_upsert (merge-duplicates only) doesn't support.
 def sb_insert(table, payload):
-    h = {**HEADERS, "Prefer": "resolution=ignore-duplicates,return=minimal"}
+    h = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=ignore-duplicates,return=minimal",
+    }
     r = requests.post(f"{REST}/{table}", headers=h, json=payload, timeout=15)
     return r.status_code in (200, 201, 204)
 

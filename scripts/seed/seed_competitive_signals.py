@@ -14,15 +14,19 @@ Run from the BD Platform directory:
 
 import argparse
 import json
-import ssl
+import os
 import sys
-import urllib.error
-import urllib.request
 from datetime import date
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
-SUPABASE_URL  = 'https://tghntyofptvfhmtchwcv.supabase.co'
-SVC_KEY_FILE  = '.supabase_service_key'
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 # ── SEED DATA ────────────────────────────────────────────────────────────────
 # Each row: (company_id, drug_id, area_id, signal_type, title, description, source_url, source_date, confidence)
@@ -226,25 +230,11 @@ SIGNALS = [
 
 # ── HELPERS ──────────────────────────────────────────────────────────────────
 
-def load_service_key():
-    with open(SVC_KEY_FILE) as f:
-        return f.read().strip()
-
-def sb_post(svc_key: str, path: str, payload: dict, dry_run: bool = False):
-    url = f'{SUPABASE_URL}/rest/v1/{path}'
-    body = json.dumps(payload).encode()
+def sb_post(table: str, payload: dict, dry_run: bool = False):
     if dry_run:
-        print(f'  [DRY] POST {path}: {str(payload)[:120]}')
-        return None
-    req = urllib.request.Request(url, data=body, method='POST', headers={
-        'apikey':         svc_key,
-        'Authorization':  f'Bearer {svc_key}',
-        'Content-Type':   'application/json',
-        'Prefer':         'return=representation',
-    })
-    ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
-        return json.loads(r.read())
+        print(f'  [DRY] POST {table}: {str(payload)[:120]}')
+        return {}
+    return _db.sb_post(table, payload)
 
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
@@ -254,7 +244,6 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Print rows without writing')
     args = parser.parse_args()
 
-    svc_key = load_service_key()
     ok_count = err_count = 0
 
     print(f'Seeding {len(SIGNALS)} competitive signals (dry_run={args.dry_run})\n')
@@ -275,26 +264,19 @@ def main():
         }
 
         label = f'{signal_type:<18} {drug_id:<15} {title[:60]}'
-        try:
-            result = sb_post(svc_key, 'competitive_signals', row, dry_run=args.dry_run)
+        result = sb_post('competitive_signals', row, dry_run=args.dry_run)
+        if result is not None:
             print(f'  ✓ {label}')
             ok_count += 1
-        except urllib.error.HTTPError as e:
-            body = e.read().decode('utf-8', errors='replace')
-            print(f'  ✗ {label}\n    HTTP {e.code}: {body[:200]}', file=sys.stderr)
+        else:
+            print(f'  ✗ {label}', file=sys.stderr)
             err_count += 1
 
     print(f'\n{"DRY RUN —" if args.dry_run else "Done —"} {ok_count} OK, {err_count} errors')
 
     if not args.dry_run and ok_count > 0:
-        anon_key = open('.supabase_anon_key').read().strip()
-        url = f'{SUPABASE_URL}/rest/v1/competitive_signals?area_id=eq.igf1r&select=id,signal_type,drug_id'
-        req = urllib.request.Request(url, headers={
-            'apikey': anon_key, 'Authorization': f'Bearer {anon_key}', 'Accept': 'application/json'
-        })
-        ctx = ssl.create_default_context()
-        with urllib.request.urlopen(req, context=ctx) as r:
-            rows = json.loads(r.read())
+        rows = _db.sb_get('competitive_signals',
+                          {'area_id': 'eq.igf1r', 'select': 'id,signal_type,drug_id'})
         print(f'\nVerify — competitive_signals for igf1r: {len(rows)} rows')
         from collections import Counter
         by_type = Counter(r['signal_type'] for r in rows)

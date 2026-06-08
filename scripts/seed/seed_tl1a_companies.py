@@ -23,30 +23,18 @@ import re
 import sys
 import argparse
 import datetime
-import requests
 
-# ── Credentials ──────────────────────────────────────────────────────────────
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKSPACE  = os.path.join(SCRIPT_DIR, "..")
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-def _read_cred(filename):
-    path = os.path.join(WORKSPACE, filename)
-    with open(path) as f:
-        return f.read().strip()
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-SUPABASE_URL = _read_cred(".supabase_config").split("SUPABASE_URL=")[-1].split()[0] \
-    if "SUPABASE_URL=" in _read_cred(".supabase_config") \
-    else "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = _read_cred(".supabase_service_key")
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 TODAY = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "resolution=merge-duplicates,return=representation",
-}
 
 # ── TL1A Programs (mirrors TL1A_PROGRAMS in index.html) ──────────────────────
 # Each entry: id, co, ticker, drug (comma-sep for multi-drug), target,
@@ -275,19 +263,7 @@ def sb_upsert(table, records, dry_run=False):
     if dry_run:
         print(f"  [DRY] {table}: {[r.get('id') or r for r in records]}")
         return records
-    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}",
-                      headers=SB_HEADERS, json=records, timeout=15)
-    if r.status_code not in (200, 201):
-        print(f"  [ERR] {table} {r.status_code}: {r.text[:300]}")
-        return []
-    return r.json()
-
-
-def sb_get(table, params):
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}",
-                     headers=SB_HEADERS, params=params, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    return _db.sb_upsert(table, records)
 
 
 # ── Slug helpers ──────────────────────────────────────────────────────────────
