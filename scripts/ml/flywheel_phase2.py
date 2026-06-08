@@ -24,23 +24,21 @@ Output files:
 
 import os, sys, json, argparse, datetime, re
 from typing import Optional
-import requests
 
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DATA_DIR = os.path.join(_REPO, "data")
 _OUTPUT_DIR = os.path.join(_REPO, "output")
 os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
-def _key(f):
-    p = os.path.join(_REPO, f)
-    return open(p).read().strip() if os.path.exists(p) else None
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
-if not SUPABASE_KEY: print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 TODAY = datetime.date.today().isoformat()
 NOW = datetime.datetime.utcnow().isoformat()
 
@@ -56,14 +54,7 @@ RESTORABLE_FIELDS = {
 
 
 def sb_get(table, params, limit=500):
-    params = {**params, "limit": str(limit)}
-    r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-    return r.json() if r.status_code == 200 else []
-
-
-def sb_patch(table, params, payload):
-    r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=20)
-    return r.status_code in (200, 204)
+    return _db.sb_get(table, {**params, "limit": str(limit)})
 
 
 def get_current_value(entity_type: str, entity_id: str, field: str) -> Optional[str]:
@@ -91,7 +82,7 @@ def restore_value(entity_type: str, entity_id: str, field: str, value: str) -> b
     table_map = {"drug": ("drugs","id"), "partnership": ("company_partnerships","id"), "deal": ("deals","id")}
     if entity_type not in table_map: return False
     table, id_col = table_map[entity_type]
-    return sb_patch(table, {id_col: f"eq.{raw_id}"}, {field: value, "updated_at": NOW})
+    return _db.sb_patch(table, {field: value, "updated_at": NOW}, {id_col: f"eq.{raw_id}"})
 
 
 def build_training_pair(review: dict, entity_context: dict) -> Optional[dict]:

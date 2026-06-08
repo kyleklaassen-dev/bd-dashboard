@@ -20,71 +20,27 @@ ENVIRONMENT:
 """
 
 import os
+import sys
 import json
 import datetime
 import argparse
 from collections import defaultdict
 from typing import Optional
 
-import requests
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-# ══════════════════════════════════════════════════════════════════════════
-# CREDENTIALS
-# ══════════════════════════════════════════════════════════════════════════
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NOW_ISO = datetime.datetime.utcnow().isoformat()
 
-
-# ══════════════════════════════════════════════════════════════════════════
-# SUPABASE HELPERS
-# ══════════════════════════════════════════════════════════════════════════
-
-def sb_get(table: str, params: dict) -> list:
-    """Fetch rows from a Supabase table."""
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS,
-            params=params,
-            timeout=30,
-        )
-        if r.status_code == 200:
-            return r.json() or []
-        print(f"[sb_get {table}] HTTP {r.status_code}: {r.text[:200]}")
-        return []
-    except Exception as e:
-        print(f"[sb_get {table}] {e}")
-        return []
-
-
-def sb_insert(table: str, record: dict) -> Optional[dict]:
-    """Insert a single row, return the created row or None."""
-    try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS,
-            json=record,
-            timeout=15,
-        )
-        if r.status_code in (200, 201):
-            data = r.json()
-            return data[0] if isinstance(data, list) and data else data
-        print(f"[sb_insert {table}] HTTP {r.status_code}: {r.text[:300]}")
-        return None
-    except Exception as e:
-        print(f"[sb_insert {table}] {e}")
-        return None
+sb_get = _db.sb_get
+sb_insert = _db.sb_post
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -132,10 +88,6 @@ def log_enrichment_run(
       # ... do enrichment ...
       # pass run_id to drug/company patch payloads as last_enrichment_run_id
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("[log_enrichment_run] SUPABASE_URL or SUPABASE_SERVICE_KEY not set — skipping run log")
-        return None
-
     record = {
         "script_name":       script_name,
         "model_name":        model_name,
@@ -215,14 +167,7 @@ def update_enrichment_run(
             payload["prompt_tokens"]     = prompt_tokens
             payload["completion_tokens"] = completion_tokens
             payload["total_tokens_used"] = prompt_tokens + completion_tokens
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/enrichment_runs",
-            headers=SB_HEADERS,
-            params={"id": f"eq.{run_id}"},
-            json=payload,
-            timeout=10,
-        )
-        return r.status_code in (200, 204)
+        return _db.sb_patch("enrichment_runs", payload, {"id": f"eq.{run_id}"})
     except Exception as e:
         print(f"[update_enrichment_run] {e}")
         return False
@@ -241,14 +186,7 @@ def patch_enrichment_run(run_id: str, patch: dict) -> bool:
     if not run_id or not patch:
         return False
     try:
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/enrichment_runs",
-            headers=SB_HEADERS,
-            params={"id": f"eq.{run_id}"},
-            json=patch,
-            timeout=10,
-        )
-        return r.status_code in (200, 204)
+        return _db.sb_patch("enrichment_runs", patch, {"id": f"eq.{run_id}"})
     except Exception as e:
         print(f"[patch_enrichment_run] {e}")
         return False
@@ -283,7 +221,7 @@ def build_enrichment_summary(run_id: str) -> Optional[dict]:
         }
       }
     """
-    if not run_id or not SUPABASE_URL:
+    if not run_id:
         return None
 
     # Pull all enriched_field_log rows for this run

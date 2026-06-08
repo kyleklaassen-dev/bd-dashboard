@@ -26,27 +26,11 @@ Output:
 import os, sys, json, glob, re, argparse
 from collections import defaultdict, Counter
 from typing import Optional
-import requests
 
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DATA = os.path.join(_REPO, "data")
 _OUTPUT = os.path.join(_REPO, "output")
 os.makedirs(_OUTPUT, exist_ok=True)
-
-def _key(f):
-    p = os.path.join(_REPO, f)
-    return open(p).read().strip() if os.path.exists(p) else None
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
-
-
-def sb_get(table, params, limit=500):
-    params = {**params, "limit": str(limit)}
-    r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-    return r.json() if r.status_code == 200 else []
 
 
 def load_training_pairs(date: Optional[str] = None) -> list:

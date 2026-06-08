@@ -36,27 +36,21 @@ Next steps (Phase 2, not yet built):
 """
 
 import os, sys, json, argparse, datetime
-import requests
 
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-def _key(f):
-    p = os.path.join(_REPO, f)
-    return open(p).read().strip() if os.path.exists(p) else None
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
-if not SUPABASE_KEY:
-    print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
-
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 
 def sb_get(table, params, limit=500):
-    params = {**params, "limit": str(limit)}
-    r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-    return r.json() if r.status_code == 200 else []
+    return _db.sb_get(table, {**params, "limit": str(limit)})
 
 
 def resolve_entity(entity_type: str, entity_id: str) -> dict:
