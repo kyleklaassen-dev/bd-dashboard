@@ -21012,7 +21012,7 @@ async function submitIntelNew() {
       const upResp = await fetch(`${SUPABASE_URL}/storage/v1/object/source-documents/${path}`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
-                   'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+                   'Content-Type': 'application/pdf' },  // no x-upsert: upsert needs an UPDATE policy; paths are unique so a plain INSERT is correct
         body: attachedFile
       });
       if (!upResp.ok) throw new Error('storage ' + upResp.status + ': ' + (await upResp.text()).slice(0,120));
