@@ -1,0 +1,41 @@
+name: Meridian Graph Rebuild (weekly, free)
+
+# Re-derives the AUTHOR / INSTITUTION knowledge-graph layers from existing silver tables.
+# Validated 2026-06-07: this exact order is idempotent — entity_edges stays stable (0 new on
+# re-run) and strategic_insights upsert on (insight_type,title) with 0 duplicates. Free, no LLM.
+# Dependency order (each step's inputs are produced by an earlier step or pre-existing silver):
+#   author network silver -> institution silver -> AUTHORED edges -> CO_AUTHORED_WITH/RESEARCHES edges -> edge dedup
+on:
+  schedule:
+    - cron: "0 9 * * 2"     # Tuesdays 09:00 UTC (after Mon derived-rebuild + weekend harvesters)
+  workflow_dispatch:
+
+concurrency:
+  group: meridian-graph-rebuild
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - name: Provision service key
+        run: printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
+      - name: 1 · Author network silver (co-authorship, institution focus)
+        run: python3 scripts/integrations/build_author_network_v132.py --write || echo "author-network non-fatal"
+      - name: 2 · Institution silver (profiles, academic↔industry bridges)
+        run: python3 scripts/build_institution_intel.py || echo "institution-intel non-fatal"
+      - name: 3 · AUTHORED edges (author → publication) + author insights
+        run: python3 scripts/integrations/project_author_graph_v131.py --write || echo "author-graph non-fatal"
+      - name: 4 · CO_AUTHORED_WITH + RESEARCHES edges + patient/research insights
+        run: python3 scripts/project_patient_author_graph.py || echo "patient-author-graph non-fatal"
+      - name: 5 · Edge dedup safety pass (COMPETES_WITH)
+        run: python3 scripts/integrations/dedup_competes_with.py || echo "dedup non-fatal"
+      - name: Clean up
+        if: always()
+        run: rm -f .supabase_service_key
