@@ -58,7 +58,7 @@
 </head>
 <body>
 <header>
-  <h1 onclick="tab('stack')" style="cursor:pointer" title="Back to home (the stack)">◈ Meridian Atlas <span style="color:var(--mut);font-size:13px;font-weight:400">everything, connected — 2026-06-06</span></h1>
+  <h1 onclick="tab('stack')" style="cursor:pointer" title="Back to home (the stack)">◈ Meridian Atlas <span style="color:var(--mut);font-size:13px;font-weight:400">everything, connected — <span id="atlas-stamp">live</span></span></h1>
   <div class="sub">One display tying together the whole engagement: the system stack (sources → dashboard), the intelligence hierarchy (patient → deal), live health, security, data quality, the competitive graph, and a single consolidated <b>gap registry</b> — the backlog we burn down next.</div>
   <div class="links">
     <a href="./" style="border-color:var(--accent);color:var(--accent)">← Dashboard</a>
@@ -79,28 +79,42 @@
 <div class="page" id="page"></div>
 <script>
 // ── consolidated data ──────────────────────────────────────────────────────
-const METRICS=[
-  ['24','workflows','good'],['110','scripts (30 sched.)',''],['167','tables',''],['74','surfaced','warn'],
-  ['27','workflows green','good'],['948','validation pass','good'],['0','unmapped visible drugs','good'],
-  ['47','RLS reads restored','good'],['574','drug aliases','good'],['968','competitor edges',''],['79','deal edges','good'],['89%','graph verified','good'],['28','indications','good'],
+// Static infrastructure facts (current 2026-06-07); data-volume tiles are fetched live below.
+let METRICS=[
+  ['49','workflows','good'],['241','tables',''],['186','drugs',''],['154','companies',''],
+  ['…','graph edges','good'],['…','catalysts',''],['…','trials',''],['…','publications',''],
+  ['…','sourced facts','good'],['…','strategic insights','good'],['…','company patents','good'],['…','payer-priced drugs','good'],
 ];
+// Live counts overwrite the placeholder tiles (Kyle 2026-06-07: keep the Atlas current, not a snapshot).
+const _ATLAS_SB='https://tghntyofptvfhmtchwcv.supabase.co/rest/v1';
+const _ATLAS_KEY='sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI';
+async function _atlasCount(t){try{const r=await fetch(_ATLAS_SB+'/'+t+'?select=id',{headers:{apikey:_ATLAS_KEY,Authorization:'Bearer '+_ATLAS_KEY,Prefer:'count=exact',Range:'0-0','Range-Unit':'items'}});return (r.headers.get('content-range')||'/?').split('/').pop();}catch(e){return '–';}}
+async function _atlasLiveMetrics(){
+  const map={'graph edges':'entity_edges','catalysts':'catalysts','trials':'trial_facts','publications':'publications','sourced facts':'drug_sources','strategic insights':'strategic_insights','company patents':'company_patents','payer-priced drugs':'payer_pricing','drugs':'drugs','companies':'companies'};
+  const labels=Object.keys(map);
+  const vals=await Promise.all(labels.map(l=>_atlasCount(map[l])));
+  const live={}; labels.forEach((l,i)=>live[l]=vals[i]);
+  METRICS=METRICS.map(([n,l,c])=>[ live[l]!=null?Number(live[l]).toLocaleString():n, l, c]);
+  const m=document.getElementById('metrics'); if(m) m.innerHTML=METRICS.map(([n,l,c])=>`<div class="met ${c}"><b>${n}</b><span>${l}</span></div>`).join('');
+  const st=document.getElementById('atlas-stamp'); if(st) st.textContent='live · '+new Date().toLocaleDateString();
+}
 const LAYERS=[
-  ['Sources','RSS · CT.gov · SEC · PubMed · pipeline pages','green','Ingestion'],
-  ['Ingestion','research.py 2:00 ET + ct_gov_sync + news + monitor','green','runs before enrich — ordering gap'],
-  ['Data layer','167 tables · 67 audit triggers · RLS reads restored','green','writes locked + 47 anon reads restored; alias-capture trigger live'],
-  ['Enrich · Score · Validate','company_enrichment ×6 · scoring daily · 992/1000 ground-truth','green','event-chained; completeness catalog-wide; validation daily'],
-  ['Knowledge graph','entity_edges + relationships — 968 competitor / 79 deal','warn','competitor layer 0%→88% rule-verified; deal edges 19→79'],
-  ['Synthesis','write_meridian → Meridian Issue (event-chained)','green','built on same-night verified+scored facts'],
-  ['Presentation','index.html dashboard + live health tile + review queue','green','drug_sources + partnerships surfaced; Lens→Atlas hub; read layer un-broken'],
-  ['Strategic decisions','patient → indication → target → company → deal','warn','data thin at the two value-bearing ends'],
+  ['Sources','30+ free APIs: CT.gov · Open Targets · ChEMBL · PubMed/EuropePMC · Crossref · OpenAlex · openFDA · DailyMed · EMA · FDA OOPD · Purple/Orange Book · SEC · GLEIF · Google Patents · SureChEMBL · Pharos · UniProt · GtoPdb · Reactome · CMS (Part B/D, NADAC, ASP) · NIH RePORTER · GDELT · RSS','green','Ingestion'],
+  ['Ingestion','49 GitHub-Actions workflows (hosted runners for throttled sources) + on-demand Cowork ingest','green','bronze-first, idempotent, sourced; no LLM spend on the free stack'],
+  ['Data layer','241 tables · audit triggers · RLS reads restored','green','writes locked + anon reads; new: payer_pricing, patent_families, data_dictionary, attribute_completeness, data_sources'],
+  ['Enrich · Score · Validate','enrichment + daily completeness recompute · 994/1000 ground-truth','green','phase-conditional completeness (heat map) recomputes daily'],
+  ['Knowledge graph','entity_edges — 26,026 edges / 21 predicates','green','company competition, partnerships, patient→indication→target→company, patents, SUPPLIES'],
+  ['Synthesis','narrative layer (cited) + Meridian Issue + 531 strategic insights','green','every narrative clause links its source in-prose'],
+  ['Presentation','dashboard + Live Intelligence + Coverage Atlas + entity cards (4-section IA)','green','payer/IP/patient/safety surfaced; news-sentiment signal; everything searchable'],
+  ['Strategic decisions','patient → indication → target → company → deal','warn','Patient/Payer/IP now seeded but still the thinnest domains'],
 ];
 const HIER=[ // level, dataDensity(0-100), note, color
-  ['Patient',32,'28 indications have patient intel (was 17)','#f472b6'],
-  ['Indication',30,'patient intel now spans the Ailux-relevant indications','#fb923c'],
-  ['Target',100,'TL1A: 57 assets, 296 internal competitive links','#f59e0b'],
-  ['Molecule',85,'mechanism/format/stage strong (0% null core fields)','#a78bfa'],
-  ['Company',70,'132 companies; ownership modeled but partner-thin','#38bdf8'],
-  ['Deal',40,'79 ownership/license edges (materialized from deals/partnerships)','#34d399'],
+  ['Patient',55,'92 drugs carry quantified epidemiology (sourced); patient intel across Ailux indications','#f472b6'],
+  ['Indication',45,'patient intel + payer TPP per disease; still a priority collection domain','#fb923c'],
+  ['Target',100,'TL1A: full landscape; druggability (Pharos), genetics, pathways per target','#f59e0b'],
+  ['Molecule',88,'mechanism/format/stage/PK strong; modality + MoA from Open Targets/ChEMBL','#a78bfa'],
+  ['Company',75,'154 companies; ownership chains, runway, SEC events, patent estate, leadership','#38bdf8'],
+  ['Deal',50,'license/ownership edges + 8-K-derived deal events; payer pricing + IP cliffs now attached','#34d399'],
 ];
 const GAPS=[
   // FIXED — 2026-06-05 session (Wave 0–2 + regression fixes)
@@ -144,6 +158,7 @@ const GAPS=[
 const LCOL={'Sources':'var(--ingest)','Ingestion':'var(--ingest)','Data layer':'var(--enrich)','Enrich · Score · Validate':'var(--score)','Knowledge graph':'var(--graph)','Synthesis':'var(--present)','Presentation':'var(--present)','Strategic decisions':'var(--strat)'};
 const SCOL={green:'var(--good)',warn:'var(--warn)',bad:'var(--bad)'};
 document.getElementById('metrics').innerHTML=METRICS.map(([n,l,c])=>`<div class="met ${c}"><b>${n}</b><span>${l}</span></div>`).join('');
+_atlasLiveMetrics(); // fetch live counts on load
 let FILTER={sev:null,st:null,layer:null};
 function tab(t){['stack','value','gaps'].forEach(x=>document.getElementById('t-'+x).classList.toggle('on',x===t));
   if(t==='stack')renderStack();else if(t==='value')renderValue();else renderGaps();}
