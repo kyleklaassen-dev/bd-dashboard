@@ -14265,7 +14265,25 @@ async function _loadMeridianNarrative(drugId) {
   } catch (e) { /* silent — leave placeholder empty if narrative unavailable */ }
 }
 
-function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData) {
+function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData, intelFacts) {
+  // Research Intelligence — facts extracted from submitted research (Cowen/Wedbush/etc.), grouped by type
+  const _ifRows = (intelFacts || []).filter(f => f && f.claim);
+  const _IF_TYPE = {clinical:'🧪 Clinical', competitive:'⚔️ Competitive', pipeline:'🔬 Pipeline', commercial:'💰 Commercial',
+    market:'📊 Market', regulatory:'📋 Regulatory', patient:'👤 Patient', management:'🗣️ Management', deal:'🤝 Deal', catalyst:'📅 Catalyst'};
+  const _ifByType = {};
+  _ifRows.forEach(f => { (_ifByType[f.fact_type] = _ifByType[f.fact_type] || []).push(f); });
+  const _ifHtml = _ifRows.length ? `<div class="cem-det-inner">
+    <div class="cem-det-title">Research Intelligence — ${_ifRows.length} fact${_ifRows.length!==1?'s':''} from submitted reports</div>
+    ${Object.entries(_ifByType).map(([t, fs]) => `<div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${_IF_TYPE[t]||t} (${fs.length})</div>
+      ${fs.slice(0,12).map(f => {
+        const v = (f.value_num!=null) ? ` <b style="color:#1d4ed8">${f.value_num}${f.unit?' '+f.unit:''}</b>` : '';
+        const lk = f.source_url ? `<a href="${f.source_url}" target="_blank" rel="noopener" data-trusted="1" style="color:#94a3b8;text-decoration:none;font-size:9px">↗${f.page_ref?' '+f.page_ref:''}</a>` : '';
+        return `<div style="font-size:11.5px;color:#1e293b;line-height:1.4;margin-bottom:2px">• ${f.claim}${v} ${lk}</div>`;
+      }).join('')}
+      ${fs.length>12?`<div style="font-size:10px;color:#94a3b8">+${fs.length-12} more — see 📑 Docs</div>`:''}
+    </div>`).join('')}
+  </div>` : '';
   if (!drug) return '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Drug data not available.</div>';
   const _CEM_AMAP = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R/TSHR',fcrn:'FcRn',tcell:'BCMA/CD19/CD3',ox40l:'OX40L',ibd:'IBD',atopy:'Atopy',respiratory:'Respiratory',
     // drug_competitive_scores indication context_ids (IBD expansion + TED)
@@ -15176,6 +15194,14 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
         <div class="cem-det-title">Per-area source breakdown</div>
         ${areas?.map(a => a.source_url ? `<div class="cem-fact"><span class="cem-fact-lbl">${(_CEM_AMAP[a.area_id]||a.area_id)}</span><span class="cem-fact-val"><a class="cem-link" href="${a.source_url}" target="_blank" rel="noopener" data-trusted="1">↗ Primary source</a></span></div>` : '').filter(Boolean).join('') || '<div style="font-size:11px;color:#94a3b8">Sources linked via overlap confidence field in drug_competitive_scores.</div>'}
       </div></div>
+    </div>` : '',
+    _ifRows.length ? `<div class="cem-cell">
+      <div class="cem-sec-hdr" onclick="_cemToggle('dr-intel-facts')">
+        <div class="cem-sec-lbl">📑 Research intelligence</div>
+        <div class="cem-sec-hint">${_ifRows.length} facts <i id="cem-chev-dr-intel-facts" class="cem-chev">▶</i></div>
+      </div>
+      <div class="cem-sec-body"><div style="font-size:11px;color:#475569">${_ifRows.length} facts extracted from submitted research (Cowen, Wedbush, etc.) — click to expand.</div></div>
+      <div class="cem-det" id="cem-det-dr-intel-facts">${_ifHtml}</div>
     </div>` : '',
   ].filter(Boolean).join('');
 
@@ -16392,14 +16418,16 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     // 2026-06-07: trials source switched legacy `trials` → `trial_facts` (CT.gov-derived, fresher).
     // Rows are normalized to the legacy display shape via _mapTrialFactRow.
     const _TRIAL_FACT_COLS = 'id,nct_id,trial_title,phase,status,enrollment,conditions,primary_endpoints,start_date,primary_completion_date,why_stopped,source_url,lead_sponsor';
-    const [drugRes, scoreRes0, trialRes0, molRes0, srcRes0] = await Promise.all([
+    const [drugRes, scoreRes0, trialRes0, molRes0, srcRes0, ifRes0] = await Promise.all([
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drugs').select('*').eq('id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_competitive_scores').select('context_type,context_id,overlap,overlap_rationale,cls,confidence_level,source_url,vs_ailux').eq('drug_id', drugId),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('trial_facts').select(_TRIAL_FACT_COLS).eq('drug_id', drugId).order('phase', {ascending:false}).limit(20),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('molecule_intelligence').select('*').eq('drug_id', drugId).limit(1),
       isStaticId ? Promise.resolve({ data: [] }) : _sb.from('drug_sources').select('claim_type,claim_value,source_url,source_type,source_domain,content_confirms_claim,confidence').eq('drug_id', drugId),
+      isStaticId ? Promise.resolve({ data: [] }) : _sb.from('intel_facts').select('fact_type,claim,value_num,unit,area_id,source_url,page_ref,section,confidence').eq('subject_id', drugId).limit(80),
     ]);
     const drugSources = srcRes0.data || [];
+    const intelFacts = ifRes0.data || [];
 
     let drug    = drugRes.data?.[0]  || null;
     // Build areas[] from drug_competitive_scores; expose context_id as area_id for downstream compat
@@ -16661,7 +16689,7 @@ async function openDrugEntityModal(drugId, drugName, evt) {
     window._cemCurrentDrugCompanyId = drug?.company_id || null;
 
     bodyEl.classList.add('dossier-mode');
-    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData);
+    bodyEl.innerHTML  = _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, normData, drugNews, drugCatalysts, ownerData, cascadeRisk, transferChain, geoApprovals, drugSources, extData, intelFacts);
 
     // ── Meridian Narrative (prose read layer) — non-blocking load into placeholder
     if (drug?.id) _loadMeridianNarrative(drug.id);
