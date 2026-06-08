@@ -3051,7 +3051,9 @@ function _startFreshDataWatch() {
   setInterval(_pollSystemStatus, FRESH_POLL_MS);
 }
 document.addEventListener('DOMContentLoaded', _startFreshDataWatch);
-document.addEventListener('DOMContentLoaded', _loadSentimentMap); // preload the news-sentiment signal map
+// preload the news-sentiment signal map (guard: fn is declared in a later script block)
+(function _preloadSent(){ if (typeof _loadSentimentMap === 'function') { _loadSentimentMap(); }
+  else { setTimeout(_preloadSent, 300); } })();
 
 // ── Wave 2: pipeline health indicator ────────────────────────────────────────
 // Surfaces the previously-dark pipeline_runs + system_status.health_summary as a
@@ -33061,6 +33063,7 @@ async function _gsSbSearch(term) {
   panel.innerHTML = '<div class="gs-sb-empty">Searching…</div>';
   panel.style.display = 'block';
   try {
+    if (typeof _loadSentimentMap === 'function' && !window._SENT_MAP) { try { await _loadSentimentMap(); } catch(e){} }
     var results = await Promise.all([
       _sb.from('companies').select('id,name,ticker,company_type,geography,status')
         .neq('status','acquired').or('name.ilike.%' + esc + '%,ticker.ilike.%' + esc + '%').limit(8),
