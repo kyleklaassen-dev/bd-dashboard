@@ -76,6 +76,20 @@
   #doc sup a{color:var(--navy);text-decoration:none;font-weight:600}
   #doc .footnote-back{text-decoration:none}
   .loading{padding:60px;text-align:center;color:var(--mut)}
+  /* drug chips + canonical card popover */
+  .drugchip{color:var(--navy);border-bottom:1.5px dotted #2e6fb0;cursor:pointer}
+  .drugchip:hover{background:#e7eefb}
+  #drugcard{position:fixed;z-index:9999;max-width:350px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(15,23,42,.24);display:none;font-size:13px;overflow:hidden}
+  #drugcard .dc-head{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;padding:11px 14px}
+  #drugcard .dc-name{font-weight:700;font-size:15px}
+  #drugcard .dc-sub{font-size:11.5px;opacity:.88;margin-top:2px}
+  #drugcard .dc-body{padding:11px 14px}
+  #drugcard .dc-row{display:flex;gap:8px;margin-bottom:5px}
+  #drugcard .dc-k{color:var(--mut);min-width:58px;font-size:11.5px}
+  #drugcard .dc-v{color:var(--ink);font-size:12.5px;font-weight:600}
+  #drugcard .dc-sum{color:var(--slate);font-size:12px;line-height:1.45;margin-top:7px}
+  #drugcard a{color:#1d4ed8;text-decoration:none}
+  #drugcard .dc-close{float:right;cursor:pointer;opacity:.85;font-size:15px}
 </style>
 </head>
 <body>
@@ -89,7 +103,7 @@
 <div class="wrap">
   <div class="controls">
     <div class="dl" style="margin-left:0">
-      <a id="dl" href="AIB_TL1A_IL23p19_UC_v8.docx" download>↓ Download (Word)</a>
+      <a id="dl" href="AIB_TL1A_IL23p19_UC_v9.docx" download>↓ Download (Word)</a>
     </div>
   </div>
   <div class="meta" id="meta">Source-traced · every footnote links to the primary source (ClinicalTrials.gov, NEJM, Lancet Gastroenterology &amp; Hepatology, ECCO / DDW, company disclosures).</div>
@@ -97,8 +111,46 @@
 </div>
 
 <script>
-const DOC_SRC="aib_tl1a_v8.html";
+const DOC_SRC="aib_tl1a_v9.html";
 const cache={};
+// ---- drug-name canonical-card chips ----
+const SBV="https://tghntyofptvfhmtchwcv.supabase.co";
+const KEYV="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const DRUGS=["tulisokibart","afimkibart","duvakitug","SPY002","RO7837195","MT-251","XmAb412","XmAb942","ABBV-701","mirikizumab","risankizumab","guselkumab","ustekinumab","vedolizumab","upadacitinib","etrasimod","ozanimod","deucravacitinib","infliximab","adalimumab","obefazimod"];
+const dcache={};
+function _drugRx(){return new RegExp("\\b("+DRUGS.map(d=>d.replace(/[-]/g,"\\-")).join("|")+")\\b","g");}
+function wrapDrugChips(root){
+  const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    if(!n.nodeValue||!DRUGS.some(d=>n.nodeValue.indexOf(d)>=0))return NodeFilter.FILTER_REJECT;
+    var p=n.parentNode;while(p&&p!==root){if(p.tagName==='A'||(p.classList&&p.classList.contains('drugchip')))return NodeFilter.FILTER_REJECT;p=p.parentNode;}
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  const nodes=[];let x;while(x=walk.nextNode())nodes.push(x);
+  nodes.forEach(n=>{const s=n.nodeValue;const rx=_drugRx();const frag=document.createDocumentFragment();let last=0,m;
+    while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));
+      const sp=document.createElement('span');sp.className='drugchip';sp.dataset.drug=m[1];sp.textContent=m[1];frag.appendChild(sp);last=m.index+m[1].length;}
+    if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));
+    n.parentNode.replaceChild(frag,n);});
+  root.querySelectorAll('.drugchip').forEach(c=>c.addEventListener('click',e=>{e.stopPropagation();showDrugCard(c.dataset.drug,e.clientX,e.clientY);}));
+}
+async function showDrugCard(name,x,y){
+  let card=document.getElementById('drugcard');
+  if(!card){card=document.createElement('div');card.id='drugcard';document.body.appendChild(card);card.addEventListener('click',e=>e.stopPropagation());}
+  card.style.display='block';card.style.left=Math.min(x,window.innerWidth-360)+'px';card.style.top=Math.min(y+14,window.innerHeight-280)+'px';
+  card.innerHTML='<div class="dc-body" style="color:#64748b">Loading '+name+'…</div>';
+  let d=dcache[name];
+  if(d===undefined){try{const r=await fetch(SBV+"/rest/v1/drugs?select=name,company_id,partner_company,stage,target,drug_summary,source_url&name=ilike."+encodeURIComponent("%"+name+"%")+"&limit=1",{headers:{apikey:KEYV,Authorization:"Bearer "+KEYV}});const j=await r.json();d=j[0]||null;}catch(e){d=null;}dcache[name]=d;}
+  const esc=s=>String(s==null?'':s).replace(/</g,'&lt;');
+  const close='<span class="dc-close" onclick="document.getElementById(\'drugcard\').style.display=\'none\'">×</span>';
+  if(!d){card.innerHTML='<div class="dc-head">'+close+'<div class="dc-name">'+esc(name)+'</div><div class="dc-sub">not in the area catalog</div></div><div class="dc-body"><a href="https://clinicaltrials.gov/search?term='+encodeURIComponent(name)+'" target="_blank">Search ClinicalTrials.gov ↗</a></div>';return;}
+  card.innerHTML='<div class="dc-head">'+close+'<div class="dc-name">'+esc(d.name)+'</div><div class="dc-sub">'+esc(d.company_id||'—')+(d.partner_company?' · partner '+esc(d.partner_company):'')+'</div></div>'+
+   '<div class="dc-body">'+
+   '<div class="dc-row"><span class="dc-k">Stage</span><span class="dc-v">'+esc(d.stage)+'</span></div>'+
+   '<div class="dc-row"><span class="dc-k">Target</span><span class="dc-v">'+esc(d.target)+'</span></div>'+
+   (d.drug_summary?'<div class="dc-sum">'+esc(d.drug_summary).slice(0,260)+'…</div>':'')+
+   (d.source_url?'<div style="margin-top:8px"><a href="'+d.source_url+'" target="_blank">Source ↗</a></div>':'')+'</div>';
+}
+document.addEventListener('click',function(){var c=document.getElementById('drugcard');if(c)c.style.display='none';});
 const H1RE=/^(\d{1,2}\s·\s|The landscape in brief$|What makes an asset valuable here$|Sources$)/;
 
 function enhance(root){
@@ -147,6 +199,8 @@ function enhance(root){
   const fns=root.querySelector('.footnotes ol'); if(fns) fns.classList.add('fn');
   // all source links open in a new tab
   root.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener';});
+  // drug names become clickable canonical-card chips
+  try{ wrapDrugChips(root); }catch(e){ console.warn('drugchips',e); }
 }
 function colorCell(td,cls){ const b=td.querySelector('strong')||td; b.classList.add(cls); }
 
