@@ -6,15 +6,16 @@ from __future__ import annotations
 import sys, os, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
-from enrichment.drug_intelligence_researcher import (
-    DOMAIN_QUESTIONS,
-    call_claude_for_domain,
-    store_qa,
-)
 from ..state import DrugIntelPipelineState
 
 
 def run(state: DrugIntelPipelineState) -> DrugIntelPipelineState:
+    from enrichment.drug_intelligence_researcher import (
+        DOMAIN_QUESTIONS,
+        call_claude_for_domain,
+        store_qa,
+    )
+
     domains_to_run = state.domains_filter or list(DOMAIN_QUESTIONS.keys())
     all_qa = []
 

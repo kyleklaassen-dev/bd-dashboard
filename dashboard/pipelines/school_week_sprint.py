@@ -363,7 +363,7 @@ digraph {
                 [
                     {
                         "file": "scripts/scoring/write_ranking_snapshots.py",
-                        "lines": 152,
+                        "lines": 132,
                         "desc": "Captures the daily next_gen_rankings snapshot (entity_id, area_id, rank_position, total_score, stage, competitive_relevance, is_ailux) for every next-gen bispecific program.",
                     }
                 ],
@@ -376,14 +376,14 @@ digraph {
                 [
                     {
                         "file": "scripts/enrichment/molecule_enrichment.py",
-                        "lines": 346,
+                        "lines": 352,
                         "desc": "Run three times (--area tl1a, ibd, fcrn): enriches molecule_intelligence (mechanism_detail + a high/medium/low confidence rating) for each area's drugs using Claude — reasons from training knowledge and Supabase context only, no live web search.",
                     }
                 ],
                 [
                     {
                         "file": "scripts/sync/ct_gov_sync.py",
-                        "lines": 1409,
+                        "lines": 1363,
                         "desc": "Pipeline Step 3 (--area tl1a): mirrors ClinicalTrials.gov data into the trials table — fetches known NCT IDs directly from the CT.gov API v2, searches by sponsor/intervention for the rest, and parses full structured fields (status, phase, enrollment, arms, endpoints, dates, sponsor).",
                     }
                 ],
@@ -396,7 +396,7 @@ digraph {
                 [
                     {
                         "file": "scripts/enrichment/drug_intelligence_researcher.py",
-                        "lines": 669,
+                        "lines": 675,
                         "desc": "(--area tl1a --limit 10): researches up to 10 TL1A drugs against all 100 Meridian intelligence questions across 8 domains, writing rows to drug_intelligence_qa, drug_clinical_benchmarks, and drug_development_timelines.",
                     }
                 ],
@@ -423,7 +423,7 @@ digraph {
                 [
                     {
                         "file": "scripts/validation/validate_ground_truth.py",
-                        "lines": 604,
+                        "lines": 589,
                         "desc": "(--write-results): runs every row in validation_tests against live Supabase data and persists pass/fail results back to the DB — the regression check that catches drift from the week's enrichment writes so far.",
                     }
                 ],
@@ -443,21 +443,21 @@ digraph {
                 [
                     {
                         "file": "scripts/scoring/write_ranking_snapshots.py",
-                        "lines": 152,
+                        "lines": 132,
                         "desc": "Same daily ranking-snapshot capture as Monday — runs again here regardless of whether the scoring step above succeeded.",
                     }
                 ],
                 [
                     {
                         "file": "scripts/validation/validate_ground_truth.py",
-                        "lines": 604,
+                        "lines": 589,
                         "desc": "(--write-results): the week's second full validation pass — confirms nothing drifted after Thursday's checkpoint and Friday's (attempted) scoring sweep.",
                     }
                 ],
                 [
                     {
                         "file": "scripts/scoring/compute_coverage.py",
-                        "lines": 642,
+                        "lines": 609,
                         "desc": "Recomputes per-company, per-area coverage_scores across all 9 diagnostic dimensions and upserts them by entity_id/area_id — the one script in this entire workflow that legitimately runs platform-wide rather than scoped to 2-3 areas.",
                     }
                 ],
@@ -470,7 +470,7 @@ digraph {
                 [
                     {
                         "file": "scripts/scoring/write_ranking_snapshots.py",
-                        "lines": 152,
+                        "lines": 132,
                         "desc": "Captures one more next_gen_rankings snapshot at the very end of the run — the workflow's safety net for keeping the dashboard's ranking history continuous.",
                     }
                 ],

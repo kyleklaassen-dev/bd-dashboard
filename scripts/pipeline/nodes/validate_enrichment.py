@@ -15,7 +15,6 @@ if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
 from ai.validators.drug_fields import validate_drug_updates  # noqa: E402
-from ai import run_log                                        # noqa: E402
 from _common import log                                       # noqa: E402
 from pipeline.state import PipelineState                      # noqa: E402
 
@@ -31,6 +30,8 @@ def validate_enrichment(state: PipelineState) -> PipelineState:
 
     Populates state.validated_data and state.validation_stats.
     """
+    from ai import run_log
+
     # ── Trajectory: raw LLM response ─────────────────────────────────────
     if state.enrichment_run_id and not state.dry_run:
         try:

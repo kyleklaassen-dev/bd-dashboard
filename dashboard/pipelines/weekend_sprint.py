@@ -320,19 +320,29 @@ digraph {
                     "seed_strategic_views, patch_competitive_scores_null, "
                     "update_area_knowledge_counts, seed_indication_priorities, "
                     "coverage_gap_finder, source_verifier, consistency_checker, "
-                    "human_queue_builder, and bd_recommender."
+                    "human_queue_builder, and bd_recommender. Three more (B3 bd_angle, "
+                    "B4 risk_summary, B6 clinical_details) make their own short-form calls "
+                    "in-process via a local `_llm_enrich()` helper."
                 ),
                 "scope": (
-                    "weekend_sprint.py itself never calls the Anthropic API directly — it "
-                    "reads `ANTHROPIC_API_KEY` once at startup and hands control to whichever "
-                    "agent module a phase needs via `_import_agent()`, which finds the "
-                    "`<name>.py` file anywhere under scripts/, loads it with `importlib`, and "
-                    "calls its `run(dry_run=DRY_RUN)` entrypoint. How many Claude calls that "
-                    "makes — and on how many rows — is entirely that module's own logic, not "
-                    "the orchestrator's. If the module can't be found or fails to import, "
-                    "`_import_agent()` logs a warning and returns `None`, and four phases "
-                    "(A6, E4, E5, F4) fall back to an inline `_legacy_*` routine that does the "
-                    "same job with direct Supabase queries instead of an LLM."
+                    "For the eleven agent-script phases, weekend_sprint.py never touches the "
+                    "Anthropic API itself — it reads `ANTHROPIC_API_KEY` once at startup and "
+                    "hands control to whichever agent module a phase needs via "
+                    "`_import_agent()`, which finds the `<name>.py` file anywhere under "
+                    "scripts/, loads it with `importlib`, and calls its `run(dry_run=DRY_RUN)` "
+                    "entrypoint. How many Claude calls that makes — and on how many rows — is "
+                    "entirely that module's own logic, not the orchestrator's. If the module "
+                    "can't be found or fails to import, `_import_agent()` logs a warning and "
+                    "returns `None`, and four phases (A6, E4, E5, F4) fall back to an inline "
+                    "`_legacy_*` routine that does the same job with direct Supabase queries "
+                    "instead of an LLM. B3/B4/B6 are the exception: they call `_llm_enrich()` "
+                    "directly for one short text field per row (bd_angle, risk_summary, "
+                    "patient_population/primary_endpoint). As of the 2026-06-08 "
+                    "`ai/client.py` migration, `_llm_enrich()` no longer instantiates its own "
+                    "raw `anthropic.Anthropic` client (pinned to a stale `claude-sonnet-4-5`) "
+                    "— it now routes through the shared `ai_client.run_text()` / "
+                    "`PromptConfig` infra on `claude-sonnet-4-6`, the same pattern used "
+                    "across the rest of scripts/."
                 ),
             },
             {
@@ -527,11 +537,11 @@ digraph {
                 ],
                 [
                     {"function": "phase_b3_bd_angle_enrichment()", "lines": 61,
-                     "desc": "Backfills missing bd_angle text for Direct/Adjacent drugs and logs each change to enriched_field_log."},
+                     "desc": "Backfills missing bd_angle text for Direct/Adjacent drugs via _llm_enrich() (ai_client.run_text, claude-sonnet-4-6) and logs each change to enriched_field_log."},
                 ],
                 [
                     {"function": "phase_b4_risk_summary_enrichment()", "lines": 51,
-                     "desc": "Backfills missing risk_summary text for Phase 2+ drugs."},
+                     "desc": "Backfills missing risk_summary text for Phase 2+ drugs via _llm_enrich() (ai_client.run_text, claude-sonnet-4-6)."},
                 ],
                 [
                     {"function": "phase_b5_mechanism_status()", "lines": 35,
@@ -539,7 +549,7 @@ digraph {
                 ],
                 [
                     {"function": "phase_b6_clinical_details()", "lines": 60,
-                     "desc": "Fills missing patient_population and primary_endpoint fields for Phase 2/3 drugs."},
+                     "desc": "Fills missing patient_population and primary_endpoint fields for Phase 2/3 drugs via _llm_enrich() (ai_client.run_text, claude-sonnet-4-6)."},
                 ],
                 [
                     {"function": "phase_b7_deal_enrichment()", "lines": 22,

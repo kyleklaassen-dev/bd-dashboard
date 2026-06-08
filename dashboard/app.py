@@ -1,10 +1,12 @@
 """
-Meridian Weekend Pipelines — explainer dashboard.
+The Meridian — explainer dashboard.
 
-Two buttons on the home page, one per weekend GitHub Actions workflow.
-Each leads to a page that shows, in order, which files the pipeline's
-entrypoint touches (including which steps run in parallel) and a
-plain-language sentence describing what each file does.
+Landing page offers two views:
+  • Github Workflows — one button per weekend GitHub Actions workflow, each
+    leading to a page that shows, in order, which files the pipeline's
+    entrypoint touches (including which steps run in parallel) and a
+    plain-language sentence describing what each file does.
+  • State Graphs — one button per LangGraph StateGraph pipeline in scripts/pipeline/.
 
 Run with:
     streamlit run dashboard/app.py
@@ -18,50 +20,109 @@ from pipelines import (
     SCHOOL_WEEK_SPRINT,
     WEEKEND_SPRINT,
 )
+from state_graphs import STATE_GRAPHS
+from state_graphs._topology import build_app, topology_dot
 
 st.set_page_config(
-    page_title="Github Workflows",
+    page_title="The Meridian",
     page_icon="🧬",
     layout="centered",
 )
 
 if "view" not in st.session_state:
-    st.session_state.view = "home"
+    st.session_state.view = "landing"
 
 
 def go_to(view_key: str) -> None:
     st.session_state.view = view_key
 
 
-def render_home() -> None:
-    st.markdown(
-        """
-        <style>
-        button[kind="primary"] {
-            background-color: #e4d9f7;
-            border: 1px solid #b49ce8;
-            color: #3a2c5c;
-            min-height: 160px;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-        button[kind="primary"]:hover {
-            background-color: #d6c5f3;
-            border-color: #9d7fdc;
-            color: #2c2047;
-        }
-        button[kind="primary"] strong {
-            font-size: 1.3rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+CARD_STYLES = """
+<style>
+button[kind="primary"] {
+    min-height: 160px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    background-color: #e4d9f7;
+    border: 1px solid #b49ce8;
+    color: #3a2c5c;
+}
+button[kind="primary"]:hover {
+    background-color: #d6c5f3;
+    border-color: #9d7fdc;
+    color: #2c2047;
+}
+button[kind="primary"] strong {
+    font-size: 1.3rem;
+}
 
-    st.title("🧬 Github Workflows")
+/* Teal accent — scoped to containers marked with key="teal_zone" so it
+   overrides the purple card styling above without touching other buttons
+   (e.g. "← Back", which is also a default/primary-less button elsewhere). */
+.st-key-teal_zone button[kind="primary"] {
+    background-color: #cfe8ff;
+    border: 1px solid #6cb6ff;
+    color: #3a2c5c;
+}
+.st-key-teal_zone button[kind="primary"]:hover {
+    background-color: #a9d6ff;
+    border-color: #3a9bff;
+    color: #2c2047;
+}
+</style>
+"""
+
+
+def inject_card_styles() -> None:
+    st.markdown(CARD_STYLES, unsafe_allow_html=True)
+
+
+def render_landing() -> None:
+    inject_card_styles()
+
+    st.title("🧬 The Meridian")
+    st.caption("Pick a view to explore.")
+    st.divider()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button(
+            "**Github Workflows**",
+            key="btn_github_workflows",
+            type="primary",
+            width="stretch",
+            on_click=go_to,
+            args=("home",),
+        )
+    with col2:
+        with st.container(key="teal_zone"):
+            st.button(
+                "**State Graphs**",
+                key="btn_state_graphs",
+                type="primary",
+                width="stretch",
+                on_click=go_to,
+                args=("state_graphs",),
+            )
+
+
+def render_home() -> None:
+    inject_card_styles()
+
+    st.button("← Back", on_click=go_to, args=("landing",))
+
+    st.title("🛠️ Github Workflows")
     st.caption(
         "Pick a workflow to see exactly what runs, in what order, "
         "and what each file is responsible for."
+    )
+    st.write(
+        "**Why GitHub Workflows?** These are scheduled jobs (GitHub Actions, on cron) "
+        "that do the unattended, recurring work — sweeping news, fetching abstracts, "
+        "running weekend enrichment sprints — without anyone needing to kick them off "
+        "by hand. The benefit is hands-off reliability: each one runs on its own "
+        "schedule, in its own isolated environment, and leaves a log trail you can "
+        "audit after the fact."
     )
     st.divider()
 
@@ -152,15 +213,133 @@ def render_pipeline_page(pipeline: dict) -> None:
             st.write("")
 
 
+def render_state_graphs_home() -> None:
+    inject_card_styles()
+
+    st.button("← Back", on_click=go_to, args=("landing",))
+
+    st.title("🌐 State Graphs")
+    st.caption(
+        "Pick a LangGraph StateGraph pipeline to see its nodes, topology, "
+        "and what each step is responsible for."
+    )
+    st.write(
+        "**Why LangGraph?** These pipelines do multi-step work that branches — "
+        "fetch, filter, enrich, extract, write — where the next step depends on "
+        "what the previous one found. LangGraph makes that explicit: each step is "
+        "an independent node, the data threaded between them is a typed state "
+        "object, and the branching logic is a named, visible edge in a compiled "
+        "graph rather than buried in nested if/else. The benefit is a pipeline "
+        "you can see, test step-by-step, and resume from the last successful node "
+        "instead of rerunning the whole thing from scratch."
+    )
+    st.divider()
+
+    def state_graph_card(graph: dict, key: str) -> None:
+        st.button(
+            f"**{graph['name']}**",
+            key=key,
+            type="primary",
+            width="stretch",
+            on_click=go_to,
+            args=(f"state_graph::{graph['key']}",),
+        )
+
+    with st.container(key="teal_zone"):
+        cols = st.columns(3)
+        for i, graph in enumerate(STATE_GRAPHS):
+            with cols[i % 3]:
+                state_graph_card(graph, f"btn_state_graph_{graph['key']}")
+
+
+def render_state_graph_page(graph: dict) -> None:
+    st.button("← Back", on_click=go_to, args=("state_graphs",))
+
+    st.title(graph["name"])
+    st.caption(f"Module: `{graph['module']}` &nbsp;·&nbsp; builder: `{graph['builder']}()`")
+
+    if "summary" not in graph:
+        st.info("More detail (topology diagram, node-by-node breakdown) coming soon.")
+        return
+
+    if "entrypoint" in graph:
+        st.caption(f"Entrypoint: `{graph['entrypoint']}`")
+    st.write(graph["summary"])
+
+    st.divider()
+    st.subheader("Graph topology")
+    st.caption(
+        "Generated live from the compiled StateGraph (app.get_graph()) — it "
+        "can't drift from the code. Solid edges are unconditional; dashed "
+        "amber edges are conditional branches, explained under "
+        "“Conditional routing” below."
+    )
+    try:
+        compiled_app = build_app(graph["module"], graph["builder"])
+        st.graphviz_chart(topology_dot(compiled_app), width=graph.get("diagram_width", 320))
+    except (Exception, SystemExit) as e:
+        # Some pipelines import scripts that load Supabase/Anthropic credentials
+        # at module level (sys.exit if absent) — that's a SystemExit, not an
+        # Exception, so it must be caught explicitly to keep the page usable
+        # in environments without those credentials configured.
+        st.warning(f"Could not build a live topology diagram: {e}")
+
+    state = graph.get("state")
+    if state:
+        st.divider()
+        st.subheader("State")
+        st.caption(f"`{state['class']}` — defined in `{state['module']}`")
+        for f in state["fields"]:
+            st.markdown(f"`{f['name']}` &nbsp;·&nbsp; *{f['type']}*")
+            st.write(f["desc"])
+            st.write("")
+
+    nodes = graph.get("nodes")
+    if nodes:
+        st.divider()
+        st.subheader("Nodes, in graph order")
+        for node in nodes:
+            st.markdown(f"#### {node['name']}")
+            st.caption(f"`{node['file']}` &nbsp;·&nbsp; {node['lines']} lines")
+            st.write(node["desc"])
+
+    routing = graph.get("routing")
+    if routing:
+        st.divider()
+        st.subheader("Conditional routing")
+        st.caption(
+            "Each branch below replaces a nested if/else in the original "
+            "script with an explicit, named routing function — visible as a "
+            "dashed edge in the topology diagram above."
+        )
+        for r in routing:
+            st.markdown(f"**After `{r['after']}` → `{r['function']}`**")
+            for b in r["branches"]:
+                st.markdown(f"- *{b['condition']}* → `{b['to']}` — {b['desc']}")
+            st.write("")
+
+
 def main() -> None:
     view = st.session_state.view
-    if view == "home":
+    if view == "landing":
+        render_landing()
+    elif view == "home":
         render_home()
+    elif view == "state_graphs":
+        render_state_graphs_home()
     elif view in PIPELINES:
         render_pipeline_page(PIPELINES[view])
+    elif view.startswith("state_graph::"):
+        graph_key = view.split("::", 1)[1]
+        graph = next((g for g in STATE_GRAPHS if g["key"] == graph_key), None)
+        if graph is not None:
+            render_state_graph_page(graph)
+        else:
+            st.session_state.view = "state_graphs"
+            render_state_graphs_home()
     else:
-        st.session_state.view = "home"
-        render_home()
+        st.session_state.view = "landing"
+        render_landing()
 
 
 main()
