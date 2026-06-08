@@ -582,6 +582,12 @@ class DrugIdentityResolver:
 if __name__ == "__main__":
     import argparse
     import os
+    import sys
+
+    _SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _SCRIPTS_DIR not in sys.path:
+        sys.path.insert(0, _SCRIPTS_DIR)
+    from _common import load_credentials
 
     parser = argparse.ArgumentParser(description="Resolve a drug name to canonical_id")
     group = parser.add_mutually_exclusive_group(required=True)
@@ -592,15 +598,8 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    sb_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-    if not sb_url or not sb_key:
-        try:
-            with open(".supabase_service_key") as f:
-                sb_key = f.read().strip()
-            sb_url = "https://tghntyofptvfhmtchwcv.supabase.co"
-        except FileNotFoundError:
-            raise SystemExit("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY env vars required")
+    sb_url, sb_key, _ = load_credentials(require_anthropic=False)
+    sb_url = sb_url.rstrip("/")
 
     resolver = DrugIdentityResolver(sb_url, sb_key, dry_run=args.dry_run)
 

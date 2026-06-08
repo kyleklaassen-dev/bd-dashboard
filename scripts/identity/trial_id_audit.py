@@ -28,9 +28,18 @@ Run:
 import os, re, sys, json, time, argparse, urllib.request, urllib.error
 from datetime import datetime, timezone
 
-SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
+# NOTE: WORKSPACE = dirname(dirname(__file__)) resolved to scripts/, not the
+# repo root, after the scripts/ reorg moved this file into scripts/identity/ —
+# load_credentials locates the repo root correctly regardless of subfolder depth.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORKSPACE = os.path.dirname(_SCRIPTS_DIR)
 
 
 def _secret(env_name, filename):
@@ -42,22 +51,26 @@ def _secret(env_name, filename):
     return open(p).read().strip() if os.path.exists(p) else None
 
 
-KEY = _secret("SUPABASE_SERVICE_KEY", ".supabase_service_key")
+SUPABASE_URL, KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, KEY)
 ACTOR = "trial_id_audit.py@v0"
 SESSION = f"trial-audit-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
 NCT_RE = re.compile(r"NCT\d{8}", re.I)
 
 
 def _sb(method, ep, data=None, prefer=None):
-    hdr = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
-    if prefer: hdr["Prefer"] = prefer
-    req = urllib.request.Request(f"{SUPA}/{ep}", data=json.dumps(data).encode() if data is not None else None,
-                                 headers=hdr, method=method)
-    try:
-        with urllib.request.urlopen(req) as r:
-            raw = r.read(); return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        print(f"  SB {e.code}: {e.read().decode()[:120]}", file=sys.stderr); return None
+    """Thin dispatcher translating this script's (method, 'table?query') calls
+    to _db's (table, params) / (table, records, on_conflict) interface. `prefer`
+    is accepted for call-site compatibility but unused — _db sets its own
+    Prefer headers (merge-duplicates for upserts), and every POST here discards
+    the response body regardless of return=minimal vs return=representation."""
+    table, _, qs = ep.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    if method == "GET":
+        return _db.sb_get(table, params)
+    if method == "POST":
+        return _db.sb_upsert(table, data, on_conflict=params.get("on_conflict"))
+    raise ValueError(f"unsupported method: {method}")
 
 
 def ctgov_record(nct):

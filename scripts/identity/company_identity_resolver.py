@@ -33,11 +33,16 @@ USAGE:
 
 import os
 import re
+import sys
 import unicodedata
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 
 import requests
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
 
 # ── Text normalisation ────────────────────────────────────────────────────────
@@ -294,35 +299,19 @@ class CompanyIdentityResolver:
             pass  # logging failure must never block the caller
 
 
-# ── Credential loader (mirrors one_time_migration.py pattern) ─────────────────
+# ── Credential loader ──────────────────────────────────────────────────────────
 
 def get_credentials() -> tuple[str, str]:
-    """Read SUPABASE_URL + SUPABASE_SERVICE_KEY from env or workspace files."""
-    sb_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    """Read SUPABASE_URL + SUPABASE_SERVICE_KEY via the shared loader.
 
-    if not sb_url or not sb_key:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace  = os.path.dirname(script_dir)
-        try:
-            with open(os.path.join(workspace, ".supabase_service_key")) as f:
-                sb_key = sb_key or f.read().strip()
-        except FileNotFoundError:
-            pass
-        try:
-            with open(os.path.join(workspace, ".supabase_config")) as f:
-                for line in f:
-                    if line.startswith("SUPABASE_URL="):
-                        sb_url = sb_url or line.split("=", 1)[1].strip().rstrip("/")
-        except FileNotFoundError:
-            pass
-
-    if not sb_url or not sb_key:
-        raise SystemExit(
-            "ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set "
-            "(env vars or .supabase_config / .supabase_service_key files)."
-        )
-    return sb_url, sb_key
+    NOTE: this used to read .supabase_service_key/.supabase_config relative to
+    workspace = dirname(dirname(__file__)), which resolved to scripts/ rather
+    than the repo root after the scripts/ reorg moved this file deeper —
+    load_credentials locates the repo root correctly regardless of depth.
+    """
+    from _common import load_credentials
+    sb_url, sb_key, _ = load_credentials(require_anthropic=False)
+    return sb_url.rstrip("/"), sb_key
 
 
 # ── CLI smoke-test ────────────────────────────────────────────────────────────

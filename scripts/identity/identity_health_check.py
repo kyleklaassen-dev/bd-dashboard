@@ -31,31 +31,16 @@ from supabase import create_client
 # ── Credentials ───────────────────────────────────────────────────────────────
 
 def get_supabase():
-    url = os.environ.get("SUPABASE_URL", "")
-    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    """NOTE: previously read .supabase_url/.supabase_service_key relative to
+    workspace = dirname(dirname(__file__)), which resolved to scripts/ rather
+    than the repo root after the scripts/ reorg moved this file deeper —
+    load_credentials locates the repo root correctly regardless of depth."""
+    _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+    from _common import load_credentials
 
-    if not url or not key:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace  = os.path.dirname(script_dir)
-        if not url:
-            try:
-                with open(os.path.join(workspace, ".supabase_url")) as f:
-                    url = f.read().strip()
-            except FileNotFoundError:
-                pass
-        if not key:
-            try:
-                with open(os.path.join(workspace, ".supabase_service_key")) as f:
-                    key = f.read().strip()
-            except FileNotFoundError:
-                pass
-
-    if not url or not key:
-        raise SystemExit(
-            "ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set "
-            "(env vars or .supabase_url / .supabase_service_key files)."
-        )
-
+    url, key, _ = load_credentials(require_anthropic=False)
     return create_client(url, key)
 
 
