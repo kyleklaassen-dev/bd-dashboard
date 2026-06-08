@@ -10,8 +10,16 @@ Runs 2:00 AM ET Mon–Sat (06:00 UTC).
 import os, json, hashlib, datetime, time, re, sys
 import feedparser
 import requests
-import anthropic
 from bs4 import BeautifulSoup
+
+# scripts/ root must be importable for ai.*, pipeline.* (this file's own
+# directory is already on sys.path when run directly).
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+import ai.client as ai_client                    # noqa: E402
+import ai.prompts.pkpd_extraction as _p_pkpd     # noqa: E402
 
 # CompanyIdentityResolver — canonical company name → company_id resolution
 # Falls back gracefully if the module isn't available (e.g. first deploy)
@@ -27,7 +35,7 @@ ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL      = os.environ["SUPABASE_URL"]
 SUPABASE_KEY      = os.environ["SUPABASE_SERVICE_KEY"]
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
@@ -359,104 +367,8 @@ def get_existing_urls():
 
 
 # ── Step 4: Extract intel with Claude Sonnet ─────────────────────────────────
-EXTRACT_PROMPT = """You are an analyst for a biopharma BD intelligence platform. Your extractions feed a daily briefing read by PhD scientists and senior BD professionals at Ailux — they already know the mechanisms and deal structures. The value you add is precision and strategic inference, not description.
-
-FOCUS AREAS:
-- tl1a: TL1A antibodies for IBD (UC + Crohn's)
-- tslp: TSLP antibodies for severe asthma / COPD
-- il4ra: IL-4Rα antibodies for atopic dermatitis / atopy
-- igf1r: IGF1R antibodies for thyroid eye disease (TED / Graves' orbitopathy)
-- fcrn: FcRn inhibitors for autoimmune IgG diseases (MG, pemphigus, CIDP)
-- tcell: T-cell engineering / Treg therapy for immune reset
-
-{ailux_context}
-
-ARTICLES TO ANALYZE:
-{articles}
-
-For each article with meaningful intelligence relevant to a focus area, extract one record.
-
-FIELD INSTRUCTIONS:
-- "area_id": one of: tl1a | tslp | il4ra | igf1r | fcrn | tcell
-- "intel_type": news | data | deal | regulatory | conference
-- "importance": high (Ph3 data/approval/major deal) | medium (Ph2/IND/partnership) | low (preclinical/minor)
-- "headline": ≤120 chars — state what happened, be specific (drug name, company, data readout, deal size)
-- "body": 3–5 sentences. Do NOT summarize the article. Instead:
-    (1) State the mechanistic or clinical fact precisely (which target, which endpoint, which patient population, what effect size if available).
-    (2) Explain what this changes in the competitive landscape — what was true before, what is now different.
-    (3) State the specific implication for the TL1A/bispecific/Ailux competitive thesis, or for the relevant Ailux focus area.
-    Write for readers who do not need definitions. Be precise. Be direct. No hedging language.
-- "source_url": exact article URL
-- "source_name": publication name
-- "intel_date": YYYY-MM-DD or null
-- "drug_names": array of drug/molecule names mentioned ([] if none)
-- "company_names": array of company names ([] if none)
-- "is_deal": true only if this reports a partnership, license, M&A, or collaboration
-- "deal_from": acquirer/licensee company name if is_deal else null
-- "deal_to": licensor/target company name if is_deal else null
-- "deal_upfront_usd_m": upfront payment in USD millions (number or null)
-- "deal_total_usd_m": total deal value in USD millions including milestones (number or null)
-- "deal_type": acquisition | license | collab | option — or null
-- "has_catalyst": true if article mentions an upcoming clinical/regulatory event with a specific timeframe
-- "catalyst_label": specific label — drug name + event type + timeframe (e.g. "tulisokibart ATLAS-UC Ph3 primary ~Nov 2026")
-- "catalyst_date": approximate date string like "Q3 2026" or "Nov 2026" or null
-- "significance": high | medium | low
-
-Skip earnings calls, macro news, and speculative commentary with no new factual content.
-Skip articles where the focus-area relevance is clearly tangential (e.g., a general immunology paper with no clinical or commercial implications for these programs).
-
-PAYWALLED / SHORT CONTENT: If the full text is missing or very brief (< 200 chars) but the headline clearly signals a relevant clinical event (trial data, approval, deal, IND filing), extract a record using the headline and any available summary. Set importance conservatively. Do NOT skip solely because content is short — headline intelligence is still intelligence.
-
-GOVERNANCE RULES FOR DEAL EXTRACTION:
-- deal_from = licensee/acquirer (the company gaining rights). deal_to = licensor/originator (the company giving rights).
-- The drug's originating company (inventor/developer) is always deal_to in a licensing deal.
-  Example: AbbVie licensed ABBV-701 from FutureGen → deal_from="abbvie", deal_to="futuregen".
-- For acquisitions: deal_from = acquirer, deal_to = acquired company.
-- Never swap deal_from and deal_to just because the acquirer is larger or more prominent.
-- source_url must be the actual article URL — always include it for deal records.
-
-Return ONLY a valid JSON array. No markdown, no explanation, no wrapper text."""
-
-
-def extract_intel(articles):
-    all_intel = []
-    batch_size = 6  # Smaller batches — Sonnet writes richer body text, needs more headroom
-
-    total_batches = (len(articles) + batch_size - 1) // batch_size
-    for i in range(0, len(articles), batch_size):
-        batch_num = i // batch_size + 1
-        log(f"  [EXTRACT {batch_num}/{total_batches}] articles {i+1}–{min(i+batch_size, len(articles))} of {len(articles)}")
-        batch = articles[i:i + batch_size]
-        batch_text = "\n\n---\n\n".join(
-            _format_article_for_extraction(a) for a in batch
-        )
-
-        try:
-            resp = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=6000,
-                messages=[{"role": "user", "content": EXTRACT_PROMPT.format(
-                    articles=batch_text,
-                    ailux_context=AILUX_CONTEXT_COMPACT,
-                )}],
-            )
-            text = resp.content[0].text.strip()
-            # Strip markdown fencing if present
-            if "```" in text:
-                text = re.sub(r"^```[a-z]*\n?", "", text, flags=re.MULTILINE)
-                text = text.replace("```", "").strip()
-            intel = json.loads(text)
-            all_intel.extend(intel)
-            log(f"  Batch {i // batch_size + 1}: extracted {len(intel)} items "
-                f"({resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out)")
-        except json.JSONDecodeError as e:
-            log(f"  JSON parse error batch {i // batch_size + 1}: {e}")
-        except Exception as e:
-            log(f"  Extraction error batch {i // batch_size + 1}: {e}")
-        time.sleep(0.8)
-
-    log(f"Total extracted: {len(all_intel)} intel items")
-    return all_intel
+# (moved to pipeline/research_news/nodes/extract_intel.py + ai/prompts/research_news.py
+#  — routed through ai_client.run_text() instead of a raw anthropic.Anthropic() call)
 
 
 def _format_article_for_extraction(a):
@@ -835,42 +747,6 @@ def run_new_source_sweep() -> None:
 
 # ── GAP 1 FIX: PK/PD queue processor ─────────────────────────────────────────
 
-PKPD_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
-
-PKPD_EXTRACTION_PROMPT = """\
-Extract PK/PD parameters from this abstract. Return JSON only — no markdown, no explanation.
-Use null for any field not mentioned. Confidence should reflect how clearly the value appears
-(1.0 = explicit numeric in results section, 0.5 = approximate or inferred, 0.0 = not found).
-
-{
-  "half_life_h": null,
-  "half_life_unit": null,
-  "cmax_value": null,
-  "cmax_unit": null,
-  "auc_value": null,
-  "auc_unit": null,
-  "bioavailability_pct": null,
-  "vd_value": null,
-  "vd_unit": null,
-  "clearance_value": null,
-  "clearance_unit": null,
-  "route": null,
-  "species": null,
-  "confidence": 0.0
-}
-
-Rules:
-- half_life_unit: use "h" for hours, "d" for days, "wk" for weeks
-- route: MUST be exactly ONE of: "SC", "IV", "oral", or null — never a combination like "SC/IV"
-  If multiple routes are studied, pick the PRIMARY route or null
-- species: "human", "mouse", "monkey", "rat", or null
-- If half_life_h is given in days in the abstract, convert to hours (multiply by 24) and set half_life_unit="h"
-- Only extract values explicitly stated — do not infer or estimate
-- confidence above 0.5 means the abstract explicitly reports the parameter with a numeric value
-
-Abstract:
-{abstract_text}"""
-
 
 def fetch_pubmed_abstract(pmid: str, timeout: int = 10) -> str:
     """
@@ -901,70 +777,51 @@ def extract_pk_with_claude(abstract_text: str) -> dict:
 
     # Truncate to ~4000 chars to keep costs minimal
     abstract_trimmed = abstract_text[:4000]
+    prompt = _p_pkpd.PROMPT_TEMPLATE.format(abstract_text=abstract_trimmed)
 
-    prompt = PKPD_EXTRACTION_PROMPT.replace("{abstract_text}", abstract_trimmed)
-
-    try:
-        resp = client.messages.create(
-            model=PKPD_CLAUDE_MODEL,
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
-
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-
-        parsed = json.loads(raw)
-        confidence = float(parsed.get("confidence", 0.0))
-
-        if confidence <= 0.5:
-            return {}
-
-        # Build output dict — only non-null fields that map to db columns
-        result = {}
-
-        if parsed.get("half_life_h") is not None:
-            result["half_life_hours"] = float(parsed["half_life_h"])
-
-        if parsed.get("bioavailability_pct") is not None:
-            result["bioavailability_pct"] = float(parsed["bioavailability_pct"])
-
-        if parsed.get("cmax_value") is not None:
-            result["cmax_ng_ml"] = float(parsed["cmax_value"])
-
-        if parsed.get("auc_value") is not None:
-            result["auc_inf_ng_hr_ml"] = float(parsed["auc_value"])
-
-        if parsed.get("vd_value") is not None:
-            result["volume_distribution_l"] = float(parsed["vd_value"])
-
-        if parsed.get("clearance_value") is not None:
-            result["clearance_ml_hr_kg"] = float(parsed["clearance_value"])
-
-        # dose_route is the column name in drug_pk_parameters (not "route")
-        # Only allow exact values: SC, IV, oral — reject combined strings like "SC/IV"
-        route_val = str(parsed.get("route") or "").strip()
-        if route_val in ("SC", "IV", "oral"):
-            result["dose_route"] = route_val
-
-        # species is not a column in drug_pk_parameters — embed in notes instead
-        if parsed.get("species"):
-            result["_species"] = str(parsed["species"])
-
-        result["_confidence"] = confidence  # internal — not written to db column
-        return result
-
-    except json.JSONDecodeError as exc:
-        log(f"    Claude PK extraction: JSON parse error — {exc}")
+    run = ai_client.run_json(_p_pkpd.PKPD_CFG, prompt)
+    if not run or not run.ok:
+        log("    Claude PK extraction: call or parse failed")
         return {}
-    except Exception as exc:
-        log(f"    Claude PK extraction error: {exc}")
+
+    parsed = run.data
+    confidence = float(parsed.get("confidence", 0.0))
+    if confidence <= 0.5:
         return {}
+
+    # Build output dict — only non-null fields that map to db columns
+    result = {}
+
+    if parsed.get("half_life_h") is not None:
+        result["half_life_hours"] = float(parsed["half_life_h"])
+
+    if parsed.get("bioavailability_pct") is not None:
+        result["bioavailability_pct"] = float(parsed["bioavailability_pct"])
+
+    if parsed.get("cmax_value") is not None:
+        result["cmax_ng_ml"] = float(parsed["cmax_value"])
+
+    if parsed.get("auc_value") is not None:
+        result["auc_inf_ng_hr_ml"] = float(parsed["auc_value"])
+
+    if parsed.get("vd_value") is not None:
+        result["volume_distribution_l"] = float(parsed["vd_value"])
+
+    if parsed.get("clearance_value") is not None:
+        result["clearance_ml_hr_kg"] = float(parsed["clearance_value"])
+
+    # dose_route is the column name in drug_pk_parameters (not "route")
+    # Only allow exact values: SC, IV, oral — reject combined strings like "SC/IV"
+    route_val = str(parsed.get("route") or "").strip()
+    if route_val in ("SC", "IV", "oral"):
+        result["dose_route"] = route_val
+
+    # species is not a column in drug_pk_parameters — embed in notes instead
+    if parsed.get("species"):
+        result["_species"] = str(parsed["species"])
+
+    result["_confidence"] = confidence  # internal — not written to db column
+    return result
 
 
 def process_pkpd_queue() -> int:
@@ -1466,27 +1323,14 @@ if __name__ == "__main__":
         except Exception as e:
             log(f"CompanyIdentityResolver init failed, falling back to company_map: {e}")
 
-    log("--- Phase 1/5: Fetching RSS feeds ---")
-    articles = fetch_feeds(hours_back=48)
-    log("--- Phase 2/5: Filtering for focus-area relevance ---")
-    relevant = filter_relevant(articles)
+    log("--- Phases 1-5: News fetch -> filter -> dedup -> extract -> write (LangGraph) ---")
+    from pipeline.research_news.graph import build_research_news_graph
+    from pipeline.research_news.state import ResearchNewsState
 
-    if not relevant:
-        log("No relevant articles found — done.")
-    else:
-        log("--- Phase 3/5: Deduplicating against Supabase ---")
-        existing_urls = get_existing_urls()
-        new_articles = [a for a in relevant if a["url"] not in existing_urls]
-        log(f"New (not in Supabase): {len(new_articles)} articles")
-
-        if new_articles:
-            log("--- Phase 4/5: Enriching with full text ---")
-            # Enrich high-priority articles with full body text before extraction
-            enrich_with_full_text(new_articles, max_fetches=15)
-            log("--- Phase 5/5: Extracting intel + writing to Supabase ---")
-            intel = extract_intel(new_articles)
-            if intel:
-                write_to_supabase(intel, company_map=company_map, resolver=resolver)
+    news_state = ResearchNewsState(hours_back=48, company_map=company_map, resolver=resolver)
+    news_app = build_research_news_graph()
+    news_result = news_app.invoke(news_state)
+    log(f"News pipeline nodes completed: {', '.join(news_result.nodes_completed)}")
 
     # Phase 6: CT.gov + EDGAR sweep — runs unconditionally (independent of RSS results)
     run_new_source_sweep()

@@ -7,9 +7,16 @@ meridian_today.html to GitHub Pages.
 Runs 6:30 AM ET Mon–Sat (10:30 UTC).
 """
 
-import os, json, datetime, base64, re, time, hashlib
+import os, sys, json, datetime, base64, re, time, hashlib
 import requests
-import anthropic
+
+# scripts/ root must be importable for ai.*, pipeline.* (this file's own
+# directory is already on sys.path when run directly).
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+import ai.client as ai_client  # noqa: E402
 
 # Patient intelligence context (co-equal intelligence layer)
 try:
@@ -33,7 +40,7 @@ GITHUB_REPO       = os.environ.get("GITHUB_REPO", "kyleklaassen-dev/bd-dashboard
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaG50eW9mcHR2ZmhtdGNod2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYxMTIsImV4cCI6MjA5NDYxMjExMn0.USGvaw5o9jgvJcpRYCADTgXDi7pF2v97qQsyIoyaP5g")
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
@@ -1533,25 +1540,20 @@ def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
     )
     log("Pass 1 — generating editorial plan (Sonnet)…")
     log(f"Pass 1 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
-    try:
-        resp = client.messages.create(
-            model      = "claude-sonnet-4-6",
-            max_tokens = 1500,
-            system     = SYSTEM_PROMPT,
-            messages   = [{"role": "user", "content": prompt}],
-        )
-    except Exception as api_err:
-        log(f"Pass 1 API error: {type(api_err).__name__}: {api_err}")
-        raise
-    raw = resp.content[0].text.strip()
-    log(f"Editorial plan: {resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out")
 
-    # Parse JSON — strip markdown fencing if present
-    cleaned = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE).replace("```", "").strip()
-    try:
-        plan = json.loads(cleaned)
-    except json.JSONDecodeError:
+    import ai.client as ai_client
+    from ai.client import PromptConfig
+    cfg = PromptConfig(name="meridian_plan", system=SYSTEM_PROMPT, model="claude-sonnet-4-6", max_tokens=1500)
+    run = ai_client.run_json(cfg, prompt)
+    if not run:
+        raise RuntimeError("Pass 1 (editorial plan) returned no result — API call failed")
+    log(f"Editorial plan: {run.tokens_in:,} in / {run.tokens_out:,} out")
+
+    if run.ok:
+        plan = run.data
+    else:
         log("Plan JSON parse failed — using raw text")
+        raw = run.raw_text.strip()
         plan = {"thesis": raw, "sections": ["Mechanism Intelligence", "BD & Deal Watch", "Catalyst Watch"]}
     return plan
 
@@ -1598,10 +1600,17 @@ def format_plan_block(plan):
     return "\n".join(lines)
 
 
-def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
-                  recent_issues, company_signals, trials,
-                  graph_active_in=None, graph_targets=None, graph_competes=None,
-                  catalyst_calendar_events=None, bd_priority_data=None):
+def build_content_blocks(intel, deals, catalysts, drugs, companies, ailux_positions,
+                         recent_issues, company_signals, trials,
+                         graph_active_in=None, graph_targets=None, graph_competes=None,
+                         catalyst_calendar_events=None, bd_priority_data=None):
+    """
+    Phase A — assemble every formatted prompt block shared by both LLM passes
+    (editorial plan + full draft) from the fetched Supabase context.
+
+    Self-contained: depends only on its arguments, not on pipeline state —
+    callable from the LangGraph load_context node or generate_html() directly.
+    """
     now = datetime.datetime.utcnow()
     date_long     = now.strftime("%A, %B %-d, %Y")
     week_num      = now.isocalendar()[1]
@@ -1624,71 +1633,64 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     patient_stats = fetch_patient_intelligence_stats()
     patient_stats_block = build_patient_stats_block(patient_stats)
 
-    intel_block            = build_intel_block(enriched_intel)
-    deals_block            = build_deals_block(deals)
-    catalysts_block        = build_catalysts_block(catalysts)
-    ailux_block            = build_ailux_block(ailux_positions)
-    prior_block            = build_prior_coverage_block(recent_issues)
-    signals_block          = build_company_signals_block(company_signals)
-    trials_block           = build_trials_block(trials)
-    graph_block            = build_graph_block(
-        graph_active_in or {},
-        graph_targets   or {},
-        graph_competes  or [],
-    )
-    catalyst_calendar_block = build_catalyst_calendar_block(catalyst_calendar_events or [])
-    bd_priority_block       = build_bd_priority_block(bd_priority_data or {})
+    return {
+        "date_long":               date_long,
+        "date_dateline":           date_dateline,
+        "enriched_intel":          enriched_intel,
+        "patient_context_block":   patient_context or "(No patient intelligence context available)",
+        "patient_stats_block":     patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
+        "intel_block":             build_intel_block(enriched_intel),
+        "deals_block":             build_deals_block(deals),
+        "catalysts_block":         build_catalysts_block(catalysts),
+        "ailux_block":             build_ailux_block(ailux_positions),
+        "prior_block":             build_prior_coverage_block(recent_issues),
+        "signals_block":           build_company_signals_block(company_signals),
+        "trials_block":            build_trials_block(trials),
+        "graph_block":             build_graph_block(graph_active_in or {}, graph_targets or {}, graph_competes or []),
+        "catalyst_calendar_block": build_catalyst_calendar_block(catalyst_calendar_events or []),
+        "bd_priority_block":       build_bd_priority_block(bd_priority_data or {}),
+    }
 
-    # Pass 1: editorial plan — includes company signals + graph for landscape context
-    plan = generate_editorial_plan(date_long, intel_block, deals_block,
-                                   ailux_block, prior_block, signals_block,
-                                   graph_block=graph_block,
-                                   patient_context_block=patient_context,
-                                   patient_stats_block=patient_stats_block,
-                                   catalyst_calendar_block=catalyst_calendar_block,
-                                   bd_priority_block=bd_priority_block)
-    plan_block = format_plan_block(plan)
 
-    # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
-    # This closes the editorial feedback gap: the plan's editorial judgments
-    # (what matters, what is noise, what connections exist) are now queryable.
-    _plan_intel_ids  = [it["id"] for it in intel if it.get("id")]
-    _plan_company_ids = _extract_company_ids_from_plan(plan, intel)
-    _content_fingerprint = _compute_content_fingerprint(_plan_intel_ids, _plan_company_ids)
-    log(f"Pass 1 plan persisted: {len(_plan_company_ids)} companies · fingerprint={_content_fingerprint[:12]}…")
+def generate_draft(blocks: dict, plan_block: str, drugs: dict, companies: dict) -> str:
+    """
+    Phase C — Pass 2: full draft. Builds the DRAFT_PROMPT from `blocks` + the
+    Pass 1 plan_block, calls Claude, and runs all post-draft processing
+    (fence stripping, first-mention links, fact-check audit, feedback widget).
 
-    # Pass 2: full draft
+    Routed through ai_client.run_text() — see SYSTEM_PROMPT note in
+    pipeline/write_meridian/nodes/generate_draft.py for why run_text (not
+    run_json): the response is raw HTML, not JSON.
+    """
+    import ai.client as ai_client
+    from ai.client import PromptConfig
+
     prompt = DRAFT_PROMPT.format(
-        date_long               = date_long,
-        date_dateline           = date_dateline,
+        date_long               = blocks["date_long"],
+        date_dateline           = blocks["date_dateline"],
         plan_block              = plan_block,
-        intel_block             = intel_block,
-        deals_block             = deals_block,
-        catalysts_block         = catalysts_block,
-        catalyst_calendar_block = catalyst_calendar_block,
-        bd_priority_block       = bd_priority_block,
-        ailux_block             = ailux_block,
-        signals_block           = signals_block,
-        trials_block            = trials_block,
-        graph_block             = graph_block,
-        patient_context_block   = patient_context or "(No patient intelligence context available)",
-        patient_stats_block     = patient_stats_block or "(Patient population stats not available — v65 migration may be pending)",
+        intel_block             = blocks["intel_block"],
+        deals_block             = blocks["deals_block"],
+        catalysts_block         = blocks["catalysts_block"],
+        catalyst_calendar_block = blocks["catalyst_calendar_block"],
+        bd_priority_block       = blocks["bd_priority_block"],
+        ailux_block             = blocks["ailux_block"],
+        signals_block           = blocks["signals_block"],
+        trials_block            = blocks["trials_block"],
+        graph_block             = blocks["graph_block"],
+        patient_context_block   = blocks["patient_context_block"],
+        patient_stats_block     = blocks["patient_stats_block"],
     )
 
     log("Pass 2 — generating full Meridian draft (Sonnet)…")
     log(f"Pass 2 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
-    try:
-        resp = client.messages.create(
-            model      = "claude-sonnet-4-6",
-            max_tokens = 16000,
-            system     = SYSTEM_PROMPT,
-            messages   = [{"role": "user", "content": prompt}],
-        )
-    except Exception as api_err:
-        log(f"Pass 2 API error: {type(api_err).__name__}: {api_err}")
-        raise
-    html = resp.content[0].text.strip()
-    log(f"Full draft: {resp.usage.input_tokens:,} in / {resp.usage.output_tokens:,} out → {len(html):,} chars")
+
+    cfg = PromptConfig(name="meridian_draft", system=SYSTEM_PROMPT, model="claude-sonnet-4-6", max_tokens=16000)
+    html = ai_client.run_text(cfg, prompt, timeout=300.0)
+    if not html:
+        raise RuntimeError("Pass 2 (draft) returned no text — API call failed")
+    html = html.strip()
+    log(f"Full draft: {len(html):,} chars")
 
     # Strip markdown fencing if model wraps it
     if "```" in html:
@@ -1711,6 +1713,46 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
 
     # In-issue reader feedback widget (issue-tab only; writes to meridian_feedback).
     html = inject_feedback_widget(html, datetime.datetime.utcnow().strftime("%Y-%m-%d"))
+
+    return html
+
+
+def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
+                  recent_issues, company_signals, trials,
+                  graph_active_in=None, graph_targets=None, graph_competes=None,
+                  catalyst_calendar_events=None, bd_priority_data=None):
+    """
+    Orchestrator — runs build_content_blocks -> Pass 1 (plan) -> Pass 2 (draft)
+    in sequence. Kept as the non-LangGraph fallback path; the LangGraph runtime
+    (pipeline.write_meridian.graph) calls the same three phases as separate
+    nodes so failures route explicitly instead of raising mid-run.
+    """
+    blocks = build_content_blocks(
+        intel, deals, catalysts, drugs, companies, ailux_positions,
+        recent_issues, company_signals, trials,
+        graph_active_in=graph_active_in, graph_targets=graph_targets, graph_competes=graph_competes,
+        catalyst_calendar_events=catalyst_calendar_events, bd_priority_data=bd_priority_data,
+    )
+
+    # Pass 1: editorial plan — includes company signals + graph for landscape context
+    plan = generate_editorial_plan(blocks["date_long"], blocks["intel_block"], blocks["deals_block"],
+                                   blocks["ailux_block"], blocks["prior_block"], blocks["signals_block"],
+                                   graph_block=blocks["graph_block"],
+                                   patient_context_block=blocks["patient_context_block"],
+                                   patient_stats_block=blocks["patient_stats_block"],
+                                   catalyst_calendar_block=blocks["catalyst_calendar_block"],
+                                   bd_priority_block=blocks["bd_priority_block"])
+    plan_block = format_plan_block(plan)
+
+    # ── Persist Pass 1 plan before Pass 2 so it is never lost ────────────────
+    # This closes the editorial feedback gap: the plan's editorial judgments
+    # (what matters, what is noise, what connections exist) are now queryable.
+    _plan_intel_ids  = [it["id"] for it in intel if it.get("id")]
+    _plan_company_ids = _extract_company_ids_from_plan(plan, intel)
+    _content_fingerprint = _compute_content_fingerprint(_plan_intel_ids, _plan_company_ids)
+    log(f"Pass 1 plan persisted: {len(_plan_company_ids)} companies · fingerprint={_content_fingerprint[:12]}…")
+
+    html = generate_draft(blocks, plan_block, drugs, companies)
 
     return html, plan, _plan_company_ids, _content_fingerprint
 
@@ -2200,105 +2242,16 @@ if __name__ == "__main__":
         except Exception as _e:
             log(f"Same-day guard check failed (continuing to generate): {_e}")
 
-    # Close the trust loop: feed content-disconfirmed claims (content_confirms_claim
-    # = false, set by the Content Verifier) into the writer's system prompt so they
-    # are withheld from the Issue — claim-level, so real molecules keep their facts.
-    SYSTEM_PROMPT = SYSTEM_PROMPT + build_verification_cautions()
+    from pipeline.write_meridian.graph import build_write_meridian_graph
+    from pipeline.write_meridian.state import MeridianState
 
-    # Close the editorial loop: feed the reader's own in-issue feedback (👍/👎 + notes
-    # from meridian_feedback) back into the writer so each issue responds to real taste.
-    SYSTEM_PROMPT = SYSTEM_PROMPT + build_reader_feedback_block()
+    meridian_state = MeridianState(today=_today)
+    meridian_app   = build_write_meridian_graph()
+    result         = meridian_app.invoke(meridian_state)
 
-    # Fetch all data sources — the full dashboard state feeds the Meridian
-    intel                              = fetch_recent_intel(hours_back=48)
-    deals                              = fetch_recent_deals(days_back=7)
-    catalysts                          = fetch_upcoming_catalysts()
-    catalyst_calendar_events           = fetch_catalyst_calendar(days_ahead=365)
-    bd_priority_data                   = fetch_bd_priority_companies()
-    drugs, companies                   = fetch_drug_context()
-    ailux_positions                    = fetch_ailux_position()
-    recent_issues                      = fetch_recent_meridian_issues(n=7)
-    company_signals                    = fetch_company_signals()
-    trials                             = fetch_recent_trials()
-    graph_active_in, graph_targets, graph_competes = fetch_graph_context()
-
-    log(f"Data assembled: {len(intel)} intel · {len(deals)} deals · {len(catalysts)} catalysts · "
-        f"{len(catalyst_calendar_events)} cal events · "
-        f"{len(bd_priority_data.get('scores',[]))} very_high scores · "
-        f"{len(bd_priority_data.get('views',[]))} strategic views · "
-        f"{len(company_signals)} signals · {len(trials)} trials · {len(recent_issues)} prior issues · "
-        f"graph: {sum(len(v) for v in graph_active_in.values())} ACTIVE_IN / "
-        f"{len(graph_targets)} TARGETS / {len(graph_competes)} COMPETES_WITH")
-
-    if not intel:
-        log("No intel found — writing placeholder issue.")
-        html         = (
-            "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>The Meridian</title></head>"
-            "<body><h1 style='color:#1a3f8f;font-family:Georgia,serif'>The Meridian</h1>"
-            f"<p style='font-family:Georgia,serif'>No significant biopharma intelligence collected in the last 48 hours "
-            f"for today, {datetime.datetime.utcnow().strftime('%B %-d, %Y')}. "
-            "Check back tomorrow.</p></body></html>"
-        )
-        plan                = None
-        plan_company_ids    = []
-        content_fingerprint = None
-    else:
-        html, plan, plan_company_ids, content_fingerprint = generate_html(
-            intel, deals, catalysts, drugs, companies, ailux_positions,
-            recent_issues, company_signals, trials,
-            graph_active_in=graph_active_in,
-            graph_targets=graph_targets,
-            graph_competes=graph_competes,
-            catalyst_calendar_events=catalyst_calendar_events,
-            bd_priority_data=bd_priority_data,
-        )
-
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    save_to_supabase(html, intel, today,
-                     plan=plan,
-                     company_ids=plan_company_ids,
-                     content_fingerprint=content_fingerprint)
-
-    # Publish the Issue FIRST. The page deploy is the critical output and must
-    # not be blocked by the optional post-processing below. (Root cause of the
-    # 2026-06-03+ Writer failures: a post-save feedback-loop step raised after the
-    # Issue was already saved to Supabase — which crashed the run BEFORE this
-    # deploy, so meridian_today.html never published and the workflow went red.)
-    deploy_to_github(html)
-
-    # ── Editorial → Enrichment Priority Bump (best-effort) ────────────────────
-    # Companies featured in today's Meridian are the most BD-relevant right now.
-    # Bump their priority_score in research_queue by +10 so the next enrichment
-    # scheduler run picks them up first. Never fail the publish over this.
-    try:
-        if plan_company_ids:
-            bump_editorial_priority(plan_company_ids)
-    except Exception as e:
-        log(f"bump_editorial_priority failed (non-fatal): {e}")
-
-    # ── G4: Catalyst outcome sync (best-effort) ───────────────────────────────
-    # Scan today's intel for confirmed readouts and resolve matching catalysts.
-    try:
-        sync_catalyst_outcomes(plan, intel)
-    except Exception as e:
-        log(f"sync_catalyst_outcomes failed (non-fatal): {e}")
-
-    # ── S3: stamp system_status so the dashboard surfaces the new Issue ───────
-    try:
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/system_status",
-            headers={**SB_HEADERS, "Prefer": "return=minimal"},
-            params={"id": "eq.1"},
-            json={"last_meridian_at": now_iso, "updated_at": now_iso,
-                  "last_pipeline_label": "meridian_write",
-                  "note": "New Meridian Issue published"},
-            timeout=15)
-        log("system_status stamped (meridian_write)")
-    except Exception as e:
-        log(f"system_status stamp failed (non-fatal): {e}")
-
-    # Pre-publish fact-check summary + governance log (what the gate excluded today)
-    fact_check_report()
+    log(f"Meridian pipeline nodes completed: {', '.join(result.nodes_completed)}")
+    if not result.ok:
+        for err in result.errors:
+            log(f"ERROR: {err}")
 
     log("=== Write complete ===")
