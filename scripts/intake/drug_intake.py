@@ -69,81 +69,29 @@ import sys
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-try:
-    import requests
-except ImportError:
-    import urllib.request as _ur, urllib.parse as _up, urllib.error as _ue, json as _rjson
-    class _Resp:
-        def __init__(self, code, body):
-            self.status_code = code
-            self._body = body
-        def json(self):     return _rjson.loads(self._body)
-        @property
-        def text(self):     return self._body.decode() if isinstance(self._body, bytes) else self._body
-    class _Requests:
-        @staticmethod
-        def _call(method, url, headers=None, params=None, json=None, **kw):
-            if params: url += '?' + _up.urlencode(params)
-            data = _rjson.dumps(json).encode() if json else None
-            req  = _ur.Request(url, data=data, headers=headers or {}, method=method)
-            try:
-                with _ur.urlopen(req) as r: return _Resp(r.status, r.read())
-            except _ue.HTTPError as e:      return _Resp(e.code,   e.read())
-        def get(self,  url, **kw): return self._call('GET',  url, **kw)
-        def post(self, url, **kw): return self._call('POST', url, **kw)
-        def patch(self,url, **kw): return self._call('PATCH',url, **kw)
-    requests = _Requests()
+import requests
 
-import anthropic
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-# ── Credential helpers (reuse company_intake pattern) ────────────────────────
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'identity'))
-try:
-    from company_identity_resolver import get_credentials
-except ImportError:
-    def get_credentials():
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-        if not url or not key:
-            # Try workspace files
-            base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            try:
-                with open(os.path.join(base, ".supabase_config")) as f:
-                    for line in f:
-                        if line.startswith("SUPABASE_URL="):
-                            url = line.split("=", 1)[1].strip()
-            except FileNotFoundError:
-                pass
-            try:
-                with open(os.path.join(base, ".supabase_service_key")) as f:
-                    key = f.read().strip()
-            except FileNotFoundError:
-                pass
-        return url, key
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                         # noqa: E402
+import ai.client as ai_client                      # noqa: E402
+from ai.client import PromptConfig                 # noqa: E402
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-SUPABASE_URL, SUPABASE_KEY = get_credentials()
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
-_sb_headers = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=minimal",
-}
+_sb_headers = {**sb_headers(SUPABASE_KEY), "Prefer": "return=minimal"}
 
-_ai: anthropic.Anthropic | None = None
-
-def _get_ai() -> anthropic.Anthropic:
-    global _ai
-    if _ai is None:
-        key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not key:
-            raise SystemExit(
-                "ERROR: ANTHROPIC_API_KEY not set.\n"
-                "export ANTHROPIC_API_KEY=sk-ant-..."
-            )
-        _ai = anthropic.Anthropic(api_key=key)
-    return _ai
+_DRUG_RESEARCH_CFG = PromptConfig(
+    name="drug_intake_research",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=8192,
+)
 
 
 # ── Active Meridian areas ─────────────────────────────────────────────────────
@@ -176,20 +124,11 @@ def resolve_drug_identity(drug_name: str, company_hint: str | None = None) -> di
         return {"resolution_type": "candidate_new", "drug_id": None, "drug_row": None, "match_score": 0.0, "candidates": []}
 
     # Fetch all drugs for resolution (id, name, display_name, brand_name, aliases, company_id)
-    try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/drugs",
-            headers={**_sb_headers, "Prefer": ""},
-            params={
-                "select": "id,name,display_name,brand_name,aliases,company_id,target,stage,modality,cls,overlap,catalog_category",
-                "limit":  "2000",
-            },
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            return {"resolution_type": "candidate_new", "drug_id": None, "drug_row": None, "match_score": 0.0, "candidates": []}
-        all_drugs = resp.json()
-    except Exception:
+    all_drugs = _db.sb_get("drugs", {
+        "select": "id,name,display_name,brand_name,aliases,company_id,target,stage,modality,cls,overlap,catalog_category",
+        "limit":  "2000",
+    })
+    if not all_drugs:
         return {"resolution_type": "candidate_new", "drug_id": None, "drug_row": None, "match_score": 0.0, "candidates": []}
 
     drug_name_lower = drug_name.lower().strip()
@@ -297,16 +236,7 @@ def fetch_graph_state(drug_id: str | None, company_id: str | None) -> dict:
         return state
 
     def _get(table: str, params: dict) -> list:
-        try:
-            r = requests.get(
-                f"{SUPABASE_URL}/rest/v1/{table}",
-                headers={**_sb_headers, "Prefer": ""},
-                params={**params, "limit": "200"},
-                timeout=10,
-            )
-            return r.json() if r.status_code == 200 else []
-        except Exception:
-            return []
+        return _db.sb_get(table, {**params, "limit": "200"})
 
     if drug_id:
         # Drug row
@@ -451,42 +381,25 @@ def research_drug(
         company_context=company_context,
     )
 
-    _model = os.environ.get("INTAKE_MODEL", "claude-sonnet-4-6")
+    _model      = os.environ.get("INTAKE_MODEL", "claude-sonnet-4-6")
+    _max_tokens = int(os.environ.get("INTAKE_MAX_TOKENS", "8192"))
 
     if verbose:
         print(f"  → Calling Claude ({_model}) for drug research on '{drug_name}'...")
 
-    try:
-        _max_tokens = int(os.environ.get("INTAKE_MAX_TOKENS", "8192"))
-        resp = _get_ai().messages.create(
-            model=_model,
-            max_tokens=_max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
-
-        # Strip code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-
-        data = json.loads(raw)
-        if verbose:
-            drug_info = data.get("drug", {})
-            print(f"  → Research complete. Target: {drug_info.get('target', '?')} | "
-                  f"Stage: {drug_info.get('stage', '?')} | "
-                  f"Company: {drug_info.get('company', '?')}")
-        return data
-
-    except json.JSONDecodeError as e:
-        print(f"  ⚠️  JSON parse error: {e}")
-        print(f"  Raw response (first 500 chars): {raw[:500]}")
+    result = ai_client.run_json(_DRUG_RESEARCH_CFG.override(model=_model, max_tokens=_max_tokens), prompt)
+    if not result.ok:
+        print(f"  ❌ Research call failed or returned invalid JSON")
+        print(f"  Raw response (first 500 chars): {result.raw_text[:500]}")
         return None
-    except Exception as e:
-        print(f"  ❌ Research call failed: {e}")
-        return None
+
+    data = result.data
+    if verbose:
+        drug_info = data.get("drug", {})
+        print(f"  → Research complete. Target: {drug_info.get('target', '?')} | "
+              f"Stage: {drug_info.get('stage', '?')} | "
+              f"Company: {drug_info.get('company', '?')}")
+    return data
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -909,16 +822,7 @@ def check_combo_components(
         parts = drug_id.split("-")
         if len(parts) >= 2:
             # Fetch all drug ids for matching
-            try:
-                resp = requests.get(
-                    f"{SUPABASE_URL}/rest/v1/drugs",
-                    headers={**_sb_headers, "Prefer": ""},
-                    params={"select": "id,name", "limit": "2000"},
-                    timeout=10,
-                )
-                known = {d["id"]: d["name"] for d in (resp.json() if resp.status_code == 200 else [])}
-            except Exception:
-                known = {}
+            known = {d["id"]: d["name"] for d in _db.sb_get("drugs", {"select": "id,name", "limit": "2000"})}
 
             matched_parts = [p for p in parts if p in known]
             if len(matched_parts) >= 2:
@@ -947,29 +851,15 @@ def check_combo_components(
         component_clean = component.strip().split("(")[0].strip()
 
         for area_id in area_ids:
-            try:
-                resp = requests.get(
-                    f"{SUPABASE_URL}/rest/v1/drug_areas",
-                    headers={**_sb_headers, "Prefer": ""},
-                    params={"drug_id": f"eq.{component_clean}", "area_id": f"eq.{area_id}", "select": "drug_id"},
-                    timeout=8,
-                )
-                rows = resp.json() if resp.status_code == 200 else []
-            except Exception:
-                rows = []
+            rows = _db.sb_get("drug_areas", {
+                "drug_id": f"eq.{component_clean}", "area_id": f"eq.{area_id}", "select": "drug_id",
+            })
 
             if not rows:
                 # Check if component drug even exists
-                try:
-                    drug_exists = requests.get(
-                        f"{SUPABASE_URL}/rest/v1/drugs",
-                        headers={**_sb_headers, "Prefer": ""},
-                        params={"id": f"eq.{component_clean}", "select": "id,name,stage"},
-                        timeout=8,
-                    )
-                    exists_rows = drug_exists.json() if drug_exists.status_code == 200 else []
-                except Exception:
-                    exists_rows = []
+                exists_rows = _db.sb_get("drugs", {
+                    "id": f"eq.{component_clean}", "select": "id,name,stage",
+                })
 
                 if not exists_rows:
                     warnings.append({
@@ -1443,24 +1333,14 @@ def _check_existing_drug_queue_rows(drug_name_or_id: str, area_ids: list[str]) -
     if not drug_name_or_id or not area_ids:
         return set()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/discovery_queue",
-            headers={**_sb_headers, "Prefer": ""},
-            params={
-                "drug_name":     f"ilike.{drug_name_or_id}",
-                "status":        "not.eq.rejected",
-                "discovered_at": f"gte.{cutoff}",
-                "select":        "area_id",
-                "source":        "eq.user_intake",
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            return {row["area_id"] for row in resp.json() if row.get("area_id")}
-    except Exception:
-        pass
-    return set()
+    rows = _db.sb_get("discovery_queue", {
+        "drug_name":     f"ilike.{drug_name_or_id}",
+        "status":        "not.eq.rejected",
+        "discovered_at": f"gte.{cutoff}",
+        "select":        "area_id",
+        "source":        "eq.user_intake",
+    })
+    return {row["area_id"] for row in rows if row.get("area_id")}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

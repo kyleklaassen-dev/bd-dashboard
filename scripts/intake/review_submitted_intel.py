@@ -30,51 +30,41 @@ import requests
 # ── Config ────────────────────────────────────────────────────────────────────
 BASE_DIR = pathlib.Path(__file__).parent.parent
 
-def _load_key(env_var: str, file_name: Optional[str] = None) -> str:
-    val = os.environ.get(env_var, "").strip()
-    if val:
-        return val
-    if file_name:
-        p = BASE_DIR / file_name
-        if p.exists():
-            return p.read_text().strip()
-    sys.exit(f"ERROR: {env_var} not set and {file_name} not found.")
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SERVICE_KEY   = _load_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
-ANTHROPIC_KEY = _load_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
-CLAUDE_MODEL  = "claude-opus-4-6"
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                         # noqa: E402
+import ai.client as ai_client                      # noqa: E402
+from ai.client import PromptConfig                 # noqa: E402
 
-SB_HEADERS = {
-    "apikey":        SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_KEY)
+
+CLAUDE_MODEL = "claude-opus-4-6"
+
+SB_HEADERS = {**sb_headers(SUPABASE_KEY), "Prefer": "return=representation"}
+
+_EXTRACTION_CFG = PromptConfig(
+    name="submitted_intel_extraction",
+    system="",          # SYSTEM_PROMPT passed per-call via system_override
+    model=CLAUDE_MODEL,
+    max_tokens=1500,
+)
+_DEEP_EXTRACTION_CFG = PromptConfig(
+    name="submitted_intel_deep_extraction",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=3000,
+)
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
-def sb_get(table: str, params: dict) -> list:
-    # Use requests params= so values are properly URL-encoded
-    # (Supabase uses special chars in filter values, e.g. URLs with & and =)
-    from urllib.parse import quote
-    qs_parts = []
-    for k, v in params.items():
-        # Supabase operators like eq./neq. must stay unencoded in the VALUE prefix;
-        # only the actual filter value portion needs encoding.
-        # Strategy: encode everything, but Supabase column names & operators are safe ASCII.
-        qs_parts.append(f"{k}={quote(str(v), safe='.,:')}")
-    qs = "&".join(qs_parts)
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{qs}", headers=SB_HEADERS, timeout=20)
-    r.raise_for_status()
-    return r.json()
+sb_get = _db.sb_get
 
-def sb_patch(table: str, row_id: str, payload: dict) -> dict:
-    r = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/{table}?id=eq.{row_id}",
-        headers=SB_HEADERS, json=payload, timeout=20
-    )
-    r.raise_for_status()
-    return r.json()
+def sb_patch(table: str, row_id: str, payload: dict) -> bool:
+    return _db.sb_patch(table, payload, {"id": f"eq.{row_id}"})
 
 def sb_list(table: str, select: str = "*") -> list:
     r = requests.get(
@@ -298,36 +288,11 @@ def call_claude(url: str, text: str, page_content: str) -> Optional[dict]:
         text=text or "(none)",
         page_content=page_content[:3000] if page_content else "(not fetched)"
     )
-    payload = {
-        "model": CLAUDE_MODEL,
-        "max_tokens": 1500,
-        "system": SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": prompt}]
-    }
-    try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": ANTHROPIC_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json=payload, timeout=60
-        )
-        resp.raise_for_status()
-        raw = resp.json()["content"][0]["text"].strip()
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        print(f"    ✗ Claude returned non-JSON: {e}")
+    result = ai_client.run_json(_EXTRACTION_CFG, prompt, system_override=SYSTEM_PROMPT)
+    if not result.ok:
+        print(f"    ✗ Claude extraction failed or returned unparseable JSON")
         return None
-    except Exception as e:
-        print(f"    ✗ Claude API error: {e}")
-        return None
+    return result.data
 
 # ── Deep Intelligence Execution ──────────────────────────────────────────────
 DEEP_EXTRACTION_PROMPT = """You are a pharmaceutical intelligence analyst for Ailux Biotherapeutics.
@@ -430,42 +395,27 @@ def deep_execute_intelligence(row: dict, extraction: dict, url: str, text: str, 
         text=text or "(none)",
         page_content=page_content[:4000] if page_content else "(not fetched)"
     )
-    try:
-        import anthropic as _anth
-        c = _anth.Anthropic(api_key=ANTHROPIC_KEY)
-        resp = c.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=3000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = resp.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"): raw = raw[4:]
-        deep = json.loads(raw)
-    except Exception as e:
-        print(f"  │  Deep extraction failed: {e}")
+    result = ai_client.run_json(_DEEP_EXTRACTION_CFG, prompt)
+    if not result.ok:
+        print(f"  │  Deep extraction failed or returned unparseable JSON")
         return actions
+    deep = result.data
 
-    svc_headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=minimal"
-    }
+    # filter_qs below is always a single "col=op.val" condition — translate to
+    # the {col: "op.val"} match_params dict that _db's CRUD helpers expect.
+    def _parse_filter(filter_qs):
+        col, _, val = filter_qs.partition("=")
+        return {col: val}
 
     def upsert(table, data):
-        r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=svc_headers, json=data)
-        return r.status_code in (200, 201)
+        return bool(_db.sb_upsert(table, data))
 
     def patch(table, filter_qs, data):
-        r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}", headers=svc_headers, json=data)
-        return r.status_code in (200, 204)
+        return _db.sb_patch(table, data, _parse_filter(filter_qs))
 
     def exists(table, filter_qs):
-        h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}&select=id&limit=1", headers=h)
-        return bool(r.json()) if r.status_code == 200 else False
+        rows = _db.sb_get(table, {**_parse_filter(filter_qs), "select": "id", "limit": "1"})
+        return bool(rows)
 
     # ── 1. Companies ────────────────────────────────────────────────────────────
     for co in deep.get("companies", []):

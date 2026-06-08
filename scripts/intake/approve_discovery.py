@@ -33,9 +33,14 @@ import datetime
 import argparse
 import requests
 
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from _common import load_credentials, sb_headers  # noqa: E402
+
 # Graph consistency: import ACTIVE_IN edge writer
 # (write_active_in_edge must be called after every company_areas write)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from company_intake import write_active_in_edge as _write_active_in_edge
 except ImportError:
@@ -45,33 +50,12 @@ except ImportError:
         return False
 
 # ── Supabase credentials ──────────────────────────────────────────────────────
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    # Try loading from local files (for local dev)
-    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    try:
-        SUPABASE_URL = open(os.path.join(_base, ".supabase_config")).read().split("SUPABASE_URL=")[1].split("\n")[0].strip()
-    except Exception:
-        pass
-    try:
-        SUPABASE_KEY = open(os.path.join(_base, ".supabase_service_key")).read().strip()
-    except Exception:
-        pass
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set (env or .supabase_config / .supabase_service_key)")
-    sys.exit(1)
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+SUPABASE_URL = SUPABASE_URL.rstrip("/")
 
 TODAY = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+SB_HEADERS = {**sb_headers(SUPABASE_KEY), "Prefer": "return=representation"}
 SB_UPSERT_HEADERS = {**SB_HEADERS, "Prefer": "resolution=merge-duplicates,return=representation"}
 
 

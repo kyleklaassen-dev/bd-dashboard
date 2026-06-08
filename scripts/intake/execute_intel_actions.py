@@ -15,36 +15,31 @@ Usage:
 """
 
 import os, sys, json, argparse, datetime, re
-import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-def _key(f):
-    p = os.path.join(_REPO, f)
-    return open(p).read().strip() if os.path.exists(p) else None
+from _common import load_credentials  # noqa: E402
+import _db                             # noqa: E402
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
-if not SUPABASE_KEY: print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
 NOW = datetime.datetime.utcnow().isoformat()
 
 
+# Thin local wrappers preserving this script's call-site shapes (limit kwarg
+# that always overrides any "limit" in params; bool-returning post/patch with
+# swapped params/payload order vs. _db.sb_patch) on top of shared _db CRUD.
 def sb_get(table, params, limit=200):
-    params = {**params, "limit": str(limit)}
-    r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-    return r.json() if r.status_code == 200 else []
+    return _db.sb_get(table, {**params, "limit": str(limit)})
 
 def sb_post(table, payload):
-    r = requests.post(f"{BASE}/{table}", headers={**SB_H, "Prefer": "return=minimal"},
-                      json=payload, timeout=20)
-    return r.status_code in (200, 201)
+    return _db.sb_post(table, payload) is not None
 
 def sb_patch(table, params, payload):
-    r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=20)
-    return r.status_code in (200, 204)
+    return _db.sb_patch(table, payload, params)
 
 def make_id(name):
     clean = re.sub(r'[^\w\s-]','',name.lower()).strip()

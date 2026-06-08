@@ -29,45 +29,23 @@ import datetime
 from typing import Optional
 
 import requests
-import anthropic
 
-# ── Credential loading ─────────────────────────────────────────────────────────
-# Support both env-var and file-based credentials (same as company_enrichment.py)
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_DIR   = os.path.dirname(_SCRIPT_DIR)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
-def _read_file_key(filename: str) -> Optional[str]:
-    path = os.path.join(_REPO_DIR, filename)
-    if os.path.exists(path):
-        return open(path).read().strip() or None
-    return None
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                         # noqa: E402
+import ai.client as ai_client                      # noqa: E402
+from ai.client import PromptConfig                 # noqa: E402
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_KEY")
-    or _read_file_key(".supabase_service_key")
-    or ""
-)
-ANTHROPIC_KEY = (
-    os.environ.get("ANTHROPIC_API_KEY")
-    or _read_file_key(".anthropic_api_key")
-    or ""
-)
+# ── Credential loading ─────────────────────────────────────────────────────────
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_KEY)
 
-if not SUPABASE_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set and .supabase_service_key not found")
-    sys.exit(1)
-if not ANTHROPIC_KEY:
-    print("ERROR: ANTHROPIC_API_KEY not set and .anthropic_api_key not found")
-    sys.exit(1)
-
-client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-
-SB_H = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-}
+SB_H = sb_headers(SUPABASE_KEY)
 BASE = f"{SUPABASE_URL}/rest/v1"
 NOW_ISO = datetime.datetime.utcnow().isoformat()
 
@@ -78,28 +56,19 @@ def log(msg: str):
 
 
 # ── Supabase helpers ───────────────────────────────────────────────────────────
-def sb_get(table: str, params: dict) -> list:
-    try:
-        r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-        return r.json() if r.status_code == 200 else []
-    except Exception as e:
-        log(f"[sb_get {table}] {e}")
-        return []
+sb_get = _db.sb_get
 
 
 def sb_patch(table: str, params: dict, payload: dict) -> bool:
-    try:
-        r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=20)
-        return r.status_code in (200, 204)
-    except Exception as e:
-        log(f"[sb_patch {table}] {e}")
-        return False
+    return _db.sb_patch(table, payload, params)
 
 
 def sb_post(table: str, payload, prefer: str = "return=minimal") -> bool:
+    """_db.sb_post always sends Prefer: return=representation; make the request
+    directly when the caller wants the smaller return=minimal response."""
     try:
-        h = {**SB_H, "Prefer": prefer}
-        r = requests.post(f"{BASE}/{table}", headers=h, json=payload, timeout=20)
+        r = requests.post(f"{BASE}/{table}", headers={**SB_H, "Prefer": prefer},
+                          json=payload, timeout=20)
         return r.status_code in (200, 201)
     except Exception as e:
         log(f"[sb_post {table}] {e}")
@@ -305,6 +274,19 @@ When researching competitor drugs, apply a competitive lens focused on:
 
 Respond only with valid JSON — no markdown, no prose, no code fences."""
 
+_DRUG_ENRICH_CFG = PromptConfig(
+    name="process_queue_drug_enrich",
+    system=_DRUG_ENRICH_SYSTEM,
+    model="claude-sonnet-4-6",
+    max_tokens=1200,
+)
+_PKPD_EXTRACT_CFG = PromptConfig(
+    name="process_queue_pkpd_extract",
+    system="",
+    model="claude-haiku-4-5-20251001",
+    max_tokens=400,
+)
+
 
 def enrich_drug_fields(drug_id: str, drug_name: str, context: str) -> dict:
     """Use Claude Sonnet to fill missing drug fields."""
@@ -324,24 +306,11 @@ Return a JSON object with these fields. Use null for any field you cannot determ
   "indication_short": "primary indication(s), e.g. 'UC, CD' or 'TED' or 'Atopic dermatitis'"
 }}"""
 
-    try:
-        msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1200,
-            system=_DRUG_ENRICH_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = msg.content[0].text.strip()
-        # Strip code fences if model wrapped the JSON
-        if "```" in raw:
-            raw = re.sub(r"```(?:json)?", "", raw).strip()
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        log(f"Claude JSON parse error: {e}")
+    result = ai_client.run_json(_DRUG_ENRICH_CFG, prompt)
+    if not result.ok:
+        log("Claude drug-enrichment call failed or returned unparseable JSON")
         return {}
-    except Exception as e:
-        log(f"Claude API error: {e}")
-        return {}
+    return result.data
 
 
 def handle_drug_enrichment(item: dict) -> list:
@@ -462,19 +431,11 @@ Rules:
 Abstract:
 {abstract_text[:2500]}"""
 
-    try:
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=400,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = msg.content[0].text.strip()
-        if "```" in raw:
-            raw = re.sub(r"```(?:json)?", "", raw).strip()
-        return json.loads(raw)
-    except Exception as e:
-        log(f"PK extraction error: {e}")
+    result = ai_client.run_json(_PKPD_EXTRACT_CFG, prompt)
+    if not result.ok:
+        log("PK extraction failed or returned unparseable JSON")
         return {}
+    return result.data
 
 
 def handle_pkpd(item: dict) -> list:
