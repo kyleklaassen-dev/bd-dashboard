@@ -16,8 +16,19 @@ Run:
 import os, re, sys, json, hashlib, argparse
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'narrative'))
-import narrative_gen as ng
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+sys.path.insert(0, os.path.join(_SCRIPTS, 'narrative'))
+
+from _common import load_credentials  # noqa: E402
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
+import narrative_gen as ng  # noqa: E402
+
+_, _, _ANTHROPIC_KEY = load_credentials(require_anthropic=False)
+if _ANTHROPIC_KEY:
+    ai_client.setup(_ANTHROPIC_KEY)
 
 PH = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}
 
@@ -90,14 +101,19 @@ SYSTEM = (
     "number/%/date. Start with exactly "
     "'_Meridian Strategic Brief — interpretation, grounded in the cited facts._'. Under 340 words.")
 
+_BRIEF_CFG = PromptConfig(
+    name="strategic_brief",
+    system=SYSTEM,
+    model="claude-sonnet-4-6",
+    max_tokens=900,
+    temperature=0,
+)
+
 
 def compose(area, atoms):
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
-    r = client.messages.create(model="claude-sonnet-4-6", max_tokens=900, temperature=0,
-        system=SYSTEM, messages=[{"role": "user", "content": f"TARGET: {area.upper()}\n\nFACTS:\n{numbered}\n\nWrite the brief now."}])
-    return r.content[0].text.strip()
+    prompt = f"TARGET: {area.upper()}\n\nFACTS:\n{numbered}\n\nWrite the brief now."
+    return ai_client.run_text(_BRIEF_CFG, prompt).strip()
 
 
 def check(prose, atoms):
@@ -139,7 +155,7 @@ def main():
     print(f"\n=== {args.area.upper()} Strategic Brief — {len(atoms)} atoms ===")
     for i, a in enumerate(atoms):
         print(f"  [{i+1}] {a['claim'][:96]}")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if not _ANTHROPIC_KEY:
         print("\n(no ANTHROPIC_API_KEY — atoms only)"); return
 
     prose = probs = None

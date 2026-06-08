@@ -38,21 +38,29 @@ Usage:
 import os, sys, json, hashlib, re, datetime, time, argparse, traceback
 import urllib.request, urllib.error, urllib.parse
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
 # ── Credentials ──────────────────────────────────────────────────────────────
 
-_HERE = Path(__file__).parent.parent
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-def _read_cred(fname: str) -> str:
-    p = _HERE / fname
-    if p.exists():
-        return p.read_text().strip()
-    return os.environ.get(fname.lstrip(".").upper().replace("-","_"), "")
+from _common import load_credentials, log  # noqa: E402
+import _db  # noqa: E402
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
-SUPABASE_URL  = "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY  = _read_cred(".supabase_service_key") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY","")
-ANTHROPIC_KEY = _read_cred(".anthropic_key") or os.environ.get("ANTHROPIC_API_KEY","")
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_KEY = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+if ANTHROPIC_KEY:
+    ai_client.setup(ANTHROPIC_KEY)
+
+_SUMMARY_CFG = PromptConfig(
+    name="homepage_news_summary",
+    system="",
+    model="claude-haiku-4-5-20251001",
+    max_tokens=300,
+)
 
 TODAY_UTC = datetime.datetime.utcnow().date()
 NOW_ISO   = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -121,63 +129,15 @@ WEAK_KEYWORDS = [
     "medtech", "dental", "orthoped", "cardiovasc",  # unless also has strong signal
 ]
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# ── Supabase helpers (sb_get/sb_upsert from _db; sb_update_where → sb_patch) ──
 
-def log(msg: str, indent: int = 0):
-    print("  " * indent + msg, flush=True)
+sb_get = _db.sb_get
+sb_upsert = _db.sb_upsert
 
-# ── Supabase helpers ──────────────────────────────────────────────────────────
-
-def _sb_headers(key: str | None = None) -> dict:
-    k = key or SUPABASE_KEY
-    return {
-        "apikey": k, "Authorization": f"Bearer {k}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
-def sb_get(table: str, params: dict | None = None) -> list:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    if params:
-        url += "?" + "&".join(f"{k}={urllib.parse.quote_plus(str(v))}" for k,v in params.items())
-    req = urllib.request.Request(url, headers=_sb_headers())
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.loads(r.read().decode())
-    except Exception as e:
-        log(f"  ✗ sb_get /{table}: {e}")
-        return []
-
-def sb_upsert(table: str, record: dict, on_conflict: str) -> list | None:
-    url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={on_conflict}"
-    headers = {**_sb_headers(), "Prefer": "resolution=merge-duplicates,return=representation"}
-    body = json.dumps(record).encode()
-    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            raw = r.read().decode()
-            return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        if e.code == 409:
-            return []
-        log(f"  ✗ sb_upsert /{table}: HTTP {e.code} — {err[:200]}")
-        return None
-    except Exception as e:
-        log(f"  ✗ sb_upsert /{table}: {e}")
-        return None
 
 def sb_update_where(table: str, updates: dict, filters: dict) -> None:
     """PATCH rows matching filters."""
-    qs = "&".join(f"{k}={urllib.parse.quote_plus(str(v))}" for k,v in filters.items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    body = json.dumps(updates).encode()
-    req = urllib.request.Request(url, data=body, headers=_sb_headers(), method="PATCH")
-    try:
-        with urllib.request.urlopen(req, timeout=20):
-            pass
-    except Exception as e:
-        log(f"  ✗ sb_update_where /{table}: {e}")
+    _db.sb_patch(table, updates, filters)
 
 # ── Entity watchlist ──────────────────────────────────────────────────────────
 
@@ -470,33 +430,16 @@ Format your response EXACTLY as:
 SUMMARY: <text>
 WHY_IT_MATTERS: <text>"""
 
-    try:
-        payload = json.dumps({
-            "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 300,
-            "messages": [{"role": "user", "content": prompt}]
-        }).encode()
-        req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=payload,
-            headers={
-                "x-api-key": ANTHROPIC_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=30) as r:
-            resp = json.loads(r.read().decode())
-        text = resp["content"][0]["text"].strip()
-        summary_match = re.search(r'SUMMARY:\s*(.*?)(?=WHY_IT_MATTERS:|$)', text, re.DOTALL)
-        why_match = re.search(r'WHY_IT_MATTERS:\s*(.*?)$', text, re.DOTALL)
-        meridian_summary = summary_match.group(1).strip() if summary_match else ""
-        why_it_matters = why_match.group(1).strip() if why_match else ""
-        return meridian_summary, why_it_matters
-    except Exception as e:
-        log(f"  ✗ Claude summary failed: {e}", indent=2)
+    text = ai_client.run_text(_SUMMARY_CFG, prompt).strip()
+    if not text:
+        log("  ✗ Claude summary failed", indent=2)
         return "", ""
+
+    summary_match = re.search(r'SUMMARY:\s*(.*?)(?=WHY_IT_MATTERS:|$)', text, re.DOTALL)
+    why_match = re.search(r'WHY_IT_MATTERS:\s*(.*?)$', text, re.DOTALL)
+    meridian_summary = summary_match.group(1).strip() if summary_match else ""
+    why_it_matters = why_match.group(1).strip() if why_match else ""
+    return meridian_summary, why_it_matters
 
 # ── Deduplication ─────────────────────────────────────────────────────────────
 
@@ -667,7 +610,7 @@ def run(args) -> None:
 
     # ── Step 9: Write to Supabase ─────────────────────────────────────────
     log("\n[9] Writing to news_articles…")
-    stats = {"inserted": 0, "updated": 0, "skipped": 0, "failed": 0}
+    stats = {"inserted": 0, "skipped": 0, "failed": 0}
 
     for art in scored:
         # Skip articles with invalid URLs
@@ -706,14 +649,12 @@ def run(args) -> None:
             continue
 
         result = sb_upsert("news_articles", record, on_conflict="url_hash")
-        if result is None:
-            stats["failed"] += 1
-        elif result == []:
-            stats["updated"] += 1
-        else:
+        if result:
             stats["inserted"] += 1
+        else:
+            stats["failed"] += 1
 
-    log(f"\n  Done: {stats['inserted']} inserted / {stats['updated']} updated / {stats['skipped']} skipped / {stats['failed']} failed")
+    log(f"\n  Done: {stats['inserted']} inserted/updated / {stats['skipped']} skipped / {stats['failed']} failed")
 
     # ── Summary ────────────────────────────────────────────────────────────
     log("\n" + "=" * 60)

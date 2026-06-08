@@ -38,18 +38,15 @@ from html.parser import HTMLParser
 
 # ── Supabase credentials ─────────────────────────────────────────────────────
 
-SB_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SB_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-if not SB_KEY:
-    key_file = os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key")
-    if os.path.exists(key_file):
-        with open(key_file) as f:
-            SB_KEY = f.read().strip()
+from _common import load_credentials  # noqa: E402
+import _db  # noqa: E402
 
-if not SB_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set")
-    sys.exit(1)
+SB_URL, SB_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SB_URL, SB_KEY)
 
 # ── Pipeline URLs to monitor ─────────────────────────────────────────────────
 # key = company_id in Meridian, value = canonical pipeline page URL
@@ -146,35 +143,13 @@ def _hash_content(text: str) -> str:
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-def sb_get(path: str, limit: int = 2000) -> list:
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{path}",
-        headers={"apikey": SB_KEY, "Authorization": f"Bearer {SB_KEY}", "Range": f"0-{limit-1}"}
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except Exception as e:
-        print(f"  ⚠️  GET {path}: {e}")
-        return []
+sb_get = _db.sb_get
 
 
 def sb_post(table: str, payload: dict) -> tuple:
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}",
-        data=data, method="POST",
-        headers={
-            "apikey": SB_KEY, "Authorization": f"Bearer {SB_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation,resolution=ignore-duplicates",
-        }
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read()), None
-    except urllib.error.HTTPError as e:
-        return None, f"HTTP {e.code}: {e.read().decode()[:300]}"
+    """Insert a row; returns (rows, error_message) — error is None on success."""
+    rows = _db.sb_insert(table, payload)
+    return (rows, None) if rows else (None, "insert failed (see log)")
 
 
 # ── Hash storage (signals table) ──────────────────────────────────────────────
@@ -187,11 +162,12 @@ def _load_stored_hashes() -> dict:
     Load the most recent pipeline_page_hash signal per company_id.
     Returns dict: company_id → {hash, signal_id, source_url}
     """
-    rows = sb_get(
-        f"signals?signal_type=eq.{_HASH_SIGNAL_TYPE}"
-        f"&select=company_id,content_hash,source_url,id,created_at"
-        f"&order=created_at.desc&limit=500"
-    )
+    rows = sb_get("signals", {
+        "signal_type": f"eq.{_HASH_SIGNAL_TYPE}",
+        "select":      "company_id,content_hash,source_url,id,created_at",
+        "order":       "created_at.desc",
+        "limit":       "500",
+    })
     # Keep only the most recent per company (order desc, first wins)
     stored = {}
     for row in rows:

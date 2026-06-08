@@ -100,6 +100,7 @@ class PromptConfig:
     model: str = "claude-sonnet-4-6"
     max_tokens: int = 4096
     web_search_max_uses: int = 0  # 0 = no web_search tool
+    temperature: Optional[float] = None  # None = use API default
 
     def override(self, **kwargs) -> "PromptConfig":
         """Return a copy with selected fields replaced."""
@@ -178,6 +179,8 @@ def run_text(
     )
     if tools:
         kwargs["tools"] = tools
+    if cfg.temperature is not None:
+        kwargs["temperature"] = cfg.temperature
     if timeout:
         kwargs["timeout"] = timeout
 
@@ -213,14 +216,18 @@ def run_json(
     stop_reason: Optional[str] = None
     tokens_in = tokens_out = 0
 
+    create_kwargs: dict = dict(
+        model=cfg.model,
+        max_tokens=cfg.max_tokens,
+        system=system,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    if cfg.temperature is not None:
+        create_kwargs["temperature"] = cfg.temperature
+
     for attempt in range(1, max_retries + 1):
         try:
-            resp = _client.messages.create(
-                model=cfg.model,
-                max_tokens=cfg.max_tokens,
-                system=system,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            resp = _client.messages.create(**create_kwargs)
             raw_text = resp.content[0].text if resp.content else ""
             _acc_tokens(resp)
             tokens_in  = getattr(resp.usage, "input_tokens",  0) or 0

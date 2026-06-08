@@ -7,33 +7,22 @@ meridian_overnight_summary.txt in the repo root.
 """
 
 import os
+import sys
 import json
 import datetime
-import requests
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-}
+from _common import load_credentials
+import _db
+
+_url, _key, _ = load_credentials(require_anthropic=False)
+_db.init_db(_url, _key)
+sb_get = _db.sb_get
 
 WINDOW_HOURS = 12  # overnight window
-
-
-def sb_get(table, params=None):
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{table}",
-        headers=SB_HEADERS,
-        params=params or {},
-        timeout=15,
-    )
-    if r.status_code != 200:
-        print(f"  [WARN] {table} query failed: {r.status_code} {r.text[:200]}")
-        return []
-    return r.json()
 
 
 def utc_now():
