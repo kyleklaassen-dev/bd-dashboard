@@ -23218,14 +23218,40 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
     try {
       const todayISO = new Date().toISOString().split('T')[0];
       const plus90   = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
-      const { data: cats, error } = await _sb
-        .from('catalyst_calendar')
-        .select('id,drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact,source_url')
-        .gt('expected_date', todayISO)
-        .lt('expected_date', plus90)
-        .order('expected_date', { ascending: true })
-        .limit(30);
-      if (error || !cats || !cats.length) {
+      // Merge the curated calendar (rich Ailux-impact rows) with the full catalysts table
+      // (1,300+ source-linked events) so the 90-day view is comprehensive, not just the 25
+      // hand-curated ones (Kyle 2026-06-08). Curated rows win on dedupe (drug_id+date).
+      const SIGMAP = { high:'P1', medium:'P2', low:'P3' };
+      const [calRes, mainRes] = await Promise.all([
+        _sb.from('catalyst_calendar')
+          .select('drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact,source_url')
+          .gt('expected_date', todayISO).lt('expected_date', plus90)
+          .order('expected_date', { ascending: true }).limit(60),
+        _sb.from('catalysts')
+          .select('drug_id,company_id,label,catalyst_date,significance,catalyst_type,source_url,notes')
+          .eq('resolved', false).gte('catalyst_date', todayISO).lte('catalyst_date', plus90)
+          .order('catalyst_date', { ascending: true }).limit(120),
+      ]);
+      const norm = [];
+      (calRes.data || []).forEach(c => norm.push({
+        drug_id: c.drug_id, expected_date: c.expected_date, event_name: c.event_name,
+        strategic_significance: c.strategic_significance || 'P2', ailux_impact: c.ailux_impact,
+        source_url: c.source_url, _curated: true,
+      }));
+      const seen = new Set(norm.map(c => (c.drug_id||'') + '|' + c.expected_date));
+      (mainRes.data || []).forEach(c => {
+        const key = (c.drug_id||'') + '|' + c.catalyst_date;
+        if (seen.has(key)) return;            // curated row already covers it
+        seen.add(key);
+        norm.push({
+          drug_id: c.drug_id, expected_date: c.catalyst_date, event_name: c.label,
+          strategic_significance: SIGMAP[(c.significance||'').toLowerCase()] || 'P3',
+          ailux_impact: c.notes || '', source_url: c.source_url, _curated: false,
+        });
+      });
+      norm.sort((a,b) => a.expected_date < b.expected_date ? -1 : a.expected_date > b.expected_date ? 1 : 0);
+      const cats = norm;
+      if (!cats.length) {
         body.innerHTML = '<div style="color:#94a3b8;font-size:11px;padding:12px 0">No catalysts found in the next 90 days.</div>';
         section.style.display = 'block';
         return;
@@ -23272,7 +23298,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       });
       body.innerHTML = html;
       const countEl = document.getElementById('hw-cal-count');
-      if (countEl) countEl.textContent = `${cats.length} events`;
+      if (countEl) { const cur = cats.filter(c=>c._curated).length;
+        countEl.textContent = `${cats.length} events${cur?` · ${cur} Ailux-flagged`:''}`; }
       section.style.display = 'block';
     } catch(e) {
       console.warn('[CatalystCalendar]', e);
