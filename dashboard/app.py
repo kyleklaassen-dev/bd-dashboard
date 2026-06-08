@@ -11,7 +11,13 @@ Run with:
 """
 import streamlit as st
 
-from pipelines import ABSTRACT_FETCHER, EVIDENCE_COLLECTORS, PIPELINES
+from pipelines import (
+    ABSTRACT_FETCHER,
+    EVIDENCE_COLLECTORS,
+    PIPELINES,
+    SCHOOL_WEEK_SPRINT,
+    WEEKEND_SPRINT,
+)
 
 st.set_page_config(
     page_title="Github Workflows",
@@ -28,6 +34,30 @@ def go_to(view_key: str) -> None:
 
 
 def render_home() -> None:
+    st.markdown(
+        """
+        <style>
+        button[kind="primary"] {
+            background-color: #e4d9f7;
+            border: 1px solid #b49ce8;
+            color: #3a2c5c;
+            min-height: 160px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        button[kind="primary"]:hover {
+            background-color: #d6c5f3;
+            border-color: #9d7fdc;
+            color: #2c2047;
+        }
+        button[kind="primary"] strong {
+            font-size: 1.3rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.title("🧬 Github Workflows")
     st.caption(
         "Pick a workflow to see exactly what runs, in what order, "
@@ -35,33 +65,26 @@ def render_home() -> None:
     )
     st.divider()
 
-    col1, col2 = st.columns(2)
+    def workflow_card(pipeline: dict, key: str) -> None:
+        workflow_filename = pipeline["workflow_file"].rsplit("/", 1)[-1]
+        st.button(
+            f"**{workflow_filename}**",
+            key=key,
+            type="primary",
+            width="stretch",
+            on_click=go_to,
+            args=(pipeline["key"],),
+        )
 
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.subheader(ABSTRACT_FETCHER["workflow_name"])
-        st.caption(ABSTRACT_FETCHER["schedule"])
-        st.write(ABSTRACT_FETCHER["summary"])
-        st.button(
-            ABSTRACT_FETCHER["workflow_name"],
-            key="btn_abstract_fetcher",
-            type="primary",
-            width="stretch",
-            on_click=go_to,
-            args=(ABSTRACT_FETCHER["key"],),
-        )
-
+        workflow_card(ABSTRACT_FETCHER, "btn_abstract_fetcher")
     with col2:
-        st.subheader(EVIDENCE_COLLECTORS["workflow_name"])
-        st.caption(EVIDENCE_COLLECTORS["schedule"])
-        st.write(EVIDENCE_COLLECTORS["summary"])
-        st.button(
-            EVIDENCE_COLLECTORS["workflow_name"],
-            key="btn_evidence_collectors",
-            type="primary",
-            width="stretch",
-            on_click=go_to,
-            args=(EVIDENCE_COLLECTORS["key"],),
-        )
+        workflow_card(EVIDENCE_COLLECTORS, "btn_evidence_collectors")
+    with col3:
+        workflow_card(WEEKEND_SPRINT, "btn_weekend_sprint")
+    with col4:
+        workflow_card(SCHOOL_WEEK_SPRINT, "btn_school_week_sprint")
 
 
 def render_pipeline_page(pipeline: dict) -> None:
@@ -113,7 +136,8 @@ def render_pipeline_page(pipeline: dict) -> None:
         st.write(pipeline["io"]["cleaning"])
 
     st.divider()
-    st.subheader("File-by-file, in order")
+    unit_key = pipeline.get("unit_key", "file")
+    st.subheader(pipeline.get("unit_section_title", "File-by-file, in order"))
 
     for phase in pipeline["phases"]:
         st.markdown(f"#### {phase['label']}")
@@ -123,7 +147,7 @@ def render_pipeline_page(pipeline: dict) -> None:
             if len(group) > 1:
                 st.markdown("**Run in parallel:**")
             for item in group:
-                st.markdown(f"`{item['file']}` &nbsp;·&nbsp; {item['lines']} lines")
+                st.markdown(f"`{item[unit_key]}` &nbsp;·&nbsp; {item['lines']} lines")
                 st.write(item["desc"])
             st.write("")
 

@@ -5,8 +5,12 @@ under names that match the workflow.
 """
 from .abstract_fetcher import PIPELINE as ABSTRACT_FETCHER
 from .evidence_collectors import PIPELINE as EVIDENCE_COLLECTORS
+from .weekend_sprint import PIPELINE as WEEKEND_SPRINT
+from .school_week_sprint import PIPELINE as SCHOOL_WEEK_SPRINT
 
 PIPELINES = {
     ABSTRACT_FETCHER["key"]: ABSTRACT_FETCHER,
     EVIDENCE_COLLECTORS["key"]: EVIDENCE_COLLECTORS,
+    WEEKEND_SPRINT["key"]: WEEKEND_SPRINT,
+    SCHOOL_WEEK_SPRINT["key"]: SCHOOL_WEEK_SPRINT,
 }
