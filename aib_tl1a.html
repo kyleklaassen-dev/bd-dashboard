@@ -16,11 +16,12 @@
   .wrap{max-width:920px;margin:0 auto;padding:0 26px 80px}
 
   /* top bar: title band + controls */
-  .band{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:0 0 16px 16px;
-    padding:20px 26px;margin-bottom:18px;box-shadow:0 6px 22px rgba(26,63,143,.16)}
-  .band .wm{font-size:13px;font-weight:700;letter-spacing:.06em;opacity:.9}
-  .band h1{margin:6px 0 4px;font-size:23px;font-weight:700;letter-spacing:-.01em}
-  .band .sub{font-size:13px;opacity:.85}
+  .band{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:0 0 12px 12px;
+    padding:9px 22px;margin-bottom:14px;box-shadow:0 3px 14px rgba(26,63,143,.13);
+    display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .band .wm{font-size:10.5px;font-weight:700;letter-spacing:.07em;opacity:.82}
+  .band h1{margin:1px 0 0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+  .band .band-date{font-size:12.5px;opacity:.85;white-space:nowrap}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 4px}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
   .seg button{border:0;background:#fff;color:var(--slate);padding:8px 18px;font-size:13.5px;font-weight:600;
@@ -79,9 +80,11 @@
 </head>
 <body>
 <div class="band">
-  <div class="wm">◆ THE MERIDIAN · AREA INTELLIGENCE BRIEF</div>
-  <h1>TL1A × IL-23p19 in Ulcerative Colitis &amp; IBD</h1>
-  <div class="sub">ALX001 (TL1A × IL-23p19 bispecific) · Ailux Board / CEO / CSO / R&amp;D · June 7, 2026</div>
+  <div>
+    <div class="wm">◆ THE MERIDIAN · AREA INTELLIGENCE BRIEF</div>
+    <h1>TL1A × IL-23p19 in Ulcerative Colitis &amp; IBD</h1>
+  </div>
+  <div class="band-date">June 7, 2026</div>
 </div>
 <div class="wrap">
   <div class="controls">
