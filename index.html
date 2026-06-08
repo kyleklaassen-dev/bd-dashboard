@@ -24599,26 +24599,20 @@ window.addEventListener('load', () => {
    return 'https://www.google.com/search?q=' + encodeURIComponent(q);
  }
  function _fixGenericLinks(root) {
-   (root || document).querySelectorAll('a[href]').forEach(function(el) {
-     if (el.dataset.trusted) return;  // never rewrite explicit trusted links (NCT, clinicaltrials.gov, etc.)
-     const href = el.getAttribute('href');
-     if (!_isGenericHref(href)) return;
-     const text = (el.getAttribute('title') || el.textContent || '').trim();
-     if (text.length > 5) el.setAttribute('href', _gUrlFromText(text));
-   });
+   // DISABLED 2026-06-08 (Kyle): this used to rewrite "generic-looking" stored source_urls
+   // (press-release indexes, company homepages) into a Google search. Kyle wants the direct
+   // link we have on file in every case — so we no longer rewrite anything. Kept as a no-op
+   // so existing call sites don't break.
+   return;
  }
- _fixGenericLinks(); // initial pass — catches all static HTML links
- // Watch for links added dynamically (drug cards, PI tables, intel items rendered post-Supabase load)
+ _fixGenericLinks(); // no-op
+ // Observer retained but no longer rewrites hrefs (see above). Left in place harmlessly.
  (new MutationObserver(function(muts) {
    muts.forEach(function(m) {
      m.addedNodes.forEach(function(n) {
        if (n.nodeType !== 1) return;
-       if (n.tagName === 'A') {
-         if (!n.dataset.trusted && _isGenericHref(n.getAttribute('href'))) {
-           const text = (n.getAttribute('title') || n.textContent || '').trim();
-           if (text.length > 5) n.setAttribute('href', _gUrlFromText(text));
-         }
-       } else if (n.querySelectorAll) {
+       // intentionally no href rewriting (Kyle 2026-06-08)
+       if (false) {
          _fixGenericLinks(n);
        }
      });
