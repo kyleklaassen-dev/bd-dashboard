@@ -16,6 +16,7 @@ import streamlit as st
 from pipelines import (
     ABSTRACT_FETCHER,
     EVIDENCE_COLLECTORS,
+    FLYWHEEL_PHASE2,
     PIPELINES,
     SCHOOL_WEEK_SPRINT,
     WEEKEND_SPRINT,
@@ -137,15 +138,17 @@ def render_home() -> None:
             args=(pipeline["key"],),
         )
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        workflow_card(ABSTRACT_FETCHER, "btn_abstract_fetcher")
-    with col2:
-        workflow_card(EVIDENCE_COLLECTORS, "btn_evidence_collectors")
-    with col3:
-        workflow_card(WEEKEND_SPRINT, "btn_weekend_sprint")
-    with col4:
-        workflow_card(SCHOOL_WEEK_SPRINT, "btn_school_week_sprint")
+    cards = [
+        (ABSTRACT_FETCHER, "btn_abstract_fetcher"),
+        (EVIDENCE_COLLECTORS, "btn_evidence_collectors"),
+        (WEEKEND_SPRINT, "btn_weekend_sprint"),
+        (SCHOOL_WEEK_SPRINT, "btn_school_week_sprint"),
+        (FLYWHEEL_PHASE2, "btn_flywheel_phase2"),
+    ]
+    cols = st.columns(3)
+    for i, (pipeline, key) in enumerate(cards):
+        with cols[i % 3]:
+            workflow_card(pipeline, key)
 
 
 def render_pipeline_page(pipeline: dict) -> None:
