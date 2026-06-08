@@ -27,6 +27,8 @@ from urllib.parse import quote
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import narrative_gen as ng  # get/_request/_source_tier/fail_closed_*/feedback/key handling
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
 
 def fetch_patient(name):
@@ -155,15 +157,20 @@ PATIENT_ANALYSIS_SYSTEM = (
     "'_Meridian Patient Analysis — interpretation, grounded in the cited facts._'. Under 190 words.")
 
 
+_PATIENT_CFG = PromptConfig(
+    name="patient_narrative",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=700,
+    temperature=0,
+)
+
+
 def _compose(system, name, atoms, feedback=None):
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
     prompt = (f"INDICATION: {name}\n\nPATIENT FACTS:\n{numbered}"
               + ng.feedback_block(feedback) + "\n\nWrite it now.")
-    r = client.messages.create(model="claude-sonnet-4-6", max_tokens=700, temperature=0,
-                               system=system, messages=[{"role": "user", "content": prompt}])
-    return r.content[0].text.strip()
+    return ai_client.run_text(_PATIENT_CFG.override(system=system), prompt).strip()
 
 
 def write_patient(name, section, prose, atoms, rh):
@@ -204,7 +211,7 @@ def main():
     for i, a in enumerate(atoms):
         print(f"  [{i+1}] ({a['kind']}) {a['claim'][:88]}")
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if not ng.ANTHROPIC_API_KEY:
         print("\n(no ANTHROPIC_API_KEY — atoms only)"); return
     want = ["overview", "intelligence"] if args.section == "both" else [args.section]
 

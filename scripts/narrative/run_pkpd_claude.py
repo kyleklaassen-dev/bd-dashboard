@@ -8,22 +8,28 @@ Usage:
 """
 
 import os, sys, json, datetime, time, re, requests
-import anthropic
 
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+from _common import load_credentials, log  # noqa: E402
+import _db  # noqa: E402
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
-SB_HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=representation",
-}
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
 PKPD_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+_PKPD_CFG = PromptConfig(
+    name="pkpd_extraction",
+    system="",
+    model=PKPD_CLAUDE_MODEL,
+    max_tokens=512,
+)
 
 PKPD_EXTRACTION_PROMPT = """\
 Extract PK/PD parameters from this abstract. Return JSON only — no markdown, no explanation.
@@ -60,10 +66,6 @@ Abstract:
 {abstract_text}"""
 
 
-def log(msg):
-    print(msg, flush=True)
-
-
 def fetch_pubmed_abstract(pmid, timeout=10):
     try:
         url = (
@@ -83,19 +85,11 @@ def extract_pk_with_claude(abstract_text):
         return {}
     abstract_trimmed = abstract_text[:4000]
     prompt = PKPD_EXTRACTION_PROMPT.replace("{abstract_text}", abstract_trimmed)
+    result = ai_client.run_json(_PKPD_CFG, prompt)
+    parsed = result.data
+    if not parsed:
+        return {}
     try:
-        resp = client.messages.create(
-            model=PKPD_CLAUDE_MODEL,
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-        parsed = json.loads(raw)
         confidence = float(parsed.get("confidence", 0.0))
         if confidence <= 0.5:
             return {}
@@ -121,9 +115,6 @@ def extract_pk_with_claude(abstract_text):
             result["_species"] = str(parsed["species"])
         result["_confidence"] = confidence
         return result
-    except json.JSONDecodeError as exc:
-        log(f"    Claude PK extraction: JSON parse error — {exc}")
-        return {}
     except Exception as exc:
         log(f"    Claude PK extraction error: {exc}")
         return {}
@@ -131,17 +122,11 @@ def extract_pk_with_claude(abstract_text):
 
 def main():
     log("--- Phase 7: PK/PD queue processor (Claude-powered) ---")
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/research_queue",
-        headers=SB_HEADERS,
-        params={
-            "context_type": "eq.pkpd_literature",
-            "select": "id,entity_id,reason,assigned_status",
-            "limit": "100",
-        },
-        timeout=15,
-    )
-    queue_items = r.json() if r.status_code == 200 else []
+    queue_items = _db.sb_get("research_queue", {
+        "context_type": "eq.pkpd_literature",
+        "select": "id,entity_id,reason,assigned_status",
+        "limit": "100",
+    })
     log(f"  Found {len(queue_items)} PK/PD queue items (all statuses)")
 
     processed = 0
@@ -155,13 +140,7 @@ def main():
         pmid_match = re.search(r"PMID\s+(\d+)", reason)
         if not pmid_match:
             log(f"  No PMID for {drug_id}: {reason[:60]}")
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/research_queue",
-                headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                params={"id": f"eq.{item_id}"},
-                json={"assigned_status": "completed"},
-                timeout=10,
-            )
+            _db.sb_patch("research_queue", {"assigned_status": "completed"}, {"id": f"eq.{item_id}"})
             processed += 1
             continue
 
@@ -190,30 +169,17 @@ def main():
                     "verified": False,
                     **pk_params,
                 }
-                pr = requests.post(
-                    f"{SUPABASE_URL}/rest/v1/drug_pk_parameters",
-                    headers={**SB_HEADERS, "Prefer": "resolution=ignore-duplicates,return=minimal"},
-                    json=pk_rec,
-                    timeout=15,
-                )
-                if pr.status_code in (200, 201, 204):
+                if _db.sb_insert("drug_pk_parameters", pk_rec):
                     pk_written += 1
                     log(f"    OK drug_pk_parameters for {drug_id} (PMID {pmid})")
                 else:
-                    log(f"    FAIL: {pr.status_code} {pr.text[:200]}")
+                    log(f"    FAIL: insert failed (see log)")
             else:
                 log(f"    No PK params found (conf too low) — PMID {pmid}")
 
-        try:
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/research_queue",
-                headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                params={"id": f"eq.{item_id}"},
-                json={"assigned_status": "completed", "last_action_at": NOW_ISO},
-                timeout=10,
-            )
-        except Exception:
-            pass
+        _db.sb_patch("research_queue",
+                     {"assigned_status": "completed", "last_action_at": NOW_ISO},
+                     {"id": f"eq.{item_id}"})
         processed += 1
         time.sleep(0.2)
 

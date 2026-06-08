@@ -45,21 +45,21 @@ import urllib.error
 from datetime import datetime, timezone
 
 # ---------------------------------------------------------------------------
-# Config / credentials (house pattern)
+# Config / credentials
 # ---------------------------------------------------------------------------
-SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if WORKSPACE not in sys.path:
+    sys.path.insert(0, WORKSPACE)
 
+from _common import load_credentials  # noqa: E402
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
-def _read_key(filename, env=None):
-    # env var first (CI / GitHub Actions secrets), then the local workspace file.
-    if env and os.environ.get(env, "").strip():
-        return os.environ[env].strip()
-    with open(os.path.join(WORKSPACE, filename)) as f:
-        return f.read().strip()
+_SUPABASE_URL, SUPA_KEY, ANTHROPIC_API_KEY = load_credentials(require_anthropic=False)
+SUPA_URL = f"{_SUPABASE_URL}/rest/v1"
 
-
-SUPA_KEY = _read_key(".supabase_service_key", "SUPABASE_SERVICE_KEY")
+if ANTHROPIC_API_KEY:
+    ai_client.setup(ANTHROPIC_API_KEY)
 
 # Drugs columns the overview recipe is allowed to look at (candidate structured atoms).
 # Each is admitted to the ASSERTED set only if a confirmed source corroborates it.
@@ -833,20 +833,22 @@ COMPOSE_SYSTEM = (
 )
 
 
+_COMPOSE_CFG = PromptConfig(
+    name="narrative_compose",
+    system=COMPOSE_SYSTEM,
+    model="claude-sonnet-4-6",
+    max_tokens=700,
+    temperature=0,
+)
+
+
 def compose_llm(drug_name, atoms, scrub, feedback=None):
-    import anthropic  # imported lazily so --composer template works without the lib
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] ({a['kind']}/{a['confidence']}) {a['claim']}"
                          for i, a in enumerate(atoms))
     prompt = (f"DRUG: {drug_name}\n\nCLAIM ATOMS:\n{numbered}\n\n"
               f"SCRUB (never mention): {', '.join(scrub) or '(none)'}"
               + feedback_block(feedback) + "\n\nWrite the overview now.")
-    resp = client.messages.create(
-        model="claude-sonnet-4-6", max_tokens=700, temperature=0,
-        system=COMPOSE_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return resp.content[0].text.strip()
+    return ai_client.run_text(_COMPOSE_CFG, prompt).strip()
 
 
 ANALYSIS_SYSTEM = (
@@ -863,18 +865,22 @@ ANALYSIS_SYSTEM = (
 )
 
 
+_ANALYSIS_CFG = PromptConfig(
+    name="narrative_analysis",
+    system=ANALYSIS_SYSTEM,
+    model="claude-sonnet-4-6",
+    max_tokens=500,
+    temperature=0,
+)
+
+
 def compose_analysis(drug_name, atoms, framing, feedback=None, conflict_note=""):
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
     fr = "\n".join(f"- {k}: {v}" for k, v in framing.items() if v)
     prompt = (f"ASSET: {drug_name}\n\nCITED FACTS:\n{numbered}\n\n"
               f"PRIOR FRAMING (context only, not citable):\n{fr or '(none)'}"
               + conflict_note + feedback_block(feedback) + "\n\nWrite the Meridian Analysis now.")
-    resp = client.messages.create(
-        model="claude-sonnet-4-6", max_tokens=500, temperature=0,
-        system=ANALYSIS_SYSTEM, messages=[{"role": "user", "content": prompt}])
-    return resp.content[0].text.strip()
+    return ai_client.run_text(_ANALYSIS_CFG, prompt).strip()
 
 
 def fail_closed_analysis(prose, atoms, scrub, extra_figures=None):
@@ -1058,7 +1064,7 @@ def main():
         drug = recipe["drug"]
         framing = {k: drug.get(k) for k in
                    ("ailux_angle", "vs_ailux", "differentiation_thesis", "overlap")}
-        if not os.environ.get("ANTHROPIC_API_KEY"):
+        if not ANTHROPIC_API_KEY:
             raise SystemExit("the analysis tier requires ANTHROPIC_API_KEY (it is inference).")
         cnote, cfigs = conflicts_note(value_conflicts)
         for i in range(3):
@@ -1085,7 +1091,7 @@ def main():
         return
 
     composer = args.composer
-    if composer == "llm" and not os.environ.get("ANTHROPIC_API_KEY"):
+    if composer == "llm" and not ANTHROPIC_API_KEY:
         print("\n(no ANTHROPIC_API_KEY -> falling back to template composer)")
         composer = "template"
     dname = recipe["drug"].get("display_name") or recipe["drug"]["name"]

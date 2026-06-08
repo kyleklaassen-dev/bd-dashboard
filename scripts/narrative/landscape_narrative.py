@@ -18,7 +18,10 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from narrative_gen import (get, _request, fail_closed_check, fail_closed_analysis,  # noqa: E402
-                           fetch_feedback, feedback_block, mark_feedback_applied, _source_tier)
+                           fetch_feedback, feedback_block, mark_feedback_applied, _source_tier,
+                           ANTHROPIC_API_KEY)
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
 PHASE = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}
 
@@ -104,15 +107,20 @@ ANALYSIS_SYSTEM_LS = (
     "'_Meridian Analysis — interpretation, grounded in the cited facts._'. Under 180 words.")
 
 
+_LANDSCAPE_CFG = PromptConfig(
+    name="landscape_narrative",
+    system="",
+    model="claude-sonnet-4-6",
+    max_tokens=600,
+    temperature=0,
+)
+
+
 def compose(system, drug_label, atoms, feedback=None):
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     numbered = "\n".join(f"[{i+1}] {a['claim']}" for i, a in enumerate(atoms))
     user = (f"TARGET: {drug_label}\n\nFACTS:\n{numbered}" + feedback_block(feedback)
             + "\n\nWrite it now.")
-    r = client.messages.create(model="claude-sonnet-4-6", max_tokens=600, temperature=0,
-        system=system, messages=[{"role": "user", "content": user}])
-    return r.content[0].text.strip()
+    return ai_client.run_text(_LANDSCAPE_CFG.override(system=system), user).strip()
 
 
 def write(target, section, prose, atoms, rh):
@@ -149,7 +157,7 @@ def main():
     for i, a in enumerate(atoms):
         print(f"  [{i+1}] {a['claim'][:96]}  <- {a.get('source_url') or a['source_table']}")
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if not ANTHROPIC_API_KEY:
         print("\n(no ANTHROPIC_API_KEY — atoms only)"); return
 
     label = args.target.upper()

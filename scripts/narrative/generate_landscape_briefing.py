@@ -20,23 +20,18 @@ Options:
 import os, sys, json, argparse, time, datetime
 import urllib.request, urllib.parse, pathlib
 
-try:
-    import anthropic
-except ImportError:
-    sys.exit("anthropic package not found. Run: pip install anthropic --break-system-packages")
+_SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
+from _common import load_credentials  # noqa: E402
+import _db  # noqa: E402
+import ai.client as ai_client  # noqa: E402
+from ai.client import PromptConfig  # noqa: E402
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-SB_HEADERS = {
-    "apikey":        SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials()
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+ai_client.setup(ANTHROPIC_API_KEY)
 
 AILUX_CONTEXT = """
 Ailux Immunology is a clinical-stage biotech focused on TL1A pathway biology in IBD
@@ -63,36 +58,8 @@ SYSTEM_WRITER = (
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-def sb_get(table: str, params: dict) -> list:
-    qs = urllib.parse.urlencode(params)
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    req = urllib.request.Request(url, headers=SB_HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read())
-
-
-def sb_post(table: str, payload: dict) -> dict:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    body = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=body, headers=SB_HEADERS, method="POST")
-    with urllib.request.urlopen(req, timeout=20) as r:
-        result = json.loads(r.read())
-        return result[0] if isinstance(result, list) else result
-
-
-def sb_patch(table: str, match: dict, payload: dict) -> bool:
-    qs = urllib.parse.urlencode({k: f"eq.{v}" for k, v in match.items()})
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    headers = {**SB_HEADERS, "Prefer": "return=representation"}
-    body = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=body, headers=headers, method="PATCH")
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return r.status in (200, 204)
-    except urllib.error.HTTPError as e:
-        print(f"  [PATCH ERROR] {e.code}: {e.read().decode()[:300]}")
-        return False
-
+sb_get = _db.sb_get
+sb_post = _db.sb_post
 
 # ── Profile fetch ─────────────────────────────────────────────────────────────
 
@@ -123,13 +90,9 @@ def summarize_profile(p: dict) -> str:
 # ── Section synthesis helpers ─────────────────────────────────────────────────
 
 def call_opus(system: str, user: str, max_tokens: int = 2000) -> str:
-    resp = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
-    raw = resp.content[0].text.strip()
+    cfg = PromptConfig(name="landscape_briefing", system=system,
+                       model="claude-opus-4-6", max_tokens=max_tokens)
+    raw = ai_client.run_text(cfg, user).strip()
     if raw.startswith("```"):
         lines = raw.split("\n")
         lines = [l for l in lines if not l.strip().startswith("```")]
@@ -362,7 +325,7 @@ def persist_briefing(area_id: str, profiles: list,
         "needs_review":          True,
     }
     result = sb_post("landscape_briefings", payload)
-    return result.get("id", "unknown")
+    return (result or {}).get("id", "unknown")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
