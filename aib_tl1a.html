@@ -103,7 +103,7 @@
 <div class="wrap">
   <div class="controls">
     <div class="dl" style="margin-left:0">
-      <a id="dl" href="AIB_TL1A_IL23p19_UC_v9.docx" download>↓ Download (Word)</a>
+      <a id="dl" href="AIB_TL1A_IL23p19_UC_v10.docx" download>↓ Download (Word)</a>
     </div>
   </div>
   <div class="meta" id="meta">Source-traced · every footnote links to the primary source (ClinicalTrials.gov, NEJM, Lancet Gastroenterology &amp; Hepatology, ECCO / DDW, company disclosures).</div>
@@ -111,41 +111,65 @@
 </div>
 
 <script>
-const DOC_SRC="aib_tl1a_v9.html";
+const DOC_SRC="aib_tl1a_v10.html";
 const cache={};
 // ---- drug-name canonical-card chips ----
 const SBV="https://tghntyofptvfhmtchwcv.supabase.co";
 const KEYV="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
 const DRUGS=["tulisokibart","afimkibart","duvakitug","SPY002","RO7837195","MT-251","XmAb412","XmAb942","ABBV-701","mirikizumab","risankizumab","guselkumab","ustekinumab","vedolizumab","upadacitinib","etrasimod","ozanimod","deucravacitinib","infliximab","adalimumab","obefazimod"];
-const dcache={};
-function _drugRx(){return new RegExp("\\b("+DRUGS.map(d=>d.replace(/[-]/g,"\\-")).join("|")+")\\b","g");}
-function wrapDrugChips(root){
+const COMPANIES=["Merck","Roche","Sanofi","Teva","AbbVie","Pfizer","Spyre","Xencor","Mirador","Prometheus","Telavant","FutureGen","Eli Lilly","Johnson & Johnson","Bristol Myers Squibb","Boehringer Ingelheim","Zymeworks","LaNova","Simcere","Elpiscience","Biocad","Qyuns","Innovent"];
+const ENT=DRUGS.map(d=>({n:d,k:'drug'})).concat(COMPANIES.map(c=>({n:c,k:'company'}))).sort((a,b)=>b.n.length-a.n.length);
+const idcache={};
+function _entRx(){return new RegExp("\\b("+ENT.map(e=>e.n.replace(/[-&]/g,m=>"\\"+m)).join("|")+")\\b","g");}
+function _kindOf(n){var e=ENT.find(x=>x.n===n);return e?e.k:'drug';}
+function wrapChips(root){
   const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){
-    if(!n.nodeValue||!DRUGS.some(d=>n.nodeValue.indexOf(d)>=0))return NodeFilter.FILTER_REJECT;
+    if(!n.nodeValue||!ENT.some(e=>n.nodeValue.indexOf(e.n)>=0))return NodeFilter.FILTER_REJECT;
     var p=n.parentNode;while(p&&p!==root){if(p.tagName==='A'||(p.classList&&p.classList.contains('drugchip')))return NodeFilter.FILTER_REJECT;p=p.parentNode;}
     return NodeFilter.FILTER_ACCEPT;
   }});
   const nodes=[];let x;while(x=walk.nextNode())nodes.push(x);
-  nodes.forEach(n=>{const s=n.nodeValue;const rx=_drugRx();const frag=document.createDocumentFragment();let last=0,m;
+  nodes.forEach(n=>{const s=n.nodeValue;const rx=_entRx();const frag=document.createDocumentFragment();let last=0,m;
     while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));
-      const sp=document.createElement('span');sp.className='drugchip';sp.dataset.drug=m[1];sp.textContent=m[1];frag.appendChild(sp);last=m.index+m[1].length;}
+      const sp=document.createElement('span');sp.className='drugchip';sp.dataset.ent=m[1];sp.dataset.kind=_kindOf(m[1]);sp.textContent=m[1];frag.appendChild(sp);last=m.index+m[1].length;}
     if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));
     n.parentNode.replaceChild(frag,n);});
-  root.querySelectorAll('.drugchip').forEach(c=>c.addEventListener('click',e=>{e.stopPropagation();showDrugCard(c.dataset.drug,e.clientX,e.clientY);}));
+  root.querySelectorAll('.drugchip').forEach(c=>c.addEventListener('click',e=>{e.stopPropagation();openCanonical(c.dataset.ent,c.dataset.kind,e.clientX,e.clientY);}));
 }
-async function showDrugCard(name,x,y){
+async function _resolveId(name,kind){
+  const key=kind+':'+name; if(idcache[key]!==undefined) return idcache[key];
+  let id=null;
+  try{const tbl=kind==='company'?'companies':'drugs';
+    const r=await fetch(SBV+"/rest/v1/"+tbl+"?select=id,name&name=ilike."+encodeURIComponent("%"+name+"%")+"&limit=1",{headers:{apikey:KEYV,Authorization:"Bearer "+KEYV}});
+    const j=await r.json(); id=j[0]?j[0].id:null;
+  }catch(e){}
+  idcache[key]=id; return id;
+}
+// Click a drug/company name → open the EXISTING canonical card in the dashboard (same-origin parent).
+// Standalone (full-screen, no dashboard parent) → fall back to a compact card.
+async function openCanonical(name,kind,x,y){
+  const id=await _resolveId(name,kind);
+  try{
+    if(window.parent && window.parent!==window){
+      if(kind==='company' && typeof window.parent.openCompanyEntityModal==='function'){ window.parent.openCompanyEntityModal(id||name,name,null); return; }
+      if(kind==='drug' && typeof window.parent.openDrugEntityModal==='function'){ window.parent.openDrugEntityModal(id||name,name,null); return; }
+    }
+  }catch(e){}
+  showMiniCard(name,kind,x,y);
+}
+async function showMiniCard(name,kind,x,y){
   let card=document.getElementById('drugcard');
   if(!card){card=document.createElement('div');card.id='drugcard';document.body.appendChild(card);card.addEventListener('click',e=>e.stopPropagation());}
   card.style.display='block';card.style.left=Math.min(x,window.innerWidth-360)+'px';card.style.top=Math.min(y+14,window.innerHeight-280)+'px';
   card.innerHTML='<div class="dc-body" style="color:#64748b">Loading '+name+'…</div>';
-  let d=dcache[name];
-  if(d===undefined){try{const r=await fetch(SBV+"/rest/v1/drugs?select=name,company_id,partner_company,stage,target,drug_summary,source_url&name=ilike."+encodeURIComponent("%"+name+"%")+"&limit=1",{headers:{apikey:KEYV,Authorization:"Bearer "+KEYV}});const j=await r.json();d=j[0]||null;}catch(e){d=null;}dcache[name]=d;}
   const esc=s=>String(s==null?'':s).replace(/</g,'&lt;');
   const close='<span class="dc-close" onclick="document.getElementById(\'drugcard\').style.display=\'none\'">×</span>';
+  if(kind==='company'){card.innerHTML='<div class="dc-head">'+close+'<div class="dc-name">'+esc(name)+'</div><div class="dc-sub">company · open the dashboard for the full card</div></div>';return;}
+  let d=idcache['rec:'+name];
+  if(d===undefined){try{const r=await fetch(SBV+"/rest/v1/drugs?select=name,company_id,partner_company,stage,target,drug_summary,source_url&name=ilike."+encodeURIComponent("%"+name+"%")+"&limit=1",{headers:{apikey:KEYV,Authorization:"Bearer "+KEYV}});const j=await r.json();d=j[0]||null;}catch(e){d=null;}idcache['rec:'+name]=d;}
   if(!d){card.innerHTML='<div class="dc-head">'+close+'<div class="dc-name">'+esc(name)+'</div><div class="dc-sub">not in the area catalog</div></div><div class="dc-body"><a href="https://clinicaltrials.gov/search?term='+encodeURIComponent(name)+'" target="_blank">Search ClinicalTrials.gov ↗</a></div>';return;}
   card.innerHTML='<div class="dc-head">'+close+'<div class="dc-name">'+esc(d.name)+'</div><div class="dc-sub">'+esc(d.company_id||'—')+(d.partner_company?' · partner '+esc(d.partner_company):'')+'</div></div>'+
-   '<div class="dc-body">'+
-   '<div class="dc-row"><span class="dc-k">Stage</span><span class="dc-v">'+esc(d.stage)+'</span></div>'+
+   '<div class="dc-body"><div class="dc-row"><span class="dc-k">Stage</span><span class="dc-v">'+esc(d.stage)+'</span></div>'+
    '<div class="dc-row"><span class="dc-k">Target</span><span class="dc-v">'+esc(d.target)+'</span></div>'+
    (d.drug_summary?'<div class="dc-sum">'+esc(d.drug_summary).slice(0,260)+'…</div>':'')+
    (d.source_url?'<div style="margin-top:8px"><a href="'+d.source_url+'" target="_blank">Source ↗</a></div>':'')+'</div>';
@@ -199,8 +223,8 @@ function enhance(root){
   const fns=root.querySelector('.footnotes ol'); if(fns) fns.classList.add('fn');
   // all source links open in a new tab
   root.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener';});
-  // drug names become clickable canonical-card chips
-  try{ wrapDrugChips(root); }catch(e){ console.warn('drugchips',e); }
+  // drug & company names become clickable chips → open the canonical dashboard card
+  try{ wrapChips(root); }catch(e){ console.warn('chips',e); }
 }
 function colorCell(td,cls){ const b=td.querySelector('strong')||td; b.classList.add(cls); }
 
