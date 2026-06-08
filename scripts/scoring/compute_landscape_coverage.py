@@ -23,10 +23,17 @@ Options:
   --landscape-id N Compute only for landscape id N (default: all)
 """
 
-import json, os, sys, urllib.request, urllib.error, urllib.parse, datetime, math
+import json, os, sys, datetime, math
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SB_URL   = "https://tghntyofptvfhmtchwcv.supabase.co"
+import requests
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials, sb_headers  # noqa: E402
+import _db                                          # noqa: E402
+
 DRY_RUN  = "--dry-run" in sys.argv
 NOW      = datetime.datetime.utcnow()
 
@@ -36,70 +43,40 @@ for i, arg in enumerate(sys.argv):
     if arg == "--landscape-id" and i + 1 < len(sys.argv):
         FILTER_ID = int(sys.argv[i + 1])
 
-with open(os.path.join(BASE_DIR, ".supabase_service_key")) as f:
-    SERVICE_KEY = f.read().strip()
+SB_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SB_URL, SUPABASE_KEY)
 
-HEADERS_READ = {
-    "apikey": SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type": "application/json",
-}
-HEADERS_PATCH = {**HEADERS_READ, "Prefer": "return=representation"}
-HEADERS_INSERT = {**HEADERS_READ, "Prefer": "resolution=ignore-duplicates,return=representation"}
+HEADERS_INSERT = {**sb_headers(SUPABASE_KEY),
+                  "Prefer": "resolution=ignore-duplicates,return=representation"}
 
 
 def get(table, params, limit=1000):
-    params = {**params, "limit": str(limit)}
-    qs = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='.()*,=')}" for k, v in params.items()
-    )
-    req = urllib.request.Request(f"{SB_URL}/rest/v1/{table}?{qs}", headers=HEADERS_READ)
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(f"  GET {table} HTTP {e.code}: {e.read().decode()[:300]}")
-        return []
+    p = {**params, "limit": str(limit)}
+    return _db.sb_get(table, p)
 
 
 def patch(table, filters, updates):
     if DRY_RUN:
         return True
-    qs = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='.()*,')}" for k, v in filters.items()
-    )
-    data = json.dumps(updates).encode()
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}?{qs}",
-        data=data,
-        headers={**HEADERS_PATCH},
-        method="PATCH",
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            r.read()
-            return True
-    except urllib.error.HTTPError as e:
-        print(f"  PATCH {table} HTTP {e.code}: {e.read().decode()[:300]}")
-        return False
+    return _db.sb_patch(table, updates, filters)
 
 
 def insert(table, rows):
+    """coverage_computation_log writes use skip-on-conflict (ignore-duplicates)
+    — a strategy _db.sb_upsert (merge-duplicates only) doesn't support, so this
+    stays a direct request with the ignore-duplicates Prefer header."""
     if DRY_RUN or not rows:
         return len(rows)
-    data = json.dumps(rows if isinstance(rows, list) else [rows]).encode()
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}",
-        data=data,
-        headers=HEADERS_INSERT,
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(req) as r:
-            result = json.loads(r.read()) if r.status in (200, 201) else []
+        r = requests.post(f"{SB_URL}/rest/v1/{table}", headers=HEADERS_INSERT,
+                          json=rows if isinstance(rows, list) else [rows], timeout=30)
+        if r.status_code in (200, 201):
+            result = r.json()
             return len(result) if result else len(rows)
-    except urllib.error.HTTPError as e:
-        print(f"  INSERT {table} HTTP {e.code}: {e.read().decode()[:300]}")
+        print(f"  INSERT {table} HTTP {r.status_code}: {r.text[:300]}")
+        return 0
+    except Exception as e:
+        print(f"  INSERT {table} error: {e}")
         return 0
 
 

@@ -36,45 +36,33 @@ Usage:
   python3 scripts/compute_landscape_scores.py --area ibd
 """
 
-import os, sys, json, argparse, datetime, math
+import os, sys, argparse, datetime, math
 from typing import Optional
-import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 # This module prints progress directly; the LDS-feedback step calls log(),
 # so alias it to print to keep a single output path (fixes NameError crash).
 log = print
 
-def _key(f):
-    p = os.path.join(_REPO, f)
-    return open(p).read().strip() if os.path.exists(p) else None
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
-if not SUPABASE_KEY: print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
-
-BASE = f"{SUPABASE_URL}/rest/v1"
-SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json"}
 NOW = datetime.datetime.utcnow()
 NOW_ISO = NOW.isoformat()
 
 
 def sb_get(table, params):
-    try:
-        r = requests.get(f"{BASE}/{table}", headers=SB_H, params=params, timeout=20)
-        return r.json() if r.status_code == 200 else []
-    except Exception as e:
-        print(f"  [sb_get {table}] {e}"); return []
+    return _db.sb_get(table, params)
 
 
 def sb_patch(table, params, payload):
-    try:
-        r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=20)
-        return r.status_code in (200, 204)
-    except Exception as e:
-        print(f"  [sb_patch {table}] {e}"); return False
+    return _db.sb_patch(table, payload, params)
 
 
 def staleness_score(drugs: list) -> float:
@@ -297,22 +285,17 @@ def _apply_lds_priority_feedback(results: dict):
 
         # Find companies in this area's research_queue and boost priority
         try:
-            r = requests.get(f"{BASE}/research_queue",
-                headers=SB_H,
-                params={"area_id": f"eq.{area_id}",
-                        "select": "id,priority_score",
-                        "assigned_status": "eq.pending",
-                        "limit": "50"},
-                timeout=15)
-            rows = r.json() if r.status_code == 200 else []
+            rows = _db.sb_get("research_queue",
+                {"area_id": f"eq.{area_id}",
+                 "select": "id,priority_score",
+                 "assigned_status": "eq.pending",
+                 "limit": "50"})
             for row in rows:
                 current = row.get("priority_score") or 0
                 new_score = min(100, current + boost)
-                requests.patch(f"{BASE}/research_queue",
-                    headers={**SB_H, "Prefer": "return=minimal"},
-                    params={"id": f"eq.{row['id']}"},
-                    json={"priority_score": new_score},
-                    timeout=10)
+                _db.sb_patch("research_queue",
+                    {"priority_score": new_score},
+                    {"id": f"eq.{row['id']}"})
                 boosted_total += 1
         except Exception as e:
             log(f"  [LDS feedback warn] {area_id}: {e}")

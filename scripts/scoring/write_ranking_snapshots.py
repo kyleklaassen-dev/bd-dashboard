@@ -13,10 +13,17 @@ Usage:
 GitHub Actions: add as a step after company-enrichment.yml completes.
 """
 
-import os, sys, json, argparse, datetime, urllib.request, urllib.error
+import os, sys, argparse, datetime
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NEXT_GEN_AREAS = ["tl1a", "ibd", "fcrn"]
 
@@ -34,38 +41,15 @@ AILUX_DEV_SC = {
 }
 
 def sb_get(table, params=None):
-    qs = "&".join(f"{k}={v}" for k, v in (params or {}).items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    req = urllib.request.Request(url, headers={
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Range": "0-999",
-    })
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(f"  GET {table} error: {e.code}", file=sys.stderr)
-        return []
+    p = dict(params or {})
+    p.setdefault("limit", "1000")
+    return _db.sb_get(table, p)
 
 def sb_upsert(table, rows):
-    req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/{table}",
-        data=json.dumps(rows).encode(),
-        method="POST",
-        headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "resolution=merge-duplicates,return=minimal",
-        }
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            return r.status
-    except urllib.error.HTTPError as e:
-        print(f"  UPSERT {table} error: {e.code} {e.read()[:100]}", file=sys.stderr)
-        return None
+    """_db.sb_upsert returns the upserted rows (or [] on failure); translate
+    to an HTTP-status-like int since the call site just prints it informationally."""
+    result = _db.sb_upsert(table, rows)
+    return 200 if (result or not rows) else None
 
 
 def compute_rankings(area_id, dry_run=False):
@@ -136,10 +120,6 @@ def main():
     parser.add_argument("--area", default=None, help="Specific area (tl1a/ibd/fcrn)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-
-    if not SUPABASE_KEY:
-        print("ERROR: SUPABASE_SERVICE_KEY not set", file=sys.stderr)
-        sys.exit(1)
 
     areas = [args.area] if args.area else NEXT_GEN_AREAS
     total = 0

@@ -35,8 +35,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Optional, Any
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
+# NOTE: this file's own dir was previously (mis)treated as _SCRIPTS_DIR / its
+# parent as _REPO_ROOT — a holdover from before the scripts/ reorg moved this
+# file into scripts/scoring/, which silently broke credential-file lookups
+# (masked by env-var fallbacks). Recomputed relative to the true repo layout.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+_REPO_ROOT = os.path.dirname(_SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 
 # ── Credentials ───────────────────────────────────────────────────────────────
@@ -51,17 +60,12 @@ def _cred(env_var: str, filename: str) -> str:
     return ""
 
 
-SUPABASE_URL      = _cred("SUPABASE_URL", ".supabase_url") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY      = _cred("SUPABASE_SERVICE_KEY", ".supabase_service_key")
-ANON_KEY          = _cred("SUPABASE_ANON_KEY", ".supabase_anon_key")
-SUPABASE_PAT      = _cred("SUPABASE_PAT", ".supabase_pat")
-ANTHROPIC_API_KEY = _cred("ANTHROPIC_API_KEY", ".anthropic_api_key")
+SUPABASE_URL, SUPABASE_KEY, ANTHROPIC_API_KEY = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_PAT = _cred("SUPABASE_PAT", ".supabase_pat")
 
 PROJECT_REF = "tghntyofptvfhmtchwcv"
 MGMT_URL    = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
-
-_READ_KEY  = SUPABASE_KEY or ANON_KEY
-_WRITE_KEY = SUPABASE_KEY or ANON_KEY
 
 TODAY = datetime.date.today().isoformat()
 NOW   = datetime.datetime.utcnow().isoformat()
@@ -80,46 +84,17 @@ ABBVIE_CONSTRAINT_NOTE = (
 )
 
 
-# ── HTTP helpers ──────────────────────────────────────────────────────────────
-def _sb_headers(key: str, write: bool = False) -> dict:
-    h = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
-    if write:
-        h["Prefer"] = "resolution=merge-duplicates,return=representation"
-    return h
-
+# ── DB helpers (delegate to shared _db CRUD module) ───────────────────────────
 
 def sb_get(path: str, params: dict = None) -> List[dict]:
-    qs = ("?" + urllib.parse.urlencode(params)) if params else ""
-    url = f"{SUPABASE_URL}/rest/v1/{path}{qs}"
-    req = urllib.request.Request(url, headers=_sb_headers(_READ_KEY))
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        raise RuntimeError(f"GET {path} → HTTP {e.code}: {body[:200]}")
+    return _db.sb_get(path, params or {})
 
 
 def sb_post(table: str, rows: List[dict], dry_run: bool = False) -> None:
     if dry_run:
         print(f"  [DRY-RUN] Would insert {len(rows)} rows into {table}")
         return
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    data = json.dumps(rows).encode()
-    req = urllib.request.Request(
-        url, data=data, method="POST",
-        headers=_sb_headers(_WRITE_KEY, write=True)
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            r.read()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        raise RuntimeError(f"POST {table} → HTTP {e.code}: {body[:300]}")
+    _db.sb_upsert(table, rows)
 
 
 def sb_delete(table: str, params: dict, dry_run: bool = False) -> None:
@@ -127,15 +102,7 @@ def sb_delete(table: str, params: dict, dry_run: bool = False) -> None:
     if dry_run:
         print(f"  [DRY-RUN] Would DELETE from {table} WHERE {params}")
         return
-    qs = "?" + urllib.parse.urlencode(params)
-    url = f"{SUPABASE_URL}/rest/v1/{table}{qs}"
-    req = urllib.request.Request(url, method="DELETE", headers=_sb_headers(_WRITE_KEY))
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            r.read()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        raise RuntimeError(f"DELETE {table} → HTTP {e.code}: {body[:200]}")
+    _db.sb_delete(table, params)
 
 
 # ── Data pull ─────────────────────────────────────────────────────────────────
@@ -487,10 +454,6 @@ def main(dry_run: bool = False, top_n: int = 20, print_top: int = 10) -> List[di
     print(f"\n{'='*60}")
     print(f"Meridian BD Recommendations Engine — {TODAY}")
     print(f"{'='*60}\n")
-
-    if not _READ_KEY:
-        print("ERROR: No Supabase key available. Check .supabase_service_key or .supabase_anon_key")
-        sys.exit(1)
 
     # 1. Pull data
     data = pull_all_data()

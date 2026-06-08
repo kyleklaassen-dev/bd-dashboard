@@ -10,42 +10,31 @@ Usage:
   python scripts/rescore_completeness.py --all       # all areas
 """
 
-import os, sys, json, argparse, datetime
-import urllib.request, urllib.error
+import os, sys, argparse, datetime
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 NOW_ISO = datetime.datetime.utcnow().isoformat() + "Z"
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-
 def sb_get(table, params=""):
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{params}"
-    req = urllib.request.Request(url, headers={**_headers(), "Range": "0-499"})
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read())
+    """Local call sites pass a 'k=v&k2=v2' query-string fragment; split it
+    and delegate to _db.sb_get's (table, params) interface."""
+    p = dict(kv.split("=", 1) for kv in params.split("&")) if params else {}
+    p.setdefault("limit", "500")
+    return _db.sb_get(table, p)
 
 def sb_patch(table, payload, filters):
-    qs = "&".join(f"{k}={v}" for k, v in filters.items())
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{qs}"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method="PATCH",
-                                  headers={**_headers(), "Prefer": "return=minimal"})
-    try:
-        with urllib.request.urlopen(req) as r:
-            return r.status in (200, 204)
-    except urllib.error.HTTPError as e:
-        print(f"  ❌ PATCH {table} failed: {e.code} {e.read()[:200]}")
-        return False
+    return _db.sb_patch(table, payload, filters)
 
 # ── Scoring logic (mirrors _score_company_completeness in company_enrichment.py) ──
 
@@ -253,10 +242,6 @@ def main():
     parser.add_argument("--null-only", action="store_true",
                         help="Only rescore where completeness_score IS NULL (default behaviour)")
     args = parser.parse_args()
-
-    if not SUPABASE_KEY:
-        print("ERROR: SUPABASE_SERVICE_KEY not set")
-        sys.exit(1)
 
     # Determine which profiles to rescore
     if args.all:

@@ -19,20 +19,29 @@ Run:
   python3 scripts/compute_strategic_value.py [--dry-run]
 """
 
-import json
 import os
 import sys
 import argparse
 from datetime import datetime, date
 import urllib.request
 import urllib.error
+import json
 import base64
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# NOTE: dirname(dirname(__file__)) resolved to scripts/, not the repo root,
+# after the scripts/ reorg moved this file into scripts/scoring/ — go up one
+# more level for .github_token, which lives at the repo root.
+WORKSPACE = os.path.dirname(_SCRIPTS_DIR)
 
 
 def _read_key(filename):
@@ -41,54 +50,41 @@ def _read_key(filename):
         return f.read().strip()
 
 
-SUPA_KEY = _read_key(".supabase_service_key")
+SUPA_URL, SUPA_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPA_URL, SUPA_KEY)
 GITHUB_TOKEN = _read_key(".github_token")
 
 RUN_ID = f"svs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 TODAY = date.today().isoformat()
 
 # ---------------------------------------------------------------------------
-# HTTP helpers
+# Supabase helpers — call sites pass 'table?k=v&k2=v2' endpoint fragments;
+# split them and delegate to the shared _db (table, params) interface.
 # ---------------------------------------------------------------------------
 
-def _request(method, endpoint, data=None, extra_headers=None):
-    url = f"{SUPA_URL}/{endpoint}"
-    body = json.dumps(data).encode() if data is not None else None
-    hdrs = {
-        "apikey": SUPA_KEY,
-        "Authorization": f"Bearer {SUPA_KEY}",
-        "Content-Type": "application/json",
-    }
-    if extra_headers:
-        hdrs.update(extra_headers)
-    req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            raw = resp.read()
-            if raw.strip():
-                return json.loads(raw)
-            return []
-    except urllib.error.HTTPError as e:
-        body_err = e.read().decode()
-        print(f"  HTTP {e.code} {method} /{endpoint.split('?')[0]}: {body_err[:200]}", file=sys.stderr)
-        return None
+def _split(endpoint):
+    table, _, qs = endpoint.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    return table, params
 
 
 def get(endpoint):
-    return _request("GET", endpoint)
+    table, params = _split(endpoint)
+    return _db.sb_get(table, params)
 
 
 def patch(endpoint, data):
-    return _request("PATCH", endpoint, data)
+    table, filters = _split(endpoint)
+    return _db.sb_patch(table, data, filters)
 
 
 def post(endpoint, data, prefer=None):
-    hdrs = {"Prefer": prefer} if prefer else {}
-    return _request("POST", endpoint, data, hdrs)
+    return _db.sb_insert(endpoint, data)
 
 
 def delete(endpoint):
-    return _request("DELETE", endpoint)
+    table, filters = _split(endpoint)
+    return _db.sb_delete(table, filters)
 
 
 # ---------------------------------------------------------------------------

@@ -16,26 +16,19 @@ Writes to: company_portfolio_conflicts (UPSERT on company_id + ailux_asset_id)
 """
 
 import os
-import json
 import re
 import sys
-import requests
 from datetime import datetime, timezone
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-with open(os.path.join(BASE_DIR, ".supabase_service_key")) as f:
-    SERVICE_KEY = f.read().strip()
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-SUPABASE_URL = "https://tghntyofptvfhmtchwcv.supabase.co"
-REST_BASE    = f"{SUPABASE_URL}/rest/v1"
-
-HEADERS = {
-    "apikey":        SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type":  "application/json",
-    "Prefer":        "return=representation",
-}
+SUPABASE_URL, SERVICE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SERVICE_KEY)
 
 INACTIVE_STAGES = {"Discontinued", "Terminated", "Withdrawn"}
 PHASE2_PLUS = {
@@ -335,21 +328,19 @@ def score_alx005(drugs: list) -> dict:
 # ---------------------------------------------------------------------------
 
 def fetch_json(url: str) -> list:
-    r = requests.get(url, headers=HEADERS, timeout=30)
-    r.raise_for_status()
-    return r.json()
+    """Call sites pass a 'table?select=...&...' fragment; split it and
+    delegate to _db.sb_get's (table, params) interface."""
+    table, _, qs = url.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    return _db.sb_get(table, params)
 
 
 def upsert_row(row: dict) -> bool:
-    r = requests.post(
-        f"{REST_BASE}/company_portfolio_conflicts?on_conflict=company_id,ailux_asset_id",
-        headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=row,
-        timeout=30,
-    )
-    if r.status_code not in (200, 201):
-        print(f"  WARN upsert failed ({r.status_code}): {r.text[:120]}", file=sys.stderr)
-    return r.status_code in (200, 201)
+    result = _db.sb_upsert("company_portfolio_conflicts", row,
+                           on_conflict="company_id,ailux_asset_id")
+    if not result:
+        print("  WARN upsert failed", file=sys.stderr)
+    return bool(result)
 
 
 # ---------------------------------------------------------------------------
@@ -361,14 +352,14 @@ def main():
     print(f"Run: {datetime.now(timezone.utc).isoformat()}\n")
 
     companies = fetch_json(
-        f"{REST_BASE}/companies?strategic_value_score=gt.0"
-        f"&select=id,name,strategic_value_score,status&order=strategic_value_score.desc"
+        "companies?strategic_value_score=gt.0"
+        "&select=id,name,strategic_value_score,status&order=strategic_value_score.desc"
     )
     all_drugs = fetch_json(
-        f"{REST_BASE}/drugs?select=id,name,target,cls,stage,company_id&limit=500"
+        "drugs?select=id,name,target,cls,stage,company_id&limit=500"
     )
     partnerships = fetch_json(
-        f"{REST_BASE}/company_partnerships?select=company_id,partner_company_id,deal_type,drug_id&limit=500"
+        "company_partnerships?select=company_id,partner_company_id,deal_type,drug_id&limit=500"
     )
 
     print(f"Companies: {len(companies)}  |  Drugs: {len(all_drugs)}  |  Partnerships: {len(partnerships)}\n")

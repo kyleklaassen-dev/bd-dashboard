@@ -29,14 +29,18 @@ Each score is 0–100. Overall = weighted average.
 
 import os
 import sys
-import json
 import time
 import uuid
 import argparse
-import urllib.request
-import urllib.error
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
 SCORE_VERSION = "1.2"  # v1.2: source_coverage denominator = confirmed+supported only (not inferred/null)
 STALE_DAYS = 30          # profiles older than this score below 70
@@ -62,59 +66,22 @@ WEIGHTS = {
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-SB_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
-SB_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-
-if not SB_KEY:
-    key_file = os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key")
-    if os.path.exists(key_file):
-        with open(key_file) as f:
-            SB_KEY = f.read().strip()
-
-if not SB_KEY:
-    print("ERROR: SUPABASE_SERVICE_KEY not set")
-    sys.exit(1)
+SB_URL, SB_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SB_URL, SB_KEY)
 
 
 def sb_get(path, limit=2000):
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{path}",
-        headers={
-            "apikey": SB_KEY,
-            "Authorization": f"Bearer {SB_KEY}",
-            "Range": f"0-{limit - 1}"
-        }
-    )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read())
+    """Local call sites pass a combined 'table?select=...&...' path string;
+    split it and delegate to _db.sb_get's (table, params) interface."""
+    table, _, qs = path.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    params.setdefault("limit", str(limit))
+    return _db.sb_get(table, params)
 
 
 def sb_upsert(table, rows, on_conflict=None):
     """Upsert rows into table. on_conflict specifies the conflict target columns."""
-    if not rows:
-        return []
-    url = f"{SB_URL}/rest/v1/{table}"
-    if on_conflict:
-        url += f"?on_conflict={on_conflict}"
-    payload = json.dumps(rows).encode()
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        method="POST",
-        headers={
-            "apikey": SB_KEY,
-            "Authorization": f"Bearer {SB_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "resolution=merge-duplicates,return=representation"
-        }
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        print(f"  Upsert error HTTP {e.code}: {err[:200]}")
-        return []
+    return _db.sb_upsert(table, rows, on_conflict=on_conflict)
 
 
 # ── Data loading ─────────────────────────────────────────────────────────────

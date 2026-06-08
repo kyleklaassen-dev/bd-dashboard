@@ -21,21 +21,19 @@ Run:
   python3 scripts/add_competitive_relevance.py [--dry-run]
 """
 
-import json, os, sys, urllib.request, urllib.error, urllib.parse, datetime
+import json, os, sys, datetime
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SB_URL   = "https://tghntyofptvfhmtchwcv.supabase.co"
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
 DRY_RUN  = "--dry-run" in sys.argv
 
-with open(os.path.join(BASE_DIR, ".supabase_service_key")) as f:
-    SERVICE_KEY = f.read().strip()
-
-HEADERS_READ = {
-    "apikey": SERVICE_KEY,
-    "Authorization": f"Bearer {SERVICE_KEY}",
-    "Content-Type": "application/json",
-}
-HEADERS_PATCH = {**HEADERS_READ, "Prefer": "return=representation"}
+SB_URL, SERVICE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SB_URL, SERVICE_KEY)
 
 NOW = datetime.datetime.utcnow().isoformat()
 
@@ -45,16 +43,7 @@ def section(title):
 
 
 def get(table, params):
-    qs = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='.()*,')}" for k, v in params.items()
-    )
-    req = urllib.request.Request(f"{SB_URL}/rest/v1/{table}?{qs}", headers=HEADERS_READ)
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(f"  GET {table} HTTP {e.code}: {e.read().decode()[:300]}")
-        return []
+    return _db.sb_get(table, params)
 
 
 def patch(table, filters, updates):
@@ -62,21 +51,7 @@ def patch(table, filters, updates):
         filter_str = " AND ".join(f"{k}={v}" for k, v in filters.items())
         print(f"  [DRY RUN] PATCH {table} WHERE {filter_str} → {list(updates.keys())}")
         return True
-    qs = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='.()*,')}" for k, v in filters.items()
-    )
-    data = json.dumps(updates).encode()
-    req = urllib.request.Request(
-        f"{SB_URL}/rest/v1/{table}?{qs}",
-        data=data, headers=HEADERS_PATCH, method="PATCH",
-    )
-    try:
-        with urllib.request.urlopen(req) as r:
-            result = json.loads(r.read())
-            return len(result) if isinstance(result, list) else True
-    except urllib.error.HTTPError as e:
-        print(f"  PATCH {table} HTTP {e.code}: {e.read().decode()[:300]}")
-        return False
+    return _db.sb_patch(table, updates, filters)
 
 
 # ─────────────────────────────────────────────────────────────────

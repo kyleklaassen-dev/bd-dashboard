@@ -15,37 +15,27 @@ Run:
   python3 scripts/compute_trust_score.py --drug-id tulisokibart
   python3 scripts/compute_trust_score.py --all --apply
 """
-import os, re, sys, json, argparse, urllib.request, urllib.error
+import os, re, sys, argparse
 from datetime import datetime, timezone
 from collections import Counter
 
-SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-def _secret(env, fn):
-    return os.environ.get(env, "").strip() or (open(os.path.join(WORK, fn)).read().strip()
-                                               if os.path.exists(os.path.join(WORK, fn)) else "")
-
-
-KEY = _secret("SUPABASE_SERVICE_KEY", ".supabase_service_key")
-
-
-def _req(method, ep, data=None, prefer=None):
-    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
-    if prefer:
-        h["Prefer"] = prefer
-    r = urllib.request.Request(f"{SUPA}/{ep}", data=json.dumps(data).encode() if data is not None else None,
-                               headers=h, method=method)
-    try:
-        with urllib.request.urlopen(r) as resp:
-            raw = resp.read(); return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        print(f"  {e.code} {ep[:40]}: {e.read().decode()[:120]}", file=sys.stderr); return None
+SUPABASE_URL, KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, KEY)
 
 
 def get(ep):
-    return _req("GET", ep) or []
+    """Call sites pass a 'table?select=...&...' fragment; split it and
+    delegate to _db.sb_get's (table, params) interface."""
+    table, _, qs = ep.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    return _db.sb_get(table, params)
 
 
 def score_drug(did):
@@ -153,8 +143,7 @@ def main():
     if args.apply and rows:
         for r in rows:
             r["computed_at"] = datetime.now(timezone.utc).isoformat()
-        _req("POST", "drug_trust_scores?on_conflict=drug_id", rows,
-             "resolution=merge-duplicates,return=minimal")
+        _db.sb_upsert("drug_trust_scores", rows, on_conflict="drug_id")
         print(f"  wrote {len(rows)} trust scores.")
     elif not args.apply:
         print("[dry-run] no write (add --apply).")

@@ -47,12 +47,21 @@ import urllib.error
 from datetime import datetime, date
 from collections import defaultdict
 
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
-SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# NOTE: dirname(dirname(__file__)) resolved to scripts/, not the repo root,
+# after the scripts/ reorg moved this file into scripts/scoring/ — go up one
+# more level for .github_token, which lives at the repo root.
+WORKSPACE = os.path.dirname(_SCRIPTS_DIR)
 OUTPUTS_DIR = os.path.join(WORKSPACE, "outputs")
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 
@@ -67,7 +76,8 @@ def _read_key(filename):
         return f.read().strip()
 
 
-SUPA_KEY = _read_key(".supabase_service_key")
+SUPA_URL, SUPA_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPA_URL, SUPA_KEY)
 GITHUB_TOKEN = _read_key(".github_token")
 REPO = "kyleklaassen-dev/bd-dashboard"
 
@@ -94,43 +104,22 @@ FORCE_HOLD_STATUSES = {"acquired"}
 # ---------------------------------------------------------------------------
 
 
-def _request(method, endpoint, data=None, extra_headers=None):
-    url = f"{SUPA_URL}/{endpoint}"
-    body = json.dumps(data).encode() if data is not None else None
-    hdrs = {
-        "apikey": SUPA_KEY,
-        "Authorization": f"Bearer {SUPA_KEY}",
-        "Content-Type": "application/json",
-    }
-    if extra_headers:
-        hdrs.update(extra_headers)
-    req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            raw = resp.read()
-            return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        body_err = e.read().decode()
-        print(f"  HTTP {e.code} {method} /{endpoint.split('?')[0]}: {body_err[:200]}", file=sys.stderr)
-        return None
+# Call sites pass 'table?k=v&k2=v2' endpoint fragments; split them and
+# delegate to the shared _db (table, params) interface.
+
+def _split(endpoint):
+    table, _, qs = endpoint.partition("?")
+    params = dict(p.split("=", 1) for p in qs.split("&")) if qs else {}
+    return table, params
 
 
 def get(endpoint):
-    return _request("GET", endpoint) or []
+    table, params = _split(endpoint)
+    return _db.sb_get(table, params)
 
 
 def post(endpoint, data, prefer=None):
-    hdrs = {"Prefer": prefer} if prefer else {}
-    return _request("POST", endpoint, data, hdrs)
-
-
-def patch(endpoint, data):
-    return _request("PATCH", endpoint, data)
-
-
-def upsert(endpoint, data):
-    hdrs = {"Prefer": "resolution=merge-duplicates,return=minimal"}
-    return _request("POST", endpoint, data, hdrs)
+    return _db.sb_insert(endpoint, data)
 
 
 # ---------------------------------------------------------------------------
@@ -796,10 +785,7 @@ def score_company(company, idx):
 
 def _delete_acquisition_target_rows():
     """Delete all existing acquisition_target rows so we can insert fresh ones."""
-    return _request(
-        "DELETE",
-        "company_strategic_views?view_type=eq.acquisition_target",
-    )
+    return _db.sb_delete("company_strategic_views", {"view_type": "eq.acquisition_target"})
 
 
 def write_to_supabase(results, dry_run=False):

@@ -17,29 +17,17 @@ Reference drug per context:
   tcell / autoimmune   → regulatory T-cell / broad autoimmune
 """
 
-import os, sys, json, requests
+import os, sys
 
-_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-def _read(f):
-    for base in [_REPO, os.path.dirname(os.path.abspath(__file__))]:
-        p = os.path.join(base, f)
-        if os.path.exists(p):
-            return open(p).read().strip()
-    return ""
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _read(".supabase_service_key")
+from _common import load_credentials  # noqa: E402
+import _db                              # noqa: E402
 
-if not SUPABASE_KEY:
-    print("ERROR: No SUPABASE_SERVICE_KEY"); sys.exit(1)
-
-REST = f"{SUPABASE_URL}/rest/v1"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=representation",
-}
+SUPABASE_URL, SUPABASE_KEY, _ = load_credentials(require_anthropic=False)
+_db.init_db(SUPABASE_URL, SUPABASE_KEY)
 
 
 # ─── Scoring helpers (mirrored from apply_competitive_scores_v56.py) ──────────
@@ -180,17 +168,8 @@ def monitoring_priority_v2(total, stage):
 
 # ─── Fetch null-score rows ────────────────────────────────────────────────────
 
-def sb_get(table, params):
-    r = requests.get(f"{REST}/{table}", headers=HEADERS, params=params, timeout=20)
-    if r.status_code == 200:
-        return r.json()
-    print(f"  GET {table}: {r.status_code} {r.text[:200]}")
-    return []
-
-def sb_patch_row(table, payload, params):
-    h = {**HEADERS, "Prefer": "return=minimal"}
-    r = requests.patch(f"{REST}/{table}", headers=h, params=params, json=payload, timeout=15)
-    return r.status_code in (200, 204)
+sb_get       = _db.sb_get
+sb_patch_row = _db.sb_patch
 
 
 def main():
