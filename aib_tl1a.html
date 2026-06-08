@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian · Area Intelligence Brief — TL1A × IL-23p19</title>
+<style>
+  :root{
+    --ink:#14274a; --slate:#475569; --mut:#64748b; --line:#d6deea; --bg:#f8fafc;
+    --navy:#1a3f8f; --soft:#eef4fb; --zebra:#f5f8ff; --green:#15803d; --amber:#b45309;
+    --red:#b91c1c; --gold:#9a6a00; --goldbg:#fff7e6; --redbg:#fef2f2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 26px 80px}
+
+  /* top bar: title band + controls */
+  .band{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:0 0 16px 16px;
+    padding:20px 26px;margin-bottom:18px;box-shadow:0 6px 22px rgba(26,63,143,.16)}
+  .band .wm{font-size:13px;font-weight:700;letter-spacing:.06em;opacity:.9}
+  .band h1{margin:6px 0 4px;font-size:23px;font-weight:700;letter-spacing:-.01em}
+  .band .sub{font-size:13px;opacity:.85}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 4px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;color:var(--slate);padding:8px 18px;font-size:13.5px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:all .12s}
+  .seg button.on{background:var(--navy);color:#fff}
+  .dl{margin-left:auto;display:flex;gap:8px}
+  .dl a{font-size:12.5px;color:var(--navy);text-decoration:none;border:1px solid var(--line);
+    background:#fff;border-radius:8px;padding:7px 12px;font-weight:600}
+  .dl a:hover{border-color:var(--navy)}
+  .meta{font-size:12px;color:var(--mut);margin:2px 2px 16px}
+
+  /* rendered doc */
+  #doc h1.sec{font-size:20px;color:var(--navy);font-weight:700;margin:30px 0 10px;
+    padding-bottom:6px;border-bottom:2px solid var(--line);letter-spacing:-.01em}
+  #doc h2.sec{font-size:16.5px;color:var(--ink);font-weight:700;margin:20px 0 6px}
+  #doc p{margin:0 0 11px}
+  #doc strong{color:var(--ink)}
+  #doc ol:not(.fn), #doc ul{margin:0 0 12px;padding-left:22px}
+  #doc ol:not(.fn) li, #doc ul li{margin-bottom:5px}
+
+  /* the cover paragraphs at top of fragment */
+  #doc > p:first-child{font-weight:700;color:var(--navy);font-size:15px}
+
+  /* tables */
+  #doc table{border-collapse:collapse;width:100%;margin:8px 0 16px;font-size:13.5px;
+    box-shadow:0 1px 3px rgba(15,23,42,.05);border-radius:8px;overflow:hidden}
+  #doc table td{border:1px solid var(--line);padding:8px 11px;vertical-align:top;background:#fff}
+  #doc table tr:first-child td{background:var(--navy);color:#fff;font-weight:700;border-color:var(--navy)}
+  #doc table tr:nth-child(even):not(:first-child) td{background:var(--zebra)}
+  /* KPI strip */
+  #doc table.kpi,#doc table.kpi td{box-shadow:none;border:1px solid var(--line)}
+  #doc table.kpi tr:first-child td{background:var(--soft);color:var(--navy);text-align:center;border-color:var(--line)}
+  #doc table.kpi td p:first-child{font-size:23px;font-weight:800;color:var(--navy);margin:0}
+  #doc table.kpi td p:last-child{font-size:11.5px;color:var(--mut);margin:2px 0 0}
+  /* callouts (single-cell tables) */
+  #doc table.callout,#doc table.callout td{box-shadow:none;border:0;border-radius:10px}
+  #doc table.callout td{background:var(--soft) !important;color:var(--ink);
+    border-left:5px solid var(--navy) !important;padding:13px 16px;font-weight:400}
+  #doc table.callout.gold td{background:var(--goldbg) !important;border-left-color:var(--gold) !important}
+  #doc table.callout.red td{background:var(--redbg) !important;border-left-color:var(--red) !important}
+  #doc table.callout tr:first-child td{color:var(--ink);font-weight:400}
+  /* verdict colors */
+  .v-green{color:var(--green);font-weight:700}
+  .v-red{color:var(--red);font-weight:700}
+  .v-amber{color:var(--amber);font-weight:700}
+  /* epistemic tags */
+  .tagF{color:var(--green);font-weight:700}.tagI{color:var(--navy);font-weight:700}
+  .tagJ{color:var(--amber);font-weight:700}.tagP{color:var(--red);font-weight:700}
+  /* footnotes */
+  #doc .footnotes{margin-top:30px;border-top:1px solid var(--line);padding-top:10px;font-size:11.5px;color:var(--mut)}
+  #doc .footnotes li{margin-bottom:5px}
+  #doc sup a{color:var(--navy);text-decoration:none;font-weight:600}
+  #doc .footnote-back{text-decoration:none}
+  .loading{padding:60px;text-align:center;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="band">
+  <div class="wm">◆ THE MERIDIAN · AREA INTELLIGENCE BRIEF</div>
+  <h1>TL1A × IL-23p19 in Ulcerative Colitis &amp; IBD</h1>
+  <div class="sub">ALX001 (TL1A × IL-23p19 bispecific) · Ailux Board / CEO / CSO / R&amp;D · June 7, 2026</div>
+</div>
+<div class="wrap">
+  <div class="controls">
+    <div class="seg" id="seg">
+      <button data-v="refined" class="on">Refined · 1-page read</button>
+      <button data-v="full">Full · deep reference</button>
+    </div>
+    <div class="dl">
+      <a id="dl" href="AIB_TL1A_IL23p19_UC_Refined.docx" download>↓ Word</a>
+    </div>
+  </div>
+  <div class="meta" id="meta">Distilled edition — every insight, less to read. Claims tagged
+    <span class="tagF">[F]</span>act <span class="tagI">[I]</span>nference
+    <span class="tagJ">[J]</span>udgment <span class="tagP">[P]</span>rediction.</div>
+  <div id="doc"><div class="loading">Loading brief…</div></div>
+</div>
+
+<script>
+const SRC={refined:"aib_tl1a_refined.html",full:"aib_tl1a_full.html"};
+const DOCX={refined:"AIB_TL1A_IL23p19_UC_Refined.docx",full:"AIB_TL1A_IL23p19_UC_v6.docx"};
+const META={
+  refined:'Distilled edition — every insight, less to read.',
+  full:'Full edition — the complete deep-reference analysis.'};
+const cache={};
+const H1RE=/^(\d{1,2}\s·\s|Meridian Assessment|The decision$|Standing predictions|Sources)/;
+
+function enhance(root){
+  // headings
+  root.querySelectorAll(':scope > p').forEach(p=>{
+    const t=p.textContent.trim();
+    if(!t) return;
+    if(H1RE.test(t)){ const h=document.createElement('h1'); h.className='sec'; h.innerHTML=p.innerHTML; p.replaceWith(h); return; }
+    const short=t.length<=80, hasRef=p.querySelector('sup,a'), endsPunct=/[.:,]$/.test(t),
+          isTag=/^\[/.test(t), words=t.split(/\s+/).length;
+    if(short && !hasRef && !endsPunct && !isTag && words<=12 && /[A-Za-z]/.test(t)){
+      const h=document.createElement('h2'); h.className='sec'; h.innerHTML=p.innerHTML; p.replaceWith(h);
+    }
+  });
+  // tables: KPI, callouts, verdict colors
+  root.querySelectorAll('table').forEach(tb=>{
+    const rows=tb.querySelectorAll('tr'), cells=tb.querySelectorAll('td');
+    const txt=tb.textContent;
+    if(cells.length===1){ // callout
+      tb.classList.add('callout');
+      if(/Kill scenario|→ ~\$0|≈ ?\$0/.test(txt)) tb.classList.add('red');
+      else if(/Verdict|Synthesis|Sharpest|testable conclusion|Bottom line/.test(txt)) tb.classList.add('gold');
+      return;
+    }
+    if(rows.length===1 && cells.length>=4 && /US IBD patients|market/.test(txt)){ tb.classList.add('kpi'); }
+    // verdict keyword colors
+    cells.forEach(td=>{
+      const s=td.textContent.trim();
+      if(/^(Edge|Differentiated|Real edge|Strong[a-z ]*|First in-human bispecific PK)$/.test(s)) colorCell(td,'v-green');
+      else if(/^(Weakness|Unproven|miss|< ?\$1B|reverts|Time-limited)$/.test(s)) colorCell(td, /Time-limited/.test(s)?'v-amber':'v-red');
+      else if(/\$8-12B|\$10B\+/.test(s)) colorCell(td,'v-green');
+    });
+  });
+  // tag colorize [F]/[I]/[J]/[P] inline
+  root.querySelectorAll('p,h2,td,li').forEach(el=>{
+    if(el.children.length && el.querySelector('table')) return;
+    el.innerHTML=el.innerHTML
+      .replace(/\[F\]/g,'<span class="tagF">[F]</span>')
+      .replace(/\[I\]/g,'<span class="tagI">[I]</span>')
+      .replace(/\[J\]/g,'<span class="tagJ">[J]</span>')
+      .replace(/\[P\]/g,'<span class="tagP">[P]</span>');
+  });
+  const fns=root.querySelector('.footnotes ol'); if(fns) fns.classList.add('fn');
+}
+function colorCell(td,cls){ const b=td.querySelector('strong')||td; b.classList.add(cls); }
+
+async function load(v){
+  const doc=document.getElementById('doc');
+  document.getElementById('meta').firstChild&&(null);
+  document.getElementById('meta').innerHTML=META[v]+' Claims tagged <span class="tagF">[F]</span>act <span class="tagI">[I]</span>nference <span class="tagJ">[J]</span>udgment <span class="tagP">[P]</span>rediction.';
+  document.getElementById('dl').setAttribute('href',DOCX[v]);
+  document.getElementById('dl').setAttribute('download','');
+  if(!cache[v]){
+    try{ const r=await fetch(SRC[v]); cache[v]=await r.text(); }
+    catch(e){ doc.innerHTML='<div class="loading">Could not load the brief. '+e.message+'</div>'; return; }
+  }
+  doc.innerHTML=cache[v];
+  enhance(doc);
+  doc.scrollIntoView({block:'start',behavior:'instant'});
+}
+document.getElementById('seg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+  load(b.dataset.v);
+});
+// initial from ?v=
+const v0=new URLSearchParams(location.search).get('v')==='full'?'full':'refined';
+if(v0==='full'){document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='full'));}
+load(v0);
+</script>
+</body>
+</html>
