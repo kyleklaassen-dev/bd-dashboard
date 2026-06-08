@@ -456,6 +456,13 @@ def governed_intake(row, extraction, url, source_name, archived_path) -> list:
     entities = extraction.get("extracted_entities", {}) or {}
     if not isinstance(entities, dict):
         entities = {}
+    # Publishers/analysts that author the documents — never stage them as tracked companies
+    _PUBLISHERS = ("wedbush", "endpoints", "fierce", "evercore", "leerink", "jefferies",
+                   "stat news", "biopharma", "iqvia", "morgan stanley", "goldman",
+                   "bofa", "cantor", "guggenheim", "piper", "stifel", "truist", "ubs")
+    def _is_publisher(nm):
+        n = (nm or "").lower()
+        return any(p in n for p in _PUBLISHERS)
     matched  = extraction.get("matched_drug_ids", []) or []
     title    = (extraction.get("extracted_title") or "")[:200]
     summary  = (extraction.get("extracted_summary") or "")[:300]
@@ -486,7 +493,8 @@ def governed_intake(row, extraction, url, source_name, archived_path) -> list:
     companies = entities.get("companies", []) or []
     area_id  = areas[0] if areas else None
     target   = targets[0] if targets else None
-    company0 = companies[0] if companies else None
+    # First non-publisher company (so analyst trackers don't stage "Wedbush Securities")
+    company0 = next((c for c in companies if not _is_publisher(c)), None)
     unmatched_drugs = extraction.get("unmatched_drugs", []) or []
 
     existing = sb_get("discovery_queue", {"source_url": f"eq.{url}", "select": "drug_name,company_name"}) if url else []
@@ -509,7 +517,7 @@ def governed_intake(row, extraction, url, source_name, archived_path) -> list:
             actions.append(f"discovery_queue(pending) += drug:{dname}")
             seen.add(key)
 
-    if not unmatched_drugs and company0 and ("", company0.lower()) not in seen:
+    if not unmatched_drugs and company0 and not _is_publisher(company0) and ("", company0.lower()) not in seen:
         q = {
             "entity_type": "company", "company_name": company0, "area_id": area_id,
             "reason": summary or title, "why_discovered": f"Submitted intel: {title}",
