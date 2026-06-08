@@ -21508,7 +21508,7 @@ function siRender() {
     <div class="si-detail-grid">
       <div class="si-detail-section">
         <div class="si-detail-label">Source Link</div>
-        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a>` : '—'}</div>
+        <div class="si-detail-value">${r.source_url ? `<a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="color:#2563eb;word-break:break-all;font-size:11px">${r.source_url.length > 80 ? r.source_url.slice(0,77)+'…' : r.source_url}</a><div style="margin-top:6px"><a href="${r.source_url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-block;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;text-decoration:none">${/\.pdf|\/pdf|bluematrix/i.test(r.source_url)?'📄 View source PDF':'↗ Open source'}</a></div>` : '—'}</div>
       </div>
       <div class="si-detail-section">
         <div class="si-detail-label">Submitted Text</div>
@@ -21582,13 +21582,15 @@ async function siSendToQueue(id, btn) {
     const targets   = entities.targets   || [];
 
     const queueRow = {
+      entity_type:    drugs[0] ? 'molecule' : 'company',
       company_name:   companies[0] || null,
       drug_name:      drugs[0]     || null,
-      area_id:        areas[0]     || null,
+      area_id:        areas[0]     || 'tl1a',
       target:         targets[0]   || null,
+      overlap:        'Direct',
       reason:         row.extracted_summary || row.submitted_text || null,
       source_url:     row.source_url        || null,
-      source:         'submitted_intel',
+      source:         'user_intake',
       discovered_by:  row.submitted_by      || null,
       why_discovered: row.extracted_summary || row.submitted_text || null,
       review_notes:   row.submitted_text    || null,

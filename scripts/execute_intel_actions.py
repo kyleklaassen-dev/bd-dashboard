@@ -56,14 +56,46 @@ def make_id(name):
 # G1 — discovery_queue promotion
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _company_slug(name):
+    """Originator company id convention: lowercase alphanumeric, no spaces/hyphens."""
+    return re.sub(r'[^a-z0-9]', '', (name or '').lower())[:40]
+
+
+def ensure_company(company_name, area_id=None, dry_run=False):
+    """Create the originator company if it doesn't exist. Returns company_id or None.
+    Governance: drugs.company_id = originator ALWAYS."""
+    if not company_name:
+        return None
+    cid = _company_slug(company_name)
+    if not cid:
+        return None
+    if sb_get("companies", {"id": f"eq.{cid}", "select": "id", "limit": "1"}):
+        return cid
+    if dry_run:
+        print(f"  DRY: would create company {company_name} → {cid}")
+        return cid
+    row = {"id": cid, "name": company_name, "status": "active",
+           "company_type": "biotech", "ta_focus_1": "Immunology"}
+    if sb_post("companies", row):
+        print(f"  ✓ Created originator company: {company_name} ({cid})")
+        return cid
+    print(f"  ✗ Failed to create company: {company_name}")
+    return None
+
+
 def promote_discovery_queue(dry_run=False):
-    """Promote approved discovery_queue items to drugs table."""
-    print("\n── G1: discovery_queue → drugs ──")
+    """Promote approved discovery_queue items to drugs table.
+
+    For molecule items this also (a) creates the originator company if missing and
+    sets drugs.company_id, and (b) writes a drug_sources provenance row from
+    source_url — so submitted-intel-derived drugs land with their citation and the
+    document stays hyperlinked as a primary source."""
+    print("\n── G1: discovery_queue → drugs (+ company + source) ──")
 
     items = sb_get("discovery_queue", {
         "status": "eq.approved",
         "created_drug_id": "is.null",
-        "select": "id,drug_name,company_name,target,stage,overlap,area_id,confidence_score,why_discovered",
+        "select": "id,drug_name,company_name,target,stage,overlap,area_id,modality,confidence_score,why_discovered,source_url,source",
     })
     print(f"  {len(items)} approved items not yet promoted")
 
@@ -72,17 +104,24 @@ def promote_discovery_queue(dry_run=False):
         name = item.get("drug_name") or item.get("company_name") or ""
         if not name: continue
 
-        # Skip company-only entries
+        # Company-only entry → ensure the company exists, then mark handled
         if not item.get("drug_name") and item.get("company_name"):
-            sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": "COMPANY_ONLY"})
+            ensure_company(item.get("company_name"), item.get("area_id"), dry_run)
+            if not dry_run:
+                sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": "COMPANY_ONLY"})
             continue
 
         drug_id = make_id(name.split("(")[0].strip())
+        company_id = ensure_company(item.get("company_name"), item.get("area_id"), dry_run)
 
-        # Check if already exists
-        existing = sb_get("drugs", {"id": f"eq.{drug_id}", "select": "id", "limit": "1"})
+        # Already exists → backfill company_id / source then mark handled
+        existing = sb_get("drugs", {"id": f"eq.{drug_id}", "select": "id,company_id", "limit": "1"})
         if existing:
-            sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": drug_id})
+            if company_id and not existing[0].get("company_id") and not dry_run:
+                sb_patch("drugs", {"id": f"eq.{drug_id}"}, {"company_id": company_id})
+            if not dry_run:
+                _write_source(drug_id, name, item)
+                sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": drug_id})
             continue
 
         target = (item.get("target") or "").replace("α","a").replace("β","b").replace("×","x")[:100]
@@ -92,30 +131,56 @@ def promote_discovery_queue(dry_run=False):
             "id": drug_id,
             "name": name.split("(")[0].strip(),
             "display_name": name,
+            "company_id": company_id,
             "target": target or None,
             "stage": item.get("stage") or "Preclinical",
+            "modality": item.get("modality") or None,
+            "area_id": item.get("area_id") or None,
             "overlap": item.get("overlap") or "Watch",
-            "catalog_category": "Pipeline",
+            "catalog_category": "Competitor",
             "discovery_status": "auto",
             "confidence_score": item.get("confidence_score") or 70,
             "data_source": "discovery_queue",
             "drug_summary": summary or None,
+            "source_url": item.get("source_url") or None,
+            "confidence_level": "inferred",
         }
 
         if dry_run:
-            print(f"  DRY: would promote {name} → {drug_id}")
+            print(f"  DRY: would promote {name} → {drug_id} (company={company_id})")
             promoted += 1
             continue
 
         if sb_post("drugs", drug):
+            _write_source(drug_id, name, item)
             sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": drug_id})
-            print(f"  ✓ Promoted: {name} ({drug_id})")
+            print(f"  ✓ Promoted: {name} ({drug_id}) ← {item.get('company_name') or '?'}")
             promoted += 1
         else:
             print(f"  ✗ Failed: {name}")
 
     print(f"  Promoted: {promoted}")
     return promoted
+
+
+def _write_source(drug_id, drug_name, item):
+    """Write a drug_sources provenance row from the queue item's source_url."""
+    url = item.get("source_url")
+    if not url:
+        return
+    domain = url.split("/")[2] if "//" in url else ""
+    src_type = "other"
+    if "clinicaltrials.gov" in domain: src_type = "ct_gov"
+    elif "sec.gov" in domain:          src_type = "sec_filing"
+    elif any(k in domain for k in ("prnewswire","businesswire","globenewswire")): src_type = "press_release"
+    sb_post("drug_sources", {
+        "drug_id": drug_id, "drug_name": drug_name.split("(")[0].strip(),
+        "claim_type": "company_pipeline",
+        "claim_value": (item.get("why_discovered") or "Submitted intel")[:300],
+        "source_url": url, "source_type": src_type, "source_domain": domain,
+        "content_confirms_claim": True, "confidence": "inferred",
+        "added_by": "execute_intel_actions", "session_label": f"promote_{NOW[:10]}",
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════

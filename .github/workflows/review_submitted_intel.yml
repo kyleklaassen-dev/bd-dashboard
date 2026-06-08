@@ -1,9 +1,10 @@
 name: Meridian — Submitted Intel Auto-Review
 
 on:
-  schedule:
-    # Every 6 hours
-    - cron: '0 */6 * * *'
+  # On-demand only (cost pause). Trigger manually from the Actions tab or via the
+  # GitHub API. Re-enable the schedule below to resume automatic 6-hourly review.
+  # schedule:
+  #   - cron: '0 */6 * * *'
   workflow_dispatch:
     # Allow manual trigger from GitHub Actions tab
 
@@ -22,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests anthropic
+        run: pip install requests anthropic pypdf
 
       - name: Check for new submissions
         id: check

@@ -21,7 +21,7 @@ Environment (set via .env or export):
     ANTHROPIC_API_KEY     <claude api key>
 """
 
-import os, sys, json, time, argparse, pathlib
+import os, sys, json, time, argparse, pathlib, io, re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -44,6 +44,10 @@ SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.sup
 SERVICE_KEY   = _load_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 ANTHROPIC_KEY = _load_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
 CLAUDE_MODEL  = "claude-opus-4-6"
+
+# Supabase Storage bucket where fetched source PDFs are archived (so the doc is
+# saved in Supabase and remains available even if the original link later dies).
+SOURCE_BUCKET = "source-documents"
 
 SB_HEADERS = {
     "apikey":        SERVICE_KEY,
@@ -101,27 +105,102 @@ def validate_url(url: str) -> tuple[str, int, str]:
     except Exception:
         return ("broken", 0, "")
 
-def fetch_page_text(url: str, max_chars: int = 6000) -> str:
-    """Fetch readable text from a URL (best effort)."""
-    if not url:
+def _looks_like_pdf(url: str, content_type: str, body: bytes) -> bool:
+    """Detect a PDF from URL shape, content-type header, or %PDF magic bytes."""
+    if "application/pdf" in (content_type or "").lower():
+        return True
+    u = (url or "").lower()
+    if "/pdf" in u or u.endswith(".pdf") or "bluematrix" in u:
+        return True
+    return body[:5].startswith(b"%PDF")
+
+
+def _extract_pdf_text(pdf_bytes: bytes, max_chars: int) -> str:
+    """Extract text from PDF bytes via pypdf (deterministic, no LLM)."""
+    try:
+        from pypdf import PdfReader
+    except Exception:
         return ""
     try:
-        resp = requests.get(url, timeout=15, allow_redirects=True,
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        parts = []
+        for page in reader.pages:
+            try:
+                parts.append(page.extract_text() or "")
+            except Exception:
+                continue
+            if sum(len(p) for p in parts) > max_chars:
+                break
+        text = re.sub(r"\s+\n", "\n", "\n".join(parts))
+        text = re.sub(r"[ \t]+", " ", text).strip()
+        return text[:max_chars]
+    except Exception:
+        return ""
+
+
+def fetch_page_text(url: str, max_chars: int = 12000) -> tuple[str, Optional[bytes]]:
+    """Fetch readable text from a URL (best effort).
+
+    Returns (text, pdf_bytes). pdf_bytes is the raw PDF when the source is a PDF
+    (e.g. Wedbush BlueMatrix research links2/pdf links), so the caller can archive
+    it to Supabase Storage. For HTML/text sources pdf_bytes is None.
+    """
+    if not url:
+        return "", None
+    try:
+        resp = requests.get(url, timeout=30, allow_redirects=True,
                             headers={"User-Agent": "Mozilla/5.0 (compatible; Meridian/1.0)"})
         if not resp.ok:
-            return ""
+            return "", None
         content_type = resp.headers.get("Content-Type", "")
+        body = resp.content or b""
+
+        # ── PDF path (Wedbush research notes, regulatory docs, etc.) ──────────────
+        if _looks_like_pdf(url, content_type, body):
+            text = _extract_pdf_text(body, max_chars)
+            return text, body
+
+        # ── HTML / plain-text path ───────────────────────────────────────────────
         if "text/html" not in content_type and "text/plain" not in content_type:
-            return ""
-        # Very light HTML stripping
-        import re
+            return "", None
         text = re.sub(r"<script[^>]*>.*?</script>", " ", resp.text, flags=re.DOTALL)
         text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL)
         text = re.sub(r"<[^>]+>", " ", text)
         text = re.sub(r"\s+", " ", text).strip()
-        return text[:max_chars]
+        return text[:max_chars], None
     except Exception:
-        return ""
+        return "", None
+
+
+def archive_pdf_to_storage(pdf_bytes: bytes, row_id: str, source_name: str = "") -> Optional[str]:
+    """Upload a fetched source PDF to the source-documents Supabase Storage bucket.
+
+    Returns the object path on success (so the doc is saved in Supabase and stays
+    available even if the original distribution link expires), else None.
+    Best-effort: never raises into the caller.
+    """
+    if not pdf_bytes:
+        return None
+    domain = (source_name or "source").replace("/", "_")
+    object_path = f"{domain}/{row_id}.pdf"
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/storage/v1/object/{SOURCE_BUCKET}/{object_path}",
+            headers={
+                "apikey":        SERVICE_KEY,
+                "Authorization": f"Bearer {SERVICE_KEY}",
+                "Content-Type":  "application/pdf",
+                "x-upsert":      "true",
+            },
+            data=pdf_bytes, timeout=30,
+        )
+        if r.status_code in (200, 201):
+            return object_path
+        print(f"    ! storage archive failed ({r.status_code}): {r.text[:120]}")
+        return None
+    except Exception as e:
+        print(f"    ! storage archive error: {e}")
+        return None
 
 # ── Entity lookup ─────────────────────────────────────────────────────────────
 _COMPANIES: Optional[list] = None
@@ -135,16 +214,29 @@ def load_entities():
         _DRUGS = sb_list("drugs", "id,display_name")
 
 def match_entity(name: str, entities: list, name_field: str) -> Optional[str]:
-    """Fuzzy match a string against a list of entities. Returns id or None."""
+    """Match a string against a list of entities. Returns id or None.
+
+    Strict: never substring-matches against an empty/null primary (the old code did
+    `"" in name` which matched EVERY query to the first drug with a null display_name),
+    and requires >=5 normalized chars before allowing any containment match so short
+    drug codes like SL-325 don't spuriously match unrelated rows."""
     if not name:
         return None
     name_lc = name.lower().strip()
+    name_norm = re.sub(r"[^a-z0-9]", "", name_lc)
+    if len(name_norm) < 3:
+        return None
     for e in entities:
         primary = (e.get(name_field) or "").lower().strip()
-        if name_lc == primary or name_lc in primary or primary in name_lc:
+        if not primary:
+            continue
+        prim_norm = re.sub(r"[^a-z0-9]", "", primary)
+        if not prim_norm:
+            continue
+        if name_lc == primary or name_norm == prim_norm:
             return e["id"]
-        # Aliases field removed — skip alias matching
-        pass
+        if len(name_norm) >= 5 and len(prim_norm) >= 5 and (name_norm in prim_norm or prim_norm in name_norm):
+            return e["id"]
     return None
 
 # ── Duplicate detection ───────────────────────────────────────────────────────
@@ -329,312 +421,107 @@ def call_claude(url: str, text: str, page_content: str) -> Optional[dict]:
         print(f"    ✗ Claude API error: {e}")
         return None
 
-# ── Deep Intelligence Execution ──────────────────────────────────────────────
-DEEP_EXTRACTION_PROMPT = """You are a pharmaceutical intelligence analyst for Ailux Biotherapeutics.
-
-Read this submitted intelligence SENTENCE BY SENTENCE and extract every actionable database entry.
-
-SOURCE: {url}
-TEXT: {text}
-PAGE CONTENT: {page_content}
-
-Extract ALL of the following. Be specific and use exact numbers, names, and data from the text.
-Return ONLY valid JSON with no extra text:
-
-{{
-  "companies": [
-    {{
-      "name": "exact company name",
-      "id_slug": "lowercase-hyphenated-id",
-      "description": "what they do, why relevant",
-      "status": "active|acquired",
-      "headquarters": "city, country if known"
-    }}
-  ],
-  "drugs": [
-    {{
-      "name": "drug name/code",
-      "display_name": "Drug Name (mechanism/target)",
-      "company": "company name",
-      "stage": "Preclinical|Phase 1|Phase 2|Phase 3|Approved",
-      "target": "target A × target B",
-      "modality": "bispecific antibody|mAb|ADC|mRNA|small molecule|etc",
-      "indication": "disease(s)",
-      "mechanism": "2-3 sentence mechanism description",
-      "drug_summary": "3-4 sentence summary including all data from text",
-      "key_data": "specific clinical/preclinical data point with numbers",
-      "is_competitor_to_alx001": false,
-      "is_competitor_to_alx002": false,
-      "is_competitor_to_alx005": false
-    }}
-  ],
-  "clinical_data": [
-    {{
-      "drug_name": "drug name",
-      "trial_name": "trial name if given",
-      "phase": "1|2|3",
-      "indication": "indication",
-      "primary_endpoint": "endpoint",
-      "remission_rate_pct": null,
-      "hazard_ratio": null,
-      "n_enrolled": null,
-      "timepoint_weeks": null,
-      "key_finding": "specific data point with number",
-      "source": "abstract ID/publication"
-    }}
-  ],
-  "deals": [
-    {{
-      "from_company": "originator",
-      "to_company": "acquirer/partner",
-      "deal_type": "licensing|acquisition|collaboration",
-      "upfront_usd_m": null,
-      "total_usd_m": null,
-      "headline": "one sentence deal description",
-      "detail": "full deal detail"
-    }}
-  ],
-  "catalysts": [
-    {{
-      "drug_name": "drug name",
-      "event": "what happens",
-      "date_str": "YYYY-MM-DD or YYYY-Q1/2/3/4 or 'H1 2026'",
-      "significance": "P0|P1|P2|P3",
-      "ailux_impact": "why this matters for Ailux"
-    }}
-  ],
-  "qa_insights": [
-    {{
-      "drug_name": "drug name",
-      "question_id": 29,
-      "domain": "clinical|molecule|patient|competitive|regulatory",
-      "answer_short": "1 sentence",
-      "answer_text": "2-4 sentences with specific data from text",
-      "confidence": 0.0
-    }}
-  ]
-}}"""
-
-
-def deep_execute_intelligence(row: dict, extraction: dict, url: str, text: str, page_content: str) -> list:
-    """
-    Second-pass deep extraction: sentence-by-sentence analysis that creates/updates
-    all entities in the database. Returns list of action strings for logging.
-    """
-    actions = []
-    source_label = url or "submitted_intel"
-
-    # ── Deep extraction via Claude ──────────────────────────────────────────────
-    prompt = DEEP_EXTRACTION_PROMPT.format(
-        url=url or "(none)",
-        text=text or "(none)",
-        page_content=page_content[:4000] if page_content else "(not fetched)"
-    )
+# ── Governed intake (replaces the retired direct auto-writer) ─────────────────
+def _sb_insert(table: str, rows: list) -> bool:
+    if not rows:
+        return True
     try:
-        import anthropic as _anth
-        c = _anth.Anthropic(api_key=ANTHROPIC_KEY)
-        resp = c.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=3000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = resp.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"): raw = raw[4:]
-        deep = json.loads(raw)
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}",
+                          headers={**SB_HEADERS, "Prefer": "return=minimal"},
+                          json=rows, timeout=20)
+        if r.status_code in (200, 201, 204):
+            return True
+        print(f"    ! insert {table} failed ({r.status_code}): {r.text[:140]}")
+        return False
     except Exception as e:
-        print(f"  │  Deep extraction failed: {e}")
-        return actions
+        print(f"    ! insert {table} error: {e}")
+        return False
 
-    svc_headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=minimal"
-    }
+# Review vocabulary -> drug_sources.confidence enum
+_CONF_MAP = {"confirmed": "confirmed", "supported": "inferred",
+             "inferred": "inferred", "unverified": "unverified"}
+# Allowed drug_sources.source_type enum
+_SRC_TYPE_OK = {"press_release", "ct_gov", "sec_filing", "company_ir",
+                "publication", "news", "conference", "other"}
 
-    def upsert(table, data):
-        r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=svc_headers, json=data)
-        return r.status_code in (200, 201)
 
-    def patch(table, filter_qs, data):
-        r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}", headers=svc_headers, json=data)
-        return r.status_code in (200, 204)
+def governed_intake(row, extraction, url, source_name, archived_path) -> list:
+    """Governed intake. Stages intelligence WITHOUT writing directly to production
+    drugs/companies/deals:
+      - drug_sources provenance rows for any already-known drug
+      - *pending* discovery_queue items for new companies/drugs (carry source_url so
+        the doc stays hyperlinked as a primary source)
+    Promotion to drugs/companies stays gated behind review + execute_intel_actions."""
+    actions = []
+    entities = extraction.get("extracted_entities", {}) or {}
+    if not isinstance(entities, dict):
+        entities = {}
+    matched  = extraction.get("matched_drug_ids", []) or []
+    title    = (extraction.get("extracted_title") or "")[:200]
+    summary  = (extraction.get("extracted_summary") or "")[:300]
+    src_type = extraction.get("source_type") if extraction.get("source_type") in _SRC_TYPE_OK else "other"
+    conf     = _CONF_MAP.get(extraction.get("confidence_level", "unverified"), "unverified")
+    domain   = source_name or (url.split("/")[2] if url and "//" in url else "")
+    session  = f"submitted_intel_{datetime.now(timezone.utc):%Y-%m-%d}"
 
-    def exists(table, filter_qs):
-        h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{filter_qs}&select=id&limit=1", headers=h)
-        return bool(r.json()) if r.status_code == 200 else False
-
-    # ── 1. Companies ────────────────────────────────────────────────────────────
-    for co in deep.get("companies", []):
-        co_id = co.get("id_slug", "").lower().replace(" ", "-")
-        if not co_id or not co.get("name"): continue
-        if not exists("companies", f"id=eq.{co_id}"):
-            ok = upsert("companies", {
-                "id": co_id, "name": co["name"], "status": co.get("status", "active"),
-                "headquarters": co.get("headquarters", ""),
-                "insight_text": co.get("description", "")
-            })
-            if ok: actions.append(f"Created company: {co['name']}")
-        else:
-            if co.get("description"):
-                patch("companies", f"id=eq.{co_id}", {"insight_text": co["description"]})
-            actions.append(f"Updated company: {co['name']}")
-
-    # ── 2. Drugs ────────────────────────────────────────────────────────────────
-    for drug in deep.get("drugs", []):
-        nm = drug.get("name", "").strip()
-        if not nm: continue
-        # Build slug
-        drug_slug = nm.lower().replace(" ", "-").replace("/", "-")
-
-        # Find company_id
-        co_name = drug.get("company", "")
-        co_id_guess = co_name.lower().replace(" ", "-")[:20] if co_name else None
-
-        drug_row = {
-            "id": drug_slug, "name": nm,
-            "display_name": drug.get("display_name", nm),
-            "stage": drug.get("stage", "Preclinical"),
-            "target": drug.get("target", ""),
-            "therapeutic_area": "Immunology",
-            "indication_short": drug.get("indication", ""),
-            "mechanism": drug.get("mechanism", ""),
-            "drug_summary": drug.get("drug_summary", ""),
-            "key_data": drug.get("key_data", ""),
-            "catalog_category": "Competitor",
-            "overlap": "Direct" if (drug.get("is_competitor_to_alx001") or drug.get("is_competitor_to_alx002") or drug.get("is_competitor_to_alx005")) else "Watch",
-            "source_url": source_label, "confidence_level": "supported",
-            "modality": drug.get("modality", "")
+    # 1. Provenance for already-known drugs (source-documentation governance rule)
+    drug_names = entities.get("drugs", []) or []
+    for did, dname in zip(matched, drug_names):
+        if not did:
+            continue
+        src_row = {
+            "drug_id": did, "drug_name": dname,
+            "claim_type": "company_pipeline", "claim_value": title or summary,
+            "source_url": url or None, "source_type": src_type,
+            "source_domain": domain, "content_confirms_claim": True,
+            "confidence": conf, "added_by": "submitted_intel_review",
+            "session_label": session,
         }
-        if co_id_guess: drug_row["company_id"] = co_id_guess
+        if _sb_insert("drug_sources", [src_row]):
+            actions.append(f"drug_sources += {did}")
 
-        if not exists("drugs", f"id=eq.{drug_slug}"):
-            ok = upsert("drugs", drug_row)
-            if ok: actions.append(f"Created drug: {nm}")
-        else:
-            update_fields = {k: v for k, v in drug_row.items()
-                           if k not in ("id", "name", "company_id") and v}
-            patch("drugs", f"id=eq.{drug_slug}", update_fields)
-            actions.append(f"Updated drug: {nm}")
+    # 2. Pending discovery_queue items for NEW entities (no direct creation)
+    areas    = entities.get("areas", []) or []
+    targets  = entities.get("targets", []) or []
+    companies = entities.get("companies", []) or []
+    area_id  = areas[0] if areas else None
+    target   = targets[0] if targets else None
+    company0 = companies[0] if companies else None
+    unmatched_drugs = extraction.get("unmatched_drugs", []) or []
 
-    # ── 3. Clinical data → drug_clinical_benchmarks ─────────────────────────────
-    for cd in deep.get("clinical_data", []):
-        drug_slug = cd.get("drug_name", "").lower().replace(" ", "-")
-        if not drug_slug or not exists("drugs", f"id=eq.{drug_slug}"): continue
-        row_data = {
-            "drug_id": drug_slug,
-            "benchmark_type": "primary_remission" if "remission" in cd.get("key_finding","").lower() else "overall_survival" if "survival" in cd.get("key_finding","").lower() else "clinical_response",
-            "rate_pct": cd.get("remission_rate_pct"),
-            "n_enrolled": cd.get("n_enrolled"),
-            "timepoint_weeks": cd.get("timepoint_weeks"),
-            "trial_name": cd.get("trial_name", ""),
-            "patient_enrichment": cd.get("indication", ""),
-            "is_phase3": cd.get("phase") == "3",
-            "source_url": source_label
+    existing = sb_get("discovery_queue", {"source_url": f"eq.{url}", "select": "drug_name,company_name"}) if url else []
+    seen = {((r.get("drug_name") or "").lower(), (r.get("company_name") or "").lower()) for r in existing}
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for dname in unmatched_drugs:
+        key = (dname.lower(), (company0 or "").lower())
+        if key in seen:
+            continue
+        q = {
+            "entity_type": "molecule", "drug_name": dname, "company_name": company0,
+            "target": target, "area_id": area_id, "overlap": "Direct",
+            "reason": summary or title, "why_discovered": f"Submitted intel: {title}",
+            "source_url": url or None, "status": "pending",
+            "discovered_by": "submitted_intel_review", "source": "user_intake",
+            "confidence_score": 70, "discovered_at": now_iso, "last_updated_at": now_iso,
         }
-        ok = upsert("drug_clinical_benchmarks", row_data)
-        if ok: actions.append(f"Clinical benchmark: {drug_slug} — {cd.get('key_finding','')[:60]}")
+        if _sb_insert("discovery_queue", [q]):
+            actions.append(f"discovery_queue(pending) += drug:{dname}")
+            seen.add(key)
 
-    # ── 4. Deals ────────────────────────────────────────────────────────────────
-    for deal in deep.get("deals", []):
-        if not deal.get("headline"): continue
-        deal_row = {
-            "from_company": deal.get("from_company", ""),
-            "to_company": deal.get("to_company", ""),
-            "deal_type": deal.get("deal_type", "collaboration"),
-            "upfront_usd_m": deal.get("upfront_usd_m"),
-            "total_usd_m": deal.get("total_usd_m"),
-            "headline": deal.get("headline", ""),
-            "detail": deal.get("detail", ""),
-            "source_url": source_label,
-            "economic_terms_verified": False
+    if not unmatched_drugs and company0 and ("", company0.lower()) not in seen:
+        q = {
+            "entity_type": "company", "company_name": company0, "area_id": area_id,
+            "reason": summary or title, "why_discovered": f"Submitted intel: {title}",
+            "source_url": url or None, "status": "pending",
+            "discovered_by": "submitted_intel_review", "source": "user_intake",
+            "confidence_score": 60, "discovered_at": now_iso, "last_updated_at": now_iso,
         }
-        ok = upsert("deals", deal_row)
-        if ok: actions.append(f"Deal: {deal.get('headline','')[:60]}")
+        if _sb_insert("discovery_queue", [q]):
+            actions.append(f"discovery_queue(pending) += company:{company0}")
 
-    # ── 5. Catalysts ────────────────────────────────────────────────────────────
-    for cat in deep.get("catalysts", []):
-        # Try to find drug_id
-        drug_nm = cat.get("drug_name", "")
-        drug_slug = drug_nm.lower().replace(" ", "-") if drug_nm else None
-        date_str = cat.get("date_str", "")
-        # Parse date
-        expected_date = None
-        if date_str and len(date_str) >= 7:
-            try:
-                if len(date_str) == 10:
-                    expected_date = date_str
-                elif "Q" in date_str:
-                    y, q = date_str.split("-Q") if "-Q" in date_str else (date_str[:4], date_str[5])
-                    expected_date = f"{y}-{'03' if q=='1' else '06' if q=='2' else '09' if q=='3' else '12'}-30"
-            except: pass
-
-        cat_row = {
-            "event_name": cat.get("event", "")[:200],
-            "expected_date": expected_date,
-            "strategic_significance": cat.get("significance", "P2"),
-            "ailux_impact": cat.get("ailux_impact", ""),
-            "is_past": False,
-            "source_url": source_label
-        }
-        if drug_slug and exists("drugs", f"id=eq.{drug_slug}"):
-            cat_row["drug_id"] = drug_slug
-
-        ok = upsert("catalyst_calendar", cat_row)
-        if ok: actions.append(f"Catalyst: {cat.get('event','')[:60]}")
-
-    # ── 6. Q&A insights → drug_intelligence_qa ──────────────────────────────────
-    for qa in deep.get("qa_insights", []):
-        drug_nm = qa.get("drug_name", "")
-        drug_slug = drug_nm.lower().replace(" ", "-") if drug_nm else None
-        if not drug_slug or not exists("drugs", f"id=eq.{drug_slug}"): continue
-        qa_row = {
-            "drug_id": drug_slug,
-            "question_id": qa.get("question_id", 29),
-            "domain": qa.get("domain", "clinical"),
-            "question_text": f"Q{qa.get('question_id', 29)} from submitted intel",
-            "answer_short": qa.get("answer_short", ""),
-            "answer_text": qa.get("answer_text", ""),
-            "confidence_score": qa.get("confidence", 0.70),
-            "evidence_level": "medium",
-            "source_labels": [source_label],
-            "researcher_model": "claude-sonnet-4-6"
-        }
-        ok = upsert("drug_intelligence_qa", qa_row)
-        if ok: actions.append(f"Q&A: {drug_slug} Q{qa.get('question_id')} — {qa.get('answer_short','')[:50]}")
-
-    # ── 7. Store document ────────────────────────────────────────────────────────
-    title = extraction.get("extracted_title", "") or (text[:80] if text else url[:80])
-    companies_found = [c.get("name") for c in deep.get("companies", []) if c.get("name")]
-    primary_co = companies_found[0].lower().replace(" ", "-")[:20] if companies_found else None
-
-    if primary_co and exists("companies", f"id=eq.{primary_co}"):
-        doc_row = {
-            "company_id": primary_co,
-            "document_type": "abstract" if "abstract" in (extraction.get("source_type","")) else "press_release",
-            "title": title[:300],
-            "source_url": source_label,
-            "key_findings": extraction.get("extracted_summary", "")[:500],
-            "drug_names": ", ".join(d.get("name","") for d in deep.get("drugs", []) if d.get("name"))[:200]
-        }
-        ok = upsert("company_documents", doc_row)
-        if ok: actions.append(f"Stored document: {title[:50]}")
-
-    # ── 8. Intake log ────────────────────────────────────────────────────────────
-    intake_row = {
-        "entity_type": "drug" if deep.get("drugs") else "company",
-        "entity_name": companies_found[0] if companies_found else "Unknown",
-        "fact_type": "new_drug" if deep.get("drugs") else "new_relationship",
-        "fact_text": extraction.get("extracted_summary", text[:200]),
-        "supporting_quote": f"Submitted via Submit Intel button. Source: {url or 'text submission'}",
-        "auto_confidence": 0.80,
-        "review_status": "confirmed"
-    }
-    upsert("conversation_intelligence_intake", intake_row)
-
+    if archived_path:
+        actions.append(f"pdf archived -> {SOURCE_BUCKET}/{archived_path}")
     return actions
 
 
@@ -653,11 +540,19 @@ def process_row(row: dict, dry_run: bool = False) -> dict:
     val_status, http_status, source_name = validate_url(url)
     print(f"  │  URL validation: {val_status} (HTTP {http_status})")
 
-    # Step 2: Fetch page content
-    page_content = ""
-    if url and val_status == "valid":
-        page_content = fetch_page_text(url)
-        print(f"  │  Page content: {len(page_content)} chars fetched")
+    # Step 2: Fetch page content (HTML or PDF — Wedbush BlueMatrix research, etc.)
+    page_content, pdf_bytes = "", None
+    if url:
+        page_content, pdf_bytes = fetch_page_text(url)
+        _kb = f" + PDF {len(pdf_bytes)//1024}KB" if pdf_bytes else ""
+        print(f"  │  Page content: {len(page_content)} chars{_kb}")
+
+    # Step 2b: Archive a fetched source PDF to Supabase Storage (saved in Supabase)
+    archived_path = None
+    if pdf_bytes and not dry_run:
+        archived_path = archive_pdf_to_storage(pdf_bytes, row_id, source_name)
+        if archived_path:
+            print(f"  │  PDF archived → {SOURCE_BUCKET}/{archived_path}")
 
     # Step 3: Claude analysis
     print(f"  │  Running Claude extraction...")
@@ -739,17 +634,18 @@ def process_row(row: dict, dry_run: bool = False) -> dict:
             "analyzed_at":               datetime.now(timezone.utc).isoformat(),
         }
 
-    # Step 6A: Deep intelligence execution (write entities to DB)
+    # Step 6A: Governed intake — stage provenance + pending queue items (NO direct
+    # production writes; promotion stays gated behind review + execute_intel_actions)
     execution_summary = []
     if extraction and not dry_run and update.get("status") in ("analyzed", "needs_review"):
         try:
-            execution_summary = deep_execute_intelligence(row, extraction, url, text, page_content)
+            execution_summary = governed_intake(row, extraction, url, source_name, archived_path)
             if execution_summary:
-                print(f"  │  Deep execution: {len(execution_summary)} actions taken")
-                for action in execution_summary[:5]:
+                print(f"  │  Governed intake: {len(execution_summary)} actions")
+                for action in execution_summary[:8]:
                     print(f"  │    ✓ {action}")
         except Exception as e:
-            print(f"  │  Deep execution error (non-fatal): {e}")
+            print(f"  │  Governed intake error (non-fatal): {e}")
 
     # Attach execution summary to update
     if execution_summary:
