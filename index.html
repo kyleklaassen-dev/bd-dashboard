@@ -12080,7 +12080,7 @@ function dqCloseDetail(e) {
       var i=document.getElementById('view-issue'),a=document.getElementById('view-aib');
       if(i)i.style.display=v==='issue'?'block':'none';
       if(a){a.style.display=v==='aib'?'block':'none';
-        if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src');}}
+        if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src')+'?t='+Date.now();}}
       var aw=document.getElementById('mi-archive-wrap'),arw=document.getElementById('mi-area-wrap');
       if(aw)aw.style.display=v==='issue'?'inline-flex':'none';
       if(arw)arw.style.display=v==='aib'?'inline-flex':'none';
