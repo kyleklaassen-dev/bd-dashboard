@@ -5872,11 +5872,14 @@ async function _injectAreaFreshness(tabId) {
        style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#1a3f8f;letter-spacing:0.04em;white-space:nowrap;transition:all 0.15s;"
        onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
        onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">
-       TL1A × IL-23p19 <span style="font-size:8px;opacity:0.6">▾</span>
+       <span id="mi-area-label">TL1A × IL-23p19</span> <span style="font-size:8px;opacity:0.6">▾</span>
      </button>
-     <div id="mi-area-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:260px;z-index:700;border:1px solid #dde3ea;padding:5px 0;text-transform:none;">
-       <div style="padding:8px 14px;font-size:12px;font-weight:700;color:#1a3f8f;background:#f5f8ff;display:flex;justify-content:space-between"><span>TL1A × IL-23p19</span><span style="color:#16a34a">IBD ✓</span></div>
-       <div style="padding:9px 14px;font-size:11.5px;color:#94a3b8;font-style:italic;line-height:1.4">TSLP · IL-4Rα · IGF-1R · FcRn<br>additional areas coming soon</div>
+     <div id="mi-area-dd" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:280px;z-index:700;border:1px solid #dde3ea;padding:5px 0;text-transform:none;">
+       <div onclick="setAibArea('tl1a','TL1A × IL-23p19',event)" class="mi-area-opt" style="padding:9px 14px;font-size:12px;font-weight:600;color:#1a3f8f;cursor:pointer;display:flex;justify-content:space-between"><span>TL1A × IL-23p19</span><span style="color:#64748b;font-weight:500">IBD</span></div>
+       <div onclick="setAibArea('tslp','TSLP × IL-33',event)" class="mi-area-opt" style="padding:9px 14px;font-size:12px;font-weight:600;color:#1a3f8f;cursor:pointer;display:flex;justify-content:space-between"><span>TSLP × IL-33</span><span style="color:#64748b;font-weight:500">asthma / COPD</span></div>
+       <div onclick="setAibArea('il4ra','IL-4Rα × OX40L',event)" class="mi-area-opt" style="padding:9px 14px;font-size:12px;font-weight:600;color:#1a3f8f;cursor:pointer;display:flex;justify-content:space-between"><span>IL-4Rα × OX40L</span><span style="color:#64748b;font-weight:500">atopic derm</span></div>
+       <div onclick="setAibArea('igf1r','IGF-1R × TSHR',event)" class="mi-area-opt" style="padding:9px 14px;font-size:12px;font-weight:600;color:#1a3f8f;cursor:pointer;display:flex;justify-content:space-between"><span>IGF-1R × TSHR</span><span style="color:#64748b;font-weight:500">thyroid eye</span></div>
+       <div onclick="setAibArea('fcrn','FcRn × Albumin',event)" class="mi-area-opt" style="padding:9px 14px;font-size:12px;font-weight:600;color:#1a3f8f;cursor:pointer;display:flex;justify-content:space-between"><span>FcRn × Albumin</span><span style="color:#64748b;font-weight:500">gMG / autoimmune</span></div>
      </div>
    </span>
  </div>
@@ -12080,7 +12083,7 @@ function dqCloseDetail(e) {
       var i=document.getElementById('view-issue'),a=document.getElementById('view-aib');
       if(i)i.style.display=v==='issue'?'block':'none';
       if(a){a.style.display=v==='aib'?'block':'none';
-        if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_tl1a')<0))f.src=f.getAttribute('data-src')+'?t='+Date.now();}}
+        if(v==='aib'){var f=document.getElementById('aib-frame');if(f&&(!f.src||f.src==='about:blank'||f.src.indexOf('aib_view')<0)){var ds=f.getAttribute('data-src');f.src=ds+(ds.indexOf('?')>=0?'&':'?')+'t='+Date.now();}}}
       var aw=document.getElementById('mi-archive-wrap'),arw=document.getElementById('mi-area-wrap');
       if(aw)aw.style.display=v==='issue'?'inline-flex':'none';
       if(arw)arw.style.display=v==='aib'?'inline-flex':'none';
@@ -12090,11 +12093,15 @@ function dqCloseDetail(e) {
       var ad=document.getElementById('mi-area-dd');if(ad)ad.style.display='none';
     };
     window.toggleAibArea=function(e){if(e)e.stopPropagation();var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display=(dd.style.display==='none'||!dd.style.display)?'block':'none';};
+    window.setAibArea=function(area,label,e){if(e)e.stopPropagation();
+      var f=document.getElementById('aib-frame');if(f){f.setAttribute('data-src','aib_view.html?area='+area);f.src='aib_view.html?area='+area+'&t='+Date.now();}
+      var lab=document.getElementById('mi-area-label');if(lab)lab.textContent=label;
+      var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display='none';};
     document.addEventListener('click',function(){var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display='none';});
     </script>
     <!-- AIB view (lazy-loaded on first switch) -->
     <div id="view-aib" style="display:none;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
-      <iframe id="aib-frame" data-src="aib_tl1a.html" src="about:blank"
+      <iframe id="aib-frame" data-src="aib_view.html?area=tl1a" src="about:blank"
         style="width:100%;height:calc(100vh - 120px);min-height:600px;border:none;display:block;background:#f8fafc"
         title="Area Intelligence Briefs"></iframe>
     </div>
