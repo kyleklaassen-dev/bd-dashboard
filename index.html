@@ -12094,7 +12094,7 @@ function dqCloseDetail(e) {
     </script>
     <!-- AIB view (lazy-loaded on first switch) -->
     <div id="view-aib" style="display:none;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
-      <iframe id="aib-frame" data-src="aib_tl1a.html?v=20260609b" src="about:blank"
+      <iframe id="aib-frame" data-src="aib_tl1a.html" src="about:blank"
         style="width:100%;height:calc(100vh - 120px);min-height:600px;border:none;display:block;background:#f8fafc"
         title="Area Intelligence Briefs"></iframe>
     </div>
@@ -22841,6 +22841,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const [catRes, drugRes] = await Promise.all([
         _sb.from('catalyst_calendar')
           .select('drug_id,event_name,expected_date,source_url')
+          .eq('verified', true)
           .gte('expected_date', todayISO)
           .lte('expected_date', plus30)
           .eq('is_past', false)
@@ -23377,6 +23378,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
       const [calRes, mainRes] = await Promise.all([
         _sb.from('catalyst_calendar')
           .select('drug_id,company_id,event_name,expected_date,strategic_significance,ailux_impact,source_url')
+          .eq('verified', true)
           .gt('expected_date', todayISO).lt('expected_date', plus90)
           .order('expected_date', { ascending: true }).limit(60),
         _sb.from('catalysts')
@@ -32938,6 +32940,7 @@ async function _loadKfBdData() {
   try {
     var catsRes = await _sb.from('catalyst_calendar')
       .select('drug_id, event_name, expected_date, expected_quarter, strategic_significance, ailux_impact, drugs(name,stage)')
+      .eq('verified', true)
       .not('is_past', 'is', true)
       .order('expected_date', { ascending: true })
       .limit(10);
