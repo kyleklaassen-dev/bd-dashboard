@@ -51,6 +51,7 @@ jobs:
       - name: Rebuild fact -> entity relationship graph + unify into entity_edges
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
           SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
         run: |
           python3 scripts/ontology_map_drugs.py
