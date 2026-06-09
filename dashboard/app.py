@@ -145,7 +145,7 @@ MENTAL_MODEL_STAGES = [
         "label": "2 · Store",
         "tagline": "where it lives",
         "body": (
-            "**Supabase Postgres** is the single source of truth (60+ tables: companies, "
+            "**Supabase Postgres** is the single source of truth (~140 tables: companies, "
             "drugs, trials, deals, partnerships, plus scoring and validation tables). "
             "`scripts/_db.py` is the thin access layer everything uses (get / upsert / "
             "patch / delete via REST); `migrations/v1_schema.sql` is the schema snapshot."
@@ -168,11 +168,14 @@ MENTAL_MODEL_STAGES = [
         "label": "4 · Interpret",
         "tagline": "facts into prose & strategy",
         "body": (
-            "The LLM-analysis layer that reads the data and *writes intelligence*. "
-            "`scripts/ai/client.py` is the one wrapper for all Claude calls (model choice, "
-            "cost tracking, JSON parsing). On top of it sit the **narratives** "
-            "(`intelligence/write_meridian.py` daily briefing, `narrative/*`) and the "
-            "**reasoning over relationships** (`identity/*` dedup, `graph/*` edge materialization)."
+            "Where the data gets *read and turned into intelligence* — but only half of it "
+            "is AI. `scripts/ai/client.py` is the one wrapper for every Claude call (model "
+            "choice, cost tracking, JSON parsing). On top of it sit the **generative** "
+            "layers: the **narratives** (`intelligence/write_meridian.py` daily briefing, "
+            "`narrative/*`) and the **enrichment** synthesis (`enrichment/*`). Alongside "
+            "them — and using **no LLM at all** — is the **deterministic relationship "
+            "materialization** (`identity/*` dedup, `graph/*` edge building): pure string "
+            "matching and SQL, with fuzzy matches flagged for a human, never auto-merged."
         ),
     },
     {
@@ -567,7 +570,7 @@ def render_mm_ingest() -> None:
 
 
 # ── Store stage — the Supabase database ──────────────────────────────────────
-# The single source of truth: one Supabase Postgres project, ~140 tables + 13
+# The single source of truth: one Supabase Postgres project, ~140 tables + 15
 # views. migrations/v1_schema.sql is the authoritative snapshot (no forward v2+
 # migrations yet). Every Python write goes through six helpers in scripts/_db.py;
 # the browser reads directly with the anon key. Verified against v1_schema.sql.
@@ -781,7 +784,7 @@ def render_mm_store() -> None:
     st.title("2 · Store — where it lives")
     st.write(
         "One **Supabase Postgres** project is the single source of truth — roughly "
-        "**140 tables and 13 views**. `migrations/v1_schema.sql` is the authoritative "
+        "**140 tables and 15 views**. `migrations/v1_schema.sql` is the authoritative "
         "snapshot; there are no forward (v2+) migrations yet, so that file *is* the schema."
     )
     st.caption(
@@ -801,9 +804,12 @@ def render_mm_store() -> None:
         st.caption(note)
     st.write(
         "**The browser reads directly** from Supabase with the **anon key** (read-only "
-        "for almost everything, RLS-enforced). The only browser writes are user feedback "
-        "(`meridian_feedback`) and document uploads (`source_documents`). Credentials load "
-        "from env vars or repo dotfiles via `scripts/_common.py` — never hard-coded."
+        "for almost everything, RLS-enforced). Browser writes are confined to **workflow & "
+        "feedback tables** — `submitted_intel`, `discovery_queue`, `research_queue`, "
+        "`governance_violations` (resolve), and the review verdicts `kyle_reviews` / "
+        "`correction_labels`; the only core-entity write is a single `drugs.partnership_verified` "
+        "toggle. Never substantive entity data (see the **Present** stage for the full audit). "
+        "Credentials load from env vars or repo dotfiles via `scripts/_common.py` — never hard-coded."
     )
 
     st.divider()
@@ -1058,10 +1064,1125 @@ def render_mm_validate() -> None:
     )
 
 
+# ── Score stage — how facts become numbers ───────────────────────────────────
+# 13 scripts in scripts/scoring/ turn stored facts into metrics, rankings, and a
+# call list. Organized below by the BD QUESTION each score answers, not by file,
+# because that's how the platform actually uses them. Every formula is quoted
+# from the code with exact weights/thresholds. The one thing to keep straight:
+# 12 of 13 are pure deterministic arithmetic — only bd_recommender.py calls an
+# LLM, and only to write prose, never the number. Verified against the
+# migration-baseline branch.
+
+# Families of scorers, each framed as the question it answers. Each scorer entry:
+# name (file), type tag, output table, a one-line purpose, and a formula block
+# with the real weights. "type" is one of: deterministic | hybrid (math+Claude) |
+# rules | curated.
+SCORE_FAMILIES = [
+    {
+        "question": "How complete & trustworthy is our data?",
+        "summary": (
+            "Before ranking anything, the platform scores *itself* — how well-covered "
+            "each company/area/drug is, and how much you should trust a given profile. "
+            "These are the meta-scores that gate and prioritize everything else."
+        ),
+        "scorers": [
+            {
+                "name": "compute_coverage.py",
+                "type": "deterministic",
+                "output": "coverage_scores",
+                "purpose": (
+                    "How complete is a company/area across 9 data dimensions? A weighted "
+                    "average where the two things that matter most — having a real source and "
+                    "a filled-out profile — carry double weight."
+                ),
+                "formula": (
+                    "overall = Σ(dim_score × weight) / Σ(weight)          # 0–100\n"
+                    "\n"
+                    "  dimension               weight   measures\n"
+                    "  profile_completeness     2.0    % of expected company_profiles fields present\n"
+                    "  source_coverage          2.0    % of confirmed score rows that carry a source_url\n"
+                    "  enrichment_recency       1.5    profile age: <7d=100 ·<14d=90 ·<30d=70 ·<60d=40 ·else=10\n"
+                    "  target_mapping           1.0    % of drugs with a primary drug_targets row\n"
+                    "  confidence_coverage      1.0    % of score rows with a confidence_level\n"
+                    "  ownership_coverage       1.0    % of licensed-in drugs with an ownership_edge\n"
+                    "  molecule_intelligence    1.0    % of drugs with a molecule_intelligence row\n"
+                    "  catalyst_coverage        1.0    % of active clinical drugs with a future catalyst\n"
+                    "  deal_linkage             0.5    % of transactional edges linked to a deal_id"
+                ),
+            },
+            {
+                "name": "rescore_completeness.py",
+                "type": "deterministic",
+                "output": "company_profiles.completeness_score",
+                "purpose": (
+                    "A simpler 100-point report card on a single company profile, recomputed "
+                    "from current DB state (no enrichment). Mirrors the enrichment scorer so a "
+                    "profile can be graded without re-running the LLM."
+                ),
+                "formula": (
+                    "score = sum of points earned                        # max 100\n"
+                    "\n"
+                    "  +20  platform_intelligence present\n"
+                    "  +20  bd_intelligence present\n"
+                    "  +15  drug_summary for every drug\n"
+                    "  +10  key_data for every Phase 2+ drug      (auto +10 if none exist)\n"
+                    "  +10  mechanism_detail present\n"
+                    "  +10  at least one catalyst row carries a source_url\n"
+                    "  +10  key_risk AND why_it_matters both present\n"
+                    "  +5   overlap_rationale for every Direct drug (auto +5 if none exist)\n"
+                    "\n"
+                    "  grade:  strong ≥70 · partial ≥40 · thin <40"
+                ),
+            },
+            {
+                "name": "compute_trust_score.py",
+                "type": "deterministic",
+                "output": "drug_trust_scores",
+                "purpose": (
+                    "\"How much should you trust this drug card?\" Starts at 100 and *subtracts* "
+                    "for every integrity problem — missing sources, dead URLs, open governance "
+                    "violations. A transparent penalty model, so a low grade always has a reason."
+                ),
+                "formula": (
+                    "score = 100 − penalties                             # then graded A–F\n"
+                    "\n"
+                    "  −15            no source_url\n"
+                    "  −10            no company_display\n"
+                    "  −10            no mechanism / target\n"
+                    "  −20            no confirmed sources AND no trials\n"
+                    "  −8             only unconfirmed sources\n"
+                    "  −min(10, 3×n)  dead URLs\n"
+                    "  −min(30,10×n)  unresolved governance violations\n"
+                    "  −min(8,  2×n)  duplicate catalyst rows\n"
+                    "  −min(12, 4×n)  unresolved value conflicts\n"
+                    "  −6             no peer-reviewed backing\n"
+                    "  −3             no independently-corroborated claim\n"
+                    "\n"
+                    "  grade:  A ≥90 · B ≥75 · C ≥60 · D ≥40 · F <40"
+                ),
+            },
+            {
+                "name": "compute_landscape_scores.py  +  compute_landscape_coverage.py",
+                "type": "deterministic",
+                "output": "competitive_landscapes.landscape_dependency_score",
+                "purpose": (
+                    "How completely is a competitive landscape (e.g. TED × IGF-1R) mapped? "
+                    "Two near-twin implementations of the same weighted formula. Its real job "
+                    "is the feedback loop: a low score reprioritizes enrichment (see below)."
+                ),
+                "formula": (
+                    "LDS = 100 × ( 0.35·drug_coverage\n"
+                    "            + 0.25·relationship_coverage\n"
+                    "            + 0.20·catalyst_coverage\n"
+                    "            + 0.15·source_validation\n"
+                    "            − 0.05·staleness_penalty )              # clamped 0–100\n"
+                    "\n"
+                    "  each sub-score is a 0.0–1.0 ratio  (captured / expected)\n"
+                    "\n"
+                    "  ▸ feeds BACK into research_queue priority:\n"
+                    "      LDS <60 → +15 boost · 60–75 → +8 boost · ≥75 → none"
+                ),
+            },
+            {
+                "name": "update_area_knowledge_counts.py",
+                "type": "deterministic",
+                "output": "area_knowledge.drug_count_*",
+                "purpose": (
+                    "A small backfill utility — counts the drugs in each area so the dashboard "
+                    "can show \"N programs.\" Not a judgment score, just set cardinality."
+                ),
+                "formula": (
+                    "drug_count_direct = distinct drugs on the area's target IDs\n"
+                    "drug_count_total  = distinct drugs on  target IDs ∪ indication IDs\n"
+                    "  (bispecific area is special-cased on modality)"
+                ),
+            },
+        ],
+    },
+    {
+        "question": "How competitive is this drug?",
+        "summary": (
+            "Per-drug positioning against Ailux's programs — the raw competitive signal that "
+            "company- and deal-level scores are later built on top of."
+        ),
+        "scorers": [
+            {
+                "name": "patch_competitive_scores_null.py",
+                "type": "deterministic",
+                "output": "drug_competitive_scores.total_competition_score",
+                "purpose": (
+                    "The core 0–100 competitiveness score for a drug in a given context (TL1A, "
+                    "FcRn, TED…). A sum of five components — what it hits, what it treats, how "
+                    "it's built, how far along, and where — capped to 0–100."
+                ),
+                "formula": (
+                    "total = clamp(0..100,\n"
+                    "        target_overlap      # Direct 30 · Adjacent 20 · Same-space 10 · Watch 5\n"
+                    "      + indication_overlap  # Direct 30 · Adjacent 22 · Same-space 15 · Watch 10\n"
+                    "      + modality_match      # bispecific 17–20 · mAb 10–15 · small-mol 6–10\n"
+                    "      + stage_proximity     # Ph3/Appr 10 · Ph2 8 · Ph1 5 · Preclin 2 · Term 0\n"
+                    "      − geography_penalty ) # China-only −15 · China-first −10 · else 0\n"
+                    "\n"
+                    "  (the TL1A context uses tuned target & modality weights)"
+                ),
+            },
+            {
+                "name": "add_competitive_relevance.py",
+                "type": "curated",
+                "output": "drug_area_scores.competitive_relevance",
+                "purpose": (
+                    "A hand-curated strategic-importance tag that deliberately separates *stage* "
+                    "from *impact* — a failed Phase 3 drug can still be a 'monitor', a preclinical "
+                    "disruptor can be 'very_high'. Seeds the TED × IGF-1R landscape by hand."
+                ),
+                "formula": (
+                    "competitive_relevance ∈ {very_high, high, medium, low, monitor}\n"
+                    "  NOT computed — curated per drug×area, each with a relevance_rationale.\n"
+                    "  very_high = near-term disruptor (PDUFA/BLA imminent)\n"
+                    "  monitor   = failed / discontinued, watch only"
+                ),
+            },
+            {
+                "name": "write_ranking_snapshots.py",
+                "type": "deterministic",
+                "output": "next_gen_rankings",
+                "purpose": (
+                    "Blends competitiveness with clinical stage into one composite, sorts, and "
+                    "writes a dated leaderboard snapshot per area so the dashboard can show "
+                    "movement over time."
+                ),
+                "formula": (
+                    "composite = 0.7·total_competition_score + 0.3·stage_weight\n"
+                    "  stage_weight: approved 10 · Ph3 9 · Ph2 8 · Ph1 6 · preclin 1 · term 0\n"
+                    "  (Ailux's own drugs use a separate dev-stage scale)\n"
+                    "  → ranked descending, snapshotted daily"
+                ),
+            },
+        ],
+    },
+    {
+        "question": "How valuable is this company to us?",
+        "summary": (
+            "Rolls every drug, deal, and data-coverage signal up to one 0–100 number per "
+            "company — the input the deal-action scorers consume."
+        ),
+        "scorers": [
+            {
+                "name": "compute_strategic_value.py",
+                "type": "deterministic",
+                "output": "companies.strategic_value_score",
+                "purpose": (
+                    "How strategically valuable is a whole company to Ailux? Four components — "
+                    "pipeline fit, deal activity, how well we've covered them, and what kind of "
+                    "company they are — capped at 100. Feeds bd_recommender and acquisition_scorer."
+                ),
+                "formula": (
+                    "score = min(100,\n"
+                    "        pipeline_relevance  # Direct 30 · Adjacent 15 · Same 5  + min(2×drugs,10); cap 40\n"
+                    "      + deal_activity       # recent <12mo +10 · >$1B +10 · $500M–1B +5;       cap 20\n"
+                    "      + coverage            # enriched 20 · active 12 · else 5\n"
+                    "      + strategic_context ) # large-pharma 20 · mid-cap 15 · biotech 12 · small 8"
+                ),
+            },
+        ],
+    },
+    {
+        "question": "Should we do a deal — and how urgently?",
+        "summary": (
+            "The business end of the chain: turn all the above into a ranked call list with a "
+            "concrete 'when to reach out.' This is what a BD person actually acts on."
+        ),
+        "scorers": [
+            {
+                "name": "acquisition_scorer.py",
+                "type": "deterministic",
+                "output": "company_strategic_views (acquisition_target)",
+                "purpose": (
+                    "Scores every company 0–100 on \"how acquirable, right now\" across five "
+                    "evenly-weighted dimensions, then maps the number to a BD rating. Carries "
+                    "the hard governance overrides."
+                ),
+                "formula": (
+                    "total = D1 + D2 + D3 + D4 + D5                       # 0–100, 20 pts each\n"
+                    "\n"
+                    "  D1 strategic overlap  Direct+Ph2/3 20 · Direct+Ph1 15 · Adjacent 8 · Same 5\n"
+                    "  D2 timing urgency     Ph2/3 readout <12mo 20 · Ph1 <12mo 15 · 13–24mo 10 · none 5\n"
+                    "  D3 platform value     bispecific platform 20 · FcRn engineering 15 · single bsAb 12\n"
+                    "  D4 deal feasibility   biotech 18 · subsidiary 18 · mid-cap 12 · large-pharma 5 (+history)\n"
+                    "  D5 Ailux window       mono vs our bsAb +20 · both bsAb +8 · partnered-w-rival −10\n"
+                    "\n"
+                    "  rating:  CALL NOW ≥85 · PRIORITY ≥70 · WATCH ≥55 · MONITOR ≥40 · HOLD <40\n"
+                    "  overrides: AbbVie ≤69 until ABBV-701 readout (Oct 2026) · acquired→HOLD · Ailux excluded"
+                ),
+            },
+            {
+                "name": "bd_recommender.py",
+                "type": "hybrid (math + Claude Haiku)",
+                "output": "bd_recommendations",
+                "purpose": (
+                    "Ranks the top companies on five BD dimensions and sets a call urgency — then, "
+                    "and only then, hands the result to Claude Haiku to write a 3-sentence deal "
+                    "opener. The score is math; the LLM only writes the prose."
+                ),
+                "formula": (
+                    "total = strategic_value   # strategic_value_score/100 × 30        (0–30)\n"
+                    "      + pipeline_urgency   # readout/PDUFA <12mo 8 ea · P0 +2;     cap 25\n"
+                    "      + deal_appetite      # each deal <18mo +5 · any >$500M +10;  cap 20\n"
+                    "      + partnership_fit    # licensing 15 · partnership 12 · acq-target 10 · competitive 3\n"
+                    "      + coverage_gap       # 10 × (1 − coverage/100)               (0–10)\n"
+                    "\n"
+                    "  call_urgency:  this_week ≥60 · this_month ≥45 · this_quarter ≥30 · watch <30\n"
+                    "  → Claude Haiku then writes the deal opener (prose only — not the score)\n"
+                    "  override: AbbVie → watch"
+                ),
+            },
+        ],
+    },
+    {
+        "question": "Does this company collide with our own pipeline?",
+        "summary": (
+            "A different question entirely — not 'how good are they' but 'does their pipeline "
+            "cannibalize, or complement, one of Ailux's three programs.' Pure rules, no math."
+        ),
+        "scorers": [
+            {
+                "name": "portfolio_conflict_scorer.py",
+                "type": "rules",
+                "output": "company_portfolio_conflicts",
+                "purpose": (
+                    "Classifies each company against Ailux's three bispecifics by matching target "
+                    "strings — flagging direct cannibalization (HARD), partial overlap (SOFT), or a "
+                    "pairing opportunity (COMBO). Categorical, not numeric."
+                ),
+                "formula": (
+                    "per Ailux asset — ALX001 (TL1A×IL-23) · ALX002 (CD19×BCMA) · ALX005 (FcRn×Alb):\n"
+                    "\n"
+                    "  HARD   competitor bispecific hits BOTH arms      → cannibalization risk\n"
+                    "  SOFT   competitor mono on ONE arm               → partial overlap\n"
+                    "  COMBO  advanced asset on the complementary arm  → pairing opportunity\n"
+                    "  CLEAR  no overlap\n"
+                    "\n"
+                    "  pure target-string match + active-stage filter — no math, no LLM"
+                ),
+            },
+        ],
+    },
+]
+
+# Every place a score crosses from a number into a decision — pulled into one
+# reference so the cutoffs aren't buried in each scorer.
+SCORE_THRESHOLDS = [
+    ("Acquisition rating", "acquisition_scorer.py",
+     "CALL NOW ≥85 · PRIORITY ≥70 · WATCH ≥55 · MONITOR ≥40 · HOLD <40"),
+    ("BD call urgency", "bd_recommender.py",
+     "this_week ≥60 · this_month ≥45 · this_quarter ≥30 · watch <30"),
+    ("Trust grade", "compute_trust_score.py",
+     "A ≥90 · B ≥75 · C ≥60 · D ≥40 · F <40"),
+    ("Completeness grade", "rescore_completeness.py",
+     "strong ≥70 · partial ≥40 · thin <40"),
+    ("Landscape → enrichment", "compute_landscape_scores.py",
+     "LDS <60 → +15 queue boost · 60–75 → +8 · ≥75 → none"),
+]
+
+
+# Genuine scoring that does NOT live in scripts/scoring/ — found by sweeping the
+# rest of scripts/. These are real ranking/grading systems the dedicated library
+# doesn't contain, so the Score page would be incomplete without them.
+SCORE_OUTSIDE = [
+    {
+        "name": "enrichment/research_intelligence.py",
+        "type": "deterministic",
+        "output": "research_queue (priority_score, completeness_score, completeness_tier)",
+        "purpose": (
+            "The platform's \"guided research\" brain — scores how completely each entity is "
+            "known across 6 research stages, then turns the gap into an urgency score that "
+            "decides what gets enriched next. The biggest scorer outside the library."
+        ),
+        "formula": (
+            "completeness = Σ(stage_score × weight) / 100         # 0–100, then tiered\n"
+            "\n"
+            "  stage                    weight\n"
+            "  entity_discovery          10\n"
+            "  drug_mapping              15\n"
+            "  trial_intelligence        20\n"
+            "  catalyst_engine           15\n"
+            "  strategic_position        25   ← heaviest\n"
+            "  deal_intelligence         15\n"
+            "  tier:  thin <40 · partial 40–69 · strong ≥70\n"
+            "\n"
+            "priority = clamp(0..200,\n"
+            "        (100 − completeness)            # the less we know, the more urgent\n"
+            "      + 30  if strategic entity\n"
+            "      + 20  if any research trigger fired  + 10×extra triggers (cap +40)\n"
+            "      + 15  thin tier · +10 stale profile · +10 passed catalyst )"
+        ),
+    },
+    {
+        "name": "pipeline/nodes/score_completeness.py",
+        "type": "deterministic",
+        "output": "company_profiles.completeness_score",
+        "purpose": (
+            "The post-enrichment completeness rubric, run as a pipeline node right after a "
+            "company is enriched. Same 100-point rubric as `rescore_completeness.py` in the "
+            "library — that one is the standalone re-run, this one runs inline."
+        ),
+        "formula": (
+            "score = sum of points earned                        # max 100\n"
+            "  +20 platform_intelligence · +20 bd_intelligence · +15 drug_summary (all)\n"
+            "  +10 key_data (Ph2+) · +10 mechanism_detail · +10 catalyst w/ source_url\n"
+            "  +10 key_risk + why_it_matters · +5 overlap_rationale (Direct)\n"
+            "  tier:  thin <40 · partial 40–69 · strong ≥70"
+        ),
+    },
+    {
+        "name": "intelligence/signal_monitor.py",
+        "type": "deterministic",
+        "output": "signals.relevance_score",
+        "purpose": (
+            "The Tier-1 gate (also noted on the Validate page): scores every incoming news "
+            "signal 0–10 on how relevant it is, and anything ≥8 gets queued for enrichment. "
+            "A lightweight keyword heuristic — no LLM."
+        ),
+        "formula": (
+            "relevance = Σ point hits, capped at 10             # ≥8 → queue for enrichment\n"
+            "  +3 company-name match · +3 drug-name match · +3 area/target match\n"
+            "  +2 stage/phase detected · +2 trial-registry match · +2 alias match\n"
+            "  +1 generic category keyword"
+        ),
+    },
+    {
+        "name": "seed/seed_indication_priorities.py",
+        "type": "curated",
+        "output": "indication_priority_scores",
+        "purpose": (
+            "Ranks diseases by strategic priority for Ailux. A real weighted formula, but "
+            "its four inputs are hand-assigned 1–10 with written rationale — so it's a "
+            "curated strategic judgment, not a computed-from-data score."
+        ),
+        "formula": (
+            "composite = 0.30·unmet_need\n"
+            "          + 0.30·ailux_fit\n"
+            "          + 0.20·competitive_white_space\n"
+            "          + 0.20·(biologic_failure_rate / 10)\n"
+            "  each component hand-assigned 1–10 with rationale\n"
+            "  → sorted into indication_priority_rank"
+        ),
+    },
+]
+
+
+def render_mm_score() -> None:
+    st.button("← Back", on_click=go_to, args=("mental_model",))
+
+    st.title("3 · Score — facts into numbers & rankings")
+    st.write(
+        "Thirteen scripts in `scripts/scoring/` turn stored facts into metrics, rankings, "
+        "and a call list. Read them as a **chain**: first the platform scores how complete "
+        "*its own data* is, then how competitive each drug is, then how valuable each "
+        "company is, and finally — built on all of that — whether and how urgently to do a "
+        "deal. A separate scorer asks the inverse question: does a company *collide* with "
+        "Ailux's own pipeline."
+    )
+    st.caption(
+        "Formulas below are quoted from the code with exact weights. Verified against the "
+        "current branch — paths may shift as the scripts/pipeline/ migration lands."
+    )
+
+    st.divider()
+    st.info(
+        "**The math is AI-free — but the inputs aren't.** 12 of the 13 scorers in "
+        "`scripts/scoring/` are plain **deterministic arithmetic** — transparent weighted "
+        "sums you could reproduce by hand. Only `bd_recommender.py` calls Claude (Haiku), "
+        "and only to write the 3-sentence deal *opener* — the score that ranks the company "
+        "is still math.\n\n"
+        "The catch: the **values those formulas run on** — a drug's `overlap` "
+        "(Direct / Adjacent / Same-Space) and its `relevance_score` 1–10 — are themselves "
+        "**assigned by Claude during enrichment** (`company_enrichment.py`). So the "
+        "arithmetic is deterministic, but it's computing on model-judged inputs. If a score "
+        "looks wrong, it's either the formula, or the LLM-graded input feeding it."
+    )
+
+    st.subheader("The chain — what feeds what")
+    st.markdown(
+        "- **completeness / trust** gate everything — thin data is scored thin first.\n"
+        "- `drug_competitive_scores` → roll up into → `companies.strategic_value_score`.\n"
+        "- `strategic_value` + competitive scores → feed → **`acquisition_scorer`** and "
+        "**`bd_recommender`** (the call list).\n"
+        "- and a loop back to Ingest: a low **landscape score** *raises the enrichment "
+        "priority* for that area — Score doesn't just consume data, it decides what gets "
+        "collected next."
+    )
+
+    for fam in SCORE_FAMILIES:
+        st.divider()
+        st.subheader(fam["question"])
+        st.write(fam["summary"])
+        for s in fam["scorers"]:
+            with st.expander(f"{s['name']}  ·  {s['type']}  →  {s['output']}"):
+                st.write(s["purpose"])
+                st.markdown("**Formula**")
+                st.code(s["formula"], language="text")
+
+    st.divider()
+    st.subheader("Scoring that lives outside `scripts/scoring/`")
+    st.write(
+        "The library above isn't the whole story. Sweeping the rest of `scripts/` turned up "
+        "four more genuine scorers — including the platform's research-prioritization brain, "
+        "which is arguably the most consequential score of all."
+    )
+    for s in SCORE_OUTSIDE:
+        with st.expander(f"{s['name']}  ·  {s['type']}  →  {s['output']}"):
+            st.write(s["purpose"])
+            st.markdown("**Formula**")
+            st.code(s["formula"], language="text")
+
+    st.warning(
+        "**Heads-up: two of these scores have a *second* implementation.** "
+        "`weekend_sprint.py` writes `companies.strategic_value_score`, "
+        "`drug_competitive_scores`, and `coverage_scores` through its **own inline formulas "
+        "with different weights** — e.g. its strategic value is just max-overlap + max-stage "
+        "(Direct 30 + approved 20), where `compute_strategic_value.py` uses four components; "
+        "its competitive score uses Direct = 40 where `patch_competitive_scores_null.py` uses "
+        "Direct = 30. The two paths write the **same columns**, so the number a row ends up "
+        "with depends on which ran last. Treat the `scripts/scoring/` versions as the fuller, "
+        "canonical ones; the sprint's are simpler in-line variants."
+    )
+
+    st.divider()
+    st.subheader("Score → action — every cutoff in one place")
+    st.caption("Where a raw number flips into a decision or a label.")
+    for label, src, cuts in SCORE_THRESHOLDS:
+        st.markdown(f"**{label}**  ·  `{src}`")
+        st.code(cuts, language="text")
+
+    st.divider()
+    st.info(
+        "**The one loop worth remembering.** Scoring isn't a dead end — the landscape "
+        "dependency score feeds *backward* into `research_queue` priority (LDS <60 → +15). "
+        "Low-confidence areas get scored, and that low score is exactly what pushes them "
+        "to the front of the **Ingest** queue. The platform uses its own scores to decide "
+        "where to look next."
+    )
+
+
+# ── Interpret stage — reading data, writing intelligence ─────────────────────
+# The layer that reads stored facts and produces something new — prose, strategy,
+# or graph structure. The honest split that shapes this page: GENERATIVE work
+# (narratives + enrichment) calls Claude; RELATIONSHIP work (identity + graph) is
+# pure deterministic matching and SQL with NO model. Both "interpret" the data,
+# but only one half is AI. Every LLM call routes through scripts/ai/client.py —
+# there are no raw anthropic calls anywhere else. Verified against the
+# migration-baseline branch.
+
+# What the one AI client provides — the single chokepoint every Claude call uses.
+INTERPRET_CLIENT = [
+    ("run_text(cfg, prompt)", "Free-text generation. Optionally turns on the "
+     "`web_search_20250305` tool (cfg.web_search_max_uses) for live look-ups."),
+    ("run_json(cfg, prompt)", "Structured extraction — strips markdown fences, repairs/retries "
+     "on bad JSON, flags truncation."),
+    ("PromptConfig", "Immutable per-prompt descriptor: name, system prompt, model, max_tokens, "
+     "temperature, web_search_max_uses."),
+    ("token_usage() / _cost()", "Module-level token accumulator + pricing, so every run's cost "
+     "is tracked. Sonnet 4.6 = $3/$15 per 1M · Haiku 4.5 = $0.8/$4."),
+]
+
+# The interpretation layers, grouped by KIND. "llm" drives the badge and framing:
+# True = generative Claude work, False = deterministic (no model).
+INTERPRET_GROUPS = [
+    {
+        "label": "A · Narrative & briefing writing",
+        "llm": True,
+        "blurb": (
+            "The generative core — reads structured intelligence and writes prose for a human "
+            "to read. Every writer here is **fail-closed**: it reasons only from supplied, cited "
+            "facts and drops anything it can't ground."
+        ),
+        "files": [
+            {
+                "name": "intelligence/write_meridian.py",
+                "type": "Claude · Sonnet (2-pass)",
+                "output": "meridian_issues",
+                "desc": (
+                    "The daily BD briefing. Pass 1 (`run_json`) builds an editorial plan — thesis, "
+                    "signal vs noise, connections, BD implications; Pass 2 (`run_text`) writes the "
+                    "full HTML from that plan. A pre-write gate drops facts with fabricated source "
+                    "URLs; a post-write audit flags prose that contradicts the `drugs` table → "
+                    "`governance_violations`. Also folds in reader feedback from `meridian_feedback`."
+                ),
+            },
+            {
+                "name": "intelligence/research.py",
+                "type": "Claude · Sonnet + Haiku",
+                "output": "intel · deals · catalysts",
+                "desc": (
+                    "Reads RSS + article full-text and extracts structured intel records, deals, "
+                    "and catalysts (Haiku also pulls PK/PD from abstracts). Straddles **Ingest** — "
+                    "it both fetches the news and interprets it into rows."
+                ),
+            },
+            {
+                "name": "intelligence/strategic_brief.py",
+                "type": "Claude · Sonnet",
+                "output": "entity_narratives (target/business)",
+                "desc": (
+                    "A ranked BD brief for a mechanism area — Call now / Watch / Timing-gated — "
+                    "reasoning only from numbered, trust-graded facts, explicitly discounting "
+                    "low-trust assets."
+                ),
+            },
+            {
+                "name": "narrative/generate_landscape_briefing.py",
+                "type": "Claude · Opus (multi-call)",
+                "output": "landscape_briefings",
+                "desc": (
+                    "Area-level strategic synthesis in several Opus calls — classifies companies by "
+                    "BD archetype (likely acquirer, platform, emerging threat…), finds whitespace, "
+                    "extracts financials, and writes BD recommendations."
+                ),
+            },
+            {
+                "name": "narrative/narrative_gen.py",
+                "type": "Claude · Sonnet (or offline template)",
+                "output": "entity_narratives (+ provenance)",
+                "desc": (
+                    "The narrative engine the others build on. Turns a structured 'recipe' into "
+                    "cited atoms — every claim must match a source or it's dropped. Has a no-API "
+                    "`template` composer mode for offline runs."
+                ),
+            },
+            {
+                "name": "narrative/patient_narrative.py · landscape_narrative.py",
+                "type": "Claude · Sonnet",
+                "output": "entity_narratives",
+                "desc": (
+                    "Turn `indication_patient_intelligence` stats and per-area landscape data into "
+                    "cited prose via the engine above."
+                ),
+            },
+            {
+                "name": "narrative/generate_area_narratives.py · generate_patient_briefs.py",
+                "type": "orchestrator (no direct LLM)",
+                "output": "→ shells out per entity",
+                "desc": (
+                    "Batch drivers — they don't call Claude themselves, they loop over entities and "
+                    "invoke `narrative_gen.py` / `patient_narrative.py` for each."
+                ),
+            },
+        ],
+    },
+    {
+        "label": "B · Enrichment — reads data, writes synthesized strategy",
+        "llm": True,
+        "blurb": (
+            "The biggest LLM layer. Each script reads a drug or company's stored context and has "
+            "Claude synthesize new analytical fields — strictly grounded ('expected', 'estimated', "
+            "never invented). ⚠ This group **spans Ingest and Interpret**: the Ingest page also "
+            "lists `enrichment/*` under 'AI enrichment', because these scripts both pull facts in "
+            "*and* interpret them. It's the same code, doing both jobs."
+        ),
+        "files": [
+            {
+                "name": "enrichment/company_enrichment.py",
+                "type": "Claude · Sonnet  (flagship)",
+                "output": "company_profiles · company_partnerships · drug_area_scores",
+                "desc": (
+                    "The largest enrichment script. Synthesizes 15+ profile fields — platform_summary, "
+                    "bd_summary, key_risk, why_it_matters, vs_ailux, strategic_behavior, risk_summary. "
+                    "Crucially, it also assigns the `overlap` / `relevance_score` / `confidence_level` "
+                    "that the **Score** stage later does deterministic math on."
+                ),
+            },
+            {
+                "name": "enrichment/drug_enrichment.py",
+                "type": "Claude · Sonnet",
+                "output": "drugs · enrichment_run · enriched_field_log",
+                "desc": (
+                    "Per-drug synthesis: bd_angle, risk summary, vs-Ailux positioning, competitive "
+                    "threat. Logs old values to `enriched_field_log` for an audit trail."
+                ),
+            },
+            {
+                "name": "enrichment/drug_intelligence_researcher.py",
+                "type": "Claude · Sonnet (8k tokens)",
+                "output": "drug_intelligence_qa · drug_clinical_benchmarks · drug_development_timelines",
+                "desc": (
+                    "The deep dive — answers a 100-question rubric across 8 domains (molecule, "
+                    "clinical, patient, competitive, regulatory, commercial, BD, timing) and extracts "
+                    "benchmarks and milestone dates from the answers."
+                ),
+            },
+            {
+                "name": "enrichment/molecule_enrichment.py",
+                "type": "Claude · Sonnet",
+                "output": "molecule_intelligence",
+                "desc": "Structures molecule-level detail — modality, format, formulation, CMC/manufacturing notes.",
+            },
+            {
+                "name": "enrichment/backfill_bd_angle.py · quick_profiles_enrich.py",
+                "type": "Claude · Sonnet",
+                "output": "company_profiles (.bd_angle)",
+                "desc": (
+                    "Targeted top-ups — a focused 2–3 sentence BD angle for profiles missing one, and "
+                    "a fast pass to fill sparse company profiles."
+                ),
+            },
+        ],
+    },
+    {
+        "label": "C · Identity resolution & dedup  —  no LLM",
+        "llm": False,
+        "blurb": (
+            "Resolves messy name strings to canonical IDs. **Pure deterministic matching — no model.** "
+            "These scripts load credentials with `require_anthropic=False`; they literally don't have "
+            "an API key. Fuzzy near-misses are *flagged for human review*, never auto-merged."
+        ),
+        "files": [
+            {
+                "name": "identity/identity_resolution.py",
+                "type": "deterministic",
+                "output": "canonical_drugs · drug_aliases · identity_audit_log",
+                "desc": (
+                    "Drug-name → canonical_drug_id, 4-step cascade: exact alias (conf 100) → "
+                    "normalized (90) → fuzzy ≥0.85 (70, FLAGGED, makes a NEW id — never auto-merges) → "
+                    "brand-new id. Every decision is logged for audit."
+                ),
+            },
+            {
+                "name": "identity/company_identity_resolver.py",
+                "type": "deterministic",
+                "output": "identity_audit_log",
+                "desc": (
+                    "Company-name → company_id: alias → name/ticker → fuzzy (flagged) → not-found. "
+                    "Unknown companies are **never auto-created** — logged as not-found instead, which "
+                    "is safer than hallucinating an org."
+                ),
+            },
+            {
+                "name": "identity/identity_health_check.py · trial_id_audit.py",
+                "type": "deterministic (audit)",
+                "output": "reports / flags",
+                "desc": "Audit utilities — surface duplicate/ambiguous identities and trial-ID mismatches for review.",
+            },
+        ],
+    },
+    {
+        "label": "D · Graph / relationship materialization  —  no LLM",
+        "llm": False,
+        "blurb": (
+            "Builds the traversable relationship graph from the normalized tables. **Pure SQL "
+            "inference — no model, no 'reasoning'.** A drug that targets T and treats I *implies* "
+            "T addresses I; two drugs on the same target *imply* they compete. Idempotent inserts, "
+            "fully reproducible."
+        ),
+        "files": [
+            {
+                "name": "graph/materialize_structural_edges.py",
+                "type": "deterministic (SQL)",
+                "output": "entity_edges",
+                "desc": "Materializes TREATS (drug→indication), ADDRESSES (target→indication), DEVELOPED_BY (drug→company).",
+            },
+            {
+                "name": "graph/materialize_deal_edges.py",
+                "type": "deterministic (SQL)",
+                "output": "entity_edges (HAS_PARTNERSHIP)",
+                "desc": "Turns deal records into partnership edges.",
+            },
+            {
+                "name": "graph/seed_company_edges.py · seed_partnership_edges.py · seed_patient_edges.py",
+                "type": "deterministic (rules)",
+                "output": "entity_edges (COMPETES_WITH, …)",
+                "desc": (
+                    "Seed high-confidence competitive / partnership / shared-patient-population edges "
+                    "via rules — same target → COMPETES_WITH, etc."
+                ),
+            },
+            {
+                "name": "graph/coverage_gap_finder.py",
+                "type": "deterministic",
+                "output": "research_queue",
+                "desc": (
+                    "The inverse of writing intelligence — finds what's *missing* (low-coverage drugs, "
+                    "absent molecules/indications/catalysts, phantom companies) and queues it. Feeds "
+                    "back into the **Ingest** priority loop."
+                ),
+            },
+        ],
+    },
+]
+
+
+def render_mm_interpret() -> None:
+    st.button("← Back", on_click=go_to, args=("mental_model",))
+
+    st.title("4 · Interpret — facts into prose & strategy")
+    st.write(
+        "Where stored facts get **read and turned into something new** — a briefing, a strategic "
+        "judgment, or a graph edge. Read it as two halves that both 'interpret' the data but work "
+        "completely differently: a **generative** half where Claude writes narratives and enrichment "
+        "synthesis, and a **deterministic** half where plain code materializes the relationship "
+        "graph and resolves identities — with no model involved at all."
+    )
+    st.caption(
+        "Verified against the current branch — paths may shift as the scripts/pipeline/ migration "
+        "lands."
+    )
+
+    st.divider()
+    st.info(
+        "**Only half of 'interpretation' is AI.** The narratives (group A) and enrichment "
+        "(group B) call Claude. But **identity resolution (C) and the relationship graph (D) "
+        "use no LLM whatsoever** — they're string matching and SQL inference. The tell: those "
+        "scripts load credentials with `require_anthropic=False`, so they don't even hold an API "
+        "key. Fuzzy matches there are *flagged for a human*, never auto-merged — the system would "
+        "rather leave a gap than guess."
+    )
+
+    st.subheader("One client, every call")
+    st.write(
+        "Every Claude call in the platform routes through **`scripts/ai/client.py`** — there are "
+        "no raw `anthropic` calls anywhere else. That one chokepoint is what makes model choice, "
+        "web search, cost tracking, and JSON repair uniform:"
+    )
+    for sig, note in INTERPRET_CLIENT:
+        st.markdown(f"`{sig}`")
+        st.caption(note)
+
+    for group in INTERPRET_GROUPS:
+        st.divider()
+        st.subheader(group["label"])
+        badge = "🤖 Claude-generated" if group["llm"] else "⚙️ Deterministic · no LLM"
+        st.caption(badge)
+        st.write(group["blurb"])
+        for f in group["files"]:
+            with st.expander(f"{f['name']}  ·  {f['type']}  →  {f['output']}"):
+                st.write(f["desc"])
+
+    st.divider()
+    st.info(
+        "**The discipline that ties it together: fail-closed grounding.** The generative side "
+        "never free-associates — Meridian drops fabricated source URLs before writing and audits "
+        "its own draft against the database after; the narrative engine drops any claim it can't "
+        "match to a source. The deterministic side refuses to guess — unresolved identities are "
+        "flagged, not merged. In both halves, the safe failure is a *gap*, which the **Validate** "
+        "stage then surfaces for a human."
+    )
+
+
+# ── Present stage — the surfaces you actually look at ────────────────────────
+# Three distinct UIs, often confused for one. (1) index.html is the live
+# production dashboard — a ~33k-line vanilla-JS SPA. (2) pages/*.html is a mix of
+# live mini-apps and static generated documents. (3) this Streamlit app explains
+# the system itself. The honest headline: the browser holds NO scoring or
+# business math — every number is pre-computed upstream and stored; the frontend
+# only reads, formats, and writes a few workflow/feedback rows. Verified by
+# auditing index.html + pages/*.html on the migration-baseline branch.
+
+# Everything index.html is allowed to write. All workflow/feedback tables — never
+# substantive entity data. (The 3 "deletes" a naive grep finds are JS Set/Map
+# .delete() on in-memory UI state, not DB deletes — the browser issues none.)
+PRESENT_WRITES = [
+    ("governance_violations", "update",
+     "Click **Resolve** on a data-quality flag in the Ontology Audit tab (sets resolved=true)."),
+    ("discovery_queue", "update",
+     "Approve / reject a discovery candidate — including the bulk \"approve ≥80 confidence\" action."),
+    ("discovery_queue", "insert",
+     "**Send to Discovery Queue** — promote a reviewed submitted-intel item into the queue."),
+    ("submitted_intel", "insert",
+     "Submit a URL or pasted text via the Intel Submission modal."),
+    ("submitted_intel", "update",
+     "Approve / reject / mark-imported a submitted-intel item in the review panel."),
+    ("drugs.partnership_verified", "update",
+     "Inline toggle confirming/denying a partner relationship — the **only** core-entity "
+     "write, and it's a single boolean, not substantive data."),
+    ("research_queue", "update",
+     "**Research Now** on an entity — manually queue it for batch research (sets assigned_status, next_best_action)."),
+]
+
+# Per-view breakdown of index.html. Each view: what's LIVE (a (label, source-table)
+# tuple, rendered from a DB query each load) vs STATIC (hardcoded in the file).
+# Tables verified by grepping index.html's .from()/.select() calls — note the live
+# DB has drifted past migrations/v1_schema.sql (e.g. discovery_queue, news_articles
+# exist live but aren't in the snapshot), so the HTML, not the schema, is the oracle.
+PRESENT_VIEWS = [
+    {
+        "name": "Home",
+        "summary": "The landing tab — the most DB-heavy view; nearly everything is live.",
+        "live": [
+            ("**BD Today** — the next 5 catalysts inside 30 days", "catalyst_calendar (→ catalysts fallback)"),
+            ("**Indication Priority — Top 7** leaderboard with composite scores", "indication_priority_scores"),
+            ("**Today's Meridian** — the full daily briefing, inline", "meridian_issues.body_html"),
+            ("**90-Day Catalyst Calendar**, grouped by month, P0–P3 tagged", "catalyst_calendar"),
+            ("**Asset Intelligence** — company spotlight cards", "company_profiles · company_strategic_views · deals"),
+            ("**Health dot + \"fresh data\" banner** (polled on an interval)", "system_status · pipeline_runs"),
+        ],
+        "static": [
+            "ET / PT / CN clocks, page title, section layout",
+            "The fallback Top-7 list (gMG, CIDP, CD, UC…) shown **only** when the live table is empty",
+            "Scoring-methodology blurbs and tooltips",
+        ],
+    },
+    {
+        "name": "The Meridian (daily issue)",
+        "summary": "A tab that embeds the briefing rather than querying for it.",
+        "live": [],
+        "static": [
+            "An **iframe embedding the generated briefing** (`pages/meridian_today.html`, produced "
+            "by `write_meridian.py`) — a frozen document. The *live* copy of the same briefing is "
+            "the one on Home, read from `meridian_issues`.",
+        ],
+    },
+    {
+        "name": "Drugs to Know",
+        "summary": "A filterable catalog grid — one big live query, static chrome.",
+        "live": [
+            ("**The whole drug grid** — stage, modality, target, class/MOA, indication, "
+             "differentiation, Ailux angle, key risk", "drugs  (catalog_category ≠ null)"),
+        ],
+        "static": [
+            "Filter dropdown options — TA, indication, target, modality, stage, company",
+            "Grid column headers & layout; the removed-drugs / undo panel",
+        ],
+    },
+    {
+        "name": "Industry Insights",
+        "summary": "A live merged news feed sitting on top of a hardcoded archive.",
+        "live": [
+            ("A merged **intelligence feed** — headlines, deals, signals, news, sorted by date",
+             "intel · intel_areas · competitive_signals · deals · news_articles · companies"),
+        ],
+        "static": [
+            "Left filter-panel options — source, date, relevance, event type, area/target, company",
+            "A large **hardcoded historical archive** (Dec 2025 – Apr 2026 snapshot) below the live feed",
+        ],
+    },
+    {
+        "name": "Ontology Audit",
+        "summary": "A data-governance console — live counts & violations, static taxonomy.",
+        "live": [
+            ("**Open governance violations** (rule, table, row, detected_at)", "governance_violations (resolved=false)"),
+            ("**Live row counts** per table", "drugs · companies · trials · deals · catalysts · intel · entity_edges"),
+            ("**Taxonomy lookup data** for the layer cards", "indications · targets · target_pairs · modalities"),
+            ("**Legacy area coverage** check", "legacy_area_ontology_map"),
+        ],
+        "static": [
+            "The 7-layer taxonomy descriptions (Therapeutic Area → Delivery)",
+            "Relationship-matrix labels, migration-planner copy, the admin sub-tab structure",
+        ],
+    },
+]
+
+# The seven program tabs are one machine pointed at seven targets. Documented once.
+PRESENT_PROGRAM_TEMPLATE = {
+    "note": "Each program tab runs the same loaders (loadAreaPI / Intel / Catalysts / Deals / "
+            "BDActivity) filtered to one target_id — only the filter and the hardcoded copy differ.",
+    "live": [
+        ("**Program Intelligence table** — companies & drugs in the area (stage, mechanism, financials)",
+         "drug_targets (→ legacy drug_areas) · drugs · companies"),
+        ("**Intel feed** for the program", "intel · intel_areas"),
+        ("**Catalyst calendar** — readouts & events", "catalysts · catalyst_calendar"),
+        ("**Deals & BD activity**", "deals · company_bd_momentum"),
+        ("**Strategic BD position** cards", "ailux_bd_context"),
+    ],
+    "static": [
+        "The target's **biology deep-dive** prose (e.g. \"TL1A is a TNF-superfamily cytokine…\")",
+        "Ailux **mechanism differentiators** (4 boxes) and **estimated deal valuation** ranges",
+        "Treatment ladders, market-size projections, China-molecule cards, BD takeaways",
+        "Section headings, the left pill-button labels, gridjs column definitions",
+    ],
+}
+
+# (display target, area badge, what's unique to this one)
+PRESENT_PROGRAMS = [
+    ("TL1A × IL-23p19", "IBD", "the richest static set — biology DD, IBD treatment eras, "
+     "market $30.7B→$41.9B, China-molecule cards, and the Bispecific-Race gridjs grid (← drug_area_scores)"),
+    ("TSLP × IL-33", "Respiratory", "alarmin-strategy thesis"),
+    ("IL-4Rα × TSLP", "Type 2", "atopy-platform thesis, IL-4Rα × IL-33 cross-talk"),
+    ("IL-4Rα × OX40L", "Atopic dermatitis", "OX40 co-stimulation biology"),
+    ("IGF1R × TSHR", "Thyroid eye disease", "orbit-fibrosis biology"),
+    ("FcRn bispecific", "Autoimmune (CIDP, gMG, SLE)", "half-life-extension thesis"),
+    ("BCMA × CD19 × CD3", "Immune reset", "triple-engager mechanism"),
+]
+
+# pages/*.html — each with its own live/static split and any writes it makes.
+PRESENT_PAGES = [
+    {
+        "name": "pages/intelligence.html",
+        "kind": "live · read-only",
+        "note": "A standalone research-review tool — reads only, no writes.",
+        "live": [
+            ("Ranked research queue + full entity profiles (drug / trial / catalyst / deal / intel detail)",
+             "research_queue · company_profiles · drugs · trials · catalysts · deals · intel · intel_companies"),
+        ],
+        "static": ["Layout, labels, the sidebar / detail-panel split"],
+    },
+    {
+        "name": "pages/meridian_feedback_ui.html",
+        "kind": "live · read + WRITE",
+        "note": "The human-label capture that feeds the fine-tuning corpus (the Y/N/U/S review tool).",
+        "live": [
+            ("The enriched-field review queue — old value → new value, confidence, provenance",
+             "enriched_field_log · kyle_reviews · drugs · companies"),
+        ],
+        "static": ["The Y / N / U / S key bindings, layout"],
+        "writes": "`kyle_reviews` (verdicts) · `correction_labels` (your corrected values)",
+    },
+    {
+        "name": "pages/meridian_today.html",
+        "kind": "static · generated  (+1 write)",
+        "note": "This is where the `meridian_feedback` write actually lives — NOT index.html.",
+        "live": [],
+        "static": [
+            "The full daily briefing — frozen HTML written by `write_meridian.py` and committed to "
+            "Pages. Loads no `data/*.json` and inits no Supabase client.",
+        ],
+        "writes": "`meridian_feedback` — a single reader like/dislike + note, POSTed via **raw REST** "
+                  "(not the JS client, which is why a `createClient` grep misses it)",
+    },
+    {
+        "name": "pages/meridian_atlas.html",
+        "kind": "static · document",
+        "live": [],
+        "static": ["A knowledge-graph SVG — assets, companies, indications, targets, and their edges. No DB."],
+    },
+    {
+        "name": "pages/meridian_strategic_lens.html",
+        "kind": "static · document",
+        "live": [],
+        "static": ["A TL1A competitive-landscape SVG — assets by stage, ownership/licence arrows. No DB."],
+    },
+    {
+        "name": "pages/meridian_workflow_map.html",
+        "kind": "static · document",
+        "live": [],
+        "static": ["A system-topology map of ~200 tables with producer/consumer scripts and row counts "
+                   "— from an embedded snapshot, not live queries."],
+    },
+]
+
+
+def render_mm_present() -> None:
+    st.button("← Back", on_click=go_to, args=("mental_model",))
+
+    st.title("5 · Present — what you actually look at")
+    st.write(
+        "Three separate surfaces, easy to mistake for one. **`index.html`** is the real "
+        "production dashboard — a large single-page app that reads live from the database. "
+        "**`pages/*.html`** is a mix: a couple of live mini-apps plus several static, generated "
+        "documents. And **this Streamlit app** is a third thing entirely — it doesn't show BD "
+        "data, it explains the system you're reading about right now."
+    )
+    st.caption(
+        "Verified by auditing index.html and pages/*.html on the current branch — line counts "
+        "and table lists may drift as the UI evolves."
+    )
+
+    st.divider()
+    st.info(
+        "**The browser does no thinking.** There is **zero scoring or business math** in the "
+        "frontend — every score, rank, and metric is computed upstream (the Score / Interpret "
+        "stages) and stored; the JS only *reads, formats, sorts, and filters* what's already "
+        "there. And it's **not purely read-only** — but the handful of writes it makes go only "
+        "to **workflow & feedback tables** (queues, review verdicts), never to substantive "
+        "entity data. The anon key + row-level security enforce exactly that boundary."
+    )
+
+    st.divider()
+    st.subheader("① `index.html` — the live production dashboard")
+    st.markdown(
+        "- **~33,000 lines of vanilla JS** (no React/Vue) — `gridjs` for sortable tables, "
+        "`supabase-js` for data, nothing else.\n"
+        "- **A dozen views**: Home + seven target programs (TL1A, TSLP, the two IL-4Rα pairs, "
+        "IGF1R×TSHR, FcRn, BCMA×CD19×CD3) + The Meridian, Drugs-to-Know, Industry Insights, "
+        "Ontology Audit. (A 'Market' tab was retired — `tab-stocks-removed`.) Client-side "
+        "`switchTab()` routing; entity-detail modals.\n"
+        "- **Reads ~81 tables directly** with the **anon key** (RLS-enforced) — almost all raw "
+        "tables, not views. It displays pre-computed scores verbatim."
+    )
+    st.markdown("**What the browser is allowed to write** — workflow & feedback only:")
+    for table, op, trigger in PRESENT_WRITES:
+        st.markdown(f"`{table}`  ·  *{op}*")
+        st.caption(trigger)
+    st.markdown(
+        "**One build artifact:** it `fetch()`es `data/navigator_lookup.json` — a pre-computed "
+        "`target→drugs` / `indication→drugs` map built by `scripts/build/build_navigator_lookup.py` "
+        "— purely to make the navigator tree's drug filtering O(1). It's an optimization; the page "
+        "falls back to string-match filtering if the file is missing."
+    )
+
+    st.divider()
+    st.subheader("What each view actually shows — live vs baked-in")
+    st.caption(
+        "🟢 LIVE = fetched from the database on load · 🔵 STATIC = hardcoded in the file. "
+        "Expand a view to see the split; everything's collapsed so it isn't a wall of text."
+    )
+
+    def _ls(live, static):
+        if live:
+            st.markdown("🟢 **LIVE** — pulled from the database")
+            for label, src in live:
+                st.markdown(f"- {label}" + (f"  ←  `{src}`" if src else ""))
+        if static:
+            if live:
+                st.write("")
+            st.markdown("🔵 **STATIC** — baked into the page")
+            for s in static:
+                st.markdown(f"- {s}")
+
+    for v in PRESENT_VIEWS:
+        with st.expander(v["name"]):
+            if v.get("summary"):
+                st.caption(v["summary"])
+            _ls(v["live"], v["static"])
+
+    with st.expander("The seven program tabs  ·  one template, seven targets"):
+        st.caption(PRESENT_PROGRAM_TEMPLATE["note"])
+        _ls(PRESENT_PROGRAM_TEMPLATE["live"], PRESENT_PROGRAM_TEMPLATE["static"])
+        st.markdown("**The seven, by target** — only the filter + hardcoded copy differ:")
+        for name, area, unique in PRESENT_PROGRAMS:
+            st.markdown(f"- **{name}** · *{area}* — {unique}")
+
+    st.divider()
+    st.subheader("② `pages/*.html` — mini-apps & generated documents")
+    st.write(
+        "Only **two** load the Supabase client; the rest are static documents. Watch the writes "
+        "(✏️) — this is where `meridian_feedback`, `kyle_reviews`, and `correction_labels` "
+        "actually get written, *not* from index.html."
+    )
+    for p in PRESENT_PAGES:
+        with st.expander(f"{p['name']}  ·  {p['kind']}"):
+            if p.get("note"):
+                st.caption(p["note"])
+            _ls(p.get("live", []), p.get("static", []))
+            if p.get("writes"):
+                st.markdown(f"✏️ **Writes:** {p['writes']}")
+
+    st.divider()
+    st.subheader("③ This Streamlit app — the system explaining itself")
+    st.write(
+        "`dashboard/app.py` (what you're in now) is the odd one out: it shows **no BD data**. "
+        "It's a documentation surface — the GitHub Workflows map, the state graphs, and this "
+        "Mental Model. Think of it as the platform's own operating manual, not a view of the "
+        "intelligence it produces."
+    )
+
+    st.divider()
+    st.info(
+        "**The loop closes here.** The few things the dashboard *does* write — a submitted URL, "
+        "a discovery-queue verdict, a \"Research Now\" click, a field review — don't change the "
+        "intelligence directly. They drop rows into the **queues** (`submitted_intel`, "
+        "`discovery_queue`, `research_queue`, `kyle_reviews`) that the **Ingest** and "
+        "**Interpret** stages pick up next. The human looking at Present is, quietly, an input "
+        "back into the top of the pipeline."
+    )
+
+
 # Custom per-stage renderers; stages without one fall back to the generic stub.
 MM_STAGE_RENDERERS = {
     "ingest": render_mm_ingest,
     "store": render_mm_store,
+    "score": render_mm_score,
+    "interpret": render_mm_interpret,
+    "present": render_mm_present,
     "validate": render_mm_validate,
 }
 
