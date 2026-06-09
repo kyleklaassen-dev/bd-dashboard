@@ -52,6 +52,39 @@
 - **Drug names are buttons.** Every named drug (tulisokibart, afimkibart, vedolizumab, ustekinumab, …) should be clickable to open its canonical drug card for easy reference.
 - **Words are hyperlinks.** Clicking a linked term opens the referenced source page directly.
 
+## 5. Coverage standard — the CI Mastery Checklist (added 2026-06-08)
+
+Kyle's **CI Mastery Checklist** is the definition of what a *complete* AIB covers. It is built on the
+North Star ordering **Patient → Indication → Target → Company**, and every item carries one discipline
+question: **"Can I answer it without looking it up, do I know the source, can I say how confident I am,
+and what would change the answer?"** Weave the checklist in to *create* coverage — never bolt on a
+literal 46-row table (that's forcing it). The four layers and what each demands of the brief:
+
+- **TARGET — the biology you're betting on:** identity (name, gene, protein, aliases, family); normal
+  function; pathway (upstream/downstream); role in disease; **validation level** (genetic / clinical /
+  hypothesis); druggability & modalities; mechanism options (block/degrade, mono vs combined);
+  differentiation levers (affinity, selectivity, half-life, combinability); **on-target safety ceiling**;
+  redundancy / escape; biomarker availability; precedent & graveyard; competitive intensity; IP position.
+- **INDICATION — the disease you're entering:** definition & subtypes; epidemiology; pathophysiology;
+  full treatment ladder; *specific* unmet need; competitive pipeline (approved **and** clinical, by
+  mechanism + stage); endpoints & placebo rates; trial-design norms; **regulatory landscape**; **the bar
+  to beat (the actual number)**; commercial dynamics; catalysts (ECCO/DDW/JPM); history & lessons;
+  **expansion potential** (adjacent indications / label expansion).
+- **PATIENT POPULATION — the ground truth:** who they are (demographics, onset, severity); **patient
+  journey** (time-to-dx, who treats); disease burden / QoL; **treatment experience** (route, monitoring,
+  frequency, side-effects); segmentation; "**better**" from the patient's view; non-responders & escape
+  biology; **real-world adherence/persistence**; access & equity; patient voice / PROs; trial-vs-reality
+  gap; who pays. *(This layer is Kyle's #1 — keep the brief patient-rich, not just disease-rich.)*
+- **THE OVERLAY — CI → BD decision:** for every competing asset, layer **attribution** (owner vs
+  originator vs licensee), **stage**, **differentiation**, **catalyst timing**, **deal/availability
+  status** (partnered / available / locked), and **the so-what** (where our asset wins/loses, and the posture).
+
+**How it shows up (v13):** target-identity block ("The targets, precisely" — TNFSF15/DR3, IL23A/IL-23R,
+genetic + clinical validation, on-target ceiling); patient ground-truth paragraph (journey, persistence,
+"better"); a **BD overlay** table (control / availability / so-what per asset); a "Beyond IBD" expansion
+line; a "Regulatory read" line; and a closing **"What would change this view"** table that operationalizes
+the discipline's 4th question (claim → disconfirming signal). Hypotheses are labelled as hypotheses.
+
 ---
 
 ## Redline history (changelog)
@@ -142,3 +175,17 @@ Every note Kyle has made is recorded verbatim below, with its disposition (✅ a
 - "The axes on which **any** TL1A/IL-23 asset **is** judged**, stated as specifics rather than principles**:" → "The axes on which TL1A/IL-23 **assets are** judged:" → ★ §1 (cut meta-framing). ✅
 - Deleted §4 caption "Owner first; originator in parentheses. Bold rows are TL1A×IL-23 bispecifics." → ★ §3 (drop redundant captions). ✅ (efficacy-is-Phase-2 caption retained).
 - "Payers**, not prescribers,** set realized value" → "Payers set realized value" → ★ §1 (direct). ✅
+
+### Round 4 — CI Mastery Checklist integration (`CI_Mastery_Checklist.docx`, 2026-06-08, on v12) → produced **v13**
+
+*(Not a redline — Kyle supplied his standing CI Mastery Checklist and asked to "integrate this checklist into the AIB … do not force it, weave it in to create value along the way.")*
+
+**What it is → disposition:** the checklist became **Section 5 above (the coverage standard)** ★ and was woven into v13, not bolted on. Gaps it surfaced in v12, each now filled with sourced content:
+1. **Target identity & genetic validation** (was missing) → ✅ "The targets, precisely": TL1A=TNFSF15→DR3(TNFRSF25)/DcR3; IL-23p19=IL23A→IL-23R; TNFSF15 + IL23R are validated IBD GWAS loci; on-target safety ceiling (DR3/Treg) stated. *(Front. Immunol. 2019)*
+2. **Patient ground-truth** (disease-heavy, patient-light) → ✅ "The patient, not just the disease": journey (CD dx delay ~5-9 mo, ~3.5 physicians), persistence (~45-48% on first biologic at 1 yr), "better" from the patient's view. *(CD diagnostic-delay review; Crohn's & Colitis 360)*
+3. **BD overlay** (attribution only) → ✅ "BD overlay — control, availability, and the so-what" table: per-asset control / availability (locked vs acquirable vs partnerable) / so-what. Spyre/Mirador/Xencor flagged as the transactable optionality.
+4. **Expansion potential** (missing) → ✅ "Beyond IBD": tulisokibart Ph2b in HS/axSpA/RA; IL-23p19 approved in psoriasis/PsA. *(Merck PR 2026)*
+5. **Regulatory landscape** (missing) → ✅ "Regulatory read" line: modified-Mayo/endoscopic endpoints, ~10-13% placebo, class precedent → gating risk is comparative efficacy + dual-blockade safety, not regulatory novelty.
+6. **The discipline's 4th question** (scattered) → ✅ closing **"What would change this view"** table (claim → disconfirming signal) + explicit hypothesis-labelling note.
+
+**Standing rule added:** the CI Mastery Checklist is now the coverage standard for *every* AIB (Section 5); future area briefs (TSLP, IL-4Rα, IGF-1R, FcRn) must answer its four layers with sourced, confidence-rated content.
