@@ -50,10 +50,6 @@
     box-shadow:0 1px 3px rgba(15,23,42,.05);border-radius:8px;overflow:hidden}
   #doc table td{border:1px solid var(--line);padding:8px 11px;vertical-align:top;background:#fff}
   #doc table tr:first-child td{background:var(--navy);color:#fff;font-weight:700;border-color:var(--navy)}
-  /* header text is wrapped in <strong>, which #doc strong{color:--ink} darkens to near-invisible on navy — force white in navy-header data tables */
-  #doc table:not(.kpi):not(.callout) tr:first-child td,
-  #doc table:not(.kpi):not(.callout) tr:first-child td strong,
-  #doc table:not(.kpi):not(.callout) tr:first-child td a{color:#fff}
   #doc table tr:nth-child(even):not(:first-child) td{background:var(--zebra)}
   /* KPI strip */
   #doc table.kpi,#doc table.kpi td{box-shadow:none;border:1px solid var(--line)}
@@ -107,7 +103,7 @@
 <div class="wrap">
   <div class="controls">
     <div class="dl" style="margin-left:0">
-      <a id="dl" href="AIB_TL1A_IL23p19_UC_v12.docx" download>↓ Download (Word)</a>
+      <a id="dl" href="AIB_TL1A_IL23p19_UC_v13.docx" download>↓ Download (Word)</a>
     </div>
   </div>
   <div class="meta" id="meta">Source-traced · every footnote links to the primary source (ClinicalTrials.gov, NEJM, Lancet Gastroenterology &amp; Hepatology, ECCO / DDW, company disclosures).</div>
@@ -115,7 +111,7 @@
 </div>
 
 <script>
-const DOC_SRC="aib_tl1a_v12.html";
+const DOC_SRC="aib_tl1a_v13.html";
 const cache={};
 // ---- drug-name canonical-card chips ----
 const SBV="https://tghntyofptvfhmtchwcv.supabase.co";
