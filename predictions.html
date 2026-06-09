@@ -17,8 +17,18 @@
   .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
   header.page{margin-bottom:8px}
   h1{font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:-.02em}
-  .sub{color:var(--slate);font-size:14px;margin-bottom:24px}
+  .sub{color:var(--slate);font-size:14px;margin-bottom:18px}
   .sub b{color:var(--navy)}
+
+  .goal{border:1px solid var(--line);border-left:4px solid #7c3aed;border-radius:12px;
+    background:#faf7ff;padding:16px 18px;margin-bottom:14px}
+  .goal-h{font-size:15px;font-weight:700;color:#5b21b6;margin-bottom:5px}
+  .goal-b{font-size:13px;color:var(--slate);line-height:1.5;margin-bottom:12px}
+  .goal-b i{color:var(--navy);font-style:italic}
+  .ladder{display:flex;gap:8px;flex-wrap:wrap}
+  .ladder .rung{flex:1;min-width:120px;font-size:11.5px;color:var(--slate);line-height:1.35;
+    border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 10px;background:#fff}
+  .ladder .rung b{color:var(--rc);font-size:12px}
 
   /* poll / scoreboard */
   .poll{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:18px;
@@ -98,6 +108,17 @@
       <b>This is the platform's track record.</b></div>
   </header>
 
+  <section class="goal" id="goal">
+    <div class="goal-h">The goal: call the deal before the market does</div>
+    <div class="goal-b">The apex prediction is specific — <i>which acquirer buys which molecule (target × indication), at what value, by when</i>, with a calibrated probability and an auditable rationale. Lower-rung calls aren't filler: they build the calibration record and the evidence graph that earn the right to make the apex call.</div>
+    <div class="ladder">
+      <span class="rung" style="--rc:#2563eb"><b>L1 · Outcome</b><br>will the science work?</span>
+      <span class="rung" style="--rc:#0891b2"><b>L2 · Consequence</b><br>does it become value?</span>
+      <span class="rung" style="--rc:#7c3aed"><b>L3 · Deal thesis</b><br>who buys what, for how much, when</span>
+      <span class="rung" style="--rc:#9333ea"><b>L4 · Portfolio</b><br>where the next wave forms</span>
+    </div>
+  </section>
+
   <section class="poll" id="poll">
     <h2>Track record · updating as calls resolve</h2>
     <div class="stats" id="stats"><div class="loading" style="color:#fff;padding:10px 0">Loading…</div></div>
@@ -119,7 +140,15 @@ const KEY = "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
 const OUTCOME = {correct:1, incorrect:0, partially_correct:0.5};
 const TYPE_LABEL = {acquisition:"Acquisition",licensing_deal:"Licensing",asset_value:"Asset value",
   outcome_success:"Clinical outcome",outcome_failure:"Clinical failure",first_to_clinic:"Race to clinic",
-  first_to_market:"Race to market",leader_rank:"Leadership",stall:"Program stall"};
+  first_to_market:"Race to market",leader_rank:"Leadership",stall:"Program stall",approval:"Approval",
+  regulatory:"Regulatory",market_share:"Market share",class_validation:"Class validation"};
+// prediction ladder (see PREDICTION_NORTH_STAR.md): which rung is this call on?
+function tier(p){
+  const t=p.prediction_type;
+  if(t==="acquisition"||t==="licensing_deal") return {n:"L3",lbl:"Deal thesis",c:"#7c3aed"};
+  if(t==="outcome_success"||t==="outcome_failure") return {n:"L1",lbl:"Outcome",c:"#2563eb"};
+  return {n:"L2",lbl:"Consequence",c:"#0891b2"}; // approval/regulatory/market_share/class_validation/asset_value/first_to_*
+}
 let DATA=[], fArea="all", fStatus="all";
 
 async function sb(path){
@@ -130,6 +159,8 @@ async function sb(path){
 const pct = x => Math.round(x*100);
 const fmtVal = v => v>=1e9?`$${(v/1e9).toFixed(1)}B`:v>=1e6?`$${(v/1e6).toFixed(0)}M`:`$${v}`;
 const fmtDate = d => d? new Date(d+"T00:00:00").toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+const qtr = d => { const dt=new Date(d+"T00:00:00"); return `Q${Math.floor(dt.getMonth()/3)+1} ${dt.getFullYear()}`; };
+const fmtRange = (a,b) => { if(!b) return '—'; if(!a) return `by ${qtr(b)}`; const qa=qtr(a),qb=qtr(b); return qa===qb? qa : `${qa} – ${qb}`; };
 
 function renderPoll(){
   const resolved = DATA.filter(p=>p.status in OUTCOME);
@@ -157,7 +188,7 @@ function renderPoll(){
     </svg>`;
   } else {
     const next = open.map(p=>p.predicted_window_end).filter(Boolean).sort()[0];
-    spark=`<div class="empty">Accuracy line begins at the first resolution.<br>Next window closes <b>${fmtDate(next)}</b>.</div>`;
+    spark=`<div class="empty">Accuracy line begins as more calls resolve.<br>Next window closes <b>${next?qtr(next):'—'}</b>.</div>`;
   }
   html += `<div class="spark">${spark}</div>`;
   document.getElementById('stats').innerHTML = html;
@@ -197,13 +228,14 @@ function card(p){
       ${p.outcome_date?` · ${fmtDate(p.outcome_date)}`:''}</div>` : '';
   const val = p.predicted_value_usd? `<span class="val">${fmtVal(p.predicted_value_usd)}</span>` : '';
   return `<div class="pc s-${p.status}">
-    <div class="pc-top"><span class="badge">${TYPE_LABEL[p.prediction_type]||p.prediction_type}</span>
+    <div class="pc-top"><span class="badge" style="background:${tier(p).c}1a;color:${tier(p).c};border:1px solid ${tier(p).c}55" title="Prediction ladder rung">${tier(p).n} · ${tier(p).lbl}</span>
+      <span class="badge">${TYPE_LABEL[p.prediction_type]||p.prediction_type}</span>
       <span class="pill ${p.status}">${p.status.replace('_',' ')}</span></div>
     <div class="subj">${p.subject_label||''}</div>
     <div class="stmt">${p.statement}</div>
     <div class="conf-row">
       <div class="ring" style="--p:${conf};--c:${ringColor}"><i>${conf}%</i></div>
-      <div class="conf-meta">stated conviction<br><b>by ${fmtDate(p.predicted_window_end)}</b></div>
+      <div class="conf-meta">stated conviction<br><b>${fmtRange(p.predicted_window_start,p.predicted_window_end)}</b></div>
     </div>
     ${outcome}
     <details><summary>Why this call</summary><div class="body">${p.rationale||'—'}</div></details>
