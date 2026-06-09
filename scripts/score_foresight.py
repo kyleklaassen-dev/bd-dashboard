@@ -471,7 +471,8 @@ def resolve_tier2() -> None:
     """
     print("\n=== Tier-2 (judgment predictions) ===")
     preds = rest("foresight_predictions?select=id,subject_label,prediction_type,statement,"
-                 "confidence,status,predicted_window_end,resolved_at,reasons_held,area_id"
+                 "confidence,status,predicted_window_end,resolved_at,reasons_held,area_id,"
+                 "made_on,outcome_date,lead_time_days"
                  "&order=predicted_window_end.asc&limit=1000")
     if not preds:
         print("  no predictions seeded yet.")
@@ -499,6 +500,27 @@ def resolve_tier2() -> None:
         with open(PRED_QUEUE_DOC, "w") as f:
             f.write("\n".join(q) + "\n")
     print(f"  prediction review queue: {len(overdue)} rows -> {os.path.relpath(PRED_QUEUE_DOC, ROOT)}")
+
+    # lead-time: how EARLY did we call it? (outcome_date - made_on, in days).
+    # Only meaningful for calls made BEFORE the event; feeds v_signal_library.avg_lead_days,
+    # the measure of how far ahead each "early signal" reason lets us see.
+    from datetime import date as _date
+    def _d(s):
+        try: return _date.fromisoformat(s[:10])
+        except Exception: return None
+    lead_set = 0
+    for p in resolved:
+        if p.get("lead_time_days") is not None:
+            continue
+        md, od = _d(p.get("made_on")), _d(p.get("outcome_date"))
+        if md and od and od > md:
+            days = (od - md).days
+            if not DRY:
+                rest(f"foresight_predictions?id=eq.{p['id']}", method="PATCH",
+                     body={"lead_time_days": days})
+            lead_set += 1
+    if lead_set:
+        print(f"  lead-time computed for {lead_set} resolved call(s) (made_on -> outcome).")
 
     # score the resolved set (Brier: lower is better; hit rate; calibration)
     if not resolved:

@@ -91,6 +91,43 @@ are the reason the platform exists.
 
 ---
 
+## Predicting the same event *earlier*, with reasons (the learning loop)
+
+Calling a deal is one axis; calling it **sooner** is the other. A correct acquisition call made
+the week before the press release is nearly worthless; the same call made 18 months out is the
+product. So every prediction is decomposed and time-stamped, and resolved calls feed a library
+of reasons that let the next call move earlier.
+
+**1. Decomposition — confidence is a sum, not a vibe** (`prediction_factors`, `base_rate`).
+Every confidence number is built as a **base rate + signed adjustment factors**, each with a
+type, a delta, and a rationale, that sum exactly to the stated confidence. Example (tulisokibart
+ATLAS = 70%): 45 base + 20 (strong Ph2 delta) + 8 (Ph2→Ph3 precedent) − 3 (Ph3 stringency). When
+the call resolves we see *which factor was right or wrong*, not just whether the headline hit.
+
+**2. Early-signal factors — the reasons that buy lead time** (`is_early_signal = true`).
+Some factors are the reasons we can see the event coming before the market: "positive Phase 3 +
+NDA filing = standard takeout trigger," "AbbVie's repeat China-origin licensing pattern,"
+"sequencing window opens after the ABBV-701 readout." These are flagged so they accumulate a
+track record.
+
+**3. Lead time — how early we actually were** (`lead_time_days`, set at resolution).
+When a call resolves, the scorer computes `outcome_date − made_on`. Averaged across resolved
+calls that shared an early-signal reason, this becomes **how far ahead that reason lets us see**.
+
+**4. The signal library — reasons with a track record** (`v_signal_library`).
+Each early-signal reason rolls up to: times used, times correct, hit rate, and average lead days.
+Over time this answers "what patterns have actually preceded a deal, and by how long?" — turning
+one-off rationales into a reusable, evidence-weighted playbook. The next acquisition call starts
+from the reasons that have historically paid off, made earlier and with better-calibrated
+confidence. *That* is the compounding asset.
+
+**5. Change-log — every revision, with a reason** (`prediction_revisions`).
+Predictions are living. Every edit — a confidence raise/cut, a reframe, a resolution, a window
+change — is recorded with a mandatory reason. This is both an audit trail and training data:
+later we can ask whether our revisions improved calibration (did lowering Immunovant after the
+batoclimab failure prove right?). **Standing practice: keep adding new predictions, and never
+change one silently — log what changed and why.**
+
 ## How this shows up in the product
 
 - The **Predictions tab** tags each call by rung (Outcome · Consequence · Deal thesis) and shows
