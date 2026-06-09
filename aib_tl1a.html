@@ -50,6 +50,10 @@
     box-shadow:0 1px 3px rgba(15,23,42,.05);border-radius:8px;overflow:hidden}
   #doc table td{border:1px solid var(--line);padding:8px 11px;vertical-align:top;background:#fff}
   #doc table tr:first-child td{background:var(--navy);color:#fff;font-weight:700;border-color:var(--navy)}
+  /* header text is wrapped in <strong>, which #doc strong{color:--ink} darkens to near-invisible on navy — force white in navy-header data tables */
+  #doc table:not(.kpi):not(.callout) tr:first-child td,
+  #doc table:not(.kpi):not(.callout) tr:first-child td strong,
+  #doc table:not(.kpi):not(.callout) tr:first-child td a{color:#fff}
   #doc table tr:nth-child(even):not(:first-child) td{background:var(--zebra)}
   /* KPI strip */
   #doc table.kpi,#doc table.kpi td{box-shadow:none;border:1px solid var(--line)}
