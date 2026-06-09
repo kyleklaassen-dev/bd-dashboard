@@ -570,10 +570,11 @@ def render_mm_ingest() -> None:
 
 
 # ── Store stage — the Supabase database ──────────────────────────────────────
-# The single source of truth: one Supabase Postgres project, ~140 tables + 15
-# views. migrations/v1_schema.sql is the authoritative snapshot (no forward v2+
-# migrations yet). Every Python write goes through six helpers in scripts/_db.py;
-# the browser reads directly with the anon key. Verified against v1_schema.sql.
+# The single source of truth: one Supabase Postgres project. Schema snapshot
+# (migrations/v1_schema.sql) defines 140 tables; the live DB has drifted to ~167,
+# of which only 73 are surfaced (rest = infra/inert/dark/scaffold/orphan). Every
+# Python write goes through six helpers in scripts/_db.py; the browser reads
+# directly with the anon key. Inventory from the TABLEDB catalog in the workflow map.
 
 # The six REST helpers every backend write/read flows through.
 STORE_ACCESS = [
@@ -588,109 +589,63 @@ STORE_ACCESS = [
 
 # Table domains. Representative tables per domain (not all ~140), each with a
 # one-line purpose. Grouped to match how the platform actually thinks about data.
-STORE_DOMAINS = [
-    {
-        "label": "Core entities",
-        "blurb": "The primary business objects everything else hangs off of.",
-        "tables": [
-            ("companies", "Pharma/biotech orgs — status, parent, ticker, strategic value."),
-            ("drugs", "Candidates & approved products — stage, mechanism, ownership, overlap."),
-            ("trial_identity / trial_facts", "Trials keyed by NCT id — phase, status, enrollment, endpoints."),
-            ("targets", "Molecular targets (slug ids like `tl1a`) — class, pathway."),
-            ("indications", "Diseases / conditions with abbreviations and biology tags."),
-            ("catalysts", "Upcoming events — readouts, PDUFA dates, conferences."),
-            ("canonical_drugs", "Identity registry that merges aliases to one drug."),
-            ("molecule_intelligence", "Per-drug molecular detail — format, valency, Fc, affinity."),
-        ],
-    },
-    {
-        "label": "Relationships & graph",
-        "blurb": "How entities connect — the joins that make the pipeline query work.",
-        "tables": [
-            ("entity_edges", "General subject→predicate→object triples (e.g. COMPETES_WITH)."),
-            ("ownership_edges", "ORIGINATED_BY / LICENSED_IN / ACQUIRED, with territory scope."),
-            ("company_partnerships", "Licensee/co-dev relationships — partner, type, verified, source."),
-            ("drug_targets", "Drug→target links; role = primary | component (bispecific arm)."),
-            ("drug_indications", "Drug→indication mapping with approval status per region."),
-            ("company_areas / drug_areas", "Which entities are active in which areas."),
-        ],
-    },
-    {
-        "label": "Deals & BD intelligence",
-        "blurb": "Business-development context — the deal record and who to call.",
-        "tables": [
-            ("deals", "Licensing/M&A events — parties, economics, source, verified flag."),
-            ("bd_recommendations", "Scored deal suggestions for Ailux — rank, urgency, framing."),
-            ("partner_intelligence_profiles", "Per-company BD dossier — thesis, fit, deal structure."),
-            ("company_strategic_views", "Competitive / partner / acquisition-target classification."),
-            ("company_profiles", "Per-area narrative — why it matters, key risk, BD summary."),
-        ],
-    },
-    {
-        "label": "Intelligence & signals (news)",
-        "blurb": "Time-stamped competitive events and the literature behind them.",
-        "tables": [
-            ("intel", "Competitive news items — headline, body, importance, type."),
-            ("signals / competitive_signals", "Enrichment-triggered events with relevance scores."),
-            ("conference_abstracts", "Congress data linked to drug/target/indication/trial."),
-            ("publications / clinical_evidence_items", "Papers & readouts with efficacy/safety data."),
-            ("meridian_issues", "The synthesized daily BD briefing (body_html, plan_json)."),
-        ],
-    },
-    {
-        "label": "Clinical & molecular depth",
-        "blurb": "The deep evidence layer — a large family of specialized tables.",
-        "tables": [
-            ("drug_pk_parameters / drug_pd_parameters", "PK (Cmax, AUC, half-life) and PD/target-engagement."),
-            ("drug_biomarkers", "Biomarker predictivity — sensitivity, clinical utility."),
-            ("drug_clinical_benchmarks / efficacy_benchmarks", "Remission/response rates by dose & timepoint."),
-            ("indication_patient_intelligence", "Prevalence, treatment cascade, unmet need."),
-            ("drug_bispecific_landscape", "TL1A/IL-23 program-specific competitive detail."),
-        ],
-    },
-    {
-        "label": "Scoring & ranking",
-        "blurb": "Computed metrics — written by the Score stage, read by the dashboard.",
-        "tables": [
-            ("drug_area_scores", "Per-area overlap (Direct/Adjacent/…) and vs-Ailux positioning."),
-            ("drug_competitive_scores", "Competitive score per context (target/indication/view)."),
-            ("coverage_scores", "How complete each company/area is across 9 dimensions."),
-            ("asset_value_predictions", "Composite program value score + rank."),
-            ("drug_trust_scores", "Data-trust grade with a breakdown JSON."),
-        ],
-    },
-    {
-        "label": "Validation, sources & governance",
-        "blurb": "The integrity layer — covered in depth on the Validate page.",
-        "tables": [
-            ("governance_violations", "Soft-constraint violations awaiting review (rule_name, resolved)."),
-            ("drug_validation_results", "Per-check validation status & confidence."),
-            ("source_validation_log / source_verifications", "Per-URL liveness & trust checks."),
-            ("drug_sources", "Source-of-claim provenance — url_status, content_confirms_claim."),
-            ("field_change_audit", "Every field change, flagged is_governance_relevant + rule."),
-        ],
-    },
-    {
-        "label": "Enrichment, ML & intake queues",
-        "blurb": "How the platform records its own work and learns from corrections.",
-        "tables": [
-            ("enrichment_runs", "One row per job — model, tokens, fields set/changed/failed."),
-            ("enriched_field_log", "Per-field enrichment metadata — value, confidence, source."),
-            ("kyle_reviews / correction_labels", "Human verdicts + corrections → fine-tune corpus."),
-            ("submitted_intel / conversation_intelligence_intake", "Human-supplied intake (see Ingest)."),
-            ("research_queue / enrichment_queue", "Work waiting to be done."),
-        ],
-    },
-    {
-        "label": "System & ops",
-        "blurb": "Operational state — how the platform watches itself.",
-        "tables": [
-            ("system_status", "Singleton heartbeat — last enrichment/research, record counts."),
-            ("pipeline_runs", "GitHub Actions run history — status, conclusion, healthy flag."),
-            ("stock_price_history", "Daily price snapshots per ticker."),
-            ("validation_tests", "Ground-truth test cases with expected vs actual values."),
-        ],
-    },
+# Complete table inventory grouped by REAL status, from the team's own catalog
+# embedded in pages/meridian_workflow_map.html (the TABLEDB object). Every table
+# appears exactly once; counts sum to the live total. Row counts are from that
+# snapshot. Categories: surfaced (app reads it) · infra (plumbing/links/audit) ·
+# inert (data, no readers) · dark (written, never read) · scaffold (empty) ·
+# orphan (disconnected). Each entry: (label, count, blurb, formatted table block).
+STORE_CATALOG = [
+    ("Surfaced", 73, (
+        "What the app actually reads and shows. These are the tables that matter — the rest is plumbing, history, or dead weight."), (
+        "field_change_audit                    59840\nidentity_audit_log                     4131\nentity_edges                           1164\nintel                                  1160\nintel_companies                        1146\ncatalysts                              1018\n"
+        "competitive_signals                     997\ndrug_validation_results                 993\nbackfill_preview                        873\ntrials                                  706\ndrug_intelligence_qa                    590\ndrug_competitive_scores                 371\n"
+        "drug_indications                        361\ntrial_indications                       299\ncompany_portfolio_conflicts             260\nnews_articles                           251\ndrug_targets                            216\ndeals                                   210\n"
+        "drug_area_scores                        210\ndrug_areas                              206\ncanonical_drugs                         204\ndrugs                                   204\ncompany_documents                       191\nresearch_queue                          171\n"
+        "company_strategic_views                 168\nsignals                                 151\ncompany_profiles                        138\ncoverage_scores                         137\ncompany_areas                           133\ncompanies                               132\n"
+        "ownership_edges                         117\nmolecule_intelligence                    99\ndiscovery_queue                          87\ntargets                                  76\ncompany_platform_views                   71\ndrug_clinical_benchmarks                 68\n"
+        "company_signals                          57\nsource_documents                         55\nindications                              50\ndrug_pk_parameters                       47\ngeographic_approvals                     46\nbd_insights                              35\n"
+        "governance_violations                    34\ncatalyst_calendar                        28\nintel_areas                              27\narea_perspectives                        22\nindication_priority_scores               19\nindication_biology_validation            17\n"
+        "indication_patient_intelligence          17\nindication_patient_stratifiability       17\nindication_regulatory_clarity            17\nindication_window_urgency                17\npayer_tpp_criteria                       17\nindication_company_map                   16\n"
+        "drug_failure_cascade                     15\nailux_bd_context                         14\nasset_transfer_history                   14\narea_knowledge                           13\nmeridian_issues                          13\ndrug_biomarkers                          12\n"
+        "submitted_intel                          12\nlegacy_area_ontology_map                 11\ndrug_bispecific_landscape                10\nmodalities                               10\nlandscape_expected_competitors            9\nnon_responder_profiles                    9\n"
+        "deal_sequencing_constraints               8\ntherapeutic_areas                         8\ncompetitive_landscapes                    5\ntarget_pairs                              5\nasset_differentiation_profiles            3\ndrug_combinations                         3\n"
+        "system_status                             1\n"),
+    ),
+    ("Infra", 32, (
+        "Plumbing: link/junction tables, alias maps, audit logs, run records. Real and active, but support machinery, not content you browse."), (
+        "source_validation_log                  1364\nintel_target_links                     1288\nintel_drug_links                        904\nenriched_field_log                      813\nintel_company_links                     764\nintel_indication_links                  637\n"
+        "trial_registries                        629\nschema_change_log                       369\nstock_price_history                     319\nfield_backfill_preview                  317\nintelligence_debt_queue                 255\ndrug_targets_legacy                     195\n"
+        "company_aliases                         184\ndrug_aliases                            178\nindication_aliases                       86\nchange_log                               84\nenrichment_runs                          40\nnews_company_links                       31\n"
+        "ontology_edges                           25\ntarget_mechanism_links                   13\nontology_mappings                        11\nentity_consistency_checks                10\nnews_indication_links                    10\ntarget_era_history                        7\n"
+        "enrichment_queue                          6\ncoverage_computation_log                  4\nnews_drug_links                           4\nreview_queue                              4\nprompt_versions                           3\nailux_positions                           2\n"
+        "news_target_links                         2\nontology_versions                         2\n"),
+    ),
+    ("Inert", 38, (
+        "Exist with data but nothing currently reads them — built ahead of a feature, or left behind when one moved."), (
+        "trial_geographic_scope                  143\ncompany_therapeutic_areas                78\nindication_co_occurrence                 76\ndrug_milestones                          66\ndrug_formulation_variants                64\ndrug_timeline_estimates                  36\n"
+        "company_pipeline_gaps                    25\nregulatory_designations                  23\nbiology_tags                             18\nbispecific_differentiation_factors       18\npeak_revenue_estimates                   18\ndrug_development_steps                   16\n"
+        "mechanism_precedent_map                  15\nbd_readiness_composite                   13\nportfolio_conflict_matrix                13\nailux_strategic_context                  12\ndeal_value_tracking                      12\nefficacy_benchmarks                      12\n"
+        "patent_expiry_cliff_map                  12\ntarget_areas                             12\narea_metadata                            11\ninternal_pipeline_conflicts              11\nplatform_trial_arms                      11\nnonresponder_bispecific_bridge            8\n"
+        "area_market_data                          7\nclinical_evidence_items                   7\ndeal_implied_valuation                    7\ndrug_pd_parameters                        7\nroutes_of_administration                  6\ndrug_approvals                            5\n"
+        "partner_intelligence_profiles             5\nsop_registry                              5\ndrug_study_design_comparisons             4\ndrug_cdx_strategy                         3\ndrug_nonresponder_profiles                3\nplatform_trials                           3\n"
+        "bispecific_clinical_hypothesis            1\nclinical_trial_design_recommendations      1\n"),
+    ),
+    ("Dark", 13, (
+        "Written by the pipeline but never read back into the product. Candidates for either wiring-up or removal."), (
+        "entity_relationships                   2474\nvalidation_tests                       1042\nsource_verifications                    230\nkyle_reviews                            109\ncompany_partnerships                     52\nintelligence_discoveries                 35\n"
+        "mechanism_status                         33\ndrug_sources                             25\nbd_recommendations                       20\ntarget_pair_whitespace                   15\nconversation_intelligence_intake         12\nasset_value_predictions                   3\n"
+        "landscape_briefings                       1\n"),
+    ),
+    ("Scaffold", 7, (
+        "Created but empty (0 rows) — placeholders for planned features."), (
+        "correction_labels                         0\ndrug_modalities                           0\ndrug_routes                               0\ndrug_stage_history                        0\nindication_biology_tags                   0\nmodel_validation_results                  0\n"
+        "resolver_errors                           0\n"),
+    ),
+    ("Orphan", 4, (
+        "Disconnected from the entity graph — not joined to anything that surfaces."), (
+        "drug_target_pairs                       161\nagent_disagreements                      51\ndrug_development_timelines               45\nnext_gen_rankings                         7\n"),
+    ),
 ]
 
 # Key columns for the core tables — abridged to the meaningful + governance-
@@ -783,13 +738,16 @@ def render_mm_store() -> None:
 
     st.title("2 · Store — where it lives")
     st.write(
-        "One **Supabase Postgres** project is the single source of truth — roughly "
-        "**140 tables and 15 views**. `migrations/v1_schema.sql` is the authoritative "
-        "snapshot; there are no forward (v2+) migrations yet, so that file *is* the schema."
+        "One **Supabase Postgres** project is the single source of truth. The table count is "
+        "genuinely fuzzy: the schema snapshot `migrations/v1_schema.sql` defines **140 tables**, "
+        "but the live database has **drifted to ~167** (64 live tables aren't in the snapshot; "
+        "37 snapshot tables aren't live). And that 167 overstates it — only **73 are actually "
+        "*surfaced*** in the product; the rest are plumbing, audit logs, or dead. The full, "
+        "honest inventory is below."
     )
     st.caption(
-        "Table lists below are representative, not the full ~140. Columns are abridged "
-        "to the meaningful + governance-relevant fields, quoted from v1_schema.sql."
+        "Table inventory is from the team's own catalog (the TABLEDB in "
+        "`pages/meridian_workflow_map.html`); column details are quoted from v1_schema.sql."
     )
 
     st.divider()
@@ -813,12 +771,18 @@ def render_mm_store() -> None:
     )
 
     st.divider()
-    st.subheader("The tables, by domain")
-    for dom in STORE_DOMAINS:
-        with st.expander(f"{dom['label']}"):
-            st.caption(dom["blurb"])
-            for name, purpose in dom["tables"]:
-                st.markdown(f"`{name}` — {purpose}")
+    st.subheader("Every table, by how alive it is")
+    st.write(
+        "The honest inventory — **all 167 tables, each listed once**, grouped by whether the "
+        "product actually uses them. This is why \"how many tables?\" has a fuzzy answer: only "
+        "**73 are surfaced**; the other ~94 are plumbing, dead, or empty. Counts below sum to "
+        "the whole. Row counts are from the workflow-map snapshot."
+    )
+    _hdr = f"{'table':<36}{'rows':>7}\n" + "─" * 43 + "\n"
+    for label, count, blurb, block in STORE_CATALOG:
+        with st.expander(f"{label} — {count} tables"):
+            st.caption(blurb)
+            st.code(_hdr + block, language="text")
 
     st.divider()
     st.subheader("Key columns — the core tables")
