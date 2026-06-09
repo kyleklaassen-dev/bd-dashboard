@@ -30,6 +30,24 @@
     border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 10px;background:#fff}
   .ladder .rung b{color:var(--rc);font-size:12px}
 
+  /* confidence decomposition */
+  .decomp{padding-top:2px}
+  .fct{display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-bottom:1px dotted var(--line)}
+  .fct .fd{flex:0 0 38px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .fct .fd.up{color:var(--green)} .fct .fd.dn{color:var(--red)} .fct .fd.base{color:var(--navy)}
+  .fct .fl{font-size:12.5px;color:var(--ink);line-height:1.35}
+  .fct .fl i{color:var(--mut);font-style:normal;font-size:11px}
+  .fct .fr{color:var(--slate);font-size:11.5px;margin-top:1px;line-height:1.4}
+  .fsum{margin-top:7px;font-weight:700;color:var(--navy);font-size:13px}
+  .fsum b{color:var(--amber)}
+  .dnote{margin-top:4px;color:var(--mut);font-size:11px;font-style:italic}
+  /* change log */
+  .rev{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px dotted var(--line)}
+  .rev .rt{flex:0 0 74px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:var(--mut)}
+  .rev .rt.revise_up,.rev .rt.created{color:var(--green)} .rev .rt.revise_down,.rev .rt.retire{color:var(--red)}
+  .rev .rt.resolved{color:var(--navy)} .rev .rt.reframe,.rev .rt.window{color:var(--amber)}
+  .rev .rb{font-size:12px;color:var(--slate);line-height:1.4} .rev .rb i{color:var(--mut)}
+
   /* poll / scoreboard */
   .poll{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:18px;
     padding:24px 26px;margin-bottom:8px;box-shadow:0 8px 28px rgba(26,63,143,.18)}
@@ -218,6 +236,31 @@ function renderControls(){
   });
 }
 
+const REV_LABEL={created:"created",resolved:"resolved",revise_up:"▲ raised",revise_down:"▼ lowered",
+  reframe:"reframed",window:"window set",decomposition:"decomposed",retire:"retired",other:"edited"};
+const FTYPE_LABEL={clinical_evidence:"clinical",comparable_deal:"comp deal",strategic_fit:"strategic fit",
+  sequencing:"sequencing",market_tailwind:"market",competitive_pressure:"competition",regulatory:"regulatory",
+  execution_risk:"risk",financing:"financing",precedent:"precedent",other:"other"};
+// "Confidence math": base rate + signed factors that sum to the stated confidence
+function decompHTML(p){
+  if(p.base_rate==null && !(p._factors&&p._factors.length)) return '';
+  const sgn=d=>(d>=0?'+':'−')+Math.abs(Math.round(d*100));
+  const rows=(p._factors||[]).map(f=>`<div class="fct">
+    <span class="fd ${f.delta>=0?'up':'dn'}">${sgn(f.delta)}</span>
+    <span class="fl">${f.is_early_signal?'<b title="early signal — a reason that lets us call this sooner">⚡</b> ':''}${f.label}
+      <i>· ${FTYPE_LABEL[f.factor_type]||f.factor_type}</i>${f.rationale?`<div class="fr">${f.rationale}</div>`:''}</span></div>`).join('');
+  const base=p.base_rate!=null?`<div class="fct"><span class="fd base">${Math.round(p.base_rate*100)}</span><span class="fl">base rate <i>· starting probability</i></span></div>`:'';
+  const note=p.decomposition_note?`<div class="dnote">${p.decomposition_note}</div>`:'';
+  const es=(p._factors||[]).filter(f=>f.is_early_signal).length;
+  const sum=`<div class="fsum">= ${Math.round(p.confidence*100)}% stated${es?` · <b>⚡ ${es} early signal${es>1?'s':''}</b>`:''}</div>`;
+  return `<details><summary>Confidence math${es?' · ⚡':''}</summary><div class="body decomp">${base}${rows}${sum}${note}</div></details>`;
+}
+function changelogHTML(p){
+  if(!p._revs||!p._revs.length) return '';
+  const items=p._revs.map(r=>`<div class="rev"><span class="rt ${r.change_type}">${REV_LABEL[r.change_type]||r.change_type}</span>
+    <span class="rb">${r.field&&r.old_value&&r.new_value?`<i>${r.field}: ${r.old_value} → ${r.new_value}.</i> `:''}${r.reason}</span></div>`).join('');
+  return `<details><summary>Change log (${p._revs.length})</summary><div class="body">${items}</div></details>`;
+}
 function card(p){
   const conf=pct(p.confidence);
   const ringColor = p.status==="correct"?"var(--green)":p.status==="incorrect"?"var(--red)":
@@ -238,8 +281,10 @@ function card(p){
       <div class="conf-meta">stated conviction<br><b>${fmtRange(p.predicted_window_start,p.predicted_window_end)}</b></div>
     </div>
     ${outcome}
+    ${decompHTML(p)}
     <details><summary>Why this call</summary><div class="body">${p.rationale||'—'}</div></details>
     ${p.resolution_criteria?`<details><summary>How it resolves</summary><div class="body">${p.resolution_criteria}</div></details>`:''}
+    ${changelogHTML(p)}
     <div class="foot"><span>${(p.area_id||'').toUpperCase()}</span>${val}</div>
   </div>`;
 }
@@ -255,6 +300,13 @@ function renderGrid(){
 (async()=>{
   try{
     DATA = await sb("foresight_predictions?select=*&order=confidence.desc&limit=500");
+    const [FACTORS, REVS] = await Promise.all([
+      sb("prediction_factors?select=*&order=delta.desc"),
+      sb("prediction_revisions?select=prediction_id,change_type,field,old_value,new_value,reason,changed_at&order=changed_at.desc")
+    ]);
+    const byPid = (arr)=>{const m={}; arr.forEach(x=>(m[x.prediction_id]=m[x.prediction_id]||[]).push(x)); return m;};
+    const fMap=byPid(FACTORS), rMap=byPid(REVS);
+    DATA.forEach(p=>{ p._factors=fMap[p.id]||[]; p._revs=rMap[p.id]||[]; });
     renderPoll(); renderControls(); renderGrid();
   }catch(e){
     document.getElementById('grid').innerHTML=`<div class="err">Couldn't load predictions.<br>${e.message}</div>`;
