@@ -63,18 +63,18 @@
   .sig-foot,.sig-empty{font-size:11px;color:var(--mut);margin-top:8px;font-style:italic}
 
   /* poll / scoreboard */
-  .poll{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:18px;
-    padding:24px 26px;margin-bottom:8px;box-shadow:0 8px 28px rgba(26,63,143,.18)}
-  .poll h2{margin:0 0 16px;font-size:13px;font-weight:600;text-transform:uppercase;
+  .poll{background:linear-gradient(135deg,#1a3f8f,#2e6fb0);color:#fff;border-radius:14px;
+    padding:13px 18px;margin-bottom:8px;box-shadow:0 5px 18px rgba(26,63,143,.16)}
+  .poll h2{margin:0 0 9px;font-size:11px;font-weight:600;text-transform:uppercase;
     letter-spacing:.08em;opacity:.85}
-  .stats{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end}
-  .stat{min-width:90px}
-  .stat .n{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}
-  .stat .l{font-size:12px;opacity:.8;margin-top:5px}
-  .spark{flex:1;min-width:240px;height:84px;position:relative}
+  .stats{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+  .stat{min-width:62px}
+  .stat .n{font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .stat .l{font-size:10.5px;opacity:.8;margin-top:3px}
+  .spark{flex:1;min-width:200px;height:54px;position:relative}
   .spark .empty{font-size:13px;opacity:.8;font-style:italic;
     display:flex;align-items:center;height:100%;justify-content:flex-end;text-align:right}
-  .legend{font-size:11px;opacity:.75;margin-top:8px}
+  .legend{font-size:10.5px;opacity:.75;margin-top:6px}
 
   /* controls */
   .controls{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 18px;align-items:center}
@@ -87,9 +87,9 @@
   .controls .spacer{flex:1}
 
   /* cards */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-  .pc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
-    display:flex;flex-direction:column;gap:11px;transition:box-shadow .15s,transform .15s;
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px}
+  .pc{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 12px 10px;
+    display:flex;flex-direction:column;gap:7px;transition:box-shadow .15s,transform .15s;
     border-left:4px solid var(--blue2)}
   .pc:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);transform:translateY(-2px)}
   .pc.s-correct{border-left-color:var(--green)}
@@ -106,18 +106,18 @@
   .pill.incorrect{background:var(--redbg);color:var(--red)}
   .pill.partially_correct{background:var(--amberbg);color:#b45309}
   .pill.expired{background:#f1f5f9;color:var(--slate)}
-  .pc .subj{font-size:11px;font-weight:600;color:var(--blue2);text-transform:uppercase;letter-spacing:.04em}
-  .pc .stmt{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4}
-  .conf-row{display:flex;align-items:center;gap:12px}
-  .ring{--p:0;--c:var(--blue);width:46px;height:46px;border-radius:50%;flex-shrink:0;
+  .pc .subj{font-size:10px;font-weight:600;color:var(--blue2);text-transform:uppercase;letter-spacing:.04em}
+  .pc .stmt{font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.35}
+  .conf-row{display:flex;align-items:center;gap:9px}
+  .ring{--p:0;--c:var(--blue);width:38px;height:38px;border-radius:50%;flex-shrink:0;
     background:conic-gradient(var(--c) calc(var(--p)*1%), #eef2f7 0);
-    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink)}
-  .ring i{background:#fff;width:34px;height:34px;border-radius:50%;display:flex;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink)}
+  .ring i{background:#fff;width:28px;height:28px;border-radius:50%;display:flex;
     align-items:center;justify-content:center;font-style:normal}
-  .conf-meta{font-size:12px;color:var(--slate)}
+  .conf-meta{font-size:11px;color:var(--slate)}
   .conf-meta b{color:var(--ink)}
-  .pc .foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;
-    color:var(--slate);border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+  .pc .foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;
+    color:var(--slate);border-top:1px solid var(--line);padding-top:8px;margin-top:1px}
   .pc .val{font-weight:700;color:var(--violet)}
   details{font-size:12.5px;color:var(--slate)}
   details summary{cursor:pointer;color:var(--blue2);font-weight:500;outline:none}
@@ -142,7 +142,7 @@
 
   <section class="goal" id="goal">
     <div class="goal-h">The goal: call the deal before the market does</div>
-    <div class="goal-b">The apex prediction is specific — <i>which acquirer buys which molecule (target × indication), at what value, by when</i>, with a calibrated probability and an auditable rationale. Lower-rung calls aren't filler: they build the calibration record and the evidence graph that earn the right to make the apex call.</div>
+    <div class="goal-b">The apex prediction is specific — <i>which acquirer buys which molecule (target × indication), at what value, by when</i>, with a calibrated probability and an auditable rationale.</div>
     <div class="ladder">
       <span class="rung" style="--rc:#2563eb"><b>L1 · Outcome</b><br>will the science work?</span>
       <span class="rung" style="--rc:#0891b2"><b>L2 · Consequence</b><br>does it become value?</span>
@@ -186,7 +186,7 @@ function tier(p){
   if(t==="outcome_success"||t==="outcome_failure") return {n:"L1",lbl:"Outcome",c:"#2563eb"};
   return {n:"L2",lbl:"Consequence",c:"#0891b2"}; // approval/regulatory/market_share/class_validation/asset_value/first_to_*
 }
-let DATA=[], fArea="all", fStatus="all";
+let DATA=[], fArea="all", fStatus="all", fTier="all";
 
 async function sb(path){
   const r = await fetch(`${SB}/rest/v1/${path}`,{headers:{apikey:KEY,Authorization:`Bearer ${KEY}`}});
@@ -260,12 +260,15 @@ function renderControls(){
   const areas=[...new Set(DATA.map(p=>p.area_id).filter(Boolean))].sort();
   const statuses=["open","correct","partially_correct","incorrect","expired"];
   const chip=(v,cur,grp,lbl)=>`<span class="chip ${v===cur?'on':''}" data-grp="${grp}" data-v="${v}">${lbl}</span>`;
-  let h=`<div class="grp">${chip("all",fArea,"area","All areas")}${areas.map(a=>chip(a,fArea,"area",a.toUpperCase())).join('')}</div>`;
+  const tiers=[["L1","Outcome"],["L2","Consequence"],["L3","Deal thesis"],["L4","Portfolio"]];
+  let h=`<div class="grp">${chip("all",fTier,"tier","All rungs")}${tiers.map(t=>chip(t[0],fTier,"tier",`${t[0]} · ${t[1]}`)).join('')}</div>`;
+  h+=`<div class="spacer"></div>`;
+  h+=`<div class="grp">${chip("all",fArea,"area","All areas")}${areas.map(a=>chip(a,fArea,"area",a.toUpperCase())).join('')}</div>`;
   h+=`<div class="spacer"></div>`;
   h+=`<div class="grp">${chip("all",fStatus,"status","All")}${statuses.map(s=>chip(s,fStatus,"status",s.replace('_',' '))).join('')}</div>`;
   const c=document.getElementById('controls'); c.innerHTML=h;
   c.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{
-    if(el.dataset.grp==="area") fArea=el.dataset.v; else fStatus=el.dataset.v;
+    const g=el.dataset.grp; if(g==="area")fArea=el.dataset.v; else if(g==="status")fStatus=el.dataset.v; else fTier=el.dataset.v;
     renderControls(); renderGrid();
   });
 }
@@ -324,7 +327,7 @@ function card(p){
 }
 
 function renderGrid(){
-  let rows=DATA.filter(p=>(fArea==="all"||p.area_id===fArea)&&(fStatus==="all"||p.status===fStatus));
+  let rows=DATA.filter(p=>(fArea==="all"||p.area_id===fArea)&&(fStatus==="all"||p.status===fStatus)&&(fTier==="all"||tier(p).n===fTier));
   const order={open:0,partially_correct:1,correct:2,incorrect:3,expired:4};
   rows.sort((a,b)=>(order[a.status]-order[b.status])||(b.confidence-a.confidence));
   document.getElementById('grid').innerHTML = rows.length? rows.map(card).join('')
