@@ -189,3 +189,16 @@ Every note Kyle has made is recorded verbatim below, with its disposition (✅ a
 6. **The discipline's 4th question** (scattered) → ✅ closing **"What would change this view"** table (claim → disconfirming signal) + explicit hypothesis-labelling note.
 
 **Standing rule added:** the CI Mastery Checklist is now the coverage standard for *every* AIB (Section 5); future area briefs (TSLP, IL-4Rα, IGF-1R, FcRn) must answer its four layers with sourced, confidence-rated content.
+
+### Round 5 — external review integration (ChatGPT reply, 2026-06-08, on v13) → produced **v14**
+
+*(Not a redline — Kyle pasted a ChatGPT analysis and asked "what from this is also worth including?". Discipline applied: take only what is genuinely additive + verifiable, skip what's redundant or marketing-voice.)*
+
+**Included (all web-verified before adding):**
+1. **The bar to beat, in numbers** (was qualitative) → ✅ §4 callout: risankizumab INSPIRE Wk12 20.3% vs 6.2%; guselkumab QUASAR Wk44 50%/45% vs 18.9% (~⅔ of remitters endoscopic); mirikizumab ~50% maintenance. Plus the winning thresholds (induction >~25-30%, durable endoscopic above the bar). *(This is the checklist's "bar to beat — the actual number.")*
+2. **CLD-423** (Caldera, in-licensed from Qyuns; $112.5M launch; Phase 1 dosing) → ✅ added to §4 competition table + §10 — a second clinical-stage TL1A×IL-23 bispecific.
+3. **China-origin deal values + a correction** → ✅ §9/§10: SIM0709→BI up to €1.058B (beat the monotherapy combination preclinically); corrected Sanofi-Earendil HXN-1003 to $125M / ~$1.8B (the ~$2.56B is a separate broader collaboration — v13 had conflated them).
+4. **Access-consolidation payer lever** → ✅ §8: one bispecific = one approval / reimbursement / step hurdle / co-pay vs two separate biologics.
+5. **Sharper diligence bar** → ✅ §12: must beat each monotherapy AND the free combination in colitis models (the SIM0709 bar) + simultaneous dual binding + fibrosis-relevant evidence.
+
+**Deliberately excluded:** the executive-summary slogans, the win/lose lists (already in §1/§6/§11), and the "next-generation disease-control biologic" CEO positioning language (marketing voice — violates §1 "no story-telling / earn it through information"). **Lesson: an external LLM review is a source to mine, not to paste — keep the verifiable deltas, drop the rhetoric, cross-check every number.**
