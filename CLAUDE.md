@@ -145,6 +145,12 @@ Query a drug/company's facts: `intel_facts?subject_id=eq.<id>`; by area: `area_i
   primary subject): `intel_fact_entities?entity_id=eq.<id>&select=role,intel_facts(*)`. The drug/company
   cards now read from here. Rebuilt by `scripts/build_fact_graph.py` (runs at the end of the
   `chunk_extract.yml` workflow, so it stays current as new docs are added). ~76% of facts link to ≥1 entity.
+- **Unified into `entity_edges`**: `scripts/unify_graph.py` (also runs in the workflow) folds report intel
+  into the main 26k-edge graph — `TARGETS` (drug→target parsed from drugs.target) + `COMPETES_WITH`
+  (drug↔drug from competitive co-mentions). So report-derived drugs/relationships are traversable
+  alongside trials/patents/authors. NOTE: entity_edges has CHECK constraints — predicate and
+  generation_method must be from the existing allowed sets (generation_method ∈ deterministic|manual;
+  `CO_MENTIONED_WITH` is NOT allowed — use `COMPETES_WITH`). Structural backbone: `scripts/materialize_structural_edges.py`.
 
 ## Key Files
 
