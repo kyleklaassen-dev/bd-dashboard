@@ -458,6 +458,19 @@ def sb_upsert(table: str, records: list | dict,
         return []
 
 
+def _catalyst_upsert(rec):
+    """Single-writer drop-in (ADR-010) for sb_upsert('catalysts', ...).
+    Routes through CatalystWriter; preserves list-on-success / [] contract."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from catalyst_writer import CatalystWriter
+    _r = CatalystWriter().upsert(rec)
+    return [] if _r.get("errors") else [{"id": _r.get("catalyst_id")}]
+
+
 def sb_post(table: str, record: dict) -> Optional[dict]:
     try:
         r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}",
@@ -1534,7 +1547,7 @@ def step4_generate_catalysts_from_trials(company_id: str, area_id: str,
         if dry_run:
             log(f"    [DRY RUN] Catalyst: {label[:60]} ({pcd_label})", indent=3)
         else:
-            result = sb_upsert("catalysts", cat_rec)
+            result = _catalyst_upsert(cat_rec)
             if result:
                 log(f"    + Catalyst [{significance}]: {label[:55]} ({pcd_label})", indent=3)
                 created += 1
@@ -2903,7 +2916,7 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
         # RULE: Always persist source_url when provided — required for validated references
         if cat.get("source_url"):
             cat_rec["source_url"] = cat["source_url"]
-        result = sb_upsert("catalysts", cat_rec)
+        result = _catalyst_upsert(cat_rec)
         log(f"  catalyst '{cat_rec['label'][:40]}': {'✓' if result else '✗'}", indent=1)
 
         # BUG 7 FIX: Dual-write to catalyst_calendar so new table populates going forward.
