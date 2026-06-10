@@ -5815,6 +5815,8 @@ async function _injectAreaFreshness(tabId) {
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
   <button class="nav-icon-btn" id="nav-icon-homeprev" onclick="navTo('homeprev')" title="Home Preview — new role-lens design (live)" style="background:#3b1d6e;color:#fff;border-color:#5b2da8">✨</button>
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
+  <!-- Reads — short interpretive takes from research (research_reads). Added 2026-06-10. -->
+  <button class="nav-icon-btn" id="nav-icon-reads" onclick="navTo('reads')" title="Reads — short interpretive takes from research" style="position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#5b2da8;color:#fff;border-color:#5b2da8;letter-spacing:.2px;">📑 Reads<span id="reads-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 2px #fff">0</span></button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -5834,6 +5836,7 @@ async function _injectAreaFreshness(tabId) {
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
         <button class="tab-btn" onclick="switchTab('homeprev', this)">Home Preview</button>
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
+        <button class="tab-btn" onclick="switchTab('reads', this)" style="display:none">Reads</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology-explorer', this)" style="display:none">Ontology Explorer</button>
@@ -5903,6 +5906,16 @@ async function _injectAreaFreshness(tabId) {
 <div class="tab-pane" id="tab-predictions">
   <iframe id="predictions-frame" src="predictions.html" title="Predictions — Meridian foresight ledger"
     style="width:100%;min-height:calc(100vh - 130px);border:0;display:block;background:#f8fafc;"></iframe>
+</div>
+
+<!-- ══════════════ READS TAB (research_reads) — additive. Added 2026-06-10. ══════════════ -->
+<div class="tab-pane" id="tab-reads" style="padding:0;background:#f4f7fb;min-height:100vh">
+  <div style="max-width:880px;margin:0 auto;padding:28px 20px 60px">
+    <div style="font-size:24px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:10px">📑 Reads</div>
+    <div style="font-size:14px;color:#475569;margin:6px 0 4px">Short interpretive takes caught while doing research — the "huh, interesting" observations and their BD so-what. Newest first.</div>
+    <div id="reads-subtitle" style="font-size:12px;color:#94a3b8;font-weight:600;margin-bottom:20px"></div>
+    <div id="reads-list"></div>
+  </div>
 </div>
 
 <!-- ══════════════ HOME TAB: THE MERIDIAN ══════════════ -->
@@ -25547,6 +25560,7 @@ const NAV_ICON_MAP = {
   /* DEPRECATED 2026-06-06: 'pharma-intel': 'nav-icon-pharma' (tab retired) */
   'meridian-issue': 'nav-icon-meridian',
   'predictions': 'nav-icon-predictions',
+  'reads': 'nav-icon-reads',
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
@@ -34210,6 +34224,68 @@ async function cfLoadFeed() {
   // wire lens buttons once DOM is present
   document.addEventListener('click',function(ev){const b=ev.target.closest('#ml-app .ml-lb');if(b)go(b.dataset.lens);});
   if(typeof registerTab==='function') registerTab('homeprev',{onEnter(){window.mlInit&&window.mlInit();}});
+})();
+</script>
+
+<!-- ── READS TAB logic (research_reads) — additive, self-contained. Added 2026-06-10. ── -->
+<script>
+(function(){
+  const SB_URL = (typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://tghntyofptvfhmtchwcv.supabase.co');
+  const SB_KEY = (typeof SUPABASE_ANON!=='undefined'?SUPABASE_ANON:'');
+  const SEEN_KEY = 'meridian_reads_last_seen';
+  const TYPE_COLORS = {competitive:'#b45309',clinical_caveat:'#be123c',mechanism:'#1d4ed8',market:'#065f46',regulatory:'#7c3aed',thesis:'#0f766e',kol:'#9333ea',patient:'#0369a1',other:'#475569'};
+  let _reads = null;
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; } }
+  function refsLine(r){
+    const e=r.entity_refs||{}; const parts=[].concat(e.drugs||[],e.companies||[],e.targets||[]);
+    return parts.length ? parts.map(function(p){return '<span style="background:#eef2f7;color:#334155;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px">'+esc(p)+'</span>';}).join(' ') : '';
+  }
+  async function fetchReads(){
+    const url = SB_URL+'/rest/v1/research_reads?select=*&order=created_at.desc&limit=200';
+    const res = await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }
+  function card(r){
+    const col = TYPE_COLORS[r.read_type]||TYPE_COLORS.other;
+    const conf = r.confidence ? '<span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px">'+esc(r.confidence)+' confidence</span>' : '';
+    const so = r.so_what ? '<div style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-left:3px solid '+col+';border-radius:0 6px 6px 0;font-size:13.5px;color:#1e293b;line-height:1.55"><span style="font-weight:800;color:'+col+';font-size:11px;text-transform:uppercase;letter-spacing:.5px">So what</span><br>'+esc(r.so_what)+'</div>' : '';
+    const src = r.source_url ? '<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">source &#8599;</a>' : '';
+    return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">'
+      +   '<span style="font-size:10px;font-weight:800;color:#fff;background:'+col+';padding:3px 9px;border-radius:7px;text-transform:uppercase;letter-spacing:.5px">'+esc((r.read_type||'read').replace(/_/g,' '))+'</span>'
+      +   '<span style="font-size:12px;color:#94a3b8;font-weight:600">'+fmtDate(r.created_at)+'</span>'
+      + '</div>'
+      + '<div style="font-size:16px;font-weight:800;color:#0f172a;margin:10px 0 6px;line-height:1.35">'+esc(r.title)+'</div>'
+      + '<div style="font-size:14px;color:#334155;line-height:1.6">'+esc(r.read)+'</div>'
+      + so
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap"><div style="display:flex;gap:6px;flex-wrap:wrap">'+refsLine(r)+'</div><div style="display:flex;gap:12px;align-items:center">'+conf+src+'</div></div>'
+      + '</div>';
+  }
+  function setBadge(n){ const b=document.getElementById('reads-badge'); if(!b) return; if(n>0){ b.textContent=n>9?'9+':String(n); b.style.display='inline-block'; } else { b.style.display='none'; } }
+  async function render(){
+    const list=document.getElementById('reads-list'); if(!list) return;
+    if(!_reads) list.innerHTML='<div style="color:#64748b;padding:40px;text-align:center">Loading reads&hellip;</div>';
+    try{
+      _reads = await fetchReads();
+      list.innerHTML = _reads.length ? _reads.map(card).join('') : '<div style="color:#64748b;padding:40px;text-align:center">No reads yet. They appear here as research surfaces them.</div>';
+      if(_reads.length) localStorage.setItem(SEEN_KEY,_reads[0].created_at);
+      setBadge(0);
+      const sub=document.getElementById('reads-subtitle'); if(sub) sub.textContent=_reads.length+' read'+(_reads.length===1?'':'s')+' · newest first';
+    }catch(e){ list.innerHTML='<div style="color:#b91c1c;padding:40px;text-align:center">Could not load reads ('+esc(e.message)+')</div>'; }
+  }
+  async function checkBadge(){
+    try{
+      const seen=localStorage.getItem(SEEN_KEY);
+      const rows=await fetchReads();
+      if(!rows.length) return setBadge(0);
+      setBadge(seen ? rows.filter(function(r){return r.created_at>seen;}).length : rows.length);
+    }catch(e){ /* non-blocking */ }
+  }
+  if(typeof registerTab==='function') registerTab('reads',{onEnter:render});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',checkBadge); else setTimeout(checkBadge,800);
+  window.__readsRender=render;
 })();
 </script>
 
