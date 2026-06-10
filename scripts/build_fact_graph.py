@@ -45,7 +45,24 @@ def build_registry():
             for k in [r.get("brand_name"), r.get("drug_name")]:
                 if k and len(k.strip()) >= 4: reg[k.strip()] = ("drug", gid)
     for c in getall("companies", {"select": "id,name"}):
-        if c.get("name") and len(c["name"].strip()) >= 4: reg[c["name"].strip()] = ("company", c["id"])
+        nm = (c.get("name") or "").strip()
+        if not nm:
+            continue
+        if len(nm) >= 4:
+            reg[nm] = ("company", c["id"])
+        # also register a cleaned short form so claim text that omits the legal
+        # suffix (e.g. "Shattuck Labs") still matches "Shattuck Labs, Inc.".
+        # Strip ONLY corporate/legal suffixes (not industry words like
+        # "Pharmaceuticals"/"Therapeutics") to avoid risky short-name collisions.
+        short, prev = nm, None
+        while short != prev:
+            prev = short
+            short = re.sub(
+                r",?\s+(inc|llc|l\.l\.c\.|ltd|limited|corp|corporation|co|company|"
+                r"plc|s\.a\.|sa|ag|n\.v\.|nv|gmbh|holdings|group)\.?$",
+                "", short, flags=re.I).strip().rstrip(",").strip()
+        if short and short != nm and len(short) >= 4:
+            reg.setdefault(short, ("company", c["id"]))
     return reg
 
 def main():
@@ -71,12 +88,43 @@ def main():
         if subj and subj not in seen:
             rows.append({"fact_id": f["id"], "entity_type": f.get("subject_type") or "company",
                          "entity_id": subj, "entity_name": f.get("subject_name"), "role": "subject", "area_id": f.get("area_id")})
-    ins = 0
+    # dedup on the real unique key (fact_id, entity_id, role) so a batch can
+    # never conflict with itself.
+    seen_keys, uniq = set(), []
+    for r in rows:
+        k = (r["fact_id"], r["entity_id"], r["role"])
+        if k in seen_keys:
+            continue
+        seen_keys.add(k); uniq.append(r)
+    rows = uniq
+
+    # IMPORTANT: target the (fact_id, entity_id, role) unique constraint via
+    # on_conflict. Without it PostgREST defaults the ON CONFLICT to the primary
+    # key (id), so any pre-existing edge makes the whole batch 409 and silently
+    # drops every new edge in it (the bug that left manually-added facts
+    # unlinked from their cards).
+    OC = "on_conflict=fact_id,entity_id,role"
+    ins = fail = 0
+    last_err = ""
     for i in range(0, len(rows), 500):
-        if requests.post(f"{SUPABASE_URL}/rest/v1/intel_fact_entities",
-                         headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"},
-                         json=rows[i:i+500]).status_code in (200, 201, 204):
-            ins += len(rows[i:i+500])
+        batch = rows[i:i+500]
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/intel_fact_entities?{OC}",
+                          headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"},
+                          json=batch)
+        if r.status_code in (200, 201, 204):
+            ins += len(batch)
+        else:
+            # per-row fallback so one bad row can't drop an entire batch
+            for row in batch:
+                rr = requests.post(f"{SUPABASE_URL}/rest/v1/intel_fact_entities?{OC}",
+                                   headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"},
+                                   json=[row])
+                if rr.status_code in (200, 201, 204):
+                    ins += 1
+                else:
+                    fail += 1; last_err = f"{rr.status_code} {rr.text[:160]}"
+    if fail:
+        print(f"  WARN: {fail} edge rows failed to insert (last: {last_err})")
     fixed = 0
     for (sid, st), ids in subj_fill.items():
         for j in range(0, len(ids), 200):
@@ -84,7 +132,8 @@ def main():
             if requests.patch(f"{SUPABASE_URL}/rest/v1/intel_facts?id=in.({','.join(map(str,ch))})",
                               headers={**H, "Prefer": "return=minimal"}, json={"subject_id": sid, "subject_type": st}).status_code in (200, 204):
                 fixed += len(ch)
-    print(f"graph: {len(rows)} edges processed, subject_id backfilled {fixed}, {len(facts)} facts scanned")
+    print(f"graph: {ins} edges inserted/confirmed, {fail} failed, {len(rows)} unique edges; "
+          f"subject_id backfilled {fixed}; {len(facts)} facts scanned")
 
 if __name__ == "__main__":
     main()
