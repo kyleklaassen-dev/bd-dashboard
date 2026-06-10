@@ -38,7 +38,7 @@ Not file size. The instability is **uncoordinated database write paths**: 165 sc
 - ✅ **Build `DrugWriter`** (`src/database/drug_writer.py`): identity resolution + governance + dedup + validation. Smoke-tested live (resolved SL-325→sl325, no dup; rejected brand+Phase1).
 - ✅ **Regression tests** (`tests/database/test_drug_writer.py`): 6/6 green; found 7 pre-existing brand⇒approved cases (baselined — see Open decisions).
 - ⬜ **ENFORCE** (staged, needs Kyle + a watch window): `migrations/PROPOSED_drugwriter_enforcement.sql` — trigger backstop + permission boundary. **Success = direct writes to `drugs` physically blocked.**
-- ⬜ Migrate the *active* drug write paths through DrugWriter (intake → enrichment → normalize → meridian).
+- 🔄 Migrate the *active* drug write paths through DrugWriter. ✅ **`approve_discovery.py` (the birth point) MIGRATED 2026-06-09** — dedup-at-source verified. Remaining: `molecule_enrichment.py`, `seed_tl1a_companies.py`, `write_meridian.py`.
 - ⬜ Stress-test, then repeat for `CompanyWriter` → `EdgeWriter` → `CatalystWriter`.
 
 ### Phase 3 — Modularization  ⬜
@@ -90,4 +90,5 @@ Workflow linkage is murky (many run on-demand via Cowork since API spend is paus
 
 ## Session log
 - **2026-06-09 (a)** — Plan created. Phase 0 ✅. entity_edges UNIQUE constraint ✅. Drug write-path classified — no shared write layer.
+- **2026-06-09 (c)** — Phase 2 migration started: corrected the drug write-path inventory (drug_intake = reads only; `approve_discovery.py` = the real birth point; company_enrichment writes supporting tables, not `drugs`). **Migrated `approve_discovery.py` onto DrugWriter** — drug creation now resolves canonical identity first (fixes the slug-mismatch dup class at the source). Verified via dry-run (SL-325→sl325 reuse; new molecule mints clean slug). Next: migrate molecule_enrichment / seed_tl1a_companies / write_meridian, then enforcement.
 - **2026-06-09 (b, overnight autonomous)** — **Phase 0.5 ✅** (Constitution, Lifecycle Map, Governance Table, ADR). **Phase 1**: root cleanup ✅ (40→3 root .py), CLAUDE.md slim ✅ (176→45), broken-collectors reviewed. **Phase 2 🔄**: shared `client.py` ✅, `DrugWriter` ✅ (live smoke-tested), regression suite ✅ 6/6; enforcement staged. **Phase 3**: source_documents + signals connectivity ✅. All committed. **Next:** Kyle reviews Open decisions → apply DrugWriter enforcement → migrate active drug write paths → then CompanyWriter. _(append future sessions here)_
