@@ -215,3 +215,18 @@ Every note Kyle has made is recorded verbatim below, with its disposition (✅ a
 5. **Name the true competitive benchmark, not just same-class rivals** — dupilumab (vs alarmins), upadacitinib/Rinvoq EASI-75 ~70-80% (the JAK question a buyer asks first in AD), IMVT-1402 (the FcRn convenience competitor). Distinguish *adjacent* tests from direct ones (APG279 is IL-13+OX40L, not IL-4Rα+OX40L).
 
 Goal of the pass: move each AIB from persuasive narrative to a falsifiable, investment-grade framework that survives skeptical scientific/BD/portfolio scrutiny.
+
+### Round 7 — TL1A rigor pass (external review, 2026-06-09, on v15) → produced **v16**
+
+*(ChatGPT reviewed the flagship at 9.0/10; flagged it still treated dual-blockade as the default. Implemented all 10 directives; the TL1A-specific ones generalize as standing rules.)*
+
+1. **Soften the headline hypothesis.** The 30-40% deep-remission figure is now "one plausible upside scenario, not a forecast"; the gain magnitude is "unknown." Never present a hypothesized ceiling as expected.
+2. **Dedicated "Why this thesis could fail" anti-thesis section** (now H1 in the viewer H1RE): TL1A-upstream-of-IL-23, non-responders-not-IL-23-escape, ceiling-in-repair-not-inflammation, **efficacy/risk imbalance (more immunosuppression without more efficacy — fails even with clean safety)**, optimized-monotherapy-wins, doesn't-beat-the-free-combination.
+3. **The real comparator** callout: a bispecific competes against TL1A mono, IL-23 mono, sequential, AND the **free combination (ABBV-701 + Skyrizi)** — premium exists only if it exceeds the *best combination strategy*. This is the central commercial question, and a STANDING rule for every bispecific AIB.
+4. **The organizing question** callout: "what fraction of TL1A non-responders are actually IL-23-escape patients?" (10% weak / 30-40% attractive / 60%+ transformational) — the empirical unknown the whole thesis turns on.
+5. **Three-validation framing** (TL1A / IL-23 / combination) — same validation-ladder as the area AIBs.
+6. **Biomarker = segmentation thesis** (TL1A-high, fibrosis-prone/fistulizing CD, anti-TNF failures, OSM-high): owning a responder segment can beat a few points of average remission.
+7. **Rinvoq dedicated subsection**: the oral may be the single biggest threat; the question is how much efficacy edge a quarterly biologic must show to overcome oral preference.
+8. **Strategic-outcome value framing**: the $-bands are now "illustrative wide-uncertainty" and secondary to the strategic *meaning*; avoid implied valuation precision.
+9. **Scenario confidence bands** (Medium/Low) added; probabilities labelled directional, not precise.
+10. **Calibrated predictions** (Confidence N/5 + basis) in-doc, matching the area AIBs.
