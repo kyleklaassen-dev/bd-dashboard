@@ -6,6 +6,7 @@ sys.path.insert(0, str(_BASE / "src" / "database"))
 sys.path.insert(0, str(_BASE / "scripts"))
 from company_writer import CompanyWriter
 from edge_writer import EdgeWriter
+from catalyst_writer import CatalystWriter
 
 PASS, FAIL = [], []
 def check(n, c): (PASS if c else FAIL).append(n); print(("  ok  " if c else "  FAIL ") + n)
@@ -35,10 +36,24 @@ def test_edge_missing_endpoint():
     check("missing endpoint rejected", len(r["rejected"]) == 1)
 
 
+def test_catalyst_valid():
+    r = CatalystWriter(dry_run=True).upsert({"drug_id": "sl325", "label": "Ph2b readout", "catalyst_date": "2028-06-30"})
+    check("valid catalyst accepted", not r["errors"])
+
+def test_catalyst_needs_anchor():
+    r = CatalystWriter(dry_run=True).upsert({"label": "orphan", "catalyst_date": "2027-01-01"})
+    check("catalyst without drug/company rejected", any("drug_id or company_id" in e for e in r["errors"]))
+
+def test_catalyst_needs_date():
+    r = CatalystWriter(dry_run=True).upsert({"drug_id": "sl325", "label": "no date"})
+    check("catalyst without date rejected", any("date" in e for e in r["errors"]))
+
+
 if __name__ == "__main__":
     print("Writer regression suite (read-only / dry-run):")
     for fn in [test_company_identity, test_company_acquired_needs_parent, test_edge_valid,
-               test_edge_bad_predicate, test_edge_missing_endpoint]:
+               test_edge_bad_predicate, test_edge_missing_endpoint,
+               test_catalyst_valid, test_catalyst_needs_anchor, test_catalyst_needs_date]:
         try: fn()
         except Exception as e: FAIL.append(fn.__name__); print(f"  ERROR {fn.__name__}: {e}")
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
