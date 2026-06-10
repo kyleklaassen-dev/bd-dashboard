@@ -35,6 +35,17 @@ from datetime import datetime, timezone
 import anthropic
 import requests
 
+
+def _drug_writer(dry_run=False):
+    """Single-writer accessor (ADR-010)."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from drug_writer import DrugWriter
+    return DrugWriter(dry_run=dry_run, source_required=False)
+
 # ── Config ─────────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 SUPABASE_URL      = os.environ.get("SUPABASE_URL", "").strip()
@@ -108,9 +119,9 @@ def ensure_canonical_id(drug):
     }
     requests.post(f"{SUPABASE_URL}/rest/v1/canonical_drugs", json=stub, headers=h, timeout=15)
 
-    # 2. Patch canonical_drug_id onto the drugs row
-    requests.patch(f"{SUPABASE_URL}/rest/v1/drugs", json={"canonical_drug_id": canon},
-                   params={"id": f"eq.{drug['id']}"}, headers=h, timeout=15)
+    # 2. Patch canonical_drug_id onto the drugs row — via DrugWriter (single
+    #    writer, ADR-010): governance-checked in-place update, no direct write.
+    _drug_writer().update_fields(drug["id"], {"canonical_drug_id": canon})
 
     drug["canonical_drug_id"] = canon
     log(f"  ↳ generated canonical_drug_id: {canon} (stub inserted into canonical_drugs)", indent=1)
