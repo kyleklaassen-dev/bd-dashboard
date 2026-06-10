@@ -34074,7 +34074,9 @@ async function cfLoadFeed() {
   const PUB="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
   const HZ={headers:{apikey:PUB,Authorization:"Bearer "+PUB}};
   const Q=(t,p="")=>fetch(`${SB}/${t}?${p}`,HZ).then(r=>r.json());
-  const TODAY=new Date('2026-06-06');
+  async function QALL(t,p=""){ let out=[],off=0; for(;;){ const b=await Q(t,`${p}${p?'&':''}limit=1000&offset=${off}`); if(!Array.isArray(b)||!b.length)break; out=out.concat(b); if(b.length<1000)break; off+=1000; } return out; }
+  const TODAY=new Date();
+  const ISO=TODAY.toISOString().slice(0,10);
   const E=s=>String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
   const fN=n=>n==null?"—":(n>=1e9?(n/1e9).toFixed(1)+"B":n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":(""+n));
   const nc=s=>s>=9?"#b91c1c":s>=7?"#d97706":s>=5?"#ca8a04":"#16a34a";
@@ -34104,11 +34106,11 @@ async function cfLoadFeed() {
         Q("payer_tpp_criteria","select=indication_id,tpp_dimension,payer_willingness_to_pay,ailux_positioning,biologic_advantage_claim"),
         Q("drugs","select=id,name,display_name,stage,company_id,overlap,vs_ailux,differentiation_thesis,ailux_angle"),
         Q("entity_edges","select=subject_id,object_id&subject_type=eq.drug&predicate=eq.TREATS&object_type=eq.indication"),
-        Q("catalysts","select=label,sort_date,significance,is_key_watch,catalyst_type&sort_date=gte.2026-06-06&order=sort_date.asc&limit=40"),
+        Q("catalysts",`select=label,sort_date,significance,is_key_watch,catalyst_type&sort_date=gte.${ISO}&order=sort_date.asc&limit=40`),
         Q("deals","select=deal_date,headline,deal_type,strategic_signal&order=deal_date.desc&limit=24"),
-        Q("entity_narratives","select=id,entity_type,entity_id,section,body_md,confidence"),
-        Q("narrative_provenance","select=narrative_id,claim_text,source_url"),
-        Q("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims")
+        QALL("entity_narratives","select=id,entity_type,entity_id,section,body_md,confidence"),
+        QALL("narrative_provenance","select=narrative_id,claim_text,source_url"),
+        QALL("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims")
       ]);
       const drugById={};drugs.forEach(d=>drugById[d.id]=d);
       const byInd={};treats.forEach(e=>{(byInd[e.object_id]=byInd[e.object_id]||[]).push(e.subject_id);});
