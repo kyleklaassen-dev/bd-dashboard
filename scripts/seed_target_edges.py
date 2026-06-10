@@ -99,11 +99,11 @@ def main():
         print("  unresolved target tokens (no ontology node):",
               ", ".join(sorted({f'{n}<{c}>' for n, c in unresolved})[:20]))
     if APPLY and rows:
-        ins = 0  # already de-duped against existing edges in-memory; entity_edges has no
-                 # unique constraint, so a plain insert is correct here.
+        ins = 0  # de-duped in-memory AND idempotent at the DB layer via the
+                 # entity_edges_subj_pred_obj_uniq constraint (added 2026-06-09).
         for i in range(0, len(rows), 200):
-            r = requests.post(f"{URL}/rest/v1/entity_edges",
-                              headers={**H, "Prefer": "return=minimal"}, json=rows[i:i+200])
+            r = requests.post(f"{URL}/rest/v1/entity_edges?on_conflict=subject_id,predicate,object_id",
+                              headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"}, json=rows[i:i+200])
             if r.status_code in (200, 201, 204):
                 ins += len(rows[i:i+200])
             else:
