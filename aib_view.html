@@ -203,7 +203,7 @@ async function showMiniCard(name,kind,x,y){
    (d.source_url?'<div style="margin-top:8px"><a href="'+d.source_url+'" target="_blank">Source ↗</a></div>':'')+'</div>';
 }
 document.addEventListener('click',function(){var c=document.getElementById('drugcard');if(c)c.style.display='none';});
-const H1RE=/^(\d{1,2}\s·\s|The landscape in brief$|What determines value here$|What would change this view$|Sources$)/;
+const H1RE=/^(\d{1,2}\s·\s|The landscape in brief$|What determines value here$|What would change this view$|Why this thesis could fail$|Sources$)/;
 
 function enhance(root){
   // strip the fragment's leading cover paragraphs (band already shows title) — everything before the first table
