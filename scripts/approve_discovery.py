@@ -44,6 +44,17 @@ def _drug_writer(dry_run=False):
     from drug_writer import DrugWriter
     return DrugWriter(dry_run=dry_run, source_required=False)
 
+
+def _company_writer(dry_run=False):
+    """Single-writer accessor for companies (ADR-010)."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from company_writer import CompanyWriter
+    return CompanyWriter(dry_run=dry_run)
+
 # Graph consistency: import ACTIVE_IN edge writer
 # (write_active_in_edge must be called after every company_areas write)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -233,6 +244,17 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
     co_id_slug = row.get("company_id_suggested") or slugify(co_name)
 
     existing_co = sb_get("companies", {"id": f"eq.{co_id_slug}", "select": "id,name"})
+    if not existing_co:
+        # Canonical-identity fallback (ADR-010): the exact-slug check above misses
+        # companies stored under a different slug (how jnj/johnsonjohnson dups arose).
+        try:
+            _chits = [h for h in _company_writer().reg.resolve(co_name) if h[0] == "company"]
+            if len(_chits) == 1:
+                existing_co = sb_get("companies", {"id": f"eq.{_chits[0][1]}", "select": "id,name"})
+                if existing_co:
+                    print(f"  canonical-match: '{co_name}' -> {existing_co[0]['id']} (dedup)")
+        except Exception:
+            pass
     if existing_co:
         co_id = existing_co[0]["id"]
         print(f"  ✓ Company exists: {co_id} ({existing_co[0]['name']})")
