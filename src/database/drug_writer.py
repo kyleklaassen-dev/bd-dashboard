@@ -136,6 +136,24 @@ class DrugWriter:
             "session_label": source.get("session_label", "DrugWriter"),
         }, return_rep=False)
 
+    # ---- in-place field update (no identity resolution; drug must exist) ----
+    def update_fields(self, drug_id, fields):
+        """Governance-checked partial update of an EXISTING drug. Lighter than
+        upsert (no entity_matcher build) — for field patches like canonical_drug_id."""
+        report = {"action": "update", "drug_id": drug_id, "errors": [], "warnings": [], "dry_run": self.dry_run}
+        errs, warns, merged = self.check_governance({**fields, "id": drug_id})
+        report["warnings"] = warns
+        merged.pop("id", None)
+        if errs:
+            report["errors"] = errs
+            return report
+        if self.dry_run:
+            return report
+        code, body, _ = client.update("drugs", f"id=eq.{drug_id}", merged)
+        if code >= 300:
+            report["errors"].append(f"update failed: {code} {str(body)[:160]}")
+        return report
+
     # ---- validation (Constitution §6) ----------------------------------
     def validate(self, drug_id, preview=None):
         v = {}
