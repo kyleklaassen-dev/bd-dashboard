@@ -35,6 +35,17 @@ def _drug_writer(dry_run=False):
     from drug_writer import DrugWriter
     return DrugWriter(dry_run=dry_run, source_required=False)
 
+
+def _company_writer(dry_run=False):
+    """Single-writer accessor for companies (ADR-010)."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from company_writer import CompanyWriter
+    return CompanyWriter(dry_run=dry_run)
+
 # ── Credentials ──────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE  = os.path.join(SCRIPT_DIR, "..")
@@ -339,7 +350,11 @@ def seed(dry_run=False):
             "last_verified": TODAY,
         }
         print(f"  → {co_id}: {co_name} ({prog['stageKey']})")
-        sb_upsert("companies", record, dry_run=dry_run)
+        record.pop("id", None)  # CompanyWriter resolves canonical identity (ADR-010)
+        _cres = _company_writer(dry_run=dry_run).upsert(record)
+        co_id = _cres.get("company_id", co_id)
+        if _cres.get("errors"):
+            print(f"     CompanyWriter rejected company: {_cres['errors']}")
 
     print()
 
