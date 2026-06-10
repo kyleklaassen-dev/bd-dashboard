@@ -56,5 +56,5 @@ jobs:
         run: |
           python3 scripts/ontology_map_drugs.py
           python3 scripts/materialize_structural_edges.py || true
-          python3 scripts/build_fact_graph.py
+          python3 scripts/link_entities.py --apply   # build_fact_graph + market_landscape/rx_market_tracker links
           python3 scripts/unify_graph.py
