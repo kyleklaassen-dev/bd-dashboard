@@ -60,9 +60,12 @@ any collector / enricher / inference / intake
    drugs table   (every row provably governed + sourced)
 ```
 
-## Active vs one-off (finalize before migration)
-- **Active (in a workflow / orchestrator):** `company_enrichment.py` (backfill-bd-angle), `research.py` (graph-rebuild), `write_meridian.py` (meridian-write, on-demand).
-- **On-demand (Cowork, API spend paused):** `drug_intake.py`, `company_intake.py`, `molecule_enrichment.py`, `inference_rules.py`, `normalize_targets_modality.py`, `verify_sources.py`, `catalog_backfill.py`.
-- **One-off / migration:** `one_time_migration.py`, `apply_drug_sources_migration.py`.
+## CORRECTED write-path inventory (verified 2026-06-09)
+Precise scan (POST/PATCH to `/rest/v1/drugs` or `sb_upsert('drugs')`) — far fewer real writers than the loose grep suggested:
+- ✅ **`approve_discovery.py`** — the BIRTH POINT (promotes `discovery_queue` → `drugs`). Used its own `drug_slugify` + exact-id existence check → the source of slug-mismatch dups (sl-325 vs sl325). **MIGRATED to DrugWriter 2026-06-09** (canonical identity resolves before create).
+- `molecule_enrichment.py` — PATCHes `canonical_drug_id` (field update). Migrate next.
+- `seed_tl1a_companies.py` — seeder `sb_upsert('drugs')`. Migrate.
+- `write_meridian.py` (line ~390) — writes drug fields during issue gen. Migrate.
+- **NOT drug-writers (reads only):** `drug_intake.py` (writes `discovery_queue`, reads drugs for resolution), `company_enrichment.py` (writes trials/catalysts/company_*/drug_areas — never the `drugs` table).
 
-**Migration order for DrugWriter:** intake scripts first (where dups are born) → enrichment → normalization → meridian. Each cutover keeps the script's entrypoint, swaps its `sb_upsert('drugs',...)` for `DrugWriter.upsert(...)`, and is validated before the next.
+**Migration order:** ✅ approve_discovery (done) → molecule_enrichment → seed_tl1a_companies → write_meridian. Each keeps its entrypoint, swaps the write for `DrugWriter.upsert(...)`, validated before the next. Then apply enforcement (`PROPOSED_drugwriter_enforcement.sql`).
