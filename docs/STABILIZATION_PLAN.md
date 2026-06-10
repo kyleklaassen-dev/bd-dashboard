@@ -21,31 +21,30 @@ Not file size. The instability is **uncoordinated database write paths**: 165 sc
 - ✅ Dashboard-wide connectivity audit (`docs/audits/`), repo inventory, write-path report, table classification, cross-table analysis.
 - ✅ Data fixes done as groundwork: 10 duplicate entities merged, 50 combo-target edges, market/rx tables linked, shared `entity_matcher` deployed.
 
-### Phase 0.5 — Governance (consolidate + enforce)  🔄 IN PROGRESS
-Define the rules (short, machine-checkable) and prove enforcement on ONE entity.
-- ⬜ **Meridian Constitution** (1–2 pages): what is truth, what may modify it, source hierarchy, what's immutable, what needs approval. *Distilled from existing rules, not invented.*
-- ⬜ **Drug Lifecycle Map** (active paths only): source → script → table → transformation → validation → writer → frontend. **This is the truth-test — if we can't map it accurately, we can't safely build DrugWriter.**
-- ⬜ **Data Governance Table**: per core table → owner / sole-writer / validation / source-hierarchy.
-- ⬜ **ADR** (Architecture Decision Register): consolidate the ~30 memory decisions into `docs/decisions.md`.
+### Phase 0.5 — Governance (consolidate + enforce)  ✅ DONE (2026-06-09)
+- ✅ **Meridian Constitution** — `docs/constitution.md` (1-2pg, distilled from existing rules).
+- ✅ **Drug Lifecycle Map** — `docs/architecture/drug_lifecycle.md` (truth-test; found "no shared write layer, 30 sb_upsert helpers").
+- ✅ **Data Governance Table** — `docs/database/governance_table.md` (per-table owner/writer/validation/source-hierarchy).
+- ✅ **ADR** — `docs/decisions.md` (ADR-001…011 consolidating memory).
 
 ### Phase 1 — Quick wins (safe, reversible, parallel)  🔄 IN PROGRESS
 - ✅ **`entity_edges` UNIQUE(subject_id,predicate,object_id)** — DONE 2026-06-09. Removed 51 dup rows, added constraint `entity_edges_subj_pred_obj_uniq` via Management API; `seed_target_edges.py` now uses on_conflict. Edge writes are idempotent at the DB layer.
-- ⬜ **Root file cleanup** — move 40 loose root scripts (17 `build_v*.py` + audit/debug one-offs) → `/scripts/one_off` + `/archive`.
-- ⬜ **CLAUDE.md slim** — keep operational-only; move detail to `/docs/architecture.md`, `workflows.md`, `database.md`, `decisions.md`, `/docs/archive/`.
-- ⬜ **Decide the 12 broken-collector tables** (revive vs retire) + apply the 6 safe drops (`migrations/PROPOSED_drop_dead_tables.sql`).
+- ✅ **Root file cleanup** — DONE. 40→3 root `.py`; 47 one-offs/backups → `archive/dashboard_builds`, `archive/html_backups`, `scripts/one_off` (local; these weren't in the repo).
+- ✅ **CLAUDE.md slim** — DONE. 176→45 lines, operational + pointers to `/docs`; original preserved at `docs/archive/CLAUDE_full_2026-06-09.md`.
+- 🔄 **Decide the 12 broken-collector tables** (revive vs retire) — REVIEWED (see Open decisions). Safe drops staged in `migrations/PROPOSED_drop_dead_tables.sql` (await Kyle).
 
-### Phase 2 — Single Writer Pattern (the stability payoff)  ⬜
-- ⬜ **Build `DrugWriter`** (`src/database/drug_writer.py`): identity resolution + governance checks + dedup-on-write + validation query after write. One table, one writer.
-- ⬜ **ENFORCE**: revoke direct write on `drugs` from anon/service; route all writes through DrugWriter (RPC/edge function or RLS). **Success = direct writes to `drugs` are physically blocked.**
-- ⬜ Migrate the *active* drug write paths through DrugWriter (dead ones archived).
-- ⬜ **Regression tests** (`tests/database/`): dup detection, governance invariants, orphan check.
-- ⬜ Stress-test DrugWriter in real operation before moving on.
-- ⬜ Repeat for `CompanyWriter`, then `EdgeWriter`, then `CatalystWriter` — one at a time, only after the prior survives.
+### Phase 2 — Single Writer Pattern (the stability payoff)  🔄 IN PROGRESS
+- ✅ **Shared client** `src/database/client.py` (replaces the 30 ad-hoc `sb_upsert` helpers).
+- ✅ **Build `DrugWriter`** (`src/database/drug_writer.py`): identity resolution + governance + dedup + validation. Smoke-tested live (resolved SL-325→sl325, no dup; rejected brand+Phase1).
+- ✅ **Regression tests** (`tests/database/test_drug_writer.py`): 6/6 green; found 7 pre-existing brand⇒approved cases (baselined — see Open decisions).
+- ⬜ **ENFORCE** (staged, needs Kyle + a watch window): `migrations/PROPOSED_drugwriter_enforcement.sql` — trigger backstop + permission boundary. **Success = direct writes to `drugs` physically blocked.**
+- ⬜ Migrate the *active* drug write paths through DrugWriter (intake → enrichment → normalize → meridian).
+- ⬜ Stress-test, then repeat for `CompanyWriter` → `EdgeWriter` → `CatalystWriter`.
 
 ### Phase 3 — Modularization  ⬜
 - ⬜ Split the 6 largest scripts (>1,500 lines) per layer, preserving entrypoints + smoke tests.
 - ⬜ Stand up the `/src` layer structure (ingestion / identity / ontology / enrichment / scoring / database / frontend / utils).
-- ⬜ Backfill `source_documents.entity_id`, resolve `signals` / `efficacy_benchmarks`.
+- ✅ Backfill `source_documents.entity_id` (54→0 unlinked) + `signals.company_id` (+12) via `scripts/maintenance/link_extras.py`. `efficacy_benchmarks` needs a `drug_id` column first (schema change — Open decisions).
 
 ### Phase 4 — Frontend  ⬜
 - ⬜ Decompose `index.html` (33,983 lines) into components. Highest effort, last.
@@ -82,5 +81,13 @@ Candidate scripts that write `drugs`: `company_enrichment.py`, `write_meridian.p
 **Key structural finding:** each script has its *own* `sb_upsert()`-style write wrapper — there is **no shared write layer**. That is precisely what `DrugWriter` replaces.
 Workflow linkage is murky (many run on-demand via Cowork since API spend is paused, or via orchestrators) — the lifecycle map must trace orchestrators, not just `.yml` name matches. Active confirmed: `company_enrichment`→backfill-bd-angle, `research`→meridian-graph-rebuild.
 
+## Open decisions for Kyle (await approval)
+1. **DrugWriter enforcement** — apply `migrations/PROPOSED_drugwriter_enforcement.sql` (trigger in WARN→EXCEPTION + permission boundary). Needs a window to watch live pipelines. This is the step that makes "single writer" real.
+2. **7 brand⇒approved cases** (benralizumab/Fasenra, rozanolixizumab/Rystiggo, upadacitinib/Rinvoq, mepolizumab/Nucala, nipocalimab/Imaavy, tralokinumab/Adbry, lebrikizumab/Ebglyss). These are approved molecules tracked at the *phase of an Ailux-relevant indication*. Decide: set `stage='approved...'` (molecule truth) and move per-indication phase to `drug_indications`, OR keep as-is and treat brand as informational. Currently baselined in the test.
+3. **Table drops** — `migrations/PROPOSED_drop_dead_tables.sql` (6 safe + 12 broken-collector decisions). Review & apply.
+4. **`efficacy_benchmarks`** — add a `drug_id` column so its 12 rows can join the graph (schema change).
+5. **Repo file relocation** (moving live `scripts/` into `/src` layers) — deferred to a supervised pass; would require updating workflow paths.
+
 ## Session log
-- **2026-06-09** — Plan created. Phase 0 ✅. Phase 1: entity_edges UNIQUE constraint ✅ (51 dups removed + constraint added). Phase 0.5: drug write-path classified (first pass) — found per-script `sb_upsert` wrappers / no shared layer. **Next:** author the Drug Lifecycle Map (active paths, tracing orchestrators) + Governance Table, then build `DrugWriter`. Run quick wins (root cleanup, CLAUDE.md slim) in parallel. _(append future sessions here)_
+- **2026-06-09 (a)** — Plan created. Phase 0 ✅. entity_edges UNIQUE constraint ✅. Drug write-path classified — no shared write layer.
+- **2026-06-09 (b, overnight autonomous)** — **Phase 0.5 ✅** (Constitution, Lifecycle Map, Governance Table, ADR). **Phase 1**: root cleanup ✅ (40→3 root .py), CLAUDE.md slim ✅ (176→45), broken-collectors reviewed. **Phase 2 🔄**: shared `client.py` ✅, `DrugWriter` ✅ (live smoke-tested), regression suite ✅ 6/6; enforcement staged. **Phase 3**: source_documents + signals connectivity ✅. All committed. **Next:** Kyle reviews Open decisions → apply DrugWriter enforcement → migrate active drug write paths → then CompanyWriter. _(append future sessions here)_
