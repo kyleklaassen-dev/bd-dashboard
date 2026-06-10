@@ -25,6 +25,16 @@ import argparse
 import datetime
 import requests
 
+def _drug_writer(dry_run=False):
+    """Single-writer accessor (ADR-010)."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from drug_writer import DrugWriter
+    return DrugWriter(dry_run=dry_run, source_required=False)
+
 # ── Credentials ──────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE  = os.path.join(SCRIPT_DIR, "..")
@@ -396,7 +406,13 @@ def seed(dry_run=False):
                 "sort_order":             1 if prog["overlap"] == "Direct" else 5,
             }
             print(f"  → {drug_slug} ({co_id})")
-            sb_upsert("drugs", record, dry_run=dry_run)
+            # Single writer (ADR-010): resolve canonical identity before create.
+            record.pop("id", None)
+            _res = _drug_writer(dry_run=dry_run).upsert(record)
+            if _res.get("errors"):
+                print(f"     \u26a0\ufe0f DrugWriter rejected {drug_slug}: {_res['errors']}")
+            else:
+                print(f"  \u2192 {_res['action']} {_res['drug_id']} ({co_id})")
 
             # drug_areas — tag to specific target area AND the broader indication_group area.
             # 'ibd' is the indication_group for tl1a: drugs tagged here show in the
