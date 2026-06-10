@@ -263,23 +263,28 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
         acquired_by = row.get("acquired_by") or None
         co_status   = "acquired" if acquired_by else "active"
 
-        if dry_run:
-            print(f"  [DRY RUN] Would create company: {co_id} (status={co_status})")
+        _co_record = {
+            "id":            co_id,
+            "name":          co_name,
+            "ticker":        "Private",
+            "company_type":  "small_cap",
+            "group_id":      co_id,
+            "overlap":       overlap,
+            "ailux_angle":   f"Promoted from discovery: {row.get('reason','')}",
+            "last_verified": TODAY,
+            "status":        co_status,
+            "acquired_by":   acquired_by,
+            "partner_co":    row.get("partner_co"),
+        }
+        if co_status == "acquired" and acquired_by:
+            _co_record["parent_company_id"] = acquired_by
+        # Single writer (ADR-010): create through CompanyWriter (governance + validation).
+        _cres = _company_writer(dry_run=dry_run).upsert(_co_record)
+        if _cres.get("errors"):
+            print(f"  CompanyWriter rejected: {_cres['errors']}")
         else:
-            sb_upsert("companies", {
-                "id":            co_id,
-                "name":          co_name,
-                "ticker":        "Private",
-                "company_type":  "small_cap",
-                "group_id":      co_id,
-                "overlap":       overlap,
-                "ailux_angle":   f"Promoted from discovery: {row.get('reason','')}",
-                "last_verified": TODAY,
-                "status":        co_status,
-                "acquired_by":   acquired_by,
-                "partner_co":    row.get("partner_co"),
-            }, on_conflict="id")
-            print(f"  + Created company: {co_id} (status={co_status})")
+            co_id = _cres["company_id"]
+            print(f"  {'[DRY RUN] would ' if dry_run else ''}{_cres['action']} company: {co_id} (status={co_status})")
         created_company_id = co_id
 
         if co_status == "acquired":
