@@ -40,7 +40,8 @@ Not file size. The instability is **uncoordinated database write paths**: 165 sc
 - ⬜ **ENFORCE** (staged, needs Kyle + a watch window): `migrations/PROPOSED_drugwriter_enforcement.sql` — trigger backstop + permission boundary. **Success = direct writes to `drugs` physically blocked.**
 - ✅ **All drug write paths migrated (2026-06-09):** `approve_discovery.py` (birth point), `molecule_enrichment.py` (canonical_drug_id via `update_fields`), `seed_tl1a_companies.py` (seeder). `write_meridian.py` = reads only. **Zero `sb_upsert('drugs')` / direct drugs writes remain.** Regression 6/6 green.
 - ⬜ Apply enforcement (`PROPOSED_drugwriter_enforcement.sql`) — needs Kyle + watch window.
-- ⬜ Stress-test, then repeat for `CompanyWriter` → `EdgeWriter` → `CatalystWriter`.
+- 🔄 **CompanyWriter migration started (2026-06-09):** `approve_discovery.py` (canonical dedup fallback at promotion) + `seed_tl1a_companies.py` (creation via CompanyWriter). Remaining company writers + `EdgeWriter`/`CatalystWriter` to follow.
+- ⬜ Stress-test, then finish `CompanyWriter` → `EdgeWriter` → `CatalystWriter`.
 
 ### Phase 3 — Modularization  🔄 IN PROGRESS
 - 🔄 Split the 6 largest scripts — **plan authored** (`docs/architecture/modularization_plan.md`); execution pending (safe, one-at-a-time, after writer migrations).
