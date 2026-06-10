@@ -33,6 +33,17 @@ import datetime
 import argparse
 import requests
 
+def _drug_writer(dry_run=False):
+    """Lazy single-writer accessor (ADR-010). Routes drug writes through
+    src/database/drug_writer.DrugWriter for canonical identity + governance."""
+    import sys, pathlib as _pl
+    _b = _pl.Path(__file__).resolve().parents[1]
+    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+    from drug_writer import DrugWriter
+    return DrugWriter(dry_run=dry_run, source_required=False)
+
 # Graph consistency: import ACTIVE_IN edge writer
 # (write_active_in_edge must be called after every company_areas write)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -288,54 +299,43 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
     # ── 3. Create drug row ────────────────────────────────────────────────────
     if drug_name:
         drug_slug = drug_slugify(drug_name)
-        existing_drug = sb_get("drugs", {"id": f"eq.{drug_slug}", "select": "id,company_id"})
-        if existing_drug:
-            print(f"  ✓ Drug exists: {drug_slug} (company: {existing_drug[0].get('company_id')})")
-            created_drug_id = drug_slug
+        _stage_map = {
+            "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
+            "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
+        }
+        stage = row.get("stage", "Preclinical")
+        target = row.get("target", "")
+        _modality = row.get("modality") or ""
+        _cat_cat = infer_catalog_category(target=target, modality=_modality, stage=stage, area_id=area_id)
+        # Single Writer Pattern (ADR-010): DrugWriter resolves CANONICAL identity
+        # via entity_matcher BEFORE creating a row, preventing slug-mismatch
+        # duplicates this step used to create (e.g. sl-325 vs sl325). No explicit
+        # id is passed so an existing drug (by name/alias) is reused, not duplicated.
+        _drug_record = {
+            "name": drug_name, "company_id": co_id, "entity_id": co_id,
+            "entity_name": co_name, "entity_type": "standalone", "stage": stage,
+            "target": target, "mechanism": f"Anti-{target}" if target else None,
+            "modality": _modality or None, "drug_format": _modality or None,
+            "route": row.get("route"),
+            "cls": "Next Gen" if "\u00d7" in (target or "") else "1st Gen",
+            "overlap": "Direct", "catalog_category": _cat_cat,
+            "discovery_status": "promoted", "confidence_score": row.get("confidence_score"),
+            "confidence_level": "inferred", "data_source": "discovery_queue",
+            "expected_evidence_stage": _stage_map.get(stage, 2), "sort_order": 99,
+        }
+        _src = row.get("source_url") or row.get("source_note")
+        _res = _drug_writer(dry_run=dry_run).upsert(
+            _drug_record,
+            source=({"url": _src, "type": "discovery_queue", "added_by": "approve_discovery",
+                     "claim_type": "drug_promotion",
+                     "claim_value": f"{drug_name} promoted from discovery_queue"} if _src else None),
+        )
+        if _res.get("errors"):
+            print(f"  \u26a0\ufe0f drug write rejected by DrugWriter: {_res['errors']}")
+            created_drug_id = _res.get("drug_id")
         else:
-            _stage_map = {
-                "Preclinical": 1, "Pre-IND": 1, "IND-enabling": 1,
-                "Phase 1": 2, "Phase 2": 3, "Phase 3": 4, "Approved": 5,
-            }
-            stage = row.get("stage", "Preclinical")
-            target = row.get("target", "")
-
-            if dry_run:
-                print(f"  [DRY RUN] Would create drug: {drug_slug}")
-            else:
-                _modality = row.get("modality") or ""
-                _cat_cat  = infer_catalog_category(
-                    target   = target,
-                    modality = _modality,
-                    stage    = stage,
-                    area_id  = area_id,
-                )
-                sb_upsert("drugs", {
-                    "id":                  drug_slug,
-                    "name":                drug_name,
-                    "company_id":          co_id,
-                    "entity_id":           co_id,
-                    "entity_name":         co_name,
-                    "entity_type":         "standalone",
-                    "stage":               stage,
-                    "target":              target,
-                    "mechanism":           f"Anti-{target}" if target else None,
-                    "modality":            _modality or None,
-                    "drug_format":         _modality or None,
-                    "route":               row.get("route"),
-                    "cls":                 "Next Gen" if "×" in (target or "") else "1st Gen",
-                    "overlap":             "Direct",
-                    "catalog_category":    _cat_cat,
-                    "discovery_status":    "promoted",
-                    "confidence_score":    row.get("confidence_score"),
-                    "confidence_level":    "inferred",
-                    "data_source":         "discovery_queue",
-                    "expected_evidence_stage": _stage_map.get(stage, 2),
-                    "sort_order":          99,
-                }, on_conflict="id")
-                print(f"  + Created drug: {drug_slug}")
-
-            created_drug_id = drug_slug
+            created_drug_id = _res["drug_id"]
+            print(f"  {'[DRY RUN] would ' if dry_run else ''}{_res['action']} drug: {created_drug_id}")
 
             # Drug areas + Guard E2: always write stub drug_area_scores immediately after drug_areas
             # Invariant: every drug_areas row must have a matching drug_area_scores row.
