@@ -1,0 +1,53 @@
+name: Meridian Efficacy & NCT Verification
+
+# Free-API only (ClinicalTrials.gov v2 + openFDA) — NO LLM / no Claude-API cost,
+# so this is exempt from the Claude-API spend pause. Verifies every NCT-bearing
+# efficacy fact against the registry, flags misattributions to governance_violations,
+# harvests posted RESULTS into trial_outcome_measures, and backfills trial_design.
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"        # Mondays 09:00 ET / 13:00 UTC — weekly sweep
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch but do not write"
+        required: false
+        default: "false"
+        type: boolean
+      backfill_design:
+        description: "Backfill trials.trial_design from CT.gov for untagged trials"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  verify-efficacy:
+    name: "Verify & refill efficacy / trial facts"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run verification + results harvest
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          echo "=== Meridian Efficacy & NCT Verification ($(date -u +%FT%TZ)) ==="
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python scripts/collect_efficacy_apis.py $ARGS
+
+      - name: Backfill trial_design (scheduled, or on request)
+        if: github.event_name == 'schedule' || github.event.inputs.backfill_design == 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/collect_efficacy_apis.py --backfill-design
