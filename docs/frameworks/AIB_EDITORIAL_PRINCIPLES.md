@@ -202,3 +202,16 @@ Every note Kyle has made is recorded verbatim below, with its disposition (✅ a
 5. **Sharper diligence bar** → ✅ §12: must beat each monotherapy AND the free combination in colitis models (the SIM0709 bar) + simultaneous dual binding + fibrosis-relevant evidence.
 
 **Deliberately excluded:** the executive-summary slogans, the win/lose lists (already in §1/§6/§11), and the "next-generation disease-control biologic" CEO positioning language (marketing voice — violates §1 "no story-telling / earn it through information"). **Lesson: an external LLM review is a source to mine, not to paste — keep the verifiable deltas, drop the rhetoric, cross-check every number.**
+
+### Round 6 — analytical-rigor pass (external review, 2026-06-09, on the 4 area AIBs)
+
+*(ChatGPT reviewed the 4 area AIBs and graded structure strong but flagged rigor gaps. Largely correct; implemented across all 4 and now STANDING rules for every AIB, incl. backport candidates for TL1A.)*
+
+**New standing rules (Section additions):**
+1. **Separate validation / differentiation / premium — explicitly.** Add a "Validation ≠ differentiation ≠ premium" callout to every dual-mechanism AIB: *validated biology* (the target works) ≠ *differentiation* (combining creates additive value) ≠ *premium* (clinical proof of that value). Never let "mechanism validated" imply "dual superior." For hypothesis-driven areas (e.g. TED/TSHR), state up front that **no clinical dataset shows the dual adds benefit**, and classify the area as hypothesis-driven, not validated.
+2. **Every dual thesis needs a dedicated "Why this thesis could fail" anti-thesis section** — a table of failure modes (pathway redundancy, one-arm dominance, dosing-floor biology, durability≠remission, safety-without-efficacy, incumbent/oral/cell-therapy disruption). This is separate from "what would change this view" (which is signal→re-rating); the anti-thesis is the standing case *against*.
+3. **Standing predictions carry a confidence (N/5) + evidence basis column**, not just an estimate %. 5 = strong data + precedent; 2 = mechanistic hypothesis.
+4. **Trim overstatement to the evidence:** durability "signals suggestive of disease modification" (not "disease modification"); name the real strategic question (e.g. "additive efficacy at *matched target engagement* vs combination?"; "minimum FcRn occupancy that sustains benefit?" not "can we dose monthly?"); frame COPD as "largest opportunity AND largest uncertainty."
+5. **Name the true competitive benchmark, not just same-class rivals** — dupilumab (vs alarmins), upadacitinib/Rinvoq EASI-75 ~70-80% (the JAK question a buyer asks first in AD), IMVT-1402 (the FcRn convenience competitor). Distinguish *adjacent* tests from direct ones (APG279 is IL-13+OX40L, not IL-4Rα+OX40L).
+
+Goal of the pass: move each AIB from persuasive narrative to a falsifiable, investment-grade framework that survives skeptical scientific/BD/portfolio scrutiny.
