@@ -54,12 +54,12 @@ Not file size. The instability is **uncoordinated database write paths**: 165 sc
 
 ---
 
-## The five maps (authored across phases, live in `/docs`)
-1. ⬜ Structure map — file → folder → status (active/legacy/deprecated)
-2. 🔄 Workflow map — source → ingestion → identity → ontology → enrichment → scoring → database → frontend
-3. 🔄 Database stability map — core tables, write paths, read paths, FK deps, risky columns, validation-per-write
-4. 🔄 Frontend dependency map — UI section → tables/functions (first cut from `index.html` grep)
-5. ⬜ Claude working map — read-first / source-of-truth / avoid-unless-asked
+## The five maps  ✅ DONE (2026-06-09) — `docs/architecture/repo_maps.md` (+ lifecycle + governance_table)
+1. ✅ Structure map — `repo_maps.md` §1
+2. ✅ Workflow map — `repo_maps.md` §2 (50 workflows grouped) + `drug_lifecycle.md`
+3. ✅ Database stability map — `database/governance_table.md` (+ `repo_maps.md` §5)
+4. ✅ Frontend dependency map — `repo_maps.md` §3 (index.html table reads)
+5. ✅ Claude working map — `repo_maps.md` §4
 
 ## Claude behavior rules (enforced every change)
 **Before editing:** state the layer, affected files, affected tables, breakpoints, proposed tests. Keep changes small + reviewable.
