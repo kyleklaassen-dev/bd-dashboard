@@ -168,6 +168,10 @@ const enc=encodeURIComponent;
 const norm=s=>(s||"").toLowerCase().replace(/[×x+]/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 const tok =s=>norm(s).split(' ').filter(Boolean);
 const escapeHtml=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function cleanProse(t){ if(!t) return ''; let s=String(t);
+  s=s.replace(/^\s*(?:(?:I(?:'|’)?ll|I will|Let me|Let'?s|I(?:'|’)?m going to|First,?\s+let me|Now,?\s+let me)\b[^.?!]*[.?!]["')\]]*\s*)+/i,'');
+  s=s.replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s*/g,'$1').replace(/(^|\n)\s*[-*]\s+/g,'$1• ').replace(/\*/g,'');
+  s=s.replace(/([a-z0-9,;:])([.?!])([A-Z“"])/g,'$1$2 $3'); return s.trim(); }
 const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
 
 /* ---------- index / resolver ---------- */
@@ -492,7 +496,7 @@ function renderSynth(slot,j,isPrimary){
   }).join('');
   const cites=(j.citations||[]).filter(c=>c.url).map(c=>`<a class="res" href="${c.url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(c.title||'source')}</div><div class="rd">${escapeHtml((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</div></a>`).join('');
   const rel=(j.related||[]).map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('');
-  const ans=(j.answer||'').trim();
+  const ans=cleanProse(j.answer||'');
   const ansHtml = ans
     ? `<div class="card"><div class="synth-answer">${escapeHtml(ans)}</div></div>`
     : `<div class="card empty">No AI synthesis was returned this time — the structured answer below stands. Try again, or check the reasoning server.</div>`;
