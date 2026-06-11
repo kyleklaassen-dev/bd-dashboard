@@ -88,6 +88,9 @@ let METRICS=[
 // Live counts overwrite the placeholder tiles (Kyle 2026-06-07: keep the Atlas current, not a snapshot).
 const _ATLAS_SB='https://tghntyofptvfhmtchwcv.supabase.co/rest/v1';
 const _ATLAS_KEY='sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI';
+let LIVE={};
+const _ATLAS_DEFAULTS={edges:'27,558',preds:'35',insights:'532',companies:'191',drugs:'194'};
+const subst=str=>String(str).replace(/\{\{(\w+)\}\}/g,(m,k)=>LIVE[k]!=null?Number(LIVE[k]).toLocaleString():(_ATLAS_DEFAULTS[k]||m));
 async function _atlasCount(t){try{const r=await fetch(_ATLAS_SB+'/'+t+'?select=id',{headers:{apikey:_ATLAS_KEY,Authorization:'Bearer '+_ATLAS_KEY,Prefer:'count=exact',Range:'0-0','Range-Unit':'items'}});return (r.headers.get('content-range')||'/?').split('/').pop();}catch(e){return '–';}}
 async function _atlasLiveMetrics(){
   const map={'graph edges':'entity_edges','catalysts':'catalysts','trials':'trial_facts','publications':'publications','sourced facts':'drug_sources','strategic insights':'strategic_insights','company patents':'company_patents','payer-priced drugs':'payer_pricing','drugs':'drugs','companies':'companies'};
@@ -97,14 +100,16 @@ async function _atlasLiveMetrics(){
   METRICS=METRICS.map(([n,l,c])=>[ live[l]!=null?Number(live[l]).toLocaleString():n, l, c]);
   const m=document.getElementById('metrics'); if(m) m.innerHTML=METRICS.map(([n,l,c])=>`<div class="met ${c}"><b>${n}</b><span>${l}</span></div>`).join('');
   const st=document.getElementById('atlas-stamp'); if(st) st.textContent='live · '+new Date().toLocaleDateString();
+  LIVE.edges=live['graph edges'];LIVE.insights=live['strategic insights'];LIVE.companies=live['companies'];LIVE.drugs=live['drugs'];
+  try{if(document.querySelector('#t-stack.on'))renderStack();else if(document.querySelector('#t-value.on'))renderValue();}catch(e){}
 }
 const LAYERS=[
   ['Sources','30+ free APIs: CT.gov · Open Targets · ChEMBL · PubMed/EuropePMC · Crossref · OpenAlex · openFDA · DailyMed · EMA · FDA OOPD · Purple/Orange Book · SEC · GLEIF · Google Patents · SureChEMBL · Pharos · UniProt · GtoPdb · Reactome · CMS (Part B/D, NADAC, ASP) · NIH RePORTER · GDELT · RSS','green','Ingestion'],
   ['Ingestion','49 GitHub-Actions workflows (hosted runners for throttled sources) + on-demand Cowork ingest','green','bronze-first, idempotent, sourced; no LLM spend on the free stack'],
   ['Data layer','241 tables · audit triggers · RLS reads restored','green','writes locked + anon reads; new: payer_pricing, patent_families, data_dictionary, attribute_completeness, data_sources'],
   ['Enrich · Score · Validate','enrichment + daily completeness recompute · 994/1000 ground-truth','green','phase-conditional completeness (heat map) recomputes daily'],
-  ['Knowledge graph','entity_edges — 26,026 edges / 21 predicates','green','company competition, partnerships, patient→indication→target→company, patents, SUPPLIES'],
-  ['Synthesis','narrative layer (cited) + Meridian Issue + 531 strategic insights','green','every narrative clause links its source in-prose'],
+  ['Knowledge graph','entity_edges — {{edges}} edges / {{preds}} predicates','green','company competition, partnerships, patient→indication→target→company, patents, SUPPLIES'],
+  ['Synthesis','narrative layer (cited) + Meridian Issue + {{insights}} strategic insights','green','every narrative clause links its source in-prose'],
   ['Presentation','dashboard + Live Intelligence + Coverage Atlas + entity cards (4-section IA)','green','payer/IP/patient/safety surfaced; news-sentiment signal; everything searchable'],
   ['Strategic decisions','patient → indication → target → company → deal','warn','Patient/Payer/IP now seeded but still the thinnest domains'],
 ];
@@ -113,7 +118,7 @@ const HIER=[ // level, dataDensity(0-100), note, color
   ['Indication',45,'patient intel + payer TPP per disease; still a priority collection domain','#fb923c'],
   ['Target',100,'TL1A: full landscape; druggability (Pharos), genetics, pathways per target','#f59e0b'],
   ['Molecule',88,'mechanism/format/stage/PK strong; modality + MoA from Open Targets/ChEMBL','#a78bfa'],
-  ['Company',75,'154 companies; ownership chains, runway, SEC events, patent estate, leadership','#38bdf8'],
+  ['Company',75,'{{companies}} companies; ownership chains, runway, SEC events, patent estate, leadership','#38bdf8'],
   ['Deal',50,'license/ownership edges + 8-K-derived deal events; payer pricing + IP cliffs now attached','#34d399'],
 ];
 const GAPS=[
@@ -169,7 +174,7 @@ function renderStack(){
     const nOpen=layerGaps.filter(g=>g[3]!=='FIXED').length, nFixed=layerGaps.filter(g=>g[3]==='FIXED').length;
     const gapTxt=nOpen?`${nOpen} open →`:(nFixed?`✓ all fixed →`:`— →`);
     const gapCol=nOpen?'var(--mut)':'var(--good)';
-    h+=`<div class="layer" style="border-left-color:${LCOL[name]}" onclick="jumpToLayer('${name}')" title="${nOpen} open · ${nFixed} fixed — click to see this layer's gaps"><div class="ln">${name}</div><div class="lm">${metric}<div class="muted" style="font-size:11px">${gap}</div></div><span class="lg" style="background:${SCOL[status]}22;color:${SCOL[status]}">${status}</span><span class="small" style="margin-left:10px;white-space:nowrap;color:${gapCol}">${gapTxt}</span></div>`;
+    h+=`<div class="layer" style="border-left-color:${LCOL[name]}" onclick="jumpToLayer('${name}')" title="${nOpen} open · ${nFixed} fixed — click to see this layer's gaps"><div class="ln">${name}</div><div class="lm">${subst(metric)}<div class="muted" style="font-size:11px">${subst(gap)}</div></div><span class="lg" style="background:${SCOL[status]}22;color:${SCOL[status]}">${status}</span><span class="small" style="margin-left:10px;white-space:nowrap;color:${gapCol}">${gapTxt}</span></div>`;
     if(i<LAYERS.length-1)h+='<div class="arrow">↓</div>';});
   h+='</div><div>';
   h+='<h2 style="margin-top:0">Cross-cutting</h2>';
@@ -188,7 +193,7 @@ function renderValue(){
   h+='<div class="thesis"><b>The barbell inversion.</b> Value flows upward from the patient and is realized at the deal. Yet the data is thickest in the competitive middle (Target/Molecule) and thinnest at the two ends that create BD value — the <b>patient floor</b> and the <b>deal ceiling</b>. The platform is data-rich where it matters least and data-poor where it matters most.</div>';
   h+='<div class="bar">';
   HIER.forEach(([lvl,d,note,c])=>{
-    h+=`<div class="brow"><div class="blab">${lvl}</div><div class="bbar" style="width:${Math.max(6,d/max*620)}px;background:${c}">${d}%</div><div class="bnote">${note}</div></div>`;
+    h+=`<div class="brow"><div class="blab">${lvl}</div><div class="bbar" style="width:${Math.max(6,d/max*620)}px;background:${c}">${d}%</div><div class="bnote">${subst(note)}</div></div>`;
   });
   h+='</div>';
   h+='<div class="thesis" style="border-left-color:var(--accent)"><b style="color:var(--accent)">The direction this sets.</b> The two highest-leverage data investments are the same ones the Strategic Lens surfaced: <b style="color:var(--accent)">deepen the deal/ownership edges</b> (top) and <b style="color:var(--accent)">build out the indication + patient layer</b> (bottom). That converts a competitive database into a BD decision engine.</div>';
