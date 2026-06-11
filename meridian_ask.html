@@ -246,6 +246,52 @@ function hasResidualQuestion(q, ents){
   return tok(s).some(t=>t.length>=3 && !FILLER.has(t));
 }
 
+/* ---------- typo tolerance: correct misspelled drug/company names ---------- */
+let _correctNote='';
+const NOCORRECT=new Set([...FILLER,'phase','study','trial','patient','patients','data','dose','dosing','result','results','remission','efficacy','safety','target','targets','company','companies','drug','drugs','landscape','competitive','competitor','approval','readout','partnership','partner','deal','deals','acquisition','enrollment','enrolled','mechanism','indication','market','revenue','price','cost','count','study','versus','phase2','phase3']);
+function editDistance(a,b,max){
+  const m=a.length,n=b.length; if(Math.abs(m-n)>max) return max+1;
+  let prev=Array.from({length:n+1},(_,i)=>i);
+  for(let i=1;i<=m;i++){ const cur=[i]; let best=i;
+    for(let j=1;j<=n;j++){ const cost=a[i-1]===b[j-1]?0:1; const v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost); cur[j]=v; if(v<best)best=v; }
+    if(best>max) return max+1; prev=cur; }
+  return prev[n];
+}
+function fuzzyCorrect(q){
+  const parts=q.split(/(\s+)/), corr=[];
+  for(let i=0;i<parts.length;i++){
+    const t=parts[i].toLowerCase().replace(/[^a-z0-9-]/g,'');
+    if(t.length<5 || NOCORRECT.has(t) || NAME2ENT.has(t)) continue;
+    const budget=t.length<=6?1:2; let best=null,bestD=99;
+    for(const s of SURFACES){ if(s.length<4||Math.abs(s.length-t.length)>budget||s[0]!==t[0]) continue;
+      const d=editDistance(t,s,budget); if(d<bestD){bestD=d;best=s; if(d===0)break;} }
+    if(best && bestD>0 && bestD<=budget && bestD/t.length<=0.34){ corr.push({from:t,to:best}); parts[i]=parts[i].replace(/[a-z0-9-]+/i,best); }
+  }
+  return {q2:parts.join(''),corrections:corr};
+}
+
+/* ---------- the net: surround any answer with adjacent answers we already hold ---------- */
+async function cacheBatch(questions){
+  if(!SYNTH_ENDPOINT||!questions.length) return null;
+  try{ const r=await fetch(SYNTH_BASE+'/cache-batch',{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({questions})}); return r.ok?(await r.json()).results||[]:null; }catch(e){ return null; }
+}
+async function fillNet(q){
+  const el=document.getElementById('netSlot'); if(!el) return;
+  const ents=resolveEntities(q), drug=ents.find(e=>e.type==='drug'), comp=ents.find(e=>e.type==='company'), ent=drug||comp;
+  if(!ent) return;
+  const name=(ent.label||'').split('(')[0].trim();
+  const cand = drug
+    ? [`${name} efficacy data`,`competitive landscape for ${name}`,`when does ${name} read out?`,`${name} safety profile`,`${name} mechanism of action`,`what deals involve ${name}?`,`who develops ${name}?`]
+    : [`what is ${name} leading in?`,`${name} pipeline`,`${name} recent deals`,`${name} competitive position`];
+  const qn=norm(q), list=cand.filter(c=>norm(c)!==qn);
+  const res=await cacheBatch(list); if(!res) return;
+  const ans=res.filter(r=>r.hit), open=res.filter(r=>!r.hit);
+  if(!ans.length && !open.length) return;
+  el.innerHTML=`<div class="card"><h3>More in this space${ans.length?` <span class="src">· ${ans.length} already answered</span>`:''}</h3>
+    ${ans.map(r=>`<div class="conn" onclick="run('${J(r.question)}')"><div class="rel">⚡ answered</div><div class="ct">${escapeHtml(r.headline||r.question)}</div><div class="cs">${escapeHtml(r.question)}</div></div>`).join('')}
+    ${open.length?`<div class="followups" style="margin-top:${ans.length?'10px':'2px'}">${open.map(r=>`<span class="chip" onclick="run('${J(r.question)}')">${escapeHtml(r.question)}</span>`).join('')}</div>`:''}</div>`;
+}
+
 /* ---------- main router ---------- */
 async function answer(q){
   const ents=resolveEntities(q), it=intent(q), tts=targetTokensIn(q);
@@ -307,10 +353,12 @@ function shell({asked,tag,tagCls,title,centerHTML,sideHTML,follow,deepenBundle,d
     <div class="layout">
       <div class="main">
         <p class="askedline">you asked · ${escapeHtml(asked)}</p>
+        ${_correctNote?`<div class="src" style="margin:-4px 0 10px;color:#cdb6ef">${_correctNote}</div>`:''}
         <span class="answer-tag ${tagCls||''}">${tag}</span>
         <h2 class="answer-h">${title}</h2>
         <div id="synthSlot"></div>
         ${centerHTML}${deep}${fu}
+        <div id="netSlot"></div>
       </div>
       <aside class="side">${sideHTML||''}</aside>
     </div>`;
@@ -530,10 +578,14 @@ async function run(q){
   document.getElementById('qTop').value=q; document.body.classList.add('answer');
   document.getElementById('canvas').innerHTML=`<div class="loading" style="padding-top:40px"><span class="dot"></span>searching…</div>`;
   try{
+    // typo tolerance: correct misspelled drug/company names before resolving
+    _correctNote=''; const fz=fuzzyCorrect(q);
+    if(fz.corrections.length){ q=fz.q2; _correctNote=`Showing results for <b>${escapeHtml(q)}</b> — corrected ${fz.corrections.map(c=>`“${escapeHtml(c.from)}”→“${escapeHtml(c.to)}”`).join(', ')}`; }
     // cache-first: a previously-resolved question is answered instantly & free (no LLM call)
     const cached=await cacheLookup(q);
-    if(cached){ renderCachedAnswer(q,cached); return; }   // server logs the cache serve
+    if(cached){ renderCachedAnswer(q,cached); fillNet(q).catch(()=>{}); return; }   // server logs the cache serve
     const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route);
+    fillNet(q).catch(()=>{});  // surround the answer with adjacent answers we already hold
   }catch(err){ document.getElementById('canvas').innerHTML=`<div class="card empty">Something broke: ${escapeHtml(err.message)}</div>`; console.error(err); }
 }
 async function cacheLookup(q){
