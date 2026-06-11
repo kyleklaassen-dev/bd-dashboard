@@ -1,0 +1,4 @@
+-- v154: target_crosswalk (HGNC/token -> graph target slug) + target_slug columns on
+-- target_disease_associations/target_proteins/target_safety + v_graph_connectivity extended.
+-- Connects OT/UniProt target-biology (HGNC symbols) to graph target nodes (slugs).
+-- Wired into scripts/seed_api_edges.py resolve_target() for durable future resolution.
