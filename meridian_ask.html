@@ -111,6 +111,7 @@
     background:#1d1630;border:1px solid #3a2d52;border-radius:10px;padding:9px 14px;margin:2px 0 4px;transition:.15s}
   .deepen:hover{border-color:var(--gap);background:#241a3a}
   .synthnote{font-size:12px;color:var(--ink-faint);border:1px dashed var(--edge);border-radius:10px;padding:11px 13px;margin-top:6px;line-height:1.5}
+  .pend-badge{display:inline-block;margin-left:5px;background:var(--accent);color:#04101f;font-size:10.5px;font-weight:700;border-radius:9px;padding:1px 6px;vertical-align:top;line-height:1.5}
   .fbbtn{cursor:pointer;font-size:15px;padding:0 5px;opacity:.65;transition:opacity .15s}.fbbtn:hover{opacity:1}
   .synth-answer p{margin:0 0 10px}.synth-answer p:last-child{margin-bottom:0}
   .synth-answer .md-h{font-weight:700;color:#fff;font-size:16px;margin:16px 0 7px;letter-spacing:-.2px}
@@ -138,7 +139,7 @@
   <form id="topsearch" onsubmit="return submitQ(event,'top')"><input id="qTop" autocomplete="off" placeholder="Ask anything…"></form>
   <span class="kbd">↵</span>
   <a class="toplink" href="meridian_brief.html" title="Daily briefing">▤ Briefing</a>
-  <a class="toplink" href="meridian_ask_review.html" target="_blank" title="Review dashboard">▦ Review</a>
+  <a class="toplink" id="reviewLink" href="meridian_ask_review.html" target="_blank" title="Review dashboard">▦ Review<span id="pendBadge" class="pend-badge" style="display:none"></span></a>
   <a class="toplink" href="index.html" title="Back to Meridian dashboard">⌂ Home</a>
 </div>
 
@@ -228,11 +229,14 @@ async function boot(){
   for(const c of COMPANIES) add(c.name,{type:'company',id:c.id,label:c.name,row:c});
   SURFACES=[...NAME2ENT.keys()].sort((a,b)=>b.length-a.length);
   document.getElementById('bootMeta').textContent=`${DRUGS.length} molecules · ${COMPANIES.length} companies · ${SYNTH_ENDPOINT?'reasoning on':'retrieval only'} · live`;
-  renderChips(); buildEntIndex();
+  renderChips(); buildEntIndex(); loadPendBadge();
   // deep-link: meridian_ask.html?q=... (e.g. from the homepage search bar) auto-runs the question
   const _dq=new URLSearchParams(location.search).get('q');
   if(_dq && _dq.trim()){ document.getElementById('qHero').value=_dq; run(_dq.trim()); }
 }
+// how many learned facts await review? surfaced as a badge on the Review link
+function loadPendBadge(){ askGet('/coverage').then(c=>{ const n=c&&c.pending_review_facts; const el=document.getElementById('pendBadge');
+  if(el&&n){ el.textContent=n>99?'99+':n; el.style.display='inline-block'; const lk=document.getElementById('reviewLink'); if(lk) lk.title=`Review dashboard · ${n} facts awaiting review`; } }).catch(()=>{}); }
 function renderChips(){
   const facts=["Tulisokibart","how many drugs target TL1A?","who is leading in TSLP?","when does spy002 read out?","duvakitug efficacy"];
   const think=["What matters most for a preclinical TL1A×IL-23p19 bispecific?","Is the TL1A space too crowded to enter?","Why would a bispecific beat a TL1A monotherapy?"];
@@ -422,7 +426,9 @@ async function answer(q){
 
   // COMPARISON & RANKING (structured + scannable) — win before the synthesis auto-route
   if(drugs.length>=2 && (CMP.test(q) || !hasResidualQuestion(q,ents))){ await comparisonAnswer(q,drugs); return 'comparison'; }
-  if(RANKQ.test(q) && (tts.length||(drug&&drug.row.target))){ const t=tts[0]||tok(drug.row.target)[0]; const metric=/remission|efficac|response/i.test(q)?'efficacy':'stage'; await rankAnswer(q,t,metric); return 'ranking'; }
+  if(RANKQ.test(q) && (tts.length||(drug&&drug.row.target))){ const t=tts[0]||tok(drug.row.target)[0];
+    const metric=/remission|efficac|response/i.test(q)?'efficacy':(/\bdeal|deal value|upfront|economics|biggest deal|most valuable|paid most|richest/i.test(q)?'deal':(/catalyst|read ?out|soonest|upcoming|next (event|catalyst|data)|nearest|pdufa/i.test(q)?'catalyst':'stage'));
+    await rankAnswer(q,t,metric); return 'ranking'; }
 
   // JUDGMENT / archetype / open reasoning -> synthesis (auto; logged server-side)
   if(SYNTH_ENDPOINT && (isArchetype || (wantsReason && (drug||company||tts.length)) || (wantsReason && !it))){
@@ -436,8 +442,9 @@ async function answer(q){
   if(it==='timeline' && drug){ const c=await sb("catalysts",`select=label,catalyst_date,sort_date,catalyst_type,significance,source_url,outcome_text,catalyst_status&drug_id=eq.${enc(drug.id)}&order=sort_date`); timelineAnswer(q,drug,c); return 'timeline'; }
   if(it==='landscape' && drug){ landscapeAnswer(q,drug,await peripheryEdges(drug.id)); return 'landscape'; }
   if(it==='landscape' && tts.length){ const t=tts[0]; countAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
-  // GRAPH-FIRST FACT: mechanism / developer / deal answerable from Meridian's own data — no LLM, no web
+  // GRAPH-FIRST FACT: mechanism / developer / deal / dosing / indication answered from Meridian's own data — no LLM, no web
   if(drug){ const fk=factKind(q); if(fk){ const done=await factAnswer(q,drug,fk); if(done) return 'fact'; } }
+  if(!drug && company && factKind(q)==='deal'){ const done=await companyDealAnswer(q,company); if(done) return 'fact'; }
   // a QUESTION that mentions an entity but matched no structured handler -> research it
   const asksMore = hasResidualQuestion(q, ents);
   if((drug||company||tts.length) && asksMore && SYNTH_ENDPOINT){ await reasoningAnswer(q,{ents,drug,company,tts,isArchetype:false}); return 'synthesis'; }
@@ -451,10 +458,13 @@ async function answer(q){
   fallbackAnswer(q); return 'unresolved';
 }
 /* fire-and-forget log of structured/unresolved questions (synthesis logs itself server-side) */
-function logQuestion(q,route){
+function logQuestion(q,route,latencyMs){
   if(!LOG_ENDPOINT) return;
+  const answered=route!=='unresolved';
+  // a structured/fact answer came straight from the graph — record it so we can measure the graph-first shift
+  const grounded=answered?(route==='fact'?'meridian':'structured'):null;
   try{ fetch(LOG_ENDPOINT,{method:'POST',headers:ASK_HEADERS,
-    body:JSON.stringify({question:q,route,resolution:route==='unresolved'?'unresolved':'structured',answered:route!=='unresolved',entities:entsPayload(q)})}).catch(()=>{}); }catch(e){}
+    body:JSON.stringify({question:q,route,intent:intent(q),resolution:route==='unresolved'?'unresolved':'structured',answered,grounded,latency_ms:(typeof latencyMs==='number'?latencyMs:null),entities:entsPayload(q)})}).catch(()=>{}); }catch(e){}
 }
 
 /* ---------- graph + resources ---------- */
@@ -681,6 +691,8 @@ function factKind(q){ const s=q.toLowerCase();
   if(/\b(mechanism|moa|mode of action)\b|how does .+ work|what (kind|type) of (drug|molecule|antibody|asset)|is .+ a (bispecific|monoclonal|mab|small molecule|antibody|adc|fusion)|what is .+ (modality|target)\b|what does .+ target\b/.test(s)) return 'mechanism';
   if(/who (develops|makes|owns|markets|is behind|is developing|holds|has)\b|which company|what company|developed by|originator|who('?s| is) the (developer|owner|sponsor)/.test(s)) return 'developer';
   if(/how much .+ (pay|paid|cost)|deal (value|worth|size|terms)|\bupfront\b|milestone payment|acquisition (price|value|cost)|paid .+ for|partnership .+ worth|total deal|licens(e|ing) (terms|deal|value)|bought .+ for/.test(s)) return 'deal';
+  if(/\bdos(e|es|ing|age)\b|how (often|frequently)|route of admin|administ(er|ration|ered)|subcutaneous|intravenous|\binjection\b|every \d+ weeks|steady state|\bsc\b dos|\biv\b dos/.test(s)) return 'dosing';
+  if(/what (disease|indication|condition)|what is .+ (for|used for|indicated for|developed for)|treats? what|indication(s)? (for|of)|used to treat|developed to treat/.test(s)) return 'indication';
   return null; }
 async function factAnswer(q,drug,kind){
   const d=drug.row, comp=coName(d.company_id), name=escapeHtml(d.display_name||d.name);
@@ -715,7 +727,40 @@ async function factAnswer(q,drug,kind){
       follow:[`who develops ${d.name}?`,`${d.name} competitive landscape`,`${d.name} efficacy data`],
       deepenBundle:{focus_drug:slim(d),deals,question:'deal economics'},deepenTitle:`${d.name} — deal economics read`});
     return true; }
+  if(kind==='dosing'){
+    const pk=await sb("drug_pk_parameters",`select=dose_mg,dose_route,population_type,half_life_hours,steady_state_weeks,immunogenicity_ada_pct,sc_injection_volume_ml,source_url,indication_id&drug_id=eq.${enc(d.id)}&order=evidence_date.desc&limit=12`).catch(()=>[]);
+    if(!pk||!pk.length) return false;  // no PK in graph → research it
+    const p=pk[0], parts=[]; if(p.dose_mg)parts.push(`${p.dose_mg} mg`); if(p.dose_route)parts.push(escapeHtml(p.dose_route)); if(p.steady_state_weeks)parts.push(`q${p.steady_state_weeks}w-ish steady state`);
+    const center=`<div class="card big-answer">${name}${parts.length?` is dosed at <span class="hl">${parts.join(' · ')}</span>`:` has tracked PK parameters`}.${p.half_life_hours?` Half-life ≈ <span class="hl">${p.half_life_hours} h</span>.`:''}${p.immunogenicity_ada_pct!=null?` ADA ${p.immunogenicity_ada_pct}%.`:''}</div>
+      <div class="card"><h3>PK / dosing</h3><table class="rows"><tr><th>Route</th><th>Dose</th><th>Pop.</th><th>t½ (h)</th><th>SS (wk)</th><th>ADA%</th><th>Src</th></tr>${pk.map(r=>`<tr><td>${escapeHtml(r.dose_route||'—')}</td><td>${r.dose_mg?r.dose_mg+' mg':'—'}</td><td>${escapeHtml(r.population_type||'—')}</td><td class="num">${r.half_life_hours??'—'}</td><td class="num">${r.steady_state_weeks??'—'}</td><td class="num">${r.immunogenicity_ada_pct??'—'}</td><td>${r.source_url?`<a href="${r.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+    shell({asked:q,tag:'PK · from Meridian',title:`Dosing · ${(d.display_name||d.name)}`,centerHTML:center,
+      sideHTML:`<h4>Asset</h4>${sideAssets([d])}`,
+      follow:[`${d.name} efficacy data`,`${d.name} safety profile`,`who develops ${d.name}?`],
+      deepenBundle:{focus_drug:slim(d),pk,question:'dosing / PK'},deepenTitle:`${d.name} — PK read`});
+    return true; }
+  if(kind==='indication'){
+    if(!d.indication_short) return false;
+    const center=`<div class="card big-answer">${name} is in development for <span class="hl">${escapeHtml(d.indication_short)}</span>${d.target?`, targeting ${escapeHtml(d.target)}`:''}${d.stage?` (${escapeHtml(d.stage)})`:''}.</div>
+      <div class="card"><h3>Indication</h3><div class="kv"><div class="k">indication</div><div class="v">${escapeHtml(d.indication_short)}</div><div class="k">target</div><div class="v">${escapeHtml(d.target||'—')}</div><div class="k">stage</div><div class="v">${escapeHtml(d.stage||'—')}</div>${d.mechanism?`<div class="k">mechanism</div><div class="v">${escapeHtml(d.mechanism)}</div>`:''}</div></div>`;
+    shell({asked:q,tag:'Indication · from Meridian',title:`${(d.display_name||d.name)} — indication`,centerHTML:center,
+      sideHTML:`<h4>Same space</h4>${sideAssets(byTok(tok(d.target)[0]||'').filter(x=>x.id!==d.id).slice(0,6))}`,
+      follow:[`${d.name} efficacy data`,`${d.name} competitive landscape`,`who develops ${d.name}?`],
+      deepenBundle:{focus_drug:slim(d),question:'indication / positioning'},deepenTitle:`${d.name} — positioning read`});
+    return true; }
   return false; }
+async function companyDealAnswer(q,company){
+  const c=company.row, name=escapeHtml(c.name);
+  const deals=await sb("deals",`select=deal_date_label,from_company,to_company,deal_type,upfront_usd_m,total_usd_m,headline,source_url,drug_id&company_id=eq.${enc(c.id)}&order=deal_date_label.desc&limit=12`).catch(()=>[]);
+  if(!deals||!deals.length) return false;
+  const m=v=>v==null?'—':('$'+(v>=1000?(v/1000).toFixed(1)+'B':v+'M'));
+  const top=deals[0];
+  const center=`<div class="card big-answer">Meridian tracks <span class="hl">${deals.length}</span> deal${deals.length>1?'s':''} involving ${name}. Headline: <span class="hl">${escapeHtml(top.from_company||'')}→${escapeHtml(top.to_company||'')}</span>${top.total_usd_m?`, up to <span class="hl">${m(top.total_usd_m)}</span>`:''}${top.upfront_usd_m?` (${m(top.upfront_usd_m)} upfront)`:''}.</div>
+    <div class="card"><h3>Deals</h3><table class="rows"><tr><th>Date</th><th>Parties</th><th>Type</th><th>Upfront</th><th>Total</th><th>Src</th></tr>${deals.map(x=>`<tr><td>${escapeHtml(x.deal_date_label||'—')}</td><td>${escapeHtml(x.from_company||'')} → ${escapeHtml(x.to_company||'')}</td><td>${escapeHtml(x.deal_type||'—')}</td><td class="num">${m(x.upfront_usd_m)}</td><td class="num">${m(x.total_usd_m)}</td><td>${x.source_url?`<a href="${x.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+  shell({asked:q,tag:'Deals · from Meridian',title:`Deals · ${c.name}`,centerHTML:center,
+    sideHTML:`<h4>${name} pipeline</h4>${DRUGS.filter(x=>x.company_id===c.id||x.lead_company_id===c.id).slice(0,6).map(x=>`<div class="conn" onclick="run('${J(x.name)}')"><div class="rel">${escapeHtml(x.stage||'')}</div><div class="ct">${escapeHtml(x.display_name||x.name)}</div></div>`).join('')}`,
+    follow:[`${c.name} pipeline`,`${c.name} competitive position`],
+    deepenBundle:{focus_company:c,company_deals:deals,question:'deal economics'},deepenTitle:`${c.name} — deal economics read`});
+  return true; }
 /* ---------- structured renderers ---------- */
 function dossierAnswer(q,drug,edges){
   const d=drug.row,comp=coName(d.company_id);
@@ -812,6 +857,32 @@ async function rankAnswer(q,t,metric){
       follow:[`who is leading in ${(t||'').toUpperCase()}?`,`competitive landscape for ${(t||'').toUpperCase()}`]});
     return;
   }
+  if(metric==='deal'){
+    const ids=cohort.map(d=>d.id);
+    const deals=await sb("deals",`select=drug_id,total_usd_m,upfront_usd_m,from_company,to_company,deal_date_label,headline,source_url&drug_id=in.(${ids.map(enc).join(',')})`).catch(()=>[]);
+    const best={}; (deals||[]).forEach(e=>{ const v=e.total_usd_m||e.upfront_usd_m||0; if(!best[e.drug_id]||v>(best[e.drug_id]._v||0)) best[e.drug_id]=Object.assign({_v:v},e); });
+    const ranked=cohort.map(d=>({d,e:best[d.id]})).filter(x=>x.e&&x.e._v).sort((a,b)=>b.e._v-a.e._v);
+    const mm=v=>v>=1000?('$'+(v/1000).toFixed(1)+'B'):('$'+v+'M');
+    if(!ranked.length){ leaderAnswer(q,t,cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage))); return; }
+    const center=`<div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by tracked deal value — <span class="hl">${ranked.length}</span> with a recorded transaction.</div>
+      <div class="card"><h3>Deal value by asset</h3>${barChart(ranked.map(x=>({label:(x.d.display_name||x.d.name).split('(')[0].trim(),value:Math.round(x.e._v),unit:'M'})))}</div>
+      <div class="card"><h3>By deal value</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Total</th><th>Parties</th><th>Src</th></tr>${ranked.map((x,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td class="num">${mm(x.e._v)}</td><td>${escapeHtml(x.e.from_company||'')} → ${escapeHtml(x.e.to_company||'')}</td><td>${x.e.source_url?`<a href="${x.e.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+    shell({asked:q,tag:'Ranking · deal value',title:`${(t||'').toUpperCase()} — ranked by deal value`,centerHTML:center,
+      sideHTML:`<h4>Richest deals</h4>${ranked.slice(0,5).map(x=>`<div class="conn" onclick="run('${J(x.d.name)}')"><div class="rel">${mm(x.e._v)}</div><div class="ct">${escapeHtml(x.d.display_name||x.d.name)}</div><div class="cs">${escapeHtml(coName(x.d.company_id))}</div></div>`).join('')}`,
+      follow:[`who is leading in ${(t||'').toUpperCase()}?`,`competitive landscape for ${(t||'').toUpperCase()}`]});
+    return; }
+  if(metric==='catalyst'){
+    const ids=cohort.map(d=>d.id);
+    const cats=await sb("catalysts",`select=drug_id,label,catalyst_date,sort_date,significance,source_url&drug_id=in.(${ids.map(enc).join(',')})&order=sort_date`).catch(()=>[]);
+    const today=Date.now(), next={}; (cats||[]).forEach(c=>{ const t2=Date.parse(c.sort_date||''); if(isNaN(t2)||t2<today-86400000)return; if(!next[c.drug_id]||t2<next[c.drug_id]._t) next[c.drug_id]=Object.assign({_t:t2},c); });
+    const ranked=cohort.map(d=>({d,c:next[d.id]})).filter(x=>x.c).sort((a,b)=>a.c._t-b.c._t);
+    if(!ranked.length){ leaderAnswer(q,t,cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage))); return; }
+    const center=`<div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by nearest upcoming catalyst — <span class="hl">${ranked.length}</span> with a dated event ahead. Soonest: <span class="hl">${escapeHtml(ranked[0].d.display_name||ranked[0].d.name)}</span> (${escapeHtml(ranked[0].c.catalyst_date||'')}).</div>
+      <div class="card"><h3>By nearest catalyst</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Date</th><th>Event</th><th>Src</th></tr>${ranked.map((x,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td>${escapeHtml(x.c.catalyst_date||'—')}</td><td>${escapeHtml((x.c.label||'').slice(0,46))}</td><td>${x.c.source_url?`<a href="${x.c.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+    shell({asked:q,tag:'Ranking · catalysts',title:`${(t||'').toUpperCase()} — by nearest catalyst`,centerHTML:center,
+      sideHTML:`<h4>Coming soonest</h4>${ranked.slice(0,5).map(x=>`<div class="conn" onclick="run('${J(x.d.name)}')"><div class="rel">${escapeHtml(x.c.catalyst_date||'')}</div><div class="ct">${escapeHtml(x.d.display_name||x.d.name)}</div><div class="cs">${escapeHtml(coName(x.d.company_id))}</div></div>`).join('')}`,
+      follow:[`who is leading in ${(t||'').toUpperCase()}?`,`competitive landscape for ${(t||'').toUpperCase()}`]});
+    return; }
   leaderAnswer(q,t,cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)));
 }
 function landscapeAnswer(q,drug,edges){
@@ -883,7 +954,8 @@ async function run(q){
     // cache-first: a previously-resolved question is answered instantly & free (no LLM call)
     const cached=await cacheLookup(q);
     if(cached){ renderCachedAnswer(q,cached); fillNet(q).catch(()=>{}); return; }   // server logs the cache serve
-    const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route);
+    const _t0=Date.now();
+    const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route,Date.now()-_t0);
     fillNet(q).catch(()=>{});  // surround the answer with adjacent answers we already hold
   }catch(err){ document.getElementById('canvas').innerHTML=`<div class="card empty">Something broke: ${escapeHtml(err.message)}</div>`; console.error(err); }
 }
