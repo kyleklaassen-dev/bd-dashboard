@@ -158,13 +158,31 @@ def _run_sql(sql, pat):
         return json.loads(r.read())
 
 
+def _compact(s):
+    """Lowercase, strip all non-alphanumerics — so 'SM101' == 'sm-101' == 'sm 101'."""
+    return re.sub(r"[^a-z0-9]", "", str(s).lower())
+
+
 def classify(drug_id, nct):
     exists, title, ints = ctgov_record(nct)
     if not exists:
         return ("NONEXISTENT", f"{nct} not found on ClinicalTrials.gov (fabricated).", title)
-    hay = (title + " " + " ".join(ints)).lower()
+    text = title + " " + " ".join(ints)
+    hay = text.lower()
+    hay_c = _compact(text)
     toks = drug_identifiers(drug_id)
-    if any(t in hay for t in toks):
+
+    def hit(t):
+        # 1) original loose substring match (keeps prior behaviour)
+        if t in hay:
+            return True
+        # 2) casing/punctuation-insensitive match — fixes false MISMATCHes where the
+        #    registry code is hyphenated but the trial spells it solid (sm-101 vs SM101).
+        #    Guarded at len>=4 so short codes can't coincidentally match.
+        tc = _compact(t)
+        return len(tc) >= 4 and tc in hay_c
+
+    if any(hit(t) for t in toks):
         return ("MATCH", title, title)
     return ("MISMATCH", f"{nct} exists as '{title}' — no identifier for '{drug_id}' "
                         f"({', '.join(sorted(toks))[:60]}) present; likely another asset.", title)
