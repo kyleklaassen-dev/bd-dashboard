@@ -20,6 +20,16 @@ For each (drug, nct):
 Findings (NONEXISTENT, MISMATCH) are logged to governance_violations (unresolved =
 review queue). NOTHING is auto-edited — trial reassignment is a human judgment call.
 
+⚠ PRE-UNLINK RULE (added 2026-06-11 after a false-delete incident):
+A MISMATCH means "the drug's stored aliases weren't found in the trial" — NOT proof the
+link is wrong. Trials name drugs by DEVELOPMENT CODE (PF-04965842=abrocitinib,
+LNK01001=zemprocitinib) which may be absent from aliases, and codes can COLLIDE across
+assets (VTx-002 gene-therapy vs VTX002 small-molecule). NEVER delete a (drug, NCT) link
+on a MISMATCH flag without calling verify_unlink(drug_id, nct) and getting clear=True.
+That gate returns the trial's real interventions + lead sponsor so a dev-code match or a
+code collision is caught instead of silently deleting a correct link. When it returns
+clear=False, confirm sponsor/molecule by hand (and backfill the dev code into drugs.aliases).
+
 Run:
   python3 scripts/trial_id_audit.py --area tl1a --dry-run      # focus set, no writes
   python3 scripts/trial_id_audit.py --all --apply              # whole catalog, log findings
@@ -184,8 +194,53 @@ def classify(drug_id, nct):
 
     if any(hit(t) for t in toks):
         return ("MATCH", title, title)
+    # Surface what the trial ACTUALLY studies, so a reviewer can spot a real link the
+    # alias set missed (a development code: e.g. interventions=['PF-04965842']=abrocitinib)
+    # BEFORE anyone unlinks. This is the verification aid that prevents false-delete.
+    iv = "; ".join(i for i in ints if i) or "none listed (observational/registry?)"
     return ("MISMATCH", f"{nct} exists as '{title}' — no identifier for '{drug_id}' "
-                        f"({', '.join(sorted(toks))[:60]}) present; likely another asset.", title)
+                        f"({', '.join(sorted(toks))[:60]}) present; likely another asset. "
+                        f"⚠ VERIFY before unlinking — trial interventions: [{iv}].", title)
+
+
+def verify_unlink(drug_id, nct):
+    """Pre-unlink safety gate. NEVER delete a misattributed (drug, NCT) link without
+    calling this and getting clear=True. Returns the trial's real interventions + sponsor
+    so a development-code match (PF-04965842=abrocitinib) or a code COLLISION
+    (VTx-002 gene-therapy vs VTX002 small-molecule — same code, different asset/sponsor)
+    is caught instead of silently deleting a correct link."""
+    exists, title, ints = ctgov_record(nct)
+    if not exists:
+        return {"clear": True, "reason": "trial does not exist (fabricated NCT)",
+                "interventions": [], "sponsor": None}
+    sponsor, study_type = _ctgov_meta(nct)
+    toks = drug_identifiers(drug_id)
+    iv_blob = _compact(" ".join(ints))
+    code_hit = sorted(t for t in toks if len(_compact(t)) >= 4 and _compact(t) in iv_blob)
+    if code_hit:
+        return {"clear": False,
+                "reason": f"BLOCK: drug identifier {code_hit} appears in interventions — "
+                          f"likely a real link (dev code) OR a code collision. "
+                          f"Confirm sponsor/molecule manually. sponsor='{sponsor}'.",
+                "interventions": ints, "sponsor": sponsor, "study_type": study_type}
+    return {"clear": True,
+            "reason": f"clear to unlink — drug absent from interventions; trial studies "
+                      f"{ints or '(observational/registry — no drug intervention)'}; sponsor='{sponsor}'.",
+            "interventions": ints, "sponsor": sponsor, "study_type": study_type}
+
+
+def _ctgov_meta(nct):
+    """(lead_sponsor, study_type) for a trial — used by verify_unlink."""
+    url = (f"{CTGOV}/{nct}?fields=protocolSection.sponsorCollaboratorsModule,"
+           f"protocolSection.designModule")
+    try:
+        with urllib.request.urlopen(urllib.request.Request(
+                url, headers={"User-Agent": "Mozilla/5.0 meridian-audit"}), timeout=20) as r:
+            ps = json.loads(r.read()).get("protocolSection", {})
+        sponsor = (ps.get("sponsorCollaboratorsModule", {}).get("leadSponsor", {}) or {}).get("name")
+        return sponsor, ps.get("designModule", {}).get("studyType")
+    except Exception:
+        return None, None
 
 
 def main():
