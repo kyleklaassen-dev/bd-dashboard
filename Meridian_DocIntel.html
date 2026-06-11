@@ -72,6 +72,10 @@ const KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
 const H={apikey:KEY,Authorization:"Bearer "+KEY};
 const AREA={tl1a:"TL1A·IBD",tslp:"TSLP·Resp",il4ra:"IL-4Rα·Atopic",igf1r:"IGF1R·TED",fcrn:"FcRn",tcell:"T-cell"};
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+// array-safe coercion: tolerate null/object/JSON-string where an array is expected
+const arr=x=>{if(Array.isArray(x))return x;if(x&&typeof x==='string'){try{const p=JSON.parse(x);return Array.isArray(p)?p:[];}catch(e){return [];}}return [];};
+// key_metrics may be an array of {metric,value} OR an object map {name:desc}; normalize to {metric,value}
+const kmArr=x=>Array.isArray(x)?x:(x&&typeof x==='object'?Object.entries(x).map(([metric,value])=>({metric,value})):arr(x));
 const q=(t,p)=>fetch(`${SB}/rest/v1/${t}?${p}`,{headers:H}).then(r=>r.json());
 let DIGESTS=[],FACTS=[],RX=[],MKT=[];
 function sw(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
@@ -100,8 +104,8 @@ function renderDigests(){
   const docs=DIGESTS.filter(d=>d.doc_type!=='synthesis');
   if(!docs.length){el.innerHTML='<div class="empty">No documents yet.</div>';return;}
   el.innerHTML=docs.map(d=>{
-    const areas=(d.area_ids||[]).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
-    const themes=(d.themes||[]).map(t=>`<span>${esc(t)}</span>`).join('');
+    const areas=arr(d.area_ids).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
+    const themes=arr(d.themes).map(t=>`<span>${esc(t)}</span>`).join('');
     return `<div class="card">
       <div class="meta">${areas}<span class="badge">${esc(d.doc_type||'doc')}</span>${srcLink(d.source_url)}</div>
       <h3>${esc(d.title)}</h3>
@@ -117,9 +121,9 @@ function renderSynthesis(){
   if(!syn.length){el.innerHTML='<div class="empty">No synthesis briefs yet.</div>';return;}
   el.innerHTML='<div class="card" style="background:transparent;border:none;padding:0 0 8px"><div class="summary">Synthesis briefs — facts rolled up per area into cited narratives. '+syn.length+' brief'+(syn.length!==1?'s':'')+'.</div></div>'+
    syn.map(d=>{
-    const areas=(d.area_ids||[]).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
-    const themes=(d.themes||[]).map(t=>`<span>${esc(t)}</span>`).join('');
-    const km=(d.key_metrics||[]).map(m=>`<span class="badge" style="color:var(--ac2)">${esc(m.metric)}: ${esc(m.value)}${m.entity?' ('+esc(m.entity)+')':''}</span>`).join(' ');
+    const areas=arr(d.area_ids).map(a=>`<span class="badge">${AREA[a]||a}</span>`).join(' ');
+    const themes=arr(d.themes).map(t=>`<span>${esc(t)}</span>`).join('');
+    const km=kmArr(d.key_metrics).map(m=>`<span class="badge" style="color:var(--ac2)">${esc(m.metric)}: ${esc(m.value)}${m.entity?' ('+esc(m.entity)+')':''}</span>`).join(' ');
     const body=esc(d.executive_summary||'').split(/\n\n+/).map(p=>`<p style="margin:0 0 10px">${p}</p>`).join('');
     return `<div class="card" style="border-left:3px solid var(--ac)">
       <div class="meta">${areas}<span class="badge">🧠 synthesis</span></div>
