@@ -155,6 +155,8 @@ const SYNTH_BASE = _ASK_LOCAL ? "http://localhost:8787"
                               : "https://tghntyofptvfhmtchwcv.supabase.co/functions/v1/ask-synth";
 const SYNTH_ENDPOINT = SYNTH_BASE + "/ask";   // empty "" would disable synthesis
 const LOG_ENDPOINT   = SYNTH_BASE + "/log";   // learning-loop question log
+const ASK_KEY = "1rC5ZddlZvtxmEYRQtr6gszpSXweK_n_";  // shared-secret gate (also enforced server-side)
+const ASK_HEADERS = {"Content-Type":"application/json","x-meridian-key":ASK_KEY};
 
 const H={apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON};
 async function sb(table,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`,{headers:H}); return r.ok?r.json():[]; }
@@ -258,7 +260,7 @@ async function answer(q){
 /* fire-and-forget log of structured/unresolved questions (synthesis logs itself server-side) */
 function logQuestion(q,route){
   if(!LOG_ENDPOINT) return;
-  try{ fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
+  try{ fetch(LOG_ENDPOINT,{method:'POST',headers:ASK_HEADERS,
     body:JSON.stringify({question:q,route,resolution:route==='unresolved'?'unresolved':'structured',answered:route!=='unresolved'})}).catch(()=>{}); }catch(e){}
 }
 
@@ -342,7 +344,7 @@ async function deepen(q,bundle,title){
 async function callSynth(q,bundle,sel,isPrimary){
   const slot=document.querySelector(sel);
   try{
-    const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,bundle})});
+    const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,bundle})});
     const j=await r.json();
     renderSynth(slot,j,isPrimary);
   }catch(e){

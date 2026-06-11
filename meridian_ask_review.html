@@ -44,7 +44,7 @@
   <h1>Meridian <b>·</b> Ask — Review</h1>
   <span class="muted mono" id="conn">connecting…</span>
   <span style="flex:1"></span>
-  <button class="btn ghost" onclick="research()">◇ Research backlog now (3)</button>
+  <button class="btn ghost" onclick="research()">◇ Research next unanswered</button>
   <button class="btn" onclick="loadAll()">↻ Refresh</button>
 </header>
 <div class="wrap">
@@ -60,9 +60,12 @@
 </div>
 <div id="toast"></div>
 <script>
-const SERVER = "http://localhost:8787";
+// Env-aware: localhost uses meridian_ask_synth.py; the live site uses the Edge Function.
+const _REV_LOCAL=["localhost","127.0.0.1",""].includes(location.hostname);
+const SERVER=_REV_LOCAL?"http://localhost:8787":"https://tghntyofptvfhmtchwcv.supabase.co/functions/v1/ask-synth";
+const ASK_KEY="1rC5ZddlZvtxmEYRQtr6gszpSXweK_n_";  // shared-secret gate
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function api(path,opts){ const r=await fetch(SERVER+path,opts); return r.json(); }
+async function api(path,opts){ opts=opts||{}; opts.headers=Object.assign({'x-meridian-key':ASK_KEY},opts.headers||{}); const r=await fetch(SERVER+path,opts); return r.json(); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
 function tab(n){ ['backlog','attempts','facts'].forEach(x=>{document.getElementById(x).classList.toggle('hide',x!==n);
   document.querySelector(`.tab[data-t=${x}]`).classList.toggle('on',x===n);}); }
@@ -110,7 +113,7 @@ async function loadFacts(){
 }
 async function research(){
   toast('Researching backlog… (web search, ~30-60s each)');
-  try{ const out=await api('/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:3,triggered_by:'manual'})});
+  try{ const out=await api('/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:1,triggered_by:'manual'})});
     toast(`Attempted ${out.attempted}: `+(out.results||[]).map(r=>r.outcome).join(', ')||'none eligible'); loadAll();
   }catch(e){ toast('Resolver failed — is the server running?'); }
 }
