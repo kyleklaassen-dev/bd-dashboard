@@ -376,34 +376,20 @@ def harvest_opentargets_extra():
         if not hits:
             continue
         ens = hits[0]["id"]
-        # Split into two independent queries so a schema issue in one doesn't void the other.
-        qkd = ("query($id:String!){target(ensemblId:$id){approvedSymbol "
-               "knownDrugs(size:25){rows{phase mechanismOfAction drug{id name} disease{name}}}}}")
+        # NOTE: Target.knownDrugs was REMOVED from the OT GraphQL schema; "drugs per target"
+        # is instead derived internally from entity_edges (drug --TARGETS--> target). We only
+        # pull safetyLiabilities here.
         qsf = "query($id:String!){target(ensemblId:$id){approvedSymbol safetyLiabilities{event}}}"
-        reskd = _post(OT, {"query": qkd, "variables": {"id": ens}})
         ressf = _post(OT, {"query": qsf, "variables": {"id": ens}})
-        store_raw("opentargets_knowndrugs", "target", ens, None, f"{OT}#kd_{ens}", {"knownDrugs": reskd, "safety": ressf})
-        tgt = (((reskd or {}).get("data") or {}).get("target") or {})
+        store_raw("opentargets_knowndrugs", "target", ens, None, f"{OT}#kd_{ens}", {"safety": ressf})
         tgts = (((ressf or {}).get("data") or {}).get("target") or {})
-        sym2 = tgt.get("approvedSymbol") or tgts.get("approvedSymbol") or sym
-        kd = []
-        for r in ((tgt.get("knownDrugs") or {}).get("rows") or []):
-            dr = r.get("drug") or {}
-            kd.append(dict(id=f"{ens}_{dr.get('id')}_{(r.get('disease') or {}).get('name','')}"[:120],
-                target_symbol=sym2, ensembl_id=ens, drug_name=dr.get("name"), drug_chembl_id=dr.get("id"),
-                phase=str(r.get("phase")), mechanism_of_action=r.get("mechanismOfAction"),
-                disease_label=(r.get("disease") or {}).get("name"), source_url=f"{OT}#kd_{ens}", fetched_at=NOW()))
-        # de-dupe
-        kd = list({r["id"]: r for r in kd}.values())
+        sym2 = tgts.get("approvedSymbol") or sym
         saf = []
-        for i, s in enumerate(tgt.get("safetyLiabilities", []) or []):
+        for i, s in enumerate(tgts.get("safetyLiabilities", []) or []):
             saf.append(dict(id=f"{ens}_saf_{i}", target_symbol=sym2, ensembl_id=ens, event=s.get("event"),
-                biosample=", ".join(b.get("tissueLabel", "") for b in (s.get("biosamples") or []))[:200] or None,
-                effect=", ".join(e.get("direction", "") for e in (s.get("effects") or []))[:200] or None,
                 source_url=f"{OT}#kd_{ens}", fetched_at=NOW()))
-        if not DRY:
-            if kd: c.insert("target_known_drugs", kd, on_conflict="id")
-            if saf: c.insert("target_safety", saf, on_conflict="id")
+        if saf and not DRY:
+            c.insert("target_safety", saf, on_conflict="id")
         time.sleep(0.4)
     _stamp("opentargets_knowndrugs")
 
