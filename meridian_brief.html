@@ -43,6 +43,9 @@
   .askbar{display:flex;gap:8px;margin-top:6px}
   .askbar input{flex:1;height:40px;border-radius:10px;border:1px solid var(--edge);background:var(--panel);color:var(--ink);padding:0 14px;outline:none;font-size:14px}
   .askbar input:focus{border-color:var(--accent)}
+  .achip{display:inline-block;font-size:12px;color:var(--ink-dim);background:var(--panel);border:1px solid var(--edge);border-radius:999px;padding:5px 11px;margin:0 6px 6px 0;cursor:pointer}
+  .achip:hover{border-color:var(--accent);color:var(--ink)}
+  .achip.on{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:650}
 </style>
 </head>
 <body>
@@ -58,7 +61,8 @@
 <div class="wrap">
   <div class="card">
     <h3>Today's read <span class="muted" id="readMeta"></span> <span style="margin-left:auto"><button class="btn ghost" id="readBtn" onclick="genRead(true)">◇ Generate</button></span></h3>
-    <div id="read"><div class="muted">A synthesized read across your watched areas — generate on demand (cached after first run).</div></div>
+    <div id="areaChips" style="margin-bottom:12px"></div>
+    <div id="read"><div class="muted">A synthesized read across your tracked areas — pick a scope above, generate on demand (cached after first run).</div></div>
   </div>
   <div class="grid">
     <div>
@@ -77,7 +81,13 @@ const ANON="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
 const _LOCAL=["localhost","127.0.0.1",""].includes(location.hostname);
 const SYNTH_BASE=_LOCAL?"http://localhost:8787":"https://tghntyofptvfhmtchwcv.supabase.co/functions/v1/ask-synth";
 const ASK_KEY="1rC5ZddlZvtxmEYRQtr6gszpSXweK_n_";
-const READ_Q="What are the most important business-development developments right now across TL1A, IL-23, and IBD bispecifics — catalysts, deals, and competitive shifts?";
+let AREAS=[], curArea='all';
+function readQuestion(){
+  if(curArea==='all'){ const names=AREAS.slice(0,10).map(a=>a.display_name).join(', ');
+    return `Across Meridian's tracked areas${names?` (${names})`:''}, what are the most important business-development developments right now — the biggest catalysts, deals, readouts, and competitive shifts of the moment?`; }
+  const a=AREAS.find(x=>x.area_id===curArea), nm=a?a.display_name:curArea;
+  return `What are the most important business-development developments in ${nm} right now — catalysts, deals, readouts, and competitive shifts?`;
+}
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
 async function sb(t,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${qs}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); return r.ok?r.json():[]; }
@@ -111,14 +121,37 @@ async function loadBacklog(){
   const b=(j.backlog||[]).slice(0,6);
   el.innerHTML = b.length? b.map(x=>`<a class="qa" onclick="ask('${J(x.question)}')"><div class="h">${esc(x.question)}</div><div class="q">asked ×${x.ask_count} · ${esc(x.tier)}</div></a>`).join('') : '<div class="muted">Backlog clear.</div>';
 }
-// Today's read — cache-first; stream a fresh one on demand
+// areas: build the scope selector from area_metadata
+async function loadAreas(){
+  const rows=await sb('area_metadata',`select=area_id,display_name,lifecycle_state&order=display_name`);
+  const seen=new Set();
+  AREAS=(rows||[]).filter(a=>a.display_name && !/retir|deprecat|legacy/i.test(a.lifecycle_state||'') && !seen.has(a.display_name) && seen.add(a.display_name));
+  renderAreaChips();
+}
+function renderAreaChips(){
+  const el=document.getElementById('areaChips'); if(!el) return;
+  const chip=(id,label)=>`<span class="achip${curArea===id?' on':''}" onclick="selectArea('${id}')">${esc(label)}</span>`;
+  el.innerHTML=chip('all','All areas')+AREAS.slice(0,14).map(a=>chip(a.area_id,a.display_name)).join('');
+}
+async function selectArea(id){ curArea=id; renderAreaChips(); await showCachedRead(); }
+// cache-first read for the current scope (instant + free if already generated)
+async function showCachedRead(){
+  const el=document.getElementById('read'), btn=document.getElementById('readBtn'); document.getElementById('readMeta').textContent='';
+  el.innerHTML=`<div class="muted">checking memory…</div>`;
+  try{
+    const r=await fetch(SYNTH_BASE+'/ask',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:readQuestion(),cache_only:true})});
+    const j=await r.json();
+    if(j&&!j.miss&&(j.answer||'').trim()){ renderRead(Object.assign({},j,{cache:true})); btn.textContent='↻ Refresh'; }
+    else { el.innerHTML=`<div class="muted">No read yet for this scope — click Generate.</div>`; btn.textContent='◇ Generate'; }
+  }catch(e){ el.innerHTML=`<div class="muted">Reasoning server offline.</div>`; }
+}
+// Today's read — stream a fresh one on demand
 async function genRead(force){
   const el=document.getElementById('read'), btn=document.getElementById('readBtn');
-  if(!force){ const c=await api('/cache'); /* show last if exists handled below */ }
-  el.innerHTML=`<div class="loading"><span class="dot"></span>composing today's read…</div>`; btn.disabled=true;
+  el.innerHTML=`<div class="loading"><span class="dot"></span>composing the read…</div>`; btn.disabled=true;
   let started=false, acc='';
   try{
-    const r=await fetch(SYNTH_BASE+'/ask-stream',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:READ_Q,bundle:{surface:'daily-brief'},allow_cache:!force})});
+    const r=await fetch(SYNTH_BASE+'/ask-stream',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:readQuestion(),bundle:{surface:'daily-brief',scope:curArea},allow_cache:!force})});
     if(!r.ok||!r.body) throw new Error('no stream');
     const reader=r.body.getReader(), dec=new TextDecoder(); let sse='';
     while(true){ const {done,value}=await reader.read(); if(done) break;
@@ -141,13 +174,10 @@ function renderRead(j){
     ${(j.next_steps||[]).length?`<div style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Worth digging into:</div>${(j.next_steps||[]).map(x=>`<a class="qa" onclick="ask('${J(x)}')"><div class="h">◇ ${esc(x)}</div></a>`).join('')}</div>`:''}
     ${cites.length?`<div class="muted" style="margin-top:10px;font-family:var(--mono);font-size:11px">Sources: ${cites.map(c=>`<a href="${esc(c.url)}" target="_blank">${esc((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</a>`).join(' · ')}</div>`:''}`;
 }
-// on load: show last cached read if present (instant, free)
+// on load: panels + scope chips + last cached read for the default 'all' scope (instant, free)
 (async()=>{
   loadCatalysts(); loadFacts(); loadAnswers(); loadBacklog();
-  try{
-    const r=await fetch(SYNTH_BASE+'/ask',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:READ_Q,cache_only:true})});
-    const j=await r.json(); if(j && !j.miss && (j.answer||'').trim()){ renderRead(Object.assign({},j,{cache:true})); document.getElementById('readBtn').textContent='↻ Refresh'; }
-  }catch(e){}
+  await loadAreas(); await showCachedRead();
 })();
 </script>
 </body>
