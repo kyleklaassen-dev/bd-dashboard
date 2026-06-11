@@ -1,0 +1,5 @@
+-- v155: graph integrity tooling. v_node_coverage (per-drug source coverage 0-10),
+-- v_graph_connectivity extended (target_slug), edge freshness stamped. Scripts:
+-- graph_health_guard.py (connectivity + inferred-edge-quality -> governance_violations),
+-- enrich_pub_stubs.py (PMID-> title/abstract for bare publication nodes). Both wired into
+-- api-harvest.yml weekly run.
