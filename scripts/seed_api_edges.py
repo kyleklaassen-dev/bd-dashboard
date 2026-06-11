@@ -50,8 +50,23 @@ def load_indication_resolver():
     return res
 
 
+_CROSSWALK = None
+def _crosswalk():
+    """HGNC/token -> graph target slug, loaded from the target_crosswalk table (v154).
+    This is the durable, growable mapping; TARGET_SYN is a fallback."""
+    global _CROSSWALK
+    if _CROSSWALK is None:
+        try:
+            _CROSSWALK = {r["symbol"].upper(): r["target_slug"]
+                          for r in c.select_all("target_crosswalk", {"select": "symbol,target_slug"})}
+        except Exception:
+            _CROSSWALK = {}
+    return _CROSSWALK
+
+
 def resolve_target(sym, valid):
-    slug = TARGET_SYN.get(sym, sym.lower())
+    # crosswalk table first (authoritative), then synonym map, then lowercase
+    slug = _crosswalk().get((sym or "").upper()) or TARGET_SYN.get(sym, (sym or "").lower())
     return slug if slug in valid else None
 
 
