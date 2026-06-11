@@ -123,6 +123,11 @@ def _stamp(src):
 if __name__ == "__main__":
     a2d = applno_to_drug()
     print(f"tracked application numbers: {len(a2d)}" + (" (DRY)" if DRY else ""))
-    refresh_orange_book(a2d)
-    refresh_purple_book(a2d)
+    # Each source is independent and FDA file endpoints can hiccup — never let one
+    # failed download fail the whole monthly job (existing data stays as-is).
+    for fn in (refresh_orange_book, refresh_purple_book):
+        try:
+            fn(a2d)
+        except Exception as e:
+            print(f"  ! {fn.__name__} failed (non-fatal): {type(e).__name__}: {e}", file=sys.stderr)
     print("Done.")
