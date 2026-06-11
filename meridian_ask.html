@@ -266,9 +266,9 @@ function logQuestion(q,route){
 
 /* ---------- graph + resources ---------- */
 async function peripheryEdges(id){
-  const rows=await sb("entity_edges",`select=subject_type,subject_id,predicate,object_type,object_id,rationale,source_url,confidence_level&or=(subject_id.eq.${enc(id)},object_id.eq.${enc(id)})&limit=120`);
-  // The same relationship is often stored once per scope_area (e.g. a competitor tracked in
-  // both 'tl1a' and 'ibd'), so collapse to one card per (predicate, neighbor).
+  // Read the canonical de-duplicated view (symmetric COMPETES_WITH collapsed to one row per pair).
+  const rows=await sb("v_entity_edges_dedup",`select=subject_type,subject_id,predicate,object_type,object_id,rationale,source_url,confidence_level&or=(subject_id.eq.${enc(id)},object_id.eq.${enc(id)})&limit=120`);
+  // Belt-and-suspenders: collapse to one card per (predicate, neighbor) in case of any residual.
   const seen=new Set(), out=[];
   for(const e of rows){ const isOut=e.subject_id===id;
     const o={pred:e.predicate,otherType:isOut?e.object_type:e.subject_type,otherId:isOut?e.object_id:e.subject_id,rationale:e.rationale,src:e.source_url,conf:e.confidence_level};
