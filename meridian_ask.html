@@ -122,6 +122,13 @@
   .md-tbl tr:hover td{background:#0e1622}
   .synth-answer .ent{color:var(--accent);cursor:pointer;border-bottom:1px dotted rgba(91,157,255,.45)}.synth-answer .ent:hover{border-bottom-style:solid;text-decoration:none}
   .exbtn{cursor:pointer;color:var(--ink-dim);border:1px solid var(--edge);border-radius:7px;padding:3px 9px;font-size:11.5px;white-space:nowrap}.exbtn:hover{border-color:var(--accent);color:var(--ink)}
+  table.fmap{border-collapse:separate;border-spacing:3px;font-size:12px;min-width:100%}
+  table.fmap th{color:var(--ink-faint);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;padding:4px 6px;text-align:center;white-space:nowrap}
+  table.fmap th.co{text-align:right;text-transform:none;font-size:12px;color:var(--ink-dim);max-width:130px;overflow:hidden;text-overflow:ellipsis}
+  table.fmap td{border-radius:6px;padding:5px 7px;min-width:64px;vertical-align:top;background:#0c1320}
+  table.fmap td.hit{background:rgba(91,157,255,.10);box-shadow:inset 0 0 0 1px rgba(91,157,255,.22)}
+  table.fmap td.hit.s4,table.fmap td.hit.s5{background:rgba(74,222,128,.12);box-shadow:inset 0 0 0 1px rgba(74,222,128,.30)}
+  table.fmap td.hit span{display:block;color:var(--ink);line-height:1.45;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -179,8 +186,8 @@ const norm=s=>(s||"").toLowerCase().replace(/[×x+]/g,' ').replace(/[^a-z0-9 ]/g
 const tok =s=>norm(s).split(' ').filter(Boolean);
 const escapeHtml=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function cleanProse(t){ if(!t) return ''; let s=String(t);
-  s=s.replace(/^\s*(?:(?:I(?:'|’)?ll|I will|Let me|Let'?s|I(?:'|’)?m going to|First,?\s+let me|Now,?\s+let me)\b[^.?!]*[.?!]["')\]]*\s*)+/i,'');
-  s=s.replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s*/g,'$1').replace(/(^|\n)\s*[-*]\s+/g,'$1• ').replace(/\*/g,'');
+  // strip only leading meta-narration; KEEP markdown so mdToHtml can render tables/bold/headers
+  s=s.replace(/^\s*(?:(?:I(?:'|’)?ll|I will|Let me|Let'?s|I(?:'|’)?m going to|First,?\s+let me|Now,?\s+let me|Here(?:'|’)?s what (?:I|we)[^.?!\n]*|Sure|Certainly|Of course|Great question|Happy to help|Absolutely)\b[^.?!\n:]*[.?!:]["')\]]*\s*)+/i,'');
   s=s.replace(/([a-z0-9,;:])([.?!])([A-Z“"])/g,'$1$2 $3'); return s.trim(); }
 function mdInline(s){ s=escapeHtml(s);
   s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g,'$1<em>$2</em>').replace(/`([^`]+?)`/g,'<code>$1</code>').replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
@@ -389,6 +396,21 @@ function catalystBars(cats){
       +`<circle cx="${x}" cy="${y+bh/2}" r="5" fill="${/high/i.test(c.significance||'')?'#fb7185':'#5b9dff'}"/>`
       +`<text x="${Math.min(x+10,W-180)}" y="${y+bh/2+4}" fill="#cdd7e3" font-size="12">${escapeHtml((c.label||'').slice(0,34))}</text>`;
   }).join('')}</svg>`;
+}
+// field map: company (rows) × stage (cols) competitive positioning grid
+const STAGE_COLS=['Preclinical','Phase 1','Phase 2','Phase 3','Filed','Approved'];
+function fieldMap(drugs){
+  const norm=s=>{ s=(s||'').toLowerCase(); if(/approv/.test(s))return'Approved'; if(/fil|nda|bla|submit/.test(s))return'Filed'; if(/3/.test(s))return'Phase 3'; if(/2/.test(s))return'Phase 2'; if(/1/.test(s))return'Phase 1'; if(/preclin|discov|ind/.test(s))return'Preclinical'; return null; };
+  const byCo={};
+  drugs.forEach(d=>{ const st=norm(d.stage); if(!st)return; const c=coName(d.company_id)||'—'; (byCo[c]=byCo[c]||{})[st]=((byCo[c]||{})[st]||[]); byCo[c][st].push((d.display_name||d.name).split('(')[0].trim()); });
+  const cos=Object.keys(byCo); if(cos.length<2) return '';
+  const rank=c=>Math.max(0,...Object.keys(byCo[c]).map(s=>STAGE_COLS.indexOf(s)));
+  cos.sort((a,b)=>rank(b)-rank(a));
+  const used=STAGE_COLS.filter(s=>cos.some(c=>byCo[c][s]));
+  const cell=(c,s)=>{ const a=byCo[c][s]; if(!a) return '<td></td>'; const inner=a.map(n=>'<span>'+escapeHtml(n)+'</span>').join(''); return '<td class="hit s'+STAGE_COLS.indexOf(s)+'">'+inner+'</td>'; };
+  const head='<tr><th></th>'+used.map(s=>'<th>'+s.replace('Phase ','Ph')+'</th>').join('')+'</tr>';
+  const body=cos.map(c=>'<tr><th class="co">'+escapeHtml(c)+'</th>'+used.map(s=>cell(c,s)).join('')+'</tr>').join('');
+  return '<div style="overflow-x:auto"><table class="fmap">'+head+body+'</table></div>';
 }
 /* ---------- main router ---------- */
 async function answer(q){
@@ -688,7 +710,8 @@ function countAnswer(q,t,list,asLandscape){
   const center=`
     <div class="card big-answer"><span class="hl">${list.length}</span> tracked molecule${list.length!==1?'s':''} hit the target “<span class="hl">${escapeHtml((t||'').toUpperCase())}</span>”, across <span class="hl">${Object.keys(byCo).length}</span> companies.</div>
     <div class="card"><h3>Molecules</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Target</th><th>Stage</th></tr>${list.map((d,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(coName(d.company_id))}</td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td></tr>`).join('')}</table></div>
-    ${(()=>{ const SR={'Approved':6,'Filed':5,'Phase 3':4,'Phase 2':3,'Phase 1':2,'Preclinical':1,'Discovery':0}; const st={}; list.forEach(d=>{const s=d.stage||'—';st[s]=(st[s]||0)+1;}); const items=Object.entries(st).sort((a,b)=>(SR[b[0]]??-1)-(SR[a[0]]??-1)).map(([s,n])=>({label:s,value:n,unit:''})); return items.length>1?`<div class="card"><h3>Field by stage</h3>${barChart(items)}</div>`:''; })()}`;
+    ${(()=>{ const SR={'Approved':6,'Filed':5,'Phase 3':4,'Phase 2':3,'Phase 1':2,'Preclinical':1,'Discovery':0}; const st={}; list.forEach(d=>{const s=d.stage||'—';st[s]=(st[s]||0)+1;}); const items=Object.entries(st).sort((a,b)=>(SR[b[0]]??-1)-(SR[a[0]]??-1)).map(([s,n])=>({label:s,value:n,unit:''})); return items.length>1?`<div class="card"><h3>Field by stage</h3>${barChart(items)}</div>`:''; })()}
+    ${(()=>{ const fm=fieldMap(list); return fm?`<div class="card"><h3>Field map · who sits where</h3>${fm}</div>`:''; })()}`;
   shell({asked:q,tag:asLandscape?'Landscape':'Aggregation · count',title:`${list.length} on ${escapeHtml((t||'').toUpperCase())}`,centerHTML:center,
     sideHTML:`<h4>Furthest along</h4>${list.slice(0,6).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
     follow:[`who is leading in ${(t||'').toUpperCase()}?`,`is ${(t||'').toUpperCase()} too crowded to enter?`],
