@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian · Daily Briefing</title>
+<style>
+  :root{--bg:#0a0e14;--panel:#121823;--panel2:#0f141d;--edge:#1f2937;--ink:#e7edf5;--ink-dim:#9aa7b8;--ink-faint:#5b6776;
+    --accent:#5b9dff;--accent-soft:#1b2a44;--good:#34d399;--warn:#fbbf24;--hot:#fb7185;--gap:#c084fc;
+    --mono:'SF Mono',ui-monospace,Menlo,monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif}
+  *{box-sizing:border-box}body{margin:0;background:radial-gradient(1100px 600px at 50% -10%,#10192a,#0a0e14 55%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none;cursor:pointer}a:hover{text-decoration:underline}
+  header{padding:22px 26px;border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  h1{font-size:19px;margin:0;font-weight:740}h1 b{color:var(--accent)}
+  .sub{color:var(--ink-faint);font-size:12.5px;font-family:var(--mono)}
+  .toplink{font-size:12.5px;color:var(--ink-dim);border:1px solid var(--edge);border-radius:8px;padding:6px 11px;white-space:nowrap}
+  .toplink:hover{border-color:var(--accent);color:var(--ink);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 26px 80px}
+  .grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:14px;padding:18px 20px;margin-bottom:18px}
+  .card h3{margin:0 0 14px;font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-dim);font-weight:650;display:flex;align-items:center;gap:8px}
+  .row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #161e2a;align-items:flex-start}
+  .row:last-child{border-bottom:none}
+  .when{font-family:var(--mono);font-size:12px;color:var(--accent);white-space:nowrap;min-width:88px;padding-top:1px}
+  .ev{flex:1;font-size:14px;line-height:1.5}
+  .ev .meta{font-size:11.5px;color:var(--ink-faint);font-family:var(--mono);margin-top:3px}
+  .pill{display:inline-block;font-size:10.5px;border-radius:6px;padding:2px 8px;border:1px solid var(--edge);background:#0c121c;color:var(--ink-dim);margin-left:6px}
+  .pill.high{color:var(--hot);border-color:#5e2733;background:#2a1116}
+  .pill.med{color:var(--warn);border-color:#5a4718;background:#2a2110}
+  .fact{padding:10px 0;border-bottom:1px solid #161e2a;font-size:13px}
+  .fact:last-child{border-bottom:none}
+  .fact .v{color:#fff;font-weight:600}.fact .s{color:var(--ink-faint);font-family:var(--mono);font-size:11px}
+  .qa{display:block;padding:9px 11px;border:1px solid var(--edge);border-left:2px solid var(--accent);border-radius:9px;margin-bottom:8px;background:#0d1320;font-size:13px}
+  .qa:hover{border-color:var(--accent);text-decoration:none}
+  .qa .h{color:#fff;font-weight:600}.qa .q{color:var(--ink-faint);font-size:11.5px;margin-top:2px}
+  .btn{cursor:pointer;font-size:13px;font-weight:650;color:#04101f;background:var(--accent);border:none;border-radius:9px;padding:9px 15px}
+  .btn.ghost{background:#1d1630;color:#cdb6ef;border:1px solid #3a2d52}
+  .muted{color:var(--ink-faint);font-size:12.5px}
+  .read{font-size:16px;line-height:1.7;color:#eef3fa;white-space:pre-wrap}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;animation:p 1s infinite}
+  @keyframes p{0%,100%{opacity:.3}50%{opacity:1}}
+  .loading{color:var(--ink-dim);font-family:var(--mono);font-size:13px;padding:14px 0}
+  .askbar{display:flex;gap:8px;margin-top:6px}
+  .askbar input{flex:1;height:40px;border-radius:10px;border:1px solid var(--edge);background:var(--panel);color:var(--ink);padding:0 14px;outline:none;font-size:14px}
+  .askbar input:focus{border-color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Meridian <b>·</b> Daily Briefing</h1>
+  <span class="sub" id="stamp"></span>
+  <span style="flex:1"></span>
+  <form class="askbar" style="max-width:360px;margin:0" onsubmit="return goAsk(event)"><input id="q" placeholder="Ask anything…"></form>
+  <a class="toplink" href="meridian_ask.html">⌕ Ask</a>
+  <a class="toplink" href="meridian_ask_review.html" target="_blank">▦ Review</a>
+  <a class="toplink" href="index.html">⌂ Home</a>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h3>Today's read <span class="muted" id="readMeta"></span> <span style="margin-left:auto"><button class="btn ghost" id="readBtn" onclick="genRead(true)">◇ Generate</button></span></h3>
+    <div id="read"><div class="muted">A synthesized read across your watched areas — generate on demand (cached after first run).</div></div>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="card"><h3>◷ Catalyst radar — next 90 days</h3><div id="catalysts"><div class="loading"><span class="dot"></span>loading…</div></div></div>
+    </div>
+    <div>
+      <div class="card"><h3>✦ Just learned <span class="muted">· from questions</span></h3><div id="facts"><div class="loading"><span class="dot"></span>loading…</div></div></div>
+      <div class="card"><h3>⚡ Answers Meridian now knows</h3><div id="answers"><div class="loading"><span class="dot"></span>loading…</div></div></div>
+      <div class="card"><h3>◷ Being researched</h3><div id="backlog"><div class="loading"><span class="dot"></span>loading…</div></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const SUPABASE_URL="https://tghntyofptvfhmtchwcv.supabase.co";
+const ANON="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+const _LOCAL=["localhost","127.0.0.1",""].includes(location.hostname);
+const SYNTH_BASE=_LOCAL?"http://localhost:8787":"https://tghntyofptvfhmtchwcv.supabase.co/functions/v1/ask-synth";
+const ASK_KEY="1rC5ZddlZvtxmEYRQtr6gszpSXweK_n_";
+const READ_Q="What are the most important business-development developments right now across TL1A, IL-23, and IBD bispecifics — catalysts, deals, and competitive shifts?";
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
+async function sb(t,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${qs}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); return r.ok?r.json():[]; }
+async function api(path){ try{ const r=await fetch(SYNTH_BASE+path,{headers:{'x-meridian-key':ASK_KEY}}); return r.ok?await r.json():null; }catch(e){ return null; } }
+function ask(q){ window.open('meridian_ask.html?q='+encodeURIComponent(q),'_blank'); }
+function goAsk(e){ e.preventDefault(); const v=document.getElementById('q').value.trim(); if(v) window.location.href='meridian_ask.html?q='+encodeURIComponent(v); return false; }
+
+document.getElementById('stamp').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+async function loadCatalysts(){
+  const today=new Date().toISOString().split('T')[0];
+  const rows=await sb('catalysts',`select=label,catalyst_date,sort_date,significance,catalyst_type,drug_id,company_id,source_url,catalyst_status&sort_date=gte.${today}&order=sort_date&limit=40`);
+  const up=rows.filter(r=>r.catalyst_status!=='resolved').slice(0,16);
+  document.getElementById('catalysts').innerHTML = up.length? up.map(c=>`<div class="row"><div class="when">${esc(c.catalyst_date||(c.sort_date||'').slice(0,10))}</div><div class="ev">${esc(c.label)}<div class="meta">${esc(c.catalyst_type||'')}${c.drug_id?` · <a onclick="ask('${esc(c.drug_id)}')">${esc(c.drug_id)}</a>`:''}${c.source_url?` · <a href="${esc(c.source_url)}" target="_blank">source ↗</a>`:''}</div></div>${c.significance?`<span class="pill ${/high/i.test(c.significance)?'high':/med/i.test(c.significance)?'med':''}">${esc(c.significance)}</span>`:''}</div>`).join('') : '<div class="muted">No upcoming catalysts on record.</div>';
+}
+async function loadFacts(){
+  const j=await api('/facts?status=proposed'); const el=document.getElementById('facts');
+  if(!j){ el.innerHTML='<div class="muted">Sign-in/secret required, or server offline.</div>'; return; }
+  const f=(j.facts||[]).slice(0,8);
+  el.innerHTML = f.length? f.map(x=>`<div class="fact"><span class="v">${esc(x.subject_name||'')}</span> · ${esc(x.metric||x.fact_type||'')} <span class="v">${esc(x.value_text||x.value_num||'')}</span><div class="s">${x.source_url?`<a href="${esc(x.source_url)}" target="_blank">${esc(x.source_domain||'source')}</a>`:''} · ${esc(x.validation_status||'')}</div></div>`).join('') : '<div class="muted">Nothing new yet — ask a question to start.</div>';
+}
+async function loadAnswers(){
+  const j=await api('/cache'); const el=document.getElementById('answers');
+  if(!j){ el.innerHTML='<div class="muted">server offline</div>'; return; }
+  const c=(j.cache||[]).slice(0,8);
+  el.innerHTML = c.length? c.map(x=>`<a class="qa" onclick="ask('${J(x.question)}')"><div class="h">${esc(x.headline||x.question)}</div><div class="q">${esc(x.question)} · ${x.source_count||0} sources</div></a>`).join('') : '<div class="muted">No cached answers yet.</div>';
+}
+async function loadBacklog(){
+  const j=await api('/backlog'); const el=document.getElementById('backlog');
+  if(!j){ el.innerHTML='<div class="muted">server offline</div>'; return; }
+  const b=(j.backlog||[]).slice(0,6);
+  el.innerHTML = b.length? b.map(x=>`<a class="qa" onclick="ask('${J(x.question)}')"><div class="h">${esc(x.question)}</div><div class="q">asked ×${x.ask_count} · ${esc(x.tier)}</div></a>`).join('') : '<div class="muted">Backlog clear.</div>';
+}
+// Today's read — cache-first; stream a fresh one on demand
+async function genRead(force){
+  const el=document.getElementById('read'), btn=document.getElementById('readBtn');
+  if(!force){ const c=await api('/cache'); /* show last if exists handled below */ }
+  el.innerHTML=`<div class="loading"><span class="dot"></span>composing today's read…</div>`; btn.disabled=true;
+  let started=false, acc='';
+  try{
+    const r=await fetch(SYNTH_BASE+'/ask-stream',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:READ_Q,bundle:{surface:'daily-brief'},allow_cache:!force})});
+    if(!r.ok||!r.body) throw new Error('no stream');
+    const reader=r.body.getReader(), dec=new TextDecoder(); let sse='';
+    while(true){ const {done,value}=await reader.read(); if(done) break;
+      sse+=dec.decode(value,{stream:true}); let i;
+      while((i=sse.indexOf('\n\n'))>=0){ const block=sse.slice(0,i); sse=sse.slice(i+2);
+        const ei=block.indexOf('\n'); if(ei<0) continue;
+        const ev=block.slice(0,ei).replace(/^event:\s*/,'').trim(); let data; try{ data=JSON.parse(block.slice(ei+1).replace(/^data:\s*/,'')); }catch{ continue; }
+        if(ev==='delta'){ if(!started){ started=true; el.innerHTML='<div class="read" id="readProse"></div>'; } acc+=(data.text||''); const p=document.getElementById('readProse'); if(p) p.textContent=acc; }
+        else if(ev==='result'){ renderRead(data); }
+      }
+    }
+  }catch(e){ el.innerHTML=`<div class="muted">Could not generate (${esc(e.message)}). Is the reasoning server reachable?</div>`; }
+  btn.disabled=false; btn.textContent='↻ Refresh';
+}
+function renderRead(j){
+  const el=document.getElementById('read');
+  const cites=(j.citations||[]).filter(c=>c.url).slice(0,8);
+  document.getElementById('readMeta').textContent = j.cache? '· from memory '+(j.as_of?('('+new Date(j.as_of).toLocaleDateString()+')'):'') : '· just now';
+  el.innerHTML=`<div class="read">${esc(j.answer||'')}</div>
+    ${(j.next_steps||[]).length?`<div style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Worth digging into:</div>${(j.next_steps||[]).map(x=>`<a class="qa" onclick="ask('${J(x)}')"><div class="h">◇ ${esc(x)}</div></a>`).join('')}</div>`:''}
+    ${cites.length?`<div class="muted" style="margin-top:10px;font-family:var(--mono);font-size:11px">Sources: ${cites.map(c=>`<a href="${esc(c.url)}" target="_blank">${esc((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</a>`).join(' · ')}</div>`:''}`;
+}
+// on load: show last cached read if present (instant, free)
+(async()=>{
+  loadCatalysts(); loadFacts(); loadAnswers(); loadBacklog();
+  try{
+    const r=await fetch(SYNTH_BASE+'/ask',{method:'POST',headers:{'Content-Type':'application/json','x-meridian-key':ASK_KEY},body:JSON.stringify({question:READ_Q,cache_only:true})});
+    const j=await r.json(); if(j && !j.miss && (j.answer||'').trim()){ renderRead(Object.assign({},j,{cache:true})); document.getElementById('readBtn').textContent='↻ Refresh'; }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
