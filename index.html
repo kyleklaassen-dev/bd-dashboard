@@ -5961,6 +5961,7 @@ async function _injectAreaFreshness(tabId) {
     function hwAskGo(e){e.preventDefault();var v=(document.getElementById('hw-ask-input').value||'').trim();
       window.location.href='meridian_ask.html'+(v?('?q='+encodeURIComponent(v)):'');return false;}
     function hwAskReview(){window.open('meridian_ask_review.html','_blank');}
+    function askMeridian(q){try{window.open('meridian_ask.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');}catch(e){}}
   </script>
 
   <div id="hw-rule"></div>
@@ -14470,7 +14471,8 @@ function _cemDrugBody(drug, areas, trials, molData, companyName, drugDeals, norm
     <div class="cem-stat"><div class="cem-stat-lbl">Overlap tier</div><div class="cem-stat-val" style="color:${overlap?.toLowerCase()==='direct'?'#b91c1c':overlap?.toLowerCase()==='adjacent'?'#1d4ed8':'#15803d'}">${overlapTier}</div><div class="cem-stat-sub">vs Ailux strategy</div></div>
     <div class="cem-stat"><div class="cem-stat-lbl">Active trials</div><div class="cem-stat-val">${trialCount}</div><div class="cem-stat-sub">${trialCount===1?'1 trial found':`${trialCount} trials found`}</div></div>
     <div class="cem-stat"><div class="cem-stat-lbl">Areas tracked</div><div class="cem-stat-val">${(areas||[]).length || 1}</div><div class="cem-stat-sub">disease areas</div></div>
-  </div>`;
+  </div>
+  <div style="text-align:center;margin:8px 0 2px"><a onclick="askMeridian('${String(drug.display_name||drug.name||'').replace(/['\\]/g,'')}')" style="cursor:pointer;font-size:12px;font-weight:700;color:#1e3a5f;border:1px solid #dbe4ee;border-radius:9px;padding:7px 14px;display:inline-block;background:#fff">◇ Ask Meridian about this ↗</a></div>`;
 
   // Meridian Interpretation
   const interpDots = [];

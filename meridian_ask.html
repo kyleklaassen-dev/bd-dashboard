@@ -222,9 +222,9 @@ function intent(q){
   const s=q.toLowerCase();
   if(/\b(how many|number of|count of)\b/.test(s) && COUNT_SUBJ.test(s) && !TRIAL_ATTR.test(s)) return 'count';
   if(/\blead(ing|er|ers)?\b|who('?s| is)?\s+(winning|ahead|leading|furthest)|furthest along|top (company|player|drug)/.test(s)) return 'leader';
-  if(/completion date|read ?out|when (will|does|is|do)|timeline|catalyst|pdufa|approval date|expected|milestone|finish/.test(s)) return 'timeline';
-  if(/remission|efficac|response rate|endpoint|\bresults?\b|how effective|safety|\bpk\b|half-?life|\bdata\b/.test(s)) return 'efficacy';
-  if(/competitive landscape|competitor|compet(es|ing|ition)|who else|\blandscape\b|players|field/.test(s)) return 'landscape';
+  if(/completion date|read ?out|reports? out|when (will|does|is|do|are)|data (due|expected|coming)|topline|timeline|catalyst|pdufa|approval date|expected|milestone|finish|next (event|catalyst)/.test(s)) return 'timeline';
+  if(/remission|efficac|response rate|endpoint|\bresults?\b|how effective|safety|tolerab|\bpk\b|pharmacokinet|half-?life|\bdata\b|\bada\b|immunogenic/.test(s)) return 'efficacy';
+  if(/competitive landscape|competitor|compet(es|ing|ition)|who else|other (drugs|programs|assets|players)|\blandscape\b|players|\bfield\b|rivals/.test(s)) return 'landscape';
   return null;
 }
 
@@ -436,9 +436,7 @@ async function reasoningAnswer(q,ctx){
   // after synth, restore title from the answer's first line handled in render
 }
 async function deepen(q,bundle,title){
-  const slot=document.getElementById('synthSlot');
-  slot.innerHTML=`<div class="card"><div class="loading"><span class="dot"></span>reasoning over the evidence…</div></div>`;
-  await callSynth(q,bundle,'#synthSlot',false);
+  await streamSynth(q,bundle,'#synthSlot',false);  // stream the deeper read in live too
 }
 function startProgress(slot){
   const msgs=["searching the web for the latest…","reading the sources…","cross-checking against the graph…","composing a cited answer…","flagging any conflicting sources…"];
