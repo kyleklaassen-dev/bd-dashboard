@@ -157,6 +157,8 @@ const SYNTH_ENDPOINT = SYNTH_BASE + "/ask";   // empty "" would disable synthesi
 const LOG_ENDPOINT   = SYNTH_BASE + "/log";   // learning-loop question log
 const ASK_KEY = "1rC5ZddlZvtxmEYRQtr6gszpSXweK_n_";  // shared-secret gate (also enforced server-side)
 const ASK_HEADERS = {"Content-Type":"application/json","x-meridian-key":ASK_KEY};
+function entsPayload(q){ try{ return resolveEntities(q).map(e=>({type:e.type,id:e.id})); }catch(_){ return []; } }
+async function askGet(path){ try{ const r=await fetch(SYNTH_BASE+path,{headers:{"x-meridian-key":ASK_KEY}}); return r.ok?await r.json():null; }catch(e){ return null; } }
 
 const H={apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON};
 async function sb(table,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`,{headers:H}); return r.ok?r.json():[]; }
@@ -276,7 +278,7 @@ async function answer(q){
 function logQuestion(q,route){
   if(!LOG_ENDPOINT) return;
   try{ fetch(LOG_ENDPOINT,{method:'POST',headers:ASK_HEADERS,
-    body:JSON.stringify({question:q,route,resolution:route==='unresolved'?'unresolved':'structured',answered:route!=='unresolved'})}).catch(()=>{}); }catch(e){}
+    body:JSON.stringify({question:q,route,resolution:route==='unresolved'?'unresolved':'structured',answered:route!=='unresolved',entities:entsPayload(q)})}).catch(()=>{}); }catch(e){}
 }
 
 /* ---------- graph + resources ---------- */
@@ -321,6 +323,17 @@ function connCards(edges,title){
   }).join('');
 }
 function resCards(rows){ if(!rows||!rows.length)return''; return `<h4>Sources &amp; resources</h4>`+rows.filter(r=>r.source_url).slice(0,12).map(r=>`<a class="res" href="${r.source_url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(r.claim_type||r.source_type||'source')}</div><div class="rd">${escapeHtml(r.source_domain||r.source_url)}</div></a>`).join(''); }
+/* what the Ask loop has learned about this entity — proposed/unverified, links it to the graph */
+function actPanel(act){
+  if(!act) return '';
+  const facts=(act.facts||[]).slice(0,8), qs=(act.questions||[]).slice(0,5);
+  if(!facts.length && !qs.length) return '';
+  let h=`<h4>Learned from questions <span class="src">· proposed, unverified</span></h4>`;
+  h+=facts.map(f=>`<div class="conn"><div class="rel">${escapeHtml(f.metric||f.fact_type||'fact')}</div><div class="ct">${escapeHtml(f.value_text||(f.value_num!=null?String(f.value_num):'')||f.subject_name||'—')}${f.period?` <span class="src">(${escapeHtml(f.period)})</span>`:''}</div><div class="cs">${f.source_url?`<a href="${f.source_url}" target="_blank" rel="noopener">${escapeHtml(f.source_domain||'source ↗')}</a>`:''}${f.suggested_dest&&f.suggested_dest!=='none'?` · →${escapeHtml(f.suggested_dest)}`:''}</div></div>`).join('');
+  if(qs.length) h+=`<div class="src" style="margin-top:9px;line-height:1.5">Recently asked: ${qs.map(x=>escapeHtml(x.question)).join(' · ')}</div>`;
+  return h;
+}
+function loadActivity(kind,id){ askGet(`/entity-activity?${kind}=${enc(id)}`).then(act=>{ const el=document.getElementById('actSlot'); if(el&&act) el.innerHTML=actPanel(act); }); }
 
 /* ---------- SYNTHESIS ---------- */
 async function buildReasonBundle(ctx){
@@ -366,7 +379,7 @@ async function deepen(q,bundle,title){
 async function callSynth(q,bundle,sel,isPrimary){
   const slot=document.querySelector(sel);
   try{
-    const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,bundle})});
+    const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,bundle,entities:entsPayload(q)})});
     const j=await r.json();
     renderSynth(slot,j,isPrimary);
   }catch(e){
@@ -403,6 +416,7 @@ function renderSynth(slot,j,isPrimary){
 function dossierAnswer(q,drug,edges){
   const d=drug.row,comp=coName(d.company_id);
   resourcesFor(d.id).then(res=>{ const el=document.getElementById('resSlot'); if(el) el.innerHTML=resCards(res); });
+  loadActivity('drug_id',d.id);
   const center=`
     <div class="card big-answer"><span class="hl">${escapeHtml(d.display_name||d.name)}</span> is ${article(d.mechanism||d.modality)} ${escapeHtml(d.mechanism||d.modality||'asset')} from <span class="hl">${escapeHtml(comp)}</span>, currently <span class="hl">${escapeHtml(d.stage||'—')}</span>${d.indication_short?` in ${escapeHtml(d.indication_short)}`:''}.</div>
     <div class="card"><h3>Profile</h3><div class="kv">
@@ -414,7 +428,7 @@ function dossierAnswer(q,drug,edges){
       ${d.key_data?`<div class="k">key data</div><div class="v">${escapeHtml(d.key_data)}</div>`:''}
     </div></div>`;
   shell({asked:q,tag:'Entity · molecule',title:escapeHtml(d.display_name||d.name),centerHTML:center,
-    sideHTML:connCards(edges,'Connections')+`<div id="resSlot"></div>`,
+    sideHTML:connCards(edges,'Connections')+`<div id="actSlot"></div><div id="resSlot"></div>`,
     follow:[`competitive landscape for ${d.name}`,`when does ${d.name} read out?`,`${d.name} efficacy`,`why would ${d.name} win?`],
     deepenBundle:{focus_drug:slim(d)},deepenTitle:`${d.display_name||d.name} — strategic read`});
 }
@@ -423,8 +437,9 @@ function companyAnswer(q,company){
   const center=`
     <div class="card big-answer"><span class="hl">${escapeHtml(c.name)}</span>${c.ticker?` (${escapeHtml(c.ticker)})`:''} — ${pipe.length?`<span class="hl">${pipe.length}</span> tracked asset${pipe.length>1?'s':''}`:'no tracked assets yet'}${c.hq_country?`, HQ ${escapeHtml(c.hq_country)}`:''}.</div>
     <div class="card"><h3>Pipeline</h3>${pipe.length?`<table class="rows"><tr><th>Asset</th><th>Target</th><th>Stage</th><th>Indication</th></tr>${pipe.slice(0,14).map(d=>`<tr><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td><td>${escapeHtml(d.indication_short||'—')}</td></tr>`).join('')}</table>`:'<div class="empty">No assets indexed.</div>'}</div>`;
+  loadActivity('company_id',c.id);
   shell({asked:q,tag:'Entity · company',title:escapeHtml(c.name),centerHTML:center,
-    sideHTML:`<h4>Snapshot</h4><div class="conn"><div class="rel">type</div><div class="ct">${escapeHtml(c.company_type||'—')}</div></div>${c.market_cap_display?`<div class="conn"><div class="rel">market cap</div><div class="ct">${escapeHtml(c.market_cap_display)}</div></div>`:''}${c.status?`<div class="conn"><div class="rel">status</div><div class="ct">${escapeHtml(c.status)}</div></div>`:''}`,
+    sideHTML:`<div id="actSlot"></div><h4>Snapshot</h4><div class="conn"><div class="rel">type</div><div class="ct">${escapeHtml(c.company_type||'—')}</div></div>${c.market_cap_display?`<div class="conn"><div class="rel">market cap</div><div class="ct">${escapeHtml(c.market_cap_display)}</div></div>`:''}${c.status?`<div class="conn"><div class="rel">status</div><div class="ct">${escapeHtml(c.status)}</div></div>`:''}`,
     follow:[`what is ${c.name} leading in?`, pipe[0]?`${pipe[0].name} competitive landscape`:''],
     deepenBundle:{focus_company:c,company_pipeline:pipe.map(slim)},deepenTitle:`${c.name} — strategic read`});
 }
@@ -517,7 +532,7 @@ async function run(q){
 }
 async function cacheLookup(q){
   if(!SYNTH_ENDPOINT) return null;
-  try{ const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,cache_only:true,allow_cache:true})});
+  try{ const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,cache_only:true,allow_cache:true,entities:entsPayload(q)})});
     if(!r.ok) return null; const j=await r.json(); return (j&&!j.miss&&(j.answer||'').trim())?j:null; }catch(e){ return null; }
 }
 function renderCachedAnswer(q,j){
