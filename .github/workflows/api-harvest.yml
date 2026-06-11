@@ -52,3 +52,17 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/seed_api_edges.py
+
+      - name: Enrich bare publication stubs (PMID -> title/abstract)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/enrich_pub_stubs.py || echo "pub enrich partial (non-fatal)"
+
+      - name: Graph health guard (connectivity + edge quality)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/graph_health_guard.py
