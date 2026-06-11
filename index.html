@@ -17020,6 +17020,51 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       })();
     }
 
+    // ── Lazy-load Target Biology (v149–v152): genetic validation, protein, safety ──
+    // target_disease_associations / target_proteins / target_safety are target-keyed;
+    // map the drug's target tokens to candidate symbols (incl. HGNC synonyms) and match.
+    if (drug?.id && !isStaticId && _sb && drug.target) {
+      (async () => {
+        try {
+          const syn = {'TL1A':'TNFSF15','IL-23P19':'IL23A','IL23P19':'IL23A','FCRN':'FCGRT','IL-4RA':'IL4R','IL4RA':'IL4R','CD40L':'CD40LG','IGE':'IGHE','TSLPR':'CRLF2'};
+          const cands = new Set();
+          String(drug.target).split(/[×x\/+,()]/).map(s=>s.trim()).filter(Boolean).forEach(function(t){
+            const u=t.toUpperCase(); cands.add(t); cands.add(u); if(syn[u]) cands.add(syn[u]);
+          });
+          const arr=[...cands]; if(!arr.length) return;
+          const [taRes, tpRes, tsRes] = await Promise.all([
+            _sb.from('target_disease_associations').select('target_symbol,disease_label,overall_score').in('target_symbol',arr).order('overall_score',{ascending:false}).limit(8),
+            _sb.from('target_proteins').select('target_symbol,protein_name,function_text').in('target_symbol',arr).limit(2),
+            _sb.from('target_safety').select('target_symbol,event').in('target_symbol',arr).limit(8),
+          ]);
+          const ta=taRes?.data||[]; const tp=tpRes?.data||[]; const ts=tsRes?.data||[];
+          if(!ta.length && !tp.length && !ts.length) return;
+          let h='<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
+          h+='<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0369a1;margin-bottom:8px">🧬 Target Biology</div>';
+          if(tp.length){
+            tp.forEach(function(p){
+              if(!p.function_text) return;
+              h+='<div style="margin-bottom:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:3px">'+escHtml(p.target_symbol||'')+' — function (UniProt)</div><div style="font-size:11px;color:#374151;line-height:1.5;background:#f0f9ff;border-radius:4px;padding:6px 8px">'+escHtml(String(p.function_text).substring(0,360))+(p.function_text.length>360?'…':'')+'</div></div>';
+            });
+          }
+          if(ta.length){
+            h+='<div style="margin-bottom:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Genetic / Disease Association (Open Targets)</div>';
+            ta.forEach(function(r){
+              const sc=r.overall_score!=null?Number(r.overall_score).toFixed(2):'';
+              h+='<div style="padding:3px 8px;background:#ecfdf5;border-left:2px solid #34d399;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px"><span style="font-weight:700;color:#047857">'+escHtml(r.disease_label||'')+'</span><span style="color:#64748b"> '+sc+' · '+escHtml(r.target_symbol||'')+'</span></div>';
+            });
+            h+='</div>';
+          }
+          if(ts.length){
+            h+='<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Safety Liabilities (Open Targets)</div><div style="font-size:11px;color:#374151">'+ts.map(function(s){return escHtml(s.event||'');}).filter(Boolean).join(' · ')+'</div></div>';
+          }
+          h+='</div>';
+          const panel=document.getElementById('cem-dtab-profile');
+          if(panel) panel.insertAdjacentHTML('beforeend', h);
+        } catch(_tbErr){ console.warn('[drugModal-targetBio]', _tbErr && _tbErr.message); }
+      })();
+    }
+
     // ── Lazy-load Payer TPP Intelligence ──────────────────────────────────────
     // Injects payer TPP criteria into the Business panel (canonical Drug Card IA).
     // DEPRECATED 2026-06-07 — non_responder_profiles fetch + render removed from this
