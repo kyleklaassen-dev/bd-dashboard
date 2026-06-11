@@ -99,8 +99,11 @@ async function load(){
   renderKpis();renderDigests();renderSynthesis();renderFacts();renderRx();renderMarket();
 }
 function renderKpis(){
+  const nSyn=DIGESTS.filter(d=>d.doc_type==='synthesis').length;
+  const nDocs=DIGESTS.length-nSyn;
   document.getElementById('kpis').innerHTML=
-   `<div class="kpi"><b>${DIGESTS.length}</b><span>documents</span></div>
+   `<div class="kpi"><b>${nDocs}</b><span>documents</span></div>
+    <div class="kpi"><b>${nSyn}</b><span>synthesis briefs</span></div>
     <div class="kpi"><b>${FACTS.length}</b><span>atomic facts</span></div>
     <div class="kpi"><b>${RX.length}</b><span>tracked Rx</span></div>
     <div class="kpi"><b>${MKT.length}</b><span>market data points</span></div>`;
