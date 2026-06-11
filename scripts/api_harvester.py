@@ -214,28 +214,62 @@ def harvest_chembl():
     _stamp("chembl")
 
 
-# ---------------- Europe PMC: abstracts/MeSH/citations -> literature_records --------------------
-def harvest_europepmc():
+# Europe PMC is OWNED by scripts/abstract_fetcher.py -> publications (canonical, one writer).
+# This harvester intentionally does NOT write publications to avoid duplication.
+
+# ---------------- openFDA drugsfda: approval history -> fda_approvals (EXISTING table) ----------
+def harvest_drugsfda():
     for d in drugs():
-        name = (d.get("name") or "").strip()
+        gen = (d.get("inn_name") or d.get("name") or "").strip()
+        if not gen:
+            continue
+        url = f'https://api.fda.gov/drug/drugsfda.json?search=openfda.generic_name:"{urllib.parse.quote(gen.lower())}"&limit=5'
+        res = _get(url)
+        for app in ((res or {}).get("results", []) or []):
+            store_raw("drugsfda", "drug", app.get("application_number"), d["id"], url, app)
+            of = app.get("openfda", {}); prod = (app.get("products") or [{}])[0]
+            appr = sorted([s.get("submission_status_date") for s in app.get("submissions", [])
+                           if s.get("submission_type") == "ORIG" and s.get("submission_status") == "AP" and s.get("submission_status_date")])
+            adate = (appr[0][:4] + "-" + appr[0][4:6] + "-" + appr[0][6:8]) if appr else None
+            if not DRY:
+                c.insert("fda_approvals", [dict(id=f"{d['id']}_{app.get('application_number')}", drug_id=d["id"],
+                    brand_name=(of.get("brand_name") or [prod.get("brand_name")])[0],
+                    application_number=app.get("application_number"), sponsor=app.get("sponsor_name"),
+                    marketing_status=prod.get("marketing_status"), approval_date=adate,
+                    source_url=url, fetched_at=NOW())], on_conflict="id")
+        time.sleep(0.3)
+    _stamp("drugsfda")
+
+
+# ---------------- PubChem + RxNorm + UNII -> compound_identifiers crosswalk --------------------
+def harvest_identifiers():
+    for d in drugs():
+        name = (d.get("inn_name") or d.get("name") or "").strip()
         if not name:
             continue
-        url = ("https://www.ebi.ac.uk/europepmc/webservices/rest/search?"
-               f"query={urllib.parse.quote(name)}&format=json&pageSize=10&resultType=core")
-        res = _get(url)
-        for r in ((res or {}).get("resultList", {}).get("result", []) or []):
-            store_raw("europepmc", "publication", r.get("id"), d["id"], url, r)
-            ji = r.get("journalInfo", {}).get("journal", {})
-            write("literature_records", [dict(id=f"epmc_{r.get('id')}", pmid=r.get("pmid"), doi=r.get("doi"),
-                title=(r.get("title") or "")[:600], journal=ji.get("title"),
-                pub_year=int(r["pubYear"]) if str(r.get("pubYear") or "").isdigit() else None,
-                authors=(r.get("authorString") or "")[:800], is_open_access=(r.get("isOpenAccess") == "Y"),
-                cited_by_count=r.get("citedByCount"),
-                mesh_terms=r.get("meshHeadingList"), keywords=r.get("keywordList"),
-                abstract_text=(r.get("abstractText") or "")[:8000], drug_id=d["id"],
-                source_url=url, fetched_at=NOW())])
+        row = dict(id=d["id"], drug_id=d["id"], name=name, fetched_at=NOW())
+        src = []
+        # PubChem
+        pu = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{urllib.parse.quote(name)}/property/MolecularFormula,MolecularWeight,InChIKey,CanonicalSMILES,ConnectivitySMILES/JSON"
+        pres = _get(pu)
+        props = (((pres or {}).get("PropertyTable") or {}).get("Properties") or [])
+        if props:
+            p = props[0]; store_raw("pubchem", "compound", p.get("CID"), d["id"], pu, p)
+            row.update(pubchem_cid=p.get("CID"), molecular_formula=p.get("MolecularFormula"),
+                       molecular_weight=_num(p.get("MolecularWeight")), inchikey=p.get("InChIKey"),
+                       smiles=p.get("CanonicalSMILES") or p.get("ConnectivitySMILES")); src.append(pu)
+        # RxNorm
+        ru = f"https://rxnav.nlm.nih.gov/REST/rxcui.json?name={urllib.parse.quote(name)}&search=2"
+        rres = _get(ru)
+        rxids = (((rres or {}).get("idGroup") or {}).get("rxnormId") or [])
+        if rxids:
+            store_raw("rxnorm", "drug", rxids[0], d["id"], ru, rres)
+            row["rxcui"] = rxids[0]; src.append(ru)
+        if (row.get("pubchem_cid") or row.get("rxcui")) and not DRY:
+            row["source_url"] = " | ".join(src)
+            c.insert("compound_identifiers", [row], on_conflict="id")
         time.sleep(0.3)
-    _stamp("europepmc")
+    _stamp("pubchem"); _stamp("rxnorm")
 
 
 # ---------------- Open Targets: target-disease association (GraphQL) ----------------------------
@@ -277,14 +311,17 @@ def _stamp(src):
 
 
 def main():
-    if not any([ARG("--ctgov"), ARG("--openfda"), ARG("--chembl"), ARG("--europepmc"), ARG("--opentargets")]):
-        print("specify --ctgov/--openfda/--chembl/--europepmc/--opentargets or --all"); return
+    flags = ["--ctgov", "--openfda", "--chembl", "--opentargets", "--drugsfda", "--identifiers"]
+    if not any(ARG(f) for f in flags):
+        print("specify one of " + "/".join(flags) + " or --all"); return
     if ARG("--ctgov"): harvest_ctgov()
     if ARG("--openfda"): harvest_openfda()
     if ARG("--chembl"): harvest_chembl()
-    if ARG("--europepmc"): harvest_europepmc()
     if ARG("--opentargets"): harvest_opentargets()
+    if ARG("--drugsfda"): harvest_drugsfda()
+    if ARG("--identifiers"): harvest_identifiers()
     print("Harvest complete" + (" (DRY)" if DRY else ""))
+    # Note: Europe PMC -> publications is owned by abstract_fetcher.py (one writer).
 
 
 if __name__ == "__main__":
