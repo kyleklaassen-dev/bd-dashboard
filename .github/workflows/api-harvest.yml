@@ -1,0 +1,47 @@
+name: Meridian Full API Harvest
+
+# Free-API only (CT.gov, openFDA, ChEMBL, Europe PMC, Open Targets) — NO LLM, so
+# exempt from the Claude-API spend pause. Captures 100% into api_raw_documents +
+# refined tables. Runs on GitHub's runner (clean IP, no client rate limits).
+
+on:
+  schedule:
+    - cron: "0 7 * * 0"        # Sundays 03:00 ET / 07:00 UTC — weekly full sweep
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: "Flags: --all or any of --ctgov --openfda --chembl --europepmc --opentargets"
+        required: false
+        default: "--all"
+      limit:
+        description: "Optional cap on entities (e.g. 25) for a quick validation run"
+        required: false
+        default: ""
+      dry_run:
+        description: "Fetch but do not write"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  harvest:
+    name: "Harvest external APIs into Meridian"
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run harvester
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          echo "=== Meridian API Harvest ($(date -u +%FT%TZ)) ==="
+          SRC="${{ github.event.inputs.sources }}"; [ -z "$SRC" ] && SRC="--all"
+          ARGS="$SRC"
+          if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          echo "python scripts/api_harvester.py $ARGS"
+          python scripts/api_harvester.py $ARGS
