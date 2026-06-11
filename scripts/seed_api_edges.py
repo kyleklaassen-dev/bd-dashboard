@@ -108,8 +108,39 @@ def seed_drug_publication():
     return len(edges)
 
 
+def seed_drug_target_from_interactions():
+    """DGIdb drug→gene → drug --TARGETS--> target edges, where the gene symbol resolves
+    to an existing target node (lowercase + the same TARGET_SYN map). Connects the
+    pharmacology layer into the graph. IUPHAR target names are descriptive (not gene
+    symbols) so they connect via drug_id FK only for now."""
+    try:
+        rows = c.select_all("dgidb_interactions", {"select": "drug_id,gene_name,interaction_type"})
+    except Exception:
+        print("dgidb_interactions absent — skipped"); return 0
+    if not rows:
+        print("drug→target (DGIdb): no rows yet — skipped"); return 0
+    valid = load_targets()
+    edges = {}
+    for r in rows:
+        if not (r.get("drug_id") and r.get("gene_name")):
+            continue
+        tslug = resolve_target(r["gene_name"], valid)
+        if not tslug:
+            continue
+        e = edge(f"DGIDB_{r['drug_id']}_{tslug}", "drug", r["drug_id"], "TARGETS",
+                 "target", tslug, "https://dgidb.org",
+                 f"DGIdb drug-gene interaction ({r.get('interaction_type') or 'n/a'})", "inferred")
+        edges[e["id"]] = e
+    print(f"drug→target (DGIdb): {len(edges)} edges")
+    if edges and not DRY:
+        c.insert("entity_edges", list(edges.values()),
+                 on_conflict="subject_id,predicate,object_id", ignore_duplicates=True)
+    return len(edges)
+
+
 if __name__ == "__main__":
     print("Seeding API→graph edges" + (" (DRY)" if DRY else ""))
     seed_target_indication()
     seed_drug_publication()
+    seed_drug_target_from_interactions()
     print("Done.")
