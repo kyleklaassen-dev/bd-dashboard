@@ -36,7 +36,13 @@
   .btn{cursor:pointer;font-size:13px;font-weight:650;color:#04101f;background:var(--accent);border:none;border-radius:9px;padding:9px 15px}
   .btn.ghost{background:#1d1630;color:#cdb6ef;border:1px solid #3a2d52}
   .muted{color:var(--ink-faint);font-size:12.5px}
-  .read{font-size:16px;line-height:1.7;color:#eef3fa;white-space:pre-wrap}
+  .read{font-size:16px;line-height:1.7;color:#eef3fa}
+  .read.md-body p{margin:0 0 11px}.read .md-h{font-weight:700;color:#fff;font-size:17px;margin:16px 0 7px}
+  .read .md-list{margin:6px 0 11px;padding-left:20px}.read .md-list li{margin:3px 0}
+  .md-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  .md-tbl th{text-align:left;color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--edge);padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .md-tbl td{padding:8px 10px;border-bottom:1px solid #161e2a;vertical-align:top;color:var(--ink)}
+  .md-tbl tr:hover td{background:#0e1622}
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;animation:p 1s infinite}
   @keyframes p{0%,100%{opacity:.3}50%{opacity:1}}
   .loading{color:var(--ink-dim);font-family:var(--mono);font-size:13px;padding:14px 0}
@@ -93,6 +99,18 @@ function cleanProse(t){ if(!t) return ''; let s=String(t);
   s=s.replace(/^\s*(?:(?:I(?:'|’)?ll|I will|Let me|Let'?s|I(?:'|’)?m going to|First,?\s+let me|Now,?\s+let me)\b[^.?!]*[.?!]["')\]]*\s*)+/i,'');
   s=s.replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s*/g,'$1').replace(/(^|\n)\s*[-*]\s+/g,'$1• ').replace(/\*/g,'');
   s=s.replace(/([a-z0-9,;:])([.?!])([A-Z“"])/g,'$1$2 $3'); return s.trim(); }
+function mdInline(s){ s=esc(s);
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g,'$1<em>$2</em>').replace(/`([^`]+?)`/g,'<code>$1</code>').replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>'); return s; }
+function mdToHtml(md){ if(!md) return ''; const L=String(md).replace(/\r/g,'').split('\n'); let html='',i=0;
+  const sep=l=>/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(l)&&l.includes('-');
+  while(i<L.length){ let l=L[i]; if(l.trim()===''){ i++; continue; }
+    if(l.includes('|') && i+1<L.length && sep(L[i+1])){ const hd=l.split('|').map(c=>c.trim()); if(hd[0]==='')hd.shift(); if(hd[hd.length-1]==='')hd.pop(); i+=2; const rows=[];
+      while(i<L.length && L[i].includes('|') && L[i].trim()!==''){ const c=L[i].split('|').map(x=>x.trim()); if(c[0]==='')c.shift(); if(c[c.length-1]==='')c.pop(); rows.push(c); i++; }
+      html+=`<table class="md-tbl"><thead><tr>${hd.map(h=>`<th>${mdInline(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${mdInline(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; continue; }
+    const hm=l.match(/^\s*(#{1,6})\s+(.*)$/); if(hm){ html+=`<div class="md-h">${mdInline(hm[2])}</div>`; i++; continue; }
+    if(/^\s*([-*•]|\d+\.)\s+/.test(l)){ const ol=/^\s*\d+\./.test(l); const it=[]; while(i<L.length && /^\s*([-*•]|\d+\.)\s+/.test(L[i])){ it.push(L[i].replace(/^\s*([-*•]|\d+\.)\s+/,'')); i++; } html+=`<${ol?'ol':'ul'} class="md-list">${it.map(x=>`<li>${mdInline(x)}</li>`).join('')}</${ol?'ol':'ul'}>`; continue; }
+    const p=[l]; i++; while(i<L.length && L[i].trim()!=='' && !/^\s*(#{1,6}\s|[-*•]\s|\d+\.\s)/.test(L[i]) && !(L[i].includes('|')&&i+1<L.length&&sep(L[i+1]))){ p.push(L[i]); i++; } html+=`<p>${mdInline(p.join(' '))}</p>`; }
+  return html; }
 const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
 async function sb(t,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${qs}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); return r.ok?r.json():[]; }
 async function api(path){ try{ const r=await fetch(SYNTH_BASE+path,{headers:{'x-meridian-key':ASK_KEY}}); return r.ok?await r.json():null; }catch(e){ return null; } }
@@ -174,7 +192,7 @@ function renderRead(j){
   const el=document.getElementById('read');
   const cites=(j.citations||[]).filter(c=>c.url).slice(0,8);
   document.getElementById('readMeta').textContent = j.cache? '· from memory '+(j.as_of?('('+new Date(j.as_of).toLocaleDateString()+')'):'') : '· just now';
-  el.innerHTML=`<div class="read">${esc(cleanProse(j.answer||''))}</div>
+  el.innerHTML=`<div class="read md-body">${mdToHtml(cleanProse(j.answer||''))}</div>
     ${(j.next_steps||[]).length?`<div style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Worth digging into:</div>${(j.next_steps||[]).map(x=>`<a class="qa" onclick="ask('${J(x)}')"><div class="h">◇ ${esc(x)}</div></a>`).join('')}</div>`:''}
     ${cites.length?`<div class="muted" style="margin-top:10px;font-family:var(--mono);font-size:11px">Sources: ${cites.map(c=>`<a href="${esc(c.url)}" target="_blank">${esc((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</a>`).join(' · ')}</div>`:''}`;
 }

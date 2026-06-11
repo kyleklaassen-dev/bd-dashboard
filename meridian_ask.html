@@ -112,6 +112,14 @@
   .deepen:hover{border-color:var(--gap);background:#241a3a}
   .synthnote{font-size:12px;color:var(--ink-faint);border:1px dashed var(--edge);border-radius:10px;padding:11px 13px;margin-top:6px;line-height:1.5}
   .fbbtn{cursor:pointer;font-size:15px;padding:0 5px;opacity:.65;transition:opacity .15s}.fbbtn:hover{opacity:1}
+  .synth-answer p{margin:0 0 10px}.synth-answer p:last-child{margin-bottom:0}
+  .synth-answer .md-h{font-weight:700;color:#fff;font-size:16px;margin:16px 0 7px;letter-spacing:-.2px}
+  .synth-answer .md-list{margin:6px 0 10px;padding-left:20px}.synth-answer .md-list li{margin:3px 0}
+  .synth-answer code{background:#0c121c;border:1px solid var(--edge);border-radius:5px;padding:1px 5px;font-family:var(--mono);font-size:13px}
+  .md-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  .md-tbl th{text-align:left;color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--edge);padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .md-tbl td{padding:8px 10px;border-bottom:1px solid #161e2a;vertical-align:top;color:var(--ink)}
+  .md-tbl tr:hover td{background:#0e1622}
 </style>
 </head>
 <body>
@@ -172,6 +180,28 @@ function cleanProse(t){ if(!t) return ''; let s=String(t);
   s=s.replace(/^\s*(?:(?:I(?:'|’)?ll|I will|Let me|Let'?s|I(?:'|’)?m going to|First,?\s+let me|Now,?\s+let me)\b[^.?!]*[.?!]["')\]]*\s*)+/i,'');
   s=s.replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s*/g,'$1').replace(/(^|\n)\s*[-*]\s+/g,'$1• ').replace(/\*/g,'');
   s=s.replace(/([a-z0-9,;:])([.?!])([A-Z“"])/g,'$1$2 $3'); return s.trim(); }
+function mdInline(s){ s=escapeHtml(s);
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g,'$1<em>$2</em>').replace(/`([^`]+?)`/g,'<code>$1</code>').replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s; }
+function mdToHtml(md){
+  if(!md) return ''; const L=String(md).replace(/\r/g,'').split('\n'); let html='',i=0;
+  const sep=l=>/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(l)&&l.includes('-');
+  while(i<L.length){ let l=L[i];
+    if(l.trim()===''){ i++; continue; }
+    if(l.includes('|') && i+1<L.length && sep(L[i+1])){
+      const hd=l.split('|').map(c=>c.trim()); if(hd[0]==='')hd.shift(); if(hd[hd.length-1]==='')hd.pop(); i+=2; const rows=[];
+      while(i<L.length && L[i].includes('|') && L[i].trim()!==''){ const c=L[i].split('|').map(x=>x.trim()); if(c[0]==='')c.shift(); if(c[c.length-1]==='')c.pop(); rows.push(c); i++; }
+      html+=`<table class="md-tbl"><thead><tr>${hd.map(h=>`<th>${mdInline(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${mdInline(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; continue; }
+    const hm=l.match(/^\s*(#{1,6})\s+(.*)$/); if(hm){ html+=`<div class="md-h">${mdInline(hm[2])}</div>`; i++; continue; }
+    if(/^\s*([-*•]|\d+\.)\s+/.test(l)){ const ol=/^\s*\d+\./.test(l); const it=[];
+      while(i<L.length && /^\s*([-*•]|\d+\.)\s+/.test(L[i])){ it.push(L[i].replace(/^\s*([-*•]|\d+\.)\s+/,'')); i++; }
+      html+=`<${ol?'ol':'ul'} class="md-list">${it.map(x=>`<li>${mdInline(x)}</li>`).join('')}</${ol?'ol':'ul'}>`; continue; }
+    const p=[l]; i++;
+    while(i<L.length && L[i].trim()!=='' && !/^\s*(#{1,6}\s|[-*•]\s|\d+\.\s)/.test(L[i]) && !(L[i].includes('|')&&i+1<L.length&&sep(L[i+1]))){ p.push(L[i]); i++; }
+    html+=`<p>${mdInline(p.join(' '))}</p>`;
+  }
+  return html;
+}
 const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
 
 /* ---------- index / resolver ---------- */
@@ -308,6 +338,17 @@ async function fillNet(q, prefetch=true){
   if(top){ preAnswer(top.question).then(()=>fillNet(q,false)); }   // one pre-answer per search; refresh without re-prefetching
 }
 
+// simple horizontal bar chart (pure SVG, no deps)
+function barChart(items){
+  if(!items||!items.length) return '';
+  const max=Math.max(...items.map(x=>x.value),1), W=600, bh=24, gap=10, h=items.length*(bh+gap)+8, lblW=150, barMax=W-lblW-60;
+  return `<svg viewBox="0 0 ${W} ${h}" style="width:100%;max-width:${W}px;height:auto;margin:4px 0">${items.map((x,i)=>{
+    const y=i*(bh+gap)+4, bw=Math.max(2,(x.value/max)*barMax);
+    return `<text x="0" y="${y+bh/2+4}" fill="#9aa7b8" font-size="12.5">${escapeHtml(String(x.label)).slice(0,20)}</text>`
+      +`<rect x="${lblW}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="#5b9dff" opacity="${(1-i*0.07).toFixed(2)}"/>`
+      +`<text x="${lblW+bw+7}" y="${y+bh/2+4}" fill="#fff" font-size="12.5" font-weight="600">${x.value}${x.unit||'%'}</text>`;
+  }).join('')}</svg>`;
+}
 /* ---------- main router ---------- */
 async function answer(q){
   const ents=resolveEntities(q), it=intent(q), tts=targetTokensIn(q);
@@ -424,6 +465,12 @@ async function buildReasonBundle(ctx){
     b.payer_bar=await sb("payer_tpp_criteria","select=tpp_dimension,minimum_acceptable,preferred_profile,biologic_advantage_claim,source_url&limit=5");
     b.patient_intelligence=await sb("indication_patient_intelligence","select=indication_name,unmet_need_narrative,biologic_nonresponse_rate,clinical_remission_benchmark&limit=2");
   }
+  // Meridian's own source URLs in the bundle → so a graph-grounded answer is marked sourced, not "0 sources"
+  try{ const ms=[],seen=new Set(); const add=(u,t)=>{ if(u&&/^https?:/.test(u)&&!seen.has(u)){ seen.add(u); ms.push({title:t||'Meridian',url:u}); } };
+    (b.cohort||[]).forEach(d=>add(d.source_url,d.name)); if(b.focus_drug) add(b.focus_drug.source_url,b.focus_drug.name);
+    (b.competitors||[]).forEach(d=>add(d.source_url,d.name)); (b.resources||[]).forEach(r=>add(r.source_url,r.claim_type)); (b.edges||[]).forEach(e=>add(e.src,e.pred));
+    b.meridian_sources=ms.slice(0,8);
+  }catch(_){}
   return b;
 }
 const slim=d=>({id:d.id,name:d.display_name||d.name,company:coName(d.company_id),stage:d.stage,target:d.target,indication:d.indication_short,thesis:d.differentiation_thesis,key_data:d.key_data,source_url:d.source_url});
@@ -498,7 +545,7 @@ function renderSynth(slot,j,isPrimary){
   const rel=(j.related||[]).map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('');
   const ans=cleanProse(j.answer||'');
   const ansHtml = ans
-    ? `<div class="card"><div class="synth-answer">${escapeHtml(ans)}</div></div>`
+    ? `<div class="card"><div class="synth-answer">${mdToHtml(ans)}</div></div>`
     : `<div class="card empty">No AI synthesis was returned this time — the structured answer below stands. Try again, or check the reasoning server.</div>`;
   const clar = (j.clarify && j.clarify.question)
     ? `<div class="card"><h3>To pin this down ↩</h3><div style="font-size:15px;color:#d6c2f5;margin-bottom:10px">${escapeHtml(j.clarify.question)}</div><div class="followups">${(j.clarify.options||[]).map(o=>`<span class="chip think" onclick="run('${J(o)}')">◇ ${escapeHtml(o)}</span>`).join('')}</div></div>`
@@ -507,18 +554,22 @@ function renderSynth(slot,j,isPrimary){
   const ns=(j.next_steps||[]).filter(Boolean);
   const nextHtml=ns.length?`<div class="card"><h3>What we can still figure out</h3><div class="followups">${ns.map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('')}</div></div>`:'';
   // ── trust layer: confidence from source quality/agreement, freshness, conflicts ──
-  const srcs=(j.citations||[]).filter(c=>c.url);
-  const domains=[...new Set(srcs.map(c=>(c.url||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]))];
+  const allc=(j.citations||[]);
+  const webSrcs=allc.filter(c=>/^https?:/.test(c.url||''));
+  const domains=[...new Set(webSrcs.map(c=>(c.url||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]))];
   const PRIMARY=/\.gov(\/|$|:)|clinicaltrials|fda\.|ema\.europa|sec\.gov|ncbi|nih\.gov|pubmed|nejm|thelancet|jamanetwork|nature\.com|gi\.org|\bir\.|investor|press-release/i;
-  const hasPrimary=srcs.some(c=>PRIMARY.test(c.url||''));
+  const meridian=(j.grounded==='meridian')||(allc.length>0&&webSrcs.length===0);
+  const hasPrimary=webSrcs.some(c=>PRIMARY.test(c.url||''))||meridian;
   const conflicts=(j.conflicts||[]).filter(c=>c&&c.point);
-  const tier=(conflicts.length||domains.length<=1||!ans)?'low':((domains.length>=3&&hasPrimary)?'high':'med');
-  const tLbl={high:'high confidence',med:'moderate confidence',low:'low confidence'}[tier], tCls={high:'good',med:'stage',low:'direct'}[tier];
+  const tier=conflicts.length?'low':((meridian||(domains.length>=3&&hasPrimary))?'high':(domains.length>=1?'med':'low'));
+  const tLbl=meridian?'grounded in Meridian data':{high:'high confidence',med:'moderate confidence',low:'low confidence'}[tier];
+  const tCls={high:'good',med:'stage',low:'direct'}[tier];
   const asof=j.as_of?('as of '+new Date(j.as_of).toLocaleDateString()):'researched just now';
+  const srcPill=(meridian&&!webSrcs.length)?'Meridian database':`${webSrcs.length} source${webSrcs.length!==1?'s':''} · ${domains.length} domain${domains.length!==1?'s':''}`;
   const trust=ans?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center">
     <span class="pill ${tCls}">${tLbl}</span>
-    <span class="pill">${srcs.length} source${srcs.length!==1?'s':''} · ${domains.length} domain${domains.length!==1?'s':''}</span>
-    <span class="pill ${hasPrimary?'good':''}">${hasPrimary?'primary source ✓':'secondary only'}</span>
+    <span class="pill">${srcPill}</span>
+    <span class="pill ${hasPrimary?'good':''}">${hasPrimary?(meridian?'curated ✓':'primary source ✓'):'secondary only'}</span>
     <span class="pill">${asof}</span>${conflicts.length?`<span class="pill direct">⚠ sources disagree</span>`:''}</div>`:'';
   const conflictCard=conflicts.length?`<div class="card" style="border-color:#5e2733"><h3 style="color:#fb7185">⚠ Sources disagree — verify before acting</h3>${conflicts.map(c=>`<div style="margin-bottom:11px"><div style="color:#fff;font-weight:600;font-size:14px">${escapeHtml(c.point)}</div>${(c.positions||[]).map(p=>`<div class="cs" style="margin-top:3px">• <b>${escapeHtml(p.stance||'')}</b> <span class="src">— ${escapeHtml(p.source||'')}</span></div>`).join('')}</div>`).join('')}</div>`:'';
   slot.innerHTML=`
@@ -615,6 +666,7 @@ async function rankAnswer(q,t,metric){
     const noData=cohort.filter(d=>!best[d.id]);
     const center=`
       <div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by clinical remission — <span class="hl">${ranked.length}</span> with reported data${noData.length?`, ${noData.length} without yet`:''}.</div>
+      ${ranked.length?`<div class="card"><h3>Remission by asset</h3>${barChart(ranked.map(x=>({label:(x.d.display_name||x.d.name).split('(')[0].trim(),value:x.e.value_pct})))}</div>`:''}
       <div class="card"><h3>By remission rate</h3>${ranked.length?`<table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Remission</th><th>vs pbo</th><th>Indication</th><th>Src</th></tr>
         ${ranked.map((x,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td class="num">${x.e.value_pct}%</td><td>${x.e.placebo_pct!=null?x.e.placebo_pct+'%':'—'}</td><td>${escapeHtml(x.e.indication_slug||'')}</td><td>${x.e.source_url?`<a href="${x.e.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table>`:'<div class="empty">No remission data captured yet for this target — ask one and it will populate.</div>'}
         ${noData.length?`<div class="src" style="margin-top:9px">No remission data yet: ${noData.slice(0,14).map(d=>escapeHtml(d.name)).join(', ')}</div>`:''}</div>`;
