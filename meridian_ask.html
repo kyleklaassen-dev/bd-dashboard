@@ -449,28 +449,57 @@ function actPanel(act){
 function loadActivity(kind,id){ askGet(`/entity-activity?${kind}=${enc(id)}`).then(act=>{ const el=document.getElementById('actSlot'); if(el&&act) el.innerHTML=actPanel(act); }); }
 
 /* ---------- SYNTHESIS ---------- */
-async function buildReasonBundle(ctx){
+const IND_KW=[['ulcerative colitis','colitis'],['crohn','crohn'],['atopic dermatitis','atopic'],['\\basthma\\b','asthma'],['thyroid eye','thyroid'],['\\bted\\b','thyroid'],['psoriasis','psoriasis'],['\\blupus\\b','lupus'],['hidradenitis','hidradenitis'],['\\bcopd\\b','copd'],['rheumatoid','rheumatoid']];
+function detectIndication(q){ const s=' '+(q||'').toLowerCase()+' '; for(const [re,key] of IND_KW){ if(new RegExp(re).test(s)) return key; } return null; }
+function collectSources(b){
+  const ms=[], seen=new Set(); const add=(u,t)=>{ if(u&&typeof u==='string'&&/^https?:/.test(u)&&!seen.has(u)){ seen.add(u); ms.push({title:String(t||'Meridian').slice(0,70),url:u}); } };
+  (b.drug_sources||[]).forEach(r=>add(r.source_url, r.claim_type));
+  (b.efficacy||[]).forEach(r=>add(r.source_url, (b.focus_drug?b.focus_drug.name+' ':'')+(r.endpoint_type||'efficacy')));
+  (b.catalysts||[]).forEach(r=>add(r.source_url, r.label));
+  (b.deals||[]).concat(b.company_deals||[]).forEach(r=>add(r.source_url, r.headline||'deal'));
+  if(b.focus_drug) add(b.focus_drug.source_url, b.focus_drug.name);
+  (b.cohort||[]).forEach(d=>add(d.source_url,d.name)); (b.edges||[]).forEach(e=>add(e.src,e.pred));
+  (b.nonresponder_rationale||[]).forEach(r=>{ const u=r.source_urls; (Array.isArray(u)?u:(u?[u]:[])).forEach(x=>add(x,'non-responder')); });
+  (b.payer_bar||[]).forEach(r=>add(r.source_url,'payer TPP'));
+  return ms.slice(0,12);
+}
+async function buildReasonBundle(ctx, q){
   const {drug,company,tts}=ctx;
-  const b={question_context:'meridian graph snapshot'};
-  if(drug){ b.focus_drug=slim(drug.row); b.edges=await peripheryEdges(drug.id); b.resources=await resourcesFor(drug.id); }
-  if(company){ b.focus_company=company.row; b.company_pipeline=DRUGS.filter(d=>d.company_id===company.id).map(slim); }
+  const b={question_context:'meridian curated database snapshot'};
+  if(drug){
+    const id=drug.id; b.focus_drug=slim(drug.row);
+    const [edges,dsrc,eff,cats,deals]=await Promise.all([
+      peripheryEdges(id),
+      sb("drug_sources",`select=claim_type,claim_value,source_url,source_domain&drug_id=eq.${enc(id)}&limit=10`),
+      sb("efficacy_benchmarks",`select=endpoint_type,value_pct,placebo_pct,timepoint,indication_slug,phase,trial_name,source_url&drug_id=eq.${enc(id)}&limit=12`),
+      sb("catalysts",`select=label,catalyst_date,catalyst_type,significance,source_url&drug_id=eq.${enc(id)}&order=sort_date&limit=8`),
+      sb("deals",`select=deal_date_label,from_company,to_company,deal_type,upfront_usd_m,total_usd_m,headline,source_url&drug_id=eq.${enc(id)}&limit=6`)
+    ]);
+    b.edges=edges; b.drug_sources=dsrc; b.efficacy=eff; b.catalysts=cats; b.deals=deals;
+  }
+  if(company){
+    const id=company.id; b.focus_company=company.row;
+    b.company_pipeline=DRUGS.filter(d=>d.company_id===id||d.lead_company_id===id).map(slim);
+    const [coDeals,coSig]=await Promise.all([
+      sb("deals",`select=deal_date_label,from_company,to_company,drug_id,deal_type,upfront_usd_m,total_usd_m,headline,source_url&company_id=eq.${enc(id)}&limit=8`),
+      sb("company_signals",`select=*&company_id=eq.${enc(id)}&limit=6`).catch(()=>[])
+    ]);
+    b.company_deals=coDeals; b.company_signals=coSig;
+  }
   if(tts.length){
     const cohort = tts.length>=2?byArchetype(tts):byTok(tts[0]);
-    b.target_tokens=tts;
-    b.cohort=cohort.map(slim);
-    b.cohort_stage_breakdown=tally(cohort.map(d=>d.stage));
+    b.target_tokens=tts; b.cohort=cohort.map(slim); b.cohort_stage_breakdown=tally(cohort.map(d=>d.stage));
     b.mechanism_precedent=await sb("mechanism_precedent_map",`select=target,mechanism_class,approved_drugs_count,accepted_primary_endpoints,accepted_biomarkers,regulatory_precedent_level,bd_regulatory_note&or=(${tts.map(t=>`target.ilike.*${enc(t)}*`).join(',')})`);
     b.failure_precedent=await sb("drug_failure_cascade",`select=failed_drug_name,failure_type,mechanism,impact_direction,impact_rationale&or=(${tts.map(t=>`mechanism.ilike.*${enc(t)}*`).join(',')})&limit=8`);
     b.nonresponder_rationale=await sb("drug_nonresponder_profiles",`select=mechanism_class,nonresponder_rate_pct,escape_mechanism,combination_rescue_hypothesis,source_urls&or=(${tts.map(t=>`mechanism_class.ilike.*${enc(t)}*`).join(',')})&limit=5`);
     b.payer_bar=await sb("payer_tpp_criteria","select=tpp_dimension,minimum_acceptable,preferred_profile,biologic_advantage_claim,source_url&limit=5");
-    b.patient_intelligence=await sb("indication_patient_intelligence","select=indication_name,unmet_need_narrative,biologic_nonresponse_rate,clinical_remission_benchmark&limit=2");
   }
-  // Meridian's own source URLs in the bundle → so a graph-grounded answer is marked sourced, not "0 sources"
-  try{ const ms=[],seen=new Set(); const add=(u,t)=>{ if(u&&/^https?:/.test(u)&&!seen.has(u)){ seen.add(u); ms.push({title:t||'Meridian',url:u}); } };
-    (b.cohort||[]).forEach(d=>add(d.source_url,d.name)); if(b.focus_drug) add(b.focus_drug.source_url,b.focus_drug.name);
-    (b.competitors||[]).forEach(d=>add(d.source_url,d.name)); (b.resources||[]).forEach(r=>add(r.source_url,r.claim_type)); (b.edges||[]).forEach(e=>add(e.src,e.pred));
-    b.meridian_sources=ms.slice(0,8);
-  }catch(_){}
+  const ind=detectIndication(q);
+  if(ind){
+    b.indication_focus=ind;
+    b.patient_intelligence=await sb("indication_patient_intelligence",`select=indication_name,unmet_need_narrative,biologic_nonresponse_rate,clinical_remission_benchmark,endoscopic_remission_benchmark&indication_name=ilike.*${enc(ind)}*&limit=2`);
+  }
+  b.meridian_sources=collectSources(b);   // real clickable Meridian sources for graph-grounded answers
   return b;
 }
 const slim=d=>({id:d.id,name:d.display_name||d.name,company:coName(d.company_id),stage:d.stage,target:d.target,indication:d.indication_short,thesis:d.differentiation_thesis,key_data:d.key_data,source_url:d.source_url});
@@ -484,7 +513,7 @@ async function reasoningAnswer(q,ctx){
     side=`<h4>Cohort in scope (${cohort.length})</h4>`+cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)).slice(0,10).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join(''); }
   else if(drug){ side=connCards(await peripheryEdges(drug.id),'Connections'); }
   shell({asked:q,tag:'Reasoned answer',tagCls:'reason',title:'Thinking it through…',centerHTML:'',sideHTML:side});
-  const bundle=await buildReasonBundle(ctx);
+  const bundle=await buildReasonBundle(ctx, q);
   await streamSynth(q,bundle,'#synthSlot',true);  // types the answer in live (falls back if streaming unavailable)
   // after synth, restore title from the answer's first line handled in render
 }
