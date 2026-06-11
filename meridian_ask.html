@@ -470,17 +470,17 @@ function renderSynth(slot,j,isPrimary){
   const ns=(j.next_steps||[]).filter(Boolean);
   const nextHtml=ns.length?`<div class="card"><h3>What we can still figure out</h3><div class="followups">${ns.map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('')}</div></div>`:'';
   // ── trust layer: confidence from source quality/agreement, freshness, conflicts ──
-  const cites=(j.citations||[]).filter(c=>c.url);
-  const domains=[...new Set(cites.map(c=>(c.url||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]))];
+  const srcs=(j.citations||[]).filter(c=>c.url);
+  const domains=[...new Set(srcs.map(c=>(c.url||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]))];
   const PRIMARY=/\.gov(\/|$|:)|clinicaltrials|fda\.|ema\.europa|sec\.gov|ncbi|nih\.gov|pubmed|nejm|thelancet|jamanetwork|nature\.com|gi\.org|\bir\.|investor|press-release/i;
-  const hasPrimary=cites.some(c=>PRIMARY.test(c.url||''));
+  const hasPrimary=srcs.some(c=>PRIMARY.test(c.url||''));
   const conflicts=(j.conflicts||[]).filter(c=>c&&c.point);
   const tier=(conflicts.length||domains.length<=1||!ans)?'low':((domains.length>=3&&hasPrimary)?'high':'med');
   const tLbl={high:'high confidence',med:'moderate confidence',low:'low confidence'}[tier], tCls={high:'good',med:'stage',low:'direct'}[tier];
   const asof=j.as_of?('as of '+new Date(j.as_of).toLocaleDateString()):'researched just now';
   const trust=ans?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center">
     <span class="pill ${tCls}">${tLbl}</span>
-    <span class="pill">${cites.length} source${cites.length!==1?'s':''} · ${domains.length} domain${domains.length!==1?'s':''}</span>
+    <span class="pill">${srcs.length} source${srcs.length!==1?'s':''} · ${domains.length} domain${domains.length!==1?'s':''}</span>
     <span class="pill ${hasPrimary?'good':''}">${hasPrimary?'primary source ✓':'secondary only'}</span>
     <span class="pill">${asof}</span>${conflicts.length?`<span class="pill direct">⚠ sources disagree</span>`:''}</div>`:'';
   const conflictCard=conflicts.length?`<div class="card" style="border-color:#5e2733"><h3 style="color:#fb7185">⚠ Sources disagree — verify before acting</h3>${conflicts.map(c=>`<div style="margin-bottom:11px"><div style="color:#fff;font-weight:600;font-size:14px">${escapeHtml(c.point)}</div>${(c.positions||[]).map(p=>`<div class="cs" style="margin-top:3px">• <b>${escapeHtml(p.stance||'')}</b> <span class="src">— ${escapeHtml(p.source||'')}</span></div>`).join('')}</div>`).join('')}</div>`:'';
