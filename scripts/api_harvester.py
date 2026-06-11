@@ -82,11 +82,11 @@ def harvest_ctgov():
         el = ps.get("eligibilityModule", {})
         if el and not DRY:
             crit = el.get("eligibilityCriteria", "")
-            write("trial_eligibility", [dict(nct_id=nct, drug_id=did, minimum_age=el.get("minimumAge"),
+            c.insert("trial_eligibility", [dict(nct_id=nct, drug_id=did, minimum_age=el.get("minimumAge"),
                 maximum_age=el.get("maximumAge"), sex=el.get("sex"),
                 healthy_volunteers=(str(el.get("healthyVolunteers")).lower() == "yes"),
                 criteria_text=crit[:6000], prior_biologic_required=("biologic" in crit.lower()),
-                source_url=url, fetched_at=NOW())])
+                source_url=url, fetched_at=NOW())], on_conflict="nct_id")  # PK is nct_id, not id
         # locations
         locs = ps.get("contactsLocationsModule", {}).get("locations", []) or []
         write("trial_locations", [dict(id=f"{nct}_{i}", nct_id=nct, facility=l.get("facility"),
