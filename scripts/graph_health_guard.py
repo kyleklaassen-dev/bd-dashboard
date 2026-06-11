@@ -84,9 +84,53 @@ def check_edge_quality():
     return len(viol)
 
 
+import datetime, json
+
+STALE_DAYS = 180  # re-verify edges not touched in this many days
+
+
+def decay_edges():
+    """Mark aging edges 'needs_revalidation' so stale relationships surface for re-check.
+    No-op while the DB is young; activates automatically as edges age past STALE_DAYS."""
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=STALE_DAYS)).isoformat()
+    stale = c.select_all("entity_edges", {"select": "id", "updated_at": f"lt.{cutoff}",
+                                          "staleness_status": "eq.fresh"})
+    print(f"edge decay: {len(stale)} edges older than {STALE_DAYS}d -> needs_revalidation")
+    if stale and not DRY:
+        for i in range(0, len(stale), 200):
+            ids = ",".join(s["id"] for s in stale[i:i+200])
+            c.update("entity_edges", f"id=in.({ids})", {"staleness_status": "needs_revalidation"})
+    return len(stale)
+
+
+def write_digest(conn_viol, dangling_now, stale_edges):
+    edge_counts = {}
+    for e in c.select_all("entity_edges", {"select": "predicate"}):
+        edge_counts[e["predicate"]] = edge_counts.get(e["predicate"], 0) + 1
+    cov = {}
+    for r in c.select_all("v_node_coverage", {"select": "source_coverage"}):
+        k = str(r["source_coverage"]); cov[k] = cov.get(k, 0) + 1
+    open_viol = len(c.select_all("governance_violations", {"select": "id", "resolved": "eq.false"}))
+    digest = dict(id=1, connectivity_ok=(conn_viol == 0 and dangling_now == 0),
+                  orphan_count=0 if conn_viol == 0 else None, dangling_count=dangling_now,
+                  stale_edges=stale_edges, open_violations=open_viol,
+                  edge_counts=edge_counts, node_coverage=cov,
+                  computed_at=datetime.datetime.utcnow().isoformat())
+    print(f"digest: connectivity_ok={digest['connectivity_ok']} edges={sum(edge_counts.values())} open_violations={open_viol}")
+    if not DRY:
+        c.insert("graph_health_digest", [digest], on_conflict="id")
+
+
 if __name__ == "__main__":
     print("=== graph health guard" + (" (DRY)" if DRY else "") + " ===")
     n1 = check_connectivity()
     n2 = check_edge_quality()
-    print(f"DONE. connectivity violations: {n1} | edge-quality flags: {n2}")
-    print("HEALTHY" if (n1 == 0) else "ATTENTION: connectivity violations raised")
+    n3 = decay_edges()
+    # recompute dangling for the digest
+    pubs = {p["pmid"] for p in c.select_all("publications", {"select": "pmid"}) if p.get("pmid")}
+    dangling_now = sum(1 for e in c.select_all("entity_edges",
+                       {"select": "object_id", "predicate": "eq.STUDIES", "object_type": "eq.publication"})
+                       if e["object_id"] not in pubs)
+    write_digest(n1, dangling_now, n3)
+    print(f"DONE. connectivity violations: {n1} | edge-quality flags: {n2} | decayed: {n3}")
+    print("HEALTHY" if (n1 == 0 and dangling_now == 0) else "ATTENTION: connectivity issues")
