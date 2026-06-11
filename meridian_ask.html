@@ -213,9 +213,12 @@ function targetTokensIn(q){
 const MODALITY=/\bbispecific\b|\bbi-?specific\b|\bmonoclonal\b|\bmab\b|\bantibody\b|small molecule|\boral\b|\bvhh\b|nanobody|trispecific/i;
 const STAGEWORD=/\bpreclinical\b|\bphase\s?[123]\b|\bphase\s?(i{1,3})\b|\bapproved\b|\bclinical\b|\bIND\b/i;
 const REASON=/most important|what (should|matters|to consider)|\bconsider\b|\bshould i\b|\bwhy\b|how (do|would|should|can)|\bbest\b|\bworst\b|\brisk\b|\bbetter\b|\bvs\.?\b|\bversus\b|\bcompare\b|advantage|weakness|strength|\bstrateg|implication|trade-?off|too crowded|worth|recommend|\bbeat\b|differentiat/i;
+// "count" only means counting DRUGS/COMPANIES on a target — not "patient count", "cell count", etc.
+const COUNT_SUBJ=/\b(drugs?|molecules?|assets?|programs?|compounds?|antibod\w*|bispecifics?|mabs?|companies|company|players?)\b/;
+const TRIAL_ATTR=/\bpatients?\b|enroll|enrol(ment|led)|participants|sample\s*size|\bn\s*=|cohort size|patient count|cell count|blood count/;
 function intent(q){
   const s=q.toLowerCase();
-  if(/\bhow many\b|\bnumber of\b|\bcount\b/.test(s)) return 'count';
+  if(/\b(how many|number of|count of)\b/.test(s) && COUNT_SUBJ.test(s) && !TRIAL_ATTR.test(s)) return 'count';
   if(/\blead(ing|er|ers)?\b|who('?s| is)?\s+(winning|ahead|leading|furthest)|furthest along|top (company|player|drug)/.test(s)) return 'leader';
   if(/completion date|read ?out|when (will|does|is|do)|timeline|catalyst|pdufa|approval date|expected|milestone|finish/.test(s)) return 'timeline';
   if(/remission|efficac|response rate|endpoint|\bresults?\b|how effective|safety|\bpk\b|half-?life|\bdata\b/.test(s)) return 'efficacy';
@@ -404,9 +407,12 @@ function renderSynth(slot,j,isPrimary){
   const ansHtml = ans
     ? `<div class="card"><div class="synth-answer">${escapeHtml(ans)}</div></div>`
     : `<div class="card empty">No AI synthesis was returned this time — the structured answer below stands. Try again, or check the reasoning server.</div>`;
+  const clar = (j.clarify && j.clarify.question)
+    ? `<div class="card"><h3>To pin this down ↩</h3><div style="font-size:15px;color:#d6c2f5;margin-bottom:10px">${escapeHtml(j.clarify.question)}</div><div class="followups">${(j.clarify.options||[]).map(o=>`<span class="chip think" onclick="run('${J(o)}')">◇ ${escapeHtml(o)}</span>`).join('')}</div></div>`
+    : '';
   slot.innerHTML=`
     ${badge?`<div style="margin-bottom:10px">${badge}</div>`:''}
-    ${ansHtml}
+    ${ansHtml}${clar}
     ${reason?`<div class="card"><h3>How that breaks down</h3><ul class="reason-list">${reason}</ul></div>`:''}
     ${rel?`<div class="card"><h3>Around the outside</h3><div class="followups">${rel}</div></div>`:''}
     ${cites?`<div class="card"><h3>Sources <span class="src">· ${(j.model||'')}${j.web_search?' · web':''}</span></h3>${cites}</div>`:''}`;
