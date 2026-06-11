@@ -394,6 +394,66 @@ def harvest_opentargets_extra():
     _stamp("opentargets_knowndrugs")
 
 
+# ---------------- TIER 3: IUPHAR/GtoPdb -> iuphar_interactions (ligand-target affinity) --------
+def harvest_iuphar():
+    base = "https://www.guidetopharmacology.org/services"
+    for d in drugs():
+        name = (d.get("inn_name") or d.get("name") or "").strip()
+        if not name:
+            continue
+        ligs = _get(f"{base}/ligands?name={urllib.parse.quote(name)}") or []
+        if not isinstance(ligs, list) or not ligs:
+            time.sleep(0.25); continue
+        lig = ligs[0]; lid = lig.get("ligandId")
+        store_raw("iuphar", "drug", lid, d["id"], f"{base}/ligands/{lid}", lig)
+        ints = _get(f"{base}/ligands/{lid}/interactions") or []
+        rows = []
+        for it in (ints if isinstance(ints, list) else []):
+            pmid = str((it.get("refs") or [{}])[0].get("pmid") or "") or None
+            rows.append(dict(id=f"iuphar_{d['id']}_{it.get('interactionId')}", drug_id=d["id"],
+                ligand_id=lid, ligand_name=lig.get("name"), inn=lig.get("inn"),
+                approved=lig.get("approved"), immuno=lig.get("immuno"),
+                target_id=it.get("targetId"), target_name=it.get("targetName"),
+                action_type=it.get("action"), affinity=_num(it.get("affinity")),
+                affinity_parameter=it.get("affinityParameter"), pmid=pmid,
+                source_url=f"{base}/ligands/{lid}/interactions", fetched_at=NOW()))
+        if rows and not DRY:
+            for i in range(0, len(rows), 300):
+                c.insert("iuphar_interactions", rows[i:i+300], on_conflict="id")
+        time.sleep(0.3)
+    _stamp("iuphar")
+
+
+# ---------------- TIER 3: DGIdb -> dgidb_interactions (drug-gene, GraphQL POST) ----------------
+def harvest_dgidb():
+    url = "https://dgidb.org/api/graphql"
+    for d in drugs():
+        name = (d.get("inn_name") or d.get("name") or "").strip().upper()
+        if not name:
+            continue
+        q = ("query($n:[String!]){drugs(names:$n){nodes{name interactions{gene{name} "
+             "interactionScore interactionTypes{type}}}}}")
+        res = _post(url, {"query": q, "variables": {"n": [name]}})
+        nodes = (((res or {}).get("data") or {}).get("drugs") or {}).get("nodes") or []
+        store_raw("dgidb", "drug", d["id"], d["id"], url, res or {})
+        rows = []
+        for node in nodes:
+            for it in node.get("interactions", []) or []:
+                gene = (it.get("gene") or {}).get("name")
+                itype = ", ".join(t.get("type", "") for t in (it.get("interactionTypes") or [])) or None
+                if not gene:
+                    continue
+                rows.append(dict(id=f"dgidb_{d['id']}_{gene}", drug_id=d["id"], gene_name=gene,
+                    interaction_type=itype, interaction_score=_num(it.get("interactionScore")),
+                    sources=None, source_url=url, fetched_at=NOW()))
+        rows = list({r["id"]: r for r in rows}.values())
+        if rows and not DRY:
+            for i in range(0, len(rows), 300):
+                c.insert("dgidb_interactions", rows[i:i+300], on_conflict="id")
+        time.sleep(0.3)
+    _stamp("dgidb")
+
+
 def _isnum(v):
     try: float(v); return True
     except (TypeError, ValueError): return False
@@ -404,7 +464,7 @@ def _stamp(src):
 
 def main():
     flags = ["--ctgov", "--openfda", "--chembl", "--opentargets", "--drugsfda", "--identifiers",
-             "--chembl-mech", "--uniprot", "--ot-extra"]
+             "--chembl-mech", "--uniprot", "--ot-extra", "--iuphar", "--dgidb"]
     if not any(ARG(f) for f in flags):
         print("specify one of " + "/".join(flags) + " or --all"); return
     if ARG("--ctgov"): harvest_ctgov()
@@ -416,6 +476,8 @@ def main():
     if ARG("--chembl-mech"): harvest_chembl_mechanism()
     if ARG("--uniprot"): harvest_uniprot()
     if ARG("--ot-extra"): harvest_opentargets_extra()
+    if ARG("--iuphar"): harvest_iuphar()
+    if ARG("--dgidb"): harvest_dgidb()
     print("Harvest complete" + (" (DRY)" if DRY else ""))
     # Note: Europe PMC -> publications is owned by abstract_fetcher.py (one writer).
 
