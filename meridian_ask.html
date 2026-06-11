@@ -430,11 +430,9 @@ async function reasoningAnswer(q,ctx){
   if(tts.length){ const cohort=tts.length>=2?byArchetype(tts):byTok(tts[0]);
     side=`<h4>Cohort in scope (${cohort.length})</h4>`+cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)).slice(0,10).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join(''); }
   else if(drug){ side=connCards(await peripheryEdges(drug.id),'Connections'); }
-  shell({asked:q,tag:'Reasoned answer',tagCls:'reason',title:'Thinking it through…',
-    centerHTML:`<div class="card"><div class="loading"><span class="dot"></span>gathering precedent &amp; reasoning over the graph…</div></div>`,
-    sideHTML:side});
+  shell({asked:q,tag:'Reasoned answer',tagCls:'reason',title:'Thinking it through…',centerHTML:'',sideHTML:side});
   const bundle=await buildReasonBundle(ctx);
-  await callSynth(q,bundle,'#synthSlot',true);
+  await streamSynth(q,bundle,'#synthSlot',true);  // types the answer in live (falls back if streaming unavailable)
   // after synth, restore title from the answer's first line handled in render
 }
 async function deepen(q,bundle,title){
@@ -459,6 +457,27 @@ async function callSynth(q,bundle,sel,isPrimary){
     slot.innerHTML=`<div class="card empty">Reasoning server not reachable. Start it with <code>python3 meridian_ask_synth.py</code> (or set <code>SYNTH_ENDPOINT</code>). The structured answer below still stands.<div class="synthnote">${escapeHtml(e.message)}</div></div>`;
     if(isPrimary) logQuestion(q,'unresolved');  // no question lost — queue it for the resolver
   }
+}
+async function streamSynth(q,bundle,sel,isPrimary){
+  const slot=document.querySelector(sel); if(!slot) return;
+  const stop=startProgress(slot); let started=false, acc='';
+  try{
+    const r=await fetch(SYNTH_BASE+'/ask-stream',{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,bundle,entities:entsPayload(q)})});
+    if(!r.ok||!r.body) throw new Error('no stream');
+    const reader=r.body.getReader(), dec=new TextDecoder(); let sse='';
+    while(true){ const {done,value}=await reader.read(); if(done) break;
+      sse+=dec.decode(value,{stream:true}); let i;
+      while((i=sse.indexOf('\n\n'))>=0){ const block=sse.slice(0,i); sse=sse.slice(i+2);
+        const ei=block.indexOf('\n'); if(ei<0) continue;
+        const ev=block.slice(0,ei).replace(/^event:\s*/,'').trim(); let data; try{ data=JSON.parse(block.slice(ei+1).replace(/^data:\s*/,'')); }catch{ continue; }
+        if(ev==='delta'){ if(!started){ stop(); started=true; slot.innerHTML=`<div class="card"><div class="synth-answer" id="streamProse"></div><div class="src" style="margin-top:8px"><span class="dot"></span>composing live…</div></div>`; }
+          acc+=(data.text||''); const el=document.getElementById('streamProse'); if(el) el.textContent=acc; }
+        else if(ev==='result'){ renderSynth(slot,data,isPrimary); }
+        else if(ev==='error'){ throw new Error(data.message||'stream error'); }
+      }
+    }
+    if(!started) throw new Error('no deltas');
+  }catch(e){ stop(); if(!started){ return callSynth(q,bundle,sel,isPrimary); } }  // fall back only if streaming never started
 }
 function renderSynth(slot,j,isPrimary){
   if(isPrimary){ const h=document.querySelector('.answer-h'); if(h) h.textContent = j.headline || 'Reasoned answer'; }
