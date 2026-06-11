@@ -27,7 +27,7 @@
   th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
   th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;background:var(--card)}
   tr:last-child td{border-bottom:none}
-  .scroll{max-height:380px;overflow:auto}
+  .scroll{max-height:640px;overflow:auto}
   .pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
   .hi{background:#fbe9d8;color:var(--warn)} .md{background:#e7f0fe;color:var(--accent)} .lo{background:#eef1f5;color:var(--slate)}
   .bad{background:#fbe0e0;color:var(--bad)} .ok{background:#e6f5ee;color:var(--good)}
@@ -64,7 +64,7 @@
 
   <div class="sect"><div class="sect-t">01 · Start here — synthesis &amp; coverage</div><div class="sect-d">The big picture first: what the data concludes, and how complete it is.</div></div>
   <h2>Strategic conclusions — derived from the graph (every conclusion cites its source rows)</h2>
-  <div class="card" style="padding:6px 4px;max-height:560px;overflow:auto"><div id="insights" class="muted" style="padding:10px 12px">loading…</div></div>
+  <div class="card" style="padding:6px 4px;max-height:1200px;overflow:auto"><div id="insights" class="muted" style="padding:10px 12px">loading…</div></div>
 
   <h2>Data coverage — completeness by domain (heat-map summary)</h2>
   <div class="card"><div class="scroll"><table id="coverage"><thead><tr><th>Domain</th><th>Filled / Expected</th><th>Coverage</th></tr></thead><tbody><tr><td class="muted" colspan="3">loading…</td></tr></tbody></table></div></div>
@@ -186,6 +186,7 @@ const KEY="sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
 const H={apikey:KEY,Authorization:"Bearer "+KEY};
 const esc=s=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function rows(q){const r=await fetch(SB+q,{headers:H});if(!r.ok)throw new Error(r.status);return r.json();}
+async function allRows(q){let out=[],off=0,page=1000;for(;;){const r=await fetch(SB+q,{headers:{...H,Range:off+"-"+(off+page-1),"Range-Unit":"items"}});if(!r.ok)throw new Error(r.status);const c=await r.json();out=out.concat(c);if(!Array.isArray(c)||c.length<page)return out;off+=page;}}
 async function count(t){const r=await fetch(SB+"/"+t+"?select=id",{headers:{...H,Prefer:"count=exact",Range:"0-0"}});return (r.headers.get("content-range")||"/?").split("/").pop();}
 async function cntq(q){const r=await fetch(SB+"/"+q,{headers:{...H,Prefer:"count=exact",Range:"0-0"}});return (r.headers.get("content-range")||"/?").split("/").pop();}
 const sig=s=>s==="high"?'<span class="pill hi">high</span>':s==="medium"?'<span class="pill md">med</span>':'<span class="pill lo">'+esc(s||"low")+'</span>';
@@ -221,19 +222,19 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
   const drugSrc={}; try{(await rows("/drugs?select=id,source_url")).forEach(r=>{if(r.source_url)drugSrc[r.id]=r.source_url;});}catch(e){}
 
   // Strategic conclusions (derived) → each cites the source rows it was computed from
-  try{const d=await rows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc&limit=600`);
+  try{const d=await allRows(`/strategic_insights?select=insight_type,title,detail,metric,source_tables,confidence&order=insight_type.asc`);
     const groups={};d.forEach(r=>{(groups[r.insight_type]=groups[r.insight_type]||[]).push(r);});
     const LBL={acquisition_signal:'Acquisition signals',ma_event:'M&amp;A events (confirmed)',deal_event:'Deal events (SEC 8-K)',partnership_termination:'Partnership terminations (de-risking)',readout_imminent:'Readouts imminent (&lt;6 mo)',conference_readout:'Conference readouts (late-breaker / positive)',discontinuation_signal:'Discontinuation signals',trial_quality:'Trial-design quality (evidence believability)',high_impact_literature:'High-impact literature (citations)',genetically_validated:'Genetically-validated targets (Open Targets)',target_safety_genetics:'Target LoF constraint (genetic safety)',patent_fto:'Patent / FTO landscape',orphan_designation:'FDA orphan designations (7yr exclusivity)',exclusivity_cliff:'Exclusivity cliffs (&lt;36 mo)',eu_approval_lag:'EU approval lag / lead',financing_signal:'Financing pressure (dilutive raise + short runway)',funding_momentum:'NIH funding momentum (upstream science)',manufacturing_risk:'Manufacturing risk (very-high CMC)',label_safety:'Label safety — boxed warnings',safety_burden:'Safety burden (FAERS)',evidence_corroboration:'Evidence depth (linked literature)',pathway_adjacency:'Pathway adjacency (whitespace)',news_sentiment_extreme:'News-sentiment extremes',competitive_density:'Crowded targets',china_blind_spot:'China blind spots (gap — paid source needed)',data_integrity:'Data-integrity flags (entity resolution)',author_hub:'Author hubs (literature KOLs)',kol_dual_signal:'KOL dual-signal (investigator + author)',seminal_evidence:'Seminal evidence (BD-relevant)',patient_whitespace:'Patient whitespace (unmet need × thin competition)',research_hub:'Research hubs (institutions by area)',kol_collaboration_cluster:'KOL collaboration clusters',kol_influence_ranking:'KOL influence ranking (trials + pubs + citations)',research_hub_institution:'Research-hub institutions',academic_industry_bridge:'Academic ↔ industry bridges',kol_hub:'KOL hubs'};
     const order=['acquisition_signal','ma_event','deal_event','partnership_termination','readout_imminent','conference_readout','discontinuation_signal','trial_quality','genetically_validated','target_safety_genetics','high_impact_literature','patent_fto','orphan_designation','exclusivity_cliff','eu_approval_lag','financing_signal','funding_momentum','manufacturing_risk','label_safety','safety_burden','evidence_corroboration','pathway_adjacency','news_sentiment_extreme','competitive_density','china_blind_spot','data_integrity','kol_hub'];
     const keys=order.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!order.includes(k)));
     document.getElementById('insights').innerHTML=keys.map(k=>{const items=groups[k];
       return `<div style="margin:8px 10px 14px"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:6px">${LBL[k]||esc(k)} <span class="muted">· ${items.length}</span></div>`+
-        items.slice(0,8).map(r=>`<div style="margin:5px 0;padding-left:10px;border-left:2px solid var(--soft)"><b style="font-size:13px">${esc(r.title)}</b><div class="muted" style="font-size:12px">${esc(r.detail||'')}</div><div class="muted" style="font-size:10.5px;margin-top:1px">derived from: ${esc((r.source_tables||[]).join(', '))}${r.confidence?' · '+esc(r.confidence):''}</div></div>`).join('')+`</div>`;
+        items.map(r=>`<div style="margin:5px 0;padding-left:10px;border-left:2px solid var(--soft)"><b style="font-size:13px">${esc(r.title)}</b><div class="muted" style="font-size:12px">${esc(r.detail||'')}</div><div class="muted" style="font-size:10.5px;margin-top:1px">derived from: ${esc((r.source_tables||[]).join(', '))}${r.confidence?' · '+esc(r.confidence):''}</div></div>`).join('')+`</div>`;
     }).join('')||'<div class="muted" style="padding:10px">none</div>';
   }catch(e){document.getElementById('insights').textContent='unavailable — open in a browser with internet';}
 
   // Patient unmet need → whitespace (excludes umbrella/0-competitor coverage artifacts)
-  try{const d=await rows(`/patient_unmet_need_competition?select=indication_name,unmet_need_score,competitor_count,whitespace_score,source_urls&competitor_count=gte.1&order=whitespace_score.desc&limit=20`);
+  try{const d=await allRows(`/patient_unmet_need_competition?select=indication_name,unmet_need_score,competitor_count,whitespace_score,source_urls&competitor_count=gte.1&order=whitespace_score.desc`);
     fill("patient",d.map(r=>{const u=(r.source_urls||[])[0]||"";return TR(u,`<td>${A(u,r.indication_name)}</td><td>${esc(r.unmet_need_score??"")}</td><td>${esc(r.competitor_count??"")}</td><td><span class="pill ${r.whitespace_score>=0.5?'hi':'md'}">${Number(r.whitespace_score).toFixed(2)}</span></td>`);}).join(""));}catch(e){ec("patient",4);}
 
   // Data coverage — completeness % by domain (the heat-map summary)
@@ -244,132 +245,132 @@ document.addEventListener("click",e=>{if(e.target.closest("a"))return;const tr=e
     fill("coverage",rr.sort((a,b)=>b.pct-a.pct).map(r=>`<tr><td><b>${esc(r.d)}</b></td><td class="muted">${r.f} / ${r.e}</td><td>${bar(r.pct)}</td></tr>`).join("")+`<tr><td><b>OVERALL</b></td><td class="muted">${tf} / ${te}</td><td>${bar(te>0?Math.round(100*tf/te):0)}</td></tr>`);}catch(e){ec("coverage",3);}
 
   // Catalysts → ClinicalTrials.gov study record
-  try{const d=await rows(`/catalysts?select=label,catalyst_date,sort_date,significance,source_url,related_trial_id&confidence_source=eq.ct_gov&sort_date=gte.${today}&order=sort_date.asc&limit=40`);
+  try{const d=await allRows(`/catalysts?select=label,catalyst_date,sort_date,significance,source_url,related_trial_id&confidence_source=eq.ct_gov&sort_date=gte.${today}&order=sort_date.asc`);
     fill("catalysts",d.map(r=>{const u=r.source_url||(r.related_trial_id?("https://clinicaltrials.gov/study/"+r.related_trial_id):"");return TR(u,`<td>${esc(fmtDate(r.catalyst_date||r.sort_date))}</td><td>${A(u,r.label)}</td><td>${sig(r.significance)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("catalysts",3);}
 
   // Regulatory designations → granting authority + documented provenance
-  try{const d=await rows(`/regulatory_designations?select=drug_id,designation_type,indication,granted_date,source,granting_authority&order=designation_type&limit=40`);
+  try{const d=await allRows(`/regulatory_designations?select=drug_id,designation_type,indication,granted_date,source,granting_authority&order=designation_type`);
     fill("reg",d.map(r=>{const u=drugSrc[r.drug_id]||ctSearch(r.drug_id);return TR(u,`<td>${A(u,r.drug_id)}</td><td><span class="pill md">${esc(r.designation_type)}</span><div class="muted" style="font-size:11px">${esc(r.source||r.granting_authority||"")}</div></td><td>${esc(fmtDate(r.granted_date)||r.indication||"")}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("reg",3);}
 
   // KOLs → ClinicalTrials.gov investigator search
-  try{const d=await rows(`/kols?select=name,trial_count&order=trial_count.desc.nullslast&limit=30`);
+  try{const d=await allRows(`/kols?select=name,trial_count&order=trial_count.desc.nullslast`);
     fill("kols",d.map(r=>{const u=ctSearch(r.name);return TR(u,`<td>${A(u,r.name)}</td><td>${esc(r.trial_count??"")}</td>`);}).join(""));}catch(e){ec("kols",2);}
 
   // Exclusivity cliffs → small-molecule patents (Google Patents) + biologic reference-product (Purple Book)
   try{const [pat,exc]=await Promise.all([
-      rows(`/drug_patents?select=drug_id,patent_no,patent_expire_date,source_url&drug_substance_flag=eq.true&patent_expire_date=gte.${today}&order=patent_expire_date.asc&limit=60`),
-      rows(`/drug_exclusivity?select=drug_id,exclusivity_date,source_url&is_biologic=eq.true&exclusivity_code=eq.REF_PRODUCT_12YR&exclusivity_date=gte.${today}&order=exclusivity_date.asc&limit=60`)
+      rows(`/drug_patents?select=drug_id,patent_no,patent_expire_date,source_url&drug_substance_flag=eq.true&patent_expire_date=gte.${today}&order=patent_expire_date.asc`),
+      rows(`/drug_exclusivity?select=drug_id,exclusivity_date,source_url&is_biologic=eq.true&exclusivity_code=eq.REF_PRODUCT_12YR&exclusivity_date=gte.${today}&order=exclusivity_date.asc`)
     ]);
     const merged=[
       ...pat.map(r=>({drug:r.drug_id,type:'Patent '+(r.patent_no||''),exp:r.patent_expire_date,url:gpat(r.patent_no)||r.source_url,lbl:'US '+r.patent_no})),
       ...exc.map(r=>({drug:r.drug_id,type:'Biologic RPE · BLA 12-yr',exp:r.exclusivity_date,url:"https://purplebooksearch.fda.gov/advanced-search?query="+encodeURIComponent(r.drug_id),lbl:'Purple Book'}))
-    ].filter(x=>x.exp).sort((a,b)=>String(a.exp).localeCompare(String(b.exp))).slice(0,80);
+    ].filter(x=>x.exp).sort((a,b)=>String(a.exp).localeCompare(String(b.exp)));
     fill("patents",merged.map(r=>TR(r.url,`<td>${A(r.url,r.drug)}</td><td class="muted">${esc(r.type)}</td><td>${esc(fmtDate(r.exp))}</td>`)).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("patents",3);}
 
   // Financials → SEC EDGAR filing
-  try{const d=await rows(`/company_financials?select=company_id,runway_quarters,cash_and_equivalents,source_url,cik&runway_quarters=not.is.null&order=runway_quarters.asc&limit=30`);
+  try{const d=await allRows(`/company_financials?select=company_id,runway_quarters,cash_and_equivalents,source_url,cik&runway_quarters=not.is.null&order=runway_quarters.asc`);
     fill("fin",d.map(r=>{const lo=r.runway_quarters!=null&&r.runway_quarters<4;const u=r.source_url||(r.cik?("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK="+r.cik):"");return TR(u,`<td>${A(u,r.company_id)}</td><td>${lo?'<span class="pill bad">':''}${r.runway_quarters!=null?Number(r.runway_quarters).toFixed(1):""}${lo?'</span>':''}</td><td class="muted">${money(r.cash_and_equivalents)}</td>`);}).join(""));}catch(e){ec("fin",3);}
 
   // TL1A landscape → drug's authoritative source (CT.gov / company IR)
-  try{const d=await rows(`/drugs?select=name,target,stage,source_url&or=(target.ilike.*TL1A*,mechanism.ilike.*TL1A*)&order=stage.desc&limit=60`);
+  try{const d=await allRows(`/drugs?select=name,target,stage,source_url&or=(target.ilike.*TL1A*,mechanism.ilike.*TL1A*)&order=stage.desc`);
     fill("tl1a",d.map(r=>{const u=r.source_url||ctSearch(r.name);return TR(u,`<td>${A(u,r.name)}</td><td class="muted">${esc(r.target)}</td><td>${esc(r.stage)}</td>`);}).join(""));}catch(e){ec("tl1a",3);}
 
   // Conference abstracts → DOI / source URL
-  try{const d=await rows(`/conference_abstracts?select=drug_id,conference,conference_year,source_url,doi&confidence=gte.0.9&order=conference_year.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/conference_abstracts?select=drug_id,conference,conference_year,source_url,doi&confidence=gte.0.9&order=conference_year.desc.nullslast`);
     fill("conf",d.map(r=>{const u=r.source_url||r.doi;return TR(u,`<td class="muted">${esc(r.conference_year||"")}</td><td>${A(u,r.drug_id)}</td><td>${esc(r.conference||"")}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("conf",3);}
 
   // China assets → ClinicalTrials.gov search (China sites)
-  try{const d=await rows(`/trial_facts?select=drug_id&has_china_site=eq.true&limit=5000`);
+  try{const d=await allRows(`/trial_facts?select=drug_id&has_china_site=eq.true`);
     const m={};d.forEach(r=>m[r.drug_id]=(m[r.drug_id]||0)+1);
     fill("china",Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const u=ctSearch(k)+"&country=China";return TR(u,`<td>${A(u,k)}</td><td>${v}</td>`);}).join(""));}catch(e){ec("china",2);}
 
   // Target intelligence → Pharos / IDG
-  try{const d=await rows(`/target_intelligence?select=symbol,tdl,ligand_count,source_url&order=ligand_count.desc.nullslast&limit=60`);
+  try{const d=await allRows(`/target_intelligence?select=symbol,tdl,ligand_count,source_url&order=ligand_count.desc.nullslast`);
     fill("targets",d.map(r=>{const u=pharos(r.symbol);return TR(u,`<td>${A(u,r.symbol)}</td><td>${esc(r.tdl)}</td><td>${esc(r.ligand_count??"")}</td>`);}).join(""));}catch(e){ec("targets",3);}
 
   // Publications → already DOI/PubMed-linked
-  try{const d=await rows(`/publications?select=title,journal,pub_year,url&order=pub_year.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/publications?select=title,journal,pub_year,url&order=pub_year.desc.nullslast`);
     fill("pubs",d.map(r=>TR(r.url,`<td class="muted">${esc(r.pub_year||"")}</td><td>${A(r.url,r.title)}<div class="muted" style="font-size:11px">${esc(r.journal||"")}</div></td>`)).join(""));}catch(e){ec("pubs",2);}
 
   // Safety signals → DailyMed black-box warnings (via Open Targets / ChEMBL)
-  try{const d=await rows(`/drug_safety?select=drug_id,warning_type,description,source_url&order=drug_id.asc&limit=60`);
+  try{const d=await allRows(`/drug_safety?select=drug_id,warning_type,description,source_url&order=drug_id.asc`);
     fill("safety",d.map(r=>TR(r.source_url,`<td><b>${esc(r.drug_id)}</b></td><td>${A(r.source_url,r.description||r.warning_type)}</td>`)).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("safety",3);}
 
   // KOL → company affiliations (CT.gov sponsorship proxy)
-  try{const d=await rows(`/entity_edges?select=subject_id,object_id,rationale,source_url&predicate=eq.AFFILIATED_WITH&limit=40`);
+  try{const d=await allRows(`/entity_edges?select=subject_id,object_id,rationale,source_url&predicate=eq.AFFILIATED_WITH`);
     fill("affil",d.map(r=>{const m=/KOL (.+?) ran/.exec(r.rationale||"");const nm=m?m[1]:r.subject_id;const co=String(r.object_id||"").replace(/(^|[-_])([a-z])/g,(s,a,b)=>(a?" ":"")+b.toUpperCase());return TR(r.source_url,`<td>${A(r.source_url,nm)}</td><td>${esc(co)}</td>`);}).join(""));}catch(e){ec("affil",2);}
 
   // Company news sentiment (aggregate signal direction)
-  try{const d=await rows(`/company_news_sentiment?select=company_id,n_articles,net_sentiment&n_articles=gte.2&order=net_sentiment.asc&limit=40`);
+  try{const d=await allRows(`/company_news_sentiment?select=company_id,n_articles,net_sentiment&n_articles=gte.2&order=net_sentiment.asc`);
     fill("sent",d.map(r=>{const v=Number(r.net_sentiment);const cls=v<=-0.3?"bad":v>=0.3?"ok":"lo";return `<tr><td><b>${esc(r.company_id)}</b></td><td><span class="pill ${cls}">${v.toFixed(2)}</span></td><td class="muted">${esc(r.n_articles)}</td></tr>`;}).join(""));}catch(e){ec("sent",3);}
 
   // Manufacturing complexity → openFDA (where approved)
-  try{const d=await rows(`/manufacturing_profile?select=drug_id,modality,cmc_complexity,source_url&cmc_complexity=eq.very_high&order=drug_id.asc&limit=60`);
+  try{const d=await allRows(`/manufacturing_profile?select=drug_id,modality,cmc_complexity,source_url&cmc_complexity=eq.very_high&order=drug_id.asc`);
     fill("mfg",d.map(r=>TR(r.source_url,`<td>${A(r.source_url||"",r.drug_id)}</td><td class="muted">${esc(r.modality)}</td><td><span class="pill hi">very high</span></td>`)).join(""));}catch(e){ec("mfg",3);}
 
   // Company leadership → IR / SEC source
-  try{const d=await rows(`/company_personnel?select=company_id,person_name,role,source_url&order=company_id.asc&limit=80`);
+  try{const d=await allRows(`/company_personnel?select=company_id,person_name,role,source_url&order=company_id.asc`);
     fill("lead",d.map(r=>TR(r.source_url,`<td><b>${esc(r.company_id)}</b></td><td>${A(r.source_url,r.person_name)}</td><td class="muted">${esc(r.role)}</td>`)).join(""));}catch(e){ec("lead",3);}
 
   // Adverse-event burden → openFDA FAERS
-  try{const d=await rows(`/fda_adverse_events?select=drug_id,reaction,report_count,source_url&order=report_count.desc&limit=40`);
+  try{const d=await allRows(`/fda_adverse_events?select=drug_id,reaction,report_count,source_url&order=report_count.desc`);
     fill("faers",d.map(r=>TR(FAERS_DASH,`<td><b>${esc(r.drug_id)}</b></td><td>${A(FAERS_DASH,r.reaction)}</td><td>${esc(Number(r.report_count).toLocaleString())}</td>`)).join(""));}catch(e){ec("faers",3);}
 
   // Trial-design quality → CT.gov study record. Lead with the lowest-believability evidence (single-arm/low), then strongest.
-  try{const d=await rows(`/trial_design_quality?select=drug_id,nct_id,quality_tier,quality_score,score_rationale,source_url&order=quality_score.asc&limit=40`);
+  try{const d=await allRows(`/trial_design_quality?select=drug_id,nct_id,quality_tier,quality_score,score_rationale,source_url&order=quality_score.asc`);
     const tpill=t=>t==="high"?'<span class="pill ok">high</span>':t==="moderate"?'<span class="pill md">moderate</span>':t==="single_arm"?'<span class="pill bad">single-arm</span>':'<span class="pill lo">low</span>';
     fill("tdq",d.map(r=>{const u=r.source_url||("https://clinicaltrials.gov/study/"+r.nct_id);return TR(u,`<td>${A(u,r.drug_id)}</td><td class="muted" style="font-size:11px">${esc(r.nct_id)}</td><td>${tpill(r.quality_tier)} <span class="muted">${esc(r.quality_score)}</span></td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("tdq",3);}
 
   // EU approvals & lag → EMA EPAR. Most extreme lag/lead first.
-  try{const d=await rows(`/eu_approvals?select=drug_id,brand_name,eu_auth_date,eu_vs_us_lag_days,ema_product_url,source_url&order=eu_vs_us_lag_days.desc.nullslast&limit=60`);
+  try{const d=await allRows(`/eu_approvals?select=drug_id,brand_name,eu_auth_date,eu_vs_us_lag_days,ema_product_url,source_url&order=eu_vs_us_lag_days.desc.nullslast`);
     const lag=v=>v==null?'<span class="muted">no US date</span>':v>0?'<span class="pill lo">EU +'+v+'d</span>':v<0?'<span class="pill ok">EU first '+Math.abs(v)+'d</span>':'<span class="pill md">same</span>';
     fill("eulag",d.map(r=>{const u=r.ema_product_url||r.source_url;return TR(u,`<td>${A(u,r.brand_name||r.drug_id)}</td><td class="muted">${esc(fmtDate(r.eu_auth_date))}</td><td>${lag(r.eu_vs_us_lag_days)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("eulag",3);}
 
   // Conference readout signals → DOI. Late-breakers + explicit positive reads first.
-  try{const d=await rows(`/conference_abstract_signals?select=drug_id,conference,conference_year,is_late_breaker,result_direction,signal_score,source_url,doi&or=(is_late_breaker.eq.true,result_direction.eq.positive,presented_edge_candidate.eq.true)&order=signal_score.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/conference_abstract_signals?select=drug_id,conference,conference_year,is_late_breaker,result_direction,signal_score,source_url,doi&or=(is_late_breaker.eq.true,result_direction.eq.positive,presented_edge_candidate.eq.true)&order=signal_score.desc.nullslast`);
     const sg=r=>r.is_late_breaker?'<span class="pill hi">late-breaker</span>':r.result_direction==="positive"?'<span class="pill ok">positive</span>':'<span class="pill md">readout</span>';
     fill("readout",d.map(r=>{const u=r.source_url||r.doi;return TR(u,`<td class="muted">${esc(r.conference_year||"")}</td><td>${A(u,r.drug_id)}<div class="muted" style="font-size:11px">${esc(r.conference||"")}</div></td><td>${sg(r)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("readout",3);}
 
   // Financing events → SEC EDGAR. Classified by the actual security in the prospectus body (a 424B5 can be equity OR debt). Dilutive equity = runway pressure; non-dilutive debt = balance-sheet management, NOT distress.
-  try{const d=await rows(`/company_events?select=company_id,filing_date,form_type,financing_type,is_dilutive,security_detail,offering_amount_text,source_url&event_type=eq.financing&order=filing_date.desc&limit=60`);
+  try{const d=await allRows(`/company_events?select=company_id,filing_date,form_type,financing_type,is_dilutive,security_detail,offering_amount_text,source_url&event_type=eq.financing&order=filing_date.desc`);
     const FT={dilutive_equity:'Dilutive equity',atm_program:'ATM program',pipe:'PIPE',convertible_debt:'Convertible debt',non_dilutive_debt:'Non-dilutive debt',credit_facility:'Credit facility',preferred_equity:'Preferred equity',mixed_shelf:'Mixed shelf'};
     fill("events",d.map(r=>{const t=r.financing_type;const lbl=FT[t]||(r.form_type||'financing');const cls=r.is_dilutive===true?'lo':r.is_dilutive===false?'ok':'md';const amt=r.offering_amount_text?` · ${esc(r.offering_amount_text)}`:'';return TR(r.source_url,`<td class="muted">${esc(fmtDate(r.filing_date))}</td><td>${A(r.source_url,r.company_id)}${amt}</td><td><span class="pill ${cls}">${esc(lbl)}</span></td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("events",3);}
 
   // Mechanism pathways → Reactome / GtoPdb. Densest pathways = adjacency whitespace.
-  try{const d=await rows(`/target_pathways?select=symbol,pathway_name,source,source_url&order=symbol.asc&limit=120`);
+  try{const d=await allRows(`/target_pathways?select=symbol,pathway_name,source,source_url&order=symbol.asc`);
     fill("paths",d.map(r=>{const u=r.source_url||("https://reactome.org/content/query?q="+encodeURIComponent(r.pathway_name||""));return TR(u,`<td><b>${esc(r.symbol)}</b></td><td>${A(u,r.pathway_name)}</td><td class="muted" style="font-size:11px">${esc(r.source)}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("paths",3);}
 
   // Official labels → DailyMed SPL
-  try{const d=await rows(`/drug_labels?select=drug_id,label_title,boxed_warning,set_url,source_url&order=drug_id.asc&limit=60`);
+  try{const d=await allRows(`/drug_labels?select=drug_id,label_title,boxed_warning,set_url,source_url&order=drug_id.asc`);
     fill("labels",d.map(r=>{const u=r.set_url||r.source_url;const bx=r.boxed_warning?' <span class="pill bad">boxed</span>':'';return TR(u,`<td><b>${esc(r.drug_id)}</b></td><td>${A(u,r.label_title||"label")}${bx}</td>`);}).join("")||'<tr><td class="muted" colspan="2">none</td></tr>');}catch(e){ec("labels",2);}
 
   // Target genetics → Open Targets (human-genetics validation of our targets)
-  try{const d=await rows(`/target_disease_assoc?select=target_id,indication_id,genetic_association_score,overall_score&genetic_association_score=gte.0.7&order=genetic_association_score.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/target_disease_assoc?select=target_id,indication_id,genetic_association_score,overall_score&genetic_association_score=gte.0.7&order=genetic_association_score.desc.nullslast`);
     const gp=v=>v>=0.85?'<span class="pill hi">'+v.toFixed(2)+'</span>':v>=0.7?'<span class="pill md">'+v.toFixed(2)+'</span>':'<span class="pill lo">'+v.toFixed(2)+'</span>';
     fill("genval",d.filter(r=>r.genetic_association_score!=null).map(r=>{const u="https://platform.opentargets.org/target/"+encodeURIComponent(r.target_id);return TR(u,`<td><b>${esc(r.target_id.toUpperCase())}</b></td><td class="muted">${esc(r.indication_id)}</td><td>${gp(Number(r.genetic_association_score))}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("genval",3);}
 
   // Target LoF constraint → gnomAD via Open Targets (low LOEUF = intolerant = safety caution)
-  try{const d=await rows(`/target_genetics?select=target_id,oe_upper&constraint_type=eq.lof&order=oe_upper.asc.nullslast&limit=60`);
+  try{const d=await allRows(`/target_genetics?select=target_id,oe_upper&constraint_type=eq.lof&order=oe_upper.asc.nullslast`);
     fill("loeuf",d.filter(r=>r.oe_upper!=null).map(r=>{const v=Number(r.oe_upper);const read=v<0.6?'<span class="pill bad">intolerant</span>':v<1.0?'<span class="pill md">moderate</span>':'<span class="pill ok">tolerant</span>';return `<tr><td><b>${esc(r.target_id.toUpperCase())}</b></td><td class="muted">${v.toFixed(2)}</td><td>${read}</td></tr>`;}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("loeuf",3);}
 
   // Patent landscape → Google Patents (FTO; anti-TL1A families surface here)
-  try{const d=await rows(`/company_patents?select=assignee_org,patent_number,patent_title,expiry_estimate,matched_target,source_url&order=expiry_estimate.desc.nullslast&limit=60`);
+  try{const d=await allRows(`/company_patents?select=assignee_org,patent_number,patent_title,expiry_estimate,matched_target,source_url&order=expiry_estimate.desc.nullslast`);
     fill("patfto",d.map(r=>{const u=r.source_url||("https://patents.google.com/patent/"+encodeURIComponent(r.patent_number||""));const tg=r.matched_target?` <span class="pill md">${esc(r.matched_target)}</span>`:'';return TR(u,`<td>${esc(r.assignee_org||"")}</td><td>${A(u,r.patent_number)}${tg}<div class="muted" style="font-size:11px">${esc((r.patent_title||"").slice(0,70))}</div></td><td class="muted">${esc(String(r.expiry_estimate||"").slice(0,4))}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("patfto",3);}
 
   // Manufacturing sites → openFDA/DailyMed. External CMOs (is_supplies_candidate) = real SUPPLIES relationships.
-  try{const d=await rows(`/manufacturing_sites?select=drug_id,manufacturer_name,manufacturer_company_id,is_supplies_candidate,is_inhouse,source_url&order=is_supplies_candidate.desc&limit=60`);
+  try{const d=await allRows(`/manufacturing_sites?select=drug_id,manufacturer_name,manufacturer_company_id,is_supplies_candidate,is_inhouse,source_url&order=is_supplies_candidate.desc`);
     fill("mfgsite",d.map(r=>{const rel=r.is_supplies_candidate?'<span class="pill hi">ext. CMO</span>':r.is_inhouse?'<span class="pill ok">in-house</span>':'<span class="pill md">—</span>';return TR(r.source_url,`<td>${A(r.source_url||"",r.drug_id)}</td><td class="muted">${esc(r.manufacturer_name||"")}</td><td>${rel}</td>`);}).join("")||'<tr><td class="muted" colspan="3">none</td></tr>');}catch(e){ec("mfgsite",3);}
 
   // Literature authors → OpenAlex profile
-  try{const d=await rows(`/authors?select=full_name,works_count,openalex_id&order=works_count.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/authors?select=full_name,works_count,openalex_id&order=works_count.desc.nullslast`);
     fill("authors",d.map(r=>TR(r.openalex_id,`<td>${A(r.openalex_id,r.full_name)}</td><td>${esc(r.works_count??"")}</td>`)).join(""));}catch(e){ec("authors",2);}
 
   // KOL influence — unified score (trials + publications + citations)
-  try{const d=await rows(`/kols?select=name,trial_count,h_index,influence_score,orcid&order=influence_score.desc.nullslast&limit=40`);
+  try{const d=await allRows(`/kols?select=name,trial_count,h_index,influence_score,orcid&order=influence_score.desc.nullslast`);
     fill("kolinf",d.map(r=>{const u=r.orcid?(String(r.orcid).startsWith("http")?r.orcid:"https://orcid.org/"+r.orcid):"";return TR(u,`<td>${A(u,r.name)}</td><td>${esc(r.trial_count??"")}</td><td>${esc(r.h_index??"")}</td><td><span class="pill md">${r.influence_score!=null?Number(r.influence_score).toFixed(2):""}</span></td>`);}).join(""));}catch(e){ec("kolinf",4);}
 
   // Academic ↔ industry research bridges (co-authorship)
-  try{const d=await rows(`/institution_company_bridge?select=shared_papers,institution:institutions(name),company:companies(name)&order=shared_papers.desc&limit=40`);
+  try{const d=await allRows(`/institution_company_bridge?select=shared_papers,institution:institutions(name),company:companies(name)&order=shared_papers.desc`);
     fill("bridge",d.map(r=>`<tr><td>${esc(r.institution?r.institution.name:"")}</td><td><b>${esc(r.company?r.company.name:"")}</b></td><td>${esc(r.shared_papers)}</td></tr>`).join(""));}catch(e){ec("bridge",3);}
 
   try{const preds=["TARGETS","TREATS","TESTED_IN","STUDIES","COMPETES_WITH","DEVELOPED_BY","CO_DEVELOPS","REPORTED_IN","APPROVED_FOR","APPROVED_IN","FILED","PRESENTED","HAS_PATENT","SUPPLIES","INVESTIGATES","WORKS_ON","AFFILIATED_WITH","LED_BY","MENTIONED_IN","PARTICIPATES_IN","ACQUIRED","PARTNERED_WITH","TERMINATED","AUTHORED","CO_AUTHORED_WITH","RESEARCHES","COLLABORATES"];
