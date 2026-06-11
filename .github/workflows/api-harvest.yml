@@ -45,3 +45,10 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           echo "python scripts/api_harvester.py $ARGS"
           python scripts/api_harvester.py $ARGS
+
+      - name: Connect new data into the entity graph
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/seed_api_edges.py
