@@ -442,13 +442,20 @@ async function deepen(q,bundle,title){
   slot.innerHTML=`<div class="card"><div class="loading"><span class="dot"></span>reasoning over the evidence…</div></div>`;
   await callSynth(q,bundle,'#synthSlot',false);
 }
+function startProgress(slot){
+  const msgs=["searching the web for the latest…","reading the sources…","cross-checking against the graph…","composing a cited answer…","flagging any conflicting sources…"];
+  let i=0; const paint=()=>{ slot.innerHTML=`<div class="card"><div class="loading"><span class="dot"></span>${msgs[Math.min(i,msgs.length-1)]}</div></div>`; i++; };
+  paint(); const id=setInterval(paint,5000); return ()=>clearInterval(id);
+}
 async function callSynth(q,bundle,sel,isPrimary){
   const slot=document.querySelector(sel);
+  const stop=startProgress(slot);
   try{
     const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,bundle,entities:entsPayload(q)})});
-    const j=await r.json();
+    const j=await r.json(); stop();
     renderSynth(slot,j,isPrimary);
   }catch(e){
+    stop();
     slot.innerHTML=`<div class="card empty">Reasoning server not reachable. Start it with <code>python3 meridian_ask_synth.py</code> (or set <code>SYNTH_ENDPOINT</code>). The structured answer below still stands.<div class="synthnote">${escapeHtml(e.message)}</div></div>`;
     if(isPrimary) logQuestion(q,'unresolved');  // no question lost — queue it for the resolver
   }
