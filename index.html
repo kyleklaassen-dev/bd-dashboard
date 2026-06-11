@@ -16916,6 +16916,69 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       })();
     }
 
+    // ── Lazy-load API-sourced data: chemistry, identifiers, sourced efficacy, approvals ──
+    // (2026-06-10) Surfaces v149–v151 integrations into the Drug Profile tab:
+    // molecule_properties (ChEMBL), compound_identifiers (PubChem/RxNorm/UNII),
+    // drug_efficacy_endpoints (source-required), fda_approvals (drugsfda). Isolated +
+    // fully guarded: returns silently if no data, never touches existing rendering.
+    if (drug?.id && !isStaticId && _sb) {
+      (async () => {
+        try {
+          const [mpRes, ciRes, eeRes, faRes] = await Promise.all([
+            _sb.from('molecule_properties').select('molecule_type,max_phase,first_approval,black_box_warning,oral,mw_freebase,usan_stem,chembl_id').eq('drug_id', drug.id).limit(1),
+            _sb.from('compound_identifiers').select('pubchem_cid,rxcui,unii,inchikey,molecular_formula').eq('drug_id', drug.id).limit(1),
+            _sb.from('drug_efficacy_endpoints').select('indication_id,arm_label,timepoint_week,drug_pct,placebo_pct,placebo_adjusted_delta_pp,primary_endpoint_met,trial_name,source_url').eq('drug_id', drug.id).order('placebo_adjusted_delta_pp',{ascending:false}).limit(12),
+            _sb.from('fda_approvals').select('brand_name,application_number,sponsor,marketing_status,approval_date').eq('drug_id', drug.id).order('approval_date').limit(6),
+          ]);
+          const mp = mpRes?.data?.[0]; const ci = ciRes?.data?.[0];
+          const ee = eeRes?.data || []; const fa = faRes?.data || [];
+          if (!mp && !ci && !ee.length && !fa.length) return;
+          let h = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
+          h += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0d9488;margin-bottom:8px">🧪 Chemistry, Identifiers & Sourced Efficacy</div>';
+          if (mp || ci) {
+            const chips = [];
+            if (mp?.molecule_type) chips.push(['Type', mp.molecule_type]);
+            if (mp?.first_approval) chips.push(['First approval', mp.first_approval]);
+            if (mp?.max_phase) chips.push(['Max phase', mp.max_phase]);
+            if (mp?.usan_stem) chips.push(['Class stem', mp.usan_stem]);
+            if (mp?.mw_freebase) chips.push(['MW', mp.mw_freebase]);
+            if (ci?.molecular_formula) chips.push(['Formula', ci.molecular_formula]);
+            if (ci?.pubchem_cid) chips.push(['PubChem', ci.pubchem_cid]);
+            if (ci?.rxcui) chips.push(['RxCUI', ci.rxcui]);
+            if (ci?.unii) chips.push(['UNII', ci.unii]);
+            if (mp?.chembl_id) chips.push(['ChEMBL', mp.chembl_id]);
+            if (chips.length) {
+              h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">' + chips.map(function(kv){
+                return '<span style="font-size:10px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:4px;padding:2px 7px"><span style="color:#64748b">'+kv[0]+':</span> <span style="font-weight:700;color:#0f766e">'+escHtml(String(kv[1]))+'</span></span>';
+              }).join('') + '</div>';
+            }
+          }
+          if (ee.length) {
+            h += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Sourced Efficacy Endpoints</div>';
+            ee.forEach(function(r){
+              const delta = r.placebo_adjusted_delta_pp != null ? '+'+r.placebo_adjusted_delta_pp+'pp' : '';
+              const vs = (r.drug_pct!=null && r.placebo_pct!=null) ? ' ('+r.drug_pct+'% vs '+r.placebo_pct+'%)' : (r.drug_pct!=null?' ('+r.drug_pct+'%)':'');
+              const wk = r.timepoint_week ? ' wk'+r.timepoint_week : '';
+              const met = r.primary_endpoint_met===false ? ' <span style="color:#dc2626;font-weight:700">primary NOT met</span>' : '';
+              const tr = r.trial_name ? ' · '+escHtml(r.trial_name) : '';
+              h += '<div style="padding:3px 8px;background:#ecfeff;border-left:2px solid #06b6d4;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px"><span style="font-weight:700;color:#0e7490">'+String(r.indication_id||'').toUpperCase()+' '+(r.arm_label||'')+' '+delta+'</span><span style="color:#64748b">'+vs+wk+tr+'</span>'+met+(r.source_url?' <a href="'+r.source_url+'" target="_blank" style="color:#0891b2;font-size:9px">[src]</a>':'')+'</div>';
+            });
+            h += '</div>';
+          }
+          if (fa.length) {
+            h += '<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">FDA Approvals (drugsfda)</div>';
+            fa.forEach(function(a){
+              h += '<div style="padding:3px 8px;background:#fefce8;border-left:2px solid #eab308;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px"><span style="font-weight:700;color:#854d0e">'+escHtml(a.brand_name||a.application_number||'')+'</span><span style="color:#64748b"> '+(a.approval_date||'')+' · '+escHtml(a.sponsor||'')+' · '+escHtml(a.marketing_status||'')+'</span></div>';
+            });
+            h += '</div>';
+          }
+          h += '</div>';
+          const panel = document.getElementById('cem-dtab-profile');
+          if (panel) panel.insertAdjacentHTML('beforeend', h);
+        } catch(_apiErr) { console.warn('[drugModal-apiData]', _apiErr && _apiErr.message); }
+      })();
+    }
+
     // ── Lazy-load Payer TPP Intelligence ──────────────────────────────────────
     // Injects payer TPP criteria into the Business panel (canonical Drug Card IA).
     // DEPRECATED 2026-06-07 — non_responder_profiles fetch + render removed from this
