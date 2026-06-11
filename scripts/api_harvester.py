@@ -371,13 +371,16 @@ def harvest_opentargets_extra():
         if not hits:
             continue
         ens = hits[0]["id"]
-        q = ("query($id:String!){target(ensemblId:$id){approvedSymbol "
-             "knownDrugs(size:25){rows{drug{name id} phase mechanismOfAction disease{name}}} "
-             "safetyLiabilities{event effects{direction} biosamples{tissueLabel}}}}")
-        res = _post(OT, {"query": q, "variables": {"id": ens}})
-        tgt = (((res or {}).get("data") or {}).get("target") or {})
-        sym2 = tgt.get("approvedSymbol", sym)
-        store_raw("opentargets_knowndrugs", "target", ens, None, f"{OT}#kd_{ens}", res or {})
+        # Split into two independent queries so a schema issue in one doesn't void the other.
+        qkd = ("query($id:String!){target(ensemblId:$id){approvedSymbol "
+               "knownDrugs(size:25){rows{phase mechanismOfAction drug{id name} disease{name}}}}}")
+        qsf = "query($id:String!){target(ensemblId:$id){approvedSymbol safetyLiabilities{event}}}"
+        reskd = _post(OT, {"query": qkd, "variables": {"id": ens}})
+        ressf = _post(OT, {"query": qsf, "variables": {"id": ens}})
+        store_raw("opentargets_knowndrugs", "target", ens, None, f"{OT}#kd_{ens}", {"knownDrugs": reskd, "safety": ressf})
+        tgt = (((reskd or {}).get("data") or {}).get("target") or {})
+        tgts = (((ressf or {}).get("data") or {}).get("target") or {})
+        sym2 = tgt.get("approvedSymbol") or tgts.get("approvedSymbol") or sym
         kd = []
         for r in ((tgt.get("knownDrugs") or {}).get("rows") or []):
             dr = r.get("drug") or {}
