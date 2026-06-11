@@ -17,9 +17,12 @@ Usage:
   python3 scripts/api_harvester.py --all [--dry-run] [--limit N]
 Env: SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
-import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error
+import os, sys, json, time, datetime, uuid, urllib.request, urllib.parse, urllib.error
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from database import client as c
+
+_NS = uuid.UUID("b8e2d1c0-2222-4333-8444-1a2b3c4d5e6f")
+_uuid = lambda k: str(uuid.uuid5(_NS, k))
 
 UA = {"Accept": "application/json", "User-Agent": "Mozilla/5.0 meridian-api-harvester"}
 NOW = lambda: datetime.datetime.utcnow().isoformat()
@@ -219,6 +222,9 @@ def harvest_chembl():
 
 # ---------------- openFDA drugsfda: approval history -> fda_approvals (EXISTING table) ----------
 def harvest_drugsfda():
+    # dedupe against existing fda_approvals (id is UUID; avoid creating duplicate approval rows)
+    existing = {(r.get("drug_id"), r.get("application_number"))
+                for r in c.select_all("fda_approvals", {"select": "drug_id,application_number"})}
     for d in drugs():
         gen = (d.get("inn_name") or d.get("name") or "").strip()
         if not gen:
@@ -226,17 +232,21 @@ def harvest_drugsfda():
         url = f'https://api.fda.gov/drug/drugsfda.json?search=openfda.generic_name:"{urllib.parse.quote(gen.lower())}"&limit=5'
         res = _get(url)
         for app in ((res or {}).get("results", []) or []):
-            store_raw("drugsfda", "drug", app.get("application_number"), d["id"], url, app)
+            appno = app.get("application_number")
+            store_raw("drugsfda", "drug", appno, d["id"], url, app)
+            if (d["id"], appno) in existing:
+                continue                                   # already on file -> no duplicate
             of = app.get("openfda", {}); prod = (app.get("products") or [{}])[0]
             appr = sorted([s.get("submission_status_date") for s in app.get("submissions", [])
                            if s.get("submission_type") == "ORIG" and s.get("submission_status") == "AP" and s.get("submission_status_date")])
             adate = (appr[0][:4] + "-" + appr[0][4:6] + "-" + appr[0][6:8]) if appr else None
             if not DRY:
-                c.insert("fda_approvals", [dict(id=f"{d['id']}_{app.get('application_number')}", drug_id=d["id"],
+                c.insert("fda_approvals", [dict(id=_uuid(f"fda_{d['id']}_{appno}"), drug_id=d["id"],
                     brand_name=(of.get("brand_name") or [prod.get("brand_name")])[0],
-                    application_number=app.get("application_number"), sponsor=app.get("sponsor_name"),
+                    application_number=appno, sponsor=app.get("sponsor_name"),
                     marketing_status=prod.get("marketing_status"), approval_date=adate,
                     source_url=url, fetched_at=NOW())], on_conflict="id")
+                existing.add((d["id"], appno))
         time.sleep(0.3)
     _stamp("drugsfda")
 
