@@ -1,0 +1,4 @@
+-- v156: graph_health_digest singleton (id=1) — connectivity_ok/orphans/dangling/stale_edges/
+-- open_violations/edge_counts/node_coverage, refreshed by graph_health_guard.py each weekly run.
+-- Edge staleness decay (180d -> needs_revalidation) added to the guard. Dashboard can read
+-- graph_health_digest for an at-a-glance graph-health banner.
