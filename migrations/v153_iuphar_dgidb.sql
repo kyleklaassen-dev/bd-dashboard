@@ -1,0 +1,2 @@
+-- v153: IUPHAR/GtoPdb (ligand-target affinity) + DGIdb (drug-gene). DrugCentral DEFERRED
+-- (no clean REST API; requires Postgres dump). Tables: iuphar_interactions, dgidb_interactions.
