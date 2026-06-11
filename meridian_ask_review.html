@@ -13,7 +13,8 @@
   h1{font-size:19px;margin:0;font-weight:740}h1 b{color:var(--accent)}
   .wrap{max-width:1180px;margin:0 auto;padding:22px 26px 80px}
   .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
-  .stat{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:12px;padding:12px 16px;min-width:120px}
+  .stat{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:12px;padding:12px 16px;min-width:120px;cursor:pointer;transition:border-color .15s,transform .15s}
+  .stat:hover{border-color:var(--accent);transform:translateY(-1px)}
   .stat .n{font-size:24px;font-weight:740;font-family:var(--mono)}
   .stat .l{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.6px;margin-top:3px}
   .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
@@ -49,6 +50,7 @@
 </header>
 <div class="wrap">
   <div class="stats" id="stats"></div>
+  <div id="chipDetail" class="hide" style="margin-bottom:16px"></div>
   <div class="tabs">
     <span class="tab on" data-t="backlog" onclick="tab('backlog')">Backlog</span>
     <span class="tab" data-t="attempts" onclick="tab('attempts')">Resolution history</span>
@@ -74,12 +76,31 @@ async function loadStats(){
   try{ const s=await api('/stats');
     document.getElementById('conn').textContent='● live';
     const byr=s.by_resolution||{}, hf=s.harvested_facts||{};
-    const cells=[['Open backlog',s.open_backlog,'hot'],['Questions logged',s.questions_logged],
-      ['Resolved',(byr.synthesized||0)+(byr.cache||0)],['Unresolved',byr.unresolved||0],
-      ['Cache entries',s.cache_entries],['Cache hits',s.cache_hits_total],
-      ['Facts proposed',hf.proposed||0],['Facts promoted',hf.promoted||0]];
-    document.getElementById('stats').innerHTML=cells.map(c=>`<div class="stat"><div class="n" ${c[2]==='hot'&&c[1]?'style=color:var(--hot)':''}>${c[1]??0}</div><div class="l">${c[0]}</div></div>`).join('');
+    const cells=[['Open backlog',s.open_backlog,'backlog','hot'],['Questions logged',s.questions_logged,'questions'],
+      ['Resolved',(byr.synthesized||0)+(byr.cache||0),'cache'],['Unresolved',byr.unresolved||0,'backlog'],
+      ['Cache entries',s.cache_entries,'cache'],['Cache hits',s.cache_hits_total,'cachehits'],
+      ['Facts proposed',hf.proposed||0,'facts:proposed'],['Facts promoted',hf.promoted||0,'facts:promoted']];
+    document.getElementById('stats').innerHTML=cells.map(c=>`<div class="stat" title="Click to view" onclick="showChip('${c[2]}','${esc(c[0])}')"><div class="n" ${c[3]==='hot'&&c[1]?'style=color:var(--hot)':''}>${c[1]??0}</div><div class="l">${c[0]}</div></div>`).join('');
   }catch(e){ document.getElementById('conn').textContent='● server offline — run python3 meridian_ask_synth.py'; }
+}
+// ── click a stat chip → see the records behind it ──
+const mono=s=>`<span class="mono muted">${esc(s)}</span>`;
+function tbl(headers,rows){ if(!rows||!rows.length) return '<div class="muted">Nothing here yet.</div>';
+  return `<table><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`; }
+function resPill(r){ const cls=r==='unresolved'?'unres':((r==='cache'||r==='synthesized'||r==='structured')?'res':''); return `<span class="${cls}">${esc(r||'')}</span>`; }
+function factsTable(facts){ return tbl(['Subject','Metric','Value','When','Dest','Source'], (facts||[]).map(f=>[esc(f.subject_name||''),`<span class="mono">${esc(f.metric||'')}</span>`,`<span class="num">${esc(f.value_text||f.value_num||'')}</span>`,esc(f.period||''),esc(f.suggested_dest||''), f.source_url?`<a href="${esc(f.source_url)}" target="_blank">${esc(f.source_domain||'↗')}</a>`:'—'])); }
+async function showChip(key,label){
+  const el=document.getElementById('chipDetail'); el.classList.remove('hide');
+  el.innerHTML=`<div class="card"><div class="muted">loading ${esc(label)}…</div></div>`;
+  let html='';
+  try{
+    if(key==='backlog'){ const {backlog}=await api('/backlog'); html=tbl(['Tier','Score','Asked','Attempts','Question'], backlog.map(b=>[`<span class="pill ${b.tier}">${b.tier}</span>`,`<span class="num">${b.priority_score}</span>`,`<span class="num">${b.ask_count}</span>`,`<span class="num">${b.resolve_attempts}</span>`,esc(b.question)])); }
+    else if(key==='questions'){ const {questions}=await api('/questions'); html=tbl(['When','Resolution','Route','Question'], questions.map(r=>[mono((r.asked_at||'').slice(0,16).replace('T',' ')),resPill(r.resolution),mono(r.route||''),esc(r.question)])); }
+    else if(key==='cache'||key==='cachehits'){ let {cache}=await api('/cache'); if(key==='cachehits') cache=cache.slice().sort((a,b)=>(b.hit_count||0)-(a.hit_count||0)); html=tbl(['Question','Headline','Sources','Hits','Model'], cache.map(c=>[esc(c.question),esc(c.headline||''),`<span class="num">${c.source_count}</span>`,`<span class="num">${c.hit_count}</span>`,mono(c.model||'')])); }
+    else if(key.indexOf('facts:')===0){ const st=key.split(':')[1]; const {facts}=await api('/facts?status='+st); html=factsTable(facts); }
+  }catch(e){ html='<div class="muted">Could not load — is the server reachable?</div>'; }
+  el.innerHTML=`<div class="card"><h3>${esc(label)}<span class="muted" style="float:right;cursor:pointer;font-size:11px" onclick="document.getElementById('chipDetail').classList.add('hide')">✕ close</span></h3>${html}</div>`;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 async function loadBacklog(){
   try{ const {backlog}=await api('/backlog');

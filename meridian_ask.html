@@ -491,8 +491,22 @@ function article(w){ return /^[aeiou]/i.test((w||'').trim())?'an':'a'; }
 function submitQ(e,where){ e.preventDefault(); const q=(document.getElementById(where==='top'?'qTop':'qHero').value||'').trim(); if(q)run(q); return false; }
 async function run(q){
   document.getElementById('qTop').value=q; document.body.classList.add('answer');
-  document.getElementById('canvas').innerHTML=`<div class="loading" style="padding-top:40px"><span class="dot"></span>searching the graph…</div>`;
-  try{ const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route); }catch(err){ document.getElementById('canvas').innerHTML=`<div class="card empty">Something broke: ${escapeHtml(err.message)}</div>`; console.error(err); }
+  document.getElementById('canvas').innerHTML=`<div class="loading" style="padding-top:40px"><span class="dot"></span>searching…</div>`;
+  try{
+    // cache-first: a previously-resolved question is answered instantly & free (no LLM call)
+    const cached=await cacheLookup(q);
+    if(cached){ renderCachedAnswer(q,cached); return; }   // server logs the cache serve
+    const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route);
+  }catch(err){ document.getElementById('canvas').innerHTML=`<div class="card empty">Something broke: ${escapeHtml(err.message)}</div>`; console.error(err); }
+}
+async function cacheLookup(q){
+  if(!SYNTH_ENDPOINT) return null;
+  try{ const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question:q,cache_only:true,allow_cache:true})});
+    if(!r.ok) return null; const j=await r.json(); return (j&&!j.miss&&(j.answer||'').trim())?j:null; }catch(e){ return null; }
+}
+function renderCachedAnswer(q,j){
+  shell({asked:q,tag:'Answer · from memory',tagCls:'reason',title:j.headline||'Answer',centerHTML:'',sideHTML:''});
+  renderSynth(document.getElementById('synthSlot'), Object.assign({},j,{cache:true}), true);
 }
 function goHome(){ document.body.classList.remove('answer'); document.getElementById('qHero').value=''; document.getElementById('qHero').focus(); }
 boot();
