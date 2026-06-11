@@ -46,6 +46,11 @@ def _post(url, body):
                                      headers={**UA, "Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            return json.loads(e.read().decode())   # surface GraphQL error body (errors[]) into raw
+        except Exception:
+            return {"_http_error": e.code}
     except Exception as e:
         print(f"  ! POST {url[:90]}: {e}", file=sys.stderr); return None
 
