@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian · Ask</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#121823; --panel2:#0f141d; --edge:#1f2937;
+    --ink:#e7edf5; --ink-dim:#9aa7b8; --ink-faint:#5b6776;
+    --accent:#5b9dff; --accent-soft:#1b2a44; --good:#34d399; --warn:#fbbf24; --hot:#fb7185; --gap:#c084fc;
+    --r:14px; --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 50% -10%,#10192a 0%,var(--bg) 55%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline} a{cursor:pointer}
+
+  #topbar{position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;gap:14px;
+    padding:0 22px;background:rgba(10,14,20,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--edge);
+    transform:translateY(-100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);z-index:50}
+  body.answer #topbar{transform:translateY(0)}
+  .brand{font-weight:700;letter-spacing:.3px;font-size:15px;white-space:nowrap;cursor:pointer}
+  .brand b{color:var(--accent)}
+  #topsearch{flex:1;max-width:760px;position:relative}
+  #topsearch input{width:100%;height:40px;border-radius:10px;border:1px solid var(--edge);background:var(--panel);
+    color:var(--ink);padding:0 14px;font-size:14px;outline:none}
+  #topsearch input:focus{border-color:var(--accent)}
+  .kbd{font-family:var(--mono);font-size:11px;color:var(--ink-faint);border:1px solid var(--edge);border-radius:6px;padding:2px 6px}
+  .toplink{font-size:12.5px;color:var(--ink-dim);border:1px solid var(--edge);border-radius:8px;padding:6px 11px;white-space:nowrap;text-decoration:none}
+  .toplink:hover{border-color:var(--accent);color:var(--ink);text-decoration:none}
+
+  #hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:26px}
+  body.answer #hero{display:none}
+  .h-title{font-size:42px;font-weight:760;letter-spacing:-.5px;margin:0;text-align:center}
+  .h-title b{color:var(--accent)}
+  .h-sub{color:var(--ink-dim);font-size:16px;margin:-12px 0 6px;text-align:center;max-width:580px;line-height:1.5}
+  #hero .searchwrap{width:min(720px,92vw)}
+  .searchbox{position:relative}
+  .searchbox input{width:100%;height:62px;border-radius:16px;border:1px solid #28344a;
+    background:linear-gradient(180deg,#141c2a,#0f1622);color:var(--ink);padding:0 60px 0 22px;font-size:18px;outline:none;
+    box-shadow:0 18px 60px -24px rgba(0,0,0,.8)}
+  .searchbox input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft),0 18px 60px -24px rgba(0,0,0,.8)}
+  .searchbox .go{position:absolute;right:10px;top:10px;height:42px;width:42px;border-radius:11px;border:none;
+    background:var(--accent);color:#04101f;font-size:20px;cursor:pointer;display:grid;place-items:center}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;max-width:780px}
+  .chip{font-size:13px;color:var(--ink-dim);background:var(--panel);border:1px solid var(--edge);border-radius:999px;padding:8px 14px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .chip.think{border-color:#3a2d52;color:#cdb6ef}.chip.think:hover{border-color:var(--gap)}
+  .meta{color:var(--ink-faint);font-size:12.5px;font-family:var(--mono)}
+
+  #canvas{display:none;max-width:1200px;margin:0 auto;padding:88px 22px 90px}
+  body.answer #canvas{display:block}
+  .layout{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+  .askedline{color:var(--ink-faint);font-size:13px;font-family:var(--mono);margin:0 0 8px}
+  .answer-h{font-size:26px;font-weight:730;letter-spacing:-.3px;margin:0 0 4px;line-height:1.2}
+  .answer-tag{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-family:var(--mono);text-transform:uppercase;
+    letter-spacing:.6px;color:var(--accent);background:var(--accent-soft);border:1px solid #25406e;border-radius:999px;padding:4px 11px;margin-bottom:14px}
+  .answer-tag.reason{color:#d6c2f5;background:#1d1630;border-color:#3a2d52}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:var(--r);padding:18px 20px;margin-bottom:16px}
+  .card h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-dim);font-weight:650}
+  .big-answer{font-size:18.5px;line-height:1.6}
+  .big-answer .hl{color:#fff;font-weight:680}
+  .synth-answer{font-size:18px;line-height:1.66;color:#eef3fa}
+
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:14.5px}
+  .kv .k{color:var(--ink-faint);font-family:var(--mono);font-size:12.5px;padding-top:2px}
+  .kv .v{color:var(--ink)}
+  .pill{display:inline-block;font-size:12px;border-radius:7px;padding:3px 9px;border:1px solid var(--edge);background:#0c121c;color:var(--ink-dim);margin:2px 5px 2px 0}
+  .pill.stage{color:var(--accent);border-color:#27406b;background:var(--accent-soft)}
+  .pill.direct{color:var(--hot);border-color:#5e2733;background:#2a1116}
+  .pill.good{color:var(--good);border-color:#1d4a3a;background:#0c1f18}
+
+  table.rows{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.rows th{text-align:left;color:var(--ink-faint);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:1px solid var(--edge)}
+  table.rows td{padding:9px 10px;border-bottom:1px solid #161e2a;vertical-align:top}
+  table.rows tr:hover td{background:#0e1622}
+  .rank{color:var(--ink-faint);font-family:var(--mono)}
+  .num{font-family:var(--mono);color:#fff}
+
+  /* reasoning bullets */
+  .reason-list{list-style:none;margin:0;padding:0}
+  .reason-list li{position:relative;padding:11px 0 11px 92px;border-bottom:1px solid #161e2a;font-size:14.5px;line-height:1.55;color:var(--ink)}
+  .reason-list li:last-child{border-bottom:none}
+  .tag-lbl{position:absolute;left:0;top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;border-radius:6px;padding:2px 7px}
+  .t-fact{color:var(--accent);background:var(--accent-soft);border:1px solid #25406e}
+  .t-judge{color:#d6c2f5;background:#1d1630;border:1px solid #3a2d52}
+  .t-gap{color:#fbbf24;background:#2a2110;border:1px solid #5a4718}
+
+  .side h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-faint);margin:2px 0 10px}
+  .conn{display:block;background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:.15s}
+  .conn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .conn .ct{font-size:14px;color:var(--ink);font-weight:600}
+  .conn .cs{font-size:11.5px;color:var(--ink-faint);font-family:var(--mono);margin-top:3px}
+  .conn .rel{font-size:10.5px;color:var(--accent);font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
+  .res{display:block;font-size:12.5px;padding:8px 11px;border:1px solid var(--edge);border-left:2px solid var(--accent);border-radius:8px;margin-bottom:7px;background:#0d1320}
+  .res .rt{color:var(--ink);font-weight:600}
+  .res .rd{color:var(--ink-faint);font-family:var(--mono);font-size:11px;margin-top:2px;word-break:break-all}
+
+  .src{font-size:11.5px;color:var(--ink-faint);font-family:var(--mono)} .src a{color:var(--ink-dim)}
+  .followups{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+  .loading{color:var(--ink-dim);font-family:var(--mono);font-size:13px;padding:24px 0;display:flex;align-items:center;gap:4px}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;animation:p 1s infinite}
+  @keyframes p{0%,100%{opacity:.3}50%{opacity:1}}
+  .empty{color:var(--ink-dim);font-size:15px;line-height:1.6}
+  .deepen{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px;font-weight:600;color:#cdb6ef;
+    background:#1d1630;border:1px solid #3a2d52;border-radius:10px;padding:9px 14px;margin:2px 0 4px;transition:.15s}
+  .deepen:hover{border-color:var(--gap);background:#241a3a}
+  .synthnote{font-size:12px;color:var(--ink-faint);border:1px dashed var(--edge);border-radius:10px;padding:11px 13px;margin-top:6px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand" onclick="goHome()">Meridian <b>·</b> Ask</div>
+  <form id="topsearch" onsubmit="return submitQ(event,'top')"><input id="qTop" autocomplete="off" placeholder="Ask anything…"></form>
+  <span class="kbd">↵</span>
+  <a class="toplink" href="meridian_ask_review.html" target="_blank" title="Review dashboard">▦ Review</a>
+  <a class="toplink" href="index.html" title="Back to Meridian dashboard">⌂ Home</a>
+</div>
+
+<section id="hero">
+  <h1 class="h-title">Ask <b>Meridian</b></h1>
+  <p class="h-sub">One question, one answer — retrieved live from the knowledge graph, reasoned over when the question needs judgment, with the connections and sources around it.</p>
+  <div class="searchwrap">
+    <form class="searchbox" onsubmit="return submitQ(event,'hero')">
+      <input id="qHero" autocomplete="off" placeholder="Try a fact (“Tulisokibart”) or a judgment (“what matters most for a preclinical TL1A×IL-23p19 bispecific?”)">
+      <button class="go" type="submit">→</button>
+    </form>
+  </div>
+  <div class="chips" id="heroChips"></div>
+  <div class="meta" id="bootMeta">connecting…</div>
+</section>
+
+<main id="canvas"></main>
+
+<script>
+/* ============================================================ *
+ *  Meridian · Ask  — answer engine                              *
+ *  RETRIEVAL (client, free, cited): resolve -> gather -> render *
+ *  SYNTHESIS (server, reasoned, cited): POST bundle to          *
+ *  SYNTH_ENDPOINT. Reasoning/judgment questions auto-route;     *
+ *  structured answers offer a "Reason deeper" button.           *
+ * ============================================================ */
+const SUPABASE_URL   = "https://tghntyofptvfhmtchwcv.supabase.co";
+const SUPABASE_ANON  = "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI";
+// Synthesis endpoint is environment-aware: localhost runs meridian_ask_synth.py;
+// the live site uses the deployed Supabase Edge Function (same /ask + /log contract).
+const _ASK_LOCAL = ["localhost","127.0.0.1",""].includes(location.hostname);
+const SYNTH_BASE = _ASK_LOCAL ? "http://localhost:8787"
+                              : "https://tghntyofptvfhmtchwcv.supabase.co/functions/v1/ask-synth";
+const SYNTH_ENDPOINT = SYNTH_BASE + "/ask";   // empty "" would disable synthesis
+const LOG_ENDPOINT   = SYNTH_BASE + "/log";   // learning-loop question log
+
+const H={apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON};
+async function sb(table,qs){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`,{headers:H}); return r.ok?r.json():[]; }
+const enc=encodeURIComponent;
+const norm=s=>(s||"").toLowerCase().replace(/[×x+]/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const tok =s=>norm(s).split(' ').filter(Boolean);
+const escapeHtml=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const J=o=>JSON.stringify(o).replace(/"/g,'&quot;');
+
+/* ---------- index / resolver ---------- */
+let DRUGS=[],COMPANIES=[],NAME2ENT=new Map(),SURFACES=[],TARGET_TOKENS=new Set();
+async function boot(){
+  DRUGS=await sb("drugs","select=id,name,display_name,brand_name,inn_name,dev_code,aliases,target,company_id,lead_company_id,stage,stage_detail,indication_short,mechanism,overlap,key_data,differentiation_thesis,why_it_matters,drug_summary,modality,source_url&order=id");
+  COMPANIES=await sb("companies","select=id,name,ticker,company_type,hq_country,market_cap_display,status");
+  const add=(s,e)=>{ if(!s)return; const k=String(s).toLowerCase().trim(); if(k.length<3)return; if(!NAME2ENT.has(k))NAME2ENT.set(k,e); };
+  for(const d of DRUGS){
+    const e={type:'drug',id:d.id,label:d.display_name||d.name,row:d};
+    [d.name,d.display_name&&d.display_name.split('(')[0],d.brand_name,d.inn_name,d.dev_code].forEach(s=>add(s,e));
+    (d.aliases||[]).forEach(s=>add(s,e));
+    if(d.target) tok(d.target).forEach(t=>{ if(t.length>2)TARGET_TOKENS.add(t); });
+  }
+  for(const c of COMPANIES) add(c.name,{type:'company',id:c.id,label:c.name,row:c});
+  SURFACES=[...NAME2ENT.keys()].sort((a,b)=>b.length-a.length);
+  document.getElementById('bootMeta').textContent=`${DRUGS.length} molecules · ${COMPANIES.length} companies · ${SYNTH_ENDPOINT?'reasoning on':'retrieval only'} · live`;
+  renderChips();
+  // deep-link: meridian_ask.html?q=... (e.g. from the homepage search bar) auto-runs the question
+  const _dq=new URLSearchParams(location.search).get('q');
+  if(_dq && _dq.trim()){ document.getElementById('qHero').value=_dq; run(_dq.trim()); }
+}
+function renderChips(){
+  const facts=["Tulisokibart","how many drugs target TL1A?","who is leading in TSLP?","when does spy002 read out?","duvakitug efficacy"];
+  const think=["What matters most for a preclinical TL1A×IL-23p19 bispecific?","Is the TL1A space too crowded to enter?","Why would a bispecific beat a TL1A monotherapy?"];
+  document.getElementById('heroChips').innerHTML =
+    facts.map(q=>`<span class="chip" onclick="run('${J(q)}')">${q}</span>`).join('')+
+    think.map(q=>`<span class="chip think" onclick="run('${J(q)}')">◇ ${q}</span>`).join('');
+}
+
+/* ---------- query understanding ---------- */
+function resolveEntities(q){
+  const hits=[],used=new Set();
+  for(const s of SURFACES){
+    const re=new RegExp("(?<![a-z0-9])"+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"(?![a-z0-9])","i");
+    if(re.test(q)){ const e=NAME2ENT.get(s); if(!used.has(e.type+e.id)){ used.add(e.type+e.id); hits.push({...e,surface:s}); } }
+  }
+  return hits;
+}
+function targetTokensIn(q){
+  const found=[], ts=tok(q), raw=q.toLowerCase();
+  for(const t of TARGET_TOKENS){ if((ts.includes(t)||raw.includes(t)) && t.length>2 && !found.includes(t)) found.push(t); }
+  return found.sort((a,b)=>b.length-a.length);
+}
+const MODALITY=/\bbispecific\b|\bbi-?specific\b|\bmonoclonal\b|\bmab\b|\bantibody\b|small molecule|\boral\b|\bvhh\b|nanobody|trispecific/i;
+const STAGEWORD=/\bpreclinical\b|\bphase\s?[123]\b|\bphase\s?(i{1,3})\b|\bapproved\b|\bclinical\b|\bIND\b/i;
+const REASON=/most important|what (should|matters|to consider)|\bconsider\b|\bshould i\b|\bwhy\b|how (do|would|should|can)|\bbest\b|\bworst\b|\brisk\b|\bbetter\b|\bvs\.?\b|\bversus\b|\bcompare\b|advantage|weakness|strength|\bstrateg|implication|trade-?off|too crowded|worth|recommend|\bbeat\b|differentiat/i;
+function intent(q){
+  const s=q.toLowerCase();
+  if(/\bhow many\b|\bnumber of\b|\bcount\b/.test(s)) return 'count';
+  if(/\blead(ing|er|ers)?\b|who('?s| is)?\s+(winning|ahead|leading|furthest)|furthest along|top (company|player|drug)/.test(s)) return 'leader';
+  if(/completion date|read ?out|when (will|does|is|do)|timeline|catalyst|pdufa|approval date|expected|milestone|finish/.test(s)) return 'timeline';
+  if(/remission|efficac|response rate|endpoint|\bresults?\b|how effective|safety|\bpk\b|half-?life|\bdata\b/.test(s)) return 'efficacy';
+  if(/competitive landscape|competitor|compet(es|ing|ition)|who else|\blandscape\b|players|field/.test(s)) return 'landscape';
+  return null;
+}
+
+/* ---------- helpers ---------- */
+const STAGE_RANK=s=>{ s=(s||'').toLowerCase();
+  if(/approv|market/.test(s))return 6; if(/phase 3|phase iii/.test(s))return 5; if(/phase 2|phase ii/.test(s))return 4;
+  if(/phase 1|phase i\b/.test(s))return 3; if(/ind|clinical/.test(s))return 2; if(/preclin/.test(s))return 1; return 0; };
+const coName=id=>(COMPANIES.find(c=>c.id===id)||{}).name||id;
+const byTok=t=>DRUGS.filter(d=>tok(d.target).includes(t)||(d.target||'').toLowerCase().includes(t));
+function byArchetype(tokens){ // drugs whose target contains ALL given tokens
+  return DRUGS.filter(d=>{ const dt=(d.target||'').toLowerCase(); return tokens.every(t=>tok(d.target).includes(t)||dt.includes(t)); }); }
+
+/* ---------- main router ---------- */
+async function answer(q){
+  const ents=resolveEntities(q), it=intent(q), tts=targetTokensIn(q);
+  const drug=ents.find(e=>e.type==='drug'), company=ents.find(e=>e.type==='company');
+  const wantsReason=REASON.test(q);
+  const isArchetype = !drug && (tts.length>=1) && (MODALITY.test(q)||STAGEWORD.test(q)||tts.length>=2) && (wantsReason||MODALITY.test(q));
+
+  // JUDGMENT / archetype / open reasoning -> synthesis (auto; logged server-side)
+  if(SYNTH_ENDPOINT && (isArchetype || (wantsReason && (drug||company||tts.length)) || (wantsReason && !it))){
+    await reasoningAnswer(q, {ents,drug,company,tts,isArchetype}); return 'synthesis';
+  }
+
+  // structured fast paths (logged client-side)
+  if(it==='count' && (tts.length||(drug&&drug.row.target))){ const t=tts[0]||tok(drug.row.target)[0]; countAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage))); return 'count'; }
+  if(it==='leader' && (tts.length||drug)){ const t=tts[0]||tok(drug.row.target)[0]; leaderAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage))); return 'leader'; }
+  if(it==='efficacy' && drug){ await efficacyAnswer(q,drug); return 'efficacy'; }
+  if(it==='timeline' && drug){ const c=await sb("catalysts",`select=label,catalyst_date,sort_date,catalyst_type,significance,source_url,outcome_text,catalyst_status&drug_id=eq.${enc(drug.id)}&order=sort_date`); timelineAnswer(q,drug,c); return 'timeline'; }
+  if(it==='landscape' && drug){ landscapeAnswer(q,drug,await peripheryEdges(drug.id)); return 'landscape'; }
+  if(it==='landscape' && tts.length){ const t=tts[0]; countAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
+  if(drug){ dossierAnswer(q,drug,await peripheryEdges(drug.id)); return 'dossier'; }
+  if(company){ companyAnswer(q,company); return 'company'; }
+  if(tts.length){ countAnswer(q,tts[0],byTok(tts[0]).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
+
+  // nothing structured -> reason if possible, else fallback
+  if(SYNTH_ENDPOINT){ await reasoningAnswer(q,{ents,drug,company,tts,isArchetype:false}); return 'synthesis'; }
+  fallbackAnswer(q); return 'unresolved';
+}
+/* fire-and-forget log of structured/unresolved questions (synthesis logs itself server-side) */
+function logQuestion(q,route){
+  if(!LOG_ENDPOINT) return;
+  try{ fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({question:q,route,resolution:route==='unresolved'?'unresolved':'structured',answered:route!=='unresolved'})}).catch(()=>{}); }catch(e){}
+}
+
+/* ---------- graph + resources ---------- */
+async function peripheryEdges(id){
+  const rows=await sb("entity_edges",`select=subject_type,subject_id,predicate,object_type,object_id,rationale,source_url,confidence_level&or=(subject_id.eq.${enc(id)},object_id.eq.${enc(id)})&limit=80`);
+  return rows.map(e=>{ const out=e.subject_id===id; return {pred:e.predicate,otherType:out?e.object_type:e.subject_type,otherId:out?e.object_id:e.subject_id,rationale:e.rationale,src:e.source_url,conf:e.confidence_level}; });
+}
+async function resourcesFor(id){ return sb("drug_sources",`select=claim_type,claim_value,source_url,source_domain,source_type&drug_id=eq.${enc(id)}&limit=14`); }
+function entLabel(t,id){ if(t==='drug'){const d=DRUGS.find(x=>x.id===id);return d?(d.display_name||d.name):id;} if(t==='company')return coName(id); return id; }
+
+/* ---------- shared renderers ---------- */
+function shell({asked,tag,tagCls,title,centerHTML,sideHTML,follow,deepenBundle,deepenTitle}){
+  const fu=(follow&&follow.filter(Boolean).length)?`<div class="card"><h3>What would you like to know?</h3><div class="followups">${follow.filter(Boolean).map(f=>`<span class="chip" onclick="run('${J(f)}')">${f}</span>`).join('')}</div></div>`:'';
+  const deep=deepenBundle?`<div class="deepen" onclick='deepen(${J(asked)},${JSON.stringify(deepenBundle).replace(/'/g,"&#39;")},${J(deepenTitle||title)})'>◇ Reason deeper with AI →</div>`:'';
+  document.getElementById('canvas').innerHTML=`
+    <div class="layout">
+      <div class="main">
+        <p class="askedline">you asked · ${escapeHtml(asked)}</p>
+        <span class="answer-tag ${tagCls||''}">${tag}</span>
+        <h2 class="answer-h">${title}</h2>
+        <div id="synthSlot"></div>
+        ${centerHTML}${deep}${fu}
+      </div>
+      <aside class="side">${sideHTML||''}</aside>
+    </div>`;
+  window.scrollTo(0,0);
+}
+function srcLink(u,l){ return u?`<a href="${u}" target="_blank" rel="noopener">${l||'source ↗'}</a>`:`<span class="src">${l||'—'}</span>`; }
+function connCards(edges,title){
+  if(!edges||!edges.length)return'';
+  const order={COMPETES_WITH:0,ADDRESSES:1,APPROVED_FOR:2,ACTIVE_IN:3,AFFILIATED_WITH:4};
+  return `<h4>${title||'Connections'}</h4>`+edges.slice().sort((a,b)=>(order[a.pred]??9)-(order[b.pred]??9)).slice(0,10).map(e=>{
+    const label=entLabel(e.otherType,e.otherId), click=(e.otherType==='drug'||e.otherType==='company');
+    return `<div class="conn" ${click?`onclick="run('${J(label)}')"`:''}><div class="rel">${e.pred.replace(/_/g,' ').toLowerCase()}</div><div class="ct">${escapeHtml(label)}</div><div class="cs">${escapeHtml(e.otherType)}${e.conf?' · '+e.conf:''}</div></div>`;
+  }).join('');
+}
+function resCards(rows){ if(!rows||!rows.length)return''; return `<h4>Sources &amp; resources</h4>`+rows.filter(r=>r.source_url).slice(0,12).map(r=>`<a class="res" href="${r.source_url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(r.claim_type||r.source_type||'source')}</div><div class="rd">${escapeHtml(r.source_domain||r.source_url)}</div></a>`).join(''); }
+
+/* ---------- SYNTHESIS ---------- */
+async function buildReasonBundle(ctx){
+  const {drug,company,tts}=ctx;
+  const b={question_context:'meridian graph snapshot'};
+  if(drug){ b.focus_drug=slim(drug.row); b.edges=await peripheryEdges(drug.id); b.resources=await resourcesFor(drug.id); }
+  if(company){ b.focus_company=company.row; b.company_pipeline=DRUGS.filter(d=>d.company_id===company.id).map(slim); }
+  if(tts.length){
+    const cohort = tts.length>=2?byArchetype(tts):byTok(tts[0]);
+    b.target_tokens=tts;
+    b.cohort=cohort.map(slim);
+    b.cohort_stage_breakdown=tally(cohort.map(d=>d.stage));
+    b.mechanism_precedent=await sb("mechanism_precedent_map",`select=target,mechanism_class,approved_drugs_count,accepted_primary_endpoints,accepted_biomarkers,regulatory_precedent_level,bd_regulatory_note&or=(${tts.map(t=>`target.ilike.*${enc(t)}*`).join(',')})`);
+    b.failure_precedent=await sb("drug_failure_cascade",`select=failed_drug_name,failure_type,mechanism,impact_direction,impact_rationale&or=(${tts.map(t=>`mechanism.ilike.*${enc(t)}*`).join(',')})&limit=8`);
+    b.nonresponder_rationale=await sb("drug_nonresponder_profiles",`select=mechanism_class,nonresponder_rate_pct,escape_mechanism,combination_rescue_hypothesis,source_urls&or=(${tts.map(t=>`mechanism_class.ilike.*${enc(t)}*`).join(',')})&limit=5`);
+    b.payer_bar=await sb("payer_tpp_criteria","select=tpp_dimension,minimum_acceptable,preferred_profile,biologic_advantage_claim,source_url&limit=5");
+    b.patient_intelligence=await sb("indication_patient_intelligence","select=indication_name,unmet_need_narrative,biologic_nonresponse_rate,clinical_remission_benchmark&limit=2");
+  }
+  return b;
+}
+const slim=d=>({id:d.id,name:d.display_name||d.name,company:coName(d.company_id),stage:d.stage,target:d.target,indication:d.indication_short,thesis:d.differentiation_thesis,key_data:d.key_data,source_url:d.source_url});
+const tally=a=>a.reduce((m,x)=>{x=x||'—';m[x]=(m[x]||0)+1;return m;},{});
+
+async function reasoningAnswer(q,ctx){
+  const {drug,company,tts}=ctx;
+  // periphery preview while we think
+  let side='';
+  if(tts.length){ const cohort=tts.length>=2?byArchetype(tts):byTok(tts[0]);
+    side=`<h4>Cohort in scope (${cohort.length})</h4>`+cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)).slice(0,10).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join(''); }
+  else if(drug){ side=connCards(await peripheryEdges(drug.id),'Connections'); }
+  shell({asked:q,tag:'Reasoned answer',tagCls:'reason',title:'Thinking it through…',
+    centerHTML:`<div class="card"><div class="loading"><span class="dot"></span>gathering precedent &amp; reasoning over the graph…</div></div>`,
+    sideHTML:side});
+  const bundle=await buildReasonBundle(ctx);
+  await callSynth(q,bundle,'#synthSlot',true);
+  // after synth, restore title from the answer's first line handled in render
+}
+async function deepen(q,bundle,title){
+  const slot=document.getElementById('synthSlot');
+  slot.innerHTML=`<div class="card"><div class="loading"><span class="dot"></span>reasoning over the evidence…</div></div>`;
+  await callSynth(q,bundle,'#synthSlot',false);
+}
+async function callSynth(q,bundle,sel,isPrimary){
+  const slot=document.querySelector(sel);
+  try{
+    const r=await fetch(SYNTH_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,bundle})});
+    const j=await r.json();
+    renderSynth(slot,j,isPrimary);
+  }catch(e){
+    slot.innerHTML=`<div class="card empty">Reasoning server not reachable. Start it with <code>python3 meridian_ask_synth.py</code> (or set <code>SYNTH_ENDPOINT</code>). The structured answer below still stands.<div class="synthnote">${escapeHtml(e.message)}</div></div>`;
+  }
+}
+function renderSynth(slot,j,isPrimary){
+  if(isPrimary){ const h=document.querySelector('.answer-h'); if(h) h.textContent = j.headline || 'Reasoned answer'; }
+  const badge = (j.cache?`<span class="pill good">⚡ served from cache · no re-search</span>`:'')
+    + (j.harvested_count?`<span class="pill stage">＋${j.harvested_count} fact${j.harvested_count>1?'s':''} learned → staged for review</span>`:'')
+    + (j.validation_status==='unverified'?`<span class="pill direct">unverified — not cached</span>`:'');
+  const reason=(j.reasoning||[]).map(r=>{
+    const m=String(r).match(/^\s*(FACT|JUDGMENT|JUDGEMENT|GAP|READ)\b[:\-—]?\s*/i);
+    let cls='t-fact',lbl='FACT',txt=r;
+    if(m){ const k=m[1].toUpperCase(); txt=r.slice(m[0].length); if(k.startsWith('JUDG')||k==='READ'){cls='t-judge';lbl='READ';} else if(k==='GAP'){cls='t-gap';lbl='GAP';} else {cls='t-fact';lbl='FACT';} }
+    return `<li><span class="tag-lbl ${cls}">${lbl}</span>${escapeHtml(txt)}</li>`;
+  }).join('');
+  const cites=(j.citations||[]).filter(c=>c.url).map(c=>`<a class="res" href="${c.url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(c.title||'source')}</div><div class="rd">${escapeHtml((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</div></a>`).join('');
+  const rel=(j.related||[]).map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('');
+  slot.innerHTML=`
+    ${badge?`<div style="margin-bottom:10px">${badge}</div>`:''}
+    <div class="card"><div class="synth-answer">${escapeHtml(j.answer||'(no answer)')}</div></div>
+    ${reason?`<div class="card"><h3>How that breaks down</h3><ul class="reason-list">${reason}</ul></div>`:''}
+    ${rel?`<div class="card"><h3>Around the outside</h3><div class="followups">${rel}</div></div>`:''}
+    ${cites?`<div class="card"><h3>Sources <span class="src">· ${(j.model||'')}${j.web_search?' · web':''}</span></h3>${cites}</div>`:''}`;
+}
+
+/* ---------- structured renderers ---------- */
+function dossierAnswer(q,drug,edges){
+  const d=drug.row,comp=coName(d.company_id);
+  resourcesFor(d.id).then(res=>{ const el=document.getElementById('resSlot'); if(el) el.innerHTML=resCards(res); });
+  const center=`
+    <div class="card big-answer"><span class="hl">${escapeHtml(d.display_name||d.name)}</span> is ${article(d.mechanism||d.modality)} ${escapeHtml(d.mechanism||d.modality||'asset')} from <span class="hl">${escapeHtml(comp)}</span>, currently <span class="hl">${escapeHtml(d.stage||'—')}</span>${d.indication_short?` in ${escapeHtml(d.indication_short)}`:''}.</div>
+    <div class="card"><h3>Profile</h3><div class="kv">
+      <div class="k">target</div><div class="v">${escapeHtml(d.target||'—')}</div>
+      <div class="k">originator</div><div class="v">${escapeHtml(comp)}</div>
+      <div class="k">stage</div><div class="v"><span class="pill stage">${escapeHtml(d.stage||'—')}</span>${d.overlap?`<span class="pill ${/direct/i.test(d.overlap)?'direct':''}">${escapeHtml(d.overlap)} overlap</span>`:''}</div>
+      <div class="k">indication</div><div class="v">${escapeHtml(d.indication_short||'—')}</div>
+      ${d.mechanism?`<div class="k">mechanism</div><div class="v">${escapeHtml(d.mechanism)}</div>`:''}
+      ${d.key_data?`<div class="k">key data</div><div class="v">${escapeHtml(d.key_data)}</div>`:''}
+    </div></div>`;
+  shell({asked:q,tag:'Entity · molecule',title:escapeHtml(d.display_name||d.name),centerHTML:center,
+    sideHTML:connCards(edges,'Connections')+`<div id="resSlot"></div>`,
+    follow:[`competitive landscape for ${d.name}`,`when does ${d.name} read out?`,`${d.name} efficacy`,`why would ${d.name} win?`],
+    deepenBundle:{focus_drug:slim(d)},deepenTitle:`${d.display_name||d.name} — strategic read`});
+}
+function companyAnswer(q,company){
+  const c=company.row, pipe=DRUGS.filter(d=>d.company_id===c.id||d.lead_company_id===c.id).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage));
+  const center=`
+    <div class="card big-answer"><span class="hl">${escapeHtml(c.name)}</span>${c.ticker?` (${escapeHtml(c.ticker)})`:''} — ${pipe.length?`<span class="hl">${pipe.length}</span> tracked asset${pipe.length>1?'s':''}`:'no tracked assets yet'}${c.hq_country?`, HQ ${escapeHtml(c.hq_country)}`:''}.</div>
+    <div class="card"><h3>Pipeline</h3>${pipe.length?`<table class="rows"><tr><th>Asset</th><th>Target</th><th>Stage</th><th>Indication</th></tr>${pipe.slice(0,14).map(d=>`<tr><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td><td>${escapeHtml(d.indication_short||'—')}</td></tr>`).join('')}</table>`:'<div class="empty">No assets indexed.</div>'}</div>`;
+  shell({asked:q,tag:'Entity · company',title:escapeHtml(c.name),centerHTML:center,
+    sideHTML:`<h4>Snapshot</h4><div class="conn"><div class="rel">type</div><div class="ct">${escapeHtml(c.company_type||'—')}</div></div>${c.market_cap_display?`<div class="conn"><div class="rel">market cap</div><div class="ct">${escapeHtml(c.market_cap_display)}</div></div>`:''}${c.status?`<div class="conn"><div class="rel">status</div><div class="ct">${escapeHtml(c.status)}</div></div>`:''}`,
+    follow:[`what is ${c.name} leading in?`, pipe[0]?`${pipe[0].name} competitive landscape`:''],
+    deepenBundle:{focus_company:c,company_pipeline:pipe.map(slim)},deepenTitle:`${c.name} — strategic read`});
+}
+function countAnswer(q,t,list,asLandscape){
+  const byCo={}; list.forEach(d=>byCo[d.company_id]=(byCo[d.company_id]||0)+1);
+  const center=`
+    <div class="card big-answer"><span class="hl">${list.length}</span> tracked molecule${list.length!==1?'s':''} hit the target “<span class="hl">${escapeHtml((t||'').toUpperCase())}</span>”, across <span class="hl">${Object.keys(byCo).length}</span> companies.</div>
+    <div class="card"><h3>Molecules</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Target</th><th>Stage</th></tr>${list.map((d,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(coName(d.company_id))}</td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td></tr>`).join('')}</table></div>`;
+  shell({asked:q,tag:asLandscape?'Landscape':'Aggregation · count',title:`${list.length} on ${escapeHtml((t||'').toUpperCase())}`,centerHTML:center,
+    sideHTML:`<h4>Furthest along</h4>${list.slice(0,6).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
+    follow:[`who is leading in ${(t||'').toUpperCase()}?`,`is ${(t||'').toUpperCase()} too crowded to enter?`],
+    deepenBundle:{target:t,cohort:list.map(slim),stage_breakdown:tally(list.map(d=>d.stage))},deepenTitle:`${(t||'').toUpperCase()} — strategic read`});
+}
+function leaderAnswer(q,t,list){
+  const lead=list[0];
+  const center=`
+    <div class="card big-answer">In <span class="hl">${escapeHtml((t||'').toUpperCase())}</span>, the most advanced tracked asset is <span class="hl">${escapeHtml(lead?(lead.display_name||lead.name):'—')}</span>${lead?` (${escapeHtml(coName(lead.company_id))}, ${escapeHtml(lead.stage)})`:''}. Leadership here is read as development stage among ${list.length} tracked molecules — confirm against deal value &amp; data quality.</div>
+    <div class="card"><h3>Ranked by stage</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Stage</th></tr>${list.slice(0,12).map((d,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(coName(d.company_id))}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td></tr>`).join('')}</table></div>`;
+  shell({asked:q,tag:'Aggregation · leader',title:`Leading in ${escapeHtml((t||'').toUpperCase())}`,centerHTML:center,
+    sideHTML:`<h4>Top of field</h4>${list.slice(0,6).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
+    follow:[`how many drugs target ${(t||'').toUpperCase()}?`,lead?`${lead.name} competitive landscape`:''],
+    deepenBundle:{question:'who really leads',target:t,ranked:list.map(slim)},deepenTitle:`Who leads ${(t||'').toUpperCase()}?`});
+}
+function landscapeAnswer(q,drug,edges){
+  const d=drug.row,t=tok(d.target)[0]||'';
+  const comp=byTok(t).filter(x=>x.id!==d.id).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage));
+  const center=`
+    <div class="card big-answer"><span class="hl">${escapeHtml(d.display_name||d.name)}</span> (${escapeHtml(d.stage)}, ${escapeHtml(coName(d.company_id))}) sits in a field of <span class="hl">${comp.length}</span> other tracked molecules sharing the <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> space${d.indication_short?` (${escapeHtml(d.indication_short)})`:''}.</div>
+    <div class="card"><h3>Competitive field — by stage</h3><table class="rows"><tr><th>Asset</th><th>Company</th><th>Target</th><th>Stage</th><th>Overlap</th></tr>${comp.slice(0,14).map(x=>`<tr><td><a onclick="run('${J(x.name)}')">${escapeHtml(x.display_name||x.name)}</a></td><td>${escapeHtml(coName(x.company_id))}</td><td>${escapeHtml(x.target||'—')}</td><td><span class="pill stage">${escapeHtml(x.stage||'—')}</span></td><td>${x.overlap?`<span class="pill ${/direct/i.test(x.overlap)?'direct':''}">${escapeHtml(x.overlap)}</span>`:'—'}</td></tr>`).join('')}</table></div>`;
+  shell({asked:q,tag:'Landscape',title:`${escapeHtml(d.display_name||d.name)} — competitive landscape`,centerHTML:center,
+    sideHTML:connCards(edges.filter(e=>e.pred==='COMPETES_WITH'),'Named competitors (graph)')+connCards(edges.filter(e=>e.pred!=='COMPETES_WITH'),'Other links'),
+    follow:[`who is leading in ${(t||'').toUpperCase()}?`,`is ${(t||'').toUpperCase()} too crowded to enter?`,`why would ${d.name} win?`],
+    deepenBundle:{focus_drug:slim(d),competitors:comp.map(slim)},deepenTitle:`${d.display_name||d.name} — competitive read`});
+}
+async function efficacyAnswer(q,drug){
+  const d=drug.row;
+  const [bench,evi,pk]=await Promise.all([
+    sb("efficacy_benchmarks",`select=endpoint_type,value_pct,timepoint,placebo_pct,delta_vs_placebo,trial_name,phase,year,source_url&drug_id=eq.${enc(d.id)}`),
+    sb("clinical_evidence_items",`select=title,phase,evidence_date,key_finding,efficacy_data,te_data,safety_data&drug_id=eq.${enc(d.id)}&limit=8`),
+    sb("drug_pk_parameters",`select=dose_mg,dose_route,half_life_hours,immunogenicity_ada_pct,steady_state_weeks&drug_id=eq.${enc(d.id)}&limit=6`)
+  ]);
+  let center='';
+  if(bench.length){
+    center+=`<div class="card big-answer">Recorded efficacy for <span class="hl">${escapeHtml(d.display_name||d.name)}</span>:</div>
+    <div class="card"><h3>Efficacy benchmarks</h3><table class="rows"><tr><th>Endpoint</th><th>Value</th><th>Placebo</th><th>Δ</th><th>Trial</th><th>Phase</th><th>Src</th></tr>
+    ${bench.map(b=>`<tr><td>${escapeHtml(b.endpoint_type||'—')}${b.timepoint?` <span class="src">(${escapeHtml(b.timepoint)})</span>`:''}</td><td class="num">${b.value_pct!=null?b.value_pct+'%':'—'}</td><td>${b.placebo_pct!=null?b.placebo_pct+'%':'—'}</td><td class="num">${b.delta_vs_placebo!=null?'+'+b.delta_vs_placebo:'—'}</td><td>${escapeHtml(b.trial_name||'—')}</td><td>${escapeHtml(b.phase||'—')}</td><td>${srcLink(b.source_url,'↗')}</td></tr>`).join('')}</table></div>`;
+  }
+  if(evi.length){
+    center+=`<div class="card"><h3>Clinical evidence</h3>${evi.map(e=>`<div style="padding:8px 0;border-bottom:1px solid #161e2a"><b>${escapeHtml(e.title||'finding')}</b> <span class="src">${escapeHtml(e.phase||'')} ${escapeHtml(e.evidence_date||'')}</span><br>${escapeHtml(e.key_finding||e.efficacy_data||'')}</div>`).join('')}</div>`;
+  }
+  if(pk.length){
+    center+=`<div class="card"><h3>PK / immunogenicity</h3><table class="rows"><tr><th>Dose</th><th>Route</th><th>t½ (h)</th><th>ADA %</th><th>SS (wk)</th></tr>${pk.map(p=>`<tr><td class="num">${p.dose_mg??'—'}</td><td>${escapeHtml(p.dose_route||'—')}</td><td class="num">${p.half_life_hours??'—'}</td><td class="num">${p.immunogenicity_ada_pct??'—'}</td><td class="num">${p.steady_state_weeks??'—'}</td></tr>`).join('')}</table></div>`;
+  }
+  if(!center){ center=`<div class="card empty">No structured efficacy/PK rows stored for <b>${escapeHtml(d.display_name||d.name)}</b> yet${d.key_data?` — narrative on file: <i>${escapeHtml(d.key_data)}</i>`:''}. This is a data gap; the AI read below can pull the latest from the web with citations.</div>`; }
+  resourcesFor(d.id).then(res=>{ const el=document.getElementById('resSlot'); if(el) el.innerHTML=resCards(res); });
+  shell({asked:q,tag:'Evidence · efficacy',title:`${escapeHtml(d.display_name||d.name)} — data on hand`,centerHTML:center,
+    sideHTML:`<div id="resSlot"></div>`,
+    follow:[`${d.name} competitive landscape`,`when does ${d.name} read out?`],
+    deepenBundle:{focus_drug:slim(d),efficacy_benchmarks:bench,clinical_evidence:evi,pk},deepenTitle:`${d.display_name||d.name} — efficacy read`});
+}
+function timelineAnswer(q,drug,cats){
+  const d=drug.row, up=cats.filter(c=>c.catalyst_status!=='resolved');
+  const center=cats.length?`
+    <div class="card big-answer">${up.length?`The next tracked catalyst for <span class="hl">${escapeHtml(d.display_name||d.name)}</span> is <span class="hl">${escapeHtml(up[0].label)}</span>${up[0].catalyst_date?`, expected <span class="hl">${escapeHtml(up[0].catalyst_date)}</span>`:''}.`:`All tracked catalysts for ${escapeHtml(d.display_name||d.name)} are resolved.`}</div>
+    <div class="card"><h3>Catalyst calendar</h3><table class="rows"><tr><th>Date</th><th>Event</th><th>Type</th><th>Source</th></tr>${cats.map(c=>`<tr><td>${escapeHtml(c.catalyst_date||c.sort_date||'TBD')}</td><td>${escapeHtml(c.label)}${c.outcome_text?`<br><span class="src">${escapeHtml(c.outcome_text)}</span>`:''}</td><td>${escapeHtml(c.catalyst_type||'—')}</td><td>${srcLink(c.source_url)}</td></tr>`).join('')}</table></div>`
+    :`<div class="card empty">No catalysts recorded for <b>${escapeHtml(d.display_name||d.name)}</b> yet — a data gap, not a “no events” answer.</div>`;
+  shell({asked:q,tag:'Timeline · catalysts',title:`${escapeHtml(d.display_name||d.name)} — what's coming`,centerHTML:center,
+    sideHTML:`<h4>Asset</h4><div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`,
+    follow:[`${d.name} competitive landscape`,`${d.name} efficacy`],
+    deepenBundle:{focus_drug:slim(d),catalysts:cats},deepenTitle:`${d.display_name||d.name} — catalyst read`});
+}
+function fallbackAnswer(q){
+  shell({asked:q,tag:'Open question',title:'No direct graph match',
+    centerHTML:`<div class="card empty">I couldn’t resolve a tracked molecule, company, or target in <b>“${escapeHtml(q)}”</b>. With the reasoning server running this would route to AI synthesis + web search for a cited answer.</div>`,
+    sideHTML:'',follow:["Tulisokibart","how many drugs target TL1A?","What matters most for a preclinical TL1A×IL-23p19 bispecific?"]});
+}
+
+/* ---------- flow ---------- */
+function article(w){ return /^[aeiou]/i.test((w||'').trim())?'an':'a'; }
+function submitQ(e,where){ e.preventDefault(); const q=(document.getElementById(where==='top'?'qTop':'qHero').value||'').trim(); if(q)run(q); return false; }
+async function run(q){
+  document.getElementById('qTop').value=q; document.body.classList.add('answer');
+  document.getElementById('canvas').innerHTML=`<div class="loading" style="padding-top:40px"><span class="dot"></span>searching the graph…</div>`;
+  try{ const route=await answer(q); if(route&&route!=='synthesis') logQuestion(q,route); }catch(err){ document.getElementById('canvas').innerHTML=`<div class="card empty">Something broke: ${escapeHtml(err.message)}</div>`; console.error(err); }
+}
+function goHome(){ document.body.classList.remove('answer'); document.getElementById('qHero').value=''; document.getElementById('qHero').focus(); }
+boot();
+</script>
+</body>
+</html>
