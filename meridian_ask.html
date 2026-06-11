@@ -373,7 +373,21 @@ function barChart(items){
     const y=i*(bh+gap)+4, bw=Math.max(2,(x.value/max)*barMax);
     return `<text x="0" y="${y+bh/2+4}" fill="#9aa7b8" font-size="12.5">${escapeHtml(String(x.label)).slice(0,20)}</text>`
       +`<rect x="${lblW}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="#5b9dff" opacity="${(1-i*0.07).toFixed(2)}"/>`
-      +`<text x="${lblW+bw+7}" y="${y+bh/2+4}" fill="#fff" font-size="12.5" font-weight="600">${x.value}${x.unit||'%'}</text>`;
+      +`<text x="${lblW+bw+7}" y="${y+bh/2+4}" fill="#fff" font-size="12.5" font-weight="600">${x.value}${x.unit??'%'}</text>`;
+  }).join('')}</svg>`;
+}
+// catalyst timeline (mini-gantt: dot per event positioned by days-away)
+function catalystBars(cats){
+  const today=Date.now();
+  const its=(cats||[]).map(c=>({...c,t:Date.parse(c.sort_date||'')})).filter(c=>!isNaN(c.t)&&c.t>=today-86400000).sort((a,b)=>a.t-b.t).slice(0,10);
+  if(its.length<2) return '';
+  const maxD=Math.max(...its.map(c=>(c.t-today)/86400000),30), W=600,bh=22,gap=8,H=its.length*(bh+gap)+6,axis=120;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;margin:4px 0">${its.map((c,i)=>{
+    const y=i*(bh+gap)+3, days=Math.max(0,(c.t-today)/86400000), x=axis+(days/maxD)*(W-axis-30);
+    return `<line x1="${axis}" y1="${y+bh/2}" x2="${W}" y2="${y+bh/2}" stroke="#161e2a"/>`
+      +`<text x="0" y="${y+bh/2+4}" fill="#5b9dff" font-size="11.5" font-family="${'ui-monospace,monospace'}">${escapeHtml(String(c.catalyst_date||'').slice(0,14))}</text>`
+      +`<circle cx="${x}" cy="${y+bh/2}" r="5" fill="${/high/i.test(c.significance||'')?'#fb7185':'#5b9dff'}"/>`
+      +`<text x="${Math.min(x+10,W-180)}" y="${y+bh/2+4}" fill="#cdd7e3" font-size="12">${escapeHtml((c.label||'').slice(0,34))}</text>`;
   }).join('')}</svg>`;
 }
 /* ---------- main router ---------- */
@@ -673,7 +687,8 @@ function countAnswer(q,t,list,asLandscape){
   const byCo={}; list.forEach(d=>byCo[d.company_id]=(byCo[d.company_id]||0)+1);
   const center=`
     <div class="card big-answer"><span class="hl">${list.length}</span> tracked molecule${list.length!==1?'s':''} hit the target “<span class="hl">${escapeHtml((t||'').toUpperCase())}</span>”, across <span class="hl">${Object.keys(byCo).length}</span> companies.</div>
-    <div class="card"><h3>Molecules</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Target</th><th>Stage</th></tr>${list.map((d,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(coName(d.company_id))}</td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td></tr>`).join('')}</table></div>`;
+    <div class="card"><h3>Molecules</h3><table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Target</th><th>Stage</th></tr>${list.map((d,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(d.name)}')">${escapeHtml(d.display_name||d.name)}</a></td><td>${escapeHtml(coName(d.company_id))}</td><td>${escapeHtml(d.target||'—')}</td><td><span class="pill stage">${escapeHtml(d.stage||'—')}</span></td></tr>`).join('')}</table></div>
+    ${(()=>{ const SR={'Approved':6,'Filed':5,'Phase 3':4,'Phase 2':3,'Phase 1':2,'Preclinical':1,'Discovery':0}; const st={}; list.forEach(d=>{const s=d.stage||'—';st[s]=(st[s]||0)+1;}); const items=Object.entries(st).sort((a,b)=>(SR[b[0]]??-1)-(SR[a[0]]??-1)).map(([s,n])=>({label:s,value:n,unit:''})); return items.length>1?`<div class="card"><h3>Field by stage</h3>${barChart(items)}</div>`:''; })()}`;
   shell({asked:q,tag:asLandscape?'Landscape':'Aggregation · count',title:`${list.length} on ${escapeHtml((t||'').toUpperCase())}`,centerHTML:center,
     sideHTML:`<h4>Furthest along</h4>${list.slice(0,6).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
     follow:[`who is leading in ${(t||'').toUpperCase()}?`,`is ${(t||'').toUpperCase()} too crowded to enter?`],
@@ -707,7 +722,8 @@ async function comparisonAnswer(q,drugEnts){
     <div class="card big-answer">Comparing <span class="hl">${ds.map(d=>escapeHtml(d.display_name||d.name)).join('</span> vs <span class="hl">')}</span>.</div>
     <div class="card"><h3>Side by side</h3><table class="rows"><tr><th></th>${ds.map(d=>`<th>${escapeHtml((d.display_name||d.name).split('(')[0])}</th>`).join('')}</tr>
       ${ROWS.map(r=>`<tr><td class="rank">${r[0]}</td>${ds.map(d=>`<td>${r[1](d)}</td>`).join('')}</tr>`).join('')}</table></div>`;
-  shell({asked:q,tag:'Comparison',title:ds.map(d=>(d.display_name||d.name).split('(')[0].trim()).join(' vs '),centerHTML:center,
+  const remChart=(()=>{ const ri=ds.map(d=>{const r=bestRem(d);return r?{label:(d.display_name||d.name).split('(')[0].trim(),value:r.value_pct}:null;}).filter(Boolean); return ri.length?`<div class="card"><h3>Best remission (where reported)</h3>${barChart(ri)}</div>`:''; })();
+  shell({asked:q,tag:'Comparison',title:ds.map(d=>(d.display_name||d.name).split('(')[0].trim()).join(' vs '),centerHTML:center+remChart,
     sideHTML:`<h4>Assets</h4>${ds.map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
     follow:ds.map(d=>`${d.name} efficacy`).concat([`which is more differentiated, ${ds.map(d=>d.name).join(' or ')}?`]),
     deepenBundle:{compare:ds.map(slim),efficacy:eff},deepenTitle:'Comparison — strategic read'});
@@ -774,6 +790,7 @@ function timelineAnswer(q,drug,cats){
   const d=drug.row, up=cats.filter(c=>c.catalyst_status!=='resolved');
   const center=cats.length?`
     <div class="card big-answer">${up.length?`The next tracked catalyst for <span class="hl">${escapeHtml(d.display_name||d.name)}</span> is <span class="hl">${escapeHtml(up[0].label)}</span>${up[0].catalyst_date?`, expected <span class="hl">${escapeHtml(up[0].catalyst_date)}</span>`:''}.`:`All tracked catalysts for ${escapeHtml(d.display_name||d.name)} are resolved.`}</div>
+    ${catalystBars(cats)?`<div class="card"><h3>Timeline</h3>${catalystBars(cats)}</div>`:''}
     <div class="card"><h3>Catalyst calendar</h3><table class="rows"><tr><th>Date</th><th>Event</th><th>Type</th><th>Source</th></tr>${cats.map(c=>`<tr><td>${escapeHtml(c.catalyst_date||c.sort_date||'TBD')}</td><td>${escapeHtml(c.label)}${c.outcome_text?`<br><span class="src">${escapeHtml(c.outcome_text)}</span>`:''}</td><td>${escapeHtml(c.catalyst_type||'—')}</td><td>${srcLink(c.source_url)}</td></tr>`).join('')}</table></div>`
     :`<div class="card empty">No catalysts recorded for <b>${escapeHtml(d.display_name||d.name)}</b> yet — a data gap, not a “no events” answer.</div>`;
   shell({asked:q,tag:'Timeline · catalysts',title:`${escapeHtml(d.display_name||d.name)} — what's coming`,centerHTML:center,
