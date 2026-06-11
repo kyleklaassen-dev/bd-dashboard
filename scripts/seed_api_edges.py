@@ -87,6 +87,12 @@ def seed_target_indication():
 
 
 def seed_drug_publication():
+    # literature_records was deprecated (folded into publications). drug->publication
+    # edges are owned by the abstract/author pipeline; skip gracefully if table absent.
+    rows = c.select("literature_records", {"select": "pmid,drug_id,source_url", "pmid": "not.is.null", "limit": "1"})
+    if not rows:
+        print("drug→publication: literature_records absent/empty — skipped (owned by abstract_fetcher)")
+        return 0
     rows = c.select_all("literature_records", {"select": "pmid,drug_id,source_url", "pmid": "not.is.null"})
     edges = {}
     for r in rows:
