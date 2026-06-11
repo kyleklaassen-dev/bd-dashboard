@@ -436,6 +436,8 @@ async function answer(q){
   if(it==='timeline' && drug){ const c=await sb("catalysts",`select=label,catalyst_date,sort_date,catalyst_type,significance,source_url,outcome_text,catalyst_status&drug_id=eq.${enc(drug.id)}&order=sort_date`); timelineAnswer(q,drug,c); return 'timeline'; }
   if(it==='landscape' && drug){ landscapeAnswer(q,drug,await peripheryEdges(drug.id)); return 'landscape'; }
   if(it==='landscape' && tts.length){ const t=tts[0]; countAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
+  // GRAPH-FIRST FACT: mechanism / developer / deal answerable from Meridian's own data — no LLM, no web
+  if(drug){ const fk=factKind(q); if(fk){ const done=await factAnswer(q,drug,fk); if(done) return 'fact'; } }
   // a QUESTION that mentions an entity but matched no structured handler -> research it
   const asksMore = hasResidualQuestion(q, ents);
   if((drug||company||tts.length) && asksMore && SYNTH_ENDPOINT){ await reasoningAnswer(q,{ents,drug,company,tts,isArchetype:false}); return 'synthesis'; }
@@ -674,6 +676,46 @@ function renderSynth(slot,j,isPrimary){
     ${ans?`<div id="fbRow" class="src" style="margin-top:6px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span>Helpful? <span class="fbbtn" onclick="sendFeedback('up')">👍</span> <span class="fbbtn" onclick="sendFeedback('down')">👎</span></span><span style="margin-left:auto;display:flex;gap:7px"><span class="exbtn" onclick="copyAnswer()">⧉ copy</span>${(/\|/.test(ans)&&/---/.test(ans))?`<span class="exbtn" onclick="downloadCsv()">⤓ CSV</span>`:''}</span></div>`:''}`;
 }
 
+/* ---------- graph-first fact router: answer from Meridian's own data before the LLM/web ---------- */
+function factKind(q){ const s=q.toLowerCase();
+  if(/\b(mechanism|moa|mode of action)\b|how does .+ work|what (kind|type) of (drug|molecule|antibody|asset)|is .+ a (bispecific|monoclonal|mab|small molecule|antibody|adc|fusion)|what is .+ (modality|target)\b|what does .+ target\b/.test(s)) return 'mechanism';
+  if(/who (develops|makes|owns|markets|is behind|is developing|holds|has)\b|which company|what company|developed by|originator|who('?s| is) the (developer|owner|sponsor)/.test(s)) return 'developer';
+  if(/how much .+ (pay|paid|cost)|deal (value|worth|size|terms)|\bupfront\b|milestone payment|acquisition (price|value|cost)|paid .+ for|partnership .+ worth|total deal|licens(e|ing) (terms|deal|value)|bought .+ for/.test(s)) return 'deal';
+  return null; }
+async function factAnswer(q,drug,kind){
+  const d=drug.row, comp=coName(d.company_id), name=escapeHtml(d.display_name||d.name);
+  const sideAssets=(list)=>list.map(x=>`<div class="conn" onclick="run('${J(x.name)}')"><div class="rel">${escapeHtml(x.stage||'')}</div><div class="ct">${escapeHtml(x.display_name||x.name)}</div><div class="cs">${escapeHtml(coName(x.company_id))}</div></div>`).join('');
+  if(kind==='mechanism'){
+    const mech=d.mechanism||d.modality; if(!mech&&!d.target) return false;
+    const center=`<div class="card big-answer">${name} is ${article(mech)} <span class="hl">${escapeHtml(mech||'asset')}</span>${d.target?` targeting <span class="hl">${escapeHtml(d.target)}</span>`:''}${d.indication_short?`, in development for ${escapeHtml(d.indication_short)}`:''}.</div>
+      <div class="card"><h3>Mechanism</h3><div class="kv">${d.modality?`<div class="k">modality</div><div class="v">${escapeHtml(d.modality)}</div>`:''}<div class="k">target</div><div class="v">${escapeHtml(d.target||'—')}</div>${d.mechanism?`<div class="k">mechanism</div><div class="v">${escapeHtml(d.mechanism)}</div>`:''}${d.differentiation_thesis?`<div class="k">differentiation</div><div class="v">${escapeHtml(d.differentiation_thesis)}</div>`:''}</div></div>`;
+    shell({asked:q,tag:'Mechanism · from Meridian',title:`${(d.display_name||d.name)} — mechanism`,centerHTML:center,
+      sideHTML:`<h4>Same target</h4>${sideAssets(byTok(tok(d.target)[0]||'').filter(x=>x.id!==d.id).slice(0,6))}`,
+      follow:[`${d.name} efficacy data`,`who develops ${d.name}?`,`${d.name} competitive landscape`],
+      deepenBundle:{focus_drug:slim(d),question:'mechanism detail'},deepenTitle:`${d.name} — deeper mechanism read`});
+    return true; }
+  if(kind==='developer'){
+    const lead=d.lead_company_id&&d.lead_company_id!==d.company_id?coName(d.lead_company_id):null;
+    const center=`<div class="card big-answer">${name} originated at <span class="hl">${escapeHtml(comp)}</span>${lead?`, with <span class="hl">${escapeHtml(lead)}</span> as lead/partner`:''}. ${escapeHtml(d.stage||'')}${d.indication_short?` · ${escapeHtml(d.indication_short)}`:''}.</div>
+      <div class="card"><h3>Ownership</h3><div class="kv"><div class="k">originator</div><div class="v">${escapeHtml(comp)}</div>${lead?`<div class="k">lead / partner</div><div class="v">${escapeHtml(lead)}</div>`:''}<div class="k">target</div><div class="v">${escapeHtml(d.target||'—')}</div><div class="k">stage</div><div class="v">${escapeHtml(d.stage||'—')}</div></div><div class="src" style="margin-top:8px">Ownership shown as originator; license/partnership detail lives in deals. Ask "what deals involve ${escapeHtml(d.name)}?"</div></div>`;
+    shell({asked:q,tag:'Ownership · from Meridian',title:`Who develops ${(d.display_name||d.name)}`,centerHTML:center,
+      sideHTML:`<h4>${escapeHtml(comp)} pipeline</h4>${sideAssets(DRUGS.filter(x=>x.company_id===d.company_id||x.lead_company_id===d.company_id).slice(0,6))}`,
+      follow:[`what deals involve ${d.name}?`,`${d.name} competitive landscape`,`${comp} pipeline`],
+      deepenBundle:{focus_drug:slim(d),question:'ownership / partnership'},deepenTitle:`${d.name} — ownership read`});
+    return true; }
+  if(kind==='deal'){
+    const deals=await sb("deals",`select=deal_date_label,from_company,to_company,deal_type,upfront_usd_m,total_usd_m,headline,source_url&drug_id=eq.${enc(d.id)}&order=deal_date_label.desc`).catch(()=>[]);
+    if(!deals||!deals.length) return false;  // nothing in graph → let synthesis research it
+    const m=v=>v==null?'—':('$'+(v>=1000?(v/1000).toFixed(1)+'B':v+'M'));
+    const top=deals[0];
+    const center=`<div class="card big-answer">Meridian tracks <span class="hl">${deals.length}</span> deal${deals.length>1?'s':''} involving ${name}. The headline transaction: <span class="hl">${escapeHtml(top.from_company||'')}→${escapeHtml(top.to_company||'')}</span>${top.total_usd_m?`, up to <span class="hl">${m(top.total_usd_m)}</span>`:''}${top.upfront_usd_m?` (${m(top.upfront_usd_m)} upfront)`:''}.</div>
+      <div class="card"><h3>Deals</h3><table class="rows"><tr><th>Date</th><th>Parties</th><th>Type</th><th>Upfront</th><th>Total</th><th>Src</th></tr>${deals.map(x=>`<tr><td>${escapeHtml(x.deal_date_label||'—')}</td><td>${escapeHtml(x.from_company||'')} → ${escapeHtml(x.to_company||'')}</td><td>${escapeHtml(x.deal_type||'—')}</td><td class="num">${m(x.upfront_usd_m)}</td><td class="num">${m(x.total_usd_m)}</td><td>${x.source_url?`<a href="${x.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+    shell({asked:q,tag:'Deals · from Meridian',title:`Deals · ${(d.display_name||d.name)}`,centerHTML:center,
+      sideHTML:`<h4>Asset</h4>${sideAssets([d])}`,
+      follow:[`who develops ${d.name}?`,`${d.name} competitive landscape`,`${d.name} efficacy data`],
+      deepenBundle:{focus_drug:slim(d),deals,question:'deal economics'},deepenTitle:`${d.name} — deal economics read`});
+    return true; }
+  return false; }
 /* ---------- structured renderers ---------- */
 function dossierAnswer(q,drug,edges){
   const d=drug.row,comp=coName(d.company_id);
