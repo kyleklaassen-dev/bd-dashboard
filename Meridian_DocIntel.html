@@ -77,6 +77,12 @@ const arr=x=>{if(Array.isArray(x))return x;if(x&&typeof x==='string'){try{const 
 // key_metrics may be an array of {metric,value} OR an object map {name:desc}; normalize to {metric,value}
 const kmArr=x=>Array.isArray(x)?x:(x&&typeof x==='object'?Object.entries(x).map(([metric,value])=>({metric,value})):arr(x));
 const q=(t,p)=>fetch(`${SB}/rest/v1/${t}?${p}`,{headers:H}).then(r=>r.json());
+// Supabase REST caps responses at 1000 rows/request; page through with Range to get ALL rows
+async function qAll(t,p){const out=[];const step=1000;for(let from=0;;from+=step){
+  const r=await fetch(`${SB}/rest/v1/${t}?${p}`,{headers:{...H,Range:`${from}-${from+step-1}`}});
+  const rows=await r.json();if(!Array.isArray(rows)||!rows.length)break;
+  out.push(...rows);if(rows.length<step)break;}
+  return out;}
 let DIGESTS=[],FACTS=[],RX=[],MKT=[];
 function sw(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
   document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));document.getElementById('v-'+v).classList.add('on');}
@@ -86,7 +92,7 @@ function srcLink(u){if(!u)return'';const pdf=/\.pdf|\/pdf|bluematrix|drive\.goog
 async function load(){
   [DIGESTS,FACTS,RX,MKT]=await Promise.all([
     q('intel_digests','select=*&order=created_at.desc'),
-    q('intel_facts','select=*&order=id.desc&limit=2000'),
+    qAll('intel_facts','select=*&order=id.desc'),
     q('rx_market_tracker','select=*&order=drug_class,drug_name'),
     q('market_landscape','select=*&order=area_id,year_label')
   ]);
