@@ -230,6 +230,17 @@ const byTok=t=>DRUGS.filter(d=>tok(d.target).includes(t)||(d.target||'').toLower
 function byArchetype(tokens){ // drugs whose target contains ALL given tokens
   return DRUGS.filter(d=>{ const dt=(d.target||'').toLowerCase(); return tokens.every(t=>tok(d.target).includes(t)||dt.includes(t)); }); }
 
+/* A bare entity name ("tulisokibart") is a lookup → dossier. The same entity inside a
+   question ("how much did Sanofi pay for duvakitug") has residual meaning we can't answer
+   structurally → research it. Question words/fillers are ignored; a substantive leftover
+   token means it's a real question. */
+const FILLER=new Set(['what','whats','when','where','who','whom','why','how','which','is','are','was','were','does','did','do','can','could','should','would','will','the','a','an','of','for','in','on','at','and','or','to','me','my','please','tell','show','give','about','info','information','details','detail','overview','profile','summary','get','find','want','need','know','much','many','it','this','that','their','its']);
+function hasResidualQuestion(q, ents){
+  let s=' '+q.toLowerCase()+' ';
+  for(const e of (ents||[])){ if(e.surface) s=s.split(e.surface.toLowerCase()).join(' '); }
+  return tok(s).some(t=>t.length>=3 && !FILLER.has(t));
+}
+
 /* ---------- main router ---------- */
 async function answer(q){
   const ents=resolveEntities(q), it=intent(q), tts=targetTokensIn(q);
@@ -249,11 +260,15 @@ async function answer(q){
   if(it==='timeline' && drug){ const c=await sb("catalysts",`select=label,catalyst_date,sort_date,catalyst_type,significance,source_url,outcome_text,catalyst_status&drug_id=eq.${enc(drug.id)}&order=sort_date`); timelineAnswer(q,drug,c); return 'timeline'; }
   if(it==='landscape' && drug){ landscapeAnswer(q,drug,await peripheryEdges(drug.id)); return 'landscape'; }
   if(it==='landscape' && tts.length){ const t=tts[0]; countAnswer(q,t,byTok(t).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
+  // a QUESTION that mentions an entity but matched no structured handler -> research it
+  const asksMore = hasResidualQuestion(q, ents);
+  if((drug||company||tts.length) && asksMore && SYNTH_ENDPOINT){ await reasoningAnswer(q,{ents,drug,company,tts,isArchetype:false}); return 'synthesis'; }
+  // bare entity lookups -> dossier / company / target list
   if(drug){ dossierAnswer(q,drug,await peripheryEdges(drug.id)); return 'dossier'; }
   if(company){ companyAnswer(q,company); return 'company'; }
   if(tts.length){ countAnswer(q,tts[0],byTok(tts[0]).sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)),true); return 'landscape'; }
 
-  // nothing structured -> reason if possible, else fallback
+  // no entity at all -> research it. Every question gets a path to an answer.
   if(SYNTH_ENDPOINT){ await reasoningAnswer(q,{ents,drug,company,tts,isArchetype:false}); return 'synthesis'; }
   fallbackAnswer(q); return 'unresolved';
 }
@@ -356,6 +371,7 @@ async function callSynth(q,bundle,sel,isPrimary){
     renderSynth(slot,j,isPrimary);
   }catch(e){
     slot.innerHTML=`<div class="card empty">Reasoning server not reachable. Start it with <code>python3 meridian_ask_synth.py</code> (or set <code>SYNTH_ENDPOINT</code>). The structured answer below still stands.<div class="synthnote">${escapeHtml(e.message)}</div></div>`;
+    if(isPrimary) logQuestion(q,'unresolved');  // no question lost — queue it for the resolver
   }
 }
 function renderSynth(slot,j,isPrimary){
