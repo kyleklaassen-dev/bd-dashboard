@@ -16981,6 +16981,45 @@ async function openDrugEntityModal(drugId, drugName, evt) {
       })();
     }
 
+    // ── Lazy-load Trial Results & Target Pharmacology (v150–v153 integrations) ──
+    // trial_outcome_measures via v_trial_remission_rates + iuphar_interactions, both
+    // keyed by drug_id. Isolated + guarded; returns silently if no data.
+    if (drug?.id && !isStaticId && _sb) {
+      (async () => {
+        try {
+          const [rrRes, iuRes] = await Promise.all([
+            _sb.from('v_trial_remission_rates').select('arm_label,remission_rate_pct,remitters_n,denominator_n,measure_title,nct_id').eq('drug_id', drug.id).not('remission_rate_pct','is',null).order('remission_rate_pct',{ascending:false}).limit(8),
+            _sb.from('iuphar_interactions').select('target_name,action_type,affinity,affinity_parameter,pmid').eq('drug_id', drug.id).not('affinity','is',null).order('affinity',{ascending:false}).limit(8),
+          ]);
+          const rr = rrRes?.data || []; const iu = iuRes?.data || [];
+          if (!rr.length && !iu.length) return;
+          let h = '<div style="border-top:1px solid #f1f5f9;margin-top:10px;padding-top:12px">';
+          h += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;margin-bottom:8px">📈 Trial Results & Target Pharmacology</div>';
+          if (rr.length) {
+            h += '<div style="margin-bottom:10px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Remission Rates (CT.gov posted results)</div>';
+            rr.forEach(function(r){
+              const den = r.denominator_n ? '/'+r.denominator_n : '';
+              const mt = r.measure_title ? ' · '+escHtml(String(r.measure_title).substring(0,60)) : '';
+              h += '<div style="padding:3px 8px;background:#f5f3ff;border-left:2px solid #a78bfa;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px"><span style="font-weight:700;color:#6d28d9">'+r.remission_rate_pct+'%</span><span style="color:#64748b"> '+escHtml(r.arm_label||'')+' ('+(r.remitters_n||'?')+den+')'+mt+'</span></div>';
+            });
+            h += '</div>';
+          }
+          if (iu.length) {
+            h += '<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;margin-bottom:5px">Target Affinities (IUPHAR/GtoPdb)</div>';
+            iu.forEach(function(r){
+              const aff = r.affinity!=null ? r.affinity_parameter+' '+r.affinity : '';
+              const pm = r.pmid ? ' · PMID '+r.pmid : '';
+              h += '<div style="padding:3px 8px;background:#eef2ff;border-left:2px solid #818cf8;margin-bottom:3px;border-radius:0 4px 4px 0;font-size:11px"><span style="font-weight:700;color:#4338ca">'+escHtml(r.target_name||'')+'</span><span style="color:#64748b"> '+escHtml(r.action_type||'')+' · '+aff+pm+'</span></div>';
+            });
+            h += '</div>';
+          }
+          h += '</div>';
+          const panel = document.getElementById('cem-dtab-profile');
+          if (panel) panel.insertAdjacentHTML('beforeend', h);
+        } catch(_trErr) { console.warn('[drugModal-trialPharm]', _trErr && _trErr.message); }
+      })();
+    }
+
     // ── Lazy-load Payer TPP Intelligence ──────────────────────────────────────
     // Injects payer TPP criteria into the Business panel (canonical Drug Card IA).
     // DEPRECATED 2026-06-07 — non_responder_profiles fetch + render removed from this
