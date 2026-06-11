@@ -120,6 +120,8 @@
   .md-tbl th{text-align:left;color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--edge);padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   .md-tbl td{padding:8px 10px;border-bottom:1px solid #161e2a;vertical-align:top;color:var(--ink)}
   .md-tbl tr:hover td{background:#0e1622}
+  .synth-answer .ent{color:var(--accent);cursor:pointer;border-bottom:1px dotted rgba(91,157,255,.45)}.synth-answer .ent:hover{border-bottom-style:solid;text-decoration:none}
+  .exbtn{cursor:pointer;color:var(--ink-dim);border:1px solid var(--edge);border-radius:7px;padding:3px 9px;font-size:11.5px;white-space:nowrap}.exbtn:hover{border-color:var(--accent);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -219,7 +221,7 @@ async function boot(){
   for(const c of COMPANIES) add(c.name,{type:'company',id:c.id,label:c.name,row:c});
   SURFACES=[...NAME2ENT.keys()].sort((a,b)=>b.length-a.length);
   document.getElementById('bootMeta').textContent=`${DRUGS.length} molecules · ${COMPANIES.length} companies · ${SYNTH_ENDPOINT?'reasoning on':'retrieval only'} · live`;
-  renderChips();
+  renderChips(); buildEntIndex();
   // deep-link: meridian_ask.html?q=... (e.g. from the homepage search bar) auto-runs the question
   const _dq=new URLSearchParams(location.search).get('q');
   if(_dq && _dq.trim()){ document.getElementById('qHero').value=_dq; run(_dq.trim()); }
@@ -338,6 +340,31 @@ async function fillNet(q, prefetch=true){
   if(top){ preAnswer(top.question).then(()=>fillNet(q,false)); }   // one pre-answer per search; refresh without re-prefetching
 }
 
+// ── clickable entities: turn drug/company names in answers into launchers ──
+let ENT_RE=null; const ENT_MAP={};
+function buildEntIndex(){
+  const names=[]; const addn=d=>{ if(!d) return; const k=String(d).toLowerCase().trim(); if(k.length<4||ENT_MAP[k]||NOCORRECT.has(k)) return; ENT_MAP[k]=String(d).trim(); names.push(String(d).trim()); };
+  DRUGS.forEach(d=>{ addn(d.display_name&&d.display_name.split('(')[0].trim()); addn(d.name); }); COMPANIES.forEach(c=>addn(c.name));
+  names.sort((a,b)=>b.length-a.length);
+  if(names.length){ const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); try{ ENT_RE=new RegExp('(?<![\\w-])('+names.map(esc).join('|')+')(?![\\w-])','gi'); }catch(_){ ENT_RE=null; } }
+}
+function linkifyEntities(html){
+  if(!ENT_RE||!html) return html;
+  return html.split(/(<[^>]+>)/).map(seg=>{ if(seg.startsWith('<')) return seg;
+    return seg.replace(ENT_RE, m=>{ const q=ENT_MAP[m.toLowerCase()]||m; return `<a class="ent" onclick="run('${q.replace(/['\\]/g,'')}')">${m}</a>`; }); }).join('');
+}
+// ── export: copy answer markdown / download first table as CSV ──
+function copyAnswer(){ const t=window._lastAnswerMd||''; try{ navigator.clipboard.writeText(t); toastMini('copied'); }catch(e){} }
+function downloadCsv(){
+  const md=window._lastAnswerMd||''; const lines=md.split('\n'); let i=lines.findIndex((l,k)=>l.includes('|')&&lines[k+1]&&/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[k+1])&&lines[k+1].includes('-'));
+  if(i<0){ toastMini('no table'); return; }
+  const rows=[]; const cell=l=>{ const c=l.split('|').map(x=>x.trim()); if(c[0]==='')c.shift(); if(c[c.length-1]==='')c.pop(); return c; };
+  rows.push(cell(lines[i])); i+=2;
+  while(i<lines.length&&lines[i].includes('|')&&lines[i].trim()!==''){ rows.push(cell(lines[i])); i++; }
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/<[^>]+>/g,'').replace(/\*\*/g,'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='meridian_table.csv'; a.click(); toastMini('CSV downloaded');
+}
+function toastMini(m){ let t=document.getElementById('miniToast'); if(!t){ t=document.createElement('div'); t.id='miniToast'; t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#13203a;border:1px solid var(--accent);color:#e7edf5;padding:8px 14px;border-radius:9px;font-size:13px;z-index:99;transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',1600); }
 // simple horizontal bar chart (pure SVG, no deps)
 function barChart(items){
   if(!items||!items.length) return '';
@@ -572,9 +599,9 @@ function renderSynth(slot,j,isPrimary){
   }).join('');
   const cites=(j.citations||[]).filter(c=>c.url).map(c=>`<a class="res" href="${c.url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(c.title||'source')}</div><div class="rd">${escapeHtml((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</div></a>`).join('');
   const rel=(j.related||[]).map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('');
-  const ans=cleanProse(j.answer||'');
+  const ans=cleanProse(j.answer||''); window._lastAnswerMd=ans;
   const ansHtml = ans
-    ? `<div class="card"><div class="synth-answer">${mdToHtml(ans)}</div></div>`
+    ? `<div class="card"><div class="synth-answer">${linkifyEntities(mdToHtml(ans))}</div></div>`
     : `<div class="card empty">No AI synthesis was returned this time — the structured answer below stands. Try again, or check the reasoning server.</div>`;
   const clar = (j.clarify && j.clarify.question)
     ? `<div class="card"><h3>To pin this down ↩</h3><div style="font-size:15px;color:#d6c2f5;margin-bottom:10px">${escapeHtml(j.clarify.question)}</div><div class="followups">${(j.clarify.options||[]).map(o=>`<span class="chip think" onclick="run('${J(o)}')">◇ ${escapeHtml(o)}</span>`).join('')}</div></div>`
@@ -608,7 +635,7 @@ function renderSynth(slot,j,isPrimary){
     ${reason?`<div class="card"><h3>How that breaks down</h3><ul class="reason-list">${reason}</ul></div>`:''}
     ${rel?`<div class="card"><h3>Around the outside</h3><div class="followups">${rel}</div></div>`:''}
     ${cites?`<div class="card"><h3>Sources <span class="src">· ${(j.model||'')}${j.web_search?' · web':''}</span></h3>${cites}</div>`:''}
-    ${ans?`<div id="fbRow" class="src" style="margin-top:4px">Helpful? <span class="fbbtn" onclick="sendFeedback('up')">👍</span> <span class="fbbtn" onclick="sendFeedback('down')">👎</span></div>`:''}`;
+    ${ans?`<div id="fbRow" class="src" style="margin-top:6px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span>Helpful? <span class="fbbtn" onclick="sendFeedback('up')">👍</span> <span class="fbbtn" onclick="sendFeedback('down')">👎</span></span><span style="margin-left:auto;display:flex;gap:7px"><span class="exbtn" onclick="copyAnswer()">⧉ copy</span>${(/\|/.test(ans)&&/---/.test(ans))?`<span class="exbtn" onclick="downloadCsv()">⤓ CSV</span>`:''}</span></div>`:''}`;
 }
 
 /* ---------- structured renderers ---------- */
