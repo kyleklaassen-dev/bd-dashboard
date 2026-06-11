@@ -33,6 +33,9 @@
   .res{color:var(--good)}.unres{color:var(--warn)}.refused{color:var(--ink-faint)}.error{color:var(--hot)}
   .btn{cursor:pointer;font-size:13px;font-weight:650;color:#04101f;background:var(--accent);border:none;border-radius:9px;padding:9px 15px}
   .btn.ghost{background:#1d1630;color:#cdb6ef;border:1px solid #3a2d52}
+  .fbtn{cursor:pointer;font-size:11px;border-radius:6px;padding:3px 8px;border:1px solid var(--edge)}
+  .fbtn.ok{color:var(--good);border-color:#1d4a3a;background:#0c1f18}.fbtn.ok:hover{background:#11362a}
+  .fbtn.no{color:var(--hot);border-color:#5e2733;background:#2a1116}.fbtn.no:hover{background:#3a1620}
   .muted{color:var(--ink-faint);font-size:12px}.note{font-size:12px;color:var(--ink-faint);border:1px dashed var(--edge);border-radius:9px;padding:10px 12px;margin-top:8px;line-height:1.5}
   code{font-family:var(--mono);background:#0c121c;border:1px solid var(--edge);border-radius:5px;padding:1px 6px;font-size:12px;color:#cdb6ef}
   .hide{display:none}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -125,13 +128,20 @@ async function loadFacts(){
     const byDest={}; facts.forEach(f=>{(byDest[f.suggested_dest||'unmapped']=byDest[f.suggested_dest||'unmapped']||[]).push(f);});
     let html='';
     for(const dest in byDest){
-      html+=`<div class="card"><h3>${esc(dest)} — ${byDest[dest].length} proposed</h3><table><tr><th>#</th><th>Subject</th><th>Metric</th><th>Value</th><th>When</th><th>Conf</th><th>Source</th></tr>${
-        byDest[dest].map(f=>`<tr><td class="mono muted">${f.id}</td><td>${esc(f.subject_name)}</td><td class="mono">${esc(f.metric)}</td><td class="num">${esc(f.value_text||f.value_num||'')}</td><td class="muted">${esc(f.period||'')}</td><td>${esc(f.confidence||'')}</td><td><a href="${esc(f.source_url)}" target="_blank">${esc(f.source_domain||'↗')}</a></td></tr>`).join('')}</table>
-        <div class="note">Promotion into <code>${esc(dest)}</code> is human-gated (keeps core tables governed). Review &amp; promote from the CLI:<br>
-        <code>python3 scripts/ask_promote.py --dest ${esc(dest)} --all --approve</code> &nbsp;·&nbsp; reject: <code>python3 scripts/ask_promote.py --reject &lt;id&gt; --note "…"</code></div></div>`;
+      const canAccept = dest==='efficacy_benchmarks';
+      html+=`<div class="card"><h3>${esc(dest)} — ${byDest[dest].length} proposed</h3><table><tr><th>#</th><th>Subject</th><th>Metric</th><th>Value</th><th>When</th><th>Conf</th><th>Source</th><th>Review</th></tr>${
+        byDest[dest].map(f=>`<tr><td class="mono muted">${f.id}</td><td>${esc(f.subject_name)}</td><td class="mono">${esc(f.metric)}</td><td class="num">${esc(f.value_text||f.value_num||'')}</td><td class="muted">${esc(f.period||'')}</td><td>${esc(f.confidence||'')}</td><td><a href="${esc(f.source_url)}" target="_blank">${esc(f.source_domain||'↗')}</a></td><td style="white-space:nowrap">${canAccept?`<span class="fbtn ok" onclick="doPromote(${f.id},'accept','${esc(dest)}')">✓ accept</span> `:''}<span class="fbtn no" onclick="doPromote(${f.id},'reject')">✕</span></td></tr>`).join('')}</table>
+        <div class="note">${canAccept?'Click ✓ to promote a single fact into <code>efficacy_benchmarks</code> (with its source &amp; placebo). ':'Promotion into <code>'+esc(dest)+'</code> stays CLI/manual (keeps core governed). '}Bulk: <code>python3 scripts/ask_promote.py --dest ${esc(dest)} --all --approve</code></div></div>`;
     }
     document.getElementById('facts').innerHTML = html || `<div class="card"><div class="muted">No proposed facts in the queue.</div></div>`;
   }catch(e){}
+}
+async function doPromote(id,action,dest){
+  if(action==='accept' && !confirm('Promote fact #'+id+' into '+dest+'?')) return;
+  try{ const r=await api('/promote-fact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action,dest})});
+    if(r&&r.ok){ toast(action==='reject'?('Rejected #'+id):('Promoted #'+id+' → '+r.dest)); loadFacts(); loadStats(); }
+    else { toast('Failed: '+((r&&r.error)||'error')); }
+  }catch(e){ toast('Error: '+(e.message||e)); }
 }
 async function research(){
   toast('Researching backlog… (web search, ~30-60s each)');
