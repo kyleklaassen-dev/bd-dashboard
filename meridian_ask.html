@@ -212,7 +212,9 @@ function targetTokensIn(q){
 }
 const MODALITY=/\bbispecific\b|\bbi-?specific\b|\bmonoclonal\b|\bmab\b|\bantibody\b|small molecule|\boral\b|\bvhh\b|nanobody|trispecific/i;
 const STAGEWORD=/\bpreclinical\b|\bphase\s?[123]\b|\bphase\s?(i{1,3})\b|\bapproved\b|\bclinical\b|\bIND\b/i;
-const REASON=/most important|what (should|matters|to consider)|\bconsider\b|\bshould i\b|\bwhy\b|how (do|would|should|can)|\bbest\b|\bworst\b|\brisk\b|\bbetter\b|\bvs\.?\b|\bversus\b|\bcompare\b|advantage|weakness|strength|\bstrateg|implication|trade-?off|too crowded|worth|recommend|\bbeat\b|differentiat/i;
+const REASON=/most important|what (should|matters|to consider)|\bconsider\b|\bshould i\b|\bwhy\b|how (do|would|should|can)|\bworst\b|\brisk\b|advantage|weakness|strength|\bstrateg|implication|trade-?off|too crowded|worth|recommend|\bbeat\b|differentiat/i;
+const CMP=/\bvs\.?\b|\bversus\b|\bcompare\b|\bcompared\b|difference between|head.?to.?head|side.?by.?side/i;
+const RANKQ=/\brank\b|\branked\b|best.?in.?class|\bhighest\b|\blowest\b|sort(ed)? by|order(ed)? by|leaderboard|which .*\b(highest|best|most|lowest|strongest)\b/i;
 // "count" only means counting DRUGS/COMPANIES on a target — not "patient count", "cell count", etc.
 const COUNT_SUBJ=/\b(drugs?|molecules?|assets?|programs?|compounds?|antibod\w*|bispecifics?|mabs?|companies|company|players?)\b/;
 const TRIAL_ATTR=/\bpatients?\b|enroll|enrol(ment|led)|participants|sample\s*size|\bn\s*=|cohort size|patient count|cell count|blood count/;
@@ -306,6 +308,11 @@ async function answer(q){
   const drug=ents.find(e=>e.type==='drug'), company=ents.find(e=>e.type==='company');
   const wantsReason=REASON.test(q);
   const isArchetype = !drug && (tts.length>=1) && (MODALITY.test(q)||STAGEWORD.test(q)||tts.length>=2) && (wantsReason||MODALITY.test(q));
+  const drugs=ents.filter(e=>e.type==='drug');
+
+  // COMPARISON & RANKING (structured + scannable) — win before the synthesis auto-route
+  if(drugs.length>=2 && (CMP.test(q) || !hasResidualQuestion(q,ents))){ await comparisonAnswer(q,drugs); return 'comparison'; }
+  if(RANKQ.test(q) && (tts.length||(drug&&drug.row.target))){ const t=tts[0]||tok(drug.row.target)[0]; const metric=/remission|efficac|response/i.test(q)?'efficacy':'stage'; await rankAnswer(q,t,metric); return 'ranking'; }
 
   // JUDGMENT / archetype / open reasoning -> synthesis (auto; logged server-side)
   if(SYNTH_ENDPOINT && (isArchetype || (wantsReason && (drug||company||tts.length)) || (wantsReason && !it))){
@@ -543,6 +550,49 @@ function leaderAnswer(q,t,list){
     sideHTML:`<h4>Top of field</h4>${list.slice(0,6).map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
     follow:[`how many drugs target ${(t||'').toUpperCase()}?`,lead?`${lead.name} competitive landscape`:''],
     deepenBundle:{question:'who really leads',target:t,ranked:list.map(slim)},deepenTitle:`Who leads ${(t||'').toUpperCase()}?`});
+}
+async function comparisonAnswer(q,drugEnts){
+  const ds=drugEnts.slice(0,4).map(d=>d.row), ids=ds.map(d=>d.id);
+  const eff=await sb("efficacy_benchmarks",`select=drug_id,endpoint_type,value_pct,placebo_pct,indication_slug,phase,trial_name,source_url&drug_id=in.(${ids.map(enc).join(',')})`);
+  const effBy={}; eff.forEach(e=>{(effBy[e.drug_id]=effBy[e.drug_id]||[]).push(e);});
+  const bestRem=d=>{ const r=(effBy[d.id]||[]).filter(e=>/remission/i.test(e.endpoint_type||'')).sort((a,b)=>(b.value_pct||0)-(a.value_pct||0)); return r[0]; };
+  const ROWS=[
+    ['Company', d=>escapeHtml(coName(d.company_id))],
+    ['Target', d=>escapeHtml(d.target||'—')],
+    ['Stage', d=>`<span class="pill stage">${escapeHtml(d.stage||'—')}</span>`],
+    ['Indication', d=>escapeHtml(d.indication_short||'—')],
+    ['Mechanism', d=>escapeHtml(d.mechanism||d.modality||'—')],
+    ['Overlap', d=>d.overlap?`<span class="pill ${/direct/i.test(d.overlap)?'direct':''}">${escapeHtml(d.overlap)}</span>`:'—'],
+    ['Best remission', d=>{ const r=bestRem(d); return r?`<span class="num">${r.value_pct}%</span>${r.placebo_pct!=null?` <span class="src">vs ${r.placebo_pct}% pbo</span>`:''}${r.source_url?` <a href="${r.source_url}" target="_blank" rel="noopener">↗</a>`:''}`:'<span class="src">no data yet</span>'; }],
+  ];
+  const center=`
+    <div class="card big-answer">Comparing <span class="hl">${ds.map(d=>escapeHtml(d.display_name||d.name)).join('</span> vs <span class="hl">')}</span>.</div>
+    <div class="card"><h3>Side by side</h3><table class="rows"><tr><th></th>${ds.map(d=>`<th>${escapeHtml((d.display_name||d.name).split('(')[0])}</th>`).join('')}</tr>
+      ${ROWS.map(r=>`<tr><td class="rank">${r[0]}</td>${ds.map(d=>`<td>${r[1](d)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  shell({asked:q,tag:'Comparison',title:ds.map(d=>(d.display_name||d.name).split('(')[0].trim()).join(' vs '),centerHTML:center,
+    sideHTML:`<h4>Assets</h4>${ds.map(d=>`<div class="conn" onclick="run('${J(d.name)}')"><div class="rel">${escapeHtml(d.stage||'')}</div><div class="ct">${escapeHtml(d.display_name||d.name)}</div><div class="cs">${escapeHtml(coName(d.company_id))}</div></div>`).join('')}`,
+    follow:ds.map(d=>`${d.name} efficacy`).concat([`which is more differentiated, ${ds.map(d=>d.name).join(' or ')}?`]),
+    deepenBundle:{compare:ds.map(slim),efficacy:eff},deepenTitle:'Comparison — strategic read'});
+}
+async function rankAnswer(q,t,metric){
+  const cohort=byTok(t);
+  if(metric==='efficacy'){
+    const ids=cohort.map(d=>d.id);
+    const eff=await sb("efficacy_benchmarks",`select=drug_id,endpoint_type,value_pct,placebo_pct,indication_slug,source_url&drug_id=in.(${ids.map(enc).join(',')})`);
+    const best={}; eff.filter(e=>/remission/i.test(e.endpoint_type||'')).forEach(e=>{ if(!best[e.drug_id]||(e.value_pct||0)>(best[e.drug_id].value_pct||0)) best[e.drug_id]=e; });
+    const ranked=cohort.map(d=>({d,e:best[d.id]})).filter(x=>x.e).sort((a,b)=>(b.e.value_pct||0)-(a.e.value_pct||0));
+    const noData=cohort.filter(d=>!best[d.id]);
+    const center=`
+      <div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by clinical remission — <span class="hl">${ranked.length}</span> with reported data${noData.length?`, ${noData.length} without yet`:''}.</div>
+      <div class="card"><h3>By remission rate</h3>${ranked.length?`<table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Remission</th><th>vs pbo</th><th>Indication</th><th>Src</th></tr>
+        ${ranked.map((x,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td class="num">${x.e.value_pct}%</td><td>${x.e.placebo_pct!=null?x.e.placebo_pct+'%':'—'}</td><td>${escapeHtml(x.e.indication_slug||'')}</td><td>${x.e.source_url?`<a href="${x.e.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table>`:'<div class="empty">No remission data captured yet for this target — ask one and it will populate.</div>'}
+        ${noData.length?`<div class="src" style="margin-top:9px">No remission data yet: ${noData.slice(0,14).map(d=>escapeHtml(d.name)).join(', ')}</div>`:''}</div>`;
+    shell({asked:q,tag:'Ranking · efficacy',title:`${(t||'').toUpperCase()} — ranked by remission`,centerHTML:center,
+      sideHTML:`<h4>Top of field</h4>${ranked.slice(0,5).map(x=>`<div class="conn" onclick="run('${J(x.d.name)}')"><div class="rel">${x.e.value_pct}% remission</div><div class="ct">${escapeHtml(x.d.display_name||x.d.name)}</div><div class="cs">${escapeHtml(coName(x.d.company_id))}</div></div>`).join('')}`,
+      follow:[`who is leading in ${(t||'').toUpperCase()}?`,`competitive landscape for ${(t||'').toUpperCase()}`]});
+    return;
+  }
+  leaderAnswer(q,t,cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)));
 }
 function landscapeAnswer(q,drug,edges){
   const d=drug.row,t=tok(d.target)[0]||'';
