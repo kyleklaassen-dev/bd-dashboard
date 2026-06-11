@@ -266,8 +266,15 @@ function logQuestion(q,route){
 
 /* ---------- graph + resources ---------- */
 async function peripheryEdges(id){
-  const rows=await sb("entity_edges",`select=subject_type,subject_id,predicate,object_type,object_id,rationale,source_url,confidence_level&or=(subject_id.eq.${enc(id)},object_id.eq.${enc(id)})&limit=80`);
-  return rows.map(e=>{ const out=e.subject_id===id; return {pred:e.predicate,otherType:out?e.object_type:e.subject_type,otherId:out?e.object_id:e.subject_id,rationale:e.rationale,src:e.source_url,conf:e.confidence_level}; });
+  const rows=await sb("entity_edges",`select=subject_type,subject_id,predicate,object_type,object_id,rationale,source_url,confidence_level&or=(subject_id.eq.${enc(id)},object_id.eq.${enc(id)})&limit=120`);
+  // The same relationship is often stored once per scope_area (e.g. a competitor tracked in
+  // both 'tl1a' and 'ibd'), so collapse to one card per (predicate, neighbor).
+  const seen=new Set(), out=[];
+  for(const e of rows){ const isOut=e.subject_id===id;
+    const o={pred:e.predicate,otherType:isOut?e.object_type:e.subject_type,otherId:isOut?e.object_id:e.subject_id,rationale:e.rationale,src:e.source_url,conf:e.confidence_level};
+    const k=o.pred+'|'+o.otherType+'|'+o.otherId; if(o.otherId===id||seen.has(k)) continue; seen.add(k); out.push(o);
+  }
+  return out;
 }
 async function resourcesFor(id){ return sb("drug_sources",`select=claim_type,claim_value,source_url,source_domain,source_type&drug_id=eq.${enc(id)}&limit=14`); }
 function entLabel(t,id){ if(t==='drug'){const d=DRUGS.find(x=>x.id===id);return d?(d.display_name||d.name):id;} if(t==='company')return coName(id); return id; }
@@ -364,9 +371,13 @@ function renderSynth(slot,j,isPrimary){
   }).join('');
   const cites=(j.citations||[]).filter(c=>c.url).map(c=>`<a class="res" href="${c.url}" target="_blank" rel="noopener"><div class="rt">${escapeHtml(c.title||'source')}</div><div class="rd">${escapeHtml((c.url||'').replace(/^https?:\/\//,'').split('/')[0])}</div></a>`).join('');
   const rel=(j.related||[]).map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('');
+  const ans=(j.answer||'').trim();
+  const ansHtml = ans
+    ? `<div class="card"><div class="synth-answer">${escapeHtml(ans)}</div></div>`
+    : `<div class="card empty">No AI synthesis was returned this time — the structured answer below stands. Try again, or check the reasoning server.</div>`;
   slot.innerHTML=`
     ${badge?`<div style="margin-bottom:10px">${badge}</div>`:''}
-    <div class="card"><div class="synth-answer">${escapeHtml(j.answer||'(no answer)')}</div></div>
+    ${ansHtml}
     ${reason?`<div class="card"><h3>How that breaks down</h3><ul class="reason-list">${reason}</ul></div>`:''}
     ${rel?`<div class="card"><h3>Around the outside</h3><div class="followups">${rel}</div></div>`:''}
     ${cites?`<div class="card"><h3>Sources <span class="src">· ${(j.model||'')}${j.web_search?' · web':''}</span></h3>${cites}</div>`:''}`;
