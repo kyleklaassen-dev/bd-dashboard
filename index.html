@@ -5912,7 +5912,9 @@ async function _injectAreaFreshness(tabId) {
 <div class="tab-pane" id="tab-reads" style="padding:0;background:#f4f7fb;min-height:100vh">
   <div style="max-width:880px;margin:0 auto;padding:28px 20px 60px">
     <div style="font-size:24px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:10px">📑 Reads</div>
-    <div id="reads-subtitle" style="font-size:12px;color:#94a3b8;font-weight:600;margin:8px 0 20px"></div>
+    <div id="reads-subtitle" style="font-size:12px;color:#94a3b8;font-weight:600;margin:8px 0 14px"></div>
+    <div id="reads-filter-type" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px"></div>
+    <div id="reads-filter-target" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:20px"></div>
     <div id="reads-list"></div>
   </div>
 </div>
@@ -17615,7 +17617,7 @@ async function _loadBispecificRace() {
     };
 
     const tableRows = rows.map(r => {
-      const isAlx = r.drug_id === 'anti-tl1a-xpf005-arm';
+      const isAlx = r.drug_id === 'alx001';
       const rowCls = isAlx ? ' class="race-alx-row"' : '';
       const mechanismNote = r.vs_alx001_mechanism && r.vs_alx001_mechanism.includes('CRITICAL DISADVANTAGE')
         ? `<div class="race-mech-note">p40-blocking (vs. p19-selective): suppresses IL-12/NK immunity</div>` : '';
@@ -34263,15 +34265,46 @@ async function cfLoadFeed() {
       + '</div>';
   }
   function setBadge(n){ const b=document.getElementById('reads-badge'); if(!b) return; if(n>0){ b.textContent=n>9?'9+':String(n); b.style.display='inline-block'; } else { b.style.display='none'; } }
+  let _fType=null, _fTarget=null;   // active filters (null = all)
+  function targetsOf(r){ return ((r.entity_refs||{}).targets)||[]; }
+  function chip(label,active,onclickAttr,col){
+    const bg=active?(col||'#5b2da8'):'#fff', fg=active?'#fff':'#475569', bd=active?(col||'#5b2da8'):'#cbd5e1';
+    return '<button onclick="'+onclickAttr+'" style="cursor:pointer;font-size:11px;font-weight:700;padding:4px 11px;border-radius:14px;border:1px solid '+bd+';background:'+bg+';color:'+fg+';letter-spacing:.2px">'+esc(label)+'</button>';
+  }
+  function buildFilters(){
+    const types=[...new Set(_reads.map(function(r){return r.read_type||'other';}))].sort();
+    const targets=[...new Set([].concat.apply([],_reads.map(targetsOf)))].sort();
+    const tc=document.getElementById('reads-filter-type');
+    const gc=document.getElementById('reads-filter-target');
+    if(tc){ tc.innerHTML='<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:2px">CATEGORY</span>'
+      + chip('All',_fType===null,"window.__readsFilter('type',null)")
+      + types.map(function(t){return chip(t.replace(/_/g,' '),_fType===t,"window.__readsFilter('type','"+t+"')",TYPE_COLORS[t]);}).join(''); }
+    if(gc){ gc.innerHTML = targets.length ? ('<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:2px">TARGET</span>'
+      + chip('All',_fTarget===null,"window.__readsFilter('target',null)")
+      + targets.map(function(t){return chip(t,_fTarget===t,"window.__readsFilter('target','"+t.replace(/'/g,"\\'")+"')",'#0f766e');}).join('')) : ''; }
+  }
+  function renderList(){
+    const list=document.getElementById('reads-list'); if(!list) return;
+    const rows=_reads.filter(function(r){
+      if(_fType && (r.read_type||'other')!==_fType) return false;
+      if(_fTarget && targetsOf(r).indexOf(_fTarget)<0) return false;
+      return true;
+    });
+    list.innerHTML = rows.length ? rows.map(card).join('')
+      : '<div style="color:#64748b;padding:40px;text-align:center">No reads match this filter.</div>';
+    const sub=document.getElementById('reads-subtitle');
+    if(sub){ const f=(_fType||_fTarget); sub.textContent = rows.length+' read'+(rows.length===1?'':'s')+(f?' shown · '+_reads.length+' total':' · newest first'); }
+  }
+  window.__readsFilter=function(kind,val){ if(kind==='type')_fType=val; else _fTarget=val; buildFilters(); renderList(); };
   async function render(){
     const list=document.getElementById('reads-list'); if(!list) return;
     if(!_reads) list.innerHTML='<div style="color:#64748b;padding:40px;text-align:center">Loading reads&hellip;</div>';
     try{
       _reads = await fetchReads();
-      list.innerHTML = _reads.length ? _reads.map(card).join('') : '<div style="color:#64748b;padding:40px;text-align:center">No reads yet. They appear here as research surfaces them.</div>';
-      if(_reads.length) localStorage.setItem(SEEN_KEY,_reads[0].created_at);
+      if(!_reads.length){ list.innerHTML='<div style="color:#64748b;padding:40px;text-align:center">No reads yet. They appear here as research surfaces them.</div>'; setBadge(0); return; }
+      buildFilters(); renderList();
+      localStorage.setItem(SEEN_KEY,_reads[0].created_at);
       setBadge(0);
-      const sub=document.getElementById('reads-subtitle'); if(sub) sub.textContent=_reads.length+' read'+(_reads.length===1?'':'s')+' · newest first';
     }catch(e){ list.innerHTML='<div style="color:#b91c1c;padding:40px;text-align:center">Could not load reads ('+esc(e.message)+')</div>'; }
   }
   async function checkBadge(){
