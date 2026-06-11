@@ -312,6 +312,94 @@ def harvest_opentargets():
     _stamp("opentargets")
 
 
+# ---------------- TIER 2: ChEMBL mechanism -> drug_mechanisms ----------------------------------
+def harvest_chembl_mechanism():
+    mols = c.select_all("molecule_properties", {"select": "drug_id,chembl_id"})
+    print(f"ChEMBL mechanism: {len(mols)} molecules")
+    for m in mols:
+        cid = m.get("chembl_id")
+        if not cid:
+            continue
+        url = f"https://www.ebi.ac.uk/chembl/api/data/mechanism.json?molecule_chembl_id={cid}&limit=10"
+        res = _get(url)
+        for mech in ((res or {}).get("mechanisms", []) or []):
+            store_raw("chembl_mechanism", "drug", f"{cid}_{mech.get('mec_id','')}", m["drug_id"], url, mech)
+            if not DRY:
+                c.insert("drug_mechanisms", [dict(id=f"{m['drug_id']}_{mech.get('mec_id','')}", drug_id=m["drug_id"],
+                    chembl_id=cid, mechanism_of_action=mech.get("mechanism_of_action"),
+                    action_type=mech.get("action_type"), target_chembl_id=mech.get("target_chembl_id"),
+                    target_name=mech.get("mechanism_comment"), max_phase=str(mech.get("max_phase")),
+                    source_url=url, fetched_at=NOW())], on_conflict="id")
+        time.sleep(0.3)
+    _stamp("chembl_mechanism")
+
+
+# ---------------- TIER 3: UniProt -> target_proteins -------------------------------------------
+def harvest_uniprot():
+    targets = {(d.get("target") or "").split("×")[0].split("/")[0].strip() for d in drugs() if d.get("target")}
+    targets = {t for t in targets if t and len(t) <= 12}
+    print(f"UniProt: {len(targets)} target symbols")
+    for sym in sorted(targets):
+        url = ("https://rest.uniprot.org/uniprotkb/search?"
+               f"query=gene_exact:{urllib.parse.quote(sym)}+AND+organism_id:9606+AND+reviewed:true"
+               "&format=json&fields=accession,protein_name,cc_function&size=1")
+        res = _get(url)
+        hits = (res or {}).get("results", [])
+        if not hits:
+            time.sleep(0.25); continue
+        h = hits[0]; acc = h.get("primaryAccession")
+        store_raw("uniprot", "target", acc, None, url, h)
+        fn = ""
+        for cm in h.get("comments", []):
+            if cm.get("commentType") == "FUNCTION":
+                fn = " ".join(t.get("value", "") for t in cm.get("texts", []))[:4000]; break
+        if not DRY:
+            c.insert("target_proteins", [dict(id=sym, target_symbol=sym, uniprot_accession=acc,
+                protein_name=(((h.get("proteinDescription") or {}).get("recommendedName") or {}).get("fullName") or {}).get("value"),
+                function_text=fn, source_url=url, fetched_at=NOW())], on_conflict="id")
+        time.sleep(0.3)
+    _stamp("uniprot")
+
+
+# ---------------- TIER 2: Open Targets knownDrugs + safety -------------------------------------
+def harvest_opentargets_extra():
+    targets = {(d.get("target") or "").split("×")[0].split("/")[0].strip() for d in drugs() if d.get("target")}
+    for sym in sorted(t for t in targets if t):
+        srch = _post(OT, {"query": "query($q:String!){search(queryString:$q,entityNames:[\"target\"]){hits{id}}}",
+                          "variables": {"q": sym}})
+        hits = (((srch or {}).get("data") or {}).get("search") or {}).get("hits") or []
+        if not hits:
+            continue
+        ens = hits[0]["id"]
+        q = ("query($id:String!){target(ensemblId:$id){approvedSymbol "
+             "knownDrugs(size:25){rows{drug{name id} phase mechanismOfAction disease{name}}} "
+             "safetyLiabilities{event effects{direction} biosamples{tissueLabel}}}}")
+        res = _post(OT, {"query": q, "variables": {"id": ens}})
+        tgt = (((res or {}).get("data") or {}).get("target") or {})
+        sym2 = tgt.get("approvedSymbol", sym)
+        store_raw("opentargets_knowndrugs", "target", ens, None, f"{OT}#kd_{ens}", res or {})
+        kd = []
+        for r in ((tgt.get("knownDrugs") or {}).get("rows") or []):
+            dr = r.get("drug") or {}
+            kd.append(dict(id=f"{ens}_{dr.get('id')}_{(r.get('disease') or {}).get('name','')}"[:120],
+                target_symbol=sym2, ensembl_id=ens, drug_name=dr.get("name"), drug_chembl_id=dr.get("id"),
+                phase=str(r.get("phase")), mechanism_of_action=r.get("mechanismOfAction"),
+                disease_label=(r.get("disease") or {}).get("name"), source_url=f"{OT}#kd_{ens}", fetched_at=NOW()))
+        # de-dupe
+        kd = list({r["id"]: r for r in kd}.values())
+        saf = []
+        for i, s in enumerate(tgt.get("safetyLiabilities", []) or []):
+            saf.append(dict(id=f"{ens}_saf_{i}", target_symbol=sym2, ensembl_id=ens, event=s.get("event"),
+                biosample=", ".join(b.get("tissueLabel", "") for b in (s.get("biosamples") or []))[:200] or None,
+                effect=", ".join(e.get("direction", "") for e in (s.get("effects") or []))[:200] or None,
+                source_url=f"{OT}#kd_{ens}", fetched_at=NOW()))
+        if not DRY:
+            if kd: c.insert("target_known_drugs", kd, on_conflict="id")
+            if saf: c.insert("target_safety", saf, on_conflict="id")
+        time.sleep(0.4)
+    _stamp("opentargets_knowndrugs")
+
+
 def _isnum(v):
     try: float(v); return True
     except (TypeError, ValueError): return False
@@ -321,7 +409,8 @@ def _stamp(src):
 
 
 def main():
-    flags = ["--ctgov", "--openfda", "--chembl", "--opentargets", "--drugsfda", "--identifiers"]
+    flags = ["--ctgov", "--openfda", "--chembl", "--opentargets", "--drugsfda", "--identifiers",
+             "--chembl-mech", "--uniprot", "--ot-extra"]
     if not any(ARG(f) for f in flags):
         print("specify one of " + "/".join(flags) + " or --all"); return
     if ARG("--ctgov"): harvest_ctgov()
@@ -330,6 +419,9 @@ def main():
     if ARG("--opentargets"): harvest_opentargets()
     if ARG("--drugsfda"): harvest_drugsfda()
     if ARG("--identifiers"): harvest_identifiers()
+    if ARG("--chembl-mech"): harvest_chembl_mechanism()
+    if ARG("--uniprot"): harvest_uniprot()
+    if ARG("--ot-extra"): harvest_opentargets_extra()
     print("Harvest complete" + (" (DRY)" if DRY else ""))
     # Note: Europe PMC -> publications is owned by abstract_fetcher.py (one writer).
 
