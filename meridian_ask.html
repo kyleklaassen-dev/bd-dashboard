@@ -275,7 +275,12 @@ async function cacheBatch(questions){
   if(!SYNTH_ENDPOINT||!questions.length) return null;
   try{ const r=await fetch(SYNTH_BASE+'/cache-batch',{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({questions})}); return r.ok?(await r.json()).results||[]:null; }catch(e){ return null; }
 }
-async function fillNet(q){
+const _answeredCard=r=>`<div class="conn" onclick="run('${J(r.question)}')"><div class="rel">⚡ answered</div><div class="ct">${escapeHtml(r.headline||r.question)}</div><div class="cs">${escapeHtml(r.question)}</div></div>`;
+async function preAnswer(question){ // research + cache an adjacent question in the background
+  if(!SYNTH_ENDPOINT) return;
+  try{ await fetch(SYNTH_ENDPOINT,{method:'POST',headers:ASK_HEADERS,body:JSON.stringify({question,bundle:{prefetch:true},entities:entsPayload(question)})}); }catch(e){}
+}
+async function fillNet(q, prefetch=true){
   const el=document.getElementById('netSlot'); if(!el) return;
   const ents=resolveEntities(q), drug=ents.find(e=>e.type==='drug'), comp=ents.find(e=>e.type==='company'), ent=drug||comp;
   if(!ent) return;
@@ -287,9 +292,12 @@ async function fillNet(q){
   const res=await cacheBatch(list); if(!res) return;
   const ans=res.filter(r=>r.hit), open=res.filter(r=>!r.hit);
   if(!ans.length && !open.length) return;
-  el.innerHTML=`<div class="card"><h3>More in this space${ans.length?` <span class="src">· ${ans.length} already answered</span>`:''}</h3>
-    ${ans.map(r=>`<div class="conn" onclick="run('${J(r.question)}')"><div class="rel">⚡ answered</div><div class="ct">${escapeHtml(r.headline||r.question)}</div><div class="cs">${escapeHtml(r.question)}</div></div>`).join('')}
-    ${open.length?`<div class="followups" style="margin-top:${ans.length?'10px':'2px'}">${open.map(r=>`<span class="chip" onclick="run('${J(r.question)}')">${escapeHtml(r.question)}</span>`).join('')}</div>`:''}</div>`;
+  const top=(prefetch && open.length)?open[0]:null, rest=top?open.slice(1):open;
+  el.innerHTML=`<div class="card"><h3>More in this space${ans.length?` <span class="src">· ${ans.length} answered</span>`:''}</h3>
+    ${ans.map(_answeredCard).join('')}
+    ${top?`<div class="conn" style="opacity:.85"><div class="rel"><span class="dot"></span>researching…</div><div class="ct">${escapeHtml(top.question)}</div><div class="cs">auto-answering this for you</div></div>`:''}
+    ${rest.length?`<div class="followups" style="margin-top:${(ans.length||top)?'10px':'2px'}">${rest.map(r=>`<span class="chip" onclick="run('${J(r.question)}')">${escapeHtml(r.question)}</span>`).join('')}</div>`:''}</div>`;
+  if(top){ preAnswer(top.question).then(()=>fillNet(q,false)); }   // one pre-answer per search; refresh without re-prefetching
 }
 
 /* ---------- main router ---------- */
@@ -458,9 +466,12 @@ function renderSynth(slot,j,isPrimary){
   const clar = (j.clarify && j.clarify.question)
     ? `<div class="card"><h3>To pin this down ↩</h3><div style="font-size:15px;color:#d6c2f5;margin-bottom:10px">${escapeHtml(j.clarify.question)}</div><div class="followups">${(j.clarify.options||[]).map(o=>`<span class="chip think" onclick="run('${J(o)}')">◇ ${escapeHtml(o)}</span>`).join('')}</div></div>`
     : '';
+  const limHtml=(j.limits&&String(j.limits).trim())?`<div class="card"><h3>What we don't know yet</h3><div style="font-size:14px;color:#cdbd9a;line-height:1.6">${escapeHtml(j.limits)}</div></div>`:'';
+  const ns=(j.next_steps||[]).filter(Boolean);
+  const nextHtml=ns.length?`<div class="card"><h3>What we can still figure out</h3><div class="followups">${ns.map(x=>`<span class="chip think" onclick="run('${J(x)}')">◇ ${escapeHtml(x)}</span>`).join('')}</div></div>`:'';
   slot.innerHTML=`
     ${badge?`<div style="margin-bottom:10px">${badge}</div>`:''}
-    ${ansHtml}${clar}
+    ${ansHtml}${clar}${limHtml}${nextHtml}
     ${reason?`<div class="card"><h3>How that breaks down</h3><ul class="reason-list">${reason}</ul></div>`:''}
     ${rel?`<div class="card"><h3>Around the outside</h3><div class="followups">${rel}</div></div>`:''}
     ${cites?`<div class="card"><h3>Sources <span class="src">· ${(j.model||'')}${j.web_search?' · web':''}</span></h3>${cites}</div>`:''}`;
