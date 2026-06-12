@@ -121,6 +121,7 @@
   .interp .il{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-faint);margin-right:2px}
   .interp .ichip{font-size:12px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:7px;padding:2px 8px}
   .interp .ichip.f{color:var(--accent);border-color:rgba(91,157,255,.4)}
+  .interp .ichip.g{color:#cbb6f0;border-color:rgba(168,130,230,.4);font-style:italic}
   .interp .icov{font-size:12px;color:#8fb98f;border:1px dashed rgba(120,190,120,.35);border-radius:7px;padding:2px 8px}
   .fbbtn{cursor:pointer;font-size:15px;padding:0 5px;opacity:.65;transition:opacity .15s}.fbbtn:hover{opacity:1}
   .synth-answer p{margin:0 0 10px}.synth-answer p:last-child{margin-bottom:0}
@@ -296,11 +297,17 @@ function drugModality(d){ const s=((d.modality||'')+' '+(d.mechanism||'')).toLow
   if(/small molecule|inhibitor|\boral\b|kinase|stabilizer|degrader/.test(s)) return 'small molecule';
   if(/peptide/.test(s)) return 'peptide'; if(/car-?t|cell therapy/.test(s)) return 'cell therapy';
   return 'other'; }
-// pull explicit constraints out of the question: modality, stage, top-N
+// domain glossary — expand BD/clinical abbreviations so the engine understands jargon
+const ABBREV={pcd:'primary completion date',pdufa:'PDUFA date',orr:'objective response rate',pfs:'progression-free survival',dor:'duration of response',sae:'serious adverse event',moa:'mechanism of action',poc:'proof of concept',tpp:'target product profile',mtd:'maximum tolerated dose',ada:'anti-drug antibody',eop2:'end of Phase 2 meeting',sbla:'supplemental BLA',irr:'infusion-related reaction'};
+function expandAbbrev(q){ const hits=[]; let text=q;
+  for(const a in ABBREV){ if(new RegExp('\\b'+a+'\\b','i').test(q)){ hits.push({abbr:a.toUpperCase(),full:ABBREV[a]}); text+=' '+ABBREV[a]; } }
+  return {text,hits}; }
+// pull explicit constraints out of the question: modality, monotherapy, stage, top-N
 function parseFilters(q){ const s=q.toLowerCase(); const f={};
   if(/\bbispecific|bi-specific|biparatropic|trispecific\b/.test(s)) f.modality='bispecific';
   else if(/\bmono ?abs?\b|monoclonal|\bmabs?\b|monospecific/.test(s)) f.modality='mab';
   else if(/small molecule|\boral\b/.test(s)) f.modality='small molecule';
+  if(/\bmonotherap|single[- ]agent\b/.test(s)) f.monotherapy=true;   // single-agent → exclude bispecifics/combos
   const st=s.match(/phase\s?([123])/); if(st) f.stage='Phase '+st[1]; else if(/\bapproved\b/.test(s)) f.stage='Approved'; else if(/\bpreclinical\b/.test(s)) f.stage='Preclinical';
   const tn=s.match(/\b(\d{1,2})\s+(?:leading|top|best|furthest)\b/)||s.match(/\b(?:top|leading|best|first)\s+(\d{1,2})\b/); if(tn) f.topN=parseInt(tn[1],10);
   return f; }
@@ -309,20 +316,22 @@ const MOD_LABEL={mab:'monoclonal antibodies',bispecific:'bispecifics','small mol
 // remove everything (data too sparse), it's skipped and noted as unenforced.
 function filterCohort(list,q){ const f=parseFilters(q); let out=list.slice(); const applied=[], skipped=[];
   if(f.modality){ const m=out.filter(d=>drugModality(d)===f.modality); if(m.length){ out=m; applied.push(MOD_LABEL[f.modality]+' only'); } else skipped.push(`modality (${MOD_LABEL[f.modality]||f.modality}) — not enough recorded to narrow`); }
+  if(f.monotherapy){ const m=out.filter(d=>drugModality(d)!=='bispecific'); if(m.length&&m.length<out.length){ out=m; applied.push('monotherapies (non-bispecific)'); } }
   if(f.stage){ const m=out.filter(d=>(d.stage||'').toLowerCase().includes(f.stage.toLowerCase())); if(m.length){ out=m; applied.push(f.stage+' only'); } else skipped.push(`stage (${f.stage}) — none in cohort`); }
   return {list:out, applied, skipped, filters:f}; }
 // a plain-language read of the question: subject + what aspect + which filters
-function interpretRead(q){ const c=window._answerCtx||{}, s=(q||'').toLowerCase();
+function interpretRead(q){ const c=window._answerCtx||{}; const ax=expandAbbrev(q); const s=ax.text.toLowerCase();
   const subject = c.drug?(c.drug.row.display_name||c.drug.row.name) : c.company?c.company.row.name : (c.tts&&c.tts.length)?(c.tts.join('×').toUpperCase()+' field') : null;
   const it=intent(q), fk=factKind(q); let aspect=null;
-  if(/response rate|remission|efficac|endpoint|how effective/.test(s)) aspect='response / efficacy';
+  if(/primary completion|completion date|expected readout|\bpcd\b/.test(s)) aspect='completion / readout dates';
+  else if(/response rate|remission|efficac|endpoint|how effective/.test(s)) aspect='response / efficacy';
   else if(it==='timeline'||/catalyst|read ?out|pdufa/.test(s)) aspect='catalysts / timing';
   else if(it==='count') aspect='how many';
   else if(it==='leader'||/\b(leading|furthest|who.?s ahead)\b/.test(s)) aspect='who leads';
   else if(it==='landscape') aspect='competitive landscape';
   else if(fk) aspect=({mechanism:'mechanism',developer:'who develops it',deal:'deal economics',dosing:'dosing / PK',indication:'indication'})[fk];
-  const f=parseFilters(q), fl=[]; if(f.modality)fl.push(MOD_LABEL[f.modality]+' only'); if(f.stage)fl.push(f.stage); if(f.topN)fl.push('top '+f.topN);
-  return {subject,aspect,filters:fl}; }
+  const f=parseFilters(q), fl=[]; if(f.modality)fl.push(MOD_LABEL[f.modality]+' only'); if(f.monotherapy)fl.push('monotherapies'); if(f.stage)fl.push(f.stage); if(f.topN)fl.push('top '+f.topN);
+  return {subject,aspect,filters:fl,abbrev:ax.hits}; }
 
 /* ---------- helpers ---------- */
 const STAGE_RANK=s=>{ s=(s||'').toLowerCase();
@@ -472,9 +481,13 @@ async function answer(q){
   const drugs=ents.filter(e=>e.type==='drug');
   window._answerCtx={q,ents,drug,company,tts};   // so a follow-up can inherit this subject
 
+  const qx=expandAbbrev(q).text;   // expand jargon (PCD→primary completion date, etc.) before routing
+  // COMPLETION / READOUT DATES for a cohort ("PCD for the leading TL1A monotherapies in Phase 3")
+  if(/\b(primary completion|completion date|expected readout|read ?out date|pcd)\b/i.test(qx) && tts.length){
+    const t=tts[0]; const _f=filterCohort(byTok(t),q); await cohortDatesAnswer(q,t,_f.list); return 'dates'; }
   // "response rates / efficacy OF the leading/top assets" → rank the field by efficacy, not just stage.
   // (catches the misroute where 'leading' alone fired the stage-leader handler and ignored 'response rates')
-  if(/response rate|remission|\bresponse\b|efficac|endpoint|how effective/i.test(q) && /\b(leading|top|best|furthest|advanced)\b/i.test(q) && (tts.length||(drug&&drug.row.target))){
+  if(/response rate|remission|\bresponse\b|efficac|endpoint|how effective/i.test(qx) && /\b(leading|top|best|furthest|advanced)\b/i.test(q) && (tts.length||(drug&&drug.row.target))){
     const t=tts[0]||tok(drug.row.target)[0]; await rankAnswer(q,t,'efficacy'); return 'ranking'; }
 
   // COMPARISON & RANKING (structured + scannable) — win before the synthesis auto-route
@@ -543,7 +556,8 @@ function shell({asked,tag,tagCls,title,centerHTML,sideHTML,follow,deepenBundle,d
   const fform=`<form class="fuform" onsubmit="return askFollowup(event)"><input id="fuInput" autocomplete="off" placeholder="Ask a follow-up${ctxLbl?` — keeps ${escapeHtml(ctxLbl)} in context`:''}…"><button class="fubtn" type="submit">↵</button></form>`;
   // reflection: show how the question was read + what Meridian knows, before the answer
   const ir=interpretRead(asked); const cov=window._coverageNote||''; window._coverageNote='';
-  const interp=(ir.subject||ir.aspect||ir.filters.length||cov)?`<div class="interp"><span class="il">how I read this</span>${ir.subject?`<span class="ichip">${escapeHtml(ir.subject)}</span>`:''}${ir.aspect?`<span class="ichip">${escapeHtml(ir.aspect)}</span>`:''}${ir.filters.map(f=>`<span class="ichip f">${escapeHtml(f)}</span>`).join('')}${cov?`<span class="icov">${escapeHtml(cov)}</span>`:''}</div>`:'';
+  const abbrChips=(ir.abbrev||[]).map(a=>`<span class="ichip g">${escapeHtml(a.abbr)} = ${escapeHtml(a.full)}</span>`).join('');
+  const interp=(ir.subject||ir.aspect||ir.filters.length||cov||abbrChips)?`<div class="interp"><span class="il">how I read this</span>${ir.subject?`<span class="ichip">${escapeHtml(ir.subject)}</span>`:''}${ir.aspect?`<span class="ichip">${escapeHtml(ir.aspect)}</span>`:''}${abbrChips}${ir.filters.map(f=>`<span class="ichip f">${escapeHtml(f)}</span>`).join('')}${cov?`<span class="icov">${escapeHtml(cov)}</span>`:''}</div>`:'';
   document.getElementById('canvas').innerHTML=`
     <div class="layout">
       <div class="main">
@@ -962,6 +976,26 @@ async function rankAnswer(q,t,metric){
       follow:[`who is leading in ${(t||'').toUpperCase()}?`,`competitive landscape for ${(t||'').toUpperCase()}`]});
     return; }
   leaderAnswer(q,t,cohort.sort((a,b)=>STAGE_RANK(b.stage)-STAGE_RANK(a.stage)));
+}
+// completion / readout dates across a whole cohort (e.g. "PCD for the leading TL1A monotherapies")
+async function cohortDatesAnswer(q,t,list){
+  const ids=list.map(d=>d.id);
+  const trials=ids.length?await sb("trials",`select=drug_id,phase,primary_completion_date,pcd_label,readout_date,expected_readout,trial_name,status,source_url&drug_id=in.(${ids.map(enc).join(',')})`).catch(()=>[]):[];
+  const wantPhase=(parseFilters(q).stage||'').toLowerCase();   // prefer the trial matching the asked phase (e.g. Phase 3)
+  const by={}; (trials||[]).forEach(r=>{ const sc=(wantPhase&&(r.phase||'').toLowerCase().includes(wantPhase)?4:0)+(r.primary_completion_date?2:0)+((r.expected_readout||r.readout_date)?1:0); const cur=by[r.drug_id]; if(!cur||sc>cur._s) by[r.drug_id]=Object.assign({_s:sc},r); });
+  const rows=list.map(d=>({d,t:by[d.id]})).filter(x=>x.t&&(x.t.primary_completion_date||x.t.pcd_label||x.t.expected_readout||x.t.readout_date));
+  const missing=list.filter(d=>!rows.find(r=>r.d.id===d.id));
+  window._coverageNote=`${rows.length} of ${list.length} have a captured completion/readout date${missing.length?`, ${missing.length} not yet in Meridian`:''}`;
+  const dnum=x=>Date.parse(x.t.primary_completion_date||x.t.readout_date||x.t.expected_readout||'')||8.64e15;
+  rows.sort((a,b)=>dnum(a)-dnum(b));
+  const fm=v=>v?escapeHtml(String(v)):'—';
+  const center=`<div class="card big-answer">Primary completion / readout dates for the <span class="hl">${list.length}</span> tracked <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> asset${list.length!==1?'s':''} in scope${rows.length<list.length?` — <span class="hl">${rows.length}</span> with a date captured, ${list.length-rows.length} not yet`:''}.</div>
+    ${rows.length?`<div class="card"><h3>Completion &amp; readout</h3><table class="rows"><tr><th>Asset</th><th>Company</th><th>Phase</th><th>Primary completion</th><th>Expected readout</th><th>Trial</th><th>Src</th></tr>${rows.map(x=>`<tr><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td><span class="pill stage">${escapeHtml(x.t.phase||x.d.stage||'—')}</span></td><td class="num">${fm(x.t.primary_completion_date||x.t.pcd_label)}</td><td>${fm(x.t.expected_readout||x.t.readout_date)}</td><td>${escapeHtml((x.t.trial_name||'').slice(0,26))||'—'}</td><td>${x.t.source_url?`<a href="${x.t.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table></div>`:`<div class="card empty">Meridian doesn't yet have a captured primary-completion or readout date for these assets — use "Reason deeper with AI" to research them from ClinicalTrials.gov.</div>`}
+    ${missing.length?`<div class="card"><h3>No date captured yet</h3><div class="src">${missing.slice(0,16).map(d=>`<span class="chip" onclick="run('${J(d.name+' completion date')}')">${escapeHtml(d.display_name||d.name)}</span>`).join(' ')}</div></div>`:''}`;
+  shell({asked:q,tag:'Completion dates · from Meridian',title:`${(t||'').toUpperCase()} — completion / readout dates`,centerHTML:center,
+    sideHTML:`<h4>Soonest</h4>${rows.slice(0,6).map(x=>`<div class="conn" onclick="run('${J(x.d.name)}')"><div class="rel">${escapeHtml(x.t.primary_completion_date||x.t.expected_readout||'')}</div><div class="ct">${escapeHtml(x.d.display_name||x.d.name)}</div><div class="cs">${escapeHtml(coName(x.d.company_id))}</div></div>`).join('')}`,
+    follow:[`who is leading in ${(t||'').toUpperCase()}?`,`${(t||'').toUpperCase()} ranked by nearest catalyst`,`competitive landscape for ${(t||'').toUpperCase()}`],
+    deepenBundle:{target:t,trials:rows.map(x=>({drug:x.d.name,company:coName(x.d.company_id),...x.t})),missing:missing.map(d=>d.name),question:'primary completion / readout dates'},deepenTitle:`${(t||'').toUpperCase()} — timing read`});
 }
 function landscapeAnswer(q,drug,edges){
   const d=drug.row,t=tok(d.target)[0]||'';
