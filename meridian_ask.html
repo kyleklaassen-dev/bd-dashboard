@@ -112,6 +112,11 @@
   .deepen:hover{border-color:var(--gap);background:#241a3a}
   .synthnote{font-size:12px;color:var(--ink-faint);border:1px dashed var(--edge);border-radius:10px;padding:11px 13px;margin-top:6px;line-height:1.5}
   .pend-badge{display:inline-block;margin-left:5px;background:var(--accent);color:#04101f;font-size:10.5px;font-weight:700;border-radius:9px;padding:1px 6px;vertical-align:top;line-height:1.5}
+  .fuform{display:flex;gap:8px;align-items:center;margin:14px 0 4px;border:1px solid var(--edge);border-radius:13px;padding:5px 6px 5px 15px;background:rgba(255,255,255,.015)}
+  .fuform:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,157,255,.12)}
+  .fuform input{flex:1;background:transparent;border:0;outline:0;color:var(--ink);font-size:14.5px;padding:7px 0}
+  .fuform input::placeholder{color:var(--ink-faint)}
+  .fubtn{background:var(--accent);color:#04101f;border:0;border-radius:9px;width:34px;height:31px;font-size:15px;cursor:pointer;flex:none}.fubtn:hover{filter:brightness(1.08)}
   .fbbtn{cursor:pointer;font-size:15px;padding:0 5px;opacity:.65;transition:opacity .15s}.fbbtn:hover{opacity:1}
   .synth-answer p{margin:0 0 10px}.synth-answer p:last-child{margin-bottom:0}
   .synth-answer .md-h{font-weight:700;color:#fff;font-size:16px;margin:16px 0 7px;letter-spacing:-.2px}
@@ -423,6 +428,12 @@ async function answer(q){
   const wantsReason=REASON.test(q);
   const isArchetype = !drug && (tts.length>=1) && (MODALITY.test(q)||STAGEWORD.test(q)||tts.length>=2) && (wantsReason||MODALITY.test(q));
   const drugs=ents.filter(e=>e.type==='drug');
+  window._answerCtx={q,ents,drug,company,tts};   // so a follow-up can inherit this subject
+
+  // "response rates / efficacy OF the leading/top assets" → rank the field by efficacy, not just stage.
+  // (catches the misroute where 'leading' alone fired the stage-leader handler and ignored 'response rates')
+  if(/response rate|remission|\bresponse\b|efficac|endpoint|how effective/i.test(q) && /\b(leading|top|best|furthest|advanced)\b/i.test(q) && (tts.length||(drug&&drug.row.target))){
+    const t=tts[0]||tok(drug.row.target)[0]; await rankAnswer(q,t,'efficacy'); return 'ranking'; }
 
   // COMPARISON & RANKING (structured + scannable) — win before the synthesis auto-route
   if(drugs.length>=2 && (CMP.test(q) || !hasResidualQuestion(q,ents))){ await comparisonAnswer(q,drugs); return 'comparison'; }
@@ -486,6 +497,8 @@ function entLabel(t,id){ if(t==='drug'){const d=DRUGS.find(x=>x.id===id);return 
 function shell({asked,tag,tagCls,title,centerHTML,sideHTML,follow,deepenBundle,deepenTitle}){
   const fu=(follow&&follow.filter(Boolean).length)?`<div class="card"><h3>What would you like to know?</h3><div class="followups">${follow.filter(Boolean).map(f=>`<span class="chip" onclick="run('${J(f)}')">${f}</span>`).join('')}</div></div>`:'';
   const deep=deepenBundle?`<div class="deepen" onclick='deepen(${J(asked)},${JSON.stringify(deepenBundle).replace(/'/g,"&#39;")},${J(deepenTitle||title)})'>◇ Reason deeper with AI →</div>`:'';
+  const ctxLbl=followupCtxLabel();
+  const fform=`<form class="fuform" onsubmit="return askFollowup(event)"><input id="fuInput" autocomplete="off" placeholder="Ask a follow-up${ctxLbl?` — keeps ${escapeHtml(ctxLbl)} in context`:''}…"><button class="fubtn" type="submit">↵</button></form>`;
   document.getElementById('canvas').innerHTML=`
     <div class="layout">
       <div class="main">
@@ -495,12 +508,24 @@ function shell({asked,tag,tagCls,title,centerHTML,sideHTML,follow,deepenBundle,d
         <h2 class="answer-h">${title}</h2>
         <div id="synthSlot"></div>
         ${centerHTML}${deep}${fu}
+        ${fform}
         <div id="netSlot"></div>
       </div>
       <aside class="side">${sideHTML||''}</aside>
     </div>`;
   window.scrollTo(0,0);
 }
+// a short label for what a follow-up will stay anchored to (the current answer's subject)
+function followupCtxLabel(){ const c=window._answerCtx||{}; if(c.drug) return (c.drug.row.display_name||c.drug.row.name); if(c.company) return c.company.row.name; if(c.tts&&c.tts.length) return c.tts.join('×').toUpperCase(); return ''; }
+// Ask on TOP of the current answer. A follow-up that names no entity inherits the
+// current subject (target/drug/company) so "what about their safety?" still works.
+function askFollowup(e){ if(e&&e.preventDefault)e.preventDefault();
+  const el=document.getElementById('fuInput'); let fq=(el&&el.value||'').trim(); if(!fq) return false;
+  const ctx=window._answerCtx||{};
+  const hasOwn = (resolveEntities(fq).length>0) || (targetTokensIn(fq).length>0);
+  if(!hasOwn){ const anchor=(ctx.drug&&(ctx.drug.row.display_name||ctx.drug.row.name)) || (ctx.company&&ctx.company.row.name) || (ctx.tts&&ctx.tts[0]&&ctx.tts[0].toUpperCase());
+    if(anchor) fq = `${fq} — ${anchor}`; }
+  run(fq); return false; }
 function srcLink(u,l){ return u?`<a href="${u}" target="_blank" rel="noopener">${l||'source ↗'}</a>`:`<span class="src">${l||'—'}</span>`; }
 function connCards(edges,title){
   if(!edges||!edges.length)return'';
@@ -843,11 +868,11 @@ async function rankAnswer(q,t,metric){
   if(metric==='efficacy'){
     const ids=cohort.map(d=>d.id);
     const eff=await sb("efficacy_benchmarks",`select=drug_id,endpoint_type,value_pct,placebo_pct,indication_slug,source_url&drug_id=in.(${ids.map(enc).join(',')})`);
-    const best={}; eff.filter(e=>/remission/i.test(e.endpoint_type||'')).forEach(e=>{ if(!best[e.drug_id]||(e.value_pct||0)>(best[e.drug_id].value_pct||0)) best[e.drug_id]=e; });
+    const best={}; eff.filter(e=>/remission|response/i.test(e.endpoint_type||'')).forEach(e=>{ if(!best[e.drug_id]||(e.value_pct||0)>(best[e.drug_id].value_pct||0)) best[e.drug_id]=e; });
     const ranked=cohort.map(d=>({d,e:best[d.id]})).filter(x=>x.e).sort((a,b)=>(b.e.value_pct||0)-(a.e.value_pct||0));
     const noData=cohort.filter(d=>!best[d.id]);
     const center=`
-      <div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by clinical remission — <span class="hl">${ranked.length}</span> with reported data${noData.length?`, ${noData.length} without yet`:''}.</div>
+      <div class="card big-answer">Ranking <span class="hl">${escapeHtml((t||'').toUpperCase())}</span> by best reported response/remission — <span class="hl">${ranked.length}</span> with captured data${noData.length?`, ${noData.length} without yet`:''}.${noData.length?` <span class="src">Where a value is missing, Meridian hasn't captured a sourced endpoint yet — use "Reason deeper" to research it.</span>`:''}</div>
       ${ranked.length?`<div class="card"><h3>Remission by asset</h3>${barChart(ranked.map(x=>({label:(x.d.display_name||x.d.name).split('(')[0].trim(),value:x.e.value_pct})))}</div>`:''}
       <div class="card"><h3>By remission rate</h3>${ranked.length?`<table class="rows"><tr><th>#</th><th>Asset</th><th>Company</th><th>Remission</th><th>vs pbo</th><th>Indication</th><th>Src</th></tr>
         ${ranked.map((x,i)=>`<tr><td class="rank">${i+1}</td><td><a onclick="run('${J(x.d.name)}')">${escapeHtml(x.d.display_name||x.d.name)}</a></td><td>${escapeHtml(coName(x.d.company_id))}</td><td class="num">${x.e.value_pct}%</td><td>${x.e.placebo_pct!=null?x.e.placebo_pct+'%':'—'}</td><td>${escapeHtml(x.e.indication_slug||'')}</td><td>${x.e.source_url?`<a href="${x.e.source_url}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('')}</table>`:'<div class="empty">No remission data captured yet for this target — ask one and it will populate.</div>'}
@@ -951,6 +976,7 @@ async function run(q){
     _correctNote=''; const fz=fuzzyCorrect(q);
     if(fz.corrections.length){ q=fz.q2; _correctNote=`Showing results for <b>${escapeHtml(q)}</b> — corrected ${fz.corrections.map(c=>`“${escapeHtml(c.from)}”→“${escapeHtml(c.to)}”`).join(', ')}`; }
     window._lastQ=q;  // for answer feedback
+    { const _e=resolveEntities(q); window._answerCtx={q,ents:_e,drug:_e.find(x=>x.type==='drug'),company:_e.find(x=>x.type==='company'),tts:targetTokensIn(q)}; }  // follow-up context (also for cache hits)
     // cache-first: a previously-resolved question is answered instantly & free (no LLM call)
     const cached=await cacheLookup(q);
     if(cached){ renderCachedAnswer(q,cached); fillNet(q).catch(()=>{}); return; }   // server logs the cache serve
