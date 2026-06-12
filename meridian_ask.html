@@ -230,6 +230,9 @@ let DRUGS=[],COMPANIES=[],NAME2ENT=new Map(),SURFACES=[],TARGET_TOKENS=new Set()
 async function boot(){
   DRUGS=await sb("drugs","select=id,name,display_name,brand_name,inn_name,dev_code,aliases,target,company_id,lead_company_id,stage,stage_detail,indication_short,mechanism,overlap,key_data,differentiation_thesis,why_it_matters,drug_summary,modality,source_url&order=id");
   COMPANIES=await sb("companies","select=id,name,ticker,company_type,hq_country,market_cap_display,status");
+  // use the cleaned/inferred modality (recovers the ~23 drugs whose modality was blank) — additive, from v_drug_modality
+  try{ const mm={}; (await sb("v_drug_modality","select=id,modality_clean")).forEach(r=>{ if(r.modality_clean) mm[r.id]=r.modality_clean; });
+    DRUGS.forEach(d=>{ if(mm[d.id]) d.modality=mm[d.id]; }); }catch(e){}
   const add=(s,e)=>{ if(!s)return; const k=String(s).toLowerCase().trim(); if(k.length<3)return; if(!NAME2ENT.has(k))NAME2ENT.set(k,e); };
   for(const d of DRUGS){
     const e={type:'drug',id:d.id,label:d.display_name||d.name,row:d};
@@ -980,7 +983,7 @@ async function rankAnswer(q,t,metric){
 // completion / readout dates across a whole cohort (e.g. "PCD for the leading TL1A monotherapies")
 async function cohortDatesAnswer(q,t,list){
   const ids=list.map(d=>d.id);
-  const trials=ids.length?await sb("trials",`select=drug_id,phase,primary_completion_date,pcd_label,readout_date,expected_readout,trial_name,status,source_url&drug_id=in.(${ids.map(enc).join(',')})`).catch(()=>[]):[];
+  const trials=ids.length?await sb("v_trials_clean",`select=drug_id,phase,primary_completion_date,pcd_label,readout_date,expected_readout,trial_name,status,source_url&drug_id=in.(${ids.map(enc).join(',')})`).catch(()=>[]):[];
   const wantPhase=(parseFilters(q).stage||'').toLowerCase();   // prefer the trial matching the asked phase (e.g. Phase 3)
   const by={}; (trials||[]).forEach(r=>{ const sc=(wantPhase&&(r.phase||'').toLowerCase().includes(wantPhase)?4:0)+(r.primary_completion_date?2:0)+((r.expected_readout||r.readout_date)?1:0); const cur=by[r.drug_id]; if(!cur||sc>cur._s) by[r.drug_id]=Object.assign({_s:sc},r); });
   const rows=list.map(d=>({d,t:by[d.id]})).filter(x=>x.t&&(x.t.primary_completion_date||x.t.pcd_label||x.t.expected_readout||x.t.readout_date));
