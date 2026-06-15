@@ -1,6 +1,6 @@
 # Prediction Review Queue (Tier-2)
 
-**Generated:** 2026-06-08 by `scripts/score_foresight.py`
+**Generated:** 2026-06-15 by `scripts/score_foresight.py`
 
 These judgment calls are past their resolution window and still `open`.
 For each: set `status` (correct / incorrect / partially_correct / expired),

@@ -1,6 +1,6 @@
 # Foresight Review Queue
 
-**Generated:** 2026-06-08 by `scripts/score_foresight.py`
+**Generated:** 2026-06-15 by `scripts/score_foresight.py`
 
 Past-due catalysts with no confirmed outcome. For each: confirm what happened
 (+ source URL), then either mark the catalyst resolved and let the next run log
@@ -28,3 +28,11 @@ with `foreseen=false` + `miss_reason` — that is where the learning lives.
 | 16 | 2796 | 2026-06-06 | fcrn | readout | Vera Therapeutics / Vertex dual-acting IgAN candidates — regulatory submissions / eGFR dat | — | ☐ |
 | 17 | 2632 | 2026-06-06 | ibd | readout | XmAb942 / XmAb412 data at EULAR 2026 (June 3-6) | — | ☐ |
 | 18 | 3050 | 2026-06-08 | fcrn | readout | rozanolixizumab Phase 3 Generalized Myasthenia Gravis primary completion (NCT06149559) | RECRUITING (pc=2026-06-08, results=False) | ☐ |
+| 19 | 2203 | 2026-06-11 | tcell | conference | CLN-978 OUTRACE expanded Phase 1 data at EULAR 2026 Congress, London (SLE + RA) | — | ☐ |
+| 20 | 1123 | 2026-06-12 | fcrn | readout | M701 Phase 3 primary completion — malignant ascites (NCT06432296, n=312) | — | ☐ |
+| 21 | 2492 | 2026-06-15 | igf1r | readout | Viridian Therapeutics: elegrobart (anti-IGF-1R SC) REVEAL-2 topline data | — | ☐ |
+| 22 | 2388 | 2026-06-15 | tl1a | regulatory | Seralutinib: Type B pre-NDA meeting with FDA (PAH) — company-guided | — | ☐ |
+| 23 | 1023 | 2026-06-15 | tl1a | filing | Seralutinib: Type B pre-NDA meeting with FDA (PAH) | — | ☐ |
+| 24 | 1811 | 2026-06-15 | il4ra | readout | APG777 APEX Ph2 Part B: 16-week induction data readout (~347 pts, dose optimization) | — | ☐ |
+| 25 | 2021 | 2026-06-15 | tcell | conference | CLN-978 OUTRACE expanded Phase 1 data presentation at EULAR 2026 Congress, London | — | ☐ |
+| 26 | 432 | 2026-06-15 | tcell | conference | EULAR / ECCO 2026 — Novartis expected IBD and inflammation pipeline data presentations | — | ☐ |
