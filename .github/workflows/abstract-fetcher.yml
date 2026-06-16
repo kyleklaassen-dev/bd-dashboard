@@ -2,10 +2,10 @@ name: Meridian Abstract Fetcher
 
 on:
   schedule:
-    # Saturday 10:00 AM ET = 14:00 UTC — weekly abstract and preprint sweep
-    # Runs on Saturdays, complementing the weekend sprint blocks.
+    # Daily 10:00 AM ET = 14:00 UTC — abstract and preprint sweep (literature lands daily)
+    # Runs daily; pure PubMed + Europe PMC API calls.
     # Light-weight: no LLM, pure PubMed + Europe PMC API calls.
-    - cron: "0 14 * * 6"
+    - cron: "0 14 * * *"
   workflow_dispatch:
     inputs:
       drug:
