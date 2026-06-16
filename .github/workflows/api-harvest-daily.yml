@@ -1,0 +1,69 @@
+name: Meridian API Harvest (Daily — CT.gov + openFDA)
+
+# Daily companion to api-harvest.yml. Harvests the free REST sources that CHANGE
+# DAILY — ClinicalTrials.gov (trial status / new trials) + openFDA (approvals,
+# labels) — every day so the dashboard reflects live registry state. The full
+# --all sweep (incl. ChEMBL + Open Targets, which only release ~quarterly) stays
+# weekly in api-harvest.yml. NO LLM -> exempt from the Claude-API spend pause.
+
+on:
+  schedule:
+    - cron: "0 9 * * *"        # Daily 05:00 ET / 09:00 UTC
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Optional cap on entities for a quick validation run"
+        required: false
+        default: ""
+      dry_run:
+        description: "Fetch but do not write"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: api-harvest-daily
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    name: "Daily CT.gov + openFDA harvest into Meridian"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run harvester (CT.gov + openFDA)
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          echo "=== Meridian Daily API Harvest ($(date -u +%FT%TZ)) ==="
+          ARGS="--ctgov --openfda"
+          if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          echo "python scripts/api_harvester.py $ARGS"
+          python scripts/api_harvester.py $ARGS
+
+      - name: Connect new data into the entity graph
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/seed_api_edges.py
+
+      - name: Enrich bare publication stubs (PMID -> title/abstract)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/enrich_pub_stubs.py || echo "pub enrich partial (non-fatal)"
+
+      - name: Graph health guard (connectivity + edge quality)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/graph_health_guard.py
