@@ -3093,7 +3093,7 @@ async function _loadSystemHealth() {
     const seen = new Map();
     (runs||[]).forEach(r => { if (!seen.has(r.workflow_name)) seen.set(r.workflow_name, r); });
     _healthRuns = [...seen.values()];
-    const failing = _healthRuns.filter(r => r.conclusion && r.conclusion!=='success' && r.status==='completed');
+    const failing = _healthRuns.filter(r => r.conclusion && !['success','skipped','cancelled','neutral'].includes(r.conclusion) && r.status==='completed');
     // header dot
     const dot = document.getElementById('health-nav-dot');
     const dotDot = document.getElementById('health-nav-dot-dot');
@@ -3285,7 +3285,7 @@ function closeWhitespacePanel() { const ov=document.getElementById('ws-overlay')
 
 function openHealthPanel() {
   const ov = document.getElementById('health-overlay'); if (!ov) return;
-  const failing = _healthRuns.filter(r => r.conclusion && r.conclusion!=='success' && r.status==='completed');
+  const failing = _healthRuns.filter(r => r.conclusion && !['success','skipped','cancelled','neutral'].includes(r.conclusion) && r.status==='completed');
   document.getElementById('health-panel-dot').className = 'health-dot ' +
     (!_healthRuns.length ? 'unknown' : failing.length ? 'bad' : 'ok');
   document.getElementById('health-summary-line').textContent =
