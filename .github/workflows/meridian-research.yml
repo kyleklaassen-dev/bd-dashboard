@@ -19,7 +19,7 @@ jobs:
     # Increased from 180 → 210 min to accommodate Phase 6 new-source sweep:
     # CT.gov poller (~2 min) + EDGAR 8-K sweep for 14 companies (~8 min).
     # Both run without the Anthropic API so cost impact is nil.
-    timeout-minutes: 210
+    timeout-minutes: 350
 
     steps:
       - name: Checkout
