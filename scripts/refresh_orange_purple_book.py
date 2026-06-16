@@ -20,7 +20,7 @@ DRY = "--dry-run" in sys.argv
 NOW = datetime.datetime.utcnow().isoformat()
 NS = uuid.UUID("c9f3e2d1-3333-4444-8555-2b3c4d5e6f70")
 _uid = lambda k: str(uuid.uuid5(NS, k))
-OB_ZIP = "https://www.fda.gov/media/76860/download"   # Orange Book Data Files
+OB_ZIP = "https://www.fda.gov/media/76860/download?attachment"   # Orange Book Data Files (FDA canonical link)
 UA = {"User-Agent": "Mozilla/5.0 meridian-ob-refresh"}
 digits = lambda s: "".join(ch for ch in (s or "") if ch.isdigit())
 
