@@ -30,7 +30,7 @@ an explicit ontology rather than free-text generation.
   - `.env` (copy from `.env.example`)
   - `.supabase_anon_key`, `.supabase_service_key`, `.supabase_config`
   - `.anthropic_api_key` (for LLM pipelines)
-  - `.github_token` (for deploys via the GitHub Contents API)
+  - `.github_token_workflow` (for deploys via the GitHub Contents/Git Data API; the plain `.github_token` is dead)
 
 ### Run the dashboard locally
 The dashboard is a single static file. Open `index.html` in a browser, or serve it:
