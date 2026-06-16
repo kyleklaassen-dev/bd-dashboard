@@ -1,3 +1,38 @@
+# NEXT_SESSION — handoff (2026-06-16, Stage 4 enforcement ON)
+
+**Session goal:** turn on Stage 4 single-writer enforcement and clear the Stage 1 residual data fixes. Both done (enforcement is partial-by-design). Operated on LIVE `main` + Supabase via the GitHub/Management APIs (git still deadlocks on the mount; key in `.github_token_workflow`).
+
+## What got done
+1. **Stage 4 WARN → EXCEPTION.**
+   - `migrations/v157_writer_enforcement_warn.sql` — observe-only BEFORE INSERT/UPDATE triggers on drugs/companies/catalysts/entity_edges, logging every invariant breach to **`governance_enforcement_log`** (REST-queryable). Mode switch in `governance_enforcement_config`.
+   - Watched a live write cycle (completeness-scoring, stock-prices, free-ingest, structural-edges) → only soft `brand_implies_approved` warnings, **zero hard violations**.
+   - `migrations/v159_writer_enforcement_escalate.sql` — **per-rule** enforcement allow-list `governance_enforced_rules`. The two edge referential rules (`edges.subject_drug_orphan`, `edges.object_drug_orphan`) now **RAISE EXCEPTION**. Verified: phantom-edge insert rejected, valid edge accepted, all edge seeders green, 0 real writes blocked.
+2. **Stage 1 residual data fixes (all via governed paths / Kyle-approved).**
+   - **apg777 / apg279 were MIS-TARGETED** (review doc had it backwards). Primary sources: APG777 = zumilokibart = anti-IL-13 mAb; APG279 = IL-13×OX40L fixed-dose combination. Corrected target/mechanism/drug_format via DrugWriter, with Apogee sources.
+   - **CLD-423 is REAL** (Caldera/Qyuns IL-23p19×TL1A bispecific, a direct Ailux competitor) and already existed as `cldr-001`. The 16 `cld-423` edges were wrong-id duplicates → deleted + code aliased onto cldr-001 (`migrations/v158`).
+   - **Phantoms purged:** mk-1718, mdr-018 (no real-world asset; like the v80 mk-1695 purge) — ~54 edges deleted.
+   - **Company-as-drug edges deleted** (abbvie/amgen/aurinia/jnj/ucb/orukatherapeutics, 6 edges).
+   - **Duplicate molecules merged** (FK-aware `dedupe_entities.py`): ati-045→bosakitug, xmab5871→obexelimab. Codes aliased; bare rows retired. drugs 194→192.
+   - **7 stale approved stages flipped** to `approved` (Fasenra, Rinvoq, Ebglyss, Imaavy, Rystiggo, Adbry, Nucala) — all verified marketed. brand⇒approved violations → 0.
+   - Net: **orphan drug-edges 74 → 0.**
+
+## ⚠️ Validate / watch
+- Engine still healthy after enforcement (edge seeders re-ran green). If a NEW pipeline ever emits an edge to a not-yet-created drug, it will now hard-fail with `governance violation [edges.*_drug_orphan]` — that's intended; fix the writer to create the drug first.
+- One known accepted side effect of the merges: a few `drug_sources`/`drug_targets`/`trial_registries` rows attached to the duplicate code-rows were dropped on unique-collision (regenerable derived data).
+
+## Next (see PRIORITY.md queue)
+1. **Link the 26 unlinked catalysts** (all real) → then add `catalysts.must_link` to `governance_enforced_rules`.
+2. **Layer B permission boundary** (REVOKE INSERT/UPDATE on core tables from anon/authenticated + write RPC) — the real physical single-writer; confirm pipelines use service_role first.
+3. **Drug-discovery `company_id` policy** → then enforce `drugs.company_id_required` (12 company-less codes remain).
+4. **Backfill `drug_sources`** for the 58 drugs (run evidence-collectors, free).
+5. **apg777/apg279 `TARGETS` edge re-sync** to il13/ox40l so the corrected target reaches the graph.
+
+## Carried over
+- 4 mechanism/target flags needing a primary source: `mk-1695`, `shr0817`, `hlx36`, `abs-101`.
+- Service-role key rotation is Kyle's (standing security item).
+
+---
+
 # NEXT_SESSION — handoff (overnight 2026-06-15 → 06-16)
 
 **Autonomous legibility + stabilization pass.** Goal: make the repo ready for morning review and friendly to an outside engineer, and refresh the planning docs to TRUE current state. Operated on the LIVE repo (`kyleklaassen-dev/bd-dashboard`, `main`) via the GitHub Contents + Git Data APIs. `index.html` was deliberately NOT touched (another task owns it).
