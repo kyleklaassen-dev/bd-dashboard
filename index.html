@@ -31127,6 +31127,10 @@ document.addEventListener('DOMContentLoaded', function(){
     <button class="intel2-navbtn" data-sec="eu">🇪🇺 EU Approvals</button>
     <button class="intel2-navbtn" data-sec="mfg">🏭 Manufacturing</button>
     <button class="intel2-navbtn" data-sec="trust">🔗 Narrative Trust</button>
+    <button class="intel2-navbtn" data-sec="kols">👤 KOL Influence</button>
+    <button class="intel2-navbtn" data-sec="grants">💰 Grant Funding</button>
+    <button class="intel2-navbtn" data-sec="ownership">🏢 Corporate Ownership</button>
+    <button class="intel2-navbtn" data-sec="market">📈 Market &amp; Unmet Need</button>
   </div>
   <div class="intel2-body" id="intel2-body">
     <div class="intel2-muted" style="text-align:center">Loading intelligence…</div>
@@ -31262,7 +31266,87 @@ document.addEventListener('DOMContentLoaded', function(){
     return `<div class="intel2-subh">The "trusted intelligence, not AI summaries" layer — relinked from the retired changes-feed tab. <code>narrative_provenance</code> traces each claim to its source; <code>narrative_claim_triangulation</code> records how many claims are independently corroborated. Across the corpus: <b>${fNum(prov.length)}</b> claim-source rows (${fNum(withUrl)} externally sourced) · <b>${fNum(totalClaims)}</b> claims · <b>${fNum(totalCorrob)}</b> corroborated by ≥2 sources.</div>${cards||'<div class="intel2-muted">No per-narrative provenance.</div>'}`;
   }
 
-  const RENDER={insights:rInsights,genetics:rGenetics,trials:rTrials,conf:rConf,eu:rEu,mfg:rMfg,trust:rTrust};
+  // 8. KOL influence — kols ranked by influence_score (trial + publication weighted).
+  function rKols(){
+    let rows=(DB.kols||[]).slice().filter(r=>r.influence_score!=null).sort((a,b)=>(b.influence_score||0)-(a.influence_score||0));
+    if(!rows.length) rows=(DB.kols||[]).slice().sort((a,b)=>(b.trial_count||0)-(a.trial_count||0));
+    if(!rows.length) return '<div class="intel2-muted">No KOL data found.</div>';
+    const pis=rows.filter(r=>(r.role||'').toUpperCase().includes('INVESTIGATOR')).length;
+    const km=(DB.kolm||[]);
+    const list=rows.slice(0,80).map(r=>{
+      const inf=r.influence_score||0;
+      const meta=[r.role?E(r.role.replace(/_/g,' ').toLowerCase()):null,r.trial_count?`${r.trial_count} trial${r.trial_count>1?'s':''}`:null,r.pub_count?`${fNum(r.pub_count)} pubs`:null,r.citation_count?`${fNum(r.citation_count)} cites`:null,r.h_index!=null?`h-index ${r.h_index}`:null].filter(Boolean).join(' · ');
+      return `<div class="intel2-row"><div><div class="intel2-nm">${E(r.name||'?')}</div><div class="intel2-sub">${meta||'—'}</div></div><div class="intel2-spacer"></div><span class="intel2-bar"><i style="width:${Math.min(100,inf*100).toFixed(0)}%"></i></span><span class="intel2-sub">${inf.toFixed(2)} influence</span></div>`;
+    }).join('')||'<div class="intel2-muted">No ranked KOLs.</div>';
+    const kmRows=km.slice(0,8).map(r=>`<div class="intel2-row"><div class="intel2-nm">${E(r.kol_name||'?')}</div><div class="intel2-sub">h-index ${r.h_index!=null?r.h_index:'—'} · ${fNum(r.citation_count)} cites · ${fNum(r.paper_count)} papers</div><div class="intel2-spacer"></div>${r.source_url?`<a class="intel2-a" href="${E(r.source_url)}" target="_blank" rel="noopener">↗</a>`:''}</div>`).join('');
+    const kmCard=km.length?`<div class="intel2-card"><div class="intel2-sech">Semantic Scholar bibliometrics <span class="intel2-count">${km.length}</span></div>${kmRows}</div>`:'';
+    return `<div class="intel2-subh">Who moves the field — <code>kols</code> ranks principal investigators &amp; authors by an <b>influence score</b> blending trial leadership, citations and h-index (formula v136). ${rows.length} KOLs · ${pis} principal investigators. The score is the BD layer for "who do we need on the advisory board?".</div>
+      <div class="intel2-card"><div class="intel2-sech">KOLs by influence <span class="intel2-count">top ${Math.min(80,rows.length)} / ${rows.length}</span></div>${list}</div>${kmCard}`;
+  }
+
+  // 9. Grant funding — NIH/agency awards mapped to target / indication.
+  function rGrants(){
+    const rows=(DB.grants||[]).slice();
+    if(!rows.length) return '<div class="intel2-muted">No grant data found.</div>';
+    const total=rows.reduce((a,r)=>a+(Number(r.award_amount)||0),0);
+    // Aggregate by indication.
+    const byInd={}; rows.forEach(r=>{const k=r.matched_indication||r.matched_target||'unmatched'; (byInd[k]=byInd[k]||{n:0,amt:0}); byInd[k].n++; byInd[k].amt+=Number(r.award_amount)||0;});
+    const indOrder=Object.keys(byInd).sort((a,b)=>byInd[b].amt-byInd[a].amt).slice(0,18);
+    const aggRows=indOrder.map(k=>`<div class="intel2-row"><div class="intel2-nm">${E(k)}</div><div class="intel2-sub">${byInd[k].n} grant${byInd[k].n>1?'s':''}</div><div class="intel2-spacer"></div><span class="intel2-pill t-info">$${fNum(byInd[k].amt)}</span></div>`).join('');
+    // Top individual awards.
+    const top=rows.slice().sort((a,b)=>(Number(b.award_amount)||0)-(Number(a.award_amount)||0)).slice(0,60);
+    const topRows=top.map(r=>{
+      const meta=[r.org_name?E(r.org_name):null,r.pi_names?'PI '+E(r.pi_names):null,r.agency?E(r.agency):null,r.fiscal_year?'FY'+E(r.fiscal_year):null,r.matched_indication?'→ '+E(r.matched_indication):null,r.matched_target?'· '+E(r.matched_target):null].filter(Boolean).join(' · ');
+      const url=r.project_url||r.source_url;
+      return `<div class="intel2-row"><div><div class="intel2-nm">${E(String(r.title||'(untitled grant)').slice(0,140))}</div><div class="intel2-sub">${meta||'—'}</div></div><div class="intel2-spacer"></div><span class="intel2-pill t-high">$${fNum(Number(r.award_amount)||0)}</span>${url?`<a class="intel2-a" href="${E(url)}" target="_blank" rel="noopener">↗</a>`:''}</div>`;
+    }).join('')||'<div class="intel2-muted">No awards.</div>';
+    return `<div class="intel2-subh">Where the public money is going — <code>grants</code> maps NIH/agency awards to targets &amp; indications. ${rows.length} grants · <b>$${fNum(total)}</b> total funding across the disease scope. A leading indicator of academic momentum behind a mechanism.</div>
+      <div class="intel2-grid">
+        <div class="intel2-card"><div class="intel2-sech">Funding by indication / target <span class="intel2-count">top ${indOrder.length}</span></div>${aggRows}</div>
+        <div class="intel2-card"><div class="intel2-sech">Largest individual awards <span class="intel2-count">top ${Math.min(60,top.length)} / ${rows.length}</span></div>${topRows}</div>
+      </div>`;
+  }
+
+  // 10. Corporate ownership — company_ownership parent→sub chains (GLEIF LEI).
+  function rOwnership(){
+    const rows=(DB.own||[]);
+    if(!rows.length) return '<div class="intel2-muted">No ownership data found.</div>';
+    // Group by company_id; prefer ultimate_parent when present.
+    const byCo={}; rows.forEach(r=>{(byCo[r.company_id]=byCo[r.company_id]||[]).push(r);});
+    const cos=Object.keys(byCo).sort();
+    const list=cos.map(cid=>{
+      const recs=byCo[cid];
+      const ult=recs.find(r=>r.relationship_type==='ultimate_parent')||recs[0];
+      const dir=recs.find(r=>r.relationship_type==='direct_parent');
+      const parent=ult.parent_legal_name||(dir&&dir.parent_legal_name)||'—';
+      const pid=ult.parent_company_id||(dir&&dir.parent_company_id);
+      const isSelf=(parent||'').toLowerCase().replace(/[^a-z]/g,'').includes((cid||'').toLowerCase().replace(/[^a-z]/g,'').slice(0,5));
+      const rel=isSelf?'standalone (self-parented)':'subsidiary of';
+      const url=ult.source_url||(dir&&dir.source_url);
+      return `<div class="intel2-row"><div><div class="intel2-nm">${E(cid)}</div><div class="intel2-sub">${E(rel)} ${E(parent)}${pid?` <span class="intel2-pill t-info">${E(pid)}</span>`:''}</div></div><div class="intel2-spacer"></div>${ult.confidence?`<span class="intel2-pill ${tier(ult.confidence==='confirmed'?'high':ult.confidence)}">${E(ult.confidence)}</span>`:''}${url?`<a class="intel2-a" href="${E(url)}" target="_blank" rel="noopener">GLEIF ↗</a>`:''}</div>`;
+    }).join('');
+    const named=cos.filter(c=>byCo[c].some(r=>r.parent_company_id)).length;
+    return `<div class="intel2-subh">Who really owns whom — <code>company_ownership</code> resolves legal-entity parent chains from <b>GLEIF LEI</b> records (direct &amp; ultimate parent). Critical for BD: an asset's effective owner is the ultimate parent, not the operating subsidiary. ${cos.length} companies mapped · ${named} link to a known parent in the graph.</div>
+      <div class="intel2-card"><div class="intel2-sech">Ownership chains <span class="intel2-count">${cos.length}</span></div>${list}</div>`;
+  }
+
+  // 11. Market & unmet need — indication_patient_intelligence (NEW panel; home cards untouched).
+  function rMarket(){
+    let rows=(DB.ipi||[]).slice().sort((a,b)=>(b.unmet_need_score||b.unmet_need_severity||0)-(a.unmet_need_score||a.unmet_need_severity||0));
+    if(!rows.length) return '<div class="intel2-muted">No market / unmet-need data found.</div>';
+    const list=rows.map(r=>{
+      const un=r.unmet_need_score!=null?r.unmet_need_score:r.unmet_need_severity;
+      const unPill=un==null?'t-info':un>=9?'t-low':un>=7?'t-med':'t-high';
+      const meta=[r.simplified_label?E(r.simplified_label):null,r.patient_count_us!=null?`${fNum(r.patient_count_us)} US pts`:null,r.patient_count_global!=null?`${fNum(r.patient_count_global)} global`:null,r.market_size_usd_bn!=null?`$${Number(r.market_size_usd_bn).toFixed(1)}B mkt`:null,r.biologic_failure_rate_pct!=null?`${Number(r.biologic_failure_rate_pct).toFixed(0)}% biologic failure`:null].filter(Boolean).join(' · ');
+      const srcs=Array.isArray(r.source_urls)?r.source_urls:[];
+      const srcLink=srcs.length?`<a class="intel2-a" href="${E(srcs[0])}" target="_blank" rel="noopener">source ↗</a>`:'';
+      const why=r.why_it_matters?`<details class="intel2-trust" style="margin-top:4px"><summary>why it matters</summary><div class="intel2-src">${E(String(r.why_it_matters).slice(0,400))}</div></details>`:'';
+      return `<div class="intel2-card"><div class="intel2-row"><div><div class="intel2-nm">${E(r.indication_name||'?')}</div><div class="intel2-sub">${meta||'—'}</div></div><div class="intel2-spacer"></div>${un!=null?`<span class="intel2-pill ${unPill}">unmet ${un}/10</span>`:''}${srcLink}</div>${why}</div>`;
+    }).join('');
+    return `<div class="intel2-subh">Sizing the prize — <code>indication_patient_intelligence</code> ranks diseases by <b>unmet need</b> with patient counts, market size and biologic-failure rates. This is a NEW read of the same table; the homepage patient cards are unchanged. ${rows.length} indications profiled.</div>${list}`;
+  }
+
+  const RENDER={insights:rInsights,genetics:rGenetics,trials:rTrials,conf:rConf,eu:rEu,mfg:rMfg,trust:rTrust,kols:rKols,grants:rGrants,ownership:rOwnership,market:rMarket};
 
   function paint(){
     const body=document.getElementById('intel2-body'); if(!body) return;
@@ -31277,7 +31361,7 @@ document.addEventListener('DOMContentLoaded', function(){
     LOADING=true;
     const body=document.getElementById('intel2-body');
     try{
-      const [insights,tda,tgen,tdq,cas,eu,mfg,prov,tri]=await Promise.all([
+      const [insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi]=await Promise.all([
         Q('strategic_insights','select=insight_type,title,detail,metric,source_tables,confidence&order=created_at.desc&limit=1000'),
         Q('target_disease_assoc','select=symbol,indication_name,efo_name,overall_score,genetic_association_score&order=genetic_association_score.desc.nullslast&limit=1000'),
         Q('target_genetics','select=symbol,constraint_type,oe,score,source,source_url&limit=1000'),
@@ -31286,9 +31370,14 @@ document.addEventListener('DOMContentLoaded', function(){
         Q('eu_approvals','select=inn,brand_name,ema_medicine_name,ema_product_url,eu_auth_date,mah,is_biosimilar,eu_vs_us_lag_days&limit=1000'),
         Q('manufacturing_sites','select=drug_name,brand_name,manufacturer_name,establishment_type,is_inhouse,is_supplies_candidate,source_url&limit=1000'),
         QALL('narrative_provenance','select=narrative_id,claim_text,source_url'),
-        QALL('narrative_claim_triangulation','select=narrative_id,claims,multi_source_claims,triangulated_claims')
+        QALL('narrative_claim_triangulation','select=narrative_id,claims,multi_source_claims,triangulated_claims'),
+        Q('kols','select=name,role,trial_count,pub_count,citation_count,h_index,influence_score&order=influence_score.desc.nullslast&limit=1000'),
+        Q('kol_metrics','select=kol_name,h_index,citation_count,paper_count,source_url&order=h_index.desc.nullslast&limit=1000'),
+        QALL('grants','select=title,pi_names,org_name,fiscal_year,award_amount,agency,matched_target,matched_indication,project_url,source_url,confidence'),
+        Q('company_ownership','select=company_id,relationship_type,parent_legal_name,parent_company_id,source_url,confidence&limit=1000'),
+        Q('indication_patient_intelligence','select=indication_name,simplified_label,patient_count_us,patient_count_global,market_size_usd_bn,unmet_need_score,unmet_need_severity,biologic_failure_rate_pct,why_it_matters,source_urls&order=unmet_need_score.desc.nullslast&limit=1000')
       ]);
-      DB={insights,tda,tgen,tdq,cas,eu,mfg,prov,tri};
+      DB={insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi};
       paint();
     }catch(e){
       if(body) body.innerHTML='<div class="intel2-muted">Could not load intelligence: '+E(e&&e.message?e.message:e)+'</div>';
