@@ -19,7 +19,7 @@ name: Meridian Patent Sweep
 
 on:
   schedule:
-    - cron: "0 16 1 * *"   # 1st of each month, 16:00 UTC (~11:00 ET)
+    - cron: "0 16 * * 2"   # Tuesdays 16:00 UTC (~11:00 ET) — aligns with USPTO weekly publication
   workflow_dispatch:
     inputs:
       start:
