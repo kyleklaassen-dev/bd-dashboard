@@ -1596,7 +1596,7 @@ def generate_editorial_plan(date_long, intel_block, deals_block, ailux_block,
     log(f"Pass 1 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
     try:
         resp = client.messages.create(
-            model      = "claude-sonnet-4-6",
+            model      = "claude-opus-4-8",
             max_tokens = 1500,
             system     = SYSTEM_PROMPT,
             messages   = [{"role": "user", "content": prompt}],
@@ -1766,7 +1766,7 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     log(f"Pass 2 prompt length: {len(prompt):,} chars / ~{len(prompt)//4:,} tokens")
     try:
         resp = client.messages.create(
-            model      = "claude-sonnet-4-6",
+            model      = "claude-opus-4-8",
             max_tokens = 16000,
             system     = SYSTEM_PROMPT,
             messages   = [{"role": "user", "content": prompt}],
