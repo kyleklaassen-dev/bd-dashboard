@@ -23,6 +23,7 @@ _uid = lambda k: str(uuid.uuid5(NS, k))
 OB_ZIP = "https://www.fda.gov/media/76860/download?attachment"   # Orange Book Data Files (FDA canonical link)
 UA = {"User-Agent": "Mozilla/5.0 meridian-ob-refresh"}
 digits = lambda s: "".join(ch for ch in (s or "") if ch.isdigit())
+_yn = lambda v: True if (v or "").strip().upper() == "Y" else None  # "" -> NULL (boolean cols)
 
 
 def applno_to_drug():
@@ -63,7 +64,7 @@ def refresh_orange_book(a2d):
         pat.append(dict(id=_uid(f"obp_{did}_{row.get('Appl_No')}_{pno}"), drug_id=did,
             application_number=row.get("Appl_No"), patent_no=pno,
             patent_expire_date=row.get("Patent_Expire_Date_Text"),
-            drug_substance_flag=row.get("Drug_Substance_Flag"), drug_product_flag=row.get("Drug_Product_Flag"),
+            drug_substance_flag=_yn(row.get("Drug_Substance_Flag")), drug_product_flag=_yn(row.get("Drug_Product_Flag")),
             patent_use_code=row.get("Patent_Use_Code"), source=src,
             source_url=OB_ZIP, fetched_at=NOW))
     for row in _delim_rows(zf, "exclusivity.txt"):
@@ -75,10 +76,13 @@ def refresh_orange_book(a2d):
             application_number=row.get("Appl_No"), exclusivity_code=code,
             exclusivity_date=row.get("Exclusivity_Date"), source=src, is_biologic=False,
             source_url=OB_ZIP, fetched_at=NOW))
+    pat = list({(r["drug_id"], r["patent_no"]): r for r in pat}.values())  # de-dupe by real unique key
+    exc = list({(r["drug_id"], r["exclusivity_code"], r["exclusivity_date"]): r for r in exc}.values())
     print(f"Orange Book: {len(pat)} patent rows, {len(exc)} exclusivity rows (scoped to tracked drugs)")
     if not DRY:
-        for i in range(0, len(pat), 200): c.insert("drug_patents", pat[i:i+200], on_conflict="id")
-        for i in range(0, len(exc), 200): c.insert("drug_exclusivity", exc[i:i+200], on_conflict="id")
+        for i in range(0, len(pat), 200): c.insert("drug_patents", pat[i:i+200], on_conflict="drug_id,patent_no")
+        for i in range(0, len(exc), 200):
+            c.insert("drug_exclusivity", exc[i:i+200], on_conflict="drug_id,exclusivity_code,exclusivity_date")
     _stamp("orange_book")
 
 
