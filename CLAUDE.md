@@ -4,7 +4,7 @@ Short and operational by design. Detailed architecture, governance, and history 
 
 ## What this is
 Competitive-intelligence & BD platform for Ailux (TL1A×IL-23p19 bispecific, IBD).
-Workspace: `/Users/.../BD Platform/` · Dashboard repo: `kyleklaassen-dev/bd-dashboard` (GitHub Pages) · Backend: Supabase `tghntyofptvfhmtchwcv`. Creds in `.supabase_service_key`, `.supabase_anon_key`, `.github_token`, `.supabase_pat`.
+Workspace: the **bd-dashboard repo clone** (this folder; the old `BD Platform` folder is retired) · Dashboard repo: `kyleklaassen-dev/bd-dashboard` (GitHub Pages, protected `main`) · Backend: Supabase `tghntyofptvfhmtchwcv`. Creds in `.supabase_service_key`, `.supabase_anon_key`, `.github_token_workflow` (the plain `.github_token` is DEAD), `.supabase_pat`.
 
 ## Read-first (source of truth)
 1. `docs/STABILIZATION_PLAN.md` — current phase, what's in progress, success criteria. **READ FIRST.**
@@ -29,7 +29,7 @@ Workspace: `/Users/.../BD Platform/` · Dashboard repo: `kyleklaassen-dev/bd-das
 - No DB write path without a validation query. Deletes/merges/table-drops/`approved`-flips need Kyle's approval.
 
 ## Deploy
-git is broken on the mounted folder — deploy via the GitHub Contents API with `.github_token` (recipe in `docs/archive/CLAUDE_full_2026-06-09.md`). GitHub Pages CDN ~10-min TTL; verify via raw.githubusercontent.
+git is broken on the mounted folder (FUSE deadlocks) — deploy via the GitHub Contents/Git Data API with `.github_token_workflow` (the plain `.github_token` is DEAD; recipe in `docs/archive/CLAUDE_full_2026-06-09.md`). GitHub Pages CDN ~10-min TTL; verify via raw.githubusercontent. DB writes: `.supabase_service_key` (REST), `.supabase_pat` (DDL via Management API, curl not urllib).
 
 ## Before/after any edit (Claude behavior rule)
 Before: state the layer, affected files, affected tables, breakpoints, proposed tests; keep changes small.
