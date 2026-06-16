@@ -7,7 +7,7 @@ name: Meridian Efficacy & NCT Verification
 
 on:
   schedule:
-    - cron: "0 13 * * 1"        # Mondays 09:00 ET / 13:00 UTC — weekly sweep
+    - cron: "0 13 * * *"        # Daily 09:00 ET / 13:00 UTC — posted trial RESULTS are time-sensitive
   workflow_dispatch:
     inputs:
       dry_run:
