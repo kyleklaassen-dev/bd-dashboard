@@ -1,3 +1,21 @@
+# NEXT_SESSION — addendum (2026-06-16 PM, Stage 4 DONE)
+
+Continued from the entry below. **Single-writer enforcement is now REAL (channel + invariant); the freeze can lift.**
+
+## Added this block
+- **Catalysts:** linked 17/26 unlinked catalysts to a specific drug/company; the other 9 are area-anchored (their company isn't in the DB yet — Denali/Odyssey/Abivax/NewLimit). Found+fixed one true duplicate (3124/3125 ATI-052, shared default sort_date). `migrations/v160` broadens `catalysts.must_link` to "drug OR company OR area" and **enforces** it.
+- **Layer B (`migrations/v161`):** REVOKE INSERT/UPDATE/DELETE/TRUNCATE on drugs/companies/catalysts/entity_edges from anon+authenticated. Discovery: anon previously had FULL write on all core tables (could rewrite any field) + an `anon_update_drugs_partnership` RLS policy used by the dashboard partnership-pill (index.html ~L21171). Kept that feature via a column-scoped `GRANT UPDATE (partnership_verified, partner_company) ON drugs TO anon`. Verified: anon writing `mechanism` → 401; anon INSERT company → 401; pill toggle → 204; service_role/writers unaffected.
+- **apg TARGETS edges re-synced:** apg777→`il13` only; apg279→`il13`+`ox40l` (were il4ra/ox40l from the pre-correction target).
+- **drug_sources backfill:** missing-source drugs 20→11 (promoted 9 drugs' existing `source_url` into `drug_sources`); dispatched evidence-collectors for the rest. The 11 remaining are the known obscure code-named assets (resolve as they disclose).
+- **Startup reliability:** fixed CLAUDE.md + README on `main` (stale `BD Platform` path → bd-dashboard; dead `.github_token` → `.github_token_workflow`) and corrected the memory-index paths.
+
+## Now-open (not freeze-blocking) — see PRIORITY.md
+1. Drug-discovery `company_id` policy → then enforce `drugs.company_id_required` (12 company-less code drugs).
+2. Add Denali/Odyssey/Abivax/NewLimit companies → link the 9 area-only catalysts.
+3. Optional: route the partnership-pill write through an RPC and drop the anon column grant.
+
+---
+
 # NEXT_SESSION — handoff (2026-06-16, Stage 4 enforcement ON)
 
 **Session goal:** turn on Stage 4 single-writer enforcement and clear the Stage 1 residual data fixes. Both done (enforcement is partial-by-design). Operated on LIVE `main` + Supabase via the GitHub/Management APIs (git still deadlocks on the mount; key in `.github_token_workflow`).
