@@ -22345,7 +22345,7 @@ async function loadIndustryInsightsFeed() {
       _sb.from('news_articles')
          .select('id,published_at,headline,meridian_summary,why_it_matters,article_url,source_name,relevance_score,priority_level,event_type,matched_area_ids,matched_drug_ids,matched_company_ids')
          .neq('source_validation_status','invalid')
-         .order('published_at',{ascending:false})
+         .order('published_at',{ascending:false,nullsFirst:false})
          .limit(150),
       _sb.from('companies').select('id,name').order('name').limit(200),
     ]);
