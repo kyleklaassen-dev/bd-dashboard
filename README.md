@@ -43,10 +43,12 @@ The client talks to Supabase using the **publishable/anon key** (safe client-sid
 protected by Row-Level Security). No service key is ever embedded in the client.
 
 ### Deploy
-`git` is currently broken on the working-copy mount, so deploys go through the
-**GitHub Contents API** using `.github_token` (recipe in
-`docs/archive/CLAUDE_full_2026-06-09.md`). Do not assume `git push` works here.
-After deploy, allow for the GitHub Pages CDN TTL (~10 min) before verifying.
+The repo deploys from a single protected `main` branch. A clean local clone can
+`git push` to `main`; agent/automation contexts that lack a working git checkout
+deploy through the **GitHub Contents API** (or the Git Data API for batch changes)
+using a token (recipe in `docs/archive/CLAUDE_full_2026-06-09.md`).
+After deploy, allow for the GitHub Pages CDN TTL (~10 min) before verifying against
+`raw.githubusercontent.com`.
 
 ### Run the tests
 The writer/regression suites are read-only and must stay green:
@@ -86,17 +88,16 @@ canonical spec in `ARCHITECTURE.md`.
 | Path | Purpose |
 |------|---------|
 | `index.html` | The deployed dashboard (single-file; Phase-4 split target). |
-| `Meridian_Live.html`, `meridian_*.html` | Focused product views (ask, atlas, brief, today, coverage, predictions, etc.). |
+| `Meridian_Live.html`, `meridian_*.html`, `intelligence.html`, `predictions.html`, `aib_view.html` | Focused product views (ask, atlas, brief, today, coverage, predictions, intelligence, etc.). The main dashboard also carries a **📡 Intelligence** tab that surfaces 11 backend datasets (genetic validation, trial-design quality, conference signals, EU approvals, manufacturing, narrative trust, etc.). |
 | `ARCHITECTURE.md` | Canonical platform-architecture specification. |
 | `CLAUDE.md` | AI agent operating instructions (governance, hard rules, key paths). |
-| `src/` | Production layer: governed single-writer pattern, shared client, identity, ingestion, ontology, enrichment, scoring, LLM model router. |
-| `scripts/` | Active pipelines. `scripts/maintenance/` = dedupe/audit/link tools; `scripts/integrations/` = external-API sync; `scripts/one_off/` = retired one-offs. |
+| `src/` | Production layer: the governed single-writer pattern. `src/database/` (shared client + drug/company/catalyst/edge writers) is live; identity, ingestion, ontology, enrichment, and scoring are the staged directories code graduates into. |
+| `scripts/` | Active pipelines (the bulk of the code). Subdirs: `scripts/maintenance/` (dedupe/audit/link tools), `scripts/integrations/` (external-API sync), `scripts/migrations/` (script-side migration helpers). |
 | `tests/` | Writer and regression test suites. |
-| `migrations/` | Numbered SQL migrations + canonical `supabase_schema.sql`. `migrations/legacy/` holds superseded/early `schema_migration_v*.sql`. `PROPOSED_*` = staged for review. |
-| `data/` | Tracked dashboard inputs. Cache subfolders (`data/*/`) are gitignored. |
-| `config/`, `supabase/` | Configuration and Supabase project files. |
-| `docs/` | All documentation. Subdirs: `architecture/`, `database/`, `audits/`, `reports/`, `frameworks/`, `sops/`, `semantic_layer/`, `skills/`, `archive/`. |
-| `archive/` | Historical, reversible storage: `deliverables/` (superseded `.docx`), `master_review/` (superseded `.xlsx`), `dashboard_builds/` (`build_v*.py`), `html_prototypes/` (superseded `aib_*`/prototype HTML), `html_backups/`. |
+| `migrations/` | ~60 numbered SQL migrations (the schema's source of truth). `PROPOSED_*.sql` = staged for review (await owner approval before applying). |
+| `data/` | Tracked dashboard input files. Generated caches/logs are gitignored. |
+| `config/` | Configuration (e.g. the weekend autonomous-sprint phase config). |
+| `docs/` | All documentation. Subdirs: `architecture/`, `database/`, `audits/`, `reports/`, `decisions/`, `frameworks/`, `sops/`, `archive/`. The docs root keeps only the read-first/governance files (constitution, decisions, STABILIZATION_PLAN) and a few script-referenced docs. |
 | `.github/workflows/` | GitHub Actions pipelines (many disabled for cost; see project notes). |
 
 **Where to look first:** `src/` for the production/governed code, `scripts/` for the
