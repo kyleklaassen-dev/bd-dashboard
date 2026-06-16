@@ -1,0 +1,34 @@
+{
+  "_comment": "CDE sponsor-sweep config. COLLECT step is browser-only (chinadrugtrials.org.cn is a JS SPA that blocks curl/GitHub runners): in the CDE advanced query (二级查询), search each company's cn[] term in the 申请人 field, page through, dump rows to JSON, then run scripts/integrations/cde_sponsor_sweep.py --ingest. Chinese names verified 2026-06-15; entries with cn:[] still need resolution (todo).",
+  "companies": [
+    {"company_id": "qyuns",         "en": "Qyuns Therapeutics",  "cn": ["荃信"]},
+    {"company_id": "zailab",        "en": "Zai Lab",             "cn": ["再鼎"]},
+    {"company_id": "hengrui",       "en": "Hengrui",             "cn": ["恒瑞"]},
+    {"company_id": "simcere",       "en": "Simcere",             "cn": ["先声"]},
+    {"company_id": "harbourbiomed", "en": "Harbour BioMed",      "cn": ["和铂"]},
+    {"company_id": "elpiscience",   "en": "Elpiscience",         "cn": ["科望"]},
+    {"company_id": "novamab",       "en": "Novamab",             "cn": ["洛启"]},
+    {"company_id": "leads",         "en": "Leads Biolabs",       "cn": ["维立志博"]},
+    {"company_id": "earendil",      "en": "Earendil / Huashen",  "cn": ["华深智药", "华深"]},
+    {"company_id": "newsoara",      "en": "Newsoara Biopharma",  "cn": [], "todo": "resolve CN 申请人 name"},
+    {"company_id": "shboan",        "en": "Shanghai Bao'an",     "cn": [], "todo": "resolve CN 申请人 name"},
+    {"company_id": "santaana",      "en": "Santa Ana Bio",       "cn": [], "todo": "resolve CN 申请人 name"}
+  ],
+  "assets": [
+    {"drug_id": "lq080",   "company_id": "novamab",       "codes": ["LQ080"],            "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "lq082",   "company_id": "novamab",       "codes": ["LQ082"],            "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "sim0709", "company_id": "simcere",       "codes": ["SIM0709"],          "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "pr203",   "company_id": "shboan",        "codes": ["BA2201", "PR203"],  "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "zl-2411", "company_id": "zailab",        "codes": ["ZL-2411", "ZL2411"],"target": "TL1A",            "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "es302",   "company_id": "elpiscience",   "codes": ["ES302", "ES-302"],  "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "hy8931",  "company_id": "newsoara",      "codes": ["HY8931"],           "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "ear-2001","company_id": "earendil",      "codes": ["HXN-1001", "HXN1001"], "target": "TL1A",         "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "hxn-1002","company_id": "earendil",      "codes": ["HXN-1002", "HXN1002"], "target": "a4b7 x TL1A",  "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "erd-1",   "company_id": "earendil",      "codes": ["HXN-1003", "HXN1003", "ERD-1"], "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "hbm2001", "company_id": "harbourbiomed", "codes": ["HBM2001"],          "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "lbl053",  "company_id": "leads",         "codes": ["LBL-053", "LBL053"],"target": "TL1A x IL-23p40", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "sab06",   "company_id": "santaana",      "codes": ["SAB06"],            "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "qx030n",  "company_id": "qyuns",         "codes": ["QX030N"],           "target": "TL1A x IL-23p19", "indication_kw": ["克罗恩", "溃疡性结肠", "炎症性肠"]},
+    {"drug_id": "shr0817", "company_id": "hengrui",       "codes": ["SHR0817", "SHR-0817"], "target": "IL-4Ra",       "indication_kw": ["特应性皮炎", "哮喘", "鼻窦炎", "结节性痒疹"]}
+  ]
+}
