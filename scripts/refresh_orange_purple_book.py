@@ -84,17 +84,26 @@ def refresh_orange_book(a2d):
 
 def refresh_purple_book(a2d):
     """Purple Book CSV URL is month-stamped; try recent months, best-effort."""
-    base = "https://purplebooksearch.fda.gov/files/{y}/purplebook-search-{m}-data-download.csv"
-    months = ["june", "may", "april", "march", "february", "january"]
+    # FDA moved the host (purplebooksearch.fda.gov/files -> accessdata.fda.gov/drugsatfda_docs/PurpleBook)
+    # and uses INCONSISTENT month casing (e.g. 'january' but 'February'); try both, newest first.
+    base = "https://www.accessdata.fda.gov/drugsatfda_docs/PurpleBook/{y}/purplebook-search-{m}-data-download.csv"
+    mn = ["january","february","march","april","may","june",
+          "july","august","september","october","november","december"]
     today = datetime.date.today()
+    periods, yy, mo = [], today.year, today.month
+    for _ in range(14):                       # last ~14 months, newest first
+        periods.append((yy, mo)); mo -= 1
+        if mo == 0: yy, mo = yy - 1, 12
     got = None
-    for m in months:
-        url = base.format(y=today.year, m=m)
-        try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
-                got = (url, r.read().decode("latin-1")); break
-        except Exception:
-            continue
+    for (py, pm) in periods:
+        for m in (mn[pm-1], mn[pm-1].capitalize()):
+            url = base.format(y=py, m=m)
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+                    got = (url, r.read().decode("latin-1")); break
+            except Exception:
+                continue
+        if got: break
     if not got:
         print("Purple Book: no monthly CSV reachable this run (non-fatal)"); return
     url, txt = got
