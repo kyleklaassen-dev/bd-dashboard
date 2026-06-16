@@ -1,0 +1,78 @@
+# ---- Secrets & credentials (NEVER commit) ----
+.env
+.env.*
+!.env.example
+
+# Existing credential dotfiles in this project
+.anthropic_api_key
+.github_token
+.github_token_workflow
+.supabase_anon_key
+.supabase_service_key
+.supabase_pat
+.supabase_config
+
+# Catch-all for anything secret-looking
+*.key
+*.pem
+*_secret*
+*service_key*
+*service_role*
+
+# ---- Common noise ----
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+
+# ---- Integration operational artifacts (cache + run reports) ----
+scripts/integrations/_oopd_cache.html
+scripts/integrations/_fda_orphan_last_run.json
+
+# ---- Local app/editor settings ----
+.claude/settings.local.json
+.fuse_hidden*
+
+# ---- Working data caches (regenerable pipeline byproducts) ----
+# IMPORTANT: top-level data/*.json are dashboard inputs and STAY tracked.
+# Only the cache SUBFOLDERS (edgar_8k_cache, *_cache, round11, ...) are ignored.
+data/*/
+
+# ---- Logs & run output ----
+*.log
+logs/
+
+# ---- Scratch / working folders (not source) ----
+outputs/
+health_reports/
+kol_work/
+edge_work/
+.scratch_audit/
+
+# ---- Office documents (regenerable binaries) ----
+# The writing standard lives in docs/frameworks/AIB_EDITORIAL_PRINCIPLES.md and
+# docs/sops/meridian_issue_style_v1.0.yaml (both tracked) — not in the .docx drafts.
+# To version a specific final on purpose:  git add -f path/to/final.docx
+*.docx
+*.xlsx
+~$*
+.~lock.*#
+
+# ---- Additional run/process artifacts (cleanup 2026-06-15) ----
+*.pid
+*.tmp
+.~lock.*#
+enrichment/
+*.bak
+*.bak-*
+*.bak2
+*_perm_test.tmp
+
+# ---- Operational text dumps (regenerable run output) ----
+meridian_overnight_summary.txt
+*_output.log
+*_result.log
+*_screen.log
+*_dryrun.log
