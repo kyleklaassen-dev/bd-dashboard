@@ -18,7 +18,7 @@ Goal: seamless, production-level operations — know what to read, when, and how
 | Touch identity / entity linking | `src/meridian/identity/entity_matcher.py` is the one resolver (imported by the writers — change with care; run `tests/database/`). |
 | Generate a Meridian Issue / narrative | `docs/.../meridian_writing_standards` + the products in `src/meridian/products/`. |
 | Deploy | **Use normal git** (`git add`/`commit`/`push`) — real local clone, working `origin` + osxkeychain creds. The old "git broken → GitHub API" rule was Cowork-sandbox-only; `scripts/deploy_files.py` is just a fallback now. Pages CDN ~10-min TTL; verify via raw.githubusercontent. |
-| Understand the system end-to-end | `ARCHITECTURE.md` (7-stage model) · `docs/architecture/drug_lifecycle.md` · `docs/architecture/repo_maps.md`. |
+| Understand the system end-to-end | `docs/ARCHITECTURE.md` (7-stage model) · `docs/architecture/drug_lifecycle.md` · `docs/architecture/repo_maps.md`. |
 | Pick up the big refactors | `ROADMAP.md` §1–§6 + `docs/architecture/REPO_LAYOUT.md` / `INDEX_HTML_DECOMPOSITION_PLAN.md`. |
 
 ## Golden rules (the ones that bite)

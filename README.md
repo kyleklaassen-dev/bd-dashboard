@@ -78,7 +78,7 @@ external sources → ingestion → identity / ontology → enrichment
   others in progress). Every fact requires a source row. See the governance docs.
 
 A fuller diagram and component map live in `docs/architecture/repo_maps.md` and the
-canonical spec in `ARCHITECTURE.md`.
+canonical spec in `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -88,7 +88,7 @@ canonical spec in `ARCHITECTURE.md`.
 |------|---------|
 | `index.html` | The deployed dashboard (single-file; Phase-4 split target). |
 | `Meridian_Live.html`, `meridian_*.html`, `intelligence.html`, `predictions.html`, `aib_view.html` | Focused product views (ask, atlas, brief, today, coverage, predictions, intelligence, etc.). The main dashboard also carries a **📡 Intelligence** tab that surfaces 11 backend datasets (genetic validation, trial-design quality, conference signals, EU approvals, manufacturing, narrative trust, etc.). |
-| `ARCHITECTURE.md` | Canonical platform-architecture specification. |
+| `docs/ARCHITECTURE.md` | Canonical platform-architecture specification. |
 | `CLAUDE.md` | AI agent operating instructions (governance, hard rules, key paths). |
 | `src/` | Production layer: the governed single-writer pattern. `src/database/` (shared client + drug/company/catalyst/edge writers) is live; identity, ingestion, ontology, enrichment, and scoring are the staged directories code graduates into. |
 | `scripts/` | Active pipelines (the bulk of the code). Subdirs: `scripts/maintenance/` (dedupe/audit/link tools), `scripts/integrations/` (external-API sync), `scripts/migrations/` (script-side migration helpers). |
@@ -116,7 +116,7 @@ Read these before changing data, schema, or governed code:
 - `docs/architecture/drug_lifecycle.md` — how a drug record flows through the system.
 - `docs/architecture/repo_maps.md` — intended repository layout and component map.
 - `docs/decisions.md` — architecture decision records (why things are the way they are).
-- `PRIORITY.md`, `NEXT_SESSION.md`, `SESSION_PROTOCOL.md` — current task, handoff, and session ritual.
+- `PRIORITY.md`, `NEXT_SESSION.md`, `docs/SESSION_PROTOCOL.md` — current task, handoff, and session ritual.
 
 ---
 

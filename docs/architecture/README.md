@@ -4,7 +4,7 @@ Start here. This folder explains how the codebase is built and how it's being
 organized. Read in this order depending on what you need.
 
 ## Understand the system
-- **`/ARCHITECTURE.md`** (repo root) — what the platform does: the 7-stage research
+- **`docs/ARCHITECTURE.md`** — what the platform does: the 7-stage research
   model (entity discovery → drug mapping → trials → catalysts → positioning → deals →
   discovery loop), the data model, and the script→stage mapping. **Read this first.**
 - **`drug_lifecycle.md`** — how a single drug record flows through the pipeline.
