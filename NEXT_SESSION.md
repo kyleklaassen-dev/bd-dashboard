@@ -1,3 +1,28 @@
+# ✅ PACKAGE MIGRATION — ops/ DONE (2026-06-16) — commit d83d9c7e — 3 monitors, dispatch-verified GREEN
+
+pipeline_health, pipeline_monitor, signal_monitor → `src/meridian/ops/` (no sibling imports, no LLM). Path anchors → repo root; import-exercised + all 3 workflow_dispatch runs SUCCESS.
+
+## RUNNING TALLY: 41 scripts migrated, 7 groups, 0 engine failures.
+graph/9 · scoring/7 · ingestion/9 · validation/8 · products/3 · enrichment/2 · ops/3.
+
+## ⏸️ STOPPED HERE (autonomous) — REMAINDER IS THE COUPLED CORE → needs a SUPERVISED session
+Per Kyle's safeguard (pause before any 4am-core mover whose only real verification is the unattended run). The remaining ~30 scripts are 4 coupled clusters + a few one-offs. Execution plan (each cluster = ONE atomic commit: move all members + update EVERY importer + update all workflows from main + import-exercise):
+
+1. **fact-graph cluster** (lowest risk, do first): entity_matcher → build_fact_graph (imports entity_matcher) → link_entities (imports both; wf chunk_extract.yml) + ontology_map_drugs (wf chunk_extract.yml). Verify: import-exercise + chunk_extract dispatch.
+2. **write_meridian cluster**: meridian_integrations_feed + write_meridian (imports it) + dryrun_meridian (imports both; wf meridian-preview.yml). **Verify via meridian-preview = the built-in --dry-run.** Best-verifiable of the hard ones.
+3. **narrative cluster**: narrative_gen + collect_evidence + generate_area_narratives + generate_patient_briefs (all import narrative_gen). Workflows are cost-gated LLM → verify by import-exercise only (flag).
+4. **🔴 4am-core cluster (MOST CAUTION, Kyle present)**: identity_resolution + model_comparison + company_identity_resolver + source_verifier (leaves) → company_enrichment, ct_gov_sync, company_intake, research, research_intelligence (consumers). Feeds the unattended 4am run; ct_gov_sync has --dry-run; company_enrichment/research verified by import-exercise + a watched live run.
+
+## DECISIONS NEEDED FROM KYLE
+- **6 dead enrichment scripts** (no workflow, no importer): drug_enrichment, deep_enrich_intel, quick_profiles_enrich, run_pkpd_claude, patient_population_agent, payer_pricing_agent → archive to scripts/archive/ or keep? (deletes need approval)
+- **4 archive-candidates still wired** (one-off naming per REPO_LAYOUT §4/§5): backfill_bd_angle, flywheel_phase2, seed_data_sources, weekend_sprint(2999 lines) → archive vs keep-in-package?
+- **Self-contained stragglers** (safe to move once domains confirmed): apply_sql_migration(→database util), execute_intel_actions, process_queue_item, refresh_company_verified, review_submitted_intel, sync_catalyst_calendar.
+
+## METHOD (proven on 41 scripts) — reuse exactly
+snapshot at outputs/repo_snapshot; depmap.json + script_to_workflows.json; path-depth fix (scripts/ depth-1 → src/meridian/X/ depth-3 = +2 dirname / parents[1]→parents[3]); import-exercise w/ dummy env; atomic Git Data API commit (move + delete old sha:null + update ALL workflows READ FROM main + __init__.py); stale-ref sweep; dispatch light wf.
+
+---
+
 # ✅ PACKAGE MIGRATION — enrichment/ (self-contained) DONE (2026-06-16) — commit 4a68cfed
 
 2 self-contained active enrichment scripts → `src/meridian/enrichment/`: molecule_enrichment (parents[1]→parents[3]) and drug_intelligence_researcher (BASE_DIR .parent.parent → parents[3]). Both import-exercised OK (env-confirmed). school-week-sprint.yml: only the 2 moved-script lines re-pointed; company_enrichment + ct_gov_sync left as scripts/ (deferred). Stale-ref sweep: NONE.
