@@ -1,10 +1,12 @@
 name: Meridian — Submitted Intel Auto-Review
 
 on:
-  # On-demand only (cost pause). Trigger manually from the Actions tab or via the
-  # GitHub API. Re-enable the schedule below to resume automatic 6-hourly review.
-  # schedule:
-  #   - cron: '0 */6 * * *'
+  # Runs every 4 hours so submitted intelligence is processed regularly. This is
+  # cost-safe: the first step only checks for submitted_intel rows with status=new,
+  # and the Claude screening step runs ONLY when there are new submissions (it
+  # skips — near-zero cost — when the queue is empty).
+  schedule:
+    - cron: '0 */4 * * *'   # 00,04,08,12,16,20 UTC  (6x/day)
   workflow_dispatch:
     # Allow manual trigger from GitHub Actions tab
 
