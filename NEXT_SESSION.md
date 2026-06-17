@@ -1,3 +1,23 @@
+# ✅ enrichment-core LEAF LIBS migrated via package imports (2026-06-16) — commit f01fcd12
+
+identity_resolution + model_comparison + company_identity_resolver → identity/; source_verifier → validation/.
+All 6 importers (company_enrichment, ct_gov_sync, drug_enrichment, company_intake, drug_intake, research) converted to
+`from meridian.<domain>.<mod> import ...`. weekend_sprint._import_agent patched to resolve src/meridian/** (its dynloads
+now survive migration). source-verifier.yml re-pointed. Verified: sandbox package-import of all 4 libs + every importer
+symbol; live source-verifier + company-enrichment dispatches = 0 import errors (package imports resolve). Flat scripts 47.
+
+## enrichment-core SUB-BATCH B (next — now straightforward, all consumers already use package imports):
+Move the consumers to domains (file move + own path-hack fix + workflow path repoint):
+  - company_enrichment(4435) → enrichment/  (also a large-file-split target, §3)
+  - ct_gov_sync(1409) → ingestion/  (split target)
+  - company_intake(1185) → identity/  (split target)
+  - research(1538) → ingestion/  — ALSO convert its scripts/integrations imports (ctgov_poller, edgar_fetcher); package
+    scripts/integrations/ OR keep an absolute path. (research also dynloads edgar_fetcher/ctgov_poller in try-blocks.)
+Then: move the 11 narrative importers to their domains (trivial — narrative_gen import already package-style).
+Run tests/database/ writer tests after (writers import entity_matcher; unaffected by this batch but good gate).
+
+---
+
 # ✅ PACKAGE-IMPORT FOUNDATION LANDED + narrative_gen decoupled (2026-06-16)
 
 **`meridian` is now an importable package.** Added `pyproject.toml` + `PYTHONPATH=$GITHUB_WORKSPACE/src` to all 51
