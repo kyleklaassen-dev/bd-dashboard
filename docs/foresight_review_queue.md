@@ -1,6 +1,6 @@
 # Foresight Review Queue
 
-**Generated:** 2026-06-15 by `scripts/score_foresight.py`
+**Generated:** 2026-06-17 by `scripts/score_foresight.py`
 
 Past-due catalysts with no confirmed outcome. For each: confirm what happened
 (+ source URL), then either mark the catalyst resolved and let the next run log
@@ -36,3 +36,4 @@ with `foreseen=false` + `miss_reason` — that is where the learning lives.
 | 24 | 1811 | 2026-06-15 | il4ra | readout | APG777 APEX Ph2 Part B: 16-week induction data readout (~347 pts, dose optimization) | — | ☐ |
 | 25 | 2021 | 2026-06-15 | tcell | conference | CLN-978 OUTRACE expanded Phase 1 data presentation at EULAR 2026 Congress, London | — | ☐ |
 | 26 | 432 | 2026-06-15 | tcell | conference | EULAR / ECCO 2026 — Novartis expected IBD and inflammation pipeline data presentations | — | ☐ |
+| 27 | 313 | 2026-06-16 | tcell | conference | Novartis EULAR / ECCO 2026 — expected IBD/inflammation pipeline data presentations | — | ☐ |
