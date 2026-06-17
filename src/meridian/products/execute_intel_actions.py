@@ -204,7 +204,7 @@ def execute_submitted_intel(dry_run=False):
             try: actions = json.loads(actions)
             except: actions = []
 
-        title = item.get("extracted_title","")[:80]
+        title = (item.get("extracted_title") or "")[:80]
         item_executed = 0
 
         for action in (actions if isinstance(actions, list) else []):
@@ -223,7 +223,7 @@ def execute_submitted_intel(dry_run=False):
                     except: entities = {}
                 drugs = entities.get("drugs", []) if isinstance(entities, dict) else []
                 companies = entities.get("companies", []) if isinstance(entities, dict) else []
-                rationale = action.get("rationale","")[:200]
+                rationale = (action.get("rationale") or "")[:200]
 
                 # Only add if we can identify a drug
                 for drug_name in drugs[:2]:
