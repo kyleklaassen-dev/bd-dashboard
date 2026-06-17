@@ -85,7 +85,7 @@ def main():
     print("\nCollection queue sync:")
     run(["scripts/sync_collection_queue.py", "--area", args.area])
     print("\nCross-publication value checks:")
-    run(["scripts/verify_publication_values.py", "--area", args.area])
+    run(["src/meridian/validation/verify_publication_values.py", "--area", args.area])
     print("\nbatch complete.")
 
 
