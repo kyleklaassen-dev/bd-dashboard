@@ -28,7 +28,7 @@ from typing import Optional
 import requests
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_DIR = pathlib.Path(__file__).parent.parent
+BASE_DIR = pathlib.Path(__file__).resolve().parents[3]
 
 def _load_key(env_var: str, file_name: Optional[str] = None) -> str:
     val = os.environ.get(env_var, "").strip()

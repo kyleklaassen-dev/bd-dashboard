@@ -36,7 +36,7 @@ jobs:
           ARGS=""
           if [ "${{ github.event.inputs.discovery }}" == "false" ]; then ARGS="--submitted"; fi
           if [ "${{ github.event.inputs.submitted }}" == "false" ]; then ARGS="--discovery"; fi
-          python scripts/execute_intel_actions.py $ARGS
+          python src/meridian/products/execute_intel_actions.py $ARGS
 
       - name: Trigger enrichment for newly promoted drugs (N3 fix)
         env:

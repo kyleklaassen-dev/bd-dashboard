@@ -58,4 +58,4 @@ jobs:
             DRY_FLAG="--dry-run"
           fi
           echo "Processing up to $LIMIT pending queue items..."
-          python scripts/process_queue_item.py --batch --limit "$LIMIT" $DRY_FLAG
+          python src/meridian/identity/process_queue_item.py --batch --limit "$LIMIT" $DRY_FLAG

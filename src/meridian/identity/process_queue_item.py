@@ -34,7 +34,7 @@ import anthropic
 # ── Credential loading ─────────────────────────────────────────────────────────
 # Support both env-var and file-based credentials (same as company_enrichment.py)
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_DIR   = os.path.dirname(_SCRIPT_DIR)
+_REPO_DIR   = os.path.dirname(os.path.dirname(os.path.dirname(_SCRIPT_DIR)))
 
 def _read_file_key(filename: str) -> Optional[str]:
     path = os.path.join(_REPO_DIR, filename)
