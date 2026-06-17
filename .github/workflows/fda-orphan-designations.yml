@@ -29,6 +29,9 @@ concurrency:
   group: fda-orphan-designations
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   pull:
     name: "FDA orphan designations export"

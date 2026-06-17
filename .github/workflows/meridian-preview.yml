@@ -16,6 +16,9 @@ concurrency:
   group: meridian-preview
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   preview:
     runs-on: ubuntu-latest

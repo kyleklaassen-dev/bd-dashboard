@@ -6,6 +6,9 @@ on:
     - cron: "0 14 * * *"
   workflow_dispatch:
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   prices:
     runs-on: ubuntu-latest

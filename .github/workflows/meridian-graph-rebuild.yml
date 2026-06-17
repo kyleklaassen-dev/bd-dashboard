@@ -14,6 +14,9 @@ concurrency:
   group: meridian-graph-rebuild
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   rebuild:
     runs-on: ubuntu-latest

@@ -25,6 +25,9 @@ on:
         default: 'false'
         type: boolean
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   signal-monitor:
     runs-on: ubuntu-latest

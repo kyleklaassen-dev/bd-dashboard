@@ -20,6 +20,9 @@ on:
         required: false
         default: "0"
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   generate:
     name: "Generate area narratives"

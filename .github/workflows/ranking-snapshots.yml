@@ -15,6 +15,9 @@ concurrency:
   group: ranking-snapshots
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest

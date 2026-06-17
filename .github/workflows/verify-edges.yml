@@ -19,6 +19,9 @@ concurrency:
   group: verify-edges
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   verify:
     runs-on: ubuntu-latest

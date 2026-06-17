@@ -30,6 +30,9 @@ on:
         required: false
         default: '0'
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   fetch-news:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}

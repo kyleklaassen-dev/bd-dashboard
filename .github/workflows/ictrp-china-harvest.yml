@@ -29,6 +29,9 @@ concurrency:
   group: ictrp-china-harvest
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   harvest:
     name: "WHO ICTRP China harvest"

@@ -25,6 +25,9 @@ concurrency:
   group: api-harvest-daily
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   harvest:
     name: "Daily CT.gov + openFDA harvest into Meridian"

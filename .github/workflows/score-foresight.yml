@@ -26,6 +26,9 @@ concurrency:
 permissions:
   contents: write   # to commit refreshed review-queue docs back
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   score:
     runs-on: ubuntu-latest

@@ -13,6 +13,9 @@ on:
         type: boolean
         default: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   flywheel:
     runs-on: ubuntu-latest

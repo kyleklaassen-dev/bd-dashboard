@@ -42,6 +42,9 @@ on:
         required: false
         default: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   refresh-company-verified:
     runs-on: ubuntu-latest

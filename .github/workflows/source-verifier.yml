@@ -33,6 +33,9 @@ concurrency:
   group: source-verifier
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   verify:
     # only proceed when triggered manually/scheduled, or when the upstream succeeded

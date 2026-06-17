@@ -12,6 +12,9 @@ concurrency:
   group: audit-retention
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   prune:
     runs-on: ubuntu-latest

@@ -62,6 +62,9 @@ concurrency:
   group: company-enrichment-${{ github.event.schedule }}
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   intelligence-pipeline:
     runs-on: ubuntu-latest

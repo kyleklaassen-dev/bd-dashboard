@@ -11,6 +11,9 @@ on:
         required: false
         default: "false"
         type: boolean
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   refresh:
     runs-on: ubuntu-latest

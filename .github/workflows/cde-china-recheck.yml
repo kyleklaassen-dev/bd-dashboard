@@ -37,6 +37,9 @@ concurrency:
   group: cde-china-recheck
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   recheck:
     name: "CDE / NMPA China recheck"

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meridian"
+version = "0.1.0"
+description = "Meridian BD / competitive-intelligence platform (the src/meridian package)."
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Scripts are invoked by path in CI; workflows set PYTHONPATH=$GITHUB_WORKSPACE/src so
+# `from meridian.<domain>.<module> import ...` resolves. Locally: `pip install -e .` or export PYTHONPATH=src.

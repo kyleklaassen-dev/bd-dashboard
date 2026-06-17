@@ -24,6 +24,9 @@ permissions:
   actions: read
   contents: read
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   health:
     runs-on: ubuntu-latest

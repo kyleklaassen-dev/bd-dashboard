@@ -25,6 +25,9 @@ concurrency:
   group: evidence-collectors
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   collect:
     name: "Collect drug + patient evidence"

@@ -28,6 +28,9 @@ concurrency:
   group: run-validation-tests
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   validate:
     runs-on: ubuntu-latest

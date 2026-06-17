@@ -23,6 +23,9 @@ on:
         default: "false"
         type: boolean
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   fetch-abstracts:
     name: "Fetch Abstracts & Preprints"

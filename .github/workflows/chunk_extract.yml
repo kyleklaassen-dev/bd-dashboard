@@ -26,6 +26,9 @@ on:
         required: false
         default: ""
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   extract:
     runs-on: ubuntu-latest

@@ -21,6 +21,9 @@ on:
         default: "false"
         type: boolean
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   verify-efficacy:
     name: "Verify & refill efficacy / trial facts"

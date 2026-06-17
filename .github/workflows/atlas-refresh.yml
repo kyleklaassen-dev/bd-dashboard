@@ -24,6 +24,9 @@ concurrency:
   group: atlas-refresh
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   refresh:
     runs-on: ubuntu-latest

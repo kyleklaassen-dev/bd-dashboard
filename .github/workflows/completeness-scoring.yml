@@ -20,6 +20,9 @@ concurrency:
   group: completeness-scoring
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   score:
     runs-on: ubuntu-latest

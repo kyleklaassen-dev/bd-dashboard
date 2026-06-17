@@ -16,6 +16,9 @@ concurrency:
   group: bd-recommender
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   recommend:
     runs-on: ubuntu-latest

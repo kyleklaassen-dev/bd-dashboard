@@ -16,6 +16,9 @@ on:
         required: false
         default: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   validation-research:
     runs-on: ubuntu-latest

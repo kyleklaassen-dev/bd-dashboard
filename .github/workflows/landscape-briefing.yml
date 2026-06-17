@@ -16,6 +16,9 @@ concurrency:
   group: landscape-briefing
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   brief:
     runs-on: ubuntu-latest

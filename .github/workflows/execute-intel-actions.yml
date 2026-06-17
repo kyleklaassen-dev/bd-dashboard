@@ -18,6 +18,9 @@ on:
         type: boolean
         default: true
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   execute:
     runs-on: ubuntu-latest

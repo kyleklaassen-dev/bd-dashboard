@@ -80,6 +80,7 @@ on:
 # ══════════════════════════════════════════════════════════════════
 
 env:
+  PYTHONPATH: ${{ github.workspace }}/src
   PYTHON_VERSION: "3.12"
 
 # Prevent overlapping sprint runs (13 weekend cron entries) from double-writing.

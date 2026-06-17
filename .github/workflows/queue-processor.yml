@@ -29,6 +29,9 @@ concurrency:
   group: queue-processor
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   process-queue:
     runs-on: ubuntu-latest

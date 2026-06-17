@@ -12,6 +12,9 @@ concurrency:
   group: structural-edges
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   materialize:
     runs-on: ubuntu-latest

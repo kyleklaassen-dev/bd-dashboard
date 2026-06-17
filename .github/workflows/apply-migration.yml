@@ -15,6 +15,9 @@ on:
         required: false
         default: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   apply:
     runs-on: ubuntu-latest

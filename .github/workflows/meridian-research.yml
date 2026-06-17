@@ -13,6 +13,9 @@ concurrency:
   group: meridian-research
   cancel-in-progress: false
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   research:
     runs-on: ubuntu-latest

@@ -16,6 +16,9 @@ on:
         required: false
         default: ""
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 jobs:
   patient-briefs:
     name: "Generate patient briefs"
