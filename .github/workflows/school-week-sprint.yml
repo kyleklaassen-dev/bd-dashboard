@@ -70,9 +70,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: Company profiles for unenriched companies"
-          python scripts/company_enrichment.py --area tl1a --skip-discovery
-          python scripts/company_enrichment.py --area fcrn --skip-discovery
-          python scripts/company_enrichment.py --area ibd --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area tl1a --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area fcrn --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area ibd --skip-discovery
           python src/meridian/scoring/write_ranking_snapshots.py
 
       # ── TUESDAY: Mechanism + source_url gaps ──────────────────────────────
@@ -93,8 +93,8 @@ jobs:
         run: |
           echo "SPRINT: drug_intelligence_qa seeding for Next Gen bispecifics"
           python src/meridian/enrichment/drug_intelligence_researcher.py --area tl1a --limit 10
-          python scripts/company_enrichment.py --area igf1r --skip-discovery
-          python scripts/company_enrichment.py --area atopy --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area igf1r --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area atopy --skip-discovery
 
       # ── THURSDAY: Company profiles pass 2 + validation tests ─────────────
       - name: "Thursday — Company profiles pass 2 + expand validation tests"
@@ -102,8 +102,8 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: Company profiles second pass + validation expansion"
-          python scripts/company_enrichment.py --area tslp --skip-discovery
-          python scripts/company_enrichment.py --area il4ra --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area tslp --skip-discovery
+          python src/meridian/enrichment/company_enrichment.py --area il4ra --skip-discovery
           python src/meridian/validation/validate_ground_truth.py --write-results
 
       # ── FRIDAY: Competitive scoring + full validation + ranking ──────────

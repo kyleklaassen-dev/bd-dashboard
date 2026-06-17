@@ -753,9 +753,10 @@ def phase_b2_company_enrichment() -> Dict:
             env["SUPABASE_URL"] = SUPABASE_URL
             env["SUPABASE_SERVICE_KEY"] = SUPABASE_KEY
             env["ANTHROPIC_API_KEY"] = ANTHROPIC_API_KEY or ""
+            env["PYTHONPATH"] = os.path.join(os.path.dirname(_SCRIPTS_DIR), "src") + os.pathsep + env.get("PYTHONPATH", "")
             cmd = [
                 sys.executable,
-                os.path.join(_SCRIPTS_DIR, "company_enrichment.py"),
+                os.path.join(os.path.dirname(_SCRIPTS_DIR), "src", "meridian", "enrichment", "company_enrichment.py"),
                 "--area", area,
             ]
             if DRY_RUN:

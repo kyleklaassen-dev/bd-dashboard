@@ -50,10 +50,10 @@ STEP OVERVIEW (if/then logic):
     The dashboard reads directly from Supabase — no pipeline step needed.
 
 USAGE:
-  python scripts/company_enrichment.py --area tl1a
-  python scripts/company_enrichment.py --area tl1a --company sanofi
-  python scripts/company_enrichment.py --area tl1a --discover-only
-  python scripts/company_enrichment.py --area tl1a --dry-run
+  python src/meridian/enrichment/company_enrichment.py --area tl1a
+  python src/meridian/enrichment/company_enrichment.py --area tl1a --company sanofi
+  python src/meridian/enrichment/company_enrichment.py --area tl1a --discover-only
+  python src/meridian/enrichment/company_enrichment.py --area tl1a --dry-run
 
 DEPENDS ON:
   ct_gov_sync.py is optional — enrichment now auto-syncs missing trials from CT.gov
@@ -462,7 +462,7 @@ def _catalyst_upsert(rec):
     """Single-writer drop-in (ADR-010) for sb_upsert('catalysts', ...).
     Routes through CatalystWriter; preserves list-on-success / [] contract."""
     import sys, pathlib as _pl
-    _b = _pl.Path(__file__).resolve().parents[1]
+    _b = _pl.Path(__file__).resolve().parents[3]   # repo root from src/meridian/enrichment/
     for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
         if _p not in sys.path:
             sys.path.insert(0, _p)
@@ -1906,7 +1906,9 @@ EXAMPLE: differentiation_thesis (confirmed as high quality)
 # live ENRICHMENT_SYSTEM prompt so the next enrichment run benefits from the latest
 # confirmed signal. This is the step that was previously missing — the hints file was
 # generated but never consumed at enrichment time.
-_HINTS_PATH = os.path.join(os.path.dirname(_SCRIPTS_DIR), "data", "enrichment_prompt_hints.md")
+# repo root = three levels up from src/meridian/enrichment/ (this file's dir)
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SCRIPTS_DIR)))
+_HINTS_PATH = os.path.join(_REPO_ROOT, "data", "enrichment_prompt_hints.md")
 _ENRICHMENT_HINTS_CACHE = None  # lazily loaded, then memoized for the process
 
 

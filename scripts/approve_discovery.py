@@ -22,7 +22,7 @@ After promotion:
   - drug_areas row created
   - discovery_queue updated: created_company_id, created_drug_id, status='approved'
   - You should then run enrichment on the new company:
-      python scripts/company_enrichment.py --area <area_id> --company <company_id>
+      python src/meridian/enrichment/company_enrichment.py --area <area_id> --company <company_id>
 """
 
 import os
@@ -396,7 +396,7 @@ def cmd_promote(queue_id: str, dry_run: bool = False):
 
     print(f"\n  ✓ Promotion complete!")
     print(f"\n  ► Next step: run enrichment to populate intelligence:")
-    print(f"      python scripts/company_enrichment.py --area {area_id} --company {co_id}")
+    print(f"      python src/meridian/enrichment/company_enrichment.py --area {area_id} --company {co_id}")
     print()
 
 

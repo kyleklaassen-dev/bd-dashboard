@@ -429,7 +429,7 @@ IF any field has been NULL for >14 days → escalate to manual review flag
 | Script | Stages Implemented |
 |---|---|
 | `scripts/ct_gov_sync.py` | Stage 3 (Steps 3a, 3b, 3c) |
-| `scripts/company_enrichment.py` | Stages 1, 4, 5, 6 |
+| `src/meridian/enrichment/company_enrichment.py` | Stages 1, 4, 5, 6 |
 | `.github/workflows/company-enrichment.yml` | Stage 7 orchestration (nightly loop) |
 | `index.html` (frontend) | Stage 7 display (reads all stages from Supabase) |
 

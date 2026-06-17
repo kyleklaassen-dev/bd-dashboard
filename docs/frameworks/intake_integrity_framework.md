@@ -309,6 +309,6 @@ Commit: pushed validate_ground_truth.py + company_enrichment.py
 - `docs/company_coverage_audit.md` — Enrichment priority ranking
 - `migrations/v16_provenance.sql` — Provenance schema migration (not yet applied to all tables)
 - `scripts/validate_ground_truth.py` — Automated validation suite
-- `scripts/company_enrichment.py` — Main enrichment pipeline
+- `src/meridian/enrichment/company_enrichment.py` — Main enrichment pipeline
 - `scripts/quick_profiles_enrich.py` — Lightweight company profile enricher
 - `update_log.md` — Session-by-session change log

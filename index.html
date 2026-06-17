@@ -51,7 +51,7 @@ CLASS × RELEVANCE FRAMEWORK (every company in every PI table)
 ARCHITECTURE
   · Frontend: single index.html on GitHub Pages (kyleklaassen-dev/bd-dashboard)
   · Backend:  Supabase project tghntyofptvfhmtchwcv — anon key read-only in frontend
-  · Pipeline: GitHub Actions → scripts/company_enrichment.py → Claude API → Supabase writes
+  · Pipeline: GitHub Actions → src/meridian/enrichment/company_enrichment.py → Claude API → Supabase writes
   · Tab isolation: TAB_REGISTRY pattern — registerTab(id, {onEnter, onLeave})
                    All tab hooks wrapped in try/catch. Errors logged, never propagated.
   · Deploy: Python base64 → GitHub Contents API PUT (never raw curl for large files)
@@ -11997,7 +11997,7 @@ async function dqAction(id, newStatus, extraPatch = null) {
 }
 
 function dqShowApprovedNote(row) {
-  const msg = `✓ "${row.company_name}" approved.\n\nTo promote to the dashboard, run:\n  python scripts/company_enrichment.py --area ${row.area_id} --company ${row.company_id_suggested||row.company_name.toLowerCase().replace(/[^a-z0-9]/g,'')}\n\nOr use the promotion script (coming soon).`;
+  const msg = `✓ "${row.company_name}" approved.\n\nTo promote to the dashboard, run:\n  python src/meridian/enrichment/company_enrichment.py --area ${row.area_id} --company ${row.company_id_suggested||row.company_name.toLowerCase().replace(/[^a-z0-9]/g,'')}\n\nOr use the promotion script (coming soon).`;
   // Show a non-blocking toast instead of alert
   const toast = document.createElement('div');
   toast.textContent = `✓ ${row.company_name} approved — run enrichment to promote to dashboard`;
