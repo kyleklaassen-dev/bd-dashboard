@@ -1,8 +1,7 @@
 # Meridian — BD & Competitive-Intelligence Platform
 
 Meridian is a competitive-intelligence and business-development (BD) platform built
-around **Ailux's TL1A×IL-23p19 bispecific antibody program for inflammatory bowel
-disease (IBD)**. It tracks the competitive landscape (targets, drugs, companies,
+around **Ailux's antibody programs**. It tracks the competitive landscape (targets, drugs, companies,
 trials, deals, catalysts) as a governed knowledge graph and surfaces it through a
 live dashboard so a BD/strategy team can answer, quickly and with citations:
 
