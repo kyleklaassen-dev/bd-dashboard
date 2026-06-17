@@ -1,3 +1,25 @@
+# ✅ PACKAGE-IMPORT FOUNDATION LANDED + narrative_gen decoupled (2026-06-16)
+
+**`meridian` is now an importable package.** Added `pyproject.toml` + `PYTHONPATH=$GITHUB_WORKSPACE/src` to all 51
+workflows (481913b4, each YAML re-parsed/validated; pipeline-health dispatch GREEN = additive change is safe).
+**First package-import migration:** narrative_gen → products/ + all 11 importers converted to
+`from meridian.products.narrative_gen import ...` (e92edaf3). **PROVEN end-to-end: evidence-collectors dispatch GREEN**
+(collect_evidence resolves narrative_gen via the package path + workflow PYTHONPATH). narrative-generation/patient-briefs
+import-clean (0 import errors) + running.
+
+## Remaining is now straightforward (use package imports — pattern proven):
+1. **Move the 11 narrative importers to their domains** (products/ingestion/graph/validation) — trivial now: their
+   narrative_gen import is already location-independent; just move file + fix own path-hacks + repoint workflow path.
+2. **enrichment-core web** (company_enrichment(4435)+ct_gov_sync+company_intake+identity_resolution+model_comparison+
+   company_identity_resolver+source_verifier+research): convert their cross-imports to `from meridian.<domain>.<mod>`,
+   move to domains. PYTHONPATH already everywhere. Run tests/database/ writer tests after (writers also import these via sys.path).
+3. Convert the writers' (src/database/) entity_matcher sys.path-hack to a package import too (consistency) — optional.
+
+CONVENTION (now in START_HERE/pyproject): new cross-package imports use `from meridian.<domain>.<module> import ...`;
+workflows already export PYTHONPATH=src. Legacy own-dir sibling imports still work (additive).
+
+---
+
 # ✅ CONT. — write_meridian + research_intelligence migrated; 5 one-offs archived (flat 57→52)
 
 This push: **write_meridian cluster** (write_meridian + meridian_integrations_feed + dryrun_meridian → products/; meridian-preview dry-run GREEN — the Issue generator now lives in the package) · **research_intelligence** → scoring/ (completeness-scoring GREEN) · archived 5 spent one-offs → scripts/archive/. ~56 scripts migrated total, 0 failures.
