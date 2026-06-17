@@ -27,7 +27,7 @@ import time
 import urllib.parse
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SB_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 SESSION_LABEL = "2026-06-07-payer"
 

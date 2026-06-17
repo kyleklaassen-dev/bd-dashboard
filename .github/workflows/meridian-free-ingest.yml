@@ -35,6 +35,8 @@ jobs:
         run: python3 src/meridian/scoring/compute_patient_whitespace.py || echo "patient whitespace non-fatal"
       - name: Refresh Indication Priority card (live + curated overlay)
         run: python3 src/meridian/scoring/compute_indication_priority.py || echo "indication priority non-fatal"
+      - name: Refresh payer pricing (free CMS/Medicaid public data)
+        run: python3 src/meridian/ingestion/payer_pricing_agent.py || echo "payer pricing non-fatal"
       - name: Clean up
         if: always()
         run: rm -f .supabase_service_key

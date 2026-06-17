@@ -14,7 +14,7 @@ Pipeline entrypoints run by the GitHub Actions workflows in `.github/workflows/`
 `abstract_fetcher` `api_harvester` `ct_gov_sync` `connect_ctgov_raw` `fetch_homepage_news` `collect_efficacy_apis` `collect_evidence` `collect_patient_evidence` `refresh_orange_purple_book` `stock_prices` `chunk_extract` `enrich_pub_stubs`
 
 **Enrichment** — LLM + data enrichment of drugs/companies/molecules
-`company_enrichment` `drug_enrichment` `molecule_enrichment` `deep_enrich_intel` `quick_profiles_enrich` `run_pkpd_claude` `drug_intelligence_researcher` `patient_population_agent` `payer_pricing_agent`
+`company_enrichment` `drug_enrichment`  _(molecule_enrichment, drug_intelligence_researcher → `src/meridian/enrichment/`; payer_pricing_agent → `src/meridian/ingestion/`; deep_enrich_intel/quick_profiles_enrich/run_pkpd_claude/patient_population_agent deleted — redundant)_
 
 **Identity** — entity matching, intake, resolution, ontology
 `drug_intake` `company_intake` `conversation_intake` `entity_matcher` `identity_resolution` `company_identity_resolver` `link_entities` `ontology_map_drugs` `approve_discovery` `process_queue_item` `human_queue_builder` `build_navigator_lookup`
