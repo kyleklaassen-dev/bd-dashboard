@@ -2,7 +2,7 @@
 """
 company_intake.py — Company-First Discovery Engine (Phase 1)
 
-CLI tool: python scripts/company_intake.py --company "Akeso"
+CLI tool: python -m meridian.identity.company_intake --company "Akeso"
 
 PURPOSE
 -------
@@ -37,9 +37,9 @@ WORKFLOW
 
 USAGE
 -----
-  python scripts/company_intake.py --company "Akeso"
-  python scripts/company_intake.py --company "Hengrui" --dry-run
-  python scripts/company_intake.py --company "Zenas BioPharma" --verbose
+  python -m meridian.identity.company_intake --company "Akeso"
+  python -m meridian.identity.company_intake --company "Hengrui" --dry-run
+  python -m meridian.identity.company_intake --company "Zenas BioPharma" --verbose
 
 ENVIRONMENT
 -----------
@@ -991,8 +991,8 @@ def run_reaudit(company_name: str, dry_run: bool = False, verbose: bool = False)
     discovery_queue with source='re_audit' for human review.
 
     Usage:
-        python scripts/company_intake.py --company "UCB" --re-audit
-        python scripts/company_intake.py --company "Candid Therapeutics" --re-audit --dry-run
+        python -m meridian.identity.company_intake --company "UCB" --re-audit
+        python -m meridian.identity.company_intake --company "Candid Therapeutics" --re-audit --dry-run
     """
     ts   = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")
     slug = company_name.lower().replace(" ", "_").replace("&", "").replace("/", "_")
@@ -1153,12 +1153,12 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/company_intake.py --company "Akeso"
-  python scripts/company_intake.py --company "Hengrui Medicine" --verbose
-  python scripts/company_intake.py --company "Zenas BioPharma" --dry-run
-  python scripts/company_intake.py --company "AbbVie" --force       # re-research existing
-  python scripts/company_intake.py --company "UCB" --re-audit       # diff live pipeline vs DB
-  python scripts/company_intake.py --company "Candid" --re-audit --dry-run
+  python -m meridian.identity.company_intake --company "Akeso"
+  python -m meridian.identity.company_intake --company "Hengrui Medicine" --verbose
+  python -m meridian.identity.company_intake --company "Zenas BioPharma" --dry-run
+  python -m meridian.identity.company_intake --company "AbbVie" --force       # re-research existing
+  python -m meridian.identity.company_intake --company "UCB" --re-audit       # diff live pipeline vs DB
+  python -m meridian.identity.company_intake --company "Candid" --re-audit --dry-run
         """,
     )
     parser.add_argument("--company",   required=True, help="Company name to research")

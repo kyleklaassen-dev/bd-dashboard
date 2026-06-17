@@ -268,7 +268,7 @@ def _queue_reaudit(company_id: str, pipeline_url: str, run_id: str, dry_run: boo
         "relationship_confidence": "medium",
         "why_discovered":          (
             f"Automated pipeline page monitor detected content change at {pipeline_url}. "
-            f"Re-run: python scripts/company_intake.py --company '{company_id}' --re-audit"
+            f"Re-run: python -m meridian.identity.company_intake --company '{company_id}' --re-audit"
         ),
     })
     if err:
@@ -377,7 +377,7 @@ def run(dry_run: bool = False, company_filter: str | None = None) -> None:
         print(f"\n  ⚡ {results['changed']} pipeline page(s) changed.")
         print(f"  Review in Meridian → Signals panel and Discovery Queue.")
         print(f"  Re-audit changed companies:")
-        print(f"    python scripts/company_intake.py --company '<company>' --re-audit")
+        print(f"    python -m meridian.identity.company_intake --company '<company>' --re-audit")
     if dry_run:
         print("\n  [DRY RUN] No changes written. Re-run without --dry-run to persist.")
     print("=" * 65)

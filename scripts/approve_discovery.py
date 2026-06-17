@@ -57,9 +57,11 @@ def _company_writer(dry_run=False):
 
 # Graph consistency: import ACTIVE_IN edge writer
 # (write_active_in_edge must be called after every company_areas write)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+if _src not in sys.path:
+    sys.path.insert(0, _src)
 try:
-    from company_intake import write_active_in_edge as _write_active_in_edge
+    from meridian.identity.company_intake import write_active_in_edge as _write_active_in_edge
 except ImportError:
     # Graceful degradation: if company_intake unavailable, log and continue
     def _write_active_in_edge(company_id, area_id, dry_run=False, created_by="approve_discovery"):
