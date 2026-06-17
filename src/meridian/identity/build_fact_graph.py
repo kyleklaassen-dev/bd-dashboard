@@ -19,8 +19,8 @@ dropped every new edge in a batch that contained any existing one).
 """
 import os, sys, pathlib, requests, collections
 
-BASE = pathlib.Path(__file__).parent.parent
-sys.path.insert(0, str(BASE / "scripts"))
+BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from entity_matcher import Registry
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")

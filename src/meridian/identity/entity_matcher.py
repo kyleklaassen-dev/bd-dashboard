@@ -163,7 +163,7 @@ class Registry:
 
 if __name__ == "__main__":
     import os, pathlib
-    base = pathlib.Path(__file__).parent.parent
+    base = pathlib.Path(__file__).resolve().parents[3]
     url = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
     key = os.environ.get("SUPABASE_SERVICE_KEY") or (base / ".supabase_service_key").read_text().strip()
     H = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}

@@ -25,7 +25,7 @@ import os, re, sys, pathlib
 
 _BASE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_BASE / "src" / "database"))
-sys.path.insert(0, str(_BASE / "scripts"))  # entity_matcher currently lives here (Phase 3 moves it)
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "identity"))  # entity_matcher currently lives here (Phase 3 moves it)
 import client
 from entity_matcher import Registry
 

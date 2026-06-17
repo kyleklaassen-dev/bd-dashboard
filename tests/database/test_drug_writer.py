@@ -8,7 +8,7 @@ or under pytest.
 import os, sys, pathlib
 _BASE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_BASE / "src" / "database"))
-sys.path.insert(0, str(_BASE / "scripts"))
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "identity"))
 import client
 from drug_writer import DrugWriter
 

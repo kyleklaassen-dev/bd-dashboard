@@ -19,8 +19,8 @@ Usage:
 """
 import os, sys, pathlib, collections, requests
 
-BASE = pathlib.Path(__file__).parent.parent
-sys.path.insert(0, str(BASE / "scripts"))
+BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from entity_matcher import Registry
 import build_fact_graph as bfg
 

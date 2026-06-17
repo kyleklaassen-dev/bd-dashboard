@@ -3,7 +3,7 @@
 signals.company_id (from headline), via the shared entity_matcher. Dry-run default."""
 import os, sys, pathlib, requests
 BASE = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(BASE / "scripts"))
+sys.path.insert(0, str(BASE / "src" / "meridian" / "identity"))
 from entity_matcher import Registry
 URL = "https://tghntyofptvfhmtchwcv.supabase.co"
 KEY = os.environ.get("SUPABASE_SERVICE_KEY") or (BASE / ".supabase_service_key").read_text().strip()

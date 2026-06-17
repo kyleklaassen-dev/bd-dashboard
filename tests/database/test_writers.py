@@ -3,7 +3,7 @@
 import sys, pathlib
 _BASE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_BASE / "src" / "database"))
-sys.path.insert(0, str(_BASE / "scripts"))
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "identity"))
 from company_writer import CompanyWriter
 from edge_writer import EdgeWriter
 from catalyst_writer import CatalystWriter

@@ -18,7 +18,7 @@ Run: SUPABASE_SERVICE_KEY=... python3 scripts/ontology_map_drugs.py
 """
 import os, re, hashlib, pathlib, requests
 
-BASE = pathlib.Path(__file__).parent.parent
+BASE = pathlib.Path(__file__).resolve().parents[3]
 URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
 KEY = os.environ.get("SUPABASE_SERVICE_KEY") or (BASE / ".supabase_service_key").read_text().strip()
 H = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
