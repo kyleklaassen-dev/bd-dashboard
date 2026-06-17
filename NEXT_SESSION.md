@@ -1,3 +1,25 @@
+# ✅ SESSION 2026-06-16 (cont.) — 52 scripts migrated, org scaffolding built, freeze LIFTED
+
+**Kyle lifted the spend freeze** → LLM workflows can now be dispatch-verified. **`ROADMAP.md` is now the single
+source of all future work — read it for the detailed remaining plan.** `START_HERE.md` is the new session reading guide.
+
+This session added: products/3 + enrichment/2 + ops/3 self-contained · disposition (deleted 4 redundant + 1 spent
+backfill, wired payer_pricing) · stragglers refresh_company_verified/sync_catalyst_calendar/seed_data_sources ·
+fact-graph/identity cluster (entity_matcher↔writer coupling RESOLVED + sandbox-verified) · docstring sweep (39 files) ·
+LLM leaves execute_intel_actions/process_queue_item/review_submitted_intel (dispatch-verified green).
+**Bugs/breakages fixed:** execute_intel_actions None-slice (failing since 06-16 → green); removed dead school-week-sprint v56 line + deleted dead backfill-ailux-angle-watch.yml (caught by the new guardrail).
+
+**NEW guardrail:** `scripts/maintenance/repo_hygiene_check.py` (run it every session end; HARD-fails on workflow→missing-path).
+
+## REMAINING = the dense LLM-core web (ROADMAP §1) — do cluster-by-cluster, dispatch-verify each:
+write_meridian(+integrations_feed+dryrun; research DYNLOADS write_meridian) · research(+research_intelligence) ·
+company_enrichment(4435, referenced by 12 scripts)+ct_gov_sync+company_intake+identity_resolution+model_comparison+
+company_identity_resolver+source_verifier · narrative_gen(+collect_evidence+generate_area/patient) · writers→src/meridian/database.
+⚠️ These are densely cross-referenced — run the FULL-repo importer sweep + classify each ref (dynload/subprocess/docstring) before moving.
+Regression gate: run tests/database/test_drug_writer.py + test_writers.py (live read-only) after any writer/identity move.
+
+---
+
 # ✅ BIG MIGRATION SESSION (2026-06-16) — 49 scripts in packages, 5 deleted, 1 wired, 0 failures
 
 ## Commits this session
