@@ -1,3 +1,15 @@
+# ✅ EXECUTED OVERNIGHT (after the morning-review audit, 2026-06-16)
+
+Kyle approved all 3 decisions + P1–P3. Done since the audit:
+- **Governance 3 → 0.** Hard-deleted the 9 dropped records (off-domain oncology + phantoms incl. nvx-360/calt-100; full ref cleanup, 0 orphans, drugs 189→180). China stage flags resolved: GB-3250/generate-uc Phase 3→Preclinical (no trial evidence); LBL-053 already Preclinical (flag stale). ab001/sm-101 acknowledged (by-design ambiguous-identity).
+- **P1:** 5 well-known mechanisms backfilled (certolizumab-pegol/etanercept/etrasimod/tildrakizumab/tofacitinib); SHR-1905→Hengrui; dispatched company-enrichment (firmographics — 58 country/strategic-value gaps, running in CI), evidence-collectors + refresh-company-verified (both green).
+- **P2/P3:** delivered a code-validated execution design — `docs/architecture/PHASE3_4_EXECUTION_DESIGN.md` — for the ct_gov_sync split and the index.html first extractions. NOT executed live: the mount can't integration-test a 1,400-line refactor of a core pipeline mid-run; the design makes a focused session fast + safe.
+- **Deferred (note):** canonicalize sl325/sl425/sl846 (needs entity_matcher in CI); 7 deal source_url backfills.
+
+**Morning decisions left:** none blocking. Optional: review the 10 submitted_intel `needs_review` items; pick a focused session to execute the Phase 3 ct_gov_sync split (design ready).
+
+---
+
 # ☀️ MORNING REVIEW READY (2026-06-16 overnight)
 
 Read **`docs/audits/MORNING_REVIEW_2026-06-16.md`** first. TL;DR: DB healthy (0 orphans/dups/validation-fails), enforcement live (4 rules + Layer B), engine green, governance 41→3, submitted-intel now 4-hourly (10 items in needs_review for you). Batch self-verified; 2 over-removed trial links were caught and restored. 3 decisions await you (see audit §3): hard-delete vs keep the 8 reversibly-dropped records; purge nvx-360/calt-100?; China-CDE check for generate-uc/lbl-053. Next-steps roadmap in audit §4 (quick data fixes → company firmographics → Phase 3 modularization).
