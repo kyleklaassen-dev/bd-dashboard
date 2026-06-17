@@ -1,3 +1,29 @@
+# ✅ enrichment-core CONSUMERS migrated + root cleanup (2026-06-17)
+
+**Supervised session on the real local clone — native git works here** (git pull/commit/push all fine;
+the old "git broken → deploy via API" note was Cowork-sandbox-only and is now corrected in CLAUDE.md + START_HERE).
+Local↔GitHub kept in sync via native `git push` after every commit.
+
+## Sub-batch B DONE — enrichment-core web fully migrated (flat scripts 47→43)
+- `company_intake` (1,185) → `identity/` (commit 37ea2ac). Repointed approve_discovery + pipeline_monitor.
+- `ct_gov_sync` (1,409) → `ingestion/` (d730b33). Repointed company-enrichment + school-week-sprint. Pure relocation (env creds, package imports).
+- `research` (1,538) → `ingestion/` (e5e3419). Leaf; meridian-research dispatch ran past startup ✓. (Note: pre-existing dead Phase-6 ctgov_poller/edgar_fetcher imports — those modules don't exist in the repo — still degrade gracefully; tracked, not fixed here.)
+- `company_enrichment` (4,437, the 4am core) → `enrichment/` (8b20097). Fixed `__file__`-depth anchors: `_catalyst_upsert` parents[1]→[3] (catalyst_writer resolution) + `_HINTS_PATH` repo-root (3 dirnames up); repointed 11 workflow invocations + `weekend_sprint` B2 subprocess path (+PYTHONPATH=src). Static-verified (py_compile, find_spec, path math, catalyst_writer reachable). **company-enrichment dry-run dispatch (area=tl1a, company=spyre) queued at hand-off — confirm it went green.**
+- Leaf libs (identity_resolution, model_comparison, company_identity_resolver, source_verifier) were done the prior session → enrichment-core web is now 100% migrated.
+
+## Other fixes this session
+- **`.gitignore` bug:** a bare `enrichment/` pattern was silently ignoring `src/meridian/enrichment/` (the source package!). Removed it (commit 50a4a5a); verified all 9 `src/meridian/<domain>` dirs are tracked; `__pycache__` still covered by lines 24-25.
+- **Writer test fix** (bc1d411): `test_writers.py` CatalystWriter anchor assertion was stale (checked old `drug_id or company_id` substring); writer correctly rejects unanchored catalysts with the v160 message. Now 8/0; test_drug_writer 6/0.
+- **Root cleanup (ROADMAP §5):** 4 secondary docs (ARCHITECTURE, BD_ANALYST_PLAYBOOK, CODE_REVIEW, SESSION_PROTOCOL) → `docs/`; 13 static dashboards → `web/` (index.html refs repointed, 4 back-links → ../index.html, local HTTP load verified 200s). Root files 38→22; root HTML 15→2 (index.html + generated meridian_today.html). **meridian_today.html left at root** — it's auto-published by write_meridian.py; moving it would mean touching the 4am-core generator. **NOTE: sub-page URLs changed** (e.g. /meridian_atlas.html → /web/meridian_atlas.html); add redirects if any external bookmark matters.
+
+## Next
+- Confirm the queued company-enrichment dry-run went green (run 27725621871).
+- Migration remaining (ROADMAP §1): **narrative cluster** (narrative_gen consumers: generate_area_narratives, generate_patient_briefs, landscape_narrative, patient_narrative, strategic_brief, collect_evidence, seed_*_edges, reconcile_drug_integrity, verify_publication_values), LLM stragglers, then writers → `src/meridian/database/`.
+- Then §2 (decompose weekend_sprint) + §3 (large-file splits — company_enrichment 4,437 is the top target).
+- **Health scoreboard (Kyle's 5 metrics):** large-file count still 10 (moves don't split); write-paths unchanged (still many ad-hoc raw-REST writers on all 4 core tables — the next big lever per [[repo-health-north-star]]); dep graph 29 modules/41 edges, 0 cycles.
+
+---
+
 # ✅ enrichment-core LEAF LIBS migrated via package imports (2026-06-16) — commit f01fcd12
 
 identity_resolution + model_comparison + company_identity_resolver → identity/; source_verifier → validation/.

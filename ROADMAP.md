@@ -15,11 +15,12 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 - Keep items **outcome-phrased** and **self-contained** (a future reader has no memory of today).
 
 ## Now / Next (the short list)
-1. 🟡 **Finish the package migration — LLM-core clusters** (§1). Freeze is OFF → each move is dispatch-verified.
+1. 🟡 **Finish the package migration** (§1). ✅ enrichment-core web DONE (company_enrichment→enrichment/, ct_gov_sync+research→ingestion/, company_intake→identity/, 2026-06-17). Remaining: **narrative cluster** (11 product consumers) + LLM stragglers + writers→`src/meridian/database/`.
 2. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
-3. ⬜ **Large-file splits** — `company_enrichment` (4,435), `write_meridian` (2,391), others (§3).
+3. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
 4. ⬜ **`index.html` Phase 4** decomposition (§4).
-5. ⬜ **Drift guardrails** wired as a recurring check (§6).
+5. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
+6. ⬜ **Drift guardrails** wired as a recurring check (§6).
 
 ---
 
@@ -41,8 +42,8 @@ Always run the full-repo importer sweep first — the depmap misses `src/databas
 
 - ⬜ **write_meridian cluster** → `products/`: `write_meridian` (2,391) + `meridian_integrations_feed` + `dryrun_meridian`.
   ⚠️ `research.py` **dynloads** `write_meridian` — move/redirect together. Verify via `meridian-preview` (built-in dry run) + `meridian-write`.
-- ⬜ **research cluster**: `research` (1,538) + `research_intelligence` (1,379). Verify via `meridian-research` + `research-intelligence` dispatch.
-- ⬜ **enrichment-core cluster** → `enrichment/` + `identity/`: `company_enrichment` (4,435) + `ct_gov_sync` (1,409) + `company_intake` (1,185) + `identity_resolution` + `model_comparison` + `company_identity_resolver` + `source_verifier`. Verify via `company-enrichment` dispatch + writer tests.
+- ✅ **research cluster**: `research` (1,538) → `ingestion/` (2026-06-17, meridian-research dispatch ran past startup); `research_intelligence` (1,379) → `scoring/` (prior session).
+- ✅ **enrichment-core cluster** DONE (2026-06-17): `company_enrichment` (4,437) → `enrichment/` (fixed parents[1]→[3] + _HINTS_PATH depth; repointed 11 workflow lines + weekend_sprint B2 subprocess); `ct_gov_sync` (1,409) → `ingestion/`; `company_intake` (1,185) → `identity/`; leaf libs (identity_resolution, model_comparison, company_identity_resolver, source_verifier) done prior session. Writer tests green; also fixed a stray `.gitignore` `enrichment/` pattern that was ignoring the package.
 - ⬜ **narrative cluster** → `products/`: `narrative_gen` (1,123) + `collect_evidence` + `generate_area_narratives` + `generate_patient_briefs`. Verify via `narrative-generation` / `patient-briefs` / `evidence-collectors`.
 - ⬜ **LLM stragglers**: `execute_intel_actions`, `process_queue_item` → `identity/`, `review_submitted_intel`. Verify each via its workflow.
 - ⬜ **writers + database consolidation**: move `src/database/` (`client`, `drug_writer`, `company_writer`, `edge_writer`, `catalyst_writer`) → `src/meridian/database/`, bring `apply_sql_migration` with them. Touches every writer importer — run `tests/database/` after.
