@@ -1,3 +1,14 @@
+# 🧹 CLEANUP PASS (2026-06-16, per Kyle: keep the repo legible)
+
+- Wired `seed_competes_with.py` through **EdgeWriter** (508 edges, 0 rejections — governs against phantom edges) and fixed a `status`->`stage` KeyError in it.
+- Deleted superseded `migrations/PROPOSED_drugwriter_enforcement.sql` (now implemented + applied as v157–v162).
+- Dropped 5 dead, unreferenced VIEWS (`phase3_regulatory_risk_map`, `recent_field_changes`, `change_frequency_summary`, `company_area_detail`, `governance_change_alerts`) — all verified empty/unreferenced; dashboard re-verified healthy after. Moved the remaining dead-object backlog (Tier B/C) to **`docs/audits/SCHEMA_CLEANUP_BACKLOG.md`** and removed the stale `PROPOSED_drop_dead_tables.sql`.
+- KNOWN minor wart (left, non-fatal): `seed_competes_with.py`'s separate `validation_tests` insert 409s on re-run (expression-unique constraint vs PostgREST upsert) — cosmetic; the edge seeding (the point) is clean. Worth a 1-line idempotency fix next pass.
+
+STANDING: keep deleting dead/superseded code as we go; migrations/ should hold only real applied migrations; backlogs live in docs/.
+
+---
+
 # 🔧 WRITERS HARDENED (Phase 3 prereq DONE, 2026-06-16)
 
 Single-writer **code layer is now complete + verified**. All 4 writers exist in `src/database/` (DrugWriter was already live). Found+fixed real bugs in 2:
