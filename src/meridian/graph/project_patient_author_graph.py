@@ -10,7 +10,7 @@ Re-run = 0 new edges / 0 new insights."""
 import json, os, urllib.request, urllib.parse
 
 BASE = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SK = open(os.path.join(ROOT, ".supabase_service_key")).read().strip()
 SESSION = "2026-06-07_patient_author_graph_v134"
 CREATED_BY = "v134_patient_author_graph"

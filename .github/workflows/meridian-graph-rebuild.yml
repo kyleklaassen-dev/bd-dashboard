@@ -29,11 +29,11 @@ jobs:
       - name: 1 · Author network silver (co-authorship, institution focus)
         run: python3 scripts/integrations/build_author_network_v132.py --write || echo "author-network non-fatal"
       - name: 2 · Institution silver (profiles, academic↔industry bridges)
-        run: python3 scripts/build_institution_intel.py || echo "institution-intel non-fatal"
+        run: python3 src/meridian/graph/build_institution_intel.py || echo "institution-intel non-fatal"
       - name: 3 · AUTHORED edges (author → publication) + author insights
         run: python3 scripts/integrations/project_author_graph_v131.py --write || echo "author-graph non-fatal"
       - name: 4 · CO_AUTHORED_WITH + RESEARCHES edges + patient/research insights
-        run: python3 scripts/project_patient_author_graph.py || echo "patient-author-graph non-fatal"
+        run: python3 src/meridian/graph/project_patient_author_graph.py || echo "patient-author-graph non-fatal"
       - name: 5 · SUPPLIES/MANUFACTURES edges (openFDA establishment)
         run: python3 scripts/integrations/project_manufacturing_edges.py --write || echo "mfg-edges non-fatal"
       - name: 6 · COLLABORATES edges (institution -> company)

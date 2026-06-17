@@ -15,7 +15,7 @@ Upserts on the UNIQUE keys so re-runs add 0 new rows.
 import json, os, re, sys, urllib.request, urllib.parse, urllib.error
 from collections import defaultdict
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SK = open(os.path.join(BASE, ".supabase_service_key")).read().strip()
 REST = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 HDR = {"apikey": SK, "Authorization": f"Bearer {SK}",
