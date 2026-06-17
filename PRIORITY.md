@@ -3,10 +3,13 @@
 **Single source of future work: `ROADMAP.md`. Session reading guide: `START_HERE.md`.**
 
 ## Active task
-Finish the package migration — the **narrative cluster** (ROADMAP §1). enrichment-core web + write_meridian
-are DONE; next = `narrative_gen` consumers (generate_area_narratives, generate_patient_briefs, landscape_narrative,
-patient_narrative, strategic_brief, collect_evidence, seed_*_edges, reconcile_drug_integrity, verify_publication_values).
-Run the full-repo importer sweep first; dispatch-verify each (narrative-generation / patient-briefs / evidence-collectors).
+**One clear data-write path** (ROADMAP §A.1) — the gating item. Gating question: can ONE approved path
+create/modify a drug record ingestion→database→dashboard? Today NO (drug_intake/company_intake/write_meridian/
+verify_sources raw-REST write `drugs`, bypassing DrugWriter). **Freeze new dashboard features until clean.**
+**Start:** route `drug_intake.py` (primary intake) through `DrugWriter`, then the other 3; run tests/database/ after each.
+
+Migration status: package migration's enrichment-core web + narrative cluster DONE (2026-06-17, flat scripts 47→32);
+remaining migration = LLM stragglers + writers→`src/meridian/database/` (the latter dovetails with §A.1).
 
 ## Always
 Start: read START_HERE.md → ROADMAP Now/Next → NEXT_SESSION. End: update ROADMAP + NEXT_SESSION, run

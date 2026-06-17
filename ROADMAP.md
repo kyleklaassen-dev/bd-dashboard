@@ -15,12 +15,40 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 - Keep items **outcome-phrased** and **self-contained** (a future reader has no memory of today).
 
 ## Now / Next (the short list)
-1. 🟡 **Finish the package migration** (§1). ✅ enrichment-core web DONE (company_enrichment→enrichment/, ct_gov_sync+research→ingestion/, company_intake→identity/, 2026-06-17). Remaining: **narrative cluster** (11 product consumers) + LLM stragglers + writers→`src/meridian/database/`.
-2. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
-3. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
-4. ⬜ **`index.html` Phase 4** decomposition (§4).
-5. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
-6. ⬜ **Drift guardrails** wired as a recurring check (§6).
+1. 🔴 **One clear data-write path** (§A.1) — THE gating item. Route the raw-REST core-table writers through the 4 writers. Until done, **freeze new dashboard features.**
+2. 🟡 **Finish the package migration** (§1). ✅ enrichment-core web + ✅ narrative cluster DONE (2026-06-17). Remaining: LLM stragglers + writers→`src/meridian/database/`.
+3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
+4. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
+5. ⬜ **`index.html` Phase 4** decomposition (§4) — also separates UI from intelligence logic (§A.2).
+6. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
+7. ⬜ **Drift guardrails** wired as a recurring check (§6).
+
+---
+
+## A. Product architecture — the correctness spine (strategic frame, 2026-06-17)
+**The package migration gave Meridian a legible skeleton; this is the discipline that goes on top.**
+The goal: make the *wrong thing impossible*, not just organized. These are the product-architecture
+guarantees (and they restate `STABILIZATION_PLAN.md` / `constitution.md` as a crisp priority order).
+
+**🔑 Gating question: _Can ONE approved path create or modify a drug record from ingestion → database → dashboard?_**
+**Today the answer is NO** (verified 2026-06-17): `DrugWriter` exists but `drug_intake`, `company_intake`,
+`write_meridian`, `verify_sources` all write `drugs` via raw REST, bypassing it; only `approve_discovery` +
+`molecule_enrichment` route through the writer. **→ Per this rule, freeze new dashboard features until A.1 is clean.**
+
+1. 🔴 **One clear data-write path** — every core-table (`drugs`/`companies`/`entity_edges`/`catalysts`) write goes
+   through its Writer; no raw `sb_upsert`/REST. Channel + DB enforcement (v157–162) exist; the CODE layer is the gap.
+   *Start:* route `drug_intake` (primary intake) through `DrugWriter`, then `company_intake`/`write_meridian`/`verify_sources`.
+2. 🟡 **Separate UI from intelligence logic** — `index.html` currently decides (`_resolveStage`, `_score`, `_dedup`,
+   `canonical` ×61, `partnership_verified` writes). Move identity/scoring/stage rules server-side; the dashboard displays trusted data. (overlaps §4)
+3. 🟡 **Define canonical entities** — one source of truth per entity (drugs/companies/trials/mechanisms/deals/catalysts);
+   converge the 22 ad-hoc resolvers onto `entity_matcher`.
+4. 🟡 **Audit logs** — every core change answers who/what/when/**why**. Have: `governance_enforcement_log`, `drug_sources`
+   provenance, partial `created_by`. Need: a uniform change-audit on the writer path.
+5. 🟡 **Tests around known edge cases** — codify the real ones: VTX002, tulisokibart/MK-7240, Roche/Telavant, HLX36/LBL-053.
+6. 🟢 **Lifecycle map** — `docs/architecture/drug_lifecycle.md` exists; refresh to true current state (ingestion→enrich→dashboard→update).
+
+**Sequence:** A.1 first (unblocks the gating question) → A.4 audit on the now-single path → A.3 canonical convergence →
+A.2 UI/logic split (with §4) → A.5 tests → A.6 doc refresh. A.1 also completes stabilization Stage 4.
 
 ---
 
