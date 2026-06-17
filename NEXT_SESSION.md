@@ -1,3 +1,18 @@
+# ✅ PACKAGE MIGRATION — enrichment/ (self-contained) DONE (2026-06-16) — commit 4a68cfed
+
+2 self-contained active enrichment scripts → `src/meridian/enrichment/`: molecule_enrichment (parents[1]→parents[3]) and drug_intelligence_researcher (BASE_DIR .parent.parent → parents[3]). Both import-exercised OK (env-confirmed). school-week-sprint.yml: only the 2 moved-script lines re-pointed; company_enrichment + ct_gov_sync left as scripts/ (deferred). Stale-ref sweep: NONE.
+**Verification = import-exercise only.** school-week-sprint is a heavy LLM + cost-gated workflow (API-spend paused), so no cheap green dispatch — flagged, not blocked (both modules load clean).
+
+**DEFERRED to the final utilities+identity group:**
+- company_enrichment (ACTIVE, 4,435 lines, 2 workflows) — imports identity_resolution + model_comparison (both still in scripts/). Feeds the 4am core → move WITH its deps, --dry-run + synthetic-exercise before push.
+
+**FLAGGED for disposition (not moved, not deleted — need Kyle's call):** 6 enrichment scripts wired to NO workflow and imported by nothing — drug_enrichment, deep_enrich_intel, quick_profiles_enrich, run_pkpd_claude, patient_population_agent, payer_pricing_agent. Likely abandoned → archive, but deletes need approval. Left in scripts/ for now (won't pollute the clean package with dead code).
+
+**Running tally: graph/9 + scoring/7 + ingestion/9 + validation/8 + products/3 + enrichment/2 = 38 scripts migrated. 0 engine failures throughout.**
+**NEXT = the final utilities+identity group** (the hard one): entity_matcher, identity_resolution, model_comparison, company_identity_resolver, narrative_gen, meridian_integrations_feed, source_verifier, build_fact_graph, company_intake + all deferred coupled products (write_meridian, generate_area_narratives, generate_patient_briefs, dryrun_meridian) + company_enrichment + ct_gov_sync. These feed the 4am core → synthetic-exercise + --dry-run, PAUSE/FLAG before pushing any 4am-core mover.
+
+---
+
 # ✅ PACKAGE MIGRATION — products/ (self-contained) DONE (2026-06-16)
 
 3 self-contained active products scripts → `src/meridian/products/`: generate_landscape_briefing (its `docs/` OUTPUT path fixed → parents[3]/docs), bd_recommender (`_REPO_ROOT` key-search path fixed), morning_summary (the artifact-file `repo_root` fixed). Import-verified; 3 workflows updated (from main).
