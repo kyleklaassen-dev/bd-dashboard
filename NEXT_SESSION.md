@@ -1,3 +1,20 @@
+# ✅ PACKAGE MIGRATION — graph/ group DONE (2026-06-16, supervised-equivalent)
+
+Executed the first package migration from REPO_LAYOUT §6. **9 graph scripts moved** to `src/meridian/graph/`, each verified, engine green (0 failures):
+- `materialize_structural_edges`, `materialize_deal_edges` (stdlib-only) — verified via workflow dispatch (structural-edges, deal-edges --dry-run both green).
+- `build_institution_intel`, `project_patient_author_graph`, `derive_ownership_rights` (read `.supabase_service_key` via `__file__`-relative repo-root) — path depth fixed +2 levels; import-exercised; meridian-graph-rebuild + meridian-derived-rebuild dispatched green.
+- `unify_graph`, `seed_target_edges` (env-key + repo-root fallback) and `seed_api_edges`, `graph_health_guard` (`sys.path`→`src` for `from database import client`) — path hacks fixed for the new depth; import-exercised. (chunk_extract is heavy LLM → verified by import-exercise, not a full dispatch; api-harvest dispatched.)
+
+**Two process lessons (both caught by my own post-move stale-ref check):**
+1. A script can be wired into MULTIPLE workflows — `materialize_structural_edges` was in BOTH structural-edges and chunk_extract. Use the script→ALL-workflows reverse index (`outputs/script_to_workflows.json`) for every move.
+2. **Read workflow YAML from `main`, NOT the tarball snapshot** — editing chunk_extract from the stale snapshot silently reverted an earlier fix. Scripts are safe from the snapshot (unchanged); workflows are not (they change as you edit).
+
+**Remaining in graph/:** `link_entities` + `build_fact_graph` — COUPLED (import `entity_matcher`, a shared utility). Do these together with the identity-utility move (`entity_matcher`, `narrative_gen`, etc.), updating every importer. Utilities are imported by the 4am core (company_enrichment, write_meridian) — synthetically exercise (import-test + `--dry-run` dispatch) before pushing.
+
+**Next groups (REPO_LAYOUT §6 order):** scoring (compute_* — mostly self-contained), ingestion, validation, products, enrichment, then the utilities+identity (hardest, last).
+
+---
+
 # 🗂 REPO REORGANIZATION — day pass (2026-06-16)
 
 Goal: standard-SWE structure, smaller files, legible for an engineer. Approach: **understand fully first** (the Cowork mount silently drops files in bulk reads, so all analysis was done on a tarball snapshot of `main` — reliable), then only **safe, self-verified** changes (the risky active-code moves wait for a supervised session).
