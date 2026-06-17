@@ -57,7 +57,7 @@ jobs:
           echo "--- 1) Drug evidence (ct.gov + Europe PMC) over areas: $AREAS ---"
           for area in $AREAS; do
             echo ">> area: $area"
-            python scripts/collect_evidence.py --area "$area" $FLAG || echo "  (area $area failed — continuing)"
+            python src/meridian/ingestion/collect_evidence.py --area "$area" $FLAG || echo "  (area $area failed — continuing)"
           done
 
           echo "--- 2) Patient / epidemiology evidence (Europe PMC) ---"
