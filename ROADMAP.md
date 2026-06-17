@@ -35,9 +35,15 @@ guarantees (and they restate `STABILIZATION_PLAN.md` / `constitution.md` as a cr
 `write_meridian`, `verify_sources` all write `drugs` via raw REST, bypassing it; only `approve_discovery` +
 `molecule_enrichment` route through the writer. **→ Per this rule, freeze new dashboard features until A.1 is clean.**
 
-1. 🔴 **One clear data-write path** — every core-table (`drugs`/`companies`/`entity_edges`/`catalysts`) write goes
-   through its Writer; no raw `sb_upsert`/REST. Channel + DB enforcement (v157–162) exist; the CODE layer is the gap.
-   *Start:* route `drug_intake` (primary intake) through `DrugWriter`, then `company_intake`/`write_meridian`/`verify_sources`.
+1. 🔴 **One clear data-write path** — every core-table write goes through its Writer; no raw `sb_upsert`/REST.
+   Channel + DB enforcement (v157–162) exist; the CODE layer is the gap. **Accurate scope (verb-confirmed 2026-06-17,
+   ~12 sites — NOT "everything"; the metric previously counted reads as writes, now fixed):**
+   - **Top target: `execute_intel_actions`** — raw-creates drugs + companies + catalysts (highest inconsistency risk). Do first.
+   - **entity_edges (6):** route the edge seeders (`seed_target_edges`/`seed_targets`/`unify_graph`/`seed_api_edges`/`connect_ctgov_raw`/`company_intake`) through `EdgeWriter` (seed_competes_with already does).
+   - **catalysts:** `research`, `write_meridian` (PATCH) → CatalystWriter.
+   - **Narrow field-patches** (lower risk): `verify_sources` (data_confidence), `stock_prices` (price) → through writers or an allow-listed patch path.
+   - **`dedupe_entities`** (FK-aware maintenance) — decide: route through writers or keep as an explicit, audited maintenance exception.
+   *Note:* `drug_intake`/`company_intake`/`write_meridian` only READ drugs (earlier "raw writer" claim was the metric bug). Gate every change with `tests/database/`.
 2. 🟡 **Separate UI from intelligence logic** — `index.html` currently decides (`_resolveStage`, `_score`, `_dedup`,
    `canonical` ×61, `partnership_verified` writes). Move identity/scoring/stage rules server-side; the dashboard displays trusted data. (overlaps §4)
 3. 🟡 **Define canonical entities** — one source of truth per entity (drugs/companies/trials/mechanisms/deals/catalysts);
