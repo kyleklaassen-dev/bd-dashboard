@@ -1,3 +1,9 @@
+# ⚠️ FINDING (2026-06-16, live 221-file sweep) — entity_matcher is WRITER-COUPLED
+
+`entity_matcher` is imported by **`src/database/drug_writer.py` + `src/database/company_writer.py`** (the governed single-writers) and `scripts/maintenance/link_extras.py` — NOT just build_fact_graph/link_entities as the active/util depmap implied. **Moving entity_matcher edits the writer layer that every core write routes through → supervised only.** Lesson: depmap.json covers active/util scripts; it does NOT capture src/database/ or scripts/maintenance/ importers — for the coupled clusters, ALWAYS run the live full-repo importer sweep first (the snippet that scanned 221 files: all scripts/ subdirs + src/ + workflows). Same caution applies before moving identity_resolution/model_comparison/source_verifier (likely writer- or research-coupled too).
+
+---
+
 # ✅ PACKAGE MIGRATION — ops/ DONE (2026-06-16) — commit d83d9c7e — 3 monitors, dispatch-verified GREEN
 
 pipeline_health, pipeline_monitor, signal_monitor → `src/meridian/ops/` (no sibling imports, no LLM). Path anchors → repo root; import-exercised + all 3 workflow_dispatch runs SUCCESS.
