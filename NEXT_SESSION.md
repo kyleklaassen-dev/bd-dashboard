@@ -1,3 +1,9 @@
+# ☀️ MORNING REVIEW READY (2026-06-16 overnight)
+
+Read **`docs/audits/MORNING_REVIEW_2026-06-16.md`** first. TL;DR: DB healthy (0 orphans/dups/validation-fails), enforcement live (4 rules + Layer B), engine green, governance 41→3, submitted-intel now 4-hourly (10 items in needs_review for you). Batch self-verified; 2 over-removed trial links were caught and restored. 3 decisions await you (see audit §3): hard-delete vs keep the 8 reversibly-dropped records; purge nvx-360/calt-100?; China-CDE check for generate-uc/lbl-053. Next-steps roadmap in audit §4 (quick data fixes → company firmographics → Phase 3 modularization).
+
+---
+
 # NEXT_SESSION — addendum (2026-06-16 PM, Stage 4 DONE)
 
 Continued from the entry below. **Single-writer enforcement is now REAL (channel + invariant); the freeze can lift.**
