@@ -1,3 +1,26 @@
+# ✅ PACKAGE MIGRATION STRUCTURALLY COMPLETE + architecture spine defined (2026-06-17, cont.)
+
+**`src/` is now ONE unified `meridian` package** (database, enrichment, graph, identity, ingestion, ops, products,
+scoring, validation — 91 modules; flat scripts 47→32; dep graph 0 cycles).
+
+- **Narrative cluster migrated** (11 files, 4 domains): seed_company/partnership/patient_edges→graph/ (ab3a70a);
+  verify_publication_values+reconcile_drug_integrity→validation/ (8c0827a); collect_evidence→ingestion/ (001c310);
+  generate_area_narratives/generate_patient_briefs/patient_narrative/strategic_brief/landscape_narrative→products/ (baf49c7).
+  Fixed generate_area_narratives's subprocess orchestration (cwd→repo-root parents[3] + repointed moved targets).
+- **Writers moved** src/database/ → **src/meridian/database/** (f97e4ef): client + 4 writers. Fixed internal path
+  anchors (parents[2]→[3], src/database→src/meridian/database for client+entity_matcher sys.path); updated ALL importers
+  (8 `from database import client`, bare writer imports, tests, seed_competes_with). **Live writer tests green (6/0 + 8/0).**
+- **§A PRODUCT ARCHITECTURE added to ROADMAP** (fe32853): the correctness spine. Gating question — _can ONE approved
+  path create/modify a drug ingestion→database→dashboard?_ **Today NO** (drug_intake/company_intake/write_meridian/
+  verify_sources raw-REST write `drugs`). **Freeze dashboard features until §A.1 clean.**
+
+## NEXT: §A.1 — one write path (the chosen direction). Writers now in final home → route consumers through them.
+Start: `drug_intake.py` (primary intake, 3 raw `POST /rest/v1/drugs`) → `DrugWriter`; then company_intake/write_meridian/
+verify_sources. Gate each with tests/database/. This also completes stabilization Stage 4.
+Remaining migration tail: LLM stragglers (few); most of the 32 flat scripts are manual tools + weekend_sprint (§2 decompose).
+
+---
+
 # ✅ enrichment-core CONSUMERS migrated + root cleanup (2026-06-17)
 
 **Supervised session on the real local clone — native git works here** (git pull/commit/push all fine;

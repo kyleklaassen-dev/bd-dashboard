@@ -16,7 +16,7 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 
 ## Now / Next (the short list)
 1. 🔴 **One clear data-write path** (§A.1) — THE gating item. Route the raw-REST core-table writers through the 4 writers. Until done, **freeze new dashboard features.**
-2. 🟡 **Finish the package migration** (§1). ✅ enrichment-core web + ✅ narrative cluster DONE (2026-06-17). Remaining: LLM stragglers + writers→`src/meridian/database/`.
+2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
 3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
 4. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
 5. ⬜ **`index.html` Phase 4** decomposition (§4) — also separates UI from intelligence logic (§A.2).
