@@ -36,7 +36,7 @@
 | 1 | **Service-role key rotation** | P0 | ⛔ Kyle's | Standing security item (key was once exposed in client). Claude can map consumers + verify after; rotation itself is Kyle's. |
 | 2 | **Add Denali/Odyssey/Abivax/NewLimit as companies** → link the 9 area-only catalysts to them | P2 | Open | 17/26 catalysts linked to a drug/company; 9 remain area-anchored because their company isn't in the DB yet. |
 | 3 | **(DONE) Layer B permission boundary** | — | ✅ 2026-06-16 | v161: anon/authenticated write revoked on core tables; service_role only; partnership-pill kept via column grant. |
-| 4 | **Drug-discovery `company_id` policy** → enforce `drugs.company_id_required` | P2 | Open | 12 company-less code-named drugs remain. Decide: require company at insert (may break discovery) vs. a quarantine stage. Then harden the rule. |
+| 4 | **(DONE) `drugs.company_id_required` enforced** | — | ✅ 2026-06-16 | v162: required on INSERT except `discovery_status='auto'` (the harvester transient). 12 company-less drugs are all auto → compliant. |
 | 5 | **Backfill `drug_sources` for 58 drugs** | P1 | Open | Run evidence-collectors (free ct.gov/EuropePMC) to close the 30% source-coverage gap; 7 deals also lack source_url. |
 | 6 | **apg777/apg279 graph re-sync** | P2 | Open | Their `TARGETS` edges still point to il4ra/ox40l; re-seed to il13/ox40l so the corrected target propagates to the graph + landscapes. |
 | 7 | **Continue review→fix iterations** (accuracy + connectivity) | P2 | Ongoing | Build on each pass. |
