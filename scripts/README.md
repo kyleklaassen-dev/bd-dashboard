@@ -41,3 +41,13 @@ Pipeline entrypoints run by the GitHub Actions workflows in `.github/workflows/`
 - `integrations/` — external-API edge projectors (manufacturing, author graph, patents)
 - `maintenance/` — dedupe / audit / link tools (`dedupe_entities.py`, `graph_audit.py`)
 - `migrations/` — legacy SQL (being consolidated into the top-level `migrations/`)
+
+> **⚠ Accuracy note (verified 2026-06-16 via the GitHub API, the reliable source —
+> the Cowork mount silently drops files in bulk greps, so on-mount analysis is NOT
+> trustworthy for move-safety):** the AUTHORITATIVE set of **active** scripts is the
+> **64 referenced by the 53 workflows**. Several entries that look like one-offs are
+> actually workflow-wired and must NOT be archived/moved without updating their
+> workflow: `weekend_sprint`, `flywheel_phase2`, `backfill_bd_angle`, `seed_data_sources`,
+> `apply_sql_migration`, `apply_competitive_scores_v56`. Before archiving ANY script,
+> confirm it is (a) not in the 64 workflow-referenced scripts AND (b) not imported by
+> another script — using API-fetched content, not the mount.
