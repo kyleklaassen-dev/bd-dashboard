@@ -37,7 +37,7 @@ jobs:
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/morning_summary.py
+        run: python src/meridian/products/morning_summary.py
 
       - name: Upload summary artifact
         uses: actions/upload-artifact@v4

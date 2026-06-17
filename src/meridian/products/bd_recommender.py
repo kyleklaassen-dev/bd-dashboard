@@ -36,7 +36,7 @@ from typing import List, Dict, Optional, Any
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
+_REPO_ROOT    = os.path.dirname(os.path.dirname(os.path.dirname(_SCRIPTS_DIR)))
 
 
 # ── Credentials ───────────────────────────────────────────────────────────────

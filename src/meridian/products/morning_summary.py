@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
     # Determine output path — always write to repo root regardless of cwd
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root  = os.path.dirname(script_dir)
+    repo_root  = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     out_path   = os.path.join(repo_root, "meridian_overnight_summary.txt")
 
     with open(out_path, "w", encoding="utf-8") as f:

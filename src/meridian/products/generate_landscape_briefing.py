@@ -448,7 +448,7 @@ def main():
         return
 
     # Write markdown file
-    docs_dir = pathlib.Path(__file__).parent.parent / "docs"
+    docs_dir = pathlib.Path(__file__).resolve().parents[3] / "docs"
     docs_dir.mkdir(exist_ok=True)
     md_path = docs_dir / f"{area_id}_landscape_briefing.md"
     md_path.write_text(full_markdown, encoding="utf-8")
