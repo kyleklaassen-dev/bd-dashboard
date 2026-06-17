@@ -42,7 +42,7 @@ def test_catalyst_valid():
 
 def test_catalyst_needs_anchor():
     r = CatalystWriter(dry_run=True).upsert({"label": "orphan", "catalyst_date": "2027-01-01"})
-    check("catalyst without drug/company rejected", any("drug_id or company_id" in e for e in r["errors"]))
+    check("catalyst without an anchor rejected", any("anchor" in e for e in r["errors"]))
 
 def test_catalyst_needs_date():
     r = CatalystWriter(dry_run=True).upsert({"drug_id": "sl325", "label": "no date"})
