@@ -63,8 +63,8 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_A
 
 if not SUPABASE_KEY:
     for _p in [
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key"),
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_anon_key"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", ".supabase_service_key"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", ".supabase_anon_key"),
     ]:
         _p = os.path.abspath(_p)
         if os.path.exists(_p):
@@ -158,7 +158,7 @@ def _days_ago(d: date | None) -> int | None:
 
 
 def _ensure_log_dir() -> Path:
-    script_dir = Path(__file__).parent
+    script_dir = Path(__file__).resolve().parents[2]
     log_dir = script_dir.parent / "logs"
     log_dir.mkdir(exist_ok=True)
     return log_dir

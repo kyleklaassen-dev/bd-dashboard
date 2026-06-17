@@ -4,7 +4,7 @@ Promotes upcoming, source-verified ct.gov catalysts from `catalysts` into
 `catalyst_calendar` (the table the dashboard BD Today widget reads). Free,
 deterministic, idempotent. Run on a schedule (meridian-free-ingest.yml)."""
 import os,json,urllib.request,datetime
-ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SB="https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 KEY=open(os.path.join(ROOT,".supabase_service_key")).read().strip()
 H={"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"}

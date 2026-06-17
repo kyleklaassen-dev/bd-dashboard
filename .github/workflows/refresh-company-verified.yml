@@ -70,7 +70,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/refresh_company_verified.py
+          python src/meridian/validation/refresh_company_verified.py
 
       - name: "[Scheduled] Company health score summary"
         if: github.event_name == 'schedule'
@@ -102,8 +102,8 @@ jobs:
           if [ "${{ github.event.inputs.all_companies }}" == "true" ]; then
             ARGS="$ARGS --all"
           fi
-          echo "Running: python scripts/refresh_company_verified.py $ARGS"
-          python scripts/refresh_company_verified.py $ARGS
+          echo "Running: python src/meridian/validation/refresh_company_verified.py $ARGS"
+          python src/meridian/validation/refresh_company_verified.py $ARGS
 
       - name: "[Manual] Company health score summary"
         if: |

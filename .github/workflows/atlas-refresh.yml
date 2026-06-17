@@ -38,7 +38,7 @@ jobs:
       - name: Recompute attribute completeness (heatmap + cards)
         run: python3 src/meridian/scoring/compute_attribute_completeness.py
       - name: Refresh data-sources registry
-        run: python3 scripts/seed_data_sources.py
+        run: python3 src/meridian/ingestion/seed_data_sources.py
       - name: Refresh patent families (monthly cron or manual opt-in)
         if: github.event.schedule == '0 8 1 * *' || github.event.inputs.families == 'true'
         run: python3 scripts/integrations/surechembl_families.py || echo "surechembl partial/blocked — non-fatal"

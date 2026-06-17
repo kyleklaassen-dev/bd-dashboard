@@ -3,7 +3,7 @@
 Idempotent upsert. Derived from docs/API_INTEGRATION_LANDSCAPE.md + integration rounds 1-15."""
 import json, os, urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SB = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 KEY = open(os.path.join(ROOT, ".supabase_service_key")).read().strip()
 
