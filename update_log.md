@@ -941,3 +941,6 @@ Fix B — Drug card ownership chain:
 - Gap between dot right edge and text left edge: 3.5px → 10.5px — no more overlap
 
 ---
+
+## 2026-06-16 — Security: RLS enabled on 24 exposed public tables
+Supabase advisory rls_disabled_in_public. Applied anon read-only policy pattern (RLS ON + anon_read_<t> SELECT USING(true)) to: author_institution_focus, co_authorship, company_events, company_ownership, company_personnel, conference_abstract_signals, drug_safety, drug_trust_scores, entity_narratives, eu_approvals, governance_enforced_rules, governance_enforcement_config, governance_enforcement_log, kol_metrics, manufacturing_profile, manufacturing_sites, narrative_provenance, narrative_revisions, patient_unmet_need_competition, prediction_factors, prediction_revisions, publication_authors, target_disease_assoc, target_genetics. Anon writes/deletes now blocked; reads preserved. Migration: migrations/APPLIED_2026-06-16_rls_enable_24_exposed_tables.sql. OPEN: rotate leaked service_role key.

@@ -2,9 +2,13 @@
 """Deploy one or more repo files to GitHub (Git Data API, single commit).
 
 Usage:
-  GITHUB_TOKEN=... python3 scripts/deploy_files.py "commit message" path1 [path2 ...]
+  GITHUB_TOKEN=... python3 scripts/deploy_files.py "commit message" path1 [path2 ...] \
+      [--delete oldpath1 ...]
 
-Paths are relative to the repo root. Reads token from $GITHUB_TOKEN or .github_token.
+Positional paths (relative to repo root) are added/updated from the local working
+tree. Paths after --delete are removed from the tree (sha:null) — needed for file
+*moves* (add new path + delete old path in one atomic commit).
+Reads token from $GITHUB_TOKEN or .github_token.
 Used because git on the mounted workspace is unreliable — deploy via API instead.
 """
 import os, sys, base64, requests, pathlib
@@ -19,8 +23,17 @@ H = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"
 
 def main():
     if len(sys.argv) < 3:
-        sys.exit("usage: deploy_files.py 'message' path1 [path2 ...]")
-    msg, paths = sys.argv[1], sys.argv[2:]
+        sys.exit("usage: deploy_files.py 'message' path1 [path2 ...] [--delete oldpath ...]")
+    msg = sys.argv[1]
+    rest = sys.argv[2:]
+    paths, deletes, sink = [], [], None
+    for a in rest:
+        if a == "--delete":
+            sink = deletes
+            continue
+        (sink if sink is not None else paths).append(a)
+    if not paths and not deletes:
+        sys.exit("nothing to deploy")
 
     head = requests.get(f"{API}/git/ref/heads/main", headers=H, timeout=20)
     head.raise_for_status()
@@ -35,6 +48,9 @@ def main():
         blob.raise_for_status()
         tree.append({"path": rel, "mode": "100644", "type": "blob", "sha": blob.json()["sha"]})
         print(f"  blob {rel}: {len(data)} bytes")
+    for rel in deletes:
+        tree.append({"path": rel, "mode": "100644", "type": "blob", "sha": None})
+        print(f"  delete {rel}")
 
     new_tree = requests.post(f"{API}/git/trees", headers=H, timeout=30,
                              json={"base_tree": base_tree, "tree": tree})
@@ -46,7 +62,7 @@ def main():
     ref = requests.patch(f"{API}/git/refs/heads/main", headers=H, timeout=30,
                          json={"sha": new_sha, "force": False})
     ref.raise_for_status()
-    print(f"Deployed {len(paths)} file(s) → commit {new_sha[:7]}")
+    print(f"Deployed {len(paths)} added/updated + {len(deletes)} deleted → commit {new_sha[:7]}")
 
 
 if __name__ == "__main__":
