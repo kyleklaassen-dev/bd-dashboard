@@ -28,6 +28,13 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 products/3 · enrichment/2 · ops/3 · identity/4. Plus 5 deletions + `payer_pricing_agent` wired into free-ingest.
 Method documented in `docs/architecture/REPO_LAYOUT.md` §6.
 
+**PROGRESS (freeze lifted → dispatch-verified):** moved the **write_meridian cluster** (write_meridian + meridian_integrations_feed + dryrun_meridian → products/, meridian-preview dry-run GREEN), the 3 LLM leaves (execute_intel_actions→products, process_queue_item + review_submitted_intel→identity; fixed a pre-existing None-slice bug), and **research_intelligence** → scoring/. ~58 flat scripts remain.
+
+**🧭 LEARNING — switch the last two webs to package imports.** The remaining two clusters are *densely* cross-coupled and span multiple packages, so the own-dir `sys.path.insert(dirname(__file__))` + sibling-import trick (great for the first ~55 scripts) now produces fragile, many-file commits. **Recommended next step before moving them:** make `meridian` a real importable package — add `PYTHONPATH=$GITHUB_WORKSPACE/src` (job-level `env:`) to the workflows (or a `pyproject.toml` + `pip install -e .`), convert the writers' + cross-package imports to `from meridian.<domain>.<mod> import ...`, then the two webs move cleanly with no sys.path redirects. Verify with the writer tests + a dry-run dispatch.
+
+  - **narrative web (12 files, 4 domains):** `narrative_gen` (lib) + its product consumers (generate_area_narratives, generate_patient_briefs, landscape_narrative, patient_narrative, strategic_brief) → products/; collect_evidence → ingestion/; seed_company/partnership/patient_edges → graph/; reconcile_drug_integrity + verify_publication_values → validation/. All 11 import `narrative_gen` via own-dir sibling import → redirect once package imports land.
+  - **enrichment-core web (8 files):** company_enrichment(4435) + ct_gov_sync(1409) + company_intake(1185) + identity_resolution + model_comparison + company_identity_resolver + source_verifier + research(1538). Mutual coupling: research→{company_identity_resolver, source_verifier}; company_enrichment→{identity_resolution, model_comparison}; ct_gov_sync→identity_resolution; company_intake→company_identity_resolver. Move together once package imports land. Several are also large-file-split targets (§3) — split during the move.
+
 **Remaining = the LLM-core clusters.** Move each as ONE atomic commit (move members + update EVERY importer +
 update all workflows read from `main` + `__init__.py`), then **dispatch-verify** the workflow green (freeze off).
 Always run the full-repo importer sweep first — the depmap misses `src/database/`, `scripts/maintenance/`, and dynloads.
