@@ -65,6 +65,9 @@ import urllib.error
 import ssl
 from collections import defaultdict
 from itertools import combinations
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from src.database.edge_writer import EdgeWriter  # governed single-writer for entity_edges
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CREDENTIALS
@@ -372,7 +375,7 @@ def group_by_area_target(das_rows: list[dict], drug_lookup: dict) -> tuple[dict,
             "canonical_target": canon,
             "target_is_mapped": mapped,
             "area_id":          area_id,
-            "status":           drug["status"],
+            "status":           drug["stage"],
         })
 
     return dict(groups), uncertain
@@ -637,19 +640,17 @@ def main():
     if not edges_to_insert:
         print("Nothing to insert.")
     else:
-        # Batch in groups of 100
-        inserted_total = 0
-        BATCH = 100
-        for i in range(0, len(edges_to_insert), BATCH):
-            batch = edges_to_insert[i:i+BATCH]
-            result = sb_post("entity_edges", batch, upsert=True)
-            if result is None:
-                print(f"  [ERROR] Batch {i//BATCH + 1} failed.", file=sys.stderr)
-                sys.exit(1)
-            inserted_total += len(result) if isinstance(result, list) else 1
-            print(f"  ✓ Batch {i//BATCH + 1}: inserted {len(result) if isinstance(result, list) else 1} edges")
-
-        print(f"\n✅ Total edges inserted: {inserted_total}")
+        # Route through the governed EdgeWriter: validates predicate/node-type vocab
+        # and verifies BOTH endpoints exist (rejects edges to non-existent drugs →
+        # this is what prevents the mk-1718/mdr-018-style phantom edges). Idempotent.
+        writer = EdgeWriter(dry_run=False)
+        rep = writer.write(edges_to_insert)
+        inserted_total = rep["written"]
+        if rep["rejected"]:
+            print(f"  \u26a0 EdgeWriter rejected {len(rep['rejected'])} edge(s) (NOT written — likely orphan/invalid):")
+            for r in rep["rejected"][:25]:
+                print(f"      {r['edge']}: {r['errs']}")
+        print(f"\n\u2705 Total edges written via EdgeWriter: {inserted_total}")
         unique_pairs = len(safe_edges) // 2
         print(f"   ({unique_pairs} unique drug pairs × 2 directed edges)")
 
