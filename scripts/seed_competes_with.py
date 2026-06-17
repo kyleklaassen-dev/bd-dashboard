@@ -67,7 +67,7 @@ from collections import defaultdict
 from itertools import combinations
 import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from src.database.edge_writer import EdgeWriter  # governed single-writer for entity_edges
+from src.meridian.database.edge_writer import EdgeWriter  # governed single-writer for entity_edges
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CREDENTIALS

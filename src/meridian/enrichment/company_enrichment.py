@@ -463,7 +463,7 @@ def _catalyst_upsert(rec):
     Routes through CatalystWriter; preserves list-on-success / [] contract."""
     import sys, pathlib as _pl
     _b = _pl.Path(__file__).resolve().parents[3]   # repo root from src/meridian/enrichment/
-    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+    for _p in (str(_b / "src" / "meridian" / "database"), str(_b / "scripts")):
         if _p not in sys.path:
             sys.path.insert(0, _p)
     from catalyst_writer import CatalystWriter

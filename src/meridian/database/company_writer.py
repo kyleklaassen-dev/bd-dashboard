@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-src/database/company_writer.py — the SINGLE writer for the `companies` table.
+src/meridian/database/company_writer.py — the SINGLE writer for the `companies` table.
 ============================================================================
 Only approved path to create/modify a company (Constitution §4, ADR-010).
 Enforces: identity (no duplicate company — the problem we just deduped 8 of),
@@ -8,8 +8,8 @@ default status='subsidiary' (CLAUDE.md §2), parent_company_id set for sub/acq,
 unknown-column rejection. Dry-run capable. Mirrors DrugWriter.
 """
 import re, sys, pathlib
-_BASE = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_BASE / "src" / "database"))
+_BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "database"))
 sys.path.insert(0, str(_BASE / "src" / "meridian" / "identity"))
 import client
 from entity_matcher import Registry

@@ -12,7 +12,7 @@ Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from database import client as c
+from meridian.database import client as c
 
 NOW = datetime.datetime.utcnow().isoformat()
 LIMIT = next((int(a.split("=")[1]) for a in sys.argv if a.startswith("--limit=")), None)

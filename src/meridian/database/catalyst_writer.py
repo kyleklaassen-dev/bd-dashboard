@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-src/database/catalyst_writer.py — the SINGLE writer for the `catalysts` table.
+src/meridian/database/catalyst_writer.py — the SINGLE writer for the `catalysts` table.
 =============================================================================
 Only approved path to create/modify a catalyst (Constitution §4, ADR-010).
 Enforces: must link to a drug or company; a date is present; dedup on
@@ -8,8 +8,8 @@ Enforces: must link to a drug or company; a date is present; dedup on
 capable. Mirrors DrugWriter/CompanyWriter.
 """
 import sys, pathlib
-_BASE = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_BASE / "src" / "database"))
+_BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "database"))
 import client
 
 

@@ -39,7 +39,7 @@ from datetime import datetime, timezone
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(BASE_DIR, "src"))
-from database import client as c  # shared Supabase REST client (urllib, no deps)
+from meridian.database import client as c  # shared Supabase REST client (urllib, no deps)
 
 NOW = datetime.now(timezone.utc).isoformat()
 CONFIG = os.path.join(BASE_DIR, "data", "china_sponsors.json")

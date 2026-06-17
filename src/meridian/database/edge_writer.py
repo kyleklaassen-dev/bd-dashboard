@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-src/database/edge_writer.py — the SINGLE writer for `entity_edges`.
+src/meridian/database/edge_writer.py — the SINGLE writer for `entity_edges`.
 ==================================================================
 Only approved path to create knowledge-graph edges (Constitution §4, ADR-007/009/010).
 Enforces the CHECK-constraint vocabulary (predicate, generation_method) and is
@@ -8,8 +8,8 @@ idempotent via the entity_edges_subj_pred_obj_uniq constraint (on_conflict).
 Validates that both endpoints exist. Dry-run capable.
 """
 import sys, pathlib
-_BASE = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_BASE / "src" / "database"))
+_BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "database"))
 import client
 
 # Allowed vocab — mirrors the entity_edges CHECK constraint (ADR-007). Full set of

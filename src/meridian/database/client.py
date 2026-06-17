@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-src/database/client.py — the ONE shared Supabase REST client.
+src/meridian/database/client.py — the ONE shared Supabase REST client.
 =============================================================
 Replaces the 30 ad-hoc `sb_upsert()` helpers scattered across scripts. All
 database access in the new architecture goes through this module so behavior
@@ -11,7 +11,7 @@ in the per-entity Writers (e.g. drug_writer.DrugWriter), which use this client.
 """
 import os, json, pathlib, urllib.request, urllib.error, urllib.parse
 
-_BASE = pathlib.Path(__file__).resolve().parents[2]
+_BASE = pathlib.Path(__file__).resolve().parents[3]
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
 
 

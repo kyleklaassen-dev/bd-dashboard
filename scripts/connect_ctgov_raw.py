@@ -1,5 +1,5 @@
 import sys,uuid,datetime; sys.path.insert(0,"src")
-from database import client as c
+from meridian.database import client as c
 NOW=datetime.datetime.utcnow().isoformat()
 NS=uuid.UUID("a7f1c0de-1111-4222-8333-0a1b2c3d4e5f")
 uid=lambda k:str(uuid.uuid5(NS,k))

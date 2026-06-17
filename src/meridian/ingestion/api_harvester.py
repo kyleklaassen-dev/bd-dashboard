@@ -19,7 +19,7 @@ Env: SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, json, time, datetime, uuid, urllib.request, urllib.parse, urllib.error
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from database import client as c
+from meridian.database import client as c
 
 _NS = uuid.UUID("b8e2d1c0-2222-4333-8444-1a2b3c4d5e6f")
 _uuid = lambda k: str(uuid.uuid5(_NS, k))

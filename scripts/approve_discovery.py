@@ -35,10 +35,10 @@ import requests
 
 def _drug_writer(dry_run=False):
     """Lazy single-writer accessor (ADR-010). Routes drug writes through
-    src/database/drug_writer.DrugWriter for canonical identity + governance."""
+    src/meridian/database/drug_writer.DrugWriter for canonical identity + governance."""
     import sys, pathlib as _pl
     _b = _pl.Path(__file__).resolve().parents[1]
-    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+    for _p in (str(_b / "src" / "meridian" / "database"), str(_b / "scripts")):
         if _p not in sys.path:
             sys.path.insert(0, _p)
     from drug_writer import DrugWriter
@@ -49,7 +49,7 @@ def _company_writer(dry_run=False):
     """Single-writer accessor for companies (ADR-010)."""
     import sys, pathlib as _pl
     _b = _pl.Path(__file__).resolve().parents[1]
-    for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
+    for _p in (str(_b / "src" / "meridian" / "database"), str(_b / "scripts")):
         if _p not in sys.path:
             sys.path.insert(0, _p)
     from company_writer import CompanyWriter

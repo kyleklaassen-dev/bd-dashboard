@@ -17,7 +17,7 @@ Usage: python3 src/meridian/graph/seed_api_edges.py [--dry-run]
 """
 import os, sys, datetime, uuid
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from database import client as c
+from meridian.database import client as c
 
 DRY = "--dry-run" in sys.argv
 NOW = datetime.datetime.utcnow().isoformat()

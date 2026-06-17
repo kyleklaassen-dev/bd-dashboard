@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-src/database/drug_writer.py — the SINGLE writer for the `drugs` table.
+src/meridian/database/drug_writer.py — the SINGLE writer for the `drugs` table.
 =====================================================================
 The only approved path to create or modify a drug record (Constitution §4,
 Governance Table, ADR-010). Collectors/enrichers/intake call this; they never
@@ -16,15 +16,15 @@ On every write it:
 Use `dry_run=True` to see what would happen with no writes. Returns a structured
 result so callers (and tests) can assert on it.
 
-    from src.database.drug_writer import DrugWriter
+    from src.meridian.database.drug_writer import DrugWriter
     w = DrugWriter()
     res = w.upsert({"name":"SL-325","company_id":"shattucklabs","stage":"Phase 1",
                     "target":"DR3"}, source={"url":"https://...","type":"press_release"})
 """
 import os, re, sys, pathlib
 
-_BASE = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_BASE / "src" / "database"))
+_BASE = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_BASE / "src" / "meridian" / "database"))
 sys.path.insert(0, str(_BASE / "src" / "meridian" / "identity"))  # entity_matcher (moved to the meridian.identity package)
 import client
 from entity_matcher import Registry
