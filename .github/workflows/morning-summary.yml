@@ -39,10 +39,9 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/morning_summary.py
 
-      - name: Commit summary
-        run: |
-          git config user.email "meridian@ailux.bio"
-          git config user.name "Meridian Bot"
-          git add meridian_overnight_summary.txt
-          git diff --staged --quiet || git commit -m "chore: morning summary $(date +%Y-%m-%d)"
-          git push
+      - name: Upload summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-overnight-summary
+          path: meridian_overnight_summary.txt
+          retention-days: 30
