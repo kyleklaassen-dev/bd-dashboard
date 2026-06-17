@@ -25,4 +25,4 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           ARGS=""; [ "${{ github.event.inputs.dry_run }}" = "true" ] && ARGS="--dry-run"
-          python scripts/refresh_orange_purple_book.py $ARGS
+          python src/meridian/ingestion/refresh_orange_purple_book.py $ARGS

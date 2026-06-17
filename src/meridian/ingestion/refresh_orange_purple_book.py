@@ -13,7 +13,7 @@ Usage: python3 scripts/refresh_orange_purple_book.py [--dry-run]
 Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, io, csv, zipfile, uuid, datetime, urllib.request
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from database import client as c
 
 DRY = "--dry-run" in sys.argv

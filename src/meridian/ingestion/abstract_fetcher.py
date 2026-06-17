@@ -52,7 +52,7 @@ def get_service_key():
     # Local dev path
     for path in [
         "/sessions/determined-intelligent-cannon/mnt/BD Platform/.supabase_service_key",
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", ".supabase_service_key"),
     ]:
         if os.path.exists(path):
             return open(path).read().strip()

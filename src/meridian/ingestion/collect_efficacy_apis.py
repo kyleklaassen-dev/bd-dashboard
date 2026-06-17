@@ -30,7 +30,7 @@ Env:    SUPABASE_URL, SUPABASE_SERVICE_KEY (writes), SUPABASE_PAT (trials DDL up
 """
 import os, sys, json, time, urllib.request, urllib.parse, datetime
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from database import client as c  # the one shared Supabase REST client
 
 CT_GOV = "https://clinicaltrials.gov/api/v2/studies"

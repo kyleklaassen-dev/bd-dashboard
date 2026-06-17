@@ -62,8 +62,8 @@ jobs:
             ARGS="$ARGS --dry-run"
           fi
 
-          echo "Running: python scripts/abstract_fetcher.py $ARGS"
-          python scripts/abstract_fetcher.py $ARGS
+          echo "Running: python src/meridian/ingestion/abstract_fetcher.py $ARGS"
+          python src/meridian/ingestion/abstract_fetcher.py $ARGS
 
       - name: Run preprint monitor (scheduled runs only)
         if: github.event_name == 'schedule'
@@ -72,4 +72,4 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           echo "=== Preprint Monitor ==="
-          python scripts/abstract_fetcher.py --preprints
+          python src/meridian/ingestion/abstract_fetcher.py --preprints

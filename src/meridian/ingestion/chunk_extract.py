@@ -20,7 +20,7 @@ import os, sys, io, re, json, argparse, pathlib, time
 from datetime import datetime, timezone
 import requests
 
-BASE = pathlib.Path(__file__).parent.parent
+BASE = pathlib.Path(__file__).resolve().parents[3]
 def _k(env, f):
     v = os.environ.get(env, "").strip()
     return v or ((BASE / f).read_text().strip() if (BASE / f).exists() else "")

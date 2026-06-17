@@ -44,8 +44,8 @@ jobs:
           ARGS="--ctgov --openfda"
           if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          echo "python scripts/api_harvester.py $ARGS"
-          python scripts/api_harvester.py $ARGS
+          echo "python src/meridian/ingestion/api_harvester.py $ARGS"
+          python src/meridian/ingestion/api_harvester.py $ARGS
 
       - name: Connect new data into the entity graph
         if: github.event.inputs.dry_run != 'true'
@@ -59,7 +59,7 @@ jobs:
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/enrich_pub_stubs.py || echo "pub enrich partial (non-fatal)"
+        run: python src/meridian/ingestion/enrich_pub_stubs.py || echo "pub enrich partial (non-fatal)"
 
       - name: Graph health guard (connectivity + edge quality)
         if: github.event.inputs.dry_run != 'true'

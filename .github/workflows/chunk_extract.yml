@@ -41,7 +41,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
         run: |
-          python3 scripts/chunk_extract.py \
+          python3 src/meridian/ingestion/chunk_extract.py \
             --path "${{ github.event.inputs.path }}" \
             --si "${{ github.event.inputs.si }}" \
             --source-url "${{ github.event.inputs.source_url }}" \

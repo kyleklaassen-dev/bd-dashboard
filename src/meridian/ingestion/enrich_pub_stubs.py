@@ -11,7 +11,7 @@ Usage: python3 scripts/enrich_pub_stubs.py [--limit N]
 Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from database import client as c
 
 NOW = datetime.datetime.utcnow().isoformat()

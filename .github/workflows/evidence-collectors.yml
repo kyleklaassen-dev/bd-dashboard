@@ -59,9 +59,9 @@ jobs:
 
           echo "--- 2) Patient / epidemiology evidence (Europe PMC) ---"
           if [ -n "$FLAG" ]; then
-            python scripts/collect_patient_evidence.py --dry-run
+            python src/meridian/ingestion/collect_patient_evidence.py --dry-run
           else
-            python scripts/collect_patient_evidence.py --apply
+            python src/meridian/ingestion/collect_patient_evidence.py --apply
           fi
 
           echo "=== done ==="

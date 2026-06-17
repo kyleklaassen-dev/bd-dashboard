@@ -43,11 +43,11 @@ jobs:
           echo "=== Meridian Efficacy & NCT Verification ($(date -u +%FT%TZ)) ==="
           ARGS=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          python scripts/collect_efficacy_apis.py $ARGS
+          python src/meridian/ingestion/collect_efficacy_apis.py $ARGS
 
       - name: Backfill trial_design (scheduled, or on request)
         if: github.event_name == 'schedule' || github.event.inputs.backfill_design == 'true'
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/collect_efficacy_apis.py --backfill-design
+        run: python src/meridian/ingestion/collect_efficacy_apis.py --backfill-design

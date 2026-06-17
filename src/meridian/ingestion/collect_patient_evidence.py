@@ -25,7 +25,7 @@ Run:
 """
 import os, sys, re, json, time, argparse, urllib.request, urllib.parse
 
-WORK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 KEY = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
        or open(os.path.join(WORK, ".supabase_service_key")).read().strip())
 SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"

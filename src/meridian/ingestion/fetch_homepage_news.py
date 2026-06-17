@@ -42,7 +42,7 @@ from pathlib import Path
 
 # ── Credentials ──────────────────────────────────────────────────────────────
 
-_HERE = Path(__file__).parent.parent
+_HERE = Path(__file__).resolve().parents[3]
 
 def _read_cred(fname: str) -> str:
     p = _HERE / fname
