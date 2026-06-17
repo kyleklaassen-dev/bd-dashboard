@@ -1,3 +1,13 @@
+# ✅ PACKAGE MIGRATION — scoring/ group DONE (2026-06-16)
+
+7 active scoring scripts → `src/meridian/scoring/`: compute_attribute_completeness, compute_coverage, compute_indication_priority, compute_landscape_scores, compute_patient_whitespace, score_foresight, write_ranking_snapshots. All self-contained (no sibling imports); `__file__`-relative paths fixed for the new depth; import-verified. Updated all 8 referencing workflows (read from main).
+**Dispatch-verified green:** compute-landscape-scores, score-foresight, ranking-snapshots, meridian-free-ingest (compute_indication_priority+patient_whitespace), atlas-refresh (compute_attribute_completeness). **compute_coverage** verified by import-exercise only (its sole workflow, school-week-sprint, is a heavy 8-script LLM run — not worth a full dispatch; the script is self-contained + path-verified). Engine 0 failures.
+Deferred: `acquisition_scorer` (manual; reads a runtime data file from repo-root — needs its own check) and the other manual scorers (compute_strategic_value/trust_score/landscape_coverage, portfolio_conflict_scorer, etc.).
+
+Groups migrated so far: **graph/ (9) + scoring/ (7)**. Next per §6: ingestion, then validation, products, enrichment, and the utilities+identity coupled group last.
+
+---
+
 # ✅ PACKAGE MIGRATION — graph/ group DONE (2026-06-16, supervised-equivalent)
 
 Executed the first package migration from REPO_LAYOUT §6. **9 graph scripts moved** to `src/meridian/graph/`, each verified, engine green (0 failures):
