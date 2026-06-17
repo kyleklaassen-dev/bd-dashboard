@@ -1,3 +1,18 @@
+# ✅ PACKAGE MIGRATION — products/ (self-contained) DONE (2026-06-16)
+
+3 self-contained active products scripts → `src/meridian/products/`: generate_landscape_briefing (its `docs/` OUTPUT path fixed → parents[3]/docs), bd_recommender (`_REPO_ROOT` key-search path fixed), morning_summary (the artifact-file `repo_root` fixed). Import-verified; 3 workflows updated (from main).
+**Dispatch-verified green:** morning-summary (confirms the artifact-file path fix), bd-recommender. landscape-briefing (Claude, slow) running + import-exercised. Engine 0 failures.
+
+**DEFERRED to the utilities group (all import narrative_gen / meridian_integrations_feed):**
+- active: write_meridian, generate_area_narratives, generate_patient_briefs, dryrun_meridian
+- manual: patient_narrative, landscape_narrative, strategic_brief
+These move together with the utilities `narrative_gen` (imported by 11) + `meridian_integrations_feed` (imported by 2), updating every importer. Utilities also feed the 4am core (write_meridian) → synthetic exercise + --dry-run before push.
+
+**Running tally: graph/9 + scoring/7 + ingestion/9 + validation/8 + products/3 = 36 scripts migrated.**
+Next per §6: enrichment group, then the big utilities+identity+coupled group (last).
+
+---
+
 # ✅ PACKAGE MIGRATION — validation/ group DONE (2026-06-16)
 
 8 active validation scripts → `src/meridian/validation/`: validate_ground_truth, validation_research, conflict_detector, content_verifier, verify_competitor_edges, company_validator, trial_id_audit, identity_health_check. Self-contained; paths fixed (incl. identity_health_check's repo-root key fallback); import-verified. Updated all 8 workflows (from main).
