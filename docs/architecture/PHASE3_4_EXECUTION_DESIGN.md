@@ -45,3 +45,36 @@ Each extraction must keep the same global function names (the inline `onclick=`/
 - **Executed:** all 3 decisions (9 hard-deletes, China stage flags, ambiguous-identity ack); governance 41→**0**; P1 mechanisms (5) + enrichment pipelines dispatched (firmographics running, sources collected).
 - **Designed (ready to execute, not run tonight for the risk reason above):** the ct_gov_sync split (Phase 3) and the index.html first extractions (Phase 4).
 - **Deferred with note:** canonicalize sl325/sl425/sl846 (needs the real entity_matcher — run in CI/non-mount env); 7 deal `source_url` backfills (need per-deal press URLs).
+
+---
+
+## Phase 3 — `company_enrichment.py` (4,435 lines) → `src/meridian/enrichment/company/`
+
+The biggest script and the nightly Intelligence Pipeline's core. Already sectioned by
+banner comments, which map cleanly to modules (line ranges as of 2026-06-16):
+
+| New module | Current sections (lines) | Notes |
+|---|---|---|
+| (delete) **db helpers** | `sb_get/upsert/post/delete/patch`, `_catalyst_upsert`, `update_system_status` (425–560) | **route to `src/database/client.py` + the writers** — removes ~135 lines + the last ad-hoc `sb_upsert` paths |
+| `company/resolve.py` | `get_company_map`, `resolve_company_id` (560–643) | dedupe with the shared `identity_resolution`/`entity_matcher` |
+| `company/discovery.py` | Step 1: `gather_landscape_intel`, `step1_discover_new_entities` (643–1117) | LLM entity discovery |
+| `company/trials.py` | `_pre_sync_trials_from_ctgov`, `_refresh_existing_trials_from_ctgov`, `fetch_company_context` (1117–1445) | overlaps `ct_gov_sync` — share the ctgov fetch/map modules from that split |
+| `company/catalysts.py` | Step 4: `step4_generate_catalysts_from_trials` (1445–1578) | route writes through `CatalystWriter` |
+| `company/assessment.py` + `prompts/enrichment.py` | Step 5: `gather_web_intelligence`, `build_step5_prompt`, `enrichment_system_prompt`, `parse_enrichment_response`, `write_step5` (1578–3092) | **~1,500 lines — the giant. Split again:** prompts → `prompts/` (config), `write_step5` (600 lines) → its own `assessment_writer.py` |
+| `company/molecule.py` | `write_molecule_intelligence` (3092–3253) | |
+| `company/partnerships.py` | `write_company_partnerships` (3253–3367) | route through CompanyWriter/partnership module |
+| `company/deals.py` | Step 6: `step6_deal_intelligence` (3367–3507) | |
+| `company/scoring.py` | `_score_company_completeness` (3507–3683) | dedupe with `compute_*` scoring scripts |
+| `company/pipeline.py` (+ thin `scripts/company_enrichment.py` CLI) | `enrich_company`, `reconcile_company_areas`, `enrich_never_touched_drugs`, `run_intelligence_pipeline` (3683–end) | the orchestrator; keep the CLI entrypoint name so `company-enrichment.yml` is unchanged until the package is in place |
+
+**Cross-cutting payoff:** the helper-section migration alone (sb_* → writers/client) removes the
+last ad-hoc writes from the nightly pipeline AND completes the single-writer story at the call site.
+
+**Risk: this is the core nightly pipeline — supervised only.** Verify by dispatching
+`company-enrichment.yml` with `--dry-run` (it has the flag) for one area after each extraction,
+before the real nightly run. Do the pure modules first (prompts → config, assessment_writer),
+the orchestrator last.
+
+> Note: `weekend_sprint.py` (2,999 lines) is workflow-wired (`weekend_sprint.yml`) but is an
+> orchestration mega-script — review whether it should call into the same modules rather than
+> duplicate them.
