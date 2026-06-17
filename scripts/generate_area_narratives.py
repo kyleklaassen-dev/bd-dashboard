@@ -15,7 +15,7 @@ Run:
 import os, sys, argparse, subprocess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from narrative_gen import get  # noqa: E402
+from meridian.products.narrative_gen import get  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 

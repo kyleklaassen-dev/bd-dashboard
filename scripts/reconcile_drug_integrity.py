@@ -42,7 +42,7 @@ from datetime import datetime, timezone
 
 # Reuse the AUTHORITATIVE detection logic from the narrative generator.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from narrative_gen import fetch_recipe, extract_atoms, SUPA_URL, SUPA_KEY, get  # noqa: E402
+from meridian.products.narrative_gen import fetch_recipe, extract_atoms, SUPA_URL, SUPA_KEY, get  # noqa: E402
 
 CONF_RANK = {"low": 0, "medium": 1, "high": 2}
 ACTOR = "reconcile_drug_integrity.py@v0"

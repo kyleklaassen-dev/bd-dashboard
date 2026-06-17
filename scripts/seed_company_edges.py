@@ -42,7 +42,7 @@ import os, sys, json, argparse
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import narrative_gen as ng
+import meridian.products.narrative_gen as ng
 
 CREATED_BY = "seed_company_edges"
 

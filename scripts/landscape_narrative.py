@@ -17,7 +17,7 @@ import os, re, sys, json, argparse, hashlib, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from narrative_gen import (get, _request, fail_closed_check, fail_closed_analysis,  # noqa: E402
+from meridian.products.narrative_gen import (get, _request, fail_closed_check, fail_closed_analysis,  # noqa: E402
                            fetch_feedback, feedback_block, mark_feedback_applied, _source_tier)
 
 PHASE = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}

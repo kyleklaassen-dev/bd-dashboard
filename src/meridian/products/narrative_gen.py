@@ -48,7 +48,7 @@ from datetime import datetime, timezone
 # Config / credentials (house pattern)
 # ---------------------------------------------------------------------------
 SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def _read_key(filename, env=None):

@@ -32,7 +32,7 @@ USAGE
 import os, sys, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import narrative_gen as ng
+import meridian.products.narrative_gen as ng
 
 CREATED_BY = "seed_patient_edges"
 

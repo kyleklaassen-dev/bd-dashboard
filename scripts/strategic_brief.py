@@ -17,7 +17,7 @@ import os, re, sys, json, hashlib, argparse
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import narrative_gen as ng
+import meridian.products.narrative_gen as ng
 
 PH = {"Phase 3": 3, "Phase 2": 2, "Phase 1": 1, "Preclinical": 0}
 

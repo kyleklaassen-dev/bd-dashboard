@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import narrative_gen as ng  # get/_request/_source_tier/fail_closed_*/feedback/key handling
+import meridian.products.narrative_gen as ng  # get/_request/_source_tier/fail_closed_*/feedback/key handling
 
 
 def fetch_patient(name):

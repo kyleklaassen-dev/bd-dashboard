@@ -12,7 +12,7 @@ Run:
 import os, sys, argparse, subprocess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import narrative_gen as ng
+import meridian.products.narrative_gen as ng
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
