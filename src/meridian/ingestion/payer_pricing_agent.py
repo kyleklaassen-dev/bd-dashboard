@@ -17,7 +17,7 @@ Idempotent: payer_pricing upserts on (drug_id, source, metric, year);
 drug_sources / data_dictionary are existence-checked before insert.
 
 Env-free: reads creds from workspace files.
-Usage: python3 scripts/payer_pricing_agent.py [--dry-run] [--limit N]
+Usage: python3 src/meridian/ingestion/payer_pricing_agent.py [--dry-run] [--limit N]
 """
 import json
 import os

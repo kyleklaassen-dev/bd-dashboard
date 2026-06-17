@@ -20,8 +20,8 @@ DETERMINISTIC + NO FABRICATION
   supporting references, not per-field citations).
 
 Run:
-  python3 scripts/collect_patient_evidence.py --dry-run
-  python3 scripts/collect_patient_evidence.py --apply
+  python3 src/meridian/ingestion/collect_patient_evidence.py --dry-run
+  python3 src/meridian/ingestion/collect_patient_evidence.py --apply
 """
 import os, sys, re, json, time, argparse, urllib.request, urllib.parse
 

@@ -31,8 +31,8 @@ code collision is caught instead of silently deleting a correct link. When it re
 clear=False, confirm sponsor/molecule by hand (and backfill the dev code into drugs.aliases).
 
 Run:
-  python3 scripts/trial_id_audit.py --area tl1a --dry-run      # focus set, no writes
-  python3 scripts/trial_id_audit.py --all --apply              # whole catalog, log findings
+  python3 src/meridian/validation/trial_id_audit.py --area tl1a --dry-run      # focus set, no writes
+  python3 src/meridian/validation/trial_id_audit.py --all --apply              # whole catalog, log findings
 """
 
 import os, re, sys, json, time, argparse, urllib.request, urllib.error

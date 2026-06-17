@@ -9,11 +9,11 @@ Results are stored in:
   - drug_development_timelines   (extracted milestone dates)
 
 Usage:
-    python3 scripts/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc
-    python3 scripts/drug_intelligence_researcher.py --drug-id nipocalimab --indication igg4-rd
-    python3 scripts/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --dry-run
-    python3 scripts/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --domain molecule
-    python3 scripts/drug_intelligence_researcher.py --list-drugs
+    python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc
+    python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id nipocalimab --indication igg4-rd
+    python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --dry-run
+    python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --domain molecule
+    python3 src/meridian/enrichment/drug_intelligence_researcher.py --list-drugs
 
 Environment (set via env vars or key files in workspace root):
     SUPABASE_URL          https://tghntyofptvfhmtchwcv.supabase.co
@@ -726,10 +726,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 scripts/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc
-  python3 scripts/drug_intelligence_researcher.py --drug-id nipocalimab --indication igg4-rd --dry-run
-  python3 scripts/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --domain molecule clinical
-  python3 scripts/drug_intelligence_researcher.py --list-drugs
+  python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc
+  python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id nipocalimab --indication igg4-rd --dry-run
+  python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id tulisokibart --indication uc --domain molecule clinical
+  python3 src/meridian/enrichment/drug_intelligence_researcher.py --list-drugs
         """,
     )
     parser.add_argument("--drug-id", type=str, help="Supabase drug ID to research")

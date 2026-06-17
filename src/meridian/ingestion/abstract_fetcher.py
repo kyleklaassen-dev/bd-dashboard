@@ -5,10 +5,10 @@ Sources: Europe PMC, PubMed, bioRxiv/medRxiv
 Targets: TL1A, IL-23, FcRn, IGF-1R/TSHR, IL-4Rα, IL-13, TSLP, CD19×BCMA
 
 Usage:
-    python scripts/abstract_fetcher.py                    # all Phase 2+ drugs
-    python scripts/abstract_fetcher.py --drug tulisokibart
-    python scripts/abstract_fetcher.py --preprints        # monitor mode only
-    python scripts/abstract_fetcher.py --dry-run          # fetch but don't write
+    python src/meridian/ingestion/abstract_fetcher.py                    # all Phase 2+ drugs
+    python src/meridian/ingestion/abstract_fetcher.py --drug tulisokibart
+    python src/meridian/ingestion/abstract_fetcher.py --preprints        # monitor mode only
+    python src/meridian/ingestion/abstract_fetcher.py --dry-run          # fetch but don't write
 
 Environment:
     SUPABASE_URL, SUPABASE_SERVICE_KEY  (or reads from .supabase_service_key)

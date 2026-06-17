@@ -6,12 +6,12 @@ Runs all validation_tests against live Supabase data and reports pass/fail.
 Designed to run after enrichment sessions to catch regressions.
 
 Usage:
-  python scripts/validate_ground_truth.py                    # all tests
-  python scripts/validate_ground_truth.py --area tl1a        # TL1A tests only
-  python scripts/validate_ground_truth.py --priority P1      # P1 blockers only
-  python scripts/validate_ground_truth.py --type overlap_check
-  python scripts/validate_ground_truth.py --fail-only        # show only failures
-  python scripts/validate_ground_truth.py --write-results    # persist results to DB
+  python src/meridian/validation/validate_ground_truth.py                    # all tests
+  python src/meridian/validation/validate_ground_truth.py --area tl1a        # TL1A tests only
+  python src/meridian/validation/validate_ground_truth.py --priority P1      # P1 blockers only
+  python src/meridian/validation/validate_ground_truth.py --type overlap_check
+  python src/meridian/validation/validate_ground_truth.py --fail-only        # show only failures
+  python src/meridian/validation/validate_ground_truth.py --write-results    # persist results to DB
 
 Output:
   Console: colored pass/fail table

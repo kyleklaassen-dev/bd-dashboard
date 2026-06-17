@@ -14,11 +14,11 @@ Sources:
   - ClinicalTrials.gov — updates to tracked NCT IDs
 
 Usage:
-  python scripts/signal_monitor.py
-  python scripts/signal_monitor.py --area tl1a
-  python scripts/signal_monitor.py --company abbvie
-  python scripts/signal_monitor.py --dry-run
-  python scripts/signal_monitor.py --since 2026-05-20
+  python src/meridian/ops/signal_monitor.py
+  python src/meridian/ops/signal_monitor.py --area tl1a
+  python src/meridian/ops/signal_monitor.py --company abbvie
+  python src/meridian/ops/signal_monitor.py --dry-run
+  python src/meridian/ops/signal_monitor.py --since 2026-05-20
 """
 
 import os, sys, json, hashlib, re, datetime, time, argparse, traceback

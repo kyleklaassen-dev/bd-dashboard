@@ -12,7 +12,7 @@ Sources, in priority order:
   2. asset_transfer_history — licensing chains (from_entity_id -> to_entity_id)
   3. deals                  — name-resolved against companies, structural deal_types only
 
-Run: python scripts/materialize_deal_edges.py [--dry-run]
+Run: python src/meridian/graph/materialize_deal_edges.py [--dry-run]
 Env: SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os

@@ -7,7 +7,7 @@ with plain-English descriptions + Citeline benchmark mapping) and computes
 `attribute_completeness` (per drug x attribute: filled / phase-expected).
 
 Phase-conditional: a preclinical asset missing Phase-3 attributes is NOT a gap.
-Idempotent: upserts both tables. Run: python3 scripts/compute_attribute_completeness.py
+Idempotent: upserts both tables. Run: python3 src/meridian/scoring/compute_attribute_completeness.py
 """
 import json, os, sys, urllib.request
 

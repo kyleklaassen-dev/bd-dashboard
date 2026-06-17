@@ -14,8 +14,8 @@ surfaces (duplicate rows) and untracked entities are reported as review/discover
 candidates, never guessed.
 
 Usage:
-    SUPABASE_SERVICE_KEY=... python3 scripts/link_entities.py            # DRY RUN (default)
-    SUPABASE_SERVICE_KEY=... python3 scripts/link_entities.py --apply    # write changes
+    SUPABASE_SERVICE_KEY=... python3 src/meridian/identity/link_entities.py            # DRY RUN (default)
+    SUPABASE_SERVICE_KEY=... python3 src/meridian/identity/link_entities.py --apply    # write changes
 """
 import os, sys, pathlib, collections, requests
 

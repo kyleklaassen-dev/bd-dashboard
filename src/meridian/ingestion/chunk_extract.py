@@ -12,9 +12,9 @@ This is the scalable answer to large reports (e.g. TD Cowen 100+ page chapters):
 chunk → extract → structured rows, deduped + page-referenced.
 
 Usage:
-  python3 scripts/chunk_extract.py --path "domain/<id>.pdf" --si <uuid> [--pages 1-40] [--chunk 6]
-  python3 scripts/chunk_extract.py --path ... --si ... --chunk 6 --cache /tmp/c   # cache per-chunk LLM JSON
-  python3 scripts/chunk_extract.py --path ... --si ... --map-only                 # print chunk plan, no LLM
+  python3 src/meridian/ingestion/chunk_extract.py --path "domain/<id>.pdf" --si <uuid> [--pages 1-40] [--chunk 6]
+  python3 src/meridian/ingestion/chunk_extract.py --path ... --si ... --chunk 6 --cache /tmp/c   # cache per-chunk LLM JSON
+  python3 src/meridian/ingestion/chunk_extract.py --path ... --si ... --map-only                 # print chunk plan, no LLM
 """
 import os, sys, io, re, json, argparse, pathlib, time
 from datetime import datetime, timezone

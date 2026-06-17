@@ -17,8 +17,8 @@ Env:
   GITHUB_REPO           default kyleklaassen-dev/bd-dashboard
 
 Usage:
-  python3 scripts/pipeline_health.py            # poll, write, summarize
-  python3 scripts/pipeline_health.py --dry-run  # poll + print only, no writes
+  python3 src/meridian/ops/pipeline_health.py            # poll, write, summarize
+  python3 src/meridian/ops/pipeline_health.py --dry-run  # poll + print only, no writes
 """
 import os, sys, json, argparse, datetime
 import requests

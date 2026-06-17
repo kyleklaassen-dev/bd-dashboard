@@ -31,9 +31,9 @@ Sub-component computation:
       1.0 if avg last_synced > 120 days ago (or null)
 
 Usage:
-  python3 scripts/compute_landscape_scores.py
-  python3 scripts/compute_landscape_scores.py --dry-run
-  python3 scripts/compute_landscape_scores.py --area ibd
+  python3 src/meridian/scoring/compute_landscape_scores.py
+  python3 src/meridian/scoring/compute_landscape_scores.py --dry-run
+  python3 src/meridian/scoring/compute_landscape_scores.py --area ibd
 """
 
 import os, sys, json, argparse, datetime, math

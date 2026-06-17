@@ -12,16 +12,16 @@ Confidence levels written:
 
 Usage:
   # Single drug
-  python3 scripts/molecule_enrichment.py --drug-ids risankizumab
+  python3 src/meridian/enrichment/molecule_enrichment.py --drug-ids risankizumab
 
   # Multiple drugs
-  python3 scripts/molecule_enrichment.py --drug-ids duvakitug spy002 spy003
+  python3 src/meridian/enrichment/molecule_enrichment.py --drug-ids duvakitug spy002 spy003
 
   # Full priority list (defined at bottom of file)
-  python3 scripts/molecule_enrichment.py --priority
+  python3 src/meridian/enrichment/molecule_enrichment.py --priority
 
   # Dry run (no writes to Supabase)
-  python3 scripts/molecule_enrichment.py --drug-ids duvakitug --dry-run
+  python3 src/meridian/enrichment/molecule_enrichment.py --drug-ids duvakitug --dry-run
 
 Environment:
   ANTHROPIC_API_KEY     — required

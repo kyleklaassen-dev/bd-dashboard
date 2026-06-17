@@ -12,9 +12,9 @@ Outcome measures + design + NCT-identity verification live in collect_efficacy_a
 this harvester covers everything else.
 
 Usage:
-  python3 scripts/api_harvester.py --ctgov [--limit N]
-  python3 scripts/api_harvester.py --openfda --chembl --europepmc --opentargets
-  python3 scripts/api_harvester.py --all [--dry-run] [--limit N]
+  python3 src/meridian/ingestion/api_harvester.py --ctgov [--limit N]
+  python3 src/meridian/ingestion/api_harvester.py --openfda --chembl --europepmc --opentargets
+  python3 src/meridian/ingestion/api_harvester.py --all [--dry-run] [--limit N]
 Env: SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, json, time, datetime, uuid, urllib.request, urllib.parse, urllib.error

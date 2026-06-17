@@ -28,11 +28,11 @@ Claude call (optional, requires ANTHROPIC_API_KEY):
   - Generates meridian_summary + why_it_matters for articles with score ≥ 40
 
 Usage:
-  python scripts/fetch_homepage_news.py
-  python scripts/fetch_homepage_news.py --dry-run
-  python scripts/fetch_homepage_news.py --no-claude
-  python scripts/fetch_homepage_news.py --since 2026-05-20
-  python scripts/fetch_homepage_news.py --limit 50
+  python src/meridian/ingestion/fetch_homepage_news.py
+  python src/meridian/ingestion/fetch_homepage_news.py --dry-run
+  python src/meridian/ingestion/fetch_homepage_news.py --no-claude
+  python src/meridian/ingestion/fetch_homepage_news.py --since 2026-05-20
+  python src/meridian/ingestion/fetch_homepage_news.py --limit 50
 """
 
 import os, sys, json, hashlib, re, datetime, time, argparse, traceback

@@ -11,9 +11,9 @@ Designed to run nightly so any pipeline page update — new drug added, stage
 advanced, program discontinued — surfaces in Meridian within 24 hours.
 
 Usage:
-  python3 scripts/pipeline_monitor.py --dry-run   # fetch + diff, no writes
-  python3 scripts/pipeline_monitor.py             # fetch, diff, write on change
-  python3 scripts/pipeline_monitor.py --company immunovant  # single company
+  python3 src/meridian/ops/pipeline_monitor.py --dry-run   # fetch + diff, no writes
+  python3 src/meridian/ops/pipeline_monitor.py             # fetch, diff, write on change
+  python3 src/meridian/ops/pipeline_monitor.py --company immunovant  # single company
 
 Storage:
   Hashes are stored in the signals table (signal_type='pipeline_page_hash',
@@ -391,15 +391,15 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 scripts/pipeline_monitor.py --dry-run        # check all, no writes
-  python3 scripts/pipeline_monitor.py                  # check all, write on change
-  python3 scripts/pipeline_monitor.py --company ucb    # single company
-  python3 scripts/pipeline_monitor.py --company immunovant --dry-run
+  python3 src/meridian/ops/pipeline_monitor.py --dry-run        # check all, no writes
+  python3 src/meridian/ops/pipeline_monitor.py                  # check all, write on change
+  python3 src/meridian/ops/pipeline_monitor.py --company ucb    # single company
+  python3 src/meridian/ops/pipeline_monitor.py --company immunovant --dry-run
 
 To add a company:
   Edit the PIPELINE_URLS dict near the top of this file.
   Add: "company_id": "https://company.com/pipeline"
-  Run once to set baseline: python3 scripts/pipeline_monitor.py --company <id>
+  Run once to set baseline: python3 src/meridian/ops/pipeline_monitor.py --company <id>
         """,
     )
     parser.add_argument("--dry-run",  action="store_true", help="Fetch and compare but do not write to DB")

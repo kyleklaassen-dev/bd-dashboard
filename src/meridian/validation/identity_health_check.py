@@ -8,15 +8,15 @@ Uses SUPABASE_URL + SUPABASE_SERVICE_KEY — same credentials as the enrichment
 pipeline; no separate PAT required.
 
 USAGE:
-    python scripts/identity_health_check.py
-    python scripts/identity_health_check.py --fail-on-orphans
-    python scripts/identity_health_check.py --fail-on-fuzzy-pending
-    python scripts/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
-    python scripts/identity_health_check.py --repair-profiles
-    python scripts/identity_health_check.py --fail-on-profile-orphans
+    python src/meridian/validation/identity_health_check.py
+    python src/meridian/validation/identity_health_check.py --fail-on-orphans
+    python src/meridian/validation/identity_health_check.py --fail-on-fuzzy-pending
+    python src/meridian/validation/identity_health_check.py --fail-on-orphans --fail-on-fuzzy-pending
+    python src/meridian/validation/identity_health_check.py --repair-profiles
+    python src/meridian/validation/identity_health_check.py --fail-on-profile-orphans
 
     # Or with explicit credentials:
-    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python scripts/identity_health_check.py
+    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python src/meridian/validation/identity_health_check.py
 """
 
 import argparse

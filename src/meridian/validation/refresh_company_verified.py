@@ -37,10 +37,10 @@ OUTPUTS:
   logs/company_refresh_<ts>.jsonl — JSONL log of every action (one line/company)
 
 USAGE:
-  python scripts/refresh_company_verified.py            # all stale/null companies
-  python scripts/refresh_company_verified.py --dry-run  # no DB writes
-  python scripts/refresh_company_verified.py --company ailux
-  python scripts/refresh_company_verified.py --all      # all 101, not just stale
+  python src/meridian/validation/refresh_company_verified.py            # all stale/null companies
+  python src/meridian/validation/refresh_company_verified.py --dry-run  # no DB writes
+  python src/meridian/validation/refresh_company_verified.py --company ailux
+  python src/meridian/validation/refresh_company_verified.py --all      # all 101, not just stale
 
 ENVIRONMENT:
   SUPABASE_URL         — https://tghntyofptvfhmtchwcv.supabase.co

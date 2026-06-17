@@ -21,10 +21,10 @@ page we simply could not read):
                        content_confirms_claim left unchanged (NOT set false)
 
 Usage:
-  python scripts/content_verifier.py                 # verify unverified drug_sources
-  python scripts/content_verifier.py --limit 20
-  python scripts/content_verifier.py --dry-run       # fetch + judge, no DB writes
-  python scripts/content_verifier.py --recheck       # also re-verify already-checked rows
+  python src/meridian/validation/content_verifier.py                 # verify unverified drug_sources
+  python src/meridian/validation/content_verifier.py --limit 20
+  python src/meridian/validation/content_verifier.py --dry-run       # fetch + judge, no DB writes
+  python src/meridian/validation/content_verifier.py --recheck       # also re-verify already-checked rows
 """
 import os, sys, re, json, html, argparse, datetime
 import requests

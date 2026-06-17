@@ -8,7 +8,7 @@ area — not an unverifiable guess. This stamps those edges verified (confidence
 'medium', inference_method 'rule_inferred', evidence naming the shared area),
 leaving genuine cross-area edges flagged for closer review.
 
-Idempotent — safe to re-run / schedule. Run: python scripts/verify_competitor_edges.py [--dry-run]
+Idempotent — safe to re-run / schedule. Run: python src/meridian/validation/verify_competitor_edges.py [--dry-run]
 Env: SUPABASE_PAT (management API), SUPABASE_URL
 """
 import os

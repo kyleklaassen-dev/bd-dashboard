@@ -13,7 +13,7 @@ graph_health_guard.py — standing graph-integrity enforcement (run weekly, post
 Idempotent: skips violations already open for the same rule+row. Read-mostly; only
 writes governance_violations.
 
-Usage: python3 scripts/graph_health_guard.py [--dry-run]
+Usage: python3 src/meridian/graph/graph_health_guard.py [--dry-run]
 Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys

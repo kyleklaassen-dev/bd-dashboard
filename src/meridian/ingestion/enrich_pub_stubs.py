@@ -7,7 +7,7 @@ The drug-name-based abstract_fetcher won't reach these (they came from CT.gov tr
 references), so this enriches them directly. Idempotent: only touches rows with a
 null title. Free API, no key.
 
-Usage: python3 scripts/enrich_pub_stubs.py [--limit N]
+Usage: python3 src/meridian/ingestion/enrich_pub_stubs.py [--limit N]
 Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error

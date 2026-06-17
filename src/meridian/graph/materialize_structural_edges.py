@@ -13,7 +13,7 @@ This script materializes those, idempotently. The normalized tables remain the
 source of truth; these edges are the derived, traversable graph layer. Run after
 the catalog changes. Idempotent — safe to schedule.
 
-Run: python scripts/materialize_structural_edges.py [--dry-run]
+Run: python src/meridian/graph/materialize_structural_edges.py [--dry-run]
 Env: SUPABASE_PAT, SUPABASE_URL
 """
 import os

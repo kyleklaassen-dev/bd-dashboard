@@ -7,9 +7,9 @@ Haiku to generate deal framing for each top company, and writes a ranked
 call list to the bd_recommendations table.
 
 USAGE:
-  python scripts/bd_recommender.py           # full run, writes top 20
-  python scripts/bd_recommender.py --dry-run # score + frame but skip DB write
-  python scripts/bd_recommender.py --top 5   # print top N in full detail
+  python src/meridian/products/bd_recommender.py           # full run, writes top 20
+  python src/meridian/products/bd_recommender.py --dry-run # score + frame but skip DB write
+  python src/meridian/products/bd_recommender.py --top 5   # print top N in full detail
 
 SCORING (0–100 total):
   Strategic Value  (30) — companies.strategic_value_score normalised to 0-30

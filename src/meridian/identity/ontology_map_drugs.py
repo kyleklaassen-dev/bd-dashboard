@@ -14,7 +14,7 @@ materialize_structural_edges.py afterwards for the TREATS/ADDRESSES edges.
 Idempotent (ignore-duplicates). Scope: catalog_category='Competitor' or
 data_source in (deep_enrich_intel, discovery_queue), unmapped, with a target.
 
-Run: SUPABASE_SERVICE_KEY=... python3 scripts/ontology_map_drugs.py
+Run: SUPABASE_SERVICE_KEY=... python3 src/meridian/identity/ontology_map_drugs.py
 """
 import os, re, hashlib, pathlib, requests
 

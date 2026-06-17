@@ -18,7 +18,7 @@ Miss detection needs the event sweep (research.py / news pipeline integration) â
 until then, Foresight Rate is an UPPER BOUND and is labeled as such in notes.
 
 Usage:
-  python3 scripts/score_foresight.py [--dry-run]
+  python3 src/meridian/scoring/score_foresight.py [--dry-run]
 
 Env/files: .supabase_service_key in workspace root (or SUPABASE_SERVICE_KEY env).
 See docs/frameworks/FORESIGHT_RATE_METRIC.md and migrations/v105/v106.
@@ -217,7 +217,7 @@ def main() -> int:
     # --- write the review queue doc --------------------------------------------
     lines = [
         "# Foresight Review Queue",
-        f"\n**Generated:** {TODAY} by `scripts/score_foresight.py`",
+        f"\n**Generated:** {TODAY} by `src/meridian/scoring/score_foresight.py`",
         "\nPast-due catalysts with no confirmed outcome. For each: confirm what happened",
         "(+ source URL), then either mark the catalyst resolved and let the next run log",
         "the event, or fix the row (wrong date / not a real event / supersede).",
@@ -485,7 +485,7 @@ def resolve_tier2() -> None:
 
     # write the prediction review queue (overdue open calls)
     q = ["# Prediction Review Queue (Tier-2)",
-         f"\n**Generated:** {TODAY} by `scripts/score_foresight.py`",
+         f"\n**Generated:** {TODAY} by `src/meridian/scoring/score_foresight.py`",
          "\nThese judgment calls are past their resolution window and still `open`.",
          "For each: set `status` (correct / incorrect / partially_correct / expired),",
          "fill `outcome_text` + `outcome_date` (+ `outcome_value_usd` for deals),",

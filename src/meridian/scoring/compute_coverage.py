@@ -4,10 +4,10 @@ compute_coverage.py — Meridian Coverage Framework
 Computes per-company, per-area coverage scores across 9 diagnostic dimensions.
 
 Usage:
-  python3 scripts/compute_coverage.py
-  python3 scripts/compute_coverage.py --dry-run
-  python3 scripts/compute_coverage.py --company ucb
-  python3 scripts/compute_coverage.py --area tl1a
+  python3 src/meridian/scoring/compute_coverage.py
+  python3 src/meridian/scoring/compute_coverage.py --dry-run
+  python3 src/meridian/scoring/compute_coverage.py --company ucb
+  python3 src/meridian/scoring/compute_coverage.py --area tl1a
 
 Output:
   - Writes coverage_scores rows to Supabase (upsert by entity_id/area_id)

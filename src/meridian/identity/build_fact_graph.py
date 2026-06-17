@@ -11,7 +11,7 @@ This is the relationship spine: a drug/company card or query can pull every fact
 that NAMES the entity, not just the ones where it is the primary subject.
 
 Run after chunk_extract (the chunk_extract.yml workflow calls it), or on demand:
-    SUPABASE_SERVICE_KEY=... python3 scripts/build_fact_graph.py
+    SUPABASE_SERVICE_KEY=... python3 src/meridian/identity/build_fact_graph.py
 
 NOTE: edge inserts target the (fact_id, entity_id, role) unique constraint via
 on_conflict so pre-existing edges don't 409 the whole batch (a past bug silently

@@ -49,9 +49,9 @@ OUTPUTS:
   stdout — formatted priority queue for immediate session review
 
 USAGE:
-  python scripts/conflict_detector.py              # all drugs
-  python scripts/conflict_detector.py --drug spy001
-  python scripts/conflict_detector.py --dry-run    # detect only, no DB writes
+  python src/meridian/validation/conflict_detector.py              # all drugs
+  python src/meridian/validation/conflict_detector.py --drug spy001
+  python src/meridian/validation/conflict_detector.py --dry-run    # detect only, no DB writes
 
 ENVIRONMENT:
   SUPABASE_URL         — https://tghntyofptvfhmtchwcv.supabase.co

@@ -13,7 +13,7 @@ Edges created:
 Attribute tables (molecule_properties, drug_label_facts, trial_* detail) connect to
 core entities via their drug_id / nct_id foreign keys and need no edge.
 
-Usage: python3 scripts/seed_api_edges.py [--dry-run]
+Usage: python3 src/meridian/graph/seed_api_edges.py [--dry-run]
 """
 import os, sys, datetime, uuid
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

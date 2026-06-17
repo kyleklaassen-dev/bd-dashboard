@@ -59,12 +59,12 @@ OUTPUTS:
   stdout                   — summary table + health score leaderboard
 
 USAGE:
-  python scripts/company_validator.py               # all companies
-  python scripts/company_validator.py --company ailux
-  python scripts/company_validator.py --dry-run     # no DB writes
-  python scripts/company_validator.py --p0-only     # blocking checks only
-  python scripts/company_validator.py --summary     # counts + scores only
-  python scripts/company_validator.py --scores      # health scores only
+  python src/meridian/validation/company_validator.py               # all companies
+  python src/meridian/validation/company_validator.py --company ailux
+  python src/meridian/validation/company_validator.py --dry-run     # no DB writes
+  python src/meridian/validation/company_validator.py --p0-only     # blocking checks only
+  python src/meridian/validation/company_validator.py --summary     # counts + scores only
+  python src/meridian/validation/company_validator.py --scores      # health scores only
 
 ENVIRONMENT:
   SUPABASE_URL         — https://tghntyofptvfhmtchwcv.supabase.co

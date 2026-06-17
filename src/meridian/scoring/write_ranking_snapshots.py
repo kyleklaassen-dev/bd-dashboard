@@ -8,7 +8,7 @@ This script captures: entity_id, area_id, rank_position, total_score, stage,
 competitive_relevance, is_ailux for all next-gen bispecific programs.
 
 Usage:
-  python3 scripts/write_ranking_snapshots.py [--area tl1a] [--dry-run]
+  python3 src/meridian/scoring/write_ranking_snapshots.py [--area tl1a] [--dry-run]
 
 GitHub Actions: add as a step after company-enrichment.yml completes.
 """

@@ -12,8 +12,8 @@ This seeder parses drugs.target and creates the missing TARGETS edges to:
   * each component single-target node that exists in the ontology.
 Additive + idempotent (skips edges already present). Dry-run by default.
 
-    SUPABASE_SERVICE_KEY=... python3 scripts/seed_target_edges.py            # dry run
-    SUPABASE_SERVICE_KEY=... python3 scripts/seed_target_edges.py --apply
+    SUPABASE_SERVICE_KEY=... python3 src/meridian/graph/seed_target_edges.py            # dry run
+    SUPABASE_SERVICE_KEY=... python3 src/meridian/graph/seed_target_edges.py --apply
 """
 import os, re, sys, pathlib, requests
 

@@ -9,7 +9,7 @@ NOT a REST API. Purple Book = downloadable CSV (biologics/biosimilars). Both run
 on a GitHub runner (FDA egress is open there). Deterministic, idempotent
 (uuid5 natural keys), scoped to application numbers we already track -> no dupes.
 
-Usage: python3 scripts/refresh_orange_purple_book.py [--dry-run]
+Usage: python3 src/meridian/ingestion/refresh_orange_purple_book.py [--dry-run]
 Env:   SUPABASE_URL, SUPABASE_SERVICE_KEY
 """
 import os, sys, io, csv, zipfile, uuid, datetime, urllib.request

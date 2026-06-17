@@ -12,7 +12,7 @@ report facts are traversable alongside trials, patents, targets and authors:
 Only allowed predicates/generation_methods are used. Pre-filters against existing
 edges so re-runs add nothing duplicate. Run after build_fact_graph.py.
 
-Run: SUPABASE_SERVICE_KEY=... python3 scripts/unify_graph.py
+Run: SUPABASE_SERVICE_KEY=... python3 src/meridian/graph/unify_graph.py
 """
 import os, re, pathlib, collections, itertools, requests
 

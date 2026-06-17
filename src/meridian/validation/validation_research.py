@@ -28,9 +28,9 @@ WRITES:
   drugs.validation_summary — refreshed after each drug resolution
 
 USAGE:
-  python scripts/validation_research.py          # all unresolved warnings
-  python scripts/validation_research.py --dry-run
-  python scripts/validation_research.py --drug cldr-001
+  python src/meridian/validation/validation_research.py          # all unresolved warnings
+  python src/meridian/validation/validation_research.py --dry-run
+  python src/meridian/validation/validation_research.py --drug cldr-001
 
 ENVIRONMENT:
   SUPABASE_URL         — https://tghntyofptvfhmtchwcv.supabase.co

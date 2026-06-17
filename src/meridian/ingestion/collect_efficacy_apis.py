@@ -25,7 +25,7 @@ WHAT IT COLLECTS  (all free, no-key public APIs)
 GOVERNANCE: every value written gets a drug_sources row; nothing is written for a
 trial whose identity does not verify. Run read-only first with --dry-run.
 
-Usage:  python3 scripts/collect_efficacy_apis.py [--dry-run] [--nct NCT...]
+Usage:  python3 src/meridian/ingestion/collect_efficacy_apis.py [--dry-run] [--nct NCT...]
 Env:    SUPABASE_URL, SUPABASE_SERVICE_KEY (writes), SUPABASE_PAT (trials DDL update)
 """
 import os, sys, json, time, urllib.request, urllib.parse, datetime
