@@ -24,7 +24,7 @@ jobs:
       - name: Provision service key
         run: printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
       - name: Ownership rights (promote owner/originator/partnership facts)
-        run: python3 scripts/derive_ownership_rights.py || echo "ownership non-fatal"
+        run: python3 src/meridian/graph/derive_ownership_rights.py || echo "ownership non-fatal"
       - name: Publication influence (Semantic Scholar)
         run: python3 scripts/integrations/publication_influence.py --write || echo "S2 non-fatal"
       - name: Recompute coverage heat map (credit all sources)

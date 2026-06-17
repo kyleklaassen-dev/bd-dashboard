@@ -18,7 +18,7 @@ Does NOT alter drugs.company_id or originator attribution. Does NOT touch entity
 import json, os, urllib.request
 
 BASE = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SK = open(os.path.join(ROOT, ".supabase_service_key")).read().strip()
 HDR = {"apikey": SK, "Authorization": f"Bearer {SK}", "Content-Type": "application/json"}
 
