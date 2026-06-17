@@ -49,4 +49,4 @@ jobs:
         run: |
           ARGS=""
           if [ "${{ github.event.inputs.fail_on_red }}" = "true" ]; then ARGS="--fail-on-red"; fi
-          python scripts/pipeline_health.py $ARGS
+          python src/meridian/ops/pipeline_health.py $ARGS

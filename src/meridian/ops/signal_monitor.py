@@ -29,7 +29,7 @@ from pathlib import Path
 
 # ── Environment ──────────────────────────────────────────────────────────────
 
-_HERE = Path(__file__).parent.parent
+_HERE = Path(__file__).resolve().parents[3]
 _CREDS_DIR = _HERE
 
 def _read_cred(fname: str) -> str:

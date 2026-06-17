@@ -23,7 +23,7 @@ Usage:
 import os, sys, json, argparse, datetime
 import requests
 
-_REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 def _f(name):
     p = os.path.join(_REPO_DIR, name)
     return open(p).read().strip() if os.path.exists(p) else ""
