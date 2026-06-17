@@ -1,3 +1,11 @@
+# ✅ CONT. — write_meridian + research_intelligence migrated; 5 one-offs archived (flat 57→52)
+
+This push: **write_meridian cluster** (write_meridian + meridian_integrations_feed + dryrun_meridian → products/; meridian-preview dry-run GREEN — the Issue generator now lives in the package) · **research_intelligence** → scoring/ (completeness-scoring GREEN) · archived 5 spent one-offs → scripts/archive/. ~56 scripts migrated total, 0 failures.
+
+**Next (ROADMAP §1 — read it):** the final two coupled webs (**narrative** 12 files/4 domains; **enrichment-core** 8 files) are densely cross-coupled. Recommended: introduce **package imports** first (PYTHONPATH=$GITHUB_WORKSPACE/src in workflows or pyproject + pip install -e .), convert cross-package imports to `from meridian.<domain>.<mod>`, THEN move both webs cleanly. research.py is in the enrichment-core web (sibling-imports company_identity_resolver + source_verifier).
+
+---
+
 # ✅ SESSION 2026-06-16 (cont.) — 52 scripts migrated, org scaffolding built, freeze LIFTED
 
 **Kyle lifted the spend freeze** → LLM workflows can now be dispatch-verified. **`ROADMAP.md` is now the single
