@@ -91,6 +91,12 @@ The repo must not silently regress to a flat dump. Build a lightweight recurring
 - ⬜ **Tier C** (empty but read by the dashboard → POPULATE, don't drop): `company_areas`, `company_profiles`,
   `drug_modalities`, `intel_areas`, `intel_companies`, `indication_biology_tags`, `drug_routes`, `drug_areas` (legacy).
 
+## 7b. Reconcile (found by the hygiene guardrail 2026-06-16)
+- ⬜ **Competitive scoring updater**: `school-week-sprint` called `apply_competitive_scores_v56.py` (deleted one-off,
+  masked by `continue-on-error`). Removed the dead line. CONFIRM `drug_competitive_scores` still has a live updater
+  (e.g. `compute_landscape_scores` / `drug_competitive_scores` path) or wire one — otherwise that score may be going stale.
+- ✅ Deleted dead workflow `backfill-ailux-angle-watch.yml` (script never existed, zero runs).
+
 ## 8. Cosmetic / housekeeping
 - ✅ Docstring usage-paths synced across all 49 moved modules (commit ba367813).
 - ⬜ Fold the older `PRIORITY.md` / `NEXT_SESSION.md` fragments into this file as they age out, so this stays the single source.

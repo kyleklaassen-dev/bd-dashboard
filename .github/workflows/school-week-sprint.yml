@@ -111,7 +111,6 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: Full competitive scoring + ranking update"
-          python scripts/apply_competitive_scores_v56.py
           python src/meridian/scoring/write_ranking_snapshots.py
           python src/meridian/validation/validate_ground_truth.py --write-results
           python src/meridian/scoring/compute_coverage.py
