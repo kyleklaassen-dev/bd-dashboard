@@ -12,12 +12,23 @@ _BASE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_BASE / "src" / "database"))
 import client
 
-# Allowed vocab (keep in sync with the entity_edges CHECK constraints — ADR-007).
-PREDICATES = {"TARGETS", "COMPETES_WITH", "DEVELOPED_BY", "PARTNERED_WITH", "LICENSED_FROM",
-              "ACQUIRED", "APPROVED_IN", "AFFECTED_BY", "ACTIVE_IN", "CO_DEVELOPS",
-              "TERMINATED", "SUPPLIES", "AUTHORED", "ACTIVE_IN"}
+# Allowed vocab — mirrors the entity_edges CHECK constraint (ADR-007). Full set of
+# the 35 predicates / 18 node types in the live graph (2026-06-16). The DB is the
+# final gate; this is early validation. Keep in sync with the constraint.
+PREDICATES = {
+    "ACQUIRED", "ACTIVE_IN", "ADDRESSES", "AFFECTED_BY", "AFFILIATED_WITH", "APPROVED_FOR",
+    "APPROVED_IN", "ASSOCIATED_WITH", "AUTHORED", "COLLABORATES", "COMPETES_WITH",
+    "CO_AUTHORED_WITH", "CO_DEVELOPS", "DEVELOPED_BY", "FILED", "HAS_PATENT", "INVESTIGATES",
+    "LED_BY", "LICENSED_FROM", "MANUFACTURES", "MENTIONED_IN", "PARTICIPATES_IN", "PARTNERED_WITH",
+    "PRESENTED", "REPORTED_IN", "RESEARCHES", "STUDIES", "SUBSTITUTES", "SUPPLIES", "TARGETS",
+    "TERMINATED", "TESTED_IN", "TREATS", "UPSTREAM_MECHANISM", "WORKS_ON",
+}
 GEN_METHODS = {"deterministic", "manual"}
-NODE_TYPES = {"drug", "company", "target", "indication", "patient", "geography"}
+NODE_TYPES = {
+    "abstract", "area", "author", "company", "drug", "filing", "geography", "indication",
+    "institution", "kol", "news", "patent", "pathway", "person", "publication", "target",
+    "trial", "patient",
+}
 
 
 class EdgeWriter:
