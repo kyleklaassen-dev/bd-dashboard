@@ -1,3 +1,14 @@
+# ✅ PACKAGE MIGRATION — ingestion/ group DONE (2026-06-16)
+
+9 self-contained ingestion scripts → `src/meridian/ingestion/`: abstract_fetcher, api_harvester, fetch_homepage_news, collect_efficacy_apis, collect_patient_evidence, refresh_orange_purple_book, stock_prices, chunk_extract, enrich_pub_stubs. Paths fixed; import-verified; 9 workflows updated (from main).
+**Dispatch-verified green:** abstract-fetcher, orange-purple-book, efficacy-verification, stock-prices, fetch-homepage-news, evidence-collectors. api_harvester+enrich_pub_stubs (api-harvest-daily, long harvest) and chunk_extract (heavy LLM) import-exercised. Engine 0 failures.
+Deferred to the utilities group: **ct_gov_sync** (imports identity_resolution), **collect_evidence** (imports narrative_gen).
+
+**Running tally: graph/ (9) + scoring/ (7) + ingestion/ (9) = 25 scripts migrated into src/meridian/.**
+Next per §6: validation, then products, enrichment, then utilities+identity (coupled, last).
+
+---
+
 # ✅ PACKAGE MIGRATION — scoring/ group DONE (2026-06-16)
 
 7 active scoring scripts → `src/meridian/scoring/`: compute_attribute_completeness, compute_coverage, compute_indication_priority, compute_landscape_scores, compute_patient_whitespace, score_foresight, write_ranking_snapshots. All self-contained (no sibling imports); `__file__`-relative paths fixed for the new depth; import-verified. Updated all 8 referencing workflows (read from main).
