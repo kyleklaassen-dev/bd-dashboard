@@ -125,7 +125,7 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          python scripts/research_intelligence.py --area ${{ steps.area_select.outputs.area }}
+          python src/meridian/scoring/research_intelligence.py --area ${{ steps.area_select.outputs.area }}
 
       - name: "[Nightly] Identity health check"
         if: github.event_name == 'schedule'
@@ -187,8 +187,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/research_intelligence.py $ARGS"
-          python scripts/research_intelligence.py $ARGS
+          echo "Running: python src/meridian/scoring/research_intelligence.py $ARGS"
+          python src/meridian/scoring/research_intelligence.py $ARGS
 
       - name: "[Manual] Identity health check (single area)"
         if: |
@@ -242,7 +242,7 @@ jobs:
             python scripts/company_enrichment.py --area $AREA $DRY_FLAG
 
             echo "  → Step 7: Research intelligence audit"
-            python scripts/research_intelligence.py --area $AREA $DRY_FLAG
+            python src/meridian/scoring/research_intelligence.py --area $AREA $DRY_FLAG
 
             echo "  ✓ Area $AREA complete"
           done
