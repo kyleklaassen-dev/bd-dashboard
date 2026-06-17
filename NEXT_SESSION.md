@@ -1,3 +1,24 @@
+# 🗂 REPO REORGANIZATION — day pass (2026-06-16)
+
+Goal: standard-SWE structure, smaller files, legible for an engineer. Approach: **understand fully first** (the Cowork mount silently drops files in bulk reads, so all analysis was done on a tarball snapshot of `main` — reliable), then only **safe, self-verified** changes (the risky active-code moves wait for a supervised session).
+
+## Done safely (engine verified green throughout)
+- **Reliable dependency map** (`docs/architecture/DEPENDENCY_MAP.md`): the pipeline DAG (which workflow runs which scripts, in order), the 8 shared-utility modules, and all 26 import-coupling edges. THIS is the trustworthy what-relates-to-what reference.
+- **Archived 17 one-off scripts** → `scripts/archive/` (verified not workflow-run + not imported; session backfills, wave2/3 backfills, one-run table migrations). One atomic commit.
+- **Consolidated the two migration dirs** → single `migrations/` (moved 12 SQL, dropped 1 identical dup, updated the 2 manual seeders that referenced the old path). One atomic commit.
+- **Docs organized**: `docs/architecture/README.md` index (orients an engineer + lists current-vs-historical docs); `REPO_LAYOUT.md` (target layout + safe migration sequence); `scripts/README.md` (domain map of the flat dir, with the authoritative active-script caveat).
+- **Split designs (deep-read, executable)** in `PHASE3_4_EXECUTION_DESIGN.md`: `ct_gov_sync.py` (fetch/map/write) and `company_enrichment.py` (4,435 lines → enrichment/company/* by its existing sections).
+
+## Reliable inventory
+- 135 flat scripts → **63 active** (workflow-run), **8 utility** (imported: entity_matcher, narrative_gen ×11 importers, identity_resolution, model_comparison, company_identity_resolver, build_fact_graph, company_intake, meridian_integrations_feed), **17 archived**, rest = manual on-demand tools.
+
+## NOT done — needs a SUPERVISED session (edits live pipeline code; can't watch CI while away)
+1. Move active scripts into `src/meridian/<domain>/` packages — per `REPO_LAYOUT.md` §6, one group per PR, each gated by a green workflow run. Move the 8 utilities first (update every importer). Start with `graph/`.
+2. Split the 10 large files (designs ready for the top 2) + `index.html` (Phase 4).
+Why not now: e.g. `company_enrichment.py` is the 4am nightly core — a subtle import error would only surface when the unattended run fails. Verify each move with `--dry-run` dispatch + a green CI run, supervised.
+
+---
+
 # 🧹 CLEANUP PASS (2026-06-16, per Kyle: keep the repo legible)
 
 - Wired `seed_competes_with.py` through **EdgeWriter** (508 edges, 0 rejections — governs against phantom edges) and fixed a `status`->`stage` KeyError in it.
