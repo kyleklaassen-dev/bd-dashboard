@@ -1,7 +1,7 @@
 name: Meridian Preview (no deploy)
 
 # One-off preview generation of a Meridian Issue using the current code, WITHOUT
-# publishing. Runs scripts/dryrun_meridian.py --live, which calls the model but
+# publishing. Runs src/meridian/products/dryrun_meridian.py --live, which calls the model but
 # does NOT save the issue to Supabase and does NOT deploy to GitHub Pages. The
 # generated HTML is uploaded as a build artifact (not web-served), to be fetched
 # back for review. Manual trigger only.
@@ -41,7 +41,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GITHUB_TOKEN:         ${{ secrets.GH_DEPLOY_TOKEN }}
           GITHUB_REPO:          kyleklaassen-dev/bd-dashboard
-        run: python scripts/dryrun_meridian.py --live
+        run: python src/meridian/products/dryrun_meridian.py --live
 
       - name: List outputs
         run: ls -la outputs/ || true

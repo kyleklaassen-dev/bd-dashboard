@@ -27,7 +27,7 @@ USAGE
 import os, sys, json, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 OUTDIR = os.path.join(ROOT, "outputs")
 os.makedirs(OUTDIR, exist_ok=True)
 

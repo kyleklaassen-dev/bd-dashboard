@@ -47,7 +47,7 @@ import urllib.parse
 import urllib.request
 
 SB_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-_WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def _key():
