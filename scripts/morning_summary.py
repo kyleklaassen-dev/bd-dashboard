@@ -73,7 +73,7 @@ def fetch_governance_violations():
     rows = sb_get("governance_violations", {
         "select": "id,table_name,row_id,rule_name,description,detected_at",
         "resolved": "eq.false",
-        "order": "created_at.desc",
+        "order": "detected_at.desc",
         "limit": 50,
     })
     return rows
