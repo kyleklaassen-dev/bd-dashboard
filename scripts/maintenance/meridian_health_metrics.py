@@ -24,18 +24,27 @@ def read(p):
 # ---- 1. DB write paths to core tables ----
 CORE = ["drugs","companies","entity_edges","catalysts"]
 WRITERS = {"drug_writer.py","company_writer.py","edge_writer.py","catalyst_writer.py"}
-write_re = re.compile(r'(sb_upsert|sb_write|\.upsert|\.insert)\(\s*["\']('+("|".join(CORE))+r')["\']')
-rest_re  = re.compile(r'rest/v1/('+("|".join(CORE))+r')\b')
-post_re  = re.compile(r'requests\.(post|patch|put)\(')
+# Verb-aware: only count an actual write (POST/PATCH/upsert/insert) whose target
+# table URL/name appears within the same ~3 lines — NOT a GET/read. (Fixes the
+# prior bug that flagged any file with a 'rest/v1/<core>' string + any post anywhere.)
+WRITER_VERB = re.compile(r'requests\.(post|patch|put)\(|sb_upsert\(|sb_post\(|\.upsert\(|\.insert\(')
+SUBTBL = re.compile(r'_areas|_sources|_targets|_safety|canonical_|_stage|_history|_modalities|_routes|_competition|_genetics|_disease')
 write_sites=collections.defaultdict(list)
 for p in PYFILES:
-    t=read(p); name=p.name
-    for m in write_re.finditer(t): write_sites[m.group(2)].append(name)
-    # raw REST writes (post/patch to a core table url) — approximate
-    if rest_re.search(t) and post_re.search(t):
+    lines=read(p).splitlines(); name=p.name; seen=set()
+    for i,l in enumerate(lines):
+        if not WRITER_VERB.search(l): continue
+        ctx="\n".join(lines[i:i+3])
+        if SUBTBL.search(ctx): continue
         for tbl in CORE:
-            if re.search(rf'rest/v1/{tbl}\b', t) and name not in WRITERS:
-                write_sites[tbl].append(name+"(raw REST)")
+            if re.search(rf'/rest/v1/{tbl}\b|["\']{tbl}["\']', ctx):
+                if name in WRITERS:
+                    tag=name
+                else:
+                    verb="POST" if re.search(r'\.post\(',l) else ("PATCH" if re.search(r'\.patch\(',l) else "UPSERT")
+                    tag=f"{name}(raw {verb})"
+                if (tbl,tag) not in seen:
+                    seen.add((tbl,tag)); write_sites[tbl].append(tag)
 
 # ---- 2. ingestion pipelines ----
 ingestion_dir=[rel(p) for p in (ROOT/"src/meridian/ingestion").glob("*.py") if p.name!="__init__.py"] if (ROOT/"src/meridian/ingestion").exists() else []
