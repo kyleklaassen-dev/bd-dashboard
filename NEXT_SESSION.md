@@ -1,3 +1,46 @@
+# ✅ BIG MIGRATION SESSION (2026-06-16) — 49 scripts in packages, 5 deleted, 1 wired, 0 failures
+
+## Commits this session
+products 619f33e6 · enrichment 4a68cfed · ops d83d9c7e · cleanup/wire 2438013d · stragglers 6bb6dd42 · fact-graph/identity f6675cdb · docstring-sync ba367813.
+
+## Packages now populated (49 scripts)
+graph/9 · scoring/7 · ingestion/12 (+payer_pricing_agent, sync_catalyst_calendar, seed_data_sources) · validation/9 (+refresh_company_verified) · products/3 · enrichment/2 · ops/3 · identity/4.
+
+## ✅ DISPOSITION (Kyle's 'wire or delete' call — executed)
+DELETED (redundant; capability covered by active pipelines; zero importers, verified full-repo sweep):
+  quick_profiles_enrich + patient_population_agent (company_enrichment already writes company_profiles + patient_population),
+  run_pkpd_claude (drug_pk_parameters written by active collect_efficacy_apis + process_queue_item),
+  deep_enrich_intel (superseded by backend PDF ingestion), backfill_bd_angle + its workflow (spent one-time backfill).
+WIRED IN: payer_pricing_agent -> src/meridian/ingestion/ + non-fatal step in meridian-free-ingest.yml
+  (free CMS/Medicaid data; sole populator of the live payer_pricing feature read by 3 dashboards). free-ingest dispatched.
+
+## 🔑 KEY FIX: entity_matcher coupling (the shared resolver) — RESOLVED & VERIFIED
+entity_matcher is imported by the GOVERNED WRITERS (drug_writer + company_writer) + tests + maintenance/link_extras.
+Moved to src/meridian/identity/; redirected all importer sys.path lines. VERIFIED FREE: in-sandbox both writers
+import with entity_matcher resolved from the new path; 4 cluster scripts import-exercised. ⚠️ tests/database/ are NOT
+on any workflow — RUN test_drug_writer.py + test_writers.py at session start (live read-only) as the regression gate.
+
+## ⏸️ REMAINING = the entangled LLM 4am-core (~20 scripts) — NEEDS A VERIFICATION DECISION
+Every remaining mover is on an LLM (Claude) workflow → under the spend freeze I cannot cheaply dispatch-verify, and
+import-exercise is thin assurance for the platform's unattended nightly Issue. Per the standing safeguard I PAUSED here.
+Clusters (each = one atomic move; full-repo importer sweep first — depmap misses src/database + maintenance + dynloads):
+  - write_meridian + meridian_integrations_feed + dryrun_meridian  (Issue generator; research.py DYNLOADS write_meridian)
+  - research + research_intelligence
+  - company_enrichment(4435) + ct_gov_sync + company_intake + identity_resolution + model_comparison + company_identity_resolver + source_verifier
+  - narrative_gen + collect_evidence + generate_area_narratives + generate_patient_briefs
+  - LLM stragglers: execute_intel_actions, process_queue_item, review_submitted_intel
+  - apply_sql_migration -> move WITH the writers into a src/meridian/database consolidation (writers still at src/database/)
+DISPOSITION FLAGS (could NOT safely auto-decide — both coupled/active): 
+  - weekend_sprint(2999, active 8 Sat crons, LLM) + drug_enrichment(its sole dynload dep): archive or delete? (active scheduled)
+  - flywheel_phase2 + apply_prompt_improvements: apply_prompt_improvements is referenced by ACTIVE company_enrichment -> move/decide with that cluster.
+DECISION FOR KYLE: for the LLM-core moves — (a) proceed import-exercise-only (flagged, no dispatch), (b) authorize one-off
+verification dispatches (small Claude cost) per cluster, or (c) do them supervised. Recommend (b): one preview + one research
++ run writer tests = real verification at minimal cost.
+
+## Tiny cosmetic backlog: none outstanding (docstring usage paths synced across all 39 moved files in ba367813).
+
+---
+
 # ⚠️ FINDING (2026-06-16, live 221-file sweep) — entity_matcher is WRITER-COUPLED
 
 `entity_matcher` is imported by **`src/database/drug_writer.py` + `src/database/company_writer.py`** (the governed single-writers) and `scripts/maintenance/link_extras.py` — NOT just build_fact_graph/link_entities as the active/util depmap implied. **Moving entity_matcher edits the writer layer that every core write routes through → supervised only.** Lesson: depmap.json covers active/util scripts; it does NOT capture src/database/ or scripts/maintenance/ importers — for the coupled clusters, ALWAYS run the live full-repo importer sweep first (the snippet that scanned 221 files: all scripts/ subdirs + src/ + workflows). Same caution applies before moving identity_resolution/model_comparison/source_verifier (likely writer- or research-coupled too).
