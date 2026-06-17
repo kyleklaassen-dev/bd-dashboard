@@ -9,6 +9,8 @@
 
 **Stabilization sprint — single-writer enforcement is now REAL (channel + invariant).** Layer B is live: anon/authenticated can no longer INSERT/UPDATE/DELETE core tables (only the Writers' service_role can), with one column-scoped exception (the partnership-pill toggle). Layer A triggers hard-block 3 invariants (`edges.subject_drug_orphan`, `edges.object_drug_orphan`, `catalysts.must_link`); the rest log in WARN. **The stabilization freeze can lift.**
 
+**2026-06-16 governance + data-quality pass:** governance_violations **41 → 3**. Corrected 4 real competitor-stage inflations (jnj-4804, es302, lq082, shr0817→SHR-1819) and confirmed 3 source-gaps (spy230, ear-2001, bel512 genuinely Phase 2); purged 2 phantoms (hlx36, ionis-tslp-25rx) + merged 1 dup (hr7044→shr-1905); reversibly dropped 8 off-domain/unverifiable records; cleared 13 mis-linked trials (2 restored after ct.gov re-check) + assorted false-positives. Remaining 3 = ab001/sm-101 (by-design ambiguous-identity), generate-uc + lbl-053 (need China-CDE/primary-source check). Submitted-intel auto-review now runs every 4h (backlog of 9 cleared; 10 in needs_review). Morning Summary fixed (engine fully green).
+
 **Freeze status:** still on, but lifting. What remains to fully lift it: (1) link the 26 unlinked catalysts → enforce `catalysts.must_link`; (2) decide the drug-discovery `company_id` policy → enforce `drugs.company_id_required`; (3) apply Layer B (REVOKE INSERT/UPDATE on core tables from anon/authenticated + an RPC write path) — the real "single physical writer."
 
 ---
@@ -25,7 +27,7 @@
 | **Stage 4** | **Enforcement — DONE.** Layer A: v157 observe-only triggers → v159/v160 hard-block `edges.subject_drug_orphan`, `edges.object_drug_orphan`, `catalysts.must_link` (per-rule allow-list `governance_enforced_rules`; observability in `governance_enforcement_log`). Layer B: v161 revoked anon/authenticated writes on all 4 core tables (service_role only), keeping a column-scoped anon grant for the partnership-pill. Verified end-to-end: phantom edge / orphan catalyst / anon field-write all rejected; writers + seeders green. | ✅ DONE (channel + invariant enforced). |
 | **Stage 5** | Connectivity backfills + residual data. | 🔄 IN PROGRESS — 58 drugs still lack `drug_sources`; 26 catalysts unlinked. |
 
-> **Live data counts (2026-06-16 PM):** drugs **192**, companies 191, deals 218, governance unresolved 41, validation non-pass 35, orphan drug-edges **0**.
+> **Live data counts (2026-06-16 PM):** drugs **189** (3 phantoms/dups removed; 8 off-domain/unverifiable hidden), companies 191, deals 218, **governance unresolved 3** (from 41 — see below), 0 validation failures, orphan edges **0**.
 
 ---
 
