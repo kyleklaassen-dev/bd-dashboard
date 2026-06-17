@@ -32,9 +32,9 @@ jobs:
       - name: Sync upcoming catalysts into catalyst_calendar (BD Today)
         run: python3 scripts/sync_catalyst_calendar.py --apply
       - name: Recompute patient whitespace (North Star apex)
-        run: python3 scripts/compute_patient_whitespace.py || echo "patient whitespace non-fatal"
+        run: python3 src/meridian/scoring/compute_patient_whitespace.py || echo "patient whitespace non-fatal"
       - name: Refresh Indication Priority card (live + curated overlay)
-        run: python3 scripts/compute_indication_priority.py || echo "indication priority non-fatal"
+        run: python3 src/meridian/scoring/compute_indication_priority.py || echo "indication priority non-fatal"
       - name: Clean up
         if: always()
         run: rm -f .supabase_service_key

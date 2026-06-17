@@ -38,7 +38,7 @@ jobs:
         run: |
           AREA="${{ github.event.inputs.area || 'all' }}"
           if [ "$AREA" = "all" ]; then
-            python scripts/write_ranking_snapshots.py
+            python src/meridian/scoring/write_ranking_snapshots.py
           else
-            python scripts/write_ranking_snapshots.py --area "$AREA"
+            python src/meridian/scoring/write_ranking_snapshots.py --area "$AREA"
           fi

@@ -270,5 +270,5 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           echo "Recording next-gen ranking snapshots to DB..."
-          python scripts/write_ranking_snapshots.py
+          python src/meridian/scoring/write_ranking_snapshots.py
           echo "Ranking snapshots complete."

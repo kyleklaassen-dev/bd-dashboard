@@ -43,7 +43,7 @@ jobs:
         run: |
           ARGS=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          python scripts/score_foresight.py $ARGS
+          python src/meridian/scoring/score_foresight.py $ARGS
 
       - name: Commit refreshed review queues (if changed)
         if: ${{ github.event.inputs.dry_run != 'true' }}

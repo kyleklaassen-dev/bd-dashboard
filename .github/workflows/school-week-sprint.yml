@@ -72,7 +72,7 @@ jobs:
           python scripts/company_enrichment.py --area tl1a --skip-discovery
           python scripts/company_enrichment.py --area fcrn --skip-discovery
           python scripts/company_enrichment.py --area ibd --skip-discovery
-          python scripts/write_ranking_snapshots.py
+          python src/meridian/scoring/write_ranking_snapshots.py
 
       # ── TUESDAY: Mechanism + source_url gaps ──────────────────────────────
       - name: "Tuesday — Mechanism detail + source_url enrichment"
@@ -112,12 +112,12 @@ jobs:
         run: |
           echo "SPRINT: Full competitive scoring + ranking update"
           python scripts/apply_competitive_scores_v56.py
-          python scripts/write_ranking_snapshots.py
+          python src/meridian/scoring/write_ranking_snapshots.py
           python scripts/validate_ground_truth.py --write-results
-          python scripts/compute_coverage.py
+          python src/meridian/scoring/compute_coverage.py
 
       # ── DAILY: Always run after any sprint day ────────────────────────────
       - name: "Daily ranking snapshot"
         if: always()
         continue-on-error: true
-        run: python scripts/write_ranking_snapshots.py || true
+        run: python src/meridian/scoring/write_ranking_snapshots.py || true

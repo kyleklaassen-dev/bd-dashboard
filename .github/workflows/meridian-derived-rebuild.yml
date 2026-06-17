@@ -28,7 +28,7 @@ jobs:
       - name: Publication influence (Semantic Scholar)
         run: python3 scripts/integrations/publication_influence.py --write || echo "S2 non-fatal"
       - name: Recompute coverage heat map (credit all sources)
-        run: python3 scripts/compute_attribute_completeness.py || echo "completeness non-fatal"
+        run: python3 src/meridian/scoring/compute_attribute_completeness.py || echo "completeness non-fatal"
       - name: Clean up
         if: always()
         run: rm -f .supabase_service_key

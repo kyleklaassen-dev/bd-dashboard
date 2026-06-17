@@ -36,7 +36,7 @@ jobs:
         run: |
           printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
       - name: Recompute attribute completeness (heatmap + cards)
-        run: python3 scripts/compute_attribute_completeness.py
+        run: python3 src/meridian/scoring/compute_attribute_completeness.py
       - name: Refresh data-sources registry
         run: python3 scripts/seed_data_sources.py
       - name: Refresh patent families (monthly cron or manual opt-in)

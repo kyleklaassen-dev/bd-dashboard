@@ -15,7 +15,7 @@ resolve-or-skip: indication_name -> canonical indications.id; unmatched are repo
 """
 import json, math, os, re, urllib.request, urllib.parse
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 SK = open(os.path.join(BASE, ".supabase_service_key")).read().strip()
 H = {"apikey": SK, "Authorization": f"Bearer {SK}", "Content-Type": "application/json"}

@@ -40,7 +40,7 @@ import os, sys, json, argparse, datetime, math
 from typing import Optional
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # This module prints progress directly; the LDS-feedback step calls log(),
 # so alias it to print to keep a single output path (fixes NameError crash).

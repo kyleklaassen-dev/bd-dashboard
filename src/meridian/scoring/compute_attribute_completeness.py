@@ -11,7 +11,7 @@ Idempotent: upserts both tables. Run: python3 scripts/compute_attribute_complete
 """
 import json, os, sys, urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SB = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 KEY = open(os.path.join(ROOT, ".supabase_service_key")).read().strip()
 

@@ -74,5 +74,5 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Running: python scripts/compute_landscape_scores.py $ARGS"
-          python scripts/compute_landscape_scores.py $ARGS
+          echo "Running: python src/meridian/scoring/compute_landscape_scores.py $ARGS"
+          python src/meridian/scoring/compute_landscape_scores.py $ARGS

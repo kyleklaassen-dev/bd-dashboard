@@ -6,7 +6,7 @@ which program targets it) with LIVE patient data from patient_unmet_need_competi
 and upserts into indication_priority_scores (the table the card live-reads).
 Free, deterministic, idempotent — safe to schedule."""
 import os,json,math,urllib.request,datetime
-ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SB="https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 KEY=open(os.path.join(ROOT,".supabase_service_key")).read().strip()
 H={"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"}

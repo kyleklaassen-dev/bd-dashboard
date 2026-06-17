@@ -32,7 +32,7 @@ import urllib.error
 from collections import defaultdict
 from datetime import date, datetime
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 URL = "https://tghntyofptvfhmtchwcv.supabase.co"
 TODAY = date.today().isoformat()
 DRY = "--dry-run" in sys.argv

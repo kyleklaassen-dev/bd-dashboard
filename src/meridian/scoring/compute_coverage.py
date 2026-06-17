@@ -66,7 +66,7 @@ SB_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.c
 SB_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 if not SB_KEY:
-    key_file = os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key")
+    key_file = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".supabase_service_key")
     if os.path.exists(key_file):
         with open(key_file) as f:
             SB_KEY = f.read().strip()
