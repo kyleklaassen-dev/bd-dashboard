@@ -1,3 +1,16 @@
+# 🔧 WRITERS HARDENED (Phase 3 prereq DONE, 2026-06-16)
+
+Single-writer **code layer is now complete + verified**. All 4 writers exist in `src/database/` (DrugWriter was already live). Found+fixed real bugs in 2:
+- **EdgeWriter**: allowed only 13 predicates / 6 node types — would have REJECTED TESTED_IN (326), PRESENTED (442), CO_AUTHORED_WITH (4,979), MANUFACTURES, INVESTIGATES (1,808), and all abstract/author/kol/trial/patent edges. Expanded to the full **35 predicates / 18 node types** in the live graph. Verified: TESTED_IN/PRESENTED now accepted, bad predicate + missing node still rejected.
+- **CatalystWriter**: still required drug/company only — out of sync with the broadened v160 `must_link`. Aligned to drug/company/**area/target/indication**. Verified area-anchored now passes.
+- CompanyWriter verified OK (defaults subsidiary; rejects acquired-without-parent). All py_compile + dry-run smoke tests green.
+
+**NEXT increment (the actual de-bulking):** wire the writers into the seeders/enrichers — route the ad-hoc `sb_upsert('entity_edges'/'catalysts'/'companies', …)` calls through Edge/Catalyst/CompanyWriter (start with the edge seeders — lowest risk, highest call-count). Each wiring de-bulks the script AND completes single-writer at the code layer (DB layer already enforces via v157–v162). Then the ct_gov_sync split per `docs/architecture/PHASE3_4_EXECUTION_DESIGN.md`.
+
+NOTE: the Supabase **Management API** had a transient 504 outage around 12:25–12:30 UTC (Cloudflare); the project **REST endpoint stayed up** the whole time, so this work used REST. If DDL/migrations error with 504, just retry.
+
+---
+
 # ✅ EXECUTED OVERNIGHT (after the morning-review audit, 2026-06-16)
 
 Kyle approved all 3 decisions + P1–P3. Done since the audit:
