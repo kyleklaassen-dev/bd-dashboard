@@ -1,3 +1,14 @@
+# ✅ PACKAGE MIGRATION — validation/ group DONE (2026-06-16)
+
+8 active validation scripts → `src/meridian/validation/`: validate_ground_truth, validation_research, conflict_detector, content_verifier, verify_competitor_edges, company_validator, trial_id_audit, identity_health_check. Self-contained; paths fixed (incl. identity_health_check's repo-root key fallback); import-verified. Updated all 8 workflows (from main).
+**Dispatch-verified green:** run-validation-tests, content-verifier, verify-edges, refresh-company-verified, validation-research (validation_research+conflict_detector). trial-audit (trial_id_audit) running/import-OK; identity_health_check import-exercised (its company-enrichment step is continue-on-error → can't dispatch-confirm). Engine 0 failures.
+Deferred to utilities group: **source_verifier** (utility, imported by `research`).
+
+**Running tally: graph/ (9) + scoring/ (7) + ingestion/ (9) + validation/ (8) = 33 scripts migrated.**
+Next per §6: products (write_meridian, narrative gen, briefs, summary), then enrichment, then utilities+identity (last).
+
+---
+
 # ✅ PACKAGE MIGRATION — ingestion/ group DONE (2026-06-16)
 
 9 self-contained ingestion scripts → `src/meridian/ingestion/`: abstract_fetcher, api_harvester, fetch_homepage_news, collect_efficacy_apis, collect_patient_evidence, refresh_orange_purple_book, stock_prices, chunk_extract, enrich_pub_stubs. Paths fixed; import-verified; 9 workflows updated (from main).
