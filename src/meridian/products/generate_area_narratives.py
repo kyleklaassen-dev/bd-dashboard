@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def run(cmd):
     print("  $", " ".join(cmd[1:]))
-    r = subprocess.run([sys.executable] + cmd, cwd=os.path.dirname(HERE),
+    r = subprocess.run([sys.executable] + cmd, cwd=os.path.dirname(os.path.dirname(os.path.dirname(HERE))),
                        capture_output=True, text=True)
     tail = (r.stdout or "").strip().splitlines()[-1:] or [(r.stderr or "").strip()[-160:]]
     print("    →", tail[0] if tail else "(no output)")
@@ -66,7 +66,7 @@ def main():
         ok = fail = 0
         for did in todo:
             for sec in secs:
-                if run(["scripts/narrative_gen.py", "--drug-id", did, "--section", sec, "--composer", "llm"]):
+                if run(["src/meridian/products/narrative_gen.py", "--drug-id", did, "--section", sec, "--composer", "llm"]):
                     ok += 1
                 else:
                     fail += 1
@@ -77,9 +77,9 @@ def main():
             return
 
     print("\nLandscape narrative:")
-    run(["scripts/landscape_narrative.py", "--target", args.area])
+    run(["src/meridian/products/landscape_narrative.py", "--target", args.area])
     print("\nStrategic brief (decision layer):")
-    run(["scripts/strategic_brief.py", "--area", args.area])
+    run(["src/meridian/products/strategic_brief.py", "--area", args.area])
     print("\nTrust scores:")
     run(["scripts/compute_trust_score.py", "--area", args.area, "--apply"])
     print("\nCollection queue sync:")

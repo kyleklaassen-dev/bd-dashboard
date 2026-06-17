@@ -18,8 +18,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def run(name):
-    r = subprocess.run([sys.executable, "scripts/patient_narrative.py", "--indication", name,
-                        "--section", "both"], cwd=os.path.dirname(HERE), capture_output=True, text=True)
+    r = subprocess.run([sys.executable, "src/meridian/products/patient_narrative.py", "--indication", name,
+                        "--section", "both"], cwd=os.path.dirname(os.path.dirname(os.path.dirname(HERE))), capture_output=True, text=True)
     ok = r.stdout.count("wrote indication/")
     tail = (r.stdout or r.stderr or "").strip().splitlines()[-1:] or [""]
     print(f"  {name[:40]:40} → {ok} sections written  {tail[0][:50]}")
