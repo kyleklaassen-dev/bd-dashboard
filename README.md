@@ -86,8 +86,9 @@ canonical spec in `docs/ARCHITECTURE.md`.
 
 | Path | Purpose |
 |------|---------|
-| `index.html` | The deployed dashboard (single-file; Phase-4 split target). |
-| `Meridian_Live.html`, `meridian_*.html`, `intelligence.html`, `predictions.html`, `aib_view.html` | Focused product views (ask, atlas, brief, today, coverage, predictions, intelligence, etc.). The main dashboard also carries a **📡 Intelligence** tab that surfaces 11 backend datasets (genetic validation, trial-design quality, conference signals, EU approvals, manufacturing, narrative trust, etc.). |
+| `index.html` | The deployed dashboard (single-file; Phase-4 split target). GitHub Pages entry point — stays at root. |
+| `meridian_today.html` | "Today's Issue" page — generated + auto-published to root by `write_meridian.py`. |
+| `web/*.html` | Focused product-view dashboards (ask, atlas, brief, coverage, predictions, intelligence, strategic lens, doc-intel, etc.), linked from `index.html`. The main dashboard also carries a **📡 Intelligence** tab that surfaces 11 backend datasets (genetic validation, trial-design quality, conference signals, EU approvals, manufacturing, narrative trust, etc.). |
 | `docs/ARCHITECTURE.md` | Canonical platform-architecture specification. |
 | `CLAUDE.md` | AI agent operating instructions (governance, hard rules, key paths). |
 | `src/` | Production layer: the governed single-writer pattern. `src/database/` (shared client + drug/company/catalyst/edge writers) is live; identity, ingestion, ontology, enrichment, and scoring are the staged directories code graduates into. |

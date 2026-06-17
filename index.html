@@ -5493,7 +5493,7 @@ async function _injectAreaFreshness(tabId) {
  </div>
  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><!-- DEPRECATED 2026-06-06: red Research Queue pill (dq-nav-badge), yellow review pill (review-nav-btn), and purple Whitespace pill (ws-nav-btn) removed from top bar.
      Research-queue + governance-violation review items now consolidate into the Discovery Queue tab (⚑ Review filter). Whitespace removed entirely per Kyle.
-     Loaders _loadResearchQueue / _loadReviewQueue are retained (they feed the Discovery Queue). _loadWhitespace deprecated. --><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><a class="health-dot-btn" href="Meridian_DocIntel.html" target="_blank" rel="noopener" data-trusted="1" title="Document Intelligence — facts, market data & insights extracted from submitted research (Wedbush, TD Cowen, etc.)" style="text-decoration:none"><span class="health-dot-lbl" style="color:#5b9dff">📑 Docs</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
+     Loaders _loadResearchQueue / _loadReviewQueue are retained (they feed the Discovery Queue). _loadWhitespace deprecated. --><span class="health-dot-btn" id="health-nav-dot" onclick="openHealthPanel()" title="Pipeline health — click for detail" style="display:none"><span class="health-dot unknown" id="health-nav-dot-dot"></span><span class="health-dot-lbl" id="health-nav-dot-lbl">—</span></span><a class="health-dot-btn" href="web/meridian_atlas.html" target="_blank" rel="noopener" data-trusted="1" title="The Atlas — everything: system stack, intelligence hierarchy, health, gap registry, workflow map + strategic lens" style="text-decoration:none"><span class="health-dot-lbl" style="color:#7c3aed">◎ Lens</span></a><a class="health-dot-btn" href="web/Meridian_DocIntel.html" target="_blank" rel="noopener" data-trusted="1" title="Document Intelligence — facts, market data & insights extracted from submitted research (Wedbush, TD Cowen, etc.)" style="text-decoration:none"><span class="health-dot-lbl" style="color:#5b9dff">📑 Docs</span></a><button class="meridian-info-btn" onclick="openAboutDataPanel()" title="About this data — how Meridian is built">ℹ</button>
  <div class="header-meta">
  <strong id="header-date">Saturday, May 16, 2026</strong>
  <div class="header-clocks">
@@ -5907,7 +5907,7 @@ async function _injectAreaFreshness(tabId) {
 
 <!-- ══════════════ PREDICTIONS TAB (foresight ledger, embedded) ══════════════ -->
 <div class="tab-pane" id="tab-predictions">
-  <iframe id="predictions-frame" src="predictions.html" title="Predictions — Meridian foresight ledger"
+  <iframe id="predictions-frame" src="web/predictions.html" title="Predictions — Meridian foresight ledger"
     style="width:100%;min-height:calc(100vh - 130px);border:0;display:block;background:#f8fafc;"></iframe>
 </div>
 
@@ -5962,9 +5962,9 @@ async function _injectAreaFreshness(tabId) {
   </form>
   <script>
     function hwAskGo(e){e.preventDefault();var v=(document.getElementById('hw-ask-input').value||'').trim();
-      window.location.href='meridian_ask.html'+(v?('?q='+encodeURIComponent(v)):'');return false;}
-    function hwAskReview(){window.open('meridian_ask_review.html','_blank');}
-    function askMeridian(q){try{window.open('meridian_ask.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');}catch(e){}}
+      window.location.href='web/meridian_ask.html'+(v?('?q='+encodeURIComponent(v)):'');return false;}
+    function hwAskReview(){window.open('web/meridian_ask_review.html','_blank');}
+    function askMeridian(q){try{window.open('web/meridian_ask.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');}catch(e){}}
   </script>
 
   <div id="hw-rule"></div>
@@ -11327,10 +11327,10 @@ function dknLoadSbData() { return dknLoadData(); }
      ═══════════════════════════════════════════════════════════════════ -->
 <!-- Live Intelligence + Coverage Atlas — embedded as in-dashboard tabs (Kyle 2026-06-07: no external tabs). Iframes are same-origin (GitHub Pages); src set lazily on first visit. -->
 <div class="tab-pane" id="tab-live" style="padding:0;background:#f4f7fb">
-  <iframe id="live-frame" data-src="Meridian_Live.html" title="Live Intelligence" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
+  <iframe id="live-frame" data-src="web/Meridian_Live.html" title="Live Intelligence" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
 </div>
 <div class="tab-pane" id="tab-atlas" style="padding:0;background:#f4f7fb">
-  <iframe id="atlas-frame" data-src="Meridian_Coverage.html" title="Coverage Atlas" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
+  <iframe id="atlas-frame" data-src="web/Meridian_Coverage.html" title="Coverage Atlas" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
 </div>
 <div class="tab-pane" id="tab-discovery-queue" style="padding:0;background:#f1f5f9;min-height:100vh">
   <div style="max-width:1300px;margin:0 auto;padding:24px 20px 48px">
@@ -12232,14 +12232,14 @@ function dqCloseDetail(e) {
     };
     window.toggleAibArea=function(e){if(e)e.stopPropagation();var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display=(dd.style.display==='none'||!dd.style.display)?'block':'none';};
     window.setAibArea=function(area,label,e){if(e)e.stopPropagation();
-      var f=document.getElementById('aib-frame');if(f){f.setAttribute('data-src','aib_view.html?area='+area);f.src='aib_view.html?area='+area+'&t='+Date.now();}
+      var f=document.getElementById('aib-frame');if(f){f.setAttribute('data-src','web/aib_view.html?area='+area);f.src='web/aib_view.html?area='+area+'&t='+Date.now();}
       var lab=document.getElementById('mi-area-label');if(lab)lab.textContent=label;
       var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display='none';};
     document.addEventListener('click',function(){var dd=document.getElementById('mi-area-dd');if(dd)dd.style.display='none';});
     </script>
     <!-- AIB view (lazy-loaded on first switch) -->
     <div id="view-aib" style="display:none;background:white;border-radius:10px;box-shadow:0 2px 20px rgba(0,0,0,0.1);overflow:hidden">
-      <iframe id="aib-frame" data-src="aib_view.html?area=tl1a" src="about:blank"
+      <iframe id="aib-frame" data-src="web/aib_view.html?area=tl1a" src="about:blank"
         style="width:100%;height:calc(100vh - 120px);min-height:600px;border:none;display:block;background:#f8fafc"
         title="Area Intelligence Briefs"></iframe>
     </div>
