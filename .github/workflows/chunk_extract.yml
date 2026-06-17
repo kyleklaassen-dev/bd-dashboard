@@ -55,7 +55,7 @@ jobs:
           SUPABASE_URL: https://tghntyofptvfhmtchwcv.supabase.co
         run: |
           python3 scripts/ontology_map_drugs.py
-          python3 scripts/materialize_structural_edges.py || true
+          python3 src/meridian/graph/materialize_structural_edges.py || true
           python3 src/meridian/graph/seed_target_edges.py --apply || true
           python3 scripts/link_entities.py --apply   # build_fact_graph + market_landscape/rx_market_tracker links
           python3 src/meridian/graph/unify_graph.py
