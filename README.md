@@ -105,6 +105,22 @@ data pipelines, `migrations/` for the schema, and `docs/` for everything else.
 The real code mass currently lives in `scripts/`; `src/` is the layer code
 graduates into as it becomes a governed, production writer.
 
+The deployed dashboard pages live at the root (`index.html`, `meridian_today.html`)
+and in **`web/`** (the focused product views).
+
+### Local-only files (NOT on GitHub — intentionally)
+Some files live only on a developer's machine and are gitignored. The dividing line
+is `.gitignore`; `git status` is the source of truth for what's tracked. Local-only:
+
+| Local-only | What it is | Why not on GitHub |
+|---|---|---|
+| `.supabase_service_key`, `.supabase_anon_key`, `.supabase_pat`, `.supabase_config`, `.anthropic_api_key`, `.github_token_workflow`, `.env`, `.meridian_ask_ro_pw` | **Secret credentials** (read from repo root by the scripts; in CI they come from GitHub Actions secrets instead) | Security — keys must never be published |
+| `briefs/` (`aib_*_v*.html`, `AIB_*.docx`) | Generated Area Intelligence Brief deliverables | Regenerable output, not source |
+| `__pycache__/`, `*.pyc`, `*.log`, `*.bak` | Build/run artifacts | Regenerable |
+
+> Tip: these secret files are hidden dotfiles — toggle Finder's hidden-file view with
+> `Cmd+Shift+.` to hide them from the folder view.
+
 ---
 
 ## Governance & source-of-truth docs
