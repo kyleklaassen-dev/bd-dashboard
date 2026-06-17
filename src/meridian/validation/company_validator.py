@@ -90,7 +90,7 @@ SUPABASE_KEY = os.environ.get(
 
 if not SUPABASE_KEY:
     _key_paths = [
-        os.path.join(os.path.dirname(__file__), "..", ".supabase_service_key"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", ".supabase_service_key"),
         os.path.join(os.path.dirname(__file__), "..", ".supabase_anon_key"),
     ]
     for _p in _key_paths:

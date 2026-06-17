@@ -35,4 +35,4 @@ jobs:
         run: |
           ARGS=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          python scripts/verify_competitor_edges.py $ARGS
+          python src/meridian/validation/verify_competitor_edges.py $ARGS

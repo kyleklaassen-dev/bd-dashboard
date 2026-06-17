@@ -45,7 +45,7 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python scripts/validation_research.py $ARGS
+          python src/meridian/validation/validation_research.py $ARGS
 
       - name: Run cross-table conflict detection
         env:
@@ -61,7 +61,7 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python scripts/conflict_detector.py $ARGS
+          python src/meridian/validation/conflict_detector.py $ARGS
 
       - name: Check for newly discovered NCT IDs
         env:

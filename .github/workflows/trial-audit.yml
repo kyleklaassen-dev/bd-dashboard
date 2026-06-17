@@ -48,5 +48,5 @@ jobs:
           if [ -n "$AREA" ]; then SCOPE="--area $AREA"; fi
           MODE="--apply"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then MODE="--dry-run"; fi
-          echo "Running: python scripts/trial_id_audit.py $SCOPE $MODE --sleep 0.2"
-          python scripts/trial_id_audit.py $SCOPE $MODE --sleep 0.2
+          echo "Running: python src/meridian/validation/trial_id_audit.py $SCOPE $MODE --sleep 0.2"
+          python src/meridian/validation/trial_id_audit.py $SCOPE $MODE --sleep 0.2

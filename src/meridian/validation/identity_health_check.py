@@ -36,7 +36,7 @@ def get_supabase():
 
     if not url or not key:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace  = os.path.dirname(script_dir)
+        workspace  = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
         if not url:
             try:
                 with open(os.path.join(workspace, ".supabase_url")) as f:

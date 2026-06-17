@@ -60,5 +60,5 @@ jobs:
           if [ "${{ github.event.inputs.fail_only }}" == "true" ]; then
             ARGS="$ARGS --fail-only"
           fi
-          echo "Running: python scripts/validate_ground_truth.py $ARGS"
-          python scripts/validate_ground_truth.py $ARGS
+          echo "Running: python src/meridian/validation/validate_ground_truth.py $ARGS"
+          python src/meridian/validation/validate_ground_truth.py $ARGS

@@ -103,7 +103,7 @@ jobs:
           echo "SPRINT: Company profiles second pass + validation expansion"
           python scripts/company_enrichment.py --area tslp --skip-discovery
           python scripts/company_enrichment.py --area il4ra --skip-discovery
-          python scripts/validate_ground_truth.py --write-results
+          python src/meridian/validation/validate_ground_truth.py --write-results
 
       # ── FRIDAY: Competitive scoring + full validation + ranking ──────────
       - name: "Friday — Competitive scoring sweep + ranking snapshots"
@@ -113,7 +113,7 @@ jobs:
           echo "SPRINT: Full competitive scoring + ranking update"
           python scripts/apply_competitive_scores_v56.py
           python src/meridian/scoring/write_ranking_snapshots.py
-          python scripts/validate_ground_truth.py --write-results
+          python src/meridian/validation/validate_ground_truth.py --write-results
           python src/meridian/scoring/compute_coverage.py
 
       # ── DAILY: Always run after any sprint day ────────────────────────────

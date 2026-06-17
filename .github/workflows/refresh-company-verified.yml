@@ -80,7 +80,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           pip install -r scripts/requirements.txt -q
-          python scripts/company_validator.py --summary --scores
+          python src/meridian/validation/company_validator.py --summary --scores
 
       # ──────────────────────────────────────────────────────────
       # MANUAL DISPATCH
@@ -115,4 +115,4 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           pip install -r scripts/requirements.txt -q
-          python scripts/company_validator.py --summary --scores
+          python src/meridian/validation/company_validator.py --summary --scores

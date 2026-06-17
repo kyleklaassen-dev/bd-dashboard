@@ -29,7 +29,7 @@ Usage:
 import os, sys, re, json, html, argparse, datetime
 import requests
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 def _f(name):
     p = os.path.join(_REPO, name)
     return open(p).read().strip() if os.path.exists(p) else ""

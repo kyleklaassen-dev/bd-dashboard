@@ -40,7 +40,7 @@ from datetime import datetime, timezone
 
 SUPA = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def _secret(env_name, filename):
