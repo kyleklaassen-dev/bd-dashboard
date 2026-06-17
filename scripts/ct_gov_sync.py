@@ -61,7 +61,7 @@ from typing import Optional
 import requests
 
 try:
-    from identity_resolution import DrugIdentityResolver
+    from meridian.identity.identity_resolution import DrugIdentityResolver
     _IDENTITY_RESOLVER_AVAILABLE = True
 except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False

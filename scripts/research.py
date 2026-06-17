@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 # Falls back gracefully if the module isn't available (e.g. first deploy)
 try:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from company_identity_resolver import CompanyIdentityResolver
+    from meridian.identity.company_identity_resolver import CompanyIdentityResolver
     _RESOLVER_AVAILABLE = True
 except ImportError:
     _RESOLVER_AVAILABLE = False
@@ -1503,7 +1503,7 @@ if __name__ == "__main__":
     # source_verifier.run() checks URLs from deals, partnerships, enriched_field_log, etc.
     # and writes results to source_validation_log (populating a previously empty table).
     try:
-        from source_verifier import run as run_source_verifier
+        from meridian.validation.source_verifier import run as run_source_verifier
         log("--- Phase 8: Source URL verification ---")
         run_source_verifier(dry_run=False, limit=50)
         log("--- Phase 8 complete ---")

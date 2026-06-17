@@ -62,7 +62,7 @@ import anthropic
 
 # ── Resolver import ───────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from company_identity_resolver import CompanyIdentityResolver, get_credentials
+from meridian.identity.company_identity_resolver import CompanyIdentityResolver, get_credentials
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CREDENTIALS

@@ -66,7 +66,7 @@ if _SCRIPTS_DIR not in sys.path:
 
 # ── Optional: import model_comparison logger if available ─────────────────────
 try:
-    from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run
+    from meridian.identity.model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run
     _MODEL_COMPARISON_AVAILABLE = True
 except ImportError:
     _MODEL_COMPARISON_AVAILABLE = False

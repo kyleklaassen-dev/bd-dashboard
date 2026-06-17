@@ -45,10 +45,11 @@ if _SCRIPTS_DIR not in sys.path:
 def _import_agent(module_name: str):
     """Import a sibling script module by name. Returns None on failure."""
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        module_name,
-        os.path.join(_SCRIPTS_DIR, f"{module_name}.py")
-    )
+    import glob as _glob
+    _cands = [os.path.join(_SCRIPTS_DIR, f"{module_name}.py")] + _glob.glob(
+        os.path.join(_REPO_ROOT, "src", "meridian", "*", f"{module_name}.py"))
+    _path = next((p for p in _cands if os.path.exists(p)), _cands[0])
+    spec = importlib.util.spec_from_file_location(module_name, _path)
     if spec and spec.loader:
         try:
             mod = importlib.util.module_from_spec(spec)

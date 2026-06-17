@@ -99,7 +99,7 @@ import anthropic
 # ── Credential helpers (reuse company_intake pattern) ────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from company_identity_resolver import get_credentials
+    from meridian.identity.company_identity_resolver import get_credentials
 except ImportError:
     def get_credentials():
         url = os.environ.get("SUPABASE_URL", "")

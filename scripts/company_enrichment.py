@@ -99,13 +99,13 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
 try:
-    from identity_resolution import DrugIdentityResolver
+    from meridian.identity.identity_resolution import DrugIdentityResolver
     _IDENTITY_RESOLVER_AVAILABLE = True
 except ImportError:
     _IDENTITY_RESOLVER_AVAILABLE = False
 
 try:
-    from model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run, build_enrichment_summary
+    from meridian.identity.model_comparison import log_enrichment_run, update_enrichment_run, patch_enrichment_run, build_enrichment_summary
     _MODEL_COMPARISON_AVAILABLE = True
 except ImportError:
     _MODEL_COMPARISON_AVAILABLE = False

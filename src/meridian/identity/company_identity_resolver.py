@@ -303,7 +303,7 @@ def get_credentials() -> tuple[str, str]:
 
     if not sb_url or not sb_key:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace  = os.path.dirname(script_dir)
+        workspace  = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
         try:
             with open(os.path.join(workspace, ".supabase_service_key")) as f:
                 sb_key = sb_key or f.read().strip()
