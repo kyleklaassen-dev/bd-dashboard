@@ -16,7 +16,7 @@ core entities via their drug_id / nct_id foreign keys and need no edge.
 Usage: python3 scripts/seed_api_edges.py [--dry-run]
 """
 import os, sys, datetime, uuid
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from database import client as c
 
 DRY = "--dry-run" in sys.argv

@@ -52,7 +52,7 @@ jobs:
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/seed_api_edges.py
+        run: python src/meridian/graph/seed_api_edges.py
 
       - name: Enrich bare publication stubs (PMID -> title/abstract)
         if: github.event.inputs.dry_run != 'true'
@@ -66,4 +66,4 @@ jobs:
         env:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/graph_health_guard.py
+        run: python src/meridian/graph/graph_health_guard.py
