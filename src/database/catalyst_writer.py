@@ -29,8 +29,8 @@ class CatalystWriter:
         unknown = [k for k in rec if self.cols and k not in self.cols]
         if unknown:
             errs.append(f"unknown catalyst columns: {unknown}")
-        if not rec.get("drug_id") and not rec.get("company_id") and not rec.get("id"):
-            errs.append("catalyst must link to a drug_id or company_id (Governance Table)")
+        if not rec.get("id") and not any(rec.get(c) for c in ("drug_id", "company_id", "area_id", "target_id", "indication_id")):
+            errs.append("catalyst must anchor to a drug/company/area/target/indication (Governance Table + v160)")
         if not rec.get("catalyst_date") and not rec.get("sort_date") and not rec.get("id"):
             errs.append("catalyst requires a date (catalyst_date/sort_date)")
         return errs, rec
