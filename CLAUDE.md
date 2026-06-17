@@ -29,7 +29,7 @@ Workspace: the **bd-dashboard repo clone** (this folder; the old `BD Platform` f
 - No DB write path without a validation query. Deletes/merges/table-drops/`approved`-flips need Kyle's approval.
 
 ## Deploy
-git is broken on the mounted folder (FUSE deadlocks) — deploy via the GitHub Contents/Git Data API with `.github_token_workflow` (the plain `.github_token` is DEAD; recipe in `docs/archive/CLAUDE_full_2026-06-09.md`). GitHub Pages CDN ~10-min TTL; verify via raw.githubusercontent. DB writes: `.supabase_service_key` (REST), `.supabase_pat` (DDL via Management API, curl not urllib).
+**Use normal git.** This is a real local clone on macOS with a working `origin` remote (HTTPS + osxkeychain creds) — `git add` / `git commit` / `git push` work. The old "git is broken (FUSE deadlocks) → deploy via the GitHub API" rule was specific to the **retired Cowork sandbox** (which could create/overwrite but not delete) and **no longer applies** in Claude Code. `scripts/deploy_files.py` (GitHub Git Data API, `.github_token_workflow`) is kept only as a fallback if a push ever fails. GitHub Pages CDN ~10-min TTL; verify via raw.githubusercontent. DB writes: `.supabase_service_key` (REST), `.supabase_pat` (DDL via Management API, curl not urllib).
 
 ## Before/after any edit (Claude behavior rule)
 Before: state the layer, affected files, affected tables, breakpoints, proposed tests; keep changes small.
