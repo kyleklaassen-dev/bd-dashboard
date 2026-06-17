@@ -39,7 +39,7 @@ import requests
 def _drug_writer(dry_run=False):
     """Single-writer accessor (ADR-010)."""
     import sys, pathlib as _pl
-    _b = _pl.Path(__file__).resolve().parents[1]
+    _b = _pl.Path(__file__).resolve().parents[3]
     for _p in (str(_b / "src" / "database"), str(_b / "scripts")):
         if _p not in sys.path:
             sys.path.insert(0, _p)

@@ -80,9 +80,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: mechanism_detail and source_url backfill"
-          python scripts/molecule_enrichment.py --area tl1a
-          python scripts/molecule_enrichment.py --area ibd
-          python scripts/molecule_enrichment.py --area fcrn
+          python src/meridian/enrichment/molecule_enrichment.py --area tl1a
+          python src/meridian/enrichment/molecule_enrichment.py --area ibd
+          python src/meridian/enrichment/molecule_enrichment.py --area fcrn
           python scripts/ct_gov_sync.py --area tl1a
 
       # ── WEDNESDAY: 100Q intelligence seeding for Next Gen drugs ──────────
@@ -91,7 +91,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "SPRINT: drug_intelligence_qa seeding for Next Gen bispecifics"
-          python scripts/drug_intelligence_researcher.py --area tl1a --limit 10
+          python src/meridian/enrichment/drug_intelligence_researcher.py --area tl1a --limit 10
           python scripts/company_enrichment.py --area igf1r --skip-discovery
           python scripts/company_enrichment.py --area atopy --skip-discovery
 
