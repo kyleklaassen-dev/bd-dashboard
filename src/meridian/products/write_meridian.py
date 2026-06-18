@@ -44,180 +44,10 @@ from meridian.products.issue.common import (
     client, SB_HEADERS, GH_HEADERS, log, AREA_NAMES,
     fact_check_filter, _FACT_CHECK,
 )
-
-
-def build_verification_cautions():
-    """Pull claims the Content Verifier marked content_confirms_claim=FALSE and turn
-    them into an explicit 'do NOT state these' block for the writer's system prompt.
-    Claim-level (not drug-level), so a real molecule keeps its confirmed facts while
-    a single disconfirmed claim (e.g. veligrotug→gMG) is withheld."""
-    MEANINGFUL = "(mechanism,indication,stage,target,partnership,approval,deal)"
-    try:
-        rows = requests.get(f"{SUPABASE_URL}/rest/v1/drug_sources",
-            headers=SB_HEADERS,
-            params={"select": "drug_id,claim_type,claim_value",
-                    "content_confirms_claim": "is.false",
-                    "claim_type": f"in.{MEANINGFUL}",
-                    "limit": "60"}, timeout=15).json()
-    except Exception as e:
-        log(f"  verification-cautions fetch failed (non-fatal): {e}")
-        return ""
-    if not rows:
-        return ""
-    lines = [f"  • {r['drug_id']}: do NOT state \"{str(r.get('claim_value'))[:120]}\" "
-             f"({r.get('claim_type')}) — its cited source did not confirm it."
-             for r in rows]
-    log(f"  ⚖ Injected {len(rows)} verification cautions into the writer prompt")
-    return ("\n\nVERIFICATION CAUTIONS — the following claims FAILED source confirmation "
-            "(the cited page does not support them). Do NOT state them as fact in the Issue; "
-            "omit them or note them only as unverified:\n" + "\n".join(lines))
-
-
-def build_reader_feedback_block(days_back=30):
-    """Close the feedback loop: pull Kyle's in-issue feedback (meridian_feedback) from
-    the last N days and turn it into explicit editorial guidance for the writer.
-
-    Section 👎 / negative notes → tighten or rethink that kind of section.
-    Section 👍 → keep doing it. Comments are treated as direct editorial instructions.
-    Reads with the service key (RLS lets only service/authenticated read)."""
-    try:
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days_back)).strftime("%Y-%m-%d")
-        rows = requests.get(f"{SUPABASE_URL}/rest/v1/meridian_feedback",
-            headers=SB_HEADERS,
-            params={"select": "section_label,vote,comment,selected_text,created_at",
-                    "created_at": f"gte.{cutoff}",
-                    "order": "created_at.desc", "limit": "200"}, timeout=15).json()
-    except Exception as e:
-        log(f"  reader-feedback fetch failed (non-fatal): {e}")
-        return ""
-    if not rows or not isinstance(rows, list):
-        return ""
-    from collections import defaultdict
-    votes = defaultdict(lambda: [0, 0])   # label -> [up, down]
-    comments = []
-    for r in rows:
-        lab = (r.get("section_label") or "(unlabeled)").strip()
-        if r.get("vote") == "up":   votes[lab][0] += 1
-        elif r.get("vote") == "down": votes[lab][1] += 1
-        c = (r.get("comment") or "").strip()
-        if c:
-            sel = (r.get("selected_text") or "").strip()
-            comments.append((lab, c, sel))
-    lines = []
-    liked = [f'"{l}" ({v[0]}↑)' for l, v in votes.items() if v[0] > v[1] and v[0] > 0]
-    disliked = [f'"{l}" ({v[1]}↓)' for l, v in votes.items() if v[1] > 0 and v[1] >= v[0]]
-    if liked:
-        lines.append("Sections the reader marked HELPFUL (keep this kind of content/treatment): " + "; ".join(liked[:12]))
-    if disliked:
-        lines.append("Sections the reader marked NOT USEFUL (tighten, rethink, or cut this kind of section): " + "; ".join(disliked[:12]))
-    for lab, c, sel in comments[:25]:
-        if sel:
-            lines.append(f'On "{lab}" — re: “{sel[:120]}” — the reader wrote: "{c[:300]}"')
-        else:
-            lines.append(f'On "{lab}" — the reader wrote: "{c[:300]}"')
-    if not lines:
-        return ""
-    log(f"  ✎ Injected reader feedback: {len(votes)} rated sections, {len(comments)} comments")
-    return ("\n\nREADER FEEDBACK (from the actual reader of this briefing — treat as direct "
-            "editorial instruction, higher priority than generic style rules; if a comment "
-            "conflicts with a default, follow the comment):\n- " + "\n- ".join(lines))
-
-
-def fact_check_report():
-    """Log a summary and open a governance_violation if anything was dropped."""
-    d = _FACT_CHECK["dropped"]
-    log(f"⚖ Fact-check gate: {_FACT_CHECK['checked']} sourced facts checked, {len(d)} dropped for fabricated sources.")
-    if d:
-        try:
-            requests.post(f"{SUPABASE_URL}/rest/v1/governance_violations",
-                headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                json={"table_name": "meridian_issue_factcheck", "row_id": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
-                      "rule_name": "fabricated_source_excluded_from_issue",
-                      "description": "Pre-publish fact-check dropped facts with fabricated source URLs before the Issue was written: "
-                                     + "; ".join(f"[{x['kind']}] {str(x['row'])[:50]} ({str(x['url'])[:50]})" for x in d[:10]),
-                      "resolved": False}, timeout=15)
-        except Exception as e:
-            log(f"  fact-check governance log failed (non-fatal): {e}")
-
-def audit_draft_against_db(html, drugs):
-    """POST-draft consistency gate. Catches the SPY072-class error: the finished
-    Issue describing a DB-monospecific asset as a 'bispecific' (or a DB-bispecific
-    asset as 'monospecific'). The pre-write gates check sources; this checks the
-    PROSE against the canonical drugs table after the model has written it.
-
-    Flag, don't silently rewrite — surfaces a governance_violation for morning
-    review. Set MERIDIAN_FACTCHECK_STRICT=1 to hard-block deploy on any flag.
-    Returns the list of flags.
-    """
-    flags = []
-    # In this house style "bispecific"/"monospecific" are used constantly as CATEGORY
-    # nouns ("the bispecific premium", "monospecific TL1A comps"), so proximity to a
-    # drug name means nothing. We only flag two rare, unambiguous constructions that
-    # actually attribute a format TO a named asset:
-    #   A) copula/apposition:  "<NAME> is/are/—/, (a|an|the) … <OPP>"   (within one clause)
-    #   B) class membership:   "<OPP> class/programs/assets/antibodies/candidates … <NAME>"
-    # Both negation-guarded so legitimate comparisons ("NAME, unlike the bispecific
-    # class, is monospecific") don't trip. Validated: 0 false positives on a full issue.
-    #
-    # Run on visible text, not raw HTML (strip tags + unescape entities).
-    text = _re.sub(r"<[^>]+>", " ", html)
-    try:
-        import html as _htmlmod
-        text = _htmlmod.unescape(text)
-    except Exception:
-        pass
-    text = _re.sub(r"\s+", " ", text)
-
-    fmt = {}
-    for d in drugs.values():
-        tc = (d.get("target_class") or "").strip().lower()
-        if tc not in ("monospecific", "bispecific"):
-            continue
-        for nm in (d.get("display_name"), d.get("name")):
-            if nm and len(nm) >= 3:
-                base = _re.sub(r"\s*\(.*?\)\s*$", "", nm).strip()
-                if base:
-                    fmt[base] = tc
-    _NEG = _re.compile(r"(?:not|n[’']t|unlike|rather than|versus|\bvs\b|whereas|distinct from|"
-                       r"as opposed to|isn\W?t|never)", _re.I)
-    for nm, tc in fmt.items():
-        opp = "bispecific" if tc == "monospecific" else "monospecific"
-        n = _re.escape(nm)
-        hit = None
-        pat_A = rf"{n}\b[^.]{{0,6}}(?:is|are|=|—|,|:)\s+(?:a|an|the)\s+(?:[\w/×.-]+\s+){{0,3}}{opp}\b"
-        pat_B = rf"{opp}\s+(?:class|programs?|assets?|antibodies|candidates?)\b[^.]{{0,90}}?\b{n}\b"
-        for pat in (pat_A, pat_B):
-            for m in _re.finditer(pat, text, _re.I):
-                if not _NEG.search(m.group()):
-                    hit = _re.sub(r"\s+", " ", m.group()).strip()
-                    break
-            if hit:
-                break
-        if hit:
-            flags.append({"drug": nm, "db_format": tc, "draft_says": opp, "snippet": hit[:160]})
-    if flags:
-        for f in flags:
-            log(f"  ⚠ DRAFT-AUDIT: '{f['drug']}' is {f['db_format']} in DB but the Issue "
-                f"reads as {f['draft_says']} — “…{f['snippet']}…”")
-        try:
-            requests.post(f"{SUPABASE_URL}/rest/v1/governance_violations",
-                headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                json={"table_name": "meridian_issue_factcheck",
-                      "row_id": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
-                      "rule_name": "draft_format_contradicts_db",
-                      "description": "Post-draft audit: Issue prose describes an asset's format "
-                                     "inconsistently with the drugs table — "
-                                     + "; ".join(f"{x['drug']} (DB={x['db_format']}, draft={x['draft_says']})" for x in flags[:10]),
-                      "resolved": False}, timeout=15)
-        except Exception as ex:
-            log(f"  draft-audit governance log failed (non-fatal): {ex}")
-        if os.environ.get("MERIDIAN_FACTCHECK_STRICT") == "1":
-            raise RuntimeError(f"Draft-audit hard-block: {len(flags)} format contradiction(s) vs DB")
-    else:
-        log("  ✓ draft-audit: no asset format contradicts the drugs table")
-    return flags
-
-
+from meridian.products.issue.factcheck import (
+    build_verification_cautions, build_reader_feedback_block,
+    fact_check_report, audit_draft_against_db,
+)
 from meridian.products.issue.fetch import (
     fetch_recent_intel, fetch_recent_deals, fetch_upcoming_catalysts, fetch_drug_context,
     fetch_ailux_position, fetch_recent_meridian_issues, fetch_company_signals,
@@ -225,166 +55,19 @@ from meridian.products.issue.fetch import (
     fetch_patient_intelligence_stats, fetch_recent_trials,
     build_patient_stats_block, build_catalyst_calendar_block, build_bd_priority_block,
 )
-
-
 from meridian.products.issue.blocks import (
     enrich_intel_with_drug_context,
     build_intel_block, build_deals_block, build_catalysts_block, build_ailux_block,
     build_prior_coverage_block, build_company_signals_block, build_trials_block, build_graph_block,
 )
-
-
 from meridian.products.issue.prompts import SYSTEM_PROMPT, PLAN_PROMPT, DRAFT_PROMPT
-
-
-# ── First-mention hyperlink post-processor ───────────────────────────────────
-def apply_first_mention_links(html: str, drugs: dict, companies: dict) -> str:
-    """
-    Post-processing pass: wrap the FIRST occurrence of each known drug name and
-    company name in the HTML with the appropriate onclick modal link.  All
-    subsequent occurrences are left as plain text.
-
-    Rules:
-      - Drug first mention  → <a href="#" onclick="openDrugModal('{id}')">name</a>
-      - Company first mention → <a href="#" onclick="openCompanyModal('{id}')">name</a>
-      - Names already inside an <a …> tag are skipped (source links placed by LLM).
-      - Only replaces exact-case matches with word-boundary guards to avoid
-        partial-word collisions (e.g. "Roche" inside "Roche/Genentech" is handled
-        by longest-match ordering).
-      - Skips tokens shorter than 4 characters to reduce false positives.
-
-    This closes the gap when the LLM fails to apply the onclick pattern itself,
-    and enforces the WRITING_STANDARDS first-mention rule programmatically.
-    """
-    import re as _re
-
-    # Build sorted lists: longest name first to avoid partial replacements
-    drug_entries = []
-    for d in drugs.values():
-        for field in [d.get("display_name"), d.get("name")]:
-            if field and len(field) >= 4:
-                drug_entries.append((field, d["id"]))
-    # Deduplicate by name, keep first occurrence (display_name preferred)
-    seen_drug_names = set()
-    drug_entries_dedup = []
-    for name, did in sorted(drug_entries, key=lambda x: -len(x[0])):
-        if name.lower() not in seen_drug_names:
-            seen_drug_names.add(name.lower())
-            drug_entries_dedup.append((name, did))
-
-    company_entries = []
-    for c in companies.values():
-        if c.get("name") and len(c["name"]) >= 4:
-            company_entries.append((c["name"], c["id"]))
-    company_entries = sorted(company_entries, key=lambda x: -len(x[0]))
-
-    # Helper: check if position pos in html is already inside an <a> tag
-    def _inside_anchor(html_str, pos):
-        """Return True if pos falls between an <a …> and its </a>."""
-        preceding = html_str[:pos]
-        open_count  = len(_re.findall(r'<a[\s>]', preceding, _re.IGNORECASE))
-        close_count = len(_re.findall(r'</a>', preceding, _re.IGNORECASE))
-        return open_count > close_count
-
-    def _replace_first(html_str, token, replacement):
-        """Replace the first word-boundary occurrence of token (case-sensitive)
-        that is NOT already inside an anchor tag."""
-        pattern = _re.compile(r'(?<![a-zA-Z0-9\-])' + _re.escape(token) + r'(?![a-zA-Z0-9\-])')
-        for m in pattern.finditer(html_str):
-            if not _inside_anchor(html_str, m.start()):
-                return html_str[:m.start()] + replacement + html_str[m.end():]
-        return html_str  # no eligible occurrence found
-
-    # Apply drug links
-    drug_linked = set()
-    for name, did in drug_entries_dedup:
-        if name.lower() not in drug_linked:
-            link = f'<a href="javascript:void(0)" style="cursor:pointer" onclick="try{{window.parent.openDrugEntityModal(\'{did}\',\'{name}\',null)}}catch(e){{}}">{name}</a>'
-            new_html = _replace_first(html, name, link)
-            if new_html is not html:  # replacement was made
-                html = new_html
-                drug_linked.add(name.lower())
-
-    # Apply company links
-    co_linked = set()
-    for name, cid in company_entries:
-        if name.lower() not in co_linked:
-            link = f'<a href="javascript:void(0)" style="cursor:pointer" onclick="try{{window.parent.openCompanyEntityModal(\'{cid}\',\'{name}\',\'meridian\',\'{cid}\')}}catch(e){{}}">{name}</a>'
-            new_html = _replace_first(html, name, link)
-            if new_html is not html:
-                html = new_html
-                co_linked.add(name.lower())
-
-    log(f"First-mention links applied: {len(drug_linked)} drugs, {len(co_linked)} companies")
-
-    # ── Final cleanup: fix LLM-generated href="#" entity links ──────────────────
-    # The LLM sometimes generates <a href="#" onclick="openDrugModal('id')"> or
-    # <a href="#" onclick="openCompanyModal('id')"> links. These break because:
-    #   1. openDrugModal / openCompanyModal don't exist in the Meridian iframe
-    #   2. href="#" scrolls or navigates the iframe instead of opening a card
-    # Fix: convert to javascript:void(0) + window.parent calls, or strip entirely.
-    import re as _re2
-
-    def _fix_drug_modal_link(m):
-        did = m.group(1).strip("'\"")
-        # Try to get the display name from between the tags
-        display = m.group(2)
-        safe_name = display.replace("'", "\\'")
-        return (f'<a href="javascript:void(0)" style="cursor:pointer" '
-                f'onclick="try{{window.parent.openDrugEntityModal(\'{did}\',\'{safe_name}\',null)}}catch(e){{}}">'
-                f'{display}</a>')
-
-    def _fix_company_modal_link(m):
-        cid = m.group(1).strip("'\"")
-        display = m.group(2)
-        safe_name = display.replace("'", "\\'")
-        return (f'<a href="javascript:void(0)" style="cursor:pointer" '
-                f'onclick="try{{window.parent.openCompanyEntityModal(\'{cid}\',\'{safe_name}\',\'meridian\',\'{cid}\')}}catch(e){{}}">'
-                f'{display}</a>')
-
-    # Match: <a href="#" onclick="openDrugModal('id')">text</a>
-    html = _re2.sub(
-        r'<a\s+href=["\']#["\'][^>]*onclick=["\']openDrugModal\(([^)]+)\)["\'][^>]*>([^<]+)</a>',
-        _fix_drug_modal_link, html)
-    # Also handle reversed attr order: onclick first, then href
-    html = _re2.sub(
-        r'<a\s+onclick=["\']openDrugModal\(([^)]+)\)["\'][^>]*href=["\']#["\'][^>]*>([^<]+)</a>',
-        _fix_drug_modal_link, html)
-
-    # Match: <a href="#" onclick="openCompanyModal('id')">text</a>
-    html = _re2.sub(
-        r'<a\s+href=["\']#["\'][^>]*onclick=["\']openCompanyModal\(([^)]+)\)["\'][^>]*>([^<]+)</a>',
-        _fix_company_modal_link, html)
-    html = _re2.sub(
-        r'<a\s+onclick=["\']openCompanyModal\(([^)]+)\)["\'][^>]*href=["\']#["\'][^>]*>([^<]+)</a>',
-        _fix_company_modal_link, html)
-
-    # Catch-all: any remaining href="#" on entity links → strip href (leave onclick)
-    html = _re2.sub(r'(<a\b[^>]*) href=["\']#["\']([^>]*onclick[^>]*>)', r'\1\2', html)
-
-    log("LLM href='#' entity links sanitized")
-
-    # ── Ensure ALL external source links have target="_blank" ──────────────────
-    # Source links without target="_blank" navigate the iframe itself when clicked,
-    # which browsers show as about:blank (cross-origin blocked). This post-processor
-    # guarantees every external href gets target="_blank" rel="noopener noreferrer"
-    # regardless of what the LLM emitted.
-    def _add_target_blank(m):
-        tag = m.group(0)
-        if 'target=' in tag:
-            return tag  # already has target
-        if 'onclick=' in tag:
-            return tag  # entity modal link — never add target
-        # Insert target="_blank" rel="noopener noreferrer" before the closing >
-        return tag[:-1] + ' target="_blank" rel="noopener noreferrer">'
-
-    html = _re2.sub(r'<a\b[^>]*href=["\']https?://[^"\']*["\'][^>]*>', _add_target_blank, html)
-
-    # Count and log
-    n_blanks = len(_re2.findall(r'target="_blank"', html))
-    log(f"Source links with target=_blank ensured: {n_blanks}")
-
-    return html
+from meridian.products.issue.persist import (
+    _extract_company_ids_from_plan, _compute_content_fingerprint, save_to_supabase,
+)
+from meridian.products.issue.deploy import (
+    sync_catalyst_outcomes, inject_feedback_widget, deploy_to_github, bump_editorial_priority,
+)
+from meridian.products.issue.links import apply_first_mention_links
 
 
 # ── Generate HTML with Claude Opus (two passes) ──────────────────────────────
@@ -617,16 +300,6 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     html = inject_feedback_widget(html, datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
     return html, plan, _plan_company_ids, _content_fingerprint
-
-
-from meridian.products.issue.persist import (
-    _extract_company_ids_from_plan, _compute_content_fingerprint, save_to_supabase,
-)
-
-
-from meridian.products.issue.deploy import (
-    sync_catalyst_outcomes, inject_feedback_widget, deploy_to_github, bump_editorial_priority,
-)
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
