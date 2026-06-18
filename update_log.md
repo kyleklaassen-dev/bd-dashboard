@@ -3,6 +3,15 @@
 
 ---
 
+## 2026-06-17 — §3 split: company_enrichment Step-5 prompts extracted
+
+First module of the `company_enrichment.py` large-file split (the nightly Intelligence Pipeline core). Extracted the Step-5 prompt construction into a new `src/meridian/enrichment/company/` subpackage:
+- **`company/prompts.py`** (747 lines): `ENRICHMENT_SYSTEM`, `load_enrichment_hints`, `enrichment_system_prompt`, `AREA_DISEASE_CONTEXT`, `build_step5_prompt`. Pure prompt assembly — no Supabase I/O, no LLM calls, no writers. `parse_enrichment_response` (uses `log`) and `write_step5` (the writer) intentionally stayed behind.
+- `company_enrichment.py` 4,377 → 3,663 lines; imports the two public builders from `meridian.enrichment.company.prompts`.
+- **Behavior-preserving by construction:** moved block is byte-identical to the old source (diff verified), minus the duplicate repo-root anchor (re-derived at the correct 4-levels-up depth for the new dir). Verified: py_compile, pure + full-module import-smoke, no external importers, writer regression tests 6/0 + 8/0, repo hygiene 0 hard failures.
+
+---
+
 ## 2026-06-06 — Graph connectivity: orphans connected + structural backbone built
 
 Connectivity audit answered "is everything connected?": NO — 55 of 159 visible drugs were orphans (no edges), 66 companies orphan, and the graph had competitive edges but no STRUCTURAL edges. Fixes:

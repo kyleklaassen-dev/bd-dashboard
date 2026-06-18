@@ -1,3 +1,27 @@
+# ✅ §3 large-file split — company_enrichment STEP 1: prompts extracted (2026-06-17, cont.)
+
+**First module of the company_enrichment (4,377→3,663) split is out.** Extracted the Step-5 prompt
+construction → new `src/meridian/enrichment/company/` subpackage, module `company/prompts.py` (747 lines):
+`ENRICHMENT_SYSTEM`, `load_enrichment_hints`, `enrichment_system_prompt`, `AREA_DISEASE_CONTEXT`,
+`build_step5_prompt`. Pure prompt assembly — NO Supabase I/O / LLM / writers. `parse_enrichment_response`
+(uses `log`) + `write_step5` (the writer) deliberately stayed in `company_enrichment.py`.
+- **Provably behavior-preserving:** the moved block is byte-identical to old lines 1660–2379 (diff == True),
+  minus the duplicate `_REPO_ROOT/_HINTS_PATH` anchor (re-derived in the new module at the correct 4-levels-up
+  depth — `src/meridian/enrichment/company/` is one level deeper than the old home; verified resolves to repo root).
+- **Verified:** py_compile both · import-smoke prompts.py (pure, no env) · full-module import-smoke (dummy env)
+  → `build_step5_prompt`/`enrichment_system_prompt` now resolve to `...company.prompts`, `parse_enrichment_response`
+  stays local · no external importers of any moved symbol · writer regression tests **6/0 + 8/0** · hygiene 0 hard-fails.
+- **NOT yet dispatch-verified on CI** (`company-enrichment.yml --dry-run`) — it costs LLM spend and this extraction is
+  pure prompt text (byte-identical), so local proof is complete. Worth a watched dry-run before the *next* (db-routing) module.
+
+## NEXT in the §3 company_enrichment split (per `docs/architecture/PHASE3_4_EXECUTION_DESIGN.md`, line nums now shifted −714):
+Continue one module at a time, lowest-risk first. Remaining seams: `write_step5` (~600 lines) → `company/assessment_writer.py`;
+db helpers (`sb_*`, `_catalyst_upsert`) → route to `src/meridian/database` writers/client (removes last ad-hoc writes);
+then resolve/discovery/trials/catalysts/molecule/partnerships/deals/scoring → `company/*`, orchestrator (`pipeline.py`) last.
+**The db-routing module SHOULD get a watched `company-enrichment --dry-run` dispatch** (touches write paths).
+
+---
+
 # ✅ §A.4 AUDIT + §A.5 EDGE-CASE TESTS + §3 dedup (2026-06-17, cont.)
 
 - **§A.4 audit — DONE & verified.** v163 migration (APPLIED via Management API): all 4 core tables now audited on
