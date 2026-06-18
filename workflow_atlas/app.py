@@ -24,6 +24,40 @@ from atlas.parse import load_workflows, name_index
 
 st.set_page_config(page_title="Meridian Workflow Atlas", page_icon="🗺️", layout="wide")
 
+# ── compact mode: shrink type + tighten spacing across the whole app ──────────
+st.markdown("""
+<style>
+  .block-container { padding-top: 2.2rem; padding-bottom: 2rem; max-width: 1300px; }
+  /* headings */
+  h1, [data-testid="stHeading"] h1 { font-size: 1.35rem !important; margin: .2rem 0 .4rem !important; }
+  h2 { font-size: 1.02rem !important; margin: .5rem 0 .2rem !important; }
+  h3 { font-size: .9rem  !important; margin: .35rem 0 .15rem !important; font-weight: 600; }
+  h4 { font-size: .82rem !important; margin: .3rem 0 .1rem !important; }
+  /* body text + markdown */
+  [data-testid="stMarkdownContainer"] p,
+  [data-testid="stMarkdownContainer"] li { font-size: .8rem !important; line-height: 1.35 !important; margin-bottom: .2rem !important; }
+  [data-testid="stMarkdownContainer"] code { font-size: .74rem !important; }
+  [data-testid="stCaptionContainer"] p { font-size: .7rem !important; line-height: 1.25 !important; }
+  /* tighten vertical gaps between elements */
+  [data-testid="stVerticalBlock"] { gap: .35rem !important; }
+  [data-testid="stHorizontalBlock"] { gap: .5rem !important; }
+  hr { margin: .4rem 0 !important; }
+  /* buttons (lots of nav buttons) */
+  .stButton button { padding: .15rem .5rem !important; min-height: 0 !important; }
+  .stButton button p { font-size: .76rem !important; margin: 0 !important; }
+  /* metrics */
+  [data-testid="stMetricValue"] { font-size: 1.05rem !important; }
+  [data-testid="stMetricLabel"] p { font-size: .7rem !important; }
+  [data-testid="stMetricDelta"] { font-size: .68rem !important; }
+  /* expanders + inputs */
+  [data-testid="stExpander"] summary p { font-size: .78rem !important; }
+  [data-testid="stExpander"] summary { padding: .25rem .6rem !important; }
+  [data-testid="stSidebar"] .stButton button p { font-size: .74rem !important; }
+  [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { font-size: .76rem !important; }
+  .stRadio label p, .stMultiSelect label p, .stTextInput label p { font-size: .76rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # --------------------------------------------------------------------------- #
 # Data (cached by Streamlit across reruns; parse layer is also lru_cached)
 # --------------------------------------------------------------------------- #
