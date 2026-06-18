@@ -202,6 +202,94 @@ def analyze(path: str) -> Script:
     return sc
 
 
+_HELPER_NAMES = {"log", "_log", "print", "dbg", "debug", "_p", "vprint", "elog"}
+
+
+def _humanize(name: str) -> str:
+    s = name.strip("_").replace("_", " ").strip()
+    return (s[:1].upper() + s[1:]) if s else name
+
+
+def _short(text: str, n: int = 64) -> str:
+    text = " ".join(text.strip().split()).rstrip(".")
+    if len(text) <= n:
+        return text
+    return text[:n].rsplit(" ", 1)[0] + "…"
+
+
+def _wrap(text: str, width: int = 26) -> str:
+    """Wrap into lines joined by a REAL newline; escaping to graphviz `\\n`
+    happens once, at the end, in _dot_label()."""
+    words, lines, cur = text.split(), [], ""
+    for w in words:
+        if cur and len(cur) + len(w) + 1 > width:
+            lines.append(cur); cur = w
+        else:
+            cur = (cur + " " + w).strip()
+    if cur:
+        lines.append(cur)
+    return "\n".join(lines)
+
+
+def _dot_label(text: str) -> str:
+    """Escape a label for a DOT string: backslashes/quotes first, then turn real
+    newlines into graphviz line breaks (order matters — avoids double-escaping)."""
+    return (text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n"))
+
+
+def plain_flow_dot(sc: Script, trigger: str | None = None) -> str:
+    """A small, plain-English, numbered sequence of what the script actually does
+    — labels come from each function's description, trivial helpers (logging) are
+    hidden, and each step notes the data it touches. Built for non-engineers."""
+    by = {f.name: f for f in sc.funcs}
+    steps = []
+    for nm in sc.main_calls:
+        f = by.get(nm)
+        if not f:
+            continue
+        if nm in _HELPER_NAMES:
+            continue
+        if not (f.writes or f.reads or f.doc):   # opaque helper, nothing to show
+            continue
+        steps.append(f)
+    if not steps:                                # fall back to all non-helper funcs
+        steps = [f for f in sc.funcs
+                 if f.name not in _HELPER_NAMES and (f.writes or f.reads or f.doc)]
+
+    lines = [
+        "digraph plain {",
+        '  rankdir=TB; bgcolor="transparent"; fontname="Helvetica";',
+        "  graph [nodesep=0.18, ranksep=0.30];",
+        '  node [shape=box, style="rounded,filled", fontname="Helvetica", '
+        'fontsize=10, margin="0.16,0.09", width=2.4, color="#5b6b7d"];',
+        '  edge [color="#9aa7b5", arrowsize=0.7, penwidth=1.2];',
+    ]
+    prev = None
+    if trigger:
+        lines.append(f'  start [label="{_dot_label("▶  " + _wrap(trigger, 30))}", '
+                     f'shape=box, style="rounded,filled", fillcolor="#fde9c8", color="#d99a3b"];')
+        prev = "start"
+    for i, f in enumerate(steps, 1):
+        raw = f.doc or _humanize(f.name)
+        first = re.split(r"\.\s", raw)[0]          # first sentence only — keep it plain
+        label = f"{i}.  {_wrap(_short(first, 70))}"
+        io = []
+        if f.reads:
+            io.append("reads " + ", ".join(f.reads))
+        if f.writes:
+            io.append("saves to " + ", ".join(f.writes))
+        if io:
+            label += "\n(" + _short("; ".join(io), 46) + ")"
+        fill = "#d2f2dc" if f.writes else ("#dbe9fb" if f.reads else "#eef1f5")
+        nid = f"s{i}"
+        lines.append(f'  {nid} [label="{_dot_label(label)}", fillcolor="{fill}"];')
+        if prev:
+            lines.append(f"  {prev} -> {nid};")
+        prev = nid
+    lines.append("}")
+    return "\n".join(lines)
+
+
 def call_flow_dot(sc: Script) -> str:
     """Execution flow: the entry block at the top, then functions it calls, then
     the calls those make — a readable picture of how the script runs."""

@@ -16,7 +16,7 @@ from collections import defaultdict
 import streamlit as st
 
 from atlas.audit import audit, summarize
-from atlas.code import analyze, call_flow_dot
+from atlas.code import analyze, call_flow_dot, plain_flow_dot
 from atlas.db import (db_audit, db_summary, load_tables, workflows_touching,
                       CORE_TABLES)
 from atlas.graphs import chain_map_dot, db_core_governance_dot, workflow_flow_dot
@@ -361,10 +361,10 @@ def page_workflow(filename: str):
             continue
         st.subheader(f"4 · How does `{ep.path.split('/')[-1]}` run?")
         st.markdown("**What it's for:** " + (sc.doc or "_no module docstring_"))
-        if sc.main_calls:
-            st.markdown("**Order of execution** (from the " + sc.entry_label + "): "
-                        + "  →  ".join(f"`{c}()`" for c in sc.main_calls))
-        st.graphviz_chart(call_flow_dot(sc), width="stretch")
+        st.markdown("**Step by step** — what it actually does, in order:")
+        st.graphviz_chart(plain_flow_dot(sc, trigger=wf.cadence_detail), width="content")
+        with st.expander("Technical call graph (function names)"):
+            st.graphviz_chart(call_flow_dot(sc), width="content")
 
         st.subheader(f"5 · What does each function do? ({len(sc.funcs)})")
         for f in sc.funcs:
