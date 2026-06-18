@@ -1,3 +1,25 @@
+# ✅ §A.1 ONE WRITE PATH — COMPLETE at code layer (2026-06-17, cont.)
+
+**Gating question now essentially YES.** All 4 core tables route pipeline writes through their Writer
+(scoreboard `drugs/companies/entity_edges/catalysts` all ✓). Routed this session:
+- `execute_intel_actions` (drugs+companies+catalysts creates) → Drug/Company/CatalystWriter (commit 1aa1536).
+- All 6 `entity_edges` seeders (seed_api_edges, connect_ctgov_raw, unify_graph, seed_target_edges, seed_targets,
+  company_intake ACTIVE_IN) → EdgeWriter(verify_endpoints=False) (eaeba31). Predicates/node-types pre-checked.
+- `research` catalyst create + `write_meridian` catalyst-resolve → CatalystWriter; `verify_sources`(data_confidence)
+  + `stock_prices`(stock fields) → Drug/Company `update_fields` (added CompanyWriter.update_fields) (46ec92e).
+- `dedupe_entities` = the one remaining non-writer — an approval-gated FK-aware MERGE tool (not a pipeline path;
+  merges need Kyle's approval per CLAUDE.md). Recognized as the maintenance exception in the scoreboard (3541f36).
+- **Fixed the health metric**: it was counting READS as writes (matched `/rest/v1/<table>` strings, any verb).
+  Now verb-aware + skips comments/docstrings + writer-routed + recognizes maintenance tools (2c19162, 8b3c916).
+
+**Writer tests green throughout (6/0 + 8/0).** DB-layer enforcement (v157–162) still backs this.
+
+## NEXT (correctness spine, ROADMAP §A): A.4 audit (cheap now — all writes funnel through 4 writers → log there) ·
+A.2 UI/logic split (with index.html §4) · A.5 codify edge-case tests (VTX002, MK-7240, Roche/Telavant, HLX36/LBL-053).
+Also open: §3 large-file splits (company_enrichment 4,437 etc.); §A.1 optional DB-layer hardening of the write boundary.
+
+---
+
 # ✅ PACKAGE MIGRATION STRUCTURALLY COMPLETE + architecture spine defined (2026-06-17, cont.)
 
 **`src/` is now ONE unified `meridian` package** (database, enrichment, graph, identity, ingestion, ops, products,
