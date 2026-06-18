@@ -34,7 +34,11 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   trend tracking. This is where repo work converts to BD value.
 - **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
   leverage, highest risk; needs browser-verify (recipe ready).
-- **§E Real dedup/clarity debt:** 17 entity-resolution implementations (converge on `entity_matcher`, metric #3);
+- **§E Real dedup/clarity debt:** entity-resolution convergence (metric #3) — **right-sized 2026-06-18**
+  (`docs/architecture/E_ENTITY_RESOLUTION_CONVERGENCE.md`): of 19 "resolver" hits, the writers are already on
+  `entity_matcher`, 5 are false positives (catalyst lifecycle / target strings / NCT extraction), leaving ~11 real
+  name→id resolvers. Confirmed near-dup: `resolve_company_id` in `enrichment/company/resolve.py` (superset) vs
+  `ingestion/research.py` (subset). Convergence is supervised (changes identity matching → dedup/data-integrity). —
   `weekend_sprint` duplicates `company_enrichment`/`compute_coverage`/`source_verifier`/`bd_recommender` logic;
   51 workflows (operational surface — observability + consolidation candidates). Plus: module-level `os.environ[...]`
   credential reads at import block clean unit-testing (make them lazy → cashes more of the testability dividend).
