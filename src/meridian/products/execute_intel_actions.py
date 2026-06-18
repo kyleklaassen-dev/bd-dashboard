@@ -27,6 +27,12 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://tghntyofptvfhmtchwcv.s
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or _key(".supabase_service_key") or ""
 if not SUPABASE_KEY: print("ERROR: no SUPABASE_SERVICE_KEY"); sys.exit(1)
 
+# Route ALL core-table writes through the governed single-writers (ROADMAP §A.1)
+sys.path.insert(0, os.path.join(_REPO, "src"))
+from meridian.database.drug_writer import DrugWriter
+from meridian.database.company_writer import CompanyWriter
+from meridian.database.catalyst_writer import CatalystWriter
+
 BASE = f"{SUPABASE_URL}/rest/v1"
 SB_H = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
 NOW = datetime.datetime.utcnow().isoformat()
@@ -76,10 +82,12 @@ def ensure_company(company_name, area_id=None, dry_run=False):
         return cid
     row = {"id": cid, "name": company_name, "status": "active",
            "company_type": "biotech", "ta_focus_1": "Immunology"}
-    if sb_post("companies", row):
+    _r = CompanyWriter().upsert(row)   # governed single-writer (ROADMAP §A.1)
+    if not _r.get("errors"):
+        cid = _r.get("company_id") or cid
         print(f"  ✓ Created originator company: {company_name} ({cid})")
         return cid
-    print(f"  ✗ Failed to create company: {company_name}")
+    print(f"  ✗ Failed to create company: {company_name}: {_r.get('errors')}")
     return None
 
 
@@ -150,13 +158,15 @@ def promote_discovery_queue(dry_run=False):
             promoted += 1
             continue
 
-        if sb_post("drugs", drug):
+        _r = DrugWriter(source_required=False).upsert(drug)   # governed single-writer (ROADMAP §A.1)
+        if not _r.get("errors"):
+            drug_id = _r.get("drug_id") or drug_id   # canonical id (dedups)
             _write_source(drug_id, name, item)
             sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": drug_id})
             print(f"  ✓ Promoted: {name} ({drug_id}) ← {item.get('company_name') or '?'}")
             promoted += 1
         else:
-            print(f"  ✗ Failed: {name}")
+            print(f"  ✗ Failed: {name}: {_r.get('errors')}")
 
     print(f"  Promoted: {promoted}")
     return promoted
@@ -249,7 +259,8 @@ def execute_submitted_intel(dry_run=False):
                                 "notes": rationale,
                                 "resolved": False,
                             }
-                            if sb_post("catalysts", cat):
+                            _r = CatalystWriter().upsert(cat)   # governed single-writer (ROADMAP §A.1)
+                            if not _r.get("errors"):
                                 item_executed += 1
                                 print(f"  ✓ Catalyst added for {did}: {title[:50]}")
 
