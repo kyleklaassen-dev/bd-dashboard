@@ -7,18 +7,14 @@ fast, no DB / no network / no LLM. They lock in current behavior so future edits
 the split modules can't silently regress it. Run: `python tests/unit/test_pure_functions.py`
 (exits non-zero on any failure, so CI can gate on it).
 
-NOTE: several modules still read credentials at import time (os.environ[...]), so we
-set dummy env BEFORE importing them. That import-time coupling is itself a testability
-debt (see ROADMAP §B) — lazy credential reads would remove the need for this shim.
+NOTE: the split common.py modules now read credentials fail-soft (env → repo-root file
+→ "", never raises — ROADMAP §B), so these imports no longer need a dummy-env shim. A
+pure function imports clean with no secrets, which is the whole point.
 """
 import os
 import sys
 import datetime
 
-# dummy env so import-time credential reads don't crash (pure logic doesn't use them)
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-dummy")
-os.environ.setdefault("SUPABASE_URL", "https://test.dummy")
-os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-dummy")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from meridian.enrichment.company.common import normalize_area_id
@@ -26,7 +22,7 @@ from meridian.enrichment.company.prompts import build_step5_prompt
 from meridian.enrichment.company.resolve import resolve_company_id
 from meridian.enrichment.company.catalysts import _parse_sort_date
 from meridian.enrichment.company.deals import _deal_signature
-from meridian.ingestion.ctgov.map import parse_ct_study, _format_date_label
+from meridian.ingestion.ctgov.map import parse_ct_study, _format_date_label, score_search_match
 from meridian.products.narrative.common import recipe_hash
 from meridian.scoring.acquisition.scoring import _bd_rating, _days_until
 from meridian.scoring.research_intel.scoring import score_entity_completeness
@@ -115,6 +111,52 @@ def test_deal_signature_normalizes():
 def test_recipe_hash_order_independent():
     assert recipe_hash({"a": 1, "b": 2}) == recipe_hash({"b": 2, "a": 1})     # key order irrelevant
     assert recipe_hash({"a": 1}) != recipe_hash({"a": 2})                     # content-sensitive
+
+
+def _study(title="", interventions=(), status="RECRUITING", conditions=(), sponsor="", phases=None):
+    """Build a minimal CT.gov v2 protocolSection for the match/parse functions."""
+    proto = {
+        "identificationModule": {"nctId": "NCT00000000", "briefTitle": title},
+        "statusModule": {"overallStatus": status},
+        "conditionsModule": {"conditions": list(conditions)},
+        "sponsorCollaboratorsModule": {"leadSponsor": {"name": sponsor}},
+        "armsInterventionsModule": {"interventions": [{"name": n} for n in interventions]},
+    }
+    if phases is not None:
+        proto["designModule"] = {"phases": phases}
+    return {"protocolSection": proto}
+
+
+def test_score_search_match_hard_gate():
+    # The verekitug/APG777 governance lesson: a trial that names a DIFFERENT compound
+    # must hard-zero, never accumulate partial credit from sponsor/indication overlap.
+    study = _study(title="A study of someotherdrug in colitis",
+                   interventions=["someotherdrug"], sponsor="ourdrug pharma",
+                   conditions=["ulcerative colitis"])
+    assert score_search_match(study, "d1", "ourdrug", "ulcerative colitis") == 0
+
+
+def test_score_search_match_strong_match():
+    # Drug named in BOTH title and interventions → +50 +30 = 80, recruiting (no penalty).
+    study = _study(title="Phase 2 study of ourdrug", interventions=["ourdrug"])
+    assert score_search_match(study, "d1", "ourdrug") == 80
+
+
+def test_score_search_match_terminated_penalty():
+    # Same strong match but TERMINATED → −20 penalty applied to the 80.
+    study = _study(title="Phase 2 study of ourdrug", interventions=["ourdrug"],
+                   status="TERMINATED")
+    assert score_search_match(study, "d1", "ourdrug") == 60
+
+
+def test_parse_ct_study_multiphase_combine():
+    rec = parse_ct_study(_study(title="t", phases=["PHASE1", "PHASE2"]), "d1")
+    assert rec["phase"] == "Phase 1/Phase 2"          # mapped parts joined on "/"
+
+
+def test_parse_ct_study_no_phase_is_na():
+    rec = parse_ct_study(_study(title="t", phases=[]), "d1")
+    assert rec["phase"] == "N/A"                       # empty phases → N/A sentinel
 
 
 def _run():
