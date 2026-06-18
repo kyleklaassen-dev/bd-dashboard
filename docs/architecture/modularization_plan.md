@@ -26,9 +26,37 @@ Both migrations fixed `__file__`-relative repo-root anchors for the new depth; a
 bug fix (dead `.github_token` → live `.github_token_workflow`, per CLAUDE.md).
 
 ## ⏸ REMAINING ≥1000 — only `weekend_sprint.py` (3,001), and it is **§2, NOT a clean §3 split**
-An **active, scheduled** orchestration mega-script (`weekend_sprint.yml`, ~8 Sat crons, LLM). The right move is to
-**decompose** it so it *calls into* the now-extracted modules instead of duplicating their logic — a deliberate,
-higher-risk refactor of live scheduled code, not the byte-identical relocation pattern used above. Do it supervised.
+An **active, scheduled** orchestration mega-script (`weekend_sprint.yml`, runs `python scripts/weekend_sprint.py
+--block {A..F}` per job, `PYTHONPATH=src`, LLM). 73 functions in a clean phase structure (blocks A–F, ~`phase_X#_*`).
+
+### ⚠️ Why it is NOT a byte-identical split (confirmed by inspection 2026-06-18)
+There is a hard **shared-mutable-flag blocker**: `DRY_RUN` is a module global (`DRY_RUN = False`) **rebound by `main()`**
+(`global DRY_RUN; DRY_RUN = args.dry_run`) and read at **41 sites** — in every phase AND in the `sb_post/sb_patch/
+sb_upsert` write helpers (`if DRY_RUN: return …`). If the phases move to sub-modules, `from …common import DRY_RUN`
+binds `False` at import; `main()` rebinding the orchestrator's copy does NOT propagate → **`--dry-run` silently makes
+REAL DB writes.** Same hazard for `SPRINT_ID`. On an unattended weekend cron with no cheap dispatch-verify, that silent
+failure mode is unacceptable to do blind. (Contrast `_RUN_TOKENS` in the company_enrichment split: a dict, shared by
+reference, mutated-not-rebound — safe. `DRY_RUN` is an immutable bool that's rebound — not shareable as-is.)
+
+### Executable plan (supervised, in-place — keeps `scripts/weekend_sprint.py` entrypoint + the workflow unchanged)
+1. **PREREQUISITE — refactor the rebound globals to a shared accessor first, as its own commit.** Replace `DRY_RUN`
+   (and `SPRINT_ID`) with a mutable holder shared by reference, e.g. `RUN = {"dry_run": False, "sprint_id": None}`;
+   change the 41 reads to `RUN["dry_run"]` and `main()` to set `RUN["dry_run"] = args.dry_run`. Verify: `--help` loads;
+   a `--dry-run --phase A1` (or a no-op phase) run shows `RUN["dry_run"]` True at a phase call site. This is the part
+   that MUST be watched (its failure is silent real-writes).
+2. **THEN split in place** into `scripts/wsprint/`: `common.py` (creds, `log`, `sb_*`, `table_exists`,
+   `ensure_weekend_sprint_log_table`, `log_phase`, `_import_agent`, `_llm_enrich`, the `RUN` holder) +
+   `phases_a.py`…`phases_f.py` (the phase fns — AST-confirmed they call only base, no cross-phase calls) +
+   `weekend_sprint.py` keeps `PHASE_MAP`/`run_phase`/`run_block`/`main`. `_import_agent` already globs both
+   `scripts/*.py` and `src/meridian/*/*.py` (migration-aware) — just fix its `_SCRIPTS_DIR`/`_REPO_ROOT` anchors for
+   the `wsprint/` depth (→ `dirname(dirname(__file__))` / one more). Bare `from wsprint.X import …` resolves because the
+   workflow runs the script from `scripts/` (script-dir on `sys.path`).
+3. **Verify:** `PYTHONPATH=src python scripts/weekend_sprint.py --help` (full import chain) + byte-identical diffs +
+   writer tests + a **watched `--block A --dry-run` dispatch** confirming zero writes. Only then is it safe.
+
+> The deeper §2 win (dedupe: have phases *call into* the extracted `meridian.*` modules instead of duplicating
+> `company_enrichment`/`compute_coverage`/`source_verifier`/`bd_recommender` logic) is a SEPARATE follow-up after the
+> structural split lands — bigger, semantic, also supervised.
 
 ---
 ### v1 plan (2026-06-09, original — superseded by the EXECUTED table above)
