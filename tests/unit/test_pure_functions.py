@@ -23,8 +23,9 @@ from meridian.enrichment.company.resolve import resolve_company_id
 from meridian.enrichment.company.catalysts import _parse_sort_date
 from meridian.enrichment.company.deals import _deal_signature
 from meridian.ingestion.ctgov.map import parse_ct_study, _format_date_label, score_search_match
+from meridian.ingestion.ctgov.validate import validate_drug_field_consistency
 from meridian.products.narrative.common import recipe_hash
-from meridian.scoring.acquisition.scoring import _bd_rating, _days_until
+from meridian.scoring.acquisition.scoring import _bd_rating, _days_until, _is_bispecific
 from meridian.scoring.research_intel.scoring import score_entity_completeness
 
 
@@ -157,6 +158,45 @@ def test_parse_ct_study_multiphase_combine():
 def test_parse_ct_study_no_phase_is_na():
     rec = parse_ct_study(_study(title="t", phases=[]), "d1")
     assert rec["phase"] == "N/A"                       # empty phases → N/A sentinel
+
+
+def test_is_bispecific():
+    assert _is_bispecific({"drug_format": "bispecific antibody"}) is True
+    assert _is_bispecific({"name": "TL1A × IL-23 bispecific", "drug_format": ""}) is True   # × in name
+    assert _is_bispecific({"drug_format": "mAb", "modality": "antibody"}) is False           # plain monospecific
+
+
+def test_validate_field_consistency_clean_bispecific():
+    # consistent: bispecific target + bispecific format → no warnings
+    d = {"id": "ailux", "target": "TL1A × IL-23", "drug_format": "bispecific", "mechanism": "TL1A×IL-23 bispecific"}
+    assert validate_drug_field_consistency(d) == []
+
+
+def test_validate_field_consistency_flags_target_format_conflict():
+    # target implies bispecific (×) but format says mAb (monospecific) → exactly one conflict
+    d = {"id": "x", "target": "TL1A × IL-23", "drug_format": "mAb", "mechanism": ""}
+    w = validate_drug_field_consistency(d)
+    assert len(w) == 1 and "field_conflict" in w[0] and "monospecific" in w[0]
+
+
+def test_validate_field_consistency_flags_format_without_separator():
+    # format says bispecific but target has no separator → flagged as possibly-incomplete target
+    d = {"id": "x", "target": "TL1A", "drug_format": "bispecific", "mechanism": ""}
+    w = validate_drug_field_consistency(d)
+    assert any("no bispecific separator" in s for s in w)
+
+
+def test_validate_field_consistency_combo_is_exempt():
+    # combination drugs intentionally mix fields → early-return, no warnings
+    d = {"id": "x", "target": "TL1A × IL-23", "drug_format": "mAb", "is_combo": True}
+    assert validate_drug_field_consistency(d) == []
+
+
+def test_validate_field_consistency_separator_variants():
+    # the validator recognizes ×, /, spaced " x ", and compact AxB as bispecific separators
+    for tgt in ["CD19xCD3", "CD5 x CD3", "IL-4Ra/TSLP", "TL1A × IL-23"]:
+        d = {"id": "x", "target": tgt, "drug_format": "bispecific", "mechanism": ""}
+        assert validate_drug_field_consistency(d) == [], f"{tgt!r} should read as bispecific (no conflict)"
 
 
 def _run():
