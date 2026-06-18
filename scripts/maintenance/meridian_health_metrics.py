@@ -91,11 +91,16 @@ def find_cycles():
 print("="*70); print("MERIDIAN STRUCTURAL HEALTH"); print("="*70)
 print(f"\nPython files analyzed (excl. archive): {len(PYFILES)}")
 
-print("\n── 1. DB WRITE PATHS TO CORE TABLES (target: the 4 writers only) ──")
+# Approval-gated maintenance/admin tools (FK-aware merges, deletes) — NOT pipeline write
+# paths; CLAUDE.md already requires Kyle's approval for merges. Recognized, not flagged.
+MAINTENANCE = {"dedupe_entities.py"}
+def _base(s): return s.split("(")[0]
+print("\n── 1. DB WRITE PATHS TO CORE TABLES (target: the 4 writers + approved maintenance only) ──")
 for tbl in CORE:
     sites=sorted(set(write_sites[tbl]))
-    nonwriter=[s for s in sites if s not in WRITERS]
-    flag = "  ⚠ ad-hoc writers!" if nonwriter else "  ✓"
+    adhoc=[s for s in sites if _base(s) not in WRITERS and _base(s) not in MAINTENANCE]
+    maint=[s for s in sites if _base(s) in MAINTENANCE]
+    flag = "  ⚠ ad-hoc writers!" if adhoc else ("  ✓ (writer + approved maintenance)" if maint else "  ✓")
     print(f"  {tbl:14s} writers/sites: {sites or '-'}{flag}")
 
 print("\n── 2. INGESTION PIPELINES ──")

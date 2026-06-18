@@ -15,7 +15,7 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 - Keep items **outcome-phrased** and **self-contained** (a future reader has no memory of today).
 
 ## Now / Next (the short list)
-1. 🔴 **One clear data-write path** (§A.1) — THE gating item. Route the raw-REST core-table writers through the 4 writers. Until done, **freeze new dashboard features.**
+1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
 3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
 4. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
@@ -31,14 +31,18 @@ The goal: make the *wrong thing impossible*, not just organized. These are the p
 guarantees (and they restate `STABILIZATION_PLAN.md` / `constitution.md` as a crisp priority order).
 
 **🔑 Gating question: _Can ONE approved path create or modify a drug record from ingestion → database → dashboard?_**
-**Today the answer is NO** (verified 2026-06-17): `DrugWriter` exists but `drug_intake`, `company_intake`,
-`write_meridian`, `verify_sources` all write `drugs` via raw REST, bypassing it; only `approve_discovery` +
-`molecule_enrichment` route through the writer. **→ Per this rule, freeze new dashboard features until A.1 is clean.**
+**Now essentially YES at the CODE layer** (2026-06-17): all 4 core tables route pipeline writes through their
+Writer — scoreboard `drugs/companies/entity_edges/catalysts` all ✓. The earlier "NO" overstated the gap (the metric
+counted reads as writes; fixed). The one remaining non-writer is `dedupe_entities` — an approval-gated FK-aware
+**merge** tool (not a pipeline path; merges already need Kyle's approval per CLAUDE.md), recognized as the maintenance exception.
 
-1. 🔴 **One clear data-write path** — every core-table write goes through its Writer; no raw `sb_upsert`/REST.
-   Channel + DB enforcement (v157–162) exist; the CODE layer is the gap. **Accurate scope (verb-confirmed 2026-06-17,
-   ~12 sites — NOT "everything"; the metric previously counted reads as writes, now fixed):**
-   - **Top target: `execute_intel_actions`** — raw-creates drugs + companies + catalysts (highest inconsistency risk). Do first.
+1. ✅ **One clear data-write path** — DONE at the code layer (2026-06-17). Routed: `execute_intel_actions`
+   (drugs/companies/catalysts creates), all 6 `entity_edges` seeders → EdgeWriter, `research` catalyst create +
+   `write_meridian` catalyst-resolve → CatalystWriter, `verify_sources`+`stock_prices` narrow patches → Drug/Company
+   `update_fields`. Writer tests 8/0+6/0 throughout. **Remaining (lower priority):**
+   - `dedupe_entities` merge tool — keep as the audited maintenance exception (or add a writer `merge()` later).
+   - Consider DB-layer hardening (extend v161 REVOKE so service_role-bypass can't re-introduce raw writes) — optional.
+   - **Top target (DONE): `execute_intel_actions`** — was raw-creating drugs + companies + catalysts.
    - **entity_edges (6):** route the edge seeders (`seed_target_edges`/`seed_targets`/`unify_graph`/`seed_api_edges`/`connect_ctgov_raw`/`company_intake`) through `EdgeWriter` (seed_competes_with already does).
    - **catalysts:** `research`, `write_meridian` (PATCH) → CatalystWriter.
    - **Narrow field-patches** (lower risk): `verify_sources` (data_confidence), `stock_prices` (price) → through writers or an allow-listed patch path.
