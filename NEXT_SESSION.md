@@ -1,3 +1,26 @@
+# ✅ §A.4 AUDIT + §A.5 EDGE-CASE TESTS + §3 dedup (2026-06-17, cont.)
+
+- **§A.4 audit — DONE & verified.** v163 migration (APPLIED via Management API): all 4 core tables now audited on
+  INSERT+UPDATE in `field_change_audit` (v63 was UPDATE-only + missed entity_edges/catalysts). New fn is
+  error-swallowing + AFTER triggers (can NEVER block a write); shared v63 fn untouched. `client.set_audit_context()` +
+  the 4 Writers send `X-Meridian-Actor`/`X-Meridian-Reason` headers → audit captures WHO (the writer) + WHY. Verified
+  end-to-end: CatalystWriter write → changed_by="CatalystWriter". (commit 5a299b1)
+- **§A.5 edge-case tests — DONE.** `tests/database/test_edge_cases.py` (9/9): tulisokibart=MK-7240 canonical identity
+  (originator=Prometheus not Merck), VTX002/Ventyx, Roche/Telavant acquisition, LBL-053 bispecific. (b5e4ffd)
+- **§3 (large files) — STARTED.** Extracted the triplicated `infer_catalog_category` → `meridian.enrichment.catalog_category`
+  (-123 lines across company_enrichment/drug_intake/approve_discovery). (aeeda58)
+
+## REMAINING = the two big dedicated-session refactors (designed, NOT yet executed):
+- **§3 full large-file splits** — company_enrichment (4,377 now), write_meridian (2,391), drug_intake (1,627), per
+  `docs/architecture/PHASE3_4_EXECUTION_DESIGN.md`. Each is a careful module extraction of a LIVE pipeline (the 4am core);
+  do supervised + dispatch-verify. NOT a tail-of-session task.
+- **§A.2 UI/logic separation** (`index.html`, 34k lines: `_resolveStage`/`_score`/`_dedup`/`canonical`×61) — surgery on the
+  LIVE dashboard; pair with §4 index.html decomposition; page-load-verify each extraction. Highest risk → dedicated session.
+
+Everything else (full migration, §A.1 write-path, §A.4 audit, §A.5 tests) is DONE, verified, and on main.
+
+---
+
 # ✅ §A.1 ONE WRITE PATH — COMPLETE at code layer (2026-06-17, cont.)
 
 **Gating question now essentially YES.** All 4 core tables route pipeline writes through their Writer
