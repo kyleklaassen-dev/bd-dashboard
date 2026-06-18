@@ -39,3 +39,13 @@ For each: either revive the collector or retire BOTH the table and its script.
 `company_areas` (28 reads), `company_profiles` (13), `drug_modalities` (10),
 `intel_areas` (11), `intel_companies` (7), `indication_biology_tags` (7),
 `drug_routes` (6), `drug_areas` (legacy, 23). These are dark features / data gaps.
+
+## 2026-06-18 — `drugs.completeness_tier` / `completeness_score` are ORPHANED columns
+Discovered while building the §C intelligence-quality scoreboard. The active completeness pipeline
+(`research_intelligence.run_intelligence_audit`) writes completeness **tier → `research_queue`** and
+**score → `company_profiles`** — it does NOT write the `drugs.completeness_tier`/`completeness_score`
+columns. Those drugs columns hold 66 stale values from a historical (pre-2026-05) scorer and have **no
+active writer**. The scoreboard now reads completeness from `research_queue` (source of truth) and labels
+the drugs columns legacy. **Action (needs approval — schema change):** deprecate/drop
+`drugs.completeness_tier` + `drugs.completeness_score` (or backfill from research_queue if the dashboard
+reads them — verify `index.html` usage first). Until then: do NOT treat "untiered drugs" as a scoring gap.

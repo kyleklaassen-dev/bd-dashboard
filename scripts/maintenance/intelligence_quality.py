@@ -88,18 +88,26 @@ def collect():
     m["governance"] = {"total": len(gv), "unresolved": len(unresolved),
                        "top_unresolved_rules": dict(collections.Counter(
                            x.get("rule_name") for x in unresolved).most_common(5))}
-    # 3 + 4 + 5. drugs
+    # 3 + 4 + 5. drugs — field-fill (drug-level) + completeness from the LIVE source.
     dr = _all("drugs", "id,completeness_tier,mechanism,stage,drug_summary,source_url,"
                        "dashboard_visible,updated_at,discovery_status")
     n = len(dr)
-    tiers = collections.Counter(d.get("completeness_tier") or "(untiered)" for d in dr)
+    # Completeness TIER is maintained per entity×area in research_queue (written by
+    # research_intelligence.run_intelligence_audit) — NOT in drugs.completeness_tier, which
+    # is a legacy column with no active writer (stale values from a historical run).
+    rq = _all("research_queue", "completeness_tier")
+    rq_tiers = collections.Counter((r.get("completeness_tier") or "(unscored)") for r in rq)
+    legacy_tiered = sum(1 for d in dr if d.get("completeness_tier"))
     m["completeness"] = {
-        "drugs": n, "tiers": dict(tiers),
+        "drugs": n,
+        "research_queue_rows": len(rq),
+        "tiers_live": dict(rq_tiers),                      # the source of truth
+        "scored_live": sum(rq_tiers.get(t, 0) for t in ("strong", "partial", "thin")),
         "missing_mechanism": sum(1 for d in dr if not d.get("mechanism")),
         "missing_stage": sum(1 for d in dr if not d.get("stage")),
         "missing_summary": sum(1 for d in dr if not d.get("drug_summary")),
-        "untiered": tiers.get("(untiered)", 0),
         "dashboard_visible": sum(1 for d in dr if d.get("dashboard_visible")),
+        "legacy_drugs_completeness_tier": legacy_tiered,   # orphaned column — flag, don't chase
     }
     actual_ids = set(d.get("id") for d in dr)
     ds = _all("drug_sources", "drug_id")
@@ -145,11 +153,13 @@ def render(m):
     for rule, c in g["top_unresolved_rules"].items():
         P(f"     {c:3d}  {rule}")
     c = m["completeness"]
-    P(f"\n── 3. DRUG COMPLETENESS ({c['drugs']} drugs) ──")
-    P(f"  tiers: {c['tiers']}")
-    P(f"  untiered (no score computed): {c['untiered']}  ← scoring gap")
-    P(f"  missing: mechanism={c['missing_mechanism']} stage={c['missing_stage']} summary={c['missing_summary']}")
+    P(f"\n── 3. COMPLETENESS ({c['drugs']} drugs) ──")
+    P(f"  completeness tiers (research_queue = source of truth, {c['research_queue_rows']} entity×area rows): {c['tiers_live']}")
+    P(f"    scored (strong/partial/thin): {c['scored_live']}")
+    P(f"  drug field-fill: missing mechanism={c['missing_mechanism']} stage={c['missing_stage']} summary={c['missing_summary']}")
     P(f"  dashboard-visible: {c['dashboard_visible']}/{c['drugs']}")
+    P(f"  note: drugs.completeness_tier is a LEGACY column ({c['legacy_drugs_completeness_tier']} stale values, no active "
+      f"writer) — superseded by research_queue; candidate for deprecation, do not treat as a scoring gap.")
     s = m["source_coverage"]
     P(f"\n── 4. SOURCE COVERAGE ──\n  {s['coverage']} of drugs have ≥1 cited source "
       f"({s['drugs_with_sources']} drugs, {s['source_rows']} source rows)")
