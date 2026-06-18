@@ -98,10 +98,18 @@ def collect():
     tiers = collections.Counter(d.get("completeness_tier") or "(untiered)" for d in dr)
     rq = _all("research_queue", "completeness_tier")
     rq_tiers = collections.Counter((r.get("completeness_tier") or "(unscored)") for r in rq)
+    # An untiered drug is only a SCORER gap if it's linked to one of the 6 scored areas;
+    # untiered drugs outside those areas are an area-coverage limit, not a scoring failure.
+    SCORED_AREAS = {"tl1a", "tslp", "il4ra", "fcrn", "igf1r", "tcell"}
+    in_scope = set(x["drug_id"] for x in _all("drug_areas", "drug_id,area_id")
+                   if x.get("area_id") in SCORED_AREAS)
+    untiered_ids = [d["id"] for d in dr if not d.get("completeness_tier")]
     m["completeness"] = {
         "drugs": n,
         "tiers": dict(tiers),
-        "untiered": tiers.get("(untiered)", 0),            # real gap: run completeness-scoring.yml
+        "untiered": tiers.get("(untiered)", 0),
+        "untiered_in_scored_area": sum(1 for i in untiered_ids if i in in_scope),   # real gap
+        "untiered_out_of_scope": sum(1 for i in untiered_ids if i not in in_scope), # area-coverage limit
         "research_queue_tiers": dict(rq_tiers),            # per-entity×area companion
         "missing_mechanism": sum(1 for d in dr if not d.get("mechanism")),
         "missing_stage": sum(1 for d in dr if not d.get("stage")),
@@ -154,7 +162,8 @@ def render(m):
     c = m["completeness"]
     P(f"\n── 3. DRUG COMPLETENESS ({c['drugs']} drugs) ──")
     P(f"  tiers (drugs.completeness_tier, written by completeness-scoring.yml): {c['tiers']}")
-    P(f"  untiered: {c['untiered']}  ← drugs the scoring workflow hasn't covered (run `completeness-scoring.yml`)")
+    P(f"  untiered: {c['untiered']}  ({c['untiered_in_scored_area']} in a scored area = real gap → run "
+      f"`completeness-scoring.yml`; {c['untiered_out_of_scope']} outside the 6 scored areas = area-coverage limit)")
     P(f"  research_queue companion (per entity×area): {c['research_queue_tiers']}")
     P(f"  drug field-fill: missing mechanism={c['missing_mechanism']} stage={c['missing_stage']} summary={c['missing_summary']}")
     P(f"  dashboard-visible: {c['dashboard_visible']}/{c['drugs']}")

@@ -3,6 +3,22 @@
 
 ---
 
+## 2026-06-18 — completeness scoring: fixed a silent production bug; tiered drugs 66 → 120
+
+Tracing the "115 untiered drugs" §C signal uncovered a real production bug in the completeness scorer
+(research_intelligence / completeness-scoring.yml): drugs with a NULL entity_id were grouped under a
+synthetic key, then load_entity_context re-queried by that key → empty drugs → upsert_research_queue
+crashed at drugs[0] (IndexError) → ~73% of entities silently skipped (workflow logged "4/15 scored" yet
+exited success). Fix: load_entity_context id-fallback + a drugs[0] guard. Ran the fixed scorer (--area all,
+non-LLM, idempotent): 107/107 entities scored, 0 errors; drugs.completeness_tier coverage 66 → 120,
+untiered 115 → 61. The 61 remaining are out of scope (25 unlinked, 36 in non-scored areas) — 0 in-scope
+gap. Scoreboard updated to show that distinction.
+
+Also fixed 9 split-introduced missing imports (queue.py json+requests on the prod path; os/sys across 7
+files) and added scripts/maintenance/check_undefined_names.py to the CI gate to prevent recurrence.
+
+
+
 ## 2026-06-18 — governance: ALL 38 `trial_misattributed` resolved (38 → 0), CT.gov-verified
 
 Completed the governance correction with online verification per the directive. Every one of the 38 open
