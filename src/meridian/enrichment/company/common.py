@@ -406,3 +406,57 @@ def update_system_status(pipeline_label: str, record_count: int = 0,
     except Exception as e:
         log(f"  system_status stamp failed (non-fatal): {e}", indent=1)
         return False
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# AREA LABELS — descriptive per-area search/labeling strings (shared by the
+# discovery and catalyst modules).
+# ══════════════════════════════════════════════════════════════════════════
+AREA_LABELS_MAP = {
+    # Monospecifics — include indication + patient population context so discovery
+    # catches adjacent-mechanism companies competing for the SAME patients
+    "tl1a": (
+        "TL1A (anti-TL1A antibodies, IBD — UC/CD). "
+        "ALSO include: IL-23 inhibitors, IL-23+TNF combo programs (e.g. VEGA/DUET), "
+        "JAK inhibitors, and integrin inhibitors with active Phase 2+ IBD programs. "
+        "These compete for the same biologic-naive and biologic-experienced UC/CD patients."
+    ),
+    "tslp": (
+        "TSLP (anti-TSLP antibodies, severe asthma/atopic disease). "
+        "ALSO include: IL-33, IL-25/TSLP pathway inhibitors, and companies with "
+        "active Phase 2+ programs in severe asthma, CRSwNP, or atopic dermatitis "
+        "that compete in the same patient population."
+    ),
+    "il4ra": (
+        "IL-4Rα (anti-IL-4Rα or IL-4/IL-13 pathway, atopic dermatitis/asthma). "
+        "ALSO include: OX40/OX40L inhibitors, IL-13 inhibitors, IL-31 inhibitors, "
+        "and any company with active Phase 2+ programs in moderate-to-severe AD "
+        "competing against dupilumab-class agents."
+    ),
+    "igf1r": (
+        "IGF1R (anti-IGF1R, thyroid eye disease / oncology). "
+        "ALSO include: TSHR-targeting programs, TSH receptor antibody-targeting approaches, "
+        "and any Phase 2+ programs in thyroid eye disease (TED/Graves' orbitopathy)."
+    ),
+    "fcrn": (
+        "FcRn (anti-FcRn, autoimmune/IgG-mediated disease). "
+        "ALSO include: programs for CIDP, myasthenia gravis, ITP, pemphigus, NMOSD, "
+        "lupus nephritis, and other IgG-mediated autoimmune diseases where FcRn "
+        "inhibition or IgG reduction is the mechanism."
+    ),
+    "tcell": (
+        "T-cell engagers / bispecific T-cell redirectors (oncology — hematologic malignancies). "
+        "ALSO include: CAR-T programs, CD19/CD20/BCMA-targeted bispecifics, and "
+        "any Phase 1+ programs in B-cell malignancies, multiple myeloma, or "
+        "autoimmune disease using T-cell redirection."
+    ),
+    # Bispecifics
+    "il4ra_tslp":  "IL-4Rα×TSLP bispecific (atopic dermatitis/asthma)",
+    "il4ra_ox40l": "IL-4Rα×OX40L bispecific (atopic dermatitis/asthma)",
+    "igf1r_tshr":  "IGF1R×TSHR bispecific (thyroid eye disease / oncology)",
+    # Other
+    "ace":         "ACE2-based programs (respiratory/cardiometabolic)",
+    # Broad groupings (used as indication_group fallback)
+    "ibd":         "IBD (inflammatory bowel disease — UC/CD)",
+    "atopic":      "Atopic disease (AD, asthma, EoE)",
+}
