@@ -67,12 +67,14 @@ import argparse
 import requests
 from collections import defaultdict
 
+from meridian.credentials import read_key
+
 # ═══════════════════════════════════════════════════════════════════════
 # CREDENTIALS + CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO      = datetime.datetime.utcnow().isoformat()
 

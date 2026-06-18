@@ -16,9 +16,11 @@ import sys
 import json
 import urllib.request
 
-URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
+from meridian.credentials import read_key
+
+URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
 PROJECT = URL.replace("https://", "").split(".supabase.co")[0]
-PAT = os.environ["SUPABASE_PAT"]
+PAT = read_key("SUPABASE_PAT", ".supabase_pat")
 DRY = "--dry-run" in sys.argv
 
 SQL = """

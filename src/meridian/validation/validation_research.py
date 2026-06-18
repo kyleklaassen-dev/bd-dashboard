@@ -46,12 +46,14 @@ import argparse
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from meridian.credentials import read_key
+
 # ═══════════════════════════════════════════════════════════════════════
 # CREDENTIALS
 # ═══════════════════════════════════════════════════════════════════════
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 CT_GOV_BASE  = "https://clinicaltrials.gov/api/v2"
 ANZCTR_BASE  = "https://www.anzctr.org.au/TrialSearch.aspx"
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")

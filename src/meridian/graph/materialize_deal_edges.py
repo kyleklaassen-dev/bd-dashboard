@@ -20,8 +20,10 @@ import sys
 import datetime
 import requests
 
-URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co").rstrip("/")
-KEY = os.environ["SUPABASE_SERVICE_KEY"]
+from meridian.credentials import read_key
+
+URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co").rstrip("/")
+KEY = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 B = f"{URL}/rest/v1"
 H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
 HW = {**H, "Content-Type": "application/json", "Prefer": "return=minimal"}
