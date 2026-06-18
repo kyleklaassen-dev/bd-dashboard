@@ -34,6 +34,7 @@ NODE_TYPES = {
 class EdgeWriter:
     def __init__(self, dry_run=False, verify_endpoints=True):
         self.dry_run = dry_run
+        client.set_audit_context(self.__class__.__name__)
         self.verify_endpoints = verify_endpoints
         self._known = {}
 

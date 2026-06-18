@@ -16,6 +16,7 @@ import client
 class CatalystWriter:
     def __init__(self, dry_run=False):
         self.dry_run = dry_run
+        client.set_audit_context(self.__class__.__name__)
         self._cols = None
 
     @property

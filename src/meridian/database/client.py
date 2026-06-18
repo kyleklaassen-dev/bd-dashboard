@@ -14,6 +14,15 @@ import os, json, pathlib, urllib.request, urllib.error, urllib.parse
 _BASE = pathlib.Path(__file__).resolve().parents[3]
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://tghntyofptvfhmtchwcv.supabase.co")
 
+# Audit attribution (§A.4): the Writers set this; it is sent as request headers so the
+# field_change_audit triggers (v63 + v163) capture WHO/WHY. Without it, the trigger falls
+# back to the DB role (session_user). Default actor can be seeded from the env.
+_AUDIT = {"actor": os.environ.get("MERIDIAN_ACTOR"), "reason": os.environ.get("MERIDIAN_REASON")}
+def set_audit_context(actor=None, reason=None):
+    """Set who/why for subsequent writes (sent as X-Meridian-Actor / X-Meridian-Reason)."""
+    if actor is not None:  _AUDIT["actor"] = actor
+    if reason is not None: _AUDIT["reason"] = reason
+
 
 def _key():
     k = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -26,6 +35,8 @@ def _key():
 def _headers(extra=None):
     k = _key()
     h = {"apikey": k, "Authorization": f"Bearer {k}", "Content-Type": "application/json"}
+    if _AUDIT["actor"]:  h["X-Meridian-Actor"]  = str(_AUDIT["actor"])[:80]
+    if _AUDIT["reason"]: h["X-Meridian-Reason"] = str(_AUDIT["reason"])[:200]
     if extra:
         h.update(extra)
     return h

@@ -52,8 +52,9 @@ counted reads as writes; fixed). The one remaining non-writer is `dedupe_entitie
    `canonical` ×61, `partnership_verified` writes). Move identity/scoring/stage rules server-side; the dashboard displays trusted data. (overlaps §4)
 3. 🟡 **Define canonical entities** — one source of truth per entity (drugs/companies/trials/mechanisms/deals/catalysts);
    converge the 22 ad-hoc resolvers onto `entity_matcher`.
-4. 🟡 **Audit logs** — every core change answers who/what/when/**why**. Have: `governance_enforcement_log`, `drug_sources`
-   provenance, partial `created_by`. Need: a uniform change-audit on the writer path.
+4. ✅ **Audit logs** — DONE (2026-06-17). `field_change_audit` (v63) + **v163** now cover all 4 core tables on
+   INSERT+UPDATE; Writers send `X-Meridian-Actor`/`X-Meridian-Reason` headers → audit captures WHO (the writer) + WHY.
+   Verified end-to-end (CatalystWriter write → changed_by="CatalystWriter"). Error-swallowing — never blocks a write.
 5. 🟡 **Tests around known edge cases** — codify the real ones: VTX002, tulisokibart/MK-7240, Roche/Telavant, HLX36/LBL-053.
 6. 🟢 **Lifecycle map** — `docs/architecture/drug_lifecycle.md` exists; refresh to true current state (ingestion→enrich→dashboard→update).
 

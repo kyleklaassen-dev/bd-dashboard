@@ -45,6 +45,7 @@ class GovernanceError(Exception):
 class DrugWriter:
     def __init__(self, dry_run=False, source_required=True):
         self.dry_run = dry_run
+        client.set_audit_context(self.__class__.__name__)
         self.source_required = source_required
         self._reg = None
         self._cols = None
