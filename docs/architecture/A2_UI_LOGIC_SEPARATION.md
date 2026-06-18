@@ -94,7 +94,16 @@ dashboard's correctness here depends entirely on the client masking them.
 > **Do NOT reorder.** Removing the client (B) band-aid before fixing the data would display 7 marketed drugs
 > as "Phase 3" — a visible regression in BD-facing intelligence.
 
-## Status
-Analysis + read-only audit done. No code/data changed. The one concrete next action is the 7-row `stage`
-correction — governance-gated (core `drugs` table, competitor intelligence), so it awaits Kyle's go-ahead.
-ROADMAP §A.2 updated to this right-sized scope.
+## Status — steps 1 & 2 DONE (2026-06-18, Kyle-authorized)
+- ✅ **Step 1 — data corrected.** All 7 stale `drugs.stage` → `approved_us` via `DrugWriter.update_fields`
+  (governed; dry-run gate clean, writer suite 6/0 after). Each backed by an FDA `drug_sources` row
+  (`added_by="A2-stage-correction"`, FDA Drug-Trials-Snapshot / label URLs). Reversible backup:
+  `docs/audits/backups/a2_stage_correction_backup_2026-06-18.json`. Re-audit: bucket (B) 7 → **0**.
+- ✅ **Step 2 — client simplified.** `_resolveStage` (dkn.js) reduced to (A) approved-normalization + (D)
+  trust-the-DB; the redundant `brand_name⇒Approved` (B) and dead `(20XX)` (C) rules removed. Preview-verified:
+  the 7 drugs still resolve to "Approved" (now from the DB stage), a Phase-2 control stays "Phase 2", a
+  brand-without-approved-stage control correctly returns its DB stage (band-aid gone), DKN tab renders, 0 console errors.
+- ⬜ **Step 3 — `_dedupeDeals`** (render-time deal dedup) — optional, low priority, not done.
+
+Outcome: `drugs.stage` is now the single source of truth for stage; the dashboard normalizes for display only.
+This is the §A.2 pattern applied end-to-end on its one real case. ROADMAP §A.2 updated.

@@ -94,10 +94,11 @@ counted reads as writes; fixed). The one remaining non-writer is `dedupe_entitie
    **Right-sized: mostly already satisfied.** `_score` (368) is a display formatter; `canonical` (61) reads the
    server `canonical_drugs`/`canonical_drug_id`; `partnership_verified` (15) is a stored field — all already
    server-authoritative or pure display. The only real client truth-derivation is `_resolveStage` (6). A read-only
-   audit found: (C) indication-year heuristic is **dead** (0/181), and (B) `brand_name⇒Approved` **masks 7 stale
-   `drugs.stage` values** for marketed drugs (Rystiggo/Fasenra/Nucala/Rinvoq/Adbry/Imaavy/Ebglyss). **NEXT (gated):
-   correct those 7 stages via `DrugWriter` (needs Kyle + source URLs), THEN simplify `_resolveStage`** — order matters
-   (removing the client band-aid first would show them as Phase 3). (overlaps §4)
+   audit found: (C) indication-year heuristic is **dead** (0/181), and (B) `brand_name⇒Approved` masked 7 stale
+   `drugs.stage` values for marketed drugs. ✅ **DONE 2026-06-18:** corrected all 7 stages → `approved_us` via
+   `DrugWriter` (FDA-sourced, reversible backup, bucket B 7→0), then simplified `_resolveStage` to display-normalization
+   only (preview-verified, 0 console errors). `drugs.stage` is now the single source of truth. Remaining: `_dedupeDeals`
+   render-time dedup (optional, low priority). (overlaps §4)
 3. 🟡 **Define canonical entities** — one source of truth per entity (drugs/companies/trials/mechanisms/deals/catalysts);
    converge the 22 ad-hoc resolvers onto `entity_matcher`.
 4. ✅ **Audit logs** — DONE (2026-06-17). `field_change_audit` (v63) + **v163** now cover all 4 core tables on
