@@ -19,14 +19,20 @@ TODAY = date.today()
 TODAY_STR = TODAY.isoformat()
 
 
-def _read_key(filename):
-    path = os.path.join(WORKSPACE, filename)
-    with open(path) as f:
-        return f.read().strip()
+def _read_key(filename, env=None):
+    """Credential read, tolerant for CI/tests: env var first, then the repo-root file,
+    then '' (never raises). Real runs still read the file; CI/test imports don't need it."""
+    if env and os.environ.get(env):
+        return os.environ[env].strip()
+    try:
+        with open(os.path.join(WORKSPACE, filename)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
 
 
-SUPA_KEY = _read_key(".supabase_service_key")
-GITHUB_TOKEN = _read_key(".github_token_workflow")  # .github_token is DEAD (CLAUDE.md); use the workflow token
+SUPA_KEY = _read_key(".supabase_service_key", "SUPABASE_SERVICE_KEY")
+GITHUB_TOKEN = _read_key(".github_token_workflow", "GITHUB_TOKEN")  # .github_token is DEAD (CLAUDE.md)
 REPO = "kyleklaassen-dev/bd-dashboard"
 
 # ---------------------------------------------------------------------------
