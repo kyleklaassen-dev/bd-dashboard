@@ -53,6 +53,16 @@
    Registry is available.
 3. Leave the writers (already canonical) and the false-positives (B) alone.
 
+## Equivalence audit (2026-06-18, read-only) — confirms even the "lowest-risk" item is supervised
+Tested both `resolve_company_id` impls over 576 inputs (192 company_map keys + parenthetical variants):
+- identical: **570** · superset only-adds-a-match (safe): **0** · **different id: 6**.
+- The 6 diverge on companies whose *name itself* contains parens — e.g. `"Bausch Health (BHC) (TL1A mono)"`:
+  subset substring-matches `bauschhealth`; superset strips the trailing `(TL1A mono)` → exact-matches
+  `bauschhealthbhc`. Same for `ImmuPharma/Avion`, `United Therapeutics management`.
+- **Verdict:** unifying is NOT behavior-neutral (the superset re-resolves these differently — arguably *more*
+  correct, but different), so it stays a **supervised** change requiring a `meridian-research` dispatch-verify,
+  not a blind dedup. The audit converts "probably supervised" → "empirically supervised, with the exact 6 cases."
+
 ## Status
-Analysis only (read-only). No code changed. This right-sizes §E and sequences it; execution is supervised
-(identity matching → data-integrity blast radius). ROADMAP §3/§E updated.
+Analysis + equivalence audit done (read-only). No code changed — execution remains supervised across §E
+(identity matching → dedup/data-integrity blast radius), now with concrete divergence evidence. ROADMAP §3/§E updated.
