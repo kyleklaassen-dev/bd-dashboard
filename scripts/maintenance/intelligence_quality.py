@@ -155,8 +155,8 @@ def render(m):
       f"({s['drugs_with_sources']} drugs, {s['source_rows']} source rows)")
     P(f"  drugs with null source_url: {s['drugs_null_source_url']}")
     if s.get("orphan_source_drug_ids"):
-        P(f"  ⚠ orphan source rows: {s['orphan_source_drug_ids']} drug_ids cited in drug_sources "
-          f"but absent from the drugs table (aliased/deleted/dangling)")
+        P(f"  note: {s['orphan_source_drug_ids']} source keys aren't drug ids — mostly TARGET ids "
+          f"(drug_sources is dual-purpose: drug + target-level sources). Not errors; excluded from coverage.")
     f = m["freshness"]
     P(f"\n── 5. FRESHNESS (drugs.updated_at) ──\n  median age {f['median_age_days']}d  |  "
       f">90d: {f['stale_over_90d']}  >180d: {f['stale_over_180d']}")
