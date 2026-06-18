@@ -20,6 +20,10 @@ on:
         required: false
         default: "0"
 
+concurrency:
+  group: narrative-generation
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

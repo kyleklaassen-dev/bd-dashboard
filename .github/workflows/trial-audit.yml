@@ -21,6 +21,10 @@ on:
         default: "false"
         type: boolean
 
+concurrency:
+  group: trial-audit
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

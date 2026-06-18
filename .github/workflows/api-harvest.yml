@@ -23,6 +23,10 @@ on:
         default: "false"
         type: boolean
 
+concurrency:
+  group: api-harvest
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

@@ -42,6 +42,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: refresh-company-verified
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

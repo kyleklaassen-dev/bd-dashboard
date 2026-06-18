@@ -30,6 +30,10 @@ on:
         required: false
         default: '0'
 
+concurrency:
+  group: fetch-homepage-news
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 
