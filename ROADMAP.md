@@ -56,7 +56,11 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
 3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised (DRY_RUN rebound-global blocker; executable plan in `modularization_plan.md`).
 4. ✅ **Large-file splits DONE** (§3, 2026-06-18) — 9 files split, ≥1000-line bucket **9 → 1**; the one left (`weekend_sprint` 3,001) is §2. Table in `modularization_plan.md`.
-5. ⬜ **`index.html` Phase 4** decomposition (§4 / §A.2) — supervised, browser-verify; Reads-module recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`.
+5. 🟡 **`index.html` Phase 4** decomposition (§4 / §A.2) — 🟢 **Stage-2 STARTED 2026-06-18**: Reads tab extracted to
+   `assets/js/reads.js` (91-line IIFE), verified end-to-end via the Claude Code **preview tools** (byte-identical render
+   checksum + working filter chips + 0 console errors — the old "can't verify headless" blocker is RESOLVED, see
+   `INDEX_HTML_DECOMPOSITION_PLAN.md`). NEXT Stage-2 targets by size/safety: Home Preview (34604–34751), Changes Feed,
+   Saved Views — same extract→preview-verify loop, now repeatable without a human render-check gate.
 6. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
 7. ✅ **Drift guardrails DONE** (§6, 2026-06-18) — `ci-quality-gate.yml` runs compile + unit tests + health(no-cycles) + hygiene + live writer tests on every push/PR.
 

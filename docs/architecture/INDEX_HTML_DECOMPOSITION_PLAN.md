@@ -101,9 +101,15 @@ The original Map line numbers had drifted. Verified `<script>…</script>` spans
 | Saved Views | 34189–34303 | 115 | (panel; localStorage) |
 | Changes Feed | 34305–34602 | 298 | `changes-feed` |
 | Home Preview | 34604–34751 | 148 | `homeprev` |
-| **Reads** | **34754–34844** | **91** | **`reads`** ← do FIRST |
+| ~~Reads~~ | ~~34754–34844~~ | ~~91~~ | ✅ **EXTRACTED 2026-06-18 → `assets/js/reads.js`** |
 
-### Ready-to-run recipe — first extraction: **Reads** (lines 34754–34844)
+> **Line-map note:** after the Reads extraction the file is **34,757 lines** (was 34,847); the Reads
+> block is now the one-line `<script src="assets/js/reads.js"></script>` at **line 34754**. The rows
+> above (Ontology Explorer … Home Preview) are unaffected — Reads was the file's last script. Re-grep
+> before the next Stage-2 target (suggested next: **Home Preview** 34604–34751, or **Changes Feed**).
+
+### Ready-to-run recipe — first extraction: **Reads** (lines 34754–34844) ✅ DONE
+This recipe was executed and verified on 2026-06-18 (see the Headless-verification update below).
 Validated as the safest possible JS target: fully `(function(){…})()` IIFE; reads `SUPABASE_URL`/
 `SUPABASE_ANON`/`registerTab` only through `typeof`-guarded fallbacks; exposes only `window.__readsFilter`
 /`window.__readsRender` (created at runtime, referenced by its own rendered HTML — not by static markup);
@@ -116,17 +122,28 @@ Steps (supervised, follows the Safe-deploy invariant below):
 2. Replace index.html lines 34754–34844 with a single line: `<script src="assets/js/reads.js"></script>`.
 3. **Byte-integrity proof:** reads.js + the new one-line tag must reconstruct the original block
    (the only change is where the bytes live — same proof the Stage-0 image extraction used).
-4. Upload `assets/js/reads.js` **first** (verify HTTP 200 on raw), then PUT index.html.
-5. **Browser-verify (the step that cannot be done headless):** load the live site, open the Reads tab,
-   confirm cards render and the category/target filter chips work; check the console for new errors.
+4. Commit reads.js + index.html together (one atomic change → GitHub Pages deploys both at once, so
+   the `<script src>` never references a not-yet-deployed file). For a manual API deploy, upload
+   `assets/js/reads.js` **first** (verify HTTP 200 on raw), then PUT index.html.
+5. **Browser-verify:** load the dashboard, open the Reads tab, confirm cards render and the
+   category/target filter chips work; check the console for new errors.
 6. Rollback = restore the pre-change index.html (the inline version is self-contained).
 
-> **Headless-verification finding (2026-06-17):** an attempt to stand up a local static server +
-> headless preview to verify a Reads extraction **could not reliably load the 2.5 MB dashboard**
-> (the preview landed on a chrome-error page; no console/DOM available). This empirically confirms
-> the plan's core assumption — **index.html JS extraction must be browser-verified by a human** and
-> is therefore intentionally **NOT done unattended**. The map + recipe above make the supervised
-> pass a few-minutes task. (A static-server preview config was left at `.claude/launch.json`.)
+> **✅ Headless-verification finding UPDATED (2026-06-18) — it CAN be done headless now.** The
+> 2026-06-17 note below was wrong-in-hindsight (it concluded the 2.5 MB dashboard "could not reliably
+> load" in headless preview). With the Claude Code **preview tools** (`preview_start` on the
+> `dashboard-static` launch config + `preview_eval`/`preview_console_logs`/`preview_network`), the
+> full dashboard loads to `readyState:complete` and the Reads IIFE executes. The Reads extraction was
+> verified end-to-end this way: byte-integrity reconstruction PASS, `node --check` OK, `reads.js`
+> served HTTP 200, the Reads panel rendered **byte-identically** (same checksum before/after), the
+> populated tab showed "13 reads" with working CATEGORY/TARGET filter chips (filter→14.7k chars,
+> reset→restored exactly), and **zero console errors**. **Implication for future Stage-2 targets:**
+> this verification loop is repeatable and no longer needs a human in the loop for the render check —
+> extract, `preview_eval` a before/after checksum of the tab panel + a filter round-trip, confirm no
+> new console errors. (A human glance at the deployed site is still nice-to-have, not a gate.)
+>
+> > _Original 2026-06-17 finding (kept for the record, now superseded): a local static server +
+> > headless preview "could not reliably load the 2.5 MB dashboard" (landed on a chrome-error page)._
 
 ## Stage 3 — Extract the CSS (HIGHER risk · supervised, only if desired)
 Only after a human is watching. Concatenate the 13 `<style>` blocks **in document order**
