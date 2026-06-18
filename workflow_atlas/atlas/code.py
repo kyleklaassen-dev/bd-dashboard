@@ -44,6 +44,27 @@ class Func:
     nested: bool = False
 
 
+# external services detectable from imports / URL hints in the source
+EXTERNAL_HINTS = {
+    "yfinance": "Yahoo Finance (stock prices)",
+    "feedparser": "RSS feeds (news)",
+    "anthropic": "Claude API (LLM)",
+    "clinicaltrials.gov": "ClinicalTrials.gov API",
+    "api.fda.gov": "openFDA API",
+    "openfda": "openFDA API",
+    "sec.gov": "SEC EDGAR",
+    "edgar": "SEC EDGAR",
+    "chembl": "ChEMBL",
+    "ebi.ac.uk": "Europe PMC / EBI",
+    "europepmc": "Europe PMC",
+    "opentargets": "Open Targets",
+    "patentsview": "PatentsView (patents)",
+    "surechembl": "SureChEMBL (patents)",
+    "ncbi.nlm.nih.gov": "NCBI / PubMed",
+    "eutils": "NCBI E-utilities",
+}
+
+
 @dataclass
 class Script:
     path: str
@@ -55,7 +76,26 @@ class Script:
     main_writes: list[str] = field(default_factory=list)
     main_reads: list[str] = field(default_factory=list)
     main_writers: list[str] = field(default_factory=list)
+    externals: list[str] = field(default_factory=list)
     parse_error: str | None = None
+
+    @property
+    def all_writes(self) -> list[str]:
+        out = list(self.main_writes)
+        for f in self.funcs:
+            for t in f.writes:
+                if t not in out:
+                    out.append(t)
+        return out
+
+    @property
+    def all_reads(self) -> list[str]:
+        out = list(self.main_reads)
+        for f in self.funcs:
+            for t in f.reads:
+                if t not in out and t not in self.all_writes:
+                    out.append(t)
+        return out
 
     @property
     def entry_label(self) -> str:
@@ -141,6 +181,14 @@ def analyze(path: str) -> Script:
             calls=_calls_in(fn, local_names),
             writes=w, reads=r, writers_used=wr,
         ))
+
+    # external services (from imports + URL/string hints), de-duped by label
+    low = src.lower()
+    seen_ext = []
+    for hint, label in EXTERNAL_HINTS.items():
+        if hint in low and label not in seen_ext:
+            seen_ext.append(label)
+    sc.externals = seen_ext
 
     # __main__ guard block (where many scripts actually orchestrate)
     for node in tree.body:

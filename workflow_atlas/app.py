@@ -104,6 +104,8 @@ with st.sidebar:
     st.caption(f"{len(WORKFLOWS)} workflows · live from `.github/workflows`")
     if st.button("📊 Overview", width="stretch"):
         go("overview")
+    if st.button("⭐ Core example (Stock Prices)", width="stretch"):
+        go("wf::stock-prices.yml")
     if st.button("🔗 Workflow map", width="stretch"):
         go("map")
     if st.button("🧭 Mental model", width="stretch"):
@@ -246,96 +248,154 @@ def page_audit():
                         st.rerun()
 
 
+FEATURED = "stock-prices.yml"   # the fully-worked "core example"
+
+
+def _yaml_header(raw: str) -> str:
+    """Leading # comment block above `name:` — the author's own description."""
+    out = []
+    for ln in raw.splitlines():
+        s = ln.strip()
+        if s.startswith("#"):
+            out.append(s.lstrip("# ").rstrip())
+        elif s == "" and not out:
+            continue
+        else:
+            break
+    return " ".join(out).strip()
+
+
 def page_workflow(filename: str):
     wf = next((w for w in WORKFLOWS if w.filename == filename), None)
     if not wf:
         st.error(f"Unknown workflow: {filename}")
         return
+    scripts = [(ep, analyze(ep.path)) for ep in wf.all_entrypoints if ep.exists]
+    mine = [f for f in FINDINGS if filename in f.workflows]
+
     st.title(wf.name)
     st.caption(f"`{wf.path}` · cadence: **{wf.cadence}**")
+    if filename == FEATURED:
+        st.success("⭐ **Core example.** This page is the worked template — every "
+                   "section below answers one question you'd ask of *any* workflow. "
+                   "The same layout is generated for all 52; this is the clearest one "
+                   "to learn the shape from.")
 
+    # plain-English one-liner: prefer the entrypoint docstring, else yaml header
+    summary = ""
+    if scripts and scripts[0][1].doc:
+        summary = scripts[0][1].doc.strip().splitlines()[0]
+    summary = summary or _yaml_header(wf.raw_yaml)
+    if summary:
+        st.markdown(f"### {summary}")
+
+    # ── 1. WHEN ──────────────────────────────────────────────────────────
+    st.subheader("1 · When does it run?")
     c1, c2, c3 = st.columns(3)
     c1.markdown(f"**Triggers**\n\n{', '.join(wf.triggers) or '—'}")
     c2.markdown(f"**Schedule**\n\n{wf.cadence_detail or '—'}")
     c3.markdown(f"**Timeout**\n\n{wf.timeout_minutes or 'default (360m)'} min")
-
     if wf.after_workflows:
         st.info("🔗 Triggered by completion of: " +
                 ", ".join(f"**{u}**" for u in wf.after_workflows))
     if wf.concurrency_group:
-        st.caption(f"Concurrency group: `{wf.concurrency_group}` · "
-                   f"cancel-in-progress: {wf.cancel_in_progress}")
+        st.caption(f"✅ Safe from overlap — concurrency group `{wf.concurrency_group}` "
+                   f"(cancel-in-progress: {wf.cancel_in_progress}).")
     else:
-        st.caption("⚠️ No concurrency group.")
+        st.caption("⚠️ No concurrency group — a slow run could overlap the next.")
 
-    # findings touching this workflow
-    mine = [f for f in FINDINGS if filename in f.workflows]
-    if mine:
-        with st.expander(f"🔎 {len(mine)} audit finding(s) for this workflow", expanded=True):
-            for f in mine:
-                st.markdown(f"{SEV_ICON[f.severity]} **{f.title}** — {f.detail}")
+    # ── 2. WHY ───────────────────────────────────────────────────────────
+    header = _yaml_header(wf.raw_yaml)
+    if header:
+        st.subheader("2 · Why does it exist?")
+        st.markdown(header)
 
-    st.subheader("Flow")
-    st.graphviz_chart(workflow_flow_dot(wf), width="stretch")
-
-    st.subheader("Entrypoint scripts — anatomy")
-    eps = wf.all_entrypoints
-    if not eps:
+    # ── 3. WHAT FILES ────────────────────────────────────────────────────
+    st.subheader("3 · What does it run?")
+    if not scripts:
         st.caption("No python entrypoint — this workflow uses actions / shell only.")
-    for ep in eps:
-        if not ep.exists:
-            st.error(f"❌ {ep.raw} — file not found on this branch")
-            continue
-        st.markdown(f"#### `{ep.path}`" + (f"  ·  {ep.loc} LOC" if ep.loc else ""))
-        sc = analyze(ep.path)
-        if sc.parse_error:
-            st.warning(f"Could not parse: {sc.parse_error}")
-            continue
-        st.markdown("**What this file is for:** " + (sc.doc or "_no module docstring_"))
+    for ep, sc in scripts:
+        kind = "self-contained" if sc.funcs else "thin wrapper"
+        st.markdown(f"- `{ep.path}` · **{ep.loc} lines**, {len(sc.funcs)} functions "
+                    f"({kind})")
 
-        st.markdown(f"**How it runs** — orchestrated from the **{sc.entry_label}**, "
-                    "which calls these functions in order:")
+    # ── 4 & 5. HOW + FUNCTIONS ───────────────────────────────────────────
+    for ep, sc in scripts:
+        if sc.parse_error:
+            st.warning(f"Could not parse `{ep.path}`: {sc.parse_error}")
+            continue
+        st.subheader(f"4 · How does `{ep.path.split('/')[-1]}` run?")
+        st.markdown("**What it's for:** " + (sc.doc or "_no module docstring_"))
         if sc.main_calls:
-            st.markdown("  →  ".join(f"`{c}()`" for c in sc.main_calls))
+            st.markdown("**Order of execution** (from the " + sc.entry_label + "): "
+                        + "  →  ".join(f"`{c}()`" for c in sc.main_calls))
         st.graphviz_chart(call_flow_dot(sc), width="stretch")
 
-        st.markdown(f"**Functions ({len(sc.funcs)})** — what each one does:")
+        st.subheader(f"5 · What does each function do? ({len(sc.funcs)})")
         for f in sc.funcs:
             sig = f"{f.name}({', '.join(f.args)})"
-            with st.expander(f"`{sig}`  ·  lines {f.lineno}–{f.end_lineno}"):
+            io = []
+            if f.writes:
+                io.append("✍️ writes")
+            if f.reads:
+                io.append("👁️ reads")
+            tag = (" · " + ", ".join(io)) if io else ""
+            with st.expander(f"`{sig}`  ·  lines {f.lineno}–{f.end_lineno}{tag}"):
                 st.markdown(f.doc or "_No docstring — purpose inferred from name/body._")
                 if f.calls:
                     st.markdown("- **Calls:** " + ", ".join(f"`{c}()`" for c in f.calls))
                 if f.writes:
-                    st.markdown("- ✍️ **Writes tables:** " + ", ".join(f"`{t}`" for t in f.writes))
+                    st.markdown("- ✍️ **Writes:** " + ", ".join(f"`{t}`" for t in f.writes))
                 if f.reads:
-                    st.markdown("- 👁️ **Reads tables:** " + ", ".join(f"`{t}`" for t in f.reads))
+                    st.markdown("- 👁️ **Reads:** " + ", ".join(f"`{t}`" for t in f.reads))
                 if f.writers_used:
                     st.markdown("- 🛡️ **Via Writer:** " + ", ".join(f"`{w}`" for w in f.writers_used))
                 if not (f.calls or f.writes or f.reads):
                     st.caption("Pure helper — no table access or local calls.")
 
-    ep_files = {ep.path for ep in wf.all_entrypoints if ep.path}
-    if ep_files:
-        writes = sorted({t.name for t in TABLES if t.writer_files & ep_files})
-        reads = sorted({t.name for t in TABLES if (t.reader_files & ep_files)
-                        and t.name not in writes})
-        if writes or reads:
-            st.subheader("Tables touched (by this workflow's entrypoints)")
-            if writes:
-                st.markdown("✍️ **Writes:** " + ", ".join(f"`{t}`" for t in writes))
+    # ── 6. DATA IN & OUT ─────────────────────────────────────────────────
+    externals = sorted({e for _, sc in scripts for e in sc.externals})
+    writes = sorted({t for _, sc in scripts for t in sc.all_writes})
+    reads = sorted({t for _, sc in scripts for t in sc.all_reads if t not in writes})
+    if externals or writes or reads:
+        st.subheader("6 · What data goes in & out?")
+        cols = st.columns(2)
+        with cols[0]:
+            st.markdown("**Inputs**")
+            if externals:
+                st.markdown("🌐 External: " + ", ".join(f"**{e}**" for e in externals))
             if reads:
-                st.markdown("👁️ **Reads:** " + ", ".join(f"`{t}`" for t in reads))
-            st.caption("Direct references in entrypoint scripts; tables touched "
-                       "only inside imported modules aren't traced yet.")
+                st.markdown("👁️ Reads tables: " + ", ".join(f"`{t}`" for t in reads))
+            if not (externals or reads):
+                st.caption("—")
+        with cols[1]:
+            st.markdown("**Outputs**")
+            if writes:
+                for t in writes:
+                    core = " 🔑" if t in CORE_TABLES else ""
+                    st.markdown(f"- ✍️ `{t}`{core}")
+            else:
+                st.caption("—")
+        st.caption("Detected from the entrypoint files (imports, URLs, sb_*/Writer "
+                   "calls). Logic inside imported modules isn't traced yet.")
 
-    st.subheader("Steps")
-    for job in wf.jobs:
-        st.markdown(f"**job `{job.job_id}`** · runs-on `{job.runs_on}`")
-        for s in job.steps:
-            label = s.name or s.uses or "step"
-            st.markdown(f"- {label}" + (f"  ·  `{s.uses}`" if s.uses else ""))
+    # ── 7. WHAT'S WRONG / RISKY ──────────────────────────────────────────
+    st.subheader("7 · Anything wrong or risky?")
+    if mine:
+        for f in mine:
+            st.markdown(f"{SEV_ICON[f.severity]} **{f.title}** — {f.detail}")
+    else:
+        st.caption("No audit findings for this workflow. ✅")
 
+    # reference material
+    with st.expander("Trigger / flow diagram"):
+        st.graphviz_chart(workflow_flow_dot(wf), width="stretch")
+    with st.expander("CI steps"):
+        for job in wf.jobs:
+            st.markdown(f"**job `{job.job_id}`** · runs-on `{job.runs_on}`")
+            for s in job.steps:
+                label = s.name or s.uses or "step"
+                st.markdown(f"- {label}" + (f"  ·  `{s.uses}`" if s.uses else ""))
     with st.expander("Raw YAML"):
         st.code(wf.raw_yaml, language="yaml")
 
