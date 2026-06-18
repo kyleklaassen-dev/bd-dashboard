@@ -11,8 +11,10 @@ import json
 import datetime
 import requests
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+from meridian.credentials import read_key
+
+SUPABASE_URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,

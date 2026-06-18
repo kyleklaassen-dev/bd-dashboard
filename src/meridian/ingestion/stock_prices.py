@@ -9,10 +9,11 @@ Runs 6 AM ET daily (10:00 UTC), after market open.
 import os, json, datetime, time
 import requests
 from meridian.database.company_writer import CompanyWriter
+from meridian.credentials import read_key
 
 # ── Credentials ─────────────────────────────────────────────────────────────
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_URL = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,

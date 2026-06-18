@@ -25,11 +25,14 @@ try:
 except ImportError:
     sys.exit("anthropic package not found. Run: pip install anthropic --break-system-packages")
 
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
+from meridian.credentials import read_key
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+ANTHROPIC_API_KEY = read_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
+SUPABASE_URL      = read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY      = read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key") or os.environ.get("SUPABASE_KEY", "")
+
+# Guarded: the SDK raises on an empty api_key, which would break test-clean imports.
+client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
