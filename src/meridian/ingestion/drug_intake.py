@@ -2,7 +2,7 @@
 """
 drug_intake.py — Drug-First Discovery Engine (Task #93)
 
-CLI tool: python scripts/drug_intake.py --drug "Tozorakimab"
+CLI tool: python src/meridian/ingestion/drug_intake.py --drug "Tozorakimab"
 
 PURPOSE
 -------
@@ -47,10 +47,10 @@ Missing component area links are surfaced as warnings (graph completeness gaps).
 
 USAGE
 -----
-  python scripts/drug_intake.py --drug "Tozorakimab"
-  python scripts/drug_intake.py --drug "Amlitelimab" --area il4ra
-  python scripts/drug_intake.py --drug "QX031N" --company "Qyuns" --dry-run
-  python scripts/drug_intake.py --drug "Tozorakimab" --dry-run --verbose
+  python src/meridian/ingestion/drug_intake.py --drug "Tozorakimab"
+  python src/meridian/ingestion/drug_intake.py --drug "Amlitelimab" --area il4ra
+  python src/meridian/ingestion/drug_intake.py --drug "QX031N" --company "Qyuns" --dry-run
+  python src/meridian/ingestion/drug_intake.py --drug "Tozorakimab" --dry-run --verbose
 
 ENVIRONMENT
 -----------
@@ -106,7 +106,7 @@ except ImportError:
         key = os.environ.get("SUPABASE_SERVICE_KEY", "")
         if not url or not key:
             # Try workspace files
-            base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # repo root (4 up from src/meridian/ingestion/)
             try:
                 with open(os.path.join(base, ".supabase_config")) as f:
                     for line in f:
@@ -1602,10 +1602,10 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/drug_intake.py --drug "Tozorakimab"
-  python scripts/drug_intake.py --drug "Amlitelimab" --area il4ra
-  python scripts/drug_intake.py --drug "QX031N" --company "Qyuns" --dry-run
-  python scripts/drug_intake.py --drug "Tozorakimab" --dry-run --verbose
+  python src/meridian/ingestion/drug_intake.py --drug "Tozorakimab"
+  python src/meridian/ingestion/drug_intake.py --drug "Amlitelimab" --area il4ra
+  python src/meridian/ingestion/drug_intake.py --drug "QX031N" --company "Qyuns" --dry-run
+  python src/meridian/ingestion/drug_intake.py --drug "Tozorakimab" --dry-run --verbose
         """,
     )
     parser.add_argument("--drug",    required=True,  help="Drug name to research")
