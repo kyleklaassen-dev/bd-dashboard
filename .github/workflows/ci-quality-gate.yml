@@ -37,6 +37,10 @@ jobs:
         run: PYTHONPATH=src python scripts/maintenance/meridian_health_metrics.py --ci
       - name: Repo hygiene — fail on broken workflow→path references
         run: python scripts/maintenance/repo_hygiene_check.py
+      - name: Single-writer guard — fail on NEW direct writes to core tables
+        # Ratchet: 18 known bypasses are baselined; this blocks any NEW file from
+        # writing drugs/companies/catalysts directly instead of via its Writer.
+        run: python scripts/maintenance/audit_core_writers.py --ci
 
   live-writer-tests:
     # The live (read-only) regression gate for the governed write layer. Separate job so a
