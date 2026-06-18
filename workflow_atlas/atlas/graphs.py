@@ -119,3 +119,41 @@ def workflow_flow_dot(wf: Workflow) -> str:
         lines.append(f"  {wf_id} -> {nid};")
     lines.append("}")
     return "\n".join(lines)
+
+
+def db_core_governance_dot(tables) -> str:
+    """Core tables, their designated Writer (green = correct path), and any
+    ad-hoc writers that bypass it (red = governance gap)."""
+    from .db import CORE_TABLES, ARCHIVE_HINTS
+
+    def is_arch(p):
+        return any(h in p for h in ARCHIVE_HINTS)
+
+    by_name = {t.name: t for t in tables}
+    lines = [
+        "digraph db {",
+        '  rankdir=LR; bgcolor="transparent"; fontname="Helvetica";',
+        '  node [fontname="Helvetica", fontsize=11, margin="0.16,0.1"];',
+    ]
+    for name, (writer_file, cls) in CORE_TABLES.items():
+        t = by_name.get(name)
+        if not t:
+            continue
+        tid = _node_id("tbl_" + name)
+        rdrs = len(t.reader_files)
+        lines.append(f'  {tid} [label="{name}\\n{rdrs} reader files", shape=cylinder, '
+                     f'style=filled, fillcolor="#dbe9fb", color="#3567b5", fontcolor="#111827"];')
+        wid = _node_id("wr_" + name)
+        lines.append(f'  {wid} [label="{cls}\\n{writer_file}", shape=box, '
+                     f'style="rounded,filled", fillcolor="#d2f2dc", color="#2f9e63", fontcolor="#111827"];')
+        lines.append(f'  {wid} -> {tid} [color="#2f9e63", penwidth=1.6, label="  sole writer"];')
+        active = [r for r in t.writers
+                  if writer_file not in r.file and "database/" not in r.file and not is_arch(r.file)]
+        if active:
+            bid = _node_id("byp_" + name)
+            nfiles = len({r.file for r in active})
+            lines.append(f'  {bid} [label="{nfiles} ad-hoc writer file(s)\\n({len(active)} write calls)", '
+                         f'shape=box, style="filled", fillcolor="#fbdada", color="#c0392b", fontcolor="#7b1f17"];')
+            lines.append(f'  {bid} -> {tid} [color="#c0392b", style=dashed, label="  bypass"];')
+    lines.append("}")
+    return "\n".join(lines)
