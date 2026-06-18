@@ -28,7 +28,7 @@ Hard constraints:
   - Ailux itself: excluded from scoring
 
 Run:
-  python3 scripts/acquisition_scorer.py [--dry-run] [--top N]
+  python3 src/meridian/scoring/acquisition_scorer.py [--dry-run] [--top N]
 
 Outputs:
   - Console: top 20 ranked companies with full dimension breakdown
@@ -52,7 +52,7 @@ from collections import defaultdict
 # ---------------------------------------------------------------------------
 
 SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"
-WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # repo root (4 up from src/meridian/scoring/)
 OUTPUTS_DIR = os.path.join(WORKSPACE, "outputs")
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 
@@ -896,7 +896,7 @@ def commit_to_github(dry_run=False):
 
     print("[6/6] Committing to GitHub...")
     token = GITHUB_TOKEN
-    api_url = f"https://api.github.com/repos/{REPO}/contents/scripts/acquisition_scorer.py"
+    api_url = f"https://api.github.com/repos/{REPO}/contents/src/meridian/scoring/acquisition_scorer.py"
 
     with open(os.path.abspath(__file__), "rb") as f:
         content = f.read()
