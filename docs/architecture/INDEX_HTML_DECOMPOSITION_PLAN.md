@@ -79,12 +79,54 @@ No code change required; documented for completeness. The three CDN deps (gridjs
 supabase-js) are already external. No action recommended.
 
 ## Stage 2 — Extract the tail self-contained modules (MEDIUM risk · supervised)
-Move the IIFE/namespaced tail scripts (§(c) above) into individual files under `/src/` and
-load them with classic `<script src>` tags **after** the core block, preserving order.
+Move the IIFE/namespaced tail scripts (§(c) above) into individual files under `assets/js/`
+(same root-relative scheme as the Stage-0 images; resolves to `/bd-dashboard/assets/js/…` on
+Pages) and load them with classic `<script src>` tags **after** the core block, preserving order.
 - Keep them **non-module** so any globals they expose stay global.
 - Extract **one module per commit**; after each, open the live site and exercise that tab.
 - Highest-value first (largest): Audit (~1,290 lines), Ontology Audit (~1,330), Ontology
   Explorer (~1,820). Lowest-risk first: Reads, Saved Views, Changes Feed (small, isolated).
+
+### ✅ Refreshed tail-module map (current line numbers, 2026-06-17)
+The original Map line numbers had drifted. Verified `<script>…</script>` spans in the tail
+(all inline, no `src=`), with the `registerTab` id each one owns:
+
+| Module | Lines (current) | Size | registerTab id |
+|---|---|---|---|
+| Ontology Explorer (`#oex-main-script`) | 28927–30743 | 1,817 | (IIFE; registered elsewhere) |
+| intel2 (📡 Intelligence) | 31141–31395 | 255 | `intel2` |
+| Program Board | 31398–31549 | 152 | (registers `program-board`) |
+| Ontology Audit | 31551–32878 | 1,328 | `ontology` |
+| Audit | 32883–34173 | 1,291 | (registers `audit`) |
+| Saved Views | 34189–34303 | 115 | (panel; localStorage) |
+| Changes Feed | 34305–34602 | 298 | `changes-feed` |
+| Home Preview | 34604–34751 | 148 | `homeprev` |
+| **Reads** | **34754–34844** | **91** | **`reads`** ← do FIRST |
+
+### Ready-to-run recipe — first extraction: **Reads** (lines 34754–34844)
+Validated as the safest possible JS target: fully `(function(){…})()` IIFE; reads `SUPABASE_URL`/
+`SUPABASE_ANON`/`registerTab` only through `typeof`-guarded fallbacks; exposes only `window.__readsFilter`
+/`window.__readsRender` (created at runtime, referenced by its own rendered HTML — not by static markup);
+it is the **last `<script>` in the file**, so load order is trivially preserved. Blast radius = the Reads
+tab only (a load failure can't touch the other 24 tabs).
+
+Steps (supervised, follows the Safe-deploy invariant below):
+1. Copy the IIFE body (lines 34755–34843, i.e. everything **between** the `<script>`/`</script>` tags)
+   verbatim into `assets/js/reads.js`. `node --check assets/js/reads.js` must pass.
+2. Replace index.html lines 34754–34844 with a single line: `<script src="assets/js/reads.js"></script>`.
+3. **Byte-integrity proof:** reads.js + the new one-line tag must reconstruct the original block
+   (the only change is where the bytes live — same proof the Stage-0 image extraction used).
+4. Upload `assets/js/reads.js` **first** (verify HTTP 200 on raw), then PUT index.html.
+5. **Browser-verify (the step that cannot be done headless):** load the live site, open the Reads tab,
+   confirm cards render and the category/target filter chips work; check the console for new errors.
+6. Rollback = restore the pre-change index.html (the inline version is self-contained).
+
+> **Headless-verification finding (2026-06-17):** an attempt to stand up a local static server +
+> headless preview to verify a Reads extraction **could not reliably load the 2.5 MB dashboard**
+> (the preview landed on a chrome-error page; no console/DOM available). This empirically confirms
+> the plan's core assumption — **index.html JS extraction must be browser-verified by a human** and
+> is therefore intentionally **NOT done unattended**. The map + recipe above make the supervised
+> pass a few-minutes task. (A static-server preview config was left at `.claude/launch.json`.)
 
 ## Stage 3 — Extract the CSS (HIGHER risk · supervised, only if desired)
 Only after a human is watching. Concatenate the 13 `<style>` blocks **in document order**
