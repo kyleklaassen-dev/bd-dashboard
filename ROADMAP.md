@@ -55,7 +55,9 @@ counted reads as writes; fixed). The one remaining non-writer is `dedupe_entitie
 4. ✅ **Audit logs** — DONE (2026-06-17). `field_change_audit` (v63) + **v163** now cover all 4 core tables on
    INSERT+UPDATE; Writers send `X-Meridian-Actor`/`X-Meridian-Reason` headers → audit captures WHO (the writer) + WHY.
    Verified end-to-end (CatalystWriter write → changed_by="CatalystWriter"). Error-swallowing — never blocks a write.
-5. 🟡 **Tests around known edge cases** — codify the real ones: VTX002, tulisokibart/MK-7240, Roche/Telavant, HLX36/LBL-053.
+5. ✅ **Tests around known edge cases** — DONE (`tests/database/test_edge_cases.py`, 9/9): tulisokibart=MK-7240
+   canonical identity (originator=Prometheus, not Merck), VTX002/Ventyx, Roche/Telavant acquisition modeling,
+   LBL-053 TL1A bispecific. (HLX36 not in DB — unresolved flag; covered LBL-053 instead.)
 6. 🟢 **Lifecycle map** — `docs/architecture/drug_lifecycle.md` exists; refresh to true current state (ingestion→enrich→dashboard→update).
 
 **Sequence:** A.1 first (unblocks the gating question) → A.4 audit on the now-single path → A.3 canonical convergence →
