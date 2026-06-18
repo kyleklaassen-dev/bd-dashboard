@@ -1,5 +1,6 @@
 import sys,uuid,datetime; sys.path.insert(0,"src")
 from meridian.database import client as c
+from meridian.database.edge_writer import EdgeWriter
 NOW=datetime.datetime.utcnow().isoformat()
 NS=uuid.UUID("a7f1c0de-1111-4222-8333-0a1b2c3d4e5f")
 uid=lambda k:str(uuid.uuid5(NS,k))
@@ -21,11 +22,8 @@ for d in raw:
                 basis_text=f"CT.gov reference on {nct}",confidence_level="inferred",
                 generation_method="deterministic",notes="ctgov_refs_v152",status="active",
                 created_by="connect_raw",created_at=NOW,updated_at=NOW)
-ev=list(edges.values()); ins=0
-for i in range(0,len(ev),500):
-    code,b,_=c.insert("entity_edges",ev[i:i+500],on_conflict="subject_id,predicate,object_id",ignore_duplicates=True,return_rep=False)
-    if code>=400: print("edge err",code,str(b)[:140]); break
-    ins+=len(ev[i:i+500])
+ev=list(edges.values())
+ins=EdgeWriter(verify_endpoints=False).write(ev).get("written",0)
 for nct,ws in whystopped:
     c.update("trials",f"id=eq.{nct}",{"why_stopped":ws})
 print(f"ref edges processed: {ins} (from {ref_trials} trials) | whyStopped updated: {len(whystopped)}")

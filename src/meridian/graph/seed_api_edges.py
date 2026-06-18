@@ -18,6 +18,7 @@ Usage: python3 src/meridian/graph/seed_api_edges.py [--dry-run]
 import os, sys, datetime, uuid
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from meridian.database import client as c
+from meridian.database.edge_writer import EdgeWriter
 
 DRY = "--dry-run" in sys.argv
 NOW = datetime.datetime.utcnow().isoformat()
@@ -97,7 +98,7 @@ def seed_target_indication():
     uniq = {e["id"]: e for e in edges}
     print(f"target→indication: {len(uniq)} edges, {skipped} unresolved/skipped")
     if uniq and not DRY:
-        c.insert("entity_edges", list(uniq.values()), on_conflict="id")
+        EdgeWriter(verify_endpoints=False).write(list(uniq.values()))
     return len(uniq)
 
 
@@ -118,8 +119,7 @@ def seed_drug_publication():
                           r.get("source_url"), "Europe PMC literature match", "inferred")
     print(f"drug→publication: {len(edges)} edges")
     if edges and not DRY:
-        for i in range(0, len(edges), 500):
-            c.insert("entity_edges", list(edges.values())[i:i+500], on_conflict="id")
+        EdgeWriter(verify_endpoints=False).write(list(edges.values()))
     return len(edges)
 
 
@@ -148,8 +148,7 @@ def seed_drug_target_from_interactions():
         edges[e["id"]] = e
     print(f"drug→target (DGIdb): {len(edges)} edges")
     if edges and not DRY:
-        c.insert("entity_edges", list(edges.values()),
-                 on_conflict="subject_id,predicate,object_id", ignore_duplicates=True)
+        EdgeWriter(verify_endpoints=False).write(list(edges.values()))
     return len(edges)
 
 

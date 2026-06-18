@@ -1,3 +1,8 @@
+import sys as _sys, pathlib as _pl
+for _p in _pl.Path(__file__).resolve().parents:
+    if (_p / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p)); break
+    if (_p / 'src' / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p / 'src')); break
+from meridian.database.edge_writer import EdgeWriter
 #!/usr/bin/env python3
 """
 seed_target_edges.py — connect every drug to ALL of its targets in entity_edges.
@@ -101,13 +106,7 @@ def main():
     if APPLY and rows:
         ins = 0  # de-duped in-memory AND idempotent at the DB layer via the
                  # entity_edges_subj_pred_obj_uniq constraint (added 2026-06-09).
-        for i in range(0, len(rows), 200):
-            r = requests.post(f"{URL}/rest/v1/entity_edges?on_conflict=subject_id,predicate,object_id",
-                              headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"}, json=rows[i:i+200])
-            if r.status_code in (200, 201, 204):
-                ins += len(rows[i:i+200])
-            else:
-                print("  ERR", r.status_code, r.text[:200]); break
+        ins = EdgeWriter(verify_endpoints=False).write(rows).get("written", 0)
         print(f"  inserted {ins} edges")
 
 

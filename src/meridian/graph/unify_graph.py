@@ -1,3 +1,8 @@
+import sys as _sys, pathlib as _pl
+for _p in _pl.Path(__file__).resolve().parents:
+    if (_p / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p)); break
+    if (_p / 'src' / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p / 'src')); break
+from meridian.database.edge_writer import EdgeWriter
 #!/usr/bin/env python3
 """
 unify_graph.py — fold report-derived intelligence into the main entity_edges graph
@@ -32,13 +37,7 @@ def getall(t, p):
     return out
 
 def insert(rows):
-    n = 0
-    for i in range(0, len(rows), 400):
-        r = requests.post(f"{URL}/rest/v1/entity_edges",
-                          headers={**H, "Prefer": "return=minimal,resolution=ignore-duplicates"},
-                          json=rows[i:i+400])
-        if r.status_code in (200, 201, 204): n += len(rows[i:i+400])
-    return n
+    return EdgeWriter(verify_endpoints=False).write(rows).get("written", 0)
 
 def main():
     # target resolver

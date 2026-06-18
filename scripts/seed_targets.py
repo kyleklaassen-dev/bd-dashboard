@@ -1,3 +1,8 @@
+import sys as _sys, pathlib as _pl
+for _p in _pl.Path(__file__).resolve().parents:
+    if (_p / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p)); break
+    if (_p / 'src' / 'meridian' / 'database').is_dir(): _sys.path.insert(0, str(_p / 'src')); break
+from meridian.database.edge_writer import EdgeWriter
 #!/usr/bin/env python3
 """
 BD Platform — Target Normalization Seeder
@@ -744,14 +749,8 @@ def main():
     # ── Insert entity_edges TARGETS rows ───────────────────────────────────────
     print(f"\nInserting {len(entity_edge_rows)} entity_edges TARGETS rows...")
     inserted_ee = 0
-    for i in range(0, len(entity_edge_rows), BATCH):
-        batch = entity_edge_rows[i:i+BATCH]
-        result = sb_post("entity_edges", batch)
-        if result is None:
-            print(f"  [ERROR] Edge batch {i//BATCH+1} failed."); sys.exit(1)
-        count = len(result) if isinstance(result,list) else 1
-        inserted_ee += count
-        print(f"  ✓ Batch {i//BATCH+1}: {count} edges (total {inserted_ee})")
+    inserted_ee = EdgeWriter(verify_endpoints=False).write(entity_edge_rows).get("written", 0)
+    print(f"  ✓ {inserted_ee} entity_edges TARGETS rows via EdgeWriter")
 
     # ── Insert validation test ─────────────────────────────────────────────────
     print(f"\nInserting validation tests...")

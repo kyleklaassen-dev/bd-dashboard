@@ -708,18 +708,13 @@ def write_active_in_edge(
         return True
 
     try:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/entity_edges",
-            headers={**_sb_headers, "Prefer": "resolution=ignore-duplicates,return=minimal"},
-            json=edge,
-            timeout=10,
-        )
-        if resp.status_code in (200, 201):
+        from meridian.database.edge_writer import EdgeWriter
+        _r = EdgeWriter(verify_endpoints=False).write(edge)
+        if not _r.get("rejected"):
             print(f"  + entity_edges ACTIVE_IN: {company_id} → {area_id}")
             return True
-        else:
-            print(f"  ⚠ ACTIVE_IN edge {company_id}/{area_id}: {resp.status_code} {resp.text[:150]}")
-            return False
+        print(f"  ⚠ ACTIVE_IN edge {company_id}/{area_id} rejected: {_r.get('rejected')}")
+        return False
     except Exception as e:
         print(f"  ❌ ACTIVE_IN edge write error ({company_id}/{area_id}): {e}")
         return False
