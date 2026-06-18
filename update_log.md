@@ -3,6 +3,21 @@
 
 ---
 
+## 2026-06-18 — governance triage: 15 stale `trial_misattributed` resolved (38 → 23 open)
+
+The new intelligence-quality scoreboard surfaced 38 open `trial_misattributed_*` governance violations. Read-only
+investigation (CT.gov-verified) found they're a MIX, not uniform:
+- **15 STALE** — the bad NCT→drug link was verified **absent** from trials / drug_efficacy_endpoints / drug_sources /
+  catalysts / entity_edges (already cleaned; only the open log row remained). **Resolved** with a full audit trail
+  (`resolved_by=claude-governance-triage-2026-06-18`, `resolution_notes`, `resolved_at`). Governance 38 → 23.
+- **23 LIVE** — mislink still stored (trials/drug_sources). **Escalated, not auto-fixed** (deletes → Kyle's approval):
+  per-row CT.gov evidence + caveats in `docs/audits/GOVERNANCE_TRIAGE_trial_misattributed_2026-06-18.md`.
+  Key save: a token-matcher mis-judged BOTH `verekitug--upb-101` (a real Verekitug trial → FALSE POSITIVE, keep) and
+  `apg279`←APG777 (different Apogee assets → really WRONG), so no link was deleted on classifier output alone.
+Reversible (resolved is a flag); regression gate green (writers 8/0 + 6/0).
+
+---
+
 ## 2026-06-18 — §3 splits: drug_intake + acquisition_scorer migrated & split (bucket → 1)
 
 Finished the §3 large-file work by migrating the two remaining splittable flat scripts into the package and
