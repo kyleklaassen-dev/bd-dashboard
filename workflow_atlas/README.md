@@ -16,6 +16,21 @@ line count) — then renders:
   (broken script references, broken chain links, cron collisions, missing
   concurrency guards, dead dispatch-only workflows, shared entrypoints, timeout hygiene).
 
+### Database lens
+The same treatment for the Supabase tables (`atlas/db.py`):
+
+- **DB overview** — tables modeled, how many are defined in SQL vs only referenced in code.
+- **Governance map** — the 4 core tables (`drugs`, `companies`, `entity_edges`,
+  `catalysts`), each designated Writer (green = sanctioned path), and any code that
+  writes them directly (red = bypasses the Writer, a CLAUDE.md violation).
+- **Tables** — searchable list → per-table page (governance, writer/reader files,
+  columns from `CREATE TABLE`, and which workflows touch it).
+- **DB gaps** — Writer bypasses, possibly-unused tables (defined but never referenced),
+  write-only / read-only tables, and schema referenced in code but not version-controlled.
+
+Built from three ground-truth sources: `CREATE TABLE` in `migrations/` + `docs/`,
+the `sb_*`/client calls in `src/` + `scripts/`, and `docs/database/governance_table.md`.
+
 Nothing is hand-authored or executed — it's a pure static read, so it always
 reflects the branch you launch it on and can flag where that branch is broken.
 
