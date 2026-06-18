@@ -58,7 +58,10 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
    (note: acquisition/common + narrative/common use the flipped `(filename, env)` signature and keep WORKSPACE for OUTPUTS_DIR).
 1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
-3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised (DRY_RUN rebound-global blocker; executable plan in `modularization_plan.md`).
+3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised. **Turnkey design 2026-06-18** (`docs/architecture/WEEKEND_SPRINT_DECOMPOSE_DESIGN.md`):
+   target `ops/weekend/{common,audit,enrich}` + orchestrator; the DRY_RUN rebound-global blocker is solved with a
+   `set_dry_run/is_dry_run` accessor (mutable holder → shared by reference, like `_RUN_TOKENS`). It already calls into
+   the extracted agents (low duplication). Execution gated on a watched `--dry-run` dispatch (a DRY_RUN bug = unintended prod writes).
 4. ✅ **Large-file splits DONE** (§3, 2026-06-18) — 9 files split, ≥1000-line bucket **9 → 1**; the one left (`weekend_sprint` 3,001) is §2. Table in `modularization_plan.md`.
 5. ✅ **`index.html` Phase 4** decomposition (§4) — **DONE 2026-06-18**: index.html **34,847 → 7,124 lines (−79.6%)**.
    All JavaScript externalized to `assets/js/` (16 modules incl. `core.js` shared layer + `app.js` 13.5k-line main app +
