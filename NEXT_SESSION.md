@@ -1,3 +1,32 @@
+# ✅ index.html decomposition COMPLETE + §B safety net hardened (2026-06-18)
+
+**All §3 work merged to `main`** (PR #4) along with the completeness-scorer fix, CI quality gate,
+governance 38→0, and §B fail-soft credentials. Then this session took **index.html 34,847 → 7,124
+lines (−79.6%)** by externalizing **all JavaScript and all top-level CSS** to `assets/`:
+- `assets/js/` (16 modules): `core.js` (shared Supabase layer + globals every consumer needs) ·
+  `app.js` (loadData + all rendering + the BRIDGE template, 13.5k lines) · 14 tab/feature modules
+  (reads, home_preview, changes_feed, saved_views, ontology_explorer, ontology_audit, audit, intel2,
+  program_board, dkn, discovery_queue, company_database, pi_toggle, pharma_intel).
+- `assets/css/` (12 files): each `<style>` → a `<link>` at the **same document position** (cascade preserved).
+
+Method = byte-identical relocation (Python slice + reconstruction proof + `node --check`), each batch
+**verified via the Claude Code preview tools** (`preview_start` on the `dashboard-static` launch config →
+load the full dashboard → HTTP 200 + tab render + globals/computed-styles intact + **0 console errors**).
+This RESOLVED the old "index.html can't be verified headless" blocker — the loop is repeatable. PRs #6–#12,
+all merged to protected `main` (Kyle authorized; live GitHub Pages deploy).
+
+**§B safety net** (PRs #4, #5): added `ci-quality-gate.yml`, `check_undefined_names.py`, `check_import_clean.py`
+(static guard — fails CI on any module-level `os.environ[...]` subscript), the shared `src/meridian/credentials.py`
+`read_key` (env→file→default, never raises; retires the per-file `__file__`-depth-anchor bug class), grew unit
+tests 11→16, and made all eager-cred modules import test-clean.
+
+**Open / next (all SUPERVISED — see ROADMAP):** §A.2 UI/logic separation (move `_resolveStage`/`_score`/`_dedup`
+server-side — the deeper goal behind the index split) · `weekend_sprint.py` §2 decompose (DRY_RUN blocker) ·
+entity-resolution §E convergence (17 resolvers → `entity_matcher`) · routing relocated `sb_*` writes → Writers.
+Marginal index.html leftovers: small inline glue scripts + the in-JS `<style>` string in app.js (low value).
+
+---
+
 # ✅ §3 large-file splits — write_meridian + ct_gov_sync FULLY SPLIT (2026-06-17, overnight cont.)
 
 Continued the §3 work autonomously (same proven method — see [[section3-split-method]]). Branch
