@@ -37,9 +37,20 @@ It's an **active, scheduled** orchestrator (`weekend_sprint.yml`, ~8 Sat crons, 
 now-extracted modules rather than duplicate them — a deliberate refactor of live scheduled code → **supervised**, with
 a dispatch-verify. Not the byte-identical relocation pattern.
 
-## Other §3 follow-ups (minor): finish `research.py` (sources/extract/write still inline at 913). Then the deferred
-**supervised** items: route the relocated `sb_*` raw writes through the `src/meridian/database` writers (needs watched
-`--dry-run`); and the index.html Stage-2 extraction (recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`).
+## ✅ Health scoreboard FIXED (2026-06-18): `meridian_health_metrics.py` keyed the dep graph by file basename,
+so the §3 splits' many same-named submodules (common.py ×9, scoring.py ×3, …) collapsed into single nodes →
+bogus fan-in (ctgov/common showed 36 vs true 5) + ~18 PHANTOM import cycles. Re-keyed to full module path +
+any-length DFS cycle detector → now reports **import cycles: none ✓** and true fan-in. (Verified 0 real cycles
+via an independent full-path import graph.) Branch pushed to origin.
+
+## Remaining = SUPERVISED or marginal (NOT done autonomously — by design):
+- `weekend_sprint.py` (3,001) — §2 decompose of an active scheduled orchestrator (call into the extracted modules). Supervised + dispatch-verify.
+- Route the relocated `sb_*` raw writes (`company/common.py`, `issue/common.py`, `ctgov/common.py`, etc.) → the `src/meridian/database` writers. Semantic write-path change → watched `company-enrichment --dry-run`.
+- index.html Stage-2 extraction — recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`; needs a human browser-verify.
+- (Marginal) finish `research.py` (913) — its sources/extract/write helpers + scattered prompt consts are still inline.
+  Left as-is: zero large-file-metric gain (already <1000), scattered constants raise the error surface, and it's an
+  active 3-workflow pipeline not fully runtime-verifiable locally (feedparser). Do it with feedparser installed if at all.
+- (Bigger) Metric #3 — entity-resolution convergence: 17 files define resolver/matcher symbols; target = converge on `entity_matcher`. Architectural, supervised.
 
 ## index.html (§4 / §A.2) — PREP DONE, extraction is supervised-only (2026-06-17)
 Refreshed the tail-module map (line numbers had drifted) + wrote a ready-to-run Stage-2 recipe for the safest first
