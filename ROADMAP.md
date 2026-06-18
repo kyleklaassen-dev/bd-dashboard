@@ -90,8 +90,14 @@ counted reads as writes; fixed). The one remaining non-writer is `dedupe_entitie
    - **Narrow field-patches** (lower risk): `verify_sources` (data_confidence), `stock_prices` (price) → through writers or an allow-listed patch path.
    - **`dedupe_entities`** (FK-aware maintenance) — decide: route through writers or keep as an explicit, audited maintenance exception.
    *Note:* `drug_intake`/`company_intake`/`write_meridian` only READ drugs (earlier "raw writer" claim was the metric bug). Gate every change with `tests/database/`.
-2. 🟡 **Separate UI from intelligence logic** — `index.html` currently decides (`_resolveStage`, `_score`, `_dedup`,
-   `canonical` ×61, `partnership_verified` writes). Move identity/scoring/stage rules server-side; the dashboard displays trusted data. (overlaps §4)
+2. 🟡 **Separate UI from intelligence logic** — analyzed 2026-06-18 (`docs/architecture/A2_UI_LOGIC_SEPARATION.md`).
+   **Right-sized: mostly already satisfied.** `_score` (368) is a display formatter; `canonical` (61) reads the
+   server `canonical_drugs`/`canonical_drug_id`; `partnership_verified` (15) is a stored field — all already
+   server-authoritative or pure display. The only real client truth-derivation is `_resolveStage` (6). A read-only
+   audit found: (C) indication-year heuristic is **dead** (0/181), and (B) `brand_name⇒Approved` **masks 7 stale
+   `drugs.stage` values** for marketed drugs (Rystiggo/Fasenra/Nucala/Rinvoq/Adbry/Imaavy/Ebglyss). **NEXT (gated):
+   correct those 7 stages via `DrugWriter` (needs Kyle + source URLs), THEN simplify `_resolveStage`** — order matters
+   (removing the client band-aid first would show them as Phase 3). (overlaps §4)
 3. 🟡 **Define canonical entities** — one source of truth per entity (drugs/companies/trials/mechanisms/deals/catalysts);
    converge the 22 ad-hoc resolvers onto `entity_matcher`.
 4. ✅ **Audit logs** — DONE (2026-06-17). `field_change_audit` (v63) + **v163** now cover all 4 core tables on
