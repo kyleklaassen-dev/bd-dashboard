@@ -30,7 +30,7 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   `trial_misattributed_*`), **115/181 drugs untiered** (completeness never computed), **42 orphan source drug_ids**
   (drug_sources citing non-existent drugs), 17 null source_urls. **Acted 2026-06-18:** ✅ governance **38 → 0** — all `trial_misattributed_*` violations CT.gov-verified and resolved
   (15 stale + 20 wrong links deleted + 3 false-positives kept; reversible backup in `docs/audits/backups/`). NEXT §C work:
-  the '115 untiered' was a SCOREBOARD ARTIFACT — `drugs.completeness_tier` is an orphaned column (no active writer); completeness actually lives in `research_queue` (scoreboard now reads it: 61 scored, 56 unscored, 59 missing of 176). NEXT: dispatch `completeness-scoring.yml` to score the 56 unscored entity×area rows (non-LLM, governed); deprecate the orphaned drugs columns (SCHEMA_CLEANUP_BACKLOG); weekly scoreboard +
+  the '115 untiered drugs' is a REAL gap (correction: `drugs.completeness_tier` IS actively written by `completeness-scoring.yml` → research_intelligence → upsert_research_queue stamps each drug; an earlier note wrongly called it orphaned — fixed). 115 drugs simply haven't been covered by a scoring run (25 lack a `drug_areas` link → a separate sub-gap). NEXT: run/dispatch `completeness-scoring.yml --area all` (non-LLM, governed, idempotent) to tier them; weekly scoreboard +
   trend tracking. This is where repo work converts to BD value.
 - **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
   leverage, highest risk; needs browser-verify (recipe ready).
