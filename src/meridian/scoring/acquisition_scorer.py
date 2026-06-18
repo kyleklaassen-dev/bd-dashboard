@@ -68,7 +68,7 @@ def _read_key(filename):
 
 
 SUPA_KEY = _read_key(".supabase_service_key")
-GITHUB_TOKEN = _read_key(".github_token")
+GITHUB_TOKEN = _read_key(".github_token_workflow")  # .github_token is DEAD (CLAUDE.md); use the workflow token
 REPO = "kyleklaassen-dev/bd-dashboard"
 
 # ---------------------------------------------------------------------------
