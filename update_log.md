@@ -3,6 +3,21 @@
 
 ---
 
+## 2026-06-17 — §3 splits: research_intelligence + company_intake + narrative_gen
+
+Three more large files modularized (same byte-identical / AST-guided / writer-test-gated method); the ≥1000-line
+health bucket is now down to 3 (only `weekend_sprint` 3,001 [§2], `drug_intake` 1,627 [scripts/, needs migration],
+`acquisition_scorer` 1,091 [manual] remain).
+- **`research_intelligence.py` 1,379 → 413** + `scoring/research_intel/` {common, context, scoring, triggers, queue}.
+- **`company_intake.py` 1,180 → 504** + `identity/intake/` {common, research, queue, edges}. Preserved the external
+  `write_active_in_edge` surface (scripts/approve_discovery imports it).
+- **`narrative_gen.py` 1,123 → 405** + `products/narrative/` {common, atoms, triangulate}. Heavily imported (3
+  modules) — re-imported the full public surface; all 3 importer modules verified to load. The import-smoke caught a
+  real `WORKSPACE` depth bug (dirname×4→×5 for the one-dir-deeper home) — fixed.
+All on branch `refactor/section3-company-enrichment-prompts` (not pushed). Writer tests 6/0 + 8/0 throughout.
+
+---
+
 ## 2026-06-17 — §3 splits: write_meridian + ct_gov_sync modularized (overnight)
 
 Continued the §3 large-file work (same byte-identical / AST-guided / writer-test-gated method). The ≥1000-line

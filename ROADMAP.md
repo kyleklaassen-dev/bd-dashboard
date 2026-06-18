@@ -116,8 +116,12 @@ Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`.
 - ✅ `ct_gov_sync.py` (1,409 → **691** + 5 modules `src/meridian/ingestion/ctgov/`, fetch/map/validate/write) — DONE 2026-06-17.
   All three: byte-identical / AST-guided / writer-test-gated; branch `refactor/section3-company-enrichment-prompts` (not yet pushed).
   Deferred (supervised): route the `sb_*` raw writes in each `common.py` → the `src/meridian/database` writers via watched `--dry-run`.
-- ⬜ `research.py` (1,539, in-package) — next. `drug_intake.py` (1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first) ·
-  `research_intelligence.py` (1,379) · `company_intake.py` (1,180) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
+- ✅ `research.py` (1,539→913 + `ingestion/research_pipeline/` {common,pkpd,monitors}) — DONE 2026-06-17.
+- ✅ `research_intelligence.py` (1,379→413 + `scoring/research_intel/` {common,context,scoring,triggers,queue}) — DONE.
+- ✅ `company_intake.py` (1,180→504 + `identity/intake/` {common,research,queue,edges}) — DONE (preserved external `write_active_in_edge` surface).
+- ✅ `narrative_gen.py` (1,123→405 + `products/narrative/` {common,atoms,triangulate}) — DONE (preserved 3-importer surface; fixed a WORKSPACE depth bug).
+- ⬜ Remaining ≥1000: `drug_intake.py` (1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first, then split) ·
+  `acquisition_scorer.py` (1,091, manual, in `scripts/`). `weekend_sprint.py` (3,001) is §2 (decompose, not a clean split).
 
 ## 4. `index.html` (34,847 lines) — Phase 4 decomposition
 Per `docs/architecture/INDEX_HTML_MAP.md` + `INDEX_HTML_DECOMPOSITION_PLAN.md`. Extract self-contained JS modules
