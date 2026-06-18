@@ -246,15 +246,13 @@ function _piDrugLabelHTML(d) {
 // inferred from two strong signals: (a) brand_name is assigned post-approval, and
 // (b) indication_short contains a year-in-parens e.g. "RA (2019)".
 function _resolveStage(d) {
+  // §A.2: drugs.stage is server-authoritative — DrugWriter enforces brand_name⇒approved at write
+  // time, so the dashboard does NOT re-derive truth here; it only normalizes the approved_* family
+  // (approved_us / approved_us_eu / …) to a single "Approved" display label. The former client-side
+  // band-aids (brand_name⇒Approved; a "(20XX)" indication-year heuristic) were removed 2026-06-18
+  // after an audit corrected 7 stale stages in the DB (audit: 0 rows still relied on either rule).
   const s = (d.stage || '').toLowerCase();
-  // Already flagged as approved
   if (s.includes('approv')) return 'Approved';
-  // Brand name is only assigned after first regulatory approval
-  if (d.brand_name) return 'Approved';
-  // Year-in-parens in indication_short is an explicit approval annotation,
-  // e.g. "RA (2019); PsA; AD (2017)" means at least two approved indications
-  if (d.indication_short && /\(20\d{2}\)/.test(d.indication_short)) return 'Approved';
-  // Fall back to raw stage from DB
   return d.stage || 'Preclinical';
 }
 
