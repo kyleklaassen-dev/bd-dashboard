@@ -16,6 +16,10 @@ on:
         required: false
         default: ""
 
+concurrency:
+  group: patient-briefs
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

@@ -16,6 +16,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: validation-research
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

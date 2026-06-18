@@ -11,6 +11,10 @@ on:
         required: false
         default: "false"
         type: boolean
+concurrency:
+  group: orange-purple-book
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

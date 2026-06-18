@@ -21,6 +21,10 @@ on:
         default: "false"
         type: boolean
 
+concurrency:
+  group: efficacy-verification
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

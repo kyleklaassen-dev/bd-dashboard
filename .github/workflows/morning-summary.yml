@@ -9,6 +9,10 @@ on:
     - cron: '0 11 * * *'  # 7 AM ET (UTC-4 summer) — fallback if Writer didn't run
   workflow_dispatch:
 
+concurrency:
+  group: morning-summary
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 

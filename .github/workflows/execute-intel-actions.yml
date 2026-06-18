@@ -18,6 +18,10 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: execute-intel-actions
+  cancel-in-progress: false
+
 env:
   PYTHONPATH: ${{ github.workspace }}/src
 
