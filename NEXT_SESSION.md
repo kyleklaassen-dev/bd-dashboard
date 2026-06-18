@@ -1,24 +1,39 @@
-# ✅ §3 large-file split — company_enrichment STEP 1: prompts extracted (2026-06-17, cont.)
+# ✅ §3 large-file split — company_enrichment FULLY SPLIT (2026-06-17, cont.)
 
-**First module of the company_enrichment (4,377→3,663) split is out.** Extracted the Step-5 prompt
-construction → new `src/meridian/enrichment/company/` subpackage, module `company/prompts.py` (747 lines):
-`ENRICHMENT_SYSTEM`, `load_enrichment_hints`, `enrichment_system_prompt`, `AREA_DISEASE_CONTEXT`,
-`build_step5_prompt`. Pure prompt assembly — NO Supabase I/O / LLM / writers. `parse_enrichment_response`
-(uses `log`) + `write_step5` (the writer) deliberately stayed in `company_enrichment.py`.
-- **Provably behavior-preserving:** the moved block is byte-identical to old lines 1660–2379 (diff == True),
-  minus the duplicate `_REPO_ROOT/_HINTS_PATH` anchor (re-derived in the new module at the correct 4-levels-up
-  depth — `src/meridian/enrichment/company/` is one level deeper than the old home; verified resolves to repo root).
-- **Verified:** py_compile both · import-smoke prompts.py (pure, no env) · full-module import-smoke (dummy env)
-  → `build_step5_prompt`/`enrichment_system_prompt` now resolve to `...company.prompts`, `parse_enrichment_response`
-  stays local · no external importers of any moved symbol · writer regression tests **6/0 + 8/0** · hygiene 0 hard-fails.
-- **NOT yet dispatch-verified on CI** (`company-enrichment.yml --dry-run`) — it costs LLM spend and this extraction is
-  pure prompt text (byte-identical), so local proof is complete. Worth a watched dry-run before the *next* (db-routing) module.
+**`company_enrichment.py` 4,377 → 937 lines** (a thin orchestrator + CLI) by extracting **11 focused
+modules** into a new `src/meridian/enrichment/company/` subpackage. The 4am nightly Intelligence
+Pipeline core is now legible. Branch: `refactor/section3-company-enrichment-prompts` (8 commits,
+9117540 → 5457650 — NOT pushed; `main` is protected, fast-forward when ready).
 
-## NEXT in the §3 company_enrichment split (per `docs/architecture/PHASE3_4_EXECUTION_DESIGN.md`, line nums now shifted −714):
-Continue one module at a time, lowest-risk first. Remaining seams: `write_step5` (~600 lines) → `company/assessment_writer.py`;
-db helpers (`sb_*`, `_catalyst_upsert`) → route to `src/meridian/database` writers/client (removes last ad-hoc writes);
-then resolve/discovery/trials/catalysts/molecule/partnerships/deals/scoring → `company/*`, orchestrator (`pipeline.py`) last.
-**The db-routing module SHOULD get a watched `company-enrichment --dry-run` dispatch** (touches write paths).
+Modules (none over 940 lines): `common.py` (462 — shared base: creds, LLM client, `_RUN_TOKENS`,
+`sb_*` I/O, `log`, URL/confidence validation, `AREA_LABELS_MAP`) · `prompts.py` (747 — Step-5 prompt
+construction) · `resolve.py` (99) · `discovery.py` (495 — Step 1) · `trials.py` (348 — CT.gov sync +
+context fetch) · `catalysts.py` (150 — Step 4) · `assessment.py` (779 — Step 5 web intel + write_step5) ·
+`molecule.py` (174) · `partnerships.py` (125) · `deals.py` (152 — Step 6) · `scoring.py` (185).
+
+**How it was kept safe (every commit):**
+- **Byte-identical relocations** — each moved block was diffed against the original (all `True`). Method:
+  AST free-variable analysis (`/tmp/freevars.py`) to compute the exact import set + detect any sibling/
+  forward-ref calls before moving, so I never broke a call edge.
+- **Clean star topology** — everything imports `common`; `common` imports no feature module → 0 cycles.
+- **One real bug fixed in flight:** `_catalyst_upsert`'s repo-root anchor `parents[3]→[4]` (the new
+  `company/` dir is one level deeper than the old home). Verified it now resolves to the true repo root.
+- **`_RUN_TOKENS` shared-object identity preserved** (token accounting spans modules — verified `is` same dict).
+- **Verified per step:** py_compile + import-smoke (every relocated name resolves to its module) + writer
+  regression tests **6/0 + 8/0**. Final: full CLI `--help` exercises the whole import chain through all 11
+  modules; repo hygiene 0 hard-fails; health scoreboard — company_enrichment dropped out of the ≥1000-line bucket.
+- Entrypoint path unchanged → `company-enrichment.yml` / `school-week-sprint.yml` need no edits. No external
+  importers of any moved symbol.
+
+## ⏸ Deferred (supervised — needs a watched dispatch, NOT an unattended run):
+- **Route `common.py`'s `sb_*` writes through the `src/meridian/database` writers/client.** This is a
+  *semantic* write-path change (the design's "remove last ad-hoc writes" goal) — verify with a watched
+  `company-enrichment.yml --dry-run` before the real nightly run. Left as a verbatim relocation for now.
+
+## NEXT §3 large-file targets (same method — byte-identical, AST-guided, writer-test-gated):
+`write_meridian.py` (2,387) · `drug_intake.py` (1,627) · `research.py` (1,539) · `ct_gov_sync.py` (1,409).
+`write_meridian` is the next-biggest and feeds the unattended Issue generator (`meridian-preview.yml` has a
+`--dry-run`) → good verifiability. Then §A.2 (index.html UI/logic separation — highest risk, do last).
 
 ---
 

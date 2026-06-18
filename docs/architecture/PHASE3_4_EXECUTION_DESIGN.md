@@ -50,6 +50,29 @@ Each extraction must keep the same global function names (the inline `onclick=`/
 
 ## Phase 3 — `company_enrichment.py` (4,435 lines) → `src/meridian/enrichment/company/`
 
+> ✅ **EXECUTED 2026-06-17** (commits 9117540 → 5457650, branch
+> `refactor/section3-company-enrichment-prompts`). `company_enrichment.py` is now a
+> **937-line orchestrator + CLI** (was 4,377 at split start) importing 11 focused modules
+> under `src/meridian/enrichment/company/`:
+> `common.py` (shared base — creds, LLM client, `_RUN_TOKENS`, `sb_*` I/O, `log`, URL/
+> confidence validation, `AREA_LABELS_MAP`) · `prompts.py` (Step-5 prompt construction) ·
+> `resolve.py` (company name→id) · `discovery.py` (Step 1) · `trials.py` (CT.gov sync +
+> context fetch) · `catalysts.py` (Step 4) · `assessment.py` (Step 5 web intel + write_step5) ·
+> `molecule.py` · `partnerships.py` · `deals.py` (Step 6) · `scoring.py`.
+> Every extraction was a **byte-identical relocation** (verified by diff), with one required
+> fix: `_catalyst_upsert`'s repo-root anchor `parents[3]→[4]` (the new dir is one level deeper).
+> Dependency topology is a clean star: everything imports `common`; nothing in `common` imports
+> a feature module (0 cycles). Verified each step: py_compile + import-smoke + writer regression
+> tests (6/0 + 8/0); full CLI `--help` exercises the whole import chain through all 11 modules.
+> The orchestrator entrypoint path is unchanged, so `company-enrichment.yml` / `school-week-sprint.yml`
+> need no edits.
+>
+> **Deferred (supervised, dispatch-verified):** routing the `sb_*` writes in `common.py`
+> through the `src/meridian/database` writers/client — a semantic write-path change that needs a
+> watched `company-enrichment --dry-run` dispatch, not an unattended run. Also still open as §3
+> targets: `write_meridian.py` (2,387), `drug_intake.py` (1,627), `research.py` (1,539),
+> `ct_gov_sync.py` (1,409).
+
 The biggest script and the nightly Intelligence Pipeline's core. Already sectioned by
 banner comments, which map cleanly to modules (line ranges as of 2026-06-16):
 

@@ -110,10 +110,12 @@ Already covered elsewhere (weekend_sprint just duplicates): `company_enrichment`
 **Bonus:** the 56-phase list is a good seed for the comprehensive periodic QA/refresh checklist (guardrails §6).
 
 ## 3. Large-file splits (smaller files = humans + Claude can manage them)
-Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`. Thin CLI + focused modules ≤ ~300–400 lines.
-- ⬜ `company_enrichment.py` (4,435) — do during its migration (§1).
-- ⬜ `write_meridian.py` (2,391) — do during its migration (§1).
-- ⬜ `drug_intake.py` (1,659) · `research.py` (1,538) · `ct_gov_sync.py` (1,409, fetch/map/write split designed) · `research_intelligence.py` (1,379) · `company_intake.py` (1,185) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
+Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`. Thin CLI + focused modules.
+- ✅ `company_enrichment.py` (4,377 → **937** orchestrator + 11 modules under `src/meridian/enrichment/company/`) —
+  DONE 2026-06-17, byte-identical / AST-guided / writer-test-gated; branch `refactor/section3-company-enrichment-prompts`
+  (not yet pushed). Deferred (supervised): route `company/common.py` `sb_*` → writers via watched `--dry-run`.
+- ⬜ `write_meridian.py` (2,387) — next; `meridian-preview.yml --dry-run` makes it verifiable.
+- ⬜ `drug_intake.py` (1,627) · `research.py` (1,539) · `ct_gov_sync.py` (1,409, fetch/map/write split designed) · `research_intelligence.py` (1,379) · `company_intake.py` (1,180) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
 
 ## 4. `index.html` (34,847 lines) — Phase 4 decomposition
 Per `docs/architecture/INDEX_HTML_MAP.md` + `INDEX_HTML_DECOMPOSITION_PLAN.md`. Extract self-contained JS modules

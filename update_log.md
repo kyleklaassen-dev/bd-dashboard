@@ -3,7 +3,28 @@
 
 ---
 
-## 2026-06-17 — §3 split: company_enrichment Step-5 prompts extracted
+## 2026-06-17 — §3 split: company_enrichment.py fully modularized (4,377 → 937)
+
+Split the nightly Intelligence Pipeline core into **11 focused modules** under a new
+`src/meridian/enrichment/company/` subpackage; `company_enrichment.py` is now a 937-line orchestrator + CLI
+(was the repo's single largest file at 4,377 — now out of the ≥1000-line health bucket). Branch
+`refactor/section3-company-enrichment-prompts` (8 commits, not yet pushed — `main` is protected).
+
+Modules (none >940 lines): `common.py` (shared base — creds, LLM client, `_RUN_TOKENS`, `sb_*` I/O, `log`,
+URL/confidence validation, `AREA_LABELS_MAP`), `prompts.py` (Step-5 prompt construction), `resolve.py`,
+`discovery.py` (Step 1), `trials.py` (CT.gov sync + context fetch), `catalysts.py` (Step 4), `assessment.py`
+(Step 5 web intel + write_step5), `molecule.py`, `partnerships.py`, `deals.py` (Step 6), `scoring.py`.
+
+Method (every commit): AST free-variable analysis to compute the exact import set + detect sibling/forward
+calls before moving → **byte-identical relocations** (each diffed vs. original = True). Clean star topology
+(everything imports `common`; `common` imports no feature module → 0 cycles). One bug fixed in flight:
+`_catalyst_upsert` repo-root anchor `parents[3]→[4]` (new dir is one level deeper). `_RUN_TOKENS` shared-object
+identity preserved (token accounting spans modules). Verified per step: py_compile + import-smoke + writer
+regression tests (6/0 + 8/0); final full CLI `--help` exercises the whole import chain; hygiene 0 hard-fails.
+Entrypoint path unchanged → workflows need no edits. **Deferred (supervised):** route `common.py`'s `sb_*`
+writes through the `src/meridian/database` writers (a write-path change → needs a watched `--dry-run` dispatch).
+
+## 2026-06-17 — §3 split: company_enrichment Step-5 prompts extracted (superseded above)
 
 First module of the `company_enrichment.py` large-file split (the nightly Intelligence Pipeline core). Extracted the Step-5 prompt construction into a new `src/meridian/enrichment/company/` subpackage:
 - **`company/prompts.py`** (747 lines): `ENRICHMENT_SYSTEM`, `load_enrichment_hints`, `enrichment_system_prompt`, `AREA_DISEASE_CONTEXT`, `build_step5_prompt`. Pure prompt assembly — no Supabase I/O, no LLM calls, no writers. `parse_enrichment_response` (uses `log`) and `write_step5` (the writer) intentionally stayed behind.
