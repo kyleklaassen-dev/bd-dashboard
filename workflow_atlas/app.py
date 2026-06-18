@@ -16,6 +16,7 @@ from collections import defaultdict
 import streamlit as st
 
 from atlas.audit import audit, summarize
+from atlas.code import analyze, call_flow_dot
 from atlas.db import (db_audit, db_summary, load_tables, workflows_touching,
                       CORE_TABLES)
 from atlas.graphs import chain_map_dot, db_core_governance_dot, workflow_flow_dot
@@ -277,17 +278,42 @@ def page_workflow(filename: str):
     st.subheader("Flow")
     st.graphviz_chart(workflow_flow_dot(wf), width="stretch")
 
-    st.subheader("Entrypoint scripts")
+    st.subheader("Entrypoint scripts — anatomy")
     eps = wf.all_entrypoints
     if not eps:
         st.caption("No python entrypoint — this workflow uses actions / shell only.")
     for ep in eps:
-        head = f"`{ep.path}`" + (f" · {ep.loc} LOC" if ep.loc else "")
         if not ep.exists:
             st.error(f"❌ {ep.raw} — file not found on this branch")
             continue
-        with st.expander(head):
-            st.markdown(ep.docstring or "_No module docstring._")
+        st.markdown(f"#### `{ep.path}`" + (f"  ·  {ep.loc} LOC" if ep.loc else ""))
+        sc = analyze(ep.path)
+        if sc.parse_error:
+            st.warning(f"Could not parse: {sc.parse_error}")
+            continue
+        st.markdown("**What this file is for:** " + (sc.doc or "_no module docstring_"))
+
+        st.markdown(f"**How it runs** — orchestrated from the **{sc.entry_label}**, "
+                    "which calls these functions in order:")
+        if sc.main_calls:
+            st.markdown("  →  ".join(f"`{c}()`" for c in sc.main_calls))
+        st.graphviz_chart(call_flow_dot(sc), width="stretch")
+
+        st.markdown(f"**Functions ({len(sc.funcs)})** — what each one does:")
+        for f in sc.funcs:
+            sig = f"{f.name}({', '.join(f.args)})"
+            with st.expander(f"`{sig}`  ·  lines {f.lineno}–{f.end_lineno}"):
+                st.markdown(f.doc or "_No docstring — purpose inferred from name/body._")
+                if f.calls:
+                    st.markdown("- **Calls:** " + ", ".join(f"`{c}()`" for c in f.calls))
+                if f.writes:
+                    st.markdown("- ✍️ **Writes tables:** " + ", ".join(f"`{t}`" for t in f.writes))
+                if f.reads:
+                    st.markdown("- 👁️ **Reads tables:** " + ", ".join(f"`{t}`" for t in f.reads))
+                if f.writers_used:
+                    st.markdown("- 🛡️ **Via Writer:** " + ", ".join(f"`{w}`" for w in f.writers_used))
+                if not (f.calls or f.writes or f.reads):
+                    st.caption("Pure helper — no table access or local calls.")
 
     ep_files = {ep.path for ep in wf.all_entrypoints if ep.path}
     if ep_files:
