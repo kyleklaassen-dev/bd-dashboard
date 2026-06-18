@@ -5,6 +5,31 @@
 > refactor with a dispatch-verify — NOT the byte-identical relocation used for the §3 library splits. This doc
 > makes the execution turnkey: the structure, the `DRY_RUN` blocker solution, and the verify procedure.
 
+> ## ⚠️ SCOPE CORRECTION + ✅ HARNESS PROVEN (2026-06-18, second pass)
+> Two findings from digging in — both change how to execute this:
+> 1. **True scope is 3× the initial sketch.** It is NOT 2 blocks (A audit + B enrich). It is **6 blocks A–F,
+>    ~60 phases**: A `a1–a8` (audit) · B `b1–b8` (enrich) · C `c1–c8` (relationships) · D `d1–d11` (scoring) ·
+>    E `e1–e8` (consistency/quality) · F `f1–f10` (finalize/report) — plus `PHASE_MAP`, `BLOCK_PHASES`,
+>    `run_phase`, `run_block`, `load_phases_config`, `get_phase_meta`, `main`. Module split should be **per block**:
+>    `ops/weekend/{common, audit(A), enrich(B), relations(C), scoring(D), quality(E), finalize(F)}` + the orchestrator.
+>    This is a large, dedicated refactor — do it as its own focused session, not a tail-end add-on (a half-moved
+>    orchestrator breaks the cron).
+> 2. **Local verification IS possible** (the design previously assumed it wasn't). `weekend_sprint.py` needs deps
+>    the system Python lacks (`yaml`, …) and PEP-668 blocks a system `pip install` — but a **venv** works:
+>    ```
+>    python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements.txt
+>    SUPABASE_URL=… SUPABASE_SERVICE_KEY=$(cat .supabase_service_key) PYTHONPATH=src \
+>      .venv/bin/python scripts/weekend_sprint.py --phase A1 --dry-run
+>    ```
+>    Verified working: phase A1 ran read-only (27 tables checked) and printed `[DRY-RUN] Would POST to
+>    weekend_sprint_log …` — i.e. **no write**, exit clean, ~5s. So the decompose can be verified phase-by-phase
+>    locally (run a representative phase from each block in `--dry-run` before/after, assert identical output +
+>    `[DRY-RUN]` everywhere + grep zero bare `DRY_RUN`), with the live Saturday run as the final watched gate.
+> **Recommended `DRY_RUN` mechanism (refined):** keep `DRY_RUN` as a module attribute in `common.py`; phases do
+> `from meridian.ops.weekend import common as wc` and read `wc.DRY_RUN`; `main` sets `wc.DRY_RUN = args.dry_run`
+> once. Edit = regex `\bDRY_RUN\b → wc.DRY_RUN` inside the relocated phase bodies only (not the definition). This
+> reads the live value (module-attribute access) and avoids a per-call accessor function.
+
 ## Structure (already clean phases)
 - **Base:** creds (`_read_file_credential`), `sb_get/post/patch/upsert`, `log`, `table_exists`,
   `ensure_weekend_sprint_log_table`, `log_phase`.
