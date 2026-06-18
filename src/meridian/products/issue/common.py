@@ -19,10 +19,26 @@ import anthropic
 
 
 # ── Credentials ─────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ["SUPABASE_SERVICE_KEY"]
-GITHUB_TOKEN      = os.environ["GITHUB_TOKEN"]
+# repo root: this file is src/meridian/products/issue/common.py → 5 dirnames up.
+_WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
+
+def _read_key(env, filename, default=""):
+    """Credential read, tolerant for CI/tests: env var first, then the repo-root file,
+    then default (never raises) so the issue.* submodules import test-clean."""
+    if os.environ.get(env, "").strip():
+        return os.environ[env].strip()
+    try:
+        with open(os.path.join(_WORKSPACE, filename)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return default
+
+
+ANTHROPIC_API_KEY = _read_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
+SUPABASE_URL      = _read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY      = _read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
+GITHUB_TOKEN      = _read_key("GITHUB_TOKEN", ".github_token_workflow")  # .github_token is DEAD (CLAUDE.md)
 GITHUB_REPO       = os.environ.get("GITHUB_REPO", "kyleklaassen-dev/bd-dashboard")
 
 # PUBLIC anon key for the in-issue feedback widget (write-only to meridian_feedback via
@@ -31,7 +47,8 @@ GITHUB_REPO       = os.environ.get("GITHUB_REPO", "kyleklaassen-dev/bd-dashboard
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY",
     "sb_publishable_3GLfZ7b9Tjp9RFRcc4YZew_ov-fY7dI")
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+# Guarded: the SDK raises on an empty api_key, which would break test-clean imports.
+client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,

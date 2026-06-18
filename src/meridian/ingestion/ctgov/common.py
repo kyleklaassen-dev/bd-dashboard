@@ -11,8 +11,24 @@ import datetime
 import requests
 
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+# repo root: this file is src/meridian/ingestion/ctgov/common.py → 5 dirnames up.
+_WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
+
+def _read_key(env, filename, default=""):
+    """Credential read, tolerant for CI/tests: env var first, then the repo-root file,
+    then default (never raises) so PURE submodules (e.g. ctgov.map) import test-clean."""
+    if os.environ.get(env, "").strip():
+        return os.environ[env].strip()
+    try:
+        with open(os.path.join(_WORKSPACE, filename)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return default
+
+
+SUPABASE_URL = _read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY = _read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
 CT_GOV_BASE  = "https://clinicaltrials.gov/api/v2"
 TODAY        = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 NOW_ISO      = datetime.datetime.utcnow().isoformat()

@@ -10,11 +10,30 @@ import datetime
 import anthropic
 
 
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ["SUPABASE_SERVICE_KEY"]
+# repo root: this file is src/meridian/ingestion/research_pipeline/common.py → 5 dirnames up.
+_WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+def _read_key(env, filename, default=""):
+    """Credential read, tolerant for CI/tests: env var first, then the repo-root file,
+    then default (never raises) so this base imports test-clean without secrets."""
+    if os.environ.get(env, "").strip():
+        return os.environ[env].strip()
+    try:
+        with open(os.path.join(_WORKSPACE, filename)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return default
+
+
+ANTHROPIC_API_KEY = _read_key("ANTHROPIC_API_KEY", ".anthropic_api_key")
+SUPABASE_URL      = _read_key("SUPABASE_URL", ".supabase_url", "https://tghntyofptvfhmtchwcv.supabase.co")
+SUPABASE_KEY      = _read_key("SUPABASE_SERVICE_KEY", ".supabase_service_key")
+
+# Guarded: the SDK raises if api_key is empty, which would break test-clean imports.
+# Real runs (env/file present) get a live client; key-less imports get None (LLM call
+# sites only run in real pipelines, never in pure-function tests).
+client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
 
 SB_HEADERS = {
     "apikey":        SUPABASE_KEY,
