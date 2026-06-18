@@ -20,10 +20,23 @@ Continued the §3 work autonomously (same proven method — see [[section3-split
 Every extraction: AST free-var analysis → byte-identical relocation (all diffs == True) → py_compile +
 import-smoke + writer regression tests (6/0 + 8/0). Entrypoint paths unchanged → no workflow edits.
 
-## NEXT §3 targets (same method): `research.py` (1,539, in-package) · `drug_intake.py` (1,627, still in
-`scripts/` — migrate to `src/meridian/ingestion/` first, then split) · then the lower-priority `research_intelligence`
-(1,379) / `company_intake` (1,180) / `narrative_gen` (1,123). `weekend_sprint` (3,001) is §2 (decompose, not split).
-## THEN index.html (§A.2 / Phase 4) — highest risk, page-load-verify each step; do last.
+- **`research.py` 1,539 → 913** (out of the ≥1000 bucket) + 3 modules under `src/meridian/ingestion/research_pipeline/`
+  (named to avoid a `research.py`↔`research/` package collision): `common` (creds/client/log), `pkpd` (the GAP-1
+  PK/PD queue processor), `monitors` (Phase 9/10 competitive monitors). The sources/extract/write helpers + RSS/focus
+  constants stay in research.py (follow-up). NOTE: research.py needs CI-only deps (feedparser/BeautifulSoup) so it
+  can't be import-smoked locally — verified the 3 new modules import standalone + byte-identical + writer tests.
+
+## NEXT §3 targets (same method): finish `research.py` (sources/extract/write still inline) · `drug_intake.py`
+(1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first, then split) · `research_intelligence`
+(1,379) · `company_intake` (1,180) · `narrative_gen` (1,123). `weekend_sprint` (3,001) is §2 (decompose, not split).
+
+## index.html (§4 / §A.2) — PREP DONE, extraction is supervised-only (2026-06-17)
+Refreshed the tail-module map (line numbers had drifted) + wrote a ready-to-run Stage-2 recipe for the safest first
+target, **Reads** (34754–34844, 91 lines, fully IIFE + typeof-guarded), in `INDEX_HTML_DECOMPOSITION_PLAN.md`.
+**Did NOT mutate index.html** — a local static-server + headless preview could not reliably load the 2.5 MB dashboard
+(landed on chrome-error), empirically confirming the plan's "JS extraction must be browser-verified by a human"
+doctrine. Next session: run the recipe live (a few minutes), glance at the Reads tab, then continue Stage 2 by size.
+A static-server preview config is at `.claude/launch.json`.
 ## ⏸ Deferred (supervised): route the `sb_*` raw writes in `company/common.py` + `issue/common.py` +
 `ctgov/common.py` through the `src/meridian/database` writers — a semantic change needing watched `--dry-run` dispatch.
 
