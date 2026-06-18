@@ -24,10 +24,12 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   that dividend was uncashed. **Started 2026-06-18:** added `ci-quality-gate.yml` (compile + unit tests + health-no-cycles
   + hygiene + live writer tests) and the first characterization tests (`tests/unit/`). This is the "production-grade /
   any-engineer-can-step-in" enabler — a green check now *means* something.
-- **§C Intelligence quality is the actual product, and structure doesn't move it.** Value = accurate, complete, fresh,
-  trustworthy BD intelligence. Make these *tracked outcomes*, not vibes: validation pass-rate, source-coverage %, data
-  freshness/staleness, governance-clean, drug/company completeness. A weekly "intelligence quality" scoreboard alongside
-  the structural one.
+- **§C Intelligence quality is the actual product, and structure doesn't move it.** ✅ **Scoreboard built 2026-06-18**
+  (`scripts/maintenance/intelligence_quality.py`) — validation pass-rate, governance, completeness tiers, source
+  coverage, freshness, volume. First run surfaced real work: **38 unresolved governance violations** (mostly
+  `trial_misattributed_*`), **115/181 drugs untiered** (completeness never computed), **42 orphan source drug_ids**
+  (drug_sources citing non-existent drugs), 17 null source_urls. NEXT: act on those findings; consider a weekly run +
+  trend tracking. This is where repo work converts to BD value.
 - **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
   leverage, highest risk; needs browser-verify (recipe ready).
 - **§E Real dedup/clarity debt:** 17 entity-resolution implementations (converge on `entity_matcher`, metric #3);

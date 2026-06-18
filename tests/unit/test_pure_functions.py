@@ -22,8 +22,10 @@ os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-dummy")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from meridian.enrichment.company.common import normalize_area_id
-from meridian.ingestion.ctgov.map import parse_ct_study
+from meridian.enrichment.company.prompts import build_step5_prompt
+from meridian.ingestion.ctgov.map import parse_ct_study, _format_date_label
 from meridian.scoring.acquisition.scoring import _bd_rating, _days_until
+from meridian.scoring.research_intel.scoring import score_entity_completeness
 
 
 def test_normalize_area_id():
@@ -59,6 +61,29 @@ def test_parse_ct_study_maps_status_and_phase():
     assert rec["id"] == "NCT12345678"
     assert rec["status"] == "Recruiting"          # CT_STATUS_MAP
     assert rec["phase"] == "Phase 2"              # CT_PHASE_MAP
+
+
+def test_format_date_label():
+    assert _format_date_label("2026-04") == "Apr 2026"      # year-month
+    assert _format_date_label("2026-01-15") == "Jan 2026"   # full date → month-year
+    assert _format_date_label("") == ""                     # empty → empty
+
+
+def test_build_step5_prompt_shape():
+    ctx = {"company": {"name": "Spyre", "ticker": "SYRE"}, "profile": {}, "ailux_pos": {},
+           "drugs": [], "trials": [], "catalysts": [], "deals": [], "recent_intel": []}
+    p = build_step5_prompt("spyre", "tl1a", ctx)
+    assert isinstance(p, str)
+    assert "Spyre" in p                  # company name interpolated
+    assert "company_profile" in p        # the required output schema is present
+
+
+def test_score_entity_completeness_returns_tier():
+    ctx = {"entity": {"name": "X"}, "company": {}, "trials": [], "catalysts": [], "deals": [],
+           "drugs": [{"id": "d1", "mechanism": "m", "stage": "Phase 2", "drug_summary": "s"}]}
+    r = score_entity_completeness(ctx)
+    assert "completeness_score" in r and isinstance(r["completeness_score"], (int, float))
+    assert r["completeness_tier"] in ("thin", "partial", "strong")
 
 
 def _run():
