@@ -40,8 +40,12 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   credential reads at import block clean unit-testing (make them lazy → cashes more of the testability dividend).
 
 ## Now / Next (the short list)
-0. 🟡 **§B safety net** — CI quality gate + first unit tests landed (2026-06-18). NEXT: grow characterization tests over the
-   split pure modules (scoring dims, `build_step5_prompt`, `parse_*`); make credential reads lazy so modules import test-clean.
+0. 🟡 **§B safety net** — CI quality gate + unit tests landed (2026-06-18). ✅ Credential reads made fail-soft in the 4
+   split commons (enrichment/company, products/issue, ingestion/ctgov, ingestion/research_pipeline) → pure modules import
+   test-clean with zero secrets; the unit suite dropped its dummy-env crutch. ✅ Characterization tests grown 11 → 16
+   (CT.gov `score_search_match` hard-zero gate = the verekitug/APG777 lesson, multi-phase `parse_ct_study`). NEXT: more
+   dims as touched (`build_step5_prompt` variants, issue/blocks formatters); a few module-level `os.environ[...]` reads
+   remain in non-split scripts (stock_prices, morning_summary, validation/*) — make lazy opportunistically when editing them.
 1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
 3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised (DRY_RUN rebound-global blocker; executable plan in `modularization_plan.md`).
