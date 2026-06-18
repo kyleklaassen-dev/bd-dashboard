@@ -1,3 +1,34 @@
+# ✅ §3 large-file splits — write_meridian + ct_gov_sync FULLY SPLIT (2026-06-17, overnight cont.)
+
+Continued the §3 work autonomously (same proven method — see [[section3-split-method]]). Branch
+`refactor/section3-company-enrichment-prompts` (now ~20 commits, NOT pushed — `main` protected).
+**The ≥1000-line health bucket dropped 9→7** (company_enrichment, write_meridian, ct_gov_sync all removed).
+
+- **`write_meridian.py` 2,387 → 435** (orchestrator: generate_editorial_plan / format_plan_block /
+  generate_html / main) + **9 modules** under `src/meridian/products/issue/`: `common` (creds, client,
+  headers, log, AREA_NAMES, fact-check gate), `fetch` (12 Supabase fetch_* + 3 render blocks), `blocks`
+  (8 build_*_block + enrich), `prompts` (SYSTEM/PLAN/DRAFT), `factcheck` (4 verification gates), `links`
+  (first-mention hyperlinker), `persist` (save_to_supabase + plan helpers), `deploy` (GitHub Pages + catalyst
+  sync + priority bump). **External-coupling guard:** `dryrun_meridian.py` does a bare `import write_meridian
+  as wm` + 32 `wm.*` accesses — verified every name still resolves and dryrun_meridian imports clean after
+  each step. Also consolidated all 8 scattered `issue.*` imports into one top-of-file block.
+- **`ct_gov_sync.py` 1,409 → 691** (orchestrator: step3a/b/c, sync_drug, run_sync, get_trials_*) + **5 modules**
+  under `src/meridian/ingestion/ctgov/`: `common` (creds/constants/log/sb_*), `map` (PURE parse_ct_study/
+  score_search_match), `validate`, `fetch`, `write`. Per the documented PHASE3_4 fetch/map/write design.
+  parse_ct_study functional smoke verified (NCT→Recruiting/Phase 2 via the status/phase maps).
+
+Every extraction: AST free-var analysis → byte-identical relocation (all diffs == True) → py_compile +
+import-smoke + writer regression tests (6/0 + 8/0). Entrypoint paths unchanged → no workflow edits.
+
+## NEXT §3 targets (same method): `research.py` (1,539, in-package) · `drug_intake.py` (1,627, still in
+`scripts/` — migrate to `src/meridian/ingestion/` first, then split) · then the lower-priority `research_intelligence`
+(1,379) / `company_intake` (1,180) / `narrative_gen` (1,123). `weekend_sprint` (3,001) is §2 (decompose, not split).
+## THEN index.html (§A.2 / Phase 4) — highest risk, page-load-verify each step; do last.
+## ⏸ Deferred (supervised): route the `sb_*` raw writes in `company/common.py` + `issue/common.py` +
+`ctgov/common.py` through the `src/meridian/database` writers — a semantic change needing watched `--dry-run` dispatch.
+
+---
+
 # ✅ §3 large-file split — company_enrichment FULLY SPLIT (2026-06-17, cont.)
 
 **`company_enrichment.py` 4,377 → 937 lines** (a thin orchestrator + CLI) by extracting **11 focused

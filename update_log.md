@@ -3,6 +3,18 @@
 
 ---
 
+## 2026-06-17 — §3 splits: write_meridian + ct_gov_sync modularized (overnight)
+
+Continued the §3 large-file work (same byte-identical / AST-guided / writer-test-gated method). The ≥1000-line
+health bucket dropped 9 → 7.
+- **`write_meridian.py` 2,387 → 435** orchestrator + 9 modules under `src/meridian/products/issue/` (common, fetch,
+  blocks, prompts, factcheck, links, persist, deploy). Guarded the external `dryrun_meridian` coupling — it does a bare
+  `import write_meridian as wm` and uses 32 `wm.*` names; all verified intact, dryrun_meridian still imports clean.
+- **`ct_gov_sync.py` 1,409 → 691** orchestrator + 5 modules under `src/meridian/ingestion/ctgov/` (common, map [pure],
+  validate, fetch, write), per the documented fetch/map/write design. parse_ct_study functional smoke verified.
+All on branch `refactor/section3-company-enrichment-prompts` (not yet pushed — `main` protected). Entrypoint paths
+unchanged → no workflow edits. Writer tests 6/0 + 8/0 throughout.
+
 ## 2026-06-17 — §3 split: company_enrichment.py fully modularized (4,377 → 937)
 
 Split the nightly Intelligence Pipeline core into **11 focused modules** under a new

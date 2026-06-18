@@ -111,11 +111,13 @@ Already covered elsewhere (weekend_sprint just duplicates): `company_enrichment`
 
 ## 3. Large-file splits (smaller files = humans + Claude can manage them)
 Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`. Thin CLI + focused modules.
-- ✅ `company_enrichment.py` (4,377 → **937** orchestrator + 11 modules under `src/meridian/enrichment/company/`) —
-  DONE 2026-06-17, byte-identical / AST-guided / writer-test-gated; branch `refactor/section3-company-enrichment-prompts`
-  (not yet pushed). Deferred (supervised): route `company/common.py` `sb_*` → writers via watched `--dry-run`.
-- ⬜ `write_meridian.py` (2,387) — next; `meridian-preview.yml --dry-run` makes it verifiable.
-- ⬜ `drug_intake.py` (1,627) · `research.py` (1,539) · `ct_gov_sync.py` (1,409, fetch/map/write split designed) · `research_intelligence.py` (1,379) · `company_intake.py` (1,180) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
+- ✅ `company_enrichment.py` (4,377 → **937** + 11 modules `src/meridian/enrichment/company/`) — DONE 2026-06-17.
+- ✅ `write_meridian.py` (2,387 → **435** + 9 modules `src/meridian/products/issue/`) — DONE 2026-06-17.
+- ✅ `ct_gov_sync.py` (1,409 → **691** + 5 modules `src/meridian/ingestion/ctgov/`, fetch/map/validate/write) — DONE 2026-06-17.
+  All three: byte-identical / AST-guided / writer-test-gated; branch `refactor/section3-company-enrichment-prompts` (not yet pushed).
+  Deferred (supervised): route the `sb_*` raw writes in each `common.py` → the `src/meridian/database` writers via watched `--dry-run`.
+- ⬜ `research.py` (1,539, in-package) — next. `drug_intake.py` (1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first) ·
+  `research_intelligence.py` (1,379) · `company_intake.py` (1,180) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
 
 ## 4. `index.html` (34,847 lines) — Phase 4 decomposition
 Per `docs/architecture/INDEX_HTML_MAP.md` + `INDEX_HTML_DECOMPOSITION_PLAN.md`. Extract self-contained JS modules

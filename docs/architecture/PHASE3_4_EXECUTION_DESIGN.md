@@ -8,6 +8,16 @@ Derived from the actual code structure (not the outline). Ready to execute in a 
 
 ## Phase 3 — `ct_gov_sync.py` (1,409 lines) → `scripts/ingestion/ctgov/`
 
+> ✅ **EXECUTED 2026-06-17** (branch `refactor/section3-company-enrichment-prompts`). Actual home:
+> `src/meridian/ingestion/ctgov/` (the script was already migrated into the package). `ct_gov_sync.py`
+> is now a **691-line orchestrator** (step3a/b/c, sync_drug, run_sync, get_trials_*) + 5 modules:
+> `common.py` (creds/constants/log/sb_*), `map.py` (PURE — parse_ct_study/_format_date_label/
+> score_search_match, extracted first per the design), `validate.py`, `fetch.py`, `write.py`. Byte-identical
+> relocations; parse_ct_study functional smoke + writer tests green. The `sb_*` → writer routing remains the
+> deferred supervised step. **`write_meridian.py` (2,387→435 + `issue/` subpackage) also split this session.**
+
+
+
 Confirmed function map (line numbers as of 2026-06-16):
 
 | New module | Functions to move | Lines | External deps | Risk |
