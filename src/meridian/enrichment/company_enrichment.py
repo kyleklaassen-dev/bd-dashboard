@@ -202,72 +202,12 @@ KNOWN_DRUG_TARGETS: dict[str, dict] = {
 }
 
 # ── Oncology / Immunology target sets for catalog_category inference ──────────
-_CCat_TCE_TARGETS  = {"bcma", "cd3", "cd19", "cd20", "cd38", "cd33", "cd123",
-                      "her2", "egfr", "pd-1", "pd-l1", "pdl1", "ctla-4", "ctla4",
-                      "tim-3", "lag-3", "cd47", "vegf"}
-_CCat_IMMUNO_KWORDS = {"tl1a", "tnfrsf25", "il-4r", "il4r", "tslp", "fcrn",
-                       "neonatal fc", "il-23", "il23", "il-17", "il17", "tnf",
-                       "il-13", "il13", "il-33", "il33", "il-31", "il31",
-                       "integrin", "α4β7", "a4b7", "rankl", "baff", "april",
-                       "igg4", "ige", "il-5", "il5", "il-6", "il6"}
-_CCat_ONCOLOGY_AREAS = {"tcell", "t_cell"}
-_CCat_IMMUNO_AREAS   = {"tl1a", "fcrn", "il4ra", "tslp", "autoimmune",
-                         "ibd", "respiratory", "ige"}
-_CCat_EARLY_STAGES   = {"preclinical", "phase 1", "phase i", "pre-ind",
-                         "ind-enabling", "discovery"}
-
-
-def infer_catalog_category(target: str = "", modality: str = "",
-                            stage: str = "", area_id: str = "") -> str:
-    """
-    Infer catalog_category from drug attributes.
-
-    Priority order (first match wins):
-      1. Target contains a T-cell engager / oncology antigen → 'Oncology'
-      2. Modality is ADC / CAR-T                             → 'Oncology'
-      3. area_id is a known oncology area (tcell)            → 'Oncology'
-      4. Target / area is immunology AND stage is early      → 'Pipeline'
-      5. Target / area is immunology AND stage is later      → 'Immunology'
-      6. Target contains JAK or modality is small molecule   → 'Small Molecule'
-      7. Fallback                                            → 'Pipeline'
-
-    Invariant: any drug with a drug_areas row must have catalog_category set.
-    Call this function at every drug INSERT and whenever catalog_category is NULL
-    on an existing drug being patched.
-    """
-    tgt  = (target   or "").lower()
-    mod  = (modality or "").lower()
-    stg  = (stage    or "").lower()
-    area = (area_id  or "").lower()
-
-    # 1. T-cell engager / oncology antigen targets
-    import re as _re
-    tgt_parts = {p.strip() for p in _re.split(r"[×x×/]", tgt) if p.strip()}
-    if _CCat_TCE_TARGETS & tgt_parts:
-        return "Oncology"
-
-    # 2. Oncology modalities
-    if any(m in mod for m in ("adc", "car-t", "car t", "antibody-drug conjugate")):
-        return "Oncology"
-
-    # 3. Oncology area tab
-    if area in _CCat_ONCOLOGY_AREAS:
-        return "Oncology"
-
-    # 4. JAK / small molecule (checked BEFORE immunology area, since JAK drugs
-    #    often appear in immunology areas but are categorically small molecules)
-    if "jak" in tgt or "small molecule" in mod or "oral small molecule" in mod:
-        return "Small Molecule"
-
-    # 5 & 6. Immunology signal (target keywords or area)
-    is_immuno = any(kw in tgt for kw in _CCat_IMMUNO_KWORDS) or area in _CCat_IMMUNO_AREAS
-    if is_immuno:
-        if any(s in stg for s in _CCat_EARLY_STAGES):
-            return "Pipeline"
-        return "Immunology"
-
-    # 7. Fallback — treat as pipeline asset until enrichment can classify further
-    return "Pipeline"
+# catalog_category logic centralized in meridian.enrichment.catalog_category
+import sys as _s_cc, pathlib as _pl_cc
+for _p_cc in _pl_cc.Path(__file__).resolve().parents:
+    if (_p_cc/'meridian'/'enrichment').is_dir(): _s_cc.path.insert(0,str(_p_cc)); break
+    if (_p_cc/'src'/'meridian'/'enrichment').is_dir(): _s_cc.path.insert(0,str(_p_cc/'src')); break
+from meridian.enrichment.catalog_category import infer_catalog_category
 
 
 def validate_source_url(url: str, context: str = "", head_check: bool = True) -> Optional[str]:
